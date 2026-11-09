@@ -163,12 +163,12 @@ const construireCarte = (): WorldMap => ({
   id: 'test-voyage-carte',
   label: 'Marches de Weiler (test)',
   places: [
-    { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: 'test-voyage-village', icon: 'scenario/village' },
-    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: 'test-voyage-hameau', icon: 'scenario/hamlet' },
-    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: 'test-voyage-bourg', icon: 'scenario/port', services: [{ kind: 'auberge', rest: { auberge: true } }, { kind: 'forgeron' }] },
+    { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village' },
+    { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hamlet' },
+    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: 'auberge', rest: { auberge: true } }, { kind: 'forgeron' }] },
     // id 'altdorf' (pas juste 'p-cite') : les Activités d'Altdorf (ACE Annexe I) gatées `where:['altdorf']`
     // (activities.json — Pénitence, Entraînement, Tester des objets…) lisent le `lieu` du groupe par son id.
-    { id: 'altdorf', label: 'Altdorf', pos: { x: 90, y: 20 }, scene: 'test-voyage-cite', icon: 'scenario/siege' },
+    { id: 'altdorf', label: 'Altdorf', pos: { x: 90, y: 20 }, scene: { id: 'test-voyage-cite' }, icon: 'scenario/siege' },
   ],
   routes: [
     {
@@ -180,11 +180,11 @@ const construireCarte = (): WorldMap => ({
         label: 'Des silhouettes vertes jaillissent des fourrés !',
         chancePct: 90,
         effects: [
-          { type: 'transition', scene: 'test-voyage-embuscade' },
+          { type: 'transition', scene: { id: 'test-voyage-embuscade' } },
           { type: 'startCombat', encounter: 'enc-vembuscade' },
         ],
       }],
-      ambush: { scene: 'test-voyage-embuscade', encounter: 'enc-vembuscade' }, // cible du « Attaqués ! » (d10)
+      ambush: { scene: { id: 'test-voyage-embuscade' }, encounter: 'enc-vembuscade' }, // cible du « Attaqués ! » (d10)
     },
     {
       id: 'r-grandroute',
@@ -203,7 +203,7 @@ const construireCarte = (): WorldMap => ({
       km: 96,
       modes: ['pied', 'diligence'],
       inns: true,
-      ambush: { scene: 'test-voyage-embuscade', encounter: 'enc-vembuscade' },
+      ambush: { scene: { id: 'test-voyage-embuscade' }, encounter: 'enc-vembuscade' },
     },
   ],
 });

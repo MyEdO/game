@@ -16,4 +16,4 @@ metadata:
 **How to apply :**
 - Ce que le jeu ajoute de montrable (modèle, clip, effet visuel, son) se montre dans l'atelier dans le même geste, lu par le pont aux catalogues du jeu : `.claude/rules/hote-godot.md`.
 - Un modèle 3D de toute famille entre par la même porte (`hotes/godot/asset/`, `godot:valider`) ; sa famille y ajoute ses particularités, jamais un atelier à part. Sa chaîne vit sous `scripts/personnage-3d/`.
-- Évaluation d'ingénierie révisable : un modèle n'embarque aucune texture ; une surface nomme sa matière (`hotes/godot/asset/surfaces.ts`), texturée par le catalogue unique `hotes/godot/projet/textures/`, comme les sols et les murs.
+- Évaluation d'ingénierie révisable (non-verbatim utilisateur) : un modèle n'embarque aucune texture ; une surface nomme sa matière (`hotes/godot/asset/surfaces.ts`), texturée par le catalogue unique `hotes/godot/projet/textures/`, comme les sols et les murs.

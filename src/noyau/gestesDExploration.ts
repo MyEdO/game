@@ -60,7 +60,7 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
     const sortie = flowEffects(trig.flow).find(estTransition);
     if (!sortie) continue;
     const marche = marcheVers(s, { x: trig.rect.x, y: trig.rect.y, z: trig.rect.z ?? 0 });
-    if (marche) out.push({ libelle: t('exploration.sortie', { scene: sortie.scene }), gestes: marche.gestes });
+    if (marche) out.push({ libelle: t('exploration.sortie', { scene: sortie.scene.id }), gestes: marche.gestes });
   }
   for (const p of offresDExploration(s)) {
     for (const o of p.offres) {

@@ -227,7 +227,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ party: [hero], interlude: null, bank: [], pendingOrders: [], pendingActivity: null });
     g().lancerLaScene(testScene());
     banc.abandonner();
-    banc.setState({ worldMap: { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: testScene().id }], routes: [] }, lieu: 'altdorf' });
+    banc.setState({ worldMap: { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 50, y: 50 }, scene: { id: testScene().id } }], routes: [] }, lieu: 'altdorf' });
     g().ouvrirLInterlude(3);
     draineCascade(g);
     const itl = g().interlude!;

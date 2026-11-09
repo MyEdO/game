@@ -2030,13 +2030,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Navigation ─────────────────────────────────────────────────────────
   transition: {
     group: 'Navigation', label: libelleEffet('transition'), icon: 'nav/entry-point',
-    make: () => ({ type: 'transition', scene: '', entry: '' }),
+    make: () => ({ type: 'transition', scene: { id: '' }, entry: '' }),
     apply: (e, env) => {
       const cur = env.get();
       if (cur.scene) env.set({ previousScene: { id: cur.scene.id, pos: { ...cur.partyPos } } });
-      env.get().quitterLaScene(e.scene, e.entry);
+      env.get().quitterLaScene(e.scene.id, e.entry);
     },
-    refs: (e, ctx) => ctx.sceneIds.has(e.scene) ? [] : [{ level: 'error', message: `Effet → scène inexistante « ${e.scene} »` }],
+    refs: (e, ctx) => ctx.sceneIds.has(e.scene.id) ? [] : [{ level: 'error', message: `Effet → scène inexistante « ${e.scene.id} »` }],
   },
   transitionBack: {
     group: 'Navigation', label: libelleEffet('transitionBack'), icon: 'ui/undo',

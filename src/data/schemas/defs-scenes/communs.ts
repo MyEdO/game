@@ -7,12 +7,16 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { talentRefSchema, traitPoseDeSceneSchema } from '../grammaire/reference';
-import { refOuSpec, refs } from '../grammaire/ref';
+import { refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
 import type { SkillRef } from '../../index';
 import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
 import { ID_D_ENTREE } from '../../source/dossier';
+
+/** Les scènes du projet, que désignent un lieu de la carte, son point d'intérêt, l'embuscade d'une route et
+ *  l'effet `transition`. */
+export const SCENES_DU_PROJET = { collection: 'scenes', catalogue: 'scènes du projet' } as const satisfies PorteeLocale;
 
 /** `Pt` (`noyau/monde/path.ts`) — case, `z` = couche d'empilement (absent = base). */
 export const ptSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), z: z.number().optional() }), { x: { label: "abscisse" }, y: { label: "ordonnée" }, z: { label: "étage" } });

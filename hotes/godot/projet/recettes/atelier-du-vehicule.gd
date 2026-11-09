@@ -45,7 +45,7 @@ class PontFige extends PontDuNoyau:
 		return fige.vehicule.get(cle, {ok = false, erreur = {categorie = "validation", message = "entrée non figée : %s" % cle}})
 
 	func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
-		if relative == "modeles/":
+		if relative == "modeles/listage.json":
 			return JSON.stringify(fige.listage).to_utf8_buffer()
 		var octets := FileAccess.get_file_as_bytes("res://%s" % relative)
 		if octets.is_empty():

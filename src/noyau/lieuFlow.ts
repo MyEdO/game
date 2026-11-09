@@ -22,8 +22,8 @@ export function arriverAuLieu(set: Set, to: MapPlace): void {
 export const quitterLeLieu = { lieu: null, lieuOuvert: false } as const;
 
 /** Les points d'intérêt du plan du lieu où se tient le groupe qui mènent à une scène (`PlacePoi.sceneId`). */
-export function entreesDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): (PlacePoi & { sceneId: string })[] {
-  return (lieuDuGroupe(s)?.poi ?? []).filter((p): p is PlacePoi & { sceneId: string } => !!p.sceneId);
+export function entreesDuLieu(s: Pick<Jeu, 'lieu' | 'worldMap'>): (PlacePoi & { sceneId: { id: string } })[] {
+  return (lieuDuGroupe(s)?.poi ?? []).filter((p): p is PlacePoi & { sceneId: { id: string } } => !!p.sceneId);
 }
 
 /** Refus d'entrer au point d'intérêt `poi` : la raison, ou `null`. Hors de l'écran du lieu, hors des entrées du
@@ -32,7 +32,7 @@ export function refusDEntrerAuPoint(s: Jeu, poi: string): string | null {
   if (fenetreDuJeu(s)?.cle !== 'ecranDuLieu') return t('lieu.horsDeLEcran');
   const p = entreesDuLieu(s).find((x) => x.id === poi);
   if (!p) return t('lieu.pointInconnu', { poi });
-  if (!sceneDuRegistre(p.sceneId)) return t('lieu.pointSansScene', { poi: p.label });
+  if (!sceneDuRegistre(p.sceneId.id)) return t('lieu.pointSansScene', { poi: p.label });
   return null;
 }
 
@@ -46,7 +46,7 @@ export function creerActionsDuLieu(get: Get, set: Set) {
       if (refus) { refuserGeste(get, set, refus); return; }
       const p = entreesDuLieu(get()).find((x) => x.id === poi)!;
       set({ lieuOuvert: false });
-      get().quitterLaScene(p.sceneId);
+      get().quitterLaScene(p.sceneId.id);
     },
   } satisfies Partial<ActionsDuNoyau>;
 }
@@ -57,7 +57,7 @@ export function sortiesDuLieu(get: Get, set: Set) {
     ecranDuLieu: () => {
       const ici = lieuDuGroupe(get());
       set({ lieuOuvert: false });
-      if (ici && get().scene?.id !== ici.scene) get().quitterLaScene(ici.scene, ici.entry);
+      if (ici && get().scene?.id !== ici.scene.id) get().quitterLaScene(ici.scene.id, ici.entry);
     },
   } satisfies Partial<SortiesDeFenetre>;
 }

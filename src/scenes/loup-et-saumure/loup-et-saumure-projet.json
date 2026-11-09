@@ -1023,7 +1023,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "ls-epilogue-salzenmund",
+         "scene": {
+          "id": "ls-epilogue-salzenmund"
+         },
          "entry": "retour"
         }
        }
@@ -3751,7 +3753,9 @@
      "x": 25,
      "y": 60
     },
-    "scene": "ls-quai-salzenmund",
+    "scene": {
+     "id": "ls-quai-salzenmund"
+    },
     "icon": "scenario/port",
     "backdrop": {
      "id": "port"
@@ -3816,7 +3820,9 @@
      "x": 78,
      "y": 20
     },
-    "scene": "ls-quai-erengrad",
+    "scene": {
+     "id": "ls-quai-erengrad"
+    },
     "icon": "scenario/port",
     "backdrop": {
      "id": "port"
@@ -3894,7 +3900,9 @@
     "sea": true,
     "seaHeading": "nord",
     "ambush": {
-     "scene": "ls-abordage-cogue",
+     "scene": {
+      "id": "ls-abordage-cogue"
+     },
      "encounter": "enc-cogue"
     }
    },
@@ -3916,7 +3924,9 @@
     "sea": true,
     "seaHeading": "sud",
     "ambush": {
-     "scene": "ls-abordage-olg",
+     "scene": {
+      "id": "ls-abordage-olg"
+     },
      "encounter": "enc-olg"
     }
    }
