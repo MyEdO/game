@@ -1,7 +1,7 @@
 import { type Scene, type SceneEntity, isWalkable } from './scene';
 import { entityBlockedAt } from './sceneRules';
 import { entitesEnCaseEtage } from './decorIndex';
-import { pathTo, walkNeighbors, type MoveEnv, type Pt } from './path';
+import { cheminsDepuis, walkNeighbors, type CheminsDepuis, type MoveEnv, type Pt } from './path';
 import { portalsForParty } from './roomPortals';
 import { memeCase, placesJouables, seatSlotsOf } from './seating';
 import { estUtilisable } from './usable';
@@ -15,6 +15,7 @@ import type { Combatant } from '../../engine/types';
  *  (P5). À l'ÉTAGE de la cible (un PNJ de loge s'aborde depuis une case voisine, même z). */
 export function adjacentWalkable(sc: Scene, target: Pt, from: Pt): Pt | null {
   const tz = target.z ?? 0;
+  const chemins = cheminsDepuis(sc, from, { blocked: new Set() });
   let best: Pt | null = null;
   let bestLen = Infinity;
   for (let dx = -1; dx <= 1; dx++) {
@@ -22,7 +23,7 @@ export function adjacentWalkable(sc: Scene, target: Pt, from: Pt): Pt | null {
       if (!dx && !dy) continue;
       const c: Pt = tz ? { x: target.x + dx, y: target.y + dy, z: tz } : { x: target.x + dx, y: target.y + dy };
       if (!isWalkable(sc, c.x, c.y, tz)) continue;
-      const p = pathTo(sc, from, c, { blocked: new Set() });
+      const p = chemins.vers(c);
       if (p && p.length < bestLen) {
         best = c;
         bestLen = p.length;
@@ -113,10 +114,10 @@ export interface ExploreMovePlan {
  *  l'abord → chemin d'un seul point, à l'appelant d'y voir « rien à marcher ». */
 export function exploreSeatPlan(
   scene: Scene,
-  partyPos: Pt,
   propId: string,
-  opts: PathOpts = { blocked: new Set() },
+  chemins: CheminsDepuis,
 ): { slotId: string; approach: Pt; path: Pt[] } | null {
+  const partyPos = chemins.depart;
   const libres = seatSlotsOf(scene, propId).filter((s) => !scene.seatAssignments?.[propId]?.[s.slotId]);
   // La place SOUS LES PIEDS prime sur l'ordre du catalogue — c'est celle que `interagirAvecLEntite` prendra
   // (il n'accepte que le slot dont l'abord est exactement `partyPos`) : diverger ici ferait planifier
@@ -124,7 +125,7 @@ export function exploreSeatPlan(
   const surPlace = libres.find((s) => memeCase(s.approach, partyPos));
   if (surPlace) return { slotId: surPlace.slotId, approach: surPlace.approach, path: [partyPos] };
   for (const slot of libres) {
-    const path = pathTo(scene, partyPos, slot.approach, opts);
+    const path = chemins.vers(slot.approach);
     if (path && path.length >= 2) return { slotId: slot.slotId, approach: slot.approach, path };
   }
   return null;
@@ -132,10 +133,10 @@ export function exploreSeatPlan(
 
 export function exploreMovePlan(
   scene: Scene,
-  partyPos: Pt,
   tile: Pt,
-  opts: PathOpts,
+  chemins: CheminsDepuis,
 ): ExploreMovePlan | null {
+  const partyPos = chemins.depart;
   // MEUBLE À PLACES : on rejoint l'ABORD d'une place libre plutôt qu'une case « à côté ». Ici, et pas
   // seulement au clic : l'aperçu de chemin au survol lit la MÊME source (diverger ferait disparaître
   // le tracé sous le curseur d'un meuble parfaitement joignable).
@@ -146,12 +147,12 @@ export function exploreMovePlan(
   // clic est une lecture d'INTERACTION, comme le halo et le curseur.
   const meuble = entitesEnCaseEtage(scene, tile.x, tile.y, tile.z ?? 0).find((e) => e.kind === 'prop' && placesJouables(scene, e.id).length);
   if (meuble) {
-    const place = exploreSeatPlan(scene, partyPos, meuble.id, opts);
+    const place = exploreSeatPlan(scene, meuble.id, chemins);
     if (place && place.path.length >= 2) return { dest: place.approach, path: place.path };
   }
   const dest = exploreMoveDest(scene, partyPos, tile);
   if (!dest) return null;
-  const path = pathTo(scene, partyPos, dest, opts);
+  const path = chemins.vers(dest);
   if (!path || path.length < 2) return null;
   const portal = portalsForParty(scene, partyPos).find((candidate) =>
     candidate.to.x === tile.x

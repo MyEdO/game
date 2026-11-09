@@ -4,7 +4,7 @@
  * se refusent en `validation` ; un geste refusé porte la catégorie que le module commun lui donne (`validation`,
  * `permission`, `regle`), une levée qu'aucun contrôle n'attendait la catégorie `interne` ; la vue porte le plateau de
  * la scène, chaque verbe de sa fenêtre en geste prêt à dessiner (`fautesDeLaFenetre`) et les clics du champ ; les
- * erreurs de la page s'y relèvent. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un
+ * erreurs de la page s'y relèvent ; le choix d'un scénario (`scenarios`) se sert sans partie. Une partie par contexte JS : les tests de ce fichier jouent, dans l'ordre, sur un
  * même pont.
  */
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
@@ -14,6 +14,10 @@ import type { VueDuPont } from './pont';
 import { CLIC_DU_CHAMP, cleDuGeste, plateauDeLaScene } from '../../../src/noyau/index';
 import { VERBES } from '../../../src/hote/verbes.generated';
 import { scenario } from '../../../src/scenes/test-scenarios/22-dome';
+import { testScenarios } from '../../../src/scenes/test-scenarios';
+import { SCENARIO_SECTIONS } from '../../../src/scenes/test-scenarios/_shared';
+import type { Entite } from '../../../src/hote/elements';
+import type { ZonesDesScenarios } from '../../../src/hote/scenarios';
 import { baseDeTest, elementSchema3 } from '../asset/modeles.testkit.ts';
 import * as projection from '../../../src/hote/projection';
 
@@ -32,7 +36,7 @@ describe('le pont avant sa partie', () => {
   it('une méthode inconnue se refuse en `validation` et nomme les méthodes du contrat', () => {
     const e = erreurDe(appel('simulerAttaque', {}));
     expect(e.categorie).toBe('validation');
-    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, vue, monde, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, presetDeComposition, editer, erreursGlobales)');
+    expect(e.message).toBe('méthode inconnue : simulerAttaque (méthodes : demarrer, scenarios, vue, monde, jouer, plan, regarder, fiche, creation, reprendre, modeles, composer, vehicule, catalogues, vitrine, presetDeComposition, editer, erreursGlobales)');
   });
 
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
@@ -46,6 +50,21 @@ describe('le pont avant sa partie', () => {
     const sansOs = { categorie: 'validation', message: 'modeles : osDesRigides, un objet id de modèle → os de ses meshes rigides' };
     expect(erreurDe(appel('modeles', { manifestes }))).toEqual(sansOs);
     expect(erreurDe(appel('modeles', { manifestes, osDesRigides: { epee: 'root' } }))).toEqual(sansOs);
+  });
+
+  it('`scenarios` rend, sans partie, chaque scénario du catalogue une fois, sous sa section, et le bouton qui le démarre', () => {
+    const { zones } = appel('scenarios') as unknown as { zones: ZonesDesScenarios };
+    const sections = zones['scenarios.sections'];
+    expect(sections.map((s) => s.nom)).toEqual(SCENARIO_SECTIONS.filter((s) => testScenarios.some((sc) => sc.category === s.key)).map((s) => s.label));
+    const ranges = sections.flatMap((s) => (s.elements as Entite[]).map((e) => ({ section: s.id, e })));
+    expect(ranges.map(({ e }) => e.id).sort()).toEqual(testScenarios.map((sc) => sc.id).sort());
+    for (const { section, e } of ranges) {
+      const sc = testScenarios.find((x) => x.id === e.id)!;
+      expect(section).toBe(`section/${sc.category}`);
+      expect(e.nom).toBe(sc.title);
+      expect(e.elements.find((x) => x.type === 'bouton')).toMatchObject({ id: `lancer/${sc.id}`, jeu: { scenario: sc.id }, refus: null });
+    }
+    expect(erreurDe(appel('scenarios', { section: 'combat' }))).toEqual({ categorie: 'validation', message: 'scenarios : section hors de l’entrée (aucune clé)' });
   });
 
   it('`vue`, `monde`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
