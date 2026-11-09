@@ -29,11 +29,11 @@ describe('MerchantPanel (#2 — panier)', () => {
     const porteur = stubHero('h', 'H', [{ uid: 'u1', trappingId: 'hallebarde' } as unknown as ItemInstance]);
     const html = renderToStaticMarkup(
       <MerchantPanelView
-        merchant={{ ...base, stock: [{ id: 'epee', qty: 3 }] }}
+        merchant={{ ...base, stock: [{ id: 'epee', qty: 3 }], troc: { cede: { heroId: 'h', trappingId: 'hallebarde' }, recu: 'epee', quantite: 1 } }}
         party={[porteur]}
         money={{ gold: 5, silver: 0, brass: 0 }}
         initialTab="barter"
-        onBarter={() => {}}
+        troc={{ ceder: () => {}, recevoir: () => {}, quantite: () => {}, troquer: () => {} }}
         {...noop}
       />,
     );
