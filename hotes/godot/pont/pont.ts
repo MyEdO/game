@@ -10,7 +10,15 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie } from '../../../src/noyau/index';
+/**
+ * @contrat En-tête
+ * v8 (#2928, #2948, #3086, #3253, #3508).
+ *
+ * Godot est un hôte du noyau, au même titre que l'hôte texte (`src/hoteTexte/`) : il envoie des gestes et lit une vue
+ * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
+ * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
+ */
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -42,48 +50,159 @@ interface ErreurGlobale {
   source: string | null;
 }
 
-/** Les corps du combat (`VueDuPont.corps`). */
+/**
+ * @contrat Corps d'un combattant
+ * Les corps du combat (`VueDuPont.corps`). La vue compose chaque combattant dessiné (`combat.voisins.liste` en combat,
+ * `exploration.heros` hors combat) sur la base servie par le dernier `modeles`, par `composerSurLaBase`
+ * (`composition.ts`), comme `composer` compose une composition à l'atelier : les modèles servis sont un état du pont,
+ * que l'atelier et le combat lisent, et aucun index de combat ne double celui de l'atelier (`corpsDe`, `pont.ts`).
+ * `modeles` s'appelle avant ou après `demarrer` ; chaque vue suivante compose sur le dernier.
+ */
 export interface CorpsDuCombat {
-  /** null : les corps sont composés ; sinon pourquoi aucun ne l'est : aucun `modeles` appelé, ou un nombre de bases
-   *  servies différent de un (`base-ambigue`). */
+  /**
+   * `[sans-modeles]` avant tout `modeles` ; `[base-ambigue]` quand le dernier `modeles` sert zéro ou plusieurs bases
+   * (le message les compte et les nomme) ; `null` sinon. Avec un refus, chaque combattant vaut `null`.
+   */
   refus: string | null;
-  /** Par id de combattant dessiné (`combat.voisins.liste`, sinon `exploration.heros`) : la base et la composition de sa
-   *  portée sur elle (`composerSurLaBase`), `null` si sa portée est `null` (corps sans base de ce plan) ou sous refus. */
+  /**
+   * Par id de combattant dessiné (`combat.voisins.liste`, sinon `exploration.heros`) : `null` pour un combattant sans
+   * portée ; sinon sa composition sur la base (`CompositionSurLaBase`, section « Composition d'un personnage ») et
+   * `base`, l'id de cette base. Sa portée se compose sur la base par `composerSurLaBase` ; sous refus, il vaut `null`.
+   */
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
-  /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
-   *  `vehicule` est servi : son corps (`corpsDuVehicule`), quelles que soient les bases servies. */
+  /**
+   * Par id de combattant dessiné : pour un combattant dessiné qui est un véhicule ou un engin, hors d'un navire de
+   * `navires`, (`vehicule` de sa projection) dont le dernier `modeles` sert un élément `vehicule` de même `definition`
+   * (`vehicules` de sa réponse, section « Atelier 3D »), son corps (`corpsDuVehicule`, `pont.ts`, que `vehicule`
+   * compose aussi pour l'atelier) (`CorpsDuVehicule`, `CombattantProjete.vehicule`). Un véhicule n'a pas de base :
+   * `refus` ne le touche pas (#2987).
+   */
   vehicules: Record<string, CorpsDuVehicule>;
-  /** Par id de pose de chaque navire de la scène (`naviresDeLaScene`) dont un élément `vehicule` est servi : son corps
-   *  (`corpsDuVehicule`), le point de la scène sous l'origine de son modèle et la hauteur de cette origine. */
+  /**
+   * pour chaque navire de la scène dont elle pose les ponts (#3686 : une entité `personnage` dont la `ref` est un
+   * véhicule à plan des ponts, dans une scène à l'échelle de ce plan) et dont le dernier `modeles` sert un élément
+   * `vehicule` de même `definition`, par l'id de son entité (`naviresDeLaScene`, `src/noyau/planDeNavire.ts`) : son
+   * corps, son centre et ses stations (`NavireServi`).
+   */
   navires: Record<string, NavireServi>;
 }
 
-/** Un navire de la scène servi (#3686) : son corps, où se pose l'origine de son modèle (`NavireDeLaScene`), et où se
- *  tient l'occupant de chaque case de ses ponts que son modèle rogne (`stationsDuNavire`, des `cases` du manifeste de
- *  son élément, #3767). */
-export interface NavireServi extends Pick<NavireDeLaScene, 'centre'> {
+/**
+ * @contrat Corps d'un combattant
+ * Un navire de la scène servi (#3686) : son corps, où se pose l'origine de son modèle (`NavireDeLaScene`), et où se
+ * tient l'occupant de chaque case de ses ponts que son modèle rogne (`stationsDuNavire`, des `cases` du manifeste de
+ * son élément, #3767).
+ */
+export interface NavireServi {
+  /**
+   * le corps de son véhicule (`corpsDuVehicule`, comme `vehicules[id]`, du véhicule de sa fiche,
+   * `vehiculeDuCombattant`, à son cap, `taille` `reelle`).
+   */
   corps: CorpsDuVehicule;
+  /**
+   * le point de la scène, en cases continues (la case centrée sur l'entier), sous l'origine de son modèle : le centre
+   * de l'emprise de ses ponts, le repère du plan de ses ponts étant celui du modèle (`pontsDeLaFiche.ts`), sa
+   * flottaison à la hauteur 0 de la scène.
+   */
+  centre: NavireDeLaScene['centre'];
+  /**
+   * pour chaque case de ses ponts que son modèle rogne (`cases` du manifeste de l'élément, l'emprise libre de
+   * chacune, #3767), la case et son étage (`x`, `y`, `z`) et `point`, le centre de cette emprise, en cases continues
+   * (`stationsDuNavire`) : l'occupant de la case s'y tient (`Monde.lieu`, que pose `Monde.poser_les_stations`), à sa
+   * place au centre de toute autre case.
+   */
   stations: StationDeNavire[];
 }
 
-/** Le corps d'un véhicule servi (#2987) : l'élément `vehicule` qui dessine sa fiche (`ModelesDeLAtelier.vehicules`), le
- *  côté de son empreinte, sa taille, son cap, sa palette (`paletteDesCouleurs`), son emblème si l'élément porte une surface
- *  `blason` (`emblemeMonte`), les pièces montées à ses postes (`postesMontes`), celles de ses Améliorations
- *  (`ameliorationsMontees`), les nœuds qu'elles cachent (`noeudsCaches`) et la table rôle → clip de l'élément (`clips` de
- *  son manifeste, vide sans clips). */
+/**
+ * @contrat Corps d'un combattant
+ * Le corps d'un véhicule servi (#2987), que le combat (`corpsDe`) et l'atelier (`vehicule`) composent tous deux
+ * (`corpsDuVehicule`).
+ */
 export interface CorpsDuVehicule {
+  /** l'id de cet élément, l'élément `vehicule` qui dessine sa fiche (`ModelesDeLAtelier.vehicules`). */
   element: string;
+  /** le côté N des N×N cases qu'il couvre depuis sa case (coin nord-ouest). */
   empreinte: number;
+  /** celle de sa projection. */
   taille: VehiculeDuCombattant['taille'];
+  /** celui de sa projection. */
   cap: VehiculeDuCombattant['cap'];
+  /**
+   * la couleur `#rrggbb` de chaque emplacement de palette que colorent les `couleurs` de sa projection, résolues au
+   * nuancier (`paletteDesCouleurs`, `composition.ts`).
+   */
   palette: Record<string, string>;
+  /**
+   * celui de sa projection si cet élément porte une surface `blason` (`emblemeMonte`, `atelier.ts`, la règle des
+   * entrées de `montes`), absent sinon.
+   */
   embleme?: EmblemeResolu;
+  /**
+   * les pièces montées à ses postes (`postesMontes`, `atelier.ts`) : chaque pièce de `postes` de sa projection dont le
+   * dernier `modeles` sert un élément `vehicule` de même `definition`, à la position de son bord qui suit celles des
+   * pièces précédentes de ce bord dans ses postes en vigueur (`postesEnVigueur`, `atelier.ts`) : `postes` du manifeste
+   * de l'élément du véhicule (section « Atelier 3D »), chaque bord que nomme `selon.<amelioration>.postes` d'une
+   * Amélioration de `ameliorations` de sa projection remplacé par les siens (MDG p.97, Sabord), si ces postes
+   * l'offrent ; chacune y porte `element`, l'id de son élément, `bord`, `position` et `palette`, celle du véhicule où
+   * la palette de sa `teinte` colore (`findTeinteById`).
+   */
   postes: PosteMonte[];
+  /**
+   * les pièces de ses Améliorations (`ameliorationsMontees`, `atelier.ts`) : pour chaque Amélioration de
+   * `ameliorations` de sa projection dont le dernier `modeles` sert un élément `amelioration` de même
+   * `cle.amelioration`, selon le `montage` de cet élément, une pièce à chacune des positions de `ancrages` de cette
+   * Amélioration dans le manifeste du véhicule, ou une pièce à chaque position de `selon.<amelioration>.postes` de ce
+   * manifeste, qui porte `poste` : son `bord`, `montre`, `ouvert` si une pièce de `postes` y est montée, `ferme` sinon,
+   * et `cache`, l'autre (`ETATS_AU_POSTE`, `asset/element.ts`) ; chacune y porte `element` et `position`.
+   */
   ameliorations: AmeliorationMontee[];
+  /**
+   * les noms des nœuds à cacher (`noeudsCaches`, `atelier.ts`) : pour chaque Amélioration que nomme le `selon` du
+   * manifeste du véhicule ou celui d'une pièce de `ameliorations`, `sans-<amelioration>` si elle est dans
+   * `ameliorations` de sa projection, `avec-<amelioration>` sinon (`noeudSelon`, `asset/element.ts`).
+   */
   caches: string[];
+  /** la table rôle → clip de cet élément (`clips` de son manifeste, `{}` sans clips). */
   clips: TableDeClips;
 }
 
+/**
+ * @contrat Corps d'un combattant
+ * Chaque combattant (`combat.actif`, `combat.voisins.liste` et `exploration.heros`) porte `vehicule`
+ * (`vehiculeDuCombattant`, `src/noyau/apparence/combattant.ts`) : `null`, sauf pour une coque de `vehicles.json` ou un
+ * engin `armes-de-siege` de `trappings.json` (`findFicheDeVehicule`), qui y porte `definition`, l'id de sa fiche,
+ * `empreinte`, le côté de son empreinte (`footprintN`), `taille`, `reelle` pour un engin, `empreinte` pour une coque,
+ * dont la taille réelle à terre est le plateau de son pont (arbitrage du 2026-11-08, #2987), `cap`, son cap (`facing`
+ * de l'état, `N` sans cap, comme au combat), `couleurs`, celles de son apparence (ci-dessous), `postes`, la pièce de
+ * chacun de ses postes à un bord (`postes` du combattant, MDG 12), dans leur ordre : `definition`, l'id de sa fiche
+ * (`trappingId` de la pièce), `bord` (`FIRE_ARCS`) et `teinte`, celle de la pièce (`teinteDeLObjet`), `ameliorations`,
+ * les ids des Améliorations de sa coque, celles de sa fiche puis celles installées (`hullNavalTraits`), sans ses Traits
+ * (`kind` de `naval-traits.json`), et `embleme`, son emblème (`emblemeDe`, comme celui d'une portée ci-dessous), absent
+ * sans emblème. Il porte aussi `portee`, ce qu'il porte (`porteeDuCombattant`, `src/noyau/apparence/combattant.ts`) :
+ * une portée de composition, `null` quand son espèce n'a aucune race de rendu (la race d'apparence d'une espèce
+ * jouable, `refChar`, sinon l'espèce si elle est une race de `raceAppearance.json`). Elle porte la tête de sa race ;
+ * ses armes tenues, chacune à sa main (`prise`), puis rangées, chacune par ses apparences candidates
+ * (`apparencesCandidates`), la première et, si elle est une variante, sa racine, sans les attaques naturelles ; les
+ * objets équipés qui revêtent des pièces (`piecesDeLObjet`) ; son armure : ses armures équipées, chacune par ses
+ * localisations (`locs`), sinon, si son apparence déclare son armure de statbloc portée (`armurePortee`, de son
+ * apparence d'auteur, sinon de sa créature, #774), un objet par Groupe d'armure atteint, couvrant les localisations
+ * dont les PA (`armour`) ont ce Groupe pour palier (`palierPA` le plus haut atteint), de la `couche` la plus haute à la
+ * plus basse ; chaque objet par le seul assembleur d'objet (`porteesDesObjets`), à sa teinte (`teinte` de l'arme ou de
+ * l'objet, à défaut celle de son Groupe d'armure) ; puis la tenue de sa carrière (`career`, la tenue de la garde-robe
+ * dont elle est une des `carrieres`, `findTenueDeCarriere`, #3456). Une pièce n'y est portée qu'une fois, par le
+ * premier qui la revêt (sa pièce racine). Les mains s'attribuent en un seul lieu (`armesDuCombattant`,
+ * `src/noyau/equipementDessine.ts`) : les mains explicites du set passent avant les armes sans main du statbloc, qui
+ * prennent `main` puis `off` ; un bouclier demande `off` ; une arme à deux mains réserve les deux mains ; une attaque
+ * naturelle n'en réserve aucune ; le surplus est rangé, après les objets des sets non tenus, sans modifier les armes
+ * persistées ni leurs règles de combat. Son emblème est celui de son apparence d'auteur (`EntityAppearance.embleme`,
+ * une référence `{ id }` à un emblème de la garde-robe, que le schéma refuse inconnue ou d'une autre catégorie), sinon
+ * celui de sa créature (`emblemeDe`). Son sexe est celui de son apparence, `M` par défaut : le corps neutre de la base,
+ * clé `feminin` à 0. Ses `couleurs`, absentes si aucune ne colore un emplacement, sont celles de l'apparence de sa
+ * créature (`EntityAppearance.couleurs`, une couleur du nuancier par emplacement de palette, `couleursSchema`), chacune
+ * remplacée par celle de son apparence d'auteur. Une surface prend la palette de la teinte de l'objet qui l'apporte,
+ * sinon ces couleurs, sinon garde la matière du modèle.
+ */
 /** Le corps du véhicule `vehicule` (`vehiculeDuCombattant`) sur les modèles servis `servis`, `null` si aucun élément
  *  `vehicule` de sa fiche n'est servi. Le combat (`corpsDe`) et l'atelier (`vehicule`) le composent tous deux ici. */
 function corpsDuVehicule(vehicule: VehiculeDuCombattant, servis: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier }): CorpsDuVehicule | null {
@@ -118,34 +237,145 @@ export interface VehiculeDeLAtelier {
   montables: string[];
 }
 
-/** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
- *  fenêtre qui tient la main (`FenetreADessiner.disposition`, `null` sans fenêtre), chaque zone de l'écran et ses
- *  éléments (`zonesDeLEcran`, le panneau ouvert compris), les cases
- *  atteignables au tour de l'actif (`casesAtteignables`), le plateau de la scène (`plateauDeLaScene`), le verbe du clic
- *  du champ (`CLIC_DU_CHAMP`, la barre de l'actif ouverte, ou en exploration quand rien ne tient la main ; `null`
- *  sinon), et l'id du
- *  combattant que chaque case porte, par `"x,y,z"`. */
+/**
+ * @contrat Vue
+ * La vue : ce que rend `vue`, et la `vue` de chaque `Suite`.
+ */
 export interface VueDuPont {
+  /**
+   * la projection commune aux hôtes (`projeter`, `src/hote/projection.ts`), sans borne : Godot reçoit chaque liste
+   * entière. Ses champs sont des données, jamais du texte mis en forme. Elle porte notamment `fenetre`
+   * (`fenetreDuJeu` : la clé de la fenêtre qui tient la main, son propriétaire, ses gestes, `fermes` (chaque geste que
+   * son flux de jet ferme maintenant, par sa clé, avec sa raison en mots du joueur, `fermeturesDeLaFenetre`), l'id de
+   * la rangée que ses gestes désignent), `jets` (`jetsEnVue`), et `combat`, avec `barre` (`etatDeLaBarre` :
+   * `{ forme, raison }`), `offres` (`offresDeLActif`), `cibles` (`validTargets`), `apercu` (`battle.preview` :
+   * `{ genre, cible, case, cout }`) et `voisins` (tous les combattants, chacun avec ses États `{ id, valeur }`) ; hors
+   * combat, `exploration`, avec `groupe` (la case du groupe) et `etage` (sa couche, `null` sur une scène d'une seule
+   * couche), `heros` (chaque héros projeté comme un combattant, à la case et la couche du groupe), `entites` (celles de
+   * la scène, hors des navires posés par leurs ponts, `estPoseParSesPonts`, qui ne tiennent aucune case) et `gestes`
+   * (`gestesDExploration`). Une position projetée (`pos` d'un combattant ou d'une entité, `case` de l'aperçu) est
+   * `[x, y, z]`, la case et sa couche ; le plateau pose chacun, sa surbrillance comprise, sur le sol de sa couche
+   * (`hauteurs`).
+   */
   projection: Projection;
+  /** les corps de ses combattants (`corpsDe`, `pont.ts`) : section « Corps d'un combattant ». */
   corps: CorpsDuCombat;
+  /**
+   * nomme la forme de la fenêtre qui tient la main (`FenetreADessiner.disposition`, `src/hote/gestes.ts`) : sa clé, ou
+   * `<clé>/<jet>` pour l'étape d'un jet (`cascade/attack` pour la fenêtre d'attaque) ; `null` sans fenêtre. L'hôte
+   * n'écrit aucune clé de fenêtre : il cherche la scène qu'elle nomme.
+   */
   disposition: string | null;
+  /**
+   * l'écran en éléments (`src/hote/elements.ts`), une liste par zone, dans l'ordre où la zone les montre
+   * (`zonesDeLEcran`, `src/hote/ecran.ts`), chacune sous sa clé de `ZonesDeLEcran`.
+   */
   zones: ZonesDeLEcran;
+  /**
+   * liste les cases que le champ peint au tour de l'actif (`casesAtteignables`, `porteesDuTour`), et rien hors de ce
+   * tour.
+   */
   cases: CaseAtteignable[];
-  plateau: ReturnType<typeof plateauDeLaScene> | null;
+  /** le plateau de la scène (`plateauDeLaScene`, `src/noyau/monde/aretes.ts`) ; `null` sans scène. */
+  plateau: PlateauDeLaScene | null;
+  /**
+   * la lumière de la scène (`lumiereDeLaScene`, `src/noyau/lumiereDeLaScene.ts`) : section « Lumière » ; `null` sans
+   * scène.
+   */
   lumiere: LumiereDeLaScene | null;
+  /**
+   * la musique que la partie joue (`musiqueDeLaPartie`, `src/noyau/musiqueDeLaPartie.ts`) : section « Musique » ;
+   * `null` au silence.
+   */
   musique: MusiqueDeLaPartie | null;
+  /**
+   * nomme le verbe du clic du champ (`CLIC_DU_CHAMP`, `src/noyau/actionsDuNoyau.ts` ; la barre de l'actif ouverte, ou
+   * en exploration sans fenêtre), qui prend la case cliquée, `{ x, y }` au rez, `{ x, y, z }` à la couche `z` (`Pt`),
+   * puis, en combat, le combattant qui s'y tient : `{ type: champ, args: [case, occupant] }`, ou `[case]` sur une case
+   * libre et hors combat, où il mène le groupe à la case ; `null` quand la barre de l'actif n'est pas ouverte ou qu'une
+   * fenêtre tient la main hors combat : le champ ne se clique pas.
+   */
   champ: typeof CLIC_DU_CHAMP | null;
+  /**
+   * donne, par case et couche `"x,y,z"`, l'id du combattant qui s'y tient, hors de combat exclus : le clic sur une case
+   * occupée désigne son occupant.
+   */
   occupants: Record<string, string>;
 }
 
-/** Ce qu'un appel qui touche la partie rend : la vue d'après, les jetons qu'il a programmés, ses lignes de journal
- *  (`journal`, que le plateau anime) et ce qu'il ajoute à l'écran (`zones` : les lignes du journal, `lignesDuJournal`). */
+/**
+ * @contrat Suite
+ * Ce qu'un appel qui touche la partie rend, dont le plateau anime le journal.
+ */
 export interface Suite {
+  /** la vue d'après (section « Vue »). */
   vue: VueDuPont;
+  /**
+   * les jetons que l'appel a programmés, chacun numéroté dans l'ordre d'arrivée (`tenueDesJetons`,
+   * `src/hote/partie.ts`). Godot arme un minuteur de `delai` millisecondes, puis appelle `reprendre { jeton: id }`. Un
+   * jeton se reprend une seule fois.
+   */
   programmes: Programme[];
+  /**
+   * les lignes que l'appel a écrites, `{ de: 'journal', texte, heure }` ou `{ de: 'combat', evenement, heure }`
+   * (`LigneDuJournal`, `src/noyau/partie.ts`, `heure` le temps de jeu où elle s'écrit).
+   */
   journal: LigneDuJournal[];
+  /**
+   * ce que l'appel ajoute à l'écran (`ZonesDeLaSuite`) : sous `journal.lignes`, les lignes du journal en éléments
+   * (`lignesDuJournal`, `src/hote/ecran.ts`), chacune son id (`journal/<n>`, numérotée à la suite de la partie) ; une
+   * ligne par événement, les sous-lignes d'un événement à son `detail`, montré au survol ; son ton dit ce qu'il pèse
+   * (le début d'un round en `alerte`, un Critique ou une mort en `echec` sur un héros, en `reussite` sur un
+   * adversaire) ; un événement sans texte n'en écrit aucune. Chaque jour de jeu s'ouvre sur sa date
+   * (`journal/jour/<jour>`, en `alerte` : « Festag · 30 Jahrdrung 2512 CI »), avant la première ligne écrite ce
+   * jour-là, le premier jour de la partie compris. Godot les ajoute à la zone de même source.
+   */
   zones: ZonesDeLaSuite;
+  /**
+   * ce que l'appel donne à voir et à entendre, dans l'ordre où il l'a joué (`effetsDeLAppel`,
+   * `src/noyau/effetsDeLAppel.ts` : section « Effets »).
+   */
   effets: Effet[];
+}
+
+/**
+ * @contrat Monde
+ * La réponse de `monde` : le volume du monde de la scène en cours sous le regard de la partie, ses nappes de toit, ses
+ * couronnes crénelées et sa météo.
+ */
+interface MondeDuPont {
+  /**
+   * le volume du monde de la scène en cours (`VolumeDuMonde`), sous le regard de la partie (`volumeDuRegard`), `null`
+   * sans scène.
+   */
+  monde: VolumeDuMonde | null;
+  /**
+   * Les nappes de toit (`toitsDuMonde`) ont la forme du volume (`positions`, `normales`, `couleurs`, `cases`,
+   * `surfaces`), une par masse de bâtiment, nommée par `cle` (`nappeKey`) : ses pans de couverture (matière
+   * `roof--<id>`) et ses pignons, de la matière du mur qu'ils prolongent (`structure--<id>`, `closureAppearance`).
+   */
+  toits: NappeDuMonde[];
+  /**
+   * Les couronnes crénelées (`couronnesDuMonde`) ont la même forme que les nappes de toit, une par mur fortifié
+   * (apparence à `parapet`) de chaque couche, nommée par la clé de son arête (`edgeKey`), posée au sommet de la face
+   * pleine du mur dressé à son pied (`crownFaces`, `piedDeLArete`).
+   */
+  couronnes: NappeDuMonde[];
+  /**
+   * La météo (`meteoDuRegard`, `src/noyau/monde/meteo.ts`, `MeteoDuRegard`) est celle que la scène montre
+   * (`sceneWeatherFx` : aucune en intérieur ni pour un id hors de `ambiance.json › iso.weather`), sous le regard de la
+   * partie. Ce qui tombe (`pluie`, `null` sans `precip` en donnée et au plateau, où une particule vue dans l'axe de sa
+   * chute n'est qu'un point) ne tombe qu'au-dessus des bandes de cases à ciel ouvert (`openSkyRuns`, la vérité d'abri
+   * `shelterField`) : une averse par bande (`averses` : la boîte d'où partent ses particules, centre et demi-étendues
+   * en mètres au plafond de la donnée au-dessus du sol le plus haut, et leur nombre, la densité de la donnée par m² de
+   * sol, `MAX_PRECIP` au plus pour la scène), le sens unitaire de la chute vent compris et sa vitesse (m/s), la taille
+   * d'une particule (m), le temps qu'elle met à tomber jusqu'au sol le plus bas (s), sa teinte et son opacité. Les
+   * nappes de brume (`nappes`, en tactique seulement : vues d'en haut, elles s'empileraient en voile, et l'immersion
+   * resserre la brume de profondeur, section « Lumière ») sont plates, une par couche de la donnée, au-dessus du sol le
+   * plus bas et des seules bandes à ciel ouvert : leurs triangles en mètres, leur teinte, leur opacité. La météo de la
+   * scène entre dans `plateau.cleDuMonde`.
+   */
+  meteo: MeteoDuRegard | null;
 }
 
 /** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
@@ -289,11 +519,33 @@ export function creerPont() {
   /** La création que le panneau ouvert tient, `null` sous un autre panneau ou sans panneau. */
   const creationOuverte = (o: NonNullable<typeof ouverte>): CreationOuverte | null => (o.panneau && 'creation' in o.panneau ? o.panneau.creation : null);
 
+  /**
+   * @contrat Méthodes
+   * La fiche est un état du pont, jamais de la partie : aucun verbe ne l'ouvre ni ne la ferme. Elle reste ouverte, à sa
+   * possession choisie, tant qu'aucun `fiche` ne la change, la partie avançant ; sans son combattant, ses zones sont
+   * vides ; une possession choisie qui quitte la fiche (donnée, consommée) n'est plus dite. Les gestes d'une
+   * possession, eux, sont des verbes de la partie, joués par `jouer`.
+   */
   /** Le panneau `cle` fermé : sans panneau s'il est celui ouvert, l'autre panneau laissé ouvert sinon. */
   const fermerLePanneau = (o: NonNullable<typeof ouverte>, cle: 'fiche' | 'creation'): void => {
     if (o.panneau && cle in o.panneau) o.panneau = null;
   };
 
+  /**
+   * @contrat Méthodes
+   * La création d'un héros est un état du pont aussi (`CreationOuverte` : un brouillon du noyau et sa page ouverte),
+   * qu'aucun verbe n'ouvre ni ne ferme. `{ geste: 'ouvrir' }` l'ouvre sur un brouillon neuf, dont la graine dérive de
+   * celle de la partie et du rang de la création (`brouillonDeLaPartie`), à sa première page, et ferme la fiche
+   * (`PanneauDeLHote`, `src/hote/elements.ts` : la fiche ou la création, une seule à la fois) ; un appel dont le noyau
+   * émet `heros_a_creer` (l'Effet de scène `openCharacterCreator`) l'ouvre de même, sauf si une création est déjà
+   * ouverte ; ouvrir la fiche la ferme. Chaque geste se joue tel qu'un bouton de l'écran l'offre (égal en profondeur),
+   * et ce bouton refusé se refuse avec sa raison : `{ geste: 'page' }` va à une page (`pagesDeCreation`), la suivante
+   * tant que la page ouverte ne se quitte pas (`refusDeLaPage`) ; un geste du brouillon (`GesteDuBrouillon`, surface du
+   * noyau) le change, chaque tirage aux dés de la graine du brouillon, son résultat dit seulement après le geste ;
+   * `{ geste: 'engager' }`, à la dernière page, envoie l'intention qui engage le brouillon au groupe
+   * (`intentionDEngagement`), où le noyau bâtit le héros et crédite sa Richesse de départ, puis ferme la création. Seul
+   * l'engagement touche la partie.
+   */
   /** Ouvre la création sur un brouillon neuf, à sa première page, à la place du panneau ouvert. */
   const ouvrirLaCreation = (o: NonNullable<typeof ouverte>): void => {
     o.panneau = { creation: { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] } };
@@ -327,6 +579,13 @@ export function creerPont() {
   };
 
   const methodes: Record<string, (json?: string | null) => object> = {
+    /**
+     * `{ scenario, graine? }` : l'id d'un scénario de test du catalogue (`testScenarios`), la graine des dés (entier, 1
+     * par défaut) ; ou `{ essai: true, graine? }` : la dernière scène que l'éditeur a mise à l'essai (section
+     * « Éditeur »), refusé sans elle
+     *
+     * @returns une `Suite` : le lancement du scénario, ou de l'essai
+     */
     demarrer(json) {
       const e = entreeDe('demarrer', json, (e) => ('essai' in e ? ['essai', 'graine'] : ['scenario', 'graine']));
       valider(!ouverte, 'demarrer : une partie par page, déjà démarrée ; recharger la page pour en commencer une autre');
@@ -346,15 +605,38 @@ export function creerPont() {
       ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, brouillons: 0, regard: 'tactique' };
       return suite(ouverte, o.lancement);
     },
+    /**
+     * aucune
+     *
+     * @returns `{ zones: { 'scenarios.sections' } }` : le choix d'un scénario de test (`zonesDesScenarios`,
+     * `src/hote/scenarios.ts`), avant ou après `demarrer` : une entité par section du catalogue (`SCENARIO_SECTIONS`)
+     * qui en range un, chacun de ses scénarios en entité, son titre au nom, ce qu'il vérifie, son groupe et le bouton
+     * qui le démarre, dont le `jeu` `{ scenario }` porte l'id que `demarrer` reçoit
+     */
     scenarios(json) {
       entreeDe('scenarios', json, []);
       return { zones: zonesDesScenarios() };
     },
+    /**
+     * aucune
+     *
+     * @returns `{ vue }`
+     */
     vue(json) {
       entreeDe('vue', json, []);
       return { vue: vueDe(demarree()) };
     },
-    monde(json) {
+    /**
+     * aucune
+     *
+     * @returns `{ monde, toits, couronnes, meteo }` : le volume du monde de la scène en cours (section « Monde »), sous
+     * le regard de la partie (`regarder`), sans ce qu'il retire pour le groupe, qu'il porte en `ombre`
+     * (`volumeDuRegard`, section « Vue », `plateau.cleDuMonde`), `null` sans scène, ses nappes de toit (`toitsDuMonde`)
+     * et les couronnes crénelées des murs de toutes ses couches (`couronnesDuMonde`), vides sans scène, et la météo que
+     * le regard montre (`meteoDuRegard`, section « Monde »), `null` sans scène ou sans météo à montrer ; à rappeler
+     * quand la scène ou `plateau.cleDuMonde` change
+     */
+    monde(json): MondeDuPont {
       entreeDe('monde', json, []);
       const o = demarree();
       const etat = o.partie.etat();
@@ -362,6 +644,13 @@ export function creerPont() {
       const regard = regardDuJeu(o.regard, !!etat.battle);
       return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regard) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [], meteo: scene ? meteoDuRegard(scene, regard) : null };
     },
+    /**
+     * un geste : `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue ; une offre se
+     * joue par le verbe qu'elle déclare, `jeu` de son bouton) ou `{ suite }` (les verbes `{ type, args? }` d'un geste
+     * d'exploration, joués dans l'ordre tant qu'aucune fenêtre ne tient la main)
+     *
+     * @returns une `Suite` ; pour `suite`, l'issue du dernier verbe joué, les événements et le journal de chacun
+     */
     jouer(json) {
       const o = demarree();
       const e = entreeDe('jouer', json, clesDuGeste);
@@ -375,6 +664,18 @@ export function creerPont() {
       }
       return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
     },
+    /**
+     * `{ z?, oeil? }` : une couche de la scène (celle de `oeil`, sinon celle du groupe, sans elle) et l'œil d'une
+     * caméra, `{ case: [x, y, z], lacet }` (la case et l'azimut, en degrés au compas, de la caméra que rend
+     * `wfrpCadrer`, section « Écran publié »)
+     *
+     * @returns `{ plan }` : le plan de la couche en texte (`planDeLaCouche`, `src/noyau/monde/sceneToAscii.ts`), la
+     * grille box-drawing de `sceneToAscii` (`GRAMMAIRE_ASCII`, `src/data/schemas/grammaire/carte-ascii.ts`), ponts
+     * des navires compris, chaque case qui porte une marque sous elle (`MARQUES_DU_PLAN` : l'œil au cap le plus proche
+     * de son azimut, s'il est sur la couche, les héros du groupe, les autres personnages, les décors à leur case
+     * d'ancrage), puis la légende des glyphes que ses cases montrent ; refusé hors scène ou hors de ses couches. La
+     * partie n'en change pas.
+     */
     plan(json) {
       const o = demarree();
       const e = entreeDe('plan', json, ['z', 'oeil']);
@@ -390,6 +691,12 @@ export function creerPont() {
       valider(couches.includes(z as number), `plan : z, l’une des couches de la scène (${couches.join(', ')})`);
       return { plan: planDeLaCouche({ ...etat, scene: scene! }, z as number, oeil) };
     },
+    /**
+     * `{ regard }` : `tactique`, `plateau` ou `immersion` (`REGARDS`, `src/noyau/monde/aretes.ts`)
+     *
+     * @returns une `Suite` sans jeton ni journal : la vue, son plateau sous ce regard (section « Vue »,
+     * `plateau.regard`), gardé jusqu'au prochain `regarder` ; `tactique` à `demarrer`
+     */
     regarder(json) {
       const o = demarree();
       const e = entreeDe('regarder', json, ['regard']);
@@ -397,6 +704,13 @@ export function creerPont() {
       o.regard = e.regard as Regard;
       return sansJeton(o);
     },
+    /**
+     * `{ fiche }` : la fiche que l'écran montre, `{ porteur, objet? }` (l'id d'un combattant qui en a une,
+     * `ficheDuPorteur`, surface du noyau : un héros du groupe, ou tout combattant de la bataille hors coque et engin,
+     * et la possession choisie, l'`uid` qui la désigne), ou `null` pour la fermer
+     *
+     * @returns une `Suite` sans jeton ni journal : la vue, la fiche posée ; la partie n'est pas touchée
+     */
     fiche(json) {
       const o = demarree();
       const e = entreeDe('fiche', json, ['fiche']);
@@ -413,6 +727,13 @@ export function creerPont() {
       else o.panneau = { fiche: { porteur: f!.porteur as string, ...(f!.objet === undefined ? {} : { objet: f!.objet as string }) } };
       return sansJeton(o);
     },
+    /**
+     * `{ creation }` : un geste de la création d'un héros (`GesteDeLaCreation`, `src/hote/elements.ts`), celui que
+     * porte un bouton de l'écran, ou `null` pour la fermer
+     *
+     * @returns une `Suite` sans jeton ni journal, la création posée, la partie n'étant pas touchée ; à l'engagement, la
+     * `Suite` de l'intention qui engage le brouillon au groupe, où le noyau bâtit le héros (`intentionDEngagement`)
+     */
     creation(json) {
       const o = demarree();
       const e = entreeDe('creation', json, ['creation']);
@@ -430,12 +751,26 @@ export function creerPont() {
       } else o.panneau = { creation: apresLaCreation(creationOuverte(o)!, g) };
       return sansJeton(o);
     },
+    /**
+     * `{ jeton }` : le numéro d'un jeton programmé
+     *
+     * @returns une `Suite` : la reprise du jeton
+     */
     reprendre(json) {
       const o = demarree();
       const e = entreeDe('reprendre', json, ['jeton']);
       valider(Number.isInteger(e.jeton), 'reprendre : jeton, le numéro d’un jeton programmé');
       return suite(o, o.jetons.reprendre(e.jeton as number));
     },
+    /**
+     * `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du
+     * listage (`GET modeles/listage.json`, section « Atelier 3D »)
+     *
+     * @returns `{ bases, glb, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
+     * ameliorations }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme état du pont, que
+     * lisent `composer` et le corps de chaque combattant de la vue (section « Corps d'un combattant ») ; avant ou après
+     * `demarrer`
+     */
     modeles(json) {
       const e = entreeDe('modeles', json, ['manifestes', 'osDesRigides']);
       valider(estObjet(e.manifestes), 'modeles : manifestes, un objet id de modèle → manifeste');
@@ -444,6 +779,15 @@ export function creerPont() {
       modeles = { manifestes, modeles: modelesDeLAtelier(manifestes, e.osDesRigides as Record<string, string[]>) };
       return modeles.modeles;
     },
+    /**
+     * `{ base, composition, emblemes? }` : l'id d'une base servie par le dernier `modeles`, une composition (section
+     * « Composition d'un personnage »)
+     *
+     * @returns `{ montes, manquants, rapport, gabarit, morphes, materiaux, palette }` (`composerSurLaBase`,
+     * `composition.ts`, qui compose aussi le corps de chaque combattant) ; refusé avant tout `modeles`, sur une base
+     * qu'il n'a pas servie, sur une composition que `lireComposition` refuse, et sur des surcharges `emblemes` que
+     * `lireSurchargesDEmblemes` refuse (table de lignes vers `{ id }` d’un emblème connu ou `null`)
+     */
     composer(json) {
       const e = entreeDe('composer', json, ['base', 'composition', 'emblemes']);
       valider(modeles !== null, 'composer : aucun modèle, appeler modeles d’abord');
@@ -452,6 +796,20 @@ export function creerPont() {
       const emblemes = valeurLue('composer', 'emblemes', lireSurchargesDEmblemes(e.emblemes === undefined ? {} : e.emblemes));
       return composerSurLaBase(base!, modeles!.manifestes, porteeDeComposition(compositionDe('composer', e.composition)), emblemes);
     },
+    /**
+     * `{ definition, postes?, ameliorations?, couleurs?, embleme? }` : la fiche d'un véhicule ou d'un engin dont le
+     * dernier `modeles` sert un élément `vehicule` (une clé de `vehicules` de sa réponse), les pièces de ses postes
+     * (`{ definition, bord }`, chacune une fiche servie qui est un engin `armes-de-siege` de `trappings.json`, à un
+     * bord de `FIRE_ARCS`, dans l'ordre de leurs places), ses Améliorations installées (des clés de `ameliorations` de
+     * la réponse de `modeles`) et son apparence (`couleurs` et `embleme`, lues par `lireApparenceDAuteur`, surface du
+     * noyau : le schéma de l'apparence d'auteur)
+     *
+     * @returns `{ vehicule, places, pieces, ameliorations, montables }` (section « Atelier 3D ») : le corps du véhicule
+     * que le noyau bâtit de cette entité (`ficheDEntite`, puis `vehiculeDuCombattant`, comme la vue d'un combattant),
+     * composé par `corpsDuVehicule` (`pont.ts`) comme `vehicules[id]` de la vue (section « Corps d'un combattant »), au
+     * cap `N` ; refusé avant tout `modeles`, sur une fiche, une pièce, un bord ou une Amélioration hors de ces listes
+     * (le message les nomme), et sur une apparence que le schéma refuse
+     */
     vehicule(json): VehiculeDeLAtelier {
       const e = entreeDe('vehicule', json, ['definition', 'postes', 'ameliorations', 'couleurs', 'embleme']);
       valider(modeles !== null, 'vehicule : aucun modèle, appeler modeles d’abord');
@@ -485,18 +843,49 @@ export function creerPont() {
         montables: ameliorationsMontables(manifeste, offertes),
       };
     },
+    /**
+     * aucune
+     *
+     * @returns les choix de chaque champ d'une composition, ses axes, le nuancier, et les presets avec leur composition
+     * (`cataloguesDeComposition`, surface du noyau)
+     */
     catalogues(json) {
       entreeDe('catalogues', json, []);
       return cataloguesDeComposition();
     },
+    /**
+     * aucune
+     *
+     * @returns `{ de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, flottants, musiques,
+     * lumieres, attaques, deplacement }` : la vitrine des effets que le jeu joue (`vitrineDesEffets`, surface du noyau, section « Effets ») ; avant ou
+     * après `demarrer`
+     */
     vitrine(json): VitrineDesEffets {
       entreeDe('vitrine', json, []);
       return vitrineDesEffets();
     },
+    /**
+     * aucune
+     *
+     * @returns `{ familles: { id, libelle, entrees: { id, libelle }[] }[] }` : chaque famille de ce que le jeu dessine
+     * en 3D hors des modèles servis, `decor`, `sol`, `relief`, `toit` et `mur`, et chacune de ses entrées, au libellé de
+     * sa donnée, dans l'ordre des libellés (`famillesDEchantillons`, surface du noyau, section « Atelier 3D ») ; avant
+     * ou après `demarrer`
+     */
     echantillons(json): { familles: FamilleDEchantillons[] } {
       entreeDe('echantillons', json, []);
       return { familles: famillesDEchantillons() };
     },
+    /**
+     * `{ famille, id }` : l'id d'une famille de `echantillons` et celui d'une de ses entrées
+     *
+     * @returns `{ monde, aretes, toits, couronnes, couronnesAbattues }` : la scène d'échantillon que le noyau bâtit
+     * pour cette entrée, dessinée comme le monde de la partie (`echantillonDessine`, surface du noyau, section «
+     * Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard `immersion` (`aretes`,
+     * section « Vue »), ses nappes de toit, ses couronnes et les clés des couronnes que sa brèche abat
+     * (`couronnesAbattues`) ; refusé sur une famille hors de `echantillons` (le message les nomme) et sur une entrée
+     * hors de sa famille (le message nomme la famille) ; avant ou après `demarrer`
+     */
     echantillon(json): EchantillonDessine {
       const e = entreeDe('echantillon', json, ['famille', 'id']);
       const familles = famillesDEchantillons();
@@ -505,6 +894,13 @@ export function creerPont() {
       valider(famille!.entrees.some((entree) => entree.id === e.id), `echantillon : id, l’id d’une entrée de la famille ${famille!.id}`);
       return echantillonDessine(famille!.id, e.id as string);
     },
+    /**
+     * `{ composition, preset? }` : une composition (section « Composition d'un personnage ») et l'id d'un preset de
+     * `catalogues` dont l'entrée reprend l'enveloppe
+     *
+     * @returns `{ entree, verdict }` (`presetDeComposition`, surface du noyau) ; refusé sur une composition que
+     * `lireComposition` refuse, et sur un `preset` inconnu
+     */
     presetDeComposition(json) {
       const e = entreeDe('presetDeComposition', json, ['composition', 'preset']);
       const composition = compositionDe('presetDeComposition', e.composition);
@@ -513,6 +909,22 @@ export function creerPont() {
       if (!rendu.ok) throw new ErreurDeGeste('validation', `presetDeComposition : preset, l’id d’un preset de catalogues (${rendu.presets.join(', ')})`);
       return rendu;
     },
+    /**
+     * `{ ouvrir, projet?, calques? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`, `src/scenes/campaign.ts`),
+     * le texte de son projet que sert le dépôt, et celui des calques que l'hôte garde ; ou `{ edition }` : un geste
+     * d'édition (`GesteDEdition`, `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement ou
+     * d'un chargement de planche, ou celui que porte un bouton des zones de l'éditeur, un qui l'offre sans refus
+     * d'abord ; ou `{ type: 'nommer' | 'identifier' | 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur
+     * qui nomme la sélection ou la scène, `args` le nom saisi ou rien, qui change l'identifiant de la zone d'effet
+     * sélectionnée, `args` l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un
+     * drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire
+     * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
+     * pour retirer le champ (section « Éditeur »)
+     *
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, aretes?, navires?, depot?, essai?, planche?,
+     * memoire? }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
+     * porte refuse
+     */
     editer(json) {
       const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques'] : 'type' in e ? ['type', 'args'] : ['edition']));
       const avant = 'ouvrir' in e ? null : edition?.session ?? null;
@@ -568,6 +980,12 @@ export function creerPont() {
         ...(memoire ? { memoire } : {}),
       };
     },
+    /**
+     * aucune
+     *
+     * @returns `{ erreurs: { message, source }[] }` : les événements `error` et `unhandledrejection` de la page depuis
+     * le dernier relevé, puis vidés ; `source` vaut `fichier:ligne`, `unhandledrejection` ou `null`
+     */
     erreursGlobales(json) {
       entreeDe('erreursGlobales', json, []);
       return { erreurs: erreurs.splice(0) };
@@ -584,6 +1002,46 @@ export function creerPont() {
     erreurs.push({ message: raison instanceof Error ? raison.message : String(raison), source: 'unhandledrejection' });
   });
 
+  /**
+   * @contrat Transport
+   * - `wfrpPont.appeler(methode, entree?)` est la fonction du pont que Godot appelle, hors du choix d'une image sur le
+   *   disque de l'auteur (`wfrpPont.choisirUneImage(rendre)`, section « Éditeur »), qui lit le document de la page et
+   *   `FileReader` à son appel seulement, hors de l'exécution de la construction. `methode` est le nom d'une méthode ;
+   *   `entree` est une chaîne JSON qui encode un objet, ou rien (absente ou `null`) pour une méthode sans entrée. Elle
+   *   rend toujours une chaîne JSON.
+   * - La réponse vaut `{ "ok": true, … }` ou `{ "ok": false, "erreur": { "categorie", "message" } }`. `appeler` ne lève
+   *   jamais.
+   * - Une clé de l'entrée que la méthode ne lit pas se refuse.
+   */
+  /**
+   * @contrat Erreurs
+   * - `validation` : méthode inconnue (le message nomme les méthodes) ; fiche qui n'est ni `null` ni
+   *   `{ porteur, objet? }` d'un combattant à fiche, héros du groupe ou combattant de la bataille (le message les
+   *   nomme), ou dont l'`objet` n'est pas l'`uid` d'une possession de la fiche (le message les nomme) ; geste de la
+   *   création qu'aucun bouton de l'écran n'offre ; entrée illisible, qui n'est pas un objet, ou avec une clé hors
+   *   contrat ; aucune partie avant `demarrer` ; second `demarrer` ; scénario inconnu, graine non entière ; verbe
+   *   inconnu (le message nomme les gestes de la fenêtre qui tient la main et les voisins de nom) ; argument de forme
+   *   fausse, en trop ou manquant, id que l'état ne désigne pas ; verbe qui lève ; intention hors de l'allowlist d'un
+   *   siège ; jeton inconnu ou déjà repris ; `composer` avant tout `modeles`, ou sur une base qu'il n'a pas servie ;
+   *   composition de `composer` ou de `presetDeComposition` absente ou hors de son schéma (`lireComposition`, le
+   *   message porte le chemin de chaque faute, `(racine)` pour la composition entière) ; surcharges `emblemes` de
+   *   `composer` hors de leur schéma (`lireSurchargesDEmblemes`, même forme de message) ; `preset` de
+   *   `presetDeComposition` qui n'est l'id d'aucun preset de `catalogues` (le message nomme les ids) ; `editer` sur une
+   *   campagne qui n'est pas du jeu (le message nomme les ids), d'un `projet` servi illisible, d'un autre id ou que la
+   *   porte refuse, avant toute carte ouverte, d'un geste qui n'est ni un geste du pointeur bien formé, ni l'issue d'un
+   *   enregistrement en cours, ni celui d'un bouton des zones de l'éditeur, ni un formulaire que portent les zones de
+   *   l'éditeur, saisi de ses arguments (`gesteDuFormulaire`)
+   * - `permission` : intention d'un siège qui ne tient pas la main
+   * - `regle` : geste de la création refusé (sa raison : la page qui ne se quitte pas, l'engagement que la partie
+   *   refuse) ; verbe de la barre refusé par le refus de son geste (`refusDuGeste`, sa raison) : barre non ouverte,
+   *   aucune entrée pertinente qui déclare ce geste, argument qui ne désigne aucun candidat de l'entrée, entrée fermée
+   *   par ses gates ; valeur d'un formulaire tiré du schéma que la session d'édition n'écrit pas (sa raison, section
+   *   « Éditeur »)
+   * - `interne` : levée qu'aucun contrôle n'attendait
+   *
+   * Les trois premières catégories sont celles du module commun (`CategorieDErreur`, `src/hote/partie.ts`) ; le texte
+   * de chaque message vient de lui ou du noyau.
+   */
   /** Appelle la méthode `methode` sur l'entrée `json` : la réponse en JSON, jamais une levée. */
   function appeler(methode: string, json?: string | null): string {
     try {
@@ -598,6 +1056,13 @@ export function creerPont() {
     }
   }
 
+  /**
+   * @contrat Méthodes
+   * `demarrer` ouvre la partie une seule fois par page : un second appel se refuse, et recommencer, c'est recharger la
+   * page. Un `demarrer` refusé n'ouvre rien. Le noyau ne tient qu'une partie par processus : un hôte sans page à
+   * recharger (la sonde qui fige les vues de l'écran, un scénario après l'autre) rend la sienne par `fermer()`, une
+   * fonction du pont hors de `appeler`, avant d'en ouvrir une autre sur un pont neuf.
+   */
   /** Ferme la partie ouverte : le noyau n'en tient qu'une par processus, et un hôte sans page à recharger (la sonde qui
    *  fige un scénario après l'autre) la rend avant d'en démarrer une autre sur un pont neuf. */
   function fermer(): void {

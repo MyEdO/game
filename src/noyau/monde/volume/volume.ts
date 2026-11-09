@@ -56,10 +56,17 @@ interface FaceListee extends Provenance {
 /** La mer qui porte un navire posé, sur sa flottaison : le terrain du glyphe `~` des plans. */
 const MER = garanti(terrainsAvecGlyphe()['~'], '~', 'terrain de la mer');
 
-/** Des faces du monde triangulées, en tableaux plats que l'hôte charge tels quels. */
+/**
+ * @contrat Monde
+ * Des faces du monde triangulées, en tableaux plats que l'hôte charge tels quels.
+ */
 interface GeometrieDuMonde {
-  /** 3 nombres par sommet, 3 sommets par triangle, dans le sens trigonométrique vu du dehors que la loi d'orientation
-   *  lui donne (`orienterPoly`) : une face verticale ouverte regarde hors de la carte, l'hôte la rend des deux côtés. */
+  /**
+   * 3 nombres par sommet, 3 sommets par triangle, dans le sens trigonométrique vu du dehors. Chaque triangle porte le
+   * dehors que lui donne la loi d'orientation (`orienterPoly`, `src/noyau/monde/volume/worldTris.ts`) : vers le haut
+   * une face horizontale, hors de la carte une face verticale ouverte (une falaise, une paroi), qui peut donc tourner
+   * le dos à la caméra ; le monde de Godot rend et touche le volume des deux côtés.
+   */
   positions: number[];
   /** Normale unitaire de la face de chaque sommet, 3 nombres par sommet. */
   normales: number[];
@@ -67,17 +74,50 @@ interface GeometrieDuMonde {
   couleurs: number[];
   /** La case `[x, y, z]` de chaque triangle, sa couche comprise, dans l'ordre des triangles. */
   cases: [number, number, number][];
-  /** Les triangles d'une même matière se suivent : une surface par matière, dans l'ordre des triangles. */
+  /**
+   * une par matière (et provenance), ses sommets de `debut` à `fin` exclu, dans l'ordre des triangles. Les triangles
+   * d'une même matière se suivent (`surfaces`) ; le sol et les crêtes d'une case que posent les ponts d'un navire de
+   * la scène
+   * (`provenanceDesNavires`, `src/noyau/planDeNavire.ts`) forment des surfaces à part, qui portent `navire`, l'id de
+   * l'entité du navire : le monde les touche (`cases`, forme du rayon du pointeur et de la marche de l'œil) sans les
+   * peindre (`VolumeDeScene._maillage_de`), le navire se montrant par son modèle (section « Corps d'un combattant »,
+   * `navires`) ; ses décors restent peints ; sur sa flottaison, le rectangle de ses ponts à la couche de son pont le
+   * plus bas, chaque case est sa mer (`MER`, le terrain du glyphe `~`) à la hauteur 0, à la place du sol de la scène
+   * hors de ses ponts : des surfaces à part, qui portent `flottaison`, l'id de l'entité du navire, que le rayon du
+   * pointeur traverse et que le monde peint hors de la coque du modèle posé, sous la hauteur 0
+   * (`VolumeDeScene.border_la_mer`,
+   * `MontageDeVehicule.contour_sous`, recette `projet/recettes/coupe-du-navire.gd`) ; une matière se nomme
+   * `<domaine>--<id>` (`terrain--herbe`, `relief--pierre`).
+   */
   surfaces: SurfaceDuVolume[];
 }
 
-/** Le volume du monde d'une scène. */
+/**
+ * @contrat Monde
+ * Le volume du monde (`volumeDuMonde`, `src/noyau/monde/volume/volume.ts`) est la géométrie que les builders purs du
+ * noyau dérivent de la scène, triangulée, orientée et colorée depuis la donnée : le sol de toutes les couches (terrain
+ * par case et sa variance de teinte, relief, raccords, piliers), la crête qui ceinture chaque zone crénelée
+ * (`cretesDePerimetre`, `src/noyau/monde/volume/creneaux.ts`, matière `structure--<id>` de l'apparence que porte
+ * `Layer.crenellated`) et les décors, chacun modelé par la recette de son type (`facesDuDecor`,
+ * `src/noyau/monde/volume/propVolumes.ts`) : celui que le terrain pose sur chacune de ses cases (`terrainOverlayProp`,
+ * les arbres du bois) et les entités `prop` de la scène, à la couleur de leur matériau de décor (matière `prop--<id>`).
+ * Il se publie dans le repère des builders, en mètres : X à l'est, Y en haut, Z au sud, la case (x, y) centrée sur (x ·
+ * `metresParCase`, y · `metresParCase`).
+ *
+ * Les faces verticales du volume, des nappes et des couronnes prennent l'épaisseur que leur matière authore
+ * (`faceDepthM`, `src/noyau/monde/volume/profondeur.ts`).
+ */
 export interface VolumeDuMonde extends GeometrieDuMonde {
+  /** L'échelle de la scène, en mètres par case (`sceneMetresPerTile`). */
   metresParCase: number;
   /** Hauteur (m) de la surface de chaque case, par couche : `rangees[y][x]` (`heightAt`). */
   hauteurs: { z: number; rangees: number[][] }[];
-  /** Ce que la vue retire du volume (les couches au-dessus de la couche active, le couvercle), que l'hôte ne montre pas
-   *  et dont il garde l'ombre (#3758). */
+  /**
+   * Ce que le regard retire du volume (les cases des couches au-dessus de la couche active et du couvercle, section
+   * « Vue ») forme son `ombre`, de la même forme (`positions`, `normales`, `couleurs`, `cases`, `surfaces`), que le
+   * monde ne montre ni ne touche et dont il garde l'ombre (`VolumeDeScene._mailler`, un maillage en ombre seule) : sous un
+   * étage retiré, le rez reste à l'ombre (#3758).
+   */
   ombre: GeometrieDuMonde;
 }
 

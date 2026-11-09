@@ -1,7 +1,8 @@
 extends SceneTree
 
-## Une arête se pose debout à son pied (#3476, `hotes/godot/pont/CONTRAT.md`, section « Plateau ») : `pied` et
-## `hauteurM` sont en mètres, le volume de la scène (`scripts/volume_de_scene.gd`, `poser_les_aretes`) les porte à l'échelle de son plateau.
+## Une arête se pose debout à son pied (#3476, `hotes/godot/pont/CONTRAT.md`, section « Vue », `PlateauDeLaScene`) :
+## `pied` et `hauteurM` sont en mètres, le volume de la scène (`scripts/volume_de_scene.gd`, `poser_les_aretes`) les
+## porte à l'échelle de son plateau.
 ## Sur un plateau de 2 m par case, le mur d'étage du kit, pied à 4 m et haut de 4 m, va de 2 à 4 unités, et la boîte
 ## d'une arête sans pièce au kit part de 2 unités.
 

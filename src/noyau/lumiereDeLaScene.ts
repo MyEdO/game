@@ -87,6 +87,22 @@ function melange(a: string, b: string, t: number): string {
   return versHex([0, 1, 2].map((i) => ca[i] + (cb[i] - ca[i]) * t) as [number, number, number]);
 }
 
+/**
+ * `vue.lumiere` (`LumiereDeLaScene`, `src/noyau/lumiereDeLaScene.ts`) est la lumière de la scène à l'heure de la
+ * partie, que le noyau calcule entière : Godot n'en pose que les valeurs. Le soleil (`soleil` : la direction unitaire
+ * vers lui dans le repère du monde, sa couleur `#rrggbb`, son énergie ; `null` en intérieur et la nuit) suit l'heure et
+ * le nord de la scène (`src/noyau/monde/soleil.ts`) ; l'ambiante (`ambiante`) suit le palier de lumière
+ * (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur, dont le fond est la brume) et la brume
+ * de profondeur (`brume` : sa couleur, puis où elle commence et où elle couvre tout, en cases au-delà du point que la
+ * caméra vise, ou depuis l'œil en immersion, `depuisLOeil` : celle d'un intérieur quand le groupe est sous un toit,
+ * sinon resserrée par la brume de la météo, `povTightenK`) viennent de l'ambiance du lieu, la nuit et la météo les
+ * teintent ; chaque source ponctuelle (`sources` : son foyer en cases, sa couche, sa hauteur en mètres, son rayon en
+ * cases, sa couleur, son énergie, son vacillement ou `null`, ce qu'elle montre, `visuel` (`feu`, `flammeche`, `lueur`)
+ * ou `null`, et le son qu'elle joue en boucle, `son` ou `null`, tous deux de son ton, `lightTones.json`, #3783) vient
+ * des lumières posées et portées de la scène (`sceneLightSources`, `sourceDuTon`).
+ * @contrat Lumière
+ */
+
 /** La lumière de la scène de `etat` à son heure, sous le regard `regard`. */
 export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }, regard: Regard): LumiereDeLaScene {
   const { scene, gameTime } = etat;

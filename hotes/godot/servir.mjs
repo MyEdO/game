@@ -42,6 +42,16 @@ const RACINE_DU_DEPOT = fileURLToPath(new URL('../..', import.meta.url))
 /** Le plus gros corps qu'un `PUT depot/<id>` reçoit, en octets. */
 const CORPS_MAX = 32 * 1024 * 1024
 
+/**
+ * Le dépôt est servi par `servir.mjs` lancé avec `--depot` (`npm run godot:editeur` exporte le projet dans `dist/godot`
+ * puis l'y sert) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
+ * `scripts/guards/lib/projetsLivres.mjs`), prose adressée matérialisée (`lireProjetLivre`), en `no-store` ; `PUT
+ * depot/<id>` écrit son corps à la place du fichier, 200, ou le refuse en 422 avec sa raison s'il n'est pas du JSON,
+ * pas ce projet, ou pas en forme dépôt (`materialiser` le refuse). Un projet généré (`scripts/<dossier>/generate.mjs`)
+ * ou inconnu reçoit 404 : il s'ouvre tel que le jeu l'embarque.
+ * @contrat Éditeur
+ */
+
 /** Le projet manuscrit (`PROJETS_MANUSCRITS`) d'id `id` du dépôt `depot` : son chemin relatif au corpus, ou `null`. */
 function manuscrit(depot, id) {
   return listerProjetsLivres(depot).find((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel))
