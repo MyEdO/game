@@ -46,7 +46,7 @@ describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activ
     const pnj: SceneEntity = {
       id: 'p', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 },
       dialogueId: { id: 'd1' },
-      merchant: { archetype: 'marchand-general' },
+      merchant: { archetype: { id: 'marchand-general' } },
       usable: { actions: [action(ACTION_FOUILLER)] },
     };
     const sc = scene([pnj]);

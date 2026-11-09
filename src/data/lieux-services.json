@@ -8,6 +8,7 @@
     "backdrop": {
       "id": "taverne-commune"
     },
+    "hebergement": true,
     "editorNote": "Dérive aussi de l’offre de repos de la scène liée (onglet Scène)"
   },
   {
@@ -42,7 +43,9 @@
     "type": "lieux-services",
     "label": "Forgeron",
     "icon": "item/weapon",
-    "merchantArchetype": "armurier",
+    "merchantArchetype": {
+      "id": "armurier"
+    },
     "backdrop": {
       "id": "forge"
     }

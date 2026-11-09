@@ -1457,7 +1457,7 @@ function EntityPanel({
             </label>
             <label className="ed-field">
               Marchand (archétype)
-              <select value={ent.merchant?.archetype ?? ''} onChange={(e) => updateSel({ merchant: e.target.value ? { ...ent.merchant, archetype: e.target.value } : undefined })}>
+              <select value={ent.merchant?.archetype.id ?? ''} onChange={(e) => updateSel({ merchant: e.target.value ? { ...ent.merchant, archetype: { id: e.target.value } } : undefined })}>
                 <option value="">— aucun —</option>
                 {MERCHANT_ARCHETYPES.map((a) => (
                   <option key={a.id} value={a.id}>

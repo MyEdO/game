@@ -29,7 +29,7 @@ const worldMap: WorldMap = {
     poi: [
       { id: 'poi-cave', label: 'La cave', pos: { x: 10, y: 10 }, sceneId: { id: 'poi-cave' } },
       { id: 'poi-perdu', label: 'Le puits', pos: { x: 20, y: 20 }, sceneId: { id: 'nulle-part' } },
-      { id: 'poi-auberge', label: 'L’auberge', pos: { x: 30, y: 30 }, serviceKind: 'auberge' },
+      { id: 'poi-auberge', label: 'L’auberge', pos: { x: 30, y: 30 }, serviceKind: { id: 'auberge' } },
     ],
   }],
 };

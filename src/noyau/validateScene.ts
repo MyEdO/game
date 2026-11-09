@@ -164,13 +164,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Scènes visées : leur portée s'ouvre à la racine du projet (`projetSchema`), hors de la carte validée seule.
     for (const p of worldMap.places) {
       if (!sceneIds.has(p.scene.id)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene.id} »`);
-      // Cible RÉSOLUE via `placeServices` (source unique, `noyau/worldMap.ts`) — pas le seul catalogue
-      // `lieux-services.json` : un POI peut aussi cibler le port/marché AUTOMATIQUES du lieu (`id`
-      // `'port'`/`'marche'`), exactement ce que `CityHubScreen` résout à l'affichage (#360).
+      // Le schéma juge le service au catalogue ; ici, le LIEU doit le résoudre (`placeServices`, source unique,
+      // `noyau/worldMap.ts`), port et marché AUTOMATIQUES compris, ce que `CityHubScreen` résout à l'affichage (#360).
       const resolvedServiceIds = new Set(placeServices(p).map((s) => s.id));
       for (const poi of p.poi ?? []) {
         if (poi.sceneId != null && !sceneIds.has(poi.sceneId.id)) addWm(poi.id, `POI « ${poi.label} » → scène inexistante « ${poi.sceneId.id} »`);
-        if (poi.serviceKind != null && !resolvedServiceIds.has(poi.serviceKind)) addWm(poi.id, `POI « ${poi.label} » → service inconnu « ${poi.serviceKind} »`);
+        if (poi.serviceKind != null && !resolvedServiceIds.has(poi.serviceKind.id)) addWm(poi.id, `POI « ${poi.label} » → service absent du lieu « ${poi.serviceKind.id} »`);
       }
     }
     for (const r of worldMap.routes) {
