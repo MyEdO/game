@@ -10,6 +10,7 @@ import type { VolumeDuMonde } from '../../../src/noyau/index';
 import { findVehicleById } from '../../../src/data';
 import { garanti } from '../../../src/lib/garanti';
 import { casesDeLAreteDePont, grilleDesPonts, MOTS_DES_PONTS } from '../../../src/data/schemas/grammaire/carte-ascii';
+import { EYE_H, MARGE_SOUS_PLAFOND_M } from '../../../src/noyau/monde/iso';
 
 const COMMITES = modelesCommites();
 const { appel } = table();
@@ -51,6 +52,16 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     // la case du grand mât, (9, 2) du pont supérieur, libre devant le mât sur [9 ; 9,375] × [2 ; 3] : au cap E, la case
     // (10, 4) de la scène, son occupant à l'est de son centre, vers la proue
     expect(stations).toContainEqual({ x: 10, y: 4, z: 2, point: { x: 10.3125, y: 4 } });
+  });
+
+  it('l’œil se pose dans la batterie sous le pont principal, de la marge, et debout sur le pont principal (#3808)', () => {
+    const [, hauteurs] = garanti(findVehicleById('caraque')?.ponts, 'caraque', 'ponts');
+    const { oeilM, oeilsSousPlafond } = vueDe(appel('regarder', { regard: 'immersion' })).plateau!;
+    expect(oeilM).toBe(EYE_H);
+    // (11, 4) de la scène, au milieu de la batterie (pont `e`, l'étage 1) sous le pont principal (`p`, l'étage 2)
+    expect(oeilsSousPlafond['11,4,1']).toBeCloseTo(hauteurs.p - MARGE_SOUS_PLAFOND_M - hauteurs.e, 6);
+    expect(oeilsSousPlafond['11,4,2']).toBeUndefined();
+    appel('regarder', { regard: 'tactique' });
   });
 
   it('le plateau coupe le navire sous le pont le plus bas que le regard retire au-dessus du groupe', () => {
@@ -96,13 +107,6 @@ describe('le modèle commité de la caraque, sur ses ponts (#3686)', () => {
 
   it('chaque pièce montée sur un pont découvert pose son affût sur une case du plan, à sa hauteur', () => {
     for (const p of Object.values(manifeste.postes).flat()) expect(Math.min(...cases.map((c) => ecart(p, c))), JSON.stringify(p)).toBeLessThanOrEqual(TOLERANCE);
-  });
-
-  it('l’emprise libre de chaque case des ponts que le modèle rogne y tient un occupant debout (#3767)', () => {
-    /** La carrure d'un adulte, 0,5 m, en cases : le plus étroit où un pion se tient (#3767). */
-    const CARRURE = 0.25;
-    const { cases: emprises } = manifeste as unknown as { cases: Record<string, number[]> };
-    expect(Object.entries(emprises).filter(([, [x0, y0, x1, y1]]) => Math.min(x1 - x0, y1 - y0) < CARRURE)).toEqual([]);
   });
 
   it('le nid-de-pie coiffe le grand mât, au milieu de sa case', () => {

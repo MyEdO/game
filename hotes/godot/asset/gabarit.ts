@@ -177,55 +177,67 @@ export interface PoseDuGabarit {
   readonly enfantsDe: Readonly<Record<string, number>>;
   readonly echellesDesOs: Readonly<Record<string, readonly [number, number, number]>>;
   readonly pieds: readonly string[];
+  readonly jambes: readonly string[];
+  readonly clipsPlantes: readonly string[];
   readonly echelleDeVitesse: number;
 }
 
+/** Ce que `poseDuGabarit` lit d'un manifeste de base ; la construction n'en a que la table. */
+export type ManifesteDuGabarit = Required<Pick<ManifesteDeBase, 'gabarit'>> & Partial<Pick<ManifesteDeBase, 'appuis' | 'clips' | 'clipsDeuxMains'>>;
+
+/** Les clips plantés de la base : le clip du rôle `walk`, à une main et à deux mains. */
+export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDeBase, 'clips' | 'clipsDeuxMains'>>): string[] =>
+  [...new Set([clips?.walk, ...Object.values(clipsDeuxMains ?? {}).map((table) => table.walk)].filter((clip): clip is string => clip !== undefined))];
+
 /**
  * @contrat Gabarit d'une base
- * Godot ne calcule aucun facteur : il reçoit des nombres par nom d'os et par nom de shape key, calculés une fois en
- * TS (`asset/gabarit.ts`) sur les facteurs de `gabaritResolu` (`GabaritResolu`, surface du noyau). L'évaluateur les
- * applique à la pose de repos de la base (`appliquerGabarit`, `asset/evaluateur/gabarit.ts`) ; Godot les applique à
- * la pose de chaque image, après le clip, par un `SkeletonModifier3D` enfant du squelette
+ * Godot ne calcule aucun facteur : il reçoit des nombres par nom d'os et par nom de shape key, calculés une fois en TS
+ * (`asset/gabarit.ts`) sur les facteurs de `gabaritResolu` (`GabaritResolu`, surface du noyau). L'évaluateur les
+ * applique à la pose de repos de la base (`appliquerGabarit`, `asset/evaluateur/gabarit.ts`) ; Godot les applique à la
+ * pose de chaque image, après le clip, par un `SkeletonModifier3D` enfant du squelette
  * (`projet/scripts/gabarit_du_squelette.gd`, `GabaritDuSquelette`), ce qui revient au même au repos et garde les
  * proportions pendant un clip, dont les pistes réécrivent la pose : le moteur joue un modificateur après
- * l'`AnimationMixer` et restaure la pose non modifiée après le skinning (`Skeleton3D`,
- * `NOTIFICATION_UPDATE_SKELETON`), sans cumul d'une image à l'autre. L'os `racine.os` voit son échelle de pose
- * multipliée par `echelle`, et chaque os enfant la composante Y de sa position de pose :
+ * l'`AnimationMixer` et restaure la pose non modifiée après le skinning (`Skeleton3D`, `NOTIFICATION_UPDATE_SKELETON`),
+ * sans cumul d'une image à l'autre. L'os `racine.os` voit son échelle de pose multipliée par `echelle`, chaque os
+ * enfant la composante Y de sa position de pose, et, sur un clip planté, les jambes se plient (`poserLeGabarit`) :
  *
- * - `poseDuGabarit(manifeste, facteurs)` →
- *   `{ racine: { os, echelle }, enfantsDe: Record<os, facteur>, echellesDesOs: Record<os, [x, y, z]>, pieds: os[], echelleDeVitesse: number }`.
- *   L'os `racine.os` reçoit l'échelle uniforme `sl`. Chaque enfant os direct d'un os de `enfantsDe` reçoit sa
- *   position locale animée avec Y multiplié par le facteur de son parent ; X, Z, rotations et échelles des enfants
- *   sont conservés. La construction peut fournir uniquement la table `gabarit`. `pieds` relaie `appuis.pieds` pour
- *   les consommateurs d'appui et l'hôte. `echelleDeVitesse` vaut `sl` : la vitesse au sol du clip du rôle `walk`,
+ * - `poseDuGabarit(manifeste, facteurs)` → `{ racine: { os, echelle }, enfantsDe: Record<os, facteur>, echellesDesOs:
+ *   Record<os, [x, y, z]>, pieds: os[], echelleDeVitesse: number, jambes: os[], clipsPlantes: string[] }`. L'os
+ *   `racine.os` reçoit l'échelle uniforme `sl`. Chaque enfant os direct d'un os de `enfantsDe` reçoit sa position
+ *   locale animée avec Y multiplié par le facteur de son parent ; X, Z, rotations et échelles des enfants sont
+ *   conservés. La construction peut fournir uniquement la table `gabarit`. `pieds` relaie `appuis.pieds` pour les
+ *   consommateurs d'appui et l'hôte. `echelleDeVitesse` vaut `sl` : la vitesse au sol du clip du rôle `walk`,
  *   `appuis.vitesseAuSol`, au gabarit, en est multipliée, pour la garde `appuis` de l'évaluateur (`evaluer.ts`) comme
- *   pour la marche de l'atelier (`MarcheDeLAtelier`) ; aux facteurs `legs` autres que 1, les pieds glissent (#3104).
+ *   pour la marche de l'atelier (`MarcheDeLAtelier`). `jambes` relaie `gabarit.legs` ; `clipsPlantes`
+ *   (`clipsPlantes(manifeste)`) liste, chacun une fois, le clip du rôle `walk` de `clips` et de chaque maniement de
+ *   `clipsDeuxMains` : les marches que la construction plante (#3314).
  *
  * Le manifeste de base, schéma `VERSION_DU_SCHEMA_DE_BASE`, porte `appuis.plusBas`, une liste non vide de copies de
- * géométrie : chaque candidat contient `position`, triplet en espace de bind, `os`, une à quatre influences
- * `{ nom, poids }` positives de somme 1, et `deltas`, les deltas non nuls des silhouettes et des clés `gabarit_*` par
- * nom ; un nom absent vaut le triplet nul, et la construction omet tout triplet exactement nul. Ces copies ne
- * dépendent d'aucun indice de sommet livré. La construction les sélectionne avant l'export sur le corps entier par
- * `selectionner_appuis` (`scripts/personnage-3d/base/selection_appuis.py`), qui les copie en repère glTF par
- * `copies_d_appui`. Les matrices de peau proviennent du transport binaire de `groupes_de_peau`, groupées par facteurs
- * ; `matricesDePeauDuGabarit` applique `poserEnfantsDuGabarit` et `bindsAuGabarit` aux poses de tous les clips. Le
- * skinning vectoriel unique de `poids.py` fournit les positions, chaque mélange de matrices servant tous les états de
- * son groupe. L'évaluateur conserve three pour les mesures. La grille nommée `grilleDesAppuis` vaut G = (∏
- * k∈{legs,arms,head} ({FACTEURS_NEUTRES[k]} ∪ {c.extremite | c∈sensCuitsDuGabarit(bornes), c.cle=k})) ×
+ * géométrie : chaque candidat contient `position`, triplet en espace de bind, `os`, une à quatre influences `{ nom,
+ * poids }` positives de somme 1, et `deltas`, les deltas non nuls des silhouettes et des clés `gabarit_*` par nom ; un
+ * nom absent vaut le triplet nul, et la construction omet tout triplet exactement nul. Ces copies ne dépendent d'aucun
+ * indice de sommet livré. La construction les sélectionne avant l'export sur le corps entier par `selectionner_appuis`
+ * (`scripts/personnage-3d/base/selection_appuis.py`), qui les copie en repère glTF par `copies_d_appui`. Les matrices
+ * de peau proviennent du transport binaire de `groupes_de_peau`, groupées par facteurs ; `matricesDePeauDuGabarit`
+ * applique `poserLeGabarit` et `bindsAuGabarit` aux poses de tous les clips, jambes pliées sur les instants des clips
+ * plantés (drapeau par échantillon, repos compris, dont le nombre doit égaler celui des poses). Le skinning vectoriel
+ * unique de `poids.py` fournit les positions, chaque mélange de matrices servant tous les états de son groupe.
+ * L'évaluateur conserve three pour les mesures. La grille nommée `grilleDesAppuis` vaut G = (∏ k∈{legs,arms,head}
+ * ({FACTEURS_NEUTRES[k]} ∪ {c.extremite | c∈sensCuitsDuGabarit(bornes), c.cle=k})) ×
  * `coinsDeSilhouettesAtteignables(manifeste.gabarit, manifeste.silhouettes)` ; la règle « jamais les deux carrures »
- * vient de `poidsDeCarrure` par cet énumérateur commun, et `bornes` est `manifeste.gabarit.bornes`. Aucun milieu
- * n'est ajouté : cette grille couvre les extrémités de chaque domaine cuit et le neutre ; les instants sont l'union
- * de la cadence commune et des clés de chaque clip (`instants`). Chaque état inclut aussi le repos. La sélection
- * conserve chaque sommet qui réalise le minimum vertical à l'un de ces instants ; elle utilise les mêmes facteurs et
- * binds sans translation R2, qui ne change pas l'identité du minimum. Les fichiers binaires de travail vivent dans un
- * dossier temporaire privé, nettoyé en fin de sélection, y compris sur échec.
+ * vient de `poidsDeCarrure` par cet énumérateur commun, et `bornes` est `manifeste.gabarit.bornes`. Aucun milieu n'est
+ * ajouté : cette grille couvre les extrémités de chaque domaine cuit et le neutre ; les instants sont l'union de la
+ * cadence commune et des clés de chaque clip (`instants`). Chaque état inclut aussi le repos. La sélection conserve
+ * chaque sommet qui réalise le minimum vertical à l'un de ces instants ; elle utilise les mêmes facteurs et binds sans
+ * translation R2, qui ne change pas l'identité du minimum. Les fichiers binaires de travail vivent dans un dossier
+ * temporaire privé, nettoyé en fin de sélection, y compris sur échec.
  *
  * La table est disjointe entre `legs`, `arms` et `head` : le schéma refuse un os sous deux clés, en nommant l'os et
  * les deux clés. Le champ `racine` ne participe pas à cette disjonction. `echellesDesOs` donne, pour chaque os listé,
  * S_b = `(1, f, 1)` sous `legs` et `arms`, `(f, f, f)` sous `head`. Les hôtes disposent ainsi des multiplicateurs du
  * décalage local d'un emplacement ou d'une prise sur cet os ; ce champ ne modifie pas l'échelle du squelette.
  */
-export function poseDuGabarit({ gabarit, appuis }: Required<Pick<ManifesteDeBase, 'gabarit'>> & Partial<Pick<ManifesteDeBase, 'appuis'>>, facteurs: GabaritResolu): PoseDuGabarit {
+export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit, facteurs: GabaritResolu): PoseDuGabarit {
   const enfantsDe: Record<string, number> = {};
   const echellesDesOs: Record<string, readonly [number, number, number]> = {};
   for (const cle of CLES_DU_GABARIT) {
@@ -235,7 +247,7 @@ export function poseDuGabarit({ gabarit, appuis }: Required<Pick<ManifesteDeBase
       echellesDesOs[nom] = cle === 'head' ? [facteur, facteur, facteur] : [1, facteur, 1];
     }
   }
-  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], echelleDeVitesse: facteurs.sl };
+  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], jambes: gabarit.legs, clipsPlantes: clipsPlantes(clips), echelleDeVitesse: facteurs.sl };
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */

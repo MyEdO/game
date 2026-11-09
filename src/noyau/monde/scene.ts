@@ -134,7 +134,7 @@ export interface SceneEntity {
    *  `market-tenir-comptes`) — mêmes domaines de valeurs que la règle globale correspondante. Absent =
    *  HÉRITAGE du global (`engine/policy` `rule(...)`), jamais un 3ᵉ état ambigu. Lus par `marketRule`
    *  (noyau/merchantFlow, couture UNIQUE). */
-  merchant?: { archetype: string; settlement?: import('../../engine/disponibilite').Settlement; resaleRate?: number; buyMarkup?: number; restockDays?: number;
+  merchant?: { archetype: { id: string }; settlement?: import('../../engine/disponibilite').Settlement; resaleRate?: number; buyMarkup?: number; restockDays?: number;
       guild?: boolean; marketMode?: 'complet' | 'sans-disponibilite' | 'sans-marchandage' | 'simplifie'; tenirComptes?: boolean };
   /** JOUEUR de taverne (#1279 S4) : présent = ce personnage PROPOSE une partie, et il la joue de SA
    *  fiche (`TavernOpponent` `kind:'npc'` — ses Caractéristiques et ses Compétences avec avances,

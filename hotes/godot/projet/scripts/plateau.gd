@@ -269,13 +269,14 @@ func _survoler(case: Variant) -> void:
 ## `MontageDeVehicule._porter_la_hauteur`), et sous un pont coupé l'intérieur reste à l'ombre du pont du dessus.
 
 ## @contrat Vue
-## Le jeu pose sa caméra sous le regard (`Monde.regarder`, la touche V passant au regard suivant), à la suite de l'actif
-## du combat, sinon du groupe, dès que son lieu change ; en tactique et au plateau, elle pivote d'un quart de tour (A, E
-## d'un AZERTY) ou librement (bouton du milieu tenu), zoome à la molette, glisse au clavier (`avant`, `arriere`,
-## `gauche`, `droite`) et revient au lieu suivi (Origine) ; en immersion, l'œil du meneur marche librement au clavier,
-## court (Maj tenue), regarde à la souris captive (Échap la libère, un clic la reprend ; sur le Web, où le navigateur ne
-## la capture qu'au geste du joueur, le premier clic la prend), et chaque case qu'il franchit ou qu'il vise au point de
-## mire (E ou clic) se joue au clic du champ (`Immersion`), sans plaque de surbrillance au sol (`Monde.regarder`).
+## Le jeu pose sa caméra sous le regard (`Monde.regarder`, la touche V passant au regard suivant), à la suite de
+## l'actif du combat, sinon du groupe, dès que son lieu change ; en tactique et au plateau, elle pivote d'un quart de
+## tour (A, E d'un AZERTY) ou librement (bouton du milieu tenu), zoome à la molette, glisse au clavier (`avant`,
+## `arriere`, `gauche`, `droite`) et revient au lieu suivi (Origine) ; en immersion, l'œil du meneur, à la hauteur de
+## l'œil de la case du sol sous lui, marche librement au clavier, court (Maj tenue), regarde à la souris captive
+## (Échap la libère, un clic la reprend ; sur le Web, où le navigateur ne la capture qu'au geste du joueur, le premier
+## clic la prend), et chaque case qu'il franchit ou qu'il vise au point de mire (E ou clic) se joue au clic du champ
+## (`Immersion`), sans plaque de surbrillance au sol (`Monde.regarder`).
 
 ## @contrat Corps d'un combattant
 ## Le combat de Godot tire `GET modeles/listage.json` (section « Atelier 3D ») et appelle `modeles` avec ses

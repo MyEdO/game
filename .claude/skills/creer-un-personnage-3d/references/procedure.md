@@ -431,10 +431,15 @@ Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (caté
 depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
 manifestes et dossiers de production ; `maille.py` : maille, solides (révolution, cylindre, boîte, plaque, poutre, tube,
 tore, roue, treuil), bascule autour d'un axe, recentrage de l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et
-éléments d'un modèle à plusieurs pièces ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
+éléments d'un modèle à plusieurs pièces ; `plan_de_jeu.py` : les ponts d'un navire, lus dans la source unique `ponts` de
+sa fiche ; `navire.py` : les pièces communes des navires bâtis sur leurs ponts, coque, espars, cloisons, portes, échelles,
+pièces creusées et emprise libre des cases ; `revue.py` : configurations rendues dans le studio de `rendu.py` ;
+`cote_a_cote.py` : l'illustration au-dessus du rendu orthographique, à la même échelle, de profil et pont par pont) et un dossier
 par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
 `caraque` (coque bâtie sur ses ponts, la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit
-aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`), `barge-fluviale` (le Bérébéli, bâti de même sur
+les ponts de sa fiche, ses postes d'armes lourdes sur ses plates-formes de proue et de poupe et, aux deux bords, sur
+le toit de son rouf) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
 engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
 batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
 (catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de
@@ -447,7 +452,7 @@ projet) et se cite dans la docstring des données ; sans référence, la docstri
   `src/data/trappings.json`, ajoutée d'abord si elle manque) ; `MATERIAUX`, `{nom: (emplacement, matière)}`, l'emplacement
   pris aux `SLOTS` de `src/lib/palette.ts`, la matière un id du domaine `prop` de `src/data/materials.json` (sa texture
   vient du catalogue `hotes/godot/projet/textures/`), à défaut `(couleur linéaire, métal, rugosité)` ; `BLASONS`, les
-  matériaux qui reçoivent l'emblème ; chaque dimension en mètres, nommée, lue sur une illustration ou une donnée du jeu
+  matériaux qui reçoivent l'emblème ; pour un navire, `ILLUSTRATION`, le calage de son illustration directrice ; chaque dimension en mètres, nommée, lue sur une illustration ou une donnée du jeu
   (section 1), jamais enfouie dans `modele.py` ;
 - `modele.py` : `elements(D)`, qui produit un dict par GLB : `glb` (nom de la scène), `cles` (`[(categorie, cle)]`, une
   clé par élément qui partage ce GLB), `materiaux`, `blasons`, et `construire`, qui bâtit la scène vide avec
@@ -464,8 +469,8 @@ sont des données nommées de `donnees.py`.
 
 Le repère est celui de la section 2 : en Blender, l'avant vers -y, bâbord vers +x, l'origine au sol ou à la flottaison,
 l'emprise recentrée en x et y ; l'export place l'avant vers +z glTF. Ce qui se monte au véhicule (pièce d'artillerie,
-Amélioration) est son propre élément. Une primitive d'un autre modèle dont le type a besoin passe dans `maille.py`
-(deuxième cas réel), sans changer un octet des GLB publiés.
+Amélioration) est son propre élément. Une primitive d'un autre modèle dont le type a besoin passe dans `maille.py`, une
+pièce de navire dans `navire.py` (deuxième cas réel), sans changer un octet des GLB publiés.
 
 **Construire**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt (refusé sinon) :
 
@@ -480,7 +485,8 @@ et les nœuds de chaque GLB ; deux constructions donnent les mêmes octets.
 **Valider.** `npm run godot:valider -- /atelier/<type>/<id>/<id>.element.json /atelier/<type>/<id>/<id>.glb` pour chaque
 id ; `npm run personnage-3d:tests`, dont `test_vehicule.py` reconstruit chaque modèle et compare chaque manifeste, son
 empreinte comprise, à celui publié sous `hotes/godot/projet/modeles/` ; un véhicule ou une Amélioration publiés sans
-modèle y échouent. Rendre un GLB seul par `rendu.py --input` ; ses configurations par `revue.py`, d'après la `REVUE` des
+modèle y échouent ; sur chaque navire, toute case des ponts s'atteint et l'emprise libre de chacune tient un occupant
+debout. Rendre un GLB seul par `rendu.py --input` ; ses configurations par `revue.py`, d'après la `REVUE` des
 données (le véhicule, la pièce des postes, les configurations et les vues de l'intérieur), avec les textures que
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
@@ -488,7 +494,17 @@ données (le véhicule, la pièce des postes, les configurations et les vues de 
 node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
 ```
 
-Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.
+Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner. Avant de montrer un
+véhicule à l'utilisateur, un juge neuf (`.claude/agents/juge.md`) statue signe identitaire par signe identitaire sur
+le côte à côte de son illustration et de son rendu orthographique, de profil puis pont par pont : pour chaque plan de
+pont de l'illustration, le plan dessiné, le rendu de dessus coupé au-dessus du sol de ce pont et le plan de jeu
+(`ponts`, postes d'arme du manifeste), à la même échelle, cloisons, portes, écoutilles, échelles, mobilier et postes
+d'arme ; tout rendu montré à l'utilisateur porte son illustration à côté. Hors du dépôt, avec le recueil
+d'illustrations extrait :
+
+```sh
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/cote_a_cote.py <type> --glb /atelier/<type>/<id>/<id>.glb --illustrations <recueil> --sortie /atelier/<type>-cote-a-cote
+```
 
 **Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
 `node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.

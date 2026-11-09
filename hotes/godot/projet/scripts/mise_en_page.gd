@@ -329,6 +329,44 @@ static func decalage_au_sol(verticale: Vector3, cible: float, pied: float) -> Ve
 	return verticale * (cible - pied)
 
 
+## La longueur du vecteur `vecteur`.
+static func longueur(vecteur: Vector3) -> float:
+	return vecteur.length()
+
+
+## L'extension d'une jambe : la distance `hanche_pied` de sa hanche à son pied rapportée à sa longueur, sa cuisse
+## `cuisse` et son mollet `mollet` (`viseesDesJambes`, `CONTRAT.md`, « Gabarit d'une base »).
+static func extension_de_jambe(hanche_pied: float, cuisse: float, mollet: float) -> float:
+	return hanche_pied / (cuisse + mollet)
+
+
+## La portée d'une jambe de cuisse `cuisse` et de mollet `mollet` à l'extension `extension` (`plierLesJambes`).
+static func portee_de_jambe(extension: float, cuisse: float, mollet: float) -> float:
+	return extension * (cuisse + mollet)
+
+
+## La montée de la racine le long de la verticale monde rapportée au repère de base `repere` (le squelette) qui porte à
+## `portee` la distance de la hanche d'une jambe à son pied visé, à `vers` d'elle, `INF` hors d'atteinte
+## (`plierLesJambes`, `CONTRAT.md`, « Gabarit d'une base »).
+static func montee_de_jambe(vers: Vector3, repere: Basis, portee: float) -> float:
+	var haut := (repere.inverse() * Vector3.UP).normalized()
+	var vertical := vers.dot(haut)
+	var discriminant := vertical * vertical - vers.length_squared() + portee * portee
+	return vertical + sqrt(discriminant) if discriminant >= 0 else INF
+
+
+## Le déplacement de la racine de `montee` le long de la verticale monde rapportée au repère de base `repere`, nul pour
+## une montée infinie (`plierLesJambes`).
+static func deplacement_de_montee(repere: Basis, montee: float) -> Vector3:
+	return (repere.inverse() * Vector3.UP).normalized() * montee if is_finite(montee) else Vector3.ZERO
+
+
+## La visée `vers` d'un pied depuis sa hanche, d'une jambe à l'échelle de pose `echelle` et de repos `echelle_de_repos`,
+## rapportée à la mesure de `TwoBoneIK3D` (`GabaritDuSquelette._poser_sur`).
+static func visee_de_l_ik(vers: Vector3, echelle: float, echelle_de_repos: float) -> Vector3:
+	return vers * echelle_de_repos / echelle
+
+
 ## La plus basse des hauteurs `hauteur` et `autre`.
 static func plus_bas(hauteur: float, autre: float) -> float:
 	return minf(hauteur, autre)

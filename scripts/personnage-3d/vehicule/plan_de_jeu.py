@@ -9,6 +9,10 @@ même pont ; la plus haute est la trappe, au niveau du pont du dessus, qui n'a p
 """
 import json
 
+import habillage
+
+VEHICULES = habillage.DEPOT / "src" / "data" / "vehicles.json"
+
 BASE = ". "
 MURS = "|-"
 PORTE = ":"
@@ -16,10 +20,14 @@ ECHELLE = "H"
 SABORD = "x"
 
 
-def lire(chemin, id_):
-    """Les ponts du véhicule `id_` de `chemin` (`src/data/vehicles.json`)."""
-    fiches = json.loads(chemin.read_text(encoding="utf-8"))
-    return depuis(next(f for f in fiches if f["id"] == id_))
+def fiche(id_):
+    """La fiche du véhicule `id_` de `src/data/vehicles.json`."""
+    return next(f for f in json.loads(VEHICULES.read_text(encoding="utf-8")) if f["id"] == id_)
+
+
+def lire(id_):
+    """Les ponts du véhicule `id_`."""
+    return depuis(fiche(id_))
 
 
 def depuis(fiche):

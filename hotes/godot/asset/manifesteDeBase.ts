@@ -120,9 +120,9 @@ type Brut = Record<string, unknown>;
  *   (`validerManifesteDeBase`, `forme`), un rôle hors du vocabulaire est refusé par `role-inconnu` et un clip absent
  *   du GLB par `clip-absent` (`ecartsDeClips`, `asset/clips.ts`, appliqué à la base par `validerModele`,
  *   `asset/modeles.ts`). Le clip du rôle `walk` est la marche que la construction plante et que l'évaluateur mesure ;
- *   `appuis.vitesseAuSol` est sa vitesse au sol, en m/s, mesurée sur le corps neutre ; elle ne suit pas le gabarit,
- *   dont la foulée suit `sl` et `legs`, si bien qu'hors du gabarit neutre le pied glisse à la marche : écart ouvert
- *   sur #3104 (loi de la vitesse au sol par facteur).
+ *   `appuis.vitesseAuSol` est sa vitesse au sol, en m/s, mesurée sur le corps neutre ; au gabarit, la foulée des
+ *   clips plantés suit `sl` seul (`poserLeGabarit`), et cette vitesse multipliée par `echelleDeVitesse` garde les
+ *   pieds plantés.
  * - `clipsDeuxMains` du manifeste de base (#3319), optionnel : par maniement (`MANIEMENTS`, `src/noyau/animation.ts`
  *   ; un autre donne `forme` en `clipsDeuxMains.<maniement>`), le clip de chaque rôle que la base joue en tenant des
  *   deux mains un objet de ce maniement, mêmes rôles et mêmes écarts que `clips` (`ou` en

@@ -78,7 +78,7 @@ export function* echantillonner(
     action.play();
     try {
       for (const t of instants(clip, pas)) {
-        if (gabarit) reposerGabarit(gabarit, () => mixer.setTime(t));
+        if (gabarit) reposerGabarit(gabarit, () => mixer.setTime(t), gabarit.clipsPlantes.includes(clip.name));
         else mixer.setTime(t);
         yield { clip: clip.name, t, ...poseCourante(scene, meshes) };
       }
