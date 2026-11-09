@@ -15,7 +15,7 @@ import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { offresDExploration } from './interactionsDExploration';
 import { exploreMovePlan, optionsDeCheminDuGroupe } from './monde/exploreNav';
 import { memeCase } from './monde/seating';
-import { atterrissagesDeSaut, type Pt } from './monde/path';
+import { atterrissagesDeSaut, cheminsDepuis, type CheminsDepuis, type Pt } from './monde/path';
 import { computeStateVisible } from './visionState';
 import { flowEffects } from '../engine/flowCore';
 import { t } from '../i18n';
@@ -30,10 +30,10 @@ export interface GesteDExploration {
   refus?: string;
 }
 
-/** La marche du groupe jusqu'à `vers` (`cliquerLaCase`) et son nombre de pas, `null` la marche fermée (`marcheOuverte`)
- *  ou sans chemin à pied qui y finisse. */
-function marcheVers(s: Jeu, vers: Pt): { gestes: GesteDuNoyau[]; pas: number } | null {
-  const plan = marcheOuverte(s) && s.scene ? exploreMovePlan(s.scene, s.partyPos, vers, optionsDeCheminDuGroupe(s.party)) : null;
+/** La marche du groupe jusqu'à `vers` (`cliquerLaCase`) par ses `chemins` et son nombre de pas, `null` la marche
+ *  fermée (`marcheOuverte`) ou sans chemin à pied qui y finisse. */
+function marcheVers(s: Jeu, chemins: CheminsDepuis, vers: Pt): { gestes: GesteDuNoyau[]; pas: number } | null {
+  const plan = marcheOuverte(s) && s.scene ? exploreMovePlan(s.scene, vers, chemins) : null;
   const fin = plan?.path[plan.path.length - 1];
   return plan && fin && plan.path.length > 1 && memeCase(fin, vers) && cheminMarchable(s.scene!, plan.path) ? { gestes: [{ verbe: 'cliquerLaCase', args: [vers] }], pas: plan.path.length - 1 } : null;
 }
@@ -45,21 +45,23 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
   const { scene, partyPos } = s;
   if (!scene || s.mode !== 'exploration') return [];
   const visible = computeStateVisible(s);
+  const opts = optionsDeCheminDuGroupe(s.party);
+  const chemins = cheminsDepuis(scene, partyPos, opts);
   const out: GesteDExploration[] = [];
   for (const arete of aretesOffertes(aretesUtilisables({ scene, visible, controleur: partyPos, activeZ: partyPos.z ?? 0 }), gestesDeplacantsOuverts(s))) {
     const geste = gesteDeLArete(s, arete);
     if (!geste) continue;
-    const marche = geste.verbe === 'cliquerLaCase' ? marcheVers(s, geste.args[0]) : { gestes: [geste] };
+    const marche = geste.verbe === 'cliquerLaCase' ? marcheVers(s, chemins, geste.args[0]) : { gestes: [geste] };
     if (marche) out.push({ libelle: arete.libelle, gestes: marche.gestes });
   }
-  for (const a of marcheOuverte(s) ? atterrissagesDeSaut(scene, partyPos, optionsDeCheminDuGroupe(s.party)) : []) {
+  for (const a of marcheOuverte(s) ? atterrissagesDeSaut(scene, partyPos, opts) : []) {
     out.push({ libelle: t('exploration.saut', { x: a.x, y: a.y }), gestes: [{ verbe: 'cliquerLaCase', args: [a] }] });
   }
   for (const trig of triggersEnJeu(scene, () => visible)) {
     if (s.flags[`__trigger_${trig.id}`]) continue;
     const sortie = flowEffects(trig.flow).find(estTransition);
     if (!sortie) continue;
-    const marche = marcheVers(s, { x: trig.rect.x, y: trig.rect.y, z: trig.rect.z ?? 0 });
+    const marche = marcheVers(s, chemins, { x: trig.rect.x, y: trig.rect.y, z: trig.rect.z ?? 0 });
     if (marche) out.push({ libelle: t('exploration.sortie', { scene: sortie.scene }), gestes: marche.gestes });
   }
   for (const p of offresDExploration(s)) {
@@ -84,7 +86,7 @@ export function gestesDExploration(s: Jeu): GesteDExploration[] {
         const geste = gesteDeDenivele(arete);
         if (!geste || bordees.has(arete.cle) || arete.ancrage.x !== x || arete.ancrage.y !== y) continue;
         bordees.add(arete.cle);
-        const marche = marcheVers(s, arete.ancrage);
+        const marche = marcheVers(s, chemins, arete.ancrage);
         if (marche) ailleurs.push({ libelle: t('exploration.ailleurs', { geste: arete.libelle, x, y }), gestes: [...marche.gestes, geste], pas: marche.pas, arete: arete.libelle });
       }
     }
