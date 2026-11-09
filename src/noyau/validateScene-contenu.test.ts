@@ -175,7 +175,7 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
 
 describe('une scène où la carte du monde fait DÉBARQUER le groupe doit dire OÙ', () => {
   const lieu = (extra: Partial<MapPlace> = {}): MapPlace =>
-    ({ id: 'lieu', label: 'Le Relais', pos: { x: 0, y: 0 }, scene: 'S', ...extra });
+    ({ id: 'lieu', label: 'Le Relais', pos: { x: 0, y: 0 }, scene: { id: 'S' }, ...extra });
   const carte = (place: MapPlace): WorldMap => ({ id: 'w', label: 'Carte', places: [place], routes: [] });
   /** La même scène que le reste du banc, mais SANS départ du groupe. */
   const sansDepart = (): Scene => {
@@ -199,7 +199,7 @@ describe('une scène où la carte du monde fait DÉBARQUER le groupe doit dire O
   });
 
   it('un POI de plan ne porte AUCUN point d’arrivée : la scène qu’il ouvre doit avoir son départ', () => {
-    const avecPoi = lieu({ entry: 'porche', scene: 'autre', poi: [{ id: 'poi', label: 'La cave', pos: { x: 1, y: 1 }, sceneId: 'S' }] });
+    const avecPoi = lieu({ entry: 'porche', scene: { id: 'autre' }, poi: [{ id: 'poi', label: 'La cave', pos: { x: 1, y: 1 }, sceneId: { id: 'S' } }] });
     const warns = validateScene([sansDepart()], carte(avecPoi)).filter((w) => w.scope === 'scene');
     expect(warns).toHaveLength(1);
     expect(warns[0].message).toContain('La cave');
@@ -207,7 +207,7 @@ describe('une scène où la carte du monde fait DÉBARQUER le groupe doit dire O
 
   it('une scène qu’AUCUNE porte de carte ne désigne n’est pas jugée : on y entre par transition, avec sa propre case d’arrivée', () => {
     expect(validateScene([sansDepart()]).filter((w) => w.scope === 'scene')).toEqual([]);
-    expect(validateScene([sansDepart()], carte(lieu({ scene: 'autre' }))).filter((w) => w.scope === 'scene')).toEqual([]);
+    expect(validateScene([sansDepart()], carte(lieu({ scene: { id: 'autre' } }))).filter((w) => w.scope === 'scene')).toEqual([]);
   });
 });
 

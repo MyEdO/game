@@ -40,8 +40,8 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 const seaMap: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
   places: [
-    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['bois-mer'], surplus: { 'produits-de-luxe-mer': 1 } } },
-    { id: 'B', label: 'Marienburg', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 4, richesse: 5, production: ['commerce-mer'], demande: { 'bois-mer': 1 }, cosmopolite: true } },
+    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' }, port: { taille: 4, richesse: 4, production: ['bois-mer'], surplus: { 'produits-de-luxe-mer': 1 } } },
+    { id: 'B', label: 'Marienburg', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 4, richesse: 5, production: ['commerce-mer'], demande: { 'bois-mer': 1 }, cosmopolite: true } },
   ],
   routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };

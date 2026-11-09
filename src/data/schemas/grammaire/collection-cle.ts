@@ -238,7 +238,8 @@ export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (est
  * (un id local n'entre dans aucun espace de l'INDEX DES IDS), portée qu'aucune référence de l'arbre ne désigne.
  * Le jugement court même quand une issue de l'arbre avorte les raffinements de l'objet (`when`) : au parse de
  * mesure, le repère d'une feuille `idDe` de l'arbre en est une (`mesureDuParse`), et une référence locale non
- * jugée ne serait pas comptée.
+ * jugée ne serait pas comptée. Une collection qui n'est pas une liste, refusée par son propre nœud, ne juge
+ * aucune référence de sa portée.
  */
 export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[]): N {
   const marques = new Map(
@@ -261,7 +262,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
     if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
   const ouvreur = objet.superRefine((valeur, ctx) => {
     if (!estObjet(valeur)) return;
-    const ids = new Map([...marques].map(([portee, marque]) => [portee, new Set(idsDeCollection(marque, valeur[portee.collection]))]));
+    const ids = new Map([...marques].filter(([portee]) => Array.isArray(valeur[portee.collection])).map(([portee, marque]) => [portee, new Set(idsDeCollection(marque, valeur[portee.collection]))]));
     coDescendre(objet, valeur, ({ noeuds, valeur: id, chemin }) => {
       if (typeof id !== 'string') return;
       for (const noeud of noeuds) {

@@ -39,8 +39,8 @@ const carte: WorldMap = {
   id: 'ch1',
   label: 'Chapitre 1',
   places: [
-    { id: 'pa', label: 'La Diligence', pos: { x: 20, y: 50 }, scene: 'monde-a' },
-    { id: 'pb', label: 'Altdorf', pos: { x: 70, y: 40 }, scene: 'monde-b' },
+    { id: 'pa', label: 'La Diligence', pos: { x: 20, y: 50 }, scene: { id: 'monde-a' } },
+    { id: 'pb', label: 'Altdorf', pos: { x: 70, y: 40 }, scene: { id: 'monde-b' } },
   ],
   routes: [
     { id: 'aller', a: { id: 'pa' }, b: { id: 'pb' }, from: { id: 'pa' }, km: 400, modes: ['pied'], perilDie: 0 },
@@ -100,17 +100,17 @@ const carteNaufrage: WorldMap = {
   id: 'mer',
   label: 'Mer des Griffes',
   places: [
-    { id: 'pa', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'monde-a' },
-    { id: 'pb', label: 'Erengrad', pos: { x: 100, y: 0 }, scene: 'monde-b' },
+    { id: 'pa', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'monde-a' } },
+    { id: 'pb', label: 'Erengrad', pos: { x: 100, y: 0 }, scene: { id: 'monde-b' } },
     // Le PLUS PROCHE du point de naufrage — mais le récit ne l'a pas révélé.
     {
       id: 'ile-cachee',
       label: 'L’Île aux Cormorans',
       pos: { x: 50, y: 0 },
-      scene: 'monde-c',
+      scene: { id: 'monde-c' },
       when: { kind: 'flag', expr: 'ile-revelee' },
     },
-    { id: 'refuge', label: 'La Crique', pos: { x: 56, y: 0 }, scene: 'monde-d' },
+    { id: 'refuge', label: 'La Crique', pos: { x: 56, y: 0 }, scene: { id: 'monde-d' } },
   ],
   routes: [{ id: 'rmer', a: { id: 'pa' }, b: { id: 'pb' }, km: 100, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };

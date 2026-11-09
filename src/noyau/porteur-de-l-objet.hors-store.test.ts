@@ -168,7 +168,7 @@ describe('ouvrirLaBoutique : chaque refus est dit', () => {
     resetSceneRegistry();
     const place = emptyScene('scene-test', 6, 6); place.id = 'place';
     place.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-    const worldMap: WorldMap = { id: 'carte', label: 'Carte', routes: [], places: [{ id: 'bourg', label: 'Bourg', pos: { x: 0, y: 0 }, scene: 'place' }] };
+    const worldMap: WorldMap = { id: 'carte', label: 'Carte', routes: [], places: [{ id: 'bourg', label: 'Bourg', pos: { x: 0, y: 0 }, scene: { id: 'place' } }] };
     g().fixerLeGroupe([heros('a')]);
     g().chargerLeProjet({ scenes: [place], entryId: 'place', worldMap, projet: null });
     g().ouvrirLaBoutique('forgeron');

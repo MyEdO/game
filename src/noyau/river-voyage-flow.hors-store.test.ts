@@ -63,8 +63,8 @@ function riverMap(km: number, extra: Partial<MapRouteTrace> = {}): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [
-      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'quai-a' },
-      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'quai-b' },
+      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } },
+      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } },
     ],
     routes: [route(km, extra)],
   };

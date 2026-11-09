@@ -10,7 +10,7 @@ import {
   BORNES_DE_CARTE, ajouterLieu, basculerMode, lierLieux, majCarte, majLieu, majRoute, supprimerLieu, supprimerRoute,
 } from './worldMapEdit';
 
-const lieu = (id: string, x: number, y = 50): MapPlace => ({ id, label: id, pos: { x, y }, scene: 's' });
+const lieu = (id: string, x: number, y = 50): MapPlace => ({ id, label: id, pos: { x, y }, scene: { id: 's' } });
 const route = (id: string, a: string, b: string, plus: Partial<MapRoute> = {}): MapRoute => ({ id, a: { id: a }, b: { id: b }, km: 5, modes: ['pied'], ...plus }) as MapRoute;
 const carte = (places: MapPlace[] = [], routes: MapRoute[] = []): WorldMap => ({ id: 'm', label: 'Carte', places, routes });
 
@@ -20,11 +20,11 @@ describe('ajouterLieu', () => {
   it('pose le libellé de la semence et la première scène du projet', () => {
     setObjectDataset('semencesDeScene', { ...semencesDeScene, lieu: 'Bourg sans nom' });
     const m = ajouterLieu(carte(), 'l1', { x: 50, y: 50 }, [{ id: 'scene-a' }, { id: 'scene-b' }]);
-    expect(m.places).toEqual([{ id: 'l1', label: 'Bourg sans nom', pos: { x: 50, y: 50 }, scene: 'scene-a' }]);
+    expect(m.places).toEqual([{ id: 'l1', label: 'Bourg sans nom', pos: { x: 50, y: 50 }, scene: { id: 'scene-a' } }]);
   });
 
   it('sans scène au projet, la scène liée est vide', () => {
-    expect(ajouterLieu(carte(), 'l1', { x: 50, y: 50 }, []).places[0].scene).toBe('');
+    expect(ajouterLieu(carte(), 'l1', { x: 50, y: 50 }, []).places[0].scene).toEqual({ id: '' });
   });
 
   it('plafonne la position aux bornes de la carte et l’arrondit', () => {

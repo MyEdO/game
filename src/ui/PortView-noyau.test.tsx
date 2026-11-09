@@ -26,7 +26,7 @@ const get = useGame.getState.bind(useGame);
 
 const carte: WorldMap = {
   id: 'm', label: 'Mer des Griffes',
-  places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['commerce-mer', 'poisson-sale'] } as WorldMap['places'][number]['port'] }],
+  places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' }, port: { taille: 4, richesse: 4, production: ['commerce-mer', 'poisson-sale'] } as WorldMap['places'][number]['port'] }],
   routes: [],
 };
 const COGUE = findVehicleById('cogue')!;

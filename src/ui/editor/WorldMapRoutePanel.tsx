@@ -38,7 +38,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
   toggleMode: (routeId: string, mode: TravelMode) => void;
 }) {
   const [routeTab, setRouteTab] = useState<'trajet' | 'peripeties'>('trajet');
-  const ambushScene = route.ambush?.scene ? scenes.find((s) => s.id === route.ambush!.scene) : undefined;
+  const ambushScene = route.ambush ? scenes.find((s) => s.id === route.ambush!.scene.id) : undefined;
   const clesDesPeripeties = useClesDeRangees(route.perils);
 
   return (
@@ -157,10 +157,10 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
             options={scenes}
             getId={(s) => s.id}
             getLabel={(s) => `${s.label} (${s.id})`}
-            value={route.ambush?.scene ?? ''}
+            value={route.ambush?.scene.id ?? ''}
             nullableLabel="— aucune —"
             onChange={(v) => updRoute(route.id, {
-              ambush: v ? { scene: v, encounter: route.ambush?.encounter ?? '' } : undefined,
+              ambush: v ? { scene: { id: v }, encounter: route.ambush?.encounter ?? '' } : undefined,
             })}
           />
           {route.ambush && (

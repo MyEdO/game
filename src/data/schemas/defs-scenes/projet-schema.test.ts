@@ -149,7 +149,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
     const carte = (port: Jouet) => ({
       id: 'carte',
       label: 'Le monde',
-      places: [{ id: 'lieu-1', label: 'Port', pos: { x: 1, y: 2 }, scene: 'scene-1', port }],
+      places: [{ id: 'lieu-1', label: 'Port', pos: { x: 1, y: 2 }, scene: { id: 'scene-1' }, port }],
       routes: [],
     });
     expect(projetSchema.safeParse(projet({ worldMap: carte({ ref: 'marienburg', lighthouse: true }) })).success).toBe(true);
@@ -476,8 +476,9 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     // Chemin VIDE : la clé inconnue est rapportée à la RACINE du document.
     expect(fautesCodees({ ...reel(), champInconnu: 1 })).toEqual([' :: unrecognized_keys ["champInconnu"]']);
     const d = reel();
-    const { type: _muette, ...sceneMuette } = (d.scenes as Jouet[])[0];
-    expect(fautesCodees({ ...d, scenes: [sceneMuette] })).toEqual(['scenes.0.type :: invalid_value ["scene"]']);
+    const [premiere, ...suivantes] = d.scenes as Jouet[];
+    const { type: _muette, ...sceneMuette } = premiere;
+    expect(fautesCodees({ ...d, scenes: [sceneMuette, ...suivantes] })).toEqual(['scenes.0.type :: invalid_value ["scene"]']);
   });
 });
 
@@ -521,7 +522,7 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
  */
 describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
   const FLOW = { kind: 'seq', steps: [] };
-  const lieu = (id: string, over: Jouet = {}): Jouet => ({ id, label: id, pos: { x: 1, y: 2 }, scene: 'scene-1', ...over });
+  const lieu = (id: string, over: Jouet = {}): Jouet => ({ id, label: id, pos: { x: 1, y: 2 }, scene: { id: 'scene-1' }, ...over });
   const carte = (over: { place?: Jouet; route?: Jouet }): Jouet => ({
     worldMap: {
       id: 'carte',

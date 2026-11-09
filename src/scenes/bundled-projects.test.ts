@@ -250,15 +250,15 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   it('CONTRE-PREUVE : une transition vers une scène inconnue glissée dans une COPIE d’un paquet livré rougit `validateScene`, en NOMMANT la cible', () => {
-    // ⚠ copie EN MÉMOIRE — aucun fichier touché. Le schéma ne lit pas la cible d'une transition : seule
-    // cette garde la juge.
+    // ⚠ copie EN MÉMOIRE — aucun fichier touché. Le projet vivant de l'éditeur ne repasse pas par le schéma du
+    // projet, qui juge la cible au parse : `validateScene` la juge pour lui.
     const CIBLE = 'scene-qui-n-existe-pas';
     const trouve = bundledFiles
       .map((file) => parseProject(lireProjetLivre(file)))
       .flatMap((doc) => effetsDuProjet(doc).filter(({ eff }) => eff.type === 'transition').map(({ eff }) => ({ doc, eff })))[0];
     expect(trouve, 'aucun paquet livré ne porte de transition — la contre-preuve n’a plus de sujet').toBeTruthy();
     const { doc, eff } = trouve!;
-    (eff as Extract<Effect, { type: 'transition' }>).scene = CIBLE;
+    (eff as Extract<Effect, { type: 'transition' }>).scene = { id: CIBLE };
     expect(erreursDe(doc).some((m) => m.includes(CIBLE)), 'la transition pendante n’est pas rapportée').toBe(true);
   });
 

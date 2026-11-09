@@ -286,8 +286,8 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
       return `Combat de masse : ${nomDArmee(b, 'ally')} (${b.allyMight ?? 0}) vs ${nomDArmee(b, 'enemy')} (${b.enemyMight ?? 0}) — ${rounds} Round${rounds > 1 ? 's' : ''}${sit}`;
     }
     case 'transition': {
-      const sc = ctx.scenes?.find((s) => s.id === e.scene);
-      return `Vers ${sc?.nom ?? e.scene ?? '?'}${e.entry ? ` @ ${e.entry}` : ''}`;
+      const sc = ctx.scenes?.find((s) => s.id === e.scene?.id);
+      return `Vers ${sc?.nom ?? e.scene?.id ?? '?'}${e.entry ? ` @ ${e.entry}` : ''}`;
     }
     case 'transitionBack': return `Retour scène précédente`;
     case 'openWorldMap': return `Carte du monde (voyage)`;
@@ -922,14 +922,14 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
         )}
         {effect.type === 'transition' && (ctx.scenes ? (
           <>
-            <select value={e.scene ?? ''} onChange={(ev) => upd({ scene: ev.target.value, entry: '' })}>
+            <select value={e.scene?.id ?? ''} onChange={(ev) => upd({ scene: { id: ev.target.value }, entry: '' })}>
               <option value="">— scène du projet —</option>
               {ctx.scenes.map((sc) => (
                 <option key={sc.id} value={sc.id}>{sc.nom ? `${sc.nom} (${sc.id})` : sc.id}</option>
               ))}
             </select>
             {(() => {
-              const entries = ctx.scenes!.find((sc) => sc.id === e.scene)?.entries ?? [];
+              const entries = ctx.scenes!.find((sc) => sc.id === e.scene?.id)?.entries ?? [];
               return entries.length ? (
                 <select value={e.entry ?? ''} onChange={(ev) => upd({ entry: ev.target.value })}>
                   <option value="">— point d'entrée : départ par défaut —</option>
@@ -942,7 +942,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
           </>
         ) : (
           <>
-            <input placeholder="id de la scène cible" value={e.scene ?? ''} onChange={(ev) => upd({ scene: ev.target.value })} />
+            <input placeholder="id de la scène cible" value={e.scene?.id ?? ''} onChange={(ev) => upd({ scene: { id: ev.target.value } })} />
             <input placeholder="point d’entrée (optionnel)" value={e.entry ?? ''} onChange={(ev) => upd({ entry: ev.target.value })} />
           </>
         ))}
