@@ -81,12 +81,15 @@ perpendiculaire). Le quatrième, remonté et décalé vers la droite, s'arrête 
 robe pour ses 3 cm, et le traversait (porte r25)."""
 FIOLES = [
     # (s, angle, decalage, rayon, longueur, longueur du bouchon)
-    (0.86, -20, 0.02, 0.009, 0.065, 0.018),
-    (0.91, -20, 0.02, 0.009, 0.070, 0.018),
-    (0.96, -20, 0.02, 0.010, 0.075, 0.020),
+    (0.80, -20, -0.04, 0.009, 0.065, 0.018),
+    (0.84, -20, -0.05, 0.009, 0.070, 0.018),
+    (0.88, -20, -0.05, 0.010, 0.075, 0.020),
 ]
-"""Illustration : trois fioles bouchées sous les rouleaux, ~10 px de diamètre (2 cm), ~40 px de long bouchon compris.
-HYPOTHÈSE : sous le bas du pan de la capuche, vers la hanche gauche, décalées vers la gauche ; de s = 0,73 à 0,87, elles
-passaient sous le pan et le traversaient (porte r25)."""
+"""Illustration : trois fioles bouchées sous les rouleaux, en travers de la sangle sur le ventre, juste au-dessus de la
+ceinture, ~10 px de diamètre (2 cm), ~40 px de long bouchon compris. Glissées vers la droite du personnage le long de
+leur axe, elles pendent sous la sangle, devant le ventre, sous le bas du pan de la capuche publiée (devant, de x = 0,092 à
+0,135, au-dessus de z = 1,26) : de s = 0,73 à 0,87 sur la sangle même, elles le traversaient (porte r25) ; de 0,86 à 0,96,
+sur le flanc, la manche gauche les cachait dans la tenue du bâton (Clément, 2026-11-09 : « Je vois des "parchemins" sur
+sa bandouillere mais pas de fiole »)."""
 SEGMENTS_OBJET = 6                # côtés d'un rouleau ou d'une fiole (HYPOTHÈSE de maillage)
 JEU_OBJET = 0.002                 # m entre la sangle et un objet glissé dessus

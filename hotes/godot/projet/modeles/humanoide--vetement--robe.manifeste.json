@@ -17,9 +17,7 @@
     "cuisse_g",
     "cuisse_d",
     "genou_g",
-    "genou_d",
-    "mollet_g",
-    "mollet_d"
+    "genou_d"
   ],
   "chaines": [
     "jupe"

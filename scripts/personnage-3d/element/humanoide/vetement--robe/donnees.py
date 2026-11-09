@@ -18,8 +18,7 @@ MANIFESTE = {
     'cle': {'piece': 'robe'},
     'liaison': {'mode': 'squelette'},
     'couche': 'tenue',
-    'couvre': ['torse', 'hanches', 'bras_haut_g', 'bras_haut_d', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d',
-               'mollet_g', 'mollet_d'],
+    'couvre': ['torse', 'hanches', 'bras_haut_g', 'bras_haut_d', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d'],
     'chaines': ['jupe'],
 }
 MATERIAUX = {'robe': ('vet1', ((0.55, 0.57, 0.6), 0.0, 0.87)),       # niveaux de gris de construction, sans couleur cuite

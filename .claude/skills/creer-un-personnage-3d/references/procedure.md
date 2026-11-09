@@ -137,7 +137,11 @@ et pour un corps il inclut partie et forme. Le manifeste ne porte pas d'id arbit
 Les catégories corps, tête, pilosité, vêtement, armure, accessoire et trait portent une couche :
 peau < dessous < tenue < armure < manteau. L'armure impose armure. Les trois autres catégories
 n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés, optionnel pour un
-accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer.
+accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer. L'hôte cache la zone
+couverte du corps et des couches dessous : une pièce ne couvre une zone que si elle la cache sous tout angle du jeu.
+Sous un ourlet ouvert, évasé ou effiloché, pieds écartés, le mollet se voit ; la robe du Sorcier ne couvre donc pas
+`mollet_*`, et le preset habille les jambes d'une pièce (`bas`) (Clément, 2026-11-09 : « Il lui manquerait pas des
+jambes ? », #3743).
 Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids d'emplacement de
 `src/data/garde-robe.json` (`emplacement-inconnu` sinon) ; un accessoire dont l'emplacement n'est
 offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
@@ -221,7 +225,9 @@ revient à l'orchestrateur, qui l'ajoute au kit. Les preuves (rendus, mesures, c
 
 Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, surfaces porteuses, coupes des zones,
 éléments publiés contournés, transfert des clés, découpe par zone ; `anneau`, `Maillage`, `emprunter`, `lisser`,
-`joindre`, `Base.nappe`), `maille.py` pour un solide rigide (cylindre, tour, boîte, tube, tore…), `formes.py` pour les
+`joindre`, `Base.nappe`, `lambeaux` pour un ourlet effiloché), `maille.py` pour un solide rigide (cylindre, tour à
+sections rondes ou elliptiques, boîte, tube, tore…), `element/lame.py` pour une arme à lame et son fourreau (épée,
+dague : un dossier ne porte que son `donnees.py` et `from lame import construire`), `formes.py` pour les
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
 élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au
@@ -248,6 +254,14 @@ bassin, fondu du bassin vers son brin sous la tête des cuisses ; son étirement
 pente du fondu entre brins, pas la finesse du maillage. Une doublure reprend les colonnes et les poids de la nappe
 qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
 la porte est la matrice des cinq passes, jamais la passe neutre seule.
+
+Un rigide rangé (`rangement` de son trapping ou `rangementsObjets` du preset) ne s'écarte ni ne se bascule lui-même :
+il se bâtit dans le repère de sa prise, et l'hôte le pose sur ce qui est porté au repos, corps et éléments skinnés
+montés, à 5 mm, pivoté si le bas touche, à plat ; plusieurs objets au même point se posent côte à côte autour de
+l'os, dans l'ordre des `objets` du preset (`MontageDeComposition._ranger`, `hotes/godot/pont/CONTRAT.md`). Un
+fourreau est un objet du même GLB qui porte la propriété `fourreau` : l'hôte ne le montre que l'arme rangée. Un
+écart cuit dans l'élément le ferait flotter sur un autre porteur (Clément, 2026-11-09 : « les objets a la ceinture ils
+volent et pas qu'un peu », #3743).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
@@ -446,7 +460,10 @@ retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON V
 
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket
 ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance, avant d’entériner. Aucun des prototypes historiques n'est un précédent approuvé.
-Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette.
+Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : l'export Web
+(`node hotes/godot/construire.mjs --export --sortie <web>`, après `--sonde` verte) puis la capture du preset dans
+l'atelier (`node hotes/godot/recette.mjs --parcours preset --preset <id> --web <web> --captures <dossier>`, face,
+trois-quarts, dos), montrées à côté de l'illustration comme tout rendu.
 
 ## 8. Livrer et définir le fini
 
