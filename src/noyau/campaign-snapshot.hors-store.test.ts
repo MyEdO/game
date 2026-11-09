@@ -46,7 +46,7 @@ const narratif: NarratifBlock = {
 };
 
 const worldMap: WorldMap = {
-  id: 'snap-carte', label: 'Carte', places: [{ id: 'p', label: 'Bourg', pos: { x: 0, y: 0 }, scene: 'scene-a' }], routes: [],
+  id: 'snap-carte', label: 'Carte', places: [{ id: 'p', label: 'Bourg', pos: { x: 0, y: 0 }, scene: { id: 'scene-a' } }], routes: [],
 };
 
 describe('chargerLeProjet — la scène d’entrée est une scène du paquet, ou le chargement LÈVE', () => {

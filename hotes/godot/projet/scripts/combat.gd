@@ -69,14 +69,15 @@ func _reprendre(jeton: int) -> void:
 	_suivre(_pont.appeler("reprendre", {jeton = jeton}))
 
 
-## Une `Suite` du contrat : sa vue montrée, son journal écrit, ses jetons armés.
+## Une `Suite` du contrat : sa vue montrée, ses effets rendus, son journal écrit, ses jetons armés.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
 	_vue = reponse.vue
 	_refus.text = ""
 	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
-	_plateau.montrer(_vue, reponse.journal)
+	_plateau.montrer(_vue)
+	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
 		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
 	if _disposition.disposer(_vue.disposition):

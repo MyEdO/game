@@ -19,7 +19,7 @@ const porte = (n, nom) => ({
   label: `Entrer — ${nom}.`,
   icon: 'action/attack',
   when: flagWhen(n === 1 ? '!zone1_clear' : `zone${n - 1}_clear,!zone${n}_clear`),
-  flow: flowOf([{ type: 'transition', scene: `arene-zone${n}` }]),
+  flow: flowOf([{ type: 'transition', scene: { id: `arene-zone${n}` } }]),
 });
 
 /** Contrat d'expédition : proposition (gated progression) puis paiement au retour (flag _fait). */

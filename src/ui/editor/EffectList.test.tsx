@@ -122,7 +122,7 @@ describe('selects guidés (audit M9) — fini les ids à taper', () => {
       ],
     };
     const html = renderToStaticMarkup(
-      <EffectList effects={[{ type: 'transition', scene: 'sc-b', entry: '' }]} onChange={() => {}} ctx={ctx} />,
+      <EffectList effects={[{ type: 'transition', scene: { id: 'sc-b' }, entry: '' }]} onChange={() => {}} ctx={ctx} />,
     );
     expect(html).toContain('Village (sc-a)');
     expect(html).toContain('Taverne (sc-b)');

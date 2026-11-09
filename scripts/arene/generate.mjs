@@ -49,10 +49,10 @@ const worldMap = {
   id: 'arene-carte',
   label: 'Les Terres de l’Arène',
   places: [
-    { id: 'bourg', label: 'Le Bourg de l’Arène', pos: { x: 22, y: 55 }, scene: 'arene-hub', entry: 'route', icon: 'scenario/village' },
-    { id: 'foret', label: 'La Vieille Futaie', pos: { x: 55, y: 30 }, scene: 'arene-exp-foret', icon: 'scenario/hamlet' },
-    { id: 'marais', label: 'La Tourbière Noire', pos: { x: 72, y: 62 }, scene: 'arene-exp-marais', icon: 'scenario/trap' },
-    { id: 'village', label: 'Felsbach', pos: { x: 48, y: 80 }, scene: 'arene-exp-village', icon: 'journal/death' },
+    { id: 'bourg', label: 'Le Bourg de l’Arène', pos: { x: 22, y: 55 }, scene: { id: 'arene-hub' }, entry: 'route', icon: 'scenario/village' },
+    { id: 'foret', label: 'La Vieille Futaie', pos: { x: 55, y: 30 }, scene: { id: 'arene-exp-foret' }, icon: 'scenario/hamlet' },
+    { id: 'marais', label: 'La Tourbière Noire', pos: { x: 72, y: 62 }, scene: { id: 'arene-exp-marais' }, icon: 'scenario/trap' },
+    { id: 'village', label: 'Felsbach', pos: { x: 48, y: 80 }, scene: { id: 'arene-exp-village' }, icon: 'journal/death' },
   ],
   routes: [
     {
@@ -68,7 +68,7 @@ const worldMap = {
           effects: [{ type: 'journal', desc: 'Des hurlements suivent la colonne toute la nuit — au matin, des empreintes de loups cernent le bivouac.' }],
         },
       ],
-      ambush: { scene: 'arene-route-embuscade', encounter: 'enc-embuscade' },
+      ambush: { scene: { id: 'arene-route-embuscade' }, encounter: 'enc-embuscade' },
     },
     {
       id: 'route-felsbach',
@@ -84,7 +84,7 @@ const worldMap = {
           effects: [{ type: 'journal', desc: 'Une charrette de réfugiés de Felsbach passe sans s’arrêter. Une femme crie : « N’y allez pas ! L’EAU ! »' }],
         },
       ],
-      ambush: { scene: 'arene-route-embuscade', encounter: 'enc-embuscade' },
+      ambush: { scene: { id: 'arene-route-embuscade' }, encounter: 'enc-embuscade' },
     },
     {
       id: 'route-tourbiere',
@@ -101,7 +101,7 @@ const worldMap = {
           effects: [{ type: 'journal', desc: 'Des lueurs dansent hors du sentier, insistantes. Ceux qui les suivent ne reviennent pas — vous ne les suivez PAS.' }],
         },
       ],
-      ambush: { scene: 'arene-route-embuscade', encounter: 'enc-embuscade' },
+      ambush: { scene: { id: 'arene-route-embuscade' }, encounter: 'enc-embuscade' },
     },
     {
       id: 'route-basse',
@@ -109,7 +109,7 @@ const worldMap = {
       b: { id: 'marais' },
       km: 12,
       modes: ['pied'],
-      ambush: { scene: 'arene-route-embuscade', encounter: 'enc-embuscade' },
+      ambush: { scene: { id: 'arene-route-embuscade' }, encounter: 'enc-embuscade' },
     },
   ],
 };
@@ -122,7 +122,6 @@ for (const s of scenes) {
   const starts = s.entities.filter((e) => e.kind === 'heroStart');
   if (starts.length !== 1) throw new Error(`${s.id} : ${starts.length} heroStart (1 attendu)`);
 }
-for (const p of worldMap.places) if (!ids.has(p.scene)) throw new Error(`carte : lieu ${p.id} → scène inconnue ${p.scene}`);
 
 return projectDoc({
   identite: { id: 'arene', label: 'L’Arène', icon: 'scenario/arena', versionContenu: 1, maison: "bac à sable de combat authoré pour le jeu — aucun livre ne publie cette arène ; les créatures, armes et règles qu'elle compose portent chacune sa propre source" },

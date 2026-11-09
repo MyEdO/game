@@ -3,6 +3,10 @@
     "id": "feu",
     "type": "domains",
     "label": "Feu",
+    "couleur": "#ff5a2a",
+    "rendu": {
+      "id": "sort-de-feu"
+    },
     "arcane": "feu",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-feu"
@@ -107,6 +111,7 @@
     "id": "lumiere",
     "type": "domains",
     "label": "Lumière",
+    "couleur": "#fff6d0",
     "arcane": "electrique",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-lumiere"
@@ -290,6 +295,7 @@
     "id": "mort",
     "type": "domains",
     "label": "Mort",
+    "couleur": "#a77bd6",
     "arcane": "froid",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-mort"
@@ -420,6 +426,7 @@
     "id": "vie",
     "type": "domains",
     "label": "Vie",
+    "couleur": "#5fd35f",
     "arcane": "poison",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-vie"
@@ -608,6 +615,7 @@
     "id": "cieux",
     "type": "domains",
     "label": "Cieux",
+    "couleur": "#5fb8ff",
     "arcane": "electrique",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-cieux"
@@ -710,6 +718,7 @@
     "id": "metal",
     "type": "domains",
     "label": "Métal",
+    "couleur": "#ffd23f",
     "arcane": "corrosif",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-metal"
@@ -767,6 +776,7 @@
     "id": "ombres",
     "type": "domains",
     "label": "Ombres",
+    "couleur": "#9a9aa8",
     "arcane": "fumee",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-ombres"
@@ -818,6 +828,7 @@
     "id": "bete",
     "type": "domains",
     "label": "Bête",
+    "couleur": "#b5651d",
     "arcane": "froid",
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-bete"
@@ -931,6 +942,7 @@
     "id": "gueule",
     "type": "domains",
     "label": "Gueule",
+    "couleur": "#c0392b",
     "arcane": "corrosif",
     "desc": "Parfois appelé Gastromancie ou simplement Magie des Entrailles, le Domaine de la Gueule n’est disponible que pour les ogres (voir la Carrière Boucher Ogre). Cette magie met en avant une faim intense, des festins sanglants et une énergie effrénée. Chaque fois qu’un boucher ogre réussit à lancer un sort du Domaine de la Gueule, l’offrande qu’il consomme peut lui permettre de restaurer sa propre santé. Lancez 1d10. Si le résultat est un 10, ou s’il est égal ou supérieur au NI du sort lancé, sans modification de Focalisation et sans utiliser un Grimoire, le Boucher récupère un nombre de Blessures égal au NI non modifié du sort.\n\n**Composants :** les ogres se servent de restes ensanglantés pour alimenter leur magie. Elles sont généralement issues d’animaux et plus elles sont fraîches, mieux la magie opère. Il peut s’agir de morceaux de viande saignants, de bile provenant de l’estomac de créatures étranges, de la moelle de bêtes imposantes ou de la graisse séchée d’animaux domestiques, comme des cochons ou des vaches.",
     "source": {
@@ -944,6 +956,7 @@
     "id": "sorcellerie",
     "type": "domains",
     "label": "Sorcellerie",
+    "couleur": "#7a3fbf",
     "arcane": "poison",
     "desc": "Les Sorts de Sorcellerie se nourrissent de tous les Vents disponibles, sans se soucier des mélanges et d'éventuels résultats catastrophiques. À chaque fois qu'un pratiquant de la Sorcellerie fait un jet sur le Tableau des Incantations Imparfaites, il gagne 1 Point de Corruption. De plus, vous pouvez infliger un État *Hémorragique* à toute cible d'un Sort du Domaine de la Sorcellerie. Enfin, le fait de focaliser ou lancer des Sorts de ce Domaine nécessite systématiquement un lancer sur le Tableau des Incantations Imparfaites Mineures à moins d'être lancé avec un ingrédient, ou bien ce composant ne servira à rien si un jet sur le Tableau des Incantations Imparfaites doit malgré tout être effectué. Par chance, les ingrédients du Domaine de la Sorcellerie sont bon marché et facilement disponibles : la plupart du temps, ce sont des morceaux d'animaux de petite taille. Les composants coûtent le NI du Sort en sous de cuivre, à la place des pistoles d'argent habituelles.",
     "source": {
@@ -957,6 +970,7 @@
     "id": "dhar",
     "type": "domains",
     "label": "Dhar",
+    "couleur": "#5a1a6a",
     "wind": "Dhar",
     "desc": "*Dhar*, connu généralement sous le nom de Magie noire, est une méthode bien plus dangereuse pour lancer des Sorts en utilisant plusieurs Vents. Elle n'est généralement pratiquée que par les enchanteurs maléfiques, les nécromanciens, et par de puissantes sorcières, car elle offre une source séduisante de puissance brute, mais souillée de terribles effets secondaires.",
     "source": {
@@ -968,6 +982,7 @@
     "id": "necromancie",
     "type": "domains",
     "label": "Nécromancie",
+    "couleur": "#6fae6f",
     "arcane": "poison",
     "dark": true,
     "desc": "La Nécromancie est un antique art magique qui cherche à maîtriser la mort et à obtenir la vie éternelle, en utilisant le plus souvent des corps en décomposition. Considérée comme la forme la plus infecte de la Magie, une pure hérésie, l'étude de ses secrets n'est jamais prise à la légère, car l'horreur que représentent la mort et les morts-vivants ne doit jamais être sous-estimée.",
@@ -981,6 +996,7 @@
     "id": "demonologie",
     "type": "domains",
     "label": "Démonologie",
+    "couleur": "#c02060",
     "arcane": "froid",
     "dark": true,
     "grantGroups": [
@@ -997,6 +1013,7 @@
     "id": "magie-naturelle",
     "type": "domains",
     "label": "Magie naturelle",
+    "couleur": "#7fb35a",
     "arcane": "poison",
     "desc": "Les pratiquants de la Magie naturelle mènent généralement des vies discrètes, en marge des plus petites colonies humaines, au service des communautés locales. Tout comme ils vivent entre la civilisation et la nature sauvage, une grande partie de leur Magie concerne l'espace se trouvant entre le monde matériel et le royaume des esprits.",
     "source": {
@@ -1009,6 +1026,7 @@
     "id": "magie-des-mers-de-triton",
     "type": "domains",
     "label": "Magie des mers de Triton",
+    "couleur": "#3fa0bf",
     "source": {
       "book": "mer-des-griffes",
       "page": 148
@@ -1018,6 +1036,7 @@
     "id": "magie-du-marais-de-mona",
     "type": "domains",
     "label": "Magie du marais de Mòna",
+    "couleur": "#6b8e23",
     "source": {
       "book": "vents-de-la-magie",
       "page": 216

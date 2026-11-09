@@ -66,8 +66,8 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
             options={scenes}
             getId={(s) => s.id}
             getLabel={(s) => `${s.label} (${s.id})`}
-            value={place.scene}
-            onChange={(v) => updPlace(place.id, { scene: v })}
+            value={place.scene.id}
+            onChange={(v) => updPlace(place.id, { scene: { id: v } })}
           />
           {/* Cible = un point nommé des `entryPoints` de la scène liée (sinon heroStart). */}
           <label className="ed-field">Point d'entrée (optionnel)
@@ -288,7 +288,7 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                       <select
                         value={poi.sceneId != null ? 'scene' : poi.serviceKind != null ? 'service' : ''}
                         onChange={(e) => {
-                          if (e.target.value === 'scene') updPoi(poi.id, { sceneId: scenes[0]?.id ?? '', serviceKind: undefined });
+                          if (e.target.value === 'scene') updPoi(poi.id, { sceneId: { id: scenes[0]?.id ?? '' }, serviceKind: undefined });
                           else if (e.target.value === 'service') updPoi(poi.id, { serviceKind: lieuxServices[0]?.id ?? '', sceneId: undefined });
                           else updPoi(poi.id, { sceneId: undefined, serviceKind: undefined });
                         }}
@@ -304,8 +304,8 @@ export function WorldMapPlacePanel({ place, scenes, narratif, updPlace }: {
                         options={scenes}
                         getId={(s) => s.id}
                         getLabel={(s) => `${s.label} (${s.id})`}
-                        value={poi.sceneId}
-                        onChange={(v) => updPoi(poi.id, { sceneId: v })}
+                        value={poi.sceneId.id}
+                        onChange={(v) => updPoi(poi.id, { sceneId: { id: v } })}
                       />
                     )}
                     {poi.serviceKind != null && (

@@ -128,7 +128,7 @@ describe('références narratives des Effects — résolues au parse du projet',
   it('dans la carte du monde (péril de route) : refusé, nommé', () => {
     const worldMap = {
       id: 'carte', label: 'Carte',
-      places: [{ id: 'a', label: 'A', pos: { x: 0, y: 0 }, scene: 'scene-1' }, { id: 'b', label: 'B', pos: { x: 1, y: 0 }, scene: 'scene-1' }],
+      places: [{ id: 'a', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'scene-1' } }, { id: 'b', label: 'B', pos: { x: 1, y: 0 }, scene: { id: 'scene-1' } }],
       routes: [{ id: 'r', a: { id: 'a' }, b: { id: 'b' }, km: 1, modes: ['pied'], perils: [{ label: 'Crieur', chancePct: 5, effects: [{ type: 'document', documentId: 'doc-fantome' }] }] }],
     };
     const f = fautes(projet({ worldMap }));

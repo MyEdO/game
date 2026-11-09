@@ -24,7 +24,7 @@ import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, ptSchema, wallSideSchema } from './communs';
+import { customStatblockSchema, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
@@ -193,7 +193,7 @@ export const startCombatSchema = nommerChamps(z.strictObject({ type: z.literal('
 /** ADE II 8 */
 export const startMassBattleSchema = nommerChamps(z.strictObject({ type: z.literal('startMassBattle'), battle: massBattleSpecSchema }), { type: { label: "type"  }, battle: { label: "bataille" } });
 
-export const transitionSchema = nommerChamps(z.strictObject({ type: z.literal('transition'), scene: z.string(), entry: z.string().optional() }), { type: { label: "type"  }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} } });
+export const transitionSchema = nommerChamps(z.strictObject({ type: z.literal('transition'), scene: ref(SCENES_DU_PROJET), entry: z.string().optional() }), { type: { label: "type"  }, scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} } });
 
 /** Retour à la scène précédente (sortie d'intérieur), à la case d'entrée. */
 export const transitionBackSchema = nommerChamps(z.strictObject({ type: z.literal('transitionBack') }), { type: { label: "type"  } });

@@ -67,7 +67,9 @@ persistance — chaque combat spawn une coque fraîche.
   `worldMap.places` par `{ id }`, la `suite` d'un billet des routes par leurs ids (`ref(portee)`, portée
   ouverte par `worldMapSchema`). DEUX routes entre les mêmes lieux sont OK (seul `id` est une clé) ;
   `from` les rend à sens unique, offerte depuis ce seul lieu (`routesFrom`).
-- `ambush: { scene, encounter, at? }` — cible du « Attaqués ! ». En MER, `at` (fraction 0-1, défaut 0.5)
+- `ambush: { scene, encounter, at? }` — cible du « Attaqués ! ». `scene`, comme la `scene` d'un lieu, le
+  `sceneId` de son point d'intérêt et celle d'un effet `transition`, désigne une scène du projet par
+  `{ id }` (`ref(portee)`, portée ouverte par la racine du projet). En MER, `at` (fraction 0-1, défaut 0.5)
   ANCRE l'embuscade de façon DÉTERMINISTE : elle se déclenche quand la distance franchit `at × km`, une
   fois par traversée, hors RNG (#212).
 - `sea: true` → voyage joué sur le navire de campagne (`src/noyau/seaVoyageFlow.ts`, cap `seaHeading`) ;
