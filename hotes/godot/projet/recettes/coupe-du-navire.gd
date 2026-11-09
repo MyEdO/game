@@ -195,7 +195,7 @@ func _mer(montage: MontageDeVehicule) -> void:
 		couleurs.append_array([0.2, 0.35, 0.55, 1.0])
 	monde.poser({metresParCase = METRES_PAR_CASE, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = mer, matiere = "terrain--eau", flottaison = "caraque"}, {debut = mer, fin = mer + 3, matiere = "terrain--planches", navire = "caraque"}],
-		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[0.0]]}]})
+		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[0.0]]}], ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
 	var touches: int = (monde.get_node("Volume/Corps/Forme") as CollisionShape3D).shape.get_faces().size()
 	if touches != 3:
 		_fautes.append("mer : la forme du pointeur porte %d sommets, attendu les 3 du pont seul" % touches)
