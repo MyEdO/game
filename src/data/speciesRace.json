@@ -2,5 +2,7 @@
   "id": "species-race",
   "type": "speciesRace",
   "label": "Race d’apparence par défaut",
-  "default": "humain"
+  "default": {
+    "id": "humain"
+  }
 }

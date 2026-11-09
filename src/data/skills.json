@@ -584,7 +584,9 @@
     "characteristic": "force",
     "acces": "base",
     "altChar": {
-      "gatedByRule": "test-intimidation-char",
+      "gatedByRule": {
+        "id": "test-intimidation-char"
+      },
       "chars": {
         "FM": "force-mentale",
         "Int": "intelligence",
@@ -744,7 +746,9 @@
     "characteristic": "dexterite",
     "acces": "avancee",
     "altChar": {
-      "gatedByRule": "test-metier-int",
+      "gatedByRule": {
+        "id": "test-metier-int"
+      },
       "from": "dexterite",
       "chars": {
         "true": "intelligence"
