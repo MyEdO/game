@@ -9,7 +9,7 @@ import { screenToTileAtZ, tileCenter, type Dims } from '../../geometry/iso';
 import { emptyScene, isWalkable, setDoorOpen, type Scene } from '../../noyau/monde/scene';
 import { piece } from '../../noyau/pieces.fixture';
 import { metricToLift } from '../../noyau/monde/relief';
-import { walkNeighbors, type Pt } from '../../noyau/monde/path';
+import { cheminsDepuis, walkNeighbors, type Pt } from '../../noyau/monde/path';
 import { chebyshev } from '../../engine/grid';
 import { resolveCursorZ } from '../../state/combatCursor';
 import { placesJouables, seatPoseOf, seatSlotsOf } from '../../noyau/monde/seating';
@@ -1054,7 +1054,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     setSpritePicker(() => ({ kind: 'entity', id: 'table-1' }));
     // PRÉCONDITION : le chemin planifié croise bien une case adjacente au meuble qui n'est PAS l'abord visé.
     const sc = useGame.getState().scene!;
-    const plan = exploreSeatPlan(sc, { x: 6, y: 6 }, 'table-1')!;
+    const plan = exploreSeatPlan(sc, 'table-1', cheminsDepuis(sc, { x: 6, y: 6 }, { blocked: new Set() }))!;
     expect(plan.slotId, 'la seule place libre est `place-3`').toBe('place-3');
     const croisees = plan.path.slice(0, -1).filter((p) => chebyshev(p, { x: 2, y: 3 }) <= 1);
     expect(croisees.length, 'le chemin DOIT longer le meuble, sinon le test ne mord pas').toBeGreaterThan(0);
@@ -1127,7 +1127,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
 
     // AU LOIN — le survol PROMET un chemin : le clic doit le parcourir, pas refuser sur place.
     poser({ x: 6, y: 6 });
-    const promis = exploreMovePlan(useGame.getState().scene!, { x: 6, y: 6 }, { x: 2, y: 3 }, { blocked: new Set() });
+    const promis = exploreMovePlan(useGame.getState().scene!, { x: 2, y: 3 }, cheminsDepuis(useGame.getState().scene!, { x: 6, y: 6 }, { blocked: new Set() }));
     expect(promis, 'précondition : le survol trace bien une marche').not.toBeNull();
     const p1 = monter();
     const loin = pointerEvent(surLaTable.cx, surLaTable.cy);
@@ -1262,8 +1262,8 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const sc = useGame.getState().scene!;
     expect(seatSlotsOf(sc, 'table-1').some((s) => s.approach.x === DIAG.x && s.approach.y === DIAG.y),
       'la case du groupe NE DOIT PAS être un abord').toBe(false);
-    expect(exploreSeatPlan(sc, DIAG, 'table-1'), 'aucune place servable : table pleine').toBeNull();
-    expect(exploreMovePlan(sc, DIAG, { x: 2, y: 3 }, { blocked: new Set() }),
+    expect(exploreSeatPlan(sc, 'table-1', cheminsDepuis(sc, DIAG, { blocked: new Set() })), 'aucune place servable : table pleine').toBeNull();
+    expect(exploreMovePlan(sc, { x: 2, y: 3 }, cheminsDepuis(sc, DIAG, { blocked: new Set() })),
       'déjà à portée : aucun plan de marche — c’est CE trou que la fallthrough couvre').toBeNull();
 
     const pointer = monter();

@@ -415,47 +415,57 @@ export function fleeReachable(scene: Scene, from: Pt, foe: Pt, range: number, en
   return out;
 }
 
-/** Plus court chemin (BFS) de `start` à `goal`, ou null. (`env.noStop` ignoré : le but est validé en amont.) */
-export function pathTo(scene: Scene, start: Pt, goal: Pt, env: MoveEnv): Pt[] | null {
+/** Les plus courts chemins (BFS) depuis une case, sous un `MoveEnv` : `vers(but)` rend le chemin de `depart` à `but`
+ *  (départ et but compris), ou null. */
+export interface CheminsDepuis {
+  depart: Pt;
+  vers(but: Pt): Pt[] | null;
+}
+
+/** Les plus courts chemins (BFS) depuis `depart` sous `env` : UN parcours, poussé juste assez loin pour chaque but
+ *  demandé, sert tous les buts qu'on lui demande. Empreinte > 1 : chaque pas, arrivée comprise, tient entier
+ *  (`footFits`). Empreinte 1×1 : une case occupée (`env.blocked`) se gagne sans se traverser, on s'arrête au contact
+ *  d'un ennemi. Les sauts (`jumpNeighbors`) rejoignent des atterrissages déjà validés. (`env.noStop` ignoré : le but
+ *  est validé en amont.) PUR. */
+export function cheminsDepuis(scene: Scene, depart: Pt, env: MoveEnv): CheminsDepuis {
   const { blocked, foot = 1, jump = 0, swim, traverse } = env;
   const edges = wallEdges(scene);
-  const gz = pz(goal);
-  const came = new Map<string, string | null>();
-  came.set(key(start.x, start.y, pz(start)), null);
-  const queue: Pt[] = [{ x: start.x, y: start.y, z: pz(start) }];
-  while (queue.length) {
-    const p = queue.shift()!;
-    if (p.x === goal.x && p.y === goal.y && pz(p) === gz) {
-      const path: Pt[] = [];
-      let cur: string | null = key(p.x, p.y, pz(p));
-      while (cur) {
-        path.unshift(tileFromKey(cur));
-        cur = came.get(cur) ?? null;
-      }
-      return path;
-    }
+  const debut = pointDeCase(depart.x, depart.y, pz(depart));
+  const came = new Map<string, string | null>([[key(debut.x, debut.y, pz(debut)), null]]);
+  const file: Pt[] = [debut];
+  let tete = 0;
+  const etendre = (p: Pt): void => {
+    const de = key(p.x, p.y, pz(p));
     for (const n of neighborsOf(scene, p, edges, swim, traverse)) {
-      const nz = pz(n);
-      const k = key(n.x, n.y, nz);
+      const k = key(n.x, n.y, pz(n));
       if (came.has(k)) continue;
-      const isGoal = n.x === goal.x && n.y === goal.y && nz === gz;
-      // Empreinte > 1 : chaque pas (arrivée incluse) doit tenir entièrement. 1×1 : la cible peut être
-      // une case occupée (on s'arrête au contact d'un ennemi), comportement historique.
-      if (foot > 1) { if (!footFits(scene, n.x, n.y, nz, foot, blocked, swim)) continue; }
-      else if (!isGoal && (!isWalkable(scene, n.x, n.y, nz, swim) || blocked.has(k))) continue;
-      came.set(k, key(p.x, p.y, pz(p)));
-      queue.push(n);
+      if (foot > 1 && !footFits(scene, n.x, n.y, pz(n), foot, blocked, swim)) continue;
+      came.set(k, de);
+      if (foot > 1 || !blocked.has(k)) file.push(n);
     }
-    // Sauts par-dessus un gouffre : atterrissages déjà validés (praticables/libres) — n'altèrent jamais
-    // le déplacement à pied (jumpNeighbors=[] sans gouffre), donc gratis quand jump=0.
     for (const n of jumpNeighbors(scene, p, jump, blocked, foot, edges, swim)) {
       const k = key(n.x, n.y, pz(n));
       if (came.has(k)) continue;
-      came.set(k, key(p.x, p.y, pz(p)));
-      queue.push(n);
+      came.set(k, de);
+      file.push(n);
     }
-  }
-  return null;
+  };
+  return {
+    depart,
+    vers(but) {
+      const k = key(but.x, but.y, pz(but));
+      while (!came.has(k) && tete < file.length) etendre(file[tete++]);
+      if (!came.has(k)) return null;
+      const chemin: Pt[] = [];
+      for (let cur: string | null = k; cur !== null; cur = came.get(cur) ?? null) chemin.unshift(tileFromKey(cur));
+      return chemin;
+    },
+  };
+}
+
+/** Plus court chemin (BFS) de `start` à `goal`, ou null (`cheminsDepuis`). */
+export function pathTo(scene: Scene, start: Pt, goal: Pt, env: MoveEnv): Pt[] | null {
+  return cheminsDepuis(scene, start, env).vers(goal);
 }
 
 export function manhattan(a: Pt, b: Pt): number {

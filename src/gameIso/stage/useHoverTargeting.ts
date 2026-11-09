@@ -10,7 +10,7 @@
 import { useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
 import { Scene } from '../../noyau/monde/scene';
-import type { Pt } from '../../noyau/monde/path';
+import { cheminsDepuis, type Pt } from '../../noyau/monde/path';
 import { exploreMovePlan, optionsDeCheminDuGroupe } from '../../noyau/monde/exploreNav';
 import { isOutOfAction } from '../../engine/conditions';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
@@ -172,7 +172,7 @@ export function useHoverTargeting(
     const tile = hoveredPortal?.to ?? hover;
     if (!marcheOuverte({ mode, dialogue }) || !scene || !tile) return null;
     if (tile.x === partyPos.x && tile.y === partyPos.y && (tile.z ?? 0) === (partyPos.z ?? 0)) return null;
-    return exploreMovePlan(scene, partyPos, tile, optionsDeCheminDuGroupe(party));
+    return exploreMovePlan(scene, tile, cheminsDepuis(scene, partyPos, optionsDeCheminDuGroupe(party)));
   }, [hover, hoveredPortal, mode, dialogue, scene, partyPos, party]);
   const explorePath = explorePlan?.path ?? null;
 

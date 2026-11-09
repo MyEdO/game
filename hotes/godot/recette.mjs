@@ -164,6 +164,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { crc32, deflateSync } from 'node:zlib'
 import { servir } from './servir.mjs'
+import { LISTAGE } from './listage.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
@@ -2043,7 +2044,7 @@ async function parcoursAtelier() {
   await cliquerAmene(RECHARGER, 1)
   await cliquerBouton('Équipement')
   await attendreLAtelier('b.some((x) => x.cle === "main")')
-  const { osDesRigides } = await (await fetch(`${srv.url}modeles/`)).json()
+  const { osDesRigides } = await (await fetch(`${srv.url}modeles/${LISTAGE}`)).json()
   const pend = (attache) => osDesRigides[elementId].includes(attache.os)
   const tenu = Object.values(p0.manifeste.prises).some(pend)
   const { emplacementsDeRangement } = await chargerAssets(["export { emplacementsDeRangement } from '/src/noyau/index.ts';"])

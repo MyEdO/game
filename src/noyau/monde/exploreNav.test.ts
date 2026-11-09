@@ -4,6 +4,10 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { aPorteeDe, exploreMoveDest, exploreMovePlan, exploreSeatPlan, spawnFacing } from './exploreNav';
 import { chebyshev } from '../../engine/grid';
 import { seatSlotsOf } from './seating';
+import { cheminsDepuis, type Pt } from './path';
+
+/** Les chemins du groupe depuis `depart`, sans case bloquée. */
+const depuis = (sc: Scene, depart: Pt) => cheminsDepuis(sc, depart, { blocked: new Set() });
 
 const emptyFlow: Flow = { kind: 'seq', steps: [] };
 
@@ -105,34 +109,37 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
 
   it('planifie vers l’approche du premier slot libre et atteignable', () => {
     const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
-    const plan = exploreSeatPlan(scene, { x: 8, y: 8 }, 'table-1');
+    const plan = exploreSeatPlan(scene, 'table-1', depuis(scene, { x: 8, y: 8 }));
     expect(plan).toMatchObject({ slotId: 'place-2', approach: { x: 11, y: 10 } });
     expect(plan!.path[plan!.path.length - 1]).toEqual(plan!.approach);
     expect(plan!.path[0]).toEqual({ x: 8, y: 8 });
   });
 
   it('ordre du CATALOGUE : sans place prise, c’est la première déclarée qui gagne', () => {
-    const plan = exploreSeatPlan(scèneTable(), { x: 8, y: 8 }, 'table-1');
-    expect(plan!.slotId).toBe(seatSlotsOf(scèneTable(), 'table-1')[0].slotId);
+    const sc = scèneTable();
+    const plan = exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 8, y: 8 }));
+    expect(plan!.slotId).toBe(seatSlotsOf(sc, 'table-1')[0].slotId);
     expect(plan!.slotId).toBe('place-1');
   });
 
   it('déjà SUR un abord libre : chemin d’un seul point (rien à marcher)', () => {
-    const plan = exploreSeatPlan(scèneTable(), { x: 10, y: 11 }, 'table-1');
+    const sc = scèneTable();
+    const plan = exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 10, y: 11 }));
     expect(plan).toMatchObject({ slotId: 'place-3', approach: { x: 10, y: 11 } });
     expect(plan!.path).toEqual([{ x: 10, y: 11 }]);
   });
 
   it('toutes les places prises → null (rien à planifier)', () => {
     const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1').map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
-    expect(exploreSeatPlan(scèneTable({ 'table-1': prises }), { x: 8, y: 8 }, 'table-1')).toBeNull();
+    const sc = scèneTable({ 'table-1': prises });
+    expect(exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 8, y: 8 }))).toBeNull();
   });
 
   it('meuble sans place → null ; meuble absent → null', () => {
     const sc = emptyScene('scene-test', 16, 16);
     sc.entities = [{ id: 'caisse', kind: 'prop', pos: { x: 10, y: 10 }, ref: 'comptoir-droit' }];
-    expect(exploreSeatPlan(sc, { x: 8, y: 8 }, 'caisse')).toBeNull();
-    expect(exploreSeatPlan(sc, { x: 8, y: 8 }, 'fantome')).toBeNull();
+    expect(exploreSeatPlan(sc, 'caisse', depuis(sc, { x: 8, y: 8 }))).toBeNull();
+    expect(exploreSeatPlan(sc, 'fantome', depuis(sc, { x: 8, y: 8 }))).toBeNull();
   });
 
   it('aucun abord ATTEIGNABLE (table emmurée) → null', () => {
@@ -142,7 +149,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
         if (chebyshev({ x: dx, y: dy }, { x: 0, y: 0 }) !== 2) continue;
         sc.entities.push({ id: `mur-${dx}-${dy}`, kind: 'prop', pos: { x: 10 + dx, y: 10 + dy }, ref: 'comptoir-droit' });
       }
-    expect(exploreSeatPlan(sc, { x: 5, y: 5 }, 'table-1')).toBeNull();
+    expect(exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 5, y: 5 }))).toBeNull();
   });
 
   /**
@@ -157,9 +164,9 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
     const sc = scèneTable({ 'table-1': prises });
     (sc.entities[0] as SceneEntity).usable = { assise: true, actions: [{ id: 'fouiller', flow: emptyFlow, unique: true }] };
 
-    expect(exploreSeatPlan(sc, { x: 5, y: 5 }, 'table-1'), 'précondition : plus une seule place').toBeNull();
+    expect(exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 5, y: 5 })), 'précondition : plus une seule place').toBeNull();
     for (const depart of [{ x: 5, y: 5 }, { x: 12, y: 12 }]) { // au loin, et adjacent HORS abord
-      const plan = exploreMovePlan(sc, depart, { x: 10, y: 10 }, { blocked: new Set() });
+      const plan = exploreMovePlan(sc, { x: 10, y: 10 }, depuis(sc, depart));
       expect(plan, `depuis (${depart.x},${depart.y}) : la fouille reste joignable`).not.toBeNull();
       expect(plan!.dest, 'jamais la case du meuble').not.toEqual({ x: 10, y: 10 });
       expect(chebyshev(plan!.dest, { x: 10, y: 10 }), 'une case ADJACENTE, d’où l’on fouille').toBe(1);
@@ -173,12 +180,12 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
     const prises = Object.fromEntries(seatSlotsOf(scèneTable(), 'table-1')
       .map((s) => [s.slotId, { kind: 'entity' as const, entityId: `pnj-${s.slotId}` }]));
     const sc = scèneTable({ 'table-1': prises });
-    const plan = exploreMovePlan(sc, { x: 5, y: 5 }, { x: 10, y: 10 }, { blocked: new Set() });
+    const plan = exploreMovePlan(sc, { x: 10, y: 10 }, depuis(sc, { x: 5, y: 5 }));
     expect(plan, 'le clic mène quelque part').not.toBeNull();
     expect(plan!.dest, 'jamais la case du meuble').not.toEqual({ x: 10, y: 10 });
     expect(chebyshev(plan!.dest, { x: 10, y: 10 }), 'une case ADJACENTE').toBe(1);
     // Déjà à portée : plus rien à marcher — c'est à l'appelant de le DIRE (`useStagePointer`).
-    expect(exploreMovePlan(sc, { x: 10, y: 11 }, { x: 10, y: 10 }, { blocked: new Set() })).toBeNull();
+    expect(exploreMovePlan(sc, { x: 10, y: 10 }, depuis(sc, { x: 10, y: 11 }))).toBeNull();
   });
 
   /** L'assise est un opt-in d'AUTEUR (#1687) : sur un meuble NON activé, la destination du clic est
@@ -189,21 +196,21 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
     sc.entities = [table({ usable: undefined })];
     expect(seatSlotsOf(sc, 'table-1'), 'précondition : le TYPE porte bien ses places').toHaveLength(4);
 
-    const plan = exploreMovePlan(sc, { x: 8, y: 8 }, { x: 10, y: 10 }, { blocked: new Set() });
+    const plan = exploreMovePlan(sc, { x: 10, y: 10 }, depuis(sc, { x: 8, y: 8 }));
     expect(plan, 'le clic mène quelque part').not.toBeNull();
     expect(plan!.dest).toEqual(exploreMoveDest(sc, { x: 8, y: 8 }, { x: 10, y: 10 }));
 
     // …et c'est bien l'ACTIVATION qui décide : le même meuble activé route vers l'abord d'une place.
     const active = scèneTable();
-    const seat = exploreSeatPlan(active, { x: 8, y: 8 }, 'table-1')!;
-    expect(exploreMovePlan(active, { x: 8, y: 8 }, { x: 10, y: 10 }, { blocked: new Set() })!.dest).toEqual(seat.approach);
+    const seat = exploreSeatPlan(active, 'table-1', depuis(active, { x: 8, y: 8 }))!;
+    expect(exploreMovePlan(active, { x: 10, y: 10 }, depuis(active, { x: 8, y: 8 }))!.dest).toEqual(seat.approach);
     expect(plan!.dest, 'les deux destinations diffèrent — sans quoi la sonde ne mesure rien').not.toEqual(seat.approach);
   });
 
   it('exploreMovePlan route le clic d’un meuble à places vers CE plan (survol et clic, une seule source)', () => {
     const scene = scèneTable({ 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-1' } } });
-    const seat = exploreSeatPlan(scene, { x: 8, y: 8 }, 'table-1')!;
-    const plan = exploreMovePlan(scene, { x: 8, y: 8 }, { x: 10, y: 10 }, { blocked: new Set() });
+    const seat = exploreSeatPlan(scene, 'table-1', depuis(scene, { x: 8, y: 8 }))!;
+    const plan = exploreMovePlan(scene, { x: 10, y: 10 }, depuis(scene, { x: 8, y: 8 }));
     expect(plan).toMatchObject({ dest: seat.approach });
     expect(plan!.path).toEqual(seat.path);
     // …et jamais la case du meuble, ni un simple « à côté ».
@@ -216,7 +223,7 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
     const prop: SceneEntity = { id: 'coffre', kind: 'prop', pos: { x: 5, y: 5 }, usable: { actions: [{ id: 'fouiller', flow: emptyFlow, unique: true }] } };
     const scene = sceneWith([prop]);
     const partyPos = { x: 1, y: 1 };
-    const plan = exploreMovePlan(scene, partyPos, { x: 5, y: 5 }, { blocked: new Set() });
+    const plan = exploreMovePlan(scene, { x: 5, y: 5 }, depuis(scene, partyPos));
 
     expect(plan).not.toBeNull();
     expect(plan!.dest).not.toEqual({ x: 5, y: 5 });
@@ -240,12 +247,7 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
         area: { kind: 'rect', x: 2, y: 1, w: 1, h: 1 },
       },
     ];
-    const plan = exploreMovePlan(
-      scene,
-      { x: 1, y: 1 },
-      { x: 2, y: 1 },
-      { blocked: new Set() },
-    );
+    const plan = exploreMovePlan(scene, { x: 2, y: 1 }, depuis(scene, { x: 1, y: 1 }));
 
     expect(plan).toEqual({
       dest: { x: 2, y: 1 },
@@ -264,12 +266,7 @@ describe('exploreMovePlan — destination et chemin uniques', () => {
     }];
     scene.walls = [{ x: 0, y: 1, side: 'E', door: true, closed: false }];
 
-    expect(exploreMovePlan(
-      scene,
-      { x: 0, y: 1 },
-      { x: 1, y: 1 },
-      { blocked: new Set() },
-    )).toEqual({
+    expect(exploreMovePlan(scene, { x: 1, y: 1 }, depuis(scene, { x: 0, y: 1 }))).toEqual({
       dest: { x: 1, y: 1 },
       path: [{ x: 0, y: 1 }, { x: 1, y: 1 }],
       portalId: '0:0,1:E:exterior:room-a',
