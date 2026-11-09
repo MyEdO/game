@@ -2815,7 +2815,9 @@
      },
      "label": "Maître d’arène",
      "facing": "S",
-     "dialogueId": "dlg-hub",
+     "dialogueId": {
+      "id": "dlg-hub"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "repurgateur",
@@ -2835,7 +2837,9 @@
      },
      "label": "Garde du Bourg",
      "facing": "S",
-     "dialogueId": "dlg-garde",
+     "dialogueId": {
+      "id": "dlg-garde"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "soldat",
@@ -2855,7 +2859,9 @@
      },
      "label": "Villageoise",
      "facing": "S",
-     "dialogueId": "dlg-rumeurs",
+     "dialogueId": {
+      "id": "dlg-rumeurs"
+     },
      "anim": "standing",
      "appearance": {
       "species": "humains-reiklander",
@@ -2978,7 +2984,9 @@
      "label": "Médecin",
      "facing": "S",
      "ref": "stefan-hochen",
-     "dialogueId": "dlg-medecin",
+     "dialogueId": {
+      "id": "dlg-medecin"
+     },
      "merchant": {
       "archetype": "medecin"
      },
@@ -3053,7 +3061,9 @@
      },
      "label": "Tavernière",
      "facing": "S",
-     "dialogueId": "dlg-taverne",
+     "dialogueId": {
+      "id": "dlg-taverne"
+     },
      "merchant": {
       "archetype": "taverniere"
      },
@@ -3227,7 +3237,9 @@
      "label": "Frère Anselm",
      "facing": "S",
      "ref": "stefan-hochen",
-     "dialogueId": "dlg-frere",
+     "dialogueId": {
+      "id": "dlg-frere"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "pretre",
@@ -3353,7 +3365,9 @@
      },
      "label": "Forgeron",
      "facing": "N",
-     "dialogueId": "dlg-forgeron",
+     "dialogueId": {
+      "id": "dlg-forgeron"
+     },
      "merchant": {
       "archetype": "armurier"
      },
@@ -3459,7 +3473,9 @@
      },
      "label": "Échoppière",
      "facing": "N",
-     "dialogueId": "dlg-echoppier",
+     "dialogueId": {
+      "id": "dlg-echoppier"
+     },
      "merchant": {
       "archetype": "herboriste"
      },
@@ -3563,7 +3579,9 @@
    "dialogues": [
     {
      "id": "dlg-hub",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -3573,13 +3591,17 @@
          "id": "echelle-arene",
          "label": "L’échelle de l’arène.",
          "icon": "action/attack",
-         "next": "echelle"
+         "next": {
+          "id": "echelle"
+         }
         },
         {
          "id": "contrats-expedition",
          "label": "Les contrats d’expédition.",
          "icon": "file/document",
-         "next": "contrats"
+         "next": {
+          "id": "contrats"
+         }
         },
         {
          "id": "crocheter-vieux-coffre",
@@ -4022,7 +4044,9 @@
         {
          "id": "revenir",
          "label": "↩ Revenir.",
-         "next": "accueil"
+         "next": {
+          "id": "accueil"
+         }
         }
        ]
       },
@@ -4249,7 +4273,9 @@
         {
          "id": "revenir",
          "label": "↩ Revenir.",
-         "next": "accueil"
+         "next": {
+          "id": "accueil"
+         }
         }
        ]
       }
@@ -4257,7 +4283,9 @@
     },
     {
      "id": "dlg-medecin",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -4344,7 +4372,9 @@
     },
     {
      "id": "dlg-garde",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -4353,7 +4383,9 @@
         {
          "id": "rien-signaler",
          "label": "« Rien à signaler ? »",
-         "next": "signalements"
+         "next": {
+          "id": "signalements"
+         }
         },
         {
          "id": "plus-tard",
@@ -4401,7 +4433,9 @@
         {
          "id": "autre-chose",
          "label": "↩ Autre chose.",
-         "next": "accueil"
+         "next": {
+          "id": "accueil"
+         }
         }
        ]
       }
@@ -4409,7 +4443,9 @@
     },
     {
      "id": "dlg-rumeurs",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -4418,7 +4454,9 @@
         {
          "id": "qui-se-raconte",
          "label": "« Qu’est-ce qui se raconte ? »",
-         "next": "lavoir"
+         "next": {
+          "id": "lavoir"
+         }
         },
         {
          "id": "plus-tard",
@@ -4466,7 +4504,9 @@
         {
          "id": "autre-chose",
          "label": "↩ Autre chose.",
-         "next": "accueil"
+         "next": {
+          "id": "accueil"
+         }
         }
        ]
       }
@@ -4474,7 +4514,9 @@
     },
     {
      "id": "dlg-taverne",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -4544,7 +4586,9 @@
          "id": "ecouter-salle",
          "label": "Écouter la salle.",
          "icon": "expedition/rumor",
-         "next": "rumeurs"
+         "next": {
+          "id": "rumeurs"
+         }
         },
         {
          "id": "plus-tard",
@@ -4570,17 +4614,23 @@
         {
          "id": "arene",
          "label": "« Et l’arène ? »",
-         "next": "rumeur-arene"
+         "next": {
+          "id": "rumeur-arene"
+         }
         },
         {
          "id": "routes",
          "label": "« Et les routes ? »",
-         "next": "rumeur-routes"
+         "next": {
+          "id": "rumeur-routes"
+         }
         },
         {
          "id": "revenir",
          "label": "↩ Revenir.",
-         "next": "accueil"
+         "next": {
+          "id": "accueil"
+         }
         }
        ]
       },
@@ -4613,7 +4663,9 @@
         {
          "id": "autre-rumeur",
          "label": "↩ Une autre rumeur.",
-         "next": "rumeurs"
+         "next": {
+          "id": "rumeurs"
+         }
         }
        ]
       },
@@ -4646,7 +4698,9 @@
         {
          "id": "autre-rumeur",
          "label": "↩ Une autre rumeur.",
-         "next": "rumeurs"
+         "next": {
+          "id": "rumeurs"
+         }
         }
        ]
       }
@@ -4654,7 +4708,9 @@
     },
     {
      "id": "dlg-frere",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -4842,7 +4898,9 @@
     },
     {
      "id": "dlg-forgeron",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -4886,7 +4944,9 @@
     },
     {
      "id": "dlg-echoppier",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",
@@ -15745,7 +15805,9 @@
       "y": 5
      },
      "label": "Prisonnier en cage",
-     "dialogueId": "dlg-prisonnier",
+     "dialogueId": {
+      "id": "dlg-prisonnier"
+     },
      "anim": "cowering",
      "appearance": {
       "species": "halflings",
@@ -16038,7 +16100,9 @@
    "dialogues": [
     {
      "id": "dlg-prisonnier",
-     "start": "accueil",
+     "start": {
+      "id": "accueil"
+     },
      "nodes": [
       {
        "id": "accueil",

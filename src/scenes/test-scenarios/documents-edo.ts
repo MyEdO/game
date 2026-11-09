@@ -34,13 +34,13 @@ const CONSIGNES_CH8: readonly DialogueChoice[] = [
     id: 'consigner-invitation',
     label: 'Consigner l’invitation au carnet.',
     flow: flowFromEffects([{ type: 'revealClue', indiceId: INDICE, stade: 's-invitation' }]),
-    next: 'ch8',
+    next: { id: 'ch8' },
   },
   {
     id: 'consigner-billet',
     label: 'Consigner le billet signé Teugen au carnet.',
     flow: flowFromEffects([{ type: 'revealClue', indiceId: INDICE, stade: 's-billet' }]),
-    next: 'ch8',
+    next: { id: 'ch8' },
   },
 ];
 
@@ -81,10 +81,10 @@ function construireScene(documents: readonly DocumentNarratif[]): Scene {
         id: `lire-${documentId}`,
         label: `Lire ${cite(titreDe(documentId))}.`,
         flow: flowFromEffects([{ type: 'document', documentId }]),
-        next: LIASSE,
+        next: { id: LIASSE },
       })),
       ...(ch.id === 'ch8' ? CONSIGNES_CH8 : []),
-      { id: 'revenir-liasse', label: 'Revenir à la liasse.', next: LIASSE },
+      { id: 'revenir-liasse', label: 'Revenir à la liasse.', next: { id: LIASSE } },
     ],
   }));
   return buildScene({
@@ -107,13 +107,13 @@ function construireScene(documents: readonly DocumentNarratif[]): Scene {
     dialogues: [
       {
         id: 'dlg-liasse',
-        start: LIASSE,
+        start: { id: LIASSE },
         nodes: [
           {
             id: LIASSE,
             desc: 'La liasse est rangée par chapitre.',
             choices: [
-              ...CHAPITRES.map((ch): DialogueChoice => ({ id: ch.id, label: ch.label, next: ch.id })),
+              ...CHAPITRES.map((ch): DialogueChoice => ({ id: ch.id, label: ch.label, next: { id: ch.id } })),
               { id: 'refermer-liasse', label: 'Refermer la liasse.' },
             ],
           },

@@ -1406,7 +1406,7 @@ function EntityPanel({
           <Fold title="Rôle (dialogue, marchand)">
             <label className="ed-field">
               Dialogue / quête
-              <select value={ent.dialogueId ?? ''} onChange={(e) => updateSel({ dialogueId: e.target.value || undefined })}>
+              <select value={ent.dialogueId?.id ?? ''} onChange={(e) => updateSel({ dialogueId: e.target.value ? { id: e.target.value } : undefined })}>
                 <option value="">— aucun —</option>
                 {scene.dialogues.map((d) => (
                   <option key={d.id} value={d.id}>

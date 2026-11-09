@@ -56,7 +56,7 @@ function jeton(ent: SceneEntity, visible = true): TokenEl {
 /** Un PNJ à qui PARLER : sa capacité d'instance vient de son dialogue, comme pour le curseur et le
  *  clic — aucune déclaration propre au halo. */
 const interlocuteur = (id: string, x = 5, y = 5, label?: string): SceneEntity => ({
-  id, kind: 'personnage', ref: 'humain', pos: { x, y }, ...(label ? { label } : {}), dialogueId: 'dlg-aubergiste',
+  id, kind: 'personnage', ref: 'humain', pos: { x, y }, ...(label ? { label } : {}), dialogueId: { id: 'dlg-aubergiste' },
 });
 
 function scèneAvec(...entities: SceneEntity[]): Scene {

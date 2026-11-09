@@ -113,7 +113,7 @@ describe('références narratives des Effects — résolues au parse du projet',
 
   it('`revealClue.indiceId` inconnu et `stade` inconnu : refusés, nommés', () => {
     const choix = (id: string, effect: Jouet) => ({ id, label: 'Lire', flow: { kind: 'if', cond: { kind: 'flag', expr: 'x' }, then: { kind: 'do', effect } } });
-    const dialogue = { id: 'dlg', start: 'n1', nodes: [{ id: 'n1', desc: 'Un meunier.', choices: [
+    const dialogue = { id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Un meunier.', choices: [
       choix('lire-fantome', { type: 'revealClue', indiceId: 'ind-fantome' }),
       choix('lire-moulin', { type: 'revealClue', indiceId: 'ind-moulin', stade: 's9' }),
       choix('lire-perdu', { type: 'discreditClue', indiceId: 'ind-perdu' }),

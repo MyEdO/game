@@ -62,7 +62,7 @@ describe('exploreMoveDest — case d’arrivée partagée survol/clic (explorati
   });
 
   it('PNJ à dialogue (case marchable) : on s’arrête à une case adjacente, pas sur le PNJ', () => {
-    const npc: SceneEntity = { id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 }, dialogueId: 'd1' };
+    const npc: SceneEntity = { id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 }, dialogueId: { id: 'd1' } };
     const sc = sceneWith([npc]);
     expect(isWalkable(sc, 5, 5)).toBe(true); // un personnage ne bloque pas sa case…
     const dest = exploreMoveDest(sc, { x: 1, y: 1 }, { x: 5, y: 5 });

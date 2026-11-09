@@ -239,7 +239,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   const avecNoeud = (noeud: Record<string, unknown>) => {
     const doc = projet();
     const [sc] = doc.scenes as Record<string, unknown>[];
-    return { ...doc, scenes: [{ ...sc, dialogues: [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...noeud }] }] }] };
+    return { ...doc, scenes: [{ ...sc, dialogues: [{ id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [], ...noeud }] }] }] };
   };
 
   const ENREGISTREMENT = 'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : scène « Salle du banc » › dialogue « dlg » › nœud « n1 » › ';
@@ -297,7 +297,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     const sc = emptyScene('scene-test', 4, 4);
     sc.id = 's1';
     sc.label = 'Salle';
-    sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], descRef: { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] } }] }] as Scene['dialogues'];
+    sc.dialogues = [{ id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [], descRef: { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] } }] }] as Scene['dialogues'];
     let erreur: unknown;
     try {
       parseSceneDeProjet(sc);

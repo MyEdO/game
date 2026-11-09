@@ -62,7 +62,7 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
   it('chaque choix d’une fenêtre (`CHOIX_DES_FENETRES`) est un geste de cette fenêtre', () => {
     const declares = Object.entries(CHOIX_DES_FENETRES).flatMap(([fenetre, axes]) => Object.keys(axes).map((axe) => `fenetreChoisir@${fenetre}#${axe}`));
     // La conversation, surface qui ne tient pas la main, dessine ses réponses hors de `fenetreDuJeu` (`conversationEnVue`).
-    const conversation = conversationEnVue({ ...ETAT, dialogue: { dialogue: { id: 'd', start: 'n1', nodes: [{ id: 'n1', choices: [{ id: 'r1', label: 'Oui' }] }] }, nodeId: 'n1', session: 1 } } as unknown as Jeu);
+    const conversation = conversationEnVue({ ...ETAT, dialogue: { dialogue: { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [{ id: 'r1', label: 'Oui' }] }] }, nodeId: 'n1', session: 1 } } as unknown as Jeu);
     const reponses = (conversation?.reponses ?? []).map(({ geste: { verbe, args: [fenetre, axe] } }) => `${verbe}@${fenetre}#${axe}`);
     expect(reponses, 'témoin : la réponse de la conversation').toHaveLength(1);
     const gestes = new Set([...FENETRES.flatMap((f) => f.gestes.map(cleDuGeste)), ...reponses]);

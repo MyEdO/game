@@ -200,7 +200,7 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
   it('la Comtesse remercie si la bombe a été déjouée (branche gatée par flag)', () => {
     const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-comtesse')!;
     const grateful = dlg.nodes.find((n) => n.id === 'n0')!.choices.find((c) => c.when?.kind === 'flag' && c.when.expr === 'bombeDesamorcee');
-    expect(grateful?.next).toBe('merci');
+    expect(grateful?.next).toEqual({ id: 'merci' });
     const merci = dlg.nodes.find((n) => n.id === 'merci')!;
     expect(merci.choices[0].flow && flowEffects(merci.choices[0].flow).some((e) => e.type === 'giveMoney')).toBe(true);
   });

@@ -3136,7 +3136,7 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
   it('clôturer un dialogue par une réponse sans suite avance le temps de TIME_COST.dialogue (idempotent)', () => {
     banc.setState({
       gameTime: campaignStart(), screen: 'campaign',
-      dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ id: 'adieu', label: 'Adieu' }] }] }, nodeId: 'n' } as any,
+      dialogue: { dialogue: { id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'adieu', label: 'Adieu' }] }] }, nodeId: 'n' } as any,
     });
     banc.getState().fenetreChoisir('dialogue', 'reponse', 'adieu');
     expect(banc.getState().dialogue).toBeNull();

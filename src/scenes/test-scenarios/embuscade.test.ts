@@ -74,10 +74,10 @@ describe('embuscade — Scene produite par buildScene', () => {
     expect(s.dialogues).toHaveLength(1);
     const dlg = s.dialogues[0];
     expect(dlg.id).toBe('dlg-ambush');
-    expect(dlg.start).toBe('a1');
+    expect(dlg.start).toEqual({ id: 'a1' });
     expect(dlg.nodes.map((n) => n.id)).toEqual(['a1', 'a2']);
     expect(dlg.nodes[0].choices).toHaveLength(2);
-    expect(dlg.nodes[0].choices[1].next).toBe('a2');
+    expect(dlg.nodes[0].choices[1].next).toEqual({ id: 'a2' });
     expect(dlg.nodes[1].choices).toHaveLength(1);
   });
 

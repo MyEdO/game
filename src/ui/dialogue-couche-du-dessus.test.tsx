@@ -21,9 +21,9 @@ import { DialogueHistoryScreen } from './DialogueHistoryScreen';
 import { CodexRef } from './compendium/CodexRef';
 
 const dlg: Dialogue = {
-  id: 'd-couche', start: 'n1',
+  id: 'd-couche', start: { id: 'n1' },
   nodes: [
-    { id: 'n1', desc: 'Que faites-vous ?', choices: [{ id: 'une', label: 'Une', next: 'n2' }, { id: 'deux', label: 'Deux', next: 'n3' }] },
+    { id: 'n1', desc: 'Que faites-vous ?', choices: [{ id: 'une', label: 'Une', next: { id: 'n2' } }, { id: 'deux', label: 'Deux', next: { id: 'n3' } }] },
     { id: 'n2', desc: 'Une.', choices: [] },
     { id: 'n3', desc: 'Deux.', choices: [] },
   ],

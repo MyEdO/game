@@ -569,7 +569,7 @@ describe('Inspecteur — ÉQUIPAGE EXPOSÉ d’une coque (`SceneEntity.crewIds`,
 describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #841)', () => {
   it('l’id choisi à l’atelier est rendu par `DialogueBox` devant le libellé du choix', async () => {
     const dialogue: Dialogue = {
-      id: 'd', start: 'n1',
+      id: 'd', start: { id: 'n1' },
       nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [{ id: 'payer-taxe', label: 'Payer la taxe' }] }],
     };
     let latest = dialogue;

@@ -178,7 +178,7 @@ describe('chemins nommés par leur schéma', () => {
     const projet = projetJouet();
     const scene = projet.scenes[0];
     if (cas === 'journal') scene.triggers.push({ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', desc: '' } }] } });
-    if (cas === 'réplique') scene.dialogues.push({ id: 'dialogue-0', start: 'node-0', nodes: [{ id: 'node-0', desc: '', choices: [] }] });
+    if (cas === 'réplique') scene.dialogues.push({ id: 'dialogue-0', start: { id: 'node-0' }, nodes: [{ id: 'node-0', desc: '', choices: [] }] });
     if (cas === 'stade') {
       projet.narratif.affaires.push({ id: 'affaire-0', titre: 'Affaire' });
       projet.narratif.indices.push({ id: 'indice-0', affaireId: 'affaire-0', kind: 'indice', titre: 'Indice', stades: [{ id: 'stade-0' }] });

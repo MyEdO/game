@@ -8,7 +8,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * « Dialogue multi-interlocuteurs » (#669) : UN dialogue dont les NŒUDS alternent l'interlocuteur
  * via `DialogueNode.speakerId` (id d'une `SceneEntity` de la scène → SON portrait + SON nom, jamais
  * un nom en clair — AGENTS.md, § « Pour TOUT agent »). Ouvert en parlant à Gustav
- * (`dialogueId: 'dlg-tablee'`) : le nœud d'accueil n'a PAS de `speakerId` → il hérite du locuteur de
+ * (`dialogueId: { id: 'dlg-tablee' }`) : le nœud d'accueil n'a PAS de `speakerId` → il hérite du locuteur de
  * SESSION posé par `interagirAvecLEntite` (Gustav, l'entité qu'on a cliquée). Les nœuds suivants alternent
  * vers Isolde puis Phillipe (`speakerId` explicite), avant de revenir à Gustav (session, par défaut).
  * PATRON DE REPRISE, dans le dialogue même de l'entité (`dialogueId` est fixe : une reprise ne peut
@@ -25,7 +25,7 @@ const construireAuberge = (): Scene => buildScene({
   terrain: 'herbe',
   heroStart: [3, 6],
   entities: [
-    { id: 'gustav', kind: 'personnage', ref: 'humain', label: 'Gustav', pos: { x: 5, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-tablee' },
+    { id: 'gustav', kind: 'personnage', ref: 'humain', label: 'Gustav', pos: { x: 5, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: { id: 'dlg-tablee' } },
     { id: 'isolde', kind: 'personnage', ref: 'humain', label: 'Isolde', pos: { x: 7, y: 3 }, appearance: { species: 'humains-reiklander' } },
     { id: 'phillipe', kind: 'personnage', ref: 'humain', label: 'Phillipe', pos: { x: 6, y: 4 }, appearance: { species: 'humains-reiklander' } },
   ],
@@ -35,15 +35,15 @@ const construireAuberge = (): Scene => buildScene({
   dialogues: [
     {
       id: 'dlg-tablee',
-      start: 'a1',
+      start: { id: 'a1' },
       nodes: [
         {
           // Pas de speakerId : hérite du locuteur de SESSION (Gustav, l'entité cliquée par interagirAvecLEntite).
           id: 'a1',
           desc: '« Vous tombez bien — on refaisait le monde. Isolde soutient qu’un dragon a survolé le Nordland la semaine dernière. »',
           choices: [
-            { id: 'dragon', label: '« Un dragon ? »', when: { kind: 'flag', expr: '!tablee_faite' }, next: 'a2' },
-            { id: 'encore-dragon', label: '« Encore ce dragon ? »', when: { kind: 'flag', expr: 'tablee_faite' }, next: 'a2' },
+            { id: 'dragon', label: '« Un dragon ? »', when: { kind: 'flag', expr: '!tablee_faite' }, next: { id: 'a2' } },
+            { id: 'encore-dragon', label: '« Encore ce dragon ? »', when: { kind: 'flag', expr: 'tablee_faite' }, next: { id: 'a2' } },
             { id: 'autre-fois', label: '« Une autre fois. »', when: { kind: 'flag', expr: 'tablee_faite' }, flow: flowFromEffects([{ type: 'endDialogue' }]) },
           ],
         },
@@ -51,13 +51,13 @@ const construireAuberge = (): Scene => buildScene({
           id: 'a2',
           speakerId: 'isolde',
           desc: '« Je l’ai VU, de mes yeux. Une ombre plus grande qu’une grange, au-dessus de la lisière. Phillipe ne me croit pas. »',
-          choices: [{ id: 'vous-phillipe', label: '« Et vous, Phillipe ? »', next: 'a3' }],
+          choices: [{ id: 'vous-phillipe', label: '« Et vous, Phillipe ? »', next: { id: 'a3' } }],
         },
         {
           id: 'a3',
           speakerId: 'phillipe',
           desc: 'Il hausse les épaules. « Une ombre de nuage, plutôt. Isolde voit des dragons partout depuis qu’elle a lu ce roman de gare. »',
-          choices: [{ id: 'vous-vous-chamaillez', label: '« Vous vous chamaillez souvent ? »', next: 'a4' }],
+          choices: [{ id: 'vous-vous-chamaillez', label: '« Vous vous chamaillez souvent ? »', next: { id: 'a4' } }],
         },
         {
           id: 'a4',

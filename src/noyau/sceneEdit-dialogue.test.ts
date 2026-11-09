@@ -9,19 +9,19 @@ import { addDialogueNode, removeDialogueNode, renameDialogue, renameDialogueNode
 import { validateScene } from './validateScene';
 
 const dialogue = (): Dialogue => ({
-  id: 'd1', start: 'n1',
+  id: 'd1', start: { id: 'n1' },
   nodes: [
-    { id: 'n1', desc: 'un', choices: [{ id: 'choix-1', label: 'vers deux', next: 'n2' }] },
-    { id: 'n2', desc: 'deux', choices: [{ id: 'choix-1', label: 'encore', next: 'n2' }, { id: 'choix-2', label: 'retour', next: 'n1' }] },
+    { id: 'n1', desc: 'un', choices: [{ id: 'choix-1', label: 'vers deux', next: { id: 'n2' } }] },
+    { id: 'n2', desc: 'deux', choices: [{ id: 'choix-1', label: 'encore', next: { id: 'n2' } }, { id: 'choix-2', label: 'retour', next: { id: 'n1' } }] },
     { id: 'n3', desc: 'trois', choices: [] },
   ],
 });
 const ouvrir = (id: string) => ({ kind: 'do' as const, effect: { type: 'startDialogue' as const, dialogue: id } });
 const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
-  entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: 'd1' } as SceneEntity],
+  entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: { id: 'd1' } } as SceneEntity],
   triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [ouvrir('d1')] } }],
-  dialogues: [dialogue(), { id: 'd2', start: 'n1', nodes: [{ id: 'n1', desc: 'autre', choices: [{ id: 'choix-1', label: 'autre', flow: ouvrir('d1') }] }] }],
+  dialogues: [dialogue(), { id: 'd2', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'autre', choices: [{ id: 'choix-1', label: 'autre', flow: ouvrir('d1') }] }] }],
 });
 const fautesDeDialogue = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error' && /dialogue/i.test(w.message)).map((w) => w.message);
 const avec = (d: Dialogue): Scene => ({ ...scene(), dialogues: [d, scene().dialogues[1]] });
@@ -30,7 +30,7 @@ describe('renameDialogue', () => {
   it('suit le `dialogueId` des entités et chaque effet « Ouvrir un dialogue », un choix d’un autre dialogue compris', () => {
     const s = renameDialogue(scene(), 'd1', ' d-auberge ');
     expect(s.dialogues.map((d) => d.id)).toEqual(['d-auberge', 'd2']);
-    expect(s.entities[0].dialogueId).toBe('d-auberge');
+    expect(s.entities[0].dialogueId).toEqual({ id: 'd-auberge' });
     expect(s.triggers[0].flow).toEqual({ kind: 'seq', steps: [ouvrir('d-auberge')] });
     expect(s.dialogues[1].nodes[0].choices[0].flow).toEqual(ouvrir('d-auberge'));
     expect(fautesDeDialogue(s)).toEqual([]);
@@ -51,11 +51,11 @@ describe('écrivains de nœud', () => {
 
   it('renameDialogueNode : suit le départ et chaque `next`, la boucle sur soi comprise', () => {
     const d = renameDialogueNode(dialogue(), 'n1', 'accueil');
-    expect(d.start).toBe('accueil');
+    expect(d.start).toEqual({ id: 'accueil' });
     expect(d.nodes.map((n) => n.id)).toEqual(['accueil', 'n2', 'n3']);
-    expect(d.nodes[1].choices.map((c) => c.next)).toEqual(['n2', 'accueil']);
+    expect(d.nodes[1].choices.map((c) => c.next)).toEqual([{ id: 'n2' }, { id: 'accueil' }]);
     const boucle = renameDialogueNode(dialogue(), 'n2', 'deux');
-    expect(boucle.nodes[1].choices.map((c) => c.next)).toEqual(['deux', 'n1']);
+    expect(boucle.nodes[1].choices.map((c) => c.next)).toEqual([{ id: 'deux' }, { id: 'n1' }]);
     expect(fautesDeDialogue(avec(d))).toEqual([]);
     expect(fautesDeDialogue(avec(boucle))).toEqual([]);
   });

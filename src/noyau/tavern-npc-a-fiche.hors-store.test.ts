@@ -272,7 +272,7 @@ describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
 
   it('l’Effet de dialogue du proposeur PASSE son id : la modale s’ouvre pré-sélectionnée sur lui', () => {
     poseScene([pnjDeScene('pnj-plantule', 'Plantule', 55, { id: 'dominos', stakeBrass: 12 })]);
-    set({ dialogue: { dialogue: { id: 'd', start: 'n1', nodes: [] }, nodeId: 'n1', speakerId: 'pnj-plantule' } as never });
+    set({ dialogue: { dialogue: { id: 'd', start: { id: 'n1' }, nodes: [] }, nodeId: 'n1', speakerId: 'pnj-plantule' } as never });
 
     applyEffects(get, set, [{ type: 'openTavernGames' }]);
 
@@ -292,7 +292,7 @@ describe('#1279 — la table s’ouvre sur l’offre du PROPOSEUR', () => {
 
   it('un speaker SANS offre n’impose rien (le prédicat lit la donnée de la scène, pas l’identité)', () => {
     poseScene([pnjDeScene('pnj-muet', 'Un quidam', 30)]); // aucune `tavernGame`
-    set({ dialogue: { dialogue: { id: 'd', start: 'n1', nodes: [] }, nodeId: 'n1', speakerId: 'pnj-muet' } as never });
+    set({ dialogue: { dialogue: { id: 'd', start: { id: 'n1' }, nodes: [] }, nodeId: 'n1', speakerId: 'pnj-muet' } as never });
 
     applyEffects(get, set, [{ type: 'openTavernGames' }]);
 

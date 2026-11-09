@@ -197,7 +197,7 @@ describe('panneau Logique — un porteur renommé garde la saisie de ses champs 
   });
 
   const dialogue = (id: string, amount: number) => ({
-    id, start: 'n1',
+    id, start: { id: 'n1' },
     nodes: [
       { id: 'n1', desc: 'un', choices: [{ id: 'c1', label: 'c1', flow: fluxJson(amount) }] },
       { id: 'n2', desc: 'deux', choices: [{ id: 'c2', label: 'c2', flow: fluxJson(amount + 10) }] },

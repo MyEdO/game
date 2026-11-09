@@ -36,7 +36,7 @@ import type { Pt } from './monde/path';
  */
 const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: SceneEntity, scene: Scene) => void>> = {
   parler: (get, set, ent, scene) => {
-    const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId);
+    const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId?.id);
     if (dlg) set({ dialogue: ouvrirDialogue(get(), dlg, ent.id) });
   },
   commercer: (get, _set, ent) => get().ouvrirLeMarchand(ent.id),

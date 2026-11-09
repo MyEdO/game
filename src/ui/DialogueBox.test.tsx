@@ -32,9 +32,9 @@ const bob: SceneEntity = { id: 'e2', kind: 'personnage', ref: 'humain', pos: { x
 
 const dlg: Dialogue = {
   id: 'dlg-test',
-  start: 'n1',
+  start: { id: 'n1' },
   nodes: [
-    { id: 'n1', desc: 'Réplique de session.', choices: [{ id: 'suite', label: 'Suite', next: 'n2' }] },
+    { id: 'n1', desc: 'Réplique de session.', choices: [{ id: 'suite', label: 'Suite', next: { id: 'n2' } }] },
     { id: 'n2', speakerId: 'e2', desc: 'Réplique de Bob.', choices: [] },
   ],
 };
@@ -95,7 +95,7 @@ describe('DialogueBox — résolution du locuteur PAR ID (#669)', () => {
  * jamais sur une classe CSS.
  */
 const dlgTeste: Dialogue = {
-  id: 'dlg-tag', start: 'n1',
+  id: 'dlg-tag', start: { id: 'n1' },
   nodes: [{ id: 'n1', desc: 'La cage est là.', choices: [
     { id: 'crocheter-cage', label: 'Crocheter la cage.', flow: { kind: 'test', test: { skill: { id: 'crochetage' }, difficulty: 'accessible', label: 'Crocheter la cage du garde-manger' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
     { id: 'renoncer', label: 'Renoncer.' },
@@ -152,7 +152,7 @@ describe('DialogueBox — numéro et Test annoncé (#1869)', () => {
  * un `flag` qui bascule RENUMÉROTE à l'écran, une bourse qui redevient suffisante ROUVRE la réponse.
  */
 const dlgVivant: Dialogue = {
-  id: 'dlg-vivant', start: 'n1',
+  id: 'dlg-vivant', start: { id: 'n1' },
   nodes: [{ id: 'n1', desc: 'Le passeur attend.', choices: [
     { id: 'montrer-laissez-passer', label: 'Montrer le laissez-passer.', when: { kind: 'flag', expr: 'laissez_passer' } },
     { id: 'attendre', label: 'Attendre.' },
@@ -210,7 +210,7 @@ describe('DialogueBox — la fenêtre suit l’état sans que la conversation bo
 
 describe('DialogueBox — la réponse fermée porte le TEXTE du refus du noyau', () => {
   it('bourse trop courte : la raison de la réponse est celle que le choix `dialogue.reponse` dit', () => {
-    const payant: Dialogue = { id: 'dlg-pay', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] };
+    const payant: Dialogue = { id: 'dlg-pay', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: { id: 'n1' } }] }] };
     useGame.setState({ scene, flags: {}, gameTime: campaignStart(), party: [], screen: 'campaign', dialogue: { dialogue: payant, nodeId: 'n1', speakerId: 'e1', session: 1 } });
     const container = document.createElement('div');
     document.body.appendChild(container);

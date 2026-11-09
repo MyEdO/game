@@ -26,7 +26,7 @@ const cc = conditionCtx({ flags: {}, gameTime: campaignStart() });
 const hero = (brass: number): Combatant =>
   withBourseMoney({ id: 'h1', name: 'Hero', kind: 'hero', chars: {}, items: [] } as unknown as Combatant, { gold: 0, silver: 0, brass }, idsDeTest);
 
-const noeud = (choices: DialogueNode['choices']): Dialogue => ({ id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: '…', choices }] } as Dialogue);
+const noeud = (choices: DialogueNode['choices']): Dialogue => ({ id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: '…', choices }] } as Dialogue);
 
 /** État minimal : SOLO (un seul siège, il décide), une conversation ouverte sur son unique nœud. */
 const etat = (dlg: Dialogue, over: Partial<Jeu> = {}): Jeu =>

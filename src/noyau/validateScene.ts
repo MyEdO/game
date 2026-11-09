@@ -226,7 +226,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     };
     // Dialogues qu'un OUVREUR de la scène cite : la capacité « parler » d'une entité (`dialogueId`),
     // et tout effet dont le handler déclare `ouvreDialogue` (le runtime cherche dans la scène COURANTE).
-    const dialoguesOuverts = new Set(s.entities.flatMap((e) => (e.dialogueId ? [e.dialogueId] : [])));
+    const dialoguesOuverts = new Set(s.entities.flatMap((e) => (e.dialogueId ? [e.dialogueId.id] : [])));
     // Cible d'individu : un personnage de CETTE scène (EDOC 11 l.648 ; #3045).
     const individuAbsent = (id: string) => !refCtx.entityIds.has(id);
     for (const e of s.entities) for (const id of individusNommes(e).filter(individuAbsent))
@@ -254,7 +254,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const layerZs = new Set(s.layers.map((l) => l.z));
     const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
     for (const e of s.entities) {
-      if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
       const appui = fauteDAppui(s, e);
@@ -449,16 +448,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     for (const r of racinesDeFlow(s)) checkFlow(r.flow as Flow, r.porteur.id, r.porteur.genre);
     for (const site of sitesDeLaScene(s).conditions)
       checkCondTimes(site.condition as Condition, site.porteur.id, PORTEE_DU_LIEU[site.porteur.liste]?.([site.porteur.id]).scope ?? 'scene');
-    for (const d of s.dialogues) {
-      const nodeIds = new Set(d.nodes.map((n) => n.id));
-      if (!nodeIds.has(d.start)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : départ « ${d.start} » inexistant`);
+    for (const d of s.dialogues)
       for (const n of d.nodes)
         for (const c of n.choices) {
-          if (c.next && !nodeIds.has(c.next)) add('error', 'dialogue', d.id, `Dialogue « ${d.id} » : choix → « ${c.next} » inexistant`);
           const terme = termeRecopie(c, VOCABULAIRE_DU_TAG);
           if (terme) add('warn', 'dialogue', d.id, avisLibelleRecopie(d.id, c.label, terme));
         }
-    }
     const entById = new Map(s.entities.map((e) => [e.id, e] as const));
     for (const e of s.encounters) {
       // onVictory est APPLIQUÉ À PLAT à la victoire (finishVictory → flattenFlow), pour préserver la

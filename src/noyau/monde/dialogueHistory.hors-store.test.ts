@@ -23,9 +23,9 @@ const hero = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklande
 /** Dialogue à deux nœuds ; n1 porte un override `speakerId`, n2 hérite du speaker de session. */
 function makeDialogue(): Dialogue {
   return {
-    id: 'd-archive', start: 'n1',
+    id: 'd-archive', start: { id: 'n1' },
     nodes: [
-      { id: 'n1', speakerId: 'pnj-2', desc: 'Bonjour, voyageur.', choices: [{ id: 'salut', label: 'Salut.', next: 'n2' }] },
+      { id: 'n1', speakerId: 'pnj-2', desc: 'Bonjour, voyageur.', choices: [{ id: 'salut', label: 'Salut.', next: { id: 'n2' } }] },
       { id: 'n2', desc: 'Autre chose ?', choices: [{ id: 'non-merci', label: 'Non merci.' }] },
     ],
   };

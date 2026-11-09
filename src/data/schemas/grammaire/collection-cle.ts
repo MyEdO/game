@@ -236,6 +236,9 @@ export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (est
  * (`jugerRefLocale`) contre les ids de la collection `portee.collection` de la MÊME valeur. FAIL-FAST à la
  * CONSTRUCTION : collection absente des champs ou qui n'est pas une liste à clé, collection marquée `espace`
  * (un id local n'entre dans aucun espace de l'INDEX DES IDS), portée qu'aucune référence de l'arbre ne désigne.
+ * Le jugement court même quand une issue de l'arbre avorte les raffinements de l'objet (`when`) : au parse de
+ * mesure, le repère d'une feuille `idDe` de l'arbre en est une (`mesureDuParse`), et une référence locale non
+ * jugée ne serait pas comptée.
  */
 export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, portees: readonly PorteeLocale[]): N {
   const marques = new Map(
@@ -267,7 +270,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
         if (portee !== undefined && admis !== undefined) return jugerRefLocale(ctx, chemin, portee, id, admis.has(id));
       }
     });
-  });
+  }, { when: () => true });
   OUVREURS.set(ouvreur, portees);
   return ouvreur;
 }

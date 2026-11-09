@@ -17,7 +17,7 @@ const MATERIALISE = { desc: TEXTE, descRef: DESC_REF };
 
 
 describe('la modale « Avancé » (`lireBlocsAvances`), la même porte', () => {
-  const blocs = (noeud: Record<string, unknown>) => ({ dialogues: [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...noeud }] }] });
+  const blocs = (noeud: Record<string, unknown>) => ({ dialogues: [{ id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [], ...noeud }] }] });
 
   it('P1 : un nœud adressé MATÉRIALISÉ (la forme de l’éditeur) fait l’aller-retour, son texte gardé', () => {
     const porte = lireBlocsAvances(blocs(MATERIALISE));

@@ -254,7 +254,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     demarrerMarche(get, { vue: 'iso', dir: 'up' });
     vi.advanceTimersByTime(STEP_MS); // 2ᵉ case
     expect(t.cases.length).toBe(2);
-    useGame.setState({ dialogue: { dialogue: { id: 'd', start: 'n', nodes: [] }, nodeId: 'n' } } as never);
+    useGame.setState({ dialogue: { dialogue: { id: 'd', start: { id: 'n' }, nodes: [] }, nodeId: 'n' } } as never);
     const arret = { ...get().partyPos };
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();

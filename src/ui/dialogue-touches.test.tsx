@@ -36,11 +36,11 @@ const frapper = (code: string) =>
 
 /** Trois réponses en DONNÉE, la 2ᵉ masquée : à l'écran, « Deux » est au rang 2 et à l'index 2. */
 const dlg: Dialogue = {
-  id: 'd-touches', start: 'n1',
+  id: 'd-touches', start: { id: 'n1' },
   nodes: [{ id: 'n1', desc: 'Que faites-vous ?', choices: [
-    { id: 'une', label: 'Une', next: 'n2' },
-    { id: 'cachee', label: 'Cachée', when: { kind: 'flag', expr: 'jamais' }, next: 'n2' },
-    { id: 'deux', label: 'Deux', next: 'n2' },
+    { id: 'une', label: 'Une', next: { id: 'n2' } },
+    { id: 'cachee', label: 'Cachée', when: { kind: 'flag', expr: 'jamais' }, next: { id: 'n2' } },
+    { id: 'deux', label: 'Deux', next: { id: 'n2' } },
   ] }, { id: 'n2', desc: 'Suite.', choices: [] }],
 } as Dialogue;
 

@@ -26,7 +26,7 @@ function scene(noeud: Record<string, unknown>, journal: Record<string, unknown> 
   const sc = emptyScene('scene-test', 4, 4);
   sc.id = 's1';
   sc.label = 'Salle';
-  sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...noeud }] }] as Scene['dialogues'];
+  sc.dialogues = [{ id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [], ...noeud }] }] as Scene['dialogues'];
   sc.triggers = [{ id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'journal', ...journal } as never]) }];
   return sc;
 }

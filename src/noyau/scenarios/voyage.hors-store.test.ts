@@ -31,7 +31,7 @@ describe('16-voyage — Scenes produites par buildScene', () => {
     expect(v.weather).toBe('pluie');
     expect(v.rest).toEqual({ auberge: true });
     expect(v.entities.find((e) => e.kind === 'heroStart')?.pos).toEqual({ x: 3, y: 4 });
-    expect(v.entities.find((e) => e.id === 'aubergiste')?.dialogueId).toBe('dlg-auberge');
+    expect(v.entities.find((e) => e.id === 'aubergiste')?.dialogueId).toEqual({ id: 'dlg-auberge' });
     expect(v.dialogues.find((d) => d.id === 'dlg-auberge')).toBeTruthy();
   });
 

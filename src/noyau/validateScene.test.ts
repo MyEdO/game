@@ -62,9 +62,9 @@ describe('validateScene', () => {
 
   it("dialogueId d'entité inexistant → erreur", () => {
     const s = base();
-    s.entities.push({ id: 'e-0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'manque' });
+    s.entities.push({ id: 'e-0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'manque' } });
     const w = validateScene([s]);
-    expect(w.some((x) => x.scope === 'entity' && x.refId === 'e-0' && /dialogue inexistant/.test(x.message))).toBe(true);
+    expect(w.some((x) => x.scope === 'entity' && x.refId === 'e-0' && /« manque » est absent du catalogue des dialogues de la scène/.test(x.message))).toBe(true);
   });
 
   /**
