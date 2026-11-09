@@ -72,5 +72,6 @@ class Reprises:
               'Mo', flush=True)
 
     def effacer(self):
-        """Retire le dossier de la construction, une fois sa sortie écrite."""
-        shutil.rmtree(self.dossier)
+        """Retire, une fois la sortie écrite, le dossier de la construction et ceux des constructions abandonnées sous
+        une autre empreinte ; une construction qui tourne encore réécrit le sien à sa passe suivante."""
+        shutil.rmtree(self.dossier.parent)
