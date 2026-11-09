@@ -1,17 +1,17 @@
 extends SceneTree
 
-## Le véhicule dans l'atelier (#2987, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : l'atelier ouvert sur un pont
-## figé (`PontFige`, le véhicule figé par la sonde, `hotes/godot/recettes/vehicule.ts`), qui sert le listage et les GLB du
-## projet et répond à chaque entrée de `vehicule` que la sonde a figée. La caraque choisie à côté des bases se pose au sol,
-## cadrée à sa taille ; un canon choisi à une place de tribord, le Sabord installé, la Figure de proue installée, le Sabord
-## retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie l'entrée attendue, et son montage
-## (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à sa position, tournée vers son bord,
-## chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud `montre` et cachant son nœud `cache`, les
-## nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible, chaque place de la réponse offerte à l'onglet
-## Équipement sur la pièce qui y est montée, la palette et l'emblème sur ses surfaces. La caraque n'attaque pas ; l'onglet
-## Effets offre un bouton par variante et par son de la vitrine (#3777, `vitrine`), chacun d'un visuel, d'un projectile
-## et de fichiers sonores que Godot connaît, et le coup d'un canon y part de l'auteur ; le trébuchet choisi attaque : son
-## clip de tir joue et sa pierre vole.
+## Le véhicule dans l'atelier (#2987, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : l'atelier ouvert sur un
+## pont figé (`PontFige`, `pont_fige.gd`, sur le véhicule figé par la sonde, `hotes/godot/recettes/vehicule.ts`), qui
+## sert le listage et les GLB du projet et répond à chaque entrée de `vehicule` que la sonde a figée. La caraque choisie
+## à côté des bases se pose au sol, cadrée à sa taille ; un canon choisi à une place de tribord, le Sabord installé, la
+## Figure de proue installée, le Sabord retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie
+## l'entrée attendue, et son montage (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à
+## sa position, tournée vers son bord, chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud
+## `montre` et cachant son nœud `cache`, les nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible,
+## chaque place de la réponse offerte à l'onglet Équipement sur la pièce qui y est montée, la palette et l'emblème sur
+## ses surfaces. La caraque n'attaque pas ; l'onglet Effets offre un bouton par variante et par son de la vitrine
+## (#3777, `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot connaît, et le coup d'un
+## canon y part de l'auteur ; le trébuchet choisi attaque : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
@@ -20,39 +20,6 @@ const CADRE_D_UNE_COQUE := 5.0
 ## Les secondes au bout desquelles les éclats des effets joués sont éteints et retirés, le clip de tir rendu au repos.
 const ECLATS_ETEINTS_S := 4.0
 var _fautes: Array[String] = []
-
-
-## Le pont de l'atelier figé : `catalogues` et `modeles` rendent leur réponse figée, `vehicule` celle de son entrée,
-## `modeles/` le listage figé et `modeles/<fichier>` le fichier du projet ; il garde les entrées de `vehicule` reçues et
-## le dernier écran publié.
-class PontFige extends PontDuNoyau:
-	var fige: Dictionary
-	var entrees: Array[String] = []
-	var ecran: Dictionary = {}
-
-	func _init(lu: Dictionary) -> void:
-		fige = lu
-
-	func rejoindre(_au_refus: Callable, _a_la_panne: Callable) -> bool:
-		return true
-
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
-		if methode in ["catalogues", "modeles", "vitrine"]:
-			return fige[methode]
-		var cle := JSON.stringify(entree)
-		entrees.append(cle)
-		return fige.vehicule.get(cle, {ok = false, erreur = {categorie = "validation", message = "entrée non figée : %s" % cle}})
-
-	func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
-		if relative == "modeles/listage.json":
-			return JSON.stringify(fige.listage).to_utf8_buffer()
-		var octets := FileAccess.get_file_as_bytes("res://%s" % relative)
-		if octets.is_empty():
-			recueil.append("fichier absent : %s" % relative)
-		return octets
-
-	func publier_l_ecran(publie: Dictionary) -> void:
-		ecran = publie
 
 
 func _initialize() -> void:
@@ -66,13 +33,7 @@ func _recetter() -> void:
 		push_error("[atelier-du-vehicule] %s : aucun véhicule figé" % FIGE)
 		quit(2)
 		return
-	var ancien := root.get_node_or_null("Pont")
-	if ancien != null:
-		root.remove_child(ancien)
-		ancien.free()
-	var pont := PontFige.new(lu)
-	pont.name = "Pont"
-	root.add_child(pont)
+	var pont := PontFige.poser(self, lu)
 	var atelier: Node = load("res://scenes/Atelier.tscn").instantiate()
 	root.add_child(atelier)
 	await _images(2)
