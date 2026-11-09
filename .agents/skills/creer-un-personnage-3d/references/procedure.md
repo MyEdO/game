@@ -19,8 +19,9 @@ La provenance cite chaque illustration par sa ligne de l'`INDEX.md` du recueil d
 de `src/data`, fichier, livre et page), jamais par une copie : les images restent hors dépôt,
 droits de l'éditeur. Chaque mesure se lit sur une illustration ou une donnée du jeu nommée (une
 longueur de `vehicles.json`, une échelle en pixels par mètre relevée sur le profil) ; une mesure
-qu'aucune ne donne est une **hypothèse**, listée comme telle dans la provenance avec sa valeur et
-sa raison, pour que la revue la tranche.
+qu'aucune ne donne est une **hypothèse**, listée comme telle avec sa valeur et sa raison, pour que
+la revue la tranche. Citations et hypothèses vivent dans le `donnees.py` de l'élément, à côté de la
+dimension qu'elles fondent : l'import n'en recopie rien.
 
 Un élément est construit pour **une base identifiée**, avec son GLB, son manifeste complet haché
 et les preuves de sa porte d'animation L1. Sur l'humanoïde : squelette UAL, corps UBC compatible,
@@ -234,7 +235,12 @@ Pièges mesurés au Sorcier (#3743) : la nappe intérieure d'une double nappe es
 corps se vise sur elle ; une pièce qui couvre `cou` cache le cou sous l'hôte et doit couvrir la couture cou/torse de la
 base, en dents de scie ; sous le menton, des anneaux trop proches s'étirent en clip (écart vertical minimal entre
 anneaux) ; un vêtement de tête se pose par une marche du dehors vers le centre en distance aux surfaces contournées, les
-rayons depuis un centre glissant par les coutures ouvertes du cou.
+rayons depuis un centre glissant par les coutures ouvertes du cou. La chaîne `jupe` (`base/chaines.py`) est faite de
+quatre brins rigides pendus au bassin, dont seul l'os `_01` tourne : un pan se pondère par secteur angulaire autour du
+bassin, fondu du bassin vers son brin sous la tête des cuisses ; son étirement en clip suit le déplacement du brin et la
+pente du fondu entre brins, pas la finesse du maillage. Une doublure reprend les colonnes et les poids de la nappe
+qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
+la porte est la matrice des cinq passes, jamais la passe neutre seule.
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
