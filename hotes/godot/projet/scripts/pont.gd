@@ -85,10 +85,19 @@ func publier_l_ecran(ecran: Dictionary) -> void:
 ## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
 ## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :
 ## `<type>/<id>`) s'il en porte un ; une liste déroulante, aussi le texte de chaque article (`choix`) et le rang de
-## l'article choisi (`retenu`, -1 sans choix).
+## l'article choisi (`retenu`, -1 sans choix) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
+## centre de son onglet (`onglet`).
 static func boutons_a_l_ecran(racines: Array) -> Array:
 	var boutons := []
 	for racine in racines:
+		for pages in racine.find_children("*", "TabContainer", true, false):
+			var barre := (pages as TabContainer).get_tab_bar()
+			if not barre.is_visible_in_tree():
+				continue
+			for rang in barre.tab_count:
+				var milieu: Vector2 = barre.get_global_transform().translated_local(barre.get_tab_rect(rang).get_center()).get_origin()
+				if not barre.is_tab_hidden(rang) and a_l_ecran(barre, milieu):
+					boutons.append({texte = barre.get_tab_title(rang), x = milieu.x, y = milieu.y, onglet = true})
 		for bouton in racine.find_children("*", "BaseButton", true, false):
 			var centre: Vector2 = bouton.get_global_rect().get_center()
 			if bouton.is_visible_in_tree() and not bouton.disabled and a_l_ecran(bouton, centre):

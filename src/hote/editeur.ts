@@ -11,16 +11,16 @@
  */
 import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
-  capDeLEntite, capsOfferts, entiteDeLaSelection, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
+  capDeLEntite, capsOfferts, entiteDeLaSelection, entiteDuSchema, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
-  type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
+  type WallPaint, ZONE_VARIANTS, bornesAuPoint, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
-  equipConflicts, isWearable, objetsDeLInventaire, trappingsInstanciables,
-  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDEntite, ficheDuCombattant,
+  isWearable, objetsDeLInventaire, trappingsInstanciables,
+  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
   findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
@@ -277,8 +277,9 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
  *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, ses
- *  sorts, son embuscade et ses rencontres, et le formulaire qui en pose une troupe ; la supprimer. */
+ *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
+ *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
+ *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -294,7 +295,9 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
+    ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
+    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent), ent as unknown as Record<string, unknown>),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -393,39 +396,34 @@ function poste(s: SessionDEdition, ent: Scene['entities'][number], p: NonNullabl
 }
 
 /** L'inventaire du personnage `ent` : chaque objet, par son id, à retirer et, s'il se porte (`isWearable`), porté ou
- *  non, le porter ôtant ceux qui sont en conflit de port avec lui (`equipConflicts`) ; ou la ligne qui dit qu'il n'en a
- *  aucun ; puis, en liste, chaque objet du catalogue (`trappingsInstanciables`) qu'il n'a pas, à y ajouter. Chaque
- *  bouton écrit l'inventaire entier. */
+ *  non ; ou la ligne qui dit qu'il n'en a aucun ; puis, en liste, chaque objet du catalogue (`trappingsInstanciables`)
+ *  qu'il n'a pas, à y ajouter. Chaque bouton écrit son intention sur l'objet (`inventaireApres`). */
 function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
   const objets = ent.inventaire ?? {};
   const instances = objetsDeLInventaire(objets, String);
-  const ecrire = (inv: NonNullable<Scene['entities'][number]['inventaire']>): GesteDEdition => ({ geste: 'entite', patch: { inventaire: inv } });
-  const porter = (objet: (typeof instances)[number]) => {
-    const otes = new Set(objet.equipped ? [] : equipConflicts({ items: instances }, objet).map((o) => o.uid));
-    return Object.fromEntries(Object.entries(objets).map(([id, porte]) => [id, id === objet.uid ? !porte : porte && !otes.has(id)]));
-  };
+  const ecrire = (objet: NonNullable<PatchDEntite['objet']>): GesteDEdition => ({ geste: 'entite', patch: { objet } });
   return [
     ...(instances.length
       ? instances.map((objet) => {
         const id = `inventaire/${objet.uid}`;
         return choix(id, objet.label, [
-          ...(isWearable(objet) ? [bouton(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire(porter(objet)), objet.equipped)] : []),
-          bouton(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire(Object.fromEntries(Object.entries(objets).filter(([i]) => i !== objet.uid)))),
+          ...(isWearable(objet) ? [bouton(`${id}/porte`, t('ecran.editeur.inventaire.porte'), ecrire({ porter: objet.uid }), objet.equipped)] : []),
+          bouton(`${id}/retirer`, t('ecran.editeur.inventaire.retirer'), ecrire({ retirer: objet.uid })),
         ]);
       })
       : [ligne('inventaire', t('ecran.editeur.inventaire.aucun'))]),
     choix('inventaire/ajouter', t('ecran.editeur.inventaire.ajouter'),
-      trappingsInstanciables().filter((tr) => !(tr.id in objets)).map((tr) => bouton(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ...objets, [tr.id]: false }))), 'liste'),
+      trappingsInstanciables().filter((tr) => !(tr.id in objets)).map((tr) => bouton(`inventaire/ajouter/${tr.id}`, tr.label, ecrire({ ajouter: tr.id }))), 'liste'),
   ];
 }
 
-/** Le parcours de carrière du personnage `ent` de la session `s`, s'il part d'une fiche du bestiaire (EDO 11 l.19) :
+/** Le parcours de carrière du personnage `ent`, s'il part d'une fiche du bestiaire (EDO 11 l.19) :
  *  chaque carrière, la dernière actuelle, à son Niveau ou à retirer ; les Talents choisis de chacun de ses Niveaux
  *  atteints ; la Compétence de chacun de ses emplacements à choix ; une carrière à ajouter, qui devient l'actuelle ;
- *  chaque emplacement de dotation de l'actuelle, l'emplacement de la branche choisie dessous ; les Caractéristiques
- *  tirées ; puis le profil calculé (`ficheDEntite`). Ce que l'auteur ne choisit pas se tire au spawn (« Tiré »).
+ *  chaque emplacement de dotation de l'actuelle, l'emplacement de la branche choisie dessous. Ce que l'auteur ne choisit
+ *  pas se tire au spawn (« Tiré »).
  *  Chaque bouton écrit le parcours entier, retouché (`parcoursRetouche`). */
-function carrieres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
+function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
   if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.ref)) return [];
   const p: ParcoursDeCarriere = parcoursDe(ent) ?? { carrieres: {} };
   const ecrire = (q: ParcoursDeCarriere): GesteDEdition => ({ geste: 'entite', patch: { parcours: parcoursRetouche(q) } });
@@ -484,25 +482,27 @@ function carrieres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix |
     choix('carriere/ajouter', t('ecran.editeur.carriere.ajouter'), careers.filter((c) => !(c.id in p.carrieres))
       .map((c) => bouton(`carriere/ajouter/${c.id}`, c.label, ecrire({ ...p, carrieres: { ...p.carrieres, [c.id]: 1 }, dotationsDeCarriere: undefined }), false, refusDeTenue)), 'liste'),
     ...(actuelle ? emplacementsDeDotation(dotationsDuPnj(actuelle.id, actuelle.niveau)).filter(estEmplacementRacine).flatMap(dotation) : []),
-    bouton('carriere/aleatoire', t('ecran.editeur.carriere.aleatoire'), { geste: 'entite', patch: { aleatoire: !ent.combat?.randomChars } }, !!ent.combat?.randomChars),
-    ...(actuelle ? profilDeCarriere(s, ent, actuelle) : []),
   ];
 }
 
-/** Le profil calculé du personnage de carrière `ent` de la session `s` (`ficheDEntite`, `ficheDuCombattant`) : le Niveau
- *  atteint de sa carrière actuelle et son Statut, ses Caractéristiques et ses Blessures, ses Compétences à la valeur de
- *  leur Test, ses Talents et ses possessions. */
-function profilDeCarriere(s: SessionDEdition, ent: Scene['entities'][number], actuelle: { id: string; niveau: number }): Ligne[] {
-  const entites = sceneEditee(s).entities;
-  const fiche = ficheDuCombattant(ficheDEntite(ent, presetDuNarratif(s.projet.narratif)), (id) => {
-    const e = entites.find((x) => x.id === id);
+/** Le profil porté du personnage `ent` de la session `s`, s'il est de son schéma (`entiteDuSchema`) et porte une fiche
+ *  (`sceneNpc`, `ficheDuCombattant`) : d'un
+ *  PNJ de carrière, le Niveau atteint de sa carrière actuelle et son Statut ; ses Caractéristiques et ses Blessures, ses
+ *  Compétences à la valeur de leur Test, ses Talents et ses possessions. */
+function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
+  const scene = sceneEditee(s);
+  const porte = entiteDuSchema(ent) ? sceneNpc(scene, ent.id, presetDuNarratif(s.projet.narratif)) : undefined;
+  const fiche = porte && ficheDuCombattant(porte, (id) => {
+    const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
-  })!;
-  const niveau = levelsForCareer(actuelle.id).find((l) => l.level === actuelle.niveau)!;
-  const liste = (cle: 'competences' | 'talents' | 'possessions', elements: string[]) => ligne(`carriere/profil/${cle}`, t(`ecran.editeur.carriere.profil.${cle}`, { liste: elements.join(', ') || t('ecran.editeur.carriere.profil.aucun') }));
+  });
+  if (!fiche) return [];
+  const actuelle = carriereActuelle(parcoursDe(ent) ?? { carrieres: {} });
+  const niveau = actuelle && levelsForCareer(actuelle.id).find((l) => l.level === actuelle.niveau);
+  const liste = (cle: 'competences' | 'talents' | 'possessions', elements: string[]) => ligne(`profil/${cle}`, t(`ecran.editeur.profil.${cle}`, { liste: elements.join(', ') || t('ecran.editeur.profil.aucun') }));
   return [
-    ligne('carriere/profil/statut', t('ecran.editeur.carriere.profil.statut', { niveau: niveau.label, statut: niveau.status })),
-    ligne('carriere/profil/caracteristiques', t('ecran.editeur.carriere.profil.caracteristiques', { liste: fiche.caracteristiques.map((c) => `${c.abrege} ${c.valeur}`).join(' · '), blessures: fiche.blessures[1] })),
+    ...(niveau ? [ligne('profil/statut', t('ecran.editeur.profil.statut', { niveau: niveau.label, statut: niveau.status }))] : []),
+    ligne('profil/caracteristiques', t('ecran.editeur.profil.caracteristiques', { liste: fiche.caracteristiques.map((c) => `${c.abrege} ${c.valeur}`).join(' · '), blessures: fiche.blessures[1] })),
     liste('competences', fiche.competences.map((c) => `${c.libelle} ${c.valeur}`)),
     liste('talents', fiche.talents.map((x) => (x.fois > 1 ? `${x.libelle} ×${x.fois}` : x.libelle))),
     liste('possessions', fiche.possessions.map((x) => (x.nombre > 1 ? `${x.libelle} (${x.nombre})` : x.libelle))),
@@ -518,7 +518,7 @@ function sorts(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Lig
   const fiche = sceneNpc(sceneEditee(s), ent.id, presetDuNarratif(s.projet.narratif));
   if (!fiche) return [];
   const libelle = (id: string) => findSpellById(id)?.label ?? id;
-  const liste = (ids: readonly string[]) => ids.map(libelle).join(', ') || t('ecran.editeur.carriere.profil.aucun');
+  const liste = (ids: readonly string[]) => ids.map(libelle).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);
   if (imprimes.length) return [ligne('sorts/imprimes', t('ecran.editeur.sorts.imprimes', { liste: liste(imprimes) }))];
   const listes = listesDeSorts(fiche);
@@ -535,11 +535,10 @@ function sorts(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Lig
   ];
 }
 
-/** L'embuscade du personnage `ent` de la session `s` et ses rencontres : dans chacune, enrôlé ou non, ennemi ou allié,
- *  piloté par l'IA s'il est allié ; l'enrôler dans une rencontre neuve. */
+/** Les rencontres du personnage `ent` de la session `s` : dans chacune, enrôlé ou non, ennemi ou allié, piloté par l'IA
+ *  s'il est allié ; l'enrôler dans une rencontre neuve. */
 function rencontres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bouton)[] {
   return [
-    bouton('embusque', t('ecran.editeur.embusque'), { geste: 'entite', patch: { embusque: !ent.combat?.hiddenUntilCombat } }, !!ent.combat?.hiddenUntilCombat),
     ...sceneEditee(s).encounters.map((enc) => {
       const m = enc.members?.find((mm) => mm.entityId === ent.id);
       const membre = (patch: Omit<Extract<GesteDEdition, { geste: 'membre' }>['patch'], 'rencontre'>): GesteDEdition => ({ geste: 'membre', patch: { rencontre: enc.id, ...patch } });
@@ -796,14 +795,16 @@ const PAS_D_UN_REEL = 0.01;
 /** L'argument `nom` du verbe `valeur`, posé à `valeur` (`fixe`). */
 const fixe = (nom: string, valeur: unknown): ArgumentDuGeste => ({ nom, optionnel: false, saisie: 'fixe', libelle: null, valeur, valeurs: null, bornes: null, note: null, champs: null });
 
-/** L'argument de la valeur saisie du champ `f`, de valeur courante `valeur` (`undefined` : absent) : un choix parmi ses
- *  valeurs (`choixDuNoeud`), un nombre entre ses bornes (`FieldDesc.bornes`), au pas de 1 s'il est entier, un texte, ou
- *  du JSON. */
-function argumentDeValeur(f: FieldDesc, valeur: unknown): ArgumentDuGeste {
-  const choix = choixDuNoeud(f.noeud);
+/** L'argument de la valeur saisie du champ `f`, de valeur courante `valeur` (`undefined` : absent), au chemin `ici` : un
+ *  choix parmi ceux que son contexte y pose (`FieldDesc.contexte`), sinon parmi ses valeurs (`choixDuNoeud`), un
+ *  nombre entre ses bornes (`FieldDesc.bornes`, ou celles du nombre qu'admet son nœud, `bornesAuPoint`), au pas de 1
+ *  s'il est entier, un texte, ou du JSON. */
+function argumentDeValeur(f: FieldDesc, valeur: unknown, ici: readonly Segment[]): ArgumentDuGeste {
+  const choix = f.contexte?.choix(ici) ?? choixDuNoeud(f.noeud)?.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null }));
   const base = { nom: 'valeur', optionnel: false, libelle: f.label, valeur: valeur ?? null, valeurs: null, bornes: null, note: null, champs: null };
-  if (choix) return { ...base, saisie: 'choix', valeurs: choix.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })) };
-  if (f.kind === 'number') return { ...base, saisie: 'nombre', bornes: { min: f.bornes?.min ?? SANS_BORNE.min, max: f.bornes?.max ?? SANS_BORNE.max, pas: f.bornes?.entier ? 1 : PAS_D_UN_REEL } };
+  if (choix) return { ...base, saisie: 'choix', valeurs: [...choix] };
+  const nombre = f.kind === 'number' ? f.bornes ?? null : bornesAuPoint(f.noeud, valeur);
+  if (nombre !== undefined) return { ...base, saisie: 'nombre', bornes: { min: nombre?.min ?? SANS_BORNE.min, max: nombre?.max ?? SANS_BORNE.max, pas: nombre?.entier ? 1 : PAS_D_UN_REEL } };
   return { ...base, saisie: f.kind === 'text' ? 'texte' : f.kind === 'textarea' ? 'multiligne' : 'json' };
 }
 
@@ -823,6 +824,13 @@ const elementDeValeur = (id: string, porteur: PorteurDeValeur, chemin: Segment[]
 /** Le geste `valeur` qui écrit `v` au chemin `chemin` du porteur `porteur` (`v` absente : le champ se retire). */
 const ecrireLaValeur = (porteur: PorteurDeValeur, chemin: Segment[], v?: unknown): GesteDEdition => ({ geste: 'valeur', porteur, chemin, ...(v === undefined ? {} : { valeur: v }) });
 
+/** Les champs offerts du nœud `noeud` à la donnée `objet` (`champsOfferts`, hors des discriminants `tenus`), sous le champ
+ *  `f` au chemin `ici` : ceux que son contexte offre (`FieldDesc.contexte`), dans ce contexte. */
+const champsSous = (f: FieldDesc, ici: Segment[], noeud: unknown, objet: Record<string, unknown>, tenus?: readonly string[]): FieldDesc[] => {
+  const { contexte } = f;
+  return contexte ? champsOfferts(noeud, objet, tenus).filter((c) => contexte.offert([...ici, c.key])).map((c) => ({ ...c, contexte })) : champsOfferts(noeud, objet, tenus);
+};
+
 /** Les éléments du formulaire tiré du schéma des champs `champs` (`FieldDesc`) du porteur `porteur`, de donnée
  *  `donnee`, au chemin `chemin` : ceux de chaque champ (`elementsDuChamp`), à plat. */
 function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDesc[], donnee: Record<string, unknown>, chemin: Segment[] = []): (Choix | Ligne | Bouton | Formulaire)[] {
@@ -833,7 +841,8 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
  *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
  *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent :
  *  « Ajouter », qui pose sa valeur neuve (`valeurNeuveDe`). Une union nommée : sa variante (`elementsDeLUnion`). Une
- *  liste : ses éléments (`elementsDeLaListe`). Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
+ *  liste : ses éléments (`elementsDeLaListe`). Un objet d'une union sans variantes nommées : son libellé et les champs
+ *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent. */
 function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
@@ -841,26 +850,30 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   if (champsDeclares(f.noeud)) {
     if (valeur === undefined) return [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))];
     const objet = valeur as Record<string, unknown>;
-    return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsOfferts(f.noeud, objet), objet, ici), ...retirer];
+    return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, f.noeud, objet), objet, ici), ...retirer];
   }
   if (unionDuNoeud(f.noeud)) return elementsDeLUnion(porteur, f, valeur, ici);
   if (elementDuNoeud(f.noeud) !== undefined) return elementsDeLaListe(porteur, f, valeur, ici);
-  const a = argumentDeValeur(f, valeur);
+  const forme = formeAuPoint(f.noeud, valeur)?.noeud;
+  if (estObjet(valeur) && champsDeclares(forme)) return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, forme, valeur), valeur, ici), ...retirer];
+  const a = argumentDeValeur(f, valeur, ici);
   const aucune = a.saisie === 'choix' && f.nullable ? [bouton(`${id}/aucune`, t('ecran.editeur.valeur.aucune'), ecrireLaValeur(porteur, ici), valeur === undefined)] : [];
   return [elementDeValeur(id, porteur, ici, f, a), ...(a.saisie === 'choix' ? aucune : retirer)];
 }
 
 /** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
- *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`, chacune posant sa valeur
- *  (`variantesAChoisir`), suivi de « Aucune » si son absence est admise ; puis, de la variante courante, une union
- *  choisie sous le même chemin, ses champs offerts, ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
+ *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union à clé propre),
+ *  chacune posant sa valeur (celles que son
+ *  contexte y pose, `FieldDesc.contexte`, sinon `variantesAChoisir`), suivi de « Aucune » si son absence est
+ *  admise ; puis, de la variante courante, une union
+ *  choisie sous le même chemin, ses champs offerts, la saisie de sa valeur hors objet (le nombre d'une formule), ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
  *  JSON de l'op entière. */
 function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], tenus: readonly string[] = []): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const u = unionDuNoeud(f.noeud)!;
-  const idDuChoix = `${id}/${u.discriminant}`;
-  const variantes = variantesAChoisir(f.noeud, valeur)!.map((v) => ({ valeur: v.valeur, libelle: v.libelle, refus: null }));
-  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle: f.label, valeur: valeur ?? null, valeurs: variantes, bornes: null, note: null, champs: null };
+  const idDuChoix = `${id}/${u.discriminant || 'forme'}`;
+  const variantes = f.contexte?.choix(ici) ?? variantesAChoisir(f.noeud, valeur)!.map((v) => ({ valeur: v.valeur, libelle: v.libelle, refus: null }));
+  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle: f.label, valeur: valeur ?? null, valeurs: [...variantes], bornes: null, note: null, champs: null };
   const aucune = f.nullable ? [bouton(`${idDuChoix}/aucune`, t('ecran.editeur.valeur.aucune'), ecrireLaValeur(porteur, ici), valeur === undefined)] : [];
   const courante = varianteCourante(u, valeur);
   const choisis = [...tenus, u.discriminant];
@@ -870,8 +883,12 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
       return [ligne(`${id}/motif`, t('ecran.editeur.valeur.motif.opNonTypee')), elementDeValeur(id, porteur, ici, f, { ...a, saisie: 'json', valeurs: null })];
     }
     if (unionDuNoeud(courante.noeud)) return elementsDeLUnion(porteur, { ...f, label: courante.libelle, nullable: false, noeud: courante.noeud }, valeur, ici, choisis);
+    if (!champsDeclares(courante.noeud)) {
+      const scalaire = { ...f, label: courante.libelle, noeud: courante.noeud };
+      return [elementDeValeur(id, porteur, ici, scalaire, argumentDeValeur(scalaire, valeur, ici))];
+    }
     const objet = valeur as Record<string, unknown>;
-    return elementsDuFormulaire(porteur, champsOfferts(courante.noeud, objet, choisis), objet, ici);
+    return elementsDuFormulaire(porteur, champsSous(f, ici, courante.noeud, objet, choisis), objet, ici);
   };
   return [elementDeValeur(idDuChoix, porteur, ici, f, a), ...aucune, ...suite()];
 }
@@ -1097,7 +1114,7 @@ const musiqueDeLaScene = (scene: Scene): Choix[] => (['ambient', 'combat'] as co
 /** Le formulaire du message d'introduction de la scène `scene` (`{ type: 'introduire', args: [texte] }`), sa saisie
  *  tirée du schéma (`champDuMessage`), multiligne pour une prose, préremplie de son texte. */
 const formulaireDuMessage = (scene: Scene): Formulaire =>
-  elementDuGeste('introduire', 'introduire', [{ ...argumentDeValeur(champDuMessage(), scene.startMessage?.texte), nom: 'texte' }], () => t('ecran.editeur.scene.introduire')) as Formulaire;
+  elementDuGeste('introduire', 'introduire', [{ ...argumentDeValeur(champDuMessage(), scene.startMessage?.texte, []), nom: 'texte' }], () => t('ecran.editeur.scene.introduire')) as Formulaire;
 
 /** Les ancres de bataille de la scène éditée de la session `s` : la ligne qui dit qu'elle n'en a aucune, ou de chacune
  *  sa Scène de Round en liste (`ciblesDAncreDeBataille`), sa case, la poser à la case pointée (refusé sans case
@@ -1436,11 +1453,13 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
   }
 }
 
-/** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`refusDeLaValeur`), dit à l'auteur ; `null` si elle
- *  l'écrit. */
+/** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`refusDeLaValeur`), dit à l'auteur, la règle enfreinte
+ *  telle qu'elle se dit ; `null` si elle l'écrit. */
 export function refusDeLaValeurDit(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): string | null {
   const refus = refusDeLaValeur(s, g);
-  return refus && t(`ecran.editeur.valeur.refus.${refus}`, { chemin: g.chemin.join('/') });
+  if (refus === null) return null;
+  const chemin = g.chemin.join('/');
+  return typeof refus === 'object' ? t('ecran.editeur.valeur.refus.regle', { chemin, regle: refus.regle }) : t(`ecran.editeur.valeur.refus.${refus}`, { chemin });
 }
 
 /** Les verbes des formulaires de l'inspecteur. */

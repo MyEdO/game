@@ -292,6 +292,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // #1463 Trait 3b-2 : la pose, récursive par `confere`, a un type DÉCLARÉ (`TraitPose`) ; ses champs
     // se nomment à leur premier porteur du document.
     // #3012 S4b : `entryPoints` et `stations[].pos` composent `ptSchema` (`defs-scenes/communs.ts`), le `Pt` du noyau.
+    // #3606 M1a : les options d'une entité sont la sortie de `optionalDeSceneSchema` (la note « swap », ses octrois de
+    // Caractéristique et de Compétence), et une Amélioration celle de `navalTraitRefSchema`.
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -301,9 +303,18 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       horsDocument.map((r) => `${r.id} @ ${fichier(r)}`).sort(),
       'ce que la frontière par MODULE perdrait'
     ).toEqual([
+      'CaracteristiqueChiffree.characteristic @ src/data/schemas/grammaire/valeurs.ts',
+      'CaracteristiqueChiffree.value @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
+      'OptionalSwap.grant @ src/data/schemas/grammaire/reference.ts',
+      'OptionalSwap.grant.value @ src/data/schemas/grammaire/reference.ts',
+      'OptionalSwap.label @ src/data/schemas/grammaire/reference.ts',
+      'OptionalSwap.note @ src/data/schemas/grammaire/reference.ts',
+      'OptionalSwap.remove @ src/data/schemas/grammaire/reference.ts',
+      'OptionalSwap.size @ src/data/schemas/grammaire/reference.ts',
+      'OptionalSwap.wounds @ src/data/schemas/grammaire/reference.ts',
       'ParLocalisation.brasD @ src/data/schemas/grammaire/reference.ts',
       'ParLocalisation.brasG @ src/data/schemas/grammaire/reference.ts',
       'ParLocalisation.corps @ src/data/schemas/grammaire/reference.ts',
@@ -329,6 +340,7 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'SceneEntity.combat.optionals.range @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.source @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.combat.optionals.value @ src/data/schemas/grammaire/reference.ts',
+      'SceneEntity.upgrades.value @ src/data/schemas/grammaire/reference.ts',
       'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',

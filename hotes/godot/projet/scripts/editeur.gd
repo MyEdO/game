@@ -12,8 +12,8 @@
 ## chaque planche dans `user://<image>.png` : une planche demandée (`planche`) se choisit sur le disque de l'auteur
 ## (`PontDuNoyau.choisir_une_image`), s'écrit là, et sa taille, ou rien, revient au pont. Chaque geste part au pont : celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
 ## le monde, appuyé, glissé d'une case à l'autre et relâché, chacun au point de la carte que le monde touche
-## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, et chaque défilement du panneau, qui change ses
-## boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la recette lit.
+## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, et chaque défilement du panneau ou onglet choisi, qui
+## change ses boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la recette lit.
 extends Node
 
 ## La campagne qui s'ouvre sans `campagne` à l'adresse : celle de la Diligence, la carte que l'éditeur bâtit (#3508).
@@ -47,6 +47,8 @@ func _ready() -> void:
 		zone.geste.connect(_jouer)
 	for defilement in _interface.find_children("*", "ScrollContainer", true, false):
 		(defilement as ScrollContainer).get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier_l_ecran())
+	for pages in _interface.find_children("*", "TabContainer", true, false):
+		(pages as TabContainer).tab_clicked.connect(func(_onglet: int) -> void: _publier_l_ecran())
 	get_tree().node_added.connect(func(noeud: Node) -> void:
 		if noeud is LineEdit and _interface.is_ancestor_of(noeud):
 			(noeud as LineEdit).text_changed.connect(func(_texte: String) -> void: _publier_l_ecran())
@@ -215,7 +217,7 @@ func _unhandled_input(event: InputEvent) -> void:
 ## texte (`PontDuNoyau.saisies_a_l_ecran`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
 ## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue. Republié quand un défilement
-## du panneau bouge ou qu'un champ de texte change ; rien si l'éditeur a quitté l'écran entre-temps (l'essai ouvre le
+## du panneau bouge, qu'un onglet se choisit ou qu'un champ de texte change ; rien si l'éditeur a quitté l'écran entre-temps (l'essai ouvre le
 ## combat).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame

@@ -657,6 +657,22 @@ export function canStow(c: Pick<Combatant, 'items'>, it: ItemInstance, container
   return containerFillEnc(c, containerUid) + ((it.enc || 0) + craftEncDelta(it)) <= capacity;
 }
 
+/** Ce que l'auteur fait d'un objet de l'inventaire d'un personnage de scène : porter ou ôter l'objet posé, le retirer,
+ *  ajouter un objet du catalogue. #3684 */
+export type IntentionDObjet = { porter: string } | { retirer: string } | { ajouter: string };
+
+/** L'inventaire d'auteur `inventaire` après l'intention `objet` : l'objet ajouté, non porté ; retiré ; ou porté s'il ne
+ *  l'était pas, en ôtant ceux qui sont en conflit de port avec lui (`equipConflicts`), ôté sinon. #3684 */
+export function inventaireApres(inventaire: InventaireDAuteur, objet: IntentionDObjet): InventaireDAuteur {
+  if ('ajouter' in objet) return { ...inventaire, [objet.ajouter]: false };
+  if ('retirer' in objet) return Object.fromEntries(Object.entries(inventaire).filter(([id]) => id !== objet.retirer));
+  const instances = objetsDeLInventaire(inventaire, String);
+  const porte = instances.find((o) => o.uid === objet.porter);
+  if (!porte) return inventaire;
+  const otes = new Set(porte.equipped ? [] : equipConflicts({ items: instances }, porte).map((o) => o.uid));
+  return Object.fromEntries(Object.entries(inventaire).map(([id, p]) => [id, id === objet.porter ? !p : p && !otes.has(id)]));
+}
+
 /** Rangement PAR DÉFAUT d'un objet nouvellement acquis (#204, retour playtest) : uid du contenant avec le
  *  PLUS de place LIBRE (capacité − `containerFillEnc`) parmi ceux où `canStow(c, it, uid)` l'autorise —
  *  `canStow` écarte déjà l'auto-rangement/l'imbrication, donc un objet qui EST lui-même un contenant ne

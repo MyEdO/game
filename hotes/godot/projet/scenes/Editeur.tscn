@@ -83,9 +83,34 @@ source = "editeur.fichier"
 script = ExtResource("3_zone")
 source = "editeur.pointee"
 
-[node name="Inspecteur" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile"]
+[node name="Inspecteur" type="TabContainer" parent="Interface/Outils/Defilement/Pile"]
+size_flags_horizontal = 3
+clip_tabs = false
 
-[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+[node name="Combat" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Combat"]
+script = ExtResource("3_zone")
+source = "editeur.inspecteur"
+ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/upgrades", "valeur/upgrades/", "inventaire", "inventaire/", "sorts/", "profil/")
+
+[node name="Rôles" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Rôles"]
+script = ExtResource("3_zone")
+source = "editeur.inspecteur"
+ids = PackedStringArray("valeur/amateur", "valeur/amateur/")
+
+[node name="Apparence" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Apparence"]
+script = ExtResource("3_zone")
+source = "editeur.inspecteur"
+ids = PackedStringArray("valeur/anim", "valeur/anim/")
+
+[node name="Identité" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
+
+[node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Identité"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
 

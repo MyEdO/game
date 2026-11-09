@@ -46,7 +46,7 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { FORMULAIRES, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { cheminOffert, formeDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -1100,9 +1100,10 @@ function noeudDuPas(noeud: unknown, point: unknown, pas: Segment): unknown {
   return n !== undefined && !forme!.tenus.includes(pas) && cleOfferte(pas, n) ? n : undefined;
 }
 
-/** Pourquoi une valeur ne s'écrit pas : le formulaire n'offre pas son chemin, elle n'est pas de la sorte du champ, ou
- *  elle est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas. */
-export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible';
+/** Pourquoi une valeur ne s'écrit pas : le formulaire n'offre pas son chemin, elle n'est pas de la sorte du champ, elle
+ *  est arrivée `null` (un JSON illisible) là où le champ ne l'admet pas, ou son porteur écrit enfreint une règle,
+ *  dite. */
+export type RefusDeValeur = 'nonOffert' | 'horsSorte' | 'illisible' | { regle: string };
 
 /** Ce qu'écrit une valeur : la donnée écrite, ou son refus. */
 export type EcritureDeValeur<T> = { ok: true; valeur: T } | { ok: false; refus: RefusDeValeur };
@@ -1128,22 +1129,25 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
 }
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
- *  (`FORMULAIRES`, `avecLaValeur`), ou son refus : un chemin hors de ses champs n'est pas offert. */
-export function avecLaValeurDuPorteur<T extends SceneEffectZone | Trigger>(sorte: SorteDePorteur, donnee: T, chemin: readonly Segment[], valeur: unknown): EcritureDeValeur<T> {
-  const { schema, champs: offerts } = FORMULAIRES[sorte];
-  if (!(offerts as readonly Segment[]).includes(chemin[0])) return { ok: false, refus: 'nonOffert' };
-  return avecLaValeur(schema, donnee as unknown as Objet, chemin, valeur) as EcritureDeValeur<T>;
+ *  (`formeDuPorteur`, `avecLaValeur`), ou son refus : un chemin hors de ses champs (`cheminOffert`) n'est pas offert. */
+export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown): EcritureDeValeur<DonneeDuPorteur[S]> {
+  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee);
+  if (!cheminOffert(offerts, chemin)) return { ok: false, refus: 'nonOffert' };
+  return avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur) as EcritureDeValeur<DonneeDuPorteur[S]>;
 }
 
-/** Les entrées couvertes `couvre` d'un patch, `undefined` pour aucune. */
-const couvertes = (couvre: string[] | null) => (couvre?.length ? couvre : undefined);
+/** La liste ou le record `v` d'un patch, `undefined` (son absence, `champ`) quand il est vide ou `null`. */
+export const sansVide = <T extends object>(v: T | null): T | undefined => (v && Object.keys(v).length ? v : undefined);
+
+/** La couche `z` d'un patch, `undefined` (son absence, `champ`) au sol. */
+export const coucheEcrite = (z: number): number | undefined => z || undefined;
 
 /** Le rectangle `r` porté à la couche `z` (`z` omis au rez). */
 const rectALaCouche = (r: Rect, z: number) => ({ x: r.x, y: r.y, w: r.w, h: r.h, ...(z ? { z } : {}) });
 
 /** La zone d'effet `zone` portée à la couche `z`, son emprise découpée avec elle. */
 function zoneDEffetALaCouche(zone: SceneEffectZone, z: number): SceneEffectZone {
-  const out = champ(zone, 'z', z || undefined);
+  const out = champ(zone, 'z', coucheEcrite(z));
   return zone.tiles ? { ...out, tiles: zone.tiles.map((t) => carveTile(t, z)) } : out;
 }
 
@@ -1156,7 +1160,7 @@ function zoneDEffetPatchee(zone: SceneEffectZone, patch: PatchDeZone): SceneEffe
   if (patch.pleine) out = clearEffectZoneCarve(out);
   if (patch.blocksLoS !== undefined) out = champ(out, 'blocksLoS', patch.blocksLoS || undefined);
   if (patch.barrier !== undefined) out = champ(out, 'barrier', patch.barrier ? zone.barrier ?? {} : undefined);
-  return patch.couvre === undefined ? out : champ(out, 'couvre', couvertes(patch.couvre));
+  return patch.couvre === undefined ? out : champ(out, 'couvre', sansVide(patch.couvre));
 }
 
 /** La zone sélectionnée `sel` de `scene` (déclencheur, zone de repos ou d'effet) patchée de `patch` ; `scene` telle
@@ -1169,7 +1173,7 @@ export function patchZone(scene: Scene, sel: Sel, patch: PatchDeZone): Scene {
         if (t.id !== sel.id) return t;
         let out = patch.z === undefined ? t : { ...t, rect: rectALaCouche(t.rect, patch.z) };
         if (patch.once !== undefined) out = champ(out, 'once', patch.once || undefined);
-        return patch.couvre === undefined ? out : champ(out, 'couvre', couvertes(patch.couvre));
+        return patch.couvre === undefined ? out : champ(out, 'couvre', sansVide(patch.couvre));
       }),
     };
   }
@@ -1424,11 +1428,11 @@ export function removeSceneFlag(scene: Scene, key: string): Scene {
   return { ...scene, flags: Object.fromEntries(Object.entries(scene.flags).filter(([k]) => k !== key)) };
 }
 
-/** Patche les champs de HAUT NIVEAU d'une entité (facing/label/crewIds/upgrades/light/statblock/foot…) —
- *  fusion superficielle. No-op si l'entité est absente. Écriture mécanique privée au module : la porte
- *  publique est `editEntity`, qui la compose avec le seam d'assise. */
+/** Patche les champs de HAUT NIVEAU d'une entité (facing/label/crewIds/upgrades/light/statblock/foot…), chacun posé par
+ *  `champs` : une clé portée à `undefined` le retire. No-op si l'entité est absente. Écriture mécanique privée au
+ *  module : la porte publique est `editEntity`, qui la compose avec le seam d'assise. */
 function patchEntity(scene: Scene, id: string, patch: Partial<SceneEntity>): Scene {
-  return { ...scene, entities: scene.entities.map((e) => (e.id === id ? { ...e, ...patch } : e)) };
+  return { ...scene, entities: scene.entities.map((e) => (e.id === id ? champs(e, patch) : e)) };
 }
 
 // ── ASSISE AUTHORÉE — LE SEAM UNIQUE ───────────────────────────────────────────────────────────────
@@ -1572,7 +1576,7 @@ export function editEntityCombat(scene: Scene, id: string, patch: Partial<NonNul
  *  fabriquer la liste. L'ÉTAGE se pose ICI, une fois (`z` = couche demandée ; sol (0) = champ
  *  absent, convention du modèle) — l'appelant ne le recolle plus sur l'entité. */
 export function addEntity(scene: Scene, ent: SceneEntity, z = 0): Scene {
-  return normaliserLaPose({ ...scene, entities: [...scene.entities, champ(ent, 'z', z || undefined)] });
+  return normaliserLaPose({ ...scene, entities: [...scene.entities, champ(ent, 'z', coucheEcrite(z))] });
 }
 
 /** Suppression d'AUTHORING d'une entité — traverse le seam. */

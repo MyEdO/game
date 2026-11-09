@@ -14,7 +14,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 // optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment par `z.infer`. Import de TYPE
 // seul — aucun cycle runtime.
 import type { z } from 'zod';
-import type { InventaireDAuteur, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
+import type { InventaireDAuteur, OptionalDeScene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
@@ -161,9 +161,8 @@ export interface SceneEntity {
    *  enrôlé dans une rencontre (cf. EncounterMember). Porte les choix d'auteur qui DÉCRIVENT la
    *  personne au combat — son profil (ref/statblock) et son apparence vivent déjà sur l'entité. */
   combat?: {
-    /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes composées
-     *  (joker « tous les traits », variante « swap » retirant des Traits + octroyant un bonus, ZI). */
-    optionals?: import('../../engine/statEntry').OptionalEntry[];
+    /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes « swap » (ZI). */
+    optionals?: OptionalDeScene[];
     /** Sorts choisis par l'auteur (ids de spells.json), bornés par `refusDesSortsChoisis` et complétés au spawn
      *  (`sortsDuPnj`, `engine/sortsDuPnj.ts`) ; un profil qui imprime ses sorts n'en prend aucun. #3715 */
     spells?: string[];

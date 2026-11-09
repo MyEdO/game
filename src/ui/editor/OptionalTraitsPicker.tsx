@@ -13,7 +13,8 @@ import { traitLabels, formatTrait, optionalLabel } from '../../engine/traits/dis
 import { parseTraitInstance, relireTrait } from '../../data/refFormatLivre';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { useClesDeRangees } from '../useClesDeRangees';
-import { isOptionalNote, type OptionalEntry } from '../../engine/statEntry';
+import { isOptionalNote } from '../../engine/statEntry';
+import type { OptionalDeScene } from '../../data/schemas/defs-scenes/scene';
 import { RefField } from '../compendium/refField/RefField';
 
 /** Traits Standard de créature (LDB 76 l.28-31) — « ajoutés à la liste Facultative de TOUTES les
@@ -52,16 +53,16 @@ export function OptionalTraitsPicker({
   onChange,
 }: {
   creature: CreatureData;
-  value: OptionalEntry[] | undefined;
-  onChange: (v: OptionalEntry[] | undefined) => void;
+  value: OptionalDeScene[] | undefined;
+  onChange: (v: OptionalDeScene[] | undefined) => void;
 }) {
   const chosen = value ?? [];
   const cles = useClesDeRangees(value);
-  const set = (next: OptionalEntry[]) => onChange(next.length ? next : undefined);
+  const set = (next: OptionalDeScene[]) => onChange(next.length ? next : undefined);
   // OFFRABLES du bestiaire : les optionnels de la créature SAUF le joker « tous les traits » (une note
   // qui n'est PAS posable — juste une indication). Les Traits ORDINAIRES restent éditables en chaîne
   // (l'auteur complète l'Indice/la Cible) ; une variante « swap » est posée telle quelle (note VERBATIM).
-  const offerable = (creature.optionals ?? []).filter((o) => !(isOptionalNote(o) && o.note === 'all-traits'));
+  const offerable = (creature.optionals ?? []).filter((o): o is OptionalDeScene => !(isOptionalNote(o) && o.note === 'all-traits'));
   const allTraits = (creature.optionals ?? []).some((o) => isOptionalNote(o) && o.note === 'all-traits');
   const addOffer = (idx: number) => set([...chosen, offerable[idx]]);
   const addStandard = (label: string) => set([...chosen, parseTraitInstance(label)]);
