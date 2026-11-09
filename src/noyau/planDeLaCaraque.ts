@@ -36,11 +36,11 @@ const PIECES: Record<string, string[]> = {
     '....PPPPPPPPPN....',
   ],
   z2: [
-    '....SSSSSSSE.F....',
+    '....SSSSSSSEFF....',
     '.OQQ.SSSSS.EFFXXBB',
     'OOQQSS..SSSHHHHHBB',
     '.OQ^.SSSSS.HH^YYBB',
-    '....SSSSSSSH......',
+    '....SSSSSSSHHH....',
   ],
   z3: [
     '..WW.......UUU....',
@@ -140,9 +140,9 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
   ],
   E: [['table', 11, 0, 'S', { x: 0, y: 1 }]],
   H: [['table', 11, 4, 'S', { x: 0, y: -1 }]],
-  F: [['hamac', 13, 1, 'S', { x: 0, y: -1 }], ['coffre', 13, 0, 'N', { x: 0, y: 1 }]],
-  X: [['bureau', 15, 1, 'S', { x: 0, y: -1 }], ['coffre', 15, 1, 'S', { x: -1, y: 1 }]],
-  Y: [['hamac', 15, 3, 'S', { x: 0, y: 1 }], ['coffre', 15, 3, 'S', { x: -1, y: -1 }]],
+  F: [['hamac', 13, 1, 'S', { x: 0, y: -1 }], ['coffre', 13, 1, 'N', { x: 0, y: 1 }]],
+  X: [['bureau', 15, 1, 'S', { x: 0, y: -0.5 }], ['coffre', 15, 1, 'S', { x: -1, y: 1 }]],
+  Y: [['hamac', 15, 3, 'S', { x: 0, y: 0.5 }], ['coffre', 15, 3, 'S', { x: -1, y: -1 }]],
   B: [['barre-de-navire', 17, 2, 'E', { x: -0.5, y: 0 }]],
 };
 
