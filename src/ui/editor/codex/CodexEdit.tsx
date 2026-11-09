@@ -29,6 +29,7 @@ import { DescRefField } from '../../compendium/DescRefField';
 import type { DescRef } from '../../../data/source/decoupe';
 import { Icon } from '../../Icon';
 import { NumberField } from '../../NumberField';
+import { grilleDesPonts } from '../../../data/schemas/grammaire/carte-ascii';
 import { ProseField } from '../../ProseField';
 import { SourceRefField, SuiviDesSaisies, useSaisieEnCours, useSuiviDesSaisies } from '../../SourceRefField';
 import { useClesDeRangees } from '../../useClesDeRangees';
@@ -60,7 +61,7 @@ import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
 import type { DomainData } from '../../../data';
-import type { CharKey, Difficulty, Trauma } from '../../../engine/types';
+import type { CharKey, Difficulty, Trauma, VehicleData } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
 import type { CombatFeature } from '../../../engine/combatFeatures/types';
@@ -194,6 +195,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   if (categoryKey === 'traumas') add('prosthesis'); // {id,cancels}[] → éditeur dédié (ProsthesisField)
   if (CRITICAL_CATEGORIES.includes(categoryKey)) add('traumas', 'test'); // string[] d'ids → TraumaListField (#173) ; `test` → FlowEditor (#1682)
   if (categoryKey === 'steamBreakdowns') add('restart'); // {test,targetDR?}[] → éditeur dédié
+  if (categoryKey === 'vehicles') add('ponts'); // [cartes, hauteurs] → éditeur dédié (PontsField)
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
@@ -363,6 +365,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const hasTraumaList = CRITICAL_CATEGORIES.includes(categoryKey);
   // Panne de Vapeur (`steamBreakdowns`, #157) : `restart` (Test de redémarrage) = {test,targetDR?}[].
   const hasRestartTest = categoryKey === 'steamBreakdowns';
+  // Ponts d'un navire (`vehicles.ponts`, #3686) : la paire [cartes, hauteurs].
+  const hasPonts = categoryKey === 'vehicles';
   // Champs `GameOp[]` autres que `passive` (ops/occupantOps/crewOps/captainOps, #157) — même GameOpEditor.
   const opsFields = opsFieldsOf(categoryKey);
   // Symptôme de maladie : passifs `passiveBySeverity` par PALIER + Test de cycle `onTick`
@@ -699,6 +703,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {hasProsthesis && <ProsthesisField value={entry.prosthesis as Trauma['prosthesis']} onChange={(v) => edit('prosthesis', v.length ? v : undefined)} />}
         {hasTraumaList && <TraumaListField value={entry.traumas as string[] | undefined} onChange={(v) => edit('traumas', v.length ? v : undefined)} />}
         {hasRestartTest && <RestartTestField value={entry.restart as RestartTest[] | undefined} onChange={(v) => edit('restart', v.length ? v : undefined)} />}
+        {hasPonts && <PontsField value={entry.ponts as Ponts | undefined} onChange={(v) => edit('ponts', v)} />}
         {isShipCrit && <ShipCrewHitField value={entry.crewHit as ShipCrewHitValue | undefined} onChange={(v) => edit('crewHit', v)} />}
         {isWaterExposure && <WaterTestField value={entry.test as WaterTest | undefined} onChange={(v) => edit('test', v)} />}
         {isWaterExposure && <WaterModifiersField value={entry.modifiers as WaterExposureModifier[] | undefined} onChange={(v) => edit('modifiers', v)} />}
@@ -1053,6 +1058,38 @@ function ProsthesisField({ value, onChange }: { value: Trauma['prosthesis']; onC
         </div>
       ))}
       <button className="btn small" onClick={() => set([...list, { id: '', cancels: 'all' }])}>+ Prothèse</button>
+    </div>
+  );
+}
+
+type Ponts = NonNullable<VehicleData['ponts']>;
+
+/** PONTS d'un navire (`vehicles.ponts`, #3686) : une carte box-drawing par pont, du plus bas au plus haut, puis la hauteur
+ *  de chaque glyphe de case que les cartes portent (`grilleDesPonts`) — la grille des hauteurs suit les cartes. */
+function PontsField({ value, onChange }: { value: Ponts | undefined; onChange: (v: Ponts | undefined) => void }) {
+  const [cartes, hauteurs] = value ?? [[], {}];
+  const glyphes = [...new Set(grilleDesPonts(cartes).cases.map((c) => c.glyphe))];
+  const poser = (suivantes: string[]) => {
+    const enUsage = new Set(grilleDesPonts(suivantes).cases.map((c) => c.glyphe));
+    onChange(suivantes.length ? [suivantes, Object.fromEntries(Object.entries(hauteurs).filter(([g]) => enUsage.has(g)))] : undefined);
+  };
+  return (
+    <div className="ed-field">
+      <span>Ponts — une carte box-drawing par pont, du plus bas au plus haut</span>
+      {cartes.map((carte, i) => (
+        <div className="tf-row" key={i}>
+          <textarea className="json-editor" aria-label={`Pont ${i + 1}`} value={carte} onChange={(e) => poser(cartes.map((c, j) => (j === i ? e.target.value : c)))} />
+          <button className="btn small danger" title="Retirer" onClick={() => poser(cartes.filter((_, j) => j !== i))}>✕</button>
+        </div>
+      ))}
+      <button className="btn small" onClick={() => poser([...cartes, ''])}>+ Pont</button>
+      {glyphes.length > 0 && (
+        <div className="de-grid">
+          {glyphes.map((g) => (
+            <label key={g} className="de-cell"><span>{g}</span><NumberField variant="nu" label={`Hauteur du glyphe ${g} (m)`} vide value={hauteurs[g] ?? null} onChange={(n) => onChange([cartes, Object.fromEntries(Object.entries({ ...hauteurs, [g]: n }).filter((e): e is [string, number] => e[1] !== null))])} /></label>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

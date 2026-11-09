@@ -780,6 +780,26 @@
     ]
   },
   {
+    "id": "drop-item",
+    "type": "actions",
+    "label": "Poser au sol",
+    "icon": "action/pick-up",
+    "surface": "geste-secondaire",
+    "hote": {
+      "id": "use-item"
+    },
+    "gate": "toujours",
+    "run": "poserLObjet",
+    "candidates": "objets-portes",
+    "coutAction": "gratuit",
+    "source": {
+      "book": "livre-de-base",
+      "page": 158,
+      "note": "LDB 13 l.106 « Actions gratuites »"
+    },
+    "maison": "poser à terre n’exige aucun Test (LDB 13 l.106 ; CRB 034 l.37-39) : en faire une Action gratuite est notre arbitrage."
+  },
+  {
     "id": "maneuver-ship",
     "type": "actions",
     "label": "Manœuvrer",

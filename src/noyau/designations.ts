@@ -68,7 +68,7 @@ export type IdDeChanson = string;
 export type IdDeFormeConjuree = string;
 /** Un choix de paie que le choix `council.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
-/** Une créature que `depecerLaCreature` accepte (`creaturesADepecer`, `combatEffects.ts`). */
+/** Une créature que le choix `victory.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
 /** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;
@@ -205,7 +205,7 @@ const lesObjets = (s: Jeu) => [
 const lesPostes = (s: Jeu) => lesCombattants(s).flatMap((c) => c.postes ?? []);
 const lesPanoplies = (s: Jeu) => lesCombattants(s).flatMap((c) => c.loadouts ?? []);
 const lesEntites = (s: Jeu) => s.scene?.entities ?? [];
-const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s.flags)) : []);
+const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s)) : []);
 const lesModesDeVoyage = (): { id: string; label?: string }[] => [{ id: 'pied' }, { id: 'monture' }, ...travelVehicles()];
 const lesEntrainements = (s: Jeu) => s.party.flatMap(entrainementOptions);
 /** Les armes dont le lanceur du Sort en attente peut donner la forme (`conjureFormOptions`), LDB 47. */

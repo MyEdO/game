@@ -1,6 +1,7 @@
 /** Interactions d'exploration : offres d'un décor ou d'un PNJ (`actionsDe`), leur exécuteur unique,
  *  l'assise et la fouille de pièce (#1687). */
-import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite, estUtilisable } from './monde/usable';
+import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite, estUtilisable, objetDuSol } from './monde/usable';
+import { ramasserHorsCombat } from './objetsAuSol';
 import { type SceneEntity, Scene } from './monde/scene';
 import { ouvrirDialogue } from './dialogue';
 import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type SeatPose, assignSeat } from './monde/seating';
@@ -80,13 +81,13 @@ interface OffresDExplorationParPorteur {
 
 /** Les offres d'exploration du champ : un porteur par entité qui offre quelque chose (`actionsDe`) à portée du groupe
  *  (`aPorteeDe`, la portée de `jouerAction`), hors embuscade ; aucune pendant un dialogue. */
-export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'campaignNarratif'>): OffresDExplorationParPorteur[] {
+export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'objetsAuSol' | 'campaignNarratif'>): OffresDExplorationParPorteur[] {
   const { scene } = s;
   if (!scene || s.dialogue) return [];
   const porteurs: OffresDExplorationParPorteur[] = [];
   for (const ent of scene.entities) {
     if (enEmbuscade(ent) || !aPorteeDe(s.partyPos, ent)) continue;
-    const offres = actionsDe(scene, ent, s.flags).map((o) => ({ ...o, gate: porteDOffre(scene, ent, o.origine) }));
+    const offres = actionsDe(scene, ent, s).map((o) => ({ ...o, gate: porteDOffre(scene, ent, o.origine) }));
     if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel: nomDEntite(ent, presetDuNarratif(s.campaignNarratif)), offres });
   }
   return porteurs;
@@ -133,9 +134,9 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
     if (assisIci || (place && place.path.length < 2)) return { kind: 'interagir', id: ent.id };
     if (plan && place) return { kind: 'rejoindre', plan, pending: { id: ent.id, at: plan.dest } };
   }
-  if (ent && estUtilisable(sc, ent, s.flags)) {
+  if (ent && estUtilisable(sc, ent, s)) {
     // Les offres OUVERTES, au verdict de la pastille (`porteDOffre`) : UNE se joue, N se servent à la pastille.
-    const offres = actionsDe(sc, ent, s.flags).filter((o) => porteDOffre(sc, ent, o.origine).ok);
+    const offres = actionsDe(sc, ent, s).filter((o) => porteDOffre(sc, ent, o.origine).ok);
     const seule = offres.length === 1 ? offres[0] : null;
     if (aPorteeDe(s.partyPos, ent)) return seule ? { kind: 'jouer', id: ent.id, actionId: seule.id } : null;
     return plan ? { kind: 'rejoindre', plan, pending: { id: ent.id, ...(seule ? { actionId: seule.id } : null), at: plan.dest } } : null;
@@ -261,7 +262,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       // compte l'étage). Ici, aucune des affordances de proximité ne s'ouvre ; le déplacement-puis-fouille
       // est armé par l'UI (poserLInteraction).
       if (!horsPortee) {
-        const offres = actionsDe(scene, ent, get().flags).filter((o) => o.origine !== 'assise');
+        const offres = actionsDe(scene, ent, get()).filter((o) => o.origine !== 'assise');
         // UNE offre → on la joue ; N → rien ici : le PANNEAU borné de la pastille les sert (« Que faire ? »),
         // et deviner à la place du joueur serait le choisir pour lui ; zéro → la chaîne d'assise, puis rien.
         if (offres.length === 1) { get().jouerAction(entityId, offres[0].id); return; }
@@ -287,7 +288,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       if (!scene) return;
       const ent = scene.entities.find((e) => e.id === entityId);
       if (!ent) return;
-      const offre = actionsDe(scene, ent, get().flags).find((o) => o.id === actionId);
+      const offre = actionsDe(scene, ent, get()).find((o) => o.id === actionId);
       if (!offre) return;
       // PORTÉE, même source unique que la pastille et le clic (`exploreNav.aPorteeDe`, étage compris) :
       // un ordre arrivé de loin (coop, clic en retard, marche interrompue) ne joue rien sur place.
@@ -302,6 +303,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
         if (!seLeverDe(get, set, entityId)) sasseoirA(get, set, entityId);
         return;
       }
+      if (offre.origine === 'objet-pose') return ramasserHorsCombat(get, set, entityId, objetDuSol(ent, get().objetsAuSol)[0].key);
       const action = (ent.usable?.actions ?? []).find((a) => a.id === actionId);
       if (!action) return;
       const nom = nomDEntite(ent, presetDuNarratif(get().campaignNarratif));

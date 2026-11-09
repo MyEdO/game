@@ -272,7 +272,7 @@ describe('fenetreChoisir', () => {
       const { a } = tout(banc);
       const ligne = (uid: string, trappingId: string) => ({ uid, label: trappingId, magic: true, effect: { type: 'giveTrapping', trappingId, identified: false } });
       banc.setState({ pendingVictory: null, merchant: null, pendingRest: null, pendingLoot: { title: 'Coffre', gear: [ligne('L0', 'epee'), ligne('L1', 'dague')] } } as never);
-      banc.getState().evaluerLeButin('loot', 'L1');
+      banc.getState().evaluerLObjet('L1');
       const pa = banc.getState().pendingAppraise!;
       expect(pa.gear).toEqual({ scope: 'loot', uid: 'L1' });
       banc.getState().fenetreChoisir('loot', 'ligne', 'L0', a);

@@ -133,7 +133,8 @@ import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
 import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
-import { recomputeLoadout, weaponWithAmmo, loadedAmmo, porteeDeTir, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, rederiverLArmeTenue, endommagerLArmeTenue } from '../engine/items';
+import { recomputeLoadout, weaponWithAmmo, loadedAmmo, porteeDeTir, loadWeapon, unloadWeapon, setReloadProgress, spendChamberedRound, consumeAmmo, ammoFamily, ammoFamilyLabel, damageArmour, deviatableArmourAt, casserLaPieceBaclee, lacherLArme, laisserTomber, rederiverLArmeTenue, endommagerLArmeTenue } from '../engine/items';
+import { crochetDuSol } from './objetsAuSol';
 import { hasCapability, itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isOutOfAction, addCondition, appliquerMortSubite, removeCondition, hasCondition, cannotDefend, canTakeAction, applyZeroWounds, loseWounds, inDeathCondition, stacks, recoveredStacks, incomingMeleeAdvantage, effectRef, COND, isActionLocked } from '../engine/conditions';
@@ -1796,7 +1797,7 @@ export function applyCriticalToTarget(
       revealLines.push(`  ↳ ${l}`);
       details.push({ text: l });
     };
-    applyOps(target, crit.ops, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, surLigne });
+    applyOps(target, crit.ops, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, surLigne, ...crochetDuSol(get, set) });
     if (crit.desc) {
       log.push(`  ↳ ${crit.desc}`); // effet long terme journalisé, non simulé
       revealLines.push(`  ↳ ${crit.desc}`);
@@ -3714,7 +3715,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const gt = rollSansPilote(get, attacker, testValue(attacker, { characteristic: 'dexterite' }), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
-    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD' });
+    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
     if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('info', tr('cf.handGateFail', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'info', attacker.id)] } });
     return false;
   }
@@ -4660,7 +4661,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     // ligne) dans la catégorie que sa table déclare — sans lui, la pastille d'un effet durable
     // (« Purifier la chair », `LDB 40 l.75`) s'afficherait nue, sans fiche ni popover.
     source: miscastRowSource(miscastTableId(severity), m.rowId),
-    onCorruption: followsCharacterRules(c) ? (n, align) => gainCorruption(get, set, c, n, align) : undefined, ...campAdvantageHooks(get),
+    onCorruption: followsCharacterRules(c) ? (n, align) => gainCorruption(get, set, c, n, align) : undefined, ...campAdvantageHooks(get), ...crochetDuSol(get, set),
   });
   const opsCtx = ctxPour(caster);
   lines.push(...applyOps(caster, m.ops, opsCtx));
@@ -5812,7 +5813,7 @@ function ctxDuLancer(get: Get, set: SetFn, t: Combatant, caster: Combatant, spel
     ...p.duree,
     ...(p.sourceSpell ? { sourceSpell: p.sourceSpell } : {}), sourceSpellId: spell.id,
     ...(p.conjureForm ? { conjureForm: p.conjureForm } : {}),
-    onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, ...campAdvantageHooks(get),
+    onCorruption: followsCharacterRules(t) ? (n, align) => gainCorruption(get, set, t, n, align) : undefined, ...campAdvantageHooks(get), ...crochetDuSol(get, set),
   };
 }
 
@@ -7313,7 +7314,8 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
     checkBattleOver(get, set);
     return undefined;
   }
-  lacherLArme(attacker, drop);
+  const tombe = laisserTomber(attacker, drop);
+  if (tombe) crochetDuSol(get, set).onLacher(attacker, tombe);
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
   // joueur. `actorId` = le défenseur piégeur (propriétaire de la modale en coop). Applier muet (préserve `outcome`).
   pushDisplay(set, { id: idDansLaSequence(get, `cons-bladetrap-result-${defender.id}`, 'combat'), kind: 'bladeTrapResult', actorId: defender.id, icon: 'item/weapon', label: tr('cf.bladeTrapLabel'), outcome: toRecapLines([...usure, line]) });

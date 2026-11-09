@@ -245,6 +245,10 @@ export interface VehicleData {
     oars?: ProfilDePropulsion;
     traits: NavalTraitRef[];
   };
+  /** Ponts d'un navire qu'on visite (#3686) : les cartes box-drawing de ses ponts, du plus bas au plus haut
+   *  (`MOTS_DES_PONTS`, `src/data/schemas/grammaire/carte-ascii.ts`), et la hauteur (m, depuis la flottaison) de
+   *  chaque glyphe de case (`defautsDesPonts`). */
+  ponts?: [cartes: string[], hauteurs: Record<string, number>];
 }
 
 /**
@@ -1238,8 +1242,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   magicKnown?: boolean;
   /** Les héros qui ont tenté la Détection d'artefact sur cet objet. LDB 10 l.336 */
   detectTriedBy?: string[];
-  /** Jour de jeu de la dernière Évaluation RATÉE : pas de re-tentative le même jour (anti-spam —
-   *  LDB 12 l.94 : seul un résultat marginal offre un nouvel essai ; ADE II : re-tenter coûte du temps). */
+  /** Jour de jeu de la dernière Évaluation ratée à DR négatif, d'où court le délai de la règle maison
+   *  `market-evaluation-delai-jours`. */
   appraiseTriedDay?: number;
   /** FAUSSES Particularités soupçonnées (ADE II 4 : échec Impressionnant/Stupéfiant de
    *  l'identification — « soupçonne que l'objet possède une Particularité qu'il n'a pas

@@ -785,6 +785,18 @@ export function lacherLArme(c: Combatant, weapon: Weapon): void {
   mainsNuesSiDesarme(c.weapons);
 }
 
+/** L'arme TOMBE (`LDB 60 l.50`, `LDB 62 l.280`, CRB 036 l.80) : elle quitte les mains (`lacherLArme`) et, objet de
+ *  l'inventaire, quitte aussi son porteur, armement re-dérivé ; rend cet objet, à déposer au sol par l'appelant.
+ *  `undefined` pour une arme sans objet (statbloc, pièce de poste), qui n'a que quitté les mains. */
+export function laisserTomber(c: Combatant, weapon: Weapon): ItemInstance | undefined {
+  const it = objetSourceDeLArme(c, weapon);
+  lacherLArme(c, weapon);
+  if (!it || !(c.items ?? []).includes(it)) return undefined;
+  c.items = c.items!.filter((i) => i !== it);
+  recomputeLoadout(c);
+  return it;
+}
+
 /** Libellé AUTO d'un set d'armes, DÉRIVÉ de son CONTENU (façon Dragon Age / Pillars) : nom de l'arme
  *  `main` (+ « + » nom de l'`off` quand il y en a une), ou « Mains nues » si le set est vide. Les noms sont
  *  lus dans l'inventaire du combattant (`c.items`). Remplace l'affichage du champ `name` (« Set I/II »). PUR. */

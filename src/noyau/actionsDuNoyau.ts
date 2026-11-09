@@ -10,9 +10,10 @@ import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
 import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
+import type { ModeDEvaluation } from './merchantFlow';
 import type { Pt } from './monde/path';
 import type {
-  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
+  IdDeCombattant, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
   IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
@@ -159,11 +160,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   marquerLesIndices: (affichés: readonly IndiceAffiché[]) => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
   armerLeTirPreventif: (heroId: IdDeTireurRapide | null) => void;
-  /** Récolte « Précieuses Entrailles » (ZI) une créature vaincue, par id (Test de Savoir → pièces valuées). */
-  depecerLaCreature: (creatureId: IdDeCreatureADepecer) => void;
-  /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
-   *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
-  evaluerLeButin: (scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode?: 'evaluate' | 'detect') => void;
   /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
    *  joue le geste. */
   leverLaMain: (levee: boolean) => void;
@@ -317,8 +313,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   marchanderLePrix: (mode: 'buy' | 'sell') => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
-   *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
-  evaluerLObjet: (uid: IdDObjet, mode?: 'evaluate' | 'detect') => void;
+   *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
+   *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est
+   *  dit (`refusDEvaluation`, `merchantFlow.ts`). */
+  evaluerLObjet: (uid: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
 
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
    *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant

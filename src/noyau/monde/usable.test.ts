@@ -11,7 +11,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { emptyScene, type ActionAuthoree, type Scene, type SceneEntity } from './scene';
 import { placesJouables, seatSlotsOf } from './seating';
-import { actionsDe, actionsAuthorees, cleActionJouee, estUtilisable, ACTION_FOUILLER } from './usable';
+import { actionsDe, actionsAuthorees, cleActionJouee, estUtilisable, ACTION_FOUILLER, ACTION_RAMASSER } from './usable';
+import type { ItemInstance } from '../../engine/types';
 import { t } from '../../i18n';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 
@@ -67,6 +68,14 @@ describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activ
     const sc = scene([caisse]);
     expect(actionsDe(sc, caisse)).toEqual([]);
     expect(estUtilisable(sc, caisse)).toBe(false);
+  });
+
+  it('le décor d’un objet posé au sol (`objetsAuSol`) offre de le ramasser, et lui seul', () => {
+    const sac: SceneEntity = { id: 'depot-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'bourse', label: 'Dague' };
+    const sc = scene([sac]);
+    const objetsAuSol = { 'depot-1': [{ uid: 'dague-1', trappingId: 'dague', label: 'Dague' } as ItemInstance] };
+    expect(actionsDe(sc, sac, { objetsAuSol })).toEqual([{ id: ACTION_RAMASSER, label: t('usable.ramasser'), origine: 'objet-pose' }]);
+    expect([estUtilisable(sc, sac, { objetsAuSol }), estUtilisable(sc, sac)], 'son entrée sortie, le sac redevient un décor nu').toEqual([true, false]);
   });
 });
 
@@ -135,20 +144,20 @@ describe('actionsDe — les ACTIONS AUTHORÉES : origine, libellé, épuisement'
     const flags = { [cleActionJouee('coffre', ACTION_FOUILLER)]: true };
     expect(actionsAuthorees(e, flags).map((a) => a.id)).toEqual(['ouvrir']);
     expect(ids(sc, e)).toEqual([ACTION_FOUILLER, 'ouvrir']);
-    expect(actionsDe(sc, e, flags).map((a) => a.id)).toEqual(['ouvrir']);
+    expect(actionsDe(sc, e, { flags }).map((a) => a.id)).toEqual(['ouvrir']);
   });
 
   it('toutes les actions épuisées : le décor n’offre plus rien et n’est plus utilisable', () => {
     const e = coffre([action(ACTION_FOUILLER, { unique: true })]);
     const sc = scene([e]);
-    expect(estUtilisable(sc, e, { [cleActionJouee('coffre', ACTION_FOUILLER)]: true })).toBe(false);
+    expect(estUtilisable(sc, e, { flags: { [cleActionJouee('coffre', ACTION_FOUILLER)]: true } })).toBe(false);
   });
 
   it('l’ASSISE survit à l’épuisement des actions : elle ne se ferme que par ses places', () => {
     const t = tabouret({ usable: { assise: true, actions: [action(ACTION_FOUILLER, { unique: true })] } });
     const sc = scene([t]);
     expect(ids(sc, t)).toEqual([ACTION_FOUILLER, 'sasseoir']);
-    expect(actionsDe(sc, t, { [cleActionJouee('table-1', ACTION_FOUILLER)]: true }).map((a) => a.id)).toEqual(['sasseoir']);
+    expect(actionsDe(sc, t, { flags: { [cleActionJouee('table-1', ACTION_FOUILLER)]: true } }).map((a) => a.id)).toEqual(['sasseoir']);
   });
 });
 

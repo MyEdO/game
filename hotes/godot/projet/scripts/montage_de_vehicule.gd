@@ -30,6 +30,8 @@ var _chargement: RefCounted = null
 var coupe: Variant = null
 ## La boîte de sa scène, dans son repère, depuis que ses sommets portent leur hauteur (`_porter_la_hauteur`), `null` avant.
 var _boite_de_coupe: Variant = null
+## Les meshes de sa scène dont les sommets portent leur hauteur (`_porter_la_hauteur`), que la coupe écarte.
+var _coupees: Array[MeshInstance3D] = []
 
 
 ## Le corps `vehicule` (`null` : aucun), s'il a changé depuis le dernier reçu : le GLB de son élément tiré par `montage`
@@ -110,6 +112,7 @@ func _retirer() -> void:
 		ancienne.queue_free()
 	scene = null
 	_boite_de_coupe = null
+	_coupees.clear()
 	lecteur = null
 	clips = {}
 	_meshes.clear()
@@ -119,8 +122,9 @@ func _retirer() -> void:
 	ameliorations.clear()
 
 
-## Sa scène coupée à la hauteur `hauteur` de son repère : aucun fragment n'en est montré au-dessus ; `null` : entière.
-## La coupe vaut pour chaque scène que `monter` pose ensuite.
+## Sa scène coupée à la hauteur `hauteur` de son repère : aucun fragment n'en est montré au-dessus, et son ombre reste
+## celle de la scène entière (`_porter_la_hauteur`) ; `null` : entière. La coupe vaut pour chaque scène que `monter` pose
+## ensuite.
 func couper(hauteur: Variant) -> void:
 	coupe = hauteur
 	_appliquer_la_coupe()
@@ -134,19 +138,29 @@ func _appliquer_la_coupe() -> void:
 		return
 	if _boite_de_coupe == null:
 		_boite_de_coupe = boite(scene, self)
-		for piece: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
+		_coupees.assign(scene.find_children("*", "MeshInstance3D", true, false))
+		for piece in _coupees:
 			_porter_la_hauteur(piece, _boite_de_coupe)
 	var seuil := 0.0 if coupe == null else MiseEnPage.opacite_de_coupe(coupe, _boite_de_coupe.position.y, _boite_de_coupe.end.y)
-	for piece: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
+	for piece in _coupees:
 		for rang in piece.mesh.get_surface_count():
 			(piece.get_surface_override_material(rang) as BaseMaterial3D).alpha_scissor_threshold = seuil
 
 
 ## Le mesh de `piece` recopié, chaque sommet blanc, d'opacité sa hauteur dans la boîte `boite` de son repère
 ## (`MiseEnPage.opacite_de_coupe`), et chaque matière de ses surfaces locale (`MontageDeComposition.materiau_local`), qui
-## en tire son opacité et écarte ce qui est sous son seuil.
+## en tire son opacité et écarte ce qui est sous son seuil. La passe d'ombre ne suit pas cette opacité (une matière à
+## ciseau d'alpha de sommet n'y projette rien, ou tout) : `piece` ne projette plus d'ombre, et son double, son mesh et ses
+## matières d'avant la coupe, enfant à son repère, projette seul la sienne, entière (`SHADOWS_ONLY`).
 func _porter_la_hauteur(piece: MeshInstance3D, boite: AABB) -> void:
 	var source := piece.mesh as ArrayMesh
+	var ombre := MeshInstance3D.new()
+	ombre.mesh = source
+	for rang in source.get_surface_count():
+		ombre.set_surface_override_material(rang, piece.get_active_material(rang))
+	ombre.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY
+	piece.add_child(ombre)
+	piece.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	var copie := ArrayMesh.new()
 	for rang in source.get_surface_count():
 		var tableaux := source.surface_get_arrays(rang)
@@ -164,12 +178,12 @@ func _porter_la_hauteur(piece: MeshInstance3D, boite: AABB) -> void:
 
 
 ## L'enveloppe convexe, dans le plan horizontal du repère global, de ce que sa scène montre sous la hauteur globale
-## `hauteur` : ses sommets dessous et les points où les côtés de ses triangles la traversent.
+## `hauteur` : ses sommets dessous et les points où les côtés de ses triangles la traversent, hors des doubles d'ombre.
 func contour_sous(hauteur: float) -> PackedVector2Array:
 	var plan := Plane(Vector3.UP, hauteur)
 	var points := PackedVector2Array()
 	for piece: MeshInstance3D in scene.find_children("*", "MeshInstance3D", true, false):
-		if not piece.is_visible_in_tree():
+		if not piece.is_visible_in_tree() or piece.cast_shadow == GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY:
 			continue
 		for rang in piece.mesh.get_surface_count():
 			var tableaux := piece.mesh.surface_get_arrays(rang)

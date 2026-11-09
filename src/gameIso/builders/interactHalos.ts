@@ -172,7 +172,7 @@ export function interactionHalos(
   const out: InteractHalo[] = [];
   for (const corps of corpsPostes(tokenEls, propEls)) {
     const ent = parId.get(corps.entId);
-    if (!ent || !estUtilisable(scene, ent, flags)) continue;
+    if (!ent || !estUtilisable(scene, ent, { flags })) continue;
     const foot = decorFootGeometry(corps.span);
     const nom = nomDEntite(ent, presetPnjById);
     out.push({

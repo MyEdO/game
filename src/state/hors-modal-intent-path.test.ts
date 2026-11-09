@@ -38,6 +38,7 @@ const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
   dissiperLeSort: { parUI: true },
   // Le consommable d'un porteur : la fiche hors combat, la barre en combat (`CharacterSheet`, `actionRegistry`).
   utiliserLObjet: { parUI: true },
+  poserLObjet: { sansSurface: 'hôte Godot : la fiche (`gestesDeLObjet`, bouton « Poser au sol ») et la barre (`drop-item`, `combat.offres`)' },
   promouvoirLeCombattant: { parUI: true },
   // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran, et les sorties
   // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.ENTREES_PAR_RUN`).

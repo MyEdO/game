@@ -74,7 +74,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   ramasserLObjet: 'invité', manoeuvrerLeNavire: 'invité', chanterLaChanson: 'invité',
   annulerLeDeplacement: 'invité', terminerLeTour: 'invité', desarmerLeMode: 'invité',
   // Les gestes d'un lanceur et d'un porteur, en combat comme hors combat : `netOwnership.ROUTES`.
-  incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité',
+  incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité', poserLObjet: 'invité',
   prendreLaPanoplie: 'invité', depenserLaDetermination: 'invité',
   // Le franchissement d'une arête (escalade, chute volontaire, enjambement d'une croisée #700) : la possession de l'actif
   // (repli universel) ; la DÉCLARATION de rangée d'une chute est routée par le siège du tombant (`netOwnership`).
@@ -129,9 +129,9 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   acheterLaCaracteristique: 'hôte', acheterLaCompetence: 'hôte', acheterLeTalent: 'hôte', acheterLeSort: 'hôte',
   changerDeCarriere: 'hôte', designerLeCreneau: 'hôte', entrainerLaProthese: 'hôte', acheterLaComposante: 'hôte',
   retirerLaComposante: 'hôte', ecrireLHistorique: 'hôte', rompreLaFaveur: 'hôte',
-  ouvrirLeMedecin: 'hôte', evaluerLObjet: 'hôte', evaluerLeButin: 'hôte',
+  ouvrirLeMedecin: 'hôte', evaluerLObjet: 'hôte',
   // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
-  equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLObjet: 'hôte', poserLApparence: 'hôte',
+  equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLApparence: 'hôte',
   garnirLaPanoplie: 'hôte', creerLaPanoplie: 'hôte', supprimerLaPanoplie: 'hôte',
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
   remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',
@@ -150,7 +150,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   affecterLeHeros: 'hôte', avancerLaBataille: 'hôte', engagerLaMelee: 'hôte',
   affronterLePeril: 'hôte', rallierLesTroupes: 'hôte', jouerLaScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
-  ouvrirLeRepos: 'hôte', depecerLaCreature: 'hôte',
+  ouvrirLeRepos: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──
   restaurerLaFortune: 'hôte', ouvrirLaFinDeSeance: 'hôte',
   // L'armement d'une intention, verbe de la barre : n'écrit que `localIntent`, l'état local de l'émetteur.
@@ -226,7 +226,7 @@ const OUVERTURE_DES_FLUX = {
   steamSave: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
   activity: { parInvite: ['pratiquerLActivite'] },
   bargain: { parHote: ['marchanderLePrix'] },
-  appraise: { parHote: ['evaluerLObjet', 'evaluerLeButin'] },
+  appraise: { parHote: ['evaluerLObjet'] },
   shanty: { parInvite: ['chanterLaChanson'] },
 } as const;
 type FluxOuverts = keyof typeof OUVERTURE_DES_FLUX;
