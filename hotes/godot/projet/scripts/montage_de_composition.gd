@@ -500,7 +500,8 @@ func _point(id: String) -> Dictionary:
 ## @contrat Atelier 3D
 ## Godot range un objet à un emplacement (`bases` de `modeles`) : le +Y de sa prise vers le bas du
 ## personnage, son +Z sur la normale sortante de l'emplacement (sa position hors de l'axe de l'os, à défaut l'avant),
-## sa poignée (l'origine de sa prise) sur l'emplacement (`MiseEnPage.axe_de_rangement`), tous ses meshes ensemble ; à
+## sa poignée (l'origine de sa prise) sur l'emplacement (`MiseEnPage.axe_de_rangement`), ou, pour une arme au fourreau,
+## le haut de son fourreau, la poignée au-dessus (`_suspension`), tous ses meshes ensemble ; à
 ## plat, tourné d'un quart de tour autour de ce +Y si sa boîte est moins large sur X que sur Z. Les objets rangés à un
 ## même point (le point, puis chaque ligne `<point>#<rang>`, section « Composition d'un personnage ») s'y posent côte à
 ## côte autour de l'axe de l'os, le premier sur l'emplacement, chaque suivant vers l'avant du personnage, tourné autour
@@ -508,7 +509,7 @@ func _point(id: String) -> Dictionary:
 ## précédent (sur l'axe de l'os, décalé de 2 cm entre leurs boîtes le long de l'axe X du rangement). Chacun s'appuie sur
 ## ce qui est porté dessous, la base et les éléments skinnés montés au repos, que vise, par case de 2 cm de l'objet, une
 ## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
-## de ce qui est porté sous ses 5 cm du haut, puis pivoté autour du +X de sa prise, le bas vers l'extérieur, pour passer
+## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté autour du +X de sa prise, le bas vers l'extérieur, pour passer
 ## de même au-dessus de ce qui est porté plus bas ; sans rien dessous, sa face arrière à 5 mm de l'emplacement
 ## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
 ## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
@@ -542,11 +543,12 @@ func _ranger() -> void:
 		var azimuts := Vector2()
 		for id: String in ids:
 			var rangees: Array = _rangements[id]
-			var bruts := _sommets_ranges(rangees, Basis.IDENTITY)
+			var bruts := _sommets_ranges(rangees, Transform3D.IDENTITY)
 			var lacet := MiseEnPage.lacet_a_plat(_boite_de(bruts).size)
-			var sommets := _sommets_ranges(rangees, Basis(Vector3.UP, lacet))
+			var suspension := _suspension(rangees)
+			var sommets := _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension))
 			var boite := _boite_de(sommets)
-			var rangement := {attache = attache, os = os, lacet = lacet, sommets = sommets, portes = portes}
+			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, sommets = sommets, portes = portes}
 			if id != ids[0]:
 				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
 				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
@@ -561,14 +563,15 @@ func _ranger() -> void:
 			azimuts = _azimuts(bruts, pose, depuis)
 
 
-## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, ses `sommets` à
-## plat dans son repère de rangement, ce qui est porté `portes`), tourné de `tour` autour de l'axe de l'os ou décalé de
-## `decalage` sur cet axe (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
+## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
+## qui le monte à son point de suspension (`_suspension`), ses `sommets` à plat et suspendus dans son repère de rangement,
+## ce qui est porté `portes`), tourné de `tour` autour de l'axe de l'os ou décalé de `decalage` sur cet axe
+## (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
 static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
 	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
 	var os: Transform3D = rangement.os
 	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes)
-	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).rotated_local(Vector3.UP, rangement.lacet)
+	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
 
 
 ## L'étendue (min, max) des azimuts (`MiseEnPage.azimut`, comptés depuis `depuis`) des sommets `sommets` posés par `pose`.
@@ -580,14 +583,23 @@ static func _azimuts(sommets: PackedVector3Array, pose: Transform3D, depuis: flo
 	return etendue
 
 
-## Les sommets des meshes `rangees` d'un objet rangé (`_rangements`), dans le repère de leur rangement, posés dans la
-## base `plat`.
-static func _sommets_ranges(rangees: Array, plat: Basis) -> PackedVector3Array:
+## Les sommets des meshes `rangees` d'un objet rangé (`_rangements`), dans le repère de leur rangement, posés par
+## `pose`.
+static func _sommets_ranges(rangees: Array, pose: Transform3D) -> PackedVector3Array:
 	var sommets := PackedVector3Array()
 	for rangee in rangees:
 		for sommet in _sommets(rangee.piece, rangee.noeud):
-			sommets.append(MiseEnPage.par_la_base(plat, sommet))
+			sommets.append(pose.translated_local(sommet).origin)
 	return sommets
+
+
+## Le décalage, dans le repère de rangement, qui suspend l'objet rangé de meshes `rangees` par le haut de son fourreau
+## (ses meshes `extras.fourreau`) à l'emplacement, au lieu de sa poignée ; nul sans fourreau.
+static func _suspension(rangees: Array) -> Vector3:
+	var fourreaux := rangees.filter(func(rangee: Dictionary) -> bool: return rangee.piece.get_meta("extras", {}).get("fourreau", false))
+	if fourreaux.is_empty():
+		return Vector3.ZERO
+	return MiseEnPage.suspension(_boite_de(_sommets_ranges(fourreaux, Transform3D.IDENTITY)).position.y)
 
 
 ## Le repère, dans l'os de l'emplacement `attache`, du repère de prise d'un objet rangé tourné de `tour` radians autour
@@ -606,7 +618,8 @@ static func _repere_de_rangement(attache: Dictionary, tour: float, decalage: flo
 ## `vers_le_squelette` et `depuis_le_squelette` passent de ce repère à celui du squelette au repos et retour (`_par`).
 ## Par case de `CASE_DE_CONTACT` où l'objet a des sommets, une visée le long de la normale sortante, de
 ## `PORTEE_DE_CONTACT` à son opposé, touche d'abord ce qui est porté le plus en dehors ; l'objet recule pour que sa face
-## arrière passe à `JEU_DE_RANGEMENT` au-dessus sous son haut, puis pivote pour passer de même plus bas
+## arrière passe à `JEU_DE_RANGEMENT` au-dessus de son haut à `APPUI_DE_RANGEMENT` sous son attache (l'origine du repère
+## de rangement, ou son haut s'il est plus bas), puis pivote pour passer de même plus bas
 ## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`).
 static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary]) -> Vector2:
 	var boite := _boite_de(sommets)
@@ -627,13 +640,14 @@ static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depu
 			if not touche.is_empty():
 				var cote := _par(depuis_le_squelette, _par(porte.vers_le_squelette, touche.position)).z
 				dessus[case_] = MiseEnPage.plus_haut(dessus.get(case_, -INF), cote)
+	var attache := MiseEnPage.plus_haut(boite.position.y, 0.0)
 	var recul := -INF
 	for case_: Vector2i in dessus:
-		recul = MiseEnPage.recul_sur_la_case(recul, case_, boite.position.y, dessus[case_], arriere[case_])
+		recul = MiseEnPage.recul_sur_la_case(recul, case_, attache, dessus[case_], arriere[case_])
 	recul = MiseEnPage.recul_d_appui(recul, boite.position.z)
 	var angle := 0.0
 	for case_: Vector2i in dessus:
-		angle = MiseEnPage.pivot_sur_la_case(angle, case_, boite.position.y, dessus[case_], arriere[case_], recul)
+		angle = MiseEnPage.pivot_sur_la_case(angle, case_, attache, dessus[case_], arriere[case_], recul)
 	return Vector2(recul, angle)
 
 

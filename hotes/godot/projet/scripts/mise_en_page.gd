@@ -31,7 +31,7 @@ const JEU_ENTRE_RANGES := 0.02
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
 const CASE_DE_CONTACT := 0.02
-## La hauteur, en mètres, sous le haut d'un objet rangé où il s'appuie sur ce qui est porté ; plus bas, il pivote
+## La hauteur, en mètres, sous l'attache d'un objet rangé jusqu'où il s'appuie sur ce qui est porté ; plus bas, il pivote
 ## (`recul_sur_la_case`, `pivot_sur_la_case`).
 const APPUI_DE_RANGEMENT := 0.05
 ## La cote, en mètres, sur la normale sortante d'un repère de rangement, d'où part et où finit la visée qui cherche ce qui
@@ -493,9 +493,9 @@ static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Ve
 	return bas if axe == Vector3.AXIS_Y else bas.cross(sortante)
 
 
-## Le vecteur `vecteur` posé dans le repère de base `base` (`base * vecteur`).
-static func par_la_base(base: Basis, vecteur: Vector3) -> Vector3:
-	return base * vecteur
+## Le décalage, le long du +Y (vers le bas) d'un repère de rangement, qui monte à son origine la cote `haut` d'un objet.
+static func suspension(haut: float) -> Vector3:
+	return Vector3(0.0, -haut, 0.0)
 
 
 ## Le signe, +1 ou -1, de l'axe `x` d'un repère de rangement, posé dans le repère au repos `os` de son os, vers l'avant du
@@ -566,9 +566,9 @@ static func centre_de_contact(case: Vector2i, cote: float) -> Vector3:
 	return Vector3((case.x + DEMI_CASE) * CASE_DE_CONTACT, (case.y + DEMI_CASE) * CASE_DE_CONTACT, cote)
 
 
-## Le recul `recul`, sur la normale sortante, d'un objet rangé dont la boîte commence à `haut` sur Y (vers le bas),
+## Le recul `recul`, sur la normale sortante, d'un objet rangé attaché à `haut` sur Y (vers le bas, `_appuyer`),
 ## relevé par la case `case` où ce qui est porté monte à `dessus` et la face arrière de l'objet est à `arriere` : seules
-## comptent les cases de ses `APPUI_DE_RANGEMENT` du haut ; `-INF` tant qu'aucune n'a compté.
+## comptent les cases au-dessus de `APPUI_DE_RANGEMENT` sous l'attache ; `-INF` tant qu'aucune n'a compté.
 static func recul_sur_la_case(recul: float, case: Vector2i, haut: float, dessus: float, arriere: float) -> float:
 	return maxf(recul, dessus - arriere) if case.y * CASE_DE_CONTACT <= haut + APPUI_DE_RANGEMENT else recul
 
