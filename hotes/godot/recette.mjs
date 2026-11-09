@@ -549,9 +549,8 @@ async function parcoursExploration() {
 async function parcoursRelief() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
   await capturer('3476-r1-round')
-  v = await fermerLesFenetres()
+  let v = await fermerLesFenetres()
   const heros = actif(v)
   assert.equal(heros?.camp, 'hero', 'un héros est actif')
   const plateau = v.cases.filter((c) => c.zone === 'marche' && c.cout === 1 && c.case.y === 2)
@@ -567,8 +566,7 @@ async function parcoursRelief() {
 async function parcoursEtage() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  const v = await fermerLesFenetres()
   assert.equal(v.projection.exploration?.etage, 1, 'le groupe se tient à l’étage du relais')
   await capturer('3476-c4-1-etage')
   const couloir = { x: 5, y: 4, z: 1 }
@@ -581,8 +579,7 @@ async function parcoursEtage() {
 async function parcoursRegards() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  const v = await fermerLesFenetres()
   assert.equal(v.plateau.regard, 'tactique', 'la partie commence en tactique')
   await capturer('3476-v1-tactique')
   const x0 = v.projection.exploration
@@ -708,8 +705,7 @@ async function parcoursCadrages() {
 async function parcoursMeteo() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  await fermerLesFenetres()
   const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
   const particules = (m) => (m?.pluie?.averses ?? []).reduce((n, a) => n + a.nombre, 0)
   let m = await meteo()
@@ -734,8 +730,7 @@ async function parcoursMeteo() {
 async function parcoursBrume() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  let v = await fermerLesFenetres()
   const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
   let m = await meteo()
   assert.ok(m.nappes.length > 0 && m.pluie === null, `en tactique, les nappes du brouillard, rien ne tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
@@ -759,12 +754,11 @@ async function parcoursBrume() {
 async function parcoursDialogue() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  await fermerLesFenetres()
   const pres = { x: 5, y: 4 }
   await cliquerCase(pres)
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${pres.x},${pres.y}'`)
-  v = await vue()
+  let v = await vue()
   const parler = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'parler'))
   assert.ok(parler, `à portée de Gustav, son offre « Parler » est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   noter(`clic sur la case ${pres.x},${pres.y} ; bouton « ${parler.libelle} »`)
@@ -785,12 +779,11 @@ async function parcoursDialogue() {
 async function parcoursDocument() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  await fermerLesFenetres()
   const pres = { x: 2, y: 2 }
   await cliquerCase(pres)
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${pres.x},${pres.y}'`)
-  v = await vue()
+  let v = await vue()
   const parcourir = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'lire'))
   assert.ok(parcourir, `à portée de la liasse, son offre est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   await cliquerBouton(bouton(parcourir))
@@ -1161,8 +1154,7 @@ async function parcoursFiche() {
 async function parcoursInventaire() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  let v = await fermerLesFenetres()
   const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Rosa Brandt')
   assert.ok(heros, 'Rosa Brandt a son bouton')
   await cliquerBouton(bouton(heros))
@@ -1761,8 +1753,7 @@ const pageOuverte = (v) => zone(v, 'creation.titre')[0]?.texte
 async function parcoursCreation() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  v = await fermerLesFenetres()
+  let v = await fermerLesFenetres()
   const avant = zone(v, 'groupe.heros').length
   v = await presser('groupe.gestes', 'creation')
   assert.equal(pageOuverte(v), 'Race · 1/10', '« Nouveau héros » ouvre la création sur sa première page')
