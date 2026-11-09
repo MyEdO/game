@@ -2,10 +2,10 @@
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
 ## et ses caméras (`regarder`) : celle des regards `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E
 ## d'un quart de tour, bouton du milieu tenu librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour
-## revenir au lieu suivi), centrée sur lui puis sur le lieu qu'elle suit (`suivre`), de biais en tactique, à la verticale
-## et sans perspective au plateau ; et l'œil du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche
-## sur le sol touché sous lui (`sol_sous`). Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la case
-## du triangle que le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
+## revenir au lieu suivi), centrée sur lui puis sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), de
+## biais en tactique, à la verticale et sans perspective au plateau ; et l'œil du regard `immersion`, posé par qui
+## l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`). Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la caméra
+## posée (`camera`), la case du triangle que le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
 ## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
 ## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
 ## couronnes crénelées des murs, chacune cachée quand son mur tombe, la météo (`poser_la_meteo`), la mer de chaque
@@ -32,6 +32,8 @@ const PRES_DE_L_OEIL := 0.5
 const LOIN_DE_L_OEIL := 1.5
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
+## La hauteur (m) au-dessus du lieu que regarde la caméra d'où se cherche le sol sous lui (`camera`).
+const AU_DESSUS_DU_LIEU_M := 1.0
 ## Les items de `surbrillances`.
 const ITEM_ATTEIGNABLE := 0
 const ITEM_CIBLE := 1
@@ -642,6 +644,47 @@ func poser_l_oeil(lieu: Vector3, lacet: float, tangage: float) -> void:
 	_oeil.global_position = lieu
 	_oeil.rotation = Vector3(tangage, lacet, 0.0)
 	cadrage_change.emit()
+
+
+## Le regard posé (`regarder`).
+func regard() -> String:
+	return _regard
+
+
+## La caméra des regards `tactique` et `plateau` posée sans glisser sur le lieu `lieu`, qu'elle regarde au lacet `lacet`
+## sous tout regard (au plateau, `MiseEnPage.lacet_sous_le_plateau`), à la distance `distance` ; elle y reste tant que
+## le lieu suivi ne bouge pas (`suivre`). Rend si `distance` tient dans le zoom (`DISTANCE_MIN`, `DISTANCE_MAX`), sans
+## rien poser sinon.
+func cadrer(lieu: Vector3, lacet: float, distance: float) -> bool:
+	if MiseEnPage.distance_zoomee(distance, 0.0, DISTANCE_MIN, DISTANCE_MAX) != distance:
+		return false
+	for tween: Tween in [_suivi, _pivotement]:
+		if tween != null:
+			tween.kill()
+	_pivot.position = lieu
+	_lacet = MiseEnPage.lacet_sous_le_plateau(lacet) if _regard == "plateau" else lacet
+	_orienter()
+	_camera.position.z = distance
+	_camera.size = distance
+	_abattre_les_aretes()
+	cadrage_change.emit()
+	return true
+
+
+## La caméra du regard telle qu'elle est posée (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`) : le regard, la
+## case et la couche (`[x, y, z]`) du sol touché sous l'œil, ou sous le lieu que regarde la caméra des regards
+## `tactique` et `plateau` (`null` hors du monde), l'azimut où elle regarde et son tangage, en degrés
+## (`MiseEnPage.azimut_du_lacet`), et sa distance, `null` en immersion.
+func camera() -> Dictionary:
+	var immersion := _regard == "immersion"
+	var sol: Variant = sol_sous(_oeil.global_position if immersion else MiseEnPage.oeil_sur(_pivot.position, AU_DESSUS_DU_LIEU_M, _metres_par_case))
+	return {
+		regard = _regard,
+		case = null if sol == null else [sol.case.x, sol.case.y, sol.case.z],
+		lacet = MiseEnPage.azimut_du_lacet(_oeil.rotation.y if immersion else _pivot.rotation.y),
+		tangage = rad_to_deg(_oeil.rotation.x if immersion else _inclinaison.rotation.x),
+		zoom = null if immersion else _camera.position.z,
+	}
 
 
 ## Le clavier mène la caméra ou l'œil : aucun champ de saisie n'a le focus.

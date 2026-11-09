@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -653,6 +653,33 @@ export function creerPont() {
         resultats.push(jouerUnGeste(o, g));
       }
       return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
+    },
+    /**
+     * `{ z?, oeil? }` : une couche de la scène (celle de `oeil`, sinon celle du groupe, sans elle) et l'œil d'une
+     * caméra, `{ case: [x, y, z], lacet }` (la case et l'azimut, en degrés au compas, de la caméra que rend
+     * `wfrpCadrer`, section « Écran publié »)
+     *
+     * @returns `{ plan }` : le plan de la couche en texte (`planDeLaCouche`, `src/noyau/monde/sceneToAscii.ts`), la
+     * grille box-drawing de `sceneToAscii` (`GRAMMAIRE_ASCII`, `src/data/schemas/grammaire/carte-ascii.ts`), ponts
+     * des navires compris, chaque case qui porte une marque sous elle (`MARQUES_DU_PLAN` : l'œil au cap le plus proche
+     * de son azimut, s'il est sur la couche, les héros du groupe, les autres personnages, les décors à leur case
+     * d'ancrage), puis la légende des glyphes que ses cases montrent ; refusé hors scène ou hors de ses couches. La
+     * partie n'en change pas.
+     */
+    plan(json) {
+      const o = demarree();
+      const e = entreeDe('plan', json, ['z', 'oeil']);
+      const etat = o.partie.etat();
+      const scene = etat.scene;
+      valider(scene, 'plan : aucune scène');
+      const lu = e.oeil as { case?: unknown; lacet?: unknown } | undefined;
+      valider(lu === undefined || (estObjet(lu) && Object.keys(lu).every((k) => k === 'case' || k === 'lacet') && Array.isArray(lu.case) && lu.case.length === 3
+        && lu.case.every(Number.isInteger) && typeof lu.lacet === 'number'), 'plan : oeil, { case: [x, y, z] entiers, lacet } en degrés (0 au nord, 90 à l’est)');
+      const oeil: OeilDuPlan | null = lu ? { x: (lu.case as number[])[0], y: (lu.case as number[])[1], z: (lu.case as number[])[2], azimut: lu.lacet as number } : null;
+      const z = e.z ?? oeil?.z ?? casesDuGroupe(etat)[0]?.z ?? 0;
+      const couches = scene!.layers.map((l) => l.z);
+      valider(couches.includes(z as number), `plan : z, l’une des couches de la scène (${couches.join(', ')})`);
+      return { plan: planDeLaCouche({ ...etat, scene: scene! }, z as number, oeil) };
     },
     /**
      * `{ regard }` : `tactique`, `plateau` ou `immersion` (`REGARDS`, `src/noyau/monde/aretes.ts`)

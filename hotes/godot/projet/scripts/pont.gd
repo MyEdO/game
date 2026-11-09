@@ -1,5 +1,6 @@
 ## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), dont
-## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`).
+## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`) ;
+## ce que l'écran porte, publié à la page (`publier_l_ecran`), et ce que Godot lui expose (`exposer`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
 ## refus, que `refus` porte ; une réponse illisible ou une erreur de la page (`erreursGlobales`) est une panne.
 ## Chargé en autoload `Pont` (`project.godot`).
@@ -25,6 +26,8 @@ var est_web := OS.has_feature("web")
 ## l'adresse de la page.
 var essai := false
 var _pont: JavaScriptObject = null
+## Les rappels que Godot expose à la page (`exposer`), par nom, retenus tant que la page peut les appeler.
+var _exposes := {}
 
 
 func _ready() -> void:
@@ -84,8 +87,9 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
 ## - Au combat : `{ boutons: { texte, x, y, element?, choix?, retenu? }[], cases: Record<"x,y,z", [x, y]>, corps:
 ##   Record<string, { base: string, elements: string[], emblemes: Record<string, string>, couleurs: Record<string,
-##   Record<string, string>> }> }`, plus le point de l'écran du sol de chaque case de chaque couche du plateau, et, par
-##   id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
+##   Record<string, string>> }>, navires: string[] }`, plus le point de l'écran du sol de chaque case de chaque couche
+##   du plateau, les ids des navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle
+##   posé, et, par id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
 ##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre, la
 ##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/end-turn`
@@ -171,6 +175,34 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## Publie à la page ce que l'écran porte (`globalThis.wfrpEcran`), pour qui le pilote sans voir dans le canevas.
 func publier_l_ecran(ecran: Dictionary) -> void:
 	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(ecran), true)
+
+
+## @contrat Écran publié
+## Au combat, Godot expose à la page une fonction pour les recettes qui capturent des vues,
+## `globalThis.wfrpCadrer(entree, rendre)` (`PontDuNoyau.exposer`, `combat.gd`). `entree` est un cadrage en JSON : `{
+## regard, case: { x, y }, etage?, lacet, tangage }` en immersion, `{ regard, case: { x, y }, etage?, lacet, zoom }`
+## en tactique et au plateau ; `etage` est la couche de la case (0 sans elle), `lacet` l'azimut où la caméra regarde,
+## en degrés au compas (0 au nord, 90 à l'est, `MiseEnPage.lacet_de_l_azimut`), `tangage` celui de l'œil, en degrés,
+## positif vers le haut, borné à `MiseEnPage.TANGAGE_DE_L_OEIL`, et `zoom` la distance de la caméra, en cases, de
+## `Monde.DISTANCE_MIN` à `Monde.DISTANCE_MAX`. Godot pose la caméra sous le regard de la partie, sans rien jouer ni
+## appeler le pont (`Plateau.cadrer`) : l'œil de l'immersion à la hauteur de l'œil de la case (`oeilsSousPlafond`)
+## au-dessus de son sol, le groupe restant à la sienne, la souris libérée et le point de mire caché, comme à
+## `ui_cancel` (`Immersion.poser`), ou la caméra de la tactique et du plateau sur le sol de la case, où elle reste
+## tant que le groupe ne change pas de case (`Monde.cadrer`). Le volume reste celui que le regard montre pour le
+## groupe (section « Vue ») : en immersion, entier ; en tactique et au plateau, sans les toits, les couches et le haut
+## des navires qu'il retire au-dessus du groupe. Deux images dessinées, `rendre` reçoit la réponse en JSON : `{ ok:
+## true, camera: { regard, case, lacet, tangage, zoom } }`, la caméra posée (`Monde.camera` : la case `[x, y, z]` du
+## sol touché sous l'œil, ou sous le lieu que la caméra regarde, `null` hors du monde, l'azimut et le tangage en
+## degrés, la distance, `null` en immersion) ; ou un refus `validation` (`Plateau.cadrer`) : une entrée illisible, un
+## cadrage d'un autre regard que celui de la partie, que la recette prend d'abord à la touche du regard, comme un
+## joueur (l'immersion hors d'exploration comprise), une clé hors de celles de son regard ou manquante, une case ou un
+## étage non entiers, une case hors du plateau ou d'une couche qu'il n'a pas, un nombre hors de ses bornes. La recette
+## autonome `projet/recettes/cadrage.gd` en est l'épreuve.
+
+## `rappel` exposé à la page en `globalThis.<nom>` : chaque appel de la page lui passe ses arguments en tableau.
+func exposer(nom: String, rappel: Callable) -> void:
+	_exposes[nom] = JavaScriptBridge.create_callback(rappel)
+	JavaScriptBridge.get_interface("window").set(nom, _exposes[nom])
 
 
 ## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
