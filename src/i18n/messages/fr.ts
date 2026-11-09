@@ -1889,6 +1889,14 @@ export const fr = {
   'cf.fragRescued': ' (succès dû au bonus → 0 DR)',
   'cf.scatter': "L'arme de {name} dévie et atterrit (Dispersion).",
   'cf.scatterFloat': '⤬ dévie',
+  // Les flottants des Blessures, du soin, d'un coup et d'une incantation (`noyau/effetsDeLAppel.ts`).
+  'fx.blessures': '-{n}',
+  'fx.soin': '+{n}',
+  'fx.encaisse': 'Encaissé',
+  'fx.horsDeCombat': '✦ hors de combat',
+  'fx.pareOuEsquive': 'Paré / Esquivé',
+  'fx.rate': 'Raté',
+  'fx.incantationRatee': 'Incantation ratée',
   'cf.componentDowngrade': "{name} : le composant dégrade l'Incantation Imparfaite (Majeure → Mineure).",
   // #1318 V8c₂ — les DEUX lignes de `combatFlow.ts` que la 7ᵉ forme du garde (`return [ … ]`) a
   // révélées : le fichier était déclaré MIGRÉ, son invariant ZÉRO ne les voyait pas.

@@ -13,9 +13,10 @@ extends SceneTree
 ## Équipement sur la pièce qui y est montée, une case par Amélioration qu'il peut monter (`montables`), la palette et
 ## l'emblème sur ses surfaces, aucun onglet Personnage, et l'onglet Couleurs réduit aux emplacements de palette de ses
 ## surfaces posées. La caraque n'attaque pas : l'onglet Animation ne montre aucune action ; l'onglet Effets offre un
-## bouton par variante, par zone, par lumière et par son de la vitrine (#3777, #3783, `vitrine`), chacun d'un visuel,
-## d'un projectile et de fichiers sonores que Godot connaît ; le coup d'un canon y part de l'auteur, le souffle de feu
-## pose sa nappe sur chaque case, la flamme son foyer sur la cible ; le trébuchet choisi, sans place ni Amélioration à
+## bouton par variante, par zone, par lumière, par son, par flottant et par musique de la vitrine (#3777, #3783, #3825,
+## `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot connaît ; le coup d'un canon y part de
+## l'auteur, le souffle de feu pose sa nappe sur chaque case, la flamme son foyer sur la cible, le flottant critique
+## monte, une musique joue, cède la place à une autre et se tait ; le trébuchet choisi, sans place ni Amélioration à
 ## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
@@ -79,7 +80,8 @@ func _recetter() -> void:
 
 ## L'onglet Effets sur la vitrine figée `lu.vitrine` : la caraque sans attaque, chaque effet et chaque lumière connus de
 ## Godot et offerts par leur bouton, le coup d'un canon joué, le souffle de feu qui pose sa nappe sur chaque case de sa
-## zone, la flamme qui pose un seul foyer sur la cible, puis le trébuchet choisi qui attaque.
+## zone, la flamme qui pose un seul foyer sur la cible, le flottant critique, les musiques, puis le trébuchet choisi qui
+## attaque.
 func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> void:
 	var vitrine: Dictionary = lu.vitrine
 	var actions := _controle_par_nom(atelier, "Actions")
@@ -92,7 +94,7 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 			for variante in entree.variantes:
 				effets.append(variante.effet)
 				cles_des_boutons.append("effet/%s/%s" % [entree.id, variante.variante])
-	for famille in [["manoeuvre", vitrine.manoeuvres], ["souffle", vitrine.souffles], ["son", vitrine.sons]]:
+	for famille in [["manoeuvre", vitrine.manoeuvres], ["souffle", vitrine.souffles], ["son", vitrine.sons], ["flottant", vitrine.flottants]]:
 		for entree in famille[1]:
 			effets.append(entree.effet)
 			cles_des_boutons.append("%s/%s" % [famille[0], entree.id])
@@ -104,6 +106,10 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 		_verifier(source.visuel == null or Foyer.FLAMMES.has(source.visuel), "visuel de lumière inconnu de Godot : %s" % source.visuel)
 		if source.son != null:
 			_connu({quoi = "son", son = source.son})
+	for musique in vitrine.musiques:
+		cles_des_boutons.append("musique/%s" % musique.id)
+		for piste in musique.musique.pistes:
+			_connu({quoi = "son", son = piste})
 	for cle in cles_des_boutons:
 		_controle(atelier, cle)
 	(_controle_par_nom(atelier, "OngletEffets") as Button).pressed.emit()
@@ -119,6 +125,10 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	_verifier(nappes.size() == souffle.cases.size(), "le souffle de feu de la vitrine : %d nappes de flammes, une par case attendue" % nappes.size())
 	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
 	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
+	(_controle(atelier, "flottant/critique") as Button).pressed.emit()
+	await create_timer(Effets.ELAN_S + 0.1).timeout
+	_verifier(noeud_des_effets.get_children().any(func(n: Node) -> bool: return n is Label3D), "le flottant critique de la vitrine ne monte pas")
+	await _ecouter(atelier, vitrine.musiques)
 	var foyers := atelier.get_node("Cible").get_children().filter(func(n: Node) -> bool: return n is Foyer)
 	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible, posés %s" % [foyers.map(func(f: Node) -> Array: return f.get_children().map(func(n: Node) -> String: return n.name))])
 	_choisir(atelier, "modele/vehicule", "trebuchet-ade2")
@@ -130,6 +140,22 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	_verifier(montage.lecteur != null and montage.lecteur.current_animation == montage.clips.get("ranged"), "le trébuchet ne joue pas son clip de tir")
 	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
 	await create_timer(ECLATS_ETEINTS_S).timeout
+
+
+## Les musiques `musiques` de la vitrine à leurs boutons à bascule : la première enfoncée joue, la deuxième enfoncée prend
+## sa place et relâche la première, relâchée elle rend le silence.
+func _ecouter(atelier: Node, musiques: Array) -> void:
+	var musique := atelier.get_node("Musique") as Musique
+	var premier := _controle(atelier, "musique/%s" % musiques[0].id) as Button
+	var second := _controle(atelier, "musique/%s" % musiques[1].id) as Button
+	premier.button_pressed = true
+	_verifier(musique.lecteur() != null and musique.lecteur().playing and musique.cle == musiques[0].musique.cle, "la musique « %s » de la vitrine ne joue pas" % musiques[0].label)
+	second.button_pressed = true
+	_verifier(not premier.button_pressed and musique.cle == musiques[1].musique.cle, "la musique « %s » de la vitrine ne prend pas la place de la première" % musiques[1].label)
+	second.button_pressed = false
+	_verifier(musique.lecteur() == null and musique.cle == "", "la musique relâchée de la vitrine ne rend pas le silence")
+	await create_timer(Musique.FONDU_S + Foyer.SON_LIBERE_S).timeout
+	_verifier(musique.get_child_count() == 0, "les musiques éteintes de la vitrine restent posées")
 
 
 ## Chaque phase de l'effet `effet` d'un visuel que `Effets.GERBES` dessine, son trajet d'un projectile que

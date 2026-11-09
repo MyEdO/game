@@ -9,8 +9,9 @@
 ## Améliorations, la palette de la composition et l'emblème de ses voiles, montés par son montage (`MontageDeVehicule`, le
 ## nœud `Vehicule`), au sol et cadrés à sa taille ; l'engin posé attaque, son clip d'attaque puis son coup.
 ## Son onglet Effets montre la vitrine des effets que le jeu joue (#3777, `vitrine`, `CONTRAT.md`, section « Effets ») :
-## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, et chaque son, rejoués par son nœud `Effets`
-## de l'auteur posé à l'origine vers la cible (`Cible`).
+## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, chaque son et chaque flottant, rejoués par
+## son nœud `Effets` de l'auteur posé à l'origine vers la cible (`Cible`), et chaque musique, jouée par sa `Musique`
+## jusqu'à ce que son bouton se relâche (#3825).
 ## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
 ## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
 ## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
@@ -62,6 +63,7 @@ const METRES_PAR_UNITE := 1.0
 @onready var _vehicule: MontageDeVehicule = $Vehicule
 @onready var _effets: Effets = $Effets
 @onready var _cible: Node3D = $Cible
+var _musique := Musique.new()
 @onready var _etat: Label = %Etat
 @onready var _choix_du_modele: VBoxContainer = %ChoixDuModele
 @onready var _panneau_des_emplacements: VBoxContainer = %Emplacements
@@ -136,6 +138,8 @@ var _vitrine: Dictionary = {}
 
 
 func _ready() -> void:
+	_musique.name = "Musique"
+	add_child(_musique)
 	_recueil = _erreurs
 	_montage.erreurs = _erreurs
 	%Recharger.pressed.connect(_recharger)
@@ -932,7 +936,8 @@ func _palette_posee() -> Dictionary:
 
 ## La vitrine des effets (`vitrine`) : la cible posée à sa distance, puis, par rendu d'arme et par sort, une rangée à son
 ## `label` qui porte un bouton par variante, un bouton par manœuvre de zone et par Type de Souffle (#3783), un bouton par
-## son, et un bouton par ton de lumière, qui pose son foyer sur la cible.
+## son et par flottant, un bouton par ton de lumière, qui pose son foyer sur la cible, et un bouton à bascule par musique
+## (#3825).
 func _poser_la_vitrine() -> void:
 	var reponse := _pont.appeler("vitrine")
 	if reponse.get("ok") != true:
@@ -948,7 +953,7 @@ func _poser_la_vitrine() -> void:
 				bouton.set_meta("cle", "effet/%s/%s" % [entree.id, variante.variante])
 				bouton.pressed.connect(_jouer_l_effet.bind(variante.effet))
 				rangee.add_child(bouton)
-	for famille in [["manoeuvre", _vitrine.manoeuvres, %VitrineZones], ["souffle", _vitrine.souffles, %VitrineZones], ["son", _vitrine.sons, %VitrineSons]]:
+	for famille in [["manoeuvre", _vitrine.manoeuvres, %VitrineZones], ["souffle", _vitrine.souffles, %VitrineZones], ["son", _vitrine.sons, %VitrineSons], ["flottant", _vitrine.flottants, %VitrineFlottants]]:
 		for entree in famille[1]:
 			var bouton := Button.new()
 			bouton.text = entree.label
@@ -961,6 +966,25 @@ func _poser_la_vitrine() -> void:
 		bouton.set_meta("cle", "lumiere/%s" % lumiere.id)
 		bouton.pressed.connect(_poser_le_foyer.bind(lumiere.source))
 		%VitrineLumieres.add_child(bouton)
+	for musique in _vitrine.musiques:
+		var bouton := Button.new()
+		bouton.text = musique.label
+		bouton.toggle_mode = true
+		bouton.set_meta("cle", "musique/%s" % musique.id)
+		bouton.toggled.connect(_ecouter.bind(musique.musique, bouton))
+		%VitrineMusiques.add_child(bouton)
+
+
+## La musique `musique` de la vitrine jouée quand son bouton `bouton` s'enfonce (`allume`), les autres relâchés ; le
+## silence quand il se relâche.
+func _ecouter(allume: bool, musique: Dictionary, bouton: Button) -> void:
+	if not allume:
+		_musique.jouer(null)
+		return
+	for autre: Button in %VitrineMusiques.get_children():
+		if autre != bouton:
+			autre.set_pressed_no_signal(false)
+	_musique.jouer(musique)
 
 
 ## L'effet `effet` de la vitrine rejoué de l'auteur, à l'origine, vers la cible, l'orbite cadrant l'un et l'autre et le
