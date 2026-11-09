@@ -232,7 +232,7 @@ export function fitAffineView(
 }
 
 /** Caméra PERSPECTIVE du POV : œil et cap depuis la SEULE source de pose première personne
- *  (`pov/camera.ts` — `makeCamera`, œil à `heightAt(...) + EYE_H`). Le FOV vertical est dérivé du FOV
+ *  (`pov/camera.ts` — `makeCamera`, œil à `heightAt(...) + hauteurDeLOeil`). Le FOV vertical est dérivé du FOV
  *  HORIZONTAL `FOV_X` et du viewport, pour des pixels carrés (mêmes `fx`/`fy` que `pov/camera.ts`). */
 export function povCamera(
   scene: Scene,
