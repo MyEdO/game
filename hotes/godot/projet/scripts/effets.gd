@@ -22,34 +22,35 @@ const PORTEE_DU_SON := 30.0
 ## Par visuel, ses gerbes, son éclair (`null` : aucun) et la durée (s) au bout de laquelle l'éclat s'éteint. Une gerbe :
 ## nombre de particules, durée de vie (s), vitesse (m/s, bornes), pesanteur (m/s²), taille (m, bornes), couleur
 ## (`teinte` : celle de l'effet), opacité, dispersion (degrés autour du haut), anneau d'émission (rayons extérieur et
-## intérieur, m ; `null` : un point). Un éclair : son énergie et sa durée (s).
+## intérieur, m ; `null` : un point), lumineuse (fondue par addition : un éclat, une flamme, une lueur) ou non (fondue par
+## mélange : une fumée, une poussière). Un éclair : son énergie et sa durée (s).
 const GERBES := {
 	"eclair-de-bouche": {vie = 1.8, eclair = {energie = 3.0, duree = 0.15}, gerbes = [
-		{nombre = 14, duree = 0.15, vitesse = [3.0, 6.0], pesanteur = Vector3.ZERO, taille = [0.25, 0.45], couleur = "#ffd27a", opacite = 1.0, dispersion = 60.0, anneau = null},
-		{nombre = 18, duree = 1.6, vitesse = [0.4, 1.0], pesanteur = Vector3(0.0, 0.6, 0.0), taille = [0.55, 1.05], couleur = "#8a8a8a", opacite = 0.55, dispersion = 45.0, anneau = null},
+		{nombre = 14, duree = 0.15, vitesse = [3.0, 6.0], pesanteur = Vector3.ZERO, taille = [0.25, 0.45], couleur = "#ffd27a", opacite = 1.0, dispersion = 60.0, anneau = null, lumineuse = true},
+		{nombre = 18, duree = 1.6, vitesse = [0.4, 1.0], pesanteur = Vector3(0.0, 0.6, 0.0), taille = [0.55, 1.05], couleur = "#8a8a8a", opacite = 0.55, dispersion = 45.0, anneau = null, lumineuse = false},
 	]},
 	"canalisation": {vie = 0.9, eclair = {energie = 1.0, duree = 0.4}, gerbes = [
-		{nombre = 24, duree = 0.7, vitesse = [0.5, 1.2], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.1, 0.2], couleur = "teinte", opacite = 1.0, dispersion = 10.0, anneau = [0.5, 0.4]},
+		{nombre = 24, duree = 0.7, vitesse = [0.5, 1.2], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.1, 0.2], couleur = "teinte", opacite = 1.0, dispersion = 10.0, anneau = [0.5, 0.4], lumineuse = true},
 	]},
 	"etincelles": {vie = 0.55, eclair = {energie = 0.8, duree = 0.2}, gerbes = [
-		{nombre = 20, duree = 0.35, vitesse = [2.0, 4.0], pesanteur = Vector3(0.0, -9.8, 0.0), taille = [0.04, 0.08], couleur = "#ffe9a0", opacite = 1.0, dispersion = 180.0, anneau = null},
+		{nombre = 20, duree = 0.35, vitesse = [2.0, 4.0], pesanteur = Vector3(0.0, -9.8, 0.0), taille = [0.04, 0.08], couleur = "#ffe9a0", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
 	]},
 	"poussiere": {vie = 1.1, eclair = null, gerbes = [
-		{nombre = 16, duree = 0.9, vitesse = [0.5, 1.5], pesanteur = Vector3(0.0, -1.0, 0.0), taille = [0.3, 0.6], couleur = "#9a8a70", opacite = 0.6, dispersion = 70.0, anneau = null},
+		{nombre = 16, duree = 0.9, vitesse = [0.5, 1.5], pesanteur = Vector3(0.0, -1.0, 0.0), taille = [0.3, 0.6], couleur = "#9a8a70", opacite = 0.6, dispersion = 70.0, anneau = null, lumineuse = false},
 	]},
 	"explosion": {vie = 2.4, eclair = {energie = 6.0, duree = 0.4}, gerbes = [
-		{nombre = 30, duree = 0.5, vitesse = [2.0, 5.0], pesanteur = Vector3.ZERO, taille = [0.55, 1.05], couleur = "#ffa040", opacite = 1.0, dispersion = 180.0, anneau = null},
-		{nombre = 24, duree = 2.2, vitesse = [0.5, 1.5], pesanteur = Vector3(0.0, 0.5, 0.0), taille = [1.0, 1.8], couleur = "#5a5550", opacite = 0.6, dispersion = 90.0, anneau = null},
+		{nombre = 30, duree = 0.5, vitesse = [2.0, 5.0], pesanteur = Vector3.ZERO, taille = [0.55, 1.05], couleur = "#ffa040", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
+		{nombre = 24, duree = 2.2, vitesse = [0.5, 1.5], pesanteur = Vector3(0.0, 0.5, 0.0), taille = [1.0, 1.8], couleur = "#5a5550", opacite = 0.6, dispersion = 90.0, anneau = null, lumineuse = false},
 	]},
 	"eclat-magique": {vie = 0.65, eclair = {energie = 2.0, duree = 0.4}, gerbes = [
-		{nombre = 28, duree = 0.45, vitesse = [1.5, 3.5], pesanteur = Vector3.ZERO, taille = [0.14, 0.26], couleur = "teinte", opacite = 1.0, dispersion = 180.0, anneau = null},
+		{nombre = 28, duree = 0.45, vitesse = [1.5, 3.5], pesanteur = Vector3.ZERO, taille = [0.14, 0.26], couleur = "teinte", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
 	]},
 	"halo": {vie = 1.2, eclair = {energie = 1.5, duree = 0.4}, gerbes = [
-		{nombre = 30, duree = 1.0, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.14, 0.26], couleur = "teinte", opacite = 1.0, dispersion = 5.0, anneau = [0.6, 0.5]},
+		{nombre = 30, duree = 1.0, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.14, 0.26], couleur = "teinte", opacite = 1.0, dispersion = 5.0, anneau = [0.6, 0.5], lumineuse = true},
 	]},
 	"gerbe-de-flammes": {vie = 1.6, eclair = {energie = 3.0, duree = 0.4}, gerbes = [
-		{nombre = 30, duree = 0.8, vitesse = [1.0, 2.5], pesanteur = Vector3(0.0, 2.0, 0.0), taille = [0.35, 0.65], couleur = "#ff7a2a", opacite = 1.0, dispersion = 35.0, anneau = null},
-		{nombre = 10, duree = 1.4, vitesse = [0.4, 0.8], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.5, 0.9], couleur = "#6a5a50", opacite = 0.5, dispersion = 30.0, anneau = null},
+		{nombre = 30, duree = 0.8, vitesse = [1.0, 2.5], pesanteur = Vector3(0.0, 2.0, 0.0), taille = [0.35, 0.65], couleur = "#ff7a2a", opacite = 1.0, dispersion = 35.0, anneau = null, lumineuse = true},
+		{nombre = 10, duree = 1.4, vitesse = [0.4, 0.8], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.5, 0.9], couleur = "#6a5a50", opacite = 0.5, dispersion = 30.0, anneau = null, lumineuse = false},
 	]},
 }
 
@@ -66,7 +67,7 @@ const PROJECTILES := {
 	"jet-de-flammes": {forme = "boule", longueur = 0.0, rayon = 0.25, couleur = "#ff7a2a", trainee = 0.4},
 }
 ## La traînée d'un projectile lumineux : une gerbe continue, sans vitesse propre.
-const TRAINEE := {nombre = 40, duree = 0.35, vitesse = [0.0, 0.2], pesanteur = Vector3.ZERO, couleur = "teinte", opacite = 0.8, dispersion = 180.0, anneau = null}
+const TRAINEE := {nombre = 40, duree = 0.35, vitesse = [0.0, 0.2], pesanteur = Vector3.ZERO, couleur = "teinte", opacite = 0.8, dispersion = 180.0, anneau = null, lumineuse = true}
 
 ## La tache ronde d'une particule, dégradée du centre au bord.
 static var _tache: GradientTexture2D = null
@@ -149,13 +150,15 @@ func _couleur(couleur: String, teinte: Color) -> Color:
 	return teinte if couleur == "teinte" else Color(couleur)
 
 
-## La gerbe `gerbe` de particules de taille `taille` (bornes), teinte de `teinte` si elle prend celle de l'effet.
+## La gerbe `gerbe` de particules de taille `taille` (bornes), teinte de `teinte` si elle prend celle de l'effet. Ses
+## particules naissent ensemble : sous le rendu de compatibilité, une particule à naître se peint en noir, que seule
+## la fonte par addition d'une gerbe continue lumineuse (`TRAINEE`) efface.
 func _gerbe(gerbe: Dictionary, taille: Array, teinte: Color) -> CPUParticles3D:
 	var particules := CPUParticles3D.new()
 	particules.amount = int(gerbe.nombre)
 	particules.lifetime = gerbe.duree
 	particules.one_shot = true
-	particules.explosiveness = 0.85
+	particules.explosiveness = 1.0
 	particules.local_coords = true
 	particules.direction = Vector3.UP
 	particules.spread = gerbe.dispersion
@@ -176,17 +179,18 @@ func _gerbe(gerbe: Dictionary, taille: Array, teinte: Color) -> CPUParticles3D:
 	fondu.set_color(1, Color(couleur, 0.0))
 	particules.color_ramp = fondu
 	particules.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
-	particules.mesh = _quad_de_particule()
+	particules.mesh = _quad_de_particule(gerbe.lumineuse)
 	particules.emitting = true
 	return particules
 
 
-func _quad_de_particule() -> QuadMesh:
+func _quad_de_particule(lumineuse: bool) -> QuadMesh:
 	var quad := QuadMesh.new()
 	var matiere := StandardMaterial3D.new()
 	matiere.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	matiere.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
 	matiere.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+	matiere.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if lumineuse else BaseMaterial3D.BLEND_MODE_MIX
 	matiere.vertex_color_use_as_albedo = true
 	matiere.albedo_texture = _tache_ronde()
 	quad.material = matiere

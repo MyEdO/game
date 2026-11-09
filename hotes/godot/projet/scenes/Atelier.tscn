@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/atelier.gd" id="1_atelier"]
 [ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/marche.gd" id="4_marche"]
 [ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="5_montage"]
 [ext_resource type="Script" path="res://scripts/montage_de_vehicule.gd" id="6_vehicule"]
+[ext_resource type="Script" path="res://scripts/effets.gd" id="7_effets"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_sol"]
 albedo_color = Color(0.22, 0.2, 0.18, 1)
@@ -13,6 +14,15 @@ albedo_color = Color(0.22, 0.2, 0.18, 1)
 [sub_resource type="PlaneMesh" id="Maillage_sol"]
 material = SubResource("Materiau_sol")
 size = Vector2(40, 40)
+
+[sub_resource type="StandardMaterial3D" id="Materiau_cible"]
+albedo_color = Color(0.55, 0.45, 0.35, 1)
+
+[sub_resource type="CylinderMesh" id="Maillage_cible"]
+material = SubResource("Materiau_cible")
+top_radius = 0.25
+bottom_radius = 0.3
+height = 1.8
 
 [sub_resource type="ButtonGroup" id="Groupe_vitesses"]
 
@@ -31,6 +41,16 @@ script = ExtResource("5_montage")
 
 [node name="Vehicule" type="Node3D" parent="."]
 script = ExtResource("6_vehicule")
+
+[node name="Effets" type="Node3D" parent="."]
+script = ExtResource("7_effets")
+
+[node name="Cible" type="Node3D" parent="."]
+visible = false
+
+[node name="Mannequin" type="MeshInstance3D" parent="Cible"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("Maillage_cible")
 
 [node name="Orbite" type="Node3D" parent="."]
 
@@ -104,6 +124,14 @@ size_flags_horizontal = 3
 toggle_mode = true
 button_group = SubResource("Groupe_onglets")
 text = "Outils"
+
+[node name="OngletEffets" type="Button" parent="Interface/Panneau/Racine/Onglets"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_group = SubResource("Groupe_onglets")
+text = "Effets"
 
 [node name="SeparateurDesOnglets" type="HSeparator" parent="Interface/Panneau/Racine"]
 layout_mode = 2
@@ -311,6 +339,56 @@ metadata/vitesse = 2.0
 layout_mode = 2
 autowrap_mode = 3
 text = "Marche avec ZQSD ou les flèches ; la caméra tourne au clic droit et zoome à la molette."
+
+[node name="DefilementEffets" type="ScrollContainer" parent="Interface/Panneau/Racine"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEffets"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="TitreEngin" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Engin posé"
+
+[node name="Attaquer" type="Button" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+disabled = true
+text = "Attaquer"
+
+[node name="TitreArmes" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Armes"
+
+[node name="VitrineArmes" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreSorts" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Sorts"
+
+[node name="VitrineSorts" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreSons" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Sons"
+
+[node name="VitrineSons" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="DefilementOutils" type="ScrollContainer" parent="Interface/Panneau/Racine"]
 unique_name_in_owner = true

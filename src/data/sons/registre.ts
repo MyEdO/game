@@ -6,3 +6,6 @@ const sonParId = new Map<string, SoundDef>(SOUND_DEFS.map((d) => [d.id, d]));
 
 /** Le son d'id `id`, absent hors du registre. */
 export const findSonById = (id: string): SoundDef | undefined => sonParId.get(id);
+
+/** Les sons d'effet du registre, toute musique de fond exclue. */
+export const sonsDEffet: readonly SoundDef[] = SOUND_DEFS.filter((d) => !d.music);
