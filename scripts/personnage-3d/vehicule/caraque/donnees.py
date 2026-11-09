@@ -190,7 +190,10 @@ CIVADIERE = {"f": -0.12, "sous": 0.4, "longueur": 6.4, "rayons": (0.10, 0.06), "
 # pièces par bord, la p.105 en aligne davantage ; quatre par bord, hors des haubans du grand mât et des trappes. Proue :
 # les bombardes du gaillard (« 1 »), de part et d'autre de la misaine, contre son avant plat, leurs bouches par-dessus,
 # devant la trappe (« 3 »). Poupe : la plage arrière, par-dessus le couronnement.
-CANON = {"axe": 1.15, "bouche": 1.725, "saillie": 0.45}   # canon de campagne : axe au-dessus du sol, bouche devant l'origine
+# Canon de campagne : axe au-dessus du sol, bouche devant l'origine, saillie de la bouche hors de la muraille ; la pièce
+# de la revue aux flancs (canon moyen, bornes de son GLB) : demi-largeur, longueur derrière l'origine, servant (0,5 m)
+# compris.
+CANON = {"axe": 1.15, "bouche": 1.725, "saillie": 0.45, "demi_largeur": 0.86, "derriere": 2.24}
 POSTES_DU_PONT = [
     {"bords": ("tribord", "babord"), "cases": (6, 7, 8, 9), "plancher": "pont", "par_dessus": "embelle", "recul": 0.95},
     {"bords": ("proue",), "x": (-1.5, 1.5), "plancher": "g", "par_dessus": "gaillard", "recul": 0.6},
@@ -198,22 +201,23 @@ POSTES_DU_PONT = [
 ]
 
 # Sabords (Amélioration `sabord`, manifeste `selon.sabord.postes`) : une ouverture traversant la muraille à chaque
-# arête sabord des ponts (batterie du pont principal, plan p.99, « 22 », sous l'embelle, entre les deux préceintes, aux
-# ouvertures de l'illustration p.99 où une pièce tient), au milieu de la case qu'elle ouvre, le bordé qui la bouche
-# dans le nœud `sans-sabord` ; son cadre est celui de la pièce de l'Amélioration (`ameliorations.py`). Ils remplacent
-# les postes des bords qu'ils nomment ; la proue garde ses bombardes du gaillard, la poupe ses deux pièces de chasse de
-# la plage arrière (p.105). Chaque ouverture regarde exactement son bord, comme la pièce et la trappe qui s'y montent
-# tournées vers lui ; le plancher de son poste est celui de sa case. L'ouverture : largeur, hauteur ; le cadre :
-# largeur, saillie.
+# arête sabord des ponts (batterie du pont principal, plan p.99, « 22 », sous l'embelle, entre les deux préceintes,
+# aux ouvertures de l'illustration p.99 où une pièce tient ; cinq par bord, plan 2 de la p.105), au milieu de la case
+# qu'elle ouvre, décalée dans elle le long du bord quand sa pièce couvrirait une échelle de trappe
+# (`sabords_des_ponts`), le bordé qui la bouche dans le nœud `sans-sabord` ; son cadre est celui de la pièce de
+# l'Amélioration (`ameliorations.py`). Ils remplacent les postes des bords qu'ils nomment ; la proue garde ses
+# bombardes du gaillard, la poupe ses deux pièces de chasse de la plage arrière (p.105). Chaque ouverture regarde
+# exactement son bord, comme la pièce et la trappe qui s'y montent tournées vers lui ; le plancher de son poste est
+# celui de sa case. L'ouverture : largeur, hauteur ; le cadre : largeur, saillie.
 EMBRASURE = {"ouverture": (0.75, 0.75), "cadre": (0.12, 0.10)}
 # Ouvertures vides du Sabord, des deux bords, que le modèle perce sans poste, comme un sabord : sorte de leur paroi
 # (`SOUS_LES_PONTS`), abscisses en cases du plan, plancher (glyphe des ponts) et hauteur de leur axe au-dessus de lui.
 # Château : les huit de l'illustration p.99 au-dessus du bandeau, à cartouches (`CARTOUCHE`, nœud `avec-sabord`),
 # réparties sur sa longueur hors des cloisons du plan ; aucune pièce, la p.105 n'en monte aucune en abord de la poupe.
-# Batterie : celles de l'illustration p.99 dont la pièce couvrirait la trappe ou l'échelle de sa case voisine.
+# Batterie : celle de l'illustration p.99 dont la pièce couvrirait la trappe de sa case voisine.
 OUVERTURES_VIDES = [
     {"sorte": "chateau", "cases": (11.45, 12.3, 13.2, 14.3, 14.95, 15.7, 16.7, 17.55), "plancher": "p", "axe": 2.3},
-    {"sorte": "bord", "cases": (5.5, 10.5), "plancher": "e", "axe": CANON["axe"]},
+    {"sorte": "bord", "cases": (10.5,), "plancher": "e", "axe": CANON["axe"]},
 ]
 # Cloisons du plan (épaisseur, débord au-delà du volume qu'elles ferment, épaisseur d'une cloison sous un seul pont
 # couvert : la cloison arrière du gaillard, du pont principal à son fond) ; leurs portes : vantail (largeur, hauteur maximale, jeu sous le plafond, largeur des
@@ -313,8 +317,8 @@ REVUE = {
         ("01-nue", "Sans arme ni Amélioration : coque pleine", {}, []),
         ("02-armee", "Armée sur le pont (10 canons, bombardes au gaillard), sans Sabord", "tout", []),
         ("03-sabords-fermes", "Sabord, sans arme : sabords fermés", {}, ["sabord"]),
-        ("04-sabords-armee", "Sabord et armée (10 canons, bombardes au gaillard)", "tout", ["sabord"]),
-        ("05-sabords-batterie", "Sabord, la batterie armée", {"babord": range(4), "tribord": range(4)}, ["sabord"]),
+        ("04-sabords-armee", "Sabord et armée (12 canons, bombardes au gaillard)", "tout", ["sabord"]),
+        ("05-sabords-batterie", "Sabord, la batterie armée", {"babord": range(5), "tribord": range(5)}, ["sabord"]),
         ("06-figure-de-proue", "Figure de proue", {}, ["figure-de-proue"]),
         ("07-ancre", "Ancre", {}, ["ancre"]),
         ("08-belier", "Bélier", {}, ["belier"]),

@@ -52,11 +52,13 @@ def voile_carree(maille, y0, z_haut, tete, bordure, z_bas, creux, grille, rayure
 
 def sabords_des_ponts(D, P, C, pieces):
     """Chaque sabord des ponts : (centre de son ouverture sur la face extérieure de la muraille, bord, plancher de sa
-    case, sorte de sa paroi, distance de la face extérieure à son arête). Au milieu de sa case sur un flanc ; sur le
-    tableau, au milieu de sa case tant que l'ouverture et son cadre y tiennent."""
+    case, sorte de sa paroi, distance de la face extérieure à son arête). Sur un flanc, au milieu de sa case, décalé
+    le long d'elle juste assez pour que sa pièce, à une épaisseur de cloison près, laisse passer l'échelle d'une trappe
+    de son pont (`echelles_au_sol`) ; sur le tableau, au milieu de sa case tant que l'ouverture et son cadre y tiennent."""
     E, CA = D["EMBRASURE"], D["CANON"]
     demi = E["ouverture"][0] / 2 + E["cadre"][0] + D["CLOISON"]["epaisseur"] / 2
     saillie = D["CHATEAU"]["niveaux"][4][1]
+    marge = D["CLOISON"]["epaisseur"]
     sortie = []
     for z, (cx, cy), bord in plan_de_jeu.sabords(P):
         c = (cx, cy, z)
@@ -65,6 +67,14 @@ def sabords_des_ponts(D, P, C, pieces):
         sorte = D["SOUS_LES_PONTS"][pieces.couverture[c]]["paroi"][0]
         if bord in ("tribord", "babord"):
             yy = C.y_du_plan(cx + 0.5)
+            mur = C.bord(C.f(yy), zc) if sorte == "bord" else C.lisse(C.f(yy)) + saillie
+            origine = mur - (CA["bouche"] - CA["saillie"])
+            dedans, dehors = sorted(AXES[bord].x * v for v in (origine - CA["derriere"], mur + CA["saillie"]))
+            for x0, x1, y0, y1 in echelles_au_sol(D, P, C, z):
+                if min(x1, dehors) > max(x0, dedans) and min(y1, yy + CA["demi_largeur"]) + marge > max(y0, yy - CA["demi_largeur"]):
+                    yy = y1 + marge + CA["demi_largeur"] if (y0 + y1) / 2 < yy else y0 - marge - CA["demi_largeur"]
+            if not C.y_du_plan(cx) + demi <= yy <= C.y_du_plan(cx + 1) - demi:
+                raise ValueError(f"sabord {c} : sa pièce ne laisse passer une échelle qu'hors de sa case")
             f = C.f(yy)
             mur = C.bord(f, zc) if sorte == "bord" else C.lisse(f) + saillie
             centre = Vector((AXES[bord].x * mur, yy, zc))
@@ -75,6 +85,25 @@ def sabords_des_ponts(D, P, C, pieces):
             centre = Vector((min(max(C.x_du_plan(cy + 0.5), -borne), borne), yy, zc))
             profondeur = 0.0
         sortie.append((centre, bord, plancher, sorte, profondeur))
+    return sortie
+
+
+def echelles_au_sol(D, P, C, z):
+    """L'emprise au sol de chaque échelle de trappe du pont `z`, comme `amenager` la pose à cheval sur son arête : (x de,
+    x à, y de, y à), en travers de son arête sa course au sol, le long d'elle sa largeur et ses montants."""
+    E = D["ECHELLE"]
+    sortie = []
+    for zz, trappe, pied, (sens, xp, yp) in plan_de_jeu.echelles(P):
+        if zz != z:
+            continue
+        course = (plan_de_jeu.hauteur(P, z, *trappe) - plan_de_jeu.hauteur(P, z, *pied)) / math.tan(math.radians(E["pente"])) / 2
+        large = E["largeur"] / 2 + E["montant"][0] / 2
+        if sens == "t":
+            x, y = C.x_du_plan(yp + 0.5), C.y_du_plan(xp)
+            sortie.append((x - large, x + large, y - course, y + course))
+        else:
+            x, y = C.x_du_plan(yp), C.y_du_plan(xp + 0.5)
+            sortie.append((x - course, x + course, y - large, y + large))
     return sortie
 
 
