@@ -5,6 +5,12 @@
 class_name ZonesQuiDurent
 extends Node3D
 
+## @contrat Effets
+## Le plateau pose `vue.zonesQuiDurent` par son nœud `ZonesQuiDurent` (`projet/scripts/zones_qui_durent.gd`) : sur
+## chaque case d'une zone, les gerbes continues de son visuel à sa teinte, et son son en boucle à sa case centrale.
+## Une zone se nomme par sa `cle` : déjà posée, elle reste telle quelle ; absente de la vue, elle est retirée.
+## La recette `projet/recettes/zones-et-marques.gd` le vérifie.
+
 ## Par clé, le nœud de chaque zone posée.
 var _posees: Dictionary = {}
 

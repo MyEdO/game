@@ -4,6 +4,12 @@
 class_name MarquesDEtats
 extends Node3D
 
+## @contrat Effets
+## Le plateau pose `vue.marques` de chaque combattant par un nœud `MarquesDEtats` à son pied
+## (`projet/scripts/marques_des_etats.gd`) : le texte de chaque marque à sa teinte, l'un au-dessus de l'autre, face à
+## la caméra, les gerbes continues de son visuel et son son en boucle. Les mêmes marques ne changent rien.
+## La recette `projet/recettes/zones-et-marques.gd` le vérifie.
+
 ## La taille (px) du texte d'une marque.
 const TAILLE_DE_LA_MARQUE := 28
 

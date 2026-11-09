@@ -129,6 +129,7 @@ __pycache__/
 /docs/usages-jets.md
 /docs/vocabulaire-mecanique.md
 /docs/raw/**/catalogue-*.md
+/hotes/godot/pont/CONTRAT.md
 /src/**/*.generated.ts
 # fin des cibles pures
 

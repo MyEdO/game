@@ -8,10 +8,17 @@ import { sonDEffet, type SonDEffet } from '../data/sons/registre';
 import type { Jeu } from './etat';
 import { isIndoor, type Scene } from './monde/scene';
 
-/** Ce que l'hôte joue en fond : la sélection par sa clé (`def:<id>` ou `ctx:<contexte>`), qui ne change qu'avec elle,
- *  et ses pistes. */
+/**
+ * `vue.musique` (`MusiqueDeLaPartie | null`, `src/noyau/musiqueDeLaPartie.ts`) est la musique que la partie joue. La
+ * scène la choisit (`scene.music.combat` en combat, `scene.music.ambient` hors combat : l'id d'une musique du registre,
+ * ou `null` pour le silence), sinon le moment : le combat, un intérieur (`ambiance.isIndoor`) ou l'exploration ; `null`
+ * au silence.
+ * @contrat Musique
+ */
 export interface MusiqueDeLaPartie {
+  /** la sélection par sa clé (`def:<id>` ou `ctx:<contexte>`), qui ne change qu'avec elle. */
   cle: string;
+  /** ses pistes, chacune un son (`SonDEffet`, section « Effets »). */
   pistes: SonDEffet[];
 }
 
