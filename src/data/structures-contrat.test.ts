@@ -1127,7 +1127,7 @@ describe('`{text}` : la forme DÉCLARÉE ne couvre que l’irréductible narrati
 });
 
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
-  it('un décor et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', () => {
+  it('une façade et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
     try {
       for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
@@ -1137,7 +1137,13 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       const chemin = join(copie, 'src/scenes', relatif);
       const paquet = JSON.parse(readFileSync(chemin, 'utf8'));
       const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
-      scene.entities.push({ id: 'decor-croissance-2337', kind: 'prop', ref: 'comptoir-droit', pos: { x: 1, y: 1 } });
+      const cheminArene = join(copie, 'src/scenes/arene/arene-projet.json');
+      const arene = JSON.parse(readFileSync(cheminArene, 'utf8'));
+      type Facade = { appearance?: unknown };
+      const chapelle = (f: Facade) => f.appearance === 'chapelle';
+      const batiment = arene.scenes.flatMap((s: { architecture?: { facades?: Facade[] }[] }) => s.architecture ?? []).find((a: { facades?: Facade[] }) => a.facades?.some(chapelle));
+      batiment.facades.push({ ...batiment.facades.find(chapelle), id: 'facade-croissance-2337' });
+      writeFileSync(cheminArene, JSON.stringify(arene), 'utf8');
       scene.triggers.push({
         id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
         flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'croissance-2337' } }] },
@@ -1145,9 +1151,9 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
       const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
       const site = (f: { dataset: string; champ: string; signature: string }) =>
-        f.dataset === 'diligence-projet.json' && f.champ === 'ref' && f.signature === 'id-nu';
+        f.dataset === 'arene-projet.json' && f.champ === 'appearance' && f.signature === 'id-nu';
       expect(apres.formes.find(site)!.occurrences).toBe(scan.formes.find(site)!.occurrences + 1);
-      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'CASES_DE_REFERENCE' && l.site === 'diligence-projet.json | ref')!;
+      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'CASES_DE_REFERENCE' && l.site === 'arene-projet.json | appearance')!;
       const avant = ligne(INVENTAIRE);
       const hausse = ligne(inventaireDe({ scan: apres, defs: DEFS, declares: DECLARES }));
       expect(hausse.occurrences, 'la hausse d’un site connu se lit à l’inventaire, sur la même ligne.').toBe(avant.occurrences! + 1);

@@ -361,7 +361,7 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
     // La recette porte la hauteur (patron `applique-murale`) : le lustre se pose au NIVEAU de la pièce
     // qu'il éclaire. Un volume à double hauteur (l'étage `vide` au-dessus) appartient au niveau inférieur.
     // Sa hauteur contre la dalle ou le toit est tenue par `scenes/decor-sous-plafond.test.ts`.
-    const lustres = scenarioEntities().filter((e) => e.ref === 'lustre-opera');
+    const lustres = scenarioEntities().filter((e) => e.decor?.id === 'lustre-opera');
     expect(lustres.length, 'le plan porte des lustres').toBeGreaterThan(0);
     const malPoses = lustres
       .filter((e) => {
@@ -375,7 +375,7 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
   it('LIMITE : la donnée ne dit pas QUELLE pièce un lustre éclaire — sous chaque lustre d’étage, le rez porte aussi une pièce nommée', () => {
     // Descendre un lustre de la galerie au rez le poserait dans une autre pièce nommée (le Salon) : le test
     // de pièce ci-dessus ne peut pas le refuser, seul le niveau authoré dit la pièce éclairée.
-    const lustresDEtage = scenarioEntities().filter((e) => e.ref === 'lustre-opera' && (e.z ?? 0) > 0);
+    const lustresDEtage = scenarioEntities().filter((e) => e.decor?.id === 'lustre-opera' && (e.z ?? 0) > 0);
     expect(lustresDEtage.length, 'le plan porte des lustres d’étage').toBeGreaterThan(0);
     for (const l of lustresDEtage)
       expect(zonesAt(l.pos.x, l.pos.y, 0), `${l.id} (${l.pos.x},${l.pos.y}) : le rez dessous porte une pièce nommée`).not.toEqual([]);
@@ -385,7 +385,7 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
     // Contrat de COUVERTURE, sans cardinal : l'ensemble des cases balustradées EST celui de la rive que
     // `puitsRim` dérive de l'ASCII — recreuser l'ovale déplace les deux ensembles du même geste.
     const cle = (x: number, y: number) => `${x},${y}`;
-    const balustrades = scenarioEntities().filter((e) => e.ref === 'balustrade-loge');
+    const balustrades = scenarioEntities().filter((e) => e.decor?.id === 'balustrade-loge');
     const posees = balustrades.map((e) => `${cle(e.pos.x, e.pos.y)}z${e.z ?? 0}`);
     const rive = puitsRim();
     expect(rive.length, 'la rive du puits n’est pas vide').toBeGreaterThan(0);
@@ -406,7 +406,7 @@ describe('plan de l’Opéra — mobilier posé sur le plan (#1780)', () => {
     // UNIQUE (`walkComponentAt`, `src/noyau/monde/path.ts:175`) : 8-connexe et cross-couche, donc plus
     // permissive qu'un flood 4-connexe — une case enclavée y reste une composante de plus.
     const meuble = operaPlanConstruit.scene; // la scène RÉELLE du scénario (plan + mobilier)
-    const sansGardeCorps = { ...meuble, entities: meuble.entities.filter((e) => e.ref !== 'balustrade-loge') };
+    const sansGardeCorps = { ...meuble, entities: meuble.entities.filter((e) => e.decor?.id !== 'balustrade-loge') };
     const cle = (x: number, y: number) => `${x},${y}`;
     const { w, h } = meuble.dimensions;
     const marchablesEtage = (sc: Scene) => {

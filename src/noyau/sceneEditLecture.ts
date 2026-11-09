@@ -17,7 +17,7 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, findCreatureById, findVehicleById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { creatures, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage } from './monde/sceneNpc';
 import type { ResolveurDePreset } from './monde/resolveursDuNarratif';
@@ -371,7 +371,7 @@ export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light
 /** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet
  *  (`capDecorAdmis`). */
 export function capsOfferts(ent: SceneEntity): Dir8[] {
-  return DIR8_ORDER.filter((cap) => capDecorAdmis(ent.kind === 'prop' && refEstVolumique(ent.ref), cap));
+  return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
 }
 
 /** Les fiches qu'un personnage posé peut nommer (#1882) : les créatures du bestiaire qui ont des Blessures
@@ -431,11 +431,11 @@ const SORTS_CHOISIS = ['combat', 'spells'] as const;
 
 /** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), ses sorts choisis s'il en porte, ou
  *  si sa fiche (`ficheEditee`) ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ;
- *  d'une coque, ses Améliorations (MDG 12). */
+ *  d'une coque, son véhicule et ses Améliorations (MDG 12). */
 function champsDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset): CheminsOfferts {
   const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDe);
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
-  const coque = findVehicleById(ent.ref ?? '')?.hull ? [['upgrades']] : [];
+  const coque = ent.vehicule ? [['vehicule'], ['upgrades']] : [];
   return [...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
 }
 
@@ -473,7 +473,7 @@ function rangDOffreDuTrait(fiche: CreatureData | undefined): (id: unknown) => nu
 function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [combat, optionals, rang, cle, ...reste] = chemin;
   if (combat !== 'combat' || optionals !== 'optionals' || typeof rang !== 'number' || reste.length) return undefined;
-  const fiche = findCreatureById(ent.ref);
+  const fiche = findCreatureById(ent.creature?.id);
   if (cle === 'id') {
     const rangDOffre = rangDOffreDuTrait(fiche);
     return choixDuNoeud(noeudDuTrait())!.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })).sort((a, b) => rangDOffre(a.valeur) - rangDOffre(b.valeur));

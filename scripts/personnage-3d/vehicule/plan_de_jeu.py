@@ -1,5 +1,5 @@
 """Les ponts d'un véhicule (`ponts` de sa fiche dans `src/data/vehicles.json`, #3686), la source
-unique que lit aussi le noyau (`src/noyau/planDeLaCaraque.ts`) : emprise de chaque pont en cases, hauteur de chaque
+unique que lit aussi le noyau (`src/noyau/pontsDeLaFiche.ts`) : emprise de chaque pont en cases, hauteur de chaque
 case, cloisons, portes, échelles et sabords, en cases du plan (proue à x = 0, tribord à y = 0).
 
 Grammaire : `GRAMMAIRE_ASCII` et `MOTS_DES_PONTS` de `src/data/schemas/grammaire/carte-ascii.ts`. La case (x, y) au

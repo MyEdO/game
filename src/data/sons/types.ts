@@ -1,4 +1,4 @@
-/** Contexte de jeu qui pilote la musique de fond (résolu depuis l'état par `musicSelectionOf`, `state/audioWiring.ts`). */
+/** Contexte de jeu qui pilote la musique de fond (résolu depuis l'état par `selectionDeLaMusique`, `noyau/musiqueDeLaPartie.ts`). */
 export type MusicContext = 'exploration' | 'interieur' | 'combat';
 
 /** Définition d'un SON du jeu (assets CC0 — Kenney.nl/OpenGameArt). Une def = un id logique + ses VARIANTES (une est

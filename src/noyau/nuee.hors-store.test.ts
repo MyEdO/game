@@ -73,7 +73,7 @@ function nueeScene(avecTrait = true): { scene: Scene; nueeId: string; temoinId: 
     id: ENC_NUEE,
     enemies: [
       { statblock: nueeStatblock(avecTrait), pos: { x: 16, y: 11 } },
-      { ref: 'mutant', pos: { x: 19, y: 13 } },
+      { creature: { id: 'mutant' }, pos: { x: 19, y: 13 } },
     ],
   });
   const scene: Scene = {

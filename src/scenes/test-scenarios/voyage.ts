@@ -72,7 +72,7 @@ const construireVillage = (): Scene => buildScene({
     'cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour ' +
     'voyager.)' },
   entities: [
-    { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: { id: 'dlg-auberge' } },
+    { id: 'aubergiste', kind: 'personnage', creature: { id: 'humain' }, label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: { id: 'dlg-auberge' } },
   ],
   dialogues: [
     {
@@ -124,7 +124,7 @@ const construireCite = (): Scene => buildScene({
   heroStart: [3, 4],
   startMessage: { texte: 'Altdorf, au bout de la longue route. Marchez sur le cercle runique pour l’entre-deux-aventures (Activités).' },
   entities: [
-    { id: 'cercle', kind: 'prop', ref: 'cercle-runique', pos: { x: 6, y: 4 } },
+    { id: 'cercle', kind: 'prop', decor: { id: 'cercle-runique' }, pos: { x: 6, y: 4 } },
   ],
   triggers: [
     {
@@ -151,8 +151,8 @@ const construireEmbuscade = (): Scene => buildScene({
     id: 'enc-vembuscade',
     // embuscade de route : invisibles jusqu'au combat (hidden par ennemi, l'EncounterSpec n'a pas de hidden global)
     enemies: [
-      { ref: 'gobelin', pos: { x: 9, y: 3 }, hidden: true },
-      { ref: 'gobelin', pos: { x: 10, y: 5 }, hidden: true },
+      { creature: { id: 'gobelin' }, pos: { x: 9, y: 3 }, hidden: true },
+      { creature: { id: 'gobelin' }, pos: { x: 10, y: 5 }, hidden: true },
     ],
     surprise: 'party', // annulée si la Perception du voyage est réussie (« le groupe les voit venir »)
   }],

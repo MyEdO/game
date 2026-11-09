@@ -1,7 +1,7 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
-## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
+## caméra, son zoom borné, son lacet à un azimut, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
+## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
@@ -52,6 +52,9 @@ const LARGEUR_DE_BULLE := 420.0
 const HAUTEUR_DU_NOM := 1.2
 ## Hauteur (m) d'où part un coup, au-dessus du sol de son auteur, et où il arrive sur sa cible.
 const HAUTEUR_DU_COUP := 1.1
+## La hauteur (m) au-dessus de son sol d'où part un flottant, et celle qu'il gagne en montant.
+const HAUTEUR_DU_FLOTTANT := 2.1
+const MONTEE_DU_FLOTTANT := 0.8
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
 ## Le rayon, en pixels, d'un point du plan.
@@ -148,10 +151,27 @@ static func echelle_au_plateau(metres_par_case: float) -> Vector3:
 	return Vector3.ONE * echelle_metrique(metres_par_case)
 
 
+## L'échelle uniforme qui porte en mètres le plateau d'une scène de `metres_par_case`, celle qui défait
+## `echelle_au_plateau`.
+static func echelle_en_metres(metres_par_case: float) -> Vector3:
+	return Vector3.ONE * metres_par_case
+
+
 ## Le point d'où part un coup du combattant dont le sol est en `sol`, et où arrive celui qui le vise : `HAUTEUR_DU_COUP`
 ## au-dessus, sur le plateau d'une scène de `metres_par_case`.
 static func point_du_coup(sol: Vector3, metres_par_case: float) -> Vector3:
 	return sol + Vector3.UP * hauteur_au_plateau(HAUTEUR_DU_COUP, metres_par_case)
+
+
+## Le point d'où part le flottant du combattant ou de la case dont le sol est en `sol`, `HAUTEUR_DU_FLOTTANT`
+## au-dessus, sur le plateau d'une scène de `metres_par_case`.
+static func point_du_flottant(sol: Vector3, metres_par_case: float) -> Vector3:
+	return sol + Vector3.UP * hauteur_au_plateau(HAUTEUR_DU_FLOTTANT, metres_par_case)
+
+
+## Le point où s'éteint le flottant parti de `point`, `MONTEE_DU_FLOTTANT` plus haut.
+static func montee_du_flottant(point: Vector3, metres_par_case: float) -> Vector3:
+	return point + Vector3.UP * hauteur_au_plateau(MONTEE_DU_FLOTTANT, metres_par_case)
 
 
 ## Le temps (s) de la montée d'un projectile en vol `duree` secondes, au sommet de sa cloche à mi-vol.
@@ -231,6 +251,22 @@ static func lacet_du_plateau(lacet: float) -> float:
 	return lacet - QUART_DE_TOUR / 2.0
 
 
+## Le lacet du regard `tactique` sous lequel la caméra du regard `plateau` prend le lacet `lacet` (`lacet_du_plateau`).
+static func lacet_sous_le_plateau(lacet: float) -> float:
+	return lacet + QUART_DE_TOUR / 2.0
+
+
+## Le lacet d'une caméra qui regarde à l'azimut `azimut`, en degrés au compas : 0 au nord, 90 à l'est
+## (`LACETS_DES_CAPS`).
+static func lacet_de_l_azimut(azimut: float) -> float:
+	return -deg_to_rad(azimut)
+
+
+## L'azimut, en degrés au compas dans [0, 360[, d'une caméra au lacet `lacet` (`lacet_de_l_azimut`).
+static func azimut_du_lacet(lacet: float) -> float:
+	return fposmod(-rad_to_deg(lacet), 360.0)
+
+
 ## L'œil à `oeil` mètres au-dessus du sol `sol`, sur un plateau de `metres_par_case` mètres par case.
 static func oeil_sur(sol: Vector3, oeil: float, metres_par_case: float) -> Vector3:
 	return Vector3(sol.x, sol.y + hauteur_au_plateau(oeil, metres_par_case), sol.z)
@@ -296,6 +332,12 @@ static func pas_de_marche(direction: Vector3, vitesse: float, echelle: float, ca
 	return direction * vitesse * echelle * cadence * delta
 
 
+## La durée (s) d'un pas de `metres` mètres d'un chemin (#3822) à `vitesse` m/s multipliée par `echelle`, celle de la
+## vitesse au sol du gabarit posé (`echelleDeVitesse`, `CONTRAT.md`, « Gabarit d'une base ») : la foulée du clip de marche.
+static func duree_du_pas(metres: float, vitesse: float, echelle: float) -> float:
+	return metres / (vitesse * echelle)
+
+
 ## Le lacet de l'orbite tourné par un glissé de `pixels` à la souris.
 static func lacet_glisse(lacet: float, pixels: float) -> float:
 	return lacet - pixels * RADIANS_PAR_PIXEL
@@ -327,6 +369,44 @@ static func position_a_l_echelle(position: Vector3, echelle: float) -> Vector3:
 ## le plus bas de la hauteur `pied` à la hauteur `cible` (`CONTRAT.md`, « Gabarit d'une base »).
 static func decalage_au_sol(verticale: Vector3, cible: float, pied: float) -> Vector3:
 	return verticale * (cible - pied)
+
+
+## La longueur du vecteur `vecteur`.
+static func longueur(vecteur: Vector3) -> float:
+	return vecteur.length()
+
+
+## L'extension d'une jambe : la distance `hanche_pied` de sa hanche à son pied rapportée à sa longueur, sa cuisse
+## `cuisse` et son mollet `mollet` (`viseesDesJambes`, `CONTRAT.md`, « Gabarit d'une base »).
+static func extension_de_jambe(hanche_pied: float, cuisse: float, mollet: float) -> float:
+	return hanche_pied / (cuisse + mollet)
+
+
+## La portée d'une jambe de cuisse `cuisse` et de mollet `mollet` à l'extension `extension` (`plierLesJambes`).
+static func portee_de_jambe(extension: float, cuisse: float, mollet: float) -> float:
+	return extension * (cuisse + mollet)
+
+
+## La montée de la racine le long de la verticale monde rapportée au repère de base `repere` (le squelette) qui porte à
+## `portee` la distance de la hanche d'une jambe à son pied visé, à `vers` d'elle, `INF` hors d'atteinte
+## (`plierLesJambes`, `CONTRAT.md`, « Gabarit d'une base »).
+static func montee_de_jambe(vers: Vector3, repere: Basis, portee: float) -> float:
+	var haut := (repere.inverse() * Vector3.UP).normalized()
+	var vertical := vers.dot(haut)
+	var discriminant := vertical * vertical - vers.length_squared() + portee * portee
+	return vertical + sqrt(discriminant) if discriminant >= 0 else INF
+
+
+## Le déplacement de la racine de `montee` le long de la verticale monde rapportée au repère de base `repere`, nul pour
+## une montée infinie (`plierLesJambes`).
+static func deplacement_de_montee(repere: Basis, montee: float) -> Vector3:
+	return (repere.inverse() * Vector3.UP).normalized() * montee if is_finite(montee) else Vector3.ZERO
+
+
+## La visée `vers` d'un pied depuis sa hanche, d'une jambe à l'échelle de pose `echelle` et de repos `echelle_de_repos`,
+## rapportée à la mesure de `TwoBoneIK3D` (`GabaritDuSquelette._poser_sur`).
+static func visee_de_l_ik(vers: Vector3, echelle: float, echelle_de_repos: float) -> Vector3:
+	return vers * echelle_de_repos / echelle
 
 
 ## La plus basse des hauteurs `hauteur` et `autre`.

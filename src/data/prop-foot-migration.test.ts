@@ -77,8 +77,8 @@ const LEGACY_AUTHORED_FOOT_SITES: [string, string][] = [
  *  désormais 1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */
 function authoredPropFoot(scene: string, id: string): [string, number, number] {
   const ent = entitiesOf(scene).find((e) => e.id === id)!;
-  const { w, h } = empreinteDuProp(findPropById(ent.ref), ent.facing, mptDe(scene));
-  return [ent.ref!, w, h];
+  const { w, h } = empreinteDuProp(findPropById(ent.decor?.id), ent.facing, mptDe(scene));
+  return [ent.decor!.id, w, h];
 }
 
 const authoredPropFootTable = (): [string, string, string, number, number][] =>
@@ -88,7 +88,7 @@ const sceneWithEntity = (ent: SceneEntity): Scene => ({ ...emptyScene('scene-tes
 
 describe('migration de l’empreinte : du legacy d’instance au catalogue de type', () => {
   it('la physique d’un décor vient de son TYPE : la charrette couvre ses deux cases', () => {
-    const scene = normalizeScene(sceneWithEntity({ id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'charrette' }));
+    const scene = normalizeScene(sceneWithEntity({ id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'charrette' } }));
     expect(entityBlockedAt(scene, scene.entities[0].pos.x + 1, scene.entities[0].pos.y, 0)).toBe(true);
     expect(entityBlockedAt(scene, scene.entities[0].pos.x + 2, scene.entities[0].pos.y, 0)).toBe(false);
   });

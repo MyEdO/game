@@ -78,7 +78,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     return { H, E };
   }
 
-  it('Tir rapide au CLAVIER : armer (armerLeTirPreventif) → curseur (snapCursorToTarget) → Entrée (commitCursor) → tir', () => {
+  it('Tir rapide au CLAVIER : armer (roundStart.viser) → curseur (snapCursorToTarget) → Entrée (commitCursor) → tir', () => {
     const { H, E } = endOfRoundBattle(0);
     H.talents = [{ talentId: 'tir-rapide', times: 1 }];
     H.weapons = [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 30, qualities: [] }] as never;
@@ -86,8 +86,8 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     E.pos = { x: 2, y: 0 }; // à portée + LdV (scène vide)
     advanceTurn(useGame.getState, useGame.setState); // → Round 2, pendingRoundStart
     seedBattleRng(1);
-    // Touche T : arme la visée du tireur (source unique preemptShooterIds → armerLeTirPreventif).
-    useGame.getState().armerLeTirPreventif(H.id);
+    // Touche T : arme la visée du tireur (source unique preemptShooterIds → roundStart.viser).
+    useGame.getState().fenetreChoisir('roundStart', 'viser', H.id);
     expect(useGame.getState().preemptAiming).toBe(H.id);
     // Tab/flèches : le curseur trouve la cible valide du TIREUR (aucun actif à turn:-1 — cursorActor renvoie le tireur).
     useGame.getState().snapCursorToTarget(1);

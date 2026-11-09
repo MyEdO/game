@@ -23,9 +23,9 @@ func _recetter() -> void:
 	print("[arete-degagee] version=", Engine.get_version_info().string)
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
-	monde.poser_les_aretes([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary:
+	monde.volume.poser_les_aretes([NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary:
 		return {cle = a.cle, milieu = a.milieu, sens = {x = 1.0, y = 0.0}, pied = 0.0, hauteurM = 2.0, piece = "mur", famille = null}))
-	monde.poser_les_nappes([], [{cle = "dessus", positions = [], normales = [], couleurs = [], surfaces = []}])
+	monde.volume.poser_les_nappes([], [{cle = "dessus", positions = [], normales = [], couleurs = [], surfaces = []}])
 	monde.cacher_le_bati([], [], [NORD, SUD, DESSUS].map(func(a: Dictionary) -> Dictionary: return {cle = a.cle, abattueSous = a.abattueSous}))
 	_verifier(monde, "de face")
 	var pivot: Node3D = monde.get_node("Pivot")
@@ -43,7 +43,7 @@ func _recetter() -> void:
 func _verifier(monde: Monde, moment: String) -> void:
 	var camera := monde.get_viewport().get_camera_3d().global_position.z
 	var aretes := {}
-	for piece in monde.get_node("Aretes").get_children():
+	for piece in monde.get_node("VolumeDeScene/Aretes").get_children():
 		aretes[piece.get_meta("cle")] = _debout(piece)
 	var au_nord := camera < NORD.milieu.y + MiseEnPage.DEMI_CASE
 	if aretes.nord == au_nord:
@@ -52,7 +52,7 @@ func _verifier(monde: Monde, moment: String) -> void:
 		_fautes.append("%s : le mur sud %s, la caméra %s" % [moment, "debout" if aretes.sud else "abattu", "au nord" if au_nord else "au sud"])
 	if aretes.dessus:
 		_fautes.append("%s : le mur au-dessus d'une tête est debout" % moment)
-	if _debout(monde.get_node("Volume/Couronnes").get_child(0)):
+	if _debout(monde.get_node("VolumeDeScene/Volume/Couronnes").get_child(0)):
 		_fautes.append("%s : la couronne du mur au-dessus d'une tête est debout" % moment)
 
 

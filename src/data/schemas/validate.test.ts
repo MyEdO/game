@@ -125,7 +125,7 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
     const rang = brut.scenes[0].entities.length;
     brut.scenes[0].entities.push({ id: 'p-1', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Tonneau' });
     const rapport = rapportDeFautes('Projet', validateDocument(projetSchema, brut)!);
-    expect(rapport).toContain(`  - scène « ${brut.scenes[0].id} » › entité « p-1 » › référence: « ref » absente`);
+    expect(rapport).toContain(`  - scène « ${brut.scenes[0].id} » › entité « p-1 » › décor: « decor » absent`);
     expect(rapport).not.toContain(`entities.${rang}`);
   });
 });

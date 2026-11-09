@@ -17,7 +17,7 @@ const ent = (id: string, kind: SceneEntity['kind'], x: number, y: number, z?: nu
   kind,
   pos: { x, y },
   ...(z !== undefined ? { z } : {}),
-  ...(kind === 'prop' ? { ref: 'tonneau' } : {}),
+  ...(kind === 'prop' ? { decor: { id: 'tonneau' } } : {}),
 });
 
 const sceneAvec = (entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });

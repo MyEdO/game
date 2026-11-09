@@ -10,9 +10,7 @@ from mathutils import Vector
 import habillage
 import navire as N
 import plan_de_jeu
-from maille import Maille, objet, poutre, tore
-
-GONFLE = 0.3    # exposant du travers de la bâche : sa face monte presque droite du pont à son faîte
+from maille import Maille, boite, cylindre, objet, poutre
 
 
 def garde_corps(maille, segments, z, GC):
@@ -62,7 +60,7 @@ def construire(D, P):
                 poutre(coque, a, b, B["section"], B["saillie"], C.normale(f, (a.z + b.z) / 2, signe), "fer")
 
     # rouf : murs en retrait du plat-bord, bloc avant bas puis maison arrière, chacun sur ses cases et à la hauteur de son
-    # toit ; garde-corps du toit de la maison, ouvert sur le bloc et sur la passerelle ; hublots, fenêtres, tonneaux
+    # toit ; garde-corps du toit de la maison, ouvert sur le bloc et sur la passerelle
     R = D["ROUF"]
     demi = lambda yy: C.lisse(C.f(yy)) - R["retrait"]  # noqa: E731
 
@@ -89,31 +87,6 @@ def construire(D, P):
     segments = list(zip(flanc, flanc[1:])) + [((-x0, y0_), (-x1, y1_)) for (x0, y0_), (x1, y1_) in zip(flanc, flanc[1:])]
     segments += [((w_ar, yb - rgc), (xp1, yb - rgc))]
     garde_corps(coque, segments, toit, {"hauteur": hauteur_gc, "pas": pas_gc, "section": section_gc})
-    xh, zh, rh = R["hublots"]
-    xf, zf, lf, hf = R["fenetres"]
-    for signe in (1, -1):
-        for xp in xh:
-            yy = yp(xp)
-            tore(coque, "x", (signe * (demi(yy) + 0.02), yy, zh), rh, 0.035, 12, 6, "fer")
-        for xp in xf:
-            yy = yp(xp)
-            c = Vector((signe * (demi(yy) + 0.03), yy, zf))
-            for s_ in (1, -1):
-                poutre(coque, c + Vector((0, -lf / 2 - 0.04, s_ * hf / 2)), c + Vector((0, lf / 2 + 0.04, s_ * hf / 2)), 0.07, 0.06, (signe, 0, 0), "bois")
-                poutre(coque, c + Vector((0, s_ * lf / 2, -hf / 2)), c + Vector((0, s_ * lf / 2, hf / 2)), 0.07, 0.06, (signe, 0, 0), "bois")
-            poutre(coque, c + Vector((0, 0, -hf / 2)), c + Vector((0, 0, hf / 2)), 0.04, 0.05, (signe, 0, 0), "bois")
-            poutre(coque, c + Vector((0, -lf / 2, 0)), c + Vector((0, lf / 2, 0)), 0.04, 0.05, (signe, 0, 0), "bois")
-    debout, rt, ht = R["tonneaux"]
-    zb_ = C.hauteur(GL["bloc"])
-    profil_tonneau = [(0, 0), (0, rt * 0.82), (0.5, rt), (1, rt * 0.82), (1, 0)]
-    pts_t = [Vector((x, yp(xp), zb_)) for xp, x in debout]
-    for c in pts_t:
-        N.fuseau(coque, c, c + Vector((0, 0, ht)), profil_tonneau, 10, "bois")
-        for t in (0.15, 0.85):
-            tore(coque, "z", c + Vector((0, 0, ht * t)), rt * 0.93, 0.02, 10, 4, "fer")
-    a_, b_ = pts_t[0] + Vector((-0.05, 0, ht + rt)), pts_t[1] + Vector((0.05, 0, ht + rt))
-    N.fuseau(coque, a_ + (a_ - b_).normalized() * 0.1, b_ + (b_ - a_).normalized() * 0.1, profil_tonneau, 10, "bois")
-
     # plates-formes de proue et de poupe, de f à f : plancher (un solide, qu'une écoutille perce), piliers depuis le pont,
     # garde-corps ouvert sur leur bord intérieur ; l'échelle de proue appuyée à ce bord ; passerelle de la maison à la
     # poupe
@@ -148,34 +121,6 @@ def construire(D, P):
     N.prisme(passerelle, [(yy, [(he - epe, xp0, xp1), (he, xp0, xp1)]) for yy in (ye0 - 0.03, ye1 + 0.03)], "bois")
     garde_corps(coque, [((x_, ye0 + r), (x_, ye1 + r)) for x_ in (xp0 + r, xp1 - r)], he, GC)
 
-    # bâches de la cargaison sur le pont avant : hiloire de l'écoutille de charge, bâche gonflée sur la cargaison, sangles
-    # croisées sur chacune de ses deux faces, de part et d'autre de l'allée axiale
-    BA = D["BACHES"]
-    y_a, y_b = yp(BA["abscisses"][0]), yp(BA["abscisses"][1])
-    hh, lh = BA["hiloire"]
-    for signe in (1, -1):
-        def bache(s, t, signe=signe):
-            """Point de la bâche : s de l'allée au bord, t de l'avant à l'arrière."""
-            yy = y_a + (y_b - y_a) * t
-            x_in, x_out = BA["allee"] / 2, interieur(yy) - 0.12
-            haut = C.pont(yy) + hh + (BA["sommet"] - hh) * math.sin(math.pi * s) ** GONFLE * min(1.0, math.sin(math.pi * t) * 6) ** 0.5
-            return (signe * (x_in + (x_out - x_in) * s), yy, haut)
-        coins = [bache(s, t)[:2] for s, t in ((0, 0), (1, 0), (1, 1), (0, 1))]
-        for (x0, y0_), (x1, y1_) in zip(coins, coins[1:] + coins[:1]):
-            poutre(coque, (x0, y0_, C.pont(y0_) + hh / 2 - 0.02), (x1, y1_, C.pont(y1_) + hh / 2 - 0.02), hh + 0.04, lh, (y1_ - y0_, x0 - x1, 0), "bois")
-        ss, ts = [i / 8 for i in range(9)], [j / 18 for j in range(19)]
-        N.nappe(coque, [[bache(s, t) for s in ss] for t in ts], "toile")
-        k = BA["croix"]
-        for i, face, sens in ((i, face, sens) for i in range(k) for face in (0.0, 1.0) for sens in (1, -1)):
-            pts = []
-            for j in range(13):
-                u = j / 12
-                s = abs(face - math.asin(u ** (1 / GONFLE)) / math.pi)   # du pied de la face (l'allée ou le bord) au faîte, droite de profil
-                t = (i + (u if sens == 1 else 1 - u)) / k
-                pts.append(Vector(bache(s, t)) + Vector((signe * (s - 0.5) * 0.06, 0, 0.03)))
-            for a, b in zip(pts, pts[1:]):
-                poutre(coque, a, b, BA["sangle"], BA["sangle"] * 0.6, (0, 0, 1), "cordage")
-
     # postes : chaque pièce regarde exactement son bord (`AXES`), comme l'hôte tourne la pièce montée vers lui
     postes = {}
     for bord, xp, g, x in D["POSTES"]:
@@ -186,6 +131,28 @@ def construire(D, P):
 
     pieces = N.Pieces(D, P, C)
     pieces.creuser(interieurs)
+
+    # hublots et fenêtres du rouf : des ouvertures percées dans ses murs jusqu'aux cabines creusées derrière, chacune
+    # traversée de son croisillon
+    O = D["OUVERTURES"]
+    xh, zh, rh = O["hublots"]
+    xf, zf, lf, hf = O["fenetres"]
+    perce, sc = O["percee"], O["croisillon"]
+    for signe in (1, -1):
+        for xp in xh:
+            yy = yp(xp)
+            dehors, dedans = signe * (demi(yy) + 0.05), signe * (demi(yy) - perce)
+            cylindre(interieurs, min(dehors, dedans), max(dehors, dedans), rh, "x", (0.0, yy, zh), 12, "bois")
+            xc = signe * (demi(yy) - perce / 2)
+            poutre(coque, (xc, yy - rh, zh), (xc, yy + rh, zh), sc, sc, (0, 0, 1), "fer")
+            poutre(coque, (xc, yy, zh - rh), (xc, yy, zh + rh), sc, sc, (1, 0, 0), "fer")
+        for xp in xf:
+            yy = yp(xp)
+            dehors, dedans = signe * (demi(yy) + 0.05), signe * (demi(yy) - perce)
+            boite(interieurs, (min(dehors, dedans), yy - lf / 2, zf - hf / 2), (max(dehors, dedans), yy + lf / 2, zf + hf / 2), "bois")
+            xc = signe * (demi(yy) - perce / 2)
+            poutre(coque, (xc, yy - lf / 2, zf), (xc, yy + lf / 2, zf), sc, sc, (0, 0, 1), "bois")
+            poutre(coque, (xc, yy, zf - hf / 2), (xc, yy, zf + hf / 2), sc, sc, (1, 0, 0), "bois")
     N.amenager(D, P, C, pieces, coque, interieurs, (GL["proue"],))
 
     # mât au travers du rouf, vergue et voile ferlée, haubans et étai
@@ -212,16 +179,6 @@ def construire(D, P):
                    CO["hauban"], CO["hauban"], (0, 1, 0), "cordage")
     poutre(coque, (0, ym - M["rayons"][1], M["tete"] - 0.4), (0, y(0.0) + 0.2, D["ETAI"]), CO["etai"], CO["etai"], (1, 0, 0), "cordage")
 
-    # fanaux sur les garde-corps
-    F = D["FANAUX"]
-    lh_, lr = F["lanterne"]
-    lanterne = [(0, 0), (0, lr * 0.6), (0.15, lr), (0.75, lr), (0.85, lr * 0.5), (1, 0)]
-    for x, xp, g, hampe in F["points"]:
-        z0 = C.hauteur(g)
-        yy = yp(xp)
-        N.espar(coque, (x, yy, z0), (x, yy, z0 + hampe), 0.04, 0.04, 6, "bois")
-        N.fuseau(coque, (x, yy, z0 + hampe), (x, yy, z0 + hampe + lh_), lanterne, 8, "fer")
-
     # aviron de queue sur son tolet, sa pale dans l'eau
     AV = D["AVIRON"]
     pt = lambda p: Vector((p[0], yp(p[1]), p[2]))  # noqa: E731
@@ -232,15 +189,13 @@ def construire(D, P):
     poutre(coque, bout - da * lp, bout, larg, epp, (1, 0, 0), "bois")
     N.fuseau(coque, tolet - Vector((0, 0, 0.35)), tolet + Vector((0, 0, 0.12)), [(0, 0), (0, 0.05), (1, 0.05), (1, 0)], 6, "fer")
 
-    # perche de poupe, sa traverse et la lanterne qui y pend ; le pavillon sous sa tête, l'emblème au milieu de sa toile
+    # perche de poupe et sa traverse ; le pavillon sous sa tête, l'emblème au milieu de sa toile
     PE, PV = D["PERCHE"], D["PAVILLON"]
     xh_, xph = PE["pied"]
     yh = yp(xph)
     zt, xt = PE["traverse"]
     N.espar(coque, (xh_, yh, C.hauteur(GL["poupe"])), (xh_, yh, PE["tete"]), PE["rayon"], PE["rayon"] * 0.6, 6, "bois")
     poutre(coque, (xh_, yh - 0.05, zt), (xh_, yp(xt), zt), 0.09, 0.07, (1, 0, 0), "bois")
-    poutre(coque, (xh_, yp(xt) - 0.05, zt - 0.02), (xh_, yp(xt) - 0.05, zt - 0.3), CO["raban"], CO["raban"], (1, 0, 0), "cordage")
-    N.fuseau(coque, (xh_, yp(xt) - 0.05, zt - 0.3 - lh_), (xh_, yp(xt) - 0.05, zt - 0.3), lanterne, 8, "fer")
     lt, ht = PV["toile"]
     bornes = N.carre_de_blason(lt, ht, PV["blason"], 0.5)
     ss = sorted({i / 6 for i in range(7)} | set(bornes[0]))

@@ -117,8 +117,8 @@ const construireScene = (): Scene => buildScene({
   },
   // Braseros : îlots de lumière (la lice et le couloir sont éclairés ; le fond reste dans le noir).
   entities: [
-    { id: 'brasero-lice', kind: 'prop', ref: 'brasero', pos: { x: 14, y: 8 } },
-    { id: 'brasero-couloir', kind: 'prop', ref: 'brasero', pos: { x: 8, y: 11 } },
+    { id: 'brasero-lice', kind: 'prop', decor: { id: 'brasero' }, pos: { x: 14, y: 8 } },
+    { id: 'brasero-couloir', kind: 'prop', decor: { id: 'brasero' }, pos: { x: 8, y: 11 } },
   ],
   // La lice : franchir la bande (x=7) lance l'exercice au contact (on garde l'exploration AVANT pour le
   // brouillard et la forme d'arme dans la fiche).
@@ -140,9 +140,9 @@ const construireScene = (): Scene => buildScene({
         { statblock: MANNEQUIN, appearance: { species: 'humains-reiklander' }, pos: { x: 13, y: 10 } }, // cible proche, éclairée → tir + rechargement
         { statblock: MANNEQUIN, appearance: { species: 'humains-reiklander' }, pos: { x: 13, y: 5 } }, //  derrière le muret → hors LdV (clic refusé)
         { statblock: MANNEQUIN, appearance: { species: 'humains-reiklander' }, pos: { x: 21, y: 2 } }, //  au loin dans le brouillard → invisible tant qu'on n'éclaire/approche pas
-        { ref: 'gobelin', pos: { x: 15, y: 7 } }, //         sparring : charge / Engagé / désengagement / deux armes
-        { ref: 'gobelin', pos: { x: 16, y: 9 } }, //         + cible plus petite que le Cheval → charge montée +20
-        { ref: 'cheval', pos: { x: 5, y: 10 }, mount: true, side: 'ally' }, // monture libre à enfourcher
+        { creature: { id: 'gobelin' }, pos: { x: 15, y: 7 } }, //         sparring : charge / Engagé / désengagement / deux armes
+        { creature: { id: 'gobelin' }, pos: { x: 16, y: 9 } }, //         + cible plus petite que le Cheval → charge montée +20
+        { creature: { id: 'cheval' }, pos: { x: 5, y: 10 }, mount: true, side: 'ally' }, // monture libre à enfourcher
       ],
     },
   ],

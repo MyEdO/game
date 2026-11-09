@@ -234,7 +234,7 @@ describe('darkSightTiles — vision nocturne (capability data)', () => {
 
 describe('mapLights — sources de lumière POSÉES (dataset props)', () => {
   it('un brasero éclaire ses alentours et rend les cases vues dans le noir', () => {
-    const s = { ...scene(9, 1), entities: [{ id: 'b', kind: 'prop', pos: { x: 5, y: 0 }, ref: 'brasero' }] } as unknown as Scene;
+    const s = { ...scene(9, 1), entities: [{ id: 'b', kind: 'prop', pos: { x: 5, y: 0 }, decor: { id: 'brasero' } }] } as unknown as Scene;
     const sources = mapLights(s);
     expect(sources.length).toBe(1); // brasero émetteur (props.json light)
     const light = computeLightField(s, 0, sources); // ténèbres + brasero
@@ -245,7 +245,7 @@ describe('mapLights — sources de lumière POSÉES (dataset props)', () => {
     expect(v.has('1,0,0')).toBe(false); // près du viewer mais sombre → invisible
   });
   it('en ténèbres (rayon ambiant 0), on voit une source DISTANTE en vue (feu dans le noir)', () => {
-    const s = { ...scene(13, 1), entities: [{ id: 'b', kind: 'prop', pos: { x: 8, y: 0 }, ref: 'brasero' }] } as unknown as Scene;
+    const s = { ...scene(13, 1), entities: [{ id: 'b', kind: 'prop', pos: { x: 8, y: 0 }, decor: { id: 'brasero' } }] } as unknown as Scene;
     const light = computeLightField(s, 0, mapLights(s)); // ténèbres + brasero
     const v = computeVisible(s, [{ pos: { x: 0, y: 0 }, radiusTiles: 0, darkTiles: 0 }], light);
     expect(v.has('8,0,0')).toBe(true); // foyer distant éclairé + en vue → visible MALGRÉ rayon 0
@@ -286,7 +286,7 @@ describe('combatantLights — la source PORTÉE suit son porteur : son ÉTAGE et
 
   it('la source PORTÉE nomme son porteur, la source POSÉE nomme son entité (`srcId`)', () => {
     expect(combatantLights(porteur(0), MPT)[0].srcId).toBe('h1');
-    const s = { ...scene(9, 1), entities: [{ id: 'b7', kind: 'prop', pos: { x: 5, y: 0 }, ref: 'brasero' }] } as unknown as Scene;
+    const s = { ...scene(9, 1), entities: [{ id: 'b7', kind: 'prop', pos: { x: 5, y: 0 }, decor: { id: 'brasero' } }] } as unknown as Scene;
     expect(mapLights(s)[0].srcId).toBe('b7');
   });
 });

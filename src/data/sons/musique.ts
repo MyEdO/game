@@ -1,7 +1,7 @@
 /**
  * Musique de fond — partie PURE : les pistes du registre et la forme d'une sélection. La sélection
- * depuis l'état du jeu vit chez l'hôte (`state/audioWiring.ts`), la lecture (canal, boucle, fondu)
- * dans `audio/engine.ts`.
+ * depuis l'état du jeu vit au noyau (`noyau/musiqueDeLaPartie.ts`), la lecture (canal, boucle, fondu)
+ * chez chaque hôte.
  */
 import { SOUND_DEFS } from './_registry.generated';
 import type { MusicContext, SoundDef } from './types';

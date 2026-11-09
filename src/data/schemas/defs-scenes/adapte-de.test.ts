@@ -41,7 +41,7 @@ interface Site {
 
 const SITES: readonly Site[] = [
   { nom: 'narratif.indices[].stades[]', schema: indiceStadeSchema, nu: { id: 's1', prose: 'Une trace.' }, verbatim: 'source', valeurVerbatim: SOURCE },
-  { nom: 'narratif.presetsPnj[]', schema: presetPnjSchema, nu: { id: 'pnj', base: 'humain' }, verbatim: 'source', valeurVerbatim: SOURCE },
+  { nom: 'narratif.presetsPnj[]', schema: presetPnjSchema, nu: { id: 'pnj', base: { id: 'humain' } }, verbatim: 'source', valeurVerbatim: SOURCE },
   { nom: 'narratif.ouverture', schema: ouvertureSchema, nu: { titre: 'Titre', pitch: 'Un pitch.' }, verbatim: 'source', valeurVerbatim: SOURCE },
   { nom: 'dialogues[].nodes[]', schema: dialogueNodeSchema, nu: { id: 'n1', choices: [] }, verbatim: 'descRef', valeurVerbatim: DESC_REF },
   { nom: 'journal', schema: journalSchema, nu: { type: 'journal' }, verbatim: 'descRef', valeurVerbatim: DESC_REF },
@@ -83,12 +83,12 @@ describe('adapteDe — la prose d’un nœud de dialogue et d’un journal reste
 
 describe('preset : `adapteDe` et profil ADRESSÉ s’excluent', () => {
   it('profil adressé + `adapteDe` : refusé au chemin `adapteDe` ; sans adresse, l’adapté parse', () => {
-    const r = presetPnjSchema.safeParse({ id: 'pnj', base: 'humain', adapteDe: ADAPTE, profil: { descRef: DESC_REF } });
+    const r = presetPnjSchema.safeParse({ id: 'pnj', base: { id: 'humain' }, adapteDe: ADAPTE, profil: { descRef: DESC_REF } });
     expect(r.error?.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
       { path: ['adapteDe'], message: 'texte adapté, alors que la description de « profil » est la copie adressée du livre.' },
     ]);
-    expect(presetPnjSchema.safeParse({ id: 'pnj', base: 'humain', adapteDe: ADAPTE, profil: { desc: 'Un cocher bourru.' } }).error).toBeUndefined();
-    expect(presetPnjSchema.safeParse({ id: 'pnj', base: 'humain', source: SOURCE, profil: { descRef: DESC_REF } }).error).toBeUndefined();
+    expect(presetPnjSchema.safeParse({ id: 'pnj', base: { id: 'humain' }, adapteDe: ADAPTE, profil: { desc: 'Un cocher bourru.' } }).error).toBeUndefined();
+    expect(presetPnjSchema.safeParse({ id: 'pnj', base: { id: 'humain' }, source: SOURCE, profil: { descRef: DESC_REF } }).error).toBeUndefined();
   });
 });
 
@@ -99,9 +99,9 @@ describe('`sourceHeritee` — frontière locale de provenance', () => {
       ...base,
       source: SOURCE,
       narratif: { ...base.narratif, presetsPnj: [
-        { id: 'nu', base: 'humain', profil: { label: 'A' } },
-        { id: 'adapte', base: 'humain', adapteDe: ADAPTE, profil: { label: 'B' } },
-        { id: 'copie', base: 'humain', source: { ...SOURCE, page: 15 }, profil: { label: 'C' } },
+        { id: 'nu', base: { id: 'humain' }, profil: { label: 'A' } },
+        { id: 'adapte', base: { id: 'humain' }, adapteDe: ADAPTE, profil: { label: 'B' } },
+        { id: 'copie', base: { id: 'humain' }, source: { ...SOURCE, page: 15 }, profil: { label: 'C' } },
       ] },
     };
     const v = projetSchema.safeParse(projet);

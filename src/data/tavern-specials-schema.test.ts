@@ -48,7 +48,7 @@ describe('tavernGames › specials — NADJ 16 l.82', () => {
 });
 
 describe('SceneEntity › tavernGame.id — résolu au catalogue des jeux de taverne', () => {
-  const pnj = (gameId: string) => ({ id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, tavernGame: { id: gameId } });
+  const pnj = (gameId: string) => ({ id: 'j', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, tavernGame: { id: gameId } });
 
   it('un jeu du catalogue est admis', () => {
     expect(sceneEntitySchema.safeParse(pnj('dominos')).success).toBe(true);

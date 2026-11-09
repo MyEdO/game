@@ -56,7 +56,7 @@ describe('poser un objet au sol et le ramasser', () => {
     banc.getState().poserLObjet(sac.uid);
     expect(objetsDe(a.id).some((i) => i.uid === sac.uid || i.uid === range.uid), 'le lot quitte son porteur').toBe(false);
     const [decor] = decorsAuSol();
-    expect(decor, 'un sac à la case du groupe').toMatchObject({ kind: 'prop', ref: 'bourse', pos: { x: 2, y: 2 } });
+    expect(decor, 'un sac à la case du groupe').toMatchObject({ kind: 'prop', decor: { id: 'bourse' }, pos: { x: 2, y: 2 } });
     expect(banc.getState().objetsAuSol[decor.id].map((i) => i.uid), 'l’objet, puis son contenu').toEqual([sac.uid, range.uid]);
 
     const ramasser = gestesDExploration(banc.getState()).find((g) => g.libelle === t('exploration.offre', { porteur: decor.label!, action: t('usable.ramasser') }));

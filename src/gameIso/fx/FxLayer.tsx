@@ -6,14 +6,15 @@
 import type { Dims } from '../../geometry/iso';
 import { tileCenter, diamondPath } from '../../geometry/iso';
 import { IconG } from '../../ui/Icon';
-import { FLOAT_COLOR, type Float, type Proj, type Aura, type AoeFlash } from './useCombatFx';
+import { TEINTE_DU_CRITIQUE, TEINTE_DU_FLOTTANT } from '../../noyau/effetsDeLAppel';
+import type { Float, Proj, Aura, AoeFlash } from './useCombatFx';
 
 export function FxLayer({ dims, floats, projs, auras, aoes }: { dims: Dims; floats: Float[]; projs: Proj[]; auras: Aura[]; aoes: AoeFlash[] }) {
   return (
     <>
       {floats.map((f) => {
         const { cx, cy } = tileCenter(f.x, f.y, dims);
-        const color = f.crit ? '#ffd166' : FLOAT_COLOR[f.kind];
+        const color = f.crit ? TEINTE_DU_CRITIQUE : TEINTE_DU_FLOTTANT[f.kind];
         if (!f.icon) {
           return (
             <text

@@ -262,7 +262,7 @@ describe('CampaignLibraryScreen — rendu (#766)', () => {
 
   it('un id renommé au Codex (#1692) : l’écran reste debout, et « Jouer » d’une campagne du jeu qui le référence refuse par la voie des projets', async () => {
     const avant = [...datasetArray('props')];
-    const campagne = allBuiltinCampaigns.find((bc) => JSON.stringify(bc.paquet).includes('"ref":"tonneau"'));
+    const campagne = allBuiltinCampaigns.find((bc) => JSON.stringify(bc.paquet).includes('"decor":{"id":"tonneau"}'));
     expect(campagne, 'une campagne du jeu référence le décor `tonneau`').toBeDefined();
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));

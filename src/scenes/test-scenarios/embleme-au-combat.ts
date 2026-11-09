@@ -40,7 +40,7 @@ function porteEcu(idNeuf: FabriqueDId): Combatant {
 
 function construireScene(): Scene {
   const scene = arena({ id: 'test-embleme-au-combat', label: 'Emblème au combat', w: 12, h: 8, heroStart: HERO_START });
-  setEncounters(scene, [{ id: 'enc-embleme', enemies: [{ ref: 'orc', pos: { x: 7, y: 4 }, facing: 'O' }] }]);
+  setEncounters(scene, [{ id: 'enc-embleme', enemies: [{ creature: { id: 'orc' }, pos: { x: 7, y: 4 }, facing: 'O' }] }]);
   return scene;
 }
 

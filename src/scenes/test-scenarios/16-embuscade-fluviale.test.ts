@@ -28,12 +28,12 @@ describe('Embuscade fluviale — scène compilée + roster', () => {
     expect(scenConstruit.scene.dimensions).toEqual({ w: 18, h: 12 });
     expect(layerTiles(scenConstruit.scene, 0).every((t) => t === 'planches')).toBe(true);
     const byId = (id: string) => scenConstruit.scene.entities.find((e) => e.id === id)!;
-    expect(byId('enemy-enc-fluvial-0').ref).toBe('barque-fluviale');
+    expect(byId('enemy-enc-fluvial-0').vehicule?.id).toBe('barque-fluviale');
     expect(byId('enemy-enc-fluvial-0').crewIds).toEqual(['enemy-enc-fluvial-1', 'enemy-enc-fluvial-2', 'enemy-enc-fluvial-3']);
-    expect(byId('enemy-enc-fluvial-1').ref).toBe('humain');
-    expect(byId('enemy-enc-fluvial-3').ref).toBe('jaego-roth');
-    expect(byId('enemy-enc-fluvial-4').ref).toBe('anguille-du-reik');
-    expect(byId('enemy-enc-fluvial-5').ref).toBe('barge-fluviale');
+    expect(byId('enemy-enc-fluvial-1').creature?.id).toBe('humain');
+    expect(byId('enemy-enc-fluvial-3').creature?.id).toBe('jaego-roth');
+    expect(byId('enemy-enc-fluvial-4').creature?.id).toBe('anguille-du-reik');
+    expect(byId('enemy-enc-fluvial-5').vehicule?.id).toBe('barge-fluviale');
   });
 
   it('les coques fluviales portent les tables MSRC data-driven (navire-fluvial + river-criticals)', () => {

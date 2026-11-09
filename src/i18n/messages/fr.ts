@@ -222,7 +222,6 @@ export const fr = {
   'verbe.rest.valider': 'Dormir',
   'verbe.interlude.valider': 'Clore l’interlude',
   'verbe.marchand.valider': 'Confirmer la répartition',
-  'verbe.armerLeTirPreventif': 'Préempter',
   'verbe.cliquerLaCase': 'Viser',
   'verbe.medic.fermer': 'Fermer l’infirmerie',
   // Le libellé du choix d'une fenêtre (`libelleDuChoix`, `noyau/libelles.ts`) : `verbe.<fenetre>.<axe>`.
@@ -242,6 +241,8 @@ export const fr = {
   'verbe.loot.ligne': 'Attribuer',
   'verbe.victory.ligne': 'Attribuer',
   'verbe.victory.depecer': 'Dépecer',
+  'verbe.roundStart.promouvoir': 'Agir en premier',
+  'verbe.roundStart.viser': 'Préempter',
   'verbe.rest.couchage': 'Logement',
   'verbe.rest.pitance': 'Nourriture',
   'verbe.batailleDeMasse.alea': 'Choisir un facteur',
@@ -260,7 +261,6 @@ export const fr = {
   'verbe.mountTarget.fermer': 'Annuler',
   'verbe.appraise.confirm': 'Conclure',
   'verbe.rest.fermer': 'Annuler',
-  'verbe.promouvoirLeCombattant': 'Agir en premier',
   'verbe.seaActivities.activite': 'Activité',
   'verbe.seaActivities.investir': 'Mise (CO)',
   'verbe.seaActivities.cacher': 'Planque gratuite (CO)',
@@ -292,6 +292,7 @@ export const fr = {
   'valeur.non': 'Non',
   'valeur.aucun': 'Aucun',
   'valeur.activite.repos': 'Repos',
+  'valeur.viser.aucun': 'Aucune visée',
   'valeur.issue.negate': 'Éviter le coup (−1 Destin)',
   'valeur.issue.survive': 'Survivre hors du combat (−1 Destin)',
   'valeur.issue.accept': 'Accepter son sort',
@@ -1887,6 +1888,14 @@ export const fr = {
   'cf.fragRescued': ' (succès dû au bonus → 0 DR)',
   'cf.scatter': "L'arme de {name} dévie et atterrit (Dispersion).",
   'cf.scatterFloat': '⤬ dévie',
+  // Les flottants des Blessures, du soin, d'un coup et d'une incantation (`noyau/effetsDeLAppel.ts`).
+  'fx.blessures': '-{n}',
+  'fx.soin': '+{n}',
+  'fx.encaisse': 'Encaissé',
+  'fx.horsDeCombat': '✦ hors de combat',
+  'fx.pareOuEsquive': 'Paré / Esquivé',
+  'fx.rate': 'Raté',
+  'fx.incantationRatee': 'Incantation ratée',
   'cf.componentDowngrade': "{name} : le composant dégrade l'Incantation Imparfaite (Majeure → Mineure).",
   // #1318 V8c₂ — les DEUX lignes de `combatFlow.ts` que la 7ᵉ forme du garde (`return [ … ]`) a
   // révélées : le fichier était déclaré MIGRÉ, son invariant ZÉRO ne les voyait pas.

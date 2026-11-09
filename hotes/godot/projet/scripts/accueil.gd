@@ -2,6 +2,10 @@
 ## Mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la recette lit.
 extends CenterContainer
 
+## @contrat Écran publié
+## L'entrée de l'application est un menu (`scenes/Accueil.tscn`, `run/main_scene`) à trois boutons, « Combat »,
+## « Atelier » et « Éditeur ».
+
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 

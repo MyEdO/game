@@ -54,7 +54,7 @@ function bati(entities: readonly SceneEntity[], mpt: number): IndexDecor {
     const z = e.z ?? 0;
     ranger(ancrees, `${e.pos.x},${e.pos.y},${z}`, e);
     if (e.kind !== 'prop') continue;
-    for (const t of propFootTiles(e.ref, e.pos, e.facing, mpt)) {
+    for (const t of propFootTiles(e.decor?.id, e.pos, e.facing, mpt)) {
       ranger(parCase, `${t.x},${t.y}`, e);
       ranger(parCaseEtage, `${t.x},${t.y},${z}`, e);
     }

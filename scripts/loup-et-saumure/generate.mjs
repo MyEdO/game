@@ -5,9 +5,8 @@
  * Modelé sur `scripts/arene/generate.mjs` — RÉUTILISE `scene()`/`hero()`/`NPC()`/`P()`/`flowOf()`/
  * `flagWhen()`/`testNode()`/`poste()` de `scripts/campagne/lib.mjs` (IMPORT, zéro modification de ce fichier).
  *
- * `scene()` normalise le `ref` des ennemis TERSE (`encounters[].enemies[]`) via `creatureId()`, qui
- * accepte désormais créature ∪ véhicule (#218) — un `ref` de NAVIRE (`vehicles.json` : `cogue`/`langskip`/
- * `loup-imperial`) passe. Les entités-COQUE (Grimm/cogue/langskip) restent posées en `entities` BRUTES +
+ * `scene()` valide le corps des ennemis TERSE (`encounters[].enemies[]`) dans son catalogue (`corpsValide`) — un
+ * `vehicule` de NAVIRE (`vehicles.json` : `cogue`/`langskip`/`loup-imperial`) passe (#218). Les entités-COQUE (Grimm/cogue/langskip) restent posées en `entities` BRUTES +
  * enrôlées via `encounters[].members` (ids explicites) car elles portent `crewIds`/`postes`/`upgrades`
  * (équipage exposé, artillerie montée, améliorations d'instance) — plus riche que le terse `enemies[]`.
  *
@@ -60,12 +59,12 @@ function armedPoste(trappingId, side, stock) {
 // « 43 âmes à bord sur 50 ») × 4 jours (quelques jours d'eau, pas l'autonomie totale du voyage).
 const GRIMM_WATER_LITRES = dailyWaterLitres('mediane') * 43 * 4;
 
-/** Entité-COQUE brute (navire = Combattant à PV, ref vers `vehicles.json`) — chemin `entities` du
- *  MapSpec (jamais normalisé par `creatureId`), cf. commentaire d'en-tête. `upgrades` = améliorations
+/** Entité-COQUE brute (navire = Combattant à PV, `vehicule` de `vehicles.json`) — chemin `entities` du
+ *  MapSpec (jamais validé par `corpsValide`), cf. commentaire d'en-tête. `upgrades` = améliorations
  *  d'INSTANCE (`NavalTraitRef[]` : `{ id, value? }`, lues au spawn par `spawn.ts` puis par les Tests
  *  d'équipage de combat via `Combatant.upgrades`). */
 function hull(id, ref, x, y, facing, label, crewIds, postes, upgrades) {
-  return { id, kind: 'personnage', ref, pos: { x, y }, facing, label, crewIds, postes, ...(upgrades ? { upgrades } : {}) };
+  return { id, kind: 'personnage', vehicule: { id: ref }, pos: { x, y }, facing, label, crewIds, postes, ...(upgrades ? { upgrades } : {}) };
 }
 /** Rangées ASCII d'une scène MER : `w`×`h` cases d'eau ('.') avec DEUX empreintes rectangulaires ('=')
  *  posées par coordonnées — construites par CODE (pas comptées à la main) pour éviter l'erreur de
@@ -417,9 +416,9 @@ scenes.push(scene({
       [armedPoste('canon-moyen', 'tribord', [{ ref: 'boulet-et-poudre', qty: 12 }]),
        armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 12 }]),
        armedPoste('canon-moyen', 'proue', [{ ref: 'boulet-et-poudre', qty: 8 }])]),
-    { id: 'pirate-1', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 6 }, label: 'Pirate' },
-    { id: 'pirate-2', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 8 }, label: 'Pirate' },
-    { id: 'chef-cogue', kind: 'personnage', ref: 'jaego-roth', pos: { x: 19, y: 7 }, label: 'Le chef de la Dent de Manann' },
+    { id: 'pirate-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 6 }, label: 'Pirate' },
+    { id: 'pirate-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 8 }, label: 'Pirate' },
+    { id: 'chef-cogue', kind: 'personnage', creature: { id: 'jaego-roth' }, pos: { x: 19, y: 7 }, label: 'Le chef de la Dent de Manann' },
     marinDuGrimm('cogue-helm', 18, 5, 'Barreur de la Dent de Manann', HELM_SKILLS, MARIN_APPEARANCE),
     marinDuGrimm('cogue-gun', 18, 9, 'Canonnier de la Dent de Manann', GUN_SKILLS, ARTILLEUR_APPEARANCE),
   ],
@@ -595,9 +594,9 @@ scenes.push(scene({
        armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 10 }]),
        armedPoste('canon-moyen', 'proue', [{ ref: 'boulet-et-poudre', qty: 8 }])],
       [{ id: 'proue-idole-de-stromfels' }]),
-    { id: 'norse-1', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 6 }, label: 'Norse' },
-    { id: 'norse-2', kind: 'personnage', ref: 'humain', pos: { x: 18, y: 8 }, label: 'Norse' },
-    { id: 'olg', kind: 'personnage', ref: 'olg-blodsalt', pos: { x: 19, y: 7 }, label: 'Olg Blóðsalt', inventaire: { 'hache-d-armes': false } },
+    { id: 'norse-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 6 }, label: 'Norse' },
+    { id: 'norse-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 8 }, label: 'Norse' },
+    { id: 'olg', kind: 'personnage', creature: { id: 'olg-blodsalt' }, pos: { x: 19, y: 7 }, label: 'Olg Blóðsalt', inventaire: { 'hache-d-armes': false } },
     marinDuGrimm('serpent-helm', 18, 5, 'Barreur du Serpent-de-Sel', HELM_SKILLS, MARIN_APPEARANCE),
     marinDuGrimm('serpent-gun', 18, 9, 'Canonnier du Serpent-de-Sel', GUN_SKILLS, ARTILLEUR_APPEARANCE),
   ],

@@ -33,7 +33,7 @@ const CAPS: Dir4[] = ['N', 'E', 'S', 'O'];
  *  partout — la hauteur mesurée est bien celle du foyer, pas celle du relief. */
 function sceneAvec(ref: string, facing: Dir4, pos = { x: 5, y: 4 }): Scene {
   const s = emptyScene('scene-test', 12, 9);
-  s.entities = [{ id: 'src-1', kind: 'prop', ref, pos, facing }];
+  s.entities = [{ id: 'src-1', kind: 'prop', decor: { id: ref }, pos, facing }];
   return s;
 }
 

@@ -53,14 +53,14 @@ function equipage(idNeuf: FabriqueDId): Combatant[] {
 function construireScene(): Scene {
   /** La coque des héros — déclarée à part pour que la rencontre la NOMME sans la recopier. */
   const cogueDEssai: SceneEntity = {
-    id: 'cogue-test', kind: 'personnage', ref: 'cogue', pos: { x: 8, y: 6 }, facing: 'E',
+    id: 'cogue-test', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 8, y: 6 }, facing: 'E',
     label: 'La cogue d’essai', crewIds: ['gabier', 'vigie'],
     upgrades: [{ id: 'nid-de-pie' }],
   };
 
   /** La coque ADVERSE — même déclaration que celle des héros, sans équipage posté. */
   const coguePirate: SceneEntity = {
-    id: 'cogue-pirate', kind: 'personnage', ref: 'cogue', pos: { x: 16, y: 6 }, facing: 'O',
+    id: 'cogue-pirate', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 16, y: 6 }, facing: 'O',
     label: 'La cogue pirate',
   };
 

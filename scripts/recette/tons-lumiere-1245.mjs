@@ -100,7 +100,7 @@ vérifier(feu.r > feu.b + 2, `la flaque du FEU est CHAUDE — R ${feu.r.toFixed(
 await evaluate(session, `(() => {
   const s = __wfrp.store.getState();
   const scene = { ...s.scene, entities: s.scene.entities.map((e) => (
-    e.kind === 'prop' && e.ref && /brasero|feu-camp|chandelier|lampadaire/.test(e.ref)
+    e.kind === 'prop' && e.decor && /brasero|feu-camp|chandelier|lampadaire/.test(e.decor.id)
       ? { ...e, light: { radiusM: 8, tone: 'lanterne' } } : e)) };
   __wfrp.store.setState({ scene });
 })()`);

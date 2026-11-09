@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { breathTypes, domains, lightTones, maneuvers, siegeEngines } from '../data';
+import { allMusicDefs } from '../data/sons/musique';
 import { sonsDEffet } from '../data/sons/registre';
-import { vitrineDesEffets, type Effet } from './effetsDeLAppel';
+import { TEINTE_DU_FLOTTANT, vitrineDesEffets, type Effet, type GenreDeFlottant } from './effetsDeLAppel';
 
 const coupDe = (e: Effet) => {
   if (e.quoi !== 'coup') throw new Error(`un coup attendu, reçu ${e.quoi}`);
@@ -12,7 +13,7 @@ const zoneDe = (e: Effet) => {
   return e;
 };
 
-describe('la vitrine des effets de l’atelier (#3777, #3783)', () => {
+describe('la vitrine des effets de l’atelier (#3777, #3783, #3825, #3822)', () => {
   const v = vitrineDesEffets();
 
   it('chaque engin de siège attaque par le rendu de son objet', () => {
@@ -76,5 +77,23 @@ describe('la vitrine des effets de l’atelier (#3777, #3783)', () => {
   it('chaque son d’effet du registre se joue, musique exclue', () => {
     expect(v.sons.map((s) => s.id)).toEqual(sonsDEffet.map((d) => d.id));
     expect(v.sons.every((s) => s.effet.quoi === 'son' && s.effet.son.fichiers.length > 0)).toBe(true);
+  });
+
+  it('chaque genre de flottant se montre sur la cible, et les Blessures d’un Coup Critique ; un coup dit son issue', () => {
+    const genres = v.flottants.flatMap((f) => (f.effet.quoi === 'flottant' && f.effet.sur === v.vers ? [f.effet.flottant.genre] : []));
+    expect(new Set(genres)).toEqual(new Set(Object.keys(TEINTE_DU_FLOTTANT) as GenreDeFlottant[]));
+    expect(v.flottants.some((f) => f.effet.quoi === 'flottant' && f.effet.flottant.critique)).toBe(true);
+    expect(v.armes.every((a) => a.variantes.every((x) => x.effet.quoi === 'coup' && x.effet.flottants.length > 0))).toBe(true);
+  });
+
+  it('chaque musique de fond se joue, ses pistes du registre', () => {
+    expect(v.musiques.map((m) => [m.id, m.musique.pistes.map((p) => p.id)])).toEqual(allMusicDefs().map((d) => [d.id, [d.id]]));
+  });
+
+  it('l’auteur parcourt un chemin qui tourne depuis sa case, chaque pas à sa longueur sur le sol plat (#3822)', () => {
+    const d = v.metresParCase;
+    expect(v.deplacement).toEqual({ quoi: 'deplacement', qui: v.de, cases: [
+      { x: 0, y: 0, z: 0, metres: 0 }, { x: 1, y: 0, z: 0, metres: d }, { x: 2, y: 1, z: 0, metres: Math.SQRT2 * d }, { x: 2, y: 2, z: 0, metres: d },
+    ] });
   });
 });

@@ -30,8 +30,8 @@ function scèneDeTaverne(): Scene {
   s.id = 'taverne';
   s.entities = [
     { id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } },
-    { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } },
-    { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 5 } },
+    { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } },
+    { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 6, y: 5 } },
   ];
   return s;
 }
@@ -104,7 +104,7 @@ describe('interagirAvecLEntite sur un meuble à places — bascule s’asseoir /
     banc.setState({ party: [hero()], scene: null, mode: 'exploration', journal: [] });
     const sc = emptyScene('scene-test', 12, 12);
     sc.id = 'sans-places';
-    sc.entities = [{ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } }, { id: 'caisse', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'comptoir-droit' }];
+    sc.entities = [{ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } }, { id: 'caisse', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'comptoir-droit' } }];
     banc.getState().lancerLaScene(sc);
     banc.setState({ partyPos: { x: 5, y: 4 } });
     banc.getState().interagirAvecLEntite('caisse');

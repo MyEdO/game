@@ -106,14 +106,14 @@ export function makeForet() {
         surprise: 'party',
         hidden: true,
         enemies: [
-          { ref: 'gor', pos: { x: 12, y: 9 } },
-      { ref: 'gor', pos: { x: 18, y: 16 }, optionals: [{ id: 'armure', value: 2 }] },
-          { ref: 'ungor', pos: { x: 9, y: 12 } },
-          { ref: 'ungor', pos: { x: 15, y: 20 } },
-          { ref: 'ungor', pos: { x: 19, y: 7 } },
-          { ref: 'loup', pos: { x: 7, y: 16 } },
-          { ref: 'loup', pos: { x: 14, y: 12 } },
-          { ref: 'loup', pos: { x: 17, y: 23 } },
+          { creature: { id: 'gor' }, pos: { x: 12, y: 9 } },
+      { creature: { id: 'gor' }, pos: { x: 18, y: 16 }, optionals: [{ id: 'armure', value: 2 }] },
+          { creature: { id: 'ungor' }, pos: { x: 9, y: 12 } },
+          { creature: { id: 'ungor' }, pos: { x: 15, y: 20 } },
+          { creature: { id: 'ungor' }, pos: { x: 19, y: 7 } },
+          { creature: { id: 'loup' }, pos: { x: 7, y: 16 } },
+          { creature: { id: 'loup' }, pos: { x: 14, y: 12 } },
+          { creature: { id: 'loup' }, pos: { x: 17, y: 23 } },
         ],
         onVictory: flowOf([
           { type: 'giveXp', amount: 120 },
@@ -124,10 +124,10 @@ export function makeForet() {
         // Le camp de Bella la Noire — PNJ NOMMÉE du bestiaire (ADE), à la tête de ses coupe-jarrets.
         id: 'enc-foret-bande',
         enemies: [
-          { ref: 'bella-la-noire', pos: { x: 31, y: 11 } },
-          { ref: 'humain', pos: { x: 29, y: 9 }, inventaire: { arc: false }, randomChars: true, label: 'Coupe-jarret de Bella', appearance: { tenue: 'hors-la-loi', sex: 'F' } },
-          { ref: 'humain', pos: { x: 33, y: 13 }, inventaire: { 'epee-batarde': false }, randomChars: true, label: 'Spadassin de Bella', appearance: { tenue: 'hors-la-loi' } },
-          { ref: 'chien', pos: { x: 28, y: 14 } },
+          { creature: { id: 'bella-la-noire' }, pos: { x: 31, y: 11 } },
+          { creature: { id: 'humain' }, pos: { x: 29, y: 9 }, inventaire: { arc: false }, randomChars: true, label: 'Coupe-jarret de Bella', appearance: { tenue: 'hors-la-loi', sex: 'F' } },
+          { creature: { id: 'humain' }, pos: { x: 33, y: 13 }, inventaire: { 'epee-batarde': false }, randomChars: true, label: 'Spadassin de Bella', appearance: { tenue: 'hors-la-loi' } },
+          { creature: { id: 'chien' }, pos: { x: 28, y: 14 } },
         ],
         onVictory: flowOf([
           { type: 'setFlag', flag: 'contrat_foret_fait' },
@@ -226,10 +226,10 @@ export function makeMarais() {
         surprise: 'party',
         hidden: true, // embuscade de tourbière : la chose surgit de l'eau morte
         enemies: [
-          { ref: 'bete-des-marais', pos: { x: 15, y: 19 } },
-          { ref: 'pieuvre-des-tourbieres', pos: { x: 22, y: 19 } },
-          { ref: 'serpent', pos: { x: 9, y: 20 } },
-          { ref: 'serpent', pos: { x: 21, y: 16 } },
+          { creature: { id: 'bete-des-marais' }, pos: { x: 15, y: 19 } },
+          { creature: { id: 'pieuvre-des-tourbieres' }, pos: { x: 22, y: 19 } },
+          { creature: { id: 'serpent' }, pos: { x: 9, y: 20 } },
+          { creature: { id: 'serpent' }, pos: { x: 21, y: 16 } },
         ],
         onVictory: flowOf([
           { type: 'setFlag', flag: 'contrat_marais_fait' },
@@ -389,12 +389,12 @@ export function makeVillage() {
       {
         id: 'enc-village',
         enemies: [
-          { ref: 'zombie', pos: { x: 14, y: 7 } },
-          { ref: 'zombie', pos: { x: 18, y: 12 }, optionals: [{ id: 'maladie' }] },
-          { ref: 'zombie', pos: { x: 11, y: 16 } },
-          { ref: 'zombie', pos: { x: 22, y: 8 }, randomChars: true },
-          { ref: 'zombie', pos: { x: 16, y: 19 } },
-          { ref: 'goule-de-crypte', pos: { x: 20, y: 20 } },
+          { creature: { id: 'zombie' }, pos: { x: 14, y: 7 } },
+          { creature: { id: 'zombie' }, pos: { x: 18, y: 12 }, optionals: [{ id: 'maladie' }] },
+          { creature: { id: 'zombie' }, pos: { x: 11, y: 16 } },
+          { creature: { id: 'zombie' }, pos: { x: 22, y: 8 }, randomChars: true },
+          { creature: { id: 'zombie' }, pos: { x: 16, y: 19 } },
+          { creature: { id: 'goule-de-crypte' }, pos: { x: 20, y: 20 } },
         ],
         onVictory: flowOf([
           { type: 'setFlag', flag: 'contrat_village_fait' },
@@ -458,10 +458,10 @@ export function makeEmbuscade() {
         surprise: 'party',
         hidden: true, // embuscade de route : les détrousseurs jaillissent des fourrés
         enemies: [
-          { ref: 'gobelin', pos: { x: 14, y: 4 }, randomChars: true },
-          { ref: 'gobelin', pos: { x: 18, y: 9 }, randomChars: true },
-          { ref: 'gobelin', pos: { x: 10, y: 10 } },
-          { ref: 'orc', pos: { x: 21, y: 5 } },
+          { creature: { id: 'gobelin' }, pos: { x: 14, y: 4 }, randomChars: true },
+          { creature: { id: 'gobelin' }, pos: { x: 18, y: 9 }, randomChars: true },
+          { creature: { id: 'gobelin' }, pos: { x: 10, y: 10 } },
+          { creature: { id: 'orc' }, pos: { x: 21, y: 5 } },
         ],
         onVictory: flowOf([
           { type: 'giveXp', amount: 80 },

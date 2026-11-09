@@ -493,7 +493,7 @@ export function setPosteSide(scene: Scene, entityId: string, side: FireArc | und
   return patchPoste0(scene, entityId, (p) => champ(p, 'side', side || undefined));
 }
 
-/** Change l'engin du poste : référence catalogue, libellé et `ref` de l'entité, équipage conservé.
+/** Change l'engin du poste : référence catalogue, libellé et `engin` de l'entité, équipage conservé.
  *  Seul un trapping du sous-type `armes-de-siege`, sélectionné par `siegeEngines`, est accepté. */
 export function setPosteEngine(scene: Scene, entityId: string, trappingId: string): Scene {
   const t = siegeEngines().find((engin) => engin.id === trappingId);
@@ -502,7 +502,7 @@ export function setPosteEngine(scene: Scene, entityId: string, trappingId: strin
   if (!ent) return scene;
   return editEntity(scene, entityId, {
     label: t.label,
-    ref: trappingId,
+    engin: { id: trappingId },
     postes: ent.postes!.map((p, i) => (i === 0 ? { ...p, trappingId } : p)),
   });
 }
@@ -743,7 +743,7 @@ export function changePropRef(scene: Scene, propId: string, ref: string): Scene 
 /** Pose une entité à p (id frais) depuis l'OUTIL tel que la palette le porte — il tient déjà le décor
  *  ou la fiche élue : aucun cas muet ne subsiste ici. Les props appliquent leurs défauts de catalogue
  *  (empreinte, interactif si fouillable) et se posent au point visé `point` (`poseAuPoint` : case, calage, appui) ;
- *  un personnage porte sa fiche en `ref` et le libellé de la fiche, son apparence se dérive du record (#1882). Une
+ *  un personnage porte sa fiche en `creature` et le libellé de la fiche, son apparence se dérive du record (#1882). Une
  *  fiche absente du bestiaire lève. */
 export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
@@ -758,7 +758,7 @@ export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point
   const ent: SceneEntity = outil.kind === 'prop'
     ? decor(outil.ref)
     : outil.kind === 'personnage'
-      ? { ...base, ref: outil.ref }
+      ? { ...base, creature: { id: outil.ref } }
       : { ...base, label: libelleDeValeur(entityKindSchema, outil.kind) };
   return { scene: addEntity(scene, ent, z), id }; // l'étage se pose à la porte d'ajout
 }
@@ -802,8 +802,8 @@ export function propRefPatch(ref: string, avant: Pick<SceneEntity, 'usable' | 'f
   const usable = avant?.usable;
   const cap = capDecorAdmis(refEstVolumique(ref), avant?.facing) ? {} : { facing: CAP_IDENTITE_PROP };
   if (findPropById(ref)?.searchable && !usable?.actions?.length)
-    return { ref, ...cap, usable: { ...usable, actions: [{ id: ACTION_FOUILLER, flow: EMPTY_FLOW, unique: true }] } };
-  return { ref, ...cap };
+    return { decor: { id: ref }, ...cap, usable: { ...usable, actions: [{ id: ACTION_FOUILLER, flow: EMPTY_FLOW, unique: true }] } };
+  return { decor: { id: ref }, ...cap };
 }
 
 /** Colle une copie de `data` (id frais) à la case p plafonnée à la carte (`borneALaCarte`, comme
@@ -1311,7 +1311,7 @@ export function addEnemyMember(scene: Scene, encId: string, ref: string, p: Pt, 
     kind: 'personnage',
     pos: { ...p },
     combat: { hiddenUntilCombat: true },
-    ref,
+    creature: { id: ref },
   };
   const withEnt = addEntity(scene, ent, z);
   const { scene: out, encId: usedEnc } = addMember(withEnt, encId, id);

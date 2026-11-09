@@ -101,9 +101,9 @@ describe('narratifSchema — `couvre` et `ecartes` (#2290)', () => {
     (r.error?.issues ?? []).map((i) => `${i.path.join('.')} :: ${i.message}`);
 
   it('`couvre` passe sur un preset PNJ et sur un indice ; hors format ou en double, refusé au chemin', () => {
-    expect(narratifSchema.safeParse({ ...vide, presetsPnj: [{ id: 'le-borgne', base: 'gobelin', couvre: ['EDO-01#pnj2'] }] }).success).toBe(true);
+    expect(narratifSchema.safeParse({ ...vide, presetsPnj: [{ id: 'le-borgne', base: { id: 'gobelin' }, couvre: ['EDO-01#pnj2'] }] }).success).toBe(true);
     expect(narratifSchema.safeParse({ ...vide, affaires: [affaire], indices: [indice({ couvre: ['EDO-01#ind1', 'EDO-01#sec1'] })] }).success).toBe(true);
-    expect(issues(narratifSchema.safeParse({ ...vide, presetsPnj: [{ id: 'le-borgne', base: 'gobelin', couvre: ['pnj2'] }] })))
+    expect(issues(narratifSchema.safeParse({ ...vide, presetsPnj: [{ id: 'le-borgne', base: { id: 'gobelin' }, couvre: ['pnj2'] }] })))
       .toEqual(['presetsPnj.0.couvre.0 :: entrée de fiche : « <ABBR>-<NN>#<id> » attendu.']);
     expect(issues(narratifSchema.safeParse({ ...vide, affaires: [affaire], indices: [indice({ couvre: ['EDO-01#ind1', 'EDO-01#ind1'] })] })))
       .toEqual(['indices.0.couvre.1 :: « EDO-01#ind1 » dupliqué : « entrée de fiche » identifie l’élément dans sa liste, il y est unique.']);

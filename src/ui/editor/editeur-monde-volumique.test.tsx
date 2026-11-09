@@ -78,7 +78,7 @@ function sceneAtelier(): Scene {
 function sceneEmbuscade(): Scene {
   const s = emptyScene('scene-test', 8, 8);
   const embusque = {
-    id: 'embusque-1', kind: 'personnage', pos: { x: 3, y: 3 }, ref: 'humain',
+    id: 'embusque-1', kind: 'personnage', pos: { x: 3, y: 3 }, creature: { id: 'humain' },
     combat: { hiddenUntilCombat: true },
   } as unknown as Scene['entities'][number];
   const rencontre = { id: 'guet-apens', members: [{ entityId: 'embusque-1' }] } as unknown as Scene['encounters'][number];
@@ -98,7 +98,7 @@ function sceneDeuxDecors(): Scene {
   // Seul le repli d'ERREUR d'une ref hors catalogue (#877) se sert encore en billboard : chaque type porte sa recette (#3198).
   const ref = REF_HORS_CATALOGUE;
   const decor = (id: string, z: number) =>
-    ({ id, kind: 'prop', pos: { x: 2, y: 2 }, ...(z ? { z } : {}), ref }) as unknown as Scene['entities'][number];
+    ({ id, kind: 'prop', pos: { x: 2, y: 2 }, ...(z ? { z } : {}), decor: { id: ref }}) as unknown as Scene['entities'][number];
   return { ...s, entities: [decor('decor-rez', 0), decor('decor-etage', 1)] };
 }
 
@@ -106,7 +106,7 @@ function sceneDeuxDecors(): Scene {
 function sceneLampe(): Scene {
   const s = emptyScene('scene-test', 6, 6);
   const brasero = {
-    id: 'brasero-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau', light: { radiusM: 6 },
+    id: 'brasero-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'tonneau' }, light: { radiusM: 6 },
   } as unknown as Scene['entities'][number];
   return { ...s, entities: [brasero] };
 }
@@ -129,7 +129,7 @@ function plaque(position: 'above' | 'below') {
 function sceneMobilier(): Scene {
   const s = emptyScene('scene-test', 8, 8);
   const table = {
-    id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S',
+    id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S',
   } as unknown as Scene['entities'][number];
   return { ...s, entities: [table] };
 }

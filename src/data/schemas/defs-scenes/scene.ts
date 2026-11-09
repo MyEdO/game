@@ -1,4 +1,4 @@
-import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
+import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '../grammaire/meta';
 /**
  * Schémas zod des formes d'une SCÈNE (`src/noyau/monde/scene.ts`) — racine de documents `src/scenes`.
  *
@@ -32,7 +32,7 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { findCreatureById, refEntiteResolue } from '../../index';
+import { siegeEngines } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
@@ -74,13 +74,19 @@ const estVolumique = porteLeMarqueur('prop', 'volume');
 
 /** Les PORTEURS du type d'une entité, par `kind` (#877, #1882) : une entité NOMME son type, ou elle est
  *  refusée. La PRÉSENCE se juge au parse (`superRefine` de sa branche de `sceneEntitySchema`) et dans
- *  `validateScene` ; la RÉSOLUTION se juge au parse aussi : `idDe('prop')` (décor), `refEntiteResolue` (personnage, lue au
- *  catalogue `src/data/index.ts`, patron `narratif.ts`). Une chaîne
- *  vide n'est pas un porteur. L'exclusivité des porteurs d'un personnage est #1892. */
+ *  `validateScene` ; la RÉSOLUTION, au parse, par la `ref` de chaque corps (`decor`, `CLES_DU_CORPS`). Une chaîne
+ *  vide n'est pas un porteur. Un personnage porte un corps au plus (`refusDeLEntite`) ; l'exclusivité de ses autres porteurs
+ *  est #1892. */
 export const PORTEURS_DU_TYPE = {
-  prop: { porteurs: ['ref'], entite: 'décor', nomme: 'son type au catalogue (props.json)' },
-  personnage: { porteurs: ['ref', 'statblock', 'presetId'], entite: 'personnage', nomme: 'sa fiche (bestiaire, statbloc ou preset de PNJ)' },
-} as const satisfies Partial<Record<z.infer<typeof entityKindSchema>, { porteurs: readonly ('ref' | 'statblock' | 'presetId')[]; entite: string; nomme: string }>>;
+  prop: { porteurs: ['decor'], entite: 'décor', nomme: 'son type au catalogue (props.json)' },
+  personnage: { porteurs: ['creature', 'vehicule', 'engin', 'statblock', 'presetId'], entite: 'personnage', nomme: 'sa fiche (bestiaire, coque, engin de siège, statbloc ou preset de PNJ)' },
+} as const satisfies Partial<Record<z.infer<typeof entityKindSchema>, { porteurs: readonly PorteurDuType[]; entite: string; nomme: string }>>;
+
+/** Le corps d'un personnage, chacun désigné dans son catalogue : une créature du bestiaire (`creature`), une coque
+ *  (`vehicule`), un engin de siège (`engin`, `siegeEngines`). Un personnage en porte un au plus (#2968). */
+type CorpsDuPersonnage = 'creature' | 'vehicule' | 'engin';
+const CLES_DU_CORPS = ['creature', 'vehicule', 'engin'] satisfies CorpsDuPersonnage[];
+type PorteurDuType = 'decor' | CorpsDuPersonnage | 'statblock' | 'presetId';
 
 const regleDuType = (kind: string) =>
   (PORTEURS_DU_TYPE as Partial<Record<string, (typeof PORTEURS_DU_TYPE)[keyof typeof PORTEURS_DU_TYPE]>>)[kind];
@@ -88,17 +94,17 @@ const regleDuType = (kind: string) =>
 /** La faute d'une entité qui ne porte AUCUN des porteurs de son `kind`, dite SANS nommer l'entité :
  *  au schéma, c'est le LIEU de la faute qui la nomme. `undefined` si elle porte un porteur, ou si son
  *  `kind` n'en exige aucun. Source unique du schéma et de `typeNonNomme`. */
-export function porteurAbsent(ent: { kind: string; ref?: unknown; statblock?: unknown; presetId?: unknown }): string | undefined {
+export function porteurAbsent(ent: { kind: string } & Partial<Record<PorteurDuType, unknown>>): string | undefined {
   const regle = regleDuType(ent.kind);
-  if (!regle || regle.porteurs.some((p: 'ref' | 'statblock' | 'presetId') => ent[p] !== undefined && ent[p] !== '')) return undefined;
+  if (!regle || regle.porteurs.some((p: PorteurDuType) => ent[p] !== undefined && ent[p] !== '')) return undefined;
   const cles = regle.porteurs.map((p) => `« ${p} »`);
-  const absence = cles.length === 1 ? `${cles[0]} absente` : `${cles.join(', ')} absents`;
+  const absence = cles.length === 1 ? `${cles[0]} absent` : `${cles.join(', ')} absents`;
   return `${absence} — un ${regle.entite} NOMME ${regle.nomme}`;
 }
 
 /** `porteurAbsent`, l'entité NOMMÉE : la faute dite hors de tout lieu (patch d'éditeur refusé, fiche
  *  absente au spawn, migration). */
-export function typeNonNomme(ent: { id: string; kind: string; ref?: unknown; statblock?: unknown; presetId?: unknown }): string | undefined {
+export function typeNonNomme(ent: { id: string; kind: string } & Partial<Record<PorteurDuType, unknown>>): string | undefined {
   const faute = porteurAbsent(ent);
   return faute && `${regleDuType(ent.kind)!.entite} « ${ent.id} » : ${faute}`;
 }
@@ -126,13 +132,13 @@ export const inventaireDAuteurSchema = recordDIds('trapping', nommerNoeud(z.bool
 export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
 /** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
- *  pas : un parcours part d'un profil du Bestiaire (`ref`), sans statbloc ni preset, et la carrière actuelle
+ *  pas : un parcours part d'un profil du Bestiaire (`creature`), sans statbloc ni preset, et la carrière actuelle
  *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`. Des choix de carrière sans carrière
  *  sont refusés. */
-export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; ref?: string; appearance?: { tenue?: string } }): string | undefined {
+export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string }; appearance?: { tenue?: string } }): string | undefined {
   const parcours = parcoursDe(ent);
   if (!parcours) return ent.talentsDeCarriere || ent.competencesDeCarriere || ent.dotationsDeCarriere ? 'choix de carrière sans carrière' : undefined;
-  if (ent.statblock || ent.presetId || !findCreatureById(ent.ref)) return 'un PNJ de carrière part d’un profil du Bestiaire (« ref »), sans statbloc ni preset';
+  if (ent.statblock || ent.presetId || !ent.creature) return 'un PNJ de carrière part d’un profil du Bestiaire (« creature »), sans statbloc ni preset';
   if (ent.appearance?.tenue) return 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur';
   return refusDuParcours(parcours);
 }
@@ -142,7 +148,7 @@ export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statbl
 export const optionalDeSceneSchema = z.union([traitInstanceSchema, optionalSwapSchema]);
 export type OptionalDeScene = z.output<typeof optionalDeSceneSchema>;
 
-/** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le `ref`, lui, est propre à chaque branche. */
+/** Champs PARTAGÉS par les trois `kind` d'une entité de scène — le corps, lui, est propre à chaque branche. */
 const baseDEntiteSchema = nommerChamps(z.strictObject({
   id: z.string(),
   pos: cell2Schema,
@@ -215,16 +221,16 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   couvre: couvreSchema.optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, amateur: { label: "amateur des arts", hint: "arbitrage maison (ACE 12 l.60-62) : contrepartie d’un Test de Sociabilité, lue par les jetons de Mécénat" }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, inventaire: { label: "inventaire" , texte: { regime: "technique"} }, carrieres: { label: "carrières", texte: { regime: "technique" } }, talentsDeCarriere: { label: "Talents de carrière", texte: { regime: "technique" } }, competencesDeCarriere: { label: "Compétences de carrière", texte: { regime: "technique" } }, dotationsDeCarriere: { label: "dotations de carrière", texte: { regime: "technique" } }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "rôle au combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
-/** Branche d'une entité de scène : les champs partagés, son `kind` et sa `ref`. Le littéral
+/** Branche d'une entité de scène : les champs partagés, son `kind` et son corps. Le littéral
  *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */
-const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
-  nommerChamps(z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref }), { ...metaDesChamps(baseDEntiteSchema, { exigees: true }), kind: { label: "type"  }, ref: { label: "référence", texte: { regime: 'technique', usage: 'référence stable de l’entité résolue au registre' } } });
+const brancheDEntite = <C extends z.ZodRawShape>(kind: EntityKindId, corps: C, metaDuCorps: MetaDesChamps<C>) =>
+  nommerChamps(z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ...corps }), { ...metaDesChamps(baseDEntiteSchema, { exigees: true }), kind: { label: "type"  }, ...metaDuCorps });
 
 /** Branche d'un DÉCOR : celle de toute entité, et sa POSE dans la case. `calage`, où son corps se tient dans le jeu libre
  *  de son empreinte, de -1 (ouest, nord) à +1 (est, sud) par axe du monde, absent = centré (`decalageDuCalage`) ; `sur`, l'id du décor qui le porte, son pied sur le dessus de
  *  celui-ci (`noyau/monde/poseDuDecor.ts`). L'empreinte, donc l'occupation de la grille, n'en dépend pas. */
 const brancheDuDecor = (() => {
-  const branche = brancheDEntite('prop', idDe('prop').optional());
+  const branche = brancheDEntite('prop', { decor: ref('prop').optional() }, { decor: { label: "décor", texte: { regime: 'technique' } } });
   return nommerChamps(branche.extend({ calage: pointDuPlanSchema.optional(), sur: z.string().optional() }), { ...metaDesChamps(branche, { exigees: true }), calage: { label: "calage dans la case" }, sur: { label: "posé sur", texte: { regime: "technique" } } });
 })();
 
@@ -235,14 +241,17 @@ export interface FauteDEntite { chemin: readonly string[]; message: string }
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
- *  la résolution de sa `ref` au catalogue (`refEntiteResolue`) et le parcours de carrière (`refusDuPnjDeCarriere`) ; d'un
+ *  un corps au plus, un engin qui en est un (`siegeEngines`), et le parcours de carrière (`refusDuPnjDeCarriere`) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & { kind: string; calage?: { x: number; y: number } }): FauteDEntite[] {
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number } }): FauteDEntite[] {
   const absence = porteurAbsent(ent);
-  const fautes: FauteDEntite[] = absence ? [{ chemin: ['ref'], message: absence }] : [];
+  const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
-    if (ent.ref && !refEntiteResolue(ent.ref)) fautes.push({ chemin: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
+    const corps = CLES_DU_CORPS.filter((k) => ent[k] !== undefined);
+    if (corps.length > 1) fautes.push({ chemin: [corps[1]], message: `corps EXCLUSIFS — ${corps.map((k) => `« ${k} »`).join(', ')} : un personnage en porte un au plus` });
+    const engin = ent.engin?.id;
+    if (engin !== undefined && !siegeEngines().some((t) => t.id === engin)) fautes.push({ chemin: ['engin', 'id'], message: `« ${engin} » n'est pas un engin de siège` });
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
   }
@@ -250,8 +259,8 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     for (const axe of ['x', 'y'] as const)
       if (ent.calage && Math.abs(ent.calage[axe]) > 1) fautes.push({ chemin: ['calage', axe], message: `calage ${axe} = ${ent.calage[axe]} — de -1 à +1, la part du jeu libre du décor dans sa case` });
   }
-  if (ent.kind === 'prop' && !capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) {
-    fautes.push({ chemin: ['facing'], message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)` });
+  if (ent.kind === 'prop' && !capDecorAdmis(ent.decor !== undefined && estVolumique(ent.decor.id), ent.facing)) {
+    fautes.push({ chemin: ['facing'], message: `décor volumique « ${ent.decor?.id} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)` });
   }
   return fautes;
 }
@@ -261,13 +270,12 @@ const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.Ref
   for (const f of refusDeLEntite(ent)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
 };
 
-/** `SceneEntity` (`noyau/monde/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
- *  Union DISCRIMINÉE par `kind` : la `ref` d'un DÉCOR résout au registre `props.json` (`idDe('prop')`,
- *  #877) ; celle d'un personnage au catalogue (`refEntiteResolue`, #1882). Le `superRefine` d'une branche
- *  dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
+/** `SceneEntity` (`noyau/monde/scene.ts`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
+ *  Union DISCRIMINÉE par `kind` : un DÉCOR désigne son type (`decor`, #877), un personnage son corps
+ *  (`CLES_DU_CORPS`, #1882, #2968). Le `superRefine` d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
-  brancheDEntite('heroStart', z.string().optional()),
-  brancheDEntite('personnage', z.string().optional()).superRefine(fautesDeLaBranche),
+  brancheDEntite('heroStart', {}, {}),
+  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('trapping').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } }).superRefine(fautesDeLaBranche),
   brancheDuDecor.superRefine(fautesDeLaBranche),
 ]);
 

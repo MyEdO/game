@@ -21,7 +21,7 @@ describe('empreinte dérivée — aucune dégénérescence', () => {
     (id) => {
       for (const facing of DIR4_ORDER) {
         const scene = emptyScene('scene-test', 14, 14);
-        scene.entities = [{ id: 'd', kind: 'prop', pos: POS, ref: id, facing }];
+        scene.entities = [{ id: 'd', kind: 'prop', pos: POS, decor: { id: id }, facing }];
         const cases = propFootTiles(id, POS, facing, sceneMetresPerTile(scene));
         expect(cases.length, `${id} cap ${facing}`).toBeGreaterThan(0);
         for (const c of cases) expect(isWalkable(scene, c.x, c.y), `${id} cap ${facing} case ${c.x},${c.y}`).toBe(false);
