@@ -53,3 +53,18 @@ test('avec --base, refuse un élément sans manifeste d’élément voisin : sa 
     rmSync(dossier, { recursive: true, force: true });
   }
 });
+
+test('avec --base, lit la couche du manifeste voisin, `couvre` absent d’un accessoire valant aucune zone', () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'evaluer-couche-'));
+  try {
+    const [base, element] = ['base.glb', 'humanoide--accessoire--ceinture.glb'].map((f) => join(dossier, f));
+    writeFileSync(base, glbFabrique({ clips: { Repos: [0, 0] } }));
+    writeFileSync(element, glbFabrique({ clips: { Repos: [0, 0] } }));
+    writeFileSync(join(dossier, 'humanoide--accessoire--ceinture.element.json'), JSON.stringify({ couche: 'tenue' }));
+    const resultat = spawnSync(process.execPath, [script, element, '--base', base, '--pas', '0.5'], { cwd: racine, encoding: 'utf8', windowsHide: true });
+    expect(resultat.stderr).toBe('');
+    expect(resultat.stdout).toMatch(/écart\(s\)/);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+}, 120_000);

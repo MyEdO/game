@@ -69,7 +69,7 @@ const ligneDEcart = (e) =>
 
 const { evaluer } = await chargerEvaluateur()
 const couche = (glb) => {
-  const { couche, couvre } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
+  const { couche, couvre = [] } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
   return couche ? { couche, couvre } : null
 }
 const entree = {
