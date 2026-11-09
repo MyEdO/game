@@ -1,5 +1,5 @@
 ## La musique de la partie (`vue.musique`, `pont/CONTRAT.md`, section « Musique », #3825), telle que le noyau la choisit :
-## une de ses pistes au hasard, en boucle, à son volume ; une autre sélection (sa `cle`) prend la place de la précédente en
+## une de ses pistes au hasard, l'une de ses variantes (`Effets.variante_du_son`), en boucle, à son volume ; une autre sélection (sa `cle`) prend la place de la précédente en
 ## fondu enchaîné de `FONDU_S` secondes, le silence (`null`) éteint la précédente en fondu. La même sélection ne change
 ## rien.
 class_name Musique
@@ -33,26 +33,14 @@ func jouer(musique: Variant) -> void:
 		_lecteur = null
 	if musique == null:
 		return
+	var piste: Dictionary = musique.pistes.pick_random()
 	_lecteur = AudioStreamPlayer.new()
 	_lecteur.name = "musique"
-	_lecteur.stream = pistes_de(musique)
+	_lecteur.stream = Effets.variante_du_son(piste, true)
 	_lecteur.volume_db = SILENCE_DB
 	add_child(_lecteur, true)
 	_lecteur.play()
-	create_tween().tween_property(_lecteur, "volume_db", 0.0, FONDU_S)
-
-
-## Les pistes de `musique`, l'une au hasard à chaque lecture (`AudioStreamRandomizer`), chacune en boucle à son volume
-## (`AudioStreamSynchronized`).
-static func pistes_de(musique: Dictionary) -> AudioStreamRandomizer:
-	var pistes := AudioStreamRandomizer.new()
-	for piste: Dictionary in musique.pistes:
-		var a_son_volume := AudioStreamSynchronized.new()
-		a_son_volume.stream_count = 1
-		a_son_volume.set_sync_stream(0, Effets.variantes_du_son(piste, true))
-		a_son_volume.set_sync_stream_volume(0, linear_to_db(piste.volume))
-		pistes.add_stream(-1, a_son_volume)
-	return pistes
+	create_tween().tween_property(_lecteur, "volume_db", linear_to_db(piste.volume), FONDU_S)
 
 
 ## Le lecteur de la musique qui joue, `null` au silence.

@@ -75,8 +75,8 @@ func _verifier(foyer: Node, visuel: String, gerbes: int, son: String) -> void:
 	if lecteur == null or not lecteur.autoplay:
 		_fautes.append("%s : %s ne joue pas" % [visuel, son])
 		return
-	var variantes := lecteur.stream as AudioStreamRandomizer
-	if variantes == null or variantes.streams_count == 0 or not (variantes.get_stream(0) as AudioStreamOggVorbis).loop:
+	var variante := lecteur.stream as AudioStreamOggVorbis
+	if variante == null or not variante.loop:
 		_fautes.append("%s : %s ne boucle pas" % [visuel, son])
 
 

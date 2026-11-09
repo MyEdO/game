@@ -348,7 +348,7 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
  * - Un coup, une incantation ou une zone dont un combattant n'est pas posé sur le plateau, ou l'attaque spéciale d'une
  *   créature sur elle-même, ne rend aucun effet.
  * - `couleur` (`#rrggbb`) teint les visuels qui prennent la teinte de l'effet. Un son nomme ses variantes, des noms nus
- *   que Godot lit sous `res://sons/` et joue l'une au hasard (`AudioStreamRandomizer`), le dossier épinglé des sons
+ *   que Godot lit sous `res://sons/` et joue l'une au hasard (`Effets.variante_du_son`), le dossier épinglé des sons
  *   (`projet/sons/provenance.json`, `hotes/godot/asset/epingles.ts`), et son `volume` propre (0..1).
  * @contrat Effets
  */
