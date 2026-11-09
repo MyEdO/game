@@ -733,7 +733,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -3783,7 +3785,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone1"
+             "scene": {
+              "id": "arene-zone1"
+             }
             }
            }
           ]
@@ -3804,7 +3808,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone2"
+             "scene": {
+              "id": "arene-zone2"
+             }
             }
            }
           ]
@@ -3825,7 +3831,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone3"
+             "scene": {
+              "id": "arene-zone3"
+             }
             }
            }
           ]
@@ -3846,7 +3854,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone4"
+             "scene": {
+              "id": "arene-zone4"
+             }
             }
            }
           ]
@@ -3867,7 +3877,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone5"
+             "scene": {
+              "id": "arene-zone5"
+             }
             }
            }
           ]
@@ -3888,7 +3900,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone6"
+             "scene": {
+              "id": "arene-zone6"
+             }
             }
            }
           ]
@@ -3909,7 +3923,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone7"
+             "scene": {
+              "id": "arene-zone7"
+             }
             }
            }
           ]
@@ -3930,7 +3946,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone8"
+             "scene": {
+              "id": "arene-zone8"
+             }
             }
            }
           ]
@@ -3951,7 +3969,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone9"
+             "scene": {
+              "id": "arene-zone9"
+             }
             }
            }
           ]
@@ -3972,7 +3992,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone10"
+             "scene": {
+              "id": "arene-zone10"
+             }
             }
            }
           ]
@@ -3993,7 +4015,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone11"
+             "scene": {
+              "id": "arene-zone11"
+             }
             }
            }
           ]
@@ -4014,7 +4038,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone12"
+             "scene": {
+              "id": "arene-zone12"
+             }
             }
            }
           ]
@@ -4035,7 +4061,9 @@
             "kind": "do",
             "effect": {
              "type": "transition",
-             "scene": "arene-zone13"
+             "scene": {
+              "id": "arene-zone13"
+             }
             }
            }
           ]
@@ -7456,7 +7484,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -8455,7 +8485,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -9507,7 +9539,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -10397,7 +10431,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -11643,7 +11679,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -12810,7 +12848,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -13779,7 +13819,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -14891,7 +14933,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -16319,7 +16363,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -17532,7 +17578,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -18624,7 +18672,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -20253,7 +20303,9 @@
         "kind": "do",
         "effect": {
          "type": "transition",
-         "scene": "arene-hub",
+         "scene": {
+          "id": "arene-hub"
+         },
          "entry": "porte-arene"
         }
        }
@@ -25949,7 +26001,9 @@
      "x": 22,
      "y": 55
     },
-    "scene": "arene-hub",
+    "scene": {
+     "id": "arene-hub"
+    },
     "entry": "route",
     "icon": "scenario/village"
    },
@@ -25960,7 +26014,9 @@
      "x": 55,
      "y": 30
     },
-    "scene": "arene-exp-foret",
+    "scene": {
+     "id": "arene-exp-foret"
+    },
     "icon": "scenario/hamlet"
    },
    {
@@ -25970,7 +26026,9 @@
      "x": 72,
      "y": 62
     },
-    "scene": "arene-exp-marais",
+    "scene": {
+     "id": "arene-exp-marais"
+    },
     "icon": "scenario/trap"
    },
    {
@@ -25980,7 +26038,9 @@
      "x": 48,
      "y": 80
     },
-    "scene": "arene-exp-village",
+    "scene": {
+     "id": "arene-exp-village"
+    },
     "icon": "journal/death"
    }
   ],
@@ -26010,7 +26070,9 @@
      }
     ],
     "ambush": {
-     "scene": "arene-route-embuscade",
+     "scene": {
+      "id": "arene-route-embuscade"
+     },
      "encounter": "enc-embuscade"
     }
    },
@@ -26041,7 +26103,9 @@
      }
     ],
     "ambush": {
-     "scene": "arene-route-embuscade",
+     "scene": {
+      "id": "arene-route-embuscade"
+     },
      "encounter": "enc-embuscade"
     }
    },
@@ -26076,7 +26140,9 @@
      }
     ],
     "ambush": {
-     "scene": "arene-route-embuscade",
+     "scene": {
+      "id": "arene-route-embuscade"
+     },
      "encounter": "enc-embuscade"
     }
    },
@@ -26093,7 +26159,9 @@
      "pied"
     ],
     "ambush": {
-     "scene": "arene-route-embuscade",
+     "scene": {
+      "id": "arene-route-embuscade"
+     },
      "encounter": "enc-embuscade"
     }
    }

@@ -58,7 +58,7 @@ function setupPort(party: Combatant[]): void {
   set({
     party, scene,
     battle: null,
-    worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port: PORT }], routes: [] },
+    worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: { id: 'scene-P' }, port: PORT }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
     port: { placeId: 'P', label: 'Port', port: structuredClone(PORT), offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: 40, basePrice: 10, surplus: false }] },
     journal: [],

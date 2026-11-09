@@ -25,8 +25,8 @@ beforeAll(() => {
 const carte = (route: Partial<MapRouteTrace>): WorldMap => ({
   id: 'c', label: 'Carte',
   places: [
-    { id: 'pa', label: 'Village A', pos: { x: 20, y: 40 }, scene: 's-a' },
-    { id: 'pb', label: 'Bourg B', pos: { x: 70, y: 40 }, scene: 's-b' },
+    { id: 'pa', label: 'Village A', pos: { x: 20, y: 40 }, scene: { id: 's-a' } },
+    { id: 'pb', label: 'Bourg B', pos: { x: 70, y: 40 }, scene: { id: 's-b' } },
   ],
   routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 90, modes: ['pied'], perilDie: 0, ...route }],
 });

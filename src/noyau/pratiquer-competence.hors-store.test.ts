@@ -38,8 +38,8 @@ const scene = (id: string, label: string): Scene => Object.assign(emptyScene('sc
 const CARTE: WorldMap = {
   id: 'carte-test', label: 'Carte de test',
   places: [
-    { id: 'pa', label: 'Village A', pos: { x: 20, y: 50 }, scene: 'lieu-a-scene' },
-    { id: 'pb', label: 'Bourg B', pos: { x: 70, y: 40 }, scene: 'lieu-b-scene' },
+    { id: 'pa', label: 'Village A', pos: { x: 20, y: 50 }, scene: { id: 'lieu-a-scene' } },
+    { id: 'pb', label: 'Bourg B', pos: { x: 70, y: 40 }, scene: { id: 'lieu-b-scene' } },
   ],
   routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 24, modes: ['pied'], perilDie: 0 }],
 };

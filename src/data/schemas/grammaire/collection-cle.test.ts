@@ -137,7 +137,7 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
   const repete = <T,>(liste: T[]): void => {
     liste.push(structuredClone(liste[0]));
   };
-  const lieu = { id: 'lieu-1', label: 'Lieu', pos: { x: 1, y: 1 }, scene: 'arene-zone1' };
+  const lieu = { id: 'lieu-1', label: 'Lieu', pos: { x: 1, y: 1 }, scene: { id: 'arene-zone1' } };
   const route = { id: 'route-1', a: { id: 'lieu-1' }, b: { id: 'lieu-1' }, km: 1, modes: ['pied'] };
   const noeud = { id: 'n1', desc: 'x', choices: [] };
   const CAS: [string, (d: Doc) => void, string][] = [

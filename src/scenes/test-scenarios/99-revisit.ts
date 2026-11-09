@@ -40,7 +40,7 @@ const construireReserve = (): Scene => buildScene({
     {
       id: 'reserve-vers-couloir',
       rect: { x: 5, y: 1, w: 1, h: 1 },
-      flow: flowFromEffects([{ type: 'transition', scene: 'test-revisit-couloir' }]),
+      flow: flowFromEffects([{ type: 'transition', scene: { id: 'test-revisit-couloir' } }]),
     },
   ],
 });
@@ -58,7 +58,7 @@ const construireCouloir = (): Scene => buildScene({
     {
       id: 'couloir-vers-reserve',
       rect: { x: 0, y: 1, w: 1, h: 1 },
-      flow: flowFromEffects([{ type: 'transition', scene: 'test-revisit-reserve' }]),
+      flow: flowFromEffects([{ type: 'transition', scene: { id: 'test-revisit-reserve' } }]),
     },
   ],
 });

@@ -514,7 +514,7 @@ export function Editor({
           id: worldMap.id,
           label: worldMap.label,
           lieux: worldMap.places.map((p) => ({
-            id: p.id, label: p.label, scene: p.scene, pos: { ...p.pos },
+            id: p.id, label: p.label, scene: p.scene.id, pos: { ...p.pos },
             ...(p.when !== undefined ? { when: structuredClone(p.when) } : {}),
           })),
           routes: worldMap.routes.map((r) => ({
