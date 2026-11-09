@@ -431,10 +431,13 @@ Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (caté
 depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
 manifestes et dossiers de production ; `maille.py` : maille, solides (révolution, cylindre, boîte, plaque, poutre, tube,
 tore, roue, treuil), bascule autour d'un axe, recentrage de l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et
-éléments d'un modèle à plusieurs pièces ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
+éléments d'un modèle à plusieurs pièces ; `plan_de_jeu.py` : les ponts d'un navire, lus dans la source unique `ponts` de
+sa fiche ; `navire.py` : les pièces communes des navires bâtis sur leurs ponts, coque, espars, cloisons, portes, échelles,
+pièces creusées et emprise libre des cases ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
 par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
 `caraque` (coque bâtie sur ses ponts, la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit
-aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`), `barge-fluviale` (le Bérébéli, bâti de même sur
+les ponts de sa fiche, ses postes d'armes lourdes à la proue, à la poupe et aux deux bords) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
 engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
 batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
 (catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de
@@ -464,8 +467,8 @@ sont des données nommées de `donnees.py`.
 
 Le repère est celui de la section 2 : en Blender, l'avant vers -y, bâbord vers +x, l'origine au sol ou à la flottaison,
 l'emprise recentrée en x et y ; l'export place l'avant vers +z glTF. Ce qui se monte au véhicule (pièce d'artillerie,
-Amélioration) est son propre élément. Une primitive d'un autre modèle dont le type a besoin passe dans `maille.py`
-(deuxième cas réel), sans changer un octet des GLB publiés.
+Amélioration) est son propre élément. Une primitive d'un autre modèle dont le type a besoin passe dans `maille.py`, une
+pièce de navire dans `navire.py` (deuxième cas réel), sans changer un octet des GLB publiés.
 
 **Construire**, depuis la racine du dépôt, vers un dossier neuf hors du dépôt (refusé sinon) :
 

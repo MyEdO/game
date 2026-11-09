@@ -19,7 +19,8 @@ sys.path.insert(0, str(ICI / 'vehicule'))
 
 import bpy  # noqa: E402
 import construire  # noqa: E402
-from caraque import modele, plan_de_jeu  # noqa: E402
+import plan_de_jeu  # noqa: E402
+from caraque import modele  # noqa: E402
 from mathutils import Vector  # noqa: E402
 
 MODELES = ICI.parents[1] / 'hotes' / 'godot' / 'projet' / 'modeles'
@@ -182,8 +183,7 @@ class Ponts(unittest.TestCase):
                 self.assertEqual(hors, [], f'{famille} : écarts au-delà de {TOLERANCE} m')
 
     def fiche(self):
-        fiches = json.loads(modele.VEHICULES.read_text(encoding='utf-8'))
-        return next(f for f in fiches if f['id'] == 'caraque')
+        return plan_de_jeu.fiche('caraque')
 
     def test_la_caraque_suit_ses_ponts(self):
         self.verifier(self.fiche())

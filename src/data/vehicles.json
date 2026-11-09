@@ -262,7 +262,21 @@
       },
       "availability": "rare"
     },
-    "desc": "Nécessite trois membres d'équipage."
+    "desc": "Nécessite trois membres d'équipage.",
+    "ponts": [
+      [
+        "+ + +-+-+-+ + + +\n    |c c c|\n+ +-+ + +H+ + + +\n  |c c c|p|\n+ +-+ + +-+ + + +\n    |c c c|\n+ + +-+-+-+ + + +",
+        "+ + + + + + + + +\n   p p|p p|p|p p\n+ + + + + +:+ + +\n p gHp:p   p|pHa\n+ + + + + +:+ + +\n   p p|p p|p|p p\n+ + + + + + + + +",
+        "+ + + + + + + + +\n   g   r r r   a\n+ + + + + + + + +\n g     r r r\n+ + + + + + + + +\n   g   r r r   a\n+ + + + + + + + +"
+      ],
+      {
+        "c": -0.6,
+        "p": 0.8,
+        "r": 2.75,
+        "g": 2.8,
+        "a": 2.6
+      }
+    ]
   },
   {
     "id": "barque-fluviale",

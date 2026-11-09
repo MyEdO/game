@@ -117,7 +117,6 @@ GAILLARD = {
     "largeur": [(0.0, 2.7), (0.06, 3.3), (0.12, 3.7), (0.2, 3.95)],   # le bout arrière prend le plat-bord + 0.12
     "niveaux": [(4.3, 0.0), (5.75, 0.0), (5.8, 0.08), (5.95, 0.08)],
     "garde_corps": (0.28, 0.25),
-    "cloison": 0.15,                 # épaisseur de sa cloison arrière, du pont principal à son fond
 }
 
 # Passerelle du gaillard d'avant à la plage arrière, sur ses cases (glyphe `GLYPHES["passerelle"]`) : tablier (largeur,
@@ -187,9 +186,10 @@ POSTES_DU_PONT = [
 # pièce et la trappe qui s'y montent tournées vers lui ; le plancher de son poste est celui de sa case. L'ouverture :
 # largeur, hauteur ; le cadre : largeur, saillie.
 EMBRASURE = {"ouverture": (0.75, 0.75), "cadre": (0.12, 0.10)}
-# Cloisons du plan (épaisseur, débord au-delà du volume qu'elles ferment) ; leurs portes : vantail (largeur, hauteur maximale, jeu sous le plafond, largeur des
+# Cloisons du plan (épaisseur, débord au-delà du volume qu'elles ferment, épaisseur d'une cloison sous un seul pont
+# couvert : la cloison arrière du gaillard, du pont principal à son fond) ; leurs portes : vantail (largeur, hauteur maximale, jeu sous le plafond, largeur des
 # planches et joint, épaisseur), cadre (largeur, profondeur), pentures (hauteur, épaisseur), rayon de l'anneau.
-CLOISON = {"epaisseur": 0.10, "marge": 0.03}
+CLOISON = {"epaisseur": 0.10, "marge": 0.03, "sous_un_pont": 0.15}
 PORTE = {"largeur": 0.85, "hauteur": 1.85, "jeu": 0.12, "planche": 0.17, "joint": 0.012, "epaisseur": 0.05,
          "cadre": (0.10, 0.18), "penture": (0.07, 0.015), "anneau": 0.06}
 # Écoutilles aux échelles du plan, dans le pont du dessus au-dessus de la trappe, depuis l'arête de l'échelle :
@@ -265,14 +265,14 @@ ANCRAGES_AUX_CASES = {
 # hors des haubans : abscisse de chacun en cases du plan.
 ANCRAGES_LISSE = {"fourquines": [6.0, 7.0, 8.0, 9.0]}
 
-# Revue (`revue.py`) : le véhicule revu, la pièce montée à chaque poste armé, puis les configurations rendues (nom, titre, armement :
+# Revue (`revue.py`) : le véhicule revu, la pièce montée aux postes armés de chaque bord, puis les configurations rendues (nom, titre, armement :
 # bord → rangs armés, ou "tout" ; Améliorations montées) et les vues de l'intérieur (configuration, fichier, œil et
 # visée en mètres glTF du manifeste, focale).
 SANS_SABORD_A_BORD = ["figure-de-proue", "ancre", "belier", "nid-de-pie", "embarcation-de-bord", "ralentisseurs-lateraux",
                       "clinfoc", "blindage-fer", "fourquines"]
 REVUE = {
     "vehicule": "vehicule--caraque",
-    "aux_postes": "vehicule--canon-moyen",
+    "aux_postes": {bord: "vehicule--canon-moyen" for bord in ("proue", "tribord", "poupe", "babord")},
     "configurations": [
         ("01-nue", "Sans arme ni Amélioration : coque pleine", {}, []),
         ("02-armee", "Armée sur le pont (12 canons), sans Sabord", "tout", []),
