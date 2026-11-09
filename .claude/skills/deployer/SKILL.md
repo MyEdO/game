@@ -1,9 +1,9 @@
 ---
-name: deployer-en-prod
+name: deployer
 description: À utiliser pour déployer le jeu : en test (« déploie en test », cgauche.github.io/dev) ou en prod (cgauche.github.io/jeu, UNIQUEMENT sur demande explicite).
 ---
 
-# Déployer en production, ou en test
+# Déployer en test ou en production
 
 `deploy.yml` publie une cible, chacune sur le site GitHub Pages de `cgauche` :
 

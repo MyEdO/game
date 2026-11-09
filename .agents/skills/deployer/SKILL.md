@@ -1,10 +1,10 @@
 ---
-name: deployer-en-prod
+name: deployer
 description: À utiliser pour déployer le jeu : en test (« déploie en test », cgauche.github.io/dev) ou en prod (cgauche.github.io/jeu, UNIQUEMENT sur demande explicite).
 ---
-<!-- GENERATED: agents:sync; source=.claude/skills/deployer-en-prod/SKILL.md -->
+<!-- GENERATED: agents:sync; source=.claude/skills/deployer/SKILL.md -->
 
-# Déployer en production, ou en test
+# Déployer en test ou en production
 
 `deploy.yml` publie une cible, chacune sur le site GitHub Pages de `cgauche` :
 
