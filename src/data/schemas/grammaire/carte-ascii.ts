@@ -48,7 +48,7 @@ export const glyphesReservesEnClair = (): string =>
 /**
  * Les PONTS d'un véhicule (`vehicles.json › ponts`, #3686) : une carte BOX-DRAWING par pont, du plus bas au plus
  * haut, toutes de mêmes dimensions. Une case porte le glyphe de sa hauteur (second membre de `ponts`) ; une arête, un mot
- * de `GRAMMAIRE_ASCII` ou l'un des deux mots propres aux ponts ci-dessous. Le noyau (`noyau/planDeLaCaraque.ts`)
+ * de `GRAMMAIRE_ASCII` ou l'un des deux mots propres aux ponts ci-dessous. Le noyau (`noyau/pontsDeLaFiche.ts`)
  * et la construction du modèle 3D (`scripts/personnage-3d/vehicule/plan_de_jeu.py`) lisent la même carte.
  */
 export const MOTS_DES_PONTS = {

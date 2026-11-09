@@ -1,12 +1,7 @@
 /**
- * Les ponts de la caraque en `MapSpec` que `buildScene` compile (#3686), lus dans la seule source de leur forme :
- * `ponts` de sa fiche (`vehicles.json`), que la construction de son modèle 3D lit aussi
- * (`scripts/personnage-3d/vehicule/plan_de_jeu.py`). Une case de 2 m (`sceneMetresPerTile`), la proue à
- * `x = 0`, tribord à `y = 0`, la hauteur en mètres depuis la flottaison ; le centre du plan est l'origine du modèle.
- * Un étage par pont : `z0` cale, `z1` pont principal (la batterie), `z2` pont supérieur (l'embelle, le dessous du
- * gaillard d'avant et le château de poupe), `z3` gaillard d'avant, passerelle et plage arrière. Une
- * trappe est la case du pont du dessous à la hauteur du pont du dessus, l'étage du dessus y est vide ; son échelle
- * (`MOTS_DES_PONTS.echelle`) est l'arête escaladable qui la joint au pont (LDB 15 l.55).
+ * Les ponts de la caraque en `MapSpec` que `buildScene` compile (#3686), lus dans `ponts` de sa fiche
+ * (`pontsDeLaFiche`). Un étage par pont : `z0` cale, `z1` pont principal (la batterie), `z2` pont supérieur (l'embelle,
+ * le dessous du gaillard d'avant et le château de poupe), `z3` gaillard d'avant, passerelle et plage arrière.
  * Ce qui s'écrit ici, aux cases de la source : les pièces de la légende des plans (MDG 12 l.286, planche
  * « Caraque », plans de ses ponts), leur mobilier (`MOBILIER`), valeur d'adaptation (#3686), hamacs (MDG 09 l.87)
  * et cabestan (MDG 12 l.213) compris, et ce que les Améliorations y ajoutent.
@@ -16,35 +11,11 @@ import type { SceneEntity } from './monde/scene';
 import type { Dir4 } from '../geometry/dir8';
 import type { ApportAuxPonts } from './planDeNavire';
 import type { Calage } from '../data/props.types';
-import { findVehicleById } from '../data';
-import { MOTS_DES_PONTS, grilleDesPonts, type AreteDePont, type CaseDePont } from '../data/schemas/grammaire/carte-ascii';
+import { MOTS_DES_PONTS } from '../data/schemas/grammaire/carte-ascii';
 import { garanti } from '../lib/garanti';
-import { tableTotale } from '../lib/tableTotale';
-import { terrainAbsent, terrainsAvecGlyphe } from './monde/terrain';
+import { pontsDeLaFiche } from './pontsDeLaFiche';
 
-const CARAQUE = garanti(findVehicleById('caraque'), 'caraque', 'véhicule');
-const [PONTS, HAUTEURS] = garanti(CARAQUE.ponts, 'caraque', 'ponts du véhicule');
-const GRILLE = grilleDesPonts(PONTS);
-
-/** Le plancher des ponts : le terrain du glyphe `=` des plans. */
-const PLANCHER = garanti(terrainsAvecGlyphe()['='], '=', 'terrain du plancher');
-
-/** La case de pont (x, y) du pont `z`, si elle existe. */
-const caseDuPont = (x: number, y: number, z: number): CaseDePont | undefined =>
-  GRILLE.cases.find((c) => c.x === x && c.y === y && c.z === z);
-
-/** L'arête de pont `e` comme `WallSpec`, portée par la case qui existe de ses deux côtés (la seconde d'abord). */
-function areteDuPlan(e: AreteDePont): WallSpec {
-  const seconde = caseDuPont(e.x, e.y, e.z);
-  if (e.sens === 't') return seconde ? { x: e.x, y: e.y, side: 'O', z: e.z } : { x: e.x - 1, y: e.y, side: 'E', z: e.z };
-  return seconde ? { x: e.x, y: e.y, side: 'N', z: e.z } : { x: e.x, y: e.y - 1, side: 'S', z: e.z };
-}
-
-const aretesDe = (mot: string): WallSpec[] => GRILLE.aretes.filter((e) => e.glyphe === mot).map(areteDuPlan);
-
-/** Les cartes `walled` des ponts : une échelle y est une arête ouverte, un sabord une arête de coque murée. */
-const CARTES: Record<string, string> = Object.fromEntries(PONTS.map((carte, z) => [`z${z}`, carte.split('\n').map((ligne, l) =>
-  ligne.split(MOTS_DES_PONTS.echelle).join(' ').split(MOTS_DES_PONTS.sabord).join(l % 2 === 0 ? '-' : '|')).join('\n')]));
+const { hauteurs: HAUTEURS, grille: GRILLE, aretesDe, plan: PONTS_DE_LA_CARAQUE } = pontsDeLaFiche('caraque');
 
 /** Les pièces de la légende des plans, par pont (`.` : aucune). */
 const PIECES: NonNullable<MapSpec['zoneMap']> = {
@@ -167,17 +138,10 @@ const MEUBLES: SceneEntity[] = Object.entries(MOBILIER).flatMap(([lettre, meuble
 
 /** La caraque en `MapSpec`. */
 export const PLAN_DE_LA_CARAQUE: MapSpec = {
-  id: 'caraque',
-  label: CARAQUE.label,
-  size: [GRILLE.w, GRILLE.h],
-  terrain: terrainAbsent(),
-  legend: tableTotale(Object.keys(HAUTEURS), () => PLANCHER),
-  walled: CARTES,
-  elevate: HAUTEURS,
+  ...PONTS_DE_LA_CARAQUE,
   zoneMap: PIECES,
   zoneLegend: LEGENDE_DES_PIECES,
   entities: MEUBLES,
-  walls: aretesDe(MOTS_DES_PONTS.echelle).map((e): WallSpec => ({ ...e, climb: { kind: 'ladder' } })),
 };
 
 /** Le glyphe de la case du grand mât dans la source, et celui de la hauteur du plancher de sa hune. */

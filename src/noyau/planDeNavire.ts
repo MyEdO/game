@@ -8,7 +8,7 @@
  * préfixe. Le plan d'un type a sa proue à `x = 0`, tribord à `y = 0` : au cap `O`, il se pose tel quel. Les ponts
  * se dérivent au chargement d'une scène en jeu (`poserLesNavires`, `registerScene`) ; ce qu'ils posent garde le
  * navire d'où il vient (`provenanceDesNavires`), que l'hôte montre par le modèle 3D de son type posé au centre de
- * ses ponts (`naviresDeLaScene`), le repère du plan étant celui du modèle (`planDeLaCaraque.ts`) ; l'occupant d'une
+ * ses ponts (`naviresDeLaScene`), le repère du plan étant celui du modèle (`pontsDeLaFiche.ts`) ; l'occupant d'une
  * case que ce modèle rogne s'y tient au centre de son emprise libre (`stationsDuNavire`, #3767).
  */
 import type { NavalTraitRef } from '../engine/types';
@@ -29,6 +29,7 @@ import { ficheDEntite } from './monde/sceneNpc';
 import { addLayer, paintHeight, paintTiles, patchWall, setEdgeWall } from './sceneEdit';
 import { buildScene, type MapSpec } from './mapSpec';
 import { AMELIORATIONS_DE_LA_CARAQUE, PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
+import { PLAN_DE_LA_BARGE } from './planDeLaBarge';
 
 /** Ce qu'une Amélioration ajoute aux ponts d'un type de navire. */
 export type ApportAuxPonts = Pick<MapSpec, 'terrainRects' | 'relief' | 'elevate' | 'walls' | 'entities'>;
@@ -41,7 +42,10 @@ interface PlanDeNavire {
 }
 
 /** Les plans des types de navire qui en ont. */
-const PLANS_DE_NAVIRE: readonly PlanDeNavire[] = [{ ponts: PLAN_DE_LA_CARAQUE, ameliorations: AMELIORATIONS_DE_LA_CARAQUE }];
+export const PLANS_DE_NAVIRE: readonly PlanDeNavire[] = [
+  { ponts: PLAN_DE_LA_CARAQUE, ameliorations: AMELIORATIONS_DE_LA_CARAQUE },
+  { ponts: PLAN_DE_LA_BARGE, ameliorations: {} },
+];
 
 /** Les ponts du type `ref` avec ce qu'y ajoutent les Améliorations `upgrades` ; une Amélioration qui ne change
  *  rien à bord (Bélier, Lissage…) n'y ajoute rien. */
@@ -139,21 +143,25 @@ function champsDeLArete(w: WallSeg): Partial<WallSeg> {
 }
 
 /** Ce que les ponts `navire` posés selon `pose` occupent dans la scène hôte : chaque case d'un sol, à son étage, avec son
- *  terrain et sa hauteur, et chaque arête canonique, à son étage, avec l'arête des ponts qu'elle recopie. */
-function emprise(navire: Scene, pose: PoseDeNavire): { cases: (Pt & { z: number; terrain: Terrain; hauteur: number })[]; aretes: { arete: WallSeg; place: { x: number; y: number; side: 'N' | 'E'; z: number } }[] } {
+ *  terrain et sa hauteur ; chaque sol hors des cases (une hauteur du plan sans terrain, qui porte un décor), à son étage,
+ *  avec sa hauteur ; et chaque arête canonique, à son étage, avec l'arête des ponts qu'elle recopie. */
+function emprise(navire: Scene, pose: PoseDeNavire): { cases: (Pt & { z: number; terrain: Terrain; hauteur: number })[]; sols: (Pt & { z: number; hauteur: number })[]; aretes: { arete: WallSeg; place: { x: number; y: number; side: 'N' | 'E'; z: number } }[] } {
   const z0 = pose.z;
   const vers = versLaScene(navire, pose);
   const { w, h } = navire.dimensions;
-  const cases = navire.layers.flatMap((couche) => Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w) })).flatMap(({ x, y }) => {
-    const terrain = tileAt(navire, x, y, couche.z);
-    return estAbsent(terrain) ? [] : [{ ...vers(x, y), z: z0 + couche.z, terrain, hauteur: heightAt(navire, x, y, couche.z) }];
-  }));
+  const places = navire.layers.flatMap((couche) => Array.from({ length: w * h }, (_, i) => ({ x: i % w, y: Math.floor(i / w), z: couche.z })));
+  const cases = places.flatMap(({ x, y, z }) => {
+    const terrain = tileAt(navire, x, y, z);
+    return estAbsent(terrain) ? [] : [{ ...vers(x, y), z: z0 + z, terrain, hauteur: heightAt(navire, x, y, z) }];
+  });
+  const sols = places.flatMap(({ x, y, z }) =>
+    estAbsent(tileAt(navire, x, y, z)) && heightAt(navire, x, y, z) !== 0 ? [{ ...vers(x, y), z: z0 + z, hauteur: heightAt(navire, x, y, z) }] : []);
   const aretes = (navire.walls ?? []).flatMap((arete) => {
     if (arete.side !== 'N' && arete.side !== 'E') return [];
     const [a, b] = casesDeLArete(arete).map((c) => vers(c.x, c.y));
     return [{ arete, place: { ...edgeOf(a.x, a.y, b.x, b.y)!, z: z0 + (arete.z ?? 0) } }];
   });
-  return { cases, aretes };
+  return { cases, sols, aretes };
 }
 
 /** Les ponts compilés (`buildScene`) du type et des Améliorations de `pose`. */
@@ -164,9 +172,10 @@ const pontsCompiles = (pose: PoseDeNavire): Scene => buildScene(pontsDuNavire(po
 function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
   const z0 = pose.z;
   const vers = versLaScene(navire, pose);
-  const { cases, aretes } = emprise(navire, pose);
+  const { cases, sols, aretes } = emprise(navire, pose);
   let s = navire.layers.reduce((acc, couche) => addLayer(acc, z0 + couche.z), hote);
   for (const c of cases) s = paintHeight(paintTiles(s, c, c.terrain, 1, c.z), c, c.hauteur, 1, c.z);
+  for (const c of sols) s = paintHeight(s, c, c.hauteur, 1, c.z);
   for (const { arete, place } of aretes)
     s = patchWall(setEdgeWall(s, place.x, place.y, place.side, place.z, porteAuteur(arete) ? 'door' : 'wall'), place.x, place.y, place.side, place.z, champsDeLArete(arete));
   const pieces: SceneEffectZone[] = (navire.effectZones ?? []).map((zone) => {
