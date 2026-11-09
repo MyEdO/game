@@ -18,7 +18,7 @@ describe('scénario « Taverne — un PNJ à profil standard » (#1882)', () => 
   it('le PNJ NOMME le profil standard de son espèce (LDB 77 l.7)', () => {
     const espece = findSpeciesById(ent.appearance?.species);
     expect(espece?.profilStandard?.id).toBeDefined();
-    expect(ent.ref).toBe(espece!.profilStandard!.id);
+    expect(ent.creature?.id).toBe(espece!.profilStandard!.id);
   });
 
   it('il PROPOSE une partie : la table le liste sous son nom', () => {
@@ -28,7 +28,7 @@ describe('scénario « Taverne — un PNJ à profil standard » (#1882)', () => 
   it('il joue SA fiche : le bras de fer se joue à la Force du profil standard Humain, F 30 (LDB 77 l.13)', () => {
     const jeu = findTavernGameById(ent.tavernGame!.id)!;
     expect(jeu.characteristic).toBe('force');
-    expect(ent.ref).toBe('humain');
+    expect(ent.creature?.id).toBe('humain');
     expect(tavernGameValue(sceneNpc(scenarioConstruit.scene, PNJ, presetPnjById)!, jeu)).toBe(30);
   });
 

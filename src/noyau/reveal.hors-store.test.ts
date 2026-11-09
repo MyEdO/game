@@ -116,7 +116,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     encounters: [],
     entities: [
       { id: 'start', kind: 'heroStart', pos: { x: 6, y: 10 } },
-      { id: 'squ1', kind: 'personnage', ref: 'squelette', pos: { x: 10, y: 10 } },
+      { id: 'squ1', kind: 'personnage', creature: { id: 'squelette' }, pos: { x: 10, y: 10 } },
     ],
   };
 

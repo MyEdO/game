@@ -20,7 +20,7 @@ const coffre: SceneEntity = {
   id: 'coffre', kind: 'prop', pos: { x: 9, y: 6 }, label: 'Coffre bardé de fer',
   usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
 } as SceneEntity;
-const figurant: SceneEntity = { id: 'fig', kind: 'personnage', pos: { x: 5, y: 5 }, label: 'Badaud', ref: 'humain' } as SceneEntity;
+const figurant: SceneEntity = { id: 'fig', kind: 'personnage', pos: { x: 5, y: 5 }, label: 'Badaud', creature: { id: 'humain' } } as SceneEntity;
 
 function poser(entities: SceneEntity[], partyPos = { x: 5, y: 6 }) {
   const sc = emptyScene('scene-clic', 12, 12);

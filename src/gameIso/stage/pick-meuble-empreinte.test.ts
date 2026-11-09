@@ -26,7 +26,7 @@ const dimsDe = (scene: Scene): Dims => ({ w: scene.dimensions.w, h: scene.dimens
 
 function sceneAvecTable(facing: Dir4, z = 0): Scene {
   const s = emptyScene('scene-test', 14, 14);
-  s.entities = [{ id: ID, kind: 'prop', pos: { ...POS }, ref: REF, facing, ...(z ? { z } : {}) } as SceneEntity];
+  s.entities = [{ id: ID, kind: 'prop', pos: { ...POS }, decor: { id: REF }, facing, ...(z ? { z } : {}) } as SceneEntity];
   return s;
 }
 
@@ -45,7 +45,7 @@ function souslaCase(scene: Scene, x: number, y: number, activeZ = 0): Verdict {
 
 const cases = (scene: Scene): { x: number; y: number }[] => {
   const ent = scene.entities[0];
-  return propFootTiles(ent.ref, ent.pos, ent.facing, sceneMetresPerTile(scene));
+  return propFootTiles(ent.decor?.id, ent.pos, ent.facing, sceneMetresPerTile(scene));
 };
 
 describe('picking d’un meuble MULTI-CASE — ses deux cases le désignent, et rendent son ancre', () => {

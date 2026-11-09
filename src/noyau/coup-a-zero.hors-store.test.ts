@@ -29,8 +29,8 @@ const canon: Weapon = { label: 'Canon', type: 'ranged', subType: 'armes-de-siege
 const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] } as unknown as Weapon;
 const sansDouble: TestResult = { roll: 6, target: 70, success: true, sl: 5, isDouble: false } as TestResult;
 
-const coque = (ref: string, id: string, current: number): Combatant => {
-  const c = spawnEnemy({ ref }, id, { x: 9, y: 5 });
+const coque = (vehicule: string, id: string, current: number): Combatant => {
+  const c = spawnEnemy({ vehicule }, id, { x: 9, y: 5 });
   c.wounds = { ...c.wounds, current };
   return c;
 };

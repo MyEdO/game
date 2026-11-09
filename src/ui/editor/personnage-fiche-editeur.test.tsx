@@ -98,7 +98,7 @@ function inspecteur(entity: SceneEntity) {
 
 describe('Inspecteur — aucun geste ne retire le dernier porteur de fiche (#1882)', () => {
   it('le sélecteur de fiche n’offre AUCUNE option vide quand une fiche est nommée', () => {
-    const h = inspecteur({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
+    const h = inspecteur({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 } });
     const fiche = h.select('Fiche (bestiaire)')!;
     expect([...fiche.options].map((o) => o.value)).toEqual(BESTIAIRE.map((c) => c.id));
   });
@@ -109,7 +109,7 @@ describe('Inspecteur — aucun geste ne retire le dernier porteur de fiche (#188
     expect(aucun().disabled).toBe(true);
     expect([...h.select('Fiche (bestiaire)')!.options].filter((o) => o.value === '').map((o) => o.disabled)).toEqual([true]);
     h.choisir(h.select('Fiche (bestiaire)')!, 'humain');
-    expect(h.entOf()).toMatchObject({ presetId: 'preset-tavernier', ref: 'humain' });
+    expect(h.entOf()).toMatchObject({ presetId: 'preset-tavernier', creature: { id: 'humain' } });
     expect(aucun().disabled).toBe(false);
   });
 
@@ -118,11 +118,11 @@ describe('Inspecteur — aucun geste ne retire le dernier porteur de fiche (#188
     expect(h.bouton('Revenir à la fiche du bestiaire')).toBeUndefined();
     h.choisir(h.select('Remplacer par une fiche du bestiaire')!, 'gobelin');
     expect(h.entOf().statblock).toBeUndefined();
-    expect(h.entOf()).toMatchObject({ ref: 'gobelin', label: 'Brigand' });
+    expect(h.entOf()).toMatchObject({ creature: { id: 'gobelin' }, label: 'Brigand' });
   });
 
   it('« Profil personnalisé… » prend le NOM de l’entité (`nomDEntite`), jamais son id ni un nom de repli', () => {
-    const ent: SceneEntity = { id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } };
+    const ent: SceneEntity = { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 } };
     const nom = nomDEntite(ent, () => undefined);
     const h = inspecteur(ent);
     act(() => h.bouton('Profil personnalisé')!.click());
@@ -133,7 +133,7 @@ describe('Inspecteur — aucun geste ne retire le dernier porteur de fiche (#188
 
 describe('Inspecteur — le preset PNJ se choisit au sélecteur unique de référence narrative (#679)', () => {
   it('les presets s’affichent au libellé du registre narratif : le profil nommé, sinon la créature de base', () => {
-    const h = inspecteur({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
+    const h = inspecteur({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 } });
     const presets = [...h.select('Preset PNJ')!.options].filter((o) => o.value !== '');
     expect(presets.map((o) => [o.value, o.textContent])).toEqual([['preset-tavernier', 'Le Tavernier'], ['preset-garde', creatureLabel('humain')]]);
   });
@@ -153,6 +153,6 @@ describe('Inspecteur — un patch refusé par la porte (`TypeNonNomme`) est DIT 
     h.choisir(h.select('Preset PNJ')!, '');
     expect(h.entOf().presetId).toBe('preset-tavernier');
     const alerte = document.querySelector('[role="alert"]');
-    expect(alerte?.textContent).toContain('personnage « pnj » : « ref », « statblock », « presetId » absents');
+    expect(alerte?.textContent).toContain('personnage « pnj » : « creature », « vehicule », « engin », « statblock », « presetId » absents');
   });
 });

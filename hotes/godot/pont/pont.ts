@@ -445,8 +445,9 @@ export function creerPont() {
       const ameliorations = e.ameliorations ?? [];
       valider(estListeDeChaines(ameliorations) && ameliorations.every((a) => offertes.includes(a)), `vehicule : ameliorations, une liste d’Améliorations servies par modeles (${offertes.join(', ') || 'aucune'})`);
       const appearance = valeurLue('vehicule', 'apparence', lireApparenceDAuteur(Object.fromEntries(Object.entries({ couleurs: e.couleurs, embleme: e.embleme }).filter(([, v]) => v !== undefined))));
+      const definition = e.definition as string;
       const fiche = ficheDEntite({
-        id: 'atelier', kind: 'personnage', ref: e.definition as string, pos: { x: 0, y: 0 }, appearance,
+        id: 'atelier', kind: 'personnage', ...(pieces.includes(definition) ? { engin: { id: definition } } : { vehicule: { id: definition } }), pos: { x: 0, y: 0 }, appearance,
         postes: (postes as { definition: string; bord: FireArc }[]).map(({ definition, bord }) => ({ trappingId: definition, side: bord })),
         upgrades: (ameliorations as string[]).map((id) => ({ id })),
       }, () => undefined);

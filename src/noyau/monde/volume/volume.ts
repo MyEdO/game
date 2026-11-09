@@ -110,7 +110,7 @@ function decorsVolumiques(scene: Scene, mpt: number): FaceListee[] {
   return duTerrain.concat(scene.entities.flatMap((ent) => {
     const z = ent.z ?? 0;
     if (ent.kind !== 'prop') return [];
-    const faces = facesDuDecor(ent.ref, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: piedDuDecor(scene, ent), entId: ent.id }, mpt);
+    const faces = facesDuDecor(ent.decor?.id, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: piedDuDecor(scene, ent), entId: ent.id }, mpt);
     return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
   }));
 }

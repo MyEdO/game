@@ -59,7 +59,6 @@ export const GRAMMAIRE_STOCK = {
   'src/data/schemas/defs-scenes/effets.ts:giveTrappingSchema|alias|trappingId': e('Effet `giveTrapping` désignant l’objet donné par `trappingId` (migration de LIBELLÉ soldée en T3-b, la graphie reste).', L3),
   'src/data/schemas/defs-scenes/effets.ts:pursuitFoeSchema|alias|ref': e('Adversaire de Poursuite désignant sa fiche (bête ou statbloc) par l’enveloppe `ref` — la MÊME `livingRefSchema` que `givePossession`.', L3),
   'src/data/schemas/defs-scenes/effets.ts:givePossessionSchema|alias|ref': e('Effet `givePossession` désignant la possession par une enveloppe `ref`.', L3),
-  'src/data/schemas/defs-scenes/scene.ts:brancheDEntite|alias|ref': e('Entité de scène désignant son modèle (créature/prop) par une enveloppe `ref`.', L3),
   'src/data/schemas/defs-scenes/worldmap.ts:portProfileSchema|alias|ref': e('Profil de port désignant son entité par une enveloppe `ref`.', L3),
 
   // ── Formes POSSÉDÉES par la grammaire, re-tapées ou étendues ─────────────────────────────────

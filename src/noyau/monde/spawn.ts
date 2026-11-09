@@ -6,7 +6,7 @@ import { Combatant, Characteristics, type Weapon, CHAR_KEYS, BodyShape, SkillIns
 import { skillCharacteristicById } from '../../engine/character';
 import { isOptionalNote, resoudreTrait, traitsDuPorteur, type PorteurDeTraits, type TraitInstance, type TraitList, type TraitsDesignes, type OptionalEntry, type OptionalSwap } from '../../engine/statEntry';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, refEntiteResolue, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
+import { findCreatureById, byId, findTalentById, tailleDuProfil, findVehicleById, findTrappingById, specPoolOf, CreatureData, type SkillData, type SkillRef, type TalentRef } from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
 import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
@@ -20,7 +20,7 @@ import { terrainAbsent } from './terrain';
 import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engine/statblock';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { apparencesObjetsDe, contexteDeNaissanceDObjet, deciderApparencesDesArmes, equipConflicts, hydratePoste, loadWeapon, objetsDeLInventaire, recomputeLoadout } from '../../engine/items';
-import { argentDuPnj, porterAuParcours, type ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
+import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
 import { sortsDuPnj } from '../../engine/sortsDuPnj';
 import { blessuresReconciliees, blessuresPosees } from '../../engine/characteristics';
 import { indiceSurLeProfil } from '../../engine/formule';
@@ -86,9 +86,9 @@ function charsFrom(src: Partial<Record<string, number | null>>, fallback = 30): 
 
 
 /** Catégorie de Taille d'une entité de scène (créature posée) : champ explicite du statbloc, sinon
- *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire via `ref`). */
-export function entitySize(ent: { ref?: string; statblock?: CustomStatblock }): SizeCategory {
-  const creature = ent.ref ? findCreatureById(ent.ref) : undefined;
+ *  celle de son profil (`tailleDuProfil` : statbloc ou créature du bestiaire). */
+export function entitySize(ent: { creature?: { id: string }; statblock?: CustomStatblock }): SizeCategory {
+  const creature = ent.creature && findCreatureById(ent.creature.id);
   return tailleDuProfil({
     size: ent.statblock?.size,
     traits: ent.statblock?.traits ?? creature?.traits,
@@ -99,7 +99,7 @@ export function entitySize(ent: { ref?: string; statblock?: CustomStatblock }): 
 /** Les cases d'une entité de scène : l'empreinte dérivée au cap pour un DÉCOR (`propFootTiles`, la
  *  couture unique de la marchabilité et de la ligne de vue), le carré de sa Taille pour une créature. */
 export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
-  if (ent.kind === 'prop') return propFootTiles(ent.ref, ent.pos, ent.facing, mpt);
+  if (ent.kind === 'prop') return propFootTiles(ent.decor?.id, ent.pos, ent.facing, mpt);
   return footprintTiles(ent.pos, sizeFootprint(entitySize(ent)));
 }
 
@@ -403,7 +403,7 @@ export function statblockToCombatant(sb: CustomStatblock, id: string, pos: { x: 
   return combattant;
 }
 
-/** Une réf hors du faisceau `refEntiteResolue` a franchi la porte (`sceneEntitySchema`, #1882) : bogue du jeu. */
+/** Un corps hors de son catalogue a franchi la porte (`sceneEntitySchema`, #1882) : bogue du jeu. */
 export class RefIrresoluble extends Error {
   constructor(readonly ref: string, readonly entite: string) {
     super(`[spawn] réf. irrésoluble « ${ref} » (entité « ${entite} ») (#1882)`);
@@ -411,27 +411,27 @@ export class RefIrresoluble extends Error {
   }
 }
 
-/** La fiche d'une `ref` du faisceau `refEntiteResolue` : créature, portée à son `parcours` de carrière s'il en a un
- *  (`porterAuParcours`), coque, affût ; lève `RefIrresoluble` hors faisceau. */
-function ficheDeRef(ref: string, parcours: ParcoursDeCarriere | undefined, id: string, pos: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
-  let c: Combatant;
-  if (!refEntiteResolue(ref)) throw new RefIrresoluble(ref, id);
-  if (findCreatureById(ref)) {
-    c = creatureToCombatant(findCreatureById(ref)!, id, pos, opts);
-    if (parcours) porterAuParcours(c, parcours);
-  } else if (findVehicleById(ref)?.hull) {
+/** La fiche du corps que porte `porteur` : sa créature, portée à son `parcours` de carrière s'il en a un
+ *  (`porterAuParcours`), sa coque, son engin ; lève `RefIrresoluble` hors de son catalogue. */
+function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehicule: string } | { engin: string }>, id: string, pos: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
+  if (porteur.vehicule !== undefined) {
     // Coque/navire (`vehicles.json` → facette `hull`) comme Combattant à PV (MDG 13). 'enemy' pour être
     // une cible ; inerte (pas d'arme/Mouvement, Psychologie ignorée) — sa destruction passe par ses Blessures.
-    c = vehicleCombatant(findVehicleById(ref)!, id)!;
-    c.kind = 'enemy';
-    c.pos = { ...pos };
-  } else {
-    // AA 10 l.175-193
-    const t = findTrappingById(ref)!;
-    c = inanimateCombatant({ id, label: t.label, refId: ref, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint });
-    c.kind = 'enemy';
-    c.pos = { ...pos };
+    const coque = findVehicleById(porteur.vehicule);
+    const c = coque && vehicleCombatant(coque, id);
+    if (!c) throw new RefIrresoluble(porteur.vehicule, id);
+    return { ...c, kind: 'enemy', pos: { ...pos } };
   }
+  if (porteur.engin !== undefined) {
+    // AA 10 l.175-193
+    const t = findTrappingById(porteur.engin);
+    if (!t) throw new RefIrresoluble(porteur.engin, id);
+    return { ...inanimateCombatant({ id, label: t.label, refId: porteur.engin, bodyShape: 'engin', inert: true, footprint: t.siegeFootprint }), kind: 'enemy', pos: { ...pos } };
+  }
+  const creature = findCreatureById(porteur.ref);
+  if (!creature) throw new RefIrresoluble(porteur.ref, id);
+  const c = creatureToCombatant(creature, id, pos, opts);
+  if (porteur.parcours) porterAuParcours(c, porteur.parcours);
   return c;
 }
 
@@ -459,7 +459,7 @@ export function spawnEnemy(
 ): Combatant {
   const c = porteur.presetCreature ? creatureToCombatant(porteur.presetCreature, id, pos, opts)
     : porteur.statblock ? statblockToCombatant(porteur.statblock, id, pos, opts?.appearance, opts)
-    : ficheDeRef(porteur.ref, porteur.parcours, id, pos, opts);
+    : ficheDuCorps(porteur, id, pos, opts);
   c.porteurDeFiche = porteur;
   const sorts = sortsDuPnj(c, opts?.spells ?? []);
   if (sorts.length) c.spells = sorts;

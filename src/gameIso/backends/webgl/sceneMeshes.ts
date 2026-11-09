@@ -330,8 +330,8 @@ function etatDesAretesSignature(scene: Scene): string {
 function propVolumeSignature(scene: Scene): string {
   const parts: string[] = [];
   for (const ent of scene.entities) {
-    if (ent.kind !== 'prop' || !refEstVolumique(ent.ref)) continue;
-    parts.push(`${ent.id}|${ent.ref}|${ent.pos.x},${ent.pos.y}|${ent.z ?? 0}|${ent.facing ?? 'S'}`);
+    if (ent.kind !== 'prop' || !refEstVolumique(ent.decor?.id)) continue;
+    parts.push(`${ent.id}|${ent.decor?.id}|${ent.pos.x},${ent.pos.y}|${ent.z ?? 0}|${ent.facing ?? 'S'}`);
   }
   return parts.join(';');
 }
@@ -358,7 +358,7 @@ function propRecipeDeps(scene: Scene): readonly unknown[] {
   return depsUniques((ajouter) => {
     for (const ent of scene.entities) {
       if (ent.kind !== 'prop') continue;
-      const volume = findPropById(ent.ref)?.volume;
+      const volume = findPropById(ent.decor?.id)?.volume;
       if (!volume) continue;
       ajouter(volume);
       for (const primitive of volume.primitives) ajouter(findPropMaterialById(primitive.material));

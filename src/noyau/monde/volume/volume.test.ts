@@ -84,7 +84,7 @@ describe('volumeDuMonde (#3476)', () => {
     const s = emptyScene('scene-test', 2, 1);
     s.layers[0].tiles = ['plancher', 'plancher'];
     s.layers.push({ z: 1, tiles: ['plancher', 'plancher'], height: [3, 3] });
-    s.entities.push({ id: 'tonneau-1', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 0 }, z: 1 });
+    s.entities.push({ id: 'tonneau-1', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 1, y: 0 }, z: 1 });
     const cles = (v: VolumeDuMonde['ombre']) => triangles(v).map((t) => JSON.stringify([t.case, t.xs, t.ys])).sort();
     const casesDe = (v: VolumeDuMonde['ombre']) => new Set(triangles(v).map((t) => t.case.join(',')));
     const toutes = [...casesDe(volumeDuMonde(s))];
@@ -123,7 +123,7 @@ describe('volumeDuMonde (#3476)', () => {
     const s = emptyScene('scene-test', 3, 3);
     s.layers[0].tiles = Array(9).fill('plancher');
     s.layers[0].height = [0, 0, 0, 0, 0.5, 0, 0, 0, 0];
-    s.entities.push({ id: 'tonneau-1', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 1 } });
+    s.entities.push({ id: 'tonneau-1', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 1, y: 1 } });
     const v = volumeDuMonde(s);
     const decor = v.surfaces.filter((m) => m.matiere.startsWith('prop--'));
     expect(decor.length).toBeGreaterThan(0);

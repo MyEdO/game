@@ -133,10 +133,12 @@ Formation des servants (#210) : un servant posé SUR la case de l'engin (ou sans
 AUTO-FORMÉ au spawn en anneau autour de l'empreinte (`autoFormCrews` — jamais l'avant, ADE II ch.08
 l.258) ; une position de scène DISTINCTE prime toujours (placement d'auteur respecté).
 
-## 7. Entités-coque (`ref` de véhicule)
+## 7. Entités-coque (`vehicule`)
 
-`creatureId()` accepte créature ∪ véhicule (`findVehicleById()`, #218) : un `ref` de `vehicles.json`
-(`cogue`/`langskip`/`loup-imperial`) passe en `encounters[].enemies[]` terse comme en `entities` BRUTES.
+Le corps d'une entité nomme son type (#2968) : `decor` (`props.json`), et d'un personnage au plus un de
+`creature` (bestiaire), `vehicule` (`vehicles.json`, #218) et `engin` (engin de siège), chacun `{ id }`. Un `vehicule`
+(`cogue`/`langskip`/`loup-imperial`) passe en `encounters[].enemies[]` terse comme en `entities` BRUTES ; le générateur
+le valide dans son catalogue (`corpsValide`, `scripts/campagne/lib.mjs`).
 Une coque RICHE (équipage exposé `crewIds`, artillerie `postes`, améliorations `upgrades`) se pose en
 `entities` + s'enrôle via `encounters[].members` (plus expressif que le terse).
 
@@ -438,7 +440,7 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   Carnet qu'à travers un stade d'indice.
 - **Instancier un PNJ nommé dans une scène (`presetId`, #671).** Une `SceneEntity` (ou un `AuthoredEnemy`
   terse) porte `presetId` = l'id d'un `narratif.presetsPnj`. Présent, l'entité est INSTANCIÉE
-  « base globale + surcharges du preset » (jamais depuis `ref`/`statblock`) : `resolvePresetCreature`
+  « base globale + surcharges du preset » (jamais depuis son corps ou `statblock`) : `resolvePresetCreature`
   (`src/noyau/monde/resolveursDuNarratif.ts`) résout le preset, `mergeCreatureProfile` fusionne `base` (`findCreatureById`)
   et `profil` AU NIVEAU CHAMP (`char` par caractéristique ; `skills`/`talents`/`traits`/`spells` remplacés
   en bloc si présents). Au spawn de rencontre (`combatSlice`), la créature mergée et l'apparence du preset, surchargée champ par champ
@@ -448,13 +450,13 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   partagé par plusieurs PNJ = UN preset ; un statbloc complet porte `optionals: []` ; sa prose est une
   ADRESSE (`profil.descRef`, dérivée par `judge`, `scripts/source/derive-decoupes.mjs`) dans le livre de
   `source`, jamais le texte recopié.
-- **Porter un PNJ à une carrière (`carrieres`, #773, `EDO 11 l.17-21`).** Une `SceneEntity` personnage dont `ref`
-  est une créature du bestiaire, sans `statblock`, `presetId` ni `appearance.tenue`, porte `carrieres`, un record
+- **Porter un PNJ à une carrière (`carrieres`, #773, `EDO 11 l.17-21`).** Une `SceneEntity` personnage dont le corps
+  est une créature du bestiaire (`creature`), sans `statblock`, `presetId` ni `appearance.tenue`, porte `carrieres`, un record
   ordonné carrière → Niveau atteint dont la dernière clé est la carrière actuelle. Elle porte aussi, par carrière,
   `talentsDeCarriere` et `competencesDeCarriere` (refs `{ id, spec? }` désignées par l'auteur), et `dotationsDeCarriere`,
   les choix de dotation de la carrière actuelle par adresse `dotation:<chemin>` sur ses Niveaux 1 à N, sans la Classe.
   `refusDuPnjDeCarriere` (`src/data/schemas/defs-scenes/scene.ts`) refuse au parse ce que les Niveaux atteints n'offrent
-  pas. Au spawn, `ficheDeRef` (`src/noyau/monde/spawn.ts`) applique `porterAuParcours` (`src/engine/pnjDeCarriere.ts`) :
+  pas. Au spawn, `ficheDuCorps` (`src/noyau/monde/spawn.ts`) applique `porterAuParcours` (`src/engine/pnjDeCarriere.ts`) :
   le +5 par Niveau, un Talent par Niveau, les dotations matérialisées en objets réels. L'inventaire d'auteur s'y ajoute,
   et ce que l'auteur fait porter ôte la dotation qui chevauche. Ce que l'auteur laisse libre est tiré de la graine,
   l'id de l'entité. Ces champs s'éditent dans la section « Carrières » de l'inspecteur Godot (`src/hote/editeur.ts`).
@@ -549,7 +551,7 @@ variantes que chaque type admet sont déclarées dans `psychology.json` (`cibles
 
 ## 11. Règles d'or
 
-- **IDS partout** — `ref`/`skill`/`spell`/`inventaire`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont
+- **IDS partout** — `creature`/`skill`/`spell`/`inventaire`/`species`/`tenue`/`trappingId`/`factorId`/`roleId` sont
   des ids STABLES. Un libellé est un défaut silencieux (poison). Doctrine : AGENTS.md, encadré « id STABLE ».
 - **Personne ne lit le journal** — tout dénouement pertinent est une surface VISIBLE au moment (dialogue,
   modale, effet à l'écran), le `journal` ne fait que rappeler.

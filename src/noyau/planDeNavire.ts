@@ -98,7 +98,8 @@ interface PoseDeNavire {
  *  n'est pas à l'échelle de son plan. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
  *  l'entier, au plus près quand leurs côtés n'ont pas la parité de l'empreinte. */
 function poseDe(scene: Scene, ent: SceneEntity): PoseDeNavire | null {
-  const plan = ent.kind === 'personnage' && ent.ref !== undefined ? PLANS_DE_NAVIRE.find((p) => p.ponts.id === ent.ref) : undefined;
+  const coque = ent.vehicule?.id;
+  const plan = coque === undefined ? undefined : PLANS_DE_NAVIRE.find((p) => p.ponts.id === coque);
   if (!plan || sceneMetresPerTile(plan.ponts) !== sceneMetresPerTile(scene)) return null;
   const cap = ent.facing ?? 'N';
   if (!estCardinal(cap)) throw new Error(`navire « ${ent.id} » : ses ponts se posent à un cap cardinal (N, E, S, O), pas « ${cap} »`);
@@ -185,7 +186,7 @@ function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
   // Un décor garde son emprise : son ancre est le coin nord-ouest de ses cases tournées ; son calage tourne avec le
   // pont (le coffre reste contre la même cloison) et son appui prend le préfixe de la pose.
   const decors: SceneEntity[] = (navire.entities ?? []).map((e) => {
-    const cases = propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => vers(c.x, c.y));
+    const cases = propFootTiles(e.decor?.id, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => vers(c.x, c.y));
     return {
       ...e,
       id: `${pose.id}-${e.id}`,

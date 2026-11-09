@@ -18,8 +18,8 @@ import type { SkillRef } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
 import type { ThreatTier } from '../../engine/advantagePool';
 
-/** Un ennemi authoré NOMME sa fiche (`AuMoinsUnPorteurDeFiche`, #1882) : `ref`, `statblock` ou `presetId`
- *  (`narratif.presetsPnj`, #671), recopiés tels quels sur la `SceneEntity`. */
+/** Un ennemi authoré NOMME sa fiche (`AuMoinsUnPorteurDeFiche`, #1882) : son corps (`creature`, `vehicule`, `engin`),
+ *  `statblock` ou `presetId` (`narratif.presetsPnj`, #671), recopiés tels quels sur la `SceneEntity`. */
 export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   pos: { x: number; y: number };
   appearance?: EntityAppearance;
@@ -41,7 +41,7 @@ export type AuthoredEnemy = AuMoinsUnPorteurDeFiche & {
   /** Compétences d'AUTEUR ajoutées (réfs `SkillRef`) — fusionnées au spawn (servant de pièce : Projectiles
    *  du Groupe de son engin, AA 10 l.142-146). */
   skills?: SkillRef[];
-  /** Coque/navire (`ref` = id de `vehicles.json`) : `id`s d'entités d'ÉQUIPAGE exposées (MDG 14).
+  /** Coque/navire (`vehicule`) : `id`s d'entités d'ÉQUIPAGE exposées (MDG 14).
    *  Les ids des ennemis de la rencontre sont déterministes : `enemy-<idRencontre>-<index>`. */
   crewIds?: string[];
   /** Coque/navire : pièces d'artillerie MONTÉES (postes, MDG 12-13). Chaque poste réfère son équipage par
@@ -87,7 +87,9 @@ export function buildEncounter(a: AuthoredEncounter): BuiltEncounter {
   const entities: SceneEntity[] = a.enemies.map((e, i) => {
     const ent: SceneEntity = {
       id: ids[i], kind: 'personnage', pos: { ...e.pos },
-      ...(e.ref !== undefined ? { ref: e.ref } : {}),
+      ...(e.creature ? { creature: e.creature } : {}),
+      ...(e.vehicule ? { vehicule: e.vehicule } : {}),
+      ...(e.engin ? { engin: e.engin } : {}),
       ...(e.statblock ? { statblock: e.statblock } : {}),
       ...(e.presetId !== undefined ? { presetId: e.presetId } : {}),
     };

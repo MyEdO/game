@@ -208,8 +208,8 @@ describe('INVARIANT #2 — un seul seam d’assise pour toute mutation d’entit
       tiles[7 * 10 + 7] = 'plancher';
       s.layers = [{ z: 0, tiles: tiles as Scene['layers'][number]['tiles'] }];
       s.entities = [
-        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-        { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 } },
+        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
+        { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 } },
         // L'emplacement passe par le builder de production `siegeEmplacementEntity`.
         affutDeFixture('affut-1', 'canon-petit', { x: 4, y: 4 }),
       ];

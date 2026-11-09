@@ -21,7 +21,7 @@ const plan = buildScene(PLAN_DE_LA_CARAQUE);
 /** Un bassin sans ses ponts : la caraque `c1` depuis (10, 2), au cap `facing`, à l'échelle `metresPerTile`. */
 const authored = (facing: 'N' | 'NE' | 'E' | 'O', metresPerTile?: number) => buildScene({
   id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', ...(metresPerTile ? { metresPerTile } : {}),
-  entities: [{ id: 'c1', kind: 'personnage', ref: 'caraque', pos: { x: 10, y: 2 }, facing }],
+  entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 2 }, facing }],
 });
 
 describe('les ponts se dérivent de l’entité du navire (#3686)', () => {

@@ -33,10 +33,10 @@ const n6 = (v: number) => v.toFixed(6);
  */
 function ancreGeometrique(sc: Scene, entId: string): { x: number; y: number; sol: number } {
   const ent = sc.entities.find((e) => e.id === entId)!;
-  const prop = findPropById(ent.ref) as PropData;
+  const prop = findPropById(ent.decor?.id) as PropData;
   const mpt = sceneMetresPerTile(sc);
   const el = buildProps(sc).find((e) => e.entId === entId)!;
-  expect(estPropVolumique(el), `${ent.ref} doit sortir en VOLUME (sinon rien n’est mesuré)`).toBe(true);
+  expect(estPropVolumique(el), `${ent.decor?.id} doit sortir en VOLUME (sinon rien n’est mesuré)`).toBe(true);
   const posees = estPropVolumique(el) ? el.faces : [];
   const locales = buildPropVolumes(prop, { ancre: { x: 0, y: 0 }, facing: capVolumique(ent.facing)!, baseHeightM: 0 }, mpt);
   expect(posees.length).toBe(locales.length);
@@ -50,7 +50,7 @@ function ancreGeometrique(sc: Scene, entId: string): { x: number; y: number; sol
  *  cap de l'instance (`rotatePropLocal`, la même rotation que la géométrie applique). */
 function ancreDeLaPlace(sc: Scene, entId: string, slotId: string): { x: number; y: number } {
   const ent = sc.entities.find((e) => e.id === entId)!;
-  const prop = findPropById(ent.ref) as PropData;
+  const prop = findPropById(ent.decor?.id) as PropData;
   const place = seatSlotsOf(sc, entId).find((s) => s.slotId === slotId)!;
   const slot = prop.seatSlots!.find((s) => s.id === slotId)!;
   const [rx, ry] = rotatePropLocal(slot.anchor.xM / sceneMetresPerTile(sc), slot.anchor.yM / sceneMetresPerTile(sc), capVolumique(ent.facing)!);
@@ -78,7 +78,7 @@ describe('places POSÉES — chaque place tient l’ancre de SON décor (scène 
       ...emptyScene('scene-test', w, h),
       id: 'fixture-places',
       layers: [{ z: 0, tiles: new Array(w * h).fill('plancher') }],
-      entities: POSES.map((p) => ({ id: p.id, kind: 'prop', ref: p.ref, pos: { ...p.pos }, facing: p.facing } as SceneEntity)),
+      entities: POSES.map((p) => ({ id: p.id, kind: 'prop', decor: { id: p.ref }, pos: { ...p.pos }, facing: p.facing } as SceneEntity)),
     };
   };
 
@@ -160,7 +160,7 @@ describe('meuble à places de DEUX cases — l’ancre des places EST celle de l
   const scene = (facing: Dir4): Scene => ({
     ...emptyScene('scene-test', 12, 12),
     metresPerTile: MPT,
-    entities: [{ id: ID, kind: 'prop', pos: { ...POS }, ref: REF, facing } as SceneEntity],
+    entities: [{ id: ID, kind: 'prop', pos: { ...POS }, decor: { id: REF }, facing } as SceneEntity],
   });
 
   const ancreDeLaGeometrie = (facing: Dir4, sc: Scene = scene(facing)) => ancreGeometrique(sc, ID);

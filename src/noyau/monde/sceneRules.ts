@@ -64,9 +64,9 @@ function buildEntityBlockIndex(entities: SceneEntity[], mpt: number): Set<string
     // « utilisable » ici = l'objet a un CORPS à heurter, pas « il reste du butin » : un coffre vidé
     // bloque toujours sa case. La porte lit donc les actions AUTHORÉES de l'instance, sans drapeau
     // d'épuisement.
-    if (!actionsAuthorees(e).length && !propIsSolid(e.ref)) continue;
+    if (!actionsAuthorees(e).length && !propIsSolid(e.decor?.id)) continue;
     const z = e.z ?? 0;
-    for (const t of propFootTiles(e.ref, e.pos, e.facing, mpt)) blocked.add(`${t.x},${t.y},${z}`);
+    for (const t of propFootTiles(e.decor?.id, e.pos, e.facing, mpt)) blocked.add(`${t.x},${t.y},${z}`);
   }
   return blocked;
 }

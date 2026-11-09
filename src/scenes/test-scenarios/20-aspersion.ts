@@ -43,7 +43,7 @@ function construireScene(): Scene {
   setEncounters(scene, [
     {
       id: 'enc-aspersion',
-      enemies: [{ ref: 'anguille-macheprise', pos: { ...HERO_START }, side: 'ally', ai: true }],
+      enemies: [{ creature: { id: 'anguille-macheprise' }, pos: { ...HERO_START }, side: 'ally', ai: true }],
       victoryCondition: { type: 'surviveRounds', rounds: 3 },
     },
   ]);

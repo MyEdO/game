@@ -44,7 +44,7 @@ describe('exploreMoveDest — case d’arrivée partagée survol/clic (explorati
    * y journalisait un refus au-dessus d'une case libre.
    */
   it('décor PASSABLE (ni empreinte, ni solide, ni interactif) : on marche DESSUS, comme sur la case nue', () => {
-    const foin: SceneEntity = { id: 'foin', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'tas-foin' };
+    const foin: SceneEntity = { id: 'foin', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'tas-foin' } };
     const sc = sceneWith([foin]);
     expect(isWalkable(sc, 5, 5), 'précondition : sa case reste marchable').toBe(true);
     expect(exploreMoveDest(sc, { x: 1, y: 1 }, { x: 5, y: 5 })).toEqual({ x: 5, y: 5 });
@@ -52,7 +52,7 @@ describe('exploreMoveDest — case d’arrivée partagée survol/clic (explorati
   });
 
   it('décor SOLIDE sans autre affordance : sa case est occupée, on s’en approche', () => {
-    const tonneau: SceneEntity = { id: 'tonneau-1', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'tonneau' };
+    const tonneau: SceneEntity = { id: 'tonneau-1', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'tonneau' } };
     const sc = sceneWith([tonneau]);
     expect(isWalkable(sc, 5, 5), 'précondition : la case est bloquée').toBe(false);
     const dest = exploreMoveDest(sc, { x: 1, y: 1 }, { x: 5, y: 5 });
@@ -66,7 +66,7 @@ describe('exploreMoveDest — case d’arrivée partagée survol/clic (explorati
   });
 
   it('PNJ à dialogue (case marchable) : on s’arrête à une case adjacente, pas sur le PNJ', () => {
-    const npc: SceneEntity = { id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 }, dialogueId: { id: 'd1' } };
+    const npc: SceneEntity = { id: 'garde', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 5 }, dialogueId: { id: 'd1' } };
     const sc = sceneWith([npc]);
     expect(isWalkable(sc, 5, 5)).toBe(true); // un personnage ne bloque pas sa case…
     const dest = exploreMoveDest(sc, { x: 1, y: 1 }, { x: 5, y: 5 });
@@ -75,13 +75,13 @@ describe('exploreMoveDest — case d’arrivée partagée survol/clic (explorati
   });
 
   it('figurant (sans dialogue) à distance : on s’approche d’une case adjacente', () => {
-    const fig: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } };
+    const fig: SceneEntity = { id: 'badaud', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 5 } };
     const dest = exploreMoveDest(sceneWith([fig]), { x: 1, y: 1 }, { x: 5, y: 5 });
     expect(chebyshev(dest!, { x: 5, y: 5 })).toBe(1);
   });
 
   it('figurant déjà adjacent : aucune marche', () => {
-    const fig: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } };
+    const fig: SceneEntity = { id: 'badaud', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 5 } };
     expect(exploreMoveDest(sceneWith([fig]), { x: 4, y: 5 }, { x: 5, y: 5 })).toBeNull();
   });
 
@@ -99,7 +99,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
   const TABLE = 'table-ronde-4-tabourets';
   /** Table en (10,10) au cap N : abords nord (10,9), est (11,10), sud (10,11), ouest (9,10). */
   const table = (over: Partial<SceneEntity> = {}): SceneEntity =>
-    ({ id: 'table-1', kind: 'prop', pos: { x: 10, y: 10 }, ref: TABLE, facing: 'N', usable: { assise: true }, ...over }) as SceneEntity;
+    ({ id: 'table-1', kind: 'prop', pos: { x: 10, y: 10 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true }, ...over }) as SceneEntity;
   const scèneTable = (assignments?: Scene['seatAssignments']): Scene => {
     const sc = emptyScene('scene-test', 16, 16);
     sc.entities = [table()];
@@ -137,7 +137,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
 
   it('meuble sans place → null ; meuble absent → null', () => {
     const sc = emptyScene('scene-test', 16, 16);
-    sc.entities = [{ id: 'caisse', kind: 'prop', pos: { x: 10, y: 10 }, ref: 'comptoir-droit' }];
+    sc.entities = [{ id: 'caisse', kind: 'prop', pos: { x: 10, y: 10 }, decor: { id: 'comptoir-droit' } }];
     expect(exploreSeatPlan(sc, 'caisse', depuis(sc, { x: 8, y: 8 }))).toBeNull();
     expect(exploreSeatPlan(sc, 'fantome', depuis(sc, { x: 8, y: 8 }))).toBeNull();
   });
@@ -147,7 +147,7 @@ describe('exploreSeatPlan — marcher vers l’ABORD d’une place libre', () =>
     for (let dx = -2; dx <= 2; dx++)
       for (let dy = -2; dy <= 2; dy++) {
         if (chebyshev({ x: dx, y: dy }, { x: 0, y: 0 }) !== 2) continue;
-        sc.entities.push({ id: `mur-${dx}-${dy}`, kind: 'prop', pos: { x: 10 + dx, y: 10 + dy }, ref: 'comptoir-droit' });
+        sc.entities.push({ id: `mur-${dx}-${dy}`, kind: 'prop', pos: { x: 10 + dx, y: 10 + dy }, decor: { id: 'comptoir-droit' } });
       }
     expect(exploreSeatPlan(sc, 'table-1', depuis(sc, { x: 5, y: 5 }))).toBeNull();
   });

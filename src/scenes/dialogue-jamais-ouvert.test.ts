@@ -43,13 +43,13 @@ describe('#1869 — un dialogue sans ouvreur est injouable', () => {
   });
 
   it('la capacité « parler » d’une entité l’ouvre', () => {
-    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'd' } }];
+    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, dialogueId: { id: 'd' } }];
     expect(jamaisOuverts(validateScene(projet({ entities })))).toEqual([]);
   });
 
   it('un effet « Ouvrir un dialogue », même au fond d’un AUTRE dialogue, l’ouvre', () => {
     const accueil = { id: 'a', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'suite', label: 'Suite', flow: flowFromEffects([{ type: 'startDialogue', dialogue: 'd' }]) }] }] };
-    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'a' } }];
+    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, dialogueId: { id: 'a' } }];
     expect(jamaisOuverts(validateScene(projet({ entities, dialogues: [accueil, dialogue('d')] })))).toEqual([]);
   });
 });
