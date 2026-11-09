@@ -277,7 +277,7 @@ describe('le SCHÉMA de scène se joue sur une scène VIVANTE (#877, #1897)', ()
   it('un SORT d’auteur mort est une erreur, rattachée à son entité', () => {
     expect(erreurs(aSortMort())).toEqual([{
       level: 'error', sceneId: 'S', scope: 'entity', refId: 'mage',
-      message: 'entité « Mage » › combat › sorts 1 : « sort-fantome » est absent du catalogue des sorts (spells.json).',
+      message: 'entité « Mage » › rôle au combat › sorts 1 : « sort-fantome » est absent du catalogue des sorts (spells.json).',
       architectureRef: undefined,
     }]);
   });

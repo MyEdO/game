@@ -8,7 +8,9 @@
  * couche, se copient, se collent sur la case pointée de la couche éditée et se dupliquent sur leur couche ; une entrée
  * se renomme d'un nom libre et change de couche. La scène écrit par ses écrivains dédiés (#3606) sa musique, son
  * message d'introduction, ses ancres de bataille et ses groupes ; une ouverture de façade, son apparence ; un personnage, son inventaire d'auteur,
- * et sa troupe de copies posées en un cran.
+ * et sa troupe de copies posées en un cran. Une entité écrit au formulaire tiré du schéma de son type (geste `valeur`,
+ * porteur `entite`, #3606 M1a) ce qu'il offre, ses options au contexte de sa fiche, et ses fautes croisées sont celles
+ * de `refusDeLEntite`.
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, heightAt, type Scene } from '../monde/scene';
@@ -18,11 +20,17 @@ import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../scen
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
+import { choixDuChamp, entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
+import { refusDeLaValeur } from './session';
+import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import { findCreatureById, traits } from '../../data';
+import { inventaireApres } from '../../engine/items';
+import type { Segment } from '../sceneEdit';
 import { seatSlotsOf } from '../monde/seating';
 import { props } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 
 const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -196,7 +204,8 @@ describe('session d’édition', () => {
     const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
     const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
     const membre = (s: SessionDEdition) => sceneEditee(s).encounters[0]?.members?.find((m) => m.entityId === id);
-    expect(entiteDeLaSelection(sceneEditee(jouer(pose, { geste: 'entite', patch: { embusque: true } })), pose.sel)?.combat).toEqual({ hiddenUntilCombat: true });
+    const embusque = jouer(pose, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat'], valeur: {} }, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat', 'hiddenUntilCombat'], valeur: true });
+    expect(entiteDeLaSelection(sceneEditee(embusque), pose.sel)?.combat).toEqual({ hiddenUntilCombat: true });
     const enrole = jouer(pose, { geste: 'membre', patch: { rencontre: null, enrole: true } });
     const enc = sceneEditee(enrole).encounters[0].id;
     expect(membre(enrole)).toEqual({ entityId: id });
@@ -207,13 +216,21 @@ describe('session d’édition', () => {
     expect(jouer(enrole, { geste: 'membre', patch: { rencontre: enc, enrole: true } }), 'déjà membre : aucun cran').toBe(enrole);
   });
 
-  it('un personnage : son inventaire d’auteur s’écrit entier, l’objet porté marqué ; vidé, le champ quitte l’entité (#3684)', () => {
+  it('un personnage : son inventaire d’auteur s’écrit par intention, un objet ajouté non porté, porté, retiré ; vidé, le champ quitte l’entité (#3684)', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
     const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
-    const equipe = jouer(pose, { geste: 'entite', patch: { inventaire: { 'cotte-de-mailles': true, 'arme-simple': false } } });
+    const equipe = jouer(pose, { geste: 'entite', patch: { objet: { ajouter: 'cotte-de-mailles' } } }, { geste: 'entite', patch: { objet: { ajouter: 'arme-simple' } } }, { geste: 'entite', patch: { objet: { porter: 'cotte-de-mailles' } } });
     expect(ent(equipe)?.inventaire).toEqual({ 'cotte-de-mailles': true, 'arme-simple': false });
-    expect(ent(jouer(equipe, { geste: 'entite', patch: { inventaire: {} } }))?.inventaire).toBeUndefined();
+    expect(ent(jouer(equipe, { geste: 'entite', patch: { objet: { retirer: 'cotte-de-mailles' } } }, { geste: 'entite', patch: { objet: { retirer: 'arme-simple' } } }))?.inventaire).toBeUndefined();
+  });
+
+  it('un objet porté ôte ceux qui sont en conflit de port avec lui ; porté, il s’ôte (`inventaireApres`, #3684)', () => {
+    const mailles = { 'cotte-de-mailles': true, 'chemise-de-mailles': false, 'arme-simple': true };
+    expect(inventaireApres(mailles, { porter: 'chemise-de-mailles' }), 'deux mailles sur le Corps ne se portent pas ensemble').toEqual({ 'cotte-de-mailles': false, 'chemise-de-mailles': true, 'arme-simple': true });
+    expect(inventaireApres(mailles, { porter: 'cotte-de-mailles' })).toEqual({ ...mailles, 'cotte-de-mailles': false });
+    expect(inventaireApres(mailles, { ajouter: 'corde' })).toEqual({ ...mailles, corde: false });
+    expect(inventaireApres(mailles, { porter: 'absent' })).toBe(mailles);
   });
 
   it('un personnage de carrière : son parcours s’écrit en ses quatre champs ; sans carrière, ils quittent l’entité ; ses Caractéristiques tirées, à côté de son embuscade (#773)', () => {
@@ -223,17 +240,22 @@ describe('session d’édition', () => {
     const parcours = { carrieres: { medecin: 2, soldat: 2 }, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] }, competencesDeCarriere: { soldat: [{ id: 'musicien', spec: 'fifre' }] }, dotationsDeCarriere: { [adresseDeCreation.dotation([3])]: 'hallebarde' } };
     const porte = jouer(pose, { geste: 'entite', patch: { parcours } });
     expect(ent(porte)).toMatchObject(parcours);
-    expect(ent(jouer(porte, { geste: 'entite', patch: { parcours: { carrieres: {} } } }))).toMatchObject({ carrieres: undefined, talentsDeCarriere: undefined, competencesDeCarriere: undefined, dotationsDeCarriere: undefined });
-    const tire = jouer(porte, { geste: 'entite', patch: { embusque: true } }, { geste: 'entite', patch: { aleatoire: true } });
+    const sansCarriere = ent(jouer(porte, { geste: 'entite', patch: { parcours: { carrieres: {} } } }))!;
+    expect((['carrieres', 'talentsDeCarriere', 'competencesDeCarriere', 'dotationsDeCarriere'] as const).filter((k) => k in sansCarriere)).toEqual([]);
+    const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
+    const valeur = (chemin: Segment[], v: unknown): GesteDEdition => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, valeur: v });
+    const tire = jouer(porte, valeur(['combat'], {}), valeur(['combat', 'hiddenUntilCombat'], true), valeur(['combat', 'randomChars'], true));
     expect(ent(tire)?.combat).toEqual({ hiddenUntilCombat: true, randomChars: true });
-    expect(ent(jouer(tire, { geste: 'entite', patch: { aleatoire: false } }))?.combat).toEqual({ hiddenUntilCombat: true });
+    expect(ent(jouer(tire, valeur(['combat', 'randomChars'], false)))?.combat).toEqual({ hiddenUntilCombat: true, randomChars: false });
   });
 
   it('les sorts choisis d’un personnage s’écrivent à `combat.spells`, à côté de son embuscade ; vides, ils le quittent (#3715)', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
     const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
-    const choisis = jouer(pose, { geste: 'entite', patch: { embusque: true } }, { geste: 'entite', patch: { sorts: ['choc', 'flechette'] } });
+    const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
+    const embusque: GesteDEdition[] = [{ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat'], valeur: {} }, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat', 'hiddenUntilCombat'], valeur: true }];
+    const choisis = jouer(pose, ...embusque, { geste: 'entite', patch: { sorts: ['choc', 'flechette'] } });
     expect(ent(choisis)?.combat).toEqual({ hiddenUntilCombat: true, spells: ['choc', 'flechette'] });
     expect(ent(jouer(choisis, { geste: 'entite', patch: { sorts: [] } }))?.combat).toEqual({ hiddenUntilCombat: true });
   });
@@ -246,7 +268,7 @@ describe('session d’édition', () => {
       ...poser({ mode: 'tile', terrain: 'mur' }, 2, 3), ...poser({ mode: 'entity', kind: 'prop', ref: 'brasero' }, 4, 3),
       ...poser({ mode: 'entity', kind: 'personnage', ref: 'humain' }, 3, 2), ...poser({ mode: 'entity', kind: 'personnage', ref: 'humain' }, 3, 3));
     const original = entiteDeLaSelection(sceneEditee(decor), decor.sel)!;
-    const avant = jouer(decor, { geste: 'entite', patch: { inventaire: { 'arme-simple': true } } }, { geste: 'membre', patch: { rencontre: null, enrole: true } });
+    const avant = jouer(decor, { geste: 'entite', patch: { objet: { ajouter: 'arme-simple' } } }, { geste: 'entite', patch: { objet: { porter: 'arme-simple' } } }, { geste: 'membre', patch: { rencontre: null, enrole: true } });
     const enc = sceneEditee(avant).encounters[0].id;
     const allie = jouer(avant, { geste: 'membre', patch: { rencontre: enc, camp: 'ally' } });
     const troupe = jouer(allie, { geste: 'troupe', nombre: 5 });
@@ -324,5 +346,77 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
     expect(jouer(habillee, { geste: 'baie', id: 'absente', patch: { apparence: apparence.id } })).toBe(habillee);
     const decor = (['chimney', 'sign', 'belfry'] as const).find((k) => !apparencesDeLOuverture(k).some((a) => a.id === apparence.id))!;
     expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { sorte: decor } })), 'une sorte d’un autre catalogue retire l’apparence').toBe(false);
+  });
+});
+
+describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const poser = (ref: string, x: number) => jouer(ouverteSur(emptyScene('m1a', 6, 6)), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref } }, { geste: 'appui', point: point(x, 1) }, { geste: 'relache', point: point(x, 1) });
+  const idDe = (s: SessionDEdition) => (s.sel?.type === 'entity' ? s.sel.id : '');
+  const valeur = (id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
+
+  it('écrit le rôle au combat, l’amateur des arts et les Améliorations d’une coque ; l’entité reste sélectionnée', () => {
+    const griffon = poser('griffon-zoo-imperial', 1);
+    const id = idDe(griffon);
+    const ecrite = jouer(griffon, valeur(id, ['combat'], {}), valeur(id, ['combat', 'randomChars'], true), valeur(id, ['combat', 'optionals'], [{ id: 'rapide' }]), valeur(id, ['combat', 'optionals', 0, 'value'], 2), valeur(id, ['amateur'], 'amateurDArt'));
+    expect(entiteDeLaSelection(sceneEditee(ecrite), ecrite.sel), 'la sélection désigne toujours l’entité écrite').toMatchObject({ id, combat: { randomChars: true, optionals: [{ id: 'rapide', value: 2 }] }, amateur: 'amateurDArt' });
+    expect(ecrite.historique.passe.length - griffon.historique.passe.length, 'chaque écriture sur un cran').toBe(5);
+    const barge = allBuiltinCampaigns.find((c) => c.id === 'barge-du-sel')!;
+    const cogue = jouer(ouvrirLEdition(paquetDuJeu(barge), false), { geste: 'scenes', quoi: 'aller', id: 'barge-du-sel-embuscade' }, { geste: 'appui', point: point(18, 7) }, { geste: 'relache', point: point(18, 7) });
+    const coque = idDe(cogue);
+    expect(entiteDeLaSelection(sceneEditee(cogue), cogue.sel), 'la coque pirate de l’embuscade').toMatchObject({ ref: 'cogue', upgrades: [{ id: 'renforce', value: 1 }] });
+    const amelioree = jouer(cogue, valeur(coque, ['upgrades', 0, 'value'], 2));
+    expect(entiteDeLaSelection(sceneEditee(amelioree), amelioree.sel)?.upgrades).toEqual([{ id: 'renforce', value: 2 }]);
+    expect(refusDeLaValeur(griffon, valeur(id, ['upgrades'], [{ id: 'renforce' }])), 'seule une coque porte des Améliorations').toBe('nonOffert');
+  });
+
+  it('refuse un chemin que M1a n’offre pas : préréglage, apparence, sorts', () => {
+    const griffon = poser('griffon-zoo-imperial', 1);
+    const id = idDe(griffon);
+    const combat = jouer(griffon, valeur(id, ['combat'], {}));
+    expect([refusDeLaValeur(griffon, valeur(id, ['presetId'], 'x')), refusDeLaValeur(griffon, valeur(id, ['appearance'], {})), refusDeLaValeur(combat, valeur(id, ['combat', 'spells'], []))]).toEqual(['nonOffert', 'nonOffert', 'nonOffert']);
+  });
+
+  it('les options : tous les Traits, ceux de la fiche en tête puis les Traits standard (LDB 76 l.11, l.35) ; une note « swap » de la fiche se pose entière', () => {
+    const griffon = poser('griffon-zoo-imperial', 1);
+    const id = idDe(griffon);
+    const avecTrait = jouer(griffon, valeur(id, ['combat'], {}), valeur(id, ['combat', 'optionals'], [{ id: 'rapide' }]));
+    const ent = entiteDeLaSelection(sceneEditee(avecTrait), avecTrait.sel)!;
+    const offerts = choixDuChamp('entite', ent, ['combat', 'optionals', 0, 'id'])!.map((o) => o.valeur);
+    const facultatifs = findCreatureById('griffon-zoo-imperial')!.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
+    const standard = traits.filter((t) => t.standard && !facultatifs.includes(t.id)).map((t) => t.id);
+    expect(offerts).toHaveLength(traits.length);
+    expect(offerts.slice(0, facultatifs.length + standard.length)).toEqual([...facultatifs, ...standard]);
+    const note = findCreatureById('griffon-zoo-imperial')!.optionals.find((o) => 'note' in o && o.note === 'swap');
+    const variantes = choixDuChamp('entite', ent, ['combat', 'optionals', 0])!;
+    expect(variantes.map((v) => v.valeur)).toEqual([{ id: 'rapide' }, note]);
+    const posee = jouer(avecTrait, valeur(id, ['combat', 'optionals', 0], note));
+    expect(entiteDeLaSelection(sceneEditee(posee), posee.sel)?.combat?.optionals).toEqual([note]);
+    const editee = jouer(posee, valeur(id, ['combat', 'optionals', 0, 'wounds'], 30));
+    expect(entiteDeLaSelection(sceneEditee(editee), editee.sel)?.combat?.optionals?.[0], 'posée, la note s’édite').toEqual({ ...note, wounds: 30 });
+  });
+
+  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, la fiche introuvable, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
+    const fixtures = {
+    sansPorteur: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } },
+    refInconnue: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'pas-une-fiche' },
+    carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
+    volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', facing: 'NE' },
+    decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', calage: { x: 2, y: 0 } },
+    admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' },
+    } as const;
+    const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
+    expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['ref']]);
+    expect(fautes(fixtures.refInconnue)).toEqual([{ chemin: ['ref'], message: '« pas-une-fiche » ni créature, ni coque de véhicule, ni engin de siège' }]);
+    expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
+    expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
+    expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);
+    expect(fautes(fixtures.admise)).toEqual([]);
+
+    // Accord : le parse dit exactement ces fautes, à leur champ.
+    for (const [nom, ent] of Object.entries(fixtures)) {
+      const issues = sceneEntitySchema.safeParse(ent).error?.issues.filter((i) => i.code === 'custom') ?? [];
+      expect(issues.map((i) => ({ chemin: i.path, message: i.message })), nom).toEqual(fautes(ent));
+    }
   });
 });

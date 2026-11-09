@@ -184,10 +184,7 @@ export interface VehicleTravelClass { id: string; label: string; brassPerKm: num
  *  le libellé (principe : référencer par id, pas par nom). `value` = Indice d'un Trait `ranked` (« Renforcé 2 »
  *  → `{ id: 'renforce', value: 2 }`) ; absent = Indice 1. Le libellé verbatim reste dans le catalogue
  *  (résolu pour l'affichage via `findNavalTrait(id)?.label`). Même esprit que `TraitInstance`, registre distinct. */
-export interface NavalTraitRef {
-  id: string;
-  value?: number;
-}
+export type NavalTraitRef = import('zod').z.input<typeof import('../data/schemas/grammaire/reference').navalTraitRefSchema>;
 
 export interface VehicleData {
   /** id STABLE (slug) — cible de `TravelMode`/réfs de scène. */

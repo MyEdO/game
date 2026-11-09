@@ -90,6 +90,10 @@
 //   un clic sur une case libre vide la sélection. L'outil Zone, une pièce tirée de deux cases sur deux, nommée et munie de
 //   sa poignée ; l'outil Sélection, la poignée glissée l'agrandit ; à son inspecteur (#3606), « Ajouter : Test de
 //   traversée », la difficulté choisie en liste et « sans assistance » au clic ; « Supprimer » la retire. L'outil
+//   Personnage, sa première fiche (un profil standard), un clic au même endroit la pose (#3606 M1a) : à l'onglet Combat de son
+//   inspecteur, « Ajouter : rôle au combat », « Ajouter : options », dont le premier Trait offert est un Facultatif de sa fiche,
+//   et « caractéristiques aléatoires » au clic ; à l'onglet Identité, une entrée de fiche couverte choisie en liste ;
+//   « Supprimer » le retire. L'outil
 //   Architecture, un clic sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ;
 //   « Poser une façade », un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne
 //   une ; « Tirer une exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis
@@ -1176,6 +1180,9 @@ async function presser(z, id) {
   await cliquerBouton(bouton(b))
   return vue()
 }
+/** La racine du dépôt, d'où se lisent ses données. */
+const racineDuDepot = resolve(dirname(fileURLToPath(import.meta.url)), '../..')
+
 /** L'éditeur publié (`wfrpEcran.editeur`) : ses zones et sa surcouche. */
 const editeur = async () => (await ecran()).editeur
 /** Le bouton d'id `id` des zones de l'éditeur publié, posé seul ou parmi les valeurs d'un choix. */
@@ -1226,8 +1233,9 @@ async function parcoursEditeur() {
     await cliquerBouton(quoi)
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée. */
-  const choisirALaListe = async (liste, id, zone = 'editeur.options') => {
+   *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée ; l'écran
+   *  attendu ensuite : la valeur pressée, sinon la condition `attendu`. */
+  const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
     const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
     const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
     const rang = deroulante.choix.indexOf(libelle)
@@ -1237,7 +1245,7 @@ async function parcoursEditeur() {
     for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
     await marquer()
     await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
+    await waitFor(session, attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
   }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
@@ -1481,6 +1489,34 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/zone/supprimer' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur?.surcouche.zones.some((z) => z.choisi)')
   noter('« Supprimer » : la pièce retirée')
+  await cliquerAuPanneau({ element: 'bouton/outil/personnage' })
+  const fiche = (await editeur()).zones['editeur.options'].find((c) => c.id === 'fiches').valeurs.find((b) => b.presse).id.slice('personnage/'.length)
+  await cliquerPoint(...cases[`${zx},${zy}`])
+  /** L'inspecteur publié montre-t-il l'élément d'id `id` ? */
+  const montre = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === '${id}')`
+  await waitFor(session, montre('valeur/combat/ajouter'))
+  await cliquerAuPanneau('Combat')
+  await cliquerAuPanneau({ element: 'bouton/valeur/combat/ajouter' })
+  await waitFor(session, montre('valeur/combat/optionals/ajouter'))
+  await cliquerAuPanneau({ element: 'bouton/valeur/combat/optionals/ajouter' })
+  await waitFor(session, montre('valeur/combat/optionals/0/id'))
+  e = await editeur()
+  const facultatifs = JSON.parse(readFileSync(join(racineDuDepot, 'src/data/creatures.json'), 'utf8')).find((c) => c.id === fiche).optionals.flatMap((o) => (o.id ? [o.id] : []))
+  const premierTrait = inspecte(e, 'valeur/combat/optionals/0/id').valeurs[0]
+  assert.ok(facultatifs.includes(premierTrait.jeu.args[2]), `le premier Trait offert, ${premierTrait.libelle}, est un Facultatif de la fiche : ${facultatifs.join(', ')}`)
+  const tirees = idDeLaValeur(e, 'valeur/combat/randomChars', true)
+  await cliquerAuPanneau({ element: `bouton/${tirees}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/combat/randomChars')?.valeurs.find((b) => b.id === '${tirees}')?.presse === true`)
+  e = await editeur()
+  noter(`outil Personnage, ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte} ; onglet Combat, « Ajouter : rôle au combat », « Ajouter : options » : premier Trait offert « ${premierTrait.libelle} » ; « ${inspecte(e, 'valeur/combat/randomChars').libelle} » : ${inspecte(e, 'valeur/combat/randomChars').valeurs.find((b) => b.presse).libelle}`)
+  await capturer('3606-m1a-1-combat')
+  await cliquerAuPanneau('Identité')
+  const entree = inspecte(e, 'entite/couvre/ajouter').valeurs[0]
+  await choisirALaListe('entite/couvre/ajouter', entree.id, 'editeur.inspecteur', montre(`entite/couvre/${entree.jeu.edition.patch.couvre[0]}`))
+  noter(`onglet Identité, « Couvrir une entrée de fiche » : ${(await editeur()).zones['editeur.inspecteur'].find((l) => l.id === `entite/couvre/${entree.jeu.edition.patch.couvre[0]}`).texte}`)
+  await capturer('3606-m1a-2-identite')
+  await cliquerAuPanneau({ element: 'bouton/entite/supprimer' })
+  await waitFor(session, '!(globalThis.wfrpEcran?.editeur?.surcouche.reperes ?? []).some((r) => r.choisi)')
   await cliquerAuPanneau({ element: 'bouton/outil/architecture' })
   await cliquerPoint(...cases[`${zx},${zy}`])
   await cliquerAuPanneau({ element: 'bouton/batir/corps' })

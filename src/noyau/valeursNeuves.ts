@@ -254,7 +254,7 @@ export function newEffect(type: Effect['type']): Effect {
 
 /** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
  *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'une union, celle
- *  de sa première variante (`variantesAChoisir`) ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
+ *  de sa première variante (`neuveDeLaVariante`) ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
  *  texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
 export function valeurNeuveDe(noeud: unknown): unknown {
   const choix = choixDuNoeud(noeud);
@@ -264,8 +264,8 @@ export function valeurNeuveDe(noeud: unknown): unknown {
     const neuve = videDuNoeud(n) === undefined ? undefined : valeurNeuveDe(n);
     return neuve === undefined ? [] : [[cle, neuve]];
   }));
-  const variantes = variantesAChoisir(noeud, undefined);
-  if (variantes) return variantes[0]?.valeur;
+  const u = unionDuNoeud(noeud);
+  if (u) return u.variantes.length ? neuveDeLaVariante(u, u.variantes[0], undefined) : undefined;
   const bornes = bornesDuNoeud(noeud);
   if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
   const kind = kindDuNoeud('', noeud);
@@ -275,11 +275,13 @@ export function valeurNeuveDe(noeud: unknown): unknown {
 
 /** La valeur NEUVE de la variante `v` de l'union `u`, depuis la valeur `actuelle` : d'une op, celle de sa fabrique
  *  (`newOp`) ; d'une Condition, celle de `recast`, qui enveloppe l'actuelle sous ET, OU, NON ; de toute autre branche,
- *  sa valeur neuve, son discriminant posé. */
+ *  sa valeur neuve, son discriminant posé, sauf pour la variante qui ne le porte pas (clé vide) et pour une union à clé
+ *  propre, qui n'en a pas. */
 function neuveDeLaVariante(u: UnionDuNoeud, v: VarianteDuNoeud, actuelle: unknown): unknown {
   if (declarationDEnfants(u.noeud)) return newOp(v.cle);
   if (u.variantes.some((w) => classeDeProduit(w.noeud)?.fabrique === 'conditionDe')) return recast((actuelle as Condition | undefined) ?? CONDITION_TOUJOURS, v.cle as Condition['kind']);
-  return { ...(valeurNeuveDe(v.noeud) as object), [u.discriminant]: v.cle };
+  const neuve = valeurNeuveDe(v.noeud);
+  return v.cle === '' || u.discriminant === '' ? neuve : { ...(neuve as object), [u.discriminant]: v.cle };
 }
 
 /** Une valeur du choix de la variante d'une union : la clé et le libellé de la variante, la valeur qu'elle pose, et si
