@@ -453,7 +453,8 @@ projet) et se cite dans la docstring des données ; sans référence, la docstri
 - `modele.py` : `elements(D)`, qui produit un dict par GLB : `glb` (nom de la scène), `cles` (`[(categorie, cle)]`, une
   clé par élément qui partage ce GLB), `materiaux`, `blasons`, et `construire`, qui bâtit la scène vide avec
   `habillage.materiaux(...)` et les primitives de `maille.py`, puis rend les champs propres au manifeste : `postes` par
-  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`, et `clips`, la table rôle → clip que rend `clips.animer`.
+  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`, `clips`, la table rôle → clip que rend `clips.animer`, et, pour un
+  navire à ponts, `cases`, l'emprise libre de chaque case que le modèle rogne, mesurée sur la scène bâtie (#3767).
 
 Un engin est une unité : il s'anime comme une créature (`clips.py`). Chaque pièce mobile est son propre nœud, à son
 pivot (roue à son essieu, bras à son axe, fût à ses tourillons, chaîne à son attache), et `clips.animer` clé ses clips :

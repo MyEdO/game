@@ -8,7 +8,8 @@
  * préfixe. Le plan d'un type a sa proue à `x = 0`, tribord à `y = 0` : au cap `O`, il se pose tel quel. Les ponts
  * se dérivent au chargement d'une scène en jeu (`poserLesNavires`, `registerScene`) ; ce qu'ils posent garde le
  * navire d'où il vient (`provenanceDesNavires`), que l'hôte montre par le modèle 3D de son type posé au centre de
- * ses ponts (`naviresDeLaScene`), le repère du plan étant celui du modèle (`planDeLaCaraque.ts`).
+ * ses ponts (`naviresDeLaScene`), le repère du plan étant celui du modèle (`planDeLaCaraque.ts`) ; l'occupant d'une
+ * case que ce modèle rogne s'y tient au centre de son emprise libre (`stationsDuNavire`, #3767).
  */
 import type { NavalTraitRef } from '../engine/types';
 import { findNavalTrait, findVehicleById } from '../data';
@@ -259,5 +260,29 @@ export function naviresDeLaScene(scene: Scene): NavireDeLaScene[] {
       vehicule: { ...garanti(vehiculeDuCombattant(fiche, pose.cap), pose.id, 'fiche de véhicule'), taille: 'reelle' },
       centre: versLaScene(navire, pose)((navire.dimensions.w - 1) / 2, (navire.dimensions.h - 1) / 2),
     };
+  });
+}
+
+/** L'emprise libre des cases des ponts d'un navire que son modèle rogne (`cases` du manifeste de son élément `vehicule`,
+ *  #3767) : par case `x,y,z` de son plan, [x0, y0, x1, y1] en cases du plan, la case (x, y) couvrant [x, x+1] × [y, y+1]. */
+export type EmprisesDesCases = Readonly<Record<string, readonly [number, number, number, number]>>;
+
+/** Où se tient l'occupant d'une case de la scène que le modèle d'un navire rogne : la case, à son étage, et le point de la
+ *  scène, en cases continues (la case centrée sur l'entier). */
+export interface StationDeNavire {
+  x: number;
+  y: number;
+  z: number;
+  point: Pt;
+}
+
+/** Les stations des cases des ponts du navire `id` de `scene` que son modèle rogne (`emprises`) : le centre de l'emprise
+ *  de chacune, posé avec ses ponts. PUR. */
+export function stationsDuNavire(scene: Scene, id: string, emprises: EmprisesDesCases): StationDeNavire[] {
+  const pose = garanti(posesDe(scene).find((p) => p.id === id), id, 'pose de navire');
+  const vers = versLaScene(pontsCompiles(pose), pose);
+  return Object.entries(emprises).map(([cle, [x0, y0, x1, y1]]) => {
+    const [x, y, z] = cle.split(',').map(Number);
+    return { ...vers(x, y), z: pose.z + z, point: vers((x0 + x1 - 1) / 2, (y0 + y1 - 1) / 2) };
   });
 }
