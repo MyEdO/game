@@ -1,8 +1,12 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scripts/combat.gd" id="1_combat"]
 [ext_resource type="PackedScene" path="res://scenes/Plateau.tscn" id="2_plateau"]
 [ext_resource type="PackedScene" path="res://scenes/Ecran.tscn" id="3_ecran"]
+[ext_resource type="Script" path="res://scripts/zone.gd" id="4_zone"]
+
+[sub_resource type="Theme" id="Cartes"]
+HFlowContainer/constants/h_separation = 32
 
 [node name="Combat" type="Node"]
 script = ExtResource("1_combat")
@@ -10,3 +14,33 @@ script = ExtResource("1_combat")
 [node name="Plateau" parent="." instance=ExtResource("2_plateau")]
 
 [node name="Ecran" parent="." instance=ExtResource("3_ecran")]
+
+[node name="Scenarios" type="CanvasLayer" parent="."]
+layer = 2
+
+[node name="Cadre" type="PanelContainer" parent="Scenarios"]
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 40.0
+offset_top = 40.0
+offset_right = -40.0
+offset_bottom = -40.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = SubResource("Cartes")
+theme_type_variation = &"Fenetre"
+
+[node name="Defilement" type="ScrollContainer" parent="Scenarios/Cadre"]
+layout_mode = 2
+horizontal_scroll_mode = 0
+
+[node name="Sections" type="VBoxContainer" parent="Scenarios/Cadre/Defilement"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 24
+
+[node name="Zone" type="Node" parent="Scenarios/Cadre/Defilement/Sections"]
+script = ExtResource("4_zone")
+source = "scenarios.sections"

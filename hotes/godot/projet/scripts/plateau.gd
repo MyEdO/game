@@ -3,9 +3,10 @@
 ## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
 ## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
-## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, chacun sous son
-## corps (`vue.corps`, aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le
-## modèle de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
+## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
+## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
+## aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le modèle
+## de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
 ## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`Monde.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
@@ -62,6 +63,7 @@ func montrer(vue: Dictionary) -> void:
 		_nommer_les_entites(exploration.entites.liste)
 	if vue.plateau != null:
 		_monde.regarder(vue.plateau.regard)
+		_monde.poser_les_stations(vue.corps.navires)
 		_monde.poser_les_aretes(vue.plateau.aretes)
 		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 		_combattants.visible = vue.plateau.regard != "immersion"
@@ -85,20 +87,29 @@ func montrer(vue: Dictionary) -> void:
 	_peindre()
 
 
-## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés : l'auteur d'un coup ou d'une
-## incantation se tourne vers sa cible et l'anime à son départ, la cible d'un coup qui touche l'accuse à son arrivée.
+## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
+## zone : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
+## d'un coup qui touche l'accuse à son arrivée.
 func jouer_les_effets(effets: Array) -> void:
 	if _vue.plateau == null:
 		return
 	var lieux := {}
 	for id: String in _modeles:
 		lieux[id] = _modeles[id].position
+	for effet: Dictionary in effets:
+		if effet.quoi == "zone":
+			var cases: Array = effet.cases.duplicate()
+			cases.append(effet.centre)
+			for case: Dictionary in cases:
+				lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
 
 
-func _agir(de: String, vers: String) -> void:
-	if de != vers:
-		_modeles[de].agir_vers(_modeles[vers].position)
+## L'auteur `de` d'un effet se tourne vers `vers` et s'anime, sauf sur lui-même (un sort sur soi, un hurlement).
+func _agir(de: String, vers: Vector3) -> void:
+	var auteur: Node3D = _modeles[de]
+	if not auteur.position.is_equal_approx(vers):
+		auteur.agir_vers(vers)
 
 
 func _subir(vers: String, touche: bool) -> void:
@@ -193,7 +204,7 @@ func poser_le_monde(monde: Dictionary) -> void:
 	_monde.poser_la_meteo(monde.meteo)
 
 
-## Le centre du sol de la case `pos` (`[x, y, z]`, la case et sa couche).
+## Où se tient l'occupant de la case `pos` (`[x, y, z]`, la case et sa couche) sur son sol (`Monde.lieu`).
 func _lieu(pos: Array) -> Vector3:
 	return _monde.lieu(Vector2i(int(pos[0]), int(pos[1])), int(pos[2]))
 

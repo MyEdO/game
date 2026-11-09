@@ -14,10 +14,11 @@
  * ou une pièce d'Amélioration dit, `selon` une Amélioration montée, ce qui change : ses nœuds `avec-<amelioration>`
  * (`noeudSelon`), montrés seulement quand elle est montée, `sans-<amelioration>` seulement quand elle ne l'est pas, et,
  * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG p.97, Sabord). Un
- * véhicule s'anime de ses `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base.
+ * véhicule s'anime de ses `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base ; il dit l'emprise
+ * libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
-import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type FireArc } from '../../../src/noyau/index.ts';
+import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type EmprisesDesCases, type FireArc } from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estRepere, estTriplet, type Attache, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
@@ -66,10 +67,12 @@ interface RegleDeCategorie {
   /** L'élément s'anime : par rôle d'animation, le nom de son clip dans le GLB (`TableDeClips`, jugée par `ecartsDeClips`
    *  dans le graphe de l'hôte). */
   readonly clips: boolean;
+  /** L'élément dit l'emprise libre des cases des ponts que son modèle rogne (`EmprisesDesCases`). */
+  readonly cases: boolean;
 }
 
-const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false } as const;
-const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false } as const;
+const SKINNE = { liaisons: ['squelette'], couches: COUCHES, couvre: 'requis', chaines: true, emplacements: false, silhouettes: true, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false, cases: false } as const;
+const RIGIDE = { liaisons: ['rigide'], couches: null, couvre: 'interdit', chaines: false, emplacements: false, silhouettes: false, postes: false, ancrages: false, montage: false, selon: false, base: true, secondePrise: false, clips: false, cases: false } as const;
 
 /** Les règles de chaque catégorie, seule source du type `ManifesteDElement` et de `validerElement`. */
 export const REGLES_DES_CATEGORIES = {
@@ -82,7 +85,7 @@ export const REGLES_DES_CATEGORIES = {
   rigide: { ...RIGIDE, cle: ['apparence'], secondePrise: true },
   trait: { ...SKINNE, cle: ['trait'] },
   decor: { ...RIGIDE, cle: ['prop'], base: false },
-  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: true, base: false, clips: true },
+  vehicule: { ...RIGIDE, cle: ['definition'], postes: true, ancrages: true, selon: true, base: false, clips: true, cases: true },
   amelioration: { ...RIGIDE, cle: ['amelioration'], montage: true, selon: true, base: false },
 } as const satisfies Record<string, RegleDeCategorie>;
 
@@ -121,6 +124,7 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? {
   & (Regles[C]['ancrages'] extends true ? { readonly ancrages?: Readonly<Record<string, readonly Triplet[]>> } : Rien)
   & (Regles[C]['montage'] extends true ? { readonly montage: Montage } : Rien)
   & (Regles[C]['clips'] extends true ? { readonly clips?: TableDeClips } : Rien)
+  & (Regles[C]['cases'] extends true ? { readonly cases?: EmprisesDesCases } : Rien)
   & (Regles[C]['selon'] extends true ? { readonly selon?: Readonly<Record<string, Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien>> } : Rien);
 
 export type ManifesteDElement = {
@@ -194,7 +198,7 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
     ...(regle.base ? ['base'] : []), ...(regle.couches ? ['couche'] : []), ...(regle.couvre === 'interdit' ? [] : ['couvre']),
     ...(regle.chaines ? ['chaines'] : []), ...(regle.emplacements ? ['emplacements'] : []), ...(regle.silhouettes ? ['silhouettes'] : []),
     ...(regle.postes ? ['postes'] : []), ...(regle.ancrages ? ['ancrages'] : []), ...(regle.montage ? ['montage'] : []),
-    ...(regle.selon ? ['selon'] : []), ...(regle.clips ? ['clips'] : []),
+    ...(regle.selon ? ['selon'] : []), ...(regle.clips ? ['clips'] : []), ...(regle.cases ? ['cases'] : []),
   ];
   const admis = new Set<string>([...CHAMPS_COMMUNS, ...optionnels]);
   for (const champ of Object.keys(brut)) if (!admis.has(champ)) refus('champ-hors-categorie', champ, `un élément \`${categorie}\` ne porte pas \`${champ}\``);
@@ -286,6 +290,16 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
     else for (const [amelioration, positions] of Object.entries(brut.ancrages)) {
       for (const e of ecartsDeCleDElement('amelioration', { amelioration })) refus(e.code, `ancrages.${amelioration}`, e.detail);
       if (!(Array.isArray(positions) && positions.every(estTriplet))) refus('forme', `ancrages.${amelioration}`, 'liste de triplets de nombres attendue');
+    }
+  }
+
+  if (regle.cases && brut.cases !== undefined) {
+    if (!estObjet(brut.cases)) refus('forme', 'cases', 'objet attendu');
+    else for (const [cle, emprise] of Object.entries(brut.cases)) {
+      const [x, y] = cle.split(',').map(Number);
+      const bornee = /^\d+,\d+,\d+$/.test(cle) && Array.isArray(emprise) && emprise.length === 4 && emprise.every((v) => typeof v === 'number' && Number.isFinite(v))
+        && x <= emprise[0] && emprise[0] <= emprise[2] && emprise[2] <= x + 1 && y <= emprise[1] && emprise[1] <= emprise[3] && emprise[3] <= y + 1;
+      if (!bornee) refus('forme', `cases.${cle}`, 'clé `x,y,z` et emprise [x0, y0, x1, y1] dans sa case attendues');
     }
   }
 

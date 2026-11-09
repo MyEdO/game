@@ -203,6 +203,11 @@ ECHELLE = {"largeur": 0.5, "pente": 72.0, "montant": (0.09, 0.05), "barreau": (0
 # deux) ; le mobilier de la cale est celui du plan de jeu.
 MEMBRURES = {"pas": 0.6, "section": (0.15, 0.12), "baux": (0.16, 0.12)}
 
+# Emprise libre des cases (`cases` du manifeste, #3767) : pas de la grille de sondes verticales dans une case, hauteur
+# d'où chacune descend au-dessus du plancher (une stature), écart toléré entre le plancher qu'elle touche d'abord et la
+# hauteur de la case (une épaisseur de cloison, `CLOISON`), en mètres.
+EMPRISE = {"pas": 0.05, "stature": 1.2, "ecart": 0.10}
+
 # Fanal au-dessus du couronnement du château de poupe : z du pied, hauteur de la lanterne, rayon, rayon du pied.
 FANAL = {"z": 6.9, "hauteur": 1.4, "rayon": 0.32, "pied": 0.08}
 

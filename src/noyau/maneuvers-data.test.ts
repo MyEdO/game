@@ -82,11 +82,11 @@ describe('manœuvres = donnée éditable (GameOp)', () => {
 /** LDB 85 l.320-329 ; EDOC 13 l.237 ; MDG 16 l.226 ; LDB 16 l.70 */
 describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type', () => {
   const TYPES: BreathTypeData[] = [
-    { id: 'perce-fixture', type: 'breath-types', label: 'Perce', ignoreAP: true, etat: 'empoisonne' },
-    { id: 'etourdit-fixture', type: 'breath-types', label: 'Étourdit', etat: 'sonne' },
-    { id: 'compose-fixture', type: 'breath-types', label: 'Perce et Étourdit', types: [{ id: 'perce-fixture' }, { id: 'etourdit-fixture' }] },
-    { id: 'glace-fixture', type: 'breath-types', label: 'Glace', etat: 'sonne', trancheDeBlessures: 5 },
-    { id: 'ronge-fixture', type: 'breath-types', label: 'Ronge', endommageLEquipement: true },
+    { id: 'perce-fixture', type: 'breath-types', label: 'Perce', ignoreAP: true, etat: 'empoisonne', rendu: { id: 'souffle' } },
+    { id: 'etourdit-fixture', type: 'breath-types', label: 'Étourdit', etat: 'sonne', rendu: { id: 'souffle' } },
+    { id: 'compose-fixture', type: 'breath-types', label: 'Perce et Étourdit', types: [{ id: 'perce-fixture' }, { id: 'etourdit-fixture' }], rendu: { id: 'souffle' } },
+    { id: 'glace-fixture', type: 'breath-types', label: 'Glace', etat: 'sonne', trancheDeBlessures: 5, rendu: { id: 'souffle' } },
+    { id: 'ronge-fixture', type: 'breath-types', label: 'Ronge', endommageLEquipement: true, rendu: { id: 'souffle' } },
   ];
   const souffle = (type?: string, difficulte?: 'difficile') => souffleDuType(findManeuverById('souffle')!, type, difficulte);
   const frappe = (type?: string, difficulte?: 'difficile', indice = 15, over: Partial<Combatant> = {}) => {
