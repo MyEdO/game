@@ -80,7 +80,7 @@ describe('16-voyage — intégration Voyage par Étapes', () => {
 describe('16-voyage — lieu « altdorf » : Activités d’Altdorf (ACE Annexe I, #96) atteignables à l’arrivée', () => {
 
   it('la cité d’arrivée (Altdorf) est le lieu `altdorf` de la carte du monde', () => {
-    expect(scenarioConstruit.worldMap!.places.find((p) => p.scene === 'test-voyage-cite')?.id).toBe('altdorf');
+    expect(scenarioConstruit.worldMap!.places.find((p) => p.scene.id === 'test-voyage-cite')?.id).toBe('altdorf');
   });
 
   it('interludeCatalog : à Altdorf, les Activités gatées `where:[altdorf]` sont proposées', () => {

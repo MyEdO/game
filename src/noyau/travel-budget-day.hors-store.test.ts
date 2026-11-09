@@ -36,8 +36,8 @@ function sceneA(): Scene { const s = emptyScene('scene-test', 10, 10); s.id = 'l
 function sceneB(): Scene { const s = emptyScene('scene-test', 10, 10); s.id = 'lieu-b-scene'; s.label = 'B'; return s; }
 function map(km = 16): WorldMap {
   return { id: 'c', label: 'c', places: [
-    { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: 'lieu-a-scene' },
-    { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: 'lieu-b-scene' },
+    { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: { id: 'lieu-a-scene' } },
+    { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: { id: 'lieu-b-scene' } },
   ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km, modes: ['pied'], perilDie: 0 }] };
 }
 function setup(km = 16, party: Combatant[] = [hero()]): void {

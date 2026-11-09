@@ -19,7 +19,7 @@ type Kind = keyof typeof KINDS;
 
 /** CHARGE par `kind` (`espace.chargeParDiscriminant`) : seul le `kind` qui la déclare porte une clé. #3076 */
 const chargeParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
-  kind === 'armour' ? ['material', 'couche', 'seuil', 'teinte'] : kind === 'weapon' ? ['combat', 'maniement', 'poudre', 'siege', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
+  kind === 'armour' ? ['material', 'couche', 'seuil', 'teinte'] : kind === 'weapon' ? ['combat', 'maniement', 'rendu', 'poudre', 'siege', 'manieAussi'] : kind === 'ammo' ? ['poudre'] : [],
 );
 /** Clés EXIGÉES de la charge (`espace.requisesParDiscriminant`). */
 const requisesParDiscriminant: Readonly<Record<string, readonly string[]>> = tableTotale(Object.keys(KINDS) as Kind[], (kind) =>
@@ -46,6 +46,8 @@ const doc = document(
     /** Teinte d'une pièce d'armure du Groupe, à défaut de la sienne (#3456). */
     teinte: ref('material', undefined, 'objet').optional(),
     maniement: maniementSchema.optional(),
+    /** #3771 */
+    rendu: ref('rendu').optional(),
     /** LDB 62 l.99 ; LDB 62 l.129 */
     poudre: z.literal(true).optional(),
     /** AA 10 l.136 */
@@ -71,6 +73,7 @@ const doc = document(
     seuil: { label: 'Palier de PA (armure)', hint: 'PA à partir desquels une armure de statbloc portée est de cette matière, et en prend la teinte — vide : jamais' },
     teinte: { label: 'Teinte (armure)', hint: 'Teinte d’objet que prend une pièce d’armure du Groupe, à défaut de la sienne' },
     maniement: { label: 'Maniement (arme)', hint: 'Animation d’une arme du Groupe dont la forme ne déclare pas de maniement' },
+    rendu: { label: 'Rendu du coup (arme)', hint: 'Rendu visuel et sonore d’une arme du Groupe (`rendus.json`), à défaut du sien' },
     poudre: { label: 'À poudre', hint: 'Arme ou munition à Poudre noire et d’Ingénierie' },
     siege: { label: 'Engins de siège', hint: 'Les objets du Groupe sont des engins de siège, posés en combat et servis par une équipe' },
     manieAussi: { label: 'Armes aussi maniées en', hint: 'Par Groupe de Corps à corps qui manie aussi toute arme du Groupe : ses Atouts et Défauts, ses mains, à pied seulement' },

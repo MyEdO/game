@@ -273,7 +273,7 @@ export function zoneVictory(n, { money, xp, journal, extra = [] }) {
     { type: 'setFlag', flag: `zone${n}_clear` },
     { type: 'journal', desc: journal },
     ...extra,
-    { type: 'transition', scene: 'arene-hub', entry: 'porte-arene' },
+    { type: 'transition', scene: { id: 'arene-hub' }, entry: 'porte-arene' },
   ]);
 }
 

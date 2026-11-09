@@ -401,7 +401,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
     recomputeLoadout(cible);
     cible.wounds = blessuresDeBase(20, 1, cible);
     const finales: MissileResult[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
       applyCast(banc.getState, banc.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, { ...incantationCritique, roll }), true, false, 'critique');
       draineCascade(banc.getState, 200, () => 1, () => 'subir');
@@ -504,7 +504,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     cible.wounds = blessuresDeBase(20, 1, cible);
     const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
     const lieux: (string | undefined)[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; result: MissileResult }) => { if (p.kind === 'spell') lieux.push(p.result.location); });
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile) lieux.push(p.result.location); });
     seedBattleRng(1);
     applyCast(banc.getState, banc.setState, mage, cible, findSpellById('carreau')!, res, true, false, 'critique');
     draineCascade(banc.getState, 200, () => 1);
@@ -557,8 +557,8 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
   function ecoute() {
     const phase: { v: Emission['phase'] } = { v: 'applyCast' };
     const emis: Emission[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => {
-      if (p.kind !== 'spell') return;
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => {
+      if (p.kind !== 'spell' || !p.projectile) return;
       const cw = banc.getState().battle?.combatants.find((c) => c.id === p.to)?.criticalWounds ?? 0;
       emis.push({ phase: phase.v, to: p.to, critiques: p.result.critiques, woundsLost: p.result.woundsLost, cwAuMoment: cw });
     });
@@ -617,7 +617,7 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
 
   it("parité mêlée, 'ldb', double sur une cible debout : une émission, après le Critique", () => {
     const melee: { to: string; critiques?: number; cw: number }[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: AttackResult }) => {
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => {
       if (p.kind === 'melee') melee.push({ to: p.to, critiques: p.result.critiques, cw: banc.getState().battle?.combatants.find((c) => c.id === p.to)?.criticalWounds ?? 0 });
     });
     let cible: Combatant;
@@ -634,8 +634,8 @@ describe("Projectile magique : l'animation de la touche porte son compte de Bles
     cible.wounds = blessuresDeBase(20, 2, cible);
     cible.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
     const emis: (number | undefined)[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => {
-      if (p.kind === 'spell' && p.to === cible.id) emis.push(p.result.critiques);
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => {
+      if (p.kind === 'spell' && p.projectile && p.to === cible.id) emis.push(p.result.critiques);
     });
     try {
       const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
@@ -655,7 +655,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
   /** Le coup joué par le noyau, avec les `critiques` de ses `ANIM_ATTACK` de mêlée. */
   function emisDuCoup(o: Coup) {
     const emis: (number | undefined)[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; result: AttackResult }) => { if (p.kind === 'melee') emis.push(p.result.critiques); });
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'melee') emis.push(p.result.critiques); });
     try { return { ...coup(o), emis }; } finally { lache(); }
   }
   const aaChanceux = (choix: 'devier' | 'subir'): Coup => ({ roll: 21, double: false, current: 1, chanceux: true, tenu: true, choisir: () => choix, pieces: [piece(['bacle'], 2)] });
@@ -693,7 +693,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     recomputeLoadout(cible);
     cible.wounds = blessuresDeBase(20, 20, cible);
     const emis: (number | undefined)[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) emis.push(p.result.critiques); });
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) emis.push(p.result.critiques); });
     let kinds: string[];
     try {
       const res = evaluateMissile(mage, cible, findSpellById('carreau')!, incantationCritique);
@@ -778,7 +778,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
     const sort = findSpellById('carreau')!;
     const touches = () => journal().filter((l) => l.startsWith(`${mage.label} lance ${sort.label} sur ${cible.label}`));
     const finales: MissileResult[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
       applyCast(banc.getState, banc.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, effet);
       const auLancement = touches();
@@ -909,7 +909,7 @@ describe('la ligne de touche qualifie la Localisation relancée, au jet comme au
     cible.wounds = blessuresDeBase(20, 20, cible);
     const sort = findSpellById('carreau')!;
     const finales: MissileResult[] = [];
-    const lache = bus.on(EVT.ANIM_ATTACK, (p: { kind: string; to: string; result: MissileResult }) => { if (p.kind === 'spell' && p.to === cible.id) finales.push(p.result); });
+    const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'spell' && p.projectile && p.to === cible.id) finales.push(p.result as MissileResult); });
     try {
       applyCast(banc.getState, banc.setState, mage, cible, sort, evaluateMissile(mage, cible, sort, incantationCritique), true, false, 'critique');
       draineCascade(banc.getState, 200, () => 50);

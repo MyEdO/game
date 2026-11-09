@@ -161,24 +161,25 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       const f = fautifDe(faute.lieu, 'worldMap');
       out.push({ level: 'error', sceneId: worldMap.id, scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
     }
+    // Scènes visées : leur portée s'ouvre à la racine du projet (`projetSchema`), hors de la carte validée seule.
     for (const p of worldMap.places) {
-      if (!sceneIds.has(p.scene)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene} »`);
+      if (!sceneIds.has(p.scene.id)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene.id} »`);
       // Cible RÉSOLUE via `placeServices` (source unique, `noyau/worldMap.ts`) — pas le seul catalogue
       // `lieux-services.json` : un POI peut aussi cibler le port/marché AUTOMATIQUES du lieu (`id`
       // `'port'`/`'marche'`), exactement ce que `CityHubScreen` résout à l'affichage (#360).
       const resolvedServiceIds = new Set(placeServices(p).map((s) => s.id));
       for (const poi of p.poi ?? []) {
-        if (poi.sceneId != null && !sceneIds.has(poi.sceneId)) addWm(poi.id, `POI « ${poi.label} » → scène inexistante « ${poi.sceneId} »`);
+        if (poi.sceneId != null && !sceneIds.has(poi.sceneId.id)) addWm(poi.id, `POI « ${poi.label} » → scène inexistante « ${poi.sceneId.id} »`);
         if (poi.serviceKind != null && !resolvedServiceIds.has(poi.serviceKind)) addWm(poi.id, `POI « ${poi.label} » → service inconnu « ${poi.serviceKind} »`);
       }
     }
     for (const r of worldMap.routes) {
       const amb = r.ambush;
       if (amb) {
-        const target = project.find((s) => s.id === amb.scene);
-        if (!target) addWm(r.id, `Route « ${r.id} » → scène d'embuscade inexistante « ${amb.scene} »`);
+        const target = project.find((s) => s.id === amb.scene.id);
+        if (!target) addWm(r.id, `Route « ${r.id} » → scène d'embuscade inexistante « ${amb.scene.id} »`);
         else if (!target.encounters.some((e) => e.id === amb.encounter))
-          addWm(r.id, `Route « ${r.id} » → rencontre d'embuscade inexistante « ${amb.encounter} » dans « ${amb.scene} »`);
+          addWm(r.id, `Route « ${r.id} » → rencontre d'embuscade inexistante « ${amb.encounter} » dans « ${amb.scene.id} »`);
       }
     }
     // DÉPART DU GROUPE d'une scène-DESTINATION. Le runtime replie toujours (`noyau/entreeEnScene.ts` : `lancerLaScene`
@@ -188,9 +189,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // `entry` (`MapPlace.entry`) désigne déjà sa case, un POI de plan n'en porte aucun.
     const portesSansEntree = new Map<string, string>();
     for (const p of worldMap.places) {
-      if (!p.entry) portesSansEntree.set(p.scene, `le lieu « ${p.label} »`);
+      if (!p.entry) portesSansEntree.set(p.scene.id, `le lieu « ${p.label} »`);
       for (const poi of p.poi ?? [])
-        if (poi.sceneId) portesSansEntree.set(poi.sceneId, `le point d'intérêt « ${poi.label} » du lieu « ${p.label} »`);
+        if (poi.sceneId) portesSansEntree.set(poi.sceneId.id, `le point d'intérêt « ${poi.label} » du lieu « ${p.label} »`);
     }
     for (const [sceneId, porte] of portesSansEntree) {
       const cible = project.find((s) => s.id === sceneId);

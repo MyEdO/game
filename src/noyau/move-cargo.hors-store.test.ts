@@ -21,7 +21,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const get = () => banc.getState();
 
 // Place dont la scène EST la scène courante → tous les porteurs du groupe y sont co-localisés.
-const map: WorldMap = { id: 'm', label: 'x', places: [{ id: 'P', label: 'Halte', pos: { x: 0, y: 0 }, scene: 'halte' }], routes: [] };
+const map: WorldMap = { id: 'm', label: 'x', places: [{ id: 'P', label: 'Halte', pos: { x: 0, y: 0 }, scene: { id: 'halte' } }], routes: [] };
 
 function setup(muleCargo: CargoLot[], cartCargo: CargoLot[]) {
   const party = makePregens(idsDeTest).slice(0, 1);

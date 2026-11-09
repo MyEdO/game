@@ -41,9 +41,9 @@ function batelier(): Combatant {
 const carte: WorldMap = {
   id: 'm', label: 'Le Reik',
   places: [
-    { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'quai-a' },
-    { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'quai-b' },
-    { id: 'C', label: 'Marienburg', pos: { x: 0, y: 90 }, scene: 'quai-c' },
+    { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } },
+    { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } },
+    { id: 'C', label: 'Marienburg', pos: { x: 0, y: 90 }, scene: { id: 'quai-c' } },
   ],
   routes: [
     { id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 },

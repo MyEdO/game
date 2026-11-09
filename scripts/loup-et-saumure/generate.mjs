@@ -162,7 +162,7 @@ scenes.push(scene({
   triggers: [
     {
       id: 'ls-retour-epilogue', rect: { x: 0, y: 0, w: 16, h: 8 }, once: true, when: flagWhen('ls_fret_livre'),
-      flow: flowOf([{ type: 'transition', scene: 'ls-epilogue-salzenmund', entry: 'retour' }]),
+      flow: flowOf([{ type: 'transition', scene: { id: 'ls-epilogue-salzenmund' }, entry: 'retour' }]),
     },
   ],
   entities: [
@@ -696,7 +696,7 @@ const worldMap = {
   label: 'La Mer des Griffes — Salzenmund ⇄ Erengrad',
   places: [
     {
-      id: 'salzenmund', label: 'Salzenmund', pos: { x: 25, y: 60 }, scene: 'ls-quai-salzenmund', icon: 'scenario/port',
+      id: 'salzenmund', label: 'Salzenmund', pos: { x: 25, y: 60 }, scene: { id: 'ls-quai-salzenmund' }, icon: 'scenario/port',
       backdrop: { id: 'port' }, // #371
       port: { ref: 'salzenmund' }, // #217 — Taille/Richesse/Production/Surplus/Demande RAW coulent du catalogue
       // `temple` : `naval-ports.json#salzenmund.desc` (RAW MDG p.138) — « Grand Temple d'Ulric et temple de
@@ -711,7 +711,7 @@ const worldMap = {
       ],
     },
     {
-      id: 'erengrad', label: 'Erengrad', pos: { x: 78, y: 20 }, scene: 'ls-quai-erengrad', icon: 'scenario/port',
+      id: 'erengrad', label: 'Erengrad', pos: { x: 78, y: 20 }, scene: { id: 'ls-quai-erengrad' }, icon: 'scenario/port',
       backdrop: { id: 'port' },
       port: { ref: 'erengrad' }, // #217
       // `guilde` : la guilde marchande d'Erengrad (dlg-rumeur-olg, prime sur Olg Blóðsalt) ; `chantier` :
@@ -732,7 +732,7 @@ const worldMap = {
       // Salzenmund (`routesFrom`) — le joueur y rencontre DÉTERMINISTEMENT la Dent de Manann, jamais Olg.
       id: 'route-salzenmund-erengrad-aller', from: { id: 'salzenmund' },
       a: { id: 'salzenmund' }, b: { id: 'erengrad' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'nord',
-      ambush: { scene: 'ls-abordage-cogue', encounter: 'enc-cogue' },
+      ambush: { scene: { id: 'ls-abordage-cogue' }, encounter: 'enc-cogue' },
     },
     {
       // Route du RETOUR, À SENS UNIQUE (`from` Erengrad) : offerte QUE depuis Erengrad — le retour porte
@@ -740,7 +740,7 @@ const worldMap = {
       // depuis chaque port, une seule est cliquable, donc l'embuscade tirée ne dépend plus du hasard du clic.
       id: 'route-salzenmund-erengrad-retour', from: { id: 'erengrad' },
       a: { id: 'salzenmund' }, b: { id: 'erengrad' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'sud',
-      ambush: { scene: 'ls-abordage-olg', encounter: 'enc-olg' },
+      ambush: { scene: { id: 'ls-abordage-olg' }, encounter: 'enc-olg' },
     },
   ],
 };
@@ -753,7 +753,6 @@ for (const s of scenes) {
   const starts = s.entities.filter((e) => e.kind === 'heroStart');
   if (starts.length !== 1) throw new Error(`${s.id} : ${starts.length} heroStart (1 attendu)`);
 }
-for (const p of worldMap.places) if (!ids.has(p.scene)) throw new Error(`carte : lieu ${p.id} → scène inconnue ${p.scene}`);
 
 return projectDoc({
   identite: { id: 'loup-et-saumure', label: 'Le Loup et la Saumure', icon: 'scenario/naval', versionContenu: 1, maison: "scénario naval authoré pour le jeu — aucun livre ne le publie (mesuré : absent de `Source/`) ; il compose des règles de la Mer des Griffes, qui portent leur source à leur foyer" },

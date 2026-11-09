@@ -5875,7 +5875,7 @@ interface ToucheAppliquee {
 /** LA CLÔTURE d'une touche de Projectile, seul émetteur de son `ANIM_ATTACK`. LDB 46 l.30 ; LDB 18 l.17. */
 function clore(get: Get, touche: ToucheDeProjectile, lignes: string[], resultat: CastResult & Partial<MissileResult>, critiques: number): ToucheAppliquee {
   const result = { ...resultat, critiques };
-  if (get().battle) bus.emit(EVT.ANIM_ATTACK, { from: touche.de, to: touche.targetId, result, kind: 'spell', spell: touche.spell.label, defense: 'none' });
+  if (get().battle) bus.emit(EVT.ANIM_ATTACK, { from: touche.de, to: touche.targetId, result, kind: 'spell', projectile: true, spell: touche.spell.id, defense: 'none' });
   return { issue: 'appliquee', lignes };
 }
 
@@ -6379,7 +6379,7 @@ export function applyCast(
     if (battle && caster.pos && target.pos && caster.id !== target.id) {
       set((s: Jeu) => ({ facing: { ...s.facing, [caster.id]: facingToward(caster.pos!, target.pos!) } }));
     }
-    if (battle) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: target.id, result: res, kind: 'spell', spell: spell.label, defense: 'none' });
+    if (battle) bus.emit(EVT.ANIM_ATTACK, { from: caster.id, to: target.id, result: res, kind: 'spell', projectile: false, spell: spell.id, defense: 'none' });
   }
 
   // Attributs de Domaine (LDB 48 — L14) : riders post-lancement d'un Sort « issu du Domaine ».
@@ -7817,9 +7817,10 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
   get().orienterSelonLeChemin(enemy.id, path);
   if (geom !== enemy) get().orienterSelonLeChemin(geom.id, path);
-  bus.emit(EVT.ANIM_MOVE, { id: enemy.id, path });
-  if (geom !== enemy) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path });
-  applyZoneCrossings(get, set, enemy, path ?? [{ ...mv.vers }]); // Mur de feu & co (L11) : traverser coûte
+  const parcours = path ?? [{ ...mv.vers }];
+  bus.emit(EVT.ANIM_MOVE, { id: enemy.id, path: parcours });
+  if (geom !== enemy) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path: parcours });
+  applyZoneCrossings(get, set, enemy, parcours); // Mur de feu & co (L11) : traverser coûte
   // Grimpant (LDB 85 l.160-162) : le pathing IA franchit une arête `WallSeg.climb` SANS Test —
   // pas un jet silencieux, journalisé comme l'escalade du joueur (`franchirLArete`, #504, MÊME clé i18n).
   if (path && path.some((p, i) => i > 0 && climbEdgeBetween(scene, path[i - 1], p)?.climb)) {
