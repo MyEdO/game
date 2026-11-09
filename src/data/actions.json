@@ -784,7 +784,10 @@
     "type": "actions",
     "label": "Poser au sol",
     "icon": "action/pick-up",
-    "surface": "deduite-du-set",
+    "surface": "geste-secondaire",
+    "hote": {
+      "id": "use-item"
+    },
     "gate": "toujours",
     "run": "poserLObjet",
     "candidates": "objets-portes",
