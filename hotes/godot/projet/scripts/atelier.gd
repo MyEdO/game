@@ -291,7 +291,7 @@ func _remettre_a_zero() -> void:
 
 ## En tête du panneau, la rangée « Corps », la liste de clé `modele/corps` de chaque base de la réponse `reponse` de
 ## `modeles` par son id, puis la rangée « Véhicule ou engin », la liste de clé `modele/vehicule` de chaque fiche de
-## `vehicules` au libellé de son élément, dans l'ordre des libellés : choisi, un article pose son modèle.
+## `vehicules`, dans son ordre, au libellé de son élément : choisi, un article pose son modèle.
 func _poser_les_listes_des_modeles(reponse: Dictionary) -> void:
 	Controles.vider(_choix_du_modele)
 	var bases := []
@@ -300,7 +300,6 @@ func _poser_les_listes_des_modeles(reponse: Dictionary) -> void:
 	var vehicules := []
 	for definition in reponse.vehicules:
 		vehicules.append({id = definition, texte = reponse.libelles[reponse.vehicules[definition]]})
-	vehicules.sort_custom(func(a: Dictionary, b: Dictionary) -> bool: return a.texte.naturalnocasecmp_to(b.texte) < 0)
 	_listes_des_modeles = {
 		corps = _liste_deroulante("modele/corps", bases, _choisir_la_base),
 		vehicule = _liste_deroulante("modele/vehicule", vehicules, _choisir_le_vehicule),
