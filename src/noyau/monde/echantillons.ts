@@ -6,11 +6,12 @@
  * (`toitsDuMonde`) et les couronnes crénelées (`couronnesDuMonde`).
  */
 import { findPropById, matieresDe, props, structureAppearances, terrains, semencesDeScene } from '../../data';
+import { structureAppearance } from './volume/structures';
 import { empreinteDuProp } from '../../data/props.types';
 import { parLibelle } from '../../lib/ordre.mjs';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { roofProfileSchema, eaveSideSchema } from '../../data/schemas/defs-scenes/scene';
-import { addArchitectureBody, addBuildingMass, addLayer, fillTerrainRect, paintHeight, patchBuildingMass, patchWall, placeEntity, setEdgeWall, setReliefDefault } from '../sceneEdit';
+import { addArchitectureBody, addBuildingMass, addLayer, fillTerrainRect, paintCrenellated, paintHeight, patchBuildingMass, patchWall, placeEntity, setEdgeWall, setReliefDefault } from '../sceneEdit';
 import { emptyScene, setStructureDown, type Scene, type WallSeg, type WallSide } from './scene';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainSolidHeightM } from './terrain';
@@ -111,12 +112,19 @@ const ENCLOS: readonly PanDeLEnclos[] = [
   { x: 2, y: 1, side: 'E', arete: 'wall', patch: {}, abattu: true },
 ];
 
-/** L'enclos (`ENCLOS`) dont chaque pan porte l'apparence `id`. */
+/** La case crénelée d'une apparence à couronne (`parapet`), à l'écart de l'enclos : haussée d'un étage au-dessus de ses
+ *  voisines, pour que sa crête la ceigne de chaque côté (`cretesDePerimetre`). */
+const CRENELEE = { x: 4, y: 1 };
+
+/** L'enclos (`ENCLOS`) dont chaque pan porte l'apparence `id`, et, pour une apparence à couronne, la case crénelée
+ *  (`CRENELEE`) de cette apparence. */
 function sceneDuMur(id: string): Scene {
-  return ENCLOS.reduce((s, { x, y, side, arete, patch, abattu }) => {
+  const crenelee = structureAppearance(id).parapet !== undefined;
+  const enclos = ENCLOS.reduce((s, { x, y, side, arete, patch, abattu }) => {
     const pose = patchWall(setEdgeWall(s, x, y, side, 0, arete, abattu ? semencesDeScene.facade.id : undefined), x, y, side, 0, { ...patch, appearance: id });
     return abattu ? setStructureDown(pose, x, y, side, 0, true) : pose;
-  }, sceneVide(4, 3));
+  }, sceneVide(crenelee ? CRENELEE.x + 1 + BORD : 4, 3));
+  return crenelee ? paintCrenellated(paintHeight(enclos, CRENELEE, METRES_PER_LEVEL, 1), CRENELEE, id, 1) : enclos;
 }
 
 /** Chaque famille : son libellé, ses entrées, et la scène qui montre l'une d'elles. */

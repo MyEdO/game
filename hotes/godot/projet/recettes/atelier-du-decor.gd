@@ -5,7 +5,7 @@ extends SceneTree
 ## `figerLeDecor`). Chaque famille servie a sa liste de tête, de clé `modele/<famille>`, qui offre chacune de ses entrées
 ## dans l'ordre servi. Un décor, la mer, une matière de relief, une matière de toit et un mur crénelé choisis tour à
 ## tour : à chaque geste, l'atelier envoie l'entrée attendue, et sa scène (`VolumeDeScene`) pose autant de triangles que
-## le volume servi, chaque arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa brèche abat ;
+## le volume servi (la crête du mur crénelé comprise), chaque arête et chaque nappe de toit servies, et chaque couronne sauf celles que sa brèche abat ;
 ## seuls les onglets Effets et Outils sont offerts, et aucune erreur ne se signale. « Recharger » garde l'échantillon
 ## posé.
 

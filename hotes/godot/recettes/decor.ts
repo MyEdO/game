@@ -9,7 +9,7 @@ import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
 
 /** Les entrées de `echantillon` que l'atelier envoie, dans l'ordre des gestes de la recette : un décor, la mer, une
- *  matière de relief, une matière de toit, puis un mur crénelé, dont la brèche abat la couronne. */
+ *  matière de relief, une matière de toit, puis un mur crénelé, dont la brèche abat la couronne et dont la case crénelée porte la crête. */
 const ENTREES: readonly Record<string, unknown>[] = [
   { famille: 'decor', id: 'tonneau' },
   { famille: 'sol', id: 'eau' },

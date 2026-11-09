@@ -4,6 +4,7 @@ import { findPropById, matieresDe, props, structureAppearances, terrains } from 
 import { parLibelle } from '../../lib/ordre.mjs';
 import { PARTS_RELIEF } from '../../data/materials.types';
 import { buildFloors } from './volume/floors';
+import { cretesDePerimetre } from './volume/creneaux';
 import { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type FamilleDEchantillon } from './echantillons';
 
 const matieres = (dessine: { surfaces: { matiere: string }[] }): string[] => dessine.surfaces.map((s) => s.matiere);
@@ -49,5 +50,12 @@ describe('les échantillons du monde (#3802)', () => {
     expect(aretes.every((a) => a.famille === apparence.kit)).toBe(true);
     expect(couronnes.map((c) => c.cle).sort()).toEqual(apparence.parapet ? aretes.map((a) => a.cle).sort() : []);
     expect(couronnesAbattues).toEqual(apparence.parapet && !apparence.door ? aretes.filter((a) => a.piece === 'breche').map((a) => a.cle) : []);
+  });
+
+  it.each(structureAppearances)('l’apparence de mur $id ceint de sa crête, sur ses quatre côtés, une case crénelée si elle a une couronne', (apparence) => {
+    const cretes = cretesDePerimetre(sceneDEchantillon('mur', apparence.id));
+    expect(new Set(cretes.map(({ arete: { x, y, side } }) => `${x},${y},${side}`)).size).toBe(apparence.parapet ? 4 : 0);
+    expect(cretes.every((c) => c.apparence.id === apparence.id)).toBe(true);
+    expect(matieres(echantillonDessine('mur', apparence.id).monde).includes(`structure--${apparence.id}`)).toBe(apparence.parapet !== undefined);
   });
 });
