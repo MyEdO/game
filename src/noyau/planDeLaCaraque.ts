@@ -109,8 +109,8 @@ const LEGENDE_DES_PIECES: NonNullable<MapSpec['zoneLegend']> = {
  *  du coin nord-ouest de son emprise, son cap, son calage dans le jeu libre de sa case (`SceneEntity.calage`, centré
  *  sans lui) et, posé sur un autre meuble de sa pièce, le `ref` et le rang de celui-ci (`SceneEntity.sur`). Une case
  *  de porte, de trappe ou de pied d'échelle reste libre, et une pièce dont la seule case est celle de sa porte reste
- *  vide. Le calage plaque un meuble à une cloison du plan ; contre le bordé et la muraille du modèle, qui se tiennent en
- *  dedans des cases (`Pieces.bornes`, `scripts/personnage-3d/vehicule/caraque/modele.py`), il s'arrête à eux. */
+ *  vide. Le calage plaque un meuble à une cloison du plan ; près du bordé et de la muraille, chaque meuble se tient dans
+ *  l'emprise libre que le modèle laisse à ses cases (`cases` du manifeste de `vehicule--caraque`, #3767). */
 const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing: Dir4, calage?: Calage, sur?: string])[]>> = {
   C: [
     ['tonneaux-pile', 4, 1, 'S', { x: 0, y: 1 }], ['caisse', 5, 1, 'S'], ['tonneau', 7, 1, 'S'], ['caisse', 8, 1, 'S'], ['tonneau', 9, 1, 'S'],
@@ -120,15 +120,15 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
   I: [['etagere', 12, 1, 'S', { x: 0, y: -0.25 }], ['coffre', 12, 1, 'E', { x: -1, y: 1 }]],
   P: [
     ['cabestan', 7, 2, 'S'],
-    ['hamac', 5, 0, 'S', { x: 0, y: 1 }], ['hamac', 6, 0, 'S', { x: 0, y: 1 }], ['hamac', 7, 0, 'S', { x: 0, y: 1 }],
-    ['hamac', 5, 4, 'S', { x: 0, y: -1 }], ['hamac', 6, 4, 'S', { x: 0, y: -1 }], ['hamac', 7, 4, 'S', { x: 0, y: -1 }],
+    ['hamac', 5, 0, 'S', { x: 1, y: 1 }], ['hamac', 6, 0, 'S', { x: 0, y: 1 }], ['hamac', 7, 0, 'S', { x: 0, y: 1 }],
+    ['hamac', 5, 4, 'S', { x: 1, y: -1 }], ['hamac', 6, 4, 'S', { x: 0, y: -1 }], ['hamac', 7, 4, 'S', { x: 0, y: -1 }],
   ],
   M: [
     ['caisse', 13, 1, 'S', { x: -1, y: -1 }], ['caisse', 13, 1, 'S', { x: -1, y: 1 }], ['tonneau', 13, 1, 'S', { x: 1, y: -1 }],
     ['tonneau', 15, 1, 'S', { x: -1, y: 1 }], ['tonneau', 15, 1, 'S', { x: 1, y: 1 }],
   ],
   N: [['tonneau', 14, 3, 'S', { x: -1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: -1 }]],
-  K: [['cheminee-interieure', 16, 3, 'O', { x: 1, y: 0 }], ['marmite', 16, 3, 'S', { x: -1, y: -1 }]],
+  K: [['brasero', 16, 3, 'S', { x: 0.5, y: -1 }], ['marmite', 16, 3, 'S', { x: -1, y: -1 }]],
   O: [['rouleau-de-cordage', 2, 1, 'S', { x: 0, y: 0.5 }], ['rouleau-de-cordage', 2, 3, 'S', { x: 0, y: -0.5 }]],
   Q: [['hamac', 3, 1, 'S', { x: 0, y: -1 }], ['hamac', 3, 1, 'S', { x: 0, y: 1 }]],
   E: [
@@ -146,7 +146,7 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
     ['lettre', 15, 1, 'S', { x: -0.4, y: -0.75 }, 'bureau-1'], ['cle', 15, 1, 'S', { x: 0.4, y: -0.75 }, 'bureau-1'],
   ],
   Y: [['hamac', 15, 3, 'S', { x: 0, y: 1 }], ['coffre', 15, 3, 'S', { x: 1, y: -1 }]],
-  B: [['barre-de-navire', 17, 2, 'E']],
+  B: [['barre-de-navire', 17, 2, 'E', { x: -0.5, y: 0 }]],
 };
 
 /** Les décors de `MOBILIER`, chacun sur le pont de sa pièce, sous l'id de sa pièce suivi de son `ref` et de son rang. */

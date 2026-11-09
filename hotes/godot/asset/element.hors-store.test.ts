@@ -76,6 +76,10 @@ describe('validerElement : un manifeste valide par catégorie', () => {
     const blason = manifeste(categorie, { surfaces: [{ nom, palette, blason: true }] });
     expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
   });
+  it('un véhicule dit en option l’emprise libre des cases de ses ponts que son modèle rogne', () => {
+    const rogne = manifeste('vehicule', { cases: { '4,1,0': [4.075, 1.45, 5, 2], '9,2,2': [9, 2, 9.375, 3] } });
+    expect(verdict(rogne)).toEqual({ ok: true, manifeste: rogne });
+  });
   it('un rigide tenu déclare en option la prise de sa main libre', () => {
     const deuxMains = manifeste('rigide', { liaison: { mode: 'rigide', secondePrise: SECONDE_PRISE } });
     expect(verdict(deuxMains)).toEqual({ ok: true, manifeste: deuxMains });
@@ -153,6 +157,10 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['bord-inconnu', 'poste d’une Amélioration à un bord qui n’en est pas un', manifeste('vehicule', { selon: { sabord: { postes: { flanc: [[3, 0.3, 0]] } } } })],
   ['champ-hors-categorie', '`clips` sur un décor', manifeste('decor', { clips: { idle: 'repos' } })],
   ['forme', 'clip qui n’est pas un nom', manifeste('vehicule', { clips: { ranged: 3 } })],
+  ['champ-hors-categorie', '`cases` sur un décor', manifeste('decor', { cases: {} })],
+  ['forme', 'emprise de case hors de sa case', manifeste('vehicule', { cases: { '4,1,0': [4.5, 1.5, 5.25, 2] } })],
+  ['forme', 'emprise de case retournée', manifeste('vehicule', { cases: { '4,1,0': [4.6, 1.5, 4.4, 2] } })],
+  ['forme', 'emprise sous une clé qui n’est pas une case', manifeste('vehicule', { cases: { '4,1': [4.5, 1.5, 5, 2] } })],
   ['selon-absent', 'nœud `sans-sabord` sans `selon.sabord`', ...surGlb('vehicule', { surfaces: [{ nom: 'metal', palette: 'metal' }] }, glbANoeuds(['coque', 'sans-sabord']))],
   ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],

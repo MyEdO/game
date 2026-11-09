@@ -8,6 +8,10 @@
     "flicker": {
       "amplitude": 0.35,
       "hz": 2.4
+    },
+    "visuel": "feu",
+    "son": {
+      "id": "crepitement"
     }
   },
   {
@@ -15,7 +19,8 @@
     "type": "lightTones",
     "label": "Lanterne",
     "color": "#ffe6b3",
-    "intensity": 0.6
+    "intensity": 0.6,
+    "visuel": "flammeche"
   },
   {
     "id": "chandelle",
@@ -26,13 +31,15 @@
     "flicker": {
       "amplitude": 0.45,
       "hz": 3.6
-    }
+    },
+    "visuel": "flammeche"
   },
   {
     "id": "magique",
     "type": "lightTones",
     "label": "Magique",
     "color": "#8fc8ff",
-    "intensity": 0.85
+    "intensity": 0.85,
+    "visuel": "lueur"
   }
 ]
