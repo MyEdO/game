@@ -13,10 +13,14 @@
  * de `refusDeLEntite`.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyScene, heightAt, type Scene } from '../monde/scene';
+import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { avertissementsDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
-import { provenanceDesNavires } from '../planDeNavire';
+import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
+import { validateScene } from '../validateScene';
+import { flowFromEffects } from '../monde/flow';
+import { fauteDAppui } from '../monde/poseDuDecor';
+import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import { garanti } from '../../lib/garanti';
 import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../sceneEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
@@ -485,6 +489,36 @@ describe('le navire de la scène éditée (#3772)', () => {
     const s = poserLaCaraque(ouverteSur(bassin()));
     expect(refusDeLaValeur(s, { geste: 'valeur', porteur: { sorte: 'entite', id: 'navire-0' }, chemin: ['facing'], valeur: 'NE' })).toBe('nonOffert');
     expect(capsOfferts(garanti(sceneEditee(s).entities[0], 'navire', 'entité'))).toEqual(['N', 'E', 'S', 'O']);
+  });
+
+  it('la validation lit le monde sur la vue : un départ, une empreinte, une chute, un appui sur un pont de la caraque, sans faux avertissement', () => {
+    const vue = poserLesNavires({ ...bassin(), entities: [caraque] } as Scene);
+    const [x, y] = garanti([...provenanceDesNavires(vue).cases.keys()].map((cle) => cle.split(',').map(Number))
+      .find(([cx, cy, cz]) => cz === 2 && isWalkable(vue, cx, cy, 2)), 'pont', 'case marchable du pont 2');
+    const depart = (p: { x: number; y: number }) => ({ ...bassin(), entities: [caraque, { id: 'depart', kind: 'heroStart', pos: p, z: 2 }] } as Scene);
+    expect(validateScene([depart({ x, y })]).filter((w) => w.refId === 'depart' || w.message.includes('inatteignable'))).toEqual([]);
+    const [bx, by] = garanti([...provenanceDesNavires(vue).cases.keys()].map((cle) => cle.split(',').map(Number))
+      .find(([cx, cy, cz]) => cz === 2 && !isWalkable(vue, cx, cy, 2)), 'pont', 'case barrée du pont 2');
+    expect(validateScene([depart({ x: bx, y: by })]).filter((w) => w.refId === 'depart').map((w) => w.message), 'une case barrée du pont se dit')
+      .toEqual([expect.stringContaining("la case n'est pas marchable")]);
+    const abordage = (p: { x: number; y: number }) => validateScene([{ ...bassin(), entities: [caraque, { id: 'marin', kind: 'personnage', ref: 'humain', pos: p, z: 2 }],
+      encounters: [{ id: 'abordage', members: [{ entityId: 'marin' }] }] } as Scene]).filter((w) => w.refId === 'marin' && w.message.includes('non marchable'));
+    expect([abordage({ x, y }).length, abordage({ x: bx, y: by }).length], 'l’empreinte d’un membre se juge sur le pont').toEqual([0, 1]);
+    const chute = (to: { x: number; y: number }) => validateScene([{ ...bassin(), entities: [caraque],
+      triggers: [{ id: 'saut', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'fall', target: 'party', metres: 2, to: { ...to, z: 2 } }] as Effect[]) }] } as Scene])
+      .filter((w) => w.refId === 'saut' && w.message.startsWith('Chute')).length;
+    expect([chute({ x, y }), chute({ x: bx, y: by })], 'l’atterrissage d’une chute se juge sur le pont').toEqual([0, 1]);
+    const lettre = garanti(vue.entities.filter((e) => e.kind === 'prop' && e.id.startsWith('navire-0-'))
+      .map((sup) => ({ id: 'lettre', kind: 'prop' as const, ref: 'lettre', pos: sup.pos, z: sup.z, sur: sup.id })).find((e) => !fauteDAppui(vue, e)), 'pont', 'décor du pont qui porte');
+    expect(validateScene([{ ...bassin(), entities: [caraque, lettre] } as Scene]).filter((w) => w.refId === 'lettre'), 'un décor posé sur un décor du pont tient').toEqual([]);
+  });
+
+  it('la volée lit la vue : ses étages comptent les ponts, et une couche que seuls les ponts posent la refuse', () => {
+    const s = editer(editer(poserLaCaraque(ouverteSur(bassin())), { geste: 'outil', outil: { mode: 'stair', toZ: 2 } }), { geste: 'appui', point: point(2, 2) });
+    expect(s.volee).toHaveLength(1);
+    expect(planDeLaVolee(s)).not.toEqual({ ok: false, reason: 'étage to=z2 inexistant' });
+    const surLePont = editer(editer(s, { geste: 'couche', z: 2 }), { geste: 'outil', outil: { mode: 'stair', toZ: 3 } });
+    expect(planDeLaVolee(surLePont)).toEqual({ ok: false, reason: "couche z2 des seuls ponts d'un navire : la volée ne s'y écrit pas" });
   });
 
   it('changer d’échelle vers celle du plan pose les ponts d’un navire, toujours à un cap cardinal', () => {

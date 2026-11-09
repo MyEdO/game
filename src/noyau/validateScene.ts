@@ -214,6 +214,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       message: string,
       architectureRef?: ArchitectureWarningRef,
     ) => out.push({ level, sceneId: s.id, scope, refId, message, architectureRef });
+    // Le monde où l'on marche et où l'on pose : la scène et les ponts de ses navires, comme au jeu (`poserLesNavires`).
+    const vue = poserLesNavires(s);
     // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (noyau/combatEffects) le lisent
     // pour valider leurs réfs cassées (dialogue/rencontre/scène) et valeurs invalides (souffle de zone).
     const refCtx: EffectRefCtx = {
@@ -221,7 +223,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       entityIds: new Set(s.entities.filter((e) => e.kind === 'personnage').map((e) => e.id)),
       npcSheet: (id) => sceneNpc(s, id, presetDe),
       within,
-      walkable: (x, y, z) => groupePosable(s, { x, y, z }),
+      walkable: (x, y, z) => groupePosable(vue, { x, y, z }),
     };
     // Dialogues qu'un OUVREUR de la scène cite : la capacité « parler » d'une entité (`dialogueId`),
     // et tout effet dont le handler déclare `ouvreDialogue` (le runtime cherche dans la scène COURANTE).
@@ -251,13 +253,13 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
 
     // Couches (`Scene.layers`) : ids d'étage valides pour rattacher les entités posées en hauteur.
     const layerZs = new Set(s.layers.map((l) => l.z));
-    // Une entité se pose aussi sur les ponts d'un navire, couches que la scène reçoit à son chargement (`poserLesNavires`).
-    const couchesDesEntites = new Set(poserLesNavires(s).layers.map((l) => l.z));
+    // Une entité se pose aussi sur les ponts d'un navire, couches de la vue.
+    const couchesDesEntites = new Set(vue.layers.map((l) => l.z));
     const realFloor = realFloorAt(s); // plancher RÉEL par étage — la vérité partagée avec la dérivation
     for (const e of s.entities) {
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !couchesDesEntites.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
-      const appui = fauteDAppui(s, e);
+      const appui = fauteDAppui(vue, e);
       if (appui) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} ${DIT_DE_L_APPUI[appui.faute](appui.support)} — repose-le au glissé`);
       const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe) : undefined;
       const refusDesSorts = npc && refusDesSortsChoisis(npc, e.combat?.spells ?? []);
@@ -282,12 +284,15 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const start = startOf(s);
     const startEntity = s.entities.find((e) => e.kind === 'heroStart');
     if (start && startEntity && echelleDuPas) {
-      if (!isWalkable(s, start.x, start.y, start.z)) {
+      if (!isWalkable(vue, start.x, start.y, start.z)) {
         add('warn', 'entity', startEntity.id, `Départ du groupe en (${start.x},${start.y}) à l'étage ${start.z ?? 0} : la case n'est pas marchable — pose-le sur un sol praticable, sinon le groupe apparaît dans le décor.`);
       } else {
         // Zones évaluées SEULEMENT depuis un départ praticable : depuis une case murée, la marche ne
         // rejoint rien et TOUTES les pièces se signaleraient — un seul défaut, pas N faux.
-        for (const zone of unreachableDescriptiveZones(s, start))
+        // La marche se lit sur la vue ; seules les pièces écrites se jugent : celles des ponts d'un navire viennent de son
+        // plan, qui les relie par ses échelles (`planDeLaCaraque.test.ts`).
+        const ecrites = new Set((s.effectZones ?? []).map((zone) => zone.id));
+        for (const zone of unreachableDescriptiveZones(vue, start).filter((zone) => ecrites.has(zone.id)))
           add('warn', 'scene', zone.id, `Pièce « ${zone.label ?? zone.id} » inatteignable à pied depuis le départ du groupe (${start.x},${start.y}, étage ${start.z ?? 0}) — perce une porte, ou relie-la par un escalier ou une rampe.`);
       }
     }
@@ -476,7 +481,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         const dehors = tuiles.filter((t) => !within(t.x, t.y));
         if (dehors.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} débordant hors de la carte — ${dehors.map((t) => `(${t.x},${t.y})`).join(' ')}.`);
-        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !isWalkable(s, t.x, t.y, z)) : [];
+        const barrees = echelleDuPas ? tuiles.filter((t) => within(t.x, t.y) && !isWalkable(vue, t.x, t.y, z)) : [];
         if (barrees.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} posée sur ${barrees.length} case(s) non marchable(s) (mur, eau ou décor) — ${barrees.map((t) => `(${t.x},${t.y})`).join(' ')} à l'étage ${z}.`);
       }

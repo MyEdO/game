@@ -138,7 +138,7 @@ export interface ZonesDeLEditeur {
    * choisi à ce cap, sur la case appuyée et la couche éditée, et le sélectionne (`poserUnNavire`) ; aux murs, la
    * sorte d'arête posée, cloison, porte ou l'une des deux diagonales, et, pour une cloison ou une porte, son matériau
    * en liste, « Par défaut » ou chaque structure qu'elle peut porter (`structuresDeLArete`) ; à la volée, l'étage
-   * qu'elle rejoint, chaque couche, son tracé en cases, ses cotes quand son plan tient (`planDeLaVolee`,
+   * qu'elle rejoint, chaque couche de la vue, son tracé en cases, ses cotes quand son plan tient (`planDeLaVolee`,
    * `planStairFlight`), sinon, une case tracée, la raison du plan en
    * clair, « Poser la volée », refusé avec la raison du plan, et « Effacer le tracé », refusé sans case ; la retenue
    * pressée ; à l'architecture, le corps actif parmi ceux de la scène (`corpsActif` : celui de la sélection, sinon le
@@ -441,7 +441,7 @@ const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type
  *  une case tracée, la raison du plan, en clair ; la poser (refusée avec cette raison) et effacer son tracé. */
 function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bouton)[] {
   const plan = planDeLaVolee(s)!;
-  const etages = sceneEditee(s).layers.map((l) => l.z).sort((a, b) => a - b)
+  const etages = couchesDeLaVue(s)
     .map((z) => bouton(`etage/${z}`, t('ecran.editeur.couche', { z }), { geste: 'outil', outil: { mode: 'stair', toZ: z } }, toZ === z));
   const arrondi = (m: number) => Math.round(m * 100) / 100;
   return [

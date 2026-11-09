@@ -452,10 +452,13 @@ export function essaiDeLaScene(s: SessionDEdition) {
   });
 }
 
-/** Le plan de la volée tracée de la session `s` vers l'étage de son outil (`planStairFlight`), `null` hors de l'outil
- *  Volée. */
+/** Le plan de la volée tracée de la session `s` vers l'étage de son outil, lu sur la vue (`planStairFlight`,
+ *  `vueDeLaScene`) : jusqu'au pont d'un navire aussi ; refusé sur une couche que seuls les ponts d'un navire posent, où
+ *  la volée ne s'écrirait pas ; `null` hors de l'outil Volée. */
 export function planDeLaVolee(s: SessionDEdition): StairFlightPlan | null {
-  return s.outil.mode === 'stair' ? planStairFlight(sceneEditee(s), s.volee, s.z, s.outil.toZ) : null;
+  if (s.outil.mode !== 'stair') return null;
+  if (!sceneEditee(s).layers.some((l) => l.z === s.z)) return { ok: false, reason: `couche z${s.z} des seuls ponts d'un navire : la volée ne s'y écrit pas` };
+  return planStairFlight(vueDeLaScene(s), s.volee, s.z, s.outil.toZ);
 }
 
 /** Le corps de la sélection d'architecture `sel`, `undefined` hors d'elle. */
