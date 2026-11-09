@@ -728,18 +728,18 @@ const worldMap = {
   ],
   routes: [
     {
-      // Route de l'ALLER, À SENS UNIQUE (`from: salzenmund`) : elle n'est offerte au clic QUE depuis
+      // Route de l'ALLER, À SENS UNIQUE (`from` Salzenmund) : elle n'est offerte au clic QUE depuis
       // Salzenmund (`routesFrom`) — le joueur y rencontre DÉTERMINISTEMENT la Dent de Manann, jamais Olg.
-      id: 'route-salzenmund-erengrad-aller', from: 'salzenmund',
-      a: 'salzenmund', b: 'erengrad', km: 550, modes: ['mer'], sea: true, seaHeading: 'nord',
+      id: 'route-salzenmund-erengrad-aller', from: { id: 'salzenmund' },
+      a: { id: 'salzenmund' }, b: { id: 'erengrad' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'nord',
       ambush: { scene: 'ls-abordage-cogue', encounter: 'enc-cogue' },
     },
     {
-      // Route du RETOUR, À SENS UNIQUE (`from: erengrad`) : offerte QUE depuis Erengrad — le retour porte
+      // Route du RETOUR, À SENS UNIQUE (`from` Erengrad) : offerte QUE depuis Erengrad — le retour porte
       // DÉTERMINISTEMENT l'embuscade d'Olg. Deux routes entre les mêmes ports, mais discernables par le SENS :
       // depuis chaque port, une seule est cliquable, donc l'embuscade tirée ne dépend plus du hasard du clic.
-      id: 'route-salzenmund-erengrad-retour', from: 'erengrad',
-      a: 'salzenmund', b: 'erengrad', km: 550, modes: ['mer'], sea: true, seaHeading: 'sud',
+      id: 'route-salzenmund-erengrad-retour', from: { id: 'erengrad' },
+      a: { id: 'salzenmund' }, b: { id: 'erengrad' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'sud',
       ambush: { scene: 'ls-abordage-olg', encounter: 'enc-olg' },
     },
   ],

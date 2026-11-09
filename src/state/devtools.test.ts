@@ -1043,7 +1043,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
       { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
       { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
     ],
-    routes: [{ id: 'r1', a: 'A', b: 'B', km: 100, modes: ['mer'], sea: true, seaHeading: 'est' }],
+    routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 100, modes: ['mer'], sea: true, seaHeading: 'est' }],
   };
   const freshState = () => {
     seedBattleRng(1); // déterminisme (suite isolate:false)

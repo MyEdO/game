@@ -3878,9 +3878,15 @@
   "routes": [
    {
     "id": "route-salzenmund-erengrad-aller",
-    "from": "salzenmund",
-    "a": "salzenmund",
-    "b": "erengrad",
+    "from": {
+     "id": "salzenmund"
+    },
+    "a": {
+     "id": "salzenmund"
+    },
+    "b": {
+     "id": "erengrad"
+    },
     "km": 550,
     "modes": [
      "mer"
@@ -3894,9 +3900,15 @@
    },
    {
     "id": "route-salzenmund-erengrad-retour",
-    "from": "erengrad",
-    "a": "salzenmund",
-    "b": "erengrad",
+    "from": {
+     "id": "erengrad"
+    },
+    "a": {
+     "id": "salzenmund"
+    },
+    "b": {
+     "id": "erengrad"
+    },
     "km": 550,
     "modes": [
      "mer"

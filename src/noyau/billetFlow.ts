@@ -49,7 +49,7 @@ export type OffreDePassage =
 /** Le billet d'auteur de `route` en `vehicule`, s'il part de `departId`. */
 export function billetDAuteur(route: MapRoute, vehicule: string, departId: string): RouteBillet | undefined {
   const b = route.billets?.[vehicule];
-  return b && (route.from ?? b.depuis) === departId ? b : undefined;
+  return b && (route.from ?? b.depuis)?.id === departId ? b : undefined;
 }
 
 /** Lieu d'arrivée et distance du parcours de `routeIds` depuis `departId`. */

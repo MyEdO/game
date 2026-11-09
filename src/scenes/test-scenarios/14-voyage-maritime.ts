@@ -105,7 +105,7 @@ const construireCarte = (): WorldMap => ({
   routes: [
     {
       id: 'route-marienburg',
-      a: 'p-salzenmund', b: 'p-marienburg',
+      a: { id: 'p-salzenmund' }, b: { id: 'p-marienburg' },
       km: 480, // MILLES (route sea) : plusieurs jours de mer à M5 (18×5 = 90 milles/jour, ± vent)
       modes: ['mer'],
       sea: true,

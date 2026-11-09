@@ -43,7 +43,7 @@ const seaMap: WorldMap = {
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['bois-mer'], surplus: { 'produits-de-luxe-mer': 1 } } },
     { id: 'B', label: 'Marienburg', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 4, richesse: 5, production: ['commerce-mer'], demande: { 'bois-mer': 1 }, cosmopolite: true } },
   ],
-  routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+  routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
 
 function freshState() {

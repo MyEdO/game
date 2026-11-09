@@ -143,8 +143,8 @@ export function WorldMapEditor({ map, setMap, scenes, narratif, onClose, activeA
             </defs>
             {planChrome()}
             {m.routes.map((r) => {
-              const a = placeById(m, r.a);
-              const b = placeById(m, r.b);
+              const a = placeById(m, r.a.id);
+              const b = placeById(m, r.b.id);
               if (!a || !b) return null;
               return (
                 <g key={r.id} onClick={() => setSel({ kind: 'route', id: r.id })} style={{ cursor: 'pointer' }}>

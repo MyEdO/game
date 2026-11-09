@@ -56,7 +56,7 @@ function crew(withSavoir = false): Combatant[] {
 }
 
 const route = (km: number, extra: Partial<MapRouteTrace> = {}): MapRoute => ({
-  id: 'r-reik', a: 'A', b: 'B', km, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra,
+  id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra,
 });
 
 function riverMap(km: number, extra: Partial<MapRouteTrace> = {}): WorldMap {

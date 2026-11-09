@@ -11,7 +11,7 @@ import {
 } from './worldMapEdit';
 
 const lieu = (id: string, x: number, y = 50): MapPlace => ({ id, label: id, pos: { x, y }, scene: 's' });
-const route = (id: string, a: string, b: string, plus: Partial<MapRoute> = {}): MapRoute => ({ id, a, b, km: 5, modes: ['pied'], ...plus }) as MapRoute;
+const route = (id: string, a: string, b: string, plus: Partial<MapRoute> = {}): MapRoute => ({ id, a: { id: a }, b: { id: b }, km: 5, modes: ['pied'], ...plus }) as MapRoute;
 const carte = (places: MapPlace[] = [], routes: MapRoute[] = []): WorldMap => ({ id: 'm', label: 'Carte', places, routes });
 
 afterEach(() => resetData());
@@ -54,7 +54,7 @@ describe('lierLieux', () => {
   const deux = carte([lieu('a', 10), lieu('b', 80)]);
 
   it('relie deux lieux par une route de 10 km à pied, à double sens', () => {
-    expect(lierLieux(deux, 'r1', 'a', 'b').routes).toEqual([{ id: 'r1', a: 'a', b: 'b', km: 10, modes: ['pied'] }]);
+    expect(lierLieux(deux, 'r1', 'a', 'b').routes).toEqual([{ id: 'r1', a: { id: 'a' }, b: { id: 'b' }, km: 10, modes: ['pied'] }]);
   });
 
   it('refuse une paire déjà reliée à double sens, dans un sens comme dans l’autre', () => {
@@ -64,16 +64,16 @@ describe('lierLieux', () => {
   });
 
   it('une paire reliée dans un seul sens reçoit la route de l’autre sens', () => {
-    const m = carte(deux.places, [route('aller', 'a', 'b', { from: 'a' })]);
+    const m = carte(deux.places, [route('aller', 'a', 'b', { from: { id: 'a' } })]);
     const r = lierLieux(m, 'retour', 'a', 'b').routes.find((x) => x.id === 'retour');
-    expect(r?.from).toBe('b');
+    expect(r?.from).toEqual({ id: 'b' });
     const apres = lierLieux(m, 'retour', 'a', 'b');
     expect(routesFrom(apres, 'a').map((x) => x.id)).toEqual(['aller']);
     expect(routesFrom(apres, 'b').map((x) => x.id)).toEqual(['retour']);
   });
 
   it('refuse une paire reliée dans ses deux sens par deux routes à sens unique', () => {
-    const m = carte(deux.places, [route('aller', 'a', 'b', { from: 'a' }), route('retour', 'b', 'a', { from: 'b' })]);
+    const m = carte(deux.places, [route('aller', 'a', 'b', { from: { id: 'a' } }), route('retour', 'b', 'a', { from: { id: 'b' } })]);
     expect(lierLieux(m, 'r3', 'a', 'b')).toBe(m);
   });
 
@@ -95,24 +95,24 @@ describe('suppressions', () => {
 
   it('supprimer une route coupe la suite des billets qui la couvrent', () => {
     const m = carte([lieu('a', 10), lieu('b', 50), lieu('c', 90), lieu('d', 70, 20)], [
-      route('ab', 'a', 'b', { from: 'a', modes: ['diligence'], billets: { diligence: { prix: {}, suite: ['bc', 'cd'] } } }),
+      route('ab', 'a', 'b', { from: { id: 'a' }, modes: ['diligence'], billets: { diligence: { prix: {}, suite: ['bc', 'cd'] } } }),
       route('bc', 'b', 'c', { modes: ['diligence'] }),
-      route('cd', 'c', 'd', { modes: ['diligence'], billets: { diligence: { prix: {}, depuis: 'c', suite: ['bc'] } } }),
+      route('cd', 'c', 'd', { modes: ['diligence'], billets: { diligence: { prix: {}, depuis: { id: 'c' }, suite: ['bc'] } } }),
     ]);
     const apres = supprimerRoute(m, 'cd');
     expect(apres.routes.map((r) => r.id)).toEqual(['ab', 'bc']);
     expect(apres.routes[0].billets?.diligence?.suite).toEqual(['bc']);
     const sansBc = supprimerRoute(m, 'bc');
     expect(sansBc.routes.find((r) => r.id === 'ab')!.billets!.diligence).toEqual({ prix: {} });
-    expect(sansBc.routes.find((r) => r.id === 'cd')!.billets!.diligence).toEqual({ prix: {}, depuis: 'c' });
+    expect(sansBc.routes.find((r) => r.id === 'cd')!.billets!.diligence).toEqual({ prix: {}, depuis: { id: 'c' } });
   });
 
   it('supprimer un lieu coupe aussi la suite des billets qui couvraient ses routes', () => {
     const m = carte([lieu('a', 10), lieu('b', 50), lieu('c', 90)], [
-      route('ab', 'a', 'b', { from: 'a', modes: ['diligence'], billets: { diligence: { prix: {}, suite: ['bc'] } } }),
+      route('ab', 'a', 'b', { from: { id: 'a' }, modes: ['diligence'], billets: { diligence: { prix: {}, suite: ['bc'] } } }),
       route('bc', 'b', 'c', { modes: ['diligence'] }),
     ]);
-    expect(supprimerLieu(m, 'c').routes).toEqual([route('ab', 'a', 'b', { from: 'a', modes: ['diligence'], billets: { diligence: { prix: {} } } })]);
+    expect(supprimerLieu(m, 'c').routes).toEqual([route('ab', 'a', 'b', { from: { id: 'a' }, modes: ['diligence'], billets: { diligence: { prix: {} } } })]);
   });
 });
 

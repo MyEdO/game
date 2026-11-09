@@ -126,7 +126,7 @@ export interface RouteBillet extends ProvenanceDeValeur {
   /** Routes suivantes couvertes, dans l'ordre du trajet, chacune partant du lieu d'arrivée de la précédente. */
   suite?: string[];
   /** Lieu de départ du billet — exigé sur une route sans `from` (à double sens). */
-  depuis?: string;
+  depuis?: { id: string };
   /** Le billet se marchande : Test opposé contre le PNJ `presetId` du narratif (EDO 01 l.142). */
   marchandage?: { presetId: string; paliers?: PalierDeBillet[] };
 }
@@ -146,13 +146,13 @@ export function cleDeBillet(routeId: string, vehicule: string, depuis: string): 
 /** Le tracé d'une route, hors praticabilité. */
 export interface MapRouteTrace {
   id: string;
-  a: string;
-  b: string;
+  a: { id: string };
+  b: { id: string };
   /** Route À SENS UNIQUE d'INITIATION : présent = elle ne s'emprunte QUE depuis ce lieu (`a` ou `b`) — le
    *  trajet retour se fait par une AUTRE route. Absent = bidirectionnelle (historique). Sert à rendre
    *  DISCERNABLES deux routes reliant les mêmes ports (aller/retour, chacune avec son embuscade) : depuis
    *  un port, seule la route de ce sens est offerte au clic (`routesFrom`), l'embuscade est donc déterministe. */
-  from?: string;
+  from?: { id: string };
   /** Distance en kilomètres (LDB 51 l.178 : les coûts sont « par kilomètre parcouru »). */
   km: number;
   /** Modes de voyage offerts sur cette route. */
@@ -450,8 +450,8 @@ export function produitsDuProfil(production: readonly string[] | undefined): { p
 export function routesFrom(map: WorldMap, placeId: string, ctx?: ConditionCtx): MapRoute[] {
   return map.routes.filter(
     (r) =>
-      (r.a === placeId || r.b === placeId) &&
-      (r.from == null || r.from === placeId) &&
+      (r.a.id === placeId || r.b.id === placeId) &&
+      (r.from == null || r.from.id === placeId) &&
       (r.when == null || ctx == null || evalCondition(r.when, ctx)),
   );
 }
@@ -466,7 +466,7 @@ export function routesEtat(
   ctx?: ConditionCtx,
 ): { route: MapRoute; ouverte: boolean }[] {
   return map.routes
-    .filter((r) => (r.a === placeId || r.b === placeId) && (r.from == null || r.from === placeId))
+    .filter((r) => (r.a.id === placeId || r.b.id === placeId) && (r.from == null || r.from.id === placeId))
     .map((r) => ({ route: r, ouverte: r.when == null || ctx == null || evalCondition(r.when, ctx) }));
 }
 
@@ -485,13 +485,13 @@ export function routesCliquables(map: WorldMap, placeId: string, ctx?: Condition
   const etats = new Map(routesEtat(map, placeId, ctx).map((e) => [e.route.id, e]));
   return map.routes.flatMap((r) => {
     const e = etats.get(r.id);
-    return e && visibles.has(r.a) && visibles.has(r.b) ? [e] : [];
+    return e && visibles.has(r.a.id) && visibles.has(r.b.id) ? [e] : [];
   });
 }
 
 /** L'autre extrémité d'une route. */
 export function otherEnd(route: MapRoute, placeId: string): string {
-  return route.a === placeId ? route.b : route.a;
+  return route.a.id === placeId ? route.b.id : route.a.id;
 }
 
 // ── Anti-chevauchement des médaillons (rendu seulement — n'affecte JAMAIS `pos`) ─────────────

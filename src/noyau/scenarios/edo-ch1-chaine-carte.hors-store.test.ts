@@ -81,7 +81,7 @@ describe('carte du ch.1 — anti-spoiler, état de drapeaux par état de drapeau
 
 describe('carte du ch.1 — sens unique : aucune route ne remonte vers l’amont', () => {
   it('chaque route part de son amont (`from`) vers le lieu SUIVANT de la chaîne', () => {
-    expect(map.routes.map((r) => [r.id, r.from, AVAL.indexOf(r.b) - AVAL.indexOf(r.a)]))
+    expect(map.routes.map((r) => [r.id, r.from?.id, AVAL.indexOf(r.b.id) - AVAL.indexOf(r.a.id)]))
       .toEqual([[T1, 'la-diligence', 1], [T2, 'route-principale', 1], [T3, 'auberge-des-sept-rayons', 1]]);
   });
 

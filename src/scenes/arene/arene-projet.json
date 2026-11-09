@@ -25987,8 +25987,12 @@
   "routes": [
    {
     "id": "route-futaie",
-    "a": "bourg",
-    "b": "foret",
+    "a": {
+     "id": "bourg"
+    },
+    "b": {
+     "id": "foret"
+    },
     "km": 18,
     "modes": [
      "pied"
@@ -26012,8 +26016,12 @@
    },
    {
     "id": "route-felsbach",
-    "a": "bourg",
-    "b": "village",
+    "a": {
+     "id": "bourg"
+    },
+    "b": {
+     "id": "village"
+    },
     "km": 24,
     "modes": [
      "pied",
@@ -26039,8 +26047,12 @@
    },
    {
     "id": "route-tourbiere",
-    "a": "foret",
-    "b": "marais",
+    "a": {
+     "id": "foret"
+    },
+    "b": {
+     "id": "marais"
+    },
     "km": 14,
     "modes": [
      "pied"
@@ -26070,8 +26082,12 @@
    },
    {
     "id": "route-basse",
-    "a": "village",
-    "b": "marais",
+    "a": {
+     "id": "village"
+    },
+    "b": {
+     "id": "marais"
+    },
     "km": 12,
     "modes": [
      "pied"

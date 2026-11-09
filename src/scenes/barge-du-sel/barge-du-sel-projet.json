@@ -1430,8 +1430,12 @@
   "routes": [
    {
     "id": "route-quai-ilot",
-    "a": "quai-du-sel",
-    "b": "ilot-du-sel",
+    "a": {
+     "id": "quai-du-sel"
+    },
+    "b": {
+     "id": "ilot-du-sel"
+    },
     "km": 30,
     "modes": [
      "mer"

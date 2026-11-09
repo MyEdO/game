@@ -57,8 +57,8 @@ const worldMap = {
   routes: [
     {
       id: 'route-futaie',
-      a: 'bourg',
-      b: 'foret',
+      a: { id: 'bourg' },
+      b: { id: 'foret' },
       km: 18,
       modes: ['pied'],
       perils: [
@@ -72,8 +72,8 @@ const worldMap = {
     },
     {
       id: 'route-felsbach',
-      a: 'bourg',
-      b: 'village',
+      a: { id: 'bourg' },
+      b: { id: 'village' },
       km: 24,
       modes: ['pied', 'diligence'],
       inns: true, // relais de diligence : la halte de nuit propose l'auberge (modale de Repos)
@@ -88,8 +88,8 @@ const worldMap = {
     },
     {
       id: 'route-tourbiere',
-      a: 'foret',
-      b: 'marais',
+      a: { id: 'foret' },
+      b: { id: 'marais' },
       km: 14,
       modes: ['pied'],
       perilDie: 7,
@@ -105,8 +105,8 @@ const worldMap = {
     },
     {
       id: 'route-basse',
-      a: 'village',
-      b: 'marais',
+      a: { id: 'village' },
+      b: { id: 'marais' },
       km: 12,
       modes: ['pied'],
       ambush: { scene: 'arene-route-embuscade', encounter: 'enc-embuscade' },

@@ -42,13 +42,13 @@ const carte: WorldMap = {
     },
   ],
   routes: [
-    { id: 'auberge-altdorf', a: 'auberge', b: 'altdorf', km: 30, modes: ['pied'] },
-    { id: 'auberge-bogenhafen', a: 'auberge', b: 'bogenhafen', km: 90, modes: ['pied'] },
+    { id: 'auberge-altdorf', a: { id: 'auberge' }, b: { id: 'altdorf' }, km: 30, modes: ['pied'] },
+    { id: 'auberge-bogenhafen', a: { id: 'auberge' }, b: { id: 'bogenhafen' }, km: 90, modes: ['pied'] },
     {
       id: 'auberge-ferme',
-      a: 'auberge',
-      b: 'altdorf',
-      from: 'auberge',
+      a: { id: 'auberge' },
+      b: { id: 'altdorf' },
+      from: { id: 'auberge' },
       km: 42,
       modes: ['pied'],
       when: { kind: 'not', of: { kind: 'flag', expr: 'chapitre-clos' } },
@@ -231,7 +231,7 @@ const carteMuette: WorldMap = {
       when: { kind: 'flag', expr: 'destination-revelee' },
     },
   ],
-  routes: [{ id: 'route-depart-destination', a: 'auberge', b: 'altdorf', km: 180, modes: ['pied'] }],
+  routes: [{ id: 'route-depart-destination', a: { id: 'auberge' }, b: { id: 'altdorf' }, km: 180, modes: ['pied'] }],
 };
 
 /** Vue courante (zoom/pan) lue sur le groupe de cadrage. */

@@ -84,8 +84,8 @@ export function ajouterLieu(map: WorldMap, id: string, pos: Pos, scenes: readonl
 function sensOfferts(map: WorldMap, a: string, b: string): Set<string> {
   const sens = new Set<string>();
   for (const r of map.routes) {
-    if (!((r.a === a && r.b === b) || (r.a === b && r.b === a))) continue;
-    if (r.from == null) { sens.add(a); sens.add(b); } else sens.add(r.from);
+    if (!((r.a.id === a && r.b.id === b) || (r.a.id === b && r.b.id === a))) continue;
+    if (r.from == null) { sens.add(a); sens.add(b); } else sens.add(r.from.id);
   }
   return sens;
 }
@@ -98,7 +98,7 @@ export function lierLieux(map: WorldMap, id: string, a: string, b: string): Worl
   const sens = sensOfferts(map, a, b);
   if (sens.has(a) && sens.has(b)) return map;
   const from = sens.size === 0 ? undefined : sens.has(a) ? b : a;
-  const route: MapRoute = { id, a, b, ...(from ? { from } : {}), ...ROUTE_PAR_DEFAUT, modes: [...ROUTE_PAR_DEFAUT.modes] };
+  const route: MapRoute = { id, a: { id: a }, b: { id: b }, ...(from ? { from: { id: from } } : {}), ...ROUTE_PAR_DEFAUT, modes: [...ROUTE_PAR_DEFAUT.modes] };
   return { ...map, routes: [...map.routes, route] };
 }
 
@@ -123,6 +123,6 @@ export function supprimerRoute(map: WorldMap, id: string): WorldMap {
 
 /** Retire le lieu `id` et, en cascade, ses routes. */
 export function supprimerLieu(map: WorldMap, id: string): WorldMap {
-  const routes = new Set(map.routes.filter((r) => r.a === id || r.b === id).map((r) => r.id));
+  const routes = new Set(map.routes.filter((r) => r.a.id === id || r.b.id === id).map((r) => r.id));
   return { ...sansRoutes(map, routes), places: map.places.filter((p) => p.id !== id) };
 }

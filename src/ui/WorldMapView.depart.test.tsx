@@ -28,7 +28,7 @@ const carte = (route: Partial<MapRouteTrace>): WorldMap => ({
     { id: 'pa', label: 'Village A', pos: { x: 20, y: 40 }, scene: 's-a' },
     { id: 'pb', label: 'Bourg B', pos: { x: 70, y: 40 }, scene: 's-b' },
   ],
-  routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 90, modes: ['pied'], perilDie: 0, ...route }],
+  routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 90, modes: ['pied'], perilDie: 0, ...route }],
 });
 
 const dixRations = (): ItemInstance[] => Array.from({ length: 10 }, (_, i) => ({ ...itemFromTrappingById('ration', idsDeTest)!, uid: `r${i}`, enc: 0 }));

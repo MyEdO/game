@@ -43,13 +43,13 @@ const carte: WorldMap = {
     { id: 'pb', label: 'Altdorf', pos: { x: 70, y: 40 }, scene: 'monde-b' },
   ],
   routes: [
-    { id: 'aller', a: 'pa', b: 'pb', from: 'pa', km: 400, modes: ['pied'], perilDie: 0 },
-    { id: 'retour', a: 'pa', b: 'pb', from: 'pb', km: 400, modes: ['pied'], perilDie: 0 },
+    { id: 'aller', a: { id: 'pa' }, b: { id: 'pb' }, from: { id: 'pa' }, km: 400, modes: ['pied'], perilDie: 0 },
+    { id: 'retour', a: { id: 'pa' }, b: { id: 'pb' }, from: { id: 'pb' }, km: 400, modes: ['pied'], perilDie: 0 },
     {
       id: 'jumelle-fermable',
-      a: 'pa',
-      b: 'pb',
-      from: 'pa',
+      a: { id: 'pa' },
+      b: { id: 'pb' },
+      from: { id: 'pa' },
       km: 400,
       modes: ['pied'],
       perilDie: 0,
@@ -112,7 +112,7 @@ const carteNaufrage: WorldMap = {
     },
     { id: 'refuge', label: 'La Crique', pos: { x: 56, y: 0 }, scene: 'monde-d' },
   ],
-  routes: [{ id: 'rmer', a: 'pa', b: 'pb', km: 100, modes: ['mer'], sea: true, seaHeading: 'est' }],
+  routes: [{ id: 'rmer', a: { id: 'pa' }, b: { id: 'pb' }, km: 100, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
 
 /** Traversée coulée à MI-CHEMIN : le point estimé tombe pile sur l'île cachée. */

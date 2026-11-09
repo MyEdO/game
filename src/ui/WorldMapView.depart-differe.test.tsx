@@ -31,7 +31,7 @@ const carte: WorldMap = {
     { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: 's-auberge' },
     { id: 'altdorf', label: 'Altdorf', pos: { x: 20, y: 30 }, scene: 's-altdorf' },
   ],
-  routes: [{ id: 'auberge-altdorf', a: 'auberge', b: 'altdorf', km: 30, modes: ['pied'] }],
+  routes: [{ id: 'auberge-altdorf', a: { id: 'auberge' }, b: { id: 'altdorf' }, km: 30, modes: ['pied'] }],
 };
 
 let container: HTMLDivElement;

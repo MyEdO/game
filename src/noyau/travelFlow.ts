@@ -390,7 +390,7 @@ function trajetDIci(s: Jeu, routeId: string): { from: MapPlace; route: MapRoute;
   const from = lieuDuGroupe(s);
   if (!worldMap || !from) return t('wm.horsCarte');
   const route = worldMap.routes.find((r) => r.id === routeId);
-  const to = route && (route.a === from.id || route.b === from.id) ? placeById(worldMap, otherEnd(route, from.id)) : undefined;
+  const to = route && (route.a.id === from.id || route.b.id === from.id) ? placeById(worldMap, otherEnd(route, from.id)) : undefined;
   if (!route || !to) return t('tf.refusRouteAbsente');
   return { from, route, to };
 }
@@ -404,7 +404,7 @@ export function refusDeDepart(s: Jeu, routeId: string, mode: TravelMode, opts: O
   const trajet = trajetDIci(s, routeId);
   if (typeof trajet === 'string') return trajet;
   const { from, route } = trajet;
-  if (route.from != null && route.from !== from.id) return t('tf.refusSensUnique');
+  if (route.from != null && route.from.id !== from.id) return t('tf.refusSensUnique');
   // #684
   if (route.when != null && !evalCondition(route.when, condCtx(() => s))) {
     return garanti(route.refus, route.id, 'raison du trajet fermé (`mapRouteSchema`)').texte;

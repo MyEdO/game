@@ -317,8 +317,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // Routes (chemins courbes) — CLIQUABLES depuis le lieu courant (large zone invisible via MapCanvas).
   const mapPaths: MapPath[] = map.routes.flatMap((r) => {
     // Extrémités prises dans les lieux EXISTANTS : un tronçon vers un lieu non révélé le trahirait.
-    const a = placeVisible.get(r.a);
-    const b = placeVisible.get(r.b);
+    const a = placeVisible.get(r.a.id);
+    const b = placeVisible.get(r.b.id);
     if (!a || !b) return [];
     const pa = posOf(a), pb = posOf(b);
     const c = routeCurve(pa.x, pa.y, pb.x, pb.y, r.id);

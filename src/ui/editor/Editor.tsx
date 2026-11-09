@@ -518,7 +518,7 @@ export function Editor({
             ...(p.when !== undefined ? { when: structuredClone(p.when) } : {}),
           })),
           routes: worldMap.routes.map((r) => ({
-            id: r.id, a: r.a, b: r.b, km: r.km,
+            id: r.id, a: r.a.id, b: r.b.id, km: r.km,
             ...(r.when !== undefined ? { when: structuredClone(r.when) } : {}),
             ...(r.refus !== undefined ? { refus: r.refus.texte } : {}),
           })),

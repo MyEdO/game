@@ -271,7 +271,7 @@ const worldMap = {
   ],
   routes: [
     {
-      id: 'route-quai-ilot', a: 'quai-du-sel', b: 'ilot-du-sel', km: 30, modes: ['mer'], sea: true, seaHeading: 'nord',
+      id: 'route-quai-ilot', a: { id: 'quai-du-sel' }, b: { id: 'ilot-du-sel' }, km: 30, modes: ['mer'], sea: true, seaHeading: 'nord',
       ambush: { scene: 'barge-du-sel-embuscade', encounter: 'enc-embuscade-sel', at: 0.5 },
       when: flagWhen(FLAG_CAP),
       refus: { texte: "Aucun cap n'est donné : la Louve grise ne sait pas encore où porter le sel." },

@@ -780,8 +780,8 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       if (!map || !s.scene) return '✗ aucune carte du monde ouverte (voir __wfrp.screen(\'worldmap\'))';
       return routesRendues(map, s.lieu).map(({ route: r, ouverte }) => ({
         id: r.id,
-        from: placeById(map, r.a)?.label ?? r.a,
-        to: placeById(map, r.b)?.label ?? r.b,
+        from: placeById(map, r.a.id)?.label ?? r.a.id,
+        to: placeById(map, r.b.id)?.label ?? r.b.id,
         distanceLabel: routeDistanceLabel(r.km, r.sea),
         etat: ouverte ? 'ouverte' : 'fermee-consultable',
       }));
