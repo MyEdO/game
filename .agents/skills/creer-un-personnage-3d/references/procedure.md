@@ -385,7 +385,7 @@ pièce seule. Les GLB publiés sous `hotes/godot/projet/modeles/` y sont dépos�
 rapport doit déjà exister :
 
 ```sh
-npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb hotes/godot/projet/modeles/humanoide--tete--humain.glb --base hotes/godot/projet/modeles/humanoide.glb --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
+npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte > /atelier/mesures/porte.txt
 ```
