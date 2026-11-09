@@ -110,8 +110,10 @@ const LEGENDE_DU_PLAN: NonNullable<MapSpec['zoneLegend']> = {
  *  du coin nord-ouest de son emprise, son cap, son calage dans le jeu libre de sa case (`SceneEntity.calage`, centré
  *  sans lui) et, posé sur un autre meuble de sa pièce, le `ref` et le rang de celui-ci (`SceneEntity.sur`). Le
  *  cabestan du pont principal entre la trappe de fret et le grand mât (#3815). Une case de porte, de trappe, de pied
- *  d'échelle, d'un poste où se monte une pièce (`postes` du manifeste) ou seul passage vers d'autres reste libre, et une
- *  pièce dont chaque case est l'une d'elles reste vide. Le calage plaque un meuble à une cloison du plan ; près du bordé
+ *  d'échelle ou seul passage vers d'autres reste libre ; dans la case d'un poste (`postes` du manifeste), la pièce qui
+ *  s'y monte et son servant ne recouvrent aucun meuble. Une pièce reste vide quand aucune de ses cases n'en laisse la
+ *  place : la salle d'apparat, les quartiers du capitaine et du timonier, que leurs postes de Sabord emplissent, et le
+ *  mess, dont la seule case libre mène au sien. Le calage plaque un meuble à une cloison du plan ; près du bordé
  *  et de la muraille, chaque meuble se tient dans l'emprise libre que le modèle laisse à ses cases (`cases` du manifeste
  *  de `vehicule--caraque`, #3767). */
 const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing: Dir4, calage?: Calage, sur?: string])[]>> = {

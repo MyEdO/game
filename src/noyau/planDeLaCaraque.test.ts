@@ -114,11 +114,23 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     blocked: new Set(sauf ? [tileKey(sauf.x, sauf.y, sauf.z)] : []), traverse: { climb: true, climbFullSpeed: true },
   }).size;
 
-  it('chaque pièce intérieure est meublée, sauf celle dont chaque case est celle d’une porte, d’une échelle, d’un poste ou le seul passage vers d’autres', () => {
+  /** Ce que le rectangle `r` laisse hors du rectangle `f`, en rectangles. */
+  const hors = (r: Rect, f: Rect): Rect[] => (!recouvre(r, f) ? [r] : [
+    { ...r, x1: Math.min(r.x1, f.x0) }, { ...r, x0: Math.max(r.x0, f.x1) },
+    { x0: Math.max(r.x0, f.x0), x1: Math.min(r.x1, f.x1), y0: r.y0, y1: Math.min(r.y1, f.y0) },
+    { x0: Math.max(r.x0, f.x0), x1: Math.min(r.x1, f.x1), y0: Math.max(r.y0, f.y1), y1: r.y1 },
+  ].filter((q) => q.x1 > q.x0 && q.y1 > q.y0));
+
+  it('chaque pièce intérieure est meublée, sauf celle dont chaque case est celle d’une porte, d’une échelle, d’un poste dont la pièce ne laisse place à aucun meuble, ou le seul passage vers d’autres', () => {
     const toutes = atteintes();
     const passages = pieces.flatMap((p) => sceneZoneTiles(p).map((t) => ({ x: t.x, y: t.y, z: t.z ?? p.z ?? 0 })))
       .filter((c) => isWalkable(scene, c.x, c.y, c.z) && atteintes(c) < toutes - 1);
-    const occupees = new Set([...libres, ...postes.map(k), ...passages.map(k)]);
+    /** Le plus petit côté d'un meuble posé au sol. */
+    const cote = Math.min(...meubles.filter((e) => !e.sur).map(corpsDu).map((c) => Math.min(c.x1 - c.x0, c.y1 - c.y0)));
+    const armees = postes.filter((p) => postes.filter((q) => k(q.case) === k(p.case))
+      .reduce((reste, q) => reste.flatMap((r) => hors(r, q.emprise)), [libre(p.case.x, p.case.y, p.case.z)])
+      .every((r) => Math.min(r.x1 - r.x0, r.y1 - r.y0) < cote)).map((p) => p.case);
+    const occupees = new Set([...libres, ...armees.map(k), ...passages.map(k)]);
     const vides = new Set(pieces.filter((p) => sceneZoneTiles(p).every((t) => occupees.has(k({ x: t.x, y: t.y, z: t.z ?? p.z ?? 0 })))).map((p) => p.id));
     expect(pieces.filter((p) => meublesDe(p.id).length > 0).map((p) => p.id).sort())
       .toEqual(pieces.filter((p) => p.presentation === 'interior' && !vides.has(p.id)).map((p) => p.id).sort());
@@ -167,28 +179,44 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
   /** Une épaisseur de cloison (0,1 m), en cases ; le pas des points sondés dans un corps. */
   const [TOLERANCE, PAS] = [0.05, 0.025];
 
-  /** La case de chaque poste du modèle commité, où se monte une pièce (`postes` de son manifeste, et ceux qu'une
-   *  Amélioration ajoute, `selon`) : la case des ponts à la hauteur de son plancher dont l'emprise libre le contient, à
-   *  une épaisseur de cloison près. Un point glTF (x, y, z) est au plan en (W/2 − z/mpt − ½, H/2 + x/mpt − ½). */
+  /** La pièce montée aux postes, celle de la revue (`REVUE.aux_postes` de la caraque, `vehicule--canon-moyen`) : sa
+   *  demi-largeur et sa longueur devant et derrière son origine, en mètres (bornes de son GLB, sa bouche vers son bord) ;
+   *  derrière sa culasse, la place d'un servant, la carrure d'un adulte (0,5 m, #3767). */
+  const PIECE = { demiLargeur: 0.86, devant: 1.73, derriere: 1.74 };
+  const SERVANT = 0.5;
+  /** Le sens, au plan, vers lequel une pièce montée au bord `bord` pointe sa bouche. */
+  const CAP: Record<string, readonly [number, number]> = { tribord: [0, -1], babord: [0, 1], proue: [-1, 0], poupe: [1, 0] };
+  type Rect = { x0: number; y0: number; x1: number; y1: number };
+  const recouvre = (p: Rect, q: Rect) => Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > TOLERANCE && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > TOLERANCE;
+
+  /** Chaque poste du modèle commité, où se monte une pièce (`postes` de son manifeste, et ceux qu'une Amélioration
+   *  ajoute, `selon`) : sa case, celle des ponts à la hauteur de son plancher dont l'emprise libre le contient à une
+   *  épaisseur de cloison près, et l'emprise au sol de la pièce montée et de son servant, en cases centrées sur
+   *  l'entier. Un point glTF (x, y, z) est au plan en (W/2 − z/mpt − ½, H/2 + x/mpt − ½). */
   const postes = (() => {
     const { w, h, cases } = grilleDesPonts(cartes);
     const mpt = sceneMetresPerTile(scene);
-    return [manifeste.postes, ...Object.values(manifeste.selon).map((v) => v.postes ?? {})].flatMap((l) => Object.values(l).flat()).map(([gx, gy, gz]) => {
-      const [x, y] = [w / 2 - gz / mpt - 0.5, h / 2 + gx / mpt - 0.5];
-      const siennes = cases.filter((c) => hauteurs[c.glyphe] === gy).filter((c) => {
-        const r = libre(c.x, c.y, c.z);
-        return r.x0 - TOLERANCE <= x && x <= r.x1 + TOLERANCE && r.y0 - TOLERANCE <= y && y <= r.y1 + TOLERANCE;
-      });
-      expect(siennes.length, `poste ${gx},${gy},${gz}`).toBe(1);
-      return { x: siennes[0].x, y: siennes[0].y, z: siennes[0].z };
-    });
+    return [manifeste.postes, ...Object.values(manifeste.selon).map((v) => v.postes ?? {})].flatMap((l) => Object.entries(l))
+      .flatMap(([bord, points]) => points.map(([gx, gy, gz]) => {
+        const [x, y] = [w / 2 - gz / mpt - 0.5, h / 2 + gx / mpt - 0.5];
+        const siennes = cases.filter((c) => hauteurs[c.glyphe] === gy).filter((c) => {
+          const r = libre(c.x, c.y, c.z);
+          return r.x0 - TOLERANCE <= x && x <= r.x1 + TOLERANCE && r.y0 - TOLERANCE <= y && y <= r.y1 + TOLERANCE;
+        });
+        expect(siennes.length, `poste ${gx},${gy},${gz}`).toBe(1);
+        const [dx, dy] = garanti(CAP[bord], bord, 'cap du bord');
+        const [arriere, devant, cote] = [-(PIECE.derriere + SERVANT) / mpt, PIECE.devant / mpt, PIECE.demiLargeur / mpt];
+        const [ax, bx] = dx ? [x + dx * arriere, x + dx * devant] : [x - cote, x + cote];
+        const [ay, by] = dy ? [y + dy * arriere, y + dy * devant] : [y - cote, y + cote];
+        const emprise: Rect = { x0: Math.min(ax, bx), x1: Math.max(ax, bx), y0: Math.min(ay, by), y1: Math.max(ay, by) };
+        return { case: { x: siennes[0].x, y: siennes[0].y, z: siennes[0].z }, emprise };
+      }));
   })();
+  /** Les meubles et décors posés dans la case `c`. */
+  const meublesEn = (c: { x: number; y: number; z: number }) => meubles.filter((e) => casesDu(e).some((t) => k(t) === k(c)));
 
-  it('aucun meuble ni décor dans l’emprise libre de la case d’un poste (#3815)', () => {
-    expect(meubles.flatMap((e) => postes.filter((c) => c.z === (e.z ?? 0)).filter((c) => {
-      const [p, q] = [corpsDu(e), libre(c.x, c.y, c.z)];
-      return Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > TOLERANCE && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > TOLERANCE;
-    }).map((c) => `${e.id} × poste ${k(c)}`))).toEqual([]);
+  it('la pièce montée à chaque poste, et son servant, ne recouvre aucun meuble ni décor de la case du poste (#3815)', () => {
+    expect(postes.flatMap((p) => meublesEn(p.case).filter((e) => recouvre(corpsDu(e), p.emprise)).map((e) => `${e.id} × poste ${k(p.case)}`))).toEqual([]);
   });
 
   it('chaque meuble tient dans l’emprise libre que le modèle laisse à ses cases, à une épaisseur de cloison près (#3767)', () => {
