@@ -5,8 +5,8 @@
 ## franchir, sondée un peu devant l'œil, se joue au clic du champ (`case_jouee`) ; tant que le groupe ne s'y tient pas,
 ## l'œil ne la franchit pas. `agir` joue de même la case visée (E ou clic), sous le point de mire au centre de l'écran
 ## (`mire`). L'œil se pose à la case du groupe, tourné vers son cap (`exploration.cap`), quand l'immersion commence ou
-## que le groupe change de case sans pas de l'œil ; elle cesse hors d'exploration, et se suspend tant que le champ ne se
-## clique pas (`vue.champ`).
+## que le groupe change de case sans pas de l'œil, ou à la case qu'on lui pose (`poser`) ; elle cesse hors
+## d'exploration, et se suspend tant que le champ ne se clique pas (`vue.champ`).
 class_name Immersion
 extends Node
 
@@ -69,6 +69,21 @@ func montrer(vue: Dictionary) -> void:
 	_capturer(false)
 	_pied = monde.lieu(Vector2i(case.x, case.y), case.z)
 	_poser_l_oeil()
+
+
+## L'œil posé sur le sol de la case `case`, sa couche comprise, tourné du lacet `lacet` et du tangage `tangage`, sans pas
+## ni case jouée : le groupe reste où il est (`Plateau.cadrer`) ; la souris libérée, comme à `ui_cancel`, le point de
+## mire caché, un clic la reprend. Rend s'il s'est posé, l'immersion active.
+func poser(case: Vector3i, lacet: float, tangage: float) -> bool:
+	if not _active:
+		return false
+	_pied = monde.lieu(Vector2i(case.x, case.y), case.z)
+	_lacet = lacet
+	_tangage = tangage
+	_liberee = true
+	_capturer(false)
+	_poser_l_oeil()
+	return true
 
 
 ## Le point de mire montré tant que l'œil se mène : active, ni suspendue ni libérée ; la souris captive alors, sauf sur
