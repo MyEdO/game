@@ -396,31 +396,27 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     expect(entiteDeLaSelection(sceneEditee(editee), editee.sel)?.combat?.optionals?.[0], 'posée, la note s’édite').toEqual({ ...note, wounds: 30 });
   });
 
-  describe('les fautes croisées d’une entité (`refusDeLEntite`), source du `superRefine` de `sceneEntitySchema`', () => {
+  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, la fiche introuvable, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
     const fixtures = {
-      sansPorteur: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } },
-      refInconnue: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'pas-une-fiche' },
-      carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
-      volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', facing: 'NE' },
-      decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', calage: { x: 2, y: 0 } },
-      admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' },
+    sansPorteur: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } },
+    refInconnue: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'pas-une-fiche' },
+    carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
+    volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', facing: 'NE' },
+    decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', calage: { x: 2, y: 0 } },
+    admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' },
     } as const;
     const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
+    expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['ref']]);
+    expect(fautes(fixtures.refInconnue)).toEqual([{ chemin: ['ref'], message: '« pas-une-fiche » ni créature, ni coque de véhicule, ni engin de siège' }]);
+    expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
+    expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
+    expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);
+    expect(fautes(fixtures.admise)).toEqual([]);
 
-    it('dit le type non nommé, la fiche introuvable, le PNJ de carrière fautif, le calage et le cap d’un décor', () => {
-      expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['ref']]);
-      expect(fautes(fixtures.refInconnue)).toEqual([{ chemin: ['ref'], message: '« pas-une-fiche » ni créature, ni coque de véhicule, ni engin de siège' }]);
-      expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
-      expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
-      expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);
-      expect(fautes(fixtures.admise)).toEqual([]);
-    });
-
-    it('accord : le parse dit exactement ces fautes, à leur champ', () => {
-      for (const [nom, ent] of Object.entries(fixtures)) {
-        const issues = sceneEntitySchema.safeParse(ent).error?.issues.filter((i) => i.code === 'custom') ?? [];
-        expect(issues.map((i) => ({ chemin: i.path, message: i.message })), nom).toEqual(fautes(ent));
-      }
-    });
+    // Accord : le parse dit exactement ces fautes, à leur champ.
+    for (const [nom, ent] of Object.entries(fixtures)) {
+      const issues = sceneEntitySchema.safeParse(ent).error?.issues.filter((i) => i.code === 'custom') ?? [];
+      expect(issues.map((i) => ({ chemin: i.path, message: i.message })), nom).toEqual(fautes(ent));
+    }
   });
 });
