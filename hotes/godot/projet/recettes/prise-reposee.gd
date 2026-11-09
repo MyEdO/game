@@ -4,12 +4,14 @@ extends SceneTree
 ## section « Atelier 3D ») : le montage d'une composition (`scripts/montage_de_composition.gd`, `_poser_la_piece`)
 ## repose un mesh rigide pendu à l'os de sa prise d'origine. Sur un squelette à deux mains d'orientations différentes,
 ## le mesh garde, dans le repère de la prise retenue, la place qu'il avait dans celui de sa prise d'origine ; à sa
-## propre prise, il garde sa place sous son os. Rangé à un emplacement du bassin, sa prise a la tête vers le bas du
-## personnage et les jointures sur la normale sortante, sa poignée sur l'emplacement, et sa boîte à 5 cm de la peau.
+## propre prise, il garde sa place sous son os. Rangé à un emplacement du bassin, à plat, sa prise a la tête vers le bas
+## du personnage et la paume sur la normale sortante, sa poignée sur l'emplacement, et sa boîte au jeu de la peau
+## sans rien d'autre sous lui ; posé sur une ceinture et un vêtement qui bombe plus bas, il pend du haut de sa boîte au
+## jeu de la ceinture et penche, le bas vers le dehors, jusqu'au jeu du bombé ; un sommet hors de sa largeur ne compte
+## pas (`MiseEnPage.repere_de_rangement`).
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
-const DEGAGEMENT := 0.05
 const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position = [-0.02, 0.09, 0.003], rotation = [1.32, -3.1, -0.03]}}
 const OFF := {id = "off", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const CEINTURE := {id = "ceinture_avant", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.148, 0.108], rotation = [-0.29, 0.0, 0.0]}}
@@ -24,6 +26,7 @@ func _recetter() -> void:
 	print("[prise-reposee] version=", Engine.get_version_info().string)
 	for cible in ["off", "main", "ceinture_avant"]:
 		await _verifier(cible)
+	_verifier_les_appuis()
 	for faute in _fautes:
 		push_error("[prise-reposee] " + faute)
 	print("[prise-reposee] erreurs=", _fautes.size())
@@ -84,11 +87,11 @@ func _verifier(cible: String) -> void:
 		bas = (bas - sortante * bas.dot(sortante)).normalized()
 		var en_prise := _repere(MAIN.attache).affine_inverse() * local
 		var prise := obtenu * en_prise.affine_inverse()
-		var arriere := (en_prise * piece.get_aabb()).position.z
-		var poignee_attendue := os * (point + sortante * (DEGAGEMENT - arriere))
-		juste = _proches(prise.basis.y, os.basis * bas) and _proches(prise.basis.z, os.basis * sortante) and _proches(prise.origin, poignee_attendue)
+		var arriere := (en_prise * piece.get_aabb()).position.x
+		var poignee_attendue := os * (point + sortante * (MiseEnPage.JEU_DE_RANGEMENT - arriere))
+		juste = _proches(prise.basis.y, os.basis * bas) and _proches(prise.basis.x, os.basis * sortante) and _proches(prise.origin, poignee_attendue)
 		if not juste:
-			_fautes.append("%s : prise Y %s Z %s, poignée %s ; attendus %s, %s, %s" % [cible, prise.basis.y, prise.basis.z, prise.origin,
+			_fautes.append("%s : prise Y %s X %s, poignée %s ; attendus %s, %s, %s" % [cible, prise.basis.y, prise.basis.x, prise.origin,
 				os.basis * bas, os.basis * sortante, poignee_attendue])
 	else:
 		var os_cible := squelette.find_bone(MAIN.attache.os if cible == "main" else OFF.attache.os)
@@ -105,3 +108,25 @@ func _verifier(cible: String) -> void:
 	montage.free()
 	squelette.queue_free()
 	await process_frame
+
+
+## Un objet rangé sur le flanc +X d'un os droit, sa boîte de 4 cm de large en Z, du haut à 10 cm au-dessus de la poignée au
+## bas à 30 cm dessous : une ceinture saille de 2 cm à 9 cm au-dessus de la poignée, un bombé de 6 cm à 20 cm dessous,
+## et un sommet très saillant est hors de sa largeur.
+func _verifier_les_appuis() -> void:
+	var point := Vector3(0.15, 0.0, 0.0)
+	var boite := AABB(Vector3(-0.01, -0.1, -0.02), Vector3(0.02, 0.4, 0.04))
+	var ceinture := Vector3(0.17, 0.09, 0.0)
+	var bombe := Vector3(0.21, -0.2, 0.0)
+	var appuis := PackedVector3Array([ceinture, bombe, Vector3(0.65, 0.0, 0.2)])
+	var obtenu := MiseEnPage.repere_de_rangement(Basis.IDENTITY, point, boite, appuis)
+	var jeu := MiseEnPage.JEU_DE_RANGEMENT
+	var pivot := obtenu * Vector3(boite.position.x, boite.position.y, 0.0)
+	var angle := atan((0.06 - 0.02) / 0.3)
+	var pivot_attendu := Vector3(0.15 + 0.02 + jeu, 0.1, 0.0)
+	var au_bombe := (bombe - pivot).dot(obtenu.basis.x)
+	var juste := _proches(pivot, pivot_attendu) and absf(au_bombe + jeu * cos(angle)) < EPSILON \
+			and (ceinture - pivot).dot(obtenu.basis.x) < 0.0 and absf(obtenu.basis.y.angle_to(Vector3.DOWN) - angle) < EPSILON
+	if not juste:
+		_fautes.append("appuis : pivot %s, attendu %s ; bombé à %s de la face arrière ; axe Y %s" % [pivot, pivot_attendu, au_bombe, obtenu.basis.y])
+	print("[prise-reposee] appuis : %s" % ("OK" if juste else "KO"))

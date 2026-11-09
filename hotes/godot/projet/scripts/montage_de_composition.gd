@@ -62,6 +62,9 @@ var _noeuds: Dictionary = {}
 var _demandes: Dictionary = {}
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
+## Par id d'emplacement monté, ses objets rangés (`_ranger`) : le nœud qui porte leur repère de prise, leur boîte dans ce
+## repère, l'attache de l'emplacement et le squelette de la base.
+var _ranges: Dictionary = {}
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -203,6 +206,7 @@ func vider() -> void:
 	emblemes.clear()
 	_emblemes_demandes.clear()
 	_demandes.clear()
+	_ranges.clear()
 
 
 ## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses matériaux
@@ -247,8 +251,10 @@ func demonter(id: String) -> void:
 	montes.erase(id)
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
+	_ranges.erase(id)
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
+	poser_les_rangements()
 
 
 ## L'emplacement `id` démonté, puis `element` monté une fois son GLB chargé, si aucune autre demande ne l'a remplacé à
@@ -389,7 +395,7 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 
 ## `piece`, qui pend aux os `noms`, posée sur `sous`, le squelette de la base, pour l'emplacement `id` : rigide, sous un
 ## os de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui
-## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_repere_de_rangement`) (#3319, `CONTRAT.md`) ;
+## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_ranger`) (#3319, `CONTRAT.md`) ;
 ## skinnée, sous le squelette, son skin lié par nom dès l'import (`scene_du_glb`). Le nœud qui la porte dans la scène.
 func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String) -> Node:
 	piece.owner = null
@@ -414,7 +420,9 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3
 		attacher(sous, {os = cible.attache.os, position = ORIGINE, rotation = ORIGINE}, nom).add_child(rangement)
 		rangement.add_child(relais)
 		piece.reparent(relais, false)
-		rangement.transform = _repere_de_rangement(cible.attache, _arriere(piece, rangement))
+		var objet := {noeud = rangement, boite = _boite(piece, rangement), attache = cible.attache, squelette = sous}
+		_ranges[id] = _ranges.get(id, []) + [objet]
+		_ranger(objet)
 		return rangement.get_parent().get_parent()
 	piece.reparent(sous, false)
 	piece.skeleton = piece.get_path_to(sous)
@@ -429,25 +437,54 @@ func _point(id: String) -> Dictionary:
 	return {}
 
 
-## Le repère, dans l'os de l'emplacement `attache`, où se pose le repère de prise d'un objet rangé dont la face arrière
-## de la boîte, dans ce repère de prise, est à `arriere` : ses axes et son origine (`MiseEnPage.axe_de_rangement`,
-## `MiseEnPage.origine_de_rangement`).
-static func _repere_de_rangement(attache: Dictionary, arriere: float) -> Transform3D:
-	var emplacement := repere(attache)
-	var point := emplacement.origin
-	var axes := emplacement.basis
-	return Transform3D(Basis(MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_X), MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Y),
-		MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)), MiseEnPage.origine_de_rangement(axes, point, arriere))
+## Chaque objet rangé reposé (`_ranger`) sur la peau et les vêtements portés, tels que les morphes les posent.
+func poser_les_rangements() -> void:
+	for id in _ranges:
+		for objet: Dictionary in _ranges[id]:
+			_ranger(objet)
 
 
-## La cote en z de la face arrière de la boîte de `piece` dans le repère du nœud `dans`, son ancêtre : la boîte de ses
-## huit coins (`AABB.expand`).
-static func _arriere(piece: MeshInstance3D, dans: Node3D) -> float:
+## L'objet rangé `objet` posé à son emplacement (`MiseEnPage.repere_de_rangement`) sur les sommets au repos, morphes
+## posés, de chaque mesh skinné sous le squelette, peau de la base ou vêtement porté.
+static func _ranger(objet: Dictionary) -> void:
+	var sous: Skeleton3D = objet.squelette
+	var vers_l_os := sous.get_bone_global_rest(sous.find_bone(objet.attache.os)).affine_inverse()
+	var appuis := PackedVector3Array()
+	for enfant in sous.get_children():
+		var mesh := enfant as MeshInstance3D
+		if mesh != null and mesh.skin != null and mesh.mesh != null:
+			appuis.append_array(_sommets_au_repos(mesh, vers_l_os * mesh.transform))
+	var emplacement := repere(objet.attache)
+	objet.noeud.transform = MiseEnPage.repere_de_rangement(emplacement.basis, emplacement.origin, objet.boite, appuis)
+
+
+## Les sommets de `mesh` au repos, chaque shape key à son poids posé (une clé porte les positions de ses sommets, la
+## base comprise), passés par `repere`.
+static func _sommets_au_repos(mesh: MeshInstance3D, repere: Transform3D) -> PackedVector3Array:
+	var sommets := PackedVector3Array()
+	for surface in mesh.mesh.get_surface_count():
+		var base: PackedVector3Array = mesh.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
+		var positions := base.duplicate()
+		var cles := mesh.mesh.surface_get_blend_shape_arrays(surface)
+		for rang in cles.size():
+			var poids := mesh.get_blend_shape_value(rang)
+			if poids == 0.0:
+				continue
+			var cle: PackedVector3Array = cles[rang][Mesh.ARRAY_VERTEX]
+			for k in positions.size():
+				positions[k] += (cle[k] - base[k]) * poids
+		for position in positions:
+			sommets.append(repere * position)
+	return sommets
+
+
+## La boîte de `piece` dans le repère du nœud `dans`, son ancêtre : la boîte de ses huit coins (`AABB.expand`).
+static func _boite(piece: MeshInstance3D, dans: Node3D) -> AABB:
 	var boite := piece.get_aabb()
 	var dans_le_repere := AABB(dans.to_local(piece.to_global(boite.get_endpoint(0))), Vector3.ZERO)
 	for coin in range(1, 8):
 		dans_le_repere = dans_le_repere.expand(dans.to_local(piece.to_global(boite.get_endpoint(coin))))
-	return dans_le_repere.position.z
+	return dans_le_repere
 
 
 ## La prise de la base posée dont l'os est `os`, `{}` si aucune.
@@ -653,6 +690,7 @@ func poser_les_morphes() -> void:
 	var morphes: Dictionary = composee.get("morphes", {})
 	for nom in morphes:
 		poser_des_morphes([nom], float(morphes[nom]))
+	poser_les_rangements()
 
 
 ## Le poids `poids` posé à chaque shape key nommée dans `noms`, sur chaque mesh du modèle qui la porte.

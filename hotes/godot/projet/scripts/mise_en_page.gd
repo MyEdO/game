@@ -24,9 +24,12 @@ const PAS_DE_ZOOM := 1.15
 const ZOOM_MINIMAL := 0.3
 const ZOOM_MAXIMAL := 3.0
 const TOLERANCE_D_IMAGE := 0.001
-## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`origine_de_rangement`) : assez pour passer
-## par-dessus un vêtement ample et une ceinture.
-const DEGAGEMENT_DE_RANGEMENT := 0.05
+## Le jeu, en mètres, entre la face arrière d'un objet rangé et la peau ou le vêtement porté qui saille le plus sous lui
+## (`repere_de_rangement`).
+const JEU_DE_RANGEMENT := 0.005
+## La marge, en mètres, de chaque côté de la boîte d'un objet rangé, où la peau ou un vêtement le soutient
+## (`repere_de_rangement`) : un sommet entre deux autres d'un maillage lâche n'échappe pas à une boîte étroite.
+const MARGE_DE_RANGEMENT := 0.03
 ## La longueur sous laquelle la position d'un emplacement est sur l'axe de son os.
 const TOLERANCE_DE_NORMALE := 0.001
 const RADIANS_PAR_PIXEL := 0.005
@@ -388,24 +391,53 @@ static func axe_le_plus_proche(base: Basis, vecteur: Vector3) -> Vector3:
 
 
 ## L'axe `axe` (`Vector3.AXIS_X`, `AXIS_Y` ou `AXIS_Z`) du repère de prise d'un objet rangé à l'emplacement de base
-## `emplacement` et de position `point` dans son os (#3319, `CONTRAT.md`) : Z, vers les jointures, sur la normale
-## sortante, la composante de `point` hors de l'axe de l'os, ou l'avant de l'emplacement sur cet axe ; Y, de
-## l'auriculaire vers l'index, vers le bas de l'emplacement, ôté de sa part sur Z ; X, leur produit.
+## `emplacement` et de position `point` dans son os (#3319, `CONTRAT.md`), l'objet à plat contre le corps : X, du dos de
+## la main vers la paume, sur la normale sortante, la composante de `point` hors de l'axe de l'os, ou l'avant de
+## l'emplacement sur cet axe ; Y, de l'auriculaire vers l'index, vers le bas de l'emplacement, ôté de sa part sur X ; Z,
+## vers les jointures, leur produit, le long du corps : la lame et le fer, dans le plan YZ de la prise, à plat.
 static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Vector3:
 	var sortante := Vector3(point.x, 0.0, point.z)
 	sortante = sortante.normalized() if sortante.length() > TOLERANCE_DE_NORMALE else emplacement.z.normalized()
-	if axe == Vector3.AXIS_Z:
+	if axe == Vector3.AXIS_X:
 		return sortante
 	var bas := -emplacement.y
 	bas = (bas - sortante * bas.dot(sortante)).normalized()
-	return bas if axe == Vector3.AXIS_Y else bas.cross(sortante)
+	return bas if axe == Vector3.AXIS_Y else sortante.cross(bas)
 
 
-## L'origine du repère de prise d'un objet rangé à l'emplacement de base `emplacement` et de position `point`, dont la
-## face arrière de la boîte est à la cote `arriere` de ce repère : sur la normale sortante, la face arrière à
-## `DEGAGEMENT_DE_RANGEMENT` de l'emplacement.
-static func origine_de_rangement(emplacement: Basis, point: Vector3, arriere: float) -> Vector3:
-	return point + axe_de_rangement(emplacement, point, Vector3.AXIS_Z) * (DEGAGEMENT_DE_RANGEMENT - arriere)
+## Le repère de prise, dans l'os de l'emplacement, d'un objet rangé à l'emplacement de base `emplacement` et de position
+## `point`, dont `boite` est la boîte dans ce repère, posé sur `appuis`, les sommets au repos de la peau et des vêtements
+## portés dans le même os : ses axes (`axe_de_rangement`) pendus du haut de la boîte, sa face arrière (son X le plus bas)
+## à `JEU_DE_RANGEMENT` de ce qui saille le plus sur la normale sortante dans les `MARGE_DE_RANGEMENT` du haut, à défaut
+## de l'emplacement, comme un fourreau pend à la ceinture, puis penchés autour de Z, le bas vers le dehors, pour passer au
+## même jeu ce qui saille plus bas ; un sommet compte s'il est sur la hauteur de la boîte et sur sa largeur en Z élargie
+## de `MARGE_DE_RANGEMENT` de chaque côté.
+static func repere_de_rangement(emplacement: Basis, point: Vector3, boite: AABB, appuis: PackedVector3Array) -> Transform3D:
+	var dehors := axe_de_rangement(emplacement, point, Vector3.AXIS_X)
+	var bas := axe_de_rangement(emplacement, point, Vector3.AXIS_Y)
+	var long := axe_de_rangement(emplacement, point, Vector3.AXIS_Z)
+	var haut := boite.position.y
+	var dessus := -INF
+	var dessous: Array[Vector2] = []
+	for appui in appuis:
+		var d := appui - point
+		var cote := d.dot(long)
+		var hauteur := d.dot(bas)
+		if cote < boite.position.z - MARGE_DE_RANGEMENT or cote > boite.end.z + MARGE_DE_RANGEMENT or hauteur < haut or hauteur > boite.end.y:
+			continue
+		if hauteur <= haut + MARGE_DE_RANGEMENT:
+			dessus = maxf(dessus, d.dot(dehors))
+		else:
+			dessous.append(Vector2(hauteur, d.dot(dehors)))
+	dessus = 0.0 if dessus == -INF else dessus
+	var pente := 0.0
+	for appui in dessous:
+		pente = maxf(pente, (appui.y - dessus) / maxf(appui.x - haut, TOLERANCE_DE_NORMALE))
+	var angle := atan(pente)
+	var penche := bas * cos(angle) + dehors * sin(angle)
+	var sortante := dehors * cos(angle) - bas * sin(angle)
+	var pivot := point + bas * haut + dehors * (dessus + JEU_DE_RANGEMENT)
+	return Transform3D(Basis(sortante, penche, long), pivot - penche * haut - sortante * boite.position.x)
 
 
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.
