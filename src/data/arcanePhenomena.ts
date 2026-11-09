@@ -61,7 +61,7 @@ export interface SaturationLevel {
 
 export interface WindSaturationEffects {
   id: string;
-  domainId: string;
+  domainId: { id: string };
   wind: string;
   environments: string[];
   effects: { label: string; tier: 'premier' | 'courant' | 'extreme' }[];
@@ -83,7 +83,7 @@ export interface ArcanePhenomenon {
   critOnTens?: boolean;
   daemonsDoubled?: boolean;
   singleWind?: boolean;
-  cancelsTraitId?: string;
+  cancelsTraitId?: { id: string };
   refractedWindsOnly?: { source: { book: string; page: number }; desc: string };
   stonePropertySlots?: { max: number; source: { book: string; page: number }; desc: string };
   fluxTableId?: { id: string };
@@ -161,5 +161,5 @@ export function findArcaneTableById(id: string): ArcaneTable {
 
 /** Effets de Saturation du Vent d'un Domaine — `undefined` pour un Domaine sans Vent (Sorcellerie…). */
 export function findWindSaturationEffects(domainId: string | null | undefined): WindSaturationEffects | undefined {
-  return domainId ? windSaturationEffects.find((w) => w.domainId === domainId) : undefined;
+  return domainId ? windSaturationEffects.find((w) => w.domainId.id === domainId) : undefined;
 }

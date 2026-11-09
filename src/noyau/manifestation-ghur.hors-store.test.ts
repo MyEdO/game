@@ -2,7 +2,7 @@
  * Manifestation de Ghur (Prédateur sanglant, bestiaire de Middenheim — #18). RAW : « les élémentaires
  * de Ghur sont immunisés contre les effets négatifs causés par des sorts du Domaine de la Bête. »
  *
- * Implémentation data-driven : capability `spellDomainImmunity: "bete"` sur le trait, lue PAR ID par
+ * Implémentation data-driven : capability `spellDomainImmunity: { "id": "bete" }` sur le trait, lue PAR ID par
  * le chemin d'incantation (`immuneToSpellDomain`). Quand un Sort du Domaine immunisé applique ses
  * effets à un porteur, on saute l'application sur cette cible (interprétation : un Sort de la Bête
  * visant l'élémentaire est offensif par intention → ses effets ne mordent pas).
@@ -35,11 +35,11 @@ const mob = (id: string, p: Partial<Combatant> = {}): Combatant =>
   }) as Combatant);
 
 // Sort de test OFFENSIF à effets négatifs sur la cible (1 État + 1 charMod), paramétré par Domaine —
-// `domainId: 'bete'` = Domaine de la Bête (Ghur) ; sinon un autre Domaine (Feu) comme témoin négatif.
+// `domainId: { id: 'bete' }` = Domaine de la Bête (Ghur) ; sinon un autre Domaine (Feu) comme témoin négatif.
 const spell = (domainId: string) =>
   ({
     id: `test-spell-${domainId}`, label: 'Sort de test', type: 'Magie des Arcanes',
-    subType: domainId === 'bete' ? 'Bête' : 'Feu', domainId,
+    subType: domainId === 'bete' ? 'Bête' : 'Feu', domainId: { id: domainId },
     cn: 4, range: { kind: 'distance', value: 20, unit: 'm' }, target: { kind: 'count', n: 1 },
     duration: { kind: 'rounds', value: 3 },
     effects: {

@@ -522,7 +522,7 @@ export function makeHub() {
         // Sa FICHE (bestiaire) porte sa Guérison et son Int : l'effet `medicalAid` ne recopie rien.
         ref: 'stefan-hochen',
         dialogueId: { id: 'dlg-medecin' },
-        merchant: { archetype: 'medecin' },
+        merchant: { archetype: { id: 'medecin' } },
         appearance: { species: 'humains-reiklander', tenue: 'apothicaire', sex: 'M' },
       }),
       P(27, 14, 'tente', { label: 'Infirmerie' }),
@@ -538,7 +538,7 @@ export function makeHub() {
       NPC('taverniere', 9, 5, 'Tavernière', {
         facing: 'S',
         dialogueId: { id: 'dlg-taverne' },
-        merchant: { archetype: 'taverniere' },
+        merchant: { archetype: { id: 'taverniere' } },
         appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' },
       }),
       NPC('client-1', 5, 8, 'Client', { anim: 'feeding', facing: 'E', appearance: { species: 'nains', tenue: 'batelier' } }),
@@ -579,7 +579,7 @@ export function makeHub() {
       NPC('forgeron', 8, 33, 'Forgeron', {
         facing: 'N',
         dialogueId: { id: 'dlg-forgeron' },
-        merchant: { archetype: 'armurier' },
+        merchant: { archetype: { id: 'armurier' } },
         appearance: { species: 'nains', tenue: 'artisan', sex: 'M' },
         inventaire: { 'marteau-de-guerre': false },
       }),
@@ -596,7 +596,7 @@ export function makeHub() {
       NPC('echoppiere', 41, 33, 'Échoppière', {
         facing: 'N',
         dialogueId: { id: 'dlg-echoppier' },
-        merchant: { archetype: 'herboriste' },
+        merchant: { archetype: { id: 'herboriste' } },
         appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' },
       }),
       NPC('chaland', 44, 32, 'Chaland', { anim: 'standing', facing: 'O', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),

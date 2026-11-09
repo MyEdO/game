@@ -3207,15 +3207,15 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // il lance quand même sur le tableau des Imparfaites MINEURES (au lieu d'y échapper).
         const seaMajeure = domainSeaFocusCritMiscastMajeure(spell, seaMagicContext(get()).atSea);
         if (hasFocusHarmony(caster)) {
-          if (seaMajeure) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId ?? undefined }));
+          if (seaMajeure) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
           else logLines.push(t('cs.focusHarmonized'));
         } else {
-          logLines.push(...applyMiscast(get, set, caster, seaMajeure ? 'majeure' : 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId ?? undefined }));
+          logLines.push(...applyMiscast(get, set, caster, seaMajeure ? 'majeure' : 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
         }
       }
       logLines.push(caster.focus.dr >= ni ? t('cs.focusEnough', { name: caster.label, spell: spell.label }) : t('cs.focusProgress', { dr: caster.focus.dr, ni }));
       // Maladresse en Focalisation → Incantation Imparfaite Majeure (LDB 46 l.140).
-      if (res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'majeure', { componentDowngrade: compUsed, domainId: spell.domainId ?? undefined }));
+      if (res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'majeure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
       finishPlayerAction(get, set, logLines, 'focus'); // sortie commune combat / hors combat (pose `acted:true`)
       // Lanceur ENNEMI (modale auto-pilotée) : le tour de l'IA était suspendu → reprise (calqué sur
       // jetValider('cast')). No-op si une interaction bloquante s'est ouverte (Imparfaite/révélation) — elle

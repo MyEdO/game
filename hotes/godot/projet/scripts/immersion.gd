@@ -1,5 +1,6 @@
 ## L'immersion (`hotes/godot/pont/CONTRAT.md`, section « Vue », `plateau.regard`) : aux yeux du meneur, à hauteur
-## d'homme (`plateau.oeilM`) au-dessus du sol touché sous lui (`Monde.sol_sous`), le groupe marche librement au clavier
+## d'homme (`plateau.oeilM`), ou sous le plafond de la case de ce sol (`plateau.oeilsSousPlafond`), au-dessus du sol
+## touché sous lui (`Monde.sol_sous`), le groupe marche librement au clavier
 ## (`avant`, `arriere`, `gauche`, `droite`, `courir` tenu pour courir) et regarde à la souris, captive : `ui_cancel` la
 ## libère, un clic la reprend, et sur le Web le premier clic la prend. Le noyau garde la règle : la case qu'un pas va
 ## franchir, sondée un peu devant l'œil, se joue au clic du champ (`case_jouee`) ; tant que le groupe ne s'y tient pas,
@@ -32,11 +33,14 @@ var _liberee := false
 var _case := Vector3i.ZERO
 var _demandee: Variant = null
 var _refusee: Variant = null
-## Le sol sous l'œil, son lacet, son tangage ; la hauteur de l'œil (m) et les mètres d'une case du plateau.
+## Le sol sous l'œil et sa case, sa couche comprise, son lacet, son tangage ; la hauteur de l'œil (m) debout et sous le
+## plafond des cases qui l'abaissent, par la clé `x,y,z` de chacune, et les mètres d'une case du plateau.
 var _pied := Vector3.ZERO
+var _case_du_pied := Vector3i.ZERO
 var _lacet := 0.0
 var _tangage := 0.0
 var _oeil_m := 0.0
+var _oeils_sous_plafond := {}
 var _metres_par_case := 1.0
 
 
@@ -50,6 +54,7 @@ func montrer(vue: Dictionary) -> void:
 		_capturer(false)
 		return
 	_oeil_m = vue.plateau.oeilM
+	_oeils_sous_plafond = vue.plateau.oeilsSousPlafond
 	_metres_par_case = vue.plateau.metresParCase
 	var case := Vector3i(int(exploration.groupe[0]), int(exploration.groupe[1]), 0 if exploration.etage == null else int(exploration.etage))
 	var demandee: bool = _demandee == case
@@ -68,6 +73,7 @@ func montrer(vue: Dictionary) -> void:
 	_active = true
 	_capturer(false)
 	_pied = monde.lieu(Vector2i(case.x, case.y), case.z)
+	_case_du_pied = case
 	_poser_l_oeil()
 
 
@@ -83,8 +89,13 @@ func _capturer(geste: bool) -> void:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
 
 
+## La hauteur de l'œil (m) au-dessus du sol de sa case.
+func _hauteur_de_l_oeil() -> float:
+	return _oeils_sous_plafond.get("%d,%d,%d" % [_case_du_pied.x, _case_du_pied.y, _case_du_pied.z], _oeil_m)
+
+
 func _poser_l_oeil() -> void:
-	monde.poser_l_oeil(MiseEnPage.oeil_sur(_pied, _oeil_m, _metres_par_case), _lacet, _tangage)
+	monde.poser_l_oeil(MiseEnPage.oeil_sur(_pied, _hauteur_de_l_oeil(), _metres_par_case), _lacet, _tangage)
 
 
 func _process(delta: float) -> void:
@@ -95,7 +106,8 @@ func _process(delta: float) -> void:
 		return
 	var vitesse := VITESSE_DE_COURSE_M_S if Input.is_action_pressed(&"courir") else VITESSE_M_S
 	var vise := MiseEnPage.lieu_apres_la_marche(_pied, forces[0], forces[1], forces[2], forces[3], _lacet, MiseEnPage.metres_de_marche(vitesse, delta), _metres_par_case)
-	var sonde: Variant = monde.sol_sous(MiseEnPage.oeil_sur(MiseEnPage.lieu_apres_la_marche(vise, forces[0], forces[1], forces[2], forces[3], _lacet, SONDE_M, _metres_par_case), _oeil_m, _metres_par_case))
+	var oeil := _hauteur_de_l_oeil()
+	var sonde: Variant = monde.sol_sous(MiseEnPage.oeil_sur(MiseEnPage.lieu_apres_la_marche(vise, forces[0], forces[1], forces[2], forces[3], _lacet, SONDE_M, _metres_par_case), oeil, _metres_par_case))
 	if sonde == null:
 		return
 	if sonde.case != _case:
@@ -107,10 +119,11 @@ func _process(delta: float) -> void:
 		if sonde.case != _case:
 			_refusee = sonde.case
 			return
-	var sol: Variant = monde.sol_sous(MiseEnPage.oeil_sur(vise, _oeil_m, _metres_par_case))
+	var sol: Variant = monde.sol_sous(MiseEnPage.oeil_sur(vise, oeil, _metres_par_case))
 	if sol == null:
 		return
 	_pied = sol.lieu
+	_case_du_pied = sol.case
 	_poser_l_oeil()
 
 

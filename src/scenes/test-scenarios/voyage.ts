@@ -165,7 +165,7 @@ const construireCarte = (): WorldMap => ({
   places: [
     { id: 'p-village', label: 'Weiler', pos: { x: 24, y: 62 }, scene: { id: 'test-voyage-village' }, icon: 'scenario/village' },
     { id: 'p-hameau', label: 'Federholz', pos: { x: 72, y: 30 }, scene: { id: 'test-voyage-hameau' }, icon: 'scenario/hamlet' },
-    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: 'auberge', rest: { auberge: true } }, { kind: 'forgeron' }] },
+    { id: 'p-bourg', label: 'Steinbruck', pos: { x: 70, y: 78 }, scene: { id: 'test-voyage-bourg' }, icon: 'scenario/port', services: [{ kind: { id: 'auberge' }, rest: { auberge: true } }, { kind: { id: 'forgeron' } }] },
     // id 'altdorf' (pas juste 'p-cite') : les Activités d'Altdorf (ACE Annexe I) gatées `where:['altdorf']`
     // (activities.json — Pénitence, Entraînement, Tester des objets…) lisent le `lieu` du groupe par son id.
     { id: 'altdorf', label: 'Altdorf', pos: { x: 90, y: 20 }, scene: { id: 'test-voyage-cite' }, icon: 'scenario/siege' },

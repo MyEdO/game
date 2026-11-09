@@ -1,14 +1,15 @@
 /**
  * Schéma de `lieux-services.json` — vocabulaire des SERVICES de lieu (#343) EXTENSIBLES par catalogue
- * (patron `naval-ports.json`), au-delà du port et du marché qui portent leur propre schéma riche
- * (`MapPlace.port`/`MapPlace.market`). Consommé par référence (`MapPlace.services[].kind`) et résolu
- * par `placeServices` (`src/noyau/worldMap.ts`) : id STABLE → libellé/icône d'affichage. Vocabulaire
+ * (patron `naval-ports.json`). Le port et le marché d'un lieu portent leur propre schéma riche
+ * (`MapPlace.port`/`MapPlace.market`) et lisent ici leur libellé, icône et fond par défaut. Désigné par
+ * `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par
+ * `placeServices` (`src/noyau/worldMap.ts`) : id STABLE → libellé/icône d'affichage. Vocabulaire
  * app-interne de routage d'écran (id/label/icône), aucune mécanique RAW à sourcer par entrée
  * (cf. `SANS_LIVRE_DEFINITIF`, `grammaire/sans-livre.ts`).
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { idDe, ref } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 export const file = 'lieux-services.json';
 export const famille = 'entite';
@@ -25,7 +26,9 @@ const doc = document(
     /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, ex. `armurier` pour
      *  le forgeron) — routage vers le système marchand EXISTANT via `ouvrirLaBoutique`, aucune donnée
      *  de commerce dupliquée ici (#369). */
-    merchantArchetype: idDe('merchant').optional(),
+    merchantArchetype: ref('merchant').optional(),
+    /** Service d'HÉBERGEMENT : son offre de couchage est celle du lieu, sinon celle de la scène liée (`placeServices`). */
+    hebergement: z.literal(true).optional(),
     /** Écran plein-champ EXISTANT vers lequel ce service PORTE (routage app-interne, #369) : `port` =
      *  l'écran de port, dont l'onglet Chantier est le défaut. Le service exige alors un navire de
      *  campagne, comme « Entrer au port ». Absent = service sans écran dédié. */
@@ -40,6 +43,7 @@ const doc = document(
     hostLine: { label: 'Réplique d’accueil', hint: 'Phrase dite par l’interlocuteur statique du service' },
     backdrop: { label: 'Bande d’ambiance', hint: 'Illustration d’arrière-plan par défaut du service' },
     merchantArchetype: { label: 'Archétype marchand ouvert', hint: 'Marchand ouvert par ce service (catalogue des marchands)' },
+    hebergement: { label: 'Hébergement', hint: 'Le service offre le couchage du lieu, à défaut celui de la scène liée' },
     opensScreen: { label: 'Écran ouvert', hint: 'Écran plein-champ existant vers lequel ce service mène' },
     enterLabel: { label: 'Libellé du bouton d’entrée', hint: 'Texte du bouton qui ouvre l’écran du service' },
     editorNote: {

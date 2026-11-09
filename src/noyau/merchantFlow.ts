@@ -390,7 +390,7 @@ function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype
 export function ouvrirLeMarchand(get: Get, set: Set, entityId: string): void {
   const ent = get().scene?.entities.find((e) => e.id === entityId);
   if (!ent?.merchant) return;
-  openMerchantByArchetype(get, set, entityId, ent.merchant.archetype, ent);
+  openMerchantByArchetype(get, set, entityId, ent.merchant.archetype.id, ent);
 }
 
 /** Les services à échoppe (`merchantArchetype`) du lieu où se tient le groupe (`lieuDuGroupe`). */

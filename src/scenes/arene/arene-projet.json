@@ -2990,7 +2990,9 @@
       "id": "dlg-medecin"
      },
      "merchant": {
-      "archetype": "medecin"
+      "archetype": {
+       "id": "medecin"
+      }
      },
      "appearance": {
       "species": "humains-reiklander",
@@ -3067,7 +3069,9 @@
       "id": "dlg-taverne"
      },
      "merchant": {
-      "archetype": "taverniere"
+      "archetype": {
+       "id": "taverniere"
+      }
      },
      "appearance": {
       "species": "humains-reiklander",
@@ -3371,7 +3375,9 @@
       "id": "dlg-forgeron"
      },
      "merchant": {
-      "archetype": "armurier"
+      "archetype": {
+       "id": "armurier"
+      }
      },
      "appearance": {
       "species": "nains",
@@ -3479,7 +3485,9 @@
       "id": "dlg-echoppier"
      },
      "merchant": {
-      "archetype": "herboriste"
+      "archetype": {
+       "id": "herboriste"
+      }
      },
      "appearance": {
       "species": "humains-reiklander",

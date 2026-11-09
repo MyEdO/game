@@ -35,18 +35,18 @@ describe('Sorcellerie — composant obligatoire (LDB 49)', () => {
 
 describe('Attributs de Domaine data-driven (LDB 48/49)', () => {
   it('Vie/Ghyran : +10 en environnement rural ou sauvage (LDB 48 l.690)', () => {
-    expect(domainEnvironmentBonus({ domainId: 'vie' }, 'rural')).toBe(10);
-    expect(domainEnvironmentBonus({ domainId: 'vie' }, 'sauvage')).toBe(10);
-    expect(domainEnvironmentBonus({ domainId: 'vie' }, 'urbain')).toBe(0);
-    expect(domainEnvironmentBonus({ domainId: 'vie' }, undefined)).toBe(0);
+    expect(domainEnvironmentBonus({ domainId: { id: 'vie' } }, 'rural')).toBe(10);
+    expect(domainEnvironmentBonus({ domainId: { id: 'vie' } }, 'sauvage')).toBe(10);
+    expect(domainEnvironmentBonus({ domainId: { id: 'vie' } }, 'urbain')).toBe(0);
+    expect(domainEnvironmentBonus({ domainId: { id: 'vie' } }, undefined)).toBe(0);
   });
   it('un Domaine sans attribut d’environnement → 0', () => {
-    expect(domainEnvironmentBonus({ domainId: 'feu' }, 'rural')).toBe(0);
-    expect(domainEnvironmentBonus({ domainId: null }, 'rural')).toBe(0);
+    expect(domainEnvironmentBonus({ domainId: { id: 'feu' } }, 'rural')).toBe(0);
+    expect(domainEnvironmentBonus({}, 'rural')).toBe(0);
   });
   it('Sorcellerie : marqueur DONNÉE reconnu (LDB 49)', () => {
-    expect(isSorceryDomain({ domainId: 'sorcellerie' })).toBe(true);
-    expect(isSorceryDomain({ domainId: 'feu' })).toBe(false);
-    expect(isSorceryDomain({ domainId: null })).toBe(false);
+    expect(isSorceryDomain({ domainId: { id: 'sorcellerie' } })).toBe(true);
+    expect(isSorceryDomain({ domainId: { id: 'feu' } })).toBe(false);
+    expect(isSorceryDomain({})).toBe(false);
   });
 });
