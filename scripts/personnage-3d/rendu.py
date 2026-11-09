@@ -5,7 +5,17 @@ ou sur la plus grande dimension de l'élément, et studio Workbench de QA. Le GL
 `npm run godot:evaluer -- --silhouettes` (`hotes/godot/asset/evaluer.mjs`) ; un nom qu'aucun mesh ne porte arrête le
 rendu. `bornes` et `studio` cadrent et éclairent aussi la revue d'un véhicule (`vehicule/revue.py`).
 
+Une tenue se rend montée sur sa base : `--input` est la base, chaque `--element` un GLB d'élément, chacun avec son manifeste
+voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import), comme l'évaluateur. Les zones
+que couvrent les éléments sont masquées sur la base, un rigide pend à l'os de même nom de la base, une pièce skinnée suit
+son armature. `--preset` colore chaque surface à l'emplacement de palette que lui donne son manifeste, de la couleur que
+le preset de personnage (`src/data/presets-de-personnage.json`) y pose au nuancier (`src/data/materials.json`) ; `--clip`
+pose la base à l'image `--image` d'un de ses clips, sans quoi elle reste au repos. `--illustration` pose l'illustration
+directrice à gauche des vues de face, de trois-quarts et de dos dans `planche.png` : un rendu se montre à côté d'elle.
+
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <fichier.glb> --output <dossier vide> [--isometric-only] [--silhouettes feminin=1,corpulence=0.5]
+    node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/rendu.py --input <base.glb> --element <a.glb> [--element <b.glb>] \\
+        --preset sorcier [--clip Hampe_Repos_Loop --image 20] [--illustration <illustration.png>] --output <dossier vide>
 """
 import argparse
 import hashlib
@@ -14,6 +24,7 @@ import math
 import time
 from pathlib import Path
 
+DONNEES = Path(__file__).resolve().parents[2] / 'src' / 'data'
 ETENDUE_DU_STUDIO = 1.82
 """L'étendue, en mètres, pour laquelle les puissances des lumières du studio sont réglées : la hauteur du corps de la
 base humanoïde. Les lumières se placent à des distances proportionnelles à l'étendue du modèle ; leur puissance suit son
@@ -52,6 +63,90 @@ def poser_les_silhouettes(bpy, poids):
     if absentes:
         raise ValueError(f'--silhouettes : {absentes} portée(s) par aucun mesh')
     return poses
+
+
+def manifeste_voisin(glb):
+    """Le manifeste à côté de `glb` : `<id>.element.json` d'un dossier de production, sinon `<id>.manifeste.json`."""
+    for suffixe in ('.element.json', '.manifeste.json'):
+        chemin = glb.with_name(glb.stem + suffixe)
+        if chemin.exists():
+            return json.loads(chemin.read_text(encoding='utf-8'))
+    raise ValueError(f'{glb} : ni {glb.stem}.element.json ni {glb.stem}.manifeste.json à côté')
+
+
+def importer(bpy, glb):
+    avant = set(bpy.data.objects)
+    bpy.ops.import_scene.gltf(filepath=str(glb))
+    return [obj for obj in bpy.data.objects if obj not in avant]
+
+
+def monter(bpy, base, rig, elements):
+    """Monte sur la base (ses objets `base`, son armature `rig`) chaque `(objets importés, manifeste)` d'`elements` :
+    les meshes de la base dans une zone qu'un élément couvre sont masqués, un rigide pend à l'os de même nom de `rig`
+    à la même position locale, une pièce skinnée suit `rig` ; les armatures des éléments et les meshes sans matériau
+    (forme d'os de l'import) sont masqués."""
+    couvre = {zone for _, manifeste in elements for zone in manifeste.get('couvre', [])}
+    for obj in base:
+        if obj.type == 'MESH' and obj.get('zone') in couvre:
+            obj.hide_render = True
+    for objets, _ in elements:
+        for obj in objets:
+            if obj.type == 'ARMATURE' or (obj.type == 'MESH' and not obj.data.materials):
+                obj.hide_render = True
+            elif obj.type == 'MESH' and obj.parent_type == 'BONE':
+                porteur, os_ = obj.parent, obj.parent_bone
+                local = (porteur.matrix_world @ porteur.data.bones[os_].matrix_local).inverted() @ obj.matrix_world
+                obj.parent, obj.parent_type, obj.parent_bone = rig, 'BONE', os_
+                bpy.context.view_layer.update()
+                obj.matrix_world = rig.matrix_world @ rig.data.bones[os_].matrix_local @ local
+            elif obj.type == 'MESH':
+                for mod in obj.modifiers:
+                    if mod.type == 'ARMATURE':
+                        mod.object = rig
+
+
+def palette_du_preset(id_):
+    """`{emplacement: couleur linéaire (r, g, b)}` du preset de personnage `id_`, résolue au nuancier."""
+    preset = next((p for p in json.loads((DONNEES / 'presets-de-personnage.json').read_text(encoding='utf-8')) if p['id'] == id_), None)
+    if preset is None:
+        raise ValueError(f'--preset {id_} : aucun preset de personnage de cet id')
+    nuancier = {m['id']: m['color'] for m in json.loads((DONNEES / 'materials.json').read_text(encoding='utf-8')) if m.get('domain') == 'couleur'}
+
+    def lineaire(hexa):
+        return tuple(c / 12.92 if c <= 0.04045 else ((c + 0.055) / 1.055) ** 2.4 for c in (int(hexa[i:i + 2], 16) / 255 for i in (1, 3, 5)))
+    return {slot: lineaire(nuancier[couleur['id']]) for slot, couleur in preset.get('couleurs', {}).items()}
+
+
+def colorer(objets, surfaces, palette):
+    """Pose sur la couleur de base de chaque matériau des `objets` la couleur de `palette` à l'emplacement que lui donne
+    `surfaces` (`{nom du matériau: emplacement}`) ; un matériau sans emplacement ou dont la palette ne colore pas
+    l'emplacement garde la sienne."""
+    for obj in objets:
+        for slot in obj.material_slots if obj.type == 'MESH' else []:
+            couleur = palette.get(surfaces.get(slot.material.name.split('.')[0])) if slot.material else None
+            principled = next((n for n in slot.material.node_tree.nodes if n.type == 'BSDF_PRINCIPLED'), None) if couleur else None
+            if principled:
+                principled.inputs['Base Color'].default_value = (*couleur, 1)
+
+
+def planche(bpy, chemins, sortie):
+    """Les images `chemins` côte à côte, chacune ramenée à la hauteur de la première vue rendue, dans `sortie`."""
+    import numpy as np
+    images = [bpy.data.images.load(str(c)) for c in chemins]
+    hauteur = images[1].size[1]
+    for image in images:
+        largeur, haut = image.size
+        if haut != hauteur:
+            image.scale(round(largeur * hauteur / haut), hauteur)
+    pixels = [np.array(image.pixels[:], dtype=np.float32).reshape(hauteur, image.size[0], 4) for image in images]
+    fond = np.array([0.16, 0.18, 0.21, 1.0], dtype=np.float32)
+    pixels[0] = pixels[0] * pixels[0][..., 3:] + fond * (1 - pixels[0][..., 3:])
+    tout = np.concatenate(pixels, axis=1)
+    resultat = bpy.data.images.new('planche', tout.shape[1], hauteur)
+    resultat.pixels.foreach_set(tout.ravel())
+    resultat.filepath_raw = str(sortie)
+    resultat.file_format = 'PNG'
+    resultat.save()
 
 
 def bornes(bpy, objets):
@@ -154,6 +249,11 @@ def main():
     parser.add_argument('--isometric-only', action='store_true', help='Render only 45-degree overhead views at 512, 40, 64 and 128 pixels high')
     parser.add_argument('--silhouettes', type=lire_silhouettes, default={},
                         help='nom=poids[,nom=poids] : shape keys posées sur tout mesh qui les porte avant le rendu')
+    parser.add_argument('--element', action='append', default=[], help='GLB d\'élément monté sur la base --input')
+    parser.add_argument('--preset', help='id du preset de personnage dont la palette colore les surfaces')
+    parser.add_argument('--clip', help='clip de la base posé avant le rendu')
+    parser.add_argument('--image', type=int, default=1, help='image du clip posée')
+    parser.add_argument('--illustration', type=Path, help='illustration directrice posée à gauche de planche.png')
     args = parser.parse_args()
     source = Path(args.input).resolve(strict=True)
     output = Path(args.output).resolve()
@@ -165,9 +265,29 @@ def main():
     from mathutils import Vector
     start = time.monotonic()
     bpy.ops.wm.read_factory_settings(use_empty=True)
-    bpy.ops.import_scene.gltf(filepath=str(source))
+    base = importer(bpy, source)
+    if args.element or args.preset or args.clip:
+        rigs = [obj for obj in base if obj.type == 'ARMATURE']
+        if len(rigs) != 1:
+            raise ValueError(f'{source} : {len(rigs)} armatures, une attendue pour monter, colorer ou poser')
+        rig = rigs[0]
+        elements = [(importer(bpy, Path(glb).resolve(strict=True)), manifeste_voisin(Path(glb))) for glb in args.element]
+        monter(bpy, base, rig, elements)
+        if args.preset:
+            manifestes = [manifeste_voisin(source)] + [manifeste for _, manifeste in elements]
+            colorer(bpy.data.objects, {s['nom']: s['palette'] for m in manifestes for s in m.get('surfaces', [])},
+                    palette_du_preset(args.preset))
+        if args.clip:
+            action = bpy.data.actions.get(args.clip)
+            if action is None:
+                raise ValueError(f'--clip {args.clip} : clips de la base {sorted(a.name for a in bpy.data.actions)}')
+            rig.animation_data_create()
+            rig.animation_data.action = action
+            if action.slots:
+                rig.animation_data.action_slot = action.slots[0]
+            bpy.context.scene.frame_set(args.image)
     silhouettes = poser_les_silhouettes(bpy, args.silhouettes)
-    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH']
+    meshes = [obj for obj in bpy.context.scene.objects if obj.type == 'MESH' and not obj.hide_render]
     skinned = [obj for obj in meshes if any(mod.type == 'ARMATURE' for mod in obj.modifiers)]
     actors = skinned or meshes
     if not actors:
@@ -201,6 +321,11 @@ def main():
         render('face-trois-quarts.png', (0.65, -1, 0.17), center, extent * 1.12, 1000, 1200)
         render('dos-trois-quarts.png', (-0.65, 1, 0.17), center, extent * 1.12, 1000, 1200)
         if skinned:
+            render('face.png', (0, -1, 0.05), center, extent * 1.12, 1000, 1200)
+            render('dos.png', (0, 1, 0.05), center, extent * 1.12, 1000, 1200)
+            if args.illustration:
+                planche(bpy, [args.illustration.resolve(strict=True)] + [output / v for v in ('face.png', 'face-trois-quarts.png', 'dos.png')],
+                        output / 'planche.png')
             portrait_target = Vector((center.x, center.y, low.z + height * 0.86))
             render('portrait.png', (0.3, -1, 0.05), portrait_target, height * 0.32, 768, 768)
         for size in (40, 64, 128):
