@@ -143,8 +143,7 @@ n'ont ni couche ni couverture. `couvre` est requis pour les éléments skinnés,
 accessoire ; ses ids viennent des zones de la base. Une couverture déclarée reste à mesurer. L'hôte cache la zone
 couverte du corps et des couches dessous : une pièce ne couvre une zone que si elle la cache sous tout angle du jeu.
 Sous un ourlet ouvert, évasé ou effiloché, pieds écartés, le mollet se voit ; la robe du Sorcier ne couvre donc pas
-`mollet_*`, et le preset habille les jambes d'une pièce (`bas`) (Clément, 2026-11-09 : « Il lui manquerait pas des
-jambes ? », #3743).
+`mollet_*`, et le preset habille les jambes d'une pièce (`bas`) (#3743).
 Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids d'emplacement de
 `src/data/garde-robe.json` (`emplacement-inconnu` sinon) ; un accessoire dont l'emplacement n'est
 offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
@@ -261,10 +260,9 @@ la porte est la matrice des cinq passes, jamais la passe neutre seule.
 Un rigide rangé (`rangement` de son trapping ou `rangementsObjets` du preset) ne s'écarte ni ne se bascule lui-même :
 il se bâtit dans le repère de sa prise, et l'hôte le pose sur ce qui est porté au repos, corps et éléments skinnés
 montés, à 5 mm, pivoté si le bas touche, à plat ; plusieurs objets au même point se posent côte à côte autour de
-l'os, dans l'ordre des `objets` du preset (`MontageDeComposition._ranger`, `hotes/godot/pont/CONTRAT.md`). Un
+l'os, dans l'ordre des `objets` du preset (`MontageDeComposition._ranger`, section « Atelier 3D » du contrat du pont). Un
 fourreau est un objet du même GLB qui porte la propriété `fourreau` : l'hôte ne le montre que l'arme rangée. Un
-écart cuit dans l'élément le ferait flotter sur un autre porteur (Clément, 2026-11-09 : « les objets a la ceinture ils
-volent et pas qu'un peu », #3743).
+écart cuit dans l'élément le ferait flotter sur un autre porteur (#3743).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
