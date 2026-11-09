@@ -122,10 +122,12 @@ describe('le début du Round (`fenetre.gestes`)', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const debut = partie.etat();
-      const gestes = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null)['fenetre.gestes'].map((g) => g.id);
+      const zones = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null);
+      const dessines = (etat: Jeu) => { const z = zones(etat); return { gestes: z['fenetre.gestes'].map((g) => g.id), reglages: z['fenetre.reglages'].map((g) => g.id) }; };
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
-      expect(gestes(debut), 'seul : qui agit en premier, et le lancer').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
-      expect(gestes({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(['promouvoirLeCombattant', 'fenetreValider@roundStart']);
+      const seul = { gestes: ['fenetreValider@roundStart'], reglages: ['fenetreChoisir@roundStart#promouvoir'] };
+      expect(dessines(debut), 'seul : qui agit en premier, en réglage, et le lancer').toEqual(seul);
+      expect(dessines({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(seul);
     } finally {
       partie.fermer();
     }

@@ -72,6 +72,7 @@ export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, regardDuJeu, REGARDS
 export type { Scene } from './monde/scene';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export { couronnesDuMonde, matieresDeDecor, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
+export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export { avertissementsDeLaSession, calqueDeLaCouche, casesDuDefaut, corpsActif, editer, ouvrirLEdition, planDeLaVolee, projetDuDepot, refusDOuvrage, refusDeLaValeur, sceneEditee, scenesDeLaSession, essaiDeLaScene, texteAEnregistrer, ACTIONS_D_ARCHITECTURE, AMBIANCES, BORNES_DE_LA_TROUPE, ENVIRONNEMENTS, HAUTEURS, METEOS, OUVRAGES, PINCEAUX, PROFILS_DE_TOIT, SORTES_D_OUVERTURE, champDuMessage, groupesDuLieu, versLaFautive, type BrouillonDArete, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type SessionDEdition } from './edition/session';
 export { formulaireDe } from './sceneEditLecture';
@@ -94,6 +95,7 @@ export { sceneZoneTiles } from './monde/zones';
 export { capDeLEntite, capsOfferts, effectZoneRect, entiteDeLaSelection, entiteDuSchema, FACES_D_ARETE, fichesDePersonnage, libelleDeStructure, lumiereAllumee, poigneeDeLaSelection, sameSel, segmentDeLaSelection, selRect, structuresCrenelables, structuresDeLArete, type Sel, type WallPaint, ZONE_VARIANTS } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
 export { effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets } from './effetsDeLAppel';
+export { musiqueDeLaPartie, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 export { meteoDuRegard } from './monde/meteo';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';

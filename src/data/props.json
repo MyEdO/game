@@ -14326,6 +14326,11 @@
       "radiusM": 20,
       "tone": "lanterne"
     },
+    "source": {
+      "book": "livre-de-base",
+      "page": 308,
+      "note": "LDB 74 l.58 « Lanterne »"
+    },
     "maison": "rayon maison : le fanal PORTE une lanterne vitrée (def d’art) — calé sur l’étalon de la lanterne (LDB 74 l.58, 20 m) ; planté sur sa hampe et non porté, d’où l’arbitrage plutôt que le folio",
     "volume": {
       "capIdentite": "S",

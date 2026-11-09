@@ -16,6 +16,7 @@ import { ouvrirLeProprietaire } from './proprietaireDuJeu';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from './intentionsDeSiege';
 import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenario';
 import { bus, EVT, type ChargesDuBus } from './bus';
+import { verbeDeJetDe, type RollVerb } from './flowVerbs';
 import type { Cadence } from '../engine/cadence';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
@@ -81,6 +82,9 @@ function ajoutees<T>(vu: readonly T[], courant: readonly T[]): T[] {
   return [...courant];
 }
 
+/** Les verbes de jet qui lancent les dés : un hôte qui les envoie joue leur son (`EVT.DICE_ROLL`). */
+const LANCERS_DU_JOUEUR = new Set<RollVerb | null>(['roll', 'reroll']);
+
 /** Ouvre une partie sur `etatInitial` (`etatInitialDuJeu()`, ou l'état qu'un hôte a gardé), par son propriétaire
  *  (`ouvrirLeProprietaire`). */
 export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie): Partie {
@@ -126,6 +130,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   return {
     etat: get,
     envoyer: (intention) => appeler('envoyer', () => {
+      if (LANCERS_DU_JOUEUR.has(verbeDeJetDe(intention.type))) bus.emit(EVT.DICE_ROLL);
       if (intention.siege !== undefined) return appliquerLIntentionDUnSiege(get, intention.siege, intention.type, intention.args);
       (proprietaire.actions[intention.type] as (...args: readonly unknown[]) => unknown)(...intention.args);
       return 'appliquee';

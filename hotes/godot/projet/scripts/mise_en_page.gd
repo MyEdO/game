@@ -52,6 +52,9 @@ const LARGEUR_DE_BULLE := 420.0
 const HAUTEUR_DU_NOM := 1.2
 ## Hauteur (m) d'où part un coup, au-dessus du sol de son auteur, et où il arrive sur sa cible.
 const HAUTEUR_DU_COUP := 1.1
+## La hauteur (m) au-dessus de son sol d'où part un flottant, et celle qu'il gagne en montant.
+const HAUTEUR_DU_FLOTTANT := 2.1
+const MONTEE_DU_FLOTTANT := 0.8
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
 ## Le rayon, en pixels, d'un point du plan.
@@ -148,10 +151,27 @@ static func echelle_au_plateau(metres_par_case: float) -> Vector3:
 	return Vector3.ONE * echelle_metrique(metres_par_case)
 
 
+## L'échelle uniforme qui porte en mètres le plateau d'une scène de `metres_par_case`, celle qui défait
+## `echelle_au_plateau`.
+static func echelle_en_metres(metres_par_case: float) -> Vector3:
+	return Vector3.ONE * metres_par_case
+
+
 ## Le point d'où part un coup du combattant dont le sol est en `sol`, et où arrive celui qui le vise : `HAUTEUR_DU_COUP`
 ## au-dessus, sur le plateau d'une scène de `metres_par_case`.
 static func point_du_coup(sol: Vector3, metres_par_case: float) -> Vector3:
 	return sol + Vector3.UP * hauteur_au_plateau(HAUTEUR_DU_COUP, metres_par_case)
+
+
+## Le point d'où part le flottant du combattant ou de la case dont le sol est en `sol`, `HAUTEUR_DU_FLOTTANT`
+## au-dessus, sur le plateau d'une scène de `metres_par_case`.
+static func point_du_flottant(sol: Vector3, metres_par_case: float) -> Vector3:
+	return sol + Vector3.UP * hauteur_au_plateau(HAUTEUR_DU_FLOTTANT, metres_par_case)
+
+
+## Le point où s'éteint le flottant parti de `point`, `MONTEE_DU_FLOTTANT` plus haut.
+static func montee_du_flottant(point: Vector3, metres_par_case: float) -> Vector3:
+	return point + Vector3.UP * hauteur_au_plateau(MONTEE_DU_FLOTTANT, metres_par_case)
 
 
 ## Le temps (s) de la montée d'un projectile en vol `duree` secondes, au sommet de sa cloche à mi-vol.

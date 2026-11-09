@@ -49,7 +49,7 @@ describe('les erreurs d’un geste : catégorie, drapeau d’erreur, fichier int
     refuse(partie('dome', verbe('fenetreValider', 'roundStart')), geste, categorie, /./);
   });
   it('un verbe inconnu nomme les gestes de la fenêtre qui tient la main et ses voisins de nom', () => {
-    refuse(partie('dome'), verbe('fenetreValid'), 'validation', /verbe inconnu : fenetreValid ; gestes de la fenêtre roundStart : promouvoirLeCombattant, armerLeTirPreventif, cliquerLaCase, fenetreValider@roundStart ; voisins : fenetreValider/);
+    refuse(partie('dome'), verbe('fenetreValid'), 'validation', /verbe inconnu : fenetreValid ; gestes de la fenêtre roundStart : fenetreChoisir@roundStart#promouvoir, fenetreChoisir@roundStart#viser, cliquerLaCase, fenetreValider@roundStart ; voisins : fenetreValider/);
   });
 });
 
@@ -206,7 +206,7 @@ describe('les verbes et les scènes', () => {
   it('`lire verbes` rend la signature d’un verbe, ou les verbes dont le nom contient un morceau, sans partie', () => {
     const t = table();
     expect(t.lire('verbes', { id: 'cliquerLaCase' }).texte).toBe('cliquerLaCase(pt: {"x": nombre, "y": nombre, "z"?: nombre}, entite?: id de combattant ou d’entité de scène, opts?: {"confirm"?: booleen, "approche"?: booleen,\n  "courseArmee"?: booleen})');
-    expect(t.lire('verbes', { id: 'LeCombattant' }).texte).toMatch(/promouvoirLeCombattant/);
+    expect(t.lire('verbes', { id: 'LObjet' }).texte).toMatch(/evaluerLObjet/);
     const tous = t.lire('verbes');
     expect(tous.erreur).toBeNull();
     expect(tous.texte).toMatch(/\+\d+ : `lire \{"quoi":"verbes","depuis":80\}`/);

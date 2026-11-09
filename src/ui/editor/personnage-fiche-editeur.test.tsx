@@ -81,7 +81,7 @@ function inspecteur(entity: SceneEntity) {
       setScene={(next) => { latest = next; rendre(next); }}
       sel={{ type: 'entity', id: entity.id }} setSel={() => undefined}
       enemyCreatures={BESTIAIRE} openLogic={() => undefined} resizeScene={() => undefined}
-      narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }, { id: 'preset-garde', base: 'humain' }] }}
+      narratif={{ ...emptyNarratif(), presetsPnj: [{ id: 'preset-tavernier', profil: { label: 'Le Tavernier' } }, { id: 'preset-garde', base: { id: 'humain' } }] }}
       tool={{ mode: 'select' }} armZoneTiles={() => undefined} zoneFocusKey={null}
     />,
   );

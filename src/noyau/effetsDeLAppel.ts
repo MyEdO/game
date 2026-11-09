@@ -1,18 +1,22 @@
 /**
  * LES EFFETS D'UN APPEL (#3771), que tout hôte du noyau rend tels quels : chaque coup, chaque incantation, chaque zone
  * d'effet (#3783) et chaque son que l'appel a émis sur le bus (`EVT.ANIM_ATTACK`, `EVT.ANIM_AOE`, `EVT.SFX`), son rendu
- * résolu au catalogue `rendus.json`. Le rendu d'une arme est celui de son objet, à défaut celui de son Groupe (`subType`) ;
+ * résolu au catalogue `rendus.json` ; les flottants d'un coup, d'une incantation et du bus (`EVT.ANIM_FLOAT`), les pas
+ * d'un déplacement, le heurt d'un pas refusé, le gong de la victoire et les dés du joueur (#3825). Le rendu d'une arme est celui de son objet, à défaut celui de son Groupe (`subType`) ;
  * celui d'un sort, celui de son Domaine ; une Prière a le sien ; celui d'une manœuvre de zone, le sien, celui d'un Souffle
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
-import { breathTypes, domains, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import { allMusicDefs } from '../data/sons/musique';
+import { breathTypes, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
-import type { ChargeDAttaque, ChargeDeZone } from './bus';
+import { t as tr } from '../i18n';
+import type { ChargeDAttaque, ChargeDeZone, ChargesDuBus } from './bus';
 import { sourceDuTon, type SourceDeLumiere } from './lumiereDeLaScene';
 import type { Jeu } from './etat';
 import { porteurParId } from './monde/combatants';
+import { musiqueDeLaSelection, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 import { sceneMetresPerTile } from './monde/scene';
 import { FLAME_LIFT_M } from './monde/vision';
 import { discTiles } from './monde/zones';
@@ -37,16 +41,75 @@ export type IssueDuCoup = 'touche' | 'critique' | 'pare' | 'manque';
 /** Une case d'une zone d'effet : (x, y) et sa couche. */
 export type CaseDeZone = ChargeDeZone['centre'];
 
+/** Le genre d'un flottant : celui d'un retour du bus (`EVT.ANIM_FLOAT`), ou l'issue d'un coup (`soak` : encaissé,
+ *  `defend` : paré ou esquivé, `death` : hors de combat). */
+export type GenreDeFlottant = ChargesDuBus['anim_float']['kind'] | 'soak' | 'defend' | 'death';
+
+/** La teinte du flottant de chaque genre. */
+export const TEINTE_DU_FLOTTANT: Record<GenreDeFlottant, string> = {
+  damage: '#ff5a5a', soak: '#b8b8c0', miss: '#b8b8c0', defend: '#6fb6ff', death: '#ff3030', heal: '#6fce8e', condition: '#e0b050',
+};
+/** La teinte du flottant des Blessures d'un Coup Critique. */
+export const TEINTE_DU_CRITIQUE = '#ffd166';
+
+/** Un texte qui flotte au-dessus d'un combattant ou d'une case, à la teinte de son genre ; `critique` le grossit. */
+export interface Flottant {
+  genre: GenreDeFlottant;
+  texte: string;
+  couleur: string;
+  critique: boolean;
+}
+
 /** Un coup porté de `de` à `vers` : la phase de départ à l'attaquant, le trajet du projectile, et la phase d'arrivée de
- *  son issue sur la cible (l'impact, le manque, ou la parade de l'arme qui a paré). Une incantation de `de` sur `vers`
- *  (`de` lui-même pour un sort sur soi), sa phase d'arrivée nulle quand elle échoue. Une zone d'effet que `de` pose sur
- *  `cases` autour de `centre` : sa phase de départ à l'auteur, le jet qui vole jusqu'au centre (aucun quand l'auteur
- *  en est le centre), puis la nappe sur chaque case. Un son de scène. */
+ *  son issue sur la cible (l'impact, le manque, ou la parade de l'arme qui a paré), ses flottants au-dessus de la cible.
+ *  Une incantation de `de` sur `vers` (`de` lui-même pour un sort sur soi), sa phase d'arrivée nulle quand elle échoue,
+ *  ses flottants sur la cible à l'arrivée. Une zone d'effet que `de` pose sur `cases` autour de `centre` : sa phase de
+ *  départ à l'auteur, le jet qui vole jusqu'au centre (aucun quand l'auteur en est le centre), puis la nappe sur chaque
+ *  case. Un flottant au-dessus du combattant `sur`, ou de la case `case`. Un son joué `fois` fois, `ecartS` secondes
+ *  l'un après l'autre. */
 export type Effet =
-  | { quoi: 'coup'; de: string; vers: string; issue: IssueDuCoup; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; arrivee: PhaseRendue | null }
-  | { quoi: 'incantation'; de: string; vers: string; reussie: boolean; couleur: string; depart: PhaseRendue | null; arrivee: PhaseRendue | null }
+  | { quoi: 'coup'; de: string; vers: string; issue: IssueDuCoup; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; arrivee: PhaseRendue | null; flottants: Flottant[] }
+  | { quoi: 'incantation'; de: string; vers: string; reussie: boolean; couleur: string; depart: PhaseRendue | null; arrivee: PhaseRendue | null; flottants: Flottant[] }
   | { quoi: 'zone'; de: string; centre: CaseDeZone; cases: CaseDeZone[]; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; nappe: PhaseRendue | null }
-  | { quoi: 'son'; son: SonDEffet };
+  | { quoi: 'flottant'; sur: string | null; case: CaseDeZone | null; flottant: Flottant }
+  | { quoi: 'son'; son: SonDEffet; fois: number; ecartS: number };
+
+/** Le son de chaque retour de la partie, par son id au registre (`src/data/sons/defs/`) : un pas, le heurt d'un pas
+ *  refusé, la victoire, les dés que le joueur lance. */
+export const SONS_DE_LA_PARTIE = { pas: 'pas', heurt: 'heurt', victoire: 'gong-victoire', des: 'des' } as const;
+
+/** Les pas d'un déplacement : un par `CASES_PAR_PAS` cases de son chemin, entre un et `PAS_MAX`, `ECART_DES_PAS_S`
+ *  secondes l'un après l'autre. */
+const CASES_PAR_PAS = 2;
+const PAS_MAX = 4;
+const ECART_DES_PAS_S = 0.22;
+
+/** Le son d'id `id` (`SONS_DE_LA_PARTIE`) joué `fois` fois, `ecartS` secondes l'un après l'autre. */
+const son = (id: string, fois = 1, ecartS = 0): Effet => ({ quoi: 'son', son: sonDEffet(id)!, fois, ecartS });
+
+/** Le flottant de genre `genre` qui dit `texte`, à la teinte du critique pour les Blessures d'un Coup Critique. */
+const flottant = (genre: GenreDeFlottant, texte: string, critique = false): Flottant =>
+  ({ genre, texte, couleur: critique ? TEINTE_DU_CRITIQUE : TEINTE_DU_FLOTTANT[genre], critique });
+
+/** Ce qu'une touche rend lisible : touchée, ses Blessures (ou encaissée sans Blessure), hors de combat ; manquée, paré
+ *  ou esquivé quand la cible s'est défendue, raté sinon. */
+interface BilanDeTouche {
+  hit?: boolean;
+  woundsLost?: number;
+  defenderDefeated?: boolean;
+}
+
+/** Les flottants de la touche `r` : `critique` d'un Coup Critique, `defendue` quand la cible s'est défendue. */
+function flottantsDeLaTouche(r: BilanDeTouche, critique: boolean, defendue: boolean): Flottant[] {
+  if (!r.hit) return [defendue ? flottant('defend', tr('fx.pareOuEsquive')) : flottant('miss', tr('fx.rate'))];
+  return [
+    (r.woundsLost ?? 0) > 0 ? flottant('damage', tr('fx.blessures', { n: r.woundsLost! }), critique) : flottant('soak', tr('fx.encaisse')),
+    ...(r.defenderDefeated ? [flottant('death', tr('fx.horsDeCombat'))] : []),
+  ];
+}
+
+/** Le flottant d'une incantation ratée. */
+const incantationRatee = (): Flottant => flottant('miss', tr('fx.incantationRatee'));
 
 /** Les rendus de repli : une arme de mêlée, de tir, naturelle, sans rendu propre ni de Groupe ; un sort hors Domaine ;
  *  une Prière. */
@@ -94,16 +157,18 @@ const VOL_MINIMAL_S = 0.08;
 const trajet = (r: RenduDef, distanceM: number): TrajetRendu | null =>
   r.projectile ? { projectile: r.projectile, dureeS: Math.max(distanceM / r.vitesseMs!, VOL_MINIMAL_S), hauteurM: r.cloche! * distanceM } : null;
 
-/** Le coup du rendu `rendu`, teint de `couleur`, de `de` à `vers` à `distanceM` mètres, à l'issue `issue` : sa phase
- *  d'arrivée est l'impact, le manque, ou la parade du rendu `parade` de l'arme qui a paré. */
-function coup(rendu: RenduDef, couleur: string, issue: IssueDuCoup, de: string, vers: string, distanceM: number, parade: RenduDef | null): Effet {
+/** Le coup du rendu `rendu`, teint de `couleur`, de `de` à `vers` à `distanceM` mètres, à l'issue `issue`, aux
+ *  flottants `flottants` : sa phase d'arrivée est l'impact, le manque, ou la parade du rendu `parade` de l'arme qui a
+ *  paré. */
+function coup(rendu: RenduDef, couleur: string, issue: IssueDuCoup, de: string, vers: string, distanceM: number, parade: RenduDef | null, flottants: Flottant[]): Effet {
   const arrivee = parade ? phase(parade.paradeVisuel, parade.paradeSon) : arriveeDe(rendu, issue === 'manque');
-  return { quoi: 'coup', de, vers, issue, couleur, depart: depart(rendu), trajet: trajet(rendu, distanceM), arrivee };
+  return { quoi: 'coup', de, vers, issue, couleur, depart: depart(rendu), trajet: trajet(rendu, distanceM), arrivee, flottants };
 }
 
-/** L'incantation du rendu `rendu`, teinte de `couleur`, de `de` sur `vers`, sa phase d'arrivée nulle quand elle échoue. */
+/** L'incantation du rendu `rendu`, teinte de `couleur`, de `de` sur `vers`, sa phase d'arrivée nulle et son flottant dit
+ *  quand elle échoue. */
 const incantation = (rendu: RenduDef, couleur: string, reussie: boolean, de: string, vers: string): Effet =>
-  ({ quoi: 'incantation', de, vers, reussie, couleur, depart: depart(rendu), arrivee: reussie ? arriveeDe(rendu, false) : null });
+  ({ quoi: 'incantation', de, vers, reussie, couleur, depart: depart(rendu), arrivee: reussie ? arriveeDe(rendu, false) : null, flottants: reussie ? [] : [incantationRatee()] });
 
 /** La zone `z` du rendu `rendu`, teinte de `couleur`, dont l'auteur est à `distanceM` mètres du centre : sa nappe est
  *  la phase de zone du rendu, à défaut celle de son impact. */
@@ -129,12 +194,14 @@ function effetDeLAttaque(a: Exclude<ChargeDAttaque, { kind: 'creature' }>, dista
     const { rendu, couleur } = renduDuSort(a.spell);
     if (!a.projectile) return incantation(rendu, couleur, a.result.cast, a.from, a.to);
     const issue: IssueDuCoup = !a.result.hit ? 'manque' : (a.result.critiques ?? 0) > 0 ? 'critique' : 'touche';
-    return coup(rendu, couleur, issue, a.from, a.to, distanceM, null);
+    const flottants = a.result.cast ? flottantsDeLaTouche(a.result, issue === 'critique', false) : [incantationRatee()];
+    return coup(rendu, couleur, issue, a.from, a.to, distanceM, null, flottants);
   }
   const rendu = renduDeLArme(a.weapon);
   const pare = !a.result.hit && a.parryWeapon !== undefined;
   const issue: IssueDuCoup = a.result.hit ? (a.result.critical ? 'critique' : 'touche') : pare ? 'pare' : 'manque';
-  return coup(rendu, rendu.couleur, issue, a.from, a.to, distanceM, pare ? renduDeLArme(a.parryWeapon!) : null);
+  const flottants = flottantsDeLaTouche(a.result, issue === 'critique', a.defense !== 'none');
+  return coup(rendu, rendu.couleur, issue, a.from, a.to, distanceM, pare ? renduDeLArme(a.parryWeapon!) : null, flottants);
 }
 
 /** Les mètres qui séparent les combattants `de` et `vers` de `etat` sur le plateau de sa scène, `null` quand l'un n'y est
@@ -147,7 +214,8 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
 
 /** Les effets des événements `evenements` d'un appel (`ResultatDeLAppel.evenements`) sur l'état `etat` qui le suit, dans
  *  leur ordre ; un coup, une incantation ou une zone dont un combattant n'est pas posé, ou l'attaque spéciale d'une
- *  créature sur elle-même, n'en rend aucun. */
+ *  créature sur elle-même, n'en rend aucun. Un déplacement rend ses pas, un pas refusé son heurt, la victoire son gong,
+ *  les dés du joueur (`EVT.DICE_ROLL`) leur son. */
 export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Effet[] {
   return evenements.flatMap((e): Effet[] => {
     if (e.type !== 'emis') return [];
@@ -163,10 +231,12 @@ export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Eff
       const distanceM = Math.hypot(e.payload.centre.x - auteur.x, e.payload.centre.y - auteur.y) * sceneMetresPerTile(etat.scene);
       return [zone(rendu, couleur, e.payload, distanceM)];
     }
-    if (e.evt === 'sfx') {
-      const s = sonDEffet(e.payload.id);
-      return s ? [{ quoi: 'son', son: s }] : [];
-    }
+    if (e.evt === 'anim_float') return [{ quoi: 'flottant', sur: e.payload.to ?? null, case: e.payload.pos ?? null, flottant: flottant(e.payload.kind, e.payload.text) }];
+    if (e.evt === 'anim_move') return [son(SONS_DE_LA_PARTIE.pas, Math.min(PAS_MAX, Math.max(1, Math.floor(e.payload.path.length / CASES_PAR_PAS))), ECART_DES_PAS_S)];
+    if (e.evt === 'move_blocked') return [son(SONS_DE_LA_PARTIE.heurt)];
+    if (e.evt === 'battle_over') return e.payload.victory ? [son(SONS_DE_LA_PARTIE.victoire)] : [];
+    if (e.evt === 'dice_roll') return [son(SONS_DE_LA_PARTIE.des)];
+    if (e.evt === 'sfx') return sonDEffet(e.payload.id) ? [son(e.payload.id)] : [];
     return [];
   });
 }
@@ -193,7 +263,8 @@ export interface EffetDeVitrine {
  *  des cases de `metresParCase` mètres où l'auteur tient la case (0, 0) et la cible la case (`distanceM` /
  *  `metresParCase`, 0) : chaque rendu d'arme, chaque Domaine, le sort hors Domaine et la Prière, la zone de chaque
  *  manœuvre de zone et de chaque Type de Souffle (#3783), chaque son d'effet du registre, chaque ton de lumière posé au
- *  lieu de la cible, et l'attaque qui touche de chaque engin de siège, par son id d'objet. */
+ *  lieu de la cible, l'attaque qui touche de chaque engin de siège, par son id d'objet, le flottant de chaque genre et
+ *  celui d'un Coup Critique sur la cible, et chaque musique de fond (#3825). */
 export interface VitrineDesEffets {
   de: string;
   vers: string;
@@ -206,6 +277,8 @@ export interface VitrineDesEffets {
   sons: EffetDeVitrine[];
   lumieres: { id: string; label: string; source: SourceDeLumiere }[];
   attaques: Record<string, Effet>;
+  flottants: EffetDeVitrine[];
+  musiques: { id: string; label: string; musique: MusiqueDeLaPartie }[];
 }
 
 const AUTEUR_DE_LA_VITRINE = 'auteur';
@@ -214,6 +287,12 @@ const DISTANCE_DE_LA_VITRINE_M = 12;
 /** Le rayon (cases) d'une zone de la vitrine, et celui qu'éclaire une lumière de la vitrine. */
 const RAYON_DE_ZONE_DE_LA_VITRINE = 1;
 const RAYON_DE_LUMIERE_DE_LA_VITRINE = 5;
+/** Les Blessures et le soin que montrent les flottants de la vitrine. */
+const BLESSURES_DE_LA_VITRINE = 3;
+
+/** Les flottants de la touche de la vitrine à l'issue `issue`. */
+const flottantsDeLaVitrine = (issue: IssueDuCoup): Flottant[] =>
+  flottantsDeLaTouche({ hit: issue === 'touche' || issue === 'critique', woundsLost: BLESSURES_DE_LA_VITRINE }, issue === 'critique', issue === 'pare');
 
 /** La zone de la vitrine que `de` pose autour de la case `centre`, au rendu de `origine` (`renduDeLaZone`), l'auteur à
  *  `distanceM` mètres du centre. */
@@ -227,8 +306,8 @@ function zoneDeLaVitrine(de: string, centre: CaseDeZone, origine: Pick<ChargeDeZ
  *  projectile, réussie ou ratée, et sa zone autour de la case `centre` de la cible. */
 function variantesDuSort({ rendu, couleur }: { rendu: RenduDef; couleur: string }, de: string, vers: string, distanceM: number, centre: CaseDeZone): EntreeDeVitrine['variantes'] {
   return [
-    { variante: 'touche', effet: coup(rendu, couleur, 'touche', de, vers, distanceM, null) },
-    { variante: 'manque', effet: coup(rendu, couleur, 'manque', de, vers, distanceM, null) },
+    { variante: 'touche', effet: coup(rendu, couleur, 'touche', de, vers, distanceM, null, flottantsDeLaVitrine('touche')) },
+    { variante: 'manque', effet: coup(rendu, couleur, 'manque', de, vers, distanceM, null, flottantsDeLaVitrine('manque')) },
     { variante: 'incantation', effet: incantation(rendu, couleur, true, de, vers) },
     { variante: 'incantation-ratee', effet: incantation(rendu, couleur, false, de, vers) },
     { variante: 'zone', effet: zone(rendu, couleur, { de, centre, tiles: discTiles(centre, RAYON_DE_ZONE_DE_LA_VITRINE) }, distanceM) },
@@ -259,9 +338,9 @@ export function vitrineDesEffets(): VitrineDesEffets {
     id: r.id,
     label: r.label,
     variantes: [
-      { variante: 'touche', effet: coup(r, r.couleur, 'touche', de, vers, distanceM, null) },
-      { variante: 'manque', effet: coup(r, r.couleur, 'manque', de, vers, distanceM, null) },
-      ...(r.paradeVisuel || r.paradeSon ? [{ variante: 'pare' as const, effet: coup(r, r.couleur, 'pare', de, vers, distanceM, r) }] : []),
+      { variante: 'touche', effet: coup(r, r.couleur, 'touche', de, vers, distanceM, null, flottantsDeLaVitrine('touche')) },
+      { variante: 'manque', effet: coup(r, r.couleur, 'manque', de, vers, distanceM, null, flottantsDeLaVitrine('manque')) },
+      ...(r.paradeVisuel || r.paradeSon ? [{ variante: 'pare' as const, effet: coup(r, r.couleur, 'pare', de, vers, distanceM, r, flottantsDeLaVitrine('pare')) }] : []),
     ],
   }));
   const horsDomaine = catalogue(REPLI.sort);
@@ -279,7 +358,7 @@ export function vitrineDesEffets(): VitrineDesEffets {
       : zoneDeLaVitrine(de, caseDeLAuteur, { rendu: m.rendu?.id }, 0),
   }));
   const souffles = breathTypes.map((b): EffetDeVitrine => ({ id: b.id, label: b.label, effet: zoneDeLaVitrine(de, caseDeLaCible, { rendu: b.rendu.id }, distanceM) }));
-  const sons = sonsDEffet.map((d) => ({ id: d.id, label: d.label, effet: { quoi: 'son' as const, son: sonDEffet(d.id)! } }));
+  const sons = sonsDEffet.map((d): EffetDeVitrine => ({ id: d.id, label: d.label, effet: son(d.id) }));
   const lumieres = lightTones.map((t) => ({
     id: t.id,
     label: t.label,
@@ -287,7 +366,19 @@ export function vitrineDesEffets(): VitrineDesEffets {
   }));
   const attaques = Object.fromEntries(siegeEngines().map((t) => {
     const rendu = catalogue(t.rendu?.id ?? REPLI.ranged);
-    return [t.id, coup(rendu, rendu.couleur, 'touche', de, vers, distanceM, null)];
+    return [t.id, coup(rendu, rendu.couleur, 'touche', de, vers, distanceM, null, flottantsDeLaVitrine('touche'))];
   }));
-  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques };
+  const echantillons: [string, Flottant][] = [
+    ['damage', flottant('damage', tr('fx.blessures', { n: BLESSURES_DE_LA_VITRINE }))],
+    ['critique', flottant('damage', tr('fx.blessures', { n: BLESSURES_DE_LA_VITRINE }), true)],
+    ['soak', flottant('soak', tr('fx.encaisse'))],
+    ['miss', flottant('miss', tr('fx.rate'))],
+    ['defend', flottant('defend', tr('fx.pareOuEsquive'))],
+    ['death', flottant('death', tr('fx.horsDeCombat'))],
+    ['heal', flottant('heal', tr('fx.soin', { n: BLESSURES_DE_LA_VITRINE }))],
+    ['condition', flottant('condition', etats[0].label)],
+  ];
+  const flottants = echantillons.map(([id, f]): EffetDeVitrine => ({ id, label: f.texte, effet: { quoi: 'flottant', sur: vers, case: null, flottant: f } }));
+  const musiques = allMusicDefs().map((d) => ({ id: d.id, label: d.label, musique: musiqueDeLaSelection({ def: d.id })! }));
+  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques };
 }

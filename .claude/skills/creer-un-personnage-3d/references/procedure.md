@@ -60,7 +60,9 @@ moindre écart, puis écrit les options `--<pack>` et `--licence-<pack>` :
 ```sh
 node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/base/humanoide.py $(node scripts/personnage-3d/base/sources.mjs) --sortie /atelier/base/humanoide.glb
 ``` Vérifier unités, axes, échelle et pose de liaison de la base,
-sans les modifier dans l'élément. La construction exige `node` dans le `PATH` : avant Blender,
+sans les modifier dans l'élément. Une coupure ne coûte qu'une passe : chaque passe du point fixe des poids écrit une
+reprise (`reprises.py`) dans `<git-common-dir>/reprises-3d/<empreinte>`, l'empreinte de la révision, de ses écarts
+suivis et des arguments ; relancer la même commande repart de la dernière, et `reprises-3d` s'efface une fois la sortie écrite. La construction exige `node` dans le `PATH` : avant Blender,
 `scripts/personnage-3d/base/manifeste.mjs --verifier` refuse une sortie dans un arbre du dépôt (liens
 et jonctions résolus), un dossier de sortie qui porte un autre fichier que le GLB, `manifest.json` et
 les `LICENSE-<pack>.txt` qu'elle écrit, un pack sans `--licence-<pack>`, et un texte de licence

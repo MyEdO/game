@@ -2842,7 +2842,7 @@ export function proseDeFiche(
     if (!text) return null;
     const preset = presetDe(p.presetId);
     if (preset?.profil?.desc === text) return { section: sectionDescription(text, porteurDuNarratif('presetsPnj', p.presetId, 'profil.desc')) };
-    const base = preset?.base;
+    const base = preset?.base?.id;
     return base && findCreatureById(base)?.desc === text
       ? { section: sectionDescription(text, { chemin: 'desc' }), entree: { type: CATEGORIE_DES_CREATURES, id: base } }
       : { section: sectionDescription(text, undefined) };

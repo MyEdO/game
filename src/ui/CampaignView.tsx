@@ -125,7 +125,7 @@ export function CampaignView() {
   const refusFinDeSeance = useGame(refusDeFinDeSeance);
   const fermer = useGame((s) => s.fenetreFermer);
   const pendingRoundStart = useGame((s) => s.pendingRoundStart);
-  const promouvoirLeCombattant = useGame((s) => s.promouvoirLeCombattant);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const gameTime = useGame((s) => s.gameTime);
   const worldMap = useGame((s) => s.worldMap);
   const worldMapOpen = useGame((s) => s.worldMapOpen);
@@ -210,7 +210,6 @@ export function CampaignView() {
   });
   // LDB 10.
   const preemptAiming = useGame((s) => s.preemptAiming);
-  const armerLeTirPreventif = useGame((s) => s.armerLeTirPreventif);
   const canPreemptIds = preemptShooterIds(useGame.getState); // source UNIQUE (partagée avec le ciblage clavier)
   // PAUSE AU PROCHAIN ROUND (`raise-hand`) : l'interrupteur du pied de frise. Verdict d'offre et
   // dispatcher viennent du REGISTRE — la vue ne connaît qu'un id d'action, et la bascule repasse par
@@ -356,10 +355,10 @@ export function CampaignView() {
               onInspect={setInspectId}
               onHover={setHoverCombatant}
               hoveredId={hovered}
-              onPromote={promouvoirLeCombattant}
+              onPromote={(id) => choisir('roundStart', 'promouvoir', id)}
               canPreemptIds={canPreemptIds}
               preemptArmedId={preemptAiming}
-              onPreempt={armerLeTirPreventif}
+              onPreempt={(id) => choisir('roundStart', 'viser', preemptAiming === id ? null : id)}
               hand={netMode === 'local' ? undefined : {
                 raised: handRaised,
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
