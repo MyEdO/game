@@ -14317,5 +14317,236 @@
         }
       ]
     }
+  },
+  {
+    "id": "fanal",
+    "type": "props",
+    "label": "Fanal sur hampe",
+    "light": {
+      "radiusM": 20,
+      "tone": "lanterne"
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 309,
+      "note": "LDB 74 l.58 « Lanterne »"
+    },
+    "maison": "rayon maison : le fanal PORTE une lanterne vitrée (def d’art) — calé sur l’étalon de la lanterne (LDB 74 l.58, 20 m) ; planté sur sa hampe et non porté, d’où l’arbitrage plutôt que le folio",
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.03
+          },
+          "size": {
+            "xM": 0.16,
+            "yM": 0.16,
+            "hM": 0.06
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "cylinder",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.515
+          },
+          "axis": "h",
+          "radiusM": 0.035,
+          "longueurM": 0.97,
+          "sides": 8,
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.02
+          },
+          "size": {
+            "xM": 0.22,
+            "yM": 0.22,
+            "hM": 0.04
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.17
+          },
+          "size": {
+            "xM": 0.16,
+            "yM": 0.16,
+            "hM": 0.26
+          },
+          "material": "braises",
+          "emet": true
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 1.32
+          },
+          "size": {
+            "xM": 0.24,
+            "yM": 0.24,
+            "hM": 0.04
+          },
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": -0.06,
+            "hM": 1.39
+          },
+          "size": {
+            "xM": 0.24,
+            "yM": 0.12,
+            "hM": 0.1
+          },
+          "slope": "y-",
+          "material": "fer-noirci"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": 0.06,
+            "hM": 1.39
+          },
+          "size": {
+            "xM": 0.24,
+            "yM": 0.12,
+            "hM": 0.1
+          },
+          "slope": "y+",
+          "material": "fer-noirci"
+        }
+      ]
+    }
+  },
+  {
+    "id": "cargaison-bachee",
+    "type": "props",
+    "label": "Cargaison bâchée",
+    "solid": true,
+    "volume": {
+      "capIdentite": "S",
+      "primitives": [
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.1
+          },
+          "size": {
+            "xM": 2.2,
+            "yM": 0.82,
+            "hM": 0.2
+          },
+          "material": "bois-chene"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.7
+          },
+          "size": {
+            "xM": 2.1,
+            "yM": 0.78,
+            "hM": 1
+          },
+          "material": "toile-ecrue"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": -0.195,
+            "hM": 1.4
+          },
+          "size": {
+            "xM": 2,
+            "yM": 0.39,
+            "hM": 0.4
+          },
+          "slope": "y-",
+          "material": "toile-ecrue"
+        },
+        {
+          "kind": "prism",
+          "center": {
+            "xM": 0,
+            "yM": 0.195,
+            "hM": 1.4
+          },
+          "size": {
+            "xM": 2,
+            "yM": 0.39,
+            "hM": 0.4
+          },
+          "slope": "y+",
+          "material": "toile-ecrue"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": -0.7,
+            "yM": 0,
+            "hM": 0.71
+          },
+          "size": {
+            "xM": 0.07,
+            "yM": 0.82,
+            "hM": 1.02
+          },
+          "material": "corde"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0,
+            "yM": 0,
+            "hM": 0.71
+          },
+          "size": {
+            "xM": 0.07,
+            "yM": 0.82,
+            "hM": 1.02
+          },
+          "material": "corde"
+        },
+        {
+          "kind": "box",
+          "center": {
+            "xM": 0.7,
+            "yM": 0,
+            "hM": 0.71
+          },
+          "size": {
+            "xM": 0.07,
+            "yM": 0.82,
+            "hM": 1.02
+          },
+          "material": "corde"
+        }
+      ]
+    }
   }
 ]
