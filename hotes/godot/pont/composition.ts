@@ -11,7 +11,8 @@ import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
 import { findCouleurById, findTeinteById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
 import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
 
-/** Un emplacement de montage d'une chose portée (`"<point>"` ou la clé de sa ligne, `cleDuPanneau`), l'élément de
+/** Un emplacement de montage d'une chose portée (`"<point>"`, `"<point>#<rang>"` du rang-ième objet au même point à
+ *  partir du deuxième, ou la clé de sa ligne, `cleDuPanneau`), l'élément de
  *  la base qui la monte, `null` s'il n'y en a aucun, et, monté, la palette de sa teinte (`Portee.teinte`). */
 export interface Monte {
   ligne: string;
@@ -66,7 +67,8 @@ export const paletteDesCouleurs = (couleurs: PorteeDeComposition['couleurs']): R
   Object.fromEntries(Object.entries(couleurs ?? {}).map(([slot, { id }]) => [slot, findCouleurById(id)!.color]));
 
 /** `portee` sur la base `base` des modèles de l'atelier : `manifestes` (id de modèle → manifeste) lit la base et la
- *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne, une
+ *  `cle` de ses éléments. Chaque chose portée se monte à l'élément de son emplacement dont la clé la désigne, un objet
+ *  rangé ou tenu au point d'un objet précédent sur la ligne `<point>#<rang>`, une
  *  apparence variante à défaut à celui de sa `racine`. */
 export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Record<string, unknown>>, portee: PorteeDeComposition, surcharges: SurchargesDEmblemes = {}): CompositionSurLaBase {
   const elementsDe = new Map<string, string[]>([
@@ -75,10 +77,14 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
   ]);
   const montes: Monte[] = [];
   const manquants: Manquant[] = [];
+  const rangsAuPoint = new Map<string, number>();
   for (const p of portee.portees) {
-    const ligne = ouMonter(p);
+    const emplacement = ouMonter(p);
+    const rang = p.cle.champ === 'apparence' ? (rangsAuPoint.get(emplacement) ?? 0) + 1 : 1;
+    rangsAuPoint.set(emplacement, rang);
+    const ligne = rang > 1 ? `${emplacement}#${rang}` : emplacement;
     const ids = p.cle.champ === 'apparence' && p.cle.racine !== undefined ? [p.cle.id, p.cle.racine] : [p.cle.id];
-    const elements = elementsDe.get(ligne) ?? [];
+    const elements = elementsDe.get(emplacement) ?? [];
     const element = ids.map((id) => elements.find((e) => cleDe(manifestes[e])[p.cle.champ] === id)).find((e) => e !== undefined);
     const embleme = Object.prototype.hasOwnProperty.call(surcharges, ligne) ? emblemeDuPorteur(surcharges[ligne]) : portee.embleme;
     const teinte = element === undefined ? undefined : findTeinteById(p.teinte);

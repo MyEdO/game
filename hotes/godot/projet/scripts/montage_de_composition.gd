@@ -15,6 +15,10 @@ const ORIGINE := [0.0, 0.0, 0.0]
 const LARGEUR_D_EMBLEME := 512.0
 ## La métadonnée de la scène d'un GLB (`scene_du_glb`) qui porte, par nom, chacun de ses matériaux.
 const MATERIAUX := &"materiaux"
+## Le jeu, en mètres, entre les boîtes de deux objets rangés côte à côte au même point (`_ranger`).
+const JEU_ENTRE_RANGES := 0.02
+## Sous cette composante avant, l'axe X d'un repère de rangement est latéral (`_sens_vers_l_avant`).
+const TOLERANCE_LATERALE := 0.1
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -62,6 +66,9 @@ var _noeuds: Dictionary = {}
 var _demandes: Dictionary = {}
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
+## Par id d'emplacement d'un objet rangé, ses meshes rangés : `{ noeud, piece }`, le nœud `Range_<point>` qui porte le
+## mesh et le mesh (`_ranger`).
+var _rangements: Dictionary = {}
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -199,6 +206,7 @@ func vider() -> void:
 	seconde_prise.clear()
 	pieces.clear()
 	_noeuds.clear()
+	_rangements.clear()
 	montes.clear()
 	emblemes.clear()
 	_emblemes_demandes.clear()
@@ -244,6 +252,8 @@ func demonter(id: String) -> void:
 	for noeud in _noeuds.get(id, []):
 		noeud.free()
 	_noeuds.erase(id)
+	_rangements.erase(id)
+	_ranger()
 	pieces.erase(id)
 	montes.erase(id)
 	emblemes.erase(id)
@@ -298,6 +308,7 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	pieces[id] = trouvees
 	_noeuds[id] = noeuds
 	montes[id] = element
+	_ranger()
 	poser_les_morphes()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
@@ -415,40 +426,84 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3
 		attacher(sous, {os = cible.attache.os, position = ORIGINE, rotation = ORIGINE}, nom).add_child(rangement)
 		rangement.add_child(relais)
 		piece.reparent(relais, false)
-		rangement.transform = _repere_de_rangement(cible.attache, _arriere(piece, rangement))
+		_rangements[id] = _rangements.get(id, []) + [{noeud = rangement, piece = piece}]
 		return rangement.get_parent().get_parent()
 	piece.reparent(sous, false)
 	piece.skeleton = piece.get_path_to(sous)
 	return piece
 
 
-## Le point d'accroche `id` de la base posée, emplacement ou prise, `{}` si aucun.
+## Le point d'accroche `id` de la base posée, emplacement ou prise, celui de `<point>` pour la ligne `<point>#<rang>`
+## d'un objet suivant au même point (`composerSurLaBase`), `{}` si aucun.
 func _point(id: String) -> Dictionary:
 	for point in base.get("points", []):
-		if point.id == id:
+		if point.id == id.get_slice("#", 0):
 			return point
 	return {}
 
 
+## Chaque objet rangé posé à son emplacement : les objets d'un même point (`<point>`, puis `<point>#<rang>` par rang,
+## `composerSurLaBase`) côte à côte sur l'axe X de leur repère de prise, le premier sur le point, chaque suivant vers
+## l'avant du personnage (`_sens_vers_l_avant`), sa boîte à `JEU_ENTRE_RANGES` de celle du précédent ; les meshes d'un
+## objet sous une seule boîte, la leur (`_boite`), dont la face arrière se pose à `DEGAGEMENT_DE_RANGEMENT` de
+## l'emplacement (`_repere_de_rangement`).
+func _ranger() -> void:
+	var par_point := {}
+	for id: String in _rangements:
+		var point := id.get_slice("#", 0)
+		par_point[point] = par_point.get(point, []) + [id]
+	for point: String in par_point:
+		var attache: Dictionary = _point(point).attache
+		var ids: Array = par_point[point]
+		ids.sort_custom(func(a: String, b: String) -> bool: return _rang(a) < _rang(b))
+		var sens := _sens_vers_l_avant(attache)
+		var decalage := 0.0
+		var precedente: AABB
+		for rang in ids.size():
+			var rangees: Array = _rangements[ids[rang]]
+			var boite: AABB = _boite(rangees[0].piece, rangees[0].noeud)
+			for rangee in rangees.slice(1):
+				boite = boite.merge(_boite(rangee.piece, rangee.noeud))
+			if rang > 0:
+				decalage += (precedente.end.x - boite.position.x + JEU_ENTRE_RANGES) if sens > 0.0 else (precedente.position.x - boite.end.x - JEU_ENTRE_RANGES)
+			for rangee in rangees:
+				rangee.noeud.transform = _repere_de_rangement(attache, boite.position.z, decalage)
+			precedente = boite
+
+
+## Le rang d'une ligne d'objet : `<rang>` de `<point>#<rang>`, 1 pour `<point>`.
+static func _rang(id: String) -> int:
+	return int(id.get_slice("#", 1)) if id.contains("#") else 1
+
+
+## Le signe, +1 ou -1, de l'axe X du repère de prise d'un objet rangé à l'emplacement `attache` qui va vers l'avant du
+## personnage (+Z du squelette au repos) ; +1 pour un emplacement dont cet axe est latéral.
+func _sens_vers_l_avant(attache: Dictionary) -> float:
+	var emplacement := repere(attache)
+	var x := MiseEnPage.axe_de_rangement(emplacement.basis, emplacement.origin, Vector3.AXIS_X)
+	var avant := (squelette.get_bone_global_rest(squelette.find_bone(attache.os)).basis * x).z
+	return -1.0 if avant < -TOLERANCE_LATERALE else 1.0
+
+
 ## Le repère, dans l'os de l'emplacement `attache`, où se pose le repère de prise d'un objet rangé dont la face arrière
-## de la boîte, dans ce repère de prise, est à `arriere` : ses axes et son origine (`MiseEnPage.axe_de_rangement`,
-## `MiseEnPage.origine_de_rangement`).
-static func _repere_de_rangement(attache: Dictionary, arriere: float) -> Transform3D:
+## de la boîte, dans ce repère de prise, est à `arriere`, décalé de `decalage` sur son axe X : ses axes et son origine
+## (`MiseEnPage.axe_de_rangement`, `MiseEnPage.origine_de_rangement`).
+static func _repere_de_rangement(attache: Dictionary, arriere: float, decalage: float) -> Transform3D:
 	var emplacement := repere(attache)
 	var point := emplacement.origin
 	var axes := emplacement.basis
-	return Transform3D(Basis(MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_X), MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Y),
-		MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)), MiseEnPage.origine_de_rangement(axes, point, arriere))
+	var x := MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_X)
+	return Transform3D(Basis(x, MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Y), MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)),
+		MiseEnPage.origine_de_rangement(axes, point, arriere) + x * decalage)
 
 
-## La cote en z de la face arrière de la boîte de `piece` dans le repère du nœud `dans`, son ancêtre : la boîte de ses
-## huit coins (`AABB.expand`).
-static func _arriere(piece: MeshInstance3D, dans: Node3D) -> float:
+## La boîte de `piece` dans le repère du nœud `dans`, son ancêtre : celle de ses huit coins (`AABB.expand`).
+static func _boite(piece: MeshInstance3D, dans: Node3D) -> AABB:
 	var boite := piece.get_aabb()
 	var dans_le_repere := AABB(dans.to_local(piece.to_global(boite.get_endpoint(0))), Vector3.ZERO)
 	for coin in range(1, 8):
 		dans_le_repere = dans_le_repere.expand(dans.to_local(piece.to_global(boite.get_endpoint(coin))))
-	return dans_le_repere.position.z
+	return dans_le_repere
 
 
 ## La prise de la base posée dont l'os est `os`, `{}` si aucune.

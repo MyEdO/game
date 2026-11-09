@@ -100,6 +100,15 @@ describe('composerSurLaBase', () => {
     expect(composer({ humanoide }, tenue).manquants).toContainEqual(expect.objectContaining({ ligne: 'main', champ: 'apparence', id: 'epee_soldat' }));
   });
 
+  it('le deuxième objet rangé au même point se monte sur la ligne `<point>#2`, le premier sur le point', () => {
+    const besace = { ...elementSchema3('humanoide'), cle: { apparence: 'besace' } };
+    const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
+    const tenue = { ...soldat, prises: {}, objets: ['arme-simple', 'besace'], rangementsObjets: { 'arme-simple': { id: 'epaule_d' }, besace: { id: 'epaule_d' } } };
+    const { montes, manquants } = composer({ humanoide, besace, epee }, tenue);
+    expect(montes.filter((m) => m.ligne.startsWith('epaule_d'))).toEqual([{ ligne: 'epaule_d', element: 'epee' }, { ligne: 'epaule_d#2', element: 'besace' }]);
+    expect(manquants.filter((m) => m.ligne.startsWith('epaule_d'))).toEqual([]);
+  });
+
   it('un objet porté sans ensemble ni rangement va au rapport, sans point', () => {
     const { rapport, manquants } = composer({ humanoide }, { ...soldat, objets: ['plastron', 'rocher'] });
     expect(rapport).toEqual(['objet « rocher » : ni prise, ni ensemble, ni rangement']);
