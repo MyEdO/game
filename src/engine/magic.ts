@@ -69,9 +69,8 @@ export interface SpellLike {
   ecole: string;
   /** Domaine/Vent (« Feu », « Ombres »…) ou culte — null pour les sorts génériques. */
   subType?: string | null;
-  /** id STABLE du Domaine de magie (`DomainData.id`, ex. « feu ») — source RUNTIME des attributs de
-   *  Domaine (LDB 48), indépendante de la langue. Dérivé du `subType` à l'authoring. */
-  domainId?: string | null;
+  /** Domaine de magie (`SpellData.domainId`) — source RUNTIME des attributs de Domaine (LDB 48). */
+  domainId?: { id: string };
   cn: number | null;
   duration?: SpellDuration | null;
   desc: string;
@@ -308,7 +307,7 @@ export function armourCastDRPenalty(c: Combatant): number {
  *  sinon aucune (Sorts d'Arcane communs — n'importe quel Vent les alimente). Focalisation ET Magie des
  *  Arcanes portent désormais des IDS de domaine (fin de l'incohérence Vent/Lore) → ils matchent. */
 export function focusSpecOf(spell: SpellLike): string | undefined {
-  return spell.domainId ?? undefined;
+  return spell.domainId?.id;
 }
 
 /** VENT à AFFICHER pour la Focalisation de ce sort (id de domaine « bete » → « Ghur ») — source
@@ -594,7 +593,7 @@ export function castingNumberOf(
   if (focusedNI0) return 0;
   const subject: CastingNumberSubject = {
     id: spell.id,
-    domainId: spell.domainId,
+    domainId: spell.domainId?.id,
     kind: spell.isRitual ? 'rituel' : 'sort',
     chaosMagic: caster ? chaosDomainOf(caster) != null : undefined,
   };

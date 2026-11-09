@@ -54,12 +54,12 @@ describe('Perforante contre l’Armure du Trait (LDB 62 l.270)', () => {
 describe('Projectile du Domaine des Cieux contre l’Armure du Trait (LDB 48 l.106)', () => {
   it('les PA de métal du Trait sont ignorés', () => {
     const sergent = profil(MAILLES);
-    expect(domainMissileMods(sergent, { domainId: 'cieux' }, 'corps', effectiveArmourAt(sergent, 'corps'))).toEqual({ apIgnored: 2, bonusDamage: 0 });
+    expect(domainMissileMods(sergent, { domainId: { id: 'cieux' } }, 'corps', effectiveArmourAt(sergent, 'corps'))).toEqual({ apIgnored: 2, bonusDamage: 0 });
   });
   it('la peau et la matière inconnue ne sont pas ignorées', () => {
     for (const armure of [PEAU, SANS_MATIERE]) {
       const c = profil(armure);
-      expect(domainMissileMods(c, { domainId: 'cieux' }, 'corps', effectiveArmourAt(c, 'corps')).apIgnored).toBe(0);
+      expect(domainMissileMods(c, { domainId: { id: 'cieux' } }, 'corps', effectiveArmourAt(c, 'corps')).apIgnored).toBe(0);
     }
   });
 });

@@ -20,7 +20,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */
 const applyDomain = (caster: Combatant, target: Combatant, domainId: string, rng: RNG = seq([])): string[] => {
   const lines: string[] = [];
-  for (const eff of domainOnHitEffects({ domainId })) lines.push(...runPureFlowLines(target, caster, eff.flow, { idNeuf: idsDeTest, rng, caster }));
+  for (const eff of domainOnHitEffects({ domainId: { id: domainId } })) lines.push(...runPureFlowLines(target, caster, eff.flow, { idNeuf: idsDeTest, rng, caster }));
   return lines;
 };
 
@@ -58,12 +58,12 @@ describe('Métal / Cieux / Ombres — mitigation des Projectiles (LDB 48 l.399/1
   it('Métal : ignore les PA métalliques ET les ajoute en Dégâts', () => {
     const t = mk({ items: [mail(3), leather(1)], armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 } as Combatant['armour'] });
     expect(metalAPAt(t, 'corps')).toBe(3);
-    const mods = domainMissileMods(t, { domainId: 'metal' }, 'corps', 4);
+    const mods = domainMissileMods(t, { domainId: { id: 'metal' } }, 'corps', 4);
     expect(mods).toEqual({ apIgnored: 3, bonusDamage: 3 });
   });
   it('Cieux : ignore les PA métalliques, sans bonus', () => {
     const t = mk({ items: [mail(3)], armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } as Combatant['armour'] });
-    expect(domainMissileMods(t, { domainId: 'cieux' }, 'corps', 3)).toEqual({ apIgnored: 3, bonusDamage: 0 });
+    expect(domainMissileMods(t, { domainId: { id: 'cieux' } }, 'corps', 3)).toEqual({ apIgnored: 3, bonusDamage: 0 });
   });
   it('Ombres : ignore tous les PA non magiques — seuls les PA d’un effet actif (apAll) tiennent', () => {
     const t = mk({
@@ -71,12 +71,12 @@ describe('Métal / Cieux / Ombres — mitigation des Projectiles (LDB 48 l.399/1
       armour: { tete: 0, brasG: 0, brasD: 0, corps: 2, jambeG: 0, jambeD: 0 } as Combatant['armour'],
       activeEffects: [{ label: 'Armure Aethyrique', bonus: 0, duration: { scale: 'rounds', left: 5 }, apAll: 1 }],
     });
-    expect(domainMissileMods(t, { domainId: 'ombres' }, 'corps', 3)).toEqual({ apIgnored: 2, bonusDamage: 0 });
+    expect(domainMissileMods(t, { domainId: { id: 'ombres' } }, 'corps', 3)).toEqual({ apIgnored: 2, bonusDamage: 0 });
   });
   it('evaluateMissile intègre l’attribut (Métal : +PA métal en Dégâts, PA métal ignorées)', () => {
     const caster = mk({ id: 'w', label: 'Doré' }); // BFM 4
     const t = mk({ id: 't', items: [mail(3)], armour: { tete: 3, brasG: 3, brasD: 3, corps: 3, jambeG: 3, jambeD: 3 } as Combatant['armour'] });
-    const spell = { label: 'Test Métal', ecole: 'Magie des Arcanes', subType: 'Métal', domainId: 'metal', missile: true, damage: 4, cn: 0, range: null, target: 1, duration: null, desc: 'Il s’agit d’un Projectile magique avec Dégâts +4.' };
+    const spell = { label: 'Test Métal', ecole: 'Magie des Arcanes', subType: 'Métal', domainId: { id: 'metal' }, missile: true, damage: 4, cn: 0, range: null, target: 1, duration: null, desc: 'Il s’agit d’un Projectile magique avec Dégâts +4.' };
     const cr = { cast: true, roll: 54, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' }; // jet inversé 45 → corps
     const r = evaluateMissile(caster, t, spell as never, cr as never);
     // Dégâts = 4 (sort) + 2 (DR) + 4 (BFM) + 3 (PA métal) = 13 ; mitigation = BE 3 + (PA 3 − 3 ignorées) = 3.
@@ -157,7 +157,7 @@ describe('Cieux — arc d’Azyr (LDB 48 l.106) : géométrie on:{near} + bypass
 
     const all = [caster, victim, nearMail, nearLeather, nearTalent, farFoe];
     const get = (() => ({ battle: { combatants: all } })) as unknown as Get;
-    applyTriggeredEffects(get, caster, domainOnHitEffects({ domainId: 'cieux' }), 'onHit', { rng: desDuTest, victim });
+    applyTriggeredEffects(get, caster, domainOnHitEffects({ domainId: { id: 'cieux' } }), 'onHit', { rng: desDuTest, victim });
 
     expect(nearMail.wounds.current).toBe(10);   // 12 − 2 : métal percé
     expect(nearLeather.wounds.current).toBe(12); // armure non-métal intacte
@@ -168,11 +168,11 @@ describe('Cieux — arc d’Azyr (LDB 48 l.106) : géométrie on:{near} + bypass
 });
 
 describe('Magie des mers (MDG 02 l.178-186) — 4 Domaines, seaModifier (DomainData)', () => {
-  const feuSpell = { label: 'Test Feu', ecole: 'Magie des Arcanes', subType: 'Feu', domainId: 'feu', cn: 0, range: null, target: 1, duration: null, desc: '' };
-  const vieSpell = { label: 'Test Vie', ecole: 'Magie des Arcanes', subType: 'Vie', domainId: 'vie', cn: 0, range: null, target: 1, duration: null, desc: '' };
-  const cieuxSpell = { label: 'Test Cieux', ecole: 'Magie des Arcanes', subType: 'Cieux', domainId: 'cieux', cn: 0, range: null, target: 1, duration: null, desc: '' };
-  const beteSpell = { label: 'Test Bête', ecole: 'Magie des Arcanes', subType: 'Bête', domainId: 'bete', cn: 0, range: null, target: 1, duration: null, desc: '' };
-  const otherSpell = { label: 'Autre', ecole: 'Magie des Arcanes', subType: 'Métal', domainId: 'metal', cn: 0, range: null, target: 1, duration: null, desc: '' };
+  const feuSpell = { label: 'Test Feu', ecole: 'Magie des Arcanes', subType: 'Feu', domainId: { id: 'feu' }, cn: 0, range: null, target: 1, duration: null, desc: '' };
+  const vieSpell = { label: 'Test Vie', ecole: 'Magie des Arcanes', subType: 'Vie', domainId: { id: 'vie' }, cn: 0, range: null, target: 1, duration: null, desc: '' };
+  const cieuxSpell = { label: 'Test Cieux', ecole: 'Magie des Arcanes', subType: 'Cieux', domainId: { id: 'cieux' }, cn: 0, range: null, target: 1, duration: null, desc: '' };
+  const beteSpell = { label: 'Test Bête', ecole: 'Magie des Arcanes', subType: 'Bête', domainId: { id: 'bete' }, cn: 0, range: null, target: 1, duration: null, desc: '' };
+  const otherSpell = { label: 'Autre', ecole: 'Magie des Arcanes', subType: 'Métal', domainId: { id: 'metal' }, cn: 0, range: null, target: 1, duration: null, desc: '' };
 
   const caster = (domainSpec: string): Combatant => mk({
     id: 'w', kind: 'hero',
@@ -242,7 +242,7 @@ describe('Magie des mers (MDG 02 l.178-186) — 4 Domaines, seaModifier (DomainD
 describe('Bete — Peur 1 pour 1d10 Rounds apres un Sort de la Bete reussi (LDB 48 l.9)', () => {
   it('pose le Trait peur (value 1) + activeEffect (scale rounds, left = de tire) via applyOps', () => {
     const w = mk({ id: 'w', traits: [] });
-    const lines = domainCasterOps(w, { domainId: 'bete' }, seq([7]), idsDeTest);
+    const lines = domainCasterOps(w, { domainId: { id: 'bete' } }, seq([7]), idsDeTest);
     expect(w.traits).toContainEqual({ id: 'peur', value: 1 });
     expect(w.activeEffects?.[0]).toMatchObject({
       grantedTrait: { id: 'peur', value: 1 },
@@ -252,13 +252,13 @@ describe('Bete — Peur 1 pour 1d10 Rounds apres un Sort de la Bete reussi (LDB 
   });
   it('aucun effet pour un Domaine sans casterOps', () => {
     const w = mk({ id: 'w' });
-    expect(domainCasterOps(w, { domainId: 'feu' }, seq([7]), idsDeTest)).toEqual([]);
+    expect(domainCasterOps(w, { domainId: { id: 'feu' } }, seq([7]), idsDeTest)).toEqual([]);
   });
 });
 
 describe('Rubrique de VENT du Domaine (VDM 04 l.48-56, folio 55) — windModifiers (DomainData)', () => {
-  const hyshSpell = { label: 'Test Lumière', ecole: 'Magie des Arcanes', subType: 'Lumière', domainId: 'lumiere', cn: 0, range: null, target: 1, duration: null, desc: '' };
-  const metalSpell = { label: 'Test Métal', ecole: 'Magie des Arcanes', subType: 'Métal', domainId: 'metal', cn: 0, range: null, target: 1, duration: null, desc: '' };
+  const hyshSpell = { label: 'Test Lumière', ecole: 'Magie des Arcanes', subType: 'Lumière', domainId: { id: 'lumiere' }, cn: 0, range: null, target: 1, duration: null, desc: '' };
+  const metalSpell = { label: 'Test Métal', ecole: 'Magie des Arcanes', subType: 'Métal', domainId: { id: 'metal' }, cn: 0, range: null, target: 1, duration: null, desc: '' };
 
   const wizard = (domainSpec: string): Combatant => mk({
     id: 'w', kind: 'hero',

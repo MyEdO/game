@@ -1123,7 +1123,7 @@ const CODEX_SPECS = {
           ),
           sections: l.testMods?.length ? sections({ title: tr('codex.fiche.modificateursDeTest'), layout: 'list', rows: l.testMods.map(testModRow) }) : undefined,
         })),
-        ...d.windSaturationEffects.map((w) => depuisEnveloppe({ ...w, label: `${w.wind} — ${refLabel('domains', { id: w.domainId })}` }, {
+        ...d.windSaturationEffects.map((w) => depuisEnveloppe({ ...w, label: `${w.wind} — ${refLabel('domains', w.domainId)}` }, {
           group: tr('codex.fiche.effetsDeSaturationParVent'),
           sub: w.environments.join(', '),
           sections: sections(
@@ -1140,7 +1140,7 @@ const CODEX_SPECS = {
             fact(tr('codex.fiche.incantationCritique'), p.critOnTens ? tr('codex.fiche.deuxFoisPlusProbableDoubleOu') : null),
             fact(tr('codex.fiche.demonsInvoques'), p.daemonsDoubled ? tr('codex.fiche.nombreDouble') : null),
             fact(tr('codex.fiche.ventRefracte'), p.singleWind ? tr('codex.fiche.unSeulALaFois') : null),
-            p.cancelsTraitId ? { label: tr('codex.fiche.annuleLeTrait'), value: refLabel('traits', { id: p.cancelsTraitId }), kref: { category: 'traits', id: p.cancelsTraitId, label: refLabel('traits', { id: p.cancelsTraitId }) } } : null,
+            p.cancelsTraitId ? { label: tr('codex.fiche.annuleLeTrait'), value: refLabel('traits', p.cancelsTraitId), kref: { category: 'traits', id: p.cancelsTraitId.id, label: refLabel('traits', p.cancelsTraitId) } } : null,
             p.controlFlux ? fact(tr('codex.fiche.controleDuFlux'), tr('codex.fiche.testDeFocalisation', { v: DIFFICULTY_LABELS[p.controlFlux.difficulty as keyof typeof DIFFICULTY_LABELS] ?? p.controlFlux.difficulty })) : null,
             p.overcastPerSpell ? fact(tr('codex.fiche.surincantationParSort'), formatDice(p.overcastPerSpell.dice)) : null,
             p.stonePropertySlots ? fact(tr('codex.fiche.proprietesDePierreGardienne'), String(p.stonePropertySlots.max)) : null,
