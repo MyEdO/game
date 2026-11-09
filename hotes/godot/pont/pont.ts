@@ -25,6 +25,7 @@ import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } fro
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
 import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import { zonesDesScenarios } from '../../../src/hote/scenarios';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -330,6 +331,10 @@ export function creerPont() {
       }
       ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, brouillons: 0, regard: 'tactique' };
       return suite(ouverte, o.lancement);
+    },
+    scenarios(json) {
+      entreeDe('scenarios', json, []);
+      return { zones: zonesDesScenarios() };
     },
     vue(json) {
       entreeDe('vue', json, []);
