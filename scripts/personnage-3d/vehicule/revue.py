@@ -87,7 +87,7 @@ def main():
     import bpy
     from mathutils import Vector
     glb_navire, navire = trouver(args.modeles, revue["vehicule"])
-    glb_poste, poste = trouver(args.modeles, revue["aux_postes"])
+    aux_postes = {bord: trouver(args.modeles, id_) for bord, id_ in revue["aux_postes"].items()}
     seules = set(filter(None, args.seules.split(",")))
     emblem = None
 
@@ -124,7 +124,7 @@ def main():
         for bord, positions in postes.items():
             for i, pos in enumerate(positions):
                 if arme(bord, i):
-                    importer(glb_poste, poste, pos, LACETS[bord])
+                    importer(*aux_postes[bord], pos, LACETS[bord])
         for am in ameliorations:
             glb, manifeste = trouver(args.modeles, f"amelioration--{am}")
             if manifeste["montage"] == "postes":
