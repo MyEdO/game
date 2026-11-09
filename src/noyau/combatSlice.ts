@@ -3039,7 +3039,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (ph.mode === 'wounds') {
         const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), panse);
         log.push(...r.log);
-        if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: `+${r.healed}`, kind: 'heal' }); // flottant de soin (R8)
+        if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'heal' });
       } else if (ph.mode === 'bleed') {
         log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
       } else if (ph.mode === 'ammo') {
