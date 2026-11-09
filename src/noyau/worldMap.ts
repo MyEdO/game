@@ -53,7 +53,7 @@ export interface MapPlace {
    *  Produits, éditables par l'auteur (aucun index codé en dur). */
   market?: import('../engine/landCargo').LandMarketProfile;
   /** SERVICES EXTENSIBLES du lieu au-delà du port et du marché (#343) — auberge/temple/forgeron/guilde…,
-   *  `kind` = id du catalogue `lieux-services.json`. Port et marché NE sont PAS dupliqués ici : ils
+   *  `kind` désigne une entrée du catalogue `lieux-services.json`. Port et marché NE sont PAS dupliqués ici : ils
    *  gardent leur propre champ riche (`port`/`market`) et `placeServices` les compose avec ceux-ci en
    *  une liste unique. Une auberge peut porter son offre de couchage PROPRE (`rest`) ou, à défaut,
    *  dériver de l'offre de repos de la scène liée. */
@@ -75,8 +75,8 @@ export interface MapPlace {
 }
 
 /** Un POI de PLAN (#345 phase 5) : cible EXCLUSIVE `sceneId` (transition vers une scène du projet,
- *  `quitterLaScene`) OU `serviceKind` (`id` d'un service RÉSOLU du lieu — `placeServices`, dont le
- *  port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services),
+ *  `quitterLaScene`) OU `serviceKind` (entrée de `lieux-services.json` que le lieu RÉSOUT — `placeServices`, dont
+ *  le port/marché AUTOMATIQUES `'port'`/`'marche'` — le MÊME panneau de service que l'onglet Services),
  *  jamais les deux. `id` STABLE (référencé par l'éditeur et les tests, `validateScene`) ; `label` est
  *  le SEUL champ d'affichage (doctrine ids internes, AGENTS.md). */
 export interface PlacePoi {
@@ -86,15 +86,15 @@ export interface PlacePoi {
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
   icon?: string;
   sceneId?: { id: string };
-  serviceKind?: string;
+  serviceKind?: { id: string };
 }
 
 /** Un service EXTENSIBLE attaché à un lieu (catalogue `lieux-services.json`) — hors port/marché, qui
- *  portent leur propre schéma riche. `kind` = id du catalogue ; `label` = surcharge d'affichage
- *  facultative d'auteur ; `rest` = offre de couchage/repas PROPRE à ce lieu-hébergement (auberge
- *  autonome), à défaut de quoi l'auberge dérive de l'offre de repos de la scène (`placeServices`). */
+ *  portent leur propre schéma riche. `kind` désigne l'entrée du catalogue ; `label` = surcharge d'affichage
+ *  facultative d'auteur ; `rest` = offre de couchage/repas PROPRE à ce service d'hébergement (`hebergement`
+ *  du catalogue), à défaut de quoi il dérive de l'offre de repos de la scène (`placeServices`). */
 export interface PlaceService {
-  kind: string;
+  kind: { id: string };
   label?: string;
   rest?: RestPlaces;
 }
@@ -307,7 +307,7 @@ export type PlaceServiceCategory = 'port' | 'marche' | 'auberge' | 'autre';
  *  lieu (#343) et l'auberge. Les payloads métier sont RÉFÉRENCÉS, jamais copiés : `port`/`market`
  *  pointent la donnée existante du nœud, `rest` pointe l'offre propre au service ou celle de la scène. */
 export interface ResolvedPlaceService {
-  /** id de routage : `'port'` | `'marche'` | `kind` du catalogue (dont `'auberge'`). */
+  /** id de routage : l'entrée du catalogue (`'port'`, `'marche'`, `kind` d'un service déclaré), ou `'repos'` (repli sans auberge). */
   id: string;
   category: PlaceServiceCategory;
   label: string;
@@ -344,8 +344,9 @@ export function serviceIcon(s: ResolvedPlaceService): string {
  *  lieu présent et futur. PUR, source unique des marqueurs du hub, du panneau de détail et de l'éditeur. */
 export function poiIcon(poi: PlacePoi, services: ResolvedPlaceService[]): string {
   if (poi.icon) return poi.icon;
-  if (poi.serviceKind) {
-    const svc = services.find((s) => s.id === poi.serviceKind);
+  const service = poi.serviceKind;
+  if (service) {
+    const svc = services.find((s) => s.id === service.id);
     if (svc) return serviceIcon(svc);
   }
   if (poi.sceneId) return 'map-tool/door';
@@ -390,28 +391,26 @@ export function placeServices(place: MapPlace, scene?: Scene, reposIci?: RestPla
     const def = garanti(findLieuServiceById(SERVICE_CITE.marche), SERVICE_CITE.marche, 'service de lieu');
     out.push({ id: 'marche', category: 'marche', label: def.label, icon: def.icon, desc: def.desc, market: place.market, hostLine: def.hostLine, backdrop: def.backdrop?.id });
   }
-  const declared = new Set<string>();
   for (const s of place.services ?? []) {
-    const def = findLieuServiceById(s.kind);
-    const auberge = s.kind === 'auberge';
+    const def = findLieuServiceById(s.kind.id);
+    const auberge = def?.hebergement === true;
     out.push({
-      id: s.kind,
+      id: s.kind.id,
       category: auberge ? 'auberge' : 'autre',
-      label: s.label ?? def?.label ?? s.kind,
+      label: s.label ?? def?.label ?? s.kind.id,
       icon: def?.icon,
       desc: def?.desc,
       rest: auberge ? (s.rest ?? sceneAubergeOffer(scene)) : undefined,
       hostLine: def?.hostLine,
       backdrop: def?.backdrop?.id,
-      merchantArchetype: def?.merchantArchetype,
+      merchantArchetype: def?.merchantArchetype?.id,
       opensScreen: def?.opensScreen,
       enterLabel: def?.enterLabel,
     });
-    declared.add(s.kind);
   }
-  // Auberge DÉRIVÉE de la scène si le lieu ne la déclare pas en service propre mais que la scène offre
+  // Auberge DÉRIVÉE de la scène si le lieu ne déclare aucun service d'hébergement mais que la scène offre
   // le couchage en auberge — source unique = la scène.
-  if (!declared.has('auberge')) {
+  if (!out.some((sv) => sv.category === 'auberge')) {
     const rest = sceneAubergeOffer(scene);
     if (rest) {
       const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
