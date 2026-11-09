@@ -121,10 +121,17 @@ def exporter_gabarit(peaux, references):
         attribut.data.foreach_set('value', np.arange(decalage, decalage + nombre, dtype=np.int32))
 
 
+def clips_plantes(declaration):
+    """Les clips plantés de la déclaration du corps `declaration` (`clipsPlantes`, `hotes/godot/asset/gabarit.ts`)."""
+    return json.loads(lancer(ICI / 'gabarit.mjs', [], json.dumps({
+        'operation': 'clipsPlantes', **{cle: declaration[cle] for cle in ('clips', 'clipsDeuxMains') if cle in declaration}})))
+
+
 @contextmanager
-def groupes_de_peau(rig, clips, table, etats, diagnostic=None):
+def groupes_de_peau(rig, clips, table, etats, plantes, diagnostic=None):
     """Les noms d'os de `rig` et, par jeu de facteurs des `etats`, `(etats, matrices, longueurs des clips)` : les
-    matrices de peau de `gabarit.mjs` (opération `matrices`) au repos puis à chaque instant des `clips`, lues en memmap."""
+    matrices de peau de `gabarit.mjs` (opération `matrices`) au repos puis à chaque instant des `clips`, jambes pliées
+    sur les clips de `plantes` (`clips_plantes`), lues en memmap."""
     noms, squelette = squelette_du_gabarit(rig)
     with TemporaryDirectory(prefix='gabarit-peau-') as dossier:
         chemin = Path(dossier) / 'poses.bin'
@@ -133,6 +140,7 @@ def groupes_de_peau(rig, clips, table, etats, diagnostic=None):
         np.concatenate([neutre, *des_clips]).astype(np.float32).tofile(chemin)
         groupes = json.loads(lancer(ICI / 'gabarit.mjs', [], json.dumps({
             'operation': 'matrices', 'table': table, 'corps': {'squelette': squelette},
+            'clips': [[a.name, len(p)] for a, p in zip(clips, des_clips)], 'plantes': list(plantes),
             'poses': str(chemin), 'sortie': dossier, 'etats': etats})))
         groupes = groupes['groupes']
         if diagnostic is not None:

@@ -3000,7 +3000,7 @@ export function applyFocusInterruption(get: Get, set: SetFn, focuser: Combatant)
   const lines: string[] = [tr('cf.focusLost', { name: focuser.label, dr: focuser.focus.dr, spell: findSpellById(focusedSpellId)?.label ?? focusedSpellId })];
   focuser.focus = undefined;
   const compUsed = useSpellComponent(focuser, focusedSpellId, lines); // un composant couvre aussi la Focalisation (incantation en cours)
-  lines.push(...applyMiscast(get, set, focuser, 'mineure', { componentDowngrade: compUsed, domainId: findSpellById(focusedSpellId)?.domainId ?? undefined }));
+  lines.push(...applyMiscast(get, set, focuser, 'mineure', { componentDowngrade: compUsed, domainId: findSpellById(focusedSpellId)?.domainId?.id }));
   set({ pendingLogQueue: [...get().pendingLogQueue, ...lines.map((line) => ({ line, cid: focuser.id }))] });
 }
 
@@ -5424,6 +5424,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
     affects == null || evalCondition(affects, combatConditionCtx(c, { caster, now: get().gameTime, sl: spellSLFor(res.sl, c) }));
   const inZone = battle.combatants.filter((c) => !isOutOfAction(c) && c.pos && (c.pos.z ?? 0) === (pt.z ?? 0) && chebyshev(c.pos, pt) <= radius && (!excludesCaster || c.id !== caster.id) && affected(c));
   set({ pendingCast: { ...pc, zone: { ...pc.zone, center: { ...pt }, placing: false } } });
+  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...pt }, tiles: clampZoneTiles(discTiles(pt, radius, pt.z), get().scene?.dimensions), sort: spell.id });
   if (!inZone.length) {
     set({ pendingCast: null, pendingCascade: null }); // TERMINAL : ferme data + cascade-hôte (zone à vide)
     if (pc.focused) caster.focus = undefined; // le sort focalisé est consommé même à vide
@@ -5681,7 +5682,7 @@ export const GRIMOIRE_NI_MODS: CastingNumberMod[] = [
 export function effectiveSpellOf(pc: { spellId: string; grimoire?: boolean }): ReturnType<typeof findSpell> {
   const spell = resolveSpell(pc.spellId);
   if (!spell || !pc.grimoire || spell.cn == null) return spell;
-  const subject = { id: spell.id, domainId: spell.domainId, kind: spell.isRitual ? ('rituel' as const) : ('sort' as const) };
+  const subject = { id: spell.id, domainId: spell.domainId?.id, kind: spell.isRitual ? ('rituel' as const) : ('sort' as const) };
   return { ...spell, cn: effectiveCastingNumber(spell.cn, subject, GRIMOIRE_NI_MODS) };
 }
 
@@ -6010,7 +6011,7 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   const spell = touche.spell;
   // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28) :
   // ses Dégâts ET ses effets sont sautés sur cette cible.
-  if (immuneToSpellDomain(cible.traits, spell.domainId)) return clore(get, touche, [tr('cf.spellDomainImmune', { name: cible.label, spell: spell.label })], { ...touche.mres, woundsLost: 0 }, 0);
+  if (immuneToSpellDomain(cible.traits, spell.domainId?.id)) return clore(get, touche, [tr('cf.spellDomainImmune', { name: cible.label, spell: spell.label })], { ...touche.mres, woundsLost: 0 }, 0);
   const lignes: string[] = [];
   let mres = touche.mres;
   // LDB 18 l.53, l.55.
@@ -6176,11 +6177,11 @@ export function applyCast(
   const contrecoup = (severity: MiscastSeverity, opts: Parameters<typeof applyMiscast>[4] = {}): string[] =>
     applyMiscast(get, set, caster, severity, { ...opts, targetIds: zoneTargets.map((t) => t.id) });
   /** Options du contrecoup d'un SORT (composant, Sorcellerie, Domaine). */
-  const optsDuSort = { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId ?? undefined };
+  const optsDuSort = { componentDowngrade: componentUsed && !sorcery, sorceryCorruption: sorcery, domainId: spell.domainId?.id };
   /** Imparfaite ADDITIONNELLE due aux Influences malfaisantes / à la Sorcellerie, appliquée UNE fois après le Sort. */
   const applyExtraMiscast = (): void => {
     if (malevolent) logLines.push(...contrecoup(malevolent, optsDuSort));
-    else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...contrecoup('mineure', { sorceryCorruption: true, domainId: spell.domainId ?? undefined }));
+    else if (sorceryMandatoryMiscast(sorcery, componentUsed) && !res.isFumble) logLines.push(...contrecoup('mineure', { sorceryCorruption: true, domainId: spell.domainId?.id }));
   };
   if (crit) {
     if (choice) logLines.push(tr(choice === 'critique' ? 'cf.castCritical' : choice === 'puissance' ? 'cf.overcastFullPower' : 'cf.overcastIrresistible'));
@@ -6189,14 +6190,15 @@ export function applyCast(
   }
   // « Avantages et Magie » (LDB 46 l.123-125) : si la cible a déjà été visée par un Sort du
   // MÊME Domaine ce Round, le lanceur gagne +1 Avantage (le Vent converge). Sorts seulement.
-  if (battle && isSort && spell.domainId && res.cast) {
+  const domaine = spell.domainId?.id;
+  if (battle && isSort && domaine && res.cast) {
     const marks = battle.domainCasts ?? [];
-    if (marks.some((m) => m.targetId === target.id && m.domain === spell.domainId)) {
+    if (marks.some((m) => m.targetId === target.id && m.domain === domaine)) {
       campGain(get, caster);
       caster.gainedAdvThisRound = true;
-      logLines.push(tr('cf.windConverges', { name: caster.label, wind: spell.subType ?? spell.domainId, target: target.label }));
+      logLines.push(tr('cf.windConverges', { name: caster.label, wind: spell.subType ?? domaine, target: target.label }));
     }
-    battle.domainCasts = [...marks, ...[target, ...extraTargets].map((t) => ({ targetId: t.id, domain: spell.domainId! }))];
+    battle.domainCasts = [...marks, ...[target, ...extraTargets].map((t) => ({ targetId: t.id, domain: domaine }))];
   }
 
   if (missile) {
@@ -6275,7 +6277,7 @@ export function applyCast(
         // LDB 40 l.64
         if (prayerBannedOn(t, caster, spell)) { logLines.push(tr('cf.prayerBanned', { name: t.label, spell: spell.label })); continue; }
         // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28).
-        if (immuneToSpellDomain(t.traits, spell.domainId)) { logLines.push(tr('cf.spellDomainImmune', { name: t.label, spell: spell.label })); continue; }
+        if (immuneToSpellDomain(t.traits, spell.domainId?.id)) { logLines.push(tr('cf.spellDomainImmune', { name: t.label, spell: spell.label })); continue; }
         // Résistance à la Magie (LDB 85 l.302 / LDB 10 l.1026) : le DR du Sort est réduit CONTRE cette
         // cible — magnitude et durée échelonnées sur `ctx.sl` suivent ; sous le NI, le Sort ne l'affecte plus.
         const drMod = spellDRModFor(t, zoneMod(t));
@@ -6387,7 +6389,7 @@ export function applyCast(
       // Une cible qui a EMPORTÉ l'opposition (spec.opposed) résiste au Sort entier : pas de rider de Domaine.
       if (extras?.opposedOutcome?.[t.id]?.resisted) continue;
       // Immunité de Domaine (`domainesImmunises`) : le rider est un effet du Sort. VDM 13 l.24, l.61 ; ZI 08 l.28
-      if (immuneToSpellDomain(t.traits, spell.domainId)) continue;
+      if (immuneToSpellDomain(t.traits, spell.domainId?.id)) continue;
       // Riders « à la touche » du Domaine = DONNÉE (`domains.json`), dispatchés comme les autres onHit ;
       // le gating « cible adverse / vivante / résiste par Talent » vit dans les Conditions Flow.
       logLines.push(...applyTriggeredEffects(get, caster, domainOnHitEffects(spell), 'onHit', { victim: t, rng: battleRng(), set }));
@@ -6497,7 +6499,7 @@ function placeZoneFromOp(get: Get, caster: Combatant, target: Combatant, opDeZon
   };
   battle.zones = [...(battle.zones ?? []), zone];
   logLines.push(tr('cf.zonePersistsRounds', { spell: label, rounds }));
-  bus.emit(EVT.ANIM_AOE, { tiles, kind: 'spell' });
+  bus.emit(EVT.ANIM_AOE, { de: caster.id, centre: { ...target.pos }, tiles, ...(source?.kind === 'spell' ? { sort: source.id } : {}) });
 }
 
 /** Résout les ops IMPURES (grille/initiative) d'un déclencheur — GÉNÉRIQUE, pas limité à summon : un
@@ -6548,8 +6550,8 @@ function domainBreathType(caster: Combatant): string | undefined {
 
 /** Bonus d'incantation CONDITIONNEL du Domaine (Aqshy l.157 : +`bonus` par État `perCondition` situé à
  *  `radiusStat` m du lanceur) — PARAMÈTRE en données (`DomainData.castBonus`) ; géométrie résolue ici. */
-export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: string | null }): number {
-  const cb = findDomainById(spell.domainId)?.castBonus;
+export function domainCastBonus(s: Jeu, caster: Combatant, spell: { domainId?: { id: string } }): number {
+  const cb = findDomainById(spell.domainId?.id)?.castBonus;
   if (!cb || !caster.pos) return 0;
   const radius = Math.max(1, Math.ceil(bonusDe(caster, cb.radiusStat) / 2));
   let pions = 0;
@@ -6604,7 +6606,7 @@ export function castWardLine(s: Jeu, target: Combatant, spell: SpellLike): ModLi
  * `skipWard` : Zone non encore posée — aucune cible désignée, donc pas de protection individuelle.
  */
 export function castContextMods(
-  s: Jeu, caster: Combatant, target: Combatant, spell: SpellLike & { domainId?: string | null },
+  s: Jeu, caster: Combatant, target: Combatant, spell: SpellLike,
   opts?: { skipWard?: boolean },
 ): { mods: ModLine[]; total: number; ward: number; domain: number; env: number } {
   const wardLine = opts?.skipWard ? null : castWardLine(s, target, spell);
@@ -6613,7 +6615,7 @@ export function castContextMods(
   const env = domainEnvironmentBonus(spell, s.scene?.environment);
   // La ligne de Domaine (attribut ET environnement) porte SON Domaine en référence : c'est lui, pas une
   // règle générique, qui décrit le bonus (Aqshy/Ghyran — LDB 48 l.157/690).
-  const dref = spell.domainId ? { category: 'domains', id: spell.domainId } : undefined;
+  const dref = spell.domainId ? { category: 'domains', id: spell.domainId.id } : undefined;
   const mods: ModLine[] = [
     ...(wardLine ? [wardLine] : []),
     ...(domain ? [{ label: 'Domaine', value: domain, famille: 'jet' as const, ref: dref }] : []),

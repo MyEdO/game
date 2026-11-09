@@ -233,7 +233,7 @@ export type StageFrame =
       facing: Dir8;
       indoor: boolean;
       cid: string | null;
-      /** Hauteur d'œil AU-DESSUS DU SOL (mètres) — absente = le regard DEBOUT (`EYE_H`). Le meneur
+      /** Hauteur d'œil AU-DESSUS DU SOL (mètres) — absente = celle de sa case (`hauteurDeLOeil`). Le meneur
        *  ATTABLé la reçoit de sa place (`pov/camera.seatedEyeH`) : assis, on ne voit pas la salle de
        *  la même hauteur. */
       eyeH?: number;

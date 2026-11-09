@@ -10,14 +10,14 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, type Effet, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, type NavireDeLaScene, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import { ameliorationsMontables, ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import type { TableDeClips } from '../asset/clips';
@@ -25,6 +25,7 @@ import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } fro
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
 import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import { zonesDesScenarios } from '../../../src/hote/scenarios';
 
 /** Le service `persisterLeHeros` du pont : il ne persiste aucun héros, l'hôte Godot n'a pas de stockage (#3041). */
 const sansRoster = (): void => {};
@@ -57,9 +58,12 @@ export interface CorpsDuCombat {
   navires: Record<string, NavireServi>;
 }
 
-/** Un navire de la scène servi (#3686) : son corps, et où se pose l'origine de son modèle (`NavireDeLaScene`). */
+/** Un navire de la scène servi (#3686) : son corps, où se pose l'origine de son modèle (`NavireDeLaScene`), et où se
+ *  tient l'occupant de chaque case de ses ponts que son modèle rogne (`stationsDuNavire`, des `cases` du manifeste de
+ *  son élément, #3767). */
 export interface NavireServi extends Pick<NavireDeLaScene, 'centre'> {
   corps: CorpsDuVehicule;
+  stations: StationDeNavire[];
 }
 
 /** Le corps d'un véhicule servi (#2987) : l'élément `vehicule` qui dessine sa fiche (`ModelesDeLAtelier.vehicules`), le
@@ -104,12 +108,14 @@ export interface PlaceDuVehicule {
 }
 
 /** Le véhicule de l'atelier (`vehicule`) : son corps, les places de ses bords dans ses postes en vigueur
- *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, et ses Améliorations. */
+ *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, ses Améliorations, et
+ *  celles qu'il peut monter (`montables`, `ameliorationsMontables`). */
 export interface VehiculeDeLAtelier {
   vehicule: CorpsDuVehicule;
   places: PlaceDuVehicule[];
   pieces: string[];
   ameliorations: readonly string[];
+  montables: string[];
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -248,7 +254,10 @@ export function creerPont() {
       })),
       navires: Object.fromEntries(navires.flatMap(({ id, vehicule, centre }) => {
         const corps = modeles && corpsDuVehicule(vehicule, modeles);
-        return corps ? [[id, { corps, centre }]] : [];
+        if (!modeles || !corps) return [];
+        const manifeste = modeles.manifestes[corps.element];
+        const emprises = estObjet(manifeste) && estObjet(manifeste.cases) ? manifeste.cases as EmprisesDesCases : {};
+        return [[id, { corps, centre, stations: stationsDuNavire(scene!, id, emprises) }]];
       })),
     };
   };
@@ -330,6 +339,10 @@ export function creerPont() {
       }
       ouverte = { ...o, graine, pas: 0, lignes: 0, jour: null, panneau: null, brouillons: 0, regard: 'tactique' };
       return suite(ouverte, o.lancement);
+    },
+    scenarios(json) {
+      entreeDe('scenarios', json, []);
+      return { zones: zonesDesScenarios() };
     },
     vue(json) {
       entreeDe('vue', json, []);
@@ -438,7 +451,8 @@ export function creerPont() {
         upgrades: (ameliorations as string[]).map((id) => ({ id })),
       }, () => undefined);
       const vehicule = vehiculeDuCombattant(fiche, undefined)!;
-      const enVigueur = postesEnVigueur(servis.manifestes[servis.modeles.vehicules[vehicule.definition]], vehicule.ameliorations) ?? {};
+      const manifeste = servis.manifestes[servis.modeles.vehicules[vehicule.definition]];
+      const enVigueur = postesEnVigueur(manifeste, vehicule.ameliorations) ?? {};
       return {
         vehicule: corpsDuVehicule(vehicule, servis)!,
         places: FIRE_ARCS.flatMap((bord) => {
@@ -447,11 +461,16 @@ export function creerPont() {
         }),
         pieces,
         ameliorations: vehicule.ameliorations,
+        montables: ameliorationsMontables(manifeste, offertes),
       };
     },
     catalogues(json) {
       entreeDe('catalogues', json, []);
       return cataloguesDeComposition();
+    },
+    vitrine(json): VitrineDesEffets {
+      entreeDe('vitrine', json, []);
+      return vitrineDesEffets();
     },
     presetDeComposition(json) {
       const e = entreeDe('presetDeComposition', json, ['composition', 'preset']);

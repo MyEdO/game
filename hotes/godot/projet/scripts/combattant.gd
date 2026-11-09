@@ -196,14 +196,11 @@ func _monter(id: String, element: String, embleme: String) -> void:
 	_signaler()
 
 
-## Le clip en cours rejoué au clip que son rôle a maintenant (`MontageDeComposition.clip`), si la tenue à deux mains
-## l'a changé.
+## Le clip en cours rejoué au clip que son rôle a maintenant, si la tenue à deux mains l'a changé
+## (`MontageDeComposition.role_a_rejouer`).
 func _rejouer() -> void:
-	var lecteur := _montage.lecteur
-	if lecteur == null:
-		return
-	var role: String = _montage.role_du_clip(lecteur.assigned_animation)
-	if role != "" and _montage.clip(role) != lecteur.assigned_animation:
+	var role := _montage.role_a_rejouer()
+	if role != "":
 		_jouer(role)
 
 

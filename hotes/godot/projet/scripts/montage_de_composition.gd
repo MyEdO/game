@@ -225,6 +225,7 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 		erreurs.append("squelette-absent : %s" % base.id)
 		return
 	gabarit = GabaritDuSquelette.new()
+	gabarit.lecteur = lecteur
 	squelette.add_child(gabarit)
 
 
@@ -363,6 +364,15 @@ func role_du_clip(nom: String) -> String:
 		if role != null:
 			return role
 	return ""
+
+
+## Le rôle du clip engagé au lecteur (`role_du_clip`) quand la tenue posée lui donne un autre clip (`clip`) ; `""` sinon,
+## ou sans clip engagé.
+func role_a_rejouer() -> String:
+	if lecteur == null or lecteur.assigned_animation == "":
+		return ""
+	var role := role_du_clip(lecteur.assigned_animation)
+	return "" if role == "" or clip(role) == lecteur.assigned_animation else role
 
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache

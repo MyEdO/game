@@ -28,7 +28,7 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
   la traversée des couches se mesure. Un rendu Blender ne prouve rien seul.
 - **Regarde ce que tu livres** : rends l'élément monté sur la base, de face, de profil et de dos, et
   inspecte chaque vue en lisant l'image, à côté de l'illustration. Un rendu que tu n'as pas regardé
-  n'est pas livré. Le statut reste NON VÉRIFIÉ : le juge et l'utilisateur tranchent le reste.
+  n'est pas livré. Un véhicule se regarde et se montre sous son illustration (`cote_a_cote.py`, chapitre 9). Le statut reste NON VÉRIFIÉ : le juge et l'utilisateur tranchent le reste.
 - Rendu final = données brutes : chemins absolus des GLB, manifestes et rendus ; sorties brutes de
   `godot:valider` et `godot:evaluer` ; verdict d'auto-inspection par vue ; écarts au contrat et
   signalements, avec `fichier:ligne`.

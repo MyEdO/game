@@ -4,6 +4,8 @@
 [ext_resource type="Script" path="res://scripts/bulle.gd" id="2_bulle"]
 
 [node name="Ligne" type="Label"]
+custom_minimum_size = Vector2(180, 0)
+size_flags_horizontal = 3
 mouse_filter = 1
 autowrap_mode = 3
 

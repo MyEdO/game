@@ -47,7 +47,7 @@ export function addTalents(c: Combatant, refs: RefDesignee[]): void {
 /** IDS des sorts d'une famille (`family`), et, pour l'Arcane, de ses Domaines (`domainId`, `null` : les sorts sans
  *  Domaine) — `c.spells` = ids (console → findSpellById). */
 export const spellsOf = (family: string, domaines?: (string | null)[]): string[] =>
-  spells.filter((s) => s.family === family && (!domaines || domaines.includes(s.domainId ?? null))).map((s) => s.id);
+  spells.filter((s) => s.family === family && (!domaines || domaines.includes(s.domainId?.id ?? null))).map((s) => s.id);
 
 /** Prêtre COMPLET d'un culte, bâti sur un pré-tiré prêtre neuf (ses objets aux ids de `idNeuf`) : Prière +
  *  Béni/Invocation (Culte) + TOUTES ses Bénédictions ET Miracles. */

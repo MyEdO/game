@@ -2,14 +2,14 @@
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
-  AnimationClip, Bone, BoxGeometry, InterpolateDiscrete, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
-  Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
+  AnimationClip, AnimationMixer, Bone, BoxGeometry, InterpolateDiscrete, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
+  Matrix4, Quaternion, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
 import { ecrireGlb, lireConteneur, lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
-import { appliquerGabarit, bindsAuGabarit, poserEnfantsDuGabarit, poserFormes, reposerGabarit } from './gabarit.ts';
+import { appliquerGabarit, bindsAuGabarit, enfantsDuGabarit, jambesDuGabarit, poserEnfantsDuGabarit, poserFormes, poserLeGabarit, reposerGabarit } from './gabarit.ts';
 import { nomDeCleDuGabarit, poidsDeCarrure, poidsDeSilhouettes, poidsDuGabarit, poseDuGabarit, sensCuitsDuGabarit } from '../gabarit.ts';
 import { FACTEURS_NEUTRES } from '../facteursDuGabarit.ts';
 import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ } from '../silhouettes.ts';
@@ -475,15 +475,129 @@ describe('gabarit', () => {
     expect(mesh.morphTargetInfluences?.[0]).toBeCloseTo(0.5, 9);
   });
 
-  it('`poseDuGabarit` : chaque os porte son facteur et son échelle locale, la racine et la vitesse au sol portent `sl`, les pieds sont `appuis.pieds`', () => {
+  it('`poseDuGabarit` : chaque os porte son facteur et son échelle locale, la racine et la vitesse au sol portent `sl`, les pieds sont `appuis.pieds`, les jambes `legs`, les clips plantés les marches', () => {
     const table = { ...TABLE, legs: ['cuisse', 'bassin'], arms: ['bras'], head: ['cou'] };
-    expect(poseDuGabarit(gabaritEtAppuis(table, ['piedG', 'piedD']), { sl: 0.74, st: 1.25, legs: 0.62, arms: 1.3, head: 0.9 })).toEqual({
+    const clips = { clips: { walk: 'Marche', idle: 'Repos' }, clipsDeuxMains: { lourde2m: { walk: 'Marche_Lourde', idle: 'Repos_Lourd' }, hampe: { idle: 'Repos_Hampe' } } };
+    expect(poseDuGabarit({ ...gabaritEtAppuis(table, ['piedG', 'piedD']), ...clips }, { sl: 0.74, st: 1.25, legs: 0.62, arms: 1.3, head: 0.9 })).toEqual({
       racine: { os: 'racine', echelle: 0.74 },
       enfantsDe: { cuisse: 0.62, bassin: 0.62, bras: 1.3, cou: 0.9 },
       echellesDesOs: { cuisse: [1, 0.62, 1], bassin: [1, 0.62, 1], bras: [1, 1.3, 1], cou: [0.9, 0.9, 0.9] },
       pieds: ['piedG', 'piedD'],
+      jambes: ['cuisse', 'bassin'],
+      clipsPlantes: ['Marche', 'Marche_Lourde'],
       echelleDeVitesse: 0.74,
     });
+    expect(poseDuGabarit({ gabarit: table }, FACTEURS_NEUTRES).clipsPlantes).toEqual([]);
+  });
+
+  /** Racine au sol, bassin à 1 m, et par côté une cuisse de 0,45 m, un mollet de 0,45 m et un pied de 0,08 m vers
+   *  l'avant ; `Marche` balance les cuisses, plie les genoux et fait monter et descendre le bassin. */
+  const deuxJambes = () => {
+    const os = (name: string, parent: Bone | Group, x: number, y: number, z = 0) => {
+      const b = Object.assign(new Bone(), { name });
+      b.position.set(x, y, z);
+      parent.add(b);
+      return b;
+    };
+    const scene = new Group();
+    const racine = os('racine', scene, 0, 0);
+    const bassin = os('bassin', racine, 0, 1);
+    for (const [cote, x] of [['G', 0.1], ['D', -0.1]] as const) {
+      const cuisse = os(`cuisse${cote}`, bassin, x, 0);
+      cuisse.rotation.z = Math.PI;
+      const mollet = os(`mollet${cote}`, cuisse, 0, 0.45);
+      const pied = os(`pied${cote}`, mollet, 0, 0.45);
+      pied.rotation.x = Math.PI / 2;
+      os(`orteil${cote}`, pied, 0, 0.08);
+    }
+    scene.updateMatrixWorld(true);
+    return { scene, racine };
+  };
+  const quaternion = (axe: Vector3, angle: number) => new Quaternion().setFromAxisAngle(axe, angle).toArray();
+  const X = new Vector3(1, 0, 0);
+  /** La cuisse tournée vers le bas (son repos), puis balancée de `angle` autour de x. */
+  const cuisse = (angle: number) => new Quaternion().setFromAxisAngle(new Vector3(0, 0, 1), Math.PI).multiply(new Quaternion().setFromAxisAngle(X, angle)).toArray();
+  const MARCHE = new AnimationClip('Marche', 1, [
+    new VectorKeyframeTrack('bassin.position', [0, 0.5, 1], [0, 0.97, 0, 0, 1, 0, 0, 0.97, 0]),
+    new QuaternionKeyframeTrack('cuisseG.quaternion', [0, 0.5, 1], [...cuisse(0.35), ...cuisse(-0.3), ...cuisse(0.35)]),
+    new QuaternionKeyframeTrack('molletG.quaternion', [0, 0.5, 1], [...quaternion(X, -0.1), ...quaternion(X, -0.6), ...quaternion(X, -0.1)]),
+    new QuaternionKeyframeTrack('cuisseD.quaternion', [0, 0.5, 1], [...cuisse(-0.3), ...cuisse(0.35), ...cuisse(-0.3)]),
+    new QuaternionKeyframeTrack('molletD.quaternion', [0, 0.5, 1], [...quaternion(X, -0.6), ...quaternion(X, -0.1), ...quaternion(X, -0.6)]),
+  ]);
+  const GABARIT_DES_DEUX_JAMBES = {
+    ...gabaritEtAppuis({ ...TABLE, legs: ['cuisseG', 'molletG', 'cuisseD', 'molletD'], bornes: { ...TABLE.bornes, legs: { min: 0.6, max: 1.2 } } }, ['piedG', 'piedD']),
+    clips: { walk: 'Marche' },
+  };
+  /** Par instant de `MARCHE` (pas 0,125 s), les matrices monde des os de `deuxJambes` jouée sans gabarit, puis posée
+   *  par `poserLeGabarit` sous `facteurs`, jambes pliées si `plante`. */
+  const posesDuGabarit = (facteurs: typeof FACTEURS_NEUTRES, plante: boolean) => {
+    const { scene, racine } = deuxJambes();
+    const pose = poseDuGabarit(GABARIT_DES_DEUX_JAMBES, facteurs);
+    const trouver = (nom: string) => scene.getObjectByName(nom) as Bone;
+    const [enfants, jambes] = [enfantsDuGabarit(pose, trouver), jambesDuGabarit(pose, trouver)];
+    const mixer = new AnimationMixer(scene);
+    mixer.clipAction(MARCHE).play();
+    return instants(MARCHE, 0.125).map((t) => {
+      racine.scale.setScalar(1);
+      racine.position.set(0, 0, 0);
+      for (const [enfant] of enfants) enfant.position.y = 0.45;
+      mixer.setTime(t);
+      scene.updateMatrixWorld(true);
+      const neutre = new Map<string, Matrix4>();
+      scene.traverse((n) => { if ((n as Bone).isBone) neutre.set(n.name, n.matrixWorld.clone()); });
+      poserLeGabarit(racine, pose.racine.echelle, enfants, plante ? jambes : [], new Vector3(0, 1, 0));
+      const posee = new Map<string, Matrix4>();
+      scene.traverse((n) => { if ((n as Bone).isBone) posee.set(n.name, n.matrixWorld.clone()); });
+      return { neutre, posee };
+    });
+  };
+  const ecartDeMatrices = (a: Matrix4, b: Matrix4) => Math.max(...a.elements.map((v, i) => Math.abs(v - b.elements[i])));
+  const echelle = (sl: number, m: Matrix4) => new Matrix4().makeScale(sl, sl, sl).multiply(m);
+  const extension = (os: ReadonlyMap<string, Matrix4>, cote: string) => {
+    const [h, k, a] = [`cuisse${cote}`, `mollet${cote}`, `pied${cote}`].map((nom) => new Vector3().setFromMatrixPosition(os.get(nom)!));
+    return a.distanceTo(h) / (k.distanceTo(h) + a.distanceTo(k));
+  };
+
+  it('`poserLeGabarit` plié : chaque pied et ses descendants gardent la matrice monde du clip sans gabarit multipliée par `sl`', () => {
+    for (const facteurs of [{ ...FACTEURS_NEUTRES, legs: 0.6 }, { ...FACTEURS_NEUTRES, legs: 1.2 }, { ...FACTEURS_NEUTRES, sl: 0.8, legs: 0.6 }]) {
+      posesDuGabarit(facteurs, true).forEach(({ neutre, posee }, t) => {
+        for (const pied of ['piedG', 'piedD', 'orteilG', 'orteilD']) {
+          expect(ecartDeMatrices(posee.get(pied)!, echelle(facteurs.sl, neutre.get(pied)!)), `${pied} legs=${facteurs.legs} sl=${facteurs.sl} t=${t}`).toBeLessThan(1e-6);
+        }
+      });
+    }
+  });
+
+  it('`poserLeGabarit` plié : une jambe garde l’extension du clip sans gabarit, l’autre ne la dépasse pas', () => {
+    for (const legs of [0.6, 1.2]) {
+      posesDuGabarit({ ...FACTEURS_NEUTRES, legs }, true).forEach(({ neutre, posee }, t) => {
+        const ecarts = ['G', 'D'].map((cote) => extension(posee, cote) - extension(neutre, cote));
+        expect(Math.max(...ecarts), `legs=${legs} t=${t}`).toBeCloseTo(0, 6);
+      });
+    }
+  });
+
+  it('`poserLeGabarit` : aux jambes neutres le plié rend la pose du clip ; sans jambes, il ne plie rien', () => {
+    posesDuGabarit({ ...FACTEURS_NEUTRES, sl: 0.8 }, true).forEach(({ neutre, posee }, t) => {
+      for (const [nom, matrice] of posee) expect(ecartDeMatrices(matrice, echelle(0.8, neutre.get(nom)!)), `${nom} t=${t}`).toBeLessThan(1e-6);
+    });
+    posesDuGabarit({ ...FACTEURS_NEUTRES, legs: 0.6 }, false).forEach(({ neutre, posee }, t) => {
+      for (const cote of ['G', 'D']) expect(extension(posee, cote), `t=${t}`).toBeCloseTo(extension(neutre, cote), 9);
+      expect(ecartDeMatrices(posee.get('racine')!, neutre.get('racine')!), `t=${t}`).toBe(0);
+    });
+  });
+
+  it('`echantillonner` plie les jambes sur les seuls clips plantés', () => {
+    const ecartsAuSol = (clip: AnimationClip) => {
+      const neutre = [...echantillonner(deuxJambes().scene, [], [clip], 0.25, null)].map((e) => e.os);
+      const gabarit = appliquerGabarit(deuxJambes().scene, { ...FACTEURS_NEUTRES, legs: 0.6 }, GABARIT_DES_DEUX_JAMBES);
+      return [...echantillonner(gabarit.scene, [], [clip], 0.25, gabarit)].map((e, t) => Math.max(...['piedG', 'piedD'].map((pied) => {
+        const [a, b] = [e.os, neutre[t]].map((os) => new Vector3().setFromMatrixPosition(os.get(pied)!));
+        return Math.hypot(a.x - b.x, a.z - b.z);
+      })));
+    };
+    for (const ecart of ecartsAuSol(MARCHE)) expect(ecart).toBeLessThan(1e-6);
+    expect(Math.max(...ecartsAuSol(new AnimationClip('Libre', 1, MARCHE.tracks)))).toBeGreaterThan(0.01);
   });
 
   it('`poidsDuGabarit` : noms uniques, neutre nul, demi-domaines asymétriques, extrapolation et produits des silhouettes', () => {

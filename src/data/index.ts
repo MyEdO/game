@@ -59,6 +59,7 @@ import { deDeTirageDe, rangeesDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as imparfaites from './schemas/defs/miscast';
 import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
+import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as tableauDesOups from './schemas/defs/oups';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
@@ -1711,6 +1712,9 @@ export interface ManeuverDef {
   stakeForm?: StakeForm;
   /** Valeurs des trous de `stake`, posées par la composition (`souffleDuType`) ; aucune entrée n'en porte. */
   enjeu?: Record<string, string>;
+  /** Rendu visuel et sonore d'une manœuvre de zone (`rendus.json`) ; celui d'un Souffle composé est celui de son Type
+   *  (`souffleDuType`). */
+  rendu?: { id: string };
 }
 /** Drapeaux de CAPACITÉ IRRÉDUCTIBLES d'un trait (LDB 85) — décisions d'IA/psychologie, règles de
  *  résolution de combat, capacités de construction/déplacement/vision : NI un modificateur (`passive`)
@@ -1752,7 +1756,7 @@ export interface TraitCapabilities {
    *  anti-démon/mort-vivant (hors Bête) n'est PAS modélisée — le moteur n'a aucun concept de créature
    *  « vulnérable comme un démon/mort-vivant » (les riders de Domaine ciblent l'appartenance LITTÉRALE
    *  à un Groupe/Trait), donc rien d'inventé. */
-  spellDomainImmunity?: string;
+  spellDomainImmunity?: { id: string };
   /** Contre-attaque en gagnant un Test opposé de défense (Champion LDB 85). MÊME capacité GÉNÉRIQUE que
    *  le talent Riposte (`CombatFeature.counterOnDefenseWin`) — un seul concept pour traits ET talents. */
   counterOnDefenseWin?: boolean;
@@ -2157,10 +2161,9 @@ export interface SpellData {
   /** ÉCOLE — libellé d'affichage hérité (dépotoir de 18 valeurs) ; la logique branche sur `family`/`domainId`. Dette : #1517. */
   ecole: string;
   subType: string | null;
-  /** id STABLE du Domaine de magie (= `DomainData.id`, ex. « feu ») — source RUNTIME du chemin
-   *  sort→domaine (attributs LDB 48). Dérivé du `subType` (libellé) à l'authoring ; le runtime ne
-   *  lit QUE l'id. Absent = Sort sans Domaine (Magie Mineure, Prière…). */
-  domainId?: string;
+  /** Domaine de magie du Sort — source RUNTIME du chemin sort→domaine (attributs LDB 48). Absent = Sort
+   *  sans Domaine (Magie Mineure, Prière…). */
+  domainId?: { id: string };
   /** Le Sort est un RITUEL (`VDM 02 l.363`) : même résolution qu'un Sort (`l.379`), rubriques
    *  d'anatomie en plus (`l.377-393`). TAG lu par les modificateurs de NI qui ne visent qu'une des
    *  deux natures (`VDM 12 l.646-647`, `VDM 14 l.489`). */
@@ -2690,10 +2693,10 @@ export const riverNavigation = riverNavigationJson as RiverNavigationData;
 export const seaCargo = seaCargoJson as SeaCargoData;
 export const landCargo = landCargoJson as LandCargoData;
 
-/** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE consommé par
- *  référence (`MapPlace.services[].kind`) et résolu par `placeServices` (`src/noyau/worldMap.ts`).
- *  `port`/`marché` gardent leur propre schéma riche ; ce catalogue couvre le RESTE (auberge/temple/
- *  forgeron/guilde…) — id STABLE → libellé/icône d'affichage du hub de lieu. */
+/** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE désigné par
+ *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par `placeServices`
+ *  (`src/noyau/worldMap.ts`). `port`/`marche` y donnent le libellé, l'icône et le fond par défaut du port et du
+ *  marché d'un lieu, qui gardent leur propre schéma riche — id STABLE → libellé/icône d'affichage du hub de lieu. */
 export interface LieuServiceData {
   id: string;
   type: 'lieux-services';
@@ -2705,7 +2708,9 @@ export interface LieuServiceData {
   /** Bande d'ambiance par défaut. */
   backdrop?: { id: string };
   /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, #369). */
-  merchantArchetype?: string;
+  merchantArchetype?: { id: string };
+  /** Service d'hébergement : couchage du lieu, sinon de la scène liée (`placeServices`). */
+  hebergement?: true;
   /** Écran plein-champ EXISTANT vers lequel ce service PORTE (#369) : `port` = l'écran de port
    *  (onglet Chantier par défaut), sous garde de navire de campagne. Champ DÉCLARÉ, jamais un
    *  branchement d'id (#842). */
@@ -2821,7 +2826,12 @@ export const findLightLevelById: (id: string) => LightLevelDef | undefined = niv
  *  vacillement optionnel. Aucune conséquence de règle : le moteur ne connaît d'une source que son
  *  RAYON (LDB 74). Référencé par `tone` (prop, instance de scène, op `light`, `ActiveEffect.light`) ;
  *  absent = `flamme`. Résolu au bord du RENDU. */
-export interface LightToneDef { id: string; type: 'lightTones'; label: string; color: string; intensity: number; flicker?: { amplitude: number; hz: number } }
+export interface LightToneDef {
+  id: string; type: 'lightTones'; label: string; color: string; intensity: number; flicker?: { amplitude: number; hz: number };
+  /** Ce que la source montre à son foyer (`VisuelDeLumiere`), et le son qu'elle joue en boucle. */
+  visuel?: VisuelDeLumiere;
+  son?: { id: string };
+}
 export const lightTones = lightTonesJson as LightToneDef[];
 /** Lookup LIVE par BALAYAGE, et non par `indexParId` : à QUATRE entrées, l'index ne rachète pas son
  *  coût — même choix MESURÉ que `matieresDe` (`+4,1 ms` contre un index sur 18 026 lookups, #1686 lot
@@ -2830,9 +2840,10 @@ export const lightTones = lightTonesJson as LightToneDef[];
 export const findLightToneById = (id: string): LightToneDef | undefined => lightTones.find((t) => t.id === id);
 /** Ton SERVI à une source qui n'en nomme aucun — le feu, le cas du monde (brasero, feu de camp). */
 export const DEFAULT_LIGHT_TONE_ID = 'flamme';
-/** RENDU d'un coup ou d'une incantation (#3771) : couleur, et par phase (départ, impact, manque, parade) le visuel que
- *  l'hôte dessine et le son du registre (`sons/defs`) ; le projectile, sa vitesse et sa cloche. Référencé par `rendu`
- *  (Groupe d'arme, objet, Domaine). Aucune conséquence de règle. Résolu par `effetsDeLAppel` (`src/noyau/effetsDeLAppel.ts`). */
+/** RENDU d'un coup, d'une incantation ou d'une zone d'effet (#3771, #3783) : couleur, et par phase (départ, impact,
+ *  manque, parade, zone) le visuel que l'hôte dessine et le son du registre (`sons/defs`) ; le projectile, sa vitesse et
+ *  sa cloche. Référencé par `rendu` (Groupe d'arme, objet, Domaine, Type de Souffle, manœuvre). Aucune conséquence de
+ *  règle. Résolu par `effetsDeLAppel` (`src/noyau/effetsDeLAppel.ts`). */
 export interface RenduDef {
   id: string;
   type: 'rendus';
@@ -2849,8 +2860,11 @@ export interface RenduDef {
   manqueSon?: { id: string };
   paradeVisuel?: VisuelDEffet;
   paradeSon?: { id: string };
+  zoneVisuel?: VisuelDEffet;
+  zoneSon?: { id: string };
 }
 export type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
+export type { VisuelDeLumiere } from './schemas/defs/lightTones';
 export const rendus = rendusJson as RenduDef[];
 export const findRenduById = indexParId('rendus', rendus);
 /** Contrats NEUTRES du décor (type de prop, recette volumique, matériaux, places assises) — définis
@@ -2875,7 +2889,7 @@ export const findTeinteById = (id: string | undefined): TeinteDObjet | undefined
 /** Couleur nommée du nuancier, par id — lecture VIVANTE du document (`matieresDe`). */
 export const findCouleurById = (id: string): CouleurNommee | undefined => matieresDe('couleur').find((m) => m.id === id);
 /** Domaines de magie app-owned (LDB 48) — ENTITÉ éditable au Codex (attributs en données : onHit,
- *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId`, cf.
+ *  projectile, post-incantation). Le RUNTIME résout par `id` STABLE (= `SpellData.domainId.id`, cf.
  *  `findDomainById`). */
 export const domains = domainsJson as DomainData[];
 /** Index des Domaines par `id` STABLE — lookup RUNTIME indépendant de la langue (sort→domaine). */
@@ -3017,6 +3031,11 @@ export function sourceRefLabel(ref: Pick<SourceRef, 'book' | 'page'>): PlayerTex
 export function bookAbr(id: string | null | undefined): PlayerText {
   return dataLabel(id ? livreParId(id)?.abbr : '', id ?? '');
 }
+/** Le libellé d'AUTHORING d'une entrée : son libellé marqué du sigle de son livre (forme de `bookMarker.ts`, « Baliste
+ *  (AA) »), qui distingue deux entrées homonymes de livres différents ; jamais rendu au joueur. */
+export function libelleDAuteur(entree: { readonly label: string; readonly source?: { readonly book: string } | undefined }): PlayerText {
+  return dataLabel(entree.source ? `${entree.label} (${bookAbr(entree.source.book)})` : entree.label);
+}
 /** Culte/Dieu (LDB 41) : `id` = slug STABLE (« sigmar »), `label` = nom affiché (« Sigmar »), Bénédictions/
  *  Miracles en ids de sort, desc = lore en Markdown (Codex). Dataset éditable (Compendium). */
 export interface GodData {
@@ -3149,12 +3168,12 @@ export function refEntiteResolue(ref: string): boolean {
   return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
 }
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
- *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé ; la clé `definition` d'un élément 3D
+ *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */
-export function findFicheDeVehicule(id: string): { readonly label: string } | undefined {
+export function findFicheDeVehicule(id: string): { readonly label: string; readonly source: { readonly book: string } | undefined } | undefined {
   const coque = findVehicleById(id);
   const fiche = (coque?.hull ? coque : undefined) ?? siegeEngines().find((t) => t.id === id);
-  return fiche && { label: fiche.label };
+  return fiche && { label: fiche.label, source: fiche.source };
 }
 /**
  * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son
@@ -3402,6 +3421,7 @@ export interface BreathTypeData {
   fumee?: boolean;
   types?: { id: string }[];
   typeDeDegats?: { id: string };
+  rendu: { id: string };
 }
 export const breathTypes = breathTypesJson as BreathTypeData[];
 const typeSouffleParId = indexParId('breathTypes', breathTypes);
@@ -3416,7 +3436,7 @@ export function breathTypeLabel(id: string | null | undefined): PlayerText {
 /** Type de Dégâts ignoré par le Trait Immunité (LDB 85 : « poison, magiques ou électriques ») — argument du
  *  Trait Immunité (multi-valeurs) ET valeur de la Condition `has … what:'immunity'` (Venin (Poison)…). Registre SSOT
  *  (`damage-types.json`, éditable). */
-export interface DamageTypeData { id: string; type: 'damage-types'; label: string; domaine?: string; }
+export interface DamageTypeData { id: string; type: 'damage-types'; label: string; domaine?: { id: string }; }
 export const damageTypes = damageTypesJson as DamageTypeData[];
 const typeDegatsParId = indexParId('damageTypes', damageTypes);
 /** Résout un Type de Dégâts par son `id` STABLE. */

@@ -29,9 +29,9 @@ from formes import aretes_des_triangles  # noqa: E402
 from noms_silhouettes import SILHOUETTES  # noqa: E402
 from silhouettes import ajouter_feminin_et_carrure, bornes_de_st, corps_et_secondaires, finir_les_silhouettes  # noqa: E402
 from sol import (bas_des_sources, deplacements, figer, garder_les_poids_des_pieds, poser_les_clips_au_sol,  # noqa: E402
-                 restaurer, retirer_sans_sol, surfaces_des_pieds)
+                 restaurer, retirer_sans_sol, rigidifier_les_pieds, surfaces_des_pieds)
 from point_fixe import atteindre_le_point_fixe, suite_de_phase  # noqa: E402
-from cuisson_gabarit import (bornes_du_gabarit, cuire_gabarit, preparer_reference, groupes_de_peau,
+from cuisson_gabarit import (bornes_du_gabarit, clips_plantes, cuire_gabarit, preparer_reference, groupes_de_peau,
                             exporter_gabarit, etats_aux_facteurs_neutres, etats_du_gabarit)
 from seuils import TOLERANCE_JUMEAUX_POSITION_M
 import numpy as np  # noqa: E402
@@ -183,7 +183,7 @@ def faces_des_noeuds(peau, noeud):
     return t[(t[:, 0] != t[:, 1]) & (t[:, 1] != t[:, 2]) & (t[:, 0] != t[:, 2])]
 
 
-def preparer_moteurs(rig, peaux, clips, table, etats, courantes, contraintes, ressources, repos_cuit=False, captures=None):
+def preparer_moteurs(rig, peaux, clips, plantes, table, etats, courantes, contraintes, ressources, repos_cuit=False, captures=None):
     """#3104 issuecomment-6549354475 ; #3101 issuecomment-6516197619."""
     cellules = cellules_du_domaine(etats)
     demandes = etats['etats']
@@ -205,11 +205,11 @@ def preparer_moteurs(rig, peaux, clips, table, etats, courantes, contraintes, re
 
     if repos_cuit:
         diagnostic = {}
-        with groupes_de_peau(rig, [], table, demandes, diagnostic=diagnostic) as (os, groupes):
+        with groupes_de_peau(rig, [], table, demandes, (), diagnostic=diagnostic) as (os, groupes):
             for _, _, etat in sous(groupes, os, diagnostic):
                 verifier_repos_cuit(etat)
     diagnostic = {}
-    os, groupes = ressources.enter_context(groupes_de_peau(rig, clips, table, demandes, diagnostic=diagnostic))
+    os, groupes = ressources.enter_context(groupes_de_peau(rig, clips, table, demandes, plantes, diagnostic=diagnostic))
     return sous(groupes, os, diagnostic)
 
 
@@ -242,12 +242,14 @@ def construire(args):
         preparer(action)
     figee = {a.name: figer(a) for a in clips}
     poser_au_sol(bpy, squelette, peaux)
+    rigidifier_les_pieds(squelette, peaux, PIEDS)
     corps, secondaires = corps_et_secondaires(peaux)
     corps_f, _ = corps_et_secondaires(meshes_for(bpy, squelette_f))
     bornes = bornes_de_st()
     table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
     declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
     marches = [declaration['clips']['walk']]
+    plantes = clips_plantes(declaration)
     noms = [b.name for b in squelette.data.bones]
     reprises = None if args.reprises is None else Reprises(
         args.reprises, empreinte_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k not in ('reprises', 'sortie')}),
@@ -268,7 +270,7 @@ def construire(args):
         ajouter_corpulence(squelette, corps, args.mpfb)
         neutres = etats_aux_facteurs_neutres(table, silhouettes(peaux))
         rabot = finir_les_silhouettes(squelette, corps, secondaires, table, etats_du_gabarit(table, silhouettes(peaux)),
-                                      clips, neutres, rabot)
+                                      clips, plantes, neutres, rabot)
         return neutres
 
     def poser_les_clips():
@@ -324,7 +326,7 @@ def construire(args):
             precedentes = courantes
         clear_animation(squelette)
         bpy.context.view_layer.update()
-        moteurs = preparer_moteurs(squelette, peaux, clips, table, etats, courantes, contraintes,
+        moteurs = preparer_moteurs(squelette, peaux, clips, plantes, table, etats, courantes, contraintes,
                                   ressources, repos_cuit=phase == 'gabarit', captures=captures if phase == 'gabarit' else None)
         phase_actuelle = phase
         a_preparer = False
@@ -425,7 +427,7 @@ def construire(args):
     print('GABARIT_BORNES', json.dumps(table['bornes']), flush=True)
     exporter_gabarit(peaux, references)
     formes = silhouettes(peaux)
-    candidats = selectionner_appuis(squelette, peaux, clips, table, etats_des_appuis(table, formes))
+    candidats = selectionner_appuis(squelette, peaux, clips, plantes, table, etats_des_appuis(table, formes))
     manifeste = poser(squelette, peaux)
     manifeste['appuis']['plusBas'] = candidats
     manifeste['gabarit'] = table

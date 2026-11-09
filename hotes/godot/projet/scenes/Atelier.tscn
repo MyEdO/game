@@ -1,4 +1,4 @@
-[gd_scene load_steps=11 format=3]
+[gd_scene load_steps=14 format=3]
 
 [ext_resource type="Script" path="res://scripts/atelier.gd" id="1_atelier"]
 [ext_resource type="PackedScene" path="res://scenes/Lumiere.tscn" id="2_lumiere"]
@@ -6,6 +6,7 @@
 [ext_resource type="Script" path="res://scripts/marche.gd" id="4_marche"]
 [ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="5_montage"]
 [ext_resource type="Script" path="res://scripts/montage_de_vehicule.gd" id="6_vehicule"]
+[ext_resource type="Script" path="res://scripts/effets.gd" id="7_effets"]
 
 [sub_resource type="StandardMaterial3D" id="Materiau_sol"]
 albedo_color = Color(0.22, 0.2, 0.18, 1)
@@ -13,6 +14,15 @@ albedo_color = Color(0.22, 0.2, 0.18, 1)
 [sub_resource type="PlaneMesh" id="Maillage_sol"]
 material = SubResource("Materiau_sol")
 size = Vector2(40, 40)
+
+[sub_resource type="StandardMaterial3D" id="Materiau_cible"]
+albedo_color = Color(0.55, 0.45, 0.35, 1)
+
+[sub_resource type="CylinderMesh" id="Maillage_cible"]
+material = SubResource("Materiau_cible")
+top_radius = 0.25
+bottom_radius = 0.3
+height = 1.8
 
 [sub_resource type="ButtonGroup" id="Groupe_vitesses"]
 
@@ -31,6 +41,16 @@ script = ExtResource("5_montage")
 
 [node name="Vehicule" type="Node3D" parent="."]
 script = ExtResource("6_vehicule")
+
+[node name="Effets" type="Node3D" parent="."]
+script = ExtResource("7_effets")
+
+[node name="Cible" type="Node3D" parent="."]
+visible = false
+
+[node name="Mannequin" type="MeshInstance3D" parent="Cible"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+mesh = SubResource("Maillage_cible")
 
 [node name="Orbite" type="Node3D" parent="."]
 
@@ -61,7 +81,12 @@ theme_override_styles/panel = ExtResource("3_fond")
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Onglets" type="HBoxContainer" parent="Interface/Panneau/Racine"]
+[node name="ChoixDuModele" type="VBoxContainer" parent="Interface/Panneau/Racine"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Onglets" type="HFlowContainer" parent="Interface/Panneau/Racine"]
 layout_mode = 2
 
 [node name="OngletPersonnage" type="Button" parent="Interface/Panneau/Racine/Onglets"]
@@ -96,6 +121,15 @@ size_flags_horizontal = 3
 toggle_mode = true
 button_group = SubResource("Groupe_onglets")
 text = "Animation"
+
+[node name="OngletEffets" type="Button" parent="Interface/Panneau/Racine/Onglets"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_group = SubResource("Groupe_onglets")
+text = "Effets"
+
 
 [node name="OngletOutils" type="Button" parent="Interface/Panneau/Racine/Onglets"]
 unique_name_in_owner = true
@@ -213,7 +247,7 @@ theme_override_constants/separation = 6
 [node name="AideDesCouleurs" type="Label" parent="Interface/Panneau/Racine/DefilementCouleurs/Colonne"]
 layout_mode = 2
 autowrap_mode = 3
-text = "Chaque couleur teint les matières du corps et des pièces montées qui la portent ; « Par défaut » garde la matière du modèle."
+text = "Chaque couleur teint les matières du modèle posé, et de ce qui y est monté, qui la portent ; « Par défaut » garde la matière du modèle."
 
 [node name="Couleurs" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementCouleurs/Colonne"]
 unique_name_in_owner = true
@@ -307,10 +341,82 @@ button_group = SubResource("Groupe_vitesses")
 text = "×2"
 metadata/vitesse = 2.0
 
+[node name="Actions" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="TitreActions" type="Label" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne/Actions"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Actions"
+
+[node name="Attaquer" type="Button" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Attaquer"
+
 [node name="AideDeMarche" type="Label" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne"]
 layout_mode = 2
 autowrap_mode = 3
 text = "Marche avec ZQSD ou les flèches ; la caméra tourne au clic droit et zoome à la molette."
+
+[node name="DefilementEffets" type="ScrollContainer" parent="Interface/Panneau/Racine"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Colonne" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEffets"]
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="TitreArmes" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Armes"
+
+[node name="VitrineArmes" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreSorts" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Sorts"
+
+[node name="VitrineSorts" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreZones" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Zones et souffles"
+
+[node name="VitrineZones" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreLumieres" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Lumières"
+
+[node name="VitrineLumieres" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreSons" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Sons"
+
+[node name="VitrineSons" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
 
 [node name="DefilementOutils" type="ScrollContainer" parent="Interface/Panneau/Racine"]
 unique_name_in_owner = true
@@ -324,21 +430,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="TitreBase" type="Label" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
-layout_mode = 2
-theme_type_variation = &"HeaderSmall"
-text = "Base"
-
-[node name="Corps" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
-unique_name_in_owner = true
-layout_mode = 2
-
 [node name="Recharger" type="Button" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Recharger les modèles"
 
 [node name="TitreAides" type="Label" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"HeaderSmall"
 text = "Aides"

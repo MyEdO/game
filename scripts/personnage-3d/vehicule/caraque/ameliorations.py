@@ -10,6 +10,7 @@ import math
 from mathutils import Matrix, Vector
 
 import habillage
+import navire as N
 from caraque import modele as K
 from maille import Maille, lineaire, objet, poutre
 
@@ -47,14 +48,14 @@ def figure_de_proue(D):
     incl = math.radians(35)
     axe = Vector((0, -math.sin(incl), math.cos(incl)))   # du bas (sur l'étrave) vers la tête, penché vers l'avant
     pied = Vector((0, 0.35, -0.9))
-    K.fuseau(m, pied, pied + axe * 1.2, [(0, 0), (0, 0.10), (0.3, 0.22), (0.7, 0.26), (1, 0.18), (1, 0)], 10, "dorure")
+    N.fuseau(m, pied, pied + axe * 1.2, [(0, 0), (0, 0.10), (0.3, 0.22), (0.7, 0.26), (1, 0.18), (1, 0)], 10, "dorure")
     buste = pied + axe * 1.2
-    K.fuseau(m, buste, buste + axe * 0.75, [(0, 0), (0, 0.19), (0.4, 0.25), (0.8, 0.2), (1, 0.12), (1, 0)], 10, "peinture")
+    N.fuseau(m, buste, buste + axe * 0.75, [(0, 0), (0, 0.19), (0.4, 0.25), (0.8, 0.2), (1, 0.12), (1, 0)], 10, "peinture")
     tete = buste + axe * 0.95
-    K.fuseau(m, tete - axe * 0.18, tete + axe * 0.2, [(0, 0), (0.05, 0.12), (0.5, 0.17), (0.95, 0.12), (1, 0)], 10, "chair")
+    N.fuseau(m, tete - axe * 0.18, tete + axe * 0.2, [(0, 0), (0.05, 0.12), (0.5, 0.17), (0.95, 0.12), (1, 0)], 10, "chair")
     for s in (1, -1):   # bras croisés vers l'arrière, mains jointes
         epaule = buste + axe * 0.62 + Vector((s * 0.24, 0, 0))
-        K.espar(m, epaule, epaule + Vector((s * 0.05, 0.25, -0.35)), 0.07, 0.055, 6, "chair")
+        N.espar(m, epaule, epaule + Vector((s * 0.05, 0.25, -0.35)), 0.07, 0.055, 6, "chair")
     for s in (1, -1):   # nageoire caudale contre l'étrave
         poutre(m, pied, pied + Vector((s * 0.35, 0.15, -0.4)), 0.25, 0.05, (0, 1, 0), "dorure")
     objet("figure", m, (0, 0, 0), 35)
@@ -66,14 +67,14 @@ def ancre(D):
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
     haut, bas = Vector((0, 0, -0.25)), Vector((0, 0, -2.3))
-    K.fuseau(m, Vector((0, 0, 0.0)), Vector((0, 0, -0.25)), [(0, 0), (0, 0.12), (1, 0.12), (1, 0)], 8, "fer")  # organeau
-    K.espar(m, haut, bas, 0.09, 0.11, 8, "fer")                                        # verge
+    N.fuseau(m, Vector((0, 0, 0.0)), Vector((0, 0, -0.25)), [(0, 0), (0, 0.12), (1, 0.12), (1, 0)], 8, "fer")  # organeau
+    N.espar(m, haut, bas, 0.09, 0.11, 8, "fer")                                        # verge
     poutre(m, Vector((-0.9, 0, -0.45)), Vector((0.9, 0, -0.45)), 0.16, 0.16, (0, 1, 0), "bois")   # jas, en travers
     for s in (1, -1):   # bras en arc et pattes, dans le plan y
         coude = bas + Vector((0, s * 0.55, 0.25))
-        K.espar(m, bas, coude, 0.10, 0.08, 6, "fer")
+        N.espar(m, bas, coude, 0.10, 0.08, 6, "fer")
         bout = coude + Vector((0, s * 0.25, 0.45))
-        K.espar(m, coude, bout, 0.08, 0.04, 6, "fer")
+        N.espar(m, coude, bout, 0.08, 0.04, 6, "fer")
         poutre(m, coude + Vector((0, s * 0.05, 0.05)), bout - Vector((0, 0, 0.05)), 0.28, 0.03, (0, 1, 0), "fer")
     objet("ancre", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
@@ -122,7 +123,7 @@ def nid_de_pie(D):
     m = Maille(list(mats.values()))
     hune = D["HUNE"]
     z0, z1 = hune[0][0], max(z for z, _ in hune)
-    K.fuseau(m, (0, 0, 0), (0, 0, z1 - z0), [((z - z0) / (z1 - z0), r) for z, r in hune], D["COTES_HUNE"], "bois")
+    N.fuseau(m, (0, 0, 0), (0, 0, z1 - z0), [((z - z0) / (z1 - z0), r) for z, r in hune], D["COTES_HUNE"], "bois")
     objet("hune", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
 
@@ -139,13 +140,13 @@ def embarcation(D):
     anneaux = []
     for zz, k in ((z_fond, 0.35), (z_fond + creux * 0.5, 0.85), (z_fond + creux, 1.0)):
         anneaux.append([(largeur(t) * k, (t - 0.5) * L, zz) for t in stations])
-    K.enceinte(m, anneaux, True, (0.06, 0.08), lambda yy: z_fond + 0.15, "bois")
+    N.enceinte(m, anneaux, True, (0.06, 0.08), lambda yy: z_fond + 0.15, "bois")
     for t in (0.3, 0.55, 0.8):   # bancs
         poutre(m, (-largeur(t) * 0.92, (t - 0.5) * L, z_fond + creux * 0.6), (largeur(t) * 0.92, (t - 0.5) * L, z_fond + creux * 0.6), 0.25, 0.05, (0, 0, 1), "bois")
     for y0 in (-1.4, 1.4):         # chantiers sur le pont
         poutre(m, (-0.9, y0, z_fond / 2), (0.9, y0, z_fond / 2), 0.3, z_fond, (0, 0, 1), "bois")
     for s in (1, -1):              # avirons rangés
-        K.espar(m, (s * 0.35, -2.0, z_fond + creux * 0.7), (s * 0.35, 2.0, z_fond + creux * 0.7), 0.04, 0.03, 6, "bois")
+        N.espar(m, (s * 0.35, -2.0, z_fond + creux * 0.7), (s * 0.35, 2.0, z_fond + creux * 0.7), 0.04, 0.03, 6, "bois")
     objet("canot", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
 
@@ -158,9 +159,9 @@ def ralentisseurs(D):
     rangs = [[(0, -0.6, 0.3), (0, 0.6, 0.3)], [(0, -0.9, -1.2), (0, 0.9, -1.2)], [(0, -0.8, -2.4), (0, 0.8, -2.4)]]
     for (a, b), (c, d) in zip(rangs, rangs[1:]):
         for x in (-0.06, 0.06):
-            K.nappe(m, [[(x, *a[1:]), (x, *b[1:])], [(x, *c[1:]), (x, *d[1:])]], "bois")
+            N.nappe(m, [[(x, *a[1:]), (x, *b[1:])], [(x, *c[1:]), (x, *d[1:])]], "bois")
     poutre(m, (0, -0.95, -1.2), (0, 0.95, -1.2), 0.12, 0.16, (0, 0, 1), "fer")
-    K.fuseau(m, (-0.4, 0, 0.3), (0.4, 0, 0.3), [(0, 0), (0, 0.12), (1, 0.12), (1, 0)], 8, "fer")   # axe, du bordé au pivot
+    N.fuseau(m, (-0.4, 0, 0.3), (0.4, 0, 0.3), [(0, 0), (0, 0.12), (1, 0.12), (1, 0)], 8, "fer")   # axe, du bordé au pivot
     for x in (-0.4, 0.4):   # ferrures sur la préceinte
         poutre(m, (x, -0.25, 0.3), (x, 0.25, 0.3), 0.3, 0.08, (1, 0, 0), "fer")
     objet("aileron", m, (0, 0, 0), 35)
@@ -179,7 +180,7 @@ def triangle_raye(m, amure, tete, ecoute, creux, rayures, ns=6, nt=4):
             p = haut + (bas - haut) * t
             rang.append(tuple(p + Vector((creux * math.sin(math.pi * s_) * math.sin(math.pi * max(t, 0.15)), 0, 0))))
         rangs.append(rang)
-    K.nappe(m, rangs, None, mats)
+    N.nappe(m, rangs, None, mats)
 
 
 def clinfoc(D, C):
@@ -192,7 +193,7 @@ def clinfoc(D, C):
     tete = etai * 0.74
     ecoute = Vector((0, 6.5, -3.5))
     triangle_raye(m, amure, tete, ecoute, 0.45, D["RAYURES"])
-    K.espar(m, ecoute, ecoute + Vector((0, 0.0, -0.01)) + (amure - ecoute) * 0.02, 0.04, 0.04, 4, "bois")
+    N.espar(m, ecoute, ecoute + Vector((0, 0.0, -0.01)) + (amure - ecoute) * 0.02, 0.04, 0.04, 4, "bois")
     objet("foc", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
 
@@ -207,7 +208,7 @@ def sabords(D, C, sorte, marge):
     demi_l = lo / 2 + cadre + marge
     demi_h = ho / 2 + cadre + marge
     rects = []
-    for centre, bord, _, s_, _ in K.sabords_des_ponts(D, C.P, C, K.Pieces(D, C.P, C)):
+    for centre, bord, _, s_, _ in K.sabords_des_ponts(D, C.P, C, N.Pieces(D, C.P, C)):
         if s_ != sorte:
             continue
         if bord in ("tribord", "babord"):
@@ -332,7 +333,7 @@ def bouteur(D, C):
     for t in (0.15, 0.5, 0.85):
         c = bas + (haut - bas) * t
         poutre(m, c - d * 0.06, c + d * 0.06, 1.0, 0.32, (1, 0, 0), "fer")
-    K.espar(m, haut, Vector((0, haut.y - 0.3, 4.3)), 0.13, 0.11, 6, "bois")
+    N.espar(m, haut, Vector((0, haut.y - 0.3, 4.3)), 0.13, 0.11, 6, "bois")
     objet("bouteur", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
 
@@ -348,11 +349,11 @@ def proue_idole(D):
     dos = Vector((0, math.cos(incl), math.sin(incl)))     # vers l'arrière et le haut, côté étrave
     pied = Vector((0, 0.35, -0.9))
     cou = pied + axe * 1.45
-    K.fuseau(m, pied, cou, [(0, 0), (0, 0.09), (0.3, 0.2), (0.7, 0.29), (1, 0.27), (1, 0)], 10, "sang")   # corps
-    K.fuseau(m, cou - axe * 0.12, cou + axe * 0.1, [(0, 0), (0, 0.3), (1, 0.3), (1, 0)], 10, "dorure")      # collier
+    N.fuseau(m, pied, cou, [(0, 0), (0, 0.09), (0.3, 0.2), (0.7, 0.29), (1, 0.27), (1, 0)], 10, "sang")   # corps
+    N.fuseau(m, cou - axe * 0.12, cou + axe * 0.1, [(0, 0), (0, 0.3), (1, 0.3), (1, 0)], 10, "dorure")      # collier
     regard = Vector((0, -1, 0.3)).normalized()                                                              # tête vers l'avant
     tete = cou + axe * 0.08
-    K.fuseau(m, tete, tete + regard * 1.05, [(0, 0), (0, 0.24), (0.3, 0.3), (0.65, 0.24), (0.9, 0.12), (1, 0)], 10, "sang")
+    N.fuseau(m, tete, tete + regard * 1.05, [(0, 0), (0, 0.24), (0.3, 0.3), (0.65, 0.24), (0.9, 0.12), (1, 0)], 10, "sang")
     haut_t = regard.cross(Vector((1, 0, 0))).normalized()
     if haut_t.z < 0:
         haut_t = -haut_t
@@ -361,20 +362,20 @@ def proue_idole(D):
     for k in range(5):
         for s_ in (1, -1):
             t = g + regard * (-0.16 + 0.085 * k) + Vector((s_ * 0.15, 0, 0))
-            K.fuseau(m, t + haut_t * 0.065, t - haut_t * 0.04, [(0, 0), (0, 0.035), (1, 0)], 4, "dent")
+            N.fuseau(m, t + haut_t * 0.065, t - haut_t * 0.04, [(0, 0), (0, 0.035), (1, 0)], 4, "dent")
     for s_ in (1, -1):                                                                                      # yeux
         o = tete + regard * 0.5 + haut_t * 0.1 + Vector((s_ * 0.21, 0, 0))
-        K.fuseau(m, o - Vector((s_ * 0.03, 0, 0)), o + Vector((s_ * 0.05, 0, 0)), [(0, 0), (0, 0.06), (1, 0.045), (1, 0)], 6, "ombre")
+        N.fuseau(m, o - Vector((s_ * 0.03, 0, 0)), o + Vector((s_ * 0.05, 0, 0)), [(0, 0), (0, 0.06), (1, 0.045), (1, 0)], 6, "ombre")
 
     def aile(base, pointe, fond, ep=0.035):
         for e in (ep, -ep):
             dx = Vector((e, 0, 0))
-            K.nappe(m, [[tuple(base + dx), tuple(fond + dx)], [tuple(pointe + dx)]], "sang")
+            N.nappe(m, [[tuple(base + dx), tuple(fond + dx)], [tuple(pointe + dx)]], "sang")
     aile(tete + haut_t * 0.2 + regard * 0.15, tete + haut_t * 0.75 - regard * 0.2, tete + haut_t * 0.2 - regard * 0.3)   # aileron dorsal
     for s_ in (1, -1):                                                                                      # nageoires-bras rabattus
         epaule = cou - axe * 0.15 + Vector((s_ * 0.26, 0, 0))
         for e in (0.03, -0.03):
-            K.nappe(m, [[tuple(epaule + dos * e), tuple(epaule + dos * e - axe * 0.45)],
+            N.nappe(m, [[tuple(epaule + dos * e), tuple(epaule + dos * e - axe * 0.45)],
                         [tuple(epaule + dos * e - axe * 0.85 + Vector((s_ * 0.22, 0, 0)) - dos * 0.05)]], "sang")
     q = pied + axe * 0.08
     aile(q, q + dos * 0.15 + axe * 0.75, q + axe * 0.35)                                                  # caudale contre l'étrave
@@ -406,9 +407,9 @@ def fourquines(D):
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
     poutre(m, Vector((0, 0, 0)), Vector((0, 0, 0.12)), 0.2, 0.2, (1, 0, 0), "bois")
-    K.espar(m, Vector((0, 0, 0.1)), Vector((0, 0, 0.6)), 0.03, 0.025, 6, "fer")
+    N.espar(m, Vector((0, 0, 0.1)), Vector((0, 0, 0.6)), 0.03, 0.025, 6, "fer")
     for s_ in (1, -1):
-        K.espar(m, Vector((0, 0, 0.6)), Vector((0, s_ * 0.09, 0.8)), 0.022, 0.018, 5, "fer")
+        N.espar(m, Vector((0, 0, 0.6)), Vector((0, s_ * 0.09, 0.8)), 0.022, 0.018, 5, "fer")
     objet("fourquine", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
 
@@ -418,20 +419,20 @@ def propulsion(D):
     Fregar, MDG p.157)."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
-    K.fuseau(m, Vector((0, -1.4, 0.95)), Vector((0, 1.4, 0.95)), [(0, 0), (0, 0.6), (0.04, 0.85), (0.96, 0.85), (1, 0.6), (1, 0)], 12, "fer")
+    N.fuseau(m, Vector((0, -1.4, 0.95)), Vector((0, 1.4, 0.95)), [(0, 0), (0, 0.6), (0.04, 0.85), (0.96, 0.85), (1, 0.6), (1, 0)], 12, "fer")
     for yy in (-0.9, 0.9):
         poutre(m, Vector((-0.8, yy, 0.25)), Vector((0.8, yy, 0.25)), 0.35, 0.5, (0, 0, 1), "bois")
     for yy in (-0.6, 0.6):
         pied, tete = Vector((0, yy, 1.6)), Vector((0, yy, 8.5))
-        K.fuseau(m, pied, tete, [(0, 0), (0, 0.36), (0.92, 0.36), (0.97, 0.46), (1, 0.46), (1, 0.3)], 12, "fer")
-        K.fuseau(m, tete - Vector((0, 0, 0.12)), tete - Vector((0, 0, 0.1)), [(0, 0), (0, 0.33), (1, 0.33), (1, 0)], 12, "ombre")
+        N.fuseau(m, pied, tete, [(0, 0), (0, 0.36), (0.92, 0.36), (0.97, 0.46), (1, 0.46), (1, 0.3)], 12, "fer")
+        N.fuseau(m, tete - Vector((0, 0, 0.12)), tete - Vector((0, 0, 0.1)), [(0, 0), (0, 0.33), (1, 0.33), (1, 0)], 12, "ombre")
         for z in (3.0, 6.0):
-            K.fuseau(m, pied + Vector((0, 0, z - 1.6)), pied + Vector((0, 0, z - 1.6 + 0.45)), [(0, 0.38), (1, 0.38)], 12, "peinture")
+            N.fuseau(m, pied + Vector((0, 0, z - 1.6)), pied + Vector((0, 0, z - 1.6 + 0.45)), [(0, 0.38), (1, 0.38)], 12, "peinture")
     objet("vapeur", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
 
 
-# Les pièces, et celles qui se bâtissent sur la forme de la coque (`K.Coque`).
+# Les pièces, et celles qui se bâtissent sur la forme de la coque (`N.Coque`).
 PIECES = {
     "sabord": sabord, "figure-de-proue": figure_de_proue, "ancre": ancre, "belier": belier, "nid-de-pie": nid_de_pie,
     "embarcation-de-bord": embarcation, "ralentisseurs-lateraux": ralentisseurs, "proue-idole-de-stromfels": proue_idole,
@@ -446,7 +447,7 @@ PIECES_SUR_LA_COQUE = {
 def elements(D, P):
     """Une pièce par Amélioration de `PIECES` et `PIECES_SUR_LA_COQUE` (la coque calée sur les ponts `P`), clé
     `amelioration` (Amélioration de `src/data/naval-traits.json`)."""
-    C = K.Coque(D, P)
+    C = N.Coque(D, P)
     batisseurs = {**{nom: (lambda piece=piece: piece(D)) for nom, piece in PIECES.items()},
                   **{nom: (lambda piece=piece: piece(D, C)) for nom, piece in PIECES_SUR_LA_COQUE.items()}}
     for nom, batir in batisseurs.items():

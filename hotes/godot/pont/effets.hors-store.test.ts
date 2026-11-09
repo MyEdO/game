@@ -1,10 +1,11 @@
 /**
  * LES EFFETS PAR LE PONT (#3771, `CONTRAT.md`) : chaque `Suite` porte les effets de son appel (`effetsDeLAppel`), que
- * Godot rend tels quels. Une charge à l'arme de mêlée rend son coup, de l'attaquant à sa cible.
+ * Godot rend tels quels. Une charge à l'arme de mêlée rend son coup, de l'attaquant à sa cible. La vitrine de l'atelier
+ * (#3777, `vitrine`) rend, hors partie, l'attaque de chaque engin de siège.
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table, type Reponse } from './pont.testkit';
-import type { Effet } from '../../../src/noyau/index';
+import { siegeEngines, type Effet, type VitrineDesEffets } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 import { clicDuCombattant, type Suite } from './pont';
 
@@ -25,6 +26,14 @@ function jouer(r: Reponse): Suite {
 }
 
 describe('les effets par le pont', () => {
+  it('la vitrine rend, hors partie, l’attaque de chaque engin de siège', () => {
+    const r = appel('vitrine');
+    expect(r.ok).toBe(true);
+    const vitrine = r as unknown as VitrineDesEffets;
+    expect(Object.keys(vitrine.attaques).sort()).toEqual(siegeEngines().map((t) => t.id).sort());
+    expect(vitrine.attaques['trebuchet-ade2']).toMatchObject({ quoi: 'coup', de: vitrine.de, vers: vitrine.vers, trajet: { projectile: 'pierre' } });
+  });
+
   it('une charge rend le coup de l’attaquant à sa cible, son issue et son rendu résolus', { timeout: 120_000 }, () => {
     const debut = jouer(appel('demarrer', { scenario: 'dome', graine: 7 }));
     const heros = debut.vue.projection.combat!.actif!.id;

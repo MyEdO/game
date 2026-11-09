@@ -115,7 +115,7 @@
 //   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
 //   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
-//   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
+//   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
 //   porte (`osDesRigides` du listage) et de chaque emplacement où se range sa forme (`emplacementsDeRangement`), et de
 //   ceux-là seuls (`CONTRAT.md`, « Atelier 3D ») ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
@@ -1966,7 +1966,7 @@ async function chercher(quoi) {
 const attendreLeVehicule = (condition) => attendreLAtelier(`(() => { const v = a.vehicule; return !!v && !!(${condition}) })()`, 180000)
 
 /** Sans `--modeles`, le véhicule dans l'atelier (#2987), sur le dossier des modèles du projet, la page à
- *  deviceScaleFactor 2 : la caraque choisie à l'onglet Outils, à côté des bases, posée et cadrée à sa taille ; à l'onglet
+ *  deviceScaleFactor 2 : la caraque choisie à la liste de tête « Véhicule ou engin », posée et cadrée à sa taille ; à l'onglet
  *  Équipement, une pièce à chaque place de `PLACES_ARMEES`, puis chaque Amélioration de `AMELIORATIONS_DE_L_ATELIER`
  *  installée ; une couleur à l'onglet Couleurs et un emblème sur ses voiles ; puis le Sabord retiré. À chaque étape, le
  *  véhicule publié est celui que le pont compose (`prouverLeVehicule`), capturé de trois quarts. */
@@ -1976,8 +1976,7 @@ async function parcoursAtelierDuVehicule() {
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   await cliquerBouton('Atelier')
   await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene(VEHICULE_DE_L_ATELIER.libelle, 1)
+  await choisirDansLaListe('modele/vehicule', VEHICULE_DE_L_ATELIER.libelle)
   await attendreLeVehicule(`v.element !== null && v.definition === ${JSON.stringify(VEHICULE_DE_L_ATELIER.definition)}`)
   const nue = await prouverLeVehicule()
   assert.deepEqual([nue.postes, nue.ameliorations], [[], []], 'la coque nue, sans pièce ni Amélioration')
@@ -2035,8 +2034,7 @@ async function parcoursAtelier() {
   await cliquerBouton('Atelier')
   noter('menu : bouton « Atelier » cliqué')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene(base, 1)
+  await choisirDansLaListe('modele/corps', base)
   let a = await atelier()
   assert.deepEqual([a.base, a.empreinte, a.erreurs], [base, p0.model_sha256, []], 'la base choisie, à l’empreinte de son import, sans erreur')
   await cliquerBouton('Équipement')
@@ -2308,11 +2306,10 @@ async function parcoursComposition() {
   importer(o.base, base)
   await cliquerBouton('Atelier')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
-  await cliquerBouton('Outils')
-  await cliquerBouton(base)
+  await choisirDansLaListe('modele/corps', base)
   const reposDeLaBase = await atelier()
   assert.deepEqual([reposDeLaBase.empreinte, reposDeLaBase.erreurs], [p.model_sha256, []])
-  assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [null, false], 'référence native de la base sans clip engagé')
+  assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [p.manifeste.clips.idle, true], 'la base seule joue son clip de repos')
   assert.deepEqual(Object.keys(reposDeLaBase.os).sort(), [...p.manifeste.os].sort(), 'tous les os natifs de la base sont présents dans la référence')
   await cliquerBouton('Personnage')
   const catalogues = JSON.parse(await evaluate(session, "wfrpPont.appeler('catalogues')"))
@@ -2373,12 +2370,15 @@ async function parcoursComposition() {
   a = await atelier()
   assert.equal(a.composition.copie, '', 'recomposition : entrée copiée effacée')
   verifierLaPeau(a, ligne)
+  assert.ok(a.lecture, `la composition joue son clip de repos : ${a.clip}`)
+  const clipDeRepos = a.clip
   await capturer('3086-r1-2-courtaud')
   const touche = { key: 'w', code: 'KeyW', windowsVirtualKeyCode: 87 }
+  const auRepos = `a.clip === ${JSON.stringify(clipDeRepos)} && a.lecture`
   let imagesCourtaudes
   try {
     await realKeyDown(session, touche)
-    await attendreLAtelier('a.lecture === true')
+    await attendreLAtelier(`a.clip !== ${JSON.stringify(clipDeRepos)} && a.lecture`)
     imagesCourtaudes = await observerLesImages(IMAGES_COURTAUDES, DELAI_COURTAUD_MS)
     assert.ok(new Set(imagesCourtaudes.map((x) => x.instant)).size >= POSES_COURTAUDES_DISTINCTES_MINIMALES, 'courtaud : plusieurs images distinctes du clip')
     for (const image of imagesCourtaudes) {
@@ -2391,7 +2391,7 @@ async function parcoursComposition() {
   } finally {
     await realKeyUp(session, touche)
   }
-  await attendreLAtelier('!a.lecture && a.instant === 0')
+  await attendreLAtelier(auRepos)
   await cliquerBouton('Animation')
   await choisirDansLaListe('clip', 'A_TPose')
   await attendreLAtelier('a.clip === "A_TPose" && a.lecture')
@@ -2434,7 +2434,7 @@ async function parcoursComposition() {
   const images = []
   try {
     await realKeyDown(session, touche)
-    await attendreLAtelier('a.lecture === true')
+    await attendreLAtelier(`a.clip !== "A_TPose" && a.lecture`)
     images.push(...JSON.parse(await evaluate(session, `(async () => {
       const images = [], debut = performance.now(); let precedent, temps = 0;
       while (performance.now() - debut < 14000) {
@@ -2454,23 +2454,8 @@ async function parcoursComposition() {
   } finally {
     await realKeyUp(session, touche)
   }
-  await attendreLAtelier('!a.lecture && a.instant === 0')
+  await attendreLAtelier(auRepos)
   const arret = await atelier()
-  assert.equal(arret.clip, images[0].clip, 'arrêt : clip de marche engagé en pause à son début')
-  const poseRelative = (os) => {
-    const gauche = os.clavicle_l, droite = os.clavicle_r
-    const largeur = horizontal(gauche, droite)
-    assert.ok(largeur > 0, 'repère latéral du torse')
-    const x = (droite[0] - gauche[0]) / largeur, z = (droite[2] - gauche[2]) / largeur
-    return Object.fromEntries(Object.entries(os).map(([nom, p]) => {
-      const dx = p[0] - os[racine][0], dz = p[2] - os[racine][2]
-      return [nom, [dx * x + dz * z, p[1] - os[racine][1], -dx * z + dz * x]]
-    }))
-  }
-  const poseAvant = poseRelative(reposDeLaBase.os), poseApres = poseRelative(arret.os)
-  for (const [nom, position] of Object.entries(poseAvant)) for (let k = 0; k < 3; k++) {
-    proche(poseApres[nom][k], position[k], 1e-4, `retour au repos : ${nom}, axe ${k}, relativement à la racine et au lacet du torse`)
-  }
   noter(`marche : ${images.length} poses, instants ${JSON.stringify(images.map((x) => x.instant))}`)
   await verifierLeCouplage(images, racine, p.manifeste, assets, reposDeLaBase.os, arret.os)
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
