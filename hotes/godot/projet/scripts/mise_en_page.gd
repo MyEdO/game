@@ -1,7 +1,7 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, son lacet à un azimut, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
+## pas de la marche de l'atelier, la durée d'un pas d'un chemin, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
@@ -330,6 +330,12 @@ static func image_voisine(instant: float, pas: float, sens: float, duree: float)
 ## la cadence `cadence` du lecteur de clips (`AnimationPlayer.speed_scale`), qui règle le clip au même rythme.
 static func pas_de_marche(direction: Vector3, vitesse: float, echelle: float, cadence: float, delta: float) -> Vector3:
 	return direction * vitesse * echelle * cadence * delta
+
+
+## La durée (s) d'un pas de `metres` mètres d'un chemin (#3822) à `vitesse` m/s multipliée par `echelle`, celle de la
+## vitesse au sol du gabarit posé (`echelleDeVitesse`, `CONTRAT.md`, « Gabarit d'une base ») : la foulée du clip de marche.
+static func duree_du_pas(metres: float, vitesse: float, echelle: float) -> float:
+	return metres / (vitesse * echelle)
 
 
 ## Le lacet de l'orbite tourné par un glissé de `pixels` à la souris.

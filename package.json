@@ -77,6 +77,7 @@
     "docs:ajouter-donnee": "node scripts/docs/build-ajouter-donnee.mjs",
     "docs:regles-optionnelles": "node scripts/docs/build-regles-optionnelles.mjs",
     "docs:hote-texte": "node scripts/docs/build-hote-texte.mjs",
+    "docs:contrat-du-pont": "node scripts/docs/build-contrat-du-pont.mjs",
     "docs:sorts": "node scripts/lancer-local.mjs tsx -- tsx scripts/gen-sorts-doc.mts",
     "docs:field-consumers": "node scripts/lancer-local.mjs tsx -- tsx scripts/docs/build-field-consumers.mts",
     "docs:structures": "node scripts/lancer-local.mjs tsx -- tsx scripts/docs/build-structures.mts",
