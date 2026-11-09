@@ -36,7 +36,7 @@ def affine(table, x):
 class Coque:
     """Fonctions de forme lues dans les données et les ponts `P` (`plan_de_jeu.py`) : y d'une abscisse f ou d'une
     abscisse du plan (f calée sur les ponts par `CALAGE` et `COPLE`), demi-largeur d'un niveau, plat-bord, pont
-    principal."""
+    principal (ses cases les plus basses, hors trappes)."""
 
     def __init__(self, D, P):
         self.D, self.P = D, P
@@ -52,8 +52,9 @@ class Coque:
         arriere = min(x for f, x in calage if f > fs)
         self.calage = sorted(calage + [(fe, avant + K["entree"] / self.case), (fs, arriere - K["sortie"] / self.case)])
         colonnes = {}
+        trappes = {trappe + (z,) for z, trappe, _, _ in plan_de_jeu.echelles(P)}
         for (x, y, z), g in P["cases"].items():
-            if z == D["PONT_PRINCIPAL"]:
+            if z == D["PONT_PRINCIPAL"] and (x, y, z) not in trappes:
                 colonnes[x] = min(colonnes.get(x, math.inf), P["hauteurs"][g])
         self.pont_principal = [(self.y_du_plan(x + 0.5), h) for x, h in sorted(colonnes.items())]
 
@@ -458,9 +459,10 @@ def prisme(maille, sections, mat):
     maille.ajouter(sommets, faces, mat)
 
 
-def amenager(D, P, C, pieces, coque, interieurs):
+def amenager(D, P, C, pieces, coque, interieurs, appuyees=()):
     """Cloisons et portes des ponts, écoutilles et échelles qui les relient, membrures et baux de la cale, sur les arêtes
-    des ponts `P`."""
+    des ponts `P`. L'échelle d'une trappe de glyphe `appuyees` (une plate-forme que le modèle pose) n'est pas posée ici :
+    elle s'appuie au bord de la plate-forme, sans écoutille."""
     y_de, x_de = C.y_du_plan, C.x_du_plan
     PO = D["PORTE"]
     marge, ep_cl = D["CLOISON"]["marge"], D["CLOISON"]["epaisseur"]
@@ -532,6 +534,8 @@ def amenager(D, P, C, pieces, coque, interieurs):
     larg, long_ = EC["ouverture"]
     lh, hh = EC["hiloire"]
     for z, trappe, pied, (sens, xp, yp) in plan_de_jeu.echelles(P):
+        if P["cases"][trappe + (z,)] in appuyees:
+            continue
         z_haut, z_bas = plan_de_jeu.hauteur(P, z, *trappe), plan_de_jeu.hauteur(P, z, *pied)
         if sens == "t":
             d = Vector((0, 1 if pied[0] > trappe[0] else -1, 0))
