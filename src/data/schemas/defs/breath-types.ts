@@ -28,6 +28,7 @@ const doc = document(
     types: z.array(ref('breathType')).optional(),
     /** LDB 85 l.174, l.326-328 ; VDM 10 l.153 */
     typeDeDegats: ref('damageType').optional(),
+    rendu: ref('rendu'),
   },
   {
     ignoreAP: { label: 'Ignore les PA', hint: 'Toutes les Blessures infligées par le Souffle ignorent les Points d’Armure' },
@@ -37,6 +38,7 @@ const doc = document(
     fumee: { label: 'Fumée', hint: 'La zone se remplit de fumée qui bloque les Lignes de vue pendant Bonus d’Endurance Rounds' },
     types: { label: 'Types composés', hint: 'Type imprimé qui en nomme plusieurs : le Souffle applique les règles de chacun' },
     typeDeDegats: { label: 'Type de Dégâts', hint: 'Une cible qui a Immunité à ce Type ignore les Dégâts et la règle de ce Type de Souffle' },
+    rendu: { label: 'Rendu', hint: 'Rendu visuel et sonore du Souffle de ce Type (`rendus.json`)' },
   },
   {
     codex: {

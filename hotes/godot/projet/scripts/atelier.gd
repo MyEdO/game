@@ -51,7 +51,7 @@ const PAR_DEFAUT := "Par défaut"
 ## Le côté, en pixels, de la pastille d'une couleur du nuancier.
 const COTE_DE_LA_PASTILLE := 16
 ## Le texte du bouton de chaque variante de la vitrine des effets (`VarianteDeVitrine`).
-const VARIANTES := {"touche": "Touché", "manque": "Manqué", "pare": "Paré", "incantation": "Incantation", "incantation-ratee": "Ratée"}
+const VARIANTES := {"touche": "Touché", "manque": "Manqué", "pare": "Paré", "incantation": "Incantation", "incantation-ratee": "Ratée", "zone": "Zone"}
 ## Les mètres que vaut une unité de la scène de l'atelier : ses modèles sont à leur taille réelle.
 const METRES_PAR_UNITE := 1.0
 
@@ -931,7 +931,8 @@ func _palette_posee() -> Dictionary:
 
 
 ## La vitrine des effets (`vitrine`) : la cible posée à sa distance, puis, par rendu d'arme et par sort, une rangée à son
-## `label` qui porte un bouton par variante, et un bouton par son.
+## `label` qui porte un bouton par variante, un bouton par manœuvre de zone et par Type de Souffle (#3783), un bouton par
+## son, et un bouton par ton de lumière, qui pose son foyer sur la cible.
 func _poser_la_vitrine() -> void:
 	var reponse := _pont.appeler("vitrine")
 	if reponse.get("ok") != true:
@@ -947,12 +948,19 @@ func _poser_la_vitrine() -> void:
 				bouton.set_meta("cle", "effet/%s/%s" % [entree.id, variante.variante])
 				bouton.pressed.connect(_jouer_l_effet.bind(variante.effet))
 				rangee.add_child(bouton)
-	for son in _vitrine.sons:
+	for famille in [["manoeuvre", _vitrine.manoeuvres, %VitrineZones], ["souffle", _vitrine.souffles, %VitrineZones], ["son", _vitrine.sons, %VitrineSons]]:
+		for entree in famille[1]:
+			var bouton := Button.new()
+			bouton.text = entree.label
+			bouton.set_meta("cle", "%s/%s" % [famille[0], entree.id])
+			bouton.pressed.connect(_jouer_l_effet.bind(entree.effet))
+			famille[2].add_child(bouton)
+	for lumiere in _vitrine.lumieres:
 		var bouton := Button.new()
-		bouton.text = son.label
-		bouton.set_meta("cle", "son/%s" % son.id)
-		bouton.pressed.connect(_jouer_l_effet.bind(son.effet))
-		%VitrineSons.add_child(bouton)
+		bouton.text = lumiere.label
+		bouton.set_meta("cle", "lumiere/%s" % lumiere.id)
+		bouton.pressed.connect(_poser_le_foyer.bind(lumiere.source))
+		%VitrineLumieres.add_child(bouton)
 
 
 ## L'effet `effet` de la vitrine rejoué de l'auteur, à l'origine, vers la cible, l'orbite cadrant l'un et l'autre et le
@@ -962,7 +970,24 @@ func _jouer_l_effet(effet: Dictionary) -> void:
 	if _vehicule.scene != null:
 		boite = boite.merge(MontageDeVehicule.boite(_vehicule.scene, _vehicule))
 	_marche.cadrer_la_boite(boite)
-	_effets.jouer([effet], {_vitrine.de: Vector3.ZERO, _vitrine.vers: _cible.position}, METRES_PAR_UNITE)
+	var lieux := {_vitrine.de: Vector3.ZERO, _vitrine.vers: _cible.position}
+	if effet.quoi == "zone":
+		var cases: Array = effet.cases.duplicate()
+		cases.append(effet.centre)
+		for case: Dictionary in cases:
+			lieux[Effets.cle_de_case(case)] = MiseEnPage.lieu_de_la_case_de_vitrine(case.x, case.y, _vitrine.metresParCase)
+	_effets.jouer([effet], lieux, METRES_PAR_UNITE)
+
+
+## Le foyer de la source `source` (un ton de lumière de la vitrine) posé sur la cible à sa hauteur, à la place du
+## précédent.
+func _poser_le_foyer(source: Dictionary) -> void:
+	for ancien in _cible.get_children().filter(func(n: Node) -> bool: return n is Foyer):
+		ancien.free()
+	var foyer := Foyer.new()
+	foyer.position = MiseEnPage.foyer_de_la_vitrine(source.hM, METRES_PAR_UNITE)
+	_cible.add_child(foyer)
+	foyer.poser(source, METRES_PAR_UNITE)
 
 
 ## Le coup de l'engin posé (`attaques` de la vitrine, par sa fiche), `null` sans engin posé ou sans vitrine.

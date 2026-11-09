@@ -112,7 +112,7 @@ function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches
   return noeuds.length === 1 ? noeuds[0] : { kind: 'seq', steps: noeuds };
 }
 
-/** Le Souffle `base` composé avec les règles de son Type ; sans Type, le Souffle seul. Les
+/** Le Souffle `base` composé avec les règles et le rendu de son Type ; sans Type, le Souffle seul. Les
  *  règles suivent les Dégâts dans leur liste d'ops : elles lisent les Blessures subies (`woundsDealt`).
  *  LDB 85 l.320-329 ; EDOC 13 l.237 */
 export function souffleDuType(base: ManeuverDef, typeId: string | undefined, difficulte?: Difficulty): ManeuverDef {
@@ -130,6 +130,7 @@ export function souffleDuType(base: ManeuverDef, typeId: string | undefined, dif
     label: type ? `${base.label} (${type.label})` : base.label,
     effects: effets,
     ...(regles.some((r) => r.fumee) ? { fumee: true } : {}),
+    ...(type ? { rendu: type.rendu } : {}),
     enjeu: { regleDuType: regleDuType(regles, difficulte) },
   };
 }

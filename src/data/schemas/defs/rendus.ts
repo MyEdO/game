@@ -1,8 +1,9 @@
 /**
- * Schéma de `rendus.json` (#3771) : LE catalogue des rendus d'un coup ou d'une incantation, éditable. Chaque
- * phase (départ, impact, manque, parade) nomme un visuel du vocabulaire fermé que l'hôte sait dessiner et un son du
- * registre (`src/data/sons/defs`) ; le trajet nomme un projectile du même régime, sa vitesse et sa cloche. Un Groupe
- * d'arme, un objet, un Domaine désignent le leur par `rendu`.
+ * Schéma de `rendus.json` (#3771) : LE catalogue des rendus d'un coup, d'une incantation ou d'une zone d'effet
+ * (#3783), éditable. Chaque phase (départ, impact, manque, parade, zone) nomme un visuel du vocabulaire fermé que
+ * l'hôte sait dessiner et un son du registre (`src/data/sons/defs`) ; le trajet nomme un projectile du même régime, sa
+ * vitesse et sa cloche. Un Groupe d'arme, un objet, un Domaine, un Type de Souffle, une manœuvre désignent le leur par
+ * `rendu`.
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
@@ -22,6 +23,9 @@ export const visuelDEffetSchema = enumNomme({
   'eclat-magique': 'Éclat magique',
   halo: 'Halo',
   'gerbe-de-flammes': 'Gerbe de flammes',
+  nuage: 'Nuage',
+  onde: 'Onde',
+  'nappe-de-flammes': 'Nappe de flammes',
 });
 export type VisuelDEffet = z.infer<typeof visuelDEffetSchema>;
 
@@ -35,6 +39,7 @@ export const projectileSchema = enumNomme({
   'objet-lance': 'Objet lancé',
   'trait-magique': 'Trait magique',
   'jet-de-flammes': 'Jet de flammes',
+  'jet-de-souffle': 'Jet de souffle',
 });
 export type Projectile = z.infer<typeof projectileSchema>;
 
@@ -54,6 +59,8 @@ const doc = document(
     manqueSon: ref('son').optional(),
     paradeVisuel: visuelDEffetSchema.optional(),
     paradeSon: ref('son').optional(),
+    zoneVisuel: visuelDEffetSchema.optional(),
+    zoneSon: ref('son').optional(),
   },
   {
     couleur: { label: 'Couleur', hint: 'Teinte `#rrggbb` des visuels du rendu, à défaut de celle du Domaine' },
@@ -68,12 +75,14 @@ const doc = document(
     manqueSon: { label: 'Son du manque', hint: 'Au point visé, le coup manqué' },
     paradeVisuel: { label: 'Visuel de la parade', hint: 'Sur le défenseur, quand cette arme pare le coup' },
     paradeSon: { label: 'Son de la parade', hint: 'Sur le défenseur, quand cette arme pare le coup' },
+    zoneVisuel: { label: 'Visuel de la zone', hint: 'Sur chaque case d’une zone d’effet, à défaut le visuel de l’impact' },
+    zoneSon: { label: 'Son de la zone', hint: 'Au centre d’une zone d’effet, à défaut le son de l’impact' },
   },
   {
     codex: {
       exempt: {
         kind: 'vocabulaire-app-interne',
-        raison: 'rendus visuels et sonores des coups et des incantations (#3771), vocabulaire d’APPARENCE — aucune conséquence de règle.',
+        raison: 'rendus visuels et sonores des coups, des incantations et des zones d’effet (#3771, #3783), vocabulaire d’APPARENCE — aucune conséquence de règle.',
       },
     },
     edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite', dataset: 'rendus' },

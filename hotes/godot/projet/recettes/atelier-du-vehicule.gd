@@ -13,9 +13,10 @@ extends SceneTree
 ## Équipement sur la pièce qui y est montée, une case par Amélioration qu'il peut monter (`montables`), la palette et
 ## l'emblème sur ses surfaces, aucun onglet Personnage, et l'onglet Couleurs réduit aux emplacements de palette de ses
 ## surfaces posées. La caraque n'attaque pas : l'onglet Animation ne montre aucune action ; l'onglet Effets offre un
-## bouton par variante et par son de la vitrine (#3777, `vitrine`), chacun d'un visuel, d'un projectile et de fichiers
-## sonores que Godot connaît, et le coup d'un canon y part de l'auteur ; le trébuchet choisi, sans place ni Amélioration
-## à monter, n'offre pas Équipement et attaque depuis l'onglet Animation : son clip de tir joue et sa pierre vole.
+## bouton par variante, par zone, par lumière et par son de la vitrine (#3777, #3783, `vitrine`), chacun d'un visuel,
+## d'un projectile et de fichiers sonores que Godot connaît ; le coup d'un canon y part de l'auteur, le souffle de feu
+## pose sa nappe sur chaque case, la flamme son foyer sur la cible ; le trébuchet choisi, sans place ni Amélioration à
+## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
@@ -68,14 +69,17 @@ func _recetter() -> void:
 	_choisir(atelier, "vehicule/embleme", "taureau-rouge")
 	await _etape(atelier, pont, cles, 6, "emblème posé")
 	await _vitrine(atelier, pont, cles, lu)
+	atelier.queue_free()
+	await create_timer(Foyer.SON_LIBERE_S).timeout
 	for faute in _fautes:
 		push_error("[atelier-du-vehicule] " + faute)
 	print("[atelier-du-vehicule] %d entrées de `vehicule`, erreurs=%d" % [pont.entrees.size(), _fautes.size()])
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## L'onglet Effets sur la vitrine figée `lu.vitrine` : la caraque sans attaque, chaque effet connu de Godot et offert par
-## son bouton, le coup d'un canon joué, puis le trébuchet choisi qui attaque.
+## L'onglet Effets sur la vitrine figée `lu.vitrine` : la caraque sans attaque, chaque effet et chaque lumière connus de
+## Godot et offerts par leur bouton, le coup d'un canon joué, le souffle de feu qui pose sa nappe sur chaque case de sa
+## zone, la flamme qui pose un seul foyer sur la cible, puis le trébuchet choisi qui attaque.
 func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> void:
 	var vitrine: Dictionary = lu.vitrine
 	var actions := _controle_par_nom(atelier, "Actions")
@@ -88,19 +92,35 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 			for variante in entree.variantes:
 				effets.append(variante.effet)
 				cles_des_boutons.append("effet/%s/%s" % [entree.id, variante.variante])
-	for son in vitrine.sons:
-		effets.append(son.effet)
-		cles_des_boutons.append("son/%s" % son.id)
+	for famille in [["manoeuvre", vitrine.manoeuvres], ["souffle", vitrine.souffles], ["son", vitrine.sons]]:
+		for entree in famille[1]:
+			effets.append(entree.effet)
+			cles_des_boutons.append("%s/%s" % [famille[0], entree.id])
 	for effet in effets:
 		_connu(effet)
+	for lumiere in vitrine.lumieres:
+		cles_des_boutons.append("lumiere/%s" % lumiere.id)
+		var source: Dictionary = lumiere.source
+		_verifier(source.visuel == null or Foyer.FLAMMES.has(source.visuel), "visuel de lumière inconnu de Godot : %s" % source.visuel)
+		if source.son != null:
+			_connu({quoi = "son", son = source.son})
 	for cle in cles_des_boutons:
 		_controle(atelier, cle)
 	(_controle_par_nom(atelier, "OngletEffets") as Button).pressed.emit()
 	(_controle(atelier, "effet/canon/touche") as Button).pressed.emit()
-	await _images(2)
 	var noeud_des_effets := atelier.get_node("Effets")
 	_verifier(noeud_des_effets.get_node_or_null("eclair-de-bouche") != null and noeud_des_effets.get_node_or_null("boulet") != null, "le canon de la vitrine : ni éclair de bouche ni boulet (%s)" % [noeud_des_effets.get_children().map(func(n: Node) -> String: return n.name)])
+	await _images(2)
 	_verifier((atelier.get_node("Cible") as Node3D).visible, "la cible de la vitrine cachée sur l'onglet Effets")
+	var souffle: Dictionary = vitrine.souffles.filter(func(s: Dictionary) -> bool: return s.id == "feu")[0].effet
+	(_controle(atelier, "souffle/feu") as Button).pressed.emit()
+	await create_timer(souffle.trajet.dureeS + 0.2).timeout
+	var nappes := noeud_des_effets.get_children().filter(func(n: Node) -> bool: return n.name.begins_with("nappe-de-flammes"))
+	_verifier(nappes.size() == souffle.cases.size(), "le souffle de feu de la vitrine : %d nappes de flammes, une par case attendue" % nappes.size())
+	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
+	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
+	var foyers := atelier.get_node("Cible").get_children().filter(func(n: Node) -> bool: return n is Foyer)
+	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible, posés %s" % [foyers.map(func(f: Node) -> Array: return f.get_children().map(func(n: Node) -> String: return n.name))])
 	_choisir(atelier, "modele/vehicule", "trebuchet-ade2")
 	await _etape(atelier, pont, cles, 7, "trébuchet choisi")
 	_verifier(actions.visible and "animation" in pont.ecran.atelier.onglets, "le trébuchet posé attaque, l'onglet Animation doit offrir « Attaquer »")
@@ -118,7 +138,7 @@ func _connu(effet: Dictionary) -> void:
 	var sons: Array = []
 	if effet.quoi == "son":
 		sons.append(effet.son)
-	for cle in ["depart", "arrivee"]:
+	for cle in ["depart", "arrivee", "nappe"]:
 		var phase: Variant = effet.get(cle)
 		if phase == null:
 			continue

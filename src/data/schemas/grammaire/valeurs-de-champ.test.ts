@@ -77,6 +77,7 @@ const NOMMES = [
   // modificateur de Vent attend, et que l'appelant signale — vocabulaire FERMÉ des rubriques
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
   'feu-proche|volcan-actif|ville-en-flammes|charnier|lieu-de-massacre|lieu-sans-mort|eau-abondante|milieu-sec|mois-sommerzeit|mois-vorgeheim|mois-ulriczeit|mois-vorhexen|tour|colline-elevee|sommet-de-montagne|en-vol|voyage-vers-equateur|metaux-abondants|temps-orageux|temps-brumeux|temps-ensoleille|brise-legere|ville|cite|pleine-nature|region-reculee|middenheim|assistance-chantee',
+  'feu|flammeche|lueur',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|pierre|cloture',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
@@ -115,7 +116,7 @@ const NOMMES = [
   'fixed|variable|all',
   'gable|stone-entry|chimney|sign|window-band|belfry',
   'flag|param|mode',
-  'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes',
+  'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
   'interlude|voyage|mer|bataille|bataille-round|auberge',
   'melee|ranged|zone|allFoes|allAround|self',
   'peau|cheveux|yeux|vet1|vet2|cuir|metal|corps|accent|bois|corne|fourrure|plume',
@@ -189,7 +190,7 @@ const NOMMES = [
   // `matiereDArmureSchema` (#1463) : la matière d'une armure, Groupe d'une pièce (`weaponGroups.material`) et Trait Armure posé.
   'metal|leather|chaos|peau',
   'disc|wall',
-  'eclair-de-bouche|canalisation|etincelles|poussiere|explosion|eclat-magique|halo|gerbe-de-flammes',
+  'eclair-de-bouche|canalisation|etincelles|poussiere|explosion|eclat-magique|halo|gerbe-de-flammes|nuage|onde|nappe-de-flammes',
   // `deitySkillPickSchema` (#1653) : les Compétences du dieu que frappe `deitySkillMod`, dialecte miscast compris.
   'all|random',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
