@@ -331,6 +331,9 @@
     "zoneVisuel": "nappe-de-flammes",
     "zoneSon": {
       "id": "sort-feu"
+    },
+    "zoneBoucle": {
+      "id": "crepitement"
     }
   },
   {
@@ -378,6 +381,9 @@
     "zoneVisuel": "nappe-de-flammes",
     "zoneSon": {
       "id": "sort-feu"
+    },
+    "zoneBoucle": {
+      "id": "crepitement"
     }
   },
   {

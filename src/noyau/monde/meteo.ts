@@ -7,6 +7,7 @@
 import { ambiance } from '../../data';
 import type { WeatherBrumeDef, WeatherFxDef, WeatherPrecipDef } from '../../data/ambiance.types';
 import type { Regard } from './aretes';
+import { sonDEffet, type SonDEffet } from '../../data/sons/registre';
 import { heightAt, isIndoor, sceneMetresPerTile, type Scene } from './scene';
 import { shelterField, shelterSectionAt } from './volume/toits';
 
@@ -107,10 +108,12 @@ export interface NappeDeBrume {
   alpha: number;
 }
 
-/** La météo qu'un regard montre : ce qui tombe, et les nappes de brume. */
+/** La météo qu'un regard montre : ce qui tombe, les nappes de brume, et le son qu'elle joue en boucle (#3834), quel
+ *  que soit le regard. */
 export interface MeteoDuRegard {
   pluie: PluieDuRegard | null;
   nappes: NappeDeBrume[];
+  son: SonDEffet | null;
 }
 
 /** Les averses au-dessus des bandes `runs`, `densite` particules par m² de sol écrêtées au plafond du nombre, chacune
@@ -170,5 +173,6 @@ export function meteoDuRegard(scene: Scene, regard: Regard): MeteoDuRegard | nul
     nappes: regard === 'tactique' && brume && runs.length
       ? brume.layers.map((couche) => ({ positions: positionsDeNappe(runs, mpt, groundM + couche.hM), couleur: brume.color, alpha: couche.alpha }))
       : [],
+    son: fx.son ? sonDEffet(fx.son.id) : null,
   };
 }

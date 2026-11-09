@@ -2,7 +2,7 @@
  * LES EFFETS PAR LE PONT (#3771, `CONTRAT.md`) : chaque `Suite` porte les effets de son appel (`effetsDeLAppel`), que
  * Godot rend tels quels. Une charge à l'arme de mêlée rend son coup, de l'attaquant à sa cible. La vitrine de l'atelier
  * (#3777, `vitrine`) rend, hors partie, l'attaque de chaque engin de siège. Le coup dit ses flottants, le jet du joueur
- * ses dés, et la vue porte la musique de la partie (#3825).
+ * ses dés, et la vue porte la musique de la partie (#3825), les marques des États et les zones qui durent (#3834).
  */
 import { describe, it, expect } from 'vitest';
 import { drainer, table, type Reponse } from './pont.testkit';
@@ -38,6 +38,8 @@ describe('les effets par le pont', () => {
   it('une charge rend le coup de l’attaquant à sa cible, son issue, son rendu et ses flottants ; le jet du joueur, ses dés ; la vue, la musique du combat', { timeout: 120_000 }, () => {
     const debut = jouer(appel('demarrer', { scenario: 'dome', graine: 7 }));
     expect(debut.vue.musique).toMatchObject({ cle: 'ctx:combat', pistes: [{ id: 'musique-combat' }] });
+    expect(Object.keys(debut.vue.marques), 'les marques de chaque combattant dessiné').toEqual(debut.vue.projection.combat!.voisins.liste.map((c) => c.id));
+    expect(debut.vue.zonesQuiDurent, 'aucune zone ne dure au début du combat').toEqual([]);
     const heros = debut.vue.projection.combat!.actif!.id;
     const armee = jouer(appel('jouer', { type: 'armerLIntention', args: ['charge'] }));
     const [cible] = armee.vue.projection.combat!.cibles.liste;

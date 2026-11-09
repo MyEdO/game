@@ -27,11 +27,13 @@ export type Intention = {
 /** Un nom d'événement du bus (`EVT`), hors la ligne de journal, que l'appel rend dans `journal`. */
 export type NomDEvenement = Exclude<(typeof EVT)[keyof typeof EVT], typeof EVT.LIGNE_AU_JOURNAL>;
 
-/** Ce qu'un appel de la partie rend : un événement émis sur le bus, ou un appel différé programmé, que
- *  l'hôte rejoue par `reprendre(jeton)` après `delai` millisecondes. */
+/** Ce qu'un appel de la partie rend : un événement émis sur le bus, un appel différé programmé, que
+ *  l'hôte rejoue par `reprendre(jeton)` après `delai` millisecondes, ou un État qu'un combattant porte au sortir de
+ *  l'appel et ne portait pas avant (#3834). */
 export type Evenement =
   | { [E in NomDEvenement]: { type: 'emis'; evt: E; payload: ChargesDuBus[E] } }[NomDEvenement]
-  | { type: 'programme'; jeton: Jeton; delai: number };
+  | { type: 'programme'; jeton: Jeton; delai: number }
+  | { type: 'etatGagne'; porteur: string; etat: string };
 
 /** Les entrées que l'hôte fournit (D8) : la graine des dés, les règles maison, la cadence, les dés fixés,
  *  et la persistance d'un héros. */
@@ -112,13 +114,20 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   const ouvertePour = (geste: string): void => {
     if (!ouverte) throw new Error(`[noyau] partie fermée : \`${geste}\` après \`fermer\``);
   };
+  /** Les États que porte chaque combattant du combat et du groupe, par id. */
+  const etatsPortes = (): Map<string, Set<string>> =>
+    new Map([...(get().battle?.combatants ?? []), ...get().party].map((c) => [c.id, new Set(c.conditions.map((e) => e.id))]));
+  /** Chaque État qu'un combattant porte et ne portait pas avant l'appel (`avant`). */
+  const etatsGagnes = (avant: Map<string, Set<string>>): Evenement[] =>
+    [...etatsPortes()].flatMap(([porteur, etats]) => [...etats].filter((etat) => !avant.get(porteur)?.has(etat)).map((etat): Evenement => ({ type: 'etatGagne', porteur, etat })));
   /** Un appel qui lève ne laisse ni événement ni ligne au suivant. */
   const appeler = (geste: string, jouer: () => IssueDeLAppel): ResultatDeLAppel => {
     ouvertePour(geste);
+    const avant = etatsPortes();
     try {
       const issue = jouer();
       capter();
-      return { issue, evenements: tampon.splice(0), journal: lignes.splice(0) };
+      return { issue, evenements: [...tampon.splice(0), ...etatsGagnes(avant)], journal: lignes.splice(0) };
     } catch (erreur) {
       capter();
       tampon.length = 0;
