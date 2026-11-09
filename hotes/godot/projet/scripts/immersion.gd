@@ -84,6 +84,7 @@ func poser(case: Vector3i, lacet: float, tangage: float) -> bool:
 	if not _active:
 		return false
 	_pied = monde.lieu(Vector2i(case.x, case.y), case.z)
+	_case_du_pied = case
 	_lacet = lacet
 	_tangage = tangage
 	_liberee = true

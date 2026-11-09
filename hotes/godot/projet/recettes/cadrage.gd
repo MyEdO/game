@@ -46,7 +46,8 @@ func _recetter() -> void:
 	positions.append_array(ETAGE)
 	monde.poser({metresParCase = METRES_PAR_CASE, positions = positions, normales = normales, couleurs = couleurs, cases = CASES,
 		surfaces = [{debut = 0, fin = SOMMETS, matiere = "terrain--terre"}],
-		hauteurs = [{z = 0, rangees = [[0.0, 0.0]]}, {z = 1, rangees = [[4.0, 4.0]]}]})
+		hauteurs = [{z = 0, rangees = [[0.0, 0.0]]}, {z = 1, rangees = [[4.0, 4.0]]}],
+		ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
 	await physics_frame
 	monde.regarder("immersion")
 	var immersion: Immersion = plateau.get_node("Immersion")
@@ -54,7 +55,7 @@ func _recetter() -> void:
 	immersion.case_jouee.connect(func(case: Vector3i) -> void: jouees.append(case))
 	_refus(plateau, CADRAGE, "exploration")
 	immersion.montrer({projection = {exploration = {groupe = [0, 0], etage = null, cap = "N"}}, champ = {},
-		plateau = {regard = "immersion", oeilM = OEIL_M, metresParCase = METRES_PAR_CASE}})
+		plateau = {regard = "immersion", oeilM = OEIL_M, oeilsSousPlafond = {}, metresParCase = METRES_PAR_CASE}})
 	var mire: CanvasItem = immersion.get_node("Viseur/Mire")
 	_attendu(mire.visible, true, "le point de mire de l'œil mené")
 	_attendu(plateau.cadrer(CADRAGE), "", "le cadrage de l'immersion")
