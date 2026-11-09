@@ -1,33 +1,15 @@
 /**
- * Style d'INCANTATION dérivé de la relation lanceur↔cible (donnée présente dans l'événement, sans
- * toucher le store) : `bolt`, sort OFFENSIF sur un ennemi (un projectile magique part — géré par la
- * surcouche de plateau, `fx/FxLayer`) ; `blessing`, BÉNÉDICTION / MIRACLE / buff sur soi ou un allié
- * (halo sur la cible, pas de projectile).
- *
- * Classification fine arcane/divin/projectile : `classifySpellByLabel` (data-driven via
- * spells.json + engine/magic).
+ * Tintage d'INCANTATION par école (arcane/divin) d'un sort désigné par son id STABLE ; la forme du rendu
+ * (projectile ou halo) vient de l'événement (`ANIM_ATTACK`, `projectile`), jamais du camp des combattants.
  */
-import { findSpell } from '../../data';
+import { findSpellById } from '../../data';
 import { castInfoIsPrayer, isMagicMissile } from '../../engine/magic';
-import type { StyleDeSort } from '../../noyau/animation';
-
-/** Style de geste depuis la relation lanceur↔cible (offensif vs soutien). */
-export function spellCastStyle(casterKind?: string, targetKind?: string, isSelf = false): StyleDeSort {
-  if (isSelf) return 'blessing';
-  if (casterKind && targetKind && casterKind === targetKind) return 'blessing'; // sur un allié
-  return 'bolt'; // sur un ennemi
-}
-
-/** True si l'incantation est un soutien (pas de projectile ; halo sur la cible). */
-export function isSupportiveCast(casterKind?: string, targetKind?: string, isSelf = false): boolean {
-  return spellCastStyle(casterKind, targetKind, isSelf) === 'blessing';
-}
 
 export type SpellSchool = 'divine' | 'arcane';
 
-/** Classification CANONIQUE d'un sort par libellé (data-driven). */
-export function classifySpellByLabel(label: string): { school: SpellSchool; missile: boolean } {
-  const spell = findSpell(label);
+/** Classification CANONIQUE d'un sort par son id (data-driven). */
+export function classifySpell(id: string): { school: SpellSchool; missile: boolean } {
+  const spell = findSpellById(id);
   if (!spell) return { school: 'arcane', missile: false };
   return {
     school: castInfoIsPrayer(spell) ? 'divine' : 'arcane',
@@ -57,7 +39,7 @@ export function spellFx(school: SpellSchool): SpellFx {
   return SCHOOL_FX[school];
 }
 
-/** FX visuel depuis le libellé d'un sort (arcane par défaut si inconnu). */
-export function spellFxForLabel(label?: string): SpellFx {
-  return spellFx(label ? classifySpellByLabel(label).school : 'arcane');
+/** FX visuel d'un sort par son id (arcane si inconnu). */
+export function spellFxForSpell(id: string): SpellFx {
+  return spellFx(classifySpell(id).school);
 }

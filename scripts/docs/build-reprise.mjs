@@ -536,10 +536,11 @@ Ne sont pas non plus dans le clone, parce que ce ne sont pas des fichiers :
 
 - **Compte Cloudflare du relay coop** — URL de prod dans \`src/state/netFlow.ts\` (\`RELAY_URL_PROD\`) ;
   redéployable via \`npm run relay:deploy\` (\`${script('relay:deploy')}\`).
-- **Publication du jeu en prod** — workflow \`.github/workflows/deploy.yml\` (« ${DEPLOY.nom} »,
-  ${DEPLOY.declencheurs.join(', ')}) ; il build le COMMIT de \`main\` sur un runner propre. Secret
-  Actions \`PROD_DEPLOY_KEY\` (deploy key SSH) requis côté dépôt ; aucun clone local du dépôt prod
-  nécessaire.
+- **Publication du jeu** — workflow \`.github/workflows/deploy.yml\` (« ${DEPLOY.nom} »,
+  ${DEPLOY.declencheurs.join(', ')}) ; il build le COMMIT de la ref lancée sur un runner propre et le publie pour sa
+  cible : \`jeu\` (prod, jeu web, dossier \`jeu/\` de \`cgauche/cgauche.github.io\`) ou \`dev\` (test, export Web
+  de l'hôte Godot, dépôt \`cgauche/dev\`). Secrets Actions \`PROD_DEPLOY_KEY\` et \`DEV_DEPLOY_KEY\` (deploy keys
+  SSH) requis côté dépôt ; aucun clone local des dépôts publiés nécessaire.
 - **Auth \`gh\` (CLI GitHub)** — credentials locales, nécessaires aux commandes \`gh\` manuelles et aux
   gestes \`ops:*\` joués à la main (\`${script('ops:fermer')}\`, \`${script('ops:fermetures-non-citees')}\`).
   La fermeture des issues tourne en CI (job \`fermetures\`, \`GITHUB_TOKEN\`), comme l'export hebdomadaire.

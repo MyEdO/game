@@ -1,0 +1,350 @@
+[
+  {
+    "id": "arme-blanche",
+    "type": "rendus",
+    "label": "Arme blanche",
+    "couleur": "#d8d8e0",
+    "impactSon": {
+      "id": "tranche"
+    },
+    "manqueSon": {
+      "id": "sifflement"
+    },
+    "paradeVisuel": "etincelles",
+    "paradeSon": {
+      "id": "parade"
+    }
+  },
+  {
+    "id": "coup-de-poing",
+    "type": "rendus",
+    "label": "Coup de poing",
+    "couleur": "#c8a080",
+    "impactSon": {
+      "id": "impact"
+    },
+    "manqueSon": {
+      "id": "sifflement"
+    },
+    "paradeSon": {
+      "id": "impact"
+    }
+  },
+  {
+    "id": "attaque-naturelle",
+    "type": "rendus",
+    "label": "Attaque naturelle",
+    "couleur": "#b04030",
+    "impactSon": {
+      "id": "impact"
+    },
+    "manqueSon": {
+      "id": "sifflement"
+    }
+  },
+  {
+    "id": "arc",
+    "type": "rendus",
+    "label": "Tir à l’arc",
+    "couleur": "#c8b48a",
+    "departSon": {
+      "id": "arc"
+    },
+    "projectile": "fleche",
+    "vitesseMs": 45,
+    "cloche": 0.12,
+    "impactSon": {
+      "id": "tranche"
+    },
+    "manqueVisuel": "poussiere"
+  },
+  {
+    "id": "arbalete",
+    "type": "rendus",
+    "label": "Tir d’arbalète",
+    "couleur": "#a89070",
+    "departSon": {
+      "id": "arbalete"
+    },
+    "projectile": "carreau",
+    "vitesseMs": 60,
+    "cloche": 0.05,
+    "impactSon": {
+      "id": "tranche"
+    },
+    "manqueVisuel": "poussiere"
+  },
+  {
+    "id": "poudre-noire",
+    "type": "rendus",
+    "label": "Tir à poudre",
+    "couleur": "#ffb050",
+    "departVisuel": "eclair-de-bouche",
+    "departSon": {
+      "id": "coup-de-feu"
+    },
+    "projectile": "balle",
+    "vitesseMs": 150,
+    "cloche": 0,
+    "impactSon": {
+      "id": "impact"
+    },
+    "manqueVisuel": "poussiere"
+  },
+  {
+    "id": "fronde",
+    "type": "rendus",
+    "label": "Tir de fronde",
+    "couleur": "#a0a0a0",
+    "departSon": {
+      "id": "sifflement"
+    },
+    "projectile": "pierre",
+    "vitesseMs": 30,
+    "cloche": 0.2,
+    "impactSon": {
+      "id": "impact"
+    },
+    "manqueVisuel": "poussiere"
+  },
+  {
+    "id": "jet",
+    "type": "rendus",
+    "label": "Arme de jet",
+    "couleur": "#c0c0c8",
+    "departSon": {
+      "id": "sifflement"
+    },
+    "projectile": "objet-lance",
+    "vitesseMs": 20,
+    "cloche": 0.25,
+    "impactSon": {
+      "id": "tranche"
+    },
+    "manqueVisuel": "poussiere"
+  },
+  {
+    "id": "explosifs",
+    "type": "rendus",
+    "label": "Explosif lancé",
+    "couleur": "#ff8030",
+    "departSon": {
+      "id": "sifflement"
+    },
+    "projectile": "objet-lance",
+    "vitesseMs": 15,
+    "cloche": 0.4,
+    "impactVisuel": "explosion",
+    "impactSon": {
+      "id": "explosion"
+    },
+    "manqueVisuel": "explosion",
+    "manqueSon": {
+      "id": "explosion"
+    }
+  },
+  {
+    "id": "entraves",
+    "type": "rendus",
+    "label": "Entrave lancée",
+    "couleur": "#b09060",
+    "departSon": {
+      "id": "sifflement"
+    },
+    "projectile": "objet-lance",
+    "vitesseMs": 18,
+    "cloche": 0.2,
+    "impactSon": {
+      "id": "impact"
+    },
+    "manqueVisuel": "poussiere"
+  },
+  {
+    "id": "canon",
+    "type": "rendus",
+    "label": "Tir de canon",
+    "couleur": "#ffa040",
+    "departVisuel": "eclair-de-bouche",
+    "departSon": {
+      "id": "canon"
+    },
+    "projectile": "boulet",
+    "vitesseMs": 90,
+    "cloche": 0.04,
+    "impactVisuel": "explosion",
+    "impactSon": {
+      "id": "explosion"
+    },
+    "manqueVisuel": "poussiere",
+    "manqueSon": {
+      "id": "impact"
+    }
+  },
+  {
+    "id": "mortier",
+    "type": "rendus",
+    "label": "Tir de mortier",
+    "couleur": "#ffa040",
+    "departVisuel": "eclair-de-bouche",
+    "departSon": {
+      "id": "canon"
+    },
+    "projectile": "boulet",
+    "vitesseMs": 30,
+    "cloche": 0.6,
+    "impactVisuel": "explosion",
+    "impactSon": {
+      "id": "explosion"
+    },
+    "manqueVisuel": "explosion",
+    "manqueSon": {
+      "id": "explosion"
+    }
+  },
+  {
+    "id": "canon-a-repetition",
+    "type": "rendus",
+    "label": "Salve de canon à répétition",
+    "couleur": "#ffb050",
+    "departVisuel": "eclair-de-bouche",
+    "departSon": {
+      "id": "coup-de-feu"
+    },
+    "projectile": "balle",
+    "vitesseMs": 120,
+    "cloche": 0.02,
+    "impactVisuel": "explosion",
+    "impactSon": {
+      "id": "explosion"
+    },
+    "manqueVisuel": "poussiere",
+    "manqueSon": {
+      "id": "impact"
+    }
+  },
+  {
+    "id": "catapulte",
+    "type": "rendus",
+    "label": "Jet d’engin",
+    "couleur": "#9a8a70",
+    "departSon": {
+      "id": "catapulte"
+    },
+    "projectile": "pierre",
+    "vitesseMs": 25,
+    "cloche": 0.5,
+    "impactVisuel": "poussiere",
+    "impactSon": {
+      "id": "explosion"
+    },
+    "manqueVisuel": "poussiere",
+    "manqueSon": {
+      "id": "impact"
+    }
+  },
+  {
+    "id": "baliste",
+    "type": "rendus",
+    "label": "Trait de baliste",
+    "couleur": "#a89070",
+    "departSon": {
+      "id": "arbalete"
+    },
+    "projectile": "carreau",
+    "vitesseMs": 70,
+    "cloche": 0.05,
+    "impactSon": {
+      "id": "tranche"
+    },
+    "manqueVisuel": "poussiere"
+  },
+  {
+    "id": "canon-a-flammes",
+    "type": "rendus",
+    "label": "Jet du canon à flammes",
+    "couleur": "#ff6a20",
+    "departVisuel": "eclair-de-bouche",
+    "departSon": {
+      "id": "sort-feu"
+    },
+    "projectile": "jet-de-flammes",
+    "vitesseMs": 25,
+    "cloche": 0.1,
+    "impactVisuel": "gerbe-de-flammes",
+    "impactSon": {
+      "id": "sort-feu"
+    },
+    "manqueVisuel": "gerbe-de-flammes",
+    "manqueSon": {
+      "id": "sort-feu"
+    }
+  },
+  {
+    "id": "belier",
+    "type": "rendus",
+    "label": "Coup de bélier",
+    "couleur": "#9a8a70",
+    "impactVisuel": "poussiere",
+    "impactSon": {
+      "id": "impact"
+    },
+    "manqueVisuel": "poussiere",
+    "manqueSon": {
+      "id": "catapulte"
+    }
+  },
+  {
+    "id": "sort-arcane",
+    "type": "rendus",
+    "label": "Sort des Vents",
+    "couleur": "#9b7bff",
+    "departVisuel": "canalisation",
+    "departSon": {
+      "id": "chant-d-incantation"
+    },
+    "projectile": "trait-magique",
+    "vitesseMs": 25,
+    "cloche": 0.1,
+    "impactVisuel": "eclat-magique",
+    "impactSon": {
+      "id": "sort"
+    },
+    "manqueVisuel": "eclat-magique"
+  },
+  {
+    "id": "sort-de-feu",
+    "type": "rendus",
+    "label": "Sort de feu",
+    "couleur": "#ff6a2a",
+    "departVisuel": "canalisation",
+    "departSon": {
+      "id": "chant-d-incantation"
+    },
+    "projectile": "trait-magique",
+    "vitesseMs": 25,
+    "cloche": 0.1,
+    "impactVisuel": "gerbe-de-flammes",
+    "impactSon": {
+      "id": "sort-feu"
+    },
+    "manqueVisuel": "gerbe-de-flammes"
+  },
+  {
+    "id": "priere",
+    "type": "rendus",
+    "label": "Prière",
+    "couleur": "#ffe08a",
+    "departVisuel": "canalisation",
+    "departSon": {
+      "id": "chant-d-incantation"
+    },
+    "projectile": "trait-magique",
+    "vitesseMs": 25,
+    "cloche": 0.1,
+    "impactVisuel": "halo",
+    "impactSon": {
+      "id": "sort"
+    },
+    "manqueVisuel": "halo"
+  }
+]

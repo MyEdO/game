@@ -1,8 +1,9 @@
 /**
- * LE SERVEUR DE L'EXPORT WEB (#3086, `pont/CONTRAT.md`, section « Atelier 3D ») : `GET modeles/` rend
+ * LE SERVEUR DE L'EXPORT WEB (#3086, `pont/CONTRAT.md`, section « Atelier 3D ») : `GET modeles/listage.json` rend
  * `{ manifestes, osDesRigides, erreurs }`, les seuls manifestes validés contre leur GLB et de chacun les os qui portent
  * ses meshes rigides, en `no-store` ; `GET modeles/<fichier>` sert le fichier en `no-store`, 404 hors du dossier ou
  * absent ; une URI malformée reçoit 400 et un dossier des modèles illisible passe dans `erreurs`, le serveur continue.
+ * `deposerLesModeles` (#3778) écrit les mêmes fichiers et le même listage sous `modeles/` de l'export, en statique.
  * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
  * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire.
  */
@@ -14,8 +15,10 @@ import { baseDeTest, deposerModeleDeTest, elementSchema3, GLB_D_ELEMENT, GLB_DE_
 import { empreinte } from './asset/empreinte.ts';
 import { ecrireGlb } from './asset/glb.ts';
 import { servir } from './servir.mjs';
+import { deposerLesModeles, LISTAGE } from './listage.mjs';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
+import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'servir-3086-'));
 const web = join(racine, 'web');
@@ -56,7 +59,7 @@ afterAll(() => {
 
 describe('servir', () => {
   it('le listage rend exactement les manifestes validés contre leur GLB, et les erreurs des autres, en no-store', async () => {
-    const r = await fetch(`${await demarrer()}modeles/`);
+    const r = await fetch(`${await demarrer()}modeles/${LISTAGE}`);
     expect(r.status).toBe(200);
     expect(r.headers.get('cache-control')).toBe('no-store');
     const { manifestes, erreurs } = await r.json();
@@ -70,7 +73,7 @@ describe('servir', () => {
   });
 
   it('le listage rend, de chaque manifeste validé, les os qui portent ses meshes rigides', async () => {
-    const { osDesRigides } = await (await fetch(`${await demarrer()}modeles/`)).json();
+    const { osDesRigides } = await (await fetch(`${await demarrer()}modeles/${LISTAGE}`)).json();
     expect(osDesRigides).toEqual({ humanoide: [], epee: ['root'], masse: ['root'] });
   });
 
@@ -90,9 +93,18 @@ describe('servir', () => {
     expect(await (await fetch(`${url}index.html`)).text()).toBe('<html></html>');
   });
 
+  it('l’export statique porte sous `modeles/` exactement ce que le serveur y sert : chaque fichier du dossier et le listage', async () => {
+    const url = await demarrer();
+    const sortie = join(racine, 'export');
+    deposerLesModeles(modeles, sortie);
+    expect(JSON.parse(readFileSync(join(sortie, 'modeles', LISTAGE), 'utf8'))).toEqual(await (await fetch(`${url}modeles/${LISTAGE}`)).json());
+    expect(listerDossier(join(sortie, 'modeles'))).toEqual([...listerDossier(modeles), LISTAGE].sort());
+    expect(new Uint8Array(readFileSync(join(sortie, 'modeles', 'epee.glb')))).toEqual(GLB_D_ELEMENT);
+  });
+
   it('un dossier des modèles qui n’est pas un dossier passe dans `erreurs`, et le serveur sert la suivante', async () => {
     const url = await demarrer(join(web, 'index.html'));
-    const { manifestes, osDesRigides, erreurs } = await (await fetch(`${url}modeles/`)).json();
+    const { manifestes, osDesRigides, erreurs } = await (await fetch(`${url}modeles/${LISTAGE}`)).json();
     expect([manifestes, osDesRigides]).toEqual([{}, {}]);
     expect(erreurs).toEqual([expect.stringMatching(/ : ENOTDIR$/)]);
     expect((await fetch(`${url}index.html`)).status).toBe(200);

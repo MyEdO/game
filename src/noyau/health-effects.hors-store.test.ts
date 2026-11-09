@@ -380,8 +380,8 @@ describe('Effet openPort (#93 — MÊME chemin que l’accostage en mer)', () =>
   const worldMap: WorldMap = {
     id: 'm', label: 'Carte',
     places: [
-      { id: 'sans-port', label: 'Village', pos: { x: 0, y: 0 }, scene: 'sc-village' },
-      { id: 'avec-port', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'sc-port', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
+      { id: 'sans-port', label: 'Village', pos: { x: 0, y: 0 }, scene: { id: 'sc-village' } },
+      { id: 'avec-port', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'sc-port' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
     ],
     routes: [],
   };

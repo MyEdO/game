@@ -257,8 +257,8 @@ describe('__wfrp.editorWorldMap — le brouillon de carte du monde, par le pont 
     entree.project.worldMap = {
       id: 'carte', label: 'Carte',
       places: [
-        { id: 'a', label: 'Village', pos: { x: 10, y: 10 }, scene },
-        { id: 'b', label: 'Bourg', pos: { x: 60, y: 40 }, scene, when: { kind: 'flag', expr: 'bourg-connu' } },
+        { id: 'a', label: 'Village', pos: { x: 10, y: 10 }, scene: { id: scene } },
+        { id: 'b', label: 'Bourg', pos: { x: 60, y: 40 }, scene: { id: scene }, when: { kind: 'flag', expr: 'bourg-connu' } },
       ],
       routes: [
         { id: 'r-ouverte', a: { id: 'a' }, b: { id: 'b' }, km: 12, modes: ['pied'] },

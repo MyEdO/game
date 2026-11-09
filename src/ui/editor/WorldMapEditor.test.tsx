@@ -46,8 +46,8 @@ function scenes(): Scene[] {
 
 function baseMap(): WorldMap {
   const m = emptyWorldMap('carte-test');
-  const place: MapPlace = { id: 'p1', label: 'Altdorf', pos: { x: 10, y: 10 }, scene: 's1' };
-  const place2: MapPlace = { id: 'p2', label: 'Marienburg', pos: { x: 40, y: 20 }, scene: 's2' };
+  const place: MapPlace = { id: 'p1', label: 'Altdorf', pos: { x: 10, y: 10 }, scene: { id: 's1' } };
+  const place2: MapPlace = { id: 'p2', label: 'Marienburg', pos: { x: 40, y: 20 }, scene: { id: 's2' } };
   const route: MapRoute = { id: 'r1', a: { id: 'p1' }, b: { id: 'p2' }, km: 20, modes: ['pied'] };
   return { ...m, places: [place, place2], routes: [route] };
 }
@@ -145,7 +145,7 @@ describe('WorldMapEditor — panneau Lieu (#419)', () => {
     expect(lastMap!.places[0].backdrop).toEqual({ id: 'taverne-commune' });
 
     pickRef('Scène liée', 'Scène Deux');
-    expect(lastMap!.places[0].scene).toBe('s2');
+    expect(lastMap!.places[0].scene).toEqual({ id: 's2' });
 
     setValue(input("Point d'entrée"), 'porte-nord');
     expect(lastMap!.places[0].entry).toBe('porte-nord');
@@ -228,7 +228,7 @@ describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
 
     setValue(input('Cible (scène OU service, exclusif)'), 'scene');
     pickRef('Scène', 'Scène Deux');
-    expect(lastMap!.places[0].poi![0].sceneId).toBe('s2');
+    expect(lastMap!.places[0].poi![0].sceneId).toEqual({ id: 's2' });
 
     setValue(input('Cible (scène OU service, exclusif)'), 'service');
     const sv = lieuxServices[0];
@@ -275,7 +275,7 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
 
   it('route couverte par la suite d’un autre billet du véhicule : lecture seule, aucune case de billet d’auteur', () => {
     const m = baseMap();
-    const p3: MapPlace = { id: 'p3', label: 'Nuln', pos: { x: 70, y: 30 }, scene: 's2' };
+    const p3: MapPlace = { id: 'p3', label: 'Nuln', pos: { x: 70, y: 30 }, scene: { id: 's2' } };
     const r1: MapRoute = { id: 'r1', a: { id: 'p1' }, b: { id: 'p2' }, from: { id: 'p1' }, km: 20, modes: ['diligence'], billets: { diligence: { prix: { exterieur: 10 }, suite: ['r2'], maison: 'compagnie' } } };
     const r2: MapRoute = { id: 'r2', a: { id: 'p2' }, b: { id: 'p3' }, from: { id: 'p2' }, km: 30, modes: ['diligence'] };
     mount(emptyNarratif(), { ...m, places: [...m.places, p3], routes: [r1, r2] });
@@ -305,7 +305,7 @@ describe('WorldMapEditor — panneau Route / Péripéties (#419)', () => {
 
     click(tab('Péripéties'));
     pickRef("Scène d'embuscade", 'Scène Un');
-    expect(lastMap!.routes[0].ambush?.scene).toBe('s1');
+    expect(lastMap!.routes[0].ambush?.scene).toEqual({ id: 's1' });
 
     pickRef('Rencontre déclenchée', 'enc1');
     expect(lastMap!.routes[0].ambush?.encounter).toBe('enc1');

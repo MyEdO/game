@@ -69,8 +69,8 @@ function tradeMap(): WorldMap {
   return {
     id: 'm', label: 'Le Reik',
     places: [
-      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'marche-a', market: profile() },
-      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'marche-b', market: profile() },
+      { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'marche-a' }, market: profile() },
+      { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: { id: 'marche-b' }, market: profile() },
     ],
     routes: [],
   };

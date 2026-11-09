@@ -9083,6 +9083,9 @@
     "weaponGroup": {
       "id": "arbalete"
     },
+    "rendu": {
+      "id": "baliste"
+    },
     "defaultAmmo": {
       "id": "carreau-de-baliste"
     },
@@ -9130,6 +9133,9 @@
       "id": "armes-de-siege"
     },
     "weaponGroup": {
+      "id": "catapulte"
+    },
+    "rendu": {
       "id": "catapulte"
     },
     "indirect": true,
@@ -9181,6 +9187,9 @@
     "weaponGroup": {
       "id": "catapulte"
     },
+    "rendu": {
+      "id": "catapulte"
+    },
     "indirect": true,
     "enc": 40,
     "availability": "limitee",
@@ -9228,6 +9237,9 @@
       "id": "armes-de-siege"
     },
     "weaponGroup": {
+      "id": "catapulte"
+    },
+    "rendu": {
       "id": "catapulte"
     },
     "indirect": true,
@@ -9278,6 +9290,9 @@
     },
     "weaponGroup": {
       "id": "ingenierie"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
     },
     "enc": 75,
     "availability": "exotique",
@@ -9342,6 +9357,9 @@
     "weaponGroup": {
       "id": "ingenierie"
     },
+    "rendu": {
+      "id": "canon-a-repetition"
+    },
     "enc": 5,
     "availability": "exotique",
     "reach": null,
@@ -9386,6 +9404,9 @@
     },
     "weaponGroup": {
       "id": "ingenierie"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
     },
     "enc": 85,
     "availability": "exotique",
@@ -9435,6 +9456,9 @@
     },
     "weaponGroup": {
       "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "canon"
     },
     "defaultAmmo": {
       "id": "boulet-et-poudre"
@@ -9488,6 +9512,9 @@
     "weaponGroup": {
       "id": "poudre-noire"
     },
+    "rendu": {
+      "id": "canon"
+    },
     "defaultAmmo": {
       "id": "boulet-et-poudre"
     },
@@ -9539,6 +9566,9 @@
     },
     "weaponGroup": {
       "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "canon"
     },
     "defaultAmmo": {
       "id": "boulet-et-poudre"
@@ -9592,6 +9622,9 @@
     "weaponGroup": {
       "id": "poudre-noire"
     },
+    "rendu": {
+      "id": "mortier"
+    },
     "defaultAmmo": {
       "id": "bombe-de-mortier"
     },
@@ -9637,6 +9670,9 @@
     },
     "weaponGroup": {
       "id": "poudre-noire"
+    },
+    "rendu": {
+      "id": "canon"
     },
     "defaultAmmo": {
       "id": "balles-et-poudre-pierrier"
@@ -13543,6 +13579,9 @@
     "weaponGroup": {
       "id": "machine-de-guerre"
     },
+    "rendu": {
+      "id": "baliste"
+    },
     "defaultAmmo": {
       "id": "carreau-de-baliste"
     },
@@ -13601,6 +13640,9 @@
     "weaponGroup": {
       "id": "machine-de-guerre"
     },
+    "rendu": {
+      "id": "belier"
+    },
     "availability": "limitee",
     "reach": "Moyenne",
     "range": null,
@@ -13649,6 +13691,9 @@
     },
     "weaponGroup": {
       "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
     },
     "minRangeBand": "courte",
     "availability": "exotique",
@@ -13707,6 +13752,9 @@
     },
     "weaponGroup": {
       "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon-a-repetition"
     },
     "minRangeBand": "courte",
     "availability": "exotique",
@@ -13769,6 +13817,9 @@
     },
     "weaponGroup": {
       "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon"
     },
     "defaultAmmo": {
       "id": "boulet-et-poudre"
@@ -13833,6 +13884,9 @@
     },
     "weaponGroup": {
       "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "canon-a-flammes"
     },
     "minRangeBand": "courte",
     "availability": "exotique",
@@ -13915,6 +13969,9 @@
     "weaponGroup": {
       "id": "machine-de-guerre"
     },
+    "rendu": {
+      "id": "catapulte"
+    },
     "indirect": true,
     "minRangeBand": "courte",
     "availability": "rare",
@@ -13970,6 +14027,9 @@
     },
     "weaponGroup": {
       "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "catapulte"
     },
     "indirect": true,
     "minRangeBand": "courte",
@@ -14027,6 +14087,9 @@
     "weaponGroup": {
       "id": "machine-de-guerre"
     },
+    "rendu": {
+      "id": "catapulte"
+    },
     "indirect": true,
     "minRangeBand": "moyenne",
     "availability": "limitee",
@@ -14082,6 +14145,9 @@
     },
     "weaponGroup": {
       "id": "machine-de-guerre"
+    },
+    "rendu": {
+      "id": "mortier"
     },
     "defaultAmmo": {
       "id": "bombe-de-mortier"

@@ -178,8 +178,8 @@ export function CampaignView() {
   const lieuOuvert = useGame((s) => s.lieuOuvert);
   const ouvrirLeLieu = useGame((s) => s.ouvrirLeLieu);
   const hubPlace = mode === 'exploration' && !travelPlan ? lieuDuGroupe({ lieu, worldMap }) : undefined;
-  const hubScene = hubPlace ? sceneDuRegistre(hubPlace.scene) : undefined;
-  const hubRest = hubPlace && scene?.id === hubPlace.scene ? restHere : null;
+  const hubScene = hubPlace ? sceneDuRegistre(hubPlace.scene.id) : undefined;
+  const hubRest = hubPlace && scene?.id === hubPlace.scene.id ? restHere : null;
   const pendingCascade = useGame((s) => s.pendingCascade);
   const pendingRest = useGame((s) => s.pendingRest);
   // Écran-hub de voyage (#333) : actif tout au long d'un voyage EN COURS (source unique `voyageHubActive`).

@@ -9,7 +9,8 @@
 ## de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
 ## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`Monde.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
-## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion. Il ne rend que la
+## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
+## appel entre ses combattants (`Effets`). Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
 ## case inspectée sous le pointeur.
 class_name Plateau
@@ -30,6 +31,8 @@ signal habille
 @onready var _chargeur: MontageDeComposition = $Navires/Chargeur
 @onready var _immersion: Immersion = $Immersion
 
+## Les effets des appels, rendus au plateau (`Effets`).
+var _effets := Effets.new()
 var _modeles: Dictionary = {}
 ## Par id d'entité, le montage de chaque navire posé (`_poser_les_navires`).
 var _navires_montes: Dictionary = {}
@@ -40,11 +43,14 @@ var _survol: Variant = null
 func _ready() -> void:
 	_monde.cadrage_change.connect(func() -> void: _survoler(_monde.case_sous(get_viewport().get_mouse_position())))
 	_immersion.case_jouee.connect(case_cliquee.emit)
+	_effets.name = "Effets"
+	add_child(_effets)
+	_effets.depart.connect(_agir)
+	_effets.arrivee.connect(_subir)
 
 
-## Montre la vue ; chaque ligne de `journal` qui nomme un acteur et sa cible tourne l'acteur vers elle et l'anime, et
-## la cible accuse le coup.
-func montrer(vue: Dictionary, journal: Array) -> void:
+## Montre la vue.
+func montrer(vue: Dictionary) -> void:
 	_vue = vue
 	var combat: Variant = vue.projection.combat
 	var exploration: Variant = vue.projection.exploration
@@ -78,12 +84,28 @@ func montrer(vue: Dictionary, journal: Array) -> void:
 			modele.habille.connect(habille.emit)
 			_modeles[c.id] = modele
 		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.corps.vehicules.get(c.id), vue.plateau.metresParCase)
-	for ligne in journal:
-		var e: Variant = ligne.get("evenement")
-		if e != null and _modeles.has(e.get("actorId", "")) and _modeles.has(e.get("targetId", "")) and e.actorId != e.targetId:
-			_modeles[e.actorId].agir_vers(_modeles[e.targetId].position)
-			_modeles[e.targetId].subir()
 	_peindre()
+
+
+## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés : l'auteur d'un coup ou d'une
+## incantation se tourne vers sa cible et l'anime à son départ, la cible d'un coup qui touche l'accuse à son arrivée.
+func jouer_les_effets(effets: Array) -> void:
+	if _vue.plateau == null:
+		return
+	var lieux := {}
+	for id: String in _modeles:
+		lieux[id] = _modeles[id].position
+	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
+
+
+func _agir(de: String, vers: String) -> void:
+	if de != vers:
+		_modeles[de].agir_vers(_modeles[vers].position)
+
+
+func _subir(vers: String, touche: bool) -> void:
+	if touche:
+		_modeles[vers].subir()
 
 
 ## Chaque navire de `navires` (`vue.corps.navires`) monté sous `Navires` (`_monter_le_navire`), coupé à la hauteur de

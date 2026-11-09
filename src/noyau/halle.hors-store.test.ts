@@ -20,7 +20,7 @@ import { t } from '../i18n';
 
 const carte: WorldMap = {
   id: 'm', label: 'Reikland',
-  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'ville-a', market: { taille: 4, richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } }],
+  places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'ville-a' }, market: { taille: 4, richesse: 4, produits: ['vivres', 'vin-eau-de-vie', 'metal', 'commerce-terre'] } }],
   routes: [],
 };
 

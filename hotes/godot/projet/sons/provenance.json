@@ -1,0 +1,242 @@
+{
+  "arbalete.ogg": {
+    "sha256": "c7ef0435bc4885c3a8496dddd2eded4d883fc85e924335844ad400c604fdcb8a",
+    "source": "https://opengameart.org/content/battle-sound-effects (battle_sound_effects_0.zip : Bow.wav), artisticdude",
+    "licence": "CC0-1.0 (licences multiples de la page, CC0 retenue)",
+    "traitement": "ffmpeg : asetrate 0,75 (plus grave), mono, 44,1 kHz, Vorbis q4"
+  },
+  "arc.ogg": {
+    "sha256": "874536312fb9d540300c7da25032a2143e169c1914c43f9260e2c48aa8e18812",
+    "source": "https://opengameart.org/content/battle-sound-effects (battle_sound_effects_0.zip : Bow.wav), artisticdude",
+    "licence": "CC0-1.0 (licences multiples de la page, CC0 retenue)",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "canon-1.ogg": {
+    "sha256": "ff3153ad81a295a9dda985e8900c12105c200e6a08e528c64e766e1fd85478da",
+    "source": "https://opengameart.org/content/25-cc0-bang-firework-sfx (25-CC0-bang-sfx.zip : cannon_01.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "canon-2.ogg": {
+    "sha256": "a266adbd92c90d42c1987be869b9d792fae50a39ffeb90b71f9fca6342b642e6",
+    "source": "https://opengameart.org/content/25-cc0-bang-firework-sfx (25-CC0-bang-sfx.zip : cannon_02.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "canon-3.ogg": {
+    "sha256": "e28001578c07c99b3fe1ca955babbf4e10605f9671cd4db2795ff27b2b4fcfdc",
+    "source": "https://opengameart.org/content/25-cc0-bang-firework-sfx (25-CC0-bang-sfx.zip : cannon_04.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "catapulte-1.ogg": {
+    "sha256": "69c00df820bec83b82efcac63139fa4335d5bab02057582d90dec50558f4752f",
+    "source": "https://opengameart.org/content/100-cc0-sfx (100-CC0-SFX_0.zip : wooden_01.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "catapulte-2.ogg": {
+    "sha256": "09299c9dd1c28916716f613f28fa4e06ce3d57f8e70ac8640887ecd7c9e2bf7c",
+    "source": "https://opengameart.org/content/100-cc0-sfx (100-CC0-SFX_0.zip : wooden_02.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "catapulte-3.ogg": {
+    "sha256": "051960d88e5da70453ec0f7dfd5a21059b3587b2ae2c67f48d6a8be5527da920",
+    "source": "https://opengameart.org/content/100-cc0-sfx (100-CC0-SFX_0.zip : wooden_03.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "coup-de-feu-1.ogg": {
+    "sha256": "8859c6cfc2b4b1f508f6d1666e40ddbac3b8b4a308d114e4ebf6acb43fb10900",
+    "source": "https://opengameart.org/content/25-cc0-bang-firework-sfx (25-CC0-bang-sfx.zip : shot_01.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "coup-de-feu-2.ogg": {
+    "sha256": "33a0f90b7690efa94007af93eb74064802c3c3bcdcf4026ee84f31635f506820",
+    "source": "https://opengameart.org/content/25-cc0-bang-firework-sfx (25-CC0-bang-sfx.zip : shot_02.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "coup-de-feu-3.ogg": {
+    "sha256": "62c652d6256f810dc3da14f63a67e8c4c692fc805832a5fa76724171d7be0645",
+    "source": "https://opengameart.org/content/25-cc0-bang-firework-sfx (25-CC0-bang-sfx.zip : shot_03.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "critique.ogg": {
+    "sha256": "94b8bb5f2d43ab65e4bcc32b28562416e9bc2c51d9fd4be1e333660ee52f977f",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/critique.ogg tel quel"
+  },
+  "des-1.ogg": {
+    "sha256": "4e6581c73465cdd7ec32e86a709b4ea5c682e819c9bdb7989d1df1880ba67886",
+    "source": "https://kenney.nl/assets/casino-audio (Kenney Casino Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/des-1.ogg tel quel"
+  },
+  "des-2.ogg": {
+    "sha256": "e0b8c370503b2c5c2a72d311cccae30fe63a6afd48f2be32e771fcf1a98585d6",
+    "source": "https://kenney.nl/assets/casino-audio (Kenney Casino Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/des-2.ogg tel quel"
+  },
+  "des-3.ogg": {
+    "sha256": "09c13d35a9a30bfce31a5e9bca94adc5be189ddecd0b4500237d54c7fd05227c",
+    "source": "https://kenney.nl/assets/casino-audio (Kenney Casino Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/des-3.ogg tel quel"
+  },
+  "explosion-1.ogg": {
+    "sha256": "0890403cc93ec501639902d05982506c54abc7a5a01b7efa8a3cbea2e855910d",
+    "source": "https://opengameart.org/content/100-cc0-sfx (100-CC0-SFX_0.zip : explosion.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "explosion-2.ogg": {
+    "sha256": "f82cdf2320c52a2e1b1748a375aa6895fba5b41fb78812b53091685bbfedf753",
+    "source": "https://opengameart.org/content/battle-at-sea (cannon_hit_1.ogg), Thimras",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : coupé à 2,5 s, fondu de sortie 0,7 s, mono, 44,1 kHz, Vorbis q4"
+  },
+  "gong-victoire.ogg": {
+    "sha256": "49fe4fafa2001bd0d312976796824571ca8429851f285997e1327d17bb34fd00",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/gong-victoire.ogg tel quel"
+  },
+  "impact-1.ogg": {
+    "sha256": "b33a8f14068aec24ec69ba85e5e87fdc41228975f6a1a3e44a6e7d6fc3d9f8d8",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/impact-1.ogg tel quel"
+  },
+  "impact-2.ogg": {
+    "sha256": "f92f5cb6ba4ff2766497292ffd90865654317eeca976f5652e0708dbdcdc0dd9",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/impact-2.ogg tel quel"
+  },
+  "impact-3.ogg": {
+    "sha256": "7993dd4c156b9979ad69f17be5ebe31850b16039a3857f8477141be54dfee1b3",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/impact-3.ogg tel quel"
+  },
+  "incantation-1.ogg": {
+    "sha256": "f613742e9a98c06cd0709ee0678c84aad03c6886eebc7a82d43937a6779a0431",
+    "source": "https://opengameart.org/content/80-cc0-rpg-sfx (80-CC0-RPG-SFX_0.zip : spell_01.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "incantation-2.ogg": {
+    "sha256": "2ad7ab76bb304ad1092428b6bba3f73a3bcf3d3954bdd0764cb529751b6b64f5",
+    "source": "https://opengameart.org/content/80-cc0-rpg-sfx (80-CC0-RPG-SFX_0.zip : spell_02.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "parade-1.ogg": {
+    "sha256": "e07045693e4a2b3d165c424e3dab4c781d9ff8880a386880ac89a51315d7f831",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/parade-1.ogg tel quel"
+  },
+  "parade-2.ogg": {
+    "sha256": "83554049f81f4db9209379e103c30bfa63f65c42189a03f300b045c2c82e23ae",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/parade-2.ogg tel quel"
+  },
+  "pas-1.ogg": {
+    "sha256": "6fe61ef1fc3bcf0e253bf2eb64759db6cb69e2fe452f4d88cc597ecf78a3d601",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/pas-1.ogg tel quel"
+  },
+  "pas-2.ogg": {
+    "sha256": "313472dba31fd0c855376069fa368bb5a198c27251cc8398ef464578b7047a4c",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/pas-2.ogg tel quel"
+  },
+  "pas-3.ogg": {
+    "sha256": "2d9575b7dead6e1217ca113991fc5229e9b6d998ea0726ebbb277e7398ab888f",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/pas-3.ogg tel quel"
+  },
+  "piece.ogg": {
+    "sha256": "8a91f969e932df709df80ee124d86a51389eed9b67f22e5e716bc2bbf60d8dab",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/piece.ogg tel quel"
+  },
+  "porte-ferme.ogg": {
+    "sha256": "834d29c60a8a8bfb50b158cdb6b7dfa8f02812a408a1ee9703d038dfab0b1aeb",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/porte-ferme.ogg tel quel"
+  },
+  "porte-ouvre.ogg": {
+    "sha256": "4ab93bab96522d8eb109ff96dc57cb6765deb02448fe14c10472084be5bb2a0b",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/porte-ouvre.ogg tel quel"
+  },
+  "sifflement-1.ogg": {
+    "sha256": "03328aef2725810c73e2a797b7c9b04e026d2b760ca2d0390f61b1869a1ca16c",
+    "source": "https://opengameart.org/content/battle-sound-effects (battle_sound_effects_0.zip : swish_2.wav), artisticdude",
+    "licence": "CC0-1.0 (licences multiples de la page, CC0 retenue)",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "sifflement-2.ogg": {
+    "sha256": "fe4fda503673dc29fd52a53fc545782ee97d1a4f6425fc23d26322cf0f718058",
+    "source": "https://opengameart.org/content/battle-sound-effects (battle_sound_effects_0.zip : swish_3.wav), artisticdude",
+    "licence": "CC0-1.0 (licences multiples de la page, CC0 retenue)",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "sifflement-3.ogg": {
+    "sha256": "ff6ea9569496e52ff1604fe8830c5acdd6800884c4cc5e952842d01516dd0a52",
+    "source": "https://opengameart.org/content/battle-sound-effects (battle_sound_effects_0.zip : swish_4.wav), artisticdude",
+    "licence": "CC0-1.0 (licences multiples de la page, CC0 retenue)",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "sort-feu-1.ogg": {
+    "sha256": "cc486ad2ccee5a89a320c8c9916faa272c08d0539ad356f743c2a28745092972",
+    "source": "https://opengameart.org/content/80-cc0-rpg-sfx (80-CC0-RPG-SFX_0.zip : spell_fire_01.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "sort-feu-2.ogg": {
+    "sha256": "556c8efbdedab97aad46cb90bf67c788d5813c994161439ef8bc2eabca9585ab",
+    "source": "https://opengameart.org/content/80-cc0-rpg-sfx (80-CC0-RPG-SFX_0.zip : spell_fire_02.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "sort-feu-3.ogg": {
+    "sha256": "9dd0e3b5cc44b55a4d4d7ca7e05b1bcff3b830bb60bbe41807f42b4fac3d346f",
+    "source": "https://opengameart.org/content/80-cc0-rpg-sfx (80-CC0-RPG-SFX_0.zip : spell_fire_06.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "sort.ogg": {
+    "sha256": "d750cf88097d0c3e69920e6e14496e1444e1a9da01aa4cca8f5ec8cb44c57b4f",
+    "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/sort.ogg tel quel"
+  },
+  "tranche-1.ogg": {
+    "sha256": "4cd96dc630bed9840c15f1dd2306da2cc56a4da26a5d3f1a03c5a7265ac5e54f",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/tranche-1.ogg tel quel"
+  },
+  "tranche-2.ogg": {
+    "sha256": "6c2064d0ef988d1ec3d56868e823ea8823a5cac00f2742560052633529407def",
+    "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
+    "licence": "CC0-1.0 (https://kenney.nl/support)",
+    "traitement": "aucun : public/audio/tranche-2.ogg tel quel"
+  }
+}

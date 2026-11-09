@@ -53,20 +53,19 @@ export function initAudioWiring(): void {
 export function brancherLesSons(): () => void {
   const offs = [
     bus.on(EVT.DICE_ROLL, () => playSfx('des')),
-    bus.on(EVT.SFX, (p: { id: string }) => playSfx(p.id)),
-    bus.on(EVT.ANIM_ATTACK, (p: { kind?: 'melee' | 'ranged' | 'spell' }) => {
-      lastAttackKind = p?.kind ?? 'melee';
+    bus.on(EVT.SFX, (p) => playSfx(p.id)),
+    bus.on(EVT.ANIM_ATTACK, (p) => {
+      lastAttackKind = p.kind === 'creature' ? 'melee' : p.kind;
     }),
-    bus.on(EVT.ANIM_IMPACT, (p: { result?: { hit?: boolean; critiques?: number; parried?: boolean } }) => {
-      const r = p?.result;
-      if (!r) return;
-      if (r.critiques) return playSfx('critique');
-      if (r.hit) return playSfx(lastAttackKind === 'spell' ? 'sort' : lastAttackKind === 'ranged' ? 'tranche' : 'impact');
+    bus.on(EVT.ANIM_IMPACT, (p) => {
+      const r = p.result;
+      if ('critiques' in r && r.critiques) return playSfx('critique');
+      if ('hit' in r && r.hit) return playSfx(lastAttackKind === 'spell' ? 'sort' : lastAttackKind === 'ranged' ? 'tranche' : 'impact');
       playSfx('parade'); // déjoué : parade/esquive — le métal claque
     }),
-    bus.on(EVT.ANIM_MOVE, (p: { path?: unknown[] }) => {
+    bus.on(EVT.ANIM_MOVE, (p) => {
       heurtSonne = false;
-      const steps = Math.min(4, Math.max(1, Math.floor((p?.path?.length ?? 1) / 2)));
+      const steps = Math.min(4, Math.max(1, Math.floor(p.path.length / 2)));
       for (let i = 0; i < steps; i++) scheduleFlowTimer(() => playSfx('pas'), i * 220);
     }),
     // Heurt : le PREMIER blocage d'une série seulement. Une touche tenue contre un mur re-tente le pas à
@@ -76,8 +75,8 @@ export function brancherLesSons(): () => void {
       heurtSonne = true;
       playSfx('heurt');
     }),
-    bus.on(EVT.BATTLE_OVER, (p: { victory?: boolean }) => {
-      if (p?.victory) playSfx('gong-victoire');
+    bus.on(EVT.BATTLE_OVER, (p) => {
+      if (p.victory) playSfx('gong-victoire');
     }),
   ];
   return () => { for (const off of offs) off(); };

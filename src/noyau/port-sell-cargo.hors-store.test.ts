@@ -59,7 +59,7 @@ function setup(port: PortProfile, party: Combatant[], enc = 40): void {
   set({
     party, scene,
     battle: null,
-    worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port }], routes: [] },
+    worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: { id: 'scene-P' }, port }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc, basePriceGold: 10 }], lastVoyageMilles: 0 },
     port: { placeId: 'P', label: 'Port', port: structuredClone(port), offers: [] },
     journal: [],
@@ -170,7 +170,7 @@ function setupBuy(party: Combatant[], offerEnc = 20, basePrice = 10): void {
   set({
     party, scene,
     battle: null,
-    worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: 'scene-P', port }], routes: [] },
+    worldMap: { id: 'm', nom: 'x', places: [{ id: 'P', label: 'Port', pos: { x: 0, y: 0 }, scene: { id: 'scene-P' }, port }], routes: [] },
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [], lastVoyageMilles: 0 },
     port: { placeId: 'P', label: 'Port', port: structuredClone(port), offers: [{ cargoId: 'bois-mer', label: 'Bois', enc: offerEnc, basePrice, surplus: false }] },
     journal: [],
