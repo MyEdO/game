@@ -314,3 +314,13 @@ REVUE = {
         ("01-nue", "passerelle", (4.5, 8.5, 13.0), (0.0, 5.6, 2.0), 20),
     ],
 }
+
+# Illustration directrice (`cote_a_cote.py`) : la planche dans le recueil ; pour le profil et pour chaque plan de pont
+# (MDG p.99 : gaillard d'avant et château de poupe au pont 3, pont supérieur, pont principal, pont de cargaison), l'abscisse
+# px de l'étrave et de l'étambot (le château), les lignes px du haut et du bas de la bande, la flottaison du profil.
+ILLUSTRATION = {"fichier": "bateaux/caraque-et-plans-de-pont.png",
+                "profil": {"etrave": 945, "etambot": 165, "haut": 20, "bas": 700, "eau": 655},
+                "ponts": {3: ({"etrave": 230, "etambot": 830, "haut": 815, "bas": 990},),
+                          2: ({"etrave": 230, "etambot": 830, "haut": 1005, "bas": 1190},),
+                          1: ({"etrave": 230, "etambot": 830, "haut": 1200, "bas": 1385},),
+                          0: ({"etrave": 230, "etambot": 830, "haut": 1390, "bas": 1560},)}}
