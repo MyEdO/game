@@ -8,7 +8,6 @@ import type { Jeu } from './etat';
 import { fenetreDuJeu, TOUT_RESOUDRE, type FenetreDuJeu } from './combatAuto';
 import { stepInteraction } from './cascade';
 import type { PendingCascade } from './pendings';
-import { preemptShooterIds } from './targeting';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
 import { cleDuGeste, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
 import { fermetureDeLaSortie } from './sortieDeFenetre';
@@ -40,16 +39,14 @@ function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | n
 
 /** Ce qui ferme maintenant les gestes qu'une fenêtre juge elle-même, par sa clé, chacun par son identité
  *  (`cleDuGeste`) : « tout résoudre » sur la cascade, la déclaration du Contre-sort quand ce siège n'a plus de rangée à
- *  déclarer (`rangeesAReglerIci`) ; au début du Round, la visée du Tir rapide sans tireur (`preemptShooterIds`) et le
- *  clic du combattant sans visée armée (`preemptAiming`). Les valeurs d'un choix de fenêtre se ferment à
- *  `OUVERTS_DU_CHOIX`. */
+ *  déclarer (`rangeesAReglerIci`) ; au début du Round, le clic du combattant sans visée armée (`preemptAiming`). Les
+ *  valeurs d'un choix de fenêtre se ferment à `OUVERTS_DU_CHOIX`. */
 const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
   cascade: (s) => s.pendingCascade && {
     [cleDuGeste(TOUT_RESOUDRE)]: fermetureDeToutResoudre(s, s.pendingCascade),
     [cleDuGeste({ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('counterspell', 'declaration')).length ? null : 'rienADeclarer',
   },
   roundStart: (s) => ({
-    armerLeTirPreventif: preemptShooterIds(() => s).length ? null : 'nonOffert',
     cliquerLaCase: s.preemptAiming ? null : 'nonOffert',
   }),
 };

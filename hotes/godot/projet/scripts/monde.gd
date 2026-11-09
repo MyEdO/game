@@ -2,10 +2,10 @@
 ## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
 ## et ses caméras (`regarder`) : celle des regards `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E
 ## d'un quart de tour, bouton du milieu tenu librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour
-## revenir au lieu suivi), centrée sur lui puis sur le lieu qu'elle suit (`suivre`), de biais en tactique, à la verticale
-## et sans perspective au plateau ; et l'œil du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche
-## sur le sol touché sous lui (`sol_sous`). Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la case
-## du triangle que le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
+## revenir au lieu suivi), centrée sur lui puis sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), de
+## biais en tactique, à la verticale et sans perspective au plateau ; et l'œil du regard `immersion`, posé par qui
+## l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`). Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la caméra
+## posée (`camera`), la case du triangle que le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
 ## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
 ## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
 ## couronnes crénelées des murs, chacune cachée quand son mur tombe, la météo (`poser_la_meteo`), la mer de chaque
@@ -32,6 +32,8 @@ const PRES_DE_L_OEIL := 0.5
 const LOIN_DE_L_OEIL := 1.5
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
+## La hauteur (m) au-dessus du lieu que regarde la caméra d'où se cherche le sol sous lui (`camera`).
+const AU_DESSUS_DU_LIEU_M := 1.0
 ## Les items de `surbrillances`.
 const ITEM_ATTEIGNABLE := 0
 const ITEM_CIBLE := 1
@@ -56,6 +58,7 @@ const KIT := "res://kit/kit.glb"
 
 @onready var _volume: Node3D = $Volume
 @onready var _maillage: MeshInstance3D = $Volume/Maillage
+@onready var _ombre: MeshInstance3D = $Volume/Ombre
 @onready var _forme: CollisionShape3D = $Volume/Corps/Forme
 @onready var _toits: Node3D = $Volume/Toits
 @onready var _couronnes: Node3D = $Volume/Couronnes
@@ -77,9 +80,7 @@ var _sols: Dictionary = {}
 var _lacet := 0.0
 ## Les arêtes posées (`poser_les_aretes`).
 var _aretes_posees: Array = []
-## Les clés des couronnes abattues, et les crans de caméra sous lesquels tombe chaque arête dégagée, par clé
-## (`cacher_le_bati`).
-var _couronnes_abattues: Array = []
+## Les crans de caméra sous lesquels tombe chaque arête dégagée, par clé (`cacher_le_bati`).
 var _aretes_degagees: Dictionary = {}
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
@@ -99,6 +100,9 @@ var _regard := "tactique"
 var _monde_pose: Variant = null
 ## Par id de navire, le contour de sa coque à sa flottaison dans le plan du volume (`border_la_mer`).
 var _coques := {}
+## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
+## occupant (`poser_les_stations`).
+var _stations := {}
 
 
 func _ready() -> void:
@@ -111,17 +115,18 @@ func _ready() -> void:
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
 ## monde : son maillage, une surface par matière (sol, relief, décor), texturée ou colorée par sommet (`_matiere`),
-## rendu des deux côtés hors des surfaces d'un navire, la mer de chacun bordée par sa coque (`_maillage_de`), en forme
-## hors de ces mers, que le rayon du pointeur touche des deux côtés, le sol de chaque case de chaque couche, et la caméra
-## centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque tableau
-## retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
+## rendu des deux côtés hors des surfaces d'un navire, la mer de chacun bordée par sa coque, et l'ombre de ce que le
+## regard en retire (`_mailler`), en forme hors de ces mers, que le rayon du pointeur touche des deux côtés, le sol de
+## chaque case de chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le
+## sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui,
+## que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
 	_monde_pose = monde
 	_metres_par_case = monde.metresParCase
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
-	_maillage.mesh = _maillage_de(monde)
+	_mailler()
 	var tous := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
 	var sommets := PackedVector3Array()
 	_cases_des_triangles = []
@@ -152,7 +157,14 @@ func border_la_mer(navire: String, contour: PackedVector2Array) -> void:
 		dans_le_volume.append(Vector2(local.x, local.z))
 	_coques[navire] = dans_le_volume
 	if _monde_pose != null:
-		_maillage.mesh = _maillage_de(_monde_pose)
+		_mailler()
+
+
+## Le maillage du dernier volume posé (`_maillage_de`), et celui de son ombre (`ombre`), que la caméra ne voit pas et
+## qui projette son ombre (`SHADOWS_ONLY`, #3758).
+func _mailler() -> void:
+	_maillage.mesh = _maillage_de(_monde_pose)
+	_ombre.mesh = _maillage_de(_monde_pose.ombre)
 
 
 ## Les nappes de toit (`toits`) et les couronnes crénelées des murs (`couronnes`) de la scène (`CONTRAT.md`, section
@@ -229,27 +241,27 @@ func _translucide(couleur: String, opacite: float) -> StandardMaterial3D:
 	return matiere
 
 
-## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`
-## la nomme (`plateau.couronnesAbattues`), et chaque arête que le groupe dégage (`aretes_degagees`,
-## `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra (`_abattre_les_aretes`) ; montrées sinon.
+## Chaque nappe de toit que `toits_leves` nomme (`plateau.toitsLeves`) cachée à la caméra (`_cacher_sous`), chaque
+## couronne que `couronnes_abattues` nomme (`plateau.couronnesAbattues`) retirée, et chaque arête que le groupe dégage
+## (`aretes_degagees`, `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra
+## (`_abattre_les_aretes`) ; montrées sinon.
 func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degagees: Array) -> void:
 	_cacher_sous(_toits, toits_leves)
-	_couronnes_abattues = couronnes_abattues
+	for couronne: Node3D in _couronnes.get_children():
+		couronne.visible = not couronnes_abattues.has(couronne.get_meta("cle"))
 	_aretes_degagees.clear()
 	for a in aretes_degagees:
 		_aretes_degagees[a.cle] = a.abattueSous
 	_abattre_les_aretes()
 
 
-## Les arêtes dégagées qui tombent sous le cran de la caméra (`MiseEnPage.rotation_iso`) cachées avec leur couronne, et
-## les couronnes abattues ; le reste montré.
+## Les arêtes dégagées qui tombent sous le cran de la caméra (`MiseEnPage.rotation_iso`) cachées à la caméra avec leur
+## couronne (`_cacher_sous`) ; le reste montré.
 func _abattre_les_aretes() -> void:
 	var cran := int(MiseEnPage.rotation_iso(_camera.global_basis.z))
 	var abattues := _aretes_degagees.keys().filter(func(cle: String) -> bool: return _aretes_degagees[cle].has(cran))
 	_cacher_sous(_aretes, abattues)
-	var couronnes := _couronnes_abattues.duplicate()
-	couronnes.append_array(abattues)
-	_cacher_sous(_couronnes, couronnes)
+	_cacher_sous(_couronnes, abattues)
 
 
 ## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.
@@ -264,10 +276,16 @@ func _poser_sous(parent: Node3D, nappes: Array) -> void:
 		parent.add_child(instance)
 
 
-## Chaque nappe sous `parent` cachée si `cles` la nomme, montrée sinon.
+## Chaque pièce sous `parent` que `cles` nomme cachée à la caméra, chacun de ses maillages en ombre seule
+## (`SHADOWS_ONLY`, #3758), montrée sinon.
 func _cacher_sous(parent: Node3D, cles: Array) -> void:
-	for nappe in parent.get_children():
-		nappe.visible = not cles.has(nappe.get_meta("cle"))
+	for piece: Node3D in parent.get_children():
+		var ombre := GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if cles.has(piece.get_meta("cle")) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		var maillages := piece.find_children("*", "GeometryInstance3D", true, false)
+		if piece is GeometryInstance3D:
+			maillages.append(piece)
+		for maillage: GeometryInstance3D in maillages:
+			maillage.cast_shadow = ombre
 
 
 ## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
@@ -387,9 +405,21 @@ func sol(case: Vector2i, z := 0) -> float:
 	return _sols[z][case.y][case.x]
 
 
-## Le centre du sol de la case `case` de la couche `z`.
+## Où se tient l'occupant de la case `case` de la couche `z`, sur son sol : à sa station si le modèle d'un navire la
+## rogne (`poser_les_stations`), en son centre sinon.
 func lieu(case: Vector2i, z := 0) -> Vector3:
-	return MiseEnPage.centre_de_case(case, sol(case, z))
+	var station: Variant = _stations.get(Vector3i(case.x, case.y, z))
+	if station == null:
+		return MiseEnPage.centre_de_case(case, sol(case, z))
+	return MiseEnPage.point_de_la_carte(station.x, station.y, sol(case, z))
+
+
+## Les stations des navires servis (`navires`, `vue.corps.navires`, chacun ses `stations`), à la place des précédentes.
+func poser_les_stations(navires: Dictionary) -> void:
+	_stations = {}
+	for id: String in navires:
+		for s: Dictionary in navires[id].stations:
+			_stations[Vector3i(int(s.x), int(s.y), int(s.z))] = Vector2(s.point.x, s.point.y)
 
 
 ## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.
@@ -405,7 +435,7 @@ func points(z := 0) -> Dictionary:
 
 
 ## Les plaques `plaques` (par case `Vector3i(x, y, z)`, l'item de `surbrillances`), chacune sur le sol de sa case, à la
-## place des précédentes.
+## place des précédentes, montrées hors du regard `immersion` (`regarder`).
 func peindre(plaques: Dictionary) -> void:
 	for plaque in _surbrillance.get_children():
 		_surbrillance.remove_child(plaque)
@@ -571,7 +601,9 @@ func case_sous(point: Vector2) -> Variant:
 
 ## Le regard `regard` (`plateau.regard`, `CONTRAT.md`, section « Vue ») : en tactique, la caméra de biais et en
 ## perspective ; au plateau, à la verticale, sans perspective, les bords du plateau droits à l'écran ; en immersion,
-## l'œil, et les noms cachés par les murs. Les arêtes dégagées suivent le cran de la caméra.
+## l'œil, les noms cachés par les murs et aucune plaque de surbrillance : sans ombrage, une plaque au sol sous l'œil
+## se lit en lumière sur un plancher couvert (#3774), et le point de mire désigne la case visée. Les arêtes dégagées
+## suivent le cran de la caméra.
 func regarder(regard: String) -> void:
 	if regard == _regard:
 		return
@@ -585,6 +617,7 @@ func regarder(regard: String) -> void:
 	_orienter()
 	for nom: Label3D in _etiquettes.get_children():
 		nom.no_depth_test = regard != "immersion"
+	_surbrillance.visible = regard != "immersion"
 	_abattre_les_aretes()
 	cadrage_change.emit()
 
@@ -611,6 +644,47 @@ func poser_l_oeil(lieu: Vector3, lacet: float, tangage: float) -> void:
 	_oeil.global_position = lieu
 	_oeil.rotation = Vector3(tangage, lacet, 0.0)
 	cadrage_change.emit()
+
+
+## Le regard posé (`regarder`).
+func regard() -> String:
+	return _regard
+
+
+## La caméra des regards `tactique` et `plateau` posée sans glisser sur le lieu `lieu`, qu'elle regarde au lacet `lacet`
+## sous tout regard (au plateau, `MiseEnPage.lacet_sous_le_plateau`), à la distance `distance` ; elle y reste tant que
+## le lieu suivi ne bouge pas (`suivre`). Rend si `distance` tient dans le zoom (`DISTANCE_MIN`, `DISTANCE_MAX`), sans
+## rien poser sinon.
+func cadrer(lieu: Vector3, lacet: float, distance: float) -> bool:
+	if MiseEnPage.distance_zoomee(distance, 0.0, DISTANCE_MIN, DISTANCE_MAX) != distance:
+		return false
+	for tween: Tween in [_suivi, _pivotement]:
+		if tween != null:
+			tween.kill()
+	_pivot.position = lieu
+	_lacet = MiseEnPage.lacet_sous_le_plateau(lacet) if _regard == "plateau" else lacet
+	_orienter()
+	_camera.position.z = distance
+	_camera.size = distance
+	_abattre_les_aretes()
+	cadrage_change.emit()
+	return true
+
+
+## La caméra du regard telle qu'elle est posée (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`) : le regard, la
+## case et la couche (`[x, y, z]`) du sol touché sous l'œil, ou sous le lieu que regarde la caméra des regards
+## `tactique` et `plateau` (`null` hors du monde), l'azimut où elle regarde et son tangage, en degrés
+## (`MiseEnPage.azimut_du_lacet`), et sa distance, `null` en immersion.
+func camera() -> Dictionary:
+	var immersion := _regard == "immersion"
+	var sol: Variant = sol_sous(_oeil.global_position if immersion else MiseEnPage.oeil_sur(_pivot.position, AU_DESSUS_DU_LIEU_M, _metres_par_case))
+	return {
+		regard = _regard,
+		case = null if sol == null else [sol.case.x, sol.case.y, sol.case.z],
+		lacet = MiseEnPage.azimut_du_lacet(_oeil.rotation.y if immersion else _pivot.rotation.y),
+		tangage = rad_to_deg(_oeil.rotation.x if immersion else _inclinaison.rotation.x),
+		zoom = null if immersion else _camera.position.z,
+	}
 
 
 ## Le clavier mène la caméra ou l'œil : aucun champ de saisie n'a le focus.

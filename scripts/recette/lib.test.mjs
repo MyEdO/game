@@ -538,6 +538,16 @@ test('evaluate : sans plafond explicite, le défaut du kit est appliqué', async
   assert.equal(vus[0].timeout, DELAI_EVALUATE)
 })
 
+test('waitFor : chaque évaluation est bornée par `evaluerMs`, le défaut du kit sans lui', async () => {
+  const vus = []
+  const session = { rpc: async (m, p) => { vus.push(p.timeout); return { result: { value: vus.length > 1 } } } }
+  assert.equal(await kitRecette.waitFor(session, 'pret', { timeoutMs: 1000, intervalMs: 1, evaluerMs: 120000 }), true)
+  assert.deepEqual(vus, [120000, 120000])
+  vus.length = 1
+  await kitRecette.waitFor(session, 'pret')
+  assert.deepEqual(vus.slice(1), [DELAI_EVALUATE])
+})
+
 // ------------------------------------------------- état persistant (#1679 L1c)
 
 test('stockage : l\'instantané est relu depuis la page, les deux zones', async () => {

@@ -13,8 +13,8 @@ import type * as tavernFlow from './tavernFlow';
 import type { ModeDEvaluation } from './merchantFlow';
 import type { Pt } from './monde/path';
 import type {
-  IdDeCombattant, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
-  IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
+  IdDeCombattant, IdDeHeros, IdDePorteur, IdDePossession, IdDObjet,
+  IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
   IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDArticle, IdDeRoute,
@@ -158,8 +158,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   epinglerLIndice: (indiceId: IdDIndice) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
   marquerLesIndices: (affichés: readonly IndiceAffiché[]) => void;
-  /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
-  armerLeTirPreventif: (heroId: IdDeTireurRapide | null) => void;
   /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
    *  joue le geste. */
   leverLaMain: (levee: boolean) => void;
@@ -328,9 +326,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLeRepos: () => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   effacerLApercu: () => void;
-  /** Chance, 3e usage (LDB 17 l.25) : en début de Round, place un héros en tête de l'ordre
-   *  contre 1 point de Chance (pré-emption d'initiative). */
-  promouvoirLeCombattant: (heroId: IdDeCombattantPromouvable) => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
   //  résolues par les verbes de jet de la cascade, applier 'combatPsych'.)
   ouvrirLaCarte: () => void;

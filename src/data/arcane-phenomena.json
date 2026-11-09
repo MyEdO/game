@@ -129,7 +129,9 @@
   "windSaturationEffects": [
     {
       "id": "saturation-vie",
-      "domainId": "vie",
+      "domainId": {
+        "id": "vie"
+      },
       "wind": "Ghyran",
       "environments": [
         "Forêts",
@@ -168,7 +170,9 @@
     },
     {
       "id": "saturation-cieux",
-      "domainId": "cieux",
+      "domainId": {
+        "id": "cieux"
+      },
       "wind": "Azyr",
       "environments": [
         "Océans",
@@ -206,7 +210,9 @@
     },
     {
       "id": "saturation-mort",
-      "domainId": "mort",
+      "domainId": {
+        "id": "mort"
+      },
       "wind": "Shyish",
       "environments": [
         "Champs de batailles",
@@ -245,7 +251,9 @@
     },
     {
       "id": "saturation-metal",
-      "domainId": "metal",
+      "domainId": {
+        "id": "metal"
+      },
       "wind": "Chamon",
       "environments": [
         "Montagnes",
@@ -283,7 +291,9 @@
     },
     {
       "id": "saturation-lumiere",
-      "domainId": "lumiere",
+      "domainId": {
+        "id": "lumiere"
+      },
       "wind": "Hysh",
       "environments": [
         "Plaines",
@@ -322,7 +332,9 @@
     },
     {
       "id": "saturation-ombres",
-      "domainId": "ombres",
+      "domainId": {
+        "id": "ombres"
+      },
       "wind": "Ulgu",
       "environments": [
         "Vallées",
@@ -361,7 +373,9 @@
     },
     {
       "id": "saturation-bete",
-      "domainId": "bete",
+      "domainId": {
+        "id": "bete"
+      },
       "wind": "Ghur",
       "environments": [
         "Toundra",
@@ -400,7 +414,9 @@
     },
     {
       "id": "saturation-feu",
-      "domainId": "feu",
+      "domainId": {
+        "id": "feu"
+      },
       "wind": "Aqshy",
       "environments": [
         "Déserts",
@@ -943,7 +959,9 @@
         }
       ],
       "influenceMalveillante": true,
-      "cancelsTraitId": "instable"
+      "cancelsTraitId": {
+        "id": "instable"
+      }
     },
     {
       "id": "tempete-de-magie",

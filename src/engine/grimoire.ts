@@ -77,7 +77,7 @@ export function knownCount(c: Combatant, family: CasterTalent['kind']): number {
 export function domainSpellsKnown(c: Combatant, domainId: string): number {
   let n = 0;
   for (const x of c.spells ?? []) {
-    if (findSpellById(x)?.domainId === domainId) n++;
+    if (findSpellById(x)?.domainId?.id === domainId) n++;
   }
   return n;
 }
@@ -92,7 +92,7 @@ export function domainSpellsKnown(c: Combatant, domainId: string): number {
 export function arcaneDomainsOf(spell: SpellData): string[] | null {
   const listed = spell.ritual?.domains;
   if (listed) return listed.length ? listed : null;
-  return spell.domainId != null ? [spell.domainId] : null;
+  return spell.domainId ? [spell.domainId.id] : null;
 }
 
 /** Le sort est-il un Sort d'Arcanes du Chaos : de la Magie du Chaos, d'aucun Dieu Sombre (`gods.json`). EDOC 13 l.264-266 */

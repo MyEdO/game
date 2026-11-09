@@ -1,5 +1,5 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
-## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
+## caméra, son zoom borné, son lacet à un azimut, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
@@ -231,6 +231,22 @@ static func lacet_du_plateau(lacet: float) -> float:
 	return lacet - QUART_DE_TOUR / 2.0
 
 
+## Le lacet du regard `tactique` sous lequel la caméra du regard `plateau` prend le lacet `lacet` (`lacet_du_plateau`).
+static func lacet_sous_le_plateau(lacet: float) -> float:
+	return lacet + QUART_DE_TOUR / 2.0
+
+
+## Le lacet d'une caméra qui regarde à l'azimut `azimut`, en degrés au compas : 0 au nord, 90 à l'est
+## (`LACETS_DES_CAPS`).
+static func lacet_de_l_azimut(azimut: float) -> float:
+	return -deg_to_rad(azimut)
+
+
+## L'azimut, en degrés au compas dans [0, 360[, d'une caméra au lacet `lacet` (`lacet_de_l_azimut`).
+static func azimut_du_lacet(lacet: float) -> float:
+	return fposmod(-rad_to_deg(lacet), 360.0)
+
+
 ## L'œil à `oeil` mètres au-dessus du sol `sol`, sur un plateau de `metres_par_case` mètres par case.
 static func oeil_sur(sol: Vector3, oeil: float, metres_par_case: float) -> Vector3:
 	return Vector3(sol.x, sol.y + hauteur_au_plateau(oeil, metres_par_case), sol.z)
@@ -327,6 +343,44 @@ static func position_a_l_echelle(position: Vector3, echelle: float) -> Vector3:
 ## le plus bas de la hauteur `pied` à la hauteur `cible` (`CONTRAT.md`, « Gabarit d'une base »).
 static func decalage_au_sol(verticale: Vector3, cible: float, pied: float) -> Vector3:
 	return verticale * (cible - pied)
+
+
+## La longueur du vecteur `vecteur`.
+static func longueur(vecteur: Vector3) -> float:
+	return vecteur.length()
+
+
+## L'extension d'une jambe : la distance `hanche_pied` de sa hanche à son pied rapportée à sa longueur, sa cuisse
+## `cuisse` et son mollet `mollet` (`viseesDesJambes`, `CONTRAT.md`, « Gabarit d'une base »).
+static func extension_de_jambe(hanche_pied: float, cuisse: float, mollet: float) -> float:
+	return hanche_pied / (cuisse + mollet)
+
+
+## La portée d'une jambe de cuisse `cuisse` et de mollet `mollet` à l'extension `extension` (`plierLesJambes`).
+static func portee_de_jambe(extension: float, cuisse: float, mollet: float) -> float:
+	return extension * (cuisse + mollet)
+
+
+## La montée de la racine le long de la verticale monde rapportée au repère de base `repere` (le squelette) qui porte à
+## `portee` la distance de la hanche d'une jambe à son pied visé, à `vers` d'elle, `INF` hors d'atteinte
+## (`plierLesJambes`, `CONTRAT.md`, « Gabarit d'une base »).
+static func montee_de_jambe(vers: Vector3, repere: Basis, portee: float) -> float:
+	var haut := (repere.inverse() * Vector3.UP).normalized()
+	var vertical := vers.dot(haut)
+	var discriminant := vertical * vertical - vers.length_squared() + portee * portee
+	return vertical + sqrt(discriminant) if discriminant >= 0 else INF
+
+
+## Le déplacement de la racine de `montee` le long de la verticale monde rapportée au repère de base `repere`, nul pour
+## une montée infinie (`plierLesJambes`).
+static func deplacement_de_montee(repere: Basis, montee: float) -> Vector3:
+	return (repere.inverse() * Vector3.UP).normalized() * montee if is_finite(montee) else Vector3.ZERO
+
+
+## La visée `vers` d'un pied depuis sa hanche, d'une jambe à l'échelle de pose `echelle` et de repos `echelle_de_repos`,
+## rapportée à la mesure de `TwoBoneIK3D` (`GabaritDuSquelette._poser_sur`).
+static func visee_de_l_ik(vers: Vector3, echelle: float, echelle_de_repos: float) -> Vector3:
+	return vers * echelle_de_repos / echelle
 
 
 ## La plus basse des hauteurs `hauteur` et `autre`.
@@ -431,3 +485,31 @@ static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, large
 	return Vector2(
 		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
 		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
+
+
+## Le lieu, au sol, de la cible de la vitrine des effets de l'atelier, à `distance_m` mètres de l'auteur posé à l'origine
+## (#3777).
+static func lieu_de_la_cible(distance_m: float) -> Vector3:
+	return Vector3(distance_m, 0.0, 0.0)
+
+
+## Le sol de la case (`x`, `y`) de la vitrine des effets, où l'auteur tient la case (0, 0), sur des cases de
+## `metres_par_case` mètres, dans l'atelier mesuré en mètres.
+static func lieu_de_la_case_de_vitrine(x: float, y: float, metres_par_case: float) -> Vector3:
+	return Vector3(x * metres_par_case, 0.0, y * metres_par_case)
+
+
+## Le foyer d'une lumière de la vitrine posé sur la cible, à `hauteur_m` mètres, dans l'atelier de `metres_par_unite`.
+static func foyer_de_la_vitrine(hauteur_m: float, metres_par_unite: float) -> Vector3:
+	return Vector3.UP * hauteur_au_plateau(hauteur_m, metres_par_unite)
+
+
+## Le coin de la boîte que l'orbite de l'atelier cadre pour la vitrine des effets : l'orbite tourne autour de l'auteur, à
+## l'origine, et la boîte s'étend autant de part et d'autre de lui que la cible en est loin.
+static func coin_de_la_vitrine(distance_m: float) -> Vector3:
+	return Vector3(-distance_m, 0.0, -distance_m)
+
+
+## L'étendue de cette boîte : deux fois la distance de la cible en largeur et en profondeur, deux fois la hauteur du coup.
+static func etendue_de_la_vitrine(distance_m: float) -> Vector3:
+	return Vector3(distance_m * 2.0, HAUTEUR_DU_COUP * 2.0, distance_m * 2.0)

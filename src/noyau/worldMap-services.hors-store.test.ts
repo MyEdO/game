@@ -22,7 +22,7 @@ const place = (over: Partial<MapPlace> = {}): MapPlace => ({
 const townPlace = (): MapPlace => place({
   port: { taille: 4, richesse: 3, production: ['commerce-mer'] } as MapPlace['port'],
   market,
-  services: [{ kind: 'auberge', rest: { auberge: true, camp: true } }],
+  services: [{ kind: { id: 'auberge' }, rest: { auberge: true, camp: true } }],
 });
 
 describe('placeServices — composition des services d’un lieu au hub (#343)', () => {

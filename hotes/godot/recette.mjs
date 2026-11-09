@@ -39,6 +39,12 @@
 //   la vue posé à l'écran (`wfrpEcran.corps`) : son élément, l'emblème de sa donnée sur ses surfaces `blason`, la pièce de
 //   chacun de ses postes et de chacune de ses Améliorations, dans l'ordre de la vue ; les fenêtres fermées à l'Entrée, une
 //   capture d'ensemble, puis Origine et la molette rapprochent la caméra du véhicule actif, capturé à chaque cran de pivot (Q).
+// - `cadrages` (`--vues <fichier>`, #3686) : la page rechargée à deviceScaleFactor 2 ; l'entrée de la scène poursuivie à
+//   l'Entrée, le monde posé (`attendreLeMonde`) ; puis chaque vue nommée du fichier, un tableau de
+//   `{ nom, regard, case: { x, y }, etage?, lacet, tangage }` en immersion ou `{ nom, regard, case, etage?, lacet, zoom }`
+//   en tactique et au plateau : son regard pris à la touche V, la caméra posée par `wfrpCadrer` (`pont/CONTRAT.md`,
+//   section « Écran publié ») regarde depuis la case et la couche demandées, à l'azimut demandé, le plan de sa couche
+//   (`plan` du pont, l'œil marqué) s'écrit au journal, et la vue se capture sous son nom.
 // - `brume` (`--scenario brouillard`, #3625) : la clairière sous le brouillard ; en tactique, les nappes de la donnée ;
 //   en immersion, aucune nappe et la brume de profondeur part de l'œil, plus serrée.
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
@@ -115,7 +121,7 @@
 //   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
 //   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
-//   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
+//   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
 //   porte (`osDesRigides` du listage) et de chaque emplacement où se range sa forme (`emplacementsDeRangement`), et de
 //   ceux-là seuls (`CONTRAT.md`, « Atelier 3D ») ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
@@ -149,6 +155,8 @@
 //   node hotes/godot/recette.mjs --parcours regards --scenario fenetre-ecuries --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours creation --scenario marche-equipement --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours vehicule --scenario caraque --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours cadrages --scenario a-bord-de-la-caraque --vues hotes/godot/cadrages/a-bord-de-la-caraque.json
+//     --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours dialogue --scenario dialogue-multi --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier>
 //   node hotes/godot/recette.mjs --parcours atelier --web <export> --captures <dossier> --modeles <dossier neuf>
@@ -164,6 +172,7 @@ import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { crc32, deflateSync } from 'node:zlib'
 import { servir } from './servir.mjs'
+import { LISTAGE } from './listage.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
@@ -172,10 +181,11 @@ import { chargerAssets } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|brume|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|brume|fiche|inventaire|creation|editeur|atelier|composition]')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
+if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
@@ -194,14 +204,18 @@ const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }),
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
-const vue = async () => JSON.parse(await evaluate(session, `wfrpPont.appeler('vue')`)).vue
-const ecran = async () => JSON.parse(await evaluate(session, 'JSON.stringify(globalThis.wfrpEcran ?? null)'))
+/** La borne d'une lecture de la page : l'export Web de Godot tient le fil de la page le temps de chaque image, et celle
+ *  qui lit un GLB ou dessine en WebGL logiciel une vue à deviceScaleFactor 2 dure plus que le défaut du kit. */
+const FIL_DE_LA_PAGE_MS = 120000
+const lire = (expression) => evaluate(session, expression, { timeoutMs: FIL_DE_LA_PAGE_MS })
+const vue = async () => JSON.parse(await lire(`wfrpPont.appeler('vue')`)).vue
+const ecran = async () => JSON.parse(await lire('JSON.stringify(globalThis.wfrpEcran ?? null)'))
 /** Attend que la vue, lue par le pont, vérifie `condition` (une expression sur `v`). */
 const attendreLaVue = (condition, timeoutMs = 30000) =>
-  waitFor(session, `(() => { try { const v = JSON.parse(wfrpPont.appeler('vue')).vue; return !!(${condition}) } catch { return false } })()`, { timeoutMs })
+  waitFor(session, `(() => { try { const v = JSON.parse(wfrpPont.appeler('vue')).vue; return !!(${condition}) } catch { return false } })()`, { timeoutMs, evaluerMs: FIL_DE_LA_PAGE_MS })
 /** Le prochain écran publié : l'actuel est marqué vu, le suivant ne l'est pas (chaque publication remplace l'objet). */
-const marquer = () => evaluate(session, '(globalThis.wfrpEcran && (wfrpEcran.vu = true), true)')
-const nouvelEcran = (timeoutMs = 30000) => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs })
+const marquer = () => lire('(globalThis.wfrpEcran && (wfrpEcran.vu = true), true)')
+const nouvelEcran = (timeoutMs = 30000) => waitFor(session, '!!globalThis.wfrpEcran && !wfrpEcran.vu', { timeoutMs, evaluerMs: FIL_DE_LA_PAGE_MS })
 const actif = (v) => v.projection.combat?.actif
 /** Les éléments que la vue montre dans la zone `zone` (`vue.zones`, `CONTRAT.md`). */
 const zone = (v, z) => v.zones[z]
@@ -247,6 +261,23 @@ async function cliquerCase({ x, y, z = 0 }) {
 async function capturer(nom) {
   await sleep(400)
   noter(`capture ${await shot(session, nom, o.captures)}`)
+}
+/** Chaque fenêtre qui tient la main fermée à l'Entrée, jusqu'à ce qu'aucune ne la tienne ; la vue d'alors. */
+async function fermerLesFenetres() {
+  let v = await vue()
+  while (v.projection.fenetre) {
+    await marquer()
+    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+    await nouvelEcran()
+    v = await vue()
+  }
+  return v
+}
+/** La page rechargée à deviceScaleFactor 2, son menu publié. */
+async function enHauteDefinition() {
+  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
+  await session.rpc('Page.reload')
+  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
 }
 async function finirLeTour() {
   await cliquerBouton({ element: 'bouton/end-turn' })
@@ -498,12 +529,7 @@ async function parcoursExploration() {
   assert.equal(etape(v), 'sceneEntry', 'l’entrée de la scène tient la main')
   assert.deepEqual(zone(v, 'exploration.gestes'), [], 'une fenêtre tient la main : aucun geste d’exploration')
   await capturer('3328-e1-1-entree')
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  v = await fermerLesFenetres()
   const x = v.projection.exploration
   assert.ok(x, 'hors combat, la vue est celle de l’exploration')
   assert.deepEqual(x.heros.map((h) => h.pos), x.heros.map(() => [...x.groupe, x.etage ?? 0]), 'chaque héros se tient à la case du groupe')
@@ -523,14 +549,8 @@ async function parcoursExploration() {
 async function parcoursRelief() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
   await capturer('3476-r1-round')
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  let v = await fermerLesFenetres()
   const heros = actif(v)
   assert.equal(heros?.camp, 'hero', 'un héros est actif')
   const plateau = v.cases.filter((c) => c.zone === 'marche' && c.cout === 1 && c.case.y === 2)
@@ -546,13 +566,7 @@ async function parcoursRelief() {
 async function parcoursEtage() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  const v = await fermerLesFenetres()
   assert.equal(v.projection.exploration?.etage, 1, 'le groupe se tient à l’étage du relais')
   await capturer('3476-c4-1-etage')
   const couloir = { x: 5, y: 4, z: 1 }
@@ -565,13 +579,7 @@ async function parcoursEtage() {
 async function parcoursRegards() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  const v = await fermerLesFenetres()
   assert.equal(v.plateau.regard, 'tactique', 'la partie commence en tactique')
   await capturer('3476-v1-tactique')
   const x0 = v.projection.exploration
@@ -623,9 +631,7 @@ const CRANS_DU_GROS_PLAN = 6
 /** Les crans de pivot (Q) d'un tour complet de la caméra tactique autour du véhicule. */
 const CRANS_DE_PIVOT = 4
 async function parcoursVehicule() {
-  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
-  await session.rpc('Page.reload')
-  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await enHauteDefinition()
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   const v = await vue()
@@ -637,11 +643,7 @@ async function parcoursVehicule() {
     && c[a.id].embleme_du_vehicule === a.embleme && JSON.stringify(c[a.id].postes) === JSON.stringify(a.postes)
     && JSON.stringify(c[a.id].ameliorations) === JSON.stringify(a.ameliorations)) })()`, { timeoutMs: 180000 })
   for (const a of attendus) noter(`${a.id} : « ${a.vehicule} », emblème « ${a.embleme} », ${a.postes.length} pièces de poste, ${a.ameliorations.length} pièces d’Amélioration`)
-  while ((await vue()).projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-  }
+  await fermerLesFenetres()
   await sleep(1500)
   await capturer('2987-caraque-tactique')
   await realKey(session, { key: 'Home', code: 'Home', windowsVirtualKeyCode: 36 })
@@ -653,16 +655,57 @@ async function parcoursVehicule() {
   }
 }
 
+/** Le monde posé : le modèle de chaque navire de la vue (`wfrpEcran.navires`) et la base de chaque corps dessiné
+ *  (`wfrpEcran.corps`), que Godot tire en GLB, chacun lu d'un bloc sur le fil de la page. */
+async function attendreLeMonde() {
+  const v = await vue()
+  const navires = Object.keys(v.corps.navires)
+  const bases = Object.fromEntries(Object.entries(v.corps.combattants).map(([id, c]) => [id, c?.base ?? null]))
+  await waitFor(session, `(() => { const e = globalThis.wfrpEcran; return !!e?.navires && ${JSON.stringify(navires)}.every((id) => e.navires.includes(id))
+    && Object.entries(e.corps).every(([id, c]) => c.base === (${JSON.stringify(bases)}[id] ?? null)) })()`, { timeoutMs: 300000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  noter(`monde posé : navires ${navires.join(', ') || 'aucun'}, corps ${Object.keys((await ecran()).corps).join(', ') || 'aucun'}`)
+}
+
+/** Les vues nommées du fichier `fichier` : un tableau non vide d'objets, chacun un `nom` de fichier unique et le
+ *  cadrage que `wfrpCadrer` lit. */
+function lireLesVues(fichier) {
+  const vues = JSON.parse(readFileSync(fichier, 'utf8'))
+  assert.ok(Array.isArray(vues) && vues.length > 0, `${fichier} : un tableau de vues attendu`)
+  for (const v of vues) assert.ok(v && typeof v === 'object' && /^[\w-]+$/.test(v.nom ?? ''), `${fichier} : chaque vue porte un nom de fichier : ${JSON.stringify(v)}`)
+  const noms = vues.map((v) => v.nom)
+  assert.equal(new Set(noms).size, noms.length, `${fichier} : noms uniques`)
+  return vues
+}
+
+async function parcoursCadrages() {
+  const vues = lireLesVues(o.vues)
+  await enHauteDefinition()
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  await fermerLesFenetres()
+  await attendreLeMonde()
+  for (const { nom, ...cadrage } of vues) {
+    for (let v = await vue(); v.plateau.regard !== cadrage.regard; v = await vue()) {
+      const suivant = v.plateau.regardSuivant
+      await realKey(session, { key: 'v', code: 'KeyV', windowsVirtualKeyCode: 86 }, { delaiEntreeMs: FIL_DE_LA_PAGE_MS })
+      await attendreLaVue(`v.plateau.regard === '${suivant}'`, 300000)
+    }
+    const reponse = JSON.parse(await lire(`new Promise((rendre) => wfrpCadrer(${JSON.stringify(JSON.stringify(cadrage))}, rendre))`))
+    assert.equal(reponse.ok, true, `${nom} : ${JSON.stringify(reponse.erreur)}`)
+    const { camera } = reponse
+    const plan = { z: cadrage.etage ?? 0, ...(camera.case && { oeil: { case: camera.case, lacet: camera.lacet } }) }
+    noter(`${nom} : plan de la couche ${plan.z}\n${JSON.parse(await lire(`wfrpPont.appeler('plan', ${JSON.stringify(JSON.stringify(plan))})`)).plan}`)
+    assert.deepEqual(camera.case, [cadrage.case.x, cadrage.case.y, cadrage.etage ?? 0], `${nom} : la caméra regarde depuis la case demandée (${JSON.stringify(camera)})`)
+    assert.ok(Math.abs(((camera.lacet - cadrage.lacet) % 360 + 540) % 360 - 180) < 0.01, `${nom} : la caméra regarde à l'azimut ${cadrage.lacet} (${JSON.stringify(camera)})`)
+    noter(`${nom} : ${JSON.stringify(camera)}`)
+    await capturer(nom)
+  }
+}
+
 async function parcoursMeteo() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  await fermerLesFenetres()
   const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
   const particules = (m) => (m?.pluie?.averses ?? []).reduce((n, a) => n + a.nombre, 0)
   let m = await meteo()
@@ -687,13 +730,7 @@ async function parcoursMeteo() {
 async function parcoursBrume() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  let v = await fermerLesFenetres()
   const meteo = async () => JSON.parse(await evaluate(session, "wfrpPont.appeler('monde')")).meteo
   let m = await meteo()
   assert.ok(m.nappes.length > 0 && m.pluie === null, `en tactique, les nappes du brouillard, rien ne tombe : ${JSON.stringify(m)?.slice(0, 200)}`)
@@ -717,17 +754,11 @@ async function parcoursBrume() {
 async function parcoursDialogue() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  await fermerLesFenetres()
   const pres = { x: 5, y: 4 }
   await cliquerCase(pres)
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${pres.x},${pres.y}'`)
-  v = await vue()
+  let v = await vue()
   const parler = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'parler'))
   assert.ok(parler, `à portée de Gustav, son offre « Parler » est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   noter(`clic sur la case ${pres.x},${pres.y} ; bouton « ${parler.libelle} »`)
@@ -748,17 +779,11 @@ async function parcoursDialogue() {
 async function parcoursDocument() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  await fermerLesFenetres()
   const pres = { x: 2, y: 2 }
   await cliquerCase(pres)
   await attendreLaVue(`v.projection.exploration?.groupe.join() === '${pres.x},${pres.y}'`)
-  v = await vue()
+  let v = await vue()
   const parcourir = zone(v, 'exploration.gestes').find((b) => b.jeu.suite?.some((a) => a.args?.[1] === 'lire'))
   assert.ok(parcourir, `à portée de la liasse, son offre est un bouton : ${zone(v, 'exploration.gestes').map((b) => b.libelle).join(' | ')}`)
   await cliquerBouton(bouton(parcourir))
@@ -783,17 +808,10 @@ async function parcoursDocument() {
 async function parcoursIncantation() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
-  const viderLesFenetres = async () => {
-    for (let v = await vue(); v.projection.fenetre; v = await vue()) {
-      await marquer()
-      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-      await nouvelEcran()
-    }
-  }
-  await viderLesFenetres()
+  await fermerLesFenetres()
   await cliquerCase({ x: 16, y: 11 })
   await attendreLaVue('!!v.projection.combat')
-  await viderLesFenetres()
+  await fermerLesFenetres()
   let v = await vue()
   assert.equal(zone(v, 'combat.actif')[0]?.nom, 'Aelindra, Haute Sorcière', 'la Haute Sorcière ouvre le combat')
   const sorts = zone(v, 'combat.offres').find((c) => c.id === 'offre/cast-spell')
@@ -844,23 +862,16 @@ async function parcoursIncantation() {
 async function parcoursSoin() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
-  const viderLesFenetres = async () => {
-    for (let v = await vue(); v.projection.fenetre; v = await vue()) {
-      await marquer()
-      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-      await nouvelEcran()
-    }
-  }
-  await viderLesFenetres()
+  await fermerLesFenetres()
   await cliquerCase({ x: 16, y: 11 })
   await attendreLaVue('!!v.projection.combat')
-  await viderLesFenetres()
+  await fermerLesFenetres()
   /** La main à un héros : sa barre offre la fin du tour, toute fenêtre vidée. */
   const aUnHeros = async () => {
     for (;;) {
       await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'end-turn')", 120000)
       if (!(await vue()).projection.fenetre) return
-      await viderLesFenetres()
+      await fermerLesFenetres()
     }
   }
   for (let tours = 0; (await aUnHeros(), zone(await vue(), 'combat.actif')[0]?.nom !== 'Grunni Pierre-de-Fer'); tours++) {
@@ -1143,13 +1154,7 @@ async function parcoursFiche() {
 async function parcoursInventaire() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  let v = await fermerLesFenetres()
   const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Rosa Brandt')
   assert.ok(heros, 'Rosa Brandt a son bouton')
   await cliquerBouton(bouton(heros))
@@ -1748,13 +1753,7 @@ const pageOuverte = (v) => zone(v, 'creation.titre')[0]?.texte
 async function parcoursCreation() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
-  let v = await vue()
-  while (v.projection.fenetre) {
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await nouvelEcran()
-    v = await vue()
-  }
+  let v = await fermerLesFenetres()
   const avant = zone(v, 'groupe.heros').length
   v = await presser('groupe.gestes', 'creation')
   assert.equal(pageOuverte(v), 'Race · 1/10', '« Nouveau héros » ouvre la création sur sa première page')
@@ -1959,18 +1958,15 @@ async function chercher(quoi) {
 const attendreLeVehicule = (condition) => attendreLAtelier(`(() => { const v = a.vehicule; return !!v && !!(${condition}) })()`, 180000)
 
 /** Sans `--modeles`, le véhicule dans l'atelier (#2987), sur le dossier des modèles du projet, la page à
- *  deviceScaleFactor 2 : la caraque choisie à l'onglet Outils, à côté des bases, posée et cadrée à sa taille ; à l'onglet
+ *  deviceScaleFactor 2 : la caraque choisie à la liste de tête « Véhicule ou engin », posée et cadrée à sa taille ; à l'onglet
  *  Équipement, une pièce à chaque place de `PLACES_ARMEES`, puis chaque Amélioration de `AMELIORATIONS_DE_L_ATELIER`
  *  installée ; une couleur à l'onglet Couleurs et un emblème sur ses voiles ; puis le Sabord retiré. À chaque étape, le
  *  véhicule publié est celui que le pont compose (`prouverLeVehicule`), capturé de trois quarts. */
 async function parcoursAtelierDuVehicule() {
-  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
-  await session.rpc('Page.reload')
-  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await enHauteDefinition()
   await cliquerBouton('Atelier')
   await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene(VEHICULE_DE_L_ATELIER.libelle, 1)
+  await choisirDansLaListe('modele/vehicule', VEHICULE_DE_L_ATELIER.libelle)
   await attendreLeVehicule(`v.element !== null && v.definition === ${JSON.stringify(VEHICULE_DE_L_ATELIER.definition)}`)
   const nue = await prouverLeVehicule()
   assert.deepEqual([nue.postes, nue.ameliorations], [[], []], 'la coque nue, sans pièce ni Amélioration')
@@ -2028,8 +2024,7 @@ async function parcoursAtelier() {
   await cliquerBouton('Atelier')
   noter('menu : bouton « Atelier » cliqué')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene(base, 1)
+  await choisirDansLaListe('modele/corps', base)
   let a = await atelier()
   assert.deepEqual([a.base, a.empreinte, a.erreurs], [base, p0.model_sha256, []], 'la base choisie, à l’empreinte de son import, sans erreur')
   await cliquerBouton('Équipement')
@@ -2043,7 +2038,7 @@ async function parcoursAtelier() {
   await cliquerAmene(RECHARGER, 1)
   await cliquerBouton('Équipement')
   await attendreLAtelier('b.some((x) => x.cle === "main")')
-  const { osDesRigides } = await (await fetch(`${srv.url}modeles/`)).json()
+  const { osDesRigides } = await (await fetch(`${srv.url}modeles/${LISTAGE}`)).json()
   const pend = (attache) => osDesRigides[elementId].includes(attache.os)
   const tenu = Object.values(p0.manifeste.prises).some(pend)
   const { emplacementsDeRangement } = await chargerAssets(["export { emplacementsDeRangement } from '/src/noyau/index.ts';"])
@@ -2301,11 +2296,10 @@ async function parcoursComposition() {
   importer(o.base, base)
   await cliquerBouton('Atelier')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
-  await cliquerBouton('Outils')
-  await cliquerBouton(base)
+  await choisirDansLaListe('modele/corps', base)
   const reposDeLaBase = await atelier()
   assert.deepEqual([reposDeLaBase.empreinte, reposDeLaBase.erreurs], [p.model_sha256, []])
-  assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [null, false], 'référence native de la base sans clip engagé')
+  assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [p.manifeste.clips.idle, true], 'la base seule joue son clip de repos')
   assert.deepEqual(Object.keys(reposDeLaBase.os).sort(), [...p.manifeste.os].sort(), 'tous les os natifs de la base sont présents dans la référence')
   await cliquerBouton('Personnage')
   const catalogues = JSON.parse(await evaluate(session, "wfrpPont.appeler('catalogues')"))
@@ -2366,12 +2360,15 @@ async function parcoursComposition() {
   a = await atelier()
   assert.equal(a.composition.copie, '', 'recomposition : entrée copiée effacée')
   verifierLaPeau(a, ligne)
+  assert.ok(a.lecture, `la composition joue son clip de repos : ${a.clip}`)
+  const clipDeRepos = a.clip
   await capturer('3086-r1-2-courtaud')
   const touche = { key: 'w', code: 'KeyW', windowsVirtualKeyCode: 87 }
+  const auRepos = `a.clip === ${JSON.stringify(clipDeRepos)} && a.lecture`
   let imagesCourtaudes
   try {
     await realKeyDown(session, touche)
-    await attendreLAtelier('a.lecture === true')
+    await attendreLAtelier(`a.clip !== ${JSON.stringify(clipDeRepos)} && a.lecture`)
     imagesCourtaudes = await observerLesImages(IMAGES_COURTAUDES, DELAI_COURTAUD_MS)
     assert.ok(new Set(imagesCourtaudes.map((x) => x.instant)).size >= POSES_COURTAUDES_DISTINCTES_MINIMALES, 'courtaud : plusieurs images distinctes du clip')
     for (const image of imagesCourtaudes) {
@@ -2384,7 +2381,7 @@ async function parcoursComposition() {
   } finally {
     await realKeyUp(session, touche)
   }
-  await attendreLAtelier('!a.lecture && a.instant === 0')
+  await attendreLAtelier(auRepos)
   await cliquerBouton('Animation')
   await choisirDansLaListe('clip', 'A_TPose')
   await attendreLAtelier('a.clip === "A_TPose" && a.lecture')
@@ -2427,7 +2424,7 @@ async function parcoursComposition() {
   const images = []
   try {
     await realKeyDown(session, touche)
-    await attendreLAtelier('a.lecture === true')
+    await attendreLAtelier(`a.clip !== "A_TPose" && a.lecture`)
     images.push(...JSON.parse(await evaluate(session, `(async () => {
       const images = [], debut = performance.now(); let precedent, temps = 0;
       while (performance.now() - debut < 14000) {
@@ -2447,37 +2444,22 @@ async function parcoursComposition() {
   } finally {
     await realKeyUp(session, touche)
   }
-  await attendreLAtelier('!a.lecture && a.instant === 0')
+  await attendreLAtelier(auRepos)
   const arret = await atelier()
-  assert.equal(arret.clip, images[0].clip, 'arrêt : clip de marche engagé en pause à son début')
-  const poseRelative = (os) => {
-    const gauche = os.clavicle_l, droite = os.clavicle_r
-    const largeur = horizontal(gauche, droite)
-    assert.ok(largeur > 0, 'repère latéral du torse')
-    const x = (droite[0] - gauche[0]) / largeur, z = (droite[2] - gauche[2]) / largeur
-    return Object.fromEntries(Object.entries(os).map(([nom, p]) => {
-      const dx = p[0] - os[racine][0], dz = p[2] - os[racine][2]
-      return [nom, [dx * x + dz * z, p[1] - os[racine][1], -dx * z + dz * x]]
-    }))
-  }
-  const poseAvant = poseRelative(reposDeLaBase.os), poseApres = poseRelative(arret.os)
-  for (const [nom, position] of Object.entries(poseAvant)) for (let k = 0; k < 3; k++) {
-    proche(poseApres[nom][k], position[k], 1e-4, `retour au repos : ${nom}, axe ${k}, relativement à la racine et au lacet du torse`)
-  }
   noter(`marche : ${images.length} poses, instants ${JSON.stringify(images.map((x) => x.instant))}`)
   await verifierLeCouplage(images, racine, p.manifeste, assets, reposDeLaBase.os, arret.os)
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
 try {
   await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}` })
-  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await PARCOURS[o.parcours]()
-  const releve = JSON.parse(await evaluate(session, `wfrpPont.appeler('erreursGlobales')`))
+  const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))
   assert.deepEqual(releve, { ok: true, erreurs: [] }, 'aucune erreur de la page relevée par le pont')
   noter('erreursGlobales : aucune')
 } catch (e) {

@@ -144,7 +144,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
       if (t.grantsArcaneDomain) {
         if (sp.domainId == null) via.push(`talent:${t.id}(commun)`);
         else if (c.anyUnspecialized) via.push(`talent:${t.id}(non-spécialisé, matche tout Domaine)`);
-        else if (c.specs.has(sp.domainId)) via.push(`talent:${t.id}(${sp.domainId})`);
+        else if (c.specs.has(sp.domainId.id)) via.push(`talent:${t.id}(${sp.domainId.id})`);
         continue;
       }
       if (c.anyUnspecialized) { via.push(`talent:${t.id}(non-spécialisé)`); continue; }

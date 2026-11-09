@@ -40,7 +40,8 @@ def doublures_de_la_construction(peau, journal):
         'hierarchie': mock.MagicMock(return_value=['root']), 'meshes_for': mock.MagicMock(return_value=[peau]),
         'bas_des_sources': mock.MagicMock(return_value={}), 'fusionner': nul,
         'retirer_sans_sol': mock.MagicMock(return_value=[]), 'reperes_des_prises': nul,
-        'deriver_a_deux_mains': mock.MagicMock(return_value=[]), 'poser_au_sol': nul,
+        'deriver_a_deux_mains': mock.MagicMock(return_value=[]), 'poser_au_sol': nul, 'rigidifier_les_pieds': nul,
+        'clips_plantes': mock.MagicMock(return_value=[]),
         'corps_et_secondaires': mock.MagicMock(return_value=(peau, [])), 'bornes_de_st': nul,
         'gabarit': mock.MagicMock(return_value={}), 'bornes_du_gabarit': nul, 'clear_animation': nul,
         'ajouter_feminin_et_carrure': nul, 'ajouter_corpulence': nul,
@@ -55,7 +56,8 @@ def doublures_de_la_construction(peau, journal):
         'appliquer_correction': mock.MagicMock(return_value=[]), 'garder_les_poids_des_pieds': nul,
         'imprimer_correction': nul, 'cuire_gabarit': mock.MagicMock(side_effect=Cuisson), 'atteindre_le_point_fixe': atteindre,
         'imprimer_retournements': mock.MagicMock(side_effect=lambda *_: journal.append(('retournements',))),
-        'faces_des_noeuds': nul,
+        'faces_des_noeuds': nul, 'dossier_de_construction': nul,
+        'Reprises': mock.MagicMock(return_value=mock.MagicMock(lire=mock.MagicMock(return_value=None))),
     }
 
 
@@ -72,7 +74,7 @@ class PhaseSilhouettes(unittest.TestCase):
         sortie = io.StringIO()
         with mock.patch.multiple(humanoide, **doublures), mock.patch.dict(sys.modules, {'bpy': mock.MagicMock()}), \
                 contextlib.redirect_stdout(sortie), self.assertRaises(Cuisson):
-            humanoide.construire(mock.MagicMock(os=1, reprises=None))
+            humanoide.construire(mock.MagicMock(os=1))
         phases = [ligne.split()[1] for ligne in sortie.getvalue().splitlines()
                   if ligne.startswith('CONSTRUCTION_PHASE')]
         self.assertEqual(phases, ['neutre', 'silhouettes', 'silhouettes'])
@@ -83,6 +85,10 @@ class PhaseSilhouettes(unittest.TestCase):
             ('clips',),
         ])
         self.assertEqual(doublures['cuire_gabarit'].call_count, 1)
+        self.assertEqual([appel.args[0] for appel in doublures['Reprises'].return_value.ecrire.call_args_list],
+                         ['passe-0001', 'passe-0002', 'passe-0003'], 'chaque passe écrit sa reprise')
+        self.assertEqual([appel.args[1]['suites'] is None for appel in doublures['Reprises'].return_value.ecrire.call_args_list],
+                         [True, True, True], 'une fin de phase ne porte pas la suite des corrections')
         self.assertEqual([appel.args[1] for appel in doublures['etats_aux_facteurs_neutres'].call_args_list][:2],
                          [[], ['silhouette']], 'la phase neutre reçoit le domaine sans silhouette, la phase silhouettes le sien')
         self.assertEqual([appel.args[4] for appel in doublures['finir_les_silhouettes'].call_args_list],
@@ -95,7 +101,7 @@ class PhaseSilhouettes(unittest.TestCase):
         doublures['refuser_correction'] = mock.MagicMock(side_effect=Cuisson)
         with mock.patch.multiple(humanoide, **doublures), mock.patch.dict(sys.modules, {'bpy': mock.MagicMock()}), \
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(Cuisson):
-            humanoide.construire(mock.MagicMock(os=1, reprises=None))
+            humanoide.construire(mock.MagicMock(os=1))
         self.assertEqual(doublures['refuser_correction'].call_count, 1)
         self.assertEqual(doublures['refuser_correction'].call_args.args[2], 'entrée de pied')
         self.assertEqual(doublures['cuire_gabarit'].call_count, 0)

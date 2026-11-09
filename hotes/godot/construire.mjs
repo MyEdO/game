@@ -9,10 +9,11 @@
 // qu'un changement du moteur qui casse le bundle de navigateur, à sa construction comme à son évaluation, ne passe pas
 // vert. `--sonde` importe le projet (`hotes/godot/projet/`) par l'éditeur épinglé (`EDITEUR`), puis contrôle chaque
 // script (`--check-only`) et joue les recettes déclarant `const RECETTE_AUTONOME := true` sous `recettes/`, les vues
-// de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`) et le véhicule de l'atelier figé
-// (`hotes/godot/recettes/vehicule.ts`) écrits dans la copie ; la CI la joue
+// de l'écran figées par le pont (`hotes/godot/recettes/ecran.ts`), le véhicule et le repos de l'atelier figés
+// (`hotes/godot/recettes/vehicule.ts`, `hotes/godot/recettes/atelier.ts`) écrits dans la copie ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
-// puis l'export Web du projet (`export_presets.cfg`), que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
+// (`deposerLesModeles`, #3778) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
@@ -32,11 +33,12 @@ import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { chargerAssets } from './asset/charger.mjs'
-import { listage } from './listage.mjs'
+import { deposerLesModeles, listage } from './listage.mjs'
 
-const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule } = await chargerAssets([
+const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule, figerLeRepos } = await chargerAssets([
   "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
   "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
+  "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
   "export { recupererEpingles } from '/hotes/godot/asset/epingles.ts';",
 ])
 
@@ -46,7 +48,7 @@ const PONT = 'wfrp-pont.js'
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier>
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
-  --export            le bundle et l'export Web du projet, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
+  --export            le bundle, l'export Web du projet et ses modèles, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
 
@@ -298,13 +300,15 @@ function surUneCopie(binaire, faire) {
 
 /** La sonde : chaque script contrôlé et chaque recette déclarée autonome exécutée dans le projet importé, les vues de
  *  l'écran figées (`figerVuesDeLEcran`) écrites sous `recettes/vues/ecran.json` de la copie, et le véhicule de l'atelier
- *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, que lisent leurs
- *  recettes. */
+ *  figé sur le listage des modèles du projet (`figerLeVehicule`) sous `recettes/vues/vehicule.json`, et l'atelier du
+ *  repos (`figerLeRepos`) sous `recettes/vues/repos.json`, que lisent leurs recettes. */
 function sonder(binaire) {
   return surUneCopie(binaire, (copie) => {
     mkdirSync(join(copie, 'recettes', 'vues'), { recursive: true })
     writeFileSync(join(copie, 'recettes', 'vues', 'ecran.json'), JSON.stringify(figerVuesDeLEcran()))
-    writeFileSync(join(copie, 'recettes', 'vues', 'vehicule.json'), JSON.stringify(figerLeVehicule(listage(DOSSIER_DES_MODELES))))
+    const modeles = listage(DOSSIER_DES_MODELES)
+    writeFileSync(join(copie, 'recettes', 'vues', 'vehicule.json'), JSON.stringify(figerLeVehicule(modeles)))
+    writeFileSync(join(copie, 'recettes', 'vues', 'repos.json'), JSON.stringify(figerLeRepos(modeles)))
     const scripts = scriptsDe(copie)
     if (!scripts.length) return [`aucun script sous ${PROJET}`]
     const erreurs = scripts.flatMap((script) => godot(binaire, copie, ['--check-only', '--script', script]).erreurs)
@@ -377,8 +381,10 @@ async function principal() {
   await recupererModeles({ dossier: DOSSIER_DES_MODELES })
   await recupererEpingles({})
   const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb()))
-  if (!sortie) console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
-  return sortie
+  if (sortie) return sortie
+  deposerLesModeles(DOSSIER_DES_MODELES, options.sortie)
+  console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
+  return 0
 }
 
 process.exitCode = await principal()

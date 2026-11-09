@@ -2501,7 +2501,9 @@
       "page": 115
     },
     "capabilities": {
-      "spellDomainImmunity": "bete"
+      "spellDomainImmunity": {
+        "id": "bete"
+      }
     }
   },
   {

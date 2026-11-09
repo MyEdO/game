@@ -1,5 +1,6 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`), ou la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
+## l'adresse de la page (`?scenario=<id>&graine=<n>`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
+## l'adresse n'en nommant aucun, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
 ## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
@@ -7,7 +8,7 @@
 ## (`Zone.geste` ; la fiche d'un combattant, montrée ou fermée, par la méthode `fiche` ; la création d'un héros par la
 ## méthode `creation`), un clic du champ (`vue.champ` : le verbe du clic, sur la case et le combattant qui s'y tient ;
 ## `null`, le champ ne se clique pas), ou un clic droit, qui montre la fiche du combattant de la case, le combattant
-## d'une case lu dans `vue.occupants`. Un refus se dit ; l'écran
+## d'une case lu dans `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
 ## et la partie se joue sans corps. Chaque vue montrée, et chaque corps changé, il publie à la page ce que l'écran porte
@@ -22,6 +23,7 @@ extends Node
 @onready var _refus: Label = $Ecran/Interface/Avis/Refus
 @onready var _panne: Label = $Ecran/Interface/Avis/Panne
 @onready var _apercu: Control = $Ecran/Interface/Apercu
+@onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -36,12 +38,31 @@ func _ready() -> void:
 	_plateau.habille.connect(_publier_l_ecran)
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
+	_pont.exposer("wfrpCadrer", _cadrer)
 	await _indexer_les_modeles()
-	var entree := {essai = true} if _pont.essai else {scenario = _pont.parametre("scenario")}
+	var scenario := _pont.parametre("scenario")
+	if not _pont.essai and scenario == "":
+		scenario = await _choisir_un_scenario()
+	var entree := {essai = true} if _pont.essai else {scenario = scenario}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
 	_suivre(_pont.appeler("demarrer", entree))
+
+
+## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
+## (`{ scenario }`), le panneau caché ensuite ; son défilement republie l'écran.
+func _choisir_un_scenario() -> String:
+	var zones := Zone.racines(_scenarios)
+	Zone.montrer_toutes(zones, _pont.appeler("scenarios").get("zones", {}))
+	var barre := (_scenarios.get_node("Defilement") as ScrollContainer).get_v_scroll_bar()
+	barre.value_changed.connect(_defile)
+	_scenarios.visible = true
+	_publier_l_ecran.call_deferred()
+	var jeu: Dictionary = await zones[0].geste
+	barre.value_changed.disconnect(_defile)
+	_scenarios.visible = false
+	return str(jeu.scenario)
 
 
 ## Le listage du serveur et l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu pour les corps du
@@ -125,10 +146,28 @@ func _defile(_valeur: float) -> void:
 
 
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
-## chaque case du plateau, et ce que porte le corps de chaque combattant dessiné (`Plateau.corps`).
+## chaque case du plateau, ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés
+## (`Plateau.navires`).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran]), cases = _plateau.points(), corps = _plateau.corps()})
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(), corps = _plateau.corps(), navires = _plateau.navires()})
+
+
+## Le cadrage d'une recette (`globalThis.wfrpCadrer(entree, rendre)`, `CONTRAT.md`, section « Écran publié ») : `entree`,
+## un cadrage en JSON, sous le regard de la partie (`Plateau.cadrer`) ; la caméra posée et deux images dessinées, `rendre`
+## reçoit la réponse en JSON : `{ ok: true, camera }` (`Plateau.camera`), ou
+## `{ ok: false, erreur: { categorie: "validation", message } }`.
+func _cadrer(args: Array) -> void:
+	var cadrage: Variant = JSON.parse_string(str(args[0]))
+	var refus := _plateau.cadrer(cadrage) if cadrage is Dictionary else "cadrage illisible : %s" % args[0]
+	var reponse := {ok = refus == ""}
+	if refus == "":
+		await RenderingServer.frame_post_draw
+		await RenderingServer.frame_post_draw
+		reponse.camera = _plateau.camera()
+	else:
+		reponse.erreur = {categorie = "validation", message = refus}
+	(args[1] as JavaScriptObject).call("call", null, JSON.stringify(reponse))
 
 
 ## La touche du regard (`changer_de_regard`) passe au regard suivant (`regarder`, `plateau.regardSuivant`).

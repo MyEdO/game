@@ -2,10 +2,12 @@
  * LA LUMIÈRE D'UNE SCÈNE (#3476, lot B), que tout hôte du noyau pose telle quelle : le soleil de l'heure (`monde/soleil`),
  * l'ambiante du palier de lumière (`ambientScalar`, `lightLevels.json`), le ciel et la brume de profondeur du lieu
  * (`ambiance.json › pov`), la teinte de la météo (`sceneWeatherFx`) et les sources ponctuelles de la scène
- * (`sceneLightSources`, ton `lightTones.json`, un ton hors catalogue au repli visible `MISSING_TONE`). Les énergies et les teintes de nuit sont des choix de RENDU, aucune
+ * (`sceneLightSources`, ton `lightTones.json`, un ton hors catalogue au repli visible `MISSING_TONE`), chacune avec la
+ * flamme et le son en boucle de son ton (#3783). Les énergies et les teintes de nuit sont des choix de RENDU, aucune
  * règle ne les chiffre. Repère des builders : X = est, Y = haut, Z = sud, en cases.
  */
-import { ambiance, DEFAULT_LIGHT_TONE_ID, findLightToneById, type LightToneDef } from '../data';
+import { ambiance, DEFAULT_LIGHT_TONE_ID, findLightToneById, type LightToneDef, type VisuelDeLumiere } from '../data';
+import { sonDEffet, type SonDEffet } from '../data/sons/registre';
 import { parseHex } from '../lib/couleurHex';
 import type { Regard } from './monde/aretes';
 import { sceneBrume, sceneWeatherFx } from './monde/meteo';
@@ -46,6 +48,22 @@ export interface SourceDeLumiere {
   energie: number;
   /** Vacillement d'une flamme : part d'énergie qui oscille, et sa fréquence (Hz). */
   scintillement: { amplitude: number; hz: number } | null;
+  /** Ce que la source montre à son foyer, et le son qu'elle joue en boucle, ceux de son ton. */
+  visuel: VisuelDeLumiere | null;
+  son: SonDEffet | null;
+}
+
+/** La source du ton `ton` (`lightTones.json`) au foyer `foyer`, qui éclaire `rayonCases` cases. */
+export function sourceDuTon(ton: LightToneDef, foyer: Pick<SourceDeLumiere, 'x' | 'y' | 'z' | 'hM'>, rayonCases: number): SourceDeLumiere {
+  return {
+    ...foyer,
+    rayonCases,
+    couleur: ton.color,
+    energie: ENERGIE_DES_SOURCES * ton.intensity,
+    scintillement: ton.flicker ?? null,
+    visuel: ton.visuel ?? null,
+    son: ton.son ? sonDEffet(ton.son.id) : null,
+  };
 }
 
 export interface LumiereDeLaScene {
@@ -106,16 +124,12 @@ export function lumiereDeLaScene(etat: VisionInput & { scene: Scene }, regard: R
     sources: sceneLightSources(etat).map((s) => {
       const ton = catalogEntry(findLightToneById, s.tone ?? DEFAULT_LIGHT_TONE_ID, 'lightTones', TON_HORS_CATALOGUE);
       const z = s.z ?? 0;
-      return {
+      return sourceDuTon(ton, {
         x: s.pos.x + (s.foyer?.x ?? 0),
         y: s.pos.y + (s.foyer?.y ?? 0),
         z,
         hM: heightAt(scene, s.pos.x, s.pos.y, z) + (s.foyer?.h ?? FLAME_LIFT_M),
-        rayonCases: s.radiusTiles,
-        couleur: ton.color,
-        energie: ENERGIE_DES_SOURCES * ton.intensity,
-        scintillement: ton.flicker ?? null,
-      };
+      }, s.radiusTiles);
     }),
   };
 }

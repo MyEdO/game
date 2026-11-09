@@ -3,7 +3,7 @@
  * `DamageTypeData`) : argument du Trait et valeur de la Condition `has … what:'immunity'`. LDB 85 l.174
  */
 import { document } from '../grammaire/document';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 export const file = 'damage-types.json';
 export const famille = 'entite';
@@ -13,7 +13,7 @@ const doc = document(
   famille,
   {
     /** VDM 13 l.24, l.61 ; ZI 08 l.28 */
-    domaine: idDe('domain').optional(),
+    domaine: ref('domain').optional(),
   },
   {
     domaine: { label: 'Domaine', hint: 'L’Immunité à ce Type rend le porteur insensible aux effets des Sorts de ce Domaine' },

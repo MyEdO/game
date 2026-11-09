@@ -2371,10 +2371,10 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     expect(banc.getState().pendingRoundStart).toBeNull();
   });
 
-  it('promouvoirLeCombattant place le héros en tête et dépense 1 Chance', () => {
+  it('roundStart.promouvoir place le héros en tête et dépense 1 Chance', () => {
     const { H } = endOfRoundBattle(2);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().promouvoirLeCombattant(H.id);
+    banc.getState().fenetreChoisir('roundStart', 'promouvoir', H.id);
     const st = banc.getState();
     expect(st.battle!.order[0]).toBe(H.id);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
@@ -2383,7 +2383,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   it('la validation de la pause (`fenetreValider(\'roundStart\')`) ferme la modale et active le héros promu en premier', () => {
     const { H } = endOfRoundBattle(1);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().promouvoirLeCombattant(H.id);
+    banc.getState().fenetreChoisir('roundStart', 'promouvoir', H.id);
     banc.getState().fenetreValider('roundStart');
     const st = banc.getState();
     expect(st.pendingRoundStart).toBeNull();
@@ -3190,7 +3190,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
     return sc;
   };
 
@@ -3608,7 +3608,7 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: 'armurier' } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
     return sc;
   };
 
