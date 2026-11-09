@@ -1197,7 +1197,7 @@ func _peaux() -> Variant:
 			if not is_instance_valid(piece) or piece.skin == null:
 				continue
 			var reference := piece.get_skin_reference()
-			if reference == null or RenderingServer.skeleton_get_bone_count(reference.get_skeleton()) <= 0:
+			if reference == null or RenderingServer.skeleton_get_bone_count(reference.get_skeleton()) == 0:
 				return null
 			var posee := piece.bake_mesh_from_current_skeleton_pose().get_aabb()
 			boite = posee if boite == null else (boite as AABB).merge(posee)
