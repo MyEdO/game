@@ -216,16 +216,17 @@ def clinfoc(D, C):
 
 
 def sabords(D, C, sorte, marge):
-    """Les rectangles des sabords des ponts percés dans une paroi de `sorte` (`SOUS_LES_PONTS`), cadre compris, agrandis
-    de `marge` : (axe du plan le long de la muraille, de, à, z bas, z haut), dans le repère du navire, origine en y au
-    milieu de la coque."""
+    """Les rectangles des ouvertures du Sabord (les sabords des ponts et les ouvertures vides) percées dans une paroi de
+    `sorte` (`SOUS_LES_PONTS`), cadre compris, agrandis de `marge` : (axe du plan le long de la muraille, de, à, z bas,
+    z haut), dans le repère du navire, origine en y au milieu de la coque."""
     E = D["EMBRASURE"]
     lo, ho = E["ouverture"]
     cadre = E["cadre"][0]
     demi_l = lo / 2 + cadre + marge
     demi_h = ho / 2 + cadre + marge
     rects = []
-    for centre, bord, _, s_, _ in K.sabords_des_ponts(D, C.P, C, N.Pieces(D, C.P, C)):
+    ouvertures = [(c, b, s_) for c, b, _, s_, _ in K.sabords_des_ponts(D, C.P, C, N.Pieces(D, C.P, C))]
+    for centre, bord, s_ in ouvertures + list(K.ouvertures_vides(D, C)):
         if s_ != sorte:
             continue
         if bord in ("tribord", "babord"):

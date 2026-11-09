@@ -194,8 +194,8 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
   const recouvre = (p: Rect, q: Rect) => Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > TOLERANCE && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > TOLERANCE;
 
   /** Chaque poste du modèle commité, où se monte une pièce (`postes` de son manifeste, et ceux qu'une Amélioration
-   *  ajoute, `selon`) : son nom, sa case, celle des ponts à la hauteur de son plancher dont l'emprise libre le contient à
-   *  une épaisseur de cloison près, et l'emprise au sol de la pièce montée et de son servant, en cases centrées sur
+   *  ajoute, `selon`) : son nom, sa case, une de celles d'un seul pont, à la hauteur de son plancher, dont l'emprise
+   *  libre le contient à une épaisseur de cloison près (sur la limite de deux, la première), et l'emprise au sol de la pièce montée et de son servant, en cases centrées sur
    *  l'entier. Un point glTF (x, y, z) est au plan en (W/2 − z/mpt − ½, H/2 + x/mpt − ½). */
   const { w: W, h: H, cases: CASES } = grilleDesPonts(cartes);
   const posteDu = (nom: string, bord: string, [gx, gy, gz]: readonly number[]) => {
@@ -205,7 +205,7 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
       const r = libre(c.x, c.y, c.z);
       return r.x0 - TOLERANCE <= x && x <= r.x1 + TOLERANCE && r.y0 - TOLERANCE <= y && y <= r.y1 + TOLERANCE;
     });
-    expect(siennes.length, `poste ${nom}`).toBe(1);
+    expect(siennes.length > 0 && new Set(siennes.map((c) => c.z)).size, `poste ${nom}`).toBe(1);
     const [dx, dy] = garanti(CAP[bord], bord, 'cap du bord');
     const piece = garanti(PIECE[bord], bord, 'pièce du bord');
     const [arriere, devant, cote] = [-(piece.derriere + SERVANT) / mpt, piece.devant / mpt, piece.demiLargeur / mpt];
@@ -404,11 +404,11 @@ describe('les Améliorations de la caraque à bord (pontsDuNavire)', () => {
   });
 
   it('Sabord : sans lui la coque de la batterie est pleine ; avec, ses sabords sont des fenêtres closes', () => {
-    expect(arete(bassinDeLaCaraque('O', []), [9, 2], [9, 1], 1)).toMatchObject({ side: 'N' });
-    expect(arete(bassinDeLaCaraque('O', []), [9, 2], [9, 1], 1)?.window).toBeUndefined();
-    expect(arete(bassinDeLaCaraque('O', ['sabord']), [9, 2], [9, 1], 1)).toMatchObject({ window: true, shuttered: true });
-    // au cap E, le sabord (6, 0) tribord du plan passe en x = 3 + 17 - 6, au sud : y = 2 + 4
-    expect(arete(bassinDeLaCaraque('E', ['sabord']), [14, 6], [14, 7], 1)).toMatchObject({ window: true, shuttered: true });
+    expect(arete(bassinDeLaCaraque('O', []), [10, 2], [10, 1], 1)).toMatchObject({ side: 'N' });
+    expect(arete(bassinDeLaCaraque('O', []), [10, 2], [10, 1], 1)?.window).toBeUndefined();
+    expect(arete(bassinDeLaCaraque('O', ['sabord']), [10, 2], [10, 1], 1)).toMatchObject({ window: true, shuttered: true });
+    // au cap E, le sabord (7, 0) tribord du plan passe en x = 3 + 17 - 7, au sud : y = 2 + 4
+    expect(arete(bassinDeLaCaraque('E', ['sabord']), [13, 6], [13, 7], 1)).toMatchObject({ window: true, shuttered: true });
   });
 
   it('une Amélioration inconnue est refusée', () => {

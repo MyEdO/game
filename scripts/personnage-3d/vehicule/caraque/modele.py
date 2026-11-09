@@ -1,6 +1,7 @@
 """La caraque (fiche `caraque` de `src/data/vehicles.json`, #2987 lots V3 à V5) : les nœuds `coque`, `beaupre`,
 `misaine`, `grand_mat`, `grand_mat_arriere`, `artimon`, et ceux que l'Amélioration Sabord départage : `avec-sabord`
-(les cartouches sculptés du château autour de ses sabords), `sans-sabord` (le bordé qui bouche leurs ouvertures) ;
+(les cartouches sculptés du château autour de ses ouvertures), `sans-sabord` (le bordé qui bouche les ouvertures des
+sabords et les ouvertures vides, `OUVERTURES_VIDES`) ;
 meshes sans skin ni armature. Ses ponts suivent leur source unique (`ponts` de la fiche, `plan_de_jeu.py`, #3686), que
 lit aussi le plan de jeu : pièces creusées, hauteurs, cloisons, portes, écoutilles, échelles, sabords, pieds des mâts,
 proue et trappe de fret sur les cases et arêtes du plan (#3815).
@@ -75,6 +76,19 @@ def sabords_des_ponts(D, P, C, pieces):
             profondeur = 0.0
         sortie.append((centre, bord, plancher, sorte, profondeur))
     return sortie
+
+
+def ouvertures_vides(D, C):
+    """Chaque ouverture vide du Sabord (`OUVERTURES_VIDES`), des deux bords : (centre de son ouverture sur la face
+    extérieure de la muraille, bord, sorte de sa paroi)."""
+    for O in D["OUVERTURES_VIDES"]:
+        zc = C.hauteur(O["plancher"]) + O["axe"]
+        for xp in O["cases"]:
+            yy = C.y_du_plan(xp)
+            f = C.f(yy)
+            mur = C.bord(f, zc) if O["sorte"] == "bord" else C.lisse(f) + D["CHATEAU"]["niveaux"][4][1]
+            for bord in ("tribord", "babord"):
+                yield Vector((AXES[bord].x * mur, yy, zc)), bord, O["sorte"]
 
 
 def mats(D, P, C):
@@ -378,7 +392,7 @@ def construire(D, P):
         sommets = [tuple(centre - axe * derriere + c) for c in coins] + [tuple(centre + axe * devant + c) for c in coins]
         maille.ajouter(sommets, [[0, 1, 2, 3], [4, 7, 6, 5], [0, 4, 5, 1], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 4, 0]], mat)
 
-    def sabord(centre, bord, plancher, cartouche, profondeur):
+    def ouverture(centre, bord, cartouche, profondeur):
         """Ouverture traversant la muraille au point `centre` de sa face extérieure, jusqu'à `profondeur` au moins ; le
         cartouche du château autour de son cadre (celui de la pièce de l'Amélioration) dans `cartouches`."""
         c, a = Vector(centre), AXES[bord]
@@ -399,12 +413,14 @@ def construire(D, P):
             centre_p = c + a * (sp / 2) - haut * (ho / 2 + cadre + ecart + hp / 2)
             poutre(cartouches, centre_p - cote * lp / 2, centre_p + cote * lp / 2, hp, 2 * sp, a, "bois")
             poutre(cartouches, centre_p + a * sp - cote * lp * 0.3, centre_p + a * sp + cote * lp * 0.3, hp * 0.45, 0.04, a, "dorure")
-        origine = c - a * (CA["bouche"] - CA["saillie"])
-        sabords.setdefault(bord, []).append((origine.x, origine.y, plancher))
 
     pieces = Pieces(D, P, C)
     for centre, bord, plancher, sorte, profondeur in sabords_des_ponts(D, P, C, pieces):
-        sabord(centre, bord, plancher, sorte != "bord", profondeur)
+        ouverture(centre, bord, sorte != "bord", profondeur)
+        origine = Vector(centre) - AXES[bord] * (CA["bouche"] - CA["saillie"])
+        sabords.setdefault(bord, []).append((origine.x, origine.y, plancher))
+    for centre, bord, sorte in ouvertures_vides(D, C):
+        ouverture(centre, bord, sorte != "bord", 0.0)
 
     pieces.creuser(interieurs)
     amenager(D, P, C, pieces, coque, interieurs)

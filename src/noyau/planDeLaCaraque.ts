@@ -111,8 +111,7 @@ const LEGENDE_DU_PLAN: NonNullable<MapSpec['zoneLegend']> = {
  *  sans lui) et, posé sur un autre meuble de sa pièce, le `ref` et le rang de celui-ci (`SceneEntity.sur`). Le
  *  cabestan du pont principal entre la trappe de fret et le grand mât (#3815). Une case de porte, de trappe, de pied
  *  d'échelle ou seul passage vers d'autres reste libre ; la pièce montée à un poste (`postes` du manifeste) et son
- *  servant ne recouvrent aucun meuble de son pont. Une pièce reste vide quand aucune de ses cases n'en laisse la place :
- *  la salle d'apparat, que ses postes de Sabord emplissent, et le mess, dont la seule case libre mène au sien. Le calage
+ *  servant ne recouvrent aucun meuble de son pont. Une pièce reste vide quand aucune de ses cases n'en laisse la place. Le calage
  *  plaque un meuble à une cloison du plan ; près du bordé et de la muraille, chaque meuble se tient dans l'emprise libre
  *  que le modèle laisse à ses cases (`cases` du manifeste de `vehicule--caraque`, #3767). */
 const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing: Dir4, calage?: Calage, sur?: string])[]>> = {
@@ -126,8 +125,8 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
   V: [['rouleau-de-cordage', 1, 2, 'S', { x: 0.5, y: 0 }]],
   P: [
     ['cabestan', 8, 2, 'S'],
-    ['hamac', 7, 0, 'S', { x: 0, y: 1 }], ['hamac', 9, 0, 'S', { x: 0, y: 1 }], ['hamac', 12, 0, 'S', { x: 0, y: 1 }],
-    ['hamac', 7, 4, 'S', { x: 0, y: -1 }], ['hamac', 9, 4, 'S', { x: 0, y: -1 }], ['hamac', 12, 4, 'S', { x: 0, y: -1 }],
+    ['hamac', 4, 0, 'S', { x: 0, y: 1 }], ['hamac', 6, 0, 'S', { x: 0, y: 1 }], ['hamac', 11, 0, 'S', { x: 0, y: 1 }],
+    ['hamac', 4, 4, 'S', { x: 0, y: -1 }], ['hamac', 6, 4, 'S', { x: 0, y: -1 }], ['hamac', 11, 4, 'S', { x: 0, y: -1 }],
   ],
   M: [
     ['caisse', 13, 1, 'S', { x: -1, y: -1 }], ['caisse', 13, 1, 'S', { x: -1, y: 1 }], ['tonneau', 13, 1, 'S', { x: 1, y: -1 }],
@@ -139,6 +138,8 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
     ['hamac', 3, 1, 'S', { x: 0, y: -1 }], ['hamac', 3, 1, 'S', { x: 0, y: 1 }],
     ['rouleau-de-cordage', 2, 1, 'S', { x: 0, y: 0.5 }], ['rouleau-de-cordage', 2, 3, 'S', { x: 0, y: -0.5 }],
   ],
+  E: [['table', 11, 0, 'S', { x: 0, y: 1 }]],
+  H: [['table', 11, 4, 'S', { x: 0, y: -1 }]],
   F: [['hamac', 13, 1, 'S', { x: 0, y: -1 }], ['coffre', 13, 0, 'N', { x: 0, y: 1 }]],
   X: [['bureau', 15, 1, 'S', { x: 0, y: -1 }], ['coffre', 15, 1, 'S', { x: -1, y: 1 }]],
   Y: [['hamac', 15, 3, 'S', { x: 0, y: 1 }], ['coffre', 15, 3, 'S', { x: -1, y: -1 }]],
