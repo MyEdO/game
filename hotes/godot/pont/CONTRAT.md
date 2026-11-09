@@ -40,7 +40,7 @@ Les trois premières catégories sont celles du module commun (`CategorieDErreur
 | `echantillons` | aucune | `{ familles: { id, libelle, entrees: { id, libelle }[] }[] }` : chaque famille de ce que le jeu dessine en 3D hors des modèles servis, `decor`, `sol`, `relief`, `toit` et `mur`, et chacune de ses entrées, au libellé de sa donnée, dans l'ordre des libellés (`famillesDEchantillons`, surface du noyau, section « Atelier 3D ») ; avant ou après `demarrer` |
 | `echantillon` | `{ famille, id }` : l'id d'une famille de `echantillons` et celui d'une de ses entrées | `{ monde, aretes, toits, couronnes, couronnesAbattues }` : la scène d'échantillon que le noyau bâtit pour cette entrée, dessinée comme le monde de la partie (`echantillonDessine`, surface du noyau, section « Atelier 3D ») : son volume (section « Monde »), les arêtes de son plateau au regard `immersion` (`aretes`, section « Vue »), ses nappes de toit, ses couronnes et les clés des couronnes que sa brèche abat (`couronnesAbattues`) ; refusé sur une famille hors de `echantillons` (le message les nomme) et sur une entrée hors de sa famille (le message nomme la famille) ; avant ou après `demarrer` |
 | `catalogues` | aucune | les choix de chaque champ d'une composition, ses axes, le nuancier, et les presets avec leur composition (`cataloguesDeComposition`, surface du noyau) |
-| `vitrine` | aucune | `{ de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, flottants, musiques, lumieres, attaques }` : la vitrine des effets que le jeu joue (`vitrineDesEffets`, surface du noyau, section « Effets ») ; avant ou après `demarrer` |
+| `vitrine` | aucune | `{ de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, flottants, musiques, lumieres, attaques, deplacement }` : la vitrine des effets que le jeu joue (`vitrineDesEffets`, surface du noyau, section « Effets ») ; avant ou après `demarrer` |
 | `presetDeComposition` | `{ composition, preset? }` : une composition (section « Composition d'un personnage ») et l'id d'un preset de `catalogues` dont l'entrée reprend l'enveloppe | `{ entree, verdict }` (`presetDeComposition`, surface du noyau) ; refusé sur une composition que `lireComposition` refuse, et sur un `preset` inconnu |
 | `editer` | `{ ouvrir, projet?, calques? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`, `src/scenes/campaign.ts`), le texte de son projet que sert le dépôt, et celui des calques que l'hôte garde ; ou `{ edition }` : un geste d'édition (`GesteDEdition`, `src/noyau/edition/session.ts`), un geste du pointeur, l'issue d'un enregistrement ou d'un chargement de planche, ou celui que porte un bouton des zones de l'éditeur, un qui l'offre sans refus d'abord ; ou `{ type: 'nommer' | 'identifier' | 'decrire' | 'drapeau', args }` : le formulaire de l'inspecteur qui nomme la sélection ou la scène, `args` le nom saisi ou rien, qui change l'identifiant de la zone d'effet sélectionnée, `args` l'identifiant saisi, qui décrit la scène, `args` la description ou rien, ou qui ajoute un drapeau de départ, `args` son nom ; ou `{ type: 'valeur', args: [porteur, chemin, valeur?] }` : un formulaire tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente pour retirer le champ (section « Éditeur ») | `{ vue: { zones, couche }, surcouche, calque, monde?, aretes?, depot?, planche?, memoire? }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la porte refuse |
 | `erreursGlobales` | aucune | `{ erreurs: { message, source }[] }` : les événements `error` et `unhandledrejection` de la page depuis le dernier relevé, puis vidés ; `source` vaut `fichier:ligne`, `unhandledrejection` ou `null` |
@@ -143,7 +143,8 @@ type Effet =
   | { quoi: 'incantation'; de: string; vers: string; reussie: boolean; couleur: string; depart: Phase | null; arrivee: Phase | null; flottants: Flottant[] }
   | { quoi: 'zone'; de: string; centre: Case; cases: Case[]; couleur: string; depart: Phase | null; trajet: Trajet | null; nappe: Phase | null }
   | { quoi: 'flottant'; sur: string | null; case: Case | null; flottant: Flottant }
-  | { quoi: 'son'; son: Son; fois: number; ecartS: number };
+  | { quoi: 'son'; son: Son; fois: number; ecartS: number }
+  | { quoi: 'deplacement'; qui: string; cases: (Case & { metres: number })[] };
 type Flottant = { genre: 'damage' | 'heal' | 'miss' | 'condition' | 'soak' | 'defend' | 'death'; texte: string; couleur: string; critique: boolean };
 type Case = { x: number; y: number; z?: number };
 type Phase = { visuel: VisuelDEffet | null; son: Son | null }; // VisuelDEffet : src/data/schemas/defs/effets.ts
@@ -171,6 +172,13 @@ type Son = { id: string; fichiers: string[]; volume: number };
   manque, « ✦ hors de combat » quand la cible tombe, « Incantation ratée » ; un `flottant` du bus (l'événement `anim_float` :
   un soin, une déviation, un État) monte du combattant `sur`, à défaut de la case `case`. Son texte vient des messages du jeu
   (`src/i18n`), sa `couleur` de `TEINTE_DU_FLOTTANT` ; un flottant `critique` s'écrit plus grand.
+- Un `deplacement` (#3822, l'événement `anim_move`) est le chemin que le combattant `qui` a parcouru, en exploration comme
+  en combat, sauts, escalades et changements de couche compris : chacune de ses `cases` (sa couche `z` toujours dite), de
+  celle qu'il quitte à celle où la vue le pose, et les `metres` qui la séparent de la précédente, la distance de leurs sols
+  (0 pour la première). Un déplacement d'une seule case n'en rend aucun. Godot fait parcourir à son combattant le lieu de
+  chaque case (`Monde.lieu`, station d'un navire comprise), en ligne droite de l'une à l'autre, tourné à l'horizontale vers
+  celle qu'il gagne, chaque pas au clip `walk` et en `metres` divisés par la vitesse au sol de sa base (`vitesseAuSol`,
+  section « Atelier 3D ») multipliée par `echelleDeVitesse` de son gabarit, en `DUREE_DEPLACEMENT_S` sans base posée.
 - Un `son` joue partout, `fois` fois à `ecartS` secondes d'écart : un son de scène (l'Effet de scène `playSfx`), les pas d'un
   déplacement (un par deux cases, quatre au plus), le heurt d'un pas refusé, le gong d'une victoire, les dés d'un jet que
   l'hôte lance ou relance (`jetLancer`, `jetRelancer`) ; leurs ids sont `SONS_DE_LA_PARTIE`.
@@ -180,10 +188,12 @@ type Son = { id: string; fichiers: string[]; volume: number };
   Godot lit sous `res://sons/` et joue l'une au hasard (`AudioStreamRandomizer`), le dossier épinglé des sons (`projet/sons/provenance.json`, `hotes/godot/asset/epingles.ts`),
   et son `volume` propre (0..1).
 
-Le plateau (`projet/scripts/plateau.gd`) les rend par son nœud `Effets` (`projet/scripts/effets.gd`), l'un après l'autre :
+Le plateau (`projet/scripts/plateau.gd`) les rend par son nœud `Effets` (`projet/scripts/effets.gd`), chaque déplacement
+aussitôt, tous ensemble, puis les autres l'un après l'autre :
 chaque visuel est un éclat de particules à textures procédurales et son éclair, au point de sa phase ; chaque son joue en 3D
 à son point. Au départ d'un coup ou d'une incantation, l'auteur se tourne vers sa cible et joue son clip d'attaque ; à
-l'arrivée d'un coup qui touche, la cible accuse le coup. La recette `projet/recettes/effets.gd` les vérifie.
+l'arrivée d'un coup qui touche, la cible accuse le coup. La recette `projet/recettes/effets.gd` les vérifie, et
+`projet/recettes/chemin-du-groupe.gd` le parcours d'un déplacement.
 
 La vitrine (`vitrine`) donne à l'atelier chaque effet que le jeu joue, de l'auteur `de`, en case (0, 0), à la cible `vers`
 posée à `distanceM` mètres, des cases de `metresParCase` mètres, chacun résolu comme en combat :
@@ -200,7 +210,9 @@ posée à `distanceM` mètres, des cases de `metresParCase` mètres, chacun rés
 - `musiques` : chaque musique du registre (`{ id, label, musique }`, `musique` comme `vue.musique`, section « Musique ») ;
 - `lumieres` : chaque ton de lumière (`{ id, label, source }`), sa source posée au lieu de la cible (section « Lumière ») ;
 - `attaques` : par id d'objet, le coup qui touche de chaque engin de siège, résolu par le rendu de son objet, celui que
-  l'atelier joue quand l'engin posé attaque.
+  l'atelier joue quand l'engin posé attaque ;
+- `deplacement` : le déplacement de l'auteur sur un chemin qui tourne depuis sa case, que la base posée parcourt à
+  « Parcourir un chemin » (onglet Animation).
 
 ## Musique
 
