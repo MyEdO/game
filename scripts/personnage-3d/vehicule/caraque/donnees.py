@@ -184,17 +184,17 @@ CIVADIERE = {"f": -0.12, "sous": 0.4, "longueur": 6.4, "rayons": (0.10, 0.06), "
 
 # Postes : où se montent les pièces d'un bord (manifeste `postes`, dans l'ordre de chaque bord). Sans Sabord, « les
 # tirs doivent nécessairement être effectués depuis le pont » (MDG p.97) : la coque n'a aucune ouverture, et chaque
-# pièce se pose sur un pont découvert, sa bouche passée par-dessus le plat-bord de `RECUL` derrière sa face intérieure.
-# Groupe : bords, colonnes des cases du plan (flancs) ou x (proue, poupe), plancher (un glyphe des ponts, ou "pont" : le
-# pont principal), plat-bord par-dessus lequel elle tire. Embelle : le plan « Pont supérieur » (p.99, « 13 ») porte deux
+# pièce se pose sur un pont découvert, sa bouche passée par-dessus le plat-bord, son origine de `recul` derrière sa face
+# intérieure. Groupe : bords, colonnes des cases du plan (flancs) ou x (proue, poupe), plancher (un glyphe des ponts, ou
+# "pont" : le pont principal), plat-bord par-dessus lequel elle tire, recul (m). Embelle : le plan « Pont supérieur » (p.99, « 13 ») porte deux
 # pièces par bord, la p.105 en aligne davantage ; quatre par bord, hors des haubans du grand mât et des trappes. Proue :
-# les bombardes du gaillard (« 1 »), de part et d'autre de la misaine, derrière son avant plat. Poupe : la plage
-# arrière, par-dessus le couronnement.
-CANON = {"axe": 1.15, "bouche": 1.725, "saillie": 0.45, "recul": 0.95}   # canon de campagne : axe au-dessus du sol, bouche devant l'origine
+# les bombardes du gaillard (« 1 »), de part et d'autre de la misaine, contre son avant plat, leurs bouches par-dessus,
+# devant la trappe (« 3 »). Poupe : la plage arrière, par-dessus le couronnement.
+CANON = {"axe": 1.15, "bouche": 1.725, "saillie": 0.45}   # canon de campagne : axe au-dessus du sol, bouche devant l'origine
 POSTES_DU_PONT = [
-    {"bords": ("tribord", "babord"), "cases": (6, 7, 8, 9), "plancher": "pont", "par_dessus": "embelle"},
-    {"bords": ("proue",), "x": (-1.5, 1.5), "plancher": "g", "par_dessus": "gaillard"},
-    {"bords": ("poupe",), "x": (-1.15, 1.15), "plancher": "a", "par_dessus": "couronnement"},
+    {"bords": ("tribord", "babord"), "cases": (6, 7, 8, 9), "plancher": "pont", "par_dessus": "embelle", "recul": 0.95},
+    {"bords": ("proue",), "x": (-1.5, 1.5), "plancher": "g", "par_dessus": "gaillard", "recul": 0.6},
+    {"bords": ("poupe",), "x": (-1.15, 1.15), "plancher": "a", "par_dessus": "couronnement", "recul": 0.95},
 ]
 
 # Sabords (Amélioration `sabord`, manifeste `selon.sabord.postes`) : une ouverture traversant la muraille à chaque
@@ -298,12 +298,13 @@ SANS_SABORD_A_BORD = ["figure-de-proue", "ancre", "belier", "nid-de-pie", "embar
                       "clinfoc", "blindage-fer", "fourquines"]
 REVUE = {
     "vehicule": "vehicule--caraque",
-    "aux_postes": {bord: "vehicule--canon-moyen" for bord in ("proue", "tribord", "poupe", "babord")},
+    "aux_postes": {"proue": "vehicule--pierrier", "tribord": "vehicule--canon-moyen", "poupe": "vehicule--canon-moyen",
+                   "babord": "vehicule--canon-moyen"},
     "configurations": [
         ("01-nue", "Sans arme ni Amélioration : coque pleine", {}, []),
-        ("02-armee", "Armée sur le pont (12 canons), sans Sabord", "tout", []),
+        ("02-armee", "Armée sur le pont (10 canons, bombardes au gaillard), sans Sabord", "tout", []),
         ("03-sabords-fermes", "Sabord, sans arme : sabords fermés", {}, ["sabord"]),
-        ("04-sabords-armee", "Sabord et armée (20 canons, bombardes au gaillard)", "tout", ["sabord"]),
+        ("04-sabords-armee", "Sabord et armée (12 canons, bombardes au gaillard)", "tout", ["sabord"]),
         ("05-sabords-batterie", "Sabord, la batterie armée, le château fermé", {"babord": range(2), "tribord": range(2)}, ["sabord"]),
         ("06-figure-de-proue", "Figure de proue", {}, ["figure-de-proue"]),
         ("07-ancre", "Ancre", {}, ["ancre"]),

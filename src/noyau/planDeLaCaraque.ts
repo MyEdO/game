@@ -110,12 +110,11 @@ const LEGENDE_DU_PLAN: NonNullable<MapSpec['zoneLegend']> = {
  *  du coin nord-ouest de son emprise, son cap, son calage dans le jeu libre de sa case (`SceneEntity.calage`, centré
  *  sans lui) et, posé sur un autre meuble de sa pièce, le `ref` et le rang de celui-ci (`SceneEntity.sur`). Le
  *  cabestan du pont principal entre la trappe de fret et le grand mât (#3815). Une case de porte, de trappe, de pied
- *  d'échelle ou seul passage vers d'autres reste libre ; dans la case d'un poste (`postes` du manifeste), la pièce qui
- *  s'y monte et son servant ne recouvrent aucun meuble. Une pièce reste vide quand aucune de ses cases n'en laisse la
- *  place : la salle d'apparat, les quartiers du capitaine et du timonier, que leurs postes de Sabord emplissent, et le
- *  mess, dont la seule case libre mène au sien. Le calage plaque un meuble à une cloison du plan ; près du bordé
- *  et de la muraille, chaque meuble se tient dans l'emprise libre que le modèle laisse à ses cases (`cases` du manifeste
- *  de `vehicule--caraque`, #3767). */
+ *  d'échelle ou seul passage vers d'autres reste libre ; la pièce montée à un poste (`postes` du manifeste) et son
+ *  servant ne recouvrent aucun meuble de son pont. Une pièce reste vide quand aucune de ses cases n'en laisse la place :
+ *  la salle d'apparat, que ses postes de Sabord emplissent, et le mess, dont la seule case libre mène au sien. Le calage
+ *  plaque un meuble à une cloison du plan ; près du bordé et de la muraille, chaque meuble se tient dans l'emprise libre
+ *  que le modèle laisse à ses cases (`cases` du manifeste de `vehicule--caraque`, #3767). */
 const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing: Dir4, calage?: Calage, sur?: string])[]>> = {
   C: [
     ['caisse', 5, 1, 'S'], ['tonneaux-pile', 6, 1, 'S', { x: 0, y: 1 }], ['tonneau', 7, 1, 'S'], ['caisse', 8, 1, 'S'], ['tonneau', 9, 1, 'S'],
@@ -141,6 +140,8 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
     ['rouleau-de-cordage', 2, 1, 'S', { x: 0, y: 0.5 }], ['rouleau-de-cordage', 2, 3, 'S', { x: 0, y: -0.5 }],
   ],
   F: [['hamac', 13, 1, 'S', { x: 0, y: -1 }], ['coffre', 13, 0, 'N', { x: 0, y: 1 }]],
+  X: [['bureau', 15, 1, 'S', { x: 0, y: -1 }], ['coffre', 15, 1, 'S', { x: -1, y: 1 }]],
+  Y: [['hamac', 15, 3, 'S', { x: 0, y: 1 }], ['coffre', 15, 3, 'S', { x: -1, y: -1 }]],
   B: [['barre-de-navire', 17, 2, 'E', { x: -0.5, y: 0 }]],
 };
 

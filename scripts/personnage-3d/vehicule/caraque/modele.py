@@ -351,9 +351,10 @@ def construire(D, P):
     postes, sabords = {}, {}
     ouvertures, cartouches = Maille(tous), Maille(tous)
 
-    def au_pont(face, bord, plancher):
-        """Pièce dont la bouche passe par-dessus le plat-bord de face intérieure `face` (x ou y selon le bord)."""
-        origine = Vector(face) - AXES[bord] * CA["recul"]
+    def au_pont(face, bord, plancher, recul):
+        """Pièce dont la bouche passe par-dessus le plat-bord de face intérieure `face` (x ou y selon le bord), son origine
+        de `recul` derrière elle."""
+        origine = Vector(face) - AXES[bord] * recul
         postes.setdefault(bord, []).append((origine.x, origine.y, plancher))
 
     for G in D["POSTES_DU_PONT"]:
@@ -362,11 +363,11 @@ def construire(D, P):
                 for xp in G["cases"]:
                     yy = C.y_du_plan(xp + 0.5)
                     x = AXES[bord].x * (C.lisse(C.f(yy)) - D["PAVOIS"][0])
-                    au_pont((x, yy, 0), bord, C.pont(yy))
+                    au_pont((x, yy, 0), bord, C.pont(yy), G["recul"])
             else:
                 yy = y(f_avant) + 0.25 if bord == "proue" else y(1.0) - D["BALUSTRADE"]["main"][0] - 0.02
                 for x in G["x"]:
-                    au_pont((x, yy, 0), bord, C.hauteur(G["plancher"]))
+                    au_pont((x, yy, 0), bord, C.hauteur(G["plancher"]), G["recul"])
 
     def caisson(maille, centre, axe, largeur, hauteur, devant, derriere, mat):
         """Boîte de `largeur` × `hauteur` centrée sur `centre`, de `derriere` avant lui à `devant` après lui le long
