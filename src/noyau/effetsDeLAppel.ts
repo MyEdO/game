@@ -4,8 +4,8 @@
  * d'une arme est celui de son objet, à défaut celui de son Groupe (`subType`) ; celui d'un sort, celui de son Domaine ; une
  * Prière a le sien. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
-import { findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
-import { findSonById } from '../data/sons/registre';
+import { domains, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import { findSonById, sonsDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
 import type { ChargeDAttaque } from './bus';
@@ -71,16 +71,22 @@ function renduDeLArme(w: Weapon): RenduDef {
   return catalogue(propre?.id ?? (w.natural ? REPLI.naturelle : REPLI[w.type]));
 }
 
-/** Le rendu du sort d'id `id` et sa teinte : la Prière a le sien ; un Sort, celui de son Domaine, teint à sa couleur. */
-function renduDuSort(id: string): { rendu: RenduDef; couleur: string } {
-  const sort = findSpellById(id);
-  if (sort && castInfoIsPrayer(sort)) {
-    const rendu = catalogue(REPLI.priere);
-    return { rendu, couleur: rendu.couleur };
-  }
-  const domaine = findDomainById(sort?.domainId);
+/** Le rendu d'un sort du Domaine `domaine` (aucun : hors Domaine) et sa teinte : celui du Domaine, teint à sa couleur. */
+function renduDuDomaine(domaine: DomainData | undefined): { rendu: RenduDef; couleur: string } {
   const rendu = catalogue(domaine?.rendu?.id ?? REPLI.sort);
   return { rendu, couleur: domaine?.couleur ?? rendu.couleur };
+}
+
+/** Le rendu de la Prière et sa teinte. */
+function renduDeLaPriere(): { rendu: RenduDef; couleur: string } {
+  const rendu = catalogue(REPLI.priere);
+  return { rendu, couleur: rendu.couleur };
+}
+
+/** Le rendu du sort d'id `id` et sa teinte : la Prière a le sien ; un Sort, celui de son Domaine. */
+function renduDuSort(id: string): { rendu: RenduDef; couleur: string } {
+  const sort = findSpellById(id);
+  return sort && castInfoIsPrayer(sort) ? renduDeLaPriere() : renduDuDomaine(findDomainById(sort?.domainId));
 }
 
 /** La durée de vol (s) la plus courte, qu'un vol à bout portant garde visible. */
@@ -90,20 +96,29 @@ const VOL_MINIMAL_S = 0.08;
 const trajet = (r: RenduDef, distanceM: number): TrajetRendu | null =>
   r.projectile ? { projectile: r.projectile, dureeS: Math.max(distanceM / r.vitesseMs!, VOL_MINIMAL_S), hauteurM: r.cloche! * distanceM } : null;
 
+/** Le coup du rendu `rendu`, teint de `couleur`, de `de` à `vers` à `distanceM` mètres, à l'issue `issue` : sa phase
+ *  d'arrivée est l'impact, le manque, ou la parade du rendu `parade` de l'arme qui a paré. */
+function coup(rendu: RenduDef, couleur: string, issue: IssueDuCoup, de: string, vers: string, distanceM: number, parade: RenduDef | null): Effet {
+  const arrivee = parade ? phase(parade.paradeVisuel, parade.paradeSon) : arriveeDe(rendu, issue === 'manque');
+  return { quoi: 'coup', de, vers, issue, couleur, depart: depart(rendu), trajet: trajet(rendu, distanceM), arrivee };
+}
+
+/** L'incantation du rendu `rendu`, teinte de `couleur`, de `de` sur `vers`, sa phase d'arrivée nulle quand elle échoue. */
+const incantation = (rendu: RenduDef, couleur: string, reussie: boolean, de: string, vers: string): Effet =>
+  ({ quoi: 'incantation', de, vers, reussie, couleur, depart: depart(rendu), arrivee: reussie ? arriveeDe(rendu, false) : null });
+
 /** L'effet de l'attaque `a`, entre deux combattants posés à `distanceM` mètres l'un de l'autre. */
 function effetDeLAttaque(a: Exclude<ChargeDAttaque, { kind: 'creature' }>, distanceM: number): Effet {
   if (a.kind === 'spell') {
     const { rendu, couleur } = renduDuSort(a.spell);
-    if (!a.projectile) return { quoi: 'incantation', de: a.from, vers: a.to, reussie: a.result.cast, couleur, depart: depart(rendu), arrivee: a.result.cast ? arriveeDe(rendu, false) : null };
+    if (!a.projectile) return incantation(rendu, couleur, a.result.cast, a.from, a.to);
     const issue: IssueDuCoup = !a.result.hit ? 'manque' : (a.result.critiques ?? 0) > 0 ? 'critique' : 'touche';
-    return { quoi: 'coup', de: a.from, vers: a.to, issue, couleur, depart: depart(rendu), trajet: trajet(rendu, distanceM), arrivee: arriveeDe(rendu, issue === 'manque') };
+    return coup(rendu, couleur, issue, a.from, a.to, distanceM, null);
   }
   const rendu = renduDeLArme(a.weapon);
   const pare = !a.result.hit && a.parryWeapon !== undefined;
   const issue: IssueDuCoup = a.result.hit ? (a.result.critical ? 'critique' : 'touche') : pare ? 'pare' : 'manque';
-  const parade = issue === 'pare' ? renduDeLArme(a.parryWeapon!) : null;
-  const arrivee = parade ? phase(parade.paradeVisuel, parade.paradeSon) : arriveeDe(rendu, issue === 'manque');
-  return { quoi: 'coup', de: a.from, vers: a.to, issue, couleur: rendu.couleur, depart: depart(rendu), trajet: trajet(rendu, distanceM), arrivee };
+  return coup(rendu, rendu.couleur, issue, a.from, a.to, distanceM, pare ? renduDeLArme(a.parryWeapon!) : null);
 }
 
 /** Les mètres qui séparent les combattants `de` et `vers` de `etat` sur le plateau de sa scène, `null` quand l'un n'y est
@@ -131,4 +146,73 @@ export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Eff
     }
     return [];
   });
+}
+
+/** Une variante de la vitrine : l'issue d'un coup, ou l'incantation réussie ou ratée d'un sort sans projectile. */
+export type VarianteDeVitrine = 'touche' | 'manque' | 'pare' | 'incantation' | 'incantation-ratee';
+
+/** Une entrée de la vitrine : un rendu d'arme, un Domaine ou la Prière, et l'effet de chacune de ses variantes. */
+export interface EntreeDeVitrine {
+  id: string;
+  label: string;
+  variantes: { variante: VarianteDeVitrine; effet: Effet }[];
+}
+
+/** La vitrine des effets que le jeu joue (#3777), de l'auteur `de` à la cible `vers` posée à `distanceM` mètres : chaque
+ *  rendu d'arme, chaque Domaine, le sort hors Domaine et la Prière, chaque son d'effet du registre, et l'attaque qui touche
+ *  de chaque engin de siège, par son id d'objet. */
+export interface VitrineDesEffets {
+  de: string;
+  vers: string;
+  distanceM: number;
+  armes: EntreeDeVitrine[];
+  sorts: EntreeDeVitrine[];
+  sons: { id: string; label: string; effet: Effet }[];
+  attaques: Record<string, Effet>;
+}
+
+const AUTEUR_DE_LA_VITRINE = 'auteur';
+const CIBLE_DE_LA_VITRINE = 'cible';
+const DISTANCE_DE_LA_VITRINE_M = 12;
+
+/** Les variantes d'un sort de rendu `rendu` teint de `couleur` : son trait qui touche ou manque, et son incantation sans
+ *  projectile, réussie ou ratée. */
+function variantesDuSort({ rendu, couleur }: { rendu: RenduDef; couleur: string }, de: string, vers: string, distanceM: number): EntreeDeVitrine['variantes'] {
+  return [
+    { variante: 'touche', effet: coup(rendu, couleur, 'touche', de, vers, distanceM, null) },
+    { variante: 'manque', effet: coup(rendu, couleur, 'manque', de, vers, distanceM, null) },
+    { variante: 'incantation', effet: incantation(rendu, couleur, true, de, vers) },
+    { variante: 'incantation-ratee', effet: incantation(rendu, couleur, false, de, vers) },
+  ];
+}
+
+/** La vitrine des effets (`VitrineDesEffets`). Un rendu que porte un sort (un Domaine, le hors Domaine, la Prière) se
+ *  montre parmi les sorts, jamais parmi les armes ; une arme montre sa parade quand son rendu en porte une. */
+export function vitrineDesEffets(): VitrineDesEffets {
+  const de = AUTEUR_DE_LA_VITRINE;
+  const vers = CIBLE_DE_LA_VITRINE;
+  const distanceM = DISTANCE_DE_LA_VITRINE_M;
+  const desSorts = new Set<string>([REPLI.sort, REPLI.priere, ...domains.flatMap((d) => (d.rendu ? [d.rendu.id] : []))]);
+  const armes = rendus.filter((r) => !desSorts.has(r.id)).map((r): EntreeDeVitrine => ({
+    id: r.id,
+    label: r.label,
+    variantes: [
+      { variante: 'touche', effet: coup(r, r.couleur, 'touche', de, vers, distanceM, null) },
+      { variante: 'manque', effet: coup(r, r.couleur, 'manque', de, vers, distanceM, null) },
+      ...(r.paradeVisuel || r.paradeSon ? [{ variante: 'pare' as const, effet: coup(r, r.couleur, 'pare', de, vers, distanceM, r) }] : []),
+    ],
+  }));
+  const horsDomaine = catalogue(REPLI.sort);
+  const priere = renduDeLaPriere();
+  const sorts: EntreeDeVitrine[] = [
+    ...domains.map((d) => ({ id: d.id, label: d.label, variantes: variantesDuSort(renduDuDomaine(d), de, vers, distanceM) })),
+    { id: horsDomaine.id, label: horsDomaine.label, variantes: variantesDuSort(renduDuDomaine(undefined), de, vers, distanceM) },
+    { id: priere.rendu.id, label: priere.rendu.label, variantes: variantesDuSort(priere, de, vers, distanceM) },
+  ];
+  const sons = sonsDEffet.map((d) => ({ id: d.id, label: d.label, effet: { quoi: 'son' as const, son: son(d.id)! } }));
+  const attaques = Object.fromEntries(siegeEngines().map((t) => {
+    const rendu = catalogue(t.rendu?.id ?? REPLI.ranged);
+    return [t.id, coup(rendu, rendu.couleur, 'touche', de, vers, distanceM, null)];
+  }));
+  return { de, vers, distanceM, armes, sorts, sons, attaques };
 }
