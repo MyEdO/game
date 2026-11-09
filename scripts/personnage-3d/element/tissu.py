@@ -3,7 +3,8 @@ de liaison `squelette` que bâtit `element/construire.py`.
 
 `Base` ouvre la base au repos avec ses zones (un mesh par zone, `extras.zone`) : repères d'os, surfaces porteuses
 (positions, triangles, poids par os), coupes planes des zones, éléments publiés qu'une pièce contourne, transfert des
-silhouettes et des clés `gabarit_*` par liaison de surface, découpe de la pièce par zone. Le reste se compose dans le
+silhouettes et des clés `gabarit_*` (du corps au plus près, des éléments publiés par liaison de surface), découpe de la
+pièce par zone. Le reste se compose dans le
 modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux orienté vers l'extérieur (`Maillage`),
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`).
 """
@@ -148,11 +149,11 @@ class Base:
         return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur)
 
     def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
-        """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` par liaison de
-        surface depuis la copie jointe des zones `zones` qu'elle traverse ; chaque `(masque, zones, publies)` de `masques`
-        les reprend, sur les sommets de son masque, de ses propres zones et des meshes des éléments publiés `publies`
-        (`{id: zones de ses meshes}`) sur lesquels ils reposent, porteurs des mêmes clés : un pan suit le vêtement qu'il
-        couvre, pas le corps dessous. Rend les noms des clés."""
+        """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` depuis la copie
+        jointe des zones `zones` qu'elle traverse, au plus près (`deplacer_au_plus_pres`) ; chaque `(masque, zones,
+        publies)` de `masques` les reprend par liaison de surface, sur les sommets de son masque, de ses propres zones et
+        des meshes des éléments publiés `publies` (`{id: zones de ses meshes}`) sur lesquels ils reposent, porteurs des
+        mêmes clés : un pan suit le vêtement qu'il couvre, pas le corps dessous. Rend les noms des clés."""
         source = self._source(zones, {})
         noms_cles = [k.name for k in source.data.shape_keys.key_blocks if k != source.data.shape_keys.reference_key]
         manquantes = [s for s in self.manifeste['silhouettes'] if s not in noms_cles]
@@ -165,14 +166,15 @@ class Base:
             transferer_les_cles(autre, piece, cles)
             bpy.data.objects.remove(autre, do_unlink=True)
             reprises.append((np.asarray(masque)[:, None], {nom: decalages(piece, nom) for nom in cles}))
-        transferer_les_cles(source, piece, cles)
+        deplacer_au_plus_pres(source, piece, cles)
         bpy.data.objects.remove(source, do_unlink=True)
+        jumeaux = jumeaux_de(piece)
         for nom in cles:
             champ = decalages(piece, nom)
             for masque, champs in reprises:
                 champ = np.where(masque, champs[nom], champ)
-            poser_la_cle(piece, nom, champ)
-        lisser_aux_aretes_fautives(piece, cles, bornes)
+            poser_la_cle(piece, nom, champ[jumeaux])
+        lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux)
         return cles
 
     def _source(self, zones, publies):
@@ -459,6 +461,7 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
             sortes.extend((2, 2))
     obj = maillage_skinne(nom, points + [p - n * epaisseur for p, n in zip(points, normales)], faces, mat, rig,
                           poids + poids)
+    obj.data.attributes.new(JUMEAU, 'INT', 'POINT').data.foreach_set('value', [0] * moitie + [-moitie] * moitie)
     obj.data.materials.append(mat)
     obj.data.materials.append(mat)
     for polygone, sorte in zip(obj.data.polygons, sortes):
@@ -472,6 +475,54 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
     return obj
 
 
+def deplacer_au_plus_pres(source, cible, noms):
+    """Pose sur `cible` chaque shape key `noms` de `source` : le décalage, sous la clé, du point de `source` le plus
+    proche de chaque sommet au repos, interpolé dans son triangle. Une liaison de surface tourne l'écart d'un sommet au
+    corps avec la normale du corps : la couture d'épaule de la robe, à 3 cm au-dessus de l'épaule, rentrait de 2,6 cm
+    sous `carrure_plus` quand le corps dessous bougeait de moins d'1 cm, et passait devant la bandoulière (30 mm,
+    Hampe_Attaque). Sur un élément publié, qui ponte les creux du corps, le point le plus proche saute d'une paroi à
+    l'autre : `transferer_les_cles` y reste (masques de `Base.transferer`)."""
+    Ms, Mc = np.array(source.matrix_world), np.array(cible.matrix_world)
+    source.data.calc_loop_triangles()
+    T = np.array([t.vertices[:] for t in source.data.loop_triangles])
+    Xs = np.array([v.co[:] for v in source.data.vertices]) @ Ms[:3, :3].T + Ms[:3, 3]
+    arbre = BVHTree.FromPolygons([tuple(p) for p in Xs], T.tolist(), all_triangles=True)
+    Xc = np.array([v.co[:] for v in cible.data.vertices]) @ Mc[:3, :3].T + Mc[:3, 3]
+    idx, bary = [], []
+    for p in Xc:
+        loc, _, f, _ = arbre.find_nearest(Vector(p.tolist()))
+        a, b, c = Xs[T[f]]
+        v0, v1, v2 = b - a, c - a, np.array(loc) - a
+        d00, d01, d11, d20, d21 = v0 @ v0, v0 @ v1, v1 @ v1, v2 @ v0, v2 @ v1
+        den = d00 * d11 - d01 * d01
+        bv = (d11 * d20 - d01 * d21) / den
+        bw = (d00 * d21 - d01 * d20) / den
+        idx.append(T[f]); bary.append((1 - bv - bw, bv, bw))
+    idx, bary = np.array(idx), np.array(bary)
+    inv = np.linalg.inv(Mc[:3, :3])
+    for nom in noms:
+        d = decalages(source, nom) @ Ms[:3, :3].T
+        poser_la_cle(cible, nom, (d[idx] * bary[:, :, None]).sum(1) @ inv.T)
+
+
+JUMEAU = 'jumeau'
+"""Attribut de sommet d'une double nappe : l'écart d'indice d'un sommet de la nappe intérieure à son jumeau de la
+nappe extérieure (0 sur celle-ci). Il survit à `joindre`, qui garde l'ordre des sommets de chaque objet ; un sommet sans
+lui (mesh joint d'une autre source) vaut 0, son propre jumeau."""
+
+
+def jumeaux_de(piece):
+    """Par sommet de `piece`, l'indice de son jumeau extérieur, dont la nappe intérieure prend les clés : liées chacune au
+    plus près, les deux nappes d'un bord, à `epaisseur` l'une de l'autre, divergeaient de centimètres là où la surface
+    porteuse se creuse (entrejambe, nuque), et le lissage de leur arête de bord s'étendait à toute la pièce (robe r25 :
+    40 anneaux, 356 nœuds sous `carrure_plus`). L'attribut est retiré : il ne sert qu'au transfert."""
+    attribut = piece.data.attributes[JUMEAU]
+    ecarts = np.zeros(len(piece.data.vertices), dtype=np.int64)
+    attribut.data.foreach_get('value', ecarts)
+    piece.data.attributes.remove(attribut)
+    return np.arange(len(ecarts)) + ecarts
+
+
 def joindre(objets):
     """Un seul objet (matériaux, groupes de sommets et modificateur du premier conservés)."""
     if len(objets) == 1:
@@ -481,16 +532,18 @@ def joindre(objets):
     return objets[0]
 
 
-def lisser_aux_aretes_fautives(piece, cles, bornes, passes_max=400):
+def lisser_aux_aretes_fautives(piece, cles, bornes, jumeaux, passes_max=400):
     """Chaque clé transférée dont une arête sort de `bornes` est lissée (moyenne laplacienne des décalages sur le graphe
     de la pièce) aux seuls nœuds de ces arêtes, puis de leurs anneaux quand une passe ne réduit plus le défaut : un
     sommet qui ponte un creux du corps (entrejambe) ou deux nappes liées à des faces différentes suivent la moyenne de
     leurs voisins au lieu de s'écarter. Une arête que la clé retourne (sens opposé au repos) est fautive quelle que soit
-    sa longueur. Ailleurs la clé reste la liaison de surface."""
+    sa longueur. Ailleurs la clé reste la liaison de surface. Chaque nœud de la nappe intérieure garde, à chaque passe, le
+    décalage de son jumeau extérieur (`jumeaux`, par sommet)."""
     x = np.array([v.co[:] for v in piece.data.vertices])
     _, premier, noeud = np.unique(np.round(x * 1e5).astype(np.int64), axis=0, return_index=True, return_inverse=True)
     noeud = noeud.ravel()
     xn = x[premier]
+    jumeau = noeud[jumeaux[premier]]
     aretes = aretes_des_triangles(piece, noeud)
     voisins = [[] for _ in range(len(xn))]
     for a, b in aretes:
@@ -511,6 +564,7 @@ def lisser_aux_aretes_fautives(piece, cles, bornes, passes_max=400):
             pire = ecart
             dans = np.flatnonzero(region_locale(aretes, fautives, anneaux, len(xn)))
             champ[dans] = 0.5 * champ[dans] + 0.5 * np.array([champ[voisins[i]].mean(axis=0) for i in dans])
+            champ = champ[jumeau]
             passe += 1
         r = rapports(xn, champ, aretes)
         reste = int(((r < bas) | (r > haut) | retournees_par(xn, champ, aretes)).sum())

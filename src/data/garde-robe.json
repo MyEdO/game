@@ -220,6 +220,13 @@
     "categorie": "vetement"
   },
   {
+    "id": "cape",
+    "type": "garde-robe",
+    "label": "Cape",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
     "id": "insigne",
     "type": "garde-robe",
     "label": "Insigne",
@@ -360,6 +367,19 @@
     },
     "pieces": [
       "bandages"
+    ]
+  },
+  {
+    "id": "trapping-cape",
+    "type": "garde-robe",
+    "label": "Cape",
+    "kind": "ensemble",
+    "habille": {
+      "id": "cape",
+      "type": "trapping"
+    },
+    "pieces": [
+      "cape"
     ]
   },
   {

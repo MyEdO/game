@@ -262,7 +262,7 @@ def echarpe(D, b, M, contournees, robe):
 
 # ---------------------------------------------------------------- pan sur l'épaule
 
-def pan(D, b, M, contournees):
+def pan(D, b, M, corps, cape):
     c = D['PAN']
     epaule = np.array(b.tete(c['os_epaule']))
     yc, zc = epaule[1] + c['axe'][1], epaule[2] + c['axe'][2]
@@ -276,7 +276,9 @@ def pan(D, b, M, contournees):
         for a in alphas:
             d2 = np.array([-math.cos(a), math.sin(a)])
             d3 = np.array([0.0, d2[0], d2[1]])
-            h = contournees.exterieur((x, yc, zc), d3, c['portee'], c['jeu_min'])
+            h = max((v for v in (corps.exterieur((x, yc, zc), d3, c['portee'], c['jeu_min']),
+                                 cape.exterieur((x, yc, zc), d3, c['portee'], c['jeu_sur_la_cape'])) if v is not None),
+                    default=None)
             rho.append(rayon_a_l_enveloppe(H, np.array([yc, zc]), d2) + c['jeu'])
             plancher.append(0.0 if h is None else h)
         rho, plancher = np.maximum(rho, plancher), np.array(plancher)
@@ -348,17 +350,23 @@ def construire(D, materiaux, b):
     peau, poil = peau_et_poids[:2], b.matieres_publiees(D['CONTOURNE']['coiffure'], D['MATIERES_DE_LA_COIFFURE'])[:2]
     tete_et_cou = Contournees(D, [peau, poil, zone(b, 'cou')])
     robe = b.matieres_publiees(D['CONTOURNE']['robe'], D['MATIERES_DE_LA_ROBE'])
+    cape = b.matieres_publiees(D['CONTOURNE']['cape'], D['MATIERES_DE_LA_CAPE'])
+    sangle = b.matieres_publiees(D['CONTOURNE']['bandouliere'], D['MATIERES_DE_LA_BANDOULIERE'])
+    dessous = surface_jointe([robe[:2], cape[:2], sangle[:2]]) + (np.concatenate([robe[2], cape[2], sangle[2]]),)
     M = Maillage()
     faces_capuchon = capuchon(D, b, M, tete_et_cou)
     X = np.array(M.sommets)
     avec_capuchon = tete_et_cou.plus([surface_de(X, faces_capuchon)])
-    part_de_la_tete, bas_de_l_echarpe, posees = echarpe(D, b, M, avec_capuchon, Contournees(D, [robe[:2]]))
-    pan(D, b, M, Contournees(D, [zone(b, 'torse')]))
+    part_de_la_tete, bas_de_l_echarpe, posees = echarpe(D, b, M, avec_capuchon, Contournees(D, [dessous[:2]]))
+    pan(D, b, M, Contournees(D, [zone(b, 'torse')]), Contournees(D, [cape[:2]]))
 
     X, orientes, normales = M.orienter()
+    sur_la_sangle = porteur_de(*sangle)['arbre']
+    posees = sorted(set(posees) | {i for i, (p, partie) in enumerate(zip(X, M.parties)) if partie == 'echarpe'
+                                   and sur_la_sangle.find_nearest(Vector(p.tolist()))[3] <= D['ECHARPE']['pose_sur_la_sangle']})
     porteurs = {nom: b.porteur(zs) for nom, zs in D['PORTEUSES'].items()}
     porteurs['capuchon'] = porteur_de(*peau_et_poids)
-    porteurs['pan'] = sur_la_robe = porteur_de(*robe)
+    porteurs['pan'] = sur_la_robe = porteur_de(*dessous)
     reports = {nom: [(b.indice_os[a], b.indice_os[o]) for a, o in r.items()] for nom, r in D['OS_REPORTES'].items()}
     W = np.zeros((len(X), len(b.os)))
     for i, (p, partie) in enumerate(zip(X, M.parties)):
@@ -368,8 +376,8 @@ def construire(D, materiaux, b):
             W[i, a] = 0.0
     voisins = voisinage(orientes, len(X))
     parties = np.array(M.parties)
-    # Le bas de l'écharpe garde ses poids empruntés ; posés sur la robe, le bas et l'anneau suivant prennent ceux de la
-    # robe, tenus à chaque passe : l'écharpe au-dessus s'y raccorde (lissé avec les autres puis remplacé, le bas s'en
+    # Le bas de l'écharpe garde ses poids empruntés ; posés sur la robe ou la cape, le bas et l'anneau suivant prennent
+    # ceux de la plus proche, tenus à chaque passe : l'écharpe au-dessus s'y raccorde (lissé avec les autres puis remplacé, le bas s'en
     # écartait au-dessus de l'épaule droite, arête de 14 mm étirée ×2,1 en Idle_Loop au neutre). Devant, lissé puis
     # remplacé : tenu à chaque passe, l'arête vers l'anneau suivant s'étirait ×3,78 en Sword_Regular_A, contre ×3,29.
     empruntes = W[bas_de_l_echarpe]
@@ -386,6 +394,8 @@ def construire(D, materiaux, b):
     W[posees] = sous_la_robe
     tete_ = b.indice_os['Head']
     for i, f in part_de_la_tete.items():
+        if i in posees:
+            continue
         W[i] *= 1.0 - f
         W[i, tete_] += f
     piece = b.nappe('capuche', X, normales, W, orientes, materiaux['capuche'], D['EPAISSEUR'])
@@ -397,8 +407,11 @@ def construire(D, materiaux, b):
     partie_de = [parties[i] for i in indice_de]
     cles = b.transferer(piece, D['ZONES_DES_CLES'], masques=[
         ([p == 'capuchon' for p in partie_de], D['ZONES_DES_CLES_DU_CAPUCHON'], {}),
-        ([p == 'pan' for p in partie_de], D['ZONES_DES_CLES'], {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']['pan']}),
-        ([i in posees for i in indice_de], D['ZONES_DES_CLES'], {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']['echarpe']}),
+        ([p == 'pan' for p in partie_de], D['ZONES_DES_CLES'],
+         {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']['pan'], D['CONTOURNE']['cape']: D['ZONES_DE_LA_CAPE']}),
+        ([i in posees for i in indice_de], D['ZONES_DES_CLES'],
+         {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']['echarpe'], D['CONTOURNE']['cape']: D['ZONES_DE_LA_CAPE'],
+          D['CONTOURNE']['bandouliere']: D['ZONES_DE_LA_BANDOULIERE']}),
     ])
     tenir_au_corps(b, piece, [k for k in cles if k.startswith('gabarit_')], D['MARGE_DE_SUIVI'])
     return piece

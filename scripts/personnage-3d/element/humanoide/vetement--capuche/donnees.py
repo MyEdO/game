@@ -24,7 +24,8 @@ MANIFESTE = {
 MATERIAUX = {'capuche': ('accent', ((0.6, 0.6, 0.6), 0.0, 0.87))}
 
 # Ce que la capuche contourne : la tête publiée et la coiffure du preset `sorcier` (contrat), leurs matières visibles.
-CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-courte', 'robe': 'humanoide--vetement--robe'}
+CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-courte', 'robe': 'humanoide--vetement--robe',
+             'cape': 'humanoide--vetement--cape', 'bandouliere': 'humanoide--accessoire--bandouliere-a-parchemins'}
 MATIERES_DE_LA_TETE = ['peau', 'cheveux']
 MATIERES_DE_LA_COIFFURE = ['poil']
 # Le pan, le bas de l'écharpe et l'anneau suivant posés sur la robe (`ECHARPE['bas_sur_la_robe']`) en empruntent les
@@ -33,6 +34,20 @@ MATIERES_DE_LA_COIFFURE = ['poil']
 # `traversee`).
 MATIERES_DE_LA_ROBE = ['robe']
 ZONES_DE_LA_ROBE = {'pan': ['torse', 'bras_haut_g', 'bras_haut_d'], 'echarpe': ['torse', 'cou']}
+# Consigne utilisateur (Clément, 2026-11-09, via l'orchestrateur : « J ai l'impression que c'est une cape avec capuche
+# non ? ») : la cape du preset naît sous la capuche. Le bas de l'écharpe et le pan contournent aussi la cape publiée et
+# empruntent, au plus proche de la robe ou d'elle, poids et clés : contournant le seul torse, le pan descendait sous la
+# cape à l'omoplate gauche, et le col de la cape passait devant le bas de l'écharpe à la nuque (rendu de dos, Hampe_Repos_Loop
+# image 20).
+MATIERES_DE_LA_CAPE = ['cape']
+ZONES_DE_LA_CAPE = ['torse']
+# La sangle de la bandoulière publiée passe sous l'écharpe, à l'épaule droite et au pied du cou : l'écharpe la contourne,
+# et chacun de ses sommets à moins de `ECHARPE['pose_sur_la_sangle']` d'elle en emprunte, sans part de `Head`, poids et
+# clés. Liée au corps, l'écharpe y portait jusqu'à 0,22 de `Head` au-dessus d'une sangle à 0,87 de `clavicle_r` : la
+# sangle passait devant elle quand la tête tourne (36 mm en Sword_Dash sous `carrure_plus`, 33 mm en Death01 sous
+# `corpulence`).
+MATIERES_DE_LA_BANDOULIERE = ['sangle']
+ZONES_DE_LA_BANDOULIERE = ['torse']
 BUDGET_TRIANGLES = 2500                 # procédure, section 7 : vêtement par pièce
 EPAISSEUR = 0.004                       # adaptation : drap de laine, double nappe
 
@@ -79,6 +94,8 @@ ECHARPE = {
     'col': (0.30, 0.050, 0.010),        # adaptation
     'passes_du_col': 2,                 # adaptation : passes qui étalent le long du bas l'écart pris sur le col (au saut d'un
                                         # sommet écarté à son voisin qui ne l'est pas, l'arête vers l'anneau 1 s'étire)
+    'pose_sur_la_sangle': 0.03,         # adaptation : la portée de couverture de la garde `traversee` (`PORTEE_DE_COUVERTURE_M`,
+                                        # `hotes/godot/asset/evaluateur/gardes/traversee.ts`)
     'bas_sur_la_robe': 45.0,            # adaptation : azimut (degrés depuis l'avant) au-delà duquel le bas et l'anneau suivant,
                                         # posés sur le col et l'empiècement de la robe, en prennent les poids et les clés : à
                                         # 60°, la robe passait devant eux sous `carrure_plus` (5,3 mm en Hit_Knockback) et, le
@@ -122,6 +139,8 @@ PAN = {
                                           # de la robe passe devant le pan sous `carrure_plus` (Push_Loop, Interact)
     'jeu_min': 0.036,                     # adaptation : distance vraie de la nappe intérieure au corps, au-dessus de l'aisance
                                           # de la robe (col à 26 mm, `vetement--robe/donnees.py`) et de son épaisseur
+    'jeu_sur_la_cape': 0.008,             # HYPOTHÈSE : distance vraie de la nappe intérieure à la cape publiée, celle du
+                                          # bas de l'écharpe au-dessus du col (`ECHARPE['jeu_min']`)
     'portee': 0.40,
     'passes_de_lissage': 2,
 }

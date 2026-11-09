@@ -32,9 +32,10 @@ de bras ni de main qu'il ne faut, car la peau non masquée du coude et du poigne
 le coude) à +0,05 (dessus), et de f = 0,87 à 1,08 au poignet. Illustration : les bandes vont du poignet jusque sous la
 manche ; le coude, couvert par la manche, ne se voit pas."""
 
-RANGS = [0.0, 0.03, 0.08, 0.16, 0.28, 0.42, 0.56, 0.70, 0.82, 0.90, 0.95, 0.98, 1.0]
+RANGS = [0.0, 0.08, 0.16, 0.28, 0.42, 0.56, 0.70, 0.82, 0.90, 0.95, 0.98, 1.0]
 """Position de chaque anneau entre le bout du coude (0) et celui du poignet (1), par colonne ; serrés aux bouts, où le
-bras plie (HYPOTHÈSE de maillage)."""
+bras plie (HYPOTHÈSE de maillage). Au coude, un anneau à 0,03, sous le pli, laissait l'arête de 6 mm qui le relie au bout
+s'écraser à 0,007 de sa longueur en flexion (Farm_PlantSeed sous `corpulence`, Sword_Block sous `carrure_plus`)."""
 
 AISANCE = 0.003
 """HYPOTHÈSE : nappe extérieure à 3 mm de l'enveloppe de la coupe du bras ; la manche de dessous de la robe publiée, la plus

@@ -1,0 +1,40 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "bandouliere-a-parchemins"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "sangle",
+      "palette": "vet2"
+    },
+    {
+      "nom": "parchemin",
+      "palette": "vet2"
+    },
+    {
+      "nom": "fiole",
+      "palette": "accent"
+    },
+    {
+      "nom": "bouchon",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "b9dce8b19955acb91e480698764e73f610319f180895ff486742f81297fcc006",
+    "octets": 313608
+  }
+}

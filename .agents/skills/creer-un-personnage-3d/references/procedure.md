@@ -226,9 +226,11 @@ Le kit : `element/tissu.py` pour une pièce skinnée (`Base` : repères d'os, su
 clés. Ces requêtes placent la géométrie ; elles ne valident rien. Dériver les placements des os et surfaces réelles,
 sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repos, puis ceux des chaînes requises. Un
 élément skinné reçoit les silhouettes déclarées ET toutes les clés `gabarit_*` de la base, celles-ci non déclarées au
-manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones que la pièce traverse ; une pièce longue
+manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones que la pièce traverse, au point du corps
+le plus proche (une liaison de surface tourne l'écart au corps avec sa normale) ; une pièce longue
 dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`. Une arête
-que la clé retourne est lissée comme une arête hors bornes. Une pièce posée sur un autre vêtement (pan de capuche sur la
+que la clé retourne est lissée comme une arête hors bornes ; la nappe intérieure d'une double nappe porte les clés de
+sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce). Une pièce posée sur un autre vêtement (pan de capuche sur la
 robe) en emprunte les poids (`Base.matieres_publiees`) et les clés (un `masques` de `Base.transferer`, ses zones et les
 meshes publiés qu'il couvre) : transférées du seul corps, deux couches divergent sous silhouette et se traversent. Le
 vêtement de dessous s'importe donc avant, et l'élément qui le recouvre le nomme dans son `CONTOURNE`. De même, une
