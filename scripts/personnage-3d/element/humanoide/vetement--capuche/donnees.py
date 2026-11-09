@@ -68,6 +68,10 @@ ECHARPE = {
     'segments': 20,
     'couture_tolerance': 1e-4,          # m : un sommet du cou à moins de cette distance du torse est sur la couture
     'bas': (0.012, 0.016),              # adaptation : (au-dessus du torse, au-delà de la couture) en m, par-dessus un col de tenue
+    # Le bas passe par-dessus le col de la robe qu'il touche (portée au-delà du rayon du bas, jeu de la nappe intérieure à
+    # la robe) : le col, arrêté au bas du cou à 26 mm d'aisance (`vetement--robe/donnees.py`), entre sinon entre le bas
+    # et l'anneau suivant, dans le dos.
+    'col': (0.040, 0.010),              # adaptation
     'os_hauteur': 'neck_01',
     # (hauteur depuis la tête de `neck_01`, abaissement devant, aisance) en m, du bas au haut. L'avant du dernier anneau
     # reste sous la barbe (son bas est 0,045 m au-dessus de la tête de `neck_01`, sonde de la coiffure publiée).

@@ -197,9 +197,10 @@ def couture_du_cou(D, b):
     return np.array([q for q in cou if arbre.find_nearest(Vector(q.tolist()))[3] < D['ECHARPE']['couture_tolerance']])
 
 
-def echarpe(D, b, M, contournees):
-    """Le bas de l'écharpe suit la couture du cou, posé sur le torse ; chaque anneau au-dessus, à sa hauteur depuis
-    l'os de hauteur (l'avant abaissé de sa pente), est visé horizontalement depuis l'axe de la couture."""
+def echarpe(D, b, M, contournees, robe):
+    """Le bas de l'écharpe suit la couture du cou, posé sur le torse, par-dessus la robe qu'il touche ; chaque anneau
+    au-dessus, à sa hauteur depuis l'os de hauteur (l'avant abaissé de sa pente), est visé horizontalement depuis l'axe
+    de la couture."""
     c = D['ECHARPE']
     couture = couture_du_cou(D, b)
     centre = couture[:, :2].mean(0)
@@ -212,6 +213,7 @@ def echarpe(D, b, M, contournees):
     # rayon de ses sommets voisins en angle, posé sur le torse.
     torse = Contournees(D, [zone(b, 'torse')])
     dz, ecart = c['bas']
+    portee_au_col, jeu_au_col = c['col']
     voisinage_angulaire = 1.5 * math.pi / s
     r0, hauteurs, rangs = [], [], [[]]
     for t, d in zip(thetas, dirs):
@@ -221,9 +223,11 @@ def echarpe(D, b, M, contournees):
         loc = torse.arbre.ray_cast(Vector((xy[0], xy[1], float(couture[:, 2].max()) + 0.2)), Vector((0.0, 0.0, -1.0)))[0]
         if loc is None:
             raise ValueError(f'écharpe : pas de torse sous {xy.round(3).tolist()}')
+        O = np.array([centre[0], centre[1], loc.z + dz])
+        sur_le_col = robe.exterieur(O, d, r + portee_au_col, jeu_au_col)
         r0.append(r)
-        hauteurs.append(loc.z + dz)
-        rangs[0].append(np.array([xy[0], xy[1], loc.z + dz]))
+        hauteurs.append(O[2])
+        rangs[0].append(O + max(r, sur_le_col or 0.0) * d)
     r0, hauteurs = np.array(r0), np.array(hauteurs)
     z_os = float(b.tete(c['os_hauteur'])[2])
     for k, (h, pente, aisance) in enumerate(c['anneaux']):
@@ -336,7 +340,7 @@ def construire(D, materiaux, b):
     faces_capuchon = capuchon(D, b, M, tete_et_cou)
     X = np.array(M.sommets)
     avec_capuchon = tete_et_cou.plus([surface_de(X, faces_capuchon)])
-    part_de_la_tete, bas_de_l_echarpe = echarpe(D, b, M, avec_capuchon)
+    part_de_la_tete, bas_de_l_echarpe = echarpe(D, b, M, avec_capuchon, Contournees(D, [robe[:2]]))
     pan(D, b, M, Contournees(D, [zone(b, 'torse')]))
 
     X, orientes, normales = M.orienter()
