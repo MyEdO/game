@@ -99,6 +99,9 @@ var _regard := "tactique"
 var _monde_pose: Variant = null
 ## Par id de navire, le contour de sa coque à sa flottaison dans le plan du volume (`border_la_mer`).
 var _coques := {}
+## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
+## occupant (`poser_les_stations`).
+var _stations := {}
 
 
 func _ready() -> void:
@@ -387,9 +390,21 @@ func sol(case: Vector2i, z := 0) -> float:
 	return _sols[z][case.y][case.x]
 
 
-## Le centre du sol de la case `case` de la couche `z`.
+## Où se tient l'occupant de la case `case` de la couche `z`, sur son sol : à sa station si le modèle d'un navire la
+## rogne (`poser_les_stations`), en son centre sinon.
 func lieu(case: Vector2i, z := 0) -> Vector3:
-	return MiseEnPage.centre_de_case(case, sol(case, z))
+	var station: Variant = _stations.get(Vector3i(case.x, case.y, z))
+	if station == null:
+		return MiseEnPage.centre_de_case(case, sol(case, z))
+	return MiseEnPage.point_de_la_carte(station.x, station.y, sol(case, z))
+
+
+## Les stations des navires servis (`navires`, `vue.corps.navires`, chacun ses `stations`), à la place des précédentes.
+func poser_les_stations(navires: Dictionary) -> void:
+	_stations = {}
+	for id: String in navires:
+		for s: Dictionary in navires[id].stations:
+			_stations[Vector3i(int(s.x), int(s.y), int(s.z))] = Vector2(s.point.x, s.point.y)
 
 
 ## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.

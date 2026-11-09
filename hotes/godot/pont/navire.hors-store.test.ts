@@ -44,6 +44,15 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     expect(projection.exploration!.entites.liste.map((e) => e.id)).not.toContain('caraque');
   });
 
+  it('l’occupant d’une case que le modèle rogne se tient au centre de son emprise libre, dans sa case (#3767)', () => {
+    const { stations } = vueDe(appel('vue')).corps.navires.caraque;
+    expect(stations).toHaveLength(Object.keys((COMMITES.manifestes['vehicule--caraque'] as { cases: object }).cases).length);
+    expect(stations.filter(({ x, y, point }) => Math.abs(point.x - x) > 0.5 || Math.abs(point.y - y) > 0.5)).toEqual([]);
+    // la case du grand mât, (9, 2) du pont supérieur, libre devant le mât sur [9 ; 9,375] × [2 ; 3] : au cap E, la case
+    // (10, 4) de la scène, son occupant à l'est de son centre, vers la proue
+    expect(stations).toContainEqual({ x: 10, y: 4, z: 2, point: { x: 10.3125, y: 4 } });
+  });
+
   it('le plateau coupe le navire sous le pont le plus bas que le regard retire au-dessus du groupe', () => {
     const coupe = (regard: string) => vueDe(appel('regarder', { regard })).plateau!.coupesDesNavires;
     expect([coupe('tactique'), coupe('plateau'), coupe('immersion')]).toEqual([{}, { caraque: 5.6 }, {}]);
@@ -87,6 +96,13 @@ describe('le modèle commité de la caraque, sur ses ponts (#3686)', () => {
 
   it('chaque pièce montée sur un pont découvert pose son affût sur une case du plan, à sa hauteur', () => {
     for (const p of Object.values(manifeste.postes).flat()) expect(Math.min(...cases.map((c) => ecart(p, c))), JSON.stringify(p)).toBeLessThanOrEqual(TOLERANCE);
+  });
+
+  it('l’emprise libre de chaque case des ponts que le modèle rogne y tient un occupant debout (#3767)', () => {
+    /** La carrure d'un adulte, 0,5 m, en cases : le plus étroit où un pion se tient (#3767). */
+    const CARRURE = 0.25;
+    const { cases: emprises } = manifeste as unknown as { cases: Record<string, number[]> };
+    expect(Object.entries(emprises).filter(([, [x0, y0, x1, y1]]) => Math.min(x1 - x0, y1 - y0) < CARRURE)).toEqual([]);
   });
 
   it('le nid-de-pie coiffe le grand mât, au milieu de sa case', () => {

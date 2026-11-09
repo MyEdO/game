@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, it, expect } from 'vitest';
 import { garanti } from '../lib/garanti';
 import { buildScene } from './mapSpec';
@@ -102,7 +103,7 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     }
   });
 
-  it('chaque meuble couvre des cases des ponts de la source, dans la coque', () => {
+  it('chaque meuble couvre des cases des ponts de la source', () => {
     const emprise = new Set(grilleDesPonts(cartes).cases.map(k));
     expect(meubles.flatMap((e) => casesDu(e).filter((c) => !emprise.has(k(c))).map((c) => `${e.id} ${k(c)}`))).toEqual([]);
   });
@@ -114,6 +115,30 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     const c = garanti(emprisePlanTournee(garanti(findPropById(e.ref), e.id, 'décor'), e.facing ?? 'S', () => true), e.id, 'corps');
     return { x0: a.x + c.x0 / mpt, x1: a.x + c.x1 / mpt, y0: a.y + c.y0 / mpt, y1: a.y + c.y1 / mpt };
   };
+
+  /** L'emprise libre, en cases centrées sur l'entier, de chaque case des ponts que rogne le modèle commité de la caraque
+   *  (`cases` de son manifeste, #3767) ; la case entière sinon. */
+  const emprises = (JSON.parse(readFileSync(new URL('../../hotes/godot/projet/modeles/vehicule--caraque.manifeste.json', import.meta.url), 'utf8')) as { cases: Record<string, number[]> }).cases;
+  const libre = (x: number, y: number, z: number) => {
+    const [x0, y0, x1, y1] = emprises[`${x},${y},${z}`] ?? [x, y, x + 1, y + 1];
+    return { x0: x0 - 0.5, y0: y0 - 0.5, x1: x1 - 0.5, y1: y1 - 0.5 };
+  };
+  /** Une épaisseur de cloison (0,1 m), en cases ; le pas des points sondés dans un corps. */
+  const [TOLERANCE, PAS] = [0.05, 0.025];
+
+  it('chaque meuble tient dans l’emprise libre que le modèle laisse à ses cases, à une épaisseur de cloison près (#3767)', () => {
+    const hors = meubles.flatMap((e) => {
+      const c = corpsDu(e);
+      const le = (a: number, b: number) => Array.from({ length: Math.floor((b - a - 2 * TOLERANCE) / PAS) + 1 }, (_, i) => a + TOLERANCE + i * PAS);
+      const dehors = le(c.x0, c.x1).flatMap((x) => le(c.y0, c.y1).map((y) => ({ x, y }))).filter(({ x, y }) =>
+        ![Math.floor(x + 0.5), Math.ceil(x - 0.5)].some((cx) => [Math.floor(y + 0.5), Math.ceil(y - 0.5)].some((cy) => {
+          const r = libre(cx, cy, e.z ?? 0);
+          return r.x0 - 1e-9 <= x && x <= r.x1 + 1e-9 && r.y0 - 1e-9 <= y && y <= r.y1 + 1e-9;
+        })));
+      return dehors.length ? [`${e.id} (${dehors.length} points, dont ${dehors[0].x.toFixed(3)},${dehors[0].y.toFixed(3)})`] : [];
+    });
+    expect(hors).toEqual([]);
+  });
 
   it('deux meubles ne s’interpénètrent pas, sauf l’objet et ce qui le porte', () => {
     const heurts = meubles.flatMap((a, i) => meubles.slice(i + 1).filter((b) => {

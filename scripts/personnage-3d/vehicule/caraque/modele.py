@@ -641,8 +641,52 @@ def amenager(D, P, C, pieces, coque, interieurs):
                 poutre(coque, (-wt - 0.02, yy, zb - eb / 2), (wt + 0.02, yy, zb - eb / 2), lb, eb, (0, 0, 1), "bois")
 
 
+def plus_grand_rectangle(libre):
+    """Le plus grand rectangle de cellules vraies de la grille `libre` (rangs de booléens) : (i0, j0, i1, j1), les fins
+    exclues."""
+    colonnes, meilleur, aire = [0] * len(libre[0]), (0, 0, 0, 0), 0
+    for i, rang in enumerate(libre):
+        colonnes = [c + 1 if v else 0 for c, v in zip(colonnes, rang)]
+        pile = []
+        for j, c in enumerate(colonnes + [0]):
+            debut = j
+            while pile and pile[-1][1] >= c:
+                debut, ck = pile.pop()
+                if ck * (j - debut) > aire:
+                    aire, meilleur = ck * (j - debut), (i - ck + 1, debut, i + 1, j)
+            pile.append((debut, c))
+    return meilleur
+
+
+def emprises(D, P, C):
+    """L'emprise libre de chaque case que la scène rogne au-delà de l'écart toléré, en cases du plan : {"x,y,z": [x0, y0,
+    x1, y1]}, la case (x, y) couvrant [x, x+1] × [y, y+1]. Une sonde de la grille de la case (`EMPRISE`) part d'une
+    stature au-dessus de sa hauteur : elle est libre quand elle n'est pas dans la matière (ce qu'elle touche d'abord de part
+    et d'autre en travers ne lui tourne pas le dos) et que, vers le bas, elle touche d'abord un plancher à cette hauteur. L'emprise est
+    le plus grand rectangle de sondes libres."""
+    E = D["EMPRISE"]
+    graphe = bpy.context.evaluated_depsgraph_get()
+    n = round(C.case / E["pas"])
+    bas, cote = Vector((0, 0, -1)), Vector((1, 0, 0))
+
+    def libre(px, py, h):
+        o = Vector((C.x_du_plan(py), C.y_du_plan(px), h + E["stature"]))
+        if all(ok and normale.dot(d) > 0 for d in (cote, -cote) for ok, _, normale, _, _, _ in [bpy.context.scene.ray_cast(graphe, o, d)]):
+            return False
+        ok, lieu, normale, _, _, _ = bpy.context.scene.ray_cast(graphe, o, bas, distance=E["stature"] + E["ecart"])
+        return ok and normale.z > 0.5 and abs(lieu.z - h) <= E["ecart"]
+
+    sortie = {}
+    for (cx, cy, z), g in sorted(P["cases"].items()):
+        h = P["hauteurs"][g]
+        i0, j0, i1, j1 = plus_grand_rectangle([[libre(cx + (i + 0.5) / n, cy + (j + 0.5) / n, h) for j in range(n)] for i in range(n)])
+        if max(i0, j0, n - i1, n - j1) * E["pas"] > E["ecart"] + 1e-9:
+            sortie[f"{cx},{cy},{z}"] = [round(v, 3) for v in (cx + i0 / n, cy + j0 / n, cx + i1 / n, cy + j1 / n)]
+    return sortie
+
+
 def construire(D, P):
-    """Bâtit la caraque sur ses ponts `P` (`plan_de_jeu.py`) ; rend les `postes`, `selon` et `ancrages` de son manifeste,
+    """Bâtit la caraque sur ses ponts `P` (`plan_de_jeu.py`) ; rend les `postes`, `selon`, `ancrages` et `cases` de son manifeste,
     en mètres glTF."""
     tous = list(habillage.materiaux(D["MATERIAUX"]).values())
     C = Coque(D, P)
@@ -946,22 +990,22 @@ def construire(D, P):
         poutre(coque, (0, y(fa), za), (0, y(fb_), zb), CO["etai"], CO["etai"], (1, 0, 0), "cordage")
 
     # pavillon de poupe sur sa hampe penchée vers l'arrière, flamme en tête du grand mât (toile, rayure)
-    P = D["PAVILLON"]
-    (fh, zh), z_tete, recul = P["hampe"]
+    PV = D["PAVILLON"]
+    (fh, zh), z_tete, recul = PV["hampe"]
     pied_h = Vector((0, y(fh), zh))
     tete_h = Vector((0, y(fh) + recul, z_tete))
     espar(coque, pied_h, tete_h, 0.07, 0.05, 6, "bois")
-    lt, ht = P["toile"]
-    bornes = carre_de_blason(lt, ht, P["blason"], 0.5)
+    lt, ht = PV["toile"]
+    bornes = carre_de_blason(lt, ht, PV["blason"], 0.5)
     ss = sorted({i / 6 for i in range(7)} | set(bornes[0]))
     rangs, uvs = [], []
     for t in sorted({j / 4 for j in range(5)} | set(bornes[1])):
         base = tete_h + (pied_h - tete_h).normalized() * (0.1 + ht * t)
         rangs.append([(0.25 * math.sin(math.pi * 1.6 * s_) * s_, base.y + lt * s_, base.z - 0.05 * s_) for s_ in ss])
         uvs.append([uv_de_blason(s_, t, bornes) for s_ in ss])
-    nappe(coque, rangs, None, ["rayure" if (a + b) / 2 < P["guindant"] else "toile" for a, b in zip(ss, ss[1:])], uvs)
+    nappe(coque, rangs, None, ["rayure" if (a + b) / 2 < PV["guindant"] else "toile" for a, b in zip(ss, ss[1:])], uvs)
     m_gm, (_, ym_gm, _) = noeuds["grand_mat"]
-    zf, lf, hf = P["flamme"]
+    zf, lf, hf = PV["flamme"]
     nappe(m_gm, [[(0.3 * math.sin(math.pi * 1.4 * i / 6) * i / 6, ym_gm + lf * i / 6, zf - hf * 0.5 * (i / 6)) for i in range(7)],
                  [(0.3 * math.sin(math.pi * 1.4 * i / 6) * i / 6, ym_gm + lf * i / 6, zf - hf + hf * 0.5 * (i / 6)) for i in range(7)]],
           None, ["rayure", "toile", "rayure", "toile", "rayure", "toile"])
@@ -985,6 +1029,7 @@ def construire(D, P):
     for nom in ("beaupre", "misaine", "grand_mat", "grand_mat_arriere", "artimon"):
         mm, pied = noeuds[nom]
         objet(nom, mm, pied, 35)
+    sortie["cases"] = emprises(D, P, C)
     return sortie
 
 
