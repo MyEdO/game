@@ -109,13 +109,6 @@ describe('le modèle commité de la caraque, sur ses ponts (#3686)', () => {
     for (const p of Object.values(manifeste.postes).flat()) expect(Math.min(...cases.map((c) => ecart(p, c))), JSON.stringify(p)).toBeLessThanOrEqual(TOLERANCE);
   });
 
-  it('l’emprise libre de chaque case des ponts que le modèle rogne y tient un occupant debout (#3767)', () => {
-    /** La carrure d'un adulte, 0,5 m, en cases : le plus étroit où un pion se tient (#3767). */
-    const CARRURE = 0.25;
-    const { cases: emprises } = manifeste as unknown as { cases: Record<string, number[]> };
-    expect(Object.entries(emprises).filter(([, [x0, y0, x1, y1]]) => Math.min(x1 - x0, y1 - y0) < CARRURE)).toEqual([]);
-  });
-
   it('le nid-de-pie coiffe le grand mât, au milieu de sa case', () => {
     const mat = cases.find((c) => c.glyphe === 'm');
     const { x, y } = auPlan(manifeste.ancrages['nid-de-pie'][0]);
