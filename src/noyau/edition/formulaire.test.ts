@@ -58,7 +58,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     for (const liste of champs.slice(1)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
   });
 
-  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, le reste en JSON', () => {
+  it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {
     const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
     const champs = formulaireDe('zone', z);
     const competence = champ(champs, z, 'crossTest', 'skill', 'id');
