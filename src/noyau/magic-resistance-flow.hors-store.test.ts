@@ -46,7 +46,7 @@ const missileSpell = (): never =>
 /** Sort de SOUTIEN : État Aveugle dont la magnitude s'échelonne sur le DR (1 pion / 2 DR). */
 const stateSpell = (): never =>
   ({
-    id: 'ombre-test', label: 'Ombre', type: 'Magie des Arcanes', subType: null, domainId: null, family: 'arcane',
+    id: 'ombre-test', label: 'Ombre', type: 'Magie des Arcanes', subType: null, family: 'arcane',
     cn: 0, range: { kind: 'distance', value: 20, unit: 'm' }, target: { kind: 'count', n: 1 },
     duration: { kind: 'rounds', value: 3 }, desc: '',
     effects: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'aveugle', value: 1, valuePerSL: { every: 2, amount: 1 } }] } }] },

@@ -66,6 +66,6 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
     const ctx = castContextMods(banc.getState(), M as Combatant, M as Combatant, spell);
     expect(ctx.env).toBe(10);
     expect(ctx.total).toBe(ctx.ward + ctx.domain + ctx.env);
-    expect(ctx.mods).toContainEqual(expect.objectContaining({ value: ctx.env, ref: { category: 'domains', id: spell.domainId } }));
+    expect(ctx.mods).toContainEqual(expect.objectContaining({ value: ctx.env, ref: { category: 'domains', id: spell.domainId?.id } }));
   });
 });
