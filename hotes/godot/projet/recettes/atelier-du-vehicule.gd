@@ -1,53 +1,26 @@
 extends SceneTree
 
-## Le véhicule dans l'atelier (#2987, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : l'atelier ouvert sur un pont
-## figé (`PontFige`, le véhicule figé par la sonde, `hotes/godot/recettes/vehicule.ts`), qui sert le listage et les GLB du
-## projet et répond à chaque entrée de `vehicule` que la sonde a figée. La caraque choisie à côté des bases se pose au sol,
-## cadrée à sa taille ; un canon choisi à une place de tribord, le Sabord installé, la Figure de proue installée, le Sabord
-## retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie l'entrée attendue, et son montage
-## (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à sa position, tournée vers son bord,
-## chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud `montre` et cachant son nœud `cache`, les
-## nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible, chaque place de la réponse offerte à l'onglet
-## Équipement sur la pièce qui y est montée, la palette et l'emblème sur ses surfaces.
+## Le véhicule dans l'atelier (#2987, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : l'atelier ouvert sur un
+## pont figé (`PontFige`, `pont_fige.gd`, sur le véhicule figé par la sonde, `hotes/godot/recettes/vehicule.ts`), qui
+## sert le listage et les GLB du projet et répond à chaque entrée de `vehicule` que la sonde a figée. La caraque choisie
+## à côté des bases se pose au sol, cadrée à sa taille ; un canon choisi à une place de tribord, le Sabord installé, la
+## Figure de proue installée, le Sabord retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie
+## l'entrée attendue, et son montage (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à
+## sa position, tournée vers son bord, chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud
+## `montre` et cachant son nœud `cache`, les nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible,
+## chaque place de la réponse offerte à l'onglet Équipement sur la pièce qui y est montée, la palette et l'emblème sur
+## ses surfaces. La caraque n'attaque pas ; l'onglet Effets offre un bouton par variante, par zone, par lumière et par
+## son de la vitrine (#3777, #3783, `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot
+## connaît ; le coup d'un canon y part de l'auteur, le souffle de feu pose sa nappe sur chaque case, la flamme son foyer
+## sur la cible ; le trébuchet choisi attaque : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
 ## La plus petite échelle d'orbite qui cadre une coque d'une trentaine de mètres, la caméra de la scène cadrant un corps.
 const CADRE_D_UNE_COQUE := 5.0
+## Les secondes au bout desquelles les éclats des effets joués sont éteints et retirés, le clip de tir rendu au repos.
+const ECLATS_ETEINTS_S := 4.0
 var _fautes: Array[String] = []
-
-
-## Le pont de l'atelier figé : `catalogues` et `modeles` rendent leur réponse figée, `vehicule` celle de son entrée,
-## `modeles/` le listage figé et `modeles/<fichier>` le fichier du projet ; il garde les entrées de `vehicule` reçues et
-## le dernier écran publié.
-class PontFige extends PontDuNoyau:
-	var fige: Dictionary
-	var entrees: Array[String] = []
-	var ecran: Dictionary = {}
-
-	func _init(lu: Dictionary) -> void:
-		fige = lu
-
-	func rejoindre(_au_refus: Callable, _a_la_panne: Callable) -> bool:
-		return true
-
-	func appeler(methode: String, entree: Variant = null) -> Dictionary:
-		if methode in ["catalogues", "modeles"]:
-			return fige[methode]
-		var cle := JSON.stringify(entree)
-		entrees.append(cle)
-		return fige.vehicule.get(cle, {ok = false, erreur = {categorie = "validation", message = "entrée non figée : %s" % cle}})
-
-	func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
-		if relative == "modeles/listage.json":
-			return JSON.stringify(fige.listage).to_utf8_buffer()
-		var octets := FileAccess.get_file_as_bytes("res://%s" % relative)
-		if octets.is_empty():
-			recueil.append("fichier absent : %s" % relative)
-		return octets
-
-	func publier_l_ecran(publie: Dictionary) -> void:
-		ecran = publie
 
 
 func _initialize() -> void:
@@ -61,13 +34,7 @@ func _recetter() -> void:
 		push_error("[atelier-du-vehicule] %s : aucun véhicule figé" % FIGE)
 		quit(2)
 		return
-	var ancien := root.get_node_or_null("Pont")
-	if ancien != null:
-		root.remove_child(ancien)
-		ancien.free()
-	var pont := PontFige.new(lu)
-	pont.name = "Pont"
-	root.add_child(pont)
+	var pont := PontFige.poser(self, lu)
 	var atelier: Node = load("res://scenes/Atelier.tscn").instantiate()
 	root.add_child(atelier)
 	await _images(2)
@@ -91,10 +58,96 @@ func _recetter() -> void:
 	await _etape(atelier, pont, cles, 5, "couleur posée")
 	_choisir(atelier, "vehicule/embleme", "taureau-rouge")
 	await _etape(atelier, pont, cles, 6, "emblème posé")
+	await _vitrine(atelier, pont, cles, lu)
+	atelier.queue_free()
+	await create_timer(Foyer.SON_LIBERE_S).timeout
 	for faute in _fautes:
 		push_error("[atelier-du-vehicule] " + faute)
 	print("[atelier-du-vehicule] %d entrées de `vehicule`, erreurs=%d" % [pont.entrees.size(), _fautes.size()])
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## L'onglet Effets sur la vitrine figée `lu.vitrine` : la caraque sans attaque, chaque effet et chaque lumière connus de
+## Godot et offerts par leur bouton, le coup d'un canon joué, le souffle de feu qui pose sa nappe sur chaque case de sa
+## zone, la flamme qui pose un seul foyer sur la cible, puis le trébuchet choisi qui attaque.
+func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> void:
+	var vitrine: Dictionary = lu.vitrine
+	var attaquer := _controle_par_nom(atelier, "Attaquer") as Button
+	_verifier(attaquer.disabled, "la caraque n'attaque pas, « Attaquer » doit être grisé")
+	var effets: Array = vitrine.attaques.values()
+	var cles_des_boutons: Array[String] = []
+	for famille in [vitrine.armes, vitrine.sorts]:
+		for entree in famille:
+			for variante in entree.variantes:
+				effets.append(variante.effet)
+				cles_des_boutons.append("effet/%s/%s" % [entree.id, variante.variante])
+	for famille in [["manoeuvre", vitrine.manoeuvres], ["souffle", vitrine.souffles], ["son", vitrine.sons]]:
+		for entree in famille[1]:
+			effets.append(entree.effet)
+			cles_des_boutons.append("%s/%s" % [famille[0], entree.id])
+	for effet in effets:
+		_connu(effet)
+	for lumiere in vitrine.lumieres:
+		cles_des_boutons.append("lumiere/%s" % lumiere.id)
+		var source: Dictionary = lumiere.source
+		_verifier(source.visuel == null or Foyer.FLAMMES.has(source.visuel), "visuel de lumière inconnu de Godot : %s" % source.visuel)
+		if source.son != null:
+			_connu({quoi = "son", son = source.son})
+	for cle in cles_des_boutons:
+		_controle(atelier, cle)
+	(_controle_par_nom(atelier, "OngletEffets") as Button).pressed.emit()
+	(_controle(atelier, "effet/canon/touche") as Button).pressed.emit()
+	var noeud_des_effets := atelier.get_node("Effets")
+	_verifier(noeud_des_effets.get_node_or_null("eclair-de-bouche") != null and noeud_des_effets.get_node_or_null("boulet") != null, "le canon de la vitrine : ni éclair de bouche ni boulet (%s)" % [noeud_des_effets.get_children().map(func(n: Node) -> String: return n.name)])
+	await _images(2)
+	_verifier((atelier.get_node("Cible") as Node3D).visible, "la cible de la vitrine cachée sur l'onglet Effets")
+	var souffle: Dictionary = vitrine.souffles.filter(func(s: Dictionary) -> bool: return s.id == "feu")[0].effet
+	(_controle(atelier, "souffle/feu") as Button).pressed.emit()
+	await create_timer(souffle.trajet.dureeS + 0.2).timeout
+	var nappes := noeud_des_effets.get_children().filter(func(n: Node) -> bool: return n.name.begins_with("nappe-de-flammes"))
+	_verifier(nappes.size() == souffle.cases.size(), "le souffle de feu de la vitrine : %d nappes de flammes, une par case attendue" % nappes.size())
+	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
+	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
+	var foyers := atelier.get_node("Cible").get_children().filter(func(n: Node) -> bool: return n is Foyer)
+	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible")
+	var trebuchet := _bouton(atelier, lu.modeles.libelles[lu.modeles.vehicules["trebuchet-ade2"]])
+	_verifier(trebuchet != null, "le trébuchet a sa bascule à côté des bases")
+	if trebuchet == null:
+		return
+	trebuchet.pressed.emit()
+	await _etape(atelier, pont, cles, 7, "trébuchet choisi")
+	_verifier(not attaquer.disabled, "le trébuchet posé attaque, « Attaquer » doit être actif")
+	attaquer.pressed.emit()
+	await _images(2)
+	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
+	_verifier(montage.lecteur != null and montage.lecteur.current_animation == montage.clips.get("ranged"), "le trébuchet ne joue pas son clip de tir")
+	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
+	await create_timer(ECLATS_ETEINTS_S).timeout
+
+
+## Chaque phase de l'effet `effet` d'un visuel que `Effets.GERBES` dessine, son trajet d'un projectile que
+## `Effets.PROJECTILES` forme, et chaque son de fichiers posés sous `res://sons/`.
+func _connu(effet: Dictionary) -> void:
+	var sons: Array = []
+	if effet.quoi == "son":
+		sons.append(effet.son)
+	for cle in ["depart", "arrivee", "nappe"]:
+		var phase: Variant = effet.get(cle)
+		if phase == null:
+			continue
+		_verifier(phase.visuel == null or Effets.GERBES.has(phase.visuel), "visuel inconnu de Godot : %s" % phase.visuel)
+		if phase.son != null:
+			sons.append(phase.son)
+	var trajet: Variant = effet.get("trajet")
+	_verifier(trajet == null or Effets.PROJECTILES.has(trajet.projectile), "projectile inconnu de Godot : %s" % [null if trajet == null else trajet.projectile])
+	for son in sons:
+		for fichier in son.fichiers:
+			_verifier(FileAccess.file_exists("res://sons/%s" % fichier), "son %s : res://sons/%s absent" % [son.id, fichier])
+
+
+## Le contrôle nommé `nom` sous `atelier`.
+func _controle_par_nom(atelier: Node, nom: String) -> Control:
+	return atelier.get_node("Interface").find_child(nom, true, false) as Control
 
 
 func _images(n: int) -> void:

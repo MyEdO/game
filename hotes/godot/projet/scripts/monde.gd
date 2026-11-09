@@ -56,6 +56,7 @@ const KIT := "res://kit/kit.glb"
 
 @onready var _volume: Node3D = $Volume
 @onready var _maillage: MeshInstance3D = $Volume/Maillage
+@onready var _ombre: MeshInstance3D = $Volume/Ombre
 @onready var _forme: CollisionShape3D = $Volume/Corps/Forme
 @onready var _toits: Node3D = $Volume/Toits
 @onready var _couronnes: Node3D = $Volume/Couronnes
@@ -77,9 +78,7 @@ var _sols: Dictionary = {}
 var _lacet := 0.0
 ## Les arêtes posées (`poser_les_aretes`).
 var _aretes_posees: Array = []
-## Les clés des couronnes abattues, et les crans de caméra sous lesquels tombe chaque arête dégagée, par clé
-## (`cacher_le_bati`).
-var _couronnes_abattues: Array = []
+## Les crans de caméra sous lesquels tombe chaque arête dégagée, par clé (`cacher_le_bati`).
 var _aretes_degagees: Dictionary = {}
 ## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
 var _matieres := {}
@@ -99,6 +98,9 @@ var _regard := "tactique"
 var _monde_pose: Variant = null
 ## Par id de navire, le contour de sa coque à sa flottaison dans le plan du volume (`border_la_mer`).
 var _coques := {}
+## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
+## occupant (`poser_les_stations`).
+var _stations := {}
 
 
 func _ready() -> void:
@@ -111,17 +113,18 @@ func _ready() -> void:
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
 ## monde : son maillage, une surface par matière (sol, relief, décor), texturée ou colorée par sommet (`_matiere`),
-## rendu des deux côtés hors des surfaces d'un navire, la mer de chacun bordée par sa coque (`_maillage_de`), en forme
-## hors de ces mers, que le rayon du pointeur touche des deux côtés, le sol de chaque case de chaque couche, et la caméra
-## centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque tableau
-## retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
+## rendu des deux côtés hors des surfaces d'un navire, la mer de chacun bordée par sa coque, et l'ombre de ce que le
+## regard en retire (`_mailler`), en forme hors de ces mers, que le rayon du pointeur touche des deux côtés, le sol de
+## chaque case de chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le
+## sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui,
+## que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
 	_monde_pose = monde
 	_metres_par_case = monde.metresParCase
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
-	_maillage.mesh = _maillage_de(monde)
+	_mailler()
 	var tous := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
 	var sommets := PackedVector3Array()
 	_cases_des_triangles = []
@@ -152,7 +155,14 @@ func border_la_mer(navire: String, contour: PackedVector2Array) -> void:
 		dans_le_volume.append(Vector2(local.x, local.z))
 	_coques[navire] = dans_le_volume
 	if _monde_pose != null:
-		_maillage.mesh = _maillage_de(_monde_pose)
+		_mailler()
+
+
+## Le maillage du dernier volume posé (`_maillage_de`), et celui de son ombre (`ombre`), que la caméra ne voit pas et
+## qui projette son ombre (`SHADOWS_ONLY`, #3758).
+func _mailler() -> void:
+	_maillage.mesh = _maillage_de(_monde_pose)
+	_ombre.mesh = _maillage_de(_monde_pose.ombre)
 
 
 ## Les nappes de toit (`toits`) et les couronnes crénelées des murs (`couronnes`) de la scène (`CONTRAT.md`, section
@@ -229,27 +239,27 @@ func _translucide(couleur: String, opacite: float) -> StandardMaterial3D:
 	return matiere
 
 
-## Chaque nappe de toit cachée si `toits_leves` la nomme (`plateau.toitsLeves`), chaque couronne si `couronnes_abattues`
-## la nomme (`plateau.couronnesAbattues`), et chaque arête que le groupe dégage (`aretes_degagees`,
-## `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra (`_abattre_les_aretes`) ; montrées sinon.
+## Chaque nappe de toit que `toits_leves` nomme (`plateau.toitsLeves`) cachée à la caméra (`_cacher_sous`), chaque
+## couronne que `couronnes_abattues` nomme (`plateau.couronnesAbattues`) retirée, et chaque arête que le groupe dégage
+## (`aretes_degagees`, `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra
+## (`_abattre_les_aretes`) ; montrées sinon.
 func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degagees: Array) -> void:
 	_cacher_sous(_toits, toits_leves)
-	_couronnes_abattues = couronnes_abattues
+	for couronne: Node3D in _couronnes.get_children():
+		couronne.visible = not couronnes_abattues.has(couronne.get_meta("cle"))
 	_aretes_degagees.clear()
 	for a in aretes_degagees:
 		_aretes_degagees[a.cle] = a.abattueSous
 	_abattre_les_aretes()
 
 
-## Les arêtes dégagées qui tombent sous le cran de la caméra (`MiseEnPage.rotation_iso`) cachées avec leur couronne, et
-## les couronnes abattues ; le reste montré.
+## Les arêtes dégagées qui tombent sous le cran de la caméra (`MiseEnPage.rotation_iso`) cachées à la caméra avec leur
+## couronne (`_cacher_sous`) ; le reste montré.
 func _abattre_les_aretes() -> void:
 	var cran := int(MiseEnPage.rotation_iso(_camera.global_basis.z))
 	var abattues := _aretes_degagees.keys().filter(func(cle: String) -> bool: return _aretes_degagees[cle].has(cran))
 	_cacher_sous(_aretes, abattues)
-	var couronnes := _couronnes_abattues.duplicate()
-	couronnes.append_array(abattues)
-	_cacher_sous(_couronnes, couronnes)
+	_cacher_sous(_couronnes, abattues)
 
 
 ## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.
@@ -264,10 +274,16 @@ func _poser_sous(parent: Node3D, nappes: Array) -> void:
 		parent.add_child(instance)
 
 
-## Chaque nappe sous `parent` cachée si `cles` la nomme, montrée sinon.
+## Chaque pièce sous `parent` que `cles` nomme cachée à la caméra, chacun de ses maillages en ombre seule
+## (`SHADOWS_ONLY`, #3758), montrée sinon.
 func _cacher_sous(parent: Node3D, cles: Array) -> void:
-	for nappe in parent.get_children():
-		nappe.visible = not cles.has(nappe.get_meta("cle"))
+	for piece: Node3D in parent.get_children():
+		var ombre := GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if cles.has(piece.get_meta("cle")) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
+		var maillages := piece.find_children("*", "GeometryInstance3D", true, false)
+		if piece is GeometryInstance3D:
+			maillages.append(piece)
+		for maillage: GeometryInstance3D in maillages:
+			maillage.cast_shadow = ombre
 
 
 ## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
@@ -387,9 +403,21 @@ func sol(case: Vector2i, z := 0) -> float:
 	return _sols[z][case.y][case.x]
 
 
-## Le centre du sol de la case `case` de la couche `z`.
+## Où se tient l'occupant de la case `case` de la couche `z`, sur son sol : à sa station si le modèle d'un navire la
+## rogne (`poser_les_stations`), en son centre sinon.
 func lieu(case: Vector2i, z := 0) -> Vector3:
-	return MiseEnPage.centre_de_case(case, sol(case, z))
+	var station: Variant = _stations.get(Vector3i(case.x, case.y, z))
+	if station == null:
+		return MiseEnPage.centre_de_case(case, sol(case, z))
+	return MiseEnPage.point_de_la_carte(station.x, station.y, sol(case, z))
+
+
+## Les stations des navires servis (`navires`, `vue.corps.navires`, chacun ses `stations`), à la place des précédentes.
+func poser_les_stations(navires: Dictionary) -> void:
+	_stations = {}
+	for id: String in navires:
+		for s: Dictionary in navires[id].stations:
+			_stations[Vector3i(int(s.x), int(s.y), int(s.z))] = Vector2(s.point.x, s.point.y)
 
 
 ## Le point de l'écran du centre du sol de chaque case de la couche `z` devant la caméra, par sa clé `x,y`.

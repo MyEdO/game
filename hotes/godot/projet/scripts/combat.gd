@@ -1,5 +1,6 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`), ou la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
+## l'adresse de la page (`?scenario=<id>&graine=<n>`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
+## l'adresse n'en nommant aucun, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
 ## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
@@ -22,6 +23,7 @@ extends Node
 @onready var _refus: Label = $Ecran/Interface/Avis/Refus
 @onready var _panne: Label = $Ecran/Interface/Avis/Panne
 @onready var _apercu: Control = $Ecran/Interface/Apercu
+@onready var _scenarios: Control = $Scenarios/Cadre
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
@@ -37,11 +39,29 @@ func _ready() -> void:
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	await _indexer_les_modeles()
-	var entree := {essai = true} if _pont.essai else {scenario = _pont.parametre("scenario")}
+	var scenario := _pont.parametre("scenario")
+	if not _pont.essai and scenario == "":
+		scenario = await _choisir_un_scenario()
+	var entree := {essai = true} if _pont.essai else {scenario = scenario}
 	var graine := _pont.parametre("graine")
 	if graine.is_valid_int():
 		entree.graine = graine.to_int()
 	_suivre(_pont.appeler("demarrer", entree))
+
+
+## Le scénario que le joueur choisit au panneau des scénarios (`scenarios`, #3786) : l'id que porte le bouton pressé
+## (`{ scenario }`), le panneau caché ensuite ; son défilement republie l'écran.
+func _choisir_un_scenario() -> String:
+	var zones := Zone.racines(_scenarios)
+	Zone.montrer_toutes(zones, _pont.appeler("scenarios").get("zones", {}))
+	var barre := (_scenarios.get_node("Defilement") as ScrollContainer).get_v_scroll_bar()
+	barre.value_changed.connect(_defile)
+	_scenarios.visible = true
+	_publier_l_ecran.call_deferred()
+	var jeu: Dictionary = await zones[0].geste
+	barre.value_changed.disconnect(_defile)
+	_scenarios.visible = false
+	return str(jeu.scenario)
 
 
 ## Le listage du serveur et l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu pour les corps du
@@ -128,7 +148,7 @@ func _defile(_valeur: float) -> void:
 ## chaque case du plateau, et ce que porte le corps de chaque combattant dessiné (`Plateau.corps`).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran]), cases = _plateau.points(), corps = _plateau.corps()})
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(), corps = _plateau.corps()})
 
 
 ## La touche du regard (`changer_de_regard`) passe au regard suivant (`regarder`, `plateau.regardSuivant`).

@@ -155,8 +155,16 @@ describe('modelesDeLAtelier', () => {
   it('un véhicule, sans base, est servi sous la fiche que nomme sa `definition`, son GLB, ses surfaces et le libellé de sa fiche avec lui, même sans aucune base (#2987)', () => {
     const caraque = vehiculeDeTest('caraque');
     const seul = modelesDeLAtelier({ caraque }, { caraque: [] });
-    expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, glb: { caraque: 'caraque.glb' }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque' } });
+    expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, glb: { caraque: 'caraque.glb' }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque (MDG)' } });
     expect(modelesDeLAtelier({ humanoide, epee, caraque }, { humanoide: [], epee: ['root'], caraque: [] }).bases[0].points.flatMap(({ elements }) => elements)).not.toContain('caraque');
     expect(modeles.vehicules).toEqual({});
+  });
+
+  it('deux fiches homonymes de livres différents se distinguent par le sigle du leur', () => {
+    const { libelles } = modelesDeLAtelier(
+      { baliste: vehiculeDeTest('baliste'), 'baliste-ade2': vehiculeDeTest('baliste-ade2') },
+      { baliste: [], 'baliste-ade2': [] },
+    );
+    expect(libelles).toEqual({ baliste: 'Baliste (AA)', 'baliste-ade2': 'Baliste (ADE II)' });
   });
 });

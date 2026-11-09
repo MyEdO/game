@@ -38,7 +38,7 @@ export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type
 export type { GabaritResolu } from './apparence/gabarit';
 export { cataloguesDeComposition, emplacementsDeRangement, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
-export { estPoseParSesPonts, naviresDeLaScene, type NavireDeLaScene } from './planDeNavire';
+export { estPoseParSesPonts, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire } from './planDeNavire';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
@@ -92,7 +92,7 @@ export { isRoomZone } from './monde/rooms';
 export { sceneZoneTiles } from './monde/zones';
 export { capDeLEntite, capsOfferts, effectZoneRect, entiteDeLaSelection, entiteDuSchema, FACES_D_ARETE, fichesDePersonnage, libelleDeStructure, lumiereAllumee, poigneeDeLaSelection, sameSel, segmentDeLaSelection, selRect, structuresCrenelables, structuresDeLArete, type Sel, type WallPaint, ZONE_VARIANTS } from './sceneEditLecture';
 export { lumiereDeLaScene, type LumiereDeLaScene } from './lumiereDeLaScene';
-export { effetsDeLAppel, type Effet } from './effetsDeLAppel';
+export { effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets } from './effetsDeLAppel';
 export { meteoDuRegard } from './monde/meteo';
 export { registerScene } from './monde/registreDesScenes';
 export { jetsEnVue, type JetEnVue, type LigneDeJet } from './jetsEnVue';

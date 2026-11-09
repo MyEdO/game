@@ -431,3 +431,31 @@ static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, large
 	return Vector2(
 		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
 		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
+
+
+## Le lieu, au sol, de la cible de la vitrine des effets de l'atelier, à `distance_m` mètres de l'auteur posé à l'origine
+## (#3777).
+static func lieu_de_la_cible(distance_m: float) -> Vector3:
+	return Vector3(distance_m, 0.0, 0.0)
+
+
+## Le sol de la case (`x`, `y`) de la vitrine des effets, où l'auteur tient la case (0, 0), sur des cases de
+## `metres_par_case` mètres, dans l'atelier mesuré en mètres.
+static func lieu_de_la_case_de_vitrine(x: float, y: float, metres_par_case: float) -> Vector3:
+	return Vector3(x * metres_par_case, 0.0, y * metres_par_case)
+
+
+## Le foyer d'une lumière de la vitrine posé sur la cible, à `hauteur_m` mètres, dans l'atelier de `metres_par_unite`.
+static func foyer_de_la_vitrine(hauteur_m: float, metres_par_unite: float) -> Vector3:
+	return Vector3.UP * hauteur_au_plateau(hauteur_m, metres_par_unite)
+
+
+## Le coin de la boîte que l'orbite de l'atelier cadre pour la vitrine des effets : l'orbite tourne autour de l'auteur, à
+## l'origine, et la boîte s'étend autant de part et d'autre de lui que la cible en est loin.
+static func coin_de_la_vitrine(distance_m: float) -> Vector3:
+	return Vector3(-distance_m, 0.0, -distance_m)
+
+
+## L'étendue de cette boîte : deux fois la distance de la cible en largeur et en profondeur, deux fois la hauteur du coup.
+static func etendue_de_la_vitrine(distance_m: float) -> Vector3:
+	return Vector3(distance_m * 2.0, HAUTEUR_DU_COUP * 2.0, distance_m * 2.0)

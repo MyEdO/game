@@ -8,6 +8,9 @@
 ## un véhicule ou un engin servi (#2987), tel que le pont le compose (`vehicule`) : les pièces de ses postes, ses
 ## Améliorations, la palette de la composition et l'emblème de ses voiles, montés par son montage (`MontageDeVehicule`, le
 ## nœud `Vehicule`), au sol et cadrés à sa taille.
+## Son onglet Effets montre la vitrine des effets que le jeu joue (#3777, `vitrine`, `CONTRAT.md`, section « Effets ») :
+## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, et chaque son, rejoués par son nœud `Effets`
+## de l'auteur posé à l'origine vers la cible (`Cible`) ; l'engin posé y attaque, son clip d'attaque puis son coup.
 ## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
 
@@ -45,26 +48,36 @@ const COULEUR_D_ERREUR := Color(1.0, 0.55, 0.5)
 const PAR_DEFAUT := "Par défaut"
 ## Le côté, en pixels, de la pastille d'une couleur du nuancier.
 const COTE_DE_LA_PASTILLE := 16
+## Le texte du bouton de chaque variante de la vitrine des effets (`VarianteDeVitrine`).
+const VARIANTES := {"touche": "Touché", "manque": "Manqué", "pare": "Paré", "incantation": "Incantation", "incantation-ratee": "Ratée", "zone": "Zone"}
+## Les mètres que vaut une unité de la scène de l'atelier : ses modèles sont à leur taille réelle.
+const METRES_PAR_UNITE := 1.0
 
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 @onready var _montage: MontageDeComposition = $Modele
 @onready var _interface: CanvasLayer = $Interface
 @onready var _marche: MarcheDeLAtelier = $Marche
 @onready var _vehicule: MontageDeVehicule = $Vehicule
+@onready var _effets: Effets = $Effets
+@onready var _cible: Node3D = $Cible
 @onready var _etat: Label = %Etat
 @onready var _corps: HFlowContainer = %Corps
 @onready var _panneau_des_emplacements: VBoxContainer = %Emplacements
 @onready var _clips: OptionButton = %Clips
 @onready var _instant: Label = %Instant
 @onready var _cases_des_aides := {os = %AideOs, emplacements = %AideEmplacements, prises = %AidePrises}
-@onready var _onglets := {personnage = %DefilementPersonnage, equipement = %DefilementEquipement, couleurs = %DefilementCouleurs, animation = %DefilementAnimation, outils = %DefilementOutils}
-@onready var _boutons_des_onglets := {personnage = %OngletPersonnage, equipement = %OngletEquipement, couleurs = %OngletCouleurs, animation = %OngletAnimation, outils = %OngletOutils}
+@onready var _onglets := {personnage = %DefilementPersonnage, equipement = %DefilementEquipement, couleurs = %DefilementCouleurs, animation = %DefilementAnimation, outils = %DefilementOutils, effets = %DefilementEffets}
+@onready var _boutons_des_onglets := {personnage = %OngletPersonnage, equipement = %OngletEquipement, couleurs = %OngletCouleurs, animation = %OngletAnimation, outils = %OngletOutils, effets = %OngletEffets}
 
 ## L'id de la base demandée en dernier, posée ou en chargement.
 var _base_demandee: Variant = null
 ## Le chargement retenu : un chargement qu'un autre remplace jette son résultat.
 var _chargement: RefCounted = null
 var _pose_des_os: Dictionary = {}
+## Les boîtes des meshes skinnés montés (`_peaux`), mesurées à la dernière publication d'un geste ou d'un changement
+## d'état (`_publier`) ; `_peaux_a_mesurer` tant qu'elles restent à mesurer.
+var _peaux_mesurees: Dictionary = {}
+var _peaux_a_mesurer := true
 var _pas := 0.0
 var _vitesse := 1.0
 ## Le clip que « Recharger » rejoue, à son instant, en lecture ou en pause.
@@ -116,6 +129,8 @@ var _postes_du_vehicule: Array = []
 var _ameliorations_du_vehicule: Array = []
 ## La dernière réponse de `vehicule`.
 var _offre_du_vehicule: Dictionary = {}
+## La réponse de `vitrine`, vide avant elle.
+var _vitrine: Dictionary = {}
 
 
 func _ready() -> void:
@@ -134,22 +149,24 @@ func _ready() -> void:
 		_onglets[onglet].get_v_scroll_bar().value_changed.connect(func(_valeur: float) -> void: _publier())
 		_boutons_des_onglets[onglet].pressed.connect(_montrer_l_onglet.bind(onglet))
 	%Copier.pressed.connect(_copier)
+	%Attaquer.pressed.connect(_attaquer)
 	%AProduire.toggled.connect(func(montre: bool) -> void:
 		%ListeAProduire.visible = montre
 		_publier())
 	_clips.set_meta("cle", "clip")
 	_clips.item_selected.connect(func(rang: int) -> void: _jouer_le_clip(_clips.get_item_metadata(rang)))
 	_marche.marche_commencee.connect(_jouer_le_clip)
-	_marche.marche_arretee.connect(_publier)
+	_marche.marche_arretee.connect(_jouer_le_repos)
 	if await _pont.rejoindre(_signaler, _signaler):
 		_poser_les_catalogues()
+		_poser_la_vitrine()
 		await _charger({}, {})
 
 
 func _process(_delta: float) -> void:
-	_instant.text = "%.3f s" % _montage.lecteur.current_animation_position if _a_un_clip() else ""
-	if _a_un_clip() and _montage.lecteur.is_playing():
-		_publier()
+	_instant.text = "%.3f s" % _lecteur().current_animation_position if _a_un_clip() else ""
+	if _peaux_a_mesurer or (_a_un_clip() and _lecteur().is_playing()):
+		_publier_l_ecran.call_deferred()
 
 
 ## Le listage du serveur, puis l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu par le montage, puis la
@@ -216,7 +233,7 @@ func _choisir_la_base(id: String) -> void:
 func _recharger() -> void:
 	_reprise = {}
 	if _a_un_clip():
-		_reprise = {clip = _montage.lecteur.assigned_animation, instant = _montage.lecteur.current_animation_position, lecture = _montage.lecteur.is_playing()}
+		_reprise = {clip = _lecteur().assigned_animation, instant = _lecteur().current_animation_position, lecture = _lecteur().is_playing()}
 	await _charger(_montage.montes.duplicate(), _montage.emblemes.duplicate())
 
 
@@ -331,6 +348,7 @@ func _demander_le_vehicule() -> void:
 	if await _vehicule.monter(reponse.vehicule, _montage, _poser_au_sol):
 		if _vehicule.scene != null:
 			_marche.cadrer_la_boite(MontageDeVehicule.boite(_vehicule.scene, _vehicule))
+		_poser_les_clips()
 	_marquer(_boutons_des_modeles, _modele_pose())
 	_montrer_l_etat()
 
@@ -626,7 +644,8 @@ func _choisir_manuellement(emplacement: Dictionary, element: String) -> void:
 
 ## L'élément monté à `emplacement` démonté avec son emblème et sa rangée d'emblèmes, puis `element` monté par le montage
 ## (`MontageDeComposition.monter`) s'il n'est pas « vide », ses erreurs au recueil du geste qui le demande : monté, il
-## offre ses emblèmes s'il porte une surface `blason`, et s'habille de l'emblème `embleme` (`_choisir_l_embleme`).
+## offre ses emblèmes s'il porte une surface `blason`, et s'habille de l'emblème `embleme` (`_choisir_l_embleme`) ; puis le
+## clip engagé passe à celui de son rôle sous la nouvelle tenue (`_rejouer`).
 func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) -> void:
 	var id: String = emplacement.id
 	var recueil := _recueil
@@ -645,6 +664,7 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 		_choisir_l_embleme(id, embleme)
 	else:
 		_montrer_l_etat()
+	_rejouer()
 	_publier()
 
 
@@ -725,29 +745,31 @@ func _montrer_l_aide(montre: bool, aide: String) -> void:
 	_publier()
 
 
-## Un bouton par clip de la base, chacun mis en boucle ; le clip de la reprise rejoué à son instant, en lecture ou en
-## pause.
+## Un bouton par clip du modèle posé, base ou véhicule, chacun mis en boucle ; le clip de la reprise rejoué à son
+## instant, en lecture ou en pause, sinon le clip de repos (`_jouer_le_repos`).
 func _poser_les_clips() -> void:
-	if _montage.lecteur == null:
+	_clips.clear()
+	if _lecteur() == null:
 		return
-	for nom in _montage.lecteur.get_animation_list():
-		_montage.lecteur.get_animation(nom).loop_mode = Animation.LOOP_LINEAR
+	for nom in _lecteur().get_animation_list():
+		_lecteur().get_animation(nom).loop_mode = Animation.LOOP_LINEAR
 		var rang := _clips.item_count
 		_clips.add_item(nom)
 		_clips.set_item_metadata(rang, nom)
-	_montage.lecteur.speed_scale = _vitesse
+	_lecteur().speed_scale = _vitesse
 	_clips.select(-1)
-	if not _montage.lecteur.has_animation(_reprise.get("clip", "")):
+	if not _lecteur().has_animation(_reprise.get("clip", "")):
+		_jouer_le_repos()
 		return
 	_jouer_le_clip(_reprise.clip)
-	_montage.lecteur.seek(_reprise.instant, true)
+	_lecteur().seek(_reprise.instant, true)
 	if not _reprise.lecture:
-		_montage.lecteur.pause()
+		_lecteur().pause()
 
 
 func _jouer_le_clip(nom: String) -> void:
-	_montage.lecteur.play(nom)
-	var animation := _montage.lecteur.get_animation(nom)
+	_lecteur().play(nom)
+	var animation := _lecteur().get_animation(nom)
 	_pas = 0.0
 	for piste in animation.get_track_count():
 		_pas = MiseEnPage.pas_d_image(_pas, animation.length, animation.track_get_key_count(piste))
@@ -755,34 +777,60 @@ func _jouer_le_clip(nom: String) -> void:
 	_publier()
 
 
+## Le clip du rôle `idle` de la composition montée (`MontageDeComposition.clip`, à deux mains quand la main libre tient
+## une seconde prise) joué, s'il est au lecteur ; sans lui, le squelette reste à sa pose de repos.
+func _jouer_le_repos() -> void:
+	if _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip("idle")):
+		_jouer_le_clip(_montage.clip("idle"))
+	else:
+		_publier()
+
+
+## Le clip engagé rejoué au clip que son rôle a maintenant, en lecture ou en pause comme lui, si la tenue l'a changé
+## (`MontageDeComposition.role_a_rejouer`).
+func _rejouer() -> void:
+	var role := _montage.role_a_rejouer()
+	if role == "":
+		return
+	var lecture := _montage.lecteur.is_playing()
+	_jouer_le_clip(_montage.clip(role))
+	if not lecture:
+		_montage.lecteur.pause()
+
+
+## Le lecteur des clips du modèle posé : celui du véhicule, sinon celui de la base.
+func _lecteur() -> AnimationPlayer:
+	return _vehicule.lecteur if _vehicule.scene != null else _montage.lecteur
+
+
 ## Si un clip est engagé au lecteur, joué ou en pause.
 func _a_un_clip() -> bool:
-	return _montage.lecteur != null and _montage.lecteur.assigned_animation != ""
+	return _lecteur() != null and _lecteur().assigned_animation != ""
 
 
 func _lire() -> void:
 	if _a_un_clip():
-		_montage.lecteur.play()
+		_lecteur().play()
 	_publier()
 
 
 func _mettre_en_pause() -> void:
 	if _a_un_clip():
-		_montage.lecteur.pause()
+		_lecteur().pause()
 	_publier()
 
 
 func _aller_a_l_image(sens: float) -> void:
 	if _a_un_clip():
-		_montage.lecteur.pause()
-		_montage.lecteur.seek(MiseEnPage.image_voisine(_montage.lecteur.current_animation_position, _pas, sens, _montage.lecteur.current_animation_length), true)
+		_lecteur().pause()
+		_lecteur().seek(MiseEnPage.image_voisine(_lecteur().current_animation_position, _pas, sens, _lecteur().current_animation_length), true)
 	_publier()
 
 
 func _regler_la_vitesse(vitesse: float) -> void:
 	_vitesse = vitesse
-	if _montage.lecteur != null:
-		_montage.lecteur.speed_scale = vitesse
+	if _lecteur() != null:
+		_lecteur().speed_scale = vitesse
 	_publier()
 
 
@@ -806,6 +854,7 @@ func _montrer_l_etat() -> void:
 		lignes.append("%s · %s" % [_montage.base.id, str(_montage.base.empreinte).left(DEBUT_D_EMPREINTE)])
 	if _vehicule.element != null:
 		lignes.append(str(_vehicule.element))
+	%Attaquer.disabled = _attaque_de_l_engin() == null
 	var erreurs := _toutes_les_erreurs()
 	lignes.append_array(erreurs)
 	_etat.text = "\n".join(PackedStringArray(lignes))
@@ -821,7 +870,89 @@ func _montrer_l_onglet(onglet: String) -> void:
 	_onglet = onglet
 	for autre in _onglets:
 		_onglets[autre].visible = autre == onglet
+	_cible.visible = onglet == "effets"
 	_publier()
+
+
+## La vitrine des effets (`vitrine`) : la cible posée à sa distance, puis, par rendu d'arme et par sort, une rangée à son
+## `label` qui porte un bouton par variante, un bouton par manœuvre de zone et par Type de Souffle (#3783), un bouton par
+## son, et un bouton par ton de lumière, qui pose son foyer sur la cible.
+func _poser_la_vitrine() -> void:
+	var reponse := _pont.appeler("vitrine")
+	if reponse.get("ok") != true:
+		return
+	_vitrine = reponse
+	_cible.position = MiseEnPage.lieu_de_la_cible(_vitrine.distanceM)
+	for famille in [[_vitrine.armes, %VitrineArmes], [_vitrine.sorts, %VitrineSorts]]:
+		for entree in famille[0]:
+			var rangee := _rangee(entree.label, famille[1])
+			for variante in entree.variantes:
+				var bouton := Button.new()
+				bouton.text = VARIANTES[variante.variante]
+				bouton.set_meta("cle", "effet/%s/%s" % [entree.id, variante.variante])
+				bouton.pressed.connect(_jouer_l_effet.bind(variante.effet))
+				rangee.add_child(bouton)
+	for famille in [["manoeuvre", _vitrine.manoeuvres, %VitrineZones], ["souffle", _vitrine.souffles, %VitrineZones], ["son", _vitrine.sons, %VitrineSons]]:
+		for entree in famille[1]:
+			var bouton := Button.new()
+			bouton.text = entree.label
+			bouton.set_meta("cle", "%s/%s" % [famille[0], entree.id])
+			bouton.pressed.connect(_jouer_l_effet.bind(entree.effet))
+			famille[2].add_child(bouton)
+	for lumiere in _vitrine.lumieres:
+		var bouton := Button.new()
+		bouton.text = lumiere.label
+		bouton.set_meta("cle", "lumiere/%s" % lumiere.id)
+		bouton.pressed.connect(_poser_le_foyer.bind(lumiere.source))
+		%VitrineLumieres.add_child(bouton)
+
+
+## L'effet `effet` de la vitrine rejoué de l'auteur, à l'origine, vers la cible, l'orbite cadrant l'un et l'autre et le
+## véhicule posé.
+func _jouer_l_effet(effet: Dictionary) -> void:
+	var boite := AABB(MiseEnPage.coin_de_la_vitrine(_vitrine.distanceM), MiseEnPage.etendue_de_la_vitrine(_vitrine.distanceM))
+	if _vehicule.scene != null:
+		boite = boite.merge(MontageDeVehicule.boite(_vehicule.scene, _vehicule))
+	_marche.cadrer_la_boite(boite)
+	var lieux := {_vitrine.de: Vector3.ZERO, _vitrine.vers: _cible.position}
+	if effet.quoi == "zone":
+		var cases: Array = effet.cases.duplicate()
+		cases.append(effet.centre)
+		for case: Dictionary in cases:
+			lieux[Effets.cle_de_case(case)] = MiseEnPage.lieu_de_la_case_de_vitrine(case.x, case.y, _vitrine.metresParCase)
+	_effets.jouer([effet], lieux, METRES_PAR_UNITE)
+
+
+## Le foyer de la source `source` (un ton de lumière de la vitrine) posé sur la cible à sa hauteur, à la place du
+## précédent.
+func _poser_le_foyer(source: Dictionary) -> void:
+	for ancien in _cible.get_children().filter(func(n: Node) -> bool: return n is Foyer):
+		ancien.free()
+	var foyer := Foyer.new()
+	foyer.position = MiseEnPage.foyer_de_la_vitrine(source.hM, METRES_PAR_UNITE)
+	_cible.add_child(foyer)
+	foyer.poser(source, METRES_PAR_UNITE)
+
+
+## Le coup de l'engin posé (`attaques` de la vitrine, par sa fiche), `null` sans engin posé ou sans vitrine.
+func _attaque_de_l_engin() -> Variant:
+	if _vehicule.scene == null or _vitrine.is_empty():
+		return null
+	return _vitrine.attaques.get(_definition_du_vehicule)
+
+
+## L'engin posé attaque, comme au combat : son coup, et le clip de son rôle de tir s'il en porte un, d'attaque sinon, joué
+## une fois, puis son repos.
+func _attaquer() -> void:
+	_jouer_l_effet(_attaque_de_l_engin())
+	var clip: String = _vehicule.clips.get(Combattant.TIR, _vehicule.clips.get(Combattant.ATTAQUE, ""))
+	if clip == "":
+		return
+	_jouer_le_clip(clip)
+	await get_tree().create_timer(_lecteur().get_animation(clip).length).timeout
+	var repos: String = _vehicule.clips.get(Combattant.REPOS, "")
+	if _lecteur() != null and _lecteur().has_animation(repos):
+		_jouer_le_clip(repos)
 
 
 ## Les presets et les axes de `catalogues` (#3086, D2 et D3) : un bouton par preset (son `label`), puis chaque axe de
@@ -1064,7 +1195,11 @@ func _copier_la_courante() -> void:
 	_publier()
 
 
+## L'écran publié après un geste ou un changement d'état, `peaux` à remesurer. Chaque image d'un clip en lecture le
+## republie sans les remesurer (`_process`) : la mesure lit au processeur chaque mesh skinné rendu
+## (`RenderingServer.mesh_get_surface`), une lecture synchrone du tampon sous WebGL.
 func _publier() -> void:
+	_peaux_a_mesurer = true
 	_publier_l_ecran.call_deferred()
 
 
@@ -1073,10 +1208,17 @@ func _publier() -> void:
 ## montré et le défilement de son panneau (`defilement`), le cadre de la glissière de chaque axe `plage` à l'écran
 ## (`plages`, avec sa valeur), la composition courante avec ce que `composer` en a monté, ce qui y manque, le texte de
 ## son refus et celui de « Copier », les mesures du gabarit posé (`GabaritDuSquelette.mesures`), l'échelle de l'orbite
-## (`cadre`), la position des os de la base (`_positions_des_os`) et la boîte des meshes skinnés montés (`_peaux`).
+## (`cadre`), la position des os de la base (`_positions_des_os`) et la boîte des meshes skinnés montés (`_peaux`), que
+## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu.
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
-	var clip: Variant = _montage.lecteur.assigned_animation if _a_un_clip() else null
+	if _peaux_a_mesurer:
+		var mesurees: Variant = _peaux()
+		if mesurees == null:
+			return
+		_peaux_mesurees = mesurees
+		_peaux_a_mesurer = false
+	var clip: Variant = _lecteur().assigned_animation if _a_un_clip() else null
 	var publies := {montes = {}, lignes = {}}
 	for id in _montage.montes:
 		publies[_emplacements[id].publie][_emplacements[id].cle] = _montage.montes[id]
@@ -1094,9 +1236,9 @@ func _publier_l_ecran() -> void:
 			base = _montage.base.get("id"),
 			empreinte = _montage.base.get("empreinte"),
 			clip = clip,
-			instant = _montage.lecteur.current_animation_position if clip != null else null,
-			duree = _montage.lecteur.current_animation_length if clip != null else null,
-			lecture = _montage.lecteur.is_playing() if clip != null else false,
+			instant = _lecteur().current_animation_position if clip != null else null,
+			duree = _lecteur().current_animation_length if clip != null else null,
+			lecture = _lecteur().is_playing() if clip != null else false,
 			vitesse = _vitesse,
 			montes = publies.montes,
 			lignes = publies.lignes,
@@ -1119,7 +1261,7 @@ func _publier_l_ecran() -> void:
 			gabarit = {} if _montage.gabarit == null else _montage.gabarit.mesures(),
 			cadre = _marche.echelle(),
 			os = _positions_des_os(),
-			peaux = _peaux(),
+			peaux = _peaux_mesurees,
 			morphes = _morphes_des_meshes(),
 			couleurs = _montage.couleurs_posees(),
 			vehicule = _vehicule_publie(),
@@ -1147,10 +1289,9 @@ func _positions_des_os() -> Dictionary:
 
 ## Par id d'emplacement monté qui porte un mesh skinné, la boîte de ses meshes skinnés posés par le moteur sur la pose
 ## courante (`MeshInstance3D.bake_mesh_from_current_skeleton_pose`) : son centre monde (`centre`) et sa taille dans le
-## repère du squelette (`taille`). Un mesh que le moteur ne pose pas (son squelette sans os, `mesh_instance_3d.cpp:722`,
-## Godot 4.7-stable) n'a pas de boîte : l'appel typé sur le `null` rendu ferait planter le modèle d'export release, qui
-## ne vérifie pas le `null` (#3778).
-func _peaux() -> Dictionary:
+## repère du squelette (`taille`) ; `null` tant que le skin d'un mesh monté n'a pas d'os au serveur de rendu
+## (`MeshInstance3D.get_skin_reference`, que le squelette pourvoit à sa prochaine mise à jour).
+func _peaux() -> Variant:
 	var peaux := {}
 	for id in _montage.pieces:
 		var boite: Variant = null
@@ -1158,10 +1299,10 @@ func _peaux() -> Dictionary:
 		for piece: MeshInstance3D in _montage.pieces[id]:
 			if not is_instance_valid(piece) or piece.skin == null:
 				continue
-			var cuit := piece.bake_mesh_from_current_skeleton_pose()
-			if cuit == null:
-				continue
-			var posee: AABB = cuit.get_aabb()
+			var reference := piece.get_skin_reference()
+			if reference == null or RenderingServer.skeleton_get_bone_count(reference.get_skeleton()) == 0:
+				return null
+			var posee := piece.bake_mesh_from_current_skeleton_pose().get_aabb()
 			boite = posee if boite == null else (boite as AABB).merge(posee)
 			porteuse = piece
 		if porteuse != null:
@@ -1181,7 +1322,7 @@ func _morphes_des_meshes() -> Dictionary:
 			emplacements[piece] = id
 	for noeud in _montage.modele.find_children("*", "MeshInstance3D", true, false):
 		var mesh := noeud as MeshInstance3D
-		if mesh.mesh == null or mesh.mesh.get_blend_shape_count() == 0:
+		if not mesh.mesh is ArrayMesh or mesh.mesh.get_blend_shape_count() == 0:
 			continue
 		var poids := {}
 		for rang in mesh.mesh.get_blend_shape_count():

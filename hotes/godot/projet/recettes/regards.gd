@@ -25,7 +25,7 @@ func _recetter() -> void:
 	root.add_child(monde)
 	monde.poser({metresParCase = 2.0, positions = TRIANGLE + PLANCHER, normales = NORMALES + NORMALES, couleurs = COULEURS + COULEURS,
 		cases = [[0, 0, 0], [0, 0, 1]], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}],
-		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}]})
+		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}], ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
 	await physics_frame
 	_sol(monde, Vector3(0.6, 1.0, 0.6), Vector3i(0, 0, 0), 0.0)
 	_sol(monde, Vector3(0.6, 3.0, 0.6), Vector3i(0, 0, 1), 2.0)
