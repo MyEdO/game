@@ -225,6 +225,7 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 		erreurs.append("squelette-absent : %s" % base.id)
 		return
 	gabarit = GabaritDuSquelette.new()
+	gabarit.lecteur = lecteur
 	squelette.add_child(gabarit)
 
 

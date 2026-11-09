@@ -11,6 +11,9 @@ if (['etatsAuxFacteursNeutres', 'etatsDuGabarit', 'appuis'].includes(entree.oper
 if (entree.operation === 'silhouettes') {
   const { FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, NOMS_DES_SILHOUETTES } = await chargerEvaluateur('../silhouettes.ts')
   process.stdout.write(JSON.stringify({ FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, NOMS_DES_SILHOUETTES }))
+} else if (entree.operation === 'clipsPlantes') {
+  const { clipsPlantes } = await chargerEvaluateur('../gabarit.ts')
+  process.stdout.write(JSON.stringify(clipsPlantes(entree)))
 } else if (entree.operation === 'bornes') {
   const { domaineDuGabarit } = await chargerAssets(["export { domaineDuGabarit } from '/scripts/personnage-3d/base/domaineDuGabarit.ts';"])
   process.stdout.write(JSON.stringify(domaineDuGabarit()))
@@ -42,12 +45,13 @@ if (entree.operation === 'silhouettes') {
     if (entree.operation === 'matrices') {
       const octets = await readFile(entree.poses)
       const poses = new Float32Array(octets.buffer, octets.byteOffset, octets.byteLength / 4)
+      const plantes = [false, ...entree.clips.flatMap(([nom, instants]) => Array(instants).fill(entree.plantes.includes(nom)))]
       const groupes = []
       for (const etat of entree.etats) {
         let groupe = groupes.find((g) => JSON.stringify(g.facteurs) === JSON.stringify(etat.facteurs))
         if (!groupe) {
           const fichier = join(entree.sortie, `groupe-${groupes.length}.bin`)
-          const matrices = matricesDePeauDuGabarit(squelette, table, etat.facteurs, poses)
+          const matrices = matricesDePeauDuGabarit(squelette, table, etat.facteurs, poses, plantes)
           await writeFile(fichier, new Uint8Array(matrices.buffer))
           groupe = { facteurs: etat.facteurs, fichier, etats: [] }
           groupes.push(groupe)
