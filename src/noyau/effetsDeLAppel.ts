@@ -1,8 +1,8 @@
 /**
  * LES EFFETS D'UN APPEL (#3771), que tout hôte du noyau rend tels quels : chaque coup, chaque incantation, chaque zone
  * d'effet (#3783) et chaque son que l'appel a émis sur le bus (`EVT.ANIM_ATTACK`, `EVT.ANIM_AOE`, `EVT.SFX`), son rendu
- * résolu au catalogue `rendus.json` ; les flottants d'un coup, d'une incantation et du bus (`EVT.ANIM_FLOAT`), les pas
- * d'un déplacement, le heurt d'un pas refusé, le gong de la victoire et les dés du joueur (#3825). Le rendu d'une arme est celui de son objet, à défaut celui de son Groupe (`subType`) ;
+ * résolu au catalogue `rendus.json` ; les flottants d'un coup, d'une incantation et du bus (`EVT.ANIM_FLOAT`), le chemin
+ * (#3822) et les pas d'un déplacement, le heurt d'un pas refusé, le gong de la victoire et les dés du joueur (#3825). Le rendu d'une arme est celui de son objet, à défaut celui de son Groupe (`subType`) ;
  * celui d'un sort, celui de son Domaine ; une Prière a le sien ; celui d'une manœuvre de zone, le sien, celui d'un Souffle
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
@@ -17,7 +17,7 @@ import { sourceDuTon, type SourceDeLumiere } from './lumiereDeLaScene';
 import type { Jeu } from './etat';
 import { porteurParId } from './monde/combatants';
 import { musiqueDeLaSelection, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
-import { sceneMetresPerTile } from './monde/scene';
+import { hauteurDe, sceneMetresPerTile } from './monde/scene';
 import { FLAME_LIFT_M } from './monde/vision';
 import { discTiles } from './monde/zones';
 import type { Evenement } from './partie';
@@ -38,8 +38,12 @@ export interface TrajetRendu {
 
 export type IssueDuCoup = 'touche' | 'critique' | 'pare' | 'manque';
 
-/** Une case d'une zone d'effet : (x, y) et sa couche. */
-export type CaseDeZone = ChargeDeZone['centre'];
+/** Une case d'un effet : (x, y) et sa couche. */
+export type CaseDEffet = ChargeDeZone['centre'];
+
+/** Une case du chemin d'un déplacement, et les mètres qui la séparent de la précédente : la distance de leurs sols
+ *  (`hauteurDe`), 0 pour la première. */
+export type CaseDuChemin = CaseDEffet & { metres: number };
 
 /** Le genre d'un flottant : celui d'un retour du bus (`EVT.ANIM_FLOAT`), ou l'issue d'un coup (`soak` : encaissé,
  *  `defend` : paré ou esquivé, `death` : hors de combat). */
@@ -66,13 +70,16 @@ export interface Flottant {
  *  ses flottants sur la cible à l'arrivée. Une zone d'effet que `de` pose sur `cases` autour de `centre` : sa phase de
  *  départ à l'auteur, le jet qui vole jusqu'au centre (aucun quand l'auteur en est le centre), puis la nappe sur chaque
  *  case. Un flottant au-dessus du combattant `sur`, ou de la case `case`. Un son joué `fois` fois, `ecartS` secondes
- *  l'un après l'autre. */
+ *  l'un après l'autre. Le déplacement (#3822) du combattant `qui` sur le chemin qu'il a parcouru (`EVT.ANIM_MOVE`), sauts,
+ *  escalades et changements de couche compris : chacune de ses `cases`, dans l'ordre, de la case qu'il quitte à celle où
+ *  la vue le pose. */
 export type Effet =
   | { quoi: 'coup'; de: string; vers: string; issue: IssueDuCoup; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; arrivee: PhaseRendue | null; flottants: Flottant[] }
   | { quoi: 'incantation'; de: string; vers: string; reussie: boolean; couleur: string; depart: PhaseRendue | null; arrivee: PhaseRendue | null; flottants: Flottant[] }
-  | { quoi: 'zone'; de: string; centre: CaseDeZone; cases: CaseDeZone[]; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; nappe: PhaseRendue | null }
-  | { quoi: 'flottant'; sur: string | null; case: CaseDeZone | null; flottant: Flottant }
-  | { quoi: 'son'; son: SonDEffet; fois: number; ecartS: number };
+  | { quoi: 'zone'; de: string; centre: CaseDEffet; cases: CaseDEffet[]; couleur: string; depart: PhaseRendue | null; trajet: TrajetRendu | null; nappe: PhaseRendue | null }
+  | { quoi: 'flottant'; sur: string | null; case: CaseDEffet | null; flottant: Flottant }
+  | { quoi: 'son'; son: SonDEffet; fois: number; ecartS: number }
+  | { quoi: 'deplacement'; qui: string; cases: CaseDuChemin[] };
 
 /** Le son de chaque retour de la partie, par son id au registre (`src/data/sons/defs/`) : un pas, le heurt d'un pas
  *  refusé, la victoire, les dés que le joueur lance. */
@@ -83,6 +90,16 @@ export const SONS_DE_LA_PARTIE = { pas: 'pas', heurt: 'heurt', victoire: 'gong-v
 const CASES_PAR_PAS = 2;
 const PAS_MAX = 4;
 const ECART_DES_PAS_S = 0.22;
+
+/** Le déplacement de `qui` sur `chemin`, sur des cases de `metresParCase` mètres dont `sol` rend la hauteur (m). */
+const deplacement = (qui: string, chemin: readonly CaseDEffet[], metresParCase: number, sol: (c: CaseDEffet) => number): Effet => ({
+  quoi: 'deplacement',
+  qui,
+  cases: chemin.map((c, i) => ({
+    x: c.x, y: c.y, z: c.z ?? 0,
+    metres: i === 0 ? 0 : Math.hypot((c.x - chemin[i - 1].x) * metresParCase, (c.y - chemin[i - 1].y) * metresParCase, sol(c) - sol(chemin[i - 1])),
+  })),
+});
 
 /** Le son d'id `id` (`SONS_DE_LA_PARTIE`) joué `fois` fois, `ecartS` secondes l'un après l'autre. */
 const son = (id: string, fois = 1, ecartS = 0): Effet => ({ quoi: 'son', son: sonDEffet(id)!, fois, ecartS });
@@ -214,8 +231,8 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
 
 /** Les effets des événements `evenements` d'un appel (`ResultatDeLAppel.evenements`) sur l'état `etat` qui le suit, dans
  *  leur ordre ; un coup, une incantation ou une zone dont un combattant n'est pas posé, ou l'attaque spéciale d'une
- *  créature sur elle-même, n'en rend aucun. Un déplacement rend ses pas, un pas refusé son heurt, la victoire son gong,
- *  les dés du joueur (`EVT.DICE_ROLL`) leur son. */
+ *  créature sur elle-même, n'en rend aucun. Un déplacement rend son chemin quand il quitte sa case, puis ses pas ; un pas
+ *  refusé son heurt, la victoire son gong, les dés du joueur (`EVT.DICE_ROLL`) leur son. */
 export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Effet[] {
   return evenements.flatMap((e): Effet[] => {
     if (e.type !== 'emis') return [];
@@ -232,7 +249,11 @@ export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Eff
       return [zone(rendu, couleur, e.payload, distanceM)];
     }
     if (e.evt === 'anim_float') return [{ quoi: 'flottant', sur: e.payload.to ?? null, case: e.payload.pos ?? null, flottant: flottant(e.payload.kind, e.payload.text) }];
-    if (e.evt === 'anim_move') return [son(SONS_DE_LA_PARTIE.pas, Math.min(PAS_MAX, Math.max(1, Math.floor(e.payload.path.length / CASES_PAR_PAS))), ECART_DES_PAS_S)];
+    if (e.evt === 'anim_move') {
+      const { scene } = etat;
+      const parcours = scene && e.payload.path.length > 1 ? [deplacement(e.payload.id, e.payload.path, sceneMetresPerTile(scene), (c) => hauteurDe(scene, c))] : [];
+      return [...parcours, son(SONS_DE_LA_PARTIE.pas, Math.min(PAS_MAX, Math.max(1, Math.floor(e.payload.path.length / CASES_PAR_PAS))), ECART_DES_PAS_S)];
+    }
     if (e.evt === 'move_blocked') return [son(SONS_DE_LA_PARTIE.heurt)];
     if (e.evt === 'battle_over') return e.payload.victory ? [son(SONS_DE_LA_PARTIE.victoire)] : [];
     if (e.evt === 'dice_roll') return [son(SONS_DE_LA_PARTIE.des)];
@@ -264,7 +285,8 @@ export interface EffetDeVitrine {
  *  `metresParCase`, 0) : chaque rendu d'arme, chaque Domaine, le sort hors Domaine et la Prière, la zone de chaque
  *  manœuvre de zone et de chaque Type de Souffle (#3783), chaque son d'effet du registre, chaque ton de lumière posé au
  *  lieu de la cible, l'attaque qui touche de chaque engin de siège, par son id d'objet, le flottant de chaque genre et
- *  celui d'un Coup Critique sur la cible, et chaque musique de fond (#3825). */
+ *  celui d'un Coup Critique sur la cible, chaque musique de fond (#3825), et le déplacement de l'auteur sur un chemin qui
+ *  tourne depuis sa case (#3822). */
 export interface VitrineDesEffets {
   de: string;
   vers: string;
@@ -279,6 +301,7 @@ export interface VitrineDesEffets {
   attaques: Record<string, Effet>;
   flottants: EffetDeVitrine[];
   musiques: { id: string; label: string; musique: MusiqueDeLaPartie }[];
+  deplacement: Effet;
 }
 
 const AUTEUR_DE_LA_VITRINE = 'auteur';
@@ -289,6 +312,8 @@ const RAYON_DE_ZONE_DE_LA_VITRINE = 1;
 const RAYON_DE_LUMIERE_DE_LA_VITRINE = 5;
 /** Les Blessures et le soin que montrent les flottants de la vitrine. */
 const BLESSURES_DE_LA_VITRINE = 3;
+/** Le chemin que l'auteur de la vitrine parcourt depuis sa case, sur le sol plat de la vitrine. */
+const CHEMIN_DE_LA_VITRINE: readonly CaseDEffet[] = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 1 }, { x: 2, y: 2 }];
 
 /** Les flottants de la touche de la vitrine à l'issue `issue`. */
 const flottantsDeLaVitrine = (issue: IssueDuCoup): Flottant[] =>
@@ -296,7 +321,7 @@ const flottantsDeLaVitrine = (issue: IssueDuCoup): Flottant[] =>
 
 /** La zone de la vitrine que `de` pose autour de la case `centre`, au rendu de `origine` (`renduDeLaZone`), l'auteur à
  *  `distanceM` mètres du centre. */
-function zoneDeLaVitrine(de: string, centre: CaseDeZone, origine: Pick<ChargeDeZone, 'sort' | 'rendu'>, distanceM: number): Effet {
+function zoneDeLaVitrine(de: string, centre: CaseDEffet, origine: Pick<ChargeDeZone, 'sort' | 'rendu'>, distanceM: number): Effet {
   const z: ChargeDeZone = { de, centre, tiles: discTiles(centre, RAYON_DE_ZONE_DE_LA_VITRINE), ...origine };
   const { rendu, couleur } = renduDeLaZone(z);
   return zone(rendu, couleur, z, distanceM);
@@ -304,7 +329,7 @@ function zoneDeLaVitrine(de: string, centre: CaseDeZone, origine: Pick<ChargeDeZ
 
 /** Les variantes d'un sort de rendu `rendu` teint de `couleur` : son trait qui touche ou manque, son incantation sans
  *  projectile, réussie ou ratée, et sa zone autour de la case `centre` de la cible. */
-function variantesDuSort({ rendu, couleur }: { rendu: RenduDef; couleur: string }, de: string, vers: string, distanceM: number, centre: CaseDeZone): EntreeDeVitrine['variantes'] {
+function variantesDuSort({ rendu, couleur }: { rendu: RenduDef; couleur: string }, de: string, vers: string, distanceM: number, centre: CaseDEffet): EntreeDeVitrine['variantes'] {
   return [
     { variante: 'touche', effet: coup(rendu, couleur, 'touche', de, vers, distanceM, null, flottantsDeLaVitrine('touche')) },
     { variante: 'manque', effet: coup(rendu, couleur, 'manque', de, vers, distanceM, null, flottantsDeLaVitrine('manque')) },
@@ -325,8 +350,8 @@ export function vitrineDesEffets(): VitrineDesEffets {
   const vers = CIBLE_DE_LA_VITRINE;
   const distanceM = DISTANCE_DE_LA_VITRINE_M;
   const metresParCase = sceneMetresPerTile(null);
-  const caseDeLAuteur: CaseDeZone = { x: 0, y: 0 };
-  const caseDeLaCible: CaseDeZone = { x: distanceM / metresParCase, y: 0 };
+  const caseDeLAuteur: CaseDEffet = { x: 0, y: 0 };
+  const caseDeLaCible: CaseDEffet = { x: distanceM / metresParCase, y: 0 };
   const deZone = maneuvers.filter((m) => CIBLAGES_DE_ZONE.has(m.targeting));
   const pasDArme = new Set<string>([
     REPLI.sort, REPLI.priere,
@@ -380,5 +405,5 @@ export function vitrineDesEffets(): VitrineDesEffets {
   ];
   const flottants = echantillons.map(([id, f]): EffetDeVitrine => ({ id, label: f.texte, effet: { quoi: 'flottant', sur: vers, case: null, flottant: f } }));
   const musiques = allMusicDefs().map((d) => ({ id: d.id, label: d.label, musique: musiqueDeLaSelection({ def: d.id })! }));
-  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques };
+  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques, deplacement: deplacement(de, CHEMIN_DE_LA_VITRINE, metresParCase, () => 0) };
 }
