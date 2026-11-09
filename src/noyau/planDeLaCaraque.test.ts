@@ -15,7 +15,7 @@ import { bassinDeLaCaraque } from './planDeNavire.testkit';
 
 const scene = buildScene(PLAN_DE_LA_CARAQUE);
 const caraque = garanti(findVehicleById('caraque'), 'caraque', 'véhicule');
-const hauteurs = garanti(caraque.hauteursDesPonts, 'caraque', 'hauteurs des ponts');
+const [cartes, hauteurs] = garanti(caraque.ponts, 'caraque', 'ponts');
 const legende = garanti(PLAN_DE_LA_CARAQUE.zoneLegend, 'caraque', 'pièces du plan');
 const calques = garanti(PLAN_DE_LA_CARAQUE.zoneMap, 'caraque', 'calque des pièces');
 
@@ -24,10 +24,10 @@ const caseDe = (id: string) => zoneWalkableCells(scene, garanti(scene.effectZone
 
 describe('ponts de la caraque (MDG 12 l.286), compilés par buildScene', () => {
   it('un étage par pont, de la cale à la plage arrière, chaque case à la hauteur de son glyphe dans la source', () => {
-    expect(scene.layers.map((l) => l.z)).toEqual([0, 1, 2, 3, 4]);
-    expect([[8, 2, 0], [8, 2, 1], [8, 2, 2], [13, 2, 3], [1, 2, 4], [14, 2, 4]].map(([x, y, z]) => heightAt(scene, x, y, z)))
-      .toEqual([-2, 0.3, 1.95, 3.75, 5.6, 5.85]);
-    const { cases } = grilleDesPonts(garanti(caraque.ponts, 'caraque', 'ponts'));
+    expect(scene.layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
+    expect([[8, 2, 0], [8, 2, 1], [8, 2, 2], [1, 2, 3], [6, 2, 3], [14, 2, 3]].map(([x, y, z]) => heightAt(scene, x, y, z)))
+      .toEqual([-2, 0.3, 1.95, 5.6, 5.6, 5.85]);
+    const { cases } = grilleDesPonts(cartes);
     for (const c of cases) expect(heightAt(scene, c.x, c.y, c.z), `${c.x},${c.y},${c.z}`).toBe(hauteurs[c.glyphe]);
     expect(scene.layers.flatMap(({ z }) => Array.from({ length: 18 * 5 }, (_, i) => ({ x: i % 18, y: Math.floor(i / 18), z })))
       .filter((c) => !estAbsent(tileAt(scene, c.x, c.y, c.z))).length).toBe(cases.length);
@@ -38,13 +38,12 @@ describe('ponts de la caraque (MDG 12 l.286), compilés par buildScene', () => {
     expect(zones.map((z) => z.label).sort()).toEqual(Object.values(legende).map((p) => p.label).sort());
   });
 
-  it('à pied, chaque pont dessert ses pièces, hors la plage arrière que l’embelle ouverte sépare du gaillard, et aucune échelle ne se gravit sans geste', () => {
-    const separees: Record<string, string[]> = { z4: ['plage-arriere'] };
+  it('à pied, chaque pont dessert ses pièces, le gaillard et la plage arrière par la passerelle, et aucune échelle ne se gravit sans geste', () => {
     Object.entries(calques).forEach(([etage, rangees]) => {
       const z = Number(etage.slice(1));
       const premiere = garanti([...([] as string[]).concat(rangees).join('')].find((ch) => ch in legende), etage, 'pièce du pont');
       const depart = caseDe(garanti(legende[premiere].id, premiere, 'id de pièce'));
-      expect(unreachableDescriptiveZones(scene, depart).filter((zo) => (zo.z ?? 0) === z).map((zo) => zo.id), etage).toEqual(separees[etage] ?? []);
+      expect(unreachableDescriptiveZones(scene, depart).filter((zo) => (zo.z ?? 0) === z).map((zo) => zo.id), etage).toEqual([]);
       expect(Math.max(...reachedFloors(scene, depart)), etage).toBeLessThanOrEqual(z);
     });
   });
@@ -83,8 +82,8 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     return [{ x: w.x, y: w.y, z }, w.side === 'N' ? { x: w.x, y: w.y - 1, z } : { x: w.x + 1, y: w.y, z }].map(k);
   }));
 
-  it('chaque pièce intérieure est meublée, sauf le garde-manger et la réserve de voiles, dont la seule case est celle de leur porte', () => {
-    const vides = new Set(['garde-manger', 'reserve-de-voiles-et-de-cordes']);
+  it('chaque pièce intérieure est meublée, sauf celle dont la seule case est celle de sa porte', () => {
+    const vides = new Set(pieces.filter((p) => sceneZoneTiles(p).every((t) => libres.has(k({ x: t.x, y: t.y, z: t.z ?? p.z ?? 0 })))).map((p) => p.id));
     expect(pieces.filter((p) => meublesDe(p.id).length > 0).map((p) => p.id).sort())
       .toEqual(pieces.filter((p) => p.presentation === 'interior' && !vides.has(p.id)).map((p) => p.id).sort());
     expect(pieces.flatMap((p) => meublesDe(p.id)).length, 'meuble sans pièce').toBe(meubles.length);
@@ -101,6 +100,11 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     }
   });
 
+  it('chaque meuble couvre des cases des ponts de la source, dans la coque', () => {
+    const emprise = new Set(grilleDesPonts(cartes).cases.map(k));
+    expect(meubles.flatMap((e) => casesDu(e).filter((c) => !emprise.has(k(c))).map((c) => `${e.id} ${k(c)}`))).toEqual([]);
+  });
+
   it('deux meubles ne se chevauchent pas', () => {
     const cases = meubles.flatMap((e) => casesDu(e).map(k));
     expect(cases.filter((c, i) => cases.indexOf(c) !== i)).toEqual([]);
@@ -111,7 +115,7 @@ describe('la caraque posée dans une scène (poserLesNavires)', () => {
 
   it('au cap O, ses ponts se posent tels quels, à leurs hauteurs, décalés de leur coin', () => {
     const s = bassinDeLaCaraque('O');
-    for (const z of [0, 1, 2, 3, 4])
+    for (const z of [0, 1, 2, 3])
       for (let y = 0; y < 5; y++)
         for (let x = 0; x < 18; x++)
           if (!estAbsent(tileAt(scene, x, y, z))) expect(heightAt(s, 3 + x, 2 + y, z), `${x},${y},${z}`).toBe(heightAt(scene, x, y, z));
@@ -167,17 +171,17 @@ describe('les Améliorations de la caraque à bord (pontsDuNavire)', () => {
   it('Embarcation de bord : le canot occupe deux cases de l’embelle, tourné avec le navire', () => {
     expect(bassinDeLaCaraque('O', []).entities.some((e) => e.id === 'c1-embarcation-de-bord')).toBe(false);
     const canot = (cap: 'N' | 'O') => garanti(bassinDeLaCaraque(cap, ['embarcation-de-bord']).entities.find((e) => e.id === 'c1-embarcation-de-bord'), cap, 'canot');
-    expect(canot('O')).toMatchObject({ pos: { x: 9, y: 4 }, z: 2, facing: 'S' });
-    // au cap N, la case (6..7, 2) du plan passe en x = 3 + 2, y = 2 + 6..7
-    expect(canot('N')).toMatchObject({ pos: { x: 5, y: 8 }, z: 2, facing: 'O' });
+    expect(canot('O')).toMatchObject({ pos: { x: 10, y: 4 }, z: 2, facing: 'S' });
+    // au cap N, la case (7..8, 2) du plan passe en x = 3 + 2, y = 2 + 7..8
+    expect(canot('N')).toMatchObject({ pos: { x: 5, y: 9 }, z: 2, facing: 'O' });
   });
 
   it('Sabord : sans lui la coque de la batterie est pleine ; avec, ses sabords sont des fenêtres closes', () => {
-    expect(arete(bassinDeLaCaraque('O', []), [8, 2], [8, 1], 1)).toMatchObject({ side: 'N' });
-    expect(arete(bassinDeLaCaraque('O', []), [8, 2], [8, 1], 1)?.window).toBeUndefined();
-    expect(arete(bassinDeLaCaraque('O', ['sabord']), [8, 2], [8, 1], 1)).toMatchObject({ window: true, shuttered: true });
-    // au cap E, le sabord (5, 0) tribord du plan passe en x = 3 + 17 - 5, au sud : y = 2 + 4
-    expect(arete(bassinDeLaCaraque('E', ['sabord']), [15, 6], [15, 7], 1)).toMatchObject({ window: true, shuttered: true });
+    expect(arete(bassinDeLaCaraque('O', []), [9, 2], [9, 1], 1)).toMatchObject({ side: 'N' });
+    expect(arete(bassinDeLaCaraque('O', []), [9, 2], [9, 1], 1)?.window).toBeUndefined();
+    expect(arete(bassinDeLaCaraque('O', ['sabord']), [9, 2], [9, 1], 1)).toMatchObject({ window: true, shuttered: true });
+    // au cap E, le sabord (6, 0) tribord du plan passe en x = 3 + 17 - 6, au sud : y = 2 + 4
+    expect(arete(bassinDeLaCaraque('E', ['sabord']), [14, 6], [14, 7], 1)).toMatchObject({ window: true, shuttered: true });
   });
 
   it('une Amélioration inconnue est refusée', () => {

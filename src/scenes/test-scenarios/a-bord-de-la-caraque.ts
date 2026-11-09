@@ -17,7 +17,7 @@ export const scenario: TestScenario = {
   tests:
     // MDG 12 l.286
     'Une caraque posée dans un bassin par référence à son type : pont supérieur et château de poupe, pont principal, ' +
-    'cale, gaillard et plage arrière parcourus à pied, chaque pièce de la légende nommée, ses cabines, cale et réserves meublées, les ponts reliés par leurs échelles de trappe ; ' +
+    'cale, gaillard, passerelle et plage arrière parcourus à pied, chaque pièce de la légende nommée, ses cabines, cale et réserves meublées, les ponts reliés par leurs échelles de trappe ; ' +
     'ses Améliorations à bord : sabords clos de la batterie et du château, hune du Nid-de-pie, canot de l’Embarcation de bord.',
   partyNote: 'Explorez librement : les cabines du château, puis descendez en cale, ou montez sur la plage arrière et à la hune par les échelles.',
   construire: (idNeuf) => ({

@@ -5,39 +5,39 @@ Repère Blender : z vers le haut, z = 0 à la ligne de flottaison, la proue vers
 (y vers le haut) place la proue vers +z. L'origine est le centre du plan de jeu, comme l'hôte le pose ; z = 0 reste la
 flottaison.
 
-Ponts : la source unique `ponts` et `hauteursDesPonts` de la fiche (`plan_de_jeu.py`, #3686) donne l'emprise de chaque
+Ponts : la source unique `ponts` de la fiche (`plan_de_jeu.py`, #3686) donne l'emprise de chaque
 pont, la hauteur de chaque case, ses cloisons, portes, échelles et sabords ; une case mesure `CASE` mètres.
 
 Abscisse `f` de la forme de coque : 0 au nez du gaillard d'avant, 1 à la face arrière du château de poupe, calée par
 morceaux sur les bords des ponts (`CALAGE`). Mesures : illustration de profil (hauteurs, 24,06 px/m pour 842 px de
-coque) et plan « Pont supérieur » (positions des mâts, forme vue de dessus, saillie du beaupré).
+coque) et plans des ponts (positions des mâts et de la façade du château, forme vue de dessus, saillie du beaupré).
 """
 
 # Mètres par case du plan (`sceneMetresPerTile`, LDB 15 l.12).
 CASE = 2.0
 # Calage de f sur le plus haut pont : (f de son bord avant, f de son bord arrière) de chaque glyphe, le gaillard d'avant
 # et la plage arrière ; entre deux, f suit les cases linéairement.
-CALAGE = {"g": (0.0, 0.254), "a": (0.70, 1.0)}
+CALAGE = {"g": (0.0, 0.254), "a": (0.60, 1.0)}
 # Maître-couple : f de ses bouts, où tous les niveaux de coque ont leur pleine largeur (`FORME_PLAN`), et longueur en
 # mètres de l'entrée (du gaillard d'avant au maître-couple) et de la sortie (du maître-couple au château) ; les cases
 # de l'embelle au-delà de l'entrée et de la sortie allongent le maître-couple.
-COPLE = {"f": (0.513, 0.577), "entree": 9.3, "sortie": 4.4}
+COPLE = {"f": (0.513, 0.577), "entree": 9.3, "sortie": 0.8}
 # Le pont dont les cases les plus basses de chaque colonne donnent le pont principal, sous le pavois de l'embelle.
 PONT_PRINCIPAL = 2
-# Glyphes des ponts nommés : gaillard d'avant, plage arrière, pied du grand mât et sa hune.
-GLYPHES = {"gaillard": "g", "plage": "a", "mat": "m", "hune": "n"}
+# Glyphes des ponts nommés : gaillard d'avant, plage arrière, passerelle, pied du grand mât et sa hune.
+GLYPHES = {"gaillard": "g", "plage": "a", "passerelle": "z", "mat": "m", "hune": "n"}
 # Sous chaque pont couvrant (glyphe de la case du dessus) : épaisseur du pont, paroi de la pièce creusée dessous (« bord » :
-# le bordé à la hauteur de la pièce, « lisse » : le plat-bord, « chateau » : la muraille du château ; décalage vers
-# l'extérieur), None quand rien ne se creuse (le dessous du gaillard d'avant, ouvert sur le pont principal).
+# le bordé à la hauteur de la pièce, « chateau » : la muraille du château ; décalage vers l'extérieur), None quand rien
+# ne se creuse (le dessous du gaillard d'avant, ouvert sur le pont principal, et celui de la passerelle).
 SOUS_LES_PONTS = {
     "e": {"epaisseur": 0.12, "paroi": ("bord", -0.20)},
     "p": {"epaisseur": 0.10, "paroi": ("bord", -0.20)},
     "q": {"epaisseur": 0.10, "paroi": ("bord", -0.20)},
     "r": {"epaisseur": 0.10, "paroi": ("bord", -0.20)},
     "m": {"epaisseur": 0.10, "paroi": ("bord", -0.20)},
-    "h": {"epaisseur": 0.13, "paroi": ("lisse", -0.30)},
     "a": {"epaisseur": 0.10, "paroi": ("chateau", -0.15)},
     "g": {"epaisseur": 1.30, "paroi": None},
+    "z": {"epaisseur": 0.15, "paroi": None},
 }
 # Muraille laissée au bout d'une pièce creusée devant une cloison du plan qui ne donne sur aucune pièce.
 MURAILLE = 0.15
@@ -97,7 +97,7 @@ NIVEAUX = [
 # Hauteur du plat-bord selon f : tête d'étrave, pavois relevé sous le gaillard d'avant, embelle à hauteur de taille
 # (0.95 m au-dessus du pont : l'équipage s'y voit du buste, illustration p.99, et une pièce tire par-dessus), montée
 # sous le château de poupe, qui la couvre.
-LISSE = [(0.085, 3.6), (0.103, 4.0), (0.12, 4.35), (0.2506, 4.35), (0.264, 2.9), (0.6, 2.9), (0.7, 3.1), (0.85, 3.6),
+LISSE = [(0.085, 3.6), (0.103, 4.0), (0.12, 4.35), (0.2506, 4.35), (0.264, 2.9), (0.5, 2.9), (0.6, 3.1), (0.8, 3.6),
          (1.0, 3.65)]
 PAVOIS = (0.25, 0.45)            # retrait du plat-bord vers l'intérieur : en x, en y aux deux bouts
 
@@ -105,7 +105,7 @@ GOUVERNAIL = {"bas": (0.952, -2.8), "haut": (0.980, 3.2), "recul": 0.35, "corde"
 
 # Château de poupe : stations f, niveaux (z, saillie sur la demi-largeur du plat-bord), pont et garde-corps.
 CHATEAU = {
-    "stations": [0.70, 0.735, 0.77, 0.81, 0.85, 0.89, 0.93, 0.965, 0.98, 1.0],
+    "stations": [0.60, 0.647, 0.693, 0.747, 0.80, 0.853, 0.907, 0.953, 0.973, 1.0],
     "niveaux": [(1.8, -0.10), (3.2, -0.10), (3.3, 0.25), (3.55, 0.25), (3.6, 0.12), (5.95, 0.12), (6.0, 0.24),
                 (6.2, 0.24)],
     "garde_corps": (0.37, 0.25),     # retrait du plat-bord du château : en x, en y
@@ -120,12 +120,19 @@ GAILLARD = {
     "cloison": 0.15,                 # épaisseur de sa cloison arrière, du pont principal à son fond
 }
 
+# Passerelle du gaillard d'avant à la plage arrière, sur ses cases (glyphe `GLYPHES["passerelle"]`) : tablier (largeur,
+# épaisseur), garde-corps (hauteur, section), poutres de support en travers de l'embelle (abscisse de chacune en cases
+# du plan, section) sur des épontilles posées sur le plat-bord (section), z du haut du passage à travers les pavois des
+# ponts qu'elle relie. Plan « Gaillard d'avant » p.99, « 4 » et « 5 ».
+PASSERELLE = {"largeur": 1.6, "epaisseur": 0.15, "garde_corps": (0.95, 0.08), "poutres": (6.1, 7.7, 9.25),
+              "section": (0.25, 0.30), "epontille": 0.18, "passage": 6.6}
+
 # Mâture. f du pied (plan « Pont supérieur ») ou, pour le grand mât, la case `GLYPHES["mat"]` des ponts ; z du pied,
 # z de tête, rayons bas et haut.
 MATS = {
     "misaine": {"f": 0.165, "pied": 5.2, "tete": 18.0, "rayons": (0.24, 0.15), "emplanture": 2.2},
     "grand_mat": {"pied": 1.5, "tete": 23.95, "rayons": (0.28, 0.20), "emplanture": -2.0},
-    "grand_mat_arriere": {"f": 0.763, "pied": 5.4, "tete": 18.7, "rayons": (0.20, 0.13), "emplanture": 1.92},
+    "grand_mat_arriere": {"f": 0.743, "pied": 5.4, "tete": 18.7, "rayons": (0.20, 0.13), "emplanture": 1.92},
     "artimon": {"f": 0.973, "pied": 5.4, "tete": 15.0, "rayons": (0.16, 0.10), "emplanture": 1.92},
 }
 COTES_MAT = 8
@@ -174,7 +181,7 @@ POSTES_DU_PONT = [
 
 # Sabords (Amélioration `sabord`, manifeste `selon.sabord.postes`) : une ouverture traversant la muraille à chaque
 # arête sabord des ponts (batterie du pont principal, plan p.99, « 22 », sous l'embelle, entre les deux préceintes ;
-# chambre du château, illustration p.99 ; tableau du château), au milieu de la case qu'elle ouvre, le cadre et le fond
+# pièces du château, illustration p.99 ; tableau du château), au milieu de la case qu'elle ouvre, le cadre et le fond
 # dans le nœud `avec-sabord`, le bordé qui la bouche dans le nœud `sans-sabord`. Ils remplacent les postes des bords
 # qu'ils nomment ; la proue garde ses bombardes du gaillard. Chaque ouverture regarde exactement son bord, comme la
 # pièce et la trappe qui s'y montent tournées vers lui ; le plancher de son poste est celui de sa case. L'ouverture :
@@ -210,7 +217,7 @@ CLAIRE_VOIE = {"haut": 6.5, "pas": 1.1, "montant": 0.16, "lisses": [(6.12, 6.22)
 CARTOUCHE = {"arc": (0.0, 0.11, 0.13), "panneau": (0.62, 0.32, 0.07, 0.12)}
 # Défenses verticales de l'embelle, entre les sabords de la batterie et les ralentisseurs : abscisse de chacune en
 # cases du plan, de z à la lisse, section, saillie.
-DEFENSES = {"cases": (4.6, 5.9, 7.1, 8.4, 9.6, 10.8), "z": 0.85, "section": 0.14, "saillie": 0.10}
+DEFENSES = {"cases": (4.7, 5.6, 7.5, 9.4, 10.5), "z": 0.85, "section": 0.14, "saillie": 0.10}
 
 # Haubans et enfléchures : par mât, z du capelage, f de chaque cadène (relatif au mât), z et saillie des cadènes,
 # pas des enfléchures ; étais (de, à) en (f, z) ; diamètres des cordages.
@@ -245,7 +252,7 @@ ANCRAGES = {
     "safran": [(0.0, 0.966, 0.2)],
 }
 ANCRAGES_AUX_CASES = {
-    "embarcation-de-bord": [(0.0, 6.5, "pont")],                              # la case de la barque du plan
+    "embarcation-de-bord": [(0.0, 8.0, "pont")],                              # sur la trappe de fret du plan
     "ralentisseurs-lateraux": [(4.95, 6.5, 2.2), (-4.95, 6.5, 2.2)],          # entre les sabords de la batterie, hors du blindage
     "propulsion-a-vapeur": [(0.0, 8.75, "pont")],                             # entre le canot et le grand mât
 }
@@ -291,13 +298,14 @@ REVUE = {
         ("02-armee", "interieur-embelle", (-0.3, 3.7, 8.5), (4.2, 2.6, 2.0), 16),
         ("05-sabords-batterie", "interieur-entrepont", (-0.6, 1.3, 1.0), (4.3, 1.05, 5.0), 12),
         ("05-sabords-batterie", "exterieur-sabord-batterie", (9.0, 3.0, 5.0), (4.3, 1.45, 5.0), 30),
-        ("04-sabords-armee", "interieur-chateau", (-2.0, 5.0, -6.7), (2.0, 4.6, -14.0), 14),
+        ("04-sabords-armee", "interieur-chateau", (0.0, 3.6, -4.7), (0.8, 2.8, -13.5), 14),
         ("21-tout", "proue-idole-et-belier", (5.5, 3.0, 18.63), (0.0, 1.2, 14.693), 30),
         ("01-nue", "interieur-cale", (0.4, -0.6, -10.0), (-0.3, -1.5, 6.0), 14),
-        ("01-nue", "porte-du-chateau", (-2.6, 3.5, -2.065), (0.0, 2.7, -6.0), 22),
+        ("01-nue", "porte-du-chateau", (-2.6, 3.5, -0.065), (0.0, 2.7, -4.0), 22),
         ("01-nue", "porte-du-gaillard", (1.8, 3.7, 6.194), (0.0, 3.0, 10.0), 22),
         ("01-nue", "ecoutille-et-echelle", (-0.5, 4.2, 4.5), (-2.0, 1.0, 7.6), 20),
         ("01-nue", "echelle-de-l-entrepont", (1.5, 1.3, 9.5), (-2.0, 0.9, 8.2), 14),
-        ("01-nue", "interieur-chateau-bas", (1.2, 3.25, -6.6), (-0.97, 2.55, -10.0), 14),
+        ("01-nue", "interieur-chateau-bas", (0.0, 3.4, -13.3), (-0.5, 2.6, -5.0), 14),
+        ("01-nue", "passerelle", (4.5, 8.5, 13.0), (0.0, 5.6, 2.0), 20),
     ],
 }

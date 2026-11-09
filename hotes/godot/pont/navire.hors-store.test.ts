@@ -29,7 +29,7 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
 
   it('le monde garde le sol des ponts pour le pointage, sans le peindre ; le plateau ne dessine aucune de leurs arêtes', () => {
     const { monde } = appel('monde') as unknown as { monde: VolumeDuMonde };
-    expect(monde.hauteurs.map((h) => h.z)).toEqual([0, 1, 2, 3, 4]);
+    expect(monde.hauteurs.map((h) => h.z)).toEqual([0, 1, 2, 3]);
     expect(monde.surfaces.filter((s) => s.navire === 'caraque').length).toBeGreaterThan(0);
     expect(monde.surfaces.filter((s) => s.navire === undefined).map((s) => s.matiere)).not.toContain('relief--pilier');
     expect(vueDe(appel('vue')).plateau!.aretes).toEqual([]);
@@ -37,9 +37,8 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
 });
 
 describe('le modèle commité de la caraque, sur ses ponts (#3686)', () => {
-  const fiche = findVehicleById('caraque');
-  const { w, h, cases, aretes } = grilleDesPonts(fiche?.ponts ?? []);
-  const hauteurs = fiche?.hauteursDesPonts ?? {};
+  const [cartes, hauteurs] = garanti(findVehicleById('caraque')?.ponts, 'caraque', 'ponts');
+  const { w, h, cases, aretes } = grilleDesPonts(cartes);
   const manifeste = COMMITES.manifestes['vehicule--caraque'] as {
     postes: Record<string, number[][]>; selon: { sabord: { postes: Record<string, number[][]> } }; ancrages: Record<string, number[][]>;
   };

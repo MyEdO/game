@@ -82,14 +82,19 @@ const doc = document(
       oars: profilDePropulsionSchema.optional(),
       traits: z.array(navalTraitRefSchema),
     }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur en mètres" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
-    /** PONTS d'un navire qu'on visite (#3686) : une carte box-drawing par pont, du plus bas au plus haut, en cases du
+    /** PONTS d'un navire qu'on visite (#3686), une paire : une carte box-drawing par pont, du plus bas au plus haut, en cases du
      *  plan des scènes (`sceneMetresPerTile`), la proue à gauche, tribord en haut (`MOTS_DES_PONTS`,
      *  `grammaire/carte-ascii.ts`). La seule source de la forme des ponts : le plan de jeu
-     *  (`noyau/planDeLaCaraque.ts`) et le modèle 3D (`scripts/personnage-3d/vehicule/`) la lisent. Valeurs
-     *  d'adaptation (#3686), calées sur le modèle 3D. */
-    ponts: z.array(z.string()).optional(),
-    /** Hauteur en mètres au-dessus de la flottaison de chaque glyphe de case des `ponts`. */
-    hauteursDesPonts: z.record(z.string(), z.number()).optional(),
+     *  (`noyau/planDeLaCaraque.ts`) et le modèle 3D (`scripts/personnage-3d/vehicule/`) la lisent. Puis la hauteur en
+     *  mètres au-dessus de la flottaison de chaque glyphe de case : une paire, pour que les cartes n'aillent jamais sans
+     *  leurs hauteurs (`defautsDesPonts`). Valeurs d'adaptation (#3686) relevées sur la planche du navire : ses plans
+     *  des ponts (cases, cloisons, trappes), son profil (hauteurs). */
+    ponts: z
+      .tuple([z.array(z.string()), z.record(z.string(), z.number())])
+      .superRefine(([cartes, hauteurs], ctx) => {
+        for (const defaut of defautsDesPonts(cartes, hauteurs)) ctx.addIssue({ code: 'custom', path: [0], message: defaut });
+      })
+      .optional(),
   },
   {
     enc: { label: 'Encombrement (objet)', hint: 'Encombrement de l’objet véhicule — vide = ne se porte pas' },
@@ -104,26 +109,19 @@ const doc = document(
       hint: 'Profil à PV de la coque : Endurance et Blessures, propulsion/gréement et Traits',
     },
     ship: { label: 'Facette Navire', hint: 'Équipage, manœuvrabilité, longueur et capacité du profil naval' },
-    ponts: { label: 'Ponts', hint: 'Une carte box-drawing par pont, du plus bas au plus haut' },
-    hauteursDesPonts: { label: 'Hauteurs des ponts', hint: 'Hauteur au-dessus de la flottaison de chaque glyphe de case des ponts' },
+    ponts: { label: 'Ponts', hint: 'Les cartes box-drawing des ponts, du plus bas au plus haut, puis la hauteur au-dessus de la flottaison de chaque glyphe de case' },
   },
   {
     codex: { keys: ['vehicles'] },
     edit: { dataset: 'vehicles' },
   },
   {
-    /** MDG 12 l.131, l.195-199, l.311 ; #3686 */
+    /** MDG 12 l.131, l.195-199, l.311 */
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const navire = (v as { ship?: { sail?: unknown; oars?: unknown } }).ship;
         if (navire && !navire.sail && !navire.oars) {
           ctx.addIssue({ code: 'custom', path: ['ship', 'sail'], message: `${(v as { id: string }).id} : navire sans propulsion — Voiles ou Avirons requis` });
-        }
-        const { id, ponts, hauteursDesPonts } = v as { id: string; ponts?: string[]; hauteursDesPonts?: Record<string, number> };
-        if ((ponts === undefined) !== (hauteursDesPonts === undefined)) {
-          ctx.addIssue({ code: 'custom', path: ['ponts'], message: `${id} : \`ponts\` et \`hauteursDesPonts\` vont ensemble` });
-        } else if (ponts && hauteursDesPonts) {
-          for (const defaut of defautsDesPonts(ponts, hauteursDesPonts)) ctx.addIssue({ code: 'custom', path: ['ponts'], message: `${id} : ${defaut}` });
         }
       }),
   },

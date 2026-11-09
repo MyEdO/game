@@ -1,4 +1,4 @@
-"""Les ponts d'un véhicule (`ponts` et `hauteursDesPonts` de sa fiche dans `src/data/vehicles.json`, #3686), la source
+"""Les ponts d'un véhicule (`ponts` de sa fiche dans `src/data/vehicles.json`, #3686), la source
 unique que lit aussi le noyau (`src/noyau/planDeLaCaraque.ts`) : emprise de chaque pont en cases, hauteur de chaque
 case, cloisons, portes, échelles et sabords, en cases du plan (proue à x = 0, tribord à y = 0).
 
@@ -24,7 +24,8 @@ def lire(chemin, id_):
 
 def depuis(fiche):
     """Les ponts d'une fiche : dimensions, cases {(x, y, z): glyphe}, hauteurs {glyphe: m}, arêtes [(sens, x, y, z, mot)]."""
-    lignes = [p.split("\n") for p in fiche["ponts"]]
+    cartes, hauteurs = fiche["ponts"]
+    lignes = [p.split("\n") for p in cartes]
     H = (max(len(l) for l in lignes) - 1) // 2
     W = (max(len(s) for l in lignes for s in l) - 1) // 2
 
@@ -45,7 +46,7 @@ def depuis(fiche):
             for x in range(W):
                 if a(z, 2 * y, 2 * x + 1) not in BASE:
                     aretes.append(("l", x, y, z, a(z, 2 * y, 2 * x + 1)))
-    return {"W": W, "H": H, "ponts": len(lignes), "cases": cases, "hauteurs": dict(fiche["hauteursDesPonts"]), "aretes": aretes}
+    return {"W": W, "H": H, "ponts": len(lignes), "cases": cases, "hauteurs": dict(hauteurs), "aretes": aretes}
 
 
 def voisines(sens, x, y):

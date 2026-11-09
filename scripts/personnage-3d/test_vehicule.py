@@ -159,7 +159,7 @@ def allongee(fiche, colonne, n):
     """La fiche dont chaque pont répète `n` fois la colonne de cases `colonne` (et l'arête qui la suit)."""
     fiche = copy.deepcopy(fiche)
     debut = 2 * colonne + 1
-    fiche['ponts'] = ['\n'.join(l[:debut] + l[debut:debut + 2] * n + l[debut:] for l in p.split('\n')) for p in fiche['ponts']]
+    fiche['ponts'][0] = ['\n'.join(l[:debut] + l[debut:debut + 2] * n + l[debut:] for l in p.split('\n')) for p in fiche['ponts'][0]]
     return fiche
 
 

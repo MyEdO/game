@@ -1,10 +1,10 @@
 /**
  * Les ponts de la caraque en `MapSpec` que `buildScene` compile (#3686), lus dans la seule source de leur forme :
- * `ponts` et `hauteursDesPonts` de sa fiche (`vehicles.json`), que la construction de son modèle 3D lit aussi
+ * `ponts` de sa fiche (`vehicles.json`), que la construction de son modèle 3D lit aussi
  * (`scripts/personnage-3d/vehicule/caraque/plan_de_jeu.py`). Une case de 2 m (`sceneMetresPerTile`), la proue à
  * `x = 0`, tribord à `y = 0`, la hauteur en mètres depuis la flottaison ; le centre du plan est l'origine du modèle.
  * Un étage par pont : `z0` cale, `z1` pont principal (la batterie), `z2` pont supérieur (l'embelle, le dessous du
- * gaillard d'avant et le château de poupe), `z3` chambre du château, `z4` gaillard d'avant et plage arrière. Une
+ * gaillard d'avant et le château de poupe), `z3` gaillard d'avant, passerelle et plage arrière. Une
  * trappe est la case du pont du dessous à la hauteur du pont du dessus, l'étage du dessus y est vide ; son échelle
  * (`MOTS_DES_PONTS.echelle`) est l'arête escaladable qui la joint au pont (LDB 15 l.55).
  * Ce qui s'écrit ici, aux cases de la source : les pièces de la légende des plans (MDG 12 l.286, planche
@@ -22,8 +22,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { terrainAbsent, terrainsAvecGlyphe } from './monde/terrain';
 
 const CARAQUE = garanti(findVehicleById('caraque'), 'caraque', 'véhicule');
-const PONTS = garanti(CARAQUE.ponts, 'caraque', 'ponts du véhicule');
-const HAUTEURS = garanti(CARAQUE.hauteursDesPonts, 'caraque', 'hauteurs des ponts');
+const [PONTS, HAUTEURS] = garanti(CARAQUE.ponts, 'caraque', 'ponts du véhicule');
 const GRILLE = grilleDesPonts(PONTS);
 
 /** Le plancher des ponts : le terrain du glyphe `=` des plans. */
@@ -50,38 +49,31 @@ const CARTES: Record<string, string> = Object.fromEntries(PONTS.map((carte, z) =
 const PIECES: NonNullable<MapSpec['zoneMap']> = {
   z0: [
     '..................',
-    '....CCCCCCIIII....',
-    '....CCCCCCCCCCCC..',
-    '....CCCCCCRRJJ....',
+    '....CCCCCCCCII....',
+    '....CCCCCCCCCCCJ..',
+    '....CCCCCCCCCR....',
     '..................',
   ],
   z1: [
-    '.....PPPPMMM......',
-    '...PPPPPPPPPPPAAG.',
-    '..VP.PPPPPPPPPKKK.',
-    '...PPPP.PPPPPPKKK.',
-    '.....PPPPPNN......',
+    '.....PPPPPPP......',
+    '...PPPPPPPPPPMMMG.',
+    '..VP.PPPPPP.PPPPK.',
+    '...PPPPPPPPPPNNAK.',
+    '.....PPPPPPP......',
   ],
   z2: [
-    '.....SSSSSSS......',
-    '..OQS.SSSSSSEEFFF.',
-    '..OQSSTTSSSSHHHHH.',
-    '..OQSSSSSS.SHHHHH.',
-    '.....SSSSSSS......',
+    '.....SSSSSSE......',
+    '..OQS.SSSSSEFFXXBB',
+    '..OQSSSTTSSHHHHHBB',
+    '..OQS.SSSS.HHHYYBB',
+    '.....SSSSSSH......',
   ],
   z3: [
-    '..................',
-    '...............XXX',
-    '..............BB.B',
-    '...............YYY',
-    '..................',
-  ],
-  z4: [
-    '..................',
-    'WWWW........UUUUUU',
-    'WWWW.........UUUUU',
-    'WWW.........UUUUUU',
-    '..................',
+    '...........U......',
+    'WWWW.......UUUUUUU',
+    'WWWWZZZZZZZUUUUUUU',
+    'WWW........UU.UUUU',
+    '...........U......',
   ],
 };
 
@@ -108,36 +100,33 @@ const LEGENDE_DES_PIECES: NonNullable<MapSpec['zoneLegend']> = {
   Y: { id: 'quartiers-du-timonier', label: 'Quartiers du timonier', presentation: 'interior' },
   B: { id: 'barre', label: 'Barre', presentation: 'interior' },
   W: { id: 'gaillard-d-avant', label: "Gaillard d'avant", presentation: 'exterior' },
+  Z: { id: 'passerelle', label: 'Passerelle', presentation: 'exterior' },
   U: { id: 'plage-arriere', label: 'Plage arrière', presentation: 'exterior' },
 };
 
 /** Le mobilier de chaque pièce intérieure, par lettre de la légende : le décor (`ref` de `props.json`), la case
  *  du coin nord-ouest de son emprise et son cap (`S` par défaut). Une case de porte, de trappe ou de pied
- *  d'échelle reste libre, et le garde-manger et la réserve de voiles, dont la seule case est celle de leur porte,
- *  restent vides. */
+ *  d'échelle reste libre, et une pièce dont la seule case est celle de sa porte reste vide. */
 const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing?: Dir4])[]>> = {
   C: [
-    ['tonneaux-pile', 4, 1], ['caisse', 5, 1], ['tonneau', 7, 1], ['caisse', 8, 1],
-    ['caisse', 4, 3], ['tonneaux-pile', 5, 3], ['caisse', 7, 3], ['tonneaux-pile', 9, 3], ['tonneau', 14, 2],
+    ['tonneaux-pile', 4, 1], ['caisse', 5, 1], ['tonneau', 7, 1], ['caisse', 8, 1], ['tonneau', 9, 1],
+    ['caisse', 4, 3], ['tonneaux-pile', 5, 3], ['caisse', 7, 3], ['tonneaux-pile', 9, 3],
   ],
-  I: [['lit', 10, 1], ['etagere', 13, 1]],
-  R: [['etabli', 11, 3]],
-  J: [['banc', 12, 3]],
+  I: [['etagere', 12, 1]],
   P: [
     ['cabestan', 7, 2],
     ['hamac', 5, 0], ['hamac', 6, 0], ['hamac', 7, 0], ['hamac', 5, 4], ['hamac', 6, 4], ['hamac', 7, 4],
   ],
-  M: [['caisse', 9, 0], ['tonneau', 11, 0]],
-  N: [['tonneau', 10, 4]],
-  A: [['armoire', 15, 1]],
-  K: [['cheminee-interieure', 16, 3, 'O'], ['marmite', 15, 3], ['tonneau', 14, 3]],
+  M: [['caisse', 13, 1], ['tonneau', 15, 1]],
+  N: [['tonneau', 14, 3]],
+  K: [['cheminee-interieure', 16, 3, 'O']],
   O: [['rouleau-de-cordage', 2, 1], ['rouleau-de-cordage', 2, 3]],
   Q: [['hamac', 3, 1]],
-  E: [['table', 13, 1]],
-  F: [['lit', 15, 1]],
-  H: [['table-2x1', 12, 3], ['banc', 14, 3]],
-  X: [['lit', 16, 1]],
-  Y: [['lit', 16, 3]],
+  E: [['table', 11, 0]],
+  F: [['coffre', 13, 1]],
+  H: [['table', 11, 3], ['banc', 11, 4]],
+  X: [['bureau', 15, 1]],
+  Y: [['coffre', 15, 3]],
   B: [['barre-de-navire', 17, 2, 'E']],
 };
 
@@ -191,7 +180,7 @@ export const AMELIORATIONS_DE_LA_CARAQUE: Readonly<Record<string, ApportAuxPonts
     ],
   },
   'embarcation-de-bord': {
-    entities: [{ id: 'embarcation-de-bord', kind: 'prop', ref: 'barque', pos: { x: 6, y: 2 }, z: 2, facing: 'S' }],
+    entities: [{ id: 'embarcation-de-bord', kind: 'prop', ref: 'barque', pos: { x: 7, y: 2 }, z: 2, facing: 'S' }],
   },
   sabord: {
     walls: aretesDe(MOTS_DES_PONTS.sabord).map((e): WallSpec => ({ ...e, window: true, shuttered: true })),

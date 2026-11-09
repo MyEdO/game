@@ -412,8 +412,6 @@ class Pieces:
         sorte, decalage = self.D["SOUS_LES_PONTS"][g]["paroi"]
         if sorte == "bord":
             return C.bord(f, z) + decalage
-        if sorte == "lisse":
-            return C.lisse(f) + decalage
         return C.lisse(f) + self.D["CHATEAU"]["niveaux"][4][1] + decalage
 
     def creusees_en(self, x, y, za, zb):
@@ -655,7 +653,7 @@ def construire(D, P):
 
     # coque : bordé lissé de la quille au plat-bord, préceinte, pavois, pont (un solide, que les sabords percent) ;
     # gouvernail
-    coque = Maille(tous)
+    coque, interieurs = Maille(tous), Maille(tous)
     bordage, chateau = Maille(tous), Maille(tous)
     anneaux = []
     for n in range(len(D["NIVEAUX"])):
@@ -687,6 +685,60 @@ def construire(D, P):
     gaillard = Maille(tous)
     enceinte(gaillard, anneaux, False, A["garde_corps"], lambda _: C.hauteur(GL["gaillard"]), "bois")
 
+    # passerelle en travers de l'embelle : tablier sur ses cases, garde-corps, poutres de support sur des épontilles posées
+    # sur le plat-bord ; un passage à travers le pavois du pont qui la prolonge à chacun de ses bouts
+    PA = D["PASSERELLE"]
+    passages, travees = [], []
+    for zp, yp, x in sorted((z, yy, x) for (x, yy, z), g in P["cases"].items() if g == GL["passerelle"]):
+        if travees and travees[-1][1:] == (yp, zp) and travees[-1][0][1] == x - 1:
+            travees[-1] = ((travees[-1][0][0], x), yp, zp)
+        else:
+            travees.append(((x, x), yp, zp))
+    for (x0, x1), yp, zp in travees:
+        h = P["hauteurs"][GL["passerelle"]]
+        ya, yb, xc = C.y_du_plan(x0), C.y_du_plan(x1 + 1), C.x_du_plan(yp + 0.5)
+        demi = PA["largeur"] / 2
+        poutre(coque, (xc, ya, h - PA["epaisseur"] / 2), (xc, yb, h - PA["epaisseur"] / 2), PA["largeur"], PA["epaisseur"], (0, 0, 1), "bois")
+        hg, sg = PA["garde_corps"]
+        for s_ in (1, -1):
+            xg = xc + s_ * (demi - sg / 2)
+            poutre(coque, (xg, ya, h + hg - sg / 2), (xg, yb, h + hg - sg / 2), sg, sg, (0, 0, 1), "bois")
+            for yy in [ya, yb] + [C.y_du_plan(xp) for xp in PA["poutres"] if ya < C.y_du_plan(xp) < yb]:
+                poutre(coque, (xg, yy, h), (xg, yy, h + hg - sg), sg, sg, (1, 0, 0), "bois")
+        lp, hp = PA["section"]
+        zp_ = h - PA["epaisseur"] - hp / 2
+        for xp in PA["poutres"]:
+            yy = C.y_du_plan(xp)
+            if not ya < yy < yb:
+                continue
+            f = C.f(yy)
+            w = C.lisse(f) - D["PAVOIS"][0]
+            poutre(coque, (-w, yy, zp_), (w, yy, zp_), lp, hp, (0, 0, 1), "bois")
+            e = PA["epontille"]
+            for s_ in (1, -1):
+                poutre(coque, (s_ * (w - e / 2), yy, lineaire(D["LISSE"], f)), (s_ * (w - e / 2), yy, zp_ - hp / 2), e, e, (1, 0, 0), "bois")
+        for xb, yy in ((x0 - 1, ya), (x1 + 1, yb)):
+            voisin = P["cases"].get((xb, yp, zp))
+            if voisin is None or voisin == GL["passerelle"]:
+                continue
+            hv = P["hauteurs"][voisin]
+            passages.append((xc - demi, xc + demi, yy))
+            zc = (hv + PA["passage"]) / 2
+            poutre(interieurs, (xc, yy - 0.6, zc), (xc, yy + 0.6, zc), PA["largeur"], PA["passage"] - hv, (0, 0, 1), "bois")
+
+    def hors_des_passages(segments):
+        """Les `segments` (x, y) sans ce qui croise un passage de la passerelle : une traverse coupée de part et d'autre."""
+        sortie = []
+        for a, b in segments:
+            coupe = next(((xa, xb) for xa, xb, yy in passages if abs(a[1] - yy) < 0.5 and abs(b[1] - yy) < 0.5), None)
+            if coupe is None:
+                sortie.append((a, b))
+                continue
+            au = lambda xx: (xx, a[1] + (b[1] - a[1]) * (xx - a[0]) / (b[0] - a[0]))  # noqa: E731
+            pres, loin = coupe if a[0] < b[0] else coupe[::-1]
+            sortie += [(a, au(pres)), (au(loin), b)]
+        return sortie
+
     def contour(points):
         """Segments du contour fermé `points` (x, y) : bâbord dans l'ordre, puis tribord à rebours."""
         tour = points + [(-x, yy) for x, yy in points[::-1]]
@@ -706,6 +758,7 @@ def construire(D, P):
     retrait = BA["main"][0] / 2 + 0.02
     segs = contour([(C.lisse(f) + saillie_haut - retrait, y(f) if f < 1.0 else y(f) - retrait) for f in K["stations"]])
     segs[-1] = (segs[-1][0], (segs[-1][1][0], segs[-1][1][1] + retrait))
+    segs = hors_des_passages(segs)
     r_col, r_panse = BA["rayons"]
     for px, py in le_long(segs, BA["pas"]):
         fuseau(coque, (px, py, z_bas), (px, py, BA["haut"] - BA["main"][1]),
@@ -720,7 +773,7 @@ def construire(D, P):
     sa = A["niveaux"][-1][1]
     ep = CV["epaisseur"]
     bords_g = [(lineaire(largeur, f) + sa - ep / 2, y(f)) for f in A["stations"]]
-    segs_g = contour(bords_g)[:-1]          # sans l'avant plat
+    segs_g = hors_des_passages(contour(bords_g)[:-1])          # sans l'avant plat
     for px, py in le_long(segs_g, CV["pas"]) + [segs_g[-1][1]]:
         poutre(coque, (px, py, z_mur), (px, py, CV["haut"]), CV["montant"], CV["montant"], (1, 0, 0), "bois")
     for (x0, y0), (x1, y1) in segs_g:
@@ -807,7 +860,6 @@ def construire(D, P):
     for centre, bord, plancher, sorte, profondeur in sabords_des_ponts(D, P, C, pieces):
         sabord(centre, bord, plancher, sorte != "bord", profondeur)
 
-    interieurs = Maille(tous)
     pieces.creuser(interieurs)
     amenager(D, P, C, pieces, coque, interieurs)
 
@@ -975,7 +1027,7 @@ def reunir(cible, sources):
 
 def percer(coque, solides, interieurs, ouvertures):
     """Réunit les `solides` (bordé, château, gaillard) en un seul volume, sans faces internes qui se chevauchent, y creuse
-    les `interieurs` (cale, entrepont, pièces et chambre du château, écoutilles, portes), puis les `ouvertures` des
+    les `interieurs` (cale, entrepont, pièces du château, écoutilles, portes, passages de la passerelle), puis les `ouvertures` des
     sabords : ce qui les traverse va au nœud `sans-sabord` (le bordé qui les bouche sans Sabord), le reste à `coque`."""
     solide = solides[0]
     for s_ in solides[1:]:
