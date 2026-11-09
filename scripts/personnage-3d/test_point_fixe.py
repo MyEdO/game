@@ -30,8 +30,8 @@ def doublures_de_la_construction(peau, journal):
         correction['hors'][:] = False
         correction['retouches'].add(0)
 
-    def atteindre(construire_tour, passes_max, refuser):
-        for passe in range(1, passes_max + 1):
+    def atteindre(construire_tour, passes_max, refuser, depuis=1):
+        for passe in range(depuis, passes_max + 1):
             construire_tour(passe)
 
     nul = mock.MagicMock()
@@ -39,7 +39,8 @@ def doublures_de_la_construction(peau, journal):
         'manifeste_mjs': nul, 'importer': mock.MagicMock(return_value=(nul, [], [])), 'resoudre_images': nul,
         'hierarchie': mock.MagicMock(return_value=['root']), 'meshes_for': mock.MagicMock(return_value=[peau]),
         'bas_des_sources': mock.MagicMock(return_value={}), 'fusionner': nul,
-        'retirer_sans_sol': mock.MagicMock(return_value=[]), 'poser_au_sol': nul,
+        'retirer_sans_sol': mock.MagicMock(return_value=[]), 'reperes_des_prises': nul,
+        'deriver_a_deux_mains': mock.MagicMock(return_value=[]), 'poser_au_sol': nul,
         'corps_et_secondaires': mock.MagicMock(return_value=(peau, [])), 'bornes_de_st': nul,
         'gabarit': mock.MagicMock(return_value={}), 'bornes_du_gabarit': nul, 'clear_animation': nul,
         'ajouter_feminin_et_carrure': nul, 'ajouter_corpulence': nul,
@@ -71,7 +72,7 @@ class PhaseSilhouettes(unittest.TestCase):
         sortie = io.StringIO()
         with mock.patch.multiple(humanoide, **doublures), mock.patch.dict(sys.modules, {'bpy': mock.MagicMock()}), \
                 contextlib.redirect_stdout(sortie), self.assertRaises(Cuisson):
-            humanoide.construire(mock.MagicMock(os=1))
+            humanoide.construire(mock.MagicMock(os=1, reprises=None))
         phases = [ligne.split()[1] for ligne in sortie.getvalue().splitlines()
                   if ligne.startswith('CONSTRUCTION_PHASE')]
         self.assertEqual(phases, ['neutre', 'silhouettes', 'silhouettes'])
@@ -94,7 +95,7 @@ class PhaseSilhouettes(unittest.TestCase):
         doublures['refuser_correction'] = mock.MagicMock(side_effect=Cuisson)
         with mock.patch.multiple(humanoide, **doublures), mock.patch.dict(sys.modules, {'bpy': mock.MagicMock()}), \
                 contextlib.redirect_stdout(io.StringIO()), self.assertRaises(Cuisson):
-            humanoide.construire(mock.MagicMock(os=1))
+            humanoide.construire(mock.MagicMock(os=1, reprises=None))
         self.assertEqual(doublures['refuser_correction'].call_count, 1)
         self.assertEqual(doublures['refuser_correction'].call_args.args[2], 'entrée de pied')
         self.assertEqual(doublures['cuire_gabarit'].call_count, 0)
@@ -152,6 +153,17 @@ class PointFixeCommun(unittest.TestCase):
     def test_une_borne_sans_tour_est_refusee(self):
         with self.assertRaises(ToursSansTour):
             atteindre_le_point_fixe(lambda _: self.fail(), 0, self.fail)
+        with self.assertRaises(ToursSansTour):
+            atteindre_le_point_fixe(lambda _: self.fail(), 4, self.fail, depuis=5)
+
+    def test_une_reprise_continue_au_numero_de_passe_suivant(self):
+        passes = []
+
+        def construire(passe):
+            passes.append(passe)
+            return {'aretes': 0 if passe == 6 else 1}
+        self.assertEqual(atteindre_le_point_fixe(construire, 9, self.fail, depuis=4), 6)
+        self.assertEqual(passes, [4, 5, 6])
 
 
 if __name__ == '__main__':

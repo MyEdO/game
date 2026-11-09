@@ -37,9 +37,9 @@ describe('couche des murs — la projection porte les vérités du builder', () 
     s.effectZones = [{ id: 'salle', label: 'Salle', presentation: 'interior', area: { kind: 'rect', x: 2, y: 2, w: 1, h: 1 }, z: 0 }];
     s.walls = [{ x: 2, y: 2, side: 'N' }];
     s.architecture = [{
-      id: 'corps', style: 'maison', storeys: [],
+      id: 'corps', style: { id: 'maison' }, storeys: [],
       facades: [{ id: 'facade', z: 0, edges: [{ x: 2, y: 2, side: 'N' }], appearance: 'mur-a-ossature-en-bois', roomZoneIds: ['salle'] }],
-      masses: [{ id: 'toit', z: 0, footprint: [{ x: 2, y: 2, w: 1, h: 1 }], levels: 1, profile: 'flat', pitchDeg: 30, material: 'tuile' }],
+      masses: [{ id: 'toit', z: 0, footprint: [{ x: 2, y: 2, w: 1, h: 1 }], levels: 1, profile: 'flat', pitchDeg: 30, material: { id: 'tuile' } }],
     }];
 
     expect(wallLayerObjs(buildWalls(s, 'jeu'), DIMS(s), 0, OPTS)[0].roomZoneIds).toEqual(['salle']);

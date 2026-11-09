@@ -6,8 +6,8 @@ import json
 class ToursSansTour(ValueError):
     """`atteindre_le_point_fixe` reçoit moins d'un tour."""
 
-    def __init__(self, tours_max):
-        super().__init__(f'tours-sans-tour : tours_max {tours_max}, au moins 1')
+    def __init__(self, depuis, tours_max):
+        super().__init__(f'tours-sans-tour : tours {depuis} à {tours_max}, au moins 1')
 
 
 def suite_de_phase(phase, retouches, ecart_cles, tolerance):
@@ -22,12 +22,12 @@ def suite_de_phase(phase, retouches, ecart_cles, tolerance):
     return 'gabarit', False, ecart_cles <= tolerance
 
 
-def atteindre_le_point_fixe(construire_tour, passes_max, refuser):
-    """#3104 issuecomment-6549354475. Sans point fixe après `passes_max` passes, `refuser(passe, reste)` puis le refus
-    `point fixe absent`."""
-    if passes_max < 1:
-        raise ToursSansTour(passes_max)
-    for passe in range(1, passes_max + 1):
+def atteindre_le_point_fixe(construire_tour, passes_max, refuser, depuis=1):
+    """#3104 issuecomment-6549354475. Les passes `depuis` à `passes_max` ; sans point fixe après `passes_max` passes,
+    `refuser(passe, reste)` puis le refus `point fixe absent`."""
+    if passes_max < depuis:
+        raise ToursSansTour(depuis, passes_max)
+    for passe in range(depuis, passes_max + 1):
         reste = construire_tour(passe)
         print('CONSTRUCTION passe', passe, json.dumps(reste), flush=True)
         if not any(reste.values()):

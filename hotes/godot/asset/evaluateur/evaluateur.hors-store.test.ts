@@ -2,10 +2,10 @@
 import { spawnSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 import {
-  AnimationClip, Bone, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
+  AnimationClip, Bone, BoxGeometry, InterpolateDiscrete, BufferAttribute, BufferGeometry, CylinderGeometry, Float32BufferAttribute, Group, Mesh, MeshBasicMaterial, Skeleton, SkinnedMesh,
   Matrix4, QuaternionKeyframeTrack, Uint16BufferAttribute, Vector3, VectorKeyframeTrack,
 } from 'three';
-import { ecrireGlb, lireGlb } from '../glb.ts';
+import { ecrireGlb, lireConteneur, lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
@@ -16,8 +16,10 @@ import { CARRURE_MOINS, CARRURE_PLUS, CORPULENCE, FEMININ } from '../silhouettes
 import { validerManifesteDeBase, type CandidatDAppui, type CodeDEcartDeBase, type TableDeGabarit } from '../manifesteDeBase.ts';
 import { mesurerAppuis, type PoseDuPied } from './gardes/appuis.ts';
 import { gardeBudget, trianglesDe } from './gardes/budget.ts';
+import { gardePistesDeChaine, suivreLesChaines } from './gardes/chaines.ts';
 import { gardeEchelleDuRigide, rigidesTenus } from './gardes/echelleDuRigide.ts';
 import { gardeEnroulement } from './gardes/enroulement.ts';
+import { gardeTranchantDuRigide, TOLERANCE_TRANCHANT_M } from './gardes/tranchantDuRigide.ts';
 import { aretesDe, ETIREMENT_AU_REPOS, ETIREMENT_EN_CLIP, gardeEtirement, gardeEtirementAuRepos, mesurerEtirement } from './gardes/etirement.ts';
 import { libellesDesMeshes } from './ecart.ts';
 import { gardePiedsAuSol, plusBas, SOL_TOLERANCE_M } from './gardes/piedsAuSol.ts';
@@ -325,6 +327,24 @@ describe('gardeEchelleDuRigide', () => {
 
   it('ROUGE : le rigide sous la prise hérite d’une échelle ; un rigide hors prise n’est pas mesuré', () => {
     expect(tenu(1.5).map((e) => [e.code, e.mesh])).toEqual([['echelle-du-rigide', '«Epee»']]);
+  });
+});
+
+describe('gardeTranchantDuRigide', () => {
+  const tenue = (rotation: readonly [number, number, number]) => {
+    const { scene, haut, racine } = cylindre();
+    haut.add(Object.assign(new Mesh(new BoxGeometry(0.3, 1, 0.01), new MeshBasicMaterial()), { name: 'Lame' }));
+    haut.add(Object.assign(new Mesh(new CylinderGeometry(0.02, 0.02, 1), new MeshBasicMaterial()), { name: 'Manche' }));
+    racine.add(Object.assign(new Mesh(new BoxGeometry(0.5, 0.5, 0.01), new MeshBasicMaterial()), { name: 'Bouclier' }));
+    return gardeTranchantDuRigide(scene, { os: 'haut', position: [0.1, 0, 0], rotation }, libelle);
+  };
+
+  it('VERT : la lame s’étend sur le Z de la prise, le manche rond passe ; un rigide hors de la prise n’est pas mesuré', () => {
+    expect(tenue([0, Math.PI / 2, 0])).toEqual([]);
+  });
+
+  it('ROUGE : la lame s’étend sur le X de la prise, l’axe de la paume', () => {
+    expect(tenue([0, 0, 0]).map((e) => [e.code, e.mesh, e.seuil])).toEqual([['tranchant-vers-la-paume', '«Lame»', TOLERANCE_TRANCHANT_M]]);
   });
 });
 
@@ -776,6 +796,37 @@ describe('validerManifesteDeBase', () => {
     const m = { ...valide(), surfaces: [{ nom: 'peau', palette: 'peau' }] };
     expect(validerManifesteDeBase(m, octets)).toEqual({ ok: true, manifeste: m });
     expect(validerManifesteDeBase(valide(), octets)).toEqual({ ok: true, manifeste: valide() });
+  });
+
+  describe('parSexe (#3188) : le matériau d’un sexe est, sur chaque primitive de la surface, sa variante `KHR_materials_variants` du nom du sexe', () => {
+    /** Le GLB de `glbFabrique` à deux primitives `peau`, plus le matériau `peau_f`, variante `variante` des primitives
+     *  de rang `portees`. */
+    const avecVariante = (portees: readonly number[], variante = 'F') => {
+      const { json: lu, bin } = lireConteneur(glbFabrique({ clips: { Repos: [0, 0] }, primitives: 2 }));
+      const json = lu as { meshes: { primitives: Record<string, unknown>[] }[]; materials: { name: string }[]; [cle: string]: unknown };
+      json.materials.push({ name: 'peau_f' });
+      json.extensions = { KHR_materials_variants: { variants: [{ name: variante }] } };
+      json.extensionsUsed = ['KHR_materials_variants'];
+      portees.forEach((j) => { json.meshes[0].primitives[j].extensions = { KHR_materials_variants: { mappings: [{ material: 1, variants: [0] }] } }; });
+      return ecrireGlb(json, bin);
+    };
+    const parSexe = (octets: Uint8Array, surface: Record<string, unknown>) => {
+      const v = validerManifesteDeBase({ ...manifesteDe(octets), surfaces: [surface] }, octets);
+      return v.ok ? [] : v.ecarts.map(({ code, ou }) => [code, ou]);
+    };
+    it('accepte la variante portée par chaque primitive ; `lireGlb` la lit', () => {
+      const octets = avecVariante([0, 1]);
+      expect(lireGlb(octets).variantes).toEqual(new Map([['peau', new Map([['F', 'peau_f']])]]));
+      expect(parSexe(octets, { nom: 'peau', palette: 'peau', parSexe: { F: 'peau_f' } })).toEqual([]);
+    });
+    it.each<[string, Uint8Array, Record<string, unknown>, string[][]]>([
+      ['une primitive sans la variante', avecVariante([0]), { nom: 'peau', palette: 'peau', parSexe: { F: 'peau_f' } }, [['surface-absente', 'surfaces.0.parSexe.F']]],
+      ['une variante d’un autre nom', avecVariante([0, 1], 'M'), { nom: 'peau', palette: 'peau', parSexe: { F: 'peau_f' } }, [['surface-absente', 'surfaces.0.parSexe.F']]],
+      ['un autre matériau', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: { F: 'peau' } }, [['surface-absente', 'surfaces.0.parSexe.F']]],
+      ['un sexe inconnu', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: { X: 'peau_f' } }, [['forme', 'surfaces.0.parSexe']]],
+      ['un nom vide', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: { F: '' } }, [['forme', 'surfaces.0.parSexe']]],
+      ['une table vide', avecVariante([0, 1]), { nom: 'peau', palette: 'peau', parSexe: {} }, [['forme', 'surfaces.0.parSexe']]],
+    ])('refuse %s', (_cas, octets, surface, attendus) => expect(parSexe(octets, surface)).toEqual(attendus));
   });
 
   it('accepte une enveloppe avec un demi-domaine neutre', () => {
@@ -1400,5 +1451,54 @@ describe('monter', () => {
     expect(lame?.parent === os && os !== undefined).toBe(true);
     expect(lame?.position.toArray()).toEqual([0, 0.1, 0]);
     expect(os?.getObjectsByProperty('isMesh', true).length).toBe(primitives);
+  });
+});
+
+describe('pistes de chaîne (#3102)', () => {
+  const brin = () => {
+    const racine = new Bone();
+    racine.name = 'pelvis';
+    const os = new Bone();
+    os.name = 'jupe_01';
+    os.position.set(0, -0.2, 0);
+    racine.add(os);
+    const scene = new Group();
+    scene.add(racine);
+    scene.updateMatrixWorld(true);
+    return scene;
+  };
+  const QUART_DE_TOUR_X = [0, 0, 0, 1, Math.SQRT1_2, 0, 0, Math.SQRT1_2];
+  const JUPE = { jupe: ['jupe_01'] };
+
+  it('rejoue la piste LINEAR d’un os de chaîne et mesure sa rotation locale la plus forte depuis son repos', () => {
+    const scene = brin();
+    const clip = new AnimationClip('Walk_Loop', 1, [new QuaternionKeyframeTrack('jupe_01.quaternion', [0, 1], QUART_DE_TOUR_X)]);
+    const { ecarts, clipsPistes } = gardePistesDeChaine(scene, [clip], JUPE);
+    expect(ecarts).toEqual([]);
+    const suivi = suivreLesChaines(scene, JUPE, poseDeRepos(scene, []));
+    for (const e of echantillonner(scene, [], [clip], 0.5)) suivi.echantillon(e);
+    const [mesure] = suivi.mesures(clipsPistes);
+    expect(mesure).toMatchObject({ chaine: 'jupe', os: 1, clipsPistes: 1, rotationMax: { os: 'jupe_01', clip: 'Walk_Loop', t: 1 } });
+    expect(mesure.rotationMax?.degres).toBeCloseTo(90, 3);
+  });
+
+  it('refuse un clip sans piste de rotation pour un os de chaîne, et une piste de rotation non LINEAR', () => {
+    const scene = brin();
+    const sans = new AnimationClip('Idle_Loop', 1, [new VectorKeyframeTrack('jupe_01.position', [0, 1], [0, -0.2, 0, 0, -0.3, 0])]);
+    const marche = new QuaternionKeyframeTrack('jupe_01.quaternion', [0, 1], QUART_DE_TOUR_X);
+    marche.setInterpolation(InterpolateDiscrete);
+    const { ecarts, clipsPistes } = gardePistesDeChaine(scene, [sans, new AnimationClip('Walk_Loop', 1, [marche])], JUPE);
+    expect(ecarts.map(({ code, clip, detail }) => [code, clip, detail])).toEqual([
+      ['piste-de-chaine-absente', 'Idle_Loop', 'jupe : sans piste de rotation : jupe_01'],
+      ['piste-de-chaine-non-lineaire', 'Walk_Loop', 'jupe : piste de rotation non LINEAR : jupe_01'],
+    ]);
+    expect(clipsPistes).toEqual({ jupe: 0 });
+  });
+
+  it('l’évaluateur juge les chaînes du manifeste : un clip de la base sans leurs pistes est un écart, chaque chaîne mesurée', async () => {
+    const base = glbFabrique({ pelvis: true, clips: { Repos: [0, 0] } });
+    const fiche = await evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), pas: 1 });
+    expect(fiche.ecarts.filter((e) => e.garde === 'chaines').map(({ code, clip }) => [code, clip])).toEqual([['piste-de-chaine-absente', 'Repos']]);
+    expect(fiche.mesures.chaines).toMatchObject([{ chaine: 'jambe', os: 1, clipsPistes: 0, rotationMax: { os: 'racine', degres: 0 } }]);
   });
 });

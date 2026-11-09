@@ -64,7 +64,7 @@ describe('Éditeur — l’architecture naît sur la case SURVOLÉE (jamais à l
       ...emptyScene('scene-test', 8, 8),
       architecture: [{
         id: 'corps',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [{ id: 'z0', z: 0, parts: [], roomZoneIds: [] }],
         facades: [],
         masses: [],

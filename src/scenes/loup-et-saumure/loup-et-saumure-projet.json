@@ -66,7 +66,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -1013,7 +1015,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -1960,7 +1964,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -2446,7 +2452,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },
@@ -3397,7 +3405,9 @@
     }
    },
    "roofDefaults": {
-    "material": "toit-ardoise",
+    "material": {
+     "id": "toit-ardoise"
+    },
     "pitchDeg": 45,
     "riseMaxStoreys": 1
    },

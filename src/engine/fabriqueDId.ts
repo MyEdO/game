@@ -1,5 +1,5 @@
 /**
- * LA FABRIQUE D'IDS DU MONDE (#2907) : ce qui forge l'id d'une chose qui entre dans l'état (objet, lot de cargaison, dépôt,
+ * LA FABRIQUE D'IDS DU MONDE (#2907) : ce qui forge l'id d'une chose qui entre dans l'état (objet, objet posé au sol, lot de cargaison, dépôt,
  * ligne de répartition ou de butin, enchantement, possession, faveur, héros créé dans la partie). Tout site qui forge la reçoit,
  * requise et sans défaut, comme un `RNG`. La fabrique d'une partie lit et avance le compteur de son état (`forgerUnId`,
  * `src/noyau/idsDuMonde.ts`) : deux rejeux d'un même fichier forgent les mêmes ids, et un id forgé après un chargement
@@ -8,7 +8,7 @@
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 
 /** Le genre d'un id du monde : son préfixe. */
-export type GenreDId = 'it' | 'hero' | 'pos' | 'favor';
+export type GenreDId = 'it' | 'hero' | 'pos' | 'favor' | 'depot-au-sol';
 
 /** Forge l'id neuf d'un genre. */
 export type FabriqueDId = (genre: GenreDId) => string;

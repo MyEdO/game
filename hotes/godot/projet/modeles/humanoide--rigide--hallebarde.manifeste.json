@@ -6,7 +6,19 @@
     "apparence": "hallebarde"
   },
   "liaison": {
-    "mode": "rigide"
+    "mode": "rigide",
+    "secondePrise": {
+      "position": [
+        0,
+        0.5,
+        0
+      ],
+      "rotation": [
+        0,
+        -1.570796,
+        0
+      ]
+    }
   },
   "surfaces": [
     {
@@ -23,7 +35,7 @@
     }
   ],
   "glb": {
-    "sha256": "0e64a4ae4e1955c2c90663aa237ff4d74636a2e4f444b1ae4aec55b974563479",
-    "octets": 51692
+    "sha256": "e38c570a245146c962f046bd08baf6bda5ef563371587024c6db6c17f62b4426",
+    "octets": 51684
   }
 }

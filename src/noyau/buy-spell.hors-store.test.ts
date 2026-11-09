@@ -12,7 +12,8 @@ import { pregen, pregenParty, PREGEN } from '../data/pregens';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
-import { findSpellById } from '../data';
+import { chaosSpellsOf, findSpellById } from '../data';
+import { talentMaxById } from '../engine/careerSlots';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -53,16 +54,25 @@ describe('acheterLeSort', () => {
     expect(banc.getState().party[0].xp).toBe(0);
   });
 
-  it('sort de Magie du Chaos : 100 PX ET +1 Point de Corruption', () => {
+  it('Magie du Chaos : le Sort de la prise est inclus, le suivant coûte 100 PX et une prise de plus, +1 Corruption chacun (LDB 10 l.704-708)', () => {
     const w = pregen(idsDeTest, PREGEN.sorcier);
-    w.talents.push({ talentId: 'magie-du-chaos', spec: 'nurgle', times: 1 });
+    w.talents.push({ talentId: 'magie-du-chaos', spec: 'tzeentch', times: 1 });
     w.xp = 200;
+    w.corruption = 0;
     banc.setState({ party: [w] as Combatant[] });
-    banc.getState().acheterLeSort(w.id, 'flot-de-corruption');
+    const prises = () => banc.getState().party[0].talents.find((x) => x.talentId === 'magie-du-chaos')!.times;
+    banc.getState().acheterLeSort(w.id, 'trahison-de-tzeentch');
+    expect([banc.getState().party[0].xp, prises(), banc.getState().party[0].corruption]).toEqual([200, 1, 1]);
+    banc.getState().acheterLeSort(w.id, 'aura-doree-de-tzeentch');
     const after = banc.getState().party[0];
-    expect(after.spells).toContain('flot-de-corruption'); // sort du Chaos appris (id stable)
-    expect(after.corruption ?? 0).toBeGreaterThanOrEqual(1); // +1 Point de Corruption (LDB 19)
-    expect(after.xp).toBe(100); // 200 − 100 PX
+    expect(after.spells).toEqual(expect.arrayContaining(['trahison-de-tzeentch', 'aura-doree-de-tzeentch']));
+    expect([after.xp, prises(), after.corruption]).toEqual([100, 2, 2]);
+  });
+
+  it('Magie du Chaos : Maxi = les Sorts du Domaine choisi (LDB 10 l.704)', () => {
+    const w = pregen(idsDeTest, PREGEN.sorcier);
+    expect(talentMaxById(w, 'magie-du-chaos', 'tzeentch')).toBe(chaosSpellsOf('tzeentch').length);
+    expect(talentMaxById(w, 'magie-du-chaos'), 'Domaine pas encore choisi').toBeNull();
   });
 });
 

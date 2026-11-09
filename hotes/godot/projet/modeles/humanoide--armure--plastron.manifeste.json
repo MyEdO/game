@@ -15,8 +15,8 @@
       "os": "spine_03",
       "position": [
         0,
-        -0.002167,
-        0.173384
+        -0.002592,
+        0.175228
       ],
       "rotation": [
         0.226485,
@@ -38,7 +38,7 @@
     }
   ],
   "glb": {
-    "sha256": "3fafd678cf85ad34d1ecd37bedea970af0e633595bb0dcf4a1535740f8e27c81",
-    "octets": 306300
+    "sha256": "aa9bceceffb0c15bac763ab622aead1b1cdfe4636015d6f57e70c23118ebf634",
+    "octets": 388840
   }
 }

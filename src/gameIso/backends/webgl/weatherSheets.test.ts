@@ -24,12 +24,12 @@ const TOIT: BuildingMass = {
   profile: 'gable',
   ridge: 'x',
   pitchDeg: 45,
-  material: 'tuile',
+  material: { id: 'tuile' },
 };
 
 function scèneCouverte(): Scene {
   const scene = emptyScene('scene-test', 12, 12);
-  scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
+  scene.architecture = [{ id: 'maison', label: 'Maison', style: { id: 'maison' }, storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }
 
@@ -41,7 +41,7 @@ describe('weatherSheets — les nappes ne couvrent QUE le ciel ouvert', () => {
   it('aucune colonne ouverte (bâti partout) : AUCUNE nappe montée', () => {
     const scene = emptyScene('scene-test', 4, 4);
     scene.architecture = [{
-      id: 'bloc', label: 'Bloc', style: 'maison', storeys: [], facades: [],
+      id: 'bloc', label: 'Bloc', style: { id: 'maison' }, storeys: [], facades: [],
       masses: [{ ...TOIT, id: 'toit-bloc', footprint: [{ x: 0, y: 0, w: 4, h: 4 }] }],
     }];
     expect(nappesDe(scene)).toEqual([]);

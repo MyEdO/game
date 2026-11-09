@@ -9,6 +9,8 @@
     "spine_03",
     "neck_01",
     "Head",
+    "cou_long_01",
+    "cou_long_02",
     "clavicle_l",
     "upperarm_l",
     "lowerarm_l",
@@ -33,6 +35,9 @@
     "thumb_02_l",
     "thumb_03_l",
     "thumb_04_leaf_l",
+    "bras_sup_g_01",
+    "bras_sup_g_02",
+    "bras_sup_g_03",
     "clavicle_r",
     "upperarm_r",
     "lowerarm_r",
@@ -57,6 +62,19 @@
     "thumb_02_r",
     "thumb_03_r",
     "thumb_04_leaf_r",
+    "bras_sup_d_01",
+    "bras_sup_d_02",
+    "bras_sup_d_03",
+    "cape_01",
+    "cape_02",
+    "cape_03",
+    "cape_04",
+    "aile_g_01",
+    "aile_g_02",
+    "aile_g_03",
+    "aile_d_01",
+    "aile_d_02",
+    "aile_d_03",
     "thigh_l",
     "calf_l",
     "foot_l",
@@ -66,9 +84,72 @@
     "calf_r",
     "foot_r",
     "ball_r",
-    "ball_leaf_r"
+    "ball_leaf_r",
+    "jupe_avant_01",
+    "jupe_avant_02",
+    "jupe_avant_03",
+    "jupe_arriere_01",
+    "jupe_arriere_02",
+    "jupe_arriere_03",
+    "jupe_g_01",
+    "jupe_g_02",
+    "jupe_g_03",
+    "jupe_d_01",
+    "jupe_d_02",
+    "jupe_d_03",
+    "queue_01",
+    "queue_02",
+    "queue_03",
+    "queue_04"
   ],
-  "chaines": {},
+  "chaines": {
+    "jupe": [
+      "jupe_avant_01",
+      "jupe_avant_02",
+      "jupe_avant_03",
+      "jupe_arriere_01",
+      "jupe_arriere_02",
+      "jupe_arriere_03",
+      "jupe_g_01",
+      "jupe_g_02",
+      "jupe_g_03",
+      "jupe_d_01",
+      "jupe_d_02",
+      "jupe_d_03"
+    ],
+    "cape": [
+      "cape_01",
+      "cape_02",
+      "cape_03",
+      "cape_04"
+    ],
+    "queue": [
+      "queue_01",
+      "queue_02",
+      "queue_03",
+      "queue_04"
+    ],
+    "ailes": [
+      "aile_g_01",
+      "aile_g_02",
+      "aile_g_03",
+      "aile_d_01",
+      "aile_d_02",
+      "aile_d_03"
+    ],
+    "bras_sup": [
+      "bras_sup_g_01",
+      "bras_sup_g_02",
+      "bras_sup_g_03",
+      "bras_sup_d_01",
+      "bras_sup_d_02",
+      "bras_sup_d_03"
+    ],
+    "cou_long": [
+      "cou_long_01",
+      "cou_long_02"
+    ]
+  },
   "zones": [
     "tete",
     "visage",
@@ -386,6 +467,18 @@
     "hit": "Hit_Chest",
     "death": "Death01"
   },
+  "clipsDeuxMains": {
+    "lourde2m": {
+      "idle": "Lourde_Repos_Loop",
+      "walk": "Lourde_Marche_Loop",
+      "melee": "Lourde_Attaque"
+    },
+    "hampe": {
+      "idle": "Hampe_Repos_Loop",
+      "walk": "Hampe_Marche_Loop",
+      "melee": "Hampe_Attaque"
+    }
+  },
   "appuis": {
     "pieds": [
       "foot_l",
@@ -685,19 +778,19 @@
         "os": [
           {
             "nom": "spine_01",
-            "poids": 0.08198264986276627
+            "poids": 0.08198264241218567
           },
           {
             "nom": "spine_02",
-            "poids": 0.3767656087875366
+            "poids": 0.37676557898521423
           },
           {
             "nom": "spine_03",
-            "poids": 0.5364612340927124
+            "poids": 0.5364611744880676
           },
           {
             "nom": "clavicle_l",
-            "poids": 0.004790574312210083
+            "poids": 0.004790573846548796
           }
         ],
         "deltas": {
@@ -1404,19 +1497,19 @@
         "os": [
           {
             "nom": "spine_03",
-            "poids": 0.47288399934768677
+            "poids": 0.47288402915000916
           },
           {
             "nom": "neck_01",
-            "poids": 0.40981540083885193
+            "poids": 0.4098154306411743
           },
           {
             "nom": "Head",
-            "poids": 0.04126729071140289
+            "poids": 0.04126729443669319
           },
           {
             "nom": "clavicle_l",
-            "poids": 0.07603331655263901
+            "poids": 0.0760333240032196
           }
         ],
         "deltas": {
@@ -6254,19 +6347,19 @@
         "os": [
           {
             "nom": "spine_03",
-            "poids": 0.17643703520298004
+            "poids": 0.17643705010414124
           },
           {
             "nom": "neck_01",
-            "poids": 0.0063447002321481705
+            "poids": 0.006344700697809458
           },
           {
             "nom": "clavicle_r",
-            "poids": 0.12487023323774338
+            "poids": 0.12487024068832397
           },
           {
             "nom": "upperarm_r",
-            "poids": 0.6923480033874512
+            "poids": 0.692348062992096
           }
         ],
         "deltas": {
@@ -6351,19 +6444,19 @@
         "os": [
           {
             "nom": "spine_02",
-            "poids": 0.12411196529865265
+            "poids": 0.12411195039749146
           },
           {
             "nom": "spine_03",
-            "poids": 0.4229790270328522
+            "poids": 0.4229789674282074
           },
           {
             "nom": "clavicle_r",
-            "poids": 0.195735365152359
+            "poids": 0.19573533535003662
           },
           {
             "nom": "upperarm_r",
-            "poids": 0.25717368721961975
+            "poids": 0.25717365741729736
           }
         ],
         "deltas": {
@@ -6729,19 +6822,19 @@
         "os": [
           {
             "nom": "spine_02",
-            "poids": 0.015266918577253819
+            "poids": 0.015266919508576393
           },
           {
             "nom": "spine_03",
-            "poids": 0.23711393773555756
+            "poids": 0.23711395263671875
           },
           {
             "nom": "clavicle_r",
-            "poids": 0.33585479855537415
+            "poids": 0.33585482835769653
           },
           {
             "nom": "upperarm_r",
-            "poids": 0.41176432371139526
+            "poids": 0.41176435351371765
           }
         ],
         "deltas": {
@@ -12221,7 +12314,7 @@
           },
           {
             "nom": "neck_01",
-            "poids": 0.414523184299469
+            "poids": 0.4145232141017914
           },
           {
             "nom": "Head",
@@ -12229,7 +12322,7 @@
           },
           {
             "nom": "clavicle_l",
-            "poids": 0.21963076293468475
+            "poids": 0.21963077783584595
           }
         ],
         "deltas": {
@@ -12411,19 +12504,19 @@
         "os": [
           {
             "nom": "spine_03",
-            "poids": 0.08105908334255219
+            "poids": 0.08105909079313278
           },
           {
             "nom": "neck_01",
-            "poids": 0.6454777121543884
+            "poids": 0.6454777717590332
           },
           {
             "nom": "Head",
-            "poids": 0.2306758165359497
+            "poids": 0.2306758463382721
           },
           {
             "nom": "clavicle_l",
-            "poids": 0.04278736934065819
+            "poids": 0.042787373065948486
           }
         ],
         "deltas": {
@@ -12605,19 +12698,19 @@
         "os": [
           {
             "nom": "spine_03",
-            "poids": 0.19955980777740479
+            "poids": 0.1995597779750824
           },
           {
             "nom": "neck_01",
-            "poids": 0.5183022022247314
+            "poids": 0.5183021426200867
           },
           {
             "nom": "Head",
-            "poids": 0.09124582260847092
+            "poids": 0.09124581515789032
           },
           {
             "nom": "clavicle_l",
-            "poids": 0.19089223444461823
+            "poids": 0.19089220464229584
           }
         ],
         "deltas": {
@@ -14585,15 +14678,15 @@
         "os": [
           {
             "nom": "hand_r",
-            "poids": 0.1633065789937973
+            "poids": 0.1633065640926361
           },
           {
             "nom": "index_01_r",
-            "poids": 0.011948814615607262
+            "poids": 0.011948813684284687
           },
           {
             "nom": "middle_01_r",
-            "poids": 0.8247446417808533
+            "poids": 0.8247445821762085
           }
         ],
         "deltas": {
@@ -16006,7 +16099,10 @@
   "surfaces": [
     {
       "nom": "MI_Superhero_Male",
-      "palette": "peau"
+      "palette": "peau",
+      "parSexe": {
+        "F": "MI_Superhero_Female"
+      }
     },
     {
       "nom": "MI_Hair_1",
@@ -16018,7 +16114,7 @@
     }
   ],
   "glb": {
-    "sha256": "e62f021f6b8b59d6501d0c19fa2191618e3296626f02bc8a62a23b60ee85cdde",
-    "octets": 42090300
+    "sha256": "9dcd9b46d71be13d193aa91c247f351394a65f302d130a005fd208d3bbf77fbd",
+    "octets": 52614268
   }
 }

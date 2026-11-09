@@ -58,6 +58,14 @@ const ALLIES_SEULS = [
   'en-bon-ordre', // AA 06 l.501-507
   'en-terrain-dangereux', // AA 06 l.513-519
   'distorsion-temporelle', // VDM 04 l.349
+  'courage-du-loup', // HCVM p.93
+  'waaagh', // HCVM p.481
+];
+
+/** ZdE dont la source réserve le ciblage aux ENNEMIS du lanceur. */
+const ADVERSAIRES_SEULS = [
+  'rafale-hurlante', // HCVM p.365
+  'cacophonie-scabreuse', // HCVM p.290
 ];
 
 /** ZdE dont la source ne réserve RIEN (`LDB 47 l.28` : tout le monde dans la zone). */
@@ -70,6 +78,14 @@ describe("`affects` — ZdE réservées aux ALLIÉS du lanceur", () => {
     const area = areaOf(id);
     expect(area.affects).toEqual({ kind: 'relation', who: 'target', is: 'ally' });
     expect(verdict(area.affects)).toEqual({ lanceur: false, allie: true, ennemi: false, neutre: false });
+  });
+});
+
+describe("`affects` — ZdE réservées aux ENNEMIS du lanceur", () => {
+  it.each(ADVERSAIRES_SEULS)('%s : retient tout candidat d’un autre camp (lanceur et allié écartés)', (id) => {
+    const area = areaOf(id);
+    expect(area.affects).toEqual({ kind: 'relation', who: 'target', is: 'opponent' });
+    expect(verdict(area.affects)).toEqual({ lanceur: false, allie: false, ennemi: true, neutre: true });
   });
 });
 
@@ -133,7 +149,7 @@ describe('narrative — ce que le champ `affects` modélise ne se journalise plu
   const sortsAvecAffects = spells.filter((s) => s.target?.kind === 'area' && s.target.affects != null);
 
   it('le corpus mesuré est bien celui des ZdE filtrées (sinon la propriété ne mesure rien)', () => {
-    expect(sortsAvecAffects.map((s) => s.id).sort()).toEqual([...ALLIES_SEULS, 'les-lunes-du-chasseur', 'ironie-du-destin'].sort());
+    expect(sortsAvecAffects.map((s) => s.id).sort()).toEqual([...ALLIES_SEULS, ...ADVERSAIRES_SEULS, 'les-lunes-du-chasseur', 'ironie-du-destin'].sort());
   });
 
   it.each(sortsAvecAffects.map((s) => [s.id, s] as const))(

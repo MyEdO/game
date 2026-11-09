@@ -204,10 +204,10 @@ def cercle(points, axe):
     return moyen + u * cx + v * cy, float(numpy.sqrt(max(cx * cx + cy * cy - f, 0.0)))
 
 
-def poser_prises(rig):
-    """Les prises `main` et `off`, chacune au creux du poing fermé de son clip (`POING`) ; l'action du rig reste celle
-    du dernier poing."""
-    prises, scene = {}, bpy.context.scene
+def reperes_des_prises(rig):
+    """Par prise `main` et `off`, son os et son repère dans le repère de cet os : le creux du poing fermé de son clip
+    (`POING`) ; l'action du rig reste celle du dernier poing."""
+    reperes, scene = {}, bpy.context.scene
     image = scene.frame_current
     for prise, (cote, clip, image_du_poing) in POING.items():
         assign_action(rig, bpy.data.actions[clip])
@@ -228,10 +228,15 @@ def poser_prises(rig):
         z = (z - y * z.dot(y)).normalized()
         repere = Matrix((y.cross(z), y, z)).transposed().to_4x4()
         repere.translation = creux
-        prises[prise] = {'os': main.name, **attache(main.matrix, repere)}
+        reperes[prise] = (main.name, main.matrix.inverted() @ repere)
         print('PRISE', prise, clip, image_du_poing, main.name, tuple(round(v, 4) for v in creux), flush=True)
     scene.frame_set(image)
-    return prises
+    return reperes
+
+
+def poser_prises(rig):
+    """Les attaches des prises `main` et `off` (`reperes_des_prises`)."""
+    return {prise: {'os': os, **attache(Matrix.Identity(4), local)} for prise, (os, local) in reperes_des_prises(rig).items()}
 
 
 def gabarit(rig):

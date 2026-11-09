@@ -2,8 +2,12 @@
   "base": "humanoide",
   "porteur": { "espece": "humain", "gabarit": "moyen", "taille": "moyenne", "echelleDArt": 1 },
   "clips": { "idle": "Idle_Loop", "walk": "Walk_Loop", "melee": "Sword_Attack", "hit": "Hit_Chest", "death": "Death01" },
+  "clipsDeuxMains": {
+    "lourde2m": { "idle": "Lourde_Repos_Loop", "walk": "Lourde_Marche_Loop", "melee": "Lourde_Attaque" },
+    "hampe": { "idle": "Hampe_Repos_Loop", "walk": "Hampe_Marche_Loop", "melee": "Hampe_Attaque" }
+  },
   "surfaces": [
-    { "nom": "MI_Superhero_Male", "palette": "peau" },
+    { "nom": "MI_Superhero_Male", "palette": "peau", "parSexe": { "F": "MI_Superhero_Female" } },
     { "nom": "MI_Hair_1", "palette": "cheveux" },
     { "nom": "MI_Eyes", "palette": "yeux" }
   ]

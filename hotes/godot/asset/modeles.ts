@@ -3,7 +3,7 @@ import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { cheminsAbsolus, ligneDErreur } from './manifeste.ts';
 import { validerManifesteDeBase, type ManifesteDeBase, type VerdictDeBase } from './manifesteDeBase.ts';
-import { ecartsDeClips } from './clips.ts';
+import { ecartsDeClips, ecartsDesTablesDeuxMains } from './clips.ts';
 
 export type ManifesteDeModele = ManifesteDeBase | ManifesteDElement;
 export interface EntreeDeModele { readonly id: string; readonly brut: unknown }
@@ -55,12 +55,13 @@ export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: R
   return livrees.sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut))).map(({ id, brut, octets: o }) => ({ id, brut, verdict: validerModele(brut, o, bases) }));
 }
 
-/** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis sa table rôle → clip
- *  (`ecartsDeClips`). */
+/** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis ses tables rôle → clip
+ *  (`ecartsDeClips`, `ecartsDesTablesDeuxMains`). */
 function validerBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   const v = validerManifesteDeBase(brut, octets);
   if (!v.ok) return v;
-  const ecarts = ecartsDeClips(v.manifeste.clips, lireGlb(octets).animations);
+  const { animations } = lireGlb(octets);
+  const ecarts = [...ecartsDeClips(v.manifeste.clips, animations), ...ecartsDesTablesDeuxMains(v.manifeste.clipsDeuxMains ?? {}, animations)];
   return ecarts.length ? { ok: false, ecarts } : v;
 }
 

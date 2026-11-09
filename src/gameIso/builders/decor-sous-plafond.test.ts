@@ -74,8 +74,8 @@ describe('aucun décor volumique ne traverse une dalle ni un toit (#1343)', () =
   it('un corps dont le sommet passe entre le coin bas et le coin haut d\'un pan en pente le traverse', () => {
     const scene = emptyScene('scene-test', 8, 8);
     scene.architecture = [{
-      id: 'corps-fixture', label: 'Corps de fixture', style: 'maison', storeys: [], facades: [],
-      masses: [{ id: 'nef', z: 0, footprint: [{ x: 1, y: 1, w: 4, h: 4 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: 'tuile' }],
+      id: 'corps-fixture', label: 'Corps de fixture', style: { id: 'maison' }, storeys: [], facades: [],
+      masses: [{ id: 'nef', z: 0, footprint: [{ x: 1, y: 1, w: 4, h: 4 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 45, material: { id: 'tuile' } }],
     }];
     const pos = { x: 2, y: 1 };
     const nappe = [...resolveNappes(scene).values()][0];

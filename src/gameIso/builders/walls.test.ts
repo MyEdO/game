@@ -160,7 +160,7 @@ describe('buildWalls — façades architecturales authorées', () => {
     ]);
     s.architecture = [{
       id: 'corps-auberge',
-      style: 'taverne',
+      style: { id: 'taverne' },
       storeys: [{ id: 'rez', z: 0, parts: [], roomZoneIds: ['salle'] }],
       facades: [{
         id: 'facade-sud',
@@ -533,8 +533,8 @@ describe('buildWalls — ENVELOPPE extérieure (#818, la façade sort du brouill
   it('case couverte par un TOIT (auvent/cour couverte, sans zone intérieure) → jamais DEHORS, pas d’enveloppe', () => {
     const s = sceneWith([{ x: 2, y: 2, side: 'N' }]); // (2,2) et (2,1) toutes deux sous le même toit
     s.architecture = [{
-      id: 'corps', style: 'maison', storeys: [], facades: [],
-      masses: [{ id: 'toit', z: 0, footprint: [{ x: 1, y: 0, w: 3, h: 3 }], levels: 1, profile: 'flat', pitchDeg: 30, material: 'tuile' }],
+      id: 'corps', style: { id: 'maison' }, storeys: [], facades: [],
+      masses: [{ id: 'toit', z: 0, footprint: [{ x: 1, y: 0, w: 3, h: 3 }], levels: 1, profile: 'flat', pitchDeg: 30, material: { id: 'tuile' } }],
     }];
     expect(buildWalls(s, 'jeu', new Set(['9,9,0']))[0].states.visible).toBe(false);
   });
@@ -677,7 +677,7 @@ describe('buildWalls — un mur COIFFÉ par un étage tient dans son enveloppe',
 describe('roofSeamGeometry — le joint de deux nappes prend la matière du mur prolongé', () => {
   const mass = (id: string, x: number): BuildingMass => ({
     id, z: 0, footprint: [{ x, y: 3, w: 3, h: 2 }], levels: 1,
-    profile: 'gable', ridge: 'y', pitchDeg: 45, material: 'tuile',
+    profile: 'gable', ridge: 'y', pitchDeg: 45, material: { id: 'tuile' },
   });
   const sceneWith = (walls: WallSeg[]): Scene => {
     const s = emptyScene('scene-test', 16, 16);
@@ -685,7 +685,7 @@ describe('roofSeamGeometry — le joint de deux nappes prend la matière du mur 
     // L'aile EST repose sur une terrasse de 2 m : son égout est plus haut, les deux nappes ne sont donc
     // PAS coplanaires au joint — c'est exactement le décrochement que ce générateur doit combler.
     s.layers[0].height = new Array(16 * 16).fill(0).map((h, i) => (i % 16 >= 6 ? 2 : h));
-    s.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [mass('ouest', 3), mass('est', 6)] }];
+    s.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [mass('ouest', 3), mass('est', 6)] }];
     return s;
   };
   const seams = (s: Scene) => buildWalls(s, 'jeu').filter((el) => el.key.startsWith('seam:'));
