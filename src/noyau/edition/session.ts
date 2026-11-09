@@ -10,6 +10,7 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
+import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { refusDeLEntite, type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import { inventaireApres, type IntentionDObjet } from '../../engine/items';
 import { PARTS_RELIEF } from '../../data/materials.types';
@@ -234,8 +235,7 @@ export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
  *  d'un décor (`null` l'éteint), son assise ; un objet de l'inventaire d'un personnage (`inventaireApres`), son
- *  parcours de carrière et ses sorts choisis ; l'équipage exposé à bord ; les entrées de fiche qu'elle couvre (`null` :
- *  aucune). */
+ *  parcours de carrière ; l'équipage exposé à bord ; les entrées de fiche qu'elle couvre (`null` : aucune). */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
@@ -245,8 +245,6 @@ export interface PatchDEntite {
   objet?: IntentionDObjet;
   /** Le parcours de carrière entier ; sans carrière, il est retiré. */
   parcours?: ParcoursDeCarriere;
-  /** Les sorts choisis entiers (`combat.spells`, `sortsDuPnj`) ; vides, ils sont retirés. */
-  sorts?: string[];
   crewIds?: string[];
   couvre?: string[] | null;
 }
@@ -573,10 +571,10 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent`, chaque absence posée par `champs` (`editEntity`) : le
  *  type d'un décor avec ses défauts de pose (`propRefPatch`), la couche au sol (`coucheEcrite`), la lumière éteinte, l'assise
- *  sans action, un parcours sans carrière, et un inventaire, un équipage, des sorts ou des entrées couvertes vides
- *  (`sansVide`) ; l'inventaire après l'intention sur un objet (`inventaireApres`). */
+ *  sans action, un parcours sans carrière, et un inventaire, un équipage ou des entrées couvertes vides (`sansVide`) ;
+ *  l'inventaire après l'intention sur un objet (`inventaireApres`). */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, objet, parcours, sorts, crewIds, couvre, ...reste } = patch;
+  const { ref, z, light, assise, objet, parcours, crewIds, couvre, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
@@ -585,7 +583,6 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
     ...(z === undefined ? {} : { z: coucheEcrite(z) }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
-    ...(sorts === undefined ? {} : { combat: { ...ent.combat, spells: sansVide(sorts) } }),
     ...(parcours === undefined ? {} : {
       carrieres: avecCarrieres?.carrieres,
       talentsDeCarriere: avecCarrieres?.talentsDeCarriere,
@@ -645,29 +642,31 @@ function sceneAvecLEntite(scene: Scene, ent: SceneEntity, cle: string, ecrite: S
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: apres };
 }
 
-/** La scène `scene` où le geste `g` écrit sa valeur au formulaire de son porteur (`avecLaValeurDuPorteur`) : la zone
- *  d'effet remplacée, la condition d'entrée du déclencheur patchée (`patchTrigger`), le champ de l'entité posé par sa
- *  porte (`sceneAvecLEntite`) ; ou son refus, un porteur absent n'offrant aucun chemin. */
-function sceneAvecLaValeur(scene: Scene, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
+/** La scène `scene` de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
+ *  (`avecLaValeurDuPorteur`, les presets du narratif du projet) : la zone d'effet remplacée, la condition d'entrée du
+ *  déclencheur patchée (`patchTrigger`), le champ de l'entité posé par sa porte (`sceneAvecLEntite`) ; ou son refus, un
+ *  porteur absent n'offrant aucun chemin. */
+function sceneAvecLaValeur(s: SessionDEdition, scene: Scene, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
+  const presetDe = presetDuNarratif(s.projet.narratif);
   if (g.porteur.sorte === 'entite') {
     const ent = scene.entities.find((e) => e.id === g.porteur.id);
     if (!ent) return { ok: false, refus: 'nonOffert' };
-    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur);
+    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur, presetDe);
     return ecrite.ok ? sceneAvecLEntite(scene, ent, String(g.chemin[0]), ecrite.valeur) : ecrite;
   }
   if (g.porteur.sorte === 'zone') {
     const zone = (scene.effectZones ?? []).find((z) => z.id === g.porteur.id);
-    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur) : { ok: false as const, refus: 'nonOffert' as const };
+    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur, presetDe) : { ok: false as const, refus: 'nonOffert' as const };
     return ecrite.ok ? { ok: true, valeur: replaceEffectZone(scene, zone!.id, ecrite.valeur) } : ecrite;
   }
   const declencheur = scene.triggers.find((t) => t.id === g.porteur.id);
-  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur) : { ok: false as const, refus: 'nonOffert' as const };
+  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur, presetDe) : { ok: false as const, refus: 'nonOffert' as const };
   return ecrit.ok ? { ok: true, valeur: patchTrigger(scene, ecrit.valeur.id, { when: ecrit.valeur.when }) } : ecrit;
 }
 
 /** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`RefusDeValeur`) ; `null` si elle l'écrit. */
 export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): RefusDeValeur | null {
-  const ecrite = sceneAvecLaValeur(sceneEditee(s), g);
+  const ecrite = sceneAvecLaValeur(s, sceneEditee(s), g);
   return ecrite.ok ? null : ecrite.refus;
 }
 
@@ -757,7 +756,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'zone':
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
-      const ecrite = sceneAvecLaValeur(scene, g);
+      const ecrite = sceneAvecLaValeur(s, scene, g);
       return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, (sc) => [sc.effectZones, sc.triggers, sc.entities]) : s;
     }
     case 'nommer': {

@@ -11,7 +11,7 @@
  */
 import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
-  capDeLEntite, capsOfferts, entiteDeLaSelection, entiteDuSchema, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
+  capDeLEntite, capsOfferts, entiteDeLaSelection, ficheEditee, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
@@ -23,7 +23,7 @@ import {
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
-  findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
+  findSpellById, listesDeSorts, sortsImprimes,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -297,7 +297,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
       : []),
     ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
-    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent), ent as unknown as Record<string, unknown>),
+    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent, presetDuNarratif(s.projet.narratif)), ent as unknown as Record<string, unknown>),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -485,13 +485,12 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
   ];
 }
 
-/** Le profil porté du personnage `ent` de la session `s`, s'il est de son schéma (`entiteDuSchema`) et porte une fiche
- *  (`sceneNpc`, `ficheDuCombattant`) : d'un
+/** Le profil porté du personnage `ent` de la session `s`, s'il porte une fiche (`ficheEditee`, `ficheDuCombattant`) : d'un
  *  PNJ de carrière, le Niveau atteint de sa carrière actuelle et son Statut ; ses Caractéristiques et ses Blessures, ses
  *  Compétences à la valeur de leur Test, ses Talents et ses possessions. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
-  const porte = entiteDuSchema(ent) ? sceneNpc(scene, ent.id, presetDuNarratif(s.projet.narratif)) : undefined;
+  const porte = ficheEditee(ent, presetDuNarratif(s.projet.narratif));
   const fiche = porte && ficheDuCombattant(porte, (id) => {
     const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
@@ -509,30 +508,16 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
   ];
 }
 
-/** Les sorts du personnage `ent` de la session `s`, lus sur sa fiche (`sceneNpc`), s'il en a une : ceux que son profil imprime,
- *  sur une ligne ; sinon, s'il a une liste de sorts (`listesDeSorts`), chaque sort choisi, à retirer, la raison qui
- *  refuse les choix (`refusDesSortsChoisis`), en liste chaque sort d'une de ses listes qu'il n'a pas choisi, à ajouter,
- *  refusé avec sa raison, puis ses sorts au spawn, choisis et tirés (`sortsDuPnj`). Chaque bouton écrit les sorts
- *  choisis entiers. */
-function sorts(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne)[] {
-  const fiche = sceneNpc(sceneEditee(s), ent.id, presetDuNarratif(s.projet.narratif));
+/** Les sorts du personnage `ent` de la session `s`, lus sur sa fiche (`ficheEditee`), s'il en a une : ceux que son profil
+ *  imprime ; sinon, s'il a une liste de sorts (`listesDeSorts`), ses sorts au combat, choisis et tirés (`sortsDuPnj`).
+ *  Les sorts choisis s'écrivent au formulaire tiré du schéma (`formulaireDe`). */
+function sorts(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
+  const fiche = ficheEditee(ent, presetDuNarratif(s.projet.narratif));
   if (!fiche) return [];
-  const libelle = (id: string) => findSpellById(id)?.label ?? id;
-  const liste = (ids: readonly string[]) => ids.map(libelle).join(', ') || t('ecran.editeur.profil.aucun');
+  const liste = (ids: readonly string[]) => ids.map((id) => findSpellById(id)?.label ?? id).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);
   if (imprimes.length) return [ligne('sorts/imprimes', t('ecran.editeur.sorts.imprimes', { liste: liste(imprimes) }))];
-  const listes = listesDeSorts(fiche);
-  if (!listes.length) return [];
-  const choisis = ent.combat?.spells ?? [];
-  const ecrire = (ids: string[]): GesteDEdition => ({ geste: 'entite', patch: { sorts: ids } });
-  const refus = refusDesSortsChoisis(fiche, choisis);
-  return [
-    ...choisis.map((id) => choix(`sorts/${id}`, libelle(id), [bouton(`sorts/${id}/retirer`, t('ecran.editeur.sorts.retirer'), ecrire(choisis.filter((x) => x !== id)))])),
-    ...(refus ? [ligne('sorts/refus', refus, 'alerte')] : []),
-    choix('sorts/ajouter', t('ecran.editeur.sorts.ajouter'), spells.filter((sp) => !choisis.includes(sp.id) && listes.some((l) => l.admet(sp)))
-      .map((sp) => bouton(`sorts/ajouter/${sp.id}`, sp.label, ecrire([...choisis, sp.id]), false, refusDesSortsChoisis(fiche, [...choisis, sp.id]) ?? null)), 'liste'),
-    ligne('sorts/connus', t('ecran.editeur.sorts.connus', { liste: liste(fiche.spells ?? []) })),
-  ];
+  return listesDeSorts(fiche).length ? [ligne('sorts/connus', t('ecran.editeur.sorts.connus', { liste: liste(fiche.spells ?? []) }))] : [];
 }
 
 /** Les rencontres du personnage `ent` de la session `s` : dans chacune, enrôlé ou non, ennemi ou allié, piloté par l'IA
@@ -895,12 +880,12 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
  *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), ses éléments, « Retirer » et, hors du premier,
- *  « Monter » ; puis « Ajouter », qui pose un élément neuf (`valeurNeuveDe`) en fin. Chaque bouton écrit la liste entière
- *  (`gestesDeLaListe`). */
+ *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). */
 function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const liste = Array.isArray(valeur) ? valeur : [];
-  const gestes = gestesDeLaListe(liste, valeurNeuveDe(elementDuNoeud(f.noeud)));
+  const element = elementDuNoeud(f.noeud);
+  const gestes = gestesDeLaListe(liste, valeurNeuveDe(element));
   const elements = liste.flatMap((e, rang) => {
     const champ = champDeLElement(f, rang);
     const { retirer, monter } = gestes.elements[rang];
@@ -910,8 +895,22 @@ function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unkno
       ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.editeur.valeur.monter', { libelle: champ.label }), ecrireLaValeur(porteur, ici, monter))] : []),
     ];
   });
-  const ajouter = bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, gestes.ajouter));
+  const ajouter = ajoutALaListe(porteur, f, liste, ici, element, gestes.ajouter);
   return valeur === undefined ? [ajouter] : [ligne(id, f.label), ...elements, ajouter];
+}
+
+/** « Ajouter » à la liste `liste` du champ `f`, au chemin `ici`, d'élément `element`, d'id `valeur/<chemin>/ajouter` :
+ *  d'un élément à choix (`choixDuNoeud`), le choix de l'élément ajouté en fin, parmi ceux que son contexte pose au rang
+ *  qui suit le dernier (`FieldDesc.contexte`), sinon parmi ses valeurs ; sinon, le bouton qui écrit `neuve`, la liste où
+ *  s'ajoute un élément neuf (`valeurNeuveDe`). */
+function ajoutALaListe(porteur: PorteurDeValeur, f: FieldDesc, liste: readonly unknown[], ici: Segment[], element: unknown, neuve: unknown[]): Bouton | Choix | Formulaire {
+  const id = `valeur/${ici.join('/')}/ajouter`;
+  const libelle = t('ecran.editeur.valeur.ajouter', { libelle: f.label });
+  const duNoeud = choixDuNoeud(element);
+  const valeurs = duNoeud && (f.contexte?.choix([...ici, liste.length]) ?? duNoeud.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })));
+  if (!valeurs) return bouton(id, libelle, ecrireLaValeur(porteur, ici, neuve));
+  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: valeurs.map((v) => ({ ...v, valeur: [...liste, v.valeur] })), bornes: null, note: null, champs: null };
+  return elementDeValeur(id, porteur, ici, { ...f, label: libelle }, a);
 }
 
 /** L'inspecteur de la zone sélectionnée `zone` de la session `s` : la poignée qui la redimensionne ; d'un déclencheur,
@@ -940,7 +939,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
       ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez), ez as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez, presetDuNarratif(s.projet.narratif)), ez as unknown as Record<string, unknown>),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
@@ -950,7 +949,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     propre.push(
       bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once),
       ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur), declencheur as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur, presetDuNarratif(s.projet.narratif)), declencheur as unknown as Record<string, unknown>),
     );
   }
   if (sel?.type === 'restZone') {

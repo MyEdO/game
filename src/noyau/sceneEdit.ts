@@ -9,6 +9,7 @@
  */
 import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
+import type { ResolveurDePreset } from './monde/resolveursDuNarratif';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -1129,9 +1130,10 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
 }
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
- *  (`formeDuPorteur`, `avecLaValeur`), ou son refus : un chemin hors de ses champs (`cheminOffert`) n'est pas offert. */
-export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown): EcritureDeValeur<DonneeDuPorteur[S]> {
-  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee);
+ *  (`formeDuPorteur`, les presets résolus par `presetDe` ; `avecLaValeur`), ou son refus : un chemin hors de ses champs
+ *  (`cheminOffert`) n'est pas offert. */
+export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, presetDe: ResolveurDePreset): EcritureDeValeur<DonneeDuPorteur[S]> {
+  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, presetDe);
   if (!cheminOffert(offerts, chemin)) return { ok: false, refus: 'nonOffert' };
   return avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur) as EcritureDeValeur<DonneeDuPorteur[S]>;
 }

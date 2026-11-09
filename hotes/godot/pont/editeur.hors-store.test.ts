@@ -748,32 +748,38 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     expect(boutonDe(presser(boutonDe(voue, 'carriere/soldat/talents/1/frenesie')), 'carriere/soldat/talents/1/frenesie').presse).toBe(true);
   });
 
-  it('un personnage lanceur de sorts : un sort choisi, retiré ; au-delà du quota de Magie mineure, refusé ; les sorts au combat (#3715)', () => {
+  it('un personnage lanceur de sorts : un sort choisi au formulaire, retiré ; au-delà du quota de Magie mineure, refusé ; les sorts au combat (#3715, #3606 étape S)', () => {
     const { appel } = table();
     const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
     const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
     const ligneDe = (e: Edition, id: string) => (e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Ligne | undefined)?.texte;
+    const ajout = (e: Edition, id: string) => valeursDeLInspecteur(e, 'valeur/combat/spells/ajouter').find((b) => { const l = (b.jeu as { args: unknown[][] }).args[2]; return l[l.length - 1] === id; });
     presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
     jouer({ geste: 'appui', point: point(1, 1) });
-    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    const pnj = presser(boutonDe(jouer({ geste: 'relache', point: point(1, 1) }), 'valeur/combat/ajouter'));
     expect(ligneDe(pnj, 'sorts/connus'), 'sans Talent de lanceur, aucune section').toBeUndefined();
+    expect(pnj.vue.zones['editeur.inspecteur'].some((el) => el.id.startsWith('valeur/combat/spells')), 'ni sorts à choisir').toBe(false);
     const niveau2 = presser(boutonDe(presser(boutonDe(pnj, 'carriere/ajouter/pyromancien')), 'carriere/pyromancien/niveau/2'));
     const pyromancien = presser(boutonDe(presser(boutonDe(niveau2, 'carriere/pyromancien/talents/1/magie-mineure')), 'carriere/pyromancien/talents/2/magie-des-arcanes|feu'));
     expect(ligneDe(pyromancien, 'sorts/connus'), 'les Sorts mineurs du quota, tirés').toMatch(/^Sorts au combat : [^,]+(, [^,]+)*$/);
-    const cauterise = presser(boutonDe(pyromancien, 'sorts/ajouter/cauteriser'));
+    expect(ajout(pyromancien, 'cauteriser')?.libelle).toBe('Cautériser');
+    const cauterise = presser(ajout(pyromancien, 'cauteriser')!);
     expect(ligneDe(cauterise, 'sorts/connus')).toMatch(/Cautériser/);
-    expect(ligneDe(presser(boutonDe(cauterise, 'sorts/cauteriser/retirer')), 'sorts/connus')).not.toMatch(/Cautériser/);
-    let e = pyromancien;
+    expect(valeursDeLInspecteur(cauterise, 'valeur/combat/spells/0').find((b) => b.presse)?.libelle, 'le sort choisi se lit à son rang').toBe('Cautériser');
+    const retire = presser(boutonDe(cauterise, 'valeur/combat/spells/0/retirer'));
+    expect(ligneDe(retire, 'sorts/connus')).not.toMatch(/Cautériser/);
+    expect(retire.vue.zones['editeur.inspecteur'].some((el) => el.id === 'valeur/combat'), 'son seul sort retiré, le rôle au combat vide part').toBe(false);
+    let e = presser(boutonDe(retire, 'valeur/combat/ajouter'));
     const choisis: string[] = [];
     for (const id of ['alerte', 'bruits', 'choc', 'conservation', 'drain', 'flechette']) {
-      if (boutonDe(e, `sorts/ajouter/${id}`).refus) break;
-      e = presser(boutonDe(e, `sorts/ajouter/${id}`));
+      if (ajout(e, id)!.refus) break;
+      e = presser(ajout(e, id)!);
       choisis.push(id);
     }
-    const refus = boutonDe(e, 'sorts/ajouter/flechette').refus;
+    const refus = ajout(e, 'flechette')!.refus;
     expect(refus).toMatch(/Magie mineure : \d/);
     expect(choisis).toHaveLength(Number(refus!.match(/: (\d)/)![1]));
-    expect(() => boutonDe(e, 'sorts/ajouter/destrier-d-ombre'), 'un sort d’aucune liste ouverte n’est pas offert').toThrow();
+    expect(ajout(e, 'destrier-d-ombre'), 'un sort d’aucune liste ouverte n’est pas offert').toBeUndefined();
   });
 
   it('un décor : sa lumière allumée, son rayon au pas, son ton ; son assise ouverte, une place tenue par un emplacement du groupe', () => {
