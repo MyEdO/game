@@ -1,5 +1,6 @@
 ## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), dont
-## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`).
+## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`) ;
+## ce que l'écran porte, publié à la page (`publier_l_ecran`), et ce que Godot lui expose (`exposer`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
 ## refus, que `refus` porte ; une réponse illisible ou une erreur de la page (`erreursGlobales`) est une panne.
 ## Chargé en autoload `Pont` (`project.godot`).
@@ -25,6 +26,8 @@ var est_web := OS.has_feature("web")
 ## l'adresse de la page.
 var essai := false
 var _pont: JavaScriptObject = null
+## Les rappels que Godot expose à la page (`exposer`), par nom, retenus tant que la page peut les appeler.
+var _exposes := {}
 
 
 func _ready() -> void:
@@ -80,6 +83,12 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## Publie à la page ce que l'écran porte (`globalThis.wfrpEcran`), pour qui le pilote sans voir dans le canevas.
 func publier_l_ecran(ecran: Dictionary) -> void:
 	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(ecran), true)
+
+
+## `rappel` exposé à la page en `globalThis.<nom>` : chaque appel de la page lui passe ses arguments en tableau.
+func exposer(nom: String, rappel: Callable) -> void:
+	_exposes[nom] = JavaScriptBridge.create_callback(rappel)
+	JavaScriptBridge.get_interface("window").set(nom, _exposes[nom])
 
 
 ## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,

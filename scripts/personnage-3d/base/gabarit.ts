@@ -3,28 +3,34 @@ import type { GabaritResolu } from '../../../src/noyau/index.ts';
 import { nomDeCleDuGabarit, poseDuGabarit, sensCuitsDuGabarit, type CleDuGabarit, type SensDuGabarit } from '../../../hotes/godot/asset/gabarit.ts';
 import { FACTEURS_NEUTRES } from '../../../hotes/godot/asset/facteursDuGabarit.ts';
 import type { TableDeGabarit } from '../../../hotes/godot/asset/manifesteDeBase.ts';
-import { enfantsDuGabarit, poserEnfantsDuGabarit, bindsAuGabarit } from '../../../hotes/godot/asset/evaluateur/gabarit.ts';
+import { bindsAuGabarit, enfantsDuGabarit, jambesDuGabarit, poserLeGabarit } from '../../../hotes/godot/asset/evaluateur/gabarit.ts';
 import { poidsRelatifsDesAretes, preparerLaplacien, resoudreLaplacien, type Arete } from './laplacien.ts';
 
 export const REFERENCE_DES_ANCRES = Object.freeze({ ...FACTEURS_NEUTRES, legs: 1.37, arms: 1.23, head: 1.51 });
-/** #3104 issuecomment-6549354475. */
-export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabarit, facteurs: GabaritResolu, poses: Float32Array): Float32Array {
+/** La verticale monde de Blender, repère des poses de la construction. */
+const HAUT = new Vector3(0, 0, 1);
+
+/** #3104 issuecomment-6549354475 ; `plantes`, par échantillon de `poses`, s'il joue un clip planté (#3314). */
+export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabarit, facteurs: GabaritResolu, poses: Float32Array, plantes: readonly boolean[]): Float32Array {
   const bones = squelette.bones, taille = bones.length * 16;
   if (poses.length % taille) throw new Error('gabarit : poses binaires tronquées');
+  if (plantes.length !== poses.length / taille) throw new Error(`gabarit : ${plantes.length} drapeau(x) de plantation pour ${poses.length / taille} échantillon(s)`);
   const pose = poseDuGabarit({ gabarit: table }, facteurs);
   const binds = bindsAuGabarit(squelette, pose);
-  const enfants = enfantsDuGabarit(pose, (nom) => {
+  const trouver = (nom: string) => {
     const b = bones.find((os) => os.name === nom);
     if (!b) throw new Error(`gabarit : os absent ${nom}`);
     return b;
-  });
+  };
+  const enfants = enfantsDuGabarit(pose, trouver);
+  const jambes = jambesDuGabarit(pose, trouver);
   const racine = bones.find((b) => b.name === pose.racine.os);
   if (!racine) throw new Error('gabarit : racine absente');
   const originales = bones.map((b) => ({ p: b.position.clone(), q: b.quaternion.clone(), s: b.scale.clone() }));
   const sortie = new Float32Array(poses.length);
   const monde = new Matrix4(), local = new Matrix4();
   try {
-    for (let offset = 0; offset < poses.length; offset += taille) {
+    for (let offset = 0, k = 0; offset < poses.length; offset += taille, k++) {
       const mondes = bones.map((_, i) => {
         const m = new Matrix4();
         for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) m.elements[c * 4 + r] = poses[offset + i * 16 + r * 4 + c];
@@ -35,8 +41,7 @@ export function matricesDePeauDuGabarit(squelette: Skeleton, table: TableDeGabar
         local.copy(parent < 0 ? mondes[i] : monde.copy(mondes[parent]).invert().multiply(mondes[i]));
         local.decompose(b.position, b.quaternion, b.scale);
       });
-      racine.scale.multiplyScalar(pose.racine.echelle);
-      poserEnfantsDuGabarit(enfants);
+      poserLeGabarit(racine, pose.racine.echelle, enfants, plantes[k] ? jambes : [], HAUT);
       for (const b of bones) b.updateWorldMatrix(true, false);
       bones.forEach((b, i) => {
         monde.copy(b.matrixWorld).multiply(binds[i]);
