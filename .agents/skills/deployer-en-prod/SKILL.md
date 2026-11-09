@@ -1,6 +1,6 @@
 ---
 name: deployer-en-prod
-description: À utiliser quand l'utilisateur demande une mise en production, un déploiement, ou de publier le jeu sur cgauche.github.io/jeu — et UNIQUEMENT sur demande explicite.
+description: À utiliser pour déployer le jeu : en test (« déploie en test », cgauche.github.io/dev) ou en prod (cgauche.github.io/jeu, UNIQUEMENT sur demande explicite).
 ---
 <!-- GENERATED: agents:sync; source=.claude/skills/deployer-en-prod/SKILL.md -->
 
@@ -36,6 +36,9 @@ l'hôte Godot :
 gh workflow run deploy.yml
 gh run list --workflow=deploy.yml -L 1
 ```
+
+Depuis un fil de projet cloud, sans `gh workflow` : l'outil GitHub `actions_run_trigger` (`run_workflow`, workflow
+`deploy.yml`, la ref, `inputs: { cible }`).
 
 ## Suivre le run
 
