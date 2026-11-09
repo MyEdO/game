@@ -2693,10 +2693,10 @@ export const riverNavigation = riverNavigationJson as RiverNavigationData;
 export const seaCargo = seaCargoJson as SeaCargoData;
 export const landCargo = landCargoJson as LandCargoData;
 
-/** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE consommé par
- *  référence (`MapPlace.services[].kind`) et résolu par `placeServices` (`src/noyau/worldMap.ts`).
- *  `port`/`marché` gardent leur propre schéma riche ; ce catalogue couvre le RESTE (auberge/temple/
- *  forgeron/guilde…) — id STABLE → libellé/icône d'affichage du hub de lieu. */
+/** Vocabulaire des SERVICES de lieu (#343, `lieux-services.json`) — catalogue EXTENSIBLE désigné par
+ *  `ref('serviceDeLieu')` (`MapPlace.services[].kind`, `PlacePoi.serviceKind`) et résolu par `placeServices`
+ *  (`src/noyau/worldMap.ts`). `port`/`marche` y donnent le libellé, l'icône et le fond par défaut du port et du
+ *  marché d'un lieu, qui gardent leur propre schéma riche — id STABLE → libellé/icône d'affichage du hub de lieu. */
 export interface LieuServiceData {
   id: string;
   type: 'lieux-services';
@@ -2708,7 +2708,9 @@ export interface LieuServiceData {
   /** Bande d'ambiance par défaut. */
   backdrop?: { id: string };
   /** Archétype marchand ouvert par ce service (`src/data/merchants.json`, #369). */
-  merchantArchetype?: string;
+  merchantArchetype?: { id: string };
+  /** Service d'hébergement : couchage du lieu, sinon de la scène liée (`placeServices`). */
+  hebergement?: true;
   /** Écran plein-champ EXISTANT vers lequel ce service PORTE (#369) : `port` = l'écran de port
    *  (onglet Chantier par défaut), sous garde de navire de campagne. Champ DÉCLARÉ, jamais un
    *  branchement d'id (#842). */
