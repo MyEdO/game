@@ -638,6 +638,27 @@
     "color": "#26231f"
   },
   {
+    "id": "tissu-anthracite",
+    "type": "materials",
+    "label": "Tissu anthracite",
+    "domain": "couleur",
+    "color": "#45434a"
+  },
+  {
+    "id": "tissu-sable",
+    "type": "materials",
+    "label": "Tissu sable",
+    "domain": "couleur",
+    "color": "#a08a62"
+  },
+  {
+    "id": "tissu-bleu-gris",
+    "type": "materials",
+    "label": "Tissu bleu-gris",
+    "domain": "couleur",
+    "color": "#3e4e54"
+  },
+  {
     "id": "cuir-fauve",
     "type": "materials",
     "label": "Cuir fauve",
