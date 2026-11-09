@@ -136,7 +136,10 @@ export function NarratifEditor({ projet, onChange, onClose }: {
 
   // Base par défaut = première créature globale : garantit un preset VALIDE au round-trip
   // (`narratifSchema` refuse un preset sans base ni profil) ; l'auteur la change ensuite.
-  const addPreset = () => ajoute('presetsPnj', { base: optionsDeCreature()[0]?.id }, setSelId);
+  const addPreset = () => {
+    const premiere = optionsDeCreature()[0];
+    ajoute('presetsPnj', { base: premiere && { id: premiere.id } }, setSelId);
+  };
 
   const removePreset = (id: string) => {
     if (retire({ registre: 'presetsPnj', id }) && selId === id) setSelId(null);
@@ -941,7 +944,7 @@ function PresetForm({ porteur, preset, refusDe, onRename, onPatch, refus, onRemo
 }) {
   const profil = preset.profil ?? {};
   const appearance: EntityAppearance = preset.apparence ?? {};
-  const base = preset.base ? findCreatureById(preset.base) : undefined;
+  const base = preset.base ? findCreatureById(preset.base.id) : undefined;
   const fusion = base ? mergeCreatureProfile(base, profil) : profil;
   const descAdressee = estDerive({ ...profil }, 'desc');
   const { descRef } = profil as { descRef?: DescRef };
@@ -973,7 +976,7 @@ function PresetForm({ porteur, preset, refusDe, onRename, onPatch, refus, onRemo
             <ChampIdStable libelle="Identifiant (id stable)" value={preset.id} refusDe={refusDe} onRename={onRename} />
             <label className="ed-field">
               Créature de base (profil de combat)
-              <select value={preset.base ?? ''} onChange={(e) => onPatch({ base: e.target.value || undefined })}>
+              <select value={preset.base?.id ?? ''} onChange={(e) => onPatch({ base: e.target.value ? { id: e.target.value } : undefined })}>
                 <option value="">— aucune (profil ad hoc) —</option>
                 {optionsDeCreature().map((c) => (
                   <option key={c.id} value={c.id}>{c.label}</option>

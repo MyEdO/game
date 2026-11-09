@@ -141,8 +141,10 @@ static func porte_un_blason(element: String) -> bool:
 ## compris) : téléchargé une fois par chargement des modèles, chaque demande d'un même fichier attendant la première, puis
 ## lu à chaque demande, car un
 ## `GLTFState` ne génère qu'une scène dont le squelette trouve ses os par leur nom (`generate_scene` rappelé : `find_bone`
-## rend -1), par le `GLTFDocument` qui l'a lu (un autre rend des `ImporterMeshInstance3D`, Godot 4.7-stable) ; `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un
-## fichier qui ne s'est pas téléchargé se redemande. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ; `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
+## rend -1), par le `GLTFDocument` qui l'a lu (un autre rend des `ImporterMeshInstance3D`, Godot 4.7-stable) ; `null`
+## (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un
+## fichier qui ne s'est pas téléchargé se redemande. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
+## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
 ## `modules/gltf/gltf_document.cpp` `_create_skins`, `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`,
 ## Godot 4.7-stable).
 func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
@@ -529,7 +531,7 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 ## ; puis c'est donner à chaque surface dont le matériau actif porte (par `resource_name`) le `nom` d'une de ses
 ## `surfaces` un matériau propre (`MontageDeComposition.materiau_local`, `projet/scripts/montage_de_composition.gd`)
 ## si la palette colore son emplacement de palette, si elle est `blason` sous un emblème demandé, ou si la texture de
-## sa `matiere` est au projet : celle-ci l'habille comme le monde (section « Monde », `Monde.texturer`), projetée sur
+## sa `matiere` est au projet : celle-ci l'habille comme le monde (section « Monde », `VolumeDeScene.texturer`), projetée sur
 ## les trois axes du repère du mesh, l'albédo à blanc ; la couleur y remplace l'albédo du GLB, texture comprise, pour
 ## que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; l'emblème en
 ## devient la couche *detail* (`detail_enabled`, `detail_albedo`, `detail_blend_mode` mix), lue aux UV du GLB :
@@ -582,7 +584,8 @@ func habiller_la_base() -> void:
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau que
 ## `remplacants` donne à ce nom, puis reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de
 ## palette, si elle est `blason` et `texture` n'est pas nulle, ou si la texture de sa `matiere` est au projet : celle-ci
-## l'habille comme le monde (`Monde.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB, texture comprise,
+## l'habille comme le monde (`VolumeDeScene.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB,
+## texture comprise,
 ## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
 ## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
 ## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
@@ -613,7 +616,7 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			if local == null:
 				continue
 			if texturee:
-				Monde.texturer(local, matiere)
+				VolumeDeScene.texturer(local, matiere)
 				local.albedo_color = Color.WHITE
 			elif couleur != null:
 				local.albedo_texture = null
@@ -631,11 +634,11 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 ## La matière texturée d'une `surface` de `peindre`, ou "" : sa texture est au projet.
 static func _matiere_texturee(surface: Dictionary) -> String:
 	var matiere: String = surface.get("matiere", "")
-	return matiere if not matiere.is_empty() and ResourceLoader.exists(Monde.texture_de(matiere)) else ""
+	return matiere if not matiere.is_empty() and ResourceLoader.exists(VolumeDeScene.texture_de(matiere)) else ""
 
 
 ## Le mesh de `piece` recopié, chaque surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la
-## matière projette l'UV1 sur les trois axes (`Monde.texturer`), l'emblème garde son placement en UV2. Une pièce sans
+## matière projette l'UV1 sur les trois axes (`VolumeDeScene.texturer`), l'emblème garde son placement en UV2. Une pièce sans
 ## telle surface, ou déjà recopiée, garde son mesh.
 static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> void:
 	var source := piece.mesh as ArrayMesh

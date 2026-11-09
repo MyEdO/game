@@ -9,7 +9,7 @@ extends SceneTree
 ## ne projette d'ombre, chacun a son double d'ombre, son mesh d'avant la coupe à son repère, en matières opaques, et le
 ## pont principal, sous le pont supérieur coupé, reste dans l'ombre de ce qui est au-dessus de la coupe. Sur le
 ## monde, la mer de sa flottaison, le rectangle de ses ponts à la hauteur 0, n'est peinte que hors de ce que sa coque
-## plonge sous l'eau (`MontageDeVehicule.contour_sous`, `Monde.border_la_mer`) : de l'eau de part et d'autre de la coque,
+## plonge sous l'eau (`MontageDeVehicule.contour_sous`, `VolumeDeScene.border_la_mer`) : de l'eau de part et d'autre de la coque,
 ## aucune dedans, toute l'aire du rectangle hors d'elle, et le rayon du pointeur ne la touche pas.
 
 const RECETTE_AUTONOME := true
@@ -115,7 +115,7 @@ func _ombre(montage: MontageDeVehicule, piece: Node3D) -> void:
 			var tableaux := projetant.mesh.surface_get_arrays(rang)
 			var sommets: PackedVector3Array = tableaux[Mesh.ARRAY_VERTEX]
 			var ordre: Variant = range(sommets.size()) if tableaux[Mesh.ARRAY_INDEX] == null else tableaux[Mesh.ARRAY_INDEX]
-			for triangle: Array in Monde.rangs_des_triangles(ordre.size()):
+			for triangle: Array in VolumeDeScene.rangs_des_triangles(ordre.size()):
 				triangles.append(PackedVector3Array(triangle.map(func(rang_du_sommet: int) -> Vector3: return projetant.to_global(sommets[ordre[rang_du_sommet]]))))
 	var a_l_ombre := 0
 	for dz in [-4.0, 0.0, 4.0]:
@@ -196,16 +196,16 @@ func _mer(montage: MontageDeVehicule) -> void:
 	monde.poser({metresParCase = METRES_PAR_CASE, positions = positions, normales = normales, couleurs = couleurs, cases = cases,
 		surfaces = [{debut = 0, fin = mer, matiere = "terrain--eau", flottaison = "caraque"}, {debut = mer, fin = mer + 3, matiere = "terrain--planches", navire = "caraque"}],
 		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[0.0]]}], ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
-	var touches: int = (monde.get_node("Volume/Corps/Forme") as CollisionShape3D).shape.get_faces().size()
+	var touches: int = (monde.get_node("VolumeDeScene/Volume/Corps/Forme") as CollisionShape3D).shape.get_faces().size()
 	if touches != 3:
 		_fautes.append("mer : la forme du pointeur porte %d sommets, attendu les 3 du pont seul" % touches)
-	monde.border_la_mer("caraque", montage.contour_sous(0.0))
-	var volume := monde.get_node("Volume") as Node3D
+	monde.volume.border_la_mer("caraque", montage.contour_sous(0.0))
+	var volume := monde.get_node("VolumeDeScene/Volume") as Node3D
 	var coque := PackedVector2Array()
 	for point in montage.contour_sous(0.0):
 		var local := volume.to_local(Vector3(point.x, 0.0, point.y))
 		coque.append(Vector2(local.x, local.z))
-	var maillage := (monde.get_node("Volume/Maillage") as MeshInstance3D).mesh as ArrayMesh
+	var maillage := (monde.get_node("VolumeDeScene/Volume/Maillage") as MeshInstance3D).mesh as ArrayMesh
 	if maillage.get_surface_count() != 1:
 		_fautes.append("mer : %d surfaces peintes, attendu la mer seule" % maillage.get_surface_count())
 		return

@@ -33,6 +33,9 @@ import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
 import { refusDAlea } from './massBattleFlow';
+import { actFirstIds } from './turnEconomy';
+import { preemptShooterIds } from './targeting';
+import { inBattleId } from './monde/combatants';
 import type { ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
 import { creaturesDeLaRecolte, refusDeDepecer } from './combatEffects';
@@ -111,6 +114,9 @@ const nuitDuDormeur = (s: Jeu, pid: IdDeHeros | undefined) => {
 };
 /** Une valeur du repos, nommée par son axe (`couchage`, `pitance`). */
 const duRepos = (v: string, axe: 'couchage' | 'pitance'): ValeurDuReglage => ouverte(v, garanti(libelleDuLitteral(v, axe), v, 'valeur du repos'));
+
+/** Le combattant `id` de la bataille, nommé. */
+const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, garanti(inBattleId(s.battle, id), id, 'combattant de la pause').label);
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
@@ -198,6 +204,14 @@ export const OUVERTS_DU_CHOIX = {
       const nuit = nuitDuDormeur(s, pid);
       return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
+  },
+  // LDB 17 l.25, LDB 11 l.97-103
+  roundStart: {
+    promouvoir: reglage('roundStart', 'promouvoir', (s) => actFirstIds(s).map((id) => combattant(s, id))),
+    viser: reglage('roundStart', 'viser', (s) => {
+      const tireurs = preemptShooterIds(() => s);
+      return tireurs.length || s.preemptAiming ? [ouverte(null, t('valeur.viser.aucun')), ...tireurs.map((id) => combattant(s, id))] : [];
+    }, (s) => s.preemptAiming),
   },
   // ADE II 08 l.309
   batailleDeMasse: {

@@ -6,7 +6,7 @@
 import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
-import type { Pt } from './path';
+import { walkNeighbors, type Pt } from './path';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
@@ -104,8 +104,14 @@ export function regardDuJeu(voulu: Regard, enCombat: boolean): Regard {
   return voulu === 'immersion' && enCombat ? 'tactique' : voulu;
 }
 
-/** La couche la plus haute où se tient un allié de `allies` : celle que le regard `plateau` montre, rien au-dessus. */
-const coucheDuGroupe = (allies: readonly Pt[]): number => Math.max(0, ...allies.map((a) => a.z ?? 0));
+/** Le sol (m) de la case d'un allié (`heightAt`). */
+const piedDe = (scene: Scene, a: Pt): number => heightAt(scene, a.x, a.y, a.z ?? 0);
+
+/** La couche la plus haute où se tient un allié de `allies` : celle que le regard `plateau` montre, rien au-dessus.
+ *  Un allié dont un voisin de marche (`walkNeighbors`) est d'une couche plus haute, à un sol qui ne dépasse pas le sien
+ *  (le haut d'une échelle de trappe, au niveau du pont du dessus), se tient à la couche de ce voisin. */
+const coucheDuGroupe = (scene: Scene, allies: readonly Pt[]): number => Math.max(0, ...allies.map((a) => Math.max(a.z ?? 0,
+  ...walkNeighbors(scene, a).filter((n) => (n.z ?? 0) > (a.z ?? 0) && piedDe(scene, n) <= piedDe(scene, a)).map((n) => n.z ?? 0))));
 
 /** Ce qu'un regard retire du volume du monde : les couches au-dessus de `activeZ`, les cases du `couvercle` (clés
  *  `x,y,z`) ; et, par id de navire, la hauteur (m) de sa coupe. */
@@ -117,12 +123,15 @@ interface RetraitDuRegard {
 
 /** Ce que le regard `regard` retire du volume du monde pour le groupe posé sur `allies` : au plateau, les couches
  *  au-dessus de la sienne (`activeZ`) ; en tactique, le couvercle au-dessus de sa tête (`clearedSpace`,
- *  `overheadCells`, ses cases `x,y,z`) ; en immersion, rien. Un navire dont il ôte des cases de ses ponts
+ *  `overheadCells`, ses cases `x,y,z` dont le sol dépasse le pied le plus haut du groupe) ; en immersion, rien. Un navire dont il ôte des cases de ses ponts
  *  (`provenanceDesNavires`) est coupé au plus bas de leurs sols (`coupes`, en mètres) : son modèle ne montre rien de cette
  *  hauteur et au-dessus, et le volume rien des cases de ses ponts aux couches au-dessus du groupe dont le sol y est. */
 function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): RetraitDuRegard {
-  const activeZ = regard === 'plateau' ? coucheDuGroupe(allies) : undefined;
-  const couvercle = regard === 'tactique' ? clearedSpace(scene, allies).overheadCells : new Set<string>();
+  const couche = coucheDuGroupe(scene, allies);
+  const activeZ = regard === 'plateau' ? couche : undefined;
+  const pied = Math.max(-Infinity, ...allies.map((a) => piedDe(scene, a)));
+  const auDessus = (cle: string): boolean => { const [x, y, z] = cle.split(',').map(Number); return heightAt(scene, x, y, z) > pied; };
+  const couvercle = regard === 'tactique' ? new Set([...clearedSpace(scene, allies).overheadCells].filter(auDessus)) : new Set<string>();
   const ponts = [...provenanceDesNavires(scene).cases].map(([cle, navire]) => {
     const [x, y, z] = cle.split(',').map(Number);
     return { cle, navire, z, sol: heightAt(scene, x, y, z) };
@@ -130,7 +139,7 @@ function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): R
   const coupes: Record<string, number> = {};
   for (const { cle, navire, z, sol } of ponts)
     if ((activeZ !== undefined && z > activeZ) || couvercle.has(cle)) coupes[navire] = Math.min(coupes[navire] ?? Infinity, sol);
-  const sousLaCoupe = ponts.filter(({ navire, z, sol }) => z > coucheDuGroupe(allies) && sol >= (coupes[navire] ?? Infinity)).map(({ cle }) => cle);
+  const sousLaCoupe = ponts.filter(({ navire, z, sol }) => z > couche && sol >= (coupes[navire] ?? Infinity)).map(({ cle }) => cle);
   return { ...(activeZ !== undefined ? { activeZ } : {}), couvercle: new Set([...couvercle, ...sousLaCoupe]), coupes };
 }
 
@@ -247,7 +256,7 @@ export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Re
   const aretesRetirees = (): AreteDegagee[] => {
     if (regard === 'tactique') return aretesDegagees(scene, dessinees, clearedSpace(scene, allies));
     if (regard === 'immersion') return [];
-    return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
+    return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(scene, allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
   };
   return {
     w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],

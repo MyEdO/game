@@ -89,7 +89,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   Record<string, { base: string, elements: string[], emblemes: Record<string, string>, couleurs: Record<string,
 ##   Record<string, string>> }>, navires: string[] }`, plus le point de l'écran du sol de chaque case de chaque couche
 ##   du plateau, les ids des navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle
-##   posé, et, par id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
+##   posé, et, par id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de
+## `montes`, l'id de
 ##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre, la
 ##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/end-turn`
@@ -114,11 +115,16 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   couleurs: Record<emplacement, Record<materiau, string>>, vehicule: { definition: string, element: string|null,
 ##   embleme: string|null, postes: string[], ameliorations: string[], couleurs: Record<materiau, string>, caches:
 ##   string[], taille: [number, number, number]|null, demande: { postes: { definition: string, bord: FireArc }[],
-##   ameliorations: string[] } } | null } }. `vehicule` est le véhicule demandé (section « Atelier 3D »), `null` sans
+##   ameliorations: string[] } } | null, echantillon: { famille: string, id: string, triangles: number, aretes:
+## number, toits: number, couronnes: number } | null } }. `vehicule` est le véhicule demandé (section « Atelier 3D »),
+## `null` sans
 ##   lui : sa fiche, puis ce que son montage a posé (`MontageDeVehicule`) : l'élément, l'emblème de ses voiles, les
 ##   éléments de ses pièces et de ses Améliorations, la couleur de chaque surface de son élément à matériau propre
 ##   (`MontageDeVehicule.couleurs_posees`), le nom de chaque nœud caché sous sa scène, pièces comprises, chacun une
-##   fois, trié, la taille de sa boîte en mètres, et les pièces et Améliorations demandées.`, `Mesure` valant `{ pied:
+##   fois, trié, la taille de sa boîte en mètres, et les pièces et Améliorations demandées. `echantillon` est
+## l'échantillon demandé (section « Atelier 3D »), `null` sans lui : sa famille, son id, puis ce que sa scène a posé
+## (`VolumeDeScene.ce_qui_est_pose`) : les triangles de son volume, et ses arêtes, ses nappes de toit et ses couronnes
+## montrées.`, `Mesure` valant `{ pied:
 ##   number, piedSansGabarit: number, sommet: number, echelle: number }` et `Onglet` `'personnage' | 'equipement' |
 ##   'couleurs' | 'animation' | 'effets' | 'outils'`. `onglet` est l'onglet montré, `onglets` ceux dont le bouton est
 ##   montré, ceux que le modèle posé offre, dans l'ordre du panneau (section « Atelier 3D »). `composition` porte la
@@ -160,7 +166,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   `"ligne/emplacement/<id>"`), la case ou la liste d'une pièce `"ligne/piece/<id>"`, la liste d'emblème d'un
 ##   emplacement `"<emplacement>/embleme"`, la liste d'un axe `"axe/<champ>"` et le bouton « neutre » d'un axe `plage`
 ##   `"axe/<champ>/neutre"`, la liste d'une couleur `"couleur/<emplacement de palette>"`, la liste des clips `"clip"`,
-##   les listes de tête des modèles `"modele/corps"` et `"modele/vehicule"`, parce que leur texte (« Aucun », un
+##   les listes de tête des modèles `"modele/corps"`, `"modele/vehicule"` et `"modele/<famille>"` de chaque famille
+## d'échantillons, parce que leur texte (« Aucun », un
 ##   libellé) se répète d'une rangée à l'autre ; le préfixe `ligne/` sépare une ligne d'un point de même id. Une liste
 ##   déroulante publie aussi le texte de chaque article (`choix`) et le rang de l'article choisi (`retenu`, -1 sans
 ##   choix) : on la choisit en la cliquant, puis en descendant à son article au clavier. `lignes` porte l'élément monté

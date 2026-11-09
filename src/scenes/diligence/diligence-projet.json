@@ -96,7 +96,9 @@
    },
    {
     "id": "edo-gustav-fondleburger",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 20
@@ -193,7 +195,9 @@
    },
    {
     "id": "edo-noiraud",
-    "base": "pigeon",
+    "base": {
+     "id": "pigeon"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 21
@@ -273,7 +277,9 @@
    },
    {
     "id": "edo-herpin-stiggerwurt",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 21
@@ -345,7 +351,9 @@
    },
    {
     "id": "edo-gunnar-et-hultz",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 21
@@ -445,7 +453,9 @@
    },
    {
     "id": "edo-isolde-von-strudeldorf",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 22
@@ -537,7 +547,9 @@
    },
    {
     "id": "edo-janna-elleiner",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 22
@@ -616,7 +628,9 @@
    },
    {
     "id": "edo-marie-schultz",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 22
@@ -740,7 +754,9 @@
    },
    {
     "id": "edo-ernst-heidlemann",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 22
@@ -857,7 +873,9 @@
    },
    {
     "id": "edo-phillipe-descartes",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 23
@@ -1052,7 +1070,9 @@
    },
    {
     "id": "edo-fredrick",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 20
@@ -1104,7 +1124,9 @@
    },
    {
     "id": "edo-artur",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 20
@@ -1157,7 +1179,9 @@
    },
    {
     "id": "edo-lukas",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 18
@@ -1173,7 +1197,9 @@
    },
    {
     "id": "edo-rolf-hurtsis",
-    "base": "mutant",
+    "base": {
+     "id": "mutant"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 29
@@ -1266,7 +1292,9 @@
    },
    {
     "id": "edo-mutant-terenz",
-    "base": "mutant",
+    "base": {
+     "id": "mutant"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 30
@@ -1325,7 +1353,9 @@
    },
    {
     "id": "edo-mutant-mikael",
-    "base": "mutant",
+    "base": {
+     "id": "mutant"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 30
@@ -1384,7 +1414,9 @@
    },
    {
     "id": "edo-mutant-johann",
-    "base": "mutant",
+    "base": {
+     "id": "mutant"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 30
@@ -1443,7 +1475,9 @@
    },
    {
     "id": "edo-mutant-erik",
-    "base": "mutant",
+    "base": {
+     "id": "mutant"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 30
@@ -1502,7 +1536,9 @@
    },
    {
     "id": "edo-knud-cratinx",
-    "base": "mutant",
+    "base": {
+     "id": "mutant"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 30
@@ -1613,7 +1649,9 @@
    },
    {
     "id": "edo-magnus-pflaster",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 30
@@ -1749,7 +1787,9 @@
    },
    {
     "id": "edo-patrouilleurs-de-pflaster",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 31
@@ -1889,7 +1929,9 @@
    },
    {
     "id": "edo-anida-pflaster",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre",
      "page": 31
@@ -1981,7 +2023,9 @@
    },
    {
     "id": "edo-johann-hindersson",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 40
@@ -2119,7 +2163,9 @@
    },
    {
     "id": "edo-aleanora-basfond",
-    "base": "halfling",
+    "base": {
+     "id": "halfling"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 41
@@ -2284,7 +2330,9 @@
    },
    {
     "id": "edo-charlotte-samantha-maiers",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 41
@@ -2484,7 +2532,9 @@
    },
    {
     "id": "edo-heinrich-steele",
-    "base": "humain",
+    "base": {
+     "id": "humain"
+    },
     "source": {
      "book": "ennemi-dans-l-ombre-compagnon",
      "page": 42

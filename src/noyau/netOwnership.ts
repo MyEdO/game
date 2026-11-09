@@ -482,12 +482,6 @@ const CLIC_DU_CHAMP: Route = {
   rule: (s, seat, args) => (!s.battle ? seat === worldSeat(s) : args[1] ? CLIC_ENTITE.rule(s, seat, args) : CLIC_CARTE.rule(s, seat, args)),
 };
 
-/** Geste de la pause de début de Round visant un héros par son 1ᵉʳ argument (Tir rapide : armer la
- *  visée). Hors pause, la fenêtre n'existe pas : personne ne le joue. */
-const PAUSE_DE_ROUND_PAR_ARG0: Route = {
-  rule: (s, seat, args) => !!s.pendingRoundStart && seatOwns(s, seat, idArg(args[0])),
-};
-
 /**
  * Résistance (Menace) et inversion sur une étape de CASCADE : `pid` est l'id de l'ÉTAPE, pas un
  * combattant — mais ces verbes DÉPENSENT la ressource de l'acteur de cette étape (Talent, jeton
@@ -601,6 +595,21 @@ const routeDuGesteDeFenetre = (declaration: (args: unknown[]) => GesteDeFenetreD
   },
 });
 
+const ROUTE_DU_GESTE_DE_CHOIX = routeDuGesteDeFenetre(([fenetre, axe, , pid]) => {
+  const declaration = declarationDuChoix(fenetre, axe);
+  const registre = fenetreDuRegistre(fenetre);
+  if (!declaration || !registre) return undefined;
+  const duHeros = declaration.portee === 'rangee' && declaration.qui === 'proprietaire';
+  return { ...registre, qui: declaration.qui, ...(duHeros ? { proprietaire: () => idArg(pid) } : {}) };
+});
+const ROUTE_DU_CHOIX: Route = {
+  rule: (s, seat, args) => {
+    const ouvert = ROUTE_DU_GESTE_DE_CHOIX.rule(s, seat, args);
+    const porteur = declarationDuChoix(args[0], args[1])?.porteurDeLaValeur;
+    return porteur ? ouvert === true && seatInfluences(s, seat, porteur(s, args[2])) : ouvert;
+  },
+};
+
 /**
  * TABLE UNIQUE intent → route (#1051), ÉNUMÉRABLE sans monter le store. Composition STATIQUE de maps
  * exportées par des modules FEUILLES (`flowVerbs`, `modalArbiter`) : aucun enregistrement à l'import
@@ -647,34 +656,16 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['utiliserLObjet', PAR_PORTEUR_DE_L_OBJET],
     ['poserLObjet', PAR_PORTEUR_DE_L_OBJET],
     ['cliquerLaCase', CLIC_DU_CHAMP],
-    // Pause de début de Round (`pendingRoundStart`) : la FENÊTRE est à tous ('*' — ready-check par
-    // siège), ses gestes ne le sont pas.
-    //  - `promouvoirLeCombattant` dépense la Chance du héros promu (LDB 17 l.25) → routé par le prédicat des
-    //    dépenses sur CE héros. Sans cette route, aucun `pending*` du registre des modales n'étant ouvert,
-    //    le repli tombait sur le combattant ACTIF — inexistant pendant la pause (`turn: -1`, cf.
-    //    `combatFlow.enterRoundStartPause`) : la promotion était refusée à TOUT siège invité, et la Chance
-    //    du héros devenait indépensable en coop.
-    //  - la validation de la pause (`fenetreValider('roundStart')`) lance le Round pour TOUS, au quorum : chaque siège
-    //    marque le sien (`routeDuGesteDeFenetre`).
-    //  - Tir rapide : `armerLeTirPreventif` vise le TIREUR par son 1ᵉʳ argument — même trou de repli que la
-    //    promotion (pas d'actif pendant la pause) ; le tir est le clic du combattant (`CLIC_ENTITE`).
-    ['promouvoirLeCombattant', { rule: (s, seat, args) => !!s.pendingRoundStart && seatInfluences(s, seat, idArg(args[0])) }],
-    ['armerLeTirPreventif', PAUSE_DE_ROUND_PAR_ARG0],
     // Le réglage d'un jet en attente (`routeDuReglage`).
     ['jetRegler', ROUTE_DU_REGLAGE],
     // La sortie et la validation d'une fenêtre, par ce que son registre déclare (`routeDuGesteDeFenetre`).
     ['fenetreFermer', routeDuGesteDeFenetre((args) => sortieDeLaFenetre(args[0]))],
     ['fenetreValider', routeDuGesteDeFenetre((args) => validationDeLaFenetre(args[0]))],
     // Le choix d'une fenêtre (`fenetreChoisir`), par ce que sa déclaration nomme (`CHOIX_DES_FENETRES`) : le siège du
-    // propriétaire de la fenêtre nommée, pas celui de la modale prioritaire (`modalOwnerOf`), ou, sur une rangée, celui
-    // de son héros (`pid`, 4ᵉ argument).
-    ['fenetreChoisir', routeDuGesteDeFenetre(([fenetre, axe, , pid]) => {
-      const declaration = declarationDuChoix(fenetre, axe);
-      const registre = fenetreDuRegistre(fenetre);
-      if (!declaration || !registre) return undefined;
-      const duHeros = declaration.portee === 'rangee' && declaration.qui === 'proprietaire';
-      return { ...registre, qui: declaration.qui, ...(duHeros ? { proprietaire: () => idArg(pid) } : {}) };
-    })],
+    // propriétaire de la fenêtre nommée, pas celui de la modale prioritaire (`modalOwnerOf`), sur une rangée celui de
+    // son héros (`pid`, 4ᵉ argument), et celui du combattant que la valeur nomme (`porteurDeLaValeur` : la Chance
+    // dépensée à agir en premier, LDB 17 l.25 ; la visée du Tir rapide, LDB 11 l.97-103).
+    ['fenetreChoisir', ROUTE_DU_CHOIX],
   ],
   // Les gestes de jet, clôture comprise, routés par le flux qu'ils visent (`routeDuVerbeDeJet`).
   VERBES_DE_JET.map((v) => [NOM_DU_VERBE_DE_JET[v], routeDuVerbeDeJet(v)] as const),

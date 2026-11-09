@@ -7,7 +7,10 @@
 ## ceux de son montage (`MontageDeComposition`, le nœud `Modele`), que l'atelier offre au joueur. À côté des bases, il pose
 ## un véhicule ou un engin servi (#2987), tel que le pont le compose (`vehicule`) : les pièces de ses postes, ses
 ## Améliorations, la palette de la composition et l'emblème de ses voiles, montés par son montage (`MontageDeVehicule`, le
-## nœud `Vehicule`), au sol et cadrés à sa taille ; l'engin posé attaque, son clip d'attaque puis son coup.
+## nœud `Vehicule`), au sol et cadrés à sa taille ; l'engin posé attaque, son clip d'attaque puis son coup. Il pose aussi
+## ce que le jeu dessine en 3D hors des modèles servis (#3802, `echantillons`, `echantillon`, `CONTRAT.md`, section
+## « Atelier 3D ») : chaque entrée de chaque famille servie, dans une scène bâtie par le noyau, rendue par le volume de
+## scène du jeu (`VolumeDeScene`, le nœud `Echantillon/Scene`) à l'échelle métrique, au sol et cadrée à sa taille.
 ## Son onglet Effets montre la vitrine des effets que le jeu joue (#3777, `vitrine`, `CONTRAT.md`, section « Effets ») :
 ## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, et chaque son, rejoués par son nœud `Effets`
 ## de l'auteur posé à l'origine vers la cible (`Cible`).
@@ -60,6 +63,9 @@ const METRES_PAR_UNITE := 1.0
 @onready var _interface: CanvasLayer = $Interface
 @onready var _marche: MarcheDeLAtelier = $Marche
 @onready var _vehicule: MontageDeVehicule = $Vehicule
+@onready var _echantillon: Node3D = $Echantillon
+@onready var _scene_de_l_echantillon: VolumeDeScene = $Echantillon/Scene
+@onready var _sol: MeshInstance3D = $Sol
 @onready var _effets: Effets = $Effets
 @onready var _cible: Node3D = $Cible
 @onready var _etat: Label = %Etat
@@ -133,6 +139,10 @@ var _ameliorations_du_vehicule: Array = []
 var _offre_du_vehicule: Dictionary = {}
 ## La réponse de `vitrine`, vide avant elle.
 var _vitrine: Dictionary = {}
+## Les familles d'échantillons de `echantillons`, vides avant elle.
+var _familles_d_echantillons: Array = []
+## L'échantillon demandé, `{ famille, id }` (l'entrée de `echantillon`), `null` : aucun.
+var _echantillon_demande: Variant = null
 
 
 func _ready() -> void:
@@ -162,6 +172,7 @@ func _ready() -> void:
 	if await _pont.rejoindre(_signaler, _signaler):
 		_poser_les_catalogues()
 		_poser_la_vitrine()
+		_lire_les_echantillons()
 		await _charger({}, {})
 
 
@@ -171,9 +182,10 @@ func _process(_delta: float) -> void:
 		_publier_l_ecran.call_deferred()
 
 
-## Le listage du serveur, puis l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu par le montage, puis la
-## base retenue (la demandée si elle reste listée, la première sinon), qui remonte les éléments `montes` que ses emplacements
-## offrent encore, sous leurs `emblemes`.
+## Le listage du serveur, puis l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu par le montage, puis
+## l'échantillon demandé reposé, sinon le véhicule demandé s'il reste servi, sinon la base retenue (la demandée si elle
+## reste listée, la première sinon), qui remonte les éléments `montes` que ses emplacements offrent encore, sous leurs
+## `emblemes`.
 func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 	var chargement := RefCounted.new()
 	_chargement = chargement
@@ -197,6 +209,9 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 		if retenue == null or base.id == _base_demandee:
 			retenue = base
 	_poser_les_listes_des_modeles(reponse)
+	if _echantillon_demande != null:
+		_poser_l_echantillon()
+		return
 	if reponse.vehicules.has(_definition_du_vehicule):
 		_vehicule.oublier()
 		await _demander_le_vehicule()
@@ -216,6 +231,7 @@ func _choisir_la_base(id: String) -> void:
 		if base.id == id:
 			_base_demandee = id
 			_definition_du_vehicule = null
+			_echantillon_demande = null
 			_surcharges_des_emblemes.clear()
 			_reprise = {}
 			_montage.composee = {}
@@ -275,13 +291,14 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 
 
 ## L'écran ramené à aucun modèle : le squelette posé n'informe plus la pose des os, le montage vidé
-## (`MontageDeComposition.vider`), aucun véhicule (`MontageDeVehicule.vider`), ni pose d'os, ni emplacement, ni clip, ni
-## repère, ni rangée d'emblèmes.
+## (`MontageDeComposition.vider`), aucun véhicule (`MontageDeVehicule.vider`), aucun échantillon (`VolumeDeScene.vider`),
+## ni pose d'os, ni emplacement, ni clip, ni repère, ni rangée d'emblèmes.
 func _remettre_a_zero() -> void:
 	if _montage.squelette != null and _montage.squelette.skeleton_updated.is_connected(_memoriser_la_pose):
 		_montage.squelette.skeleton_updated.disconnect(_memoriser_la_pose)
 	_montage.vider()
 	_vehicule.vider()
+	_scene_de_l_echantillon.vider()
 	_pose_des_os = {}
 	_pas = 0.0
 	Controles.vider(_panneau_des_emplacements)
@@ -295,8 +312,9 @@ func _remettre_a_zero() -> void:
 
 ## @contrat Atelier 3D
 ## Un emplacement de montage est un point ou une ligne de pièce. Le panneau porte en tête le choix du modèle (#3792) :
-## la rangée « Corps », sa liste (`cle` `modele/corps`) de chaque base par son id, puis la rangée « Véhicule ou engin
-## » ; chaque liste montre le modèle posé ou demandé, l'autre aucun choix. Suivent six bascules d'onglet d'un même
+## la rangée « Corps », sa liste (`cle` `modele/corps`) de chaque base par son id, la rangée « Véhicule ou engin »,
+## puis une rangée par famille de `echantillons` ; chaque liste montre le modèle posé ou demandé, les autres aucun
+## choix. Suivent six bascules d'onglet d'un même
 ## groupe : « Personnage », montré à l'ouverture, « Équipement », « Couleurs », « Animation », « Effets » et « Outils
 ## » ; chacun a son défilement, jamais imbriqué. Une bascule ne se montre que si le modèle posé offre son onglet
 ## (`_onglets_offerts`, `.claude/rules/hote-godot.md`) : « Personnage », une base posée ; « Équipement », une section
@@ -307,7 +325,8 @@ func _remettre_a_zero() -> void:
 
 ## En tête du panneau, la rangée « Corps », la liste de clé `modele/corps` de chaque base de la réponse `reponse` de
 ## `modeles` par son id, puis la rangée « Véhicule ou engin », la liste de clé `modele/vehicule` de chaque fiche de
-## `vehicules`, dans son ordre, au libellé de son élément : choisi, un article pose son modèle.
+## `vehicules`, dans son ordre, au libellé de son élément, puis une rangée par famille d'échantillons, à son libellé, la
+## liste de clé `modele/<famille>` de ses entrées dans l'ordre servi : choisi, un article pose son modèle.
 func _poser_les_listes_des_modeles(reponse: Dictionary) -> void:
 	Controles.vider(_choix_du_modele)
 	var bases := []
@@ -322,12 +341,21 @@ func _poser_les_listes_des_modeles(reponse: Dictionary) -> void:
 	}
 	_rangee("Corps", _choix_du_modele).add_child(_listes_des_modeles.corps)
 	_rangee("Véhicule ou engin", _choix_du_modele).add_child(_listes_des_modeles.vehicule)
+	for famille in _familles_d_echantillons:
+		var entrees: Array = famille.entrees.map(func(entree: Dictionary) -> Dictionary: return {id = entree.id, texte = entree.libelle})
+		_listes_des_modeles[famille.id] = _liste_deroulante("modele/%s" % famille.id, entrees, _choisir_l_echantillon.bind(famille.id))
+		_rangee(famille.libelle, _choix_du_modele).add_child(_listes_des_modeles[famille.id])
 
 
-## Les listes de tête sur le modèle posé ou demandé : le véhicule demandé, sinon la base posée ; l'autre liste sans choix.
+## Les listes de tête sur le modèle posé ou demandé : la base posée, le véhicule demandé ou l'échantillon demandé ; les
+## autres listes sans choix. Le sol de l'atelier cède la place à celui d'un échantillon.
 func _montrer_le_modele_pose() -> void:
-	_selectionner(_listes_des_modeles.corps, _montage.base.get("id") if _definition_du_vehicule == null else null)
-	_selectionner(_listes_des_modeles.vehicule, _definition_du_vehicule)
+	var poses := {corps = _montage.base.get("id"), vehicule = _definition_du_vehicule}
+	if _echantillon_demande != null:
+		poses[_echantillon_demande.famille] = _echantillon_demande.id
+	for liste in _listes_des_modeles:
+		_selectionner(_listes_des_modeles[liste], poses.get(liste))
+	_sol.visible = _echantillon_demande == null
 
 
 ## @contrat Atelier 3D
@@ -364,18 +392,59 @@ func _montrer_le_modele_pose() -> void:
 ## un preset ou un axe recompose le véhicule. Chaque geste rappelle `vehicule` et remonte le corps rendu, l'état de
 ## l'atelier publiant `vehicule` (section « Écran publié »). « Recharger les modèles » redemande le véhicule s'il est
 ## toujours servi, ses GLB relus. Une base choisie retire le véhicule.
+## Ce que le jeu dessine en 3D hors des modèles servis s'affiche aussi dans l'atelier (#3802) : le décor, le sol, la
+## matière de relief, la matière de toit, l'apparence de mur, ses ouvertures et sa crénelure. Godot lit les familles
+## par `echantillons` à l'ouverture ; chacune a sa rangée de tête, à son `libelle`, et sa liste (`cle`
+## `modele/<famille>`) qui offre ses entrées dans l'ordre servi, à leur `libelle`. Choisie, une entrée retire la base
+## posée, ses emplacements, ses surcharges d'emblème et ses clips, et le véhicule, et Godot obtient sa scène du pont,
+## jamais en la bâtissant : il appelle `echantillon` (section « Méthodes »), dont la scène est bâtie par les écrivains
+## de l'éditeur (`src/noyau/monde/echantillons.ts`) : un décor au centre de son empreinte ; un sol sur 5 × 5 cases ;
+## un relief en falaise, en rampe vers une case bâtie et en terrasse sur une couche haute, chaque partie à la matière
+## ; chaque profil de toit (`roofProfileSchema`) sur sa masse, à la matière ; et un enclos de l'apparence, un mur, une
+## porte fermée, une porte ouverte, une fenêtre, une fenêtre close et une brèche, et, pour une apparence à couronne
+## (`parapet`), une case haussée d'un étage, crénelée de l'apparence, que sa crête ceint (`cretesDePerimetre`, #3818).
+## La réponse se pose sous le nœud `Echantillon/Scene` de l'atelier, une `VolumeDeScene` comme celle du monde de la
+## partie (section « Monde ») : le volume, les arêtes, les nappes de toit et les couronnes, celles de
+## `couronnesAbattues` retirées (`VolumeDeScene.retirer_les_couronnes`), à l'échelle de `metresParCase`, sa boîte au
+## sol et cadrée comme celle d'un véhicule (`MarcheDeLAtelier.cadrer_la_boite`) ; le sol de l'atelier se cache tant
+## qu'un échantillon est posé. Seuls « Effets » et « Outils » sont alors offerts ; un effet cadre aussi l'échantillon.
+## « Recharger les modèles » repose l'échantillon demandé, l'état de l'atelier publiant `echantillon` (section « Écran
+## publié »). Une base ou un véhicule choisi retire l'échantillon.
 
 ## Le véhicule de fiche `definition` demandé (#2987) : le dernier clic gagne, contre le modèle posé comme contre celui en
-## chargement ; ni base ni pièce, ni Amélioration, ni surcharge d'emblème, la marche sans clip ni vitesse, puis le
-## véhicule composé (`_demander_le_vehicule`).
+## chargement ; ni pièce ni Amélioration, aucune base (`_poser_sans_base`), puis le véhicule composé
+## (`_demander_le_vehicule`).
 func _choisir_le_vehicule(definition: String) -> void:
 	_montrer_le_modele_pose()
 	if definition == _definition_du_vehicule:
 		_publier()
 		return
 	_definition_du_vehicule = definition
+	_echantillon_demande = null
 	_postes_du_vehicule = []
 	_ameliorations_du_vehicule = []
+	_poser_sans_base(_vehicule)
+	await _demander_le_vehicule()
+
+
+## L'entrée `id` de la famille d'échantillons `famille` demandée (#3802) : le dernier clic gagne ; aucun véhicule, aucune
+## base (`_poser_sans_base`), puis l'échantillon dessiné (`_poser_l_echantillon`).
+func _choisir_l_echantillon(id: String, famille: String) -> void:
+	_montrer_le_modele_pose()
+	var demande := {famille = famille, id = id}
+	if demande == _echantillon_demande:
+		_publier()
+		return
+	_echantillon_demande = demande
+	_definition_du_vehicule = null
+	_poser_sans_base(_echantillon)
+	_poser_l_echantillon()
+
+
+## Aucune base, demandée ou en chargement : ni surcharge d'emblème, ni reprise, ni composition composée, ni erreur de
+## composition ou de gabarit, l'écran ramené à aucun modèle (`_remettre_a_zero`), la marche sur `racine`, sans clip ni
+## vitesse, et les listes de tête et le sol sur le modèle demandé (`_montrer_le_modele_pose`).
+func _poser_sans_base(racine: Node3D) -> void:
 	_base_demandee = null
 	_chargement = RefCounted.new()
 	_surcharges_des_emblemes.clear()
@@ -387,9 +456,29 @@ func _choisir_le_vehicule(definition: String) -> void:
 	_remettre_a_zero()
 	_montage.poser_le_modele({}, null)
 	_montrer_ce_qu_il_reste_a_produire()
-	_marche.suivre(_vehicule, null, func() -> String: return "", 0.0)
+	_marche.suivre(racine, null, func() -> String: return "", 0.0)
 	_montrer_la_composition()
-	await _demander_le_vehicule()
+	_montrer_le_modele_pose()
+
+
+## L'échantillon demandé dessiné par `echantillon` (`CONTRAT.md`, « Atelier 3D ») : son volume, ses arêtes, ses nappes de
+## toit et ses couronnes posés par sa scène (`VolumeDeScene`), les couronnes tombées retirées, en mètres
+## (`MiseEnPage.echelle_en_metres`), au sol (`_poser_au_sol`) et cadré à sa taille (`MarcheDeLAtelier.cadrer_la_boite`).
+func _poser_l_echantillon() -> void:
+	var reponse := _pont.appeler("echantillon", _echantillon_demande)
+	if reponse.get("ok") != true:
+		return
+	var scene := _scene_de_l_echantillon
+	scene.poser(reponse.monde)
+	scene.poser_les_aretes(reponse.aretes)
+	scene.poser_les_nappes(reponse.toits, reponse.couronnes)
+	scene.retirer_les_couronnes(reponse.couronnesAbattues)
+	scene.scale = MiseEnPage.echelle_en_metres(reponse.monde.metresParCase)
+	scene.position = Vector3.ZERO
+	_poser_au_sol(scene)
+	_marche.cadrer_la_boite(MontageDeVehicule.boite(scene, _echantillon))
+	_montrer_le_modele_pose()
+	_montrer_l_etat()
 
 
 ## Le véhicule demandé composé par `vehicule` (`CONTRAT.md`, « Atelier 3D ») : ses pièces, ses Améliorations, les
@@ -416,15 +505,17 @@ func _demander_le_vehicule() -> void:
 	_montrer_l_etat()
 
 
-## La scène nue `scene` du véhicule au sol : sa boîte centrée sur l'origine, son dessous sur le sol.
+## La scène nue `scene` d'un véhicule ou d'un échantillon au sol : sa boîte, dans le repère de son parent, centrée sur
+## l'origine, son dessous sur le sol.
 func _poser_au_sol(scene: Node3D) -> void:
-	var boite: AABB = MontageDeVehicule.boite(scene, _vehicule)
+	var boite: AABB = MontageDeVehicule.boite(scene, scene.get_parent() as Node3D)
 	scene.position = Vector3(-boite.get_center().x, -boite.position.y, -boite.get_center().z)
 
 
 ## L'onglet Équipement du véhicule, d'après la dernière réponse de `vehicule` : ses pièces, celles que la réponse monte à
 ## ses `places` ; « Postes », une rangée par place, à son libellé, sa liste de clé `poste/<bord>/<rang>` offrant « Aucun »
-## puis chaque fiche de `pieces` par le libellé de son élément, sur la pièce de la place ; « Améliorations », une case par Amélioration que le véhicule peut monter (`montables`, de clé
+## puis chaque fiche de `pieces` par le libellé de son élément, sur la pièce de la place ; « Améliorations », une case
+## par Amélioration que le véhicule peut monter (`montables`, de clé
 ## `amelioration/<id>`), cochée si le véhicule la porte ; « Emblème », si son élément porte une surface `blason`, la liste
 ## de clé `vehicule/embleme` : « Aucun », puis chaque emblème.
 func _poser_le_panneau_du_vehicule() -> void:
@@ -1056,11 +1147,12 @@ func _poser_la_vitrine() -> void:
 
 
 ## L'effet `effet` de la vitrine rejoué de l'auteur, à l'origine, vers la cible, l'orbite cadrant l'un et l'autre et le
-## véhicule posé.
+## véhicule ou l'échantillon posé.
 func _jouer_l_effet(effet: Dictionary) -> void:
 	var boite := AABB(MiseEnPage.coin_de_la_vitrine(_vitrine.distanceM), MiseEnPage.etendue_de_la_vitrine(_vitrine.distanceM))
-	if _vehicule.scene != null:
-		boite = boite.merge(MontageDeVehicule.boite(_vehicule.scene, _vehicule))
+	var posee: Variant = MontageDeVehicule.boite(_vehicule.scene, _vehicule) if _vehicule.scene != null else MontageDeVehicule.boite(_echantillon, _echantillon)
+	if posee != null:
+		boite = boite.merge(posee)
 	_marche.cadrer_la_boite(boite)
 	var lieux := {_vitrine.de: Vector3.ZERO, _vitrine.vers: _cible.position}
 	if effet.quoi == "zone":
@@ -1138,6 +1230,14 @@ func _attaquer() -> void:
 ## puis l'entrée, et copie l'entrée au presse-papiers (`DisplayServer.clipboard_set`) ; refusé (erreur `validation`),
 ## il affiche « composition refusée : » suivi du message à la place du verdict, sans entrée ni copie. Godot n'écrit
 ## aucun champ de l'enveloppe.
+
+## Les familles d'échantillons de `echantillons` (#3802), dont chaque liste de tête se pose avec les modèles
+## (`_poser_les_listes_des_modeles`).
+func _lire_les_echantillons() -> void:
+	var reponse := _pont.appeler("echantillons")
+	if reponse.get("ok") == true:
+		_familles_d_echantillons = reponse.familles
+
 
 ## Les presets et les axes de `catalogues` (#3086, D2 et D3) : un bouton par preset (son `label`), puis chaque axe de
 ## `axes`, dans leur ordre, son `label` en tête : la liste de ses choix (leur `label`, l'id stocké), « aucun » en tête,
@@ -1263,7 +1363,8 @@ func _composer() -> void:
 ## La composition courante composée par `composer` sur la base posée, avec les surcharges d'emblème : chaque emplacement
 ## monte l'élément que `montes` lui donne et démonte les autres. Un emplacement dont l'élément change perd sa surcharge et
 ## monte sous le défaut de la composition (`_embleme_de_l_emplacement`) ; un élément monté inchangé se rhabille de la
-## palette de la réponse et de l'emblème de son entrée de `montes`, et la base de cette palette. Puis le gabarit et les morphes de la réponse se posent,
+## palette de la réponse et de l'emblème de son entrée de `montes`, et la base de cette palette. Puis le gabarit et
+## les morphes de la réponse se posent,
 ## les morphes de la précédente remis à 0. Refusée (erreur `validation`), rien n'est composé : chaque emplacement est
 ## démonté, ni gabarit ni morphe, et le texte du refus est gardé. Le texte de « Copier » est effacé.
 func _composer_la_courante() -> void:
@@ -1324,7 +1425,8 @@ func _cadrer() -> void:
 
 
 ## Les sélecteurs d'axe et les listes de couleurs sur la composition courante (la glissière d'un axe `plage` sans valeur à
-## son `neutre`, une couleur absente à « Par défaut »), les manquants de la composition composée (leur libellé, et celui de ce qui les apporte, `par.label`) et son rapport, ou le
+## son `neutre`, une couleur absente à « Par défaut »), les manquants de la composition composée (leur libellé, et
+## celui de ce qui les apporte, `par.label`) et son rapport, ou le
 ## refus de la composition courante.
 func _montrer_la_composition() -> void:
 	for axe in _axes:
@@ -1389,11 +1491,13 @@ func _publier() -> void:
 
 ## Ce que l'écran porte, une fois mis en page : ses boutons, et l'état de l'atelier, l'élément monté à chaque point
 ## (`montes`) et à chaque ligne de pièce (`lignes`) sous sa clé publiée, les erreurs (`_toutes_les_erreurs`), l'onglet
-## montré, les onglets offerts (`_onglets_offerts`) et le défilement de son panneau (`defilement`), le cadre de la glissière de chaque axe `plage` à l'écran
+## montré, les onglets offerts (`_onglets_offerts`) et le défilement de son panneau (`defilement`), le cadre de la
+## glissière de chaque axe `plage` à l'écran
 ## (`plages`, avec sa valeur), la composition courante avec ce que `composer` en a monté, ce qui y manque, le texte de
 ## son refus et celui de « Copier », les mesures du gabarit posé (`GabaritDuSquelette.mesures`), l'échelle de l'orbite
-## (`cadre`), la position des os de la base (`_positions_des_os`) et la boîte des meshes skinnés montés (`_peaux`), que
-## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu.
+## (`cadre`), la position des os de la base (`_positions_des_os`), la boîte des meshes skinnés montés (`_peaux`), que
+## la publication attend tant que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu, le véhicule posé
+## (`_vehicule_publie`) et l'échantillon posé (`_echantillon_publie`).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame
 	if _peaux_a_mesurer:
@@ -1450,8 +1554,17 @@ func _publier_l_ecran() -> void:
 			morphes = _morphes_des_meshes(),
 			couleurs = _montage.couleurs_posees(),
 			vehicule = _vehicule_publie(),
+			echantillon = _echantillon_publie(),
 		},
 	})
+
+
+## Ce que l'écran montre de l'échantillon demandé, `null` sans lui : sa famille, son id, et ce que sa scène a posé
+## (`VolumeDeScene.ce_qui_est_pose`).
+func _echantillon_publie() -> Variant:
+	if _echantillon_demande == null:
+		return null
+	return _scene_de_l_echantillon.ce_qui_est_pose().merged(_echantillon_demande)
 
 
 ## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated.

@@ -76,14 +76,16 @@ interface GeometrieDuMonde {
   cases: [number, number, number][];
   /**
    * une par matière (et provenance), ses sommets de `debut` à `fin` exclu, dans l'ordre des triangles. Les triangles
-   * d'une même matière se suivent (`surfaces`) ; le sol et les crêtes d'une case que posent les ponts d'un navire de la scène
+   * d'une même matière se suivent (`surfaces`) ; le sol et les crêtes d'une case que posent les ponts d'un navire de
+   * la scène
    * (`provenanceDesNavires`, `src/noyau/planDeNavire.ts`) forment des surfaces à part, qui portent `navire`, l'id de
    * l'entité du navire : le monde les touche (`cases`, forme du rayon du pointeur et de la marche de l'œil) sans les
-   * peindre (`Monde._maillage_de`), le navire se montrant par son modèle (section « Corps d'un combattant »,
+   * peindre (`VolumeDeScene._maillage_de`), le navire se montrant par son modèle (section « Corps d'un combattant »,
    * `navires`) ; ses décors restent peints ; sur sa flottaison, le rectangle de ses ponts à la couche de son pont le
    * plus bas, chaque case est sa mer (`MER`, le terrain du glyphe `~`) à la hauteur 0, à la place du sol de la scène
    * hors de ses ponts : des surfaces à part, qui portent `flottaison`, l'id de l'entité du navire, que le rayon du
-   * pointeur traverse et que le monde peint hors de la coque du modèle posé, sous la hauteur 0 (`Monde.border_la_mer`,
+   * pointeur traverse et que le monde peint hors de la coque du modèle posé, sous la hauteur 0
+   * (`VolumeDeScene.border_la_mer`,
    * `MontageDeVehicule.contour_sous`, recette `projet/recettes/coupe-du-navire.gd`) ; une matière se nomme
    * `<domaine>--<id>` (`terrain--herbe`, `relief--pierre`).
    */
@@ -113,7 +115,7 @@ export interface VolumeDuMonde extends GeometrieDuMonde {
   /**
    * Ce que le regard retire du volume (les cases des couches au-dessus de la couche active et du couvercle, section
    * « Vue ») forme son `ombre`, de la même forme (`positions`, `normales`, `couleurs`, `cases`, `surfaces`), que le
-   * monde ne montre ni ne touche et dont il garde l'ombre (`Monde._mailler`, un maillage en ombre seule) : sous un
+   * monde ne montre ni ne touche et dont il garde l'ombre (`VolumeDeScene._mailler`, un maillage en ombre seule) : sous un
    * étage retiré, le rez reste à l'ombre (#3758).
    */
   ombre: GeometrieDuMonde;

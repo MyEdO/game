@@ -591,7 +591,7 @@ minimal pose un trigger dont le flux joue l'effet `journal`. Formes validées pa
 const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-barman', secOcc: 2, b0: 0, b1: 0, sum: '32d9b703acdfaede' }] }
 const trigger = { id: 'recette-journal', rect: { x: 2, y: 2, w: 1, h: 1 }, once: true,
   flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'journal', descRef } }] } }
-const pnj = { id: 'pnj-recette', base: 'humain' }   // narratif.presetsPnj[]
+const pnj = { id: 'pnj-recette', base: { id: 'humain' } }   // narratif.presetsPnj[]
 ```
 
 `desc` est FACULTATIF à côté de `descRef`, mais `desc: ''` est REFUSÉ (« texte vide ») : l'omettre, ou

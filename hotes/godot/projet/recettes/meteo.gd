@@ -24,7 +24,7 @@ func _recetter() -> void:
 	print("[meteo] version=", Engine.get_version_info().string)
 	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
 	root.add_child(monde)
-	var posee: Node3D = monde.get_node("Volume/Meteo")
+	var posee: Node3D = monde.get_node("VolumeDeScene/Volume/Meteo")
 	monde.poser_la_meteo(METEO)
 	var averses := posee.get_children().filter(func(n: Node) -> bool: return n is CPUParticles3D)
 	var nappes := posee.get_children().filter(func(n: Node) -> bool: return n is MeshInstance3D)
