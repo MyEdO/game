@@ -3,11 +3,13 @@ import { garanti } from '../lib/garanti';
 import { buildScene } from './mapSpec';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { reachedFloors, unreachableDescriptiveZones, zoneWalkableCells } from './mapQC';
-import { areteOcculteEntre, edgeOf, heightAt, isDescriptiveZone, isWalkable, porteAuteur, sceneMetresPerTile, tileAt, wallBetween, type Scene } from './monde/scene';
+import { areteOcculteEntre, edgeOf, heightAt, isDescriptiveZone, isWalkable, porteAuteur, sceneMetresPerTile, tileAt, wallBetween, type Scene, type SceneEntity } from './monde/scene';
 import { estAbsent } from './monde/terrain';
 import { reachable } from './monde/path';
 import { planClimb } from './monde/climbMove';
-import { propFootTiles } from './monde/footprint';
+import { ancreDuDecor, propFootTiles } from './monde/footprint';
+import { fauteDAppui, piedDuDecor, portePar } from './monde/poseDuDecor';
+import { emprisePlanTournee } from '../data/props.types';
 import { sceneZoneTiles } from './monde/zones';
 import { findPropById, findVehicleById } from '../data';
 import { grilleDesPonts } from '../data/schemas/grammaire/carte-ascii';
@@ -105,9 +107,33 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     expect(meubles.flatMap((e) => casesDu(e).filter((c) => !emprise.has(k(c))).map((c) => `${e.id} ${k(c)}`))).toEqual([]);
   });
 
-  it('deux meubles ne se chevauchent pas', () => {
-    const cases = meubles.flatMap((e) => casesDu(e).map(k));
-    expect(cases.filter((c, i) => cases.indexOf(c) !== i)).toEqual([]);
+  /** Le corps d'un meuble au plan, en cases : l'emprise de sa recette tournée, autour de son ancre calée. */
+  const corpsDu = (e: (typeof meubles)[number]) => {
+    const mpt = sceneMetresPerTile(scene);
+    const a = ancreDuDecor(e, mpt);
+    const c = garanti(emprisePlanTournee(garanti(findPropById(e.ref), e.id, 'décor'), e.facing ?? 'S', () => true), e.id, 'corps');
+    return { x0: a.x + c.x0 / mpt, x1: a.x + c.x1 / mpt, y0: a.y + c.y0 / mpt, y1: a.y + c.y1 / mpt };
+  };
+
+  it('deux meubles ne s’interpénètrent pas, sauf l’objet et ce qui le porte', () => {
+    const heurts = meubles.flatMap((a, i) => meubles.slice(i + 1).filter((b) => {
+      if ((a.z ?? 0) !== (b.z ?? 0) || portePar(scene, a, b.id) || portePar(scene, b, a.id)) return false;
+      const [p, q] = [corpsDu(a), corpsDu(b)];
+      return Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > 1e-6 && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > 1e-6;
+    }).map((b) => `${a.id} × ${b.id}`));
+    expect(heurts).toEqual([]);
+  });
+
+  it('chaque objet posé tient sur le dessus de son support, plus haut que lui', () => {
+    const poses = meubles.filter((e) => e.sur);
+    expect(poses.map((e) => e.id).sort()).toEqual([
+      'cale-caisse-5', 'mess-des-officiers-bourse-1', 'quartiers-du-capitaine-cle-1', 'quartiers-du-capitaine-lettre-1', 'salle-d-apparat-lettre-1',
+    ]);
+    for (const e of poses) {
+      const support = garanti(meubles.find((s) => s.id === e.sur), e.id, 'support');
+      expect(fauteDAppui(scene, e), e.id).toBeUndefined();
+      expect(piedDuDecor(scene, e), e.id).toBeGreaterThan(piedDuDecor(scene, support));
+    }
   });
 });
 
@@ -129,6 +155,34 @@ describe('la caraque posée dans une scène (poserLesNavires)', () => {
     // l'infirmerie, à tribord de la cale (y = 1 du plan), passe à l'est (x = 3 + 3)
     const infirmerie = garanti(s.effectZones?.find((z) => z.id === 'c1-infirmerie'), 'c1-infirmerie', 'pièce posée');
     expect(new Set(infirmerie.tiles!.map((t) => t.x))).toEqual(new Set([6]));
+  });
+
+  it('à tout cap, chaque meuble garde son calage tourné avec le pont et son appui : l’objet posé reste sur son support', () => {
+    const mpt = sceneMetresPerTile(scene);
+    /** Le décalage de l'ancre d'un décor depuis le centre de son empreinte, en cases : ce que son calage déplace. */
+    const decalage = (e: SceneEntity) => {
+      const [a, centre] = [ancreDuDecor(e, mpt), ancreDuDecor({ ...e, calage: undefined }, mpt)];
+      return { x: a.x - centre.x, y: a.y - centre.y };
+    };
+    const meubles = scene.entities.filter((e) => e.kind === 'prop');
+    // un quart horaire par quart du cap, depuis le cap O où les ponts se posent tels quels
+    const quarts = { O: 0, N: 1, E: 2, S: 3 } as const;
+    for (const cap of ['N', 'E', 'S', 'O'] as const) {
+      const s = bassinDeLaCaraque(cap);
+      for (const e of meubles) {
+        const pose = garanti(s.entities.find((p) => p.id === `c1-${e.id}`), `${cap} ${e.id}`, 'meuble posé');
+        expect(pose.sur, `${cap} ${e.id}`).toBe(e.sur && `c1-${e.sur}`);
+        expect(fauteDAppui(s, pose), `${cap} ${e.id}`).toBeUndefined();
+        expect(piedDuDecor(s, pose), `${cap} ${e.id}`).toBeCloseTo(piedDuDecor(scene, e), 9);
+        let attendu = decalage(e);
+        for (let q = 0; q < quarts[cap]; q++) attendu = { x: -attendu.y, y: attendu.x };
+        const d = decalage(pose);
+        expect(d.x, `${cap} ${e.id}`).toBeCloseTo(attendu.x, 9);
+        expect(d.y, `${cap} ${e.id}`).toBeCloseTo(attendu.y, 9);
+      }
+    }
+    // au cap N, la poupe au sud et bâbord à l'ouest : le coffre du capitaine reste plaqué à la poupe et à bâbord
+    expect(garanti(bassinDeLaCaraque('N').entities.find((e) => e.id === 'c1-quartiers-du-capitaine-coffre-1'), 'N', 'coffre').calage).toEqual({ x: -1, y: 1 });
   });
 
   it('à tout cap, les échelles mènent encore de la cale à la plage arrière', () => {

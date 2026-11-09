@@ -464,7 +464,7 @@ export function empreinteDeriveeDuProp(prop: PropData, facing: Dir8, mpt: number
 
 /** Emprise AU PLAN des primitives `retenue` d'une recette tournée au cap `facing`, en mètres autour de l'ancre,
  *  mesurée sur `polygonesDePrimitive` ; `undefined` sans primitive retenue. PURE. */
-function emprisePlanTournee(prop: PropData, facing: Dir8, retenue: (p: PropPrimitive) => boolean): { x0: number; x1: number; y0: number; y1: number } | undefined {
+export function emprisePlanTournee(prop: PropData, facing: Dir8, retenue: (p: PropPrimitive) => boolean): { x0: number; x1: number; y0: number; y1: number } | undefined {
   let x0 = Infinity, x1 = -Infinity, y0 = Infinity, y1 = -Infinity;
   for (const primitive of prop.volume.primitives) {
     if (!retenue(primitive)) continue;
