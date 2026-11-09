@@ -1,5 +1,5 @@
 /**
- * Câblage audio de l'hôte : la sélection musicale depuis l'état (`musicSelectionOf`), et les sons
+ * Câblage audio de l'hôte : la musique de la partie en campagne seulement (`musicSelectionOf`), et les sons
  * ponctuels (#701) — un Effet de scène `playSfx` appliqué joue son son une fois, par `EVT.SFX` ; un id
  * hors registre ne joue rien. ⚠ Suite sous `test.isolate:false` (vite.config.ts) :
  * les sons sont débranchés, `Audio` restauré et le store remis à zéro après chaque test.
@@ -18,34 +18,14 @@ const at = (over: Partial<MusicStateSlice>): MusicStateSlice => ({
   ...over,
 });
 
-describe('musicSelectionOf — résolution de la musique (scène > contexte)', () => {
-  it('combat en campagne → contexte combat', () => {
+describe('musicSelectionOf — la musique de la partie (`selectionDeLaMusique`), en campagne seulement', () => {
+  it('en campagne, celle de la partie', () => {
     expect(musicSelectionOf(at({ mode: 'battle', battle: {} }))).toEqual({ ctx: 'combat' });
-  });
-  it('exploration en intérieur → contexte interieur', () => {
-    expect(musicSelectionOf(at({ scene: { ambiance: 'interieur' } }))).toEqual({ ctx: 'interieur' });
-  });
-  it('exploration en extérieur → contexte exploration', () => {
-    expect(musicSelectionOf(at({}))).toEqual({ ctx: 'exploration' });
   });
   it('écrans hors campagne → SILENCE (seul l\'écran de jeu expose les contrôles audio — on n\'impose pas une musique incoupable)', () => {
     for (const screen of ['menu', 'party', 'creator', 'coop', 'test', 'interlude', 'editor'] as const) {
       expect(musicSelectionOf(at({ screen, scene: null }))).toBe(null);
     }
-  });
-  it("la scène impose sa piste d'ambiance (paramétrée dans l'éditeur)", () => {
-    expect(musicSelectionOf(at({ scene: { ambiance: 'exterieur', music: { ambient: 'musique-taverne' } } })))
-      .toEqual({ def: 'musique-taverne' });
-  });
-  it('la scène impose sa piste de combat', () => {
-    expect(musicSelectionOf(at({ mode: 'battle', battle: {}, scene: { ambiance: 'exterieur', music: { combat: 'musique-ville' } } })))
-      .toEqual({ def: 'musique-ville' });
-  });
-  it('la scène peut forcer le silence (null) — ambiance et combat indépendants', () => {
-    const scene = { ambiance: 'exterieur' as const, music: { ambient: null } };
-    expect(musicSelectionOf(at({ scene }))).toBe(null);
-    // combat non précisé sur cette scène → repli contexte combat
-    expect(musicSelectionOf(at({ mode: 'battle', battle: {}, scene }))).toEqual({ ctx: 'combat' });
   });
 });
 

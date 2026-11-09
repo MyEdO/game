@@ -95,7 +95,7 @@ func montrer(vue: Dictionary) -> void:
 
 
 ## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
-## zone : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
+## zone et de chaque flottant posé sur une case : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
 ## d'un coup qui touche l'accuse à son arrivée.
 func jouer_les_effets(effets: Array) -> void:
 	if _vue.plateau == null:
@@ -104,11 +104,14 @@ func jouer_les_effets(effets: Array) -> void:
 	for id: String in _modeles:
 		lieux[id] = _modeles[id].position
 	for effet: Dictionary in effets:
+		var cases: Array = []
 		if effet.quoi == "zone":
-			var cases: Array = effet.cases.duplicate()
+			cases = effet.cases.duplicate()
 			cases.append(effet.centre)
-			for case: Dictionary in cases:
-				lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
+		elif effet.quoi == "flottant" and effet.case != null:
+			cases = [effet.case]
+		for case: Dictionary in cases:
+			lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
 
 

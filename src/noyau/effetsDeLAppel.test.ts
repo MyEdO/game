@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { effetsDeLAppel, type Effet } from './effetsDeLAppel';
+import { effetsDeLAppel, SONS_DE_LA_PARTIE, TEINTE_DU_CRITIQUE, TEINTE_DU_FLOTTANT, type Effet } from './effetsDeLAppel';
+import { sonDEffet } from '../data/sons/registre';
 import type { ChargeDAttaque } from './bus';
 import type { Evenement } from './partie';
 import type { AttackResult } from '../engine/combat';
@@ -57,7 +58,46 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
   });
 
   it('un son de scène : le son du registre ; l’attaque spéciale d’une créature sur elle-même ne rend aucun coup', () => {
-    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number) } }]);
+    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number) }, fois: 1, ecartS: 0 }]);
     expect(effetsDeLAppel(ETAT, [emis({ kind: 'creature', from: 'a', to: 'a', defense: 'none', result: { hit: true }, creatureAttack: 'hurlement' })])).toEqual([]);
+  });
+
+  it('les flottants d’un coup à son arrivée : ses Blessures, critiques à leur teinte, encaissé, hors de combat ; paré ou esquivé, raté', () => {
+    const epee = arme({ subType: 'base' });
+    const flottants = (defense: 'parade' | 'none', r: Partial<AttackResult>) => {
+      const e = unSeul(emis({ kind: 'melee', from: 'a', to: 'b', defense, result: coup(r), weapon: epee }));
+      return e.quoi === 'coup' ? e.flottants.map((f) => [f.genre, f.texte, f.couleur]) : [];
+    };
+    expect(flottants('none', { woundsLost: 4 })).toEqual([['damage', '-4', TEINTE_DU_FLOTTANT.damage]]);
+    expect(flottants('none', { woundsLost: 4, critical: true, defenderDefeated: true })).toEqual([['damage', '-4', TEINTE_DU_CRITIQUE], ['death', '✦ hors de combat', TEINTE_DU_FLOTTANT.death]]);
+    expect(flottants('none', { woundsLost: 0 })).toEqual([['soak', 'Encaissé', TEINTE_DU_FLOTTANT.soak]]);
+    expect(flottants('parade', { hit: false })).toEqual([['defend', 'Paré / Esquivé', TEINTE_DU_FLOTTANT.defend]]);
+    expect(flottants('none', { hit: false })).toEqual([['miss', 'Raté', TEINTE_DU_FLOTTANT.miss]]);
+  });
+
+  it('une incantation ratée le dit sur sa cible ; un Projectile magique dit ses Blessures', () => {
+    expect(unSeul(emis({ kind: 'spell', projectile: false, from: 'a', to: 'b', defense: 'none', result: incantation({ cast: false }), spell: 'drain' }))).toMatchObject({ flottants: [{ genre: 'miss', texte: 'Incantation ratée' }] });
+    expect(unSeul(emis({ kind: 'spell', projectile: false, from: 'a', to: 'a', defense: 'none', result: incantation({}), spell: 'benediction-de-bataille' }))).toMatchObject({ flottants: [] });
+    expect(unSeul(emis({ kind: 'spell', projectile: true, from: 'a', to: 'b', defense: 'none', result: incantation({ hit: true, woundsLost: 6 }), spell: 'cauteriser' }))).toMatchObject({ flottants: [{ genre: 'damage', texte: '-6' }] });
+  });
+
+  it('un flottant du bus au-dessus de son combattant ou de sa case', () => {
+    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { to: 'b', text: '+2', kind: 'heal' } })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'heal', texte: '+2', couleur: TEINTE_DU_FLOTTANT.heal, critique: false } });
+    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { pos: { x: 2, y: 3 }, text: '⤬ dévie', kind: 'miss' } })).toMatchObject({ sur: null, case: { x: 2, y: 3 } });
+  });
+
+  it('les pas d’un déplacement, un par deux cases, quatre au plus ; le heurt d’un pas refusé, le gong de la victoire, les dés', () => {
+    const pas = (n: number) => unSeul({ type: 'emis', evt: 'anim_move', payload: { id: 'a', path: Array.from({ length: n }, (_, x) => ({ x, y: 0 })) } });
+    expect(pas(1)).toMatchObject({ quoi: 'son', son: { id: SONS_DE_LA_PARTIE.pas }, fois: 1, ecartS: 0.22 });
+    expect(pas(6)).toMatchObject({ fois: 3 });
+    expect(pas(20)).toMatchObject({ fois: 4 });
+    expect(unSeul({ type: 'emis', evt: 'move_blocked', payload: {} })).toMatchObject({ son: { id: SONS_DE_LA_PARTIE.heurt }, fois: 1 });
+    expect(unSeul({ type: 'emis', evt: 'battle_over', payload: { victory: true } })).toMatchObject({ son: { id: SONS_DE_LA_PARTIE.victoire } });
+    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'battle_over', payload: { victory: false } }])).toEqual([]);
+    expect(unSeul({ type: 'emis', evt: 'dice_roll', payload: undefined })).toMatchObject({ son: { id: SONS_DE_LA_PARTIE.des } });
+  });
+
+  it('chaque son de la partie est au registre', () => {
+    for (const id of Object.values(SONS_DE_LA_PARTIE)) expect(sonDEffet(id), id).not.toBeNull();
   });
 });

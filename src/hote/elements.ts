@@ -159,10 +159,10 @@ function saisie(id: string, a: ArgumentDuGeste): Saisie {
 
 /** Les gestes ouverts de la fenêtre, chacun en élément d'après son rendu, refusé avec sa raison. Le geste que la
  *  politique de la fenêtre joue maintenant prend le focus quand il en prend un (une rangée de choix n'en prend pas), à
- *  défaut le premier bouton. */
+ *  défaut le premier bouton qui n'est pas un réglage. */
 export function elementsDesGestes(gestes: readonly GesteDeLaFenetre[]): (Bouton | Choix | Formulaire)[] {
   const ouverts = gestes.filter((g) => g.ouvert);
-  const focus = ouverts.find((g) => g.attendu && g.rendu !== 'choix') ?? ouverts.find((g) => g.rendu === 'bouton');
+  const focus = ouverts.find((g) => g.attendu && g.rendu !== 'choix') ?? ouverts.find((g) => g.rendu === 'bouton' && !g.reglage);
   return ouverts.map((g) => {
     const enFocus = g === focus;
     switch (g.rendu) {
