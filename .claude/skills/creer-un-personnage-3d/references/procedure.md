@@ -446,6 +446,8 @@ batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, cano
 figurine) se range hors dépôt avec sa source (`vehicules-3d/references-armes-de-siege/SOURCES.md` du dossier du
 projet) et se cite dans la docstring des données ; sans référence, la docstring dit les proportions d'adaptation.
 
+**Décomposer l'illustration** avant de construire : un véhicule s'assemble de parties comme un personnage d'un corps, d'une tête, de tenues et d'équipements (fiche `user-doctrine-vehicule-assemblage-de-parties`). La docstring de `donnees.py` range chaque chose dessinée dans sa partie : le bateau, modelé par `modele.py` (coque, ponts, superstructures, mâts et gréement, barre, garde-corps, ouvertures) ; les Améliorations, pièces à part sur ses `ancrages` ; l'armement, pièces de siège à ses `postes` ; le décor (lanternes, tonneaux, cargaison, mobilier), décors du catalogue `src/data/props.json` que pose le plan du navire au noyau (`src/noyau/planDe*.ts`), jamais modelés dans son GLB ; le pavillon, surface `blason`. Une fenêtre ou un hublot dessinés sont une ouverture creusée dans le mur, jamais un cadre plaqué sur un mur plein.
+
 **Créer un type.** Le dossier `vehicule/<type>/` porte deux fichiers :
 
 - `donnees.py` : les ids de clé (`definition` d'une coque de `src/data/vehicles.json` ou d'un engin `armes-de-siege` de
@@ -495,7 +497,7 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revu
 ```
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner. Avant de montrer un
-véhicule à l'utilisateur, un juge neuf (`.claude/agents/juge.md`) statue signe identitaire par signe identitaire sur
+véhicule à l'utilisateur, un juge neuf (`.claude/agents/juge.md`) statue partie par partie (bateau, Améliorations, armement, décor, pavillon), signe identitaire par signe identitaire, sur
 le côte à côte de son illustration et de son rendu orthographique, de profil puis pont par pont : pour chaque plan de
 pont de l'illustration, le plan dessiné, le rendu de dessus coupé au-dessus du sol de ce pont et le plan de jeu
 (`ponts`, postes d'arme du manifeste), à la même échelle, cloisons, portes, écoutilles, échelles, mobilier et postes
