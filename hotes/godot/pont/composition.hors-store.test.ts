@@ -140,7 +140,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
 
   it('catalogues publie chaque champ en `{ id, label }` et ses axes, et presetDeComposition le Soldat sous son preset', () => {
     const catalogues = appeler('catalogues');
-    expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual([{ id: 'soldat', label: 'Soldat' }, { id: 'gladiateur', label: 'Gladiateur' }]);
+    expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual(presets.map(({ id, label }) => ({ id, label })));
     expect(catalogues.prises.map((c: { id: string }) => c.id)).toEqual(['main', 'off']);
     expect(catalogues.couleurs.map((c: { id: string }) => c.id)).toEqual([...SLOTS]);
     expect(catalogues.nuancier).toEqual(cataloguesDeComposition().nuancier);
@@ -153,7 +153,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
     expect(sansPreset.verdict.map((f: { chemin: unknown[] }) => f.chemin)).toEqual([['id'], ['label'], ['source']]);
     expect(appeler('presetDeComposition', { composition: soldat, preset: 'inconnu' }).erreur).toEqual({
       categorie: 'validation',
-      message: 'presetDeComposition : preset, l’id d’un preset de catalogues (soldat, gladiateur)',
+      message: `presetDeComposition : preset, l’id d’un preset de catalogues (${presets.map((p) => p.id).join(', ')})`,
     });
   });
 
