@@ -229,9 +229,11 @@ sans coordonnées d'un ancien personnage. Emprunter les poids du porteur au repo
 manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones que la pièce traverse ; une pièce longue
 dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`. Une arête
 que la clé retourne est lissée comme une arête hors bornes. Une pièce posée sur un autre vêtement (pan de capuche sur la
-robe) en emprunte les poids (`Base.matieres_publiees`) et les clés (`publies` de `Base.transferer`) : transférées du seul
-corps, deux couches divergent sous silhouette et se traversent. Le vêtement de dessous s'importe donc avant, et
-l'élément qui le recouvre le nomme dans son `CONTOURNE`.
+robe) en emprunte les poids (`Base.matieres_publiees`) et les clés (un `masques` de `Base.transferer`, ses zones et les
+meshes publiés qu'il couvre) : transférées du seul corps, deux couches divergent sous silhouette et se traversent. Le
+vêtement de dessous s'importe donc avant, et l'élément qui le recouvre le nomme dans son `CONTOURNE`. De même, une
+partie qui ne suit qu'une région du corps prend ses clés de ses seules zones : liée aussi au cou, qui monte sous
+`carrure_plus` quand la tête publiée ne bouge pas, le bas d'un capuchon se replie et la tête passe devant.
 `npm run godot:evaluer` (garde `suiviDuCorps`) refuse par `cle-inerte` une pièce qui ne suit pas un corps qui bouge
 sous elle, clé absente comprise, et par `cle-non-suivie` une pièce dont l'écart au corps dépasse son jeu.
 

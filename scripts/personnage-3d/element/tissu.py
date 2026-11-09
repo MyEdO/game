@@ -147,27 +147,31 @@ class Base:
         triangles `orientes`), l'intérieure à `epaisseur` en retrait le long des normales."""
         return double_nappe(nom, X, normales, poids_normalises(W, self.os), orientes, mat, self.rig, epaisseur)
 
-    def transferer(self, piece, zones, bornes=BORNES_DES_CLES, publies=None, sur=None):
+    def transferer(self, piece, zones, bornes=BORNES_DES_CLES, masques=()):
         """Silhouettes déclarées par la base et toutes ses clés `gabarit_*`, transférées sur `piece` par liaison de
-        surface depuis la copie jointe des zones `zones` qu'elle traverse ; les sommets `sur` (masque par sommet) les
-        prennent aussi des meshes des éléments publiés `publies` (`{id: zones de ses meshes}`) sur lesquels ils
-        reposent, porteurs des mêmes clés : ils suivent le vêtement, pas le corps dessous. Rend les noms des clés."""
+        surface depuis la copie jointe des zones `zones` qu'elle traverse ; chaque `(masque, zones, publies)` de `masques`
+        les reprend, sur les sommets de son masque, de ses propres zones et des meshes des éléments publiés `publies`
+        (`{id: zones de ses meshes}`) sur lesquels ils reposent, porteurs des mêmes clés : un pan suit le vêtement qu'il
+        couvre, pas le corps dessous. Rend les noms des clés."""
         source = self._source(zones, {})
         noms_cles = [k.name for k in source.data.shape_keys.key_blocks if k != source.data.shape_keys.reference_key]
         manquantes = [s for s in self.manifeste['silhouettes'] if s not in noms_cles]
         if manquantes:
             raise ValueError(f'silhouettes absentes des zones porteuses : {manquantes}')
         cles = list(self.manifeste['silhouettes']) + [k for k in noms_cles if k.startswith('gabarit_')]
-        dessus = {}
-        if publies:
-            sur_publies = self._source(zones, publies)
-            transferer_les_cles(sur_publies, piece, cles)
-            bpy.data.objects.remove(sur_publies, do_unlink=True)
-            dessus = {nom: decalages(piece, nom) for nom in cles}
+        reprises = []
+        for masque, zones_du_masque, publies in masques:
+            autre = self._source(zones_du_masque, publies)
+            transferer_les_cles(autre, piece, cles)
+            bpy.data.objects.remove(autre, do_unlink=True)
+            reprises.append((np.asarray(masque)[:, None], {nom: decalages(piece, nom) for nom in cles}))
         transferer_les_cles(source, piece, cles)
         bpy.data.objects.remove(source, do_unlink=True)
-        for nom, champ in dessus.items():
-            poser_la_cle(piece, nom, np.where(np.asarray(sur)[:, None], champ, decalages(piece, nom)))
+        for nom in cles:
+            champ = decalages(piece, nom)
+            for masque, champs in reprises:
+                champ = np.where(masque, champs[nom], champ)
+            poser_la_cle(piece, nom, champ)
         lisser_aux_aretes_fautives(piece, cles, bornes)
         return cles
 

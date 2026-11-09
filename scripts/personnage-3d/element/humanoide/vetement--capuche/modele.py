@@ -213,9 +213,9 @@ def echarpe(D, b, M, contournees, robe):
     # rayon de ses sommets voisins en angle, posé sur le torse.
     torse = Contournees(D, [zone(b, 'torse')])
     dz, ecart = c['bas']
-    portee_au_col, jeu_au_col = c['col']
+    portee_au_col, ecart_au_col, jeu_au_col = c['col']
     voisinage_angulaire = 1.5 * math.pi / s
-    r0, hauteurs, rangs = [], [], [[]]
+    r0, hauteurs, rangs, ecarts = [], [], [[]], []
     for t, d in zip(thetas, dirs):
         proches = np.abs((angles - t + math.pi) % (2 * math.pi) - math.pi) < voisinage_angulaire
         r = float(rayons[proches].max()) + ecart
@@ -224,11 +224,18 @@ def echarpe(D, b, M, contournees, robe):
         if loc is None:
             raise ValueError(f'écharpe : pas de torse sous {xy.round(3).tolist()}')
         O = np.array([centre[0], centre[1], loc.z + dz])
-        sur_le_col = robe.exterieur(O, d, r + portee_au_col, jeu_au_col)
+        sur_la_robe = robe.exterieur(O, d, portee_au_col, jeu_au_col)
+        sur_le_col = sur_la_robe if sur_la_robe is not None and sur_la_robe <= r + ecart_au_col else 0.0
         r0.append(r)
         hauteurs.append(O[2])
-        rangs[0].append(O + max(r, sur_le_col or 0.0) * d)
-    r0, hauteurs = np.array(r0), np.array(hauteurs)
+        rangs[0].append(O)
+        ecarts.append(max(0.0, sur_le_col - r))
+    ecarts = np.array(ecarts)
+    for _ in range(c['passes_du_col']):
+        ecarts = np.maximum(ecarts, 0.5 * (np.roll(ecarts, 1) + np.roll(ecarts, -1)))
+    r0 = np.array(r0) + ecarts
+    rangs[0] = [O + r * d for O, r, d in zip(rangs[0], r0, dirs)]
+    hauteurs = np.array(hauteurs)
     z_os = float(b.tete(c['os_hauteur'])[2])
     for k, (h, pente, aisance) in enumerate(c['anneaux']):
         hauteurs = np.maximum(z_os + h - pente * np.maximum(0.0, np.cos(thetas)) ** 2, hauteurs + c['ecart_min'])
@@ -368,8 +375,10 @@ def construire(D, materiaux, b):
     for i, p in enumerate(X):
         arbre.insert(Vector(p.tolist()), i)
     arbre.balance()
-    sur_la_robe = [parties[arbre.find(v.co)[1]] == 'pan' for v in piece.data.vertices]
-    cles = b.transferer(piece, D['ZONES_DES_CLES'], publies={D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']},
-                        sur=sur_la_robe)
+    partie_de = [parties[arbre.find(v.co)[1]] for v in piece.data.vertices]
+    cles = b.transferer(piece, D['ZONES_DES_CLES'], masques=[
+        ([p == 'capuchon' for p in partie_de], D['ZONES_DES_CLES_DU_CAPUCHON'], {}),
+        ([p == 'pan' for p in partie_de], D['ZONES_DES_CLES'], {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']}),
+    ])
     tenir_au_corps(b, piece, [k for k in cles if k.startswith('gabarit_')], D['MARGE_DE_SUIVI'])
     return piece

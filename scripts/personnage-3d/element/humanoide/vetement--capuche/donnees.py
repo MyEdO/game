@@ -68,17 +68,21 @@ ECHARPE = {
     'segments': 20,
     'couture_tolerance': 1e-4,          # m : un sommet du cou à moins de cette distance du torse est sur la couture
     'bas': (0.012, 0.016),              # adaptation : (au-dessus du torse, au-delà de la couture) en m, par-dessus un col de tenue
-    # Le bas passe par-dessus le col de la robe qu'il touche (portée au-delà du rayon du bas, jeu de la nappe intérieure à
-    # la robe) : le col, arrêté au bas du cou à 26 mm d'aisance (`vetement--robe/donnees.py`), entre sinon entre le bas
-    # et l'anneau suivant, dans le dos.
-    'col': (0.040, 0.010),              # adaptation
+    # Le bas passe par-dessus le col de la robe qu'il touche (portée de la visée, écart au-delà du rayon du bas sous lequel la
+    # robe est le col, jeu de la nappe intérieure à la robe) : le col, arrêté au bas du cou à 26 mm d'aisance
+    # (`vetement--robe/donnees.py`), entre sinon entre le bas et l'anneau suivant, dans le dos ; plus loin, la robe est
+    # l'épaule ou la manche.
+    'col': (0.30, 0.050, 0.010),        # adaptation
+    'passes_du_col': 2,                 # adaptation : passes qui étalent le long du bas l'écart pris sur le col (au saut d'un
+                                        # sommet écarté à son voisin qui ne l'est pas, l'arête vers l'anneau 1 s'étire)
     'os_hauteur': 'neck_01',
     # (hauteur depuis la tête de `neck_01`, abaissement devant, aisance) en m, du bas au haut. L'avant du dernier anneau
     # reste sous la barbe (son bas est 0,045 m au-dessus de la tête de `neck_01`, sonde de la coiffure publiée).
     'anneaux': [(0.050, 0.035, 0.036), (0.080, 0.055, 0.036), (0.112, 0.074, 0.012)],
     # part de `Head` dans les poids de chaque anneau (le bas compris), devant (pondérée par le cosinus de l'azimut) :
     # sous le menton, l'écharpe suit la barbe qui la pousse.
-    'part_de_la_tete': [0.0, 0.12, 0.26, 0.40],   # adaptation
+    'part_de_la_tete': [0.0, 0.06, 0.26, 0.40],   # adaptation ; au-dessus de 0,06 à l'anneau 1, l'arête qui le joint au bas
+                                                  # posé sur le col s'étire au-delà de la porte (×3,54 à 0,08, Zombie_Scratch)
     'ecart_min': 0.014,                 # adaptation : écart vertical minimal entre deux anneaux (devant, sous la barbe)
     'plis': 3,                          # adaptation : lobes de l'aisance autour du cou (illustration : drapé)
     'ampleur_des_plis': 0.010,
@@ -112,7 +116,12 @@ PORTEUSES = {'echarpe': ['cou', 'torse']}
 # (sous le menton, la peau du cou porte `Head`) ; son poids va au cou.
 OS_REPORTES = {'echarpe': {'Head': 'neck_01'}}
 ZONES_DES_CLES = ['tete', 'visage', 'cou', 'torse', 'bras_haut_g', 'bras_haut_d']
-LISSAGE_POIDS = {'capuchon': 1, 'echarpe': 12, 'pan': 0}   # adaptation : passes laplaciennes des poids par nappe ; le pan
-                                                           # garde ceux de la robe qu'il couvre, tels quels
+# Le capuchon prend ses clés de la tête seule : lié aussi au cou, qui monte sous `carrure_plus` quand la tête publiée ne
+# bouge pas, son bas près de l'oreille se replie (Shield_Dash).
+ZONES_DES_CLES_DU_CAPUCHON = ['tete', 'visage']
+LISSAGE_POIDS = {'capuchon': 3, 'echarpe': 12, 'pan': 0}   # adaptation : passes laplaciennes des poids par nappe ; le pan
+                                                           # garde ceux de la robe qu'il couvre, tels quels ; à une passe, le
+                                                           # bas du capuchon derrière l'oreille se replie quand le cou plie
+                                                           # (Shield_Dash), et la tête passe devant
 MARGE_DE_SUIVI = 0.9                    # adaptation : part du jeu tenue sous la garde `suiviDuCorps`
 PAS_DE_VISEE = 0.002                    # adaptation : pas (m) de la visée du dehors vers le centre
