@@ -30,7 +30,7 @@ import { buildScene, type MapSpec } from './mapSpec';
 import { AMELIORATIONS_DE_LA_CARAQUE, PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 
 /** Ce qu'une Amélioration ajoute aux ponts d'un type de navire. */
-export type ApportAuxPonts = Pick<MapSpec, 'terrainRects' | 'relief' | 'walls' | 'entities'>;
+export type ApportAuxPonts = Pick<MapSpec, 'terrainRects' | 'relief' | 'elevate' | 'walls' | 'entities'>;
 
 /** Les ponts d'un type de navire (leur `id` est celui du véhicule), et ce que chacune de ses Améliorations (id de
  *  `naval-traits`) y ajoute. */
@@ -54,6 +54,7 @@ export function pontsDuNavire(ref: string, upgrades: readonly NavalTraitRef[]): 
       ...ponts,
       terrainRects: [...(ponts.terrainRects ?? []), ...(apport.terrainRects ?? [])],
       relief: [...(ponts.relief ?? []), ...(apport.relief ?? [])],
+      elevate: { ...ponts.elevate, ...apport.elevate },
       walls: [...(ponts.walls ?? []), ...(apport.walls ?? [])],
       entities: [...(ponts.entities ?? []), ...(apport.entities ?? [])],
     };

@@ -433,8 +433,8 @@ manifestes et dossiers de production ; `maille.py` : maille, solides (révolutio
 tore, roue, treuil), bascule autour d'un axe, recentrage de l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et
 éléments d'un modèle à plusieurs pièces ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
 par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
-`caraque` (coque, plan de jeu lu dans `src/noyau/planDeLaCaraque.ts`, seize pièces d'Améliorations dans
-`ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+`caraque` (coque bâtie sur ses ponts, la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit
+aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
 engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
 batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
 (catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de

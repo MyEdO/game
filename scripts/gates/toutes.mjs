@@ -473,15 +473,16 @@ export const ECRIT_LU = {
         '(.gitignore) ; les constructions que le test lance en sous-processus n’en écrivent pas (`PYTHONDONTWRITEBYTECODE`)',
     },
     lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
-      'src/data/materials.json', 'src/noyau/planDeLaCaraque.ts'],
+      'src/data/materials.json', 'src/data/vehicles.json'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
       'package.json (le script npm), scripts/personnage-3d/ (`environnement.mjs` et son `requirements.txt`, `tests.py`, ' +
       'les `test_*.py` et les modules qu’ils importent, base/ compris), `seuils.json` de l’évaluateur (lu à l’import de ' +
       '`seuils.py`) ; `test_vehicule.py` reconstruit les véhicules ' +
-      'de `vehicule/` sous `tempfile.TemporaryDirectory()`, d’après les matières de `src/data/materials.json` et le plan ' +
-      '`src/noyau/planDeLaCaraque.ts`, et compare leurs manifestes à ceux commités sous hotes/godot/projet/modeles/',
+      'de `vehicule/` sous `tempfile.TemporaryDirectory()`, d’après les matières de `src/data/materials.json` et les ponts ' +
+      'de la caraque (`ponts` de sa fiche dans `src/data/vehicles.json`), compare leurs manifestes à ceux commités sous ' +
+      'hotes/godot/projet/modeles/ et mesure les écarts entre la caraque bâtie et ses ponts',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +
       'à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',

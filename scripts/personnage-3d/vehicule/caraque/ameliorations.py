@@ -1,5 +1,5 @@
 """Pièces des Améliorations navales (#2987, catégorie `amelioration`) : une scène par Amélioration, en mètres, bâtie
-sur la coque de la caraque (`modele.py`) et ses données.
+sur la coque de la caraque (`modele.py`, sa forme `Coque` calée sur ses ponts) et ses données.
 
 Repère de chaque pièce : celui de `maille.py`, l'avant du navire vers -y. Origine :
 - montée aux postes (Sabord) : l'origine de la pièce montée au poste, le pied de son affût, l'extérieur vers -y ;
@@ -182,12 +182,12 @@ def triangle_raye(m, amure, tete, ecoute, creux, rayures, ns=6, nt=4):
     K.nappe(m, rangs, None, mats)
 
 
-def clinfoc(D):
+def clinfoc(D, C):
     """Clinfoc : foc triangulaire rayé sur l'étai de misaine, son point d'amure au bout du beaupré (l'ancrage)."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
     (fa, za), (fb, zb) = D["ETAIS"][1]
-    etai = Vector((0, (fa - fb) * D["LONGUEUR"], za - zb))
+    etai = Vector((0, C.y(fa) - C.y(fb), za - zb))
     amure = etai * 0.04
     tete = etai * 0.74
     ecoute = Vector((0, 6.5, -3.5))
@@ -197,25 +197,24 @@ def clinfoc(D):
     return {"montage": "ancrages"}
 
 
-def sabords(D, groupes, marge):
-    """Les rectangles des sabords des `groupes`, cadre compris, agrandis de `marge` : (axe du plan le long de la
-    muraille, de, à, z bas, z haut), dans le repère du navire avant recentrage, origine en y au milieu de la coque."""
-    C = K.Coque(D)
-    E, CA = D["EMBRASURE"], D["CANON"]
+def sabords(D, C, sorte, marge):
+    """Les rectangles des sabords des ponts percés dans une paroi de `sorte` (`SOUS_LES_PONTS`), cadre compris, agrandis
+    de `marge` : (axe du plan le long de la muraille, de, à, z bas, z haut), dans le repère du navire, origine en y au
+    milieu de la coque."""
+    E = D["EMBRASURE"]
     lo, ho = E["ouverture"]
     cadre = E["cadre"][0]
     demi_l = lo / 2 + cadre + marge
+    demi_h = ho / 2 + cadre + marge
     rects = []
-    for G in D["SABORDS"]:
-        if G["groupe"] not in groupes:
+    for centre, bord, _, s_, _ in K.sabords_des_ponts(D, C.P, C, K.Pieces(D, C.P, C)):
+        if s_ != sorte:
             continue
-        zc = G["plancher"] + CA["axe"]
-        z_bas, z_haut = zc - ho / 2 - cadre - marge, zc + ho / 2 + cadre + marge
-        for centre in G.get("f", ()):
-            yy = C.y(centre) - C.y(0.5)
-            rects.append(("y", yy - demi_l, yy + demi_l, z_bas, z_haut))
-        for x in G.get("x", ()):
-            rects.append(("x", x - demi_l, x + demi_l, z_bas, z_haut))
+        if bord in ("tribord", "babord"):
+            yy = centre.y - C.y(0.5)
+            rects.append(("y", yy - demi_l, yy + demi_l, centre.z - demi_h, centre.z + demi_h))
+        else:
+            rects.append(("x", centre.x - demi_l, centre.x + demi_l, centre.z - demi_h, centre.z + demi_h))
     return rects
 
 
@@ -253,15 +252,14 @@ def plaques(m, p0, p1, z0, z1, n, mat, longueur=1.2, hauteur=0.62, jeu=0.04, epa
             x += longueur
 
 
-def blindage(D, mat):
+def blindage(D, C, mat):
     """Blindage : plaques de métal sur les œuvres vives et mortes, de la flottaison basse à la préceinte, des deux bords,
     épousant le bordé ; celles qui couvrent les sabords de la batterie dans le nœud `sans-sabord` ; origine à l'ancrage
     (milieu de la coque, flottaison)."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m, sur = Maille(list(mats.values())), Maille(list(mats.values()))
-    C = K.Coque(D)
     y0 = C.y(0.5)
-    rects = sabords(D, ("batterie",), 0.03)
+    rects = sabords(D, C, "bord", 0.03)
     rangs = [(-0.45, 0.15), (0.15, 0.62), (0.88, 1.4), (1.4, 1.95)]
     for r, (za, zb) in enumerate(rangs):
         zc = (za + zb) / 2
@@ -287,15 +285,14 @@ def exterieure(p0, p1, signe):
     return n if n.x * signe > 0 else -n
 
 
-def murs_blindes(D):
+def murs_blindes(D, C):
     """Murs blindés : plaques de fer sur les murailles du château de poupe (flancs, tableau, façade sur l'embelle), hors
     de ses sabords, et du gaillard d'avant (flancs, façade arrière, avant) ; celles qui couvrent les sabords dans le
     nœud `sans-sabord`."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m, sur = Maille(list(mats.values())), Maille(list(mats.values()))
-    C = K.Coque(D)
     y0 = C.y(0.5)
-    rects = sabords(D, ("chateau", "poupe"), 0.03)
+    rects = sabords(D, C, "chateau", 0.03)
     Y = lambda f: C.y(f) - y0  # noqa: E731
     KC, A = D["CHATEAU"], D["GAILLARD"]
     sa = KC["niveaux"][4][1] + 0.01
@@ -325,12 +322,11 @@ def murs_blindes(D):
     return {"montage": "ancrages", "selon": {"sabord": {}}}
 
 
-def bouteur(D):
+def bouteur(D, C):
     """Bouteur : gouvernail auxiliaire de proue, pelle devant l'étrave sur ses aiguillots, mèche montant sous le gaillard."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
-    L = D["LONGUEUR"]
-    bas, haut = Vector((0, (0.168 - 0.12) * L - 0.5, -2.3)), Vector((0, (0.096 - 0.12) * L - 0.5, 2.45))
+    bas, haut = Vector((0, C.y(0.168) - C.y(0.12) - 0.5, -2.3)), Vector((0, C.y(0.096) - C.y(0.12) - 0.5, 2.45))
     poutre(m, bas, haut, 0.9, 0.26, (1, 0, 0), "bois")
     d = (haut - bas).normalized()
     for t in (0.15, 0.5, 0.85):
@@ -387,15 +383,15 @@ def proue_idole(D):
     return {"montage": "ancrages"}
 
 
-def safran(D):
+def safran(D, C):
     """Safran : grande pelle de gouvernail qui coiffe celle du navire, ferrée de cinq pentures."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
-    L, G = D["LONGUEUR"], D["GOUVERNAIL"]
+    G = D["GOUVERNAIL"]
     (fb, zb), (fh, zh) = G["bas"], G["haut"]
     f0, z0 = 0.966, 0.2
     recul = G["recul"] + 0.45
-    bas, haut = Vector((0, (fb - f0) * L + recul, zb - z0 - 0.2)), Vector((0, (fh - f0) * L + recul, zh - z0))
+    bas, haut = Vector((0, C.y(fb) - C.y(f0) + recul, zb - z0 - 0.2)), Vector((0, C.y(fh) - C.y(f0) + recul, zh - z0))
     poutre(m, bas, haut, 1.6, 0.36, (1, 0, 0), "bois")
     d = (haut - bas).normalized()
     for t in (0.1, 0.3, 0.5, 0.7, 0.9):
@@ -435,17 +431,24 @@ def propulsion(D):
     return {"montage": "ancrages"}
 
 
+# Les pièces, et celles qui se bâtissent sur la forme de la coque (`K.Coque`).
 PIECES = {
     "sabord": sabord, "figure-de-proue": figure_de_proue, "ancre": ancre, "belier": belier, "nid-de-pie": nid_de_pie,
-    "embarcation-de-bord": embarcation, "ralentisseurs-lateraux": ralentisseurs, "clinfoc": clinfoc,
-    "bouteur": bouteur, "proue-idole-de-stromfels": proue_idole, "safran": safran, "fourquines": fourquines,
-    "propulsion-a-vapeur": propulsion, "murs-blindes": murs_blindes,
-    "blindage-fer": lambda D: blindage(D, "fer"), "blindage-bronze": lambda D: blindage(D, "bronze"),
+    "embarcation-de-bord": embarcation, "ralentisseurs-lateraux": ralentisseurs, "proue-idole-de-stromfels": proue_idole,
+    "fourquines": fourquines, "propulsion-a-vapeur": propulsion,
+}
+PIECES_SUR_LA_COQUE = {
+    "clinfoc": clinfoc, "bouteur": bouteur, "safran": safran, "murs-blindes": murs_blindes,
+    "blindage-fer": lambda D, C: blindage(D, C, "fer"), "blindage-bronze": lambda D, C: blindage(D, C, "bronze"),
 }
 
 
-def elements(D):
-    """Une pièce par Amélioration de `PIECES`, clé `amelioration` (Amélioration de `src/data/naval-traits.json`)."""
-    for nom, piece in PIECES.items():
+def elements(D, P):
+    """Une pièce par Amélioration de `PIECES` et `PIECES_SUR_LA_COQUE` (la coque calée sur les ponts `P`), clé
+    `amelioration` (Amélioration de `src/data/naval-traits.json`)."""
+    C = K.Coque(D, P)
+    batisseurs = {**{nom: (lambda piece=piece: piece(D)) for nom, piece in PIECES.items()},
+                  **{nom: (lambda piece=piece: piece(D, C)) for nom, piece in PIECES_SUR_LA_COQUE.items()}}
+    for nom, batir in batisseurs.items():
         yield {"glb": nom, "cles": [("amelioration", {"amelioration": nom})], "materiaux": D["MATERIAUX_DES_AMELIORATIONS"],
-               "blasons": (), "construire": lambda piece=piece: piece(D)}
+               "blasons": (), "construire": batir}

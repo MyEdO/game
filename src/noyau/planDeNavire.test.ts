@@ -109,7 +109,7 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
 
   it('le plateau coupe le modèle du navire sous le pont du groupe, et retire du volume les ponts au-dessus de la coupe', () => {
     const coupes = (z: number, regard: 'tactique' | 'plateau' | 'immersion', x = 11) => plateauDeLaScene(s, [{ x, y: 4, z }], regard).coupesDesNavires;
-    expect([coupes(0, 'tactique'), coupes(0, 'plateau'), coupes(0, 'immersion')]).toEqual([{ c1: 0 }, { c1: 0 }, {}]);
+    expect([coupes(0, 'tactique'), coupes(0, 'plateau'), coupes(0, 'immersion')]).toEqual([{ c1: heightAt(s, 11, 4, 1) }, { c1: heightAt(s, 11, 4, 1) }, {}]);
     expect([coupes(1, 'tactique'), coupes(1, 'plateau'), coupes(1, 'immersion')]).toEqual([{ c1: heightAt(s, 11, 4, 2) }, { c1: heightAt(s, 11, 4, 2) }, {}]);
     expect(coupes(2, 'tactique', 18)).toEqual({ c1: heightAt(s, 18, 4, 3) });
     expect(coupes(3, 'plateau')).toEqual({});

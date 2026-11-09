@@ -9,6 +9,7 @@ import { z } from 'zod';
 import { availabilitySchema, enumNomme, moneySchema, profilDePropulsionSchema, profilDeVoileSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { navalTraitRefSchema } from '../grammaire/reference';
+import { defautsDesPonts } from '../grammaire/carte-ascii';
 
 export const file = 'vehicles.json';
 export const famille = 'entite';
@@ -81,6 +82,19 @@ const doc = document(
       oars: profilDePropulsionSchema.optional(),
       traits: z.array(navalTraitRefSchema),
     }), { crew: { label: "équipage" }, manoeuvre: { label: "manœuvre" }, lengthM: { label: "longueur en mètres" }, footprint: { label: "emprise" }, capacity: { label: "capacité" }, sail: { label: "voile" }, oars: { label: "avirons" }, traits: { label: "Traits" } }).optional(),
+    /** PONTS d'un navire qu'on visite (#3686), une paire : une carte box-drawing par pont, du plus bas au plus haut, en cases du
+     *  plan des scènes (`sceneMetresPerTile`), la proue à gauche, tribord en haut (`MOTS_DES_PONTS`,
+     *  `grammaire/carte-ascii.ts`). La seule source de la forme des ponts : le plan de jeu
+     *  (`noyau/planDeLaCaraque.ts`) et le modèle 3D (`scripts/personnage-3d/vehicule/`) la lisent. Puis la hauteur en
+     *  mètres au-dessus de la flottaison de chaque glyphe de case : une paire, pour que les cartes n'aillent jamais sans
+     *  leurs hauteurs (`defautsDesPonts`). Valeurs d'adaptation (#3686) relevées sur la planche du navire : ses plans
+     *  des ponts (cases, cloisons, trappes), son profil (hauteurs). */
+    ponts: z
+      .tuple([z.array(z.string()), z.record(z.string(), z.number())])
+      .superRefine(([cartes, hauteurs], ctx) => {
+        for (const defaut of defautsDesPonts(cartes, hauteurs)) ctx.addIssue({ code: 'custom', path: [0], message: defaut });
+      })
+      .optional(),
   },
   {
     enc: { label: 'Encombrement (objet)', hint: 'Encombrement de l’objet véhicule — vide = ne se porte pas' },
@@ -95,6 +109,7 @@ const doc = document(
       hint: 'Profil à PV de la coque : Endurance et Blessures, propulsion/gréement et Traits',
     },
     ship: { label: 'Facette Navire', hint: 'Équipage, manœuvrabilité, longueur et capacité du profil naval' },
+    ponts: { label: 'Ponts', hint: 'Les cartes box-drawing des ponts, du plus bas au plus haut, puis la hauteur au-dessus de la flottaison de chaque glyphe de case' },
   },
   {
     codex: { keys: ['vehicles'] },
