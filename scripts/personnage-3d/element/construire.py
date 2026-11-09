@@ -100,14 +100,15 @@ def pendre(objets, rig, prise):
 
 
 def exporter(chemin, rig, objets, skinne):
-    """Exporte `rig` et `objets` seuls, sans clip ; une pièce skinnée garde ses clés et ses `extras.zone`."""
+    """Exporte `rig` et `objets` seuls, sans clip ; une pièce skinnée garde ses clés, et chaque objet ses propriétés en
+    `extras` : `zone` d'une pièce skinnée, `fourreau` d'un rigide (`element/lame.py`)."""
     bpy.ops.object.select_all(action="DESELECT")
     rig.select_set(True)
     for objet in objets:
         objet.select_set(True)
     bpy.context.view_layer.objects.active = rig
     bpy.ops.export_scene.gltf(filepath=str(chemin), export_format="GLB", use_selection=True, export_animations=False,
-                              export_skins=True, export_morph=skinne, export_morph_normal=False, export_extras=skinne,
+                              export_skins=True, export_morph=skinne, export_morph_normal=False, export_extras=True,
                               export_yup=True, export_apply=False, export_texcoords=False, export_normals=True,
                               export_tangents=False, export_materials="EXPORT", export_cameras=False,
                               export_lights=False)

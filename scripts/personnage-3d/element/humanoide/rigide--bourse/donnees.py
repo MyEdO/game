@@ -7,7 +7,7 @@ cordon, petite poche de cuir froncée au col, toutes dimensions HYPOTHÈSES à t
 
 Repère de la prise `main` de la base, qui est aussi celui du rangement (`hotes/godot/pont/CONTRAT.md`, `bases`) : rangée,
 +Y descend le long du corps, +Z sort sur la normale de l'emplacement, l'origine (la poignée) est sur l'emplacement ; la face
-arrière de la boîte se pose à 5 cm de la peau. La bourse pend sous l'origine (y > 0), son dos sur z = 0. Mètres.
+arrière se pose sur ce qui est porté dessous (`MontageDeComposition._appuyer`). La bourse pend sous l'origine (y > 0), son dos sur z = 0. Mètres.
 """
 
 MANIFESTE = {
@@ -39,9 +39,5 @@ CORDON = {'y': 0.029, 'rayon': 0.0125, 'section': 0.0025, 'segments': 8, 'cotes'
 ATTACHE = {'ecart': 0.008, 'largeur': 0.006, 'epaisseur': 0.003, 'au_dessus': 0.02}
 """HYPOTHÈSE : la boucle du cordon qui monte du col jusqu'à `au_dessus` de l'emplacement (la ceinture)."""
 
-ECART = 8
-"""Degrés dont le fond s'écarte du corps, autour de l'axe x de l'origine : rangée droite à `ceinture_avant` de la base r24
-sur la robe publiée, la panse affleure la robe (jeu 1 mm à 8 cm sous l'emplacement, repère de rangement de
-`mise_en_page.gd` contre la robe au repos)."""
 
 ANGLE_LISSE = 60                 # degrés : arêtes plus vives que cet angle gardées vives

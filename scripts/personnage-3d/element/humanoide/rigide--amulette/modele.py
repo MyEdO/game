@@ -1,6 +1,6 @@
 """Géométrie de `humanoide--rigide--amulette` : un médaillon rond à bord relevé et champ uni, face vers +Z, sa bélière et
-le cordon qui monte jusqu'à l'emplacement, le bas écarté du corps (+Y vers le bas une fois rangée, +Z sortant)."""
-from maille import Maille, basculer_maille, objet, tore, tour, tube
+le cordon qui monte jusqu'à l'emplacement (+Y vers le bas une fois rangée, +Z sortant)."""
+from maille import Maille, objet, tore, tour, tube
 
 
 def construire(D, materiaux):
@@ -16,5 +16,4 @@ def construire(D, materiaux):
     C = D['CORDON']
     tube(m, [(0.0, haut - L['rayon'], e / 2), (0.0, 0.0, C['rayon']), (0.0, -C['au_dessus'], C['rayon'])], C['rayon'],
          C['cotes'], 'cuir')
-    basculer_maille(m, (0.0, 0.0), -D['ECART'])
     return [objet('humanoide--rigide--amulette', m, (0.0, 0.0, 0.0), D['ANGLE_LISSE'])]

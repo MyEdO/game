@@ -97,9 +97,7 @@ jusqu'à l'ourlet ; ajoutés au profil, jamais en dedans (HYPOTHÈSE : nombre et
 PASSES_DE_LISSAGE = 2             # passes qui lissent le rayon entre colonnes voisines, sans passer sous le profil
 
 LAMBEAUX = {'profondeur': 0.08, 'creux': 0.15, 'graine': 'humanoide--vetement--cape'}
-"""Illustration : les lambeaux du bas descendent d'environ 40 px sous l'ourlet (8 cm) ; une colonne sur deux est une pointe,
-de 50 à 100 % de `profondeur`, l'autre un creux d'au plus `creux` fois la profondeur. Tirage déterministe, graine des codes
-de caractères de `graine` (procédure, section 6)."""
+"""Illustration : les lambeaux du bas descendent d'environ 40 px sous l'ourlet (8 cm) (`tissu.lambeaux`)."""
 
 LISSAGE_POIDS = 6
 """Passes laplaciennes des poids empruntés (HYPOTHÈSE) : à 2, au creux des reins (1,09 à 1,16 m), loin de la robe, les rangs

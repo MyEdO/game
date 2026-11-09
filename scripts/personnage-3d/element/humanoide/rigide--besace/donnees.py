@@ -8,7 +8,7 @@ semelles, environ 960 px pour la hauteur de la base (1,82 m), soit environ 530 p
 
 Repère de la prise `main` de la base, qui est aussi celui du rangement (`hotes/godot/pont/CONTRAT.md`, `bases`) : rangée,
 +Y descend le long du corps, +Z sort sur la normale de l'emplacement, l'origine (la poignée) est sur l'emplacement ; la face
-arrière de la boîte se pose à 5 cm de la peau. La besace pend donc sous l'origine (y > 0), son dos sur z = 0. Mètres.
+arrière se pose sur ce qui est porté dessous (`MontageDeComposition._appuyer`). La besace pend donc sous l'origine (y > 0), son dos sur z = 0. Mètres.
 """
 
 MANIFESTE = {
@@ -56,9 +56,5 @@ BOUTON = {'rayon': 0.008, 'saillie': 0.012, 'segments': 6}
 PATTES = {'ecart': 0.065, 'largeur': 0.025, 'epaisseur': 0.004, 'au_dessus': 0.02}
 """HYPOTHÈSE : deux pattes de cuir montent du dos de la besace jusqu'à `au_dessus` de l'emplacement (la ceinture)."""
 
-ECART = 10
-"""Degrés dont le fond s'écarte du corps, autour de l'axe x de l'origine : rangée à `ceinture_d` de la base r24 sur la robe
-publiée, une besace droite entre de 1,9 cm dans l'évasement de la robe à 20 cm sous l'emplacement (mesure du repère de
-rangement de `mise_en_page.gd` contre la robe au repos) ; une besace pendue s'appuie sur la hanche et s'en écarte."""
 
 ANGLE_LISSE = 50                 # degrés : arêtes plus vives que cet angle gardées vives

@@ -9,7 +9,7 @@ la base (1,82 m), soit environ 530 px/m.
 
 Repère de la prise `main` de la base, qui est aussi celui du rangement (`hotes/godot/pont/CONTRAT.md`, `bases`) : rangée,
 +Y descend le long du corps, +Z sort sur la normale de l'emplacement, l'origine (la poignée) est sur l'emplacement ; la face
-arrière de la boîte se pose à 5 cm de la peau. À `ceinture_g`, le +X de ce repère est l'avant du personnage. Mètres.
+arrière se pose sur ce qui est porté dessous (`MontageDeComposition._appuyer`). À `ceinture_g`, le +X de ce repère est l'avant du personnage. Mètres.
 """
 
 MANIFESTE = {
@@ -61,9 +61,5 @@ ATTACHE = {'depuis': 0.06, 'au_dessus': 0.02, 'largeur': 0.022, 'epaisseur': 0.0
 """HYPOTHÈSE : une patte de cuir monte de la sangle haute (`depuis` sous l'origine) jusqu'à `au_dessus` de l'emplacement
 (la ceinture), où l'illustration montre la liasse glissée."""
 
-ECART = 12
-"""Degrés dont le bas s'écarte du corps, autour de l'axe x de l'origine : rangée droite à `ceinture_g` de la base r24 sur
-la robe publiée, la liasse entre de 2,6 cm dans l'évasement de la robe à 20 cm sous l'emplacement (repère de rangement
-de `mise_en_page.gd` contre la robe au repos)."""
 
 ANGLE_LISSE = 50                 # degrés : arêtes plus vives que cet angle gardées vives

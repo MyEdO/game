@@ -16,7 +16,7 @@ Silhouettes et clés `gabarit_*` transférées.
 import math
 
 import numpy as np
-from tissu import Maillage, anneau, centre_de, emprunter, joindre, lisser, repere_de_plan, voisinage
+from tissu import Maillage, anneau, centre_de, emprunter, joindre, lambeaux, lisser, repere_de_plan, voisinage
 
 TRONC, COU = ['hanches', 'torse'], ['cou']
 BRAS = {c: [f'bras_haut_{c}', f'avant_bras_{c}'] for c in 'gd'}
@@ -188,12 +188,15 @@ def construire(D, materiaux, b):
     # Robe de dessous : un anneau fermé par rangée, de la première rangée de la jupe à son ourlet, sous la robe de dessus
     # aux angles de ses colonnes à la même hauteur, `COLONNES_OUVERTURE` intervalles dans l'ouverture ; sous l'ourlet de la
     # robe, aux angles de l'ourlet.
+    # Son ourlet est en lambeaux : chaque colonne remonte de la profondeur que lui laisse `lambeaux`.
     G = D['COLONNES_OUVERTURE']
     jupe_dessous = []
     for z in rangees + D['RANGEES_DESSOUS'] + [D['OURLET_DESSOUS']]:
         c = colonnes(z)
         thetas_d = c + [360 - c[0] + 2 * c[0] * k / G for k in range(1, G)]
-        jupe_dessous.append(rangee(dessous, [z] * len(thetas_d), thetas_d, D['ECART_DESSOUS']))
+        L = D['LAMBEAUX_DESSOUS']
+        zs = [z + L['profondeur'] - d for d in lambeaux(L, len(thetas_d))] if z == D['OURLET_DESSOUS'] else [z] * len(thetas_d)
+        jupe_dessous.append(rangee(dessous, zs, thetas_d, D['ECART_DESSOUS']))
     for (A, ca), (B, cb) in zip(jupe_dessous, jupe_dessous[1:]):
         dessous.bande(A, B, (ca + cb) / 2)
 

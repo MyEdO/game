@@ -1,6 +1,6 @@
 """Géométrie de `humanoide--rigide--bourse` : une poche de cuir de révolution autour du +Y de la prise, aplatie sur z, son
-cordon noué au col et la boucle qui monte jusqu'à l'emplacement, le fond incliné vers l'extérieur (+Y vers le bas une fois rangée, +Z sortant)."""
-from maille import Maille, basculer_maille, objet, poutre, tore, tour
+cordon noué au col et la boucle qui monte jusqu'à l'emplacement (+Y vers le bas une fois rangée, +Z sortant)."""
+from maille import Maille, objet, poutre, tore, tour
 
 
 def construire(D, materiaux):
@@ -16,5 +16,4 @@ def construire(D, materiaux):
     for x in (-A['ecart'], A['ecart']):
         poutre(m, (x, C['y'], cz * (1 - D['APLATI']) + A['epaisseur']), (0.0, -A['au_dessus'], A['epaisseur'] / 2),
                A['largeur'], A['epaisseur'], (0, 0, 1), 'cuir')
-    basculer_maille(m, (0.0, 0.0), -D['ECART'])
     return [objet('humanoide--rigide--bourse', m, (0.0, 0.0, 0.0), D['ANGLE_LISSE'])]

@@ -2,7 +2,8 @@
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
-## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
+## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, son
+## appui sur ce qui est porté et sa place à côté des autres objets du même point, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
@@ -24,9 +25,20 @@ const PAS_DE_ZOOM := 1.15
 const ZOOM_MINIMAL := 0.3
 const ZOOM_MAXIMAL := 3.0
 const TOLERANCE_D_IMAGE := 0.001
-## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`origine_de_rangement`) : assez pour passer
-## par-dessus un vêtement ample et une ceinture.
-const DEGAGEMENT_DE_RANGEMENT := 0.05
+## Le jeu, en mètres, entre les boîtes de deux objets rangés côte à côte au même point (`decalage_a_cote`).
+const JEU_ENTRE_RANGES := 0.02
+## Le jeu, en mètres, entre un objet rangé et ce qui est porté dessous (`recul_d_appui`, `pivot_sur_la_case`).
+const JEU_DE_RANGEMENT := 0.005
+## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
+const CASE_DE_CONTACT := 0.02
+## La hauteur, en mètres, sous le haut d'un objet rangé où il s'appuie sur ce qui est porté ; plus bas, il pivote
+## (`recul_sur_la_case`, `pivot_sur_la_case`).
+const APPUI_DE_RANGEMENT := 0.05
+## La cote, en mètres, sur la normale sortante d'un repère de rangement, d'où part et où finit la visée qui cherche ce qui
+## est porté sous une case (`centre_de_contact`).
+const PORTEE_DE_CONTACT := 1.0
+## Sous cette composante avant, l'axe X d'un repère de rangement est latéral (`sens_vers_l_avant`).
+const TOLERANCE_LATERALE := 0.1
 ## La longueur sous laquelle la position d'un emplacement est sur l'axe de son os.
 const TOLERANCE_DE_NORMALE := 0.001
 const RADIANS_PAR_PIXEL := 0.005
@@ -439,11 +451,100 @@ static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Ve
 	return bas if axe == Vector3.AXIS_Y else bas.cross(sortante)
 
 
-## L'origine du repère de prise d'un objet rangé à l'emplacement de base `emplacement` et de position `point`, dont la
-## face arrière de la boîte est à la cote `arriere` de ce repère : sur la normale sortante, la face arrière à
-## `DEGAGEMENT_DE_RANGEMENT` de l'emplacement.
-static func origine_de_rangement(emplacement: Basis, point: Vector3, arriere: float) -> Vector3:
-	return point + axe_de_rangement(emplacement, point, Vector3.AXIS_Z) * (DEGAGEMENT_DE_RANGEMENT - arriere)
+## Le vecteur `vecteur` posé dans le repère de base `base` (`base * vecteur`).
+static func par_la_base(base: Basis, vecteur: Vector3) -> Vector3:
+	return base * vecteur
+
+
+## Le signe, +1 ou -1, de l'axe `x` d'un repère de rangement, posé dans le repère au repos `os` de son os, vers l'avant du
+## personnage (+Z du squelette) ; +1 pour un axe latéral.
+static func sens_vers_l_avant(os: Basis, x: Vector3) -> float:
+	return -1.0 if (os * x).z < -TOLERANCE_LATERALE else 1.0
+
+
+## Le tour, autour de l'axe Y de l'os, d'un objet rangé `decalage` mètres plus loin, le long de l'axe X de son repère
+## de rangement, qu'un objet de tour `tour` rangé à l'emplacement de base `emplacement` et de position `point` : `tour`
+## plus `decalage / r` radians, `r` la distance du point à l'axe de l'os ; `tour` sur l'axe (`point_de_rangement`).
+static func tour_de_rangement(emplacement: Basis, point: Vector3, tour: float, decalage: float) -> float:
+	var rayon := Vector2(point.x, point.z).length()
+	if rayon <= TOLERANCE_DE_NORMALE:
+		return tour
+	return tour + signf(axe_de_rangement(emplacement, point, Vector3.AXIS_X).dot(Vector3(point.z, 0.0, -point.x))) * decalage / rayon
+
+
+## Le tour `tour` d'un objet rangé à l'emplacement de base `emplacement` et de position `point`, corrigé pour que
+## l'étendue des azimuts de ses sommets posés, de `debut` à `fin`, passe à `JEU_ENTRE_RANGES` (rapporté à la distance
+## `r` du point à l'axe de l'os) de celle du précédent, de `debut_precedent` à `fin_precedente`, du côté où va l'axe X
+## de rangement de sens `sens` (`tour_de_rangement`) ; `tour` sur l'axe.
+static func tour_a_cote(emplacement: Basis, point: Vector3, tour: float, sens: float, debut_precedent: float, fin_precedente: float, debut: float, fin: float) -> float:
+	var rayon := Vector2(point.x, point.z).length()
+	if rayon <= TOLERANCE_DE_NORMALE:
+		return tour
+	var jeu := JEU_ENTRE_RANGES / rayon
+	if tour_de_rangement(emplacement, point, 0.0, sens) > 0.0:
+		return tour + fin_precedente + jeu - debut
+	return tour + debut_precedent - jeu - fin
+
+
+## L'azimut du point `point` autour de l'axe Y de son os (atan2 de x sur z), compté depuis l'azimut `depuis`, dans
+## ]-π, π].
+static func azimut(point: Vector3, depuis: float) -> float:
+	return wrapf(atan2(point.x, point.z) - depuis, -PI, PI)
+
+
+## Le point d'un objet rangé à `decalage` mètres, le long de l'axe X de son repère de rangement, de l'emplacement de base
+## `emplacement` et de position `point` sur l'axe de son os ; hors de l'axe, le point même (`tour_de_rangement` le
+## porte).
+static func point_de_rangement(emplacement: Basis, point: Vector3, decalage: float) -> Vector3:
+	if Vector2(point.x, point.z).length() > TOLERANCE_DE_NORMALE:
+		return point
+	return point + axe_de_rangement(emplacement, point, Vector3.AXIS_X) * decalage
+
+
+## Le lacet, autour de l'axe Y d'un repère de rangement, qui met à plat un objet de boîte de taille `taille` : sa plus
+## petite largeur sur la normale sortante.
+static func lacet_a_plat(taille: Vector3) -> float:
+	return 0.0 if taille.x >= taille.z else QUART_DE_TOUR
+
+
+## Le décalage, le long de l'axe X du repère de rangement, d'un objet dont la boîte va de `debut` à `fin` sur cet axe,
+## rangé à côté du précédent, décalé de `decalage` et de boîte de `debut_precedent` à `fin_precedente`, du côté `sens`
+## (+1 ou -1), `JEU_ENTRE_RANGES` entre leurs boîtes.
+static func decalage_a_cote(decalage: float, sens: float, debut_precedent: float, fin_precedente: float, debut: float, fin: float) -> float:
+	return decalage + (fin_precedente - debut + JEU_ENTRE_RANGES if sens > 0.0 else debut_precedent - fin - JEU_ENTRE_RANGES)
+
+
+## La case, de `CASE_DE_CONTACT` mètres en (x, y) d'un repère de rangement, où tombe le sommet `sommet`.
+static func case_de_contact(sommet: Vector3) -> Vector2i:
+	return Vector2i(floori(sommet.x / CASE_DE_CONTACT), floori(sommet.y / CASE_DE_CONTACT))
+
+
+## Le point d'un repère de rangement au centre de la case `case`, à la cote `cote` sur la normale sortante.
+static func centre_de_contact(case: Vector2i, cote: float) -> Vector3:
+	return Vector3((case.x + DEMI_CASE) * CASE_DE_CONTACT, (case.y + DEMI_CASE) * CASE_DE_CONTACT, cote)
+
+
+## Le recul `recul`, sur la normale sortante, d'un objet rangé dont la boîte commence à `haut` sur Y (vers le bas),
+## relevé par la case `case` où ce qui est porté monte à `dessus` et la face arrière de l'objet est à `arriere` : seules
+## comptent les cases de ses `APPUI_DE_RANGEMENT` du haut ; `-INF` tant qu'aucune n'a compté.
+static func recul_sur_la_case(recul: float, case: Vector2i, haut: float, dessus: float, arriere: float) -> float:
+	return maxf(recul, dessus - arriere) if case.y * CASE_DE_CONTACT <= haut + APPUI_DE_RANGEMENT else recul
+
+
+## Le recul d'appui d'un objet rangé, de recul relevé `recul` (`recul_sur_la_case`) : sa face arrière à
+## `JEU_DE_RANGEMENT` au-dessus de ce qui est porté sous son haut ; sans rien dessous, à `JEU_DE_RANGEMENT` de
+## l'emplacement, sa boîte commençant à la cote `arriere`.
+static func recul_d_appui(recul: float, arriere: float) -> float:
+	return JEU_DE_RANGEMENT - arriere if is_inf(recul) else recul + JEU_DE_RANGEMENT
+
+
+## L'angle `angle`, autour de l'axe X du repère de rangement, le bas vers l'extérieur, relevé par la case `case` sous les
+## `APPUI_DE_RANGEMENT` du haut `haut` d'un objet reculé de `recul`, pour que sa face arrière, à `arriere` dans la case,
+## passe à `JEU_DE_RANGEMENT` au-dessus de ce qui est porté, à `dessus`.
+static func pivot_sur_la_case(angle: float, case: Vector2i, haut: float, dessus: float, arriere: float, recul: float) -> float:
+	var y := (case.y + DEMI_CASE) * CASE_DE_CONTACT
+	var manque := dessus + JEU_DE_RANGEMENT - arriere - recul
+	return maxf(angle, atan2(manque, y)) if y > haut + APPUI_DE_RANGEMENT and y > 0.0 and manque > 0.0 else angle
 
 
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.

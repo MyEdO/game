@@ -3,9 +3,9 @@
 Illustration directrice : « Sorcier | sorcier | `carrieres/sorcier.png` | Livre de Base | 94 | certaine » (`INDEX.md`
 du recueil `illustrations-wfrp 2.zip`), hors dépôt. Elle montre une robe de dessus gris-bleu à mi-mollet, ouverte devant
 sous la ceinture sur une robe de dessous écrue qui tombe à la cheville et dépasse tout autour sous l'ourlet, aux manches
-très évasées qui pendent sous les avant-bras (bandés : élément `humanoide--vetement--bandages`) ; bordures à runes
-peintes et ourlet en lambeaux de la robe de dessous (OMIS, contrat). Fermée derrière d'un seul pan (hypothèse du dos du
-contrat).
+très évasées qui pendent sous les avant-bras (bandés : élément `humanoide--vetement--bandages`) et l'ourlet en
+lambeaux de la robe de dessous ; bordures à runes peintes (OMIS, contrat). Fermée derrière d'un seul pan (hypothèse du dos
+du contrat).
 
 Chaque dimension est nommée, en mètres ou en degrés, avec sa source : `illustration` (proportion relevée sur l'image,
 rapportée au corps de la base), `base` (lue sur la base r24 ou un élément publié, par une sonde Blender de construction), `HYPOTHÈSE` (aucune source ne la donne : valeur d'adaptation, doctrine #1993, à trancher en revue).
@@ -79,6 +79,9 @@ EVASEMENT_ARRIERE = 2.8            # HYPOTHÈSE (dos non montré) : jupe plus pl
 OURLET_ROBE = 0.40                 # illustration : la robe de dessus tombe à mi-mollet (y ~905 px)
 OURLET_DESSOUS = 0.19              # illustration : la robe de dessous tombe à la cheville (y ~1005 px, lambeaux de 960 à
                                    # 1020 px), au-dessus du haut des bottes publiées (z 0,165 m)
+LAMBEAUX_DESSOUS = {'profondeur': 0.085, 'creux': 0.15, 'graine': 'humanoide--vetement--robe'}
+"""Illustration : les lambeaux de la robe de dessous montent d'environ 45 px au-dessus de l'ourlet (960 à 1005 px), 8,5 cm
+(`tissu.lambeaux`) ; les pointes restent à `OURLET_DESSOUS`, au-dessus des bottes, et les creux sous `RANGEES_DESSOUS`."""
 RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60]   # hauteurs des rangées intermédiaires des deux robes, m (HYPOTHÈSE de maillage)
 RANGEES_DESSOUS = [0.30]                  # rangées de la robe de dessous sous l'ourlet de la robe (HYPOTHÈSE de maillage)
 OUVERTURE_TAILLE = 18.0            # illustration : la robe de dessus s'ouvre devant sous la ceinture, ~0,13 m de large

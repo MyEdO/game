@@ -1,11 +1,11 @@
 """Géométrie de `humanoide--rigide--etui_a_parchemin` : une liasse de rouleaux de parchemin serrés par deux sangles,
-inclinée le haut vers l'avant, une patte d'attache, une chaîne qui pend en boucle sous elle, le bas écarté du corps, dans le repère de la prise (+Y vers le bas
+inclinée le haut vers l'avant, une patte d'attache, une chaîne qui pend en boucle sous elle, dans le repère de la prise (+Y vers le bas
 une fois rangée, +Z sortant)."""
 import math
 
 from mathutils import Vector
 
-from maille import Maille, basculer_maille, cylindre, objet, poutre, tour
+from maille import Maille, cylindre, objet, poutre, tour
 
 
 def incliner(m, yc, angle):
@@ -64,5 +64,4 @@ def construire(D, materiaux):
     poutre(m, (0.0, A['depuis'], A['epaisseur'] / 2), (0.0, -A['au_dessus'], A['epaisseur'] / 2), A['largeur'],
            A['epaisseur'], (0, 0, 1), 'cuir')
     chaine(m, D['CHAINE'])
-    basculer_maille(m, (0.0, 0.0), -D['ECART'])
     return [objet('humanoide--rigide--etui_a_parchemin', m, (0.0, 0.0, 0.0), D['ANGLE_LISSE'])]

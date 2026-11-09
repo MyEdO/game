@@ -9,6 +9,7 @@ modèle : un anneau à aisance sur une coupe (`anneau`), un maillage par anneaux
 des poids empruntés (`emprunter`) puis lissés (`lisser`), une double nappe (`nappe`).
 """
 import math
+import random
 
 import bmesh
 import bpy
@@ -242,6 +243,15 @@ class Base:
             o['zone'] = z
             o.name = o.data.name = f'{nom}-{z}'
         return objets
+
+
+def lambeaux(L, n):
+    """La profondeur de chacune des `n` colonnes d'un bord en lambeaux `L` : une pointe sur deux, de 50 à 100 % de
+    `profondeur`, l'autre un creux d'au plus `creux` fois la profondeur ; tirage déterministe, graine des codes de
+    caractères de `graine` (procédure, section 6)."""
+    tirage = random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(L['graine'])))
+    return [L['profondeur'] * (tirage.uniform(0.5, 1.0) if j % 2 == 0 else tirage.uniform(0.0, L['creux']))
+            for j in range(n)]
 
 
 def porteur_de(P, T, W):

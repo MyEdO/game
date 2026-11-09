@@ -8,7 +8,7 @@ de la pointe du capuchon aux semelles, environ 960 px pour la hauteur de la base
 
 Repère de la prise `main` de la base, qui est aussi celui du rangement (`hotes/godot/pont/CONTRAT.md`, `bases`) : rangée,
 +Y descend le long du corps, +Z sort sur la normale de l'emplacement, l'origine (la poignée) est sur l'emplacement ; la face
-arrière de la boîte se pose à 5 cm de la peau. À `dos`, le +X de ce repère est la gauche du personnage : le rouleau
+arrière se pose sur ce qui est porté dessous (`MontageDeComposition._appuyer`). À `dos`, le +X de ce repère est la gauche du personnage : le rouleau
 couché suit l'axe x. Mètres.
 """
 

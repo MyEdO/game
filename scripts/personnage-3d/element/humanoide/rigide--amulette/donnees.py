@@ -9,7 +9,7 @@ skill, section 2), le champ reste uni. Échelle relevée : le personnage, de la 
 
 Repère de la prise `main` de la base, qui est aussi celui du rangement (`hotes/godot/pont/CONTRAT.md`, `bases`) : rangée,
 +Y descend le long du corps, +Z sort sur la normale de l'emplacement, l'origine (la poignée) est sur l'emplacement ; la face
-arrière de la boîte se pose à 5 cm de la peau. Le médaillon pend sous l'origine (y > 0), sa face vers +Z. Mètres.
+arrière se pose sur ce qui est porté dessous (`MontageDeComposition._appuyer`). Le médaillon pend sous l'origine (y > 0), sa face vers +Z. Mètres.
 """
 
 MANIFESTE = {
@@ -37,9 +37,8 @@ BORD = {'largeur': 0.005, 'creux': 0.0015}
 
 SEGMENTS = 16
 
-DESCENTE = 0.17
-"""Le centre du médaillon sous l'emplacement. Illustration : environ 65 px (12 cm) sous la ceinture ; porté à 17 cm pour
-que le médaillon pende sous la bourse rangée au même emplacement `ceinture_avant` (fond de la bourse à 12,7 cm)."""
+DESCENTE = 0.12
+"""Le centre du médaillon sous l'emplacement. Illustration : environ 65 px (12 cm) sous la ceinture."""
 
 BELIERE = {'rayon': 0.005, 'section': 0.0015, 'segments': 6, 'cotes': 3}
 """HYPOTHÈSE : l'anneau qui passe le cordon au sommet du médaillon."""
@@ -47,9 +46,5 @@ BELIERE = {'rayon': 0.005, 'section': 0.0015, 'segments': 6, 'cotes': 3}
 CORDON = {'rayon': 0.0018, 'cotes': 4, 'au_dessus': 0.015}
 """HYPOTHÈSE : un cordon de cuir monte de la bélière jusqu'à `au_dessus` de l'emplacement (la ceinture)."""
 
-ECART = 11
-"""Degrés dont le bas s'écarte du corps, autour de l'axe x de l'origine : pendu droit à `ceinture_avant` de la base r24, le
-médaillon entre de 2,2 cm dans la robe publiée à 18 cm sous l'emplacement (repère de rangement de `mise_en_page.gd`
-contre la robe au repos) ; pendu, il repose sur la robe."""
 
 ANGLE_LISSE = 50                 # degrés : arêtes plus vives que cet angle gardées vives

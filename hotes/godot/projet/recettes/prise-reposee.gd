@@ -5,12 +5,12 @@ extends SceneTree
 ## repose un mesh rigide pendu à l'os de sa prise d'origine. Sur un squelette à deux mains d'orientations différentes,
 ## le mesh garde, dans le repère de la prise retenue, la place qu'il avait dans celui de sa prise d'origine ; à sa
 ## propre prise, il garde sa place sous son os. Rangé à un emplacement du bassin, sa prise a la tête vers le bas du
-## personnage et les jointures sur la normale sortante, sa poignée sur l'emplacement, et sa boîte à 5 cm de la peau ;
-## un second objet au même point se range à côté du premier, vers l'avant du personnage.
+## personnage, à plat, sa face arrière à `JEU_DE_RANGEMENT` de ce qui est porté dessous, de l'emplacement sans rien
+## dessous ; un second objet au même point se range à côté du premier, vers l'avant du personnage. Un fourreau
+## (`extras.fourreau`) n'est montré que rangé.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
-const DEGAGEMENT := 0.05
 const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position = [-0.02, 0.09, 0.003], rotation = [1.32, -3.1, -0.03]}}
 const OFF := {id = "off", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const CEINTURE := {id = "ceinture_avant", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.148, 0.108], rotation = [-0.29, 0.0, 0.0]}}
@@ -27,6 +27,7 @@ func _recetter() -> void:
 	for cible in ["off", "main", "ceinture_avant"]:
 		await _verifier(cible)
 	await _verifier_cote_a_cote()
+	await _verifier_l_appui()
 	for faute in _fautes:
 		push_error("[prise-reposee] " + faute)
 	print("[prise-reposee] erreurs=", _fautes.size())
@@ -75,9 +76,17 @@ func _verifier(cible: String) -> void:
 	montage.base = {points = [CEINTURE, MAIN, OFF]}
 	montage.squelette = squelette
 	montage.call("_poser_la_piece", piece, ["main_d"] as Array[String], squelette, cible)
+	var gaine := MeshInstance3D.new()
+	gaine.name = "Fourreau"
+	gaine.mesh = BoxMesh.new()
+	gaine.set_meta("extras", {fourreau = true})
+	import.add_child(gaine)
+	montage.call("_poser_la_piece", gaine, ["main_d"] as Array[String], squelette, cible + "#2" if cible == "ceinture_avant" else cible)
 	montage.call("_ranger")
 	await process_frame
 	await process_frame
+	if gaine.visible != (cible == "ceinture_avant"):
+		_fautes.append("%s : fourreau %s" % [cible, "monté" if gaine.visible else "caché"])
 	var juste: bool
 	var obtenu := piece.global_transform
 	if cible == "ceinture_avant":
@@ -89,12 +98,12 @@ func _verifier(cible: String) -> void:
 		bas = (bas - sortante * bas.dot(sortante)).normalized()
 		var en_prise := _repere(MAIN.attache).affine_inverse() * local
 		var prise := obtenu * en_prise.affine_inverse()
-		var arriere := (en_prise * piece.get_aabb()).position.z
-		var poignee_attendue := os * (point + sortante * (DEGAGEMENT - arriere))
-		juste = _proches(prise.basis.y, os.basis * bas) and _proches(prise.basis.z, os.basis * sortante) and _proches(prise.origin, poignee_attendue)
+		var cotes := _cotes(piece, os * point, os.basis * sortante, os.basis * bas.cross(sortante))
+		juste = _proches(prise.basis.y, os.basis * bas) and absf(cotes.arriere - MiseEnPage.JEU_DE_RANGEMENT) < EPSILON \
+				and cotes.epaisseur <= cotes.largeur + EPSILON
 		if not juste:
-			_fautes.append("%s : prise Y %s Z %s, poignée %s ; attendus %s, %s, %s" % [cible, prise.basis.y, prise.basis.z, prise.origin,
-				os.basis * bas, os.basis * sortante, poignee_attendue])
+			_fautes.append("%s : prise Y %s, attendu %s ; face arrière à %.4f de l'emplacement, attendue à %.4f ; épaisseur %.3f, largeur %.3f"
+				% [cible, prise.basis.y, os.basis * bas, cotes.arriere, MiseEnPage.JEU_DE_RANGEMENT, cotes.epaisseur, cotes.largeur])
 	else:
 		var os_cible := squelette.find_bone(MAIN.attache.os if cible == "main" else OFF.attache.os)
 		var attendu := squelette.global_transform * squelette.get_bone_global_pose(os_cible)
@@ -112,8 +121,8 @@ func _verifier(cible: String) -> void:
 	await process_frame
 
 
-## Deux objets rangés au même point de la hanche, `ceinture_g` puis `ceinture_g#2` : même orientation, le second vers
-## l'avant du personnage (+Z du squelette), sa boîte à `JEU_ENTRE_RANGES` de celle du premier sur l'axe X du rangement.
+## Deux objets rangés au même point de la hanche, `ceinture_g` puis `ceinture_g#2` : le second vers l'avant du
+## personnage (+Z du squelette), ses sommets hors de l'étendue angulaire du premier autour de l'axe de l'os.
 func _verifier_cote_a_cote() -> void:
 	var squelette := _squelette()
 	var montage := MontageDeComposition.new()
@@ -134,15 +143,84 @@ func _verifier_cote_a_cote() -> void:
 		pieces.append(piece)
 	montage.call("_ranger")
 	await process_frame
-	var premier: Node3D = pieces[0].get_parent().get_parent()
-	var boites := pieces.map(func(piece: MeshInstance3D) -> AABB: return MontageDeComposition._boite(piece, premier))
-	var ecart: float = boites[1].position.x - boites[0].end.x
-	var avant: float = (pieces[1].global_transform * boites[1].get_center() - pieces[0].global_transform * boites[0].get_center()).z
-	var meme_axe := _proches(pieces[0].global_basis.y, pieces[1].global_basis.y) and _proches(pieces[0].global_basis.z, pieces[1].global_basis.z)
-	var juste: bool = meme_axe and absf(ecart - MontageDeComposition.JEU_ENTRE_RANGES) < EPSILON and avant > 0.0
+	var os: Node3D = pieces[0].get_parent().get_parent().get_parent()
+	var azimuts := pieces.map(func(piece: MeshInstance3D) -> Vector2: return _azimuts(MontageDeComposition._sommets(piece, os)))
+	var ecart: float = maxf(azimuts[1].x - azimuts[0].y, azimuts[0].x - azimuts[1].y)
+	var centres := pieces.map(func(piece: MeshInstance3D) -> Vector3: return squelette.to_local(piece.global_transform * piece.get_aabb().get_center()))
+	var avant: float = centres[1].z - centres[0].z
+	var juste: bool = ecart > 0.0 and avant > 0.0
 	if not juste:
-		_fautes.append("côte à côte : même axe %s, écart %.4f (attendu %.4f), vers l'avant %.4f" % [meme_axe, ecart, MontageDeComposition.JEU_ENTRE_RANGES, avant])
+		_fautes.append("côte à côte : écart angulaire %.4f rad (positif attendu), vers l'avant %.4f" % [ecart, avant])
 	print("[prise-reposee] côte à côte : %s" % ("OK" if juste else "KO"))
+	montage.free()
+	squelette.queue_free()
+	await process_frame
+
+
+## L'étendue angulaire (min, max), autour de l'axe Y de leur os, des sommets `sommets` dans le repère de cet os.
+static func _azimuts(sommets: PackedVector3Array) -> Vector2:
+	var etendue := Vector2(INF, -INF)
+	for v in sommets:
+		var azimut := atan2(v.x, v.z)
+		etendue = Vector2(minf(etendue.x, azimut), maxf(etendue.y, azimut))
+	return etendue
+
+
+## Les cotes des sommets de `piece`, au monde, depuis `origine` : `arriere`, la plus petite sur `normale`, `epaisseur` et
+## `largeur`, leurs étendues sur `normale` et sur `tangente`.
+func _cotes(piece: MeshInstance3D, origine: Vector3, normale: Vector3, tangente: Vector3) -> Dictionary:
+	var sommets := piece.global_transform * (piece.mesh.surface_get_arrays(0)[Mesh.ARRAY_VERTEX] as PackedVector3Array)
+	var sur_n := Array(sommets).map(func(v: Vector3) -> float: return (v - origine).dot(normale))
+	var sur_t := Array(sommets).map(func(v: Vector3) -> float: return (v - origine).dot(tangente))
+	return {arriere = sur_n.min(), epaisseur = sur_n.max() - sur_n.min(), largeur = sur_t.max() - sur_t.min()}
+
+
+## Un objet rangé à `ceinture_g` sur une plaque skinnée au bassin dont la face sortante passe à 5 cm de l'emplacement : sa
+## face arrière à `JEU_DE_RANGEMENT` au-dessus de la plaque.
+func _verifier_l_appui() -> void:
+	var squelette := _squelette()
+	var bassin := squelette.get_bone_global_rest(squelette.find_bone("bassin"))
+	var emplacement := _repere(HANCHE.attache)
+	var sortante := Vector3(emplacement.origin.x, 0.0, emplacement.origin.z).normalized()
+	var bas := -emplacement.basis.y
+	bas = (bas - sortante * bas.dot(sortante)).normalized()
+	var plaque := BoxMesh.new()
+	plaque.size = Vector3(0.6, 0.6, 0.02)
+	plaque.subdivide_width = 4
+	plaque.subdivide_height = 4
+	var dans_l_os := Transform3D(Basis(bas.cross(sortante), -bas, sortante), emplacement.origin + sortante * 0.04 + bas * 0.2)
+	var tableaux := plaque.surface_get_arrays(0)
+	tableaux[Mesh.ARRAY_VERTEX] = (bassin * dans_l_os) * (tableaux[Mesh.ARRAY_VERTEX] as PackedVector3Array)
+	var maille := ArrayMesh.new()
+	maille.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+	var porte := MeshInstance3D.new()
+	porte.mesh = maille
+	porte.skin = Skin.new()
+	porte.skin.add_named_bind("bassin", bassin.affine_inverse())
+	var montage := MontageDeComposition.new()
+	montage.base = {points = [HANCHE, MAIN, OFF]}
+	montage.squelette = squelette
+	montage.set("_pieces_de_la_base", [porte] as Array[MeshInstance3D])
+	var import := BoneAttachment3D.new()
+	import.bone_name = "main_d"
+	squelette.add_child(import)
+	var piece := MeshInstance3D.new()
+	var boite := BoxMesh.new()
+	boite.size = Vector3(0.2, 0.25, 0.08)
+	piece.mesh = boite
+	piece.transform = _repere(MAIN.attache) * Transform3D(Basis.IDENTITY, Vector3(0.0, 0.14, 0.04))
+	import.add_child(piece)
+	montage.call("_poser_la_piece", piece, ["main_d"] as Array[String], squelette, "ceinture_g")
+	montage.call("_ranger")
+	await process_frame
+	var os := squelette.global_transform * squelette.get_bone_global_pose(squelette.find_bone("bassin"))
+	var arriere: float = _cotes(piece, os * emplacement.origin, os.basis * sortante, os.basis * bas.cross(sortante)).arriere
+	var attendue := 0.05 + MiseEnPage.JEU_DE_RANGEMENT
+	var juste := absf(arriere - attendue) < 0.001
+	if not juste:
+		_fautes.append("appui : face arrière à %.4f de l'emplacement, attendue à %.4f" % [arriere, attendue])
+	print("[prise-reposee] appui : %s" % ("OK" if juste else "KO"))
+	porte.free()
 	montage.free()
 	squelette.queue_free()
 	await process_frame

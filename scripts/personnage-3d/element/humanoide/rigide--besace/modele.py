@@ -1,9 +1,9 @@
 """Géométrie de `humanoide--rigide--besace` : un corps de cuir bombé à fond arrondi, un rabat qui passe sur le dessus et
-tombe sur le devant, un bouton, deux pattes d'attache, le fond incliné vers l'extérieur, dans le repère de la prise (+Y vers le bas une fois rangée, +Z
+tombe sur le devant, un bouton, deux pattes d'attache, dans le repère de la prise (+Y vers le bas une fois rangée, +Z
 sortant)."""
 import math
 
-from maille import Maille, basculer_maille, cylindre, objet, poutre
+from maille import Maille, cylindre, objet, poutre
 
 
 def contour(D):
@@ -82,5 +82,4 @@ def construire(D, materiaux):
     for x in (-P['ecart'], P['ecart']):
         poutre(m, (x, D['HAUT'] + 0.03, P['epaisseur'] / 2), (x, -P['au_dessus'], P['epaisseur'] / 2), P['largeur'],
                P['epaisseur'], (0, 0, 1), 'cuir')
-    basculer_maille(m, (0.0, 0.0), -D['ECART'])
     return [objet('humanoide--rigide--besace', m, (0.0, 0.0, 0.0), D['ANGLE_LISSE'])]

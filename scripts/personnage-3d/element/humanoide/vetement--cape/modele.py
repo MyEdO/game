@@ -11,13 +11,12 @@ publiés sous elle (robe, bandoulière), les poids hors des manches, les clés d
 vient de `donnees.py`.
 """
 import math
-import random
 
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
 
-from tissu import Maillage, emprunter, enveloppe_convexe, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
+from tissu import Maillage, emprunter, enveloppe_convexe, lambeaux, lisser, porteur_de, rayon_a_l_enveloppe, voisinage
 
 
 def joindre_les_surfaces(morceaux):
@@ -155,14 +154,6 @@ def empiecement(D, b, morceaux, bas):
     return rangs
 
 
-def lambeaux(D):
-    """La descente de chaque colonne sous l'ourlet : une pointe sur deux, un creux entre deux."""
-    L = D['LAMBEAUX']
-    tirage = random.Random(sum(ord(c) * (i + 1) for i, c in enumerate(L['graine'])))
-    return [L['profondeur'] * (tirage.uniform(0.5, 1.0) if j % 2 == 0 else tirage.uniform(0.0, L['creux']))
-            for j in range(D['COLONNES'] + 1)]
-
-
 def construire(D, materiaux, b):
     zones = sorted({z for zs in D['ZONES_PUBLIEES'].values() for z in zs} | set(D['ZONES_DU_CORPS']))
     b.exiger(sorted(set(zones) | set(D['ZONES_DU_COL'])))
@@ -170,7 +161,7 @@ def construire(D, materiaux, b):
     P, T, W = joindre_les_surfaces(publies + [b.corps(z) for z in D['ZONES_DU_CORPS']])
     O = np.array(b.tete(D['AXE']['os']))[:2]
     rangs, r = profils(D, P, aretes(T), O)
-    descente = lambeaux(D)
+    descente = lambeaux(D['LAMBEAUX'], D['COLONNES'] + 1)
     points = [[np.array([*(O + r[i, j] * direction(phi)), z - (descente[j] if i == len(rangs) - 1 else 0.0)])
                for j, phi in enumerate(azimuts(D, z))] for i, z in enumerate(rangs)]
     haut = empiecement(D, b, publies + [b.corps(z) for z in D['ZONES_DU_CORPS']], points[0])
