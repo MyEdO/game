@@ -8,7 +8,7 @@ import { interludeEventFor, type InterludeEventFx } from '../data/interludeEvent
 import { t, type MsgKey } from '../i18n';
 import type { IdDeDepot, IdDeSort, IdDeTalent, IdDeTraitPsyPorte, IdDObjet } from './designations';
 import { possesses, type TestDesigne } from '../engine/skills';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { buildWeapon } from '../engine/items';
 import { combatValue, weaponSkillId, type ModLine } from '../engine/combat';
 import { focusSkillFor, focusValueOf } from '../engine/magic';
@@ -470,7 +470,7 @@ function voiesDuTest(
       const talent = findTalentById(cibles.talentId ?? '');
       if (!talent) return undefined;
       const tMax = effectiveEntry(talent).max;
-      const char: CharKey = tMax && typeof tMax !== 'number' ? tMax.bonusOf : 'intelligence';
+      const char: CharKey = tMax && typeof tMax === 'object' ? tMax.bonusOf : 'intelligence';
       const tentatives = fails[talent.id] ?? 0;
       return {
         voies: [{ test: { characteristic: char } }],

@@ -210,7 +210,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'moveMod': return { op: 'moveMod', mod: -1 };
     // Terrain d'ÉLECTION : le SENS de l'op est « hors de l'élément où l'on se meut », donc le premier
     // terrain NON franchissable à pied du registre — dérivé du dataset, jamais un id récité.
-    case 'offTerrainMod': return { op: 'offTerrainMod', terrain: terrainDElectionParDefaut(), mSet: 1, testDR: -2 };
+    case 'offTerrainMod': return { op: 'offTerrainMod', terrain: { id: terrainDElectionParDefaut() }, mSet: 1, testDR: -2 };
     case 'attrMod': return { op: 'attrMod', attr: 'fortune', mod: 1 };
     case 'maxWeaponHands': return { op: 'maxWeaponHands', hands: 1 };
     case 'disarm': return { op: 'disarm' };

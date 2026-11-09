@@ -37,7 +37,7 @@ const TOIT: BuildingMass = {
   profile: 'gable',
   ridge: 'x',
   pitchDeg: 45,
-  material: 'tuile',
+  material: { id: 'tuile' },
 };
 /** Le groupe se tient DEHORS et devant : en iso, la toiture est donc bien DESSINÉE (aucune levée
  *  d'écran ne vient masquer le témoin). */
@@ -50,7 +50,7 @@ brancherArdoise();
 
 function scèneCoiffée(): Scene {
   const scene = { ...emptyScene('scene-test', 12, 12), ambiance: 'exterieur' as const };
-  scene.architecture = [{ id: 'maison', label: 'Maison', style: 'maison', storeys: [], facades: [], masses: [TOIT] }];
+  scene.architecture = [{ id: 'maison', label: 'Maison', style: { id: 'maison' }, storeys: [], facades: [], masses: [TOIT] }];
   return scene;
 }
 

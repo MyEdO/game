@@ -100,10 +100,17 @@ func _suivre(reponse: Dictionary) -> void:
 			noms[Vector3i(int(zone.cases[0].x), int(zone.cases[0].y), int(zone.cases[0].z))] = zone.nom
 	if _surcouche.poignee != null:
 		plaques[Vector3i(int(_surcouche.poignee.x), int(_surcouche.poignee.y), int(_surcouche.poignee.z))] = Monde.ITEM_SURVOL
+	# Plusieurs repères tiennent dans une case (deux décors, une lettre sur la table) : la plaque de la sélection y
+	# l'emporte, et leurs noms s'y joignent.
+	var plaques_des_reperes := {}
+	var noms_des_reperes := {}
 	for r in _surcouche.reperes:
 		var case := Vector3i(int(r.x), int(r.y), int(r.z))
-		plaques[case] = Monde.ITEM_SURVOL if r.choisi else Monde.ITEM_CIBLE
-		noms[case] = r.nom
+		if r.choisi or not plaques_des_reperes.has(case):
+			plaques_des_reperes[case] = Monde.ITEM_SURVOL if r.choisi else Monde.ITEM_CIBLE
+		noms_des_reperes[case] = "%s, %s" % [noms_des_reperes[case], r.nom] if noms_des_reperes.has(case) else r.nom
+	plaques.merge(plaques_des_reperes, true)
+	noms.merge(noms_des_reperes, true)
 	for c in _surcouche.cases:
 		plaques[Vector3i(int(c.x), int(c.y), int(c.z))] = Monde.ITEM_SURVOL
 	_monde.peindre(plaques)

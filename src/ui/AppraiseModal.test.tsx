@@ -6,7 +6,7 @@ import type { PendingAppraise } from '../noyau/pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 import { addCondition, COND } from '../engine/conditions';
 import { testValue, skillBaseValue, type SupportDetail } from '../engine/skills';
-import { rollLine } from '../noyau/rollSeam';
+import { rollLine } from '../noyau/ligneDeJet';
 
 /** La ligne figée que l'ouverture pose (`openAppraise`) : le monteur `rollLine` sur la valeur du meneur. */
 const ligneDEvaluation = (valeur: number, actor?: Combatant, soutien?: SupportDetail) =>

@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { decorEnCase, decorEnCaseEtage, entitesEnCaseEtage } from './decorIndex';
+import { decorsEnCase, decorsEnCaseEtage, entitesEnCaseEtage } from './decorIndex';
 import { emptyScene, type Scene, type SceneEntity } from './scene';
 
 /**
  * Index case → entités (`noyau/monde/decorIndex.ts`), vue ANCRAGE (`entitesEnCaseEtage`) : la lecture PAR
  * POSITION du picking. Elle répond sur la case d'ANCRAGE, TOUTES
- * natures, dans l'ordre du document — là où les deux vues d'EMPREINTE (`decorEnCase`/`decorEnCaseEtage`)
+ * natures, dans l'ordre du document — là où les deux vues d'EMPREINTE (`decorsEnCase`/`decorsEnCaseEtage`)
  * ne répondent que du DÉCOR qui couvre la case.
  *
  * Scène FABRIQUÉE : aucune scène livrée n'est lue ici (les cases et les étages sont le contrat, pas le
@@ -40,8 +40,8 @@ describe('decorIndex — vue ANCRAGE (entitesEnCaseEtage)', () => {
     const scene = sceneAvec([ent('pnj', 'personnage', 4, 1), ent('coffre', 'prop', 4, 1)]);
 
     expect(entitesEnCaseEtage(scene, 4, 1, 0).map((e) => e.id)).toEqual(['pnj', 'coffre']);
-    expect(decorEnCaseEtage(scene, 4, 1, 0)?.id).toBe('coffre');
-    expect(decorEnCase(scene, 4, 1)?.id).toBe('coffre');
+    expect(decorsEnCaseEtage(scene, 4, 1, 0).map((e) => e.id)).toEqual(['coffre']);
+    expect(decorsEnCase(scene, 4, 1).map((e) => e.id)).toEqual(['coffre']);
   });
 
   it('case vide → tableau vide, et la MÊME référence à chaque appel (aucune allocation)', () => {

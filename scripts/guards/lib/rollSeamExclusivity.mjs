@@ -294,24 +294,29 @@ function estAppelDeDe(node) {
 }
 
 /**
- * EXPORTS de `src/engine` derrière lesquels UN DÉ TOMBE SANS QU'AUCUNE FRONTIÈRE EXPORTÉE NE SOIT
- * FRANCHIE (#1508) — `applyFall`, `scatter`, `rollMiscast`, `rollStock`… : le dé tombe là, le nom le
- * masque, et c'est le CALL-SITE qui décide de la fenêtre.
+ * EXPORTS de `src/engine` derrière lesquels UN DÉ TOMBE (#1508) — `applyFall`, `scatter`,
+ * `rollMiscast`, `createHero`… : le dé tombe dans le moteur, le nom le masque, et c'est le CALL-SITE
+ * consommateur qui décide de la fenêtre.
  *
- * LA FRONTIÈRE EST L'EXPORT, pas le nombre de sauts. L'export compte s'il appelle une primitive de
- * dé (`AMORCE_DES`) ou un `.int(` DANS SON CORPS, **ou** s'il passe par un helper NON EXPORTÉ du
- * moteur qui, lui, tire : `merchantFlow.rollStock` → `fullStock` (module-local) → `rollDice`, ou
- * `creation.rollDetail` (module-local) → `roll(2, 10, rng)` derrière `rollEyes`/`rollHair`.
- * S'arrêter à UN SAUT rendait ces dés INVISIBLES : 10 sites réels manquaient,
- * dont `merchantFlow.ts` en entier — que `ENGINE_DELEGATED_ROLL_STOCK` classait pourtant déjà en
- * dette. Deux stocks du même dé ne peuvent pas se contredire.
+ * LA CLÔTURE SUIT TOUT APPEL DU MOTEUR, export compris. Une fonction compte si elle appelle une
+ * primitive de dé (`AMORCE_DES`) ou un `.int(` DANS SON CORPS, **ou** une fonction du moteur qui
+ * compte : helper module-local (`merchantFlow.rollStock` → `fullStock` → `rollDice`) comme export
+ * (`creation.tirerLesDetails` → `rollAge` → `rollDice`, `pnjDeCarriere.argentDuPnj` → `statusIncome`).
+ * Raison : la garde ne scanne pas le moteur (règle 3), le dé d'un export qu'un autre export compose
+ * n'a donc qu'UN site visible, l'appel consommateur de l'export composé. S'arrêter à l'export appelé
+ * effaçait ce dé du compte, et regrouper des tirages derrière un export faisait baisser le stock sans
+ * qu'aucun dé ne disparaisse (#3725).
  *
- * CE QU'ELLE N'ASPIRE PAS, et c'est le point : un export qui traverse une AUTRE frontière exportée
- * n'entre pas. La clôture transitive complète de `engineRollerExports` sous amorce élargie, elle,
- * remonte jusqu'aux helpers GÉNÉRIQUES (mesuré : `createHero`, `contractDisease`, `rollInitialWealth`,
- * `spellRangeTiles`, `zdeRadiusTiles`, `durationClockMinutes`…) et fait passer la population de 319
- * sites où le dé TOMBE à 423 sites « où un dé pourrait tomber » — un stock bâti sur le second ne peut
- * pas descendre à zéro, ce serait un registre et non une dette.
+ * CE QUI TIENT LA CLÔTURE AU DÉ RÉEL : le moteur sépare la LECTURE d'une Formule de son TIRAGE. Une
+ * estimation sans dé (`valeurSansTirage`, `formulaExpectation`) ne reçoit aucun RNG et n'appelle pas
+ * `resolveFormula` : `spellRangeTiles`, `zdeRadiusTiles` restent dehors. Une fonction qui entre
+ * atteint une primitive sur au moins un chemin, dont certains ne s'ouvrent que si la donnée porte un
+ * `{dice}` que son schéma admet (`resolveWindowDuration`, `endOfRound`) — le statut même de
+ * `resolveFormula` et d'`applyOps`.
+ *
+ * L'index est À PLAT (un nom, une déclaration) : un homonyme non tireur d'un tireur y entrerait.
+ * Mesuré : `pick` (`miscast.ts` lit un jet reçu, `names.ts` tire) n'aspire que `rollMiscast`, qui
+ * tire déjà dans son corps.
  *
  * `applyOps` compte : il tire DANS SON CORPS (`rng.int` de ses désignations). Son canal a son propre
  * lot (#1508 T2, `OpsCtx.des`), qui le fera sortir d'ici en une ligne.
@@ -349,10 +354,8 @@ export function engineDiceRollers(engineFiles) {
     changed = false;
     for (const [nom, d] of decls) {
       if (roule.has(nom)) continue;
-      // La propagation ne franchit QUE des helpers module-locaux : un appelé EXPORTÉ est une frontière
-      // que le call-site verrait lui-même, il n'a pas à contaminer son appelant.
-      const viaLocal = [...d.calls].some((c) => roule.has(c) && decls.get(c) && !decls.get(c).exported);
-      if (d.direct || viaLocal) { roule.add(nom); changed = true; }
+      const viaAppele = [...d.calls].some((c) => roule.has(c));
+      if (d.direct || viaAppele) { roule.add(nom); changed = true; }
     }
   }
   return tableDesExports(engineFiles, [...AMORCE_DES, ...[...roule].filter((n) => decls.get(n).exported)]);

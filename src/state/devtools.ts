@@ -767,7 +767,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         pos: e.pos,
         // Ce que l'entité OFFRE, lu au dériveur unique et aux drapeaux vivants — la recette voit la
         // même liste que le joueur, jamais une carte de champs recopiée qui dérive.
-        access: actionsDe(g().scene!, e, g().flags).map((a) => a.id).join('+') || '—',
+        access: actionsDe(g().scene!, e, g()).map((a) => a.id).join('+') || '—',
       })),
 
     /** CARTOGRAPHIE (symétrique d'`entities()`) : les routes CLIQUABLES (`clickRoute`, MÊME source

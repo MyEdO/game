@@ -2,7 +2,8 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** VDM 14. */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { idDe } from '../grammaire/ref';
+import { idDe, ref, type PorteeLocale } from '../grammaire/ref';
+import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { diceSpecSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
 export const file = 'arcane-phenomena.json';
@@ -118,6 +119,9 @@ export const phenomenonKindSchema = enumNomme({
   site: 'Site',
 });
 
+/** Les tables du chapitre, que désignent `fluxTableId` et `tableId`. */
+const TABLES = { collection: 'tables', catalogue: 'tables arcaniques' } as const satisfies PorteeLocale;
+
 const attestedNote = nommerChamps(z.strictObject({ source: sourceRefSchema, desc: z.string() }), { source: { label: 'source' }, desc: { label: 'texte' } });
 
 const doc = document(
@@ -203,7 +207,7 @@ const doc = document(
         desc: { label: 'texte' },
       }).optional(),
 
-      fluxTableId: z.string().optional(),
+      fluxTableId: ref(TABLES).optional(),
 
       controlFlux: nommerChamps(z.strictObject({ difficulty: difficultySchema, source: sourceRefSchema, desc: z.string() }), {
         difficulty: { label: 'difficulté' },
@@ -217,7 +221,7 @@ const doc = document(
         desc: { label: 'texte' },
       }).optional(),
 
-      tableId: z.string().optional(),
+      tableId: ref(TABLES).optional(),
       draws: z.number().optional(),
       source: sourceRefSchema,
       desc: z.string(),
@@ -244,7 +248,7 @@ const doc = document(
       desc: { label: 'texte' },
     }),
   ),
-  tables: z.array(
+  tables: listeCle(
     tableTiree(
       nommerChamps(z.strictObject({
         ...plageSchema.shape,
@@ -267,6 +271,7 @@ const doc = document(
         meta: { id: { label: 'identifiant' }, label: { label: 'libellé' }, source: { label: 'source' }, desc: { label: 'texte' } },
       },
     ),
+    'id',
   ),
   },
   {
@@ -282,6 +287,7 @@ const doc = document(
     tables: { label: 'Tables tirées', hint: 'Les tables d10/d100 du chapitre, consultées par identifiant' },
   },
   { codex: { keys: ['arcanePhenomena'] }, edit: { object: 'single' } },
+  { affinerEntree: (entree) => ouvrirPortees(entree, [TABLES]) },
 );
 
 export const schema = doc.schema;

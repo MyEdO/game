@@ -1,0 +1,13 @@
+{
+  "model": "vehicule--batterie-tonnerre-de-feu-ade2.glb",
+  "model_sha256": "4391894350c650ff33ce0d50334263a0dfbc82c7f3ea2fe7bf60f99a9d0b4e28",
+  "importe_le": "2026-11-08",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

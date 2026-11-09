@@ -15,7 +15,7 @@ import type { Jeu } from './etat';
 import type { Get, Set } from './flowTypes';
 import { DESIGNATIONS } from './designations';
 import { libelleDeLaFermeture, libelleDuChoix, libelleDuLitteral, libelleDuParametre } from './libelles';
-import { fenetreDuRegistre, type GesteDuJeu } from './modalArbiter';
+import { fenetreDuRegistre, soinEnCours, type GesteDuJeu } from './modalArbiter';
 import { plaiesNommees } from './medicFlow';
 import { conversationRepond, reponsesDuNoeud } from './dialogue';
 import { refuserGesteDuSiege } from './refusVisible';
@@ -35,6 +35,7 @@ import { BATTLE_HAZARDS } from '../engine/massBattle';
 import { refusDAlea } from './massBattleFlow';
 import type { ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
+import { creaturesDeLaRecolte, refusDeDepecer } from './combatEffects';
 import {
   VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -137,11 +138,11 @@ export const OUVERTS_DU_CHOIX = {
   shoreLeave: { accorder: reglage('shoreLeave', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
   medic: {
     patient: reglage('medic', 'patient', (s) => {
-      const verrou = s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? libelleDeLaFermeture('soinEnCours') : null;
+      const verrou = soinEnCours(s) ? libelleDeLaFermeture('soinEnCours') : null;
       return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
     }, (s) => s.medic?.patientId ?? null),
     abandon: reglage('medic', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('medic', 'abandon'))] : [])),
-    plaie: reglage('medic', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? null),
+    plaie: reglage('medic', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? s.pendingHeal?.plaie ?? null),
   },
   dialogue: { reponse: reglage('dialogue', 'reponse', (s) => reponsesDuNoeud(s).map((r) => ouverte(r.id, r.label, r.refus ?? (conversationRepond(s) ? null : t('barre.mainTenue'))))) },
   // EDO 02 l.91 : seuls les héros vivants se désignent.
@@ -182,7 +183,11 @@ export const OUVERTS_DU_CHOIX = {
     repartition: reglage('marchand', 'repartition', (s, pid) => (duGroupe(s, pid) ? (s.merchant?.pendingDistribution ?? []).map((d) => ouverte(d.uid, libelleDeLaRepartition(d))) : [])),
   },
   loot: { ligne: lignesDuButin('loot', (s) => s.pendingLoot?.gear) },
-  victory: { ligne: lignesDuButin('victory', (s) => s.pendingVictory?.gear) },
+  // ZI 13
+  victory: {
+    ligne: lignesDuButin('victory', (s) => s.pendingVictory?.gear),
+    depecer: reglage('victory', 'depecer', (s) => creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer'), refusDeDepecer(s, id)))),
+  },
   // LDB 66
   rest: {
     couchage: reglage('rest', 'couchage', (s, pid) => {

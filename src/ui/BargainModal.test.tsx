@@ -35,7 +35,7 @@ describe('BargainModal — le marchand à preset joue sa fiche', () => {
 
   it('la ligne adverse porte la fiche du preset, pas un profil de repli', () => {
     const scene = {
-      type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+      type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
       layers: [{ z: 0, tiles: Array(16).fill('herbe') }], dialogues: [], triggers: [], encounters: [], flags: {},
       entities: [{ id: 'marchand', kind: 'personnage', pos: { x: 1, y: 1 }, presetId: 'marchand-nomme', merchant: { archetype: 'armurier' } }],
     } as unknown as Scene;

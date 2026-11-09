@@ -13,6 +13,8 @@ const VIDE := "vide"
 const ORIGINE := [0.0, 0.0, 0.0]
 ## La largeur en pixels à laquelle le SVG d'un emblème se rastérise (#3111).
 const LARGEUR_D_EMBLEME := 512.0
+## La métadonnée de la scène d'un GLB (`scene_du_glb`) qui porte, par nom, chacun de ses matériaux.
+const MATERIAUX := &"materiaux"
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -32,11 +34,16 @@ static var _textures: Dictionary = {}
 
 ## La base posée, `{}` sans base.
 var base: Dictionary = {}
+## Par nom, chaque matériau du GLB de la base posée, ceux qu'aucune primitive ne porte compris : une variante qu'une
+## surface nomme par sexe (#3188).
+var materiaux_de_la_base: Dictionary = {}
 var modele: Node3D = null
 var squelette: Skeleton3D = null
 var lecteur: AnimationPlayer = null
 ## Le modificateur du squelette de la base qui pose le gabarit de la composition.
 var gabarit: GabaritDuSquelette = null
+## Les modificateurs du squelette de la base qui posent la main libre sur la seconde prise de l'objet tenu (`SecondePrise`).
+var seconde_prise: Array[Node] = []
 ## La réponse de `composer` retenue, `{}` sans composition : sa `palette`, son `gabarit`, ses `morphes`.
 var composee: Dictionary = {}
 ## Où vont les erreurs de la pose, de l'habillage et des emblèmes.
@@ -129,8 +136,10 @@ static func porte_un_blason(element: String) -> bool:
 	return modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
-## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène neuve : téléchargé une fois
-## par chargement des modèles, chaque demande d'un même fichier attendant la première, puis lu à chaque demande, car un
+## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène neuve, qui porte en
+## métadonnée `MATERIAUX` chaque matériau du GLB par son nom (`GLTFState.get_materials`, ceux qu'aucune primitive ne porte
+## compris) : téléchargé une fois par chargement des modèles, chaque demande d'un même fichier attendant la première, puis
+## lu à chaque demande, car un
 ## `GLTFState` ne génère qu'une scène dont le squelette trouve ses os par leur nom (`generate_scene` rappelé : `find_bone`
 ## rend -1), par le `GLTFDocument` qui l'a lu (un autre rend des `ImporterMeshInstance3D`, Godot 4.7-stable) ; `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un
 ## fichier qui ne s'est pas téléchargé se redemande. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ; `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
@@ -158,7 +167,14 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	if code != OK:
 		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
 		return null
-	return document.generate_scene(etat) as Node3D
+	var scene := document.generate_scene(etat) as Node3D
+	if scene == null:
+		return null
+	var par_nom := {}
+	for materiau in etat.get_materials():
+		par_nom[materiau.resource_name] = materiau
+	scene.set_meta(MATERIAUX, par_nom)
+	return scene
 
 
 func _lire(fichier: String, lecture: Lecture) -> void:
@@ -175,10 +191,12 @@ func vider() -> void:
 		remove_child(modele)
 		modele.queue_free()
 	modele = null
+	materiaux_de_la_base = {}
 	_pieces_de_la_base.clear()
 	squelette = null
 	lecteur = null
 	gabarit = null
+	seconde_prise.clear()
 	pieces.clear()
 	_noeuds.clear()
 	montes.clear()
@@ -187,14 +205,15 @@ func vider() -> void:
 	_demandes.clear()
 
 
-## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses meshes relevés et
-## habillés de la palette de la composition, son squelette (`squelette-absent` aux erreurs sans lui), qui reçoit le
-## modificateur du gabarit, et son lecteur de clips.
+## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses matériaux
+## (`MATERIAUX`) et ses meshes relevés, habillés de la palette de la composition, son squelette (`squelette-absent` aux
+## erreurs sans lui), qui reçoit le modificateur du gabarit, et son lecteur de clips.
 func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	base = posee
 	if scene == null:
 		return
 	modele = scene
+	materiaux_de_la_base = scene.get_meta(MATERIAUX, {})
 	add_child(scene)
 	_pieces_de_la_base.assign(scene.find_children("*", "MeshInstance3D", true, false))
 	squelette = squelette_de(scene)
@@ -228,6 +247,8 @@ func demonter(id: String) -> void:
 	montes.erase(id)
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
+	masquer_les_zones_couvertes()
+	poser_la_seconde_prise()
 
 
 ## L'emplacement `id` démonté, puis `element` monté une fois son GLB chargé, si aucune autre demande ne l'a remplacé à
@@ -277,7 +298,71 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	_noeuds[id] = noeuds
 	montes[id] = element
 	poser_les_morphes()
+	masquer_les_zones_couvertes()
+	poser_la_seconde_prise()
 	return true
+
+
+## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté couvre sa zone et
+## masque son porteur (`couvre` et `masque` de `couches` dans `modeles`, #2972), montré sinon ; la base est masquée par
+## toute couche.
+func masquer_les_zones_couvertes() -> void:
+	var couches: Dictionary = modeles.get("couches", {})
+	var porteurs: Array = [[_pieces_de_la_base, null]]
+	for id in pieces:
+		porteurs.append([pieces[id], montes[id]])
+	for porteur in porteurs:
+		for piece: MeshInstance3D in porteur[0]:
+			var zone: Variant = piece.get_meta("extras", {}).get("zone")
+			if zone != null:
+				piece.visible = not montes.values().any(func(par: String) -> bool: return _masque(couches.get(par, {}), porteur[1], zone))
+
+
+## La couche `couche` cache-t-elle la zone `zone` de `porteur`, un élément ou la base (`null`) ?
+static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
+	return zone in couche.get("couvre", []) and (porteur == null or porteur in couche.get("masque", []))
+
+
+## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de
+## `modeles`, #3319), si la prise `off` ne tient rien ; aucune sinon.
+func poser_la_seconde_prise() -> void:
+	for modificateur in seconde_prise:
+		modificateur.free()
+	seconde_prise.clear()
+	var seconde: Variant = modeles.get("secondesPrises", {}).get(montes.get("main", VIDE))
+	var tenante := _point("main")
+	var libre := _point("off")
+	if squelette == null or seconde == null or montes.has("off") or tenante.is_empty() or libre.is_empty():
+		return
+	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde.repere)
+
+
+
+## Le clip du rôle `role` de la base posée : tant que la main libre tient la seconde prise (`seconde_prise`), celui de
+## `clipsDeuxMains` sous le maniement de l'élément tenu (`secondesPrises` de `modeles`) ; celui de `clips` sinon, ou faute
+## de clip à deux mains pour ce maniement et ce rôle ; `""` sans clip.
+func clip(role: String) -> String:
+	var clips: Dictionary = base.get("clips", {})
+	if seconde_prise.is_empty():
+		return clips.get(role, "")
+	var maniement: Variant = modeles.secondesPrises[montes.main].maniement
+	return base.get("clipsDeuxMains", {}).get(maniement, {}).get(role, clips.get(role, ""))
+
+
+## Les tables rôle → clip de la base posée : `clips`, puis celle de chaque maniement de `clipsDeuxMains`.
+func tables_de_clips() -> Array[Dictionary]:
+	var tables: Array[Dictionary] = [base.get("clips", {})]
+	tables.append_array(base.get("clipsDeuxMains", {}).values())
+	return tables
+
+
+## Le rôle du clip `nom` dans une table de la base posée (`tables_de_clips`), `""` s'il n'en joue aucun.
+func role_du_clip(nom: String) -> String:
+	for table: Dictionary in tables_de_clips():
+		var role: Variant = table.find_key(nom)
+		if role != null:
+			return role
+	return ""
 
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
@@ -397,20 +482,32 @@ func _habiller(id: String) -> bool:
 	return posee
 
 
-## Les meshes de la base posée habillés de la palette de la composition (`peindre`, `surfaces` de la base).
+## Les meshes de la base posée habillés des matériaux de la composition et de sa palette (`peindre`, `surfaces` de la
+## base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom (`materiaux_de_la_base`), un nom
+## absent du GLB ajoutant `materiau-absent` aux erreurs.
 func habiller_la_base() -> void:
-	if not base.is_empty():
-		peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}))
+	if base.is_empty():
+		return
+	var remplacants := {}
+	var materiaux: Dictionary = composee.get("materiaux", {})
+	for surface in materiaux:
+		var remplacant: Material = materiaux_de_la_base.get(materiaux[surface])
+		if remplacant == null:
+			erreurs.append("materiau-absent : %s" % materiaux[surface])
+		else:
+			remplacants[surface] = remplacant
+	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants)
 
 
-## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` reçoit un matériau propre
-## (`materiau_local`) si `palette` colore son emplacement de palette, si elle est `blason` et `texture` n'est pas
-## nulle, ou si la texture de sa `matiere` est au projet : celle-ci l'habille comme le monde (`Monde.texturer`),
-## l'albédo à blanc ; la couleur remplace l'albédo du GLB, texture comprise, pour que la tête et le corps d'une même
-## peau aient la même couleur, ou teint la texture de sa matière ; `texture` devient la couche de détail, en mélange,
-## lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les trois axes (`_uv2_des_emblemes`). Toute autre
-## surface garde le matériau du GLB. Rend si `texture` est posée sur une surface au moins.
-static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary) -> bool:
+## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau que
+## `remplacants` donne à ce nom, puis reçoit un matériau propre (`materiau_local`) si `palette` colore son emplacement de
+## palette, si elle est `blason` et `texture` n'est pas nulle, ou si la texture de sa `matiere` est au projet : celle-ci
+## l'habille comme le monde (`Monde.texturer`), l'albédo à blanc ; la couleur remplace l'albédo du GLB, texture comprise,
+## pour que la tête et le corps d'une même peau aient la même couleur, ou teint la texture de sa matière ; `texture`
+## devient la couche de détail, en mélange, lue aux UV du GLB : l'UV1, ou l'UV2 où la matière projette l'UV1 sur les
+## trois axes (`_uv2_des_emblemes`). Toute autre surface garde le matériau du GLB. Rend si `texture` est posée sur une
+## surface au moins.
+static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palette: Dictionary, remplacants: Dictionary = {}) -> bool:
 	var par_nom := {}
 	for surface in surfaces:
 		par_nom[surface.nom] = surface
@@ -424,6 +521,8 @@ static func peindre(meshes: Array, surfaces: Array, texture: ImageTexture, palet
 			var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
 			if surface.is_empty():
 				continue
+			if remplacants.has(surface.nom):
+				piece.set_surface_override_material(rang, remplacants[surface.nom])
 			var couleur: Variant = palette.get(surface.palette)
 			var blason: bool = texture != null and surface.get("blason", false)
 			var matiere := _matiere_texturee(surface)
@@ -486,15 +585,22 @@ static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> voi
 func couleurs_posees() -> Dictionary:
 	var couleurs := {}
 	for id in pieces:
-		var posees := {}
-		for piece: MeshInstance3D in pieces[id]:
-			for rang in piece.mesh.get_surface_count():
-				var local := piece.get_surface_override_material(rang) as BaseMaterial3D
-				if local != null:
-					posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+		var posees := couleurs_des_meshes(pieces[id])
 		if not posees.is_empty():
 			couleurs[id] = posees
 	return couleurs
+
+
+## Par nom du matériau du GLB, la couleur d'albédo `#rrggbb` du matériau propre de chaque surface de `meshes` qui en
+## porte un.
+static func couleurs_des_meshes(meshes: Array) -> Dictionary:
+	var posees := {}
+	for piece: MeshInstance3D in meshes:
+		for rang in piece.mesh.get_surface_count():
+			var local := piece.get_surface_override_material(rang) as BaseMaterial3D
+			if local != null:
+				posees[local.resource_name] = "#" + local.albedo_color.to_html(false)
+	return posees
 
 
 ## Le SVG de l'emblème `id`, offert par `emblemes` de la réponse de `modeles`, rastérisé à `LARGEUR_D_EMBLEME` pixels de

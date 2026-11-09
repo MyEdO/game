@@ -12,6 +12,7 @@ import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature,
 import { apparencesDeLOuverture } from '../monde/facades';
 import { refusDeLEntite, type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import { inventaireApres, type IntentionDObjet } from '../../engine/items';
+import { PARTS_RELIEF } from '../../data/materials.types';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
@@ -174,7 +175,10 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
   if (patch.scalaires) sc = setSceneScalaires(sc, Object.fromEntries(Object.entries(patch.scalaires).map(([k, v]) => [k, v ?? undefined])));
   if (patch.dimensions) sc = resizeGrid(sc, patch.dimensions.w, patch.dimensions.h);
   if (patch.nord !== undefined) sc = setNorthDeg(sc, patch.nord ?? undefined);
-  for (const [part, matiere] of Object.entries(patch.relief ?? {}) as [keyof ReliefDefaults, string][]) sc = setReliefDefault(sc, part, matiere);
+  for (const part of PARTS_RELIEF) {
+    const matiere = patch.relief?.[part];
+    if (matiere) sc = setReliefDefault(sc, part, matiere);
+  }
   if (patch.toiture) sc = patchSceneRoofDefaults(sc, patch.toiture);
   if (patch.repos) sc = setSceneRest(sc, { ...patch.repos.lieux, ...(patch.repos.pietre !== undefined && { quality: patch.repos.pietre ? 'pietre' : undefined }) });
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });
@@ -196,13 +200,13 @@ function stationsPatchees(scene: Scene, p: NonNullable<PatchDeScene['stations']>
  *  les pièces que révèle l'étage ou la façade, l'apparence de la façade ; l'étage de la façade ou de la masse ; un
  *  champ de la masse (`null` : le champ se retire). */
 export interface PatchDArchitecture {
-  style?: string | null;
+  style?: ArchitectureBody['style'] | null;
   toiture?: { [K in keyof RoofDefaults]?: RoofDefaults[K] | null };
   retirerExclusion?: number;
   pieces?: string[];
   apparence?: string;
   z?: number;
-  masse?: { levels?: number; profile?: BuildingMass['profile']; pitchDeg?: number; material?: string; ridge?: 'x' | 'y' | null; eaveSide?: BuildingMass['eaveSide'] | null };
+  masse?: { levels?: number; profile?: BuildingMass['profile']; pitchDeg?: number; material?: BuildingMass['material']; ridge?: 'x' | 'y' | null; eaveSide?: BuildingMass['eaveSide'] | null };
 }
 
 /** Les profils de toit et leur libellé (`roofProfileSchema`). */
@@ -230,7 +234,8 @@ export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
  *  d'un décor (`null` l'éteint), son assise ; un objet de l'inventaire d'un personnage (`inventaireApres`), son
- *  parcours de carrière ; l'équipage exposé à bord ; les entrées de fiche qu'elle couvre (`null` : aucune). */
+ *  parcours de carrière et ses sorts choisis ; l'équipage exposé à bord ; les entrées de fiche qu'elle couvre (`null` :
+ *  aucune). */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
@@ -240,6 +245,8 @@ export interface PatchDEntite {
   objet?: IntentionDObjet;
   /** Le parcours de carrière entier ; sans carrière, il est retiré. */
   parcours?: ParcoursDeCarriere;
+  /** Les sorts choisis entiers (`combat.spells`, `sortsDuPnj`) ; vides, ils sont retirés. */
+  sorts?: string[];
   crewIds?: string[];
   couvre?: string[] | null;
 }
@@ -566,10 +573,10 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent`, chaque absence posée par `champs` (`editEntity`) : le
  *  type d'un décor avec ses défauts de pose (`propRefPatch`), la couche au sol (`coucheEcrite`), la lumière éteinte, l'assise
- *  sans action, un parcours sans carrière, et un inventaire, un équipage ou des entrées couvertes vides (`sansVide`) ;
- *  l'inventaire après l'intention sur un objet (`inventaireApres`). */
+ *  sans action, un parcours sans carrière, et un inventaire, un équipage, des sorts ou des entrées couvertes vides
+ *  (`sansVide`) ; l'inventaire après l'intention sur un objet (`inventaireApres`). */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, objet, parcours, crewIds, couvre, ...reste } = patch;
+  const { ref, z, light, assise, objet, parcours, sorts, crewIds, couvre, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
@@ -578,6 +585,7 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
     ...(z === undefined ? {} : { z: coucheEcrite(z) }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
+    ...(sorts === undefined ? {} : { combat: { ...ent.combat, spells: sansVide(sorts) } }),
     ...(parcours === undefined ? {} : {
       carrieres: avecCarrieres?.carrieres,
       talentsDeCarriere: avecCarrieres?.talentsDeCarriere,

@@ -25,7 +25,7 @@ const LIVRE = {
   metresPerTile: semencesDeScene.metresPerTile,
   terrain: semencesDeScene.terrain,
   reliefDefaults: { ...semencesDeScene.reliefDefaults },
-  roofDefaults: { ...semencesDeScene.roofDefaults },
+  roofDefaults: structuredClone(semencesDeScene.roofDefaults),
   facade: semencesDeScene.facade,
   lieu: semencesDeScene.lieu,
   carte: semencesDeScene.carte,
@@ -38,7 +38,7 @@ describe('semences-de-scene.json — le schéma refuse une semence qui mentirait
   });
 
   it('un TERRAIN hors du registre des sols est refusé, nommément', () => {
-    const erreur = validateDataset(FICHIER, { ...LIVRE, terrain: 'lave-de-nulle-part' });
+    const erreur = validateDataset(FICHIER, { ...LIVRE, terrain: { id: 'lave-de-nulle-part' } });
     expect(erreur).toContain('terrain');
     expect(erreur).toContain('lave-de-nulle-part');
   });
@@ -58,7 +58,7 @@ describe('semences-de-scene.json — le schéma refuse une semence qui mentirait
   });
 
   it('une MATIÈRE de relief hors de la sous-liste `relief` est refusée', () => {
-    const erreur = validateDataset(FICHIER, { ...LIVRE, reliefDefaults: { ...LIVRE.reliefDefaults, cliff: 'toit-ardoise' } });
+    const erreur = validateDataset(FICHIER, { ...LIVRE, reliefDefaults: { ...LIVRE.reliefDefaults, cliff: { id: 'toit-ardoise' } } });
     expect(erreur).toContain('Matières de relief › falaise');
   });
 

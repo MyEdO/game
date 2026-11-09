@@ -7,6 +7,12 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
  * test et à la sauvegarde du Compendium — sans qu'aucune garde nominative n'ait à l'énumérer. La
  * fabrique n'expose aucun nœud extensible : zod 4.4.3 perd le registre et la `.meta()` au `.extend`,
  * la composition se fait donc ICI via `extra`.
+ *
+ * PORTÉE LOCALE (#2968 P-local) : `ref(portee)` désigne une entrée d'une collection du MÊME document, même
+ * graphie `{ id }`. L'objet qui porte cette collection OUVRE la portée (`ouvrirPortees`,
+ * `grammaire/collection-cle.ts`) : la racine d'un document, ou tout objet de son arbre. Il juge chaque
+ * référence de son arbre contre les ids de sa collection (`jugerRefLocale`). Un id local n'entre dans aucun
+ * espace de l'INDEX DES IDS.
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
@@ -116,6 +122,25 @@ export const TYPES = {
 } as const satisfies Record<string, DeclarationDeType>;
 
 export type TypeEntite = keyof typeof TYPES;
+
+/** PORTÉE LOCALE : la collection `collection` de l'objet qui l'ouvre, et son `catalogue` tel que l'auteur le
+ *  nomme, comme `DeclarationDeType`. Une référence la désigne par IDENTITÉ. */
+export interface PorteeLocale {
+  readonly collection: string;
+  readonly catalogue: string;
+}
+
+/** Ce que désigne une référence validée : un type de `TYPES`, ou la portée locale `local:<collection>`. */
+export type CibleDeReference = TypeEntite | `local:${string}`;
+
+const cibleLocale = (portee: PorteeLocale): CibleDeReference => `local:${portee.collection}`;
+
+/** Les feuilles construites par `ref(portee)`, avec leur portée. */
+const FEUILLES_LOCALES = new WeakMap<object, PorteeLocale>();
+
+/** La portée d'une feuille construite par `ref(portee)`, `undefined` si le nœud n'en est pas une. */
+export const porteeDeLaFeuille = (noeud: unknown): PorteeLocale | undefined =>
+  typeof noeud === 'object' && noeud !== null ? FEUILLES_LOCALES.get(noeud) : undefined;
 
 /** Clé de l'espace qui fait autorité sur les ids d'un type. */
 export function espaceDe(type: TypeEntite): string {
@@ -330,6 +355,10 @@ export function refMorte(type: TypeEntite, id: string): string {
   return `« ${id} » est absent du catalogue des ${TYPES[type].catalogue} (${registre === undefined ? espace : `${espace}, registre ${registre}`}).`;
 }
 
+/** Refus d'un id qu'aucune entrée de la collection d'une portée locale ne porte. */
+export const refMorteLocale = (portee: PorteeLocale, id: string): string =>
+  `« ${id} » est absent du catalogue des ${portee.catalogue} (collection « ${portee.collection} » du document).`;
+
 /**
  * Clé du repère dans les `params` d'une issue : privée au module, donc infalsifiable par un autre
  * émetteur. Le repère porte le type d'entité validé.
@@ -447,11 +476,22 @@ export function marquerOpAtteinte(ctx: z.RefinementCtx): void {
   if (parseDeMesure) ctx.addIssue({ code: 'custom', message: 'repère de nœud d’op', params: { [REPERE_OP]: true }, continue: true });
 }
 
-/** Une référence validée par `idDe` au parse de mesure : son path de DONNÉE et son type. `parCle` :
- *  la valeur validée est la CLÉ d'un record (dernier segment du path), pas la valeur qu'elle pose. */
+/**
+ * Jugement d'une référence LOCALE `id`, au `path` de sa feuille sous l'objet qui ouvre sa portée
+ * (`ouvrirPortees`) : `admis`, l'id est celui d'une entrée de la collection. Un id refusé porte
+ * `refMorteLocale` ; au parse de mesure, un id admis émet son repère.
+ */
+export function jugerRefLocale(ctx: z.RefinementCtx, path: readonly (string | number)[], portee: PorteeLocale, id: string, admis: boolean): void {
+  if (!admis) ctx.addIssue({ code: 'custom', path: [...path], message: refMorteLocale(portee, id) });
+  else if (parseDeMesure) ctx.addIssue({ code: 'custom', path: [...path], message: `repère de ref(${cibleLocale(portee)})`, params: { [REPERE]: cibleLocale(portee) }, continue: true });
+}
+
+/** Une référence validée au parse de mesure, par `idDe` ou par l'objet qui ouvre sa portée locale : son
+ *  path de DONNÉE et sa cible. `parCle` : la valeur validée est la CLÉ d'un record (dernier segment du path),
+ *  pas la valeur qu'elle pose. */
 export interface RepereDeMesure {
   readonly path: readonly PropertyKey[];
-  readonly type: TypeEntite;
+  readonly type: CibleDeReference;
   readonly parCle: boolean;
 }
 
@@ -460,15 +500,15 @@ type IssueLue = {
   readonly code: string;
   readonly path: readonly PropertyKey[];
   readonly message: string;
-  readonly params?: { readonly [REPERE]?: TypeEntite; readonly [REPERE_OP]?: true };
+  readonly params?: { readonly [REPERE]?: CibleDeReference; readonly [REPERE_OP]?: true };
   readonly errors?: readonly (readonly IssueLue[])[];
   readonly issues?: readonly IssueLue[];
 };
 
-const typeDuRepere = (issue: IssueLue): TypeEntite | undefined => issue.params?.[REPERE];
+const typeDuRepere = (issue: IssueLue): CibleDeReference | undefined => issue.params?.[REPERE];
 const estRepereDOp = (issue: IssueLue): boolean => issue.params?.[REPERE_OP] === true;
 
-/** La FAMILLE du repère que portent les `params` d'une issue — `reference` (`idDe`) ou `op`
+/** La FAMILLE du repère que portent les `params` d'une issue — `reference` (`idDe`, `jugerRefLocale`) ou `op`
  *  (`marquerOpAtteinte`) —, `undefined` hors repère. Seule lecture des clés de repère hors de ce module :
  *  la garde du masquage (`parse-de-mesure.test.ts`) instrumente les deux familles. */
 export function familleDuRepere(params: unknown): 'reference' | 'op' | undefined {
@@ -588,28 +628,36 @@ export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, v
 /** Méta du champ `id` de toute référence construite ici. */
 const META_ID = { label: "identifiant", texte: { regime: 'technique', usage: 'ids stables du registre de références' } } as const;
 
-/** L'objet CONCRET d'une référence `{ id, …extra }` de `type`, nommé par `metas` : le corps unique de
- *  `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser. `extraDuPorteur` : la part
- *  d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. `sousListe` restreint
- *  l'`id` comme `idDe`. */
-function objetDeRef<T extends TypeEntite, E extends Record<string, z.ZodType>>(
-  type: T,
+/** L'objet CONCRET d'une référence `{ id, …extra }` dont `feuille` porte l'`id`, nommé par `metas` : le
+ *  corps unique de `ref` et des branches de `refTypee`, qui composent son nœud sans l'éraser.
+ *  `extraDuPorteur` : la part d'`extra` que l'appelant a passée, sans les clés que la fabrique pose elle-même. */
+function objetDeRef<F extends z.ZodType, E extends Record<string, z.ZodType>>(
+  feuille: F,
   extra: E,
   metas: Readonly<Record<string, MetaChamp>>,
   role: 'ref' | 'refTypee',
   extraDuPorteur: Readonly<Record<string, z.ZodType>>,
-  sousListe?: SousListe,
 ) {
-  return marquerProduit(nommerChamps(z.strictObject({ id: idDe(type, sousListe), ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>), 'objetDeRef', role, extraDuPorteur);
+  return marquerProduit(nommerChamps(z.strictObject({ id: feuille, ...extra }), { id: META_ID, ...metas } as MetaDesChamps<{ id: z.ZodType } & E>), 'objetDeRef', role, extraDuPorteur);
+}
+
+/** La feuille d'une référence LOCALE : une chaîne, que juge l'objet qui ouvre sa portée (`ouvrirPortees`). */
+function feuilleLocale(portee: PorteeLocale): z.ZodString {
+  const feuille = z.string();
+  FEUILLES_LOCALES.set(feuille, portee);
+  return feuille;
 }
 
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`) ; sans
- *  `extra`, la sous-liste se nomme seule (`ref('material', undefined, 'objet')`) et la sortie reste `{ id }`. */
-export function ref<T extends TypeEntite>(type: T, extra?: undefined, sousListe?: SousListe): ReturnType<typeof objetDeRef<T, Record<never, never>>>;
-export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, sousListe?: SousListe): ReturnType<typeof objetDeRef<T, E>>;
-export function ref(type: TypeEntite, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
+ *  `extra`, la sous-liste se nomme seule (`ref('material', undefined, 'objet')`) et la sortie reste `{ id }`.
+ *  Sur une PORTÉE LOCALE, `{ id }` d'une entrée de sa collection. */
+export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
+export function ref<T extends TypeEntite>(type: T, extra?: undefined, sousListe?: SousListe): ReturnType<typeof objetDeRef<z.ZodType<Id<T>, string>, Record<never, never>>>;
+export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, sousListe?: SousListe): ReturnType<typeof objetDeRef<z.ZodType<Id<T>, string>, E>>;
+export function ref(cible: TypeEntite | PorteeLocale, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
   const extraDuPorteur = extra ?? {};
-  return objetDeRef(type, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur, sousListe);
+  const feuille = typeof cible === 'string' ? idDe(cible, sousListe) : feuilleLocale(cible);
+  return objetDeRef(feuille, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur);
 }
 
 /** FORME de sortie d'une référence TYPÉE (`refTypee`) : l'id, et la valeur de `type` qui nomme l'espace où il résout. */
@@ -677,7 +725,7 @@ export function refTypee<V extends string, E extends Record<string, z.ZodType> =
   };
   const branches = admis.map((v) => {
     const cible = cibleDe(v);
-    const objet = objetDeRef(cible.type, { ...extra, type: z.literal(v).pipe(types) }, { ...metasExtra(extra), type: { label: 'type de la référence' } }, 'refTypee', extra, cible.sousListe);
+    const objet = objetDeRef(idDe(cible.type, cible.sousListe), { ...extra, type: z.literal(v).pipe(types) }, { ...metasExtra(extra), type: { label: 'type de la référence' } }, 'refTypee', extra);
     return { v, cible, objet };
   });
   const [premiere, ...autres] = branches.map((b) => b.objet);

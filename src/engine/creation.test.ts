@@ -214,10 +214,10 @@ describe('Détails (LDB 05 l.701-768)', () => {
     const human = findSpeciesById('humains-reiklander')!;
     const dwarf = findSpeciesById('nains')!;
     for (let seed = 1; seed <= 10; seed++) {
-      const a = rollAge(human, makeRNG(seed));
+      const a = rollAge(human.refChar, makeRNG(seed));
       expect(a).toBeGreaterThanOrEqual(16); // 15 + 1d10
       expect(a).toBeLessThanOrEqual(25);
-      const t = rollHeight(dwarf, makeRNG(seed)); // 130 + 3d10
+      const t = rollHeight(dwarf.refChar, makeRNG(seed)); // 130 + 3d10
       expect(t).toBeGreaterThanOrEqual(133);
       expect(t).toBeLessThanOrEqual(160);
     }
@@ -225,16 +225,16 @@ describe('Détails (LDB 05 l.701-768)', () => {
   it('Taille gnome : 1d10 × 2,5 cm + 100 cm, bornée 102,5 à 125 (NADJ 15 l.112)', () => {
     const gnome = findSpeciesById('gnomes')!;
     const tailles = new Set<number>();
-    for (let seed = 1; seed <= 200; seed++) tailles.add(rollHeight(gnome, makeRNG(seed)));
+    for (let seed = 1; seed <= 200; seed++) tailles.add(rollHeight(gnome.refChar, makeRNG(seed)));
     expect(Math.min(...tailles)).toBe(102.5);
     expect(Math.max(...tailles)).toBe(125);
     expect([...tailles].every((t) => (t - 100) % 2.5 === 0)).toBe(true);
   });
   it('yeux/cheveux : libellé non vide tiré des tables, déterministe', () => {
     const elf = findSpeciesById('hauts-elfes')!;
-    expect(rollEyes(elf, makeRNG(3))).toBe(rollEyes(elf, makeRNG(3)));
-    expect(rollEyes(elf, makeRNG(3)).length).toBeGreaterThan(0);
-    expect(rollHair(elf, makeRNG(3)).length).toBeGreaterThan(0);
+    expect(rollEyes(elf.refChar, makeRNG(3))).toBe(rollEyes(elf.refChar, makeRNG(3)));
+    expect(rollEyes(elf.refChar, makeRNG(3)).length).toBeGreaterThan(0);
+    expect(rollHair(elf.refChar, makeRNG(3)).length).toBeGreaterThan(0);
   });
 });
 
@@ -260,19 +260,19 @@ describe('Couleur des cheveux — bornes 2d10 PAR RACE (rollHair, #420)', () => 
   it('Gnome : chaque 2d10 rend la couleur NADJ — décalée du LDB pour 5,6,8,9,10 (rouge avant #420)', () => {
     for (let seed = 0; seed < 400; seed++) {
       const d2 = roll(2, 10, makeRNG(seed)); // même 1er tirage que rollHair(makeRNG(seed))
-      expect(rollHair(gnome, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(gnomeHair(d2));
+      expect(rollHair(gnome.refChar, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(gnomeHair(d2));
     }
   });
   it('Les races LDB gardent les bornes LDB (override race-scopé) — humain reiklander', () => {
     for (let seed = 0; seed < 400; seed++) {
       const d2 = roll(2, 10, makeRNG(seed));
-      expect(rollHair(humain, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(humainHair(d2));
+      expect(rollHair(humain.refChar, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(humainHair(d2));
     }
   });
   it('Ogre : chaque 2d10 rend la couleur ADE II — motif LDB confirmé au livre (#423)', () => {
     for (let seed = 0; seed < 400; seed++) {
       const d2 = roll(2, 10, makeRNG(seed));
-      expect(rollHair(ogre, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(ogreHair(d2));
+      expect(rollHair(ogre.refChar, makeRNG(seed)), `seed=${seed} 2d10=${d2}`).toBe(ogreHair(d2));
     }
   });
 });

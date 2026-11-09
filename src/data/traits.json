@@ -85,7 +85,9 @@
     "passive": [
       {
         "op": "offTerrainMod",
-        "terrain": "eau"
+        "terrain": {
+          "id": "eau"
+        }
       },
       {
         "op": "skillDRBonus",
@@ -1248,6 +1250,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 340
+    },
+    "capabilities": {
+      "castingKind": "invocation"
     },
     "alsoIn": [
       {
@@ -2621,7 +2626,9 @@
     "passive": [
       {
         "op": "offTerrainMod",
-        "terrain": "eau",
+        "terrain": {
+          "id": "eau"
+        },
         "mSet": 1,
         "testDR": -2,
         "suffocates": true
@@ -2742,7 +2749,9 @@
     "passive": [
       {
         "op": "offTerrainMod",
-        "terrain": "eau",
+        "terrain": {
+          "id": "eau"
+        },
         "mSet": 0
       }
     ]

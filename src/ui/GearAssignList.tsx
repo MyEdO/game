@@ -1,12 +1,11 @@
 import { useGame } from '../state/store';
 import { type LootGear } from '../noyau/pendings';
 import { giveTrappingQualities } from '../engine/items';
-import { appraiseRefus, refusDeDetection } from '../noyau/merchantFlow';
+import { gameDay, refusDEvaluation, type ModeDEvaluation } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { PortraitPicker } from './console/PortraitPicker';
 import { QualityChips } from './EntityChip';
 import type { Combatant } from '../engine/types';
-import { MINUTES_PER_DAY } from '../engine/clock';
 import { Icon } from './Icon';
 
 /**
@@ -20,11 +19,10 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
   assignable: Combatant[];
   onAssign: (uid: string, heroId: string) => void;
   /** Absent = lecture seule (pas d'actions de révélation — ex. invité coop). */
-  onAppraise?: (uid: string, mode: 'evaluate' | 'detect') => void;
+  onAppraise?: (uid: string, mode: ModeDEvaluation) => void;
 }) {
   const party = useGame((s) => s.party);
-  const today = useGame((s) => Math.floor(s.gameTime / MINUTES_PER_DAY));
-  const refusEval = appraiseRefus(party);
+  const jour = useGame((s) => gameDay(s));
   return (
     <ul className="gear-list">
       {gear.map((g, i) => {
@@ -35,7 +33,10 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
         // magiques portées par l'Effet — un objet catalogué (Bâton de combat : Assommante, Défensive)
         // porte ses qualités dans sa def. Masquées tant que non identifié (révélées par Évaluation).
         const quals = giveTrappingQualities(fx);
-        const refusDetect = refusDeDetection(party, { label: g.label, detectTriedBy: fx.detectTriedBy });
+        // Le verdict du verbe (`refusDEvaluation`), mode par mode : le geste refusé reste offert, sa raison dite.
+        const cible = { ...fx, label: g.label };
+        const refusEval = refusDEvaluation(party, cible, 'evaluate', jour);
+        const refusDetect = refusDEvaluation(party, cible, 'detect', jour);
         return (
           <li key={`${g.label}-${i}`} className="gear-row">
             <span className="gear-name">
@@ -51,18 +52,16 @@ export function GearAssignList({ gear, assignable, onAssign, onAppraise }: {
             </span>
             {onAppraise && unidentified && (
               <span className="gear-acts">
-                {fx.appraiseTriedDay !== today && (
-                  <GatedAction
-                    id={`gear-eval-${i}`}
-                    label="Évaluer"
-                    enabled={!refusEval}
-                    {...raisonSi(refusEval)}
-                    descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
-                    onClick={() => onAppraise(g.uid, 'evaluate')}
-                    primary={false}
-                    btnClassName="gear-act"
-                  />
-                )}
+                <GatedAction
+                  id={`gear-eval-${i}`}
+                  label="Évaluer"
+                  enabled={!refusEval}
+                  {...raisonSi(refusEval)}
+                  descOfferte="Évaluation (Int) : révèle les qualités cachées et estime le prix — un échec verrouille jusqu'à demain"
+                  onClick={() => onAppraise(g.uid, 'evaluate')}
+                  primary={false}
+                  btnClassName="gear-act"
+                />
                 <GatedAction
                   id={`gear-detect-${i}`}
                   label="Détecter"

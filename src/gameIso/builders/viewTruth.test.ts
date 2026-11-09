@@ -23,11 +23,11 @@ const sceneWith = (walls: WallSeg[]): Scene => {
 };
 
 const mass = (id: string, x: number, y: number, w: number, h: number): BuildingMass => ({
-  id, z: 0, footprint: [{ x, y, w, h }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile',
+  id, z: 0, footprint: [{ x, y, w, h }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' },
 });
 const sceneWithMasses = (...masses: BuildingMass[]): Scene => {
   const s = emptyScene('scene-test', 20, 20);
-  s.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses }];
+  s.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses }];
   return s;
 };
 

@@ -10,16 +10,17 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, lireComposition, lireSurchargesDEmblemes, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, type NavireDeLaScene, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
+import type { TableDeClips } from '../asset/clips';
 import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
 import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
@@ -49,11 +50,66 @@ export interface CorpsDuCombat {
    *  portée sur elle (`composerSurLaBase`), `null` si sa portée est `null` (corps sans base de ce plan) ou sous refus. */
   combattants: Record<string, (CompositionSurLaBase & { base: string }) | null>;
   /** Par id de combattant dessiné qui est un véhicule ou un engin (`CombattantProjete.vehicule`) dont un élément
-   *  `vehicule` est servi (`ModelesDeLAtelier.vehicules`, #2987) : cet élément, le côté de son empreinte, sa taille, son cap, sa
-   *  palette (`paletteDesCouleurs`), son emblème si l'élément porte une surface `blason` (`emblemeMonte`), les pièces
-   *  montées à ses postes (`postesMontes`), celles de ses Améliorations (`ameliorationsMontees`) et les nœuds qu'elles
-   *  cachent (`noeudsCaches`), quelles que soient les bases servies. */
-  vehicules: Record<string, { element: string; empreinte: number; taille: VehiculeDuCombattant['taille']; cap: VehiculeDuCombattant['cap']; palette: Record<string, string>; embleme?: EmblemeResolu; postes: PosteMonte[]; ameliorations: AmeliorationMontee[]; caches: string[] }>;
+   *  `vehicule` est servi : son corps (`corpsDuVehicule`), quelles que soient les bases servies. */
+  vehicules: Record<string, CorpsDuVehicule>;
+  /** Par id de pose de chaque navire de la scène (`naviresDeLaScene`) dont un élément `vehicule` est servi : son corps
+   *  (`corpsDuVehicule`), le point de la scène sous l'origine de son modèle et la hauteur de cette origine. */
+  navires: Record<string, NavireServi>;
+}
+
+/** Un navire de la scène servi (#3686) : son corps, et où se pose l'origine de son modèle (`NavireDeLaScene`). */
+export interface NavireServi extends Pick<NavireDeLaScene, 'centre'> {
+  corps: CorpsDuVehicule;
+}
+
+/** Le corps d'un véhicule servi (#2987) : l'élément `vehicule` qui dessine sa fiche (`ModelesDeLAtelier.vehicules`), le
+ *  côté de son empreinte, sa taille, son cap, sa palette (`paletteDesCouleurs`), son emblème si l'élément porte une surface
+ *  `blason` (`emblemeMonte`), les pièces montées à ses postes (`postesMontes`), celles de ses Améliorations
+ *  (`ameliorationsMontees`), les nœuds qu'elles cachent (`noeudsCaches`) et la table rôle → clip de l'élément (`clips` de
+ *  son manifeste, vide sans clips). */
+export interface CorpsDuVehicule {
+  element: string;
+  empreinte: number;
+  taille: VehiculeDuCombattant['taille'];
+  cap: VehiculeDuCombattant['cap'];
+  palette: Record<string, string>;
+  embleme?: EmblemeResolu;
+  postes: PosteMonte[];
+  ameliorations: AmeliorationMontee[];
+  caches: string[];
+  clips: TableDeClips;
+}
+
+/** Le corps du véhicule `vehicule` (`vehiculeDuCombattant`) sur les modèles servis `servis`, `null` si aucun élément
+ *  `vehicule` de sa fiche n'est servi. Le combat (`corpsDe`) et l'atelier (`vehicule`) le composent tous deux ici. */
+function corpsDuVehicule(vehicule: VehiculeDuCombattant, servis: { manifestes: Record<string, unknown>; modeles: ModelesDeLAtelier }): CorpsDuVehicule | null {
+  const element = servis.modeles.vehicules[vehicule.definition];
+  if (!element) return null;
+  const palette = paletteDesCouleurs(vehicule.couleurs);
+  const manifeste = servis.manifestes[element];
+  const postes = postesMontes(manifeste, vehicule.ameliorations, vehicule.postes, servis.modeles.vehicules, palette);
+  const ameliorations = ameliorationsMontees(manifeste, vehicule.ameliorations, postes, servis.modeles.ameliorations, servis.manifestes);
+  const caches = noeudsCaches(manifeste, vehicule.ameliorations, ameliorations, servis.manifestes);
+  const clips = estObjet(manifeste) && estObjet(manifeste.clips) ? manifeste.clips as TableDeClips : {};
+  return { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations, caches, clips };
+}
+
+/** Une place d'un bord du véhicule de l'atelier : son bord, son rang parmi les places de ce bord (compté de 0), son libellé
+ *  (`libelleDuBord`, puis le rang compté de 1) et la fiche de la pièce qui s'y monte (`null` : aucune). */
+export interface PlaceDuVehicule {
+  bord: FireArc;
+  rang: number;
+  label: string;
+  piece: string | null;
+}
+
+/** Le véhicule de l'atelier (`vehicule`) : son corps, les places de ses bords dans ses postes en vigueur
+ *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, et ses Améliorations. */
+export interface VehiculeDeLAtelier {
+  vehicule: CorpsDuVehicule;
+  places: PlaceDuVehicule[];
+  pieces: string[];
+  ameliorations: readonly string[];
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -172,10 +228,11 @@ export function creerPont() {
     return ouverte;
   };
 
-  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie, et leurs
-   *  véhicules servis. */
-  const corpsDe = (projection: Projection): CorpsDuCombat => {
+  /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie, leurs
+   *  véhicules servis, hors des navires de `scene`, et les navires servis de `scene`. */
+  const corpsDe = (projection: Projection, scene: Scene | null): CorpsDuCombat => {
     const dessines = projection.combat?.voisins.liste ?? projection.exploration?.heros ?? [];
+    const navires = scene ? naviresDeLaScene(scene) : [];
     const bases = modeles?.modeles.bases ?? [];
     const refus = !modeles
       ? '[sans-modeles] aucun modeles appelé'
@@ -185,14 +242,12 @@ export function creerPont() {
       refus,
       combattants: Object.fromEntries(dessines.map(({ id, portee }) => [id, base && portee ? { base: base.id, ...composerSurLaBase(base, modeles!.manifestes, portee) } : null])),
       vehicules: Object.fromEntries(dessines.flatMap(({ id, vehicule }) => {
-        const element = vehicule && modeles?.modeles.vehicules[vehicule.definition];
-        if (!element) return [];
-        const palette = paletteDesCouleurs(vehicule.couleurs);
-        const manifeste = modeles!.manifestes[element];
-        const postes = postesMontes(manifeste, vehicule.ameliorations, vehicule.postes, modeles!.modeles.vehicules, palette);
-        const ameliorations = ameliorationsMontees(manifeste, vehicule.ameliorations, postes, modeles!.modeles.ameliorations, modeles!.manifestes);
-        const caches = noeudsCaches(manifeste, vehicule.ameliorations, ameliorations, modeles!.manifestes);
-        return [[id, { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations, caches }]];
+        const corps = vehicule && modeles && !navires.some((n) => n.id === id) && corpsDuVehicule(vehicule, modeles);
+        return corps ? [[id, corps]] : [];
+      })),
+      navires: Object.fromEntries(navires.flatMap(({ id, vehicule, centre }) => {
+        const corps = modeles && corpsDuVehicule(vehicule, modeles);
+        return corps ? [[id, { corps, centre }]] : [];
       })),
     };
   };
@@ -204,7 +259,7 @@ export function creerPont() {
     const fenetre = fenetreADessiner(etat);
     return {
       projection,
-      corps: corpsDe(projection),
+      corps: corpsDe(projection, etat.scene),
       disposition: fenetre?.disposition ?? null,
       zones: zonesDeLEcran(etat, projection, fenetre, o.panneau),
       cases: casesAtteignables(etat),
@@ -361,6 +416,37 @@ export function creerPont() {
       valider(base !== undefined, `composer : base, l’id d’une base servie par modeles (${modeles!.modeles.bases.map((b) => b.id).join(', ') || 'aucune'})`);
       const emblemes = valeurLue('composer', 'emblemes', lireSurchargesDEmblemes(e.emblemes === undefined ? {} : e.emblemes));
       return composerSurLaBase(base!, modeles!.manifestes, porteeDeComposition(compositionDe('composer', e.composition)), emblemes);
+    },
+    vehicule(json): VehiculeDeLAtelier {
+      const e = entreeDe('vehicule', json, ['definition', 'postes', 'ameliorations', 'couleurs', 'embleme']);
+      valider(modeles !== null, 'vehicule : aucun modèle, appeler modeles d’abord');
+      const servis = modeles!;
+      const fiches = Object.keys(servis.modeles.vehicules);
+      valider(typeof e.definition === 'string' && fiches.includes(e.definition), `vehicule : definition, la fiche d’un véhicule servi par modeles (${fiches.join(', ') || 'aucune'})`);
+      const pieces = fiches.filter((d) => siegeEngines().some((t) => t.id === d));
+      const postes = e.postes ?? [];
+      valider(Array.isArray(postes) && postes.every((p) => estObjet(p) && Object.keys(p).sort().join() === 'bord,definition' && pieces.includes(p.definition as string) && FIRE_ARCS.includes(p.bord as FireArc)),
+        `vehicule : postes, une liste de { definition, bord } : une pièce servie (${pieces.join(', ') || 'aucune'}) à un bord (${FIRE_ARCS.join(', ')})`);
+      const offertes = Object.keys(servis.modeles.ameliorations);
+      const ameliorations = e.ameliorations ?? [];
+      valider(estListeDeChaines(ameliorations) && ameliorations.every((a) => offertes.includes(a)), `vehicule : ameliorations, une liste d’Améliorations servies par modeles (${offertes.join(', ') || 'aucune'})`);
+      const appearance = valeurLue('vehicule', 'apparence', lireApparenceDAuteur(Object.fromEntries(Object.entries({ couleurs: e.couleurs, embleme: e.embleme }).filter(([, v]) => v !== undefined))));
+      const fiche = ficheDEntite({
+        id: 'atelier', kind: 'personnage', ref: e.definition as string, pos: { x: 0, y: 0 }, appearance,
+        postes: (postes as { definition: string; bord: FireArc }[]).map(({ definition, bord }) => ({ trappingId: definition, side: bord })),
+        upgrades: (ameliorations as string[]).map((id) => ({ id })),
+      }, () => undefined);
+      const vehicule = vehiculeDuCombattant(fiche, undefined)!;
+      const enVigueur = postesEnVigueur(servis.manifestes[servis.modeles.vehicules[vehicule.definition]], vehicule.ameliorations) ?? {};
+      return {
+        vehicule: corpsDuVehicule(vehicule, servis)!,
+        places: FIRE_ARCS.flatMap((bord) => {
+          const montees = vehicule.postes.filter((p) => p.bord === bord);
+          return (enVigueur[bord] ?? []).map((_, rang) => ({ bord, rang, label: `${libelleDuBord(bord)} ${rang + 1}`, piece: montees[rang]?.definition ?? null }));
+        }),
+        pieces,
+        ameliorations: vehicule.ameliorations,
+      };
     },
     catalogues(json) {
       entreeDe('catalogues', json, []);

@@ -22,12 +22,22 @@ import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, typ
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
+import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { placeServices, type WorldMap } from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
+import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
 import { memoByRefDeps } from './monde/sceneMemo';
 import { allMusicDefs } from '../data/sons/musique';
+
+/** Ce que l'auteur lit d'un appui qui ne tient pas (`fauteDAppui`). */
+const DIT_DE_L_APPUI: Readonly<Record<FauteDAppui['faute'], (support: string) => string>> = {
+  support: (id) => `posé sur « ${id} », qui n’est pas un décor de la scène`,
+  couche: (id) => `posé sur « ${id} », qui est sur une autre couche`,
+  dessus: (id) => `posé sur « ${id} » hors de son dessus`,
+  cycle: (id) => `posé sur « ${id} », qui repose lui-même sur lui`,
+};
 
 /** Vocabulaire du tag dérivé d'une réponse (`termeRecopie`), lu à ses sources. */
 const VOCABULAIRE_DU_TAG: VocabulaireDuTag = {
@@ -247,6 +257,11 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       if (e.dialogueId && !dlgIds.has(e.dialogueId)) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → dialogue inexistant « ${e.dialogueId} »`);
       if (!within(e.pos.x, e.pos.y)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} hors carte (${e.pos.x},${e.pos.y})`);
       if (e.z && !layerZs.has(e.z)) add('warn', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} sur étage ${e.z} inexistant`);
+      const appui = fauteDAppui(s, e);
+      if (appui) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} ${DIT_DE_L_APPUI[appui.faute](appui.support)} — repose-le au glissé`);
+      const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe) : undefined;
+      const refusDesSorts = npc && refusDesSortsChoisis(npc, e.combat?.spells ?? []);
+      if (refusDesSorts) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → ${refusDesSorts}`);
     }
     // Point d'entrée hors de la convention de pose du noyau (`borneALaCarte`) : une scène chargée, importée
     // ou écrite à la main n'est pas passée par `editEntry`.
@@ -353,8 +368,8 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         for (const part of mass.footprint)
           if (!validRect(part)) add('error', 'architecture', mass.id, `Masse « ${mass.id} » hors carte ou d’emprise invalide`, massRef);
         if (mass.profile === 'shed' && !mass.eaveSide) add('error', 'architecture', mass.id, `Masse « ${mass.id} » : profil appentis sans côté d’égout`, massRef);
-        if (nonCouvrantes.has(mass.material))
-          add('error', 'architecture', mass.id, `Masse « ${mass.id} » : « ${mass.material} » n’est pas une couverture de toit`, massRef);
+        if (nonCouvrantes.has(mass.material.id))
+          add('error', 'architecture', mass.id, `Masse « ${mass.id} » : « ${mass.material.id} » n’est pas une couverture de toit`, massRef);
         if (!Number.isInteger(mass.levels) || mass.levels < 1) add('error', 'architecture', mass.id, `Masse « ${mass.id} » : niveaux invalides`, massRef);
         if (mass.pitchDeg < PENTE_TOIT_DEG.min || mass.pitchDeg > PENTE_TOIT_DEG.max)
           add('error', 'architecture', mass.id, `Masse « ${mass.id} » : pente hors plage`, massRef);

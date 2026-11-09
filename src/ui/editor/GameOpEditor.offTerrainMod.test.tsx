@@ -46,7 +46,7 @@ describe('GameOpEditor — offTerrainMod a un éditeur DÉDIÉ', () => {
     const select = selectDuTerrain();
     expect(select, 'aucun <select> de terrain : l’op est retombée sur le repli JSON').toBeTruthy();
     expect(select.querySelectorAll('option')).toHaveLength(terrainsElectifs().length);
-    expect(select.value).toBe((newOp('offTerrainMod') as { terrain: string }).terrain);
+    expect(select.value).toBe((newOp('offTerrainMod') as { terrain: { id: string } }).terrain.id);
     expect(container.querySelector('textarea'), 'un repli JSON subsiste pour une op DÉDIÉE').toBeNull();
   });
 
@@ -75,7 +75,7 @@ describe('GameOpEditor — offTerrainMod a un éditeur DÉDIÉ', () => {
 
   /** Le défaut vient de la même liste : il est ÉLECTIF, et non franchissable à pied. */
   it('le terrain proposé par défaut est un terrain ÉLECTIF non franchissable', () => {
-    const defaut = (newOp('offTerrainMod') as { terrain: string }).terrain;
+    const defaut = (newOp('offTerrainMod') as { terrain: { id: string } }).terrain.id;
     const entree = terrainsElectifs().find((t) => t.id === defaut);
     expect(entree, 'le défaut n’est pas dans la liste proposée').toBeTruthy();
     expect(entree!.walkable).toBe(false);
@@ -98,7 +98,7 @@ describe('GameOpEditor — offTerrainMod a un éditeur DÉDIÉ', () => {
       select.value = autre.id;
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    expect(dernierVu(vus)?.[0]).toMatchObject({ op: 'offTerrainMod', terrain: autre.id });
+    expect(dernierVu(vus)?.[0]).toMatchObject({ op: 'offTerrainMod', terrain: { id: autre.id } });
     expect(opSummary(dernierVu(vus)![0])).toContain(autre.label);
     expect(opSummary(dernierVu(vus)![0]), 'un id nu s’affiche là où le libellé est dû').not.toContain(`hors ${autre.id}`);
   });

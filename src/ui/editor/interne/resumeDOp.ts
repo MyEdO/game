@@ -80,7 +80,7 @@ export function opSummary(o: GameOp): string {
     case 'fall': return `hauteur lue dans « ${findFallTable(o.hauteur.table.id)?.label ?? (o.hauteur.table.id || '— table à choisir —')} »`;
     case 'moveMod': return `${o.mod >= 0 ? '+' : ''}${o.mod} Mouvement`;
     // #3031 ; fiche `user-doctrine-ids-stables-labels-affichage`
-    case 'offTerrainMod': return `hors ${terrainLabel(o.terrain)}${o.mSet != null ? ` : M ${o.mSet}` : ''}${o.testDR ? `, ${o.testDR} DR aux Tests` : ''}${o.suffocates ? ', suffoque' : ''}`;
+    case 'offTerrainMod': return `hors ${terrainLabel(o.terrain.id)}${o.mSet != null ? ` : M ${o.mSet}` : ''}${o.testDR ? `, ${o.testDR} DR aux Tests` : ''}${o.suffocates ? ', suffoque' : ''}`;
     case 'attrMod': return `+${formulaSummary(o.mod)} ${({ wounds: 'Blessures', fortune: 'Chance', resolve: 'Détermination', fate: 'Destin', resilience: 'Résilience' } as const)[o.attr]}`;
     case 'ap': return `${typeof o.amount === 'number' && o.amount < 0 ? '' : '+'}${formulaSummary(o.amount)} PA${o.loc ? ` (${o.loc})` : ''}`;
     case 'testMod': return `${o.amount >= 0 ? '+' : ''}${o.amount} aux Tests${o.characteristic ? ` de ${CHAR_LABELS[o.characteristic]}` : ''}`;

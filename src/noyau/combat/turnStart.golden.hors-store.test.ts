@@ -71,7 +71,7 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
       {
         "fearLines": [],
         "rageLines": [
-          "frenzy:Mutant entre dans une rage dévorante (Frénésie) !",
+          "frenzy:Dider Rudlos entre dans une rage dévorante (Frénésie) !",
         ],
         "rngProbe": 13,
       }

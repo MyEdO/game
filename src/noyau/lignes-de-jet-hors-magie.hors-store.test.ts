@@ -13,7 +13,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { poserLeTestDeMain, startDisengage } from './combatFlow';
 import { fleeTouche } from './pendings';
-import { ouvrirLaChirurgie } from './medicFlow';
+import { passeDeLOperation } from './acteDeSoin';
 import { evaluerLObjet } from './merchantFlow';
 import { applyEffects } from './combatEffects';
 import { ligneDeFrenesie, ligneDuTestNomme } from './rollFlowSpecs';
@@ -185,7 +185,7 @@ describe('flux figés : la ligne posée à l’ouverture est celle que le résol
       medic: { patientId: 'p', surgery: { kind: 'recovery', difficulty: 'accessible', healerId: 'c', healerName: 'c', skill: 81, intBonus: 6, targetDR: 6, cumDR: 0 } } as never,
     });
     seedBattleRng(7);
-    ouvrirLaChirurgie(banc.getState, banc.setState);
+    banc.setState({ pendingSurgery: passeDeLOperation(banc.getState()) });
     const ligne = banc.getState().pendingSurgery!.ligne;
     expect(ligne.difficulty).toBe('accessible');
     exterue(banc, 'c');

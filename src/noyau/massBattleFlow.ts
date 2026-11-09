@@ -21,7 +21,7 @@
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { Combatant, Difficulty } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../engine/types';
 import { battleRng } from './battleRng';
 import { ecrireActeur } from './monde/combatants';
 import { d100, rollDice, type RNG } from '../engine/dice';
@@ -32,7 +32,7 @@ import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { dataLabel, massBattleHazardsDie, testSkillLabel } from '../data';
 import { clampTarget } from '../engine/tests';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import {
   activityById, activitiesFor, activityModLines, testsDeLActivite, matchBattleOutcomes, battleOutcomeAmount,
   type ActivityDef, type BattleResolution, type BattleOutcome as BattleOutcomeDelta,
@@ -404,7 +404,7 @@ function battleMeasureGap(mb: MassBattleState, measure: BattleMeasure): number {
 
 /** Difficulté fixe du Test retenu `test`, élément de `tests` (`testsDeLActivite(def)`) : celle de son option. PUR. */
 function difficulteDeLOption(def: ActivityDef, tests: readonly TestDesigne[], test: TestDesigne): Difficulty {
-  return def.tests?.[tests.indexOf(test)]?.difficulty ?? 'intermediaire';
+  return def.tests?.[tests.indexOf(test)]?.difficulty ?? DIFFICULTE_PAR_DEFAUT;
 }
 
 /** Difficulté du Test retenu `test` (élément de `tests`) d'une Activité/Scène de bataille : DÉRIVÉE de

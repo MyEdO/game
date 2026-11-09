@@ -130,7 +130,7 @@ export function hasTrait(traits: TraitList | undefined, id: string): boolean {
 
 /** La créature porte-t-elle un trait/attaque d'`id` donné (registre OU hors registre : Venin, Lanceur
  *  de Sorts, Cornes, Tentacules…) ? Comparaison d'`id` STRICTE — les `TraitInstance` sont déjà structurés. */
-export function hasTraitKey(traits: TraitList | undefined, id: string): boolean {
+export function hasTraitKey(traits: TraitsDesignes | undefined, id: string): boolean {
   return (traits ?? []).some((t) => t.id === id);
 }
 

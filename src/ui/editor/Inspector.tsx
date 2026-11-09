@@ -75,7 +75,7 @@ import { SeatAssignmentsField } from './SeatAssignmentsField';
 import { type Sel, type Tool, capDeLEntite, capsOfferts, effectZoneRect, lumiereAllumee, effectZoneArea, flowEffectCount } from '../../noyau/sceneEditLecture';
 import { scrollElementIntoPort } from './useEditorView';
 import type { FireArc, StructureData, NavalTraitRef } from '../../engine/types';
-import { DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Difficulty } from '../../engine/types';
 import { isWallEdgeStructure, isDoorEdgeStructure } from '../../engine/structures';
 import { RefField } from '../compendium/refField/RefField';
 import { SearchFilterField, filterByLabel } from '../SearchFilterField';
@@ -386,8 +386,8 @@ export function Inspector({
                 <label className="ed-field">
                   Type de bâtiment
                   <select
-                    value={architectureBody.style ?? ''}
-                    onChange={(event) => patchBody({ style: event.target.value || undefined })}
+                    value={architectureBody.style?.id ?? ''}
+                    onChange={(event) => patchBody({ style: event.target.value ? { id: event.target.value } : undefined })}
                   >
                     <option value="" />
                     {Object.values(buildingsMeta()).map((meta) => <option key={meta.id} value={meta.id}>{meta.label}</option>)}
@@ -405,7 +405,7 @@ export function Inspector({
                   type de bâtiment, sinon la toiture de la scène ; le profil, lui, suit la portée.
                 </p>
                 <p className="hint">
-                  Appliqué en l'état : {matieresCouvrantes().find((m) => m.id === toiture.material)?.label ?? toiture.material},
+                  Appliqué en l'état : {matieresCouvrantes().find((m) => m.id === toiture.material.id)?.label ?? toiture.material.id},
                   pente de référence {toiture.penteReference}°, comble {toiture.riseMaxStoreys} étage{toiture.riseMaxStoreys > 1 ? 's' : ''}.
                 </p>
                 <label className="ed-field">
@@ -455,8 +455,8 @@ export function Inspector({
                 <label className="ed-field">
                   Couverture
                   <select
-                    value={architectureBody.roofDefaults?.material ?? ''}
-                    onChange={(event) => poseToiture('material', event.target.value || undefined)}
+                    value={architectureBody.roofDefaults?.material?.id ?? ''}
+                    onChange={(event) => poseToiture('material', event.target.value ? { id: event.target.value } : undefined)}
                   >
                     <option value="" />
                     {matieresCouvrantes().map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
@@ -703,7 +703,7 @@ export function Inspector({
                 </label>
                 <label className="ed-field">
                   Matériau
-                  <select value={roofSection.material} onChange={(event) => updateRoofSection({ material: event.target.value })}>
+                  <select value={roofSection.material.id} onChange={(event) => updateRoofSection({ material: { id: event.target.value } })}>
                     {matieresCouvrantes().map((material) => <option key={material.id} value={material.id}>{material.label}</option>)}
                   </select>
                 </label>
@@ -1181,7 +1181,7 @@ export function Inspector({
                   <>
                     <div className="ed-field">
                       <span>Difficulté du Test</span>
-                      <select value={selW.climb.difficulty ?? 'intermediaire'} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as Difficulty } })}>
+                      <select value={selW.climb.difficulty ?? DIFFICULTE_PAR_DEFAUT} onChange={(e) => patchSelW({ climb: { ...selW.climb!, difficulty: e.target.value as Difficulty } })}>
                         {Object.entries(DIFFICULTY_LABELS).map(([k, lbl]) => (<option key={k} value={k}>{lbl}</option>))}
                       </select>
                     </div>
@@ -2147,8 +2147,8 @@ function SceneProps({
           <label key={part} className="ed-field">
             {LIBELLE_DE_PARTIE[part]}
             <select
-              value={scene.reliefDefaults[part]}
-              onChange={(e) => setScene(setReliefDefault(scene, part, e.target.value))}
+              value={scene.reliefDefaults[part].id}
+              onChange={(e) => setScene(setReliefDefault(scene, part, { id: e.target.value }))}
             >
               {matieresDe('relief').map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
@@ -2164,8 +2164,8 @@ function SceneProps({
         <label className="ed-field">
           Couverture
           <select
-            value={scene.roofDefaults.material}
-            onChange={(e) => setScene(patchSceneRoofDefaults(scene, { material: e.target.value }))}
+            value={scene.roofDefaults.material.id}
+            onChange={(e) => setScene(patchSceneRoofDefaults(scene, { material: { id: e.target.value } }))}
           >
             {matieresCouvrantes().map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
           </select>

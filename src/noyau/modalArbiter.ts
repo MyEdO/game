@@ -23,6 +23,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import type { PendingKey } from './stateFields';
 import { PORTEURS_D_ETAPE, sansCorps } from './slotsDeJet';
 import { rangeesDuesDeChute } from './fallMove';
+import { porteurParId } from './monde/combatants';
 import type { FermetureDuJet } from './rollFlowFactory';
 
 /** État partiel accepté par l'arbitre (les tests passent des objets minces). */
@@ -62,6 +63,19 @@ export type QuiValideLaFenetre = QuiFermeLaFenetre | 'hoteAuQuorum';
 
 /** Une rangée d'une fenêtre à plusieurs jets : l'id que ses verbes désignent (`pid`). */
 export interface RangeeDeFenetre { id: string; interactive?: boolean; result?: unknown }
+
+/** Un soin est-il en cours à l'infirmerie : un soin lancé, une passe d'opération ou une opération armée ? Ferme la
+ *  sortie de l'infirmerie et verrouille son patient (`OUVERTS_DU_CHOIX.medic.patient`). */
+export const soinEnCours = (s: Partial<Pick<Jeu, 'pendingHeal' | 'pendingSurgery' | 'medic'>>): boolean =>
+  s.pendingHeal?.roll != null || !!s.pendingSurgery || !!s.medic?.surgery;
+
+/** Le DÉCIDEUR du soin lancé ou de la passe à l'infirmerie : le soigneur s'il est un combattant, sinon le patient (un
+ *  PNJ soigneur n'a pas de siège) ; tous (`'*'`) tant qu'aucun jet n'est lancé. */
+function decideurDuSoin(s: Partial<Jeu>): string {
+  const jet = s.pendingHeal?.roll != null ? s.pendingHeal : s.pendingSurgery;
+  if (!jet) return '*';
+  return porteurParId(s as Jeu, jet.healerId) ? jet.healerId : jet.targetId; // le soin existe à l'infirmerie : `party` est posé
+}
 
 /**
  * Politique d'auto-résolution d'une modale (Cadence Rapide/Auto). Les gestes de `drive` sont des
@@ -168,12 +182,12 @@ export const MODAL_DEFS = [
   { key: 'dispel', when: (s) => !!s.pendingDispel, owner: (s) => s.pendingDispel?.casterId, auto: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'dispel' }, { verbe: 'jetValider', flux: 'dispel' }] }, covers: ['pendingDispel'], flux: ['dispel'] },
   // Infirmerie OUVERTE : c'est ELLE qui rend les jets EMBARQUÉS (soin OU passe de Chirurgie) — la modale
   // autonome `heal` (entrée ci-dessous) ne sert qu'au combat, et la Chirurgie est toujours hors combat.
-  // Owner : le soigneur/chirurgien du jet INFLUENÇABLE en cours (coop), sinon tous. `pendingSurgery` vit
+  // Owner : le décideur du soin lancé ou de la passe (`decideurDuSoin`), sinon tous. `pendingSurgery` vit
   // DANS l'infirmerie (rendu par MedicModal), comme `pendingHeal` ici.
   // L'infirmerie CÈDE le devant à une CASCADE en cours (`!s.pendingCascade`) — le Test d'infection
   // post-opératoire (LDB 10 l.184) est un jet INFLUENÇABLE qui doit passer AU-DESSUS du panneau ; à sa
   // clôture l'infirmerie RÉAPPARAÎT (même patron que `heal` cédant à `medic`).
-  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: (s) => s.pendingHeal?.healerId ?? s.pendingSurgery?.healerId ?? '*', auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], verbes: ['soignerLePatient', 'ouvrirLaChirurgie'], sortie: 'proprietaire', sortieFermee: (s) => (s.pendingHeal || s.pendingSurgery || s.medic?.surgery ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
+  { key: 'medic', when: (s) => !!s.medic && !s.pendingCascade, owner: decideurDuSoin, auto: { mode: 'hostOnly' }, covers: ['pendingSurgery'], flux: ['heal', 'surgery'], sortie: 'proprietaire', sortieFermee: (s) => (soinEnCours(s) ? 'soinEnCours' : null) }, // pendingHeal COUVERT par 'heal' ci-dessous (l'infirmerie le lit aussi, mais n'en est pas l'unique propriétaire)
   // Repos (nuit) : chacun règle SES héros et se dit prêt, l'hôte dort au quorum — modale chez tous.
   { key: 'rest', when: (s) => !!s.pendingRest, owner: () => '*', auto: { mode: 'hostOnly' }, covers: ['pendingRest'], validation: 'hoteAuQuorum', sortie: 'hote', sortieFermee: (s) => (s.pendingRest?.travelHalt ? 'halteDeVoyage' : null) },
   // Conseil de bord (paie hebdomadaire + Moral, #229) : décision de bourse PARTAGÉE → l'hôte seul (comme
@@ -326,8 +340,8 @@ export interface HorsModalDef {
 export const HORS_MODAL = [
   { key: 'bargain', pendingKey: 'pendingBargain', tientLaMain: true, owner: (s) => s.pendingBargain?.playerId, flux: ['bargain'] }, // Marchandage (écran Marché, billet de la carte du monde)
   { key: 'appraise', pendingKey: 'pendingAppraise', tientLaMain: true, owner: (s) => s.pendingAppraise?.actorId, flux: ['appraise'] }, // Évaluation/Détection (écran Marché/Compendium)
-  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['evaluerLeButin'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
-  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['depecerLaCreature', 'evaluerLeButin'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
+  { key: 'loot', pendingKey: 'pendingLoot', tientLaMain: true, owner: () => '*', verbes: ['evaluerLObjet'], sortie: 'hote' }, // Butin hors victoire : chacun voit qui l'emporte
+  { key: 'victory', pendingKey: 'pendingVictory', tientLaMain: true, owner: () => '*', verbes: ['evaluerLObjet'], sortie: 'quorum' }, // Écran de victoire : chaque siège se dit prêt, le quorum le ferme
   { key: 'siegeAim', pendingKey: 'pendingSiegeAim', tientLaMain: true, owner: (s) => s.pendingSiegeAim?.gunnerId, verbes: ['cliquerLaCase'], sortie: 'proprietaire' }, // Placeur de case (ciblage carte, pas de modale) : le clic de case dépose l'impact
   { key: 'interact', pendingKey: 'pendingInteract', tientLaMain: false, owner: () => undefined }, // Interaction de décor : hôte (pas de héros structuré porté par le pending)
   { key: 'roundStart', pendingKey: 'pendingRoundStart', tientLaMain: true, owner: () => '*', verbes: ['promouvoirLeCombattant', 'armerLeTirPreventif', 'cliquerLaCase'], validation: 'quorum' }, // Pause de début de Round (fenêtre Chance) : chaque siège se dit prêt, le quorum lance le Round ; le clic du combattant tire la visée armée (Tir rapide)

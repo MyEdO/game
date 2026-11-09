@@ -249,6 +249,17 @@ describe('session d’édition', () => {
     expect(ent(jouer(tire, valeur(['combat', 'randomChars'], false)))?.combat).toEqual({ hiddenUntilCombat: true, randomChars: false });
   });
 
+  it('les sorts choisis d’un personnage s’écrivent à `combat.spells`, à côté de son embuscade ; vides, ils le quittent (#3715)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
+    const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
+    const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
+    const embusque: GesteDEdition[] = [{ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat'], valeur: {} }, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat', 'hiddenUntilCombat'], valeur: true }];
+    const choisis = jouer(pose, ...embusque, { geste: 'entite', patch: { sorts: ['choc', 'flechette'] } });
+    expect(ent(choisis)?.combat).toEqual({ hiddenUntilCombat: true, spells: ['choc', 'flechette'] });
+    expect(ent(jouer(choisis, { geste: 'entite', patch: { sorts: [] } }))?.combat).toEqual({ hiddenUntilCombat: true });
+  });
+
   it('une troupe : N copies sur les cases libres les plus proches, ids neufs, profils tirés, rencontres héritées, un seul cran (#3704)', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
     const poser = (outil: Extract<GesteDEdition, { geste: 'outil' }>['outil'], x: number, y: number): GesteDEdition[] =>
@@ -323,7 +334,7 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
   });
 
   it('une ouverture de façade : son apparence parmi celles de sa sorte, puis le défaut du rendu ; une ouverture absente laisse la session', () => {
-    const corps = addArchitectureBody(emptyScene('session', 6, 6), 'maison', { x: 1, y: 1, w: 2, h: 2 });
+    const corps = addArchitectureBody(emptyScene('session', 6, 6), { id: 'maison' }, { x: 1, y: 1, w: 2, h: 2 });
     const pan = addFacadeSection(corps.scene, corps.id, { x: 1, y: 1, side: 'N' })!;
     const pose = addFacadeFeature(pan.scene, corps.id, pan.id)!;
     const s = { ...ouverteSur(pose.scene), sel: { type: 'facadeSection' as const, bodyId: corps.id, id: pan.id } };
@@ -391,22 +402,24 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
       refInconnue: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'pas-une-fiche' },
       carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
       volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', facing: 'NE' },
+      decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', calage: { x: 2, y: 0 } },
       admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' },
     } as const;
     const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
 
-    it('dit le type non nommé, la fiche introuvable, le PNJ de carrière fautif et le cap d’un décor volumique', () => {
-      expect(fautes(fixtures.sansPorteur).map((f) => f.champ)).toEqual(['ref']);
-      expect(fautes(fixtures.refInconnue)).toEqual([{ champ: 'ref', message: '« pas-une-fiche » ni créature, ni coque de véhicule, ni engin de siège' }]);
-      expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ champ: 'carrieres', message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
-      expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.champ)).toEqual(['facing']);
+    it('dit le type non nommé, la fiche introuvable, le PNJ de carrière fautif, le calage et le cap d’un décor', () => {
+      expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['ref']]);
+      expect(fautes(fixtures.refInconnue)).toEqual([{ chemin: ['ref'], message: '« pas-une-fiche » ni créature, ni coque de véhicule, ni engin de siège' }]);
+      expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
+      expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
+      expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);
       expect(fautes(fixtures.admise)).toEqual([]);
     });
 
     it('accord : le parse dit exactement ces fautes, à leur champ', () => {
       for (const [nom, ent] of Object.entries(fixtures)) {
         const issues = sceneEntitySchema.safeParse(ent).error?.issues.filter((i) => i.code === 'custom') ?? [];
-        expect(issues.map((i) => ({ champ: i.path[0], message: i.message })), nom).toEqual(fautes(ent));
+        expect(issues.map((i) => ({ chemin: i.path, message: i.message })), nom).toEqual(fautes(ent));
       }
     });
   });

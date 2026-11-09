@@ -446,7 +446,7 @@ export const ECRIT_LU = {
         '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre), seulement s’il y manque ou n’a pas la somme de sa provenance commitée, ' +
         'par temporaire exclusif puis renommage (`ecrireTexteAtomique`) : un lecteur concurrent voit l’absent, l’ancien ou ' +
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
-        'et sa seule autre gate lectrice, `personnage-3d:tests` (`ModeleCommite`, #3145), suit `godot:sonde` dans le job ' +
+        'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
         '`types` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
         'qu’après l’écriture ; le lint lit des modules, la suite du noyau n’en lit que les provenances',
     },
@@ -468,18 +468,24 @@ export const ECRIT_LU = {
       'scripts/personnage-3d/__pycache__/':
         'le bytecode que CPython écrit à l’import des modules de la chaîne 3D, ignoré par `__pycache__/` (.gitignore) : ' +
         'absent des listes que les gates tirent de git (`listerImage`, `git ls-files`) et du step « Arbre inchangé »',
+      'scripts/personnage-3d/vehicule/__pycache__/':
+        'le bytecode de `construire.py` et `habillage.py`, importés par `test_vehicule.py`, ignoré par `__pycache__/` ' +
+        '(.gitignore) ; les constructions que le test lance en sous-processus n’en écrivent pas (`PYTHONDONTWRITEBYTECODE`)',
     },
-    lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json'],
+    lit: ['scripts/personnage-3d/', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
+      'src/data/materials.json', 'src/data/vehicles.json'],
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
       'package.json (le script npm), scripts/personnage-3d/ (`environnement.mjs` et son `requirements.txt`, `tests.py`, ' +
       'les `test_*.py` et les modules qu’ils importent, base/ compris), `seuils.json` de l’évaluateur (lu à l’import de ' +
-      '`seuils.py`) et, sous hotes/godot/projet/modeles/, le manifeste et le GLB de la Release (`ModeleCommite`), que ' +
-      'dépose `godot:sonde`, joué avant elle dans le job et la lane `types`',
+      '`seuils.py`) ; `test_vehicule.py` reconstruit les véhicules ' +
+      'de `vehicule/` sous `tempfile.TemporaryDirectory()`, d’après les matières de `src/data/materials.json` et les ponts ' +
+      'de la caraque (`ponts` de sa fiche dans `src/data/vehicles.json`), compare leurs manifestes à ceux commités sous ' +
+      'hotes/godot/projet/modeles/ et mesure les écarts entre la caraque bâtie et ses ponts',
     delegueeAuPerimetre:
-      'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation), ' +
-      'plus le GLB que dépose `godot:sonde` : à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',
+      'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +
+      'à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',
   },
   lint: {
     ecrit: [],

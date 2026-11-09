@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud } from '../grammaire/meta';
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema } from '../grammaire/valeurs';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -198,6 +198,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
     .strictObject({
       /** OPTIONNELS choisis (`LDB 76 l.45`). */
       optionals: z.array(optionalDeSceneSchema).optional(),
+      /** Sorts choisis par l'auteur (`sortsDuPnj`, `engine/sortsDuPnj.ts`). #3715 */
       spells: refs('spell').optional(),
       /** Caractéristiques aléatoires au spawn (`LDB 77 l.108`). */
       randomChars: z.boolean().optional(),
@@ -214,33 +215,45 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
 const brancheDEntite = <R extends z.ZodType>(kind: EntityKindId, ref: R) =>
   nommerChamps(z.strictObject({ ...baseDEntiteSchema.shape, kind: z.literal(kind).pipe(entityKindSchema), ref }), { ...metaDesChamps(baseDEntiteSchema, { exigees: true }), kind: { label: "type"  }, ref: { label: "référence", texte: { regime: 'technique', usage: 'référence stable de l’entité résolue au registre' } } });
 
+/** Branche d'un DÉCOR : celle de toute entité, et sa POSE dans la case. `calage`, où son corps se tient dans le jeu libre
+ *  de son empreinte, de -1 (ouest, nord) à +1 (est, sud) par axe du monde, absent = centré (`decalageDuCalage`) ; `sur`, l'id du décor qui le porte, son pied sur le dessus de
+ *  celui-ci (`noyau/monde/poseDuDecor.ts`). L'empreinte, donc l'occupation de la grille, n'en dépend pas. */
+const brancheDuDecor = (() => {
+  const branche = brancheDEntite('prop', idDe('prop').optional());
+  return nommerChamps(branche.extend({ calage: pointDuPlanSchema.optional(), sur: z.string().optional() }), { ...metaDesChamps(branche, { exigees: true }), calage: { label: "calage dans la case" }, sur: { label: "posé sur", texte: { regime: "technique" } } });
+})();
+
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
 /** Une faute CROISÉE d'une entité de scène : le champ où elle se dit, et ce qu'elle dit. */
-export interface FauteDEntite { champ: 'ref' | 'carrieres' | 'facing'; message: string }
+export interface FauteDEntite { chemin: readonly string[]; message: string }
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
  *  la résolution de sa `ref` au catalogue (`refEntiteResolue`) et le parcours de carrière (`refusDuPnjDeCarriere`) ; d'un
- *  décor, le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
+ *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & { kind: string }): FauteDEntite[] {
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & { kind: string; calage?: { x: number; y: number } }): FauteDEntite[] {
   const absence = porteurAbsent(ent);
-  const fautes: FauteDEntite[] = absence ? [{ champ: 'ref', message: absence }] : [];
+  const fautes: FauteDEntite[] = absence ? [{ chemin: ['ref'], message: absence }] : [];
   if (ent.kind === 'personnage') {
-    if (ent.ref && !refEntiteResolue(ent.ref)) fautes.push({ champ: 'ref', message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
+    if (ent.ref && !refEntiteResolue(ent.ref)) fautes.push({ chemin: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
     const carriere = refusDuPnjDeCarriere(ent);
-    if (carriere) fautes.push({ champ: 'carrieres', message: carriere });
+    if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
+  }
+  if (ent.kind === 'prop') {
+    for (const axe of ['x', 'y'] as const)
+      if (ent.calage && Math.abs(ent.calage[axe]) > 1) fautes.push({ chemin: ['calage', axe], message: `calage ${axe} = ${ent.calage[axe]} — de -1 à +1, la part du jeu libre du décor dans sa case` });
   }
   if (ent.kind === 'prop' && !capDecorAdmis(ent.ref !== undefined && estVolumique(ent.ref), ent.facing)) {
-    fautes.push({ champ: 'facing', message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)` });
+    fautes.push({ chemin: ['facing'], message: `décor volumique « ${ent.ref} » au cap ${ent.facing} — un décor volumique ne prend qu'un cap cardinal (N/E/S/O)` });
   }
   return fautes;
 }
 
 /** Le `superRefine` d'une branche d'entité : chaque faute de `refusDeLEntite`, dite à son champ. */
 const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.RefinementCtx) => {
-  for (const f of refusDeLEntite(ent)) ctx.addIssue({ code: 'custom', path: [f.champ], message: f.message });
+  for (const f of refusDeLEntite(ent)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
 };
 
 /** `SceneEntity` (`noyau/monde/scene.ts:98`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
@@ -250,7 +263,7 @@ const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.Ref
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', z.string().optional()),
   brancheDEntite('personnage', z.string().optional()).superRefine(fautesDeLaBranche),
-  brancheDEntite('prop', idDe('prop').optional()).superRefine(fautesDeLaBranche),
+  brancheDuDecor.superRefine(fautesDeLaBranche),
 ]);
 
 // ── Architecture ────────────────────────────────────────────────────────────────────────────────
@@ -322,25 +335,21 @@ export const sceneWeatherSchema = enumNomme(
 /** Côté d'égout bas (OBLIGATOIRE pour `shed`, ignoré sinon). */
 export const eaveSideSchema = z.enum(['N', 'E', 'S', 'O']);
 /**
- * Matière de COUVERTURE d'une masse : la porte est la fabrique canonique (`idDe('material', 'roof')`),
- * qui refine l'id AU PARSE contre la sous-liste `roof` de `materials.json` — une matière de décor ou de
- * relief posée sur un toit n'entre pas. La FORME DE SORTIE, elle, est DÉCLARÉE `string` et non inférée
- * (même patron que `RefASpecialisation`, `grammaire/ref.ts`) : `BuildingMass`/`RoofDefaults` sont des
- * `z.infer` LUS par l'éditeur et par la dérivation, où la matière est une valeur de `<select>` et un
- * littéral d'authoring — y faire remonter la marque de type imposerait un `as` à chaque site de saisie.
- * Que la matière COUVRE vraiment un pan (champ `couverture`) reste un sous-filtre de SCÈNE, dit par
- * `noyau/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du dessus.
+ * Matière de COUVERTURE d'une masse : `ref('material')` sur la sous-liste `roof` de `materials.json` (une
+ * matière de décor ou de relief posée sur un toit n'entre pas). La FORME DE SORTIE est DÉCLARÉE `{ id: string }`
+ * et non inférée (même patron que `RefASpecialisation`, `grammaire/ref.ts`) : `BuildingMass`/`RoofDefaults`
+ * sont des `z.infer` LUS par l'éditeur et par la dérivation, où la matière se pose depuis une valeur de
+ * `<select>` et un littéral d'authoring. Que la matière COUVRE vraiment un pan (champ `couverture`) reste un
+ * sous-filtre de SCÈNE, dit par `noyau/validateScene.ts` : le domaine `roof` porte aussi le « plan » vu du
+ * dessus.
  */
-const couvertureSchema: z.ZodType<string, string> = idDe('material', 'roof');
-/**
- * TYPE de bâtiment d'un corps architectural (`buildings.json`) : même porte et MÊME patron de sortie
- * que `couvertureSchema` ci-dessus — `ArchitectureBody` est un `z.infer` LU par l'éditeur, où le type
- * est une valeur de `<select>`, et par l'authoring TS des scénarios.
- */
-const typeDeBatimentSchema: z.ZodType<string, string> = idDe('building');
-/** Matière de RELIEF — même porte que `couvertureSchema`, sur la sous-liste `relief` de
- *  `materials.json` : une couverture de toit ou une matière de décor posée sur une falaise n'entre pas. */
-const matiereReliefSchema: z.ZodType<string, string> = idDe('material', 'relief');
+const couvertureSchema: z.ZodType<{ id: string }, { id: string }> = ref('material', undefined, 'roof');
+/** TYPE de bâtiment d'un corps architectural : `ref('building')`, sortie élargie comme `couvertureSchema`
+ *  (`ArchitectureBody` est lu par l'éditeur et par l'authoring TS des scénarios). */
+const typeDeBatimentSchema: z.ZodType<{ id: string }, { id: string }> = ref('building');
+/** Matière de RELIEF — `ref('material')` sur la sous-liste `relief` de `materials.json` (une couverture de
+ *  toit ou une matière de décor posée sur une falaise n'entre pas), sortie élargie comme `couvertureSchema`. */
+const matiereReliefSchema: z.ZodType<{ id: string }, { id: string }> = ref('material', undefined, 'relief');
 /**
  * MATIÈRES DE RELIEF de la scène, UNE par PARTIE émise (#1691) : falaise, rampe, dalle de tablier,
  * pilier. Les clés sont EXACTEMENT le vocabulaire `PARTS_RELIEF` de la couche donnée — celui que
@@ -671,7 +680,7 @@ export const layerSchema = nommerChamps(z.strictObject({
   z: z.number(),
   /** Ids de TERRAIN résolus contre `terrains.json` (#1690) : une tuile qui nomme un sol absent du
    *  dataset est refusée AU PARSE, nommément, au lieu de peindre le repli d'alarme en silence. */
-  tiles: z.array(idDe('terrain')),
+  tiles: refs('terrain'),
   height: z.array(z.number()).optional(),
   /** CRÉNELURE (RENDU PUR) : parallèle à `tiles` (`y·w+x`). `null` = pas de crénelure ; une chaîne = id de
    *  structure crénelée (`structureAppearance.json`) → la crénelure (`cretesDePerimetre`) en dérive des MERLONS

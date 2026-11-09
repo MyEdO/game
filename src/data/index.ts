@@ -976,7 +976,7 @@ export interface TalentData {
   /** Maxi d'acquisitions (LDB 10 « Schéma des Talents ») : un nombre fixe, ou le BONUS d'une
    *  caractéristique (`{bonusOf}`, structuré — remplace la chaîne « Bonus de X » re-parsée par regex),
    *  ou `null` = sans limite (ex-« Aucun »). */
-  max: number | { bonusOf: import('../engine/types').CharKey } | null;
+  max: number | { bonusOf: import('../engine/types').CharKey } | 'sortsDuDomaine' | null;
   /** Ligne « Tests » recodée : `{ raw verbatim (Codex), matches[] structuré (logique) }`. `null` = le
    *  talent ne se rapporte à aucun Test. */
   test: TalentTest | null;
@@ -1607,8 +1607,8 @@ export interface DetailsData {
 /**
  * SEMENCES d'une scène NEUVE (#1716) — ce que `emptyScene` (`noyau/monde/scene.ts`) pose à la création.
  * Chaque champ porte le TYPE du champ de scène qu'il alimente : une semence n'est pas un vocabulaire
- * parallèle, c'est la valeur de départ du champ homonyme. `terrain` est le seul sans homonyme —
- * c'est le sol dont la couche 0 est remplie.
+ * parallèle, c'est la valeur de départ du champ homonyme. Les champs sans homonyme sur la scène sont dits
+ * au schéma (`schemas/defs/semences-de-scene.ts`).
  */
 export interface SemencesDeSceneData {
   ambiance: z.infer<typeof ambianceSchema>;
@@ -1616,11 +1616,11 @@ export interface SemencesDeSceneData {
   /** ABSENT = `auto` : l’éclairage suit l’horloge via `ambiance` — la sentinelle est l’absence,
    *  jamais une valeur du champ typé (`idDe('lightLevel')`, `schemas/defs/semences-de-scene.ts`). */
   ambientLight?: z.infer<typeof sceneSchema>['ambientLight'];
-  terrain: Terrain;
+  terrain: { id: Terrain };
   reliefDefaults: ReliefDefaults;
   roofDefaults: SceneRoofDefaults;
   /** Structure d'un pan de façade posé à l'éditeur (`addFacadeSection`). */
-  facade: string;
+  facade: { id: string };
   /** Libellé d'un lieu posé sur la carte du monde (`ajouterLieu`). */
   lieu: string;
   /** Libellé d'une carte du monde neuve (`emptyWorldMap`). */
@@ -1634,9 +1634,9 @@ export interface SemencesDeSceneData {
  * fondent une scène neuve, ceux-là remplissent une déclaration déjà écrite.
  */
 export interface DefautsDeCompilationData {
-  cheminDeRonde: Terrain;
-  masse: Terrain;
-  pont: Terrain;
+  cheminDeRonde: { id: Terrain };
+  masse: { id: Terrain };
+  pont: { id: Terrain };
 }
 /** MANŒUVRE de combat (attaque naturelle activée — LDB 85) — ENTITÉ ÉDITABLE de PREMIÈRE CLASSE (au
  *  même titre qu'un Sort) : son propre dataset `maneuvers.json`, sa catégorie Codex, ses effets
@@ -1728,6 +1728,9 @@ export interface TraitCapabilities {
   /** Lanceur de Sorts (LDB 85 l.182-183 : « La créature peut lancer des Sorts ») — autorise
    *  l'incantation SANS Compétence avancée (statblocs du bestiaire), lu par `knowsCastingSkill`. */
   spellcaster?: boolean;
+  /** Famille d'incantation que le Trait ouvre, l'`arg` de l'instance en spécialisation, comme le `combat.castingKind`
+   *  d'un Talent : Miracles (Divers), LDB 85 l.233. */
+  castingKind?: import('../engine/combatFeatures/types').CastingKind;
   /** Porte le Trait Mort-vivant (LDB 85 l.239, lu par Hurlement fantomatique LDB 85 l.170 :
    *  « créatures vivantes (ne possédant pas le trait Mort-vivant) ») — le TRAIT, PAS le Groupe
    *  bestiaire (un folder « Morts sans repos » sans ce Trait, ex. Goule de crypte, N'EST PAS visé). */
@@ -2204,6 +2207,9 @@ export interface SpellData {
   // IMPURES (`push`/`teleport`/`chain`, on:'caster') dans `effects`, résolus par combatFlow (cf. engine/ops).
   /** Sort « Souffle » (LDB 47 l.503) : délégué à l'attaque de ZONE du Trait Souffle. */
   breathAttack?: true;
+  /** Titre et livre VO d'un sort qu'un livre fan traduit — `schemas/defs/spells.ts` (#3666). */
+  titreVO?: string;
+  livreVO?: { id: string };
   /** OPPOSITION de la cible (multijet dans la modale d'incantation).
    *  `resist` : Test opposé par la caractéristique/compétence `characteristic`/`skill` de la cible.
    *  `contact` : Sort de Portée Contact — frappe via Test opposé de Corps à corps (Bagarre). */
@@ -3213,12 +3219,20 @@ export function entryKey(e: Record<string, unknown>): PlayerText {
 export function displayLabelForSex(sex: Sexe | undefined, label: string, labelF?: string): PlayerText {
   return dataLabel(sex === 'F' && labelF ? labelF : label);
 }
+/** Ce qui porte le sexe d'un personnage : son apparence résolue (héros), celle que pose l'auteur (`appearanceOverride`),
+ *  sa fiche du bestiaire. */
+export interface PorteurDeSexe { readonly appearance?: { readonly sex?: Sexe }; readonly appearanceOverride?: { readonly sex?: Sexe }; readonly creatureId?: string }
+/** LE sexe d'un personnage, source unique du nom, du corps et du libellé de Carrière (#3724) : celui de son apparence
+ *  résolue, sinon celui que pose l'auteur, sinon celui de sa fiche du bestiaire. */
+export function sexeDuPorteur(c: PorteurDeSexe): Sexe | undefined {
+  return c.appearance?.sex ?? c.appearanceOverride?.sex ?? findCreatureById(c.creatureId)?.appearance?.sex;
+}
 /** Libellé de Carrière à AFFICHER pour un personnage (forme féminine si sexe F). Bord UI — le
  *  retour est du texte d'affichage, JAMAIS une clé. */
-export function careerLabelFor(c: { career?: string; appearance?: { sex?: Sexe } }): PlayerText {
+export function careerLabelFor(c: { career?: string } & PorteurDeSexe): PlayerText {
   const career = findCareerById(c.career);
   if (!career) return dataLabel(c.career);
-  return displayLabelForSex(c.appearance?.sex, career.label, career.labelF);
+  return displayLabelForSex(sexeDuPorteur(c), career.label, career.labelF);
 }
 const classeParId = indexParId('classes', classes);
 /** Résout une Classe par son `id` STABLE (= `CareerData.class`). */

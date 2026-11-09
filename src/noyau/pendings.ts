@@ -8,6 +8,7 @@ import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { Pt } from './monde/path';
+import type { ModeDEvaluation } from './merchantFlow';
 import type { Dir8 } from '../geometry/dir8';
 import type { Dialogue } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
@@ -24,7 +25,7 @@ import type { PsychType, TypeAcquis } from '../engine/psychology';
 import type { CiblePsy } from '../engine/psych/ciblage';
 import type { RecoverOpposition } from './combat/recover';
 import type { RecapLine } from './recapLine';
-import type { RollLineParts } from './rollSeam';
+import type { RollLineParts } from './ligneDeJet';
 import type { RollParticipant, MultiPending, PendingBase } from './rollFlowFactory';
 import type { PlayerText } from '../i18n/playerText';
 import type { Money } from '../engine/money';
@@ -34,7 +35,7 @@ import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
-import type { IdDeLigneDeButin } from './designations';
+import type { IdDeLigneDeButin, IdDePlaieDeLOperation } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -353,7 +354,7 @@ export interface PendingAppraise {
   gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin };
   itemName: string;
   /** 'evaluate' (défaut) = Évaluation marchande ; 'detect' = Détection d'artefact (Intuition). */
-  mode?: 'evaluate' | 'detect';
+  mode?: ModeDEvaluation;
   /** Libellé de la compétence affiché en modale (« Évaluation » / « Intuition »). */
   skillLabel?: string;
   truePriceBrass: number; // valeur réelle de base (catalogue) en sous de cuivre
@@ -2401,7 +2402,9 @@ export interface PendingHeal {
   healerName: string;
   targetId: string;
   targetName: string;
-  mode: HealMode; // 'wounds' | 'bleed' | 'trauma' | 'ammo' (jamais 'surgery'/'recovery' — cf. medicFlow)
+  /** L'acte (réglage `heal.mode`). Hors combat, `surgery`/`recovery` : le brouillon de l'opération que
+   *  `jetLancer('heal')` arme (`acteDeSoin.ts`). */
+  mode: HealMode;
   intBonus: number; // Bonus d'Intelligence du soigneur
   /** Test déclaré (`refusDuTestDeSoin`, réglage `heal.test`). */
   test: TestDeSoin;
@@ -2420,8 +2423,8 @@ export interface PendingHeal {
   success: boolean;
   sl: number; // DR
   rerolled?: boolean;
-  /** Acte PAYANT d'un PNJ (infirmerie) : prix déjà débité — remboursé si Annuler AVANT le jet. */
-  paidCost?: { gold?: number; silver?: number; brass?: number };
+  /** La Blessure Critique visée par le brouillon d'une opération (choix `medic.plaie`, `plaiesDeLOperation`). */
+  plaie?: IdDePlaieDeLOperation;
 }
 
 /** Chirurgie (Test ÉTENDU multi-passes, LDB 10 l.184 / 12 l.200) — le Test de Médecine d'UNE passe,
@@ -2448,6 +2451,4 @@ export interface PendingSurgery extends PendingBase {
   sl: number; // DR de la passe
   targetDR: number; // DR cumulé cible (LDB 10) — recopié de medic.surgery (DrBar)
   cumDR: number; // DR cumulé courant — recopié de medic.surgery (DrBar)
-  /** Acte PAYANT d'un PNJ (infirmerie) : prix déjà débité — remboursé si on annule AVANT toute passe. */
-  paidCost?: { gold?: number; silver?: number; brass?: number };
 }

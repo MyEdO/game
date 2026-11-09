@@ -4,7 +4,9 @@
     "type": "buildings",
     "label": "Chapelle",
     "maison": "lieu de culte de village : sa couverture d’ardoise dit la pierre d’un bâtiment consacré, et son clocheton de faîte le signale de loin par-dessus les toits.",
-    "roofMaterial": "toit-ardoise",
+    "roofMaterial": {
+      "id": "toit-ardoise"
+    },
     "features": [
       {
         "id": "clocheton",
@@ -17,7 +19,9 @@
     "type": "buildings",
     "label": "Échoppe",
     "maison": "boutique du quotidien : un chaume de bourse modeste, et l’étal planté devant la porte, qui la distingue d’une remise fermée.",
-    "roofMaterial": "chaume",
+    "roofMaterial": {
+      "id": "chaume"
+    },
     "features": [
       {
         "id": "etal-marche",
@@ -30,7 +34,9 @@
     "type": "buildings",
     "label": "Forge",
     "maison": "atelier de forgeron : une couverture d’ardoise incombustible au-dessus d’un feu permanent, et la cheminée de faîte qui la nomme d’un coup d’œil.",
-    "roofMaterial": "toit-ardoise",
+    "roofMaterial": {
+      "id": "toit-ardoise"
+    },
     "features": [
       {
         "id": "cheminee",
@@ -43,21 +49,27 @@
     "type": "buildings",
     "label": "Maison à colombages",
     "maison": "logis ordinaire de l’Empire, l’étalon du catalogue : une couverture de tuile, et aucun ornement d’identité.",
-    "roofMaterial": "tuile"
+    "roofMaterial": {
+      "id": "tuile"
+    }
   },
   {
     "id": "manoir",
     "type": "buildings",
     "label": "Manoir",
     "maison": "demeure de notable : une couverture d’ardoise, marque de fortune ; aucun ornement, la masse du bâti suffit à le dire.",
-    "roofMaterial": "toit-ardoise"
+    "roofMaterial": {
+      "id": "toit-ardoise"
+    }
   },
   {
     "id": "taverne",
     "type": "buildings",
     "label": "Taverne",
     "maison": "auberge de bourg : une couverture de tuile, et l’enseigne accrochée au-dessus de la porte, qui l’annonce au voyageur.",
-    "roofMaterial": "tuile",
+    "roofMaterial": {
+      "id": "tuile"
+    },
     "features": [
       {
         "id": "enseigne",
@@ -70,6 +82,8 @@
     "type": "buildings",
     "label": "Tour",
     "maison": "ouvrage étroit et haut, coiffé d’ardoise comme un ouvrage de pierre ; aucun ornement.",
-    "roofMaterial": "toit-ardoise"
+    "roofMaterial": {
+      "id": "toit-ardoise"
+    }
   }
 ]

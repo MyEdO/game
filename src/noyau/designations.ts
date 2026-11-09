@@ -34,7 +34,7 @@ import { actorIn } from './monde/combatants';
 import { adversairesADistraire, adversairesDuBattement, availableAttacks } from './combatManeuvers';
 import { idsDuCoupleMonte } from './targetingModes';
 import { reponsesDuNoeud } from './dialogue';
-import { plaiesDeLOperation } from './medicFlow';
+import { plaiesDeLOperation } from './acteDeSoin';
 import { seaActivitiesCatalog } from './seaActivities';
 import { catalogEntryOf, echoppesDuLieu, libelleDeLaRepartition } from './merchantFlow';
 import { bulkCarriers, lotDeCargaison } from './carriers';
@@ -68,7 +68,7 @@ export type IdDeChanson = string;
 export type IdDeFormeConjuree = string;
 /** Un choix de paie que le choix `council.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
-/** Une créature que `depecerLaCreature` accepte (`creaturesADepecer`, `combatEffects.ts`). */
+/** Une créature que le choix `victory.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
 /** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;
@@ -80,7 +80,7 @@ export type IdDuCoupleMonte = string;
 export type IdDActiviteEnMer = string;
 /** Une réponse VISIBLE du nœud de dialogue courant, par son `id` (`reponsesDuNoeud`, `dialogue.ts`). */
 export type IdDeReponseDeDialogue = string;
-/** Une Blessure Critique que l'opération armée peut viser, par son `uid` (`plaiesDeLOperation`, `medicFlow.ts`). */
+/** Une Blessure Critique que l'opération armée ou son brouillon peut viser, par son `uid` (`plaiesDeLOperation`, `acteDeSoin.ts`). */
 export type IdDePlaieDeLOperation = string;
 /** Un accès de pièce que le mobile du monde emprunte, par son `id` (`portesDuMobile`, `marcheDuGroupe.ts`). */
 export type IdDePorte = string;
@@ -205,7 +205,7 @@ const lesObjets = (s: Jeu) => [
 const lesPostes = (s: Jeu) => lesCombattants(s).flatMap((c) => c.postes ?? []);
 const lesPanoplies = (s: Jeu) => lesCombattants(s).flatMap((c) => c.loadouts ?? []);
 const lesEntites = (s: Jeu) => s.scene?.entities ?? [];
-const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s.flags)) : []);
+const lesActionsDEntite = (s: Jeu) => (s.scene ? lesEntites(s).flatMap((e) => actionsDe(s.scene!, e, s)) : []);
 const lesModesDeVoyage = (): { id: string; label?: string }[] => [{ id: 'pied' }, { id: 'monture' }, ...travelVehicles()];
 const lesEntrainements = (s: Jeu) => s.party.flatMap(entrainementOptions);
 /** Les armes dont le lanceur du Sort en attente peut donner la forme (`conjureFormOptions`), LDB 47. */
@@ -220,7 +220,7 @@ const lesAttaques = (s: Jeu) => {
   return actif && s.battle ? availableAttacks(actif, s.battle) : [];
 };
 const lesRamassables = (s: Jeu) =>
-  (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif)));
+  (s.scene?.entities ?? []).flatMap((e) => entityPickables(e, s.flags, objetDuNarratif(s.campaignNarratif), s.objetsAuSol));
 const lesTraitsPsyPortes = (s: Jeu) => s.party.flatMap(traitsPsyChoisissables);
 const lesClassesDePassage = (): string[] => sansDoublon(travelVehicles().flatMap((v) => (vehicleTravel(v.id)?.classes ?? []).map((c) => c.id)));
 const lesOptionsDEtape = (s: Jeu) => (s.pendingCascade?.participants ?? []).flatMap((st) => st.options ?? []);

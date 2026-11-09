@@ -16,7 +16,6 @@
  *                   surfaces + trémie, #780 — connexité verticale DÉRIVÉE, pas d'escalier au
  *                   pathfinding).
  *   4. walls      : murs d'arête (`setEdgeWall` + `patchWall` structure) / diagonales (`toggleDiagonalWall`).
- *   4bis. navires : les ponts du type de chaque navire posé, avec ses Améliorations (`planDeNavire.ts`).
  *   5. architecture : `spec.architecture` copié tel quel (masses/façades) — non encore validé.
  *   6. entities   : `spec.entities` bruts + heroStart + interprétation du `bind` aux positions scannées.
  *   7. zones      : entryPoints / restZones / effectZones / triggers / dialogues.
@@ -49,7 +48,7 @@ import { DEFAULT_TERRAIN, emptyScene, porteAuteur, tileAt, wallOverlayOf } from 
 import { findStructureById, structureAppearances } from '../data';
 // DÉFAUTS DE COMPILATION (#1716) : ce que ce compilateur pose quand la déclaration laisse le terrain
 // implicite — chemin de ronde et masse d'une `cells` d'enceinte. Donnée éditable au Codex, même patron
-// que `DEFAULT_TERRAIN = semencesDeScene.terrain` (`noyau/monde/scene.ts`).
+// que `DEFAULT_TERRAIN = semencesDeScene.terrain.id` (`noyau/monde/scene.ts`).
 import { defautsDeCompilation } from '../data';
 // PLAGE de pente : la source UNIQUE est le schéma de scène, qui en borne DÉJÀ le parse
 // (`sceneRoofDefaultsSchema`/`roofDefaultsSchema`) — deux littéraux ici la feraient diverger en
@@ -72,7 +71,6 @@ import { seatAssignmentDefects, type SeatAssignments } from './monde/seating';
 import { massFootprintCells } from './monde/buildings';
 import { type Pt, setEdgeWall, patchWall, toggleDiagonalWall, paintHeight, paintCrenellated, paintTiles, fillTerrainRect, addLayer, putLayer, placeEmplacement, setPosteCrew, setPosteSide, pasteEntity, addRestZone, setSceneScalaires, setSceneFlags, realFloorAt, roofExclusionsByZ, deriveArchitectureMasses, bodyFootCellsByZ, bodyFootCells, adoptableOpeningsAt } from './sceneEdit';
 import { canonEdge, edgeWallState } from './sceneEditLecture';
-import { pontsDuNavire, poserLeNavire, type PoseDeNavire } from './planDeNavire';
 
 /** Hauteur (m) par défaut d'une ENCEINTE `cells` sans `height` explicite — chemin de ronde à ~4 m (un
  *  « niveau » de relief, cf. `METRES_PER_LEVEL`). */
@@ -256,9 +254,6 @@ export interface MapSpec {
   triggers?: Trigger[];
   dialogues?: Dialogue[];
   encounters?: EncounterSpec[];
-  /** NAVIRES posés : les ponts du plan de leur type et de leurs Améliorations (`pontsDuNavire`), à leur case, leur
-   *  cap et leur étage. */
-  navires?: PoseDeNavire[];
   /** Ancres AUTHORÉES des Scènes de bataille sur le plan (S2, Puissance de Bataille) — passées telles
    *  quelles sur la Scène construite (`Scene.stations`), consommées par `battleScenesToStations`. */
   stations?: SceneStationAnchor[];
@@ -702,11 +697,11 @@ export function buildScene(spec: MapSpec): Scene {
       // MASSE : un mur plein → le BLOC PLEIN du défaut de compilation, posé au SOL (le moteur en dérive
       // toutes les faces à partir du relief, dont la PAROI
       // du tunnel qu'il borde, comme un bâtiment). Une PORTE laisse le sol z0 tel quel → passable = le TUNNEL.
-      if (rec.wall) s = paintTiles(s, { x: c.x, y: c.y }, defautsDeCompilation.masse, 1, c.z);
+      if (rec.wall) s = paintTiles(s, { x: c.x, y: c.y }, defautsDeCompilation.masse.id, 1, c.z);
       // CHEMIN DE RONDE : une COUCHE DE SOL marchable posée par-dessus, à `height` m (dessus du bloc / toit
       // du tunnel). Sur une porte, ce sol coiffe un vide → SURPLOMB → son dessous = le plafond (règle générale).
       s = addLayer(s, zz);
-      s = paintTiles(s, { x: c.x, y: c.y }, defautsDeCompilation.cheminDeRonde, 1, zz);
+      s = paintTiles(s, { x: c.x, y: c.y }, defautsDeCompilation.cheminDeRonde.id, 1, zz);
       s = paintHeight(s, { x: c.x, y: c.y }, height, 1, zz);
       // CRÉNELURE (décoration) : marque le chemin de ronde → merlons sur le PÉRIMÈTRE de la bande.
       if (crestApp) s = paintCrenellated(s, { x: c.x, y: c.y }, crestApp, 1, zz);
@@ -780,9 +775,6 @@ export function buildScene(spec: MapSpec): Scene {
       ...(wall.appearance ? { appearance: wall.appearance } : {}),
     });
   }
-
-  // 4bis. navires : les ponts de leur type, posés à leur place, leur cap et leur étage (`poserLeNavire`).
-  for (const n of spec.navires ?? []) s = poserLeNavire(s, buildScene(pontsDuNavire(n.ref, n.upgrades ?? [])), n);
 
   // 5. architecture (copie non validée — la validation tourne en fin de fonction, §9, une fois les
   //    zones connues : les masses se valident contre le plancher RÉEL, pas contre elles-mêmes).

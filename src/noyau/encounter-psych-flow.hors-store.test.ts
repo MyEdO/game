@@ -43,7 +43,7 @@ function ent(over: Partial<SceneEntity> & Pick<SceneEntity, 'id'>): SceneEntity 
 
 function scene(entities: SceneEntity[]): Scene {
   return {
-    type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+    type: 'scene', id: 's', label: 'S', dimensions: { w: 4, h: 4 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
     layers: [{ z: 0, tiles: Array(16).fill('herbe') }], entities,
     dialogues: [], triggers: [], encounters: [], flags: {},
   };

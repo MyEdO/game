@@ -33,7 +33,7 @@ import { isEngaged } from '../engine/engagement';
 import { desengagementSansAction, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { isFrenzied, isFrenzyCapable } from '../engine/psychology';
 import { isVehicle, estNavire } from '../engine/coque';
-import { compatibleAmmo, activeLoadout, loadoutLabel } from '../engine/items';
+import { compatibleAmmo, activeLoadout, itemLabel, loadoutLabel } from '../engine/items';
 import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill } from '../engine/skills';
@@ -425,6 +425,8 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
   /** Les États PORTÉS : la réserve de Détermination est le verdict d'offre (`determination-en-reserve`), qui dit son refus. */
   'etats-retirables': ({ active }) => active.conditions,
   consommables: ({ active }) => (active.items ?? []).filter(isConsumable),
+  /** Les objets que l'actif porte : chacun se pose au sol (`poserLObjet`). */
+  'objets-portes': ({ active }) => active.items ?? [],
   'armes-a-distance': ({ active }) => armesADistance(active),
   /** Les armes à distance qui ont un cycle de charge (`reload`) : c'est l'arme que `rechargerLArme` recharge. */
   'armes-a-recharge': ({ active }) => armesADistance(active).filter((w) => (w.reload ?? 0) > 0),
@@ -447,7 +449,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
       // L'ÉPUISEMENT n'est plus une garde séparée : `entityPickables` ne rend que les feuilles des
       // actions ENCORE jouables (`actionsAuthorees` filtre les drapeaux), donc un décor épuisé sort
       // avec zéro candidat sans qu'une seconde garde ait à redire la même chose.
-      .flatMap((e) => entityPickables(e, flags, objetDuNarratif(state.campaignNarratif)).map((p) => ({ entityId: e.id, ...p })));
+      .flatMap((e) => entityPickables(e, flags, objetDuNarratif(state.campaignNarratif), state.objetsAuSol).map((p) => ({ entityId: e.id, ...p })));
   },
 };
 
@@ -545,6 +547,11 @@ export const ACTION_PORTEURS: Record<string, PorteurDeclare> = {
   consommables: declarerPorteur(['itemUid'], (c) => {
     const objet = c as ItemInstance;
     return { porteurId: objet.uid, args: { itemUid: objet.uid }, label: objet.label };
+  }),
+  /** Un objet du porteur à poser au sol (`poserLObjet`). */
+  'objets-portes': declarerPorteur(['itemUid'], (c) => {
+    const objet = c as ItemInstance;
+    return { porteurId: objet.uid, args: { itemUid: objet.uid }, label: itemLabel(objet) };
   }),
   /** Un set d'armes du porteur (`prendreLaPanoplie`). */
   'sets-d-armes': declarerPorteur(['loadoutId'], (c) => {
@@ -695,7 +702,6 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   quitterLePoste: {},
   pousserLEngin: {},
   aiderLEquipe: {},
-  ramasserLObjet: { args: [{ cle: 'entityId' }, { cle: 'pickKey' }], requis: ['entityId', 'pickKey'] },
   // La barre : le barreur la tient, ou la coque elle-même (`manoeuvrerLeNavire` accepte l'un ou l'autre).
   manoeuvrerLeNavire: { args: [{ cle: 'crewId', defaut: lActif }] },
   chanterLaChanson: { args: [{ cle: 'shipId', defaut: lActif }] },
@@ -781,6 +787,8 @@ const avec = <T>(valeur: T | undefined, jouer: (v: T) => GesteDuNoyau): GesteDuN
  *  jouent aussi, son porteur l'actif, ou la sortie d'une phase. */
 const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>> = {
   utiliserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('utiliserLObjet', uid))),
+  poserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('poserLObjet', uid))),
+  ramasserLObjet: duTour((o) => (o.args.entityId && o.args.pickKey ? geste('ramasserLObjet', o.args.entityId, o.args.pickKey) : null)),
   /** L'alvéole d'un sort ARME le mode d'incantation sur CE sort (`armed`) : le re-clic le désarme (`desarmerLeMode`),
    *  comme toute case à mode armé — annulation gratuite, rien n'est engagé avant le clic-cible. */
   incanterLeSort: duTour((o) => avec(o.args.spellId, (sort) => geste('incanterLeSort', idDeLActif(o), sort))),

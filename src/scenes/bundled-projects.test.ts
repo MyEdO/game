@@ -300,7 +300,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   /**
-   * `ArchitectureBody.style` est une RÉFÉRENCE vers `buildings.json` (`idDe('building')`, #1715) : la
+   * `ArchitectureBody.style` est une RÉFÉRENCE vers `buildings.json` (`ref('building')`, #1715) : la
    * porte résout l'id, et un corps SANS type de bâtiment reste valide (bourg, hameau, corps
    * composite). Le sujet est un paquet FABRIQUÉ ICI : un paquet livré est la CARTE de son auteur, que
    * ce test laisse intacte — la contre-preuve porte sur une fixture, jamais sur `diligence-projet.json`.
@@ -314,7 +314,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
         label: 'Fixture',
         architecture: styles.map((style, i) => ({
           id: `corps-${i}`,
-          ...(style === undefined ? {} : { style }),
+          ...(style === undefined ? {} : { style: { id: style } }),
           storeys: [{ id: 'z0', z: 0, parts: [{ id: 'p', foot: { x: 0, y: 0, w: 2, h: 2 } }], roomZoneIds: [] }],
           facades: [],
           masses: [],
@@ -328,7 +328,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   it('un corps TYPÉ et un corps SANS type passent la porte ensemble', () => {
     const doc = parseProject(PAQUET_ARCHITECTURE([TYPE_REEL, undefined]));
     const corps = doc.scenes.flatMap((sc) => sc.architecture ?? []);
-    expect(corps.map((b) => b.style)).toEqual([TYPE_REEL, undefined]);
+    expect(corps.map((b) => b.style)).toEqual([{ id: TYPE_REEL }, undefined]);
   });
 
   it('CONTRE-PREUVE : un `style` hors de `buildings.json` est REFUSÉ À LA PORTE, qui NOMME le champ et la valeur', () => {

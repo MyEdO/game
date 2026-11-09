@@ -54,6 +54,10 @@ describe('modelesDeLAtelier', () => {
     expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
   });
 
+  it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
+    expect(modeles.bases[0].clipsDeuxMains).toEqual({});
+  });
+
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
     expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], main: ['epee'], off: ['epee'] });
   });
@@ -101,6 +105,22 @@ describe('modelesDeLAtelier', () => {
     expect(modeles.surfaces).toEqual({ humanoide: [], bouclier: bouclier.surfaces, epee: epee.surfaces, chemise: chemise.surfaces, teteNaine: teteNaine.surfaces, broche: broche.surfaces });
     const peinte = { ...humanoide, surfaces: [{ nom: 'peau', palette: 'peau' }] };
     expect(modelesDeLAtelier({ humanoide: peinte }, { humanoide: [] }).surfaces).toEqual({ humanoide: peinte.surfaces });
+  });
+
+  it('chaque élément servi qui déclare une seconde prise la donne telle quelle, avec le maniement de sa forme, et lui seul (#3319)', () => {
+    const secondePrise = { position: [0, -0.4, 0], rotation: [0, Math.PI, 0] };
+    const hallebarde = { ...elementSchema3('humanoide'), cle: { apparence: 'hallebarde' }, liaison: { mode: 'rigide', secondePrise } };
+    const estoc = { ...elementSchema3('humanoide'), cle: { apparence: 'epee_soldat' }, liaison: { mode: 'rigide', secondePrise } };
+    expect(modeles.secondesPrises).toEqual({});
+    expect(modelesDeLAtelier({ humanoide, epee, hallebarde, estoc }, { humanoide: [], epee: ['root'], hallebarde: ['root'], estoc: ['root'] }).secondesPrises)
+      .toEqual({ hallebarde: { repere: secondePrise, maniement: 'hampe' }, estoc: { repere: secondePrise, maniement: null } });
+  });
+
+  it('chaque élément servi qui a une couche donne les zones qu’il couvre et les éléments qu’il masque, ceux de couche plus intérieure ou sans couche, et lui seul (#2972)', () => {
+    expect(modeles.couches).toEqual({ chemise: { couvre: ['torse'], masque: ['epee', 'bouclier', 'teteNaine', 'broche'] }, teteNaine: { couvre: ['tete'], masque: ['epee', 'bouclier', 'broche'] } });
+    const { couvre: _, ...sansZones } = { ...broche, couche: 'tenue' };
+    expect(modelesDeLAtelier({ humanoide, chemise, broche: sansZones }, { humanoide: [], chemise: ['root'], broche: ['root'] }).couches)
+      .toEqual({ chemise: { couvre: ['torse'], masque: [] }, broche: { couvre: [], masque: [] } });
   });
 
   it('les emblèmes sont la sous-liste `embleme` de la garde-robe, chacun réduit à son id, son libellé et son dessin', () => {

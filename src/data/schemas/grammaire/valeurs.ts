@@ -16,6 +16,7 @@ import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjet
 
 import { type Amateur, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
+import type { Sexe as SexeDApparence } from '../../../lib/sexe';
 import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
@@ -832,9 +833,10 @@ export const EXPRESSION_DE_DE = /^\s*[+-]?\s*(\d+\s*\+\s*)?\d*\s*d\s*\d+\s*([+-]
  *  d'une place assise (`props.json`). */
 export const cell2Schema = nommerChamps(z.strictObject({ x: z.number().finite(), y: z.number().finite() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
-/** `{x,y}` en POUR CENT d'un canevas (0-100), point CONTINU et non case — un lieu sur la carte du monde,
- *  un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`). */
-export const pointDuCanevasSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
+/** `{x,y}` CONTINU du plan, point et non case, dans l'unité que nomme le champ qui le compose : pour cent d'un canevas
+ *  (0-100) pour un lieu sur la carte du monde ou un point d'intérêt sur le plan de son lieu (`defs-scenes/worldmap.ts`),
+ *  part du jeu libre d'un décor dans son empreinte (-1 à +1) pour son calage (`SceneEntity.calage`, `defs-scenes/scene.ts`). */
+export const pointDuPlanSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.number() }), { x: { label: "abscisse" }, y: { label: "ordonnée" } });
 
 /**
  * `raceKey` — id STABLE des 7 espèces jouables (LDB + suppléments), patron `defs/characteristics`
@@ -898,10 +900,13 @@ export const countSpecSchema = z.union([
   nommerChamps(z.strictObject({ roll: diceSpecSchema }), { roll: { label: "jet" } }),
 ]);
 
+/** Le libellé de chaque sexe d'une apparence (`SEXES`, `src/lib/sexe.ts`). */
+const LIBELLES_DES_SEXES = { M: 'Masculin', F: 'Féminin' } as const satisfies Readonly<Record<SexeDApparence, string>>;
+
 /** Sexe d'une apparence — UNE déclaration pour `entityAppearanceSchema` et `defs/pregens.ts`.
  *  Chaque affichage lit le libellé par
  *  `libelleDeValeur(sexeSchema, v)`. */
-export const sexeSchema = enumNomme({ M: 'Masculin', F: 'Féminin' });
+export const sexeSchema = enumNomme(LIBELLES_DES_SEXES);
 export type Sexe = z.infer<typeof sexeSchema>;
 
 /** La main d'un objet tenu ou d'une arme, UNE déclaration : `defs/presets-de-personnage.ts` (`prises`) et
@@ -1018,6 +1023,8 @@ export const messageDeTermeDeJet = (f: unknown): string | undefined => {
 /** Le terme « bonus de caractéristique » de la grammaire d'une quantité, que composent aussi les champs
  *  qui n'admettent que lui (`max` d'un Talent). */
 export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema }), { bonusOf: { label: "bonus de caractéristique" } });
+/** Le Maxi d'un Talent « Nombre de Sorts disponibles dans le Domaine de Magie du Chaos choisi » (`LDB 10 l.704`). */
+export const maxiSortsDuDomaine = z.literal('sortsDuDomaine');
 
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */

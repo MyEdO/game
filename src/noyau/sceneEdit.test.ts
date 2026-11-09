@@ -50,7 +50,7 @@ import diligenceProjet from '../scenes/diligence/diligence-projet.json';
 function corpsScene(size: number, pieces: ArchitectureRect[], body: Partial<ArchitectureBody> = {}): Scene {
   const scene = emptyScene('scene-test', size, size);
   scene.walls = perimeterWallSegs(pieces);
-  scene.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [], ...body }];
+  scene.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [], ...body }];
   return scene;
 }
 
@@ -143,7 +143,7 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
   it('les masses AUTHORÉES traversent intactes, et leur emprise n’est jamais re-dérivée', () => {
     const authoree: BuildingMass = {
       id: 'grande-nef', z: 0, footprint: [{ x: 2, y: 2, w: 14, h: 9 }], levels: 1,
-      profile: 'hip', ridge: 'x', pitchDeg: 22, material: 'chaume',
+      profile: 'hip', ridge: 'x', pitchDeg: 22, material: { id: 'chaume' },
     };
     const scene = corpsScene(24, [{ x: 2, y: 2, w: 14, h: 18 }], { masses: [authoree] });
     const masses = massesOf(scene);
@@ -158,7 +158,7 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
 
   it('profil, pente et matériau restent l’intention de l’auteur — un pignon DEMANDÉ tient la grande portée', () => {
     const scene = corpsScene(24, [{ x: 2, y: 2, w: 14, h: 18 }], {
-      roofDefaults: { profile: 'gable', pitchDeg: 32, material: 'chaume' },
+      roofDefaults: { profile: 'gable', pitchDeg: 32, material: { id: 'chaume' } },
     });
     const masses = massesOf(scene);
     expect(masses).toHaveLength(1);
@@ -166,13 +166,13 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
       expect(spanOf(mass)).toBeGreaterThan(gableSpanMaxTiles(scene)); // la portée dirait « croupe »…
       expect(mass.profile).toBe('gable'); // … l'auteur dit « pignon », et il tranche
       expect(mass.pitchDeg).toBe(32);
-      expect(mass.material).toBe('chaume');
+      expect(mass.material).toEqual({ id: 'chaume' });
     }
   });
 
   it('une croupe DEMANDÉE s’applique aussi sous la portée de pignon', () => {
     const scene = corpsScene(24, [{ x: 2, y: 2, w: 3, h: 16 }], {
-      roofDefaults: { profile: 'hip', pitchDeg: 40, material: 'toit-ardoise' },
+      roofDefaults: { profile: 'hip', pitchDeg: 40, material: { id: 'toit-ardoise' } },
     });
     const [masse] = massesOf(scene);
     expect(spanOf(masse)).toBeLessThanOrEqual(gableSpanMaxTiles(scene));
@@ -181,7 +181,7 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
 
   it('un appentis dérivé recopie le côté d’égout DÉCLARÉ par l’auteur', () => {
     const scene = corpsScene(24, [{ x: 2, y: 2, w: 14, h: 18 }], {
-      roofDefaults: { profile: 'shed', pitchDeg: 20, material: 'toit-ardoise', eaveSide: 'S' },
+      roofDefaults: { profile: 'shed', pitchDeg: 20, material: { id: 'toit-ardoise' }, eaveSide: 'S' },
     });
     for (const mass of massesOf(scene)) expect(mass.eaveSide).toBe('S');
   });
@@ -202,8 +202,8 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
       ambiance: 'exterieur',
       metresPerTile: 2,
       ambientLight: 'auto',
-      reliefDefaults: { cliff: 'terre', ramp: 'terre', deck: 'pierre', pilier: 'pilier' },
-      roofDefaults: { material: 'toit-ardoise', pitchDeg: 45, riseMaxStoreys: 1 },
+      reliefDefaults: { cliff: { id: 'terre' }, ramp: { id: 'terre' }, deck: { id: 'pierre' }, pilier: { id: 'pilier' } },
+      roofDefaults: { material: { id: 'toit-ardoise' }, pitchDeg: 45, riseMaxStoreys: 1 },
       layers: [{ z: 0, tiles: new Array(64).fill('herbe') }],
       entities: [],
       dialogues: [],
@@ -219,7 +219,7 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
   it('`DEFAULT_RELIEF_DEFAULTS`/`DEFAULT_ROOF_DEFAULTS`/`DEFAULT_TERRAIN` sont les semences du dataset (#1716)', () => {
     expect(DEFAULT_RELIEF_DEFAULTS).toEqual(semencesDeScene.reliefDefaults);
     expect(DEFAULT_ROOF_DEFAULTS).toEqual(semencesDeScene.roofDefaults);
-    expect(DEFAULT_TERRAIN).toBe(semencesDeScene.terrain);
+    expect(DEFAULT_TERRAIN).toBe(semencesDeScene.terrain.id);
   });
 
   /** #1715 — la pente de RÉFÉRENCE est une donnée de la SCÈNE : la dérivation la lit, elle n'en
@@ -242,24 +242,24 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
     const emprise = [{ x: 2, y: 2, w: 6, h: 12 }];
 
     const sansType = corpsScene(24, emprise, { style: undefined });
-    expect(sansType.roofDefaults.material).toBe('toit-ardoise');
-    expect(massesOf(sansType)[0].material).toBe(sansType.roofDefaults.material);
+    expect(sansType.roofDefaults.material).toEqual({ id: 'toit-ardoise' });
+    expect(massesOf(sansType)[0].material).toEqual(sansType.roofDefaults.material);
 
     // `maison` est couverte de tuile par son TYPE (`buildings.json › roofMaterial`) : le type passe
     // devant la scène, sans que le corps ait rien à déclarer.
-    const parType = corpsScene(24, emprise, { style: 'maison' });
-    expect(massesOf(parType)[0].material).toBe('tuile');
-    expect(massesOf(parType)[0].material).not.toBe(parType.roofDefaults.material);
+    const parType = corpsScene(24, emprise, { style: { id: 'maison' } });
+    expect(massesOf(parType)[0].material).toEqual({ id: 'tuile' });
+    expect(massesOf(parType)[0].material).not.toEqual(parType.roofDefaults.material);
 
     // …et la SURCHARGE du corps passe devant les deux.
-    const surcharge = corpsScene(24, emprise, { style: 'maison', roofDefaults: { material: 'chaume' } });
-    expect(massesOf(surcharge)[0].material).toBe('chaume');
+    const surcharge = corpsScene(24, emprise, { style: { id: 'maison' }, roofDefaults: { material: { id: 'chaume' } } });
+    expect(massesOf(surcharge)[0].material).toEqual({ id: 'chaume' });
 
     // La scène redevient la source dès que ni le corps ni le type ne tranchent.
     const autreScene = corpsScene(24, emprise, { style: undefined });
-    autreScene.roofDefaults = { ...autreScene.roofDefaults, material: 'chaume' };
-    expect(massesOf(autreScene)[0].material).toBe('chaume');
-    expect(toitureEffective(autreScene, autreScene.architecture![0]).material).toBe('chaume');
+    autreScene.roofDefaults = { ...autreScene.roofDefaults, material: { id: 'chaume' } };
+    expect(massesOf(autreScene)[0].material).toEqual({ id: 'chaume' });
+    expect(toitureEffective(autreScene, autreScene.architecture![0]).material).toEqual({ id: 'chaume' });
   });
 
   /** #1715 — le réducteur que le panneau de CORPS appelle : « suivre la scène » RETIRE le champ, et un
@@ -267,15 +267,15 @@ describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
   it('poseToitureDeCorps écrit UN champ, et « suivre » le retire jusqu’à la poche', () => {
     const nu: ArchitectureBody = { id: 'corps-1', storeys: [], facades: [], masses: [] };
 
-    const avecMatiere = poseToitureDeCorps(nu, 'material', 'chaume');
-    expect(avecMatiere.roofDefaults).toEqual({ material: 'chaume' });
+    const avecMatiere = poseToitureDeCorps(nu, 'material', { id: 'chaume' });
+    expect(avecMatiere.roofDefaults).toEqual({ material: { id: 'chaume' } });
     expect(nu.roofDefaults, 'le réducteur a muté son entrée').toBeUndefined();
 
     const avecPente = poseToitureDeCorps(avecMatiere, 'pitchDeg', 32);
-    expect(avecPente.roofDefaults).toEqual({ material: 'chaume', pitchDeg: 32 });
+    expect(avecPente.roofDefaults).toEqual({ material: { id: 'chaume' }, pitchDeg: 32 });
 
     // « suivre la scène » sur UN champ : les autres surcharges restent.
-    expect(poseToitureDeCorps(avecPente, 'pitchDeg', undefined).roofDefaults).toEqual({ material: 'chaume' });
+    expect(poseToitureDeCorps(avecPente, 'pitchDeg', undefined).roofDefaults).toEqual({ material: { id: 'chaume' } });
     // …et sur le DERNIER : la poche disparaît, le corps ne surcharge plus rien.
     expect(poseToitureDeCorps(avecMatiere, 'material', undefined).roofDefaults).toBeUndefined();
     expect('roofDefaults' in poseToitureDeCorps(avecMatiere, 'material', undefined)).toBe(false);
@@ -321,7 +321,7 @@ describe('deriveArchitectureMasses — borne de comble (#947)', () => {
 
   it('une pente POSÉE par l’auteur ne s’adapte JAMAIS, même là où elle monte en pyramide', () => {
     const scene = corpsScene(32, [{ x: 2, y: 2, w: 20, h: 26 }], {
-      roofDefaults: { profile: 'hip', pitchDeg: 45, material: 'toit-ardoise' },
+      roofDefaults: { profile: 'hip', pitchDeg: 45, material: { id: 'toit-ardoise' } },
     });
     const [masse] = massesOf(scene);
     expect(masse.pitchDeg).toBe(45);
@@ -381,7 +381,7 @@ describe('realFloorAt/deriveArchitectureMasses — les MURS définissent l’int
       ...emptyScene('scene-test', 12, 12),
       walls: perimeterWallSegs([cour]),
       effectZones: [{ id: 'cour', label: 'Cour', area: { kind: 'rect', ...cour }, presentation: 'exterior' }],
-      architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }],
+      architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }],
     };
     const [corps] = deriveArchitectureMasses(scene);
     expect(corps.masses).toHaveLength(0); // close par les murs, mais à ciel ouvert : rien à couvrir
@@ -463,7 +463,7 @@ describe('deriveArchitectureMasses — une colonne OUVERTE au sommet adopte la n
     }
     scene.walls = perimeterWallSegs([MAISON]); // #881 : les murs closent la maison, AUCUNE zone déclarée
     scene.architecture = [{
-      id: 'corps', style: 'maison', storeys: [], facades: [], masses: [],
+      id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [],
       ...(opts.roofExclusions ? { roofExclusions: opts.roofExclusions } : {}),
     }];
     return scene;
@@ -550,7 +550,7 @@ function bati(
     scene = putLayer(scene, couche.z, tiles, couche.z === 0 ? height : undefined);
   }
   scene.walls = perimeterWallSegs(emprise);
-  scene.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }];
+  scene.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }];
   return scene;
 }
 const porteuse = (scene: Scene, key: string) => massesOf(scene).find((mass) => cellsOf(mass.footprint).has(key));
@@ -698,14 +698,14 @@ describe('deriveArchitectureMasses — l’ORDRE du tableau `architecture` ne d�
  */
 describe('addArchitectureBody — le corps naît BORNÉ à l’emprise du geste', () => {
   it('l’étage z0 porte d’emblée un volume à l’emprise demandée', () => {
-    const { scene, id } = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 3, y: 4, w: 2, h: 2 });
+    const { scene, id } = addArchitectureBody(emptyScene('scene-test', 10, 10), { id: 'maison' }, { x: 3, y: 4, w: 2, h: 2 });
     const body = scene.architecture!.find((candidate) => candidate.id === id)!;
     expect(body.storeys[0].parts).toEqual([{ id: 'part-0', foot: { x: 3, y: 4, w: 2, h: 2 } }]);
     expect([...bodyFootCells(body)].sort()).toEqual(['3,4', '3,5', '4,4', '4,5']);
   });
 
   it('l’emprise est bornée à la scène, et le corps n’est JAMAIS non borné', () => {
-    const { scene, id } = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 9, y: 9, w: 4, h: 4 });
+    const { scene, id } = addArchitectureBody(emptyScene('scene-test', 10, 10), { id: 'maison' }, { x: 9, y: 9, w: 4, h: 4 });
     const body = scene.architecture!.find((candidate) => candidate.id === id)!;
     expect(body.storeys[0].parts[0].foot).toEqual({ x: 6, y: 6, w: 4, h: 4 });
     expect(bodyFootCells(body).size).toBeGreaterThan(0);

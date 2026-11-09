@@ -28,7 +28,7 @@
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { idDe } from '../grammaire/ref';
+import { idDe, ref } from '../grammaire/ref';
 import { ambianceSchema, reliefDefaultsSchema, sceneRoofDefaultsSchema } from '../defs-scenes/scene';
 
 export const file = 'semences-de-scene.json';
@@ -41,10 +41,10 @@ const doc = document(
     ambiance: ambianceSchema,
     metresPerTile: z.number().positive(),
     ambientLight: idDe('lightLevel').optional(),
-    terrain: idDe('terrain'),
+    terrain: ref('terrain'),
     reliefDefaults: reliefDefaultsSchema,
     roofDefaults: sceneRoofDefaultsSchema,
-    facade: idDe('structure'),
+    facade: ref('structure'),
     lieu: z.string().min(1),
     carte: z.string().min(1),
     profil: z.string().min(1),

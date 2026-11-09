@@ -106,15 +106,22 @@ def triangles(peau):
     return numpy.array([t.vertices[:] for t in peau.data.loop_triangles])
 
 
+def surface_ramenee(squelette, squelette_donneur, donneur, noms):
+    """La surface de la peau `donneur`, skinnée à `squelette_donneur`, posée sur le repos de `squelette` (chaque os
+    du donneur amené sur l'os homonyme, `ramener`) : ses sommets (repère monde), ses triangles et l'os dominant
+    (indice dans `noms`) de chaque triangle, le donneur que lie `formes.lier`."""
+    xd, wd = peau_lineaire(donneur, noms)
+    surface = deformer(wd, xd, ramener(squelette, squelette_donneur, noms)[None])[0]
+    faces = triangles(donneur)
+    dominants = wd.argmax(axis=1)
+    return surface, faces, numpy.array([numpy.bincount(dominants[t], minlength=len(noms)).argmax() for t in faces])
+
+
 def feminin(squelette, corps, squelette_feminin, corps_feminin):
     """Le décalage `feminin` de chaque sommet de `corps` (repère monde), et la sonde de sa projection."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
-    xf, wf = peau_lineaire(corps_feminin, noms)
-    surface = deformer(wf, xf, ramener(squelette, squelette_feminin, noms)[None])[0]
-    faces = triangles(corps_feminin)
-    dominants_f = wf.argmax(axis=1)
-    os_des_faces = numpy.array([numpy.bincount(dominants_f[t], minlength=len(noms)).argmax() for t in faces])
+    surface, faces, os_des_faces = surface_ramenee(squelette, squelette_feminin, corps_feminin, noms)
     os_de_x, voisinage = w.argmax(axis=1), voisins(squelette, noms)
     face, barycentres, distances = lier(x[:, :3], os_de_x, surface, faces, os_des_faces, voisinage)
     points = transporter(surface, faces, face, barycentres)

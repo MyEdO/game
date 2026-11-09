@@ -153,7 +153,7 @@ function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boo
         faces.push({
           poly: [{ ...c, h: topH }, { ...c, h: lowerH }],
           side,
-          material: { domain: 'relief', id: scene.reliefDefaults.pilier, part: 'pilier' },
+          material: { domain: 'relief', id: scene.reliefDefaults.pilier.id, part: 'pilier' },
           oriented: false, // MONTANT : deux points, aucun dehors à porter
         });
       }
@@ -182,7 +182,7 @@ function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boo
       ? { domain: 'relief', id: terrainMatiere(terrain)!, part: 'cliff' }
       : lien && terrainBuilt(terrain)
         ? { domain: 'terrain', id: terrain }
-        : { domain: 'relief', id: scene.reliefDefaults[deck ? 'deck' : lien ? 'ramp' : 'cliff'], part: deck ? 'deck' : lien ? 'ramp' : 'cliff' };
+        : { domain: 'relief', id: scene.reliefDefaults[deck ? 'deck' : lien ? 'ramp' : 'cliff'].id, part: deck ? 'deck' : lien ? 'ramp' : 'cliff' };
     const [A, B] = edgeCorners(x, y, side);
     const haut = profilDArete(dessus, A, B);
     const bas = deck

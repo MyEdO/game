@@ -20,10 +20,10 @@ function sceneWith(): Scene {
   s.triggers = [{ id: 'trig-0', rect: { x: 4, y: 4, w: 2, h: 2 }, once: true, flow: EMPTY_FLOW }];
   s.architecture = [{
     id: 'corps-0',
-    style: 'maison',
+    style: { id: 'maison' },
     storeys: [{ id: 'z0', z: 0, parts: [], roomZoneIds: [] }],
     facades: [],
-    masses: [{ id: 'roof-0', z: 0, footprint: [{ x: 6, y: 6, w: 3, h: 3 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' }],
+    masses: [{ id: 'roof-0', z: 0, footprint: [{ x: 6, y: 6, w: 3, h: 3 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } }],
   }];
   s.encounters = [{ id: 'enc-0', members: [{ entityId: 'enemy-0' }] }];
   s.restZones = [{ rect: { x: 0, y: 5, w: 2, h: 2 }, places: { camp: true } }];
@@ -36,10 +36,10 @@ function sceneWithArchitecture(): Scene {
     ...emptyScene('scene-test', 10, 10),
     architecture: [{
       id: 'corps',
-      style: 'maison',
+      style: { id: 'maison' },
       storeys: [{ id: 'z0', z: 0, parts: [{ id: 'aile', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: [] }],
       facades: [{ id: 'facade-sud', z: 0, edges: [{ x: 1, y: 2, side: 'N' }], appearance: 'mur-a-ossature-en-bois' }],
-      masses: [{ id: 'toit-nef', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' }],
+      masses: [{ id: 'toit-nef', z: 0, footprint: [{ x: 1, y: 1, w: 2, h: 2 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } }],
     }],
   };
 }
@@ -51,7 +51,7 @@ function architecturePart(scene: Scene, sel: Extract<Sel, { type: 'architectureP
 
 describe('édition de scène — architecture', () => {
   it('crée des volumes architecturaux avec ids stables', () => {
-    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), { id: 'maison' }, { x: 0, y: 0, w: 1, h: 1 });
     const part = addArchitecturePart(body.scene, body.id, 'z0', { x: 1, y: 1, w: 2, h: 2 });
     if (!part) throw new Error('part architecturale absente');
     const facade = addFacadeSection(part.scene, body.id, { x: 1, y: 2, side: 'N' }, 'mur-a-ossature-en-bois');
@@ -70,7 +70,7 @@ describe('édition de scène — architecture', () => {
     expect(addArchitecturePart(scene, 'absent', 'z0', { x: 0, y: 0, w: 1, h: 1 })).toBeNull();
     expect(addFacadeSection(scene, 'absent', { x: 0, y: 0, side: 'N' }, 'mur')).toBeNull();
     expect(addBuildingMass(scene, 'absent', { x: 0, y: 0, w: 1, h: 1 }, 1)).toBeNull();
-    const body = addArchitectureBody(scene, 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const body = addArchitectureBody(scene, { id: 'maison' }, { x: 0, y: 0, w: 1, h: 1 });
     expect(addArchitecturePart(body.scene, body.id, 'z-inexistant', { x: 0, y: 0, w: 1, h: 1 })).toBeNull();
   });
 
@@ -87,10 +87,10 @@ describe('édition de scène — architecture', () => {
     expect(hitAt(scene, { x: 1, y: 1 }, TOUS_CALQUES)).toEqual({ type: 'architecturePart', bodyId: 'corps', storeyId: 'z0', id: 'aile' });
     expect(hitAt(scene, { x: 6, y: 6 }, TOUS_CALQUES)).toBeNull();
     scene.architecture!.push({
-      id: 'etage', style: 'maison',
+      id: 'etage', style: { id: 'maison' },
       storeys: [{ id: 'z1', z: 1, parts: [{ id: 'aile-haute', foot: { x: 1, y: 1, w: 2, h: 2 } }], roomZoneIds: [] }],
       facades: [],
-      masses: [{ id: 'toit-haut', z: 1, footprint: [{ x: 6, y: 6, w: 1, h: 2 }, { x: 7, y: 7, w: 1, h: 1 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' }],
+      masses: [{ id: 'toit-haut', z: 1, footprint: [{ x: 6, y: 6, w: 1, h: 2 }, { x: 7, y: 7, w: 1, h: 1 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } }],
     });
     expect(hitAt(scene, { x: 1, y: 1 }, TOUS_CALQUES, 1)).toEqual({ type: 'architecturePart', bodyId: 'etage', storeyId: 'z1', id: 'aile-haute' });
     expect(hitAt(scene, { x: 6, y: 6 }, TOUS_CALQUES, 0)).toBeNull();
@@ -119,7 +119,7 @@ describe('édition de scène — architecture', () => {
 
 describe('édition de scène — #841 FU-C : corps/étage sélectionnables et supprimables au clic', () => {
   it('addArchitectureStorey ajoute un étage frais sans toucher le premier (z0)', () => {
-    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), { id: 'maison' }, { x: 0, y: 0, w: 1, h: 1 });
     const out = addArchitectureStorey(body.scene, body.id, 1);
     if (!out) throw new Error('étage absent');
     const storeys = out.scene.architecture?.[0]?.storeys;
@@ -153,7 +153,7 @@ describe('édition de scène — #841 FU-C : corps/étage sélectionnables et su
   });
 
   it('deleteSel(architectureStorey) retire l’étage, mais protège le DERNIER étage du corps', () => {
-    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const body = addArchitectureBody(emptyScene('scene-test', 10, 10), { id: 'maison' }, { x: 0, y: 0, w: 1, h: 1 });
     const withStorey = addArchitectureStorey(body.scene, body.id, 1);
     if (!withStorey) throw new Error('étage absent');
     const removed = deleteSel(withStorey.scene, { type: 'architectureStorey', bodyId: body.id, id: withStorey.id });
@@ -164,7 +164,7 @@ describe('édition de scène — #841 FU-C : corps/étage sélectionnables et su
   });
 
   it('le scénario auparavant impossible : créer → sélectionner au clic → ajouter un étage → supprimer', () => {
-    const created = addArchitectureBody(emptyScene('scene-test', 10, 10), 'maison', { x: 0, y: 0, w: 1, h: 1 });
+    const created = addArchitectureBody(emptyScene('scene-test', 10, 10), { id: 'maison' }, { x: 0, y: 0, w: 1, h: 1 });
     // Sélection au CANEVAS (clic dans le vide, corps actif = celui créé — comme le fait EditorCanvas) :
     // à l'étage z0 du corps flambant neuf, le clic désigne son unique étage.
     const pickedStorey = hitAt(created.scene, { x: 4, y: 4 }, TOUS_CALQUES, 0, created.id);
@@ -388,7 +388,7 @@ describe('édition de scène — pose', () => {
     const ent = scene.entities.find((e) => e.id === id)!;
     expect(ent).toMatchObject({ kind: 'personnage', ref: 'humain' });
     expect(ent).not.toHaveProperty('label');
-    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('humain'));
+    expect(nomDEntite(ent, () => undefined), 'un humain anonyme reçoit un nom tiré sur son id (#3712)').not.toBe(creatureLabel('humain'));
     expect(ent.appearance).toBeUndefined();
     expect(validateScene([scene]).filter((w) => w.scope === 'entity' && w.level === 'error')).toEqual([]);
   });
@@ -422,7 +422,7 @@ describe('édition de scène — pose', () => {
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
     expect(findCreatureById(ent.ref)).toBeDefined();
     expect(ent).not.toHaveProperty('label');
-    expect(nomDEntite(ent, () => undefined)).toBe(creatureLabel('humain'));
+    expect(nomDEntite(ent, () => undefined), 'un humain anonyme reçoit un nom tiré sur son id (#3712)').not.toBe(creatureLabel('humain'));
     // Un LIBELLÉ passé à la place d'un id est refusé net — le résolveur valide, il ne normalise pas.
     expect(() => addEnemyMember(emptyScene('scene-test', 10, 10), '', 'Villageois', { x: 2, y: 2 })).toThrow(/id de créature/);
   });

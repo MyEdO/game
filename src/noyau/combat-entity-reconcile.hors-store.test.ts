@@ -108,22 +108,24 @@ describe('checkBattleOver — un engin INERTE ne compte ni pour la victoire ni p
 describe('removeEntities — retrait par lot (brique partagée)', () => {
   it('retire les ids donnés en un seul passage, ignore les inconnus, conserve le reste', () => {
     const scene: Scene = {
-      type: 'scene', id: 's', label: '', dimensions: { w: 4, h: 4 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+      type: 'scene', id: 's', label: '', dimensions: { w: 4, h: 4 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
       layers: [{ z: 0, tiles: new Array(16).fill('herbe') }],
       entities: (['a', 'b', 'c'] as const).map((id): SceneEntity => ({ id, kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } })),
       dialogues: [], triggers: [], encounters: [], flags: {},
     };
     let stored: Scene = scene;
-    const get = (() => ({ scene: stored, party: [] })) as never;
-    const set = ((patch: { scene: Scene }) => { stored = patch.scene; }) as never;
+    let auSol: Record<string, unknown[]> = { a: [], b: [] };
+    const get = (() => ({ scene: stored, party: [], objetsAuSol: auSol })) as never;
+    const set = ((patch: { scene: Scene; objetsAuSol: Record<string, unknown[]> }) => { stored = patch.scene; auSol = patch.objetsAuSol; }) as never;
     removeEntities(get, set, ['a', 'c', 'inconnu']);
     expect(stored.entities.map((e) => e.id)).toEqual(['b']);
+    expect(Object.keys(auSol), 'l’objet au sol d’un décor retiré sort dans la même écriture').toEqual(['b']);
   });
 
   it('une suppression NETTOIE l’assise dans la MÊME écriture de scène (meuble ou corps)', () => {
     const assis = { kind: 'entity' as const, entityId: 'pnj-1' };
     const fixture = (): Scene => ({
-      type: 'scene', id: 's', label: '', dimensions: { w: 6, h: 6 }, reliefDefaults: { ...DEFAULT_RELIEF_DEFAULTS }, roofDefaults: { ...DEFAULT_ROOF_DEFAULTS },
+      type: 'scene', id: 's', label: '', dimensions: { w: 6, h: 6 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
       layers: [{ z: 0, tiles: new Array(36).fill('herbe') }],
       entities: [
         { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
@@ -134,7 +136,7 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
     });
     for (const retire of ['table-1', 'pnj-1']) {
       let stored: Scene = fixture();
-      const get = (() => ({ scene: stored, party: [] })) as never;
+      const get = (() => ({ scene: stored, party: [], objetsAuSol: {} })) as never;
       const set = ((patch: { scene: Scene }) => { stored = patch.scene; }) as never;
       removeEntities(get, set, [retire]);
       expect(seatPoseOf(stored, assis), `« ${retire} » retiré`).toBeNull();

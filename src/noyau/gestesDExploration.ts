@@ -3,7 +3,7 @@
  * arguments, pour un hôte qui les donne prêts à jouer. Les arêtes qu'il borde (`aretesUtilisables`, offertes comme à
  * l'écran : `aretesOffertes`), les sauts (`atterrissagesDeSaut`), les sorties de scène (déclencheurs à transition,
  * `triggersEnJeu`), les offres des entités à sa portée (`offresDExploration` : parler, commercer, s'asseoir, une action
- * authorée), refusées avec leur raison, la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`ouvrirLaCarte`), l'écran du lieu où il se tient
+ * authorée, un objet posé au sol à ramasser), refusées avec leur raison, la carte du monde quand le groupe est à l'un de ses lieux ou en voyage (`ouvrirLaCarte`), l'écran du lieu où il se tient
  * (`ouvrirLeLieu`), puis les dénivelés qu'il borderait ailleurs à son étage (`gesteDeDenivele`), le plus proche de chaque libellé, du
  * plus proche au plus lointain. Ce qui ne se joue pas depuis sa case se rejoint par le chemin du groupe (`exploreMovePlan`), joué par
  * le clic de sa case (`cliquerLaCase`), comme un saut.

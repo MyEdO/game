@@ -1,4 +1,4 @@
-import type { Combatant } from '../engine/types';
+import type { Combatant, ItemInstance } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
 import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from './actionRegistry';
@@ -22,7 +22,7 @@ import type { MerchantState, MerchantStocks } from './merchantFlow';
 import type { FinDeSeance } from './partyFlow';
 import type * as tavernFlow from './tavernFlow';
 import type { PendingVictory, PendingLoot, PendingTest, PendingSteamSave, PendingReload, PendingStateRecovery, PendingBargain, PendingAppraise, PendingAttack, PendingHandGate, PendingSiegeAim, PendingCleave, PendingDualStrike, PendingBattement, PendingDistraire, PendingManeuver, PendingRun, PendingFall, PendingShipManeuver, PendingShipBattery, PendingShanty, PendingApproach, PendingWard, PendingFocus, PendingDispel, PendingFrenzy, PendingRenounce, PendingDefense, PendingDisengage, PendingAuContact, PendingGrapple, PendingCast, PendingCounterspell, PendingExtendedTest, PendingForceDoor, PendingDesignationHeros, PendingEtalLot, PendingHeal, PendingSurgery, PendingCorruption, PendingCastOpposition, PendingCascade, ScheduledEffect, EtatDialogue } from './pendings';
-import type { MedicState } from './medicFlow';
+import type { MedicState } from './acteDeSoin';
 import type { PendingRest } from './restFlow';
 import type { PendingCouncil } from './shipCrew';
 import type { Scene, VictoryCondition } from './monde/scene';
@@ -656,6 +656,10 @@ export interface EtatDeJeu {
   /** Registre UNIQUE des Possessions (#615, SOCLE POSSESSIONS §6) — bêtes/serviteurs/véhicules/navires/
    *  immeubles, hors héros de `party`. Aucun mirroir par kind ; `possessionsFlow.ts` en est la plomberie. */
   possessions: Possession[];
+  /** Les objets posés au sol (#3741), par l'id du décor de la scène qui les montre (`poserLObjet`) : l'objet posé puis le
+   *  contenu de son contenant, uids et état intacts. Le funnel de retrait des entités (`removeEntities`) retire l'entrée
+   *  du décor retiré. */
+  objetsAuSol: Record<string, ItemInstance[]>;
   /** Écran PORT ouvert (services au navire à quai — MDG 15) : réparation/carénage/Améliorations +
    *  commerce (offres d'achat générées à l'escale). `null` = fermé. */
   port: import('./portFlow').PortState | null;
@@ -688,6 +692,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     lastNightDay: dayIndex(campaignStart()),
     vessel: null,
     possessions: [],
+    objetsAuSol: {},
     tradeRumours: [],
     landMarket: null,
     worldMap: null,

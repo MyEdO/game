@@ -78,8 +78,8 @@ const MUTATIONS: Record<Exclude<keyof Scene, 'type'>, (s: Scene) => Scene> = {
     effectZones: [...(s.effectZones ?? []), { id: 'zone-neuve', label: 'Zone neuve', presentation: 'interior', area: { kind: 'rect', x: 2, y: 2, w: 2, h: 2 } }],
   }),
   music: (s) => ({ ...s, music: { ambient: null } }),
-  reliefDefaults: (s) => ({ ...s, reliefDefaults: { ...s.reliefDefaults, cliff: 'pierre' } }),
-  roofDefaults: (s) => ({ ...s, roofDefaults: { ...s.roofDefaults, material: 'chaume' } }),
+  reliefDefaults: (s) => ({ ...s, reliefDefaults: { ...s.reliefDefaults, cliff: { id: 'pierre' } } }),
+  roofDefaults: (s) => ({ ...s, roofDefaults: { ...s.roofDefaults, material: { id: 'chaume' } } }),
   layers: (s) => ({ ...s, layers: cloneLayers(s) }),
   walls: (s) => ({ ...s, walls: [...(s.walls ?? [])] }),
   entities: (s) => ({ ...s, entities: [...s.entities] }),
@@ -223,7 +223,7 @@ describe('Zones de pièce — hors du monde CUIT, résolues sur la scène VIVE (
 describe('Cuisson du monde — les MATIÈRES entrent dans le read-set (#1686)', () => {
   afterEach(() => resetData());
 
-  const couvertureDeLaScene = base.architecture![0].masses[0].material;
+  const couvertureDeLaScene = base.architecture![0].masses[0].material.id;
 
   it('la fixture pose bien une masse de toit sur une couverture RÉELLE (sinon rien n’est mesuré)', () => {
     expect(matieresDe('roof').map((m) => m.id)).toContain(couvertureDeLaScene);
@@ -310,7 +310,7 @@ describe('Cuisson du monde — les matières de TOIT du read-set couvrent les ma
       for (const body of effectiveArchitecture(scene))
         for (const mass of body.masses) {
           masses++;
-          if (!deps.has(roofMaterial(mass.material))) manquants.push(`${nom} · masse ${mass.id} → ${mass.material}`);
+          if (!deps.has(roofMaterial(mass.material.id))) manquants.push(`${nom} · masse ${mass.id} → ${mass.material.id}`);
         }
     }
     expect(manquants).toEqual([]);
@@ -403,9 +403,9 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
     const scene = emptyScene('scene-test', 40, 40);
     const couverture = matieresDe('roof')[0].id;
     scene.architecture = Array.from({ length: n }, (_, i) => ({
-      id: `corps-${i}`, kind: 'batiment', footprint: [{ x: i % 20, y: Math.floor(i / 20) }],
-      masses: [{ id: `m-${i}`, material: couverture, shape: 'appentis', heightM: 3 }],
-    })) as unknown as Scene['architecture'];
+      id: `corps-${i}`, storeys: [], facades: [],
+      masses: [{ id: `m-${i}`, z: 0, footprint: [{ x: i % 20, y: Math.floor(i / 20), w: 1, h: 1 }], levels: 1, profile: 'gable', pitchDeg: 30, material: { id: couverture } }],
+    }));
     return scene;
   };
 

@@ -32,10 +32,7 @@ import {
   POINT_BUY_TOTAL,
   rollInitialWealth,
   type TirageDeRichesse,
-  rollAge,
-  rollHeight,
-  rollEyes,
-  rollHair,
+  tirerLesDetails,
   rollStar,
   XP_SPECIES_ACCEPTED,
   XP_CAREER_FIRST,
@@ -800,8 +797,7 @@ export function rollDraftDetails(d: CreatorDraft): CreatorDraft {
 export function rolledDetails(d: CreatorDraft): { age: number; height: number; eyes: string; hair: string } {
   const sp = draftSpecies(d);
   if (!sp) return { age: 0, height: 0, eyes: '', hair: '' };
-  const rng = fluxDeCreation(d.seed, 'details');
-  return { age: rollAge(sp, rng), height: rollHeight(sp, rng), eyes: rollEyes(sp, rng), hair: rollHair(sp, rng) };
+  return tirerLesDetails(sp.refChar, fluxDeCreation(d.seed, 'details'));
 }
 
 export type StepId = 'species' | 'career' | 'chars' | 'star' | 'skills' | 'trappings' | 'details' | 'presentation';

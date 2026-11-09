@@ -91,7 +91,7 @@ describe('volumeDuMonde (#3476)', () => {
 
   it('une surface par matière, nommée par son domaine et son id, qui se suivent : le terrain du dessus, le relief de la paroi', () => {
     const s = marche();
-    s.reliefDefaults = { ...s.reliefDefaults, cliff: 'pierre' };
+    s.reliefDefaults = { ...s.reliefDefaults, cliff: { id: 'pierre' } };
     s.layers[0].height = [0, 3];
     const v = volumeDuMonde(s);
     expect(v.surfaces.map((m) => m.debut)).toEqual([0, ...v.surfaces.slice(0, -1).map((m) => m.fin)]);
@@ -135,7 +135,7 @@ describe('toitsDuMonde, toitsLeves (#3476)', () => {
   const scene = (): Scene => ({
     ...emptyScene('toits', 10, 8),
     walls: perimeterWallSegs([MAISON]),
-    architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile' }] }],
+    architecture: [{ id: 'bourg', storeys: [], facades: [], masses: [{ id: 'maison', z: 0, footprint: [MAISON], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' } }] }],
   });
 
   it('une nappe par masse, ses pans de couverture et ses pignons de la matière du mur qu’ils prolongent', () => {

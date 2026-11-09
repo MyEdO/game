@@ -13,16 +13,17 @@ import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, entiteDuSchema, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
   assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
-  DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
+  DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
   type WallPaint, ZONE_VARIANTS, bornesAuPoint, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
-  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant, sceneNpc,
+  candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
+  findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -277,8 +278,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
  *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
  *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
- *  profil porté, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle couvre ; le
- *  formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
+ *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
+ *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
@@ -294,7 +295,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
     ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent), ent as unknown as Record<string, unknown>),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
@@ -508,6 +509,32 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
   ];
 }
 
+/** Les sorts du personnage `ent` de la session `s`, lus sur sa fiche (`sceneNpc`), s'il en a une : ceux que son profil imprime,
+ *  sur une ligne ; sinon, s'il a une liste de sorts (`listesDeSorts`), chaque sort choisi, à retirer, la raison qui
+ *  refuse les choix (`refusDesSortsChoisis`), en liste chaque sort d'une de ses listes qu'il n'a pas choisi, à ajouter,
+ *  refusé avec sa raison, puis ses sorts au spawn, choisis et tirés (`sortsDuPnj`). Chaque bouton écrit les sorts
+ *  choisis entiers. */
+function sorts(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne)[] {
+  const fiche = sceneNpc(sceneEditee(s), ent.id, presetDuNarratif(s.projet.narratif));
+  if (!fiche) return [];
+  const libelle = (id: string) => findSpellById(id)?.label ?? id;
+  const liste = (ids: readonly string[]) => ids.map(libelle).join(', ') || t('ecran.editeur.profil.aucun');
+  const imprimes = sortsImprimes(fiche.porteurDeFiche);
+  if (imprimes.length) return [ligne('sorts/imprimes', t('ecran.editeur.sorts.imprimes', { liste: liste(imprimes) }))];
+  const listes = listesDeSorts(fiche);
+  if (!listes.length) return [];
+  const choisis = ent.combat?.spells ?? [];
+  const ecrire = (ids: string[]): GesteDEdition => ({ geste: 'entite', patch: { sorts: ids } });
+  const refus = refusDesSortsChoisis(fiche, choisis);
+  return [
+    ...choisis.map((id) => choix(`sorts/${id}`, libelle(id), [bouton(`sorts/${id}/retirer`, t('ecran.editeur.sorts.retirer'), ecrire(choisis.filter((x) => x !== id)))])),
+    ...(refus ? [ligne('sorts/refus', refus, 'alerte')] : []),
+    choix('sorts/ajouter', t('ecran.editeur.sorts.ajouter'), spells.filter((sp) => !choisis.includes(sp.id) && listes.some((l) => l.admet(sp)))
+      .map((sp) => bouton(`sorts/ajouter/${sp.id}`, sp.label, ecrire([...choisis, sp.id]), false, refusDesSortsChoisis(fiche, [...choisis, sp.id]) ?? null)), 'liste'),
+    ligne('sorts/connus', t('ecran.editeur.sorts.connus', { liste: liste(fiche.spells ?? []) })),
+  ];
+}
+
 /** Les rencontres du personnage `ent` de la session `s` : dans chacune, enrôlé ou non, ennemi ou allié, piloté par l'IA
  *  s'il est allié ; l'enrôler dans une rencontre neuve. */
 function rencontres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Bouton)[] {
@@ -602,7 +629,7 @@ function inspecteurDArchitecture(s: SessionDEdition): (Choix | Ligne | Bouton | 
       formulaireDuNom(corps.label, true),
       choix('corps/style', t('ecran.editeur.corps.style'), [
         bouton('corps/style/aucun', t('ecran.editeur.corps.style.aucun'), { geste: 'architecture', patch: { style: null } }, corps.style === undefined),
-        ...styles.map((m) => bouton(`corps/style/${m.id}`, m.label, { geste: 'architecture', patch: { style: m.id } }, corps.style === m.id)),
+        ...styles.map((m) => bouton(`corps/style/${m.id}`, m.label, { geste: 'architecture', patch: { style: { id: m.id } } }, corps.style?.id === m.id)),
       ], 'liste'),
       ligne('corps/etages', t('ecran.editeur.corps.etages', { n: corps.storeys.length, s: pluriel(corps.storeys.length) })),
       ...toitureDuCorps(scene, corps),
@@ -659,10 +686,10 @@ const choixDEgout = (id: string, cote: string | undefined, jeu: (c: (typeof COTE
 
 /** La couverture `material` : le bouton qui la fait suivre, s'il est donné (pressé sans couverture), puis chaque matière
  *  couvrante. */
-const choixDeCouverture = (id: string, material: string | undefined, jeu: (m: string) => GesteDEdition, suit: GesteDEdition | null): Choix =>
+const choixDeCouverture = (id: string, material: { id: string } | undefined, jeu: (m: { id: string }) => GesteDEdition, suit: GesteDEdition | null): Choix =>
   choix(id, t('ecran.editeur.toiture.couverture'), [
     ...(suit ? [bouton(`${id}/suit`, t('ecran.editeur.toiture.suit'), suit, material === undefined)] : []),
-    ...matieresCouvrantes().map((m) => bouton(`${id}/${m.id}`, m.label, jeu(m.id), material === m.id)),
+    ...matieresCouvrantes().map((m) => bouton(`${id}/${m.id}`, m.label, jeu({ id: m.id }), material?.id === m.id)),
   ], 'liste');
 
 /** La toiture du corps `corps` : celle qui s'applique, puis chaque champ de son intention, profil, côté d'égout d'un
@@ -672,7 +699,7 @@ function toitureDuCorps(scene: Scene, corps: Corps): (Choix | Ligne | Bouton)[] 
   const effective = toitureEffective(scene, corps);
   const rd = corps.roofDefaults;
   const sur = (toiture: Toiture): GesteDEdition => ({ geste: 'architecture', patch: { toiture } });
-  const couverture = matieresCouvrantes().find((m) => m.id === effective.material)?.label ?? effective.material;
+  const couverture = matieresCouvrantes().find((m) => m.id === effective.material.id)?.label ?? effective.material.id;
   return [
     ligne('toiture', t('ecran.editeur.toiture', { couverture, pente: effective.penteReference, comble: effective.riseMaxStoreys })),
     choix('toiture/profil', t('ecran.editeur.toiture.profil'), [
@@ -1045,7 +1072,7 @@ function inspecteurDArete(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (climb?.kind === 'surface') {
     elements.push(
       choix('arete/escalade/difficulte', t('ecran.editeur.inspecteur.escalade.difficulte'), (Object.entries(DIFFICULTY_LABELS) as [Difficulty, string][])
-        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? 'intermediaire') === d)), 'liste'),
+        .map(([d, libelle]) => bouton(`arete/escalade/difficulte/${d}`, libelle, surLArete({ climb: { ...climb, difficulty: d } }), (climb.difficulty ?? DIFFICULTE_PAR_DEFAUT) === d)), 'liste'),
       bascule('grimpeur', !!climb.requiresGrimpeur, surLArete({ climb: { kind: 'surface', ...(climb.difficulty ? { difficulty: climb.difficulty } : {}), ...(climb.requiresGrimpeur ? {} : { requiresGrimpeur: true }) } })),
     );
   }
@@ -1152,7 +1179,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     ...musiqueDeLaScene(scene),
     formulaireDuMessage(scene),
     ...PARTS_RELIEF.map((part) => choix(`scene/relief/${part}`, t(`ecran.editeur.scene.relief.${part}`), matieresDe('relief').map((m) =>
-      bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: m.id } }), scene.reliefDefaults[part] === m.id)), 'liste')),
+      bouton(`scene/relief/${part}/${m.id}`, m.label, sur({ relief: { [part]: { id: m.id } } }), scene.reliefDefaults[part].id === m.id)), 'liste')),
     ligne('scene/toiture', t('ecran.editeur.scene.toiture')),
     choixDeCouverture('scene/toiture/couverture', toit.material, (m) => sur({ toiture: { material: m } }), null),
     ...reglette('scene/toiture/pente', t('ecran.editeur.toiture.pente', { v: toit.pitchDeg }), toit.pitchDeg, PAS_DE_PENTE, (v) => sur({ toiture: { pitchDeg: v } })),

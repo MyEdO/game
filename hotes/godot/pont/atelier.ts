@@ -14,12 +14,12 @@
  * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
  * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
  */
-import type { Attache } from '../asset/attache';
-import { ETATS_AU_POSTE, noeudSelon, type ManifesteDElement } from '../asset/element';
+import type { Attache, Repere } from '../asset/attache';
+import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type PosteDuVehicule } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type Maniement, type PosteDuVehicule } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -53,6 +53,9 @@ export interface BaseDeLAtelier {
   lignes: LigneDePiece[];
   /** Le clip de chaque rôle que la base joue (`ManifesteDeBase.clips`). */
   clips: ManifesteDeBase['clips'];
+  /** Par maniement, le clip de chaque rôle que la base joue en tenant des deux mains un objet de ce maniement
+   *  (`ManifesteDeBase.clipsDeuxMains`), vide sans table. */
+  clipsDeuxMains: NonNullable<ManifesteDeBase['clipsDeuxMains']>;
   /** La vitesse au sol en m/s du clip du rôle `walk` (`ManifesteDeBase.appuis.vitesseAuSol`). */
   vitesseAuSol: number;
 }
@@ -69,12 +72,32 @@ export interface ModelesDeLAtelier {
   surfaces: Record<string, readonly Surface[]>;
   /** Par élément servi, le libellé de la chose que sa clé désigne (`libelleDeCleDElement`), à défaut son id. */
   libelles: Record<string, string>;
+  /** Par élément servi qui en déclare une, la prise de la main libre (`SecondePriseDeLAtelier`, #3319). */
+  secondesPrises: Record<string, SecondePriseDeLAtelier>;
+  /** Par élément servi qui a une couche, les zones de sa base qu'il couvre (`couvre`, aucune sans déclaration) et les
+   *  éléments servis qu'il masque (`masque`), ceux de couche plus intérieure dans `COUCHES` ou sans couche : monté, il
+   *  cache les meshes de ces zones, du corps et des éléments de `masque`. */
+  couches: Record<string, CoucheDeLAtelier>;
   /** Les emblèmes de la garde-robe (`kind: 'embleme'`). */
   emblemes: EmblemeDeLAtelier[];
   /** Par fiche de véhicule ou d'engin (`cle.definition`), l'id de l'élément `vehicule` servi qui la dessine (#2987). */
   vehicules: Record<string, string>;
   /** Par Amélioration navale (`cle.amelioration`), l'id de l'élément `amelioration` servi qui la dessine (#2987). */
   ameliorations: Record<string, string>;
+}
+
+/** La seconde prise d'un élément : son repère dans celui de sa prise (`liaison.secondePrise`), et le maniement de sa
+ *  forme (`cle.apparence`, `maniementDeLaForme`), qui choisit ses clips à deux mains, `null` sans forme ou sans
+ *  déclaration. */
+export interface SecondePriseDeLAtelier {
+  repere: Repere;
+  maniement: Maniement | null;
+}
+
+/** La couche d'un élément au montage : les zones qu'il couvre, et les éléments qu'il masque. */
+export interface CoucheDeLAtelier {
+  couvre: readonly string[];
+  masque: readonly string[];
 }
 
 /** Un emblème offert au montage : son id, son libellé et son dessin. */
@@ -107,6 +130,8 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const glb: Record<string, string> = {};
   const surfaces: Record<string, readonly Surface[]> = {};
   const libelles: Record<string, string> = {};
+  const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
+  const rangs: Record<string, { rang: number; couvre: readonly string[] }> = {};
   const catalogues = cataloguesDeComposition();
   const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string =>
     (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === id)?.label ?? id;
@@ -116,6 +141,11 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
       glb[id] = fichiersDuModele(id).glb;
       surfaces[id] = (brut as ManifesteDElement).surfaces;
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
+      const { couche, couvre } = brut as { couche?: Couche; couvre?: readonly string[] };
+      if (couche) rangs[id] = { rang: COUCHES.indexOf(couche), couvre: couvre ?? [] };
+      const { liaison } = brut as ManifesteDElement;
+      const forme = cleDe(brut).apparence;
+      if ('secondePrise' in liaison && liaison.secondePrise) secondesPrises[id] = { repere: liaison.secondePrise, maniement: (forme && maniementDeLaForme(forme)) || null };
       return id;
     });
   const bases = [...index.bases.values()].map(({ id, brut }): BaseDeLAtelier => {
@@ -156,14 +186,16 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
           : []),
     ];
-    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, vitesseAuSol: m.appuis.vitesseAuSol };
+    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
+  const couches = Object.fromEntries(Object.entries(rangs).map(([id, { rang, couvre }]): [string, CoucheDeLAtelier] =>
+    [id, { couvre, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < rang) }]));
   const parCle = (categorie: 'vehicule' | 'amelioration', champ: 'definition' | 'amelioration') => Object.fromEntries(elements.flatMap((e) => {
     const m = e.brut as ManifesteDElement;
     return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
   }));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, emblemes, vehicules: parCle('vehicule', 'definition'), ameliorations: parCle('amelioration', 'amelioration') };
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules: parCle('vehicule', 'definition'), ameliorations: parCle('amelioration', 'amelioration') };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la

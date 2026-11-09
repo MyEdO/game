@@ -21,7 +21,7 @@ import { setDataset } from '../../data/overrides';
 import { buildProps } from '../builders/props';
 import { gpToWorld } from '../../noyau/monde/volume/worldTris';
 import { pointLightWrites } from './stagePointLights';
-import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
+import { FLAME_LIFT_M } from '../../noyau/monde/vision';
 import type { Dir4 } from '../../geometry/dir8';
 
 /** Tolérance du contrat, en mètres — « la lampe est au foyer », pas « la lampe est à peu près là ». */
@@ -109,7 +109,7 @@ describe('la lampe d’un décor VOLUMIQUE est posée sur sa primitive émettric
 
   /**
    * EMPREINTE NON 1×1 — l'ancre d'un décor n'est PAS sa case : c'est le CENTRE de son empreinte
-   * (`decorAncre`, `noyau/monde/footprint.ts`), que le builder applique à la recette. Une lampe calée sur
+   * (`ancreDuDecor`, `noyau/monde/footprint.ts`), que le builder applique à la recette. Une lampe calée sur
    * `pos` seul reste juste tant que tous les émetteurs sont 1×1 (offset nul) et se détache dès la
    * première empreinte plus large — mesuré à 1,414 m sur un 2×2, quatorze fois la tolérance.
    *
@@ -157,7 +157,7 @@ describe('la lampe d’un décor VOLUMIQUE est posée sur sa primitive émettric
     // second régime — c'est l'autre valeur du même paramètre.
     const scene = sceneAvec('tonneau', 'S');
     scene.entities = [{ ...scene.entities[0], light: { radiusM: 6 } } as Scene['entities'][number]];
-    expect(mapLights(scene)[0].foyer).toBeUndefined();
+    expect(mapLights(scene)[0].foyer).toEqual({ x: 0, y: 0, h: FLAME_LIFT_M });
     const lampe = lampeDe(scene);
     const mpt = sceneMetresPerTile(scene);
     expect(lampe.x).toBe(5 * mpt);

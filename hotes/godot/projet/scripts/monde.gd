@@ -8,8 +8,8 @@
 ## du triangle que le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
 ## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
 ## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
-## couronnes crénelées des murs, chacune cachée quand son mur tombe, la météo (`poser_la_meteo`) et le calque de
-## référence de l'éditeur ; tout autre
+## couronnes crénelées des murs, chacune cachée quand son mur tombe, la météo (`poser_la_meteo`), la mer de chaque
+## navire bordée par sa coque (`border_la_mer`) et le calque de référence de l'éditeur ; tout autre
 ## chose posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
@@ -95,6 +95,10 @@ var _suivi: Tween
 var _suivi_lieu: Variant = null
 ## Le regard posé (`regarder`).
 var _regard := "tactique"
+## Le dernier volume posé (`poser`), `null` avant le premier.
+var _monde_pose: Variant = null
+## Par id de navire, le contour de sa coque à sa flottaison dans le plan du volume (`border_la_mer`).
+var _coques := {}
 
 
 func _ready() -> void:
@@ -107,18 +111,26 @@ func _ready() -> void:
 
 ## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
 ## monde : son maillage, une surface par matière (sol, relief, décor), texturée ou colorée par sommet (`_matiere`),
-## rendu des deux côtés, le même en forme que le rayon du pointeur touche des deux côtés, le sol de chaque case de
-## chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque
-## tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
+## rendu des deux côtés hors des surfaces d'un navire, la mer de chacun bordée par sa coque (`_maillage_de`), en forme
+## hors de ces mers, que le rayon du pointeur touche des deux côtés, le sol de chaque case de chaque couche, et la caméra
+## centrée sur lui. Godot tient pour face avant le sens horaire, le volume le sens trigonométrique : chaque tableau
+## retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui, que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
+	_monde_pose = monde
 	_metres_par_case = monde.metresParCase
 	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
 	_volume.scale = Vector3(echelle, echelle, echelle)
 	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
 	_maillage.mesh = _maillage_de(monde)
-	var sommets := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
+	var tous := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
+	var sommets := PackedVector3Array()
+	_cases_des_triangles = []
+	for surface: Dictionary in monde.surfaces:
+		if surface.has("flottaison"):
+			continue
+		sommets.append_array(tous.slice(int(surface.debut), int(surface.fin)))
+		_cases_des_triangles.append_array(monde.cases.slice(int(MiseEnPage.triangles(int(surface.debut))), int(MiseEnPage.triangles(int(surface.fin)))))
 	sommets.reverse()
-	_cases_des_triangles = monde.cases.duplicate()
 	_cases_des_triangles.reverse()
 	var forme := ConcavePolygonShape3D.new()
 	forme.set_faces(sommets)
@@ -128,6 +140,19 @@ func poser(monde: Dictionary) -> void:
 	for couche in monde.hauteurs:
 		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.metresParCase)))
 	_pivot.position = MiseEnPage.centre_du_plateau(taille())
+
+
+## La mer du navire `navire` (les surfaces `flottaison` du volume, `CONTRAT.md`, section « Monde ») bordée par sa coque,
+## de contour `contour` dans le plan horizontal du repère global (`MontageDeVehicule.contour_sous`) : le maillage du
+## volume la peint hors de lui seulement.
+func border_la_mer(navire: String, contour: PackedVector2Array) -> void:
+	var dans_le_volume := PackedVector2Array()
+	for point in contour:
+		var local := _volume.to_local(Vector3(point.x, 0.0, point.y))
+		dans_le_volume.append(Vector2(local.x, local.z))
+	_coques[navire] = dans_le_volume
+	if _monde_pose != null:
+		_maillage.mesh = _maillage_de(_monde_pose)
 
 
 ## Les nappes de toit (`toits`) et les couronnes crénelées des murs (`couronnes`) de la scène (`CONTRAT.md`, section
@@ -246,22 +271,67 @@ func _cacher_sous(parent: Node3D, cles: Array) -> void:
 
 
 ## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
-## texturée ou colorée par sommet (`_matiere`), chaque tableau retourné en entier (`_retournes`).
+## texturée ou colorée par sommet (`_matiere`), chaque tableau retourné en entier (`_retournes`) ; sans les surfaces
+## d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre ; la mer d'un navire
+## (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il n'est pas connu.
 func _maillage_de(geometrie: Dictionary) -> ArrayMesh:
 	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
 	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
 	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
 	var maillage := ArrayMesh.new()
-	for indice in geometrie.surfaces.size():
-		var surface: Dictionary = geometrie.surfaces[indice]
+	for surface: Dictionary in geometrie.surfaces:
+		if surface.has("navire"):
+			continue
 		var tableaux := []
 		tableaux.resize(Mesh.ARRAY_MAX)
-		tableaux[Mesh.ARRAY_VERTEX] = _retournes(sommets.slice(int(surface.debut), int(surface.fin)))
-		tableaux[Mesh.ARRAY_NORMAL] = _retournes(normales.slice(int(surface.debut), int(surface.fin)))
-		tableaux[Mesh.ARRAY_COLOR] = _retournes(couleurs.slice(int(surface.debut), int(surface.fin)))
+		tableaux[Mesh.ARRAY_VERTEX] = sommets.slice(int(surface.debut), int(surface.fin))
+		tableaux[Mesh.ARRAY_NORMAL] = normales.slice(int(surface.debut), int(surface.fin))
+		tableaux[Mesh.ARRAY_COLOR] = couleurs.slice(int(surface.debut), int(surface.fin))
+		if surface.has("flottaison") and _coques.has(surface.flottaison):
+			tableaux = _hors_du_contour(tableaux, _coques[surface.flottaison])
+		if tableaux[Mesh.ARRAY_VERTEX].is_empty():
+			continue
+		for rang in [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR]:
+			tableaux[rang] = _retournes(tableaux[rang])
+		var indice := maillage.get_surface_count()
 		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
 		maillage.surface_set_material(indice, _matiere(surface.matiere))
 	return maillage
+
+
+## Les triangles horizontaux de `tableaux` (sommets, normales, couleurs) hors du contour convexe `contour` du plan
+## horizontal (`Geometry2D.clip_polygons`), triangulés (`Geometry2D.triangulate_polygon`, dans le sens trigonométrique),
+## chaque morceau dans le sens, à la hauteur, de la normale et de la couleur de son triangle.
+func _hors_du_contour(tableaux: Array, contour: PackedVector2Array) -> Array:
+	var sommets: PackedVector3Array = tableaux[Mesh.ARRAY_VERTEX]
+	var hors := []
+	hors.resize(Mesh.ARRAY_MAX)
+	hors[Mesh.ARRAY_VERTEX] = PackedVector3Array()
+	hors[Mesh.ARRAY_NORMAL] = PackedVector3Array()
+	hors[Mesh.ARRAY_COLOR] = PackedColorArray()
+	for triangle: Array in rangs_des_triangles(sommets.size()):
+		var premier: Vector3 = sommets[triangle[0]]
+		var plan := PackedVector2Array(triangle.map(func(rang: int) -> Vector2: return Vector2(sommets[rang].x, sommets[rang].z)))
+		for morceau in Geometry2D.clip_polygons(plan, contour):
+			var rangs := Geometry2D.triangulate_polygon(morceau)
+			if Geometry2D.is_polygon_clockwise(plan):
+				rangs.reverse()
+			for rang in rangs:
+				hors[Mesh.ARRAY_VERTEX].append(Vector3(morceau[rang].x, premier.y, morceau[rang].y))
+				hors[Mesh.ARRAY_NORMAL].append(tableaux[Mesh.ARRAY_NORMAL][triangle[0]])
+				hors[Mesh.ARRAY_COLOR].append(tableaux[Mesh.ARRAY_COLOR][triangle[0]])
+	return hors
+
+
+## Les rangs des sommets de chaque triangle d'une liste de `sommets` sommets, trois par triangle, dans leur ordre.
+static func rangs_des_triangles(sommets: int) -> Array:
+	var premiers := range(0, sommets, 3)
+	var seconds := range(1, sommets, 3)
+	var troisiemes := range(2, sommets, 3)
+	var rangs := []
+	for triangle in premiers.size():
+		rangs.append([premiers[triangle], seconds[triangle], troisiemes[triangle]])
+	return rangs
 
 
 ## `tableau` retourné en entier : chaque triangle change de sens (`_maillage_de`).

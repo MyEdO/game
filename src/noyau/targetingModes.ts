@@ -30,7 +30,7 @@ import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
 import { isFrenzied } from '../engine/psychology';
-import { healableTargets, modesDOuverture, soinDOuverture, HEAL_MODES } from '../engine/healing';
+import { healableTargets, modesDOuverture, soinDOuverture } from '../engine/healing';
 import { libelleDeTest } from './jetsEnVue';
 import { garanti } from '../lib/garanti';
 import { dispellableSpellsOn, type DispellableSpell } from '../engine/dispel';
@@ -803,12 +803,8 @@ const BATTERY_MODE: TargetingMode = {
 const HEAL_MODE: TargetingMode = {
   id: 'heal', affordance: healAffordance, anneauCandidats: 'ami',
   candidates: (get, active) => soignablesAPortee(get, active).filter((c) => modesDOuverture(c, active).length > 0),
-  commitCombatant: (get, _set, active, id) => {
-    const target = inBattleId(get().battle, id);
-    if (!target) return;
-    // Mode par défaut au ciblage-carte (la modale permet de basculer) ; sans soin de combat, `ouvrirLaGuerison` dit le refus.
-    get().ouvrirLaGuerison(id, modesDOuverture(target, active)[0] ?? HEAL_MODES[0]);
-  },
+  // L'acte d'ouverture et son refus vivent dans `ouvrirLaGuerison` ; la modale bascule l'acte (`jetRegler('heal', 'mode')`).
+  commitCombatant: (get, _set, _active, id) => get().ouvrirLaGuerison(id),
 };
 /** ≥2 Sorts dissipables sur ce porteur : il reste un PARAMÈTRE à demander (le panneau borné de la
  *  console). Prédicat PARTAGÉ par l'élection locale et par le commit — une seule mesure. */

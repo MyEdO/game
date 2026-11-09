@@ -6,17 +6,20 @@ import { CHEMINS_DES_COMBATTANTS } from './combattantsDeLEtat.generated';
 import { releaseRecomposedRanks } from './monde/seating';
 import { computeStateVisible, exploreAvec } from './visionState';
 import type { EtatDeJeu } from './etat';
+import { brouillonTenu } from './acteDeSoin';
 
 /**
- * Rend l'écriture que la transition de `prev` à `s` appelle, ou `null`. Elle compose trois
+ * Rend l'écriture que la transition de `prev` à `s` appelle, ou `null`. Elle compose quatre
  * observations de la même écriture : les Blessures des combattants touchés (`blessuresSuivies`),
  * l'occupation des sièges (`chaisesLevees`), puis l'exploré (`exploreeVue`), lu sur l'état que les deux
- * premières rendent : la vision qu'elles changent est celle que le propriétaire va poser.
+ * premières rendent : la vision qu'elles changent est celle que le propriétaire va poser ; enfin le
+ * brouillon du soin de l'infirmerie (`brouillonTenu`), sur les Blessures réconciliées.
  */
 export function transitionDuJeu(prev: EtatDeJeu, s: EtatDeJeu): Partial<EtatDeJeu> | null {
   const scene = chaisesLevees(prev, s);
   const ecriture = { ...blessuresSuivies(prev, s), ...(scene ? { scene } : {}) };
   Object.assign(ecriture, exploreeVue(prev, { ...s, ...ecriture }));
+  Object.assign(ecriture, brouillonTenu({ ...s, ...ecriture }));
   return Object.keys(ecriture).length ? ecriture : null;
 }
 

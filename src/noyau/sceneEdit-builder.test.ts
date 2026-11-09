@@ -90,7 +90,7 @@ describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le
       ...scene,
       architecture: [{
         id: 'corps-0',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [],
         facades: [{ id: 'facade-0', z: 0, edges: [], appearance: 'crepi', roomZoneIds: [oldId] }],
         masses: [],
@@ -205,19 +205,19 @@ describe('renameActionAuthoree — l’unicité d’un id d’action se garde au
 
 describe('édition de scène — corps d’architecture : écrivains bornés du noyau', () => {
   const corps = () => {
-    const out = addArchitectureBody(emptyScene('scene-test', 6, 6), 'maison', { x: 1, y: 1, w: 2, h: 2 });
+    const out = addArchitectureBody(emptyScene('scene-test', 6, 6), { id: 'maison' }, { x: 1, y: 1, w: 2, h: 2 });
     return { scene: rederiveRoofMasses(out.scene), id: out.id, storeyId: out.storeyId };
   };
   const body = (s: Scene, id: string) => s.architecture!.find((b) => b.id === id)!;
 
   it('changer le type de bâtiment re-dérive la couverture des masses dans le geste', () => {
     // Corps sans intention de toiture propre : sa couverture est celle de son TYPE (`toitureEffective`).
-    const plan = encloseRect({ ...emptyScene('scene-test', 12, 12), architecture: [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }] }, { x: 1, y: 1, w: 4, h: 2 });
+    const plan = encloseRect({ ...emptyScene('scene-test', 12, 12), architecture: [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }] }, { x: 1, y: 1, w: 4, h: 2 });
     const scene = rederiveRoofMasses(plan);
     const couvertures = (s: Scene) => body(s, 'corps').masses.map((m) => m.material);
-    expect(couvertures(scene), 'la dérivation ne coiffe pas la pièce').toEqual([buildingRoofMaterial('maison')]);
-    expect(buildingRoofMaterial('echoppe'), 'fixture : deux types aux couvertures distinctes').not.toBe(buildingRoofMaterial('maison'));
-    expect(couvertures(patchArchitectureBody(scene, 'corps', { style: 'echoppe' }))).toEqual([buildingRoofMaterial('echoppe')]);
+    expect(couvertures(scene), 'la dérivation ne coiffe pas la pièce').toEqual([buildingRoofMaterial({ id: 'maison' })]);
+    expect(buildingRoofMaterial({ id: 'echoppe' }), 'fixture : deux types aux couvertures distinctes').not.toEqual(buildingRoofMaterial({ id: 'maison' }));
+    expect(couvertures(patchArchitectureBody(scene, 'corps', { style: { id: 'echoppe' } }))).toEqual([buildingRoofMaterial({ id: 'echoppe' })]);
     expect('label' in body(patchArchitectureBody(patchArchitectureBody(scene, 'corps', { label: 'Logis' }), 'corps', { label: undefined }), 'corps')).toBe(false);
   });
 

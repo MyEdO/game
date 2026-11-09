@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { props } from '../../data';
 import { setDataset } from '../../data/overrides';
 import { empreinteDuProp, validatePropCatalog, type PropData } from '../../data/props.types';
-import { decorEnCase, decorEnCaseEtage } from '../../noyau/monde/decorIndex';
+import { decorsEnCase, decorsEnCaseEtage } from '../../noyau/monde/decorIndex';
 import { DIR4_ORDER, type Dir4 } from '../../geometry/dir8';
 import { propFootTiles } from '../../noyau/monde/footprint';
 import { losClear, tileBlocksSight } from '../../noyau/monde/lineOfSight';
@@ -22,8 +22,8 @@ import { buildProps } from '../builders/props';
  * - catalogue : `validatePropCatalog` (`data/props.types.ts`) ;
  * - empreinte : `empreinteDuProp` (`data/props.types.ts`), `propFootTiles` (`noyau/monde/footprint.ts`) ;
  * - occupation : `isWalkable` (`noyau/monde/scene.ts`) ;
- * - index case → décor : `decorEnCase`, `decorEnCaseEtage` (`noyau/monde/decorIndex.ts`) ;
- * - picking du jeu : `decorEnCaseEtage`, que lit `meubleDessine` (`gameIso/stage/pickResolve.ts`) ;
+ * - index case → décors : `decorsEnCase`, `decorsEnCaseEtage` (`noyau/monde/decorIndex.ts`) ;
+ * - picking du jeu : `decorsEnCaseEtage`, que lit `meubleDessine` (`gameIso/stage/pickResolve.ts`) ;
  * - clic d'éditeur : `entityAt` (`noyau/sceneEdit.ts`) ;
  * - Ligne de Vue : `tileBlocksSight`, `losClear` (`noyau/monde/lineOfSight.ts`) ;
  * - opacité en vision : `buildOpaque` (`noyau/monde/vision.ts`) ;
@@ -133,14 +133,14 @@ describe('meuble multi-case NEUF : la donnée suffit, aucune couture ne le conna
     // bloque la vue ; la case au-delà, non.
     const occ = buildOpaque(scene);
     for (const c of cases) {
-      expect(decorEnCase(scene, c.x, c.y)?.id, `index ${cle(c)}`).toBe('banquette-1');
-      expect(decorEnCaseEtage(scene, c.x, c.y, 0)?.id, `picking ${cle(c)}`).toBe('banquette-1');
+      expect(decorsEnCase(scene, c.x, c.y).map((e) => e.id), `index ${cle(c)}`).toEqual(['banquette-1']);
+      expect(decorsEnCaseEtage(scene, c.x, c.y, 0).map((e) => e.id), `picking ${cle(c)}`).toEqual(['banquette-1']);
       expect(entityAt(scene, c, 0)?.id, `éditeur ${cle(c)}`).toBe('banquette-1');
       expect(tileBlocksSight(scene, c.x, c.y), `LdV ${cle(c)}`).toBe(true);
       expect(occ.g[c.y * occ.w + c.x], `vision ${cle(c)}`).toBe(1);
     }
     const audela = w > 1 ? { x: POS.x + w, y: POS.y } : { x: POS.x, y: POS.y + h };
-    expect(decorEnCaseEtage(scene, audela.x, audela.y, 0), `picking ${cle(audela)}`).toBeUndefined();
+    expect(decorsEnCaseEtage(scene, audela.x, audela.y, 0), `picking ${cle(audela)}`).toEqual([]);
     expect(tileBlocksSight(scene, audela.x, audela.y), `LdV ${cle(audela)}`).toBe(false);
     expect(occ.g[audela.y * occ.w + audela.x], `vision ${cle(audela)}`).toBe(0);
     // Un rayon qui franchit la DERNIÈRE case du corps est coupé ; son voisin juste au-delà passe.

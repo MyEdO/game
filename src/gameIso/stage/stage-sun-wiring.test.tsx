@@ -25,7 +25,7 @@ import { AMBIENT_INTENSITY, SUN_INTENSITY } from '../backends/webgl/sceneMeshes'
 import { ambianceLuminance, nightVeilAlpha } from '../catalog/ambiance';
 import { TEINTE_PLEINE, billboardMaterial, poseBoards, type Board, type FrameLights } from './boardPose';
 import { FLAME_INTENSITY } from './stagePointLights';
-import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
+import { FLAME_LIFT_M } from '../../noyau/monde/vision';
 import { SUN_ACNE_ELEVATION_DEG, stageLightScalars, stageLights, sunFade } from './stageLights';
 import { MondeDeCampagne } from './MondeDeCampagne';
 import { setStageRendererFactory } from './GameStage3D';

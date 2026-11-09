@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { inexplique } from './cascade.testkit';
-import { rollLine, assertSeparabilite, SEPARABILITE, type RollLineCombat } from './rollSeam';
+import { rollLine, assertSeparabilite, SEPARABILITE, type RollLineCombat } from './ligneDeJet';
 import { openCombatEndCascade, openContractionCascade, openAttackCascade } from './combatFlow';
 import { resolveActGates } from './combat/turnHooks';
 import { forceCrewRole } from './shipManeuver';
@@ -16,7 +16,7 @@ import { clampTarget, exactDifficultyFromModifier } from '../engine/tests';
 import { rule, setRule } from '../engine/policy';
 import { findCrewRoleById } from '../data';
 import { RULE_REF } from '../engine/ruleRefs';
-import { DIFFICULTY_MODIFIERS, DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_MODIFIERS, DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { readFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
@@ -140,7 +140,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
     banc.setState({ battle: { ...get().battle!, action: 'heal' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
-    get().ouvrirLaGuerison('bl', 'wounds');
+    get().ouvrirLaGuerison('bl');
     const ph = get().pendingHeal!;
     expect(ph.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
 
@@ -410,7 +410,7 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
 
     const l = rollLine({ difficulty: 'intermediaire', valeur: 60, surLaCible: mods, plafond: 'difficultes' });
     expect(l.target).toBe(clampTarget(60 + attendu).target);
-    expect(l.difficulty, 'la Difficulté annoncée par la ligne').toBe(palier ?? 'intermediaire');
+    expect(l.difficulty, 'la Difficulté annoncée par la ligne').toBe(palier ?? DIFFICULTE_PAR_DEFAUT);
     expect(l.difficultyCombined, 'le modificateur COMBINÉ ne paraît que hors des crans').toBe(combine);
     if (palier || combine != null) {
       // Difficulté COMPOSÉE : les circonstances (et l'écart du plafond) la font — elles quittent les
@@ -661,7 +661,7 @@ describe('DIFFICULTÉ COMBINÉE — étanchéité du vocabulaire et du champ dé
   });
 
   it('`difficultyCombined` est DÉRIVÉ : absent de la déclaration d’entrée et de toute donnée', () => {
-    const seam = readFileSync(resolve(__dirname, '../noyau/rollSeam.ts'), 'utf8');
+    const seam = readFileSync(resolve(__dirname, '../noyau/ligneDeJet.ts'), 'utf8');
     const decl = seam.slice(seam.indexOf('interface RollLineBase'), seam.indexOf('export type RollLineSpec'));
     expect(decl.length, 'le découpage doit VOIR la déclaration d’entrée').toBeGreaterThan(200);
     expect(decl).not.toContain('difficultyCombined');

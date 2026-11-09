@@ -18,7 +18,7 @@ import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 import type { FlowTestNode } from '../../engine/flowCore';
 import type { RefDesignee } from '../../data/schemas/grammaire/ref';
 import { Icon } from '../Icon';
-import { DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
+import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, Difficulty, CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { isSocialTest } from '../../engine/skills';
 import { menaceIds } from '../../engine/menace';
 import { ListeDIds, RefField } from '../compendium/refField/RefField';
@@ -149,7 +149,7 @@ export function TestFields({ test, onChange }: { test: FlowTest; onChange: (t: F
             <option key={k} value={k}>{CHAR_LABELS[k]}</option>
           ))}
         </select>
-        <select value={difficulty ?? 'intermediaire'} onChange={(e) => upd({ difficulty: e.target.value as Difficulty })}>
+        <select value={difficulty ?? DIFFICULTE_PAR_DEFAUT} onChange={(e) => upd({ difficulty: e.target.value as Difficulty })}>
           {(Object.keys(DIFFICULTY_LABELS) as Difficulty[]).map((d) => (
             <option key={d} value={d}>{DIFFICULTY_LABELS[d]}</option>
           ))}

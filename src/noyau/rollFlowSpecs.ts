@@ -50,7 +50,7 @@ import type { TestNomme } from '../engine/reglesChiffrees';
 import { runFromTest, fallFromTest } from '../engine/movement';
 import { rollCrewRole, forceCrewRole } from './shipManeuver';
 import { deDEtape, maladresseCourante, poserLeDeDEtape, refusDuDeDEtape, refusHorsDeLEtapeCourante, tirerLeDeDEtape, refusDuJetDEtape, toutResoudre, rollBatchParticipant, forceBatchParticipant, evaluerRangeeBatch, opposedCascadeRoll, stepOpposedFreeze, lireDeEtape, roulerDeEtape, stepInteraction, stepReady } from './cascade';
-import { rollLine, type RollLineParts } from './rollSeam';
+import { rollLine, type RollLineParts } from './ligneDeJet';
 import { armeDEnfoncement, degatsDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { valeurDeChanson } from './shipCrew';
 import { activityModLines } from '../engine/activities';
@@ -64,8 +64,8 @@ import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
 import { reprendreLaSuite } from './combatEffects';
-import { distributeCredit } from './bourseFlow';
-import { toMoney } from '../engine/money';
+import { estOperation } from './acteDeSoin';
+import { lancerLActeDeSoin } from './medicFlow';
 import { describeTest, describeBargain, describeReload, describeStateRecovery, describeFrenzy } from './flowOutcomes';
 import { findSpellById, byId } from '../data/index';
 
@@ -211,6 +211,9 @@ function jetDeSoin(s: Jeu, cible: number, actor: Combatant | undefined, test: Te
   const res = evaluateTest(d100(battleRng()), cible);
   return jetPose({ ...res, ...issueDuSoin(s, actor, test, res) });
 }
+
+/** Le jet du soin déclaré `p` (`FLOWS.heal`) ; le soigneur peut être un PNJ hors `actorIn` : le jet se fait sans acteur live. */
+const jetDuSoin = (s: Jeu, p: PendingHeal, actor: Combatant | undefined): JetPose => jetDeSoin(s, cibleDuTest(p.skillValue, p.difficulty), actor, p.test);
 
 /** Issue d'un dé du soin (tiré, fixé, renversé) : le dé, +DR de réussite du soigneur combattant (`drDeReussiteDuTest`) —
  *  SOURCE UNIQUE du jet, du dé fixé et de l'inversion. */
@@ -2379,20 +2382,19 @@ export const FLOWS = paresseux({
    *  multi-passes) a son propre flux `surgery` ci-dessous (une passe = une modale influençable). */
   heal: () => makeRollFlow<PendingHeal>({
     key: 'pendingHeal',
-    // Acte PAYANT d'un PNJ (infirmerie), annulé avant le jet : remboursé au GROUPE (débit `payFromGroup`, LDB 75).
-    onCancel: (get, set, p) => {
-      if (p.paidCost) distributeCredit(get, set, toMoney(p.paidCost));
-      set({ pendingHeal: null });
-    },
+    // Hors combat, le premier jet, quel que soit le geste qui le pose, part de l'infirmerie (`lancerLActeDeSoin` : refus
+    // de l'acte, tarif du PNJ, opération armée) ; son brouillon se change d'acte (`heal.mode`) et ne s'annule pas.
+    premierJet: (get, set, p) => !!get().battle || lancerLActeDeSoin(get, set, p),
+    annulation: (_p, s) => (s.battle ? null : 'acteAChanger'),
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.healerId),
     caps: { forced: true },
-    resolve: (s, p, actor) => jetDeSoin(s, cibleDuTest(p.skillValue, p.difficulty), actor, p.test), // le soigneur peut être un PNJ hors actorIn : le jet se fait sans acteur live
+    resolve: (s, p, actor) => jetDuSoin(s, p, actor),
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl),
-    // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU mode chirurgie :
+    // Résilience GLOBALE via la lentille plate ; le garde du forceSuccess (déjà réussi OU brouillon d'une opération, que le lancer arme :
     // rien à forcer) vit dans `dieTarget` (→ null), pas dans `actorTR` (qui sert aussi le `bonusSL`).
-    lens: flatRollLens((p) => (p.success || p.mode === 'surgery') ? null : cibleBrute(p)),
-    die: deDuSoin<PendingHeal>((p) => p.test, (p) => !p.success && p.mode !== 'surgery'),
+    lens: flatRollLens((p) => (p.success || estOperation(p.mode)) ? null : cibleBrute(p)),
+    die: deDuSoin<PendingHeal>((p) => p.test, (p) => !p.success && !estOperation(p.mode)),
     // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
     // engage des Bandages ; le dé renversé s'évalue comme `resolve`.
     reverse: {

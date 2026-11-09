@@ -1,11 +1,12 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
 ## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
-## pas de la marche de l'atelier, l'orbite de sa caméra et son cadrage, le gabarit d'une base posé sur ses os, ses pieds
-## au sol, un vecteur rapporté à un repère, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
+## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
+## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
-## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui. Seul script où l'arithmétique et la mesure sont permises
+## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
+## coupe d'un navire et le compte des triangles d'une géométrie. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
 ## plus un vecteur, sans état.
 class_name MiseEnPage
@@ -19,6 +20,9 @@ const DECALAGE_DU_CALQUE := 0.01
 const METRES_PAR_MOTIF := 2.0
 const QUART_DE_TOUR := PI / 2.0
 const PAS_DE_ZOOM := 1.15
+## Les bornes du zoom de l'orbite de l'atelier, rapportées à l'échelle du cadre posé.
+const ZOOM_MINIMAL := 0.3
+const ZOOM_MAXIMAL := 3.0
 const TOLERANCE_D_IMAGE := 0.001
 ## Le jeu, en mètres, entre la peau et la face arrière d'un objet rangé (`origine_de_rangement`) : assez pour passer
 ## par-dessus un vêtement ample et une ceinture.
@@ -52,6 +56,10 @@ const MARGE_DU_PLAN := 28.0
 const RAYON_DU_POINT := 7.0
 ## L'écart, en pixels, entre un point du plan et ce qui se pose sous lui.
 const ECART_SOUS_LE_POINT := 2.0
+## Ce que la coupe d'un navire ôte (m) sous le plus bas des sols qu'un regard lui retire (`hauteur_de_coupe`) : le
+## plancher de ce pont, les baux qui le portent et l'imprécision de la hauteur que porte chaque sommet
+## (`opacite_de_coupe`).
+const MARGE_DE_COUPE := 0.15
 
 
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
@@ -131,6 +139,23 @@ static func lacet_de_proue(lacet: float) -> float:
 ## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
 static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
 	return hauteur * echelle_metrique(metres_par_case)
+
+
+## La hauteur, sur le plateau d'une scène de `metres_par_case`, où se coupe le modèle d'un navire dont un regard retire
+## les ponts dès le sol `sol` (m) : `MARGE_DE_COUPE` sous lui.
+static func hauteur_de_coupe(sol: float, metres_par_case: float) -> float:
+	return hauteur_au_plateau(sol - MARGE_DE_COUPE, metres_par_case)
+
+
+## L'opacité d'un sommet à la hauteur `hauteur` d'un modèle qui s'étend de `bas` à `haut` : 1 en bas, 0 en haut,
+## linéaire, si bien qu'un fragment est au-dessus de la hauteur `h` quand son opacité est sous celle de `h`.
+static func opacite_de_coupe(hauteur: float, bas: float, haut: float) -> float:
+	return (haut - hauteur) / (haut - bas)
+
+
+## Le nombre de triangles que portent `sommets` sommets, trois par triangle.
+static func triangles(sommets: int) -> float:
+	return sommets / 3.0
 
 
 ## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol
@@ -307,6 +332,23 @@ static func echelle_de_cadrage(sommet: float, sommet_neutre: float) -> float:
 	return sommet / sommet_neutre
 
 
+## La hauteur que voit, au pivot, une caméra posée en `position` autour de lui sous l'angle vertical `fov` (degrés).
+static func hauteur_vue_au_pivot(position: Vector3, fov: float) -> float:
+	return 2.0 * position.length() * tan(deg_to_rad(fov) / 2.0)
+
+
+## L'échelle de l'orbite où la diagonale d'une boîte de taille `taille` tient dans la hauteur `hauteur_vue` que la caméra
+## voit au pivot à l'échelle 1 (`hauteur_vue_au_pivot`).
+static func echelle_de_la_boite(taille: Vector3, hauteur_vue: float) -> float:
+	return taille.length() / hauteur_vue
+
+
+## L'échelle de l'orbite d'un pas de zoom plus loin (`sens` 1) ou plus près (-1), bornée de `ZOOM_MINIMAL` à
+## `ZOOM_MAXIMAL` fois l'échelle `cadre` du cadre posé (`distance_zoomee`).
+static func echelle_zoomee(echelle: float, sens: float, cadre: float) -> float:
+	return distance_zoomee(echelle, sens, ZOOM_MINIMAL * cadre, ZOOM_MAXIMAL * cadre)
+
+
 ## L'entrée de la marche sur le sol, de force `gauche`, `droite`, `avant` et `arriere` par action.
 static func entree_de_marche(gauche: float, droite: float, avant: float, arriere: float) -> Vector2:
 	return Vector2(droite - gauche, arriere - avant)
@@ -315,6 +357,16 @@ static func entree_de_marche(gauche: float, droite: float, avant: float, arriere
 ## Le vecteur `vecteur` rapporté au repère de base `base` (`Basis.inverse`).
 static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
+
+
+## L'axe unité (±X, ±Y ou ±Z) le plus proche de `vecteur` posé dans le repère de base `base` : celui de sa plus grande
+## composante, à son signe (`SecondePrise`, #3319).
+static func axe_le_plus_proche(base: Basis, vecteur: Vector3) -> Vector3:
+	var pose := base * vecteur
+	var axe := pose.abs().max_axis_index()
+	var unite := Vector3.ZERO
+	unite[axe] = signf(pose[axe])
+	return unite
 
 
 ## L'axe `axe` (`Vector3.AXIS_X`, `AXIS_Y` ou `AXIS_Z`) du repère de prise d'un objet rangé à l'emplacement de base

@@ -1,10 +1,12 @@
 ## La marche de l'atelier 3D (#3086) : les actions `avant`, `arriere`, `gauche` et `droite` (`project.godot`, `[input]`)
 ## déplacent la racine du modèle sur le sol, tournée vers sa direction de marche, à la vitesse au sol de la base
 ## (`vitesseAuSol` de la réponse de `modeles`, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») à l'échelle de son
-## gabarit posé ; le clip du rôle `walk` (`clips.walk`) se joue par le lecteur de l'atelier pendant le déplacement ; à
-## l'arrêt, le clip reste engagé en pause à son début et le squelette revient à sa pose de repos. La caméra orbite
+## gabarit posé ; le clip du rôle `walk` (`MontageDeComposition.clip`, à deux mains quand la main libre tient la seconde
+## prise) se joue par le lecteur de l'atelier pendant le déplacement ; à l'arrêt, le clip reste engagé en pause à son
+## début et le squelette revient à sa pose de repos. La caméra orbite
 ## autour de la racine au glissé du bouton droit de la souris, s'en rapproche ou s'en éloigne à la molette hors de
-## l'interface, et la suit ; l'atelier la cadre sur le corps posé.
+## l'interface, et la suit ; l'atelier la cadre sur le corps posé, ou sur la boîte d'un véhicule (`cadrer_la_boite`), et le
+## zoom se borne autour de ce cadre.
 class_name MarcheDeLAtelier
 extends Node
 
@@ -14,8 +16,6 @@ signal marche_commencee(clip: String)
 signal marche_arretee
 
 const ACTIONS: Array[StringName] = [&"avant", &"arriere", &"gauche", &"droite"]
-const ECHELLE_MINIMALE := 0.3
-const ECHELLE_MAXIMALE := 3.0
 ## L'échelle de l'orbite qui cadre le corps neutre de la base, celle de la caméra de la scène.
 const CADRE_NEUTRE := 1.0
 ## L'échelle de la vitesse au sol sans gabarit posé.
@@ -30,24 +30,29 @@ const VITESSE_NEUTRE := 1.0
 var _racine: Node3D = null
 var _lecteur: AnimationPlayer = null
 var _squelette: Skeleton3D = null
-var _clip := ""
+var _clip := func() -> String: return ""
 var _vitesse := 0.0
 ## L'échelle de la vitesse au sol du gabarit posé (`echelleDeVitesse`, `CONTRAT.md`, « Gabarit d'une base »).
 var _echelle_de_vitesse := VITESSE_NEUTRE
 var _en_marche := false
 var _echelle := CADRE_NEUTRE
+## L'échelle du dernier cadre posé (`cadrer`), autour de laquelle le zoom se borne.
+var _cadre := CADRE_NEUTRE
 ## Les actions de la marche dont l'appui a atteint `_input`, tant qu'elles restent tenues.
 var _prises: Dictionary = {}
 var _position_de_la_camera := Vector3.ZERO
+## La hauteur que la caméra de la scène voit au pivot (`MiseEnPage.hauteur_vue_au_pivot`).
+var _hauteur_vue := 0.0
 
 
 func _ready() -> void:
 	_position_de_la_camera = camera.position
+	_hauteur_vue = MiseEnPage.hauteur_vue_au_pivot(camera.position, camera.fov)
 
 
-## La racine `racine` du modèle posé (aucun si `null`), son lecteur de clips `lecteur`, le clip `clip` du rôle `walk`
-## de sa base et sa vitesse au sol `vitesse` en m/s.
-func suivre(racine: Node3D, lecteur: AnimationPlayer, clip: String, vitesse: float) -> void:
+## La racine `racine` du modèle posé (aucun si `null`), son lecteur de clips `lecteur`, `clip` qui rend le clip du rôle
+## `walk` de sa base au moment de marcher, et sa vitesse au sol `vitesse` en m/s.
+func suivre(racine: Node3D, lecteur: AnimationPlayer, clip: Callable, vitesse: float) -> void:
 	_racine = racine
 	_lecteur = lecteur
 	_squelette = MontageDeComposition.squelette_de(racine) if racine != null else null
@@ -85,13 +90,13 @@ func _process(delta: float) -> void:
 	if _racine == null:
 		return
 	var entree := MiseEnPage.entree_de_marche(_force(&"gauche"), _force(&"droite"), _force(&"avant"), _force(&"arriere"))
-	if entree.is_zero_approx() or _lecteur == null or not _lecteur.has_animation(_clip):
+	if entree.is_zero_approx() or _lecteur == null or not _lecteur.has_animation(_clip.call()):
 		if _en_marche:
 			_arreter()
 	else:
 		if not _en_marche:
 			_en_marche = true
-			marche_commencee.emit(_clip)
+			marche_commencee.emit(_clip.call())
 		var direction := Vector3(entree.x, 0.0, entree.y).normalized().rotated(Vector3.UP, orbite.rotation.y)
 		_racine.quaternion = Quaternion(Basis.looking_at(direction, Vector3.UP, true))
 		_racine.global_translate(MiseEnPage.pas_de_marche(direction, _vitesse, _echelle_de_vitesse, _lecteur.speed_scale, delta))
@@ -123,7 +128,8 @@ func _unhandled_input(event: InputEvent) -> void:
 
 ## La caméra d'un pas de zoom plus loin de la racine (`sens` 1) ou plus près (-1).
 func _zoomer(sens: float) -> void:
-	cadrer(MiseEnPage.distance_zoomee(_echelle, sens, ECHELLE_MINIMALE, ECHELLE_MAXIMALE))
+	_echelle = MiseEnPage.echelle_zoomee(_echelle, sens, _cadre)
+	camera.position = MiseEnPage.position_a_l_echelle(_position_de_la_camera, _echelle)
 
 
 ## L'échelle de l'orbite.
@@ -133,5 +139,12 @@ func echelle() -> float:
 
 ## L'orbite à l'échelle `echelle` (`CADRE_NEUTRE` : la caméra de la scène, qui cadre le corps neutre), le zoom repris de là.
 func cadrer(echelle: float) -> void:
+	_cadre = echelle
 	_echelle = echelle
 	camera.position = MiseEnPage.position_a_l_echelle(_position_de_la_camera, _echelle)
+
+
+## L'orbite à l'échelle où la diagonale de `boite` tient dans la hauteur que la caméra de la scène voit au pivot
+## (`MiseEnPage.echelle_de_la_boite`).
+func cadrer_la_boite(boite: AABB) -> void:
+	cadrer(MiseEnPage.echelle_de_la_boite(boite.size, _hauteur_vue))

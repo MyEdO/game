@@ -305,7 +305,7 @@ describe('Editor v2 — authoring architectural', () => {
       ],
       architecture: [{
         id: 'corps',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [
           { id: 'z0', z: 0, parts: [{ id: 'partie-z0', foot: { x: 0, y: 0, w: 1, h: 1 } }], roomZoneIds: [] },
           { id: 'z1', z: 1, parts: [{ id: 'partie-z1', foot: { x: 0, y: 0, w: 1, h: 1 } }], roomZoneIds: [] },
@@ -315,8 +315,8 @@ describe('Editor v2 — authoring architectural', () => {
           { id: 'facade-z1', z: 1, edges: [{ x: 0, y: 0, side: 'N', z: 1 }], appearance: 'mur', features: [] },
         ],
         masses: [
-          { id: 'toiture-z0', z: 0, footprint: [{ x: 0, y: 0, w: 1, h: 1 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' },
-          { id: 'toiture-z1', z: 1, footprint: [{ x: 0, y: 0, w: 1, h: 1 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: 'tuile' },
+          { id: 'toiture-z0', z: 0, footprint: [{ x: 0, y: 0, w: 1, h: 1 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } },
+          { id: 'toiture-z1', z: 1, footprint: [{ x: 0, y: 0, w: 1, h: 1 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 42, material: { id: 'tuile' } },
         ],
       }],
     };
@@ -346,7 +346,7 @@ describe('Editor v2 — authoring architectural', () => {
       ...emptyScene('scene-test', 8, 8),
       architecture: [{
         id: 'corps',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [
           { id: 'z0', z: 0, parts: [], roomZoneIds: [] },
           { id: 'grenier', z: 3, parts: [], roomZoneIds: [] },
@@ -361,7 +361,7 @@ describe('Editor v2 — authoring architectural', () => {
         masses: [],
       }, {
         id: 'corps',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [],
         facades: [],
         masses: [],
@@ -426,8 +426,8 @@ describe('Editor v2 — authoring architectural', () => {
         presentation: 'interior',
       }],
       architecture: [
-        { id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] },
-        { id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] },
+        { id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] },
+        { id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] },
       ],
     };
     const container = document.createElement('div');
@@ -564,7 +564,7 @@ describe('Editor v2 — authoring architectural', () => {
       ],
       architecture: [{
         id: 'corps',
-        style: 'maison',
+        style: { id: 'maison' },
         storeys: [
           { id: 'z0', z: 0, parts: [], roomZoneIds: [] },
           { id: 'z1', z: 1, parts: [], roomZoneIds: [] },

@@ -29,10 +29,10 @@ const sceneMinimale = (over: Jouet = {}): Jouet => ({
   dimensions: { w: 4, h: 4 },
   // EXIGÉ (#1691) : la matière de chaque partie de relief vient de la scène, le rendu n'en devine
   // aucune — une scène qui n'en porte pas est refusée ici même.
-  reliefDefaults: { cliff: 'terre', ramp: 'terre', deck: 'pierre', pilier: 'pilier' },
+  reliefDefaults: { cliff: { id: 'terre' }, ramp: { id: 'terre' }, deck: { id: 'pierre' }, pilier: { id: 'pilier' } },
   // EXIGÉE (#1715) : la couverture, la pente de référence et la borne de comble des toitures
   // dérivées viennent de la scène — même refus nominatif si elle manque.
-  roofDefaults: { material: 'toit-ardoise', pitchDeg: 45, riseMaxStoreys: 1 },
+  roofDefaults: { material: { id: 'toit-ardoise' }, pitchDeg: 45, riseMaxStoreys: 1 },
   ...over,
 });
 
@@ -169,10 +169,10 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
    * nominatif, au chemin — la garde ne dit pas « invalide », elle dit OÙ.
    */
   it('une pente de RÉFÉRENCE hors plage est REFUSÉE au chemin, aux DEUX bornes', () => {
-    const pente = (deg: number) => fautesCodees(projet({ scenes: [sceneMinimale({ roofDefaults: { material: 'toit-ardoise', pitchDeg: deg, riseMaxStoreys: 1 } })] }));
+    const pente = (deg: number) => fautesCodees(projet({ scenes: [sceneMinimale({ roofDefaults: { material: { id: 'toit-ardoise' }, pitchDeg: deg, riseMaxStoreys: 1 } })] }));
     expect(pente(90)).toEqual([`scenes.0.roofDefaults.pitchDeg :: too_big ${PENTE_TOIT_DEG.max}`]);
     expect(pente(0)).toEqual([`scenes.0.roofDefaults.pitchDeg :: too_small ${PENTE_TOIT_DEG.min}`]);
-    expect(projetSchema.safeParse(projet({ scenes: [sceneMinimale({ roofDefaults: { material: 'toit-ardoise', pitchDeg: PENTE_TOIT_DEG.max, riseMaxStoreys: 1 } })] })).success).toBe(true);
+    expect(projetSchema.safeParse(projet({ scenes: [sceneMinimale({ roofDefaults: { material: { id: 'toit-ardoise' }, pitchDeg: PENTE_TOIT_DEG.max, riseMaxStoreys: 1 } })] })).success).toBe(true);
   });
 
   it('une pente POSÉE sur un CORPS suit la même plage, au chemin du corps', () => {

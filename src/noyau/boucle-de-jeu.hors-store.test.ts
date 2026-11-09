@@ -1706,7 +1706,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
     expect(banc.getState().flags[cleActionJouee('coffre', 'fouiller')]).toBe(true);
     const scene = banc.getState().scene!;
     const coffre = scene.entities.find((e) => e.id === 'coffre')!;
-    expect(actionsDe(scene, coffre, banc.getState().flags)).toEqual([]);
+    expect(actionsDe(scene, coffre, banc.getState())).toEqual([]);
     banc.getState().jouerAction('coffre', 'fouiller');
     expect(or(), 'une action épuisée ne se rejoue pas').toBe(2);
   });
@@ -1898,10 +1898,10 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect((banc.getState().party[0].items ?? []).map((i) => i.label)).toEqual(['Dague']);
   });
 
-  it('evaluerLeButin (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
+  it('evaluerLObjet sur une ligne de butin (Évaluation) : succès → la ligne est révélée, l’objet attribué arrive identifié', () => {
     lootScene();
     banc.getState().interagirAvecLEntite('coffre');
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     expect(pa.gear).toEqual({ scope: 'loot', uid: banc.getState().pendingLoot!.gear[0].uid });
     expect(pa.skillLabel ?? 'Évaluation').toBe('Évaluation');
@@ -1920,14 +1920,14 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     const pa = banc.getState().pendingAppraise!;
     expect([pa.mode, pa.skillLabel]).toEqual(['detect', 'Intuition']);
     banc.setState({ pendingAppraise: { ...pa, roll: 95, success: false, sl: -5 } });
     banc.getState().jetValider('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect([line.effect.detectTriedBy, line.effect.identified]).toEqual([['a'], false]);
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     expect(banc.getState().pendingAppraise).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectDejaTentee', { label: line.label }));
   });
@@ -1938,11 +1938,11 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter(talent), looter({ ...talent, id: 'b', label: 'B' } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     const premier = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...premier, roll: 95, success: false, sl: -5 } });
     banc.getState().jetValider('appraise');
-    banc.getState().evaluerLeButin('loot', uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detect');
     const second = banc.getState().pendingAppraise!;
     expect(second.actorId, 'le détecteur qui n’a pas tenté').not.toBe(premier.actorId);
     banc.setState({ pendingAppraise: { ...second, roll: 5, success: true, sl: 2 } });
@@ -1957,7 +1957,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid, 'detect');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
     banc.getState().jetValider('appraise');
@@ -1969,17 +1969,17 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
   it('anti-spam Évaluation : un échec verrouille l’objet pour la JOURNÉE (re-tentative demain)', () => {
     lootScene();
     banc.getState().interagirAvecLEntite('coffre');
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 99, success: false, sl: -6 } });
     banc.getState().jetValider('appraise');
     expect(banc.getState().pendingLoot!.gear[0].effect.appraiseTriedDay).toBeDefined();
     // Même jour : la re-tentative est refusée (pas de modale).
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).toBeNull();
     // Le lendemain : on peut retenter.
     banc.getState().avancerLeTemps(24 * 60);
-    banc.getState().evaluerLeButin('loot', banc.getState().pendingLoot!.gear[0].uid);
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     expect(banc.getState().pendingAppraise).not.toBeNull();
     banc.setState({ pendingAppraise: null });
   });
@@ -2232,7 +2232,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
   });
 });
 
-describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)', () => {
+describe('Ramasser un objet au sol en combat (un à la fois, `pickup` de `actions.json`)', () => {
   beforeEach(() => reset());
 
   function setup() {
@@ -2280,7 +2280,24 @@ describe('Ramasser un objet au sol en combat (un à la fois, LDB 13 l.115-116)',
     const feuilles = flowEffects(corps.usable!.actions![0].flow);
     expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'tromblon')).toBe(true);
     expect(feuilles.some((e) => e.type === 'giveTrapping' && e.trappingId === 'dague')).toBe(true);
-    expect(entityPickables(corps, st.flags, objetDuNarratif(st.campaignNarratif)).map((p) => p.key)).toEqual(['fouiller:eff:1']);
+    expect(entityPickables(corps, st.flags, objetDuNarratif(st.campaignNarratif), st.objetsAuSol).map((p) => p.key)).toEqual(['fouiller:eff:1']);
+  });
+
+  it('un objet posé au sol (`objetsAuSol`) se ramasse d’une Action : il revient intact, son décor disparaît', () => {
+    const bh = setup();
+    const [objet, ...reste] = bh.items!;
+    const sol = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 1, y: 0 } };
+    const sansObjet = (c: Combatant): Combatant => ({ ...c, items: reste });
+    banc.setState((st) => ({
+      party: st.party.map(sansObjet), battle: { ...st.battle!, combatants: st.battle!.combatants.map(sansObjet) },
+      scene: { ...st.scene!, entities: [...st.scene!.entities, sol] }, objetsAuSol: { 'sol-1': [{ ...objet, equipped: false }] },
+    }));
+    banc.getState().ramasserLObjet('sol-1', objet.uid);
+    const st = banc.getState();
+    expect(st.battle!.combatants[0].items!.find((i) => i.uid === objet.uid), 'sur le combattant').toEqual({ ...objet, equipped: false, inside: undefined });
+    expect(st.party[0].items!.some((i) => i.uid === objet.uid), 'et sur le héros').toBe(true);
+    expect(st.battle!.acted, 'il coûte l’Action').toBe(true);
+    expect([st.scene!.entities.some((e) => e.id === 'sol-1'), st.objetsAuSol], 'son décor et son entrée sortent ensemble').toEqual([false, {}]);
   });
 
   it('refusé si l’Action est déjà consommée', () => {
