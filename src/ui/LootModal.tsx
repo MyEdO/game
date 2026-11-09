@@ -17,7 +17,7 @@ export function LootModal() {
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const appraise = useGame((s) => s.evaluerLeButin);
+  const appraise = useGame((s) => s.evaluerLObjet);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('loot');
   const appraising = useGame((s) => !!s.pendingAppraise);
@@ -43,7 +43,7 @@ export function LootModal() {
               gear={pl.gear}
               assignable={assignable}
               onAssign={(uid, heroId) => choisir('loot', 'ligne', uid, heroId)}
-              onAppraise={net.mode === 'guest' ? undefined : (i, mode) => appraise('loot', i, mode)}
+              onAppraise={net.mode === 'guest' ? undefined : appraise}
             />
           ),
         }] : undefined}

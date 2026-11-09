@@ -17,7 +17,7 @@ import { resolveCarrier, porteurLocalise, type Carrier } from './monde/carrier';
 import { refusDInventaire } from './verrousDeFiche';
 import { refusEmplacementDeMain } from './partyFlow';
 import { refusDeConsommer } from './consumableFlow';
-import { appraiseRefus, gameDay, refusDeDetection } from './merchantFlow';
+import { gameDay, refusDEvaluation } from './merchantFlow';
 import { refusDePoser } from './objetsAuSol';
 
 /** Une main du set actif : si elle tient l'objet (son geste la vide alors). */
@@ -43,7 +43,7 @@ export interface GestesDeLObjet {
   poser: GesteFermable;
   /** Un consommable d'un héros (`isConsumable`). */
   utiliser: GesteFermable | null;
-  /** Un objet non identifié d'un héros, qu'aucune Évaluation n'a tenté ce jour (`appraiseTriedDay`). */
+  /** Un objet non identifié d'un héros, refusé tant que court le délai de son Évaluation manquée (`refusDEvaluation`). */
   evaluer: GesteFermable | null;
   /** Un objet non identifié d'un héros, jamais détecté (LDB 10 l.336). */
   detecter: GesteFermable | null;
@@ -87,7 +87,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
     }) } : null,
     poser: { geste: { verbe: 'poserLObjet', args: [uid] }, refus: refusDePoser(s, uid) },
     utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(hero, it)) : null,
-    evaluer: inconnu && it.appraiseTriedDay !== gameDay(s) ? sur('evaluerLObjet', [uid], appraiseRefus(s.party)) : null,
-    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detect'], refusDeDetection(s.party, it)) : null,
+    evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluate', gameDay(s))) : null,
+    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detect'], refusDEvaluation(s.party, it, 'detect', gameDay(s))) : null,
   };
 }

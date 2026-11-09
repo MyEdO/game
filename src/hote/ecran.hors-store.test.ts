@@ -88,7 +88,11 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
         { id: 'victoire/xp', valeur: '+30' }, { id: 'victoire/argent', valeur: '5/–' },
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
       ]);
-      expect(zones['fenetre.gestes'].map((g) => g.id), 'un choix sans valeur ne se dessine pas').not.toContain('depecerLaCreature');
+      const dessines = (z: typeof zones) => [...z['fenetre.gestes'], ...z['fenetre.reglages']].map((g) => g.id);
+      expect(dessines(zones), 'un choix sans valeur ne se dessine pas').not.toContain('fenetreChoisir@victory#depecer');
+      const aDepecer: Jeu = { ...etat, pendingVictory: { ...etat.pendingVictory!, defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }] } };
+      const temoin = zonesDeLEcran(aDepecer, projeter(aDepecer, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(aDepecer), null);
+      expect(temoin['fenetre.reglages'].map((g) => g.id), 'témoin : une créature à dépecer se dessine en réglage de la fenêtre').toContain('fenetreChoisir@victory#depecer');
     } finally {
       partie.fermer();
     }

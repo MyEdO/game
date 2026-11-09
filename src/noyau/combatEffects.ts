@@ -22,7 +22,7 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
-import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
+import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
 import { restoreFortune } from '../engine/fortune';
@@ -37,7 +37,7 @@ import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR, shipboardSouls } from './shipCrew';
-import { harvestProfileFor, harvestSizeOf, harvestYield } from '../engine/harvest';
+import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
@@ -299,34 +299,47 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que `depecerLaCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
- *  récoltées. ZI 13. */
-export function creaturesADepecer(s: Jeu): string[] {
+/** Les créatures que le choix `victory.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
+export function creaturesDeLaRecolte(s: Jeu): string[] {
   const pv = s.pendingVictory;
   if (!pv) return [];
-  return [...new Set(pv.defeated.flatMap((d) => (d.creatureId && harvestProfileFor(d.creatureId) && !pv.harvested?.includes(d.creatureId) ? [d.creatureId] : [])))];
+  return [...new Set(pv.defeated.flatMap((d) => (d.creatureId && harvestProfileFor(d.creatureId) ? [d.creatureId] : [])))];
 }
+
+/** Refus du dépeçage de la créature `creatureId` de la victoire : ses pièces sont déjà récoltées ; `null` sinon. */
+export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
+
+/** Les créatures que le choix `victory.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
+export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
  *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,
  *  l'échec une quantité réduite (un cran de Taille en moins). Les pièces portent leur valeur de marché
  *  (`giveTrapping.price`), revendable au marchand / composant ZI. */
 export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string) {
-  const pv = get().pendingVictory;
-  if (!pv || !creaturesADepecer(get()).includes(creatureId)) return;
+  const pv = garanti(get().pendingVictory, creatureId, 'écran de victoire (`refusDuChoix`)');
   const c = garanti(findCreatureById(creatureId), creatureId, 'créature à dépecer');
   const p = garanti(harvestProfileFor(creatureId), creatureId, 'profil de récolte');
   const name = c.label; // affichage depuis le record (résolu par id)
   const size = harvestSizeOf(c);
-  const full = harvestYield(p, size, 0, 'frais');
-  const lo = harvestYield(p, size, -1, 'frais');
-  const part = (enc: number) => t('eff.harvestPart', { creature: name, enc }); // objet CUSTOM (hors catalogue)
+  /** Les pièces prélevées au DR `dr` du jet ; aucune quand la quantité tombe à 0. ZI 13 l.316 */
+  const pieces = (dr: number): Flow => {
+    const { enc, total } = harvestYield(p, size, dr, 'frais');
+    return enc > 0 ? flowFromEffects([{ type: 'giveTrapping', custom: t('eff.harvestPart', { creature: name, enc }), price: total }]) : EMPTY_FLOW; // objet CUSTOM (hors catalogue)
+  };
+  /** L'échec, Degré par Degré, jusqu'à la quantité nulle : un cran de moins par DR sous 0. ZI 13 l.316 */
+  const parDegre = (dr: number): Flow => (harvestYield(p, size, dr).enc === 0
+    ? EMPTY_FLOW
+    : { kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: dr }, then: pieces(dr), else: parDegre(dr - 1) });
   const titre = stepDetail(t('eff.harvest'), dataLabel(name));
+  // ZI 13 l.316 : sans MJ, le récolteur joue sa meilleure Compétence admise (choix d'ingénierie de l'orchestrateur).
+  const admis = testsDeRecolte(c);
+  const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
-    { skill: { id: 'savoir', spec: 'betes-sauvages' }, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: full.enc, encEchec: lo.enc } }) },
-    flowFromEffects([{ type: 'giveTrapping', custom: part(full.enc), price: full.total }]),
-    flowFromEffects([{ type: 'giveTrapping', custom: part(lo.enc), price: lo.total }]),
+    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
+    pieces(0),
+    parDegre(0),
   ), titre));
 }
 
@@ -1059,7 +1072,8 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   };
   const suspendu: ArretDeFlow<Applique> = { arret: undefined };
   return executerFlow<Effect, Applique>(lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng()))), { // #2097
-    conditions: () => condCtx(get),
+    // Le DR du Test dont ce Flow est la branche se lit aux Conditions (`slThreshold`).
+    conditions: () => ({ ...condCtx(get), ...(sl !== undefined ? { sl } : {}) }),
     avantDecision: vidange,
     feuille: (node, reste) => {
       // Les VOLONTAIRES décident avant la feuille : même patron que le `choice` ci-dessous.
