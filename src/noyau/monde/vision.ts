@@ -108,8 +108,8 @@ function buildOpaqueUncached(scene: Scene): Occ {
         topH[y * w + x] = heightAt(scene, x, y, 0) + (terrainSolidHeightM(tileAt(scene, x, y)) || METRES_PER_LEVEL);
       }
   for (const e of scene.entities) {
-    if (e.kind !== 'prop' || !e.ref || !findPropById(e.ref)?.opaque) continue;
-    for (const { x, y } of propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene)))
+    if (e.kind !== 'prop' || !e.decor || !findPropById(e.decor.id)?.opaque) continue;
+    for (const { x, y } of propFootTiles(e.decor.id, e.pos, e.facing, sceneMetresPerTile(scene)))
       if (x >= 0 && y >= 0 && x < w && y < h) { g[y * w + x] = 1; topH[y * w + x] = heightAt(scene, x, y, 0) + METRES_PER_LEVEL; }
   }
   // Arêtes OCCULTANTES (z0) en SET : le VERDICT `areteOcculte` y est cuit une fois par `Occ`, donc le
@@ -204,7 +204,7 @@ export function mapLights(scene: Scene): LightSource[] {
     // Rayon et TON se surchargent CHAMP PAR CHAMP : une instance qui ne pose qu'un rayon garde le ton
     // de son type de prop, et réciproquement — un override d'instance ne déshabille pas le reste.
     const inst = e.light;
-    const prop = e.ref ? findPropById(e.ref) : undefined;
+    const prop = findPropById(e.decor?.id);
     const type = prop?.light;
     const rM = inst?.radiusM ?? type?.radiusM;
     if (rM && rM > 0) out.push({ pos: e.pos, z: e.z, radiusTiles: rayonEnCases(rM, mpt), srcId: e.id, tone: inst?.tone ?? type?.tone, ...foyerDe(scene, e, prop, mpt) });

@@ -23,7 +23,7 @@ const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => mo
 function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local' | 'guest' = 'local'): { partie: Partie; budget: number } {
   const { career, careerLevel, budget } = statutLePlusHaut();
   const scene = { ...emptyScene('marche', 4, 4), id: 'marche' };
-  scene.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, buyMarkup: MAJORATION } } as never);
+  scene.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, buyMarkup: MAJORATION } } as never);
   const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'market-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),

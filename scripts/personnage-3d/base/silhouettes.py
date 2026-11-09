@@ -403,7 +403,7 @@ def refuser_les_inertes(finis):
             f'{nom} {v:.4f} m <= {SOL_TOLERANCE_M} m' for nom, v in inertes.items()))
 
 
-def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, etats_des_clips, rabot=None):
+def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, plantes, etats_des_clips, rabot=None):
     """hotes/godot/pont/CONTRAT.md, « Gabarit d'une base » ; `rabot`, le rabot cumulé du tour précédent, rendu à jour."""
     noms = [b.name for b in squelette.data.bones]
     x, w = peau_lineaire(corps, noms)
@@ -422,8 +422,8 @@ def finir_les_silhouettes(squelette, corps, secondaires, table, etats, clips, et
     def groupes(piles, cellules):
         return [({'etats': jeu, 'cellulesSilhouettes': cellules}, matrices, longueurs) for jeu, matrices, longueurs in piles]
 
-    with groupes_de_peau(squelette, [], table, etats['etats']) as (_, piles), \
-            groupes_de_peau(squelette, clips, table, etats_des_clips['etats']) as (_, piles_des_clips):
+    with groupes_de_peau(squelette, [], table, etats['etats'], ()) as (_, piles), \
+            groupes_de_peau(squelette, clips, table, etats_des_clips['etats'], plantes) as (_, piles_des_clips):
         du_repos = groupes(piles, etats['cellulesSilhouettes'])
         domaine = du_repos + groupes(piles_des_clips, etats_des_clips['cellulesSilhouettes'])
         libre = fondu(w, noms, extremites(squelette), groupe)

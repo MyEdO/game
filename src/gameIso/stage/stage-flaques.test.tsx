@@ -61,7 +61,7 @@ function avecBraseros(n: number): Scene {
   const scene = emptyScene('scene-test', 10, 10);
   scene.ambiance = 'exterieur';
   scene.entities = Array.from({ length: n }, (_, i) => ({
-    id: `b${i}`, kind: 'prop', pos: { x: 1 + i, y: 2 }, ref: 'brasero',
+    id: `b${i}`, kind: 'prop', pos: { x: 1 + i, y: 2 }, decor: { id: 'brasero' },
   })) as unknown as Scene['entities'];
   return scene;
 }
@@ -72,7 +72,7 @@ function avecLampadaires(n: number): Scene {
   const scene = emptyScene('scene-test', 10, 10);
   scene.ambiance = 'exterieur';
   scene.entities = Array.from({ length: n }, (_, i) => ({
-    id: `l${i}`, kind: 'prop', pos: { x: 1 + i, y: 2 }, ref: 'lampadaire',
+    id: `l${i}`, kind: 'prop', pos: { x: 1 + i, y: 2 }, decor: { id: 'lampadaire' },
   })) as unknown as Scene['entities'];
   return scene;
 }
@@ -509,7 +509,7 @@ describe('Le pool ÉCRIT — une passe par changement de lumière ; par frame, l
     const scene = avecBraseros(2);          // brasero : ton par défaut `flamme`, donc vacillant
     scene.entities = [
       ...scene.entities,
-      { id: 'l0', kind: 'prop', pos: { x: 6, y: 6 }, ref: 'lampadaire' },
+      { id: 'l0', kind: 'prop', pos: { x: 6, y: 6 }, decor: { id: 'lampadaire' } },
     ] as unknown as Scene['entities'];
     const p = props(scene, NUIT);
     viderCaptures();

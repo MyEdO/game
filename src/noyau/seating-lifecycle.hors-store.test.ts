@@ -33,7 +33,7 @@ const poseDe = (rang: number) => seatPoseOf(banc.getState().scene!, place(rang))
 function scèneDeTaverne(id: string): Scene {
   const s = emptyScene('scene-test', 12, 12);
   s.id = id;
-  s.entities.push({ id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } });
+  s.entities.push({ id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } });
   return s;
 }
 
@@ -138,8 +138,8 @@ describe('mort / indisponibilité d’un occupant', () => {
     banc.setState({ party: [h], battle: null, journal: [] });
     banc.getState().lancerLaScene(testScene());
     const sc = banc.getState().scene!;
-    const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 4 } };
-    const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } }, badaud];
+    const badaud: SceneEntity = { id: 'badaud', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 4 } };
+    const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } }, badaud];
     const occupant: SeatOccupant = { kind: 'entity', entityId: 'badaud' };
     banc.setState({ scene: { ...sc, entities, seatAssignments: { [PROP]: { 'place-1': occupant } } } });
     expect(seatPoseOf(banc.getState().scene!, occupant)).not.toBeNull();
@@ -160,7 +160,7 @@ describe('ouverture de combat — le MENEUR assis se lève avec les autres enrô
     const sc = banc.getState().scene!;
     // Table au NORD du groupe, cap `N` : son abord SUD est exactement la case du groupe.
     const table = { x: banc.getState().partyPos.x, y: banc.getState().partyPos.y - 1 };
-    const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: table, ref: TABLE, facing: 'N', usable: { assise: true } }];
+    const entities: SceneEntity[] = [...sc.entities, { id: PROP, kind: 'prop', pos: table, decor: { id: TABLE }, facing: 'N', usable: { assise: true } }];
     banc.setState({ scene: { ...sc, entities } });
     banc.getState().interagirAvecLEntite(PROP);
     expect(poseDe(1)).toMatchObject({ slotId: 'place-3' });

@@ -85,7 +85,7 @@ describe('apparence des objets de campagne', () => {
   const objet: ObjetDuRegistre = { id: 'hache-du-projet', label: 'Hache du projet', kind: 'melee', shape: { id: 'hache' }, formChoices: ['hache'] };
   /** Le coffre qui référence `apparence` par la `surface` donnée : action directe, op, ou apparence d'entité. */
   const coffre = (surface: Surface, apparence: string): Jouet => {
-    const lieu = { id: 'coffre', kind: 'prop', ref: 'coffre', pos: { x: 1, y: 1 } };
+    const lieu = { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 } };
     if (surface === 'apparencesObjets') return { ...lieu, appearance: { apparencesObjets: { [objet.id]: { id: apparence } } } };
     const don = { trappingId: objet.id, apparence: { id: apparence } };
     const effect = surface === 'action' ? { type: 'giveTrapping', ...don } : { type: 'ops', ops: [{ op: 'giveTrapping', ...don }] };
@@ -134,7 +134,7 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
    */
   it('`usable` : l’enveloppe à deux faits passe, `interact` est REFUSÉ, un `id` d’action DOUBLÉ aussi', () => {
     const FLOW = { kind: 'seq', steps: [] };
-    const entite = (over: Jouet) => [sceneMinimale({ entities: [{ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'coffre', ...over }] })];
+    const entite = (over: Jouet) => [sceneMinimale({ entities: [{ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, ...over }] })];
 
     expect(projetSchema.safeParse(projet({ scenes: entite({ usable: { assise: true, actions: [{ id: 'fouiller', flow: FLOW, unique: true }] } }) })).success).toBe(true);
     expect(fautesCodees(projet({ scenes: entite({ interact: { flow: FLOW } }) })))
@@ -325,7 +325,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
     const narratif = {
       affaires: [],
       indices: [],
-      presetsPnj: [{ id: 'gobelin', base: 'gobelin' }],
+      presetsPnj: [{ id: 'gobelin', base: { id: 'gobelin' } }],
       objets: [],
       documents: [],
       etats: [],
@@ -503,7 +503,7 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
   });
 
   it('preset PNJ : `id` vide', () => {
-    expect(fautes(narratif({ presetsPnj: [{ id: '', base: 'gobelin' }] }), narratifSchema)).toEqual([
+    expect(fautes(narratif({ presetsPnj: [{ id: '', base: { id: 'gobelin' } }] }), narratifSchema)).toEqual([
       'PNJ 1 › identifiant :: id vide.',
     ]);
   });
@@ -533,7 +533,7 @@ describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
   });
   const PORTEURS: Record<string, (couvre: unknown) => Jouet> = {
     scène: (couvre) => projet({ scenes: [sceneMinimale({ couvre })] }),
-    entité: (couvre) => projet({ scenes: [sceneMinimale({ entities: [{ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'coffre', couvre }] })] }),
+    entité: (couvre) => projet({ scenes: [sceneMinimale({ entities: [{ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, couvre }] })] }),
     déclencheur: (couvre) => projet({ scenes: [sceneMinimale({ triggers: [{ id: 'trig-1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: FLOW, couvre }] })] }),
     dialogue: (couvre) => projet({ scenes: [sceneMinimale({ dialogues: [{ id: 'dlg-1', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [] }], couvre }] })] }),
     rencontre: (couvre) => projet({ scenes: [sceneMinimale({ encounters: [{ id: 'enc-1', couvre }] })] }),

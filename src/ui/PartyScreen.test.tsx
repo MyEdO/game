@@ -490,7 +490,7 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
 
   it('un id que l’Arène référence, renommé au Codex : le refus s’affiche, aucune scène n’est posée', async () => {
     const avant = [...datasetArray('props')];
-    expect(JSON.stringify(areneCampaign.paquet), 'l’Arène référence le décor `tonneau`').toContain('"ref":"tonneau"');
+    expect(JSON.stringify(areneCampaign.paquet), 'l’Arène référence le décor `tonneau`').toContain('"decor":{"id":"tonneau"}');
     const consoleErr = vi.spyOn(console, 'error').mockImplementation(() => {});
     setDataset('props', avant.map((p) => (p.id === 'tonneau' ? { ...p, id: 'tonneau-renomme' } : p)));
     try {

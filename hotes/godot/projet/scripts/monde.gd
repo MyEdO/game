@@ -1,16 +1,17 @@
-## Le monde 3D d'une scène, que le plateau du jeu et l'éditeur de carte instancient tous deux : le volume du monde
-## (`monde`, `CONTRAT.md`, section « Monde ») à l'échelle d'une unité par case, rendu et touché des deux côtés, sa lumière,
-## et ses caméras (`regarder`) : celle des regards `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E
-## d'un quart de tour, bouton du milieu tenu librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour
-## revenir au lieu suivi), centrée sur lui puis sur le lieu qu'elle suit (`suivre`), de biais en tactique, à la verticale
-## et sans perspective au plateau ; et l'œil du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche
-## sur le sol touché sous lui (`sol_sous`). Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la case
-## du triangle que le rayon du pointeur touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de
-## surbrillance et les noms que lui passe qui l'instancie, les arêtes de la scène, chacune la pièce du kit des arêtes
-## (`KIT`) que l'arête nomme, l'arête choisie, les nappes de toit, chacune levée quand le groupe est dessous, les
-## couronnes crénelées des murs, chacune cachée quand son mur tombe, la météo (`poser_la_meteo`), la mer de chaque
-## navire bordée par sa coque (`border_la_mer`) et le calque de référence de l'éditeur ; tout autre
-## chose posée sur le monde appartient à qui l'instancie.
+## Le monde 3D d'une scène, que le plateau du jeu et l'éditeur de carte instancient tous deux : le volume de la scène
+## (`VolumeDeScene`, `volume`), touché des deux côtés, sa lumière, et ses caméras (`regarder`) : celle des regards
+## `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E d'un quart de tour, bouton du milieu tenu
+## librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour revenir au lieu suivi), centrée sur lui puis
+## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), de biais en tactique, à la verticale et sans
+## perspective au plateau ; et l'œil
+## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
+## Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la caméra posée (`camera`), la case du
+## triangle que le rayon du pointeur
+## touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
+## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
+## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
+## la caméra (`cacher_le_bati`), la météo (`poser_la_meteo`) et le calque de référence de l'éditeur ; tout autre chose
+## posée sur le monde appartient à qui l'instancie.
 class_name Monde
 extends Node3D
 
@@ -18,8 +19,6 @@ extends Node3D
 signal cadrage_change
 
 const DUREE_QUART_S := 0.25
-## Netteté de la projection d'une texture de matière sur les trois axes (`texturer`).
-const NETTETE_DU_MOTIF := 4.0
 ## Le tangage de la caméra au regard `tactique`, plongeante de biais.
 const TANGAGE_TACTIQUE := -0.9
 ## Une hauteur sous tout monde, où finit le rayon qui cherche le sol sous un lieu.
@@ -32,41 +31,29 @@ const PRES_DE_L_OEIL := 0.5
 const LOIN_DE_L_OEIL := 1.5
 const DISTANCE_MIN := 6.0
 const DISTANCE_MAX := 40.0
+## La hauteur (m) au-dessus du lieu que regarde la caméra d'où se cherche le sol sous lui (`camera`).
+const AU_DESSUS_DU_LIEU_M := 1.0
 ## Les items de `surbrillances`.
 const ITEM_ATTEIGNABLE := 0
 const ITEM_CIBLE := 1
 const ITEM_SURVOL := 2
-## Le kit des arêtes (`CONTRAT.md`, section « Plateau ») : une pièce par nœud racine, `<famille>--<pièce>`.
-const KIT := "res://kit/kit.glb"
 
 ## Les plaques des surbrillances, par item (`ITEM_*`), chacune posée sans ombre.
 @export var surbrillances: MeshLibrary
-## Ce qui se pose sur une arête dont le kit n'a pas la pièce, ou sans kit au projet : un mur, une porte fermée, le seuil
-## d'une porte ouverte ou d'une brèche ; et la gaine de l'arête choisie.
-@export var mesh_mur: BoxMesh
-@export var mesh_porte: BoxMesh
-@export var mesh_seuil: BoxMesh
+## La gaine de l'arête choisie.
 @export var mesh_arete_choisie: BoxMesh
-## La matière d'une surface sans texture : la couleur de ses sommets.
-@export var couleur_des_sommets: StandardMaterial3D
-## Le modèle de la matière d'une surface texturée, projetée sur ses trois axes (triplanaire) dans le repère du volume.
-@export var matiere_texturee: StandardMaterial3D
 ## La matière du calque de référence, sans ombrage, transparente, vue des deux côtés.
 @export var matiere_du_calque: StandardMaterial3D
 
-@onready var _volume: Node3D = $Volume
-@onready var _maillage: MeshInstance3D = $Volume/Maillage
-@onready var _ombre: MeshInstance3D = $Volume/Ombre
-@onready var _forme: CollisionShape3D = $Volume/Corps/Forme
-@onready var _toits: Node3D = $Volume/Toits
-@onready var _couronnes: Node3D = $Volume/Couronnes
-@onready var _meteo: Node3D = $Volume/Meteo
+## Le volume de la scène, que qui instancie le monde pose (`VolumeDeScene`).
+@onready var volume: VolumeDeScene = $VolumeDeScene
+@onready var _forme: CollisionShape3D = $VolumeDeScene/Volume/Corps/Forme
+@onready var _meteo: Node3D = $VolumeDeScene/Volume/Meteo
 @onready var _pivot: Node3D = $Pivot
 @onready var _inclinaison: Node3D = $Pivot/Inclinaison
 @onready var _camera: Camera3D = $Pivot/Inclinaison/Camera
 @onready var _oeil: Camera3D = $Oeil
 @onready var _surbrillance: Node3D = $Surbrillance
-@onready var _aretes: Node3D = $Aretes
 @onready var _etiquettes: Node3D = $Etiquettes
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 @onready var _calque: MeshInstance3D = $Calque
@@ -76,28 +63,18 @@ var _cases_des_triangles: Array = []
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
 var _lacet := 0.0
-## Les arêtes posées (`poser_les_aretes`).
-var _aretes_posees: Array = []
-## Les crans de caméra sous lesquels tombe chaque arête dégagée, par clé (`cacher_le_bati`).
+## Les clés des nappes de toit levées, et les crans de caméra sous lesquels tombe chaque arête dégagée, par clé
+## (`cacher_le_bati`).
+var _toits_leves: Array = []
 var _aretes_degagees: Dictionary = {}
-## Par nom de matière, la matière de rendu de ses surfaces, d'un `poser` à l'autre.
-var _matieres := {}
-## Le kit des arêtes, caché sous le monde, `null` sans kit au projet.
-var _kit: Node3D
 ## Les noms posés (`etiqueter`), par case `x,y,z`.
 var _noms := {}
-## Les mètres d'une case du dernier monde posé.
-var _metres_par_case := 1.0
 var _pivotement: Tween
 var _suivi: Tween
 ## Le dernier lieu que la caméra suit (`suivre`), `null` avant le premier.
 var _suivi_lieu: Variant = null
 ## Le regard posé (`regarder`).
 var _regard := "tactique"
-## Le dernier volume posé (`poser`), `null` avant le premier.
-var _monde_pose: Variant = null
-## Par id de navire, le contour de sa coque à sa flottaison dans le plan du volume (`border_la_mer`).
-var _coques := {}
 ## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
 ## occupant (`poser_les_stations`).
 var _stations := {}
@@ -105,26 +82,14 @@ var _stations := {}
 
 func _ready() -> void:
 	_lacet = _pivot.rotation.y
-	if ResourceLoader.exists(KIT):
-		_kit = (load(KIT) as PackedScene).instantiate()
-		_kit.visible = false
-		add_child(_kit)
 
 
-## Le volume du monde de la scène (`monde`) à l'échelle d'une unité par case, sa case (0, 0) sur la case (0, 0) du
-## monde : son maillage, une surface par matière (sol, relief, décor), texturée ou colorée par sommet (`_matiere`),
-## rendu des deux côtés hors des surfaces d'un navire, la mer de chacun bordée par sa coque, et l'ombre de ce que le
-## regard en retire (`_mailler`), en forme hors de ces mers, que le rayon du pointeur touche des deux côtés, le sol de
-## chaque case de chaque couche, et la caméra centrée sur lui. Godot tient pour face avant le sens horaire, le volume le
-## sens trigonométrique : chaque tableau retourné en entier retourne chaque triangle, et l'ordre des triangles avec lui,
-## que suivent leurs cases.
+## Le volume du monde de la scène (`monde`) posé par le volume (`VolumeDeScene.poser`), avec l'ombre de ce que le
+## regard en retire, en forme hors des mers des navires, que le rayon du pointeur touche des deux côtés, le sol de chaque
+## case de chaque couche, et la caméra centrée sur lui. Chaque tableau du volume retourné en entier
+## (`VolumeDeScene._maillage_de`) retourne l'ordre des triangles, que suivent leurs cases.
 func poser(monde: Dictionary) -> void:
-	_monde_pose = monde
-	_metres_par_case = monde.metresParCase
-	var echelle := MiseEnPage.echelle_metrique(monde.metresParCase)
-	_volume.scale = Vector3(echelle, echelle, echelle)
-	_volume.position = MiseEnPage.centre_de_case(Vector2i.ZERO, 0.0)
-	_mailler()
+	volume.poser(monde)
 	var tous := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
 	var sommets := PackedVector3Array()
 	_cases_des_triangles = []
@@ -143,33 +108,6 @@ func poser(monde: Dictionary) -> void:
 	for couche in monde.hauteurs:
 		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.metresParCase)))
 	_pivot.position = MiseEnPage.centre_du_plateau(taille())
-
-
-## La mer du navire `navire` (les surfaces `flottaison` du volume, `CONTRAT.md`, section « Monde ») bordée par sa coque,
-## de contour `contour` dans le plan horizontal du repère global (`MontageDeVehicule.contour_sous`) : le maillage du
-## volume la peint hors de lui seulement.
-func border_la_mer(navire: String, contour: PackedVector2Array) -> void:
-	var dans_le_volume := PackedVector2Array()
-	for point in contour:
-		var local := _volume.to_local(Vector3(point.x, 0.0, point.y))
-		dans_le_volume.append(Vector2(local.x, local.z))
-	_coques[navire] = dans_le_volume
-	if _monde_pose != null:
-		_mailler()
-
-
-## Le maillage du dernier volume posé (`_maillage_de`), et celui de son ombre (`ombre`), que la caméra ne voit pas et
-## qui projette son ombre (`SHADOWS_ONLY`, #3758).
-func _mailler() -> void:
-	_maillage.mesh = _maillage_de(_monde_pose)
-	_ombre.mesh = _maillage_de(_monde_pose.ombre)
-
-
-## Les nappes de toit (`toits`) et les couronnes crénelées des murs (`couronnes`) de la scène (`CONTRAT.md`, section
-## « Monde »), chacune son maillage sous le volume, à la place des précédentes ; le rayon du pointeur les traverse.
-func poser_les_nappes(toits: Array, couronnes: Array) -> void:
-	_poser_sous(_toits, toits)
-	_poser_sous(_couronnes, couronnes)
 
 
 ## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
@@ -239,153 +177,26 @@ func _translucide(couleur: String, opacite: float) -> StandardMaterial3D:
 	return matiere
 
 
-## Chaque nappe de toit que `toits_leves` nomme (`plateau.toitsLeves`) cachée à la caméra (`_cacher_sous`), chaque
-## couronne que `couronnes_abattues` nomme (`plateau.couronnesAbattues`) retirée, et chaque arête que le groupe dégage
+## Chaque nappe de toit que `toits_leves` nomme (`plateau.toitsLeves`) cachée à la caméra (`VolumeDeScene.cacher`),
+## chaque couronne que `couronnes_abattues` nomme (`plateau.couronnesAbattues`) retirée
+## (`VolumeDeScene.retirer_les_couronnes`), et chaque arête que le groupe dégage
 ## (`aretes_degagees`, `plateau.aretesDegagees`) abattue avec sa couronne sous le regard de la caméra
 ## (`_abattre_les_aretes`) ; montrées sinon.
 func cacher_le_bati(toits_leves: Array, couronnes_abattues: Array, aretes_degagees: Array) -> void:
-	_cacher_sous(_toits, toits_leves)
-	for couronne: Node3D in _couronnes.get_children():
-		couronne.visible = not couronnes_abattues.has(couronne.get_meta("cle"))
+	_toits_leves = toits_leves
+	volume.retirer_les_couronnes(couronnes_abattues)
 	_aretes_degagees.clear()
 	for a in aretes_degagees:
 		_aretes_degagees[a.cle] = a.abattueSous
 	_abattre_les_aretes()
 
 
-## Les arêtes dégagées qui tombent sous le cran de la caméra (`MiseEnPage.rotation_iso`) cachées à la caméra avec leur
-## couronne (`_cacher_sous`) ; le reste montré.
+## Le volume cache à la caméra (`VolumeDeScene.cacher`) les nappes de toit levées et les arêtes dégagées qui tombent
+## sous le cran de la caméra (`MiseEnPage.rotation_iso`) avec leur couronne ; le reste montré.
 func _abattre_les_aretes() -> void:
 	var cran := int(MiseEnPage.rotation_iso(_camera.global_basis.z))
 	var abattues := _aretes_degagees.keys().filter(func(cle: String) -> bool: return _aretes_degagees[cle].has(cran))
-	_cacher_sous(_aretes, abattues)
-	_cacher_sous(_couronnes, abattues)
-
-
-## Les nappes `nappes` sous `parent`, chacune son maillage nommé par sa `cle`, à la place des précédentes.
-func _poser_sous(parent: Node3D, nappes: Array) -> void:
-	for nappe in parent.get_children():
-		parent.remove_child(nappe)
-		nappe.free()
-	for nappe in nappes:
-		var instance := MeshInstance3D.new()
-		instance.mesh = _maillage_de(nappe)
-		instance.set_meta("cle", nappe.cle)
-		parent.add_child(instance)
-
-
-## Chaque pièce sous `parent` que `cles` nomme cachée à la caméra, chacun de ses maillages en ombre seule
-## (`SHADOWS_ONLY`, #3758), montrée sinon.
-func _cacher_sous(parent: Node3D, cles: Array) -> void:
-	for piece: Node3D in parent.get_children():
-		var ombre := GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY if cles.has(piece.get_meta("cle")) else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		var maillages := piece.find_children("*", "GeometryInstance3D", true, false)
-		if piece is GeometryInstance3D:
-			maillages.append(piece)
-		for maillage: GeometryInstance3D in maillages:
-			maillage.cast_shadow = ombre
-
-
-## Le maillage d'une géométrie du monde (`positions`, `normales`, `couleurs`, `surfaces`) : une surface par matière,
-## texturée ou colorée par sommet (`_matiere`), chaque tableau retourné en entier (`_retournes`) ; sans les surfaces
-## d'un navire (`navire`), que le rayon du pointeur touche et que le modèle du navire montre ; la mer d'un navire
-## (`flottaison`) hors du contour de sa coque (`border_la_mer`, `_hors_du_contour`), entière tant qu'il n'est pas connu.
-func _maillage_de(geometrie: Dictionary) -> ArrayMesh:
-	var sommets := PackedFloat32Array(geometrie.positions).to_byte_array().to_vector3_array()
-	var normales := PackedFloat32Array(geometrie.normales).to_byte_array().to_vector3_array()
-	var couleurs := PackedFloat32Array(geometrie.couleurs).to_byte_array().to_color_array()
-	var maillage := ArrayMesh.new()
-	for surface: Dictionary in geometrie.surfaces:
-		if surface.has("navire"):
-			continue
-		var tableaux := []
-		tableaux.resize(Mesh.ARRAY_MAX)
-		tableaux[Mesh.ARRAY_VERTEX] = sommets.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_NORMAL] = normales.slice(int(surface.debut), int(surface.fin))
-		tableaux[Mesh.ARRAY_COLOR] = couleurs.slice(int(surface.debut), int(surface.fin))
-		if surface.has("flottaison") and _coques.has(surface.flottaison):
-			tableaux = _hors_du_contour(tableaux, _coques[surface.flottaison])
-		if tableaux[Mesh.ARRAY_VERTEX].is_empty():
-			continue
-		for rang in [Mesh.ARRAY_VERTEX, Mesh.ARRAY_NORMAL, Mesh.ARRAY_COLOR]:
-			tableaux[rang] = _retournes(tableaux[rang])
-		var indice := maillage.get_surface_count()
-		maillage.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
-		maillage.surface_set_material(indice, _matiere(surface.matiere))
-	return maillage
-
-
-## Les triangles horizontaux de `tableaux` (sommets, normales, couleurs) hors du contour convexe `contour` du plan
-## horizontal (`Geometry2D.clip_polygons`), triangulés (`Geometry2D.triangulate_polygon`, dans le sens trigonométrique),
-## chaque morceau dans le sens, à la hauteur, de la normale et de la couleur de son triangle.
-func _hors_du_contour(tableaux: Array, contour: PackedVector2Array) -> Array:
-	var sommets: PackedVector3Array = tableaux[Mesh.ARRAY_VERTEX]
-	var hors := []
-	hors.resize(Mesh.ARRAY_MAX)
-	hors[Mesh.ARRAY_VERTEX] = PackedVector3Array()
-	hors[Mesh.ARRAY_NORMAL] = PackedVector3Array()
-	hors[Mesh.ARRAY_COLOR] = PackedColorArray()
-	for triangle: Array in rangs_des_triangles(sommets.size()):
-		var premier: Vector3 = sommets[triangle[0]]
-		var plan := PackedVector2Array(triangle.map(func(rang: int) -> Vector2: return Vector2(sommets[rang].x, sommets[rang].z)))
-		for morceau in Geometry2D.clip_polygons(plan, contour):
-			var rangs := Geometry2D.triangulate_polygon(morceau)
-			if Geometry2D.is_polygon_clockwise(plan):
-				rangs.reverse()
-			for rang in rangs:
-				hors[Mesh.ARRAY_VERTEX].append(Vector3(morceau[rang].x, premier.y, morceau[rang].y))
-				hors[Mesh.ARRAY_NORMAL].append(tableaux[Mesh.ARRAY_NORMAL][triangle[0]])
-				hors[Mesh.ARRAY_COLOR].append(tableaux[Mesh.ARRAY_COLOR][triangle[0]])
-	return hors
-
-
-## Les rangs des sommets de chaque triangle d'une liste de `sommets` sommets, trois par triangle, dans leur ordre.
-static func rangs_des_triangles(sommets: int) -> Array:
-	var premiers := range(0, sommets, 3)
-	var seconds := range(1, sommets, 3)
-	var troisiemes := range(2, sommets, 3)
-	var rangs := []
-	for triangle in premiers.size():
-		rangs.append([premiers[triangle], seconds[triangle], troisiemes[triangle]])
-	return rangs
-
-
-## `tableau` retourné en entier : chaque triangle change de sens (`_maillage_de`).
-func _retournes(tableau: Variant) -> Variant:
-	tableau.reverse()
-	return tableau
-
-
-## La matière de rendu des surfaces de la matière `nom` (`<domaine>--<id>`, `CONTRAT.md`, section « Monde ») : texturée
-## (`texturer`) si sa texture est au projet, sinon la couleur de ses sommets.
-func _matiere(nom: String) -> Material:
-	if not _matieres.has(nom):
-		var matiere := matiere_texturee.duplicate() as StandardMaterial3D
-		_matieres[nom] = matiere if texturer(matiere, nom) else couleur_des_sommets
-	return _matieres[nom]
-
-
-## Le chemin de la texture de la matière `nom` au projet.
-static func texture_de(nom: String) -> String:
-	return "res://textures/%s.jpg" % nom
-
-
-## `materiau` habillé de la matière `nom` si sa texture (`res://textures/<nom>.jpg`) est au projet : la texture et son
-## relief (`<nom>.normale.jpg`) s'il y est, projetés sur les trois axes du repère du mesh, un motif tous les
-## `MiseEnPage.METRES_PAR_MOTIF` ; rend si la texture y est.
-static func texturer(materiau: BaseMaterial3D, nom: String) -> bool:
-	var couleur := texture_de(nom)
-	if not ResourceLoader.exists(couleur):
-		return false
-	materiau.albedo_texture = load(couleur)
-	materiau.uv1_triplanar = true
-	materiau.uv1_triplanar_sharpness = NETTETE_DU_MOTIF
-	materiau.uv1_scale = MiseEnPage.echelle_de_motif()
-	var relief := "res://textures/%s.normale.jpg" % nom
-	if ResourceLoader.exists(relief):
-		materiau.normal_enabled = true
-		materiau.normal_texture = load(relief)
-	return true
+	volume.cacher(abattues, _toits_leves, abattues)
 
 
 ## Les couches du dernier monde posé.
@@ -469,69 +280,11 @@ func noms() -> Dictionary:
 	return _noms
 
 
-## Les arêtes `aretes` (`CONTRAT.md`, section « Plateau »), chacune sur le côté de sa case, debout à son pied
-## (`_piece`) ; à la place des précédentes.
-func poser_les_aretes(aretes: Array) -> void:
-	if aretes == _aretes_posees:
-		return
-	_aretes_posees = aretes
-	for arete in _aretes.get_children():
-		_aretes.remove_child(arete)
-		arete.free()
-	for a in aretes:
-		var piece := _piece(a)
-		piece.set_meta("cle", a.cle)
-		_aretes.add_child(piece)
-	_abattre_les_aretes()
-
-
-## La pièce de l'arête `a`, debout à son pied (`a.pied`) : celle du kit, `<famille>--<pièce>`, étirée à la longueur de
-## l'arête et à la hauteur de son mur (`MiseEnPage.echelle_de_piece`) ; sinon sa boîte (`_boite`).
-func _piece(a: Dictionary) -> Node3D:
-	var nom := "%s--%s" % [a.famille, a.piece]
-	if _kit == null or a.famille == null or not _kit.has_node(nom):
-		var boite := MeshInstance3D.new()
-		_poser_sur_l_arete(boite, _boite(a.piece), a)
-		return boite
-	var sens := Vector2(a.sens.x, a.sens.y)
-	var piece := Node3D.new()
-	piece.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, _metres_par_case, 0.0)
-	piece.rotation.y = MiseEnPage.lacet_d_arete(sens)
-	piece.scale = MiseEnPage.echelle_de_piece(sens, a.hauteurM, _metres_par_case)
-	piece.add_child(_kit.get_node(nom).duplicate())
-	return piece
-
-
-## La boîte de la pièce `piece` d'une arête : le seuil d'une porte ouverte ou d'une brèche, une porte fermée, sinon un
-## mur.
-func _boite(piece: String) -> BoxMesh:
-	match piece:
-		"porte-ouverte", "breche":
-			return mesh_seuil
-		"porte-fermee":
-			return mesh_porte
-	return mesh_mur
-
-
-## Le nombre d'arêtes posées sur le monde.
-func nombre_d_aretes() -> int:
-	return _aretes.get_child_count()
-
-
 ## La gaine de l'arête choisie sur l'arête `arete`, aucune si `arete` est `null`.
 func choisir_l_arete(arete: Variant) -> void:
 	_arete_choisie.visible = arete != null
 	if arete != null:
-		_poser_sur_l_arete(_arete_choisie, mesh_arete_choisie, arete)
-
-
-## Le maillage `mesh` posé par `instance` sur l'arête `a`, debout à son pied (`a.pied`).
-func _poser_sur_l_arete(instance: MeshInstance3D, mesh: BoxMesh, a: Dictionary) -> void:
-	instance.mesh = mesh
-	var sens := Vector2(a.sens.x, a.sens.y)
-	instance.position = MiseEnPage.centre_d_arete(Vector2(a.milieu.x, a.milieu.y), a.pied, _metres_par_case, mesh.size.y)
-	instance.rotation.y = MiseEnPage.lacet_d_arete(sens)
-	instance.scale.x = MiseEnPage.longueur_d_arete(sens)
+		volume.poser_sur_l_arete(_arete_choisie, mesh_arete_choisie, arete)
 
 
 ## Le calque de référence `calque` (`CONTRAT.md`, section « Éditeur ») sous la texture `planche`, ses quatre coins sur
@@ -541,7 +294,7 @@ func poser_le_calque(calque: Variant, planche: Texture2D) -> void:
 	_calque.visible = calque != null and planche != null
 	if not _calque.visible:
 		return
-	var hauteur := MiseEnPage.hauteur_du_calque(calque.plan, _metres_par_case, MiseEnPage.DECALAGE_DU_CALQUE if calque.dessus else -MiseEnPage.DECALAGE_DU_CALQUE)
+	var hauteur := MiseEnPage.hauteur_du_calque(calque.plan, volume.metres_par_case, MiseEnPage.DECALAGE_DU_CALQUE if calque.dessus else -MiseEnPage.DECALAGE_DU_CALQUE)
 	var tableaux := []
 	tableaux.resize(Mesh.ARRAY_MAX)
 	tableaux[Mesh.ARRAY_VERTEX] = PackedVector3Array(calque.coins.map(func(c: Dictionary) -> Vector3: return MiseEnPage.point_de_la_carte(c.x, c.y, hauteur)))
@@ -644,6 +397,47 @@ func poser_l_oeil(lieu: Vector3, lacet: float, tangage: float) -> void:
 	cadrage_change.emit()
 
 
+## Le regard posé (`regarder`).
+func regard() -> String:
+	return _regard
+
+
+## La caméra des regards `tactique` et `plateau` posée sans glisser sur le lieu `lieu`, qu'elle regarde au lacet `lacet`
+## sous tout regard (au plateau, `MiseEnPage.lacet_sous_le_plateau`), à la distance `distance` ; elle y reste tant que
+## le lieu suivi ne bouge pas (`suivre`). Rend si `distance` tient dans le zoom (`DISTANCE_MIN`, `DISTANCE_MAX`), sans
+## rien poser sinon.
+func cadrer(lieu: Vector3, lacet: float, distance: float) -> bool:
+	if MiseEnPage.distance_zoomee(distance, 0.0, DISTANCE_MIN, DISTANCE_MAX) != distance:
+		return false
+	for tween: Tween in [_suivi, _pivotement]:
+		if tween != null:
+			tween.kill()
+	_pivot.position = lieu
+	_lacet = MiseEnPage.lacet_sous_le_plateau(lacet) if _regard == "plateau" else lacet
+	_orienter()
+	_camera.position.z = distance
+	_camera.size = distance
+	_abattre_les_aretes()
+	cadrage_change.emit()
+	return true
+
+
+## La caméra du regard telle qu'elle est posée (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`) : le regard, la
+## case et la couche (`[x, y, z]`) du sol touché sous l'œil, ou sous le lieu que regarde la caméra des regards
+## `tactique` et `plateau` (`null` hors du monde), l'azimut où elle regarde et son tangage, en degrés
+## (`MiseEnPage.azimut_du_lacet`), et sa distance, `null` en immersion.
+func camera() -> Dictionary:
+	var immersion := _regard == "immersion"
+	var sol: Variant = sol_sous(_oeil.global_position if immersion else MiseEnPage.oeil_sur(_pivot.position, AU_DESSUS_DU_LIEU_M, volume.metres_par_case))
+	return {
+		regard = _regard,
+		case = null if sol == null else [sol.case.x, sol.case.y, sol.case.z],
+		lacet = MiseEnPage.azimut_du_lacet(_oeil.rotation.y if immersion else _pivot.rotation.y),
+		tangage = rad_to_deg(_oeil.rotation.x if immersion else _inclinaison.rotation.x),
+		zoom = null if immersion else _camera.position.z,
+	}
+
+
 ## Le clavier mène la caméra ou l'œil : aucun champ de saisie n'a le focus.
 func clavier_libre() -> bool:
 	var focus := get_viewport().gui_get_focus_owner()
@@ -659,7 +453,7 @@ func _process(delta: float) -> void:
 		return
 	if _suivi != null:
 		_suivi.kill()
-	_pivot.position = MiseEnPage.lieu_apres_la_marche(_pivot.position, forces[0], forces[1], forces[2], forces[3], _pivot.rotation.y, MiseEnPage.metres_de_marche(VITESSE_DE_GLISSE_M_S, delta), _metres_par_case)
+	_pivot.position = MiseEnPage.lieu_apres_la_marche(_pivot.position, forces[0], forces[1], forces[2], forces[3], _pivot.rotation.y, MiseEnPage.metres_de_marche(VITESSE_DE_GLISSE_M_S, delta), volume.metres_par_case)
 	cadrage_change.emit()
 
 
@@ -707,3 +501,43 @@ func _zoomer(sens: float) -> void:
 	_camera.position.z = MiseEnPage.distance_zoomee(_camera.position.z, sens, DISTANCE_MIN, DISTANCE_MAX)
 	_camera.size = _camera.position.z
 	cadrage_change.emit()
+
+
+## @contrat Vue
+## Le volume de la scène (`VolumeDeScene.poser_les_aretes`) dessine les arêtes du plateau (`plateau.aretes`), chacune
+## debout à son pied : la pièce
+## `<famille>--<piece>` du kit des arêtes (`projet/kit/kit.glb`, assemblé par `hotes/godot/kit.mjs` depuis un pack
+## modulaire CC0, `asset/kit.ts`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans kit au projet ou
+## sans cette pièce au kit, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou d'une brèche.
+
+## @contrat Vue
+## Les nappes retirées (`plateau.toitsLeves`), les arêtes retirées (`plateau.aretesDegagees`) et les couronnes crénelées
+## tombées avec leur mur abattu (`plateau.couronnesAbattues`), `Monde.cacher_le_bati` les cache à la caméra : les
+## nappes, et chaque arête retirée sous le cran de la caméra (`MiseEnPage.rotation_iso`) avec sa couronne, revue à
+## chaque quart de tour, chacune en ombre seule (`SHADOWS_ONLY`, `VolumeDeScene._cacher_sous`), le regard ne changeant que ce
+## que voit la caméra, jamais l'éclairage : sous un toit levé, l'intérieur reste à l'ombre (recette
+## `projet/recettes/ombres-du-regard.gd`) ; une couronne abattue, tombée avec son mur, disparaît
+## (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
+
+## @contrat Monde
+## Le volume de la scène (`projet/scenes/VolumeDeScene.tscn`, `VolumeDeScene`, #3802), que le monde
+## (`projet/scenes/Monde.tscn`, que le plateau du jeu et l'éditeur de carte instancient, #3508) et l'atelier (section
+## « Atelier 3D ») instancient tous deux, le pose une fois, à l'échelle `1 / metresParCase` et décalé d'une demi-case,
+## dans son repère d'une unité par case, avec les arêtes, les nappes de toit et les couronnes ; le monde le tient sous
+## sa lumière et sa caméra et en tire la forme que touche le rayon du pointeur ; les pions, les surbrillances et les
+## noms se posent à la hauteur de leur case (`hauteurs`, en mètres), et la case cliquée est celle du triangle que le
+## rayon du pointeur touche, sa couche comprise (`cases`) : un plancher d'étage désigne sa case à l'étage. Les
+## tableaux plats se chargent tels quels en tableaux de vecteurs et de
+## couleurs (`PackedByteArray.to_vector3_array`, `to_color_array`).
+##
+## Le monde rend chaque surface de sa texture, `projet/textures/<matiere>.jpg`, et de son relief,
+## `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une matière sans
+## texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
+## `projet/textures/provenance.json` ; celles du kit des arêtes, dans `projet/kit/provenance.json` (dossiers épinglés,
+## `asset/epingles.ts`).
+##
+## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, que le rayon du pointeur
+## traverse (`VolumeDeScene.poser_les_nappes`). Aucune géométrie ni couleur ne se réécrit en GDScript.
+##
+## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
+## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur.

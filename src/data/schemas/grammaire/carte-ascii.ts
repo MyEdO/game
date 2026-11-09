@@ -31,14 +31,27 @@ export const GRAMMAIRE_ASCII = {
   diagonales: '/\\',
 } as const;
 
+/** Les MARQUES du plan d'une couche (`planDeLaCouche`, `noyau/monde/sceneToAscii.ts`, #3686) : posées sur une case à la
+ *  place de son glyphe, la première de cet ordre l'emportant. */
+export const MARQUES_DU_PLAN = {
+  /** L'œil de la caméra, un glyphe par cap de `DIR8_ORDER` (`geometry/dir8.ts`). */
+  oeil: '↑↗→↘↓↙←↖',
+  /** Un héros. */
+  heros: '@',
+  /** Un autre personnage, PNJ ou combattant. */
+  personnage: '&',
+  /** Un décor, à sa case d'ancrage. */
+  decor: '%',
+} as const;
+
 /** Le char de fond ÉCRIT par l'exporteur et les remplissages : `base` en accepte DEUX à la lecture
  *  (le `.` d'écriture et l'espace des grilles rognées), l'écriture en choisit un — celui-ci. */
 export const FOND_ECRIT = GRAMMAIRE_ASCII.base[0];
 
-/** Tous les glyphes RÉSERVÉS par la grammaire — jamais réattribués à un terrain, un matériau ou une
- *  zone, ni par la donnée (schéma de `terrains.json`) ni par l'allocateur de `sceneToAscii`. */
+/** Tous les glyphes RÉSERVÉS par la grammaire et les marques du plan — jamais réattribués à un terrain, un matériau ou
+ *  une zone, ni par la donnée (schéma de `terrains.json`) ni par l'allocateur de `sceneToAscii`. */
 export const GLYPHES_RESERVES: ReadonlySet<string> = new Set(
-  Object.values(GRAMMAIRE_ASCII).flatMap((mot) => mot.split('')),
+  [...Object.values(GRAMMAIRE_ASCII), ...Object.values(MARQUES_DU_PLAN)].flatMap((mot) => mot.split('')),
 );
 
 /** Les glyphes réservés, en clair, pour un message de refus (`« . », « - », …`). */
@@ -48,7 +61,7 @@ export const glyphesReservesEnClair = (): string =>
 /**
  * Les PONTS d'un véhicule (`vehicles.json › ponts`, #3686) : une carte BOX-DRAWING par pont, du plus bas au plus
  * haut, toutes de mêmes dimensions. Une case porte le glyphe de sa hauteur (second membre de `ponts`) ; une arête, un mot
- * de `GRAMMAIRE_ASCII` ou l'un des deux mots propres aux ponts ci-dessous. Le noyau (`noyau/planDeLaCaraque.ts`)
+ * de `GRAMMAIRE_ASCII` ou l'un des deux mots propres aux ponts ci-dessous. Le noyau (`noyau/pontsDeLaFiche.ts`)
  * et la construction du modèle 3D (`scripts/personnage-3d/vehicule/plan_de_jeu.py`) lisent la même carte.
  */
 export const MOTS_DES_PONTS = {

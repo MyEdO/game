@@ -608,7 +608,7 @@ describe('EditorCanvas — contour de sélection d’un décor multi-case', () =
     ['E', [{ x: 3, y: 3 }, { x: 3, y: 4 }]],
   ] as const)('cap %s : le contour couvre les cases de l’empreinte tournée', async (facing, attendues) => {
     const scene: Scene = emptyScene('scene-test', 8, 8);
-    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: 'table-2x1', facing }];
+    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, decor: { id: 'table-2x1' }, facing }];
     const view = {
       rot: 0 as const,
       setRot: () => {},

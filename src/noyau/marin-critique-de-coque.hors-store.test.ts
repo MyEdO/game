@@ -34,7 +34,7 @@ const hache: Weapon = { label: 'Hache', type: 'melee', damage: { plusBF: true, f
 const jet = (roll: number) => ({ label: 'CC', base: 60, modifier: 0, target: 60, roll, success: true, sl: 2 });
 
 const navire = (marin: Combatant): Combatant => {
-  const c = spawnEnemy({ ref: 'cogue' }, 'nav', { x: 9, y: 5 });
+  const c = spawnEnemy({ vehicule: 'cogue' }, 'nav', { x: 9, y: 5 });
   c.crewIds = [marin.id];
   return c;
 };

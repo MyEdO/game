@@ -69,7 +69,7 @@ const NEUF = {
 const POS = { x: 5, y: 5 };
 const scèneAu = (facing: Dir4): Scene => {
   const s = emptyScene('scene-test', 14, 14);
-  s.entities = [{ id: 'banquette-1', kind: 'prop', pos: POS, ref: ID, facing, usable: { assise: true } }];
+  s.entities = [{ id: 'banquette-1', kind: 'prop', pos: POS, decor: { id: ID }, facing, usable: { assise: true } }];
   return s;
 };
 const attendue = (facing: Dir4) => (facing === 'E' || facing === 'O' ? { w: 1, h: 3 } : { w: 3, h: 1 });

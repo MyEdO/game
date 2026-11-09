@@ -5,6 +5,7 @@ import { emptyScene, heightAt, type Scene } from '../scene';
 import { gradeBetween, STEP_MAX_M } from '../relief';
 import { terrainMatiere } from '../terrain';
 import { CONTREMARCHE_M, dessusDe, hauteurDuDessus } from './pente';
+import { perimeterWallSegs, type PlanRect } from '../../sceneEdit.testkit';
 
 /**
  * Builder de sols du PIVOT : le franchissement vertical S'AUTO-DÉRIVE du delta de hauteur MÉTRIQUE
@@ -455,5 +456,58 @@ describe('fogFloorZ — étage de sol effectif sous un trou', () => {
     expect(fogFloorZ(s, 0, 0, 1)).toBe(1); // construit à l'étage actif
     expect(fogFloorZ(s, 1, 1, 1)).toBe(0); // trou à z1 → sol de z0
     expect(fogFloorZ(s, 1, 1, 0)).toBe(0); // mono-niveau : activeZ
+  });
+});
+
+/** #3732 — un étage de `plancher` à 4 m sur les cases `etage`, au-dessus d'un rez de `plancher` de 10×7 cases, et les murs
+ *  du rez qui ceinturent `murs`. */
+function etageSur(etage: PlanRect, murs: PlanRect | null): Scene {
+  const s = emptyScene('scene-test', 10, 7);
+  s.layers[0].tiles = new Array(70).fill('plancher');
+  s.layers[0].height = new Array(70).fill(0);
+  s.layers.push({ z: 1, tiles: new Array(70).fill('vide'), height: new Array(70).fill(0) });
+  for (let y = etage.y; y < etage.y + etage.h; y++)
+    for (let x = etage.x; x < etage.x + etage.w; x++) { s.layers[1].tiles[y * 10 + x] = 'plancher'; s.layers[1].height![y * 10 + x] = 4; }
+  if (murs) s.walls = perimeterWallSegs([murs]);
+  return s;
+}
+const montants = (s: Scene) => buildFloors(s, undefined, { activeZ: 1 }).flatMap((el) => el.faces.filter((f) => f.material.part === 'pilier'));
+
+describe('montants des tabliers (#3732)', () => {
+  it('un étage posé sur les murs du rez : aucun montant', () => {
+    expect(montants(etageSur({ x: 2, y: 1, w: 5, h: 4 }, { x: 2, y: 1, w: 5, h: 4 }))).toEqual([]);
+  });
+
+  it('un encorbellement d’une case hors du mur du rez : aucun montant', () => {
+    expect(montants(etageSur({ x: 1, y: 1, w: 7, h: 5 }, { x: 2, y: 2, w: 5, h: 3 }))).toEqual([]);
+  });
+
+  it('une trémie loin des murs : ses angles rentrants se reprennent sur la dalle, aucun montant', () => {
+    const s = etageSur({ x: 1, y: 1, w: 8, h: 5 }, { x: 1, y: 1, w: 8, h: 5 });
+    for (const x of [4, 5]) s.layers[1].tiles[3 * 10 + x] = 'vide';
+    expect(montants(s)).toEqual([]);
+  });
+
+  it('un tablier posé sur ses culées : aucun montant à ses bouts, un au milieu de ses rives de 8 m', () => {
+    const s = etageSur({ x: 3, y: 3, w: 4, h: 1 }, null);
+    for (const x of [2, 7]) s.layers[0].height![3 * 10 + x] = 4;
+    expect(montants(s).map((f) => `${f.poly[0].x},${f.poly[0].y}`).sort()).toEqual(['4.5,2.5', '4.5,3.5']);
+  });
+
+  it('un tablier entre deux cases pleines de l’étage : aucun montant à ses bouts', () => {
+    const s = etageSur({ x: 2, y: 3, w: 6, h: 1 }, null);
+    for (const x of [2, 7]) s.layers[0].tiles[3 * 10 + x] = 'eau'; // rien de marchable dessous : sa paroi descend pleine
+    expect(montants(s).map((f) => `${f.poly[0].x},${f.poly[0].y}`).sort()).toEqual(['4.5,2.5', '4.5,3.5']);
+  });
+
+  it('un tablier sans appui : un montant à chaque coin et au pas de la portée sur ses rives, aucun en double', () => {
+    const ms = montants(etageSur({ x: 2, y: 2, w: 6, h: 3 }, null));
+    const coins = ms.map((f) => `${f.poly[0].x},${f.poly[0].y}`);
+    expect(new Set(coins).size).toBe(coins.length);
+    for (const coin of ['1.5,1.5', '7.5,1.5', '7.5,4.5', '1.5,4.5']) expect(coins).toContain(coin);
+    // rives de 12 m (N, S) : trois travées de 4 m ; rives de 6 m (E, O) : deux travées.
+    expect(ms).toHaveLength(10);
+    for (const y of [1.5, 4.5]) expect(coins.filter((c) => c.endsWith(`,${y}`)).map((c) => Number(c.split(',')[0])).sort((a, b) => a - b)).toEqual([1.5, 3.5, 5.5, 7.5]);
+    expect(ms.every((f) => f.poly[0].h === 4 - 0.3 && f.poly[1].h === 0)).toBe(true);
   });
 });

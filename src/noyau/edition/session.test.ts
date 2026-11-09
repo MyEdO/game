@@ -115,13 +115,13 @@ describe('session d’édition', () => {
     const [decor, autre] = props;
     const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: decor.id } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel);
-    expect(ent(pose)).toMatchObject({ kind: 'prop', ref: decor.id, pos: { x: 1, y: 1 }, label: decor.label });
+    expect(ent(pose)).toMatchObject({ kind: 'prop', decor: { id: decor.id }, pos: { x: 1, y: 1 }, label: decor.label });
     expect(ent(jouer(pose, { geste: 'nommer', nom: 'Comptoir' }))?.label).toBe('Comptoir');
     expect(ent(jouer(pose, { geste: 'nommer' }))?.label, 'sans nom, il n’en porte plus').toBeUndefined();
     const tourne = jouer(pose, { geste: 'entite', patch: { facing: 'E' } });
     expect([ent(tourne)?.facing, tourne.historique.passe.length]).toEqual(['E', pose.historique.passe.length + 1]);
     expect(jouer(tourne, { geste: 'entite', patch: { facing: 'E' } }), 'rien ne change : aucun cran').toBe(tourne);
-    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: autre.id } })), 'retypé, il garde son cap cardinal').toMatchObject({ ref: autre.id, facing: 'E' });
+    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: autre.id } })), 'retypé, il garde son cap cardinal').toMatchObject({ decor: { id: autre.id }, facing: 'E' });
     const etage = jouer(pose, { geste: 'ajouterCouche' }, { geste: 'couche', z: 0 }, { geste: 'appui', point: point(1, 1) }, { geste: 'entite', patch: { z: 1 } });
     expect(ent(etage)?.z).toBe(1);
     expect(ent(jouer(etage, { geste: 'entite', patch: { z: 0 } }))?.z).toBeUndefined();
@@ -191,7 +191,7 @@ describe('session d’édition', () => {
       { geste: 'poste', patch: { arc: 'tribord' } },
       { geste: 'poste', patch: { servants: [a, b] } },
       { geste: 'poste', patch: { servants: [b, a] } });
-    expect(ent(reglee)).toMatchObject({ ref: 'catapulte-petite', postes: [{ trappingId: 'catapulte-petite', side: 'tribord', crewIds: [b, a] }] });
+    expect(ent(reglee)).toMatchObject({ engin: { id: 'catapulte-petite' }, postes: [{ trappingId: 'catapulte-petite', side: 'tribord', crewIds: [b, a] }] });
     expect(ent(jouer(reglee, { geste: 'poste', patch: { arc: null } }))?.postes?.[0].side, 'omni').toBeUndefined();
     const equipage = jouer(pose, { geste: 'entite', patch: { crewIds: [a] } });
     expect(ent(equipage)?.crewIds).toEqual([a]);
@@ -276,7 +276,7 @@ describe('session d’édition', () => {
     const copies = scene.entities.filter((e) => !sceneEditee(allie).entities.some((a) => a.id === e.id));
     expect(copies.map((c) => [c.pos.x, c.pos.y]), 'l’anneau autour de l’original, hors du mur, du décor et de l’autre personnage').toEqual([[2, 2], [4, 2], [2, 4], [3, 4], [4, 4]]);
     expect(new Set([...scene.entities.map((e) => e.id)]).size).toBe(scene.entities.length);
-    expect(copies.every((c) => c.ref === 'humain' && c.inventaire?.['arme-simple'] && c.combat?.randomChars)).toBe(true);
+    expect(copies.every((c) => c.creature?.id === 'humain' && c.inventaire?.['arme-simple'] && c.combat?.randomChars)).toBe(true);
     const profils = [original, ...copies].map((c) => JSON.stringify(ficheDEntite(c, () => undefined).characteristics));
     expect(new Set(profils).size, 'chaque copie tire son profil sur son id').toBe(6);
     expect(scene.encounters[0].members?.filter((m) => copies.some((c) => c.id === m.entityId)).map((m) => m.side)).toEqual(Array(5).fill('ally'));
@@ -364,7 +364,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     const barge = allBuiltinCampaigns.find((c) => c.id === 'barge-du-sel')!;
     const cogue = jouer(ouvrirLEdition(paquetDuJeu(barge), false), { geste: 'scenes', quoi: 'aller', id: 'barge-du-sel-embuscade' }, { geste: 'appui', point: point(18, 7) }, { geste: 'relache', point: point(18, 7) });
     const coque = idDe(cogue);
-    expect(entiteDeLaSelection(sceneEditee(cogue), cogue.sel), 'la coque pirate de l’embuscade').toMatchObject({ ref: 'cogue', upgrades: [{ id: 'renforce', value: 1 }] });
+    expect(entiteDeLaSelection(sceneEditee(cogue), cogue.sel), 'la coque pirate de l’embuscade').toMatchObject({ vehicule: { id: 'cogue' }, upgrades: [{ id: 'renforce', value: 1 }] });
     const amelioree = jouer(cogue, valeur(coque, ['upgrades', 0, 'value'], 2));
     expect(entiteDeLaSelection(sceneEditee(amelioree), amelioree.sel)?.upgrades).toEqual([{ id: 'renforce', value: 2 }]);
     expect(refusDeLaValeur(griffon, valeur(id, ['upgrades'], [{ id: 'renforce' }])), 'seule une coque porte des Améliorations').toBe('nonOffert');
@@ -396,18 +396,20 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     expect(entiteDeLaSelection(sceneEditee(editee), editee.sel)?.combat?.optionals?.[0], 'posée, la note s’édite').toEqual({ ...note, wounds: 30 });
   });
 
-  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, la fiche introuvable, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
+  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, deux corps, l’engin qui n’est pas de siège, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
     const fixtures = {
     sansPorteur: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } },
-    refInconnue: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'pas-une-fiche' },
-    carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
-    volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', facing: 'NE' },
-    decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', calage: { x: 2, y: 0 } },
-    admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' },
+    deuxCorps: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, vehicule: { id: 'cogue' } },
+    enginHorsSiege: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, engin: { id: 'baton-de-combat' } },
+    carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
+    volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, facing: 'NE' },
+    decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, calage: { x: 2, y: 0 } },
+    admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } },
     } as const;
     const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
-    expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['ref']]);
-    expect(fautes(fixtures.refInconnue)).toEqual([{ chemin: ['ref'], message: '« pas-une-fiche » ni créature, ni coque de véhicule, ni engin de siège' }]);
+    expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['creature']]);
+    expect(fautes(fixtures.deuxCorps).map((f) => f.chemin)).toEqual([['vehicule']]);
+    expect(fautes(fixtures.enginHorsSiege)).toEqual([{ chemin: ['engin', 'id'], message: '« baton-de-combat » n\'est pas un engin de siège' }]);
     expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
     expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
     expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);

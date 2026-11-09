@@ -17,7 +17,7 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { StructureData } from '../engine/types';
-import { creatures, findCreatureById, findVehicleById, profilsStandard, refEstVolumique, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { creatures, findCreatureById, profilsStandard, refEstVolumique, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
@@ -366,7 +366,7 @@ export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light
 /** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet
  *  (`capDecorAdmis`). */
 export function capsOfferts(ent: SceneEntity): Dir8[] {
-  return DIR8_ORDER.filter((cap) => capDecorAdmis(ent.kind === 'prop' && refEstVolumique(ent.ref), cap));
+  return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
 }
 
 /** Les fiches qu'un personnage posé peut nommer (#1882) : les créatures du bestiaire qui ont des Blessures
@@ -441,7 +441,7 @@ function rangDOffreDuTrait(fiche: CreatureData | undefined): (id: unknown) => nu
 function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [combat, optionals, rang, cle, ...reste] = chemin;
   if (combat !== 'combat' || optionals !== 'optionals' || typeof rang !== 'number' || reste.length) return undefined;
-  const fiche = findCreatureById(ent.ref);
+  const fiche = findCreatureById(ent.creature?.id);
   if (cle === 'id') {
     const rangDOffre = rangDOffreDuTrait(fiche);
     return choixDuNoeud(noeudDuTrait())!.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })).sort((a, b) => rangDOffre(a.valeur) - rangDOffre(b.valeur));
@@ -459,13 +459,13 @@ function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
  *  traversée, ses effets à la traversée et à chaque Round ; d'un déclencheur, sa condition d'entrée ; d'une entité, la
  *  branche de son type : d'un personnage, son rôle au combat, sa contrepartie d'amateur des arts, son animation, et d'une
- *  coque, ses Améliorations (MDG 12), aux choix de ses options (`choixDesOptions`). */
+ *  coque, son véhicule et ses Améliorations (MDG 12), aux choix de ses options (`choixDesOptions`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound']] },
   declencheur: { schema: triggerSchema, champs: () => [['when']] },
   entite: {
     schema: sceneEntitySchema,
-    champs: (ent) => (ent.kind !== 'personnage' ? [] : findVehicleById(ent.ref ?? '')?.hull ? [...CHAMPS_DU_PERSONNAGE, ['upgrades']] : CHAMPS_DU_PERSONNAGE),
+    champs: (ent) => (ent.kind !== 'personnage' ? [] : ent.vehicule ? [...CHAMPS_DU_PERSONNAGE, ['vehicule'], ['upgrades']] : CHAMPS_DU_PERSONNAGE),
     choix: choixDesOptions,
   },
 };

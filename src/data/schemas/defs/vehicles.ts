@@ -85,7 +85,7 @@ const doc = document(
     /** PONTS d'un navire qu'on visite (#3686), une paire : une carte box-drawing par pont, du plus bas au plus haut, en cases du
      *  plan des scènes (`sceneMetresPerTile`), la proue à gauche, tribord en haut (`MOTS_DES_PONTS`,
      *  `grammaire/carte-ascii.ts`). La seule source de la forme des ponts : le plan de jeu
-     *  (`noyau/planDeLaCaraque.ts`) et le modèle 3D (`scripts/personnage-3d/vehicule/`) la lisent. Puis la hauteur en
+     *  (`noyau/pontsDeLaFiche.ts`) et le modèle 3D (`scripts/personnage-3d/vehicule/`) la lisent. Puis la hauteur en
      *  mètres au-dessus de la flottaison de chaque glyphe de case : une paire, pour que les cartes n'aillent jamais sans
      *  leurs hauteurs (`defautsDesPonts`). Valeurs d'adaptation (#3686) relevées sur la planche du navire : ses plans
      *  des ponts (cases, cloisons, trappes), son profil (hauteurs). */

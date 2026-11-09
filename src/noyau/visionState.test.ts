@@ -35,7 +35,7 @@ const porteur = (id: string, x: number, y: number, equipped: boolean): Combatant
 
 describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le rendu partagent', () => {
   const avecBrasero = (): Scene =>
-    ({ ...scene(9, 3), entities: [{ id: 'b7', kind: 'prop', pos: { x: 5, y: 0 }, ref: 'brasero' }] }) as unknown as Scene;
+    ({ ...scene(9, 3), entities: [{ id: 'b7', kind: 'prop', pos: { x: 5, y: 0 }, decor: { id: 'brasero' } }] }) as unknown as Scene;
 
   it('exploration : le brasero POSÉ et la lanterne TENUE du groupe — l’objet rangé n’émet rien', () => {
     const base = { scene: avecBrasero(), battle: null, partyPos: { x: 1, y: 1 } };
@@ -108,7 +108,7 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
   });
 
   it('la source POSÉE, elle, n’est pas portée (le rendu arbitre son budget là-dessus)', () => {
-    const avecTorche: Scene = { ...scene, entities: [...scene.entities, { id: 't1', kind: 'prop', pos: { x: 13, y: 6 }, z: 1, ref: 'brasero' }] } as unknown as Scene;
+    const avecTorche: Scene = { ...scene, entities: [...scene.entities, { id: 't1', kind: 'prop', pos: { x: 13, y: 6 }, z: 1, decor: { id: 'brasero' } }] } as unknown as Scene;
     const posées = sceneLightSources({ scene: avecTorche, battle: null, party: [], partyPos: { x: 0, y: 0 } });
     expect(posées.map((s) => [s.srcId, s.z, s.carried]))
       .toEqual([...posesDuDocument.map((s) => [s.srcId, s.z, s.carried]), ['t1', 1, undefined]]);

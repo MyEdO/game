@@ -1,26 +1,33 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), sous le regard du plateau (`vue.plateau.regard`,
 ## `Monde.regarder`), sa caméra à la suite de l'actif du combat, sinon du groupe (`Monde.suivre`), ou l'œil du meneur
-## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
+## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `VolumeDeScene.poser_les_aretes`),
 ## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le modèle
 ## de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
-## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`Monde.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
+## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
-## appel entre ses combattants (`Effets`). Il ne rend que la
+## appel entre ses combattants (`Effets`), dont le chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
-## case inspectée sous le pointeur.
+## case inspectée sous le pointeur. Il pose la caméra sur un cadrage sans rien jouer (`cadrer`).
 class_name Plateau
 extends Node3D
 
 signal case_cliquee(case: Vector3i)
 ## Le clic droit sur une case, qui ouvre la fiche de son occupant.
 signal case_inspectee(case: Vector3i)
-## Le corps d'un combattant dessiné a changé (`Combattant.habille`).
+## Le corps d'un combattant dessiné a changé (`Combattant.habille`), ou le modèle d'un navire s'est posé.
 signal habille
+
+## Les clés que lit le cadrage sous chaque regard (`cadrer`), `etage` seule facultative.
+const CLES_DU_CADRAGE := {
+	immersion = ["regard", "case", "etage", "lacet", "tangage"],
+	tactique = ["regard", "case", "etage", "lacet", "zoom"],
+	plateau = ["regard", "case", "etage", "lacet", "zoom"],
+}
 
 @export var scene_combattant: PackedScene
 
@@ -47,6 +54,7 @@ func _ready() -> void:
 	add_child(_effets)
 	_effets.depart.connect(_agir)
 	_effets.arrivee.connect(_subir)
+	_effets.deplacement.connect(_parcourir)
 
 
 ## Montre la vue.
@@ -64,7 +72,7 @@ func montrer(vue: Dictionary) -> void:
 	if vue.plateau != null:
 		_monde.regarder(vue.plateau.regard)
 		_monde.poser_les_stations(vue.corps.navires)
-		_monde.poser_les_aretes(vue.plateau.aretes)
+		_monde.volume.poser_les_aretes(vue.plateau.aretes)
 		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 		_combattants.visible = vue.plateau.regard != "immersion"
 		var suivi: Array = dessines.filter(func(c: Dictionary) -> bool: return c.pos != null and (actif == null or c.id == actif))
@@ -88,8 +96,8 @@ func montrer(vue: Dictionary) -> void:
 
 
 ## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
-## zone : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
-## d'un coup qui touche l'accuse à son arrivée.
+## effet (`Effets.cases_de`) : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
+## d'un coup qui touche l'accuse à son arrivée, un combattant dessiné qui se déplace parcourt son chemin.
 func jouer_les_effets(effets: Array) -> void:
 	if _vue.plateau == null:
 		return
@@ -97,11 +105,8 @@ func jouer_les_effets(effets: Array) -> void:
 	for id: String in _modeles:
 		lieux[id] = _modeles[id].position
 	for effet: Dictionary in effets:
-		if effet.quoi == "zone":
-			var cases: Array = effet.cases.duplicate()
-			cases.append(effet.centre)
-			for case: Dictionary in cases:
-				lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
+		for case: Dictionary in Effets.cases_de(effet):
+			lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
 
 
@@ -115,6 +120,12 @@ func _agir(de: String, vers: Vector3) -> void:
 func _subir(vers: String, touche: bool) -> void:
 	if touche:
 		_modeles[vers].subir()
+
+
+## Le combattant `qui`, s'il est dessiné, parcourt `lieux`, chaque case à `metres` de la précédente (`Combattant.parcourir`).
+func _parcourir(qui: String, lieux: Array, metres: Array) -> void:
+	if _modeles.has(qui):
+		_modeles[qui].parcourir(lieux, metres)
 
 
 ## Chaque navire de `navires` (`vue.corps.navires`) monté sous `Navires` (`_monter_le_navire`), coupé à la hauteur de
@@ -136,12 +147,13 @@ func _poser_les_navires(navires: Dictionary, coupes: Dictionary, metres_par_case
 
 ## Le corps du navire `navire` d'id `id` monté (`MontageDeVehicule.monter`) et posé (`_poser_le_navire`) ; posé, la mer de
 ## sa flottaison bordée par ce que sa coque plonge sous la hauteur 0 de la scène (`MontageDeVehicule.contour_sous`,
-## `Monde.border_la_mer`).
+## `VolumeDeScene.border_la_mer`).
 func _monter_le_navire(id: String, navire: Dictionary, metres_par_case: float) -> void:
 	var montage: MontageDeVehicule = _navires_montes[id]
 	var pose: bool = await montage.monter(navire.corps, _chargeur, _poser_le_navire.bind(navire, metres_par_case))
 	if pose and montage.scene != null:
-		_monde.border_la_mer(id, montage.contour_sous(MiseEnPage.hauteur_au_plateau(0.0, metres_par_case)))
+		_monde.volume.border_la_mer(id, montage.contour_sous(MiseEnPage.hauteur_au_plateau(0.0, metres_par_case)))
+		habille.emit()
 
 
 ## La scène nue `scene` du navire `navire` à l'échelle métrique du plateau de `metres_par_case`, sa proue, le +Z de son
@@ -160,6 +172,58 @@ func _nommer_les_entites(entites: Array) -> void:
 		if e.nom != null:
 			noms[Vector3i(int(e.pos[0]), int(e.pos[1]), int(e.pos[2]))] = e.nom
 	_monde.etiqueter(noms)
+
+
+## Les ids des navires de la scène dont le modèle est posé (`_monter_le_navire`).
+func navires() -> Array:
+	return _navires_montes.keys().filter(func(id: String) -> bool: return _navires_montes[id].scene != null)
+
+
+## La caméra posée sur le cadrage `cadrage` (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`), sous le regard du
+## plateau, sans rien jouer : en immersion, l'œil sur le sol de la case `case` (`{ x, y }`) de la couche `etage` (0 sans
+## elle), à l'azimut `lacet` et au tangage `tangage`, en degrés (`Immersion.poser`) ; sous les regards `tactique` et
+## `plateau`, la caméra sur le sol de cette case, regardant à l'azimut `lacet`, à la distance `zoom` (`Monde.cadrer`).
+## Rend le refus d'un cadrage d'un autre regard, d'une clé hors de celles de son regard ou manquante, d'une case qui
+## n'est pas une case du plateau à l'une de ses couches, d'un nombre hors de ses bornes, ou de l'œil hors d'exploration ;
+## `""` une fois posé.
+func cadrer(cadrage: Dictionary) -> String:
+	var regard := _monde.regard()
+	if cadrage.get("regard") != regard:
+		return "le cadrage du regard %s sous le regard %s" % [cadrage.get("regard"), regard]
+	var lues: Array = CLES_DU_CADRAGE[regard]
+	for cle: String in cadrage:
+		if not lues.has(cle):
+			return "clé hors contrat : %s (sous le regard %s : %s)" % [cle, regard, ", ".join(PackedStringArray(lues))]
+	for cle: String in lues:
+		if cle != "etage" and not cadrage.has(cle):
+			return "clé manquante : %s" % cle
+	var case: Variant = cadrage.case
+	var etage: Variant = cadrage.get("etage", 0)
+	if not (case is Dictionary and case.size() == 2 and _entier(case.get("x")) and _entier(case.get("y")) and _entier(etage)):
+		return "case { x, y } et etage entiers attendus : %s, %s" % [JSON.stringify(case), JSON.stringify(etage)]
+	var ici := Vector3i(int(case.x), int(case.y), int(etage))
+	if not Rect2i(Vector2i.ZERO, _monde.taille()).has_point(Vector2i(ici.x, ici.y)) or not _monde.couches().has(ici.z):
+		return "case %s hors du plateau de %s cases aux couches %s" % [ici, _monde.taille(), _monde.couches()]
+	for cle: String in ["lacet", "tangage", "zoom"]:
+		if cadrage.has(cle) and not (cadrage[cle] is float or cadrage[cle] is int):
+			return "%s : un nombre attendu, %s reçu" % [cle, JSON.stringify(cadrage[cle])]
+	var lacet := MiseEnPage.lacet_de_l_azimut(cadrage.lacet)
+	if regard != "immersion":
+		return "" if _monde.cadrer(_lieu([ici.x, ici.y, ici.z]), lacet, cadrage.zoom) else "zoom %s hors de [%s, %s]" % [cadrage.zoom, Monde.DISTANCE_MIN, Monde.DISTANCE_MAX]
+	var tangage := deg_to_rad(cadrage.tangage)
+	if MiseEnPage.tangage_glisse(tangage, 0.0, -MiseEnPage.TANGAGE_DE_L_OEIL, MiseEnPage.TANGAGE_DE_L_OEIL) != tangage:
+		return "tangage %s° hors de ±%s°" % [cadrage.tangage, rad_to_deg(MiseEnPage.TANGAGE_DE_L_OEIL)]
+	return "" if _immersion.poser(ici, lacet, tangage) else "l'œil ne se pose qu'en exploration"
+
+
+## Si `valeur` est un nombre entier.
+static func _entier(valeur: Variant) -> bool:
+	return (valeur is int or valeur is float) and int(valeur) == valeur
+
+
+## La caméra du regard telle qu'elle est posée (`Monde.camera`).
+func camera() -> Dictionary:
+	return _monde.camera()
 
 
 ## Par id de combattant dessiné, ce que porte son corps (`Combattant.corps`).
@@ -197,10 +261,10 @@ func points() -> Dictionary:
 
 
 ## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume (`Monde.poser`), ses
-## nappes de toit et ses couronnes crénelées (`Monde.poser_les_nappes`).
+## nappes de toit et ses couronnes crénelées (`VolumeDeScene.poser_les_nappes`).
 func poser_le_monde(monde: Dictionary) -> void:
 	_monde.poser(monde.monde)
-	_monde.poser_les_nappes(monde.toits, monde.couronnes)
+	_monde.volume.poser_les_nappes(monde.toits, monde.couronnes)
 	_monde.poser_la_meteo(monde.meteo)
 
 
@@ -259,3 +323,64 @@ func _survoler(case: Variant) -> void:
 	if case != _survol:
 		_survol = case
 		_peindre()
+
+
+## @contrat Vue
+## Le plateau coupe le modèle du navire un peu sous la hauteur de sa coupe (`plateau.coupesDesNavires`,
+## `MontageDeVehicule.couper`, `MiseEnPage.hauteur_de_coupe`, `MARGE_DE_COUPE`, recette
+## `projet/recettes/coupe-du-navire.gd`), la coupe ne changeant que ce que voit la caméra : son ombre reste celle du
+## navire entier, pièces montées comprises (un double d'ombre seule de chaque mesh,
+## `MontageDeVehicule._porter_la_hauteur`), et sous un pont coupé l'intérieur reste à l'ombre du pont du dessus.
+
+## @contrat Vue
+## Le jeu pose sa caméra sous le regard (`Monde.regarder`, la touche V passant au regard suivant), à la suite de
+## l'actif du combat, sinon du groupe, dès que son lieu change ; en tactique et au plateau, elle pivote d'un quart de
+## tour (A, E d'un AZERTY) ou librement (bouton du milieu tenu), zoome à la molette, glisse au clavier (`avant`,
+## `arriere`, `gauche`, `droite`) et revient au lieu suivi (Origine) ; en immersion, l'œil du meneur, à la hauteur de
+## l'œil de la case du sol sous lui, marche librement au clavier, court (Maj tenue), regarde à la souris captive
+## (Échap la libère, un clic la reprend ; sur le Web, où le navigateur ne la capture qu'au geste du joueur, le premier
+## clic la prend), et chaque case qu'il franchit ou qu'il vise au point de mire (E ou clic) se joue au clic du champ
+## (`Immersion`), sans plaque de surbrillance au sol (`Monde.regarder`).
+
+## @contrat Corps d'un combattant
+## Le combat de Godot tire `GET modeles/listage.json` (section « Atelier 3D ») et appelle `modeles` avec ses
+## `manifestes` et ses `osDesRigides` avant `demarrer`. Pour chaque corps de la vue, Godot charge la base sous
+## `modeles/` (`glb` de la réponse de `modeles`), la pose à l'échelle du plateau (un mètre du modèle vaut
+## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes (`morphes`), ses `materiaux` et sa
+## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
+## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
+## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps joue les clips de sa base par rôle (`clips`
+## de la base, réponse de `modeles`) : `idle` en boucle, `walk` au déplacement, `melee` vers une cible, `hit` au coup
+## reçu, `death` hors de combat. Tant que sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un
+## rôle joue le clip de `clipsDeuxMains` sous le maniement de cet objet (`secondesPrises`), à défaut celui de `clips`
+## (`MontageDeComposition.clip`) ; le clip en cours passe à celui de son rôle quand la tenue change. Un combattant sans
+## corps garde son anneau et son étiquette. Pour chaque véhicule de la vue (`vehicules`), Godot monte son corps sous le
+## nœud `Vehicule` du combattant (`MontageDeVehicule`, `projet/scripts/montage_de_vehicule.gd`, que l'atelier monte de
+## même) : il charge le GLB de son élément et le pose à la case du combattant, sur ses N×N cases depuis elle, son coin
+## nord-ouest : à `taille` `reelle`, à l'échelle métrique du plateau, comme un corps ; à `taille` `empreinte`, sa plus
+## grande dimension horizontale vaut N cases, quelle que soit son échelle d'auteur ; sa boîte est centrée sur
+## l'empreinte et son origine reste au sol (`Combattant.poser_sur_l_empreinte`, recette
+## `projet/recettes/vehicule-sur-empreinte.gd`). Il peint le véhicule de sa `palette` aux surfaces de son élément, et de
+## son `embleme` (`MontageDeComposition.texture_de_l_embleme`) à ses surfaces `blason`, ses voiles et son pavillon (un
+## emblème qu'aucune ne reçoit donne `blason-sans-surface`), avant d'y monter quoi que ce soit, et chaque pièce de sa
+## palette, sans emblème (`MontageDeVehicule.peindre_l_element`, `MontageDeComposition.peindre`, recette
+## `projet/recettes/peinture-du-vehicule.gd`). Il charge le GLB de l'élément de chacun de ses `postes` et le monte sous
+## la scène du véhicule, à sa `position` dans le repère du véhicule, dont il prend l'échelle, son +Z tourné vers son
+## `bord` (`MontageDeVehicule.monter_au_poste`, `MiseEnPage.LACETS_DES_BORDS` : tribord à droite d'une proue en +Z) ; il
+## charge le GLB de l'élément de chacune de ses `ameliorations`, le peint de la `palette` du véhicule et le monte sous
+## sa scène, à sa `position`, tourné comme le véhicule, ou, s'il porte `poste`, tourné vers son `bord` comme une pièce
+## de ce poste, son nœud `montre` visible et son nœud `cache` caché (`MontageDeVehicule.monter_l_amelioration`, recette
+## `projet/recettes/ameliorations-du-vehicule.gd`) ; il cache sous la scène du véhicule, pièces comprises, tout nœud
+## dont le nom est l'un de `caches` (`MontageDeVehicule.cacher_selon`, même recette) ; puis le véhicule tourne autour du
+## milieu de son empreinte, sa proue, le +Z de son repère, vers son `cap` (`Combattant.tourner_au_cap`, recette
+## `projet/recettes/postes-du-vehicule.gd`). Un véhicule joue les clips de son élément par rôle (`clips`,
+## `MontageDeVehicule.lecteur`), comme un corps ceux de sa base : `idle` en boucle, `walk` en boucle au déplacement, et,
+## vers une cible, le clip de son rôle d'attaque, `ranged` si sa table en porte un, `melee` sinon, suivi du repos
+## (recette `projet/recettes/clips-du-vehicule.gd`). Pour chaque navire de la vue (`navires`), le plateau monte son
+## `corps` sous son nœud `Navires` (`MontageDeVehicule`, son GLB tiré par le montage `Navires/Chargeur`), peint, ses
+## pièces et ses Améliorations montées et ses nœuds cachés comme un véhicule, sous tout regard ; sa scène nue à
+## l'échelle métrique du plateau, sa proue, le +Z de son repère, tournée vers le `cap` de son corps
+## (`MiseEnPage.lacet_de_proue`), son origine au point de la carte `centre`, à la hauteur 0 de la scène
+## (`Plateau._poser_le_navire`) ; un navire que la vue ne sert plus est retiré. `corps()` d'un combattant rapporte
+## l'élément de son véhicule posé (`vehicule`), l'emblème posé sur lui (`embleme_du_vehicule`, `null` : aucun), ceux de
+## ses pièces montées (`postes`) et ceux de ses Améliorations (`ameliorations`).

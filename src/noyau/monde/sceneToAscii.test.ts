@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { heightAt, isDescriptiveZone, tileAt, type Scene, type SceneEffectZone } from './scene';
 import { sceneZoneTiles } from './zones';
-import { sceneToAscii } from './sceneToAscii';
+import { planDeLaCouche, sceneToAscii } from './sceneToAscii';
 import { glypheDe, tousLesTerrains } from './terrain';
 import { setDataset } from '../../data/overrides';
 import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
@@ -305,5 +305,42 @@ describe('clés d’arête hors ASCII', () => {
     const avertissements = sceneToAscii(scene).warnings.join(' | ');
     expect(avertissements).toContain('1 croisée(s) franchissable(s) (`WallSeg.crossable`)');
     expect(avertissements).toContain('1 hauteur(s) d’allège de croisée (`WallSeg.allege`)');
+  });
+});
+
+/** Le plan d'une couche (#3686) : la grille de l'export, chaque marque sur sa case, la plus forte l'emportant, puis la
+ *  légende de ce que ses cases montrent. */
+describe('planDeLaCouche — la couche, ses marques et sa légende', () => {
+  const scene = buildScene({ id: 'plan', label: 'plan', size: [4, 2], walled: { z0: String.raw`
++-+-+-+-+
+|. . .|.|
++ + +-+:+
+|. . . .|
++-+-+-+-+
+` } });
+  scene.entities = [
+    { id: 'table', kind: 'prop', pos: { x: 1, y: 0 }, decor: { id: 'table' } },
+    { id: 'coffre', kind: 'prop', pos: { x: 0, y: 1 }, decor: { id: 'coffre' } },
+    { id: 'marin', kind: 'personnage', pos: { x: 3, y: 0 }, creature: { id: 'humain' } },
+  ];
+
+  it('l’œil, le groupe, les personnages et les décors, chacun à sa case ; un héros sur un décor le cache', () => {
+    expect(planDeLaCouche({ scene, battle: null, partyPos: { x: 0, y: 1 } }, 0, { x: 2, y: 1, z: 0, azimut: 100 })).toBe([
+      '+-+-+-+-+',
+      '|. % .|&|',
+      '+ + +-+:+',
+      '|@ . → .|',
+      '+-+-+-+-+',
+      '',
+      `. ${sceneToAscii(scene).terrain}`,
+      '% un décor',
+      '& un personnage',
+      '@ un héros',
+      '→ l’œil, regard au E',
+    ].join('\n'));
+  });
+
+  it('l’œil d’une autre couche ne se marque pas', () => {
+    expect(planDeLaCouche({ scene, battle: null, partyPos: { x: 0, y: 1 } }, 0, { x: 2, y: 1, z: 1, azimut: 100 })).not.toContain('→');
   });
 });

@@ -23,7 +23,7 @@ import {
  */
 const sceneAvecDecor = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
-  entities: [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' } as SceneEntity],
+  entities: [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' } as SceneEntity],
 });
 
 const mondeCuit = (scene: Scene): WorldGeometry => buildWorldGeometry(scene, sceneMetresPerTile(scene), 'jeu', () => 1);

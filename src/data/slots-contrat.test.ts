@@ -145,7 +145,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('un couple ATTEINT EN PARTIE reste à la couverture, à son compte OBSERVÉ total', () => {
-    const c = couple('arene-projet.json', 'ref')!;
+    const c = couple('careerLevels.json', 'trappings')!;
     expect(c.atteintes).toBeGreaterThan(0);
     expect(c.atteintes).toBeLessThan(c.occurrences);
     expect(champsSansSlot(scan, SLOTS)).toContainEqual(c);
@@ -165,9 +165,9 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('RÉF DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `idDe(\'prop\')` (`diligence-projet.json › ref`, joint)', () => {
-    expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].ref').map((s) => s.type))).toEqual(new Set(['prop']));
-    const c = couple('diligence-projet.json', 'ref')!;
+  it('CORPS DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `ref(\'prop\')` (`diligence-projet.json › decor`, joint)', () => {
+    expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].decor.id').map((s) => s.type))).toEqual(new Set(['prop']));
+    const c = couple('diligence-projet.json', 'decor')!;
     expect(c.atteintes).toBe(c.occurrences);
   });
 

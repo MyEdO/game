@@ -129,7 +129,7 @@ def preparation_cuite(rapport_repos, capture=None, topologie=None):
         topologie = []
 
     @contextlib.contextmanager
-    def groupes(rig, clips, table, demandes, diagnostic):
+    def groupes(rig, clips, table, demandes, plantes, diagnostic):
         appels.append(clips)
         diagnostic.update(etats=[demandes], echantillons=[{'clip': 'repos', 't': 0}])
         yield ['os'], [(demandes, pile, ())]
@@ -138,7 +138,7 @@ def preparation_cuite(rapport_repos, capture=None, topologie=None):
         ressources.enter_context(mock.patch.object(humanoide, 'groupes_de_peau', groupes))
         ressources.enter_context(mock.patch.object(humanoide, 'peau_lineaire', return_value=(x, w)))
         ressources.enter_context(mock.patch.object(humanoide, 'aretes_des_triangles', return_value=np.array([[0, 1]])))
-        moteurs = humanoide.preparer_moteurs(None, [SimpleNamespace(name='peau')], ['clip'], {}, {'etats': etats, 'cellulesSilhouettes': topologie},
+        moteurs = humanoide.preparer_moteurs(None, [SimpleNamespace(name='peau')], ['clip'], (), {}, {'etats': etats, 'cellulesSilhouettes': topologie},
             {'peau': {'cuite': deltas}}, None, ressources, repos_cuit=True,
             captures={'peau': capture} if capture is not None else None)
     return moteurs, appels

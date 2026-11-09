@@ -31,11 +31,29 @@ function element(r: RubriqueDeCreation): Element {
   }
 }
 
-/** Les zones de la création. */
+/**
+ * @contrat Vue
+ * Les zones de la création : le bouton qui l'ouvre ou la ferme, puis la création ouverte (`rubriquesDeLaPage`, surface
+ * du noyau).
+ */
 export interface ZonesDeLaCreation {
+  /**
+   * « Nouveau héros », qui ouvre la création, refusé quand le groupe n'accueille aucun héros (`refusDUnNouveauHeros`),
+   * pressé quand elle est ouverte, qu'il ferme.
+   */
   'groupe.gestes': Bouton[];
+  /** la page et son rang parmi les pages. */
   'creation.titre': Ligne[];
+  /**
+   * chaque rubrique de la page : un geste en bouton, qui tire ou bascule ; un jet tombé ; un choix en rangée, en liste
+   * au-delà de onze options, chaque option un bouton, la choisie pressée, refusée avec sa raison ; une valeur en puce,
+   * sa description au détail.
+   */
   'creation.corps': Element[];
+  /**
+   * la page précédente, puis la suivante, refusée avec la raison de la page et en focus quand elle se joue, ou à la
+   * dernière page l'engagement, refusé avec la raison de l'engagement.
+   */
   'creation.gestes': Bouton[];
 }
 

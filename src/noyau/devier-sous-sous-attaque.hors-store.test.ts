@@ -152,7 +152,7 @@ const contre = (att: Combatant, marin: Combatant): AttackResult => toucheAuJetPo
 /** Le Critique de coque à l'Équipage, porté par un coup de hache sur le navire du marin. */
 function critiqueDEquipage(marin: Combatant): { att: Combatant; nav: Combatant } {
   const att = mk('enemy', 'att', { pos: { x: 8, y: 5 } });
-  const nav = spawnEnemy({ ref: 'cogue' }, 'nav', { x: 9, y: 5 });
+  const nav = spawnEnemy({ vehicule: 'cogue' }, 'nav', { x: 9, y: 5 });
   nav.crewIds = [marin.id];
   poser([att, nav, marin]);
   seedBattleRng(1);
@@ -222,7 +222,7 @@ const SEED_JAMBE_DROITE = 4;
 /** Le Critique de coque à l'Équipage, porté par un Projectile magique Coup Critique (LDB 46 l.30) sur la coque. */
 function critiqueDEquipageAuProjectile(marin: Combatant): { lieuDeTouche: HitLocation | undefined } {
   const mage = mk('enemy', 'mage', { pos: { x: 8, y: 5 } });
-  const nav = spawnEnemy({ ref: 'cogue' }, 'nav', { x: 9, y: 5 });
+  const nav = spawnEnemy({ vehicule: 'cogue' }, 'nav', { x: 9, y: 5 });
   nav.crewIds = [marin.id];
   poser([mage, nav, marin]);
   const sort = findSpellById('carreau')!;

@@ -3,11 +3,12 @@
  *
  * QUESTION : une fixture qui pose une créature par un id que le bestiaire ne connaît pas (`'bandit-de-grand-chemin'`,
  * un libellé pris pour un id `'Villageois'`) teste-t-elle ce qu'elle croit ? Non : elle testait le mannequin de
- * repli mort avec #1882. Sites lus : `spawnEnemy({ ref: 'x' }`, `creatureId: 'x'`, `ref: 'x'` d'un littéral
- * `kind: 'personnage'`. Résolution : le faisceau du spawn (`refEntiteResolue`, `data/index.ts`) pour une réf
- * de fiche ; ce faisceau plus les STRUCTURES pour le `creatureId` d'un combattant (`engine/inanimate.ts:53`
- * `creatureId: s.refId`, posé par `engine/structures.ts:164` `refId: struct.id` et par le spawn des coques et
- * engins) ; le bestiaire SEUL pour la référence d'un vivant (`livingRefSchema`, `defs-scenes/effets.ts`) :
+ * repli mort avec #1882. Sites lus : `spawnEnemy({ ref: 'x' }`, `creatureId: 'x'`, le corps `creature: { id: 'x' }`
+ * d'un littéral `kind: 'personnage'`, la `ref` d'un outil de pose de personnage. Résolution : le bestiaire pour
+ * la réf d'une créature ; le bestiaire, les fiches de coque et d'engin (`findFicheDeVehicule`, `data/index.ts`)
+ * et les STRUCTURES pour le `creatureId` d'un combattant (`engine/inanimate.ts:53` `creatureId: s.refId`, posé par
+ * `engine/structures.ts:164` `refId: struct.id` et par le spawn des coques et engins) ; le bestiaire SEUL pour la
+ * référence d'un vivant (`livingRefSchema`, `defs-scenes/effets.ts`) :
  * `ref: { id, type: 'creature' }` (`givePossession`), le `ref: { id }` d'une possession, qui n'ouvre
  * jamais son objet (un `{ ref: … }` est un tirage ou une offre de Compétence), et celui d'un adversaire
  * de poursuite (`foes:`).
@@ -16,7 +17,7 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { findCreatureById, refEntiteResolue, structures } from './data';
+import { findCreatureById, findFicheDeVehicule, structures } from './data';
 
 /** Les réfs MORTES que leur test PROUVE (refus, repli signalé) — `fichier|ligne du site` (texte, espaces réduits). */
 const MORTES_PROUVEES = new Set<string>([
@@ -26,17 +27,20 @@ const MORTES_PROUVEES = new Set<string>([
   "src/noyau/sceneEdit-editeur.test.ts|expect(() => placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'Humain' }, { x: 1, y: 1 }))",
 ]);
 
-/** Le `creatureId` d'un combattant : une réf de fiche, ou l'id d'une STRUCTURE (objet inanimé). */
-const refDeCombattant = (id: string) => refEntiteResolue(id) || structures.some((st) => st.id === id);
+/** Une créature du bestiaire. */
+const creature = (id: string) => !!findCreatureById(id);
+/** Le `creatureId` d'un combattant : une créature, une coque ou un engin, ou l'id d'une STRUCTURE (objet inanimé). */
+const refDeCombattant = (id: string) => creature(id) || !!findFicheDeVehicule(id) || structures.some((st) => st.id === id);
 
-/** Chaque site et la famille qu'il admet : une réf de fiche, un combattant, ou une CRÉATURE seule. */
+/** Chaque site et la famille qu'il admet : une créature, ou un combattant. */
 const MOTIFS: { re: RegExp; resout: (id: string) => boolean }[] = [
-  { re: /spawnEnemy\(\s*\{\s*ref:\s*'([^']*)'/g, resout: refEntiteResolue },
-  { re: /\bref:\s*\{\s*id:\s*'([^']*)',\s*type:\s*'creature'/g, resout: (id) => !!findCreatureById(id) },
-  { re: /(?<!\{\s*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: (id) => !!findCreatureById(id) },
-  { re: /(?<=foes:[^\n]*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: (id) => !!findCreatureById(id) },
+  { re: /spawnEnemy\(\s*\{\s*ref:\s*'([^']*)'/g, resout: creature },
+  { re: /\bref:\s*\{\s*id:\s*'([^']*)',\s*type:\s*'creature'/g, resout: creature },
+  { re: /(?<!\{\s*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: creature },
+  { re: /(?<=foes:[^\n]*)\bref:\s*\{\s*id:\s*'([^']*)'\s*\}/g, resout: creature },
   { re: /creatureId:\s*'([^']*)'/g, resout: refDeCombattant },
-  { re: /\{[^{}]*kind:\s*'personnage'[^{}]*?\bref:\s*'([^']*)'/g, resout: refEntiteResolue },
+  { re: /\{[^{}]*kind:\s*'personnage'[^{}]*?\bcreature:\s*\{\s*id:\s*'([^']*)'/g, resout: creature },
+  { re: /mode:\s*'entity',\s*kind:\s*'personnage',\s*ref:\s*'([^']*)'/g, resout: creature },
 ];
 
 function sites(): { rel: string; ligne: number; id: string; resolu: boolean; motif: number; texte: string }[] {

@@ -75,10 +75,10 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
   const pieces = (scene.effectZones ?? []).filter(isDescriptiveZone);
   const meubles = scene.entities.filter((e) => e.kind === 'prop');
   /** Les meubles d'une pièce : ceux dont l'id est le sien suivi de leur `ref` et de leur rang. */
-  const meublesDe = (piece: string) => meubles.filter((e) => new RegExp(`^${piece}-${e.ref}-\\d+$`).test(e.id));
+  const meublesDe = (piece: string) => meubles.filter((e) => new RegExp(`^${piece}-${e.decor?.id}-\\d+$`).test(e.id));
   /** Les cases qu'un meuble couvre, sur son pont. */
   const casesDu = (e: (typeof meubles)[number]) =>
-    propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene)).map((t) => ({ ...t, z: e.z ?? 0 }));
+    propFootTiles(e.decor?.id, e.pos, e.facing, sceneMetresPerTile(scene)).map((t) => ({ ...t, z: e.z ?? 0 }));
   /** Les deux cases de chaque arête de porte ou d'échelle : une trappe et le pied de son échelle, les deux côtés d'une porte. */
   const libres = new Set((scene.walls ?? []).filter((w) => porteAuteur(w) || w.climb).flatMap((w) => {
     const z = w.z ?? 0;
@@ -96,7 +96,7 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     for (const piece of pieces) {
       const siennes = new Set(sceneZoneTiles(piece).map((t) => k({ x: t.x, y: t.y, z: t.z ?? piece.z ?? 0 })));
       for (const e of meublesDe(piece.id)) {
-        expect(findPropById(e.ref), e.id).toBeDefined();
+        expect(findPropById(e.decor?.id), e.id).toBeDefined();
         expect(casesDu(e).filter((c) => !siennes.has(k(c))), `${e.id} hors de sa pièce`).toEqual([]);
         expect(casesDu(e).filter((c) => libres.has(k(c))), `${e.id} bouche un passage`).toEqual([]);
       }
@@ -112,7 +112,7 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
   const corpsDu = (e: (typeof meubles)[number]) => {
     const mpt = sceneMetresPerTile(scene);
     const a = ancreDuDecor(e, mpt);
-    const c = garanti(emprisePlanTournee(garanti(findPropById(e.ref), e.id, 'décor'), e.facing ?? 'S', () => true), e.id, 'corps');
+    const c = garanti(emprisePlanTournee(garanti(findPropById(e.decor?.id), e.id, 'décor'), e.facing ?? 'S', () => true), e.id, 'corps');
     return { x0: a.x + c.x0 / mpt, x1: a.x + c.x1 / mpt, y0: a.y + c.y0 / mpt, y1: a.y + c.y1 / mpt };
   };
 

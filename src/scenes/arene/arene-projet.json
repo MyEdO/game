@@ -469,7 +469,9 @@
       "x": 12,
       "y": 2
      },
-     "ref": "statue",
+     "decor": {
+      "id": "statue"
+     },
      "label": "Le Premier Champion"
     },
     {
@@ -479,7 +481,9 @@
       "x": 5,
       "y": 4
      },
-     "ref": "mannequin"
+     "decor": {
+      "id": "mannequin"
+     }
     },
     {
      "id": "p2",
@@ -488,7 +492,9 @@
       "x": 4,
       "y": 11
      },
-     "ref": "rack-armes",
+     "decor": {
+      "id": "rack-armes"
+     },
      "label": "Râtelier de l’arène",
      "usable": {
       "actions": [
@@ -525,7 +531,9 @@
       "x": 9,
       "y": 3
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p4",
@@ -534,7 +542,9 @@
       "x": 9,
       "y": 7
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p5",
@@ -543,7 +553,9 @@
       "x": 13,
       "y": 7
      },
-     "ref": "caisse"
+     "decor": {
+      "id": "caisse"
+     }
     },
     {
      "id": "p6",
@@ -552,7 +564,9 @@
       "x": 17,
       "y": 9
      },
-     "ref": "caisse"
+     "decor": {
+      "id": "caisse"
+     }
     },
     {
      "id": "p7",
@@ -561,7 +575,9 @@
       "x": 21,
       "y": 2
      },
-     "ref": "etendard"
+     "decor": {
+      "id": "etendard"
+     }
     },
     {
      "id": "p8",
@@ -570,7 +586,9 @@
       "x": 2,
       "y": 13
      },
-     "ref": "feu-camp"
+     "decor": {
+      "id": "feu-camp"
+     }
     },
     {
      "id": "p9",
@@ -579,7 +597,9 @@
       "x": 6,
       "y": 6
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "p10",
@@ -588,7 +608,9 @@
       "x": 6,
       "y": 9
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "enemy-enc-zone1-0",
@@ -597,7 +619,9 @@
       "x": 13,
       "y": 4
      },
-     "ref": "snotling"
+     "creature": {
+      "id": "snotling"
+     }
     },
     {
      "id": "enemy-enc-zone1-1",
@@ -606,7 +630,9 @@
       "x": 15,
       "y": 11
      },
-     "ref": "snotling"
+     "creature": {
+      "id": "snotling"
+     }
     },
     {
      "id": "enemy-enc-zone1-2",
@@ -615,7 +641,9 @@
       "x": 18,
       "y": 5
      },
-     "ref": "snotling"
+     "creature": {
+      "id": "snotling"
+     }
     },
     {
      "id": "enemy-enc-zone1-3",
@@ -624,7 +652,9 @@
       "x": 16,
       "y": 3
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-zone1-4",
@@ -633,7 +663,9 @@
       "x": 19,
       "y": 12
      },
-     "ref": "gobelin",
+     "creature": {
+      "id": "gobelin"
+     },
      "combat": {
       "randomChars": true
      }
@@ -645,7 +677,9 @@
       "x": 12,
       "y": 12
      },
-     "ref": "rat-geant"
+     "creature": {
+      "id": "rat-geant"
+     }
     }
    ],
    "dialogues": [],
@@ -2806,7 +2840,9 @@
       "y": 26
      },
      "facing": "N",
-     "ref": "etal-marche"
+     "decor": {
+      "id": "etal-marche"
+     }
     },
     {
      "id": "maitre",
@@ -2828,7 +2864,9 @@
      "inventaire": {
       "epee-batarde": false
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "garde",
@@ -2850,7 +2888,9 @@
      "inventaire": {
       "hallebarde": false
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "villageoise",
@@ -2870,7 +2910,9 @@
       "tenue": "mendiant",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "villageois-1",
@@ -2885,7 +2927,9 @@
       "species": "humains-reiklander",
       "tenue": "mendiant"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "villageois-2",
@@ -2901,7 +2945,9 @@
       "species": "humains-reiklander",
       "tenue": "bourgeois"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "p0",
@@ -2910,7 +2956,9 @@
       "x": 20,
       "y": 18
      },
-     "ref": "puits"
+     "decor": {
+      "id": "puits"
+     }
     },
     {
      "id": "p1",
@@ -2919,7 +2967,9 @@
       "x": 28,
       "y": 16
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Le coffre du maître"
     },
     {
@@ -2929,7 +2979,9 @@
       "x": 19,
       "y": 15
      },
-     "ref": "lampadaire"
+     "decor": {
+      "id": "lampadaire"
+     }
     },
     {
      "id": "p3",
@@ -2938,7 +2990,9 @@
       "x": 32,
       "y": 25
      },
-     "ref": "lampadaire"
+     "decor": {
+      "id": "lampadaire"
+     }
     },
     {
      "id": "p4",
@@ -2947,7 +3001,9 @@
       "x": 22,
       "y": 24
      },
-     "ref": "etal-marche"
+     "decor": {
+      "id": "etal-marche"
+     }
     },
     {
      "id": "p5",
@@ -2956,7 +3012,9 @@
       "x": 31,
       "y": 19
      },
-     "ref": "etal-marche"
+     "decor": {
+      "id": "etal-marche"
+     }
     },
     {
      "id": "p6",
@@ -2965,7 +3023,9 @@
       "x": 22,
       "y": 16
      },
-     "ref": "gibet"
+     "decor": {
+      "id": "gibet"
+     }
     },
     {
      "id": "p7",
@@ -2974,7 +3034,9 @@
       "x": 30,
       "y": 24
      },
-     "ref": "pilori"
+     "decor": {
+      "id": "pilori"
+     }
     },
     {
      "id": "medecin",
@@ -2985,7 +3047,9 @@
      },
      "label": "Médecin",
      "facing": "S",
-     "ref": "stefan-hochen",
+     "creature": {
+      "id": "stefan-hochen"
+     },
      "dialogueId": {
       "id": "dlg-medecin"
      },
@@ -3007,7 +3071,9 @@
       "x": 27,
       "y": 14
      },
-     "ref": "tente",
+     "decor": {
+      "id": "tente"
+     },
      "label": "Infirmerie"
     },
     {
@@ -3017,7 +3083,9 @@
       "x": 15,
       "y": 20
      },
-     "ref": "mannequin"
+     "decor": {
+      "id": "mannequin"
+     }
     },
     {
      "id": "p10",
@@ -3026,7 +3094,9 @@
       "x": 15,
       "y": 22
      },
-     "ref": "rack-lances"
+     "decor": {
+      "id": "rack-lances"
+     }
     },
     {
      "id": "p11",
@@ -3035,7 +3105,9 @@
       "x": 23,
       "y": 30
      },
-     "ref": "panneau",
+     "decor": {
+      "id": "panneau"
+     },
      "label": "« L’ARÈNE — treize portes, une gloire »"
     },
     {
@@ -3045,7 +3117,9 @@
       "x": 22,
       "y": 38
      },
-     "ref": "palissade"
+     "decor": {
+      "id": "palissade"
+     }
     },
     {
      "id": "p13",
@@ -3054,7 +3128,9 @@
       "x": 27,
       "y": 38
      },
-     "ref": "palissade"
+     "decor": {
+      "id": "palissade"
+     }
     },
     {
      "id": "taverniere",
@@ -3078,7 +3154,9 @@
       "tenue": "bourgeois",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "client-1",
@@ -3094,7 +3172,9 @@
       "species": "nains",
       "tenue": "batelier"
      },
-     "ref": "nain"
+     "creature": {
+      "id": "nain"
+     }
     },
     {
      "id": "client-2",
@@ -3110,7 +3190,9 @@
       "species": "humains-reiklander",
       "tenue": "mendiant"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "client-3",
@@ -3127,7 +3209,9 @@
       "tenue": "soldat",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "p14",
@@ -3136,7 +3220,9 @@
       "x": 4,
       "y": 4
      },
-     "ref": "feu-camp",
+     "decor": {
+      "id": "feu-camp"
+     },
      "label": "Âtre"
     },
     {
@@ -3146,7 +3232,9 @@
       "x": 12,
       "y": 4
      },
-     "ref": "etagere"
+     "decor": {
+      "id": "etagere"
+     }
     },
     {
      "id": "p16",
@@ -3155,7 +3243,9 @@
       "x": 13,
       "y": 4
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p17",
@@ -3164,7 +3254,9 @@
       "x": 14,
       "y": 4
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p18",
@@ -3173,7 +3265,9 @@
       "x": 15,
       "y": 4
      },
-     "ref": "crane-monstre",
+     "decor": {
+      "id": "crane-monstre"
+     },
      "label": "LE Trophée"
     },
     {
@@ -3183,7 +3277,9 @@
       "x": 6,
       "y": 7
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "Table"
     },
     {
@@ -3193,7 +3289,9 @@
       "x": 12,
       "y": 7
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "Table"
     },
     {
@@ -3203,7 +3301,9 @@
       "x": 9,
       "y": 9
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "Table"
     },
     {
@@ -3213,7 +3313,9 @@
       "x": 4,
       "y": 11
      },
-     "ref": "caisse"
+     "decor": {
+      "id": "caisse"
+     }
     },
     {
      "id": "p23",
@@ -3222,7 +3324,9 @@
       "x": 16,
       "y": 11
      },
-     "ref": "tas-foin"
+     "decor": {
+      "id": "tas-foin"
+     }
     },
     {
      "id": "p24",
@@ -3231,7 +3335,9 @@
       "x": 4,
       "y": 6
      },
-     "ref": "tas-foin"
+     "decor": {
+      "id": "tas-foin"
+     }
     },
     {
      "id": "frere",
@@ -3242,7 +3348,9 @@
      },
      "label": "Frère Anselm",
      "facing": "S",
-     "ref": "stefan-hochen",
+     "creature": {
+      "id": "stefan-hochen"
+     },
      "dialogueId": {
       "id": "dlg-frere"
      },
@@ -3267,7 +3375,9 @@
       "tenue": "mendiant",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "p25",
@@ -3276,7 +3386,9 @@
       "x": 40,
       "y": 4
      },
-     "ref": "autel"
+     "decor": {
+      "id": "autel"
+     }
     },
     {
      "id": "p26",
@@ -3285,7 +3397,9 @@
       "x": 38,
       "y": 4
      },
-     "ref": "chandelier"
+     "decor": {
+      "id": "chandelier"
+     }
     },
     {
      "id": "p27",
@@ -3294,7 +3408,9 @@
       "x": 42,
       "y": 4
      },
-     "ref": "chandelier"
+     "decor": {
+      "id": "chandelier"
+     }
     },
     {
      "id": "p28",
@@ -3303,7 +3419,9 @@
       "x": 35,
       "y": 7
      },
-     "ref": "statue",
+     "decor": {
+      "id": "statue"
+     },
      "label": "Sigmar Heldenhammer"
     },
     {
@@ -3313,7 +3431,9 @@
       "x": 45,
       "y": 7
      },
-     "ref": "statue",
+     "decor": {
+      "id": "statue"
+     },
      "label": "La Comète à deux queues"
     },
     {
@@ -3323,7 +3443,9 @@
       "x": 35,
       "y": 11
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p31",
@@ -3332,7 +3454,9 @@
       "x": 45,
       "y": 11
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p32",
@@ -3341,7 +3465,9 @@
       "x": 36,
       "y": 5
      },
-     "ref": "urne"
+     "decor": {
+      "id": "urne"
+     }
     },
     {
      "id": "p33",
@@ -3350,7 +3476,9 @@
       "x": 44,
       "y": 5
      },
-     "ref": "urne"
+     "decor": {
+      "id": "urne"
+     }
     },
     {
      "id": "p34",
@@ -3359,7 +3487,9 @@
       "x": 44,
       "y": 12
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Tronc des offrandes"
     },
     {
@@ -3387,7 +3517,9 @@
      "inventaire": {
       "marteau-de-guerre": false
      },
-     "ref": "nain"
+     "creature": {
+      "id": "nain"
+     }
     },
     {
      "id": "apprenti",
@@ -3404,7 +3536,9 @@
       "tenue": "artisan",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "p35",
@@ -3413,7 +3547,9 @@
       "x": 4,
       "y": 28
      },
-     "ref": "feu-camp",
+     "decor": {
+      "id": "feu-camp"
+     },
      "label": "Le foyer"
     },
     {
@@ -3423,7 +3559,9 @@
       "x": 6,
       "y": 30
      },
-     "ref": "etabli",
+     "decor": {
+      "id": "etabli"
+     },
      "label": "Établi & enclume"
     },
     {
@@ -3433,7 +3571,9 @@
       "x": 4,
       "y": 32
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "Cuve à trempe"
     },
     {
@@ -3443,7 +3583,9 @@
       "x": 12,
       "y": 28
      },
-     "ref": "rack-armes"
+     "decor": {
+      "id": "rack-armes"
+     }
     },
     {
      "id": "p39",
@@ -3452,7 +3594,9 @@
       "x": 12,
       "y": 29
      },
-     "ref": "rack-lances"
+     "decor": {
+      "id": "rack-lances"
+     }
     },
     {
      "id": "p40",
@@ -3461,7 +3605,9 @@
       "x": 12,
       "y": 34
      },
-     "ref": "caisse"
+     "decor": {
+      "id": "caisse"
+     }
     },
     {
      "id": "p41",
@@ -3470,7 +3616,9 @@
       "x": 4,
       "y": 34
      },
-     "ref": "tonneaux-pile"
+     "decor": {
+      "id": "tonneaux-pile"
+     }
     },
     {
      "id": "echoppiere",
@@ -3494,7 +3642,9 @@
       "tenue": "bourgeois",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "chaland",
@@ -3510,7 +3660,9 @@
       "species": "humains-reiklander",
       "tenue": "mendiant"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "p42",
@@ -3519,7 +3671,9 @@
       "x": 37,
       "y": 28
      },
-     "ref": "etal-marche",
+     "decor": {
+      "id": "etal-marche"
+     },
      "label": "Comptoir"
     },
     {
@@ -3529,7 +3683,9 @@
       "x": 45,
       "y": 28
      },
-     "ref": "etagere"
+     "decor": {
+      "id": "etagere"
+     }
     },
     {
      "id": "p44",
@@ -3538,7 +3694,9 @@
       "x": 38,
       "y": 30
      },
-     "ref": "etagere"
+     "decor": {
+      "id": "etagere"
+     }
     },
     {
      "id": "p45",
@@ -3547,7 +3705,9 @@
       "x": 45,
       "y": 30
      },
-     "ref": "etagere"
+     "decor": {
+      "id": "etagere"
+     }
     },
     {
      "id": "p46",
@@ -3556,7 +3716,9 @@
       "x": 37,
       "y": 32
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p47",
@@ -3565,7 +3727,9 @@
       "x": 45,
       "y": 34
      },
-     "ref": "caisse"
+     "decor": {
+      "id": "caisse"
+     }
     },
     {
      "id": "p48",
@@ -3574,7 +3738,9 @@
       "x": 37,
       "y": 34
      },
-     "ref": "caisse"
+     "decor": {
+      "id": "caisse"
+     }
     },
     {
      "id": "p49",
@@ -3583,7 +3749,9 @@
       "x": 45,
       "y": 32
      },
-     "ref": "tonneaux-pile"
+     "decor": {
+      "id": "tonneaux-pile"
+     }
     }
    ],
    "dialogues": [
@@ -7125,7 +7293,9 @@
       "x": 5,
       "y": 12
      },
-     "ref": "arche-ruine",
+     "decor": {
+      "id": "arche-ruine"
+     },
      "label": "Porche effondré"
     },
     {
@@ -7135,7 +7305,9 @@
       "x": 10,
       "y": 6
      },
-     "ref": "gravats"
+     "decor": {
+      "id": "gravats"
+     }
     },
     {
      "id": "p2",
@@ -7144,7 +7316,9 @@
       "x": 14,
       "y": 11
      },
-     "ref": "gravats"
+     "decor": {
+      "id": "gravats"
+     }
     },
     {
      "id": "p3",
@@ -7153,7 +7327,9 @@
       "x": 5,
       "y": 13
      },
-     "ref": "gravats"
+     "decor": {
+      "id": "gravats"
+     }
     },
     {
      "id": "p4",
@@ -7162,7 +7338,9 @@
       "x": 19,
       "y": 9
      },
-     "ref": "gravats"
+     "decor": {
+      "id": "gravats"
+     }
     },
     {
      "id": "p5",
@@ -7171,7 +7349,9 @@
       "x": 21,
       "y": 5
      },
-     "ref": "colonne-brisee"
+     "decor": {
+      "id": "colonne-brisee"
+     }
     },
     {
      "id": "p6",
@@ -7180,7 +7360,9 @@
       "x": 23,
       "y": 2
      },
-     "ref": "colonne-brisee"
+     "decor": {
+      "id": "colonne-brisee"
+     }
     },
     {
      "id": "p7",
@@ -7189,7 +7371,9 @@
       "x": 13,
       "y": 3
      },
-     "ref": "colonne-brisee"
+     "decor": {
+      "id": "colonne-brisee"
+     }
     },
     {
      "id": "p8",
@@ -7198,7 +7382,9 @@
       "x": 3,
       "y": 3
      },
-     "ref": "panneau",
+     "decor": {
+      "id": "panneau"
+     },
      "label": "Stèle gravée",
      "usable": {
       "actions": [
@@ -7235,7 +7421,9 @@
       "x": 25,
       "y": 3
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Coffre de la garnison",
      "usable": {
       "actions": [
@@ -7281,7 +7469,9 @@
       "x": 3,
       "y": 8
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p11",
@@ -7290,7 +7480,9 @@
       "x": 12,
       "y": 16
      },
-     "ref": "feu-camp",
+     "decor": {
+      "id": "feu-camp"
+     },
      "label": "Feu gobelin"
     },
     {
@@ -7300,7 +7492,9 @@
       "x": 13,
       "y": 15
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "enemy-enc-zone2-0",
@@ -7309,7 +7503,9 @@
       "x": 8,
       "y": 10
      },
-     "ref": "gobelin",
+     "creature": {
+      "id": "gobelin"
+     },
      "combat": {
       "randomChars": true
      }
@@ -7321,7 +7517,9 @@
       "x": 13,
       "y": 9
      },
-     "ref": "gobelin",
+     "creature": {
+      "id": "gobelin"
+     },
      "combat": {
       "randomChars": true
      }
@@ -7333,7 +7531,9 @@
       "x": 6,
       "y": 4
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-zone2-3",
@@ -7342,7 +7542,9 @@
       "x": 15,
       "y": 14
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-zone2-4",
@@ -7351,7 +7553,9 @@
       "x": 12,
       "y": 5
      },
-     "ref": "orc"
+     "creature": {
+      "id": "orc"
+     }
     },
     {
      "id": "enemy-enc-ruines-tresor-0",
@@ -7360,7 +7564,9 @@
       "x": 22,
       "y": 4
      },
-     "ref": "orc",
+     "creature": {
+      "id": "orc"
+     },
      "combat": {
       "optionals": [
        {
@@ -7376,7 +7582,9 @@
       "x": 20,
       "y": 3
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-ruines-tresor-2",
@@ -7385,7 +7593,9 @@
       "x": 24,
       "y": 6
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     }
    ],
    "dialogues": [],
@@ -8138,7 +8348,9 @@
       "x": 28,
       "y": 8
      },
-     "ref": "grille",
+     "decor": {
+      "id": "grille"
+     },
      "label": "Grille d’évacuation"
     },
     {
@@ -8148,7 +8360,9 @@
       "x": 5,
       "y": 11
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p2",
@@ -8157,7 +8371,9 @@
       "x": 12,
       "y": 2
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p3",
@@ -8166,7 +8382,9 @@
       "x": 25,
       "y": 14
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p4",
@@ -8175,7 +8393,9 @@
       "x": 3,
       "y": 6
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p5",
@@ -8184,7 +8404,9 @@
       "x": 26,
       "y": 2
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p6",
@@ -8193,7 +8415,9 @@
       "x": 27,
       "y": 16
      },
-     "ref": "roue-dentee",
+     "decor": {
+      "id": "roue-dentee"
+     },
      "label": "Vanne du collecteur"
     },
     {
@@ -8203,7 +8427,9 @@
       "x": 16,
       "y": 12
      },
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "label": "Égoutier noyé",
      "usable": {
       "actions": [
@@ -8242,7 +8468,9 @@
       "x": 14,
       "y": 10
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p9",
@@ -8251,7 +8479,9 @@
       "x": 22,
       "y": 16
      },
-     "ref": "champignon"
+     "decor": {
+      "id": "champignon"
+     }
     },
     {
      "id": "enemy-enc-zone3-0",
@@ -8260,7 +8490,9 @@
       "x": 10,
       "y": 4
      },
-     "ref": "rat-geant"
+     "creature": {
+      "id": "rat-geant"
+     }
     },
     {
      "id": "enemy-enc-zone3-1",
@@ -8269,7 +8501,9 @@
       "x": 24,
       "y": 3
      },
-     "ref": "rat-geant"
+     "creature": {
+      "id": "rat-geant"
+     }
     },
     {
      "id": "enemy-enc-zone3-2",
@@ -8342,7 +8576,9 @@
       "x": 15,
       "y": 3
      },
-     "ref": "snotling"
+     "creature": {
+      "id": "snotling"
+     }
     },
     {
      "id": "enemy-enc-zone3-5",
@@ -8351,7 +8587,9 @@
       "x": 18,
       "y": 6
      },
-     "ref": "snotling"
+     "creature": {
+      "id": "snotling"
+     }
     }
    ],
    "dialogues": [],
@@ -9125,7 +9363,9 @@
       "x": 7,
       "y": 4
      },
-     "ref": "sarcophage"
+     "decor": {
+      "id": "sarcophage"
+     }
     },
     {
      "id": "p1",
@@ -9134,7 +9374,9 @@
       "x": 19,
       "y": 4
      },
-     "ref": "sarcophage"
+     "decor": {
+      "id": "sarcophage"
+     }
     },
     {
      "id": "p2",
@@ -9143,7 +9385,9 @@
       "x": 7,
       "y": 11
      },
-     "ref": "sarcophage"
+     "decor": {
+      "id": "sarcophage"
+     }
     },
     {
      "id": "p3",
@@ -9152,7 +9396,9 @@
       "x": 20,
       "y": 11
      },
-     "ref": "sarcophage"
+     "decor": {
+      "id": "sarcophage"
+     }
     },
     {
      "id": "p4",
@@ -9161,7 +9407,9 @@
       "x": 4,
       "y": 7
      },
-     "ref": "tombe"
+     "decor": {
+      "id": "tombe"
+     }
     },
     {
      "id": "p5",
@@ -9170,7 +9418,9 @@
       "x": 24,
       "y": 8
      },
-     "ref": "tombe"
+     "decor": {
+      "id": "tombe"
+     }
     },
     {
      "id": "p6",
@@ -9179,7 +9429,9 @@
       "x": 10,
       "y": 13
      },
-     "ref": "tombe"
+     "decor": {
+      "id": "tombe"
+     }
     },
     {
      "id": "p7",
@@ -9188,7 +9440,9 @@
       "x": 13,
       "y": 5
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p8",
@@ -9197,7 +9451,9 @@
       "x": 18,
       "y": 12
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p9",
@@ -9206,7 +9462,9 @@
       "x": 5,
       "y": 15
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p10",
@@ -9215,7 +9473,9 @@
       "x": 15,
       "y": 9
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p11",
@@ -9224,7 +9484,9 @@
       "x": 3,
       "y": 3
      },
-     "ref": "urne"
+     "decor": {
+      "id": "urne"
+     }
     },
     {
      "id": "p12",
@@ -9233,7 +9495,9 @@
       "x": 13,
       "y": 16
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p13",
@@ -9242,7 +9506,9 @@
       "x": 15,
       "y": 16
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p14",
@@ -9251,7 +9517,9 @@
       "x": 9,
       "y": 15
      },
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "label": "Fossoyeur mort",
      "usable": {
       "actions": [
@@ -9322,7 +9590,9 @@
       "x": 24,
       "y": 2
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Reliquaire descellé",
      "usable": {
       "actions": [
@@ -9359,7 +9629,9 @@
       "x": 8,
       "y": 3
      },
-     "ref": "squelette"
+     "creature": {
+      "id": "squelette"
+     }
     },
     {
      "id": "enemy-enc-zone4-1",
@@ -9368,7 +9640,9 @@
       "x": 16,
       "y": 7
      },
-     "ref": "squelette"
+     "creature": {
+      "id": "squelette"
+     }
     },
     {
      "id": "enemy-enc-zone4-2",
@@ -9377,7 +9651,9 @@
       "x": 22,
       "y": 3
      },
-     "ref": "squelette",
+     "creature": {
+      "id": "squelette"
+     },
      "combat": {
       "optionals": [
        {
@@ -9393,7 +9669,9 @@
       "x": 10,
       "y": 8
      },
-     "ref": "zombie"
+     "creature": {
+      "id": "zombie"
+     }
     },
     {
      "id": "enemy-enc-zone4-4",
@@ -9402,7 +9680,9 @@
       "x": 14,
       "y": 3
      },
-     "ref": "zombie"
+     "creature": {
+      "id": "zombie"
+     }
     },
     {
      "id": "enemy-enc-zone4-5",
@@ -9411,7 +9691,9 @@
       "x": 20,
       "y": 8
      },
-     "ref": "zombie"
+     "creature": {
+      "id": "zombie"
+     }
     },
     {
      "id": "enemy-enc-zone4-6",
@@ -9420,7 +9702,9 @@
       "x": 12,
       "y": 6
      },
-     "ref": "goule-de-crypte"
+     "creature": {
+      "id": "goule-de-crypte"
+     }
     }
    ],
    "dialogues": [],
@@ -10163,7 +10447,9 @@
       "x": 4,
       "y": 1
      },
-     "ref": "etendard"
+     "decor": {
+      "id": "etendard"
+     }
     },
     {
      "id": "p1",
@@ -10172,7 +10458,9 @@
       "x": 29,
       "y": 1
      },
-     "ref": "etendard"
+     "decor": {
+      "id": "etendard"
+     }
     },
     {
      "id": "p2",
@@ -10181,7 +10469,9 @@
       "x": 9,
       "y": 8
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "p3",
@@ -10190,7 +10480,9 @@
       "x": 12,
       "y": 8
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "p4",
@@ -10199,7 +10491,9 @@
       "x": 15,
       "y": 8
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "p5",
@@ -10208,7 +10502,9 @@
       "x": 18,
       "y": 8
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "p6",
@@ -10217,7 +10513,9 @@
       "x": 21,
       "y": 8
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "p7",
@@ -10226,7 +10524,9 @@
       "x": 24,
       "y": 8
      },
-     "ref": "barriere"
+     "decor": {
+      "id": "barriere"
+     }
     },
     {
      "id": "p8",
@@ -10235,7 +10535,9 @@
       "x": 3,
       "y": 12
      },
-     "ref": "rack-lances",
+     "decor": {
+      "id": "rack-lances"
+     },
      "label": "Râtelier de joute",
      "usable": {
       "actions": [
@@ -10272,7 +10574,9 @@
       "x": 29,
       "y": 12
      },
-     "ref": "abreuvoir"
+     "decor": {
+      "id": "abreuvoir"
+     }
     },
     {
      "id": "p10",
@@ -10281,7 +10585,9 @@
       "x": 30,
       "y": 3
      },
-     "ref": "tas-foin"
+     "decor": {
+      "id": "tas-foin"
+     }
     },
     {
      "id": "p11",
@@ -10290,7 +10596,9 @@
       "x": 4,
       "y": 13
      },
-     "ref": "tas-foin"
+     "decor": {
+      "id": "tas-foin"
+     }
     },
     {
      "id": "enemy-enc-zone5-0",
@@ -10299,7 +10607,9 @@
       "x": 6,
       "y": 11
      },
-     "ref": "cheval"
+     "creature": {
+      "id": "cheval"
+     }
     },
     {
      "id": "enemy-enc-zone5-1",
@@ -10308,7 +10618,9 @@
       "x": 22,
       "y": 4
      },
-     "ref": "cheval"
+     "creature": {
+      "id": "cheval"
+     }
     },
     {
      "id": "enemy-enc-zone5-2",
@@ -10317,7 +10629,9 @@
       "x": 22,
       "y": 4
      },
-     "ref": "mutant"
+     "creature": {
+      "id": "mutant"
+     }
     },
     {
      "id": "enemy-enc-zone5-3",
@@ -10326,7 +10640,9 @@
       "x": 26,
       "y": 10
      },
-     "ref": "cheval"
+     "creature": {
+      "id": "cheval"
+     }
     },
     {
      "id": "enemy-enc-zone5-4",
@@ -10335,7 +10651,9 @@
       "x": 26,
       "y": 10
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-zone5-5",
@@ -10344,7 +10662,9 @@
       "x": 18,
       "y": 6
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     }
    ],
    "dialogues": [],
@@ -11312,7 +11632,9 @@
       "x": 12,
       "y": 2
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p1",
@@ -11321,7 +11643,9 @@
       "x": 16,
       "y": 3
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p2",
@@ -11330,7 +11654,9 @@
       "x": 21,
       "y": 7
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p3",
@@ -11339,7 +11665,9 @@
       "x": 10,
       "y": 12
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p4",
@@ -11348,7 +11676,9 @@
       "x": 13,
       "y": 2
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p5",
@@ -11357,7 +11687,9 @@
       "x": 22,
       "y": 6
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p6",
@@ -11366,7 +11698,9 @@
       "x": 11,
       "y": 11
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p7",
@@ -11375,7 +11709,9 @@
       "x": 25,
       "y": 17
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p8",
@@ -11384,7 +11720,9 @@
       "x": 6,
       "y": 3
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p9",
@@ -11393,7 +11731,9 @@
       "x": 27,
       "y": 9
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p10",
@@ -11402,7 +11742,9 @@
       "x": 18,
       "y": 19
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p11",
@@ -11411,7 +11753,9 @@
       "x": 20,
       "y": 4
      },
-     "ref": "menhir"
+     "decor": {
+      "id": "menhir"
+     }
     },
     {
      "id": "p12",
@@ -11420,7 +11764,9 @@
       "x": 16,
       "y": 9
      },
-     "ref": "trophee-cranes",
+     "decor": {
+      "id": "trophee-cranes"
+     },
      "label": "Totem de la harde"
     },
     {
@@ -11430,7 +11776,9 @@
       "x": 5,
       "y": 9
      },
-     "ref": "souche"
+     "decor": {
+      "id": "souche"
+     }
     },
     {
      "id": "p14",
@@ -11439,7 +11787,9 @@
       "x": 24,
       "y": 13
      },
-     "ref": "souche"
+     "decor": {
+      "id": "souche"
+     }
     },
     {
      "id": "p15",
@@ -11448,7 +11798,9 @@
       "x": 7,
       "y": 14
      },
-     "ref": "champignon"
+     "decor": {
+      "id": "champignon"
+     }
     },
     {
      "id": "p16",
@@ -11457,7 +11809,9 @@
       "x": 8,
       "y": 16
      },
-     "ref": "cheval-mort",
+     "decor": {
+      "id": "cheval-mort"
+     },
      "label": "Monture éventrée",
      "usable": {
       "actions": [
@@ -11494,7 +11848,9 @@
       "x": 26,
       "y": 18
      },
-     "ref": "barque",
+     "decor": {
+      "id": "barque"
+     },
      "label": "Barque embourbée",
      "usable": {
       "actions": [
@@ -11533,7 +11889,9 @@
       "x": 14,
       "y": 6
      },
-     "ref": "gor"
+     "creature": {
+      "id": "gor"
+     }
     },
     {
      "id": "enemy-enc-zone6-1",
@@ -11542,7 +11900,9 @@
       "x": 20,
       "y": 16
      },
-     "ref": "gor",
+     "creature": {
+      "id": "gor"
+     },
      "combat": {
       "optionals": [
        {
@@ -11559,7 +11919,9 @@
       "x": 17,
       "y": 7
      },
-     "ref": "ungor"
+     "creature": {
+      "id": "ungor"
+     }
     },
     {
      "id": "enemy-enc-zone6-3",
@@ -11568,7 +11930,9 @@
       "x": 22,
       "y": 10
      },
-     "ref": "ungor"
+     "creature": {
+      "id": "ungor"
+     }
     },
     {
      "id": "enemy-enc-zone6-4",
@@ -11577,7 +11941,9 @@
       "x": 10,
       "y": 14
      },
-     "ref": "loup-funeste"
+     "creature": {
+      "id": "loup-funeste"
+     }
     },
     {
      "id": "enemy-enc-zone6-5",
@@ -11586,7 +11952,9 @@
       "x": 25,
       "y": 5
      },
-     "ref": "loup-funeste"
+     "creature": {
+      "id": "loup-funeste"
+     }
     },
     {
      "id": "enemy-enc-zone6-6",
@@ -11595,7 +11963,9 @@
       "x": 18,
       "y": 12
      },
-     "ref": "fimir"
+     "creature": {
+      "id": "fimir"
+     }
     }
    ],
    "dialogues": [],
@@ -12420,7 +12790,9 @@
       "x": 8,
       "y": 3
      },
-     "ref": "toile"
+     "decor": {
+      "id": "toile"
+     }
     },
     {
      "id": "p1",
@@ -12429,7 +12801,9 @@
       "x": 18,
       "y": 8
      },
-     "ref": "toile"
+     "decor": {
+      "id": "toile"
+     }
     },
     {
      "id": "p2",
@@ -12438,7 +12812,9 @@
       "x": 10,
       "y": 15
      },
-     "ref": "toile"
+     "decor": {
+      "id": "toile"
+     }
     },
     {
      "id": "p3",
@@ -12447,7 +12823,9 @@
       "x": 24,
       "y": 16
      },
-     "ref": "toile"
+     "decor": {
+      "id": "toile"
+     }
     },
     {
      "id": "p4",
@@ -12456,7 +12834,9 @@
       "x": 6,
       "y": 5
      },
-     "ref": "cocon",
+     "decor": {
+      "id": "cocon"
+     },
      "label": "Cocon frémissant",
      "usable": {
       "actions": [
@@ -12525,7 +12905,9 @@
       "x": 21,
       "y": 13
      },
-     "ref": "cocon",
+     "decor": {
+      "id": "cocon"
+     },
      "label": "Cocon lourd",
      "usable": {
       "actions": [
@@ -12564,7 +12946,9 @@
       "x": 15,
       "y": 17
      },
-     "ref": "cocon"
+     "decor": {
+      "id": "cocon"
+     }
     },
     {
      "id": "p7",
@@ -12573,7 +12957,9 @@
       "x": 4,
       "y": 12
      },
-     "ref": "champignon"
+     "decor": {
+      "id": "champignon"
+     }
     },
     {
      "id": "p8",
@@ -12582,7 +12968,9 @@
       "x": 26,
       "y": 4
      },
-     "ref": "champignon",
+     "decor": {
+      "id": "champignon"
+     },
      "label": "Chapeaux moirés",
      "usable": {
       "actions": [
@@ -12619,7 +13007,9 @@
       "x": 12,
       "y": 7
      },
-     "ref": "champignon"
+     "decor": {
+      "id": "champignon"
+     }
     },
     {
      "id": "p10",
@@ -12628,7 +13018,9 @@
       "x": 9,
       "y": 9
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p11",
@@ -12637,7 +13029,9 @@
       "x": 23,
       "y": 10
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p12",
@@ -12646,7 +13040,9 @@
       "x": 5,
       "y": 16
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p13",
@@ -12655,7 +13051,9 @@
       "x": 17,
       "y": 14
      },
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "label": "Chasseur momifié",
      "usable": {
       "actions": [
@@ -12692,7 +13090,9 @@
       "x": 7,
       "y": 11
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "Vieux camp"
     },
     {
@@ -12702,7 +13102,9 @@
       "x": 12,
       "y": 6
      },
-     "ref": "araignee-geante"
+     "creature": {
+      "id": "araignee-geante"
+     }
     },
     {
      "id": "enemy-enc-zone7-1",
@@ -12711,7 +13113,9 @@
       "x": 18,
       "y": 14
      },
-     "ref": "araignee-geante"
+     "creature": {
+      "id": "araignee-geante"
+     }
     },
     {
      "id": "enemy-enc-zone7-2",
@@ -12720,7 +13124,9 @@
       "x": 8,
       "y": 12
      },
-     "ref": "araignee-geante",
+     "creature": {
+      "id": "araignee-geante"
+     },
      "combat": {
       "optionals": [
        {
@@ -12737,7 +13143,9 @@
       "x": 20,
       "y": 6
      },
-     "ref": "serpent"
+     "creature": {
+      "id": "serpent"
+     }
     },
     {
      "id": "enemy-enc-zone7-4",
@@ -12746,7 +13154,9 @@
       "x": 14,
       "y": 16
      },
-     "ref": "serpent"
+     "creature": {
+      "id": "serpent"
+     }
     },
     {
      "id": "enemy-enc-zone7-5",
@@ -12755,7 +13165,9 @@
       "x": 22,
       "y": 18
      },
-     "ref": "basilic"
+     "creature": {
+      "id": "basilic"
+     }
     },
     {
      "id": "enemy-enc-zone7-6",
@@ -12764,7 +13176,9 @@
       "x": 24,
       "y": 5
      },
-     "ref": "vouivre"
+     "creature": {
+      "id": "vouivre"
+     }
     }
    ],
    "dialogues": [],
@@ -13528,7 +13942,9 @@
       "x": 12,
       "y": 3
      },
-     "ref": "banniere-chaos"
+     "decor": {
+      "id": "banniere-chaos"
+     }
     },
     {
      "id": "p1",
@@ -13537,7 +13953,9 @@
       "x": 22,
       "y": 15
      },
-     "ref": "banniere-chaos"
+     "decor": {
+      "id": "banniere-chaos"
+     }
     },
     {
      "id": "p2",
@@ -13546,7 +13964,9 @@
       "x": 18,
       "y": 5
      },
-     "ref": "trophee-cranes"
+     "decor": {
+      "id": "trophee-cranes"
+     }
     },
     {
      "id": "p3",
@@ -13555,7 +13975,9 @@
       "x": 8,
       "y": 16
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p4",
@@ -13564,7 +13986,9 @@
       "x": 20,
       "y": 9
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p5",
@@ -13573,7 +13997,9 @@
       "x": 14,
       "y": 8
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p6",
@@ -13582,7 +14008,9 @@
       "x": 25,
       "y": 2
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p7",
@@ -13591,7 +14019,9 @@
       "x": 5,
       "y": 6
      },
-     "ref": "rocher"
+     "decor": {
+      "id": "rocher"
+     }
     },
     {
      "id": "p8",
@@ -13600,7 +14030,9 @@
       "x": 24,
       "y": 17
      },
-     "ref": "rocher"
+     "decor": {
+      "id": "rocher"
+     }
     },
     {
      "id": "p9",
@@ -13609,7 +14041,9 @@
       "x": 10,
       "y": 13
      },
-     "ref": "crane-monstre"
+     "decor": {
+      "id": "crane-monstre"
+     }
     },
     {
      "id": "p10",
@@ -13618,7 +14052,9 @@
       "x": 27,
       "y": 7
      },
-     "ref": "pieu"
+     "decor": {
+      "id": "pieu"
+     }
     },
     {
      "id": "p11",
@@ -13627,7 +14063,9 @@
       "x": 3,
       "y": 16
      },
-     "ref": "cage",
+     "decor": {
+      "id": "cage"
+     },
      "label": "Cage brisée",
      "usable": {
       "actions": [
@@ -13666,7 +14104,9 @@
       "x": 5,
       "y": 10
      },
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "appearance": {
       "tenue": "mendiant"
      },
@@ -13682,7 +14122,9 @@
       "x": 14,
       "y": 5
      },
-     "ref": "gor"
+     "creature": {
+      "id": "gor"
+     }
     },
     {
      "id": "enemy-enc-zone8-2",
@@ -13691,7 +14133,9 @@
       "x": 22,
       "y": 11
      },
-     "ref": "gor",
+     "creature": {
+      "id": "gor"
+     },
      "combat": {
       "optionals": [
        {
@@ -13708,7 +14152,9 @@
       "x": 12,
       "y": 16
      },
-     "ref": "gor"
+     "creature": {
+      "id": "gor"
+     }
     },
     {
      "id": "enemy-enc-zone8-4",
@@ -13717,7 +14163,9 @@
       "x": 17,
       "y": 9
      },
-     "ref": "ungor"
+     "creature": {
+      "id": "ungor"
+     }
     },
     {
      "id": "enemy-enc-zone8-5",
@@ -13726,7 +14174,9 @@
       "x": 24,
       "y": 6
      },
-     "ref": "ungor"
+     "creature": {
+      "id": "ungor"
+     }
     },
     {
      "id": "enemy-enc-zone8-6",
@@ -13735,7 +14185,9 @@
       "x": 20,
       "y": 16
      },
-     "ref": "minotaure"
+     "creature": {
+      "id": "minotaure"
+     }
     }
    ],
    "dialogues": [],
@@ -14603,7 +15055,9 @@
       "x": 6,
       "y": 3
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p1",
@@ -14612,7 +15066,9 @@
       "x": 14,
       "y": 12
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p2",
@@ -14621,7 +15077,9 @@
       "x": 26,
       "y": 16
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p3",
@@ -14630,7 +15088,9 @@
       "x": 10,
       "y": 5
      },
-     "ref": "rocher"
+     "decor": {
+      "id": "rocher"
+     }
     },
     {
      "id": "p4",
@@ -14639,7 +15099,9 @@
       "x": 20,
       "y": 17
      },
-     "ref": "rocher"
+     "decor": {
+      "id": "rocher"
+     }
     },
     {
      "id": "p5",
@@ -14648,7 +15110,9 @@
       "x": 8,
       "y": 14
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p6",
@@ -14657,7 +15121,9 @@
       "x": 16,
       "y": 4
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p7",
@@ -14666,7 +15132,9 @@
       "x": 12,
       "y": 17
      },
-     "ref": "crane-monstre"
+     "decor": {
+      "id": "crane-monstre"
+     }
     },
     {
      "id": "p8",
@@ -14675,7 +15143,9 @@
       "x": 18,
       "y": 15
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p9",
@@ -14684,7 +15154,9 @@
       "x": 13,
       "y": 14
      },
-     "ref": "marmite",
+     "decor": {
+      "id": "marmite"
+     },
      "label": "Marmite du troll",
      "usable": {
       "actions": [
@@ -14730,7 +15202,9 @@
       "x": 26,
       "y": 5
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Magot de la caverne",
      "usable": {
       "actions": [
@@ -14776,7 +15250,9 @@
       "x": 28,
       "y": 8
      },
-     "ref": "feu-camp",
+     "decor": {
+      "id": "feu-camp"
+     },
      "label": "Feu de l’Ogre"
     },
     {
@@ -14786,7 +15262,9 @@
       "x": 12,
       "y": 8
      },
-     "ref": "troll"
+     "creature": {
+      "id": "troll"
+     }
     },
     {
      "id": "enemy-enc-zone9-1",
@@ -14795,7 +15273,9 @@
       "x": 16,
       "y": 14
      },
-     "ref": "squig-des-cavernes"
+     "creature": {
+      "id": "squig-des-cavernes"
+     }
     },
     {
      "id": "enemy-enc-zone9-2",
@@ -14804,7 +15284,9 @@
       "x": 8,
       "y": 11
      },
-     "ref": "squig-des-cavernes",
+     "creature": {
+      "id": "squig-des-cavernes"
+     },
      "combat": {
       "optionals": [
        {
@@ -14820,7 +15302,9 @@
       "x": 18,
       "y": 6
      },
-     "ref": "gor"
+     "creature": {
+      "id": "gor"
+     }
     },
     {
      "id": "enemy-enc-caverne-ogre-0",
@@ -14829,7 +15313,9 @@
       "x": 27,
       "y": 9
      },
-     "ref": "ogre",
+     "creature": {
+      "id": "ogre"
+     },
      "combat": {
       "optionals": [
        {
@@ -15866,7 +16352,9 @@
       "tenue": "mendiant",
       "sex": "M"
      },
-     "ref": "halfling"
+     "creature": {
+      "id": "halfling"
+     }
     },
     {
      "id": "p0",
@@ -15875,7 +16363,9 @@
       "x": 10,
       "y": 6
      },
-     "ref": "cage",
+     "decor": {
+      "id": "cage"
+     },
      "label": "Cage du garde-manger"
     },
     {
@@ -15885,7 +16375,9 @@
       "x": 12,
       "y": 5
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p2",
@@ -15894,7 +16386,9 @@
       "x": 23,
       "y": 5
      },
-     "ref": "roue-dentee",
+     "decor": {
+      "id": "roue-dentee"
+     },
      "label": "Machinerie skaven"
     },
     {
@@ -15904,7 +16398,9 @@
       "x": 25,
       "y": 6
      },
-     "ref": "roue-dentee"
+     "decor": {
+      "id": "roue-dentee"
+     }
     },
     {
      "id": "p4",
@@ -15913,7 +16409,9 @@
       "x": 6,
       "y": 10
      },
-     "ref": "terrier"
+     "decor": {
+      "id": "terrier"
+     }
     },
     {
      "id": "p5",
@@ -15922,7 +16420,9 @@
       "x": 28,
       "y": 11
      },
-     "ref": "terrier"
+     "decor": {
+      "id": "terrier"
+     }
     },
     {
      "id": "p6",
@@ -15931,7 +16431,9 @@
       "x": 16,
       "y": 17
      },
-     "ref": "terrier"
+     "decor": {
+      "id": "terrier"
+     }
     },
     {
      "id": "p7",
@@ -15940,7 +16442,9 @@
       "x": 4,
       "y": 15
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p8",
@@ -15949,7 +16453,9 @@
       "x": 20,
       "y": 10
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p9",
@@ -15958,7 +16464,9 @@
       "x": 30,
       "y": 19
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p10",
@@ -15967,7 +16475,9 @@
       "x": 9,
       "y": 18
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p11",
@@ -15976,7 +16486,9 @@
       "x": 24,
       "y": 16
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p12",
@@ -15985,7 +16497,9 @@
       "x": 14,
       "y": 11
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p13",
@@ -15994,7 +16508,9 @@
       "x": 29,
       "y": 4
      },
-     "ref": "caisse"
+     "decor": {
+      "id": "caisse"
+     }
     },
     {
      "id": "p14",
@@ -16003,7 +16519,9 @@
       "x": 31,
       "y": 17
      },
-     "ref": "caisse",
+     "decor": {
+      "id": "caisse"
+     },
      "label": "Caisse de contrebande",
      "usable": {
       "actions": [
@@ -16040,7 +16558,9 @@
       "x": 18,
       "y": 4
      },
-     "ref": "gravats"
+     "decor": {
+      "id": "gravats"
+     }
     },
     {
      "id": "p16",
@@ -16049,7 +16569,9 @@
       "x": 3,
       "y": 7
      },
-     "ref": "gravats"
+     "decor": {
+      "id": "gravats"
+     }
     },
     {
      "id": "enemy-enc-zone10-0",
@@ -16058,7 +16580,9 @@
       "x": 16,
       "y": 10
      },
-     "ref": "guerrier-des-clans",
+     "creature": {
+      "id": "guerrier-des-clans"
+     },
      "combat": {
       "randomChars": true
      }
@@ -16070,7 +16594,9 @@
       "x": 22,
       "y": 12
      },
-     "ref": "guerrier-des-clans",
+     "creature": {
+      "id": "guerrier-des-clans"
+     },
      "combat": {
       "randomChars": true
      }
@@ -16082,7 +16608,9 @@
       "x": 18,
       "y": 19
      },
-     "ref": "guerrier-des-clans",
+     "creature": {
+      "id": "guerrier-des-clans"
+     },
      "combat": {
       "randomChars": true
      }
@@ -16094,7 +16622,9 @@
       "x": 28,
       "y": 9
      },
-     "ref": "guerrier-des-clans",
+     "creature": {
+      "id": "guerrier-des-clans"
+     },
      "combat": {
       "optionals": [
        {
@@ -16110,7 +16640,9 @@
       "x": 20,
       "y": 15
      },
-     "ref": "vermine-de-choc"
+     "creature": {
+      "id": "vermine-de-choc"
+     }
     },
     {
      "id": "enemy-enc-zone10-5",
@@ -16119,7 +16651,9 @@
       "x": 24,
       "y": 20
      },
-     "ref": "vermine-de-choc"
+     "creature": {
+      "id": "vermine-de-choc"
+     }
     },
     {
      "id": "enemy-enc-zone10-6",
@@ -16128,7 +16662,9 @@
       "x": 29,
       "y": 14
      },
-     "ref": "rat-ogre"
+     "creature": {
+      "id": "rat-ogre"
+     }
     },
     {
      "id": "enemy-enc-zone10-7",
@@ -16137,7 +16673,9 @@
       "x": 14,
       "y": 15
      },
-     "ref": "rat-geant"
+     "creature": {
+      "id": "rat-geant"
+     }
     },
     {
      "id": "enemy-enc-zone10-8",
@@ -16146,7 +16684,9 @@
       "x": 10,
       "y": 20
      },
-     "ref": "rat-geant"
+     "creature": {
+      "id": "rat-geant"
+     }
     }
    ],
    "dialogues": [
@@ -17191,7 +17731,9 @@
       "x": 16,
       "y": 5
      },
-     "ref": "idole-chaos",
+     "decor": {
+      "id": "idole-chaos"
+     },
      "label": "L’Idole noire"
     },
     {
@@ -17201,7 +17743,9 @@
       "x": 16,
       "y": 16
      },
-     "ref": "autel",
+     "decor": {
+      "id": "autel"
+     },
      "label": "Autel des sacrifices"
     },
     {
@@ -17211,7 +17755,9 @@
       "x": 14,
       "y": 8
      },
-     "ref": "cercle-runique"
+     "decor": {
+      "id": "cercle-runique"
+     }
     },
     {
      "id": "p3",
@@ -17220,7 +17766,9 @@
       "x": 19,
       "y": 8
      },
-     "ref": "cercle-runique"
+     "decor": {
+      "id": "cercle-runique"
+     }
     },
     {
      "id": "p4",
@@ -17229,7 +17777,9 @@
       "x": 8,
       "y": 4
      },
-     "ref": "banniere-chaos"
+     "decor": {
+      "id": "banniere-chaos"
+     }
     },
     {
      "id": "p5",
@@ -17238,7 +17788,9 @@
       "x": 25,
       "y": 4
      },
-     "ref": "banniere-chaos"
+     "decor": {
+      "id": "banniere-chaos"
+     }
     },
     {
      "id": "p6",
@@ -17247,7 +17799,9 @@
       "x": 12,
       "y": 13
      },
-     "ref": "pieu"
+     "decor": {
+      "id": "pieu"
+     }
     },
     {
      "id": "p7",
@@ -17256,7 +17810,9 @@
       "x": 21,
       "y": 13
      },
-     "ref": "pieu"
+     "decor": {
+      "id": "pieu"
+     }
     },
     {
      "id": "p8",
@@ -17265,7 +17821,9 @@
       "x": 6,
       "y": 16
      },
-     "ref": "crane-monstre"
+     "decor": {
+      "id": "crane-monstre"
+     }
     },
     {
      "id": "p9",
@@ -17274,7 +17832,9 @@
       "x": 27,
       "y": 17
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p10",
@@ -17283,7 +17843,9 @@
       "x": 10,
       "y": 9
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p11",
@@ -17292,7 +17854,9 @@
       "x": 23,
       "y": 11
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p12",
@@ -17301,7 +17865,9 @@
       "x": 4,
       "y": 8
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p13",
@@ -17310,7 +17876,9 @@
       "x": 29,
       "y": 8
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p14",
@@ -17319,7 +17887,9 @@
       "x": 28,
       "y": 14
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Coffre du célébrant",
      "usable": {
       "actions": [
@@ -17363,7 +17933,9 @@
       "x": 17,
       "y": 3
      },
-     "ref": "chamane-brey",
+     "creature": {
+      "id": "chamane-brey"
+     },
      "combat": {
       "spells": [
        "flechette",
@@ -17379,7 +17951,9 @@
       "x": 13,
       "y": 10
      },
-     "ref": "cultiste",
+     "creature": {
+      "id": "cultiste"
+     },
      "combat": {
       "optionals": [
        {
@@ -17399,7 +17973,9 @@
       "x": 21,
       "y": 10
      },
-     "ref": "cultiste",
+     "creature": {
+      "id": "cultiste"
+     },
      "combat": {
       "randomChars": true
      }
@@ -17411,7 +17987,9 @@
       "x": 17,
       "y": 12
      },
-     "ref": "cultiste",
+     "creature": {
+      "id": "cultiste"
+     },
      "combat": {
       "randomChars": true
      }
@@ -17423,7 +18001,9 @@
       "x": 10,
       "y": 6
      },
-     "ref": "mutant"
+     "creature": {
+      "id": "mutant"
+     }
     },
     {
      "id": "enemy-enc-zone11-5",
@@ -17432,7 +18012,9 @@
       "x": 24,
       "y": 6
      },
-     "ref": "mutant"
+     "creature": {
+      "id": "mutant"
+     }
     },
     {
      "id": "enemy-enc-zone11-6",
@@ -17441,7 +18023,9 @@
       "x": 15,
       "y": 14
      },
-     "ref": "sanguinaire-de-khorne"
+     "creature": {
+      "id": "sanguinaire-de-khorne"
+     }
     },
     {
      "id": "enemy-enc-zone11-7",
@@ -17450,7 +18034,9 @@
       "x": 19,
       "y": 14
      },
-     "ref": "horreur-rose"
+     "creature": {
+      "id": "horreur-rose"
+     }
     },
     {
      "id": "enemy-enc-zone11-8",
@@ -17459,7 +18045,9 @@
       "x": 22,
       "y": 16
      },
-     "ref": "horreur-bleue"
+     "creature": {
+      "id": "horreur-bleue"
+     }
     }
    ],
    "dialogues": [],
@@ -18298,7 +18886,9 @@
       "x": 7,
       "y": 2
      },
-     "ref": "gargouille"
+     "decor": {
+      "id": "gargouille"
+     }
     },
     {
      "id": "p1",
@@ -18307,7 +18897,9 @@
       "x": 24,
       "y": 2
      },
-     "ref": "gargouille"
+     "decor": {
+      "id": "gargouille"
+     }
     },
     {
      "id": "p2",
@@ -18316,7 +18908,9 @@
       "x": 7,
       "y": 13
      },
-     "ref": "gargouille"
+     "decor": {
+      "id": "gargouille"
+     }
     },
     {
      "id": "p3",
@@ -18325,7 +18919,9 @@
       "x": 24,
       "y": 13
      },
-     "ref": "gargouille"
+     "decor": {
+      "id": "gargouille"
+     }
     },
     {
      "id": "p4",
@@ -18334,7 +18930,9 @@
       "x": 4,
       "y": 5
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p5",
@@ -18343,7 +18941,9 @@
       "x": 27,
       "y": 5
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p6",
@@ -18352,7 +18952,9 @@
       "x": 4,
       "y": 15
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p7",
@@ -18361,7 +18963,9 @@
       "x": 27,
       "y": 15
      },
-     "ref": "brasero"
+     "decor": {
+      "id": "brasero"
+     }
     },
     {
      "id": "p8",
@@ -18370,7 +18974,9 @@
       "x": 10,
       "y": 5
      },
-     "ref": "sarcophage"
+     "decor": {
+      "id": "sarcophage"
+     }
     },
     {
      "id": "p9",
@@ -18379,7 +18985,9 @@
       "x": 18,
       "y": 5
      },
-     "ref": "sarcophage"
+     "decor": {
+      "id": "sarcophage"
+     }
     },
     {
      "id": "p10",
@@ -18388,7 +18996,9 @@
       "x": 10,
       "y": 9
      },
-     "ref": "sarcophage"
+     "decor": {
+      "id": "sarcophage"
+     }
     },
     {
      "id": "p11",
@@ -18397,7 +19007,9 @@
       "x": 14,
       "y": 16
      },
-     "ref": "chandelier"
+     "decor": {
+      "id": "chandelier"
+     }
     },
     {
      "id": "p12",
@@ -18406,7 +19018,9 @@
       "x": 16,
       "y": 16
      },
-     "ref": "chandelier"
+     "decor": {
+      "id": "chandelier"
+     }
     },
     {
      "id": "p13",
@@ -18415,7 +19029,9 @@
       "x": 12,
       "y": 2
      },
-     "ref": "urne"
+     "decor": {
+      "id": "urne"
+     }
     },
     {
      "id": "p14",
@@ -18424,7 +19040,9 @@
       "x": 20,
       "y": 9
      },
-     "ref": "urne"
+     "decor": {
+      "id": "urne"
+     }
     },
     {
      "id": "p15",
@@ -18433,7 +19051,9 @@
       "x": 8,
       "y": 16
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p16",
@@ -18442,7 +19062,9 @@
       "x": 22,
       "y": 16
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p17",
@@ -18451,7 +19073,9 @@
       "x": 18,
       "y": 9
      },
-     "ref": "sarcophage",
+     "decor": {
+      "id": "sarcophage"
+     },
      "label": "Sarcophage du seigneur",
      "usable": {
       "actions": [
@@ -18493,7 +19117,9 @@
       "x": 8,
       "y": 4
      },
-     "ref": "squelette"
+     "creature": {
+      "id": "squelette"
+     }
     },
     {
      "id": "enemy-enc-zone12-1",
@@ -18502,7 +19128,9 @@
       "x": 22,
       "y": 4
      },
-     "ref": "squelette"
+     "creature": {
+      "id": "squelette"
+     }
     },
     {
      "id": "enemy-enc-zone12-2",
@@ -18511,7 +19139,9 @@
       "x": 12,
       "y": 8
      },
-     "ref": "fantome"
+     "creature": {
+      "id": "fantome"
+     }
     },
     {
      "id": "enemy-enc-zone12-3",
@@ -18520,7 +19150,9 @@
       "x": 20,
       "y": 12
      },
-     "ref": "fantome"
+     "creature": {
+      "id": "fantome"
+     }
     },
     {
      "id": "enemy-enc-zone12-4",
@@ -18529,7 +19161,9 @@
       "x": 16,
       "y": 2
      },
-     "ref": "banshee"
+     "creature": {
+      "id": "banshee"
+     }
     },
     {
      "id": "enemy-enc-zone12-5",
@@ -18538,7 +19172,9 @@
       "x": 14,
       "y": 12
      },
-     "ref": "spectre-de-cairn"
+     "creature": {
+      "id": "spectre-de-cairn"
+     }
     },
     {
      "id": "enemy-enc-zone12-6",
@@ -18547,7 +19183,9 @@
       "x": 16,
       "y": 8
      },
-     "ref": "vampire",
+     "creature": {
+      "id": "vampire"
+     },
      "combat": {
       "optionals": [
        {
@@ -19872,7 +20510,9 @@
       "x": 30,
       "y": 8
      },
-     "ref": "tas-or"
+     "decor": {
+      "id": "tas-or"
+     }
     },
     {
      "id": "p1",
@@ -19881,7 +20521,9 @@
       "x": 33,
       "y": 12
      },
-     "ref": "tas-or"
+     "decor": {
+      "id": "tas-or"
+     }
     },
     {
      "id": "p2",
@@ -19890,7 +20532,9 @@
       "x": 29,
       "y": 14
      },
-     "ref": "tas-or"
+     "decor": {
+      "id": "tas-or"
+     }
     },
     {
      "id": "p3",
@@ -19899,7 +20543,9 @@
       "x": 31,
       "y": 4
      },
-     "ref": "oeuf-dragon"
+     "decor": {
+      "id": "oeuf-dragon"
+     }
     },
     {
      "id": "p4",
@@ -19908,7 +20554,9 @@
       "x": 34,
       "y": 6
      },
-     "ref": "oeuf-dragon"
+     "decor": {
+      "id": "oeuf-dragon"
+     }
     },
     {
      "id": "p5",
@@ -19917,7 +20565,9 @@
       "x": 24,
       "y": 20
      },
-     "ref": "crane-monstre"
+     "decor": {
+      "id": "crane-monstre"
+     }
     },
     {
      "id": "p6",
@@ -19926,7 +20576,9 @@
       "x": 8,
       "y": 20
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p7",
@@ -19935,7 +20587,9 @@
       "x": 15,
       "y": 6
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p8",
@@ -19944,7 +20598,9 @@
       "x": 25,
       "y": 3
      },
-     "ref": "stalagmite"
+     "decor": {
+      "id": "stalagmite"
+     }
     },
     {
      "id": "p9",
@@ -19953,7 +20609,9 @@
       "x": 5,
       "y": 16
      },
-     "ref": "feu-camp",
+     "decor": {
+      "id": "feu-camp"
+     },
      "label": "Bivouac des servants"
     },
     {
@@ -19963,7 +20621,9 @@
       "x": 6,
       "y": 17
      },
-     "ref": "cadavre"
+     "decor": {
+      "id": "cadavre"
+     }
     },
     {
      "id": "p11",
@@ -19972,7 +20632,9 @@
       "x": 14,
       "y": 22
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p12",
@@ -19981,7 +20643,9 @@
       "x": 22,
       "y": 8
      },
-     "ref": "ossements"
+     "decor": {
+      "id": "ossements"
+     }
     },
     {
      "id": "p13",
@@ -19990,7 +20654,9 @@
       "x": 16,
       "y": 12
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p14",
@@ -19999,7 +20665,9 @@
       "x": 13,
       "y": 17
      },
-     "ref": "tas-or",
+     "decor": {
+      "id": "tas-or"
+     },
      "label": "Or épars (le dragon DORT…)",
      "usable": {
       "actions": [
@@ -20070,7 +20738,9 @@
       "x": 36,
       "y": 22
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Coffre du trésor",
      "usable": {
       "actions": [
@@ -20176,7 +20846,9 @@
       "x": 24,
       "y": 5
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-zone13-2",
@@ -20185,7 +20857,9 @@
       "x": 26,
       "y": 16
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-zone13-3",
@@ -20194,7 +20868,9 @@
       "x": 21,
       "y": 12
      },
-     "ref": "gobelin",
+     "creature": {
+      "id": "gobelin"
+     },
      "combat": {
       "randomChars": true
      }
@@ -20206,7 +20882,9 @@
       "x": 33,
       "y": 18
      },
-     "ref": "gobelin"
+     "creature": {
+      "id": "gobelin"
+     }
     },
     {
      "id": "enemy-enc-zone13-5",
@@ -20215,7 +20893,9 @@
       "x": 30,
       "y": 3
      },
-     "ref": "cultiste",
+     "creature": {
+      "id": "cultiste"
+     },
      "combat": {
       "optionals": [
        {
@@ -21503,7 +22183,9 @@
       "x": 12,
       "y": 4
      },
-     "ref": "arbre"
+     "decor": {
+      "id": "arbre"
+     }
     },
     {
      "id": "p1",
@@ -21512,7 +22194,9 @@
       "x": 28,
       "y": 7
      },
-     "ref": "arbre"
+     "decor": {
+      "id": "arbre"
+     }
     },
     {
      "id": "p2",
@@ -21521,7 +22205,9 @@
       "x": 7,
       "y": 19
      },
-     "ref": "arbre"
+     "decor": {
+      "id": "arbre"
+     }
     },
     {
      "id": "p3",
@@ -21530,7 +22216,9 @@
       "x": 34,
       "y": 14
      },
-     "ref": "arbre"
+     "decor": {
+      "id": "arbre"
+     }
     },
     {
      "id": "p4",
@@ -21539,7 +22227,9 @@
       "x": 20,
       "y": 22
      },
-     "ref": "arbre"
+     "decor": {
+      "id": "arbre"
+     }
     },
     {
      "id": "p5",
@@ -21548,7 +22238,9 @@
       "x": 26,
       "y": 3
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p6",
@@ -21557,7 +22249,9 @@
       "x": 10,
       "y": 24
      },
-     "ref": "souche"
+     "decor": {
+      "id": "souche"
+     }
     },
     {
      "id": "p7",
@@ -21566,7 +22260,9 @@
       "x": 31,
       "y": 19
      },
-     "ref": "souche"
+     "decor": {
+      "id": "souche"
+     }
     },
     {
      "id": "p8",
@@ -21575,7 +22271,9 @@
       "x": 5,
       "y": 8
      },
-     "ref": "buisson"
+     "decor": {
+      "id": "buisson"
+     }
     },
     {
      "id": "p9",
@@ -21584,7 +22282,9 @@
       "x": 24,
       "y": 12
      },
-     "ref": "buisson"
+     "decor": {
+      "id": "buisson"
+     }
     },
     {
      "id": "p10",
@@ -21593,7 +22293,9 @@
       "x": 35,
       "y": 24
      },
-     "ref": "buisson"
+     "decor": {
+      "id": "buisson"
+     }
     },
     {
      "id": "p11",
@@ -21602,7 +22304,9 @@
       "x": 8,
       "y": 5
      },
-     "ref": "champignon",
+     "decor": {
+      "id": "champignon"
+     },
      "label": "Herbes de sous-bois",
      "usable": {
       "actions": [
@@ -21639,7 +22343,9 @@
       "x": 27,
       "y": 24
      },
-     "ref": "champignon",
+     "decor": {
+      "id": "champignon"
+     },
      "label": "Talus à faxtoryll",
      "usable": {
       "actions": [
@@ -21676,7 +22382,9 @@
       "x": 30,
       "y": 9
      },
-     "ref": "tente",
+     "decor": {
+      "id": "tente"
+     },
      "label": "Tente de Bella"
     },
     {
@@ -21686,7 +22394,9 @@
       "x": 28,
       "y": 12
      },
-     "ref": "feu-camp"
+     "decor": {
+      "id": "feu-camp"
+     }
     },
     {
      "id": "p15",
@@ -21695,7 +22405,9 @@
       "x": 33,
       "y": 12
      },
-     "ref": "tonneaux-pile"
+     "decor": {
+      "id": "tonneaux-pile"
+     }
     },
     {
      "id": "p16",
@@ -21704,7 +22416,9 @@
       "x": 27,
       "y": 10
      },
-     "ref": "charrette",
+     "decor": {
+      "id": "charrette"
+     },
      "label": "Butin des convois"
     },
     {
@@ -21714,7 +22428,9 @@
       "x": 34,
       "y": 8
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Coffre de la bande",
      "usable": {
       "actions": [
@@ -21763,7 +22479,9 @@
       "x": 16,
       "y": 6
      },
-     "ref": "gibet",
+     "decor": {
+      "id": "gibet"
+     },
      "label": "L’avertissement de Bella"
     },
     {
@@ -21773,7 +22491,9 @@
       "x": 12,
       "y": 9
      },
-     "ref": "gor",
+     "creature": {
+      "id": "gor"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -21785,7 +22505,9 @@
       "x": 18,
       "y": 16
      },
-     "ref": "gor",
+     "creature": {
+      "id": "gor"
+     },
      "combat": {
       "hiddenUntilCombat": true,
       "optionals": [
@@ -21803,7 +22525,9 @@
       "x": 9,
       "y": 12
      },
-     "ref": "ungor",
+     "creature": {
+      "id": "ungor"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -21815,7 +22539,9 @@
       "x": 15,
       "y": 20
      },
-     "ref": "ungor",
+     "creature": {
+      "id": "ungor"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -21827,7 +22553,9 @@
       "x": 19,
       "y": 7
      },
-     "ref": "ungor",
+     "creature": {
+      "id": "ungor"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -21839,7 +22567,9 @@
       "x": 7,
       "y": 16
      },
-     "ref": "loup",
+     "creature": {
+      "id": "loup"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -21851,7 +22581,9 @@
       "x": 14,
       "y": 12
      },
-     "ref": "loup",
+     "creature": {
+      "id": "loup"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -21863,7 +22595,9 @@
       "x": 17,
       "y": 23
      },
-     "ref": "loup",
+     "creature": {
+      "id": "loup"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -21875,7 +22609,9 @@
       "x": 31,
       "y": 11
      },
-     "ref": "bella-la-noire"
+     "creature": {
+      "id": "bella-la-noire"
+     }
     },
     {
      "id": "enemy-enc-foret-bande-1",
@@ -21884,7 +22620,9 @@
       "x": 29,
       "y": 9
      },
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "appearance": {
       "tenue": "hors-la-loi",
       "sex": "F"
@@ -21904,7 +22642,9 @@
       "x": 33,
       "y": 13
      },
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "appearance": {
       "tenue": "hors-la-loi"
      },
@@ -21923,7 +22663,9 @@
       "x": 28,
       "y": 14
      },
-     "ref": "chien"
+     "creature": {
+      "id": "chien"
+     }
     }
    ],
    "dialogues": [],
@@ -23064,7 +23806,9 @@
       "x": 10,
       "y": 3
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p1",
@@ -23073,7 +23817,9 @@
       "x": 26,
       "y": 3
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p2",
@@ -23082,7 +23828,9 @@
       "x": 14,
       "y": 8
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p3",
@@ -23091,7 +23839,9 @@
       "x": 22,
       "y": 14
      },
-     "ref": "nenuphars"
+     "decor": {
+      "id": "nenuphars"
+     }
     },
     {
      "id": "p4",
@@ -23100,7 +23850,9 @@
       "x": 6,
       "y": 8
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p5",
@@ -23109,7 +23861,9 @@
       "x": 29,
       "y": 9
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p6",
@@ -23118,7 +23872,9 @@
       "x": 12,
       "y": 16
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p7",
@@ -23127,7 +23883,9 @@
       "x": 24,
       "y": 17
      },
-     "ref": "roseaux"
+     "decor": {
+      "id": "roseaux"
+     }
     },
     {
      "id": "p8",
@@ -23136,7 +23894,9 @@
       "x": 4,
       "y": 18
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p9",
@@ -23145,7 +23905,9 @@
       "x": 31,
       "y": 18
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p10",
@@ -23154,7 +23916,9 @@
       "x": 8,
       "y": 21
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p11",
@@ -23163,7 +23927,9 @@
       "x": 28,
       "y": 21
      },
-     "ref": "souche"
+     "decor": {
+      "id": "souche"
+     }
     },
     {
      "id": "p12",
@@ -23172,7 +23938,9 @@
       "x": 5,
       "y": 23
      },
-     "ref": "barque",
+     "decor": {
+      "id": "barque"
+     },
      "label": "Barque du tourbier",
      "usable": {
       "actions": [
@@ -23218,7 +23986,9 @@
       "x": 20,
       "y": 18
      },
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "label": "Voyageur repêché",
      "usable": {
       "actions": [
@@ -23289,7 +24059,9 @@
       "x": 22,
       "y": 2
      },
-     "ref": "menhir",
+     "decor": {
+      "id": "menhir"
+     },
      "label": "Pierre engloutie"
     },
     {
@@ -23299,7 +24071,9 @@
       "x": 15,
       "y": 19
      },
-     "ref": "bete-des-marais",
+     "creature": {
+      "id": "bete-des-marais"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -23311,7 +24085,9 @@
       "x": 22,
       "y": 19
      },
-     "ref": "pieuvre-des-tourbieres",
+     "creature": {
+      "id": "pieuvre-des-tourbieres"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -23323,7 +24099,9 @@
       "x": 9,
       "y": 20
      },
-     "ref": "serpent",
+     "creature": {
+      "id": "serpent"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -23335,7 +24113,9 @@
       "x": 21,
       "y": 16
      },
-     "ref": "serpent",
+     "creature": {
+      "id": "serpent"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -24299,7 +25079,9 @@
       "x": 7,
       "y": 9
      },
-     "ref": "puits",
+     "decor": {
+      "id": "puits"
+     },
      "label": "LE puits de Felsbach"
     },
     {
@@ -24309,7 +25091,9 @@
       "x": 10,
       "y": 8
      },
-     "ref": "abreuvoir"
+     "decor": {
+      "id": "abreuvoir"
+     }
     },
     {
      "id": "p2",
@@ -24318,7 +25102,9 @@
       "x": 16,
       "y": 9
      },
-     "ref": "charrette",
+     "decor": {
+      "id": "charrette"
+     },
      "label": "Charrette abandonnée"
     },
     {
@@ -24328,7 +25114,9 @@
       "x": 19,
       "y": 5
      },
-     "ref": "gibet",
+     "decor": {
+      "id": "gibet"
+     },
      "label": "Le gibet du village"
     },
     {
@@ -24338,7 +25126,9 @@
       "x": 13,
       "y": 13
      },
-     "ref": "cadavre"
+     "decor": {
+      "id": "cadavre"
+     }
     },
     {
      "id": "p5",
@@ -24347,7 +25137,9 @@
       "x": 20,
       "y": 17
      },
-     "ref": "cadavre"
+     "decor": {
+      "id": "cadavre"
+     }
     },
     {
      "id": "p6",
@@ -24356,7 +25148,9 @@
       "x": 9,
       "y": 18
      },
-     "ref": "mare-sang"
+     "decor": {
+      "id": "mare-sang"
+     }
     },
     {
      "id": "p7",
@@ -24365,7 +25159,9 @@
       "x": 17,
       "y": 14
      },
-     "ref": "detritus"
+     "decor": {
+      "id": "detritus"
+     }
     },
     {
      "id": "p8",
@@ -24374,7 +25170,9 @@
       "x": 28,
       "y": 8
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p9",
@@ -24383,7 +25181,9 @@
       "x": 3,
       "y": 8
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "p10",
@@ -24392,7 +25192,9 @@
       "x": 30,
       "y": 20
      },
-     "ref": "buisson"
+     "decor": {
+      "id": "buisson"
+     }
     },
     {
      "id": "p11",
@@ -24401,7 +25203,9 @@
       "x": 13,
       "y": 3
      },
-     "ref": "coffre",
+     "decor": {
+      "id": "coffre"
+     },
      "label": "Coffre du foyer",
      "usable": {
       "actions": [
@@ -24440,7 +25244,9 @@
       "x": 27,
       "y": 16
      },
-     "ref": "lettre",
+     "decor": {
+      "id": "lettre"
+     },
      "label": "Journal du prévôt",
      "usable": {
       "actions": [
@@ -24477,7 +25283,9 @@
       "x": 4,
       "y": 3
      },
-     "ref": "tonneaux-pile"
+     "decor": {
+      "id": "tonneaux-pile"
+     }
     },
     {
      "id": "enemy-enc-village-0",
@@ -24486,7 +25294,9 @@
       "x": 14,
       "y": 7
      },
-     "ref": "zombie"
+     "creature": {
+      "id": "zombie"
+     }
     },
     {
      "id": "enemy-enc-village-1",
@@ -24495,7 +25305,9 @@
       "x": 18,
       "y": 12
      },
-     "ref": "zombie",
+     "creature": {
+      "id": "zombie"
+     },
      "combat": {
       "optionals": [
        {
@@ -24511,7 +25323,9 @@
       "x": 11,
       "y": 16
      },
-     "ref": "zombie"
+     "creature": {
+      "id": "zombie"
+     }
     },
     {
      "id": "enemy-enc-village-3",
@@ -24520,7 +25334,9 @@
       "x": 22,
       "y": 8
      },
-     "ref": "zombie",
+     "creature": {
+      "id": "zombie"
+     },
      "combat": {
       "randomChars": true
      }
@@ -24532,7 +25348,9 @@
       "x": 16,
       "y": 19
      },
-     "ref": "zombie"
+     "creature": {
+      "id": "zombie"
+     }
     },
     {
      "id": "enemy-enc-village-5",
@@ -24541,7 +25359,9 @@
       "x": 20,
       "y": 20
      },
-     "ref": "goule-de-crypte"
+     "creature": {
+      "id": "goule-de-crypte"
+     }
     }
    ],
    "dialogues": [],
@@ -25803,7 +26623,9 @@
       "x": 8,
       "y": 6
      },
-     "ref": "epave-carrosse",
+     "decor": {
+      "id": "epave-carrosse"
+     },
      "label": "La diligence de Felsbach"
     },
     {
@@ -25813,7 +26635,9 @@
       "x": 16,
       "y": 3
      },
-     "ref": "buisson"
+     "decor": {
+      "id": "buisson"
+     }
     },
     {
      "id": "p2",
@@ -25822,7 +26646,9 @@
       "x": 22,
       "y": 10
      },
-     "ref": "buisson"
+     "decor": {
+      "id": "buisson"
+     }
     },
     {
      "id": "p3",
@@ -25831,7 +26657,9 @@
       "x": 5,
       "y": 11
      },
-     "ref": "arbre-mort"
+     "decor": {
+      "id": "arbre-mort"
+     }
     },
     {
      "id": "p4",
@@ -25840,7 +26668,9 @@
       "x": 24,
       "y": 2
      },
-     "ref": "rocher"
+     "decor": {
+      "id": "rocher"
+     }
     },
     {
      "id": "p5",
@@ -25849,7 +26679,9 @@
       "x": 12,
       "y": 11
      },
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "label": "Postillon détroussé",
      "usable": {
       "actions": [
@@ -25888,7 +26720,9 @@
       "x": 20,
       "y": 6
      },
-     "ref": "tonneau"
+     "decor": {
+      "id": "tonneau"
+     }
     },
     {
      "id": "enemy-enc-embuscade-0",
@@ -25897,7 +26731,9 @@
       "x": 14,
       "y": 4
      },
-     "ref": "gobelin",
+     "creature": {
+      "id": "gobelin"
+     },
      "combat": {
       "hiddenUntilCombat": true,
       "randomChars": true
@@ -25910,7 +26746,9 @@
       "x": 18,
       "y": 9
      },
-     "ref": "gobelin",
+     "creature": {
+      "id": "gobelin"
+     },
      "combat": {
       "hiddenUntilCombat": true,
       "randomChars": true
@@ -25923,7 +26761,9 @@
       "x": 10,
       "y": 10
      },
-     "ref": "gobelin",
+     "creature": {
+      "id": "gobelin"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }
@@ -25935,7 +26775,9 @@
       "x": 21,
       "y": 5
      },
-     "ref": "orc",
+     "creature": {
+      "id": "orc"
+     },
      "combat": {
       "hiddenUntilCombat": true
      }

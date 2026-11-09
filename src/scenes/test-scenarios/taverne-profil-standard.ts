@@ -31,7 +31,7 @@ function construireScene(): Scene {
       {
         id: 'habitue-bras-de-fer',
         kind: 'personnage',
-        ref: fiche,
+        creature: { id: fiche },
         label: 'Habitué de la salle',
         pos: { x: 6, y: 3 },
         facing: 'O',

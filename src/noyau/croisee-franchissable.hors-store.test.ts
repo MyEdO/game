@@ -262,7 +262,7 @@ describe('enjamber la croisée — combat', () => {
 describe('sauter par la croisée : la rue lance une rencontre', () => {
   it('la rencontre s’ouvre AVANT le dé de chute : la perte frappe le combattant, reportée au groupe en fin de combat', () => {
     const sc = etage();
-    const enc = buildEncounter({ id: 'enc-rue', enemies: [{ ref: 'mutant', pos: { x: 3, y: 0 } }] });
+    const enc = buildEncounter({ id: 'enc-rue', enemies: [{ creature: { id: 'mutant' }, pos: { x: 3, y: 0 } }] });
     sc.entities = [...sc.entities, ...enc.entities];
     sc.encounters = [enc.encounter];
     sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: 'enc-rue' }]) }];
@@ -283,7 +283,7 @@ describe('sauter par la croisée : la rue lance une rencontre', () => {
 
   it('à DEUX tombants : la rencontre s’ouvre AVANT les dés, et CHAQUE combattant subit SA chute', () => {
     const sc = etage();
-    const enc = buildEncounter({ id: 'enc-rue', enemies: [{ ref: 'mutant', pos: { x: 3, y: 0 } }] });
+    const enc = buildEncounter({ id: 'enc-rue', enemies: [{ creature: { id: 'mutant' }, pos: { x: 3, y: 0 } }] });
     sc.entities = [...sc.entities, ...enc.entities];
     sc.encounters = [enc.encounter];
     sc.triggers = [{ ...piege(2, 1), flow: flowFromEffects([{ type: 'startCombat', encounter: 'enc-rue' }]) }];
