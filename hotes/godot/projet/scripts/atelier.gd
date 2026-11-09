@@ -7,10 +7,12 @@
 ## ceux de son montage (`MontageDeComposition`, le nœud `Modele`), que l'atelier offre au joueur. À côté des bases, il pose
 ## un véhicule ou un engin servi (#2987), tel que le pont le compose (`vehicule`) : les pièces de ses postes, ses
 ## Améliorations, la palette de la composition et l'emblème de ses voiles, montés par son montage (`MontageDeVehicule`, le
-## nœud `Vehicule`), au sol et cadrés à sa taille.
+## nœud `Vehicule`), au sol et cadrés à sa taille ; l'engin posé attaque, son clip d'attaque puis son coup.
 ## Son onglet Effets montre la vitrine des effets que le jeu joue (#3777, `vitrine`, `CONTRAT.md`, section « Effets ») :
 ## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, et chaque son, rejoués par son nœud `Effets`
-## de l'auteur posé à l'origine vers la cible (`Cible`) ; l'engin posé y attaque, son clip d'attaque puis son coup.
+## de l'auteur posé à l'origine vers la cible (`Cible`).
+## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
+## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
 ## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
 
@@ -49,7 +51,7 @@ const PAR_DEFAUT := "Par défaut"
 ## Le côté, en pixels, de la pastille d'une couleur du nuancier.
 const COTE_DE_LA_PASTILLE := 16
 ## Le texte du bouton de chaque variante de la vitrine des effets (`VarianteDeVitrine`).
-const VARIANTES := {"touche": "Touché", "manque": "Manqué", "pare": "Paré", "incantation": "Incantation", "incantation-ratee": "Ratée"}
+const VARIANTES := {"touche": "Touché", "manque": "Manqué", "pare": "Paré", "incantation": "Incantation", "incantation-ratee": "Ratée", "zone": "Zone"}
 ## Les mètres que vaut une unité de la scène de l'atelier : ses modèles sont à leur taille réelle.
 const METRES_PAR_UNITE := 1.0
 
@@ -61,13 +63,13 @@ const METRES_PAR_UNITE := 1.0
 @onready var _effets: Effets = $Effets
 @onready var _cible: Node3D = $Cible
 @onready var _etat: Label = %Etat
-@onready var _corps: HFlowContainer = %Corps
+@onready var _choix_du_modele: VBoxContainer = %ChoixDuModele
 @onready var _panneau_des_emplacements: VBoxContainer = %Emplacements
 @onready var _clips: OptionButton = %Clips
 @onready var _instant: Label = %Instant
 @onready var _cases_des_aides := {os = %AideOs, emplacements = %AideEmplacements, prises = %AidePrises}
-@onready var _onglets := {personnage = %DefilementPersonnage, equipement = %DefilementEquipement, couleurs = %DefilementCouleurs, animation = %DefilementAnimation, outils = %DefilementOutils, effets = %DefilementEffets}
-@onready var _boutons_des_onglets := {personnage = %OngletPersonnage, equipement = %OngletEquipement, couleurs = %OngletCouleurs, animation = %OngletAnimation, outils = %OngletOutils, effets = %OngletEffets}
+@onready var _onglets := {personnage = %DefilementPersonnage, equipement = %DefilementEquipement, couleurs = %DefilementCouleurs, animation = %DefilementAnimation, effets = %DefilementEffets, outils = %DefilementOutils}
+@onready var _boutons_des_onglets := {personnage = %OngletPersonnage, equipement = %OngletEquipement, couleurs = %OngletCouleurs, animation = %OngletAnimation, effets = %OngletEffets, outils = %OngletOutils}
 
 ## L'id de la base demandée en dernier, posée ou en chargement.
 var _base_demandee: Variant = null
@@ -92,8 +94,8 @@ var _surcharges_des_emblemes: Dictionary = {}
 var _lignes_des_emblemes: Dictionary = {}
 ## Par id de section de l'onglet Équipement, la colonne de ses rangées.
 var _sections: Dictionary = {}
-## Par id de base, puis par `vehicule/<fiche>` de véhicule, sa bascule à l'onglet Outils.
-var _boutons_des_modeles: Dictionary = {}
+## La liste des bases (`corps`) et celle des véhicules et engins (`vehicule`), en tête du panneau.
+var _listes_des_modeles: Dictionary = {}
 var _boutons_des_emblemes: Dictionary = {}
 ## Par emplacement de palette (`couleurs` de `catalogues`), sa liste au panneau Couleurs.
 var _listes_des_couleurs: Dictionary = {}
@@ -190,16 +192,11 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 		_erreurs.append(str(refus))
 	%Rapport.text = "\n".join(PackedStringArray(reponse.rapport))
 	%Rapport.visible = not reponse.rapport.is_empty()
-	Controles.vider(_corps)
-	_boutons_des_modeles = {}
-	var groupe := ButtonGroup.new()
 	var retenue: Variant = null
 	for base in reponse.bases:
-		_boutons_des_modeles[base.id] = _bascule(base.id, groupe, _corps, _choisir_la_base.bind(base.id))
 		if retenue == null or base.id == _base_demandee:
 			retenue = base
-	for definition in reponse.vehicules:
-		_boutons_des_modeles[_cle_du_vehicule(definition)] = _bascule(reponse.libelles[reponse.vehicules[definition]], groupe, _corps, _choisir_le_vehicule.bind(definition))
+	_poser_les_listes_des_modeles(reponse)
 	if reponse.vehicules.has(_definition_du_vehicule):
 		_vehicule.oublier()
 		await _demander_le_vehicule()
@@ -211,7 +208,7 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 
 ## La base `id` demandée : le dernier clic gagne, contre le modèle posé comme contre celui en chargement.
 func _choisir_la_base(id: String) -> void:
-	_marquer(_boutons_des_modeles, _modele_pose())
+	_montrer_le_modele_pose()
 	if id == _base_demandee:
 		_publier()
 		return
@@ -250,7 +247,7 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 		return
 	_remettre_a_zero()
 	_montage.poser_le_modele({} if base == null else base, scene)
-	_marquer(_boutons_des_modeles, _montage.base.get("id"))
+	_montrer_le_modele_pose()
 	if _montage.squelette != null:
 		_montage.squelette.skeleton_updated.connect(_memoriser_la_pose)
 		_montage.gabarit.mesure.connect(_cadrer)
@@ -277,9 +274,12 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	_montrer_l_etat()
 
 
-## L'écran ramené à aucun modèle : le montage vidé (`MontageDeComposition.vider`), aucun véhicule
-## (`MontageDeVehicule.vider`), ni pose d'os, ni emplacement, ni clip, ni repère, ni rangée d'emblèmes.
+## L'écran ramené à aucun modèle : le squelette posé n'informe plus la pose des os, le montage vidé
+## (`MontageDeComposition.vider`), aucun véhicule (`MontageDeVehicule.vider`), ni pose d'os, ni emplacement, ni clip, ni
+## repère, ni rangée d'emblèmes.
 func _remettre_a_zero() -> void:
+	if _montage.squelette != null and _montage.squelette.skeleton_updated.is_connected(_memoriser_la_pose):
+		_montage.squelette.skeleton_updated.disconnect(_memoriser_la_pose)
 	_montage.vider()
 	_vehicule.vider()
 	_pose_des_os = {}
@@ -293,20 +293,36 @@ func _remettre_a_zero() -> void:
 	_boutons_des_emblemes = {}
 
 
-## Le modèle posé ou demandé, par sa clé dans `_boutons_des_modeles` : le véhicule demandé, sinon la base posée.
-func _modele_pose() -> Variant:
-	return _montage.base.get("id") if _definition_du_vehicule == null else _cle_du_vehicule(_definition_du_vehicule)
+## En tête du panneau, la rangée « Corps », la liste de clé `modele/corps` de chaque base de la réponse `reponse` de
+## `modeles` par son id, puis la rangée « Véhicule ou engin », la liste de clé `modele/vehicule` de chaque fiche de
+## `vehicules`, dans son ordre, au libellé de son élément : choisi, un article pose son modèle.
+func _poser_les_listes_des_modeles(reponse: Dictionary) -> void:
+	Controles.vider(_choix_du_modele)
+	var bases := []
+	for base in reponse.bases:
+		bases.append({id = base.id, texte = base.id})
+	var vehicules := []
+	for definition in reponse.vehicules:
+		vehicules.append({id = definition, texte = reponse.libelles[reponse.vehicules[definition]]})
+	_listes_des_modeles = {
+		corps = _liste_deroulante("modele/corps", bases, _choisir_la_base),
+		vehicule = _liste_deroulante("modele/vehicule", vehicules, _choisir_le_vehicule),
+	}
+	_rangee("Corps", _choix_du_modele).add_child(_listes_des_modeles.corps)
+	_rangee("Véhicule ou engin", _choix_du_modele).add_child(_listes_des_modeles.vehicule)
 
 
-func _cle_du_vehicule(definition: String) -> String:
-	return "vehicule/%s" % definition
+## Les listes de tête sur le modèle posé ou demandé : le véhicule demandé, sinon la base posée ; l'autre liste sans choix.
+func _montrer_le_modele_pose() -> void:
+	_selectionner(_listes_des_modeles.corps, _montage.base.get("id") if _definition_du_vehicule == null else null)
+	_selectionner(_listes_des_modeles.vehicule, _definition_du_vehicule)
 
 
 ## Le véhicule de fiche `definition` demandé (#2987) : le dernier clic gagne, contre le modèle posé comme contre celui en
 ## chargement ; ni base ni pièce, ni Amélioration, ni surcharge d'emblème, la marche sans clip ni vitesse, puis le
 ## véhicule composé (`_demander_le_vehicule`).
 func _choisir_le_vehicule(definition: String) -> void:
-	_marquer(_boutons_des_modeles, _modele_pose())
+	_montrer_le_modele_pose()
 	if definition == _definition_du_vehicule:
 		_publier()
 		return
@@ -349,7 +365,7 @@ func _demander_le_vehicule() -> void:
 		if _vehicule.scene != null:
 			_marche.cadrer_la_boite(MontageDeVehicule.boite(_vehicule.scene, _vehicule))
 		_poser_les_clips()
-	_marquer(_boutons_des_modeles, _modele_pose())
+	_montrer_le_modele_pose()
 	_montrer_l_etat()
 
 
@@ -361,7 +377,7 @@ func _poser_au_sol(scene: Node3D) -> void:
 
 ## L'onglet Équipement du véhicule, d'après la dernière réponse de `vehicule` : ses pièces, celles que la réponse monte à
 ## ses `places` ; « Postes », une rangée par place, à son libellé, sa liste de clé `poste/<bord>/<rang>` offrant « Aucun »
-## puis chaque fiche de `pieces` par le libellé de son élément, sur la pièce de la place ; « Améliorations », une case par Amélioration servie (`ameliorations` de `modeles`, de clé
+## puis chaque fiche de `pieces` par le libellé de son élément, sur la pièce de la place ; « Améliorations », une case par Amélioration que le véhicule peut monter (`montables`, de clé
 ## `amelioration/<id>`), cochée si le véhicule la porte ; « Emblème », si son élément porte une surface `blason`, la liste
 ## de clé `vehicule/embleme` : « Aucun », puis chaque emblème.
 func _poser_le_panneau_du_vehicule() -> void:
@@ -378,7 +394,7 @@ func _poser_le_panneau_du_vehicule() -> void:
 		_selectionner(liste, VIDE if place.piece == null else place.piece)
 		if place.piece != null:
 			_postes_du_vehicule.append({definition = place.piece, bord = place.bord})
-	for amelioration in MontageDeComposition.modeles.ameliorations:
+	for amelioration in offre.montables:
 		var case := CheckButton.new()
 		case.text = MontageDeComposition.modeles.libelles[MontageDeComposition.modeles.ameliorations[amelioration]]
 		case.set_meta("cle", "amelioration/%s" % amelioration)
@@ -618,23 +634,6 @@ func _montrer_le_monte(emplacement: Dictionary, element: String) -> void:
 		(controle as BaseButton).set_pressed_no_signal(element != VIDE)
 
 
-## Chaque bascule de `boutons` pressée si sa clé est `retenu`, relâchée sinon : l'écran presse ce qui est.
-func _marquer(boutons: Dictionary, retenu: Variant) -> void:
-	for cle in boutons:
-		boutons[cle].set_pressed_no_signal(cle == retenu)
-
-
-## Une bascule du groupe `groupe` posée dans `parent`, qui joue `geste`.
-func _bascule(texte: String, groupe: ButtonGroup, parent: Node, geste: Callable) -> Button:
-	var bouton := Button.new()
-	bouton.text = texte
-	bouton.toggle_mode = true
-	bouton.button_group = groupe
-	bouton.pressed.connect(geste)
-	parent.add_child(bouton)
-	return bouton
-
-
 ## Le choix manuel d'un élément à l'emplacement, son défaut d'emblème résolu après retrait de sa surcharge.
 func _choisir_manuellement(emplacement: Dictionary, element: String) -> void:
 	if element == VIDE or _montage.montes.get(emplacement.id, VIDE) != element:
@@ -645,7 +644,8 @@ func _choisir_manuellement(emplacement: Dictionary, element: String) -> void:
 ## L'élément monté à `emplacement` démonté avec son emblème et sa rangée d'emblèmes, puis `element` monté par le montage
 ## (`MontageDeComposition.monter`) s'il n'est pas « vide », ses erreurs au recueil du geste qui le demande : monté, il
 ## offre ses emblèmes s'il porte une surface `blason`, et s'habille de l'emblème `embleme` (`_choisir_l_embleme`) ; puis le
-## clip engagé passe à celui de son rôle sous la nouvelle tenue (`_rejouer`).
+## clip engagé passe à celui de son rôle sous la nouvelle tenue (`_rejouer`), et l'état et les onglets suivent ce qui est
+## monté (`_montrer_l_etat`).
 func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) -> void:
 	var id: String = emplacement.id
 	var recueil := _recueil
@@ -662,10 +662,8 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 		_montrer_le_monte(emplacement, element)
 		_ligne_des_emblemes(emplacement, element)
 		_choisir_l_embleme(id, embleme)
-	else:
-		_montrer_l_etat()
 	_rejouer()
-	_publier()
+	_montrer_l_etat()
 
 
 ## Sous la rangée d'`emplacement`, si `element` qui y est monté porte une surface `blason` (`surfaces` de la réponse de
@@ -847,14 +845,15 @@ func _toutes_les_erreurs() -> Array[String]:
 	return toutes
 
 
-## Le pied du panneau : la base posée et son empreinte, puis chaque erreur, le pied en rouge s'il y en a.
+## Le pied du panneau : la base posée et son empreinte, puis chaque erreur, le pied en rouge s'il y en a ; les onglets
+## adaptés au modèle posé (`_adapter_les_onglets`).
 func _montrer_l_etat() -> void:
 	var lignes: Array[String] = []
 	if not _montage.base.is_empty():
 		lignes.append("%s · %s" % [_montage.base.id, str(_montage.base.empreinte).left(DEBUT_D_EMPREINTE)])
 	if _vehicule.element != null:
 		lignes.append(str(_vehicule.element))
-	%Attaquer.disabled = _attaque_de_l_engin() == null
+	_adapter_les_onglets()
 	var erreurs := _toutes_les_erreurs()
 	lignes.append_array(erreurs)
 	_etat.text = "\n".join(PackedStringArray(lignes))
@@ -874,8 +873,66 @@ func _montrer_l_onglet(onglet: String) -> void:
 	_publier()
 
 
+## Les onglets que le modèle posé offre, dans l'ordre du panneau (`.claude/rules/hote-godot.md`) : « Personnage », la
+## composition d'une base posée ; « Équipement », si une de ses sections porte une rangée ou s'il reste à produire ;
+## « Couleurs », si une surface posée prend une couleur de palette (`_palette_posee`) ; « Animation », si le lecteur du
+## modèle posé a un clip ou si l'engin posé attaque ; « Effets » et « Outils », toujours.
+func _onglets_offerts() -> Array[String]:
+	var offerts := {
+		personnage = not _montage.base.is_empty(),
+		equipement = %AProduire.visible or _sections.values().any(func(section: Control) -> bool: return section.visible),
+		couleurs = not _palette_posee().is_empty(),
+		animation = _attaque_de_l_engin() != null or (_lecteur() != null and not _lecteur().get_animation_list().is_empty()),
+		effets = true,
+		outils = true,
+	}
+	var dans_l_ordre: Array[String] = []
+	for onglet in _onglets:
+		if offerts[onglet]:
+			dans_l_ordre.append(String(onglet))
+	return dans_l_ordre
+
+
+## Chaque bascule d'onglet montrée si le modèle posé offre son onglet (`_onglets_offerts`), l'onglet montré remplacé par
+## le premier offert s'il ne l'est plus ; à l'onglet Couleurs, la rangée de chaque emplacement de la palette posée ; à
+## l'onglet Animation, « Actions » si l'engin posé attaque ; à l'onglet Outils, chaque aide dont le modèle porte un repère.
+func _adapter_les_onglets() -> void:
+	var offerts := _onglets_offerts()
+	for onglet in _onglets:
+		_boutons_des_onglets[onglet].visible = onglet in offerts
+	if not _onglet in offerts:
+		_boutons_des_onglets[offerts[0]].button_pressed = true
+		_montrer_l_onglet(offerts[0])
+	var palette := _palette_posee()
+	for slot in _listes_des_couleurs:
+		_listes_des_couleurs[slot].get_parent().visible = palette.has(slot)
+	%Actions.visible = _attaque_de_l_engin() != null
+	for aide in _cases_des_aides:
+		_cases_des_aides[aide].visible = not _reperes[aide].is_empty()
+	%TitreAides.visible = _reperes.values().any(func(reperes: Array) -> bool: return not reperes.is_empty())
+
+
+## Les emplacements de palette que prennent les surfaces posées (`surfaces` de `modeles`) : celles du véhicule posé, de ses
+## pièces et de ses Améliorations, sinon celles de la base posée et de chaque élément monté.
+func _palette_posee() -> Dictionary:
+	var poses: Array = []
+	if _vehicule.element != null:
+		poses.append(_vehicule.element)
+		poses.append_array(_vehicule.postes)
+		poses.append_array(_vehicule.ameliorations)
+	elif not _montage.base.is_empty():
+		poses.append(_montage.base.id)
+		poses.append_array(_montage.montes.values())
+	var palette := {}
+	for id in poses:
+		for surface in MontageDeComposition.modeles.surfaces.get(id, []):
+			palette[surface.palette] = true
+	return palette
+
+
 ## La vitrine des effets (`vitrine`) : la cible posée à sa distance, puis, par rendu d'arme et par sort, une rangée à son
-## `label` qui porte un bouton par variante, et un bouton par son.
+## `label` qui porte un bouton par variante, un bouton par manœuvre de zone et par Type de Souffle (#3783), un bouton par
+## son, et un bouton par ton de lumière, qui pose son foyer sur la cible.
 func _poser_la_vitrine() -> void:
 	var reponse := _pont.appeler("vitrine")
 	if reponse.get("ok") != true:
@@ -891,12 +948,19 @@ func _poser_la_vitrine() -> void:
 				bouton.set_meta("cle", "effet/%s/%s" % [entree.id, variante.variante])
 				bouton.pressed.connect(_jouer_l_effet.bind(variante.effet))
 				rangee.add_child(bouton)
-	for son in _vitrine.sons:
+	for famille in [["manoeuvre", _vitrine.manoeuvres, %VitrineZones], ["souffle", _vitrine.souffles, %VitrineZones], ["son", _vitrine.sons, %VitrineSons]]:
+		for entree in famille[1]:
+			var bouton := Button.new()
+			bouton.text = entree.label
+			bouton.set_meta("cle", "%s/%s" % [famille[0], entree.id])
+			bouton.pressed.connect(_jouer_l_effet.bind(entree.effet))
+			famille[2].add_child(bouton)
+	for lumiere in _vitrine.lumieres:
 		var bouton := Button.new()
-		bouton.text = son.label
-		bouton.set_meta("cle", "son/%s" % son.id)
-		bouton.pressed.connect(_jouer_l_effet.bind(son.effet))
-		%VitrineSons.add_child(bouton)
+		bouton.text = lumiere.label
+		bouton.set_meta("cle", "lumiere/%s" % lumiere.id)
+		bouton.pressed.connect(_poser_le_foyer.bind(lumiere.source))
+		%VitrineLumieres.add_child(bouton)
 
 
 ## L'effet `effet` de la vitrine rejoué de l'auteur, à l'origine, vers la cible, l'orbite cadrant l'un et l'autre et le
@@ -906,7 +970,24 @@ func _jouer_l_effet(effet: Dictionary) -> void:
 	if _vehicule.scene != null:
 		boite = boite.merge(MontageDeVehicule.boite(_vehicule.scene, _vehicule))
 	_marche.cadrer_la_boite(boite)
-	_effets.jouer([effet], {_vitrine.de: Vector3.ZERO, _vitrine.vers: _cible.position}, METRES_PAR_UNITE)
+	var lieux := {_vitrine.de: Vector3.ZERO, _vitrine.vers: _cible.position}
+	if effet.quoi == "zone":
+		var cases: Array = effet.cases.duplicate()
+		cases.append(effet.centre)
+		for case: Dictionary in cases:
+			lieux[Effets.cle_de_case(case)] = MiseEnPage.lieu_de_la_case_de_vitrine(case.x, case.y, _vitrine.metresParCase)
+	_effets.jouer([effet], lieux, METRES_PAR_UNITE)
+
+
+## Le foyer de la source `source` (un ton de lumière de la vitrine) posé sur la cible à sa hauteur, à la place du
+## précédent.
+func _poser_le_foyer(source: Dictionary) -> void:
+	for ancien in _cible.get_children().filter(func(n: Node) -> bool: return n is Foyer):
+		ancien.free()
+	var foyer := Foyer.new()
+	foyer.position = MiseEnPage.foyer_de_la_vitrine(source.hM, METRES_PAR_UNITE)
+	_cible.add_child(foyer)
+	foyer.poser(source, METRES_PAR_UNITE)
 
 
 ## Le coup de l'engin posé (`attaques` de la vitrine, par sa fiche), `null` sans engin posé ou sans vitrine.
@@ -1180,7 +1261,7 @@ func _publier() -> void:
 
 ## Ce que l'écran porte, une fois mis en page : ses boutons, et l'état de l'atelier, l'élément monté à chaque point
 ## (`montes`) et à chaque ligne de pièce (`lignes`) sous sa clé publiée, les erreurs (`_toutes_les_erreurs`), l'onglet
-## montré et le défilement de son panneau (`defilement`), le cadre de la glissière de chaque axe `plage` à l'écran
+## montré, les onglets offerts (`_onglets_offerts`) et le défilement de son panneau (`defilement`), le cadre de la glissière de chaque axe `plage` à l'écran
 ## (`plages`, avec sa valeur), la composition courante avec ce que `composer` en a monté, ce qui y manque, le texte de
 ## son refus et celui de « Copier », les mesures du gabarit posé (`GabaritDuSquelette.mesures`), l'échelle de l'orbite
 ## (`cadre`), la position des os de la base (`_positions_des_os`) et la boîte des meshes skinnés montés (`_peaux`), que
@@ -1221,6 +1302,7 @@ func _publier_l_ecran() -> void:
 			aides = _aides,
 			erreurs = _toutes_les_erreurs(),
 			onglet = _onglet,
+			onglets = _onglets.keys().filter(func(onglet: StringName) -> bool: return _boutons_des_onglets[onglet].visible).map(func(onglet: StringName) -> String: return String(onglet)),
 			defilement = _onglets[_onglet].scroll_vertical,
 			plages = plages,
 			composition = {

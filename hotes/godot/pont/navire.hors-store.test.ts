@@ -10,6 +10,7 @@ import type { VolumeDuMonde } from '../../../src/noyau/index';
 import { findVehicleById } from '../../../src/data';
 import { garanti } from '../../../src/lib/garanti';
 import { casesDeLAreteDePont, grilleDesPonts, MOTS_DES_PONTS } from '../../../src/data/schemas/grammaire/carte-ascii';
+import { EYE_H, MARGE_SOUS_PLAFOND_M } from '../../../src/noyau/monde/iso';
 
 const COMMITES = modelesCommites();
 const { appel } = table();
@@ -44,10 +45,41 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     expect(projection.exploration!.entites.liste.map((e) => e.id)).not.toContain('caraque');
   });
 
+  it('l’occupant d’une case que le modèle rogne se tient au centre de son emprise libre, dans sa case (#3767)', () => {
+    const { stations } = vueDe(appel('vue')).corps.navires.caraque;
+    expect(stations).toHaveLength(Object.keys((COMMITES.manifestes['vehicule--caraque'] as { cases: object }).cases).length);
+    expect(stations.filter(({ x, y, point }) => Math.abs(point.x - x) > 0.5 || Math.abs(point.y - y) > 0.5)).toEqual([]);
+    // la case du grand mât, (9, 2) du pont supérieur, libre devant le mât sur [9 ; 9,375] × [2 ; 3] : au cap E, la case
+    // (10, 4) de la scène, son occupant à l'est de son centre, vers la proue
+    expect(stations).toContainEqual({ x: 10, y: 4, z: 2, point: { x: 10.3125, y: 4 } });
+  });
+
+  it('l’œil se pose dans la batterie sous le pont principal, de la marge, et debout sur le pont principal (#3808)', () => {
+    const [, hauteurs] = garanti(findVehicleById('caraque')?.ponts, 'caraque', 'ponts');
+    const { oeilM, oeilsSousPlafond } = vueDe(appel('regarder', { regard: 'immersion' })).plateau!;
+    expect(oeilM).toBe(EYE_H);
+    // (11, 4) de la scène, au milieu de la batterie (pont `e`, l'étage 1) sous le pont principal (`p`, l'étage 2)
+    expect(oeilsSousPlafond['11,4,1']).toBeCloseTo(hauteurs.p - MARGE_SOUS_PLAFOND_M - hauteurs.e, 6);
+    expect(oeilsSousPlafond['11,4,2']).toBeUndefined();
+    appel('regarder', { regard: 'tactique' });
+  });
+
   it('le plateau coupe le navire sous le pont le plus bas que le regard retire au-dessus du groupe', () => {
     const coupe = (regard: string) => vueDe(appel('regarder', { regard })).plateau!.coupesDesNavires;
     expect([coupe('tactique'), coupe('plateau'), coupe('immersion')]).toEqual([{}, { caraque: 5.6 }, {}]);
     coupe('tactique');
+  });
+
+  it('le plan d’une couche dit ses ponts, le groupe et l’œil, chacun à sa case, sans changer la partie ; une couche absente se refuse', () => {
+    const avant = vueDe(appel('vue'));
+    const planDe = (entree?: unknown) => (appel('plan', entree) as unknown as { plan: string }).plan;
+    const rang = (plan: string, y: number) => [...plan.split('\n')[2 * y + 1]];
+    const plan = planDe({ oeil: { case: [6, 4, 2], lacet: 60 } });
+    expect([rang(plan, 4)[4], rang(plan, 4)[13], rang(plan, 4)[29]]).toEqual(['|', '↗', '@']);
+    expect(plan).toContain('↗ l’œil, regard au NE');
+    expect(rang(planDe(), 4)[29]).toBe('@');
+    for (const entree of [{ z: 9 }, { oeil: { case: [6, 4], lacet: 60 } }]) expect(appel('plan', entree)).toMatchObject({ ok: false, erreur: { categorie: 'validation' } });
+    expect(vueDe(appel('vue'))).toEqual(avant);
   });
 });
 

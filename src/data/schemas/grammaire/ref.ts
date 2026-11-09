@@ -121,6 +121,7 @@ export const TYPES = {
   merchant: { espace: 'merchants.json', catalogue: 'archétypes de marchand' },
   action: { espace: 'actions.json', catalogue: 'actions' },
   location: { espace: 'locations.json', catalogue: 'lieux' },
+  serviceDeLieu: { espace: 'lieux-services.json', catalogue: 'services de lieu' },
   // #2968 P-art : registre `src/ui/backdrops/defs`.
   fond: { espace: 'vocabulaire:fonds', catalogue: 'bandes d’ambiance' },
 } as const satisfies Record<string, DeclarationDeType>;

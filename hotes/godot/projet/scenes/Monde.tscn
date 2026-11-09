@@ -65,6 +65,9 @@ matiere_du_calque = SubResource("Materiau_calque")
 
 [node name="Maillage" type="MeshInstance3D" parent="Volume"]
 
+[node name="Ombre" type="MeshInstance3D" parent="Volume"]
+cast_shadow = 3
+
 [node name="Corps" type="StaticBody3D" parent="Volume"]
 
 [node name="Forme" type="CollisionShape3D" parent="Volume/Corps"]

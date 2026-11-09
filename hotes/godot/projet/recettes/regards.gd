@@ -4,7 +4,8 @@ extends SceneTree
 ## à la verticale et sans perspective ; en immersion, l'œil, qui ne projette rien derrière lui ; en tactique, la caméra
 ## de biais en perspective. Sous l'œil, le sol touché à la verticale d'un lieu est celui de la couche sous lui : sur un
 ## volume d'un sol au rez et d'un plancher d'étage à 4 m, au-dessus de la même case, le rez sous l'œil d'en bas,
-## l'étage sous l'œil d'en haut.
+## l'étage sous l'œil d'en haut. La plaque de surbrillance du rez, sous le plancher, se montre au plateau et en
+## tactique, aucune en immersion (#3774), peinte avant l'œil ou sous lui.
 
 const RECETTE_AUTONOME := true
 const TRIANGLE := [0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0, 0.0, 2.0]
@@ -24,15 +25,20 @@ func _recetter() -> void:
 	root.add_child(monde)
 	monde.poser({metresParCase = 2.0, positions = TRIANGLE + PLANCHER, normales = NORMALES + NORMALES, couleurs = COULEURS + COULEURS,
 		cases = [[0, 0, 0], [0, 0, 1]], surfaces = [{debut = 0, fin = 6, matiere = "terrain--terre"}],
-		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}]})
+		hauteurs = [{z = 0, rangees = [[0.0]]}, {z = 1, rangees = [[4.0]]}], ombre = {positions = [], normales = [], couleurs = [], cases = [], surfaces = []}})
 	await physics_frame
 	_sol(monde, Vector3(0.6, 1.0, 0.6), Vector3i(0, 0, 0), 0.0)
 	_sol(monde, Vector3(0.6, 3.0, 0.6), Vector3i(0, 0, 1), 2.0)
+	monde.peindre({Vector3i(0, 0, 0): Monde.ITEM_SURVOL})
 	var camera: Camera3D = monde.get_node("Pivot/Inclinaison/Camera")
 	monde.regarder("plateau")
 	if camera.projection != Camera3D.PROJECTION_ORTHOGONAL or not is_equal_approx((monde.get_node("Pivot/Inclinaison") as Node3D).rotation.x, MiseEnPage.TANGAGE_DU_PLATEAU):
 		_fautes.append("plateau : la caméra n'est ni à la verticale ni sans perspective")
+	_plaques(monde, "plateau", 1)
 	monde.regarder("immersion")
+	_plaques(monde, "immersion", 0)
+	monde.peindre({Vector3i(0, 0, 0): Monde.ITEM_SURVOL})
+	_plaques(monde, "immersion, plaque peinte sous l'œil", 0)
 	if root.get_viewport().get_camera_3d() != monde.get_node("Oeil"):
 		_fautes.append("immersion : la caméra du regard n'est pas l'œil")
 	monde.poser_l_oeil(Vector3(0.6, 0.85, 0.6), 0.0, 0.0)
@@ -43,6 +49,7 @@ func _recetter() -> void:
 	monde.regarder("tactique")
 	if root.get_viewport().get_camera_3d() != camera or camera.projection != Camera3D.PROJECTION_PERSPECTIVE:
 		_fautes.append("tactique : la caméra du regard n'est pas celle de biais, en perspective")
+	_plaques(monde, "tactique", 1)
 	for faute in _fautes:
 		push_error("[regards] " + faute)
 	print("[regards] erreurs=", _fautes.size())
@@ -56,3 +63,10 @@ func _sol(monde: Monde, lieu: Vector3, case: Vector3i, hauteur: float) -> void:
 		_fautes.append("sous %s : aucun sol" % lieu)
 	elif sol.case != case or not is_equal_approx(sol.lieu.y, hauteur):
 		_fautes.append("sous %s : %s à %.2f, attendu %s à %.2f" % [lieu, sol.case, sol.lieu.y, case, hauteur])
+
+
+## Sous le regard `regard`, `attendues` plaques de surbrillance montrées.
+func _plaques(monde: Monde, regard: String, attendues: int) -> void:
+	var montrees := monde.get_node("Surbrillance").get_children().filter(func(plaque: MeshInstance3D) -> bool: return plaque.is_visible_in_tree()).size()
+	if montrees != attendues:
+		_fautes.append("%s : %d plaques de surbrillance montrées, attendu %d" % [regard, montrees, attendues])

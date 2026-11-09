@@ -56,10 +56,19 @@ export interface PoseDuGabarit {
   readonly enfantsDe: Readonly<Record<string, number>>;
   readonly echellesDesOs: Readonly<Record<string, readonly [number, number, number]>>;
   readonly pieds: readonly string[];
+  readonly jambes: readonly string[];
+  readonly clipsPlantes: readonly string[];
   readonly echelleDeVitesse: number;
 }
 
-export function poseDuGabarit({ gabarit, appuis }: Required<Pick<ManifesteDeBase, 'gabarit'>> & Partial<Pick<ManifesteDeBase, 'appuis'>>, facteurs: GabaritResolu): PoseDuGabarit {
+/** Ce que `poseDuGabarit` lit d'un manifeste de base ; la construction n'en a que la table. */
+export type ManifesteDuGabarit = Required<Pick<ManifesteDeBase, 'gabarit'>> & Partial<Pick<ManifesteDeBase, 'appuis' | 'clips' | 'clipsDeuxMains'>>;
+
+/** Les clips plantés de la base : le clip du rôle `walk`, à une main et à deux mains. */
+export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDeBase, 'clips' | 'clipsDeuxMains'>>): string[] =>
+  [...new Set([clips?.walk, ...Object.values(clipsDeuxMains ?? {}).map((table) => table.walk)].filter((clip): clip is string => clip !== undefined))];
+
+export function poseDuGabarit({ gabarit, appuis, ...clips }: ManifesteDuGabarit, facteurs: GabaritResolu): PoseDuGabarit {
   const enfantsDe: Record<string, number> = {};
   const echellesDesOs: Record<string, readonly [number, number, number]> = {};
   for (const cle of CLES_DU_GABARIT) {
@@ -69,7 +78,7 @@ export function poseDuGabarit({ gabarit, appuis }: Required<Pick<ManifesteDeBase
       echellesDesOs[nom] = cle === 'head' ? [facteur, facteur, facteur] : [1, facteur, 1];
     }
   }
-  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], echelleDeVitesse: facteurs.sl };
+  return { racine: { os: gabarit.racine, echelle: facteurs.sl }, enfantsDe, echellesDesOs, pieds: appuis?.pieds ?? [], jambes: gabarit.legs, clipsPlantes: clipsPlantes(clips), echelleDeVitesse: facteurs.sl };
 }
 
 /** `hotes/godot/pont/CONTRAT.md`, « Gabarit d'une base ». */

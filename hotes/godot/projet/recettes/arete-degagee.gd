@@ -44,7 +44,7 @@ func _verifier(monde: Monde, moment: String) -> void:
 	var camera := monde.get_viewport().get_camera_3d().global_position.z
 	var aretes := {}
 	for piece in monde.get_node("Aretes").get_children():
-		aretes[piece.get_meta("cle")] = piece.visible
+		aretes[piece.get_meta("cle")] = _debout(piece)
 	var au_nord := camera < NORD.milieu.y + MiseEnPage.DEMI_CASE
 	if aretes.nord == au_nord:
 		_fautes.append("%s : le mur nord %s, la caméra %s" % [moment, "debout" if aretes.nord else "abattu", "au nord" if au_nord else "au sud"])
@@ -52,5 +52,10 @@ func _verifier(monde: Monde, moment: String) -> void:
 		_fautes.append("%s : le mur sud %s, la caméra %s" % [moment, "debout" if aretes.sud else "abattu", "au nord" if au_nord else "au sud"])
 	if aretes.dessus:
 		_fautes.append("%s : le mur au-dessus d'une tête est debout" % moment)
-	if (monde.get_node("Volume/Couronnes").get_child(0) as Node3D).visible:
+	if _debout(monde.get_node("Volume/Couronnes").get_child(0)):
 		_fautes.append("%s : la couronne du mur au-dessus d'une tête est debout" % moment)
+
+
+## Si la caméra voit `piece` : une pièce abattue reste en ombre seule (`SHADOWS_ONLY`, recette `ombres-du-regard.gd`).
+func _debout(piece: GeometryInstance3D) -> bool:
+	return piece.is_visible_in_tree() and piece.cast_shadow != GeometryInstance3D.SHADOW_CASTING_SETTING_SHADOWS_ONLY

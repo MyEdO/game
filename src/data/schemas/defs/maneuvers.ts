@@ -60,6 +60,7 @@ const doc = document(
      *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit du kind `maneuverDefense`. */
     stake: z.string().optional(),
     stakeForm: stakeFormSchema.optional(),
+    rendu: ref('rendu').optional(),
   },
   {
     kind: { label: 'Type d’attaque (rendu)', hint: 'Anime et illustre la manœuvre — n’entre pas dans la résolution' },
@@ -78,6 +79,7 @@ const doc = document(
     damage: { label: 'Dégâts', hint: 'Dégâts de l’attaque, à défaut l’Indice du trait qui l’octroie' },
     effects: { label: 'Effets déclenchés' },
     stake: { label: 'Enjeu', hint: 'Ce que la manœuvre met en jeu, collé à ses effets déclenchés' },
+    rendu: { label: 'Rendu', hint: 'Rendu visuel et sonore d’une manœuvre de zone (`rendus.json`) ; celui d’un Souffle est celui de son Type' },
     stakeForm: { label: 'Forme de l’enjeu' },
   },
   {

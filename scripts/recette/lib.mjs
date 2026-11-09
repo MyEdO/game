@@ -756,11 +756,12 @@ export async function restaurerStockage(session, instantane) {
   return evaluate(session, expressionRestaurerStockage(instantane));
 }
 
-/** Attend qu'une expression JS devienne vraie (poll), lève si le délai expire. */
-export async function waitFor(session, expression, { timeoutMs = 8000, intervalMs = 200 } = {}) {
+/** Attend qu'une expression JS devienne vraie (poll), lève si le délai expire. `evaluerMs` borne chaque évaluation
+ *  (`evaluate`) : une page dont le fil est tenu plus longtemps (un GLB lu par l'hôte Godot) l'élargit. */
+export async function waitFor(session, expression, { timeoutMs = 8000, intervalMs = 200, evaluerMs = DELAI_EVALUATE } = {}) {
   const deadline = Date.now() + timeoutMs;
   for (;;) {
-    if (await evaluate(session, expression)) return true;
+    if (await evaluate(session, expression, { timeoutMs: evaluerMs })) return true;
     if (Date.now() >= deadline) throw Object.assign(new Error(`Condition jamais vraie après ${timeoutMs}ms : ${expression}`), { code: ATTENTE_ECHUE });
     await sleep(intervalMs);
   }

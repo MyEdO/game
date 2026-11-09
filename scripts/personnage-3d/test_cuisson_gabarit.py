@@ -52,7 +52,7 @@ class FermetureDesMatrices(unittest.TestCase):
                     with mock.patch('cuisson_gabarit.lancer', side_effect=lancer_groupes), \
                             mock.patch('cuisson_gabarit.np.memmap', side_effect=ouvrir_fichier):
                         with self.assertRaises(erreur):
-                            with groupes_de_peau(rig, [], {}, []):
+                            with groupes_de_peau(rig, [], {}, [], ()):
                                 self.fail('aucun groupe incomplet ne doit etre livre')
                     self.assertEqual(len(fichiers), nombre)
                     self.assertTrue(all(f._mmap.closed for f in fichiers))
@@ -66,12 +66,12 @@ class FermetureDesMatrices(unittest.TestCase):
         etats = [{'poidsSilhouettes': {}, 'poidsGabarit': {}}]
         def lancer_groupes(_, __, entree):
             requete = json.loads(entree)
-            self.assertEqual(set(requete), {'operation', 'table', 'corps', 'poses', 'sortie', 'etats'})
+            self.assertEqual(set(requete), {'operation', 'table', 'corps', 'clips', 'plantes', 'poses', 'sortie', 'etats'})
             fichier = Path(requete['sortie']) / 'groupe.bin'
             np.eye(4, dtype=np.float32).tofile(fichier)
             return json.dumps({'groupes': [{'fichier': str(fichier), 'etats': etats}]})
         with mock.patch('cuisson_gabarit.lancer', side_effect=lancer_groupes):
-            with groupes_de_peau(rig, [], {}, etats) as (_, groupes):
+            with groupes_de_peau(rig, [], {}, etats, ()) as (_, groupes):
                 self.assertEqual(groupes[0][0], etats)
                 np.testing.assert_array_equal(groupes[0][1][0, 0], np.eye(4, dtype=np.float32))
 
@@ -86,7 +86,7 @@ class FermetureDesMatrices(unittest.TestCase):
         pose = np.array([[np.array(translation @ b.matrix_local) for b in rig.data.bones]])
         etats = [{'nom': 'neutre', 'facteurs': {'sl': 1, 'legs': .62, 'arms': 1, 'head': 1, 'st': 1}}]
         with mock.patch('cuisson_gabarit.poses', return_value=pose):
-            with groupes_de_peau(rig, [SimpleNamespace(name='clip')], table, etats) as (noms, piles):
+            with groupes_de_peau(rig, [SimpleNamespace(name='clip')], table, etats, ()) as (noms, piles):
                 etats_lus, matrices, clips = piles[0]
                 self.assertEqual((noms, etats_lus, clips), (['root', 'thigh', 'calf'], etats, [1]))
                 np.testing.assert_allclose(matrices[0], np.tile(np.eye(4), (3, 1, 1)), atol=1e-6)

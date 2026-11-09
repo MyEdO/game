@@ -156,7 +156,7 @@ describe('WorldMapEditor — panneau Lieu (#419)', () => {
     selectPlace('p1');
     const sv = lieuxServices[0];
     click(checkbox(sv.label));
-    expect(lastMap!.places[0].services).toEqual([{ kind: sv.id }]);
+    expect(lastMap!.places[0].services).toEqual([{ kind: { id: sv.id } }]);
   });
 });
 
@@ -233,7 +233,7 @@ describe('WorldMapEditor — panneau Lieu / Plan du hub (#419)', () => {
     setValue(input('Cible (scène OU service, exclusif)'), 'service');
     const sv = lieuxServices[0];
     pickRef('Service', sv.label);
-    expect(lastMap!.places[0].poi![0].serviceKind).toBe(sv.id);
+    expect(lastMap!.places[0].poi![0].serviceKind).toEqual({ id: sv.id });
   });
 });
 

@@ -10,14 +10,14 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, type NavireDeLaScene, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { fenetreADessiner } from '../../../src/hote/gestes';
 import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran } from '../../../src/hote/ecran';
-import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
+import { ameliorationsMontables, ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
 import type { TableDeClips } from '../asset/clips';
@@ -58,9 +58,12 @@ export interface CorpsDuCombat {
   navires: Record<string, NavireServi>;
 }
 
-/** Un navire de la scène servi (#3686) : son corps, et où se pose l'origine de son modèle (`NavireDeLaScene`). */
+/** Un navire de la scène servi (#3686) : son corps, où se pose l'origine de son modèle (`NavireDeLaScene`), et où se
+ *  tient l'occupant de chaque case de ses ponts que son modèle rogne (`stationsDuNavire`, des `cases` du manifeste de
+ *  son élément, #3767). */
 export interface NavireServi extends Pick<NavireDeLaScene, 'centre'> {
   corps: CorpsDuVehicule;
+  stations: StationDeNavire[];
 }
 
 /** Le corps d'un véhicule servi (#2987) : l'élément `vehicule` qui dessine sa fiche (`ModelesDeLAtelier.vehicules`), le
@@ -105,12 +108,14 @@ export interface PlaceDuVehicule {
 }
 
 /** Le véhicule de l'atelier (`vehicule`) : son corps, les places de ses bords dans ses postes en vigueur
- *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, et ses Améliorations. */
+ *  (`postesEnVigueur`), dans l'ordre de `FIRE_ARCS`, les fiches servies qui se montent à un poste, ses Améliorations, et
+ *  celles qu'il peut monter (`montables`, `ameliorationsMontables`). */
 export interface VehiculeDeLAtelier {
   vehicule: CorpsDuVehicule;
   places: PlaceDuVehicule[];
   pieces: string[];
   ameliorations: readonly string[];
+  montables: string[];
 }
 
 /** La vue : la projection commune (`projeter`), les corps de ses combattants (`CorpsDuCombat`), la disposition de la
@@ -249,7 +254,10 @@ export function creerPont() {
       })),
       navires: Object.fromEntries(navires.flatMap(({ id, vehicule, centre }) => {
         const corps = modeles && corpsDuVehicule(vehicule, modeles);
-        return corps ? [[id, { corps, centre }]] : [];
+        if (!modeles || !corps) return [];
+        const manifeste = modeles.manifestes[corps.element];
+        const emprises = estObjet(manifeste) && estObjet(manifeste.cases) ? manifeste.cases as EmprisesDesCases : {};
+        return [[id, { corps, centre, stations: stationsDuNavire(scene!, id, emprises) }]];
       })),
     };
   };
@@ -361,6 +369,21 @@ export function creerPont() {
       }
       return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
     },
+    plan(json) {
+      const o = demarree();
+      const e = entreeDe('plan', json, ['z', 'oeil']);
+      const etat = o.partie.etat();
+      const scene = etat.scene;
+      valider(scene, 'plan : aucune scène');
+      const lu = e.oeil as { case?: unknown; lacet?: unknown } | undefined;
+      valider(lu === undefined || (estObjet(lu) && Object.keys(lu).every((k) => k === 'case' || k === 'lacet') && Array.isArray(lu.case) && lu.case.length === 3
+        && lu.case.every(Number.isInteger) && typeof lu.lacet === 'number'), 'plan : oeil, { case: [x, y, z] entiers, lacet } en degrés (0 au nord, 90 à l’est)');
+      const oeil: OeilDuPlan | null = lu ? { x: (lu.case as number[])[0], y: (lu.case as number[])[1], z: (lu.case as number[])[2], azimut: lu.lacet as number } : null;
+      const z = e.z ?? oeil?.z ?? casesDuGroupe(etat)[0]?.z ?? 0;
+      const couches = scene!.layers.map((l) => l.z);
+      valider(couches.includes(z as number), `plan : z, l’une des couches de la scène (${couches.join(', ')})`);
+      return { plan: planDeLaCouche({ ...etat, scene: scene! }, z as number, oeil) };
+    },
     regarder(json) {
       const o = demarree();
       const e = entreeDe('regarder', json, ['regard']);
@@ -443,7 +466,8 @@ export function creerPont() {
         upgrades: (ameliorations as string[]).map((id) => ({ id })),
       }, () => undefined);
       const vehicule = vehiculeDuCombattant(fiche, undefined)!;
-      const enVigueur = postesEnVigueur(servis.manifestes[servis.modeles.vehicules[vehicule.definition]], vehicule.ameliorations) ?? {};
+      const manifeste = servis.manifestes[servis.modeles.vehicules[vehicule.definition]];
+      const enVigueur = postesEnVigueur(manifeste, vehicule.ameliorations) ?? {};
       return {
         vehicule: corpsDuVehicule(vehicule, servis)!,
         places: FIRE_ARCS.flatMap((bord) => {
@@ -452,6 +476,7 @@ export function creerPont() {
         }),
         pieces,
         ameliorations: vehicule.ameliorations,
+        montables: ameliorationsMontables(manifeste, offertes),
       };
     },
     catalogues(json) {

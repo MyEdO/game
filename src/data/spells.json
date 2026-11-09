@@ -3162,7 +3162,9 @@
       "book": "livre-de-base",
       "page": 245
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -3265,7 +3267,9 @@
       "book": "livre-de-base",
       "page": 245
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -3323,7 +3327,9 @@
       "book": "livre-de-base",
       "page": 245
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 12,
@@ -3378,7 +3384,9 @@
       "book": "livre-de-base",
       "page": 245
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -3443,7 +3451,9 @@
         "quote": "Maître de la bête"
       }
     ],
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -3571,7 +3581,9 @@
       "book": "livre-de-base",
       "page": 246
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -3648,7 +3660,9 @@
       "book": "livre-de-base",
       "page": 246
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -3784,7 +3798,9 @@
       "book": "livre-de-base",
       "page": 246
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -3845,7 +3861,9 @@
         "quote": "Un éclair crépitant jaillit du bout de vos doigts, frappant votre cible."
       }
     ],
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 10
@@ -3896,7 +3914,9 @@
       "book": "livre-de-base",
       "page": 246
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -3974,7 +3994,9 @@
         "quote": "Vous focalisez tout l'*Azyr* que vous pouvez rassembler et levez les mains vers le ciel, en appelant une comète pour anéantir vos ennemis."
       }
     ],
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 12
@@ -4052,7 +4074,9 @@
         "quote": "Tous les alliés situés dans la Zone d'Effet, hormis ceux qui possèdent le Talent *Magie des Arcanes (Cieux)*, forment une unique réserve de Points de Chance."
       }
     ],
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -4110,7 +4134,9 @@
         "quote": "Vous gagnez +1 Point de Chance. Pour chaque +2 DR, vous gagnez 1 Point de Chance supplémentaire."
       }
     ],
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -4172,7 +4198,9 @@
         "quote": "Vous gagnez +DR Points de Chance. Pour chaque +2 DR, vous gagnez 1 Point de Chance supplémentaire."
       }
     ],
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -4226,7 +4254,9 @@
         "quote": "Vous gagnez +1 Point de Destin. Si ce Point de Destin n'a pas été utilisé à la fin de la Durée du Sort, il est perdu."
       }
     ],
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -4283,7 +4313,9 @@
         "quote": "Tant que le Sort est actif, vous pouvez dépenser des Points de Chance pour forcer un adversaire à relancer ses Tests."
       }
     ],
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -4394,7 +4426,9 @@
       "book": "livre-de-base",
       "page": 247
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -4481,7 +4515,9 @@
       "book": "livre-de-base",
       "page": 247
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -4559,7 +4595,9 @@
         "quote": "Pour chaque +2 DR lors de votre Test d'Incantation, vous pouvez augmenter la valeur de Peur de +1, ou prendre de nouveau le Talent *Seigneur de guerre*."
       }
     ],
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -4655,7 +4693,9 @@
       "book": "livre-de-base",
       "page": 248
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 10,
@@ -4715,7 +4755,9 @@
       "book": "livre-de-base",
       "page": 248
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -4816,7 +4858,9 @@
       "book": "livre-de-base",
       "page": 248
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -4901,7 +4945,9 @@
       "book": "livre-de-base",
       "page": 248
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "missile": true,
     "variants": [
@@ -4976,7 +5022,9 @@
       "book": "livre-de-base",
       "page": 248
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -4992,7 +5040,9 @@
     "label": "Bouf 'crâne",
     "ecole": "Magie des Arcanes",
     "subType": "Gueule",
-    "domainId": "gueule",
+    "domainId": {
+      "id": "gueule"
+    },
     "cn": 5,
     "range": {
       "kind": "self"
@@ -5044,7 +5094,9 @@
     "label": "Broyeur d'os",
     "ecole": "Magie des Arcanes",
     "subType": "Gueule",
-    "domainId": "gueule",
+    "domainId": {
+      "id": "gueule"
+    },
     "cn": 5,
     "range": {
       "kind": "distance",
@@ -5094,7 +5146,9 @@
     "label": "Festin des Damnés",
     "ecole": "Magie des Arcanes",
     "subType": "Gueule",
-    "domainId": "gueule",
+    "domainId": {
+      "id": "gueule"
+    },
     "cn": 9,
     "range": {
       "kind": "self"
@@ -5149,7 +5203,9 @@
     "label": "Goinfre costaud",
     "ecole": "Magie des Arcanes",
     "subType": "Gueule",
-    "domainId": "gueule",
+    "domainId": {
+      "id": "gueule"
+    },
     "cn": 5,
     "range": {
       "kind": "distance",
@@ -5204,7 +5260,9 @@
     "label": "Goûtemort",
     "ecole": "Magie des Arcanes",
     "subType": "Gueule",
-    "domainId": "gueule",
+    "domainId": {
+      "id": "gueule"
+    },
     "cn": 2,
     "range": {
       "kind": "self"
@@ -5246,7 +5304,9 @@
     "label": "La Gueule",
     "ecole": "Magie des Arcanes",
     "subType": "Gueule",
-    "domainId": "gueule",
+    "domainId": {
+      "id": "gueule"
+    },
     "cn": 11,
     "range": {
       "kind": "distance",
@@ -5299,7 +5359,9 @@
     "label": "Trollboyaux",
     "ecole": "Magie des Arcanes",
     "subType": "Gueule",
-    "domainId": "gueule",
+    "domainId": {
+      "id": "gueule"
+    },
     "cn": 7,
     "range": {
       "kind": "distance",
@@ -5409,7 +5471,9 @@
         "quote": "En ouvrant vos mains, un halo purificateur de *Hysh* en émerge et impacte toutes les créatures qui se trouvent à l'intérieur de la Zone d'Effet dont l'Endurance est inférieure à votre Force Mentale."
       }
     ],
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -5469,7 +5533,9 @@
         "quote": "Vous apaisez l'esprit de votre cible, lui permettant de réfléchir avec lucidité."
       }
     ],
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -5530,7 +5596,9 @@
         "quote": "Vous invoquez un souffle de *Hysh* qui traverse la frontière entre le Royaume du Chaos et le monde matériel."
       }
     ],
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane",
     "opposed": {
       "kind": "resist",
@@ -5593,7 +5661,9 @@
         "quote": "Vous lancez un délicat filet tissé à partir de fins brins de *Hysh* sur votre cible, dont l'esprit est alors submergé par des énigmes et paralysé par l'indécision."
       }
     ],
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -5655,7 +5725,9 @@
         "quote": "Vous émettez un éclair lumineux et aveuglant depuis votre main ou votre bâton."
       }
     ],
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -5749,7 +5821,9 @@
       "book": "livre-de-base",
       "page": 249
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -5884,7 +5958,9 @@
         "quote": "Un voile de *Hysh* recouvre votre esprit, permettant une accélération de vos pensées."
       }
     ],
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -5950,7 +6026,9 @@
         "quote": "Vous invoquez une aura protectrice de pure lumière sacrée."
       }
     ],
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -6013,7 +6091,9 @@
         "quote": "Vous enveloppez une arme non magique de lourdes bandes de *Chamon*, ce qui améliore sa puissance."
       }
     ],
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -6061,7 +6141,9 @@
       "book": "livre-de-base",
       "page": 249
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -6132,7 +6214,9 @@
         "quote": "De furieuses rafales de *Chamon* tourbillonnent autour de vous, déviant les coups et interceptant les projectiles et les Attaques magiques."
       }
     ],
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -6190,7 +6274,9 @@
         "quote": "Vous modifiez la qualité d'un objet composé de métal. Vous pouvez ajouter 1 Atout d'objet ou en retirer 1 Défaut."
       }
     ],
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -6244,7 +6330,9 @@
         "quote": "Vous tissez *Chamon* dans un objet non magique constitué de métal, modifiant fondamentalement sa nature."
       }
     ],
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -6290,7 +6378,9 @@
       "book": "livre-de-base",
       "page": 250
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -6362,7 +6452,9 @@
         "quote": "En faisant appel à *Chamon*, vous modifiez la densité des biens de votre cible, augmentant ou diminuant leur poids."
       }
     ],
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -6445,7 +6537,9 @@
         "quote": "Vous arrachez *Chamon* de la terre et des métaux portés par vos ennemis, transformant brièvement leur chair en métal."
       }
     ],
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -6490,7 +6584,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 6,
@@ -6553,7 +6649,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -6627,7 +6725,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -6697,7 +6797,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -6747,7 +6849,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -6804,7 +6908,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -6887,7 +6993,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 6,
@@ -6951,7 +7059,9 @@
       "book": "livre-de-base",
       "page": 251
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 10,
@@ -7033,7 +7143,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -7099,7 +7211,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -7175,7 +7289,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "variants": [
       {
@@ -7233,7 +7349,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -7308,7 +7426,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -7379,7 +7499,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -7435,7 +7557,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -7503,7 +7627,9 @@
       "book": "livre-de-base",
       "page": 252
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "alsoIn": [
       {
@@ -7557,7 +7683,9 @@
       "book": "livre-de-base",
       "page": 253
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -7583,7 +7711,9 @@
       "text": "Spécial"
     },
     "desc": "Ghyran inonde une zone brûlée ou désertique. Vous pouvez cibler un lit de rivière asséché, un puit, un champ ou un animal domestique. Si vous lancez le Sort avec succès, la cible reprend vie :\n\n• Une rivière asséchée recommence à couler\n\n• Un puit asséché ou pollué devient potable et frais\n\n• Un champ, un vignoble ou un verger fourmille de vie et toutes les cultures atteignent immédiatement leur pleine maturité\n\n• Un animal malade ou improductif guérit. La bête affectée est à présent en bonne santé et productive (les vaches produisent du lait, les poules pondent des œufs, les cuirs et toisons des vaches et des moutons sont sains et lustrés) et toutes les maladies sont guéries.",
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane",
     "effects": {
       "kind": "seq",
@@ -7632,7 +7762,9 @@
       "kind": "instant"
     },
     "desc": "En lançant ce Sort, vous disparaissez immédiatement dans le sol, dans un torrent sauvage de Ghyran. Vous apparaissez au début du prochain round à n'importe quel endroit situé à une distance en mètres égale à votre Force Mentale, faisant violemment irruption de la terre. Pour chaque +2 DR, vous pouvez augmenter la distance parcourue d'un nombre de mètres égal à votre Force Mentale. Tous les ennemis que vous avez Engagés lors de votre apparition gagnent l'État Surpris. Ce Sort ne vous permettra pas de vous déplacer à travers la pierre, mais vous permettra de vous déplacer à travers l'eau.",
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane",
     "effects": {
       "kind": "seq",
@@ -7706,7 +7838,9 @@
       }
     },
     "desc": "Vous faites en sorte que la peau de la cible devienne dure et rugueuse comme l'écorce d'un arbre. Tant qu'elle est affectée par le Sort, la cible gagne +2 à son Bonus d'Endurance, mais subit une pénalité de -10 en Agilité et Dextérité.",
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane",
     "effects": {
       "kind": "seq",
@@ -7777,7 +7911,9 @@
       }
     },
     "desc": "Ce Sort peut uniquement cibler un carré de terre (même très petit). Vous faites jaillir un amas dense de ronces et de vignes grimpantes qui recouvre la Zone d'Effet.\n\nTant que le Sort est actif, quiconque tente de traverser la zone à pied sans posséder le Talent Magie des Arcanes (Vie) doit réussir un Test d'Agilité Difficile (-20). Un échec signifie qu'il gagne 1 État Hémorragique et un État Empêtré, qui utilise votre Force Mentale pour sa Force. Une fois le Sort terminé, la végétation persiste mais perd ses propriétés surnaturelles.",
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane",
     "effects": {
       "kind": "seq",
@@ -7862,7 +7998,9 @@
       "unit": "days"
     },
     "desc": "Vous inondez le corps de la cible du si nourrissant Ghyran. Elle n'a pas besoin de manger ou de boire, mais elle excrétera normalement, bien que les excréments soient d'un vert intense.",
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane",
     "effects": {
       "kind": "seq",
@@ -7918,7 +8056,9 @@
       }
     },
     "desc": "Votre cible gagne le Trait de créature Régénération (voir page 341).",
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane",
     "effects": {
       "kind": "seq",
@@ -7976,7 +8116,9 @@
       }
     },
     "desc": "Pour lancer ce Sort, vous devez être debout et pieds nus, en contact direct avec la terre. Pour la durée du Sort, toutes les créatures également en contact direct avec la terre à l'intérieur de la Zone d'Effet guérissent d'un nombre de Blessures égal à votre Bonus de Force Mentale au début de chaque round.",
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane",
     "effects": {
       "kind": "seq",
@@ -8126,7 +8268,9 @@
       "page": 254
     },
     "family": "arcane",
-    "domainId": "magie-naturelle"
+    "domainId": {
+      "id": "magie-naturelle"
+    }
   },
   {
     "id": "charme-protecteur",
@@ -8173,7 +8317,9 @@
       "page": 254
     },
     "family": "arcane",
-    "domainId": "magie-naturelle"
+    "domainId": {
+      "id": "magie-naturelle"
+    }
   },
   {
     "id": "chevaucher-l-obscurite",
@@ -8219,7 +8365,9 @@
       "page": 254
     },
     "family": "arcane",
-    "domainId": "magie-naturelle"
+    "domainId": {
+      "id": "magie-naturelle"
+    }
   },
   {
     "id": "nepenthes",
@@ -8265,7 +8413,9 @@
       "page": 254
     },
     "family": "arcane",
-    "domainId": "magie-naturelle"
+    "domainId": {
+      "id": "magie-naturelle"
+    }
   },
   {
     "id": "panacee",
@@ -8311,7 +8461,9 @@
       "page": 254
     },
     "family": "arcane",
-    "domainId": "magie-naturelle"
+    "domainId": {
+      "id": "magie-naturelle"
+    }
   },
   {
     "id": "separer-les-branches",
@@ -8357,7 +8509,9 @@
       "page": 255
     },
     "family": "arcane",
-    "domainId": "magie-naturelle"
+    "domainId": {
+      "id": "magie-naturelle"
+    }
   },
   {
     "id": "degradation",
@@ -8405,7 +8559,9 @@
       "page": 255
     },
     "family": "arcane",
-    "domainId": "sorcellerie"
+    "domainId": {
+      "id": "sorcellerie"
+    }
   },
   {
     "id": "horreur-obsedante",
@@ -8452,7 +8608,9 @@
       "page": 255
     },
     "family": "arcane",
-    "domainId": "sorcellerie"
+    "domainId": {
+      "id": "sorcellerie"
+    }
   },
   {
     "id": "malediction-de-douleur-paralysante",
@@ -8502,7 +8660,9 @@
       "page": 255
     },
     "family": "arcane",
-    "domainId": "sorcellerie"
+    "domainId": {
+      "id": "sorcellerie"
+    }
   },
   {
     "id": "malediction-de-malchance",
@@ -8557,7 +8717,9 @@
       "page": 255
     },
     "family": "arcane",
-    "domainId": "sorcellerie"
+    "domainId": {
+      "id": "sorcellerie"
+    }
   },
   {
     "id": "mauvais-oeil",
@@ -8608,7 +8770,9 @@
       "page": 255
     },
     "family": "arcane",
-    "domainId": "sorcellerie"
+    "domainId": {
+      "id": "sorcellerie"
+    }
   },
   {
     "id": "menace-rampante",
@@ -8678,7 +8842,9 @@
       "page": 256
     },
     "family": "arcane",
-    "domainId": "sorcellerie"
+    "domainId": {
+      "id": "sorcellerie"
+    }
   },
   {
     "id": "destruction-de-demon-mineur",
@@ -8739,7 +8905,9 @@
       "page": 256
     },
     "family": "arcane",
-    "domainId": "demonologie"
+    "domainId": {
+      "id": "demonologie"
+    }
   },
   {
     "id": "detection-de-demon",
@@ -8786,7 +8954,9 @@
       "page": 256
     },
     "family": "arcane",
-    "domainId": "demonologie"
+    "domainId": {
+      "id": "demonologie"
+    }
   },
   {
     "id": "manifestation-de-demon-mineur",
@@ -8852,7 +9022,9 @@
       "page": 256
     },
     "family": "arcane",
-    "domainId": "demonologie"
+    "domainId": {
+      "id": "demonologie"
+    }
   },
   {
     "id": "octogramme",
@@ -8902,7 +9074,9 @@
       "page": 256
     },
     "family": "arcane",
-    "domainId": "demonologie"
+    "domainId": {
+      "id": "demonologie"
+    }
   },
   {
     "id": "crane-hurlant",
@@ -8976,7 +9150,9 @@
     },
     "family": "arcane",
     "missile": true,
-    "domainId": "necromancie"
+    "domainId": {
+      "id": "necromancie"
+    }
   },
   {
     "id": "l-appel-de-vanhel",
@@ -9023,7 +9199,9 @@
       "page": 256
     },
     "family": "arcane",
-    "domainId": "necromancie"
+    "domainId": {
+      "id": "necromancie"
+    }
   },
   {
     "id": "reanimation",
@@ -9095,7 +9273,9 @@
       "page": 257
     },
     "family": "arcane",
-    "domainId": "necromancie"
+    "domainId": {
+      "id": "necromancie"
+    }
   },
   {
     "id": "relever-les-morts",
@@ -9165,7 +9345,9 @@
       "page": 257
     },
     "family": "arcane",
-    "domainId": "necromancie"
+    "domainId": {
+      "id": "necromancie"
+    }
   },
   {
     "id": "allure-demoniaque",
@@ -14566,7 +14748,9 @@
       "page": 109
     },
     "family": "arcane",
-    "domainId": "sorcellerie"
+    "domainId": {
+      "id": "sorcellerie"
+    }
   },
   {
     "id": "apaiser-les-eaux",
@@ -15291,7 +15475,9 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "vie"
+    "domainId": {
+      "id": "vie"
+    }
   },
   {
     "id": "que-d-eau-que-d-eau",
@@ -15334,7 +15520,9 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "vie"
+    "domainId": {
+      "id": "vie"
+    }
   },
   {
     "id": "tourbillon",
@@ -15381,7 +15569,9 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "vie"
+    "domainId": {
+      "id": "vie"
+    }
   },
   {
     "id": "bienfait-de-bel-shanaar",
@@ -15428,7 +15618,9 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "cieux"
+    "domainId": {
+      "id": "cieux"
+    }
   },
   {
     "id": "mer-d-huile",
@@ -15475,7 +15667,9 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "cieux"
+    "domainId": {
+      "id": "cieux"
+    }
   },
   {
     "id": "solution-de-tir-optimal-de-niezlib",
@@ -15523,7 +15717,9 @@
       "page": 15
     },
     "family": "arcane",
-    "domainId": "cieux"
+    "domainId": {
+      "id": "cieux"
+    }
   },
   {
     "id": "assaut-de-pierre",
@@ -15608,7 +15804,9 @@
       "book": "vents-de-la-magie",
       "page": 62
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -15661,7 +15859,9 @@
       "book": "vents-de-la-magie",
       "page": 62
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -15766,7 +15966,9 @@
       "book": "vents-de-la-magie",
       "page": 62
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -15812,7 +16014,9 @@
       "book": "vents-de-la-magie",
       "page": 63
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -15899,7 +16103,9 @@
       "book": "vents-de-la-magie",
       "page": 63
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -15950,7 +16156,9 @@
       "book": "vents-de-la-magie",
       "page": 63
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16008,7 +16216,9 @@
       "book": "vents-de-la-magie",
       "page": 63
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16060,7 +16270,9 @@
       "book": "vents-de-la-magie",
       "page": 63
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16112,7 +16324,9 @@
       "book": "vents-de-la-magie",
       "page": 64
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16173,7 +16387,9 @@
       "book": "vents-de-la-magie",
       "page": 64
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16225,7 +16441,9 @@
       "book": "vents-de-la-magie",
       "page": 64
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16306,7 +16524,9 @@
       "book": "vents-de-la-magie",
       "page": 64
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16397,7 +16617,9 @@
       "book": "vents-de-la-magie",
       "page": 65
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16443,7 +16665,9 @@
       "book": "vents-de-la-magie",
       "page": 65
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16493,7 +16717,9 @@
       "book": "vents-de-la-magie",
       "page": 65
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16545,7 +16771,9 @@
       "book": "vents-de-la-magie",
       "page": 65
     },
-    "domainId": "lumiere",
+    "domainId": {
+      "id": "lumiere"
+    },
     "family": "arcane"
   },
   {
@@ -16602,7 +16830,9 @@
       "book": "vents-de-la-magie",
       "page": 74
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -16660,7 +16890,9 @@
       "book": "vents-de-la-magie",
       "page": 74
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -16711,7 +16943,9 @@
       "book": "vents-de-la-magie",
       "page": 74
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -16765,7 +16999,9 @@
       "book": "vents-de-la-magie",
       "page": 74
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -16851,7 +17087,9 @@
       "book": "vents-de-la-magie",
       "page": 75
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -16912,7 +17150,9 @@
       "book": "vents-de-la-magie",
       "page": 75
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -16964,7 +17204,9 @@
       "book": "vents-de-la-magie",
       "page": 75
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17030,7 +17272,9 @@
       "book": "vents-de-la-magie",
       "page": 75
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17127,7 +17371,9 @@
       "book": "vents-de-la-magie",
       "page": 76
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17191,7 +17437,9 @@
       "book": "vents-de-la-magie",
       "page": 76
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane",
     "missile": true,
     "damage": 2
@@ -17240,7 +17488,9 @@
       "book": "vents-de-la-magie",
       "page": 76
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17307,7 +17557,9 @@
       "book": "vents-de-la-magie",
       "page": 76
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17365,7 +17617,9 @@
       "book": "vents-de-la-magie",
       "page": 77
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17424,7 +17678,9 @@
       "book": "vents-de-la-magie",
       "page": 77
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17467,7 +17723,9 @@
       "book": "vents-de-la-magie",
       "page": 77
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17517,7 +17775,9 @@
       "book": "vents-de-la-magie",
       "page": 77
     },
-    "domainId": "metal",
+    "domainId": {
+      "id": "metal"
+    },
     "family": "arcane"
   },
   {
@@ -17561,7 +17821,9 @@
       "book": "vents-de-la-magie",
       "page": 86
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -17612,7 +17874,9 @@
       "book": "vents-de-la-magie",
       "page": 86
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -17663,7 +17927,9 @@
       "book": "vents-de-la-magie",
       "page": 86
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -17736,7 +18002,9 @@
       "book": "vents-de-la-magie",
       "page": 86
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -17802,7 +18070,9 @@
       "book": "vents-de-la-magie",
       "page": 86
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -17854,7 +18124,9 @@
       "book": "vents-de-la-magie",
       "page": 87
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -17950,7 +18222,9 @@
       "book": "vents-de-la-magie",
       "page": 87
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -17997,7 +18271,9 @@
       "book": "vents-de-la-magie",
       "page": 87
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18047,7 +18323,9 @@
       "book": "vents-de-la-magie",
       "page": 88
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18121,7 +18399,9 @@
       "book": "vents-de-la-magie",
       "page": 88
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18210,7 +18490,9 @@
       "book": "vents-de-la-magie",
       "page": 88
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18256,7 +18538,9 @@
       "book": "vents-de-la-magie",
       "page": 88
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18303,7 +18587,9 @@
       "book": "vents-de-la-magie",
       "page": 89
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18362,7 +18648,9 @@
       "book": "vents-de-la-magie",
       "page": 89
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18416,7 +18704,9 @@
       "book": "vents-de-la-magie",
       "page": 89
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18470,7 +18760,9 @@
       "book": "vents-de-la-magie",
       "page": 89
     },
-    "domainId": "vie",
+    "domainId": {
+      "id": "vie"
+    },
     "family": "arcane"
   },
   {
@@ -18523,7 +18815,9 @@
       "book": "vents-de-la-magie",
       "page": 98
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18567,7 +18861,9 @@
       "book": "vents-de-la-magie",
       "page": 99
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18613,7 +18909,9 @@
       "book": "vents-de-la-magie",
       "page": 99
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18658,7 +18956,9 @@
       "book": "vents-de-la-magie",
       "page": 99
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18711,7 +19011,9 @@
       "book": "vents-de-la-magie",
       "page": 99
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18758,7 +19060,9 @@
       "book": "vents-de-la-magie",
       "page": 99
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18825,7 +19129,9 @@
       "book": "vents-de-la-magie",
       "page": 100
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18872,7 +19178,9 @@
       "book": "vents-de-la-magie",
       "page": 100
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -18976,7 +19284,9 @@
       "book": "vents-de-la-magie",
       "page": 100
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19023,7 +19333,9 @@
       "book": "vents-de-la-magie",
       "page": 100
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19070,7 +19382,9 @@
       "book": "vents-de-la-magie",
       "page": 100
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19112,7 +19426,9 @@
       "book": "vents-de-la-magie",
       "page": 101
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19158,7 +19474,9 @@
       "book": "vents-de-la-magie",
       "page": 101
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19233,7 +19551,9 @@
       "book": "vents-de-la-magie",
       "page": 101
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19300,7 +19620,9 @@
       "book": "vents-de-la-magie",
       "page": 101
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19372,7 +19694,9 @@
       "book": "vents-de-la-magie",
       "page": 101
     },
-    "domainId": "cieux",
+    "domainId": {
+      "id": "cieux"
+    },
     "family": "arcane"
   },
   {
@@ -19479,7 +19803,9 @@
       "book": "vents-de-la-magie",
       "page": 110
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -19533,7 +19859,9 @@
       "book": "vents-de-la-magie",
       "page": 110
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -19639,7 +19967,9 @@
       "book": "vents-de-la-magie",
       "page": 110
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "opposed": {
       "kind": "resist",
@@ -19694,7 +20024,9 @@
       "book": "vents-de-la-magie",
       "page": 110
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -19803,7 +20135,9 @@
       "book": "vents-de-la-magie",
       "page": 110
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -19889,7 +20223,9 @@
       "book": "vents-de-la-magie",
       "page": 111
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20023,7 +20359,9 @@
       "book": "vents-de-la-magie",
       "page": 111
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20077,7 +20415,9 @@
       "book": "vents-de-la-magie",
       "page": 111
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20131,7 +20471,9 @@
       "book": "vents-de-la-magie",
       "page": 111
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20178,7 +20520,9 @@
       "book": "vents-de-la-magie",
       "page": 112
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20224,7 +20568,9 @@
       "book": "vents-de-la-magie",
       "page": 112
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20271,7 +20617,9 @@
       "book": "vents-de-la-magie",
       "page": 113
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20337,7 +20685,9 @@
       "book": "vents-de-la-magie",
       "page": 113
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20428,7 +20778,9 @@
       "book": "vents-de-la-magie",
       "page": 113
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20487,7 +20839,9 @@
       "book": "vents-de-la-magie",
       "page": 113
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane"
   },
   {
@@ -20551,7 +20905,9 @@
       "book": "vents-de-la-magie",
       "page": 113
     },
-    "domainId": "ombres",
+    "domainId": {
+      "id": "ombres"
+    },
     "family": "arcane",
     "opposed": {
       "kind": "resist",
@@ -20631,7 +20987,9 @@
       "book": "vents-de-la-magie",
       "page": 122
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -20675,7 +21033,9 @@
       "book": "vents-de-la-magie",
       "page": 122
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -20818,7 +21178,9 @@
       "book": "vents-de-la-magie",
       "page": 122
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -20942,7 +21304,9 @@
       "book": "vents-de-la-magie",
       "page": 123
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21065,7 +21429,9 @@
       "book": "vents-de-la-magie",
       "page": 123
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21209,7 +21575,9 @@
       "book": "vents-de-la-magie",
       "page": 123
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21268,7 +21636,9 @@
       "book": "vents-de-la-magie",
       "page": 123
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21313,7 +21683,9 @@
       "book": "vents-de-la-magie",
       "page": 123
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21425,7 +21797,9 @@
       "book": "vents-de-la-magie",
       "page": 124
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21551,7 +21925,9 @@
       "book": "vents-de-la-magie",
       "page": 124
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21612,7 +21988,9 @@
       "book": "vents-de-la-magie",
       "page": 124
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21658,7 +22036,9 @@
       "book": "vents-de-la-magie",
       "page": 124
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21777,7 +22157,9 @@
       "book": "vents-de-la-magie",
       "page": 124
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21824,7 +22206,9 @@
       "book": "vents-de-la-magie",
       "page": 125
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21882,7 +22266,9 @@
       "book": "vents-de-la-magie",
       "page": 125
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -21935,7 +22321,9 @@
       "book": "vents-de-la-magie",
       "page": 125
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane"
   },
   {
@@ -22000,7 +22388,9 @@
       "book": "vents-de-la-magie",
       "page": 134
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22112,7 +22502,9 @@
       "book": "vents-de-la-magie",
       "page": 134
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22173,7 +22565,9 @@
       "book": "vents-de-la-magie",
       "page": 134
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22406,7 +22800,9 @@
       "book": "vents-de-la-magie",
       "page": 134
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22452,7 +22848,9 @@
       "book": "vents-de-la-magie",
       "page": 135
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22504,7 +22902,9 @@
       "book": "vents-de-la-magie",
       "page": 135
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22554,7 +22954,9 @@
       "book": "vents-de-la-magie",
       "page": 135
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22641,7 +23043,9 @@
       "book": "vents-de-la-magie",
       "page": 136
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22694,7 +23098,9 @@
       "book": "vents-de-la-magie",
       "page": 136
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22757,7 +23163,9 @@
       "book": "vents-de-la-magie",
       "page": 136
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22825,7 +23233,9 @@
       "book": "vents-de-la-magie",
       "page": 136
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22872,7 +23282,9 @@
       "book": "vents-de-la-magie",
       "page": 136
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -22954,7 +23366,9 @@
       "book": "vents-de-la-magie",
       "page": 137
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -23013,7 +23427,9 @@
       "book": "vents-de-la-magie",
       "page": 137
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -23084,7 +23500,9 @@
       "book": "vents-de-la-magie",
       "page": 137
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -23164,7 +23582,9 @@
       "book": "vents-de-la-magie",
       "page": 137
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane"
   },
   {
@@ -23216,7 +23636,9 @@
       "book": "vents-de-la-magie",
       "page": 146
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23345,7 +23767,9 @@
       "book": "vents-de-la-magie",
       "page": 146
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23409,7 +23833,9 @@
       "book": "vents-de-la-magie",
       "page": 146
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23480,7 +23906,9 @@
       "book": "vents-de-la-magie",
       "page": 146
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23554,7 +23982,9 @@
       "book": "vents-de-la-magie",
       "page": 147
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23626,7 +24056,9 @@
       "book": "vents-de-la-magie",
       "page": 148
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23689,7 +24121,9 @@
       "book": "vents-de-la-magie",
       "page": 148
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23748,7 +24182,9 @@
       "book": "vents-de-la-magie",
       "page": 148
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23817,7 +24253,9 @@
       "book": "vents-de-la-magie",
       "page": 148
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23863,7 +24301,9 @@
       "book": "vents-de-la-magie",
       "page": 148
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23928,7 +24368,9 @@
       "book": "vents-de-la-magie",
       "page": 148
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -23979,7 +24421,9 @@
       "book": "vents-de-la-magie",
       "page": 149
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -24041,7 +24485,9 @@
       "book": "vents-de-la-magie",
       "page": 149
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -24102,7 +24548,9 @@
       "book": "vents-de-la-magie",
       "page": 149
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -24157,7 +24605,9 @@
       "book": "vents-de-la-magie",
       "page": 149
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -24204,7 +24654,9 @@
       "book": "vents-de-la-magie",
       "page": 149
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane"
   },
   {
@@ -24772,7 +25224,9 @@
       "book": "vents-de-la-magie",
       "page": 217
     },
-    "domainId": "magie-du-marais-de-mona",
+    "domainId": {
+      "id": "magie-du-marais-de-mona"
+    },
     "family": "arcane"
   },
   {
@@ -24849,7 +25303,9 @@
       "book": "vents-de-la-magie",
       "page": 217
     },
-    "domainId": "magie-du-marais-de-mona",
+    "domainId": {
+      "id": "magie-du-marais-de-mona"
+    },
     "family": "arcane"
   },
   {
@@ -24896,7 +25352,9 @@
       "book": "vents-de-la-magie",
       "page": 217
     },
-    "domainId": "magie-du-marais-de-mona",
+    "domainId": {
+      "id": "magie-du-marais-de-mona"
+    },
     "family": "arcane"
   },
   {
@@ -24969,7 +25427,9 @@
       "book": "vents-de-la-magie",
       "page": 217
     },
-    "domainId": "magie-du-marais-de-mona",
+    "domainId": {
+      "id": "magie-du-marais-de-mona"
+    },
     "family": "arcane"
   },
   {
@@ -25076,7 +25536,9 @@
       "book": "vents-de-la-magie",
       "page": 217
     },
-    "domainId": "magie-du-marais-de-mona",
+    "domainId": {
+      "id": "magie-du-marais-de-mona"
+    },
     "family": "arcane"
   },
   {
@@ -25134,7 +25596,9 @@
       "book": "vents-de-la-magie",
       "page": 217
     },
-    "domainId": "magie-du-marais-de-mona",
+    "domainId": {
+      "id": "magie-du-marais-de-mona"
+    },
     "family": "arcane"
   },
   {
@@ -25434,7 +25898,9 @@
       "book": "vents-de-la-magie",
       "page": 30
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "isRitual": true,
     "ritual": {
@@ -25554,7 +26020,9 @@
       "book": "vents-de-la-magie",
       "page": 31
     },
-    "domainId": "demonologie",
+    "domainId": {
+      "id": "demonologie"
+    },
     "family": "arcane",
     "isRitual": true,
     "ritual": {
@@ -25605,7 +26073,9 @@
       "book": "vents-de-la-magie",
       "page": 31
     },
-    "domainId": "mort",
+    "domainId": {
+      "id": "mort"
+    },
     "family": "arcane",
     "isRitual": true,
     "ritual": {
@@ -25655,7 +26125,9 @@
       "book": "vents-de-la-magie",
       "page": 32
     },
-    "domainId": "feu",
+    "domainId": {
+      "id": "feu"
+    },
     "family": "arcane",
     "isRitual": true,
     "ritual": {
@@ -25705,7 +26177,9 @@
       "book": "vents-de-la-magie",
       "page": 32
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "isRitual": true,
     "ritual": {
@@ -25770,7 +26244,9 @@
       "book": "vents-de-la-magie",
       "page": 33
     },
-    "domainId": "bete",
+    "domainId": {
+      "id": "bete"
+    },
     "family": "arcane",
     "isRitual": true,
     "ritual": {
@@ -27583,7 +28059,9 @@
     "family": "arcane",
     "ecole": "Magie des Arcanes",
     "subType": "Nécromancie",
-    "domainId": "necromancie",
+    "domainId": {
+      "id": "necromancie"
+    },
     "cn": 4,
     "range": {
       "kind": "self"
