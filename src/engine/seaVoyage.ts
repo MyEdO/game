@@ -22,7 +22,7 @@ import seaCargoJson from '../data/sea-cargo.json';
 import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
 import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, tableOuverte, type BandeOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { d10, rollDice, tirerSigne, type EffetSigne, type QuantiteTiree, type RNG } from './dice';
+import { d10, rollDice, tirerSigne, type EffetSigne, type RNG } from './dice';
 import { rollTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { SeaWeather } from './seaWeather';
@@ -31,7 +31,8 @@ import type { Flow, JetFixe } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
-import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasonalCargo } from './cargo';
+import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, marchandisesDe, rollSeasonalCargo } from './cargo';
+import { tableTotale } from '../lib/tableTotale';
 
 /** La voie du catalogue que porte la table de ce livre (MDG 15 l.406-418). */
 export const VOIE_MARITIME: Voie = 'mer';
@@ -43,7 +44,6 @@ export interface ManannFactor { id: string; label: string; effect: EffetSigne }
 
 /** Climat imposé par un événement : les seuls axes qu'il fixe. MDG 15 l.189, l.199, l.219, l.226, l.248, l.257 */
 type MeteoImposee = Partial<SeaWeather>;
-type SansParametre = Record<string, never>;
 
 /** Modificateur du navire posé par l'op `navireMod` : levé au carénage (`carenage`), au prochain événement de
  *  bord (`evenementDeBord`) ou à son échéance d'horloge (minute `gameTime`). `evite` : les périls que le navire
@@ -72,38 +72,11 @@ export const sommeDesModificateurs = (mods: readonly ModificateurDuNavire[] | un
 export const meteosActives = (meteos: readonly MeteoImposeeDuNavire[] | undefined, now: number): MeteoImposeeDuNavire[] =>
   (meteos ?? []).filter((m) => m.jusqua > now);
 
-/** Les paramètres que lit chaque genre d'Événement de bord (MDG 15 l.132-236). */
-interface ParametresDeBord {
-  culte: { allegianceRoll: QuantiteTiree; initiatesRoll: QuantiteTiree };
-  'autres-voyageurs': SansParametre;
-  'ile-inconnue': SansParametre;
-}
-
-/** Les paramètres que lit chaque genre d'Événement d'escale (MDG 15 l.243-263). */
-interface ParametresDePort {
-  'tache-noire': SansParametre;
-  penuries: SansParametre;
-  'constructeur-itinerant': { metier: Record<string, number>; daysPerJob: QuantiteTiree };
-  'offre-suspecte': { maxEnc: number; discountPct: number };
-  'rumeurs-commerciales': { gossipDifficulty: Difficulty; demandBonus: number; days: QuantiteTiree };
-  'offre-mission': { rewardCO: number };
-  'bonne-peche': { rationPriceBronze: number };
-  saturation: SansParametre;
-}
-
-/** Ce que toute rangée porte. `relache` : la rangée ne se joue qu'avec la relâche à terre accordée ;
- *  `taillePortMax` : qu'à l'escale d'un port de Taille au plus celle-ci (`resolvePortArrival`). MDG 15 l.245,
- *  l.249, l.260 */
-type Rangee = BandeOuverte & { id: string; label: string; desc: string; relache?: true; taillePortMax?: number };
-type EvenementDe<P> = { [K in keyof P & string]: Rangee & { kind: K; params: P[K]; consequence?: never } }[keyof P & string];
-/** Une rangée en GRAMMAIRE : sa suite mécanique est un `Flow` (`runFlow`), sans genre ; sans `consequence`,
- *  narrative. #1652 */
-export type RangeeEnGrammaire = Rangee & { consequence?: Flow; kind?: never; params?: never };
-/** Un Événement de bord : son `kind` et les paramètres que CE genre lit, ou sa `consequence`. */
-export type EvenementDeBord = EvenementDe<ParametresDeBord> | RangeeEnGrammaire;
-/** Un Événement d'escale : son `kind` et les paramètres que CE genre lit, ou sa `consequence`. */
-export type EvenementDePort = EvenementDe<ParametresDePort> | RangeeEnGrammaire;
-export type SeaEventDef = EvenementDeBord | EvenementDePort;
+/** Un Événement de bord ou d'escale : sa suite mécanique est un `Flow` (`consequence`, joué par `runFlow`) ; sans
+ *  elle, la rangée est narrative. `relache` : la rangée ne se joue qu'avec la relâche à terre accordée ;
+ *  `taillePortMax` : qu'à l'escale d'un port de Taille au plus celle-ci (`resolvePortArrival`) ; `maison` : la
+ *  raison des valeurs posées là où le livre laisse la main au MJ. MDG 15 l.245, l.249, l.260 */
+export type SeaEventDef = BandeOuverte & { id: string; label: string; desc: string; relache?: true; taillePortMax?: number; consequence?: Flow; maison?: string };
 
 /** Palier du VOYAGE RAPIDE (l.33-37) : cran du dé de sa table ; sa `consequence` (`runFlow`), absente pour un
  *  palier sans perte. */
@@ -111,8 +84,8 @@ export type FastVoyagePalier = BandeOuverte & { id: string; label: string; desc:
 
 const EVENTS = seaEventsJson as unknown as {
   manann: { base: number; portEventMod: number; factors: ManannFactor[] };
-  boardEvents: { die: string; entries: EvenementDeBord[] };
-  portEvents: { die: string; entries: EvenementDePort[] };
+  boardEvents: { die: string; entries: SeaEventDef[] };
+  portEvents: { die: string; entries: SeaEventDef[] };
   fastVoyage: { die: string; entries: FastVoyagePalier[] };
 };
 
@@ -225,11 +198,11 @@ export function rollDaysToNextEvent(rng: RNG): number {
 }
 
 /** Événement de bord NOMMÉ par son `id`. Pour forcer un tirage en recette (#332). */
-export const seaBoardEventById = (id: string): EvenementDeBord | undefined => BOARD_EVENTS.find((e) => e.id === id);
+export const seaBoardEventById = (id: string): SeaEventDef | undefined => BOARD_EVENTS.find((e) => e.id === id);
 
 /** Tire un ÉVÉNEMENT DE PORT à l'accostage (l.127-129) au dé de sa table, ±1 selon le signe de l'Humeur ;
  *  il « se produit dans les 2d10 heures après accostage ». PUR. */
-export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: EvenementDePort } {
+export function rollPortEvent(manannScore: number, rng: RNG): { roll: number; hours: number; event: SeaEventDef } {
   const mod = manannScore < 0 ? -EVENTS.manann.portEventMod : manannScore > 0 ? EVENTS.manann.portEventMod : 0;
   const roll = rollDice(deDesEvenementsDePort(), rng) + mod;
   return { roll, hours: d10(rng) + d10(rng), event: findTableEntry(evenementsDePort(), roll) };
@@ -268,6 +241,40 @@ export interface PortProfile {
   demande?: Record<string, number>;
   /** Grand port cosmopolite (Marienburg/Lothern, l.343-349) : 3 cargaisons « commerce », marchands à 3d10+55. */
   cosmopolite?: boolean;
+}
+
+/** ALTÉRATION du marché du port `placeId` posée par l'op `marcheDuPort`, jusqu'au départ du navire (`escale`)
+ *  ou à son échéance d'horloge (minute `gameTime`) : bascule des colonnes de l'Index (`colonnes`),
+ *  Demande accrue d'une cargaison (`demande`), ou lot offert à l'achat sous son prix de base (`offre`).
+ *  MDG 15 l.253, l.256, l.259, l.263 */
+export type AlterationDuMarche = { placeId: string; jusqua: 'escale' | number } & (
+  | { colonnes: 'penurie' | 'saturation'; demande?: never; offre?: never }
+  | { demande: { cargoId: string; delta: number }; colonnes?: never; offre?: never }
+  | { offre: { cargoId: string; enc: number; remisePct: number }; colonnes?: never; demande?: never }
+);
+
+/** Les altérations du port `placeId` encore actives à la minute `now`, dans leur ordre de pose. PUR. */
+export const alterationsDuPort = (alterations: readonly AlterationDuMarche[], placeId: string, now: number): AlterationDuMarche[] =>
+  alterations.filter((a) => a.placeId === placeId && (a.jusqua === 'escale' || a.jusqua > now));
+
+/** Le profil de marché du port sous ses altérations, dans leur ordre de pose. Pénurie (l.253) : les marchandises
+ *  de la Production ne sont plus disponibles, celles du Surplus passent en Production. Saturation (l.263) : les
+ *  marchandises de la Production passent en Surplus à +1, le Surplus double. Les marqueurs de la colonne
+ *  Production (`commerce-mer`, `minimum-vital`) restent. Demande (l.259) : l'indice de la cargaison croît. PUR. */
+export function profilDuMarche(port: PortProfile, alterations: readonly AlterationDuMarche[]): PortProfile {
+  return alterations.reduce<PortProfile>((p, a) => {
+    if (a.demande) return { ...p, demande: { ...p.demande, [a.demande.cargoId]: (p.demande?.[a.demande.cargoId] ?? 0) + a.demande.delta } };
+    if (!a.colonnes) return p;
+    const marqueurs = p.production.filter((id) => !findCargoById(id));
+    const marchandises = p.production.filter((id) => findCargoById(id));
+    const surplus = p.surplus ?? {};
+    if (a.colonnes === 'penurie') return { ...p, production: [...marqueurs, ...Object.keys(surplus).filter((id) => !marqueurs.includes(id))], surplus: {} };
+    return {
+      ...p,
+      production: marqueurs,
+      surplus: { ...tableTotale(marchandises, () => 1), ...Object.fromEntries(Object.entries(surplus).map(([id, n]) => [id, n * 2])) },
+    };
+  }, port);
 }
 
 /** Cargaison ALÉATOIRE de la saison (l.402-418) : d100 dans la colonne saisonnière (tableau MARITIME). PUR. */
