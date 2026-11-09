@@ -74,7 +74,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   ramasserLObjet: 'invité', manoeuvrerLeNavire: 'invité', chanterLaChanson: 'invité',
   annulerLeDeplacement: 'invité', terminerLeTour: 'invité', desarmerLeMode: 'invité',
   // Les gestes d'un lanceur et d'un porteur, en combat comme hors combat : `netOwnership.ROUTES`.
-  incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité',
+  incanterLeSort: 'invité', focaliserLeSort: 'invité', dissiperLeSort: 'invité', utiliserLObjet: 'invité', poserLObjet: 'invité',
   prendreLaPanoplie: 'invité', depenserLaDetermination: 'invité',
   // Le franchissement d'une arête (escalade, chute volontaire, enjambement d'une croisée #700) : la possession de l'actif
   // (repli universel) ; la DÉCLARATION de rangée d'une chute est routée par le siège du tombant (`netOwnership`).
@@ -131,7 +131,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   retirerLaComposante: 'hôte', ecrireLHistorique: 'hôte', rompreLaFaveur: 'hôte',
   ouvrirLeMedecin: 'hôte', evaluerLObjet: 'hôte',
   // ── Possessions / inventaire / équipement (lot coop non ouvert) ───────────────────────────────
-  equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLObjet: 'hôte', poserLApparence: 'hôte',
+  equiperLObjet: 'hôte', rangerLObjet: 'hôte', transmettreLObjet: 'hôte', poserLApparence: 'hôte',
   garnirLaPanoplie: 'hôte', creerLaPanoplie: 'hôte', supprimerLaPanoplie: 'hôte',
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
   remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',

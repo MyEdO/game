@@ -115,10 +115,13 @@ describe('#38 — branchements AA au site de résolution (applyCriticalToTarget)
       items: [{ uid: 'w1', name: 'Épée', kind: 'melee', equipped: true, qualities: [], enc: 1 } as never],
       loadouts: [{ id: 'l1', main: 'w1' }] as never,
       activeLoadoutId: 'l1',
+      pos: { x: 0, y: 0 },
     });
     recomputeLoadout(target);
     const crit = resolveCritique('aa', target, 'brasD', seq(5), { overkill: 0 }); // 01-10 → Choc au poignet (trivial, op disarm)
-    applyCriticalToTarget(target, 'brasD', 0, [], noop, { prerolled: crit, get: getStub });
+    // L'Épée tombe au sol (`crochetDuSol`) : la lecture d'état fournit la fabrique d'ids du décor qui la montre.
+    const getAvecFabrique = (() => ({ battle: undefined, party: [], gameTime: 0, forgerUnId: () => 'depot-1' })) as never;
+    applyCriticalToTarget(target, 'brasD', 0, [], noop, { prerolled: crit, get: getAvecFabrique });
     expect(target.loadouts![0].main).toBeUndefined(); // brasD → main → l'Épée est lâchée
   });
 });

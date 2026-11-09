@@ -1706,7 +1706,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
     expect(banc.getState().flags[cleActionJouee('coffre', 'fouiller')]).toBe(true);
     const scene = banc.getState().scene!;
     const coffre = scene.entities.find((e) => e.id === 'coffre')!;
-    expect(actionsDe(scene, coffre, banc.getState().flags)).toEqual([]);
+    expect(actionsDe(scene, coffre, banc.getState())).toEqual([]);
     banc.getState().jouerAction('coffre', 'fouiller');
     expect(or(), 'une action épuisée ne se rejoue pas').toBe(2);
   });

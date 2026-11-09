@@ -1790,7 +1790,6 @@ export const fr = {
   'exploration.ailleurs': '{geste} depuis ({x},{y})',
   'exploration.offre': '{porteur} : {action}',
   'exploration.carte': 'Carte du monde',
-  'exploration.ramasser': 'Ramasser {objet}',
   'exploration.lieu': 'Le lieu',
   'exploration.figurantMuet': '{who} n’a rien à vous dire.',
   'saut.horsDuGroupe': 'Saut refusé : il part de la case du groupe.',
@@ -1824,6 +1823,7 @@ export const fr = {
   'cs.horsDuTour': 'Ce n’est pas le tour de {name}.',
   'cs.consommableHorsDuTour': 'Ce n’est pas le tour de {name} : un objet s’utilise à son tour.',
   'cs.ramasserHorsDuTour': 'Ce n’est pas le tour de {name} : un objet se ramasse à son tour.',
+  'cs.poserHorsDuTour': '{name} ne porte pas cet objet : seul l’actif pose ce qu’il porte.',
   'cs.consommableHorsRencontre': '{name} n’est pas dans la rencontre : son objet ne s’y utilise pas.',
   'cs.objetNonConsommable': '{item} ne s’utilise pas.',
   'cs.consommableSansObjet': '{raison} {item} ne lui apporterait rien : l’objet est gardé.',
@@ -2775,6 +2775,7 @@ export const fr = {
   'usable.commercer': 'Commercer',
   'usable.fouiller': 'Fouiller',
   'usable.sasseoir': 'S’asseoir',
+  'usable.ramasser': 'Ramasser',
 
   // ── ARÊTES UTILISABLES (`noyau/aretes.ts`, `arete.*`) : les gestes qu'une ARÊTE offre au joueur. ──
   'arete.porteExterieureFermee': 'Porte extérieure fermée',

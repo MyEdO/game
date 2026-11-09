@@ -1,6 +1,6 @@
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
 import type { Jeu } from './etat';
-import { objetDuSol } from './objetsAuSol';
+import { crochetDuSol } from './objetsAuSol';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import { ouvrirLaFinDeSeance } from './partyFlow';
@@ -90,7 +90,7 @@ import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
 import { dataLabel, groupesLabel, type WaterExposureMode } from '../data';
-import { actionsAuthorees, type Drapeaux } from './monde/usable';
+import { actionsAuthorees, objetDuSol, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantagePool';
 import { poserLeGroupe } from './marcheDuGroupe';
@@ -601,6 +601,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
     idNeuf: get().forgerUnId,
     onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
     ...campAdvantageHooks(get),
+    ...crochetDuSol(get, set),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),
@@ -1676,7 +1677,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
