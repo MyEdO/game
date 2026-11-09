@@ -15,6 +15,7 @@ import type { MapSpec, WallSpec } from './mapSpec';
 import type { SceneEntity } from './monde/scene';
 import type { Dir4 } from '../geometry/dir8';
 import type { ApportAuxPonts } from './planDeNavire';
+import type { Calage } from '../data/props.types';
 import { findVehicleById } from '../data';
 import { MOTS_DES_PONTS, grilleDesPonts, type AreteDePont, type CaseDePont } from '../data/schemas/grammaire/carte-ascii';
 import { garanti } from '../lib/garanti';
@@ -105,28 +106,46 @@ const LEGENDE_DES_PIECES: NonNullable<MapSpec['zoneLegend']> = {
 };
 
 /** Le mobilier de chaque pièce intérieure, par lettre de la légende : le décor (`ref` de `props.json`), la case
- *  du coin nord-ouest de son emprise et son cap (`S` par défaut). Une case de porte, de trappe ou de pied
- *  d'échelle reste libre, et une pièce dont la seule case est celle de sa porte reste vide. */
-const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing?: Dir4])[]>> = {
+ *  du coin nord-ouest de son emprise, son cap, son calage dans le jeu libre de sa case (`SceneEntity.calage`, centré
+ *  sans lui) et, posé sur un autre meuble de sa pièce, le `ref` et le rang de celui-ci (`SceneEntity.sur`). Une case
+ *  de porte, de trappe ou de pied d'échelle reste libre, et une pièce dont la seule case est celle de sa porte reste
+ *  vide. Le calage plaque un meuble à une cloison du plan ; contre le bordé et la muraille du modèle, qui se tiennent en
+ *  dedans des cases (`Pieces.bornes`, `scripts/personnage-3d/vehicule/caraque/modele.py`), il s'arrête à eux. */
+const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing: Dir4, calage?: Calage, sur?: string])[]>> = {
   C: [
-    ['tonneaux-pile', 4, 1], ['caisse', 5, 1], ['tonneau', 7, 1], ['caisse', 8, 1], ['tonneau', 9, 1],
-    ['caisse', 4, 3], ['tonneaux-pile', 5, 3], ['caisse', 7, 3], ['tonneaux-pile', 9, 3],
+    ['tonneaux-pile', 4, 1, 'S', { x: 0, y: 1 }], ['caisse', 5, 1, 'S'], ['tonneau', 7, 1, 'S'], ['caisse', 8, 1, 'S'], ['tonneau', 9, 1, 'S'],
+    ['caisse', 4, 3, 'S', { x: 0, y: -1 }], ['tonneaux-pile', 5, 3, 'S'], ['caisse', 7, 3, 'S'], ['tonneaux-pile', 9, 3, 'S'],
+    ['caisse', 8, 1, 'E', undefined, 'caisse-2'],
   ],
-  I: [['etagere', 12, 1]],
+  I: [['etagere', 12, 1, 'S', { x: 0, y: -0.25 }], ['coffre', 12, 1, 'E', { x: -1, y: 1 }]],
   P: [
-    ['cabestan', 7, 2],
-    ['hamac', 5, 0], ['hamac', 6, 0], ['hamac', 7, 0], ['hamac', 5, 4], ['hamac', 6, 4], ['hamac', 7, 4],
+    ['cabestan', 7, 2, 'S'],
+    ['hamac', 5, 0, 'S', { x: 0, y: 1 }], ['hamac', 6, 0, 'S', { x: 0, y: 1 }], ['hamac', 7, 0, 'S', { x: 0, y: 1 }],
+    ['hamac', 5, 4, 'S', { x: 0, y: -1 }], ['hamac', 6, 4, 'S', { x: 0, y: -1 }], ['hamac', 7, 4, 'S', { x: 0, y: -1 }],
   ],
-  M: [['caisse', 13, 1], ['tonneau', 15, 1]],
-  N: [['tonneau', 14, 3]],
-  K: [['cheminee-interieure', 16, 3, 'O']],
-  O: [['rouleau-de-cordage', 2, 1], ['rouleau-de-cordage', 2, 3]],
-  Q: [['hamac', 3, 1]],
-  E: [['table', 11, 0]],
-  F: [['coffre', 13, 1]],
-  H: [['table', 11, 3], ['banc', 11, 4]],
-  X: [['bureau', 15, 1]],
-  Y: [['coffre', 15, 3]],
+  M: [
+    ['caisse', 13, 1, 'S', { x: -1, y: -1 }], ['caisse', 13, 1, 'S', { x: -1, y: 1 }], ['tonneau', 13, 1, 'S', { x: 1, y: -1 }],
+    ['tonneau', 15, 1, 'S', { x: -1, y: 1 }], ['tonneau', 15, 1, 'S', { x: 1, y: 1 }],
+  ],
+  N: [['tonneau', 14, 3, 'S', { x: -1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: -1 }]],
+  K: [['cheminee-interieure', 16, 3, 'O', { x: 1, y: 0 }], ['marmite', 16, 3, 'S', { x: -1, y: -1 }]],
+  O: [['rouleau-de-cordage', 2, 1, 'S', { x: 0, y: 0.5 }], ['rouleau-de-cordage', 2, 3, 'S', { x: 0, y: -0.5 }]],
+  Q: [['hamac', 3, 1, 'S', { x: 0, y: -1 }], ['hamac', 3, 1, 'S', { x: 0, y: 1 }]],
+  E: [
+    ['table', 11, 0, 'S', { x: 0.75, y: 1 }], ['chaise', 11, 0, 'E', { x: -0.75, y: 0 }],
+    ['chandelier', 11, 0, 'S', { x: 0.75, y: -0.15 }], ['lettre', 11, 0, 'S', { x: 0.5, y: 0.6 }, 'table-1'],
+  ],
+  F: [['hamac', 13, 1, 'S', { x: 0, y: -1 }], ['coffre', 13, 1, 'N', { x: 0, y: 1 }]],
+  H: [
+    ['table', 11, 3, 'S', { x: -0.5, y: 0 }], ['banc', 11, 3, 'S', { x: -0.5, y: -1 }], ['banc', 11, 3, 'S', { x: -0.5, y: 1 }],
+    ['bourse', 11, 3, 'S', { x: -0.3, y: 0.3 }, 'table-1'],
+    ['tonneau', 11, 4, 'S', { x: -0.75, y: -0.25 }], ['chandelier', 11, 4, 'S', { x: 0.75, y: -0.25 }],
+  ],
+  X: [
+    ['bureau', 15, 1, 'S', { x: 0, y: -1 }], ['coffre', 15, 1, 'N', { x: 1, y: 1 }],
+    ['lettre', 15, 1, 'S', { x: -0.4, y: -0.75 }, 'bureau-1'], ['cle', 15, 1, 'S', { x: 0.4, y: -0.75 }, 'bureau-1'],
+  ],
+  Y: [['hamac', 15, 3, 'S', { x: 0, y: 1 }], ['coffre', 15, 3, 'S', { x: 1, y: -1 }]],
   B: [['barre-de-navire', 17, 2, 'E']],
 };
 
@@ -134,13 +153,15 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
 const MEUBLES: SceneEntity[] = Object.entries(MOBILIER).flatMap(([lettre, meubles]) => {
   const piece = garanti(LEGENDE_DES_PIECES[lettre], lettre, 'pièce meublée').id;
   const etage = garanti(Object.keys(PIECES).find((e) => [PIECES[e]].flat().join('').includes(lettre)), lettre, 'pont de la pièce');
-  return meubles.map(([ref, x, y, facing = 'S'], i): SceneEntity => ({
+  return meubles.map(([ref, x, y, facing, calage, sur], i): SceneEntity => ({
     id: `${piece}-${ref}-${meubles.slice(0, i + 1).filter(([r]) => r === ref).length}`,
     kind: 'prop',
     ref,
     pos: { x, y },
     z: Number(etage.slice(1)),
     facing,
+    ...(calage ? { calage } : {}),
+    ...(sur ? { sur: `${piece}-${sur}` } : {}),
   }));
 });
 
