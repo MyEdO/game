@@ -3167,6 +3167,10 @@ export function profilsStandard(): string[] {
 export function refEntiteResolue(ref: string): boolean {
   return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
 }
+/** La réf d'un PERSONNAGE désigne-t-elle un navire à ponts (`vehicles.json › ponts`, #3686) ? Ses ponts ne se posent
+ *  qu'à un cap cardinal : le schéma de scène refuse les autres (`refusDeLEntite`), l'éditeur ne les offre pas
+ *  (`capsOfferts`). */
+export const estUnNavireAPonts = (ref: string | undefined): boolean => ref !== undefined && findVehicleById(ref)?.ponts !== undefined;
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */

@@ -114,14 +114,15 @@ interface PoseDeNavire {
   z: number;
 }
 
-/** La pose des ponts du navire `ent` dans `scene`, `null` si `ent` n'est pas un navire à plan des ponts ou si la scène
- *  n'est pas à l'échelle de son plan. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
+/** La pose des ponts du navire `ent` dans `scene`, `null` si `ent` n'est pas un navire à plan des ponts, si la scène
+ *  n'est pas à l'échelle de son plan, ou s'il n'est pas à un cap cardinal, faute que le schéma de scène nomme
+ *  (`refusDeLEntite`) : ses ponts ne se posent pas. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
  *  l'entier, au plus près quand leurs côtés n'ont pas la parité de l'empreinte. */
 function poseDe(scene: Scene, ent: SceneEntity): PoseDeNavire | null {
   const plan = ent.kind === 'personnage' ? planDe(ent.ref) : undefined;
   if (!plan || !aLEchelleDesPonts(scene, plan.ponts.id)) return null;
   const cap = ent.facing ?? 'N';
-  if (!estCardinal(cap)) throw new Error(`navire « ${ent.id} » : ses ponts se posent à un cap cardinal (N, E, S, O), pas « ${cap} »`);
+  if (!estCardinal(cap)) return null;
   const ref = plan.ponts.id;
   const n = footprintN(garanti(vehicleCombatant(garanti(findVehicleById(ref), ref, 'véhicule')), ref, 'coque de navire'));
   const [w, h] = plan.ponts.size;

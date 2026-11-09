@@ -32,8 +32,9 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { findCreatureById, refEntiteResolue } from '../../index';
+import { estUnNavireAPonts, findCreatureById, refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
+import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
 import type { AuthoredShipPoste } from '../../../engine/types';
 
@@ -235,7 +236,8 @@ export interface FauteDEntite { chemin: readonly string[]; message: string }
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
- *  la résolution de sa `ref` au catalogue (`refEntiteResolue`) et le parcours de carrière (`refusDuPnjDeCarriere`) ; d'un
+ *  la résolution de sa `ref` au catalogue (`refEntiteResolue`), le parcours de carrière (`refusDuPnjDeCarriere`) et le
+ *  cap cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
 export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & { kind: string; calage?: { x: number; y: number } }): FauteDEntite[] {
@@ -245,6 +247,8 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     if (ent.ref && !refEntiteResolue(ent.ref)) fautes.push({ chemin: ['ref'], message: `« ${ent.ref} » ni créature, ni coque de véhicule, ni engin de siège` });
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
+    if (estUnNavireAPonts(ent.ref) && ent.facing && !estCardinal(ent.facing))
+      fautes.push({ chemin: ['facing'], message: `navire « ${ent.ref} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
   }
   if (ent.kind === 'prop') {
     for (const axe of ['x', 'y'] as const)

@@ -25,7 +25,7 @@ import {
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
   findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
-  aLEchelleDesPonts, CAPS_DES_PONTS, estPoseParSesPonts, TYPES_DE_NAVIRE, vueDeLaScene,
+  aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -208,8 +208,8 @@ export interface ZonesDeLEditeur {
    * ou `{ retirer }`, refusé à un rang absent).
    *
    * D'une entité : le formulaire qui la nomme, prérempli de son nom d'auteur ; le type d'un décor ou la fiche d'un
-   * personnage du bestiaire, en liste ; son cap parmi ceux que son type admet (`capsOfferts`), ceux de ses ponts pour
-   * un navire (`CAPS_DES_PONTS`) ; sa couche ;
+   * personnage du bestiaire, en liste ; son cap parmi ceux que son type admet (`capsOfferts` : les cardinaux d'un
+   * décor volumique ou d'un navire à ponts) ; sa couche ;
    *
    * d'un décor, sa lumière, allumée ou éteinte, son rayon à la réglette (−/+, au pas de 1 m, refusé sous 1 m) et son
    * ton en liste, celui du type ou chaque ton de `lightTones`, puis, si son type porte des places (`seatSlotsOf`), son
@@ -624,15 +624,15 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
     .map((c) => bouton(`${id}/${c}`, t('ecran.editeur.couche', { z: c }), jeu(c), c === z)));
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
- *  bestiaire ; son cap parmi ceux que son type admet, ceux de ses ponts pour un navire qu'ils posent ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
+ *  bestiaire ; son cap parmi ceux que son type admet (`capsOfferts`) ; sa couche ; la lumière et les places d'un décor ;
+ *  le poste d'un emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
  *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
  *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
   const cap = capDeLEntite(ent);
-  const caps = estPoseParSesPonts(sceneEditee(s), ent.id) ? CAPS_DES_PONTS : capsOfferts(ent);
+  const caps = capsOfferts(ent);
   return [
     formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),

@@ -18,6 +18,8 @@ import { footprintN } from './monde/footprint';
 import { registerScene, resetSceneRegistry } from './monde/registreDesScenes';
 import { walkNeighbors } from './monde/path';
 import { garanti } from '../lib/garanti';
+import { validateScene } from './validateScene';
+import { capsOfferts } from './sceneEditLecture';
 
 const plan = buildScene(PLAN_DE_LA_CARAQUE);
 
@@ -41,8 +43,22 @@ describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
     expect(naviresDeLaScene(enMer)).toEqual([]);
   });
 
-  it('ses ponts ne se posent qu’à un cap cardinal', () => {
-    expect(() => poserLesNavires(authored('NE'))).toThrow(/c1.*cardinal.*NE/);
+  /** `scene` dont la caraque `c1` est au cap `NE`, comme un JSON écrit hors de l'éditeur la porterait. */
+  const deBiais = (scene: Scene): Scene => ({ ...scene, entities: scene.entities.map((e) => (e.id === 'c1' ? { ...e, facing: 'NE' as const } : e)) });
+
+  it('à un cap non cardinal, le schéma refuse le navire, la validation nomme la faute et ses ponts ne se posent pas (#3772)', () => {
+    expect(() => authored('NE')).toThrow(/c1.*navire « caraque » au cap NE — un navire à ponts ne prend qu'un cap cardinal/);
+    const scene = deBiais(authored('O'));
+    expect(validateScene([scene]).filter((w) => w.refId === 'c1').map((w) => [w.level, w.message])).toEqual([
+      ['error', expect.stringContaining("navire « caraque » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)")],
+    ]);
+    expect(poserLesNavires(scene)).toEqual(scene);
+  });
+
+  it('un navire à ponts n’est offert qu’aux caps cardinaux, à toute échelle : changer d’échelle ne fait pas un navire de biais', () => {
+    expect(capsOfferts(authored('O').entities[0])).toEqual(['N', 'E', 'S', 'O']);
+    expect(capsOfferts(authored('O', 10).entities[0])).toEqual(['N', 'E', 'S', 'O']);
+    expect(() => authored('NE', 10)).toThrow(/navire « caraque » au cap NE/);
   });
 
   it('ses ponts se centrent sur son empreinte de combattant, au plus près d’une demi-case en travers', () => {

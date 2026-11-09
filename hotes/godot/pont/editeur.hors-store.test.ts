@@ -1159,6 +1159,7 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     expect(JSON.stringify(posee.vue.zones['editeur.inspecteur']), 'ses Améliorations, au formulaire tiré du schéma').toContain('"upgrades"');
     const tournee = presser(boutonDe(posee, 'entite/cap/O'));
     expect(tournee.navires!['navire-0'].corps.cap).toBe('O');
+    expect(erreurDe(appel('editer', { edition: { geste: 'entite', patch: { facing: 'NE' } } })).categorie, 'aucun bouton n’offre un cap de biais').toBe('validation');
   });
 
   it('une scène qui n’est pas à l’échelle des ponts refuse l’outil navire et chaque type, la raison dite', () => {

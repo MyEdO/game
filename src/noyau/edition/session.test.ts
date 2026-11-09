@@ -22,7 +22,7 @@ import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../scen
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { choixDuChamp, entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
+import { capsOfferts, choixDuChamp, entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
 import { refusDeLaValeur } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { findCreatureById, traits } from '../../data';
@@ -471,5 +471,24 @@ describe('le navire de la scène éditée (#3772)', () => {
     const s = poserLaCaraque(ouverteSur(bassin(10)));
     expect(sceneEditee(s).entities).toEqual([]);
     expect(s.historique.passe).toEqual([]);
+  });
+
+  it('un navire chargé de biais ne fait pas tomber la vue : ses ponts ne s’y posent pas, et l’avertissement le dit', () => {
+    const s = ouverteSur({ ...bassin(), entities: [{ ...caraque, facing: 'NE' }] } as Scene);
+    expect(vueDeLaScene(s).layers.map((l) => l.z)).toEqual([0]);
+    expect(avertissementsDeLaSession(s).filter((w) => w.refId === 'navire-0').map((w) => [w.level, w.message])).toEqual([
+      ['error', expect.stringContaining("navire « caraque » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)")],
+    ]);
+  });
+
+  it('le formulaire tiré du schéma n’écrit pas le cap d’un navire : seul le choix du cap le tourne, aux cardinaux', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    expect(refusDeLaValeur(s, { geste: 'valeur', porteur: { sorte: 'entite', id: 'navire-0' }, chemin: ['facing'], valeur: 'NE' })).toBe('nonOffert');
+    expect(capsOfferts(garanti(sceneEditee(s).entities[0], 'navire', 'entité'))).toEqual(['N', 'E', 'S', 'O']);
+  });
+
+  it('changer d’échelle vers celle du plan pose les ponts d’un navire, toujours à un cap cardinal', () => {
+    const s = editer(ouverteSur({ ...bassin(3), entities: [caraque] } as Scene), { geste: 'scene', patch: { scalaires: { metresPerTile: 2 } } });
+    expect(vueDeLaScene(s).layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
   });
 });
