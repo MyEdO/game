@@ -136,6 +136,10 @@
 // - `composition` : Soldat, manquants et copie validée côté Node ; une couleur changée à l'onglet Couleurs, posée dans
 //   la composition et sur les matériaux de la pièce ; pièce skinnée montée et démontée, courtaud, corpulence aux
 //   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
+// - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie à
+//   l'onglet Outils, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
+//   montée ou nommée manquante, capturé de face, de trois quarts et de dos (glissés au bouton droit de l'orbite) : ce que
+//   le jeu montrera d'un preset.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
 //
@@ -155,6 +159,7 @@
 //     --base <production> --element <production> --reexport <production> [--clip Sword_Attack]
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --piece <production skinnée>
+//   node hotes/godot/recette.mjs --parcours preset --preset sorcier --web <export> --captures <dossier>
 import assert from 'node:assert/strict'
 import { spawnSync } from 'node:child_process'
 import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -173,11 +178,12 @@ import { chargerAssets } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|brume|fiche|inventaire|creation|editeur|atelier|composition]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|brume|fiche|inventaire|creation|editeur|atelier|composition|preset]')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
+if (o.parcours === 'preset' && !o.preset) throw new Error('--parcours preset attend --preset <id d’un preset de personnage>')
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
 
@@ -2470,7 +2476,42 @@ async function parcoursComposition() {
   assert.deepEqual(arret.erreurs, [], 'marche et arrêt sans erreur')
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition }
+/** Les lacets de l'orbite capturés par le parcours `preset`, en radians depuis la face : trois quarts, puis dos. */
+const VUES_DU_PRESET = [['face', 0], ['trois-quarts', Math.PI / 4], ['dos', Math.PI]]
+/** Les radians de lacet par pixel d'un glissé de l'orbite (`MiseEnPage.RADIANS_PAR_PIXEL`). */
+const RADIANS_PAR_PIXEL = 0.005
+
+/** Le preset `--preset` composé dans l'atelier, sur les modèles du projet, et capturé de face, de trois quarts et de dos :
+ *  sa base choisie à l'onglet Outils, le preset à l'onglet Personnage, aucune erreur publiée. */
+async function parcoursPreset() {
+  const preset = JSON.parse(readFileSync(new URL('../../src/data/presets-de-personnage.json', import.meta.url), 'utf8')).find((x) => x.id === o.preset)
+  assert.ok(preset, `--preset ${o.preset} : un preset de src/data/presets-de-personnage.json`)
+  await session.rpc('Emulation.setDeviceMetricsOverride', { width: 1280, height: 720, deviceScaleFactor: 2, mobile: false })
+  await session.rpc('Page.reload')
+  await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
+  await cliquerBouton('Atelier')
+  await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
+  await cliquerBouton('Outils')
+  await cliquerAmene('humanoide', 1)
+  await attendreLAtelier('a.base === "humanoide"', 120000)
+  await cliquerBouton('Personnage')
+  await cliquerAmene(preset.label, -1)
+  await attendreLAtelier(`a.composition.preset === ${JSON.stringify(preset.id)}`, 120000)
+  await sleep(3000)
+  const a = await atelier()
+  assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)
+  noter(`${preset.label} : montés ${a.composition.montes.filter((m) => m.element).map((m) => m.element).join(', ')} ; manquants ${a.composition.manquants.map((m) => m.label).join(', ') || 'aucun'}`)
+  let lacet = 0
+  for (const [nom, cible] of VUES_DU_PRESET) {
+    const dx = -Math.round((cible - lacet) / RADIANS_PAR_PIXEL)
+    const pas = Math.ceil(Math.abs(dx) / 10)
+    if (dx) await geste(session, { surface: 'canvas', x: 1000, y: 360 }, { qui: `orbite ${nom}` }, clic({ bouton: 'right', trajet: Array.from({ length: pas }, (_, i) => ({ x: Math.round((dx * (i + 1)) / pas), y: 0 })) }))
+    lacet = cible
+    await capturer(`preset-${preset.id}-${nom}`)
+  }
+}
+
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null
