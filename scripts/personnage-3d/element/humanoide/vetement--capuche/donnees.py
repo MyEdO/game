@@ -27,8 +27,12 @@ MATERIAUX = {'capuche': ('accent', ((0.6, 0.6, 0.6), 0.0, 0.87))}
 CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-courte', 'robe': 'humanoide--vetement--robe'}
 MATIERES_DE_LA_TETE = ['peau', 'cheveux']
 MATIERES_DE_LA_COIFFURE = ['poil']
-MATIERES_DE_LA_ROBE = ['robe']          # le pan repose sur la robe : il en emprunte les poids et les clés, celles des
-ZONES_DE_LA_ROBE = ['torse', 'bras_haut_g', 'bras_haut_d']  # meshes de la robe sous lui
+# Le pan, le bas de l'écharpe et l'anneau suivant posés sur la robe (`ECHARPE['bas_sur_la_robe']`) en empruntent les
+# poids et les clés, celles des meshes de la robe sous eux. Lié au corps, le bas de l'écharpe divergeait du col qu'il
+# recouvre sous silhouette (la robe passait devant lui, 8 mm sous `feminin` en Hampe_Repos_Loop et Walk_Loop, garde
+# `traversee`).
+MATIERES_DE_LA_ROBE = ['robe']
+ZONES_DE_LA_ROBE = {'pan': ['torse', 'bras_haut_g', 'bras_haut_d'], 'echarpe': ['torse', 'cou']}
 BUDGET_TRIANGLES = 2500                 # procédure, section 7 : vêtement par pièce
 EPAISSEUR = 0.004                       # adaptation : drap de laine, double nappe
 
@@ -75,6 +79,12 @@ ECHARPE = {
     'col': (0.30, 0.050, 0.010),        # adaptation
     'passes_du_col': 2,                 # adaptation : passes qui étalent le long du bas l'écart pris sur le col (au saut d'un
                                         # sommet écarté à son voisin qui ne l'est pas, l'arête vers l'anneau 1 s'étire)
+    'bas_sur_la_robe': 45.0,            # adaptation : azimut (degrés depuis l'avant) au-delà duquel le bas et l'anneau suivant,
+                                        # posés sur le col et l'empiècement de la robe, en prennent les poids et les clés : à
+                                        # 60°, la robe passait devant eux sous `carrure_plus` (5,3 mm en Hit_Knockback) et, le
+                                        # bas seul, au-dessus de l'épaule droite (13 mm en Death01, OverhandThrow) ; devant,
+                                        # aux poids du cou, l'arête qui joint le bas à l'anneau suivant s'étire moins (×3,30
+                                        # contre ×3,61 aux poids de la robe, capuche-visage en Sword_Regular_A)
     'passes_du_bas': 2,                 # adaptation : passes qui lissent la hauteur du bas dans le dos (pondérées par le cosinus
                                         # de l'azimut vers l'arrière) : posée sur le torse depuis la couture en dents de scie puis
                                         # écartée sur le col, elle y monte et descend d'un sommet à l'autre (jusqu'à 27 mm), et
@@ -101,21 +111,23 @@ ECHARPE = {
 # vise, dans le plan sagittal de sa colonne, l'enveloppe convexe de la coupe du torse depuis un axe à l'épaule.
 PAN = {
     'os_epaule': 'clavicle_l',
-    'colonnes_x': (0.070, 0.095, 0.120),  # adaptation : x des colonnes depuis la tête de `clavicle_l` (pan de ~0,05 m, entre le
-                                          # cou et l'acromion : au-delà, l'épaule de la robe passe sous son bord quand la carrure s'élargit)
+    'colonnes_x': (0.062, 0.083, 0.104),  # adaptation : x des colonnes depuis la tête de `clavicle_l` (pan de ~0,04 m, entre le
+                                          # cou et l'acromion : au-delà, le haut de la manche de la robe passe sous son bord quand
+                                          # la carrure s'élargit, 12 mm à 0,120 sous `carrure_plus` en Death01)
     'axe': (0.0, 0.050, -0.210),          # adaptation : axe des visées depuis la tête de `clavicle_l` (y, z ; x ignoré)
     'angle_devant': -12.0,                # illustration : le pan descend sur la poitrine jusqu'au-dessus de la ceinture
     'angle_derriere': 196.0,              # HYPOTHÈSE (dos non montré) : derrière, il descend sous l'omoplate
     'stations': 14,
-    'jeu': 0.034,                         # adaptation : par-dessus la robe et son col (#3743)
-    'jeu_min': 0.032,                     # adaptation : distance vraie de la nappe intérieure au corps, au-dessus de l'aisance
+    'jeu': 0.038,                         # adaptation : par-dessus la robe et son col (#3743) ; à 0,034, le haut de la manche
+                                          # de la robe passe devant le pan sous `carrure_plus` (Push_Loop, Interact)
+    'jeu_min': 0.036,                     # adaptation : distance vraie de la nappe intérieure au corps, au-dessus de l'aisance
                                           # de la robe (col à 26 mm, `vetement--robe/donnees.py`) et de son épaisseur
     'portee': 0.40,
     'passes_de_lissage': 2,
 }
 
 # Zones de la base dont chaque nappe emprunte les poids ; le capuchon emprunte ceux de la peau de la tête publiée, qu'il
-# couvre (la peau y porte un peu de `neck_01` : le capuchon la suit telle quelle), le pan ceux de la robe.
+# couvre (la peau y porte un peu de `neck_01` : le capuchon la suit telle quelle), le pan et le bas de l'écharpe ceux de la robe.
 PORTEUSES = {'echarpe': ['cou', 'torse']}
 # Os dont une nappe reporte le poids emprunté sur un autre : l'écharpe s'enroule autour du cou, elle ne suit pas la tête
 # (sous le menton, la peau du cou porte `Head`) ; son poids va au cou.

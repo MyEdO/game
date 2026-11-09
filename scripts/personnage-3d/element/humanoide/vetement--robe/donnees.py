@@ -1,9 +1,10 @@
 """Données de `humanoide--vetement--robe` (le Sorcier, #3743, contrat du 2026-11-08), lues par `modele.py`.
 
 Illustration directrice : « Sorcier | sorcier | `carrieres/sorcier.png` | Livre de Base | 94 | certaine » (`INDEX.md`
-du recueil `illustrations-wfrp 2.zip`), hors dépôt. Elle montre une robe de dessus gris-bleu longue jusqu'aux chevilles,
-ouverte devant sous la ceinture sur une robe de dessous écrue, aux manches très évasées qui pendent sous les avant-bras
-(bandés, clairs) ; bordures à runes peintes (OMISES, contrat). Fermée derrière d'un seul pan (hypothèse du dos du
+du recueil `illustrations-wfrp 2.zip`), hors dépôt. Elle montre une robe de dessus gris-bleu à mi-mollet, ouverte devant
+sous la ceinture sur une robe de dessous écrue qui tombe à la cheville et dépasse tout autour sous l'ourlet, aux manches
+très évasées qui pendent sous les avant-bras (bandés : élément `humanoide--vetement--bandages`) ; bordures à runes
+peintes et ourlet en lambeaux de la robe de dessous (OMIS, contrat). Fermée derrière d'un seul pan (hypothèse du dos du
 contrat).
 
 Chaque dimension est nommée, en mètres ou en degrés, avec sa source : `illustration` (proportion relevée sur l'image,
@@ -17,12 +18,13 @@ MANIFESTE = {
     'cle': {'piece': 'robe'},
     'liaison': {'mode': 'squelette'},
     'couche': 'tenue',
-    'couvre': ['torse', 'hanches', 'bras_haut_g', 'bras_haut_d', 'avant_bras_g', 'avant_bras_d',
-               'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d', 'mollet_g', 'mollet_d'],
+    'couvre': ['torse', 'hanches', 'bras_haut_g', 'bras_haut_d', 'cuisse_g', 'cuisse_d', 'genou_g', 'genou_d',
+               'mollet_g', 'mollet_d'],
     'chaines': ['jupe'],
 }
 MATERIAUX = {'robe': ('vet1', ((0.55, 0.57, 0.6), 0.0, 0.87)),       # niveaux de gris de construction, sans couleur cuite
-             'dessous': ('vet2', ((0.8, 0.78, 0.72), 0.0, 0.87))}
+             'dessous': ('vet2', ((0.8, 0.78, 0.72), 0.0, 0.87)),
+             'poitrine': ('peau', ((0.7, 0.7, 0.7), 0.0, 0.6))}
 
 # --- Maillage ---
 BUDGET_TRIANGLES = 2500            # procédure, section 7 : vêtement par pièce
@@ -35,14 +37,29 @@ BORNES_DES_CLES = (0.27, 2.5)      # rapport d'arête sous une clé transférée
                                    # `gabarit_legs_moins`, le bas de la jambe de la base se tasse à ~0,28 ;
                                    # marge prise sur la porte d'étirement au repos de l'évaluateur ([0,25 ; 4])
 
-# --- Corsage : anneaux horizontaux (ancre, décalage, aisance), ancres lues sur la base : `bas` = bas de la zone
-# `torse`, `aisselle` = bas des zones `bras_haut_*`, `cou` = bas de la zone `cou` ---
-CORSAGE = [('bas', 0.0, 0.008), ('bas', 0.12, 0.012), ('aisselle', -0.12, 0.014), ('aisselle', -0.04, 0.016),
-           ('aisselle', 0.03, 0.020), ('aisselle', 0.09, 0.022), ('cou', -0.03, 0.026), ('cou', 0.0, 0.026)]
+# --- Corsage : anneaux horizontaux (ancre, décalage, aisance, demi-ouverture devant en degrés, 0 = fermé), ancres
+# lues sur la base : `bas` = bas de la zone `torse`, `aisselle` = bas des zones `bras_haut_*`, `cou` = bas de la zone
+# `cou` ---
+CORSAGE = [('bas', 0.0, 0.008, 0.0), ('bas', 0.12, 0.012, 0.0), ('aisselle', -0.12, 0.014, 0.0),
+           ('aisselle', -0.04, 0.016, 0.0), ('aisselle', 0.03, 0.020, 16.0), ('aisselle', 0.09, 0.022, 28.0),
+           ('cou', -0.03, 0.026, 38.0), ('cou', 0.0, 0.026, 0.0), ('cou', 0.015, 0.026, 0.0), ('cou', 0.03, 0.026, 0.0)]
 # aisances : HYPOTHÈSE (robe ample mais portée sous la ceinture : l'aisance au premier anneau reste sous la surface
 # intérieure de la ceinture publiée, mesurée sur l'élément publié) ; col arrêté au bas du cou et dégagé de 26 mm,
-# caché par l'écharpe de la capuche (illustration) : plus haut ou plus serré, le cou le traverse sous `carrure_plus`
-# (Hit_Knockback, Push_Loop : jusqu'à 16 mm).
+# caché par l'écharpe de la capuche (illustration) : plus serré, le cou le traverse sous `carrure_plus` (Hit_Knockback,
+# Push_Loop : jusqu'à 16 mm). Base : la coupe au bas du cou (z 1,527 m) passe par le haut des épaules (x ±0,237 m) ;
+# arrêtée là, la robe laissait le trapèze à nu entre l'écharpe et la manche, et l'on voyait l'intérieur de son dos
+# au-dessus des épaules (sonde de rayons de la vue de face, Hampe_Repos_Loop image 20 : 465 rayons sur l'intérieur
+# du dos) : deux anneaux au-dessus couvrent le trapèze jusqu'au cou, sous l'écharpe, dont le bas emprunte leurs poids
+# et leurs clés (`vetement--capuche/donnees.py`). L'empiècement suit la colonne du V (garde `enroulement`, `modele.py`).
+# Demi-ouvertures : illustration, l'encolure s'ouvre en V sous l'écharpe jusque sous les pectoraux (fermée à
+# l'anneau `aisselle` -0,04, z 1,33 m) ; le col, au bas du cou, reste fermé sous l'écharpe : ouvert, le bas de
+# l'écharpe n'y reposait plus devant, et l'arête qui le joint à l'anneau suivant s'étirait au-delà de la porte
+# (capuche-visage, ×3,52 en Sword_Regular_A).
+# Dans le V, la poitrine est une nappe de la robe à l'emplacement `peau`, au ras du torse (`DEGAGEMENT_MIN`), qui
+# court sous les bords : la zone `torse`, découverte, laissait la peau de la base passer devant la robe à l'épaule et
+# sous l'aisselle, jusqu'à 40 mm (Idle_Loop, Walk_Loop, Hampe_Repos_Loop ; garde `traversee`, poids lissés ou non).
+RECOUVREMENT_POITRINE = 20.0       # HYPOTHÈSE : la poitrine court sous la robe sur une colonne (20°) de chaque bord du V
+COLONNES_POITRINE = 4              # intervalles de la poitrine par anneau (maillage)
 
 # --- Jupe : rangées horizontales sous le corsage, cône évasé depuis la ligne des hanches ---
 Z_HANCHES = 0.90                   # base : coupe la plus large du bassin et des cuisses (x ±0,18 m)
@@ -50,26 +67,31 @@ AISANCE_HANCHES = 0.04             # HYPOTHÈSE : la robe, froncée sous la cein
                                    # à moins, le petit rayon du devant étire les arêtes au-delà de la porte en clip (Roll) ;
                                    # à 0,055, l'ourlet latéral se lie au corps autrement sous `gabarit_legs_moins` et le
                                    # lissage des clés décolle la pièce (suiviDuCorps/cle-non-suivie)
-EVASEMENT_DEVANT = 1.8             # illustration : de face, l'ourlet fait ~1,8 fois la largeur aux hanches
-EVASEMENT_ARRIERE = 2.0            # HYPOTHÈSE (dos non montré) : jupe plus pleine derrière, pour que le talon, relevé
-                                   # en marche par le genou plié, reste sous l'ourlet
-OURLET_ROBE = 0.13                 # illustration : la robe de dessus tombe à la cheville (tête de `foot_l` à 0,096 m)
-OURLET_DESSOUS = 0.10              # illustration : la robe de dessous dépasse de ~3 cm sous celle de dessus, à la cheville
-RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60, 0.44, 0.28]   # hauteurs des rangées intermédiaires, m (HYPOTHÈSE de maillage)
-OUVERTURE_TAILLE = 6.0             # illustration : la robe de dessus s'ouvre en V sous la ceinture ; demi-angle en degrés à la
-                                   # première rangée : à 2°, les intervalles du pan de dessous dans l'ouverture font 5 mm
-                                   # à 0,90 m et s'étirent ×3,7 sous `corpulence` (Jump_Land, Roll)
-OUVERTURE_OURLET = 26.0            # illustration : demi-angle de l'ouverture devant à l'ourlet, degrés
-RECOUVREMENT_DESSOUS = 3           # HYPOTHÈSE : le pan de dessous court sous les 3 premières colonnes de chaque bord
-                                   # de la robe de dessus (~60° à la taille, ~75° à l'ourlet)
-COLONNES_OUVERTURE = 4             # intervalles du pan de dessous dans l'ouverture (maillage), pair : un sommet sur l'axe ;
+EVASEMENT_DEVANT = 1.8             # illustration : de face, l'ourlet de la robe de dessous fait ~1,8 fois la largeur aux
+                                   # hanches ; la robe de dessus, plus courte, suit le même cône
+EVASEMENT_ARRIERE = 2.8            # HYPOTHÈSE (dos non montré) : jupe plus pleine derrière, pour que le talon, relevé
+                                   # en marche par le genou plié, reste sous l'ourlet, et la botte droite au repos
+                                   # (Idle_Loop, Hampe_Repos_Loop : pied reculé de ~30 cm par le genou plié, cuisse à
+                                   # 17°, que seul suit le brin arrière) : elle traversait la robe de dessous de 92 mm
+                                   # à 2,0, de 35 mm à 2,4 (sonde de saillie des bottes, ourlet à `OURLET_DESSOUS`)
+# Longueurs : illustration, hauteurs au sol rapportées à la ceinture (centre de la ceinture à y 567 px, sol entre les
+# semelles à y 1095 px ; centre de la ceinture publiée à z 1,098 m, soit 2,08 mm par pixel).
+OURLET_ROBE = 0.40                 # illustration : la robe de dessus tombe à mi-mollet (y ~905 px)
+OURLET_DESSOUS = 0.19              # illustration : la robe de dessous tombe à la cheville (y ~1005 px, lambeaux de 960 à
+                                   # 1020 px), au-dessus du haut des bottes publiées (z 0,165 m)
+RANGEES_JUPE = [1.00, 0.90, 0.76, 0.60]   # hauteurs des rangées intermédiaires des deux robes, m (HYPOTHÈSE de maillage)
+RANGEES_DESSOUS = [0.30]                  # rangées de la robe de dessous sous l'ourlet de la robe (HYPOTHÈSE de maillage)
+OUVERTURE_TAILLE = 18.0            # illustration : la robe de dessus s'ouvre devant sous la ceinture, ~0,13 m de large
+                                   # sous la boucle (demi-angle en degrés à la première rangée) ; à 2°, les intervalles de
+                                   # la robe de dessous dans l'ouverture font 5 mm à 0,90 m et s'étirent ×3,7 sous
+                                   # `corpulence` (Jump_Land, Roll)
+OUVERTURE_OURLET = 36.0            # illustration : l'ouverture fait ~0,3 m de large au genou (demi-angle à l'ourlet)
+COLONNES_OUVERTURE = 4             # intervalles de la robe de dessous dans l'ouverture (maillage), pair : un sommet sur l'axe ;
                                    # une paire de part et d'autre de l'axe, entre les genoux, se croise sous `corpulence`
                                    # (la clé suit l'intérieur des genoux) et l'arête retournée se replie en Slide_Exit ;
                                    # à 2 intervalles, la corde de l'ourlet (26°) rentre sur le pied, qui la traverse
                                    # sous `carrure_plus`
-REMONTEE_DESSOUS = 0.012           # HYPOTHÈSE : hors de l'ouverture, l'ourlet du dessous remonte à 1,2 cm au-dessus de
-                                   # celui de la robe, caché dessous (pas de bande écrue tronquée sur les côtés)
-ECART_DESSOUS = 0.008              # HYPOTHÈSE : le pan de dessous court 8 mm sous la robe de dessus
+ECART_DESSOUS = 0.008              # HYPOTHÈSE : la robe de dessous court 8 mm sous la robe de dessus
 
 # --- Poids de la jupe : chaîne `jupe` de la base (4 brins : avant θ=0, g θ=90, arrière θ=180, d θ=270) ---
 # Le poids d'un brin décroît linéairement de 1 à son angle à 0 à l'angle des brins voisins (90°) : tout secteur où un brin
@@ -92,16 +114,30 @@ MARGE_DE_PLI = 0.8                 # HYPOTHÈSE : part bornée à 80 % du repli 
                                    # l'ourlet devant du dessous en Sword_Regular_A_Rec (`corpulence`) et à 0,60 m en
                                    # Jump_Start (`feminin`), mesurées sous silhouettes
 
-# --- Manches : anneaux perpendiculaires aux os du bras (segment, fraction de l'os, aisance, pan) ; `pan` : rayon
-# ajouté vers le bas-arrière du bras (`ANGLE_DU_PAN`), en lobe (cos²) ---
+# --- Manches : anneaux perpendiculaires à `upperarm` (fraction de l'os, au-delà de 1 passé le coude ; aisance ; pan) ;
+# `pan` : longueur ajoutée en lobe (cos²) vers `ANGLE_DU_PAN` dans le plan de l'anneau, incliné de
+# `INCLINAISON_DU_PAN` sur l'axe du bras ---
 COUPE_MIN = 0.06
 CREUX_DE_LA_RACINE = 0.0
 RAYON_DE_COUPE_MAX = 0.12
-ANGLE_DU_PAN = 250.0               # HYPOTHÈSE : dans le plan de l'anneau, 0 = haut du bras en T, 90 = avant, 270 = arrière
-MANCHE = [('haut', -0.10, 0.024, 0.0), ('haut', 0.15, 0.022, 0.0), ('haut', 0.55, 0.024, 0.0), ('haut', 0.95, 0.026, 0.010),
-          ('bas', 0.30, 0.040, 0.040), ('bas', 0.65, 0.058, 0.080), ('bas', 0.98, 0.072, 0.120)]
-# illustration : manche ajustée au bras, évasée dès le coude, ouverture ~3 fois l'avant-bras, pan pendant ~12 cm ;
-# valeurs relevées sur le bras tendu de l'illustration, rapportées à l'avant-bras de la base (0,24 m).
-SOUS_MANCHE = [(0.05, 0.006), (0.50, 0.006), (0.86, 0.006)]
-# robe de dessous : manche ajustée de l'avant-bras, vue dans la manche évasée (illustration : avant-bras clairs) ;
-# (fraction de `lowerarm`, aisance), HYPOTHÈSE ; arrêtée avant le poignet, que la main traverse sous corpulence.
+MANCHE = [(-0.10, 0.024, 0.0), (0.15, 0.022, 0.0), (0.55, 0.026, 0.0), (0.95, 0.050, 0.02), (1.15, 0.072, 0.12),
+          (1.40, 0.085, 0.38)]
+# illustration : manche ajustée jusqu'au coude, puis cloche ouverte ~0,1 m passé le coude, dont le pan pend ~0,4 m
+# sous le coude du bras plié (bras gauche) ; aisances de la cloche : HYPOTHÈSE, assez larges pour que l'avant-bras
+# droit de Hampe_Repos_Loop (coude à 34°) sorte par l'ouverture sans en percer le devant (vu au rendu), et que
+# l'avant-bras bandé (`humanoide--vetement--bandages`, découvert) ne passe pas devant la manche au coude : à 32 et 50 mm
+# (anneaux 0,95 et 1,15), il la traversait jusqu'à 27 mm sous `carrure_plus` (Lourde_Attaque, Hampe_Attaque), à 42 et
+# 62 mm jusqu'à 15 mm (garde `traversee`).
+ANGLE_DU_PAN = 170.0               # base : direction du bas du monde dans le repère de repos de `upperarm` (0 = haut du bras
+INCLINAISON_DU_PAN = 20.0          # en T, 90 = avant), moyenne sur Hampe_Repos_Loop, Hampe_Marche_Loop, Idle_Loop et
+                                   # Walk_Loop, deux bras : (0,94 le long du bras, 0,08 vers l'avant, 0,33 vers le bas),
+                                   # à moins de 25° de chacun ; le pan, ainsi tourné, pend sous le coude dans ces clips
+RACCORD_EPAULE = 0.5               # fraction de `upperarm` sous laquelle un anneau de manche emprunte ses poids sommet par
+                                   # sommet (raccord au corsage, lissé avec lui) ; au-delà, la manche suit `upperarm` d'un
+                                   # bloc (poids de `COUPE_DES_POIDS`), cloche comprise, et l'avant-bras plié en sort :
+                                   # dans le repère de `lowerarm`, le bas du monde tourne de plus de 100° d'un clip à
+                                   # l'autre (avant-bras levé de Hampe_Repos_Loop, pendant d'Idle_Loop), et aucun pan lié à
+                                   # l'avant-bras ne pend ; mêlée des deux os, elle se replie au coude (anneau du coude à
+                                   # 6 mm de l'axe, dents de scie sous l'avant-bras plié de Hampe_Repos_Loop)
+COUPE_DES_POIDS = 0.7              # fraction de `upperarm` dont la peau donne les poids de la manche (0,95 `upperarm`,
+                                   # 0,05 `lowerarm`, lus sur l'export)

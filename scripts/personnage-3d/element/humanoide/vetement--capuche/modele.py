@@ -253,10 +253,11 @@ def echarpe(D, b, M, contournees, robe):
     anneaux = [(M.ajouter(rang, 'echarpe'), np.array([centre[0], centre[1], float(np.mean([p[2] for p in rang]))])) for rang in rangs]
     for (A, ca), (B, cb) in zip(anneaux, anneaux[1:]):
         M.bande(A, B, (ca + cb) / 2)
-    # Part de `Head` de chaque sommet (devant, sous le menton, l'écharpe est poussée par lui) et sommets du bas, qui
-    # gardent les poids du torse sous eux.
+    # Part de `Head` de chaque sommet (devant, sous le menton, l'écharpe est poussée par lui), sommets du bas, et ceux
+    # du bas et de l'anneau suivant posés sur la robe, qui en prennent les poids et les clés.
     part_de_la_tete = {i: f * max(0.0, math.cos(t)) for (A, _), f in zip(anneaux, c['part_de_la_tete']) for i, t in zip(A, thetas)}
-    return part_de_la_tete, anneaux[0][0]
+    posees = [i for A, _ in anneaux[:2] for i, t in zip(A, thetas) if abs(t) >= math.radians(c['bas_sur_la_robe'])]
+    return part_de_la_tete, anneaux[0][0], posees
 
 
 # ---------------------------------------------------------------- pan sur l'épaule
@@ -351,13 +352,13 @@ def construire(D, materiaux, b):
     faces_capuchon = capuchon(D, b, M, tete_et_cou)
     X = np.array(M.sommets)
     avec_capuchon = tete_et_cou.plus([surface_de(X, faces_capuchon)])
-    part_de_la_tete, bas_de_l_echarpe = echarpe(D, b, M, avec_capuchon, Contournees(D, [robe[:2]]))
+    part_de_la_tete, bas_de_l_echarpe, posees = echarpe(D, b, M, avec_capuchon, Contournees(D, [robe[:2]]))
     pan(D, b, M, Contournees(D, [zone(b, 'torse')]))
 
     X, orientes, normales = M.orienter()
     porteurs = {nom: b.porteur(zs) for nom, zs in D['PORTEUSES'].items()}
     porteurs['capuchon'] = porteur_de(*peau_et_poids)
-    porteurs['pan'] = porteur_de(*robe)
+    porteurs['pan'] = sur_la_robe = porteur_de(*robe)
     reports = {nom: [(b.indice_os[a], b.indice_os[o]) for a, o in r.items()] for nom, r in D['OS_REPORTES'].items()}
     W = np.zeros((len(X), len(b.os)))
     for i, (p, partie) in enumerate(zip(X, M.parties)):
@@ -367,9 +368,22 @@ def construire(D, materiaux, b):
             W[i, a] = 0.0
     voisins = voisinage(orientes, len(X))
     parties = np.array(M.parties)
-    emprunte = W.copy()
-    W = sum(np.where((parties == nom)[:, None], lisser(W, voisins, passes), 0.0) for nom, passes in D['LISSAGE_POIDS'].items())
-    W[bas_de_l_echarpe] = emprunte[bas_de_l_echarpe]
+    # Le bas de l'écharpe garde ses poids empruntés ; posés sur la robe, le bas et l'anneau suivant prennent ceux de la
+    # robe, tenus à chaque passe : l'écharpe au-dessus s'y raccorde (lissé avec les autres puis remplacé, le bas s'en
+    # écartait au-dessus de l'épaule droite, arête de 14 mm étirée ×2,1 en Idle_Loop au neutre). Devant, lissé puis
+    # remplacé : tenu à chaque passe, l'arête vers l'anneau suivant s'étirait ×3,78 en Sword_Regular_A, contre ×3,29.
+    empruntes = W[bas_de_l_echarpe]
+    W[posees] = [emprunter(X[i], sur_la_robe)[0] for i in posees]
+    sous_la_robe = W[posees]
+
+    def lisser_en_tenant_la_robe(W_, passes):
+        for _ in range(passes):
+            W_ = lisser(W_, voisins, 1)
+            W_[posees] = sous_la_robe
+        return W_
+    W = sum(np.where((parties == nom)[:, None], lisser_en_tenant_la_robe(W, passes), 0.0) for nom, passes in D['LISSAGE_POIDS'].items())
+    W[bas_de_l_echarpe] = empruntes
+    W[posees] = sous_la_robe
     tete_ = b.indice_os['Head']
     for i, f in part_de_la_tete.items():
         W[i] *= 1.0 - f
@@ -379,10 +393,12 @@ def construire(D, materiaux, b):
     for i, p in enumerate(X):
         arbre.insert(Vector(p.tolist()), i)
     arbre.balance()
-    partie_de = [parties[arbre.find(v.co)[1]] for v in piece.data.vertices]
+    indice_de = [arbre.find(v.co)[1] for v in piece.data.vertices]
+    partie_de = [parties[i] for i in indice_de]
     cles = b.transferer(piece, D['ZONES_DES_CLES'], masques=[
         ([p == 'capuchon' for p in partie_de], D['ZONES_DES_CLES_DU_CAPUCHON'], {}),
-        ([p == 'pan' for p in partie_de], D['ZONES_DES_CLES'], {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']}),
+        ([p == 'pan' for p in partie_de], D['ZONES_DES_CLES'], {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']['pan']}),
+        ([i in posees for i in indice_de], D['ZONES_DES_CLES'], {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']['echarpe']}),
     ])
     tenir_au_corps(b, piece, [k for k in cles if k.startswith('gabarit_')], D['MARGE_DE_SUIVI'])
     return piece

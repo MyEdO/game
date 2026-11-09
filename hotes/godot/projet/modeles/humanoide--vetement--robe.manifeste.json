@@ -14,8 +14,6 @@
     "hanches",
     "bras_haut_g",
     "bras_haut_d",
-    "avant_bras_g",
-    "avant_bras_d",
     "cuisse_g",
     "cuisse_d",
     "genou_g",
@@ -40,10 +38,14 @@
     {
       "nom": "dessous",
       "palette": "vet2"
+    },
+    {
+      "nom": "poitrine",
+      "palette": "peau"
     }
   ],
   "glb": {
-    "sha256": "71a1de53acbccbd0067ea43ec2fffdb7ae6c222d4d79571472154f0f7a5ee401",
-    "octets": 1127192
+    "sha256": "750504afae7ddeeebda5ab84dcf9076d0c6c7c8953560fd7bb16d7198250b41c",
+    "octets": 1141648
   }
 }

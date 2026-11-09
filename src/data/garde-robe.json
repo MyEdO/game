@@ -213,6 +213,13 @@
     "categorie": "vetement"
   },
   {
+    "id": "bandages",
+    "type": "garde-robe",
+    "label": "Bandages",
+    "kind": "piece",
+    "categorie": "vetement"
+  },
+  {
     "id": "insigne",
     "type": "garde-robe",
     "label": "Insigne",
@@ -308,6 +315,15 @@
     }
   },
   {
+    "id": "bandouliere-a-parchemins",
+    "type": "garde-robe",
+    "label": "Bandoulière à parchemins",
+    "kind": "variante",
+    "piece": {
+      "id": "baudrier"
+    }
+  },
+  {
     "id": "trapping-bottes",
     "type": "garde-robe",
     "label": "Bottes",
@@ -331,6 +347,19 @@
     },
     "pieces": [
       "gants"
+    ]
+  },
+  {
+    "id": "trapping-bandages",
+    "type": "garde-robe",
+    "label": "Bandages",
+    "kind": "ensemble",
+    "habille": {
+      "id": "bandages",
+      "type": "trapping"
+    },
+    "pieces": [
+      "bandages"
     ]
   },
   {

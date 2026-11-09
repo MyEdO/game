@@ -186,7 +186,7 @@ def main():
     mode = M["liaison"]["mode"]
     if mode == "rigide":
         octets, objets, propres, triangles = construire_rigide(D, modele, manifeste_de_base, glb_de_base, temporaire)
-    elif mode == "squelette":
+    elif mode in ("squelette", "surface"):
         octets, objets, propres, triangles = construire_squelette(D, modele, manifeste_de_base, glb_de_base, args.cache,
                                                                   temporaire)
     else:
