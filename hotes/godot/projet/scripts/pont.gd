@@ -151,6 +151,9 @@ func adresse(relative: String) -> String:
 func requeter(relative: String, recueil: Array[String], methode := HTTPClient.METHOD_GET, corps := "") -> PackedByteArray:
 	var requete := HTTPRequest.new()
 	requete.download_chunk_size = BLOC_DE_TELECHARGEMENT
+	# Sur le Web, le navigateur a déjà décompressé un corps `Content-Encoding: gzip` (GitHub Pages, #3778) : HTTPRequest
+	# ne le décompresse pas une seconde fois (`RESULT_BODY_DECOMPRESS_FAILED`).
+	requete.accept_gzip = false
 	add_child(requete)
 	var code := requete.request(adresse(relative), PackedStringArray(), methode, corps)
 	if code != OK:
