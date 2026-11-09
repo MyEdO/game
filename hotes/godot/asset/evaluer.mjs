@@ -6,7 +6,9 @@
 //     [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit] [--porte]
 // Avec `--base`, chaque `<glb>` est un élément monté sur cette base, ensemble (une tenue), sa couche et ses zones lues
 // dans le manifeste d'élément voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import) :
-// la traversée des couches se mesure (#3743). Sans `--base`, l'unique `<glb>` est la base. Sans `--manifeste`, seule
+// la traversée des couches se mesure (#3743) ; seul un élément dont la forme `cle.apparence` est celle d'une arme (un
+// trapping `melee` ou `distance` de cette `shape`, `src/data/trappings.json`) porte un tranchant (`tranchantDuRigide`) :
+// un sac rangé n'en a pas. Sans `--base`, l'unique `<glb>` est la base. Sans `--manifeste`, seule
 // la racine a une position animée (`osAPositionAnimee` du manifeste de base). `--porte` joue les passes de la porte d'un
 // élément (#3743) : le corps neutre, puis chaque silhouette déclarée par le manifeste de base seule à 1, chacune dans son
 // processus, en parallèle sur les cœurs de la machine ; code 1 si une passe a un écart.
@@ -105,10 +107,13 @@ const couche = (glb) => {
   const { couche, couvre = [] } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
   return couche ? { couche, couvre } : null
 }
+const FORMES_D_ARMES = new Set(JSON.parse(readFileSync(new URL('../../../src/data/trappings.json', import.meta.url), 'utf8'))
+  .filter((t) => t.shape && ['melee', 'distance'].includes(t.categorie)).map((t) => t.shape.id))
+const arme = (glb) => FORMES_D_ARMES.has(JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8')).cle?.apparence)
 const entree = {
   base: readFileSync(values.base ?? positionals[0]),
   elements: values.base ? positionals.map((g) => readFileSync(g)) : [],
-  ...(values.base ? { couches: positionals.map(couche) } : {}),
+  ...(values.base ? { couches: positionals.map(couche), armes: positionals.map(arme) } : {}),
   ...(values.manifeste ? { manifeste: JSON.parse(readFileSync(values.manifeste, 'utf8')) } : {}),
   ...(facteurs === undefined ? {} : { facteurs }),
   ...(silhouettes === undefined ? {} : { silhouettes }),

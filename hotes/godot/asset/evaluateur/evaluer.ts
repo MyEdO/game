@@ -47,6 +47,9 @@ export interface EntreeDEvaluation {
   /** La couche et les zones couvertes de chaque élément de `elements`, dans son ordre (`ManifesteDElement`), `null` pour
    *  un élément sans couche ; sans elles, la traversée des couches n'est pas mesurée (`gardes/traversee.ts`). */
   readonly couches?: readonly (CoucheDeLElement | null)[];
+  /** Par élément de `elements`, dans son ordre, vrai si sa forme est celle d'une arme : seuls ses rigides portent un
+   *  tranchant (`gardes/tranchantDuRigide.ts`) ; sans elle, tout rigide pendu à la prise `main` en porte un. */
+  readonly armes?: readonly boolean[];
   /** Le manifeste de base brut, validé ici (`validerManifesteDeBase`) ; sans lui, ni gabarit ni prise, et seule la
    *  racine a une position animée. */
   readonly manifeste?: unknown;
@@ -204,7 +207,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...gardePistesDEchelle(base.scene, clips, racine, manifeste?.osAPositionAnimee ?? []),
     ...pistesDeChaine.ecarts,
     ...gardeEchelleDuRigide(rigidesTenus(base.scene, new Set(manifeste?.prises ? [manifeste.prises.main.os, manifeste.prises.off.os] : [])), libelle),
-    ...(manifeste?.prises ? gardeTranchantDuRigide(base.scene, manifeste.prises.main, libelle) : []),
+    ...(manifeste?.prises ? gardeTranchantDuRigide(base.scene, manifeste.prises.main, libelle, entree.armes && new Set(elements.flatMap((e, k) => (entree.armes?.[k] ? e.meshes : [])))) : []),
   );
 
   const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
