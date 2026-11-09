@@ -648,6 +648,12 @@
             "lightTones.json"
           ],
           "desc": "Ambiance lumineuse (`iso`/`pov`) · niveaux de lumière · TONS de lumière (#1245 : apparence d'une source ponctuelle — couleur, part d'intensité, vacillement ; référencés par `tone`, défaut `flamme`)"
+        },
+        {
+          "files": [
+            "rendus.json"
+          ],
+          "desc": "LES rendus visuels et sonores d'un coup ou d'une incantation (#3771) — couleur, visuel et son de chaque phase (départ, impact, manque, parade), trajet du projectile ; référencés par `rendu` (Groupe d'arme, objet, Domaine), résolus par `effetsDeLAppel` (`src/noyau/effetsDeLAppel.ts`)"
         }
       ]
     },

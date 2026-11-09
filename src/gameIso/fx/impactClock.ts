@@ -7,23 +7,16 @@
  * SINGLETON de module : deux hôtes montés en même temps (fiche de station, éditeur) installent la même
  * horloge, et un seul abonnement court — deux abonnements doubleraient chaque impact.
  */
-import { bus, EVT } from '../../noyau/bus';
-
-/** Évènement `ANIM_ATTACK` tel que les émetteurs le postent (`combatFlow`, `combatManeuvers`). */
-interface AttackEvent {
-  from?: string;
-  to?: string;
-  result?: unknown;
-}
+import { bus, EVT, type ChargeDAttaque } from '../../noyau/bus';
 
 let installations = 0;
 let off: (() => void) | null = null;
 
-function onAttack(d: AttackEvent | undefined): void {
+function onAttack(d: ChargeDAttaque): void {
   // CIBLE de l'échange : `to === from` n'en est PAS une (le souffle d'une créature,
   // `noyau/combatManeuvers.emitCreatureAttackAnim`, se poste sous cette forme) — un impact sur soi
   // serait un bruit de touche parasite.
-  if (!d?.from || !d.to || d.to === d.from) return;
+  if (d.to === d.from) return;
   const impact = { to: d.to, result: d.result };
   queueMicrotask(() => bus.emit(EVT.ANIM_IMPACT, impact));
 }
@@ -32,7 +25,7 @@ function onAttack(d: AttackEvent | undefined): void {
  *  libération désabonne. Renvoie la libération de CET appel (idempotente). */
 export function installImpactClock(): () => void {
   installations += 1;
-  if (installations === 1) off = bus.on(EVT.ANIM_ATTACK, (d) => onAttack(d as AttackEvent | undefined));
+  if (installations === 1) off = bus.on(EVT.ANIM_ATTACK, onAttack);
   let released = false;
   return () => {
     if (released) return;

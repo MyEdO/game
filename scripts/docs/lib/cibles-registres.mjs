@@ -62,13 +62,14 @@ export const REGISTRIES = [
     vocabulaire: { nom: 'fonds', id: 'id', libelle: 'label' },
   },
   {
-    // Sons (assets CC0 Kenney dans public/audio) : 1 son (avec variantes) = 1 fichier defs/.
+    // Sons (assets CC0) : 1 son (avec variantes) = 1 fichier defs/ ; vocabulaire `sons`, que désigne un effet.
     dir: 'src/data/sons/defs',
     out: 'src/data/sons/_registry.generated.ts',
     exportName: 'sound',
     arrayName: 'SOUND_DEFS',
     type: 'SoundDef',
     typeFrom: './types',
+    vocabulaire: { nom: 'sons', id: 'id', libelle: 'label' },
   },
   {
     // Schémas zod du contrat de donnée : 1 dataset `src/data/*.json` = 1 fichier defs/,

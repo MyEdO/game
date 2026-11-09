@@ -18,7 +18,6 @@ export const ROLES_DE_COMBAT = Object.freeze(['melee', 'ranged', 'cast', 'dodge'
 
 /** Styles d'incantation. */
 export const STYLES_DE_SORT = Object.freeze(['bolt', 'blessing'] as const);
-export type StyleDeSort = (typeof STYLES_DE_SORT)[number];
 
 export const ROLES_D_ANIMATION = Object.freeze([...ROLES_DE_COMBAT, 'death', ...roleAmbiantSchema.options, ...STYLES_DE_SORT] as const);
 export type RoleDAnimation = (typeof ROLES_D_ANIMATION)[number];
