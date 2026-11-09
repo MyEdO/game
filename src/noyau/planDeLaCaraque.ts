@@ -32,7 +32,7 @@ const PIECES: Record<string, string[]> = {
     '....PPPPPPPPPM....',
     '.VPP^PPPPP^PPMMMG.',
     '.VP.PP..PPP.PPPPK.',
-    '.VPP^PPPPP^PPNNAK.',
+    '.VPP^PPPPP^PPNAAK.',
     '....PPPPPPPPPN....',
   ],
   z2: [
@@ -132,7 +132,8 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
     ['caisse', 13, 1, 'S', { x: -1, y: -1 }], ['caisse', 13, 1, 'S', { x: -1, y: 1 }], ['tonneau', 13, 1, 'S', { x: 1, y: -1 }],
     ['tonneau', 15, 1, 'S', { x: -1, y: 1 }], ['tonneau', 15, 1, 'S', { x: 1, y: 1 }], ['etagere', 13, 0, 'S', { x: 0, y: 1 }],
   ],
-  N: [['tonneau', 14, 3, 'S', { x: -1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: -1 }]],
+  N: [['etagere', 13, 4, 'N', { x: 0, y: -1 }]],
+  A: [['rack-armes', 14, 3, 'S', { x: 0, y: 1 }]],
   K: [['brasero', 16, 3, 'S', { x: 0.5, y: -1 }], ['marmite', 16, 3, 'S', { x: -1, y: -1 }]],
   Q: [
     ['hamac', 3, 1, 'S', { x: 0, y: -1 }], ['hamac', 3, 1, 'S', { x: 0, y: 1 }],
