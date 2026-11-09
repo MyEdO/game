@@ -2462,7 +2462,7 @@ async function parcoursComposition() {
 }
 
 /** Les lacets de l'orbite capturés par le parcours `preset`, en radians depuis la face : trois quarts, puis dos. */
-const VUES_DU_PRESET = [['face', 0], ['trois-quarts', Math.PI / 4], ['dos', Math.PI]]
+const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['dos', Math.PI]]
 /** Les radians de lacet par pixel d'un glissé de l'orbite (`MiseEnPage.RADIANS_PAR_PIXEL`). */
 const RADIANS_PAR_PIXEL = 0.005
 
