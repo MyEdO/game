@@ -248,7 +248,7 @@ la porte est la matrice des cinq passes, jamais la passe neutre seule.
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
 budget et dossiers `element/<base>/<id>/` possédés. Aucun agent ne modifie le kit partagé ni les voisins ; une
-adaptation nécessaire revient à l'orchestrateur. Sérialiser les builds lourds, chacun borné à **moins de 270 s**.
+adaptation nécessaire revient à l'orchestrateur. Sérialiser les builds lourds, chacun borné à **moins de 270 s** ; la porte `--porte` occupe déjà tous les cœurs : une à la fois.
 Le lanceur d'environnement n'impose pas cette borne : le processus appelant doit l'imposer.
 
 ## 4. Construire une modularité réelle
@@ -386,14 +386,15 @@ rapport doit déjà exister :
 ```sh
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb hotes/godot/projet/modeles/humanoide--tete--humain.glb --base hotes/godot/projet/modeles/humanoide.glb --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
-npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --silhouettes feminin=1,corpulence=1,carrure_moins=0,carrure_plus=1 --json /atelier/mesures/silhouettes.json
+npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte > /atelier/mesures/porte.txt
 ```
 
 La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
-gabarit/surcharge requise. La troisième montre --silhouettes nom=poids,nom=poids : utiliser les
-noms de la base et les extrêmes requis, en combinaison avec --facteurs pour couvrir la matrice.
-Sans --clips, tous les clips de base sont échantillonnés. Ne pas valider une matrice entière
-avec le seul cas neutre.
+gabarit/surcharge requise. La troisième est la porte d'un élément : le corps neutre puis chaque silhouette
+déclarée de la base seule à 1, une passe par processus, en parallèle sur les cœurs (tenue complète du Sorcier :
+moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
+rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
+Ne pas valider une matrice entière avec le seul cas neutre.
 
 ## 7. Deux validations distinctes
 

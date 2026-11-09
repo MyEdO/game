@@ -41,6 +41,32 @@ test('--etats-gabarit évalue chaque état de `etatsDuGabarit` sous ses facteurs
   }
 }, 120_000);
 
+test('--porte exige un manifeste et refuse --silhouettes et --json', () => {
+  for (const options of [[], ['--manifeste', 'manifeste.json', '--silhouettes', 'feminin=1'], ['--manifeste', 'manifeste.json', '--json', 'sortie.json']]) {
+    const resultat = spawnSync(process.execPath, [script, 'base.glb', '--porte', ...options], { cwd: racine, encoding: 'utf8', windowsHide: true });
+    expect(resultat.status, resultat.stderr).toBe(2);
+    expect(resultat.stderr).toMatch(/--porte : --manifeste requis, --etats-gabarit, --silhouettes et --json incompatibles/);
+  }
+});
+
+test('--porte joue le corps neutre puis chaque silhouette déclarée seule à 1, et sort en 1 si une passe a un écart', () => {
+  const octets = glbFabrique({ bande: formesAvecGabarit({ feminin: [0, 0, 0, 0, 0, 0, 0, -3, 0], corpulence: new Array<number>(9).fill(0) }, {}), clips: { Descend: [0, -0.2] } });
+  const manifeste = { ...manifesteDe(octets, ['racine', 'pelvis']), silhouettes: ['feminin', 'corpulence'] };
+  const dossier = mkdtempSync(join(tmpdir(), 'porte-'));
+  try {
+    const [glb, json] = ['base.glb', 'manifeste.json'].map((f) => join(dossier, f));
+    writeFileSync(glb, octets);
+    writeFileSync(json, JSON.stringify(manifeste));
+    const resultat = spawnSync(process.execPath, [script, glb, '--manifeste', json, '--porte'], { cwd: racine, encoding: 'utf8', windowsHide: true });
+    expect(resultat.status, resultat.stderr).toBe(1);
+    const passes = [...resultat.stdout.matchAll(/^PASSE (\S+) : code (\d)$/gm)].map((m) => [m[1], Number(m[2])]);
+    expect(passes.map(([nom]) => nom)).toEqual(['neutre', 'feminin', 'corpulence']);
+    expect(Object.fromEntries(passes).feminin).toBe(1);
+  } finally {
+    rmSync(dossier, { recursive: true, force: true });
+  }
+}, 120_000);
+
 test('avec --base, refuse un élément sans manifeste d’élément voisin : sa couche ferait défaut à la traversée', () => {
   const dossier = mkdtempSync(join(tmpdir(), 'evaluer-sans-manifeste-'));
   try {
