@@ -24,7 +24,7 @@ const CC = 'capacite-de-combat';
 function narratifFixture(): NarratifBlock {
   return {
     ...emptyNarratif(),
-    presetsPnj: [{ id: 'pnj-test', base: BASE_ID, profil: { char: { [CC]: 99 }, label: 'Nommé Test' } }],
+    presetsPnj: [{ id: 'pnj-test', base: { id: BASE_ID }, profil: { char: { [CC]: 99 }, label: 'Nommé Test' } }],
   };
 }
 
@@ -107,7 +107,7 @@ describe('resolvePresetCreature + spawn par presetId (chemin d’état réel #67
   });
 
   it('resolvePresetCreature : base introuvable → undefined (fail-doux)', () => {
-    banc.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-x', base: 'creature-inexistante' }] } });
+    banc.setState({ campaignNarratif: { ...emptyNarratif(), presetsPnj: [{ id: 'pnj-x', base: { id: 'creature-inexistante' } }] } });
     expect(resolvePresetCreature('pnj-x', presetPnjById)).toBeUndefined();
     expect(resolvePresetCreature('pnj-absent', presetPnjById)).toBeUndefined();
   });

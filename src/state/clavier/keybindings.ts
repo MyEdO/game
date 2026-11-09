@@ -345,7 +345,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       const shooters = preemptShooterIds(g);
       const i = g().preemptAiming ? shooters.indexOf(g().preemptAiming!) : -1;
       const next = i + 1 < shooters.length ? shooters[i + 1] : null; // tireur suivant, puis désarme après le dernier
-      g().armerLeTirPreventif(next);
+      g().fenetreChoisir('roundStart', 'viser', next);
       if (next) g().snapCursorToTarget(1); else g().clearCursor(); // pose le curseur sur la cible la plus proche
     },
   },
@@ -395,7 +395,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'cursor-cancel', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
-    run: (g) => { if (g().preemptAiming) g().armerLeTirPreventif(null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
+    run: (g) => { if (g().preemptAiming) g().fenetreChoisir('roundStart', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
   },
   {
     id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],
