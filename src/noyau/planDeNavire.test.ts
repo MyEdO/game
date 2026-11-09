@@ -1,9 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { buildScene } from './mapSpec';
-import { naviresDeLaScene, poserLesNavires, provenanceDesNavires } from './planDeNavire';
+import { PLANS_DE_NAVIRE, naviresDeLaScene, poserLesNavires, provenanceDesNavires } from './planDeNavire';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
-import { heightAt, tileAt, wallBetween, type Scene } from './monde/scene';
+import { heightAt, isWalkable, tileAt, wallBetween, type Scene } from './monde/scene';
+import { walkReachableFrom } from './monde/path';
+import { VEHICLES_LIST } from '../engine/travel';
 import { estAbsent } from './monde/terrain';
 import { edgeKey } from './monde/facades';
 import { aretesDeLaCouche, plateauDeLaScene, volumeDuRegard } from './monde/aretes';
@@ -171,5 +173,50 @@ describe('le navire combattant ne tient pas ses propres ponts', () => {
     expect(c.surSesPonts).toBeUndefined();
     expect(casesTenues([c], () => true).size).toBe(16);
     expect(combatantAtTile([c], 11, 3, 0)?.id).toBe('c1');
+  });
+});
+
+describe('chaque navire à ponts se parcourt d’un bout à l’autre (#3772)', () => {
+  const navires = VEHICLES_LIST.filter((v) => v.ponts).map((v) => v.id);
+  /** Le navire `ref` posé au cap `cap` dans un bassin de 30 × 30 cases. */
+  const bassin = (ref: string, cap: 'N' | 'E' | 'S' | 'O') => poserLesNavires(buildScene({
+    id: 'bassin', label: 'Bassin', size: [30, 30], terrain: 'eau',
+    entities: [{ id: 'n1', kind: 'personnage', vehicule: { id: ref }, pos: { x: 13, y: 13 }, facing: cap }],
+  }));
+  const k = (p: { x: number; y: number; z?: number }) => `${p.x},${p.y},${p.z ?? 0}`;
+  /** Les cases que joignent, de proche en proche depuis `depart`, la marche (`walkReachableFrom`) et les arêtes
+   *  escaladables (`climb`) des échelles. */
+  const reseau = (scene: Scene, depart: { x: number; y: number; z: number }) => {
+    const vus = new Set<string>();
+    const file = [depart];
+    while (file.length) {
+      const c = garanti(file.pop(), 'file', 'case');
+      if (vus.has(k(c))) continue;
+      for (const p of walkReachableFrom(scene, c)) vus.add(k(p));
+      for (const w of scene.walls ?? []) {
+        if (!w.climb || (w.side !== 'N' && w.side !== 'E')) continue;
+        const z = w.z ?? 0;
+        const [a, b] = [{ x: w.x, y: w.y, z }, w.side === 'N' ? { x: w.x, y: w.y - 1, z } : { x: w.x + 1, y: w.y, z }];
+        if (vus.has(k(a)) && !vus.has(k(b))) file.push(b);
+        if (vus.has(k(b)) && !vus.has(k(a))) file.push(a);
+      }
+    }
+    return vus;
+  };
+
+  it('chaque véhicule dont la fiche porte des ponts a son plan', () => {
+    expect(navires.length).toBeGreaterThan(1);
+    expect(navires.filter((id) => !PLANS_DE_NAVIRE.some((p) => p.ponts.id === id))).toEqual([]);
+  });
+
+  it.each(navires)('%s : posé à chaque cap, ses cases marchables forment un seul réseau, par la marche et ses échelles', (ref) => {
+    for (const cap of ['N', 'E', 'S', 'O'] as const) {
+      const scene = bassin(ref, cap);
+      const marchables = [...provenanceDesNavires(scene).cases.keys()].map((cle) => cle.split(',').map(Number))
+        .filter(([x, y, z]) => isWalkable(scene, x, y, z)).map(([x, y, z]) => ({ x, y, z }));
+      expect(marchables.length, `${ref} au cap ${cap}`).toBeGreaterThan(0);
+      const atteint = reseau(scene, marchables[0]);
+      expect(marchables.filter((c) => !atteint.has(k(c))).map(k), `${ref} au cap ${cap}`).toEqual([]);
+    }
   });
 });
