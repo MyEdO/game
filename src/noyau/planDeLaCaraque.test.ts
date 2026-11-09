@@ -28,7 +28,7 @@ const caseDe = (id: string) => zoneWalkableCells(scene, garanti(scene.effectZone
 describe('ponts de la caraque (MDG 12 l.286), compilés par buildScene', () => {
   it('un étage par pont, de la cale à la plage arrière, chaque case à la hauteur de son glyphe dans la source', () => {
     expect(scene.layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
-    expect([[8, 2, 0], [8, 2, 1], [8, 2, 2], [1, 2, 3], [6, 2, 3], [14, 2, 3]].map(([x, y, z]) => heightAt(scene, x, y, z)))
+    expect([[8, 2, 0], [8, 2, 1], [8, 2, 2], [2, 2, 3], [6, 2, 3], [14, 2, 3]].map(([x, y, z]) => heightAt(scene, x, y, z)))
       .toEqual([-2, 0.3, 1.95, 5.6, 5.6, 5.85]);
     const { cases } = grilleDesPonts(cartes);
     for (const c of cases) expect(heightAt(scene, c.x, c.y, c.z), `${c.x},${c.y},${c.z}`).toBe(hauteurs[c.glyphe]);
@@ -73,7 +73,9 @@ describe('ponts de la caraque (MDG 12 l.286), compilés par buildScene', () => {
 describe('le mobilier des pièces de la caraque (#3686)', () => {
   const k = (c: { x: number; y: number; z: number }) => `${c.x},${c.y},${c.z}`;
   const pieces = (scene.effectZones ?? []).filter(isDescriptiveZone);
+  /** Les décors posés, mobilier des pièces et décor du navire (`DECOR`, sous son `ref` suivi de son rang). */
   const meubles = scene.entities.filter((e) => e.kind === 'prop');
+  const decor = meubles.filter((e) => new RegExp(`^${e.ref}-\\d+$`).test(e.id));
   /** Les meubles d'une pièce : ceux dont l'id est le sien suivi de leur `ref` et de leur rang. */
   const meublesDe = (piece: string) => meubles.filter((e) => new RegExp(`^${piece}-${e.ref}-\\d+$`).test(e.id));
   /** Les cases qu'un meuble couvre, sur son pont. */
@@ -89,7 +91,11 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     const vides = new Set(pieces.filter((p) => sceneZoneTiles(p).every((t) => libres.has(k({ x: t.x, y: t.y, z: t.z ?? p.z ?? 0 })))).map((p) => p.id));
     expect(pieces.filter((p) => meublesDe(p.id).length > 0).map((p) => p.id).sort())
       .toEqual(pieces.filter((p) => p.presentation === 'interior' && !vides.has(p.id)).map((p) => p.id).sort());
-    expect(pieces.flatMap((p) => meublesDe(p.id)).length, 'meuble sans pièce').toBe(meubles.length);
+    expect(pieces.flatMap((p) => meublesDe(p.id)).length, 'meuble sans pièce').toBe(meubles.length - decor.length);
+  });
+
+  it('le décor du navire est le fanal du couronnement, sur la plage arrière (#3815)', () => {
+    expect(decor.map((e) => [e.id, e.z])).toEqual([['fanal-1', 3]]);
   });
 
   it('chaque meuble est un décor du catalogue, dans les cases de sa pièce, sans boucher porte, trappe ni pied d’échelle', () => {
@@ -247,12 +253,12 @@ describe('les Améliorations de la caraque à bord (pontsDuNavire)', () => {
     }
   });
 
-  it('Embarcation de bord : le canot occupe deux cases de l’embelle, tourné avec le navire', () => {
+  it('Embarcation de bord : le canot occupe deux cases au-dessus de l’embelle, sur les poutres de la passerelle, tourné avec le navire', () => {
     expect(bassinDeLaCaraque('O', []).entities.some((e) => e.id === 'c1-embarcation-de-bord')).toBe(false);
     const canot = (cap: 'N' | 'O') => garanti(bassinDeLaCaraque(cap, ['embarcation-de-bord']).entities.find((e) => e.id === 'c1-embarcation-de-bord'), cap, 'canot');
-    expect(canot('O')).toMatchObject({ pos: { x: 10, y: 4 }, z: 2, facing: 'S' });
-    // au cap N, la case (7..8, 2) du plan passe en x = 3 + 2, y = 2 + 7..8
-    expect(canot('N')).toMatchObject({ pos: { x: 5, y: 9 }, z: 2, facing: 'O' });
+    expect(canot('O')).toMatchObject({ pos: { x: 9, y: 5 }, z: 3, facing: 'S' });
+    // au cap N, la case (6..7, 3) du plan passe en x = 3 + (4 - 3), y = 2 + 6..7
+    expect(canot('N')).toMatchObject({ pos: { x: 4, y: 8 }, z: 3, facing: 'O' });
   });
 
   it('Sabord : sans lui la coque de la batterie est pleine ; avec, ses sabords sont des fenêtres closes', () => {

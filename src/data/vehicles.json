@@ -863,10 +863,10 @@
     },
     "ponts": [
       [
-        "+ + + + + + + + + + + + + + + + + + +\n\n+ + + + +-+-+-+-+-+-+-+-+-+-+ + + + +\n        |c c c c c c c c|c c|\n+ + + + + + + + + + + + +-+:+-+-+ + +\n        |eHc c c c c c eHc c c:c|\n+ + + + + + + + + + + + + +-+-+-+ + +\n        |c c c c c c c c c:c|\n+ + + + +-+-+-+-+-+-+-+-+-+-+ + + + +\n\n+ + + + + + + + + + + + + + + + + + +",
-        "+ + + + + +-+x+-+x+-+-+-+ + + + + + +\n          |e e e e e e e|\n+ + + +-+-+ + + + + + + +-+-+-+-+-+ +\n      |e eHp e e e e e e e|e e e|e|\n+ + +-+ + + + + + + + + + +-+:+-+:+ +\n    |e:e   e e e e e e   e e e e:e|\n+ + +-+ + + + + + + + + + +:+-+:+ + +\n      |e eHp e e e e pHe e|e e|e|e|\n+ + + +-+-+ + + + + + + +-+-+-+-+-+ +\n          |e e e e e e e|\n+ + + + + +-+x+-+x+-+-+-+ + + + + + +",
-        "+ + + + + +o+o+o+o+o+o+x+ + + + + + +\n          op p p p p p|p|\n+ + +-+-+o+ + + + + + + +x+-+x+x+x+x+\n    |r|q|p   p p p p p|p|p p|p p|p px\n+ + + + + + + + + + + +:+:+-+:+-+ + +\n    |r:q:p p p p p m p:p p p p p:p p|\n+ + + +H+ + + + + + + + + + +:+-+ + +\n    |r|g|p   p p p p  |p pHa|p p|p px\n+ + +-+-+o+ + + + + + + +x+-+x+x+x+x+\n          op p p p p p|p|\n+ + + + + +o+o+o+o+o+o+x+ + + + + + +",
-        "+ + + + + + + + + + + +o+ + + + + + +\n                      oao\n+o+o+o+o+ + + + + + + + +o+o+o+o+o+o+\nog g g go             oa a a a a a ao\n+ + + + +o+o+o+o+o+o+o+ + + + + + + +\nog g g g z z z z z z z a a a a a a ao\n+ + + + +o+o+o+o+o+o+o+ + + + + + + +\nog g g                oa a   a a a ao\n+o+o+o+ + + + + + + + + +o+ +o+o+o+o+\n                      oao\n+ + + + + + + + + + + +o+ + + + + + +"
+        "+ + + + + + + + + + + + + + + + + + +\n\n+ + +-+-+-+-+-+-+-+-+-+-+-+-+-+ + + +\n    |d c c c c c c c c|d d d d|\n+ + + + + + + + + + + +-+:+-+-+-+ + +\n    |j eHc c c c c i c eHc i c:c|\n+ + + + + + + + + + + + + +-+-+-+ + +\n    |d c c c c c c c c c c:c|\n+ + +-+-+-+-+-+-+-+-+-+-+-+-+ + + + +\n\n+ + + + + + + + + + + + + + + + + + +",
+        "+ + + + + +-+x+-+x+-+-+-+ + + + + + +\n          |e e e e e e e|\n+ +-+-+-+-+ + + + + + + +-+-+-+-+-+ +\n  |e:e e pHe e e e e pHe e|e e e|e|\n+ + + + + + + + + + + + + +-+:+-+:+ +\n  |e|e   e e     e e e   e e e e:e|\n+ + + + + + + + + + + + + +:+-+:+ + +\n  |e:e e pHe e e e e pHe e|e e|e|e|\n+ +-+-+-+-+ + + + + + + +-+-+-+-+-+ +\n          |e e e e e e e|\n+ + + + + +-+x+-+x+-+-+-+ + + + + + +",
+        "+ + + + + +o+o+o+o+o+o+x+ + + + + + +\n          op p p p p p|p|\n+ +o+-+-+ + + + + + + + +x+-+x+x+x+x+\n  or|r q|  p p p p p  |p|p p|p p|p px\n+o+ + + + + + + + + + +:+:+-+:+-+ + +\nor r:r q:p p     p m p:p p p p p:p l|\n+o+ + +H+ + + + + + + + + + +:+-+ + +\n  or|r g|  p p p p p  |p pHa|p p|p px\n+ +o+-+-+ + + + + + + + +x+-+x+x+x+x+\n          op p p p p p|p|\n+ + + + + +o+o+o+o+o+o+x+ + + + + + +",
+        "+ + + + + + + + + + + +o+ + + + + + +\n                      oao\n+ + +o+o+ + + + + + + + +o+o+o+o+o+o+\n    og go             oa a a a a a ao\n+ + + + +o+o+o+o+o+o+o+ + + + + + + +\n    og g z z z z z z z a a a a a a ao\n+ + + + +o+o+o+o+o+o+o+ + + + + + + +\n    og                oa a   a a a ao\n+ + +o+ + + + + + + + + +o+ +o+o+o+o+\n                      oao\n+ + + + + + + + + + + +o+ + + + + + +"
       ],
       {
         "c": -2,
@@ -878,7 +878,11 @@
         "z": 5.6,
         "g": 5.6,
         "a": 5.85,
-        "n": 23.9
+        "n": 23.9,
+        "d": -1.5,
+        "i": -2,
+        "j": -1.5,
+        "l": 1.95
       }
     ]
   },

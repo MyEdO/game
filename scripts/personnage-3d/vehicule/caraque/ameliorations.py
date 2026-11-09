@@ -16,14 +16,24 @@ from maille import Maille, lineaire, objet, poutre
 
 
 def sabord(D):
-    """Trappe de Sabord, charnière en haut de l'ouverture, devant le cadre de la coque (nœud `avec-sabord`) : `ferme`
-    plaquée sur le cadre, `ouvert` relevée vers l'extérieur ; la même sur chaque bord, que l'hôte tourne vers lui."""
+    """Sabord : le cadre de l'ouverture que la coque perce à chaque poste (nœud `cadre`, débordant des deux faces de la
+    muraille), et sa trappe, charnière en haut de l'ouverture, devant le cadre : `ferme` plaquée sur lui, `ouvert` relevée
+    vers l'extérieur ; le même sur chaque bord, que l'hôte tourne vers lui."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     E, CA = D["EMBRASURE"], D["CANON"]
     lo, ho = E["ouverture"]
     cadre, saillie = E["cadre"]
     mur = CA["bouche"] - CA["saillie"]            # du pied de la pièce à la face du mur, vers -y
     zc = CA["axe"]
+    m = Maille(list(mats.values()))
+    face, dehors, cote = Vector((0, -mur, zc)), Vector((0, -1, 0)), Vector((-1, 0, 0))
+    haut = Vector((0, 0, 1))
+    for s_ in (1, -1):
+        poutre(m, face + haut * s_ * (ho + cadre) / 2 - cote * (lo / 2 + cadre), face + haut * s_ * (ho + cadre) / 2 + cote * (lo / 2 + cadre),
+               cadre, 2 * saillie, dehors, "bois")
+        poutre(m, face + cote * s_ * (lo + cadre) / 2 - haut * ho / 2, face + cote * s_ * (lo + cadre) / 2 + haut * ho / 2, cadre, 2 * saillie,
+               dehors, "bois")
+    objet("cadre", m, (0, 0, 0), 35)
     for nom, angle in (("ferme", 0.0), ("ouvert", 70.0)):
         m = Maille(list(mats.values()))
         charniere = Vector((0, -(mur + saillie + 0.04), zc + ho / 2 + cadre))
@@ -129,22 +139,28 @@ def nid_de_pie(D):
 
 
 def embarcation(D):
-    """Embarcation de bord : canot de 5 m sur ses chantiers, au milieu du pont principal."""
+    """Embarcation de bord : canot de 5 m sur ses chantiers, posés sur les poutres de support de la passerelle qu'il
+    enjambe (`PASSERELLE`), l'ancrage au niveau du tablier."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
     L, demi, creux = 5.0, 0.85, 0.7
     stations = [i / 8 for i in range(9)]
     def largeur(t):  # noqa: E306
         return demi * math.sin(math.pi * t) ** 0.6
-    z_fond = 1.55
+    PA = D["PASSERELLE"]
+    (_, xp, _), = D["ANCRAGES_AUX_CASES"]["embarcation-de-bord"]
+    poutres = [(x - xp) * D["CASE"] for x in PA["poutres"] if abs(x - xp) * D["CASE"] < L / 2]
+    sur_poutre = -PA["epaisseur"]
+    z_fond = sur_poutre + 0.25
     anneaux = []
     for zz, k in ((z_fond, 0.35), (z_fond + creux * 0.5, 0.85), (z_fond + creux, 1.0)):
         anneaux.append([(largeur(t) * k, (t - 0.5) * L, zz) for t in stations])
     N.enceinte(m, anneaux, True, (0.06, 0.08), lambda yy: z_fond + 0.15, "bois")
     for t in (0.3, 0.55, 0.8):   # bancs
         poutre(m, (-largeur(t) * 0.92, (t - 0.5) * L, z_fond + creux * 0.6), (largeur(t) * 0.92, (t - 0.5) * L, z_fond + creux * 0.6), 0.25, 0.05, (0, 0, 1), "bois")
-    for y0 in (-1.4, 1.4):         # chantiers sur le pont
-        poutre(m, (-0.9, y0, z_fond / 2), (0.9, y0, z_fond / 2), 0.3, z_fond, (0, 0, 1), "bois")
+    for y0 in poutres:             # chantiers sur les poutres
+        poutre(m, (-0.9, y0, (sur_poutre + z_fond + 0.2) / 2), (0.9, y0, (sur_poutre + z_fond + 0.2) / 2), 0.25,
+               z_fond + 0.2 - sur_poutre, (0, 0, 1), "bois")
     for s in (1, -1):              # avirons rangés
         N.espar(m, (s * 0.35, -2.0, z_fond + creux * 0.7), (s * 0.35, 2.0, z_fond + creux * 0.7), 0.04, 0.03, 6, "bois")
     objet("canot", m, (0, 0, 0), 35)
@@ -187,7 +203,8 @@ def clinfoc(D, C):
     """Clinfoc : foc triangulaire rayé sur l'étai de misaine, son point d'amure au bout du beaupré (l'ancrage)."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
-    (fa, za), (fb, zb) = D["ETAIS"][1]
+    (mat, za), (fb, zb) = D["ETAIS"][1]
+    fa = K.mats(D, C.P, C)[mat]["f"]
     etai = Vector((0, C.y(fa) - C.y(fb), za - zb))
     amure = etai * 0.04
     tete = etai * 0.74
@@ -316,24 +333,28 @@ def murs_blindes(D, C):
             plaques(m, p0, p1, 4.35, z_haut, exterieure(p0, p1, signe), "fer")
     xg = lineaire(largeur, sg[-1])
     plaques(m, (-xg, Y(sg[-1]) + 0.01), (xg, Y(sg[-1]) + 0.01), 1.85, z_haut, (0, 1, 0), "fer")
-    x0 = lineaire(largeur, 0.0)
-    plaques(m, (x0, Y(0.0) - 0.01), (-x0, Y(0.0) - 0.01), 4.35, z_haut, (0, -1, 0), "fer")
+    x0 = lineaire(largeur, sg[0])
+    plaques(m, (x0, Y(sg[0]) - 0.01), (-x0, Y(sg[0]) - 0.01), 4.35, z_haut, (0, -1, 0), "fer")
     objet("plaques", m, (0, 0, 0), 35)
     objet("sans-sabord", sur, (0, 0, 0), 35)
     return {"montage": "ancrages", "selon": {"sabord": {}}}
 
 
 def bouteur(D, C):
-    """Bouteur : gouvernail auxiliaire de proue, pelle devant l'étrave sur ses aiguillots, mèche montant sous le gaillard."""
+    """Bouteur : gouvernail auxiliaire de proue, pelle devant l'étrave sur ses aiguillots, de la quille au pied de l'éperon
+    de la poulaine (`POULAINE`), où monte sa mèche."""
     mats = habillage.materiaux(D["MATERIAUX_DES_AMELIORATIONS"])
     m = Maille(list(mats.values()))
-    bas, haut = Vector((0, C.y(0.168) - C.y(0.12) - 0.5, -2.3)), Vector((0, C.y(0.096) - C.y(0.12) - 0.5, 2.45))
+    (_, f_ancre, _), = D["ANCRAGES"]["bouteur"]
+    (z_bas, _, f_bas, *_), z_haut = D["NIVEAUX"][1], D["POULAINE"]["eperon"][0][1]
+    bas = Vector((0, C.y(f_bas) - C.y(f_ancre) - 0.5, z_bas))
+    haut = Vector((0, C.y(lineaire([(zz, f) for zz, _, f, *_ in D["NIVEAUX"][:-1]], z_haut)) - C.y(f_ancre) - 0.5, z_haut))
     poutre(m, bas, haut, 0.9, 0.26, (1, 0, 0), "bois")
     d = (haut - bas).normalized()
     for t in (0.15, 0.5, 0.85):
         c = bas + (haut - bas) * t
         poutre(m, c - d * 0.06, c + d * 0.06, 1.0, 0.32, (1, 0, 0), "fer")
-    N.espar(m, haut, Vector((0, haut.y - 0.3, 4.3)), 0.13, 0.11, 6, "bois")
+    N.espar(m, haut, haut + Vector((0, 0.3, 0.6)), 0.13, 0.11, 6, "bois")
     objet("bouteur", m, (0, 0, 0), 35)
     return {"montage": "ancrages"}
 
