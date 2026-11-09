@@ -50,7 +50,7 @@ import { type Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { combatantsWithinRadius } from './monde/combatGeometry';
 import { smokeZone } from './monde/lineOfSight';
-import { clampZoneTiles, inMapBounds } from './monde/zones';
+import { clampZoneTiles, discTiles } from './monde/zones';
 import { applyTriggeredEffects, maneuverEffects } from './triggeredEffects';
 import { refusActionDepensee, refusCoque, refusHorsDEtatDAgir } from './refusDuTour';
 import { isEngagedWith, longerThanShort, markAttacked } from '../engine/engagement';
@@ -378,17 +378,11 @@ function defenderRoll(tgt: Combatant, defense: ManeuverDef['defense']): TestResu
   return { ...rollTest(defenseValue(tgt, mode), 'intermediaire', battleRng()), base: defenseBaseValue(tgt, mode) }; // LDB 12 l.160
 }
 
-/** Émet le flash de ZONE (empreinte centre ± rayon, clippée à la scène) — montre pourquoi plusieurs
- *  cibles sont affectées (R7). Émis pour TOUTE manœuvre de zone (ennemi/joueur). */
-function emitAoe(get: Get, center: Pt, radius: number, kind: AttackKind, type?: string): void {
-  const sc = get().scene;
-  const tiles: Pt[] = [];
-  for (let dx = -radius; dx <= radius; dx++)
-    for (let dy = -radius; dy <= radius; dy++) {
-      const x = center.x + dx, y = center.y + dy;
-      if (sc && inMapBounds(sc.dimensions, { x, y })) tiles.push({ x, y });
-    }
-  bus.emit(EVT.ANIM_AOE, { tiles, kind, type });
+/** Émet la ZONE (empreinte centre ± rayon, clippée à la scène) que `de` pose, au rendu `rendu` de sa manœuvre — montre
+ *  pourquoi plusieurs cibles sont affectées (R7). Émis pour TOUTE manœuvre de zone (ennemi/joueur). */
+function emitAoe(get: Get, de: string, center: Pt, radius: number, rendu: string | undefined): void {
+  const tiles = clampZoneTiles(discTiles(center, radius), get().scene?.dimensions);
+  bus.emit(EVT.ANIM_AOE, { de, centre: { ...center }, tiles, ...(rendu ? { rendu } : {}) });
 }
 
 /** Ce que la GÉOMÉTRIE d'une manœuvre résout (cibles affectées, centre de zone ou cible unique, rayon
@@ -515,7 +509,7 @@ export function resolveManeuver(
   if (def.targeting === 'zone') {
     if (!center) { flushLog(); return false; }
     faceTarget(center); // le centre de la zone = ce que l'attaquant vise (cliqué, ou recentré sur le plus proche)
-    emitAoe(get, center.pos!, blast!, def.kind, def.label);
+    emitAoe(get, attacker.id, center.pos!, blast!, def.rendu?.id);
     // Fumée (LDB 85 l.329) : GÉOMÉTRIE moteur (pas un GameOp) ; aucune zone à BE 0.
     const dur = def.fumee ? bonus(effectiveChar(attacker, 'endurance')) : 0;
     if (dur > 0) {
@@ -529,7 +523,7 @@ export function resolveManeuver(
       set({ battle: { ...get().battle!, zones } });
     }
   } else if (def.targeting === 'allFoes' || def.targeting === 'allAround') {
-    emitAoe(get, attacker.pos, radius!, def.kind, def.label);
+    emitAoe(get, attacker.id, attacker.pos, radius!, def.rendu?.id);
   } else {
     faceTarget(center);
   }

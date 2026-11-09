@@ -381,6 +381,24 @@ text = "Sorts"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="TitreZones" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Zones et souffles"
+
+[node name="VitrineZones" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreLumieres" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Lumières"
+
+[node name="VitrineLumieres" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="TitreSons" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
 layout_mode = 2
 theme_type_variation = &"HeaderSmall"

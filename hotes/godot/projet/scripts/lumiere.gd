@@ -1,6 +1,6 @@
 ## La lumière de la scène que le noyau publie (`vue.lumiere`, `CONTRAT.md`, section « Lumière ») : le soleil de l'heure,
 ## l'ambiante, le ciel d'un extérieur ou le fond d'un intérieur, la brume de profondeur au-delà du point que la caméra
-## vise ou depuis l'œil, et une lampe vacillante par source de lumière de la scène. Sans `eclairer`, la lumière fixe de la scène reste
+## vise ou depuis l'œil, et un foyer par source de lumière de la scène (`Foyer` : sa lampe, sa flamme, son son). Sans `eclairer`, la lumière fixe de la scène reste
 ## (l'atelier).
 class_name Lumiere
 extends Node3D
@@ -10,7 +10,6 @@ extends Node3D
 @onready var _sources: Node3D = $Sources
 
 var _brume: Dictionary = {}
-var _flammes: Array[Dictionary] = []
 
 
 ## Pose `lumiere` sur un plateau de `metres_par_case` mètres par case.
@@ -41,28 +40,20 @@ func eclairer(lumiere: Dictionary, metres_par_case: float) -> void:
 
 
 func _poser_les_sources(sources: Array, metres_par_case: float) -> void:
-	for lampe in _sources.get_children():
-		lampe.free()
-	_flammes.clear()
+	for foyer in _sources.get_children():
+		foyer.free()
 	for source: Dictionary in sources:
-		var lampe := OmniLight3D.new()
-		lampe.position = MiseEnPage.point_de_la_carte(source.x, source.y, MiseEnPage.hauteur_au_plateau(source.hM, metres_par_case))
-		lampe.omni_range = source.rayonCases
-		lampe.light_color = Color(source.couleur)
-		lampe.light_energy = source.energie
-		_sources.add_child(lampe)
-		if source.scintillement != null:
-			_flammes.append({lampe = lampe, energie = source.energie, scintillement = source.scintillement})
+		var foyer := Foyer.new()
+		foyer.position = MiseEnPage.point_de_la_carte(source.x, source.y, MiseEnPage.hauteur_au_plateau(source.hM, metres_par_case))
+		_sources.add_child(foyer)
+		foyer.poser(source, metres_par_case)
 
 
 ## La brume suit la distance de la caméra au point qu'elle vise, que le zoom change, ou part de l'œil
-## (`brume.depuisLOeil`) ; les flammes vacillent.
+## (`brume.depuisLOeil`).
 func _process(_delta: float) -> void:
 	if _brume.is_empty():
 		return
 	var distance := 0.0 if _brume.depuisLOeil else get_viewport().get_camera_3d().position.z
 	_environnement.fog_depth_begin = MiseEnPage.profondeur_de_brume(distance, _brume.debutCases)
 	_environnement.fog_depth_end = MiseEnPage.profondeur_de_brume(distance, _brume.finCases)
-	var secondes := MiseEnPage.secondes(Time.get_ticks_msec())
-	for flamme in _flammes:
-		flamme.lampe.light_energy = MiseEnPage.energie_vacillante(flamme.energie, flamme.scintillement.amplitude, flamme.scintillement.hz, secondes)
