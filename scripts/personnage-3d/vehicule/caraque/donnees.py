@@ -176,9 +176,9 @@ GRILLE_VOILE = (6, 4)            # divisions en largeur, en hauteur
 LATINE = {"x": 0.5, "amure": (-0.125, 8.3), "tete": (0.172, 20.6), "ecoute": (0.10, 7.9), "creux": 0.6,
           "rayons": (0.16, 0.07), "grille": (5, 3)}
 
-# Beaupré : talon sur le pont du gaillard (f, z), pente, saillie horizontale jusqu'à f = -0.17 (plan « Pont
-# supérieur ») ; civadière sous sa vergue.
-BEAUPRE = {"talon": (0.12, 5.7), "pente_deg": 32.0, "bout_f": -0.17, "rayons": (0.22, 0.10)}
+# Beaupré : talon sur le pont du gaillard (f, z), pente, saillie horizontale jusqu'à f = -0.235, 3,7 cases devant la
+# proue du plan (plan « Pont supérieur », MDG p.99) ; civadière sous sa vergue.
+BEAUPRE = {"talon": (0.12, 5.7), "pente_deg": 32.0, "bout_f": -0.235, "rayons": (0.22, 0.10)}
 CIVADIERE = {"f": -0.12, "sous": 0.4, "longueur": 6.4, "rayons": (0.10, 0.06), "tete": 6.0, "bordure": 6.4,
              "hauteur": 4.45, "creux": 0.6}
 

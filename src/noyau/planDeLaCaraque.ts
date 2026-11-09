@@ -18,37 +18,58 @@ import { pontsDeLaFiche } from './pontsDeLaFiche';
 
 const { hauteurs: HAUTEURS, grille: GRILLE, aretesDe, plan: PONTS_DE_LA_CARAQUE } = pontsDeLaFiche('caraque');
 
-/** Les pièces de la légende des plans, par pont (`.` : aucune). */
-const PIECES: NonNullable<MapSpec['zoneMap']> = {
+/** Les pièces de la légende des plans, par pont (`.` : aucune ; `^` : une trappe, dans la pièce du pont où elle
+ *  débouche, `pieceDeLaTrappe`). */
+const PIECES: Record<string, string[]> = {
   z0: [
     '..................',
     '..CCCCCCCCCIIII...',
-    '..CCCCCCCCCCCCCJ..',
-    '..CCCCCCCCCCCR....',
+    '..C^CCCCCCC^CCCJ..',
+    '..CCCCCCCCCCRR....',
     '..................',
   ],
   z1: [
-    '.....PPPPPPP......',
-    '.VPPPPPPPPPPPMMMG.',
+    '....PPPPPPPPPM....',
+    '.VPP^PPPPP^PPMMMG.',
     '.VP.PP..PPP.PPPPK.',
-    '.VPPPPPPPPPPPNNAK.',
-    '.....PPPPPPP......',
+    '.VPP^PPPPP^PPNNAK.',
+    '....PPPPPPPPPN....',
   ],
   z2: [
-    '.....SSSSSSE......',
+    '....SSSSSSSE.F....',
     '.OQQ.SSSSS.EFFXXBB',
     'OOQQSS..SSSHHHHHBB',
-    '.OQQ.SSSSS.HHHYYBB',
-    '.....SSSSSSH......',
+    '.OQ^.SSSSS.HH^YYBB',
+    '....SSSSSSSH......',
   ],
   z3: [
-    '...........U......',
+    '..WW.......UUU....',
     '..WW.......UUUUUUU',
     '..WWZZZZZZZUUUUUUU',
     '..W........UU.UUUU',
-    '...........U......',
+    '..WW.......UUU....',
   ],
 };
+
+/** La pièce de la trappe (x, y) du pont `z` : celle de ses voisines du pont du dessus à sa hauteur, sans mot sur leur
+ *  arête (#3815). */
+function pieceDeLaTrappe(x: number, y: number, z: number): string {
+  const glyphe = (cx: number, cy: number, cz: number) => GRILLE.cases.find((c) => c.x === cx && c.y === cy && c.z === cz)?.glyphe;
+  const hauteur = HAUTEURS[garanti(glyphe(x, y, z), `${x},${y},${z}`, 'case de trappe')];
+  const lettres = new Set(([[1, 0], [-1, 0], [0, 1], [0, -1]] as const).flatMap(([dx, dy]) => {
+    const [nx, ny] = [x + dx, y + dy];
+    const voisine = glyphe(nx, ny, z + 1);
+    const [sens, ax, ay] = dx ? ['t', Math.max(x, nx), y] : ['l', x, Math.max(y, ny)];
+    const mot = GRILLE.aretes.some((e) => e.z === z + 1 && e.sens === sens && e.x === ax && e.y === ay);
+    return voisine !== undefined && HAUTEURS[voisine] === hauteur && !mot ? [PIECES[`z${z + 1}`][ny][nx]] : [];
+  }));
+  return garanti(lettres.size === 1 ? [...lettres][0] : undefined, `${x},${y},${z}`, 'pièce où débouche la trappe');
+}
+
+/** `PIECES`, chaque trappe dans la pièce où elle débouche : sous la minuscule de sa lettre, une pièce à l'étage de la
+ *  trappe (une pièce vit à un seul étage, `roomTiles`). */
+const PIECES_DU_PLAN: Record<string, string[]> = Object.fromEntries(Object.entries(PIECES).map(([etage, rangs]) =>
+  [etage, rangs.map((rang, y) => [...rang].map((l, x) => (l === '^' ? pieceDeLaTrappe(x, y, Number(etage.slice(1))).toLowerCase() : l)).join(''))]));
 
 const LEGENDE_DES_PIECES: NonNullable<MapSpec['zoneLegend']> = {
   C: { id: 'cale', label: 'Cale', presentation: 'interior' },
@@ -76,13 +97,23 @@ const LEGENDE_DES_PIECES: NonNullable<MapSpec['zoneLegend']> = {
   U: { id: 'plage-arriere', label: 'Plage arrière', presentation: 'exterior' },
 };
 
+/** `LEGENDE_DES_PIECES` et, pour chaque minuscule de `PIECES_DU_PLAN`, la part de sa pièce à l'étage de ses trappes. */
+const LEGENDE_DU_PLAN: NonNullable<MapSpec['zoneLegend']> = {
+  ...LEGENDE_DES_PIECES,
+  ...Object.fromEntries(Object.entries(PIECES_DU_PLAN).flatMap(([etage, rangs]) => [...new Set(rangs.join('').match(/[a-z]/g))].map((l) => {
+    const piece = garanti(LEGENDE_DES_PIECES[l.toUpperCase()], l, 'pièce où débouche une trappe');
+    return [l, { ...piece, id: `${piece.id}-${etage}` }];
+  }))),
+};
+
 /** Le mobilier de chaque pièce intérieure, par lettre de la légende : le décor (`ref` de `props.json`), la case
  *  du coin nord-ouest de son emprise, son cap, son calage dans le jeu libre de sa case (`SceneEntity.calage`, centré
  *  sans lui) et, posé sur un autre meuble de sa pièce, le `ref` et le rang de celui-ci (`SceneEntity.sur`). Le
- *  cabestan du pont principal entre la trappe de fret et le grand mât (#3815). Une case
- *  de porte, de trappe ou de pied d'échelle reste libre, et une pièce dont la seule case est celle de sa porte reste
- *  vide. Le calage plaque un meuble à une cloison du plan ; près du bordé et de la muraille, chaque meuble se tient dans
- *  l'emprise libre que le modèle laisse à ses cases (`cases` du manifeste de `vehicule--caraque`, #3767). */
+ *  cabestan du pont principal entre la trappe de fret et le grand mât (#3815). Une case de porte, de trappe, de pied
+ *  d'échelle, d'un poste où se monte une pièce (`postes` du manifeste) ou seul passage vers d'autres reste libre, et une
+ *  pièce dont chaque case est l'une d'elles reste vide. Le calage plaque un meuble à une cloison du plan ; près du bordé
+ *  et de la muraille, chaque meuble se tient dans l'emprise libre que le modèle laisse à ses cases (`cases` du manifeste
+ *  de `vehicule--caraque`, #3767). */
 const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: number, y: number, facing: Dir4, calage?: Calage, sur?: string])[]>> = {
   C: [
     ['caisse', 5, 1, 'S'], ['tonneaux-pile', 6, 1, 'S', { x: 0, y: 1 }], ['tonneau', 7, 1, 'S'], ['caisse', 8, 1, 'S'], ['tonneau', 9, 1, 'S'],
@@ -90,15 +121,16 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
     ['caisse', 8, 1, 'E', undefined, 'caisse-2'],
   ],
   I: [['etagere', 13, 1, 'S', { x: 0, y: -0.25 }], ['coffre', 14, 1, 'E', { x: -1, y: 1 }]],
+  R: [['caisse', 13, 3, 'S', { x: -1, y: -1 }], ['tonneau', 13, 3, 'S', { x: 0.75, y: -1 }]],
   V: [['rouleau-de-cordage', 1, 2, 'S', { x: 0.5, y: 0 }]],
   P: [
     ['cabestan', 8, 2, 'S'],
-    ['hamac', 5, 0, 'S', { x: 1, y: 1 }], ['hamac', 6, 0, 'S', { x: 0, y: 1 }], ['hamac', 7, 0, 'S', { x: 0, y: 1 }],
-    ['hamac', 5, 4, 'S', { x: 1, y: -1 }], ['hamac', 6, 4, 'S', { x: 0, y: -1 }], ['hamac', 7, 4, 'S', { x: 0, y: -1 }],
+    ['hamac', 7, 0, 'S', { x: 0, y: 1 }], ['hamac', 9, 0, 'S', { x: 0, y: 1 }], ['hamac', 12, 0, 'S', { x: 0, y: 1 }],
+    ['hamac', 7, 4, 'S', { x: 0, y: -1 }], ['hamac', 9, 4, 'S', { x: 0, y: -1 }], ['hamac', 12, 4, 'S', { x: 0, y: -1 }],
   ],
   M: [
     ['caisse', 13, 1, 'S', { x: -1, y: -1 }], ['caisse', 13, 1, 'S', { x: -1, y: 1 }], ['tonneau', 13, 1, 'S', { x: 1, y: -1 }],
-    ['tonneau', 15, 1, 'S', { x: -1, y: 1 }], ['tonneau', 15, 1, 'S', { x: 1, y: 1 }],
+    ['tonneau', 15, 1, 'S', { x: -1, y: 1 }], ['tonneau', 15, 1, 'S', { x: 1, y: 1 }], ['etagere', 13, 0, 'S', { x: 0, y: 1 }],
   ],
   N: [['tonneau', 14, 3, 'S', { x: -1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: 1 }], ['tonneau', 14, 3, 'S', { x: 1, y: -1 }]],
   K: [['brasero', 16, 3, 'S', { x: 0.5, y: -1 }], ['marmite', 16, 3, 'S', { x: -1, y: -1 }]],
@@ -106,28 +138,14 @@ const MOBILIER: Readonly<Record<string, readonly (readonly [ref: string, x: numb
     ['hamac', 3, 1, 'S', { x: 0, y: -1 }], ['hamac', 3, 1, 'S', { x: 0, y: 1 }],
     ['rouleau-de-cordage', 2, 1, 'S', { x: 0, y: 0.5 }], ['rouleau-de-cordage', 2, 3, 'S', { x: 0, y: -0.5 }],
   ],
-  E: [
-    ['table', 11, 0, 'S', { x: 0.75, y: 1 }], ['chaise', 11, 0, 'E', { x: -0.75, y: 0.25 }],
-    ['chandelier', 11, 0, 'S', { x: 0.75, y: -0.15 }], ['lettre', 11, 0, 'S', { x: 0.5, y: 0.6 }, 'table-1'],
-  ],
-  F: [['hamac', 13, 1, 'S', { x: 0, y: -1 }], ['coffre', 13, 1, 'N', { x: 0, y: 1 }]],
-  H: [
-    ['table', 11, 3, 'S', { x: -0.5, y: 0 }], ['banc', 11, 3, 'S', { x: -0.5, y: -1 }], ['banc', 11, 3, 'S', { x: -0.5, y: 1 }],
-    ['bourse', 11, 3, 'S', { x: -0.3, y: 0.3 }, 'table-1'],
-    ['tonneau', 11, 4, 'S', { x: -0.75, y: -0.25 }], ['chandelier', 11, 4, 'S', { x: 0.75, y: -0.25 }],
-  ],
-  X: [
-    ['bureau', 15, 1, 'S', { x: 0, y: -1 }], ['coffre', 15, 1, 'N', { x: 1, y: 1 }],
-    ['lettre', 15, 1, 'S', { x: -0.4, y: -0.75 }, 'bureau-1'], ['cle', 15, 1, 'S', { x: 0.4, y: -0.75 }, 'bureau-1'],
-  ],
-  Y: [['hamac', 15, 3, 'S', { x: 0, y: 1 }], ['coffre', 15, 3, 'S', { x: 1, y: -1 }]],
+  F: [['hamac', 13, 1, 'S', { x: 0, y: -1 }], ['coffre', 13, 0, 'N', { x: 0, y: 1 }]],
   B: [['barre-de-navire', 17, 2, 'E', { x: -0.5, y: 0 }]],
 };
 
 /** Les décors de `MOBILIER`, chacun sur le pont de sa pièce, sous l'id de sa pièce suivi de son `ref` et de son rang. */
 const MEUBLES: SceneEntity[] = Object.entries(MOBILIER).flatMap(([lettre, meubles]) => {
   const piece = garanti(LEGENDE_DES_PIECES[lettre], lettre, 'pièce meublée').id;
-  const etage = garanti(Object.keys(PIECES).find((e) => [PIECES[e]].flat().join('').includes(lettre)), lettre, 'pont de la pièce');
+  const etage = garanti(Object.keys(PIECES).find((e) => PIECES[e].join('').includes(lettre)), lettre, 'pont de la pièce');
   return meubles.map(([ref, x, y, facing, calage, sur], i): SceneEntity => ({
     id: `${piece}-${ref}-${meubles.slice(0, i + 1).filter(([r]) => r === ref).length}`,
     kind: 'prop',
@@ -144,7 +162,7 @@ const MEUBLES: SceneEntity[] = Object.entries(MOBILIER).flatMap(([lettre, meuble
  *  son calage dans le jeu libre de sa case (`SceneEntity.calage`, centré sans lui). Le fanal du couronnement, sur la
  *  plage arrière (illustration « Caraque », MDG 12 l.286). */
 const DECOR: readonly (readonly [ref: string, x: number, y: number, z: number, facing: Dir4, calage: Calage])[] = [
-  ['fanal', 17, 1, 3, 'S', { x: 0.6, y: 1 }],
+  ['fanal', 17, 2, 3, 'S', { x: -0.5, y: 0 }],
 ];
 
 /** Les décors de `DECOR`, chacun sous son `ref` suivi de son rang. */
@@ -161,8 +179,8 @@ const DECORS: SceneEntity[] = DECOR.map(([ref, x, y, z, facing, calage], i): Sce
 /** La caraque en `MapSpec`. */
 export const PLAN_DE_LA_CARAQUE: MapSpec = {
   ...PONTS_DE_LA_CARAQUE,
-  zoneMap: PIECES,
-  zoneLegend: LEGENDE_DES_PIECES,
+  zoneMap: PIECES_DU_PLAN,
+  zoneLegend: LEGENDE_DU_PLAN,
   entities: [...MEUBLES, ...DECORS],
 };
 

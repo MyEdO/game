@@ -6,7 +6,7 @@ import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { reachedFloors, unreachableDescriptiveZones, zoneWalkableCells } from './mapQC';
 import { areteOcculteEntre, edgeOf, heightAt, isDescriptiveZone, isWalkable, porteAuteur, sceneMetresPerTile, tileAt, wallBetween, type Scene, type SceneEntity } from './monde/scene';
 import { estAbsent } from './monde/terrain';
-import { reachable } from './monde/path';
+import { reachable, tileKey } from './monde/path';
 import { planClimb } from './monde/climbMove';
 import { ancreDuDecor, propFootTiles } from './monde/footprint';
 import { fauteDAppui, piedDuDecor, portePar } from './monde/poseDuDecor';
@@ -38,15 +38,37 @@ describe('ponts de la caraque (MDG 12 l.286), compilés par buildScene', () => {
 
   it('chaque pièce de la légende des plans est une zone, sous son nom', () => {
     const zones = (scene.effectZones ?? []).filter(isDescriptiveZone);
-    expect(zones.map((z) => z.label).sort()).toEqual(Object.values(legende).map((p) => p.label).sort());
+    expect(zones.map((z) => [z.id, z.label]).sort()).toEqual(Object.values(legende).map((p) => [p.id, p.label]).sort());
   });
 
+  it('une case de trappe est dans la pièce du pont où elle débouche, à son étage (#3815)', () => {
+    const piece = (x: number, y: number, z: number) => garanti((scene.effectZones ?? []).filter(isDescriptiveZone)
+      .find((zo) => (zo.z ?? 0) === z && sceneZoneTiles(zo).some((t) => t.x === x && t.y === y)), `${x},${y},${z}`, 'pièce de la case');
+    expect([[3, 2, 0], [11, 2, 0], [4, 1, 1], [4, 3, 1], [10, 1, 1], [10, 3, 1], [3, 3, 2], [13, 3, 2]].map(([x, y, z]) => [piece(x, y, z).label, piece(x, y, z).z]))
+      .toEqual([
+        ...Array.from({ length: 2 }, () => ["Pont principal des canons/Poste d'équipage", 0]),
+        ...Array.from({ length: 4 }, () => ['Pont supérieur des canons', 1]),
+        ["Gaillard d'avant", 2], ['Plage arrière', 2],
+      ]);
+    for (const id of desTrappes) {
+      const z = garanti(scene.effectZones?.find((zo) => zo.id === id), id, 'pièce des trappes').z ?? 0;
+      expect(unreachableDescriptiveZones(scene, departDu(`z${z + 1}`)).map((zo) => zo.id), `${id} à pied depuis le pont z${z + 1}`).not.toContain(id);
+    }
+  });
+
+  /** Une case de la première pièce du pont `etage` (hors trappes, en minuscule au calque). */
+  const departDu = (etage: string) => {
+    const premiere = garanti([...([] as string[]).concat(calques[etage]).join('')].find((ch) => ch in legende && ch === ch.toUpperCase()), etage, 'pièce du pont');
+    return caseDe(garanti(legende[premiere].id, premiere, 'id de pièce'));
+  };
+  /** Les pièces des trappes, chacune à l'étage de ses trappes (minuscules du calque). */
+  const desTrappes = new Set(Object.entries(legende).filter(([l]) => l !== l.toUpperCase()).map(([, p]) => p.id));
+
   it('à pied, chaque pont dessert ses pièces, le gaillard et la plage arrière par la passerelle, et aucune échelle ne se gravit sans geste', () => {
-    Object.entries(calques).forEach(([etage, rangees]) => {
+    Object.keys(calques).forEach((etage) => {
       const z = Number(etage.slice(1));
-      const premiere = garanti([...([] as string[]).concat(rangees).join('')].find((ch) => ch in legende), etage, 'pièce du pont');
-      const depart = caseDe(garanti(legende[premiere].id, premiere, 'id de pièce'));
-      expect(unreachableDescriptiveZones(scene, depart).filter((zo) => (zo.z ?? 0) === z).map((zo) => zo.id), etage).toEqual([]);
+      const depart = departDu(etage);
+      expect(unreachableDescriptiveZones(scene, depart).filter((zo) => (zo.z ?? 0) === z && !desTrappes.has(zo.id)).map((zo) => zo.id), etage).toEqual([]);
       expect(Math.max(...reachedFloors(scene, depart)), etage).toBeLessThanOrEqual(z);
     });
   });
@@ -87,8 +109,17 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     return [{ x: w.x, y: w.y, z }, w.side === 'N' ? { x: w.x, y: w.y - 1, z } : { x: w.x + 1, y: w.y, z }].map(k);
   }));
 
-  it('chaque pièce intérieure est meublée, sauf celle dont la seule case est celle de sa porte', () => {
-    const vides = new Set(pieces.filter((p) => sceneZoneTiles(p).every((t) => libres.has(k({ x: t.x, y: t.y, z: t.z ?? p.z ?? 0 })))).map((p) => p.id));
+  /** Les cases que le navire atteint depuis la cale, par ses échelles, sans passer par `sauf`. */
+  const atteintes = (sauf?: { x: number; y: number; z: number }) => reachable(scene, caseDe('cale'), 400, {
+    blocked: new Set(sauf ? [tileKey(sauf.x, sauf.y, sauf.z)] : []), traverse: { climb: true, climbFullSpeed: true },
+  }).size;
+
+  it('chaque pièce intérieure est meublée, sauf celle dont chaque case est celle d’une porte, d’une échelle, d’un poste ou le seul passage vers d’autres', () => {
+    const toutes = atteintes();
+    const passages = pieces.flatMap((p) => sceneZoneTiles(p).map((t) => ({ x: t.x, y: t.y, z: t.z ?? p.z ?? 0 })))
+      .filter((c) => isWalkable(scene, c.x, c.y, c.z) && atteintes(c) < toutes - 1);
+    const occupees = new Set([...libres, ...postes.map(k), ...passages.map(k)]);
+    const vides = new Set(pieces.filter((p) => sceneZoneTiles(p).every((t) => occupees.has(k({ x: t.x, y: t.y, z: t.z ?? p.z ?? 0 })))).map((p) => p.id));
     expect(pieces.filter((p) => meublesDe(p.id).length > 0).map((p) => p.id).sort())
       .toEqual(pieces.filter((p) => p.presentation === 'interior' && !vides.has(p.id)).map((p) => p.id).sort());
     expect(pieces.flatMap((p) => meublesDe(p.id)).length, 'meuble sans pièce').toBe(meubles.length - decor.length);
@@ -124,13 +155,41 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
 
   /** L'emprise libre, en cases centrées sur l'entier, de chaque case des ponts que rogne le modèle commité de la caraque
    *  (`cases` de son manifeste, #3767) ; la case entière sinon. */
-  const emprises = (JSON.parse(readFileSync(new URL('../../hotes/godot/projet/modeles/vehicule--caraque.manifeste.json', import.meta.url), 'utf8')) as { cases: Record<string, number[]> }).cases;
+  const manifeste = JSON.parse(readFileSync(new URL('../../hotes/godot/projet/modeles/vehicule--caraque.manifeste.json', import.meta.url), 'utf8')) as {
+    cases: Record<string, number[]>;
+    postes: Record<string, number[][]>;
+    selon: Record<string, { postes?: Record<string, number[][]> }>;
+  };
   const libre = (x: number, y: number, z: number) => {
-    const [x0, y0, x1, y1] = emprises[`${x},${y},${z}`] ?? [x, y, x + 1, y + 1];
+    const [x0, y0, x1, y1] = manifeste.cases[`${x},${y},${z}`] ?? [x, y, x + 1, y + 1];
     return { x0: x0 - 0.5, y0: y0 - 0.5, x1: x1 - 0.5, y1: y1 - 0.5 };
   };
   /** Une épaisseur de cloison (0,1 m), en cases ; le pas des points sondés dans un corps. */
   const [TOLERANCE, PAS] = [0.05, 0.025];
+
+  /** La case de chaque poste du modèle commité, où se monte une pièce (`postes` de son manifeste, et ceux qu'une
+   *  Amélioration ajoute, `selon`) : la case des ponts à la hauteur de son plancher dont l'emprise libre le contient, à
+   *  une épaisseur de cloison près. Un point glTF (x, y, z) est au plan en (W/2 − z/mpt − ½, H/2 + x/mpt − ½). */
+  const postes = (() => {
+    const { w, h, cases } = grilleDesPonts(cartes);
+    const mpt = sceneMetresPerTile(scene);
+    return [manifeste.postes, ...Object.values(manifeste.selon).map((v) => v.postes ?? {})].flatMap((l) => Object.values(l).flat()).map(([gx, gy, gz]) => {
+      const [x, y] = [w / 2 - gz / mpt - 0.5, h / 2 + gx / mpt - 0.5];
+      const siennes = cases.filter((c) => hauteurs[c.glyphe] === gy).filter((c) => {
+        const r = libre(c.x, c.y, c.z);
+        return r.x0 - TOLERANCE <= x && x <= r.x1 + TOLERANCE && r.y0 - TOLERANCE <= y && y <= r.y1 + TOLERANCE;
+      });
+      expect(siennes.length, `poste ${gx},${gy},${gz}`).toBe(1);
+      return { x: siennes[0].x, y: siennes[0].y, z: siennes[0].z };
+    });
+  })();
+
+  it('aucun meuble ni décor dans l’emprise libre de la case d’un poste (#3815)', () => {
+    expect(meubles.flatMap((e) => postes.filter((c) => c.z === (e.z ?? 0)).filter((c) => {
+      const [p, q] = [corpsDu(e), libre(c.x, c.y, c.z)];
+      return Math.min(p.x1, q.x1) - Math.max(p.x0, q.x0) > TOLERANCE && Math.min(p.y1, q.y1) - Math.max(p.y0, q.y0) > TOLERANCE;
+    }).map((c) => `${e.id} × poste ${k(c)}`))).toEqual([]);
+  });
 
   it('chaque meuble tient dans l’emprise libre que le modèle laisse à ses cases, à une épaisseur de cloison près (#3767)', () => {
     const hors = meubles.flatMap((e) => {
@@ -158,7 +217,7 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
   it('chaque objet posé tient sur le dessus de son support, plus haut que lui', () => {
     const poses = meubles.filter((e) => e.sur);
     expect(poses.map((e) => e.id).sort()).toEqual([
-      'cale-caisse-5', 'mess-des-officiers-bourse-1', 'quartiers-du-capitaine-cle-1', 'quartiers-du-capitaine-lettre-1', 'salle-d-apparat-lettre-1',
+      'cale-caisse-5',
     ]);
     for (const e of poses) {
       const support = garanti(meubles.find((s) => s.id === e.sur), e.id, 'support');
@@ -212,8 +271,8 @@ describe('la caraque posée dans une scène (poserLesNavires)', () => {
         expect(d.y, `${cap} ${e.id}`).toBeCloseTo(attendu.y, 9);
       }
     }
-    // au cap N, la poupe au sud et bâbord à l'ouest : le coffre du capitaine reste plaqué à la poupe et à bâbord
-    expect(garanti(bassinDeLaCaraque('N').entities.find((e) => e.id === 'c1-quartiers-du-capitaine-coffre-1'), 'N', 'coffre').calage).toEqual({ x: -1, y: 1 });
+    // au cap N, la proue au nord et bâbord à l'ouest : le coffre de l'infirmerie reste plaqué à la proue et à bâbord
+    expect(garanti(bassinDeLaCaraque('N').entities.find((e) => e.id === 'c1-infirmerie-coffre-1'), 'N', 'coffre').calage).toEqual({ x: -1, y: -1 });
   });
 
   it('à tout cap, les échelles mènent encore de la cale à la plage arrière', () => {

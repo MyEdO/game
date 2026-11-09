@@ -78,10 +78,11 @@ def sabords_des_ponts(D, P, C, pieces):
 
 
 def mats(D, P, C):
-    """Les `MATS`, chacun au milieu de la case de son pied (`GLYPHES["pieds"]`, de l'avant à l'arrière) : son abscisse
-    f, son x et son emplanture au plancher de cette case."""
+    """Les `MATS`, chacun au milieu de la case de son pied (`GLYPHES["pieds"]`, de l'avant à l'arrière) : cette case,
+    son abscisse f, son x et son emplanture au plancher de cette case."""
     pieds = sorted(k for k, g in P["cases"].items() if g in D["GLYPHES"]["pieds"])
-    return {nom: {**M, "f": C.f(C.y_du_plan(x + 0.5)), "x": C.x_du_plan(yy + 0.5), "emplanture": P["hauteurs"][P["cases"][(x, yy, z)]]}
+    return {nom: {**M, "case": (x, yy, z), "f": C.f(C.y_du_plan(x + 0.5)), "x": C.x_du_plan(yy + 0.5),
+                  "emplanture": P["hauteurs"][P["cases"][(x, yy, z)]]}
             for (nom, M), (x, yy, z) in zip(D["MATS"].items(), pieds, strict=True)}
 
 
@@ -123,19 +124,23 @@ def poulaine(D, P, C, coque, interieurs):
 
 
 def cloisons_au_bord_des_trappes(D, P, C, pieces, coque):
-    """Les cloisons du plan entre une case sous un pont qui ne se creuse pas (le dessous du gaillard d'avant) et le trou
-    d'une trappe du pont du dessous, que `amenager` ne pose pas (`plan_de_jeu.murs` ne garde que les arêtes entre deux
-    cases) ; jusqu'à la paroi quand la rangée voisine n'a pas de case."""
+    """Les cloisons du plan entre une case sous un pont qui ne se creuse pas (le dessous du gaillard d'avant) et la place
+    d'une trappe d'un autre pont, que `amenager` ne pose pas (`plan_de_jeu.murs` ne garde que les arêtes entre deux
+    cases) ; de son plancher au pont qui la couvre, une trappe à son niveau (`Pieces.au_niveau`) ; jusqu'à la paroi
+    quand la rangée voisine n'a pas de case."""
     marge, ep = D["CLOISON"]["marge"], D["CLOISON"]["sous_un_pont"]
+    trappes = {k[:2] for k in pieces.pieds}
     for s, x, yy, z, g in P["aretes"]:
         if g not in plan_de_jeu.MURS:
             continue
         a, b = [(cx, cy, z) for cx, cy in plan_de_jeu.voisines(s, x, yy)]
         for c, trou in ((a, b), (b, a)):
-            if (c not in P["cases"] or trou in P["cases"] or trou[:2] + (z - 1,) not in pieces.pieds
-                    or pieces.couverture[c] is None or pieces.creusee(c)):
+            if c not in P["cases"] or trou in P["cases"] or trou[:2] not in trappes:
                 continue
-            za, zb = pieces.plancher(c) - marge, pieces.plafond(c) + marge
+            bas, haut, couvrant = pieces.au_niveau(c)
+            if couvrant is None or D["SOUS_LES_PONTS"][couvrant]["paroi"] is not None:
+                continue
+            za, zb = bas - marge, haut + marge
             if s == "t":
                 yc = C.y_du_plan(x)
                 hw = pieces.paroi(c, C.f(yc), (za + zb) / 2) + marge
