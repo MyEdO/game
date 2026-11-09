@@ -92,11 +92,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // déclare (`CHOIX_DES_FENETRES`) ; le choix de l'hôte se refuse dans l'état d'un invité (`refusDuChoix`).
   fenetreChoisir: 'invité',
   // (Psychologie de COMBAT et à la rencontre : passent par les verbes de jet de la cascade.)
-  promouvoirLeCombattant: 'invité',
-  // Tir rapide (Talent « Tir rapide ») pendant la pause de début de Round : ARMER la visée depuis la
-  // frise, routé sur le TIREUR : pendant la pause il n'y a AUCUN combattant actif (`turn: -1`), donc le
-  // repli universel le refusait à tout siège invité. Le tir est le clic du combattant (`cliquerLaCase`).
-  armerLeTirPreventif: 'invité',
   // Demande de pause au prochain Round : POSER et RETIRER passent par le même verbe (interrupteur
   // de la frise) — une bascule dont un seul sens serait répliqué laisserait la table bloquée.
   leverLaMain: 'invité',
