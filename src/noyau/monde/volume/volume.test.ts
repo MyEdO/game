@@ -9,7 +9,7 @@ import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { parseHex } from '../../../lib/couleurHex';
 
 /** Les triangles du volume, sommets, normale et couleur du premier sommet. */
-function triangles(v: VolumeDuMonde) {
+function triangles(v: VolumeDuMonde['ombre']) {
   return Array.from({ length: v.positions.length / 9 }, (_, t) => ({
     ys: [1, 4, 7].map((k) => v.positions[t * 9 + k]),
     xs: [0, 3, 6].map((k) => v.positions[t * 9 + k]),
@@ -78,6 +78,22 @@ describe('volumeDuMonde (#3476)', () => {
     s.layers.push({ z: 1, tiles: ['plancher', 'plancher'], height: [3, 3] });
     const cases = (v: VolumeDuMonde) => new Set(triangles(v).map((t) => t.case.join(',')));
     expect(cases(volumeDuMonde(s, undefined, new Set(['0,0,1'])))).toEqual(new Set(['0,0,0', '1,0,0', '1,0,1']));
+  });
+
+  it('ce que la vue retire forme l’ombre du volume (#3758) : montrés ou en ombre, les triangles du volume entier, chacun une fois', () => {
+    const s = emptyScene('scene-test', 2, 1);
+    s.layers[0].tiles = ['plancher', 'plancher'];
+    s.layers.push({ z: 1, tiles: ['plancher', 'plancher'], height: [3, 3] });
+    s.entities.push({ id: 'tonneau-1', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 0 }, z: 1 });
+    const cles = (v: VolumeDuMonde['ombre']) => triangles(v).map((t) => JSON.stringify([t.case, t.xs, t.ys])).sort();
+    const casesDe = (v: VolumeDuMonde['ombre']) => new Set(triangles(v).map((t) => t.case.join(',')));
+    const toutes = [...casesDe(volumeDuMonde(s))];
+    for (const [activeZ, couvercle] of [[0, new Set<string>()], [undefined, new Set(['0,0,1'])], [0, new Set(['1,0,0'])]] as const) {
+      const v = volumeDuMonde(s, activeZ, couvercle);
+      expect([...cles(v), ...cles(v.ombre)].sort()).toEqual(cles(volumeDuMonde(s)));
+      expect(casesDe(v.ombre)).toEqual(new Set(toutes.filter((c) => (activeZ !== undefined && Number(c.split(',')[2]) > activeZ) || couvercle.has(c))));
+    }
+    expect(volumeDuMonde(s).ombre.positions).toEqual([]);
   });
 
   it('chaque triangle porte la couche de sa case : le plancher de l’étage à z 1, le sol du rez à z 0', () => {
