@@ -234,8 +234,12 @@ def echarpe(D, b, M, contournees, robe):
     for _ in range(c['passes_du_col']):
         ecarts = np.maximum(ecarts, 0.5 * (np.roll(ecarts, 1) + np.roll(ecarts, -1)))
     r0 = np.array(r0) + ecarts
-    rangs[0] = [O + r * d for O, r, d in zip(rangs[0], r0, dirs)]
     hauteurs = np.array(hauteurs)
+    dans_le_dos = np.maximum(0.0, -np.cos(thetas))
+    for _ in range(c['passes_du_bas']):
+        lisses = 0.5 * hauteurs + 0.25 * (np.roll(hauteurs, 1) + np.roll(hauteurs, -1))
+        hauteurs = hauteurs + dans_le_dos * (lisses - hauteurs)
+    rangs[0] = [np.array([O[0], O[1], z]) + r * d for O, z, r, d in zip(rangs[0], hauteurs, r0, dirs)]
     z_os = float(b.tete(c['os_hauteur'])[2])
     for k, (h, pente, aisance) in enumerate(c['anneaux']):
         hauteurs = np.maximum(z_os + h - pente * np.maximum(0.0, np.cos(thetas)) ** 2, hauteurs + c['ecart_min'])

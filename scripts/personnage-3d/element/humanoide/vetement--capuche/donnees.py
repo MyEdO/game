@@ -75,6 +75,11 @@ ECHARPE = {
     'col': (0.30, 0.050, 0.010),        # adaptation
     'passes_du_col': 2,                 # adaptation : passes qui étalent le long du bas l'écart pris sur le col (au saut d'un
                                         # sommet écarté à son voisin qui ne l'est pas, l'arête vers l'anneau 1 s'étire)
+    'passes_du_bas': 2,                 # adaptation : passes qui lissent la hauteur du bas dans le dos (pondérées par le cosinus
+                                        # de l'azimut vers l'arrière) : posée sur le torse depuis la couture en dents de scie puis
+                                        # écartée sur le col, elle y monte et descend d'un sommet à l'autre (jusqu'à 27 mm), et
+                                        # l'ourlet fait des dents ; devant, la lisser raccourcit l'arête vers l'anneau 1, qui
+                                        # s'étire au-delà de la porte
     'os_hauteur': 'neck_01',
     # (hauteur depuis la tête de `neck_01`, abaissement devant, aisance) en m, du bas au haut. L'avant du dernier anneau
     # reste sous la barbe (son bas est 0,045 m au-dessus de la tête de `neck_01`, sonde de la coiffure publiée).
