@@ -50,6 +50,8 @@ const ECART_DE_BULLE := 12.0
 const LARGEUR_DE_BULLE := 420.0
 ## La hauteur, au-dessus du sol de sa case, du nom d'une entité de la scène.
 const HAUTEUR_DU_NOM := 1.2
+## Hauteur (m) d'où part un coup, au-dessus du sol de son auteur, et où il arrive sur sa cible.
+const HAUTEUR_DU_COUP := 1.1
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
 ## Le rayon, en pixels, d'un point du plan.
@@ -139,6 +141,22 @@ static func lacet_de_proue(lacet: float) -> float:
 ## Une hauteur de `hauteur` mètres sur le plateau d'une scène de `metres_par_case`.
 static func hauteur_au_plateau(hauteur: float, metres_par_case: float) -> float:
 	return hauteur * echelle_metrique(metres_par_case)
+
+
+## L'échelle uniforme qui porte un nœud mesuré en mètres sur le plateau d'une scène de `metres_par_case`.
+static func echelle_au_plateau(metres_par_case: float) -> Vector3:
+	return Vector3.ONE * echelle_metrique(metres_par_case)
+
+
+## Le point d'où part un coup du combattant dont le sol est en `sol`, et où arrive celui qui le vise : `HAUTEUR_DU_COUP`
+## au-dessus, sur le plateau d'une scène de `metres_par_case`.
+static func point_du_coup(sol: Vector3, metres_par_case: float) -> Vector3:
+	return sol + Vector3.UP * hauteur_au_plateau(HAUTEUR_DU_COUP, metres_par_case)
+
+
+## Le temps (s) de la montée d'un projectile en vol `duree` secondes, au sommet de sa cloche à mi-vol.
+static func mi_vol(duree: float) -> float:
+	return duree / 2.0
 
 
 ## La hauteur, sur le plateau d'une scène de `metres_par_case`, où se coupe le modèle d'un navire dont un regard retire

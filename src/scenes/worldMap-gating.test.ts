@@ -34,8 +34,8 @@ const carteBarge: WorldMap = {
   id: 'fixture-barge',
   label: 'Fixture — le cap donné au quai',
   places: [
-    { id: 'quai', label: 'Le Quai', pos: { x: 10, y: 10 }, scene: 's-quai' },
-    { id: 'ilot', label: 'L’Îlot', pos: { x: 40, y: 20 }, scene: 's-ilot', when: { kind: 'flag', expr: CAP_SEL } },
+    { id: 'quai', label: 'Le Quai', pos: { x: 10, y: 10 }, scene: { id: 's-quai' } },
+    { id: 'ilot', label: 'L’Îlot', pos: { x: 40, y: 20 }, scene: { id: 's-ilot' }, when: { kind: 'flag', expr: CAP_SEL } },
   ],
   routes: [{
     id: 'route-quai-ilot',
@@ -93,13 +93,13 @@ const carteGatee: WorldMap = {
   id: 'ch1',
   label: 'Chapitre 1',
   places: [
-    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: 's-auberge' },
-    { id: 'altdorf', label: 'Altdorf', pos: { x: 60, y: 30 }, scene: 's-altdorf' },
+    { id: 'auberge', label: 'La Diligence', pos: { x: 10, y: 30 }, scene: { id: 's-auberge' } },
+    { id: 'altdorf', label: 'Altdorf', pos: { x: 60, y: 30 }, scene: { id: 's-altdorf' } },
     {
       id: 'bogenhafen',
       label: 'Bögenhafen',
       pos: { x: 20, y: 70 },
-      scene: 's-bogenhafen',
+      scene: { id: 's-bogenhafen' },
       when: { kind: 'flag', expr: 'edo-ch1-bogenhafen-revelee' },
     },
   ],
@@ -208,7 +208,7 @@ describe('AUTHORING verrouillé par CONSTRUCTION — le schéma refuse la carte 
     label: 'Fixture de gating',
     versionContenu: 1,
     maison: 'fixture de test',
-    scenes: [{ ...emptyScene('s-auberge', 3, 3), label: 's-auberge' }],
+    scenes: ['s-auberge', 's-altdorf', 's-bogenhafen'].map((id) => ({ ...emptyScene(id, 3, 3), label: id })),
     worldMap: map,
     narratif: emptyNarratif(),
   }) as unknown;
@@ -282,7 +282,7 @@ describe('`refus` — raison JOUEUR transportée jusqu’au consommateur (rendue
       label: 'Fixture de gating',
       versionContenu: 1,
       maison: 'fixture de test',
-      scenes: [{ ...emptyScene('s-auberge', 3, 3), label: 's-auberge' }],
+      scenes: ['s-auberge', 's-altdorf', 's-bogenhafen'].map((id) => ({ ...emptyScene(id, 3, 3), label: id })),
       worldMap: carteGatee,
       narratif: emptyNarratif(),
     };

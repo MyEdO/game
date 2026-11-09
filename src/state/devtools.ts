@@ -86,7 +86,7 @@ import { trappingsInstanciables, findCreatureById, findTraitById, findSpellById,
 import { verdictApprentissage } from '../engine/grimoire';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import type { PendingBladeTrap } from '../noyau/pendings';
-import { bus, EVT } from '../noyau/bus';
+import { bus, EVT, type TestResolu } from '../noyau/bus';
 import { ev } from '../noyau/combatLog';
 import { isOutOfAction, syncDerivedConditions, etatConnu, etatIdsConnus } from '../engine/conditions';
 import { tickDisease } from '../engine/disease';
@@ -209,8 +209,8 @@ function observerDialogueDuDessus(): { kind: string; plan: LayerPlan; nom: strin
  *  recette navigateur (`__wfrp.lastRoll()`), JAMAIS dans l'état de jeu persisté (module DEV seul,
  *  chargé dynamiquement, #514). Abonnement au scope module = une SEULE souscription (`installDevtools`
  *  n'est appelé qu'une fois, `main.tsx`). */
-let lastRollTrace: { actorId: string; success: boolean; sl: number; roll: number | null; target: number } | null = null;
-bus.on(EVT.TEST_RESOLVED, (payload) => { lastRollTrace = payload as typeof lastRollTrace; });
+let lastRollTrace: TestResolu | null = null;
+bus.on(EVT.TEST_RESOLVED, (payload) => { lastRollTrace = payload; });
 
 /** Routes qui portent un tracé de HIT au DOM de la carte du monde (`routesCliquables` depuis le lieu
  *  courant) : SOURCE UNIQUE du mapping DOM ↔ id, partagée par `routes()` et `clickRoute()` (#684). */

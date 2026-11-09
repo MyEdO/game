@@ -504,8 +504,6 @@ export function scanCallResultLiteralCompare(relPath, contenu, sourceFile) {
 export const DETTES_DE_LIBELLE = {
   // #1330 — `conditionIdInText` : le journal FR re-parsé par libellé d'État.
   'src/engine/conditions.ts#face-affichage-identite': 1,
-  // #1632 — sort classé par libellé (`classifySpellByLabel`).
-  'src/gameIso/fx/spellClips.ts#label-entity-resolver-call': 1,
 };
 
 /** Volets SANS stock : aucune clé de `DETTES_DE_LIBELLE` ne peut les porter, quel que soit le

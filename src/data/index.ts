@@ -58,6 +58,7 @@ import miscastRawJson from './miscast.json';
 import { deDeTirageDe, rangeesDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as imparfaites from './schemas/defs/miscast';
+import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as tableauDesOups from './schemas/defs/oups';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
@@ -96,6 +97,7 @@ import maneuversJson from './maneuvers.json';
 import domainsJson from './domains.json';
 import lightLevelsJson from './lightLevels.json';
 import lightTonesJson from './lightTones.json';
+import rendusJson from './rendus.json';
 import propsJson from './props.json';
 import type { PropData } from './props.types';
 import eyesJson from './eyes.json';
@@ -1109,6 +1111,9 @@ export interface TrappingData {
    *  poudre-noire, AA 10 l.178-193) quand `subType` = catégorie de catalogue (« armes-de-siege »). Pilote
    *  la Spé de tir (`acceptableSpecs`) et le décompte d'équipage (Projectiles appropriée, AA 10 l.230). */
   weaponGroup?: { id: string };
+  /** Rendu visuel et sonore de l'arme (`rendus.json`), à la place de celui de son Groupe : un engin de siège, dont le
+   *  Groupe dit qui le sert, pas ce qu'il tire (#3771). */
+  rendu?: { id: string };
   /** Pièce d'artillerie « relativement simple » (la baliste, AA 10 l.148) : tirée par UN seul servant
    *  valide → perd tous ses Atouts (garde ses Défauts). Lu par `crewedFireWeapon`. */
   soloSimple?: boolean;
@@ -1281,6 +1286,8 @@ export interface GroupeDArme extends GroupeDObjet {
    *  `weaponGroupsMelee`/`weaponGroupsRanged` (SPEC_SOURCES) ; absent sur les Groupes de siège. */
   combat?: 'melee' | 'ranged';
   maniement: Maniement;
+  /** Rendu visuel et sonore d'une arme du Groupe (`rendus.json`), à défaut du sien (#3771). */
+  rendu?: { id: string };
   poudre?: true;
   /** AA 10 l.136 */
   siege?: true;
@@ -2055,6 +2062,10 @@ export interface DomainData {
    *  Démonologie/Magie naturelle…) n'ont pas de Vent propre (ils canalisent Dhar ou un
    *  Vent élémentaire). Édité au Codex. */
   wind?: string;
+  /** Teinte des effets visuels d'un Sort du Domaine, à la place de celle de son rendu (#3771). */
+  couleur?: string;
+  /** Rendu visuel et sonore d'un Sort du Domaine (`rendus.json`), à défaut celui des Sorts des Vents (#3771). */
+  rendu?: { id: string };
   /** Domaine ENSEIGNABLE via le Talent Magie des Arcanes (LDB 48) : SOURCE du pool `arcaneDomains`
    *  (SPEC_SOURCES) — fin de la liste `specs[]` maintenue à la main sur `magie-des-arcanes`. Les Lores de
    *  sorts non-arcanes (ex. Magie des mers de Triton) ne le portent pas. La marque EST le Type de Souffle
@@ -2819,6 +2830,29 @@ export const lightTones = lightTonesJson as LightToneDef[];
 export const findLightToneById = (id: string): LightToneDef | undefined => lightTones.find((t) => t.id === id);
 /** Ton SERVI à une source qui n'en nomme aucun — le feu, le cas du monde (brasero, feu de camp). */
 export const DEFAULT_LIGHT_TONE_ID = 'flamme';
+/** RENDU d'un coup ou d'une incantation (#3771) : couleur, et par phase (départ, impact, manque, parade) le visuel que
+ *  l'hôte dessine et le son du registre (`sons/defs`) ; le projectile, sa vitesse et sa cloche. Référencé par `rendu`
+ *  (Groupe d'arme, objet, Domaine). Aucune conséquence de règle. Résolu par `effetsDeLAppel` (`src/noyau/effetsDeLAppel.ts`). */
+export interface RenduDef {
+  id: string;
+  type: 'rendus';
+  label: string;
+  couleur: string;
+  departVisuel?: VisuelDEffet;
+  departSon?: { id: string };
+  projectile?: Projectile;
+  vitesseMs?: number;
+  cloche?: number;
+  impactVisuel?: VisuelDEffet;
+  impactSon?: { id: string };
+  manqueVisuel?: VisuelDEffet;
+  manqueSon?: { id: string };
+  paradeVisuel?: VisuelDEffet;
+  paradeSon?: { id: string };
+}
+export type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
+export const rendus = rendusJson as RenduDef[];
+export const findRenduById = indexParId('rendus', rendus);
 /** Contrats NEUTRES du décor (type de prop, recette volumique, matériaux, places assises) — définis
  *  hors du chargeur pour rester importables sans lui (cf. `props.types.ts`). */
 export type { PropData, PropMaterialData, PropMaterialId, PropPoint3, PropSize3, PropPrimitive, PropVolumeRecipe, PropSeatSlot } from './props.types';

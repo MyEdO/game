@@ -3,7 +3,7 @@ extends PontDuNoyau
 
 ## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues` et `modeles` rendent leur
 ## réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée (`JSON.stringify`),
-## `modeles/` le listage figé et `modeles/<fichier>` le fichier du projet ; il garde les entrées reçues hors de
+## `modeles/listage.json` le listage figé et `modeles/<fichier>` le fichier du projet ; il garde les entrées reçues hors de
 ## `catalogues` et `modeles`, et le dernier écran publié.
 
 var fige: Dictionary
@@ -40,7 +40,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 
 
 func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
-	if relative == "modeles/":
+	if relative == "modeles/listage.json":
 		return JSON.stringify(fige.listage).to_utf8_buffer()
 	var octets := FileAccess.get_file_as_bytes("res://%s" % relative)
 	if octets.is_empty():

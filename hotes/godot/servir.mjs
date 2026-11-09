@@ -1,6 +1,6 @@
 // LE SERVEUR DE L'EXPORT WEB DE L'HÔTE GODOT (#2928, #3086, `pont/CONTRAT.md`, section « Atelier 3D ») : l'export servi
-// en statique sur un port libre de la boucle locale, et, à côté de la page, le dossier des modèles : `GET /modeles/` rend
-// ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
+// en statique sur un port libre de la boucle locale, et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
+// rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
 // et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`. Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
 // `PUT /depot/<id>`. Une requête défaillante reçoit son statut d'erreur, le serveur continue.
@@ -15,7 +15,7 @@ import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs'
 import { materialiser } from '../../scripts/source/resoudre.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
-import { DOSSIER_DES_MODELES, listage } from './listage.mjs'
+import { DOSSIER_DES_MODELES, LISTAGE, listage } from './listage.mjs'
 
 const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.wasm': 'application/wasm', '.png': 'image/png', '.json': 'application/json; charset=utf-8', '.glb': 'model/gltf-binary' }
 
@@ -113,7 +113,7 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
       return void res.writeHead(400).end()
     }
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
-    if (rel === 'modeles/') return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
+    if (rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
     const [base, chemin, entetes] = rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), { 'Cache-Control': 'no-store' }] : [racine, rel || 'index.html', {}]
     const fichier = sous(base, chemin)
     if (!fichier) return void res.writeHead(404).end()

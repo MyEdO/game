@@ -7,7 +7,7 @@ import { poiIcon, placeServices, lieuAUnPlan, type MapPlace } from '../noyau/wor
  */
 
 const place = (over: Partial<MapPlace> = {}): MapPlace => ({
-  id: 'bogenhafen', label: 'Bögenhafen', pos: { x: 40, y: 30 }, scene: 'sc-bogen', ...over,
+  id: 'bogenhafen', label: 'Bögenhafen', pos: { x: 40, y: 30 }, scene: { id: 'sc-bogen' }, ...over,
 });
 
 describe('lieuAUnPlan — porte de l’onglet Plan (#345 phase 5)', () => {
@@ -37,7 +37,7 @@ describe('poiIcon — résolution GÉNÉRALE de l’icône d’un marqueur de pl
     expect(poiIcon({ id: 'p', label: 'X', pos: { x: 0, y: 0 }, icon: 'nav/dice', serviceKind: 'temple' }, services)).toBe('nav/dice');
   });
   it('sceneId sans icon : porte (map-tool/door)', () => {
-    expect(poiIcon({ id: 'p', label: 'Ailleurs', pos: { x: 0, y: 0 }, sceneId: 'sc-x' }, services)).toBe('map-tool/door');
+    expect(poiIcon({ id: 'p', label: 'Ailleurs', pos: { x: 0, y: 0 }, sceneId: { id: 'sc-x' } }, services)).toBe('map-tool/door');
   });
   it('serviceKind introuvable dans les services résolus : défaut nav/entry-point', () => {
     expect(poiIcon({ id: 'p', label: 'Rien', pos: { x: 0, y: 0 }, serviceKind: 'inconnu' }, services)).toBe('nav/entry-point');

@@ -71,13 +71,13 @@ static func retenir_les_modeles(reponse: Dictionary) -> void:
 	_textures = {}
 
 
-## Le listage du serveur (`GET modeles/`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par le pont que `hote`
+## Le listage des modèles (`GET modeles/listage.json`, `hotes/godot/pont/CONTRAT.md`, « Atelier 3D »), par le pont que `hote`
 ## rejoint (`PontDuNoyau.requeter`) ; ses erreurs à `recueil`, vide s'il ne se lit pas.
 static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
-	var octets := await (hote.get_node("/root/Pont") as PontDuNoyau).requeter("modeles/", recueil)
+	var octets := await (hote.get_node("/root/Pont") as PontDuNoyau).requeter("modeles/listage.json", recueil)
 	var listage: Variant = JSON.parse_string(octets.get_string_from_utf8()) if not octets.is_empty() else null
 	if not listage is Dictionary:
-		recueil.append("listage-illisible : modeles/")
+		recueil.append("listage-illisible : modeles/listage.json")
 		return {}
 	for erreur in listage.get("erreurs", []):
 		recueil.append(str(erreur))

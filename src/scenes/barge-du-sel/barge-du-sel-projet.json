@@ -1409,7 +1409,9 @@
      "x": 20,
      "y": 60
     },
-    "scene": "barge-du-sel-quai",
+    "scene": {
+     "id": "barge-du-sel-quai"
+    },
     "icon": "scenario/port"
    },
    {
@@ -1419,7 +1421,9 @@
      "x": 60,
      "y": 40
     },
-    "scene": "barge-du-sel-ilot",
+    "scene": {
+     "id": "barge-du-sel-ilot"
+    },
     "icon": "scenario/port",
     "when": {
      "kind": "flag",
@@ -1443,7 +1447,9 @@
     "sea": true,
     "seaHeading": "nord",
     "ambush": {
-     "scene": "barge-du-sel-embuscade",
+     "scene": {
+      "id": "barge-du-sel-embuscade"
+     },
      "encounter": "enc-embuscade-sel",
      "at": 0.5
     },

@@ -15,7 +15,7 @@ import type { Jeton } from './plateforme';
 import { ouvrirLeProprietaire } from './proprietaireDuJeu';
 import { appliquerLIntentionDUnSiege, type IssueDIntention } from './intentionsDeSiege';
 import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenario';
-import { bus, EVT } from './bus';
+import { bus, EVT, type ChargesDuBus } from './bus';
 import type { Cadence } from '../engine/cadence';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
@@ -29,7 +29,7 @@ export type NomDEvenement = Exclude<(typeof EVT)[keyof typeof EVT], typeof EVT.L
 /** Ce qu'un appel de la partie rend : un événement émis sur le bus, ou un appel différé programmé, que
  *  l'hôte rejoue par `reprendre(jeton)` après `delai` millisecondes. */
 export type Evenement =
-  | { type: 'emis'; evt: NomDEvenement; payload: unknown }
+  | { [E in NomDEvenement]: { type: 'emis'; evt: E; payload: ChargesDuBus[E] } }[NomDEvenement]
   | { type: 'programme'; jeton: Jeton; delai: number };
 
 /** Les entrées que l'hôte fournit (D8) : la graine des dés, les règles maison, la cadence, les dés fixés,
@@ -102,7 +102,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   proprietaire.abonner(capter);
   const desabonnements = [
     bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte, heure: get().gameTime })),
-    ...Object.values(EVT).flatMap((evt) => (evt === EVT.LIGNE_AU_JOURNAL ? [] : [bus.on(evt, (payload: unknown) => tampon.push({ type: 'emis', evt, payload }))])),
+    ...Object.values(EVT).flatMap((evt) => (evt === EVT.LIGNE_AU_JOURNAL ? [] : [bus.on(evt, (payload) => tampon.push({ type: 'emis', evt, payload } as Evenement))])),
   ];
 
   const ouvertePour = (geste: string): void => {
