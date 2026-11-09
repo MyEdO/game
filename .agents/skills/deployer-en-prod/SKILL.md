@@ -6,12 +6,12 @@ description: À utiliser quand l'utilisateur demande une mise en production, un 
 
 # Déployer en production, ou en test
 
-`deploy.yml` publie une cible, chacune dans le dossier du même nom de `cgauche.github.io` :
+`deploy.yml` publie une cible, chacune sur le site GitHub Pages de `cgauche` :
 
-| Cible | Dossier | Ce qui part |
+| Cible | Adresse | Ce qui part |
 |---|---|---|
-| `jeu` | https://cgauche.github.io/jeu/ | la prod : le jeu web (`npm run build`) |
-| `dev` (défaut) | https://cgauche.github.io/dev/ | le test : l'export Web de l'hôte Godot et ses modèles (`construire.mjs --export`) |
+| `jeu` | https://cgauche.github.io/jeu/ | la prod : le jeu web (`npm run build`), dossier `jeu/` du dépôt `cgauche/cgauche.github.io` |
+| `dev` (défaut) | https://cgauche.github.io/dev/ | le test : l'export Web de l'hôte Godot et ses modèles (`construire.mjs --export`), dépôt `cgauche/dev`, dont chaque déploiement remplace l'historique par un seul commit |
 
 Le workflow build le commit DISTANT de la ref lancée, pas l'arbre local : ce qui n'est pas poussé ne part pas.
 
@@ -43,7 +43,7 @@ Le run se suit par l'outil `Monitor`, que la garde `commande-piege` exige hors d
 `CLAUDE_CODE_DISABLE_BG_SHELL_PRESSURE_REAP` (#2603) : `gh run watch <id> --exit-status > /dev/null; echo "deploy : code $?"`.
 Puis vérifier le site du dossier publié.
 
-Le secret Actions `PROD_DEPLOY_KEY` (dépôt `cgauche/game`) est la clé privée SSH dont la publique est
-une deploy key en écriture sur `cgauche/cgauche.github.io` — un run qui échoue sur l'authentification
-vient d'elle. GitHub refuse un fichier de plus de 100 Mo poussé sur `cgauche.github.io` : le pck de Godot ne porte
+Les secrets Actions de `MyEdO/game` `PROD_DEPLOY_KEY` et `DEV_DEPLOY_KEY` sont les clés privées SSH dont les
+publiques sont des deploy keys en écriture sur `cgauche/cgauche.github.io` et `cgauche/dev` — un run qui échoue sur
+l'authentification vient de celle de sa cible. GitHub refuse un fichier poussé de plus de 100 Mo : le pck de Godot ne porte
 pas `modeles/` (`exclude_filter` de `hotes/godot/projet/export_presets.cfg`), servis à côté.
