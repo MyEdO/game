@@ -29,16 +29,28 @@ func jouer(musique: Variant) -> void:
 		_lecteur = null
 	if musique == null:
 		return
-	var piste: Dictionary = musique.pistes.pick_random()
 	_lecteur = AudioStreamPlayer.new()
-	_lecteur.name = "piste-%s" % piste.id
-	_lecteur.stream = Effets.variantes_du_son(piste, true)
+	_lecteur.name = "musique"
+	_lecteur.stream = pistes_de(musique)
 	_lecteur.volume_db = SILENCE_DB
 	add_child(_lecteur, true)
 	_lecteur.play()
-	create_tween().tween_property(_lecteur, "volume_db", linear_to_db(piste.volume), FONDU_S)
+	create_tween().tween_property(_lecteur, "volume_db", 0.0, FONDU_S)
 
 
-## La piste qui joue, `null` au silence.
+## Les pistes de `musique`, l'une au hasard à chaque lecture (`AudioStreamRandomizer`), chacune en boucle à son volume
+## (`AudioStreamSynchronized`).
+static func pistes_de(musique: Dictionary) -> AudioStreamRandomizer:
+	var pistes := AudioStreamRandomizer.new()
+	for piste: Dictionary in musique.pistes:
+		var a_son_volume := AudioStreamSynchronized.new()
+		a_son_volume.stream_count = 1
+		a_son_volume.set_sync_stream(0, Effets.variantes_du_son(piste, true))
+		a_son_volume.set_sync_stream_volume(0, linear_to_db(piste.volume))
+		pistes.add_stream(-1, a_son_volume)
+	return pistes
+
+
+## Le lecteur de la musique qui joue, `null` au silence.
 func lecteur() -> AudioStreamPlayer:
 	return _lecteur
