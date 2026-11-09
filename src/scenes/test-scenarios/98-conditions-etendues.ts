@@ -24,13 +24,13 @@ const construireScene = (): Scene => buildScene({
   entities: [
     {
       id: 'garde', kind: 'personnage', ref: 'humain', label: 'Garde du poste',
-      pos: { x: 6, y: 3 }, dialogueId: 'dlg-garde',
+      pos: { x: 6, y: 3 }, dialogueId: { id: 'dlg-garde' },
     },
   ],
   dialogues: [
     {
       id: 'dlg-garde',
-      start: 'accueil',
+      start: { id: 'accueil' },
       nodes: [
         {
           id: 'accueil',

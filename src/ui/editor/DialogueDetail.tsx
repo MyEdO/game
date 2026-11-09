@@ -41,7 +41,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
   onRename: (id: string) => void;
   ctx: Ctx;
 }) {
-  const [nodeId, setNodeId] = useState<string>(dialogue.start);
+  const [nodeId, setNodeId] = useState<string>(dialogue.start.id);
   const node = dialogue.nodes.find((n) => n.id === nodeId) ?? dialogue.nodes[0] ?? null;
 
   const updNode = (patch: Partial<DialogueNode>) =>
@@ -62,7 +62,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
         <EntryRename label={dialogue.id} caption="Id du dialogue" className="ed-field dlg-id-field" onRename={onRename} />
         <label className="ed-field">
           Nœud de départ
-          <select value={dialogue.start} onChange={(e) => onChange({ ...dialogue, start: e.target.value })}>
+          <select value={dialogue.start.id} onChange={(e) => onChange({ ...dialogue, start: { id: e.target.value } })}>
             {dialogue.nodes.map((n) => (
               <option key={n.id} value={n.id}>
                 {n.id}
@@ -77,13 +77,13 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
         <div className="dlg-nodes">
           <div className="mini-title">Nœuds ({dialogue.nodes.length})</div>
           {dialogue.nodes.map((n) => {
-            const targets = [...new Set(n.choices.map((c) => c.next).filter(Boolean))];
+            const targets = [...new Set(n.choices.flatMap((c) => (c.next ? [c.next.id] : [])))];
             return (
               <ListRow
                 key={n.id}
                 selected={node?.id === n.id}
                 onClick={() => setNodeId(n.id)}
-                label={<>{dialogue.start === n.id ? '▶ ' : ''}<b>{n.id}</b> {n.desc ? `· ${coupeAuMot(n.desc, 24)}` : ''}</>}
+                label={<>{dialogue.start.id === n.id ? '▶ ' : ''}<b>{n.id}</b> {n.desc ? `· ${coupeAuMot(n.desc, 24)}` : ''}</>}
               >
                 {targets.length > 0 && <span className="chip">→ {targets.join(', ')}</span>}
               </ListRow>
@@ -121,7 +121,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
                 title="Supprimer ce nœud"
                 onClick={() => {
                   onChange(removeDialogueNode(dialogue, node.id));
-                  setNodeId(dialogue.start);
+                  setNodeId(dialogue.start.id);
                 }}
               >
                 ✕ nœud
@@ -166,7 +166,7 @@ export function DialogueDetail({ dialogue, onChange, onRename, ctx }: {
                     <Row>
                       <label className="dr">
                         →
-                        <select value={c.next ?? ''} onChange={(e) => updChoice(ci, { next: e.target.value || undefined })}>
+                        <select value={c.next?.id ?? ''} onChange={(e) => updChoice(ci, { next: e.target.value ? { id: e.target.value } : undefined })}>
                           <option value="">(fin / effets)</option>
                           {dialogue.nodes.map((nn) => (
                             <option key={nn.id} value={nn.id}>

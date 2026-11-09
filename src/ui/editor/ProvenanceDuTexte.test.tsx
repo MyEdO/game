@@ -253,7 +253,7 @@ describe('ProvenanceDuTexte — texte ADRESSÉ reçu (réplique, journal) : lu, 
 
 describe('ProvenanceDuTexte — câblage : la réplique de dialogue', () => {
   it('« Adapté » écrit `adapteDe` dans le nœud ÉDITÉ, qui parse ; le voisin est intact', () => {
-    const dialogue: Dialogue = { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [] }, { id: 'n2', desc: 'Adieu.', choices: [] }] };
+    const dialogue: Dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Bonjour.', choices: [] }, { id: 'n2', desc: 'Adieu.', choices: [] }] };
     let dernier = dialogue;
     function Atelier() {
       const [d, setD] = useState(dialogue);
@@ -280,7 +280,7 @@ describe('ProvenanceDuTexte — câblage : réplique ADRESSÉE, `desc` non saisi
   };
 
   it('le texte, lu puis saisissable, tient sa place sous son libellé : même ordre avant et après « Détacher »', () => {
-    const dialogue: Dialogue = { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: TEXTE, descRef: DESC_REF, choices: [] }] };
+    const dialogue: Dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: TEXTE, descRef: DESC_REF, choices: [] }] };
     function Atelier() {
       const [d, setD] = useState(dialogue);
       return <DialogueDetail dialogue={d} ctx={{ encounters: [], dialogues: [d], personas: [] } as unknown as Ctx} onChange={setD} onRename={() => undefined} />;
@@ -295,7 +295,7 @@ describe('ProvenanceDuTexte — câblage : réplique ADRESSÉE, `desc` non saisi
   });
 
   it('aucune zone de texte tant que l’adresse tient ; « Détacher » rend la prose à la saisie', () => {
-    const dialogue: Dialogue = { id: 'd', start: 'n1', nodes: [{ id: 'n1', desc: TEXTE, descRef: DESC_REF, choices: [] }] };
+    const dialogue: Dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: TEXTE, descRef: DESC_REF, choices: [] }] };
     let dernier = dialogue;
     function Atelier() {
       const [d, setD] = useState(dialogue);

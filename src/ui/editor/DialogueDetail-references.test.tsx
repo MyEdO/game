@@ -71,16 +71,16 @@ const supprimerLeNoeud = () => act(() => { container.querySelector<HTMLButtonEle
 const fautesDeDialogue = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error' && /dialogue/i.test(w.message)).map((w) => w.message);
 
 const dialogue = (): Dialogue => ({
-  id: 'd1', start: 'n1',
+  id: 'd1', start: { id: 'n1' },
   nodes: [
-    { id: 'n1', desc: 'un', choices: [{ id: 'choix-1', label: 'vers deux', next: 'n2' }] },
-    { id: 'n2', desc: 'deux', choices: [{ id: 'choix-1', label: 'encore', next: 'n2' }, { id: 'choix-2', label: 'retour', next: 'n1' }] },
+    { id: 'n1', desc: 'un', choices: [{ id: 'choix-1', label: 'vers deux', next: { id: 'n2' } }] },
+    { id: 'n2', desc: 'deux', choices: [{ id: 'choix-1', label: 'encore', next: { id: 'n2' } }, { id: 'choix-2', label: 'retour', next: { id: 'n1' } }] },
     { id: 'n3', desc: 'trois', choices: [] },
   ],
 });
 const scene = (): Scene => ({
   ...emptyScene('scene-test', 8, 8),
-  entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: 'd1' } as SceneEntity],
+  entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, label: 'Aubergiste', dialogueId: { id: 'd1' } } as SceneEntity],
   triggers: [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'startDialogue', dialogue: 'd1' } }] } }],
   dialogues: [dialogue()],
 });
@@ -91,7 +91,7 @@ describe('atelier de dialogue — aucune référence pendante (#3059)', () => {
     expect(fautesDeDialogue(sceneVue), 'la scène de départ est valide').toEqual([]);
     renommer(champDuDialogue(), 'd-auberge');
     expect(sceneVue.dialogues.map((d) => d.id)).toEqual(['d-auberge']);
-    expect(sceneVue.entities[0].dialogueId).toBe('d-auberge');
+    expect(sceneVue.entities[0].dialogueId).toEqual({ id: 'd-auberge' });
     expect(sceneVue.triggers[0].flow).toEqual({ kind: 'seq', steps: [{ kind: 'do', effect: { type: 'startDialogue', dialogue: 'd-auberge' } }] });
     expect(fautesDeDialogue(sceneVue)).toEqual([]);
   });
@@ -104,8 +104,8 @@ describe('atelier de dialogue — aucune référence pendante (#3059)', () => {
     renommer(champDuNoeud(), 'n-deux');
     const [n1, n2] = sceneVue.dialogues[0].nodes;
     expect(n2.id).toBe('n-deux');
-    expect(n1.choices[0].next).toBe('n-deux');
-    expect(n2.choices.map((c) => c.next), 'la boucle du nœud sur lui-même pend').toEqual(['n-deux', 'n1']);
+    expect(n1.choices[0].next).toEqual({ id: 'n-deux' });
+    expect(n2.choices.map((c) => c.next), 'la boucle du nœud sur lui-même pend').toEqual([{ id: 'n-deux' }, { id: 'n1' }]);
     expect(fautesDeDialogue(sceneVue)).toEqual([]);
   });
 

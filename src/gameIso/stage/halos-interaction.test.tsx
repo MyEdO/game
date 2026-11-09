@@ -66,7 +66,7 @@ const marchand = {
   id: 'marchand',
   kind: 'personnage', ref: 'humain',
   pos: { x: 7, y: 2 },
-  dialogueId: 'd1',
+  dialogueId: { id: 'd1' },
 } as unknown as SceneEntity;
 
 function scèneAvecCoffre(): Scene {

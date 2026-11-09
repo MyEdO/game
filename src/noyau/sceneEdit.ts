@@ -895,7 +895,7 @@ export function renameEncounter(scene: Scene, from: string, to: string): Scene {
 /** Crée un dialogue d'un seul nœud de départ, sans choix (id frais). */
 export function addDialogue(scene: Scene): { scene: Scene; id: string } {
   const id = nextEntityId('dlg', scene.dialogues.map((d) => d.id));
-  return { scene: { ...scene, dialogues: [...scene.dialogues, { id, start: 'n1', nodes: [{ id: 'n1', choices: [] }] }] }, id };
+  return { scene: { ...scene, dialogues: [...scene.dialogues, { id, start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [] }] }] }, id };
 }
 
 /** Remplace le dialogue `id` par `dialogue` (son id compris). */
@@ -910,14 +910,14 @@ export function removeDialogue(scene: Scene, id: string): Scene {
 
 /** Renomme le dialogue `from` et le PROPAGE à ses ouvreurs : le `dialogueId` des entités et chaque effet
  *  « Ouvrir un dialogue » de la scène (`sitesDeLaScene`). Refusé (scène inchangée) pour un id vide ou
- *  déjà porté par un autre dialogue. `validateScene` (`dialogue inexistant`). */
+ *  déjà porté par un autre dialogue. `sceneSchema` (portée `dialogues`), `EFFECT_HANDLERS.startDialogue.refs`. */
 export function renameDialogue(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
   if (!next || next === from || scene.dialogues.some((d) => d.id === next) || !scene.dialogues.some((d) => d.id === from)) return scene;
   const copie = structuredClone(scene);
   for (const { effet } of sitesDeLaScene(copie).effets) if (effet.type === 'startDialogue' && effet.dialogue === from) effet.dialogue = next;
   const renomme = { ...copie, dialogues: copie.dialogues.map((d) => (d.id === from ? { ...d, id: next } : d)) };
-  return renomme.entities.filter((e) => e.dialogueId === from).reduce((s, e) => editEntity(s, e.id, { dialogueId: next }), renomme);
+  return renomme.entities.filter((e) => e.dialogueId?.id === from).reduce((s, e) => editEntity(s, e.id, { dialogueId: { id: next } }), renomme);
 }
 
 /** Ajoute au dialogue un nœud sans réplique ni choix, d'id frais `n<k>` (`k` part du nombre de nœuds + 1). */
@@ -929,29 +929,29 @@ export function addDialogueNode(dialogue: Dialogue): { dialogue: Dialogue; id: s
 }
 
 /** Renomme le nœud `from` et le PROPAGE au départ et à chaque `next`, la boucle du nœud sur lui-même
- *  comprise. Refusé (dialogue inchangé) pour un id vide ou déjà porté par un autre nœud. `validateScene`
- *  (`départ inexistant`, `choix → inexistant`). */
+ *  comprise. Refusé (dialogue inchangé) pour un id vide ou déjà porté par un autre nœud. `dialogueSchema`
+ *  (portée `nodes`). */
 export function renameDialogueNode(dialogue: Dialogue, from: string, to: string): Dialogue {
   const next = to.trim();
   if (!next || next === from || dialogue.nodes.some((n) => n.id === next) || !dialogue.nodes.some((n) => n.id === from)) return dialogue;
   return {
     ...dialogue,
-    start: dialogue.start === from ? next : dialogue.start,
+    start: dialogue.start.id === from ? { id: next } : dialogue.start,
     nodes: dialogue.nodes.map((n) => ({
       ...n,
       id: n.id === from ? next : n.id,
-      choices: n.choices.map((c) => (c.next === from ? { ...c, next } : c)),
+      choices: n.choices.map((c) => (c.next?.id === from ? { ...c, next: { id: next } } : c)),
     })),
   };
 }
 
 /** Supprime le nœud `id` et COUPE chaque `next` qui le visait : le choix mène à la fin
  *  (`dialogueChoiceSchema.next` facultatif). Refusé (dialogue inchangé) pour le nœud de départ, que
- *  `dialogueSchema.start` exige (`validateScene` « départ inexistant »). */
+ *  `dialogueSchema.start` exige. */
 export function removeDialogueNode(dialogue: Dialogue, id: string): Dialogue {
-  if (dialogue.start === id || !dialogue.nodes.some((n) => n.id === id)) return dialogue;
+  if (dialogue.start.id === id || !dialogue.nodes.some((n) => n.id === id)) return dialogue;
   const coupe = (c: DialogueChoice): DialogueChoice => {
-    if (c.next !== id) return c;
+    if (c.next?.id !== id) return c;
     const { next: _coupe, ...reste } = c;
     return reste;
   };

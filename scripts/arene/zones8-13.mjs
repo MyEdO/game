@@ -185,7 +185,7 @@ export function makeZone10() {
   resetIds();
   const dlgPrisonnier = {
     id: 'dlg-prisonnier',
-    start: 'accueil',
+    start: { id: 'accueil' },
     nodes: [
       {
         id: 'accueil',
@@ -251,7 +251,7 @@ export function makeZone10() {
     entities: [
       hero(2, 21),
       NPC('prisonnier', 10, 5, 'Prisonnier en cage', {
-        dialogueId: 'dlg-prisonnier',
+        dialogueId: { id: 'dlg-prisonnier' },
         anim: 'cowering',
         appearance: { species: 'halflings', tenue: 'mendiant', sex: 'M' },
       }),

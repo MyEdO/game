@@ -45,7 +45,7 @@ function construireScene(): Scene {
   const dialogues: Dialogue[] = [
     {
       id: 'dlg-ambush',
-      start: 'a1',
+      start: { id: 'a1' },
       nodes: [
         {
           id: 'a1',
@@ -65,7 +65,7 @@ function construireScene(): Scene {
                 { type: 'startCombat', encounter: 'enc-mutants' },
               ]),
             },
-            { id: 'reculer-sans-bruit', label: 'Reculer sans bruit vers le couvert…', next: 'a2' },
+            { id: 'reculer-sans-bruit', label: 'Reculer sans bruit vers le couvert…', next: { id: 'a2' } },
           ],
         },
         {

@@ -26,11 +26,11 @@ import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecan
 import { navalTraitRefSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
 import { sceneFlowSchema } from './effets';
-import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs } from '../grammaire/ref';
+import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { champsDeChoix } from '../grammaire/choixDeCreation';
 import { parcoursDe, refusDuParcours } from '../../../engine/pnjDeCarriere';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
-import { listeCle } from '../grammaire/collection-cle';
+import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
 import { findCreatureById, refEntiteResolue } from '../../index';
 import { capDecorAdmis } from '../../props.types';
@@ -41,6 +41,11 @@ import { optionalEntrySchema } from '../defs/creatures';
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
 export type Terrain = string & {};
+
+/** Les dialogues de la scène, que désigne `entities[].dialogueId`. */
+const DIALOGUES = { collection: 'dialogues', catalogue: 'dialogues de la scène' } as const satisfies PorteeLocale;
+/** Les nœuds du dialogue, que désignent `start` et `choices[].next`. */
+const NOEUDS = { collection: 'nodes', catalogue: 'nœuds du dialogue' } as const satisfies PorteeLocale;
 
 /** `Dir8` (`geometry/dir8.ts`) — orientation MONDE éditable, projetée au rendu. MÊME vocabulaire que le cap
  *  d'une place assise de décor (`defs/props.ts`) : la const NOMMÉE de la grammaire est partagée (#1694). */
@@ -147,7 +152,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   crewIds: z.array(z.string()).optional(),
   postes: z.array(authoredShipPosteSchema).optional(),
   upgrades: z.array(navalTraitRefSchema).optional(),
-  dialogueId: z.string().optional(),
+  dialogueId: ref(DIALOGUES).optional(),
   /** Contrepartie d'un Test de Sociabilité qui lit les jetons de Mécénat — arbitrage MAISON (ACE 12 l.60-62). */
   amateur: amateurSchema.optional(),
   appearance: entityAppearanceSchema.optional(),
@@ -511,8 +516,7 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   cost: moneyPartialSchema.optional(),
   /** LOGIQUE exécutée à la sélection : séquence d'effets + branches `if`/`test` (exécutée par `runFlow`). */
   flow: sceneFlowSchema.optional(),
-  /** Id du nœud suivant. */
-  next: z.string().optional(),
+  next: ref(NOEUDS).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, icon: { label: "icône" , texte: { regime: "technique"} }, when: { label: "condition" }, cost: { label: "coût" }, flow: { label: "enchaînement", transparent: true }, next: { label: "nœud suivant" , texte: { regime: "technique"} } });
 /** `DialogueNode` — `speakerId` = entité de la scène dont le portrait/nom porte CE nœud. Réplique :
  *  `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
@@ -524,13 +528,13 @@ export const dialogueNodeSchema = proseNommee(nommerChamps(z.strictObject({
   speakerId: z.string().optional(),
   choices: listeCle(dialogueChoiceSchema, 'id'),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} }, choices: { label: "réponses" } }), 'dialogues[].nodes[].desc');
-/** `Dialogue` — arbre de nœuds, `start` = id du nœud d'entrée. */
-export const dialogueSchema = nommerChamps(z.strictObject({
+/** `Dialogue` — arbre de nœuds, `start` le nœud d'entrée. */
+export const dialogueSchema = nommerChamps(ouvrirPortees(z.strictObject({
   id: z.string(),
-  start: z.string(),
+  start: ref(NOEUDS),
   nodes: listeCle(dialogueNodeSchema, 'id'),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, start: { label: "nœud de départ" , texte: { regime: "technique"} }, nodes: { label: "nœuds" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), [NOEUDS]), { id: { label: "identifiant" , texte: { regime: "technique"} }, start: { label: "nœud de départ" , texte: { regime: "technique"} }, nodes: { label: "nœuds" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 // ── Déclencheur ─────────────────────────────────────────────────────────────────────────────────
 
@@ -834,7 +838,7 @@ export const encountersSchema = listeCle(encounterDefSchema, 'id');
  */
 export const messageIntroductionSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'scenes[].startMessage.texte');
 
-export const sceneSchema = nommerChamps(z.strictObject({
+export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
   type: z.literal('scene'),
   id: z.string(),
   label: z.string(),
@@ -917,7 +921,7 @@ export const sceneSchema = nommerChamps(z.strictObject({
       });
     }
   });
-}), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
+}), [DIALOGUES]), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
 
 nommerNoeud(sceneSchema, { element: 'scène' });
 nommerNoeud(triggerSchema, { element: 'déclencheur' });

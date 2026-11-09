@@ -557,18 +557,18 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   const CHUTE: Flow = { kind: 'do', effect: { type: 'fall', target: 'party', metres: 4 } } as unknown as Flow;
   const DIT = (desc: string): Flow => ({ kind: 'do', effect: { type: 'journal', desc } } as unknown as Flow);
   const dialogueDUnSaut = (): Dialogue => ({
-    id: 'd-saut', start: 'n1',
+    id: 'd-saut', start: { id: 'n1' },
     nodes: [
-      { id: 'n1', desc: '.', choices: [{ id: 'sauter', label: 'Sauter', next: 'n2', flow: CHUTE }] },
+      { id: 'n1', desc: '.', choices: [{ id: 'sauter', label: 'Sauter', next: { id: 'n2' }, flow: CHUTE }] },
       { id: 'n2', desc: 'De l’autre côté.', choices: [{ id: 'continuer', label: 'Continuer' }] },
     ],
   } as unknown as Dialogue);
 
   /** Pose le dé de l'étape SOUS LE CURSEUR (une grappe en compte plusieurs) et valide. */
   const dialogueDeDeuxSauts = (): Dialogue => ({
-    id: 'd-deux', start: 'n1',
+    id: 'd-deux', start: { id: 'n1' },
     nodes: [
-      { id: 'n1', desc: '.', choices: [{ id: 'sauter-deux-fois', label: 'Sauter deux fois', next: 'n2', flow: { kind: 'seq', steps: [CHUTE, CHUTE] } }] },
+      { id: 'n1', desc: '.', choices: [{ id: 'sauter-deux-fois', label: 'Sauter deux fois', next: { id: 'n2' }, flow: { kind: 'seq', steps: [CHUTE, CHUTE] } }] },
       { id: 'n2', desc: 'Enfin.', choices: [{ id: 'continuer', label: 'Continuer' }] },
     ],
   } as unknown as Dialogue);
@@ -599,7 +599,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     // Ici la clôture est la FERMETURE du dialogue (choix sans `next`), qui horodate la conversation.
     seedBattleRng(3);
     const d = {
-      id: 'd-clot', start: 'n1',
+      id: 'd-clot', start: { id: 'n1' },
       nodes: [{ id: 'n1', desc: '.', choices: [{ id: 'sauter', label: 'Sauter', flow: CHUTE }] }],
     } as unknown as Dialogue;
     banc.setState({

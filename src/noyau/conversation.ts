@@ -45,7 +45,7 @@ function repondre(get: Get, set: Set, choix: string): void {
     if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().ecrireAuJournal(t('store.dialogueNoMoney')); return; }
   }
   const transition: DialogueTransition = choice.next
-    ? { ...etat, nodeId: choice.next } // même conversation : `session` et interlocuteur voyagent avec
+    ? { ...etat, nodeId: choice.next.id } // même conversation : `session` et interlocuteur voyagent avec
     : 'close';
   // Nom AFFICHÉ du locuteur (`nomDeLInterlocuteur`), partagé par l'archive du tour et le titre de la fenêtre de
   // butin d'un choix payant.

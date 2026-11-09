@@ -72,12 +72,12 @@ const construireVillage = (): Scene => buildScene({
     'cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour ' +
     'voyager.)' },
   entities: [
-    { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-auberge' },
+    { id: 'aubergiste', kind: 'personnage', ref: 'humain', label: 'Aubergiste', pos: { x: 8, y: 3 }, appearance: { species: 'humains-reiklander' }, dialogueId: { id: 'dlg-auberge' } },
   ],
   dialogues: [
     {
       id: 'dlg-auberge',
-      start: 'accueil',
+      start: { id: 'accueil' },
       nodes: [
         {
           id: 'accueil',

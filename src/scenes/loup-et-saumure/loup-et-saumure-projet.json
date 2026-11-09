@@ -257,7 +257,9 @@
      },
      "label": "Baron Ludolf Köhler",
      "facing": "S",
-     "dialogueId": "dlg-kohler",
+     "dialogueId": {
+      "id": "dlg-kohler"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "noble",
@@ -274,7 +276,9 @@
      },
      "label": "Frère Aldo",
      "facing": "S",
-     "dialogueId": "dlg-aldo",
+     "dialogueId": {
+      "id": "dlg-aldo"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "pretre",
@@ -291,7 +295,9 @@
      },
      "label": "Dame Vasilika Kramer",
      "facing": "S",
-     "dialogueId": "dlg-kramer",
+     "dialogueId": {
+      "id": "dlg-kramer"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "marchand",
@@ -308,7 +314,9 @@
      },
      "label": "Griet",
      "facing": "N",
-     "dialogueId": "dlg-griet",
+     "dialogueId": {
+      "id": "dlg-griet"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artiste",
@@ -425,7 +433,9 @@
    "dialogues": [
     {
      "id": "dlg-kohler",
-     "start": "k1",
+     "start": {
+      "id": "k1"
+     },
      "nodes": [
       {
        "id": "k1",
@@ -513,12 +523,16 @@
            }
           ]
          },
-         "next": "k1"
+         "next": {
+          "id": "k1"
+         }
         },
         {
          "id": "demander-financer-carenage",
          "label": "Lui demander de financer le carénage (60 CO)",
-         "next": "k-careene"
+         "next": {
+          "id": "k-careene"
+         }
         },
         {
          "id": "prendre-conge",
@@ -548,7 +562,9 @@
         {
          "id": "revenir-commission",
          "label": "Revenir à la commission",
-         "next": "k1"
+         "next": {
+          "id": "k1"
+         }
         }
        ]
       }
@@ -556,7 +572,9 @@
     },
     {
      "id": "dlg-aldo",
-     "start": "a1",
+     "start": {
+      "id": "a1"
+     },
      "nodes": [
       {
        "id": "a1",
@@ -590,7 +608,9 @@
            }
           ]
          },
-         "next": "a-benediction"
+         "next": {
+          "id": "a-benediction"
+         }
         },
         {
          "id": "faire-petit-sacrifice",
@@ -622,7 +642,9 @@
            }
           ]
          },
-         "next": "a-petit"
+         "next": {
+          "id": "a-petit"
+         }
         },
         {
          "id": "faire-sacrifice-moyen",
@@ -654,7 +676,9 @@
            }
           ]
          },
-         "next": "a-moyen"
+         "next": {
+          "id": "a-moyen"
+         }
         },
         {
          "id": "faire-grand-sacrifice",
@@ -686,12 +710,16 @@
            }
           ]
          },
-         "next": "a-grand"
+         "next": {
+          "id": "a-grand"
+         }
         },
         {
          "id": "demander-origine-ordre",
          "label": "Lui demander l’origine de son ordre",
-         "next": "a-origine"
+         "next": {
+          "id": "a-origine"
+         }
         },
         {
          "id": "saluer",
@@ -717,7 +745,9 @@
         {
          "id": "remercier",
          "label": "Le remercier",
-         "next": "a1"
+         "next": {
+          "id": "a1"
+         }
         }
        ]
       },
@@ -728,7 +758,9 @@
         {
          "id": "revenir",
          "label": "Revenir",
-         "next": "a1"
+         "next": {
+          "id": "a1"
+         }
         }
        ]
       },
@@ -739,7 +771,9 @@
         {
          "id": "revenir",
          "label": "Revenir",
-         "next": "a1"
+         "next": {
+          "id": "a1"
+         }
         }
        ]
       },
@@ -750,7 +784,9 @@
         {
          "id": "revenir",
          "label": "Revenir",
-         "next": "a1"
+         "next": {
+          "id": "a1"
+         }
         }
        ]
       },
@@ -761,7 +797,9 @@
         {
          "id": "revenir",
          "label": "Revenir",
-         "next": "a1"
+         "next": {
+          "id": "a1"
+         }
         }
        ]
       }
@@ -769,7 +807,9 @@
     },
     {
      "id": "dlg-kramer",
-     "start": "kr1",
+     "start": {
+      "id": "kr1"
+     },
      "nodes": [
       {
        "id": "kr1",
@@ -778,7 +818,9 @@
         {
          "id": "enquerir-fret",
          "label": "S’enquérir du fret",
-         "next": "kr-fret"
+         "next": {
+          "id": "kr-fret"
+         }
         },
         {
          "id": "observer-discretement",
@@ -834,7 +876,9 @@
            ]
           }
          },
-         "next": "kr1"
+         "next": {
+          "id": "kr1"
+         }
         },
         {
          "id": "laisser-affaires",
@@ -860,7 +904,9 @@
         {
          "id": "revenir",
          "label": "Revenir",
-         "next": "kr1"
+         "next": {
+          "id": "kr1"
+         }
         }
        ]
       }
@@ -868,7 +914,9 @@
     },
     {
      "id": "dlg-griet",
-     "start": "g1",
+     "start": {
+      "id": "g1"
+     },
      "nodes": [
       {
        "id": "g1",
@@ -893,7 +941,9 @@
            }
           ]
          },
-         "next": "g-chant"
+         "next": {
+          "id": "g-chant"
+         }
         },
         {
          "id": "demander-autre-air",
@@ -902,7 +952,9 @@
           "kind": "flag",
           "expr": "ls_chant_griet"
          },
-         "next": "g-chant-encore"
+         "next": {
+          "id": "g-chant-encore"
+         }
         },
         {
          "id": "saluer",
@@ -928,7 +980,9 @@
         {
          "id": "applaudir",
          "label": "Applaudir",
-         "next": "g1"
+         "next": {
+          "id": "g1"
+         }
         }
        ]
       },
@@ -939,7 +993,9 @@
         {
          "id": "saluer",
          "label": "La saluer",
-         "next": "g1"
+         "next": {
+          "id": "g1"
+         }
         }
        ]
       }
@@ -2123,7 +2179,9 @@
      },
      "label": "Docker du port",
      "facing": "S",
-     "dialogueId": "dlg-rumeur-olg",
+     "dialogueId": {
+      "id": "dlg-rumeur-olg"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "debardeur",
@@ -2140,7 +2198,9 @@
      },
      "label": "Dame Vasilika Kramer",
      "facing": "S",
-     "dialogueId": "dlg-kramer-nuit-du-chat",
+     "dialogueId": {
+      "id": "dlg-kramer-nuit-du-chat"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "marchand",
@@ -2157,7 +2217,9 @@
      },
      "label": "Charpentier de bord",
      "facing": "N",
-     "dialogueId": "dlg-reparation",
+     "dialogueId": {
+      "id": "dlg-reparation"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "artisan",
@@ -2206,7 +2268,9 @@
    "dialogues": [
     {
      "id": "dlg-rumeur-olg",
-     "start": "r1",
+     "start": {
+      "id": "r1"
+     },
      "nodes": [
       {
        "id": "r1",
@@ -2240,7 +2304,9 @@
     },
     {
      "id": "dlg-kramer-nuit-du-chat",
-     "start": "nc1",
+     "start": {
+      "id": "nc1"
+     },
      "nodes": [
       {
        "id": "nc1",
@@ -2307,7 +2373,9 @@
            ]
           }
          },
-         "next": "nc1"
+         "next": {
+          "id": "nc1"
+         }
         },
         {
          "id": "laisser-tranquille",
@@ -2330,7 +2398,9 @@
     },
     {
      "id": "dlg-reparation",
-     "start": "rp1",
+     "start": {
+      "id": "rp1"
+     },
      "nodes": [
       {
        "id": "rp1",
@@ -2358,7 +2428,9 @@
            }
           ]
          },
-         "next": "rp1"
+         "next": {
+          "id": "rp1"
+         }
         },
         {
          "id": "plus-tard",
@@ -3562,7 +3634,9 @@
      },
      "label": "Baron Ludolf Köhler",
      "facing": "S",
-     "dialogueId": "dlg-epilogue",
+     "dialogueId": {
+      "id": "dlg-epilogue"
+     },
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "noble",
@@ -3574,7 +3648,9 @@
    "dialogues": [
     {
      "id": "dlg-epilogue",
-     "start": "e1",
+     "start": {
+      "id": "e1"
+     },
      "nodes": [
       {
        "id": "e1",
@@ -3628,7 +3704,9 @@
            }
           ]
          },
-         "next": "e1"
+         "next": {
+          "id": "e1"
+         }
         },
         {
          "id": "prendre-conge",

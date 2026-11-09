@@ -36,7 +36,7 @@ const action = (id: string, over: Partial<ActionAuthoree> = {}): ActionAuthoree 
 
 describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activer', () => {
   it('un PNJ à `dialogueId` est utilisable SANS `usable`', () => {
-    const pnj: SceneEntity = { id: 'p', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'd1' };
+    const pnj: SceneEntity = { id: 'p', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'd1' } };
     const sc = scene([pnj]);
     expect(ids(sc, pnj)).toEqual(['parler']);
     expect(estUtilisable(sc, pnj)).toBe(true);
@@ -45,7 +45,7 @@ describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activ
   it('dialogue, marchand et action authorée comptent chacun pour une offre, cumulables et dans cet ordre', () => {
     const pnj: SceneEntity = {
       id: 'p', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 },
-      dialogueId: 'd1',
+      dialogueId: { id: 'd1' },
       merchant: { archetype: 'marchand-general' },
       usable: { actions: [action(ACTION_FOUILLER)] },
     };

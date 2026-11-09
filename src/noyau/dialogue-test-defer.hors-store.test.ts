@@ -19,14 +19,14 @@ const setFlag = (flag: string): Flow => ({ kind: 'do', effect: { type: 'setFlag'
 /** Dialogue à deux nœuds ; le choix `withFlow` porte un Test + un `next` vers n2. */
 function makeDialogue(withFlow: boolean): Dialogue {
   return {
-    id: 'd', start: 'n1',
+    id: 'd', start: { id: 'n1' },
     nodes: [
       {
         id: 'n1', desc: '…',
         choices: [{
           id: 'tenter',
           label: 'Tenter',
-          next: 'n2',
+          next: { id: 'n2' },
           ...(withFlow ? { flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: setFlag('gagne'), fail: setFlag('perd') } as Flow } : {}),
         }],
       },

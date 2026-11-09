@@ -99,7 +99,7 @@ describe('#2219 · #2539 — chaque site lecteur est lu, chaque site producteur 
         ] } },
       ] } }],
       encounters: [{ id: 'r', onVictory: si({ kind: 'partyDead', who: { etat: 'sosie' } }) }],
-      dialogues: [{ id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [
+      dialogues: [{ id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [
         { id: 'a', label: 'a', when: flag('choix') },
         { id: 'b', label: 'b', flow: si(flag('si')) },
       ] }] }],

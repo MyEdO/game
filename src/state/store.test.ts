@@ -170,7 +170,7 @@ describe('Nouvelle partie / scénario — reset complet de l’état (anti-déri
       facing: { fantome: 4 } as any,
       previousScene: { id: 'vieux', pos: { x: 9, y: 9 } },
       document: { title: 'x', text: 'y', remise: 1 },
-      dialogue: { dialogue: { id: 'd', start: 'n', nodes: [{ id: 'n', text: '', choices: [] }] }, nodeId: 'n' } as any,
+      dialogue: { dialogue: { id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', text: '', choices: [] }] }, nodeId: 'n' } as any,
       pendingFateSave: { heroId: 'mort', source: 'slow' } as any,
       pendingCast: { x: 1 } as any,
       pendingRoundStart: { round: 7 },

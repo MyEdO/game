@@ -4,14 +4,15 @@
  *
  * GESTE, à la CLÉ du CHEMIN EXACT (jamais par mot) : chaque porteur déclare son document, ses entrées (la
  * racine liste, la collection au bout d'un chemin de champs, `worldMap.places`, ou le document `objet` qui EST
- * son entrée unique, famille `config`) et ses clés, chacune avec le type de sa cible ; une clé pointée
- * (`derivedWeapon.subType`) suit les objets de l'entrée, un segment `[]` (`passive[].terrain`) chaque élément
- * de sa liste. La clé garde son rang, les autres clés le leur.
+ * son entrée unique, famille `config`) et ses clés, chacune avec sa cible : le type d'un catalogue global, ou
+ * la PORTÉE LOCALE `ref(portee)` (`CibleLocale`), dont le catalogue se lit dans le document, sur l'objet qui
+ * l'ouvre ; une clé pointée (`derivedWeapon.subType`) suit les objets de l'entrée, un segment `[]`
+ * (`passive[].terrain`) chaque élément de sa liste. La clé garde son rang, les autres clés le leur.
  * IDEMPOTENT : un porteur déjà `{ id }`, absent ou `null` n'a aucun geste ; sans geste, rien ne s'écrit et
  * la sortie est 0.
  * FAIL-FAST — sortie 1 avant toute écriture : document hors de son formatage, entrées hors d'une liste (d'un objet
- * pour `objet`), valeur ni chaîne ni `{ id }` seul, id absent de son catalogue, compte de gestes ≠ `cardinal` ou ≠
- * `parPorteur`.
+ * pour `objet`), clé hors de l'objet qui ouvre sa portée, valeur ni chaîne ni `{ id }` seul, id absent de son
+ * catalogue, compte de gestes ≠ `cardinal` ou ≠ `parPorteur`.
  * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`) ; un projet de campagne (`src/scenes/`), la forme
  * dépôt de `texteDuDepot` (`src/noyau/worldMap.ts`).
  */
@@ -21,10 +22,14 @@ import { serializeDataset } from '../../../src/data/serialize.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 
 /**
- * @typedef {{ collection?: string, objet?: true, cles: Record<string, string> }} Porteur
+ * @typedef {{ collection: string, ouvreur?: string }} CibleLocale
+ * Une PORTÉE LOCALE : la liste `collection` (ids `id`) de l'objet qui l'ouvre, au bout du chemin `ouvreur`
+ * depuis l'entrée (chemin de champs pointé, `[]` pour chaque élément d'une liste), l'entrée elle-même sans lui.
+ *
+ * @typedef {{ collection?: string, objet?: true, cles: Record<string, string | CibleLocale> }} Porteur
  * Les entrées d'un document (sa racine, sa `collection`, chemin de champs pointé, ou le document `objet`
  * lui-même) et leurs clés porteuses (chemin de champs pointé dans l'entrée, `[]` pour chaque élément d'une
- * liste), avec le type de leur cible.
+ * liste), avec leur cible : le type d'un catalogue de `catalogues`, ou une `CibleLocale`.
  */
 
 /** Le texte du document `rel` : un projet de campagne à la forme dépôt, un dataset à la sienne. */
@@ -50,6 +55,19 @@ const cheminsDe = (x, segments) => {
 
 /** La valeur de `x` au bout du chemin concret `chemin`. */
 const valeurAu = (x, chemin) => chemin.reduce((v, pas) => v[pas], x);
+
+/** Le nom d'une cible dans un refus : son type, ou la collection de sa portée sous son ouvreur. */
+const nomDeLaCible = (cible) => (typeof cible === 'string' ? cible : `${cible.ouvreur ?? '(entrée)'} › ${cible.collection}`);
+
+/** Les ids admis pour la clé `cle` de chemin concret `cheminDeCle` dans `entree` : le catalogue global de son
+ *  type, ou les ids de la collection de l'objet qui ouvre sa portée ; `undefined` si la clé n'est pas sous cet objet. */
+const admisPour = (catalogues, entree, cle, cheminDeCle, cible) => {
+  if (typeof cible === 'string') return catalogues[cible];
+  const segments = cible.ouvreur === undefined ? [] : cible.ouvreur.split('.');
+  if (segments.some((s, i) => cle.split('.')[i] !== s) || segments.length >= cle.split('.').length) return undefined;
+  const ouvreur = valeurAu(entree, cheminDeCle.slice(0, segments.reduce((n, s) => n + (s.endsWith('[]') ? 2 : 1), 0)));
+  return new Set(estObjet(ouvreur) && Array.isArray(ouvreur[cible.collection]) ? ouvreur[cible.collection].map((e) => e.id) : []);
+};
 
 /**
  * Les ids des entrées du document `rel` de `racine` : sa racine, ou sa `collection`.
@@ -91,7 +109,7 @@ export function migrerLesIdsNus({ racine, lot, porteurs, catalogues, parPorteur,
     let ici = 0;
     const suite = entrees.map((entree) => {
       let sortie = entree;
-      for (const [cle, type] of Object.entries(cles)) {
+      for (const [cle, cible] of Object.entries(cles)) {
         for (const cheminDeCle of cheminsDe(entree, cle.split('.'))) {
           const ou = `${rel} › ${entree.id} › ${cheminDeCle.join('.')}`;
           const v = valeurAu(entree, cheminDeCle);
@@ -101,8 +119,13 @@ export function migrerLesIdsNus({ racine, lot, porteurs, catalogues, parPorteur,
             fautes.push(`${ou} : ni chaîne ni \`{ id }\` (${JSON.stringify(v)})`);
             continue;
           }
-          if (!catalogues[type].has(v)) {
-            fautes.push(`${ou} : « ${v} » absent du catalogue \`${type}\``);
+          const admis = admisPour(catalogues, entree, cle, cheminDeCle, cible);
+          if (admis === undefined) {
+            fautes.push(`${ou} : la clé « ${cle} » n'est pas sous l'objet « ${nomDeLaCible(cible)} » qui ouvre sa portée`);
+            continue;
+          }
+          if (!admis.has(v)) {
+            fautes.push(`${ou} : « ${v} » absent du catalogue \`${nomDeLaCible(cible)}\``);
             continue;
           }
           sortie = remplacer(sortie, cheminDeCle, { id: v });

@@ -50,14 +50,14 @@ const contrat = (key, cond, propose, fait, gold, xp) => [
 
 const dlgHub = {
   id: 'dlg-hub',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
       desc: 'Tu saignes encore ? Parfait, le sable boit tout. L’échelle t’attend — et pour les plus gourmands, j’ai des contrats au-delà de la palissade.',
       choices: [
-        { id: 'echelle-arene', label: 'L’échelle de l’arène.', icon: 'action/attack', next: 'echelle' },
-        { id: 'contrats-expedition', label: 'Les contrats d’expédition.', icon: 'file/document', next: 'contrats' },
+        { id: 'echelle-arene', label: 'L’échelle de l’arène.', icon: 'action/attack', next: { id: 'echelle' } },
+        { id: 'contrats-expedition', label: 'Les contrats d’expédition.', icon: 'file/document', next: { id: 'contrats' } },
         {
           id: 'crocheter-vieux-coffre',
           label: 'Crocheter le vieux coffre du maître.',
@@ -117,7 +117,7 @@ const dlgHub = {
         porte(11, 'Le Cercle Maudit'),
         porte(12, 'Le Sépulcre'),
         porte(13, 'L’Antre du Dragon'),
-        { id: 'revenir', label: '↩ Revenir.', next: 'accueil' },
+        { id: 'revenir', label: '↩ Revenir.', next: { id: 'accueil' } },
       ],
     },
     {
@@ -127,7 +127,7 @@ const dlgHub = {
         ...contrat('foret', 'zone4_clear', 'La Vieille Futaie : des hommes-bêtes ont dressé un camp — et la bande de Bella la Noire détrousse les convois.', 'Méfie-toi : la futaie a des yeux.', 3, 160),
         ...contrat('marais', 'zone6_clear', 'La Tourbière Noire : quelque chose de FABRIQUÉ y traîne les voyageurs sous l’eau.', 'Reste sur les pontons.', 4, 200),
         ...contrat('village', 'zone8_clear', 'Felsbach : le village ne répond plus depuis un mois. Brûle ce qui marche encore.', 'Ne bois pas l’eau du puits.', 5, 240),
-        { id: 'revenir', label: '↩ Revenir.', next: 'accueil' },
+        { id: 'revenir', label: '↩ Revenir.', next: { id: 'accueil' } },
       ],
     },
   ],
@@ -135,7 +135,7 @@ const dlgHub = {
 
 const dlgMedecin = {
   id: 'dlg-medecin',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
@@ -166,7 +166,7 @@ const dlgMedecin = {
 
 const dlgForgeron = {
   id: 'dlg-forgeron',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
@@ -181,7 +181,7 @@ const dlgForgeron = {
 
 const dlgEchoppier = {
   id: 'dlg-echoppier',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
@@ -196,7 +196,7 @@ const dlgEchoppier = {
 
 const dlgTaverne = {
   id: 'dlg-taverne',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
@@ -218,7 +218,7 @@ const dlgTaverne = {
           icon: 'rest/bed',
           flow: flowOf([{ type: 'rest', lodging: 'auberge' }]),
         },
-        { id: 'ecouter-salle', label: 'Écouter la salle.', icon: 'expedition/rumor', next: 'rumeurs' },
+        { id: 'ecouter-salle', label: 'Écouter la salle.', icon: 'expedition/rumor', next: { id: 'rumeurs' } },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -226,9 +226,9 @@ const dlgTaverne = {
       id: 'rumeurs',
       desc: 'On entend de tout ici, surtout après la troisième pinte…',
       choices: [
-        { id: 'arene', label: '« Et l’arène ? »', next: 'rumeur-arene' },
-        { id: 'routes', label: '« Et les routes ? »', next: 'rumeur-routes' },
-        { id: 'revenir', label: '↩ Revenir.', next: 'accueil' },
+        { id: 'arene', label: '« Et l’arène ? »', next: { id: 'rumeur-arene' } },
+        { id: 'routes', label: '« Et les routes ? »', next: { id: 'rumeur-routes' } },
+        { id: 'revenir', label: '↩ Revenir.', next: { id: 'accueil' } },
       ],
     },
     {
@@ -236,7 +236,7 @@ const dlgTaverne = {
       desc: 'Elle essuie une chope, l’œil en coin. « Personne n’a jamais passé la treizième porte. Et entre nous : le Maître fait descendre des carcasses ENTIÈRES là-dessous. On ne nourrit pas un trophée. »',
       choices: [
         { id: 'bon-savoir', label: '« Bon à savoir. »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du Trophée : personne n’a passé la 13e porte — le Maître NOURRIT quelque chose là-dessous.' }, { type: 'endDialogue' }]) },
-        { id: 'autre-rumeur', label: '↩ Une autre rumeur.', next: 'rumeurs' },
+        { id: 'autre-rumeur', label: '↩ Une autre rumeur.', next: { id: 'rumeurs' } },
       ],
     },
     {
@@ -244,7 +244,7 @@ const dlgTaverne = {
       desc: '« La diligence de Felsbach n’est jamais arrivée le mois dernier. Et les charognards qu’on croise en lisière de la Futaie… portent des cottes de voyageurs. Prenez des rations, et voyagez armés. »',
       choices: [
         { id: 'merci-tuyau', label: '« Merci du tuyau. »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du Trophée : la diligence de Felsbach a disparu — la Futaie détrousse les convois.' }, { type: 'endDialogue' }]) },
-        { id: 'autre-rumeur', label: '↩ Une autre rumeur.', next: 'rumeurs' },
+        { id: 'autre-rumeur', label: '↩ Une autre rumeur.', next: { id: 'rumeurs' } },
       ],
     },
   ],
@@ -252,7 +252,7 @@ const dlgTaverne = {
 
 const dlgFrere = {
   id: 'dlg-frere',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
@@ -309,13 +309,13 @@ const dlgFrere = {
 
 const dlgGarde = {
   id: 'dlg-garde',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
       desc: 'L’arène est au sud, derrière la porte. La route de l’est mène à la Futaie, à la Tourbière et à Felsbach — si tu tiens à tes jambes, voyage de jour et le ventre plein.',
       choices: [
-        { id: 'rien-signaler', label: '« Rien à signaler ? »', next: 'signalements' },
+        { id: 'rien-signaler', label: '« Rien à signaler ? »', next: { id: 'signalements' } },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -324,7 +324,7 @@ const dlgGarde = {
       desc: 'Il hausse les épaules. « Des hurlements dans la Futaie, la nuit. Et plus une lumière à Felsbach depuis un mois. Si tu veux mon avis : reste du bon côté de la palissade. »',
       choices: [
         { id: 'merci-conseil', label: '« Merci du conseil. »', flow: flowOf([{ type: 'journal', desc: 'Le garde : hurlements nocturnes dans la Futaie, Felsbach éteint depuis un mois.' }, { type: 'endDialogue' }]) },
-        { id: 'autre-chose', label: '↩ Autre chose.', next: 'accueil' },
+        { id: 'autre-chose', label: '↩ Autre chose.', next: { id: 'accueil' } },
       ],
     },
   ],
@@ -332,13 +332,13 @@ const dlgGarde = {
 
 const dlgRumeurs = {
   id: 'dlg-rumeurs',
-  start: 'accueil',
+  start: { id: 'accueil' },
   nodes: [
     {
       id: 'accueil',
       desc: 'Vous êtes les nouveaux gladiateurs ? On parie sur vous au lavoir. Enfin… certains.',
       choices: [
-        { id: 'qui-se-raconte', label: '« Qu’est-ce qui se raconte ? »', next: 'lavoir' },
+        { id: 'qui-se-raconte', label: '« Qu’est-ce qui se raconte ? »', next: { id: 'lavoir' } },
         { id: 'plus-tard', label: 'Plus tard.', flow: flowOf([{ type: 'endDialogue' }]) },
       ],
     },
@@ -347,7 +347,7 @@ const dlgRumeurs = {
       desc: 'Elle baisse la voix. « Le Maître garde un vieux coffre dont il a perdu la clef — il dit que c’est sans valeur, mais il dort dessus. Et passez voir Frère Anselm à la chapelle : il bénit ceux qui descendent sur le sable. »',
       choices: [
         { id: 'interessant', label: '« Intéressant… »', flow: flowOf([{ type: 'journal', desc: 'Rumeur du lavoir : le coffre « sans valeur » du Maître, et la bénédiction de Frère Anselm avant le combat.' }, { type: 'endDialogue' }]) },
-        { id: 'autre-chose', label: '↩ Autre chose.', next: 'accueil' },
+        { id: 'autre-chose', label: '↩ Autre chose.', next: { id: 'accueil' } },
       ],
     },
   ],
@@ -495,17 +495,17 @@ export function makeHub() {
       // ── Place centrale ──────────────────────────────────────────────────────────────────────
       NPC('maitre', 25, 20, 'Maître d’arène', {
         facing: 'S',
-        dialogueId: 'dlg-hub',
+        dialogueId: { id: 'dlg-hub' },
         appearance: { species: 'humains-reiklander', tenue: 'repurgateur', sex: 'M' },
         inventaire: { 'epee-batarde': false },
       }),
       NPC('garde', 25, 34, 'Garde du Bourg', {
         facing: 'S',
-        dialogueId: 'dlg-garde',
+        dialogueId: { id: 'dlg-garde' },
         appearance: { species: 'humains-reiklander', tenue: 'soldat', sex: 'M' },
         inventaire: { hallebarde: false },
       }),
-      NPC('villageoise', 21, 22, 'Villageoise', { facing: 'S', dialogueId: 'dlg-rumeurs', anim: 'standing', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
+      NPC('villageoise', 21, 22, 'Villageoise', { facing: 'S', dialogueId: { id: 'dlg-rumeurs' }, anim: 'standing', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
       NPC('villageois-1', 30, 22, 'Villageois', { anim: 'standing', appearance: { species: 'humains-reiklander', tenue: 'mendiant' } }),
       NPC('villageois-2', 29, 17, 'Badaud', { anim: 'cowering', facing: 'E', appearance: { species: 'humains-reiklander', tenue: 'bourgeois' } }),
       P(20, 18, 'puits'),
@@ -521,7 +521,7 @@ export function makeHub() {
         facing: 'S',
         // Sa FICHE (bestiaire) porte sa Guérison et son Int : l'effet `medicalAid` ne recopie rien.
         ref: 'stefan-hochen',
-        dialogueId: 'dlg-medecin',
+        dialogueId: { id: 'dlg-medecin' },
         merchant: { archetype: 'medecin' },
         appearance: { species: 'humains-reiklander', tenue: 'apothicaire', sex: 'M' },
       }),
@@ -537,7 +537,7 @@ export function makeHub() {
       // ── Intérieur : TAVERNE « Au Trophée » (empreinte x3..17 y3..12) ──────────────────────────
       NPC('taverniere', 9, 5, 'Tavernière', {
         facing: 'S',
-        dialogueId: 'dlg-taverne',
+        dialogueId: { id: 'dlg-taverne' },
         merchant: { archetype: 'taverniere' },
         appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' },
       }),
@@ -560,7 +560,7 @@ export function makeHub() {
       NPC('frere', 40, 5, 'Frère Anselm', {
         facing: 'S',
         ref: 'stefan-hochen', // Guérison des soins payants (dlg-frere)
-        dialogueId: 'dlg-frere',
+        dialogueId: { id: 'dlg-frere' },
         appearance: { species: 'humains-reiklander', tenue: 'pretre', sex: 'M' },
       }),
       NPC('fidele', 38, 10, 'Fidèle en prière', { anim: 'praying', facing: 'N', appearance: { species: 'humains-reiklander', tenue: 'mendiant', sex: 'F' } }),
@@ -578,7 +578,7 @@ export function makeHub() {
       // ── Intérieur : FORGE du Bourg (empreinte x3..13 y27..35) ─────────────────────────────────
       NPC('forgeron', 8, 33, 'Forgeron', {
         facing: 'N',
-        dialogueId: 'dlg-forgeron',
+        dialogueId: { id: 'dlg-forgeron' },
         merchant: { archetype: 'armurier' },
         appearance: { species: 'nains', tenue: 'artisan', sex: 'M' },
         inventaire: { 'marteau-de-guerre': false },
@@ -595,7 +595,7 @@ export function makeHub() {
       // ── Intérieur : ÉCHOPPE « Le Bric-à-Broc » (empreinte x36..46 y27..35) ────────────────────
       NPC('echoppiere', 41, 33, 'Échoppière', {
         facing: 'N',
-        dialogueId: 'dlg-echoppier',
+        dialogueId: { id: 'dlg-echoppier' },
         merchant: { archetype: 'herboriste' },
         appearance: { species: 'humains-reiklander', tenue: 'bourgeois', sex: 'F' },
       }),

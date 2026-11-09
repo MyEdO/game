@@ -95,7 +95,7 @@ function construireScene(): Scene {
     // Professeur Pakker et son épouse, près de l'allée centrale (source 08 l.158) — cible des pétards.
     { id: 'pakker', kind: 'personnage', ref: 'humain', label: 'Professeur Pakker', pos: { x: 9, y: 8 }, facing: 'N' },
     // Les deux étudiants, repliés vers l'arrière de la salle près de la porte (l.158) — combat optionnel.
-    { id: 'etudiant-1', kind: 'personnage', label: 'Étudiant nerveux', pos: { x: 5, y: 15 }, facing: 'S', appearance: { species: 'humains-reiklander' }, dialogueId: 'dlg-etudiants', statblock: ETUDIANT },
+    { id: 'etudiant-1', kind: 'personnage', label: 'Étudiant nerveux', pos: { x: 5, y: 15 }, facing: 'S', appearance: { species: 'humains-reiklander' }, dialogueId: { id: 'dlg-etudiants' }, statblock: ETUDIANT },
     { id: 'etudiant-2', kind: 'personnage', label: 'Étudiant fébrile', pos: { x: 6, y: 15 }, facing: 'S', appearance: { species: 'humains-reiklander' }, statblock: ETUDIANT },
 
     // Lustre pendu au-dessus du parterre qu'il éclaire (la recette porte la hauteur, patron `applique-murale`).
@@ -120,7 +120,7 @@ function construireScene(): Scene {
     // Les deux volées couvrent 6-8 et 12-14, une travée par case, et laissent 9-11 ouvert au centre de la loge.
     ...[6, 7, 8, 12, 13, 14].map((x): SceneEntity => ({ id: `bal-royale-${x}`, kind: 'prop', ref: 'balustrade-loge', pos: { x, y: 13 }, facing: 'N', z: 1 })),
     { id: 'fauteuil-royal', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 10, y: 14 }, z: 1 },
-    { id: 'comtesse', kind: 'personnage', ref: 'humain', label: 'Comtesse Emmanuelle', pos: { x: 10, y: 13 }, z: 1, facing: 'N', dialogueId: 'dlg-comtesse' },
+    { id: 'comtesse', kind: 'personnage', ref: 'humain', label: 'Comtesse Emmanuelle', pos: { x: 10, y: 13 }, z: 1, facing: 'N', dialogueId: { id: 'dlg-comtesse' } },
     { id: 'app-royale-g', kind: 'prop', ref: 'applique-murale', pos: { x: 7, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
     { id: 'app-royale-d', kind: 'prop', ref: 'applique-murale', pos: { x: 13, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
     // INTRIGUE n°1 (source 08 l.131/166) : « grande plante en pot remplie de poudre à canon, détonateur
@@ -175,14 +175,14 @@ function construireScene(): Scene {
     dialogues: [
       {
         id: 'dlg-comtesse',
-        start: 'n0',
+        start: { id: 'n0' },
         nodes: [
           {
             id: 'n0',
             desc: 'La Comtesse Emmanuelle vous toise depuis sa loge. « On ne vous a pas conviés dans ma loge. Qu’est-ce qui peut bien valoir cette intrusion ? »',
             choices: [
-              { id: 'excellence-attentat-vous', label: '« Excellence — un attentat vous visait. Il est déjoué. »', when: { kind: 'flag', expr: 'bombeDesamorcee' }, next: 'merci' },
-              { id: 'excellence-antichambre-n', label: '« Excellence, l’antichambre n’est peut-être pas sûre ce soir. »', when: { kind: 'flag', expr: '!bombeDesamorcee' }, next: 'n1' },
+              { id: 'excellence-attentat-vous', label: '« Excellence — un attentat vous visait. Il est déjoué. »', when: { kind: 'flag', expr: 'bombeDesamorcee' }, next: { id: 'merci' } },
+              { id: 'excellence-antichambre-n', label: '« Excellence, l’antichambre n’est peut-être pas sûre ce soir. »', when: { kind: 'flag', expr: '!bombeDesamorcee' }, next: { id: 'n1' } },
               { id: 'incliner-retirer', label: 'S’incliner et se retirer.', flow: flowFromEffects([{ type: 'endDialogue' }]) },
             ],
           },
@@ -210,13 +210,13 @@ function construireScene(): Scene {
       },
       {
         id: 'dlg-etudiants',
-        start: 'e0',
+        start: { id: 'e0' },
         nodes: [
           {
             id: 'e0',
             desc: 'Deux jeunes gens nerveux, dissimulés près de la porte, manipulent un petit pot à feu et un chapelet de pétards. L’un d’eux blêmit en vous voyant approcher.',
             choices: [
-              { id: 'lachez-ca-vous', label: '« Lâchez ça. Vous êtes en état d’arrestation. »', next: 'e1' },
+              { id: 'lachez-ca-vous', label: '« Lâchez ça. Vous êtes en état d’arrestation. »', next: { id: 'e1' } },
               { id: 'laisser-filer', label: 'Les laisser filer.', flow: flowFromEffects([{ type: 'journal', desc: 'Vous détournez le regard ; les étudiants se fondent dans la foule.' }, { type: 'endDialogue' }]) },
             ],
           },

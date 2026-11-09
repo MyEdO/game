@@ -63,7 +63,7 @@ function construireScene(): Scene {
   const dialogues: Dialogue[] = [
     {
       id: 'dlg-phillipe',
-      start: 'p1',
+      start: { id: 'p1' },
       nodes: [
         {
           id: 'p1',
@@ -136,7 +136,7 @@ function construireScene(): Scene {
       // comme une perte de temps de jouer pour moins de 2/- » (`EDO 01 l.202`), soit 24 sous.
       // Jeu posé : `dominos` ; le jeu du RAW, l'Impératrice écarlate (`NADJ 16 l.133-139`), manque à
       // `tavernGames.json` (#1921).
-      { id: 'npc-phillipe', kind: 'personnage', pos: { x: 5, y: 4 }, presetId: 'edo-phillipe-descartes', dialogueId: 'dlg-phillipe', label: 'Phillipe Descartes',
+      { id: 'npc-phillipe', kind: 'personnage', pos: { x: 5, y: 4 }, presetId: 'edo-phillipe-descartes', dialogueId: { id: 'dlg-phillipe' }, label: 'Phillipe Descartes',
         tavernGame: { id: 'dominos', stakeBrass: 24 } },
       { id: 'npc-josef', kind: 'personnage', pos: { x: 3, y: 2 }, presetId: 'edo-josef-quartjin', label: 'Josef Quartjin' },
     ],

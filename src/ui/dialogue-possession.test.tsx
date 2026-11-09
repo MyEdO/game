@@ -25,7 +25,7 @@ const pnj: SceneEntity = { id: 'e1', kind: 'personnage', ref: 'humain', pos: { x
 
 const dlg: Dialogue = {
   id: 'dlg-groupe',
-  start: 'n1',
+  start: { id: 'n1' },
   nodes: [{ id: 'n1', desc: 'Que faites-vous ?', choices: [{ id: 'attaquer', label: 'Attaquer' }, { id: 'parler', label: 'Parler' }] }],
 };
 

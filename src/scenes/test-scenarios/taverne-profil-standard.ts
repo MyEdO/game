@@ -36,14 +36,14 @@ function construireScene(): Scene {
         pos: { x: 6, y: 3 },
         facing: 'O',
         appearance: { species: ESPECE },
-        dialogueId: 'dlg-bras-de-fer',
+        dialogueId: { id: 'dlg-bras-de-fer' },
         tavernGame: { id: 'bras-de-fer' },
       },
     ],
     dialogues: [
       {
         id: 'dlg-bras-de-fer',
-        start: 'defi',
+        start: { id: 'defi' },
         nodes: [
           {
             id: 'defi',

@@ -204,7 +204,7 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
 });
 
 describe('dialogue — le refus d’une réponse est un TEXTE, dit par le choix `dialogue.reponse`', () => {
-  const dlg: Dialogue = { id: 'dlg-l7', start: 'n1', nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: 'n1' }] }] } as Dialogue;
+  const dlg: Dialogue = { id: 'dlg-l7', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Alors ?', choices: [{ id: 'payer', label: 'Payer', cost: { gold: 50 }, next: { id: 'n1' } }] }] } as Dialogue;
 
   it('bourse trop courte : l’écran et le geste disent le même texte', () => {
     const [a] = heros(1);

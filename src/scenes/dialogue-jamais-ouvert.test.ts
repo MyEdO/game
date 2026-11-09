@@ -34,7 +34,7 @@ describe('#1869 — un dialogue sans ouvreur est injouable', () => {
   });
 
   // COUVERTURE du détecteur, sur un projet jouet : sans elle, le vert ci-dessus ne dirait rien.
-  const dialogue = (id: string) => ({ id, start: 'n', nodes: [{ id: 'n', desc: '…', choices: [] }] });
+  const dialogue = (id: string) => ({ id, start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [] }] });
   const projet = (over: Partial<Scene>): Scene[] => [{ ...emptyScene('jouet'), dialogues: [dialogue('d')], ...over }];
 
   it('un dialogue que rien n’ouvre sort en AVERTISSEMENT, nommé', () => {
@@ -43,13 +43,13 @@ describe('#1869 — un dialogue sans ouvreur est injouable', () => {
   });
 
   it('la capacité « parler » d’une entité l’ouvre', () => {
-    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'd' }];
+    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'd' } }];
     expect(jamaisOuverts(validateScene(projet({ entities })))).toEqual([]);
   });
 
   it('un effet « Ouvrir un dialogue », même au fond d’un AUTRE dialogue, l’ouvre', () => {
-    const accueil = { id: 'a', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ id: 'suite', label: 'Suite', flow: flowFromEffects([{ type: 'startDialogue', dialogue: 'd' }]) }] }] };
-    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'a' }];
+    const accueil = { id: 'a', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'suite', label: 'Suite', flow: flowFromEffects([{ type: 'startDialogue', dialogue: 'd' }]) }] }] };
+    const entities: Scene['entities'] = [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'a' } }];
     expect(jamaisOuverts(validateScene(projet({ entities, dialogues: [accueil, dialogue('d')] })))).toEqual([]);
   });
 });

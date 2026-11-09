@@ -52,7 +52,7 @@ function depotJouet(label: string, flow: unknown = fluxDeTest(), cost?: Record<s
   fs.mkdirSync(path.join(racine, 'src/scenes/jouet'), { recursive: true });
   fs.writeFileSync(path.join(racine, 'src/data/skills.json'), JSON.stringify([{ id: 'crochetage', label: 'Crochetage' }]));
   const doc = {
-    dialogues: [{ id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow, ...(cost ? { cost } : {}) }] }] }],
+    dialogues: [{ id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow, ...(cost ? { cost } : {}) }] }] }],
   };
   fs.writeFileSync(path.join(racine, 'src/scenes/jouet/jouet-projet.json'), JSON.stringify(doc, null, 1));
   return racine;
@@ -144,8 +144,8 @@ describe('#1869 — le MÊME masque à la validation de scène rendue à l’éd
   const projet = (label: string): Scene[] => [{
     ...emptyScene('scene-test'),
     id: 'jouet',
-    entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: 'd' }],
-    dialogues: [{ id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow: fluxDeTest() as Flow }] }] }],
+    entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'd' } }],
+    dialogues: [{ id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow: fluxDeTest() as Flow }] }] }],
   }];
   const avertissements = (label: string) => validateScene(projet(label)).filter((w) => w.scope === 'dialogue' && w.level === 'warn');
 

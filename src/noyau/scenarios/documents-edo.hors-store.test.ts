@@ -64,10 +64,10 @@ function documentsJoues(flow: Flow | undefined): string[] {
 
 /** Les chemins (réponse de chapitre, réponse de lecture, par leurs ids) qui mènent de la liasse à chaque document. */
 function cheminsVersLesDocuments(dlg: Dialogue): Map<string, { chapitre: string; reponse: string }> {
-  const racine = dlg.nodes.find((n) => n.id === dlg.start)!;
+  const racine = dlg.nodes.find((n) => n.id === dlg.start.id)!;
   const chemins = new Map<string, { chapitre: string; reponse: string }>();
   racine.choices.forEach((c) => {
-    const noeud = dlg.nodes.find((n) => n.id === c.next);
+    const noeud = dlg.nodes.find((n) => n.id === c.next?.id);
     noeud?.choices.forEach((r) => documentsJoues(r.flow).forEach((id) => chemins.set(id, { chapitre: c.id, reponse: r.id })));
   });
   return chemins;
@@ -128,8 +128,8 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
       paquet.find((d) => d.id === 'edo-document-9-tout-se-passe-bien'),
     ]);
     const ch8 = dlg.nodes.find((n) => n.id === 'ch8')!;
-    const racine = dlg.nodes.find((n) => n.id === dlg.start)!;
-    const versCh8 = racine.choices.find((c) => c.next === 'ch8')!.id;
+    const racine = dlg.nodes.find((n) => n.id === dlg.start.id)!;
+    const versCh8 = racine.choices.find((c) => c.next?.id === 'ch8')!.id;
     for (const stade of indice.stades) {
       const reponse = ch8.choices.find((c) => {
         let revele = false;

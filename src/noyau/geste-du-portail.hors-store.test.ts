@@ -41,7 +41,7 @@ function enExploration(): { fermee: RoomPortal; ouverte: RoomPortal } {
   return { fermee, ouverte };
 }
 
-const DIALOGUE: Dialogue = { id: 'd', start: 'n', nodes: [{ id: 'n', desc: '…', choices: [{ id: 'adieu', label: 'Adieu' }] }] } as Dialogue;
+const DIALOGUE: Dialogue = { id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'adieu', label: 'Adieu' }] }] } as Dialogue;
 
 describe('le geste d’un accès : une source pour le noyau et l’écran', () => {
   it('la porte fermée s’actionne, l’accès ouvert se franchit en marchant vers sa case d’en face', () => {

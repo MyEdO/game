@@ -25,12 +25,12 @@ const hero = (brass = 0): Combatant =>
 
 /** Un nœud, trois réponses : un Test, une MASQUÉE par son `when`, une PAYANTE hors de portée. */
 const dlg: Dialogue = {
-  id: 'd-garde', start: 'n1',
+  id: 'd-garde', start: { id: 'n1' },
   nodes: [
     { id: 'n1', desc: '…', choices: [
-      { id: 'tenter', label: 'Tenter', next: 'n2', flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
-      { id: 'secret', label: 'Secret', next: 'n2', when: { kind: 'flag', expr: 'jamais' } },
-      { id: 'acheter', label: 'Acheter', next: 'n2', cost: { gold: 5 } },
+      { id: 'tenter', label: 'Tenter', next: { id: 'n2' }, flow: { kind: 'test', test: { characteristic: 'force', label: 'Force' }, success: { kind: 'seq', steps: [] }, fail: { kind: 'seq', steps: [] } } },
+      { id: 'secret', label: 'Secret', next: { id: 'n2' }, when: { kind: 'flag', expr: 'jamais' } },
+      { id: 'acheter', label: 'Acheter', next: { id: 'n2' }, cost: { gold: 5 } },
     ] },
     { id: 'n2', desc: 'Suite', choices: [] },
   ],

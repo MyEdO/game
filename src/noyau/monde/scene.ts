@@ -105,7 +105,7 @@ export interface SceneEntity {
   /** Coque/navire : **Améliorations d'INSTANCE** (MDG 12, réfs par id ex. `{ id: 'blindage-fer' }`) —
    *  s'ajoutent aux Traits du TYPE et modifient ce navire-ci (PA de coque, M, couvert…). Posées au spawn. */
   upgrades?: NavalTraitRef[];
-  dialogueId?: string;
+  dialogueId?: { id: string };
   /** Contrepartie d'un Test de Sociabilité que ce PNJ déclare, lue par les jetons de Mécénat — arbitrage
    *  MAISON (ACE 12 l.60-62). */
   amateur?: import('../../engine/types').Amateur;

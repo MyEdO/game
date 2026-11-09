@@ -51,13 +51,13 @@ const construireScene = (): Scene => buildScene({
   entities: [
     {
       id: 'commis', kind: 'personnage', ref: 'humain', label: 'Commis du comptoir',
-      pos: { x: 6, y: 3 }, dialogueId: 'dlg-commis',
+      pos: { x: 6, y: 3 }, dialogueId: { id: 'dlg-commis' },
     },
   ],
   dialogues: [
     {
       id: 'dlg-commis',
-      start: 'accueil',
+      start: { id: 'accueil' },
       nodes: [
         {
           id: 'accueil',

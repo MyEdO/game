@@ -489,7 +489,7 @@ describe('provenance locale, références présentes résolubles et régime docu
   const paquet = (node: Record<string, unknown>, journal: Record<string, unknown>, source: typeof SOURCE | null = SOURCE): DocDeProvenance => {
     const sc = emptyScene('scene-test', 4, 4);
     sc.id = 'sc';
-    sc.dialogues = [{ id: 'dlg', start: 'n1', nodes: [{ id: 'n1', choices: [], ...node }] }];
+    sc.dialogues = [{ id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [], ...node }] }];
     sc.triggers = [{ id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'journal', ...journal }]) }];
     return { ...(source ? { source } : {}), scenes: [sc], narratif: emptyNarratif() };
   };

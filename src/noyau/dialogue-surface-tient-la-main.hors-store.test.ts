@@ -23,9 +23,9 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const dlg: Dialogue = {
-  id: 'd-surface', start: 'n1',
+  id: 'd-surface', start: { id: 'n1' },
   nodes: [
-    { id: 'n1', desc: '…', choices: [{ id: 'oui', label: 'Oui', next: 'n2' }, { id: 'non', label: 'Non', next: 'n2' }] },
+    { id: 'n1', desc: '…', choices: [{ id: 'oui', label: 'Oui', next: { id: 'n2' } }, { id: 'non', label: 'Non', next: { id: 'n2' } }] },
     { id: 'n2', desc: 'Suite', choices: [] },
   ],
 } as Dialogue;
