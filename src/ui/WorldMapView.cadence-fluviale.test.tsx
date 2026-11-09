@@ -46,8 +46,8 @@ const carte: WorldMap = {
     { id: 'C', label: 'Marienburg', pos: { x: 0, y: 90 }, scene: 'quai-c' },
   ],
   routes: [
-    { id: 'r-reik', a: 'A', b: 'B', km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 },
-    { id: 'r-mer', a: 'A', b: 'C', km: 200, modes: ['mer'], sea: true, seaHeading: 'est' },
+    { id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 },
+    { id: 'r-mer', a: { id: 'A' }, b: { id: 'C' }, km: 200, modes: ['mer'], sea: true, seaHeading: 'est' },
   ],
 };
 const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });

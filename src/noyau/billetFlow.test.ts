@@ -9,10 +9,10 @@ import { cleDeBillet, type MapRoute, type WorldMap } from './worldMap';
 import { toBrass } from '../engine/money';
 
 const route: MapRoute = {
-  id: 'r', a: 'A', b: 'B', km: 100, modes: ['diligence'],
+  id: 'r', a: { id: 'A' }, b: { id: 'B' }, km: 100, modes: ['diligence'],
   billets: {
     diligence: {
-      prix: { exterieur: 48, interieur: 96 }, depuis: 'A', maison: 'test',
+      prix: { exterieur: 48, interieur: 96 }, depuis: { id: 'A' }, maison: 'test',
       marchandage: { presetId: 'vendeur', paliers: [{ seuil: 0, prix: { exterieur: 36, interieur: 72 } }] },
     },
   },

@@ -173,7 +173,7 @@ const construireCarte = (): WorldMap => ({
   routes: [
     {
       id: 'r-piste',
-      a: 'p-village', b: 'p-hameau',
+      a: { id: 'p-village' }, b: { id: 'p-hameau' },
       km: 24, // 1 jour plein à M4 (6 h/jour RAW) — nuit de camp garantie au-delà
       modes: ['pied'],
       perils: [{
@@ -188,7 +188,7 @@ const construireCarte = (): WorldMap => ({
     },
     {
       id: 'r-grandroute',
-      a: 'p-village', b: 'p-bourg',
+      a: { id: 'p-village' }, b: { id: 'p-bourg' },
       km: 30,
       modes: ['pied', 'diligence'],
       perilDie: 0,
@@ -199,7 +199,7 @@ const construireCarte = (): WorldMap => ({
       // LONG voyage (96 km à M4 = 4 jours / 3 nuits à pied) : récupération nocturne, rations qui fondent,
       // faim de Greta, postes d'Étapes répétés — relais d'auberges en chemin (ou belle étoile, au choix).
       id: 'r-longue',
-      a: 'p-hameau', b: 'altdorf',
+      a: { id: 'p-hameau' }, b: { id: 'altdorf' },
       km: 96,
       modes: ['pied', 'diligence'],
       inns: true,

@@ -12,10 +12,10 @@ import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, pointDuPlanSchema } from '../grammaire/valeurs';
-import { routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
+import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
-import { listeCle, marquerCollection, marqueDeRecord } from '../grammaire/collection-cle';
+import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
 import { couvreSchema } from './communs';
 import { findVehicleById } from '../../index';
 
@@ -145,9 +145,12 @@ export const routePerilSchema = nommerChamps(z.strictObject({
   effects: z.array(effectSchema),
 }).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
+/** Une référence à un lieu de la carte (`ref(LIEUX_DE_LA_CARTE)`). */
+type RefDeLieu = { id: string };
+
 /** Fautes d'un billet contre SA route : véhicule à classes de passage offert sur la route, classes connues,
  *  `depuis` exigé sur une route à double sens et désignant une de ses extrémités. */
-function fautesDuBillet(route: { a: string; b: string; from?: string; modes: string[] }, mode: string, billet: z.infer<typeof routeBilletSchema>): string[] {
+function fautesDuBillet(route: { a: RefDeLieu; b: RefDeLieu; from?: RefDeLieu; modes: string[] }, mode: string, billet: z.infer<typeof routeBilletSchema>): string[] {
   const travel = findVehicleById(mode)?.travel;
   if (!travel) return [`« ${mode} » n'est pas un véhicule à passage payant (\`vehicles.json\` sans \`travel\`).`];
   const fautes: string[] = [];
@@ -156,8 +159,9 @@ function fautesDuBillet(route: { a: string; b: string; from?: string; modes: str
   const posees = [billet.prix, ...(billet.marchandage?.paliers ?? []).map((p) => p.prix)].flatMap((p) => Object.keys(p));
   for (const c of new Set(posees)) if (!classes.has(c)) fautes.push(`classe « ${c} » inconnue du véhicule « ${mode} » (classes : ${[...classes].join(', ')}).`);
   if (route.from == null && billet.depuis == null) fautes.push('route à double sens : « depuis » doit dire de quel lieu part le billet.');
-  if (billet.depuis != null && billet.depuis !== route.a && billet.depuis !== route.b) fautes.push(`« depuis » (« ${billet.depuis} ») n'est pas une extrémité de la route.`);
-  if (billet.depuis != null && route.from != null && billet.depuis !== route.from) fautes.push(`« depuis » (« ${billet.depuis} ») contredit le sens unique de la route (« ${route.from} »).`);
+  const depuis = billet.depuis?.id;
+  if (depuis != null && depuis !== route.a.id && depuis !== route.b.id) fautes.push(`« depuis » (« ${depuis} ») n'est pas une extrémité de la route.`);
+  if (depuis != null && route.from != null && depuis !== route.from.id) fautes.push(`« depuis » (« ${depuis} ») contredit le sens unique de la route (« ${route.from.id} »).`);
   return fautes;
 }
 
@@ -167,9 +171,9 @@ const PROVENANCE_EXIGEE = { perilDie: 'du dé de péril', speed: 'de la vitesse'
 /** `MapRoute` — route entre deux lieux, bidirectionnelle sauf `from` (sens unique d'initiation). */
 export const mapRouteSchema = nommerChamps(z.strictObject({
   id: z.string(),
-  a: z.string(),
-  b: z.string(),
-  from: z.string().optional(),
+  a: ref(LIEUX_DE_LA_CARTE),
+  b: ref(LIEUX_DE_LA_CARTE),
+  from: ref(LIEUX_DE_LA_CARTE).optional(),
   /** Distance en kilomètres (`LDB 51 l.178`) — en MILLES sur une route `sea`. */
   km: z.number(),
   modes: z.array(travelModeSchema),
@@ -238,39 +242,39 @@ export const worldMapParamsSchema = nommerChamps(z.strictObject({
 }), { hoursPerDay: { label: "heures par jour" }, forcedMaxHours: { label: "durée forcée maximale" }, perilDie: { label: "dé de péril" } });
 
 /** Parcours d'un billet : ses TRONÇONS couverts (`routeId>départ`, première route comprise) et les fautes
- *  de sa `suite` — chaque route existe, porte le mode, part du lieu où arrive la précédente (dans son
- *  sens unique s'il y en a un), et n'est couverte qu'une fois. */
+ *  de sa `suite` — chaque route porte le mode, part du lieu où arrive la précédente (dans son sens unique
+ *  s'il y en a un), et n'est couverte qu'une fois. */
 function parcoursDuBillet(
-  routes: readonly { id: string; a: string; b: string; from?: string; modes: string[] }[],
-  premiere: { id: string; a: string; b: string; from?: string },
+  routes: readonly { id: string; a: RefDeLieu; b: RefDeLieu; from?: RefDeLieu; modes: string[] }[],
+  premiere: { id: string; a: RefDeLieu; b: RefDeLieu; from?: RefDeLieu },
   mode: string,
-  billet: { suite?: string[]; depuis?: string },
+  billet: { suite?: string[]; depuis?: RefDeLieu },
 ): { fautes: string[]; troncons: string[] } {
-  const depart = premiere.from ?? billet.depuis;
+  const depart = (premiere.from ?? billet.depuis)?.id;
   const fautes: string[] = [];
   if (depart == null) return { fautes, troncons: [] };
   const troncons = [`${premiere.id}>${depart}`];
   const vues = new Set([premiere.id]);
-  let ici = depart === premiere.a ? premiere.b : premiere.a;
+  let ici = depart === premiere.a.id ? premiere.b.id : premiere.a.id;
   for (const id of billet.suite ?? []) {
     const r = routes.find((x) => x.id === id);
-    if (!r) { fautes.push(`route « ${id} » inconnue de la carte.`); break; }
+    if (!r) break;
     if (vues.has(id)) fautes.push(`route « ${id} » couverte deux fois par le même billet.`);
     vues.add(id);
     if (!r.modes.includes(mode)) fautes.push(`route « ${id} » n'offre pas le mode « ${mode} ».`);
-    if ((r.a !== ici && r.b !== ici) || (r.from != null && r.from !== ici)) {
+    if ((r.a.id !== ici && r.b.id !== ici) || (r.from != null && r.from.id !== ici)) {
       fautes.push(`route « ${id} » ne part pas de « ${ici} », où arrive la route précédente : la suite n'est pas contiguë.`);
       break;
     }
     troncons.push(`${id}>${ici}`);
-    ici = r.a === ici ? r.b : r.a;
+    ici = r.a.id === ici ? r.b.id : r.a.id;
   }
   return { fautes, troncons };
 }
 
-/** `WorldMap` — graphe de LIEUX et de ROUTES au niveau PROJET. Un POI est unique dans son lieu
- *  (`listeCle`) ET sur la carte : le `superRefine` en pied refuse l'id qu'un AUTRE lieu porte déjà. */
-export const worldMapSchema = nommerChamps(z
+/** `WorldMap` — graphe de LIEUX et de ROUTES au niveau PROJET, qui ouvre leurs portées. Un POI est unique
+ *  dans son lieu (`listeCle`) ET sur la carte : le `superRefine` en pied refuse l'id qu'un AUTRE lieu porte déjà. */
+export const worldMapSchema = nommerChamps(ouvrirPortees(z
   .strictObject({
     id: z.string(),
     label: z.string(),
@@ -307,4 +311,4 @@ export const worldMapSchema = nommerChamps(z
         else lieuDuPoi.set(poi.id, lieu.id);
       });
     });
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, params: { label: "paramètres" }, background: { label: "arrière-plan" , texte: { regime: "technique"} }, places: { label: "lieux" }, routes: { label: "routes" } });
+  }), [LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE]), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, params: { label: "paramètres" }, background: { label: "arrière-plan" , texte: { regime: "technique"} }, places: { label: "lieux" }, routes: { label: "routes" } });

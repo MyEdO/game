@@ -155,13 +155,12 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
   if (worldMap) {
     const addWm = (refId: string, message: string) =>
       out.push({ level: 'error', sceneId: worldMap.id, scope: 'worldMap', refId, message });
-    // Le SCHÉMA de carte (`worldMapSchema`) : unicité des lieux, routes et POI, cibles exclusives d'un
-    // POI — une carte VIVANTE de l'éditeur ne repasse pas par le parse, l'auteur l'apprend ici.
+    // Le SCHÉMA de carte (`worldMapSchema`) : unicité des lieux, routes et POI, lieux et routes désignés,
+    // cibles exclusives d'un POI — une carte VIVANTE de l'éditeur ne repasse pas par le parse, l'auteur l'apprend ici.
     for (const faute of fautesDeSchema(worldMapSchema, worldMap, narratif) ?? []) {
       const f = fautifDe(faute.lieu, 'worldMap');
       out.push({ level: 'error', sceneId: worldMap.id, scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
     }
-    const placeIds = new Set(worldMap.places.map((p) => p.id));
     for (const p of worldMap.places) {
       if (!sceneIds.has(p.scene)) addWm(p.id, `Lieu « ${p.label} » → scène inexistante « ${p.scene} »`);
       // Cible RÉSOLUE via `placeServices` (source unique, `noyau/worldMap.ts`) — pas le seul catalogue
@@ -174,7 +173,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       }
     }
     for (const r of worldMap.routes) {
-      for (const end of [r.a, r.b] as const) if (!placeIds.has(end)) addWm(r.id, `Route « ${r.id} » → lieu inexistant « ${end} »`);
       const amb = r.ambush;
       if (amb) {
         const target = project.find((s) => s.id === amb.scene);

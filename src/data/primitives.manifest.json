@@ -654,9 +654,9 @@
     "type": "primitives.manifest",
     "label": "ref(portee)/ouvrirPortees/PorteeLocale",
     "fichier": "src/data/schemas/grammaire/collection-cle.ts",
-    "concept": "une référence `{ id }` vers une entrée d'une collection du MÊME document (`ref(portee)`, `grammaire/ref.ts`), jugée au parse par l'objet qui porte cette liste à clé et OUVRE la portée (`ouvrirPortees`) ; un id local n'entre dans aucun espace de l'index des ids",
-    "perimetre": "tables arcaniques d'un phénomène (`arcane-phenomena.json › phenomena[].fluxTableId`, `› tableId`), nœuds d'un dialogue (`scenes[].dialogues[].start`, `› nodes[].choices[].next`) et dialogues d'une scène (`scenes[].entities[].dialogueId`), clé `id` offerte au formulaire de l'atelier (`cleOfferte`), slots du parse de mesure (cible `local:<collection>`), migration d'un catalogue lu dans le document (`CibleLocale` de `scripts/migrations/lib/idNuEnRef.mjs`)",
-    "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, src/data/schemas/defs-scenes/dialogues-et-noeuds.test.ts, src/data/schemas/espaces-contrat.test.ts"
+    "concept": "une référence `{ id }` vers une entrée d'une collection du MÊME document (`ref(portee)`, `grammaire/ref.ts`), ou une liste de ses ids (`refs(portee)`), jugée au parse par l'objet qui porte cette liste à clé et OUVRE la portée (`ouvrirPortees`) ; un id local n'entre dans aucun espace de l'index des ids",
+    "perimetre": "tables arcaniques d'un phénomène (`arcane-phenomena.json › phenomena[].fluxTableId`, `› tableId`), nœuds d'un dialogue (`scenes[].dialogues[].start`, `› nodes[].choices[].next`) et dialogues d'une scène (`scenes[].entities[].dialogueId`), lieux et routes d'une carte (`worldMap.routes[].a`, `› b`, `› from`, `› billets{}.depuis`, `› billets{}.suite`), clé `id` offerte au formulaire de l'atelier (`cleOfferte`), slots du parse de mesure (cible `local:<collection>`), migration d'un catalogue lu dans le document (`CibleLocale` de `scripts/migrations/lib/idNuEnRef.mjs`)",
+    "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, src/data/schemas/defs-scenes/dialogues-et-noeuds.test.ts, src/data/schemas/defs-scenes/routes-et-lieux.test.ts, src/data/schemas/espaces-contrat.test.ts"
   },
   {
     "id": "refCouvre",

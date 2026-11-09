@@ -126,7 +126,7 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
   function bargeRoute(aId: string, bId: string, km: number, id?: string): MapRoute {
     return {
       id: id ?? `r-${aId}-${bId}`,
-      a: placeIdOf(aId), b: placeIdOf(bId),
+      a: { id: placeIdOf(aId) }, b: { id: placeIdOf(bId) },
       km,
       modes: ['barge', 'pied'],
       perilDie: 0,

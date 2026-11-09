@@ -24,7 +24,7 @@ const seaMap: WorldMap = {
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
     { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b' },
   ],
-  routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+  routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
 
 /** Graine dont la journée commandée lance une « Fuite de vapeur » (MDG 12 l.313-328) aux dés réels. */

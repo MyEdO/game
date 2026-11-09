@@ -25,6 +25,9 @@ import { Row } from '../Layout';
 import { ChipDeRefus } from '../ChipDeRefus';
 import { CONDITION_KINDS_CARTE } from '../../data/schemas/grammaire/campagne';
 
+/** Le nom d'auteur du lieu `lieu`, son id s'il manque à la carte. */
+const nomDuLieu = (map: WorldMap, lieu: { id: string }): string => placeById(map, lieu.id)?.label ?? lieu.id;
+
 export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggleMode }: {
   route: MapRoute;
   map: WorldMap;
@@ -49,7 +52,7 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
       {routeTab === 'trajet' && (
         <>
           <div className="mini-title">
-            Route : {placeById(map, route.a)?.label} ↔ {placeById(map, route.b)?.label}
+            Route : {nomDuLieu(map, route.a)} ↔ {nomDuLieu(map, route.b)}
           </div>
           <label className="ed-field">Distance (km)
             <NumberField variant="nu" label="Distance (km)" min={1} value={route.km} onChange={(km) => updRoute(route.id, { km })} />
@@ -57,12 +60,12 @@ export function WorldMapRoutePanel({ route, map, scenes, updRoute, effCtx, toggl
           <div className="ed-field"><ProvenanceDeValeur identite={`${route.id}/km`} sujet="de la distance" exigee={false} value={route.provenances?.km} onChange={(km) => updRoute(route.id, { provenances: { ...route.provenances, km } })} /></div>
           <label className="ed-field">Sens (route à sens unique : n'est offerte que depuis ce lieu ; le retour passe par une autre route)
             <select
-              value={route.from ?? ''}
-              onChange={(e) => updRoute(route.id, { from: e.target.value || undefined })}
+              value={route.from?.id ?? ''}
+              onChange={(e) => updRoute(route.id, { from: e.target.value ? { id: e.target.value } : undefined })}
             >
               <option value="">— les deux sens —</option>
-              <option value={route.a}>Depuis {placeById(map, route.a)?.label ?? route.a}</option>
-              <option value={route.b}>Depuis {placeById(map, route.b)?.label ?? route.b}</option>
+              <option value={route.a.id}>Depuis {nomDuLieu(map, route.a)}</option>
+              <option value={route.b.id}>Depuis {nomDuLieu(map, route.b)}</option>
             </select>
           </label>
           <CouvreField value={route.couvre} sujet="de la route" onChange={(couvre) => updRoute(route.id, { couvre })} />
@@ -244,7 +247,7 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
   const classes = vehicule.travel!.classes;
   const billet = route.billets?.[v];
   const couvreuse = routeQuiCouvre(map, route, v);
-  const nomDe = (r: MapRoute) => `${placeById(map, r.a)?.label ?? r.a} → ${placeById(map, r.b)?.label ?? r.b}`;
+  const nomDe = (r: MapRoute) => `${nomDuLieu(map, r.a)} → ${nomDuLieu(map, r.b)}`;
   const poser = (b: RouteBillet | undefined) => updRoute(route.id, { billets: { ...route.billets, [v]: b } });
   const patch = (p: Partial<RouteBillet>) => poser({ ...billet!, ...p });
   const prixDe = (prix: RouteBillet['prix'], onPrix: (prix: RouteBillet['prix']) => void, sujet: string) => classes.map((c) => (
@@ -274,10 +277,10 @@ function BilletDuVehicule({ route, map, vehicule, presets, updRoute }: {
           {prixDe(billet.prix, (prix) => patch({ prix }), 'billet')}
           {route.from == null && (
             <label className="ed-field">{vehicule.label} — billet au départ de
-              <select value={billet.depuis ?? ''} onChange={(e) => patch({ depuis: e.target.value || undefined })}>
+              <select value={billet.depuis?.id ?? ''} onChange={(e) => patch({ depuis: e.target.value ? { id: e.target.value } : undefined })}>
                 <option value="">— choisir —</option>
-                <option value={route.a}>{placeById(map, route.a)?.label ?? route.a}</option>
-                <option value={route.b}>{placeById(map, route.b)?.label ?? route.b}</option>
+                <option value={route.a.id}>{nomDuLieu(map, route.a)}</option>
+                <option value={route.b.id}>{nomDuLieu(map, route.b)}</option>
               </select>
             </label>
           )}

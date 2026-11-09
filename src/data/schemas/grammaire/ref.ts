@@ -9,10 +9,10 @@ import { nommerChamps, metasExtra, valeursDe, type MetaChamp, type MetaDesChamps
  * la composition se fait donc ICI via `extra`.
  *
  * PORTÉE LOCALE (#2968 P-local) : `ref(portee)` désigne une entrée d'une collection du MÊME document, même
- * graphie `{ id }`. L'objet qui porte cette collection OUVRE la portée (`ouvrirPortees`,
- * `grammaire/collection-cle.ts`) : la racine d'un document, ou tout objet de son arbre. Il juge chaque
- * référence de son arbre contre les ids de sa collection (`jugerRefLocale`). Un id local n'entre dans aucun
- * espace de l'INDEX DES IDS.
+ * graphie `{ id }`, et `refs(portee)` une liste de ses ids. L'objet qui porte cette collection OUVRE la
+ * portée (`ouvrirPortees`, `grammaire/collection-cle.ts`) : la racine d'un document, ou tout objet de son
+ * arbre. Il juge chaque référence de son arbre contre les ids de sa collection (`jugerRefLocale`). Un id
+ * local n'entre dans aucun espace de l'INDEX DES IDS.
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
@@ -602,10 +602,12 @@ export function reperesDuParse(schema: z.ZodType, donnee: unknown): readonly Rep
  * `ShipCrewHit.crewTarget.stations` vise au moins une présence, une liste vide ne désignant
  * personne. `sousListe` restreint chaque référence comme `idDe` (`merchants.json › curated` lit
  * `INSTANCIABLE_PAR_ID`). Le retour n'est PAS érasé en `z.ZodType` — sinon `.min()` ne survivrait pas à
- * l'appel, et le site le réécrirait à la main.
+ * l'appel, et le site le réécrirait à la main. Sur une PORTÉE LOCALE, des ids d'entrées de sa collection.
  */
-export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousListe?: SousListe }): z.ZodArray<z.ZodType<Id<T>, string>> {
-  const liste = z.array(idDe(type, opts?.sousListe));
+export function refs(portee: PorteeLocale): z.ZodArray<z.ZodString>;
+export function refs<T extends TypeEntite>(type: T, opts?: { min?: number; sousListe?: SousListe }): z.ZodArray<z.ZodType<Id<T>, string>>;
+export function refs(cible: TypeEntite | PorteeLocale, opts?: { min?: number; sousListe?: SousListe }) {
+  const liste = z.array(typeof cible === 'string' ? idDe(cible, opts?.sousListe) : feuilleLocale(cible));
   return opts?.min === undefined ? liste : liste.min(opts.min);
 }
 

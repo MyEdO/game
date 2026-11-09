@@ -40754,9 +40754,15 @@
   "routes": [
    {
     "id": "route-la-diligence-route-principale",
-    "a": "la-diligence",
-    "b": "route-principale",
-    "from": "la-diligence",
+    "a": {
+     "id": "la-diligence"
+    },
+    "b": {
+     "id": "route-principale"
+    },
+    "from": {
+     "id": "la-diligence"
+    },
     "km": 40,
     "modes": [
      "pied",
@@ -40832,9 +40838,15 @@
    },
    {
     "id": "route-route-principale-sept-rayons",
-    "a": "route-principale",
-    "b": "auberge-des-sept-rayons",
-    "from": "route-principale",
+    "a": {
+     "id": "route-principale"
+    },
+    "b": {
+     "id": "auberge-des-sept-rayons"
+    },
+    "from": {
+     "id": "route-principale"
+    },
     "km": 35,
     "modes": [
      "pied",
@@ -40875,9 +40887,15 @@
    },
    {
     "id": "route-sept-rayons-altdorf",
-    "a": "auberge-des-sept-rayons",
-    "b": "altdorf",
-    "from": "auberge-des-sept-rayons",
+    "a": {
+     "id": "auberge-des-sept-rayons"
+    },
+    "b": {
+     "id": "altdorf"
+    },
+    "from": {
+     "id": "auberge-des-sept-rayons"
+    },
     "km": 115,
     "modes": [
      "pied",

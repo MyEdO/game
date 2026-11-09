@@ -62,7 +62,7 @@ function map(route: Partial<MapRouteTrace> = {}): WorldMap {
       { id: 'pa', label: 'Weiler', pos: { x: 20, y: 50 }, scene: 'scene-depart' },
       { id: 'pb', label: 'Federholz', pos: { x: 70, y: 40 }, scene: 'scene-arrivee' },
     ],
-    routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 30, modes: ['pied'], perilDie: 0, ...route }],
+    routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 30, modes: ['pied'], perilDie: 0, ...route }],
   };
 }
 function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Combatant[] = [hero()]): void {

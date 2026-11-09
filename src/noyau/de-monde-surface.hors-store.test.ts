@@ -358,7 +358,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
 describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (parité du `break`)', () => {
   /** Route à 3 périls d'auteur À 100 % ; le rang `interrompt` porte un `startCombat`. */
   const routeAvecPerils = (interrompt: number): MapRoute => ({
-    id: 'r1', a: 'A', b: 'B', km: 10, modes: ['pied'],
+    id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 10, modes: ['pied'],
     perils: [0, 1, 2].map((i) => ({
       label: `P${i}`, chancePct: 100,
       effects: i === interrompt ? [{ type: 'startCombat' as const, encounter: 'enc-x' }] : [{ type: 'journal' as const, desc: `note ${i}` }],
@@ -697,7 +697,7 @@ const carteMonde: WorldMap = {
     { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: 'monde-a' },
     { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: 'monde-b' },
   ],
-  routes: [{ id: 'rt', a: 'pa', b: 'pb', km: 400, modes: ['pied'], perilDie: 0 }],
+  routes: [{ id: 'rt', a: { id: 'pa' }, b: { id: 'pb' }, km: 400, modes: ['pied'], perilDie: 0 }],
 };
 const carteMer: WorldMap = {
   id: 'cmer', label: 'Mer des Griffes',
@@ -705,7 +705,7 @@ const carteMer: WorldMap = {
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'monde-a' },
     { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'monde-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
-  routes: [{ id: 'rmer', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+  routes: [{ id: 'rmer', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
 const scenePlate = (id: string): Scene => { const s = emptyScene('scene-test', 6, 6); s.id = id; s.label = id; return s; };
 

@@ -527,7 +527,7 @@ describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
       id: 'carte',
       label: 'Le monde',
       places: [lieu('lieu-1', over.place), lieu('lieu-2')],
-      routes: [{ id: 'route-1', a: 'lieu-1', b: 'lieu-2', km: 10, modes: ['pied'], ...over.route }],
+      routes: [{ id: 'route-1', a: { id: 'lieu-1' }, b: { id: 'lieu-2' }, km: 10, modes: ['pied'], ...over.route }],
     },
   });
   const PORTEURS: Record<string, (couvre: unknown) => Jouet> = {

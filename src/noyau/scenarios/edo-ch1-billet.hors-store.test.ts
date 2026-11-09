@@ -244,19 +244,19 @@ describe('(f) validation du billet au chargement', () => {
     t2.billets = { diligence: { prix: { exterieur: 10 }, maison: 'second billet' } };
     expect(refus(d)).toMatch(/par deux billets/);
     delete t2.from;
-    t2.billets.diligence!.depuis = 'auberge-des-sept-rayons';
+    t2.billets.diligence!.depuis = { id: 'auberge-des-sept-rayons' };
     expect(refus(d), 'le sens inverse est un autre tronçon').toBe('');
   });
   it('une suite vers une route inconnue est refusée', () => {
     const d = doc();
     billet(d).suite = ['route-fantome'];
-    expect(refus(d)).toMatch(/inconnue de la carte/);
+    expect(refus(d)).toMatch(/« route-fantome » est absent du catalogue des routes de la carte/);
   });
   it('« depuis » exigé sur une route à double sens', () => {
     const d = doc();
     delete d.worldMap!.routes.find((r) => r.id === T1)!.from;
     expect(refus(d)).toMatch(/double sens/);
-    billet(d).depuis = 'la-diligence';
+    billet(d).depuis = { id: 'la-diligence' };
     expect(refus(d)).toBe('');
   });
   it('un vendeur qui n’est pas un preset du narratif est refusé', () => {

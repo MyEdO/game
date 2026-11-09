@@ -61,7 +61,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
         { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: 'lieu-a' },
         { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: 'lieu-b' },
       ],
-      routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 12, modes: ['pied'], perilDie: 0 }],
+      routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 12, modes: ['pied'], perilDie: 0 }],
     };
     set({ party: makePregens(idsDeTest).slice(0, 1) });
     get().chargerLeProjet({ scenes: [scene('lieu-a'), scene('lieu-b')], entryId: 'lieu-a', worldMap: carte, projet: null });
@@ -84,7 +84,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
         { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'quai-a' },
         { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'quai-b' },
       ],
-      routes: [{ id: 'r-reik', a: 'A', b: 'B', km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
+      routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
     };
     const quai = (id: string) => buildScene({ id, label: id, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] });
     seedBattleRng(7);
@@ -105,7 +105,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
         { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
         { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
       ],
-      routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+      routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
     };
     set({
       party: makePregens(idsDeTest).slice(0, 3), worldMap: mer, lieu: 'A', gameTime: 8 * 60, lastUpkeepDay: 0, suspendedCascades: [],

@@ -39,8 +39,8 @@ const carteBarge: WorldMap = {
   ],
   routes: [{
     id: 'route-quai-ilot',
-    a: 'quai',
-    b: 'ilot',
+    a: { id: 'quai' },
+    b: { id: 'ilot' },
     km: 30,
     modes: ['mer'],
     when: { kind: 'flag', expr: CAP_SEL },
@@ -104,12 +104,12 @@ const carteGatee: WorldMap = {
     },
   ],
   routes: [
-    { id: 'auberge-altdorf', a: 'auberge', b: 'altdorf', km: 100, modes: ['pied'] },
+    { id: 'auberge-altdorf', a: { id: 'auberge' }, b: { id: 'altdorf' }, km: 100, modes: ['pied'] },
     {
       id: 'altdorf-auberge-retour',
-      a: 'altdorf',
-      b: 'auberge',
-      from: 'altdorf',
+      a: { id: 'altdorf' },
+      b: { id: 'auberge' },
+      from: { id: 'altdorf' },
       km: 100,
       modes: ['pied'],
       when: { kind: 'not', of: { kind: 'flag', expr: 'edo-ch1-clos' } },

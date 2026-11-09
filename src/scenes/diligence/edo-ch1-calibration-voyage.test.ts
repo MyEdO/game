@@ -62,7 +62,7 @@ function jours(mode: string): number {
 
 describe('Chapitre 1 de jeu (EDO) — la chaîne La Diligence → Altdorf tient la promesse de durée du RAW', () => {
   it('la chaîne est continue, praticable à pied ET en diligence, et totalise 190 km', () => {
-    expect(troncons.map((r) => [r.a, r.b])).toEqual([
+    expect(troncons.map((r) => [r.a.id, r.b.id])).toEqual([
       ['la-diligence', 'route-principale'],
       ['route-principale', 'auberge-des-sept-rayons'],
       ['auberge-des-sept-rayons', 'altdorf'],

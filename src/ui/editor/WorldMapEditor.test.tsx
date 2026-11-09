@@ -48,7 +48,7 @@ function baseMap(): WorldMap {
   const m = emptyWorldMap('carte-test');
   const place: MapPlace = { id: 'p1', label: 'Altdorf', pos: { x: 10, y: 10 }, scene: 's1' };
   const place2: MapPlace = { id: 'p2', label: 'Marienburg', pos: { x: 40, y: 20 }, scene: 's2' };
-  const route: MapRoute = { id: 'r1', a: 'p1', b: 'p2', km: 20, modes: ['pied'] };
+  const route: MapRoute = { id: 'r1', a: { id: 'p1' }, b: { id: 'p2' }, km: 20, modes: ['pied'] };
   return { ...m, places: [place, place2], routes: [route] };
 }
 
@@ -245,7 +245,7 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
     expect(lastMap!.routes[0].km).toBe(42);
 
     setValue(input('Sens'), 'p1');
-    expect(lastMap!.routes[0].from).toBe('p1');
+    expect(lastMap!.routes[0].from).toEqual({ id: 'p1' });
 
     click(checkbox('Diligence'));
     expect(lastMap!.routes[0].modes).toContain('diligence');
@@ -259,7 +259,7 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
     expect(() => input('Diligence — billet au départ de')).toThrow();
     setValue(input('Sens'), '');
     setValue(input('Diligence — billet au départ de'), 'p1');
-    expect(lastMap!.routes[0].billets?.diligence?.depuis).toBe('p1');
+    expect(lastMap!.routes[0].billets?.diligence?.depuis).toEqual({ id: 'p1' });
     setValue(fieldWrap('Raison maison du billet Diligence').querySelector('textarea')!, 'tarif de la compagnie');
     expect(lastMap!.routes[0].billets?.diligence?.maison).toBe('tarif de la compagnie');
 
@@ -276,8 +276,8 @@ describe('WorldMapEditor — panneau Route / Trajet (#419)', () => {
   it('route couverte par la suite d’un autre billet du véhicule : lecture seule, aucune case de billet d’auteur', () => {
     const m = baseMap();
     const p3: MapPlace = { id: 'p3', label: 'Nuln', pos: { x: 70, y: 30 }, scene: 's2' };
-    const r1: MapRoute = { id: 'r1', a: 'p1', b: 'p2', from: 'p1', km: 20, modes: ['diligence'], billets: { diligence: { prix: { exterieur: 10 }, suite: ['r2'], maison: 'compagnie' } } };
-    const r2: MapRoute = { id: 'r2', a: 'p2', b: 'p3', from: 'p2', km: 30, modes: ['diligence'] };
+    const r1: MapRoute = { id: 'r1', a: { id: 'p1' }, b: { id: 'p2' }, from: { id: 'p1' }, km: 20, modes: ['diligence'], billets: { diligence: { prix: { exterieur: 10 }, suite: ['r2'], maison: 'compagnie' } } };
+    const r2: MapRoute = { id: 'r2', a: { id: 'p2' }, b: { id: 'p3' }, from: { id: 'p2' }, km: 30, modes: ['diligence'] };
     mount(emptyNarratif(), { ...m, places: [...m.places, p3], routes: [r1, r2] });
     click(container.querySelectorAll('svg g[style*="cursor: pointer"]')[1]);
     expect(container.textContent).toContain('Diligence : couverte par le billet de Altdorf → Marienburg');

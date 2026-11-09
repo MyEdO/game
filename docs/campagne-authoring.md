@@ -63,8 +63,10 @@ persistance — chaque combat spawn une coque fraîche.
 ## 3. Routes et voyage (`worldMap.routes`, `MapRoute`)
 
 - `a`/`b` bidirectionnels, `km` (MILLES si `sea`), `modes`, `perils` (péripéties d'auteur `chancePct`),
-  `perilDie` (seuil d10 RAW). DEUX routes entre les mêmes lieux sont OK (seul `id` est une clé) — le
-  « sens » n'est qu'un nommage d'auteur, pas une contrainte mécanique.
+  `perilDie` (seuil d10 RAW). `a`, `b`, `from` et le `depuis` d'un billet désignent un lieu de
+  `worldMap.places` par `{ id }`, la `suite` d'un billet des routes par leurs ids (`ref(portee)`, portée
+  ouverte par `worldMapSchema`). DEUX routes entre les mêmes lieux sont OK (seul `id` est une clé) ;
+  `from` les rend à sens unique, offerte depuis ce seul lieu (`routesFrom`).
 - `ambush: { scene, encounter, at? }` — cible du « Attaqués ! ». En MER, `at` (fraction 0-1, défaut 0.5)
   ANCRE l'embuscade de façon DÉTERMINISTE : elle se déclenche quand la distance franchit `at × km`, une
   fois par traversée, hors RNG (#212).

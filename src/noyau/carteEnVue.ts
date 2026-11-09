@@ -76,7 +76,7 @@ function planDepuis(s: Jeu, map: WorldMap, ici: MapPlace): PlanDeLaCarte {
       const pos = garanti(positions.get(p.id), p.id, 'position du lieu');
       return { id: p.id, nom: p.label, x: pos.x / CADRE.w, y: pos.y / CADRE.h, ici: p.id === ici.id, trajets: trajets.filter((tr) => tr.destination === p.id) };
     }),
-    routes: map.routes.filter((r) => existe.has(r.a) && existe.has(r.b)).map((r) => ({ route: r.id, de: r.a, vers: r.b, depuisIci: ouvertes.has(r.id) })),
+    routes: map.routes.filter((r) => existe.has(r.a.id) && existe.has(r.b.id)).map((r) => ({ route: r.id, de: r.a.id, vers: r.b.id, depuisIci: ouvertes.has(r.id) })),
   };
 }
 

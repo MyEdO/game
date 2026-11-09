@@ -7,6 +7,12 @@ import { z } from 'zod';
 import { maisonSchema, palierSchema, sourceRefSchema } from './valeurs';
 import { refuserSansProvenance } from './document';
 import { marquerCollection, marqueDeRecord } from './collection-cle';
+import { ref, refs, type PorteeLocale } from './ref';
+
+/** Les lieux de la carte, que désignent les extrémités d'une route et le départ d'un billet. */
+export const LIEUX_DE_LA_CARTE = { collection: 'places', catalogue: 'lieux de la carte' } as const satisfies PorteeLocale;
+/** Les routes de la carte, que désigne la suite d'un billet. */
+export const ROUTES_DE_LA_CARTE = { collection: 'routes', catalogue: 'routes de la carte' } as const satisfies PorteeLocale;
 
 /** Prix d'un passage par classe du véhicule (`vehicles.json` `travel.classes[].id`), en sous par passager. */
 const prixParClasseSchema = marquerCollection(z.record(z.string(), z.number().int().min(0)), marqueDeRecord());
@@ -27,8 +33,8 @@ export const marchandageDeBilletSchema = nommerChamps(z.strictObject({
  *  contiguïté de `suite` se valide à la carte (`worldMapSchema`), les classes et `depuis` à la route. */
 export const routeBilletSchema = nommerChamps(z.strictObject({
   prix: prixParClasseSchema,
-  suite: z.array(z.string()).optional(),
-  depuis: z.string().optional(),
+  suite: refs(ROUTES_DE_LA_CARTE).optional(),
+  depuis: ref(LIEUX_DE_LA_CARTE).optional(),
   marchandage: marchandageDeBilletSchema.optional(),
   source: sourceRefSchema.optional(),
   maison: maisonSchema.optional(),

@@ -69,7 +69,7 @@ const seaMap: WorldMap = {
     { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
     { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b' },
   ],
-  routes: [{ id: 'r1', a: 'A', b: 'B', km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
+  routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 };
 
 function fraisMer(): void {
@@ -135,7 +135,7 @@ function riverMap(extra: Partial<MapRouteTrace> = {}): WorldMap {
       { id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: 'quai-a' },
       { id: 'B', label: 'Altdorf', pos: { x: 90, y: 0 }, scene: 'quai-b' },
     ],
-    routes: [{ id: 'r-reik', a: 'A', b: 'B', km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra }],
+    routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0, ...extra }],
   };
 }
 
@@ -200,7 +200,7 @@ describe('#1262 V2 — l’allure FORCÉE ouvre sa cascade pour le conducteur d�
       worldMap: { id: 'c', label: 'c', places: [
         { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: 'lieu-a' },
         { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: 'lieu-b' },
-      ], routes: [{ id: 'r1', a: 'pa', b: 'pb', km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap,
+      ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap,
       projet: null,
     });
     creditBourse(get, set, lead.id, { gold: 500, silver: 0, brass: 0 });
