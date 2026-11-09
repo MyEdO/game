@@ -32,7 +32,7 @@ function mk(p: Partial<Combatant> = {}): Combatant {
 
 const ap = (n: number) => ({ tete: n, brasG: n, brasD: n, corps: n, jambeG: n, jambeD: n });
 /** Projectile SANS attribut de Domaine : Dégâts du Sort + DR + BFM seulement. NI 1. */
-const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', domainId: null, missile: true, damage: 4, cn: 1, range: null, target: 1, duration: null, desc: 'Projectile magique, Dégâts +4.' };
+const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', missile: true, damage: 4, cn: 1, range: null, target: 1, duration: null, desc: 'Projectile magique, Dégâts +4.' };
 /** Jet réussi 44 (loc stable par dé inversé), DR 3, NI requis figé par `evaluateCasting`. */
 const cast = (sl: number, niRequired = 1): CastResult => ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, niRequired, log: 'jet' });
 

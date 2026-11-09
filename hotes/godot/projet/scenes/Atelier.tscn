@@ -81,7 +81,12 @@ theme_override_styles/panel = ExtResource("3_fond")
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="Onglets" type="HBoxContainer" parent="Interface/Panneau/Racine"]
+[node name="ChoixDuModele" type="VBoxContainer" parent="Interface/Panneau/Racine"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Onglets" type="HFlowContainer" parent="Interface/Panneau/Racine"]
 layout_mode = 2
 
 [node name="OngletPersonnage" type="Button" parent="Interface/Panneau/Racine/Onglets"]
@@ -117,14 +122,6 @@ toggle_mode = true
 button_group = SubResource("Groupe_onglets")
 text = "Animation"
 
-[node name="OngletOutils" type="Button" parent="Interface/Panneau/Racine/Onglets"]
-unique_name_in_owner = true
-layout_mode = 2
-size_flags_horizontal = 3
-toggle_mode = true
-button_group = SubResource("Groupe_onglets")
-text = "Outils"
-
 [node name="OngletEffets" type="Button" parent="Interface/Panneau/Racine/Onglets"]
 unique_name_in_owner = true
 layout_mode = 2
@@ -132,6 +129,15 @@ size_flags_horizontal = 3
 toggle_mode = true
 button_group = SubResource("Groupe_onglets")
 text = "Effets"
+
+
+[node name="OngletOutils" type="Button" parent="Interface/Panneau/Racine/Onglets"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+toggle_mode = true
+button_group = SubResource("Groupe_onglets")
+text = "Outils"
 
 [node name="SeparateurDesOnglets" type="HSeparator" parent="Interface/Panneau/Racine"]
 layout_mode = 2
@@ -241,7 +247,7 @@ theme_override_constants/separation = 6
 [node name="AideDesCouleurs" type="Label" parent="Interface/Panneau/Racine/DefilementCouleurs/Colonne"]
 layout_mode = 2
 autowrap_mode = 3
-text = "Chaque couleur teint les matières du corps et des pièces montées qui la portent ; « Par défaut » garde la matière du modèle."
+text = "Chaque couleur teint les matières du modèle posé, et de ce qui y est monté, qui la portent ; « Par défaut » garde la matière du modèle."
 
 [node name="Couleurs" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementCouleurs/Colonne"]
 unique_name_in_owner = true
@@ -335,6 +341,21 @@ button_group = SubResource("Groupe_vitesses")
 text = "×2"
 metadata/vitesse = 2.0
 
+[node name="Actions" type="VBoxContainer" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+
+[node name="TitreActions" type="Label" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne/Actions"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Actions"
+
+[node name="Attaquer" type="Button" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Attaquer"
+
 [node name="AideDeMarche" type="Label" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne"]
 layout_mode = 2
 autowrap_mode = 3
@@ -351,17 +372,6 @@ horizontal_scroll_mode = 0
 layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
-
-[node name="TitreEngin" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
-layout_mode = 2
-theme_type_variation = &"HeaderSmall"
-text = "Engin posé"
-
-[node name="Attaquer" type="Button" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
-unique_name_in_owner = true
-layout_mode = 2
-disabled = true
-text = "Attaquer"
 
 [node name="TitreArmes" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
 layout_mode = 2
@@ -420,21 +430,13 @@ layout_mode = 2
 size_flags_horizontal = 3
 theme_override_constants/separation = 6
 
-[node name="TitreBase" type="Label" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
-layout_mode = 2
-theme_type_variation = &"HeaderSmall"
-text = "Base"
-
-[node name="Corps" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
-unique_name_in_owner = true
-layout_mode = 2
-
 [node name="Recharger" type="Button" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Recharger les modèles"
 
 [node name="TitreAides" type="Label" parent="Interface/Panneau/Racine/DefilementOutils/Colonne"]
+unique_name_in_owner = true
 layout_mode = 2
 theme_type_variation = &"HeaderSmall"
 text = "Aides"

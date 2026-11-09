@@ -105,7 +105,7 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
   });
 
   it('D2 Domaine des Ombres, pièce non magique : la fenêtre offre la Déviation', () => {
-    expect(voies(mk('hero', 'T', { armour: uniformArmour(4) }), missileSpell({ domainId: 'ombres' }))).toEqual(['devier', 'subir']);
+    expect(voies(mk('hero', 'T', { armour: uniformArmour(4) }), missileSpell({ domainId: { id: 'ombres' } }))).toEqual(['devier', 'subir']);
   });
 
   it('D3 aucune pièce à la Localisation : la fenêtre ne porte que le dé', () => {
@@ -123,7 +123,7 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
   it("F5' Métal contre mailles, dévié : les Blessures du coup restent celles de la frappe (LDB 48 l.399)", () => {
     const caster = mage('enemy', 'e-mage');
     const sansDomaine = evaluateMissile(caster, mk('hero', 'T', mailles()), missileSpell(), cr).woundsLost ?? 0;
-    const { aPleinesPA, cible } = devie(mk('hero', 'T', mailles()), missileSpell({ domainId: 'metal' }));
+    const { aPleinesPA, cible } = devie(mk('hero', 'T', mailles()), missileSpell({ domainId: { id: 'metal' } }));
     expect(aPleinesPA, 'le Métal ignore les mailles et ajoute leurs PA').toBeGreaterThan(sansDomaine);
     expect(cible.wounds.current).toBe(30 - aPleinesPA);
     expect(cible.criticalWounds ?? 0).toBe(0);

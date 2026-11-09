@@ -151,7 +151,7 @@ const DISPATCH = new Set<string>([
   // donnée). Deux clauses restent en desc : le « et autres » (liste ouverte de Compétences, non
   // énumérable) et l'échappatoire d'Incantation Imparfaite (aucun op n'ANNULE une Imparfaite).
   'Mauvais œil',
-  // Manifestation de Ghur (#18) : capability `spellDomainImmunity:'bete'` (donnée), lue par id par
+  // Manifestation de Ghur (#18) : capability `spellDomainImmunity: { id: 'bete' }` (donnée), lue par id par
   // `immuneToSpellDomain` au chemin d'incantation (`applyCast`) → un Sort du Domaine de la Bête
   // n'applique aucun de ses effets au porteur. Clause RAW de vulnérabilité anti-démon/mort-vivant
   // (hors Bête) NON modélisée (pas de concept de créature « vulnérable comme un démon/mort-vivant » —

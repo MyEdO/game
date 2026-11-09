@@ -41,9 +41,9 @@ import { findDomainById } from '../data';
 import { arcaneDomainOf } from './combatFeatures/dispatch';
 import { applyOps } from './ops';
 
-/** Forme MINIMALE d'un sort pour la résolution de son Domaine : le RUNTIME lit le seul `domainId`
- *  (id STABLE, indépendant de la langue) ; absent = Sort sans Domaine (Magie Mineure, Prière…). */
-type SpellDomainRef = { domainId?: string | null };
+/** Forme MINIMALE d'un sort pour la résolution de son Domaine : le RUNTIME lit le seul `domainId` ;
+ *  absent = Sort sans Domaine (Magie Mineure, Prière…). */
+type SpellDomainRef = { domainId?: { id: string } };
 
 /** Le combattant possède-t-il le Talent « Magie des Arcanes (Domaine) » (exemption des riders) ?
  *  Taxonomie des 4 types de Sorts (mineurs/Arcane/Domaine/Chaos), LDB 46 l.14. */
@@ -64,7 +64,7 @@ export function domainMissileMods(
   loc: HitLocation,
   totalAP: number,
 ): { apIgnored: number; bonusDamage: number } {
-  const missile = findDomainById(spell.domainId)?.missile;
+  const missile = findDomainById(spell.domainId?.id)?.missile;
   if (!missile) return { apIgnored: 0, bonusDamage: 0 };
   const ignored = bypassedAP(target, loc, missile.bypass, totalAP);
   return { apIgnored: ignored, bonusDamage: missile.bonusFromBypass ? ignored : 0 };
@@ -86,7 +86,7 @@ export function domainOnHitEffects(spell: SpellDomainRef): TriggeredEffect[] {
   // `DomainData.effects` est typé avec la feuille `Effect` complète (couche state, pour l'éditeur de
   // Flow partagé) ; un rider de Domaine ne porte JAMAIS de transition/dialogue (que des `GameOp`), donc
   // le rétrécir à la feuille `EffectOp` engine-pure est SAIN (signature publique du moteur = pure, #8).
-  return (findDomainById(spell.domainId)?.effects ?? []) as TriggeredEffect[];
+  return (findDomainById(spell.domainId?.id)?.effects ?? []) as TriggeredEffect[];
 }
 
 /** Bonus d'incantation lié à l'ENVIRONNEMENT (LDB 48 l.690 — Vie/Ghyran : « Recevez un bonus de +10 aux
@@ -94,21 +94,21 @@ export function domainOnHitEffects(spell: SpellDomainRef): TriggeredEffect[] {
  *  (`DomainData.environmentBonus`) ; `env` = classification de la Scène (`Scene.environment`). 0 si le
  *  Domaine n'a pas d'attribut d'environnement ou si l'environnement courant n'y figure pas. */
 export function domainEnvironmentBonus(spell: SpellDomainRef, env: string | null | undefined): number {
-  const eb = findDomainById(spell.domainId)?.environmentBonus;
+  const eb = findDomainById(spell.domainId?.id)?.environmentBonus;
   if (!eb || !env) return 0;
   return eb.environments.includes(env) ? eb.mod : 0;
 }
 
 /** Le Sort relève-t-il du Domaine de la SORCELLERIE (LDB 49) ? Marqueur DONNÉE (`DomainData.sorcery`). */
 export function isSorceryDomain(spell: SpellDomainRef): boolean {
-  return findDomainById(spell.domainId)?.sorcery === true;
+  return findDomainById(spell.domainId?.id)?.sorcery === true;
 }
 
 /** Ops post-incantation appliquées AU LANCEUR après un Sort de Domaine réussi — PARAMÈTRE en données
  *  (`DomainData.casterOps` : `GameOp[]`). Ex. Bête (Ghur) : `grantTrait` Peur 1 pendant 1d10 Rounds.
  *  Exécutées via `applyOps` — source unique, pas de réimplémentation de grantTrait ici. */
 export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG, idNeuf: FabriqueDId): string[] {
-  const ops = findDomainById(spell.domainId)?.casterOps;
+  const ops = findDomainById(spell.domainId?.id)?.casterOps;
   if (!ops?.length) return [];
   return applyOps(caster, ops, { rng, idNeuf, label: 'Attribut de domaine' });
 }
@@ -127,24 +127,24 @@ export type SeaWind = 'violente-tempete' | 'calme-plat' | string;
  *  au Test de Focalisation (chantier hors périmètre #337). */
 export function domainSeaFocalisationDR(spell: SpellDomainRef, atSea: boolean): number {
   if (!atSea) return 0;
-  return findDomainById(spell.domainId)?.seaModifier?.focalisationDR ?? 0;
+  return findDomainById(spell.domainId?.id)?.seaModifier?.focalisationDR ?? 0;
 }
 
 /** Vie (Ghyran, l.186) : « Les DR des Tests de Focalisation sont doublés sur les mers. » */
 export function domainSeaFocalisationDoubled(spell: SpellDomainRef, atSea: boolean): boolean {
-  return atSea && !!findDomainById(spell.domainId)?.seaModifier?.focalisationDrDoubled;
+  return atSea && !!findDomainById(spell.domainId?.id)?.seaModifier?.focalisationDrDoubled;
 }
 
 /** Vie (Ghyran, l.186) : « une Focalisation Critique donne une Incantation Imparfaite Majeure au lieu
  *  de Mineure » (l'exception « Harmonisation aethyrique » reste gérée par l'appelant, LDB 46). */
 export function domainSeaFocusCritMiscastMajeure(spell: SpellDomainRef, atSea: boolean): boolean {
-  return atSea && !!findDomainById(spell.domainId)?.seaModifier?.focusCritMiscastMajeure;
+  return atSea && !!findDomainById(spell.domainId?.id)?.seaModifier?.focusCritMiscastMajeure;
 }
 
 /** Cieux (Azyr, l.184) : « +1 DR sur les Tests d'Incantation » en Violente tempête, « -1 DR » en Calme plat. */
 export function domainSeaIncantationDR(spell: SpellDomainRef, atSea: boolean, wind: SeaWind | null | undefined): number {
   if (!atSea) return 0;
-  const sm = findDomainById(spell.domainId)?.seaModifier;
+  const sm = findDomainById(spell.domainId?.id)?.seaModifier;
   if (!sm) return 0;
   if (wind === 'violente-tempete') return sm.incantationStormDR ?? 0;
   if (wind === 'calme-plat') return sm.incantationCalmDR ?? 0;
@@ -154,7 +154,7 @@ export function domainSeaIncantationDR(spell: SpellDomainRef, atSea: boolean, wi
 /** Bête (Ghur, l.180) : « les Incantations et Focalisations critiques ainsi que les Maladresses se
  *  produisent à la fois sur les doubles et les résultats se terminant par un 0. » */
 export function domainSeaWidensCritFumble(spell: SpellDomainRef, atSea: boolean): boolean {
-  return atSea && !!findDomainById(spell.domainId)?.seaModifier?.critFumbleOnTens;
+  return atSea && !!findDomainById(spell.domainId?.id)?.seaModifier?.critFumbleOnTens;
 }
 
 /**
@@ -179,7 +179,7 @@ export interface WindContext {
 /** Delta de DR du Vent pour `test`, somme des modificateurs dont la circonstance tient et dont
  *  l'annulation ne tient pas. 0 si le Domaine n'a pas de rubrique de Vent. */
 export function domainWindDR(spell: SpellDomainRef, test: WindTest, ctx: WindContext = {}): number {
-  const mods = findDomainById(spell.domainId)?.windModifiers;
+  const mods = findDomainById(spell.domainId?.id)?.windModifiers;
   if (!mods?.length) return 0;
   const circ = ctx.circumstances ?? [];
   let dr = 0;

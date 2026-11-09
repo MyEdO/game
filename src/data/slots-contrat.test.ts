@@ -123,9 +123,9 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('branche CHAMP SCALAIRE d’un document (`spells.json › [].domainId`) : jointe, au champ de la clé', () => {
-    expect(couplesTouches(slotsAuPath('spells.json', '[].domainId'))).toEqual(['spells.json | domainId']);
-    const c = couple('spells.json', 'domainId')!;
+  it('branche CHAMP SCALAIRE d’un document (`domains.json › [].arcane`) : jointe, au champ de la clé', () => {
+    expect(couplesTouches(slotsAuPath('domains.json', '[].arcane'))).toEqual(['domains.json | arcane']);
+    const c = couple('domains.json', 'arcane')!;
     expect(c.atteintes).toBe(c.occurrences);
   });
 

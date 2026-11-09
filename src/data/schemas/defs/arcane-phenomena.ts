@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** VDM 14. */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { idDe, ref, type PorteeLocale } from '../grammaire/ref';
+import { ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { diceSpecSchema, difficultySchema, enumNomme, maisonSchema, plageSchema, sourceRefSchema, castingNumberModSchema } from '../grammaire/valeurs';
 
@@ -18,10 +18,9 @@ export const phenomenonTestSchema = enumNomme({
 
 
 const scope = nommerChamps(z.strictObject({
-  /** Ids de `domains.json`. */
-  domains: z.array(z.string()).min(1).optional(),
+  domains: refs('domain', { min: 1 }).optional(),
 
-  domainsExcept: z.array(z.string()).min(1).optional(),
+  domainsExcept: refs('domain', { min: 1 }).optional(),
   /** Magie du Chaos — résolue sur `Combatant.chaosDomain` (même seam que la Condition
    *  `casterChaosDomain`, `src/engine/flowCore.ts`). */
   chaosMagic: z.boolean().optional(),
@@ -157,8 +156,8 @@ const doc = document(
   windSaturationEffects: z.array(
     nommerChamps(z.strictObject({
       id: z.string(),
-      /** Id de `domains.json` du Domaine porté par le Vent. */
-      domainId: idDe('domain'),
+      /** Domaine porté par le Vent. */
+      domainId: ref('domain'),
       /** Nom du Vent tel qu'imprimé (`DomainData.wind`). */
       wind: z.string(),
 
@@ -197,7 +196,7 @@ const doc = document(
 
       singleWind: z.boolean().optional(),
 
-      cancelsTraitId: z.string().optional(),
+      cancelsTraitId: ref('trait').optional(),
 
       refractedWindsOnly: attestedNote.optional(),
 
@@ -254,7 +253,7 @@ const doc = document(
         ...plageSchema.shape,
         label: z.string(),
 
-        domainIds: z.array(idDe('domain')).min(1).optional(),
+        domainIds: refs('domain', { min: 1 }).optional(),
 
         chaosMagic: z.boolean().optional(),
 

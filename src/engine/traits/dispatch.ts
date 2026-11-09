@@ -255,8 +255,8 @@ export function degatsDeLEtatIgnores(traits: TraitList | undefined, etatId: stri
  *  (`immuneToSpellDomain`). VDM 13 l.24, l.61 ; ZI 08 l.28 */
 export function domainesImmunises(traits: TraitList | undefined): string[] {
   return [
-    ...(traits ?? []).flatMap((t) => findTraitById(t.id)?.capabilities?.spellDomainImmunity ?? []),
-    ...immunityTypes(traits).flatMap((id) => findDamageTypeById(id)?.domaine ?? []),
+    ...(traits ?? []).flatMap((t) => findTraitById(t.id)?.capabilities?.spellDomainImmunity?.id ?? []),
+    ...immunityTypes(traits).flatMap((id) => findDamageTypeById(id)?.domaine?.id ?? []),
   ];
 }
 

@@ -626,7 +626,7 @@ describe('Codex registry — Effets de Saturation par Vent (libellé de Domaine 
     const rows = cat.items.filter((i) => i.group === 'Effets de Saturation par Vent');
     expect(rows.length).toBe(windSaturationEffects.length);
     for (const w of windSaturationEffects) {
-      const domain = findDomainById(w.domainId)!;
+      const domain = findDomainById(w.domainId.id)!;
       const item = rows.find((i) => i.id === w.id)!;
       expect(item.label).toBe(`${w.wind} — ${domain.label}`);
     }

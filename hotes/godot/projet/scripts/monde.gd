@@ -435,7 +435,7 @@ func points(z := 0) -> Dictionary:
 
 
 ## Les plaques `plaques` (par case `Vector3i(x, y, z)`, l'item de `surbrillances`), chacune sur le sol de sa case, à la
-## place des précédentes.
+## place des précédentes, montrées hors du regard `immersion` (`regarder`).
 func peindre(plaques: Dictionary) -> void:
 	for plaque in _surbrillance.get_children():
 		_surbrillance.remove_child(plaque)
@@ -601,7 +601,9 @@ func case_sous(point: Vector2) -> Variant:
 
 ## Le regard `regard` (`plateau.regard`, `CONTRAT.md`, section « Vue ») : en tactique, la caméra de biais et en
 ## perspective ; au plateau, à la verticale, sans perspective, les bords du plateau droits à l'écran ; en immersion,
-## l'œil, et les noms cachés par les murs. Les arêtes dégagées suivent le cran de la caméra.
+## l'œil, les noms cachés par les murs et aucune plaque de surbrillance : sans ombrage, une plaque au sol sous l'œil
+## se lit en lumière sur un plancher couvert (#3774), et le point de mire désigne la case visée. Les arêtes dégagées
+## suivent le cran de la caméra.
 func regarder(regard: String) -> void:
 	if regard == _regard:
 		return
@@ -615,6 +617,7 @@ func regarder(regard: String) -> void:
 	_orienter()
 	for nom: Label3D in _etiquettes.get_children():
 		nom.no_depth_test = regard != "immersion"
+	_surbrillance.visible = regard != "immersion"
 	_abattre_les_aretes()
 	cadrage_change.emit()
 
