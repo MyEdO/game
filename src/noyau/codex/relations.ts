@@ -180,7 +180,7 @@ const graph = versionCached<ReverseGraph>(() => {
   }
 
   // 11) Sorts → domaine.
-  for (const s of spells) addReverse('domains', s.domainId, { category: 'spells', id: s.id, label: s.label }, 'Sorts du domaine');
+  for (const s of spells) addReverse('domains', s.domainId?.id, { category: 'spells', id: s.id, label: s.label }, 'Sorts du domaine');
 
   // 12) Dieux/Cultes → bénédictions + miracles.
   for (const g of gods) {

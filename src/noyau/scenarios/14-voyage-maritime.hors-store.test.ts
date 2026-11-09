@@ -108,7 +108,7 @@ describe('Scénario Voyage maritime — beat de Magie des mers (lancer en mer)',
     expect(knowsCastingSkill(navi, { id: 'focalisation' })).toBe(true); // Test étendu de Focalisation
     expect(navi.spells).toContain('bienfait-de-bel-shanaar'); // runtime = id de sort
     const sp = findSpellById('bienfait-de-bel-shanaar')!;
-    expect(sp.domainId).toBe('cieux');
+    expect(sp.domainId).toEqual({ id: 'cieux' });
     expect(isArcaneSpell(sp)).toBe(true); // → bouton « ✨ Focaliser »
     expect(isMagicMissile(sp)).toBe(false); // non offensif → lançable en mer, hors combat
   });

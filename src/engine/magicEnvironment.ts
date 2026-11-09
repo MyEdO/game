@@ -22,8 +22,8 @@ import { findTableEntry } from './tables';
 
 export type { PhenomenonTest };
 
-/** Forme MINIMALE d'un sort pour la résolution : le runtime ne lit que le `domainId` (id STABLE). */
-type SpellDomainRef = { domainId?: string | null };
+/** Forme MINIMALE d'un sort pour la résolution : le runtime ne lit que le `domainId`. */
+type SpellDomainRef = { domainId?: { id: string } };
 
 /** Une OCCURRENCE de phénomène dans le lieu courant : l'id du phénomène au registre + les paramètres
  *  que le RAW laisse au site (Vents réfractés, DR choisi dans la fourchette imprimée). */
@@ -57,7 +57,7 @@ function scopeMatches(
   caster: Combatant | undefined,
 ): boolean {
   if (!scope) return true;
-  const domain = spell.domainId ?? null;
+  const domain = spell.domainId?.id ?? null;
   const dominant = env.dominantWinds ?? [];
   if (scope.domains && domain != null && scope.domains.includes(domain)) return true;
   if (scope.domainsExcept && domain != null && !scope.domainsExcept.includes(domain)) return true;
@@ -76,7 +76,7 @@ function windRestrictionHolds(
   winds: readonly string[] | undefined,
 ): boolean {
   if (!mod.windRestricted || !winds || winds.length === 0) return true;
-  return spell.domainId != null && winds.includes(spell.domainId);
+  return spell.domainId != null && winds.includes(spell.domainId.id);
 }
 
 /** DR retenu pour un modificateur : la valeur choisie par le site si elle tient dans la fourchette

@@ -115,7 +115,7 @@
 //   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
 //   chacun de ces ouvrages ; « Tester la scène » ouvre le combat sur elle.
 // - `atelier` : `--base` importé seul (`importer.mjs --sans-publier`) dans `--modeles`, dossier neuf servi sous
-//   `modeles/` ; la base choisie à l'onglet Outils, aucun emplacement à l'onglet Équipement ; `--element` importé puis
+//   `modeles/` ; la base choisie à la liste de tête « Corps », aucun emplacement à l'onglet Équipement ; `--element` importé puis
 //   « Recharger les modèles » : l'élément, tenu, offert par la liste de chaque prise, de chaque emplacement dont l'os le
 //   porte (`osDesRigides` du listage) et de chaque emplacement où se range sa forme (`emplacementsDeRangement`), et de
 //   ceux-là seuls (`CONTRAT.md`, « Atelier 3D ») ; les aides, l'élément monté puis démonté (« Aucun ») ; si une surface de `--element` porte
@@ -1960,7 +1960,7 @@ async function chercher(quoi) {
 const attendreLeVehicule = (condition) => attendreLAtelier(`(() => { const v = a.vehicule; return !!v && !!(${condition}) })()`, 180000)
 
 /** Sans `--modeles`, le véhicule dans l'atelier (#2987), sur le dossier des modèles du projet, la page à
- *  deviceScaleFactor 2 : la caraque choisie à l'onglet Outils, à côté des bases, posée et cadrée à sa taille ; à l'onglet
+ *  deviceScaleFactor 2 : la caraque choisie à la liste de tête « Véhicule ou engin », posée et cadrée à sa taille ; à l'onglet
  *  Équipement, une pièce à chaque place de `PLACES_ARMEES`, puis chaque Amélioration de `AMELIORATIONS_DE_L_ATELIER`
  *  installée ; une couleur à l'onglet Couleurs et un emblème sur ses voiles ; puis le Sabord retiré. À chaque étape, le
  *  véhicule publié est celui que le pont compose (`prouverLeVehicule`), capturé de trois quarts. */
@@ -1970,8 +1970,7 @@ async function parcoursAtelierDuVehicule() {
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   await cliquerBouton('Atelier')
   await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene(VEHICULE_DE_L_ATELIER.libelle, 1)
+  await choisirDansLaListe('modele/vehicule', VEHICULE_DE_L_ATELIER.libelle)
   await attendreLeVehicule(`v.element !== null && v.definition === ${JSON.stringify(VEHICULE_DE_L_ATELIER.definition)}`)
   const nue = await prouverLeVehicule()
   assert.deepEqual([nue.postes, nue.ameliorations], [[], []], 'la coque nue, sans pièce ni Amélioration')
@@ -2029,8 +2028,7 @@ async function parcoursAtelier() {
   await cliquerBouton('Atelier')
   noter('menu : bouton « Atelier » cliqué')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene(base, 1)
+  await choisirDansLaListe('modele/corps', base)
   let a = await atelier()
   assert.deepEqual([a.base, a.empreinte, a.erreurs], [base, p0.model_sha256, []], 'la base choisie, à l’empreinte de son import, sans erreur')
   await cliquerBouton('Équipement')
@@ -2302,8 +2300,7 @@ async function parcoursComposition() {
   importer(o.base, base)
   await cliquerBouton('Atelier')
   await attendreLAtelier(`a.base === ${JSON.stringify(base)}`, 120000)
-  await cliquerBouton('Outils')
-  await cliquerBouton(base)
+  await choisirDansLaListe('modele/corps', base)
   const reposDeLaBase = await atelier()
   assert.deepEqual([reposDeLaBase.empreinte, reposDeLaBase.erreurs], [p.model_sha256, []])
   assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [p.manifeste.clips.idle, true], 'la base seule joue son clip de repos')

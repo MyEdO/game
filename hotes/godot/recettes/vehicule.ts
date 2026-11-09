@@ -1,7 +1,7 @@
 /**
  * LE VÉHICULE FIGÉ DE L'ATELIER (#2987) : ce que la recette native de l'atelier (`projet/recettes/atelier-du-vehicule.gd`)
  * lit, figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. L'atelier figé sur les
- * véhicules et les pièces d'Amélioration du dossier des modèles (`figerLAtelier`), et la réponse du pont à `vehicule` sur
+ * bases, les véhicules et les pièces d'Amélioration du dossier des modèles (`figerLAtelier`), et la réponse du pont à `vehicule` sur
  * chaque entrée de `ENTREES`, sous la clé de cette entrée (`cleDEntree`), celle que la recette calcule de l'entrée que
  * l'atelier envoie.
  */
@@ -33,6 +33,6 @@ export const cleDEntree = (valeur: unknown): string =>
 /** Le véhicule figé : l'atelier figé sur les véhicules et les pièces d'Amélioration de `listage`, et par clé d'entrée
  *  (`cleDEntree`), la réponse de `vehicule` à chacune de `ENTREES`. */
 export function figerLeVehicule(listage: Listage) {
-  const { fige, appel } = figerLAtelier(listage, (_id, manifeste) => ['vehicule', 'amelioration'].includes(manifeste.categorie ?? ''));
+  const { fige, appel } = figerLAtelier(listage, (_id, { categorie }) => categorie === undefined || ['vehicule', 'amelioration'].includes(categorie));
   return { ...fige, vehicule: Object.fromEntries(ENTREES.map((e) => [cleDEntree(e), appel('vehicule', e)])) };
 }

@@ -31,8 +31,8 @@ function wiz(p: Partial<Combatant> = {}): Combatant {
   }) as Combatant;
 }
 
-const SORT_FEU = { label: 'Boule', ecole: 'Magie des Arcanes', subType: 'Feu', domainId: 'feu', cn: 5, desc: 'x' };
-const SORT_OMBRES = { label: 'Voile', ecole: 'Magie des Arcanes', subType: 'Ombres', domainId: 'ombres', cn: 4, desc: 'x' };
+const SORT_FEU = { label: 'Boule', ecole: 'Magie des Arcanes', subType: 'Feu', domainId: { id: 'feu' }, cn: 5, desc: 'x' };
+const SORT_OMBRES = { label: 'Voile', ecole: 'Magie des Arcanes', subType: 'Ombres', domainId: { id: 'ombres' }, cn: 4, desc: 'x' };
 const SORT_COMMUN = { label: 'Arme aethyrique', ecole: 'Magie des Arcanes', subType: null, cn: 2, desc: 'x' };
 
 describe('Focalisation — spécialisation par Vent (LDB 46)', () => {
