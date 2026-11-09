@@ -3,7 +3,7 @@
  * résolu y trouve son entrée, dont le libellé nomme l'élément à l'écran. Une ligne par champ de clé résolu (`CHAMPS`),
  * jamais par catégorie.
  */
-import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findTeteById, libelleParmi } from '../../data';
+import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findTeteById, libelleDAuteur } from '../../data';
 import { pieceOuVariante } from './gardeRobe';
 
 export type CodeDEcartDeCle = 'cle-inconnue' | 'piece-hors-categorie';
@@ -16,7 +16,7 @@ interface EcartDeCle {
 }
 
 interface ChampDeCle {
-  readonly find: (id: string) => { readonly label: string; readonly categorie?: string; readonly source?: { readonly book: string } | undefined } | undefined;
+  readonly find: (id: string) => { readonly label: string; readonly categorie?: string } | undefined;
   /** Ce que l'id désigne, dans le détail d'un écart. */
   readonly quoi: string;
 }
@@ -27,7 +27,7 @@ const CHAMPS = {
   coiffure: { find: findCoiffureById, quoi: 'coiffure de `garde-robe.json`' },
   piece: { find: pieceOuVariante, quoi: 'pièce ni variante de `garde-robe.json`' },
   apparence: { find: findApparenceById, quoi: 'apparence de `apparences.json`' },
-  definition: { find: findFicheDeVehicule, quoi: 'coque de `vehicles.json` ni engin `armes-de-siege` de `trappings.json`' },
+  definition: { find: (id: string) => { const fiche = findFicheDeVehicule(id); return fiche && { label: libelleDAuteur(fiche) }; }, quoi: 'coque de `vehicles.json` ni engin `armes-de-siege` de `trappings.json`' },
   amelioration: { find: (id: string) => { const t = findNavalTrait(id); return t?.kind === 'amelioration' ? t : undefined; }, quoi: 'Amélioration de `naval-traits.json`' },
 } as const satisfies Readonly<Record<string, ChampDeCle>>;
 
@@ -48,20 +48,11 @@ export function ecartsDeCleDElement(categorie: string, cle: Readonly<Record<stri
   });
 }
 
-type Cle = Readonly<Record<string, string | undefined>>;
-
-const entreeDeCle = (cle: Cle) => {
+/** Le libellé de l'entrée que désigne le premier champ résolu de la clé `cle`, `undefined` si aucun ne résout. */
+export function libelleDeCleDElement(cle: Readonly<Record<string, string | undefined>>): string | undefined {
   for (const [champ, id] of Object.entries(cle)) {
     const entree = id === undefined ? undefined : champDeCle(champ)?.find(id);
-    if (entree) return entree;
+    if (entree) return entree.label;
   }
   return undefined;
-};
-
-/** Par élément de clé `cles[id]`, le libellé de l'entrée que désigne le premier champ résolu de sa clé parmi celles des
- *  autres (`libelleParmi`), à défaut son id. */
-export function libellesDesCles(cles: Readonly<Record<string, Cle>>): Record<string, string> {
-  const entrees = Object.entries(cles).map(([id, cle]) => [id, entreeDeCle(cle)] as const);
-  const parmi = entrees.map(([, e]) => e);
-  return Object.fromEntries(entrees.map(([id, e]) => [id, e === undefined ? id : libelleParmi(e, parmi)]));
 }

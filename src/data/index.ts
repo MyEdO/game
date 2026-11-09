@@ -3017,13 +3017,10 @@ export function sourceRefLabel(ref: Pick<SourceRef, 'book' | 'page'>): PlayerTex
 export function bookAbr(id: string | null | undefined): PlayerText {
   return dataLabel(id ? livreParId(id)?.abbr : '', id ?? '');
 }
-/** Une entrée nommée, et le livre de sa source. */
-interface EntreeProvenue { readonly label: string; readonly source?: { readonly book: string } | undefined }
-/** Le libellé de `entree` parmi `entrees`, marqué du sigle de son livre (forme de `bookMarker.ts`, « Baliste (AA) ») quand
- *  une entrée d'un autre livre porte le même. */
-export function libelleParmi(entree: EntreeProvenue, entrees: readonly (EntreeProvenue | undefined)[]): string {
-  const homonyme = entrees.some((autre) => autre?.label === entree.label && autre.source?.book !== entree.source?.book);
-  return homonyme && entree.source ? `${entree.label} (${bookAbr(entree.source.book)})` : entree.label;
+/** Le libellé d'AUTHORING d'une entrée : son libellé marqué du sigle de son livre (forme de `bookMarker.ts`, « Baliste
+ *  (AA) »), qui distingue deux entrées homonymes de livres différents ; jamais rendu au joueur. */
+export function libelleDAuteur(entree: { readonly label: string; readonly source?: { readonly book: string } | undefined }): PlayerText {
+  return dataLabel(entree.source ? `${entree.label} (${bookAbr(entree.source.book)})` : entree.label);
 }
 /** Culte/Dieu (LDB 41) : `id` = slug STABLE (« sigmar »), `label` = nom affiché (« Sigmar »), Bénédictions/
  *  Miracles en ids de sort, desc = lore en Markdown (Codex). Dataset éditable (Compendium). */

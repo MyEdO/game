@@ -19,7 +19,7 @@ import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type M
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
-import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libellesDesCles, maniementDeLaForme, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type Maniement, type PosteDuVehicule } from '../../../src/noyau/index';
+import { cataloguesDeComposition, emplacementDePiece, emplacementsDeRangement, gardeRobe, findTeinteById, libelleDeCleDElement, maniementDeLaForme, pieceRacine, type EmblemeDef, type EmblemeResolu, type FireArc, type Maniement, type PosteDuVehicule } from '../../../src/noyau/index';
 
 /** Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
  *  montent. */
@@ -70,7 +70,7 @@ export interface ModelesDeLAtelier {
   /** Par base et par élément servis, ses surfaces : le matériau, son emplacement de palette, et s'il porte l'emblème ;
    *  une base sans `surfaces`, aucune. */
   surfaces: Record<string, readonly Surface[]>;
-  /** Par élément servi, le libellé de la chose que sa clé désigne, marqué de son livre devant un homonyme (`libellesDesCles`). */
+  /** Par élément servi, le libellé de la chose que sa clé désigne (`libelleDeCleDElement`), à défaut son id. */
   libelles: Record<string, string>;
   /** Par élément servi qui en déclare une, la prise de la main libre (`SecondePriseDeLAtelier`, #3319). */
   secondesPrises: Record<string, SecondePriseDeLAtelier>;
@@ -129,7 +129,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const elements = [...index.elements.values()];
   const glb: Record<string, string> = {};
   const surfaces: Record<string, readonly Surface[]> = {};
-  const cles: Record<string, ReturnType<typeof cleDe>> = {};
+  const libelles: Record<string, string> = {};
   const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
   const rangs: Record<string, { rang: number; couvre: readonly string[] }> = {};
   const catalogues = cataloguesDeComposition();
@@ -140,7 +140,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     servis.map(({ id, brut }) => {
       glb[id] = fichiersDuModele(id).glb;
       surfaces[id] = (brut as ManifesteDElement).surfaces;
-      cles[id] = cleDe(brut);
+      libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
       const { couche, couvre } = brut as { couche?: Couche; couvre?: readonly string[] };
       if (couche) rangs[id] = { rang: COUCHES.indexOf(couche), couvre: couvre ?? [] };
       const { liaison } = brut as ManifesteDElement;
@@ -190,14 +190,12 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, { rang, couvre }]): [string, CoucheDeLAtelier] =>
-    [id, { couvre, masque: Object.keys(cles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < rang) }]));
+    [id, { couvre, masque: Object.keys(libelles).filter((autre) => (rangs[autre]?.rang ?? RANG_DU_CORPS) < rang) }]));
   const parCle = (categorie: 'vehicule' | 'amelioration', champ: 'definition' | 'amelioration') => Object.fromEntries(elements.flatMap((e) => {
     const m = e.brut as ManifesteDElement;
     return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
   }));
-  const vehicules = parCle('vehicule', 'definition');
-  const ameliorations = parCle('amelioration', 'amelioration');
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles: libellesDesCles(cles), secondesPrises, couches, emblemes, vehicules, ameliorations };
+  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules: parCle('vehicule', 'definition'), ameliorations: parCle('amelioration', 'amelioration') };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la
