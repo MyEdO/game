@@ -24,7 +24,7 @@ describe('#1882 — aucune fiche sans porteur : ni profil de repli, ni PNJ gén�
   it('une entité sans porteur qui franchit la porte est un BOGUE, dit par `FicheAbsente` en nommant l’entité', () => {
     const ent = { id: 'badaud', kind: 'personnage', pos: POS, label: 'Badaud', appearance: { species: 'humains-reiklander' } } as SceneEntity;
     expect(() => ficheDEntite(ent, presetPnjById)).toThrow(FicheAbsente);
-    expect(() => ficheDEntite(ent, presetPnjById)).toThrow(/personnage « badaud » : « ref », « statblock », « presetId » absents/);
+    expect(() => ficheDEntite(ent, presetPnjById)).toThrow(/personnage « badaud » : « creature », « vehicule », « engin », « statblock », « presetId » absents/);
   });
 
   it('un preset irrésoluble sans autre porteur est dit tel quel', () => {
@@ -32,9 +32,9 @@ describe('#1882 — aucune fiche sans porteur : ni profil de repli, ni PNJ gén�
     expect(() => ficheDEntite(ent, presetPnjById)).toThrow(/preset de PNJ « preset-inconnu » irrésoluble/);
   });
 
-  it('un preset irrésoluble ne retombe JAMAIS sur le statbloc ou la réf. qu’il côtoie', () => {
+  it('un preset irrésoluble ne retombe JAMAIS sur le statbloc ou le corps qu’il côtoie', () => {
     const sb = { type: 'statblock', label: 'Statbloc voisin', char: { B: 10 } } as const;
-    for (const voisin of [{ ref: 'humain' }, { statblock: sb }]) {
+    for (const voisin of [{ creature: { id: 'humain' } }, { statblock: sb }]) {
       const ent = { id: 'baron', kind: 'personnage', pos: POS, presetId: 'preset-inconnu', ...voisin } as SceneEntity;
       expect(() => ficheDEntite(ent, presetPnjById), JSON.stringify(voisin)).toThrow(/preset de PNJ « preset-inconnu » irrésoluble/);
     }

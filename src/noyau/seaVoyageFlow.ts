@@ -1949,7 +1949,7 @@ function sceneDuPont(coque: { ref: string; nom: string }, label: string, debut: 
     startMessage: { texte: debut },
     encounters: [{
       id: rencontre.id,
-      enemies: [...rencontre.ennemis, { ref: coque.ref, pos: { x: 3, y: 6 }, side: 'ally' as const, label: coque.nom }],
+      enemies: [...rencontre.ennemis, { vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'ally' as const, label: coque.nom }],
       ...(rencontre.victoryCondition ? { victoryCondition: rencontre.victoryCondition } : {}),
     }],
   });
@@ -1975,9 +1975,9 @@ function buildBoardingScene(coque: { ref: string; nom: string }, b: SeaBoarding)
   // Équipage EXPOSÉ de la coque ennemie = la vague (crew + chef).
   const crewIds = Array.from({ length: wave + chef }, (_, i) => idDAbordage(i + 1));
   const ennemis: AuthoredEnemy[] = [
-    { ref: b.shipRef, pos: { x: 14, y: 6 }, label: b.label, crewIds },
-    ...Array.from({ length: wave }, (_, i) => ({ ref: b.crewRef, pos: { x: 12, y: 3 + (i % 6) } })),
-    ...(b.chefRef ? [{ ref: b.chefRef, pos: { x: 16, y: 6 } }] : []),
+    { vehicule: { id: b.shipRef }, pos: { x: 14, y: 6 }, label: b.label, crewIds },
+    ...Array.from({ length: wave }, (_, i) => ({ creature: { id: b.crewRef }, pos: { x: 12, y: 3 + (i % 6) } })),
+    ...(b.chefRef ? [{ creature: { id: b.chefRef }, pos: { x: 16, y: 6 } }] : []),
   ];
   return sceneDuPont(coque, `Abordage — ${b.label}`, t('sv.boardingStart', { ship: b.label }), { id: 'enc-abordage', ennemis });
 }
@@ -2009,7 +2009,7 @@ export function combattreEnMer(get: Get, set: Set, o: Extract<GameOp, { op: 'com
   if (!coque) return [t('sv.combatEnMerSansPont', { label })];
   const { id, nombre, optionals } = o.adversaire;
   const ennemis: AuthoredEnemy[] = Array.from({ length: nombre }, (_, i) => ({
-    ref: id, pos: { x: 12 - 2 * Math.floor(i / 3), y: 2 + 4 * (i % 3) }, ...(optionals ? { optionals: structuredClone(optionals) } : {}), // #2097
+    creature: { id }, pos: { x: 12 - 2 * Math.floor(i / 3), y: 2 + 4 * (i % 3) }, ...(optionals ? { optionals: structuredClone(optionals) } : {}), // #2097
   }));
   const adversaire = `${nombre} × ${creatureLabel(id)}`;
   const scene = sceneDuPont(coque, `${label} — ${adversaire}`, t('sv.combatEnMerStart', { label, adversaire }), {

@@ -71,21 +71,21 @@ function construireScene(): Scene {
       // Rencontre de SIÈGE déclarée — champ SÉPARÉ de `victoryCondition` : l'objectif ne l'active pas.
       siege: true,
       enemies: [
-        { ref: 'gobelin', pos: { x: 5, y: 2 }, facing: 'S' }, // index 0 : défenseur
+        { creature: { id: 'gobelin' }, pos: { x: 5, y: 2 }, facing: 'S' }, // index 0 : défenseur
         // index 1 : emplacement du bélier, trapping du sous-type `armes-de-siege`,
         // orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
         {
-          ref: 'belier-ade2', pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
+          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'ally',
           postes: [{ trappingId: 'belier-ade2', crewIds: [...RAM_CREW] }],
         },
         // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
         // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais
         // éparpillés), aucun sur la colonne des 3 autres héros ni sur l'affût.
-        { ref: 'brute', pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { ref: 'brute', pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { ref: 'brute', pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { ref: 'brute', pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
-        { ref: 'brute', pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
+        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'ally', ai: true, label: 'Servant du bélier' },
       ],
     },
   ]);

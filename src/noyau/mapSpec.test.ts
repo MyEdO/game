@@ -551,7 +551,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     bind: {
       '@': 'heroStart',
       k: { emplacement: 'canon-petit', crew: 'crew-0' },
-      A: { kind: 'personnage', ref: 'brute', inventaire: { arc: false } },
+      A: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false } },
     },
   });
   it('interprète départ, emplacement+équipage et entité-modèle aux positions des marqueurs', () => {
@@ -559,7 +559,7 @@ describe('buildScene — bind (marqueurs → poses)', () => {
     const empl = s.entities.find((e) => e.postes?.length);
     expect(empl?.pos).toEqual({ x: 2, y: 0 });
     expect(empl?.postes![0].crewIds).toEqual(['crew-0']);
-    const garde = s.entities.find((e) => e.ref === 'brute');
+    const garde = s.entities.find((e) => e.creature?.id === 'brute');
     expect(garde?.pos).toEqual({ x: 4, y: 0 });
     expect(garde?.inventaire).toEqual({ arc: false });
     // les marqueurs ne laissent pas de terrain parasite (nettoyés → base 'herbe')
@@ -570,14 +570,14 @@ describe('buildScene — bind (marqueurs → poses)', () => {
 describe('buildScene — encounters (terse → entités + members)', () => {
   const s = buildScene({
     id: 'e', label: 'E', size: [10, 6], terrain: 'herbe', heroStart: [1, 3],
-    encounters: [{ id: 'enc', enemies: [{ ref: 'gobelin', pos: { x: 8, y: 3 } }] }],
+    encounters: [{ id: 'enc', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }] }],
   });
   it('expanse les ennemis en entités + rencontre (VISIBLES par défaut, RAW)', () => {
     expect(s.encounters).toHaveLength(1);
     expect(s.encounters[0].id).toBe('enc');
     expect(s.encounters[0].members).toEqual([{ entityId: 'enemy-enc-0' }]);
     const gob = s.entities.find((e) => e.id === 'enemy-enc-0');
-    expect(gob?.ref).toBe('gobelin');
+    expect(gob?.creature?.id).toBe('gobelin');
     expect(gob?.pos).toEqual({ x: 8, y: 3 });
     expect(gob?.combat?.hiddenUntilCombat).toBeUndefined(); // défaut visible
   });
@@ -586,7 +586,7 @@ describe('buildScene — encounters (terse → entités + members)', () => {
 describe('buildScene — encounters `hidden` (embuscade : entités invisibles jusqu’au combat)', () => {
   const s = buildScene({
     id: 'h', label: 'H', size: [10, 6], terrain: 'herbe', heroStart: [1, 3],
-    encounters: [{ id: 'amb', hidden: true, surprise: 'party', enemies: [{ ref: 'gobelin', pos: { x: 8, y: 3 } }] }],
+    encounters: [{ id: 'amb', hidden: true, surprise: 'party', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }] }],
   });
   it('propage `hidden` sur les entités enrôlées (combat.hiddenUntilCombat)', () => {
     expect(s.encounters[0].surprise).toBe('party');
@@ -602,7 +602,7 @@ describe('buildScene — encounters : marqueurs d’Avantage initial (Manœuvrab
       maneuverability: 'party',
       threat: { camp: 'enemies', tier: 'dangereuse' },
       terrain: { camp: 'party', heavy: true },
-      enemies: [{ ref: 'gobelin', pos: { x: 8, y: 3 } }],
+      enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }],
     }],
   });
   it('la rencontre buildée porte maneuverability/threat/terrain — parité avec surprise', () => {
@@ -629,7 +629,7 @@ describe('buildScene — encounters : victoryCondition (#197) forwardée par le 
     encounters: [{
       id: 'enc-vc',
       victoryCondition: { type: 'destroyStructure', edge: { x: 5, y: 4, side: 'N' } },
-      enemies: [{ ref: 'gobelin', pos: { x: 8, y: 3 } }],
+      enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }],
     }],
   });
   it('la rencontre buildée porte victoryCondition', () => {
@@ -661,13 +661,13 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
     levels: { z0: 'k.A...\n......' },
     bind: {
       k: { emplacement: 'canon-petit', crew: 'crew-0', member: { enc: 'def', side: 'ally' } },
-      A: { entity: { kind: 'personnage', ref: 'brute' }, member: { enc: 'def', side: 'ally', ai: true } },
+      A: { entity: { kind: 'personnage', creature: { id: 'brute' } }, member: { enc: 'def', side: 'ally', ai: true } },
     },
     encounters: [{ id: 'def' }], // roster vide — rempli par les marqueurs bind
   });
   it('emplacement et entité-template posés aux marqueurs deviennent members (id généré → enrôlé)', () => {
     const empl = s.entities.find((e) => e.postes?.length)!;
-    const garde = s.entities.find((e) => e.ref === 'brute')!;
+    const garde = s.entities.find((e) => e.creature?.id === 'brute')!;
     expect(empl.pos).toEqual({ x: 0, y: 0 });
     expect(garde.pos).toEqual({ x: 2, y: 0 });
     const def = s.encounters.find((e) => e.id === 'def')!;
@@ -683,10 +683,10 @@ describe('buildScene — bind enrôle les entités posées dans une rencontre', 
 describe('buildScene — encounters à membres PRÉ-DÉCLARÉS (roster mixte)', () => {
   const s = buildScene({
     id: 'e2', label: 'E2', size: [10, 6], terrain: 'herbe',
-    entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 5, y: 3 }, ref: 'brute', label: 'Garde' }],
+    entities: [{ id: 'pnj-1', kind: 'personnage', pos: { x: 5, y: 3 }, creature: { id: 'brute' }, label: 'Garde' }],
     encounters: [
       // terse (entité fraîche cachée) + membre référençant une entité DÉJÀ posée (visible, dialogue…)
-      { id: 'mix', enemies: [{ ref: 'gobelin', pos: { x: 8, y: 3 } }], members: [{ entityId: 'pnj-1', side: 'ally', ai: true }] },
+      { id: 'mix', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 8, y: 3 } }], members: [{ entityId: 'pnj-1', side: 'ally', ai: true }] },
     ],
   });
   it('fusionne les members terse et les members pré-déclarés, sans dupliquer l’entité existante', () => {
@@ -694,10 +694,10 @@ describe('buildScene — encounters à membres PRÉ-DÉCLARÉS (roster mixte)', 
       { entityId: 'enemy-mix-0' },
       { entityId: 'pnj-1', side: 'ally', ai: true },
     ]);
-    expect(s.entities.find((e) => e.id === 'enemy-mix-0')?.ref).toBe('gobelin');
+    expect(s.entities.find((e) => e.id === 'enemy-mix-0')?.creature?.id).toBe('gobelin');
     const pnj = s.entities.filter((e) => e.id === 'pnj-1');
     expect(pnj).toHaveLength(1); // pas de doublon fantôme
-    expect(pnj[0].ref).toBe('brute');
+    expect(pnj[0].creature?.id).toBe('brute');
   });
 });
 

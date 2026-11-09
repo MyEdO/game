@@ -8715,7 +8715,9 @@
     {
      "id": "diligence-salle-table-ronde-1",
      "kind": "prop",
-     "ref": "table-ronde-4-tabourets",
+     "decor": {
+      "id": "table-ronde-4-tabourets"
+     },
      "pos": {
       "x": 11,
       "y": 8
@@ -8728,7 +8730,9 @@
     {
      "id": "diligence-salle-comptoir-1",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 9
@@ -8738,7 +8742,9 @@
     {
      "id": "diligence-salle-comptoir-2",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 11,
       "y": 9
@@ -8748,7 +8754,9 @@
     {
      "id": "diligence-salle-comptoir-3",
      "kind": "prop",
-     "ref": "comptoir-angle",
+     "decor": {
+      "id": "comptoir-angle"
+     },
      "pos": {
       "x": 12,
       "y": 9
@@ -8758,7 +8766,9 @@
     {
      "id": "diligence-salle-comptoir-4",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 10
@@ -8768,7 +8778,9 @@
     {
      "id": "diligence-salle-comptoir-5",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 11
@@ -8778,7 +8790,9 @@
     {
      "id": "diligence-salle-comptoir-6",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 12
@@ -8788,7 +8802,9 @@
     {
      "id": "diligence-salle-comptoir-7",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 13
@@ -8798,7 +8814,9 @@
     {
      "id": "diligence-salle-comptoir-8",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 11,
       "y": 16
@@ -8808,7 +8826,9 @@
     {
      "id": "diligence-salle-comptoir-9",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 16
@@ -8818,7 +8838,9 @@
     {
      "id": "diligence-salle-plan-travail-1",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 10
@@ -8828,7 +8850,9 @@
     {
      "id": "diligence-salle-plan-travail-2",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 12
@@ -8838,7 +8862,9 @@
     {
      "id": "diligence-salle-plan-travail-3",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 13
@@ -8848,7 +8874,9 @@
     {
      "id": "diligence-salle-cheminee",
      "kind": "prop",
-     "ref": "cheminee-interieure",
+     "decor": {
+      "id": "cheminee-interieure"
+     },
      "pos": {
       "x": 10,
       "y": 18
@@ -8858,7 +8886,9 @@
     {
      "id": "diligence-salle-table-murale-1",
      "kind": "prop",
-     "ref": "table-murale-2-tabourets",
+     "decor": {
+      "id": "table-murale-2-tabourets"
+     },
      "pos": {
       "x": 14,
       "y": 11
@@ -8871,7 +8901,9 @@
     {
      "id": "diligence-salle-table-murale-2",
      "kind": "prop",
-     "ref": "table-murale-2-tabourets",
+     "decor": {
+      "id": "table-murale-2-tabourets"
+     },
      "pos": {
       "x": 14,
       "y": 16
@@ -8884,7 +8916,9 @@
     {
      "id": "diligence-salle-table-ronde-2",
      "kind": "prop",
-     "ref": "table-ronde-4-tabourets",
+     "decor": {
+      "id": "table-ronde-4-tabourets"
+     },
      "pos": {
       "x": 12,
       "y": 18
@@ -8897,7 +8931,9 @@
     {
      "id": "diligence-salle-table-ronde-3",
      "kind": "prop",
-     "ref": "table-ronde-4-tabourets",
+     "decor": {
+      "id": "table-ronde-4-tabourets"
+     },
      "pos": {
       "x": 10,
       "y": 21
@@ -8910,7 +8946,9 @@
     {
      "id": "diligence-salle-meuble-1",
      "kind": "prop",
-     "ref": "armoire",
+     "decor": {
+      "id": "armoire"
+     },
      "pos": {
       "x": 14,
       "y": 20
@@ -8920,7 +8958,9 @@
     {
      "id": "diligence-salle-meuble-2",
      "kind": "prop",
-     "ref": "armoire",
+     "decor": {
+      "id": "armoire"
+     },
      "pos": {
       "x": 9,
       "y": 19
@@ -8930,7 +8970,9 @@
     {
      "id": "diligence-remise-charrette",
      "kind": "prop",
-     "ref": "charrette",
+     "decor": {
+      "id": "charrette"
+     },
      "pos": {
       "x": 13,
       "y": 32
@@ -21878,7 +21920,9 @@
    "entities": [
     {
      "kind": "prop",
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "id": "cadavre-kastor-lieberung",
      "pos": {
       "x": 37,
@@ -21970,7 +22014,9 @@
     },
     {
      "kind": "prop",
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "id": "cadavre-premier-cocher",
      "pos": {
       "x": 19,
@@ -21979,7 +22025,9 @@
     },
     {
      "kind": "prop",
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "id": "cadavre-deuxieme-cocher",
      "pos": {
       "x": 36,
@@ -21988,7 +22036,9 @@
     },
     {
      "kind": "prop",
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "id": "cadavre-artisan-1",
      "pos": {
       "x": 30,
@@ -21997,7 +22047,9 @@
     },
     {
      "kind": "prop",
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "id": "cadavre-artisan-2",
      "pos": {
       "x": 35,
@@ -22006,7 +22058,9 @@
     },
     {
      "kind": "prop",
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "id": "cadavre-initie-sigmar",
      "pos": {
       "x": 31,
@@ -22015,7 +22069,9 @@
     },
     {
      "kind": "prop",
-     "ref": "cadavre",
+     "decor": {
+      "id": "cadavre"
+     },
      "id": "cadavre-ouvrier",
      "pos": {
       "x": 34,
@@ -22032,7 +22088,9 @@
     },
     {
      "kind": "prop",
-     "ref": "epave-carrosse",
+     "decor": {
+      "id": "epave-carrosse"
+     },
      "facing": "E",
      "id": "prop-0",
      "pos": {
@@ -22042,7 +22100,9 @@
     },
     {
      "kind": "prop",
-     "ref": "mare-sang",
+     "decor": {
+      "id": "mare-sang"
+     },
      "id": "prop-1",
      "pos": {
       "x": 34,
@@ -22051,7 +22111,9 @@
     },
     {
      "kind": "prop",
-     "ref": "mare-sang",
+     "decor": {
+      "id": "mare-sang"
+     },
      "id": "prop-2",
      "pos": {
       "x": 20,
@@ -22060,7 +22122,9 @@
     },
     {
      "kind": "prop",
-     "ref": "mare-sang",
+     "decor": {
+      "id": "mare-sang"
+     },
      "id": "prop-3",
      "pos": {
       "x": 33,
@@ -22069,7 +22133,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-4",
      "pos": {
       "x": 9,
@@ -22078,7 +22144,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-5",
      "pos": {
       "x": 19,
@@ -22087,7 +22155,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-6",
      "pos": {
       "x": 37,
@@ -22096,7 +22166,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-7",
      "pos": {
       "x": 15,
@@ -22105,7 +22177,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-8",
      "pos": {
       "x": 18,
@@ -22114,7 +22188,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-9",
      "pos": {
       "x": 30,
@@ -22123,7 +22199,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-a",
      "pos": {
       "x": 10,
@@ -22132,7 +22210,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-b",
      "pos": {
       "x": 19,
@@ -22141,7 +22221,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-c",
      "pos": {
       "x": 18,
@@ -22150,7 +22232,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-d",
      "pos": {
       "x": 23,
@@ -22159,7 +22243,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-e",
      "pos": {
       "x": 7,
@@ -22168,7 +22254,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-f",
      "pos": {
       "x": 5,
@@ -22177,7 +22265,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-g",
      "pos": {
       "x": 11,
@@ -22186,7 +22276,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-h",
      "pos": {
       "x": 17,
@@ -22195,7 +22287,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-i",
      "pos": {
       "x": 5,
@@ -22204,7 +22298,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-j",
      "pos": {
       "x": 6,
@@ -22213,7 +22309,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-k",
      "pos": {
       "x": 18,
@@ -22222,7 +22320,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-l",
      "pos": {
       "x": 20,
@@ -22231,7 +22331,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-m",
      "pos": {
       "x": 6,
@@ -22240,7 +22342,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-n",
      "pos": {
       "x": 17,
@@ -22249,7 +22353,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-o",
      "pos": {
       "x": 2,
@@ -22258,7 +22364,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-p",
      "pos": {
       "x": 28,
@@ -22267,7 +22375,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-q",
      "pos": {
       "x": 33,
@@ -22276,7 +22386,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-r",
      "pos": {
       "x": 34,
@@ -22285,7 +22397,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-s",
      "pos": {
       "x": 6,
@@ -22294,7 +22408,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-t",
      "pos": {
       "x": 7,
@@ -22303,7 +22419,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-u",
      "pos": {
       "x": 31,
@@ -22312,7 +22430,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-v",
      "pos": {
       "x": 36,
@@ -22321,7 +22441,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-w",
      "pos": {
       "x": 2,
@@ -22330,7 +22452,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-x",
      "pos": {
       "x": 3,
@@ -22339,7 +22463,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-y",
      "pos": {
       "x": 33,
@@ -22348,7 +22474,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-z",
      "pos": {
       "x": 37,
@@ -22357,7 +22485,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-10",
      "pos": {
       "x": 30,
@@ -22366,7 +22496,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-11",
      "pos": {
       "x": 4,
@@ -22375,7 +22507,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-12",
      "pos": {
       "x": 8,
@@ -22384,7 +22518,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-13",
      "pos": {
       "x": 22,
@@ -22393,7 +22529,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-14",
      "pos": {
       "x": 31,
@@ -22402,7 +22540,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-15",
      "pos": {
       "x": 32,
@@ -22411,7 +22551,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-16",
      "pos": {
       "x": 35,
@@ -22420,7 +22562,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-17",
      "pos": {
       "x": 36,
@@ -22429,7 +22573,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-18",
      "pos": {
       "x": 21,
@@ -22438,7 +22584,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-19",
      "pos": {
       "x": 27,
@@ -22447,7 +22595,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-1a",
      "pos": {
       "x": 13,
@@ -22456,7 +22606,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-1b",
      "pos": {
       "x": 4,
@@ -22465,7 +22617,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-1c",
      "pos": {
       "x": 10,
@@ -22474,7 +22628,9 @@
     },
     {
      "kind": "prop",
-     "ref": "buisson",
+     "decor": {
+      "id": "buisson"
+     },
      "id": "prop-1d",
      "pos": {
       "x": 11,
@@ -22483,7 +22639,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1e",
      "pos": {
       "x": 9,
@@ -22492,7 +22650,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1f",
      "pos": {
       "x": 19,
@@ -22501,7 +22661,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1g",
      "pos": {
       "x": 20,
@@ -22510,7 +22672,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1h",
      "pos": {
       "x": 22,
@@ -22519,7 +22683,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1i",
      "pos": {
       "x": 26,
@@ -22528,7 +22694,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1j",
      "pos": {
       "x": 27,
@@ -22537,7 +22705,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1k",
      "pos": {
       "x": 28,
@@ -22546,7 +22716,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1l",
      "pos": {
       "x": 29,
@@ -22555,7 +22727,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1m",
      "pos": {
       "x": 34,
@@ -22564,7 +22738,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1n",
      "pos": {
       "x": 36,
@@ -22573,7 +22749,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1o",
      "pos": {
       "x": 16,
@@ -22582,7 +22760,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1p",
      "pos": {
       "x": 18,
@@ -22591,7 +22771,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1q",
      "pos": {
       "x": 21,
@@ -22600,7 +22782,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1r",
      "pos": {
       "x": 23,
@@ -22609,7 +22793,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1s",
      "pos": {
       "x": 24,
@@ -22618,7 +22804,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1t",
      "pos": {
       "x": 26,
@@ -22627,7 +22815,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1u",
      "pos": {
       "x": 31,
@@ -22636,7 +22826,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1v",
      "pos": {
       "x": 7,
@@ -22645,7 +22837,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1w",
      "pos": {
       "x": 9,
@@ -22654,7 +22848,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1x",
      "pos": {
       "x": 10,
@@ -22663,7 +22859,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1y",
      "pos": {
       "x": 11,
@@ -22672,7 +22870,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-1z",
      "pos": {
       "x": 12,
@@ -22681,7 +22881,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-20",
      "pos": {
       "x": 13,
@@ -22690,7 +22892,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-21",
      "pos": {
       "x": 16,
@@ -22699,7 +22903,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-22",
      "pos": {
       "x": 21,
@@ -22708,7 +22914,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-23",
      "pos": {
       "x": 2,
@@ -22717,7 +22925,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-24",
      "pos": {
       "x": 3,
@@ -22726,7 +22936,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-25",
      "pos": {
       "x": 4,
@@ -22735,7 +22947,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-26",
      "pos": {
       "x": 5,
@@ -22744,7 +22958,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-27",
      "pos": {
       "x": 8,
@@ -22753,7 +22969,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-28",
      "pos": {
       "x": 9,
@@ -22762,7 +22980,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-29",
      "pos": {
       "x": 17,
@@ -22771,7 +22991,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2a",
      "pos": {
       "x": 18,
@@ -22780,7 +23002,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2b",
      "pos": {
       "x": 20,
@@ -22789,7 +23013,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2c",
      "pos": {
       "x": 5,
@@ -22798,7 +23024,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2d",
      "pos": {
       "x": 20,
@@ -22807,7 +23035,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2e",
      "pos": {
       "x": 21,
@@ -22816,7 +23046,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2f",
      "pos": {
       "x": 24,
@@ -22825,7 +23057,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2g",
      "pos": {
       "x": 7,
@@ -22834,7 +23068,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2h",
      "pos": {
       "x": 8,
@@ -22843,7 +23079,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2i",
      "pos": {
       "x": 9,
@@ -22852,7 +23090,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2j",
      "pos": {
       "x": 11,
@@ -22861,7 +23101,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2k",
      "pos": {
       "x": 12,
@@ -22870,7 +23112,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2l",
      "pos": {
       "x": 13,
@@ -22879,7 +23123,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2m",
      "pos": {
       "x": 14,
@@ -22888,7 +23134,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2n",
      "pos": {
       "x": 15,
@@ -22897,7 +23145,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2o",
      "pos": {
       "x": 16,
@@ -22906,7 +23156,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2p",
      "pos": {
       "x": 17,
@@ -22915,7 +23167,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2q",
      "pos": {
       "x": 19,
@@ -22924,7 +23178,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2r",
      "pos": {
       "x": 2,
@@ -22933,7 +23189,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2s",
      "pos": {
       "x": 8,
@@ -22942,7 +23200,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2t",
      "pos": {
       "x": 9,
@@ -22951,7 +23211,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2u",
      "pos": {
       "x": 11,
@@ -22960,7 +23222,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2v",
      "pos": {
       "x": 14,
@@ -22969,7 +23233,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2w",
      "pos": {
       "x": 18,
@@ -22978,7 +23244,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2x",
      "pos": {
       "x": 20,
@@ -22987,7 +23255,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2y",
      "pos": {
       "x": 21,
@@ -22996,7 +23266,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-2z",
      "pos": {
       "x": 4,
@@ -23005,7 +23277,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-30",
      "pos": {
       "x": 7,
@@ -23014,7 +23288,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-31",
      "pos": {
       "x": 8,
@@ -23023,7 +23299,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-32",
      "pos": {
       "x": 9,
@@ -23032,7 +23310,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-33",
      "pos": {
       "x": 12,
@@ -23041,7 +23321,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-34",
      "pos": {
       "x": 14,
@@ -23050,7 +23332,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-35",
      "pos": {
       "x": 15,
@@ -23059,7 +23343,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-36",
      "pos": {
       "x": 18,
@@ -23068,7 +23354,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-37",
      "pos": {
       "x": 4,
@@ -23077,7 +23365,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-38",
      "pos": {
       "x": 12,
@@ -23086,7 +23376,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-39",
      "pos": {
       "x": 15,
@@ -23095,7 +23387,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3a",
      "pos": {
       "x": 3,
@@ -23104,7 +23398,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3b",
      "pos": {
       "x": 7,
@@ -23113,7 +23409,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3c",
      "pos": {
       "x": 8,
@@ -23122,7 +23420,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3d",
      "pos": {
       "x": 9,
@@ -23131,7 +23431,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3e",
      "pos": {
       "x": 10,
@@ -23140,7 +23442,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3f",
      "pos": {
       "x": 14,
@@ -23149,7 +23453,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3g",
      "pos": {
       "x": 15,
@@ -23158,7 +23464,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3h",
      "pos": {
       "x": 19,
@@ -23167,7 +23475,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3i",
      "pos": {
       "x": 21,
@@ -23176,7 +23486,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3j",
      "pos": {
       "x": 4,
@@ -23185,7 +23497,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3k",
      "pos": {
       "x": 8,
@@ -23194,7 +23508,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3l",
      "pos": {
       "x": 12,
@@ -23203,7 +23519,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3m",
      "pos": {
       "x": 19,
@@ -23212,7 +23530,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3n",
      "pos": {
       "x": 32,
@@ -23221,7 +23541,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3o",
      "pos": {
       "x": 35,
@@ -23230,7 +23552,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3p",
      "pos": {
       "x": 3,
@@ -23239,7 +23563,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3q",
      "pos": {
       "x": 6,
@@ -23248,7 +23574,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3r",
      "pos": {
       "x": 29,
@@ -23257,7 +23585,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3s",
      "pos": {
       "x": 30,
@@ -23266,7 +23596,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3t",
      "pos": {
       "x": 32,
@@ -23275,7 +23607,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3u",
      "pos": {
       "x": 36,
@@ -23284,7 +23618,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3v",
      "pos": {
       "x": 37,
@@ -23293,7 +23629,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3w",
      "pos": {
       "x": 4,
@@ -23302,7 +23640,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3x",
      "pos": {
       "x": 7,
@@ -23311,7 +23651,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3y",
      "pos": {
       "x": 9,
@@ -23320,7 +23662,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-3z",
      "pos": {
       "x": 10,
@@ -23329,7 +23673,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-40",
      "pos": {
       "x": 32,
@@ -23338,7 +23684,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-41",
      "pos": {
       "x": 33,
@@ -23347,7 +23695,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-42",
      "pos": {
       "x": 35,
@@ -23356,7 +23706,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-43",
      "pos": {
       "x": 36,
@@ -23365,7 +23717,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-44",
      "pos": {
       "x": 37,
@@ -23374,7 +23728,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-45",
      "pos": {
       "x": 38,
@@ -23383,7 +23739,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-46",
      "pos": {
       "x": 1,
@@ -23392,7 +23750,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-47",
      "pos": {
       "x": 2,
@@ -23401,7 +23761,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-48",
      "pos": {
       "x": 11,
@@ -23410,7 +23772,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-49",
      "pos": {
       "x": 30,
@@ -23419,7 +23783,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4a",
      "pos": {
       "x": 33,
@@ -23428,7 +23794,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4b",
      "pos": {
       "x": 37,
@@ -23437,7 +23805,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4c",
      "pos": {
       "x": 4,
@@ -23446,7 +23816,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4d",
      "pos": {
       "x": 7,
@@ -23455,7 +23827,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4e",
      "pos": {
       "x": 31,
@@ -23464,7 +23838,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4f",
      "pos": {
       "x": 34,
@@ -23473,7 +23849,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4g",
      "pos": {
       "x": 35,
@@ -23482,7 +23860,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4h",
      "pos": {
       "x": 2,
@@ -23491,7 +23871,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4i",
      "pos": {
       "x": 32,
@@ -23500,7 +23882,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4j",
      "pos": {
       "x": 36,
@@ -23509,7 +23893,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4k",
      "pos": {
       "x": 37,
@@ -23518,7 +23904,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4l",
      "pos": {
       "x": 38,
@@ -23527,7 +23915,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4m",
      "pos": {
       "x": 19,
@@ -23536,7 +23926,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4n",
      "pos": {
       "x": 25,
@@ -23545,7 +23937,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4o",
      "pos": {
       "x": 33,
@@ -23554,7 +23948,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4p",
      "pos": {
       "x": 38,
@@ -23563,7 +23959,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4q",
      "pos": {
       "x": 27,
@@ -23572,7 +23970,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4r",
      "pos": {
       "x": 28,
@@ -23581,7 +23981,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4s",
      "pos": {
       "x": 30,
@@ -23590,7 +23992,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4t",
      "pos": {
       "x": 31,
@@ -23599,7 +24003,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4u",
      "pos": {
       "x": 32,
@@ -23608,7 +24014,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4v",
      "pos": {
       "x": 36,
@@ -23617,7 +24025,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4w",
      "pos": {
       "x": 14,
@@ -23626,7 +24036,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4x",
      "pos": {
       "x": 19,
@@ -23635,7 +24047,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4y",
      "pos": {
       "x": 25,
@@ -23644,7 +24058,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-4z",
      "pos": {
       "x": 32,
@@ -23653,7 +24069,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-50",
      "pos": {
       "x": 35,
@@ -23662,7 +24080,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-51",
      "pos": {
       "x": 17,
@@ -23671,7 +24091,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-52",
      "pos": {
       "x": 20,
@@ -23680,7 +24102,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-53",
      "pos": {
       "x": 21,
@@ -23689,7 +24113,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-54",
      "pos": {
       "x": 22,
@@ -23698,7 +24124,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-55",
      "pos": {
       "x": 24,
@@ -23707,7 +24135,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-56",
      "pos": {
       "x": 29,
@@ -23716,7 +24146,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-57",
      "pos": {
       "x": 34,
@@ -23725,7 +24157,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-58",
      "pos": {
       "x": 35,
@@ -23734,7 +24168,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-59",
      "pos": {
       "x": 36,
@@ -23743,7 +24179,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5a",
      "pos": {
       "x": 16,
@@ -23752,7 +24190,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5b",
      "pos": {
       "x": 17,
@@ -23761,7 +24201,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5c",
      "pos": {
       "x": 18,
@@ -23770,7 +24212,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5d",
      "pos": {
       "x": 19,
@@ -23779,7 +24223,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5e",
      "pos": {
       "x": 20,
@@ -23788,7 +24234,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5f",
      "pos": {
       "x": 25,
@@ -23797,7 +24245,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5g",
      "pos": {
       "x": 26,
@@ -23806,7 +24256,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5h",
      "pos": {
       "x": 29,
@@ -23815,7 +24267,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5i",
      "pos": {
       "x": 30,
@@ -23824,7 +24278,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5j",
      "pos": {
       "x": 31,
@@ -23833,7 +24289,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5k",
      "pos": {
       "x": 36,
@@ -23842,7 +24300,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5l",
      "pos": {
       "x": 37,
@@ -23851,7 +24311,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5m",
      "pos": {
       "x": 13,
@@ -23860,7 +24322,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5n",
      "pos": {
       "x": 18,
@@ -23869,7 +24333,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5o",
      "pos": {
       "x": 30,
@@ -23878,7 +24344,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre",
+     "decor": {
+      "id": "arbre"
+     },
      "id": "prop-5p",
      "pos": {
       "x": 33,
@@ -23887,7 +24355,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5q",
      "pos": {
       "x": 30,
@@ -23896,7 +24366,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5r",
      "pos": {
       "x": 37,
@@ -23905,7 +24377,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5s",
      "pos": {
       "x": 12,
@@ -23914,7 +24388,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5t",
      "pos": {
       "x": 4,
@@ -23923,7 +24399,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5u",
      "pos": {
       "x": 8,
@@ -23932,7 +24410,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5v",
      "pos": {
       "x": 11,
@@ -23941,7 +24421,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5w",
      "pos": {
       "x": 22,
@@ -23950,7 +24432,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5x",
      "pos": {
       "x": 1,
@@ -23959,7 +24443,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5y",
      "pos": {
       "x": 3,
@@ -23968,7 +24454,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-5z",
      "pos": {
       "x": 27,
@@ -23977,7 +24465,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-60",
      "pos": {
       "x": 29,
@@ -23986,7 +24476,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-61",
      "pos": {
       "x": 4,
@@ -23995,7 +24487,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-62",
      "pos": {
       "x": 34,
@@ -24004,7 +24498,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-63",
      "pos": {
       "x": 24,
@@ -24013,7 +24509,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-64",
      "pos": {
       "x": 20,
@@ -24022,7 +24520,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-65",
      "pos": {
       "x": 31,
@@ -24031,7 +24531,9 @@
     },
     {
      "kind": "prop",
-     "ref": "souche",
+     "decor": {
+      "id": "souche"
+     },
      "id": "prop-66",
      "pos": {
       "x": 15,
@@ -24040,7 +24542,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre-mort",
+     "decor": {
+      "id": "arbre-mort"
+     },
      "id": "prop-67",
      "pos": {
       "x": 16,
@@ -24049,7 +24553,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre-mort",
+     "decor": {
+      "id": "arbre-mort"
+     },
      "id": "prop-68",
      "pos": {
       "x": 7,
@@ -24058,7 +24564,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre-mort",
+     "decor": {
+      "id": "arbre-mort"
+     },
      "id": "prop-69",
      "pos": {
       "x": 29,
@@ -24067,7 +24575,9 @@
     },
     {
      "kind": "prop",
-     "ref": "arbre-mort",
+     "decor": {
+      "id": "arbre-mort"
+     },
      "id": "prop-6a",
      "pos": {
       "x": 33,
@@ -29036,7 +29546,9 @@
     {
      "id": "sept-rayons-salle-table-ronde-1",
      "kind": "prop",
-     "ref": "table-ronde-4-tabourets",
+     "decor": {
+      "id": "table-ronde-4-tabourets"
+     },
      "pos": {
       "x": 11,
       "y": 8
@@ -29049,7 +29561,9 @@
     {
      "id": "sept-rayons-salle-comptoir-1",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 9
@@ -29059,7 +29573,9 @@
     {
      "id": "sept-rayons-salle-comptoir-2",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 11,
       "y": 9
@@ -29069,7 +29585,9 @@
     {
      "id": "sept-rayons-salle-comptoir-3",
      "kind": "prop",
-     "ref": "comptoir-angle",
+     "decor": {
+      "id": "comptoir-angle"
+     },
      "pos": {
       "x": 12,
       "y": 9
@@ -29079,7 +29597,9 @@
     {
      "id": "sept-rayons-salle-comptoir-4",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 10
@@ -29089,7 +29609,9 @@
     {
      "id": "sept-rayons-salle-comptoir-5",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 11
@@ -29099,7 +29621,9 @@
     {
      "id": "sept-rayons-salle-comptoir-6",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 12
@@ -29109,7 +29633,9 @@
     {
      "id": "sept-rayons-salle-comptoir-7",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 13
@@ -29119,7 +29645,9 @@
     {
      "id": "sept-rayons-salle-comptoir-8",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 11,
       "y": 16
@@ -29129,7 +29657,9 @@
     {
      "id": "sept-rayons-salle-comptoir-9",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 12,
       "y": 16
@@ -29139,7 +29669,9 @@
     {
      "id": "sept-rayons-salle-plan-travail-1",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 10
@@ -29149,7 +29681,9 @@
     {
      "id": "sept-rayons-salle-plan-travail-2",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 12
@@ -29159,7 +29693,9 @@
     {
      "id": "sept-rayons-salle-plan-travail-3",
      "kind": "prop",
-     "ref": "comptoir-droit",
+     "decor": {
+      "id": "comptoir-droit"
+     },
      "pos": {
       "x": 10,
       "y": 13
@@ -29169,7 +29705,9 @@
     {
      "id": "sept-rayons-salle-cheminee",
      "kind": "prop",
-     "ref": "cheminee-interieure",
+     "decor": {
+      "id": "cheminee-interieure"
+     },
      "pos": {
       "x": 10,
       "y": 18
@@ -29179,7 +29717,9 @@
     {
      "id": "sept-rayons-salle-table-murale-1",
      "kind": "prop",
-     "ref": "table-murale-2-tabourets",
+     "decor": {
+      "id": "table-murale-2-tabourets"
+     },
      "pos": {
       "x": 14,
       "y": 11
@@ -29192,7 +29732,9 @@
     {
      "id": "sept-rayons-salle-table-murale-2",
      "kind": "prop",
-     "ref": "table-murale-2-tabourets",
+     "decor": {
+      "id": "table-murale-2-tabourets"
+     },
      "pos": {
       "x": 14,
       "y": 16
@@ -29205,7 +29747,9 @@
     {
      "id": "sept-rayons-salle-table-ronde-2",
      "kind": "prop",
-     "ref": "table-ronde-4-tabourets",
+     "decor": {
+      "id": "table-ronde-4-tabourets"
+     },
      "pos": {
       "x": 12,
       "y": 18
@@ -29218,7 +29762,9 @@
     {
      "id": "sept-rayons-salle-table-ronde-3",
      "kind": "prop",
-     "ref": "table-ronde-4-tabourets",
+     "decor": {
+      "id": "table-ronde-4-tabourets"
+     },
      "pos": {
       "x": 10,
       "y": 21
@@ -29231,7 +29777,9 @@
     {
      "id": "sept-rayons-salle-meuble-1",
      "kind": "prop",
-     "ref": "armoire",
+     "decor": {
+      "id": "armoire"
+     },
      "pos": {
       "x": 14,
       "y": 20
@@ -29241,7 +29789,9 @@
     {
      "id": "sept-rayons-salle-meuble-2",
      "kind": "prop",
-     "ref": "armoire",
+     "decor": {
+      "id": "armoire"
+     },
      "pos": {
       "x": 9,
       "y": 19

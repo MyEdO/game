@@ -10,8 +10,8 @@ import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
 
 /** Une coque qui n'est PAS un navire (`profilNavalDe` : pas de facette `ship`) — EDOC 07 l.334, MDG 13 l.656. */
-const diligence = (id = 'dil', pos = { x: 7, y: 5 }): Combatant => spawnEnemy({ ref: 'diligence' }, id, pos);
-const cogue = (id = 'nav', pos = { x: 5, y: 5 }): Combatant => spawnEnemy({ ref: 'cogue' }, id, pos);
+const diligence = (id = 'dil', pos = { x: 7, y: 5 }): Combatant => spawnEnemy({ vehicule: 'diligence' }, id, pos);
+const cogue = (id = 'nav', pos = { x: 5, y: 5 }): Combatant => spawnEnemy({ vehicule: 'cogue' }, id, pos);
 
 let banc: Banc;
 

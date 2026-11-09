@@ -37,8 +37,8 @@ describe('buildTokens — figurants (PNJ d’ambiance)', () => {
   const scene = () => {
     const s = emptyScene('scene-test', 6, 6);
     s.entities = [
-      { id: 'f1', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 } },
-      { id: 'f2', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, combat: { hiddenUntilCombat: true } }, // embuscade
+      { id: 'f1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 } },
+      { id: 'f2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, combat: { hiddenUntilCombat: true } }, // embuscade
       { id: 'pr', kind: 'prop', pos: { x: 3, y: 3 } }, // prop → buildProps, pas un token
       { id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } },
     ] as SceneEntity[];
@@ -60,9 +60,9 @@ describe('buildTokens — figurants (PNJ d’ambiance)', () => {
   it('un figurant ASSIS porte sa place (ancre métrique + cap), sans aucun porteur', () => {
     const s = scene();
     s.entities = [
-      { id: 'table-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-      { id: 'f1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 } }, // assis à l'est : sa `pos` EST son abord
-      { id: 'f2', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 4 } }, // debout : aucune place
+      { id: 'table-1', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
+      { id: 'f1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 } }, // assis à l'est : sa `pos` EST son abord
+      { id: 'f2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 4, y: 4 } }, // debout : aucune place
     ] as SceneEntity[];
     s.encounters = [] as Scene['encounters'];
     s.seatAssignments = { 'table-1': { 'place-2': { kind: 'entity', entityId: 'f1' } } };
@@ -251,7 +251,7 @@ describe('buildTokens — combattants', () => {
 
   it('MÊME loi pour un FIGURANT posté sur le chemin de ronde (hors combat)', () => {
     const s = rempart();
-    s.entities = [{ id: 'fig-rempart', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, z: 1 }] as SceneEntity[];
+    s.entities = [{ id: 'fig-rempart', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, z: 1 }] as SceneEntity[];
     expect(buildTokens(s, new Set([...allVisible(s), '2,2,1']), null, VIEW, ['h1', 'h2']).map((e) => e.key)).toEqual(['fig:fig-rempart']);
   });
 });

@@ -12,6 +12,8 @@ import { document } from '../grammaire/document';
 import { conditionSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 import { ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
+import { couleurHexSchema } from '../grammaire/valeurs';
+import { visuelDeLumiereSchema } from './lightTones';
 
 export const file = 'etats.json';
 export const famille = 'entite';
@@ -83,6 +85,9 @@ const doc = document(
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** LDB 85 l.174 ; VDM 10 l.153 */
     typeDeDegats: ref('damageType').optional(),
+    marqueCouleur: couleurHexSchema,
+    marqueVisuel: visuelDeLumiereSchema.optional(),
+    marqueSon: ref('son').optional(),
   },
   {
     passive: { label: 'Effets passifs', hint: 'Effets mécaniques appliqués en continu tant que l’État est actif' },
@@ -110,6 +115,9 @@ const doc = document(
     persistsAfterCombat: { label: 'Persiste hors combat' },
     grantGroups: { label: 'Groupes accordés', hint: 'Groupes du porteur tant qu’il porte l’État' },
     typeDeDegats: { label: 'Type de Dégâts', hint: 'Les effets déclenchés de l’État sont des Dégâts de ce Type : une Immunité à ce Type les annule' },
+    marqueCouleur: { label: 'Teinte de la marque', hint: 'Teinte `#rrggbb` du nom de l’État au-dessus de son porteur et de son visuel' },
+    marqueVisuel: { label: 'Visuel de la marque', hint: 'Ce qui entoure le porteur tant qu’il le porte ; aucun : son nom seul' },
+    marqueSon: { label: 'Son de la marque', hint: 'Joué en boucle sur le porteur tant qu’il le porte' },
   },
   {
     codex: { keys: ['etats'] },

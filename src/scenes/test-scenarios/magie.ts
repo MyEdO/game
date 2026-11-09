@@ -55,22 +55,22 @@ const construireScene = (): Scene => buildScene({
       id: 'enc-magie',
       enemies: [
         // Meute de bêtes (rapides, chargent) — flanc haut.
-        { ref: 'loup', pos: { x: 20, y: 7 } },
-        { ref: 'loup', pos: { x: 21, y: 8 } },
-        { ref: 'sanglier', pos: { x: 22, y: 6 } },
+        { creature: { id: 'loup' }, pos: { x: 20, y: 7 } },
+        { creature: { id: 'loup' }, pos: { x: 21, y: 8 } },
+        { creature: { id: 'sanglier' }, pos: { x: 22, y: 6 } },
         // Mob peau-verte — centre groupé (cible de choix pour une ZdE bien posée).
-        { ref: 'orc', pos: { x: 25, y: 11 } },
-        { ref: 'orc', pos: { x: 26, y: 12 } },
-        { ref: 'gobelin', pos: { x: 24, y: 13 } },
-        { ref: 'gobelin', pos: { x: 25, y: 14 } },
+        { creature: { id: 'orc' }, pos: { x: 25, y: 11 } },
+        { creature: { id: 'orc' }, pos: { x: 26, y: 12 } },
+        { creature: { id: 'gobelin' }, pos: { x: 24, y: 13 } },
+        { creature: { id: 'gobelin' }, pos: { x: 25, y: 14 } },
         // Bella la Noire, un humain + bestiaux — flanc bas.
-        { ref: 'bella-la-noire', pos: { x: 23, y: 16 }, optionals: [{ id: 'meneur' }] }, // facultatif standard Meneur (LDB 76 l.31)
-        { ref: 'humain', pos: { x: 24, y: 17 } },
-        { ref: 'ungor', pos: { x: 27, y: 9 } },
+        { creature: { id: 'bella-la-noire' }, pos: { x: 23, y: 16 }, optionals: [{ id: 'meneur' }] }, // facultatif standard Meneur (LDB 76 l.31)
+        { creature: { id: 'humain' }, pos: { x: 24, y: 17 } },
+        { creature: { id: 'ungor' }, pos: { x: 27, y: 9 } },
         // TRIO de casters ennemis au fond (l'IA adverse joue son arsenal + Contre-sort/dissipation).
-        { ref: 'eusapia-balacanon', pos: { x: 28, y: 9 } },
-        { ref: 'kanker-flett', pos: { x: 28, y: 11 } },
-        { ref: 'johen', pos: { x: 28, y: 13 } },
+        { creature: { id: 'eusapia-balacanon' }, pos: { x: 28, y: 9 } },
+        { creature: { id: 'kanker-flett' }, pos: { x: 28, y: 11 } },
+        { creature: { id: 'johen' }, pos: { x: 28, y: 13 } },
       ],
     },
   ],

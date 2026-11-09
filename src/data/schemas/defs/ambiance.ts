@@ -7,6 +7,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couleurHexSchema } from '../grammaire/valeurs';
+import { ref } from '../grammaire/ref';
 
 export const file = 'ambiance.json';
 export const famille = 'config';
@@ -128,6 +129,8 @@ const weatherFxSchema = nommerChamps(z.strictObject({
   /** Absent = ce type ne pose AUCUNE nappe de brume (la pluie et la neige n'en posent pas : leur
    *  expression volumique est le semis plus la teinte dérivée de `tint`/`alpha`). */
   brume: brumeSchema.optional(),
+  /** #3834 : joué en boucle tant que la scène porte cette météo ; absent, elle ne s'entend pas. */
+  son: ref('son').optional(),
 }), {
   tint: { label: 'teinte' },
   alpha: { label: 'opacité' },
@@ -136,6 +139,7 @@ const weatherFxSchema = nommerChamps(z.strictObject({
   density: { label: 'densité' },
   precip: { label: 'précipitations' },
   brume: { label: 'brume' },
+  son: { label: 'son' },
 });
 
 /** Facteur multiplicatif de teinte : 0 = éteint, 1 = pleine matière — hors de [0,1] il n'éclaircit

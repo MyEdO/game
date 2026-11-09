@@ -117,11 +117,11 @@ describe('OpenProjectModal — section « Campagnes du jeu » (#367)', () => {
 const projet = (): Record<string, unknown> => ({
   type: 'projet', id: 'proj', label: 'Projet', versionContenu: 1,
   maison: 'fixture de test', narratif: emptyNarratif(),
-  scenes: [{ ...emptyScene('s1', 4, 4), label: 'Salle du banc', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le tonneau', ref: 'tonneau' }] }],
+  scenes: [{ ...emptyScene('s1', 4, 4), label: 'Salle du banc', entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Le tonneau', decor: { id: 'tonneau' } }] }],
 });
 const decorSansType = (doc: Record<string, unknown>) => ({
   ...doc,
-  scenes: (doc.scenes as { entities: { ref?: string }[] }[]).map((s) => ({ ...s, entities: s.entities.map(({ ref: _ref, ...e }) => e) })),
+  scenes: (doc.scenes as { entities: { decor?: { id: string } }[] }[]).map((s) => ({ ...s, entities: s.entities.map(({ decor: _decor, ...e }) => e) })),
 });
 
 /** Ce que le traducteur rend du refus de la porte pour ce document et ce geste. */
@@ -208,13 +208,13 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   it('ouverture d’un projet enregistré au contenu fautif : le message dit l’autre format, la faute vit au détail seulement (#2404)', () => {
     const r = rendu(decorSansType(projet()), 'ouverture');
     expect(r.message).toBe('Ouverture refusée : projet d’un autre format, ou mal formé.');
-    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › référence: /m);
+    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › décor: /m);
   });
 
   it('enregistrement d’un contenu fautif : la scène et l’entité NOMMÉES par leur libellé, le décor UNE fois', () => {
     const r = rendu(decorSansType(projet()), 'enregistrement');
     expect(r.message).toBe(
-      'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : scène « Salle du banc » › entité « Le tonneau » › référence — « ref » absente — un décor NOMME son type au catalogue (props.json)',
+      'Enregistrement refusé : ce projet ne pourrait plus être rouvert. Faute : scène « Salle du banc » › entité « Le tonneau » › décor — « decor » absent — un décor NOMME son type au catalogue (props.json)',
     );
   });
 
@@ -228,7 +228,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     const doc = { ...decorSansType(projet()), versionContenu: 'un' };
     const r = rendu(doc, 'enregistrement');
     expect(r.detail).toMatch(/^ {2}- Version de contenu: /m);
-    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › référence: /m);
+    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › décor: /m);
   });
 
   it('une SEULE faute : le message la reprend entière, aucun détail', () => {
@@ -268,7 +268,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
   ] as const)('%s, geste qui RELIT une donnée persistée : le titre dit l’autre format, la faute vit au détail seulement (#2404)', (geste, tete) => {
     const r = rendu(decorSansType(projet()), geste);
     expect(r.message).toBe(`${tete} projet d’un autre format, ou mal formé.`);
-    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › référence: /m);
+    expect(r.detail).toMatch(/^ {2}- scène « s1 » › entité « p0 » › décor: /m);
   });
 
   it('reprise d’une sauvegarde locale au contenu fautif : le titre dit la scène d’un autre format, la faute vit au détail seulement (#2404)', () => {
@@ -280,7 +280,7 @@ describe('refusDeLaPorteDuProjet — UN traducteur, qui classe les fautes par CH
     }
     const r = refusDeLaPorteDuProjet(erreur, 'reprise');
     expect(r.message).toBe('Restauration refusée : scène d’un autre format, ou mal formée.');
-    expect(r.detail).toMatch(/^ {2}- entité « p0 » › référence: /m);
+    expect(r.detail).toMatch(/^ {2}- entité « p0 » › décor: /m);
   });
 
   it.each(Object.entries(PHRASE_VRAIE) as [GesteDePorte, Record<CauseDeRefus, string>][])(

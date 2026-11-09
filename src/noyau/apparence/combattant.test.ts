@@ -155,7 +155,7 @@ describe('porteeDuCombattant', () => {
   });
 
   it('l’emblème est celui de l’apparence d’auteur', () => {
-    const ne = ficheDEntite({ id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, appearance: { embleme: { id: 'taureau-rouge' } } }, () => undefined);
+    const ne = ficheDEntite({ id: 'garde', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, appearance: { embleme: { id: 'taureau-rouge' } } }, () => undefined);
     expect(porteeDuCombattant(ne)!.embleme).toEqual({ id: 'taureau-rouge' });
   });
 
@@ -177,31 +177,32 @@ describe('porteeDuCombattant', () => {
 });
 
 describe('vehiculeDuCombattant (#2987)', () => {
-  const fiche = (ref: string): Combatant => spawnEnemy({ ref }, `${ref}-1`, { x: 0, y: 0 });
+  const coque = (id: string): Combatant => spawnEnemy({ vehicule: id }, `${id}-1`, { x: 0, y: 0 });
+  const engin = (id: string): Combatant => spawnEnemy({ engin: id }, `${id}-1`, { x: 0, y: 0 });
   const poste = (trappingId: string, side?: FireArc) => hydratePoste({ trappingId, ...(side ? { side } : {}) }, 'poste-de-test');
-  it.each([['caraque', 4, 'empreinte'], ['barque-fluviale', 1, 'empreinte'], ['canon-petit', 2, 'reelle'], ['belier-ade2', 2, 'reelle']] as const)('%s, coque ou engin de siège : sa fiche, le côté de son empreinte et sa taille, sans portée', (ref, empreinte, taille) => {
+  it.each([['caraque', coque, 4, 'empreinte'], ['barque-fluviale', coque, 1, 'empreinte'], ['canon-petit', engin, 2, 'reelle'], ['belier-ade2', engin, 2, 'reelle']] as const)('%s, coque ou engin de siège : sa fiche, le côté de son empreinte et sa taille, sans portée', (ref, fiche, empreinte, taille) => {
     const c = fiche(ref);
     expect([vehiculeDuCombattant(c, undefined), porteeDuCombattant(c)]).toEqual([{ definition: ref, empreinte, taille, cap: 'N', postes: [], ameliorations: [] }, null]);
   });
   it('son cap, et les pièces de ses seuls postes à un bord, dans leur ordre', () => {
-    const c = { ...fiche('caraque'), postes: [poste('canon-moyen', 'tribord'), poste('canon-petit'), poste('canon-grand', 'proue'), poste('canon-moyen', 'tribord')] };
+    const c = { ...coque('caraque'), postes: [poste('canon-moyen', 'tribord'), poste('canon-petit'), poste('canon-grand', 'proue'), poste('canon-moyen', 'tribord')] };
     expect(vehiculeDuCombattant(c, 'SE')).toEqual({ definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'SE', postes: [{ definition: 'canon-moyen', bord: 'tribord' }, { definition: 'canon-grand', bord: 'proue' }, { definition: 'canon-moyen', bord: 'tribord' }], ameliorations: [] });
   });
   it('ses couleurs, celles de son apparence d’auteur, et la teinte de chaque pièce', () => {
     const teinte = { ...poste('canon-moyen', 'tribord'), item: { ...poste('canon-moyen', 'tribord').item, teinte: 'aethyrique' } };
-    const c = { ...fiche('caraque'), appearanceOverride: { couleurs: couleurs({ bois: 'peau-brune' }) }, postes: [teinte, poste('canon-grand', 'proue')] };
+    const c = { ...coque('caraque'), appearanceOverride: { couleurs: couleurs({ bois: 'peau-brune' }) }, postes: [teinte, poste('canon-grand', 'proue')] };
     expect(vehiculeDuCombattant(c, 'N')).toEqual({
       definition: 'caraque', empreinte: 4, taille: 'empreinte', cap: 'N', couleurs: { bois: { id: 'peau-brune' } },
       postes: [{ definition: 'canon-moyen', bord: 'tribord', teinte: 'aethyrique' }, { definition: 'canon-grand', bord: 'proue' }], ameliorations: [],
     });
   });
   it('les Améliorations de sa coque, de sa fiche puis installées, sans ses Traits (MDG 12)', () => {
-    const c = { ...fiche('loup-imperial'), upgrades: [{ id: 'sabord' }, { id: 'robuste' }, { id: 'nid-de-pie' }] };
+    const c = { ...coque('loup-imperial'), upgrades: [{ id: 'sabord' }, { id: 'robuste' }, { id: 'nid-de-pie' }] };
     expect(vehiculeDuCombattant(c, 'N')!.ameliorations).toEqual(['belier', 'sabord', 'nid-de-pie']);
   });
   it('son emblème, celui de son apparence d’auteur, qu’en portent ses voiles et son pavillon', () => {
-    expect(vehiculeDuCombattant({ ...fiche('caraque'), appearanceOverride: { embleme: { id: 'taureau-rouge' } } }, 'N')!.embleme).toEqual({ id: 'taureau-rouge' });
-    expect(vehiculeDuCombattant(fiche('caraque'), 'N')).not.toHaveProperty('embleme');
+    expect(vehiculeDuCombattant({ ...coque('caraque'), appearanceOverride: { embleme: { id: 'taureau-rouge' } } }, 'N')!.embleme).toEqual({ id: 'taureau-rouge' });
+    expect(vehiculeDuCombattant(coque('caraque'), 'N')).not.toHaveProperty('embleme');
   });
   it('une créature n’est pas un véhicule', () => expect(vehiculeDuCombattant(creature('loup'), 'N')).toBeNull());
 });

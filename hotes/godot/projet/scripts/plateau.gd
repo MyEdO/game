@@ -5,7 +5,8 @@
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
-## aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le modèle
+## aucun sous son `refus`), son véhicule (`vue.corps.vehicules`) et les marques de ses États (`vue.marques`,
+## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque navire de la scène sous le modèle
 ## de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
 ## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
@@ -40,6 +41,10 @@ const CLES_DU_CADRAGE := {
 
 ## Les effets des appels, rendus au plateau (`Effets`).
 var _effets := Effets.new()
+## Les zones qui durent sur le plateau (`ZonesQuiDurent`).
+var _zones := ZonesQuiDurent.new()
+## Par id d'un combattant dessiné, les marques de ses États (`MarquesDEtats`).
+var _marques: Dictionary = {}
 var _modeles: Dictionary = {}
 ## Par id d'entité, le montage de chaque navire posé (`_poser_les_navires`).
 var _navires_montes: Dictionary = {}
@@ -52,6 +57,8 @@ func _ready() -> void:
 	_immersion.case_jouee.connect(case_cliquee.emit)
 	_effets.name = "Effets"
 	add_child(_effets)
+	_zones.name = "ZonesQuiDurent"
+	add_child(_zones)
 	_effets.depart.connect(_agir)
 	_effets.arrivee.connect(_subir)
 	_effets.deplacement.connect(_parcourir)
@@ -92,7 +99,21 @@ func montrer(vue: Dictionary) -> void:
 			modele.habille.connect(habille.emit)
 			_modeles[c.id] = modele
 		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.corps.vehicules.get(c.id), vue.plateau.metresParCase)
+		_marquer(c.id, lieu, vue.marques.get(c.id, []), vue.plateau.metresParCase)
+	if vue.plateau != null:
+		_zones.poser(vue.zonesQuiDurent, func(case: Dictionary) -> Vector3: return _lieu([case.x, case.y, case.get("z", 0)]), vue.plateau.metresParCase)
 	_peindre()
+
+
+## Les marques `marques` des États du combattant `id`, posées au sol `lieu` de sa case.
+func _marquer(id: String, lieu: Vector3, marques: Array, metres_par_case: float) -> void:
+	if not _marques.has(id):
+		var posees := MarquesDEtats.new()
+		posees.name = "marques"
+		_combattants.add_child(posees, true)
+		_marques[id] = posees
+	_marques[id].position = lieu
+	_marques[id].montrer(marques, metres_par_case)
 
 
 ## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
@@ -323,3 +344,64 @@ func _survoler(case: Variant) -> void:
 	if case != _survol:
 		_survol = case
 		_peindre()
+
+
+## @contrat Vue
+## Le plateau coupe le modèle du navire un peu sous la hauteur de sa coupe (`plateau.coupesDesNavires`,
+## `MontageDeVehicule.couper`, `MiseEnPage.hauteur_de_coupe`, `MARGE_DE_COUPE`, recette
+## `projet/recettes/coupe-du-navire.gd`), la coupe ne changeant que ce que voit la caméra : son ombre reste celle du
+## navire entier, pièces montées comprises (un double d'ombre seule de chaque mesh,
+## `MontageDeVehicule._porter_la_hauteur`), et sous un pont coupé l'intérieur reste à l'ombre du pont du dessus.
+
+## @contrat Vue
+## Le jeu pose sa caméra sous le regard (`Monde.regarder`, la touche V passant au regard suivant), à la suite de
+## l'actif du combat, sinon du groupe, dès que son lieu change ; en tactique et au plateau, elle pivote d'un quart de
+## tour (A, E d'un AZERTY) ou librement (bouton du milieu tenu), zoome à la molette, glisse au clavier (`avant`,
+## `arriere`, `gauche`, `droite`) et revient au lieu suivi (Origine) ; en immersion, l'œil du meneur, à la hauteur de
+## l'œil de la case du sol sous lui, marche librement au clavier, court (Maj tenue), regarde à la souris captive
+## (Échap la libère, un clic la reprend ; sur le Web, où le navigateur ne la capture qu'au geste du joueur, le premier
+## clic la prend), et chaque case qu'il franchit ou qu'il vise au point de mire (E ou clic) se joue au clic du champ
+## (`Immersion`), sans plaque de surbrillance au sol (`Monde.regarder`).
+
+## @contrat Corps d'un combattant
+## Le combat de Godot tire `GET modeles/listage.json` (section « Atelier 3D ») et appelle `modeles` avec ses
+## `manifestes` et ses `osDesRigides` avant `demarrer`. Pour chaque corps de la vue, Godot charge la base sous
+## `modeles/` (`glb` de la réponse de `modeles`), la pose à l'échelle du plateau (un mètre du modèle vaut
+## `1 / plateau.metresParCase` case) et lui pose son `gabarit`, ses silhouettes (`morphes`), ses `materiaux` et sa
+## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
+## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
+## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps joue les clips de sa base par rôle (`clips`
+## de la base, réponse de `modeles`) : `idle` en boucle, `walk` au déplacement, `melee` vers une cible, `hit` au coup
+## reçu, `death` hors de combat. Tant que sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un
+## rôle joue le clip de `clipsDeuxMains` sous le maniement de cet objet (`secondesPrises`), à défaut celui de `clips`
+## (`MontageDeComposition.clip`) ; le clip en cours passe à celui de son rôle quand la tenue change. Un combattant sans
+## corps garde son anneau et son étiquette. Pour chaque véhicule de la vue (`vehicules`), Godot monte son corps sous le
+## nœud `Vehicule` du combattant (`MontageDeVehicule`, `projet/scripts/montage_de_vehicule.gd`, que l'atelier monte de
+## même) : il charge le GLB de son élément et le pose à la case du combattant, sur ses N×N cases depuis elle, son coin
+## nord-ouest : à `taille` `reelle`, à l'échelle métrique du plateau, comme un corps ; à `taille` `empreinte`, sa plus
+## grande dimension horizontale vaut N cases, quelle que soit son échelle d'auteur ; sa boîte est centrée sur
+## l'empreinte et son origine reste au sol (`Combattant.poser_sur_l_empreinte`, recette
+## `projet/recettes/vehicule-sur-empreinte.gd`). Il peint le véhicule de sa `palette` aux surfaces de son élément, et de
+## son `embleme` (`MontageDeComposition.texture_de_l_embleme`) à ses surfaces `blason`, ses voiles et son pavillon (un
+## emblème qu'aucune ne reçoit donne `blason-sans-surface`), avant d'y monter quoi que ce soit, et chaque pièce de sa
+## palette, sans emblème (`MontageDeVehicule.peindre_l_element`, `MontageDeComposition.peindre`, recette
+## `projet/recettes/peinture-du-vehicule.gd`). Il charge le GLB de l'élément de chacun de ses `postes` et le monte sous
+## la scène du véhicule, à sa `position` dans le repère du véhicule, dont il prend l'échelle, son +Z tourné vers son
+## `bord` (`MontageDeVehicule.monter_au_poste`, `MiseEnPage.LACETS_DES_BORDS` : tribord à droite d'une proue en +Z) ; il
+## charge le GLB de l'élément de chacune de ses `ameliorations`, le peint de la `palette` du véhicule et le monte sous
+## sa scène, à sa `position`, tourné comme le véhicule, ou, s'il porte `poste`, tourné vers son `bord` comme une pièce
+## de ce poste, son nœud `montre` visible et son nœud `cache` caché (`MontageDeVehicule.monter_l_amelioration`, recette
+## `projet/recettes/ameliorations-du-vehicule.gd`) ; il cache sous la scène du véhicule, pièces comprises, tout nœud
+## dont le nom est l'un de `caches` (`MontageDeVehicule.cacher_selon`, même recette) ; puis le véhicule tourne autour du
+## milieu de son empreinte, sa proue, le +Z de son repère, vers son `cap` (`Combattant.tourner_au_cap`, recette
+## `projet/recettes/postes-du-vehicule.gd`). Un véhicule joue les clips de son élément par rôle (`clips`,
+## `MontageDeVehicule.lecteur`), comme un corps ceux de sa base : `idle` en boucle, `walk` en boucle au déplacement, et,
+## vers une cible, le clip de son rôle d'attaque, `ranged` si sa table en porte un, `melee` sinon, suivi du repos
+## (recette `projet/recettes/clips-du-vehicule.gd`). Pour chaque navire de la vue (`navires`), le plateau monte son
+## `corps` sous son nœud `Navires` (`MontageDeVehicule`, son GLB tiré par le montage `Navires/Chargeur`), peint, ses
+## pièces et ses Améliorations montées et ses nœuds cachés comme un véhicule, sous tout regard ; sa scène nue à
+## l'échelle métrique du plateau, sa proue, le +Z de son repère, tournée vers le `cap` de son corps
+## (`MiseEnPage.lacet_de_proue`), son origine au point de la carte `centre`, à la hauteur 0 de la scène
+## (`Plateau._poser_le_navire`) ; un navire que la vue ne sert plus est retiré. `corps()` d'un combattant rapporte
+## l'élément de son véhicule posé (`vehicule`), l'emblème posé sur lui (`embleme_du_vehicule`, `null` : aucun), ceux de
+## ses pièces montées (`postes`) et ceux de ses Améliorations (`ameliorations`).

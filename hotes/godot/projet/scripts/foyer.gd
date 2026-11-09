@@ -8,19 +8,19 @@ extends Node3D
 ## source).
 const FLAMMES := {
 	"feu": [
-		{nombre = 24, duree = 0.6, vitesse = [0.4, 0.9], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.25, 0.45], couleur = "teinte", opacite = 1.0, dispersion = 15.0, anneau = [0.15, 0.0], lumineuse = true},
-		{nombre = 12, duree = 2.5, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.3, 0.0), taille = [0.4, 0.8], couleur = "#5a5550", opacite = 0.35, dispersion = 20.0, anneau = null, lumineuse = false},
+		{nombre = 24, duree = 0.6, vitesse = [0.4, 0.9], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.35, 0.6], couleur = "teinte", opacite = 1.0, dispersion = 15.0, anneau = [0.15, 0.0], lumineuse = true},
+		{nombre = 12, duree = 2.5, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.3, 0.0), taille = [0.6, 1.0], couleur = "#5a5550", opacite = 0.35, dispersion = 20.0, anneau = null, lumineuse = false},
 	],
 	"flammeche": [
-		{nombre = 8, duree = 0.4, vitesse = [0.05, 0.15], pesanteur = Vector3(0.0, 0.3, 0.0), taille = [0.04, 0.08], couleur = "teinte", opacite = 1.0, dispersion = 10.0, anneau = null, lumineuse = true},
+		{nombre = 8, duree = 0.4, vitesse = [0.05, 0.15], pesanteur = Vector3(0.0, 0.3, 0.0), taille = [0.12, 0.2], couleur = "teinte", opacite = 1.0, dispersion = 10.0, anneau = null, lumineuse = true},
 	],
 	"lueur": [
-		{nombre = 16, duree = 1.6, vitesse = [0.1, 0.3], pesanteur = Vector3(0.0, 0.2, 0.0), taille = [0.05, 0.1], couleur = "teinte", opacite = 0.9, dispersion = 180.0, anneau = [0.3, 0.2], lumineuse = true},
+		{nombre = 16, duree = 1.6, vitesse = [0.1, 0.3], pesanteur = Vector3(0.0, 0.2, 0.0), taille = [0.12, 0.22], couleur = "teinte", opacite = 0.9, dispersion = 180.0, anneau = [0.3, 0.2], lumineuse = true},
 	],
 }
 
 ## Le temps que le serveur audio relâche la lecture du son en boucle d'un foyer libéré.
-const SON_LIBERE_S := 0.1
+const SON_LIBERE_S := 0.5
 
 var _lampe := OmniLight3D.new()
 var _energie := 0.0
@@ -42,19 +42,9 @@ func poser(source: Dictionary, metres_par_case: float) -> void:
 		flamme.scale = MiseEnPage.echelle_au_plateau(metres_par_case)
 		add_child(flamme)
 		for recette: Dictionary in FLAMMES[source.visuel]:
-			var gerbe := Effets.gerbe_de(recette, recette.taille, Color(source.couleur))
-			gerbe.one_shot = false
-			gerbe.explosiveness = 0.0
-			gerbe.preprocess = recette.duree
-			flamme.add_child(gerbe)
+			flamme.add_child(Effets.gerbe_continue(recette, recette.taille, Color(source.couleur)))
 	if source.son != null:
-		var lecteur := AudioStreamPlayer3D.new()
-		lecteur.name = "son-%s" % source.son.id
-		lecteur.stream = Effets.variantes_du_son(source.son, true)
-		lecteur.volume_db = linear_to_db(source.son.volume)
-		lecteur.unit_size = Effets.PORTEE_DU_SON
-		lecteur.autoplay = true
-		add_child(lecteur)
+		add_child(Effets.son_en_boucle(source.son))
 
 
 ## La lampe vacille, si son ton vacille.

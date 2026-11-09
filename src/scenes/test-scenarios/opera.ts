@@ -79,54 +79,54 @@ const W = 21, H = 17;
 function construireScene(): Scene {
   const ents: SceneEntity[] = [
     // Scène (z0) : rideau au fond, pupitre du chef devant.
-    { id: 'rideau-g', kind: 'prop', ref: 'rideau-scene', pos: { x: 7, y: 2 } },
-    { id: 'rideau-c', kind: 'prop', ref: 'rideau-scene', pos: { x: 10, y: 2 } },
-    { id: 'rideau-d', kind: 'prop', ref: 'rideau-scene', pos: { x: 13, y: 2 } },
-    { id: 'pupitre', kind: 'prop', ref: 'pupitre-chef', pos: { x: 10, y: 5 }, facing: 'N' },
+    { id: 'rideau-g', kind: 'prop', decor: { id: 'rideau-scene' }, pos: { x: 7, y: 2 } },
+    { id: 'rideau-c', kind: 'prop', decor: { id: 'rideau-scene' }, pos: { x: 10, y: 2 } },
+    { id: 'rideau-d', kind: 'prop', decor: { id: 'rideau-scene' }, pos: { x: 13, y: 2 } },
+    { id: 'pupitre', kind: 'prop', decor: { id: 'pupitre-chef' }, pos: { x: 10, y: 5 }, facing: 'N' },
 
     // Parterre (z0) : rangées de fauteuils face à la scène (allée centrale x10), colonnes, statue.
-    { id: 'sieges-1g', kind: 'prop', ref: 'rangee-sieges', pos: { x: 5, y: 7 }, facing: 'N' },
-    { id: 'sieges-1d', kind: 'prop', ref: 'rangee-sieges', pos: { x: 11, y: 7 }, facing: 'N' },
-    { id: 'sieges-2g', kind: 'prop', ref: 'rangee-sieges', pos: { x: 5, y: 10 }, facing: 'N' },
-    { id: 'sieges-2d', kind: 'prop', ref: 'rangee-sieges', pos: { x: 11, y: 10 }, facing: 'N' },
-    { id: 'colonne-g', kind: 'prop', ref: 'colonne-brisee', pos: { x: 4, y: 6 } },
-    { id: 'colonne-d', kind: 'prop', ref: 'colonne-brisee', pos: { x: 16, y: 6 } },
-    { id: 'statue', kind: 'prop', ref: 'statue', pos: { x: 4, y: 12 } },
+    { id: 'sieges-1g', kind: 'prop', decor: { id: 'rangee-sieges' }, pos: { x: 5, y: 7 }, facing: 'N' },
+    { id: 'sieges-1d', kind: 'prop', decor: { id: 'rangee-sieges' }, pos: { x: 11, y: 7 }, facing: 'N' },
+    { id: 'sieges-2g', kind: 'prop', decor: { id: 'rangee-sieges' }, pos: { x: 5, y: 10 }, facing: 'N' },
+    { id: 'sieges-2d', kind: 'prop', decor: { id: 'rangee-sieges' }, pos: { x: 11, y: 10 }, facing: 'N' },
+    { id: 'colonne-g', kind: 'prop', decor: { id: 'colonne-brisee' }, pos: { x: 4, y: 6 } },
+    { id: 'colonne-d', kind: 'prop', decor: { id: 'colonne-brisee' }, pos: { x: 16, y: 6 } },
+    { id: 'statue', kind: 'prop', decor: { id: 'statue' }, pos: { x: 4, y: 12 } },
     // Professeur Pakker et son épouse, près de l'allée centrale (source 08 l.158) — cible des pétards.
-    { id: 'pakker', kind: 'personnage', ref: 'humain', label: 'Professeur Pakker', pos: { x: 9, y: 8 }, facing: 'N' },
+    { id: 'pakker', kind: 'personnage', creature: { id: 'humain' }, label: 'Professeur Pakker', pos: { x: 9, y: 8 }, facing: 'N' },
     // Les deux étudiants, repliés vers l'arrière de la salle près de la porte (l.158) — combat optionnel.
     { id: 'etudiant-1', kind: 'personnage', label: 'Étudiant nerveux', pos: { x: 5, y: 15 }, facing: 'S', appearance: { species: 'humains-reiklander' }, dialogueId: { id: 'dlg-etudiants' }, statblock: ETUDIANT },
     { id: 'etudiant-2', kind: 'personnage', label: 'Étudiant fébrile', pos: { x: 6, y: 15 }, facing: 'S', appearance: { species: 'humains-reiklander' }, statblock: ETUDIANT },
 
     // Lustre pendu au-dessus du parterre qu'il éclaire (la recette porte la hauteur, patron `applique-murale`).
-    { id: 'lustre', kind: 'prop', ref: 'lustre-opera', pos: { x: 10, y: 8 } },
+    { id: 'lustre', kind: 'prop', decor: { id: 'lustre-opera' }, pos: { x: 10, y: 8 } },
 
     // Loges gauche (z1) : balustrade côté parterre, fauteuils, applique, un spectateur. Le garde-corps se
     // pose à la CASE (`props.json`) : une travée par case du bord de loge, cap sur le vide du parterre.
-    ...[5, 6, 7].map((y): SceneEntity => ({ id: `bal-g-${y}`, kind: 'prop', ref: 'balustrade-loge', pos: { x: 3, y }, facing: 'E', z: 1 })),
-    { id: 'ft-g1', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 1, y: 6 }, z: 1 },
-    { id: 'ft-g2', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 1, y: 8 }, z: 1 },
-    { id: 'app-g', kind: 'prop', ref: 'applique-murale', pos: { x: 1, y: 5 }, calage: { x: 0, y: -1 }, z: 1 },
-    { id: 'spect-g', kind: 'personnage', ref: 'humain', label: 'Spectatrice', pos: { x: 2, y: 7 }, z: 1, facing: 'E' },
+    ...[5, 6, 7].map((y): SceneEntity => ({ id: `bal-g-${y}`, kind: 'prop', decor: { id: 'balustrade-loge' }, pos: { x: 3, y }, facing: 'E', z: 1 })),
+    { id: 'ft-g1', kind: 'prop', decor: { id: 'fauteuil-loge' }, pos: { x: 1, y: 6 }, z: 1 },
+    { id: 'ft-g2', kind: 'prop', decor: { id: 'fauteuil-loge' }, pos: { x: 1, y: 8 }, z: 1 },
+    { id: 'app-g', kind: 'prop', decor: { id: 'applique-murale' }, pos: { x: 1, y: 5 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'spect-g', kind: 'personnage', creature: { id: 'humain' }, label: 'Spectatrice', pos: { x: 2, y: 7 }, z: 1, facing: 'E' },
 
     // Loges droite (z1).
-    ...[5, 6, 7].map((y): SceneEntity => ({ id: `bal-d-${y}`, kind: 'prop', ref: 'balustrade-loge', pos: { x: 17, y }, facing: 'O', z: 1 })),
-    { id: 'ft-d1', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 19, y: 6 }, z: 1 },
-    { id: 'ft-d2', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 19, y: 8 }, z: 1 },
-    { id: 'app-d', kind: 'prop', ref: 'applique-murale', pos: { x: 19, y: 5 }, calage: { x: 0, y: -1 }, z: 1 },
-    { id: 'spect-d', kind: 'personnage', ref: 'humain', label: 'Spectateur', pos: { x: 18, y: 7 }, z: 1, facing: 'O' },
+    ...[5, 6, 7].map((y): SceneEntity => ({ id: `bal-d-${y}`, kind: 'prop', decor: { id: 'balustrade-loge' }, pos: { x: 17, y }, facing: 'O', z: 1 })),
+    { id: 'ft-d1', kind: 'prop', decor: { id: 'fauteuil-loge' }, pos: { x: 19, y: 6 }, z: 1 },
+    { id: 'ft-d2', kind: 'prop', decor: { id: 'fauteuil-loge' }, pos: { x: 19, y: 8 }, z: 1 },
+    { id: 'app-d', kind: 'prop', decor: { id: 'applique-murale' }, pos: { x: 19, y: 5 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'spect-d', kind: 'personnage', creature: { id: 'humain' }, label: 'Spectateur', pos: { x: 18, y: 7 }, z: 1, facing: 'O' },
 
     // LOGE ROYALE (z1, fond-centre de la galerie) : balustrade face à la scène, fauteuil, la Comtesse, appliques.
     // Les deux volées couvrent 6-8 et 12-14, une travée par case, et laissent 9-11 ouvert au centre de la loge.
-    ...[6, 7, 8, 12, 13, 14].map((x): SceneEntity => ({ id: `bal-royale-${x}`, kind: 'prop', ref: 'balustrade-loge', pos: { x, y: 13 }, facing: 'N', z: 1 })),
-    { id: 'fauteuil-royal', kind: 'prop', ref: 'fauteuil-loge', pos: { x: 10, y: 14 }, z: 1 },
-    { id: 'comtesse', kind: 'personnage', ref: 'humain', label: 'Comtesse Emmanuelle', pos: { x: 10, y: 13 }, z: 1, facing: 'N', dialogueId: { id: 'dlg-comtesse' } },
-    { id: 'app-royale-g', kind: 'prop', ref: 'applique-murale', pos: { x: 7, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
-    { id: 'app-royale-d', kind: 'prop', ref: 'applique-murale', pos: { x: 13, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
+    ...[6, 7, 8, 12, 13, 14].map((x): SceneEntity => ({ id: `bal-royale-${x}`, kind: 'prop', decor: { id: 'balustrade-loge' }, pos: { x, y: 13 }, facing: 'N', z: 1 })),
+    { id: 'fauteuil-royal', kind: 'prop', decor: { id: 'fauteuil-loge' }, pos: { x: 10, y: 14 }, z: 1 },
+    { id: 'comtesse', kind: 'personnage', creature: { id: 'humain' }, label: 'Comtesse Emmanuelle', pos: { x: 10, y: 13 }, z: 1, facing: 'N', dialogueId: { id: 'dlg-comtesse' } },
+    { id: 'app-royale-g', kind: 'prop', decor: { id: 'applique-murale' }, pos: { x: 7, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
+    { id: 'app-royale-d', kind: 'prop', decor: { id: 'applique-murale' }, pos: { x: 13, y: 14 }, calage: { x: 0, y: -1 }, z: 1 },
     // INTRIGUE n°1 (source 08 l.131/166) : « grande plante en pot remplie de poudre à canon, détonateur
     // caché », livrée dans l'ANTICHAMBRE de la loge royale (z1). Désamorçage = retirer le détonateur.
     {
-      id: 'plante-bombe', kind: 'prop', ref: 'plante-pot', pos: { x: 10, y: 15 }, z: 1,
+      id: 'plante-bombe', kind: 'prop', decor: { id: 'plante-pot' }, pos: { x: 10, y: 15 }, z: 1,
       usable: { actions: [{ id: 'fouiller', unique: true, consume: false,
         flow: testFlow(
           {

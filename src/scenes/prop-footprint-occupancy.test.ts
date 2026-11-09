@@ -32,8 +32,8 @@ const zDe = (e: SceneEntity): number => e.z ?? 0;
 function occupantsDansUnDecor(source: string, scene: Scene): string[] {
   const couverture = new Map<string, string>();
   for (const e of scene.entities ?? []) {
-    if (e.kind !== 'prop' || !propIsSolid(e.ref)) continue;
-    for (const t of propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene))) couverture.set(`${t.x},${t.y},${zDe(e)}`, `${e.ref} (${e.id})`);
+    if (e.kind !== 'prop' || !propIsSolid(e.decor?.id)) continue;
+    for (const t of propFootTiles(e.decor?.id, e.pos, e.facing, sceneMetresPerTile(scene))) couverture.set(`${t.x},${t.y},${zDe(e)}`, `${e.decor?.id} (${e.id})`);
   }
   const fautifs: string[] = [];
   for (const e of scene.entities ?? []) {
@@ -61,9 +61,9 @@ describe('empreinte de TYPE — aucun corps ne naît dans un décor (toutes scè
     const scene = {
       id: 'sonde',
       entities: [
-        { id: 'epave', kind: 'prop', pos: { x: 4, y: 4 }, ref: 'epave-carrosse' }, // 2×2 : (4,4)…(5,5)
-        { id: 'garde', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } },
-        { id: 'passant', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 5 } },
+        { id: 'epave', kind: 'prop', pos: { x: 4, y: 4 }, decor: { id: 'epave-carrosse' } }, // 2×2 : (4,4)…(5,5)
+        { id: 'garde', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 5 } },
+        { id: 'passant', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 6, y: 5 } },
       ],
     } as unknown as Scene;
     expect(occupantsDansUnDecor('sonde', scene)).toEqual(['sonde/sonde/garde sur (5,5,0) — epave-carrosse (epave)']);

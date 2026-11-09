@@ -220,7 +220,7 @@ function rendu() {
     '',
     "function construireScene(): Scene {",
     "  const scene = arena({ id: 'test-xxx', label: '…', heroStart: { x: 2, y: 4 } });",
-    "  scene.encounters = [{ id: 'enc-xxx', enemies: [{ ref: 'gobelin', pos: { x: 9, y: 4 } }] }];",
+    "  scene.encounters = [{ id: 'enc-xxx', enemies: [{ creature: { id: 'gobelin' }, pos: { x: 9, y: 4 } }] }];",
     '  return scene;',
     '}',
     '',

@@ -144,7 +144,7 @@ describe('#1869 — le MÊME masque à la validation de scène rendue à l’éd
   const projet = (label: string): Scene[] => [{
     ...emptyScene('scene-test'),
     id: 'jouet',
-    entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'd' } }],
+    entities: [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, dialogueId: { id: 'd' } }],
     dialogues: [{ id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow: fluxDeTest() as Flow }] }] }],
   }];
   const avertissements = (label: string) => validateScene(projet(label)).filter((w) => w.scope === 'dialogue' && w.level === 'warn');

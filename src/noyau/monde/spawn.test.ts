@@ -403,19 +403,19 @@ describe('spawnEnemy — engin du sous-type armes-de-siege (#210)', () => {
   const at = { x: 0, y: 0 };
 
   it('belier-ade2 : engin inerte, sans espèce dérivée de sa référence', () => {
-    const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram1', at);
+    const c = spawnEnemy({ engin: 'belier-ade2' }, 'ram1', at);
     expect(c.species).toBeUndefined();
     expect(c.bodyShape).toBe('engin');
     expect(c.inert).toBe(true);
   });
 
   it('belier-ade2 : empreinte 2 recopiée sur le Combatant (`footprintN`, ADE II 8 l.239/258)', () => {
-    const c = spawnEnemy({ ref: 'belier-ade2' }, 'ram2', at);
+    const c = spawnEnemy({ engin: 'belier-ade2' }, 'ram2', at);
     expect(c.footprint).toBe(2);
   });
 
   it('baliste (sans `siegeFootprint` en donnée) : empreinte ABSENTE — `footprintN` retombe à 1 (non-régression)', () => {
-    const c = spawnEnemy({ ref: 'baliste' }, 'bal1', at);
+    const c = spawnEnemy({ engin: 'baliste' }, 'bal1', at);
     expect(c.species).toBeUndefined();
     expect(c.footprint).toBeUndefined();
   });
@@ -423,7 +423,7 @@ describe('spawnEnemy — engin du sous-type armes-de-siege (#210)', () => {
 
 describe('PNJ de carrière : la fiche d’une entité portée à son parcours (EDO 11 l.17-21 ; #773)', () => {
   const sansPreset = () => undefined;
-  const langstrasse: SceneEntity = { id: 'langstrasse', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { medecin: 3 } };
+  const langstrasse: SceneEntity = { id: 'langstrasse', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { medecin: 3 } };
 
   it('l’humain de base porté Doktor (Médecin 3) : Statut Argent 5 et les possessions de l’exemple (EDO 11 l.27, l.33-35)', () => {
     const c = ficheDEntite(langstrasse, sansPreset);
@@ -434,7 +434,7 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
   });
 
   it('l’arme de dotation choisie est tenue et fait céder le Trait Arme ; l’armure de dotation est portée', () => {
-    const soldat: SceneEntity = { id: 'soldat', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 2 }, dotationsDeCarriere: { [adresseDeCreation.dotation([3])]: 'hallebarde' } };
+    const soldat: SceneEntity = { id: 'soldat', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { soldat: 2 }, dotationsDeCarriere: { [adresseDeCreation.dotation([3])]: 'hallebarde' } };
     const c = ficheDEntite(soldat, sansPreset);
     expect(c.weapons.map((w) => w.label)).toContain('Hallebarde');
     expect(c.traits?.some((t) => t.id === 'arme')).toBe(false);
@@ -442,14 +442,14 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
   });
 
   it('un objet d’inventaire porté par l’auteur ôte la dotation qu’il chevauche', () => {
-    const c = ficheDEntite({ id: 'garde', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, inventaire: { plastron: true } }, sansPreset);
+    const c = ficheDEntite({ id: 'garde', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { soldat: 1 }, inventaire: { plastron: true } }, sansPreset);
     expect(c.items?.filter((i) => i.trappingId === 'plastron-de-cuir' || i.trappingId === 'plastron').map((i) => [i.uid, i.equipped])).toEqual([['garde-dotation-1', false], ['garde-objet-plastron', true]]);
   });
 
   it('le schéma refuse un parcours sans profil du Bestiaire, avec une tenue d’auteur, ou à un Niveau absent', () => {
     expect(sceneEntitySchema.safeParse(langstrasse).success).toBe(true);
     const faute = (ent: object) => sceneEntitySchema.safeParse({ ...langstrasse, ...ent }).error?.issues.map((i) => i.message);
-    expect(faute({ ref: undefined, statblock: { type: 'statblock', label: 'X', char: {} } })).toEqual([expect.stringMatching(/Bestiaire/)]);
+    expect(faute({ creature: undefined, statblock: { type: 'statblock', label: 'X', char: {} } })).toEqual([expect.stringMatching(/Bestiaire/)]);
     expect(faute({ appearance: { tenue: 'medecin' } })).toEqual([expect.stringMatching(/tenue/)]);
     expect(faute({ carrieres: { medecin: 5 } })).toEqual([expect.stringMatching(/Niveau 5/)]);
     expect(faute({ carrieres: undefined, talentsDeCarriere: { medecin: [{ id: 'chirurgie' }] } })).toEqual([expect.stringMatching(/sans carrière/)]);
@@ -458,7 +458,7 @@ describe('PNJ de carrière : la fiche d’une entité portée à son parcours (E
 
 describe('L’argent des PNJ : les dés du Statut, sans Test, dans la Bourse (EDO 11 l.42-46 ; #3712)', () => {
   const sansPreset = () => undefined;
-  const doktor = (id: string): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { medecin: 3 } });
+  const doktor = (id: string): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { medecin: 3 } });
 
   it('le PNJ de carrière porte une Bourse de 5d10 pistoles d’argent (Argent 5, EDO 11 l.46), la même pour un même id', () => {
     const argent = (id: string) => toBrass(bourseOf(ficheDEntite(doktor(id), sansPreset)));
@@ -471,13 +471,13 @@ describe('L’argent des PNJ : les dés du Statut, sans Test, dans la Bourse (ED
   });
 
   it('un PNJ sans carrière n’a pas de Statut : il n’en tire aucune', () => {
-    expect(ficheDEntite({ id: 'badaud', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' }, sansPreset).items ?? []).toEqual([]);
+    expect(ficheDEntite({ id: 'badaud', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } }, sansPreset).items ?? []).toEqual([]);
   });
 });
 
 describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine de son id (LDB 05 l.701-768 ; #3712)', () => {
   const sansPreset = () => undefined;
-  const humain = (id: string, ent: Partial<SceneEntity> = {}): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', ...ent });
+  const humain = (id: string, ent: Partial<SceneEntity> = {}): SceneEntity => ({ id, kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, ...ent });
   const pool = (race: string) => names.find((n) => n.id === race)!;
 
   it('le personnage sans nom d’auteur porte un nom de sa race, le même pour un même id, un autre pour un autre id', () => {
@@ -490,7 +490,7 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
 
   it('le nom suit le sexe et l’espèce que l’auteur pose', () => {
     expect(pool('humain').femaleFirstNames).toContain(nomDEntite(humain('villageoise', { appearance: { sex: 'F' } }), sansPreset)!.split(' ')[0]);
-    const nain = nomDEntite(humain('client', { ref: 'nain', appearance: { species: 'nains' } }), sansPreset)!;
+    const nain = nomDEntite(humain('client', { creature: { id: 'nain' }, appearance: { species: 'nains' } }), sansPreset)!;
     expect(pool('nain').maleFirstNames).toContain(nain.split(' ')[0]);
     expect(pool('nain').lastNameSuffixes!.M.some((x) => nain.endsWith(x)), 'patronyme nain, LDB 05 l.627-633').toBe(true);
   });
@@ -517,9 +517,9 @@ describe('PNJ anonyme : nom, âge, taille, yeux et cheveux tirés à la graine d
   it('ce que l’auteur pose prime : son nom, un statbloc, un individu nommé du bestiaire', () => {
     const nomme = ficheDEntite(humain('garde', { label: 'Garde du Bourg' }), sansPreset);
     expect([nomme.label, nomme.details]).toEqual(['Garde du Bourg', undefined]);
-    expect(nomDEntite(humain('eusapia', { ref: 'eusapia-balacanon' }), sansPreset)).toBe(findCreatureById('eusapia-balacanon')!.label);
-    expect(nomDEntite(humain('timonier', { ref: undefined, statblock: { type: 'statblock', label: 'Timonier', char: {} } }), sansPreset)).toBe('Timonier');
-    expect(nomDEntite(humain('loup', { ref: 'loup' }), sansPreset), 'une créature sans race garde le nom de sa fiche').toBe(findCreatureById('loup')!.label);
+    expect(nomDEntite(humain('eusapia', { creature: { id: 'eusapia-balacanon' } }), sansPreset)).toBe(findCreatureById('eusapia-balacanon')!.label);
+    expect(nomDEntite(humain('timonier', { creature: undefined, statblock: { type: 'statblock', label: 'Timonier', char: {} } }), sansPreset)).toBe('Timonier');
+    expect(nomDEntite(humain('loup', { creature: { id: 'loup' } }), sansPreset), 'une créature sans race garde le nom de sa fiche').toBe(findCreatureById('loup')!.label);
   });
 
   it('une troupe (#3704) donne des noms et des visages différents sans rien régler', () => {
@@ -552,12 +552,12 @@ describe('les sorts d’un PNJ au spawn : choisis par l’auteur, complétés au
   });
 
   it('un PNJ de carrière : Magie mineure prise au Niveau 1 donne ses Sorts mineurs, Magie des Arcanes aucun (Pyromancien 2)', () => {
-    const c = ficheDEntite({ id: 'pyro', kind: 'personnage', pos: at, ref: 'humain', carrieres: { pyromancien: 2 }, talentsDeCarriere: { pyromancien: [{ id: 'magie-mineure' }, { id: 'magie-des-arcanes', spec: 'feu' }] } }, sansPreset);
+    const c = ficheDEntite({ id: 'pyro', kind: 'personnage', pos: at, creature: { id: 'humain' }, carrieres: { pyromancien: 2 }, talentsDeCarriere: { pyromancien: [{ id: 'magie-mineure' }, { id: 'magie-des-arcanes', spec: 'feu' }] } }, sansPreset);
     expect(c.spells?.map(famille)).toEqual(Array(pettySpellQuotaFor(c)).fill('mineure'));
   });
 
   it('un PNJ de carrière : Invocation prise au Niveau 2 donne un Miracle du culte (Prêtre de Myrmidia 2)', () => {
-    const c = ficheDEntite({ id: 'pretre', kind: 'personnage', pos: at, ref: 'humain', carrieres: { 'pretre-de-myrmidia': 2 }, talentsDeCarriere: { 'pretre-de-myrmidia': [{ id: 'beni', spec: 'myrmidia' }, { id: 'invocation', spec: 'myrmidia' }] } }, sansPreset);
+    const c = ficheDEntite({ id: 'pretre', kind: 'personnage', pos: at, creature: { id: 'humain' }, carrieres: { 'pretre-de-myrmidia': 2 }, talentsDeCarriere: { 'pretre-de-myrmidia': [{ id: 'beni', spec: 'myrmidia' }, { id: 'invocation', spec: 'myrmidia' }] } }, sansPreset);
     expect((c.spells ?? []).filter((id) => famille(id) === 'invocation').every((id) => miraclesOf('myrmidia').includes(id))).toBe(true);
     expect((c.spells ?? []).filter((id) => famille(id) === 'invocation')).toHaveLength(1);
   });

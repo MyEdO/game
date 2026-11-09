@@ -29,7 +29,7 @@ const construireReserve = (): Scene => buildScene({
   walls: [{ x: 2, y: 1, side: 'E', door: true }],
   entities: [
     {
-      id: 'reserve-coffre', kind: 'prop', ref: 'coffre', pos: { x: 1, y: 1 }, label: 'Coffre sans gardien',
+      id: 'reserve-coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, label: 'Coffre sans gardien',
       usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([
         { type: 'giveMoney', montant: { gold: 3 } },
         { type: 'journal', desc: 'Le coffre ne contenait que quelques pièces — vous les empochez.' },

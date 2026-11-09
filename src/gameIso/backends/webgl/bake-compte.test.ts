@@ -101,7 +101,7 @@ function salleMeublee(): Scene {
   const sc = salleNue();
   sc.id = 'fixture-salle-meublee';
   sc.entities = ['tonneau', 'caisse', 'coffre', 'table', 'banc', 'etagere'].map((ref, i) => ({
-    id: `decor-${ref}`, kind: 'prop', ref, pos: { x: SALLE.x + 1 + i, y: SALLE.y + 1 }, facing: 'S',
+    id: `decor-${ref}`, kind: 'prop', decor: { id: ref }, pos: { x: SALLE.x + 1 + i, y: SALLE.y + 1 }, facing: 'S',
   } as SceneEntity));
   return sc;
 }

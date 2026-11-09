@@ -44,15 +44,15 @@ function decorsQuiTraversent(scene: Scene): string[] {
   const mpt = sceneMetresPerTile(scene);
   const out: string[] = [];
   for (const e of scene.entities as SceneEntity[]) {
-    const prop = e.kind === 'prop' ? findPropById(e.ref) : undefined;
+    const prop = e.kind === 'prop' ? findPropById(e.decor?.id) : undefined;
     if (!prop?.volume) continue;
     const z = e.z ?? 0;
     const hautM = Math.max(...prop.volume.primitives.map((p) => empriseLocaleM(p).haut));
     const sommet = heightAt(scene, e.pos.x, e.pos.y, z) + hautM;
-    for (const t of propFootTiles(e.ref, e.pos, e.facing, mpt)) {
+    for (const t of propFootTiles(e.decor?.id, e.pos, e.facing, mpt)) {
       const plafond = plafondM(scene, t.x, t.y, z);
       if (plafond !== undefined && sommet > plafond + 1e-6) {
-        out.push(`${scene.id} ${e.id} (${e.ref}) z${z} : sommet ${sommet.toFixed(2)} m > plafond ${plafond.toFixed(2)} m en (${t.x},${t.y})`);
+        out.push(`${scene.id} ${e.id} (${e.decor?.id}) z${z} : sommet ${sommet.toFixed(2)} m > plafond ${plafond.toFixed(2)} m en (${t.x},${t.y})`);
         break;
       }
     }
@@ -85,7 +85,7 @@ describe('aucun décor volumique ne traverse une dalle ni un toit (#1343)', () =
     const tonneau = findPropById('tonneau')!;
     const bloc: PropPrimitive = { kind: 'box', center: { xM: 0, yM: 0, hM: cible - 0.1 }, size: { xM: 0.6, yM: 0.6, hM: 0.2 }, material: 'bois-chene' };
     const fixture = { ...tonneau, id: '__fixture-sous-pan__', volume: { ...tonneau.volume!, primitives: [bloc] } };
-    const posee: Scene = { ...scene, entities: [{ id: 'decor-sous-pan', kind: 'prop', ref: fixture.id, pos } as SceneEntity] };
+    const posee: Scene = { ...scene, entities: [{ id: 'decor-sous-pan', kind: 'prop', decor: { id: fixture.id }, pos } as SceneEntity] };
     const livres = [...props];
     try {
       setDataset('props', [...livres, fixture]);

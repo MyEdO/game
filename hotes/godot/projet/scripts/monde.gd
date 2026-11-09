@@ -2,9 +2,11 @@
 ## (`VolumeDeScene`, `volume`), touché des deux côtés, sa lumière, et ses caméras (`regarder`) : celle des regards
 ## `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E d'un quart de tour, bouton du milieu tenu
 ## librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour revenir au lieu suivi), centrée sur lui puis
-## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), de biais en tactique, à la verticale et sans perspective au plateau ; et l'œil
+## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), de biais en tactique, à la verticale et sans
+## perspective au plateau ; et l'œil
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
-## Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la caméra posée (`camera`), la case du triangle que le rayon du pointeur
+## Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la caméra posée (`camera`), la case du
+## triangle que le rayon du pointeur
 ## touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
 ## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
@@ -58,6 +60,8 @@ const ITEM_SURVOL := 2
 
 ## La case `[x, y, z]` de chaque triangle du maillage du monde, sa couche comprise, dans son ordre.
 var _cases_des_triangles: Array = []
+## Le son de la météo qui joue en boucle, `null` sans son (`poser_la_meteo`).
+var _son_de_la_meteo: AudioStreamPlayer = null
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
 var _lacet := 0.0
@@ -110,11 +114,13 @@ func poser(monde: Dictionary) -> void:
 
 ## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
 ## averse de particules par boîte de `pluie.averses`, étirées dans le sens de leur chute et effacées près de la caméra,
-## et chaque nappe de brume, plate et translucide ; rien sans météo.
+## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834), que le même son laisse jouer ; rien
+## sans météo.
 func poser_la_meteo(meteo: Variant) -> void:
 	for posee in _meteo.get_children():
 		_meteo.remove_child(posee)
 		posee.free()
+	_entendre_la_meteo(null if meteo == null else meteo.son)
 	if meteo == null:
 		return
 	if meteo.pluie != null:
@@ -122,6 +128,31 @@ func poser_la_meteo(meteo: Variant) -> void:
 			_meteo.add_child(_averse(meteo.pluie, averse))
 	for nappe in meteo.nappes:
 		_meteo.add_child(_nappe_de_brume(nappe))
+
+
+## Le son `son` de la météo (`null` : aucun) joué partout en boucle, à la place du précédent s'il en diffère.
+func _entendre_la_meteo(son: Variant) -> void:
+	var voulu: String = "" if son == null else son.id
+	var joue: String = "" if _son_de_la_meteo == null else _son_de_la_meteo.get_meta("son")
+	if voulu == joue:
+		return
+	if _son_de_la_meteo != null:
+		_son_de_la_meteo.queue_free()
+		_son_de_la_meteo = null
+	if son == null:
+		return
+	_son_de_la_meteo = AudioStreamPlayer.new()
+	_son_de_la_meteo.name = "son-%s" % son.id
+	_son_de_la_meteo.set_meta("son", son.id)
+	_son_de_la_meteo.stream = Effets.variantes_du_son(son, true)
+	_son_de_la_meteo.volume_db = linear_to_db(son.volume)
+	_son_de_la_meteo.autoplay = true
+	add_child(_son_de_la_meteo, true)
+
+
+## Le son de la météo qui joue, `null` sans son.
+func son_de_la_meteo() -> AudioStreamPlayer:
+	return _son_de_la_meteo
 
 
 func _averse(pluie: Dictionary, averse: Dictionary) -> CPUParticles3D:
@@ -499,3 +530,45 @@ func _zoomer(sens: float) -> void:
 	_camera.position.z = MiseEnPage.distance_zoomee(_camera.position.z, sens, DISTANCE_MIN, DISTANCE_MAX)
 	_camera.size = _camera.position.z
 	cadrage_change.emit()
+
+
+## @contrat Vue
+## Le volume de la scène (`VolumeDeScene.poser_les_aretes`) dessine les arêtes du plateau (`plateau.aretes`), chacune
+## debout à son pied : la pièce
+## `<famille>--<piece>` du kit des arêtes (`projet/kit/kit.glb`, assemblé par `hotes/godot/kit.mjs` depuis un pack
+## modulaire CC0, `asset/kit.ts`), étirée à la longueur de l'arête et à la hauteur de son mur ; sans kit au projet ou
+## sans cette pièce au kit, une boîte : un mur, une porte fermée, le seuil d'une porte ouverte ou d'une brèche.
+
+## @contrat Vue
+## Les nappes retirées (`plateau.toitsLeves`), les arêtes retirées (`plateau.aretesDegagees`) et les couronnes crénelées
+## tombées avec leur mur abattu (`plateau.couronnesAbattues`), `Monde.cacher_le_bati` les cache à la caméra : les
+## nappes, et chaque arête retirée sous le cran de la caméra (`MiseEnPage.rotation_iso`) avec sa couronne, revue à
+## chaque quart de tour, chacune en ombre seule (`SHADOWS_ONLY`, `VolumeDeScene._cacher_sous`), le regard ne changeant que ce
+## que voit la caméra, jamais l'éclairage : sous un toit levé, l'intérieur reste à l'ombre (recette
+## `projet/recettes/ombres-du-regard.gd`) ; une couronne abattue, tombée avec son mur, disparaît
+## (`VolumeDeScene.retirer_les_couronnes`), son ombre avec elle.
+
+## @contrat Monde
+## Le volume de la scène (`projet/scenes/VolumeDeScene.tscn`, `VolumeDeScene`, #3802), que le monde
+## (`projet/scenes/Monde.tscn`, que le plateau du jeu et l'éditeur de carte instancient, #3508) et l'atelier (section
+## « Atelier 3D ») instancient tous deux, le pose une fois, à l'échelle `1 / metresParCase` et décalé d'une demi-case,
+## dans son repère d'une unité par case, avec les arêtes, les nappes de toit et les couronnes ; le monde le tient sous
+## sa lumière et sa caméra et en tire la forme que touche le rayon du pointeur ; les pions, les surbrillances et les
+## noms se posent à la hauteur de leur case (`hauteurs`, en mètres), et la case cliquée est celle du triangle que le
+## rayon du pointeur touche, sa couche comprise (`cases`) : un plancher d'étage désigne sa case à l'étage. Les
+## tableaux plats se chargent tels quels en tableaux de vecteurs et de
+## couleurs (`PackedByteArray.to_vector3_array`, `to_color_array`).
+##
+## Le monde rend chaque surface de sa texture, `projet/textures/<matiere>.jpg`, et de son relief,
+## `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une matière sans
+## texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
+## `projet/textures/provenance.json` ; celles du kit des arêtes, dans `projet/kit/provenance.json` (dossiers épinglés,
+## `asset/epingles.ts`).
+##
+## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, que le rayon du pointeur
+## traverse (`VolumeDeScene.poser_les_nappes`). Aucune géométrie ni couleur ne se réécrit en GDScript.
+##
+## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
+## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son
+## (`meteo.son` : la pluie, l'orage, #3834) en boucle, partout, sans lieu : la même météo garde son lecteur, une autre
+## le remplace, aucune le retire (recette `projet/recettes/meteo.gd`).

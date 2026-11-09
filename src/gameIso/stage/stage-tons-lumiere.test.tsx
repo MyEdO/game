@@ -283,10 +283,10 @@ describe('Absence de `tone` = `flamme`, et le reste ne bouge pas d’un octet (#
 
   it('le TON d’un prop s’hérite du type, et une instance peut le surcharger champ par champ', () => {
     const s = { ...SCÈNE, entities: [
-      { id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'chandelier' },
-      { id: 'p1', kind: 'prop', pos: { x: 2, y: 1 }, ref: 'chandelier', light: { radiusM: 18 } },
-      { id: 'p2', kind: 'prop', pos: { x: 3, y: 1 }, ref: 'chandelier', light: { radiusM: 6, tone: 'magique' } },
-      { id: 'p3', kind: 'prop', pos: { x: 4, y: 1 }, ref: 'brasero' },
+      { id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'chandelier' } },
+      { id: 'p1', kind: 'prop', pos: { x: 2, y: 1 }, decor: { id: 'chandelier' }, light: { radiusM: 18 } },
+      { id: 'p2', kind: 'prop', pos: { x: 3, y: 1 }, decor: { id: 'chandelier' }, light: { radiusM: 6, tone: 'magique' } },
+      { id: 'p3', kind: 'prop', pos: { x: 4, y: 1 }, decor: { id: 'brasero' } },
     ] } as unknown as Scene;
     // Les rayons de la DONNÉE sont en MÈTRES (#1507) ; `mapLights` les rend en CASES, à l'échelle de
     // la scène — 10 m d'étalon de bougie font 5 cases à 2 m/case.

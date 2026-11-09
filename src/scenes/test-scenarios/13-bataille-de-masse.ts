@@ -29,34 +29,34 @@ const construireScene = (): Scene => buildScene({
     'flèches », « Charge », « Tuez la bête ! », « Duel » et « Intrus » vous jettent dans une vraie mêlée.' },
   encounters: [
     { id: 'enc-charge', enemies: [
-      { ref: 'mutant', pos: { x: 12, y: 6 } },
-      { ref: 'mutant', pos: { x: 13, y: 8 } },
-      { ref: 'mutant', pos: { x: 12, y: 10 } },
-      { ref: 'mutant', pos: { x: 14, y: 8 } },
+      { creature: { id: 'mutant' }, pos: { x: 12, y: 6 } },
+      { creature: { id: 'mutant' }, pos: { x: 13, y: 8 } },
+      { creature: { id: 'mutant' }, pos: { x: 12, y: 10 } },
+      { creature: { id: 'mutant' }, pos: { x: 14, y: 8 } },
     ] },
     { id: 'enc-pluie', enemies: [
-      { ref: 'mutant', pos: { x: 15, y: 7 } },
-      { ref: 'mutant', pos: { x: 16, y: 9 } },
-      { ref: 'mutant', pos: { x: 17, y: 8 } },
+      { creature: { id: 'mutant' }, pos: { x: 15, y: 7 } },
+      { creature: { id: 'mutant' }, pos: { x: 16, y: 9 } },
+      { creature: { id: 'mutant' }, pos: { x: 17, y: 8 } },
     ] },
     { id: 'enc-bete', enemies: [
-      { ref: 'troll', pos: { x: 14, y: 8 } },
+      { creature: { id: 'troll' }, pos: { x: 14, y: 8 } },
     ] },
     { id: 'enc-duel', enemies: [
-      { ref: 'mutant', pos: { x: 13, y: 8 } },
+      { creature: { id: 'mutant' }, pos: { x: 13, y: 8 } },
     ] },
     { id: 'enc-intrus', enemies: [
-      { ref: 'mutant', pos: { x: 6, y: 7 } },
-      { ref: 'mutant', pos: { x: 7, y: 9 } },
+      { creature: { id: 'mutant' }, pos: { x: 6, y: 7 } },
+      { creature: { id: 'mutant' }, pos: { x: 7, y: 9 } },
     ] },
     { id: 'enc-protection', enemies: [
-      { ref: 'mutant', pos: { x: 12, y: 7 } },
-      { ref: 'mutant', pos: { x: 13, y: 9 } },
+      { creature: { id: 'mutant' }, pos: { x: 12, y: 7 } },
+      { creature: { id: 'mutant' }, pos: { x: 13, y: 9 } },
     ] },
     { id: 'enc-percee', enemies: [
-      { ref: 'mutant', pos: { x: 12, y: 7 } },
-      { ref: 'mutant', pos: { x: 13, y: 9 } },
-      { ref: 'mutant', pos: { x: 14, y: 7 } },
+      { creature: { id: 'mutant' }, pos: { x: 12, y: 7 } },
+      { creature: { id: 'mutant' }, pos: { x: 13, y: 9 } },
+      { creature: { id: 'mutant' }, pos: { x: 14, y: 7 } },
     ] },
   ],
   // Ancres AUTHORÉES des Scènes cinématiques sur le plan (S2) : une par entrée de `massBattle.scenes`.

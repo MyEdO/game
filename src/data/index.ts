@@ -1458,6 +1458,10 @@ export interface EtatData extends StatusData {
   grantGroups?: string[];
   /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
   typeDeDegats?: { id: string };
+  /** La marque de l'État sur son porteur (#3834) : sa teinte, son visuel et son son en boucle. */
+  marqueCouleur: string;
+  marqueVisuel?: VisuelDeLumiere;
+  marqueSon?: { id: string };
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -2862,6 +2866,7 @@ export interface RenduDef {
   paradeSon?: { id: string };
   zoneVisuel?: VisuelDEffet;
   zoneSon?: { id: string };
+  zoneBoucle?: { id: string };
 }
 export type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 export type { VisuelDeLumiere } from './schemas/defs/lightTones';
@@ -3159,13 +3164,6 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
  *  sans doublon, dans l'ordre du dataset. */
 export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
-}
-/** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
- *  (`vehicles.json` facette `hull`, MDG 13), engin du sous-type `armes-de-siege` (`trappings.json`, AA 10).
- *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
- *  spawn (`spawnEnemy`) la lisent ici. */
-export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
 }
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D

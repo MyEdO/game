@@ -51,7 +51,7 @@ describe('buildProps — un décor à recette sort en faces monde', () => {
     return s;
   };
   const propEntity = ({ id, pos, z, facing }: { id: string; pos: { x: number; y: number }; z?: number; facing: Dir8 }): SceneEntity =>
-    ({ id, kind: 'prop', pos, ref: 'table-ronde-4-tabourets', facing, ...(z !== undefined ? { z } : {}) }) as SceneEntity;
+    ({ id, kind: 'prop', pos, decor: { id: 'table-ronde-4-tabourets' }, facing, ...(z !== undefined ? { z } : {}) }) as SceneEntity;
 
   it('pose le volume à la hauteur métrique fournie par le relief et la couche', () => {
     const scene = sceneWithReliefAndUpperLayer({ x: 4, y: 6, z: 1, heightM: 7.25 });
@@ -73,7 +73,7 @@ describe('buildProps — un décor à recette sort en faces monde', () => {
 
   it('un décor SANS recette reste un billboard (le décor historique ne bouge pas)', () => {
     const scene = emptyScene('scene-test', 8, 8);
-    scene.entities = [{ id: 't1', kind: 'prop', pos: { x: 2, y: 3 }, ref: REF_BILLBOARD }] as SceneEntity[];
+    scene.entities = [{ id: 't1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: REF_BILLBOARD }}] as SceneEntity[];
     expect(buildProps(scene).filter(estPropVolumique)).toEqual([]);
     expect(buildBillboardProps(scene).map((el) => el.entId)).toEqual(['t1']);
   });
@@ -87,9 +87,9 @@ describe('buildProps — éléments prop du pivot', () => {
     s.layers[0].tiles[1 * 6 + 2] = 'mur'; // (2,1) : BLOC PLEIN — géré par le relief (solidHeightM), PAS un prop
     s.layers[0].tiles[3 * 6 + 4] = 'bois'; // (4,3) : overlay à DÉCOR (overlayProp → 'arbre')
     s.entities = [
-      { id: 'p1', kind: 'prop', pos: { x: 1, y: 1 }, ref: REF_BILLBOARD },
-      { id: 'p2', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'tente', facing: 'E', usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } }, // tente 2×2 au catalogue
-      { id: 'npc', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 5 } }, // pas un prop → ignoré
+      { id: 'p1', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: REF_BILLBOARD }},
+      { id: 'p2', kind: 'prop', pos: { x: 3, y: 2 }, decor: { id: 'tente' }, facing: 'E', usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } }, // tente 2×2 au catalogue
+      { id: 'npc', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 5 } }, // pas un prop → ignoré
     ] as SceneEntity[];
     return s;
   };

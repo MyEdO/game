@@ -65,12 +65,12 @@ const TABLIER = String.raw`
 function construireScene(): Scene {
   // Décor d'extérieur (props purs) : repères visuels des trois reliefs.
   const decor: SceneEntity[] = [
-    { id: 'arbre-0', kind: 'prop', ref: 'arbre', pos: { x: 0, y: 2 } },
-    { id: 'arbre-1', kind: 'prop', ref: 'arbre', pos: { x: 15, y: 4 } },
-    { id: 'arbre-2', kind: 'prop', ref: 'arbre', pos: { x: 0, y: 9 } },
-    { id: 'panneau', kind: 'prop', ref: 'panneau', pos: { x: 6, y: 4 } }, // au pied de la rampe ouest
-    { id: 'rocher-falaise', kind: 'prop', ref: 'rocher', pos: { x: 13, y: 11 } }, // sur le rebord de la falaise (h=3)
-    { id: 'buisson-creux', kind: 'prop', ref: 'buisson', pos: { x: 13, y: 14 } }, // au fond du creux
+    { id: 'arbre-0', kind: 'prop', decor: { id: 'arbre' }, pos: { x: 0, y: 2 } },
+    { id: 'arbre-1', kind: 'prop', decor: { id: 'arbre' }, pos: { x: 15, y: 4 } },
+    { id: 'arbre-2', kind: 'prop', decor: { id: 'arbre' }, pos: { x: 0, y: 9 } },
+    { id: 'panneau', kind: 'prop', decor: { id: 'panneau' }, pos: { x: 6, y: 4 } }, // au pied de la rampe ouest
+    { id: 'rocher-falaise', kind: 'prop', decor: { id: 'rocher' }, pos: { x: 13, y: 11 } }, // sur le rebord de la falaise (h=3)
+    { id: 'buisson-creux', kind: 'prop', decor: { id: 'buisson' }, pos: { x: 13, y: 14 } }, // au fond du creux
   ];
 
   const scene = buildScene({

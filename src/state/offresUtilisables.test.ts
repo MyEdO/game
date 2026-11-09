@@ -75,7 +75,7 @@ describe('offresUtilisables — la pastille de toute entité À PORTÉE, sans su
   });
 
   it('une offre REFUSÉE reste offerte, avec sa raison (loi du refus visible)', () => {
-    const sc = poser([{ id: 'table', kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, label: 'Table ronde', usable: { assise: true } } as SceneEntity]);
+    const sc = poser([{ id: 'table', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, label: 'Table ronde', usable: { assise: true } } as SceneEntity]);
     const libres = offresUtilisables(useGame.getState())[0].offres;
     expect(libres.map((o) => [o.id, o.gate.ok])).toEqual([['sasseoir', true]]);
 

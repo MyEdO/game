@@ -5,6 +5,11 @@
 class_name Lumiere
 extends Node3D
 
+## @contrat Lumière
+## Le combat pose `vue.lumiere` sur la `Lumiere` du monde (`projet/scenes/Monde.tscn`) (`projet/scripts/lumiere.gd`) à
+## chaque vue : chaque source y est un `Foyer` (`projet/scripts/foyer.gd`), sa lampe qui vacille, ses gerbes continues
+## nées d'avance et son son en boucle à son point ; la recette `projet/recettes/foyers.gd` le vérifie.
+
 @onready var _environnement: Environment = ($Environnement as WorldEnvironment).environment
 @onready var _soleil: DirectionalLight3D = $Soleil
 @onready var _sources: Node3D = $Sources

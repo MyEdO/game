@@ -75,8 +75,8 @@ describe('Exemple RAW LDB 14 l.96 — « -30 plus +20 font -10 » (chaîne réel
 });
 
 describe('entityBlockedAt — empreinte multi-cases des décors', () => {
-  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'charrette' } as SceneEntity; // 2×1 dérivé de sa recette volumique, cap par défaut ; `solid`
-  const puddle: SceneEntity = { id: 'b', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'mare-sang' } as SceneEntity; // 1×1, type passable (au sol)
+  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 3, y: 2 }, decor: { id: 'charrette' } } as SceneEntity; // 2×1 dérivé de sa recette volumique, cap par défaut ; `solid`
+  const puddle: SceneEntity = { id: 'b', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'mare-sang' } } as SceneEntity; // 1×1, type passable (au sol)
   const scene = { entities: [cart, puddle] } as unknown as Scene;
   it('bloque toutes les cases de l’empreinte (charrette 2×1)', () => {
     expect(entityBlockedAt(scene, 3, 2, 0)).toBe(true);
@@ -89,28 +89,28 @@ describe('entityBlockedAt — empreinte multi-cases des décors', () => {
   it('décor sans empreinte déclarée, ni solide ni interactif, ne bloque pas', () => {
     expect(entityBlockedAt(scene, 0, 0, 0)).toBe(false);
   });
-  it('un changement de ref déplace l’empreinte IMMÉDIATEMENT — elle vient du catalogue, pas de l’instance', () => {
-    const sc2 = { entities: [{ ...cart, ref: 'tente' }] } as unknown as Scene; // tente 2×2
+  it('un changement de type déplace l’empreinte IMMÉDIATEMENT — elle vient du catalogue, pas de l’instance', () => {
+    const sc2 = { entities: [{ ...cart, decor: { id: 'tente' } }] } as unknown as Scene; // tente 2×2
     expect(entityBlockedAt(sc2, 4, 3, 0)).toBe(true);
     expect(entityBlockedAt(scene, 4, 3, 0)).toBe(false); // la charrette 2×1 ne couvrait pas cette case
   });
   it('décor INTERACTIF 1×1 (coffre fouillable) bloque sa case — on l’aborde, on ne marche pas dessus', () => {
-    const chest = { id: 'k', kind: 'prop', pos: { x: 6, y: 6 }, ref: 'coffre', usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] } }] } } as unknown as SceneEntity;
+    const chest = { id: 'k', kind: 'prop', pos: { x: 6, y: 6 }, decor: { id: 'coffre' }, usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] } }] } } as unknown as SceneEntity;
     const sc2 = { entities: [chest] } as unknown as Scene;
     expect(entityBlockedAt(sc2, 6, 6, 0)).toBe(true);
     expect(entityBlockedAt(sc2, 7, 6, 0)).toBe(false); // adjacent libre (fouille P5 / Ramasser en combat)
   });
   it('décor SOLIDE 1×1 par type (feu de camp / barrière) bloque sa case — B5', () => {
-    const fire = { id: 'f', kind: 'prop', pos: { x: 2, y: 13 }, ref: 'feu-camp' } as unknown as SceneEntity;
-    const fence = { id: 'g', kind: 'prop', pos: { x: 6, y: 6 }, ref: 'barriere' } as unknown as SceneEntity;
+    const fire = { id: 'f', kind: 'prop', pos: { x: 2, y: 13 }, decor: { id: 'feu-camp' } } as unknown as SceneEntity;
+    const fence = { id: 'g', kind: 'prop', pos: { x: 6, y: 6 }, decor: { id: 'barriere' } } as unknown as SceneEntity;
     const sc2 = { entities: [fire, fence] } as unknown as Scene;
     expect(entityBlockedAt(sc2, 2, 13, 0)).toBe(true);  // on ne se tient pas dans le feu de camp
     expect(entityBlockedAt(sc2, 6, 6, 0)).toBe(true);   // ni sur la barrière
     expect(entityBlockedAt(sc2, 3, 13, 0)).toBe(false); // case adjacente libre
   });
   it('#791 — un prop solide d’une couche z ne bloque QUE sa couche', () => {
-    const fireZ0 = { id: 'fz0', kind: 'prop', pos: { x: 5, y: 5 }, z: 0, ref: 'feu-camp' } as unknown as SceneEntity;
-    const fireZ1 = { id: 'fz1', kind: 'prop', pos: { x: 5, y: 5 }, z: 1, ref: 'feu-camp' } as unknown as SceneEntity;
+    const fireZ0 = { id: 'fz0', kind: 'prop', pos: { x: 5, y: 5 }, z: 0, decor: { id: 'feu-camp' } } as unknown as SceneEntity;
+    const fireZ1 = { id: 'fz1', kind: 'prop', pos: { x: 5, y: 5 }, z: 1, decor: { id: 'feu-camp' } } as unknown as SceneEntity;
     const sc2 = { entities: [fireZ0] } as unknown as Scene;
     expect(entityBlockedAt(sc2, 5, 5, 0)).toBe(true);
     expect(entityBlockedAt(sc2, 5, 5, 1)).toBe(false); // aucun prop sur z1, la même case n'y est pas bloquée
@@ -122,7 +122,7 @@ describe('entityBlockedAt — empreinte multi-cases des décors', () => {
     expect(entityBlockedAt(sc4, 5, 5, 1)).toBe(true);
   });
   it('perf — l’index d’empreintes (mémoïsé) s’invalide même si `scene.entities` est réassigné SUR LA MÊME réf `scene`', () => {
-    const fire = { id: 'f', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'feu-camp' } as unknown as SceneEntity;
+    const fire = { id: 'f', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'feu-camp' } } as unknown as SceneEntity;
     const scene = { entities: [fire] } as unknown as Scene;
     expect(entityBlockedAt(scene, 2, 2, 0)).toBe(true);
     scene.entities = []; // même réf `scene`, nouveau tableau `entities` — jamais `.push`/`.splice` en place
@@ -131,14 +131,14 @@ describe('entityBlockedAt — empreinte multi-cases des décors', () => {
   it('perf — ajouter un décor (nouveau tableau `entities`) est immédiatement pris en compte', () => {
     const scene = { entities: [] } as unknown as Scene;
     expect(entityBlockedAt(scene, 5, 5, 0)).toBe(false);
-    const fire = { id: 'g', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'feu-camp' } as unknown as SceneEntity;
+    const fire = { id: 'g', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'feu-camp' } } as unknown as SceneEntity;
     const scene2 = { ...scene, entities: [...scene.entities, fire] } as unknown as Scene;
     expect(entityBlockedAt(scene2, 5, 5, 0)).toBe(true);
   });
 });
 
 describe('isWalkable — intègre l’empreinte des décors', () => {
-  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 1, y: 0 }, ref: 'charrette' } as SceneEntity; // 2×1 dérivé de sa recette volumique, cap par défaut ; `solid`
+  const cart: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 1, y: 0 }, decor: { id: 'charrette' } } as SceneEntity; // 2×1 dérivé de sa recette volumique, cap par défaut ; `solid`
   const scene = { dimensions: { w: 4, h: 1 }, layers: [{ z: 0, tiles: ['herbe', 'herbe', 'herbe', 'herbe'] }], entities: [cart] } as unknown as Scene;
   it('une case d’empreinte (charrette 2×1) est non-walkable', () => {
     expect(isWalkable(scene, 1, 0)).toBe(false);
@@ -150,8 +150,8 @@ describe('isWalkable — intègre l’empreinte des décors', () => {
 });
 
 describe('isWalkable — #791 le blocage d’un prop ne s’applique qu’à SA couche z', () => {
-  const propZ0: SceneEntity = { id: 'p0', kind: 'prop', pos: { x: 2, y: 2 }, z: 0, ref: 'feu-camp' } as unknown as SceneEntity;
-  const propZ1: SceneEntity = { id: 'p1', kind: 'prop', pos: { x: 2, y: 2 }, z: 1, ref: 'feu-camp' } as unknown as SceneEntity;
+  const propZ0: SceneEntity = { id: 'p0', kind: 'prop', pos: { x: 2, y: 2 }, z: 0, decor: { id: 'feu-camp' } } as unknown as SceneEntity;
+  const propZ1: SceneEntity = { id: 'p1', kind: 'prop', pos: { x: 2, y: 2 }, z: 1, decor: { id: 'feu-camp' } } as unknown as SceneEntity;
   const scene = {
     dimensions: { w: 4, h: 4 },
     layers: [

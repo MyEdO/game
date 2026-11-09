@@ -154,7 +154,7 @@ const MEUBLES: SceneEntity[] = Object.entries(MOBILIER).flatMap(([lettre, meuble
   return meubles.map(([ref, x, y, facing, calage, sur], i): SceneEntity => ({
     id: `${piece}-${ref}-${meubles.slice(0, i + 1).filter(([r]) => r === ref).length}`,
     kind: 'prop',
-    ref,
+    decor: { id: ref },
     pos: { x, y },
     z: Number(etage.slice(1)),
     facing,
@@ -174,7 +174,7 @@ const DECOR: readonly (readonly [ref: string, x: number, y: number, z: number, f
 const DECORS: SceneEntity[] = DECOR.map(([ref, x, y, z, facing, calage], i): SceneEntity => ({
   id: `${ref}-${DECOR.slice(0, i + 1).filter(([r]) => r === ref).length}`,
   kind: 'prop',
-  ref,
+  decor: { id: ref },
   pos: { x, y },
   z,
   facing,
@@ -217,7 +217,7 @@ export const AMELIORATIONS_DE_LA_CARAQUE: Readonly<Record<string, ApportAuxPonts
   },
   'embarcation-de-bord': {
     relief: [{ rect: [CANOT.pos.x, CANOT.pos.y, CANOT.bout.x, CANOT.bout.y], height: garanti(HAUTEURS[PASSERELLE], PASSERELLE, 'hauteur de la passerelle'), z: CANOT.z }],
-    entities: [{ id: 'embarcation-de-bord', kind: 'prop', ref: 'barque', pos: CANOT.pos, z: CANOT.z, facing: 'S' }],
+    entities: [{ id: 'embarcation-de-bord', kind: 'prop', decor: { id: 'barque' }, pos: CANOT.pos, z: CANOT.z, facing: 'S' }],
   },
   sabord: {
     walls: aretesDe(MOTS_DES_PONTS.sabord).map((e): WallSpec => ({ ...e, window: true, shuttered: true })),

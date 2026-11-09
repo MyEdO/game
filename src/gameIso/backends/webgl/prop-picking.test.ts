@@ -21,13 +21,13 @@ const NDC = { x: 0, y: 0 };
 
 const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });
 const volumeEntity = (id: string): SceneEntity =>
-  ({ id, kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' }) as SceneEntity;
+  ({ id, kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' }) as SceneEntity;
 /** Un décor servi en BILLBOARD : seul le repli d'ERREUR d'une ref hors catalogue en pose un (#877, #3198). */
 const REF_BILLBOARD = REF_HORS_CATALOGUE;
 const legacyEntity = (id: string): SceneEntity =>
-  ({ id, kind: 'prop', pos: { x: 5, y: 5 }, ref: REF_BILLBOARD }) as SceneEntity;
+  ({ id, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: REF_BILLBOARD }}) as SceneEntity;
 const figurant = (id: string): SceneEntity =>
-  ({ id, kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 } }) as SceneEntity;
+  ({ id, kind: 'personnage', creature: { id: 'humain' }, pos: { x: 6, y: 6 } }) as SceneEntity;
 /** Deux listes de deps sont-elles la MÊME ? — par IDENTITÉ, terme à terme : le patron de rétention. */
 const memesDeps = (a: readonly unknown[], b: readonly unknown[]) => a.length === b.length && a.every((d, i) => d === b[i]);
 const patchEntity = (scene: Scene, id: string, patch: Partial<SceneEntity>): Scene =>
@@ -67,7 +67,7 @@ describe('Cuisson d’un décor volumique — une seule voie, et son id de picki
       { ...base, entities: [] },
       { ...base, entities: [...base.entities, volumeEntity('table-2')] },
       patchEntity(base, 'table-1', { pos: { x: 3, y: 4 } }),
-      patchEntity(base, 'table-1', { ref: 'comptoir-droit' }),
+      patchEntity(base, 'table-1', { decor: { id: 'comptoir-droit' } }),
       patchEntity(base, 'table-1', { facing: 'E' }),
     ]) expect(memesDeps(worldBakeDeps(changed, 2), worldBakeDeps(base, 2))).toBe(false);
   });

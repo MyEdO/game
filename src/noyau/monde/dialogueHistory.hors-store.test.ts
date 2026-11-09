@@ -32,8 +32,8 @@ function makeDialogue(): Dialogue {
 }
 
 const entities: SceneEntity[] = [
-  { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, label: 'Aubergiste' },
-  { id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 0 }, label: 'Garde' },
+  { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, label: 'Aubergiste' },
+  { id: 'pnj-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 0 }, label: 'Garde' },
 ];
 
 describe('recordTurn (helper pur)', () => {
@@ -111,7 +111,7 @@ describe('dialogue.reponse — archivage (#718)', () => {
   it('un locuteur POSÉ à l’éditeur, sans libellé, archive le nom de sa fiche (#1463 S3)', () => {
     const base = testScene();
     const id = nextEntityId('personnage', base.entities.map((e) => e.id));
-    const pose = { scene: addEntity(base, { id, kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 } }), id };
+    const pose = { scene: addEntity(base, { id, kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 } }), id };
     const ent = pose.scene.entities.find((e) => e.id === pose.id)!;
     expect(ent).not.toHaveProperty('label');
     banc.setState({

@@ -87,13 +87,18 @@ export interface SceneEntity {
   /** DÉCOR : l'id du décor qui le porte ; son pied est le dessus de celui-ci à l'aplomb de son ancre (`piedDuDecor`). */
   sur?: string;
   label?: string;
-  /** Référence au bestiaire (personnage) ou au catalogue de décor (prop, cf. PROPS). */
-  ref?: string;
-  /** Profil personnalisé (sinon on utilise `ref`). */
+  /** DÉCOR : son type au catalogue des décors (`props.json`). */
+  decor?: { id: string };
+  /** PERSONNAGE : son corps, un au plus — sa créature du bestiaire, sa coque (`vehicles.json`) ou son engin de siège
+   *  (`trappings.json`, `siegeEngines`). */
+  creature?: { id: string };
+  vehicule?: { id: string };
+  engin?: { id: string };
+  /** Profil personnalisé (sinon on utilise le corps). */
   statblock?: CustomStatblock;
   /** Id d'un preset de PNJ nommé du bloc `narratif.presetsPnj` (#671). Présent = l'entité est
    *  INSTANCIÉE « base globale + surcharges embarquées » (le preset porte `base`/`profil`/`apparence`),
-   *  et non depuis `ref`/`statblock` — frontière RÉFÉRENCE vs NARRATIF (le PNJ nommé vit dans le
+   *  et non depuis son corps ou `statblock` — frontière RÉFÉRENCE vs NARRATIF (le PNJ nommé vit dans le
    *  paquet de campagne, réfère la règle globale par id). Résolu par `resolvePresetCreature`. */
   presetId?: string;
   /** Coque/navire : `id`s des entités d'ÉQUIPAGE exposées à bord (MDG 14) — posés sur le Combattant au spawn. */
@@ -159,7 +164,7 @@ export interface SceneEntity {
   usable?: { assise?: true; actions?: ActionAuthoree[] };
   /** RÔLE combat optionnel (au même titre que dialogue/marchand) : présent = ce personnage peut être
    *  enrôlé dans une rencontre (cf. EncounterMember). Porte les choix d'auteur qui DÉCRIVENT la
-   *  personne au combat — son profil (ref/statblock) et son apparence vivent déjà sur l'entité. */
+   *  personne au combat — son profil (corps/statblock) et son apparence vivent déjà sur l'entité. */
   combat?: {
     /** OPTIONNELS choisis (LDB 76 l.45) : Traits posés résolus au spawn OU notes « swap » (ZI). */
     optionals?: OptionalDeScene[];
@@ -185,6 +190,11 @@ type PorteurDEntite = (typeof PORTEURS_DU_TYPE)['personnage']['porteurs'][number
 export type AuMoinsUnPorteurDeFiche = {
   [K in PorteurDEntite]: Required<Pick<SceneEntity, K>> & Partial<Pick<SceneEntity, Exclude<PorteurDEntite, K>>>;
 }[PorteurDEntite];
+
+/** L'id de ce que le corps d'une entité désigne à son catalogue — le type d'un décor, la créature, la coque ou l'engin
+ *  d'un personnage —, `undefined` sans corps (statbloc, preset, départ des héros). */
+export const idDuCorps = (ent: Pick<SceneEntity, 'decor' | 'creature' | 'vehicule' | 'engin'>): string | undefined =>
+  (ent.decor ?? ent.creature ?? ent.vehicule ?? ent.engin)?.id;
 
 export type ArchitectureRect = z.infer<typeof architectureRectSchema>;
 export type ArchitectureEdgeRef = z.infer<typeof architectureEdgeRefSchema>;
@@ -267,6 +277,8 @@ export interface SceneEffectZone {
   z?: number;
   /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
   couvre?: string[];
+  /** Le rendu qui la montre tant qu'elle dure (#3834) ; absent, elle ne se voit pas. */
+  rendu?: { id: string };
 }
 
 /** Une zone d'effet est DESCRIPTIVE (nom de pièce) quand elle ne porte AUCUN champ mécanique — filtre

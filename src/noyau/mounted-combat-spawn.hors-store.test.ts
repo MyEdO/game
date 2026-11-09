@@ -143,8 +143,8 @@ function cavalerieScene(preMonte: boolean): { scene: Scene; montureId: string; c
   const enc = buildEncounter({
     id: ENC_CAVALERIE,
     enemies: [
-      { ref: 'cheval', pos: { x: 16, y: 11 }, mount: true },
-      { ref: 'mutant', pos: { x: 19, y: 11 }, ...(preMonte ? { rides: 0 } : {}) },
+      { creature: { id: 'cheval' }, pos: { x: 16, y: 11 }, mount: true },
+      { creature: { id: 'mutant' }, pos: { x: 19, y: 11 }, ...(preMonte ? { rides: 0 } : {}) },
     ],
   });
   const scene: Scene = {

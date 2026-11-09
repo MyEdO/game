@@ -24,12 +24,12 @@ const construireVillage = (): Scene => buildScene({
   entities: [
     // Effet `medicalAid` (LDB 75) : PNJ soigneur payant, distinct de l'Action Guérison générique.
     {
-      id: 'medecin', kind: 'personnage', ref: 'stefan-hochen', label: 'Médecin Holst',
+      id: 'medecin', kind: 'personnage', creature: { id: 'stefan-hochen' }, label: 'Médecin Holst',
       pos: { x: 8, y: 2 }, dialogueId: { id: 'dlg-medecin' },
     },
     // Effet `petitePriere` (LDB 25 l.22-24, option `prayer-petites`) : site sacré pour un non-Béni.
     {
-      id: 'autel', kind: 'prop', ref: 'autel', pos: { x: 8, y: 7 },
+      id: 'autel', kind: 'prop', decor: { id: 'autel' }, pos: { x: 8, y: 7 },
       usable: { actions: [{ id: 'fouiller', unique: true, consume: false,
         flow: flowFromEffects([
           {
@@ -43,12 +43,12 @@ const construireVillage = (): Scene => buildScene({
     },
     // Effet `openCharacterCreator` (#3556) : l'hôte ouvre sa création sur un héros neuf.
     {
-      id: 'avis-d-enrolement', kind: 'prop', ref: 'panneau', label: 'Avis d’enrôlement', pos: { x: 2, y: 7 },
+      id: 'avis-d-enrolement', kind: 'prop', decor: { id: 'panneau' }, label: 'Avis d’enrôlement', pos: { x: 2, y: 7 },
       usable: { actions: [{ id: 'lire', label: 'Signer l’enrôlement', flow: flowFromEffects([{ type: 'openCharacterCreator' }]) }] },
     },
     // Effet `ambitionLost` (ADE II Annexe I, reporté de #94) : le messager annonce une catastrophe.
     {
-      id: 'messager', kind: 'personnage', ref: 'humain', label: 'Messager essoufflé',
+      id: 'messager', kind: 'personnage', creature: { id: 'humain' }, label: 'Messager essoufflé',
       pos: { x: 3, y: 2 }, dialogueId: { id: 'dlg-messager' },
     },
   ],

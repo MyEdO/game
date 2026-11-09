@@ -35,10 +35,10 @@ function derniereePlaceLibre(): void {
   const s = emptyScene('scene-test', 12, 12);
   s.id = 'taverne-coop';
   s.entities = [
-    { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } },
-    { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 5 } },
-    { id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 6 } },
-    { id: 'pnj-3', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 5 } },
+    { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } },
+    { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 6, y: 5 } },
+    { id: 'pnj-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 6 } },
+    { id: 'pnj-3', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 4, y: 5 } },
   ];
   s.seatAssignments = { [PROP]: { 'place-2': pris('pnj-1'), 'place-3': pris('pnj-2'), 'place-4': pris('pnj-3') } };
   banc.setState({ party: [hero('h1'), hero('h2')], battle: null, journal: [], dialogue: null, mode: 'exploration' });
