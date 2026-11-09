@@ -10,7 +10,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -134,6 +134,10 @@ export interface VueDuPont {
   plateau: ReturnType<typeof plateauDeLaScene> | null;
   lumiere: LumiereDeLaScene | null;
   musique: MusiqueDeLaPartie | null;
+  /** Les zones qui durent sur le plateau (`zonesQuiDurent`), chacune dessinée tant qu'elle dure (#3834). */
+  zonesQuiDurent: ZoneQuiDure[];
+  /** Par id d'un combattant dessiné, les marques de ses États (`marquesDesEtats`), dans leur ordre (#3834). */
+  marques: Record<string, MarqueDEtat[]>;
   champ: typeof CLIC_DU_CHAMP | null;
   occupants: Record<string, string>;
 }
@@ -277,6 +281,8 @@ export function creerPont() {
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
       musique: musiqueDeLaPartie(etat),
+      zonesQuiDurent: zonesQuiDurent(etat.battle?.zones ?? []),
+      marques: Object.fromEntries((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map((c) => [c.id, marquesDesEtats(c.etats)])),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };

@@ -457,11 +457,11 @@ function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly
 }
 
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
- *  traversée, ses effets à la traversée et à chaque Round ; d'un déclencheur, sa condition d'entrée ; d'une entité, la
+ *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa condition d'entrée ; d'une entité, la
  *  branche de son type : d'un personnage, son rôle au combat, sa contrepartie d'amateur des arts, son animation, et d'une
  *  coque, ses Améliorations (MDG 12), aux choix de ses options (`choixDesOptions`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
-  zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound']] },
+  zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
   declencheur: { schema: triggerSchema, champs: () => [['when']] },
   entite: {
     schema: sceneEntitySchema,

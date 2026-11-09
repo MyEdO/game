@@ -70,6 +70,9 @@ const METRES_PAR_UNITE := 1.0
 @onready var _effets: Effets = $Effets
 @onready var _cible: Node3D = $Cible
 var _musique := Musique.new()
+## La zone qui dure de la vitrine posée autour de la cible, et les marques d'États posées sur elle (#3834).
+var _zones := ZonesQuiDurent.new()
+var _marques := MarquesDEtats.new()
 @onready var _etat: Label = %Etat
 @onready var _choix_du_modele: VBoxContainer = %ChoixDuModele
 @onready var _panneau_des_emplacements: VBoxContainer = %Emplacements
@@ -150,6 +153,10 @@ var _echantillon_demande: Variant = null
 func _ready() -> void:
 	_musique.name = "Musique"
 	add_child(_musique)
+	_zones.name = "ZonesQuiDurent"
+	add_child(_zones)
+	_marques.name = "Marques"
+	_cible.add_child(_marques)
 	_recueil = _erreurs
 	_montage.erreurs = _erreurs
 	%Recharger.pressed.connect(_recharger)
@@ -1007,8 +1014,8 @@ func _palette_posee() -> Dictionary:
 
 ## La vitrine des effets (`vitrine`) : la cible posée à sa distance, puis, par rendu d'arme et par sort, une rangée à son
 ## `label` qui porte un bouton par variante, un bouton par manœuvre de zone et par Type de Souffle (#3783), un bouton par
-## son et par flottant, un bouton par ton de lumière, qui pose son foyer sur la cible, et un bouton à bascule par musique
-## (#3825).
+## son et par flottant, un bouton par ton de lumière, qui pose son foyer sur la cible, un bouton à bascule par musique
+## (#3825), par zone qui dure, qui la pose autour de la cible, et par État, qui pose sa marque sur la cible (#3834).
 func _poser_la_vitrine() -> void:
 	var reponse := _pont.appeler("vitrine")
 	if reponse.get("ok") != true:
@@ -1044,6 +1051,40 @@ func _poser_la_vitrine() -> void:
 		bouton.set_meta("cle", "musique/%s" % musique.id)
 		bouton.toggled.connect(_ecouter.bind(musique.musique, bouton))
 		%VitrineMusiques.add_child(bouton)
+	for zone in _vitrine.zonesQuiDurent:
+		var bouton := Button.new()
+		bouton.text = zone.label
+		bouton.toggle_mode = true
+		bouton.set_meta("cle", "zone-qui-dure/%s" % zone.id)
+		bouton.toggled.connect(_faire_durer.bind(zone.zone, bouton))
+		%VitrineZonesQuiDurent.add_child(bouton)
+	for marque in _vitrine.marques:
+		var bouton := Button.new()
+		bouton.text = marque.label
+		bouton.toggle_mode = true
+		bouton.set_meta("cle", "marque/%s" % marque.id)
+		bouton.set_meta("marque", marque.marque)
+		bouton.toggled.connect(_marquer.unbind(1))
+		%VitrineMarques.add_child(bouton)
+
+
+## La zone qui dure `zone` de la vitrine posée autour de la cible quand son bouton `bouton` s'enfonce (`allume`), les
+## autres relâchés ; retirée quand il se relâche.
+func _faire_durer(allume: bool, zone: Dictionary, bouton: Button) -> void:
+	for autre: Button in %VitrineZonesQuiDurent.get_children():
+		if autre != bouton:
+			autre.set_pressed_no_signal(false)
+	var lieu := func(case: Dictionary) -> Vector3: return MiseEnPage.lieu_de_la_case_de_vitrine(case.x, case.y, _vitrine.metresParCase)
+	_zones.poser([zone] if allume else [], lieu, METRES_PAR_UNITE)
+
+
+## Les marques des États dont le bouton est enfoncé, posées sur la cible dans leur ordre.
+func _marquer() -> void:
+	var marques: Array = []
+	for bouton: Button in %VitrineMarques.get_children():
+		if bouton.button_pressed:
+			marques.append(bouton.get_meta("marque"))
+	_marques.montrer(marques, METRES_PAR_UNITE)
 
 
 ## La musique `musique` de la vitrine jouée quand son bouton `bouton` s'enfonce (`allume`), les autres relâchés ; le

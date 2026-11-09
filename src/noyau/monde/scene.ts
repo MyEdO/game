@@ -267,6 +267,8 @@ export interface SceneEffectZone {
   z?: number;
   /** Entrées de fiche de dossier de chapitre couvertes (`couvreSchema`, #2290). */
   couvre?: string[];
+  /** Le rendu qui la montre tant qu'elle dure (#3834) ; absent, elle ne se voit pas. */
+  rendu?: { id: string };
 }
 
 /** Une zone d'effet est DESCRIPTIVE (nom de pièce) quand elle ne porte AUCUN champ mécanique — filtre

@@ -441,6 +441,24 @@ text = "Musiques"
 unique_name_in_owner = true
 layout_mode = 2
 
+[node name="TitreZonesQuiDurent" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Zones qui durent"
+
+[node name="VitrineZonesQuiDurent" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreMarques" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Marques des États"
+
+[node name="VitrineMarques" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
 [node name="DefilementOutils" type="ScrollContainer" parent="Interface/Panneau/Racine"]
 unique_name_in_owner = true
 visible = false

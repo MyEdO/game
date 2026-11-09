@@ -7,7 +7,7 @@
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
 import { allMusicDefs } from '../data/sons/musique';
-import { breathTypes, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
@@ -17,9 +17,10 @@ import { sourceDuTon, type SourceDeLumiere } from './lumiereDeLaScene';
 import type { Jeu } from './etat';
 import { porteurParId } from './monde/combatants';
 import { musiqueDeLaSelection, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
+import { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 import { sceneMetresPerTile } from './monde/scene';
 import { FLAME_LIFT_M } from './monde/vision';
-import { discTiles } from './monde/zones';
+import { discTiles, type BattleZone } from './monde/zones';
 import type { Evenement } from './partie';
 
 /** Une phase rendue : le visuel que l'hôte dessine à son point, le son qu'il y joue. */
@@ -182,10 +183,54 @@ function zone(rendu: RenduDef, couleur: string, z: ChargeDeZone, distanceM: numb
 
 /** Le rendu de la zone `z` et sa teinte : celui de son sort, celui de sa manœuvre, à défaut le repli d'un sort hors
  *  Domaine. */
-export function renduDeLaZone(z: ChargeDeZone): { rendu: RenduDef; couleur: string } {
+export function renduDeLaZone(z: Pick<ChargeDeZone, 'sort' | 'rendu'>): { rendu: RenduDef; couleur: string } {
   if (z.sort) return renduDuSort(z.sort);
   const rendu = catalogue(z.rendu ?? REPLI.sort);
   return { rendu, couleur: rendu.couleur };
+}
+
+/** Une zone qui dure sur le plateau (`battle.zones`, #3834) : ses cases, sa teinte, le visuel posé sur chacune tant
+ *  qu'elle dure, et le son qu'elle joue en boucle à sa case `centre`. `cle` la nomme d'une vue à l'autre. */
+export interface ZoneQuiDure {
+  cle: string;
+  cases: CaseDeZone[];
+  centre: CaseDeZone;
+  couleur: string;
+  visuel: VisuelDEffet | null;
+  boucle: SonDEffet | null;
+}
+
+/** Le rendu de la zone persistante `z` et sa teinte : le sien (une zone de scène, la fumée d'un Souffle), celui de son
+ *  sort ; `null` sans l'un ni l'autre, une zone qui ne se voit pas. */
+function renduDeLaZoneQuiDure(z: BattleZone): { rendu: RenduDef; couleur: string } | null {
+  if (z.rendu) return renduDeLaZone({ rendu: z.rendu.id });
+  return z.source?.kind === 'spell' ? renduDuSort(z.source.id) : null;
+}
+
+/** La case des cases `cases` la plus proche de leur barycentre. */
+function caseCentrale(cases: readonly CaseDeZone[]): CaseDeZone {
+  const mx = cases.reduce((a, c) => a + c.x, 0) / cases.length;
+  const my = cases.reduce((a, c) => a + c.y, 0) / cases.length;
+  return cases.reduce((m, c) => (Math.hypot(c.x - mx, c.y - my) < Math.hypot(m.x - mx, m.y - my) ? c : m));
+}
+
+/** Celles des zones persistantes `zones` (`battle.zones`) qui se voient, chacune à son rendu : la nappe de son rendu
+ *  (son visuel de zone, à défaut celui de son impact) et son son de zone qui dure. */
+export function zonesQuiDurent(zones: readonly BattleZone[]): ZoneQuiDure[] {
+  const vues = new Map<string, number>();
+  return zones.flatMap((z): ZoneQuiDure[] => {
+    const r = renduDeLaZoneQuiDure(z);
+    if (!r || !z.tiles.length) return [];
+    const centre = caseCentrale(z.tiles);
+    const base = `${z.id ?? z.rendu?.id ?? z.source?.id}@${centre.x},${centre.y},${centre.z ?? 0}`;
+    const rang = vues.get(base) ?? 0;
+    vues.set(base, rang + 1);
+    return [{
+      cle: rang ? `${base}#${rang}` : base, cases: z.tiles, centre, couleur: r.couleur,
+      visuel: r.rendu.zoneVisuel ?? r.rendu.impactVisuel ?? null,
+      boucle: r.rendu.zoneBoucle ? sonDEffet(r.rendu.zoneBoucle.id) : null,
+    }];
+  });
 }
 
 /** L'effet de l'attaque `a`, entre deux combattants posés à `distanceM` mètres l'un de l'autre. */
@@ -215,9 +260,10 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
 /** Les effets des événements `evenements` d'un appel (`ResultatDeLAppel.evenements`) sur l'état `etat` qui le suit, dans
  *  leur ordre ; un coup, une incantation ou une zone dont un combattant n'est pas posé, ou l'attaque spéciale d'une
  *  créature sur elle-même, n'en rend aucun. Un déplacement rend ses pas, un pas refusé son heurt, la victoire son gong,
- *  les dés du joueur (`EVT.DICE_ROLL`) leur son. */
+ *  les dés du joueur (`EVT.DICE_ROLL`) leur son ; un État gagné, son flottant sur son porteur. */
 export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Effet[] {
   return evenements.flatMap((e): Effet[] => {
+    if (e.type === 'etatGagne') return [{ quoi: 'flottant', sur: e.porteur, case: null, flottant: flottant('condition', conditionLabel(e.etat)) }];
     if (e.type !== 'emis') return [];
     if (e.evt === 'anim_attack') {
       if (e.payload.kind === 'creature') return [];
@@ -279,6 +325,8 @@ export interface VitrineDesEffets {
   attaques: Record<string, Effet>;
   flottants: EffetDeVitrine[];
   musiques: { id: string; label: string; musique: MusiqueDeLaPartie }[];
+  zonesQuiDurent: { id: string; label: string; zone: ZoneQuiDure }[];
+  marques: { id: string; label: string; marque: MarqueDEtat }[];
 }
 
 const AUTEUR_DE_LA_VITRINE = 'auteur';
@@ -380,5 +428,12 @@ export function vitrineDesEffets(): VitrineDesEffets {
   ];
   const flottants = echantillons.map(([id, f]): EffetDeVitrine => ({ id, label: f.texte, effet: { quoi: 'flottant', sur: vers, case: null, flottant: f } }));
   const musiques = allMusicDefs().map((d) => ({ id: d.id, label: d.label, musique: musiqueDeLaSelection({ def: d.id })! }));
-  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques };
+  const casesDeLaZone = discTiles(caseDeLaCible, RAYON_DE_ZONE_DE_LA_VITRINE);
+  const zones = rendus.filter((r) => r.zoneVisuel ?? r.impactVisuel).map((r) => ({
+    id: r.id,
+    label: r.label,
+    zone: zonesQuiDurent([{ label: r.label, tiles: casesDeLaZone, rounds: 1, rendu: { id: r.id } }])[0],
+  }));
+  const marques = etats.map((e) => ({ id: e.id, label: e.label, marque: marquesDesEtats([{ id: e.id, valeur: 1 }])[0] }));
+  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques, zonesQuiDurent: zones, marques };
 }

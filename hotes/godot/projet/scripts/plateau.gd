@@ -5,7 +5,8 @@
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
-## aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le modèle
+## aucun sous son `refus`), son véhicule (`vue.corps.vehicules`) et les marques de ses États (`vue.marques`,
+## `MarquesDEtats`), les zones qui durent (`vue.zonesQuiDurent`, `ZonesQuiDurent`), chaque navire de la scène sous le modèle
 ## de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
 ## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
@@ -40,6 +41,10 @@ const CLES_DU_CADRAGE := {
 
 ## Les effets des appels, rendus au plateau (`Effets`).
 var _effets := Effets.new()
+## Les zones qui durent sur le plateau (`ZonesQuiDurent`).
+var _zones := ZonesQuiDurent.new()
+## Par id d'un combattant dessiné, les marques de ses États (`MarquesDEtats`).
+var _marques: Dictionary = {}
 var _modeles: Dictionary = {}
 ## Par id d'entité, le montage de chaque navire posé (`_poser_les_navires`).
 var _navires_montes: Dictionary = {}
@@ -52,6 +57,8 @@ func _ready() -> void:
 	_immersion.case_jouee.connect(case_cliquee.emit)
 	_effets.name = "Effets"
 	add_child(_effets)
+	_zones.name = "ZonesQuiDurent"
+	add_child(_zones)
 	_effets.depart.connect(_agir)
 	_effets.arrivee.connect(_subir)
 
@@ -91,7 +98,21 @@ func montrer(vue: Dictionary) -> void:
 			modele.habille.connect(habille.emit)
 			_modeles[c.id] = modele
 		_modeles[c.id].montrer(c, lieu, c.id == actif, null if vue.corps.refus != null else vue.corps.combattants.get(c.id), vue.corps.vehicules.get(c.id), vue.plateau.metresParCase)
+		_marquer(c.id, lieu, vue.marques.get(c.id, []), vue.plateau.metresParCase)
+	if vue.plateau != null:
+		_zones.poser(vue.zonesQuiDurent, func(case: Dictionary) -> Vector3: return _lieu([case.x, case.y, case.get("z", 0)]), vue.plateau.metresParCase)
 	_peindre()
+
+
+## Les marques `marques` des États du combattant `id`, posées au sol `lieu` de sa case.
+func _marquer(id: String, lieu: Vector3, marques: Array, metres_par_case: float) -> void:
+	if not _marques.has(id):
+		var posees := MarquesDEtats.new()
+		posees.name = "marques"
+		_combattants.add_child(posees, true)
+		_marques[id] = posees
+	_marques[id].position = lieu
+	_marques[id].montrer(marques, metres_par_case)
 
 
 ## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
