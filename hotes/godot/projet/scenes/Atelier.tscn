@@ -361,6 +361,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Attaquer"
 
+[node name="Parcourir" type="Button" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Parcourir un chemin"
+
 [node name="AideDeMarche" type="Label" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne"]
 layout_mode = 2
 autowrap_mode = 3

@@ -14,7 +14,8 @@
 ## Son onglet Effets montre la vitrine des effets que le jeu joue (#3777, `vitrine`, `CONTRAT.md`, section « Effets ») :
 ## chaque variante de chaque rendu d'arme, de chaque Domaine et de la Prière, chaque son et chaque flottant, rejoués par
 ## son nœud `Effets` de l'auteur posé à l'origine vers la cible (`Cible`), et chaque musique, jouée par sa `Musique`
-## jusqu'à ce que son bouton se relâche (#3825).
+## jusqu'à ce que son bouton se relâche (#3825) ; son onglet Animation, le déplacement de la vitrine, que la base posée
+## parcourt (#3822).
 ## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
 ## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
 ## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
@@ -144,6 +145,8 @@ var _ameliorations_du_vehicule: Array = []
 var _offre_du_vehicule: Dictionary = {}
 ## La réponse de `vitrine`, vide avant elle.
 var _vitrine: Dictionary = {}
+## Le parcours en cours du chemin de la vitrine (`_parcourir`).
+var _parcours: Tween
 ## Les familles d'échantillons de `echantillons`, vides avant elle.
 var _familles_d_echantillons: Array = []
 ## L'échantillon demandé, `{ famille, id }` (l'entrée de `echantillon`), `null` : aucun.
@@ -173,6 +176,8 @@ func _ready() -> void:
 		_boutons_des_onglets[onglet].pressed.connect(_montrer_l_onglet.bind(onglet))
 	%Copier.pressed.connect(_copier)
 	%Attaquer.pressed.connect(_attaquer)
+	%Parcourir.pressed.connect(func() -> void: _jouer_l_effet(_vitrine.deplacement))
+	_effets.deplacement.connect(_parcourir)
 	%AProduire.toggled.connect(func(montre: bool) -> void:
 		%ListeAProduire.visible = montre
 		_publier())
@@ -977,7 +982,8 @@ func _onglets_offerts() -> Array[String]:
 
 ## Chaque bascule d'onglet montrée si le modèle posé offre son onglet (`_onglets_offerts`), l'onglet montré remplacé par
 ## le premier offert s'il ne l'est plus ; à l'onglet Couleurs, la rangée de chaque emplacement de la palette posée ; à
-## l'onglet Animation, « Actions » si l'engin posé attaque ; à l'onglet Outils, chaque aide dont le modèle porte un repère.
+## l'onglet Animation, « Attaquer » si l'engin posé attaque, « Parcourir un chemin » si la base posée marche
+## (`_parcourt`), et « Actions » s'il porte l'un d'eux ; à l'onglet Outils, chaque aide dont le modèle porte un repère.
 func _adapter_les_onglets() -> void:
 	var offerts := _onglets_offerts()
 	for onglet in _onglets:
@@ -988,7 +994,9 @@ func _adapter_les_onglets() -> void:
 	var palette := _palette_posee()
 	for slot in _listes_des_couleurs:
 		_listes_des_couleurs[slot].get_parent().visible = palette.has(slot)
-	%Actions.visible = _attaque_de_l_engin() != null
+	%Attaquer.visible = _attaque_de_l_engin() != null
+	%Parcourir.visible = _parcourt()
+	%Actions.visible = %Attaquer.visible or %Parcourir.visible
 	for aide in _cases_des_aides:
 		_cases_des_aides[aide].visible = not _reperes[aide].is_empty()
 	%TitreAides.visible = _reperes.values().any(func(reperes: Array) -> bool: return not reperes.is_empty())
@@ -1108,11 +1116,8 @@ func _jouer_l_effet(effet: Dictionary) -> void:
 		boite = boite.merge(posee)
 	_marche.cadrer_la_boite(boite)
 	var lieux := {_vitrine.de: Vector3.ZERO, _vitrine.vers: _cible.position}
-	if effet.quoi == "zone":
-		var cases: Array = effet.cases.duplicate()
-		cases.append(effet.centre)
-		for case: Dictionary in cases:
-			lieux[Effets.cle_de_case(case)] = MiseEnPage.lieu_de_la_case_de_vitrine(case.x, case.y, _vitrine.metresParCase)
+	for case: Dictionary in Effets.cases_de(effet):
+		lieux[Effets.cle_de_case(case)] = MiseEnPage.lieu_de_la_case_de_vitrine(case.x, case.y, _vitrine.metresParCase)
 	_effets.jouer([effet], lieux, METRES_PAR_UNITE)
 
 
@@ -1132,6 +1137,27 @@ func _attaque_de_l_engin() -> Variant:
 	if _vehicule.scene == null or _vitrine.is_empty():
 		return null
 	return _vitrine.attaques.get(_definition_du_vehicule)
+
+
+## Si la base posée parcourt le chemin de la vitrine (`deplacement`) : la vitrine servie, et le clip de marche de la
+## composition montée au lecteur.
+func _parcourt() -> bool:
+	return not _vitrine.is_empty() and _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip(Combattant.MARCHE))
+
+
+## Le modèle posé parcourt `lieux`, le chemin de la vitrine (`deplacement`), depuis sa première case, comme un combattant
+## du plateau (`Combattant.parcourir_les_lieux`) : au clip de marche de la composition montée, chaque pas de `metres` (au
+## même rang) à sa vitesse au sol (`MontageDeComposition.duree_du_pas`) ; puis son repos. Un parcours neuf remplace celui
+## en cours.
+func _parcourir(_qui: String, lieux: Array, metres: Array) -> void:
+	if _parcours != null:
+		_parcours.kill()
+	var racine := _montage.modele
+	racine.position = lieux[0]
+	_jouer_le_clip(_montage.clip(Combattant.MARCHE))
+	_parcours = create_tween()
+	Combattant.parcourir_les_lieux(_parcours, racine, racine, lieux, metres.map(_montage.duree_du_pas))
+	_parcours.tween_callback(_jouer_le_repos)
 
 
 ## L'engin posé attaque, comme au combat : son coup, et le clip de son rôle de tir s'il en porte un, d'attaque sinon, joué

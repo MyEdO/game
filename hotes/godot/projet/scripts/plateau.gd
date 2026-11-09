@@ -11,7 +11,7 @@
 ## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
-## appel entre ses combattants (`Effets`). Il ne rend que la
+## appel entre ses combattants (`Effets`), dont le chemin de chaque déplacement, que son combattant parcourt (#3822). Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
 ## case inspectée sous le pointeur. Il pose la caméra sur un cadrage sans rien jouer (`cadrer`).
 class_name Plateau
@@ -61,6 +61,7 @@ func _ready() -> void:
 	add_child(_zones)
 	_effets.depart.connect(_agir)
 	_effets.arrivee.connect(_subir)
+	_effets.deplacement.connect(_parcourir)
 
 
 ## Montre la vue.
@@ -116,8 +117,8 @@ func _marquer(id: String, lieu: Vector3, marques: Array, metres_par_case: float)
 
 
 ## Rend `effets` (`suite.effets`, `Effets.jouer`) entre les combattants dessinés et sur le sol des cases de chaque
-## zone et de chaque flottant posé sur une case : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
-## d'un coup qui touche l'accuse à son arrivée.
+## effet (`Effets.cases_de`) : l'auteur d'un coup, d'une incantation ou d'une zone se tourne vers sa cible et l'anime à son départ, la cible
+## d'un coup qui touche l'accuse à son arrivée, un combattant dessiné qui se déplace parcourt son chemin.
 func jouer_les_effets(effets: Array) -> void:
 	if _vue.plateau == null:
 		return
@@ -125,13 +126,7 @@ func jouer_les_effets(effets: Array) -> void:
 	for id: String in _modeles:
 		lieux[id] = _modeles[id].position
 	for effet: Dictionary in effets:
-		var cases: Array = []
-		if effet.quoi == "zone":
-			cases = effet.cases.duplicate()
-			cases.append(effet.centre)
-		elif effet.quoi == "flottant" and effet.case != null:
-			cases = [effet.case]
-		for case: Dictionary in cases:
+		for case: Dictionary in Effets.cases_de(effet):
 			lieux[Effets.cle_de_case(case)] = _lieu([case.x, case.y, case.get("z", 0)])
 	_effets.jouer(effets, lieux, _vue.plateau.metresParCase)
 
@@ -146,6 +141,12 @@ func _agir(de: String, vers: Vector3) -> void:
 func _subir(vers: String, touche: bool) -> void:
 	if touche:
 		_modeles[vers].subir()
+
+
+## Le combattant `qui`, s'il est dessiné, parcourt `lieux`, chaque case à `metres` de la précédente (`Combattant.parcourir`).
+func _parcourir(qui: String, lieux: Array, metres: Array) -> void:
+	if _modeles.has(qui):
+		_modeles[qui].parcourir(lieux, metres)
 
 
 ## Chaque navire de `navires` (`vue.corps.navires`) monté sous `Navires` (`_monter_le_navire`), coupé à la hauteur de
