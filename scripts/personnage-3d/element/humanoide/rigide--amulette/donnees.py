@@ -40,11 +40,13 @@ SEGMENTS = 16
 DESCENTE = 0.12
 """Le centre du médaillon sous l'emplacement. Illustration : environ 65 px (12 cm) sous la ceinture."""
 
-BELIERE = {'rayon': 0.005, 'section': 0.0015, 'segments': 6, 'cotes': 3}
-"""HYPOTHÈSE : l'anneau qui passe le cordon au sommet du médaillon."""
+BELIERE = {'rayon': 0.007, 'section': 0.002, 'segments': 6, 'cotes': 3}
+"""HYPOTHÈSE : l'anneau qui passe le cordon au sommet du médaillon, assez large pour lui."""
 
-CORDON = {'rayon': 0.0018, 'cotes': 4, 'au_dessus': 0.015}
-"""HYPOTHÈSE : un cordon de cuir monte de la bélière jusqu'à `au_dessus` de l'emplacement (la ceinture)."""
+CORDON = {'rayon': 0.004, 'cotes': 6, 'au_dessus': 0.015}
+"""Illustration : un cordon torsadé d'environ 4 px (7,5 mm) monte de la bélière jusqu'à `au_dessus` de l'emplacement (la
+ceinture) ; plus fin, il ne se lisait plus à taille de jeu et le médaillon semblait flotter sous la ceinture (Clément,
+2026-11-09 : « a se demander si elles sont fixés dessus ou sur sa robe »)."""
 
 
 ANGLE_LISSE = 50                 # degrés : arêtes plus vives que cet angle gardées vives
