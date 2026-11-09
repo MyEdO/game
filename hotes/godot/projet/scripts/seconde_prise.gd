@@ -1,12 +1,14 @@
 ## La main libre sur la seconde prise d'un objet tenu des deux mains (#3319, `hotes/godot/pont/CONTRAT.md`, « Atelier
-## 3D ») : des modificateurs natifs du squelette, posés à sa suite (après le gabarit), dans cet ordre. Les clips d'une
-## base frappent d'une main : `AimModifier3D` tourne d'abord la main qui tient pour pointer vers la main libre du clip
-## celui de ses axes le plus proche de la direction de la seconde prise, sans quoi elle passerait hors de portée du bras
-## libre ; `ModifierBoneTarget3D` suit ensuite cette main, et porte le repère de la seconde prise, puis celui où l'os de
-## la main libre la tient ; `FABRIK3D` y ploie le bras libre (l'os de la main libre et ses deux parents), en partant
-## chaque fois de la pose du clip (`deterministic`), sans borne d'angle par mise à jour, qui rejoue la pose en entier ;
-## `CopyTransformModifier3D` donne enfin à la main libre l'orientation de ce repère, et à chacun de ses doigts la
-## rotation de son homologue sous la main qui tient (le poing), appariés enfant par enfant, en même nombre.
+## 3D ») : des modificateurs natifs du squelette, posés à sa suite (après le gabarit), dans cet ordre. Sous un clip à une
+## main, `AimModifier3D` tourne d'abord la main qui tient pour pointer vers la main libre du clip celui
+## de ses axes le plus proche de la direction de la seconde prise, sans quoi elle passerait hors de portée du bras libre,
+## et se tait sous un clip de `clipsDeuxMains`, qui tient déjà la seconde prise
+## (`MontageDeComposition._accorder_la_visee`) ; `ModifierBoneTarget3D` suit ensuite cette main, et porte le repère de la
+## seconde prise, puis celui où l'os de la main libre la tient ; `FABRIK3D` y ploie le bras libre (l'os de la main libre
+## et ses deux parents), en partant chaque fois de la pose du clip (`deterministic`), sans borne d'angle par mise à jour,
+## qui rejoue la pose en entier ; `CopyTransformModifier3D` donne enfin à la main libre l'orientation de ce repère, et à
+## chacun de ses doigts la rotation de son homologue sous la main qui tient (le poing), appariés enfant par enfant, en
+## même nombre.
 class_name SecondePrise
 extends RefCounted
 

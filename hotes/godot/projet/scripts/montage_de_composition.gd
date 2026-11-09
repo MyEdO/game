@@ -360,20 +360,21 @@ static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
 ## @contrat Atelier 3D
 ## Un élément monté à la prise `main` qui a une seconde prise (`secondesPrises` de `modeles`) se tient des deux mains
 ## tant que la prise `off` ne monte rien (#3319) : `MontageDeComposition.poser_la_seconde_prise`
-## (`projet/scripts/montage_de_composition.gd`), rappelée à chaque montage et démontage, pose sous le squelette, après
-## le gabarit, les modificateurs natifs de `SecondePrise.poser` (`projet/scripts/seconde_prise.gd`, tenus dans
-## `seconde_prise`), et les retire sinon. Dans l'ordre : un `AimModifier3D` tourne l'os de la prise `main` pour
-## pointer vers l'os de la prise `off` du clip celui de ses axes le plus proche de la direction de la seconde prise ;
-## un `ModifierBoneTarget3D` suit cet os et porte le repère de la seconde prise, puis celui où l'os de la prise `off`
-## la tient ; un `FABRIK3D` y ploie le bras de la main `off` (l'os de la prise `off` et ses deux parents), en partant
-## chaque fois de la pose du clip ; un `CopyTransformModifier3D` donne enfin à l'os de la main `off` l'orientation de
-## ce repère, et à chacun de ses descendants la rotation de son homologue sous la main `main`, appariés enfant par
-## enfant, en même nombre (le poing de la main qui tient). La recette autonome `projet/recettes/seconde-prise.gd` le
-## vérifie à 1 mm. Le repos de l'atelier est le clip `idle` de la composition montée (`MontageDeComposition.clip`), à
-## deux mains sous une seconde prise : il se joue à la pose d'une base sans clip de reprise et à l'arrêt de la marche
-## ; un montage ou un démontage passe le clip engagé à celui de son rôle sous la nouvelle tenue, en lecture ou en
-## pause comme lui (`_jouer_le_repos`, `_rejouer`, `projet/scripts/atelier.gd`). La recette autonome
-## `projet/recettes/repos-de-l-atelier.gd` le vérifie.
+## (`projet/scripts/montage_de_composition.gd`), rappelée à chaque montage et démontage, pose sous le squelette, après le
+## gabarit, les modificateurs natifs de `SecondePrise.poser` (`projet/scripts/seconde_prise.gd`, tenus dans
+## `seconde_prise`), et les retire sinon. Dans l'ordre : un `AimModifier3D` tourne l'os de la prise `main` pour pointer
+## vers l'os de la prise `off` du clip celui de ses axes le plus proche de la direction de la seconde prise, sous un clip
+## à une main seulement : un clip de `clipsDeuxMains` pose déjà la main `off` sur la seconde prise de son maniement, que
+## la visée tordrait au poignet (`_accorder_la_visee`, au lancement de chaque clip) ; un `ModifierBoneTarget3D` suit cet
+## os et porte le repère de la seconde prise, puis celui où l'os de la prise `off` la tient ; un `FABRIK3D` y ploie le
+## bras de la main `off` (l'os de la prise `off` et ses deux parents), en partant chaque fois de la pose du clip ; un
+## `CopyTransformModifier3D` donne enfin à l'os de la main `off` l'orientation de ce repère, et à chacun de ses
+## descendants la rotation de son homologue sous la main `main`, appariés enfant par enfant, en même nombre (le poing de
+## la main qui tient). La recette autonome `projet/recettes/seconde-prise.gd` le vérifie à 1 mm. Le repos de l'atelier
+## est le clip `idle` de la composition montée (`MontageDeComposition.clip`), à deux mains sous une seconde prise : il se
+## joue à la pose d'une base sans clip de reprise et à l'arrêt de la marche ; un montage ou un démontage passe le clip
+## engagé à celui de son rôle sous la nouvelle tenue, en lecture ou en pause comme lui (`_jouer_le_repos`, `_rejouer`,
+## `projet/scripts/atelier.gd`). La recette autonome `projet/recettes/repos-de-l-atelier.gd` le vérifie.
 
 ## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de
 ## `modeles`, #3319), si la prise `off` ne tient rien ; aucune sinon.
@@ -387,6 +388,22 @@ func poser_la_seconde_prise() -> void:
 	if squelette == null or seconde == null or montes.has("off") or tenante.is_empty() or libre.is_empty():
 		return
 	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde.repere)
+	if lecteur != null and not lecteur.animation_started.is_connected(_accorder_la_visee):
+		lecteur.animation_started.connect(_accorder_la_visee)
+	_accorder_la_visee()
+
+
+## La visée de la main qui tient (`AimModifier3D` de `seconde_prise`) ne joue que sous un clip à une main : un clip de
+## `clipsDeuxMains` pose déjà la main libre sur la seconde prise de son maniement, que la visée, faute d'axe d'os qui
+## suive le manche, tordrait au poignet.
+func _accorder_la_visee(_clip: StringName = &"") -> void:
+	if seconde_prise.is_empty():
+		return
+	var engage := String(lecteur.assigned_animation) if lecteur != null else ""
+	var deux_mains: Dictionary = base.get("clipsDeuxMains", {}).get(modeles.secondesPrises[montes.main].maniement, {})
+	for modificateur in seconde_prise:
+		if modificateur is AimModifier3D:
+			modificateur.active = not deux_mains.values().has(engage)
 
 
 
