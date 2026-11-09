@@ -74,7 +74,7 @@ function setValue(el: HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement
 
 describe('NarratifEditor — onglet PNJ éditable (#671 lot B)', () => {
   it('édite les apparences des armes du profil PNJ puis retire le défaut', () => {
-    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'garde', base: 'humain', profil: { label: 'Garde', traits: [{ id: 'arme', arg: 'arme-simple', value: 7 }] } }] });
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'garde', base: { id: 'humain' }, profil: { label: 'Garde', traits: [{ id: 'arme', arg: 'arme-simple', value: 7 }] } }] });
     click(btn('PNJ'));
     click(btn('Garde'));
     const onglet = [...container.querySelectorAll<HTMLElement>('[role="tab"]')].find((e) => e.textContent === 'Apparence')!;
@@ -98,9 +98,9 @@ describe('NarratifEditor — onglet PNJ éditable (#671 lot B)', () => {
     mount();
     click(btn('PNJ'));
     click(btn('Ajouter un PNJ'));
-    const otherBase = creatures.find((c) => c.id !== last.presetsPnj[0].base)!.id;
+    const otherBase = creatures.find((c) => c.id !== last.presetsPnj[0].base?.id)!.id;
     setValue(field('Créature de base'), otherBase);
-    expect(last.presetsPnj[0].base).toBe(otherBase);
+    expect(last.presetsPnj[0].base).toEqual({ id: otherBase });
     setValue(field('Nom du PNJ'), 'Josef Quartjin');
     expect(last.presetsPnj[0].profil?.label).toBe('Josef Quartjin');
   });
@@ -121,7 +121,7 @@ describe('NarratifEditor — onglet PNJ éditable (#671 lot B)', () => {
   it('la description ADRESSÉE d’un PNJ se lit ; « Détacher » la rend saisissable ET adaptée du même folio, puis on l’édite et la vide (#2206)', () => {
     const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
     const REF_PNJ = { book: 'ennemi-dans-l-ombre', page: 12 };
-    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha', desc: 'Un cocher.', descRef } as never, source: REF_PNJ }] });
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: { id: creatures[0].id }, profil: { label: 'Alpha', desc: 'Un cocher.', descRef } as never, source: REF_PNJ }] });
     click(btn('PNJ'));
     click(btn('Alpha'));
     const champ = () => [...container.querySelectorAll('.ed-field')].find((e) => e.querySelector('span')?.textContent === 'Description')!;
@@ -281,7 +281,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
   });
 
   it('deux PNJ sans source : le brouillon de l’un ne s’affiche ni ne s’écrit sur l’autre', () => {
-    const base = creatures[0].id;
+    const base = { id: creatures[0].id };
     mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base, profil: { label: 'Alpha' } }, { id: 'pnj-b', base, profil: { label: 'Bravo' } }] });
     click(btn('PNJ'));
     click(btn('Alpha'));
@@ -346,7 +346,7 @@ describe('NarratifEditor — sources : ouverture, stades, PNJ (une primitive, se
   });
 
   it('renommer le PNJ garde son brouillon de source', () => {
-    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha' } }] });
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: { id: creatures[0].id }, profil: { label: 'Alpha' } }] });
     click(btn('PNJ'));
     click(btn('Alpha'));
     brouillonSurvitAuRenommage('du PNJ', () => setValue(field('Identifiant (id stable)'), 'pnj-z'));
@@ -378,7 +378,7 @@ describe('NarratifEditor — provenance du texte : ouverture, stade, PNJ montent
   });
 
   it('PNJ : « Copie » reporte `adapteDe` sur `source`', () => {
-    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha' }, adapteDe: REF }] });
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: { id: creatures[0].id }, profil: { label: 'Alpha' }, adapteDe: REF }] });
     click(btn('PNJ'));
     click(btn('Alpha'));
     provenance('Copie', 'du PNJ');
@@ -389,8 +389,8 @@ describe('NarratifEditor — provenance du texte : ouverture, stade, PNJ montent
   it('PNJ dont le profil ADRESSE sa description : « Adapté » refusé, sa raison dite ; sans adresse, offert', () => {
     const descRef = { book: 'ennemi-dans-l-ombre', ch: '01', parts: [{ kind: 'blocs', sec: 'le-proprietaire', secOcc: 2, b0: 0, b1: 0, sum: '38e48aee36c04e9f' }] };
     mount({ ...emptyNarratif(), presetsPnj: [
-      { id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha', desc: 'Un cocher.', descRef } as never, source: REF },
-      { id: 'pnj-b', base: creatures[0].id, profil: { label: 'Bravo' }, source: REF },
+      { id: 'pnj-a', base: { id: creatures[0].id }, profil: { label: 'Alpha', desc: 'Un cocher.', descRef } as never, source: REF },
+      { id: 'pnj-b', base: { id: creatures[0].id }, profil: { label: 'Bravo' }, source: REF },
     ] });
     click(btn('PNJ'));
     click(btn('Alpha'));
@@ -417,7 +417,7 @@ describe('NarratifEditor — provenance du texte : ouverture, stade, PNJ montent
 
 describe('NarratifEditor — PNJ › surcharges : la caractéristique s’affiche par son abréviation', () => {
   it('chaque case porte `charAbr`, jamais l’id de caractéristique', () => {
-    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: creatures[0].id, profil: { label: 'Alpha' } }] });
+    mount({ ...emptyNarratif(), presetsPnj: [{ id: 'pnj-a', base: { id: creatures[0].id }, profil: { label: 'Alpha' } }] });
     click(btn('PNJ'));
     click(btn('Alpha'));
     const cases = [...container.querySelectorAll('.statblock-grid .ed-subfield')].map((e) => e.textContent?.trim());

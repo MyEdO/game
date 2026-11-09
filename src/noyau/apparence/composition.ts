@@ -222,13 +222,26 @@ const estChampCatalogue = (champ: string): champ is ChampCatalogue => (CHAMPS_CA
 const AXES = ['race', 'gabarit', 'sex', 'build', 'tete', 'coiffure', 'tenue'] as const satisfies readonly (keyof Composition)[];
 const NEUTRES: Partial<Record<(typeof AXES)[number], number>> = { build: BUILD_NEUTRE };
 
-/** Un axe : son champ, le libellé de sa méta au schéma, et sa forme : `ref` (le champ porte `{ id }`) ou `valeur` (l'id
- *  nu), dont les choix sont la `liste` de ce nom des catalogues ; `plage`, un nombre sur [`min` ; `max`] qui vaut `neutre`
- *  absent (`NEUTRES`). */
-export type Axe = { champ: (typeof AXES)[number]; label: string } & (
-  | { forme: 'ref' | 'valeur'; liste: ChampCatalogue }
-  | { forme: 'plage'; min: number; max: number; neutre: number }
-);
+/**
+ * @contrat Composition d'un personnage
+ * `catalogues` rend
+ * `{ race, gabarit, sex, tete, coiffure, tenue, pieces, objets, prises, couleurs, axes, presets, nuancier }`, chacun
+ * hors `axes`, `presets` et `nuancier` une liste `{ id, label }` : l'id se stocke, le libellé s'affiche. Chaque champ
+ * se tire de son nœud au schéma du preset (`noeudDuChamp`) : un enum nommé, ou celui de la clé d'un record, par
+ * `optionsDuNoeud` (`sex` ; `prises`, les mains, dont l'objet se choisit dans `objets` ; `couleurs`, les emplacements
+ * de palette, dont la couleur se choisit dans `nuancier`) ; sinon sa feuille `idDe`, dont les entrées admises par sa
+ * sous-liste viennent du dataset de son espace, dans l'ordre de la donnée. `nuancier` liste les couleurs nommées de
+ * `materials.json` (domaine `couleur`), dans l'ordre de la donnée, en `{ id, label, couleur }`, `couleur` valant
+ * `#rrggbb`. `presets` liste les entrées de `presets-de-personnage.json` en `{ id, label, composition }` :
+ * `composition` est l'entrée sans son enveloppe, la forme que `composer` prend. `axes` liste les axes d'une
+ * composition, dans leur ordre (race, gabarit, sexe, corpulence, tête, coiffure, tenue), une seule déclaration au
+ * noyau (`AXES`, `composition.ts`) :
+ */
+export type Axe =
+  /** un axe à choisir dans le catalogue `liste` */
+  | { champ: (typeof AXES)[number]; label: string; forme: 'ref' | 'valeur'; liste: ChampCatalogue }
+  /** un axe à régler entre `min` et `max`, `neutre` valant le champ absent */
+  | { champ: (typeof AXES)[number]; label: string; forme: 'plage'; min: number; max: number; neutre: number };
 
 export type CataloguesDeComposition = Record<ChampCatalogue, Choix[]> & {
   axes: Axe[];
@@ -261,8 +274,17 @@ function choixDuChamp(champ: string): Choix[] {
   return choixDeLaFeuilleDId(feuille);
 }
 
-/** L'axe `champ`, lu à son nœud au schéma du preset : `ref` si son `id` est une feuille `idDe`, `valeur` s'il est un
- *  enum nommé, `plage` s'il est un nombre borné, ses bornes celles du nœud et son neutre celui de `NEUTRES`, exigé. */
+/**
+ * @contrat Composition d'un personnage
+ * `label` est le libellé de la méta du champ au schéma du preset (`meta`, `schemas/defs/presets-de-personnage.ts`).
+ * `forme` se lit au nœud du champ : `ref` quand son `id` est une feuille `idDe` (le champ porte `{ id }`), `valeur`
+ * pour un enum nommé (le champ porte l'id nu), `plage` pour un nombre borné ; `liste` est la clé de `catalogues` qui
+ * donne ses choix, `min` et `max` les bornes du nœud, `neutre` la valeur que vaut le champ absent (`build` :
+ * `BUILD_NEUTRE`, `src/lib/corpulence.ts`), que porte toute `plage` : un nombre borné sans neutre dans `NEUTRES`
+ * (`composition.ts`) fait échouer `catalogues`. Godot tient la composition courante : appliquer un preset la
+ * remplace, changer un axe ou une couleur la modifie, et l'une ou l'autre se recompose par `composer` ;
+ * `presetDeComposition` sérialise cette même forme, l'enveloppe ajoutée par le noyau.
+ */
 function axeDuChamp(champ: (typeof AXES)[number]): Axe {
   const noeuds = ouverts([noeudDuChamp(FICHIER_DES_PRESETS, champ)]);
   const label = metaDesPresets[champ].label;
@@ -302,10 +324,18 @@ function typeDuPreset(): PresetDePersonnage['type'] {
   return type;
 }
 
-/** L'entrée de preset de `composition` : son `type` (`typeDuPreset`), l'enveloppe entière (`CLES_ENVELOPPE`) du preset
- *  `preset` s'il est nommé, puis la composition ; en JSON (`serializeDataset`, les clés dans l'ordre du schéma quand elle est valide), avec
- *  les fautes du schéma de `presets-de-personnage.json` (`validateDocument`), vide si elle est valide. Un `preset` qu'aucune
- *  entrée ne porte est refusé, avec les ids des presets. */
+/**
+ * @contrat Composition d'un personnage
+ * `presetDeComposition` rend `{ entree: string, verdict: { chemin: (string | number)[]; message: string }[] }` :
+ * `entree` est l'entrée au format du fichier (`serializeDataset`), clés dans l'ordre du schéma quand elle est
+ * valide : le `type` de la collection, lu au schéma, l'enveloppe entière du preset `preset` s'il est donné (ses clés
+ * de `CLES_ENVELOPPE`, hors `type`), puis la composition. `verdict` porte les fautes du schéma de la collection
+ * (`validateDocument`), chemin dans l'entrée, vide si elle est valide : sa composition étant validée d'abord, ce sont
+ * celles de l'enveloppe, `id`, `label` et `source` sans `preset`. Seule une entrée au verdict vide se copie dans le
+ * fichier.
+ *
+ * Un `preset` qu'aucune entrée ne porte est refusé, avec les ids des presets.
+ */
 export function presetDeComposition(
   composition: Composition,
   preset?: string,

@@ -63,7 +63,7 @@ function refusDePoserEnCombat(s: Jeu, uid: string): string | null {
 /** Fait naître à la case `pos` le décor qui montre le lot `lot` (son objet en tête, nommé par lui) et l'y range dans
  *  `objetsAuSol` : seul écrivain d'un objet au sol. */
 export function deposerAuSol(get: Get, set: Set, lot: ItemInstance[], pos: Pt): void {
-  const decor: SceneEntity = { id: get().forgerUnId('depot-au-sol'), kind: 'prop', ref: DECOR_DE_L_OBJET_AU_SOL, label: itemLabel(lot[0]), pos: { x: pos.x, y: pos.y }, ...(pos.z ? { z: pos.z } : {}) };
+  const decor: SceneEntity = { id: get().forgerUnId('depot-au-sol'), kind: 'prop', decor: { id: DECOR_DE_L_OBJET_AU_SOL }, label: itemLabel(lot[0]), pos: { x: pos.x, y: pos.y }, ...(pos.z ? { z: pos.z } : {}) };
   set((e) => ({ scene: { ...e.scene!, entities: [...e.scene!.entities, decor] }, objetsAuSol: { ...e.objetsAuSol, [decor.id]: lot } }));
   bus.emit(EVT.SCENE_DIRTY);
 }

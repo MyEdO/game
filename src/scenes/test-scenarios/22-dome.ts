@@ -55,9 +55,9 @@ function construireScene(): Scene {
         // TIREUR, volontairement LOIN et ARMÉ d'un arc : le dôme ne couvre que ce qui vient de
         // l'extérieur, donc l'attaquant doit rester hors du rayon pour que la sauvegarde s'offre — et il
         // n'y reste que s'il a de quoi TIRER (sans arme à distance, l'IA ferme la distance).
-        { ref: 'gobelin', pos: { x: 17, y: 5 }, facing: 'O', inventaire: { arc: false }, label: 'Tireur gobelin' },
+        { creature: { id: 'gobelin' }, pos: { x: 17, y: 5 }, facing: 'O', inventaire: { arc: false }, label: 'Tireur gobelin' },
         // FRAPPEUR de mêlée : il vient AU CONTACT, donc sous la voûte — aucune sauvegarde ne lui répond.
-        { ref: 'orc', pos: { x: 7, y: 5 }, facing: 'O' },
+        { creature: { id: 'orc' }, pos: { x: 7, y: 5 }, facing: 'O' },
       ],
     },
   ]);

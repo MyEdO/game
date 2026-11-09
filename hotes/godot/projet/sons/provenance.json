@@ -161,6 +161,30 @@
     "licence": "CC0-1.0",
     "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
   },
+  "musique-combat.mp3": {
+    "sha256": "0e7b681b9c29657deb31b96a19b716e339e0d11535dbd4f12641597b4c95522f",
+    "source": "https://opengameart.org/content/medieval-battle (Medieval: Battle), RandomMind",
+    "licence": "CC0-1.0",
+    "traitement": "aucun : public/audio/musique-combat.mp3 tel quel"
+  },
+  "musique-exploration.mp3": {
+    "sha256": "7e412350d4f4a777981285ca36b1c1a30feb7e5e255d7774ce61480e99daa8d9",
+    "source": "https://opengameart.org/content/medieval-exploration (Medieval: Exploration), RandomMind",
+    "licence": "CC0-1.0",
+    "traitement": "aucun : public/audio/musique-exploration.mp3 tel quel"
+  },
+  "musique-taverne.mp3": {
+    "sha256": "3fe4070015b880b591c79a7fca31156a0083a8768d88a39da39ab6c54f2f014d",
+    "source": "https://opengameart.org/content/medieval-the-old-tower-inn (Medieval: The Old Tower Inn), RandomMind",
+    "licence": "CC0-1.0",
+    "traitement": "aucun : public/audio/musique-taverne.mp3 tel quel"
+  },
+  "musique-ville.mp3": {
+    "sha256": "df4cc102d29d1167dc1f341f7e909b46b5a791edfc543ddc6b832c9c08347ff5",
+    "source": "https://opengameart.org/content/medieval-market-day (Medieval: Market Day, boucle), RandomMind",
+    "licence": "CC0-1.0",
+    "traitement": "aucun : public/audio/musique-ville.mp3 tel quel"
+  },
   "parade-1.ogg": {
     "sha256": "e07045693e4a2b3d165c424e3dab4c781d9ff8880a386880ac89a51315d7f831",
     "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",

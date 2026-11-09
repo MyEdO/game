@@ -44,7 +44,7 @@ describe('Scénario 17 — Métamorphose Enfant d’Ulric (records réels)', () 
     const enc = scenarioConstruit.scene.encounters.find((x) => x.id === 'enc-ulric')!;
     const members = enc.members ?? [];
     expect(members.length).toBe(2);
-    const refs = members.map((m) => scenarioConstruit.scene.entities.find((e) => e.id === m.entityId)?.ref);
+    const refs = members.map((m) => scenarioConstruit.scene.entities.find((e) => e.id === m.entityId)?.creature?.id);
     expect(refs.every((r) => r === 'enfant-d-ulric-humain')).toBe(true);
   });
 });

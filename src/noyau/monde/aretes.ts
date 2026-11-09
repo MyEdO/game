@@ -6,7 +6,7 @@
 import { structureAppearances } from '../../data';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data/structureAppearance.types';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
-import type { Pt } from './path';
+import { walkNeighbors, type Pt } from './path';
 import { EYE_H, hauteurDeLOeil } from './iso';
 import { METRES_PER_LEVEL } from './relief';
 import { casesDeFace, heightAt, isWalkable, piedDeLArete, porteEnJeu, sceneMetresPerTile, structureIsDown, wallEnds, wallIsOpen, type Scene, type WallSeg } from './scene';
@@ -104,8 +104,14 @@ export function regardDuJeu(voulu: Regard, enCombat: boolean): Regard {
   return voulu === 'immersion' && enCombat ? 'tactique' : voulu;
 }
 
-/** La couche la plus haute où se tient un allié de `allies` : celle que le regard `plateau` montre, rien au-dessus. */
-const coucheDuGroupe = (allies: readonly Pt[]): number => Math.max(0, ...allies.map((a) => a.z ?? 0));
+/** Le sol (m) de la case d'un allié (`heightAt`). */
+const piedDe = (scene: Scene, a: Pt): number => heightAt(scene, a.x, a.y, a.z ?? 0);
+
+/** La couche la plus haute où se tient un allié de `allies` : celle que le regard `plateau` montre, rien au-dessus.
+ *  Un allié dont un voisin de marche (`walkNeighbors`) est d'une couche plus haute, à un sol qui ne dépasse pas le sien
+ *  (le haut d'une échelle de trappe, au niveau du pont du dessus), se tient à la couche de ce voisin. */
+const coucheDuGroupe = (scene: Scene, allies: readonly Pt[]): number => Math.max(0, ...allies.map((a) => Math.max(a.z ?? 0,
+  ...walkNeighbors(scene, a).filter((n) => (n.z ?? 0) > (a.z ?? 0) && piedDe(scene, n) <= piedDe(scene, a)).map((n) => n.z ?? 0))));
 
 /** Ce qu'un regard retire du volume du monde : les couches au-dessus de `activeZ`, les cases du `couvercle` (clés
  *  `x,y,z`) ; et, par id de navire, la hauteur (m) de sa coupe. */
@@ -117,12 +123,15 @@ interface RetraitDuRegard {
 
 /** Ce que le regard `regard` retire du volume du monde pour le groupe posé sur `allies` : au plateau, les couches
  *  au-dessus de la sienne (`activeZ`) ; en tactique, le couvercle au-dessus de sa tête (`clearedSpace`,
- *  `overheadCells`, ses cases `x,y,z`) ; en immersion, rien. Un navire dont il ôte des cases de ses ponts
+ *  `overheadCells`, ses cases `x,y,z` dont le sol dépasse le pied le plus haut du groupe) ; en immersion, rien. Un navire dont il ôte des cases de ses ponts
  *  (`provenanceDesNavires`) est coupé au plus bas de leurs sols (`coupes`, en mètres) : son modèle ne montre rien de cette
  *  hauteur et au-dessus, et le volume rien des cases de ses ponts aux couches au-dessus du groupe dont le sol y est. */
 function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): RetraitDuRegard {
-  const activeZ = regard === 'plateau' ? coucheDuGroupe(allies) : undefined;
-  const couvercle = regard === 'tactique' ? clearedSpace(scene, allies).overheadCells : new Set<string>();
+  const couche = coucheDuGroupe(scene, allies);
+  const activeZ = regard === 'plateau' ? couche : undefined;
+  const pied = Math.max(-Infinity, ...allies.map((a) => piedDe(scene, a)));
+  const auDessus = (cle: string): boolean => { const [x, y, z] = cle.split(',').map(Number); return heightAt(scene, x, y, z) > pied; };
+  const couvercle = regard === 'tactique' ? new Set([...clearedSpace(scene, allies).overheadCells].filter(auDessus)) : new Set<string>();
   const ponts = [...provenanceDesNavires(scene).cases].map(([cle, navire]) => {
     const [x, y, z] = cle.split(',').map(Number);
     return { cle, navire, z, sol: heightAt(scene, x, y, z) };
@@ -130,7 +139,7 @@ function retraitDuRegard(scene: Scene, allies: readonly Pt[], regard: Regard): R
   const coupes: Record<string, number> = {};
   for (const { cle, navire, z, sol } of ponts)
     if ((activeZ !== undefined && z > activeZ) || couvercle.has(cle)) coupes[navire] = Math.min(coupes[navire] ?? Infinity, sol);
-  const sousLaCoupe = ponts.filter(({ navire, z, sol }) => z > coucheDuGroupe(allies) && sol >= (coupes[navire] ?? Infinity)).map(({ cle }) => cle);
+  const sousLaCoupe = ponts.filter(({ navire, z, sol }) => z > couche && sol >= (coupes[navire] ?? Infinity)).map(({ cle }) => cle);
   return { ...(activeZ !== undefined ? { activeZ } : {}), couvercle: new Set([...couvercle, ...sousLaCoupe]), coupes };
 }
 
@@ -156,21 +165,98 @@ const oeilsSousPlafond = memoByRef((scene: Scene): Record<string, number> => {
   return oeils;
 });
 
-/** Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, les arêtes de toutes ses
- *  couches hors des ponts de ses navires (`aretesHorsDesNavires`, `areteDessinee`), son échelle métrique (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol
- *  debout (`EYE_H`) et sous le plafond de chaque case qui l'abaisse (`oeilsSousPlafond`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent, décors posés ou retirés en jeu compris : `empreinteDesDecors`), ce que
- *  le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves` : en tactique, celles qu'il
- *  dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il dégage ; au plateau,
- *  celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires (`coupesDesNavires`, la hauteur de
- *  la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées (`couronnesAbattues`). */
-export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): { w: number; h: number; metresParCase: number; oeilM: number; oeilsSousPlafond: Record<string, number>; regard: Regard; regardSuivant: Regard; cleDuMonde: string; aretes: AreteDessinee[]; aretesDegagees: AreteDegagee[]; toitsLeves: string[]; couronnesAbattues: string[]; coupesDesNavires: Record<string, number> } {
+/**
+ * @contrat Vue
+ * Le plateau de la scène (`plateauDeLaScene`, `src/noyau/monde/aretes.ts`). Le regard retire pour le groupe posé sur
+ * ses cases (chaque héros posé en combat, sinon la case du groupe, `casesDuGroupe`) : en tactique, par la loi de
+ * dégagement (`clearedSpace`, `src/noyau/monde/volume/toits.ts`), les nappes de toit qui couvrent l'espace où il se
+ * tient, le couvercle au-dessus de sa tête (`overheadCells` : les masses qui le surplombent et l'emprise de sa pièce
+ * aux couches au-dessus de la sienne) et les arêtes qu'il dégage ; au plateau, toutes les nappes de toit, et les
+ * couches au-dessus de la plus haute où il se tient, volume et arêtes ; en immersion, rien.
+ */
+export interface PlateauDeLaScene {
+  /** ses dimensions : sa largeur, en cases. */
+  w: number;
+  /** ses dimensions : sa hauteur, en cases. */
+  h: number;
+  /** son échelle en mètres par case (lue de la scène par `sceneMetresPerTile`, LDB 15 l.12). */
+  metresParCase: number;
+  /** la hauteur de l'œil au-dessus du sol, debout (`EYE_H`). */
+  oeilM: number;
+  /**
+   * la hauteur de l'œil de chaque case marchable où elle est plus basse, par la clé `x,y,z` de la case
+   * (`hauteurDeLOeil`, `src/noyau/monde/iso.ts`) : sous le plus bas des plafonds (le plus bas des sols posés plus haut
+   * que le sien sur une couche au-dessus, dans sa colonne) de la case et des cases où un pas la mène (`walkNeighbors`),
+   * de `MARGE_SOUS_PLAFOND_M`, l'œil qui marche vers une case basse s'abaissant dès la case d'avant.
+   */
+  oeilsSousPlafond: Record<string, number>;
+  /** le regard de la partie (`regarder`, `regardDuJeu` : l'immersion cède à la tactique le temps d'un combat). */
+  regard: Regard;
+  /** celui qui le suit dans `REGARDS`. */
+  regardSuivant: Regard;
+  /**
+   * La clé du volume que le regard demande change quand ce qu'il retire du volume change, et quand un décor de la scène
+   * naît, sort ou change en jeu (`empreinteDesDecors`, `src/noyau/monde/volume/volume.ts` : un objet posé au sol, un
+   * coffre vidé) : le jeu rappelle alors `monde`.
+   */
+  cleDuMonde: string;
+  /**
+   * les arêtes de toutes ses couches hors des ponts de ses navires, que la marche garde et que le modèle du navire
+   * montre (`aretesHorsDesNavires`, `src/noyau/planDeNavire.ts`) (chacune `areteDessinee` :
+   * `{ cle, case, milieu, sens, pied, piece, famille, hauteurM }`, sa clé `edgeKey`, la case dont elle borde un côté,
+   * son milieu et le sens où elle court, en coins de grille (`wallEnds`) ; la hauteur en mètres d'où elle se dresse,
+   * celle de la plus basse des deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa pièce : une
+   * porte en jeu fermée ou ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou clos, sinon un
+   * mur ; la famille du kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la
+   * façade authorée qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null`
+   * pour une apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage).
+   */
+  aretes: AreteDessinee[];
+  /**
+   * les arêtes retirées (`{ cle, abattueSous }`, les crans de caméra (`Rot`, `src/geometry/iso.ts` : 0 au sud-est, puis
+   * sud-ouest, nord-ouest, nord-est) sous lesquels chacune tombe : tous pour celles d'une couche retirée et celles dont
+   * une case qu'elles séparent est au couvercle, `cutawayOverhead`, et, pour celles qui bordent l'espace où il se
+   * tient, ceux où elles se dressent entre la caméra et cet espace, `frontFacadeCutaway`,
+   * `src/noyau/monde/volume/architectureVisibility.ts`).
+   */
+  aretesDegagees: AreteDegagee[];
+  /** les nappes retirées (la clé `nappeKey` de chacune). */
+  toitsLeves: string[];
+  /**
+   * les couronnes crénelées tombées avec leur mur abattu (la clé `edgeKey` de chacune ; celle d'un corps de garde
+   * reste).
+   */
+  couronnesAbattues: string[];
+  /**
+   * Un navire de la scène dont le regard retire des ponts (une couche au-dessus du groupe au plateau, une case du
+   * couvercle en tactique) se coupe à la hauteur du sol le plus bas de ceux-là (en mètres, par l'id de son entité ;
+   * aucun en immersion), et le volume perd avec eux les cases des ponts au-dessus de la couche du groupe dont le sol
+   * est à cette hauteur ou plus haut (`retraitDuRegard`), pour qu'aucun décor ni sol de pont ne flotte au-dessus de la
+   * coupe.
+   */
+  coupesDesNavires: Record<string, number>;
+}
+
+/**
+ * Le plateau d'une scène tel qu'un hôte le dessine sous le regard `regard` : ses dimensions, les arêtes de toutes ses
+ * couches hors des ponts de ses navires (`aretesHorsDesNavires`, `areteDessinee`), son échelle métrique
+ * (`sceneMetresPerTile`), la hauteur de l'œil au-dessus du sol debout (`EYE_H`) et sous le plafond de chaque case qui
+ * l'abaisse (`oeilsSousPlafond`), le regard et celui qui le suit dans `REGARDS`, la clé du volume que le regard demande
+ * (`cleDuMonde`, qui change quand `volumeDuRegard` ou `meteoDuRegard` changent, décors posés ou retirés en jeu compris
+ * : `empreinteDesDecors`), ce que le regard retire pour le groupe posé sur `allies` : les nappes de toit (`toitsLeves`
+ * : en tactique, celles qu'il dégage ; au plateau, toutes), les arêtes (`aretesDegagees` : en tactique, celles qu'il
+ * dégage ; au plateau, celles des couches au-dessus de la sienne, sous tout cran) et le haut des navires
+ * (`coupesDesNavires`, la hauteur de la coupe de chacun, `retraitDuRegard`) ; et les couronnes crénelées tombées
+ * (`couronnesAbattues`).
+ */
+export function plateauDeLaScene(scene: Scene, allies: readonly Pt[], regard: Regard): PlateauDeLaScene {
   const { w, h } = scene.dimensions;
   const { activeZ, couvercle, coupes } = retraitDuRegard(scene, allies, regard);
   const dessinees = aretesHorsDesNavires(scene);
   const aretesRetirees = (): AreteDegagee[] => {
     if (regard === 'tactique') return aretesDegagees(scene, dessinees, clearedSpace(scene, allies));
     if (regard === 'immersion') return [];
-    return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
+    return dessinees.filter((seg) => (seg.z ?? 0) > coucheDuGroupe(scene, allies)).map((seg) => ({ cle: edgeKey(seg), abattueSous: [...CRANS] }));
   };
   return {
     w, h, metresParCase: sceneMetresPerTile(scene), oeilM: EYE_H, oeilsSousPlafond: oeilsSousPlafond(scene), regard, regardSuivant: REGARDS[(REGARDS.indexOf(regard) + 1) % REGARDS.length],

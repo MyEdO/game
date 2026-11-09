@@ -924,13 +924,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "scripts/loup-et-saumure/generate.mjs",
-    motif: "désormais",
-    ancre: "accepte désormais créature ∪ véhicule (#218) — un `ref` de NAVIRE (`vehicles.json` : `cogue`/`langskip`/",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "scripts/migrations/2026-08-27-l1b-2e-donnees-rubriques-id.mjs",
     motif: "désormais",
     ancre: "d'un cran plus stable seulement. Toute rubrique peut désormais porter sa note.",

@@ -14,8 +14,8 @@ import { validateScene } from './validateScene';
 const BASE: MapSpec = { id: 'taverne', label: 'Taverne', size: [8, 8], terrain: 'plancher' };
 
 /** Table ronde en (2,2) cap `N` → abords : nord (2,1), est (3,2), sud (2,3), ouest (1,2). */
-const TABLE = { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } } as const;
-const AUBERGISTE = { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 }, label: 'Aubergiste' } as const;
+const TABLE = { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable: { assise: true } } as const;
+const AUBERGISTE = { id: 'pnj-aubergiste', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 }, label: 'Aubergiste' } as const;
 const FIXED_ASSIGNMENT: SeatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } };
 
 /** Le MÊME meuble posé par un marqueur ASCII plutôt que par `entities`. */
@@ -30,14 +30,14 @@ function specWithBind(char: string, bind: NonNullable<MapSpec['bind']>[string]):
 describe('MapSpec.seatAssignments — le même meuble, mais une assise à ids FIXES seulement', () => {
   it('construit le même meuble via entities et bind, mais assigne seulement des ids fixes', () => {
     const byEntities = buildScene({ ...BASE, entities: [{ ...TABLE }] });
-    const byBind = buildScene(specWithBind('M', { kind: 'prop', ref: 'table-murale-2-tabourets', facing: 'O' }));
-    expect(byEntities.entities.find((e) => e.ref === 'table-ronde-4-tabourets')).toMatchObject({ kind: 'prop', facing: 'N' });
-    expect(byBind.entities.find((e) => e.ref === 'table-murale-2-tabourets')).toMatchObject({ kind: 'prop', facing: 'O' });
+    const byBind = buildScene(specWithBind('M', { kind: 'prop', decor: { id: 'table-murale-2-tabourets' }, facing: 'O' }));
+    expect(byEntities.entities.find((e) => e.decor?.id === 'table-ronde-4-tabourets')).toMatchObject({ kind: 'prop', facing: 'N' });
+    expect(byBind.entities.find((e) => e.decor?.id === 'table-murale-2-tabourets')).toMatchObject({ kind: 'prop', facing: 'O' });
 
-    const genere = byBind.entities.find((e) => e.ref === 'table-murale-2-tabourets')!.id;
+    const genere = byBind.entities.find((e) => e.decor?.id === 'table-murale-2-tabourets')!.id;
     expect(() =>
       buildScene({
-        ...specWithBind('M', { kind: 'prop', ref: 'table-murale-2-tabourets', facing: 'O' }),
+        ...specWithBind('M', { kind: 'prop', decor: { id: 'table-murale-2-tabourets' }, facing: 'O' }),
         seatAssignments: { [genere]: { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } },
       }),
     ).toThrow(/seatAssignments.*ids fixes/);
@@ -82,8 +82,8 @@ describe('MapSpec.seatAssignments — le même meuble, mais une assise à ids FI
       legend: { P: 'plancher' },
       levels: { z0: GRILLE_CERNEE },
       entities: [
-        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 6 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } },
-        { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 5 }, label: 'Aubergiste' },
+        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 6 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable: { assise: true } },
+        { id: 'pnj-aubergiste', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 5 }, label: 'Aubergiste' },
       ],
       seatAssignments: FIXED_ASSIGNMENT,
     };

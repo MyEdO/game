@@ -917,7 +917,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   const sceneMeuble = (ref: string) => {
     const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{
-      id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref, facing: 'S',
+      id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: ref }, facing: 'S',
       usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
     }] as typeof scene.entities;
     return scene;
@@ -962,7 +962,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   it('un meuble à places cliqué de loin : marche jusqu’à l’ABORD, puis assoit le meneur', () => {
     vi.useFakeTimers();
     const scene = emptyScene('scene-test', 8, 8);
-    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
+    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     const meneur = meneurJouable();
     // Bout en bout = ACTIONS RÉELLES : un test voisin a substitué des `vi.fn()` dans le store, et un
     // pending armé sur un espion ne prouverait rien.
@@ -1003,10 +1003,10 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     // ÉTAGE au-dessus : c'est lui que la boucle cross-couche servait à la place du meuble (cas du plateau fin).
     scene.layers = [scene.layers[0], { z: 1, tiles: new Array(8 * 8).fill('bois') }];
     scene.entities = [
-      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } },
+      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S', usable: { assise: true } },
       // Le meuble HAUT que le rayon touche alors que le pixel tombe sur la case de la table : posé
       // ADJACENT au groupe pour que son affordance se serve sur place, et donc s'observe.
-      { id: 'comptoir-1', kind: 'prop', pos: { x: 3, y: 2 }, ref: 'comptoir-droit', facing: 'S',
+      { id: 'comptoir-1', kind: 'prop', pos: { x: 3, y: 2 }, decor: { id: 'comptoir-droit' }, facing: 'S',
         usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } },
     ] as typeof scene.entities;
     const surLaTable = tileCenter(2, 3, dims);
@@ -1042,7 +1042,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   it('le chemin croise l’abord d’une place PRISE : un seul clic assoit quand même à l’arrivée', () => {
     vi.useFakeTimers();
     const scene = emptyScene('scene-test', 8, 8);
-    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
+    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     // Une SEULE place reste libre (`place-3`) : la marche vers son abord longe celui d'une place prise.
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-4': pnjAssis('d') } };
     const vierge = useGame.getInitialState();
@@ -1080,7 +1080,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   it('debout sur l’abord d’une place PRISE : le clic MARCHE vers une place libre et y assoit', () => {
     vi.useFakeTimers();
     const scene = emptyScene('scene-test', 8, 8);
-    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
+    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a') } }; // une seule des quatre places est prise
     const vierge = useGame.getInitialState();
     const places = seatSlotsOf(scene, 'table-1');
@@ -1114,7 +1114,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   it('table PLEINE sans fouille : le clic PARCOURT le chemin que le survol trace, et ne refuse qu’à portée', () => {
     vi.useFakeTimers();
     const scene = emptyScene('scene-test', 8, 8);
-    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } }] as typeof scene.entities;
+    scene.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S', usable: { assise: true } }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-3': pnjAssis('c'), 'place-4': pnjAssis('d') } };
     const vierge = useGame.getInitialState();
     const poser = (pos: { x: number; y: number }) => useGame.setState({
@@ -1163,7 +1163,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
   it('décor SANS affordance : loin on s’en approche, à portée on le DIT — jamais un geste avalé', () => {
     vi.useFakeTimers();
     const scene = emptyScene('scene-test', 8, 8);
-    scene.entities = [{ id: 'tonneau-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'tonneau', label: 'Un tonneau' }] as typeof scene.entities;
+    scene.entities = [{ id: 'tonneau-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'tonneau' }, label: 'Un tonneau' }] as typeof scene.entities;
     const vierge = useGame.getInitialState();
     const poser = (pos: { x: number; y: number }) => useGame.setState({
       scene, mode: 'exploration', partyPos: pos, party: [meneurJouable()], dialogue: null, battle: null,
@@ -1204,7 +1204,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     const scene = emptyScene('scene-test', 8, 8);
     const prises = { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-3': pnjAssis('c'), 'place-4': pnjAssis('d') };
     scene.entities = [{
-      id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S',
+      id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S',
       usable: { assise: true, actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
     }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': prises };
@@ -1246,7 +1246,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     vi.useFakeTimers();
     const scene = emptyScene('scene-test', 8, 8);
     scene.entities = [{
-      id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S',
+      id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S',
       usable: { assise: true, actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
     }] as typeof scene.entities;
     scene.seatAssignments = { 'table-1': { 'place-1': pnjAssis('a'), 'place-2': pnjAssis('b'), 'place-3': pnjAssis('c'), 'place-4': pnjAssis('d') } };
@@ -1292,8 +1292,8 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
       // PREMIER du document, SANS affordance : c'est lui qu'une lecture par position rend, toujours.
       // Décor À PLACES que l'auteur n'a PAS activé — le témoin le plus tendu du contrat : sa
       // GÉOMÉTRIE d'assise existe, et il n'offre pourtant aucun geste.
-      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' },
-      { id: 'coffre-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: REF_BILLBOARD, facing: 'S',
+      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' },
+      { id: 'coffre-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: REF_BILLBOARD }, facing: 'S',
         usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] } },
     ] as typeof scene.entities;
     // La fixture DIT ce qu'elle prétend : le premier décor n'offre RIEN (`estUtilisable` faux) alors
@@ -1515,8 +1515,8 @@ describe('useStagePointer — le clic d’exploration joue l’intention du noya
     return appels;
   }
 
-  const table = { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S', usable: { assise: true } } as Scene['entities'][number];
-  const coffre = (actions: typeof FOUILLE[]) => ({ id: 'coffre-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: REF_BILLBOARD, facing: 'S', usable: { actions } }) as Scene['entities'][number];
+  const table = { id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S', usable: { assise: true } } as Scene['entities'][number];
+  const coffre = (actions: typeof FOUILLE[]) => ({ id: 'coffre-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: REF_BILLBOARD }, facing: 'S', usable: { actions } }) as Scene['entities'][number];
 
   it('interagir : abandon du pending puis interagirAvecLEntite', () => {
     const abord = seatSlotsOf(sceneAvec([table]), 'table-1')[0].approach;
@@ -1535,11 +1535,11 @@ describe('useStagePointer — le clic d’exploration joue l’intention du noya
     expect(cliquer(sceneAvec([coffre([FOUILLE])]), { x: 6, y: 6 }, 2, 3, 'coffre-1')).toEqual(SUITES.rejoindreOffre);
   });
   it('dire (figurant) : abandon du pending puis la ligne de journal', () => {
-    const badaud = { id: 'pnj-1', kind: 'personnage', ref: 'humain', label: 'Le badaud', pos: { x: 2, y: 3 } } as Scene['entities'][number];
+    const badaud = { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, label: 'Le badaud', pos: { x: 2, y: 3 } } as Scene['entities'][number];
     expect(cliquer(sceneAvec([badaud]), { x: 2, y: 2 }, 2, 3, 'pnj-1')).toEqual(SUITES.direFigurant);
   });
   it('dire (décor) : abandon du pending puis la ligne de journal', () => {
-    const tonneau = { id: 'tonneau-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'tonneau', label: 'Un tonneau' } as Scene['entities'][number];
+    const tonneau = { id: 'tonneau-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'tonneau' }, label: 'Un tonneau' } as Scene['entities'][number];
     expect(cliquer(sceneAvec([tonneau]), { x: 2, y: 2 }, 2, 3, 'tonneau-1')).toEqual(SUITES.direDecor);
   });
   it('marcher (sol) : abandon du pending puis la marche', () => {

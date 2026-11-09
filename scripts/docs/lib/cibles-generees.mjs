@@ -45,6 +45,7 @@ export const GENERATORS = Object.freeze([
   { runner: 'node', script: 'scripts/docs/build-doctrines.mjs', targets: ['docs/doctrines.md'] },
   { runner: 'node', script: 'scripts/docs/build-dossiers-de-chapitre.mjs', targets: ['docs/dossiers-de-chapitre.md'] },
   { runner: 'node', script: 'scripts/docs/build-hote-texte.mjs', targets: ['docs/hote-texte.md'] },
+  { runner: 'node', script: 'scripts/docs/build-contrat-du-pont.mjs', targets: ['hotes/godot/pont/CONTRAT.md'] },
   { runner: 'tsx', script: 'scripts/gen-sorts-doc.mts', targets: ['docs/sorts-implementation.md'] },
   { runner: 'tsx', script: 'scripts/docs/build-field-consumers.mts', targets: ['docs/consommateurs-de-champs.md'] },
   { runner: 'tsx', script: 'scripts/docs/build-structures.mts', targets: ['docs/structures-donnees.md'] },

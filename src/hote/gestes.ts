@@ -208,6 +208,24 @@ function gesteAttendu(drive: readonly GesteDuJeu[] | undefined, fermetures: Read
   return g ? cleDuGeste(g) : null;
 }
 
+/**
+ * @contrat Méthodes
+ * La fenêtre qui tient la main est une modale, une situation hors modale, ou une surface partagée qui se valide ou se
+ * ferme (la défaite, l'échoppe, la carte du monde, un document, l'interlude…, `SURFACES_A_ISSUE`,
+ * `src/noyau/combatAuto.ts`), dont les seuls gestes sont sa validation et sa sortie. Les gestes d'une fenêtre sont des
+ * verbes de la partie, joués par `jouer` : ce sont les gestes de `projection.fenetre.gestes` (`fenetreDuJeu`), réglages
+ * de jet (`jetRegler`, `REGLAGES_DU_JET`, `src/noyau/reglagesDuJet.ts`), choix de fenêtre et flux réactif compris
+ * (`FENETRE_DU_JET`, `src/noyau/combatAuto.ts`), chacun ouvert dessiné en élément de la zone `fenetre.gestes`. Un geste
+ * est un verbe, et pour un verbe de jet (`jetLancer`, `jetRelancer`…) le flux qu'il vise, son premier argument, que la
+ * fenêtre pose ; son identité est sa clé (`cle`, `cleDuGeste` : `jetLancer@attack`, `jetRegler@attack#localisation`
+ * pour un réglage, `fenetreValider@roundStart` ou `fenetreFermer@cascade` pour la validation ou la sortie d'une
+ * fenêtre, `fenetreChoisir@fateSave#issue` pour un choix de fenêtre (`fenetreChoisir`, `CHOIX_DES_FENETRES`,
+ * `src/noyau/choixDesFenetres.ts`), ou le nom du verbe). Un choix de rangée (`portee: 'rangee'`, l'Activité de chaque
+ * héros de la semaine en mer) prend en dernier argument le héros qu'il vise (`pid`), saisi parmi les héros auxquels il
+ * ouvre une valeur. Chaque verbe de la partie et ses paramètres viennent du registre dérivé du noyau
+ * (`src/hote/verbes.generated.ts`, produit par `scripts/gen-verbes.mjs`) : ni le pont, ni ce contrat, ni le GDScript
+ * n'en nomment aucun.
+ */
 /** La fenêtre qui tient la main, prête à dessiner ; `null` : rien ne tient la main. */
 export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   const fenetre = fenetreDuJeu(etat);

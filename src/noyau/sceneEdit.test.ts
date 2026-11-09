@@ -725,8 +725,8 @@ describe('normaliseAssises / seatOccupant — le seam unique d’assise', () => 
     const s = emptyScene('scene-test', 10, 10);
     s.layers = [{ z: 0, tiles: new Array(100).fill('plancher') }];
     s.entities = [
-      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } },
-      { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 8, y: 8 } },
+      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable: { assise: true } },
+      { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 8, y: 8 } },
     ];
     if (seatAssignments) s.seatAssignments = seatAssignments;
     return s;
@@ -803,7 +803,7 @@ describe('normaliseAssises / seatOccupant — le seam unique d’assise', () => 
   // ── M2 (sonde D du juge, promue) ────────────────────────────────────────────────────────────────
   it('deux corps attablés ne se retrouvent JAMAIS sur la même case', () => {
     let s = attablee();
-    s.entities.push({ id: 'pnj-2', kind: 'personnage', ref: 'humain', pos: { x: 7, y: 7 } });
+    s.entities.push({ id: 'pnj-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 7, y: 7 } });
     s = seatOccupant(s, 'table-1', 'place-1', { kind: 'entity', entityId: 'pnj-1' }, HORS_PARTIE).scene;
     s = seatOccupant(s, 'table-1', 'place-2', { kind: 'entity', entityId: 'pnj-2' }, HORS_PARTIE).scene;
     const deplacee = moveEntityTo(s, 'table-1', { x: 5, y: 5 });
@@ -955,31 +955,31 @@ describe('editEntity — un patch ne retire jamais le dernier porteur du type (#
   const avec = (...entities: Scene['entities']): Scene => ({ ...emptyScene('scene-test', 4, 4), entities });
 
   it('retirer la SEULE fiche d’un personnage est refusé, en nommant l’entité', () => {
-    const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' });
-    expect(() => editEntity(s, 'pnj', { ref: undefined })).toThrow(TypeNonNomme);
-    expect(() => editEntity(s, 'pnj', { ref: undefined })).toThrow(/personnage « pnj » : « ref », « statblock », « presetId » absents/);
+    const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } });
+    expect(() => editEntity(s, 'pnj', { creature: undefined })).toThrow(TypeNonNomme);
+    expect(() => editEntity(s, 'pnj', { creature: undefined })).toThrow(/personnage « pnj » : « creature », « vehicule », « engin », « statblock », « presetId » absents/);
   });
 
   it('retirer un porteur quand un autre DEMEURE passe', () => {
-    const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', statblock: sb });
+    const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, statblock: sb });
     const out = editEntity(s, 'pnj', { statblock: undefined });
-    expect(out.entities[0]).toMatchObject({ ref: 'humain' });
+    expect(out.entities[0]).toMatchObject({ creature: { id: 'humain' } });
     expect(out.entities[0].statblock).toBeUndefined();
   });
 
   it('remplacer la fiche dans le MÊME patch passe', () => {
     const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, statblock: sb });
-    expect(editEntity(s, 'pnj', { statblock: undefined, ref: 'gobelin' }).entities[0]).toMatchObject({ ref: 'gobelin' });
+    expect(editEntity(s, 'pnj', { statblock: undefined, creature: { id: 'gobelin' } }).entities[0]).toMatchObject({ creature: { id: 'gobelin' } });
   });
 
   it('la même porte vaut pour le décor : retirer son type est refusé', () => {
-    const s = avec({ id: 'tonneau-1', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau' });
-    expect(() => editEntity(s, 'tonneau-1', { ref: undefined })).toThrow(/décor « tonneau-1 » : « ref » absente/);
+    const s = avec({ id: 'tonneau-1', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'tonneau' } });
+    expect(() => editEntity(s, 'tonneau-1', { decor: undefined })).toThrow(/décor « tonneau-1 » : « decor » absent/);
   });
 
   it('un patch sans rapport avec la fiche passe', () => {
-    const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' });
-    expect(editEntity(s, 'pnj', { label: 'Aubergiste' }).entities[0]).toMatchObject({ ref: 'humain', label: 'Aubergiste' });
+    const s = avec({ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } });
+    expect(editEntity(s, 'pnj', { label: 'Aubergiste' }).entities[0]).toMatchObject({ creature: { id: 'humain' }, label: 'Aubergiste' });
   });
 });
 

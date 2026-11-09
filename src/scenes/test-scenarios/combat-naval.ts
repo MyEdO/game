@@ -63,16 +63,16 @@ const construireScene = (): Scene => buildScene({
         // index 0 = la cogue ennemie ; équipage exposé = les pirates (index 1-3), ids `enemy-enc-naval-<i>`.
         // Amélioration d'INSTANCE « Blindage (fer) » (MDG 12 l.236) → +2 PA de coque : les pierriers tapent
         // moins fort, la cogue encaisse plus longtemps (démontre les améliorations qui modifient le navire).
-        { ref: 'cogue', pos: { x: 13, y: 6 }, label: 'Cogue pirate', upgrades: [{ id: 'blindage-fer' }],
+        { vehicule: { id: 'cogue' }, pos: { x: 13, y: 6 }, label: 'Cogue pirate', upgrades: [{ id: 'blindage-fer' }],
           crewIds: ['enemy-enc-naval-1', 'enemy-enc-naval-2', 'enemy-enc-naval-3'] },
-        { ref: 'humain', pos: { x: 11, y: 4 }, label: 'Pirate' },
-        { ref: 'humain', pos: { x: 11, y: 8 }, label: 'Pirate' },
-        { ref: 'jaego-roth', pos: { x: 15, y: 6 } },
+        { creature: { id: 'humain' }, pos: { x: 11, y: 4 }, label: 'Pirate' },
+        { creature: { id: 'humain' }, pos: { x: 11, y: 8 }, label: 'Pirate' },
+        { creature: { id: 'jaego-roth' }, pos: { x: 15, y: 6 } },
         // index 4 = la BARGE AMIE (côté allié) : 2 pierriers SERVIS par les 2 canonniers du groupe. Son
         // équipage exposé (`crewIds`) = ces canonniers ; `applyShipPostes` leur pose le `mannedPoste`. Cap NORD
         // (appliqué par `orienterLesCombattants`) → la cogue, plein EST, tombe pile dans l'arc de la bordée TRIBORD
         // (octant 2) ; vire le cap (Phase 2 Manœuvre) et la cogue sort de l'arc.
-        { ref: 'bateau-de-patrouille', pos: { x: 3, y: 6 }, side: 'ally', facing: 'N', label: 'Barge des aventuriers',
+        { vehicule: { id: 'bateau-de-patrouille' }, pos: { x: 3, y: 6 }, side: 'ally', facing: 'N', label: 'Barge des aventuriers',
           crewIds: [...GUNNERS], postes: [pierrierPoste(GUNNERS[0]), pierrierPoste(GUNNERS[1])] },
       ],
     },

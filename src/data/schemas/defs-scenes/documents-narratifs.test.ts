@@ -24,7 +24,7 @@ const fautes = (valeur: unknown, schema: typeof projetSchema | typeof narratifSc
 const ENTREE_DE: { readonly [K in CleDeRegistreNarratif]: (id: string) => Jouet } = {
   affaires: (id) => ({ id, titre: 'Une affaire' }),
   indices: (id) => ({ id, affaireId: 'aff-socle', kind: 'indice', titre: 'Un indice', stades: [{ id: 's1', prose: 'Un indice.' }] }),
-  presetsPnj: (id) => ({ id, base: 'gobelin' }),
+  presetsPnj: (id) => ({ id, base: { id: 'gobelin' } }),
   objets: (id) => ({ id, label: 'Un objet' }),
   documents: (id) => ({ id, titre: 'Un document', prose: 'Un texte.' }),
   etats: (id) => ({ id, label: 'Un état', source: { book: 'ennemi-dans-l-ombre', page: 26, note: 'EDO 02 l.91' }, forme: { kind: 'heros' } }),
@@ -137,7 +137,7 @@ describe('références narratives des Effects — résolues au parse du projet',
   });
 
   it('`documentId` pendant sous une ACTION d’entité (`usable.actions[].flow`) : refusé à son chemin complet', () => {
-    const coffre = { id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'coffre', usable: { actions: [
+    const coffre = { id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, usable: { actions: [
       { id: 'fouiller', flow: { kind: 'do', effect: { type: 'document', documentId: 'doc-fantome' } } },
     ] } };
     expect(fautes(projet({ scenes: [scene({ entities: [coffre] })] }))).toEqual([

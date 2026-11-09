@@ -14,8 +14,8 @@ import { nomDEntite } from './monde/sceneNpc';
 function sceneWith(): Scene {
   const s = emptyScene('scene-test', 10, 10);
   s.entities = [
-    { id: 'perso-0', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } },
-    { id: 'enemy-0', kind: 'personnage', pos: { x: 1, y: 8 }, ref: 'mutant', combat: { hiddenUntilCombat: true } },
+    { id: 'perso-0', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 } },
+    { id: 'enemy-0', kind: 'personnage', pos: { x: 1, y: 8 }, creature: { id: 'mutant' }, combat: { hiddenUntilCombat: true } },
   ];
   s.triggers = [{ id: 'trig-0', rect: { x: 4, y: 4, w: 2, h: 2 }, once: true, flow: EMPTY_FLOW }];
   s.architecture = [{
@@ -380,13 +380,13 @@ describe('édition de scène — pose', () => {
   it('placeEntity : pose DIRECTE d’un décor précis avec ses défauts de catalogue', () => {
     const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'prop', ref: 'tonneau' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
-    expect(ent.ref).toBe('tonneau');
+    expect(ent.decor?.id).toBe('tonneau');
     expect(ent.kind).toBe('prop');
   });
   it('placeEntity : le personnage posé NOMME la fiche élue — `ref`, aucun nom recopié (sa fiche le nomme), apparence dérivée (#1882)', () => {
     const { scene, id } = placeEntity(emptyScene('scene-test', 10, 10), { mode: 'entity', kind: 'personnage', ref: 'humain' }, { x: 1, y: 1 });
     const ent = scene.entities.find((e) => e.id === id)!;
-    expect(ent).toMatchObject({ kind: 'personnage', ref: 'humain' });
+    expect(ent).toMatchObject({ kind: 'personnage', creature: { id: 'humain' } });
     expect(ent).not.toHaveProperty('label');
     expect(nomDEntite(ent, () => undefined), 'un humain anonyme reçoit un nom tiré sur son id (#3712)').not.toBe(creatureLabel('humain'));
     expect(ent.appearance).toBeUndefined();
@@ -411,7 +411,7 @@ describe('édition de scène — pose', () => {
   it('addEnemyMember : pose une entité-personnage CACHÉE + l’enrôle (rencontre créée si absente)', () => {
     const r = addEnemyMember(emptyScene('scene-test', 10, 10), '', 'mutant', { x: 3, y: 3 });
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
-    expect(ent).toMatchObject({ kind: 'personnage', ref: 'mutant', pos: { x: 3, y: 3 }, combat: { hiddenUntilCombat: true } });
+    expect(ent).toMatchObject({ kind: 'personnage', creature: { id: 'mutant' }, pos: { x: 3, y: 3 }, combat: { hiddenUntilCombat: true } });
     expect(r.scene.encounters[0].members).toEqual([{ entityId: r.entityId }]);
     // un 2ᵉ ennemi rejoint la MÊME rencontre
     const r2 = addEnemyMember(r.scene, r.encId, 'gobelin', { x: 4, y: 4 });
@@ -420,7 +420,7 @@ describe('édition de scène — pose', () => {
   it('addEnemyMember : `ref` est un ID qui RÉSOUT, le libellé se DÉRIVE de la créature (jamais la clé)', () => {
     const r = addEnemyMember(emptyScene('scene-test', 10, 10), '', 'humain', { x: 1, y: 1 });
     const ent = r.scene.entities.find((e) => e.id === r.entityId)!;
-    expect(findCreatureById(ent.ref)).toBeDefined();
+    expect(findCreatureById(ent.creature?.id)).toBeDefined();
     expect(ent).not.toHaveProperty('label');
     expect(nomDEntite(ent, () => undefined), 'un humain anonyme reçoit un nom tiré sur son id (#3712)').not.toBe(creatureLabel('humain'));
     // Un LIBELLÉ passé à la place d'un id est refusé net — le résolveur valide, il ne normalise pas.
@@ -428,7 +428,7 @@ describe('édition de scène — pose', () => {
   });
   it('addMember / removeMember : enrôle puis retire une entité existante (sans la supprimer)', () => {
     let s = emptyScene('scene-test', 10, 10);
-    s = { ...s, entities: [{ id: 'p1', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } }], encounters: [{ id: 'enc-0', members: [] }] };
+    s = { ...s, entities: [{ id: 'p1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 } }], encounters: [{ id: 'enc-0', members: [] }] };
     s = addMember(s, 'enc-0', 'p1').scene;
     expect(s.encounters[0].members).toEqual([{ entityId: 'p1' }]);
     expect(addMember(s, 'enc-0', 'p1').scene.encounters[0].members).toHaveLength(1); // idempotent
@@ -456,7 +456,7 @@ describe('édition de scène — emplacement de siège (postes authorés à l’
     const ent = out.scene.entities.find((e) => e.id === out.id)!;
     expect(ent.kind).toBe('personnage'); // seul kind enrôlable → spawn en Combattant
     expect(ent.label).toBe('Baliste');
-    expect(ent.ref).toBe('baliste'); // SOURCE de l'engin → spawn construit l'affût inerte
+    expect(ent.engin?.id).toBe('baliste'); // SOURCE de l'engin → spawn construit l'affût inerte
     expect(ent.appearance).toBeUndefined();
     expect(ent.postes).toHaveLength(1);
     expect(ent.postes![0].trappingId).toBe('baliste'); // #222 — réf catalogue authorée (base hydratée au spawn), plus d'`item` matérialisé
@@ -504,7 +504,7 @@ describe('édition de scène — emplacement de siège (postes authorés à l’
     expect(s.entities[0].postes![0].trappingId).toBe('mortier'); // #222 — la réf change, jamais une base copiée
     expect('item' in s.entities[0].postes![0]).toBe(false); // base HYDRATÉE au spawn, pas matérialisée à l'authoring
     expect(s.entities[0].label).toBe(mortier.label);
-    expect(s.entities[0].ref).toBe('mortier'); // ref restampée → spawn construit le BON affût
+    expect(s.entities[0].engin?.id).toBe('mortier'); // ref restampée → spawn construit le BON affût
     expect(s.entities[0].appearance).toBeUndefined();
     expect(s.entities[0].postes![0].crewIds).toEqual(['g1']); // équipage inchangé
     expect(setPosteEngine(s, id, 'dague')).toBe(s); // sous-type hors armes-de-siege
@@ -719,8 +719,8 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
   function attablee(): Scene {
     const s = emptyScene('scene-test', 10, 10);
     s.entities = [
-      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-      { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 }, label: 'Aubergiste' },
+      { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
+      { id: 'pnj-aubergiste', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 }, label: 'Aubergiste' },
     ];
     s.seatAssignments = { 'table-1': { 'place-1': { kind: 'entity', entityId: 'pnj-aubergiste' } } };
     return s;
@@ -759,7 +759,7 @@ describe('éditeur — les places assises suivent le geste, atomiquement', () =>
 
   it('un geste sur une scène SANS assise ne fabrique aucun champ', () => {
     const s = emptyScene('scene-test', 10, 10);
-    s.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets' }];
+    s.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' } }];
     expect(deleteSel(s, { type: 'entity', id: 'table-1' }).seatAssignments).toBeUndefined();
   });
 });
@@ -776,7 +776,7 @@ describe('canevas — un décor de deux cases se désigne par chacune d’elles'
   /** `table-2x1` occupe 2 cases en N/S et 1×2 en E/O — à l'échelle par DÉFAUT de la scène. */
   const salle = (facing: 'S' | 'E'): Scene => {
     const s = emptyScene('scene-test', 10, 10);
-    s.entities = [{ id: 'table', kind: 'prop', pos: { x: 3, y: 3 }, ref: REF, facing }];
+    s.entities = [{ id: 'table', kind: 'prop', pos: { x: 3, y: 3 }, decor: { id: REF }, facing }];
     return s;
   };
 
@@ -795,7 +795,7 @@ describe('canevas — un décor de deux cases se désigne par chacune d’elles'
 
   it('un CORPS posé sur une case d’empreinte se désigne lui-même : la pose exacte prime', () => {
     const scene = salle('S');
-    scene.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 4, y: 3 } });
+    scene.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 4, y: 3 } });
     expect(hitAt(scene, { x: 4, y: 3 }, TOUS_CALQUES)).toEqual({ type: 'entity', id: 'pnj' });
   });
 

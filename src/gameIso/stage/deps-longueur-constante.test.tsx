@@ -46,7 +46,7 @@ function hero(id: string, pos: { x: number; y: number }): Combatant {
 const REFS_VOLUMIQUES = ['caisse', 'tonneau', 'coffre', 'urne'] as const;
 
 function décor(id: string, ref: string, x: number): SceneEntity {
-  return { id, kind: 'prop', ref, pos: { x, y: 1 } } as SceneEntity;
+  return { id, kind: 'prop', decor: { id: ref }, pos: { x, y: 1 } } as SceneEntity;
 }
 
 /** Scène de 6×6 portant les `n` premières recettes volumiques de `REFS_VOLUMIQUES`, une instance chacune. */

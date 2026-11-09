@@ -80,10 +80,131 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 	return reponse
 
 
+## @contrat Écran publié
+## Chaque vue mise en page, Godot pose `globalThis.wfrpEcran`. Chaque publication remplace l'objet. À l’atelier, la
+## lecture d’un clip renouvelle aussi cette publication à chaque image, après mise en page, sans remesurer `peaux`.
+##
+## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
+## - Au combat : `{ boutons: { texte, x, y, element?, choix?, retenu? }[], cases: Record<"x,y,z", [x, y]>, corps:
+##   Record<string, { base: string, elements: string[], emblemes: Record<string, string>, couleurs: Record<string,
+##   Record<string, string>> }>, navires: string[] }`, plus le point de l'écran du sol de chaque case de chaque couche
+##   du plateau, les ids des navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle
+##   posé, et, par id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de
+## `montes`, l'id de
+##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre, la
+##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
+##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/end-turn`
+##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
+##   valeur d'un choix) ; une liste déroulante publie aussi `choix` et `retenu`, comme à l'atelier.
+## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, retenu? }[], saisies: { texte, x, y, element? }[],
+##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, chaque champ de
+##   texte éditable à l'écran, son texte et son centre (`PontDuNoyau.saisies_a_l_ecran`), le point de l'écran du sol de
+##   chaque case de la couche éditée, les zones, la surcouche et le calque de la dernière réponse de `editer` (section
+##   « Éditeur »), le nombre d'arêtes posées sur le monde, les noms posés sur le monde par case `x,y,z`, et si le calque
+##   y est posé, sa planche lue.
+## - À l'atelier : `{ boutons: { texte, x, y, cle?, choix?, retenu? }[], atelier: { base: string|null, empreinte:
+##   string|null, clip: string|null, instant: number|null, duree: number|null, lecture: boolean, vitesse: number,
+##   montes: Record<point, element>, lignes: Record<ligne, element>, emblemes: Record<emplacement, emblemeId>, aides: {
+##   os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[], onglet: Onglet, onglets: Onglet[],
+##   defilement: number, plages: Record<champ, { gauche: number, droite: number, y: number, valeur: number }>,
+##   composition: { courante: Composition, preset: string|null, montes: Monte[], manquants: Manquant[], morphes:
+##   Record<shapeKey, number>, palette: Record<Slot, string>, refus: string|null, copie: string }, gabarit: { neutre?:
+##   Mesure, repos?: Mesure, image?: Mesure }, cadre: number, os: Record<os, [number, number, number]>, peaux:
+##   Record<emplacement, { centre: [number, number, number], taille: [number, number, number] }>, morphes: { corps:
+##   Record<mesh, Record<shapeKey, number>>, montes: Record<emplacement, Record<mesh, Record<shapeKey, number>>> },
+##   couleurs: Record<emplacement, Record<materiau, string>>, vehicule: { definition: string, element: string|null,
+##   embleme: string|null, postes: string[], ameliorations: string[], couleurs: Record<materiau, string>, caches:
+##   string[], taille: [number, number, number]|null, demande: { postes: { definition: string, bord: FireArc }[],
+##   ameliorations: string[] } } | null, echantillon: { famille: string, id: string, triangles: number, aretes:
+## number, toits: number, couronnes: number } | null } }. `vehicule` est le véhicule demandé (section « Atelier 3D »),
+## `null` sans
+##   lui : sa fiche, puis ce que son montage a posé (`MontageDeVehicule`) : l'élément, l'emblème de ses voiles, les
+##   éléments de ses pièces et de ses Améliorations, la couleur de chaque surface de son élément à matériau propre
+##   (`MontageDeVehicule.couleurs_posees`), le nom de chaque nœud caché sous sa scène, pièces comprises, chacun une
+##   fois, trié, la taille de sa boîte en mètres, et les pièces et Améliorations demandées. `echantillon` est
+## l'échantillon demandé (section « Atelier 3D »), `null` sans lui : sa famille, son id, puis ce que sa scène a posé
+## (`VolumeDeScene.ce_qui_est_pose`) : les triangles de son volume, et ses arêtes, ses nappes de toit et ses couronnes
+## montrées.`, `Mesure` valant `{ pied:
+##   number, piedSansGabarit: number, sommet: number, echelle: number }` et `Onglet` `'personnage' | 'equipement' |
+##   'couleurs' | 'animation' | 'effets' | 'outils'`. `onglet` est l'onglet montré, `onglets` ceux dont le bouton est
+##   montré, ceux que le modèle posé offre, dans l'ordre du panneau (section « Atelier 3D »). `composition` porte la
+##   composition courante (`{}` à l'ouverture), l'id du dernier preset appliqué, puis `montes` et `manquants` de la
+##   dernière réponse de `composer` sur la base posée (section « Composition d'un personnage »), vides avant toute
+##   composition, après un refus et après un changement de base ; `refus` est le texte affiché du refus de la
+##   composition courante (« composition refusée : » suivi du message), `null` sans refus, et `copie` l’entrée copiée
+##   par « Copier la composition », vide avant toute copie, après chaque composition et après un refus. Le verdict reste
+##   affiché dans l’atelier. `composition.morphes` porte les poids attendus de la dernière réponse de `composer`, vide
+##   sans composition, et `composition.palette` sa `palette`. `couleurs` porte, sous l'id du point ou `ligne/<ligne>` de
+##   chaque emplacement monté dont une surface a un matériau propre (section « Atelier 3D », habiller), la couleur
+##   d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB. `erreurs` porte celles du chargement, du montage et
+##   de la page, puis celles du dernier geste de composition, puis celles du gabarit posé (section « Atelier 3D »).
+##   `cadre` est l'échelle de l'orbite de la caméra (`MarcheDeLAtelier.echelle`), 1 au corps neutre. `gabarit` porte les
+##   mesures du gabarit posé par `GabaritDuSquelette` (section « Gabarit d'une base »), vide sans gabarit et avant sa
+##   mesure : `neutre` au repos sans gabarit, `repos` au repos au gabarit, pieds au sol, et `image` sur la dernière pose
+##   modifiée, au repos comme pendant un clip ; chacune la hauteur monde de l'os de `pieds` le plus bas (`pied`), celle
+##   de l'os de `pieds` le plus bas de la même pose sans gabarit (`piedSansGabarit`), que `pied` égale (« Gabarit d'une
+##   base », étape 3), celle de l'os le plus haut (`sommet`), et l'échelle monde de `racine.os` (`echelle`). `os` porte
+##   la position monde de chaque os de la base sur la dernière pose envoyée au skinning, par nom, vide sans base. Les
+##   positions dans le repère du squelette sont relevées au signal `Skeleton3D.skeleton_updated`, après les
+##   modificateurs et avant la restauration des poses sans gabarit (Godot 4.7, `Skeleton3D::_notification`,
+##   `NOTIFICATION_UPDATE_SKELETON`), puis converties en monde à la publication, comme les sommets skinnés. `peaux`
+##   porte, sous l'id du point ou `ligne/<ligne>` de chaque emplacement monté qui porte un mesh skinné, la boîte de ses
+##   meshes skinnés posés par le moteur sur la pose courante (`MeshInstance3D.bake_mesh_from_current_skeleton_pose`, qui
+##   lit les os que le squelette a liés au skin) : son centre monde (`centre`) et sa taille dans le repère du squelette
+##   (`taille`). Elle se mesure à la publication qui suit un geste ou un changement d'état, que l'atelier retient tant
+##   que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu ; chaque image d'un clip en lecture republie
+##   la dernière mesure, car la mesure relit au processeur les tampons de chaque mesh
+##   (`RenderingServer.mesh_get_surface`), une lecture synchrone sous WebGL (#3787). `morphes` porte les poids réels des
+##   shape keys de chaque mesh qui en possède (`MeshInstance3D.get_blend_shape_value`), par nom de clé : `corps` pour
+##   les meshes de la base, `montes` pour ceux de chaque emplacement monté. Les clés `mesh` sont les chemins depuis la
+##   racine du modèle. Un mesh sans shape key est absent ; un emplacement monté sans shape key porte un record vide.
+##   `defilement` est la position verticale du défilement du panneau de l'onglet courant
+##   (`ScrollContainer.scroll_vertical`), en pixels ; chaque changement publie. `plages` porte, par `champ` d'un axe
+##   `plage` dont la glissière est à l'écran, le bord gauche et le bord droit de son cadre et son milieu vertical, et la
+##   valeur de la glissière (`valeur`, le `neutre` de l'axe sans champ) : un clic sur un bord pose la borne de l'axe.
+##   `cle` est optionnelle : la liste d'un emplacement porte son id (l'id du point, `"ligne/tete"`, `"ligne/coiffure"`,
+##   `"ligne/emplacement/<id>"`), la case ou la liste d'une pièce `"ligne/piece/<id>"`, la liste d'emblème d'un
+##   emplacement `"<emplacement>/embleme"`, la liste d'un axe `"axe/<champ>"` et le bouton « neutre » d'un axe `plage`
+##   `"axe/<champ>/neutre"`, la liste d'une couleur `"couleur/<emplacement de palette>"`, la liste des clips `"clip"`,
+##   les listes de tête des modèles `"modele/corps"`, `"modele/vehicule"` et `"modele/<famille>"` de chaque famille
+## d'échantillons, parce que leur texte (« Aucun », un
+##   libellé) se répète d'une rangée à l'autre ; le préfixe `ligne/` sépare une ligne d'un point de même id. Une liste
+##   déroulante publie aussi le texte de chaque article (`choix`) et le rang de l'article choisi (`retenu`, -1 sans
+##   choix) : on la choisit en la cliquant, puis en descendant à son article au clavier. `lignes` porte l'élément monté
+##   à chaque ligne de pièce, sous la clé `<ligne>` : la `sorte` d'un sélecteur (`tete`, `coiffure`), `piece/<id>` ou
+##   `emplacement/<id>` ; une ligne sous « Aucun » ou démontée en est absente, comme un point de `montes`. `emblemes` ne
+##   porte que les emplacements montés dont un emblème est posé, sous l'id du point ou `ligne/<ligne>` : un emplacement
+##   sous « Aucun » ou démonté en est absent. `duree` est la longueur du clip engagé (`null` sans clip) : chaque clip
+##   boucle, et « Image suivante » / « Image précédente » mènent à l'image voisine modulo `duree`
+##   (`MiseEnPage.image_voisine`, `projet/scripts/mise_en_page.gd`), la suivante de la dernière image étant la première.
+
+
 ## Publie à la page ce que l'écran porte (`globalThis.wfrpEcran`), pour qui le pilote sans voir dans le canevas.
 func publier_l_ecran(ecran: Dictionary) -> void:
 	JavaScriptBridge.eval("globalThis.wfrpEcran = %s" % JSON.stringify(ecran), true)
 
+
+## @contrat Écran publié
+## Au combat, Godot expose à la page une fonction pour les recettes qui capturent des vues,
+## `globalThis.wfrpCadrer(entree, rendre)` (`PontDuNoyau.exposer`, `combat.gd`). `entree` est un cadrage en JSON : `{
+## regard, case: { x, y }, etage?, lacet, tangage }` en immersion, `{ regard, case: { x, y }, etage?, lacet, zoom }`
+## en tactique et au plateau ; `etage` est la couche de la case (0 sans elle), `lacet` l'azimut où la caméra regarde,
+## en degrés au compas (0 au nord, 90 à l'est, `MiseEnPage.lacet_de_l_azimut`), `tangage` celui de l'œil, en degrés,
+## positif vers le haut, borné à `MiseEnPage.TANGAGE_DE_L_OEIL`, et `zoom` la distance de la caméra, en cases, de
+## `Monde.DISTANCE_MIN` à `Monde.DISTANCE_MAX`. Godot pose la caméra sous le regard de la partie, sans rien jouer ni
+## appeler le pont (`Plateau.cadrer`) : l'œil de l'immersion à la hauteur de l'œil de la case (`oeilsSousPlafond`)
+## au-dessus de son sol, le groupe restant à la sienne, la souris libérée et le point de mire caché, comme à
+## `ui_cancel` (`Immersion.poser`), ou la caméra de la tactique et du plateau sur le sol de la case, où elle reste
+## tant que le groupe ne change pas de case (`Monde.cadrer`). Le volume reste celui que le regard montre pour le
+## groupe (section « Vue ») : en immersion, entier ; en tactique et au plateau, sans les toits, les couches et le haut
+## des navires qu'il retire au-dessus du groupe. Deux images dessinées, `rendre` reçoit la réponse en JSON : `{ ok:
+## true, camera: { regard, case, lacet, tangage, zoom } }`, la caméra posée (`Monde.camera` : la case `[x, y, z]` du
+## sol touché sous l'œil, ou sous le lieu que la caméra regarde, `null` hors du monde, l'azimut et le tangage en
+## degrés, la distance, `null` en immersion) ; ou un refus `validation` (`Plateau.cadrer`) : une entrée illisible, un
+## cadrage d'un autre regard que celui de la partie, que la recette prend d'abord à la touche du regard, comme un
+## joueur (l'immersion hors d'exploration comprise), une clé hors de celles de son regard ou manquante, une case ou un
+## étage non entiers, une case hors du plateau ou d'une couche qu'il n'a pas, un nombre hors de ses bornes. La recette
+## autonome `projet/recettes/cadrage.gd` en est l'épreuve.
 
 ## `rappel` exposé à la page en `globalThis.<nom>` : chaque appel de la page lui passe ses arguments en tableau.
 func exposer(nom: String, rappel: Callable) -> void:

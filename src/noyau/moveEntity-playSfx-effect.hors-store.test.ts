@@ -17,7 +17,7 @@ beforeEach(() => {
 function sceneWithNpc() {
   const sc = emptyScene('scene-test', 10, 10);
   sc.id = 'move-sfx-scene';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } });
+  sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 } });
   return sc;
 }
 

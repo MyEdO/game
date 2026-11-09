@@ -272,7 +272,7 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
 describe('le nom d’un individu, et la Cible persistée', () => {
   it('`nomDIndividu` lit le groupe, puis la bataille, puis les entités de la scène', () => {
     const scene = emptyScene('s', 4, 4);
-    scene.entities.push({ id: 'pnj', kind: 'personnage', label: 'Nom de scène', pos: { x: 1, y: 1 }, ref: 'humain' });
+    scene.entities.push({ id: 'pnj', kind: 'personnage', label: 'Nom de scène', pos: { x: 1, y: 1 }, creature: { id: 'humain' } });
     const nom = nomDIndividu({ party: [mk('h', 'hero', { label: 'Héros' })], battle: { combatants: [mk('c', 'enemy', { label: 'Combattant' })] } as never, scene, campaignNarratif: null });
     expect([nom('h'), nom('c'), nom('pnj'), nom('absent')]).toEqual(['Héros', 'Combattant', 'Nom de scène', undefined]);
     expect(libelleDeCible(ciblePsy.individu('pnj'), nom)).toBe('Nom de scène');

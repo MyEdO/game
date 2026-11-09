@@ -75,7 +75,7 @@ function scèneArène(): Scene {
     kind: 'prop',
     pos: { x: 3 + (i % 6) * 1, y: 3 + Math.floor(i / 6) * 2 },
     z: 0,
-    ref: refDecorBillboard(),
+    decor: { id: refDecorBillboard() },
   })) as unknown as Scene['entities'];
   // Une CLOISON percée d'une porte en x = 7 : le groupe, posté au sud, ne voit du nord que le cône
   // qui passe par l'ouverture — et le pas qui s'en approche en DÉCOUVRE, ce qui est tout l'objet du

@@ -6,7 +6,7 @@ import type { JSX } from 'react';
  * d'undo (fini le modèle copie locale + Annuler/Appliquer).
  */
 import { useRef } from 'react';
-import { Scene, Trigger, EncounterDef, Dialogue, WallSide } from '../../noyau/monde/scene';
+import { Scene, Trigger, EncounterDef, Dialogue, WallSide, idDuCorps, type SceneEntity } from '../../noyau/monde/scene';
 import { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import type { WorldMap } from '../../noyau/worldMap';
 import type { NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
@@ -289,6 +289,9 @@ function DialoguesTab({
   );
 }
 
+/** Le nom d'un membre de rencontre : celui de son entité, sinon l'id de son corps, sinon son id. */
+const nomDeMembre = (ent: SceneEntity | undefined, id: string): string => ent?.label ?? (ent && idDuCorps(ent)) ?? id;
+
 function EncountersTab({
   scene,
   setScene,
@@ -387,7 +390,7 @@ function EncountersTab({
                         <option value="">— aucune —</option>
                         {mounts.map((mm) => (
                           <option key={mm.entityId} value={mm.entityId}>
-                            {byId.get(mm.entityId)?.label ?? byId.get(mm.entityId)?.ref ?? mm.entityId}
+                            {nomDeMembre(byId.get(mm.entityId), mm.entityId)}
                           </option>
                         ))}
                       </select>
@@ -566,7 +569,7 @@ function EncountersTab({
                     <option value="">— chaque adversaire —</option>
                     {members.map((m) => (
                       <option key={m.entityId} value={m.entityId}>
-                        {byId.get(m.entityId)?.label ?? byId.get(m.entityId)?.ref ?? m.entityId}
+                        {nomDeMembre(byId.get(m.entityId), m.entityId)}
                       </option>
                     ))}
                   </select>

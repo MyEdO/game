@@ -34,7 +34,7 @@ import { outwardSide } from './walls';
  *  `entId`, donc seules les entités comptent ici : une scène dont les seuls volumes sont architecturaux
  *  (feature de façade, ornement de bâtiment) n'a rien à désigner, aucun rayon à lancer. */
 export const sceneAUnPropVolumique = (scene: Scene): boolean =>
-  scene.entities.some((ent) => ent.kind === 'prop' && refEstVolumique(ent.ref));
+  scene.entities.some((ent) => ent.kind === 'prop' && refEstVolumique(ent.decor?.id));
 
 /** ANCRAGE d'un décor — ce qu'un site d'émission DÉCLARE, avant que l'émetteur unique ne tranche
  *  volume ou billboard. `ancre` est le point MONDE (fractionnaire, en cases) où le décor se pose : le
@@ -157,7 +157,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
     // L'empreinte EFFECTIVE au cap de l'instance (#1509) : le corps tourné pour un décor à recette,
     // l'empreinte déclarée pour un billboard. `span` la porte jusqu'au halo d'interaction
     // (`interactHalos.ts`), qui ne connaît l'étendue d'un élément que par lui.
-    const empreinte = empreinteDuProp(findPropById(ent.ref), ent.facing, mpt);
+    const empreinte = empreinteDuProp(findPropById(ent.decor?.id), ent.facing, mpt);
     // Le décor s'ancre au CENTRE de son empreinte (`decorFootGeometry` : une case posée y reste sur son
     // centre) — le dessin comme la recette.
     const dessin = decorFootGeometry(empreinte);
@@ -170,7 +170,7 @@ export function buildProps(scene: Scene, visible?: ReadonlySet<string>, view?: F
       span: { w: empreinte.w, h: empreinte.h },
       source: 'entity',
       entId: ent.id,
-      ref: ent.ref,
+      ref: ent.decor?.id,
       ...(ent.facing ? { facing: ent.facing } : {}),
       states: { visible: !visible || visible.has(`${ent.pos.x},${ent.pos.y},${z}`) },
     }, mpt));
