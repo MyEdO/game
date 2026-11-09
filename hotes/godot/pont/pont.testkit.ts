@@ -35,7 +35,7 @@ export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
  *  elle. */
 export const sectionDeLaFiche = (vue: VueDuPont, id: string): Element[] => vue.zones['fiche.sections'].find((e) => e.id === `section/${id}`)?.elements ?? [];
 
-/** Le listage des modèles commités du projet Godot, tel que `GET /modeles/` le sert. */
+/** Le listage des modèles commités du projet Godot, tel que `GET modeles/listage.json` le sert. */
 export const modelesCommites = () => listage(join(import.meta.dirname, '../projet/modeles'));
 
 /** `modeles` par `appel` sur `manifestes`, chacun avec les os de ses meshes rigides au listage commité `commites`. */

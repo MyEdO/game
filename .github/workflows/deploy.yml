@@ -1,10 +1,19 @@
-name: Déploiement prod
+name: Déploiement
 
+# Deux cibles, deux dossiers de cgauche.github.io (#3778) : `jeu`, la prod (le jeu web Vite), et `dev`, le test de
+# la migration (l'export Web de l'hôte Godot, servi en statique). Le défaut est `dev` : un lancement sans choix ne
+# touche jamais la prod.
 on:
   workflow_dispatch:
+    inputs:
+      cible:
+        description: "Dossier publié : dev (test, hôte Godot) ou jeu (prod, jeu web)"
+        type: choice
+        options: [dev, jeu]
+        default: dev
 
 concurrency:
-  group: deploy-prod
+  group: deploy-${{ inputs.cible }}
   cancel-in-progress: false
 
 permissions:
@@ -13,6 +22,8 @@ permissions:
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    env:
+      CIBLE: ${{ inputs.cible }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -24,9 +35,15 @@ jobs:
       # Le typage est jugé par sa gate, ici comme dans ci.yml (step `npm run typecheck`) — `build` ne construit que le bundle,
       # et la prod ne part jamais d'un commit non typé.
       - run: npm run typecheck
-      - run: npm run build
+      - if: ${{ inputs.cible == 'jeu' }}
+        run: npm run build
       # dist/qc = scratch des galeries QC, jamais publié
-      - run: rm -rf dist/qc
+      - if: ${{ inputs.cible == 'jeu' }}
+        run: rm -rf dist/qc
+      - if: ${{ inputs.cible == 'dev' }}
+        uses: ./.github/actions/caches-3d
+      - if: ${{ inputs.cible == 'dev' }}
+        run: node hotes/godot/construire.mjs --export --sortie dist
       # PROD_DEPLOY_KEY : clé privée SSH dont la publique est une deploy key en écriture sur cgauche.github.io
       - uses: actions/checkout@v4
         with:
@@ -36,16 +53,16 @@ jobs:
       - name: Publier
         run: |
           set -e
-          rm -rf prod/jeu
-          mkdir -p prod/jeu
-          cp -r dist/. prod/jeu/
+          rm -rf "prod/$CIBLE"
+          mkdir -p "prod/$CIBLE"
+          cp -r dist/. "prod/$CIBLE/"
           cd prod
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add jeu
+          git add "$CIBLE"
           if git diff --cached --quiet; then
             echo "Rien à publier"
           else
-            git commit -m "deploy: jeu WFRP (${GITHUB_SHA::8})"
+            git commit -m "deploy: $CIBLE WFRP (${GITHUB_SHA::8})"
             git push
           fi

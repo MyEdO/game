@@ -1,4 +1,4 @@
-## L'atelier 3D (#3086) : les modèles que le serveur de l'export liste (`GET modeles/`), indexés par le pont
+## L'atelier 3D (#3086) : les modèles listés à côté de l'export (`GET modeles/listage.json`), indexés par le pont
 ## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque GLB chargé à l'exécution (`GET modeles/<id>.glb`). Le joueur y
 ## choisit un corps, compose un personnage depuis un preset ou ses axes (`composer`, `catalogues`, `presetDeComposition`,
 ## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce,
