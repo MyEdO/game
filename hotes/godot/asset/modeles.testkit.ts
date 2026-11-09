@@ -30,7 +30,7 @@ export const glbDElement = (
 export const GLB_D_ELEMENT = glbDElement('root');
 const attache = { os: 'root', position: [0, 0, 0], rotation: [0, 0, 0] };
 export const baseDeTest = (base = 'humanoide') => ({
-  schema: 5, base, os: ['root'], chaines: {}, zones: [], emplacements: {}, prises: { main: attache, off: attache }, silhouettes: [],
+  schema: 6, base, os: ['root'], bornesArticulaires: { root: { x: [-180, 180], y: [-180, 180], z: [-180, 180] } }, chaines: {}, zones: [], emplacements: {}, prises: { main: attache, off: attache }, silhouettes: [],
   gabarit: { legs: [], arms: [], head: [], racine: 'root', st: { min: 0.8, max: 1.2 }, bornes: { legs: { min: 0.7, max: 1.3 }, arms: { min: 1, max: 1.5 }, head: { min: 1, max: 2 } } },
   porteur: { espece: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
   clips: { walk: 'walk' },
