@@ -78,7 +78,7 @@ function renduDuSort(id: string): { rendu: RenduDef; couleur: string } {
     const rendu = catalogue(REPLI.priere);
     return { rendu, couleur: rendu.couleur };
   }
-  const domaine = findDomainById(sort?.domainId);
+  const domaine = findDomainById(sort?.domainId?.id);
   const rendu = catalogue(domaine?.rendu?.id ?? REPLI.sort);
   return { rendu, couleur: domaine?.couleur ?? rendu.couleur };
 }
