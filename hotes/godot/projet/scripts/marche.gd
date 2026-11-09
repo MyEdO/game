@@ -10,6 +10,26 @@
 class_name MarcheDeLAtelier
 extends Node
 
+## @contrat Atelier 3D
+## La marche (`projet/scripts/marche.gd`, `MarcheDeLAtelier`) : les actions `avant`, `arriere`, `gauche` et `droite`
+## (`project.godot`, `[input]`) portent chacune une touche par `physical_keycode`, W, S, A et D du clavier QWERTY
+## américain (Z, S, Q et D d'un AZERTY), et une flèche. Tant qu'une est tenue et que son appui a atteint `_input` de
+## la marche, la racine du modèle avance sur le sol dans la direction de ces actions (`MiseEnPage.entree_de_marche`),
+## tournée par le lacet de la caméra, le modèle face à cette direction (son avant en +Z), à `vitesseAuSol` m/s de la
+## base multipliée par `echelleDeVitesse` du gabarit posé (1 sans gabarit, section « Gabarit d'une base ») et par
+## `speed_scale` du lecteur, et l'atelier joue le clip `walk` de la composition montée (`MontageDeComposition.clip`, à
+## deux mains sous une seconde prise) à son lecteur comme au clic de son bouton ; relâchée, le clip s'arrête à son
+## début, le squelette revient à sa pose de repos (`Skeleton3D.reset_bone_poses`), et l'atelier joue son clip de repos
+## (section « Atelier 3D », seconde prise). Ces touches ne déplacent pas le focus du panneau ; une touche que
+## l'interface prend avant la scène ne fait pas marcher : la liste ouverte d'un `OptionButton`, fenêtre incrustée qui
+## a le focus, la reçoit avant tout `_input` (« Using InputEvent », « How does it work? », Godot 4.7). La caméra
+## orbite autour de la racine, qu'elle suit : glisser au bouton droit tourne son lacet et son tangage (borné), la
+## molette l'approche ou l'éloigne. La caméra de la scène cadre le corps neutre ; chaque gabarit posé, une fois mesuré
+## au repos (`GabaritDuSquelette.mesures`), met l'orbite à l'échelle du sommet de ses os rapporté à celui du corps
+## neutre (`MiseEnPage.echelle_de_cadrage`), le zoom repris de là ; sans gabarit, elle revient à la caméra de la
+## scène. Un cran de molette sur un contrôle de l'interface (`Viewport.gui_get_hovered_control`) ne zoome jamais, même
+## quand le défilement du panneau, en bout de course, le laisse passer.
+
 ## La marche commence : l'atelier joue le clip `clip` à son lecteur.
 signal marche_commencee(clip: String)
 ## La marche s'arrête : le clip en pause à son début, le squelette au repos.

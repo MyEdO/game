@@ -17,6 +17,15 @@
  * ses zones, les lignes que le combat du dôme a ajoutées au journal sous `journal.lignes` (où le routeur `combat.gd` les range),
  * et l'intention que chaque formulaire joue pressé tel qu'il est dessiné (`attendus`).
  */
+/**
+ * La recette native `projet/recettes/ecran.gd` montre les vues que la sonde fige (`hotes/godot/recettes/ecran.ts`, sous
+ * `recettes/vues/ecran.json` de sa copie) : chaque source a sa zone et chaque zone sa source, chaque élément son
+ * composant dans l'ordre, chaque texte qu'il dit se lit à l'écran, chaque geste pressé joue son intention, celui d'une
+ * entité compris, chaque liste montre choisie sa valeur pressée et aucune sans elle, le geste en focus le prend, une
+ * vue remontrée garde ses nœuds. Chaque vue se montre dans la disposition qu'elle nomme : chaque élément y a une zone,
+ * et chaque disposition dédiée de `projet/ecrans/` est montrée par une vue.
+ * @contrat L'écran de Godot
+ */
 import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
 import { CLIC_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';

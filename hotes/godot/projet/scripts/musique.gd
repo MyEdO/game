@@ -5,6 +5,10 @@
 class_name Musique
 extends Node
 
+## @contrat Musique
+## Godot (`projet/scripts/musique.gd`, nœud `Musique` de l'écran de combat) joue l'une des `pistes` au hasard, en boucle,
+## à son volume ; une autre `cle` prend la place de la précédente en fondu enchaîné, la même ne change rien.
+
 ## La durée (s) du fondu d'une piste qui entre ou qui sort.
 const FONDU_S := 1.5
 ## Le volume (dB) d'une piste éteinte.
