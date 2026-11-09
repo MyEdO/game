@@ -38,7 +38,7 @@ import numpy as np  # noqa: E402
 from selection_appuis import etats_des_appuis, selectionner_appuis
 from porte_gabarit import verifier_gabarit  # noqa: E402
 from glb import souder_les_normales_des_cibles  # noqa: E402
-from reprises import Reprises, empreinte_de_construction  # noqa: E402
+from reprises import Reprises, dossier_de_construction  # noqa: E402
 from materiaux_par_sexe import declarer_les_variantes, recoucher_les_variantes  # noqa: E402
 
 PELVIS = 'pelvis'
@@ -253,7 +253,7 @@ def construire(args):
     marches = [declaration['clips']['walk']]
     noms = [b.name for b in squelette.data.bones]
     reprises = Reprises(
-        empreinte_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k != 'sortie'}),
+        dossier_de_construction(ICI.parents[2], {k: v for k, v in vars(args).items() if k != 'sortie'}),
         lambda chemin: bpy.ops.wm.save_as_mainfile(filepath=str(chemin), copy=True, relative_remap=False, compress=False),
         lambda chemin: bpy.ops.wm.open_mainfile(filepath=str(chemin), load_ui=False))
     noms_des_objets = {'squelette': squelette.name, 'squelette_f': squelette_f.name, 'objets_f': [o.name for o in objets_f],

@@ -1,10 +1,11 @@
 """Les reprises de la construction de la base humanoïde (#3319, #3793) : une coupure de la machine ne coûte plus que la
 passe en cours du point fixe, et non les heures déjà calculées.
 
-Une reprise est une étape écrite dans le dossier de la construction, `DOSSIER_DES_REPRISES/<empreinte>` : la scène
-(`sauver`, un `.blend`) et l'état de la boucle (pickle), puis le pointeur `courante`, remplacé d'un seul geste, qui la
-nomme. Une coupure pendant l'écriture laisse le pointeur sur l'étape précédente, entière. L'empreinte nomme le dossier :
-le code ou les arguments changés depuis lisent un autre dossier, vide.
+Une reprise est une étape écrite dans le dossier de la construction, `<git-common-dir>/reprises-3d/<empreinte>` : la
+scène (`sauver`, un `.blend`) et l'état de la boucle (pickle), puis le pointeur `courante`, remplacé d'un seul geste, qui
+la nomme. Une coupure pendant l'écriture laisse le pointeur sur l'étape précédente, entière. L'empreinte nomme le
+dossier : le code ou les arguments changés depuis lisent un autre dossier, vide. Le dossier vit avec le clone, qu'un
+redémarrage du conteneur cloud garde quand il vide `~/.cache` (#3793).
 """
 import hashlib
 import json
@@ -15,27 +16,28 @@ import subprocess
 import time
 from pathlib import Path
 
-DOSSIER_DES_REPRISES = Path.home() / '.cache' / 'wfrp-reprises-3d'
 POINTEUR = 'courante'
 SCENE = 'scene.blend'
 ETAT = 'etat.pickle'
 
 
-def empreinte_de_construction(racine, arguments):
-    """La révision du dépôt `racine`, ses écarts suivis et `arguments` (nom → valeur), en hexadécimal."""
+def dossier_de_construction(racine, arguments):
+    """Le dossier des reprises de la construction du dépôt `racine` sous `arguments` (nom → valeur) : son empreinte, en
+    hexadécimal, de la révision, des écarts suivis et des arguments, sous `<git-common-dir>/reprises-3d`."""
     def git(*commande):
         return subprocess.run(['git', *commande], cwd=racine, capture_output=True, check=True).stdout
     empreinte = hashlib.sha256(git('rev-parse', 'HEAD') + git('diff', 'HEAD', '--binary'))
     empreinte.update(json.dumps({cle: str(valeur) for cle, valeur in arguments.items()}, sort_keys=True).encode())
-    return empreinte.hexdigest()
+    commun = git('rev-parse', '--path-format=absolute', '--git-common-dir').decode().strip()
+    return Path(commun) / 'reprises-3d' / empreinte.hexdigest()
 
 
 class Reprises:
-    """Les reprises de la construction d'empreinte `empreinte` ; `sauver(chemin)` écrit la scène, `ouvrir(chemin)` la
-    rouvre."""
+    """Les reprises du dossier `dossier` (`dossier_de_construction`) ; `sauver(chemin)` écrit la scène, `ouvrir(chemin)`
+    la rouvre."""
 
-    def __init__(self, empreinte, sauver, ouvrir):
-        self.dossier, self.sauver, self.ouvrir = DOSSIER_DES_REPRISES / empreinte, sauver, ouvrir
+    def __init__(self, dossier, sauver, ouvrir):
+        self.dossier, self.sauver, self.ouvrir = dossier, sauver, ouvrir
         print('REPRISES', self.dossier, flush=True)
 
     def lire(self):
