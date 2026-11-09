@@ -1,10 +1,10 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 48. */
 import { z } from 'zod';
-import { charKeySchema, enumNomme, sourceRefSchema } from '../grammaire/valeurs';
+import { charKeySchema, couleurHexSchema, enumNomme, sourceRefSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { executeesDe, flowTestSchema, triggeredEffectSchema } from '../grammaire/mecanique';
-import { idDe, refOuSpec, refs } from '../grammaire/ref';
+import { idDe, ref, refOuSpec, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 
 export const file = 'domains.json';
@@ -51,6 +51,10 @@ const doc = document(
   {
 
     wind: z.string().optional(),
+    /** #3771 */
+    couleur: couleurHexSchema.optional(),
+    /** #3771 */
+    rendu: ref('rendu').optional(),
 
     /** LDB 47 l.509 */
     arcane: idDe('breathType').optional(),
@@ -139,6 +143,8 @@ const doc = document(
   },
   {
     wind: { label: 'Vent de magie', hint: 'Couleur associée (Aqshy, Ghyran…), extraite du texte' },
+    couleur: { label: 'Teinte des effets', hint: 'Teinte `#rrggbb` des effets visuels d’un Sort du Domaine, à la place de celle de son rendu' },
+    rendu: { label: 'Rendu des Sorts', hint: 'Rendu visuel et sonore d’un Sort du Domaine (`rendus.json`), à défaut celui des Sorts des Vents' },
     arcane: { label: 'Magie des Arcanes : Type de Souffle', hint: 'Domaine ouvert via le Talent Magie des Arcanes ; Type du sort Souffle (LDB 47 l.509)' },
     dark: { label: 'Domaine sombre', hint: 'Nécromancie/Démonologie' },
     grantGroups: { label: 'Groupes accordés', hint: 'Groupes du porteur d’un Talent ou d’un Trait qui nomme ce Domaine' },

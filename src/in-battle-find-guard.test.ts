@@ -68,7 +68,7 @@ const BASELINES: Record<string, number> = {
   'src/ui/WardModal.tsx': 1,
   // src/gameIso (#410 — stock à résorber par #276)
   'src/gameIso/builders/highlights.ts': 1,
-  'src/gameIso/fx/useCombatFx.ts': 6,
+  'src/gameIso/fx/useCombatFx.ts': 4,
   // -1 (1 → 0) : `state/viewLevel.ts:etageActif` tient l'étage affiché, et son combattant qui joue par
   // `inBattleId` — le `find` local part avec la définition qu'il servait.
   'src/gameIso/stage/MondeDeCampagne.tsx': 0,

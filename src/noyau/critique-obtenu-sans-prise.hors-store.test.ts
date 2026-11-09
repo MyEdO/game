@@ -47,7 +47,7 @@ const doubleReussi = (h: Combatant, cible: Combatant): AttackResult =>
 /** La touche FINALE telle que le jeu l'émet, et les étapes jouées. */
 function frappe(h: Combatant, cible: Combatant, res: AttackResult, grapple = false): { finale: AttackResult; etapes: string[] } {
   let finale: AttackResult | undefined;
-  const lache = bus.on(EVT.ANIM_ATTACK, (p: { to: string; result: AttackResult }) => { if (p.to === cible.id) finale = p.result; });
+  const lache = bus.on(EVT.ANIM_ATTACK, (p) => { if (p.kind === 'melee' && p.to === cible.id) finale = p.result; });
   applyAttackResult(banc.getState, banc.setState, h, cible, epee, res, grapple ? { suite: { grapple: true } } : {});
   const etapes = draineCascade(banc.getState, 200, (st) => (st.kind === 'sauvegarde' ? 9 : undefined));
   lache();

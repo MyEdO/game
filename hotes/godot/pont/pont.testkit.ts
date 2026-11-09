@@ -10,7 +10,7 @@ import { listage } from '../listage.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
 import type { CategorieDuPont } from './pont';
-import { cleDuGeste, horlogeVirtuelle, type LigneDuJournal } from '../../../src/noyau/index';
+import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
 import type { Bouton, Choix, Element, Formulaire, Jeu, Ligne, Plan, Saisie } from '../../../src/hote/elements';
 
@@ -45,7 +45,7 @@ export function servirLesModeles(appel: ReturnType<typeof table>['appel'], commi
 
 /** La suite d'une réponse réussie, ou l'échec qui dit la réponse. */
 export function suiteDe(r: Reponse): Suite {
-  if (!r.ok || !r.vue || !r.programmes || !r.journal || !r.zones) throw new Error(`réponse sans suite : ${JSON.stringify(r).slice(0, 400)}`);
+  if (!r.ok || !r.vue || !r.programmes || !r.journal || !r.zones || !r.effets) throw new Error(`réponse sans suite : ${JSON.stringify(r).slice(0, 400)}`);
   return r as unknown as Suite;
 }
 
@@ -56,19 +56,21 @@ export function erreurDe(r: Reponse): { categorie: CategorieDuPont; message: str
 }
 
 /** Rejoue tous les jetons d'une suite et de leurs reprises sur l'horloge virtuelle du noyau
- *  (`horlogeVirtuelle`), là où Godot arme ses minuteurs : la dernière suite, toutes les lignes de journal et toutes
- *  celles que le journal de l'écran ajoute, celles de `r` comprises. */
-export function drainer(appel: ReturnType<typeof table>['appel'], r: Reponse): { suite: Suite; journal: LigneDuJournal[]; lignes: Ligne[] } {
+ *  (`horlogeVirtuelle`), là où Godot arme ses minuteurs : la dernière suite, toutes les lignes de journal, toutes
+ *  celles que le journal de l'écran ajoute et tous les effets rendus, ceux de `r` compris. */
+export function drainer(appel: ReturnType<typeof table>['appel'], r: Reponse): { suite: Suite; journal: LigneDuJournal[]; lignes: Ligne[]; effets: Effet[] } {
   let suite = suiteDe(r);
   const journal = [...suite.journal];
   const lignes = [...suite.zones['journal.lignes']];
+  const effets = [...suite.effets];
   horlogeVirtuelle((jeton) => {
     suite = suiteDe(appel('reprendre', { jeton }));
     journal.push(...suite.journal);
     lignes.push(...suite.zones['journal.lignes']);
+    effets.push(...suite.effets);
     return suite.programmes;
   }, suite.programmes).vider();
-  return { suite, journal, lignes };
+  return { suite, journal, lignes, effets };
 }
 
 /** Ce qu'il manque à une saisie pour se dessiner : son libellé (jamais son nom), chaque valeur d'un choix nommée,

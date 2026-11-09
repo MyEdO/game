@@ -46,7 +46,7 @@ export async function enCacheOuTire(chemin: string, attendue: string, nom: strin
 }
 
 /** Les extensions d'un fichier de la Release. */
-export const EXTENSIONS_D_ASSET = ['glb', 'blend', 'jpg'] as const;
+export const EXTENSIONS_D_ASSET = ['glb', 'blend', 'jpg', 'ogg'] as const;
 type ExtensionDAsset = (typeof EXTENSIONS_D_ASSET)[number];
 
 /** Le nom, dans la Release, du fichier d'empreinte `empreinte`. */

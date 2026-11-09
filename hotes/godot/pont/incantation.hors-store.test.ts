@@ -65,7 +65,9 @@ describe('l’incantation par le pont', () => {
     expect(corps().issue, 'l’issue du jet').toMatchObject({ type: 'ligne' });
     const appliquer = suite.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!;
     expect(appliquer.libelle, 'l’Entrée applique l’incantation').toBe('Appliquer');
-    suite = jouer(appel('jouer', appliquer.jeu));
+    const applique = drainer(appel, appel('jouer', appliquer.jeu));
+    suite = applique.suite;
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'appliquée, la fenêtre d’incantation se referme').not.toContain('Incantation');
+    expect(applique.effets.find((e) => e.quoi === 'coup'), 'la Fléchette rend son trait magique, de la sorcière à sa cible (#3771)').toMatchObject({ vers: cible, depart: { visuel: 'canalisation' }, trajet: { projectile: 'trait-magique' } });
   });
 });
