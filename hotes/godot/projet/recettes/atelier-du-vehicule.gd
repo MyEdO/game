@@ -2,17 +2,21 @@ extends SceneTree
 
 ## Le véhicule dans l'atelier (#2987, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : l'atelier ouvert sur un
 ## pont figé (`PontFige`, `pont_fige.gd`, sur le véhicule figé par la sonde, `hotes/godot/recettes/vehicule.ts`), qui
-## sert le listage et les GLB du projet et répond à chaque entrée de `vehicule` que la sonde a figée. La caraque choisie
-## à côté des bases se pose au sol, cadrée à sa taille ; un canon choisi à une place de tribord, le Sabord installé, la
-## Figure de proue installée, le Sabord retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie
-## l'entrée attendue, et son montage (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à
-## sa position, tournée vers son bord, chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud
-## `montre` et cachant son nœud `cache`, les nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible,
-## chaque place de la réponse offerte à l'onglet Équipement sur la pièce qui y est montée, la palette et l'emblème sur
-## ses surfaces. La caraque n'attaque pas ; l'onglet Effets offre un bouton par variante, par zone, par lumière et par
-## son de la vitrine (#3777, #3783, `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot
-## connaît ; le coup d'un canon y part de l'auteur, le souffle de feu pose sa nappe sur chaque case, la flamme son foyer
-## sur la cible ; le trébuchet choisi attaque : son clip de tir joue et sa pierre vole.
+## sert le listage et les GLB du projet et répond à chaque entrée de `vehicule` que la sonde a figée. À l'ouverture, la
+## base posée, servie sans aucun élément, offre chaque onglet, Équipement pour ce qui reste à produire (#3792). La
+## caraque choisie à la liste de tête des véhicules se pose au sol, cadrée à sa taille, l'onglet montré cédant la place
+## au premier qu'elle offre ; un canon choisi à une place de tribord, le Sabord installé, la Figure de proue installée,
+## le Sabord retiré, une couleur et un emblème posés : à chaque geste, l'atelier envoie l'entrée attendue, et son montage
+## (`MontageDeVehicule`) porte le corps que le pont a rendu : chaque pièce de poste à sa position, tournée vers son bord,
+## chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud `montre` et cachant son nœud `cache`, les
+## nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible, chaque place de la réponse offerte à l'onglet
+## Équipement sur la pièce qui y est montée, une case par Amélioration qu'il peut monter (`montables`), la palette et
+## l'emblème sur ses surfaces, aucun onglet Personnage, et l'onglet Couleurs réduit aux emplacements de palette de ses
+## surfaces posées. La caraque n'attaque pas : l'onglet Animation ne montre aucune action ; l'onglet Effets offre un
+## bouton par variante, par zone, par lumière et par son de la vitrine (#3777, #3783, `vitrine`), chacun d'un visuel,
+## d'un projectile et de fichiers sonores que Godot connaît ; le coup d'un canon y part de l'auteur, le souffle de feu
+## pose sa nappe sur chaque case, la flamme son foyer sur la cible ; le trébuchet choisi, sans place ni Amélioration à
+## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
@@ -20,6 +24,8 @@ const FIGE := "res://recettes/vues/vehicule.json"
 const CADRE_D_UNE_COQUE := 5.0
 ## Les secondes au bout desquelles les éclats des effets joués sont éteints et retirés, le clip de tir rendu au repos.
 const ECLATS_ETEINTS_S := 4.0
+## Les images au plus qu'attend la base posée à l'ouverture.
+const IMAGES_DE_L_OUVERTURE := 600
 var _fautes: Array[String] = []
 
 
@@ -39,11 +45,15 @@ func _recetter() -> void:
 	root.add_child(atelier)
 	await _images(2)
 	var cles: Array = lu.vehicule.keys()
-	var bouton := _bouton(atelier, lu.modeles.libelles[lu.modeles.vehicules.caraque])
-	_verifier(bouton != null, "la caraque a sa bascule à côté des bases")
-	if bouton != null:
-		bouton.pressed.emit()
+	for image in IMAGES_DE_L_OUVERTURE:
+		if pont.ecran.get("atelier", {}).get("base") != null:
+			break
+		await process_frame
+	var a_l_ouverture: Array = pont.ecran.get("atelier", {}).get("onglets", [])
+	_verifier(a_l_ouverture == ["personnage", "equipement", "couleurs", "animation", "effets", "outils"], "la base sans élément posée à l'ouverture : onglets offerts %s" % [a_l_ouverture])
+	_choisir(atelier, "modele/vehicule", "caraque")
 	await _etape(atelier, pont, cles, 0, "caraque choisie")
+	_verifier(pont.ecran.atelier.onglet == pont.ecran.atelier.onglets[0], "la caraque choisie depuis Personnage : l'onglet montré %s, attendu le premier offert %s" % [pont.ecran.atelier.onglet, pont.ecran.atelier.onglets[0]])
 	var cadre: float = (atelier.get_node("Marche") as MarcheDeLAtelier).echelle()
 	_verifier(cadre > CADRE_D_UNE_COQUE, "la caraque cadrée à sa taille : échelle d'orbite %.2f" % cadre)
 	_choisir(atelier, "poste/tribord/0", "canon-moyen")
@@ -72,8 +82,9 @@ func _recetter() -> void:
 ## zone, la flamme qui pose un seul foyer sur la cible, puis le trébuchet choisi qui attaque.
 func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> void:
 	var vitrine: Dictionary = lu.vitrine
+	var actions := _controle_par_nom(atelier, "Actions")
 	var attaquer := _controle_par_nom(atelier, "Attaquer") as Button
-	_verifier(attaquer.disabled, "la caraque n'attaque pas, « Attaquer » doit être grisé")
+	_verifier(not actions.visible, "la caraque n'attaque pas, l'onglet Animation ne doit offrir aucune action")
 	var effets: Array = vitrine.attaques.values()
 	var cles_des_boutons: Array[String] = []
 	for famille in [vitrine.armes, vitrine.sorts]:
@@ -109,14 +120,10 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
 	(_controle(atelier, "lumiere/flamme") as Button).pressed.emit()
 	var foyers := atelier.get_node("Cible").get_children().filter(func(n: Node) -> bool: return n is Foyer)
-	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible")
-	var trebuchet := _bouton(atelier, lu.modeles.libelles[lu.modeles.vehicules["trebuchet-ade2"]])
-	_verifier(trebuchet != null, "le trébuchet a sa bascule à côté des bases")
-	if trebuchet == null:
-		return
-	trebuchet.pressed.emit()
+	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible, posés %s" % [foyers.map(func(f: Node) -> Array: return f.get_children().map(func(n: Node) -> String: return n.name))])
+	_choisir(atelier, "modele/vehicule", "trebuchet-ade2")
 	await _etape(atelier, pont, cles, 7, "trébuchet choisi")
-	_verifier(not attaquer.disabled, "le trébuchet posé attaque, « Attaquer » doit être actif")
+	_verifier(actions.visible and "animation" in pont.ecran.atelier.onglets, "le trébuchet posé attaque, l'onglet Animation doit offrir « Attaquer »")
 	attaquer.pressed.emit()
 	await _images(2)
 	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
@@ -162,12 +169,14 @@ func _etape(atelier: Node, pont: PontFige, cles: Array, rang: int, geste: String
 	if pont.entrees.is_empty() or pont.entrees.back() != cle:
 		_fautes.append("%s : entrée %s, attendu %s" % [geste, "aucune" if pont.entrees.is_empty() else pont.entrees.back(), cle])
 		return
-	_conforme(atelier, pont.fige.vehicule[cle], geste)
+	_conforme(atelier, pont, pont.fige.vehicule[cle], geste)
 	print("[atelier-du-vehicule] %s : %s" % [geste, JSON.stringify(pont.ecran.get("atelier", {}).get("vehicule"))])
 
 
-## Le montage du véhicule de `atelier` porte la réponse `reponse` de `vehicule`.
-func _conforme(atelier: Node, reponse: Dictionary, geste: String) -> void:
+## Le montage du véhicule de `atelier` porte la réponse `reponse` de `vehicule`, et l'écran publié par `pont` offre
+## Équipement et Couleurs sans Personnage, chaque couleur montrée si une surface posée la prend (la chair de la Figure de
+## proue, « peau », n'est offerte qu'installée).
+func _conforme(atelier: Node, pont: PontFige, reponse: Dictionary, geste: String) -> void:
 	var corps: Dictionary = reponse.vehicule
 	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
 	var scene := montage.scene
@@ -203,7 +212,10 @@ func _conforme(atelier: Node, reponse: Dictionary, geste: String) -> void:
 		var liste := _controle(atelier, "poste/%s/%d" % [place.bord, place.rang]) as OptionButton
 		var attendue: String = MontageDeComposition.VIDE if place.piece == null else place.piece
 		_verifier(liste != null and liste.get_item_metadata(liste.selected) == attendue, "%s : %s sur %s, attendu %s" % [geste, place.label, null if liste == null else liste.get_item_metadata(liste.selected), attendue])
-	for amelioration in atelier.find_children("*", "CheckButton", true, false).filter(func(c: Node) -> bool: return String(c.get_meta("cle", "")).begins_with("amelioration/")):
+	var cases := atelier.find_children("*", "CheckButton", true, false).filter(func(c: Node) -> bool: return String(c.get_meta("cle", "")).begins_with("amelioration/"))
+	var offertes := cases.map(func(c: Node) -> String: return String(c.get_meta("cle")).trim_prefix("amelioration/"))
+	_verifier(offertes == reponse.montables, "%s : Améliorations offertes %s, attendu celles que le véhicule peut monter %s" % [geste, offertes, reponse.montables])
+	for amelioration in cases:
 		var id := String(amelioration.get_meta("cle")).trim_prefix("amelioration/")
 		_verifier((amelioration as CheckButton).button_pressed == (id in reponse.ameliorations), "%s : case %s %s" % [geste, id, (amelioration as CheckButton).button_pressed])
 	var couleurs := montage.couleurs_posees()
@@ -212,18 +224,26 @@ func _conforme(atelier: Node, reponse: Dictionary, geste: String) -> void:
 			_verifier(String(couleurs.get(surface.nom, "")).to_lower() == String(corps.palette[surface.palette]).to_lower(), "%s : %s en %s, attendu %s" % [geste, surface.nom, couleurs.get(surface.nom), corps.palette[surface.palette]])
 	var embleme: Variant = corps.get("embleme", {}).get("id")
 	_verifier(montage.embleme == embleme, "%s : emblème %s, attendu %s" % [geste, montage.embleme, embleme])
+	var onglets: Array = pont.ecran.get("atelier", {}).get("onglets", [])
+	var equipement: bool = not reponse.places.is_empty() or not reponse.montables.is_empty() or MontageDeComposition.porte_un_blason(corps.element)
+	_verifier(not "personnage" in onglets and ("equipement" in onglets) == equipement and "couleurs" in onglets, "%s : onglets offerts %s, attendu Couleurs, sans Personnage, Équipement %s" % [geste, onglets, "offert" if equipement else "absent"])
+	_verifier(onglets.has(pont.ecran.atelier.onglet), "%s : l'onglet montré %s n'est pas offert" % [geste, pont.ecran.atelier.onglet])
+	var palette := {}
+	for id in [corps.element] + postes + montees:
+		for surface in MontageDeComposition.modeles.surfaces[id]:
+			palette[surface.palette] = true
+	for liste in atelier.find_children("*", "OptionButton", true, false).filter(func(o: Node) -> bool: return String(o.get_meta("cle", "")).begins_with("couleur/")):
+		var slot := String(liste.get_meta("cle")).trim_prefix("couleur/")
+		_verifier(_rangee_de_couleur_montree(atelier, slot) == palette.has(slot), "%s : couleur « %s » %s, ses surfaces posées %s" % [geste, slot, "offerte" if _rangee_de_couleur_montree(atelier, slot) else "cachée", palette.keys()])
+
+
+## Si la rangée de la couleur de l'emplacement de palette `slot` est montrée à l'onglet Couleurs.
+func _rangee_de_couleur_montree(atelier: Node, slot: String) -> bool:
+	return (_controle(atelier, "couleur/%s" % slot).get_parent() as Control).visible
 
 
 func _vecteur(lieu: Array) -> Vector3:
 	return Vector3(lieu[0], lieu[1], lieu[2])
-
-
-## La bascule de texte `texte` sous `atelier`.
-func _bouton(atelier: Node, texte: String) -> Button:
-	for bouton in atelier.find_children("*", "Button", true, false):
-		if (bouton as Button).text == texte:
-			return bouton
-	return null
 
 
 ## Le contrôle de clé `cle` sous `atelier`.
