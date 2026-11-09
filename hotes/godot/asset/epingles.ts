@@ -13,9 +13,12 @@ import { estObjet } from '../../../src/lib/objet.mjs';
 import { DOSSIER_DU_KIT } from './kit.ts';
 import { CACHE_DES_MODELES, EXTENSIONS_D_ASSET, enCacheOuTire, nomDAsset, tirerDeLaRelease, type AssetAPublier, type FichierEpingle, type Telecharger } from './release.ts';
 
+/** Le dossier épinglé des sons du projet Godot (`res://sons/`). */
+export const DOSSIER_DES_SONS = fileURLToPath(new URL('../projet/sons', import.meta.url));
+
 /** Les dossiers épinglés du projet Godot : ses textures (`res://textures/`), son kit des arêtes (`res://kit/`) et ses
- *  sons (`res://sons/`). */
-const DOSSIERS_EPINGLES = [fileURLToPath(new URL('../projet/textures', import.meta.url)), DOSSIER_DU_KIT, fileURLToPath(new URL('../projet/sons', import.meta.url))];
+ *  sons. */
+const DOSSIERS_EPINGLES = [fileURLToPath(new URL('../projet/textures', import.meta.url)), DOSSIER_DU_KIT, DOSSIER_DES_SONS];
 
 /** Un fichier épinglé et l'extension de son asset dans la Release. */
 type Epingle = FichierEpingle & { readonly extension: (typeof EXTENSIONS_D_ASSET)[number] };
