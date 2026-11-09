@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { effetsDeLAppel, type Effet } from './effetsDeLAppel';
+import { effetsDeLAppel, SONS_DE_LA_PARTIE, TEINTE_DU_CRITIQUE, TEINTE_DU_FLOTTANT, type Effet } from './effetsDeLAppel';
+import { sonDEffet } from '../data/sons/registre';
 import type { ChargeDAttaque } from './bus';
 import type { Evenement } from './partie';
 import type { AttackResult } from '../engine/combat';
@@ -11,8 +12,10 @@ const arme = (w: Partial<Weapon>): Weapon => ({ label: 'arme', type: 'melee', da
 const coup = (r: Partial<AttackResult>): AttackResult => ({ hit: true, critical: false, ...r }) as AttackResult;
 const incantation = (r: Partial<MissileResult>): CastResult & Partial<MissileResult> => ({ cast: true, roll: 10, target: 50, sl: 4, isCritical: false, isFumble: false, log: '', ...r }) as CastResult & Partial<MissileResult>;
 const emis = (payload: ChargeDAttaque): Evenement => ({ type: 'emis', evt: 'anim_attack', payload });
-/** Un combat : `a` à 5 cases de `b` (10 m sur une scène de 2 m par case), `loin` à 500 cases, `hors` hors du plateau. */
-const ETAT = { party: [], scene: { metresPerTile: 2 }, battle: { combatants: [{ id: 'a', pos: { x: 0, y: 0 } }, { id: 'b', pos: { x: 3, y: 4 } }, { id: 'loin', pos: { x: 300, y: 400 } }, { id: 'hors', pos: undefined }] } } as unknown as Jeu;
+/** Un combat : `a` à 5 cases de `b` (10 m sur une scène de 2 m par case), `loin` à 500 cases, `hors` hors du plateau ;
+ *  sa scène de 3 × 1 cases, au sol à 0 m sur la couche 0, et sur la couche 1 un pont à 3 m au-dessus de sa dernière case. */
+const SCENE = { metresPerTile: 2, dimensions: { w: 3, h: 1 }, layers: [{ z: 0, height: [0, 0, 0] }, { z: 1, height: [0, 0, 3] }] };
+const ETAT = { party: [], scene: SCENE, battle: { combatants: [{ id: 'a', pos: { x: 0, y: 0 } }, { id: 'b', pos: { x: 3, y: 4 } }, { id: 'loin', pos: { x: 300, y: 400 } }, { id: 'hors', pos: undefined }] } } as unknown as Jeu;
 const unSeul = (e: Evenement): Effet => {
   const effets = effetsDeLAppel(ETAT, [e]);
   expect(effets).toHaveLength(1);
@@ -57,7 +60,59 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
   });
 
   it('un son de scène : le son du registre ; l’attaque spéciale d’une créature sur elle-même ne rend aucun coup', () => {
-    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number) } }]);
+    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'sfx', payload: { id: 'porte-ouvre' } }])).toEqual([{ quoi: 'son', son: { id: 'porte-ouvre', fichiers: expect.any(Array), volume: expect.any(Number) }, fois: 1, ecartS: 0 }]);
     expect(effetsDeLAppel(ETAT, [emis({ kind: 'creature', from: 'a', to: 'a', defense: 'none', result: { hit: true }, creatureAttack: 'hurlement' })])).toEqual([]);
+  });
+
+  it('les flottants d’un coup à son arrivée : ses Blessures, critiques à leur teinte, encaissé, hors de combat ; paré ou esquivé, raté', () => {
+    const epee = arme({ subType: 'base' });
+    const flottants = (defense: 'parade' | 'none', r: Partial<AttackResult>) => {
+      const e = unSeul(emis({ kind: 'melee', from: 'a', to: 'b', defense, result: coup(r), weapon: epee }));
+      return e.quoi === 'coup' ? e.flottants.map((f) => [f.genre, f.texte, f.couleur]) : [];
+    };
+    expect(flottants('none', { woundsLost: 4 })).toEqual([['damage', '-4', TEINTE_DU_FLOTTANT.damage]]);
+    expect(flottants('none', { woundsLost: 4, critical: true, defenderDefeated: true })).toEqual([['damage', '-4', TEINTE_DU_CRITIQUE], ['death', '✦ hors de combat', TEINTE_DU_FLOTTANT.death]]);
+    expect(flottants('none', { woundsLost: 0 })).toEqual([['soak', 'Encaissé', TEINTE_DU_FLOTTANT.soak]]);
+    expect(flottants('parade', { hit: false })).toEqual([['defend', 'Paré / Esquivé', TEINTE_DU_FLOTTANT.defend]]);
+    expect(flottants('none', { hit: false })).toEqual([['miss', 'Raté', TEINTE_DU_FLOTTANT.miss]]);
+  });
+
+  it('une incantation ratée le dit sur sa cible ; un Projectile magique dit ses Blessures', () => {
+    expect(unSeul(emis({ kind: 'spell', projectile: false, from: 'a', to: 'b', defense: 'none', result: incantation({ cast: false }), spell: 'drain' }))).toMatchObject({ flottants: [{ genre: 'miss', texte: 'Incantation ratée' }] });
+    expect(unSeul(emis({ kind: 'spell', projectile: false, from: 'a', to: 'a', defense: 'none', result: incantation({}), spell: 'benediction-de-bataille' }))).toMatchObject({ flottants: [] });
+    expect(unSeul(emis({ kind: 'spell', projectile: true, from: 'a', to: 'b', defense: 'none', result: incantation({ hit: true, woundsLost: 6 }), spell: 'cauteriser' }))).toMatchObject({ flottants: [{ genre: 'damage', texte: '-6' }] });
+  });
+
+  it('un flottant du bus au-dessus de son combattant ou de sa case', () => {
+    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { to: 'b', text: '+2', kind: 'heal' } })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'heal', texte: '+2', couleur: TEINTE_DU_FLOTTANT.heal, critique: false } });
+    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { pos: { x: 2, y: 3 }, text: '⤬ dévie', kind: 'miss' } })).toMatchObject({ sur: null, case: { x: 2, y: 3 } });
+  });
+
+  it('les pas d’un déplacement, un par deux cases, quatre au plus ; le heurt d’un pas refusé, le gong de la victoire, les dés', () => {
+    const pas = (n: number) => effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'anim_move', payload: { id: 'a', path: Array.from({ length: n }, (_, x) => ({ x, y: 0 })) } }]).slice(-1)[0];
+    expect(pas(1)).toMatchObject({ quoi: 'son', son: { id: SONS_DE_LA_PARTIE.pas }, fois: 1, ecartS: 0.22 });
+    expect(pas(6)).toMatchObject({ fois: 3 });
+    expect(pas(20)).toMatchObject({ fois: 4 });
+    expect(unSeul({ type: 'emis', evt: 'move_blocked', payload: {} })).toMatchObject({ son: { id: SONS_DE_LA_PARTIE.heurt }, fois: 1 });
+    expect(unSeul({ type: 'emis', evt: 'battle_over', payload: { victory: true } })).toMatchObject({ son: { id: SONS_DE_LA_PARTIE.victoire } });
+    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'battle_over', payload: { victory: false } }])).toEqual([]);
+    expect(unSeul({ type: 'emis', evt: 'dice_roll', payload: undefined })).toMatchObject({ son: { id: SONS_DE_LA_PARTIE.des } });
+  });
+
+  it('un déplacement rend son chemin, avant ses pas : chaque case à sa couche, les mètres qui la séparent de la précédente, pont et saut compris (#3822)', () => {
+    const chemin = [{ x: 0, y: 0 }, { x: 1, y: 0 }, { x: 2, y: 0, z: 1 }, { x: 0, y: 0 }];
+    const [parcours, pas] = effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'anim_move', payload: { id: 'b', path: chemin } }]);
+    expect(parcours).toEqual({ quoi: 'deplacement', qui: 'b', cases: [
+      { x: 0, y: 0, z: 0, metres: 0 }, { x: 1, y: 0, z: 0, metres: 2 }, { x: 2, y: 0, z: 1, metres: Math.hypot(2, 3) }, { x: 0, y: 0, z: 0, metres: Math.hypot(4, 3) },
+    ] });
+    expect(pas).toMatchObject({ quoi: 'son', son: { id: SONS_DE_LA_PARTIE.pas }, fois: 2 });
+  });
+
+  it('un déplacement sans chemin (sa seule case d’arrivée) ne rend que ses pas', () => {
+    expect(effetsDeLAppel(ETAT, [{ type: 'emis', evt: 'anim_move', payload: { id: 'a', path: [{ x: 2, y: 0 }] } }]).map((e) => e.quoi)).toEqual(['son']);
+  });
+
+  it('chaque son de la partie est au registre', () => {
+    for (const id of Object.values(SONS_DE_LA_PARTIE)) expect(sonDEffet(id), id).not.toBeNull();
   });
 });

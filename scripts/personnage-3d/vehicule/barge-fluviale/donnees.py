@@ -4,6 +4,18 @@ du Bérébéli, chaland de Josef (l.26 : profil, plan « Main Deck », intérieu
 (l.21). Hypothèses, qu'aucune ne donne : la tête du mât à 10 m ; la passerelle du toit du rouf à la plate-forme de poupe
 (le toit n'a pas d'échelle sur la planche) ; boucliers et lances de la planche omis (équipement de l'équipage).
 
+Parties de la planche (fiche `user-doctrine-vehicule-assemblage-de-parties`) :
+- le bateau, modelé ici : coque à fond plat, préceinte et bandes de fer, pavois, pont, cale et cabines creusées, rouf (bloc
+  avant et maison), ses hublots et fenêtres percés, garde-corps, plates-formes de proue et de poupe, passerelle, échelles,
+  écoutilles, mât, vergue et voile ferlée, haubans et étai, aviron de queue, perche de poupe et sa traverse ;
+- le pavillon : la toile sous la tête de la perche, surface `blason` ;
+- l'armement : pièces de siège aux `postes` des plates-formes et du toit de la maison ;
+- les Améliorations : aucune n'a de pièce à sa taille (`caraque/ameliorations.py`) ;
+- le décor, posé par le plan de la barge au noyau (`src/noyau/planDeLaBarge.ts`) : la cargaison bâchée et ses sangles
+  des deux bords du pont avant, les fanaux sur hampe, la pile de tonneaux sur le toit du bloc ; la lanterne pendue à la
+  traverse de la perche n'a pas de décor (aucun ne se pose en hauteur) ; la torche, les boucliers, la toile au crâne et
+  les lances sont omis.
+
 Repère Blender : z vers le haut, z = 0 à la ligne de flottaison, la proue vers -y, bâbord vers +x. L'export glTF
 (y vers le haut) place la proue vers +z. L'origine est le centre du plan de jeu, comme l'hôte le pose.
 
@@ -81,11 +93,13 @@ PAVOIS = (0.18, 0.30)           # retrait du plat-bord vers l'intérieur : en x,
 # Rouf : murs en retrait du plat-bord (plan « Main Deck » : 77 % du bau), un bloc avant bas (cases du glyphe « b »)
 # puis la maison arrière (cases du glyphe « r »), chacun de l'abscisse de sa première case à celle d'après sa dernière,
 # son toit à la hauteur de son glyphe. Garde-corps du toit de la maison (hauteur, pas des montants, section), ouvert
-# sur le bloc avant et sur la passerelle ; hublots (abscisses en cases, z, rayon) et fenêtres de l'arrière (abscisses,
-# z, largeur, hauteur) sur ses deux flancs, d'après le profil ; tonneaux debout sur le toit du bloc, à bâbord du mât
-# ((abscisse, x) de chacun, rayon, hauteur), un tonneau couché sur eux.
-ROUF = {"retrait": 0.53, "garde_corps": (0.72, 0.95, 0.09), "hublots": ((3.55, 4.15, 4.6), 1.5, 0.16),
-        "fenetres": ((5.15, 5.75), 1.8, 0.48, 0.42), "tonneaux": (((3.8, 0.5), (3.8, 1.04)), 0.24, 0.62)}
+# sur le bloc avant et sur la passerelle.
+ROUF = {"retrait": 0.53, "garde_corps": (0.72, 0.95, 0.09)}
+# Ouvertures percées dans les deux flancs du rouf, d'après le profil : hublots (abscisses en cases, z, rayon), fenêtres
+# de l'arrière (abscisses, z, largeur, hauteur) ; profondeur de la percée depuis la face du mur (au-delà de son
+# épaisseur de 0.12 m, jusque dans la cabine), section du croisillon qui traverse chacune.
+OUVERTURES = {"hublots": ((3.55, 4.15, 4.6), 1.5, 0.16), "fenetres": ((5.15, 5.75), 1.8, 0.48, 0.42), "percee": 0.2,
+              "croisillon": 0.03}
 
 # Plates-formes de proue et de poupe (glyphes « g » et « a ») : de f à f (profil : 0 à 0,095 et 0,867 à 1), débord
 # au-delà du plat-bord, piliers (x, abscisse en cases, repris aux deux bords) qui les portent depuis le pont ;
@@ -117,11 +131,6 @@ MEMBRURES = {"pas": 0.6, "section": (0.13, 0.10), "baux": (0.14, 0.10)}
 # descend (sous les baux de la cale, 1.3 m sous barrot), écart toléré (une épaisseur de cloison), en mètres.
 EMPRISE = {"pas": 0.05, "stature": 1.0, "ecart": 0.10}
 
-# Bâches de la cargaison sur le pont avant (plan « Main Deck », profil) : de l'abscisse a à b en cases, une par bord de
-# part et d'autre de l'allée axiale (rang du milieu), hiloire de l'écoutille de charge (hauteur, largeur), sommet de la bâche au-dessus
-# du pont, sangles croisées (nombre de croix par face, section).
-BACHES = {"abscisses": (1.3, 2.95), "allee": 1.2, "hiloire": (0.22, 0.12), "sommet": 1.75, "croix": 3, "sangle": 0.05}
-
 # Bandes verticales du bordé (profil) : abscisses en cases, de z au plat-bord, section, saillie.
 BANDES = {"abscisses": (1.65, 2.85, 3.9, 4.35, 4.875, 5.475, 6.3), "z": -0.25, "section": 0.11, "saillie": 0.06}
 
@@ -133,20 +142,14 @@ MAT = {"abscisse": 3.34, "emplanture": -0.6, "tete": 10.0, "rayons": (0.17, 0.09
 VERGUE = {"de": (1.0, 4.4), "a": (5.8, 10.6), "rayons": (0.10, 0.06), "x": 0.25, "ferlee": (0.24, 0.12), "rabans": 9}
 HAUBANS = {"capelage": 9.3, "cadenes": (2.95, 4.05)}
 ETAI = 3.9
-CORDAGE = {"hauban": 0.05, "etai": 0.06, "raban": 0.03}
-
-# Fanaux et torches sur leurs hampes (profil, huit) : (x, abscisse en cases, glyphe du plancher, hampe) ; lanterne
-# (hauteur, rayon). Proue (deux), pont avant, devant du bloc, toit de la maison (deux), flanc du rouf ; celui de la
-# perche de poupe pend à sa traverse (`PERCHE`).
-FANAUX = {"points": [(-0.8, 0.25, "g", 1.0), (0.8, 0.25, "g", 1.0), (1.7, 1.12, "p", 1.0), (-1.55, 3.1, "b", 0.6),
-                     (1.66, 4.35, "r", 1.05), (-1.66, 5.5, "r", 0.95), (1.98, 5.45, "p", 0.7)], "lanterne": (0.45, 0.13)}
+CORDAGE = {"hauban": 0.05, "etai": 0.06}
 
 # Aviron de queue de la poupe (plan « Main Deck » : la barre qui dépasse à tribord de l'arrière) : la poignée, le
 # tolet sur le couronnement et le bout de la pale, en (x, abscisse en cases, z) ; pale (longueur, largeur, épaisseur).
 AVIRON = {"poignee": (-0.9, 6.95, 3.35), "tolet": (-1.0, 7.5, 3.05), "bout": (-1.25, 8.4, -0.35), "pale": (1.6, 0.5, 0.06),
           "rayon": 0.06}
 
-# Perche de poupe (profil : f 0,95, sa traverse vers l'arrière à 4,6 m, une lanterne pendue à son bout) : (x, abscisse
+# Perche de poupe (profil : f 0,95, sa traverse vers l'arrière à 4,6 m) : (x, abscisse
 # en cases), z de la tête, de la traverse, abscisse du bout de la traverse, rayon. Le pavillon flotte sous sa tête :
 # toile longueur × hauteur, part de l'emblème.
 PERCHE = {"pied": (1.72, 7.15), "tete": 5.6, "traverse": (4.6, 7.75), "rayon": 0.06}
@@ -157,7 +160,7 @@ PAVILLON = {"toile": (1.2, 0.8), "blason": 0.75}
 # x ou None). Proue : sur l'axe de sa plate-forme. Poupe : à bâbord de l'écoutille de sa plate-forme. Côtés (x None) :
 # sur le toit de la maison, ciel au-dessus, la bouche passée par-dessus son garde-corps de `RECUL` derrière son bord ;
 # chaque arme montée sur bateau (MSRC 12 l.221-232 ; la plus longue, une catapulte de 4,29 m sur 1,54 m) y tient de
-# travers, aucun poste du pont n'en tient deux : bâches à l'avant, rouf au milieu, échelle et plate-forme de poupe à
+# travers, aucun poste du pont n'en tient deux : cargaison à l'avant, rouf au milieu, échelle et plate-forme de poupe à
 # l'arrière.
 POSTES = [("proue", 0.32, "g", 0.0), ("poupe", 7.25, "a", 1.2), ("tribord", 4.45, "r", None), ("babord", 5.55, "r", None)]
 RECUL = 0.95

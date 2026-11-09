@@ -361,6 +361,11 @@ unique_name_in_owner = true
 layout_mode = 2
 text = "Attaquer"
 
+[node name="Parcourir" type="Button" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne/Actions"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Parcourir un chemin"
+
 [node name="AideDeMarche" type="Label" parent="Interface/Panneau/Racine/DefilementAnimation/Colonne"]
 layout_mode = 2
 autowrap_mode = 3
@@ -420,6 +425,24 @@ theme_type_variation = &"HeaderSmall"
 text = "Sons"
 
 [node name="VitrineSons" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreFlottants" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Flottants"
+
+[node name="VitrineFlottants" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="TitreMusiques" type="Label" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
+layout_mode = 2
+theme_type_variation = &"HeaderSmall"
+text = "Musiques"
+
+[node name="VitrineMusiques" type="HFlowContainer" parent="Interface/Panneau/Racine/DefilementEffets/Colonne"]
 unique_name_in_owner = true
 layout_mode = 2
 

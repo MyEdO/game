@@ -7,7 +7,7 @@ import { contratDe } from './build-contrat-du-pont.mjs'
 
 const PONT = 'hotes/godot/pont/pont.ts'
 const GD = 'hotes/godot/projet/scripts/contrat.gd'
-const TITRES = ['En-tête', 'Transport', 'Erreurs', 'Suite', 'Vue', 'Monde', 'Éditeur', 'Lumière', 'Effets', "L'écran de Godot",
+const TITRES = ['En-tête', 'Transport', 'Erreurs', 'Suite', 'Vue', 'Monde', 'Éditeur', 'Lumière', 'Effets', 'Musique', "L'écran de Godot",
   "Corps d'un combattant", 'Atelier 3D', "Gabarit d'une base", "Composition d'un personnage", 'Écran publié']
 
 const pont = (methode) => `export function creerPont() {\n  const methodes = {\n${methode}\n    vue() { return {} },\n  }\n  return methodes\n}\n`
@@ -42,7 +42,7 @@ test('une méthode sans `@returns` abandonne, nommée', () => {
 })
 
 test('un titre hors de la liste des sections abandonne, nommé', () => {
-  assert.throws(() => rendre({ titres: [...TITRES, 'Plateau'] }), /contrat\.gd:76 : titre de section inconnu « Plateau »/)
+  assert.throws(() => rendre({ titres: [...TITRES, 'Plateau'] }), /contrat\.gd:81 : titre de section inconnu « Plateau »/)
 })
 
 test('une section sans bloc abandonne, nommée', () => {

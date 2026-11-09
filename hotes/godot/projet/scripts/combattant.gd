@@ -3,7 +3,7 @@
 ## du plateau (`vue.plateau.metresParCase`) et animée par les clips de sa base selon leur rôle (`clips` de la réponse de
 ## `modeles`, ou `clipsDeuxMains` sous son maniement tant qu'il tient un objet des deux mains, `MontageDeComposition.clip`) ;
 ## son nom et ses Points de Blessures (`pb`) en étiquette au-dessus de sa tête, l'anneau de l'actif. Il glisse vers sa nouvelle case,
-## frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
+## ou parcourt le chemin qui l'y mène (`parcourir`, #3822), frappe vers une cible, accuse le coup qui le vise et tombe hors de combat. Sans corps, il garde son anneau et son
 ## étiquette, à la hauteur du nom d'une entité (`MiseEnPage.HAUTEUR_DU_NOM`). Véhicule ou engin (`vue.corps.vehicules[id]`,
 ## #2987), son corps se monte sous `Vehicule` (`MontageDeVehicule`), posé sur ses N×N cases, à sa taille réelle ou les
 ## remplissant (`poser_sur_l_empreinte`), tourné vers son cap (`tourner_au_cap`) et animé par les clips de son élément
@@ -34,6 +34,8 @@ const MORT := "death"
 var _id := ""
 var _hors_combat := false
 var _deplacement: Tween
+## Le lieu où la vue le pose en dernier (`montrer`), qu'il gagne ou a gagné.
+var _destination := Vector3.ZERO
 ## Le dernier corps reçu, `null` sans corps, et son empreinte.
 var _corps: Variant = null
 var _empreinte := ""
@@ -47,10 +49,12 @@ var _hauteur_de_tete := 0.0
 
 func _ready() -> void:
 	_etiquette.position.y = MiseEnPage.HAUTEUR_DU_NOM
+	_destination = position
 
 
 ## `c` : un combattant projeté (`voisins`) ; `lieu` : le centre de sa case ; `corps` : son corps (`null` : aucun) ;
 ## `vehicule` : son véhicule (`null` : aucun) ; `metres_par_case` : l'échelle du plateau (`vue.plateau.metresParCase`).
+## Posé ailleurs que là où il va, il y glisse (`_aller`).
 func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule: Variant, metres_par_case: float) -> void:
 	_id = c.id
 	var echelle := MiseEnPage.echelle_metrique(metres_par_case)
@@ -61,7 +65,8 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule
 		_hors_combat = true
 		_jouer(MORT)
 		_etiquette.modulate.a = OPACITE_HORS_COMBAT
-	if not lieu.is_equal_approx(position):
+	if not lieu.is_equal_approx(_destination):
+		_destination = lieu
 		_aller(lieu)
 	_vetir(corps)
 	if await _vehicule.monter(vehicule, _montage, _poser_le_vehicule.bind(vehicule, metres_par_case)):
@@ -95,10 +100,39 @@ static func tourner_au_cap(scene: Node3D, cap: String, empreinte: int) -> void:
 	scene.transform = scene.transform.translated(-milieu).rotated(Vector3.UP, MiseEnPage.lacet_de_proue(MiseEnPage.LACETS_DES_CAPS[cap])).translated(milieu)
 
 
+## Le tween `pas` mène `mobile` de sa place à chaque lieu de `lieux` après le premier, la case qu'il quitte, l'un après
+## l'autre en ligne droite, chacun en la durée de même rang de `durees`, `modele` tourné vers lui au début de son pas
+## (`tourner_vers`).
+static func parcourir_les_lieux(pas: Tween, mobile: Node3D, modele: Node3D, lieux: Array, durees: Array) -> void:
+	for i in range(1, lieux.size()):
+		pas.tween_callback(tourner_vers.bind(modele, lieux[i]))
+		pas.tween_property(mobile, "position", lieux[i], durees[i])
+
+
+## `modele` tourné à l'horizontale vers `cible`, son avant au +Z ; à la verticale de `cible`, il garde son cap.
+static func tourner_vers(modele: Node3D, cible: Vector3) -> void:
+	var ici := modele.global_position
+	if not Vector2(cible.x, cible.z).is_equal_approx(Vector2(ici.x, ici.z)):
+		modele.look_at(Vector3(cible.x, ici.y, cible.z), Vector3.UP, true)
+
+
+## Le chemin d'un déplacement (`deplacement` de `suite.effets`, #3822) : `lieux`, où il se tient sur chacune de ses cases
+## (`Monde.lieu`), parcouru de sa place (`parcourir_les_lieux`) au clip de marche, chaque pas de `metres` (au même rang) à
+## la vitesse au sol de sa base (`MontageDeComposition.duree_du_pas`), en `DUREE_DEPLACEMENT_S` sans base posée ; puis le
+## repos. Un parcours neuf remplace celui en cours, comme son glissement.
+func parcourir(lieux: Array, metres: Array) -> void:
+	if _deplacement != null:
+		_deplacement.kill()
+	_jouer(MARCHE)
+	_deplacement = create_tween()
+	parcourir_les_lieux(_deplacement, self, _montage, lieux, metres.map(_duree_du_pas))
+	_deplacement.tween_callback(_reposer)
+
+
 ## Tourné vers `cible` (une position du plateau), il frappe : le clip de son rôle d'attaque, `ranged` si sa table en
 ## porte un (une pièce de tir), `melee` sinon.
 func agir_vers(cible: Vector3) -> void:
-	_tourner_vers(cible)
+	tourner_vers(_montage, cible)
 	_jouer_puis_repos(TIR if _clip(TIR) != "" else ATTAQUE)
 
 
@@ -270,8 +304,9 @@ func _jouer_puis_repos(role: String) -> void:
 		_lecteur().queue(_clip(REPOS))
 
 
+## Le glissement d'un déplacement sans chemin, en ligne droite jusqu'à `lieu`, en `DUREE_DEPLACEMENT_S`.
 func _aller(lieu: Vector3) -> void:
-	_tourner_vers(lieu)
+	tourner_vers(_montage, lieu)
 	if _deplacement != null:
 		_deplacement.kill()
 	_jouer(MARCHE)
@@ -285,6 +320,6 @@ func _reposer() -> void:
 		_jouer(REPOS)
 
 
-func _tourner_vers(cible: Vector3) -> void:
-	if not cible.is_equal_approx(position):
-		_montage.look_at(cible, Vector3.UP, true)
+## La durée (s) d'un pas de `metres` mètres de son chemin (`parcourir`).
+func _duree_du_pas(metres: float) -> float:
+	return DUREE_DEPLACEMENT_S if _montage.modele == null else _montage.duree_du_pas(metres)

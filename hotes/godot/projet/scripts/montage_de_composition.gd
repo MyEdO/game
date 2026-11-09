@@ -395,6 +395,13 @@ func clip(role: String) -> String:
 	return base.get("clipsDeuxMains", {}).get(maniement, {}).get(role, clips.get(role, ""))
 
 
+## La durée (s) d'un pas de `metres` mètres d'un chemin (#3822) à la vitesse au sol de la base posée (`vitesseAuSol` de
+## `modeles`) à l'échelle de vitesse du gabarit composé (`echelleDeVitesse`, neutre sans gabarit,
+## `MiseEnPage.duree_du_pas`).
+func duree_du_pas(metres: float) -> float:
+	return MiseEnPage.duree_du_pas(metres, base.vitesseAuSol, composee.get("gabarit", {}).get("echelleDeVitesse", MarcheDeLAtelier.VITESSE_NEUTRE))
+
+
 ## Les tables rôle → clip de la base posée : `clips`, puis celle de chaque maniement de `clipsDeuxMains`.
 func tables_de_clips() -> Array[Dictionary]:
 	var tables: Array[Dictionary] = [base.get("clips", {})]

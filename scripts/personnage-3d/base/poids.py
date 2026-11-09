@@ -312,12 +312,18 @@ def mesurer_correction(etat, indices=None):
     return etat['hors']
 
 
-def preparer_correction(nom, x, w, jumeau, aretes, groupes, contraintes=(), diagnostic=None, pieds=()):
-    """#3104 issuecomment-6549354475. `pieds` : les indices d'os de chaque pied, descendants compris."""
+SUITE_DE_CORRECTION = ('w', 'origine', 'retouches', 'passe', 'anneau')
+"""Les champs d'un état de correction que ses passes font avancer : le reste se déduit de la scène et de la phase, ses
+mesures de `w` (#3793)."""
+
+
+def preparer_correction(nom, x, w, jumeau, aretes, groupes, contraintes=(), diagnostic=None, pieds=(), suite=None):
+    """#3104 issuecomment-6549354475. `pieds` : les indices d'os de chaque pied, descendants compris. `suite` : les champs
+    `SUITE_DE_CORRECTION` d'une correction déjà avancée, qui la continuent."""
     etat = {'nom': nom, 'x': x, 'w': w.copy(), 'origine': w.copy(), 'jumeau': jumeau, 'aretes': aretes, 'groupes': groupes,
             'contraintes': numpy.array(contraintes, dtype=int),
             'diagnostic': diagnostic or {}, 'pieds': pieds, 'anneau': 0,
-            'retouches': set(), 'passe': 0}
+            'retouches': set(), 'passe': 0, **(suite or {})}
     mesurer_correction(etat)
     return etat
 

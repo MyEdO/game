@@ -1,7 +1,7 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
 ## l'adresse de la page (`?scenario=<id>&graine=<n>`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
 ## l'adresse n'en nommant aucun, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
-## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
@@ -51,12 +51,15 @@ extends Node
 @onready var _pont: PontDuNoyau = get_node("/root/Pont")
 
 var _vue: Dictionary = {}
+var _musique := Musique.new()
 ## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
 var _cle_du_monde := ""
 var _zones: Array[Zone] = []
 
 
 func _ready() -> void:
+	_musique.name = "Musique"
+	add_child(_musique)
 	_plateau.case_cliquee.connect(_cliquer)
 	_plateau.case_inspectee.connect(_inspecter)
 	_plateau.habille.connect(_publier_l_ecran)
@@ -114,7 +117,7 @@ func _reprendre(jeton: int) -> void:
 	_suivre(_pont.appeler("reprendre", {jeton = jeton}))
 
 
-## Une `Suite` du contrat : sa vue montrée, ses effets rendus, son journal écrit, ses jetons armés.
+## Une `Suite` du contrat : sa vue montrée, ses effets rendus, sa musique jouée, son journal écrit, ses jetons armés.
 func _suivre(reponse: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		return
@@ -125,6 +128,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
 		_lumiere.eclairer(_vue.lumiere, _vue.plateau.metresParCase)
+	_musique.jouer(_vue.musique)
 	if _disposition.disposer(_vue.disposition):
 		_relier()
 	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))

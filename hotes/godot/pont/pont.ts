@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -101,7 +101,7 @@ export interface NavireServi {
   corps: CorpsDuVehicule;
   /**
    * le point de la scène, en cases continues (la case centrée sur l'entier), sous l'origine de son modèle : le centre
-   * de l'emprise de ses ponts, le repère du plan de ses ponts étant celui du modèle (`planDeLaCaraque.ts`), sa
+   * de l'emprise de ses ponts, le repère du plan de ses ponts étant celui du modèle (`pontsDeLaFiche.ts`), sa
    * flottaison à la hauteur 0 de la scène.
    */
   centre: NavireDeLaScene['centre'];
@@ -283,6 +283,11 @@ export interface VueDuPont {
    * scène.
    */
   lumiere: LumiereDeLaScene | null;
+  /**
+   * la musique que la partie joue (`musiqueDeLaPartie`, `src/noyau/musiqueDeLaPartie.ts`) : section « Musique » ;
+   * `null` au silence.
+   */
+  musique: MusiqueDeLaPartie | null;
   /**
    * nomme le verbe du clic du champ (`CLIC_DU_CHAMP`, `src/noyau/actionsDuNoyau.ts` ; la barre de l'actif ouverte, ou
    * en exploration sans fenêtre), qui prend la case cliquée, `{ x, y }` au rez, `{ x, y, z }` à la couche `z` (`Pt`),
@@ -501,6 +506,7 @@ export function creerPont() {
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
+      musique: musiqueDeLaPartie(etat),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };
@@ -846,8 +852,8 @@ export function creerPont() {
     /**
      * aucune
      *
-     * @returns `{ de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques
-     * }` : la vitrine des effets que le jeu joue (`vitrineDesEffets`, surface du noyau, section « Effets ») ; avant ou
+     * @returns `{ de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, flottants, musiques,
+     * lumieres, attaques, deplacement }` : la vitrine des effets que le jeu joue (`vitrineDesEffets`, surface du noyau, section « Effets ») ; avant ou
      * après `demarrer`
      */
     vitrine(json): VitrineDesEffets {
