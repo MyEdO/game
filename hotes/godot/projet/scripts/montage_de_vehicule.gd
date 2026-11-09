@@ -194,7 +194,7 @@ func contour_sous(hauteur: float) -> PackedVector2Array:
 				if not plan.is_point_over(point):
 					points.append(Vector2(point.x, point.z))
 			var ordre: Variant = range(globaux.size()) if tableaux[Mesh.ARRAY_INDEX] == null else tableaux[Mesh.ARRAY_INDEX]
-			for triangle: Array in Monde.rangs_des_triangles(ordre.size()):
+			for triangle: Array in VolumeDeScene.rangs_des_triangles(ordre.size()):
 				for cote in [[0, 1], [1, 2], [2, 0]]:
 					var traverse: Variant = plan.intersects_segment(globaux[ordre[triangle[cote[0]]]], globaux[ordre[triangle[cote[1]]]])
 					if traverse != null:

@@ -10,8 +10,8 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
-  IdDObjet, IdDuCoupleMonte,
+  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
+  IdDeTireurRapide, IdDObjet, IdDuCoupleMonte,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
 import type { FlowKey } from './flowVerbs';
@@ -102,6 +102,12 @@ export interface ChoixDesFenetres {
     /** LDB 66 */
     pitance: RestFood;
   };
+  roundStart: {
+    /** LDB 17 l.25, LDB 62 l.298-300 : le combattant qui agit en premier ce Round. */
+    promouvoir: IdDeCombattantPromouvable;
+    /** LDB 11 l.97-103 : le tireur dont le Tir rapide est armé ; `null` : aucun. */
+    viser: IdDeTireurRapide | null;
+  };
   batailleDeMasse: {
     /** ADE II 08 l.309 : la ligne de la table choisie au lieu du tirage (`affronterLePeril`). */
     alea: IdDAleaDeBataille;
@@ -136,11 +142,13 @@ void _domainesDisjoints;
 
 /** La déclaration d'un choix : son effet, sa portée (`fenetre`, ou `rangee` : le choix d'un héros de la fenêtre, que
  *  désigne `pid`), et le siège qui le joue (`hote` : l'hôte seul ; `proprietaire` : le siège du propriétaire de la
- *  fenêtre, `'*'` : tout siège, ou, sur une rangée, celui de son héros). */
+ *  fenêtre, `'*'` : tout siège, ou, sur une rangée, celui de son héros ; `porteurDeLaValeur` : le siège du combattant
+ *  lu sur la valeur, `netOwnership`). */
 export interface DeclarationDuChoix {
   effet: EffetDuChoix;
   portee: PorteeDuReglage;
   qui: 'hote' | 'proprietaire';
+  porteurDeLaValeur?: (s: Pick<Jeu, 'preemptAiming'>, valeur: unknown) => string | undefined;
 }
 
 const clot = { effet: 'clot', portee: 'fenetre', qui: 'proprietaire' } as const;
@@ -148,6 +156,7 @@ const clotParLHote = { effet: 'clot', portee: 'fenetre', qui: 'hote' } as const;
 const reprenable = { effet: 'reprenable', portee: 'fenetre', qui: 'proprietaire' } as const;
 const duHeros = { effet: 'reprenable', portee: 'rangee', qui: 'proprietaire' } as const;
 const reprenableParLHote = { effet: 'reprenable', portee: 'fenetre', qui: 'hote' } as const;
+const fige = { effet: 'fige', portee: 'fenetre', qui: 'proprietaire' } as const;
 const figeParLHote = { effet: 'fige', portee: 'fenetre', qui: 'hote' } as const;
 const duHerosParLHote = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
 
@@ -172,6 +181,11 @@ export const CHOIX_DES_FENETRES = {
   loot: { ligne: duHerosParLHote },
   victory: { ligne: duHeros, depecer: figeParLHote },
   rest: { couchage: duHeros, pitance: duHeros },
+  // La Chance dépensée et la visée armée sont celles du combattant que la valeur nomme ; désarmer, celles du tireur armé.
+  roundStart: {
+    promouvoir: { ...fige, porteurDeLaValeur: (_s, valeur) => (typeof valeur === 'string' ? valeur : undefined) },
+    viser: { ...reprenable, porteurDeLaValeur: (s, valeur) => (typeof valeur === 'string' ? valeur : s.preemptAiming ?? undefined) },
+  },
   batailleDeMasse: { alea: figeParLHote },
   finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };

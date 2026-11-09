@@ -14,6 +14,7 @@ import { placeCombatant } from './monde/spawn';
 import { casesTenues, combatantAtTile } from './monde/combatGeometry';
 import { footprintN } from './monde/footprint';
 import { registerScene, resetSceneRegistry } from './monde/registreDesScenes';
+import { walkNeighbors } from './monde/path';
 import { garanti } from '../lib/garanti';
 
 const plan = buildScene(PLAN_DE_LA_CARAQUE);
@@ -116,6 +117,24 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
     const volume = volumeDuRegard(s, [{ x: 11, y: 4, z: 1 }], 'tactique');
     const couches = new Set(volume.cases.filter((c) => cases.has(c.join(','))).map((c) => c[2]));
     expect(couches).toEqual(new Set([0, 1]));
+  });
+
+  it('du haut d’une échelle de trappe, au niveau du pont du dessus, ce pont reste montré à ce niveau et coupé au-dessus de lui', () => {
+    const hauts = [...cases.keys()].map((cle) => cle.split(',').map(Number)).map(([x, y, z]) => ({ x, y, z }))
+      .filter((p) => walkNeighbors(s, p).some((n) => (n.z ?? 0) > p.z && heightAt(s, n.x, n.y, n.z ?? 0) <= heightAt(s, p.x, p.y, p.z)));
+    expect(hauts.length).toBeGreaterThan(0);
+    for (const haut of hauts) {
+      const dessus = Math.max(...walkNeighbors(s, haut).map((n) => n.z ?? 0));
+      const pont = [...cases.keys()].map((cle) => cle.split(',').map(Number))
+        .filter(([x, y, z]) => z === dessus && heightAt(s, x, y, z) <= heightAt(s, haut.x, haut.y, haut.z)).map((c) => c.join(','));
+      expect(pont.length).toBeGreaterThan(0);
+      for (const regard of ['tactique', 'plateau'] as const) {
+        const montrees = new Set(volumeDuRegard(s, [haut], regard).cases.map((c) => c.join(',')));
+        expect(pont.filter((cle) => !montrees.has(cle)), `${regard} depuis ${JSON.stringify(haut)}`).toEqual([]);
+        const coupe = plateauDeLaScene(s, [haut], regard).coupesDesNavires.c1;
+        expect(coupe === undefined || coupe > heightAt(s, haut.x, haut.y, haut.z), `${regard} depuis ${JSON.stringify(haut)} : coupe ${coupe}`).toBe(true);
+      }
+    }
   });
 
   it('le plateau ne dessine aucune arête des ponts, que la marche garde', () => {

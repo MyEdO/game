@@ -86,7 +86,7 @@ import { applyShipPostes, autoFormCrews, shipOfCrew, servablePostes, serveAtPost
 import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
 import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
-import { actFirstIds, freeActFirst } from './turnEconomy';
+import { freeActFirst } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { resolveSteamSave, continueSeaDayAfterCascade, continueSeaDayAfterScorbut, continueSeaDayAfterExposure, continueSeaDayAfterExhaustion, runSeaDay, finalizePortArrival } from './seaVoyageFlow';
 import { continueSeaActivitiesAfterCascade } from './seaActivities';
@@ -1126,18 +1126,6 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    // ── Chance, 3e usage : pré-emption d'initiative en début de Round (LDB 17 l.25) ──
-    promouvoirLeCombattant: (heroId: string) => {
-      const battle = get().battle;
-      if (!battle || !actFirstIds(get()).includes(heroId)) return;
-      const hero = garanti(inBattleId(battle, heroId), heroId, 'héros promu');
-      // LDB 62 l.298-300, LDB 17 l.25 ; Tir rapide (LDB 11 l.97-103) : `declencherLeTirPreventif`.
-      const free = freeActFirst(hero);
-      if (!free) hero.fortune = (hero.fortune ?? 0) - 1;
-      const order = [heroId, ...battle.order.filter((id) => id !== heroId)]; // en tête de l'ordre du Round
-      set({ battle: { ...battle, order, log: [...battle.log, ev('info', t('cs.actFirst', { name: hero.label, reason: free ? t('cs.reasonFast') : t('cs.reasonLuck') }), hero.id)] } });
-      bus.emit(EVT.SCENE_DIRTY);
-    },
     // ── Tir rapide (talent, LDB 11 l.97-103) : INTERRUPTION à distance en début de Round, hors de l'ordre d'Initiative ──
     declencherLeTirPreventif: (heroId: string, targetId: string) => {
       const battle = get().battle;
@@ -1162,11 +1150,6 @@ export function createCombatSlice(get: Get, set: Set) {
       // `heldGround: true` : l'interruption est un tir IMMOBILE d'office (elle coûte le Mouvement du tour) → pas
       // de pénalité « Tir en bougeant » (LDB 14), qui n'aurait aucun sens hors du tour du tireur.
       openAttackCascade(get, set, { attackerId: hero.id, targetId: target.id, location: null, result: null, interrupt: true, heldGround: true }, 'Tir rapide', 'action/shoot');
-    },
-    // ── Tir rapide : ARMER/DÉSARMER la visée d'un héros pendant la pause (badge de la frise → clic adversaire) ──
-    armerLeTirPreventif: (heroId: string | null) => {
-      if (heroId === null || !preemptShooterIds(get).includes(heroId)) { set({ preemptAiming: null }); return; }
-      set({ preemptAiming: get().preemptAiming === heroId ? null : heroId }); // bascule
     },
     /** DEMANDE DE PAUSE au prochain Round, POSÉE (`levee`) ou RETIRÉE PAR SON SIÈGE : le siège vient de `decidingSeat`
      *  (le siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — la
@@ -1896,7 +1879,7 @@ export function createCombatSlice(get: Get, set: Set) {
 
 /** Les choix des fenêtres du combat (`CorpsDesChoix`) : `fenetreChoisir` les joue, parmi les valeurs que l'état ouvre
  *  (`OUVERTS_DU_CHOIX`). */
-export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave' | 'mountTarget'> {
+export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave' | 'mountTarget' | 'roundStart'> {
   /** Le Point de Destin sacrifié (LDB 17 l.29-32) résout la suspension `pendingFateSave`. */
   const issues = {
     negate: () => {
@@ -1952,6 +1935,20 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
         // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
         get().cliquerLeCombattant(id, { skipMountChoice: true, approche: pm.approche });
       },
+    },
+    roundStart: {
+      // LDB 17 l.25, LDB 62 l.298-300 : en tête de l'ordre du Round, 1 Chance sauf arme Rapide.
+      promouvoir: (heroId) => {
+        const battle = garanti(get().battle, heroId, 'bataille de la pause');
+        const hero = garanti(inBattleId(battle, heroId), heroId, 'héros promu');
+        const free = freeActFirst(hero);
+        if (!free) hero.fortune = (hero.fortune ?? 0) - 1;
+        const order = [heroId, ...battle.order.filter((id) => id !== heroId)];
+        set({ battle: { ...battle, order, log: [...battle.log, ev('info', t('cs.actFirst', { name: hero.label, reason: free ? t('cs.reasonFast') : t('cs.reasonLuck') }), hero.id)] } });
+        bus.emit(EVT.SCENE_DIRTY);
+      },
+      // LDB 11 l.97-103 : le tir part au clic du combattant visé (`declencherLeTirPreventif`).
+      viser: (heroId) => set({ preemptAiming: heroId }),
     },
   };
 }
@@ -3042,7 +3039,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (ph.mode === 'wounds') {
         const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), panse);
         log.push(...r.log);
-        if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: `+${r.healed}`, kind: 'heal' }); // flottant de soin (R8)
+        if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'heal' });
       } else if (ph.mode === 'bleed') {
         log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
       } else if (ph.mode === 'ammo') {

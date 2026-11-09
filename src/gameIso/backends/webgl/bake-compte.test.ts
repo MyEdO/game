@@ -107,14 +107,14 @@ function salleMeublee(): Scene {
 }
 
 /**
- * TABLE DATÉE — mesurée le 2026-09-08 sur les scènes construites ci-dessus. `spans` = une face du
- * pivot ; `triangles` = ce que le GPU dessine ; `sommets` = l'index IDENTITÉ (aucun sommet partagé,
- * donc exactement 3 par triangle). Aucune de ces scènes ne pose d'entité : leur compte ne dépend que
- * des BUILDERS.
+ * TABLE DATÉE — mesurée le 2026-09-08 sur les scènes construites ci-dessus, `fixture-corps-a-etage` le
+ * 2026-11-09 (#3732). `spans` = une face du pivot ; `triangles` = ce que le GPU dessine ; `sommets` =
+ * l'index IDENTITÉ (aucun sommet partagé, donc exactement 3 par triangle). Aucune de ces scènes ne pose
+ * d'entité : leur compte ne dépend que des BUILDERS.
  */
 const ETALONS: [string, () => Scene, { sommets: number; triangles: number; spans: number }][] = [
   ['fixture-salle-nue', salleNue, { sommets: 6282, triangles: 2094, spans: 528 }],
-  ['fixture-corps-a-etage', corpsAEtage, { sommets: 7362, triangles: 2454, spans: 656 }],
+  ['fixture-corps-a-etage', corpsAEtage, { sommets: 6738, triangles: 2246, spans: 604 }],
 ];
 
 /** SCÈNES COUVERTES SANS CHIFFRE — leur masse dépend d'une donnée VIVANTE : la carte d'un auteur (ou

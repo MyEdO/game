@@ -10,7 +10,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -133,6 +133,7 @@ export interface VueDuPont {
   cases: CaseAtteignable[];
   plateau: ReturnType<typeof plateauDeLaScene> | null;
   lumiere: LumiereDeLaScene | null;
+  musique: MusiqueDeLaPartie | null;
   champ: typeof CLIC_DU_CHAMP | null;
   occupants: Record<string, string>;
 }
@@ -275,6 +276,7 @@ export function creerPont() {
       cases: casesAtteignables(etat),
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
+      musique: musiqueDeLaPartie(etat),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };
@@ -368,6 +370,21 @@ export function creerPont() {
         resultats.push(jouerUnGeste(o, g));
       }
       return suite(o, { issue: resultats[resultats.length - 1].issue, evenements: resultats.flatMap((r) => r.evenements), journal: resultats.flatMap((r) => r.journal) });
+    },
+    plan(json) {
+      const o = demarree();
+      const e = entreeDe('plan', json, ['z', 'oeil']);
+      const etat = o.partie.etat();
+      const scene = etat.scene;
+      valider(scene, 'plan : aucune scène');
+      const lu = e.oeil as { case?: unknown; lacet?: unknown } | undefined;
+      valider(lu === undefined || (estObjet(lu) && Object.keys(lu).every((k) => k === 'case' || k === 'lacet') && Array.isArray(lu.case) && lu.case.length === 3
+        && lu.case.every(Number.isInteger) && typeof lu.lacet === 'number'), 'plan : oeil, { case: [x, y, z] entiers, lacet } en degrés (0 au nord, 90 à l’est)');
+      const oeil: OeilDuPlan | null = lu ? { x: (lu.case as number[])[0], y: (lu.case as number[])[1], z: (lu.case as number[])[2], azimut: lu.lacet as number } : null;
+      const z = e.z ?? oeil?.z ?? casesDuGroupe(etat)[0]?.z ?? 0;
+      const couches = scene!.layers.map((l) => l.z);
+      valider(couches.includes(z as number), `plan : z, l’une des couches de la scène (${couches.join(', ')})`);
+      return { plan: planDeLaCouche({ ...etat, scene: scene! }, z as number, oeil) };
     },
     regarder(json) {
       const o = demarree();
@@ -472,6 +489,18 @@ export function creerPont() {
     vitrine(json): VitrineDesEffets {
       entreeDe('vitrine', json, []);
       return vitrineDesEffets();
+    },
+    echantillons(json): { familles: FamilleDEchantillons[] } {
+      entreeDe('echantillons', json, []);
+      return { familles: famillesDEchantillons() };
+    },
+    echantillon(json): EchantillonDessine {
+      const e = entreeDe('echantillon', json, ['famille', 'id']);
+      const familles = famillesDEchantillons();
+      const famille = familles.find((f) => f.id === e.famille);
+      valider(famille !== undefined, `echantillon : famille, l’id d’une famille d’échantillons (${familles.map((f) => f.id).join(', ')})`);
+      valider(famille!.entrees.some((entree) => entree.id === e.id), `echantillon : id, l’id d’une entrée de la famille ${famille!.id}`);
+      return echantillonDessine(famille!.id, e.id as string);
     },
     presetDeComposition(json) {
       const e = entreeDe('presetDeComposition', json, ['composition', 'preset']);

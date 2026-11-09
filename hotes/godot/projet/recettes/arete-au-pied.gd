@@ -1,7 +1,7 @@
 extends SceneTree
 
 ## Une arête se pose debout à son pied (#3476, `hotes/godot/pont/CONTRAT.md`, section « Plateau ») : `pied` et
-## `hauteurM` sont en mètres, le monde (`scripts/monde.gd`, `poser_les_aretes`) les porte à l'échelle de son plateau.
+## `hauteurM` sont en mètres, le volume de la scène (`scripts/volume_de_scene.gd`, `poser_les_aretes`) les porte à l'échelle de son plateau.
 ## Sur un plateau de 2 m par case, le mur d'étage du kit, pied à 4 m et haut de 4 m, va de 2 à 4 unités, et la boîte
 ## d'une arête sans pièce au kit part de 2 unités.
 
@@ -19,12 +19,12 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[arete-au-pied] version=", Engine.get_version_info().string)
-	var monde: Monde = (load("res://scenes/Monde.tscn") as PackedScene).instantiate()
-	root.add_child(monde)
-	monde._metres_par_case = METRES_PAR_CASE
+	var volume: VolumeDeScene = (load("res://scenes/VolumeDeScene.tscn") as PackedScene).instantiate()
+	root.add_child(volume)
+	volume.metres_par_case = METRES_PAR_CASE
 	var arete := {cle = "mur", milieu = {x = 0.0, y = -0.5}, sens = {x = 1.0, y = 0.0}, pied = PIED_M, hauteurM = HAUTEUR_M, piece = "mur"}
-	monde.poser_les_aretes([arete.merged({famille = "colombage"}), arete.merged({famille = null})])
-	var aretes := monde.get_node("Aretes")
+	volume.poser_les_aretes([arete.merged({famille = "colombage"}), arete.merged({famille = null})])
+	var aretes := volume.get_node("Aretes")
 	_verifier("pièce du kit", _boite_de(aretes.get_child(0)), PIED_M / METRES_PAR_CASE, (PIED_M + HAUTEUR_M) / METRES_PAR_CASE)
 	_verifier("boîte sans pièce", _boite_de(aretes.get_child(1)), PIED_M / METRES_PAR_CASE, NAN)
 	for faute in _fautes:
