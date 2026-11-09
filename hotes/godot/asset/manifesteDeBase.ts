@@ -112,6 +112,27 @@ export type VerdictDeBase = { readonly ok: true; readonly manifeste: ManifesteDe
 
 type Brut = Record<string, unknown>;
 
+/**
+ * @contrat Gabarit d'une base
+ * - `clips` du manifeste de base (#3253) : le clip du GLB de chaque rôle d'animation que la base joue, rôles de
+ *   `ROLES_D_ANIMATION` (`src/noyau/animation.ts`), copié de la déclaration du corps
+ *   (`scripts/personnage-3d/base/humanoide.json`) par `manifeste.mjs` ; le rôle `walk` est exigé
+ *   (`validerManifesteDeBase`, `forme`), un rôle hors du vocabulaire est refusé par `role-inconnu` et un clip absent
+ *   du GLB par `clip-absent` (`ecartsDeClips`, `asset/clips.ts`, appliqué à la base par `validerModele`,
+ *   `asset/modeles.ts`). Le clip du rôle `walk` est la marche que la construction plante et que l'évaluateur mesure ;
+ *   `appuis.vitesseAuSol` est sa vitesse au sol, en m/s, mesurée sur le corps neutre ; au gabarit, la foulée des
+ *   clips plantés suit `sl` seul (`poserLeGabarit`), et cette vitesse multipliée par `echelleDeVitesse` garde les
+ *   pieds plantés.
+ * - `clipsDeuxMains` du manifeste de base (#3319), optionnel : par maniement (`MANIEMENTS`, `src/noyau/animation.ts`
+ *   ; un autre donne `forme` en `clipsDeuxMains.<maniement>`), le clip de chaque rôle que la base joue en tenant des
+ *   deux mains un objet de ce maniement, mêmes rôles et mêmes écarts que `clips` (`ou` en
+ *   `clipsDeuxMains.<maniement>.<rôle>`), copié de la déclaration du corps. La construction de la base dérive ces
+ *   clips de clips à une main (`scripts/personnage-3d/base/deux_mains.py`) : corps et jambes du clip source, dos
+ *   fléchi, deux bras posés par IK sur une arme tenue à la seconde prise de son maniement (`SECONDES`) ; la marche à
+ *   deux mains est plantée comme celle de `walk`, aux mêmes jambes. La réponse de `modeles` le sert vide pour une
+ *   base sans table.
+ */
+
 /** La réduction de `brut` au schéma 5, ou ses écarts de forme. */
 function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeBase[] } {
   const ecarts: EcartDeBase[] = [];

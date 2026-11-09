@@ -20,31 +20,134 @@ import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import { elementsDesGestes, ligne, resume, type Bouton, type Choix, type Element, type Entite, type FicheOuverte, type Formulaire, type Jet, type Ligne, type PanneauDeLHote, type Puce, type Saisie, type Ton } from './elements';
 
-/** Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre, la création comprise. Une zone vide n'a
- *  rien à montrer. */
+/**
+ * @contrat Vue
+ * Chaque zone de l'écran et ses éléments, dans l'ordre où elle les montre, la création comprise (`ZonesDeLaCreation`).
+ *
+ * Une zone vide n'a rien à montrer : hors combat, les zones `combat.*` ; en combat, `exploration.gestes` ; sans
+ * fenêtre, les zones `fenetre.*` ; sans conversation, ou sous une fenêtre, les zones `dialogue.*` ; sans fiche, les
+ * zones `fiche.*` ; sans création, les zones `creation.*` ; sans possession choisie, `fiche.objet`.
+ *
+ * Chaque élément porte son `type` (sa forme de donnée, jamais une fenêtre), son `id`, stable dans sa zone, son `ton`
+ * quand il dit un texte (`neutre`, `reussite`, `echec`, `alerte` : une variation du thème de l'hôte) et ses textes,
+ * déjà dits en mots du joueur : Godot n'écrit aucun libellé. À l'écran, ce qui se lit d'un coup d'œil ; le `detail`
+ * d'un jet ou d'une puce (la composition d'une cible, ce qu'une posture change) et le `refus` d'un geste se disent au
+ * survol, dans la bulle du thème.
+ *
+ * Les gestes sont des éléments : un `bouton` porte l'intention qu'il joue (`jeu` : `{ type, args }`, le verbe et ses
+ * arguments, le flux et l'id désigné posés, celui qu'une offre déclare compris, `{ suite }`, les verbes d'un geste
+ * d'exploration, `{ fiche }` ou `{ creation }`, l'entrée de la méthode du même nom), `presse`, `focus` (le geste que la
+ * fenêtre joue à l'Entrée : le geste `attendu` de sa politique s'il prend le focus, une rangée de choix n'en prenant
+ * pas, à défaut le premier bouton) et `refus` (pourquoi il ne se joue pas, dit sous lui ; le geste désactivé) ; un
+ * `choix` ou une `liste` porte son `refus` et chacune de ses valeurs en bouton, refusée avec lui ; un `formulaire`
+ * porte son verbe, son `refus` et ses saisies dans l'ordre de ses paramètres (`fixe`, posée par la fenêtre,
+ * `saisieChoix`, `saisieCoches` et la liste de ses valeurs cochées, `saisieNombre` et ses bornes, `saisieTexte`,
+ * `saisieMultiligne` (un texte sur plusieurs lignes), `saisieJson`, `saisieObjet` et ses champs), dont Godot lit les
+ * valeurs à l'instant où il se joue ; une saisie optionnelle laissée vide clôt les arguments, une saisie requise
+ * laissée vide part `null`. Seuls les gestes `ouvert` de la fenêtre (`fenetreADessiner`, `src/hote/gestes.ts`) se
+ * dessinent.
+ */
 export interface ZonesDeLEcran extends ZonesDeLaCreation {
+  /** le titre de la fenêtre qui tient la main. */
   'fenetre.titre': Ligne[];
+  /** l'étape de séquence et le nom de qui tient la main. */
   'fenetre.etape': Ligne[];
+  /**
+   * qui agit contre qui, les jets à lancer ou tombés, le DR net, l'issue ou l'attente ; le texte du document remis
+   * (`documentEnVue`, surface du noyau), dont `fenetre.titre` porte le titre ; le Coup Critique qu'une étape révèle :
+   * sa localisation, les Blessures perdues et chaque État infligé en puces, au ton du camp de la victime, puis chacun
+   * de ses effets, son explication au détail.
+   */
   'fenetre.corps': Element[];
+  /**
+   * les réglages du jet et les gestes qu'une fenêtre lue règle : les options du coup ; un axe de choix dont le corps
+   * porte déjà les boutons ne s'y redit pas, `choixPortes`, `src/hote/ecran.ts`.
+   */
   'fenetre.reglages': (Bouton | Choix | Formulaire)[];
+  /** les pas de sa séquence. */
   'fenetre.gestes': (Bouton | Choix | Formulaire)[];
+  /** le round et le tour. */
   'combat.tour': Ligne[];
+  /**
+   * chaque combattant dans l'ordre du tour en puce : ses Blessures, celui qui joue en `alerte`, un ennemi en `echec`.
+   */
   'combat.ordre': Puce[];
+  /**
+   * l'actif en entité : ses Blessures et son Mouvement en jauges, son Avantage, son Action, chacun de ses États en
+   * puce.
+   */
   'combat.actif': Entite[];
+  /**
+   * quand aucune fenêtre ne tient la main, la raison d'une barre fermée et la fin du tour qu'un premier geste a armée
+   * en laissant l'Action intacte ; la fin du combat.
+   */
   'combat.avis': Ligne[];
+  /** ce que l'aperçu du premier clic coûte ou vise, que Godot montre au-dessus de sa case. */
   'combat.apercu': Ligne[];
+  /**
+   * chaque offre de l'actif qui déclare son geste (`gesteDeLOffre`) en bouton, l'armée pressée (`offreArmee`) et
+   * désarmée par son bouton, fermée refusée avec sa raison, rangée sous la part de l'économie du tour qu'elle prend, un
+   * choix qui la nomme une fois, celles qui n'en prennent aucune sous le tour ; une offre par candidat, le sort, l'arme
+   * ou l'attaque de trait, est un choix à elle sous sa part, en liste au-delà de sept candidats, chaque candidat un
+   * bouton qui le nomme et joue le verbe de son offre, l'armé pressé.
+   */
   'combat.offres': Choix[];
+  /**
+   * chaque geste d'exploration de la scène en bouton qui le nomme, sa suite de verbes en `jeu`, refusé avec sa raison,
+   * dont l'offre de chaque entité à portée du groupe, « Gustav : Parler », dont celle du décor d'un objet posé au sol,
+   * « Dague : Ramasser » (le meneur le reçoit), que le clic sur ce décor joue aussi ; aucun quand une fenêtre tient la
+   * main ou pendant une conversation.
+   */
   'exploration.gestes': Bouton[];
+  /**
+   * la conversation en cours, `conversationEnVue`, surface du noyau, quand aucune fenêtre ne la suspend : le nom de son
+   * interlocuteur.
+   */
   'dialogue.orateur': Ligne[];
+  /** la réplique du nœud. */
   'dialogue.replique': Ligne[];
+  /**
+   * chaque réponse visible en bouton qui la choisit, ce qu'elle annonce (son Test, son coût) avant son libellé, refusée
+   * avec sa raison.
+   */
   'dialogue.reponses': Bouton[];
+  /** le titre du journal. */
   'journal.titre': Ligne[];
+  /** chaque héros du groupe en bouton qui le nomme et ouvre sa fiche ; celui de la fiche ouverte, pressé, la ferme. */
   'groupe.heros': Bouton[];
+  /**
+   * la fiche ouverte (`ficheDuPorteur`, surface du noyau), en statbloc : le combattant en entité : son espèce et sa
+   * carrière, chacune en ligne, ses Blessures en jauge, ses Points de Destin, de Chance, de Résilience et de
+   * Détermination quand il en a, chacun de ses États en puces.
+   */
   'fiche.porteur': Entite[];
+  /** « Fermer ». */
   'fiche.gestes': Bouton[];
+  /**
+   * une puce par colonne du profil : le Mouvement, chaque Caractéristique par son abréviation, les Blessures
+   * maximales ; son nom au détail.
+   */
   'fiche.profil': Puce[];
+  /**
+   * chaque section non vide en entité, dans l'ordre du statbloc, son nom au bandeau : Attaques, chaque arme en entité,
+   * la valeur de son Test, ses Dégâts, son Allonge ou sa Portée, ses Atouts et Défauts, chacun en puce ; Armure, les PA
+   * de chaque localisation couverte ; Traits et Mutations, chacun sa description au détail ; Compétences, la valeur de
+   * chaque Test, sa Caractéristique et ses Augmentations au détail ; Talents et son niveau, Sorts, Prières, chacun sa
+   * description au détail ; Possessions, chaque possession en bouton qui la nomme, son nombre quand il y en a
+   * plusieurs, les équipées d'abord (une arme : tenue dans le set actif) ; il la choisit, `{ fiche }` portant son
+   * `objet`, la choisie pressée la laisse.
+   */
   'fiche.sections': Entite[];
+  /** le livre et la page du profil dont le combattant est l'instance. */
   'fiche.source': Ligne[];
+  /**
+   * la possession choisie en entité, au ton `reussite` quand elle est équipée : son nombre, son argent et son contenant
+   * en puces, puis chacun de ses gestes, lus du noyau (`gestesDeLObjet`), en bouton ou en liste qui joue son verbe par
+   * `jouer`, refusé avec la raison que le verbe applique, en combat celle de l'inventaire : la porter, pressé quand
+   * elle l'est ; la tenir en main principale ou secondaire, pressé pour la main qui la tient, qu'il vide ; l'utiliser ;
+   * la ranger dans chaque contenant où elle tient, ou l'en sortir ; la donner à chaque porteur à ses côtés ; la poser
+   * au sol, à la case du groupe, avec le contenu de son contenant (`poserLObjet`) ; l'évaluer, la détecter.
+   */
   'fiche.objet': Entite[];
 }
 

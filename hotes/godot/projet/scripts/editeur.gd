@@ -3,18 +3,43 @@
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de la couche
-## (`VolumeDeScene.poser_les_aretes`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
+## (`VolumeDeScene.poser_les_aretes`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case,
+## les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
-## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
+## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête
+## sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
 ## (`Monde.poser_le_calque`) ; chaque zone de l'écran (`Zone.racines`) reçoit les éléments de sa source (`vue.zones`). Les
 ## calques de la campagne se gardent dans `user://calques/<id>.json`, relus à l'ouverture et réécrits à chaque `memoire`,
 ## chaque planche dans `user://<image>.png` : une planche demandée (`planche`) se choisit sur le disque de l'auteur
-## (`PontDuNoyau.choisir_une_image`), s'écrit là, et sa taille, ou rien, revient au pont. Chaque geste part au pont : celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
+## (`PontDuNoyau.choisir_une_image`), s'écrit là, et sa taille, ou rien, revient au pont. Chaque geste part au pont :
+## celui de l'élément pressé (`Zone.geste`, `{ edition }`), ou le pointeur sur
 ## le monde, appuyé, glissé d'une case à l'autre et relâché, chacun au point de la carte que le monde touche
 ## (`Monde.touche_sous`). Un refus se dit. Chaque réponse montrée, et chaque défilement du panneau ou onglet choisi, qui
-## change ses boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la recette lit.
+## change ses boutons à l'écran, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), que la
+## recette lit.
 extends Node
+
+## @contrat Éditeur
+## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
+## menu) ouvre la campagne de l'adresse de la page (`?campagne=<id>`, la Diligence sans elle), avec le `projet` que sert
+## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), pose le monde rendu (`Monde.poser`) et ses arêtes
+## (`VolumeDeScene.poser_les_aretes`), la surcouche en plaques sur le sol de ses cases (`Monde.peindre`) : chaque zone nommée
+## au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
+## repère, celui de la sélection en survol, nommé au-dessus de sa case (`Monde.etiqueter`), puis le geste en cours,
+## l'arête sélectionnée gainée (`Monde.choisir_l_arete`) et le calque de la couche sous sa planche
+## (`Monde.poser_le_calque` : un quadrilatère sur ses quatre coins, juste au-dessus de son plan et sans test de
+## profondeur s'il passe dessus, sinon juste dessous), et les zones dans son panneau d'outils, à gauche. Il garde les
+## calques de la campagne dans `user://calques/<id>.json`, qu'il passe à `{ ouvrir }` et réécrit à chaque `memoire`,
+## dont il efface les planches à oublier et déplace les planches à déplacer ; chaque planche dans `user://<image>.png`.
+## Une réponse qui porte `planche` ouvre le choix d'un fichier par la page (`PontDuNoyau.choisir_une_image`, par
+## `wfrpPont.choisirUneImage`, `hotes/godot/pont/fichier.ts` : un `<input type=file>` marqué `data-planche`, posé au
+## document le temps du choix) ; l'image lue, PNG, JPEG ou WebP, s'écrit au chemin de la planche, et sa taille revient
+## au pont, ou `null` si l'auteur renonce ou si elle ne se lit pas. Il envoie le geste de l'élément pressé, et le
+## pointeur sur le monde : l'appui au point touché (`Monde.touche_sous`), un glissé à chaque case nouvelle sous le
+## bouton tenu, le relâché au point touché, le dernier si le pointeur a quitté le monde. Une réponse qui porte `depot`
+## part en `PUT depot/<id>`, et son issue revient au pont ; une écriture refusée dit sa raison. Une réponse qui porte
+## `essai` ouvre le combat (`projet/scenes/Combat.tscn`), qui démarre l'essai (`PontDuNoyau.essai`).
 
 ## La campagne qui s'ouvre sans `campagne` à l'adresse : celle de la Diligence, la carte que l'éditeur bâtit (#3508).
 const CAMPAGNE := "la-diligence"
@@ -217,7 +242,8 @@ func _unhandled_input(event: InputEvent) -> void:
 ## texte (`PontDuNoyau.saisies_a_l_ecran`), le point de
 ## chaque case de la couche éditée (`Monde.points`), et l'éditeur : ses zones, sa surcouche, le nombre d'arêtes posées
 ## sur le monde, les noms posés sur le monde, son calque et s'il est posé, sa planche lue. Republié quand un défilement
-## du panneau bouge, qu'un onglet se choisit ou qu'un champ de texte change ; rien si l'éditeur a quitté l'écran entre-temps (l'essai ouvre le
+## du panneau bouge, qu'un onglet se choisit ou qu'un champ de texte change ; rien si l'éditeur a quitté l'écran
+## entre-temps (l'essai ouvre le
 ## combat).
 func _publier_l_ecran() -> void:
 	await get_tree().process_frame

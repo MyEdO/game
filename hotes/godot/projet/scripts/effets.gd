@@ -6,14 +6,27 @@
 ## dit (les pas d'un déplacement, #3825). Les flottants d'un coup ou d'une incantation montent de sa cible à son arrivée,
 ## l'un après l'autre ; un flottant seul monte de son combattant ou de sa case. Une phase dessine son visuel, un éclat de
 ## particules à textures procédurales et son éclair, et joue son son, une de ses variantes au hasard
-## (`AudioStreamRandomizer`), à son point. Les effets d'un même appel se suivent, `ECART_S` secondes l'un après l'autre.
+## (`AudioStreamRandomizer`), à son point. Chaque déplacement (#3822) part aussitôt, tous ensemble : le chemin de son
+## combattant, le lieu de chacune de ses cases et ses mètres, va à qui le parcourt (`deplacement`). Les autres effets d'un
+## même appel se suivent, `ECART_S` secondes l'un après l'autre.
 class_name Effets
 extends Node3D
+
+## @contrat Effets
+## Le plateau (`projet/scripts/plateau.gd`) rend `suite.effets` par son nœud `Effets` (`projet/scripts/effets.gd`),
+## chaque déplacement aussitôt, tous ensemble, puis les autres l'un après l'autre : chaque visuel est un éclat de
+## particules à textures procédurales et son éclair, au point de sa phase ; chaque son joue en 3D à son point. Au départ
+## d'un coup ou d'une incantation, l'auteur se tourne vers sa cible et joue son clip d'attaque ; à l'arrivée d'un coup
+## qui touche, la cible accuse le coup. La recette `projet/recettes/effets.gd` les vérifie, et
+## `projet/recettes/chemin-du-groupe.gd` le parcours d'un déplacement.
 
 ## Un coup, une incantation ou une zone part de son auteur `de` (son id), vers le point au sol `vers`.
 signal depart(de: String, vers: Vector3)
 ## La phase d'arrivée d'un coup ou d'une incantation joue sur `vers` ; `touche` : un coup qui touche.
 signal arrivee(vers: String, touche: bool)
+## Le combattant `qui` parcourt `lieux`, le lieu de chaque case de son chemin, chacune à `metres` (au même rang) de la
+## précédente.
+signal deplacement(qui: String, lieux: Array, metres: Array)
 
 ## Secondes entre deux effets d'un même appel.
 const ECART_S := 0.35
@@ -97,17 +110,34 @@ static var _tache: GradientTexture2D = null
 var _metres_par_case := 1.0
 
 
-## La clé d'une case d'une zone (`{ x, y, z? }`) parmi les lieux que reçoit `jouer`.
+## La clé d'une case d'un effet (`{ x, y, z? }`) parmi les lieux que reçoit `jouer`.
 static func cle_de_case(case: Dictionary) -> String:
 	return "%d,%d,%d" % [case.x, case.y, case.get("z", 0)]
 
 
+## Les cases de `effet` dont `jouer` lit le lieu sous leur clé (`cle_de_case`) : chaque case d'une zone et son centre, la
+## case d'un flottant, chaque case d'un déplacement.
+static func cases_de(effet: Dictionary) -> Array:
+	var cases: Array = []
+	if effet.quoi == "zone":
+		cases = effet.cases.duplicate()
+		cases.append(effet.centre)
+	elif effet.quoi == "flottant" and effet.case != null:
+		cases = [effet.case]
+	elif effet.quoi == "deplacement":
+		cases = effet.cases
+	return cases
+
+
 ## Joue `effets` (`suite.effets`) sur un plateau de `metres_par_case` mètres par case, chaque combattant au point au sol
-## que `lieux` donne par son id, chaque case d'une zone par sa clé (`cle_de_case`).
+## que `lieux` donne par son id, chaque case d'un effet par sa clé (`cle_de_case`).
 func jouer(effets: Array, lieux: Dictionary, metres_par_case: float) -> void:
 	_metres_par_case = metres_par_case
-	var premier := true
 	for effet: Dictionary in effets:
+		if effet.quoi == "deplacement":
+			deplacement.emit(effet.qui, effet.cases.map(func(case: Dictionary) -> Vector3: return lieux[cle_de_case(case)]), effet.cases.map(func(case: Dictionary) -> float: return case.metres))
+	var premier := true
+	for effet: Dictionary in effets.filter(func(e: Dictionary) -> bool: return e.quoi != "deplacement"):
 		if not premier:
 			await get_tree().create_timer(ECART_S).timeout
 		premier = false

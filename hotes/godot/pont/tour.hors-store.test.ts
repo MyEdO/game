@@ -1,6 +1,6 @@
 /**
  * UN TOUR COMPLET JOUÉ PAR LE PONT (#2928, `CONTRAT.md`, plan critère 4) sur le combat de l'hôte texte (`dome`) : le
- * round ouvert, l'attaque d'un héros, le déplacement d'un second héros vers une case de la vue, puis, ses jetons
+ * round ouvert, l'attaque d'un héros, le déplacement d'un second héros vers une case de la vue et son chemin (#3822), puis, ses jetons
  * repris, l'attaque adverse que joue le noyau et la Défense du héros. Chaque geste se joue comme Godot le joue : par
  * l'intention que porte l'élément qu'il presse (`vue.zones`, `src/hote/elements.ts`), une offre, un geste de la fenêtre
  * ou une valeur de son choix. À chaque réponse, la fenêtre ouverte se dessine (`fautesDeLaFenetre`) ; le test ne
@@ -127,8 +127,11 @@ describe('un tour complet par le pont', () => {
     ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
     expect(suite.vue.projection.combat!.apercu, 'le premier clic montre l’aperçu').toMatchObject({ genre: 'move', cible: null, case: [vers.x, vers.y, vers.z ?? 0] });
     expect(suite.vue.zones['combat.apercu'].map((l) => l.id), 'l’aperçu dit ce qu’il coûte').toEqual(['apercu']);
-    ({ suite } = jouer({ type: CLIC_DU_CHAMP, args: [vers] }));
+    const [x, y, z] = second.pos!;
+    const deplace = jouer({ type: CLIC_DU_CHAMP, args: [vers] });
+    suite = deplace.suite;
     expect(actifDe(suite).pos, 'le second clic déplace le héros').toEqual([vers.x, vers.y, vers.z ?? 0]);
+    expect(deplace.effets.find((e) => e.quoi === 'deplacement'), 'il parcourt son chemin, de sa case à celle où la vue le pose (#3822)').toEqual({ quoi: 'deplacement', qui: second.id, cases: [{ x, y, z, metres: 0 }, { x: vers.x, y: vers.y, z: vers.z ?? 0, metres: expect.any(Number) }] });
     expect(suite.vue.occupants[`${vers.x},${vers.y},${vers.z ?? 0}`], 'la case porte son occupant').toBe(second.id);
 
     let journal: ReturnType<typeof jouer>['journal'];
