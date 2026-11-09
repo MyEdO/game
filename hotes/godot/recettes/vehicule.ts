@@ -2,8 +2,8 @@
  * LE VÉHICULE FIGÉ DE L'ATELIER (#2987) : ce que la recette native de l'atelier (`projet/recettes/atelier-du-vehicule.gd`)
  * lit, figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. Le listage des véhicules et
  * des pièces d'Amélioration du dossier des modèles (`listage`, `listage.mjs`, réduit à ces deux catégories), la réponse du
- * pont à `catalogues` et à `modeles` sur ce listage, et sa réponse à `vehicule` sur chaque entrée de `ENTREES`, sous la clé
- * de cette entrée (`cleDEntree`), celle que la recette calcule de l'entrée que l'atelier envoie.
+ * pont à `catalogues`, à `vitrine` et à `modeles` sur ce listage, et sa réponse à `vehicule` sur chaque entrée de `ENTREES`,
+ * sous la clé de cette entrée (`cleDEntree`), celle que la recette calcule de l'entrée que l'atelier envoie.
  */
 import { creerPont } from '../pont/pont';
 import { estObjet } from '../../../src/lib/objet.mjs';
@@ -11,7 +11,7 @@ import { tableTotale } from '../../../src/lib/tableTotale';
 
 /** Les entrées de `vehicule` que l'atelier envoie, dans l'ordre des gestes de la recette : la caraque choisie, un canon
  *  moyen à la première place de tribord, le Sabord installé, la Figure de proue installée, le Sabord retiré, une couleur
- *  posée à l'emplacement `vet1`, puis l'emblème de ses voiles. */
+ *  posée à l'emplacement `vet1`, l'emblème de ses voiles, puis le trébuchet choisi, la couleur gardée (#3777). */
 export const ENTREES: readonly Record<string, unknown>[] = (() => {
   const canon = [{ definition: 'canon-moyen', bord: 'tribord' }];
   const couleurs = { vet1: { id: 'peau-brune' } };
@@ -23,6 +23,7 @@ export const ENTREES: readonly Record<string, unknown>[] = (() => {
     { definition: 'caraque', postes: canon, ameliorations: ['figure-de-proue'] },
     { definition: 'caraque', postes: canon, ameliorations: ['figure-de-proue'], couleurs },
     { definition: 'caraque', postes: canon, ameliorations: ['figure-de-proue'], couleurs, embleme: { id: 'taureau-rouge' } },
+    { definition: 'trebuchet-ade2', postes: [], ameliorations: [], couleurs },
   ];
 })();
 
@@ -30,8 +31,8 @@ export const ENTREES: readonly Record<string, unknown>[] = (() => {
 export const cleDEntree = (valeur: unknown): string =>
   JSON.stringify(valeur, (_cle, v: unknown) => (estObjet(v) ? Object.fromEntries(Object.entries(v).sort(([a], [b]) => (a < b ? -1 : 1))) : v));
 
-/** Le véhicule figé : le listage réduit de `listage` (le listage du dossier des modèles), les réponses de `catalogues` et
- *  de `modeles`, et par clé d'entrée (`cleDEntree`), la réponse de `vehicule` à chacune de `ENTREES`. */
+/** Le véhicule figé : le listage réduit de `listage` (le listage du dossier des modèles), les réponses de `catalogues`, de
+ *  `vitrine` et de `modeles`, et par clé d'entrée (`cleDEntree`), la réponse de `vehicule` à chacune de `ENTREES`. */
 export function figerLeVehicule(listage: { manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]> }) {
   const ids = Object.keys(listage.manifestes).filter((id) => ['vehicule', 'amelioration'].includes((listage.manifestes[id] as { categorie?: string }).categorie ?? ''));
   const reduit = { manifestes: tableTotale(ids, (id) => listage.manifestes[id]), osDesRigides: tableTotale(ids, (id) => listage.osDesRigides[id]), erreurs: [] };
@@ -39,5 +40,5 @@ export function figerLeVehicule(listage: { manifestes: Record<string, unknown>; 
   const appel = (methode: string, entree?: unknown): Record<string, unknown> => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
   const catalogues = appel('catalogues');
   const modeles = appel('modeles', { manifestes: reduit.manifestes, osDesRigides: reduit.osDesRigides });
-  return { listage: reduit, catalogues, modeles, vehicule: Object.fromEntries(ENTREES.map((e) => [cleDEntree(e), appel('vehicule', e)])) };
+  return { listage: reduit, catalogues, vitrine: appel('vitrine'), modeles, vehicule: Object.fromEntries(ENTREES.map((e) => [cleDEntree(e), appel('vehicule', e)])) };
 }

@@ -151,7 +151,7 @@ func _couleur(couleur: String, teinte: Color) -> Color:
 
 
 ## La gerbe `gerbe` de particules de taille `taille` (bornes), teinte de `teinte` si elle prend celle de l'effet. Ses
-## particules naissent ensemble : sous le rendu de compatibilité, une particule pas encore née se peint en noir, que seule
+## particules naissent ensemble : sous le rendu de compatibilité, une particule à naître se peint en noir, que seule
 ## la fonte par addition d'une gerbe continue lumineuse (`TRAINEE`) efface.
 func _gerbe(gerbe: Dictionary, taille: Array, teinte: Color) -> CPUParticles3D:
 	var particules := CPUParticles3D.new()
