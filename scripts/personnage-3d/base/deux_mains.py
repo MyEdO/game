@@ -20,7 +20,7 @@ from typing import NamedTuple
 import numpy
 from mathutils import Matrix, Quaternion, Vector
 
-from animation import meshes_for
+from animation import assign_action, meshes_for
 from pistes import aller_a, sacs
 from poids import deformer, instants, peau_lineaire
 from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE
@@ -319,8 +319,7 @@ def deriver(bpy, rig, reperes):
     derivees = []
     for nom, (source_nom, os_du_cadre, maniement, cles) in CLIPS.items():
         source = bpy.data.actions[source_nom]
-        rig.animation_data_create()
-        rig.animation_data.action = source
+        assign_action(rig, source)
         images = instants(source)
         debut, fin = images[0], images[-1]
         dos_source = {}
@@ -332,8 +331,7 @@ def deriver(bpy, rig, reperes):
         for sac in sacs(action):
             for courbe in [c for c in sac.fcurves if c.data_path.split('"')[1:2] and c.data_path.split('"')[1] in animes]:
                 sac.fcurves.remove(courbe)
-        rig.animation_data.action = action
-        rig.animation_data.action_slot = action.slots[0]
+        assign_action(rig, action)
         ecart, tours, poignets = 0.0, {}, {'torsion': 0, 'flexion': 0, 'coude': 1.0}
         for image in images:
             aller_a(scene, image)
