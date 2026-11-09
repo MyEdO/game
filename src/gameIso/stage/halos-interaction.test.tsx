@@ -57,14 +57,14 @@ const coffre = {
   id: 'coffre',
   kind: 'prop',
   pos: { x: 3, y: 4 },
-  ref: 'tonneau',
+  decor: { id: 'tonneau' },
   usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
 } as unknown as SceneEntity;
 
 /** Un PNJ INTERLOCUTEUR — l'autre CORPS d'un utilisable : un jeton, et le même régime que le décor. */
 const marchand = {
   id: 'marchand',
-  kind: 'personnage', ref: 'humain',
+  kind: 'personnage', creature: { id: 'humain' },
   pos: { x: 7, y: 2 },
   dialogueId: { id: 'd1' },
 } as unknown as SceneEntity;

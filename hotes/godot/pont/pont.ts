@@ -79,7 +79,7 @@ export interface CorpsDuCombat {
    */
   vehicules: Record<string, CorpsDuVehicule>;
   /**
-   * pour chaque navire de la scène dont elle pose les ponts (#3686 : une entité `personnage` dont la `ref` est un
+   * pour chaque navire de la scène dont elle pose les ponts (#3686 : une entité `personnage` dont le `vehicule` est un
    * véhicule à plan des ponts, dans une scène à l'échelle de ce plan) et dont le dernier `modeles` sert un élément
    * `vehicule` de même `definition`, par l'id de son entité (`naviresDeLaScene`, `src/noyau/planDeNavire.ts`) : son
    * corps, son centre et ses stations (`NavireServi`).
@@ -820,8 +820,9 @@ export function creerPont() {
       const ameliorations = e.ameliorations ?? [];
       valider(estListeDeChaines(ameliorations) && ameliorations.every((a) => offertes.includes(a)), `vehicule : ameliorations, une liste d’Améliorations servies par modeles (${offertes.join(', ') || 'aucune'})`);
       const appearance = valeurLue('vehicule', 'apparence', lireApparenceDAuteur(Object.fromEntries(Object.entries({ couleurs: e.couleurs, embleme: e.embleme }).filter(([, v]) => v !== undefined))));
+      const definition = e.definition as string;
       const fiche = ficheDEntite({
-        id: 'atelier', kind: 'personnage', ref: e.definition as string, pos: { x: 0, y: 0 }, appearance,
+        id: 'atelier', kind: 'personnage', ...(pieces.includes(definition) ? { engin: { id: definition } } : { vehicule: { id: definition } }), pos: { x: 0, y: 0 }, appearance,
         postes: (postes as { definition: string; bord: FireArc }[]).map(({ definition, bord }) => ({ trappingId: definition, side: bord })),
         upgrades: (ameliorations as string[]).map((id) => ({ id })),
       }, () => undefined);

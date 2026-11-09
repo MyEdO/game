@@ -24,7 +24,7 @@ afterEach(() => {
   setObjectDataset('sizes', structuredClone(TAILLES_LIVREES));
 });
 
-const entite = (ref: string, facing?: string) => ({ id: 'p-1', kind: 'prop', ref, pos: { x: 1, y: 1 }, ...(facing ? { facing } : {}) });
+const entite = (ref: string, facing?: string) => ({ id: 'p-1', kind: 'prop', decor: { id: ref }, pos: { x: 1, y: 1 }, ...(facing ? { facing } : {}) });
 
 describe('régime vivant — `props.json` sans route d’édition', () => {
   it('un décor posé par `setDataset` est accepté par `idDe(\'prop\')` et par le schéma d’entité', () => {

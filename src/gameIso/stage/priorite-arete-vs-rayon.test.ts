@@ -158,7 +158,7 @@ describe('l’étage `arete` et le rayon : qui tranche, et à quel prix', () => 
   };
   const enCombatSurDecor: EtatDePick = {
     ...enCombat,
-    scene: { ...scene, entities: [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'S' }] as Scene['entities'] },
+    scene: { ...scene, entities: [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' }] as Scene['entities'] },
   };
   const [a, b] = tileEdge(2, 2, 'E', dims, 0);
   const aretes = projeterAretes(

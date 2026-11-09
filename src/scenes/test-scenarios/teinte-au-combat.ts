@@ -39,7 +39,7 @@ function lameAethyrique(idNeuf: FabriqueDId): Combatant {
 
 function construireScene(): Scene {
   const scene = arena({ id: 'test-teinte-au-combat', label: 'Teinte au combat', w: 12, h: 8, heroStart: HERO_START });
-  setEncounters(scene, [{ id: 'enc-teinte', enemies: [{ ref: 'orc', pos: { x: 7, y: 4 }, facing: 'O' }] }]);
+  setEncounters(scene, [{ id: 'enc-teinte', enemies: [{ creature: { id: 'orc' }, pos: { x: 7, y: 4 }, facing: 'O' }] }]);
   return scene;
 }
 

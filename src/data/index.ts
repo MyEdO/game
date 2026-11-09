@@ -3160,13 +3160,6 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
 export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
 }
-/** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
- *  (`vehicles.json` facette `hull`, MDG 13), engin du sous-type `armes-de-siege` (`trappings.json`, AA 10).
- *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
- *  spawn (`spawnEnemy`) la lisent ici. */
-export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
-}
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */

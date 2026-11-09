@@ -41,7 +41,7 @@ const placesDeGroupe = () =>
 function attable(rangs: number[], party: Combatant[]): void {
   let sc: Scene = emptyScene('scene-test', 12, 12);
   sc.id = 'taverne';
-  sc.entities.push({ id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } });
+  sc.entities.push({ id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } });
   for (const rang of rangs) {
     const r = assignSeat(sc, PROP, SLOT_DU_RANG[rang - 1], { kind: 'party', rang }, party.length);
     if (!r.ok) throw new Error(`assignSeat refusé (rang ${rang}) : ${r.reason}`);

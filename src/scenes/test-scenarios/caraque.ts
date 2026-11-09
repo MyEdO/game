@@ -24,11 +24,11 @@ const construireScene = (): Scene => buildScene({
   metresPerTile: 10, // MDG 13 l.362
   heroStart: [7, 5],
   entities: [
-    { id: CARAQUE, kind: 'personnage', ref: 'caraque', pos: { x: 6, y: 4 }, facing: 'E', label: 'La caraque',
+    { id: CARAQUE, kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 6, y: 4 }, facing: 'E', label: 'La caraque',
       postes: POSTES.flatMap(([bord, n]) => Array.from({ length: n }, () => canon(bord))),
       upgrades: AMELIORATIONS.map((id) => ({ id })),
       appearance: { embleme: { id: 'taureau-rouge' } } } as SceneEntity,
-    { id: 'cogue-rendu', kind: 'personnage', ref: 'cogue', pos: { x: 20, y: 5 }, facing: 'O', label: 'La cogue pirate' } as SceneEntity,
+    { id: 'cogue-rendu', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 20, y: 5 }, facing: 'O', label: 'La cogue pirate' } as SceneEntity,
   ],
   encounters: [
     { id: 'caraque', members: [{ entityId: CARAQUE, side: 'ally' }, { entityId: 'cogue-rendu', side: 'enemy' }] },

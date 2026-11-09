@@ -3,7 +3,7 @@ import { garanti } from '../lib/garanti';
 import { buildScene } from './mapSpec';
 import { PLAN_DE_LA_BARGE } from './planDeLaBarge';
 import { poserLesNavires } from './planDeNavire';
-import { heightAt, isWalkable, porteAuteur, sceneMetresPerTile, tileAt, type SceneEntity } from './monde/scene';
+import { heightAt, idDuCorps, isWalkable, porteAuteur, sceneMetresPerTile, tileAt, type SceneEntity } from './monde/scene';
 import { estAbsent } from './monde/terrain';
 import { ancreDuDecor, propFootTiles } from './monde/footprint';
 import { piedDuDecor } from './monde/poseDuDecor';
@@ -17,7 +17,7 @@ const { cases } = grilleDesPonts(cartes);
 const k = (c: { x: number; y: number; z?: number }) => `${c.x},${c.y},${c.z ?? 0}`;
 const decors = scene.entities.filter((e) => e.kind === 'prop');
 /** Les cases qu'un décor couvre, sur son pont. */
-const casesDu = (e: SceneEntity) => propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene)).map((t) => ({ ...t, z: e.z ?? 0 }));
+const casesDu = (e: SceneEntity) => propFootTiles(idDuCorps(e), e.pos, e.facing, sceneMetresPerTile(scene)).map((t) => ({ ...t, z: e.z ?? 0 }));
 
 describe('ponts de la barge fluviale, compilés par buildScene (#3772)', () => {
   it('un étage par pont, chaque case de la source à la hauteur de son glyphe, et aucune autre', () => {
@@ -37,8 +37,8 @@ describe('le décor de la barge, sorti de son modèle 3D (#3790)', () => {
     estAbsent(tileAt(scene, c.x, c.y, c.z)) && heightAt(scene, c.x, c.y, c.z) !== 0).map(k));
 
   it('fanaux, pile de tonneaux et cargaison bâchée des deux bords, chacun un décor du catalogue', () => {
-    expect(decors.map((e) => e.ref).sort()).toEqual([...Array(7).fill('fanal'), 'cargaison-bachee', 'cargaison-bachee', 'tonneaux-pile'].sort());
-    for (const e of decors) expect(findPropById(e.ref), e.id).toBeDefined();
+    expect(decors.map(idDuCorps).sort()).toEqual([...Array(7).fill('fanal'), 'cargaison-bachee', 'cargaison-bachee', 'tonneaux-pile'].sort());
+    for (const e of decors) expect(findPropById(idDuCorps(e)), e.id).toBeDefined();
   });
 
   it('chaque décor couvre des cases de la source ou le sol du pont sous la cargaison, qui reste hors des cases', () => {
@@ -55,14 +55,14 @@ describe('le décor de la barge, sorti de son modèle 3D (#3790)', () => {
       const z = w.z ?? 0;
       return [{ x: w.x, y: w.y, z }, w.side === 'N' ? { x: w.x, y: w.y - 1, z } : { x: w.x + 1, y: w.y, z }].map(k);
     }));
-    expect(decors.filter((e) => findPropById(e.ref)?.solid).flatMap((e) => casesDu(e).filter((c) => libres.has(k(c))).map((c) => `${e.id} ${k(c)}`))).toEqual([]);
+    expect(decors.filter((e) => findPropById(idDuCorps(e))?.solid).flatMap((e) => casesDu(e).filter((c) => libres.has(k(c))).map((c) => `${e.id} ${k(c)}`))).toEqual([]);
   });
 
   it('deux décors ne s’interpénètrent pas', () => {
     const mpt = sceneMetresPerTile(scene);
     const corps = (e: SceneEntity) => {
       const a = ancreDuDecor(e, mpt);
-      const c = garanti(emprisePlanTournee(garanti(findPropById(e.ref), e.id, 'décor'), e.facing ?? 'S', () => true), e.id, 'corps');
+      const c = garanti(emprisePlanTournee(garanti(findPropById(idDuCorps(e)), e.id, 'décor'), e.facing ?? 'S', () => true), e.id, 'corps');
       return { x0: a.x + c.x0 / mpt, x1: a.x + c.x1 / mpt, y0: a.y + c.y0 / mpt, y1: a.y + c.y1 / mpt };
     };
     const heurts = decors.flatMap((a, i) => decors.slice(i + 1).filter((b) => {
@@ -77,13 +77,13 @@ describe('le décor de la barge, sorti de son modèle 3D (#3790)', () => {
     for (const cap of ['N', 'E', 'S', 'O'] as const) {
       const bassin = poserLesNavires(buildScene({
         id: 'bassin', label: 'Bassin', size: [20, 20], terrain: 'eau',
-        entities: [{ id: 'b1', kind: 'personnage', ref: 'barge-fluviale', pos: { x: 9, y: 9 }, facing: cap }],
+        entities: [{ id: 'b1', kind: 'personnage', vehicule: { id: 'barge-fluviale' }, pos: { x: 9, y: 9 }, facing: cap }],
       }));
       for (const e of decors) {
         const pose = garanti(bassin.entities.find((p) => p.id === `b1-${e.id}`), e.id, 'décor posé');
         expect(piedDuDecor(bassin, pose), `${e.id} au cap ${cap}`).toBe(piedDuDecor(scene, e));
       }
-      expect(decors.filter((e) => e.ref === 'cargaison-bachee').map((e) => piedDuDecor(bassin, garanti(bassin.entities.find((p) => p.id === `b1-${e.id}`), e.id, 'cargaison'))))
+      expect(decors.filter((e) => idDuCorps(e) === 'cargaison-bachee').map((e) => piedDuDecor(bassin, garanti(bassin.entities.find((p) => p.id === `b1-${e.id}`), e.id, 'cargaison'))))
         .toEqual([hauteurs.p, hauteurs.p]);
     }
   });

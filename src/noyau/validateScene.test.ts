@@ -20,7 +20,7 @@ describe('validateScene', () => {
     const objet = { ...findTrappingById('arme-simple')!, id: 'hache-du-projet', shape: { id: 'hache' }, formChoices: ['hache'] };
     const narratif = { ...emptyNarratif(), objets: [objet] };
     const s = base();
-    s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 },
+    s.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 },
       appearance: { apparencesObjets: { [objet.id]: { id: 'hache_naine' } } } });
     const erreurs = (n: typeof narratif) => validateScene([s], undefined, n).filter((w) => w.level === 'error');
     expect(erreurs(narratif)).toEqual([]);
@@ -35,7 +35,7 @@ describe('validateScene', () => {
   it('apparence : espèce hors domaine → erreur nominative ; les deux catalogues du domaine passent', () => {
     const avec = (appearance: object) => {
       const s = base();
-      s.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, appearance });
+      s.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, appearance });
       return msgs(validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'pnj' && x.level === 'error'));
     };
     for (const faute of ['zorglub', 'rat-geants'])
@@ -54,15 +54,15 @@ describe('validateScene', () => {
     };
     const statblock = (traits: object[]) => ({ statblock: { type: 'statblock', label: 'Mutant', char: {}, traits } });
     expect(erreurs(statblock([{ id: 'trait-fantome' }]))).toMatch(/trait-fantome.*traits\.json/);
-    expect(erreurs({ ref: 'humain', combat: { optionals: [{ id: 'trait-fantome' }] } })).toMatch(/trait-fantome.*traits\.json/);
+    expect(erreurs({ creature: { id: 'humain' }, combat: { optionals: [{ id: 'trait-fantome' }] } })).toMatch(/trait-fantome.*traits\.json/);
     expect(erreurs(statblock([{ id: 'corruption', arg: 'Mineure' }]))).toMatch(/« Mineure »/);
-    expect(erreurs({ ref: 'humain', combat: { optionals: [{ id: 'corruption', arg: 'Mineure' }] } })).toMatch(/« Mineure »/);
-    expect(erreurs({ ref: 'humain', ...statblock([{ id: 'corruption', arg: 'mineure' }]), combat: { optionals: [{ id: 'corruption', arg: 'majeure' }] } })).toBe('');
+    expect(erreurs({ creature: { id: 'humain' }, combat: { optionals: [{ id: 'corruption', arg: 'Mineure' }] } })).toMatch(/« Mineure »/);
+    expect(erreurs({ creature: { id: 'humain' }, ...statblock([{ id: 'corruption', arg: 'mineure' }]), combat: { optionals: [{ id: 'corruption', arg: 'majeure' }] } })).toBe('');
   });
 
   it("dialogueId d'entité inexistant → erreur", () => {
     const s = base();
-    s.entities.push({ id: 'e-0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'manque' } });
+    s.entities.push({ id: 'e-0', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, dialogueId: { id: 'manque' } });
     const w = validateScene([s]);
     expect(w.some((x) => x.scope === 'entity' && x.refId === 'e-0' && /« manque » est absent du catalogue des dialogues de la scène/.test(x.message))).toBe(true);
   });
@@ -75,22 +75,22 @@ describe('validateScene', () => {
    */
   it('décor VOLUMIQUE au cap diagonal → erreur nominative ; un décor hors catalogue n’en reçoit pas d’orientation', () => {
     const s = base();
-    s.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'NE' });
+    s.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'NE' });
     const w = validateScene([s]).filter((x) => x.scope === 'entity' && x.refId === 'table' && x.level === 'error');
     expect(msgs(w)).toEqual(['entité « table » › orientation : décor volumique « table-ronde-4-tabourets » au cap NE — un décor volumique ne prend qu\'un cap cardinal (N/E/S/O)']);
 
     const cardinal = base();
-    cardinal.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'E' });
+    cardinal.entities.push({ id: 'table', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'E' });
     expect(validateScene([cardinal])).toEqual([]);
 
     const billboard = base();
-    billboard.entities.push({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'decor-hors-catalogue', facing: 'NE' });
+    billboard.entities.push({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'decor-hors-catalogue' }, facing: 'NE' });
     expect(msgs(validateScene([billboard])).filter((m) => /orientation/.test(m))).toEqual([]);
   });
 
   it('entité sur un étage inexistant → avertissement', () => {
     const s = base(); // un seul niveau z=0
-    s.entities.push({ id: 'e-z', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, z: 2 });
+    s.entities.push({ id: 'e-z', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, z: 2 });
     expect(msgs(validateScene([s])).some((m) => /étage 2 inexistant/.test(m))).toBe(true);
   });
 
@@ -614,8 +614,8 @@ describe('validateScene — assise authorée (`Scene.seatAssignments`)', () => {
   const ABORD = { nord: { x: 2, y: 1 }, est: { x: 3, y: 2 }, sud: { x: 2, y: 3 }, ouest: { x: 1, y: 2 } };
   function attable(seatAssignments: Record<string, Record<string, { kind: 'entity'; entityId: string } | { kind: 'party'; rang: number }>>, pnjPos = ABORD.nord) {
     const s = base();
-    s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
-    s.entities.push({ id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: pnjPos });
+    s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' });
+    s.entities.push({ id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: pnjPos });
     s.seatAssignments = seatAssignments;
     return s;
   }

@@ -518,8 +518,8 @@ describe('Inspecteur — POSITION et LARGEUR d’une ouverture de façade (#841)
 // ── EncounterMember.ai & SceneEntity.crewIds : lus au SPAWN de combat ──────────────────────────────
 function sceneNavale(): Scene {
   const entities: SceneEntity[] = [
-    { id: 'coque', kind: 'personnage', ref: 'cogue', pos: { x: 4, y: 4 }, label: 'La cogue' },
-    { id: 'marin', kind: 'personnage', ref: 'brute', pos: { x: 6, y: 4 }, label: 'Marin' },
+    { id: 'coque', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 4, y: 4 }, label: 'La cogue' },
+    { id: 'marin', kind: 'personnage', creature: { id: 'brute' }, pos: { x: 6, y: 4 }, label: 'Marin' },
   ];
   return {
     ...emptyScene('scene-test', 14, 14),

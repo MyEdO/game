@@ -65,7 +65,7 @@ export function isRegistryIdBranchExcluded(rel) {
 /** Nom d'IDENTITÉ : `id`/`ref` exactement, ou un nom suffixé `Id`/`Ref` (`entityId`, `ruleId`,
  *  `encRef`, `propRef`) — sur-ensemble d'`ID_PARAM_RX` de `labelLogic.mjs`. La casse compte :
  *  `LOCK_NOTE_ID` (constante hurlante) n'est pas l'identité d'une entrée reçue.
- *  `ref` est ajouté parce que le dépôt key massivement par lui (`SceneEntity.ref`, `encRef`,
+ *  `ref` est ajouté parce que le dépôt key massivement par lui (`PorteurDeFiche.ref`, `encRef`,
  *  `propRef`) ; c'est MESURÉ : 2 sites de `\.ref === '…'` sur tout le dépôt, 0 faux positif.
  *  Les noms `key`/`code`/`name` ont été MESURÉS puis ÉCARTÉS : ~50 sites, TOUS des
  *  `KeyboardEvent.key`/`.code` ou des codes errno — une garde qui hurle à tort se fait désactiver.

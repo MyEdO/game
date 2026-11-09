@@ -97,7 +97,7 @@ export function smokeZone(from: Pt, center: Pt, radius: number): Pt[] {
  *  `WallSeg`, pas une tuile opaque. */
 export function tileBlocksSight(scene: Scene, x: number, y: number): boolean {
   if (terrainOpaque(tileAt(scene, x, y))) return true;
-  return decorsEnCase(scene, x, y).some((dc) => !!findPropById(dc.ref)?.opaque);
+  return decorsEnCase(scene, x, y).some((dc) => !!findPropById(dc.decor?.id)?.opaque);
 }
 
 /**
@@ -216,7 +216,7 @@ export function lineOfSightCover(
     }
     if (TERRAIN_COVER[terr]) cover = worst(cover, TERRAIN_COVER[terr]);
     for (const decor of decorsEnCase(scene, t.x, t.y)) {
-      const dcov = decorCover(decor.ref);
+      const dcov = decorCover(decor.decor?.id);
       if (dcov) cover = worst(cover, dcov);
     }
     if (occupants.some((o) => o.x === t.x && o.y === t.y)) cover = worst(cover, 'imparfaite');

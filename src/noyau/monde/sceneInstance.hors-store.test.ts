@@ -13,8 +13,8 @@ function fixtureScene(id: string): Scene {
   const s = emptyScene('scene-test', 6, 6);
   s.id = id;
   s.entities.push({ id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } });
-  s.entities.push({ id: 'decor-untouche', kind: 'prop', pos: { x: 2, y: 0 }, ref: 'tonneau' });
-  s.entities.push({ id: 'decor-retire', kind: 'prop', pos: { x: 3, y: 0 }, ref: 'tonneau' });
+  s.entities.push({ id: 'decor-untouche', kind: 'prop', pos: { x: 2, y: 0 }, decor: { id: 'tonneau' } });
+  s.entities.push({ id: 'decor-retire', kind: 'prop', pos: { x: 3, y: 0 }, decor: { id: 'tonneau' } });
   s.walls = [DOOR_OPENED, DOOR_UNTOUCHED];
   return s;
 }
@@ -58,16 +58,16 @@ describe('sceneInstance — helpers PURS (#707)', () => {
 
   it('captureMutation garde l’entité ajoutée ou déplacée en jeu, à l’identique, et ignore l’ordre de ses clés', () => {
     const authored = fixtureScene('s7');
-    const sac = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 4, y: 4 } };
+    const sac = { id: 'sol-1', kind: 'prop' as const, decor: { id: 'bourse' }, pos: { x: 4, y: 4 } };
     const deplace = { ...authored.entities.find((e) => e.id === 'decor-untouche')!, pos: { x: 5, y: 5 } };
-    const reordonne = (({ ref, pos, kind, id }) => ({ ref, pos, kind, id }))(authored.entities.find((e) => e.id === 'decor-retire')!);
+    const reordonne = (({ decor, pos, kind, id }) => ({ decor, pos, kind, id }))(authored.entities.find((e) => e.id === 'decor-retire')!);
     const current: Scene = { ...authored, entities: [...authored.entities.map((e) => (e.id === deplace.id ? deplace : e.id === reordonne.id ? reordonne : e)), sac] };
     expect(captureMutation(current, authored)).toEqual<SceneMutation>({ removedEntityIds: [], flags: {}, entitesChangees: [deplace, sac] });
   });
 
   it('applyMutation remplace l’entité changée à sa place et ajoute la nouvelle, sans partager leurs objets', () => {
-    const sac = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 4, y: 4 } };
-    const deplace = { id: 'decor-untouche', kind: 'prop' as const, pos: { x: 5, y: 5 }, ref: 'tonneau' };
+    const sac = { id: 'sol-1', kind: 'prop' as const, decor: { id: 'bourse' }, pos: { x: 4, y: 4 } };
+    const deplace = { id: 'decor-untouche', kind: 'prop' as const, pos: { x: 5, y: 5 }, decor: { id: 'tonneau' } };
     const mut: SceneMutation = { removedEntityIds: [], flags: {}, entitesChangees: [deplace, sac] };
     const out = applyMutation(fixtureScene('s8'), mut);
     expect(out.entities.map((e) => e.id)).toEqual(['hs', 'decor-untouche', 'decor-retire', 'sol-1']);
@@ -153,8 +153,8 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     banc.setState({ party: [hero()] });
     const a = fixtureScene('scene-t1');
     const b = fixtureScene('scene-t2');
-    b.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
-    b.entities.push({ id: 'attable', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } }); // abord NORD
+    b.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' });
+    b.entities.push({ id: 'attable', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 } }); // abord NORD
     b.seatAssignments = {
       'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' }, 'place-3': { kind: 'party', rang: 4 } },
     };
@@ -188,8 +188,8 @@ describe('sceneInstance — câblage noyau, REVISIT (#707)', () => {
     it('une save v28 portant une place INVALIDE arrive ÉLAGUÉE en état', () => {
       banc.setState({ party: [hero()] });
       const s = fixtureScene('scene-assise');
-      s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
-      s.entities.push({ id: 'attable', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 } }); // abord NORD de la table
+      s.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' });
+      s.entities.push({ id: 'attable', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 } }); // abord NORD de la table
       banc.getState().chargerLeProjet({ scenes: [s], entryId: 'scene-assise', projet: null });
       banc.setState((st) => ({ scene: { ...st.scene!, seatAssignments: { 'table-1': { 'place-1': { kind: 'entity', entityId: 'attable' } } } } }));
       // La save est trafiquée à la VERSION COURANTE : meuble disparu, héros hors groupe, slot inconnu

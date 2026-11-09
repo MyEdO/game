@@ -27,7 +27,7 @@ export const scenario: TestScenario = {
       label: 'À bord de la caraque',
       size: [22, 9],
       terrain: 'eau',
-      entities: [{ id: 'caraque', kind: 'personnage', ref: 'caraque', pos: { x: 9, y: 2 }, facing: 'E', label: 'La caraque', upgrades: [{ id: 'sabord' }, { id: 'nid-de-pie' }, { id: 'embarcation-de-bord' }] }],
+      entities: [{ id: 'caraque', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 9, y: 2 }, facing: 'E', label: 'La caraque', upgrades: [{ id: 'sabord' }, { id: 'nid-de-pie' }, { id: 'embarcation-de-bord' }] }],
       heroStart: { x: 14, y: 4, z: 2 },
     }),
   }),

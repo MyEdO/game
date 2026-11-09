@@ -64,13 +64,13 @@ describe('Scène compilée par buildScene — équivalence de map', () => {
       'enemy-enc-naval-4',
     ]);
     const byId = (id: string) => scene.entities.find((e) => e.id === id)!;
-    expect(byId('enemy-enc-naval-0').ref).toBe('cogue'); // index 0 = la cogue ennemie
+    expect(byId('enemy-enc-naval-0').vehicule?.id).toBe('cogue'); // index 0 = la cogue ennemie
     expect(byId('enemy-enc-naval-0').crewIds).toEqual(['enemy-enc-naval-1', 'enemy-enc-naval-2', 'enemy-enc-naval-3']);
     expect(byId('enemy-enc-naval-0').upgrades).toEqual([{ id: 'blindage-fer' }]);
-    expect(byId('enemy-enc-naval-1').ref).toBe('humain');
-    expect(byId('enemy-enc-naval-2').ref).toBe('humain');
-    expect(byId('enemy-enc-naval-3').ref).toBe('jaego-roth');
-    expect(byId('enemy-enc-naval-4').ref).toBe('bateau-de-patrouille'); // index 4 = la barge amie
+    expect(byId('enemy-enc-naval-1').creature?.id).toBe('humain');
+    expect(byId('enemy-enc-naval-2').creature?.id).toBe('humain');
+    expect(byId('enemy-enc-naval-3').creature?.id).toBe('jaego-roth');
+    expect(byId('enemy-enc-naval-4').vehicule?.id).toBe('bateau-de-patrouille'); // index 4 = la barge amie
   });
 
   it('la barge amie (index 4) est côté ally, cap Nord, avec ses 2 postes de pierrier servis par les canonniers', () => {

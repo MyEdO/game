@@ -64,9 +64,9 @@ valide ; un bloc mal formé fait échouer `parseProject`.
 
 ## Pièges
 
-- **Coques de navire** : une coque se pose en `entities`, `ref` = id de véhicule à coque (`vehicles.json`),
-  et s'enrôle par `encounters[].members` ; `validateScene` refuse une `ref` que `refEntiteResolue`
-  (`src/data/index.ts` : créature, véhicule à coque, engin de siège, sous-type `armes-de-siege`) ne résout pas. Une coque
+- **Coques de navire** : une coque se pose en `entities`, `vehicule: { id }` = un véhicule de `vehicles.json`,
+  et s'enrôle par `encounters[].members` ; le schéma de scène refuse un corps hors de son catalogue (`creature`,
+  `vehicule`, `engin` : un engin de siège, sous-type `armes-de-siege`) et deux corps sur un personnage. Une coque
   RICHE porte `crewIds`, `upgrades` et `postes`. Un poste est une RÉFÉRENCE JSON
   `{ trappingId, side, crewIds?, uid?, ammo?, ammoUid? … }` (`AuthoredShipPoste`, `src/engine/types.ts`),
   hydratée au spawn par `hydratePoste` (`src/engine/items.ts`), qui lève sur un `trappingId` inconnu.

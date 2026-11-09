@@ -45,7 +45,7 @@ const rng = makeRNG(1);
 const noCaster = () => undefined;
 
 describe('z-blindness #807 — entityBlockedAt (décor multi-cases/interactif)', () => {
-  const prop: SceneEntity = { id: 'p', kind: 'prop', pos: { x: 3, y: 3 }, z: 0, ref: 'tente' }; // 2×2 au catalogue
+  const prop: SceneEntity = { id: 'p', kind: 'prop', pos: { x: 3, y: 3 }, z: 0, decor: { id: 'tente' } }; // 2×2 au catalogue
   const scene = twoFloorScene([prop]);
 
   it('POSITIF — bloque sa propre couche (z0), la case couverte par son empreinte', () => {

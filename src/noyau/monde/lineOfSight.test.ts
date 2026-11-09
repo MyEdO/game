@@ -25,7 +25,7 @@ function scene(w: number, h: number, tiles?: Record<string, string>, entities: S
 }
 
 const prop = (id: string, x: number, y: number): SceneEntity =>
-  ({ id, kind: 'prop', pos: { x, y }, ref: id }) as SceneEntity;
+  ({ id, kind: 'prop', pos: { x, y }, decor: { id: id }}) as SceneEntity;
 
 describe('tilesBetween — cases strictement entre deux points', () => {
   it('horizontal', () => {

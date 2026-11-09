@@ -55,18 +55,18 @@ function construireScene(): Scene {
     legend: { '#': 'mur' },
     levels: { z0: CAVEAU_Z0 },
     entities: [
-      { id: 'levier', kind: 'prop', ref: 'roue-dentee', pos: { x: 2, y: 2 }, label: 'Mécanisme rouillé',
+      { id: 'levier', kind: 'prop', decor: { id: 'roue-dentee' }, pos: { x: 2, y: 2 }, label: 'Mécanisme rouillé',
         usable: { actions: [{ id: 'fouiller', unique: true, flow: flowFromEffects([
           { type: 'setFlag', flag: 'levier_tire' },
           { type: 'journal', desc: 'Le mécanisme cède dans un grincement — quelque chose s’ébranle derrière le mur.' },
         ]) }] } },
-      { id: 'cle', kind: 'prop', ref: 'cle', pos: { x: 2, y: 8 }, label: 'Clé en fer, posée là',
+      { id: 'cle', kind: 'prop', decor: { id: 'cle' }, pos: { x: 2, y: 8 }, label: 'Clé en fer, posée là',
         usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([
           { type: 'giveTrapping', custom: 'Clé en fer' },
           { type: 'journal', desc: 'Vous empochez la lourde clé en fer.' },
         ]) }] } },
-      { id: 'herse-grille', kind: 'prop', ref: 'grille', pos: { x: 10, y: 5 }, label: 'Herse du trésor' },
-      { id: 'tresor', kind: 'prop', ref: 'coffre', pos: { x: 12, y: 5 }, label: 'Coffre du trésor',
+      { id: 'herse-grille', kind: 'prop', decor: { id: 'grille' }, pos: { x: 10, y: 5 }, label: 'Herse du trésor' },
+      { id: 'tresor', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 12, y: 5 }, label: 'Coffre du trésor',
         usable: { actions: [{ id: 'fouiller', consume: true, flow: flowFromEffects([
           { type: 'giveMoney', montant: { gold: 5 } },
           { type: 'giveTrapping', trappingId: 'arme-simple', qualities: ['precise'], identified: false },

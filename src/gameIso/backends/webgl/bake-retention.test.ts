@@ -339,7 +339,7 @@ describe('Cuisson du monde — la part RECETTES du read-set se compte en DEFS, p
   const salle = (defs: readonly string[], parDef: number): Scene => {
     const scene = emptyScene('scene-test', 40, 40);
     scene.entities = defs.flatMap((ref, d) => Array.from({ length: parDef }, (_, i) => ({
-      id: `p-${d}-${i}`, kind: 'prop', ref, pos: { x: i % 40, y: (d + Math.floor(i / 40)) % 40 },
+      id: `p-${d}-${i}`, kind: 'prop', decor: { id: ref }, pos: { x: i % 40, y: (d + Math.floor(i / 40)) % 40 },
     }))) as Scene['entities'];
     return scene;
   };

@@ -100,7 +100,7 @@ const cuissons = () => Number(canevas().dataset.bake ?? -1);
  * hors catalogue se sert encore en quad (#3198).
  */
 const decorsBillboard = (sc: Scene): number =>
-  sc.entities.filter((e) => e.kind === 'prop' && !refEstVolumique(e.ref)).length;
+  sc.entities.filter((e) => e.kind === 'prop' && !refEstVolumique(e.decor?.id)).length;
 
 beforeAll(() => {
   Object.defineProperty(HTMLCanvasElement.prototype, 'clientWidth', { configurable: true, get: () => TAILLE.w });
@@ -127,7 +127,7 @@ function scèneArène(): Scene {
     kind: 'prop',
     pos: { x: 3 + (i % 6) * 1, y: 3 + Math.floor(i / 6) * 2 },
     z: 0,
-    ref: refDecorBillboard(),
+    decor: { id: refDecorBillboard() },
   })) as unknown as Scene['entities'];
   return { ...base, entities: props } as unknown as Scene;
 }
@@ -149,7 +149,7 @@ const HUB: Scene = {
   entities: [
     ...HUB_AUTHORE.entities,
     ...Array.from({ length: 12 }, (_, i) => ({
-      id: `repli-${i}`, kind: 'prop', pos: { x: DEPART.x - 3 + (i % 6), y: DEPART.y - 2 + Math.floor(i / 6) * 4 }, ref: refDecorBillboard(),
+      id: `repli-${i}`, kind: 'prop', pos: { x: DEPART.x - 3 + (i % 6), y: DEPART.y - 2 + Math.floor(i / 6) * 4 }, decor: { id: refDecorBillboard() },
     }) as Scene['entities'][number]),
   ],
 };

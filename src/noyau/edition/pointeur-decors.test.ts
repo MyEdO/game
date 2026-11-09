@@ -18,7 +18,7 @@ const ctx = (tool: Tool): ContexteDuPointeur => ({
 const au = (x: number, y: number): PointDeCarte => ({ case: { x: Math.round(x), y: Math.round(y) }, f: { x, y } });
 const outil = (ref: string): Tool => ({ mode: 'entity', kind: 'prop', ref });
 const vide = (): Scene => emptyScene('decors-dans-la-case', 6, 4);
-const parRef = (s: Scene, ref: string): SceneEntity => s.entities.find((e) => e.ref === ref)!;
+const parRef = (s: Scene, ref: string): SceneEntity => s.entities.find((e) => e.decor?.id === ref)!;
 
 /** Un appui de l'outil décor `ref` au point `(x, y)`. */
 const poser = (s: Scene, ref: string, x: number, y: number): Scene => appuyer(s, ctx(outil(ref)), au(x, y)).scene!;
@@ -76,14 +76,14 @@ describe('décors libres dans la case, au pointeur', () => {
   it('la table gommée, la lettre retombe au sol de sa case', () => {
     const s = poser(poser(vide(), 'table', 2, 1), 'lettre', 2.2, 1);
     const sansTable = appuyer(s, ctx({ mode: 'erase' }), au(1.85, 1)).scene!;
-    expect(sansTable.entities.map((e) => e.ref)).toEqual(['lettre']);
+    expect(sansTable.entities.map((e) => e.decor?.id)).toEqual(['lettre']);
     expect(sansTable.entities[0].sur).toBeUndefined();
   });
 });
 
 describe('appui d’un décor hors de l’éditeur', () => {
   it('le validateur dit l’appui qui ne tient pas, sur l’entité fautive', () => {
-    const s: Scene = { ...vide(), entities: [{ id: 'lettre-1', kind: 'prop', ref: 'lettre', pos: { x: 1, y: 1 }, sur: 'absente' }] };
+    const s: Scene = { ...vide(), entities: [{ id: 'lettre-1', kind: 'prop', decor: { id: 'lettre' }, pos: { x: 1, y: 1 }, sur: 'absente' }] };
     expect(validateScene([s]).filter((w) => w.refId === 'lettre-1')).toEqual([
       expect.objectContaining({ level: 'error', scope: 'entity', message: expect.stringMatching(/posé sur « absente »/) }),
     ]);

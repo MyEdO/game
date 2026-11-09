@@ -2286,7 +2286,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, `pickup` de `action
   it('un objet posé au sol (`objetsAuSol`) se ramasse d’une Action : il revient intact, son décor disparaît', () => {
     const bh = setup();
     const [objet, ...reste] = bh.items!;
-    const sol = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 1, y: 0 } };
+    const sol = { id: 'sol-1', kind: 'prop' as const, decor: { id: 'bourse' }, pos: { x: 1, y: 0 } };
     const sansObjet = (c: Combatant): Combatant => ({ ...c, items: reste });
     banc.setState((st) => ({
       party: st.party.map(sansObjet), battle: { ...st.battle!, combatants: st.battle!.combatants.map(sansObjet) },
@@ -3190,7 +3190,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
     return sc;
   };
 
@@ -3608,7 +3608,7 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
     return sc;
   };
 

@@ -10,6 +10,6 @@ export function bassinDeLaCaraque(cap: Dir4, upgrades: readonly string[] = []): 
   const pos = cap === 'E' || cap === 'O' ? { x: 10, y: 2 } : { x: 3, y: 9 };
   return poserLesNavires(buildScene({
     id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau',
-    entities: [{ id: 'c1', kind: 'personnage', ref: 'caraque', pos, facing: cap, ...(upgrades.length ? { upgrades: upgrades.map((id) => ({ id })) } : {}) }],
+    entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos, facing: cap, ...(upgrades.length ? { upgrades: upgrades.map((id) => ({ id })) } : {}) }],
   }));
 }

@@ -20,14 +20,14 @@ const FLOATING = new Set(['lustre-opera']);
 
 const entites = scenarioEntities();
 for (const e of entites) {
-  if (e.kind !== 'prop' || !e.ref || FLOATING.has(e.ref)) continue;
+  if (e.kind !== 'prop' || !e.decor || FLOATING.has(e.decor.id)) continue;
   const z = e.z ?? 0;
-  for (const { x, y } of propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(scene))) {
+  for (const { x, y } of propFootTiles(e.decor.id, e.pos, e.facing, sceneMetresPerTile(scene))) {
     if (x < 0 || y < 0 || x >= W || y >= H) { bad.push(`${e.id} HORS-GRILLE (${x},${y})`); continue; }
     const t = tileAt(scene, x, y, z);
     if (!terrainWalkable(t)) bad.push(`${e.id} DANS UN MUR/vide (${x},${y}) tile=${t} z=${z}`);
     // le parterre (cellules de siège) est réservé aux 'siege' ; tout autre prop dessus = collision
-    if (z === 0 && e.ref !== 'siege' && seatSet.has(`${x},${y}`)) bad.push(`${e.id} SUR LE PARTERRE (${x},${y})`);
+    if (z === 0 && e.decor.id !== 'siege' && seatSet.has(`${x},${y}`)) bad.push(`${e.id} SUR LE PARTERRE (${x},${y})`);
   }
 }
 
@@ -36,5 +36,5 @@ if (bad.length) {
   for (const b of bad) console.error('  - ' + b);
   process.exit(1);
 }
-const props = entites.filter((e) => e.kind === 'prop' && e.ref).length;
+const props = entites.filter((e) => e.kind === 'prop' && e.decor).length;
 console.log(`OK: ${props} props placés, 0 anomalie (aucun dans un mur / sur le parterre / hors grille).`);

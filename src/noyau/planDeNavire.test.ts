@@ -24,7 +24,7 @@ const plan = buildScene(PLAN_DE_LA_CARAQUE);
 /** Un bassin sans ses ponts : la caraque `c1` depuis (10, 2), au cap `facing`, à l'échelle `metresPerTile`. */
 const authored = (facing: 'N' | 'NE' | 'E' | 'O', metresPerTile?: number) => buildScene({
   id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', ...(metresPerTile ? { metresPerTile } : {}),
-  entities: [{ id: 'c1', kind: 'personnage', ref: 'caraque', pos: { x: 10, y: 2 }, facing }],
+  entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 2 }, facing }],
 });
 
 describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
@@ -181,7 +181,7 @@ describe('chaque navire à ponts se parcourt d’un bout à l’autre (#3772)', 
   /** Le navire `ref` posé au cap `cap` dans un bassin de 30 × 30 cases. */
   const bassin = (ref: string, cap: 'N' | 'E' | 'S' | 'O') => poserLesNavires(buildScene({
     id: 'bassin', label: 'Bassin', size: [30, 30], terrain: 'eau',
-    entities: [{ id: 'n1', kind: 'personnage', ref, pos: { x: 13, y: 13 }, facing: cap }],
+    entities: [{ id: 'n1', kind: 'personnage', vehicule: { id: ref }, pos: { x: 13, y: 13 }, facing: cap }],
   }));
   const k = (p: { x: number; y: number; z?: number }) => `${p.x},${p.y},${p.z ?? 0}`;
   /** Les cases que joignent, de proche en proche depuis `depart`, la marche (`walkReachableFrom`) et les arêtes

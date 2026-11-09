@@ -216,7 +216,7 @@ describe('Mécénat (ACE 12 l.60-62) : jeton de Sociabilité face à l’amateur
     const banc = ouvrirLeBanc();
     banc.setState({
       battle: null, party: [heros('H')],
-      scene: { ...emptyScene('s'), entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, amateur: 'amateurDeTheatre' }] } as never,
+      scene: { ...emptyScene('s'), entities: [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, amateur: 'amateurDeTheatre' }] } as never,
       dialogue: { dialogue: { id: 'd', start: { id: 'n' }, nodes: [] } as never, nodeId: 'n', speakerId: 'pnj', session: 1 },
     });
     openSkillTest(banc.getState, banc.setState, { skill: { id: 'charme' } } as never, condCtx(banc.getState), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId: 'H' });

@@ -68,7 +68,7 @@ describe('pont-vitrine — Scene produite', () => {
     const props = s.entities.filter((e) => e.kind === 'prop');
     expect(props).toHaveLength(6);
     const byRef = (ref: string, x: number, y: number) =>
-      expect(props.some((p) => p.ref === ref && p.pos.x === x && p.pos.y === y)).toBe(true);
+      expect(props.some((p) => p.decor?.id === ref && p.pos.x === x && p.pos.y === y)).toBe(true);
     byRef('arbre', 0, 2);
     byRef('arbre', 15, 4);
     byRef('arbre', 0, 9);

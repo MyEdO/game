@@ -27,7 +27,7 @@ function startWithVehicle() {
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
   banc.setState({ party: [hero] });
   const scene = structuredClone(testScene());
-  scene.entities.push({ id: 'veh', kind: 'personnage', ref: 'diligence', pos: { x: 7, y: 10 } } as never);
+  scene.entities.push({ id: 'veh', kind: 'personnage', vehicule: { id: 'diligence' }, pos: { x: 7, y: 10 } } as never);
   (scene.encounters[0].members ??= []).push({ entityId: 'veh' } as never);
   banc.getState().lancerLaScene(scene);
   banc.getState().lancerLeCombat('enc-mutants');

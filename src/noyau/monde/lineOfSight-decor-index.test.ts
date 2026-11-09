@@ -16,7 +16,7 @@ function scene(w: number, h: number, entities: SceneEntity[]): Scene {
   } as unknown as Scene;
 }
 const prop = (id: string, ref: string, x: number, y: number): SceneEntity =>
-  ({ id, kind: 'prop', pos: { x, y }, ref }) as SceneEntity;
+  ({ id, kind: 'prop', pos: { x, y }, decor: { id: ref }}) as SceneEntity;
 
 describe('index de décor de la Ligne de Vue (mémoïsé par identité de `scene.entities`)', () => {
   it('deux décors sur la MÊME case : le pire couvert décide, quel que soit l’ordre (#3731)', () => {
