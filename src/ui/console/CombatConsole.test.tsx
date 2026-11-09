@@ -3004,10 +3004,12 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
     return h;
   }
 
-  it('Soigner : la case s’allume quand `battle.action` vaut l’`armed` de son entrée, et le re-clic désarme', () => {
+  it('Soigner : la case s’allume quand `battle.action` vaut le `mode` de son entrée armée, et le re-clic désarme', () => {
     act(() => { useGame.setState({ scene: emptyScene('scene-test') }); }); // `armerLeMode` lit { battle, scene }
     monter(soigneur());
-    const armed = findActionById('heal')!.armed;
+    const soin = findActionById('heal')!;
+    expect(soin.armed, 'l’entrée « Soigner » du registre arme son mode').toBe(true);
+    const armed = soin.mode;
     expect(armed, 'l’entrée « Soigner » du registre déclare le mode qu’elle arme').toBe('heal');
     expect(caseCell('q-soigner'), 'la case Soigner doit être à l’écran').not.toBeNull();
     expect(caseCell('q-soigner')!.className, 'rien n’est armé au départ').not.toContain(' on');

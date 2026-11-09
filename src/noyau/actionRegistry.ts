@@ -572,11 +572,11 @@ export const ACTION_PORTEURS: Record<string, PorteurDeclare> = {
 
 
 /** L'offre de `def` sur `args` est-elle armée ? Son intention est celle que vise le siège (`localIntent`), ou le mode
- *  qu'elle arme (`armed`) est celui du combat, sur le sort élu (`selectedSpellId`) quand elle en désigne un. */
+ *  qu'elle arme (`armed`, son `mode`) est celui du combat, sur le sort élu (`selectedSpellId`) quand elle en désigne un. */
 export function offreArmee(etat: Pick<Jeu, 'battle' | 'localIntent'>, def: ActionDef, args: ContexteDOffre = {}): boolean {
   const b = etat.battle;
   if (def.intent && etat.localIntent?.actionId === def.id) return true;
-  return !!def.armed && b?.action === def.armed && (!args.spellId || b.selectedSpellId === args.spellId);
+  return !!def.armed && !!b && b.action === def.mode && (!args.spellId || b.selectedSpellId === args.spellId);
 }
 
 /** Ce que l'acte prend dans l'économie du tour, en toutes lettres — la donnée `cost` du registre, dite
@@ -668,7 +668,7 @@ const lActif: DefautDuCorps = ({ active }) => active.id;
  *  (`CLES_DESIGNABLES`). */
 const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuVerbe } = {
   armerLIntention: { args: [{ entree: (def) => def.id }] },
-  armerLeMode: { args: [{ entree: (def) => def.armed }] },
+  armerLeMode: { args: [{ entree: (def) => def.mode }] },
   armerLAttaque: { args: [{ cle: 'attackId', defaut: () => 'arme' }] },
   lancerLAttaqueDeZone: { args: [{ cle: 'attackKind' }], requis: ['attackKind'] },
   prendreLaVisee: {},
@@ -789,7 +789,7 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>
   utiliserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('utiliserLObjet', uid))),
   poserLObjet: duTour((o) => avec(o.args.itemUid, (uid) => geste('poserLObjet', uid))),
   ramasserLObjet: duTour((o) => (o.args.entityId && o.args.pickKey ? geste('ramasserLObjet', o.args.entityId, o.args.pickKey) : null)),
-  /** L'alvéole d'un sort ARME le mode d'incantation sur CE sort (`armed`) : le re-clic le désarme (`desarmerLeMode`),
+  /** L'alvéole d'un sort ARME le mode d'incantation sur CE sort (`armed`, son `mode`) : le re-clic le désarme (`desarmerLeMode`),
    *  comme toute case à mode armé — annulation gratuite, rien n'est engagé avant le clic-cible. */
   incanterLeSort: duTour((o) => avec(o.args.spellId, (sort) => geste('incanterLeSort', idDeLActif(o), sort))),
   focaliserLeSort: duTour((o) => avec(o.args.spellId, (sort) => geste('focaliserLeSort', idDeLActif(o), sort))),
@@ -1122,7 +1122,7 @@ export function currentInterludeAction(get: () => Jeu): ActionDef | undefined {
   return ACTIONS.find((a) => a.surface === 'interlude' && a.mode === modeId);
 }
 
-/** Modes ARMABLES de `battle.action`, DÉRIVÉS du registre (`armed`) + les modes qui n'appartiennent
+/** Modes ARMABLES de `battle.action`, DÉRIVÉS du registre (le `mode` des actions `armed`) + les modes qui n'appartiennent
  *  à aucune action de barre, déclarés ici avec leur porteur (garde de parité :
  *  `src/noyau/action-atteignabilite.hors-store.test.ts`). */
 export const MODES_HORS_REGISTRE = {
@@ -1140,7 +1140,7 @@ export type BattleActionMode =
   | keyof typeof MODES_HORS_REGISTRE;
 
 /** Les MÊMES valeurs, énumérables à l'exécution — la garde `action-atteignabilite` vérifie qu'elles
- *  couvrent EXACTEMENT les `armed` du registre + `MODES_HORS_REGISTRE` (union validée, pas dérivée :
+ *  couvrent EXACTEMENT les modes `armed` du registre + `MODES_HORS_REGISTRE` (union validée, pas dérivée :
  *  un JSON importé n'a pas de type littéral). */
 export const BATTLE_ACTION_MODES: readonly BattleActionMode[] = [
   'cast', 'heal', 'dispel', 'battery', 'push', 'teleport',

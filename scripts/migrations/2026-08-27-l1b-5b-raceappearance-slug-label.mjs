@@ -16,7 +16,8 @@
  * écrites).
  *
  * IDEMPOTENT / NO-OP TOLÉRANT À LA FORME : une entrée dont l'`id` est déjà son propre slug ET qui
- * porte un `label` est reconnue migrée ; une valeur de `speciesRace` déjà slug est reconnue migrée ;
+ * porte un `label` est reconnue migrée ; une valeur de `speciesRace` déjà slug est reconnue migrée, et une
+ * valeur `{ id }` (#2968 L18, `ref('planDeBestiaire')`) est hors de cette migration, qui la laisse ;
  * rejouée sur l'état final, la migration n'écrit rien et sort 0.
  * FAIL-FAST : `id` absent/non-chaîne, `label` préexistant en désaccord avec l'id d'origine, slugs en
  * collision, valeur de `speciesRace` ne résolvant vers AUCUN id (ni ancien ni neuf) → rien n'est
@@ -100,6 +101,7 @@ if (new Set(idsNeufs).size !== idsNeufs.length) echecs.push(`raceAppearance : id
 
 /** Convertit une valeur `race` de `speciesRace.json` vers l'id neuf. */
 const convertirRace = (valeur, ou) => {
+  if (typeof valeur !== 'string') return valeur;
   const neuf = idNeufPar.get(valeur);
   if (neuf) return neuf;
   echecs.push(`speciesRace ${ou} : race ${JSON.stringify(valeur)} ne résout vers AUCUN id de raceAppearance (ni ancien, ni neuf)`);
@@ -131,7 +133,7 @@ for (const e of apresRaces) {
 }
 const existants = new Set(apresRaces.map((e) => e.id));
 for (const [ou, v] of [['default', apresPont.default]])
-  if (!existants.has(v)) rouges.push(`speciesRace ${ou} : race ${JSON.stringify(v)} absente de raceAppearance`);
+  if (typeof v === 'string' && !existants.has(v)) rouges.push(`speciesRace ${ou} : race ${JSON.stringify(v)} absente de raceAppearance`);
 if (rouges.length) {
   console.error(`VÉRIFICATION POST-ÉCRITURE ROUGE :\n  ${rouges.join('\n  ')}`);
   process.exit(1);
@@ -139,5 +141,5 @@ if (rouges.length) {
 
 console.log(`raceAppearance.json — id capitalisé → slug + \`label\` : ${migres.length} ; déjà migrées (no-op) : ${dejaMigres.length}`);
 for (const m of migres) console.log(`  ${m}`);
-console.log(`speciesRace.json : default = ${apresPont.default}, accordée à un id existant`);
+console.log(`speciesRace.json : default = ${JSON.stringify(apresPont.default)}, accordée à un id existant`);
 console.log(`Fichiers : raceAppearance ${plans[0].out !== plans[0].brut ? 'réécrit' : 'INCHANGÉ'}, speciesRace ${plans[1].out !== plans[1].brut ? 'réécrit' : 'INCHANGÉ'}`);

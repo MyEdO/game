@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { charKeySchema, enumNomme, specsSchema, specsSourceSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
 import { senseSchema } from '../grammaire/mecanique';
-import { idDe } from '../grammaire/ref';
+import { ref } from '../grammaire/ref';
 
 export const file = 'skills.json';
 export const famille = 'entite';
@@ -28,12 +28,12 @@ const doc = document(
     movement: z.boolean().optional(),
     senses: z.array(senseSchema).optional(),
     /** Caractéristique ALTERNATIVE sous règle optionnelle (`SkillData.altChar`, lu par `altCharKey`) :
-     *  `gatedByRule` = id d'`OptionalRule`, `from` = carac de base à laquelle la substitution s'applique
+     *  `gatedByRule` = la règle optionnelle, `from` = carac de base à laquelle la substitution s'applique
      *  (absente = toute carac), `chars` = la carac à utiliser PAR VALEUR de la règle (clé = valeur rendue
      *  par `rule()`, en chaîne — `"true"` pour un interrupteur ; une LISTE = la meilleure des caracs
      *  citées chez le porteur). */
     altChar: nommerChamps(z.strictObject({
-      gatedByRule: idDe('regleOptionnelle'),
+      gatedByRule: ref('regleOptionnelle'),
       from: charKeySchema.optional(),
       chars: z.record(z.string(), z.union([charKeySchema, z.array(charKeySchema)])),
     }), {
