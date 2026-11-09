@@ -16,7 +16,7 @@ import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDe
 import { idDe, recordDIds, ref, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
-import { couvreSchema } from './communs';
+import { couvreSchema, SCENES_DU_PROJET } from './communs';
 import { findVehicleById } from '../../index';
 
 /** `TravelMode` (`engine/travel.ts`) — `'pied'`/`'monture'` ou id de `vehicles.json`. */
@@ -103,7 +103,7 @@ export const placePoiSchema = nommerChamps(z
     /** Coordonnées PLAN-LOCALES, indépendantes de `MapPlace.pos`. */
     pos: pointDuPlanSchema,
     icon: z.string().optional(),
-    sceneId: z.string().optional(),
+    sceneId: ref(SCENES_DU_PROJET).optional(),
     serviceKind: z.string().optional(),
   })
   .superRefine((poi, ctx) => {
@@ -121,8 +121,7 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
   label: z.string(),
   /** Position sur la carte du monde. */
   pos: pointDuPlanSchema,
-  /** Scène liée (id du registre de scènes du projet). */
-  scene: z.string(),
+  scene: ref(SCENES_DU_PROJET),
   entry: z.string().optional(),
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
   icon: z.string().optional(),
@@ -186,7 +185,7 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
   perils: z.array(routePerilSchema).optional(),
   /** Cible du « Attaqués ! » ; `at` = ancrage DÉTERMINISTE en mer (fraction 0-1, défaut 0.5, #212). */
   ambush: nommerChamps(z
-    .strictObject({ scene: z.string(), entry: z.string().optional(), encounter: z.string(), at: z.number().optional() }), { scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, at: { label: "position" } })
+    .strictObject({ scene: ref(SCENES_DU_PROJET), entry: z.string().optional(), encounter: z.string(), at: z.number().optional() }), { scene: { label: "scène" , texte: { regime: "technique"} }, entry: { label: "entrée" , texte: { regime: "technique"} }, encounter: { label: "rencontre" , texte: { regime: "technique"} }, at: { label: "position" } })
     .optional(),
   /** Relais d'auberges en bord de route : la halte de NUIT propose l'auberge. */
   inns: z.boolean().optional(),

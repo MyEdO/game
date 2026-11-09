@@ -96,7 +96,7 @@ describe('validateScene', () => {
 
   it('effet transition vers scène inconnue → erreur', () => {
     const s = base();
-    s.triggers.push({ id: 't-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'transition', scene: 'nope' }]) });
+    s.triggers.push({ id: 't-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'transition', scene: { id: 'nope' } }]) });
     expect(msgs(validateScene([s])).some((m) => /scène inexistante/.test(m))).toBe(true);
   });
 
@@ -525,11 +525,11 @@ describe('validateScene', () => {
 describe('validateScene — POI de plan (#345 phase 5)', () => {
   // `services` : le lieu doit RÉSOUDRE (`placeServices`) la cible d'un POI de service (#360 — un POI
   // peut aussi cibler le port/marché AUTOMATIQUES du lieu, `'port'`/`'marche'`, pas que le catalogue).
-  const place = (poi: MapPlace['poi'], services?: MapPlace['services']): MapPlace => ({ id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: 'A', poi, services });
+  const place = (poi: MapPlace['poi'], services?: MapPlace['services']): MapPlace => ({ id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: { id: 'A' }, poi, services });
   const wm = (poi: MapPlace['poi'], services?: MapPlace['services']): WorldMap => ({ id: 'w', label: 'Carte', places: [place(poi, services)], routes: [] });
 
   it('POI bien formé ciblant une scène du projet → aucune erreur', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Entrée', pos: { x: 10, y: 10 }, sceneId: 'A' }]));
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Entrée', pos: { x: 10, y: 10 }, sceneId: { id: 'A' } }]));
     expect(w.filter((x) => x.level === 'error')).toEqual([]);
   });
 
@@ -545,7 +545,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
     const w = validateScene([base()], {
       id: 'w', label: 'Carte',
       places: [{
-        id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: 'A',
+        id: 'lieu', label: 'Lieu', pos: { x: 0, y: 0 }, scene: { id: 'A' },
         port: { ref: undefined, taille: 1, richesse: 1, production: [] } as unknown as MapPlace['port'],
         poi: [{ id: 'poi-1', label: 'Le port', pos: { x: 10, y: 10 }, serviceKind: 'port' }],
       }],
@@ -556,7 +556,7 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
 
   it('id de POI dupliqué (même lieu) → erreur du SCHÉMA de carte, le POI répété nommé par son libellé', () => {
     const w = validateScene([base()], wm([
-      { id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: 'A' },
+      { id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: { id: 'A' } },
       { id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, serviceKind: 'auberge' },
     ], [{ kind: 'auberge' }]));
     expect(w.filter((x) => x.level === 'error')).toEqual([
@@ -568,8 +568,8 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
     const w = validateScene([base()], {
       id: 'w', label: 'Carte', routes: [],
       places: [
-        { ...place([{ id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: 'A' }]), id: 'lieu-1', label: 'Lieu 1' },
-        { ...place([{ id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, sceneId: 'A' }]), id: 'lieu-2', label: 'Lieu 2' },
+        { ...place([{ id: 'poi-1', label: 'A', pos: { x: 1, y: 1 }, sceneId: { id: 'A' } }]), id: 'lieu-1', label: 'Lieu 1' },
+        { ...place([{ id: 'poi-1', label: 'B', pos: { x: 2, y: 2 }, sceneId: { id: 'A' } }]), id: 'lieu-2', label: 'Lieu 2' },
       ],
     });
     expect(w.filter((x) => x.level === 'error')).toEqual([
@@ -583,12 +583,12 @@ describe('validateScene — POI de plan (#345 phase 5)', () => {
   });
 
   it('scène ET service à la fois → erreur EXCLUSIVE', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Les deux', pos: { x: 1, y: 1 }, sceneId: 'A', serviceKind: 'auberge' }]));
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Les deux', pos: { x: 1, y: 1 }, sceneId: { id: 'A' }, serviceKind: 'auberge' }]));
     expect(msgs(w).some((m) => /cible EXCLUSIVE/.test(m))).toBe(true);
   });
 
   it('sceneId inexistant → erreur', () => {
-    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Fantôme', pos: { x: 1, y: 1 }, sceneId: 'nope' }]));
+    const w = validateScene([base()], wm([{ id: 'poi-1', label: 'Fantôme', pos: { x: 1, y: 1 }, sceneId: { id: 'nope' } }]));
     expect(msgs(w).some((m) => /scène inexistante/.test(m))).toBe(true);
   });
 

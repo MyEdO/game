@@ -57,8 +57,8 @@ function sceneA(): Scene {
 function sceneB(): Scene { const s = emptyScene('scene-test', 10, 10); s.id = 'lieu-b-scene'; s.label = 'B'; return s; }
 function map(rp: Partial<MapRouteTrace> = {}): WorldMap {
   return { id: 'c', label: 'c', places: [
-    { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: 'lieu-a-scene' },
-    { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: 'lieu-b-scene' },
+    { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: { id: 'lieu-a-scene' } },
+    { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: { id: 'lieu-b-scene' } },
   ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 12, modes: ['pied'], perilDie: 0, ...rp }] };
 }
 function setup(wm: WorldMap, party: Combatant[]) {
@@ -340,8 +340,8 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
 describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
   function forcedRoute(km: number): WorldMap {
     return { id: 'c', label: 'c', places: [
-      { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: 'lieu-a-scene' },
-      { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: 'lieu-b-scene' },
+      { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a-scene' } },
+      { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: { id: 'lieu-b-scene' } },
     ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km, modes: ['diligence', 'pied'], perilDie: 0 }] };
   }
 
@@ -539,8 +539,8 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     const { lead, aide } = attelage();
     banc.setState({ party: [lead, aide], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
     get().chargerLeProjet({ scenes: [sceneA(), sceneB()], entryId: 'lieu-a-scene', worldMap: { id: 'c', label: 'c', places: [
-      { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: 'lieu-a-scene' },
-      { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: 'lieu-b-scene' },
+      { id: 'pa', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a-scene' } },
+      { id: 'pb', label: 'B', pos: { x: 70, y: 0 }, scene: { id: 'lieu-b-scene' } },
     ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 20, modes: ['diligence', 'pied'], perilDie: 0 }] } as WorldMap, projet: null });
     banc.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'lead', { gold: 500, silver: 0, brass: 0 });

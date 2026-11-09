@@ -114,7 +114,7 @@ function construireReik(): { scenes: Scene[]; carte: WorldMap } {
     label: e.label,
     // Ruban fluvial schématique : x croît amont→aval, y ondule (sans chevauchement des médaillons).
     pos: { x: Math.round(6 + (i / (RIVER_ORDER.length - 1)) * 88), y: Math.round(34 + 20 * Math.sin(i * 0.8)) },
-    scene: `quai-${e.id}`,
+    scene: { id: `quai-${e.id}` },
     icon: 'scenario/port',
     market: reikMarket(e),
   }));

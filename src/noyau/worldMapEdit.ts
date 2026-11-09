@@ -76,7 +76,7 @@ export function ajouterLieu(map: WorldMap, id: string, pos: Pos, scenes: readonl
   let ici = dansLesBornes(pos);
   const chevauche = (q: Pos) => map.places.some((p) => Math.abs(p.pos.x - q.x) < CHEVAUCHEMENT && Math.abs(p.pos.y - q.y) < CHEVAUCHEMENT);
   while (chevauche(ici) && ici.x < BORNES_DE_CARTE.x.max) ici = dansLesBornes({ x: ici.x + DECALAGE, y: ici.y });
-  const lieu: MapPlace = { id, label: semencesDeScene.lieu, pos: ici, scene: scenes[0]?.id ?? '' };
+  const lieu: MapPlace = { id, label: semencesDeScene.lieu, pos: ici, scene: { id: scenes[0]?.id ?? '' } };
   return { ...map, places: [...map.places, lieu] };
 }
 

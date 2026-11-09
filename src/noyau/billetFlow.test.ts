@@ -19,7 +19,7 @@ const route: MapRoute = {
 };
 const carte: WorldMap = {
   id: 'm', label: 'Carte',
-  places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: 'a' }, { id: 'B', label: 'B', pos: { x: 9, y: 0 }, scene: 'b' }],
+  places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'a' } }, { id: 'B', label: 'B', pos: { x: 9, y: 0 }, scene: { id: 'b' } }],
   routes: [route],
 };
 /** L'état que `jetValider('bargain')` écrit après un Marchandage du billet gagné au départ de A. */
