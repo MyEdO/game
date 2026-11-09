@@ -22,6 +22,7 @@ import { occupied, premiereCaseEnAnneaux } from './monde/combatGeometry';
 import type { Flow as CoreFlow, EffectOp } from '../engine/flowCore';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { testerLaTraverseeDeZone } from './combat/triggeredTest';
+import { normaliserLesAppuis } from './monde/poseDuDecor';
 
 /** Perturbante (LDB 62 l.272-274) : repousse `target` d'au plus `tiles` cases dans la direction
  *  opposée à l'attaquant (cases praticables et libres seulement). Renvoie les cases reculées. */
@@ -81,18 +82,20 @@ function nearestFreeOutside(scene: Scene, battle: BattleState, c: Combatant, mov
 }
 
 /** Retrait par lot d'entités de scène (un seul `set` + un seul SCENE_DIRTY). No-op si rien à retirer.
- *  FUNNEL PARTAGÉ de toute suppression d'entité : l'assise (`Scene.seatAssignments`) y est renormalisée
- *  DANS LA MÊME écriture de scène — un meuble ou un PNJ qui disparaît ne laisse pas sa place derrière
- *  lui, et aucun appelant n'a à s'en souvenir. */
+ *  FUNNEL PARTAGÉ de toute suppression d'entité : l'assise (`Scene.seatAssignments`) et les appuis
+ *  (`normaliserLesAppuis`) y sont renormalisés DANS LA MÊME écriture de scène — un meuble ou un PNJ qui disparaît ne
+ *  laisse pas sa place derrière lui, ce qui était posé dessus retombe au sol, et aucun appelant n'a à s'en souvenir.
+ *  L'entrée des objets au sol (`objetsAuSol`) d'un décor retiré part dans la même écriture. */
 export function removeEntities(get: Get, set: SetFn, ids: string[]) {
   const scene = get().scene;
   if (!scene || !ids.length) return;
   const drop = new Set(ids);
   const next = scene.entities.filter((e) => !drop.has(e.id));
   if (next.length === scene.entities.length) return; // aucun id présent → rien à faire
-  const elague: Scene = { ...scene, entities: next };
+  const elague: Scene = normaliserLesAppuis({ ...scene, entities: next });
   const seatAssignments = pruneSeatAssignments(elague, get().party.length);
-  set({ scene: scene.seatAssignments === undefined && !Object.keys(seatAssignments).length ? elague : { ...elague, seatAssignments } });
+  const objetsAuSol = Object.fromEntries(Object.entries(get().objetsAuSol).filter(([id]) => !drop.has(id)));
+  set({ scene: scene.seatAssignments === undefined && !Object.keys(seatAssignments).length ? elague : { ...elague, seatAssignments }, objetsAuSol });
   bus.emit(EVT.SCENE_DIRTY);
 }
 

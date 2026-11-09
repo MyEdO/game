@@ -178,10 +178,10 @@ describe('buildProps — ornements de bâtiment (data-driven par ArchitectureBod
     const s = emptyScene('scene-test', 10, 10);
     s.architecture = [{
       id: `body-${style}`,
-      style,
+      style: { id: style },
       storeys: [{ id: 'z0', z: 0, parts: [], roomZoneIds: [] }],
       facades: [],
-      masses: [{ id: 'mass-0', z: 0, footprint: [foot], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile' }],
+      masses: [{ id: 'mass-0', z: 0, footprint: [foot], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' } }],
     }];
     s.walls = walls;
     return s;
@@ -317,7 +317,7 @@ describe('buildProps — features de façade authorées', () => {
     ];
     s.architecture = [{
       id: 'corps-auberge',
-      style: 'maison',
+      style: { id: 'maison' },
       storeys: [],
       facades: [{
         id: 'facade-rue',
@@ -344,7 +344,7 @@ describe('buildProps — features de façade authorées', () => {
     const s = authoredFacade();
     s.architecture![0].masses = [{
       id: 'corps', z: 0, footprint: [{ x: 2, y: 1, w: 4, h: 4 }], levels: 1,
-      profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile',
+      profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' },
     }];
     return s;
   };

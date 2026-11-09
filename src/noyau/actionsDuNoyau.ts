@@ -10,9 +10,10 @@ import type { VerbesDeJet } from './rollFlowSpecs';
 import type { VerbeDeReglage } from './reglagesDuJet';
 import type { VerbeDeChoix } from './choixDesFenetres';
 import type * as tavernFlow from './tavernFlow';
+import type { ModeDEvaluation } from './merchantFlow';
 import type { Pt } from './monde/path';
 import type {
-  IdDeCombattant, IdDeCreatureADepecer, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
+  IdDeCombattant, IdDeHeros, IdDeCombattantPromouvable, IdDePorteur, IdDePossession, IdDObjet,
   IdDEntiteDeScene, IdDuClic, IdDeTireurRapide, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
@@ -108,10 +109,6 @@ export interface VerbesDeLaBarre {
   /** « Diriger l'équipe » (Commandant d'équipe, AA) : Test de Commandement (+0) pour aider une équipe d'Arme
    *  d'équipe à portée de voix — sur réussite, elle tire au score de Projectiles du commandant. Coûte l'Action. */
   aiderLEquipe: () => void;
-  /** Ramasser UN objet au sol pendant un Round (LDB 13 l.115-116) : applique au combattant
-   *  actif un item ramassable d'un `prop` interactif adjacent. Consomme l'Action, pas d'auto-équipe.
-   *  `key` = `eff:<index dans interact.effects>` (cf. entityPickables). */
-  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable) => void;
   /** Manœuvre navale (MDG 13) : ouvre la modale du Test de Navigation pour le navire que sert `crewId`. */
   manoeuvrerLeNavire: (crewId: IdDeCombattant) => void;
   /** Chanson de marin (Talent, MDG 09 l.32-40) : ouvre la modale du chanteur (choix de chanson + Test de Chant). */
@@ -140,6 +137,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   dissiperLeSort: (lanceurId: IdDeCombattant, spellId: IdDeSort, porteurId: IdDeCombattant) => void;
   /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise, Action gratuite (LDB 13 l.106). */
   utiliserLObjet: (uid: IdDObjet) => void;
+  /** Ramasse UN objet d'un décor à portée, sans l'équiper (`entityPickables`). En combat : le combattant actif, au prix de
+   *  son Action (`pickup` de `actions.json`), un objet posé au sol ou une feuille donneuse d'une action authorée (`key` =
+   *  `<actionId>:eff:<index>`). Hors combat : un objet posé au sol seulement (un décor authoré se fouille,
+   *  `jouerAction`), que le héros `pid` reçoit, le meneur sans lui. */
+  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable, pid?: IdDeHeros) => void;
   /** Prend le set d'armes `loadoutId` de `heroId`, Action gratuite (LDB 13 l.106), 1×/tour en combat. */
   prendreLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   /** Dépense un Point de Détermination de `combattantId` pour l'une de ses trois options, l'État `etat` pour le
@@ -158,11 +160,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   marquerLesIndices: (affichés: readonly IndiceAffiché[]) => void;
   /** Arme/désarme (bascule) la visée Tir rapide d'un héros pendant la pause de début de Round. */
   armerLeTirPreventif: (heroId: IdDeTireurRapide | null) => void;
-  /** Récolte « Précieuses Entrailles » (ZI) une créature vaincue, par id (Test de Savoir → pièces valuées). */
-  depecerLaCreature: (creatureId: IdDeCreatureADepecer) => void;
-  /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10) d'une ligne de butin ENCORE en
-   *  fenêtre (loot ou victoire) : révéler un objet AVANT de choisir qui l'emporte. */
-  evaluerLeButin: (scope: 'loot' | 'victory', uid: IdDeLigneDeButin, mode?: 'evaluate' | 'detect') => void;
   /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
    *  joue le geste. */
   leverLaMain: (levee: boolean) => void;
@@ -223,6 +220,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Donne un objet de son porteur à `toHeroId` (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
   transmettreLObjet: (uid: IdDObjet, toHeroId: IdDePorteur) => void;
+  /** Pose au sol, à la case du groupe, un objet d'un porteur du groupe et le contenu de son contenant (`objetsAuSol.ts`). */
+  poserLObjet: (uid: IdDObjet) => void;
   /** Choisit un id du catalogue d’apparences admis par l’objet ; le défaut retire la clé (#2113). */
   poserLApparence: (uid: IdDObjet, apparence: IdDApparence) => void;
   /** Achète une Augmentation de Caractéristique (coût in/hors-carrière auto, recalc Blessures). */
@@ -314,8 +313,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
   marchanderLePrix: (mode: 'buy' | 'sell') => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
-   *  `mode:'detect'` = Détection d'artefact (LDB 10) : Intuition au toucher, une tentative par objet. */
-  evaluerLObjet: (uid: IdDObjet, mode?: 'evaluate' | 'detect') => void;
+   *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
+   *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est
+   *  dit (`refusDEvaluation`, `merchantFlow.ts`). */
+  evaluerLObjet: (uid: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
 
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
    *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant

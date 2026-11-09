@@ -602,8 +602,8 @@ function rendu() {
   out += '## 6. Slots DÉCLARÉS × réfs OBSERVÉES (registre des slots)\n\n';
   out += 'Le côté DÉCLARÉ des références est ce que le PARSE valide : chaque document est parsé par son schéma\n';
   out += 'réel au PARSE DE MESURE (`reperesDuParse`, `src/data/schemas/grammaire/ref.ts`), et chaque case\n';
-  out += '`(porteur, clé)` dont la valeur est validée par `idDe` est un SLOT, avec son type. Son enforcement vit\n';
-  out += 'dans `src/data/slots-contrat.test.ts`.\n\n';
+  out += '`(porteur, clé)` dont la valeur est validée par `idDe`, ou par l’objet qui ouvre sa portée locale\n';
+  out += '(`ouvrirPortees`), est un SLOT, avec sa cible. Son enforcement vit dans `src/data/slots-contrat.test.ts`.\n\n';
   out += `${MANDAT_SLOTS}\n\n`;
   {
     const slots = slotsDuParse(scan, DEFS);

@@ -5,14 +5,18 @@
  * (x, y) centrée sur (x·m, y·m) où m = `metresParCase`.
  */
 import { heightAt, piedDeLArete, sceneMetresPerTile, tileAt, wallEnds, type Scene } from '../scene';
-import { terrainOverlayProp } from '../terrain';
+import { terrainOverlayProp, terrainsAvecGlyphe } from '../terrain';
+import { garanti } from '../../../lib/garanti';
+import { facesDuDessus } from './pente';
 import { parseHex } from '../../../lib/couleurHex';
 import { MISSING_TONE } from './missing';
 import { buildFloors } from './floors';
 import { facesDuDecor } from './propVolumes';
-import { decorAncre } from '../footprint';
-import { findPropById, matieresDe } from '../../../data';
-import { empreinteDuProp } from '../../../data/props.types';
+import { ancreDuDecor } from '../footprint';
+import { piedDuDecor } from '../poseDuDecor';
+import { matieresDe } from '../../../data';
+import { hash32 } from '../../../data/hash';
+import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { faceDepthM } from './profondeur';
 import { crownFaces, cretesDePerimetre } from './creneaux';
@@ -26,22 +30,31 @@ import { aretesHorsDesNavires, provenanceDesNavires } from '../../planDeNavire';
 import type { Face } from './types';
 import type { MaterialRef } from '../../../data/materials.types';
 
+/** D'où viennent des faces du volume : `navire`, l'id de l'entité du navire dont les ponts les posent
+ *  (`provenanceDesNavires`), que l'hôte touche sans les peindre, le navire se montrant par son modèle 3D ; `flottaison`,
+ *  l'id du navire dont elles sont la mer, sur l'emprise de ses ponts à sa flottaison, que l'hôte peint hors de la coque
+ *  de son modèle et que le rayon du pointeur traverse. */
+interface Provenance {
+  navire?: string;
+  flottaison?: string;
+}
+
 /** Les triangles d'une matière du volume, nommée `<domaine>--<id>` (`nomDeMatiere`) : ses sommets de `debut` inclus à
- *  `fin` exclu ; `navire`, l'id de l'entité du navire dont les ponts les posent (`provenanceDesNavires`), que l'hôte
- *  touche sans les peindre, le navire se montrant par son modèle 3D. */
-interface SurfaceDuVolume {
+ *  `fin` exclu, et leur provenance. */
+interface SurfaceDuVolume extends Provenance {
   matiere: string;
   debut: number;
   fin: number;
-  navire?: string;
 }
 
-/** Une face listée du volume : sa case et sa couche, et le navire dont les ponts la posent. */
-interface FaceListee {
+/** Une face listée du volume : sa case et sa couche, et sa provenance. */
+interface FaceListee extends Provenance {
   face: Face;
   cell: { x: number; y: number; z: number };
-  navire?: string;
 }
+
+/** La mer qui porte un navire posé, sur sa flottaison : le terrain du glyphe `~` des plans. */
+const MER = garanti(terrainsAvecGlyphe()['~'], '~', 'terrain de la mer');
 
 /** Des faces du monde triangulées, en tableaux plats que l'hôte charge tels quels. */
 interface GeometrieDuMonde {
@@ -82,7 +95,8 @@ const arrondi = (v: number): number => Math.round(v * 1000) / 1000;
 
 /** Les faces des décors volumiques de la scène (`facesDuDecor`), chacune avec sa case, jusqu'à la couche `activeZ` :
  *  le décor que son terrain pose sur chaque case (`terrainOverlayProp`, le bois et ses arbres), au centre de la case, et
- *  les entités `prop`, ancrées au centre de leur empreinte à leur cap (`decorAncre`), sur le sol de leur case. */
+ *  les entités `prop`, à leur ancre (`ancreDuDecor`) et à leur cap, sur leur pied (`piedDuDecor` : le sol de leur case ou
+ *  le dessus de leur support). */
 function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): FaceListee[] {
   const { w, h } = scene.dimensions;
   const duTerrain = scene.layers.filter((l) => l.z <= activeZ).flatMap(({ z }) =>
@@ -93,10 +107,15 @@ function decorsVolumiques(scene: Scene, activeZ: number, mpt: number): FaceListe
   return duTerrain.concat(scene.entities.flatMap((ent) => {
     const z = ent.z ?? 0;
     if (ent.kind !== 'prop' || z > activeZ) return [];
-    const ancre = decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, mpt));
-    const faces = facesDuDecor(ent.ref, { ancre, ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, z), entId: ent.id }, mpt);
+    const faces = facesDuDecor(ent.ref, { ancre: ancreDuDecor(ent, mpt), ...(ent.facing ? { facing: ent.facing } : {}), baseHeightM: piedDuDecor(scene, ent), entId: ent.id }, mpt);
     return (faces ?? []).map((face) => ({ face, cell: { ...ent.pos, z } }));
   }));
+}
+
+/** L'empreinte des entités `prop` de la scène, celles que le volume pose (`decorsVolumiques`), chacune entière : elle
+ *  change quand un décor est ajouté, retiré ou changé en jeu. PUR. */
+export function empreinteDesDecors(scene: Scene): string {
+  return hash32(...scene.entities.flatMap((e) => (e.kind === 'prop' ? [jsonCanonique(e)] : []))).toString(36);
 }
 
 /** Les faces `listees` triangulées (`facesGeometry`), orientées (`trianglesOrientes`) et colorées depuis la donnée, chacune
@@ -105,12 +124,12 @@ function emballer(scene: Scene, listees: readonly FaceListee[]): GeometrieDuMond
   const mpt = sceneMetresPerTile(scene);
   const geoms = facesGeometry(listees.map((f) => f.face), mpt, faceDepthM);
   const centre = centreDeLaCarte(scene.dimensions, mpt);
-  const parMatiere = new Map<string, { matiere: string; navire?: string; faces: number[] }>();
+  const parMatiere = new Map<string, Provenance & { matiere: string; faces: number[] }>();
   geoms.forEach((_, i) => {
-    const { face, navire } = listees[i];
+    const { face, navire, flottaison } = listees[i];
     const matiere = nomDeMatiere(face.material);
-    const cle = `${navire ?? ''}|${matiere}`;
-    const groupe = parMatiere.get(cle) ?? parMatiere.set(cle, { matiere, ...(navire ? { navire } : {}), faces: [] }).get(cle)!;
+    const cle = `${navire ?? ''}|${flottaison ?? ''}|${matiere}`;
+    const groupe = parMatiere.get(cle) ?? parMatiere.set(cle, { matiere, ...(navire ? { navire } : {}), ...(flottaison ? { flottaison } : {}), faces: [] }).get(cle)!;
     groupe.faces.push(i);
   });
   const positions: number[] = [];
@@ -118,7 +137,7 @@ function emballer(scene: Scene, listees: readonly FaceListee[]): GeometrieDuMond
   const couleurs: number[] = [];
   const cases: [number, number, number][] = [];
   const surfaces: SurfaceDuVolume[] = [];
-  for (const { matiere, navire, faces } of parMatiere.values()) {
+  for (const { faces, ...surface } of parMatiere.values()) {
     const debut = positions.length / 3;
     for (const i of faces) {
       const m = listees[i].face.material;
@@ -136,7 +155,7 @@ function emballer(scene: Scene, listees: readonly FaceListee[]): GeometrieDuMond
         }
       }
     }
-    surfaces.push({ matiere, debut, fin: positions.length / 3, ...(navire ? { navire } : {}) });
+    surfaces.push({ ...surface, debut, fin: positions.length / 3 });
   }
   return { positions, normales, couleurs, cases, surfaces };
 }
@@ -145,17 +164,25 @@ function emballer(scene: Scene, listees: readonly FaceListee[]): GeometrieDuMond
  *  piliers), les crêtes de ses zones crénelées (`cretesDePerimetre`) et les décors volumiques qui s'y posent, sans les
  *  surplombs fantômes des couches au-dessus ; sans `activeZ`, de toutes ses couches ; sans les cases du `couvercle`
  *  (clés `x,y,z`, `volumeDuRegard`). Le sol et les crêtes d'une case que les ponts d'un navire posent portent ce
- *  navire (`provenanceDesNavires`) ; ses décors, non. PUR. */
+ *  navire (`provenanceDesNavires`) ; ses décors, non. Sur la flottaison d'un navire (`provenanceDesNavires`), chaque
+ *  case est sa mer (`MER`), à la hauteur 0, à la place du sol de la scène hors de ses ponts. PUR. */
 export function volumeDuMonde(scene: Scene, activeZ = Math.max(...scene.layers.map((l) => l.z)), couvercle: ReadonlySet<string> = new Set()): VolumeDuMonde {
   const mpt = sceneMetresPerTile(scene);
-  const navires = provenanceDesNavires(scene).cases;
-  const duNavire = (cell: { x: number; y: number; z: number }): { navire?: string } => {
-    const navire = navires.get(spaceCellKey(cell.x, cell.y, cell.z));
+  const { cases: navires, flottaison } = provenanceDesNavires(scene);
+  const cleDe = (cell: { x: number; y: number; z: number }): string => spaceCellKey(cell.x, cell.y, cell.z);
+  const duNavire = (cell: { x: number; y: number; z: number }): Provenance => {
+    const navire = navires.get(cleDe(cell));
     return navire ? { navire } : {};
   };
-  const sol = buildFloors(scene, undefined, { activeZ }).filter((el) => !el.states.ghost).flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell, ...duNavire(el.cell) })));
+  const sol = buildFloors(scene, undefined, { activeZ })
+    .filter((el) => !el.states.ghost && (navires.has(cleDe(el.cell)) || !flottaison.has(cleDe(el.cell))))
+    .flatMap((el) => el.faces.map((face) => ({ face, cell: el.cell, ...duNavire(el.cell) })));
+  const mer = [...flottaison].flatMap(([cle, navire]) => {
+    const [x, y, z] = cle.split(',').map(Number);
+    return z > activeZ ? [] : facesDuDessus({ x, y, h: 0, quarts: [], pente: false, marches: false, divisions: 1 }, MER).map((face) => ({ face, cell: { x, y, z }, flottaison: navire }));
+  });
   const cretes = cretesDePerimetre(scene).filter((c) => c.case.z <= activeZ).flatMap((c) => c.faces.map((face) => ({ face, cell: c.arete, ...duNavire(c.case) })));
-  const listees = [...sol, ...cretes, ...decorsVolumiques(scene, activeZ, mpt)].filter(({ cell }) => !couvercle.has(spaceCellKey(cell.x, cell.y, cell.z)));
+  const listees = [...sol, ...mer, ...cretes, ...decorsVolumiques(scene, activeZ, mpt)].filter(({ cell }) => !couvercle.has(cleDe(cell)));
   const geometrie = emballer(scene, listees);
   const { w, h } = scene.dimensions;
   const hauteurs = scene.layers.map((l) => ({ z: l.z, rangees: Array.from({ length: h }, (_, y) => Array.from({ length: w }, (_, x) => heightAt(scene, x, y, l.z))) }));

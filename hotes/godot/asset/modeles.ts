@@ -3,7 +3,7 @@ import { lireGlb } from './glb.ts';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { cheminsAbsolus, ligneDErreur } from './manifeste.ts';
 import { validerManifesteDeBase, type ManifesteDeBase, type VerdictDeBase } from './manifesteDeBase.ts';
-import { ecartsDeClips } from './clips.ts';
+import { ecartsDeClips, ecartsDesTablesDeuxMains } from './clips.ts';
 
 export type ManifesteDeModele = ManifesteDeBase | ManifesteDElement;
 export interface EntreeDeModele { readonly id: string; readonly brut: unknown }
@@ -55,16 +55,23 @@ export function verdictsDesModeles(entrees: readonly EntreeDeModele[], octets: R
   return livrees.sort((a, b) => Number(estBase(b.brut)) - Number(estBase(a.brut))).map(({ id, brut, octets: o }) => ({ id, brut, verdict: validerModele(brut, o, bases) }));
 }
 
-/** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis sa table rôle → clip
- *  (`ecartsDeClips`). */
+/** La base `brut` jugée contre son GLB `octets` : son schéma (`validerManifesteDeBase`), puis ses tables rôle → clip
+ *  (`ecartsDeClips`, `ecartsDesTablesDeuxMains`). */
 function validerBase(brut: unknown, octets: Uint8Array): VerdictDeBase {
   const v = validerManifesteDeBase(brut, octets);
   if (!v.ok) return v;
-  const ecarts = ecartsDeClips(v.manifeste.clips, lireGlb(octets).animations);
+  const { animations } = lireGlb(octets);
+  const ecarts = [...ecartsDeClips(v.manifeste.clips, animations), ...ecartsDesTablesDeuxMains(v.manifeste.clipsDeuxMains ?? {}, animations)];
   return ecarts.length ? { ok: false, ecarts } : v;
 }
 
-const verdictDElement = (v: VerdictDElement): VerdictDeModele => (v.ok ? v : { ok: false, refus: v.ecarts.map((e) => `[${e.code}] ${e.ou} : ${e.detail}`) });
+/** L'élément jugé (`validerElement`), puis sa table rôle → clip s'il en porte une (`ecartsDeClips`). */
+function verdictDElement(v: VerdictDElement, octets: Uint8Array): VerdictDeModele {
+  if (!v.ok) return { ok: false, refus: v.ecarts.map((e) => `[${e.code}] ${e.ou} : ${e.detail}`) };
+  const clips = 'clips' in v.manifeste ? v.manifeste.clips : undefined;
+  const ecarts = clips ? ecartsDeClips(clips, lireGlb(octets).animations) : [];
+  return ecarts.length ? { ok: false, refus: ecarts.map((e) => `[${e.code}] ${e.ou} : ${e.detail}`) } : v;
+}
 
 /** Un validateur par contrat : base au schéma `VERSION_DU_SCHEMA_DE_BASE`, élément schéma 3 contre sa base validée, ou
  *  seul s'il est sans base (`estSansBase`). */
@@ -76,13 +83,13 @@ export function validerModele(brut: unknown, octets: Uint8Array, bases: Readonly
       const v = validerBase(brut, octets);
       return v.ok ? v : { ok: false, refus: v.ecarts.map(e => `[${e.code}] ${e.ou} : ${e.detail}`) };
     }
-    if (estSansBase(brut)) return verdictDElement(validerElement(brut, null, octets, lireGlb(octets)));
+    if (estSansBase(brut)) return verdictDElement(validerElement(brut, null, octets, lireGlb(octets)), octets);
     const nom = estObjet(brut) ? brut.base : undefined;
     const base = typeof nom === 'string' ? bases.get(nom) : undefined;
     if (!base) return { ok: false, refus: [`[base-absente] ${String(nom)}`] };
     const vBase = validerBase(base.brut, base.octets);
     if (!vBase.ok) return { ok: false, refus: vBase.ecarts.map(e => `[${e.code}] base ${e.ou} : ${e.detail}`) };
-    return verdictDElement(validerElement(brut, vBase.manifeste, octets, lireGlb(octets)));
+    return verdictDElement(validerElement(brut, vBase.manifeste, octets, lireGlb(octets)), octets);
   } catch (e) {
     return { ok: false, refus: [`[glb-illisible] ${e instanceof Error ? e.message : String(e)}`] };
   }

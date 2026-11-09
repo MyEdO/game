@@ -81,7 +81,7 @@ function couche(scene: Scene, z: number, rects: { x: number; y: number; w: numbe
 function salleNue(): Scene {
   const sc = couche(emptyScene('fixture-salle-nue', SIZE, SIZE), 0, [SALLE]);
   sc.walls = perimeterWallSegs([SALLE]);
-  sc.architecture = [{ id: 'corps', style: 'maison', storeys: [], facades: [], masses: [] }];
+  sc.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses: [] }];
   return sc;
 }
 

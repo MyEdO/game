@@ -20,6 +20,7 @@ import { lignesDuJournal, zonesDeLEcran, type ZonesDeLaSuite, type ZonesDeLEcran
 import { ameliorationsMontees, emblemeMonte, modelesDeLAtelier, noeudsCaches, postesEnVigueur, postesMontes, type AmeliorationMontee, type ModelesDeLAtelier, type PosteMonte } from './atelier';
 import { composerSurLaBase, paletteDesCouleurs, type CompositionSurLaBase } from './composition';
 import { estListeDeChaines } from '../asset/attache';
+import type { TableDeClips } from '../asset/clips';
 import { type CreationOuverte, type GesteDeLaCreation, type PanneauDeLHote } from '../../../src/hote/elements';
 import { apresLaCreation, boutonDeLaCreation } from '../../../src/hote/creation';
 import { boutonDeLEdition, calqueAffiche, cheminDeLaPlanche, estLIssueDUnChargement, gesteDuFormulaire, estLIssueDUnEnregistrement, estUnGesteDuPointeur, memoireDesCalques, refusDeLaValeurDit, surcoucheDeLEdition, zonesDeLEditeur } from '../../../src/hote/editeur';
@@ -64,7 +65,8 @@ export interface NavireServi extends Pick<NavireDeLaScene, 'centre'> {
 /** Le corps d'un véhicule servi (#2987) : l'élément `vehicule` qui dessine sa fiche (`ModelesDeLAtelier.vehicules`), le
  *  côté de son empreinte, sa taille, son cap, sa palette (`paletteDesCouleurs`), son emblème si l'élément porte une surface
  *  `blason` (`emblemeMonte`), les pièces montées à ses postes (`postesMontes`), celles de ses Améliorations
- *  (`ameliorationsMontees`) et les nœuds qu'elles cachent (`noeudsCaches`). */
+ *  (`ameliorationsMontees`), les nœuds qu'elles cachent (`noeudsCaches`) et la table rôle → clip de l'élément (`clips` de
+ *  son manifeste, vide sans clips). */
 export interface CorpsDuVehicule {
   element: string;
   empreinte: number;
@@ -75,6 +77,7 @@ export interface CorpsDuVehicule {
   postes: PosteMonte[];
   ameliorations: AmeliorationMontee[];
   caches: string[];
+  clips: TableDeClips;
 }
 
 /** Le corps du véhicule `vehicule` (`vehiculeDuCombattant`) sur les modèles servis `servis`, `null` si aucun élément
@@ -87,7 +90,8 @@ function corpsDuVehicule(vehicule: VehiculeDuCombattant, servis: { manifestes: R
   const postes = postesMontes(manifeste, vehicule.ameliorations, vehicule.postes, servis.modeles.vehicules, palette);
   const ameliorations = ameliorationsMontees(manifeste, vehicule.ameliorations, postes, servis.modeles.ameliorations, servis.manifestes);
   const caches = noeudsCaches(manifeste, vehicule.ameliorations, ameliorations, servis.manifestes);
-  return { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations, caches };
+  const clips = estObjet(manifeste) && estObjet(manifeste.clips) ? manifeste.clips as TableDeClips : {};
+  return { element, empreinte: vehicule.empreinte, taille: vehicule.taille, cap: vehicule.cap, palette, ...emblemeMonte(vehicule.embleme, manifeste), postes, ameliorations, caches, clips };
 }
 
 /** Une place d'un bord du véhicule de l'atelier : son bord, son rang parmi les places de ce bord (compté de 0), son libellé

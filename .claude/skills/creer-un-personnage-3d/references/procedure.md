@@ -68,7 +68,9 @@ absent, hors des dossiers ancêtres de sa source, vide, ou dont la licence décl
 `License:`, sinon titre) manque à `hotes/godot/asset/licences.json`. Après l'export, elle passe sa part du manifeste à `manifeste.mjs`, qui y ajoute la
 déclaration du corps (`scripts/personnage-3d/base/humanoide.json` : `base`, porteur de référence,
 `clips`, la table rôle d'animation → clip dont le rôle `walk` est la marche plantée, et `surfaces`, les matériaux du corps
-et leur emplacement de palette, sans `blason`), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
+et leur emplacement de palette, sans `blason`, chacun avec, en option, `parSexe` : par sexe, le matériau d'un corps
+donneur que la construction recouche sur les UV de la surface et exporte en variante `KHR_materials_variants` du nom du
+sexe, #3188), la vitesse au sol du clip du rôle `walk` mesurée par l'évaluateur, et
 l'empreinte du GLB. Le manifeste refusé par `validerModele` (`hotes/godot/asset/modeles.ts`) fait échouer la construction.
 Le dossier de la sortie devient le dossier de production de la base (`production.ts`) :
 `manifest.json` (le manifeste complet sous `manifeste`, `model`, `model_sha256`,
@@ -254,7 +256,14 @@ Ne pas réparer les clips ou déplacer les os de base dans l'élément.
 Placer la poignée dans le passage des **surfaces évaluées** de paume et doigts fermés, via la prise
 de la base. Parentage et centres articulaires prouvent le déplacement, pas le contact. Contrôler
 garde, pommeau et orientation de lame dans la silhouette entière, avec diamètre crédible.
+Le tranchant d'une arme tenue suit le +Z de sa prise, du poignet vers les jointures, comme une lame dans le poing.
 Une pose utile absente relève de la base et de sa porte, pas d'un nouveau clip embarqué par l'arme.
+Une arme à deux mains déclare `liaison.secondePrise`, le repère de prise de la main libre dans celui
+de sa prise, le long du manche vers le talon (`hotes/godot/asset/element.ts`) ; tenue à la prise
+`main`, Godot y pose la main `off` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). Son côté
+et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECONDES` de
+`scripts/personnage-3d/base/deux_mains.py`, test `SecondesPrises`). La vérifier au rendu Godot sur
+repos, attaque et marche : poing fermé sur le manche, bras sans torsion.
 
 Peau et gant restent distincts. Enveloppe fine, épaisseur bornée par courbure/arêtes, pas de
 gonflement global ; examiner paume, dos, dessous et creux. Pour une prise plate, regarder les deux
@@ -420,12 +429,17 @@ vêtement et rigide, évalués, revus par l'utilisateur, puis montés dans le sc
 
 Un véhicule (catégorie `vehicule`) et les pièces de ses Améliorations (catégorie `amelioration`) se construisent
 depuis le dépôt, sans base, par `scripts/personnage-3d/vehicule/` : la partie commune (`construire.py` : export,
-manifestes et dossiers de production ; `maille.py` : maille, poutre, objet ; `habillage.py` : matériaux et `surfaces` ;
-`revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier par modèle, `<modele>/donnees.py` (ses
-dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés : `caraque` (coque bâtie sur ses ponts,
-la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit aussi le noyau, seize pièces d'Améliorations
-dans `ameliorations.py`) et `canon` (un GLB pour
-`canon-grand`, `canon-moyen`, `canon-petit`).
+manifestes et dossiers de production ; `maille.py` : maille, solides (révolution, cylindre, boîte, plaque, poutre, tube,
+tore, roue, treuil), bascule autour d'un axe, recentrage de l'emprise, objet ; `habillage.py` : matériaux, `surfaces` et
+éléments d'un modèle à plusieurs pièces ; `revue.py` : configurations rendues dans le studio de `rendu.py`) et un dossier
+par modèle, `<modele>/donnees.py` (ses dimensions, nommées) et `<modele>/modele.py` (sa construction). Modèles livrés :
+`caraque` (coque bâtie sur ses ponts, la source unique `ponts` de sa fiche dans `src/data/vehicles.json` que lit
+aussi le noyau, seize pièces d'Améliorations dans `ameliorations.py`) ; les engins `armes-de-siege`, une clé par engin, les doublons d'ADE II (`-ade2`) sur le GLB de leur
+engin : `affut` (l'affût de campagne et ses roues sous le canon, le mortier, le canon à répétition feu d'enfer, la
+batterie tonnerre de feu et le canon à flammes nain), `trepied` (pierrier, canon à répétition), `baliste`, `catapulte`
+(catapultes et mangonneau ; onagre), `trebuchet` et `belier`. Une référence trouvée hors du corpus (photographie de
+figurine) se range hors dépôt avec sa source (`vehicules-3d/references-armes-de-siege/SOURCES.md` du dossier du
+projet) et se cite dans la docstring des données ; sans référence, la docstring dit les proportions d'adaptation.
 
 **Créer un type.** Le dossier `vehicule/<type>/` porte deux fichiers :
 
@@ -438,7 +452,14 @@ dans `ameliorations.py`) et `canon` (un GLB pour
 - `modele.py` : `elements(D)`, qui produit un dict par GLB : `glb` (nom de la scène), `cles` (`[(categorie, cle)]`, une
   clé par élément qui partage ce GLB), `materiaux`, `blasons`, et `construire`, qui bâtit la scène vide avec
   `habillage.materiaux(...)` et les primitives de `maille.py`, puis rend les champs propres au manifeste : `postes` par
-  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`.
+  bord (`FIRE_ARCS`), `selon`, `ancrages`, `montage`, et `clips`, la table rôle → clip que rend `clips.animer`.
+
+Un engin est une unité : il s'anime comme une créature (`clips.py`). Chaque pièce mobile est son propre nœud, à son
+pivot (roue à son essieu, bras à son axe, fût à ses tourillons, chaîne à son attache), et `clips.animer` clé ses clips :
+`idle` (repos), `walk` (déplacement en boucle : `rouler` tourne les roues à la vitesse d'une case par pas du plateau,
+`cahoter` secoue un engin sans roues que ses servants portent ou traînent) et son attaque, `ranged` (`tirer` : recul,
+ressaut, barillet qui tourne ; ou la course d'un bras, d'une verge) ou `melee` (le bélier). Les durées et amplitudes
+sont des données nommées de `donnees.py`.
 
 Le repère est celui de la section 2 : en Blender, l'avant vers -y, bâbord vers +x, l'origine au sol ou à la flottaison,
 l'emprise recentrée en x et y ; l'export place l'avant vers +z glTF. Ce qui se monte au véhicule (pièce d'artillerie,
@@ -463,7 +484,7 @@ données (le véhicule, la pièce des postes, les configurations et les vues de 
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
 ```sh
-node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/canon --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
+node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/revue.py caraque --modeles /atelier/caraque --modeles /atelier/affut --catalogue hotes/godot/projet/textures --sortie /atelier/revue [--seules 01-nue] [--gros-plans]
 ```
 
 Puis la porte artistique et la revue utilisateur de la section 7, consignée avant d'entériner.

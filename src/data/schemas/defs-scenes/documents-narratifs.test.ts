@@ -43,7 +43,7 @@ const scene = (over: Jouet = {}): Jouet => ({
   desc: 'Scène minimale de fixture.',
   dimensions: { w: 4, h: 4 },
   reliefDefaults: { cliff: { id: 'terre' }, ramp: { id: 'terre' }, deck: { id: 'pierre' }, pilier: { id: 'pilier' } },
-  roofDefaults: { material: 'toit-ardoise', pitchDeg: 45, riseMaxStoreys: 1 },
+  roofDefaults: { material: { id: 'toit-ardoise' }, pitchDeg: 45, riseMaxStoreys: 1 },
   ...over,
 });
 

@@ -1,0 +1,36 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "canon-ade2"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
+  "surfaces": [
+    {
+      "nom": "bronze",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    }
+  ],
+  "glb": {
+    "sha256": "7cd8ed88aba0a734b91da27f5820ae17a18f9aec68a9f0f873c6b3e394609ab2",
+    "octets": 109988
+  }
+}

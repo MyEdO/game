@@ -48,11 +48,11 @@ describe('catalogue des bâtiments — la façade rend le DATASET (#1715)', () =
   it('un style hors catalogue n’emprunte la méta d’AUCUN autre (#877)', () => {
     const inconnu = `${buildings.map((b) => b.id).join('-')}-absent`;
     expect(buildingsMeta()[inconnu]).toBeUndefined();
-    expect(buildingFeatures(inconnu)).toEqual([]);
+    expect(buildingFeatures({ id: inconnu })).toEqual([]);
   });
 
   it('les ornements rendus sont ceux de l’entrée, et un bâtiment sobre en rend zéro', () => {
-    for (const b of buildings) expect(buildingFeatures(b.id), b.id).toEqual(b.features ?? []);
+    for (const b of buildings) expect(buildingFeatures({ id: b.id }), b.id).toEqual(b.features ?? []);
     expect(buildings.some((b) => !b.features?.length), 'plus aucun bâtiment sobre : le repli `[]` n’est plus exercé.').toBe(true);
     expect(buildings.some((b) => (b.features?.length ?? 0) > 0), 'plus aucun ornement authoré : la lecture n’est plus exercée.').toBe(true);
   });
@@ -64,7 +64,7 @@ describe('catalogue des bâtiments — la façade rend le DATASET (#1715)', () =
     expect(buildingsMeta()[premier.id].label).toBe(premier.label);
     setDataset('buildings', buildings.map((b) => (b.id === premier.id ? { ...b, label: 'Halle aux grains', features: [] } : b)));
     expect(buildingsMeta()[premier.id].label).toBe('Halle aux grains');
-    expect(buildingFeatures(premier.id)).toEqual([]);
+    expect(buildingFeatures({ id: premier.id })).toEqual([]);
     resetData();
     expect(buildingsMeta()[premier.id].label).toBe(premier.label);
   });
@@ -78,7 +78,7 @@ describe('dataset des bâtiments — ce que le PARSE refuse', () => {
   it('chaque couverture est une matière du domaine TOITURE, chaque ornement une entrée de props.json', () => {
     expect(COUVERTURES.length, 'le domaine `roof` de materials.json est vide : la porte ne prouverait rien.').toBeGreaterThan(0);
     for (const b of buildings) {
-      expect(COUVERTURES, `${b.id}.roofMaterial`).toContain(b.roofMaterial);
+      expect(COUVERTURES, `${b.id}.roofMaterial`).toContain(b.roofMaterial.id);
       for (const f of b.features ?? []) {
         expect(IDS_DE_PROP, `${b.id}.features[${f.id}]`).toContain(f.id);
         expect(props.find((p) => p.id === f.id), `${b.id} : ornement absent de props.json`).toBeDefined();
@@ -89,12 +89,12 @@ describe('dataset des bâtiments — ce que le PARSE refuse', () => {
   it('une couverture HORS du domaine toiture est refusée nominativement', () => {
     const horsDomaine = (IDS_PAR_ESPACE['materials.json?domain=relief'] ?? []).find((id) => !COUVERTURES.includes(id))!;
     expect(horsDomaine, 'aucune matière de relief hors toiture : le cas n’est plus exerçable.').toBeTruthy();
-    const messages = refus((d) => { d[0].roofMaterial = horsDomaine; });
+    const messages = refus((d) => { d[0].roofMaterial = { id: horsDomaine }; });
     expect(messages.length, `« ${horsDomaine} » (relief) accepté comme couverture.`).toBe(1);
     expect(messages[0]).toContain('@0.roofMaterial');
     expect(messages[0]).toContain(horsDomaine);
     // La matière `plan` EST du domaine toiture : la porte filtre le domaine, pas une liste d’ids.
-    expect(refus((d) => { d[0].roofMaterial = 'plan'; })).toEqual([]);
+    expect(refus((d) => { d[0].roofMaterial = { id: 'plan' }; })).toEqual([]);
   });
 
   it('un ancrage hors du vocabulaire est refusé', () => {

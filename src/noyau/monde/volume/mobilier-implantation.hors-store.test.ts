@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { emptyScene, isWalkable, sceneMetresPerTile, type Scene, type SceneEntity } from '../scene';
 import { seatSlotsOf, seatIsOccupiable, type ResolvedSeatSlot } from '../seating';
-import { decorAncre } from '../footprint';
+import { ancreDuDecor } from '../footprint';
 import { findPropById } from '../../../data';
 import { capVolumique, empreinteDuProp, empriseLocaleM, placeAssiseDe, rotatePropLocal } from '../../../data/props.types';
 import { buildPropVolumes } from './propVolumes';
@@ -50,10 +50,10 @@ function avecCloison(sc: Scene, ax: number, ay: number, bx: number, by: number):
 
 const MPT = sceneMetresPerTile(salle());
 
-/** Ancrage MONDE d'un meuble posé : le CENTRE de son empreinte (`decorAncre`, la règle unique que
+/** Ancrage MONDE d'un meuble posé : le CENTRE de son empreinte (`ancreDuDecor`, la règle unique que
  *  le rendu applique), son cap, le sol qu'il touche. */
 const ancrageDe = (ent: SceneEntity) => ({
-  ancre: decorAncre(ent.pos, empreinteDuProp(findPropById(ent.ref), ent.facing, MPT)),
+  ancre: ancreDuDecor(ent, MPT),
   facing: capVolumique(ent.facing)!,
   baseHeightM: 0,
   entId: ent.id,

@@ -86,10 +86,10 @@ export interface ArcanePhenomenon {
   cancelsTraitId?: string;
   refractedWindsOnly?: { source: { book: string; page: number }; desc: string };
   stonePropertySlots?: { max: number; source: { book: string; page: number }; desc: string };
-  fluxTableId?: string;
+  fluxTableId?: { id: string };
   controlFlux?: { difficulty: string; source: { book: string; page: number }; desc: string };
   overcastPerSpell?: { dice: DiceSpec; source: { book: string; page: number }; desc: string };
-  tableId?: string;
+  tableId?: { id: string };
   draws?: number;
   source: { book: string; page: number };
   desc: string;

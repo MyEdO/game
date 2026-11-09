@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "canon-a-repetition"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
+  "surfaces": [
+    {
+      "nom": "bronze",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "laiton",
+      "palette": "accent",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "adce69e2d34f48b83b013bb7b99c445105eb711c0a1d48bb09e2d113675391ce",
+    "octets": 77188
+  }
+}

@@ -63,13 +63,7 @@ def souder_les_normales_des_cibles(path):
         return 0.0
     bases = [(lire_accesseur(document, binary, p['attributes']['POSITION']),
               lire_accesseur(document, binary, p['attributes']['NORMAL'])) for _, p in primitives]
-    normales = np.concatenate([nor for _, nor in bases])
-    _, premier, groupe = np.unique(np.round(np.concatenate([pos for pos, _ in bases]) * 1e6).astype(np.int64), axis=0,
-                                   return_index=True, return_inverse=True)
-    groupe = groupe.ravel()
-    lisse = (normales * normales[premier[groupe]]).sum(axis=1) > np.cos(np.radians(LISSE_DEG))
-    groupe = np.where(lisse, groupe, len(premier) + np.arange(len(groupe)))
-    partage = np.bincount(groupe)[groupe] > 1
+    groupe, partage = groupes_de_soudure(bases)
     bornes = np.cumsum([0, *[len(pos) for pos, _ in bases]])
     binary = bytearray(binary)
     pire = 0.0
@@ -79,9 +73,7 @@ def souder_les_normales_des_cibles(path):
         for i, k in portees:
             normale = bases[i][1] + lire_accesseur(document, binary, primitives[i][1]['targets'][k]['NORMAL'])
             deformees[bornes[i]:bornes[i + 1]] = normale / np.linalg.norm(normale, axis=1, keepdims=True)
-        somme = np.zeros((groupe.max() + 1, 3))
-        np.add.at(somme, groupe, deformees)
-        soudees = somme[groupe] / np.linalg.norm(somme[groupe], axis=1, keepdims=True)
+        soudees = souder(deformees, groupe)
         for i, k in portees:
             tranche = slice(bornes[i], bornes[i + 1])
             if not partage[tranche].any():
@@ -98,6 +90,28 @@ def souder_les_normales_des_cibles(path):
             primitives[i][1]['targets'][k]['NORMAL'] = len(document['accessors']) - 1
     ecrire_glb(path, document, binary)
     return pire
+
+
+def groupes_de_soudure(bases):
+    """#3380. Les surfaces lisses des primitives `bases` [(positions, normales de base)], concaténées : rend (groupe de
+    chaque sommet, sommet partagé avec un autre) ; un groupe réunit les sommets de même position (au micron) et de
+    normale de base à moins de `LISSE_DEG` de celle de son premier sommet."""
+    import numpy as np
+    normales = np.concatenate([nor for _, nor in bases])
+    _, premier, groupe = np.unique(np.round(np.concatenate([pos for pos, _ in bases]) * 1e6).astype(np.int64), axis=0,
+                                   return_index=True, return_inverse=True)
+    groupe = groupe.ravel()
+    lisse = (normales * normales[premier[groupe]]).sum(axis=1) > np.cos(np.radians(LISSE_DEG))
+    groupe = np.where(lisse, groupe, len(premier) + np.arange(len(groupe)))
+    return groupe, np.bincount(groupe)[groupe] > 1
+
+
+def souder(unites, groupe):
+    """La moyenne normalisée des normales unitaires `unites` de chaque groupe de `groupes_de_soudure`, par sommet."""
+    import numpy as np
+    somme = np.zeros((groupe.max() + 1, 3))
+    np.add.at(somme, groupe, unites)
+    return somme[groupe] / np.linalg.norm(somme[groupe], axis=1, keepdims=True)
 
 
 def lire_accesseur(document, binary, index):

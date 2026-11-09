@@ -19,7 +19,7 @@
  */
 import { Combatant, CharKey, CHAR_LABELS, type TalentInstance } from './types';
 import { bonus } from './characteristics';
-import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
+import { byId, specPoolOf, levelsForCareer, findTalentById, findDomainById, chaosSpellsOf, findSpeciesById, advancementLabel, refLabel, CareerLevelData, type AdvancementRef } from '../data';
 import { entreeOuverte, refusDeSpec, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { domainSpellsKnown } from './grimoire';
 import { splitLabel } from './statEntry';
@@ -287,21 +287,24 @@ export function designateSlot(
 }
 
 /**
- * Maxi d'un Talent par son `id` STABLE (LDB 10 l.18) : 1, Bonus de Caractéristique (LDB 05 l.406)
+ * Maxi d'un Talent par son `id` STABLE (LDB 10 l.18) : 1, Bonus de Caractéristique (LDB 05 l.406),
+ * Sorts du Domaine de sa spécialisation `spec` (LDB 10 l.704 ; illimité tant qu'elle n'est pas choisie)
  * ou illimité (absent). Lu sur l'entrée EFFECTIVE (`effectiveEntry`, `src/engine/variants.ts` ;
  * AA 13 l.54-59, l.70-74).
  */
-export function talentMaxById(hero: Pick<Combatant, 'characteristics'>, talentId: string): number | null {
+export function talentMaxById(hero: Pick<Combatant, 'characteristics'>, talentId: string, spec?: string): number | null {
   const max = effectiveEntry(findTalentById(talentId))?.max;
   if (max == null) return null;
   if (typeof max === 'number') return max;
+  if (max === 'sortsDuDomaine') return spec ? chaosSpellsOf(spec).length : null;
   return bonus(hero.characteristics[max.bonusOf]); // LDB 07 l.47 : `characteristics` porte les Augmentations (`buyCharAdvance`)
 }
 
 /** Affichage FR du Maxi d'un talent (Compendium), DÉRIVÉ de la donnée structurée, jamais stocké en chaîne. */
-export function talentMaxLabel(max: number | { bonusOf: CharKey } | null): string {
+export function talentMaxLabel(max: number | { bonusOf: CharKey } | 'sortsDuDomaine' | null): string {
   if (max == null) return t('slot.maxNone');
-  return typeof max === 'number' ? String(max) : t('slot.maxBonusOf', { char: CHAR_LABELS[max.bonusOf] });
+  if (typeof max === 'number') return String(max);
+  return max === 'sortsDuDomaine' ? t('slot.maxSortsDuDomaine') : t('slot.maxBonusOf', { char: CHAR_LABELS[max.bonusOf] });
 }
 
 /** Acquisitions déjà faites du Talent, TOUTES utilisations confondues (LDB 10 l.17-18, l.548) — lues par
@@ -316,7 +319,7 @@ export function talentAcquisitions(hero: Pick<PorteurDeTalents, 'talents'>, tale
 
 /** Le héros a-t-il atteint le Maxi de ce Talent (`talentAcquisitions`). */
 export function talentMaxReached(hero: PorteurDeTalents, talentId: string, spec?: string): boolean {
-  const max = talentMaxById(hero, talentId);
+  const max = talentMaxById(hero, talentId, spec);
   return max != null && talentAcquisitions(hero, talentId, spec) >= max;
 }
 

@@ -3,10 +3,10 @@ import { buildScene } from './mapSpec';
 import { naviresDeLaScene, poserLesNavires, provenanceDesNavires } from './planDeNavire';
 import { PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
-import { tileAt, wallBetween, type Scene } from './monde/scene';
+import { heightAt, tileAt, wallBetween, type Scene } from './monde/scene';
 import { estAbsent } from './monde/terrain';
 import { edgeKey } from './monde/facades';
-import { aretesDeLaCouche, plateauDeLaScene } from './monde/aretes';
+import { aretesDeLaCouche, plateauDeLaScene, volumeDuRegard } from './monde/aretes';
 import { parseSceneDeProjet } from './worldMap';
 import { volumeDuMonde } from './monde/volume/volume';
 import { ficheDEntite } from './monde/sceneNpc';
@@ -77,7 +77,7 @@ describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
 
 describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
   const s = bassinDeLaCaraque('O', ['embarcation-de-bord']);
-  const { cases, aretes } = provenanceDesNavires(s);
+  const { cases, aretes, flottaison } = provenanceDesNavires(s);
 
   it('le volume garde le sol des ponts sous le navire, pour le pointage ; les décors restent peints', () => {
     const volume = volumeDuMonde(s);
@@ -90,9 +90,32 @@ describe('ce qu’un hôte dessine d’une scène qui porte un navire', () => {
       expect(cases.has(cell.join(',')), cell.join(',')).toBe(true);
       expect(surface.matiere.startsWith('prop--'), surface.matiere).toBe(false);
     }
-    const sols = triangles.filter((t) => t.surface.navire === undefined && !t.surface.matiere.startsWith('prop--'));
-    for (const { cell } of sols) expect(cases.has(cell.join(',')), cell.join(',')).toBe(false);
+    const sols = triangles.filter((t) => t.surface.navire === undefined && t.surface.flottaison === undefined && !t.surface.matiere.startsWith('prop--'));
+    for (const { cell } of sols) expect(cases.has(cell.join(',')) || flottaison.has(cell.join(',')), cell.join(',')).toBe(false);
     expect(triangles.some((t) => t.surface.navire === undefined && t.surface.matiere.startsWith('prop--'))).toBe(true);
+  });
+
+  it('la mer borde le navire sur l’emprise de ses ponts, à la hauteur 0, à la place du sol de la scène', () => {
+    const volume = volumeDuMonde(s);
+    expect(flottaison.size).toBe(PLAN_DE_LA_CARAQUE.size[0] * PLAN_DE_LA_CARAQUE.size[1]);
+    expect(new Set(flottaison.values())).toEqual(new Set(['c1']));
+    const mer = volume.surfaces.filter((surface) => surface.flottaison !== undefined);
+    expect(mer.map(({ matiere, flottaison: navire }) => ({ matiere, navire }))).toEqual([{ matiere: 'terrain--eau', navire: 'c1' }]);
+    const [{ debut, fin }] = mer;
+    expect((fin - debut) / 3).toBe(2 * flottaison.size);
+    for (let i = debut; i < fin; i++) expect(volume.positions[3 * i + 1]).toBeCloseTo(0, 2);
+    expect(new Set(volume.cases.slice(debut / 3, fin / 3).map((c) => c.join(',')))).toEqual(new Set(flottaison.keys()));
+  });
+
+  it('le plateau coupe le modèle du navire sous le pont du groupe, et retire du volume les ponts au-dessus de la coupe', () => {
+    const coupes = (z: number, regard: 'tactique' | 'plateau' | 'immersion', x = 11) => plateauDeLaScene(s, [{ x, y: 4, z }], regard).coupesDesNavires;
+    expect([coupes(0, 'tactique'), coupes(0, 'plateau'), coupes(0, 'immersion')]).toEqual([{ c1: heightAt(s, 11, 4, 1) }, { c1: heightAt(s, 11, 4, 1) }, {}]);
+    expect([coupes(1, 'tactique'), coupes(1, 'plateau'), coupes(1, 'immersion')]).toEqual([{ c1: heightAt(s, 11, 4, 2) }, { c1: heightAt(s, 11, 4, 2) }, {}]);
+    expect(coupes(2, 'tactique', 18)).toEqual({ c1: heightAt(s, 18, 4, 3) });
+    expect(coupes(3, 'plateau')).toEqual({});
+    const volume = volumeDuRegard(s, [{ x: 11, y: 4, z: 1 }], 'tactique');
+    const couches = new Set(volume.cases.filter((c) => cases.has(c.join(','))).map((c) => c[2]));
+    expect(couches).toEqual(new Set([0, 1]));
   });
 
   it('le plateau ne dessine aucune arête des ponts, que la marche garde', () => {

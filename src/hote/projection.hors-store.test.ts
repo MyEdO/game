@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { nouvelEntete, ouvrirLaPartie } from './partie';
 import { projeter } from './projection';
-import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
+import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { frenzyTarget } from '../noyau/combatFlow';
 import type { Combatant } from '../engine/types';
 

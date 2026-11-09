@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "canon-a-flammes-nain-ade2"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
+  "surfaces": [
+    {
+      "nom": "bronze",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "cuivre",
+      "palette": "accent",
+      "matiere": "prop--laiton-dore"
+    }
+  ],
+  "glb": {
+    "sha256": "125e8a044ad80a6627dc919786daa8bcbdf80809b3c81af1af7a75e4de1ae4e4",
+    "octets": 126296
+  }
+}

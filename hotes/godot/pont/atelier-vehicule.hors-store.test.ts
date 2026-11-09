@@ -25,9 +25,12 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
     servirLesModeles(atelier, COMMITES);
     expect(reponse({ definition: 'caraque' })).toEqual({
       ok: true,
-      vehicule: { element: 'vehicule--caraque', empreinte: 4, taille: 'empreinte', cap: 'N', palette: {}, postes: [], ameliorations: [], caches: ['avec-sabord'] },
+      vehicule: { element: 'vehicule--caraque', empreinte: 4, taille: 'empreinte', cap: 'N', palette: {}, postes: [], ameliorations: [], caches: ['avec-sabord'], clips: {} },
       places: placesVides([['proue', 2, 'Proue'], ['tribord', 4, 'Tribord'], ['poupe', 2, 'Poupe'], ['babord', 4, 'Bâbord']]),
-      pieces: ['canon-grand', 'canon-moyen', 'canon-petit'],
+      pieces: ['baliste-ade2', 'baliste', 'batterie-tonnerre-de-feu-ade2', 'batterie-tonnerre-de-feu', 'belier-ade2', 'canon-a-flammes-nain-ade2',
+        'canon-a-repetition-feu-d-enfer-ade2', 'canon-a-repetition-feu-d-enfer', 'canon-a-repetition', 'canon-ade2', 'canon-grand', 'canon-moyen',
+        'canon-petit', 'catapulte-grande', 'catapulte-moyenne', 'catapulte-petite', 'mangonneau-ade2', 'mortier-ade2', 'mortier', 'onagre-ade2',
+        'pierrier', 'trebuchet-ade2'],
       ameliorations: [],
     });
   });
@@ -60,7 +63,11 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
     expect(vehicule.postes).toHaveLength(4);
   });
 
-  it('la palette et l’emblème de son apparence', () => {
+  it('un engin porte la table rôle → clip de son élément', () => {
+    expect(reponse({ definition: 'canon-moyen' }).vehicule.clips).toEqual({ idle: 'repos', walk: 'marche', ranged: 'tir' });
+  });
+
+    it('la palette et l’emblème de son apparence', () => {
     const { vehicule } = reponse({ definition: 'caraque', couleurs: { vet1: { id: 'peau-brune' } }, embleme: { id: 'taureau-rouge' } });
     expect([vehicule.palette, vehicule.embleme]).toEqual([{ vet1: findCouleurById('peau-brune')!.color }, { id: 'taureau-rouge' }]);
   });

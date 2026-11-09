@@ -19,15 +19,12 @@ const prop = (id: string, ref: string, x: number, y: number): SceneEntity =>
   ({ id, kind: 'prop', pos: { x, y }, ref }) as SceneEntity;
 
 describe('index de décor de la Ligne de Vue (mémoïsé par identité de `scene.entities`)', () => {
-  it('deux décors sur la MÊME case : le PREMIER du tableau décide (préséance de l’ordre)', () => {
+  it('deux décors sur la MÊME case : le pire couvert décide, quel que soit l’ordre (#3731)', () => {
     const from = { x: 0, y: 0 };
     const to = { x: 2, y: 0 };
-    // `arbre` (couvert imparfait, non opaque) posé AVANT `statue` (opaque, couvert total).
-    const arbreDAbord = lineOfSightCover(scene(3, 1, [prop('a', 'arbre', 1, 0), prop('s', 'statue', 1, 0)]), from, to, []);
-    expect(arbreDAbord).toEqual({ blocked: false, cover: 'imparfaite' });
-    // Ordre inverse : la statue décide → case opaque adjacente à la cible → couvert total.
-    const statueDAbord = lineOfSightCover(scene(3, 1, [prop('s', 'statue', 1, 0), prop('a', 'arbre', 1, 0)]), from, to, []);
-    expect(statueDAbord).toEqual({ blocked: false, cover: 'totale' });
+    // `arbre` (couvert imparfait, non opaque) et `statue` (opaque, couvert total) dans la même case adjacente à la cible.
+    for (const entities of [[prop('a', 'arbre', 1, 0), prop('s', 'statue', 1, 0)], [prop('s', 'statue', 1, 0), prop('a', 'arbre', 1, 0)]])
+      expect(lineOfSightCover(scene(3, 1, entities), from, to, [])).toEqual({ blocked: false, cover: 'totale' });
   });
 
   it('NOUVELLE réf `entities` → l’index est rebâti ; l’ancienne réf garde le sien', () => {

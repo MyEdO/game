@@ -42,6 +42,7 @@ import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
+import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
 import { nePeutPasDifferer, jouerFlowEntier, OPS_DIFFEREES, entityPickables, cleFeuilleRamassee, applyEffects, openSkillTest, drainPendingLog } from './combatEffects';
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
@@ -62,7 +63,7 @@ import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { spendResolveForPsychImmunity, calmeDeLAnimositeAcquise, ciblesDAnimositeAcquise } from '../engine/psychology';
-import { recomputeLoadout, giveTrappingLabel, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
+import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel, mannedPosteWeapon } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback } from '../engine/qualities/dispatch';
 import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
@@ -1339,34 +1340,38 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    // ── Ramasser un objet au sol pendant un Round (un à la fois, LDB 13 l.115-116) ──
-    ramasserLObjet: (entityId: string, key: string) => {
-      const { battle, scene } = get();
-      if (!battle || battle.over || battle.acted || !scene) return;
-      const active = activeCombatant(battle);
-      if (!active || !canTakeAction(active)) return; // ramasser = une Action
+    // ── Ramasser un objet d'un décor : en combat, un à la fois, au prix de l'Action (`pickup` de `actions.json`) ──
+    /** Ramasse l'objet `key` du décor `entityId`. Hors combat, un objet posé au sol (`ramasserHorsCombat`). En combat,
+     *  l'actif (`pid`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
+    ramasserLObjet: (entityId: string, key: string, pid?: string) => {
+      const s = get();
+      if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, pid);
+      const barre = barreDuGeste(s);
+      if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
+      const { active, battle } = barre;
+      if (pid !== undefined && pid !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, pid)?.label ?? pid }));
+      if (refuseParSonEntree(get, set, 'pickup', active, battle, { entityId, pickKey: key })) return;
+      const scene = s.scene!;
       const ent = scene.entities.find((e) => e.id === entityId && e.kind === 'prop');
-      if (!ent || !active.pos || !aPorteeDe(active.pos, ent)) return; // adjacent/sur la case, même étage — source unique `exploreNav.aPorteeDe` (#800)
-      // Clé = `<actionId>:eff:<index dans flowEffects(action.flow)>` (cf. `entityPickables`) : c'est
-      // l'ACTION authorée qu'on grappille, et l'ÉPUISEMENT est celui du même exécuteur que
-      // l'exploration — `actionsAuthorees` refuse d'elle-même une action déjà fermée par son drapeau.
-      const [actionId, tag, idxStr] = key.split(':');
-      if (tag !== 'eff') return;
-      const action = actionsAuthorees(ent, get().flags).find((a) => a.id === actionId);
-      if (!action) return;
+      const pickable = ent && entityPickables(ent, s.flags, objetDuNarratif(s.campaignNarratif), s.objetsAuSol).find((p) => p.key === key);
+      if (!ent || !pickable) return void refuserGesteDuSiege(get, set, t('pf.ramasserInconnu'));
+      if (!active.pos || !aPorteeDe(active.pos, ent)) return void refuserGesteDuSiege(get, set, t('pf.ramasserHorsDePortee', { item: pickable.label }));
+      if (s.objetsAuSol[entityId]) {
+        const label = ramasserDuSol(get, set, entityId, active.id);
+        set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('item', t('cs.pickup', { name: active.label, label }), active.id)] } });
+        bus.emit(EVT.SCENE_DIRTY);
+        return;
+      }
+      // Clé = `<actionId>:eff:<index dans flowEffects(action.flow)>` (cf. `entityPickables`) : c'est l'ACTION authorée
+      // qu'on grappille, une feuille donneuse (`giveTrapping`, `giveMoney`) encore jouable. L'effet de JEU donne (#2312) ;
+      // une feuille LITTÉRALE ne porte aucun canal de dés : le retrait de la feuille ramassée qui suit ne peut pas passer
+      // devant un dé (#1508).
+      const [actionId, , idxStr] = key.split(':');
+      const action = actionsAuthorees(ent, s.flags).find((a) => a.id === actionId)!;
       const idx = Number(idxStr);
       const eff = flowEffects(action.flow)[idx];
-      if (!eff) return;
-      // L'effet de JEU donne (#2312) ; une feuille `giveTrapping`/`giveMoney` LITTÉRALE ne porte aucun
-      // canal de dés : le retrait de la feuille ramassée qui suit ne peut pas passer devant un dé (#1508).
-      let label: string; // assigné dans chaque branche atteignant l'usage (le cas `else` renvoie)
-      if (eff.type === 'giveTrapping') {
-        label = giveTrappingLabel(eff, objetDuNarratif(get().campaignNarratif));
-        nePeutPasDifferer(applyEffects(get, set, [{ ...eff, heroId: active.id }]), 'combatSlice.pickupItem (giveTrapping)');
-      } else if (eff.type === 'giveMoney') {
-        label = 'Argent';
-        nePeutPasDifferer(applyEffects(get, set, [eff]), 'combatSlice.pickupItem (giveMoney)');
-      } else return; // effet non ramassable (journal/document…) : pas grappillable en combat
+      const label = pickable.label;
+      nePeutPasDifferer(applyEffects(get, set, [eff.type === 'giveTrapping' ? { ...eff, heroId: active.id } : eff]), 'combatSlice.pickupItem');
       // La feuille prise se FERME par un drapeau (`cleFeuilleRamassee`), jamais en réécrivant le Flow de
       // l'action : le document de scène est de la DONNÉE d'auteur, l'état de la partie vit dans les
       // drapeaux — et c'est le même drapeau que la fouille en exploration lit pour ne pas redonner ce
@@ -1374,7 +1379,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set((s) => ({ flags: { ...s.flags, [cleFeuilleRamassee(entityId, action.id, idx)]: true } }));
       // Pool de ramassables vidé : `consume` → le décor disparaît ; sinon il reste (ses Effets non-objet
       // — journal/document — restent fouillables en exploration ; pas de sens à les grappiller en combat).
-      if (entityPickables(ent, get().flags, objetDuNarratif(get().campaignNarratif)).length === 0 && action.consume) {
+      if (entityPickables(ent, get().flags, objetDuNarratif(get().campaignNarratif), get().objetsAuSol).length === 0 && action.consume) {
         removeEntity(get, set, entityId);
         set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('item', t('cs.pickup', { name: active.label, label }), active.id)] } });
       } else {
@@ -2776,7 +2781,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       // Échec : l'objet glisse (op `disarm`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
       // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
-      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD' });
+      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
       const b1 = get().battle!;
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attack', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);

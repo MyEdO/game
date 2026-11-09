@@ -14,7 +14,7 @@ import type { TraitList } from '../engine/statEntry';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import { renderWeaponsFromTraits } from '../engine/creatureEquip';
 import { findTrappingById } from '../data';
-import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
+import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 
 const porteur = (over: Partial<Combatant>): Combatant => ({ weapons: [], items: [], armour: emptyArmour(0), ...over }) as unknown as Combatant;

@@ -48,16 +48,18 @@ export function buildingsMeta(): Readonly<Record<string, BuildingMeta>> {
 /** COUVERTURE de référence d'un TYPE de bâtiment (`buildings.json › roofMaterial`) : une forge est
  *  couverte d'ardoise par son type. Rendue à `toitureEffective` (`noyau/sceneEdit.ts`), qui l'insère
  *  entre la surcharge du corps et la toiture de la scène. Corps SANS type, ou type inconnu du dataset
- *  (un id hors dataset est refusé au parse) : `undefined` — l'étage suivant tranche. */
-export function buildingRoofMaterial(style: string | undefined): string | undefined {
-  return style === undefined ? undefined : vues().parId[style]?.roofMaterial;
+ *  (un id hors dataset est refusé au parse) : `undefined` — l'étage suivant tranche. Une référence NEUVE : la
+ *  masse qui la reçoit ne partage pas l'objet du dataset (#2097). */
+export function buildingRoofMaterial(style: { id: string } | undefined): { id: string } | undefined {
+  const couverture = style === undefined ? undefined : vues().parId[style.id]?.roofMaterial;
+  return couverture && { id: couverture.id };
 }
 
 /** Ornements d'identité d'un type de bâtiment (clocheton/cheminée/enseigne/étal), repli `[]` — lus par
  *  `builders/props` pour émettre un billboard par ornement. SÉPARÉ des métas d'éditeur.
  *  Un corps SANS type de bâtiment (`ArchitectureBody.style` absent : bourg, hameau) n'en porte aucun. */
-export function buildingFeatures(style: string | undefined): BuildingFeature[] {
-  return style === undefined ? [] : vues().parId[style]?.features ?? [];
+export function buildingFeatures(style: { id: string } | undefined): BuildingFeature[] {
+  return style === undefined ? [] : vues().parId[style.id]?.features ?? [];
 }
 
 /** Union des rectangles d'une emprise (`BuildingMass.footprint`, plusieurs rectangles) en un ensemble de

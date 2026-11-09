@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { harvestProfileFor, harvestSizeOf, harvestYield, costPerEnc } from './harvest';
+import { harvestProfileFor, harvestSizeOf, harvestYield, costPerEnc, testsDeRecolte } from './harvest';
 import { formatMoney } from './money';
 import { findCreatureById } from '../data';
 
@@ -24,12 +24,27 @@ describe('harvest — Précieuses Entrailles (ZI)', () => {
     expect(formatMoney(harvestYield(p, 'grande', 0, 'frais').total)).toBe('48 CO');
   });
 
-  it('chaque DR d’échec au Savoir retire un cran de quantité', () => {
+  it('quantité exploitable selon la Taille (ZI 13 l.306-310)', () => {
     const p = harvestProfileFor('cockatrice')!;
-    expect(harvestYield(p, 'grande', 0, 'conserve').enc).toBe(4); // Grande
+    expect((['inf-moyenne', 'moyenne', 'grande', 'enorme', 'monstrueuse'] as const).map((taille) => harvestYield(p, taille, 0).enc)).toEqual([1, 2, 4, 8, 16]);
+  });
+
+  it('chaque Degré d’échec retire un cran de quantité, jusqu’à 0 (ZI 13 l.316)', () => {
+    const p = harvestProfileFor('cockatrice')!;
+    expect(harvestYield(p, 'grande', 0, 'conserve').enc).toBe(4); // Grande : DR 0, aucun Degré d'échec
     expect(harvestYield(p, 'grande', -1, 'conserve').enc).toBe(2); // → Moyenne
     expect(harvestYield(p, 'grande', -2, 'conserve').enc).toBe(1); // → Inf. Moyenne
-    expect(harvestYield(p, 'grande', -5, 'conserve').enc).toBe(1); // plancher
+    expect(harvestYield(p, 'grande', -3, 'conserve').enc).toBe(0); // plancher : rien
+    expect(harvestYield(p, 'grande', -5, 'conserve')).toMatchObject({ enc: 0, total: { gold: 0, silver: 0, brass: 0 } });
+    expect(harvestYield(p, 'enorme', -2).enc, 'exemple du livre : Énorme à −2 DR').toBe(2);
+  });
+
+  it('les Tests admis selon la créature (ZI 13 l.316)', () => {
+    const noms = (id: string) => testsDeRecolte(findCreatureById(id)!).map((x) => `${x.skill?.id}/${x.skill?.spec}`);
+    const toutes = ['savoir/betes-sauvages', 'savoir/remedes'];
+    expect(noms('geant')).toEqual(toutes);
+    expect(noms('vouivre'), 'venimeuse : Trait Venin').toEqual([...toutes, 'metier/empoisonneur']);
+    expect(noms('chimere'), 'mystique : Trait Magique').toEqual([...toutes, 'savoir/magie']);
   });
 
   it('Pourri : les pièces non Exotiques/Uniques ne valent plus rien', () => {

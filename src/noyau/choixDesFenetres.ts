@@ -10,7 +10,7 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
+  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
   IdDObjet, IdDuCoupleMonte,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
@@ -93,6 +93,8 @@ export interface ChoixDesFenetres {
   victory: {
     /** La ligne du butin que prend le héros de la rangée. */
     ligne: IdDeLigneDeButin;
+    /** ZI 13 : la créature vaincue que le groupe dépèce. */
+    depecer: IdDeCreatureADepecer;
   };
   rest: {
     /** LDB 66 */
@@ -168,7 +170,7 @@ export const CHOIX_DES_FENETRES = {
     baisserLePrix: reprenable, releverLePrix: reprenable, repartition: duHerosParLHote,
   },
   loot: { ligne: duHerosParLHote },
-  victory: { ligne: duHeros },
+  victory: { ligne: duHeros, depecer: figeParLHote },
   rest: { couchage: duHeros, pitance: duHeros },
   batailleDeMasse: { alea: figeParLHote },
   finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },

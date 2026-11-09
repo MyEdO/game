@@ -1329,7 +1329,7 @@ describe('useStagePointer — le décor VOLUMIQUE se désigne, et ne coûte que 
     };
     expect(curseurAuSurvol(), 'témoin : la fouille est intacte, la main invite').toBe('pointer');
     useGame.setState({ flags: { [cleActionJouee('table-1', 'fouiller')]: true } });
-    expect(estUtilisable(scene, scene.entities[0], useGame.getState().flags), 'le décor n’offre plus rien').toBe(false);
+    expect(estUtilisable(scene, scene.entities[0], useGame.getState()), 'le décor n’offre plus rien').toBe(false);
     expect(curseurAuSurvol(), 'épuisé : aucune main sur un décor qui a tout donné').toBe('');
 
     // Le même SVG d'un survol à l'autre — sinon le vert ne dirait rien (un élément neuf porte `''`

@@ -380,10 +380,10 @@ describe('MondeDeCampagne — le faîteau volumique se lève AVEC son toit (#162
     const scene = emptyScene('scene-test', 10, 10);
     scene.architecture = [{
       id: 'corps-chapelle',
-      style: 'chapelle',
+      style: { id: 'chapelle' },
       storeys: [{ id: 'z0', z: 0, parts: [], roomZoneIds: [] }],
       facades: [],
-      masses: [{ id: 'nef', z: 0, footprint: [{ x: 2, y: 2, w: 4, h: 4 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile' }],
+      masses: [{ id: 'nef', z: 0, footprint: [{ x: 2, y: 2, w: 4, h: 4 }], levels: 1, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' } }],
     }];
     return scene;
   }
@@ -561,10 +561,10 @@ describe('MondeDeCampagne — un étage peint montre son décor, les deux voies 
     const scene = galerie();
     scene.architecture = [{
       id: 'corps-opera',
-      style: 'auberge',
+      style: { id: 'auberge' },
       storeys: [{ id: 'z0', z: 0, parts: [], roomZoneIds: [] }],
       facades: [],
-      masses: [{ id: 'salle', z: 1, footprint: [{ x: 0, y: 0, w: 6, h: 6 }], levels: 2, profile: 'gable', ridge: 'x', pitchDeg: 30, material: 'tuile' }],
+      masses: [{ id: 'salle', z: 1, footprint: [{ x: 0, y: 0, w: 6, h: 6 }], levels: 2, profile: 'gable', ridge: 'x', pitchDeg: 30, material: { id: 'tuile' } }],
     }];
     return scene;
   }

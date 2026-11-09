@@ -39,7 +39,8 @@ const SITES: readonly { fichier: string; texte: string; role: string }[] = [
   // ── LES COUTURES du décor volumique (#1507) : une par CONCEPT, jamais deux pour le même
   { fichier: 'noyau/monde/volume/propVolumes.ts', texte: 'const [rx, ry] = rotatePropLocal(p.xM / mpt, p.yM / mpt, facing);', role: 'GÉOMÉTRIE d’une recette de décor → cases du monde' },
   { fichier: 'data/props.types.ts', texte: 'const [ax, ay] = rotatePropLocal(slot.anchor.xM / mpt, slot.anchor.yM / mpt, cap);', role: 'ANCRE d’une place assise → case du corps assis' },
-  { fichier: 'noyau/monde/vision.ts', texte: 'const [x, y] = rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, facing ?? CAP_IDENTITE_PROP);', role: 'FOYER d’une lampe (centre de la primitive émettrice) → offset en cases' },
+  { fichier: 'noyau/monde/vision.ts', texte: 'const [x, y] = emettrice ? rotatePropLocal(emettrice.center.xM / mpt, emettrice.center.yM / mpt, ent.facing ?? CAP_IDENTITE_PROP) : [0, 0];', role: 'FOYER d’une lampe (centre de la primitive émettrice) → offset en cases' },
+  { fichier: 'data/props.types.ts', texte: 'const axe = (c: number, [lo, hi]: readonly [number, number]) => (c >= 0 ? c * hi : -c * lo) / mpt;', role: 'CALAGE d’un décor (part de son jeu libre, en mètres) → décalage de son ancre en cases' },
   { fichier: 'noyau/monde/vision.ts', texte: 'export const rayonEnCases = (radiusM: number, mpt: number): number => radiusM / mpt;', role: 'RAYON d’une source de lumière → cases (RÉEL : le dégradé le lit comme une longueur)' },
   { fichier: 'data/props.types.ts', texte: 'const enCases = (metres: number): number => Math.max(1, Math.ceil(metres / mpt - 1e-9));', role: 'EMPRISE du corps tourné d’un décor → cases de son empreinte (#1509, arrondi haut, plancher 1)' },
 

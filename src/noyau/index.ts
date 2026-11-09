@@ -38,7 +38,7 @@ export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type
 export type { GabaritResolu } from './apparence/gabarit';
 export { cataloguesDeComposition, emplacementsDeRangement, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
-export { naviresDeLaScene, type NavireDeLaScene } from './planDeNavire';
+export { estPoseParSesPonts, naviresDeLaScene, type NavireDeLaScene } from './planDeNavire';
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
@@ -122,7 +122,8 @@ export { declarationDuReglage, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from './regl
 export { VERBE_DE_CHOIX, declarationDuChoix, type AxeDuChoix, type FenetreAChoix } from './choixDesFenetres';
 export { reglagesDesChoix } from './choixDeFenetre';
 export { avecSigne } from '../engine/types';
-export { ROLES_D_ANIMATION, type RoleDAnimation } from './animation';
+export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
+export type { Maniement } from '../data/schemas/grammaire/valeurs';
 export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, type HerosDuRoster, type RosterEntry } from './persistance/roster';
 export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';
 export type { CreatorDraft } from './creation/brouillon';

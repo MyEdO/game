@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useGame } from '../state/store';
 import { ownsLocal } from '../noyau/netOwnership';
 import { creaturesADepecer } from '../noyau/combatEffects';
+import { t } from '../i18n';
 import { ReadyRow } from './ReadyRow';
 import { GearAssignList } from './GearAssignList';
 import { RewardRecap, type RecapSection } from './RewardRecap';
@@ -30,8 +31,7 @@ export function VictoryScreen() {
   const party = useGame((s) => s.party);
   const net = useGame((s) => s.net);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const harvest = useGame((s) => s.depecerLaCreature);
-  const evaluerLeButin = useGame((s) => s.evaluerLeButin);
+  const evaluerLObjet = useGame((s) => s.evaluerLObjet);
   const fermer = useGame((s) => s.fenetreFermer);
   const dismiss = () => fermer('victory');
   const state = useGame();
@@ -71,7 +71,7 @@ export function VictoryScreen() {
           gear={gear}
           assignable={assignable}
           onAssign={(uid, heroId) => choisir('victory', 'ligne', uid, heroId)}
-          onAppraise={net.mode === 'guest' ? undefined : (i, mode) => evaluerLeButin('victory', i, mode)}
+          onAppraise={net.mode === 'guest' ? undefined : evaluerLObjet}
         />
       ),
     });
@@ -95,9 +95,9 @@ export function VictoryScreen() {
                     label={done ? '✓ récolté' : <><Icon id="medical/scalpel" size="sm" /> Récolter</>}
                     ariaLabel={`Récolter ${d.label}`}
                     enabled={!done}
-                    reason="Ces pièces ont déjà été récoltées."
+                    reason={t('eff.dejaDepecee')}
                     descOfferte="Récolter les pièces de monstre (Test de Savoir (Bêtes))"
-                    onClick={() => harvest(d.creatureId!)}
+                    onClick={() => choisir('victory', 'depecer', d.creatureId!)}
                     primary={false}
                     btnClassName="btn-ghost"
                   />

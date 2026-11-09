@@ -3,7 +3,7 @@ import { idsDeTest } from './idsDeTest.testkit';
 import { afterEach, describe, expect, it } from 'vitest';
 import { findTrappingById, trappings } from '../data';
 import { setDataset } from '../data/overrides';
-import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne';
+import { porteurDObjetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import * as objets from './items';
 import { shieldAdvantageLevel } from './combatFeatures/dispatch';
 import { applyOps, skillDRBonus } from './ops';

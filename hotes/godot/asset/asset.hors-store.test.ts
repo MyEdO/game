@@ -13,7 +13,7 @@ import { cheminsAbsolus } from './manifeste.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { depotDe, INDEX, listerImage } from '../../../scripts/guards/lib/gitPorte.mjs';
 import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
-import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION, vehiculeDeTest } from './modeles.testkit.ts';
+import { baseDeTest, elementSchema3, GLB_DE_BASE, GLB_D_ELEMENT, GLB_SANS_BASE, glbANoeuds, LICENCE_DE_PRODUCTION, productionDeTest, deposerModeleDeTest, TEXTE_DE_LICENCE_DE_PRODUCTION, vehiculeDeTest } from './modeles.testkit.ts';
 import {
   DOSSIER_DES_MODELES, modelesAPublier, modelesEpingles, AssetIntrouvable, nomDAsset, publierAssets, recupererModeles, ReleaseInjoignable,
   suivisHorsRelease, TAG, urlDAsset, DEPOT, URL_API_DE_LA_RELEASE, type AssetAPublier, type Gh,
@@ -358,9 +358,32 @@ describe('la table rôle → clip d’une base (#3253)', () => {
   ])('refuse %s, en le nommant', (_, clips, refus) => {
     expect(validerModele({ ...baseDeTest(), clips }, GLB_DE_BASE)).toEqual({ ok: false, refus: [refus] });
   });
+  it('accepte une table des rôles tenus à deux mains par maniement, et juge chacune comme `clips` (#3319)', () => {
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { hampe: { idle: 'walk' } } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clipsDeuxMains: { hampe: { idle: 'walk' } } } });
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { lourde2m: { danse: 'walk' }, hampe: { idle: 'Repos_Hampe' } } }, GLB_DE_BASE))
+      .toEqual({ ok: false, refus: ['[role-inconnu] clipsDeuxMains.lourde2m.danse : danse', '[clip-absent] clipsDeuxMains.hampe.idle : Repos_Hampe'] });
+  });
+  it('refuse une table de rôles tenus à deux mains sous un maniement inconnu, en le nommant', () => {
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { valse: { idle: 'walk' } } }, GLB_DE_BASE))
+      .toEqual({ ok: false, refus: ['[maniement-inconnu] clipsDeuxMains.valse : valse'] });
+  });
   it('refuse l’élément d’une base dont la table est refusée', () => {
     const base = { brut: { ...baseDeTest(), clips: { walk: 'Walk_Loop' } }, octets: GLB_DE_BASE };
     expect(validerModele(elementSchema3(), GLB_D_ELEMENT, new Map([['humanoide', base]]))).toEqual({ ok: false, refus: ['[clip-absent] base clips.walk : Walk_Loop'] });
+  });
+});
+
+describe('la table rôle → clip d’un véhicule (#2987)', () => {
+  const GLB = glbANoeuds(['affut'], ['marche', 'tir']);
+  const vehicule = (clips: Record<string, string>) => ({ ...vehiculeDeTest('canon-moyen'), clips, glb: empreinte(GLB) });
+  it('accepte chaque rôle du vocabulaire dont le clip est au GLB', () => {
+    expect(validerModele(vehicule({ walk: 'marche', ranged: 'tir' }), GLB)).toMatchObject({ ok: true, manifeste: { clips: { walk: 'marche', ranged: 'tir' } } });
+  });
+  it.each([
+    ['un rôle hors du vocabulaire', { walk: 'marche', salve: 'tir' }, '[role-inconnu] clips.salve : salve'],
+    ['un clip absent du GLB', { walk: 'marche', idle: 'repos' }, '[clip-absent] clips.idle : repos'],
+  ])('refuse %s, en le nommant', (_, clips, refus) => {
+    expect(validerModele(vehicule(clips), GLB)).toEqual({ ok: false, refus: [refus] });
   });
 });
 

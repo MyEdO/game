@@ -1,5 +1,6 @@
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
 import type { Jeu } from './etat';
+import { crochetDuSol } from './objetsAuSol';
 import type { Get, PatchDeFlux, Set as SetFn } from './flowTypes';
 import { armChapterRecapIfDue } from './chapitreRecap';
 import { ouvrirLaFinDeSeance } from './partyFlow';
@@ -21,7 +22,7 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
-import { partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
+import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
 import { restoreFortune } from '../engine/fortune';
@@ -36,7 +37,7 @@ import { revealClue, discreditClue } from './monde/clues';
 import { creatureSemee, navireSeme, findCreatureById, findVehicleById, refLabel, WATER_EXPOSURE, diseaseLabel, nightStakeRef, combatStakeRef, flowStakeRef, testSkillLabel } from '../data';
 import { MORALE_BASE } from '../engine/crewMorale';
 import { clampSaboteurDR, shipboardSouls } from './shipCrew';
-import { harvestProfileFor, harvestSizeOf, harvestYield } from '../engine/harvest';
+import { harvestProfileFor, harvestSizeOf, harvestYield, testsDeRecolte } from '../engine/harvest';
 import { applySummon } from './summonFlow';
 import { contractDisease, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
@@ -89,10 +90,11 @@ import { ev } from './combatLog';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
 import { dataLabel, groupesLabel, type WaterExposureMode } from '../data';
-import { actionsAuthorees, type Drapeaux } from './monde/usable';
+import { actionsAuthorees, objetDuSol, type Drapeaux } from './monde/usable';
 import type { SceneEntity } from './monde/scene';
 import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantagePool';
 import { poserLeGroupe } from './marcheDuGroupe';
+import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -160,12 +162,12 @@ export function pushCombatStep(set: SetFn, step: BuiltCascadeStep | ((index: num
   pushStep(set, step, 'combat');
 }
 
-/** Items ramassables d'un décor : un par feuille `do` « donneuse » de CHAQUE action authorée encore
- *  jouable (`actionsAuthorees`). `key` = `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle
- *  porte l'action, parce que le ramassage épuise UNE action, pas un décor. Effets non-objet &
- *  branches (test) ignorés. */
-export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver): { key: string; label: string }[] {
-  const out: { key: string; label: string }[] = [];
+/** Items ramassables d'un décor : l'objet posé au sol qu'il montre (`objetDuSol`, clé = son uid), puis un par feuille
+ *  `do` « donneuse » de CHAQUE action authorée encore jouable (`actionsAuthorees`). `key` =
+ *  `<actionId>:eff:<index dans flowEffects(action.flow)>` — elle porte l'action, parce que le ramassage épuise UNE
+ *  action, pas un décor. Effets non-objet & branches (test) ignorés. */
+export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: TrappingResolver, objetsAuSol: Jeu['objetsAuSol']): { key: string; label: string }[] {
+  const out: { key: string; label: string }[] = objetDuSol(ent, objetsAuSol);
   for (const a of actionsAuthorees(ent, flags))
     flowEffects(a.flow).forEach((e, i) => {
       if (flags[cleFeuilleRamassee(ent.id, a.id, i)]) return; // déjà pris, un objet à la fois
@@ -177,7 +179,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: Trap
 
 /**
  * Clé du drapeau qui ferme UNE feuille donneuse d'une action authorée : en combat, on ramasse un objet
- * à la fois (`LDB 13 l.115-116`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
+ * à la fois (`pickup` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
  * à la fouille en exploration. `index` = rang de la feuille dans `flowEffects(action.flow)`, STABLE
  * parce que le document de scène n'est jamais réécrit : l'état de jeu vit dans les drapeaux.
  */
@@ -297,34 +299,47 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que `depecerLaCreature` accepte : les vaincues de `pendingVictory` à profil de récolte, pas encore
- *  récoltées. ZI 13. */
-export function creaturesADepecer(s: Jeu): string[] {
+/** Les créatures que le choix `victory.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
+export function creaturesDeLaRecolte(s: Jeu): string[] {
   const pv = s.pendingVictory;
   if (!pv) return [];
-  return [...new Set(pv.defeated.flatMap((d) => (d.creatureId && harvestProfileFor(d.creatureId) && !pv.harvested?.includes(d.creatureId) ? [d.creatureId] : [])))];
+  return [...new Set(pv.defeated.flatMap((d) => (d.creatureId && harvestProfileFor(d.creatureId) ? [d.creatureId] : [])))];
 }
+
+/** Refus du dépeçage de la créature `creatureId` de la victoire : ses pièces sont déjà récoltées ; `null` sinon. */
+export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
+
+/** Les créatures que le choix `victory.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
+export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
  *  `test` de Savoir (Bêtes) → `giveTrapping` — la réussite donne les pièces fraîches à pleine quantité,
  *  l'échec une quantité réduite (un cran de Taille en moins). Les pièces portent leur valeur de marché
  *  (`giveTrapping.price`), revendable au marchand / composant ZI. */
 export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string) {
-  const pv = get().pendingVictory;
-  if (!pv || !creaturesADepecer(get()).includes(creatureId)) return;
+  const pv = garanti(get().pendingVictory, creatureId, 'écran de victoire (`refusDuChoix`)');
   const c = garanti(findCreatureById(creatureId), creatureId, 'créature à dépecer');
   const p = garanti(harvestProfileFor(creatureId), creatureId, 'profil de récolte');
   const name = c.label; // affichage depuis le record (résolu par id)
   const size = harvestSizeOf(c);
-  const full = harvestYield(p, size, 0, 'frais');
-  const lo = harvestYield(p, size, -1, 'frais');
-  const part = (enc: number) => t('eff.harvestPart', { creature: name, enc }); // objet CUSTOM (hors catalogue)
+  /** Les pièces prélevées au DR `dr` du jet ; aucune quand la quantité tombe à 0. ZI 13 l.316 */
+  const pieces = (dr: number): Flow => {
+    const { enc, total } = harvestYield(p, size, dr, 'frais');
+    return enc > 0 ? flowFromEffects([{ type: 'giveTrapping', custom: t('eff.harvestPart', { creature: name, enc }), price: total }]) : EMPTY_FLOW; // objet CUSTOM (hors catalogue)
+  };
+  /** L'échec, Degré par Degré, jusqu'à la quantité nulle : un cran de moins par DR sous 0. ZI 13 l.316 */
+  const parDegre = (dr: number): Flow => (harvestYield(p, size, dr).enc === 0
+    ? EMPTY_FLOW
+    : { kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: dr }, then: pieces(dr), else: parDegre(dr - 1) });
   const titre = stepDetail(t('eff.harvest'), dataLabel(name));
+  // ZI 13 l.316 : sans MJ, le récolteur joue sa meilleure Compétence admise (choix d'ingénierie de l'orchestrateur).
+  const admis = testsDeRecolte(c);
+  const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
-    { skill: { id: 'savoir', spec: 'betes-sauvages' }, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: full.enc, encEchec: lo.enc } }) },
-    flowFromEffects([{ type: 'giveTrapping', custom: part(full.enc), price: full.total }]),
-    flowFromEffects([{ type: 'giveTrapping', custom: part(lo.enc), price: lo.total }]),
+    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
+    pieces(0),
+    parDegre(0),
   ), titre));
 }
 
@@ -586,6 +601,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte, cible: Comba
     idNeuf: get().forgerUnId,
     onCorruption: (n, align) => gainCorruption(get, set, cible, n, align),
     ...campAdvantageHooks(get),
+    ...crochetDuSol(get, set),
     ...(porte.creditAdverse && caster ? { onOpposingAdvantage: (n: number) => creditOpposingAdvantage(get, caster, n) } : {}),
     ...(hull ? { hull } : {}),
     ...(caster ? { caster } : {}),
@@ -1056,7 +1072,8 @@ export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff
   };
   const suspendu: ArretDeFlow<Applique> = { arret: undefined };
   return executerFlow<Effect, Applique>(lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng()))), { // #2097
-    conditions: () => condCtx(get),
+    // Le DR du Test dont ce Flow est la branche se lit aux Conditions (`slThreshold`).
+    conditions: () => ({ ...condCtx(get), ...(sl !== undefined ? { sl } : {}) }),
     avantDecision: vidange,
     feuille: (node, reste) => {
       // Les VOLONTAIRES décident avant la feuille : même patron que le `choice` ci-dessous.
@@ -1471,7 +1488,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!sc) return;
       const ent = sc.entities.find((x) => x.id === e.id);
       if (!ent) return; // entité introuvable → no-op
-      if (e.to) env.set({ scene: { ...sc, entities: sc.entities.map((x) => (x.id === e.id ? { ...x, pos: { x: e.to!.x, y: e.to!.y }, z: e.to!.z ?? x.z } : x)) } });
+      // Ce que l'entité porte la suit, et ce qui ne tient plus sur elle (une autre couche) retombe au sol.
+      if (e.to) env.set({ scene: normaliserLesAppuis(emporterLesObjets(sc, { ...sc, entities: sc.entities.map((x) => (x.id === e.id ? { ...x, pos: { x: e.to!.x, y: e.to!.y }, z: e.to!.z ?? x.z } : x)) }, e.id)) });
       if (e.remove) removeEntity(env.get, env.set, e.id); // APRÈS le repositionnement (fuite-puis-disparition)
     },
   },
@@ -1659,7 +1677,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
       const lines: string[] = [];
       for (const c of targets) {
-        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get) });
+        const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, onCorruption: (n, align) => gainCorruption(env.get, env.set, c, n, align), ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
         if (issue !== OPS_DIFFEREES) lines.push(...issue);
       }
       env.set(touchActors(env.get()));

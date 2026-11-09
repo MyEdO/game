@@ -266,11 +266,11 @@ function villagePerimeterWalls(foot, door) {
 // chacun à couvrir le plancher des quatre autres. Felsbach est donc UN corps portant cinq masses
 // disjointes (une par maison), le détail par maison restant en donnée nommée (`VILLAGE_HOUSES`).
 const VILLAGE_HOUSES = [
-  { id: 'maison-1', label: 'Maison du charron', foot: { x: 3, y: 2, w: 3, h: 3 }, material: 'tuile', ridge: 'x', door: { x: 4, y: 4, side: 'S' } },
-  { id: 'maison-2', label: 'Maison morte', foot: { x: 12, y: 2, w: 3, h: 3 }, material: 'tuile', ridge: 'x', door: { x: 13, y: 4, side: 'S' } },
-  { id: 'maison-3', label: 'Maison aux volets clos', foot: { x: 22, y: 3, w: 3, h: 3 }, material: 'tuile', ridge: 'x', door: { x: 22, y: 4, side: 'O' } },
-  { id: 'maison-prevot', label: 'Logis du prévôt', foot: { x: 25, y: 14, w: 5, h: 4 }, material: 'toit-ardoise', door: { x: 25, y: 16, side: 'O' } },
-  { id: 'maison-4', label: 'Ferme aux portes battantes', foot: { x: 5, y: 14, w: 3, h: 3 }, material: 'tuile', ridge: 'x', door: { x: 7, y: 15, side: 'E' } },
+  { id: 'maison-1', label: 'Maison du charron', foot: { x: 3, y: 2, w: 3, h: 3 }, material: { id: 'tuile' }, ridge: 'x', door: { x: 4, y: 4, side: 'S' } },
+  { id: 'maison-2', label: 'Maison morte', foot: { x: 12, y: 2, w: 3, h: 3 }, material: { id: 'tuile' }, ridge: 'x', door: { x: 13, y: 4, side: 'S' } },
+  { id: 'maison-3', label: 'Maison aux volets clos', foot: { x: 22, y: 3, w: 3, h: 3 }, material: { id: 'tuile' }, ridge: 'x', door: { x: 22, y: 4, side: 'O' } },
+  { id: 'maison-prevot', label: 'Logis du prévôt', foot: { x: 25, y: 14, w: 5, h: 4 }, material: { id: 'toit-ardoise' }, door: { x: 25, y: 16, side: 'O' } },
+  { id: 'maison-4', label: 'Ferme aux portes battantes', foot: { x: 5, y: 14, w: 3, h: 3 }, material: { id: 'tuile' }, ridge: 'x', door: { x: 7, y: 15, side: 'E' } },
 ];
 
 const VILLAGE_ARCHITECTURE = [

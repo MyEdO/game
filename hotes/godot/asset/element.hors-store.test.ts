@@ -15,6 +15,7 @@ const BASE: BaseDUnElement = {
   chaines: { jupe: ['jupe_avant_01'] },
   zones: ['torse', 'bras_haut', 'hanches', 'cuisses', 'tete'],
   silhouettes: ['feminin', 'corpulence', 'carrure_moins', 'carrure_plus'],
+  prises: { main: { os: 'hand_r', position: [0, 0.09, 0], rotation: [0, 0, 0] }, off: { os: 'hand_l', position: [0, 0.09, 0], rotation: [0, 0, 0] } },
 };
 
 /** Les matériaux du GLB de test, un par surface que nomment les manifestes de ce fichier. */
@@ -26,6 +27,8 @@ const A_LA_RACINE = glbAvec(null);
 const GLB = empreinte(OCTETS);
 const PALETTE = [{ nom: 'tissu', palette: 'vet1' }];
 const METAL = [{ nom: 'plaque', palette: 'metal' }];
+/** La prise de la main libre d'une arme à deux mains, 40 cm sous la première le long du manche. */
+const SECONDE_PRISE = { position: [0, -0.4, 0], rotation: [0, Math.PI, 0] };
 
 /** Un manifeste valide par catégorie. */
 const VALIDES: Record<CategorieDElement, Record<string, unknown>> = {
@@ -73,6 +76,10 @@ describe('validerElement : un manifeste valide par catégorie', () => {
     const blason = manifeste(categorie, { surfaces: [{ nom, palette, blason: true }] });
     expect(verdict(blason)).toEqual({ ok: true, manifeste: blason });
   });
+  it('un rigide tenu déclare en option la prise de sa main libre', () => {
+    const deuxMains = manifeste('rigide', { liaison: { mode: 'rigide', secondePrise: SECONDE_PRISE } });
+    expect(verdict(deuxMains)).toEqual({ ok: true, manifeste: deuxMains });
+  });
   it('une surface d’élément déclare en option la matière de décor du monde dont elle s’habille', () => {
     const matiere = manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'prop--fer-noirci' }] });
     expect(verdict(matiere)).toEqual({ ok: true, manifeste: matiere });
@@ -96,6 +103,9 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['forme', 'le manifeste n’est pas un objet', []],
   ['forme', '`couvre` requis manquant', manifeste('vetement', { couvre: undefined })],
   ['forme', 'liaison sans `mode`', manifeste('rigide', { liaison: 'rigide' })],
+  ['forme', 'seconde prise sans triplet', manifeste('rigide', { liaison: { mode: 'rigide', secondePrise: { position: [0, -0.4], rotation: [0, 0, 0] } } })],
+  ['forme', 'seconde prise à champ en trop', manifeste('rigide', { liaison: { mode: 'rigide', secondePrise: { ...SECONDE_PRISE, os: 'hand_l' } } })],
+  ['forme', 'seconde prise d’un décor', manifeste('decor', { liaison: { mode: 'rigide', secondePrise: SECONDE_PRISE } })],
   ['forme', 'emplacement sans triplet', manifeste('vetement', { emplacements: { dos: { os: 'spine_01', position: [0, 0], rotation: [0, 0, 0] } } })],
   ['forme', 'surface nommée deux fois', manifeste('rigide', { surfaces: [...METAL, ...METAL] })],
   ['forme', 'empreinte du GLB mal formée', manifeste('rigide', { glb: { sha256: 'xyz', octets: 1 } })],
@@ -141,10 +151,13 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['cle-inconnue', '`selon` d’un Trait naval, qui n’est pas une Amélioration', manifeste('vehicule', { selon: { robuste: {} } })],
   ['forme', '`postes` au `selon` d’une pièce d’Amélioration, qui n’offre pas de postes', manifeste('amelioration', { selon: { sabord: { postes: {} } } })],
   ['bord-inconnu', 'poste d’une Amélioration à un bord qui n’en est pas un', manifeste('vehicule', { selon: { sabord: { postes: { flanc: [[3, 0.3, 0]] } } } })],
+  ['champ-hors-categorie', '`clips` sur un décor', manifeste('decor', { clips: { idle: 'repos' } })],
+  ['forme', 'clip qui n’est pas un nom', manifeste('vehicule', { clips: { ranged: 3 } })],
   ['selon-absent', 'nœud `sans-sabord` sans `selon.sabord`', ...surGlb('vehicule', { surfaces: [{ nom: 'metal', palette: 'metal' }] }, glbANoeuds(['coque', 'sans-sabord']))],
   ['forme', 'surface sans emplacement de palette', manifeste('rigide', { surfaces: [{ nom: 'plaque', teinte: true }] })],
   ['palette-inconnue', 'clé de palette inconnue', manifeste('trait', { surfaces: [{ nom: 'peau', palette: 'or' }] })],
   ['forme', 'blason autre que `true`', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', blason: false }] })],
+  ['forme', 'matériau par sexe sur un élément', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', parSexe: { F: 'plaque' } }] })],
   ['forme', 'matière qui n’est pas un nom', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 3 }] })],
   ['matiere-inconnue', 'matière hors des matières de décor du monde', manifeste('armure', { surfaces: [{ nom: 'plaque', palette: 'metal', matiere: 'terrain--planches' }] })],
   ['forme', 'blason sans emplacement de palette', manifeste('armure', { surfaces: [{ nom: 'plaque', blason: true }] })],
@@ -156,6 +169,7 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['rigide-a-la-racine', 'rigide à la racine', ...surGlb('rigide', {}, glbAvec(null))],
   ['rigide-a-la-racine', 'accessoire rigide à la racine', ...surGlb('accessoire', { liaison: { mode: 'rigide' } }, glbAvec(null))],
   ['rigide-a-la-racine', 'second mesh à la racine d’un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: true }] }))],
+  ['seconde-prise-sans-prise', 'seconde prise d’un rigide qui ne pend à l’os d’aucune prise', ...surGlb('rigide', { liaison: { mode: 'rigide', secondePrise: SECONDE_PRISE } }, glbAvec('pelvis'))],
   ['rigide-skinne', 'mesh skinné dans un rigide', ...surGlb('rigide', {}, glbDElement('hand_r', MATERIAUX, [], { garde: [{ materiau: 'plaque', uv: true }], skinne: true }))],
 ];
 
@@ -166,6 +180,7 @@ describe('validerElement : chaque refus nommé', () => {
       'liaison-hors-categorie': true, 'couche-hors-categorie': true, 'zone-inconnue': true, 'chaine-absente': true, 'emplacement-sur-os-absent': true, 'emplacement-inconnu': true,
       'silhouette-absente': true, 'bord-inconnu': true, 'etat-absent': true, 'selon-absent': true, 'matiere-inconnue': true, 'palette-inconnue': true, 'surface-absente': true, 'uv-absente': true, 'glb-different': true,
       'rigide-sans-mesh': true, 'rigide-sur-os-absent': true, 'rigide-a-la-racine': true, 'rigide-skinne': true,
+      'seconde-prise-sans-prise': true,
     };
     expect(new Set(REFUS.map(([code]) => code))).toEqual(new Set(Object.keys(attendus)));
   });

@@ -52,7 +52,7 @@ import { heightAt, type Scene } from '../../noyau/monde/scene';
 import type { LightSource } from '../../noyau/monde/vision';
 import { ambianceLuminance } from '../catalog/ambiance';
 import { LIGHT_COLOR } from '../backends/webgl/sceneMeshes';
-import { FLAME_LIFT_M } from '../../noyau/lumiereDeLaScene';
+import { FLAME_LIFT_M } from '../../noyau/monde/vision';
 
 /** Nombre de lampes ponctuelles montées EN PERMANENCE. Budget mesuré sur la population réelle : 3
  *  sources sur le terrain d'entraînement, ≤ 12 sur le hub de l'arène (#1245). Au-delà, ce sont les

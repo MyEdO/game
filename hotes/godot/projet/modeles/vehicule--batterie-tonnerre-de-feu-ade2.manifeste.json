@@ -1,0 +1,41 @@
+{
+  "schema": 3,
+  "categorie": "vehicule",
+  "cle": {
+    "definition": "batterie-tonnerre-de-feu-ade2"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "clips": {
+    "idle": "repos",
+    "walk": "marche",
+    "ranged": "tir"
+  },
+  "surfaces": [
+    {
+      "nom": "bronze",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "bois",
+      "palette": "bois",
+      "matiere": "prop--bois-chene"
+    },
+    {
+      "nom": "fer",
+      "palette": "metal",
+      "matiere": "prop--fer-noirci"
+    },
+    {
+      "nom": "pointe",
+      "palette": "accent",
+      "matiere": "prop--toile-rouge"
+    }
+  ],
+  "glb": {
+    "sha256": "4391894350c650ff33ce0d50334263a0dfbc82c7f3ea2fe7bf60f99a9d0b4e28",
+    "octets": 118444
+  }
+}

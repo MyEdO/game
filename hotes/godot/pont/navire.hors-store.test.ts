@@ -1,7 +1,8 @@
 /**
  * LE NAVIRE D'UNE SCÈNE (#3686 ; `CONTRAT.md`, sections « Monde », « Vue » et « Corps d'un combattant ») : la scène
  * entre en jeu les ponts de son navire posés ; la vue le sert par le corps de son véhicule, au centre de ses ponts ; le
- * monde garde le sol de ses ponts pour le pointage sans le peindre, et le plateau ne dessine aucune de leurs arêtes.
+ * monde garde le sol de ses ponts pour le pointage sans le peindre et peint la mer sur sa flottaison, le plateau ne dessine
+ * aucune de leurs arêtes et coupe son modèle sous les ponts qu'il retire, et l'exploration ne le pose à aucune case.
  */
 import { beforeAll, describe, expect, it } from 'vitest';
 import { modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
@@ -33,6 +34,20 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     expect(monde.surfaces.filter((s) => s.navire === 'caraque').length).toBeGreaterThan(0);
     expect(monde.surfaces.filter((s) => s.navire === undefined).map((s) => s.matiere)).not.toContain('relief--pilier');
     expect(vueDe(appel('vue')).plateau!.aretes).toEqual([]);
+  });
+
+  it('le monde peint la mer sur la flottaison du navire ; le navire posé par ses ponts ne tient aucune case', () => {
+    const { monde } = appel('monde') as unknown as { monde: VolumeDuMonde };
+    expect(monde.surfaces.filter((s) => s.flottaison !== undefined).map(({ matiere, flottaison }) => ({ matiere, flottaison }))).toEqual([{ matiere: 'terrain--eau', flottaison: 'caraque' }]);
+    const { projection, corps } = vueDe(appel('vue'));
+    expect(Object.keys(corps.navires)).toEqual(['caraque']);
+    expect(projection.exploration!.entites.liste.map((e) => e.id)).not.toContain('caraque');
+  });
+
+  it('le plateau coupe le navire sous le pont le plus bas que le regard retire au-dessus du groupe', () => {
+    const coupe = (regard: string) => vueDe(appel('regarder', { regard })).plateau!.coupesDesNavires;
+    expect([coupe('tactique'), coupe('plateau'), coupe('immersion')]).toEqual([{}, { caraque: 5.6 }, {}]);
+    coupe('tactique');
   });
 });
 
