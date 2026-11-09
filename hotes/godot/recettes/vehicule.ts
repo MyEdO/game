@@ -1,7 +1,7 @@
 /**
  * LE VÉHICULE FIGÉ DE L'ATELIER (#2987) : ce que la recette native de l'atelier (`projet/recettes/atelier-du-vehicule.gd`)
- * lit, figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. Le listage des véhicules et
- * des pièces d'Amélioration du dossier des modèles (`listage`, `listage.mjs`, réduit à ces deux catégories), la réponse du
+ * lit, figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. Le listage des bases, des
+ * véhicules et des pièces d'Amélioration du dossier des modèles (`listage`, `listage.mjs`, sans les éléments d'une base), la réponse du
  * pont à `catalogues`, à `vitrine` et à `modeles` sur ce listage, et sa réponse à `vehicule` sur chaque entrée de `ENTREES`,
  * sous la clé de cette entrée (`cleDEntree`), celle que la recette calcule de l'entrée que l'atelier envoie.
  */
@@ -34,7 +34,10 @@ export const cleDEntree = (valeur: unknown): string =>
 /** Le véhicule figé : le listage réduit de `listage` (le listage du dossier des modèles), les réponses de `catalogues`, de
  *  `vitrine` et de `modeles`, et par clé d'entrée (`cleDEntree`), la réponse de `vehicule` à chacune de `ENTREES`. */
 export function figerLeVehicule(listage: { manifestes: Record<string, unknown>; osDesRigides: Record<string, string[]> }) {
-  const ids = Object.keys(listage.manifestes).filter((id) => ['vehicule', 'amelioration'].includes((listage.manifestes[id] as { categorie?: string }).categorie ?? ''));
+  const ids = Object.keys(listage.manifestes).filter((id) => {
+    const { categorie } = listage.manifestes[id] as { categorie?: string };
+    return categorie === undefined || ['vehicule', 'amelioration'].includes(categorie);
+  });
   const reduit = { manifestes: tableTotale(ids, (id) => listage.manifestes[id]), osDesRigides: tableTotale(ids, (id) => listage.osDesRigides[id]), erreurs: [] };
   const pont = creerPont();
   const appel = (methode: string, entree?: unknown): Record<string, unknown> => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
