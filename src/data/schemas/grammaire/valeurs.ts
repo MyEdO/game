@@ -1022,7 +1022,7 @@ export const termeBonusDe = nommerChamps(z.strictObject({ bonusOf: charKeySchema
 /** Les options de la grammaire d'une quantité, dans l'ordre du sélecteur ; `soi` est le schéma
  *  récursif, `avecJet` admet les termes de jet. */
 const optionsDeFormule = (soi: z.ZodType<unknown>, avecJet: boolean): z.ZodType<unknown>[] => [
-  z.number(),
+  nommerNoeud(z.number(), { label: 'nombre' }),
   termeBonusDe,
   marquerProduit(nommerChamps(z.strictObject({ charOf: charKeySchema }), { charOf: { label: "valeur de caractéristique" } }), 'optionsDeFormule', 'charOf'),
   ...(avecJet ? [

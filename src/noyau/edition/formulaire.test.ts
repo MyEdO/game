@@ -75,7 +75,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
     expect(unionDuNoeud(champ(champs, z, 'crossTest', 'gate').noeud)?.discriminant).toBe('kind');
     expect(valeurNeuveDe(elementDuNoeud(champ(champs, z, 'crossTest', 'difficultyBy').noeud))).toEqual({ cond: CONDITION_TOUJOURS, difficulty: 'tresFacile' });
     const enjeu = champ(champs, z, 'crossTest', 'stake');
-    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant reste en JSON').toEqual([undefined, undefined, undefined]);
+    expect([champsDeclares(enjeu.noeud), unionDuNoeud(enjeu.noeud)?.variantes.map((v) => v.cle), elementDuNoeud(enjeu.noeud)], 'une union sans discriminant se choisit à la clé propre de ses branches').toEqual([undefined, ['key', 'authored', 'from'], undefined]);
   });
 
   it('une référence se choisit dans la sous-liste que sa feuille déclare', () => {

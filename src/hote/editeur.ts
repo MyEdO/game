@@ -835,15 +835,16 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
 }
 
 /** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
- *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>`, chacune posant sa valeur (celles que son
+ *  choisis : le choix de sa variante, d'id `valeur/<chemin>/<discriminant>` (`…/forme` d'une union à clé propre),
+ *  chacune posant sa valeur (celles que son
  *  contexte y pose, `FieldDesc.contexte`, sinon `variantesAChoisir`), suivi de « Aucune » si son absence est
  *  admise ; puis, de la variante courante, une union
- *  choisie sous le même chemin, ses champs offerts, ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
+ *  choisie sous le même chemin, ses champs offerts, la saisie de sa valeur hors objet (le nombre d'une formule), ou, d'une op sans forme déclarée, la ligne qui le dit et la saisie
  *  JSON de l'op entière. */
 function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], tenus: readonly string[] = []): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const u = unionDuNoeud(f.noeud)!;
-  const idDuChoix = `${id}/${u.discriminant}`;
+  const idDuChoix = `${id}/${u.discriminant || 'forme'}`;
   const variantes = f.contexte?.choix(ici) ?? variantesAChoisir(f.noeud, valeur)!.map((v) => ({ valeur: v.valeur, libelle: v.libelle, refus: null }));
   const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle: f.label, valeur: valeur ?? null, valeurs: [...variantes], bornes: null, note: null, champs: null };
   const aucune = f.nullable ? [bouton(`${idDuChoix}/aucune`, t('ecran.editeur.valeur.aucune'), ecrireLaValeur(porteur, ici), valeur === undefined)] : [];
@@ -855,6 +856,10 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
       return [ligne(`${id}/motif`, t('ecran.editeur.valeur.motif.opNonTypee')), elementDeValeur(id, porteur, ici, f, { ...a, saisie: 'json', valeurs: null })];
     }
     if (unionDuNoeud(courante.noeud)) return elementsDeLUnion(porteur, { ...f, label: courante.libelle, nullable: false, noeud: courante.noeud }, valeur, ici, choisis);
+    if (!champsDeclares(courante.noeud)) {
+      const scalaire = { ...f, label: courante.libelle, noeud: courante.noeud };
+      return [elementDeValeur(id, porteur, ici, scalaire, argumentDeValeur(scalaire, valeur, ici))];
+    }
     const objet = valeur as Record<string, unknown>;
     return elementsDuFormulaire(porteur, champsSous(f, ici, courante.noeud, objet, choisis), objet, ici);
   };

@@ -21,6 +21,7 @@ import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { findCreatureById, traits } from '../../../src/data';
+import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 
@@ -644,8 +645,6 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const ajouter = boutonDe(presser(boutonDe(griffon, 'valeur/combat/ajouter')), 'valeur/combat/optionals/ajouter');
     expect(ajouter.libelle).toBe('Ajouter : options');
     const option = presser(ajouter);
-    const indice = option.vue.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/combat/optionals/0/value') as Formulaire | undefined;
-    expect(indice?.champs.map((c) => c.type), 'l’Indice chiffré d’un Trait posé se saisit en nombre').toEqual(['fixe', 'fixe', 'saisieNombre']);
     const offerts = valeursDeLInspecteur(option, 'valeur/combat/optionals/0/id').map(valeurJouee);
     const fiche = findCreatureById('griffon-zoo-imperial')!;
     const facultatifs = fiche.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
@@ -666,6 +665,44 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
       expect(zones.filter((ids) => ids && nomme(ids, e.id)).length, e.id).toBeLessThanOrEqual(1);
     }
     expect(zones.filter((ids) => ids && nomme(ids, 'valeur/combat/optionals/0/id')).length).toBe(1);
+  });
+
+  it('l’Indice d’un Trait posé s’écrit à l’écran en nombre ou par les formes de sa formule : « Arme (BF +4) » (LDB 76 l.35 ; #3606 M1a)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const forme = (e: Edition, id: string, libelle: string) => valeursDeLInspecteur(e, `${id}/forme`).find((b) => b.libelle === libelle)!;
+    const saisie = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Formulaire;
+    const ecrire = (e: Edition, id: string, v: unknown) => { const f = saisie(e, id); return editionDe(appel('editer', { type: 'valeur', args: [(f.champs[0] as { valeur: unknown }).valeur, (f.champs[1] as { valeur: unknown }).valeur, v] })); };
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/personnage'));
+    jouer({ geste: 'appui', point: point(1, 1) });
+    const pnj = jouer({ geste: 'relache', point: point(1, 1) });
+    const option = presser(boutonDe(presser(boutonDe(pnj, 'valeur/combat/ajouter')), 'valeur/combat/optionals/ajouter'));
+    const V = 'valeur/combat/optionals/0/value';
+    expect(valeursDeLInspecteur(option, `${V}/forme`).map((b) => b.libelle), 'Indice absent : le nombre et chaque forme de la formule').toEqual(expect.arrayContaining(['nombre', 'somme', 'bonus de caractéristique']));
+    const trois = ecrire(presser(forme(option, V, 'nombre')), V, 3);
+    expect(saisie(trois, V).champs.map((c) => c.type), 'un Indice chiffré se saisit en nombre').toEqual(['fixe', 'fixe', 'saisieNombre']);
+    expect(valeursDeLInspecteur(trois, `${V}/forme`).find((b) => b.presse)?.libelle, 'et garde le choix de sa forme').toBe('nombre');
+    const somme = presser(boutonDe(presser(forme(trois, V, 'somme')), `${V}/sum/ajouter`));
+    const bonus = presser(valeursDeLInspecteur(presser(forme(somme, `${V}/sum/0`, 'bonus de caractéristique')), `${V}/sum/0/bonusOf`).find((b) => (b.jeu as { args: unknown[] }).args[2] === 'force')!);
+    const arme = ecrire(presser(boutonDe(bonus, `${V}/sum/ajouter`)), `${V}/sum/1`, 4);
+    expect(valeursDeLInspecteur(arme, `${V}/forme`).find((b) => b.presse)?.libelle).toBe('somme');
+    expect((valeursDeLInspecteur(arme, `${V}/forme`).find((b) => b.presse)!.jeu as { args: unknown[] }).args[2], 'la valeur écrite est celle de « Arme (BF +4) »').toEqual(parseTraitInstance('Arme (BF +4)').value);
+  });
+
+  it('une durée en formule d’une op de zone s’écrit de même : nombre, dés, somme (#3606 M1a)', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    presser(boutonDe(presser(boutonDe(ouverte, 'outil/zone')), 'zone/effect'));
+    jouer({ geste: 'appui', point: point(2, 2) });
+    const zone = jouer({ geste: 'relache', point: point(3, 3) });
+    const op = presser(valeursDeLInspecteur(presser(boutonDe(zone, 'valeur/onCross/ajouter')), 'valeur/onCross/0/op').find((b) => (b.jeu as { args: unknown[] }).args[2] && ((b.jeu as { args: { op: string }[] }).args[2]).op === 'charMod')!);
+    const formes = valeursDeLInspecteur(op, 'valeur/onCross/0/durationRounds/forme').map((b) => b.libelle);
+    expect(formes, 'une durée absente : le nombre, les dés et chaque forme').toEqual(expect.arrayContaining(['nombre', 'dés', 'somme']));
+    const des = presser(valeursDeLInspecteur(op, 'valeur/onCross/0/durationRounds/forme').find((b) => b.libelle === 'dés')!);
+    expect(des.vue.zones['editeur.inspecteur'].some((el) => el.id.startsWith('valeur/onCross/0/durationRounds/dice')), 'les dés posés se décomposent').toBe(true);
   });
 
   it('une troupe : le formulaire borné pose N copies sur des cases libres, ids neufs, profils tirés, rencontre héritée ; une annulation la défait (#3704)', () => {
