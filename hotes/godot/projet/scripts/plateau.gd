@@ -12,15 +12,22 @@
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
 ## appel entre ses combattants (`Effets`). Il ne rend que la
 ## case cliquée : celle que le monde désigne sous le pointeur, ou que l'œil franchit ou vise ; et, au clic droit, la
-## case inspectée sous le pointeur.
+## case inspectée sous le pointeur. Il pose la caméra sur un cadrage sans rien jouer (`cadrer`).
 class_name Plateau
 extends Node3D
 
 signal case_cliquee(case: Vector3i)
 ## Le clic droit sur une case, qui ouvre la fiche de son occupant.
 signal case_inspectee(case: Vector3i)
-## Le corps d'un combattant dessiné a changé (`Combattant.habille`).
+## Le corps d'un combattant dessiné a changé (`Combattant.habille`), ou le modèle d'un navire s'est posé.
 signal habille
+
+## Les clés que lit le cadrage sous chaque regard (`cadrer`), `etage` seule facultative.
+const CLES_DU_CADRAGE := {
+	immersion = ["regard", "case", "etage", "lacet", "tangage"],
+	tactique = ["regard", "case", "etage", "lacet", "zoom"],
+	plateau = ["regard", "case", "etage", "lacet", "zoom"],
+}
 
 @export var scene_combattant: PackedScene
 
@@ -142,6 +149,7 @@ func _monter_le_navire(id: String, navire: Dictionary, metres_par_case: float) -
 	var pose: bool = await montage.monter(navire.corps, _chargeur, _poser_le_navire.bind(navire, metres_par_case))
 	if pose and montage.scene != null:
 		_monde.border_la_mer(id, montage.contour_sous(MiseEnPage.hauteur_au_plateau(0.0, metres_par_case)))
+		habille.emit()
 
 
 ## La scène nue `scene` du navire `navire` à l'échelle métrique du plateau de `metres_par_case`, sa proue, le +Z de son
@@ -160,6 +168,58 @@ func _nommer_les_entites(entites: Array) -> void:
 		if e.nom != null:
 			noms[Vector3i(int(e.pos[0]), int(e.pos[1]), int(e.pos[2]))] = e.nom
 	_monde.etiqueter(noms)
+
+
+## Les ids des navires de la scène dont le modèle est posé (`_monter_le_navire`).
+func navires() -> Array:
+	return _navires_montes.keys().filter(func(id: String) -> bool: return _navires_montes[id].scene != null)
+
+
+## La caméra posée sur le cadrage `cadrage` (`CONTRAT.md`, section « Écran publié », `wfrpCadrer`), sous le regard du
+## plateau, sans rien jouer : en immersion, l'œil sur le sol de la case `case` (`{ x, y }`) de la couche `etage` (0 sans
+## elle), à l'azimut `lacet` et au tangage `tangage`, en degrés (`Immersion.poser`) ; sous les regards `tactique` et
+## `plateau`, la caméra sur le sol de cette case, regardant à l'azimut `lacet`, à la distance `zoom` (`Monde.cadrer`).
+## Rend le refus d'un cadrage d'un autre regard, d'une clé hors de celles de son regard ou manquante, d'une case qui
+## n'est pas une case du plateau à l'une de ses couches, d'un nombre hors de ses bornes, ou de l'œil hors d'exploration ;
+## `""` une fois posé.
+func cadrer(cadrage: Dictionary) -> String:
+	var regard := _monde.regard()
+	if cadrage.get("regard") != regard:
+		return "le cadrage du regard %s sous le regard %s" % [cadrage.get("regard"), regard]
+	var lues: Array = CLES_DU_CADRAGE[regard]
+	for cle: String in cadrage:
+		if not lues.has(cle):
+			return "clé hors contrat : %s (sous le regard %s : %s)" % [cle, regard, ", ".join(PackedStringArray(lues))]
+	for cle: String in lues:
+		if cle != "etage" and not cadrage.has(cle):
+			return "clé manquante : %s" % cle
+	var case: Variant = cadrage.case
+	var etage: Variant = cadrage.get("etage", 0)
+	if not (case is Dictionary and case.size() == 2 and _entier(case.get("x")) and _entier(case.get("y")) and _entier(etage)):
+		return "case { x, y } et etage entiers attendus : %s, %s" % [JSON.stringify(case), JSON.stringify(etage)]
+	var ici := Vector3i(int(case.x), int(case.y), int(etage))
+	if not Rect2i(Vector2i.ZERO, _monde.taille()).has_point(Vector2i(ici.x, ici.y)) or not _monde.couches().has(ici.z):
+		return "case %s hors du plateau de %s cases aux couches %s" % [ici, _monde.taille(), _monde.couches()]
+	for cle: String in ["lacet", "tangage", "zoom"]:
+		if cadrage.has(cle) and not (cadrage[cle] is float or cadrage[cle] is int):
+			return "%s : un nombre attendu, %s reçu" % [cle, JSON.stringify(cadrage[cle])]
+	var lacet := MiseEnPage.lacet_de_l_azimut(cadrage.lacet)
+	if regard != "immersion":
+		return "" if _monde.cadrer(_lieu([ici.x, ici.y, ici.z]), lacet, cadrage.zoom) else "zoom %s hors de [%s, %s]" % [cadrage.zoom, Monde.DISTANCE_MIN, Monde.DISTANCE_MAX]
+	var tangage := deg_to_rad(cadrage.tangage)
+	if MiseEnPage.tangage_glisse(tangage, 0.0, -MiseEnPage.TANGAGE_DE_L_OEIL, MiseEnPage.TANGAGE_DE_L_OEIL) != tangage:
+		return "tangage %s° hors de ±%s°" % [cadrage.tangage, rad_to_deg(MiseEnPage.TANGAGE_DE_L_OEIL)]
+	return "" if _immersion.poser(ici, lacet, tangage) else "l'œil ne se pose qu'en exploration"
+
+
+## Si `valeur` est un nombre entier.
+static func _entier(valeur: Variant) -> bool:
+	return (valeur is int or valeur is float) and int(valeur) == valeur
+
+
+## La caméra du regard telle qu'elle est posée (`Monde.camera`).
+func camera() -> Dictionary:
+	return _monde.camera()
 
 
 ## Par id de combattant dessiné, ce que porte son corps (`Combattant.corps`).

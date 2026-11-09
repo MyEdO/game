@@ -1,5 +1,5 @@
 ## La mise en page de l'hôte : la case du plateau vers le monde, le centre du plateau, le quart de tour de la
-## caméra, son zoom borné, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
+## caméra, son zoom borné, son lacet à un azimut, les millisecondes du pont en secondes de minuteur, le pas d'image d'un clip et l'image
 ## voisine d'un instant, le diamètre d'une sphère, l'échelle qui porte une image à une largeur voulue, l'entrée et le
 ## pas de la marche de l'atelier, l'orbite de sa caméra, son cadrage et son zoom, le gabarit d'une base posé sur ses os, ses pieds
 ## au sol, un vecteur rapporté à un repère, l'axe unité le plus proche d'un vecteur, le repère d'un objet rangé à un emplacement, le coin d'une bulle au-dessus
@@ -229,6 +229,22 @@ static func point_de_carte_du_lieu(lieu: Vector3) -> Vector2:
 ## les bords du plateau droits à l'écran.
 static func lacet_du_plateau(lacet: float) -> float:
 	return lacet - QUART_DE_TOUR / 2.0
+
+
+## Le lacet du regard `tactique` sous lequel la caméra du regard `plateau` prend le lacet `lacet` (`lacet_du_plateau`).
+static func lacet_sous_le_plateau(lacet: float) -> float:
+	return lacet + QUART_DE_TOUR / 2.0
+
+
+## Le lacet d'une caméra qui regarde à l'azimut `azimut`, en degrés au compas : 0 au nord, 90 à l'est
+## (`LACETS_DES_CAPS`).
+static func lacet_de_l_azimut(azimut: float) -> float:
+	return -deg_to_rad(azimut)
+
+
+## L'azimut, en degrés au compas dans [0, 360[, d'une caméra au lacet `lacet` (`lacet_de_l_azimut`).
+static func azimut_du_lacet(lacet: float) -> float:
+	return fposmod(-rad_to_deg(lacet), 360.0)
 
 
 ## L'œil à `oeil` mètres au-dessus du sol `sol`, sur un plateau de `metres_par_case` mètres par case.

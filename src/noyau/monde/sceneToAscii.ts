@@ -1,7 +1,8 @@
 /**
  * `Scene` → grilles ASCII du format `MapSpec` (`noyau/mapSpec.ts`) — le sens INVERSE de `buildScene` :
  * l'utilisateur édite au clic dans l'éditeur, puis exporte le résultat en ASCII copiable
- * dans un fichier source (`*.ascii.ts`, cf. `scenes/opera/floorplan.ascii.ts`). PUR, aucun import UI.
+ * dans un fichier source (`*.ascii.ts`, cf. `scenes/opera/floorplan.ascii.ts`) ; sa grille porte aussi le plan d'une
+ * couche que lit une recette ou un agent (`planDeLaCouche`). PUR, aucun import UI.
  *
  * PORTÉE (round-trip GARANTI, cf. `sceneToAscii.test.ts`) : tuiles (`walled`/`legend`), murs/portes/
  * fenêtres/matériaux ET apparences (`walled`/`wallLegend`), hauteurs (`relief`, une entrée par case ≠ 0 — capture
@@ -24,7 +25,11 @@ import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import { DEFAULT_TERRAIN, heightAt, isDescriptiveZone, porteAuteur, tileAt, wallOverlayOf, WALL_OVERLAY_KEYS } from './scene';
 import { sceneZoneTiles } from './zones';
 import { glypheDe, terrainAbsent, terrainsAvecGlyphe } from './terrain';
-import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII } from '../../data/schemas/grammaire/carte-ascii';
+import { FOND_ECRIT, GLYPHES_RESERVES, GRAMMAIRE_ASCII, MARQUES_DU_PLAN } from '../../data/schemas/grammaire/carte-ascii';
+import { DIR8_ORDER, rotateDir8 } from '../../geometry/dir8';
+import { estPoseParSesPonts } from '../planDeNavire';
+import { casesDuGroupe } from './combatants';
+import type { Jeu } from '../etat';
 
 /** Alphabet BRUT de l'allocateur, moins les mots de la grammaire du plan (`carte-ascii.ts`). Les
  *  glyphes DÉCLARÉS par la donnée (`terrains.json › ascii`) en sont retirés à chaque export : ils
@@ -344,4 +349,44 @@ export function sceneToAscii(scene: Scene): SceneAsciiExport {
     `export const TERRAIN = ${JSON.stringify(base0)};\n`;
 
   return { walled, legend, fondParZ, terrain: base0, wallLegend, zoneMap, zoneLegend, relief, notRestored, warnings, text };
+}
+
+/** L'œil d'un plan : sa case et son azimut en degrés (0 au nord, 90 à l'est). */
+export interface OeilDuPlan { x: number; y: number; z: number; azimut: number }
+
+/** Le sens de chaque marque de `MARQUES_DU_PLAN`, à la légende du plan. */
+const SENS_DES_MARQUES: Record<Exclude<keyof typeof MARQUES_DU_PLAN, 'oeil'>, string> = { heros: 'un héros', personnage: 'un personnage', decor: 'un décor' };
+
+/**
+ * Le plan de la couche `z` de la scène de `jeu` (#3686) : sa grille box-drawing (`sceneToAscii`, `walled`), chaque case
+ * qui porte une marque (`MARQUES_DU_PLAN`) sous elle (l'œil `oeil` s'il est sur cette couche, au cap le plus proche de
+ * son azimut, les héros du groupe, les autres personnages hors des navires posés par leurs ponts, les décors), puis la
+ * légende des glyphes que ses cases montrent. PUR.
+ */
+export function planDeLaCouche(jeu: Pick<Jeu, 'battle' | 'partyPos'> & { scene: Scene }, z: number, oeil: OeilDuPlan | null): string {
+  const { scene } = jeu;
+  const exporte = sceneToAscii(scene);
+  const lignes = exporte.walled[`z${z}`].slice(1, -1).split('\n').map((ligne) => [...ligne]);
+  const sens = new Map<string, string>();
+  const marquer = (p: { x: number; y: number; z?: number }, glyphe: string, quoi: string) => {
+    const ligne = lignes[2 * p.y + 1];
+    if ((p.z ?? 0) !== z || ligne?.[2 * p.x + 1] === undefined) return;
+    ligne[2 * p.x + 1] = glyphe;
+    sens.set(glyphe, quoi);
+  };
+  const autres = jeu.battle
+    ? jeu.battle.combatants.filter((c) => c.kind !== 'hero' && c.pos && !estPoseParSesPonts(scene, c.id)).map((c) => c.pos!)
+    : scene.entities.filter((e) => e.kind === 'personnage' && !estPoseParSesPonts(scene, e.id)).map((e) => ({ ...e.pos, z: e.z }));
+  const decors = scene.entities.filter((e) => e.kind === 'prop').map((e) => ({ ...e.pos, z: e.z }));
+  for (const p of decors) marquer(p, MARQUES_DU_PLAN.decor, SENS_DES_MARQUES.decor);
+  for (const p of autres) marquer(p, MARQUES_DU_PLAN.personnage, SENS_DES_MARQUES.personnage);
+  for (const p of casesDuGroupe(jeu)) marquer(p, MARQUES_DU_PLAN.heros, SENS_DES_MARQUES.heros);
+  if (oeil) {
+    const cap = rotateDir8('N', Math.round(oeil.azimut / 45));
+    marquer(oeil, MARQUES_DU_PLAN.oeil[DIR8_ORDER.indexOf(cap)], `l’œil, regard au ${cap}`);
+  }
+  const montres = new Set(lignes.filter((_, l) => l % 2 === 1).flatMap((ligne) => ligne.filter((_, c) => c % 2 === 1)));
+  const terrains: [string, string][] = [[FOND_ECRIT, exporte.fondParZ[`z${z}`]], ...Object.entries(exporte.legend)];
+  const legende = [...terrains, ...sens].filter(([glyphe]) => montres.has(glyphe)).map(([glyphe, quoi]) => `${glyphe} ${quoi}`);
+  return [...lignes.map((ligne) => ligne.join('')), '', ...legende].join('\n');
 }
