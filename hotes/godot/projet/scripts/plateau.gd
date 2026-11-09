@@ -1,13 +1,13 @@
 ## Le plateau du jeu : sur le monde de la scène (`Monde`), sous le regard du plateau (`vue.plateau.regard`,
 ## `Monde.regarder`), sa caméra à la suite de l'actif du combat, sinon du groupe (`Monde.suivre`), ou l'œil du meneur
-## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `Monde.poser_les_aretes`),
+## (`Immersion`, dont chaque case jouée part en clic), les arêtes du plateau (`vue.plateau`, `VolumeDeScene.poser_les_aretes`),
 ## ses nappes de toit retirées (`toitsLeves`), ses arêtes retirées, abattues sous le cran de la caméra
 ## (`aretesDegagees`), et ses couronnes crénelées, tombées avec leur mur (`couronnesAbattues`, `Monde.cacher_le_bati`),
 ## chaque combattant à sa case et sa couche (`voisins`) ou, en exploration, le meneur du groupe à la case du groupe, à
 ## la station d'une case que le modèle d'un navire rogne (`Monde.poser_les_stations`), chacun sous son corps (`vue.corps`,
 ## aucun sous son `refus`) et son véhicule (`vue.corps.vehicules`), chaque navire de la scène sous le modèle
 ## de son corps (`vue.corps.navires`, `MontageDeVehicule`), sous tout regard, coupé sous les ponts que le regard
-## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`Monde.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
+## retire (`plateau.coupesDesNavires`), sa mer bordée par sa coque (`VolumeDeScene.border_la_mer`), et chaque entité de la scène nommée à sa case, les surbrillances des cases
 ## que la vue peint (`vue.cases`), des cibles, des entités nommées et de l'aperçu du premier clic, et la case sous le
 ## pointeur jusqu'au clic, chacun sur le sol de sa case ; aucun combattant sous l'œil de l'immersion ; les effets de chaque
 ## appel entre ses combattants (`Effets`). Il ne rend que la
@@ -71,7 +71,7 @@ func montrer(vue: Dictionary) -> void:
 	if vue.plateau != null:
 		_monde.regarder(vue.plateau.regard)
 		_monde.poser_les_stations(vue.corps.navires)
-		_monde.poser_les_aretes(vue.plateau.aretes)
+		_monde.volume.poser_les_aretes(vue.plateau.aretes)
 		_monde.cacher_le_bati(vue.plateau.toitsLeves, vue.plateau.couronnesAbattues, vue.plateau.aretesDegagees)
 		_combattants.visible = vue.plateau.regard != "immersion"
 		var suivi: Array = dessines.filter(func(c: Dictionary) -> bool: return c.pos != null and (actif == null or c.id == actif))
@@ -146,12 +146,12 @@ func _poser_les_navires(navires: Dictionary, coupes: Dictionary, metres_par_case
 
 ## Le corps du navire `navire` d'id `id` monté (`MontageDeVehicule.monter`) et posé (`_poser_le_navire`) ; posé, la mer de
 ## sa flottaison bordée par ce que sa coque plonge sous la hauteur 0 de la scène (`MontageDeVehicule.contour_sous`,
-## `Monde.border_la_mer`).
+## `VolumeDeScene.border_la_mer`).
 func _monter_le_navire(id: String, navire: Dictionary, metres_par_case: float) -> void:
 	var montage: MontageDeVehicule = _navires_montes[id]
 	var pose: bool = await montage.monter(navire.corps, _chargeur, _poser_le_navire.bind(navire, metres_par_case))
 	if pose and montage.scene != null:
-		_monde.border_la_mer(id, montage.contour_sous(MiseEnPage.hauteur_au_plateau(0.0, metres_par_case)))
+		_monde.volume.border_la_mer(id, montage.contour_sous(MiseEnPage.hauteur_au_plateau(0.0, metres_par_case)))
 		habille.emit()
 
 
@@ -260,10 +260,10 @@ func points() -> Dictionary:
 
 
 ## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume (`Monde.poser`), ses
-## nappes de toit et ses couronnes crénelées (`Monde.poser_les_nappes`).
+## nappes de toit et ses couronnes crénelées (`VolumeDeScene.poser_les_nappes`).
 func poser_le_monde(monde: Dictionary) -> void:
 	_monde.poser(monde.monde)
-	_monde.poser_les_nappes(monde.toits, monde.couronnes)
+	_monde.volume.poser_les_nappes(monde.toits, monde.couronnes)
 	_monde.poser_la_meteo(monde.meteo)
 
 

@@ -58,9 +58,9 @@ export type IdDObjet = string;
 export type IdDEntiteDeScene = string;
 /** Ce que le clic d'une case désigne (`cliquerLaCase`) : en combat un combattant, hors combat une entité de la scène. */
 export type IdDuClic = string;
-/** Un combattant que `promouvoirLeCombattant` accepte (`actFirstIds`, `turnEconomy.ts`). */
+/** Un combattant que le choix `roundStart.promouvoir` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
-/** Un tireur qu'`armerLeTirPreventif` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
+/** Un tireur que le choix `roundStart.viser` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
 export type IdDeTireurRapide = string;
 /** Une chanson que le réglage `shanty.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
 export type IdDeChanson = string;

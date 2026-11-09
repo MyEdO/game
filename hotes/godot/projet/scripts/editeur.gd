@@ -3,7 +3,7 @@
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de la couche
-## (`Monde.poser_les_aretes`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
+## (`VolumeDeScene.poser_les_aretes`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
 ## (`Monde.etiqueter`), puis le geste en cours, en plaques sur le sol de ses cases (`Monde.peindre`), et l'arête sélectionnée, gainée (`Monde.choisir_l_arete`) ; le calque de référence de la couche sous sa planche
@@ -86,7 +86,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_refus.text = ""
 	if reponse.has("monde"):
 		_monde.poser(reponse.monde)
-		_monde.poser_les_aretes(reponse.aretes)
+		_monde.volume.poser_les_aretes(reponse.aretes)
 	_vue = reponse.vue
 	_surcouche = reponse.surcouche
 	_monde.choisir_l_arete(_surcouche.arete)
@@ -223,4 +223,4 @@ func _publier_l_ecran() -> void:
 	await get_tree().process_frame
 	if not is_inside_tree():
 		return
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.nombre_d_aretes(), noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})
+	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})

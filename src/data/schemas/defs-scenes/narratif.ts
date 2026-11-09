@@ -13,9 +13,9 @@ import { nommerChamps, nommerNoeud } from '../grammaire/meta';
 import { z } from 'zod';
 import { maisonSchema, sourceRefSchema, entityAppearanceSchema } from '../grammaire/valeurs';
 import { clotureSchema, identiteSchema, ouvertureSchema } from '../grammaire/campagne';
-import { idDeCreature } from './effets';
 import { couvreSchema, entreeDeFicheSchema } from './communs';
 import { listeCle } from '../grammaire/collection-cle';
+import { ref } from '../grammaire/ref';
 import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { apparenceDObjetSchema } from '../defs/trappings';
@@ -64,6 +64,10 @@ export const affaireSchema = nommerChamps(z.strictObject({
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, titre: { label: "titre" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de l’affaire réservée à l’atelier"} } });
 
 
+/** La créature globale que surcharge un preset : `ref('creature')`, sortie élargie (patron `couvertureSchema`,
+ *  `./scene.ts`) : `PresetPnj` est lu par l'éditeur du narratif et par l'authoring TS des scénarios. */
+const creatureDeBaseSchema: z.ZodType<{ id: string }, { id: string }> = ref('creature');
+
 /** Un PNJ pré-composé : créature globale surchargée (`base`) ou profil ad hoc embarqué (`profil`,
  *  même forme qu'une entrée de `creatures.json`, partielle). Le nœud de l'entrée partielle est SCELLÉ
  *  (`z.infer` y vaut `unknown`) : sa vue TS est celle que le runtime consomme, `Partial<CreatureData>`
@@ -71,7 +75,7 @@ export const affaireSchema = nommerChamps(z.strictObject({
  *  texte du profil et folio du PNJ ; arbitrages chiffrés : `profil.maison` (#2001, #2206). */
 const presetPnjObjet = z.strictObject({
   id: z.string().min(1, 'id vide.'),
-  base: idDeCreature.optional(),
+  base: creatureDeBaseSchema.optional(),
   profil: (creatureEntreePartielle as z.ZodType<Partial<CreatureData>>).optional(),
   apparence: entityAppearanceSchema.optional(),
   /** id d'illustration (registre d'art), affichage seul. */

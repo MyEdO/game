@@ -49,7 +49,7 @@ export const objetDuNarratif = (n: Narratif): TrappingResolver => n ? objetsDuNa
 /** Le NOM d'un preset : celui de son profil, sinon celui de sa créature de base, comme `mergeCreatureProfile`
  *  le pose ; `undefined` sans l'un ni l'autre. */
 export function nomDePreset(p: PresetPnj): string | undefined {
-  return p.profil?.label ?? (p.base ? findCreatureById(p.base)?.label : undefined);
+  return p.profil?.label ?? (p.base ? findCreatureById(p.base.id)?.label : undefined);
 }
 
 /**
@@ -78,7 +78,7 @@ export function resolvePresetCreature(presetId: string, presetDe: ResolveurDePre
   const preset = presetDe(presetId);
   if (!preset) return undefined;
   if (preset.base) {
-    const base = findCreatureById(preset.base);
+    const base = findCreatureById(preset.base.id);
     if (!base) return undefined;
     return { creature: mergeCreatureProfile(base, preset.profil), apparence: preset.apparence };
   }

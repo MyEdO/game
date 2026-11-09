@@ -151,6 +151,12 @@ static func echelle_au_plateau(metres_par_case: float) -> Vector3:
 	return Vector3.ONE * echelle_metrique(metres_par_case)
 
 
+## L'échelle uniforme qui porte en mètres le plateau d'une scène de `metres_par_case`, celle qui défait
+## `echelle_au_plateau`.
+static func echelle_en_metres(metres_par_case: float) -> Vector3:
+	return Vector3.ONE * metres_par_case
+
+
 ## Le point d'où part un coup du combattant dont le sol est en `sol`, et où arrive celui qui le vise : `HAUTEUR_DU_COUP`
 ## au-dessus, sur le plateau d'une scène de `metres_par_case`.
 static func point_du_coup(sol: Vector3, metres_par_case: float) -> Vector3:
