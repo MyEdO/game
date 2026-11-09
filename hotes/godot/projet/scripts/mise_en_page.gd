@@ -431,3 +431,20 @@ static func sous_le_point(centre: Vector2, largeur: float, hauteur: float, large
 	return Vector2(
 		clampf(centre.x - largeur / 2.0, 0.0, maxf(0.0, largeur_du_plan - largeur)),
 		clampf(centre.y + RAYON_DU_POINT + ECART_SOUS_LE_POINT, 0.0, maxf(0.0, hauteur_du_plan - hauteur)))
+
+
+## Le lieu, au sol, de la cible de la vitrine des effets de l'atelier, à `distance_m` mètres de l'auteur posé à l'origine
+## (#3777).
+static func lieu_de_la_cible(distance_m: float) -> Vector3:
+	return Vector3(distance_m, 0.0, 0.0)
+
+
+## Le coin de la boîte que l'orbite de l'atelier cadre pour la vitrine des effets : l'orbite tourne autour de l'auteur, à
+## l'origine, et la boîte s'étend autant de part et d'autre de lui que la cible en est loin.
+static func coin_de_la_vitrine(distance_m: float) -> Vector3:
+	return Vector3(-distance_m, 0.0, -distance_m)
+
+
+## L'étendue de cette boîte : deux fois la distance de la cible en largeur et en profondeur, deux fois la hauteur du coup.
+static func etendue_de_la_vitrine(distance_m: float) -> Vector3:
+	return Vector3(distance_m * 2.0, HAUTEUR_DU_COUP * 2.0, distance_m * 2.0)
