@@ -28,7 +28,7 @@ import type { ActionGate } from './actionRegistry';
 import type { Jeu, PendingInteract } from './etat';
 import type { RefusGeste } from './gesteDArete';
 import type { RoomFocus } from './monde/rooms';
-import type { Pt } from './monde/path';
+import { cheminsDepuis, type Pt } from './monde/path';
 
 /**
  * EXÉCUTEURS des capacités d'instance (#1687) — table TOTALE keyée par le MÊME `CapaciteId` que
@@ -115,11 +115,11 @@ export type IntentionDExploration =
 export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string | null): IntentionDExploration | null {
   const sc = s.scene;
   if (!sc || s.mode !== 'exploration' || s.dialogue) return null;
-  const opts = optionsDeCheminDuGroupe(s.party);
+  const chemins = cheminsDepuis(sc, s.partyPos, optionsDeCheminDuGroupe(s.party));
   const ent = entiteId === null ? undefined : sc.entities.find((e) => e.id === entiteId);
   // Case d'arrivée partagée avec l'aperçu de survol (`exploreMovePlan`) : escalier, abord d'une place, case
   // adjacente d'une entité, ou la case même.
-  const plan = exploreMovePlan(sc, s.partyPos, tuile, opts);
+  const plan = exploreMovePlan(sc, tuile, chemins);
   const marcherOu = (sinon: IntentionDExploration): IntentionDExploration => (plan ? { kind: 'marcher', plan } : sinon);
   const sansChemin: IntentionDExploration = memeCase(s.partyPos, tuile)
     ? { kind: 'annuler' }
@@ -130,7 +130,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
   if (ent?.kind === 'prop' && placesJouables(sc, ent.id).length) {
     const assisIci = !!meneurDuMonde(s) && seatPoseOf(sc, { kind: 'party', rang: RANG_MENEUR })?.propId === ent.id;
     // UNE source de « place LIBRE » : le plan d'assise, d'un seul point quand le groupe est déjà sur un abord libre.
-    const place = exploreSeatPlan(sc, s.partyPos, ent.id, opts);
+    const place = exploreSeatPlan(sc, ent.id, chemins);
     if (assisIci || (place && place.path.length < 2)) return { kind: 'interagir', id: ent.id };
     if (plan && place) return { kind: 'rejoindre', plan, pending: { id: ent.id, at: plan.dest } };
   }
