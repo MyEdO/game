@@ -48,7 +48,9 @@
       "page": 75,
       "note": "ZI 08 l.28"
     },
-    "domaine": "feu"
+    "domaine": {
+      "id": "feu"
+    }
   },
   {
     "id": "shyish",
@@ -59,6 +61,8 @@
       "page": 175,
       "note": "VDM 13 l.61"
     },
-    "domaine": "mort"
+    "domaine": {
+      "id": "mort"
+    }
   }
 ]

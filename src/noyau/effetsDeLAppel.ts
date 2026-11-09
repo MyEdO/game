@@ -84,7 +84,7 @@ function renduDeLaPriere(): { rendu: RenduDef; couleur: string } {
 /** Le rendu du sort d'id `id` et sa teinte : la Prière a le sien ; un Sort, celui de son Domaine. */
 function renduDuSort(id: string): { rendu: RenduDef; couleur: string } {
   const sort = findSpellById(id);
-  return sort && castInfoIsPrayer(sort) ? renduDeLaPriere() : renduDuDomaine(findDomainById(sort?.domainId));
+  return sort && castInfoIsPrayer(sort) ? renduDeLaPriere() : renduDuDomaine(findDomainById(sort?.domainId?.id));
 }
 
 /** La durée de vol (s) la plus courte, qu'un vol à bout portant garde visible. */

@@ -27,7 +27,7 @@ function mk(p: Partial<Combatant> = {}): Combatant {
 }
 
 /** Projectile SANS attribut de Domaine : seuls Dégâts du Sort, DR et BFM entrent dans le calcul. */
-const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', domainId: null, missile: true, damage: 4, cn: 2, range: null, target: 1, duration: null, desc: 'Il s’agit d’un Projectile magique avec Dégâts +4.' };
+const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', missile: true, damage: 4, cn: 2, range: null, target: 1, duration: null, desc: 'Il s’agit d’un Projectile magique avec Dégâts +4.' };
 
 const crit = (sl: number): CastResult => ({ cast: true, roll: 44, target: 60, sl, isCritical: true, isFumble: false, log: 'jet' });
 

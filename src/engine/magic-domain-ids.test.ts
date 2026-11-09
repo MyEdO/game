@@ -63,7 +63,7 @@ describe('refLabel — affichage Vent (focalisation) vs Lore (arcanes) vs Culte 
 });
 
 describe('mage Bête — Focalisation ET Talent lanceur matchent un Sort Bête (domainId bete)', () => {
-  const beteSpell = spells.find((s) => s.domainId === 'bete')!;
+  const beteSpell = spells.find((s) => s.domainId?.id === 'bete')!;
 
   it('focusSpecOf lit le domainId du Sort', () => {
     expect(focusSpecOf(beteSpell)).toBe('bete');

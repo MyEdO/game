@@ -10,7 +10,7 @@ import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { formulaSchema, formuleSansTirageSchema, maisonSchema } from '../grammaire/valeurs';
 import { conditionSchema, mecaniqueDe, sujetDuJetSchema } from '../grammaire/mecanique';
-import { idDe, ref } from '../grammaire/ref';
+import { ref, refs } from '../grammaire/ref';
 import { messagePorteSansDuree } from '../../../engine/ops';
 
 export const file = 'spells.json';
@@ -63,15 +63,14 @@ const ritualSchema = nommerChamps(z.strictObject({
   /** VDM 02 l.381 */
   type: z.string(),
   /** VDM 02 l.414 ; LDB 50 ; LDB 47 l.309 */
-  domains: z.array(z.string()),
+  domains: refs('domain'),
   /** VDM 02 l.620 */
   cnFrom: z.string().optional(),
   /** VDM 02 l.383 */
   xp: z.number(),
   /** VDM 02 l.398 */
   reduced: nommerChamps(z.strictObject({
-    /** Ids de `domains.json` dont la pratique ouvre la valeur réduite. */
-    domains: z.array(z.string()),
+    domains: refs('domain'),
     /** VDM 02 l.398 */
     chaosMagic: z.literal(true).optional(),
     cn: z.number(),
@@ -109,7 +108,7 @@ const champs = {
   /** VDM */
   ecole: z.string(),
   subType: z.string().nullable(),
-  domainId: idDe('domain').optional(),
+  domainId: ref('domain').optional(),
   /** VDM 02 l.363 ; VDM 12 l.646-647 ; VDM 14 l.489 */
   isRitual: z.boolean().optional(),
   /** VDM 02 l.377-393 */

@@ -872,8 +872,8 @@ export const castingNumberModSchema = nommerChamps(z
     min: z.number().optional(),
     scope: nommerChamps(z
       .strictObject({
-        domains: z.array(z.string()).min(1).optional(),
-        domainsExcept: z.array(z.string()).min(1).optional(),
+        domains: refs('domain', { min: 1 }).optional(),
+        domainsExcept: refs('domain', { min: 1 }).optional(),
         chaosMagic: z.boolean().optional(),
         spellIds: refs('spell', { min: 1 }).optional(),
         kinds: z.array(z.enum(['sort', 'rituel'])).min(1).optional(),

@@ -298,7 +298,7 @@ describe('Convergence de Domaine (+1 Avantage, l.176)', () => {
       acted: false, log: [], over: null,
     } as never;
     banc.setState({ battle, party: [] });
-    const feu = { label: 'Trait de feu', type: 'Magie des Arcanes', subType: 'Feu', domainId: 'feu', cn: 0, desc: 'buff', target: 1 } as never;
+    const feu = { label: 'Trait de feu', type: 'Magie des Arcanes', subType: 'Feu', domainId: { id: 'feu' }, cn: 0, desc: 'buff', target: 1 } as never;
     const ok: CastResult = { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' };
     applyCast(banc.getState, banc.setState, w, target, feu, ok, false, false);
     expect(w.advantage).toBe(0); // premier sort : pas de convergence
