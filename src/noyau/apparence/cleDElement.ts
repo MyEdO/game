@@ -3,7 +3,7 @@
  * résolu y trouve son entrée, dont le libellé nomme l'élément à l'écran. Une ligne par champ de clé résolu (`CHAMPS`),
  * jamais par catégorie.
  */
-import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findTeteById } from '../../data';
+import { findApparenceById, findCoiffureById, findFicheDeVehicule, findNavalTrait, findTeteById, libelleParmi } from '../../data';
 import { pieceOuVariante } from './gardeRobe';
 
 export type CodeDEcartDeCle = 'cle-inconnue' | 'piece-hors-categorie';
@@ -16,7 +16,7 @@ interface EcartDeCle {
 }
 
 interface ChampDeCle {
-  readonly find: (id: string) => { readonly label: string; readonly categorie?: string } | undefined;
+  readonly find: (id: string) => { readonly label: string; readonly categorie?: string; readonly source?: { readonly book: string } | undefined } | undefined;
   /** Ce que l'id désigne, dans le détail d'un écart. */
   readonly quoi: string;
 }
@@ -48,11 +48,20 @@ export function ecartsDeCleDElement(categorie: string, cle: Readonly<Record<stri
   });
 }
 
-/** Le libellé de l'entrée que désigne le premier champ résolu de la clé `cle`, `undefined` si aucun ne résout. */
-export function libelleDeCleDElement(cle: Readonly<Record<string, string | undefined>>): string | undefined {
+type Cle = Readonly<Record<string, string | undefined>>;
+
+const entreeDeCle = (cle: Cle) => {
   for (const [champ, id] of Object.entries(cle)) {
     const entree = id === undefined ? undefined : champDeCle(champ)?.find(id);
-    if (entree) return entree.label;
+    if (entree) return entree;
   }
   return undefined;
+};
+
+/** Par élément de clé `cles[id]`, le libellé de l'entrée que désigne le premier champ résolu de sa clé parmi celles des
+ *  autres (`libelleParmi`), à défaut son id. */
+export function libellesDesCles(cles: Readonly<Record<string, Cle>>): Record<string, string> {
+  const entrees = Object.entries(cles).map(([id, cle]) => [id, entreeDeCle(cle)] as const);
+  const parmi = entrees.map(([, e]) => e);
+  return Object.fromEntries(entrees.map(([id, e]) => [id, e === undefined ? id : libelleParmi(e, parmi)]));
 }

@@ -159,4 +159,12 @@ describe('modelesDeLAtelier', () => {
     expect(modelesDeLAtelier({ humanoide, epee, caraque }, { humanoide: [], epee: ['root'], caraque: [] }).bases[0].points.flatMap(({ elements }) => elements)).not.toContain('caraque');
     expect(modeles.vehicules).toEqual({});
   });
+
+  it('deux fiches homonymes de livres différents se distinguent par le sigle du leur, une fiche sans homonyme garde son libellé', () => {
+    const { libelles } = modelesDeLAtelier(
+      { baliste: vehiculeDeTest('baliste'), 'baliste-ade2': vehiculeDeTest('baliste-ade2'), canon: vehiculeDeTest('canon-ade2') },
+      { baliste: [], 'baliste-ade2': [], canon: [] },
+    );
+    expect(libelles).toEqual({ baliste: 'Baliste (AA)', 'baliste-ade2': 'Baliste (ADE II)', canon: 'Canon' });
+  });
 });

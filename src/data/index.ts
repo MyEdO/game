@@ -3017,6 +3017,14 @@ export function sourceRefLabel(ref: Pick<SourceRef, 'book' | 'page'>): PlayerTex
 export function bookAbr(id: string | null | undefined): PlayerText {
   return dataLabel(id ? livreParId(id)?.abbr : '', id ?? '');
 }
+/** Une entrée nommée, et le livre de sa source. */
+interface EntreeProvenue { readonly label: string; readonly source?: { readonly book: string } | undefined }
+/** Le libellé de `entree` parmi `entrees`, marqué du sigle de son livre (forme de `bookMarker.ts`, « Baliste (AA) ») quand
+ *  une entrée d'un autre livre porte le même. */
+export function libelleParmi(entree: EntreeProvenue, entrees: readonly (EntreeProvenue | undefined)[]): string {
+  const homonyme = entrees.some((autre) => autre?.label === entree.label && autre.source?.book !== entree.source?.book);
+  return homonyme && entree.source ? `${entree.label} (${bookAbr(entree.source.book)})` : entree.label;
+}
 /** Culte/Dieu (LDB 41) : `id` = slug STABLE (« sigmar »), `label` = nom affiché (« Sigmar »), Bénédictions/
  *  Miracles en ids de sort, desc = lore en Markdown (Codex). Dataset éditable (Compendium). */
 export interface GodData {
@@ -3149,12 +3157,12 @@ export function refEntiteResolue(ref: string): boolean {
   return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
 }
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
- *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé ; la clé `definition` d'un élément 3D
+ *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */
-export function findFicheDeVehicule(id: string): { readonly label: string } | undefined {
+export function findFicheDeVehicule(id: string): { readonly label: string; readonly source: { readonly book: string } | undefined } | undefined {
   const coque = findVehicleById(id);
   const fiche = (coque?.hull ? coque : undefined) ?? siegeEngines().find((t) => t.id === id);
-  return fiche && { label: fiche.label };
+  return fiche && { label: fiche.label, source: fiche.source };
 }
 /**
  * Ce qu'un pinceau ou un effet neuf porte AVANT tout choix d'auteur : le PREMIER élément OFFERT par son

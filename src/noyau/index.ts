@@ -33,7 +33,7 @@ export { ACTIONS } from '../data/index';
 export { ENTREES_DE_DOSSIER } from '../data/dossiers';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { EmblemeDef } from '../data/schemas/defs/garde-robe';
-export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
+export { ecartsDeCleDElement, libellesDesCles, type CodeDEcartDeCle } from './apparence/cleDElement';
 export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
 export { cataloguesDeComposition, emplacementsDeRangement, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, porteeDeComposition, presetDeComposition, type Composition, type LectureAuSchema, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from './apparence/composition';
