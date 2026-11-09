@@ -5,7 +5,7 @@
  * de terrain, et les VÉRITÉS DE SCÈNE (visible/surplomb/fantôme/surplomb plein). PUR et
  * projection-agnostique : géométrie en unités de GRILLE + MÈTRES (`GP`), aucune notion de caméra.
  */
-import { Scene, tileAt, isWalkable, type CellSide } from '../scene';
+import { Scene, tileAt, isWalkable, sceneMetresPerTile, wallEnds, type CellSide } from '../scene';
 import { estAbsent, terrainBuilt, terrainMatiere, terrainPriority, terrainSolidHeightM } from '../terrain';
 import type { Face, FloorEl } from './types';
 import { viewedBuilder, type Viewed } from './viewTruth';
@@ -122,36 +122,83 @@ function edgeCorners(x: number, y: number, side: CellSide): [{ x: number; y: num
   }
 }
 
-/** Faces d'une tuile de sol, dans l'ORDRE DE PEINTURE (piliers — les plus en arrière, ils tombent sous
- *  la dalle — puis parois de relief qui descendent SOUS le sol, losange de base, wedges par-dessus).
- *  null si la tuile est ABSENTE (étage non construit → transparente, on voit le dessous). */
-function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boolean, caps: boolean): Face[] | null {
-  const terrain = tileAt(scene, x, y, z);
-  if (estAbsent(terrain)) return null;
-  const self = displayHeightAt(scene, x, y, z); // AFFICHAGE (bloc plein `solidHeightM` compris) — jamais lu par le combat
-  const solidBlock = terrainSolidHeightM(terrain) > 0; // mur (terrain à bloc plein) → flancs en PIERRE, pas en terre
-  const faces: Face[] = [];
+/** PORTÉE (m) au-delà de laquelle la rive libre d'un tablier reçoit un montant intermédiaire : deux cases à l'échelle
+ *  de 2 m par case de toutes les scènes de jeu, la portée d'une poutre de plancher en bois entre deux poteaux. */
+const PORTEE_M = 4;
 
-  // PILIERS de support d'un surplomb : pour chaque arête donnant sur le VIDE, deux montants verticaux
-  // aux coins de l'arête, du DESSOUS de la dalle jusqu'à la surface inférieure. Coins partagés dédupliqués.
-  // Gaté sur `overhang` (≠ `lowerH != null`) : une ZONE REMPART solide (overhang forcé faux) descend en
-  // falaise PLEINE, sans pilotis (`overhangLowerHeight` verrait pourtant le sol marchable dessous).
-  // `!caps` : un TOIT solide (dessus de bloc / gatehouse) n'a PAS de pilotis — la masse le porte. On garde
-  // les DALLES FINES (`deck`) sur ses arêtes ouvertes plus bas (la BOUCHE de la porte reste dégagée), mais
-  // AUCUN montant vertical dans le tunnel (ces pilotis n'existent pas en POV et ne devraient pas exister).
-  const lowerH = overhangLowerHeight(scene, x, y, z);
-  if (overhang && lowerH != null && !caps) {
-    const topH = self - DECK_THICKNESS_M; // dessous de la dalle
-    const seen = new Set<string>();
+/** Sens de parcours d'une arête, de son premier coin à son second (`edgeCorners`), qui mène à l'arête suivante de la
+ *  même rive. */
+const LONGE: Record<CellSide, [number, number]> = { N: [1, 0], E: [0, 1], S: [-1, 0], O: [0, -1] };
+
+/** Le point `c` est-il à une case au plus du segment [a, b], sur chaque axe ? */
+function aUneCase(c: { x: number; y: number }, [a, b]: readonly [{ x: number; y: number }, { x: number; y: number }]): boolean {
+  const pres = (v: number, u: number, w: number) => v >= Math.min(u, w) - 1 - 1e-6 && v <= Math.max(u, w) + 1 + 1e-6;
+  return pres(c.x, a.x, b.x) && pres(c.y, a.y, b.y);
+}
+
+/** MONTANTS des tabliers de la couche z (#3732), par case qui les porte (`x,y`). Un TABLIER est une case de surplomb
+ *  (`overhangLowerHeight`) qui n'est pas le toit d'un bloc plein (`capsSolid` : la masse le porte, aucun montant dans le
+ *  tunnel d'une porte) ; une RIVE, une suite droite de ses arêtes donnant sur le vide. Un coin de rive est PORTÉ par un
+ *  mur de la couche du dessous à une case au plus (façade sous le bord, encorbellement), par une case de la couche qui
+ *  n'est pas un tablier (sa paroi descend pleine) ou par un sol inférieur qui touche ce coin et monte jusqu'au dessous de
+ *  la dalle (bloc plein, culée de pont). Chaque rive reçoit un montant à chacune de ses extrémités que rien ne porte, sauf
+ *  dans un angle rentrant, que la dalle reprend au-delà (une trémie), puis un montant intermédiaire là où deux appuis
+ *  consécutifs sont à plus de `PORTEE_M`. Un montant va du DESSOUS de la dalle jusqu'à la surface inférieure. */
+function montantsDeLaCouche(scene: Scene, z: number): Map<string, Face[]> {
+  const out = new Map<string, Face[]>();
+  if (z <= 0) return out;
+  const { w, h } = scene.dimensions;
+  const tabliers = new Map<string, { sousDalle: number; bas: number }>();
+  for (let y = 0; y < h; y++)
+    for (let x = 0; x < w; x++) {
+      const bas = overhangLowerHeight(scene, x, y, z);
+      if (bas == null || estAbsent(tileAt(scene, x, y, z)) || capsSolid(scene, x, y, z)) continue;
+      tabliers.set(`${x},${y}`, { sousDalle: displayHeightAt(scene, x, y, z) - DECK_THICKNESS_M, bas });
+    }
+  const rive = (x: number, y: number, side: CellSide): boolean => {
+    const [dx, dy] = NEIGHBOURS[side];
+    return tabliers.has(`${x},${y}`) && estAbsent(tileAt(scene, x + dx, y + dy, z));
+  };
+  const murs = (scene.walls ?? []).filter((m) => (m.z ?? 0) === z - 1).map(wallEnds);
+  const dessous = scene.layers.filter((l) => l.z < z).map((l) => l.z);
+  const autour = (c: { x: number; y: number }): [number, number][] =>
+    [[c.x - 0.5, c.y - 0.5], [c.x + 0.5, c.y - 0.5], [c.x - 0.5, c.y + 0.5], [c.x + 0.5, c.y + 0.5]];
+  const porte = (c: { x: number; y: number }, sousDalle: number): boolean =>
+    murs.some((m) => aUneCase(c, m))
+    || autour(c).some(([x, y]) => (presenteDansLaGrille(scene, x, y, z) && !tabliers.has(`${x},${y}`))
+      || dessous.some((zz) => presenteDansLaGrille(scene, x, y, zz) && displayHeightAt(scene, x, y, zz) >= sousDalle));
+  const rentrant = (c: { x: number; y: number }): boolean => autour(c).filter(([x, y]) => presenteDansLaGrille(scene, x, y, z)).length === 3;
+  const mpt = sceneMetresPerTile(scene);
+  const poses = new Set<string>();
+  for (const cle of tabliers.keys()) {
+    const [x0, y0] = cle.split(',').map(Number);
     for (const side of SIDES) {
-      const [dx, dy] = NEIGHBOURS[side];
-      if (!estAbsent(tileAt(scene, x + dx, y + dy, z))) continue; // arête INTÉRIEURE du tablier → pas de pilier
-      for (const c of edgeCorners(x, y, side)) {
+      const [tx, ty] = LONGE[side];
+      if (!rive(x0, y0, side) || rive(x0 - tx, y0 - ty, side)) continue; // pas le début d'une rive
+      const cases: [number, number][] = [];
+      for (let x = x0, y = y0; rive(x, y, side); x += tx, y += ty) cases.push([x, y]);
+      const n = cases.length;
+      const coins = [edgeCorners(...cases[0], side)[0], ...cases.map(([x, y]) => edgeCorners(x, y, side)[1])];
+      const porteuse = (i: number): [number, number] => cases[Math.max(0, i - 1)];
+      const tablier = (i: number) => tabliers.get(porteuse(i).join(','))!;
+      const portes = coins.map((c, i) => porte(c, tablier(i).sousDalle));
+      const montants = [0, n].filter((i) => !portes[i] && !rentrant(coins[i]));
+      const appuis = coins.flatMap((_, i) => (portes[i] || i === 0 || i === n ? [i] : []));
+      for (let k = 1; k < appuis.length; k++) {
+        const [a, b] = [appuis[k - 1], appuis[k]];
+        const travees = Math.ceil(((b - a) * mpt) / PORTEE_M - 1e-9);
+        for (let j = 1; j < travees; j++) montants.push(a + Math.round((j * (b - a)) / travees));
+      }
+      for (const i of montants) {
+        const c = coins[i];
         const k = `${c.x},${c.y}`;
-        if (seen.has(k)) continue;
-        seen.add(k);
+        if (poses.has(k)) continue;
+        poses.add(k);
+        const { sousDalle, bas } = tablier(i);
+        const cleCase = porteuse(i).join(',');
+        const faces = out.get(cleCase) ?? out.set(cleCase, []).get(cleCase)!;
         faces.push({
-          poly: [{ ...c, h: topH }, { ...c, h: lowerH }],
+          poly: [{ ...c, h: sousDalle }, { ...c, h: bas }],
           side,
           material: { domain: 'relief', id: scene.reliefDefaults.pilier.id, part: 'pilier' },
           oriented: false, // MONTANT : deux points, aucun dehors à porter
@@ -159,6 +206,19 @@ function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boo
       }
     }
   }
+  return out;
+}
+
+/** Faces d'une tuile de sol, dans l'ORDRE DE PEINTURE (`piliers`, les montants de la case — `montantsDeLaCouche` —,
+ *  les plus en arrière, ils tombent sous la dalle, puis parois de relief qui descendent SOUS le sol, losange de base,
+ *  wedges par-dessus). null si la tuile est ABSENTE (étage non construit → transparente, on voit le dessous). */
+function floorFaces(scene: Scene, x: number, y: number, z: number, overhang: boolean, piliers: readonly Face[]): Face[] | null {
+  const terrain = tileAt(scene, x, y, z);
+  if (estAbsent(terrain)) return null;
+  const self = displayHeightAt(scene, x, y, z); // AFFICHAGE (bloc plein `solidHeightM` compris) — jamais lu par le combat
+  const solidBlock = terrainSolidHeightM(terrain) > 0; // mur (terrain à bloc plein) → flancs en PIERRE, pas en terre
+
+  const faces: Face[] = [...piliers];
 
   // PAROIS : sur chaque arête, la face verticale qui comble l'écart entre le bord du dessus de la case et celui de sa
   // voisine (`profilDArete`), là où la case est la plus haute — falaise vers une voisine qu'on ne rejoint pas à pied,
@@ -238,6 +298,7 @@ function floorGeometry(scene: Scene, view: FloorView | undefined): Viewed<FloorE
     if (viewZ != null && lvl.z !== viewZ) continue; // isole : seule la couche isolée
     const layerGhost = viewZ == null && lvl.z > activeZ; // couche au-dessus de la zone active
     if (layerGhost && !multiLayer) continue;
+    const montants = montantsDeLaCouche(scene, lvl.z);
     for (let y = 0; y < h; y++)
       for (let x = 0; x < w; x++) {
         const overhang = isOverhang(scene, x, y, lvl.z);
@@ -246,7 +307,7 @@ function floorGeometry(scene: Scene, view: FloorView | undefined): Viewed<FloorE
         const caps = capsSolid(scene, x, y, lvl.z);
         const ghost = layerGhost && !caps; // tablier au-dessus de la zone active → fantôme ; pas un toit de bloc
         if (ghost && !overhang) continue; // au-dessus : SEULEMENT les surplombs
-        const faces = floorFaces(scene, x, y, lvl.z, overhang, caps);
+        const faces = floorFaces(scene, x, y, lvl.z, overhang, montants.get(`${x},${y}`) ?? []);
         if (!faces) continue;
         // RÈGLE GÉNÉRALE du surplomb : il ne s'efface (fantôme translucide) que pour ne pas masquer une
         // SURFACE VISIBLE en dessous. Là où l'étage du dessous n'est PAS visible (occulté/brouillard),
