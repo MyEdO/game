@@ -59,12 +59,13 @@ d'`echelle_plancher` : la marge et le plancher couvrent les silhouettes et les �
 pas, sous lesquels une arête du poignet écrasée à 0,07 sur le corps neutre passe sous la borne basse, et l'aisselle et le
 haut de l'épaule, tenus à 0,12 sur le corps neutre, passent sous elle sous les silhouettes combinées (#3319)."""
 TRONC = {'zones': ('torse', 'hanches'), 'silhouettes': ((), ('corpulence',), ('feminin', 'corpulence')),
-         'marge': 0.05, 'echelle': 0.01, 'points': (0.0, 1 / 3, 2 / 3)}
+         'echelle': 0.01, 'points': ((0.0, 0.11), (1 / 3, 0.05), (2 / 3, 0.05))}
 """Le tronc dont l'avant-bras se tient à l'écart (`peau_du_tronc`) : les sommets des `zones` (celle de l'os dominant,
-`anatomie.zone_de_l_os`), sous chaque jeu de `silhouettes` posées à 1. Les `points` de l'axe du bras, le coude puis des
-fractions du coude au poignet, à moins de `marge` (le rayon de l'avant-bras) de la peau ou dedans, se paient par pas
-d'`echelle` : le coude ne rentre pas dans le dos ni l'avant-bras dans le ventre (#3806). La garde `membres` de
-l'évaluateur mesure la peau elle-même."""
+`anatomie.zone_de_l_os`), sous chaque jeu de `silhouettes` posées à 1. Les `points` de l'axe du bras, chacun sa fraction
+du coude au poignet et sa marge, à moins de sa marge de la peau ou dedans, se paient par pas d'`echelle` : le coude ne
+rentre pas dans le dos ni l'avant-bras dans le ventre (#3806). La marge d'un point est le rayon de la peau autour de lui :
+celle du coude couvre le pli du coude, que la corpulence gonfle à 0,11 de l'axe. La garde `membres` de l'évaluateur mesure
+la peau elle-même."""
 
 
 def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
@@ -96,8 +97,9 @@ HAMPE_REPOS = ((-0.05, -0.25, 1.28), (0.55, 0.05, 0.83))
 gauche, le fer au-dessus."""
 HAMPE_GARDE = ((-0.175, -0.2, 1.0), (0.272, -0.809, 0.521))
 """La main droite au talon contre la hanche droite, la gauche devant, le fer pointé à hauteur de tête."""
-HAMPE_ARME = ((-0.13, -0.017, 1.143), (0.437, -0.354, 0.827))
-"""La main gauche montée devant la poitrine, la droite à la hanche droite, le fer dressé haut, penché devant à gauche."""
+HAMPE_ARME = ((-0.13, -0.04, 1.143), (0.437, -0.354, 0.827))
+"""La main gauche montée devant la poitrine, hors de la poitrine corpulente, la droite à la hanche droite, le fer dressé
+haut, penché devant à gauche (#3806)."""
 HAMPE_COUP = ((-0.07, -0.36, 1.0), (0.4, -0.85, 0.25))
 """Le corps penché dans le coup, les mains devant les hanches, le fer jeté devant, à hauteur de tête à deux mètres."""
 
@@ -241,14 +243,15 @@ def prix_du_tronc(tronc, coudes, poignet):
     if tronc is None:
         return numpy.zeros(len(coudes))
     positions, normales = tronc
-    points = numpy.stack([coudes + (numpy.array(poignet) - coudes) * f for f in TRONC['points']], axis=1)
+    points = numpy.stack([coudes + (numpy.array(poignet) - coudes) * f for f, _ in TRONC['points']], axis=1)
+    marges = numpy.array([marge for _, marge in TRONC['points']])
     prix = numpy.zeros(len(coudes))
     for jeu in positions:
         ecarts = jeu[None, None] - points[:, :, None]
         proche = numpy.linalg.norm(ecarts, axis=3).argmin(axis=2)
         dedans = numpy.einsum('epk,epk->ep', numpy.take_along_axis(ecarts, proche[..., None, None], axis=2)[:, :, 0],
                               normales[proche])
-        prix += ((numpy.maximum(0.0, dedans + TRONC['marge']) / TRONC['echelle']) ** 2).sum(axis=1)
+        prix += ((numpy.maximum(0.0, dedans + marges) / TRONC['echelle']) ** 2).sum(axis=1)
     return prix
 
 
