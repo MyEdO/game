@@ -9,7 +9,7 @@
  * unités de GRILLE ; l'axe vertical monde `z` sert d'axe « haut » écran.
  */
 import type { View } from '../facing';
-import { EYE_H, WALL_H_M } from '../../noyau/monde/iso';
+import { hauteurDeLOeil, WALL_H_M } from '../../noyau/monde/iso';
 import { mix } from '../../lib/ombrage';
 import { parseHex } from '../../lib/couleurHex';
 import { heightAt, sceneMetresPerTile, type Scene } from '../../noyau/monde/scene';
@@ -121,12 +121,13 @@ export function dir8Basis(facing: Dir8): { fwd: { x: number; y: number }; right:
 }
 
 /** Construit la pose de caméra depuis la scène, la position du groupe et son cap Dir8. PUR.
- *  eye.z = sol sous le groupe + `EYE_H` ; `fwd`/`right` = le repère du cap (`dir8Basis`).
+ *  eye.z = sol sous le groupe + la hauteur de l'œil de sa case (`hauteurDeLOeil`) ; `fwd`/`right` = le repère du cap (`dir8Basis`).
  *  `mpt` = échelle métrique de la case.
  *  `partyPos` peut être CONTINU (la marche volumique fait glisser l'œil, #1176) : la hauteur de
  *  l'œil suit alors la pente CONTINUE du sol (`groundUnderM`) : à mi-pas d'un ressaut, l'œil est à
- *  mi-hauteur du ressaut, et sa montée s'étale sur toutes les frames du pas. */
-export function makeCamera(scene: Scene, partyPos: { x: number; y: number; z?: number }, facing: Dir8, eyeH: number = EYE_H): CamPose {
+ *  mi-hauteur du ressaut, et sa montée s'étale sur toutes les frames du pas ; sa hauteur au-dessus du sol est celle de
+ *  la case la plus proche. */
+export function makeCamera(scene: Scene, partyPos: { x: number; y: number; z?: number }, facing: Dir8, eyeH: number = hauteurDeLOeil(scene, { x: Math.round(partyPos.x), y: Math.round(partyPos.y), z: partyPos.z ?? 0 })): CamPose {
   const mpt = sceneMetresPerTile(scene);
   const z = partyPos.z ?? 0;
   const { fwd, right } = dir8Basis(facing);
