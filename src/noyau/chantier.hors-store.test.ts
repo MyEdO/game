@@ -132,7 +132,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
       ...etatInitialDuJeu(),
       party: makePregens(idsDeTest).slice(0, 1),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
-      worldMap: { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a', port: { taille: 4, richesse: 4, production: ['commerce-mer'] } as never }], routes: [] },
+      worldMap: { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' }, port: { taille: 4, richesse: 4, production: ['commerce-mer'] } as never }], routes: [] },
       lieu: 'A',
       vessel: null,
     }, entrees);

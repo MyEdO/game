@@ -10,7 +10,7 @@
  * aussi, que l'atelier et le combat lisent : chaque combattant dessiné se compose sur la base comme une composition de
  * l'atelier (`composerSurLaBase`).
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, type NavireDeLaScene, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, type Effet, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, type NavireDeLaScene, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -138,6 +138,7 @@ export interface Suite {
   programmes: Programme[];
   journal: LigneDuJournal[];
   zones: ZonesDeLaSuite;
+  effets: Effet[];
 }
 
 /** Le clic du champ sur le combattant `id`, comme Godot le joue (`combat.gd`) : le verbe de `champ`, la case où
@@ -291,11 +292,11 @@ export function creerPont() {
     const zones = { 'journal.lignes': lignes };
     o.lignes += resultat.journal.length;
     o.jour = jour;
-    return { vue: vueDe(o), programmes, journal: resultat.journal, zones };
+    return { vue: vueDe(o), programmes, journal: resultat.journal, zones, effets: effetsDeLAppel(o.partie.etat(), resultat.evenements) };
   };
 
   /** Une suite sans jeton ni journal : la vue d'un état du pont changé, la partie intacte. */
-  const sansJeton = (o: NonNullable<typeof ouverte>): Suite => ({ vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] } });
+  const sansJeton = (o: NonNullable<typeof ouverte>): Suite => ({ vue: vueDe(o), programmes: [], journal: [], zones: { 'journal.lignes': [] }, effets: [] });
 
   /** Un geste joué : un verbe et ses arguments, celui qu'une offre déclare compris. Le refus que le verbe dit (`refus`,
    *  celui de son geste, `refusDuGeste` pour un verbe de la barre) est une erreur de règle, avec sa raison. */

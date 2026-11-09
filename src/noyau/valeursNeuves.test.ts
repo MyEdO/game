@@ -42,7 +42,7 @@ describe('valeurs neuves de l’atelier au noyau (#3059) : toute valeur neuve pa
     expect(carte.label).toBe(semencesDeScene.carte);
     expect(worldMapSchema.safeParse(carte).success).toBe(true);
     expect(routePerilSchema.safeParse(peripetieNeuve()).success).toBe(true);
-    const lieu = { id: 'l', label: 'L', scene: 's', pos: { x: 10, y: 10 }, port: portNeuf(), market: marcheNeuf() };
+    const lieu = { id: 'l', label: 'L', scene: { id: 's' }, pos: { x: 10, y: 10 }, port: portNeuf(), market: marcheNeuf() };
     expect(mapPlaceSchema.safeParse(lieu).success).toBe(true);
     expect(portNeuf(), 'chaque port neuf est une valeur propre').not.toBe(portNeuf());
   });

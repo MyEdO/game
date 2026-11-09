@@ -58,7 +58,7 @@ function finirLeTour(): ReturnType<typeof jouer> {
   const arme = jouer({ type: 'terminerLeTour', args: [] });
   if (!arme.suite.vue.projection.combat!.finDeTourArmee) return arme;
   const fin = jouer({ type: 'terminerLeTour', args: [] });
-  return { suite: fin.suite, journal: [...arme.journal, ...fin.journal], lignes: [...arme.lignes, ...fin.lignes] };
+  return { suite: fin.suite, journal: [...arme.journal, ...fin.journal], lignes: [...arme.lignes, ...fin.lignes], effets: [...arme.effets, ...fin.effets] };
 }
 
 describe('un tour complet par le pont', () => {

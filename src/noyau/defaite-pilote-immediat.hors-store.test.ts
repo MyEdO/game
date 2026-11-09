@@ -41,8 +41,8 @@ const DEFAITE = { partyWiped: true, travelPlan: null, pendingRest: null };
 const seaMap: WorldMap = {
   id: 'm', label: 'Mer',
   places: [
-    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: 'port-a' },
-    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: 'port-b', port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
+    { id: 'A', label: 'Salzenmund', pos: { x: 0, y: 0 }, scene: { id: 'port-a' } },
+    { id: 'B', label: 'Erengrad', pos: { x: 10, y: 0 }, scene: { id: 'port-b' }, port: { taille: 3, richesse: 3, production: ['bois-mer'] } },
   ],
   routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 } as never;
@@ -71,7 +71,7 @@ function journeeDeFleuve(cadence: Cadence): void {
   const quai = (id: string, label: string) => buildScene({ id, label, desc: '.', size: [8, 6], terrain: 'planches', heroStart: [2, 3] } as never);
   get().chargerLeProjet({ scenes: [quai('quai-a', 'A'), quai('quai-b', 'B')], entryId: 'quai-a', worldMap: {
     id: 'm', label: 'Reik',
-    places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: 'quai-a' }, { id: 'B', label: 'B', pos: { x: 90, y: 0 }, scene: 'quai-b' }],
+    places: [{ id: 'A', label: 'A', pos: { x: 0, y: 0 }, scene: { id: 'quai-a' } }, { id: 'B', label: 'B', pos: { x: 90, y: 0 }, scene: { id: 'quai-b' } }],
     routes: [{ id: 'r-reik', a: { id: 'A' }, b: { id: 'B' }, km: 45, modes: ['barge', 'pied'], river: true, inns: true, perilDie: 0 }],
   } as never, projet: null });
   set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], partyWiped: false } as never);

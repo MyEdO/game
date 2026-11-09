@@ -621,7 +621,7 @@ export function reposDuLieu(get: Get): OpenRestOpts | null {
   const s = get();
   const ici = lieuDuGroupe(s);
   if (ici) {
-    const scene = sceneDuRegistre(ici.scene);
+    const scene = sceneDuRegistre(ici.scene.id);
     const auberge = placeServices(ici, scene).find((svc) => svc.category === 'auberge' && svc.rest);
     const quality = scene?.rest?.quality;
     return auberge?.rest ? { places: auberge.rest, lieu: libelleOuAbsence(ici, 'lieu', ici.id), ...(quality ? { quality } : {}) } : null;

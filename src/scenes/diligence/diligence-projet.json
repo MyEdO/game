@@ -40709,7 +40709,9 @@
      "x": 26,
      "y": 68
     },
-    "scene": "la-diligence",
+    "scene": {
+     "id": "la-diligence"
+    },
     "icon": "scenario/hamlet"
    },
    {
@@ -40719,7 +40721,9 @@
      "x": 36,
      "y": 59
     },
-    "scene": "route-principale-virage",
+    "scene": {
+     "id": "route-principale-virage"
+    },
     "icon": "scenario/travel"
    },
    {
@@ -40729,7 +40733,9 @@
      "x": 44,
      "y": 51
     },
-    "scene": "auberge-des-sept-rayons",
+    "scene": {
+     "id": "auberge-des-sept-rayons"
+    },
     "icon": "scenario/hamlet",
     "when": {
      "kind": "flag",
@@ -40743,7 +40749,9 @@
      "x": 72,
      "y": 26
     },
-    "scene": "altdorf-porte-sud",
+    "scene": {
+     "id": "altdorf-porte-sud"
+    },
     "icon": "scenario/village",
     "when": {
      "kind": "flag",

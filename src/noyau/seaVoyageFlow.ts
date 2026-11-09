@@ -885,7 +885,7 @@ function buildPostProgressionSteps(get: Get, set: Set): BuiltCascadeStep[] {
   pousseSi(out, buildFoulingStep(get));
   // #212. Embuscade AUTHORÉE à ancrage déterministe : franchissement de l'ancrage ce jour → Test de
   // Perception PUIS abordage (applier `embuscade`, table `appliers`).
-  if (route?.ambush?.scene && route.ambush.encounter && !sea.ambushFired) {
+  if (route?.ambush?.scene.id && route.ambush.encounter && !sea.ambushFired) {
     const anchor = Math.max(0, Math.min(1, route.ambush.at ?? 0.5)) * plan.km;
     if (plan.kmDone + sea.milesToday >= anchor) {
       const st = buildVoyageCrewStep(get, 'perception', 'embuscade');
@@ -1187,7 +1187,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
   // Embuscade ANCRÉE non déclenchée : le rythme forcé du voyage rapide court-circuite la vigie —
   // l'abordage surgit à son ancrage et SURPREND le navire (pas de Test de Perception jour par jour).
   const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan.routeId);
-  if (!plan.sea.ambushFired && route?.ambush?.scene && route.ambush.encounter) {
+  if (!plan.sea.ambushFired && route?.ambush?.scene.id && route.ambush.encounter) {
     tell(get, set, [t('sv.fastBroken')]);
     openAuthoredSeaAmbush(get, set, route, false); // reprise post-combat → ce finalize s'exécute à nouveau (ambushFired le saute)
     return;
@@ -1901,9 +1901,9 @@ function continueSeaDayFromPostProgression(get: Get, set: Set): void {
  *  du Test de Perception. Anti-double-feu par `sea.ambushFired`. Retourne `false` si rien à ouvrir. */
 function openAuthoredSeaAmbush(get: Get, set: Set, route: MapRoute | undefined, noSurprise = true): boolean {
   const plan = get().travelPlan;
-  if (plan?.sea?.ambushFired || !(route?.ambush?.scene && route.ambush.encounter)) return false;
+  if (plan?.sea?.ambushFired || !(route?.ambush?.scene.id && route.ambush.encounter)) return false;
   set({ travelPlan: { ...plan!, interrupted: true, sea: { ...plan!.sea!, ambushFired: true } } });
-  get().quitterLaScene(route.ambush.scene, route.ambush.entry);
+  get().quitterLaScene(route.ambush.scene.id, route.ambush.entry);
   get().lancerLeCombat(route.ambush.encounter, undefined, { noSurprise });
   return true;
 }

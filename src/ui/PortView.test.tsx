@@ -79,7 +79,7 @@ describe('EscaleTab — actions d’escale (#228)', () => {
   });
 
   it('RELÂCHE À TERRE en attente surfacée', () => {
-    const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: 's' } };
+    const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: { id: 's' } } };
     seedInitial({ pendingShoreLeave });
     const html = renderToStaticMarkup(<EscaleTab {...escaleProps} pendingShoreLeave={pendingShoreLeave} />);
     expect(html).toContain('Accostage'); // titre porté par `ShoreLeaveBody` (Accostage à {lieu})
@@ -93,7 +93,7 @@ describe('EscaleTab — actions d’escale (#228)', () => {
   });
 
   it('invité (guest) : RELÂCHE À TERRE non résolvable localement (régression #343)', () => {
-    const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: 's' } };
+    const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: { id: 's' } } };
     seedInitial({ pendingShoreLeave, net: { ...initialNetMode, mode: 'guest' } });
     const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} pendingShoreLeave={pendingShoreLeave} />);
     expect(html).toContain('Accorder la relâche');

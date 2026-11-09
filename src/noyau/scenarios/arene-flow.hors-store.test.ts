@@ -76,7 +76,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
     const choices = dlgHub.nodes.flatMap((n) => n.choices);
     for (let n = 1; n <= 13; n++) {
       // la porte de la zone N est OUVERTE (condition satisfaite) avant sa victoire…
-      const porte = choices.find((c) => c.flow && flowEffects(c.flow).some((e) => e.type === 'transition' && e.scene === `arene-zone${n}`))!;
+      const porte = choices.find((c) => c.flow && flowEffects(c.flow).some((e) => e.type === 'transition' && e.scene.id === `arene-zone${n}`))!;
       expect(condOk(porte.when!), `porte zone${n} ouverte`).toBe(true);
       // … on applique la victoire de la zone (enc principal = enc-zoneN) → flag + retour Bourg
       const z = project.find((s) => s.id === `arene-zone${n}`)!;
@@ -147,12 +147,12 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
         }
       }
     }
-    const scenes = [...dests].map((id) => placeById(wm, id)!.scene);
+    const scenes = [...dests].map((id) => placeById(wm, id)!.scene.id);
     // La population des destinations se DÉRIVE de la carte livrée, elle ne se recopie pas (#1709) :
     // une expédition ajoutée ou renommée par le générateur entre dans la mesure sans toucher ce test.
     expect(scenes.length, 'aucune destination : la carte ne mène nulle part').toBeGreaterThan(0);
     expect(scenes.filter((id) => !project.some((s) => s.id === id)), 'destination(s) sans scène au paquet').toEqual([]);
-    expect(scenes).not.toContain(bourg.scene); // on part du Bourg, on n'y « voyage » pas
+    expect(scenes).not.toContain(bourg.scene.id); // on part du Bourg, on n'y « voyage » pas
     expect(new Set(scenes).size, 'deux lieux pour la même scène').toBe(scenes.length);
   });
 });

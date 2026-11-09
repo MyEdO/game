@@ -205,7 +205,7 @@ describe('effectSummary — résumés humains des rangées repliées', () => {
     expect(effectSummary({ type: 'setFlag', flag: 'porte_ouverte', value: true }, SCENE)).toContain('porte_ouverte');
     expect(effectSummary({ type: 'giveMoney', montant: { gold: 2, silver: 5, brass: 0 } }, SCENE)).toBe('Argent : 2 CO 5/–');
     expect(
-      effectSummary({ type: 'transition', scene: 'sc-b', entry: 'porte' }, { ...SCENE, scenes: [{ id: 'sc-b', nom: 'Taverne', entries: ['porte'] }] }),
+      effectSummary({ type: 'transition', scene: { id: 'sc-b' }, entry: 'porte' }, { ...SCENE, scenes: [{ id: 'sc-b', nom: 'Taverne', entries: ['porte'] }] }),
     ).toContain('Taverne');
     expect(effectSummary({ type: 'extendedTest', skill: { id: 'crochetage' }, label: 'Serrure', targetDR: 5 }, SCENE)).toContain('Crochetage');
   });

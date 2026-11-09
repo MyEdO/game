@@ -34,8 +34,8 @@ export interface MapPlace {
   label: string;
   /** Position sur la carte en % du canvas (0-100). */
   pos: { x: number; y: number };
-  /** Scène liée (id du registre de scènes du projet). */
-  scene: string;
+  /** Scène liée, une scène du projet. */
+  scene: { id: string };
   /** Point d'arrivée nommé dans la scène (sinon heroStart). */
   entry?: string;
   /** Icône du médaillon (id du registre src/data/icons), défaut `nav/entry-point`. */
@@ -85,7 +85,7 @@ export interface PlacePoi {
   pos: { x: number; y: number };
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `nav/entry-point`. */
   icon?: string;
-  sceneId?: string;
+  sceneId?: { id: string };
   serviceKind?: string;
 }
 
@@ -172,7 +172,7 @@ export interface MapRouteTrace {
   /** Cible du « Attaqués ! » (péripétie 10) : scène d'embuscade + rencontre. Absent = narratif.
    *  `at` (fraction 0-1, défaut 0.5) : en MER, ancrage DÉTERMINISTE de l'embuscade authorée — elle se
    *  déclenche quand `kmDone` franchit `at × km`, une fois par traversée, indépendamment du RNG (#212). */
-  ambush?: { scene: string; entry?: string; encounter: string; at?: number };
+  ambush?: { scene: { id: string }; entry?: string; encounter: string; at?: number };
   /** Relais d'auberges en bord de route (section Voyage : « Les auberges en bord de route sont
    *  souvent placées à la convenance des relais de diligences ») : la halte de NUIT propose
    *  l'auberge (chambres/repas payants, modale de Repos) en plus du campement. Absent = belle
@@ -287,7 +287,7 @@ export function portVersDepot(port: MapPlace['port']): MapPlace['port'] {
 /** Le lieu dont `sceneId` est la scène. */
 export function placeOfScene(map: WorldMap | null | undefined, sceneId: string | undefined): MapPlace | undefined {
   if (!map || !sceneId) return undefined;
-  return map.places.find((p) => p.scene === sceneId);
+  return map.places.find((p) => p.scene.id === sceneId);
 }
 
 export function placeById(map: WorldMap, id: string): MapPlace | undefined {

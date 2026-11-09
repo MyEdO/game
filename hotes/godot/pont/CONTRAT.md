@@ -58,11 +58,13 @@ type Suite = {
   programmes: { id: number; delai: number }[];
   journal: LigneDuJournal[];
   zones: { 'journal.lignes': Ligne[] }; // ZonesDeLaSuite, src/hote/ecran.ts
+  effets: Effet[]; // effetsDeLAppel, src/noyau/effetsDeLAppel.ts : section « Effets »
 };
 ```
 
 - `programmes` : les jetons que l'appel a programmés, chacun numéroté dans l'ordre d'arrivée (`tenueDesJetons`, `src/hote/partie.ts`). Godot arme un minuteur de `delai` millisecondes, puis appelle `reprendre { jeton: id }`. Un jeton se reprend une seule fois.
-- `journal` : les lignes que l'appel a écrites, `{ de: 'journal', texte, heure }` ou `{ de: 'combat', evenement, heure }` (`LigneDuJournal`, `src/noyau/partie.ts`, `heure` le temps de jeu où elle s'écrit), que le plateau anime.
+- `journal` : les lignes que l'appel a écrites, `{ de: 'journal', texte, heure }` ou `{ de: 'combat', evenement, heure }` (`LigneDuJournal`, `src/noyau/partie.ts`, `heure` le temps de jeu où elle s'écrit).
+- `effets` : ce que l'appel donne à voir et à entendre, dans l'ordre où il l'a joué (section « Effets »).
 - `zones` : ce que l'appel ajoute à l'écran (`ZonesDeLaSuite`) : sous `journal.lignes`, les lignes du journal en éléments (`lignesDuJournal`, `src/hote/ecran.ts`), chacune son id (`journal/<n>`, numérotée à la suite de la partie) ; une ligne par événement, les sous-lignes d'un événement à son `detail`, montré au survol ; son ton dit ce qu'il pèse (le début d'un round en `alerte`, un Critique ou une mort en `echec` sur un héros, en `reussite` sur un adversaire) ; un événement sans texte n'en écrit aucune. Chaque jour de jeu s'ouvre sur sa date (`journal/jour/<jour>`, en `alerte` : « Festag · 30 Jahrdrung 2512 CI »), avant la première ligne écrite ce jour-là, le premier jour de la partie compris. Godot les ajoute à la zone de même source.
 
 ## Vue
@@ -122,6 +124,42 @@ Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouv
 ## Lumière
 
 `vue.lumiere` (`LumiereDeLaScene`, `src/noyau/lumiereDeLaScene.ts`) est la lumière de la scène à l'heure de la partie, que le noyau calcule entière : Godot n'en pose que les valeurs. Le soleil (`soleil` : la direction unitaire vers lui dans le repère du monde, sa couleur `#rrggbb`, son énergie ; `null` en intérieur et la nuit) suit l'heure et le nord de la scène (`src/noyau/monde/soleil.ts`) ; l'ambiante (`ambiante`) suit le palier de lumière (`ambientScalar`) ; le ciel (`ciel` : zénith et horizon, `null` en intérieur, dont le fond est la brume) et la brume de profondeur (`brume` : sa couleur, puis où elle commence et où elle couvre tout, en cases au-delà du point que la caméra vise, ou depuis l'œil en immersion, `depuisLOeil` : celle d'un intérieur quand le groupe est sous un toit, sinon resserrée par la brume de la météo, `povTightenK`) viennent de l'ambiance du lieu, la nuit et la météo les teintent ; chaque source ponctuelle (`sources` : son foyer en cases, sa couche, sa hauteur en mètres, son rayon en cases, sa couleur, son énergie, son vacillement ou `null`) vient des lumières posées et portées de la scène (`sceneLightSources`). Le combat la pose sur la `Lumiere` du monde (`projet/scenes/Monde.tscn`) (`projet/scripts/lumiere.gd`) à chaque vue.
+
+## Effets
+
+`suite.effets` (`Effet[]`, `src/noyau/effetsDeLAppel.ts`) est ce que l'appel a joué en coups, incantations et sons, chacun
+son rendu résolu au catalogue éditable `src/data/rendus.json` : Godot dessine et joue ce qu'il reçoit, sans rien décider.
+
+```ts
+type Effet =
+  | { quoi: 'coup'; de: string; vers: string; issue: 'touche' | 'critique' | 'pare' | 'manque'; couleur: string; depart: Phase | null; trajet: Trajet | null; arrivee: Phase | null }
+  | { quoi: 'incantation'; de: string; vers: string; reussie: boolean; couleur: string; depart: Phase | null; arrivee: Phase | null }
+  | { quoi: 'son'; son: Son };
+type Phase = { visuel: VisuelDEffet | null; son: Son | null }; // VisuelDEffet : src/data/schemas/defs/effets.ts
+type Trajet = { projectile: Projectile; dureeS: number; hauteurM: number };
+type Son = { id: string; fichiers: string[]; volume: number };
+```
+
+- Un `coup` (une arme, une attaque naturelle, un Projectile magique) va du combattant `de` au combattant `vers` : la phase
+  `depart` joue à l'attaquant, le projectile du `trajet` (`null` en mêlée) vole jusqu'à la cible en `dureeS` secondes, sa
+  cloche haute de `hauteurM` mètres à mi-vol (la vitesse et la cloche de son rendu sur la distance des deux combattants,
+  bornée par un vol le plus court), puis la phase `arrivee` de son `issue` joue sur la cible : l'impact
+  d'une touche ou d'un critique, le manque, ou la parade de l'arme qui a paré. Le rendu d'une arme est celui de son objet
+  (un engin de siège, `trappings.json › rendu`), à défaut celui de son Groupe (`weaponGroups.json › rendu`) ; celui d'un
+  sort, celui de son Domaine (`domains.json › rendu`), teint de sa `couleur` ; une Prière a le sien.
+- Une `incantation` (un sort sans projectile : bénédiction, soin, sort sur soi, où `vers` vaut `de`) joue son `depart` au
+  lanceur, puis, `reussie`, son `arrivee` sur sa cible.
+- Un `son` de scène (l'Effet de scène `playSfx`) joue partout.
+- Un coup ou une incantation dont un combattant n'est pas posé sur le plateau, ou l'attaque spéciale d'une créature sur
+  elle-même, ne rend aucun effet.
+- `couleur` (`#rrggbb`) teint les visuels qui prennent la teinte de l'effet. Un son nomme ses variantes, des noms nus que
+  Godot lit sous `res://sons/` et joue l'une au hasard (`AudioStreamRandomizer`), le dossier épinglé des sons (`projet/sons/provenance.json`, `hotes/godot/asset/epingles.ts`),
+  et son `volume` propre (0..1).
+
+Le plateau (`projet/scripts/plateau.gd`) les rend par son nœud `Effets` (`projet/scripts/effets.gd`), l'un après l'autre :
+chaque visuel est un éclat de particules à textures procédurales et son éclair, au point de sa phase ; chaque son joue en 3D
+à son point. Au départ d'un coup ou d'une incantation, l'auteur se tourne vers sa cible et joue son clip d'attaque ; à
+l'arrivée d'un coup qui touche, la cible accuse le coup. La recette `projet/recettes/effets.gd` les vérifie.
 
 ## L'écran de Godot
 
