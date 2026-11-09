@@ -13,7 +13,7 @@ import { fauteDAppui, piedDuDecor, portePar } from './monde/poseDuDecor';
 import { emprisePlanTournee } from '../data/props.types';
 import { sceneZoneTiles } from './monde/zones';
 import { findPropById, findVehicleById } from '../data';
-import { grilleDesPonts } from '../data/schemas/grammaire/carte-ascii';
+import { GRAMMAIRE_ASCII, MOTS_DES_PONTS, grilleDesPonts } from '../data/schemas/grammaire/carte-ascii';
 import { bassinDeLaCaraque } from './planDeNavire.testkit';
 
 const scene = buildScene(PLAN_DE_LA_CARAQUE);
@@ -181,11 +181,12 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
 
   /** La pièce montée aux postes de chaque bord, celle de la revue (`REVUE.aux_postes` de la caraque) : `vehicule--pierrier`,
    *  les bombardes du gaillard, à la proue, `vehicule--canon-moyen` ailleurs ; sa demi-largeur et sa longueur devant et
-   *  derrière son origine, en mètres (bornes de son GLB, sa bouche vers son bord) ; derrière sa culasse, la place d'un
-   *  servant, la carrure d'un adulte (0,5 m, #3767). */
-  const CANON_MOYEN = { demiLargeur: 0.86, devant: 1.73, derriere: 1.74 };
+   *  derrière son origine, en mètres (bornes de son GLB, sa bouche vers son bord), et de même son affût, ce qui pose au
+   *  sol (ses bornes sous 0,3 m) ; derrière sa culasse, la place d'un servant, la carrure d'un adulte (0,5 m, #3767). */
+  const CANON_MOYEN = { demiLargeur: 0.86, devant: 1.73, derriere: 1.74, affut: { demiLargeur: 0.755, devant: 0.761, derriere: 1.735 } };
   const PIECE: Record<string, typeof CANON_MOYEN> = {
-    proue: { demiLargeur: 0.587, devant: 0.87, derriere: 0.87 }, tribord: CANON_MOYEN, babord: CANON_MOYEN, poupe: CANON_MOYEN,
+    proue: { demiLargeur: 0.587, devant: 0.87, derriere: 0.87, affut: { demiLargeur: 0.587, devant: 0.35, derriere: 0.68 } },
+    tribord: CANON_MOYEN, babord: CANON_MOYEN, poupe: CANON_MOYEN,
   };
   const SERVANT = 0.5;
   /** Le sens, au plan, vers lequel une pièce montée au bord `bord` pointe sa bouche. */
@@ -195,9 +196,11 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
 
   /** Chaque poste du modèle commité, où se monte une pièce (`postes` de son manifeste, et ceux qu'une Amélioration
    *  ajoute, `selon`) : son nom, sa case, une de celles d'un seul pont, à la hauteur de son plancher, dont l'emprise
-   *  libre le contient à une épaisseur de cloison près (sur la limite de deux, la première), et l'emprise au sol de la pièce montée et de son servant, en cases centrées sur
-   *  l'entier. Un point glTF (x, y, z) est au plan en (W/2 − z/mpt − ½, H/2 + x/mpt − ½). */
-  const { w: W, h: H, cases: CASES } = grilleDesPonts(cartes);
+   *  libre le contient à une épaisseur de cloison près (sur la limite de deux, la première), son plancher, et, en cases
+   *  centrées sur l'entier, l'emprise au sol de la pièce montée et de son servant, cette emprise en deçà du bord de sa
+   *  case vers lequel elle pointe (sa bouche passe le sabord ou le plat-bord), et celle de son affût et de son servant.
+   *  Un point glTF (x, y, z) est au plan en (W/2 − z/mpt − ½, H/2 + x/mpt − ½). */
+  const { w: W, h: H, cases: CASES, aretes: ARETES } = grilleDesPonts(cartes);
   const posteDu = (nom: string, bord: string, [gx, gy, gz]: readonly number[]) => {
     const mpt = sceneMetresPerTile(scene);
     const [x, y] = [W / 2 - gz / mpt - 0.5, H / 2 + gx / mpt - 0.5];
@@ -208,11 +211,18 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     expect(siennes.length > 0 && new Set(siennes.map((c) => c.z)).size, `poste ${nom}`).toBe(1);
     const [dx, dy] = garanti(CAP[bord], bord, 'cap du bord');
     const piece = garanti(PIECE[bord], bord, 'pièce du bord');
-    const [arriere, devant, cote] = [-(piece.derriere + SERVANT) / mpt, piece.devant / mpt, piece.demiLargeur / mpt];
-    const [ax, bx] = dx ? [x + dx * arriere, x + dx * devant] : [x - cote, x + cote];
-    const [ay, by] = dy ? [y + dy * arriere, y + dy * devant] : [y - cote, y + cote];
-    const emprise: Rect = { x0: Math.min(ax, bx), x1: Math.max(ax, bx), y0: Math.min(ay, by), y1: Math.max(ay, by) };
-    return { nom: `${nom} ${k(siennes[0])}`, case: { x: siennes[0].x, y: siennes[0].y, z: siennes[0].z }, emprise };
+    /** Le rectangle de `derriere` mètres derrière l'origine (servant compris) à `devant` mètres devant, `demiLargeur` de part et d'autre. */
+    const au = ({ demiLargeur, devant, derriere }: typeof piece.affut): Rect => {
+      const [arriere, avant, cote] = [-(derriere + SERVANT) / mpt, devant / mpt, demiLargeur / mpt];
+      const [ax, bx] = dx ? [x + dx * arriere, x + dx * avant] : [x - cote, x + cote];
+      const [ay, by] = dy ? [y + dy * arriere, y + dy * avant] : [y - cote, y + cote];
+      return { x0: Math.min(ax, bx), x1: Math.max(ax, bx), y0: Math.min(ay, by), y1: Math.max(ay, by) };
+    };
+    const [c, emprise] = [siennes[0], au(piece)];
+    const limite = dx ? c.x + dx / 2 : c.y + dy / 2;
+    const dedans: Rect = dx > 0 ? { ...emprise, x1: Math.min(emprise.x1, limite) } : dx < 0 ? { ...emprise, x0: Math.max(emprise.x0, limite) }
+      : dy > 0 ? { ...emprise, y1: Math.min(emprise.y1, limite) } : { ...emprise, y0: Math.max(emprise.y0, limite) };
+    return { nom: `${nom} ${k(c)}`, case: { x: c.x, y: c.y, z: c.z }, plancher: gy, emprise, dedans, affut: au(piece.affut) };
   };
   /** Les postes en vigueur quand la caraque porte les Améliorations `ameliorations` : ceux du manifeste, chaque bord que
    *  nomme une Amélioration remplacé par les siens (MDG p.97), comme `postesEnVigueur` de l'hôte Godot. */
@@ -234,7 +244,7 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
       const r = libre(c.x, c.y, c.z);
       const d = Math.max(r.x0 - c.x, c.x - r.x1, r.y0 - c.y, c.y - r.y1);
       expect(d, `fût du mât ${k(c)} hors de l'emprise libre`).toBeGreaterThan(0);
-      return { nom: `mât ${k(c)}`, z: c.z, corps: { x0: c.x - d, x1: c.x + d, y0: c.y - d, y1: c.y + d } };
+      return { nom: `mât ${k(c)}`, cle: k(c), z: c.z, corps: { x0: c.x - d, x1: c.x + d, y0: c.y - d, y1: c.y + d } };
     }));
   /** Les ouvertures de chaque pont, en cases entières : la trappe de chaque échelle, au pont de sa case et à celui du
    *  dessus, dont elle perce le plancher ; chaque écoutille, cases sans plancher que celles du pont enclosent. */
@@ -259,10 +269,22 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
   const ouvertures = [...new Map([...trappes, ...ecoutilles].map((c) => [k(c), {
     nom: `ouverture ${k(c)}`, z: c.z, corps: { x0: c.x - 0.5, x1: c.x + 0.5, y0: c.y - 0.5, y1: c.y + 0.5 },
   }])).values()];
+  /** L'échelle de chaque trappe, à cheval sur son arête (`ECHELLE` de `scripts/personnage-3d/vehicule/caraque/donnees.py`,
+   *  `echelle` de `navire.py`) : sa largeur le long de l'arête, sa course au sol en travers, de la trappe à son pied. */
+  const ECHELLE = { largeur: 0.5, pente: 72 };
+  const echelles = (scene.walls ?? []).filter((w) => w.climb).map((w) => {
+    const z = w.z ?? 0;
+    const mpt = sceneMetresPerTile(scene);
+    const [a, b] = [{ x: w.x, y: w.y }, w.side === 'N' ? { x: w.x, y: w.y - 1 } : { x: w.x + 1, y: w.y }];
+    const course = Math.abs(heightAt(scene, a.x, a.y, z) - heightAt(scene, b.x, b.y, z)) / Math.tan((ECHELLE.pente * Math.PI) / 180) / mpt / 2;
+    const [m, l] = [{ x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, ECHELLE.largeur / mpt / 2];
+    const [cx, cy] = w.side === 'N' ? [l, course] : [course, l];
+    return { nom: `échelle ${w.x},${w.y},${z} ${w.side}`, z, corps: { x0: m.x - cx, x1: m.x + cx, y0: m.y - cy, y1: m.y + cy } };
+  });
 
-  it('la pièce montée à chaque poste, et son servant, ne recouvre aucun meuble ni décor de son pont, aucun fût de mât, aucune trappe ni écoutille, ni la pièce d’un autre poste en vigueur avec lui (#3815)', () => {
+  it('la pièce montée à chaque poste, et son servant, ne recouvre aucun meuble ni décor de son pont, aucun fût de mât, aucune trappe, écoutille ni échelle, ni la pièce d’un autre poste en vigueur avec lui (#3815)', () => {
     const obstacles = [
-      ...meubles.map((e) => ({ nom: e.id, z: e.z ?? 0, corps: corpsDu(e) })), ...futs, ...ouvertures,
+      ...meubles.map((e) => ({ nom: e.id, z: e.z ?? 0, corps: corpsDu(e) })), ...futs, ...ouvertures, ...echelles,
     ];
     const heurts = new Set([
       ...postes.flatMap((p) => obstacles.filter((o) => o.z === p.case.z && recouvre(o.corps, p.emprise)).map((o) => `${p.nom} × ${o.nom}`)),
@@ -274,15 +296,37 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     expect([...heurts]).toEqual([]);
   });
 
+  it('la pièce montée à chaque poste et son servant, en deçà du bord de sa case, ne franchissent ni mur, ni porte, ni échelle de son pont (#3815)', () => {
+    const bords = new Set<string>([GRAMMAIRE_ASCII.murHorizontal, GRAMMAIRE_ASCII.murVertical, GRAMMAIRE_ASCII.porte, MOTS_DES_PONTS.echelle]);
+    const franchies = postes.flatMap(({ nom, case: c, dedans: r }) => ARETES.filter((a) => a.z === c.z && bords.has(a.glyphe)).filter((a) => (a.sens === 't'
+      ? r.x0 + TOLERANCE < a.x - 0.5 && a.x - 0.5 < r.x1 - TOLERANCE && Math.min(r.y1, a.y + 0.5) - Math.max(r.y0, a.y - 0.5) > TOLERANCE
+      : r.y0 + TOLERANCE < a.y - 0.5 && a.y - 0.5 < r.y1 - TOLERANCE && Math.min(r.x1, a.x + 0.5) - Math.max(r.x0, a.x - 0.5) > TOLERANCE))
+      .map((a) => `${nom} × ${a.sens}(${a.x},${a.y}) ${a.glyphe}`));
+    expect(franchies).toEqual([]);
+  });
+
+  /** Les points sondés dans le corps `c`, au pas `PAS`, à une épaisseur de cloison de ses bords. */
+  const points = (c: Rect) => {
+    const le = (a: number, b: number) => Array.from({ length: Math.floor((b - a - 2 * TOLERANCE) / PAS) + 1 }, (_, i) => a + TOLERANCE + i * PAS);
+    return le(c.x0, c.x1).flatMap((x) => le(c.y0, c.y1).map((y) => ({ x, y })));
+  };
+  const dans = (r: Rect, { x, y }: { x: number; y: number }) => r.x0 - 1e-9 <= x && x <= r.x1 + 1e-9 && r.y0 - 1e-9 <= y && y <= r.y1 + 1e-9;
+
+  it('l’affût de la pièce montée à chaque poste et son servant reposent sur son plancher : l’emprise libre des cases de son pont à sa hauteur, la case d’un mât hors de son fût (#3815)', () => {
+    const sansAppui = postes.flatMap(({ nom, case: c, plancher, affut }) => {
+      const pont = futs.filter((f) => f.z === c.z);
+      const sols = CASES.filter((s) => s.z === c.z && hauteurs[s.glyphe] === plancher)
+        .map((s) => (pont.some((f) => f.cle === k(s)) ? { x0: s.x - 0.5, x1: s.x + 0.5, y0: s.y - 0.5, y1: s.y + 0.5 } : libre(s.x, s.y, s.z)));
+      const vides = points(affut).filter((p) => !sols.some((r) => dans(r, p)) || pont.some((f) => dans(f.corps, p)));
+      return vides.length ? [`${nom} (${vides.length} points, dont ${vides[0].x.toFixed(3)},${vides[0].y.toFixed(3)})`] : [];
+    });
+    expect(sansAppui).toEqual([]);
+  });
+
   it('chaque meuble tient dans l’emprise libre que le modèle laisse à ses cases, à une épaisseur de cloison près (#3767)', () => {
     const hors = meubles.flatMap((e) => {
-      const c = corpsDu(e);
-      const le = (a: number, b: number) => Array.from({ length: Math.floor((b - a - 2 * TOLERANCE) / PAS) + 1 }, (_, i) => a + TOLERANCE + i * PAS);
-      const dehors = le(c.x0, c.x1).flatMap((x) => le(c.y0, c.y1).map((y) => ({ x, y }))).filter(({ x, y }) =>
-        ![Math.floor(x + 0.5), Math.ceil(x - 0.5)].some((cx) => [Math.floor(y + 0.5), Math.ceil(y - 0.5)].some((cy) => {
-          const r = libre(cx, cy, e.z ?? 0);
-          return r.x0 - 1e-9 <= x && x <= r.x1 + 1e-9 && r.y0 - 1e-9 <= y && y <= r.y1 + 1e-9;
-        })));
+      const dehors = points(corpsDu(e)).filter(({ x, y }) =>
+        ![Math.floor(x + 0.5), Math.ceil(x - 0.5)].some((cx) => [Math.floor(y + 0.5), Math.ceil(y - 0.5)].some((cy) => dans(libre(cx, cy, e.z ?? 0), { x, y }))));
       return dehors.length ? [`${e.id} (${dehors.length} points, dont ${dehors[0].x.toFixed(3)},${dehors[0].y.toFixed(3)})`] : [];
     });
     expect(hors).toEqual([]);

@@ -51,11 +51,11 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
 
   it('une Amélioration montée change les places de ses bords, les pièces qui y vont et les nœuds cachés ; retirée, tout revient', () => {
     const avec = reponse({ definition: 'caraque', postes: CANONS.slice(0, 1), ameliorations: ['sabord'] });
-    expect(['proue', 'tribord', 'poupe', 'babord'].map((bord) => avec.places.filter((p) => p.bord === bord).length)).toEqual([2, 5, 2, 5]);
+    expect(['proue', 'tribord', 'poupe', 'babord'].map((bord) => avec.places.filter((p) => p.bord === bord).length)).toEqual([2, 4, 2, 4]);
     expect(avec.places.filter((p) => p.piece !== null).map((p) => [p.bord, p.rang, p.piece])).toEqual([['tribord', 0, 'canon-moyen']]);
     expect([avec.ameliorations, avec.vehicule.caches]).toEqual([['sabord'], ['sans-sabord']]);
     const sabords = avec.vehicule.ameliorations.filter((a) => a.poste);
-    expect(sabords).toHaveLength(12);
+    expect(sabords).toHaveLength(8);
     expect(sabords.filter((a) => a.poste!.montre === 'ouvert').map((a) => a.position)).toEqual([avec.vehicule.postes[0].position]);
     const sans = reponse({ definition: 'caraque', postes: CANONS.slice(0, 1), ameliorations: [] });
     expect([sans.vehicule.ameliorations, sans.vehicule.caches]).toEqual([[], ['avec-sabord']]);
