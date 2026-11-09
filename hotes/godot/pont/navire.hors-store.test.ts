@@ -69,6 +69,18 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     expect([coupe('tactique'), coupe('plateau'), coupe('immersion')]).toEqual([{}, { caraque: 5.6 }, {}]);
     coupe('tactique');
   });
+
+  it('le plan d’une couche dit ses ponts, le groupe et l’œil, chacun à sa case, sans changer la partie ; une couche absente se refuse', () => {
+    const avant = vueDe(appel('vue'));
+    const planDe = (entree?: unknown) => (appel('plan', entree) as unknown as { plan: string }).plan;
+    const rang = (plan: string, y: number) => [...plan.split('\n')[2 * y + 1]];
+    const plan = planDe({ oeil: { case: [6, 4, 2], lacet: 60 } });
+    expect([rang(plan, 4)[4], rang(plan, 4)[13], rang(plan, 4)[29]]).toEqual(['|', '↗', '@']);
+    expect(plan).toContain('↗ l’œil, regard au NE');
+    expect(rang(planDe(), 4)[29]).toBe('@');
+    for (const entree of [{ z: 9 }, { oeil: { case: [6, 4], lacet: 60 } }]) expect(appel('plan', entree)).toMatchObject({ ok: false, erreur: { categorie: 'validation' } });
+    expect(vueDe(appel('vue'))).toEqual(avant);
+  });
 });
 
 describe('le modèle commité de la caraque, sur ses ponts (#3686)', () => {

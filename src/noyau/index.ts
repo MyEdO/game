@@ -70,6 +70,7 @@ export { toneOf, type CombatEvent } from './combatLog';
 export { tileFromKey, type Pt } from './monde/path';
 export { areteDessinee, aretesDeLaCouche, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type AreteDessinee, type Regard } from './monde/aretes';
 export type { Scene } from './monde/scene';
+export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export { couronnesDuMonde, matieresDeDecor, toitsDuMonde, volumeDuMonde, type VolumeDuMonde } from './monde/volume/volume';
 export { echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
