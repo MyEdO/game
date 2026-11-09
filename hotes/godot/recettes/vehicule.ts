@@ -10,7 +10,7 @@ import { figerLAtelier, type Listage } from './atelier';
 
 /** Les entrées de `vehicule` que l'atelier envoie, dans l'ordre des gestes de la recette : la caraque choisie, un canon
  *  moyen à la première place de tribord, le Sabord installé, la Figure de proue installée, le Sabord retiré, une couleur
- *  posée à l'emplacement `vet1`, puis l'emblème de ses voiles. */
+ *  posée à l'emplacement `vet1`, l'emblème de ses voiles, puis le trébuchet choisi, la couleur gardée (#3777). */
 export const ENTREES: readonly Record<string, unknown>[] = (() => {
   const canon = [{ definition: 'canon-moyen', bord: 'tribord' }];
   const couleurs = { vet1: { id: 'peau-brune' } };
@@ -22,6 +22,7 @@ export const ENTREES: readonly Record<string, unknown>[] = (() => {
     { definition: 'caraque', postes: canon, ameliorations: ['figure-de-proue'] },
     { definition: 'caraque', postes: canon, ameliorations: ['figure-de-proue'], couleurs },
     { definition: 'caraque', postes: canon, ameliorations: ['figure-de-proue'], couleurs, embleme: { id: 'taureau-rouge' } },
+    { definition: 'trebuchet-ade2', postes: [], ameliorations: [], couleurs },
   ];
 })();
 

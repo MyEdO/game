@@ -1,10 +1,10 @@
 class_name PontFige
 extends PontDuNoyau
 
-## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues` et `modeles` rendent leur
-## réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée (`JSON.stringify`),
-## `modeles/listage.json` le listage figé et `modeles/<fichier>` le fichier du projet ; il garde les entrées reçues hors de
-## `catalogues` et `modeles`, et le dernier écran publié.
+## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues`, `vitrine` et `modeles`
+## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
+## (`JSON.stringify`), `modeles/listage.json` le listage figé et `modeles/<fichier>` le fichier du projet ; il garde les
+## entrées reçues hors de ces trois, et le dernier écran publié.
 
 var fige: Dictionary
 var entrees: Array[String] = []
@@ -32,7 +32,7 @@ func rejoindre(_au_refus: Callable, _a_la_panne: Callable) -> bool:
 
 
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
-	if methode in ["catalogues", "modeles"]:
+	if methode in ["catalogues", "modeles", "vitrine"]:
 		return fige[methode]
 	var cle := JSON.stringify(entree)
 	entrees.append(cle)

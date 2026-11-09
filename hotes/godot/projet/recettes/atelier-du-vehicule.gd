@@ -9,12 +9,16 @@ extends SceneTree
 ## sa position, tournée vers son bord, chaque pièce d'Amélioration à la sienne, celle d'un poste montrant son nœud
 ## `montre` et cachant son nœud `cache`, les nœuds de `caches` cachés et chaque autre nœud `avec-`/`sans-` visible,
 ## chaque place de la réponse offerte à l'onglet Équipement sur la pièce qui y est montée, la palette et l'emblème sur
-## ses surfaces.
+## ses surfaces. La caraque n'attaque pas ; l'onglet Effets offre un bouton par variante et par son de la vitrine
+## (#3777, `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot connaît, et le coup d'un
+## canon y part de l'auteur ; le trébuchet choisi attaque : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/vehicule.json"
 ## La plus petite échelle d'orbite qui cadre une coque d'une trentaine de mètres, la caméra de la scène cadrant un corps.
 const CADRE_D_UNE_COQUE := 5.0
+## Les secondes au bout desquelles les éclats des effets joués sont éteints et retirés, le clip de tir rendu au repos.
+const ECLATS_ETEINTS_S := 4.0
 var _fautes: Array[String] = []
 
 
@@ -53,10 +57,77 @@ func _recetter() -> void:
 	await _etape(atelier, pont, cles, 5, "couleur posée")
 	_choisir(atelier, "vehicule/embleme", "taureau-rouge")
 	await _etape(atelier, pont, cles, 6, "emblème posé")
+	await _vitrine(atelier, pont, cles, lu)
 	for faute in _fautes:
 		push_error("[atelier-du-vehicule] " + faute)
 	print("[atelier-du-vehicule] %d entrées de `vehicule`, erreurs=%d" % [pont.entrees.size(), _fautes.size()])
 	quit(0 if _fautes.is_empty() else 1)
+
+
+## L'onglet Effets sur la vitrine figée `lu.vitrine` : la caraque sans attaque, chaque effet connu de Godot et offert par
+## son bouton, le coup d'un canon joué, puis le trébuchet choisi qui attaque.
+func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> void:
+	var vitrine: Dictionary = lu.vitrine
+	var attaquer := _controle_par_nom(atelier, "Attaquer") as Button
+	_verifier(attaquer.disabled, "la caraque n'attaque pas, « Attaquer » doit être grisé")
+	var effets: Array = vitrine.attaques.values()
+	var cles_des_boutons: Array[String] = []
+	for famille in [vitrine.armes, vitrine.sorts]:
+		for entree in famille:
+			for variante in entree.variantes:
+				effets.append(variante.effet)
+				cles_des_boutons.append("effet/%s/%s" % [entree.id, variante.variante])
+	for son in vitrine.sons:
+		effets.append(son.effet)
+		cles_des_boutons.append("son/%s" % son.id)
+	for effet in effets:
+		_connu(effet)
+	for cle in cles_des_boutons:
+		_controle(atelier, cle)
+	(_controle_par_nom(atelier, "OngletEffets") as Button).pressed.emit()
+	(_controle(atelier, "effet/canon/touche") as Button).pressed.emit()
+	await _images(2)
+	var noeud_des_effets := atelier.get_node("Effets")
+	_verifier(noeud_des_effets.get_node_or_null("eclair-de-bouche") != null and noeud_des_effets.get_node_or_null("boulet") != null, "le canon de la vitrine : ni éclair de bouche ni boulet (%s)" % [noeud_des_effets.get_children().map(func(n: Node) -> String: return n.name)])
+	_verifier((atelier.get_node("Cible") as Node3D).visible, "la cible de la vitrine cachée sur l'onglet Effets")
+	var trebuchet := _bouton(atelier, lu.modeles.libelles[lu.modeles.vehicules["trebuchet-ade2"]])
+	_verifier(trebuchet != null, "le trébuchet a sa bascule à côté des bases")
+	if trebuchet == null:
+		return
+	trebuchet.pressed.emit()
+	await _etape(atelier, pont, cles, 7, "trébuchet choisi")
+	_verifier(not attaquer.disabled, "le trébuchet posé attaque, « Attaquer » doit être actif")
+	attaquer.pressed.emit()
+	await _images(2)
+	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
+	_verifier(montage.lecteur != null and montage.lecteur.current_animation == montage.clips.get("ranged"), "le trébuchet ne joue pas son clip de tir")
+	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
+	await create_timer(ECLATS_ETEINTS_S).timeout
+
+
+## Chaque phase de l'effet `effet` d'un visuel que `Effets.GERBES` dessine, son trajet d'un projectile que
+## `Effets.PROJECTILES` forme, et chaque son de fichiers posés sous `res://sons/`.
+func _connu(effet: Dictionary) -> void:
+	var sons: Array = []
+	if effet.quoi == "son":
+		sons.append(effet.son)
+	for cle in ["depart", "arrivee"]:
+		var phase: Variant = effet.get(cle)
+		if phase == null:
+			continue
+		_verifier(phase.visuel == null or Effets.GERBES.has(phase.visuel), "visuel inconnu de Godot : %s" % phase.visuel)
+		if phase.son != null:
+			sons.append(phase.son)
+	var trajet: Variant = effet.get("trajet")
+	_verifier(trajet == null or Effets.PROJECTILES.has(trajet.projectile), "projectile inconnu de Godot : %s" % [null if trajet == null else trajet.projectile])
+	for son in sons:
+		for fichier in son.fichiers:
+			_verifier(FileAccess.file_exists("res://sons/%s" % fichier), "son %s : res://sons/%s absent" % [son.id, fichier])
+
+
+## Le contrôle nommé `nom` sous `atelier`.
+func _controle_par_nom(atelier: Node, nom: String) -> Control:
+	return atelier.get_node("Interface").find_child(nom, true, false) as Control
 
 
 func _images(n: int) -> void:

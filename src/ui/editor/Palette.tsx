@@ -26,7 +26,7 @@ import { HAUTEURS, PINCEAUX } from '../../noyau/edition/session';
 import { t } from '../../i18n';
 import { fichesDePersonnage, structuresCrenelables, structuresDeLArete, type Tool, type WallPaint, type ZoneVariant } from '../../noyau/sceneEditLecture';
 import { planStairFlight } from '../../noyau/stairFlight';
-import { siegeEngines } from '../../data';
+import { libelleDAuteur, siegeEngines } from '../../data';
 import { LayerField, layerLabel } from './LayerField';
 import { Stack } from '../Layout';
 
@@ -546,7 +546,7 @@ export function Palette({
                     setTool({ mode: 'emplacement', trappingId: t.id });
                   }}
                 >
-                  {t.label}
+                  {libelleDAuteur(t)}
                 </button>
               ))}
             </div>
