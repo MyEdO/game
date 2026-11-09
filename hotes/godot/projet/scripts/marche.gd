@@ -2,8 +2,8 @@
 ## déplacent la racine du modèle sur le sol, tournée vers sa direction de marche, à la vitesse au sol de la base
 ## (`vitesseAuSol` de la réponse de `modeles`, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») à l'échelle de son
 ## gabarit posé ; le clip du rôle `walk` (`MontageDeComposition.clip`, à deux mains quand la main libre tient la seconde
-## prise) se joue par le lecteur de l'atelier pendant le déplacement ; à l'arrêt, le clip reste engagé en pause à son
-## début et le squelette revient à sa pose de repos. La caméra orbite
+## prise) se joue par le lecteur de l'atelier pendant le déplacement ; à l'arrêt, le clip s'arrête à son début, le
+## squelette revient à sa pose de repos et l'atelier joue son clip de repos (`marche_arretee`). La caméra orbite
 ## autour de la racine au glissé du bouton droit de la souris, s'en rapproche ou s'en éloigne à la molette hors de
 ## l'interface, et la suit ; l'atelier la cadre sur le corps posé, ou sur la boîte d'un véhicule (`cadrer_la_boite`), et le
 ## zoom se borne autour de ce cadre.

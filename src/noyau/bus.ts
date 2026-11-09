@@ -76,6 +76,11 @@ export type ChargeDAttaque =
   | { kind: 'spell'; projectile: false; from: string; to: string; result: CastResult; spell: string; defense: 'none' }
   | { kind: 'creature'; from: string; to: string; result: { hit: true }; creatureAttack: AttackKind; defense: 'none' };
 
+/** La charge d'`ANIM_AOE` (#3783) : la zone d'effet que `de` pose sur `tiles` autour de `centre`, celle du sort d'id
+ *  `sort`, ou celle de la manœuvre de rendu `rendu` ; ni l'un ni l'autre pour une zone qu'un déclencheur pose hors d'un
+ *  sort. */
+export interface ChargeDeZone { de: string; centre: Case; tiles: Case[]; sort?: string; rendu?: string }
+
 /** La charge de `TEST_RESOLVED`. */
 export interface TestResolu { actorId: string; success: boolean; sl: number; roll: number | null; target: number }
 
@@ -87,7 +92,7 @@ export interface ChargesDuBus {
   anim_float: { to?: string; pos?: Case; text: string; kind: 'damage' | 'miss' | 'condition' | 'heal' };
   anim_move: { id: string; path: Case[] };
   move_blocked: Record<string, never>;
-  anim_aoe: { tiles: Case[]; kind: AttackKind | 'spell'; type?: string };
+  anim_aoe: ChargeDeZone;
   dice_roll: undefined;
   sfx: { id: string };
   battle_over: { victory: boolean };

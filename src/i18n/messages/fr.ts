@@ -1202,6 +1202,7 @@ export const fr = {
   'ecran.repit.px': 'PX',
   'ecran.repit.bourse': 'Bourse',
   'ecran.repit.depots': 'Dépôts en banque',
+  'ecran.scenarios.lancer': 'Lancer',
   'ecran.repit.ouvrage': 'Entreprendre un ouvrage',
   'ecran.repit.ouvrages': 'Ouvrage (matériaux)',
   'ecran.repit.atouts': 'Atouts',

@@ -65,6 +65,12 @@
     "licence": "CC0-1.0",
     "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
   },
+  "crepitement.ogg": {
+    "sha256": "e8b43089fc142f3f6e748f626dbaac7628669f9f36ceff138c2d67a408ea45aa",
+    "source": "https://opengameart.org/content/fireplace-sound-loop (fire.wav), pagdev",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q3, boucle entière"
+  },
   "critique.ogg": {
     "sha256": "94b8bb5f2d43ab65e4bcc32b28562416e9bc2c51d9fd4be1e333660ee52f977f",
     "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
@@ -106,6 +112,24 @@
     "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
     "licence": "CC0-1.0 (https://kenney.nl/support)",
     "traitement": "aucun : public/audio/gong-victoire.ogg tel quel"
+  },
+  "hurlement-1.ogg": {
+    "sha256": "d6c25d44cc8787ab89b38c3d3ed4420aaaa9c076b01421d055c29866cfd21449",
+    "source": "https://opengameart.org/content/80-cc0-creature-sfx (80-CC0-creature-SFX_0.zip : howl.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "hurlement-2.ogg": {
+    "sha256": "a534090d694c550f733f94c7f78911c164874b66528d9b36c848ad6165e24165",
+    "source": "https://opengameart.org/content/80-cc0-creature-sfx (80-CC0-creature-SFX_0.zip : roar_02.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "hurlement-3.ogg": {
+    "sha256": "0c28392431d671ce9966b1ec7a7738203f47317c87eb04bbbd3a6e79e0bec305",
+    "source": "https://opengameart.org/content/80-cc0-creature-sfx (80-CC0-creature-SFX_0.zip : scream_01.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
   },
   "impact-1.ogg": {
     "sha256": "b33a8f14068aec24ec69ba85e5e87fdc41228975f6a1a3e44a6e7d6fc3d9f8d8",
@@ -227,6 +251,24 @@
     "licence": "CC0-1.0 (https://kenney.nl/support)",
     "traitement": "aucun : public/audio/sort.ogg tel quel"
   },
+  "souffle-1.ogg": {
+    "sha256": "7aaf76da9564b5dc0da823126d95b0e438dc60539e4004fb0ae6ea601d4c6edd",
+    "source": "https://opengameart.org/content/air-whoosh (whoosh2_0.wav), pyranostudios",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : extrait de 0 s sur 0,9 s, asetrate 0,8 (plus grave), fondu de sortie, mono, 44,1 kHz, Vorbis q4"
+  },
+  "souffle-2.ogg": {
+    "sha256": "449e222b7662d7057876ceef2c13306c388755417b53495ed55e4a58b0f778aa",
+    "source": "https://opengameart.org/content/air-whoosh (whoosh2_0.wav), pyranostudios",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : extrait de 0,9 s sur 0,95 s, asetrate 0,8 (plus grave), fondu de sortie, mono, 44,1 kHz, Vorbis q4"
+  },
+  "souffle-3.ogg": {
+    "sha256": "fa5f7bd5805a1395cc4b173db6b8118d79ea57f1b8bf8e649f5e8c700bf17552",
+    "source": "https://opengameart.org/content/air-whoosh (whoosh2_0.wav), pyranostudios",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : extrait de 1,9 s sur 1,0 s, asetrate 0,8 (plus grave), fondu de sortie, mono, 44,1 kHz, Vorbis q4"
+  },
   "tranche-1.ogg": {
     "sha256": "4cd96dc630bed9840c15f1dd2306da2cc56a4da26a5d3f1a03c5a7265ac5e54f",
     "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
@@ -238,5 +280,17 @@
     "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
     "licence": "CC0-1.0 (https://kenney.nl/support)",
     "traitement": "aucun : public/audio/tranche-2.ogg tel quel"
+  },
+  "vomissement-1.ogg": {
+    "sha256": "b4b95bfa334620837129829cc382095d9622d7da5a9fff7ce9f44073afbf8e8f",
+    "source": "https://opengameart.org/content/80-cc0-creature-sfx (80-CC0-creature-SFX_0.zip : spit_02.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
+  "vomissement-2.ogg": {
+    "sha256": "677e4ab0928c82559131ac2fc4b38cdfd89f5e6d29652c95a1c093aad29f0392",
+    "source": "https://opengameart.org/content/80-cc0-creature-sfx (80-CC0-creature-SFX_0.zip : burble_01.ogg), rubberduck",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
   }
 }

@@ -411,7 +411,10 @@
       }
     ],
     "stake": "Esquive — réussie : le souffle est évité. Ratée : Dégâts d’Arme égaux à l’Indice{regleDuType}.",
-    "stakeForm": "descripteur"
+    "stakeForm": "descripteur",
+    "rendu": {
+      "id": "souffle"
+    }
   },
   {
     "id": "vomissement",
@@ -492,7 +495,10 @@
       "page": 343
     },
     "stake": "Esquive — réussie : la gerbe est évitée. Ratée : Dégâts d’Arme égaux au Bonus d’Endurance de l’attaquant +4 (Bonus d’Endurance et PA déduits), État Sonné, et toutes les Armures et Armes portées subissent 1 Dégât.",
-    "stakeForm": "descripteur"
+    "stakeForm": "descripteur",
+    "rendu": {
+      "id": "vomissement"
+    }
   },
   {
     "id": "hurlement-fantomatique",
@@ -580,7 +586,10 @@
       "page": 339
     },
     "stake": "Le hurlement inflige 1d10 Blessures ignorant le Bonus d’Endurance et les PA, puis 3 États Assourdi ; un Test de Résistance Accessible (+20) raté y ajoute 1 État Brisé.",
-    "stakeForm": "descripteur"
+    "stakeForm": "descripteur",
+    "rendu": {
+      "id": "hurlement"
+    }
   },
   {
     "id": "hurlement-de-la-bete-indomptable",
@@ -648,7 +657,10 @@
       "page": 115
     },
     "stake": "Le hurlement pose 3 États Assourdi, puis un Test de Calme Complexe (-10) : échoué, il y ajoute 3 États Brisé.",
-    "stakeForm": "descripteur"
+    "stakeForm": "descripteur",
+    "rendu": {
+      "id": "hurlement"
+    }
   },
   {
     "id": "frisson-paralysant",
