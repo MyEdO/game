@@ -45,7 +45,7 @@ func _recetter() -> void:
 	_attendre(coque, 1, GRIS, "cuir de la coque, que la palette ne colore pas")
 	_attendre(canon, 0, Color(VERT), "bois du canon monté sur la coque, sa matière sans texture")
 	_attendre(canon, 1, Color.WHITE, "cuir du canon, sa matière texturée, que la palette ne colore pas")
-	var planches: Texture2D = load(Monde.texture_de(PLANCHES))
+	var planches: Texture2D = load(VolumeDeScene.texture_de(PLANCHES))
 	_attendre_la_matiere(coque, 0, planches, "bois de la coque, sa matière texturée teinte de la palette")
 	_attendre_la_matiere(canon, 1, planches, "cuir du canon, sa matière texturée")
 	_attendre_la_matiere(canon, 0, null, "bois du canon, sa matière sans texture")

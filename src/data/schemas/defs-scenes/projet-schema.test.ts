@@ -325,7 +325,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
     const narratif = {
       affaires: [],
       indices: [],
-      presetsPnj: [{ id: 'gobelin', base: 'gobelin' }],
+      presetsPnj: [{ id: 'gobelin', base: { id: 'gobelin' } }],
       objets: [],
       documents: [],
       etats: [],
@@ -503,7 +503,7 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
   });
 
   it('preset PNJ : `id` vide', () => {
-    expect(fautes(narratif({ presetsPnj: [{ id: '', base: 'gobelin' }] }), narratifSchema)).toEqual([
+    expect(fautes(narratif({ presetsPnj: [{ id: '', base: { id: 'gobelin' } }] }), narratifSchema)).toEqual([
       'PNJ 1 › identifiant :: id vide.',
     ]);
   });

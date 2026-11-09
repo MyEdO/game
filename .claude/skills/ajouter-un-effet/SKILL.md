@@ -6,7 +6,7 @@ description: Ajouter ou changer un effet Godot (coup, sort, zone, souffle, lumi�
 # Ajouter un effet visuel ou sonore
 
 Le noyau résout chaque effet au catalogue ; Godot dessine et joue ce qu'il reçoit, sans rien décider.
-Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets » et « Lumière ». Épique #3770.
+Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et « Lumière ». Épique #3770.
 
 ## 1. Le rendu, en donnée
 - Un coup, une incantation, une zone : un rendu de `src/data/rendus.json` (schéma `src/data/schemas/defs/rendus.ts`) porte
@@ -16,6 +16,10 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets » et « Lumière »
   `machine-de-guerre` (`trappings.json`), Domaine (`domains.json`), manœuvre (`maneuvers.json`), Type de Souffle
   (`breath-types.json`). La résolution vit dans `src/noyau/effetsDeLAppel.ts` ; ne jamais lire un libellé.
 - Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle.
+- Un flottant : son texte est un message de `src/i18n/messages/fr.ts` (clés `fx.*`), sa teinte `TEINTE_DU_FLOTTANT` ;
+  un son de la partie (pas, heurt, victoire, dés) : son id dans `SONS_DE_LA_PARTIE` (`effetsDeLAppel.ts`).
+- Une musique : une définition `music: true` du registre (`src/data/sons/defs/`) ; le noyau la choisit
+  (`musiqueDeLaPartie`), la scène peut l'imposer (`music.combat`, `music.ambient`).
 - Un JSON édité à la main se réécrit par `serializeDataset` (`src/data/serialize.ts`) : le test de round-trip
   l'exige à l'octet.
 

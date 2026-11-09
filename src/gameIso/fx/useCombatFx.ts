@@ -8,7 +8,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useGame } from '../../state/store';
 import { bus, EVT } from '../../noyau/bus';
 import { spellFxForSpell } from './spellClips';
-import { renduDeLaZone } from '../../noyau/effetsDeLAppel';
+import { renduDeLaZone, type GenreDeFlottant } from '../../noyau/effetsDeLAppel';
 import { conditionMeta } from '../effectIcons';
 import { conditionLabel } from '../../data';
 import type { Combatant } from '../../engine/types';
@@ -16,12 +16,9 @@ import type { IconId } from '../../data/icons';
 
 // Flottants TYPÉS (R8) — chaque échange se lit d'un coup d'œil : touche/raté/parade/soin/mort, pas
 // seulement les Blessures. Déclenchés sur ANIM_IMPACT (`fx/impactClock`) + canal ANIM_FLOAT (soin/État).
-export type FloatKind = 'damage' | 'soak' | 'miss' | 'defend' | 'death' | 'heal' | 'condition';
+export type FloatKind = GenreDeFlottant;
 /** `icon` (id du registre src/data/icons) : pictogramme optionnel rendu à gauche du texte (flottants d'État). */
 export type Float = { key: number; x: number; y: number; text: string; kind: FloatKind; crit?: boolean; icon?: IconId };
-export const FLOAT_COLOR: Record<FloatKind, string> = {
-  damage: '#ff5a5a', soak: '#b8b8c0', miss: '#b8b8c0', defend: '#6fb6ff', death: '#ff3030', heal: '#6fce8e', condition: '#e0b050',
-};
 
 // Projectiles volants (distance + sort-missile) : vol from→to synchronisé à l'impact.
 // `gradient` = tintage à l'école pour un sort (cf. spellFxForSpell) ; absent pour une flèche.

@@ -90,6 +90,12 @@ function chaisesLevees(prev: EtatDeJeu, s: EtatDeJeu): EtatDeJeu['scene'] {
 const ENTREES_DE_LA_VISION = ['scene', 'battle', 'party', 'partyPos', 'gameTime', 'lightLevel'] as const satisfies readonly (keyof EtatDeJeu)[];
 
 /**
+ * @contrat Méthodes
+ * La mémoire de carte de la partie (`explored`, les cases explorées par scène) s'accumule dans le noyau : chaque
+ * écriture qui change une entrée de la vision du groupe y fond les cases vues (`exploreeVue`,
+ * `src/noyau/transitionDuJeu.ts`). Le pont et Godot n'appellent rien pour la tenir.
+ */
+/**
  * LES CASES VUES S'AJOUTENT À LA MÉMOIRE DE CARTE, quelle que soit l'écriture qui a changé la vision : un
  * pas (chacun des pas d'une marche passe par sa propre écriture), une heure, une lumière, un combat, une
  * entrée en scène, un chargement, un instantané coop. La vision ne se calcule que si une de ses entrées

@@ -24,13 +24,14 @@ describe('le véhicule des combattants dans la vue', () => {
     expect([barge.vehicule, barge.portee]).toEqual([{ definition: 'barge-fluviale', empreinte: 2, taille: 'empreinte', cap: 'E', postes: [], ameliorations: [] }, null]);
   });
 
-  it('sans élément de sa fiche servi, aucun véhicule ; servi, son élément et son empreinte, même sous refus de base', () => {
+  it('sans élément de sa fiche servi, ni véhicule ni navire ; servi, la coque que la scène pose par ses ponts est un navire, à sa taille réelle, même sous refus de base', () => {
     const sansBarge = Object.fromEntries(Object.entries(COMMITES.manifestes).filter(([id]) => id !== 'vehicule--barge-fluviale'));
     servir(sansBarge);
-    expect(vueDe(appel('vue')).corps.vehicules).toEqual({});
+    expect([vueDe(appel('vue')).corps.vehicules, vueDe(appel('vue')).corps.navires]).toEqual([{}, {}]);
     servir({ ...sansBarge, 'barge-fluviale': vehiculeDeTest('barge-fluviale'), nain: baseDeTest('nain') });
     const { corps } = vueDe(appel('vue'));
     expect(corps.refus).toMatch(/^\[base-ambigue\] /);
-    expect(corps.vehicules).toEqual({ [barge.id]: { element: 'barge-fluviale', empreinte: 2, taille: 'empreinte', cap: 'E', palette: {}, postes: [], ameliorations: [], caches: [], clips: {} } });
+    expect(corps.vehicules).toEqual({});
+    expect(corps.navires[barge.id]?.corps).toEqual({ element: 'barge-fluviale', empreinte: 2, taille: 'reelle', cap: 'N', palette: {}, postes: [], ameliorations: [], caches: [], clips: {} });
   });
 });

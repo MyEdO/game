@@ -4,6 +4,48 @@
 class_name Disposition
 extends Node
 
+## @contrat L'écran de Godot
+## Les zones de la fenêtre vivent dans sa disposition, une scène d'éditeur sans script que le nœud `Disposition`
+## (`projet/scripts/disposition.gd`) de l'écran instancie : `projet/ecrans/<disposition>.tscn` quand elle existe, la
+## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
+## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
+## lui, une zone sans `ids` ceux qu'aucune autre zone de sa source ne nomme (`Zone.montrer_toutes`), si bien qu'aucun
+## élément ne se perd. L'écran d'attaque (`projet/ecrans/cascade/attack.tscn`), posé en bas du plateau, montre la cible,
+## l'arme et ses pastilles, le jet de l'attaquant face à celui de la défense (le nombre à atteindre et le dé en gros),
+## l'issue, les options du coup puis les gestes en rangée ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
+## sa réaction et son score à atteindre avant le dé face au jet de l'attaquant, révélé une fois le dé tombé. La fenêtre
+## d'incantation (`projet/ecrans/cascade/cast.tscn`), posée en bas du plateau comme l'attaque, montre le sort et sa
+## cible, le jet du lanceur (son NI au libellé), la zone et le budget de Surincantation en pastilles, l'issue, puis
+## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
+## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
+## du cadre `projet/cadres/monde.tscn`, un calque sous l'interface qui laisse le groupe à gauche et le journal à droite,
+## le titre en grand et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y
+## ajoute que son contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) range ses services (`service/`) et les
+## points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le bouton `entrerAuPointDInteret`) en grille,
+## puis les trajets qui en partent, chacun sa destination et son départ ; la carte (`projet/ecrans/carteDuMonde.tscn`),
+## son plan (`carte/plan` : chaque lieu visible, ici en `alerte`, sous chaque destination le départ du trajet qui y
+## mène, le même élément qu'à l'écran du lieu, et chaque route entre deux lieux visibles, celles qui partent d'ici et
+## sont ouvertes en `reussite`), puis la reprise d'un voyage interrompu. L'échoppe (`projet/ecrans/marchand.tscn`, lue
+## par `marchandEnVue`, `src/noyau/marchandEnVue.ts`) montre côte à côte l'étal rangé par famille (`etal/` : chaque
+## article à son prix, pressé tant que le panier en tient) et le comptoir : le panier (`panier` : chaque ligne qui en
+## ôte une unité, puis le paiement de son total, refusé avec sa raison), les possessions de chaque héros (`vente/` :
+## chacune à son gain, pressée tant qu'elle est au lot) et la vente du lot. Le marché de cargaison, à la halle
+## (`projet/ecrans/marcheDeTerre.tscn`) comme au port (`projet/ecrans/port.tscn`, qui en hérite), est lu par
+## `marcheEnVue` (`src/noyau/marcheEnVue.ts`) sur la formule du marché ouvert (`formuleOuverte`,
+## `src/noyau/cargaison.ts`) : à gauche chaque offre (`offre/` : son Enc disponible, son prix de base par Enc, la
+## qualité de son vin évalué ou son évaluation, puis son achat en formulaire : le porteur qui le charge, le premier qui
+## le peut saisi d'avance, et l'Enc), à droite chaque lot des porteurs du groupe (`lot/` : son porteur et son Enc, son
+## prix de base, sa vente, son bradage, puis son transfert en formulaire vers un porteur co-localisé). Le voyage
+## (`projet/ecrans/voyage.tscn`) est la disposition de toute étape d'une séquence jouée en route (`voyageEnVue`,
+## `src/noyau/voyageEnVue.ts`) : la journée ne s'y arrête qu'aux vrais choix (`jouerLaJournee`, `src/noyau/cascade.ts`),
+## le reste va au journal. Il montre dans le paysage l'heure de jeu et la météo du jour (`voyage/heure`,
+## `voyage/meteo`), ce qui tient la journée, les km faits sur ceux du trajet par son moyen (`voyage/route`), la frise
+## (`voyage/etape/` : le départ, chaque nuit passée en route à son km, l'arrivée), puis sous le paysage les jets de
+## l'étape en rangée, chacun sur son héros (`jets/`) ; la halte de nuit (`projet/ecrans/rest.tscn`) montre la même route
+## sous la nuit et son lieu. Le document remis (`projet/ecrans/document.tscn`) se pose au centre, son texte dans un
+## défilement : le Markdown verbatim de la donnée, montré tel quel. Un écran dédié neuf, c'est une scène de plus sous
+## `projet/ecrans/`, sans ligne de GDScript.
+
 const GENERIQUE := "res://ecrans/fenetre.tscn"
 
 ## Le chemin de la scène posée, `""` avant la première.
