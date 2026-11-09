@@ -32,7 +32,13 @@ describe('le véhicule de l’atelier (`vehicule`)', () => {
         'canon-petit', 'catapulte-grande', 'catapulte-moyenne', 'catapulte-petite', 'mangonneau-ade2', 'mortier-ade2', 'mortier', 'onagre-ade2',
         'pierrier', 'trebuchet-ade2'],
       ameliorations: [],
+      montables: ['ancre', 'belier', 'blindage-bronze', 'blindage-fer', 'bouteur', 'clinfoc', 'embarcation-de-bord', 'figure-de-proue', 'fourquines',
+        'murs-blindes', 'nid-de-pie', 'propulsion-a-vapeur', 'proue-idole-de-stromfels', 'ralentisseurs-lateraux', 'sabord', 'safran'],
     });
+  });
+
+  it('un engin dont le manifeste n’ancre ni ne nomme aucune Amélioration n’en offre aucune à monter', () => {
+    expect(reponse({ definition: 'trebuchet-ade2' }).montables).toEqual([]);
   });
 
   it('le même corps que le combat donne à la même coque, hors de son cap', () => {

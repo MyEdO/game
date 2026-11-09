@@ -339,7 +339,6 @@ func _choisir_le_vehicule(definition: String) -> void:
 	_montrer_ce_qu_il_reste_a_produire()
 	_marche.suivre(_vehicule, null, func() -> String: return "", 0.0)
 	_montrer_la_composition()
-	_montrer_l_etat()
 	await _demander_le_vehicule()
 
 
@@ -375,7 +374,7 @@ func _poser_au_sol(scene: Node3D) -> void:
 
 ## L'onglet Équipement du véhicule, d'après la dernière réponse de `vehicule` : ses pièces, celles que la réponse monte à
 ## ses `places` ; « Postes », une rangée par place, à son libellé, sa liste de clé `poste/<bord>/<rang>` offrant « Aucun »
-## puis chaque fiche de `pieces` par le libellé de son élément, sur la pièce de la place ; « Améliorations », une case par Amélioration servie (`ameliorations` de `modeles`, de clé
+## puis chaque fiche de `pieces` par le libellé de son élément, sur la pièce de la place ; « Améliorations », une case par Amélioration que le véhicule peut monter (`montables`, de clé
 ## `amelioration/<id>`), cochée si le véhicule la porte ; « Emblème », si son élément porte une surface `blason`, la liste
 ## de clé `vehicule/embleme` : « Aucun », puis chaque emblème.
 func _poser_le_panneau_du_vehicule() -> void:
@@ -392,7 +391,7 @@ func _poser_le_panneau_du_vehicule() -> void:
 		_selectionner(liste, VIDE if place.piece == null else place.piece)
 		if place.piece != null:
 			_postes_du_vehicule.append({definition = place.piece, bord = place.bord})
-	for amelioration in MontageDeComposition.modeles.ameliorations:
+	for amelioration in offre.montables:
 		var case := CheckButton.new()
 		case.text = MontageDeComposition.modeles.libelles[MontageDeComposition.modeles.ameliorations[amelioration]]
 		case.set_meta("cle", "amelioration/%s" % amelioration)
@@ -850,13 +849,13 @@ func _montrer_l_onglet(onglet: String) -> void:
 ## Les onglets que le modèle posé offre, dans l'ordre du panneau (`.claude/rules/hote-godot.md`) : « Personnage », la
 ## composition d'une base posée ; « Équipement », si une de ses sections porte une rangée ou s'il reste à produire ;
 ## « Couleurs », si une surface posée prend une couleur de palette (`_palette_posee`) ; « Animation », si le lecteur du
-## modèle posé a un clip ; « Effets » et « Outils », toujours.
+## modèle posé a un clip ou si l'engin posé attaque ; « Effets » et « Outils », toujours.
 func _onglets_offerts() -> Array[String]:
 	var offerts := {
 		personnage = not _montage.base.is_empty(),
 		equipement = %AProduire.visible or _sections.values().any(func(section: Control) -> bool: return section.visible),
 		couleurs = not _palette_posee().is_empty(),
-		animation = _lecteur() != null and not _lecteur().get_animation_list().is_empty(),
+		animation = _attaque_de_l_engin() != null or (_lecteur() != null and not _lecteur().get_animation_list().is_empty()),
 		effets = true,
 		outils = true,
 	}
@@ -1240,7 +1239,7 @@ func _publier_l_ecran() -> void:
 			aides = _aides,
 			erreurs = _toutes_les_erreurs(),
 			onglet = _onglet,
-			onglets = _onglets_offerts(),
+			onglets = _onglets.keys().filter(func(onglet: StringName) -> bool: return _boutons_des_onglets[onglet].visible).map(func(onglet: StringName) -> String: return String(onglet)),
 			defilement = _onglets[_onglet].scroll_vertical,
 			plages = plages,
 			composition = {

@@ -232,6 +232,13 @@ export function postesMontes(manifeste: unknown, ameliorations: readonly string[
   });
 }
 
+/** Les Améliorations de `offertes` que le véhicule de manifeste `manifeste` peut monter, dans leur ordre : celles que
+ *  nomment ses `ancrages` ou son `selon`. */
+export const ameliorationsMontables = (manifeste: unknown, offertes: readonly string[]): string[] => {
+  const { ancrages, selon } = manifeste as ManifesteDeVehicule;
+  return offertes.filter((a) => (ancrages && a in ancrages) || (selon && a in selon));
+};
+
 type EtatAuPoste = (typeof ETATS_AU_POSTE)[keyof typeof ETATS_AU_POSTE];
 
 /** Une pièce d'Amélioration montée sur un véhicule : l'élément `amelioration` servi qui la dessine, sa position dans la
