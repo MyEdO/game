@@ -24,9 +24,11 @@ MANIFESTE = {
 MATERIAUX = {'capuche': ('accent', ((0.6, 0.6, 0.6), 0.0, 0.87))}
 
 # Ce que la capuche contourne : la tête publiée et la coiffure du preset `sorcier` (contrat), leurs matières visibles.
-CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-courte'}
+CONTOURNE = {'tete': 'humanoide--tete--humain', 'coiffure': 'humanoide--pilosite--barbe-courte', 'robe': 'humanoide--vetement--robe'}
 MATIERES_DE_LA_TETE = ['peau', 'cheveux']
 MATIERES_DE_LA_COIFFURE = ['poil']
+MATIERES_DE_LA_ROBE = ['robe']          # le pan repose sur la robe : il en emprunte les poids et les clés, celles des
+ZONES_DE_LA_ROBE = ['torse', 'bras_haut_g', 'bras_haut_d']  # meshes de la robe sous lui
 BUDGET_TRIANGLES = 2500                 # procédure, section 7 : vêtement par pièce
 EPAISSEUR = 0.004                       # adaptation : drap de laine, double nappe
 
@@ -86,24 +88,27 @@ ECHARPE = {
 # vise, dans le plan sagittal de sa colonne, l'enveloppe convexe de la coupe du torse depuis un axe à l'épaule.
 PAN = {
     'os_epaule': 'clavicle_l',
-    'colonnes_x': (0.070, 0.100, 0.130),  # adaptation : x des colonnes depuis la tête de `clavicle_l` (pan de ~0,07 m)
+    'colonnes_x': (0.070, 0.095, 0.120),  # adaptation : x des colonnes depuis la tête de `clavicle_l` (pan de ~0,05 m, entre le
+                                          # cou et l'acromion : au-delà, l'épaule de la robe passe sous son bord quand la carrure s'élargit)
     'axe': (0.0, 0.050, -0.210),          # adaptation : axe des visées depuis la tête de `clavicle_l` (y, z ; x ignoré)
     'angle_devant': -12.0,                # illustration : le pan descend sur la poitrine jusqu'au-dessus de la ceinture
     'angle_derriere': 196.0,              # HYPOTHÈSE (dos non montré) : derrière, il descend sous l'omoplate
     'stations': 14,
-    'jeu': 0.034,                         # adaptation : par-dessus la robe et son col (#3743, robe en construction)
-    'jeu_min': 0.010,
+    'jeu': 0.034,                         # adaptation : par-dessus la robe et son col (#3743)
+    'jeu_min': 0.032,                     # adaptation : distance vraie de la nappe intérieure au corps, au-dessus de l'aisance
+                                          # de la robe (col à 26 mm, `vetement--robe/donnees.py`) et de son épaisseur
     'portee': 0.40,
     'passes_de_lissage': 2,
 }
 
 # Zones de la base dont chaque nappe emprunte les poids ; le capuchon emprunte ceux de la peau de la tête publiée, qu'il
-# couvre (la peau y porte un peu de `neck_01` : le capuchon la suit telle quelle).
-PORTEUSES = {'echarpe': ['cou', 'torse'], 'pan': ['torse', 'cou', 'bras_haut_g']}
+# couvre (la peau y porte un peu de `neck_01` : le capuchon la suit telle quelle), le pan ceux de la robe.
+PORTEUSES = {'echarpe': ['cou', 'torse']}
 # Os dont une nappe reporte le poids emprunté sur un autre : l'écharpe s'enroule autour du cou, elle ne suit pas la tête
 # (sous le menton, la peau du cou porte `Head`) ; son poids va au cou.
 OS_REPORTES = {'echarpe': {'Head': 'neck_01'}}
 ZONES_DES_CLES = ['tete', 'visage', 'cou', 'torse', 'bras_haut_g', 'bras_haut_d']
-LISSAGE_POIDS = {'capuchon': 1, 'echarpe': 12, 'pan': 6}   # adaptation : passes laplaciennes des poids par nappe
+LISSAGE_POIDS = {'capuchon': 1, 'echarpe': 12, 'pan': 0}   # adaptation : passes laplaciennes des poids par nappe ; le pan
+                                                           # garde ceux de la robe qu'il couvre, tels quels
 MARGE_DE_SUIVI = 0.9                    # adaptation : part du jeu tenue sous la garde `suiviDuCorps`
 PAS_DE_VISEE = 0.002                    # adaptation : pas (m) de la visée du dehors vers le centre

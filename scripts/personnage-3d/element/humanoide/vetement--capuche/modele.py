@@ -18,6 +18,7 @@ import math
 import numpy as np
 from mathutils import Vector
 from mathutils.bvhtree import BVHTree
+from mathutils.kdtree import KDTree
 
 from formes import decalages, poser_la_cle
 from seuils import SOL_TOLERANCE_M
@@ -209,9 +210,9 @@ def echarpe(D, b, M, contournees):
     dirs = [np.array([math.sin(t), -math.cos(t), 0.0]) for t in thetas]
     # Le bas : au-delà de la couture (elle va en dents de scie, au gré des triangles des deux zones), au plus grand
     # rayon de ses sommets voisins en angle, posé sur le torse.
+    torse = Contournees(D, [zone(b, 'torse')])
     dz, ecart = c['bas']
     voisinage_angulaire = 1.5 * math.pi / s
-    torse = Contournees(D, [zone(b, 'torse')])
     r0, hauteurs, rangs = [], [], [[]]
     for t, d in zip(thetas, dirs):
         proches = np.abs((angles - t + math.pi) % (2 * math.pi) - math.pi) < voisinage_angulaire
@@ -330,6 +331,7 @@ def construire(D, materiaux, b):
     peau_et_poids = b.matieres_publiees(D['CONTOURNE']['tete'], D['MATIERES_DE_LA_TETE'])
     peau, poil = peau_et_poids[:2], b.matieres_publiees(D['CONTOURNE']['coiffure'], D['MATIERES_DE_LA_COIFFURE'])[:2]
     tete_et_cou = Contournees(D, [peau, poil, zone(b, 'cou')])
+    robe = b.matieres_publiees(D['CONTOURNE']['robe'], D['MATIERES_DE_LA_ROBE'])
     M = Maillage()
     faces_capuchon = capuchon(D, b, M, tete_et_cou)
     X = np.array(M.sommets)
@@ -340,6 +342,7 @@ def construire(D, materiaux, b):
     X, orientes, normales = M.orienter()
     porteurs = {nom: b.porteur(zs) for nom, zs in D['PORTEUSES'].items()}
     porteurs['capuchon'] = porteur_de(*peau_et_poids)
+    porteurs['pan'] = porteur_de(*robe)
     reports = {nom: [(b.indice_os[a], b.indice_os[o]) for a, o in r.items()] for nom, r in D['OS_REPORTES'].items()}
     W = np.zeros((len(X), len(b.os)))
     for i, (p, partie) in enumerate(zip(X, M.parties)):
@@ -357,6 +360,12 @@ def construire(D, materiaux, b):
         W[i] *= 1.0 - f
         W[i, tete_] += f
     piece = b.nappe('capuche', X, normales, W, orientes, materiaux['capuche'], D['EPAISSEUR'])
-    cles = b.transferer(piece, D['ZONES_DES_CLES'])
+    arbre = KDTree(len(X))
+    for i, p in enumerate(X):
+        arbre.insert(Vector(p.tolist()), i)
+    arbre.balance()
+    sur_la_robe = [parties[arbre.find(v.co)[1]] == 'pan' for v in piece.data.vertices]
+    cles = b.transferer(piece, D['ZONES_DES_CLES'], publies={D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']},
+                        sur=sur_la_robe)
     tenir_au_corps(b, piece, [k for k in cles if k.startswith('gabarit_')], D['MARGE_DE_SUIVI'])
     return piece
