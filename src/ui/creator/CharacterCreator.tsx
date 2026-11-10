@@ -60,6 +60,7 @@ import { refKey, splitLabel } from '../../engine/careerSlots';
 import { BASE_HUMAINE, CAREER_SKILL_ADVANCES, MAX_ADV_PER_SKILL, baseDEspece, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
 import { adresseDeCreation, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { bandeAuDe } from '../../engine/tables';
+import { formatDice } from '../../engine/dice';
 import { brancheChoisie, dotationsDuHeros, emplacementsDeDotation, estEmplacementDeDotation, estEmplacementRacine, idChoisi, sousEmplacement, type ChoixDeDotation, type EmplacementDeDotation } from '../../engine/trappingChoices';
 import { idsDeLaSousListe, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { sexeSchema, type SourceRef } from '../../data/schemas/grammaire/valeurs';
@@ -1129,7 +1130,7 @@ function AllocStepper({ d, setD, compteur, label }: { d: CreatorDraft; setD: (d:
 
 /** Les POSITIONS de la roue céleste = les VINGT fourchettes d100 de la table RAW (ADE II 3 l.36-56,
  *  « Les 20 signes »), pas les 23 entrées de `stars.json` : L'Étoile du Sorcier (96-00) porte QUATRE
- *  destins (sous-table 1d10, `StarData.sub`) qui partagent sa borne `rand` et se déplient en plaques
+ *  destins (sous-table `starSubDie`, `StarData.sub`) qui partagent sa borne `rand` et se déplient en plaques
  *  une fois l'aiguille posée. Grouper ICI est ce qui rend le cadran lisible — les quatre destins
  *  occupaient quatre positions voisines sous le MÊME nom, d'où le télescopage du pôle nord.
  *  Clé de position = la borne `rand` (donnée RAW stable, jamais un libellé). Dérivée une fois : les
@@ -1150,6 +1151,7 @@ const STAR_POSITIONS = (() => {
     return { key: String(rand), rand, from, members, label };
   });
 })();
+const POSITION_A_DESTINS = STAR_POSITIONS.find((p) => p.members.length > 1);
 
 /** Tagline SOURCÉE d'une entrée de donnée (« Archives de l'Empire II p. 41 ») — `DetailFrame.sub`
  *  n'accepte rien d'autre qu'une réf de source, et trois étapes la composaient à l'identique. */
@@ -1163,7 +1165,7 @@ function sourceSub(source: SourceRef | undefined): string | undefined {
 //      l'ASTROLABE et, à sa droite, le `DetailFrame` du signe élu ; DESC = fiche vivante (défaut du
 //      gabarit). Un ÉCRAN (et non des `zones` nues) parce que le pas pose son propre état d'UI. ════
 export function StarScreen({ d, setD }: StepProps) {
-  // Position POINTÉE sans destin encore élu (L'Étoile du Sorcier : la roue déplie ses quatre destins,
+  // Position POINTÉE sans destin encore élu (L'Étoile du Sorcier : la roue déplie ses destins,
   // le joueur en choisit un). État d'UI PUR — le brouillon ne connaît que `star`, l'id du destin élu.
   const [pendingKey, setPendingKey] = useState<string | null>(null);
   const sign = d.star ? starsTable.find((s) => s.id === d.star) : undefined; // d.star = id STABLE
@@ -1212,8 +1214,8 @@ export function StarScreen({ d, setD }: StepProps) {
       </StepHeader>
       <p className="hint" style={{ margin: '0 0 8px' }}>
         Tourner la roue à la main choisit librement ; le d100 s'arrête sur la fourchette du signe tiré, et le
-        garder rapporte +{XP_STAR_ROLLED} PX de création. L'Étoile du Sorcier ouvre quatre destins — la roue
-        les déplie si l'aiguille s'y pose.
+        garder rapporte +{XP_STAR_ROLLED} PX de création.
+        {POSITION_A_DESTINS && <> L'Étoile du Sorcier ouvre {POSITION_A_DESTINS.members.length} destins — la roue les déplie si l'aiguille s'y pose.</>}
       </p>
     </>
   );
@@ -1258,7 +1260,7 @@ export function StarScreen({ d, setD }: StepProps) {
       </div>
       <div className="appear-controls">
         {selPos && selPos.members.length > 1 && (
-          <Section title="Quatre destins — 1d10">
+          <Section title={`${selPos.members.length} destins — ${formatDice(starSubDie())}`}>
             <PlaqueGrid>
               {selPos.members.map((m) => (
                 <PlaqueRow
@@ -1322,7 +1324,7 @@ export function StarScreen({ d, setD }: StepProps) {
         ) : (
           <p className="hint">
             {selPos && selPos.members.length > 1
-              ? 'L’Étoile du Sorcier ouvre quatre destins — choisissez le vôtre ci-dessus.'
+              ? `L’Étoile du Sorcier ouvre ${selPos.members.length} destins — choisissez le vôtre ci-dessus.`
               : 'Choisissez ou tirez votre signe astral — son sens apparaîtra ici.'}
           </p>
         )}
