@@ -11,8 +11,8 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
-import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { battleActivityById, peutTenterAction } from './massBattleFlow';
+import { pratiquer } from './interlude.testkit';
 
 /** Texte FIGÉ du refus « plus d'Activité » du héros de ce banc. */
 const PLUS_D_ACTIVITE = 'Vétéran n’a plus d’Activité d’interlude.';
@@ -78,13 +78,13 @@ const empreinte = (banc: Banc) => {
 };
 
 /** Les gestes qui CONSOMMENT une Activité, par leur intention. */
-const GESTES_D_ACTIVITE: [string, (a: ActionsDuNoyau, heroId: string) => void][] = [
-  ['pratiquerLActivite (Revenus)', (a, heroId) => a.pratiquerLActivite(heroId, 'revenus')],
-  ['commanderLObjet', (a, heroId) => a.commanderLObjet(heroId, 'arquebuse')],
-  ['suivreLEntrainement', (a, heroId) => a.suivreLEntrainement(heroId, 'characteristic', 'intelligence')],
-  ['deposerALaBanque (planque)', (a, heroId) => a.deposerALaBanque(heroId, 'stash', 10)],
-  ['retirerDeLaBanque (investissement)', (a) => a.retirerDeLaBanque('depot-invest')],
-  ['solderLaFaveur', (a, heroId) => a.solderLaFaveur(heroId, 'favor-1')],
+const GESTES_D_ACTIVITE: [string, (banc: Banc, heroId: string) => void][] = [
+  ['pratiquer (Revenus)', (banc, heroId) => pratiquer(banc.getState, heroId, 'revenus')],
+  ['commanderLObjet', (banc, heroId) => banc.actions.commanderLObjet(heroId, 'arquebuse')],
+  ['pratiquer (Entraînement)', (banc, heroId) => pratiquer(banc.getState, heroId, 'entrainement', { entrainement: 'intelligence' })],
+  ['deposerALaBanque (planque)', (banc, heroId) => banc.actions.deposerALaBanque(heroId, 'stash', 10)],
+  ['retirerDeLaBanque (investissement)', (banc) => banc.actions.retirerDeLaBanque('depot-invest')],
+  ['solderLaFaveur', (banc, heroId) => banc.actions.solderLaFaveur(heroId, 'favor-1')],
 ];
 
 describe('refusDActivite — un geste qui consomme une Activité', () => {
@@ -92,21 +92,21 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
     it(`${nom} : sans Activité restante, rien ne bouge et le refus se dit`, () => {
       const { banc, heroId } = sansActivite();
       const avant = empreinte(banc);
-      expect(journalDe(banc, () => geste(banc.actions, heroId))).toEqual([PLUS_D_ACTIVITE]);
+      expect(journalDe(banc, () => geste(banc, heroId))).toEqual([PLUS_D_ACTIVITE]);
       expect(empreinte(banc), 'le geste a agi sans Activité').toBe(avant);
     });
 
     it(`${nom} : pendant le tirage, rien ne bouge et le refus se dit`, () => {
       const { banc, heroId } = enTirage();
       const avant = empreinte(banc);
-      expect(journalDe(banc, () => geste(banc.actions, heroId))).toEqual([TIRAGE_EN_ATTENTE]);
+      expect(journalDe(banc, () => geste(banc, heroId))).toEqual([TIRAGE_EN_ATTENTE]);
       expect(empreinte(banc), 'le geste a agi avant le tirage').toBe(avant);
     });
   }
 
   it('jetValider@activity : une Activité ouverte puis plus couverte par le budget se refuse à la validation', () => {
     const { banc, heroId } = apresLeTirage();
-    banc.actions.pratiquerLActivite(heroId, 'revenus');
+    pratiquer(banc.getState, heroId, 'revenus');
     expect(banc.getState().pendingActivity?.heroId, 'témoin : les Revenus sont ouverts').toBe(heroId);
     banc.actions.jetLancer('activity');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
@@ -136,15 +136,15 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
 });
 
 describe('refusDuTirage — un geste qui ne consomme pas d’Activité', () => {
-  it('fabriquerLObjet : engager un Artisanat reste PERMIS sans Activité restante (LDB 23 l.76)', () => {
+  it('pratiquer l’Artisanat : engager un Artisanat reste PERMIS sans Activité restante (LDB 23 l.76)', () => {
     const { banc, heroId } = sansActivite();
-    banc.actions.fabriquerLObjet(heroId, 'dague', [], []);
+    pratiquer(banc.getState, heroId, 'craft', { ouvrage: 'dague' });
     expect(banc.getState().party[0].craft?.trappingId).toBe('dague');
   });
 
-  it('fabriquerLObjet : pendant le tirage, rien ne s’engage et le refus se dit', () => {
+  it('pratiquer l’Artisanat : pendant le tirage, rien ne s’engage et le refus se dit', () => {
     const { banc, heroId } = enTirage();
-    expect(journalDe(banc, () => banc.actions.fabriquerLObjet(heroId, 'dague', [], []))).toEqual([TIRAGE_EN_ATTENTE]);
+    expect(journalDe(banc, () => pratiquer(banc.getState, heroId, 'craft', { ouvrage: 'dague' }))).toEqual([TIRAGE_EN_ATTENTE]);
     expect(banc.getState().party[0].craft).toBeUndefined();
   });
 

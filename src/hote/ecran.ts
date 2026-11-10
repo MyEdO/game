@@ -366,14 +366,19 @@ function formulaireDuNoyau(id: string, libelle: string, f: { geste: { verbe: str
   return { type: 'formulaire', id, libelle, verbe: f.geste.verbe, focus: false, refus: f.refus, champs: [...fixes, ...saisies.map((x) => ({ ...x, id: `${id}/${x.id}` }))] };
 }
 
-/** Une saisie de valeurs nommées, chacune fermée par sa raison et pressée si elle est saisie d'avance : à cocher, ou
- *  à choisir une seule. */
-const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libelle: string; valeur: string; refus: string | null; presse?: boolean }[], type: 'saisieCoches' | 'saisieChoix' = 'saisieCoches'): Saisie =>
-  ({ type, id: nom, ton: 'neutre', nom, optionnel: false, libelle, valeurs: valeurs.map((v) => ({ presse: false, ...v })) });
+/** Une saisie d'une valeur à choisir parmi des valeurs nommées, chacune fermée par sa raison et pressée si elle est
+ *  saisie d'avance. */
+const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libelle: string; valeur: string; refus: string | null; presse?: boolean }[]): Saisie =>
+  ({ type: 'saisieChoix', id: nom, ton: 'neutre', nom, optionnel: false, libelle, valeurs: valeurs.map((v) => ({ presse: false, ...v })) });
+
+/** Un choix de valeurs en boutons, en liste au-delà de `CHOIX_EN_BOUTONS`. */
+const typeDuChoix = (n: number): Choix['type'] => (n > CHOIX_EN_BOUTONS ? 'liste' : 'choix');
 
 /** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
- *  l'Événement de sa période en puces, puis chacune de ses Activités, un bouton sans cible, un choix de ses cibles sinon (en liste au-delà de
- *  `CHOIX_EN_BOUTONS`), fermée avec sa raison ; puis les dépôts en banque, chacun le bouton de son retrait. */
+ *  l'Événement de sa période en puces, puis chaque choix de l'Activité qu'il compose, la sienne pressée et chacune
+ *  fermée avec sa raison, et le bouton qui la pratique ; ses Activités jouées par leur verbe, un bouton sans cible, un
+ *  choix de ses cibles sinon, fermée avec sa raison ; son dépôt ; puis les dépôts en banque, chacun le bouton de son
+ *  retrait. */
 function herosDeLInterlude(etat: Jeu): Element[] {
   const itl = interludeEnVue(etat);
   if (!itl) return [];
@@ -386,16 +391,16 @@ function herosDeLInterlude(etat: Jeu): Element[] {
         puce('px', t('ecran.repit.px'), String(h.px)),
         puce('bourse', t('ecran.repit.bourse'), h.bourse),
         ...(h.evenement ? [puce('evenement', h.evenement, null)] : []),
+        ...h.composition.map((c): Choix => ({
+          type: typeDuChoix(c.valeurs.length), id: c.axe, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
+          valeurs: c.valeurs.map((v, i) => boutonDeGeste(`${c.axe}/${i}`, v.libelle, v.geste, v.refus, v.choisie)),
+        })),
+        ...(h.pratiquer ? [boutonDuNoyau('pratiquer', h.pratiquer)] : []),
         ...h.activites.map((a): Bouton | Choix => (a.cible
-          ? { type: a.gestes.length > CHOIX_EN_BOUTONS ? 'liste' : 'choix', id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
+          ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
           : boutonDuNoyau(a.id, a.gestes[0]))),
-        ...(h.ouvrage ? [formulaireDuNoyau(`ouvrage/${h.id}`, t('ecran.repit.ouvrage'), h.ouvrage, h.ouvrage.refus ? [] : [
-          saisieDeValeurs('trappingId', t('ecran.repit.ouvrages'), h.ouvrage.ouvrages, 'saisieChoix'),
-          saisieDeValeurs('atouts', t('ecran.repit.atouts'), h.ouvrage.atouts),
-          saisieDeValeurs('defauts', t('ecran.repit.defauts'), h.ouvrage.defauts),
-        ])] : []),
         formulaireDuNoyau(`depot/${h.id}`, t('ecran.repit.depot'), h.depot, h.depot.refus ? [] : [
-          saisieDeValeurs('kind', t('ecran.repit.genre'), h.depot.genres, 'saisieChoix'),
+          saisieDeValeurs('kind', t('ecran.repit.genre'), h.depot.genres),
           { type: 'saisieNombre', id: 'amountBrass', ton: 'neutre', nom: 'amountBrass', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
         ]),
       ],
@@ -566,7 +571,7 @@ function marche(etat: Jeu): Element[] {
         boutonDuNoyau('vendre', { ...l.vendre, libelle: t('ecran.marche.vendre') }),
         boutonDuNoyau('brader', { ...l.brader, libelle: t('ecran.marche.brader') }),
         formulaireDuNoyau('deplacer', t('ecran.marche.deplacer'), { geste: { verbe: l.deplacer.geste.verbe, args: [l.uid] }, refus: l.deplacer.refus }, l.deplacer.refus ? [] : [
-          saisieDeValeurs('vers', t('ecran.marche.vers'), l.deplacer.vers.map((p, i) => ({ libelle: t('valeur.porteur', { nom: p.nom, libre: p.libre, capacite: p.capacite }), valeur: p.id, refus: null, presse: i === 0 })), 'saisieChoix'),
+          saisieDeValeurs('vers', t('ecran.marche.vers'), l.deplacer.vers.map((p, i) => ({ libelle: t('valeur.porteur', { nom: p.nom, libre: p.libre, capacite: p.capacite }), valeur: p.id, refus: null, presse: i === 0 }))),
           { type: 'saisieNombre', id: 'enc', ton: 'neutre', nom: 'enc', optionnel: false, libelle: t('ecran.marche.aDeplacer'), valeur: l.deplacer.enc, min: 1, max: l.deplacer.max, pas: 1 },
         ]),
       ],

@@ -13,6 +13,7 @@ import { CHAR_KEYS } from '../engine/types';
 import { tableTotale } from '../lib/tableTotale';
 import { testScene } from '../scenes/test-fixture';
 import { FLOWS } from './rollFlowSpecs';
+import { pratiquer } from './interlude.testkit';
 
 /** Le Test de Revenus d'un héros dont chaque Caractéristique vaut `valeur`, Exténué de `extenue`, jeté puis fixé à `de`. */
 function revenusAuDe(valeur: number, extenue: number, de: number) {
@@ -26,7 +27,7 @@ function revenusAuDe(valeur: number, extenue: number, de: number) {
   const itl = banc.getState().interlude!;
   itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 3 };
   banc.setState({ interlude: { ...itl } });
-  banc.getState().pratiquerLActivite(h.id, 'revenus');
+  pratiquer(banc.getState, h.id, 'revenus');
   banc.getState().jetLancer('activity');
   banc.getState().jetImposerLeResultat('activity', de);
   return FLOWS.activity.outcomeOf(banc.getState);

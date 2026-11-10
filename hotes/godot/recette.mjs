@@ -63,11 +63,12 @@
 //   et ses modes, le plan de ses lieux ; « À pied » vers Steinbruck part, les journées et la halte passent jusqu'au
 //   récit de l'arrivée, puis l'écran du lieu, ses services et ses trajets.
 // - `repit` (`--scenario bataille-de-masse`) : les dés d'Événement tombent, l'entre-deux-aventures montre un onglet par
-//   héros, ses Activités restantes et chaque Activité fermée par sa raison ; « Revenus » cliqué ouvre son jet, lancé à
-//   l'Entrée puis appliqué : l'onglet du héros compte une Activité de moins.
-// - `ouvrage` (`--scenario entre-deux-aventures`) : les dés d'Événement tombent ; dans l'onglet du forgeron, la molette
-//   amène ses formulaires, l'Atout « Solide » coché, le premier ouvrage ouvert choisi dans la liste au clavier,
-//   « Entreprendre un ouvrage » l'engage : l'Artisanat en cours le remplace.
+//   héros, ses Activités restantes et la liste de l'Activité à composer, chacune fermée par sa raison ; « Revenus »
+//   choisi dans la liste au clavier, « Entreprendre » ouvre son jet, lancé à l'Entrée puis appliqué : l'onglet du héros
+//   compte une Activité de moins.
+// - `ouvrage` (`--scenario entre-deux-aventures`) : les dés d'Événement tombent ; dans l'onglet du forgeron,
+//   « Artisanat » choisi dans la liste de l'Activité, puis le deuxième ouvrage ouvert et l'Atout « Solide » dans les leurs,
+//   « Entreprendre » l'engage : l'ouvrage ne s'offre plus, l'Artisanat en cours se poursuit.
 // - `bataille` (`--scenario bataille-de-masse`) : l'interlude clos, la bataille montre ses armées et les Scènes du
 //   Round ; « Résoudre » ouvre le jet de la première Scène à postes, lancé à l'Entrée puis appliqué : la Scène se
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
@@ -271,7 +272,7 @@ async function cliquerPoint(x, y) {
 }
 /** Le bouton publié dont le texte vaut `quoi`, ou, pour `{ cle }` ou `{ element }`, dont la clé ou l'élément dessiné
  *  vaut celui-ci ; `undefined` hors de l'écran. */
-const trouver = (boutons, quoi) => boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : x.cle === quoi.cle))
+const trouver = (boutons, quoi) => boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : 'choix' in quoi ? x.choix?.includes(quoi.choix) : x.cle === quoi.cle))
 /** Le bouton publié qui dessine le bouton `b` de la vue. */
 const bouton = (b) => ({ element: `bouton/${b.id}` })
 async function cliquerBouton(quoi) {
@@ -1123,7 +1124,8 @@ async function parcoursRepit() {
   noter(`répit : ${zone(v, 'fenetre.corps')[0].texte} ; ${puces(v).join(' ; ')}`)
   assert.deepEqual(puces(v)[0], 'Activités : 3 / 3')
   await capturer('3328-m1-1-repit')
-  await cliquerBouton('Revenus')
+  await choisirDansLaListe(undefined, 'Revenus')
+  await cliquerAmene('Entreprendre', 1)
   await attendreLaVue("v.disposition === 'activity'")
   await capturer('3328-m1-2-revenus')
   await marquer()
@@ -1146,32 +1148,16 @@ async function parcoursOuvrage() {
     await nouvelEcran()
   }
   await capturer('3328-o1-1-forgeron')
-  /** Le bouton publié qui porte `texte`, amené à l'écran par la molette sur l'onglet du héros. */
-  const amenerTexte = async (texte) => {
-    for (let n = 0; !trouver((await ecran()).boutons, texte); n++) {
-      assert.ok(n < 30, `« ${texte} » amené par la molette`)
-      await molette(session, { surface: 'canvas', x: 600, y: 420 }, 100)
-      await sleep(250)
-    }
-  }
-  await amenerTexte('Entreprendre un ouvrage')
-  await capturer('3328-o1-2-formulaires')
-  /** Un clic sur le bouton publié `b`, qui ne publie aucun écran neuf (une case, une liste ouverte). */
-  const cliquerSurPlace = (b) => geste(session, { surface: 'canvas', x: b.x, y: b.y }, { qui: `clic sur ${b.texte}` }, clic())
-  await cliquerSurPlace(trouver((await ecran()).boutons, 'Solide'))
-  const ouvrage = zone(await vue(), 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'ouvrage/durin')
-  const ouverts = ouvrage.champs.find((c) => c.nom === 'trappingId').valeurs.filter((v) => !v.refus)
-  const liste = (await ecran()).boutons.find((b) => b.choix?.includes(ouverts[0].libelle))
-  assert.ok(liste, `la liste des ouvrages est à l'écran`)
-  await cliquerSurPlace(liste)
-  await sleep(400)
-  await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
-  await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-  await sleep(300)
-  await cliquerBouton('Entreprendre un ouvrage')
-  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repit/durin').elements.some((x) => x.id === 'craft')")
-  const v = await vue()
-  noter(`ouvrage engagé : ${zone(v, 'fenetre.corps').find((e) => e.id === 'repit/durin').elements.find((x) => x.id === 'craft').libelle}`)
+  /** Les éléments de l'onglet du forgeron. */
+  const durin = async () => zone(await vue(), 'fenetre.corps').find((e) => e.id === 'repit/durin').elements
+  await choisirDansLaListe(undefined, 'Artisanat')
+  await capturer('3328-o1-2-composition')
+  const ouvrage = (await durin()).find((x) => x.id === 'ouvrage').valeurs.filter((v) => !v.refus)[1].libelle
+  await choisirDansLaListe(undefined, ouvrage)
+  await choisirDansLaListe(undefined, 'Solide')
+  await cliquerAmene('Entreprendre', 1)
+  await attendreLaVue("!v.zones['fenetre.corps'].find((e) => e.id === 'repit/durin').elements.some((x) => x.id === 'ouvrage')")
+  noter(`ouvrage engagé : ${ouvrage} ; l'Artisanat se poursuit : ${(await durin()).find((x) => x.id === 'pratiquer').refus ?? 'ouvert'}`)
   await capturer('3328-o1-3-ouvrage-engage')
 }
 
@@ -1948,14 +1934,14 @@ async function cliquerAmene(quoi, sens, ou) {
   await amener(quoi, sens, ou)
   await cliquerBouton(quoi)
 }
-/** L'article `article` choisi dans la liste déroulante de clé `cle`, amenée à l'écran dans le sens `sens` : son texte,
+/** L'article `article` choisi dans la liste déroulante de clé `cle`, ou dans celle qui l'offre sans clé, amenée à l'écran dans le sens `sens` : son texte,
  *  ou `{ id }`, son id publié (`ids`) ; la liste ouverte au clic, puis l'article atteint au clavier, chaque flèche
  *  descendant d'un article depuis le haut, et retenu à l'Entrée. */
 async function choisirDansLaListe(cle, article, sens = 1) {
-  const liste = await amener({ cle }, sens)
+  const liste = await amener(cle === undefined ? { choix: article } : { cle }, sens)
   const rang = typeof article === 'string' ? liste.choix.indexOf(article) : liste.ids.indexOf(article.id)
   assert.ok(rang >= 0, `« ${typeof article === 'string' ? article : article.id} » offert par la liste ${cle} : ${liste.choix.join(', ')}`)
-  await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: `liste ${cle}` }, clic())
+  await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: `liste ${cle ?? article}` }, clic())
   await sleep(400)
   for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
   await marquer()

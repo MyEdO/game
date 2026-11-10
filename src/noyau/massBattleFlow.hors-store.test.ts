@@ -18,6 +18,7 @@ import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 import { addCondition } from '../engine/conditions';
 import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { pratiquer } from './interlude.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -880,7 +881,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     expect(mbState().scouted).toBe(true);
 
     // Activité #3 : Activité d'interlude NORMALE (Revenus) → left 1→0.
-    banc.getState().pratiquerLActivite(hero, 'revenus');
+    pratiquer(banc.getState, hero, 'revenus');
     const pa = pending()!;
     expect(pa.battle).toBeUndefined(); // Activité d'interlude ordinaire (pas de bataille)
     banc.setState({ pendingActivity: { ...pa, roll: 50, success: true, sl: 1 } });
@@ -891,7 +892,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     prep('sabotage');
     expect(pending()).toBeNull();
     // …et une Activité d'interlude normale l'est aussi (source de budget UNIQUE), refus dit.
-    banc.getState().pratiquerLActivite(hero, 'revenus');
+    pratiquer(banc.getState, hero, 'revenus');
     expect(pending()).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(`${banc.getState().party[0].label} n’a plus d’Activité d’interlude.`);
   });

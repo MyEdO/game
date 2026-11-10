@@ -14,6 +14,7 @@ import { bourseOf, withBourseMoney } from '../engine/bourse';
 import { toBrass } from '../engine/money';
 import { blocageDeRevenus, devisDeDepot, revenusDeLaPeriode } from './verdictsDInterlude';
 import type { BankDeposit } from './interludeFlow';
+import { pratiquer } from './interlude.testkit';
 
 const SCENE = { ...emptyScene('altdorf-centre', 2, 2), label: 'Altdorf', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] };
 const ALTDORF = { id: 'w', label: 'Monde', places: [{ id: 'altdorf', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: SCENE.id }], routes: [] };
@@ -52,7 +53,7 @@ const bourse = (banc: Banc, id: string) => toBrass(bourseOf(banc.getState().part
 function revenusDeB(deA: number, carriereB: string, deB = DE.sansEffet): number {
   const { banc, b } = tirage(deA, carriereB, deB);
   banc.actions.ensemencerLeTirage(42);
-  banc.actions.pratiquerLActivite(b, 'revenus');
+  pratiquer(banc.getState, b, 'revenus');
   banc.actions.jetLancer('activity');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 1 } }));
   banc.actions.jetValider('activity');

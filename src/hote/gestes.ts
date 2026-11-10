@@ -11,7 +11,7 @@
  */
 import {
   DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuChoix, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDeDetermination, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
-  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, voyageEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, VERBES_DU_JET_PSY, reposEnVue,
+  libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, voyageEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, VERBES_DU_JET_PSY, reposEnVue, interludeEnVue,
   stepInteraction,
   VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
@@ -126,8 +126,10 @@ const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJ
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
   { lire: fenetreDeDetermination, regle: parmi(VERBES_DU_JET_PSY) },
-  // Le repos règle ses dormeurs dans son corps (`reposEnVue`) : il ne nomme aucun réglage, la fenêtre ne redit pas ses choix.
+  // Le repos règle ses dormeurs dans son corps (`reposEnVue`), l'interlude l'Activité que compose chaque héros
+  // (`interludeEnVue`) : ils ne nomment aucun réglage, la fenêtre ne redit pas leurs choix.
   { lire: reposEnVue, regle: sesChoix },
+  { lire: interludeEnVue, regle: sesChoix },
 ];
 
 /** Les réglages de la fenêtre `fenetre` : ceux que nomment les fenêtres lues ouvertes, l'étape de séquence courante et

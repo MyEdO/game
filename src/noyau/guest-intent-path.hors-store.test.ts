@@ -191,7 +191,8 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
       interlude: { ...itl },
       net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [1, 0, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
     });
-    expect(applyIntent(1, 'pratiquerLActivite', [h.id, 'revenus'])).toBe('appliquee');
+    expect(applyIntent(1, 'fenetreChoisir', ['interlude', 'activite', 'revenus', h.id])).toBe('appliquee');
+    expect(applyIntent(1, 'fenetreChoisir', ['interlude', 'pratiquer', true, h.id])).toBe('appliquee');
     expect(banc.getState().pendingActivity?.heroId).toBe(h.id);
     return h;
   }

@@ -16,7 +16,8 @@ import { describe, it, expect } from 'vitest';
 import type { RNG } from './dice';
 import { toBrass } from './money';
 import { AVAILABILITIES } from './types';
-import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, ACTIVITIES, activitiesFor, activityById,
+import { parseRefKey } from './careerSlots';
+import { craftTarget, apprenticeshipTutorCost, entrainementTutorCost, entrainementTutorRange, entrainementOptions, cleDEntrainement, libelleDEntrainement, bankWithdrawOutcome, seuilDePerteBancaire, statusIncome, ACTIVITIES, activitiesFor, activityById,
   aggregateActivityOutcomes, STAGE_OUTCOME_AGG, type TravelActivityResult,
   defaultTravelRole, stageAssignmentFromRoles, matchOutcomes, activityAvailableAt } from './activities';
 import { byId } from '../data';
@@ -470,5 +471,12 @@ describe('entrainementOptions — Compétences/Caractéristiques HORS carrière 
     expect(advanced!.tutorMaxBrass).toBe(20);
     const base = skillOpts.find((o) => !o.advanced);
     expect(base!.tutorMaxBrass).toBe(10);
+  });
+  it('nomme chaque option de sa seule clé, Caractéristique comme Compétence spécialisée', () => {
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const opts = entrainementOptions(h);
+    expect(opts.find((o) => o.id === 'sociabilite')!.label).toBe('Sociabilité');
+    expect(opts.some((o) => o.spec)).toBe(true);
+    for (const o of opts) expect(libelleDEntrainement(parseRefKey(cleDEntrainement(o)))).toBe(o.label);
   });
 });

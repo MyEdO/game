@@ -232,7 +232,7 @@ describe('possession réseau (netOwnership)', () => {
     const horsCombat = base({ battle: null } as unknown as Partial<Jeu>);
     expect(intentAllowedFor(horsCombat, 1, 'epinglerLIndice', ['ind', true]), 'épingle refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'marquerLesIndices', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
-    expect(intentAllowedFor(horsCombat, 1, 'suivreLEntrainement', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
+    expect(intentAllowedFor(horsCombat, 1, 'commanderLObjet', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
     const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
     expect(intentAllowedFor(enCombat, 1, 'epinglerLIndice', ['ind', true])).toBe(true);
     expect(intentAllowedFor(enCombat, 1, 'marquerLesIndices', [vu])).toBe(true);
@@ -334,17 +334,17 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
 
   it('activité visant un héros : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
-    expect(intentAllowedFor(s, 1, 'pratiquerLActivite', ['h2', 'revenus'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'pratiquerLActivite', ['h1', 'revenus'])).toBe(false);
-    expect(intentAllowedFor(s, 0, 'fabriquerLObjet', ['h1', 'Dague', [], []])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'pratiquerLActivite', ['h2', 'learn', { talentId: 'chanceux' }])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'activite', 'revenus', 'h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'pratiquer', true, 'h1'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'ouvrage', 'dague', 'h1'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'talent', 'chanceux', 'h2'])).toBe(false);
     expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'stash', 120])).toBe(true);
   });
 
   it('Entraînement, Faveur (1er argument) et préparation de bataille (meneur en 2e argument) : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
-    expect(intentAllowedFor(s, 1, 'suivreLEntrainement', ['h2', 'characteristic', 'intelligence'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'suivreLEntrainement', ['h1', 'characteristic', 'intelligence'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'entrainement', 'intelligence', 'h2'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'entrainement', 'intelligence', 'h1'])).toBe(false);
     expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h2'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h1'])).toBe(false);
     expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['planification', 'h2'])).toBe(true);
