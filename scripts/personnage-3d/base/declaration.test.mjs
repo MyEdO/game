@@ -67,7 +67,7 @@ describe('champsDeclares', () => {
 
   it('y ajoute les prises occupées par clip, déclarées', () => {
     const prisesOccupees = { Chest_Open: ['off'] }
-    assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, prisesOccupees }), { base: 'corps', porteur, clips, prisesOccupees })
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, bornesArticulaires, clips, prisesOccupees }), { base: 'corps', porteur, bornesArticulaires, clips, prisesOccupees })
   })
 
   it('y ajoute les surfaces déclarées', () => {
