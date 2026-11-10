@@ -1328,29 +1328,39 @@ export function damageScore(d?: WeaponDamageSpec): number {
 }
 
 /** Construit l'inventaire d'un héros depuis des `TrappingRef[]` (possessions de Classe + niveau de
- *  carrière — déjà des refs par id). Un ref `{id}` à stats devient un objet ; son `count`
- *  (`compteDeLaDotation`, tiré sur `rng`) donne la quantité d'une munition, sinon autant d'objets, comme
- *  l'achat (`merchantFlow`). Une ref sans `id` est ignorée : `{text}` (flavor hors catalogue : « Réseau
- *  d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`, `trappingChoices.ts`). `idNeuf` forge l'uid de
- *  chaque objet (#2907). */
+ *  carrière — déjà des refs par id). Le `count` d'une ref `{id}` (`compteDeLaDotation`, tiré sur `rng`)
+ *  se résout ici, puis `inventaireDesDotations`. Une ref sans `id` est ignorée : `{text}` (flavor hors
+ *  catalogue : « Réseau d'informateurs »), et un emplacement non tranché (`{choice}`, `{wildcard}`,
+ *  `trappingChoices.ts`). */
 export function buildInventory(refs: TrappingRef[], rng: RNG, idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
+  return inventaireDesDotations(refs.filter(estDotationDObjet).map((ref) => ({ ref, ...(ref.count ? { n: compteDeLaDotation(ref, (de) => rollDice(de, rng)) } : {}) })), idNeuf, contexte);
+}
+
+/** Une dotation d'objet à compte RÉSOLU : `n` absent, un objet, la munition à la taille de son paquet. */
+export interface DotationResolue {
+  ref: Extract<TrappingRef, { id: string; type?: never }>;
+  n?: number;
+}
+
+/** L'inventaire de dotations à compte résolu, sans tirage : une ref `{id}` à stats devient un objet ; son `n`
+ *  donne la quantité d'une munition, sinon autant d'objets, comme l'achat (`merchantFlow`). `idNeuf` forge
+ *  l'uid de chaque objet (#2907). */
+export function inventaireDesDotations(dotations: readonly DotationResolue[], idNeuf: FabriqueDId, contexte?: ContexteDeNaissanceDObjet): ItemInstance[] {
   const items: ItemInstance[] = [];
-  const objet = (ref: Extract<TrappingRef, { id: string; type?: never }>): ItemInstance | null => {
+  const objet = (ref: DotationResolue['ref']): ItemInstance | null => {
     const g = gabaritDeLaRef(ref, findTrappingById, contexte);
     return g ? instanceDuGabarit(g, idNeuf('it')) : null;
   };
-  for (const ref of refs) {
-    if (!estDotationDObjet(ref)) continue; // possession (`possessionGrants.ts`), {text}, {choice} ou {wildcard} non tranché : aucun objet
-    const n = compteDeLaDotation(ref, (de) => rollDice(de, rng));
+  for (const { ref, n } of dotations) {
     const it = objet(ref);
     if (!it) continue;
     if (it.kind === 'ammo') {
-      if (ref.count) it.qty = n;
+      if (n != null) it.qty = n;
       items.push(it);
       continue;
     }
     items.push(it);
-    for (let i = 1; i < n; i++) items.push(garanti(objet(ref), ref.id, 'unité de dotation'));
+    for (let i = 1; i < (n ?? 1); i++) items.push(garanti(objet(ref), ref.id, 'unité de dotation'));
   }
   // Équipement par défaut : la MEILLEURE arme de mêlée + la première à distance + les armures
   // SANS conflit de couche (max une pièce par couche × localisation, meilleure PA d'abord —

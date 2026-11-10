@@ -8,7 +8,7 @@
 import type { Combatant } from './types';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import { levelsForCareer } from '../data';
-import { acquerirTalent, availableChars, freeSlotFor, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers, talentMaxReached, talentSlots, wildcardSpecs, type CareerSlot } from './careerSlots';
+import { acquerirTalent, availableChars, freeSlotFor, inCareerStatus, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers, talentMaxReached, talentSlots, wildcardSpecs, type CareerSlot } from './careerSlots';
 import { applyTalentAcquisition, competencesAjouteesPar, deplierAjouts, talentsAjoutesALaCarriere, talentsAjoutesPar } from './talentEffects';
 import { augmenterLaCompetence } from './character';
 import { blessuresReconciliees } from './characteristics';
@@ -70,13 +70,15 @@ export function talentsDuParcours(p: ParcoursDeCarriere): { niveaux: Record<stri
 }
 
 /** Les désignations des emplacements de Compétence à choix de `carriere` au Niveau `niveau` (slotKey → `refKey`) :
- *  chaque Compétence de `refs` sur le premier emplacement libre qui la couvre (`freeSlotFor`) ; `refusees`, celles
- *  qu'aucun ne prend. */
+ *  chaque Compétence de `refs` sur le premier emplacement libre qui la couvre (`freeSlotFor`), sauf celle qu'une entrée
+ *  sans choix des Niveaux 1 à `niveau` couvre déjà (`inCareerStatus` `explicit`) ; `refusees`, celles qu'aucun ne prend.
+ *  LDB 07 l.124. */
 export function designationsDeCarriere(carriere: string, niveau: number, refs: readonly RefDesignee[]): { designations: Record<string, string>; refusees: RefDesignee[] } {
   const slots = skillSlots(levelsForCareer(carriere), niveau);
   const designations: Record<string, string> = {};
   const refusees: RefDesignee[] = [];
   for (const r of refs) {
+    if (inCareerStatus(slots, designations, r.id, r.spec) === 'explicit') continue;
     const slot = freeSlotFor(slots, designations, r.id, r.spec);
     if (slot) designations[slot.key] = refKey(r.id, r.spec);
     else refusees.push(r);
