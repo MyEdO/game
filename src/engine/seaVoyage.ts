@@ -107,7 +107,7 @@ export const deDesEvenementsDeBord = (): DeDeTable => deDeLaTableTiree(EVENTS.bo
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(PORT_EVENTS));
 /** Le dé du Tableau des événements d'escale, lu à l'appel. */
 export const deDesEvenementsDePort = (): DeDeTable => deDeLaTableTiree(EVENTS.portEvents);
-const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(FAST_VOYAGE_PALIERS);
+const paliersDeVoyageRapide = memoParVersion('seaFastVoyage', () => tableOuverte(FAST_VOYAGE_PALIERS));
 /** Le dé du tableau du Voyage rapide, lu à l'appel. */
 export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(EVENTS.fastVoyage);
 /** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
@@ -221,7 +221,7 @@ export function resolveFastVoyage(
   const roll = rollDice(deDuVoyageRapide(), rng);
   const manannTens = Math.trunc(manannScore / 10); // « la dizaine de l'Humeur de Manann » (l.26/l.28)
   const result = roll - Math.max(0, weeksAtSea) + manannTens + crewDR;
-  return { roll, manannTens, result, palier: findTableEntry(PALIERS_DE_VOYAGE_RAPIDE, result) };
+  return { roll, manannTens, result, palier: findTableEntry(paliersDeVoyageRapide(), result) };
 }
 
 // ── Commerce maritime (l.309-436) ────────────────────────────────────────────────────────────────
