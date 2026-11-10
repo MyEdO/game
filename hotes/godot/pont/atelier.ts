@@ -39,8 +39,11 @@ export interface ModelesDeLAtelier {
    *  sortante de l'emplacement (sa position hors de l'axe de l'os, à défaut l'avant), si bien que la lame ou le fer,
    *  dans le plan YZ de la prise, longe le corps ; la boîte pend de son haut, sa face arrière à 5 mm de la peau ou du
    *  vêtement porté (ceinture comprise) qui saille le plus à cette hauteur, et penche, le bas vers le dehors, pour
-   *  passer au même jeu ce qui saille plus bas, la peau et les vêtements pris au repos, morphes posés
-   *  (`MiseEnPage.axe_de_rangement`, `MiseEnPage.repere_de_rangement`, `MontageDeComposition._ranger`). Une attache
+   *  passer au même jeu ce qui saille plus bas, la peau et les vêtements pris au repos, morphes posés. Un objet plus
+   *  long que la hauteur de son emplacement au-dessus du sol passe en bandoulière : à plat, le fer en haut, penché de
+   *  30° vers la droite du personnage, le milieu de sa boîte sur l'emplacement, sa face arrière à 5 mm de ce qui saille
+   *  le plus sous toute sa longueur (`MiseEnPage.axe_de_rangement`, `MiseEnPage.repere_de_rangement`,
+   *  `MiseEnPage.repere_en_bandouliere`, `MontageDeComposition._ranger`). Une attache
    *  se pose en Euler XYZ de three, R = Rx·Ry·Rz (`asset/attache.ts`, `MontageDeComposition.repere`)
    *  (`.claude/skills/creer-un-personnage-3d/references/procedure.md`, rigide tenu ; `asset/evaluateur/evaluer.ts`,
    *  `monter`). Un rigide dont aucun mesh ne pend à un os (décor, véhicule, mesh à la racine) n'a aucun point ni

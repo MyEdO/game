@@ -30,6 +30,9 @@ const JEU_DE_RANGEMENT := 0.005
 ## La marge, en mètres, de chaque côté de la boîte d'un objet rangé, où la peau ou un vêtement le soutient
 ## (`repere_de_rangement`) : un sommet entre deux autres d'un maillage lâche n'échappe pas à une boîte étroite.
 const MARGE_DE_RANGEMENT := 0.03
+## L'inclinaison depuis la verticale, en radians, d'un objet rangé en bandoulière (`repere_de_rangement`), son haut vers
+## la droite du personnage.
+const INCLINAISON_EN_BANDOULIERE := PI / 6.0
 ## La longueur sous laquelle la position d'un emplacement est sur l'axe de son os.
 const TOLERANCE_DE_NORMALE := 0.001
 const RADIANS_PAR_PIXEL := 0.005
@@ -481,11 +484,16 @@ static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Ve
 ## à `JEU_DE_RANGEMENT` de ce qui saille le plus sur la normale sortante dans les `MARGE_DE_RANGEMENT` du haut, à défaut
 ## de l'emplacement, comme un fourreau pend à la ceinture, puis penchés autour de Z, le bas vers le dehors, pour passer au
 ## même jeu ce qui saille plus bas ; un sommet compte s'il est sur la hauteur de la boîte et sur sa largeur en Z élargie
-## de `MARGE_DE_RANGEMENT` de chaque côté.
-static func repere_de_rangement(emplacement: Basis, point: Vector3, boite: AABB, appuis: PackedVector3Array) -> Transform3D:
+## de `MARGE_DE_RANGEMENT` de chaque côté. Un objet plus long que `hauteur_au_sol`, la hauteur de l'emplacement au-dessus
+## du sol, pendrait jusqu'à lui : il passe en bandoulière (`repere_en_bandouliere`) vers `droite`, la droite du personnage
+## dans l'os.
+static func repere_de_rangement(emplacement: Basis, point: Vector3, boite: AABB, appuis: PackedVector3Array,
+		hauteur_au_sol := INF, droite := Vector3.ZERO) -> Transform3D:
 	var dehors := axe_de_rangement(emplacement, point, Vector3.AXIS_X)
 	var bas := axe_de_rangement(emplacement, point, Vector3.AXIS_Y)
 	var long := axe_de_rangement(emplacement, point, Vector3.AXIS_Z)
+	if boite.size.y > hauteur_au_sol:
+		return repere_en_bandouliere(dehors, bas, droite, point, boite, appuis)
 	var haut := boite.position.y
 	var dessus := -INF
 	var dessous: Array[Vector2] = []
@@ -508,6 +516,28 @@ static func repere_de_rangement(emplacement: Basis, point: Vector3, boite: AABB,
 	var sortante := dehors * cos(angle) - bas * sin(angle)
 	var pivot := point + bas * haut + dehors * (dessus + JEU_DE_RANGEMENT)
 	return Transform3D(Basis(sortante, penche, long), pivot - penche * haut - sortante * boite.position.x)
+
+
+## Le repère de prise d'un objet rangé en bandoulière à `point`, dans l'os de l'emplacement : à plat contre le corps, la
+## paume (X) sur `dehors`, la normale sortante, son +Y, le fer, vers le haut (`-bas`) penché de `INCLINAISON_EN_BANDOULIERE`
+## vers `droite` dans le plan du corps, le milieu de sa boîte sur l'emplacement, et sa face arrière à `JEU_DE_RANGEMENT`
+## de ce qui saille le plus sur `dehors` sous toute sa boîte, élargie de `MARGE_DE_RANGEMENT` de chaque côté en Z.
+static func repere_en_bandouliere(dehors: Vector3, bas: Vector3, droite: Vector3, point: Vector3, boite: AABB,
+		appuis: PackedVector3Array) -> Transform3D:
+	var travers := droite - dehors * droite.dot(dehors) - bas * droite.dot(bas)
+	travers = travers.normalized() if travers.length() > TOLERANCE_DE_NORMALE else Vector3.ZERO
+	var fer := -bas * cos(INCLINAISON_EN_BANDOULIERE) + travers * sin(INCLINAISON_EN_BANDOULIERE)
+	var cote := dehors.cross(fer)
+	var milieu := boite.get_center()
+	var saillie := -INF
+	for appui in appuis:
+		var d := appui - point
+		var y := d.dot(fer) + milieu.y
+		var z := d.dot(cote) + milieu.z
+		if y >= boite.position.y and y <= boite.end.y and z >= boite.position.z - MARGE_DE_RANGEMENT and z <= boite.end.z + MARGE_DE_RANGEMENT:
+			saillie = maxf(saillie, d.dot(dehors))
+	saillie = 0.0 if saillie == -INF else saillie
+	return Transform3D(Basis(dehors, fer, cote), point - fer * milieu.y - cote * milieu.z + dehors * (saillie + JEU_DE_RANGEMENT - boite.position.x))
 
 
 ## Le coin d'une bulle de `largeur` sur `hauteur`, centrée au-dessus du point `point` de l'écran.

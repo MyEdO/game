@@ -11,7 +11,7 @@ extends SceneTree
 ## (`MontageDeComposition.clip`), et chaque clip retrouve son rôle. Au lancement d'un clip (#3806,
 ## `MontageDeComposition.poser_le_clip`), la main libre ne tient la seconde prise que sous un clip à deux mains ; l'objet
 ## tenu passe à son emplacement de rangement sous un clip qui occupe sa prise (`prisesOccupees`), l'objet tenu des deux
-## mains sous tout clip qui n'est pas dérivé à deux mains, et chacun reste tenu si l'emplacement est monté.
+## mains sous tout clip qui n'est pas dérivé à deux mains, même sur un emplacement qui porte déjà un objet.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.001
@@ -35,7 +35,7 @@ func _recetter() -> void:
 	await _verifier("prise off occupée", A_PORTEE, {main = "hache", off = "dague"}, false)
 	await _verifier("sans seconde prise", A_PORTEE, {main = "epee"}, false)
 	await _verifier_le_clip("à deux mains", {main = "hache"}, {Repos_DeuxMains = [true, false], Coffre = [false, true], Saut = [false, true], Lanterne = [false, true]})
-	await _verifier_le_clip("emplacement monté", {main = "hache", dos = "carquois"}, {Coffre = [false, false]})
+	await _verifier_le_clip("emplacement monté", {main = "hache", dos = "carquois"}, {Coffre = [false, true], Repos_DeuxMains = [true, false]})
 	await _verifier_le_clip("à une main", {main = "epee"}, {Coffre = [false, false], Lanterne = [false, true]})
 	for faute in _fautes:
 		push_error("[seconde-prise] " + faute)

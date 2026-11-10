@@ -8,7 +8,8 @@ extends SceneTree
 ## du personnage et la paume sur la normale sortante, sa poignée sur l'emplacement, et sa boîte au jeu de la peau
 ## sans rien d'autre sous lui ; posé sur une ceinture et un vêtement qui bombe plus bas, il pend du haut de sa boîte au
 ## jeu de la ceinture et penche, le bas vers le dehors, jusqu'au jeu du bombé ; un sommet hors de sa largeur ne compte
-## pas (`MiseEnPage.repere_de_rangement`).
+## pas. Plus long que la hauteur de son emplacement au-dessus du sol, il passe en bandoulière, le fer en haut penché vers
+## la droite du personnage, son milieu sur l'emplacement (`MiseEnPage.repere_de_rangement`).
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
@@ -27,6 +28,7 @@ func _recetter() -> void:
 	for cible in ["off", "main", "ceinture_avant"]:
 		await _verifier(cible)
 	_verifier_les_appuis()
+	_verifier_la_bandouliere()
 	for faute in _fautes:
 		push_error("[prise-reposee] " + faute)
 	print("[prise-reposee] erreurs=", _fautes.size())
@@ -130,3 +132,24 @@ func _verifier_les_appuis() -> void:
 	if not juste:
 		_fautes.append("appuis : pivot %s, attendu %s ; bombé à %s de la face arrière ; axe Y %s" % [pivot, pivot_attendu, au_bombe, obtenu.basis.y])
 	print("[prise-reposee] appuis : %s" % ("OK" if juste else "KO"))
+
+
+## Un objet de 2 m rangé dans le dos, à 1,3 m du sol : en bandoulière, à plat, la paume vers l'arrière, son fer vers le haut
+## penché vers la droite du personnage, le milieu de sa boîte sur l'emplacement, sa face arrière au jeu d'un sommet du
+## dos sous lui ; un sommet plus saillant, hors de sa largeur, ne compte pas.
+func _verifier_la_bandouliere() -> void:
+	var point := Vector3(0.0, 0.1, -0.13)
+	var boite := AABB(Vector3(-0.01, -0.1, -0.02), Vector3(0.02, 2.0, 0.04))
+	var a := MiseEnPage.INCLINAISON_EN_BANDOULIERE
+	var dehors := Vector3(0.0, 0.0, -1.0)
+	var fer := Vector3(-sin(a), cos(a), 0.0)
+	var cote := dehors.cross(fer)
+	var appuis := PackedVector3Array([point - fer * 0.5 + dehors * 0.05, point + cote * 0.3 + dehors * 0.5])
+	var obtenu := MiseEnPage.repere_de_rangement(Basis.IDENTITY, point, boite, appuis, 1.3, Vector3(-1.0, 0.0, 0.0))
+	var milieu := obtenu * Vector3(boite.position.x, boite.get_center().y, boite.get_center().z)
+	var milieu_attendu := point + dehors * (0.05 + MiseEnPage.JEU_DE_RANGEMENT)
+	var juste := _proches(milieu, milieu_attendu) and _proches(obtenu.basis.x, dehors) and _proches(obtenu.basis.y, fer)
+	if not juste:
+		_fautes.append("bandoulière : milieu %s, attendu %s ; axes %s" % [milieu, milieu_attendu, obtenu.basis])
+	print("[prise-reposee] bandoulière : %s" % ("OK" if juste else "KO"))
+

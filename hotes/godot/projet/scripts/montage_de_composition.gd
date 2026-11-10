@@ -15,6 +15,8 @@ const ORIGINE := [0.0, 0.0, 0.0]
 const LARGEUR_D_EMBLEME := 512.0
 ## La métadonnée de la scène d'un GLB (`scene_du_glb`) qui porte, par nom, chacun de ses matériaux.
 const MATERIAUX := &"materiaux"
+## La droite du personnage dans le squelette de la base, son avant sur +Z (glTF), le sol à y = 0.
+const DROITE_DU_PERSONNAGE := Vector3(-1.0, 0.0, 0.0)
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -411,8 +413,8 @@ static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
 ## les deux mains sur la seconde prise de son maniement, ou sans clip engagé. Un objet tenu à une prise, monté aussi, en
 ## copie cachée, au premier emplacement de la base où il se range (les `elements` de ce point), passe à cet emplacement
 ## sous un clip dont le geste occupe sa prise (`prisesOccupees` de la base) ; l'objet tenu des deux mains y passe sous
-## tout clip qui n'est pas dérivé à deux mains, la main droite seule le tenant à son talon ; un emplacement déjà monté le
-## laisse tenu. La recette autonome `projet/recettes/seconde-prise.gd` le vérifie aussi. Le repos de l'atelier est le
+## tout clip qui n'est pas dérivé à deux mains, la main droite seule le tenant à son talon, même sur un emplacement qui
+## porte déjà un objet. La recette autonome `projet/recettes/seconde-prise.gd` le vérifie aussi. Le repos de l'atelier est le
 ## clip `idle` de la composition montée (`MontageDeComposition.clip`), à deux mains sous une seconde prise : il se joue à
 ## la pose d'une base sans clip de reprise et à l'arrêt de la marche ; un montage ou un démontage passe le clip engagé à
 ## celui de son rôle sous la nouvelle tenue, en lecture ou en pause comme lui (`_jouer_le_repos`, `_rejouer`,
@@ -436,8 +438,8 @@ func poser_la_seconde_prise() -> void:
 ## démontage : la main libre ne tient la seconde prise (`seconde_prise`) que sous un clip de `clipsDeuxMains` du
 ## maniement de l'objet tenu, ou sans clip engagé ; l'objet tenu à une prise se range à son emplacement
 ## (`_tenus_ranges`) si le clip occupe cette prise (`prisesOccupees`), et l'objet tenu des deux mains sous tout clip
-## qui n'est pas dérivé à deux mains : la main droite seule le tiendrait à son talon. Un emplacement déjà monté ne
-## reçoit rien : l'objet reste tenu.
+## qui n'est pas dérivé à deux mains : la main droite seule le tiendrait à son talon. Un emplacement qui porte déjà un
+## objet le reçoit aussi.
 func poser_le_clip(_clip: StringName = &"") -> void:
 	if lecteur != null and not lecteur.animation_started.is_connected(poser_le_clip):
 		lecteur.animation_started.connect(poser_le_clip)
@@ -450,7 +452,7 @@ func poser_le_clip(_clip: StringName = &"") -> void:
 	var occupees: Array = base.get("prisesOccupees", {}).get(engage, [])
 	for id in _tenus_ranges:
 		var objet: Dictionary = _tenus_ranges[id]
-		var rangee: bool = not montes.has(objet.emplacement) and (id in occupees or (id == "main" and a_deux_mains and not tenu_a_deux_mains))
+		var rangee: bool = id in occupees or (id == "main" and a_deux_mains and not tenu_a_deux_mains)
 		for noeud: Node3D in objet.tenus:
 			noeud.visible = not rangee
 		for noeud: Node3D in objet.ranges:
@@ -566,7 +568,8 @@ func poser_les_rangements() -> void:
 
 
 ## L'objet rangé `objet` posé à son emplacement (`MiseEnPage.repere_de_rangement`) sur les sommets au repos, morphes
-## posés, de chaque mesh skinné sous le squelette, peau de la base ou vêtement porté.
+## posés, de chaque mesh skinné sous le squelette, peau de la base ou vêtement porté, à la hauteur de l'emplacement
+## au-dessus du sol du repos.
 static func _ranger(objet: Dictionary) -> void:
 	var sous: Skeleton3D = objet.squelette
 	var vers_l_os := sous.get_bone_global_rest(sous.find_bone(objet.attache.os)).affine_inverse()
@@ -576,7 +579,9 @@ static func _ranger(objet: Dictionary) -> void:
 		if mesh != null and mesh.skin != null and mesh.mesh != null:
 			appuis.append_array(_sommets_au_repos(mesh, vers_l_os * mesh.transform))
 	var emplacement := repere(objet.attache)
-	objet.noeud.transform = MiseEnPage.repere_de_rangement(emplacement.basis, emplacement.origin, objet.boite, appuis)
+	var hauteur_au_sol := (vers_l_os.affine_inverse() * emplacement.origin).y
+	var droite := (vers_l_os.basis * DROITE_DU_PERSONNAGE).normalized()
+	objet.noeud.transform = MiseEnPage.repere_de_rangement(emplacement.basis, emplacement.origin, objet.boite, appuis, hauteur_au_sol, droite)
 
 
 ## Les sommets de `mesh` au repos, chaque shape key à son poids posé (une clé porte les positions de ses sommets, la
