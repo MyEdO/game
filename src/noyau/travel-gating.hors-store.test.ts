@@ -13,7 +13,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { beginShipwreck } from './shipwreck';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene, type Scene } from './monde/scene';
 import { campaignStart } from '../engine/clock';
 import type { TravelPlan } from './travelFlow';
@@ -61,7 +61,7 @@ const carte: WorldMap = {
 
 function auDepart(flags: Record<string, boolean> = {}): void {
   set({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     travelPlan: null,
     pendingRest: null,
     pendingCascade: null,
@@ -122,7 +122,7 @@ function enPleineTraversee(flags: Record<string, boolean> = {}): void {
     hoursPerDay: 6, km: 100, kmDone: 50, interrupted: false,
   };
   set({
-    party: makePregens(idsDeTest).slice(0, 2),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 2),
     worldMap: carteNaufrage,
     scene: scenePlate('monde-a'),
     travelPlan: plan,

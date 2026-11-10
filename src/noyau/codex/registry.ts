@@ -44,6 +44,8 @@ import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
 import { issueDuTestSchema } from '../../data/schemas/defs/sea-cargo';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
+import { carriereActuelle } from '../../engine/pnjDeCarriere';
+import { garanti } from '../../lib/garanti';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
@@ -1805,12 +1807,13 @@ const CODEX_SPECS = {
   },
   pregens: {
     label: 'codex.fiche.preTires', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => pregens.map((p) => ({
-      id: p.id,
-      label: p.label, sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(p.career.id)?.label ?? p.career.id),
-      meta: facts(fact(tr('codex.fiche.motivation'), p.motivation), fact(tr('codex.fiche.graine'), p.seed)),
-      sections: p.pettySpells?.length ? sections(chips(tr('codex.fiche.sorts'), p.pettySpells.map((id) => idRefRow('spells', id)))) : undefined,
-    })),
+    build: () => pregens.map((p) => {
+      const actuelle = garanti(carriereActuelle({ carrieres: p.carrieres }), p.id, 'carrière actuelle du pré-tiré');
+      return depuisEnveloppe(p, {
+        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(actuelle.id)?.label ?? actuelle.id, tr('codex.fiche.niveau2', { level: actuelle.niveau })),
+        meta: facts(fact(tr('codex.fiche.motivation'), p.motivation)),
+      });
+    }),
   },
   oups: {
     label: 'codex.fiche.oups', group: 'tables',

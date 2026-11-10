@@ -103,7 +103,7 @@ export function CreatorSummary({ d, step = 0 }: { d: CreatorDraft; step?: number
         // d'en-tête HeroSheet COMPRISE (nom+statut+rose) — plus d'alcôve propre au créateur.
         <HeroSheet
           hero={hero}
-          wealth={wealth ?? undefined}
+          bourse={wealth && <Coins money={wealth} />}
           statAnnotations={statAnnotations}
           className="creator-hero-sheet"
           pending={{

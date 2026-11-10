@@ -16,7 +16,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { Prose } from '../Prose';
 import { CODEX, combatantSections, type CodexRow, type CodexSection } from '../../noyau/codex/registry';
 import { porteurDeRangee } from '../../noyau/codex/porteur'; // la SEULE composition rangée+entrée — celle du rendu
-import { pregen, PREGEN } from '../../data/pregens';
+import { HEROS_DE_SCENARIO, herosDeScenario, type RoleDeScenario } from '../../scenes/test-scenarios/_heros';
 
 interface Rangee {
   cat: string;
@@ -53,8 +53,8 @@ const RANGEES: Rangee[] = (() => {
     }
   }
   // Statbloc d'inspection : rendu SANS entrée (un combattant n'est pas une entrée de dataset).
-  for (const key of Object.keys(PREGEN) as (keyof typeof PREGEN)[]) {
-    const c = pregen(idsDeTest, PREGEN[key]);
+  for (const key of Object.keys(HEROS_DE_SCENARIO) as RoleDeScenario[]) {
+    const c = herosDeScenario(idsDeTest, key);
     for (const s of combatantSections(c)) balaye(s.rows, 'combattant', String(key), s.title, undefined, acc);
   }
   return acc;

@@ -2,7 +2,7 @@ import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { especeDApparence } from '../../data';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import type { Combatant } from '../../engine/types';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
@@ -54,6 +54,6 @@ export const scenario: TestScenario = {
     + '« Aethyrique », dont la palette colore l’élément qui la monte, et porte des brassards, revêtus de la pièce qui couvre '
     + 'leurs localisations ; l’orc, son armure de statbloc déclarée portée, revêt les pièces de ses localisations à PA.',
   partyNote: 'Lame aethyrique (épée teinte, brassards) · Chasseur',
-  construire: (idNeuf) => ({ party: [lameAethyrique(idNeuf), pregen(idNeuf, PREGEN.chasseur)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [lameAethyrique(idNeuf), herosDeScenario(idNeuf, 'chasseur')], scene: construireScene() }),
   autoCombat: 'enc-teinte',
 };

@@ -89,6 +89,8 @@ export const FOLIO_LINE_ALIGN_RATCHET = [
 
 export const FOLIO_LINE_ALIGN_NON_JUGEABLE = [
   { fichier: 'src/data/mutations.json', ref: 'crete-sur-la-tete', occurrence: 1 },
+  { fichier: 'src/data/pregens.json', ref: 'erina-eberhauer', occurrence: 1 },
+  { fichier: 'src/data/pregens.json', ref: 'golthog', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'corruption-tables-edoc', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'vents-tourbillonnants', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'auberge-relais', occurrence: 1 },

@@ -10,7 +10,7 @@ import { ouvrirLeBanc } from './banc.testkit';
 import { avecLesTables } from './noyau.testkit';
 import { enAttente, programmer } from './plateforme';
 import { jeuBranche } from './branchement';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { trappings } from '../data';
 import type { ItemInstance } from '../engine/types';
 
@@ -180,7 +180,7 @@ describe('banc du noyau : la barrière de partage (#2097) du setup de la suite',
   let erreurs: string[] = [];
 
   it.fails('un banc dont l’état partage une donnée du catalogue fait échouer le test qui l’a posée', () => {
-    const [heros] = makePregens(idsDeTest);
+    const [heros] = tousLesHerosDeScenario(idsDeTest);
     const banc = ouvrirLeBanc();
     banc.setState({ party: [{ ...heros, items: [trappings[0] as unknown as ItemInstance] }] });
     onTestFinished(({ task }) => {

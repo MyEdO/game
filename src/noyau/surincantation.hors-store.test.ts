@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spells, type SpellData } from '../data/index';
 import { setDataset } from '../data/overrides';
 import { findSpellById } from '../data/index';
@@ -46,7 +46,7 @@ afterAll(() => { setDataset('spells', original); });
 
 /** Lanceur maîtrisant Langue (Magick) et Prière : le dé fixé 03 réussit largement les deux. */
 function lanceur() {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = 'L'; h.label = 'L';
   h.skills = [
     ...h.skills.filter((s) => s.id !== 'langue' && s.id !== 'priere'),

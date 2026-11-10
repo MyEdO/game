@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 
@@ -21,7 +21,7 @@ export const scenario: TestScenario = {
     'ses Améliorations à bord : sabords clos de la batterie et du château, hune du Nid-de-pie, canot de l’Embarcation de bord.',
   partyNote: 'Explorez librement : les cabines du château, puis descendez en cale, ou montez sur la plage arrière et à la hune par les échelles.',
   construire: (idNeuf) => ({
-    party: makePregens(idNeuf),
+    party: tousLesHerosDeScenario(idNeuf),
     scene: buildScene({
       id: 'a-bord-de-la-caraque',
       label: 'À bord de la caraque',

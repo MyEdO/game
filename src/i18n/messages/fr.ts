@@ -5119,7 +5119,6 @@ export const fr = {
   'codex.fiche.apparences': 'Apparences',
   'codex.fiche.preTires': 'Pré-tirés',
   'codex.fiche.motivation': 'Motivation',
-  'codex.fiche.graine': 'Graine',
   'codex.fiche.oups': 'Oups !',
   'codex.fiche.horsTableArmeAPoudreNoire': 'Hors table (arme à Poudre noire, jet pair)',
   'codex.fiche.entreDeuxAventures': 'Entre deux aventures',

@@ -55,7 +55,6 @@ export const SANS_LIVRE_DEFINITIF: Readonly<Record<string, string>> = {
     'listes de PRÉNOMS et noms d’authoring par race — aucune mécanique mesurable, aucune règle à sourcer',
   speciesRace:
     'espèce d’apparence par défaut de l’authoring — câblage d’application, pas une donnée RAW',
-  pregens: 'pré-tirés d’app (compositions maison de fiches jouables) — contenu app-inventé, pas une règle RAW',
   merchants:
     'catalogue d’app (archétypes de marchand : taux de rachat, familles vendues, agglo par défaut) ; les VALEURS de règle vivent sourcées à leur foyer (`engine/disponibilite.ts`, `bargain.ts`) ; `resaleRate` reprend la revente de LDB 59 l.54, `bargainSkill` est chiffré par entrée sans `maison` (LDB 59 l.54 laisse le Marchandage au MJ), inventaire #1463',
   merchantFamilies:

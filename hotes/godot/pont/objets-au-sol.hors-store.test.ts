@@ -27,7 +27,7 @@ describe('les objets au sol par le pont', () => {
     let { suite: s } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
     while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
     const avant = s.vue.plateau!.cleDuMonde;
-    const rosa = s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Rosa Brandt')!;
+    const rosa = s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Apothicaire')!;
     s = suiteDe(appel('fiche', rosa.jeu));
     const dague = (sectionDeLaFiche(s.vue, 'possessions') as Bouton[]).find((p) => p.libelle === 'Dague')!;
     s = suiteDe(appel('fiche', dague.jeu));

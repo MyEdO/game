@@ -5,7 +5,7 @@ import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { spawnEnemy } from './monde/spawn';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { areGrappling } from '../engine/grapple';
 import { stacks } from '../engine/conditions';
 import type { Combatant, Weapon } from '../engine/types';
@@ -90,7 +90,7 @@ describe('IA Empoignade — dispatch (runEnemyAI) : l’Empoigné LUTTE, le tire
     e.kind = 'enemy'; e.movement = 4; e.engagedWith = ['h'];
     e.grapplingWith = ['h'];
     e.conditions = [{ id: 'empetre', value: 1, sourceId: 'h' }];
-    const h = pregen(idsDeTest, PREGEN.sorcier);
+    const h = herosDeScenario(idsDeTest, 'sorcier');
     h.id = 'h'; h.pos = { x: 6, y: 5 }; h.engagedWith = ['e']; h.advantage = 0;
     h.grapplingWith = ['e']; h.wounds = blessuresDeBase(30, 30, h);
     const battle = {

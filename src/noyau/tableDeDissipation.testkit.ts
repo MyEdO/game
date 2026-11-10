@@ -3,18 +3,16 @@
  * L'ACTIF (`h1`) appartient au siège de CE client, `h2` à l'autre : la possession est donc VRAIE —
  * `controlsCombatant` ouvre le clic ici, et le refuserait sur le héros du voisin. Jamais un combat vide.
  */
-import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { initialNet, type EtatDeJeu } from './etat';
-import { makePregens } from '../data/pregens';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { spawnEnemy } from './monde/spawn';
 import { emptyScene } from './monde/scene';
 import type { ActiveEffect } from '../engine/types';
 
 /** L'écriture d'état qui pose la table, côté `mode`, chaque ennemi portant `porteurs[id]` Sorts. */
 export function tableDeDissipation(mode: 'host' | 'guest', porteurs: Record<string, number>): Partial<EtatDeJeu> {
-  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  hero.skills.push({ id: 'langue', spec: 'magick', advances: 0 } as never);
-  const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = combattantDeTest({ id: 'h1', label: 'Héros', kind: 'hero', pos: { x: 6, y: 6 }, skills: [{ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 0 }] });
+  const ally = combattantDeTest({ id: 'h2', label: 'Allié', kind: 'hero', pos: { x: 5, y: 6 } });
   const e1 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e1', { x: 7, y: 6 });
   const e2 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e2', { x: 8, y: 6 });
   // Porteurs de Sorts à la forme RÉELLE d'un effet actif (`bonus`/`duration` REQUIS,

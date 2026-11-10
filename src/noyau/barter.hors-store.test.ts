@@ -11,7 +11,7 @@ import { troquer } from './marchand.testkit';
 import { t } from '../i18n';
 import { itemFromTrappingById } from '../engine/items';
 import { toBrass } from '../engine/money';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant, ItemInstance } from '../engine/types';
 
 let banc: Banc;
@@ -35,7 +35,7 @@ describe('barterQuote (LDB 59 l.64-76)', () => {
 
 describe('marchand.troquer', () => {
   it('cède les exemplaires requis, reçoit le bien acquis, décrémente le stock, bourse INCHANGÉE', () => {
-    const hero = makePregens(idsDeTest)[0] as Combatant;
+    const hero = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde', idsDeTest), itemFromTrappingById('hallebarde', idsDeTest)].filter(Boolean) as ItemInstance[];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     const before = toBrass(partyMoneyTotal(banc.getState));
@@ -49,7 +49,7 @@ describe('marchand.troquer', () => {
   });
 
   it('refuse, et le dit, si le héros n’a pas assez d’exemplaires à céder', () => {
-    const hero = makePregens(idsDeTest)[0] as Combatant;
+    const hero = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('dague', idsDeTest)!]; // une dague ne vaut pas une hallebarde
     banc.setState({ party: [hero], merchant: merchant([{ id: 'hallebarde', qty: 5 }]) });
     troquer(banc.getState, { giveHeroId: hero.id, giveTrappingId: 'dague', getStockId: 'hallebarde', getCount: 1 });
@@ -58,7 +58,7 @@ describe('marchand.troquer', () => {
   });
 
   it('le troc conclu vide son brouillon ; sans bien cédé, l’échange ne s’offre pas', () => {
-    const hero = makePregens(idsDeTest)[0] as Combatant;
+    const hero = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     banc.getState().fenetreChoisir('marchand', 'troquer', true);
@@ -101,7 +101,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
   });
 
   it('VENTE : le panier REFUSE l’ajout et le journal porte la raison', () => {
-    const hero = makePregens(idsDeTest)[0] as Combatant;
+    const hero = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('licence-de-guilde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([]) });
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
@@ -110,7 +110,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
   });
 
   it('VENTE : contre-épreuve — un objet ordinaire entre bien au panier', () => {
-    const hero = makePregens(idsDeTest)[0] as Combatant;
+    const hero = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([]) });
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
@@ -124,7 +124,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
   });
 
   it('TROC : l’échange est refusé et le journal porte la raison', () => {
-    const hero = makePregens(idsDeTest)[0] as Combatant;
+    const hero = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('licence-de-guilde', idsDeTest)!, itemFromTrappingById('licence-de-guilde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     banc.getState().fenetreChoisir('marchand', 'trocCeder', hero.items[0].uid);

@@ -350,7 +350,7 @@ export interface SupportDetail {
  *  en sous-titre. `undefined` si personne ne soutient (aucune ligne « Soutien +0 » inventée).
  *  La provenance ne porte QUE des ids : le moteur est pur, et le NOM se résout au RENDU (couture
  *  unique) — un résolveur à fournir par appelant s'oublie, et l'écran affiche
- *  alors l'id brut (recette B3a, « pregen-101 »). */
+ *  alors l'id brut (recette B3a). */
 export function soutienMod(support?: SupportDetail): ModLine | undefined {
   if (!support || support.count <= 0) return undefined;
   return {

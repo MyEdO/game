@@ -16,7 +16,7 @@ import { activeCombatant } from '../../noyau/combatFlow';
 import { gesteDeLOffre, offreDeId } from '../../noyau/actionRegistry';
 import { testScene } from '../../scenes/test-fixture';
 import type { NetState } from '../../noyau/etat';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant } from '../../engine/types';
 
 const NET: NetState = {
@@ -26,7 +26,7 @@ const NET: NetState = {
 
 /** Un sorcier en Langue (Magick) 60, qui connaît l'Arme aethyrique. */
 function sorcier(id: string): Combatant {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = id; h.label = id;
   h.spells = ['arme-aethyrique'];
   h.skills = [...h.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof h.skills;

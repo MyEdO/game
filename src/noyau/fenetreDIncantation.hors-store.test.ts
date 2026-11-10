@@ -12,7 +12,7 @@ import { fenetreDIncantation, refusDuChoixCritique, refusDeLaForme, refusDuPasDe
 import { castSpell } from './combatFlow';
 import { spells, findSpellById, type SpellData } from '../data/index';
 import { setDataset } from '../data/overrides';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import { castAfterCrit, castInfoIsPrayer, castingNumberOf, counterspellValue, defaultCritChoice, sortInfligeDesDegats, type CritChoice } from '../engine/magic';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
@@ -43,7 +43,7 @@ afterAll(() => { setDataset('spells', original); });
 
 /** Lanceur maîtrisant Langue (Magick) et Prière : le dé 11 est un double réussi (Incantation Critique). */
 function lanceur(id: string): Combatant {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = id; h.label = id;
   h.skills = [
     ...h.skills.filter((s) => s.id !== 'langue' && s.id !== 'priere'),
