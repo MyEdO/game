@@ -31,7 +31,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -161,7 +161,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
     banc.setState({ party: [caster, cible] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.id === caster.id)!;
     const T = b.combatants.find((c) => c.id === cible.id)!;
@@ -228,7 +228,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     banc.setState({ party: [caster, allie] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.id === caster.id)!;
     const P = b.combatants.find((c) => c.id === allie.id)!;

@@ -65,7 +65,7 @@ export function ouvrirLeMedecin(get: Get, set: Set, patientId?: string, npc?: Me
   set({ medic: { npc, patientId: patientId ?? party.find((h) => isHealable(h))?.id ?? party[0]?.id ?? null } });
 }
 
-/** Les Blessures Critiques que le choix `medic.plaie` ouvre (`plaiesDeLOperation`), chacune nommée avec sa
+/** Les Blessures Critiques que le choix `infirmerie.plaie` ouvre (`plaiesDeLOperation`), chacune nommée avec sa
  *  Localisation. PUR. */
 export function plaiesNommees(s: Jeu): { uid: IdDePlaieDeLOperation; libelle: string }[] {
   const patient = s.party.find((h) => h.id === s.medic?.patientId);
@@ -186,7 +186,7 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
  *  celle de l'opération armée, sinon celle du brouillon d'une opération (`plaiesDeLOperation`). */
 export function choixDuMedecin(get: Get, set: Set) {
   return {
-    medic: {
+    infirmerie: {
       patient: (id) => set({ medic: { ...garanti(get().medic, id, 'infirmerie du patient'), patientId: id } }),
       abandon: () => abandonnerLOperation(get, set),
       plaie: (uid) => {
@@ -198,10 +198,10 @@ export function choixDuMedecin(get: Get, set: Set) {
   } satisfies Partial<CorpsDesChoix>;
 }
 
-/** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.medic.sortieFermee`) ; son brouillon part avec elle
+/** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.infirmerie.sortieFermee`) ; son brouillon part avec elle
  *  (`brouillonTenu`). */
 export function sortiesDuMedecin(_get: Get, set: Set) {
-  return { medic: () => set({ medic: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { infirmerie: () => set({ medic: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function cloturesDuMedecin(get: Get, set: Set) {

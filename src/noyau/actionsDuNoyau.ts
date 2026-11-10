@@ -268,11 +268,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  dit (`refusDEvaluation`, `merchantFlow.ts`). */
   evaluerLObjet: (aEvaluer: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
 
-  /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
+  /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('infirmerie', …)`),
    *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant
    *  s'ouvre par l'effet `medicalAid`. */
   ouvrirLeMedecin: (patientId?: IdDeHeros) => void;
-  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('rest', …)`,
+  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('repos', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé ; le lieu de la nuit est celui où
    *  se tient le groupe (`reposDuLieu`). */
   ouvrirLeRepos: () => void;

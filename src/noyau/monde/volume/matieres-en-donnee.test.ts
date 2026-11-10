@@ -74,10 +74,13 @@ const duStore = (rel: string) => BASES_DU_STORE.some((b) => rel.startsWith(`${b}
 /**
  * Les SIGNAUX STRUCTURELS du store, chacun neutralisé par `codeSeul` — aucun nom de fichier,
  * aucune ligne : c'est la FORME qui dit qu'un littéral n'est pas une émission de matière.
- *  - la clé `scope:` porte la PORTÉE d'un avertissement de validation, où `plan` est le plan de scène.
+ *  - la clé `scope:` porte la PORTÉE d'un avertissement de validation, où `plan` est le plan de scène ;
+ *  - une ligne faite des seuls membres d'une union de type (`| 'a' | 'b'`) déclare un vocabulaire, où `terre` est un
+ *    mot du lexique (`MotDuLexique`, #3614).
  */
 const SIGNAUX_STRUCTURELS = [
   { nom: 'clé `scope:` (portée d’un avertissement)', re: /\bscope:/ },
+  { nom: 'ligne de membres d’une union de type', re: /^\s*(?:\|\s*'[^'\n]*'\s*)+;?\s*$/ },
 ] as const;
 
 /** Les signaux structurels, en une seule passe. */

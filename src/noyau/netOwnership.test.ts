@@ -182,7 +182,7 @@ describe('possession réseau (netOwnership)', () => {
     });
     expect(intentAllowedFor(s, 0, 'jetValider', ['cascade'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'jetValider', ['cascade'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'fenetreValider', ['roundStart'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'fenetreValider', ['debutDuRound'])).toBe(false);
   });
 
   it("valider l'étape (`jetValider('cascade')`) : le propriétaire de la fenêtre — l'acteur de l'étape, tous sur une étape de groupe", () => {

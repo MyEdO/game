@@ -51,11 +51,11 @@ describe('J1 — le brouillon : patient et sortie à tous les sièges', () => {
     poser([mk('doc', { skills: GUERISON }), blesse('p'), blesse('q')], { doc: 0, p: 1, q: 2 });
     g().ouvrirLeMedecin('p');
     expect(g().pendingHeal).toMatchObject({ healerId: 'doc', targetId: 'p', roll: null });
-    expect(parSiege('fenetreChoisir', ['medic', 'patient', 'q'])).toEqual([true, true, true]);
-    expect(parSiege('fenetreFermer', ['medic'])).toEqual([true, true, true]);
-    expect(appliquerLIntentionDUnSiege(g, 2, 'fenetreChoisir', ['medic', 'patient', 'q'])).toBe('appliquee');
+    expect(parSiege('fenetreChoisir', ['infirmerie', 'patient', 'q'])).toEqual([true, true, true]);
+    expect(parSiege('fenetreFermer', ['infirmerie'])).toEqual([true, true, true]);
+    expect(appliquerLIntentionDUnSiege(g, 2, 'fenetreChoisir', ['infirmerie', 'patient', 'q'])).toBe('appliquee');
     expect(g().pendingHeal?.targetId, 'le brouillon suit le patient').toBe('q');
-    expect(appliquerLIntentionDUnSiege(g, 2, 'fenetreFermer', ['medic'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(g, 2, 'fenetreFermer', ['infirmerie'])).toBe('appliquee');
     expect(g().medic).toBeNull();
     expect(g().pendingHeal).toBeNull();
   });
@@ -98,7 +98,7 @@ describe('R3-A — soin lancé par un soigneur PNJ : la fenêtre au patient, son
     expect(g().pendingHeal?.roll).not.toBeNull();
     expect(modalOwnerOf(g())).toBe('p');
     expect(parSiege('jetValider', ['heal'])).toEqual([false, true, false]);
-    expect(parSiege('fenetreFermer', ['medic'])).toEqual([false, true, false]); // au propriétaire ; la sortie elle-même se ferme (`soinEnCours`)
+    expect(parSiege('fenetreFermer', ['infirmerie'])).toEqual([false, true, false]); // au propriétaire ; la sortie elle-même se ferme (`soinEnCours`)
     expect(parSiege('jetRelancer', ['heal'])).toEqual([false, false, false]);
   });
 });

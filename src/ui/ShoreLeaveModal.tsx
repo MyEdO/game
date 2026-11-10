@@ -9,7 +9,7 @@ import { refusDuChoix } from '../noyau/choixDeFenetre';
  * Permission de RELÂCHE À TERRE (MDG 15 l.245, événement de port) : posée à l'accostage AVANT le
  * tirage de l'événement de port. « Si vous avez refusé la permission de faire relâche à terre à votre
  * équipage, cet événement [Embrigadement] n'a pas lieu » — gate aussi la Fête de Manann (l.260, le
- * bonus d'Humeur suppose la relâche autorisée). CHOIX du joueur — `fenetreChoisir('shoreLeave', 'accorder', …)` tranche.
+ * bonus d'Humeur suppose la relâche autorisée). CHOIX du joueur — `fenetreChoisir('relacheATerre', 'accorder', …)` tranche.
  *
  * `embedded` (#333, arbitrage user 2026-07-11) : rendu SANS `Modal`, incrusté AU CENTRE de l'écran-hub
  * de voyage comme étape d'accostage (patron `CascadeBody`/`RestBody embedded`) — la décision vit dans le
@@ -18,9 +18,9 @@ import { refusDuChoix } from '../noyau/choixDeFenetre';
 export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}) {
   const p = useGame((s) => s.pendingShoreLeave);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const resolve = (accorder: boolean) => choisir('shoreLeave', 'accorder', accorder);
-  const refusAccorder = useGame((s) => refusDuChoix(s, 'shoreLeave', 'accorder', true));
-  const refusRefuser = useGame((s) => refusDuChoix(s, 'shoreLeave', 'accorder', false));
+  const resolve = (accorder: boolean) => choisir('relacheATerre', 'accorder', accorder);
+  const refusAccorder = useGame((s) => refusDuChoix(s, 'relacheATerre', 'accorder', true));
+  const refusRefuser = useGame((s) => refusDuChoix(s, 'relacheATerre', 'accorder', false));
   if (!p) return null;
   const title = <><Icon id="travel/anchor" size="sm" /> Accostage à {p.to.label}</>;
   const body = (

@@ -22,7 +22,7 @@ describe('un tour IA se termine TOUJOURS, même sans adversaire vivant et combat
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('siege-belier');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const gobelin = b.combatants.find((c) => c.kind === 'enemy' && !c.inert)!;

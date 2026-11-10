@@ -24,7 +24,7 @@ describe('castWard — pénalité −20 aux Sorts ciblant la zone du prêtre', (
     banc.setState({ party: [hero, priest] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.label === 'H')!;
     const P = b.combatants.find((c) => c.label === 'P')!;

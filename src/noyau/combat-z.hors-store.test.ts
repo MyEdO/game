@@ -83,7 +83,7 @@ describe('spawn — la SceneEntity.z se propage en Combatant.pos.z', () => {
     ent.z = 1; // posté sur une couche supérieure
     banc.getState().lancerLaScene(scene);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     expect(b.combatants.find((c) => c.id === 'enemy-enc-mutants-0')!.pos?.z).toBe(1);
     expect(b.combatants.find((c) => c.id === 'enemy-enc-mutants-1')!.pos?.z).toBeUndefined(); // sol = byte-identique
@@ -99,7 +99,7 @@ describe('lancerLeCombat — partyPos.z (étage du groupe) se propage aux Combat
     banc.getState().lancerLaScene(scene);
     banc.setState({ partyPos: { ...banc.getState().partyPos, z: 1 } });
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero' && !c.mountable);
     expect(heroes.length).toBeGreaterThan(0);
@@ -113,7 +113,7 @@ describe('lancerLeCombat — partyPos.z (étage du groupe) se propage aux Combat
     const scene = structuredClone(testScene());
     banc.getState().lancerLaScene(scene);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero' && !c.mountable);
     expect(heroes.length).toBeGreaterThan(0);

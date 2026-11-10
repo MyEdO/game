@@ -76,22 +76,22 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
     const choix = refusDe('fenetreChoisir');
 
     it('une valeur à la forme de son choix passe', () => {
-      expect(choix(['fateSave', 'issue', 'accepter'])).toBeNull();
-      expect(choix(['renounce', 'renier', false])).toBeNull();
-      expect(choix(['medic', 'patient', etat.party[0].id])).toBeNull();
+      expect(choix(['destin', 'issue', 'accepter'])).toBeNull();
+      expect(choix(['renier', 'renier', false])).toBeNull();
+      expect(choix(['infirmerie', 'patient', etat.party[0].id])).toBeNull();
     });
 
     it('une valeur d’une autre forme, un id que l’état ne désigne pas, un choix ou une fenêtre que la partie ne déclare pas se refusent', () => {
-      expect(choix(['fateSave', 'issue', 'fuir']), 'une issue hors du Destin').not.toBeNull();
-      expect(choix(['renounce', 'renier', 'oui']), 'renier est un booléen').not.toBeNull();
-      expect(choix(['medic', 'patient', 'pas-un-heros'])).toContain('pas-un-heros');
-      expect(choix(['medic', 'paie', 'x'])).toContain('n’est pas un choix de la fenêtre medic');
+      expect(choix(['destin', 'issue', 'fuir']), 'une issue hors du Destin').not.toBeNull();
+      expect(choix(['renier', 'renier', 'oui']), 'renier est un booléen').not.toBeNull();
+      expect(choix(['infirmerie', 'patient', 'pas-un-heros'])).toContain('pas-un-heros');
+      expect(choix(['infirmerie', 'paie', 'x'])).toContain('n’est pas un choix de la fenêtre infirmerie');
       expect(choix(['cascade', 'abandon', true])).toContain('n’est pas une fenêtre à choix');
     });
 
     it('la rangée (`pid`) d’un choix de rangée désigne un héros du groupe, aucun flux de jet ouvert', () => {
       const heroId = etat.party[0].id;
-      expect(argumentsDuVerbe(etat, 'fenetreChoisir', ['rest', 'couchage', 'commune', heroId], VERBES.fenetreChoisir)).toEqual(['rest', 'couchage', 'commune', heroId]);
+      expect(argumentsDuVerbe(etat, 'fenetreChoisir', ['repos', 'couchage', 'commune', heroId], VERBES.fenetreChoisir)).toEqual(['repos', 'couchage', 'commune', heroId]);
     });
   });
 });

@@ -64,9 +64,9 @@ function finirLeTour(): ReturnType<typeof jouer> {
 describe('un tour complet par le pont', () => {
   it('attaque d’un héros par ses gestes, déplacement, attaque adverse jouée par le noyau, Défense', { timeout: 240_000 }, () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
-    expect(gesteDe(suite.vue, 'fenetreValider@roundStart'), 'l’ouverture du round : un bouton nommé, que l’Entrée joue plutôt qu’un réglage').toMatchObject({ libelle: 'Commencer le round', type: 'bouton', focus: true });
+    expect(gesteDe(suite.vue, 'fenetreValider@debutDuRound'), 'l’ouverture du round : un bouton nommé, que l’Entrée joue plutôt qu’un réglage').toMatchObject({ libelle: 'Commencer le round', type: 'bouton', focus: true });
     expect(suite.vue.champ, 'la barre fermée, le champ ne se clique pas').toBeNull();
-    ({ suite } = presser(bouton(suite, 'fenetreValider@roundStart')));
+    ({ suite } = presser(bouton(suite, 'fenetreValider@debutDuRound')));
 
     const heros = actifDe(suite);
     expect(heros.camp).toBe('hero');
@@ -162,7 +162,7 @@ describe('un tour complet par le pont', () => {
     expect(vise.camp, 'l’adversaire vise un héros').toBe('hero');
     expect(defense.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: vise.nom });
     expect(etape, 'l’étape nomme le héros qui se défend').toContain(vise.nom);
-    expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['roundStart', 'cascade:attackJet', 'cascade:defenseJet']));
+    expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['debutDuRound', 'cascade:attackJet', 'cascade:defenseJet']));
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [] });
   });
 });

@@ -42,7 +42,7 @@ function setup(opts: { peur?: boolean } = {}) {
   banc.setState({ party: [hero], screen: 'campaign' });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');
-  get().fenetreValider('roundStart');
+  get().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = get().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -86,7 +86,7 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
   it('MONTURE : le choix cavalier/monture relance AVEC l’intention — la Charge armée approche', () => {
     const { H, E } = setup();
     banc.setState({ pendingMountTarget: { riderId: H.id, mountId: E.id, intentionId: 'charge' } });
-    get().fenetreChoisir('mountTarget', 'cible', E.id);
+    get().fenetreChoisir('cibleDeMonture', 'cible', E.id);
     banc.reprendreLesEnAttente();
     const h = get().battle!.combatants.find((c) => c.id === H.id)!;
     expect(get().refus, 'le geste armé avant la modale a été refusé à la relance').toBeNull();
@@ -96,7 +96,7 @@ describe('(A) RÉ-ENTRÉE — un geste ARMÉ puis DIFFÉRÉ par un gate se comme
   it('MONTURE : sans intention, la relance REFUSE et le héros reste immobile (la modale ne fabrique rien)', () => {
     const { H, E } = setup();
     banc.setState({ pendingMountTarget: { riderId: H.id, mountId: E.id } });
-    get().fenetreChoisir('mountTarget', 'cible', E.id);
+    get().fenetreChoisir('cibleDeMonture', 'cible', E.id);
     banc.reprendreLesEnAttente();
     expect(get().refus?.texte ?? '', 'le refus n’a pas été dit').toContain('Charge');
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos, 'la modale a déplacé un héros qui n’avait rien armé').toEqual({ x: 10, y: 10 });

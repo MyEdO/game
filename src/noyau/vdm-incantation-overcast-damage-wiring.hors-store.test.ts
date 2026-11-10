@@ -31,7 +31,7 @@ function setup() {
   banc.setState({ party: [w] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
@@ -80,7 +80,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     banc.setState({ party: [w] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const heroC = b.combatants.find((c) => c.label === 'W')!;

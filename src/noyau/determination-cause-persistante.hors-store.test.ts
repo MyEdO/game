@@ -52,7 +52,7 @@ describe('Détermination contre une cause qui court (LDB 16 l.117) — chemin st
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     seedBattleRng(7);
     const b = banc.getState().battle!;

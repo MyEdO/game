@@ -28,7 +28,7 @@ function passeLeControle(t: ReturnType<typeof Table>, geste: GesteDeLAgent): voi
 
 describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('ce que le clic désigne, en combat un combattant : `cliquerLaCase`', { timeout: 120_000 }, () => {
-    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'debutDuRound'));
     const valides = refuseLId(t, verbe('cliquerLaCase', { x: 7, y: 5 }, 'nobody'), /entite : "nobody" n’est pas un id de combattant ou d’entité de scène \(valides : .*enemy-enc-dome-1/);
     passeLeControle(t, verbe('cliquerLaCase', { x: 7, y: 5 }, valides.find((id) => id.startsWith('enemy'))!));
   });
@@ -96,9 +96,9 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
 
 describe('le verbe d’une offre désigne ce que sa case lit', () => {
   it('un id d’attaque que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
-    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'nobody'), /armerLAttaque : attaqueId : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
+    refuseLId(partie('dome', verbe('fenetreValider', 'debutDuRound')), verbe('armerLAttaque', 'nobody'), /armerLAttaque : attaqueId : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
   });
   it('l’id que le refus nomme passe le contrôle', { timeout: 120_000 }, () => {
-    passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'arme'));
+    passeLeControle(partie('dome', verbe('fenetreValider', 'debutDuRound')), verbe('armerLAttaque', 'arme'));
   });
 });

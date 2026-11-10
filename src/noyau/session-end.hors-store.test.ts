@@ -108,7 +108,7 @@ describe('les cases de la fin de séance : celles du groupe sans héros, celles 
     banc.getState().fenetreFermer('finDeSeance');
     expect(banc.getState().journal.slice(-1)[0]).toBe(libelleDeLaFermeture('seanceDuChapitre'));
     expect(banc.getState().finDeSeance, 'la fin de séance reste ouverte').toEqual({ heros: {}, groupe: {} });
-    banc.getState().fenetreFermer('chapterRecap');
+    banc.getState().fenetreFermer('finDeChapitre');
     expect(banc.getState().finDeSeance, 'ajourner le récap ajourne sa séance').toBeNull();
   });
 });
