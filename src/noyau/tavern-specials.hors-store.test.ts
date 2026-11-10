@@ -5,7 +5,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { datasetArray, setDataset } from '../data/overrides';
 import { DIFFICULTY_LABELS, type Combatant } from '../engine/types';
@@ -20,7 +20,7 @@ const get = () => banc.getState();
 
 /** Un pré-tiré, avec ou sans Tireur d'élite. */
 function heros(rang: number, tireur: boolean): Combatant {
-  const h = makePregens(idsDeTest)[rang] as Combatant;
+  const h = tousLesHerosDeScenario(idsDeTest)[rang] as Combatant;
   const autres = (h.talents ?? []).filter((t) => t.talentId !== 'tireur-d-elite');
   return { ...h, talents: tireur ? [...autres, { talentId: 'tireur-d-elite', times: 1 }] : autres };
 }

@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade } from './seaVoyageFlow';
 import { runCascadeImmediate } from './cascade';
 import { checkPartyWiped } from './partyWipe';
@@ -50,7 +50,7 @@ const seaMap: WorldMap = {
 function journeeDeMer(cadence: Cadence): void {
   seedBattleRng(1);
   set({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
     pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -99,7 +99,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
   it('sauvegarde confirmée, aucun Test de reste du jour : défaite, voyage et halte purgés', () => {
     seedBattleRng(1);
     set({
-      party: makePregens(idsDeTest).slice(0, 3),
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,
@@ -116,7 +116,7 @@ describe('#1595 — le reste du jour repris après une Fuite de vapeur, sans jet
 
 describe('#1595 — le pilote immédiat s’arrête sur un groupe anéanti EN VOL', () => {
   it('l’étape 1 anéantit le groupe : l’étape 2 n’est jamais appliquée, retour `undefined`', () => {
-    set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: makePregens(idsDeTest).slice(0, 2) } as never);
+    set({ battle: null, pendingCascade: null, suspendedCascades: [], partyWiped: false, journal: [], party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) } as never);
     const vus: string[] = [];
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, sondeWipe: (g, s, step) => {
       vus.push(step.id);
@@ -135,7 +135,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
   it('désertion en surface I, groupe à terre : défaite, et l’accostage n’est jamais finalisé', () => {
     seedBattleRng(1);
     set({
-      party: makePregens(idsDeTest).slice(0, 3),
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: seaMap, travelPlan: null, travelRecap: null, pendingRest: null, pendingShoreLeave: null,
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0,

@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { toBrass } from '../engine/money';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
@@ -50,7 +50,7 @@ async function drain(): Promise<void> {
 }
 
 function twoHeroes(): [Combatant, Combatant] {
-  const all = makePregens(idsDeTest);
+  const all = tousLesHerosDeScenario(idsDeTest);
   return [all[0] as Combatant, all[1] as Combatant];
 }
 
@@ -566,7 +566,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
  */
 describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre', () => {
   beforeEach(() => {
-    banc.setState({ party: makePregens(idsDeTest).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('une seconde partie ouverte en pleine partie est REFUSÉE — la première survit intacte', () => {
@@ -600,7 +600,7 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
  */
 describe('#1279 S4 — le formulaire est masqué pendant TOUTE partie, quel que soit le jeu', () => {
   beforeEach(() => {
-    banc.setState({ party: makePregens(idsDeTest).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
+    banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[], battle: null, sequence: null, pendingCascade: null });
   });
 
   it('hors partie, le formulaire est offert', () => {

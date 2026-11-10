@@ -12,7 +12,7 @@ import { gainCorruption } from './corruptionFlow';
 import { pilotedByHuman } from './netOwnership';
 import { tenuParUnHumain } from './sieges';
 import { initialNet } from './etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 
 let banc: Banc;
@@ -23,7 +23,7 @@ const NET0 = initialNet();
 
 /** Héros dont le seuil BFM+BE vaut 0 : le moindre gain le franchit. */
 function heroAuSeuil(): Combatant {
-  const h = makePregens(idsDeTest)[0];
+  const h = tousLesHerosDeScenario(idsDeTest)[0];
   h.characteristics.endurance = 1;
   h.characteristics['force-mentale'] = 1;
   h.corruption = 10;

@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { buildSeaPlan } from './seaVoyageFlow';
 import { encLibreNominale, vesselMaxLoadEnc } from './portFlow';
@@ -51,7 +51,7 @@ const seaMap: WorldMap = {
 function freshState() {
   seedBattleRng(7);
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,

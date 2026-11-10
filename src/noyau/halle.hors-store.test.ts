@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { minCargoEnc } from '../engine/landCargo';
 import type { Possession } from '../engine/possession';
@@ -31,7 +31,7 @@ const carte: WorldMap = {
 
 /** Ouvre la halle par le geste du noyau, le groupe menant une diligence (Chargement 80) si `avecPorteur`. */
 function ouvrir(avecPorteur: boolean, bourseDuMeneur = 0): Partie {
-  const party = makePregens(idsDeTest).slice(0, 3).map((h, i) => (i === 0 ? withBourseMoney(h, { gold: bourseDuMeneur, silver: 0, brass: 0 }, idsDeTest) : h));
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, 3).map((h, i) => (i === 0 ? withBourseMoney(h, { gold: bourseDuMeneur, silver: 0, brass: 0 }, idsDeTest) : h));
   const possessions: Possession[] = avecPorteur
     ? [{ uid: 'convoi', ownerId: party[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }]
     : [];
@@ -96,7 +96,7 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
 /** Halle FIXÉE : une offre de 20 Enc de métal à 10 CO, une diligence vide, un seul héros sans Négociateur,
  *  qui mène donc le Marchandage du groupe (`partyAssisted`). `mode` : siège local ou invité. */
 function halleFixee(mode: 'local' | 'guest', cargo: CargoLot[] = [], produits = carte.places[0].market!.produits): Partie {
-  const heros = { ...makePregens(idsDeTest)[0], talents: [] };
+  const heros = { ...tousLesHerosDeScenario(idsDeTest)[0], talents: [] };
   const entrees: EntreesDeLaPartie = { graine: 3, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
     ...etatInitialDuJeu(),

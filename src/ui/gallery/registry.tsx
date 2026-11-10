@@ -668,7 +668,7 @@ const FIG_ZONE_BADGES_CRIT: ZoneBadgeSpec[] = [
  *  d'ALLOCATION à rubrique gravée (`sub` = le `.rf` de la planche, étape 5) — les états de la
  *  primitive, aucune rangée recodée. */
 function PlaqueRowDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   const ch = tableTotale(CHAR_KEYS, (k) => effectiveChar(herosExemple(), k));
   const [k1, k2, k3] = CHAR_KEYS;
   return (
@@ -751,7 +751,7 @@ function DetailFrameDemo() {
 }
 
 function HeroSheetDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Stack>
       <p className="hint">`header` (bande identité+rose) : composé tel quel par le détail candidat de l'écran d'équipe.</p>
@@ -797,7 +797,7 @@ function CreatorDiceDemo() {
  *  2026-07-17, « ça ne va pas être possible » sur deux `row` désalignées) : valeur au-dessus, piste
  *  pleine largeur — l'aside de la fiche l'utilise pour Blessures ET Encombrement, mêmes barres. */
 function LifeBarDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Stack>
       <LifeBar
@@ -820,7 +820,7 @@ function LifeBarDemo() {
 }
 
 function PortraitTileDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Row>
       <PortraitTile c={herosExemple()} variant="identity" size="md" />
@@ -993,7 +993,7 @@ function CoopBannerDemo() {
  *  partie en cours, tous deux sont fermés avec leur raison. */
 function GearAssignListDemo() {
   const heros = herosExemples().slice(0, 3);
-  if (!heros.length) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!heros.length) return <p className="hint">Aucun prétiré disponible.</p>;
   const gear: LootGear[] = [
     { uid: 'demo-lame', label: 'Lame finement ouvragée', magic: true, effect: { type: 'giveTrapping', trappingId: 'arme-simple', qualities: ['precise'], identified: false } },
     { uid: 'demo-cle', label: 'Clé en fer', magic: false, effect: { type: 'giveTrapping', custom: 'Clé en fer' } },
@@ -1151,14 +1151,14 @@ function ParchmentCardDemo() {
 }
 
 function InfluenceRowDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   // Jet POSÉ et RATÉ, jamais relancé : la vitrine montre le cycle d'influence AU COMPLET (les
   // fenêtres sont dérivées des prédicats du seam, aucune n'est forcée ici).
   return <InfluenceRow actor={herosExemple()} roll={{ rolled: true, failed: true }} onReroll={() => {}} onBonusSL={() => {}} onDarkPact={() => {}} onForce={() => {}} />;
 }
 
 function VsHeaderDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return <VsHeader actor={herosExemple()} target={herosExempleB()} label="Épée · Dégâts 6 + DR" />;
 }
 
@@ -1241,7 +1241,7 @@ function MenuCardDemo() {
 }
 
 function RoseAxesDemo() {
-  if (herosExemples().length < 2) return <p className="hint">Aucun pregen disponible.</p>;
+  if (herosExemples().length < 2) return <p className="hint">Aucun prétiré disponible.</p>;
   const CORE = allAxes.filter((a) => a.core);
   const heroes = herosExemples().slice(0, 3);
   return (
@@ -1268,7 +1268,7 @@ function RoseAxesDemo() {
  *  (`CharacterCreator.tsx`) : titre + sous-titre, compteur d'allocation à droite, contenu réel
  *  (rangées de caractéristiques de carrière du pré-tiré). */
 function BandDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   const careerKeys = CHAR_KEYS.slice(0, 3);
   const alloc = CAREER_CHAR_ADVANCES - 2;
   return (
@@ -1478,7 +1478,7 @@ function RollLineDemo() {
 
 /** Panneau de jet unique : l'issue d'un Test opposé, gagnant accentué. */
 function RollPanelDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <RollPanel
       rows={[
@@ -1528,7 +1528,7 @@ function RecapLineDemo() {
 
 /** Bilan multi-jets : une pile de jets d'un même temps (nuit de repos). */
 function MultiRollListDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <MultiRollList
       entries={[
@@ -1541,7 +1541,7 @@ function MultiRollListDemo() {
 
 /** Corps de révélation : le Coup Critique tiré sur table, avec ses effets expliqués. */
 function RevealBodyDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <RevealBody
       entry={{
@@ -1635,7 +1635,7 @@ function SpectatorChipDemo() {
 /** Colonne d'États : rack d'alvéoles RÉSERVÉES (les cases sont dessinées même vides) contre la
  *  forme libre, qui ne montre que ce qui est porté. */
 function StateChipsDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <Row>
       <StateChips c={herosExemple()} max={3} reserve />
@@ -1647,7 +1647,7 @@ function StateChipsDemo() {
 /** Frise d'initiative : cartouche de Round, entrée courante au trait, entrées passées atténuées. */
 function InitiativeStripDemo() {
   const equipe = herosExemples().slice(0, 3);
-  if (!equipe.length) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!equipe.length) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <InitiativeStrip
       order={equipe.map((c) => c.id)}
@@ -1665,7 +1665,7 @@ function InitiativeStripDemo() {
 /** Bande de groupe : une carte identitaire par héros (portrait, Blessures, États, nom dessous). */
 function PartyDockDemo() {
   const equipe = herosExemples().slice(0, 4);
-  if (!equipe.length) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!equipe.length) return <p className="hint">Aucun prétiré disponible.</p>;
   return <PartyDock heroes={equipe} onOpen={() => {}} />;
 }
 
@@ -1827,7 +1827,7 @@ function LogDrawerDemo() {
 /** Panneau d'inspection : identité, badges de camp, statbloc — modale de lecture seule. */
 function InspectPanelDemo() {
   const [ouvert, setOuvert] = useState(false);
-  if (!herosExempleB()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExempleB()) return <p className="hint">Aucun prétiré disponible.</p>;
   return (
     <>
       <button type="button" className="btn" onClick={() => setOuvert(true)}>Inspecter un combattant</button>
@@ -1838,7 +1838,7 @@ function InspectPanelDemo() {
 
 /** Panneau d'équipement : cellules par localisation × couche, cartes de set, récap en main. */
 function EquipmentPanelDemo() {
-  if (!herosExemple()) return <p className="hint">Aucun pregen disponible.</p>;
+  if (!herosExemple()) return <p className="hint">Aucun prétiré disponible.</p>;
   return <EquipmentPanel hero={herosExemple()} />;
 }
 

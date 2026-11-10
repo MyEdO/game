@@ -19,7 +19,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterAll } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findTavernGameById } from '../engine/tavernGame';
 import { jouerALaTaverne, tavernGameValue, tavernNpcOffers } from './tavernFlow';
 import { sceneNpc } from './monde/sceneNpc';
@@ -64,7 +64,7 @@ function pnjDeScene(id: string, label: string, pariFinal: number, offre?: { id: 
 }
 
 function poseScene(entities: ReturnType<typeof pnjDeScene>[]): void {
-  const party = makePregens(idsDeTest).slice(0, 2) as Combatant[];
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[];
   set({ party, scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null });
 }
 
@@ -181,7 +181,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
   
   it('un PNJ à `presetId` joue de SON profil de campagne — nom et Compétence, jamais un repli générique', () => {
     set({
-      party: makePregens(idsDeTest).slice(0, 2) as Combatant[],
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[],
       campaignNarratif: scenarioEdoConstruit.narratif,
       scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
@@ -197,7 +197,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
 
   it('la scène EDO le déclare joueur de taverne, et la modale lit son jeu ET sa mise authorés', () => {
     set({
-      party: makePregens(idsDeTest).slice(0, 2) as Combatant[],
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[],
       campaignNarratif: scenarioEdoConstruit.narratif,
       scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
       battle: null, sequence: null, pendingCascade: null,
@@ -211,7 +211,7 @@ describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagn
 /**
  * LE NOM VIENT DE L'ENTITÉ (L2 #1548) — un PNJ de taverne renommé par l'auteur joue et s'affiche sous
  * SON nom, jamais sous le libellé d'espèce de la fiche qu'il référence. Même invariant que l'infirmerie
- * (`scenarios/arene-flow.hors-store.test.ts` « Frère Anselm ») : la fiche donne les VALEURS, l'entité donne le NOM — et il
+ * (`scenarios/arene-flow.hors-store.test.ts` « Prêtre ») : la fiche donne les VALEURS, l'entité donne le NOM — et il
  * est résolu par la projection UNIQUE `sceneNpc`, pas recomposé au site.
  */
 describe('L2 #1548 — le PNJ de taverne RENOMMÉ garde son nom', () => {

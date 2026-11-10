@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { applyEffects, EFFECT_HANDLERS, type EffectRefCtx } from './combatEffects';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import { armyMight, armyStartMight, nomDArmee } from './massBattleFlow';
@@ -29,7 +29,7 @@ function battleEffect(spec: Partial<MassBattleSpec> = {}): Extract<Effect, { typ
 
 function apply(effects: Effect[]) {
   seedBattleRng(1234);
-  banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), battle: null, massBattle: null });
+  banc.setState({ party: groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), battle: null, massBattle: null });
   applyEffects(banc.getState, banc.setState, effects);
 }
 

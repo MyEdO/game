@@ -1,7 +1,7 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../engine/items';
 import type { Combatant } from '../../engine/types';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { Scene } from '../../noyau/monde/scene';
 import { setEncounters } from './_shared';
@@ -32,10 +32,10 @@ function poserDepart(base: Scene): Scene {
   };
 }
 
-/** Aelindra (Chasseur) l'arc EN MAIN et son carquois — le pré-tiré ne porte qu'une fronde rangée, et
+/** Le Chasseur l'arc EN MAIN et son carquois — le pré-tiré ne porte qu'une fronde rangée, et
  *  le set d'armes par défaut (`ensureDefaultLoadout`) tient sa mêlée : on rend ACTIF un set à l'arc. */
 function chasseurArme(idNeuf: FabriqueDId): Combatant {
-  const h = pregen(idNeuf, PREGEN.chasseur);
+  const h = herosDeScenario(idNeuf, 'chasseur');
   const arc = itemFromTrappingById('arc', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   arc.equipped = true;
   const fleches = itemFromTrappingById('fleche', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
@@ -82,6 +82,6 @@ export const scenario: TestScenario = {
     'voit le groupe et tire ; à distance comparable, un ennemi derrière un mur à ossature en bois est ' +
     'REFUSÉ (pas de Ligne de Vue) — l’arête de clayonnage restant INFRANCHISSABLE au déplacement.',
   partyNote: 'Chasseur (arc en main) + Soldat — départ dans l’allée est des écuries.',
-  construire: (idNeuf) => ({ party: [chasseurArme(idNeuf), pregen(idNeuf, PREGEN.soldat)], scene: construireScene() }),
+  construire: (idNeuf) => ({ party: [chasseurArme(idNeuf), herosDeScenario(idNeuf, 'soldat')], scene: construireScene() }),
   autoCombat: 'enc-clayonnage',
 };

@@ -25,7 +25,7 @@ import { spawnEnemy } from './monde/spawn';
 import { setCadence } from '../engine/cadence';
 import { setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -348,7 +348,7 @@ function lanceur(banc: Banc, seed: number, sort: string, heros: Combatant[]): vo
   poser(banc, seed, [e, ...heros]);
 }
 const pretire = (id: string, pos: { x: number; y: number }): Combatant => {
-  const h = pregen(idsDeTest, PREGEN.soldat);
+  const h = herosDeScenario(idsDeTest, 'soldat');
   h.id = id; h.label = id; h.pos = pos; h.wounds = blessuresDeBase(99, 99, h);
   return h;
 };
@@ -458,7 +458,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
   it('H-sort (graine 1) : sort parqué sur une fenêtre, bascule en manuel, le joueur incante, retour en Auto — une incantation, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    const h = pregen(idsDeTest, PREGEN.sorcier);
+    const h = herosDeScenario(idsDeTest, 'sorcier');
     h.id = 'h'; h.label = 'h'; h.pos = { x: 1, y: 1 }; h.wounds = blessuresDeBase(99, 99, h);
     h.characteristics.intelligence = 60;
     h.skills = [...h.skills.filter((sk) => sk.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 } as never];

@@ -270,6 +270,7 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/engine/character.ts | xp: r.xp,': 'creation',
     'src/engine/heroDeFiche.ts | xp: number;': 'type',
     'src/engine/heroDeFiche.ts | xp: fiche.xp,': 'creation',
+    'src/scenes/test-scenarios/_heros.ts | xp: 0,': 'fixture',
     'src/scenes/test-scenarios/magie.ts | sorc.xp = 300;': 'fixture',
     'src/scenes/test-scenarios/voyage.ts | aldric.xp = 300;': 'fixture',
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - cost;': 'moteur',

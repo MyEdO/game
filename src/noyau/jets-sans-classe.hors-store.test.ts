@@ -17,7 +17,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildBand, bandStep, monoStep, surfaceDesEtapes, surfaceDeLEtape } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade } from './cascade';
@@ -59,7 +59,7 @@ function traversee(cadence: 'commande' | 'jour-par-jour', mode: 'sea' | 'river' 
 }
 
 beforeEach(() => {
-  set({ battle: null, party: makePregens(idsDeTest).slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
+  set({ battle: null, party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
 });
 

@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregen, pregenParty, PREGEN } from '../data/pregens';
+import { herosDeScenario, groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 
 let banc: Banc;
@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  */
 
 function casterParty() {
-  const [priest, ally] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
+  const [priest, ally] = groupeDeScenario(idsDeTest, 'pretre', 'soldat');
   // Garantit que le Prêtre peut tenter la Prière (Compétence avancée ≥ 1 avance, LDB 09).
   const priere = priest.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);
@@ -62,7 +62,7 @@ describe('Incantation hors combat (couture D)', () => {
   });
 
   it('un Projectile magique (« Fléchette ») est refusé hors combat (offensif → combat-only)', () => {
-    const wiz = pregen(idsDeTest, PREGEN.sorcier);
+    const wiz = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [wiz] });
     banc.getState().incanterLeSort(wiz.id, 'flechette', wiz.id);
     expect(banc.getState().pendingCast).toBeNull(); // aucune modale ouverte
@@ -76,7 +76,7 @@ describe('Incantation hors combat (couture D)', () => {
   });
 
   it('Focalisation hors combat (sort d\'Arcane) : focaliserLeSort ouvre la modale ; jetValider@focus accumule caster.focus, journalisé, sans combat', () => {
-    const wiz = pregen(idsDeTest, PREGEN.sorcier);
+    const wiz = herosDeScenario(idsDeTest, 'sorcier');
     wiz.spells = ['arme-aethyrique', ...(wiz.spells ?? [])];
     const foc = wiz.skills.find((s) => s.id === 'focalisation');
     if (foc) foc.advances = Math.max(foc.advances, 5);

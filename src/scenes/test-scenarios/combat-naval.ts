@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { makeShowcaseParty, PREGEN, idDuPretire } from '../../data/pregens';
+import { groupeVitrineDeScenario, idDuHerosDeScenario } from './_heros';
 import { gabaritDObjet, loadWeapon } from '../../engine/items';
 import type { AuthoredShipPoste, Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
@@ -7,7 +7,7 @@ import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
 // Ids STABLES des 2 canonniers (le Soldat + le Chasseur du groupe d'arène) qui SERVENT les pierriers.
-const GUNNERS = [idDuPretire(PREGEN.soldat), idDuPretire(PREGEN.chasseur)] as const;
+const GUNNERS = [idDuHerosDeScenario('soldat'), idDuHerosDeScenario('chasseur')] as const;
 
 /**
  * Un poste de PIERRIER (canon léger de pont, MDG 12) monté à tribord de la barge, servi par `chefId`,
@@ -29,7 +29,7 @@ function pierrierPoste(chefId: string): AuthoredShipPoste {
  * combat par `applyShipPostes`). Les 2 autres (Tueur + Sorcier) gardent leur arme de mêlée pour l'abordage.
  */
 function makeNavalParty(idNeuf: FabriqueDId): Combatant[] {
-  const party = makeShowcaseParty(idNeuf);
+  const party = groupeVitrineDeScenario(idNeuf);
   for (const id of GUNNERS) {
     const g = party.find((h) => h.id === id);
     // Chargé d'emblée → tir dès le 1er Round. L'état de charge vit sur CHAQUE arme (arbitrage 2026-08-16).

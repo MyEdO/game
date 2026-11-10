@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import type { Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
@@ -10,19 +10,19 @@ import type { TestScenario } from './_shared';
  * Le combat « complet » de référence (exploration → dialogue → 5 mutants, ch.2). Son groupe absorbe les
  * anciens micro-tests Critiques/Mort, Destin/Résilience et Guérison : dans une vraie bagarre dangereuse,
  * chacun de ces mécanismes se déclenche naturellement — pas besoin d'un scénario dédié par mécanique.
- *  - Sigmund (Soldat) garde Destin + Résilience → sauvetage par le Destin / réussite garantie.
- *  - Klein (Voleur Halfling, peu de Blessures) n'a plus aucun Destin → 0 PB mène vraiment à
+ *  - Soldat garde Destin + Résilience → sauvetage par le Destin / réussite garantie.
+ *  - Le Voleur (Voleur Halfling, peu de Blessures) n'a plus aucun Destin → 0 PB mène vraiment à
  *    À Terre → Inconscient → mort (cascade de Traumatisme).
- *  - Frère Anselm (Prêtre) sait Guérison → Action Soigner / arrêt d'Hémorragie sur un allié qui tombe.
+ *  - Prêtre (Prêtre) sait Guérison → Action Soigner / arrêt d'Hémorragie sur un allié qui tombe.
  */
 function groupe(idNeuf: FabriqueDId): Combatant[] {
-  const sigmund = pregen(idNeuf, PREGEN.soldat); // Destin/Résilience intacts (sauvetage in extremis)
-  const grunni = pregen(idNeuf, PREGEN.tueur);
-  const anselm = pregen(idNeuf, PREGEN.pretre);
+  const sigmund = herosDeScenario(idNeuf, 'soldat'); // Destin/Résilience intacts (sauvetage in extremis)
+  const grunni = herosDeScenario(idNeuf, 'tueur');
+  const anselm = herosDeScenario(idNeuf, 'pretre');
   if (!anselm.skills.some((s) => s.id === 'guerison')) {
     anselm.skills.push({ id: 'guerison', characteristic: 'intelligence', advances: 25 }); // sinon pas d'Action Soigner
   }
-  const klein = pregen(idNeuf, PREGEN.voleur); // Halfling fragile
+  const klein = herosDeScenario(idNeuf, 'voleur'); // Halfling fragile
   klein.fate = 0;
   klein.fortune = 0;
   klein.resilience = 0;
@@ -212,9 +212,9 @@ export const scenario: TestScenario = {
   title: "L'Embuscade",
   tests:
     'Combat complet exploration → dialogue → combat (5 mutants, ch.2). Y surviennent : Critiques & mort ' +
-    '(Klein, Destin 0 → cascade À Terre/Inconscient/mort), sauvetage par le Destin & Résilience (Sigmund), ' +
-    "Action Soigner & arrêt d'Hémorragie (Frère Anselm) sur un allié qui tombe.",
-  partyNote: 'Sigmund (Destin) · Tueur nain · Frère Anselm (soigneur) · Klein le Voleur (fragile, Destin 0)',
+    '(le Voleur, Destin 0 → cascade À Terre/Inconscient/mort), sauvetage par le Destin & Résilience (le Soldat), ' +
+    "Action Soigner & arrêt d'Hémorragie (Prêtre) sur un allié qui tombe.",
+  partyNote: 'Soldat (Destin) · Tueur nain · Prêtre (soigneur) · le Voleur (fragile, Destin 0)',
   construire: (idNeuf) => ({ party: groupe(idNeuf), scene: construireScene() }),
   // pas d'autoCombat : on entre en exploration, le trigger lance le dialogue puis le combat.
 };

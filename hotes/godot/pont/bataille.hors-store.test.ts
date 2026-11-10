@@ -32,7 +32,7 @@ describe('la bataille de masse par le pont', () => {
 
     const sigmund = (s: Suite) => (parId(corps(s)['scene/motivation'] as Entite).postes as Choix).valeurs[0];
     suite = jouer(sigmund(suite));
-    expect(sigmund(suite), 'Sigmund posté à la Motivation').toMatchObject({ libelle: 'Sigmund Reikhardt', presse: true });
+    expect(sigmund(suite), 'Le Soldat posté à la Motivation').toMatchObject({ libelle: 'Soldat', presse: true });
 
     suite = jouer(parId(corps(suite)['scene/motivation'] as Entite).engager as Bouton);
     expect(suite.vue.disposition, 'le jet de la Scène tient la main').toBe('activity');

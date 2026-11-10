@@ -9,7 +9,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene, type SceneEntity } from './monde/scene';
 import { ficheDEntite, FicheAbsente, sceneNpc } from './monde/sceneNpc';
 import { jouerALaTaverne, tavernNpcOffers } from './tavernFlow';
@@ -32,7 +32,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 const presetPnjById = (id: string) => presetDuNarratif(get().campaignNarratif)(id);
 
 function pose(entities: SceneEntity[]): void {
-  set({ party: makePregens(idsDeTest).slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
+  set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
 }
 
 const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', creature: { id: 'humain' }, tavernGame: { id: 'dominos' } };

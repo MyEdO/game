@@ -1,4 +1,4 @@
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from './_heros';
 import { gabaritDObjet } from '../../engine/items';
 import type { SkillRef } from '../../data';
 import type { AuthoredShipPoste } from '../../engine/types';
@@ -88,6 +88,6 @@ export const scenario: TestScenario = {
     'manœuvre pour aligner sa bordée puis fait feu. Reddition à mi-coque. Le combat naval person-scale (abordage) ' +
     'reste le scénario « Combat naval ».',
   partyNote: 'Groupe d’arène embarqué (passagers du Grimm) ; l’équipage abstrait sert les pièces',
-  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupeVitrineDeScenario(idNeuf), scene: construireScene() }),
   autoCombat: 'duel',
 };

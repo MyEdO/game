@@ -9,7 +9,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { rollMiscast, miscastRowSource, miscastTableId } from '../engine/miscast';
 import { applyOps } from '../engine/ops';
 import { effectiveTalents } from '../engine/talentEffects';
@@ -29,7 +29,7 @@ beforeEach(() => {
 
 /** Prêtre de Sigmar béni ET invocateur, avec de quoi prier. */
 function pretre(): Combatant {
-  const p = pregen(idsDeTest, PREGEN.pretre);
+  const p = herosDeScenario(idsDeTest, 'pretre');
   acquerirTalent(p, { id: 'invocation', spec: 'sigmar' });
   const priere = p.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);

@@ -6,7 +6,7 @@ import { applierDe } from './cascade';
 import { seedBattleRng } from './battleRng';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { applyCriticalToTarget } from './combatFlow';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import { resolveStake, voyageStakeRef } from '../data';
 import { monoStep } from './rollSeam';
@@ -54,7 +54,7 @@ const seaMap: WorldMap = {
 /** Trois PJ à bord, tenus par le siège local (cadence manuelle) — la condition de surfaçage — et
  *  ÉPINGLÉS sur le PONT : `greement-fluvial` vise la station (MSRC 07 l.78), pas « tout le monde ». */
 function equipage(): Combatant[] {
-  return makePregens(idsDeTest).slice(0, 3).map((h) => ({ ...h, shipStation: 'pont' }));
+  return tousLesHerosDeScenario(idsDeTest).slice(0, 3).map((h) => ({ ...h, shipStation: 'pont' }));
 }
 
 function baseState(party: Combatant[]): void {
@@ -234,7 +234,7 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
 
   it('2 porteurs TENUS + 1 PNJ : DEUX rangées en bande, le PNJ résolu inline et DIT au journal', () => {
     seedBattleRng(1);
-    const party = makePregens(idsDeTest).slice(0, 2);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     baseState(party);
     const pnj = marin();
 
@@ -253,7 +253,7 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
   });
 
   it('`crewTarget:{poste:true}` (MDG 13 l.763) : la victime est le SERVANT tiré au sort — 30 seeds, deux postes', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     const equipage = [party[0], marin()];
     const coque = { id: 'hull', postes: [
       { item: { uid: 'p1', name: 'Canon' }, side: 'tribord', crewIds: ['marin'] },

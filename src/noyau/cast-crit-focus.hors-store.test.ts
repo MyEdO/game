@@ -9,7 +9,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit, avanceEtapeCascade } from './cascade.testkit';
 import { applyCast, checkFocusInterruption, openCastCascade } from './combatFlow';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import { findEffectTableById, refLabel, findSpellById } from '../data';
 import { testDeRegle } from '../engine/reglesChiffrees';
@@ -24,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Sorcier sans Talent aléatoire (`talentsRolled: false`) : aucun tirage ne touche la FM. */
 function wiz() {
-  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: PREGEN.sorcier, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
+  const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 707, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   return w;
@@ -70,7 +70,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
   });
 
   it('une PRIÈRE critique ne déclenche pas la mécanique (règle du ch.46, Tests de Langue)', () => {
-    const priest = pregen(idsDeTest, PREGEN.pretre);
+    const priest = herosDeScenario(idsDeTest, 'pretre');
     banc.setState({ party: [priest] as Combatant[] });
     const ben = findSpellById('benediction-de-guerison')!;
     applyCast(banc.getState, banc.setState, priest, priest, ben, critRes(true, 2), false, false);

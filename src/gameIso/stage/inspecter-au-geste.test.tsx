@@ -8,7 +8,7 @@ import { emptyScene, type Scene } from '../../noyau/monde/scene';
 import { useGame } from '../../state/store';
 import type { BattleState } from '../../noyau/etat';
 import type { Combatant } from '../../engine/types';
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { poserScenario } from '../../state/scenarioFlow';
 import { scenario } from '../../scenes/test-scenarios/96-presets-edo';
@@ -77,8 +77,8 @@ describe('en combat : clic droit et appui long INSPECTENT, le clic gauche attaqu
   const px = (x: number, y: number) => tileCenter(x, y, dims);
 
   function combat() {
-    const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 3, y: 4 };
-    const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 1, y: 1 };
+    const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 3, y: 4 };
+    const ally = tousLesHerosDeScenario(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 1, y: 1 };
     const enemy: Combatant = spawnEnemy({ ref: 'humain' }, 'e1', { x: 4, y: 4 }); // adjacent au héros
     const battle = {
       combatants: [hero, ally, enemy], order: ['h1', 'h2', 'e1'], baseOrder: ['h1', 'h2', 'e1'],

@@ -3,7 +3,7 @@ import { acheterAuMarche } from './cargaison.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from './battleRng.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng, battleRng } from './battleRng';
 import { setRule } from '../engine/policy';
 import { creditBourse } from './bourseFlow';
@@ -70,7 +70,7 @@ function setupPort(party: Combatant[]): void {
 
 /** Meneur à `nue` en Marchandage + un soutien éligible (≥ 1 Augmentation, LDB 12 l.195) plus faible. */
 function pairAvecSoutien(nue = 45): { leader: Combatant; helper: Combatant } {
-  const [leader, helper] = makePregens(idsDeTest);
+  const [leader, helper] = tousLesHerosDeScenario(idsDeTest);
   tuneSkill(leader, 'marchandage', nue);
   tuneSkill(helper, 'marchandage', 20);
   return { leader, helper };

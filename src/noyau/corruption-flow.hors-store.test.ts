@@ -9,7 +9,7 @@ import { applyEffects } from './combatEffects';
 import { gainCorruption, corruptionTarget } from './corruptionFlow';
 import { draineCascade, avanceEtapeCascade } from './cascade.testkit';
 import type { RevealEntry } from './pendings';
-import { makePregens, PREGEN } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';
 import mutationTables from '../data/mutationTables.json';
 import type { Combatant } from '../engine/types';
@@ -20,9 +20,9 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function party2() {
-  const all = makePregens(idsDeTest);
+  const all = tousLesHerosDeScenario(idsDeTest);
   // Sans Talent aléatoire (`talentsRolled: false`) : aucun tirage d'Âme pure (LDB 10 l.52).
-  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: PREGEN.soldat, talentsRolled: false });
+  const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Sigmund', id: all[0].id, seed: 101, talentsRolled: false });
   const b = all[1];
   return { a, b, party: [a, b] as Combatant[] };
 }

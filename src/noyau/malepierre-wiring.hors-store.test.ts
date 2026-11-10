@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castNearCorruption } from './combatFlow';
 import { FLOWS } from './rollFlowSpecs';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { itemFromTrappingById } from '../engine/items';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -26,7 +26,7 @@ const RULE = 'magic-vdm-incantation';
 /** Sorcier quasi certain de réussir son Test d'Incantation (DR élevé) — isole le doublement du bruit
  *  du d100, comme les autres câblages de ce fichier (`sea-magic-state.hors-store.test.ts`). */
 function sorcier(): Combatant {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   w.characteristics = { ...w.characteristics, intelligence: 95 };
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 40);

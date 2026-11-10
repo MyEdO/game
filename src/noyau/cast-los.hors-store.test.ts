@@ -12,7 +12,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from './combatFlow';
 import { ciblesHorsDeVue } from './targetingModes';
-import { pregen, PREGEN, makePregens } from '../data/pregens';
+import { herosDeScenario, tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { findSpellById } from '../data';
 import type { Combatant } from '../engine/types';
@@ -21,7 +21,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wiz() {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', 'carreau', ...(w.spells ?? [])];
@@ -75,7 +75,7 @@ describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {
 
   it('cibler un ALLIÉ derrière un mur → refusé aussi (le gate ignore l’équipe — buffs compris)', () => {
     const { w } = setup();
-    const ally = makePregens(idsDeTest).find((h) => h.id !== w.id)!;
+    const ally = tousLesHerosDeScenario(idsDeTest).find((h) => h.id !== w.id)!;
     ally.pos = { x: 16, y: 4 }; // derrière le mur
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, combatants: [...b.combatants, ally] } });

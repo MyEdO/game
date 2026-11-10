@@ -69,7 +69,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
   return { H, E };
 }
 
-/** Le scénario `entrainement` (le banc de la recette : un cheval allié libre), au Tour de Wilhelmina,
+/** Le scénario `entrainement` (le banc de la recette : un cheval allié libre), au Tour de du Sorcier,
  *  Mouvement intact. `dejaEnSelle` : en selle avant son Tour (`mountUp`, comme une rencontre qui pose un
  *  cavalier), sinon le cheval attend à une case. */
 function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatant } {
@@ -79,7 +79,7 @@ function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatan
   banc.abandonner();
   const b = g().battle!;
   const monture = b.combatants.find((c) => c.mountable)!;
-  const R = b.combatants.find((c) => c.id === 'pregen-707')!;
+  const R = b.combatants.find((c) => c.id === 'sorcier-de-test')!;
   R.pos = { x: monture.pos!.x + 1, y: monture.pos!.y };
   if (dejaEnSelle) mountUp(R, monture);
   banc.setState({ battle: { ...b, turn: b.order.indexOf(R.id), action: null, acted: false, movementUsed: 0, movedPreAction: false, runBudget: null } });

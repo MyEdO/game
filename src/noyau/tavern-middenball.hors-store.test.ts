@@ -14,7 +14,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { tavernGameValue } from './tavernFlow';
@@ -33,7 +33,7 @@ const get = () => banc.getState();
 const MIDDENBALL = findTavernGameById('middenball')!;
 
 function equipe(n: number): Combatant[] {
-  const party = makePregens(idsDeTest).slice(0, n) as Combatant[];
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, n) as Combatant[];
   party.forEach((h) => { h.advantage = 0; });
   banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return party;

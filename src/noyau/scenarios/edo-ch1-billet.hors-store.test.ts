@@ -12,7 +12,7 @@ import { imposerLesD100 } from '../../noyau/battleRng.testkit';
 import { setRule, resetRule } from '../../engine/policy';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
-import { makePregensWithWealth, PREGEN, idDuPretire } from '../../data/pregens';
+import { groupeVitrineDeScenario } from '../../scenes/test-scenarios/_heros';
 import { creditBourse, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { toBrass } from '../../engine/money';
 import { prixParPassager, transportCost, type TarifDePassage } from '../../engine/travel';
@@ -40,16 +40,14 @@ const T3 = 'route-sept-rayons-altdorf';
 const get = () => banc.getState();
 const bourse = () => toBrass(partyMoneyTotal(get));
 
-/** Les 4 piliers du groupe showcase (`makeShowcaseParty`), avec LEUR Richesse initiale tirée (LDB 05 l.578). */
-const SHOWCASE: readonly string[] = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => idDuPretire(s));
+const BOURSE_DE_FIXTURE = { gold: 0, silver: 3, brass: 4 };
 
 /** Lance le chapitre 1 avec le groupe showcase et sa bourse, et fait monter à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
-  expect(groupe).toHaveLength(4);
-  banc.setState({ party: groupe.map((e) => e.hero) });
+  const groupe = groupeVitrineDeScenario(idsDeTest);
+    banc.setState({ party: groupe });
   expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-  for (const e of groupe) creditBourse(get, banc.setState, e.hero.id, e.wealth);
+  for (const h of groupe) creditBourse(get, banc.setState, h.id, BOURSE_DE_FIXTURE);
   get().fenetreValider('ouverture');
   poserLeGroupe(get, banc.setState, { x: 13, y: 31 }); // à portée de la charrette (patron `edo-ch1-chaine-carte.hors-store.test.ts`)
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');

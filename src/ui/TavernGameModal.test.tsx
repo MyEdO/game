@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterAll, afterEach } from
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { useGame } from '../state/store';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule, resetRule } from '../engine/policy';
 import { seedBattleRng } from '../noyau/battleRng';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
@@ -37,7 +37,7 @@ beforeEach(() => {
   seedBattleRng(7);
   const dlg = scenarioConstruit.scene.dialogues.find((d) => d.id === 'dlg-bras-de-fer')!;
   useGame.setState({
-    party: pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur),
+    party: groupeDeScenario(idsDeTest, 'soldat', 'chasseur'),
     scene: scenarioConstruit.scene,
     screen: 'campaign',
     dialogue: ouvrirDialogue(g(), dlg, PNJ),

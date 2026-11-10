@@ -13,7 +13,7 @@ import { WorldMapView } from './WorldMapView';
 import { BargainModal } from './BargainModal';
 import { useGame } from '../state/store';
 import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
-import { makePregensWithWealth, PREGEN, idDuPretire } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { creditBourse, partyMoneyTotal } from '../noyau/bourseFlow';
 import { toBrass } from '../engine/money';
 import { setRule, resetRule } from '../engine/policy';
@@ -28,7 +28,7 @@ const paquet = paquetDuJeu(diligenceCampaign);
 const get = () => useGame.getState();
 const bourse = () => toBrass(partyMoneyTotal(get));
 const NET_INITIAL = useGame.getState().net;
-const SHOWCASE: readonly string[] = [PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur].map((s) => idDuPretire(s));
+const BOURSE_DE_FIXTURE = { gold: 0, silver: 3, brass: 4 };
 
 let container: HTMLDivElement;
 let root: Root;
@@ -55,10 +55,10 @@ const T2 = 'route-route-principale-sept-rayons';
 
 /** Le chapitre 1 lancé avec le groupe showcase et sa bourse, monté à bord (`edo-ch1-depart`). */
 function aBord(): void {
-  const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
-  useGame.setState({ party: groupe.map((e) => e.hero) });
+  const groupe = groupeVitrineDeScenario(idsDeTest);
+  useGame.setState({ party: groupe });
   expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-  for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
+  for (const h of groupe) creditBourse(get, useGame.setState, h.id, BOURSE_DE_FIXTURE);
   get().fenetreValider('ouverture');
   poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
   get().jouerAction('diligence-remise-charrette', 'monter-a-bord');
@@ -76,10 +76,10 @@ async function cliquer(b: Element): Promise<void> {
 
 describe('billet de la diligence — chemin du joueur', () => {
   it('Marchander → Conclure → prix négocié par place → Payer et partir → 4 × 3/- débités', async () => {
-    const groupe = makePregensWithWealth(idsDeTest).filter((e) => SHOWCASE.includes(e.hero.id));
-    useGame.setState({ party: groupe.map((e) => e.hero) });
+    const groupe = groupeVitrineDeScenario(idsDeTest);
+    useGame.setState({ party: groupe });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
-    for (const e of groupe) creditBourse(get, useGame.setState, e.hero.id, e.wealth);
+    for (const h of groupe) creditBourse(get, useGame.setState, h.id, BOURSE_DE_FIXTURE);
     get().fenetreValider('ouverture');
     poserLeGroupe(get, useGame.setState, { x: 13, y: 31 });
     get().jouerAction('diligence-remise-charrette', 'monter-a-bord');

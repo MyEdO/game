@@ -12,7 +12,7 @@ import { intentAllowedFor } from './netOwnership';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { fermetureDeLaSortie } from './sortieDeFenetre';
 import type { FenetreAValider } from './modalArbiter';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { t } from '../i18n';
 
 const RECAP = { titre: 'C', px: 0, chronique: [], tombes: [], lieux: [] };
@@ -31,7 +31,7 @@ const FENETRES_DE_L_HOTE: readonly (readonly [FenetreAValider, Record<string, un
 
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): void {
-  const [a, b] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur);
+  const [a, b] = groupeDeScenario(idsDeTest, 'soldat', 'tueur');
   banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
 }
 
@@ -72,7 +72,7 @@ describe('fenetreValider', () => {
 describe('la fenêtre à quorum : chaque siège requis se dit prêt, le dernier la joue', () => {
   it('solo : le quorum est l’hôte seul, la victoire se ferme d’un appel', () => {
     const banc = ouvrirLeBanc();
-    banc.setState({ party: pregenParty(idsDeTest, PREGEN.soldat), pendingVictory: VICTOIRE } as never);
+    banc.setState({ party: groupeDeScenario(idsDeTest, 'soldat'), pendingVictory: VICTOIRE } as never);
     banc.getState().fenetreFermer('victory');
     expect(banc.getState().pendingVictory).toBeNull();
   });
