@@ -82,11 +82,8 @@ function ArmyBar({ army, side }: { army: MassBattleArmy; side: 'ally' | 'enemy' 
 }
 
 function RoundPanel({ mb }: { mb: MassBattleState }) {
-  const rollHazard = useGame((s) => s.affronterLePeril);
   const fenetreChoisir = useGame((s) => s.fenetreChoisir);
-  const clash = useGame((s) => s.engagerLaMelee);
-  const rally = useGame((s) => s.rallierLesTroupes);
-  const advance = useGame((s) => s.avancerLaBataille);
+  const valider = useGame((s) => s.fenetreValider);
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
   const [selectedStationId, setSelectedStationId] = useState<string | undefined>(undefined);
@@ -137,7 +134,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
         </div>
       ) : (
         <div className="bar mb-actions">
-          <button className="btn small" disabled={mb.awaitingNext} onClick={() => rollHazard()}>{t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) })}</button>
+          <button className="btn small" disabled={mb.awaitingNext} onClick={() => fenetreChoisir('batailleDeMasse', 'alea', null)}>{t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) })}</button>
           <select
             className="mb-select"
             defaultValue=""
@@ -154,12 +151,12 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
       {mb.awaitingNext ? (
         <div className="bar mb-actions mb-clash-actions">
           <GatedAction id="mb-rally" primary={false} btnClassName="small" label={t('mbf.rallyLabel')}
-            enabled={!refusRally} {...raisonSi(refusRally)} onClick={rally} />
-          <button className="btn btn-primary" onClick={advance}>Round suivant</button>
+            enabled={!refusRally} {...raisonSi(refusRally)} onClick={() => fenetreChoisir('batailleDeMasse', 'rallier', true)} />
+          <button className="btn btn-primary" onClick={() => valider('batailleDeMasse')}>Round suivant</button>
         </div>
       ) : (
         <div className="bar mb-actions mb-clash-actions">
-          <button className="btn btn-primary" onClick={clash} title="Résoudre l'affrontement des deux armées (Test spectaculaire de Puissance)">
+          <button className="btn btn-primary" onClick={() => fenetreChoisir('batailleDeMasse', 'engager', true)} title="Résoudre l'affrontement des deux armées (Test spectaculaire de Puissance)">
             Test spectaculaire de Puissance
           </button>
           {allyBonus !== 0 && <span className="mb-detail">Bonus allié ce Round : {allyBonus > 0 ? '+' : ''}{allyBonus}</span>}
@@ -178,8 +175,7 @@ function RoundPanel({ mb }: { mb: MassBattleState }) {
  * du verbe (`refusDeSceneDeBataille`).
  */
 function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Station }) {
-  const chooseScene = useGame((s) => s.jouerLaScene);
-  const setHero = useGame((s) => s.affecterLeHeros);
+  const fenetreChoisir = useGame((s) => s.fenetreChoisir);
   const party = useGame((s) => s.party);
   if (station.ref.kind !== 'battleScene') return null;
   const sceneId = station.ref.sceneId;
@@ -216,8 +212,8 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
         <AssignRow
           assigned={posted}
           candidates={available}
-          onAssign={(id) => setHero(sceneId, [...postedIds, id])}
-          onRemove={(id) => setHero(sceneId, postedIds.filter((x) => x !== id))}
+          onAssign={(id) => fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', sceneId, id)}
+          onRemove={(id) => fenetreChoisir('batailleDeMasse', 'retirerDuPoste', sceneId, id)}
           intitule={`${sc.label} : affecter un Personnage`}
           nomRetirer={(c) => `Retirer ${c.label} de ${sc.label}`}
           canPick={!resolved && !mb.awaitingNext}
@@ -229,7 +225,7 @@ function SceneStationDetail({ mb, station }: { mb: MassBattleState; station: Sta
           label={resolved ? 'Scène résolue' : isCombat ? 'Engager le combat' : 'Résoudre'}
           enabled={!refus}
           {...raisonSi(refus)}
-          onClick={() => chooseScene(sceneId)}
+          onClick={() => fenetreChoisir('batailleDeMasse', 'scene', sceneId)}
           btnClassName="small"
         />
       </div>

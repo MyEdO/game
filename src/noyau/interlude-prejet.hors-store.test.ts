@@ -210,7 +210,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     const second = instruit(withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Second', seed: 1602 }), { gold: 1, silver: 0, brass: 0 }, idsDeTest), 5);
     const b = banc([meneur, second]);
     b.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    b.actions.affecterLeHeros('planification', [meneur.id, second.id]);
+    for (const id of [meneur.id, second.id]) b.actions.fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', 'planification', id);
     const s = b.getState();
     const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!.pending;
     b.actions.menerLActionDeBataille('planification', meneur.id);
@@ -238,7 +238,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     if (i % 2) b.setState((s) => ({ massBattle: { ...s.massBattle!, planningBonus: 20 } }));
     const ecarts: string[] = [];
     for (const { def } of battlePrepEntries(b.getState().massBattle!)) {
-      if (def.assisted) b.actions.affecterLeHeros(def.id, [a.id, second.id]);
+      if (def.assisted) for (const id of [a.id, second.id]) b.actions.fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', def.id, id);
       const s = b.getState();
       const pj = preJetDePreparation(s, s.massBattle!, héros(b, a.id), def);
       const refus = refusDePrepaDeBataille(s.massBattle!, héros(b, a.id), def);

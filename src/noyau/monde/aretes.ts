@@ -63,9 +63,10 @@ export function areteDessinee(scene: Scene, seg: WallSeg): AreteDessinee {
   };
 }
 
-/** Les arêtes dessinées de la couche `z` de `scene`. */
+/** Les arêtes dessinées de la couche `z` de `scene`, hors des ponts de ses navires, que leur modèle montre
+ *  (`aretesHorsDesNavires`). */
 export function aretesDeLaCouche(scene: Scene, z: number): AreteDessinee[] {
-  return (scene.walls ?? []).filter((seg) => (seg.z ?? 0) === z).map((seg) => areteDessinee(scene, seg));
+  return aretesHorsDesNavires(scene).filter((seg) => (seg.z ?? 0) === z).map((seg) => areteDessinee(scene, seg));
 }
 
 /** Les clés (`edgeKey`) des couronnes crénelées de `scene` (`couronnesDuMonde`) tombées avec leur mur abattu

@@ -14,7 +14,11 @@ le geste ; un défaut de la base, du kit partagé ou d'une pièce voisine revien
   la barre.
 - **Un véhicule** (navire, engin de siège) suit le chapitre 9 de la procédure : tes fichiers sont ceux de
   `scripts/personnage-3d/vehicule/<type>/` que le brief te donne ; tu décomposes d'abord l'illustration en parties (bateau,
-  Améliorations, armement, décor, pavillon) et ne modèles dans le GLB que le bateau.
+  Améliorations, armement, décor, pavillon) et ne modèles dans le GLB que le bateau. Avant de rendre, passe les gardes
+  du chapitre 9 (coque close, postes, route à bord) : une garde qui refuse se passe en corrigeant la géométrie (décaler
+  ou tourner la pièce, fermer la muraille, poser le plancher), jamais en retirant ce que l'illustration dessine ni en
+  vidant une cabine. L'illustration qui place une chose l'arbitre (plan des ponts, plan des canons) : compte ses
+  ouvertures et ses pièces, et rends le compte des deux côtés.
 - **Épingle ton arbre avant toute mesure** : `git log --oneline -1`, le hash dans ton rendu, et la
   sha256 du manifeste de base que tu vises.
 - Tu n'écris que les fichiers que le brief te donne. Tes sorties (GLB, manifestes, sources, rendus)

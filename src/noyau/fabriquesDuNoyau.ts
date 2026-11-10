@@ -22,7 +22,7 @@ import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
 import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
 import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
-import { choixDeLaBataille, creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
+import { choixDeLaBataille, creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse, validationsDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
 import { creerActionsDesPossessions } from './possessionsFlow';
@@ -56,14 +56,14 @@ import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivit
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
-type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'aider' | 'annuler' | 'approvisionner' | 'armer'
+type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'aider' | 'annuler' | 'approvisionner' | 'armer'
   | 'asperger' | 'attribuer' | 'avancer' | 'basculer' | 'carener' | 'ceder' | 'changer' | 'chanter' | 'chercher' | 'cliquer'
   | 'commander' | 'creer' | 'debarquer' | 'depecer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
   | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'eprouver'
   | 'equiper' | 'evaluer' | 'fabriquer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
   | 'incanter' | 'installer' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer' | 'mener'
   | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'payer' | 'pivoter' | 'poser' | 'pousser' | 'pratiquer' | 'prendre'
-  | 'promouvoir' | 'quitter' | 'rallier' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
+  | 'promouvoir' | 'quitter' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
   | 'refuser' | 'relever' | 'remettre' | 'remiser' | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre'
   | 'restaurer' | 'retirer' | 'rompre' | 'servir' | 'signaler' | 'soigner' | 'solder' | 'suivre' | 'supprimer' | 'tenter'
   | 'terminer' | 'transmettre' | 'troquer' | 'utiliser';
@@ -180,6 +180,7 @@ function validationsDeFenetre(get: Get, set: SetDesClesReservees): ValidationsDe
     ...validationsDuVoyage(get, set),
     ...validationsDeLaSemaineEnMer(get, set),
     ...validationsDuGroupe(get, set),
+    ...validationsDeBatailleDeMasse(get, set),
   } satisfies ValidationsDeFenetre;
 }
 

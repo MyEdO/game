@@ -93,6 +93,20 @@ static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
 	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
 
 
+## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :
+## les erreurs du listage, les refus de l'index et celui du pont, que l'hôte dit en panne.
+static func indexer_les_modeles(hote: Node) -> Array[String]:
+	var recueil: Array[String] = []
+	var reponse := indexer(hote.get_node("/root/Pont") as PontDuNoyau, await lister(hote, recueil))
+	if reponse.get("ok") == true:
+		retenir_les_modeles(reponse)
+		for refus in reponse.refus:
+			recueil.append(str(refus))
+	elif reponse.get("ok") == false:
+		recueil.append(str(reponse.erreur.message))
+	return recueil
+
+
 ## Le premier `Skeleton3D` sous `noeud`, `null` s'il n'en porte aucun.
 static func squelette_de(noeud: Node) -> Skeleton3D:
 	for candidat in noeud.find_children("*", "Skeleton3D", true, false):

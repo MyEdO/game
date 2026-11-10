@@ -73,12 +73,16 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {
     refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /uid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
   });
-  it('un id dans un tableau : `affecterLeHeros`', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('affecterLeHeros', 'motivation', ['nobody']), /heroIds\[0\] : "nobody" n’est pas un id de héros/);
-  });
-  it('un id du catalogue : `affecterLeHeros`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
+  it('un id dans un tableau : `fabriquerLObjet`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    refuseLId(t, verbe('affecterLeHeros', 'nulle', []), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
+    const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
+    const [objet] = refuseLId(t, verbe('fabriquerLObjet', heros, 'nobody', [], []), /trappingId : "nobody" n’est pas un id d’objet du catalogue \(valides : /);
+    refuseLId(t, verbe('fabriquerLObjet', heros, objet, ['nobody'], []), /atouts\[0\] : "nobody" n’est pas un id d’Atout d’Artisanat/);
+  });
+  it('un id du catalogue : `menerLActionDeBataille`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
+    const t = partie('revisit');
+    const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
+    refuseLId(t, verbe('menerLActionDeBataille', 'nulle', heros), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
     refuseLId(t, verbe('ouvrirLaBoutique', 'forgeron'), /serviceId : "forgeron" n’est pas un id de service du lieu \(valides : aucun ici\)/);
   });
   it('une rangée de jet : la séquence d’entrée en scène, `jetLancer`', { timeout: 120_000 }, () => {
