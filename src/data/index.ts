@@ -7,7 +7,7 @@ import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppe
 import type { PlayerText } from '../i18n/playerText';
 import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
@@ -64,6 +64,7 @@ import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as tableauDesOups from './schemas/defs/oups';
 import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoires';
+import { tableDeCarrieres as tableAvecPortion, type rangee as rangeeDeCarrieres } from './schemas/defs/carrieres-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 import { trappings, findTrappingById } from './apparencesObjets';
@@ -132,6 +133,7 @@ import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
 import talentsAleatoiresJson from './talents-aleatoires.json';
+import carrieresAleatoiresJson from './carrieres-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
 import peripetiesJson from './peripeties.json';
@@ -742,9 +744,8 @@ export interface SpeciesData {
   /** id STABLE (`RaceKey`, #313) — colonne des tables Âge/Taille/Yeux/Cheveux (`details.age`/
    *  `details.taille`/`hairs.color`/`eyes.color`). */
   refChar: RaceKey;
-  /** id STABLE (`RefCareerId`, #313) — colonne du Tableau des Classes et Carrières aléatoires
-   *  (`CareerData.rand`). */
-  refCareer: RefCareerId;
+  /** Id de sa colonne de base dans `carrieres-aleatoires.json` (LDB 05 l.214). */
+  refCareer: string;
   rand: number;
   desc: string;
   movement: number;
@@ -794,7 +795,8 @@ export interface ClassData {
   /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
   trappings: TrappingRef[];
   /** Classe dont cette Classe peut remplacer la portion du tableau des Carrières aléatoires
-   *  (MDG 09 l.9). Lu par `remplacementsDeClasse` (`noyau/creation/brouillon`). */
+   *  (MDG 09 l.9). Lu par `scripts/migrations/2026-11-10-3578-carrieres-aleatoires.mjs` et
+   *  `src/data/carrieres-aleatoires-coherence.test.ts`. */
   remplace?: { id: string };
   desc: string;
   source: SourceRef;
@@ -812,9 +814,11 @@ export interface CareerData {
   /** Ids de `groups.json` accordés au titulaire de cette carrière (`groupesDe`), en plus de ceux de
    *  sa Classe. Absent = la carrière n'ouvre aucun Groupe d'appartenance. */
   grantGroups?: string[];
-  /** Tableau des Classes et Carrières aléatoires (LDB 05 l.197+) : borne haute d100 par colonne
-   *  d'espèce (`SpeciesData.refCareer`). Clé ABSENTE = carrière INDISPONIBLE pour cette espèce (l.360). */
-  rand: Partial<Record<RefCareerId, number | null>>;
+  /** Les races qui tirent cette carrière au Tableau des Classes et Carrières aléatoires (AA 02 l.137 ;
+   *  ADE I 07 l.11-23). Absent = celles de ses colonnes. */
+  races?: RaceKey[];
+  /** La carrière tirée au Tableau à la place de laquelle celle-ci peut se choisir (ADE I 07 l.11). */
+  aLaPlaceDe?: string;
   desc: string;
   source: SourceRef;
 }
@@ -3093,6 +3097,32 @@ export const rangeesDesTalentsAleatoires = (): RangeeDe<typeof tableDesTalentsAl
   rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
 /** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
 export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
+/** Une rangée du Tableau des Classes et Carrières aléatoires : la Carrière qu'elle désigne, à sa fourchette. */
+export type RangeeDeCarrieres = z.output<typeof rangeeDeCarrieres>;
+/** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299) : une colonne de base
+ *  par colonne imprimée, les portions (`colonne` posée, MDG 09 l.9) et les variantes (`carriere` posée,
+ *  AA 02 l.109-128) — app-owned éditable au Codex (`setDataset`), même référence. */
+export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDeCarrieres> & { die: string; colonne?: string; carriere?: string; colonnes?: string[] })[];
+/** La colonne de base `id`, lue à l'appel. */
+export const colonneDeCarrieres = (id: string) =>
+  garanti(carrieresAleatoires.find((d) => d.id === id && d.colonne === undefined && d.carriere === undefined), id, 'colonne du Tableau des Classes et Carrières aléatoires');
+/** La portion qui remplace une étendue de la colonne `colonne` (MDG 09 l.9), lue à l'appel. */
+export const portionDeLaColonne = (colonne: string) => carrieresAleatoires.find((d) => d.colonne === colonne);
+/** La table effective de la colonne `colonne`, avec ou sans sa portion, et son dé : lue par `rollCareer`. */
+export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: DeDeTable; entries: RangeeDeCarrieres[] } {
+  const base = colonneDeCarrieres(colonne);
+  return { die: deDeLaTableTiree(base), entries: tableAvecPortion(base.entries, avecPortion ? portionDeLaColonne(colonne)?.entries : undefined) };
+}
+/** Les carrières que le tirage de `tiree` offre en plus à l'espèce `sp`, admises à sa race (`races`) : celles qui
+ *  se choisissent à sa place (`aLaPlaceDe`, ADE I 07 l.11-23), puis celles de sa variante portée par la colonne
+ *  de `sp` (AA 02 l.109-128). */
+export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] {
+  const admise = (c: CareerData | undefined) => c?.races?.includes(sp.refChar) === true;
+  const substitutions = careers.filter((c) => c.aLaPlaceDe === tiree && admise(c)).map((c) => c.id);
+  const variante = carrieresAleatoires.find((d) => d.carriere === tiree && d.colonnes?.includes(sp.refCareer));
+  const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admise(findCareerById(id)));
+  return [...substitutions, ...variantes];
+}
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson) as InterludeEvent[];
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */
@@ -3254,12 +3284,14 @@ export function speciesSingular(speciesId: string | undefined): PlayerText {
 }
 /**
  * Carrières accessibles à une espèce (Tableau des Classes et Carrières aléatoires, LDB 05
- * l.197+ : « certaines ont des restrictions liées à la Race », l.360). `ignoreRestrictions`
- * = option « Mais je veux jouer un elfe sylvain Flagellant ! » (l.362, accord du MJ).
+ * l.197+, l.360) : les rangées de sa colonne et de sa portion, et ce que leur tirage offre en plus
+ * (`carrieresOffertesAvec`). `ignoreRestrictions` = LDB 05 l.362.
  */
-export function careersForSpecies(refCareer: RefCareerId, ignoreRestrictions = false): CareerData[] {
+export function careersForSpecies(sp: SpeciesData, ignoreRestrictions = false): CareerData[] {
   if (ignoreRestrictions) return careers;
-  return careers.filter((c) => c.rand?.[refCareer] != null);
+  const tirees = [colonneDeCarrieres(sp.refCareer), portionDeLaColonne(sp.refCareer)].flatMap((d) => d?.entries.map((r) => r.id) ?? []);
+  const ids = new Set(tirees.flatMap((id) => [id, ...carrieresOffertesAvec(id, sp)]));
+  return careers.filter((c) => ids.has(c.id));
 }
 const carriereParId = indexParId('careers', careers);
 /** Résout une Carrière par son `id` STABLE. Le libellé ne sert qu'à l'affichage. */

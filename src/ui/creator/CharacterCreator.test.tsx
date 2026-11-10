@@ -37,7 +37,7 @@ import { echapperRegex } from '../../lib/regex';
 
 // Défauts dérivés (page blanche : plus de pré-tiré dans newDraft) — 1ʳᵉ espèce LDB + sa 1ʳᵉ carrière.
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const CAREER = careersForSpecies(SP.refCareer)[0]!;
+const CAREER = careersForSpecies(SP)[0]!;
 const ready = () => withCareer(withSpecies(newDraft(7), SP.id), CAREER.id);
 
 /** L'option `label` d'une grille est-elle MISE EN AVANT (`btn-primary`) ? Le contrat est la présence

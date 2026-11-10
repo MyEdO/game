@@ -18,7 +18,7 @@ import { species as allSpecies, careersForSpecies } from '../../data';
  */
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const CAREER = careersForSpecies(SP.refCareer)[0]!;
+const CAREER = careersForSpecies(SP)[0]!;
 /** Brouillon PRÊT (race + carrière posées) : chaque étape rend son contenu réel, pas son état vide. */
 const ready = () => withCareer(withSpecies(newDraft(7), SP.id), CAREER.id);
 

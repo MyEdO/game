@@ -53,7 +53,7 @@ function fillSpecies(d: CreatorDraft): CreatorDraft {
 function fillCareer(d: CreatorDraft): CreatorDraft {
   const sp = draftSpecies(d);
   if (!sp || draftLevel(d)) return d;
-  const pool = careersForSpecies(sp.refCareer, d.ignoreRestrictions);
+  const pool = careersForSpecies(sp, d.ignoreRestrictions);
   const withLevel = pool.find((c) => levelsForCareer(c.id).some((l) => l.level === 1)) ?? pool[0];
   return withLevel ? withCareer(d, withLevel.id) : d;
 }

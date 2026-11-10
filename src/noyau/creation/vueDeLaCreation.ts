@@ -145,7 +145,7 @@ export function carrieresOffertes(d: CreatorDraft): CareerData[] {
   const sp = draftSpecies(d);
   if (!sp) return [];
   const table = new Set(careerRollPool(d).map((c) => c.id));
-  return careersForSpecies(sp.refCareer, d.ignoreRestrictions).filter((c) => table.has(c.id));
+  return careersForSpecies(sp, d.ignoreRestrictions).filter((c) => table.has(c.id));
 }
 
 const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFor({ career: id, appearance: { sex: d.apparence.sex } });

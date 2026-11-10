@@ -9,9 +9,9 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { charKeySchema, raceKeySchema, refCareerIdSchema } from '../grammaire/valeurs';
+import { charKeySchema, raceKeySchema } from '../grammaire/valeurs';
 import { traitInstanceSchema } from '../grammaire/reference';
-import { ref, refs } from '../grammaire/ref';
+import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { avancement } from '../grammaire/avancement';
 
@@ -28,8 +28,8 @@ const doc = document(
     variant: z.string().optional(),
     /** id STABLE — colonne d'espèce des tables Âge/Taille/Yeux/Cheveux (`raceKeySchema`, #313). */
     refChar: raceKeySchema,
-    /** id STABLE — colonne du Tableau des Classes et Carrières aléatoires (`refCareerIdSchema`, #313). */
-    refCareer: refCareerIdSchema,
+    /** LDB 05 l.214 */
+    refCareer: idDe('carrieresAleatoires', { horsMarqueurs: ['colonne', 'carriere'] }),
     rand: z.number(),
     movement: z.number(),
     fate: nommerChamps(z.strictObject({ fate: z.number(), resilience: z.number(), extra: z.number() }), {

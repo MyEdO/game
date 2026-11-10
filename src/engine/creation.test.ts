@@ -24,7 +24,7 @@ import {
   XP_CHARS_REASSIGNED,
   XP_STAR_ROLLED,
 } from './creation';
-import { careers, findSpeciesById, species, stars, type SpeciesData } from '../data';
+import { careersForSpecies, findSpeciesById, species, stars, type SpeciesData } from '../data';
 import { setDataset } from '../data/overrides';
 
 describe('bonus de PX des choix aléatoires (LDB 04 l.91 / 05 l.208-341)', () => {
@@ -170,13 +170,11 @@ describe('Gnome jouable — règle optionnelle (NADJ 14 l.5)', () => {
 describe('Tableau des Classes et Carrières aléatoires (LDB 05 l.214+)', () => {
   it('rollCareer : la borne renvoie des carrières TOUTES accessibles à l\'espèce', () => {
     const sylvain = findSpeciesById('elfes-sylvains')!;
+    const accessibles = new Set(careersForSpecies(sylvain).map((c) => c.id));
     for (let seed = 1; seed <= 20; seed++) {
-      const r = rollCareer(careers, sylvain, makeRNG(seed))!;
+      const r = rollCareer(sylvain, false, makeRNG(seed));
       expect(r.ids.length).toBeGreaterThan(0);
-      for (const id of r.ids) {
-        const career = careers.find((c) => c.id === id)!;
-        expect(career.rand[sylvain.refCareer], id).not.toBeNull();
-      }
+      for (const id of r.ids) expect(accessibles, id).toContain(id);
     }
   });
 });
