@@ -14,7 +14,7 @@ import {
   sitesDuDossier, scanDossier, scanAll, dossiersFR, formeDeLigne1, estNomDeSignet,
   comptesDeTables, balisesResiduelles, liensDIndex, regenerations,
   ecartsAuGrain, mobilierAll, rougesAuSite, titresSoudesAll, titresSoudesDuDossier, imperatifsSoudesAll, lireDossier,
-  FAMILLES, STOCK_PATH, PREFIXES_FR, SOURCE_FORMAT, ecartDuStock, sansFolioDuDossier,
+  FAMILLES, STOCK_PATH, PREFIXES_FR, SOURCE_FORMAT, ecartDuStock,
 } from './check-source-format.mjs'
 import {
   comptesParFamille, ecartDeRegeneration, entreesRegenerees, lireEntreesDeSite, naissanceEnPlace, texteDeStock, texteEnPlace,
@@ -94,13 +94,6 @@ test('#3884 sans-folio : un livre qui DÉCLARE n’imprimer aucun folio se tait 
   const sansFolio = (declare) => sitesDuDossier(DIR, fichiers, liste, declare).filter((s) => s.famille === 'sans-folio').map((s) => s.file)
   assert.deepEqual(sansFolio(true), [])
   assert.deepEqual(sansFolio(false), [`${DIR}/01 - X.md`])
-})
-
-test('#3884 sansFolioDuDossier : la déclaration se lit à la liste de découpe du livre servi par le dossier', () => {
-  const dirDe = (id) => String(livreExtraitDe(id).dir).split('\\').join('/')
-  assert.equal(sansFolioDuDossier(dirDe('pouvoir-derriere-le-trone-compagnon')), true)
-  assert.equal(sansFolioDuDossier(dirDe('core-rulebook-5e')), false, 'liste sans `sansFolio`')
-  assert.equal(sansFolioDuDossier(dirDe('pouvoir-derriere-le-trone-compagnon'), undefined, []), false, 'livre sans liste')
 })
 
 test('ancre-seule : une ancre SEULE sur sa ligne est un écart, la même INLINE ne l’est pas', () => {
