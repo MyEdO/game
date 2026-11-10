@@ -65,6 +65,10 @@ var _pieces_de_la_base: Array[MeshInstance3D] = []
 ## Par id d'emplacement monté, ses objets rangés (`_ranger`) : le nœud qui porte leur repère de prise, leur boîte dans ce
 ## repère, l'attache de l'emplacement et le squelette de la base.
 var _ranges: Dictionary = {}
+## Par id de prise montée dont l'élément se range à un emplacement de la base, ses nœuds tenus (`tenus`), ceux de sa
+## copie rangée (`ranges`) et l'id de cet emplacement (`emplacement`) : le clip joué montre l'un ou l'autre
+## (`poser_le_clip`, #3806).
+var _tenus_ranges: Dictionary = {}
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -209,6 +213,7 @@ func vider() -> void:
 	_emblemes_demandes.clear()
 	_demandes.clear()
 	_ranges.clear()
+	_tenus_ranges.clear()
 
 
 ## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses matériaux
@@ -255,6 +260,7 @@ func demonter(id: String) -> void:
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
 	_ranges.erase(id)
+	_tenus_ranges.erase(id)
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 	poser_les_rangements()
@@ -319,13 +325,45 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	for rang in trouvees.size():
 		noeuds.append(_poser_la_piece(trouvees[rang], os_des_pieces[rang], sous, id))
 	scene.free()
-	pieces[id] = trouvees
-	_noeuds[id] = noeuds
+	var rangees: Array[MeshInstance3D] = []
+	var noeuds_ranges: Array[Node] = []
+	var rangement := _rangement_du_tenu(id, element)
+	if not rangement.is_empty():
+		var copie := await scene_du_glb(element, recueil)
+		if demande != _demandes.get(id):
+			for noeud in noeuds:
+				noeud.free()
+			if copie != null:
+				copie.free()
+			return false
+		if copie != null:
+			for noeud in copie.find_children("*", "MeshInstance3D", true, false):
+				var piece := noeud as MeshInstance3D
+				var noms := _os_de_la_piece(piece)
+				if not noms.is_empty():
+					rangees.append(piece)
+					noeuds_ranges.append(_poser_la_piece(piece, noms, sous, id, rangement))
+			copie.free()
+	pieces[id] = trouvees + rangees
+	_noeuds[id] = noeuds + noeuds_ranges
+	if not noeuds_ranges.is_empty():
+		_tenus_ranges[id] = {tenus = noeuds, ranges = noeuds_ranges, emplacement = rangement.id}
 	montes[id] = element
 	poser_les_morphes()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 	return true
+
+
+## Le premier emplacement de la base posée où se range `element`, monté à la prise `id` (les `elements` de ce point,
+## `emplacementsDeRangement` de sa forme), `{}` si `id` n'est pas une prise ou si l'élément ne se range nulle part.
+func _rangement_du_tenu(id: String, element: String) -> Dictionary:
+	if _point(id).get("genre") != "prise":
+		return {}
+	for point in base.get("points", []):
+		if point.genre == "emplacement" and element in point.elements:
+			return point
+	return {}
 
 
 ## @contrat Atelier 3D
@@ -362,19 +400,24 @@ static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
 ## tant que la prise `off` ne monte rien (#3319) : `MontageDeComposition.poser_la_seconde_prise`
 ## (`projet/scripts/montage_de_composition.gd`), rappelée à chaque montage et démontage, pose sous le squelette, après le
 ## gabarit, les modificateurs natifs de `SecondePrise.poser` (`projet/scripts/seconde_prise.gd`, tenus dans
-## `seconde_prise`), et les retire sinon. Dans l'ordre : un `AimModifier3D` tourne l'os de la prise `main` pour pointer
-## vers l'os de la prise `off` du clip celui de ses axes le plus proche de la direction de la seconde prise, sous un clip
-## à une main seulement : un clip de `clipsDeuxMains` pose déjà la main `off` sur la seconde prise de son maniement, que
-## la visée tordrait au poignet (`_accorder_la_visee`, au lancement de chaque clip) ; un `ModifierBoneTarget3D` suit cet
-## os et porte le repère de la seconde prise, puis celui où l'os de la prise `off` la tient ; un `FABRIK3D` y ploie le
-## bras de la main `off` (l'os de la prise `off` et ses deux parents), en partant chaque fois de la pose du clip ; un
+## `seconde_prise`), et les retire sinon. Dans l'ordre : un `ModifierBoneTarget3D` suit l'os de la prise `main` et porte
+## le repère de la seconde prise, puis celui où l'os de la prise `off` la tient ; un `FABRIK3D` y ploie le bras de la
+## main `off` (l'os de la prise `off` et ses deux parents), en partant chaque fois de la pose du clip ; un
 ## `CopyTransformModifier3D` donne enfin à l'os de la main `off` l'orientation de ce repère, et à chacun de ses
 ## descendants la rotation de son homologue sous la main `main`, appariés enfant par enfant, en même nombre (le poing de
-## la main qui tient). La recette autonome `projet/recettes/seconde-prise.gd` le vérifie à 1 mm. Le repos de l'atelier
-## est le clip `idle` de la composition montée (`MontageDeComposition.clip`), à deux mains sous une seconde prise : il se
-## joue à la pose d'une base sans clip de reprise et à l'arrêt de la marche ; un montage ou un démontage passe le clip
-## engagé à celui de son rôle sous la nouvelle tenue, en lecture ou en pause comme lui (`_jouer_le_repos`, `_rejouer`,
-## `projet/scripts/atelier.gd`). La recette autonome `projet/recettes/repos-de-l-atelier.gd` le vérifie.
+## la main qui tient). La recette autonome `projet/recettes/seconde-prise.gd` le vérifie à 1 mm. Le clip engagé règle la
+## tenue à chaque lancement (`animation_started` du lecteur), montage et démontage (`MontageDeComposition.poser_le_clip`,
+## #3806) : ces modificateurs ne jouent que sous un clip de `clipsDeuxMains` du maniement de l'objet tenu, qui pose déjà
+## les deux mains sur la seconde prise de son maniement, ou sans clip engagé. Un objet tenu à une prise, monté aussi, en
+## copie cachée, au premier emplacement de la base où il se range (les `elements` de ce point), passe à cet emplacement
+## sous un clip dont le geste occupe sa prise (`prisesOccupees` de la base) ; l'objet tenu des deux mains y passe sous un
+## clip qui occupe l'une ou l'autre prise sans être dérivé à deux mains, et reste à la main droite, la main gauche libre,
+## sous un clip qui n'en occupe aucune ; un emplacement déjà monté le laisse tenu. La recette autonome
+## `projet/recettes/seconde-prise.gd` le vérifie aussi. Le repos de l'atelier est le clip `idle` de la composition montée
+## (`MontageDeComposition.clip`), à deux mains sous une seconde prise : il se joue à la pose d'une base sans clip de
+## reprise et à l'arrêt de la marche ; un montage ou un démontage passe le clip engagé à celui de son rôle sous la
+## nouvelle tenue, en lecture ou en pause comme lui (`_jouer_le_repos`, `_rejouer`, `projet/scripts/atelier.gd`). La
+## recette autonome `projet/recettes/repos-de-l-atelier.gd` le vérifie.
 
 ## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de
 ## `modeles`, #3319), si la prise `off` ne tient rien ; aucune sinon.
@@ -385,26 +428,34 @@ func poser_la_seconde_prise() -> void:
 	var seconde: Variant = modeles.get("secondesPrises", {}).get(montes.get("main", VIDE))
 	var tenante := _point("main")
 	var libre := _point("off")
-	if squelette == null or seconde == null or montes.has("off") or tenante.is_empty() or libre.is_empty():
-		return
-	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde.repere)
-	if lecteur != null and not lecteur.animation_started.is_connected(_accorder_la_visee):
-		lecteur.animation_started.connect(_accorder_la_visee)
-	_accorder_la_visee()
+	if squelette != null and seconde != null and not montes.has("off") and not tenante.is_empty() and not libre.is_empty():
+		seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde.repere)
+	poser_le_clip()
 
 
-## La visée de la main qui tient (`AimModifier3D` de `seconde_prise`) ne joue que sous un clip à une main : un clip de
-## `clipsDeuxMains` pose déjà la main libre sur la seconde prise de son maniement, que la visée, faute d'axe d'os qui
-## suive le manche, tordrait au poignet.
-func _accorder_la_visee(_clip: StringName = &"") -> void:
-	if seconde_prise.is_empty():
-		return
+## Le clip engagé au lecteur posé sur la tenue (#3806), à chaque lancement de clip (`animation_started`), montage et
+## démontage : la main libre ne tient la seconde prise (`seconde_prise`) que sous un clip de `clipsDeuxMains` du
+## maniement de l'objet tenu, ou sans clip engagé ; l'objet tenu à une prise se range à son emplacement
+## (`_tenus_ranges`) si le clip occupe cette prise (`prisesOccupees`), et l'objet tenu des deux mains si le clip, qui
+## n'est pas dérivé à deux mains, occupe l'une ou l'autre ; sous un clip qui n'en occupe aucune, il reste à la main
+## droite. Un emplacement déjà monté ne reçoit rien : l'objet reste tenu.
+func poser_le_clip(_clip: StringName = &"") -> void:
+	if lecteur != null and not lecteur.animation_started.is_connected(poser_le_clip):
+		lecteur.animation_started.connect(poser_le_clip)
 	var engage := String(lecteur.assigned_animation) if lecteur != null else ""
-	var deux_mains: Dictionary = base.get("clipsDeuxMains", {}).get(modeles.secondesPrises[montes.main].maniement, {})
+	var a_deux_mains := not seconde_prise.is_empty()
+	var derives: Array = base.get("clipsDeuxMains", {}).get(modeles.secondesPrises[montes.main].maniement, {}).values() if a_deux_mains else []
+	var tenu_a_deux_mains := engage == "" or engage in derives
 	for modificateur in seconde_prise:
-		if modificateur is AimModifier3D:
-			modificateur.active = not deux_mains.values().has(engage)
-
+		modificateur.active = tenu_a_deux_mains
+	var occupees: Array = base.get("prisesOccupees", {}).get(engage, [])
+	for id in _tenus_ranges:
+		var objet: Dictionary = _tenus_ranges[id]
+		var rangee: bool = not montes.has(objet.emplacement) and (id in occupees or (id == "main" and a_deux_mains and not tenu_a_deux_mains and not occupees.is_empty()))
+		for noeud: Node3D in objet.tenus:
+			noeud.visible = not rangee
+		for noeud: Node3D in objet.ranges:
+			noeud.visible = rangee
 
 
 ## Le clip du rôle `role` de la base posée : tant que la main libre tient la seconde prise (`seconde_prise`), celui de
@@ -465,13 +516,14 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 
 ## `piece`, qui pend aux os `noms`, posée sur `sous`, le squelette de la base, pour l'emplacement `id` : rigide, sous un
 ## os de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui
-## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_ranger`) (#3319, `CONTRAT.md`) ;
+## de la prise `id`, sans miroir, ou rangée à l'emplacement `id`, ou au point `rangement_force` s'il est donné (`_ranger`)
+## (#3319, `CONTRAT.md`) ;
 ## skinnée, sous le squelette, son skin lié par nom dès l'import (`scene_du_glb`). Le nœud qui la porte dans la scène.
-func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String) -> Node:
+func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String, rangement_force := {}) -> Node:
 	piece.owner = null
 	if piece.skin == null:
-		var nom := ("Monte_%s_%s" % [id, piece.name]).validate_node_name()
-		var cible := _point(id)
+		var cible := _point(id) if rangement_force.is_empty() else rangement_force
+		var nom := ("Monte_%s_%s_%s" % [id, cible.get("id", id), piece.name]).validate_node_name()
 		var origine := _prise_de_l_os(noms[0])
 		if cible.is_empty() or origine.is_empty() or (cible.genre == "emplacement" and cible.attache.os == noms[0]):
 			var support := attacher(sous, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)

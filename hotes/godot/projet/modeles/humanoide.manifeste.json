@@ -479,6 +479,166 @@
       "melee": "Hampe_Attaque"
     }
   },
+  "prisesOccupees": {
+    "A_TPose": [
+      "main",
+      "off"
+    ],
+    "Chest_Open": [
+      "off"
+    ],
+    "ClimbUp_1m": [
+      "main",
+      "off"
+    ],
+    "Consume": [
+      "off"
+    ],
+    "Dance_Loop": [
+      "main",
+      "off"
+    ],
+    "Driving_Loop": [
+      "main",
+      "off"
+    ],
+    "Farm_Harvest": [
+      "main",
+      "off"
+    ],
+    "Farm_PlantSeed": [
+      "main",
+      "off"
+    ],
+    "Farm_Watering": [
+      "main",
+      "off"
+    ],
+    "Fixing_Kneeling": [
+      "main",
+      "off"
+    ],
+    "Idle_FoldArms_Loop": [
+      "main",
+      "off"
+    ],
+    "Idle_Lantern_Loop": [
+      "main"
+    ],
+    "Idle_Rail_Call": [
+      "main",
+      "off"
+    ],
+    "Idle_Rail_Loop": [
+      "main",
+      "off"
+    ],
+    "Idle_Shield_Break": [
+      "off"
+    ],
+    "Idle_Shield_Loop": [
+      "off"
+    ],
+    "Idle_TalkingPhone_Loop": [
+      "main"
+    ],
+    "Idle_Torch_Loop": [
+      "off"
+    ],
+    "Interact": [
+      "off"
+    ],
+    "LayToIdle": [
+      "main",
+      "off"
+    ],
+    "Melee_Hook": [
+      "main",
+      "off"
+    ],
+    "Melee_Hook_Rec": [
+      "main",
+      "off"
+    ],
+    "OverhandThrow": [
+      "main"
+    ],
+    "PickUp_Table": [
+      "off"
+    ],
+    "Pistol_Aim_Down": [
+      "off"
+    ],
+    "Pistol_Aim_Neutral": [
+      "off"
+    ],
+    "Pistol_Aim_Up": [
+      "off"
+    ],
+    "Pistol_Idle_Loop": [
+      "off"
+    ],
+    "Pistol_Reload": [
+      "off"
+    ],
+    "Pistol_Shoot": [
+      "off"
+    ],
+    "Punch_Cross": [
+      "main",
+      "off"
+    ],
+    "Punch_Jab": [
+      "main",
+      "off"
+    ],
+    "Push_Loop": [
+      "main",
+      "off"
+    ],
+    "Shield_Dash": [
+      "off"
+    ],
+    "Shield_OneShot": [
+      "off"
+    ],
+    "Sitting_Enter": [
+      "main",
+      "off"
+    ],
+    "Sitting_Exit": [
+      "main",
+      "off"
+    ],
+    "Sitting_Idle_Loop": [
+      "main",
+      "off"
+    ],
+    "Sitting_Talking_Loop": [
+      "main",
+      "off"
+    ],
+    "TreeChopping_Loop": [
+      "main",
+      "off"
+    ],
+    "Walk_Carry_Loop": [
+      "main",
+      "off"
+    ],
+    "Zombie_Idle_Loop": [
+      "main",
+      "off"
+    ],
+    "Zombie_Scratch": [
+      "main",
+      "off"
+    ],
+    "Zombie_Walk_Fwd_Loop": [
+      "main",
+      "off"
+    ]
+  },
   "appuis": {
     "pieds": [
       "foot_l",

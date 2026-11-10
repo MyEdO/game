@@ -460,16 +460,6 @@ static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
 
 
-## L'axe unité (±X, ±Y ou ±Z) le plus proche de `vecteur` posé dans le repère de base `base` : celui de sa plus grande
-## composante, à son signe (`SecondePrise`, #3319).
-static func axe_le_plus_proche(base: Basis, vecteur: Vector3) -> Vector3:
-	var pose := base * vecteur
-	var axe := pose.abs().max_axis_index()
-	var unite := Vector3.ZERO
-	unite[axe] = signf(pose[axe])
-	return unite
-
-
 ## L'axe `axe` (`Vector3.AXIS_X`, `AXIS_Y` ou `AXIS_Z`) du repère de prise d'un objet rangé à l'emplacement de base
 ## `emplacement` et de position `point` dans son os (#3319, `CONTRAT.md`), l'objet à plat contre le corps : X, du dos de
 ## la main vers la paume, sur la normale sortante, la composante de `point` hors de l'axe de l'os, ou l'avant de

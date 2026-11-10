@@ -153,6 +153,9 @@ export interface BaseDeLAtelier {
   /** par maniement, le clip de chaque rôle qu'elle joue en tenant des deux mains un objet de ce maniement
    *  (`ManifesteDeBase.clipsDeuxMains`), vide sans table. */
   clipsDeuxMains: NonNullable<ManifesteDeBase['clipsDeuxMains']>;
+  /** par clip, les prises que son geste occupe (`ManifesteDeBase.prisesOccupees`), vide sans table : Godot y range
+   *  l'objet tenu (`MontageDeComposition.poser_le_clip`). */
+  prisesOccupees: NonNullable<ManifesteDeBase['prisesOccupees']>;
   /** la vitesse au sol en m/s du clip du rôle `walk` (`ManifesteDeBase.appuis.vitesseAuSol`). */
   vitesseAuSol: number;
 }
@@ -311,7 +314,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
           ? [{ sorte: 'emplacement', ...choix(g.id, g.label, (e) => emplacementDe(e) === g.id) }]
           : []),
     ];
-    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, vitesseAuSol: m.appuis.vitesseAuSol };
+    return { id, empreinte: m.glb.sha256, points, lignes, clips: m.clips, clipsDeuxMains: m.clipsDeuxMains ?? {}, prisesOccupees: m.prisesOccupees ?? {}, vitesseAuSol: m.appuis.vitesseAuSol };
   });
   const emblemes = gardeRobe.flatMap((e) => (e.kind === 'embleme' ? [{ id: e.id, label: e.label, svg: e.svg }] : []));
   const couches = Object.fromEntries(Object.entries(rangs).map(([id, { rang, couvre }]): [string, CoucheDeLAtelier] =>
