@@ -26,6 +26,8 @@ const SOURCE_CHOIX = 'src/noyau/choixDesFenetres.ts'
 const INTERFACE_CHOIX = 'ChoixDesFenetres'
 /** Longueur au-delà de laquelle un type anonyme ne s'écrit plus déplié, mais par son genre. */
 const LONGUEUR_D_UN_NOM = 40
+/** Le nom d'un objet anonyme trop long pour s'écrire déplié (`nomDuType`). */
+const OBJET_ANONYME = 'objet'
 
 /** Le nom DÉCLARÉ d'un type : son alias, son interface ou sa classe ; `null` : anonyme. */
 function nomDeclare(type) {
@@ -41,7 +43,7 @@ function nomDuType(checker, type) {
   const ecrit = checker.typeToString(type)
   if (ecrit.length <= LONGUEUR_D_UN_NOM) return ecrit
   if (!(type.flags & TypeFlags.Object)) return 'type'
-  return checker.getSignaturesOfType(type, SignatureKind.Call).length ? 'fonction' : 'objet'
+  return checker.getSignaturesOfType(type, SignatureKind.Call).length ? 'fonction' : OBJET_ANONYME
 }
 
 /** Le nœud de type DÉCLARÉ d'un symbole (paramètre, champ), s'il en a un. */
@@ -439,9 +441,66 @@ function parametresDOffre(checker, decl) {
   return trouves
 }
 
+/** La clé désignée de la forme `f` : sa désignation, ou les clés d'une union de chaînes désignées, triées et jointes ;
+ *  `null` pour toute autre forme (littéral, nombre, objet…). */
+function cleDesignee(f) {
+  const membres = (f.genre === 'union' ? f.membres : [f]).filter((m) => m.genre !== 'null' && m.genre !== 'absent')
+  if (!membres.length || !membres.every((m) => m.genre === 'chaine' && m.designe)) return null
+  return [...new Set(membres.map((m) => m.designe.cle))].sort().join(' | ')
+}
+
+/** L'objet `f` est-il anonyme : son type s'écrit déplié (`{ … }`) ou par son genre (`nomDuType`) ? */
+const objetAnonyme = (f) => f.genre === 'objet' && (f.type.startsWith('{') || f.type === OBJET_ANONYME)
+
+/** Les objets anonymes de l'union `membres` qu'un champ littéral commun discrimine : leurs champs se qualifient par ce
+ *  discriminant. */
+function discrimines(membres) {
+  const objets = membres.filter(objetAnonyme)
+  if (objets.length < 2) return new Set()
+  const litteral = (o, nom) => o.champs.some((c) => c.nom === nom && c.forme.genre === 'litteral')
+  return objets[0].champs.some((c) => objets.every((o) => litteral(o, c.nom))) ? new Set(objets) : new Set()
+}
+
+/** Pose `poser(nom, forme)` pour chaque champ d'objet anonyme que la forme `f` porte, à travers objets anonymes,
+ *  tableaux, tuples et unions ; le champ d'un type nommé se qualifie par son type, celui d'un membre d'union
+ *  discriminée par son discriminant : aucun n'est posé. */
+function champsAnonymes(f, poser) {
+  if (f.genre === 'tableau') champsAnonymes(f.element, poser)
+  else if (f.genre === 'tuple') for (const e of f.elements) champsAnonymes(e, poser)
+  else if (f.genre === 'union') {
+    const qualifies = discrimines(f.membres)
+    for (const m of f.membres) if (!qualifies.has(m)) champsAnonymes(m, poser)
+  } else if (objetAnonyme(f)) {
+    for (const c of f.champs) { poser(c.nom, c.forme); champsAnonymes(c.forme, poser) }
+  }
+}
+
+/** Un nom, un type désigné (`.claude/rules/verbes-du-noyau.md`) : chaque paramètre des verbes `verbes`, et chaque champ
+ *  de leurs objets anonymes (`champsAnonymes`), dont la forme est désignée (`cleDesignee`) garde, sous un même nom, une
+ *  même clé désignée ; deux clés sous un nom lèvent, en nommant le nom, chaque clé et un verbe de chacune. */
+export function unNomUnTypeDesigne(verbes) {
+  /** Nom → clé désignée → premier verbe qui la porte. */
+  const cles = new Map()
+  for (const [verbe, parametres] of Object.entries(verbes)) {
+    const poser = (nom, f) => {
+      const cle = cleDesignee(f)
+      if (!cle) return
+      const parCle = cles.get(nom) ?? cles.set(nom, new Map()).get(nom)
+      if (!parCle.has(cle)) parCle.set(cle, verbe)
+    }
+    for (const p of parametres) { poser(p.nom, p.forme); champsAnonymes(p.forme, poser) }
+  }
+  const doubles = [...cles].filter(([, parCle]) => parCle.size > 1)
+  if (doubles.length) {
+    const dits = doubles.map(([nom, parCle]) => `\`${nom}\` : ${[...parCle].map(([cle, verbe]) => `\`${cle}\` (${verbe})`).join(', ')}`)
+    throw new Error(`verbesDeLaPartie : un nom de paramètre désigne deux types (une chose déjà désignée ailleurs garde le même type et le même nom de paramètre) : ${dits.join(' ; ')}`)
+  }
+}
+
 /** La partie lue de son type : ses verbes, par nom, ou les seuls `noms`, leurs paramètres dans l'ordre de l'appel
  *  (`ParametreDeVerbe`, src/hote/formes.ts), la forme de la valeur de chaque réglage de jet et de chaque choix de
- *  fenêtre, et celle de chaque type récursif qu'une forme référence (`formes`). */
+ *  fenêtre, et celle de chaque type récursif qu'une forme référence (`formes`) ; un nom de paramètre qui désigne deux
+ *  types lève (`unNomUnTypeDesigne`). */
 export function partieLue(racine = process.cwd(), noms = null) {
   const fichier = path.resolve(racine, SOURCE).replaceAll('\\', '/')
   const session = repoProgram(racine, () => [fichier])
@@ -463,6 +522,7 @@ export function partieLue(racine = process.cwd(), noms = null) {
       const qs = signature.getParameters()
       verbes[p.name] = (qs.length === 1 && parametresDuReste(checker, p.name, qs[0], designes, refs)) || qs.map((q) => parametre(checker, p.name, q, designes, refs))
     }
+    unNomUnTypeDesigne(verbes)
     const reglages = axesLus(session, racine, designes, refs, SOURCE_REGLAGES, INTERFACE_REGLAGES)
     const choix = axesLus(session, racine, designes, refs, SOURCE_CHOIX, INTERFACE_CHOIX)
     return {
