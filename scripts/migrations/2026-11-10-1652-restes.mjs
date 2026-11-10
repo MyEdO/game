@@ -18,11 +18,12 @@
  * de la carte hors l'escale ; le délai du passager court depuis l'escale ; un Poursuivant dont aucun profil ne porte
  * Voile prend celle du Marin.
  *
- * Entrées : src/data/sea-events.json, src/data/sea-navigation.json.
+ * Entrées : src/data/sea-events.json, src/data/sea-navigation.json. Une rangée nommée absente, comme une
+ * `poursuite` absente, n'est pas une anomalie : la migration rejouée après sa suppression sort 0 sans écrire.
  *
- * FORME ASSERTÉE SUR LE RÉSULTAT : chaque rangée nommée porte sa forme cible. Une rangée nommée absente, une
- * `consequence` hors de la forme attendue ou un document non canonique sont un ARRÊT nominatif (exit 1), AUCUNE
- * écriture. Rejouée sur l'arbre migré : no-op byte-identique.
+ * FORME ASSERTÉE SUR LE RÉSULTAT : chaque rangée nommée présente porte sa forme cible. Une `consequence` hors de
+ * la forme attendue ou un document non canonique sont un ARRÊT nominatif (exit 1), AUCUNE écriture. Rejouée sur
+ * l'arbre migré : no-op byte-identique.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -66,11 +67,7 @@ const nav = JSON.parse(navBrut);
 if (brut !== serializeDataset(sea)) arrets.push('sea-events.json : forme non canonique');
 if (navBrut !== serializeDataset(nav)) arrets.push('sea-navigation.json : forme non canonique');
 
-const rangee = (table, id) => {
-  const e = sea[table]?.entries?.find((x) => x.id === id);
-  if (!e) arrets.push(`sea-events.json ${table} « ${id} » absente`);
-  return e;
-};
+const rangee = (table, id) => sea[table]?.entries?.find((x) => x.id === id);
 
 if (!arrets.length) {
   const culte = rangee('boardEvents', 'culte-de-la-personnalite');
@@ -100,8 +97,7 @@ if (!arrets.length) {
   }
 
   const poursuite = nav.poursuite;
-  if (!poursuite) arrets.push('sea-navigation.json : `poursuite` absente');
-  else if (poursuite.voileSansProfil === undefined) { poursuite.voileSansProfil = VOILE_SANS_PROFIL; poursuite.maison = MAISON_DE_LA_POURSUITE; gestes++; }
+  if (poursuite && poursuite.voileSansProfil === undefined) { poursuite.voileSansProfil = VOILE_SANS_PROFIL; poursuite.maison = MAISON_DE_LA_POURSUITE; gestes++; }
 }
 
 if (arrets.length) {
