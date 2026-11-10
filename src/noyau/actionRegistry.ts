@@ -22,7 +22,7 @@ import type { ActionsDuNoyau, GesteDuNoyau, VerbesDeLaBarre } from './actionsDuN
 import type { AttackKind } from '../engine/creatureAttacks';
 import type {
   IdDAttaque, IdDeCombattant, IdDeCompetence, IdDeCondition, IdDeManoeuvre, IdDEntiteDeScene, IdDeSort, IdDePanoplie, IdDObjet,
-  IdDObjetRamassable,
+  IdDObjetRamassable, IdDePoste,
 } from './designations';
 import { refuserGesteDuSiege } from './refusVisible';
 import { entityPickables } from './combatEffects';
@@ -492,9 +492,9 @@ export const ACTION_PORTEURS: Record<string, PorteurDeclare> = {
     const m = c as Combatant;
     return { porteurId: m.id, args: { targetId: m.id } };
   }),
-  'pieces-servables': declarerPorteur(['shipId', 'posteUid'], (c) => {
+  'pieces-servables': declarerPorteur(['posteUid'], (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
-    return { porteurId: sp.hull.id, args: { shipId: sp.hull.id, posteUid: sp.poste.item.uid }, label: sp.poste.item.label };
+    return { porteurId: sp.hull.id, args: { posteUid: sp.poste.item.uid }, label: sp.poste.item.label };
   }),
   'piece-poussable': declarerPorteur([], (c) => {
     const sp = c as { hull: Combatant; poste: ShipPoste };
@@ -602,12 +602,12 @@ export interface ContexteDOffre {
   attackKind?: AttackKind;
   entityId?: IdDEntiteDeScene;
   pickKey?: IdDObjetRamassable;
-  /** COQUE visée (`hullId`) — bordée, chant, rechargement de pièce, service d'un poste. */
+  /** COQUE visée (`hullId`) — bordée, chant, rechargement de pièce. */
   shipId?: IdDeCombattant;
   /** MEMBRE D'ÉQUIPAGE qui agit sur la coque (`manoeuvrerLeNavire(crewId)`, `noyau/combatSlice.ts`) : c'est le
    *  barreur, pas le navire. Deux champs parce que ce sont deux entités — un seul mentait. */
   crewId?: IdDeCombattant;
-  posteUid?: IdDObjet;
+  posteUid?: IdDePoste;
 }
 
 /** Ce que l'entrée d'une offre lit pour déclarer son geste : l'entrée, les arguments de sa case, l'état, et le combattant
@@ -640,13 +640,12 @@ const idDeLActif = (o: OffreAJouer): IdDeCombattant => garanti(o.active, o.def.i
 type DefautDuCorps = (b: { active: Combatant; battle: BattleState }) => unknown;
 
 /** Ce que porte une position d'argument d'un verbe de la barre :
- *  - une clé du contexte de la case (`cle`), ou, pour un argument objet, la clé de chacun de ses champs (`champs`) ;
+ *  - une clé du contexte de la case (`cle`) ;
  *    `defaut` est le candidat que le corps prend quand elle est omise, et `omissible` dit que la signature l'admet
  *    (l'offre ne l'écrit alors pas) ;
  *  - ou la valeur qu'un champ déclaré de l'ENTRÉE lui donne (`entree`), qui désigne l'entrée elle-même. */
 type ArgumentDuVerbe =
   | { readonly cle: keyof ContexteDOffre; readonly defaut?: DefautDuCorps; readonly omissible?: true }
-  | { readonly champs: Readonly<Record<string, keyof ContexteDOffre>>; readonly defaut?: DefautDuCorps; readonly omissible?: true }
   | { readonly entree: (def: ActionDef) => unknown };
 
 /** LA LECTURE D'UN VERBE DE LA BARRE (#3610), une déclaration lue dans les deux sens : l'offre en tire son geste (le
@@ -692,13 +691,7 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   manoeuvrerSurSoi: { args: [{ cle: 'maneuverId' }], requis: ['maneuverId'] },
   monterEnSelle: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => mountablesNear(battle, active)[0]?.id, omissible: true }] },
   mettrePiedATerre: {},
-  servirLePoste: {
-    args: [{
-      champs: { hullId: 'shipId', posteUid: 'posteUid' },
-      defaut: ({ active, battle }) => { const sp = servablePostes(active, battle.combatants)[0]; return sp && { hullId: sp.hull.id, posteUid: sp.poste.item.uid }; },
-      omissible: true,
-    }],
-  },
+  servirLePoste: { args: [{ cle: 'posteUid', defaut: ({ active, battle }) => servablePostes(active, battle.combatants)[0]?.poste.item.uid, omissible: true }] },
   quitterLePoste: {},
   pousserLEngin: {},
   aiderLEquipe: {},
@@ -715,14 +708,12 @@ export function estVerbeDeLaBarre(verbe: string): verbe is keyof VerbesDeLaBarre
 }
 
 /** Les clés du contexte de case qu'une position porte. */
-const clesDe = (a: ArgumentDuVerbe): (keyof ContexteDOffre)[] => ('cle' in a ? [a.cle] : 'champs' in a ? Object.values(a.champs) : []);
+const clesDe = (a: ArgumentDuVerbe): (keyof ContexteDOffre)[] => ('cle' in a ? [a.cle] : []);
 
 /** L'argument d'une position, tiré du contexte `ctx` (`undefined` quand il n'y est pas). */
 function argumentDuContexte(a: ArgumentDuVerbe, def: ActionDef, ctx: ContexteDOffre, i: number): unknown {
   if ('entree' in a) return garanti(a.entree(def), def.id, `argument ${i} déclaré par l’entrée`);
-  if ('cle' in a) return ctx[a.cle];
-  const champs = Object.entries(a.champs);
-  return champs.every(([, cle]) => ctx[cle] !== undefined) ? Object.fromEntries(champs.map(([champ, cle]) => [champ, ctx[cle]])) : undefined;
+  return ctx[a.cle];
 }
 
 /** Les arguments du verbe lu par `lecture` que le contexte `ctx` de l'entrée `def` déclare. */
@@ -746,12 +737,7 @@ function gesteDuVerbeDeLaBarre(verbe: keyof VerbesDeLaBarre, o: OffreAJouer): Ge
 /** Les clés de contexte qu'un argument `v` de la position `a` pose. */
 function versLeContexte(a: ArgumentDuVerbe, v: unknown): Record<string, unknown> {
   if (v === undefined || v === null || 'entree' in a) return {};
-  if ('cle' in a) return { [a.cle]: v };
-  if (typeof v !== 'object') return {};
-  return Object.fromEntries(Object.entries(a.champs).flatMap(([champ, cle]) => {
-    const x = (v as Record<string, unknown>)[champ];
-    return x === undefined || x === null ? [] : [[cle, x]];
-  }));
+  return { [a.cle]: v };
 }
 
 /** Sens ARGUMENTS → CANDIDAT : le contexte de case que les arguments `args` du verbe lu par `lecture` désignent, dans le

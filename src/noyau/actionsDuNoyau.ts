@@ -96,8 +96,9 @@ export interface VerbesDeLaBarre {
    *  plus proche. */
   monterEnSelle: (mountId?: IdDeCombattant) => void;
   mettrePiedATerre: () => void;
-  /** « Servir cette pièce » (MDG 12) : le héros actif devient chef d'un poste de siège NON servi adjacent (arme octroyée) — coûte l'Action. KIND-AGNOSTIQUE. */
-  servirLePoste: (target?: { hullId: IdDeCombattant; posteUid: IdDObjet }) => void;
+  /** « Servir cette pièce » (MDG 12) : le héros actif sert le poste servable `posteUid` (chef s'il est libre, renfort
+   *  sinon) ; omis, le 1ᵉʳ servable. Action gratuite (LDB 13 l.106, #3595). KIND-AGNOSTIQUE. */
+  servirLePoste: (posteUid?: IdDePoste) => void;
   /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
   quitterLePoste: () => void;
   /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
@@ -305,9 +306,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `MSRC 07 l.78/l.82/l.94`). Aucun défaut : détaché, il n'est visé par aucune présence. Même patron
    *  qu'`affecterAuRoleABord`. */
   affecterALaStation: (crewId: IdDeCombattant, station: IdDeStation | null) => void;
-  /** Sélectionne la munition PERSISTANTE d'un poste d'artillerie (`ShipPoste.ammoUid` — boulet/mitraille,
-   *  MDG 12 l.410-424), depuis la fiche du navire. `null` → retour au défaut (1re compatible). */
-  approvisionnerLaPiece: (shipId: IdDeCombattant, posteUid: IdDePoste, ammoUid: IdDObjet | null) => void;
+  /** Sélectionne la munition PERSISTANTE du poste `posteUid` (`ShipPoste.ammoUid`, MDG 12 l.410-424), sur le porteur
+   *  qui le tient dans la bataille. `null` → retour au défaut (1re compatible). */
+  approvisionnerLaPiece: (posteUid: IdDePoste, ammoUid: IdDObjet | null) => void;
   /** Renomme l'instance (`label`). */
   renommerLaPossession: (uid: IdDePossession, label: TexteLibre) => void;
   /** Dépose la possession au lieu courant du groupe. */
