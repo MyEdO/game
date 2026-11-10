@@ -189,6 +189,8 @@ const champs = {
       failDamage: { label: 'Dégâts à l’échec' },
     }),
     entretienCrewTestDR: z.number(),
+    constructeurLocal: z.number().int().min(1),
+    maison: maisonSchema,
   }), {
     portCostGoldPerWound: { label: 'Coût au port par Blessure (co)' },
     testHours: { label: 'Durée du Test (heures)' },
@@ -198,6 +200,8 @@ const champs = {
     source: { label: 'Source' },
     temporaire: { label: 'Temporaire' },
     entretienCrewTestDR: { label: 'DR du Test d’entretien de l’équipage' },
+    constructeurLocal: { label: 'Métier (Constructeur de navires) du constructeur local' },
+    maison: { label: 'Arbitrage maison' },
   }),
 };
 

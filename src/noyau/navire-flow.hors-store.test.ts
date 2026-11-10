@@ -6,7 +6,10 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, portRepairVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import { rollPortRepair } from '../engine/shipBuild';
+import { REPARATION } from '../engine/seaNavigation';
+import { findVehicleById } from '../data';
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
@@ -1234,7 +1237,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     }
   });
 
-  it.each([['la-tache-noire', PORT_EVENTS], ['constructeur-de-navires-itinerant', PORT_EVENTS], ['bonne-peche', PORT_EVENTS]] as const)(
+  it.each([['la-tache-noire', PORT_EVENTS], ['bonne-peche', PORT_EVENTS]] as const)(
     '%s se raconte sans conséquence (omission dite au raw.manifest)', (id, table) => {
       expect(table.find((e) => e.id === id)!.consequence).toBeUndefined();
     });
@@ -1256,6 +1259,55 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     escale('offre-de-mission');
     avanceEtapeCascade(get, undefined, () => 'no');
     expect(get().vessel!.commissions).toBeUndefined();
+  });
+
+  /** Les passes de `rollPortRepair` à `competence` jusqu'à `manquantes` Blessures, sur la graine `graine`. */
+  const passesDeReparation = (graine: number, competence: number, manquantes: number) => {
+    const rng = makeRNG(graine);
+    const passes = [];
+    for (let restaurees = 0; restaurees < manquantes; restaurees += passes[passes.length - 1].wounds) passes.push(rollPortRepair(competence, manquantes - restaurees, rng));
+    return passes;
+  };
+  const reparer = (graine: number, manquantes: number) => {
+    set({ vessel: { ...get().vessel!, wounds: { current: 50 - manquantes, max: 50 } } });
+    creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
+    const avant = { bourse: toBrass(partyMoneyTotal(get)), temps: get().gameTime };
+    seedBattleRng(graine);
+    const lignes = portRepairVessel(get, set);
+    return { lignes, paye: avant.bourse - toBrass(partyMoneyTotal(get)), duree: get().gameTime - avant.temps };
+  };
+  /** La ligne de journal d'une réparation de 40 Blessures non lissée, faite des `passes` à `competence` en `duree`. */
+  const ligneDeChantier = (passes: ReturnType<typeof passesDeReparation>, competence: number, duree: string) => t('sv.hullRefit', {
+    ship: findVehicleById(get().vessel!.vehicleId)!.label, missing: 40, cost: 40 * REPARATION.portCostGoldPerWound, lissage: '', duree,
+    competence, reussis: passes.filter((p) => p.success).length, tests: passes.length,
+  });
+
+  it('Réparation au port : le constructeur local teste à `constructeurLocal`, un Test raté ne restaure rien, la coque finit pleine au prix des Blessures restaurées (MDG 13 l.643)', () => {
+    escale(null);
+    const passes = passesDeReparation(4, REPARATION.constructeurLocal, 40);
+    expect(passes.some((p) => !p.success && p.wounds === 0), 'la graine produit un Test raté').toBe(true);
+    const { lignes, paye, duree } = reparer(4, 40);
+    expect(get().vessel!.wounds).toEqual({ current: 50, max: 50 });
+    expect(paye).toBe(toBrass({ gold: 40 * REPARATION.portCostGoldPerWound, silver: 0, brass: 0 }));
+    const heures = passes.reduce((s, p) => s + p.hours, 0);
+    expect(duree).toBe(heures * 60);
+    expect(lignes).toEqual([ligneDeChantier(passes, REPARATION.constructeurLocal, t('sv.dureeHeures', { n: heures }))]);
+  });
+
+  it('Constructeur de navires itinérant : la réparation de l’escale se teste à Constructeur de navires 68 et prend ses 1d10 jours ; il part à l’appareillage (l.255)', () => {
+    escale('constructeur-de-navires-itinerant');
+    const constructeur = get().vessel!.constructeurDEscale!;
+    expect(constructeur.competence).toBe(68);
+    expect(constructeur.jours).toBeGreaterThanOrEqual(1);
+    expect(constructeur.jours).toBeLessThanOrEqual(10);
+    const passes = passesDeReparation(4, 68, 40);
+    const { lignes, duree } = reparer(4, 40);
+    expect(get().vessel!.wounds).toEqual({ current: 50, max: 50 });
+    expect(duree).toBe(constructeur.jours * MINUTES_PER_DAY);
+    expect(lignes).toEqual([ligneDeChantier(passes, 68, t('sv.dureeJours', { n: constructeur.jours }))]);
+    set({ lieu: 'B' });
+    get().partirEnVoyage('r1', 'mer');
+    expect(get().vessel!.constructeurDEscale).toBeUndefined();
   });
 
   it('l’accostage met le navire à quai, l’appareillage l’en retire', () => {

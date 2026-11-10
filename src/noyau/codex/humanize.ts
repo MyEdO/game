@@ -649,6 +649,7 @@ export function humanizeOp(o: GameOp): string {
       const { brass } = o.montant;
       return t('codex.op.commission', { valeur: typeof brass === 'number' ? formatMoney(fromBrass(brass)) : t('codex.op.money.enSous', { valeur: humanizeQuantite(brass).valeur }) });
     }
+    case 'constructeurDEscale': return t('codex.op.constructeurDEscale', { competence: o.competence, duree: humanizeFormula(o.duree) });
     case 'marcheDuPort': return o.colonnes !== undefined
       ? t(o.colonnes === 'penurie' ? 'codex.op.marcheDuPort.penurie' : 'codex.op.marcheDuPort.saturation')
       : o.offre !== undefined
