@@ -490,7 +490,7 @@ export interface ConfirmationDActivite { heroId: string; success?: boolean; tale
 /** Refus d'appliquer le jet d'Activité confirmé : Activité, Talent à apprendre (et, sur un succès, les PX
  *  de son achat : avec la liste du volet, les deux refus d'`acheterLeTalent`), puis ce que la confirmation
  *  débite (tuteur d'Apprentissage, dépense de Réputation) hors de la bourse. Verdict UNIQUE de
- *  `jetValider('activity')`, avant tout débit. LDB 23 l.66-72, l.228-234 */
+ *  `jetValider('activite')`, avant tout débit. LDB 23 l.66-72, l.228-234 */
 export function refusDeConfirmerLActivite(s: EtatDInterlude, pa: ConfirmationDActivite): string | null {
   const refus = refusDActivite(s, pa.heroId);
   const h = herosDe(s, pa.heroId);

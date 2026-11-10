@@ -8,7 +8,7 @@
 import { estUneCle, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { HIT_LOCATION_LABELS } from '../engine/types';
-import { verbeDeJetDe } from './flowVerbs';
+import { verbeDeJetDe, type FlowKey } from './flowVerbs';
 import type { GesteDuJeu } from './modalArbiter';
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
@@ -22,7 +22,7 @@ export const libelleDuVerbe = (verbe: string): string | null => texte(`verbe.${v
 
 /** Le libellé du réglage `reglage` du jet du flux `flux` : sa clé `reglage.<flux>.<reglage>`, sinon celle du réglage
  *  (`reglage.<reglage>`) ; le catalogue nomme chaque réglage déclaré (`fenetres-nomment-leurs-verbes.hors-store.test.ts`). */
-export function libelleDuReglage(flux: string, reglage: string): string {
+export function libelleDuReglage(flux: FlowKey, reglage: string): string {
   return texte(`reglage.${flux}.${reglage}`) ?? garanti(texte(`reglage.${reglage}`), `${flux}.${reglage}`, 'libellé du réglage');
 }
 

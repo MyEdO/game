@@ -73,18 +73,18 @@ describe('#998 — Deux armes : la fenêtre survit entre les deux frappes (recet
     it(`${nom} : frappe principale, « Appliquer », 2ᵉ frappe dans SA fenêtre, puis clôture`, () => {
       const { bretteur, gobelin } = duel(gmSeat);
       act(() => { openAttackCascade(g, useGame.setState, { attackerId: bretteur.id, targetId: gobelin.id, location: null, result: null }, 'Attaque', 'action/attack'); });
-      act(() => g().jetRegler('attack', 'deuxArmes', true));
-      act(() => g().jetLancer('attack'));
-      act(() => g().jetValider('attack'));
+      act(() => g().jetRegler('attaque', 'deuxArmes', true));
+      act(() => g().jetLancer('attaque'));
+      act(() => g().jetValider('attaque'));
       if (gmSeat != null) surDefense(gobelin.id);
       expect(g().pendingDualStrike, 'la 1ʳᵉ frappe a touché : la 2ᵉ attend sa cible').toBeTruthy();
       expect(pickActiveModalKey(g()), 'aucune fenêtre sans corps n’est élue').not.toBe('cascade');
       expect(host!.querySelector('.modal-overlay'), 'la carte tient la main (TargetPrompt)').toBeNull();
       act(() => g().frapperDeLaSecondeArme(gobelin.id));
       const seq = g().pendingCascade!;
-      expect(seq.participants[seq.cursor].jet, 'la 2ᵉ frappe est rendue par une étape d’attaque').toBe('attack');
+      expect(seq.participants[seq.cursor].jet, 'la 2ᵉ frappe est rendue par une étape d’attaque').toBe('attaque');
       expect(host!.querySelector('.modal-overlay'), 'la fenêtre de la 2ᵉ frappe est montée').not.toBeNull();
-      act(() => g().jetValider('attack'));
+      act(() => g().jetValider('attaque'));
       if (gmSeat != null) surDefense(gobelin.id);
       expect(g().pendingDualStrike, 'la 2ᵉ frappe est appliquée').toBeNull();
       expect(g().pendingAttack).toBeNull();

@@ -21,7 +21,7 @@ function castFrozen(casterId: string, spellId: string, roll: number, corruption:
     ...(corruption ? { flags: { corruption: true } } : { flags: {} }),
     pendingCast: { casterId, targetId: casterId, spellId: spell.id, missile: !!spell.missile, focused: false, result },
   });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
 }
 
 describe('Règle du 8 — câblage store (LDB 46 l.89)', () => {

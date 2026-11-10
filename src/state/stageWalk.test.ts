@@ -299,7 +299,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     const t = traceur();
     demarrerMarche(get, { vue: 'iso', dir: 'up' });
     vi.advanceTimersByTime(STEP_MS);
-    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]), pendingCast: { pickingTargets: true } as never });
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation' }]), pendingCast: { pickingTargets: true } as never });
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
     expect(t.cases.length).toBe(2);

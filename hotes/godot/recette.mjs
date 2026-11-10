@@ -415,7 +415,7 @@ async function parcoursCombat() {
   assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
   assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
   noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
-  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attack#localisation')
+  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attaque#localisation')
   const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
   await cliquerBouton(bouton(lieu))
   v = await vue()
@@ -1480,19 +1480,28 @@ async function parcoursEditeur() {
   const decor = e.surcouche.reperes.find((r) => r.choisi)
   assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
   noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
-  const champDuNom = async () => (await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')
-  for (let n = 0; !((await champDuNom())?.y <= 480); n++) {
-    assert.ok(n < 20, 'le champ du nom amené par la molette au milieu du panneau')
-    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
-    await sleep(250)
+  /** La saisie d'élément `element`, amenée par la molette au milieu du panneau, d'en haut comme d'en bas : l'écran ne
+   *  publie que les saisies qu'il montre. */
+  const amener = async (element) => {
+    const champ = async () => (await ecran()).saisies.find((x) => x.element === element)
+    for (let n = 0, y = (await champ())?.y; !(y >= 80 && y <= 480); n++, y = (await champ())?.y) {
+      assert.ok(n < 20, `la saisie ${element} amenée par la molette au milieu du panneau`)
+      await molette(session, { surface: 'canvas', x: 160, y: 400 }, y < 80 ? -100 : 100)
+      await sleep(250)
+    }
+    return champ()
   }
-  const champ = await champDuNom()
-  assert.equal(champ?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
-  await geste(session, { surface: 'canvas', x: champ.x, y: champ.y }, { qui: 'le champ du nom' }, clic())
-  await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
-  for (let n = 0; n < champ.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
-  for (const lettre of 'Comptoir') await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
-  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieTexte/nommer/nom')?.texte === 'Comptoir'`)
+  /** Tape `texte` dans la saisie d'élément `element` (`amener`), à la place du sien. */
+  const taper = async (element, texte) => {
+    const c = await amener(element)
+    await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
+    await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
+    for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
+    for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+    await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
+  }
+  assert.equal((await amener('saisieTexte/nommer/nom'))?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
+  await taper('saisieTexte/nommer/nom', 'Comptoir')
   await cliquerAuPanneau({ element: 'formulaire/nommer' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx},${dy},0'] === 'Comptoir'`)
   noter(`« Renommer » : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
@@ -1626,6 +1635,31 @@ async function parcoursEditeur() {
   assert.equal(presse('valeur/merchant/settlement'), 'cité', 'la localité choisie se lit par son nom, pas par sa valeur « cite »')
   noter(`onglet Rôles, « Ajouter : marchand », localité « ${presse('valeur/merchant/settlement')} » : archétype « ${presse('valeur/merchant/archetype/id')} » ; « Ajouter : jeu de taverne » : « ${presse('valeur/tavernGame/id')} »`)
   await capturer('3606-m1d-1-marchand')
+  await cliquerAuPanneau('Identité')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cases[`${dx},${dy}`])
+  await waitFor(session, `${montre('valeur/usable/ajouter')} || ${montre('valeur/usable/actions/ajouter')}`)
+  await cliquerAuPanneau('Rôles')
+  e = await editeur()
+  const rang = e.zones['editeur.inspecteur'].filter((el) => el.id.startsWith('identifier/action/')).length
+  const [actionNeuve] = (inspecte(e, 'valeur/usable/ajouter') ?? inspecte(e, 'valeur/usable/actions/ajouter')).valeurs
+  await cliquerAuPanneau({ element: `bouton/${actionNeuve.id}` })
+  await waitFor(session, montre(`identifier/action/${actionNeuve.libelle}`))
+  await taper(`saisieTexte/identifier/action/${actionNeuve.libelle}/id`, 'coffre')
+  await cliquerAuPanneau({ element: `formulaire/identifier/action/${actionNeuve.libelle}` })
+  await waitFor(session, montre('identifier/action/coffre'))
+  await taper(`saisieTexte/valeur/usable/actions/${rang}/label/valeur`, 'Ouvrir')
+  await cliquerAuPanneau({ element: `formulaire/valeur/usable/actions/${rang}/label` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/usable/actions/${rang}/label')?.champs[2].valeur === 'Ouvrir'`)
+  e = await editeur()
+  const consommer = idDeLaValeur(e, `valeur/usable/actions/${rang}/consume`, true)
+  await cliquerAuPanneau({ element: `bouton/${consommer}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/usable/actions/${rang}/consume')?.valeurs.find((b) => b.id === '${consommer}')?.presse === true`)
+  noter(`un clic sur le décor « Comptoir », onglet Rôles, « Ajouter » : l’action « ${actionNeuve.libelle} », identifiée « coffre », libellée « Ouvrir », consommée`)
+  await capturer('3606-m1e-1-actions')
+  await cliquerPoint(...cases[`${zx},${zy}`])
+  await waitFor(session, montre('valeur/merchant/settlement'))
+  e = await editeur()
   await cliquerAuPanneau('Identité')
   const entree = inspecte(e, 'entite/couvre/ajouter').valeurs[0]
   await choisirALaListe('entite/couvre/ajouter', entree.id, 'editeur.inspecteur', montre(`entite/couvre/${entree.jeu.edition.patch.couvre[0]}`))

@@ -1,6 +1,6 @@
 /**
  * L'ACTE DU SOIN EN DONNÉES (#3059, J5) : `fenetreDuSoin(s).mode` porte chaque acte avec sa raison de refus, et le
- * réglage `heal.mode` refuse un acte exactement là où la fenêtre le dit refusé, de la même raison
+ * réglage `soins.mode` refuse un acte exactement là où la fenêtre le dit refusé, de la même raison
  * (`refusDuModeDuSoin`). Contrat sans écart à l'arbre de départ (le refus du réglage et le filtre du sélecteur
  * jugeaient déjà par `raisonDeModeDeSoinEnCombat` puis `refusDuTestDeSoin`) ; la fenêtre ne portait pas l'acte.
  * LDB 09 l.255-261 ; LDB 74 l.41 ; LDB 62 l.250 ; LDB 18 l.222.
@@ -42,14 +42,14 @@ function enCombat(soigneur: Combatant, patient: Combatant): void {
   });
 }
 
-/** Pour chaque acte : la raison de la fenêtre, puis celle que le réglage `heal.mode` prononce (`refus`), l'état du soin
+/** Pour chaque acte : la raison de la fenêtre, puis celle que le réglage `soins.mode` prononce (`refus`), l'état du soin
  *  restauré entre deux actes. */
 function confronter(): { mode: HealMode; fenetre: string | null; reglage: string | null }[] {
   const ph0 = garanti(g().pendingHeal, 'soin', 'soin ouvert');
   return HEAL_MODES.map((mode) => {
     banc.setState({ pendingHeal: ph0, refus: null });
     const fenetre = garanti(fenetreDuSoin(g())?.mode.options.find((o) => o.valeur === mode), mode, 'acte de la fenêtre').refus ?? null;
-    g().jetRegler('heal', 'mode', mode);
+    g().jetRegler('soins', 'mode', mode);
     const reglage = g().refus?.texte ?? null;
     if (reglage === null) expect(g().pendingHeal!.mode, `${mode} : le réglage accepté pose l’acte`).toBe(mode);
     else expect(g().pendingHeal!.mode, `${mode} : le réglage refusé laisse l’acte`).toBe(ph0.mode);
@@ -57,7 +57,7 @@ function confronter(): { mode: HealMode; fenetre: string | null; reglage: string
   });
 }
 
-describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` le refuse', () => {
+describe('fenêtre du soin — l’acte, refusé comme le réglage `soins.mode` le refuse', () => {
   it('« le patient aux trois maux », soigné à la Guérison : Blessures, Hémorragie et Munition s’offrent, les actes au long cours non', () => {
     const doc = cb({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }, { id: 'munition-logee', value: 1 }], pos: { x: 2, y: 1 } });
@@ -94,7 +94,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } });
     enCombat(doc, al);
     g().ouvrirLaGuerison('al');
-    g().jetLancer('heal');
+    g().jetLancer('soins');
     expect(fenetreDuSoin(g())!.mode.options.every((o) => o.refus), 'aucun acte ne se règle une fois le dé tombé').toBe(true);
   });
 });

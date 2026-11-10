@@ -9,7 +9,7 @@
  * Ce module produit le PLAN de la bordée (le bord qui porte + ses pièces + le DR partagé) — PUR et testable
  * sans navigateur. L'APPLICATION par pièce (Dégâts = Dégâts de l'arme + DR ; Critiques de navire sur double)
  * réutilise la résolution de tir d'UNE pièce (Étape « Servir un poste », `firedAttackBlock`/flux d'attaque)
- * avec ce DR forcé, dans `jetValider('shipBattery')` (combatSlice).
+ * avec ce DR forcé, dans `jetValider('tirDeBatterie')` (combatSlice).
  */
 import { targetArc } from './fireArc';
 import { resolveCrewTestByRoles, type CrewAssignment, type CrewTestResult } from '../../engine/crewMorale';

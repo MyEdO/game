@@ -261,7 +261,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
     } as never);
     act(() => root.render(<MedicModal />));
     expect(useGame.getState().pendingHeal?.mode, 'le brouillon reprend l’opération armée').toBe('chirurgie');
-    act(() => useGame.getState().jetLancer('heal')); // il rouvre la passe
+    act(() => useGame.getState().jetLancer('soins')); // il rouvre la passe
     expect(useGame.getState().pendingSurgery, 'la passe est posée').not.toBeNull();
 
     echap();
@@ -309,7 +309,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
       medic: { patientId: patient.id, surgery: operation },
     } as never);
     act(() => root.render(<MedicModal />));
-    act(() => useGame.getState().jetLancer('heal')); // la reprise de l'opération armée rouvre la passe
+    act(() => useGame.getState().jetLancer('soins')); // la reprise de l'opération armée rouvre la passe
     expect(useGame.getState().pendingSurgery, 'la passe est posée').not.toBeNull();
     echap();
     expect(useGame.getState().pendingSurgery, 'Échap annule la passe').toBeNull();

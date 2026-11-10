@@ -218,7 +218,7 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre n’ouvre 
   it('soin lancé puis validé : le brouillon renaît sur l’acte suivant, le focus sur l’option retenue « Guérison », sans bulle', async () => {
     act(() => root.render(<MedicModal />));
     expect(useGame.getState().pendingHeal?.mode, 'le brouillon : les Blessures').toBe('blessures');
-    act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
+    act(() => useGame.getState().jetLancer('soins')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
     expect(useGame.getState().pendingHeal?.roll, 'le soin est lancé').not.toBeNull();
     act(() => bouton('Appliquer').click());
     expect(useGame.getState().pendingHeal, 'le brouillon renaît sur l’Hémorragie').toMatchObject({ mode: 'hemorragie', roll: null });

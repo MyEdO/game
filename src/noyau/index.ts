@@ -121,7 +121,7 @@ export { fenetreDeDetermination } from './determinationDuJet';
 export { libelleDuGeste, libelleDuReglage, libelleDuChoix, libelleDuParametre, libelleDuLitteral, libelleDeLaFenetre, libelleDuJet, libelleDeLaFermeture } from './libelles';
 export { argumentsPosesDuGeste, fermeturesDeLaFenetre } from './verbesOuverts';
 export { cleDuGeste, type GesteDuJeu } from './modalArbiter';
-export { verbeDeJetDe, viseUneRangee } from './flowVerbs';
+export { verbeDeJetDe, viseUneRangee, type FlowKey } from './flowVerbs';
 export { FERMETURES_DITES } from './rollFlowFactory';
 export { effetDuGeste, reglagesDesElements, type Reglage, type ValeurDuReglage } from './reglages';
 export { declarationDuReglage, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from './reglagesDuJet';

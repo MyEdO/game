@@ -56,21 +56,21 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
   const refus = refusDe('jetRegler');
 
   it('une valeur à la forme de son réglage passe', () => {
-    expect(refus(['attack', 'localisation', 'tete'])).toBeNull();
-    expect(refus(['attack', 'localisation', null])).toBeNull();
-    expect(refus(['cast', 'surincantationDuree', 2])).toBeNull();
+    expect(refus(['attaque', 'localisation', 'tete'])).toBeNull();
+    expect(refus(['attaque', 'localisation', null])).toBeNull();
+    expect(refus(['incantation', 'surincantationDuree', 2])).toBeNull();
   });
 
   it('une valeur d’une autre forme, un réglage ou un flux que la partie ne déclare pas se refusent', () => {
-    expect(refus(['attack', 'localisation', 42]), 'un nombre n’est pas une Localisation').not.toBeNull();
-    expect(refus(['attack', 'deuxArmes', 'oui']), 'une bascule est un booléen').not.toBeNull();
-    expect(refus(['cast', 'surincantationDuree', true]), 'des pas sont un nombre').not.toBeNull();
-    expect(refus(['cast', 'localisation', 'tete'])).toContain('n’est pas un réglage du flux cast');
-    expect(refus(['run', 'localisation', 'tete'])).toContain('n’est pas un flux réglé');
+    expect(refus(['attaque', 'localisation', 42]), 'un nombre n’est pas une Localisation').not.toBeNull();
+    expect(refus(['attaque', 'deuxArmes', 'oui']), 'une bascule est un booléen').not.toBeNull();
+    expect(refus(['incantation', 'surincantationDuree', true]), 'des pas sont un nombre').not.toBeNull();
+    expect(refus(['incantation', 'localisation', 'tete'])).toContain('n’est pas un réglage du flux incantation');
+    expect(refus(['course', 'localisation', 'tete'])).toContain('n’est pas un flux réglé');
   });
 
   it('un id que l’état ne désigne pas se refuse en nommant les ids valides', () => {
-    expect(refus(['shanty', 'chanson', 'pas-une-chanson'])).toContain('pas-une-chanson');
+    expect(refus(['chansonDeMarin', 'chanson', 'pas-une-chanson'])).toContain('pas-une-chanson');
   });
   describe('un choix de fenêtre', () => {
     const choix = refusDe('fenetreChoisir');

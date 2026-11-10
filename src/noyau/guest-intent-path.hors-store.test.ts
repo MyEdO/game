@@ -199,9 +199,9 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
 
   it('Activité : un siège tiers est refusé et le jet reste ouvert ; le siège du héros le referme', () => {
     const h = activiteOuverte();
-    expect(applyIntent(2, 'jetAnnuler', ['activity'])).toBe('refusee');
+    expect(applyIntent(2, 'jetAnnuler', ['activite'])).toBe('refusee');
     expect(banc.getState().pendingActivity?.heroId, 'le jet d’autrui reste ouvert').toBe(h.id);
-    expect(applyIntent(1, 'jetAnnuler', ['activity'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetAnnuler', ['activite'])).toBe('appliquee');
     expect(banc.getState().pendingActivity).toBeNull();
   });
 
@@ -209,9 +209,9 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     setup();
     expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
     expect(banc.getState().pendingCascade, 'l’étape hôte est ouverte').toBeTruthy();
-    expect(applyIntent(2, 'jetAnnuler', ['disengage'])).toBe('refusee');
+    expect(applyIntent(2, 'jetAnnuler', ['desengagement'])).toBe('refusee');
     expect(banc.getState().pendingDisengage, 'le choix d’autrui reste ouvert').toBeTruthy();
-    expect(applyIntent(1, 'jetAnnuler', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetAnnuler', ['desengagement'])).toBe('appliquee');
     expect(banc.getState().pendingDisengage).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -219,8 +219,8 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
   /** Le Désengagement ENGAGÉ (LDB 15 l.49 : l'Esquive est l'Action ; l.63 : la Fuite donne aussitôt
    *  +1 Avantage) : le siège du héros demande à renoncer, l'action le REFUSE et le dit, rien ne bouge. */
   it.each([
-    ['esquive', 'jetLancer', ['disengage']],
-    ['fuir', 'jetRegler', ['disengage', 'fuir', true]],
+    ['esquive', 'jetLancer', ['desengagement']],
+    ['fuir', 'jetRegler', ['desengagement', 'fuir', true]],
   ] as const)('Désengagement en phase %s : renoncer est refusé, visiblement, et ne change rien', (phase, geste, args) => {
     const { enemy } = setup();
     expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
@@ -228,7 +228,7 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
     const avant = banc.getState();
     expect(avant.pendingDisengage?.phase).toBe(phase);
     const avantageDuFoe = avant.battle!.combatants.find((c) => c.id === enemy.id)!.advantage;
-    expect(applyIntent(1, 'jetAnnuler', ['disengage'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetAnnuler', ['desengagement'])).toBe('appliquee');
     const apres = banc.getState();
     expect(apres.pendingDisengage, 'le Désengagement engagé reste ouvert').toBe(avant.pendingDisengage);
     expect(apres.pendingCascade, 'sa cascade-hôte aussi').toBe(avant.pendingCascade);
@@ -239,12 +239,12 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
   it('Désengagement en phase fuir, fenêtre PARTAGÉE (`groupOwner`) : un siège tiers est refusé par la possession', () => {
     setup();
     expect(applyIntent(1, 'rompreLEngagement', [])).toBe('appliquee');
-    expect(applyIntent(1, 'jetRegler', ['disengage', 'fuir', true])).toBe('appliquee');
+    expect(applyIntent(1, 'jetRegler', ['desengagement', 'fuir', true])).toBe('appliquee');
     const c = banc.getState().pendingCascade!;
     banc.setState({ pendingCascade: { ...c, participants: c.participants.map((p, i) => (i === c.cursor ? { ...p, groupOwner: true } : p)) } });
     expect(modalOwnerOf(banc.getState()), 'la fenêtre est à tous').toBe('*');
     const avant = banc.getState();
-    expect(applyIntent(2, 'jetAnnuler', ['disengage'])).toBe('refusee');
+    expect(applyIntent(2, 'jetAnnuler', ['desengagement'])).toBe('refusee');
     expect(banc.getState().pendingDisengage).toBe(avant.pendingDisengage);
     expect(banc.getState().pendingCascade).toBe(avant.pendingCascade);
   });
@@ -255,8 +255,8 @@ describe('#2903 — Annuler un jet par intention : seul le siège du porteur ref
  * possession suit le PORTEUR du jet (`jetOwner`), joué par `appliquerLIntentionDUnSiege`.
  */
 describe('#2961 — annulations et jets d’un flux mono : la possession suit le porteur du jet', () => {
-  const ANNULATIONS_NUES = ['battement', 'distraire', 'maneuver', 'run', 'shanty', 'approach', 'ward', 'reload', 'handGate', 'recover', 'focus', 'dispel', 'frenzy', 'bargain', 'appraise'].map((f) => `jetAnnuler@${f}`);
-  const AUTRES = ['jetAnnuler@auContact', 'jetAnnuler@grapple', 'jetAnnuler@cast', 'jetAnnuler@heal', 'jetAnnuler@surgery', 'jetLancer@attack', 'jetLancer@cast', 'jetLancer@disengage', 'jetLancer@auContact', 'jetLancer@grapple'];
+  const ANNULATIONS_NUES = ['battement', 'distraire', 'manoeuvre', 'course', 'chansonDeMarin', 'approche', 'protection', 'rechargement', 'mainEnsanglantee', 'recuperation', 'focalisation', 'dissipation', 'frenesie', 'marchandage', 'evaluation'].map((f) => `jetAnnuler@${f}`);
+  const AUTRES = ['jetAnnuler@auContact', 'jetAnnuler@empoignade', 'jetAnnuler@incantation', 'jetAnnuler@soins', 'jetAnnuler@chirurgie', 'jetLancer@attaque', 'jetLancer@incantation', 'jetLancer@desengagement', 'jetLancer@auContact', 'jetLancer@empoignade'];
   /** Le verbe, le flux et le porteur du geste `verbe@flux`. */
   const geste = (cle: string) => {
     const [verbe, flux] = cle.split('@') as [string, keyof typeof FLOW_VERBS];
@@ -302,7 +302,7 @@ describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession
     expect(applyIntent(1, NOM_DU_VERBE_DE_JET[v], args('test', v))).toBe('appliquee');
   });
 
-  it.each(FLOW_VERBS.fall.verbs.filter((v) => !estVerbeDeFenetre(v)).map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('chute (multi) : %s — le siège du tombant joue SA rangée, l’hôte est refusé', (_nom, v) => {
+  it.each(FLOW_VERBS.chute.verbs.filter((v) => !estVerbeDeFenetre(v)).map((v) => [NOM_DU_VERBE_DE_JET[v], v] as const))('chute (multi) : %s — le siège du tombant joue SA rangée, l’hôte est refusé', (_nom, v) => {
     setup();
     const hote = mk('h1', 'hero', { x: 0, y: 1 });
     const pendingFall = { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: 'h1', participants: [
@@ -310,8 +310,8 @@ describe('#3311 — chaque verbe de jet, joué par un siège, suit la possession
       { id: 'h2', interactive: true, attempt: true, result: null },
     ] };
     banc.setState({ party: [...banc.getState().party, hote], pendingFall } as never);
-    expect(applyIntent(0, NOM_DU_VERBE_DE_JET[v], args('fall', v, 'h2'))).toBe('refusee');
+    expect(applyIntent(0, NOM_DU_VERBE_DE_JET[v], args('chute', v, 'h2'))).toBe('refusee');
     expect(banc.getState().pendingFall).toBe(pendingFall);
-    expect(applyIntent(1, NOM_DU_VERBE_DE_JET[v], args('fall', v, 'h2'))).toBe('appliquee');
+    expect(applyIntent(1, NOM_DU_VERBE_DE_JET[v], args('chute', v, 'h2'))).toBe('appliquee');
   });
 });

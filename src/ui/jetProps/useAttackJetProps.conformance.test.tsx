@@ -190,7 +190,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
     const avant = rendues!.rows[0].row.pending!;
     expect(avant.base, 'Bagarre, sans avance : la CC nue, pas la Spé de l’arme tenue').toBe(45);
     expect(ligneDe(avant.mods, refDeRegle('possession-pas-a-sa-taille'))).toBeUndefined();
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     const jet = rendues!.rows[0].row.d!;
     expect([jet.base, jet.target], 'aperçu et jet : même valeur cible').toEqual([avant.base, avant.target]);
   });
@@ -202,7 +202,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
     const avant = rendues!.rows[0].row.pending!;
     expect(avant.label).toBe('Corps à corps (Bagarre)');
     expect(avant.base, 'CC 45 + 5 Augmentations de Bagarre, jamais les 8 de Base').toBe(50);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     expect(rendues!.rows[0].row.d!.base, 'le jet tire la Spé annoncée').toBe(50);
   });
 
@@ -477,7 +477,7 @@ describe('Attaque — issue d’un coup sans prise', () => {
     // Tir à l'arc : aucune fenêtre de Défense ne s'interpose, l'issue s'affiche dans la popin d'attaque.
     renderAttack({ ethere: true, ranged: true });
     seedBattleRng(29);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     const res = useGame.getState().pendingAttack!.result!;
     expect([res.critical, res.sansPrise], 'précondition : Critique obtenu au jet, coup sans prise').toEqual([true, 'ethere']);
     const issue = rendues!.outcome![0];
@@ -489,10 +489,10 @@ describe('Attaque — issue d’un coup sans prise', () => {
     const vue = renderAttack({ ethere: true, ranged: true });
     act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     expect(useGame.getState().pendingAttack!.result!.attackerDetail!.success, 'précondition : jet raté, à forcer').toBe(false);
-    act(() => useGame.getState().jetForcerLaReussite('attack'));
-    act(() => useGame.getState().jetImposerLeResultat('attack', 33));
+    act(() => useGame.getState().jetForcerLaReussite('attaque'));
+    act(() => useGame.getState().jetImposerLeResultat('attaque', 33));
     const pa = useGame.getState().pendingAttack!;
     expect([pa.forced, pa.result?.critical, pa.result?.sansPrise], 'précondition : jet forcé, Critique obtenu, coup sans prise').toEqual([true, true, 'ethere']);
     expect(rendues!.forcedExtra, 'pas de Localisation à choisir pour un Critique non appliqué').toBeUndefined();
@@ -509,10 +509,10 @@ describe('Attaque — l’annonce du Coup Critique lit le compte du coup (LDB 17
     const vue = renderAttack({ ranged: true, cible });
     act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     expect(useGame.getState().pendingAttack!.result!.attackerDetail!.success, 'précondition : jet raté, à forcer').toBe(false);
-    act(() => useGame.getState().jetForcerLaReussite('attack'));
-    act(() => useGame.getState().jetImposerLeResultat('attack', force));
+    act(() => useGame.getState().jetForcerLaReussite('attaque'));
+    act(() => useGame.getState().jetImposerLeResultat('attaque', force));
     const res = useGame.getState().pendingAttack!.result!;
     expect(res.hit, 'précondition : le jet forcé touche').toBe(true);
     const iconeCrit = recapLineOfEvent(ev('crit', res.log)).icon;
@@ -556,10 +556,10 @@ describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
     expect(useGame.getState().pendingAttack!.grapple, 'précondition : Empoigner coché').toBe(true);
     act(() => { useGame.getState().battle!.combatants[0].resilience = 1; });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     if (!useGame.getState().pendingAttack!.result!.hit) {
-      act(() => useGame.getState().jetForcerLaReussite('attack'));
-      act(() => useGame.getState().jetImposerLeResultat('attack', 21));
+      act(() => useGame.getState().jetForcerLaReussite('attaque'));
+      act(() => useGame.getState().jetImposerLeResultat('attaque', 21));
     }
     const res = useGame.getState().pendingAttack!.result!;
     expect([res.hit, !!res.touche], 'précondition : touche, ligne de touche').toEqual([true, true]);
@@ -582,10 +582,10 @@ describe('Attaque — l’issue d’une Empoignade (LDB 14 l.159)', () => {
       b.combatants.find((c) => c.id === useGame.getState().pendingAttack!.targetId)!.inert = true;
     });
     seedBattleRng(1);
-    act(() => useGame.getState().jetLancer('attack'));
+    act(() => useGame.getState().jetLancer('attaque'));
     if (!useGame.getState().pendingAttack!.result!.hit) {
-      act(() => useGame.getState().jetForcerLaReussite('attack'));
-      act(() => useGame.getState().jetImposerLeResultat('attack', 21));
+      act(() => useGame.getState().jetForcerLaReussite('attaque'));
+      act(() => useGame.getState().jetImposerLeResultat('attaque', 21));
     }
     const res = useGame.getState().pendingAttack!.result!;
     expect([res.hit, !!res.touche], 'précondition : touche, ligne de touche').toEqual([true, true]);

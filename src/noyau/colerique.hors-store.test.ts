@@ -24,10 +24,10 @@ interface Gestes { haine?: boolean; animosite?: boolean; personne?: string; calm
 
 /** L'incantation ouverte réussit à `dr` DR, puis la cascade se joue selon `gestes` ; rend ses étapes. */
 function reussirEtJouer(banc: Banc, dr: number, gestes: Gestes = {}): CascadeStep[] {
-  if (!banc.getState().pendingCast!.result) banc.getState().jetLancer('cast');
+  if (!banc.getState().pendingCast!.result) banc.getState().jetLancer('incantation');
   const pc = banc.getState().pendingCast!;
   banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: dr, isCritical: false, isFumble: false } } });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
   const oui = (v: boolean | undefined) => (v ? 'yes' : 'no');
   return draineEtapes(banc.getState, 20, (e) => (e.kind === 'triggeredTest' ? gestes.calme : undefined), (e) => {
     if (e.kind === 'personneChoisie') return gestes.personne;

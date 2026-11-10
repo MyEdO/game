@@ -86,7 +86,7 @@ export function BargainModalView({
   // le calendrier le masque ENTIÈREMENT (`mask:'roll'`, strictement plus fort) tant que le négociateur
   // n'a pas répondu ; à son jet, la rangée retombe sur l'opacité de valeur seule.
   const merchantRow: BuiltRollRow = frozenOpposedRow({
-    revele: jetFigeRevele(useGame.getState(), JET_FIGE.bargain(pb)),
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.marchandage(pb)),
     row: { combatant: opposant, ...(merchantD ? { d: merchantD } : { pending: merchantLine.pending }) },
   });
   const winnerIndex = opposed ? (pb.result!.attackerWins ? 0 : 1) : null;
@@ -100,7 +100,7 @@ export function BargainModalView({
 
   return (
     <RollShell
-      flowKey="bargain"
+      flowKey="marchandage"
       title={pb.contrepartie.titre}
       /* Test OPPOSÉ : 2 lignes à portrait DÈS L'OUVERTURE (#990), l'adverse masquée jusqu'au jet. */
       subtitle={<>{pb.opposant.label}{pb.negotiator ? <> · Négociateur</> : null}</>}
@@ -119,17 +119,17 @@ export function BargainModalView({
  * Marchandage (LDB 59 l.43 ; EDO 01 l.142). Test OPPOSÉ Marchandage (le meilleur négociateur du groupe)
  * contre l'opposant du pending (marchand ou vendeur de billet). « Lancer » fait les deux jets, une Chance
  * est possible avant de conclure (relance/+1 DR côté joueur). La confirmation fige l'issue sur la
- * contrepartie du pending (`jetValider('bargain')`).
+ * contrepartie du pending (`jetValider('marchandage')`).
  */
 export function BargainModal() {
   const pb = useGame((s) => s.pendingBargain);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'bargain');
-  const reroll = useGesteDeJet('jetRelancer', 'bargain');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'bargain');
-  const darkPact = useGesteDeJet('jetPactiser', 'bargain');
-  const confirm = useGesteDeJet('jetValider', 'bargain');
-  const cancel = useGesteDeJet('jetAnnuler', 'bargain');
+  const roll = useGesteDeJet('jetLancer', 'marchandage');
+  const reroll = useGesteDeJet('jetRelancer', 'marchandage');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'marchandage');
+  const darkPact = useGesteDeJet('jetPactiser', 'marchandage');
+  const confirm = useGesteDeJet('jetValider', 'marchandage');
+  const cancel = useGesteDeJet('jetAnnuler', 'marchandage');
   // COOP (#1017) : l'ABONNEMENT à `net` (attribution des sièges) vit AVANT le retour anticipé — une
   // ré-attribution en cours de fenêtre doit re-rendre la modale, pas figer l'affordance du 1er rendu.
   useGame((s) => s.net);

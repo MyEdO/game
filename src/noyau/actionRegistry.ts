@@ -793,14 +793,14 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>
   // ── SORTIES D'INTERLUDE (`surface: 'interlude'`) : une entrée NOMMÉE par interlude, chacune la sortie de sa fenêtre.
   fermerLeBalayage: horsDuTour(() => geste('fenetreFermer', 'frappeMortelle')),
   renoncerALaSecondeFrappe: horsDuTour(() => geste('fenetreFermer', 'secondeFrappe')),
-  renoncerALaCarte: horsDuTour(() => geste('jetRegler', 'cast', 'carte', null)),
+  renoncerALaCarte: horsDuTour(() => geste('jetRegler', 'incantation', 'carte', null)),
   /** Sortie du placeur de zone, ROUTÉE PAR LA SOURCE que mesure `placingZoneOf` — symétrique de `commitPlacedZone` (même
    *  aiguilleur pour poser et pour renoncer) : un sort revient à sa modale, un pilonnage referme son placeur. */
   renoncerALaZone: horsDuTour(({ etat }) => {
     const pz = placingZoneOf(etat);
     if (!pz) return null;
     switch (pz.source) {
-      case 'cast': return geste('jetRegler', 'cast', 'carte', null);
+      case 'cast': return geste('jetRegler', 'incantation', 'carte', null);
       case 'siege': return geste('fenetreFermer', 'viseeDeSiege');
       default: return pz.source satisfies never;
     }

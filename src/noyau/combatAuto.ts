@@ -38,14 +38,14 @@ import { axesDeLaFenetre, VERBE_DE_CHOIX, type FenetreAChoix } from './choixDesF
  * porte) — tranché par l'IA en Auto-combat (C4). Record total : ajouter un `jet` force une politique.
  */
 export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
-  attack: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'attack' }, { verbe: 'jetValider', flux: 'attack' }] },
+  attaque: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'attaque' }, { verbe: 'jetValider', flux: 'attaque' }] },
   defense: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'defense' }, { verbe: 'jetValider', flux: 'defense' }] },
-  fumble: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'fumble' }, { verbe: 'jetValider', flux: 'fumble' }] },
+  maladresse: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'maladresse' }, { verbe: 'jetValider', flux: 'maladresse' }] },
   test: { mode: 'self', drive: [{ verbe: 'jetLancer', flux: 'test' }, { verbe: 'jetValider', flux: 'test' }] },
-  cast: { mode: 'choice', autoDrive: [{ verbe: 'jetLancer', flux: 'cast' }, { verbe: 'jetValider', flux: 'cast' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
-  disengage: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
-  extended: { mode: 'choice' },   // multi-participant (rare en combat)
-  forceDoor: { mode: 'choice' },  // multi groupOwner (rare en combat)
+  incantation: { mode: 'choice', autoDrive: [{ verbe: 'jetLancer', flux: 'incantation' }, { verbe: 'jetValider', flux: 'incantation' }] }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
+  desengagement: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
+  testEtendu: { mode: 'choice' },   // multi-participant (rare en combat)
+  enfoncerLaPorte: { mode: 'choice' },  // multi groupOwner (rare en combat)
 };
 
 /** Une rangée d'une fenêtre réactive, vue par le pilote : son porteur, son état de jet, sa déclaration. */
@@ -65,25 +65,25 @@ export const VERBES_DU_JET_PSY = ['depenserLaDetermination'] as const satisfies 
  *  réelle (`resolveCastChain` : le Contre-sort précède l'opposition). `verbes` : les verbes généraux que l'étape offre.
  *  Record total : un `jet` neuf nomme son flux. */
 export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: FlowKey; rangees?: (s: Jeu) => readonly RangeeDeFenetre[] | undefined; reactives?: readonly FenetreReactive[]; verbes?: VerbesDeFenetre }> = {
-  attack: { flux: 'attack' },
+  attaque: { flux: 'attaque' },
   defense: { flux: 'defense' },
-  fumble: { flux: 'fumble', rangees: (s) => { const m = maladresseCourante(s.pendingCascade); return m && [{ id: m.id, result: m.fumble.result }]; } },
-  cast: {
-    flux: 'cast',
+  maladresse: { flux: 'maladresse', rangees: (s) => { const m = maladresseCourante(s.pendingCascade); return m && [{ id: m.id, result: m.fumble.result }]; } },
+  incantation: {
+    flux: 'incantation',
     reactives: [
       // Contre-sort : la fenêtre a une PHASE 1 de déclaration (#1042/#1059) — la cadence déclare les
       // rangées de CE siège (« contrer seul » = le geste que le joueur posait en lançant) avant de rouler.
-      { flux: 'counterspell', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true, valeur: 'solo' }, { verbe: 'jetLancer', flux: 'counterspell' }, { verbe: 'jetValider', flux: 'counterspell' }] },
+      { flux: 'contreSort', rangees: (s) => s.pendingCounterspell?.participants, drive: [{ verbe: 'jetRegler', flux: 'contreSort', reglage: 'declaration', toutes: true, valeur: 'solo' }, { verbe: 'jetLancer', flux: 'contreSort' }, { verbe: 'jetValider', flux: 'contreSort' }] },
       { flux: 'opposition', rangees: (s) => s.pendingCastOpposition?.participants, drive: [{ verbe: 'jetLancer', flux: 'opposition' }, { verbe: 'jetValider', flux: 'opposition' }] },
     ],
   },
   test: { flux: 'test', verbes: VERBES_DU_JET_PSY },
-  extended: { flux: 'extendedTest', rangees: (s) => s.pendingExtendedTest?.rounds },
-  disengage: {
-    flux: 'disengage',
-    reactives: [{ flux: 'flee', rangees: (s) => s.pendingDisengage?.fuir?.participants.map((p) => ({ id: p.id, interactive: p.interactive, result: p.kind === 'backstab' ? p.result : p.jet })) }],
+  testEtendu: { flux: 'testEtendu', rangees: (s) => s.pendingExtendedTest?.rounds },
+  desengagement: {
+    flux: 'desengagement',
+    reactives: [{ flux: 'fuite', rangees: (s) => s.pendingDisengage?.fuir?.participants.map((p) => ({ id: p.id, interactive: p.interactive, result: p.kind === 'backstab' ? p.result : p.jet })) }],
   },
-  forceDoor: { flux: 'forceDoor', rangees: (s) => s.pendingForceDoor?.participants },
+  enfoncerLaPorte: { flux: 'enfoncerLaPorte', rangees: (s) => s.pendingForceDoor?.participants },
 };
 
 /** L'id de la rangée DUE (la première qui se joue et n'a pas de résultat), sinon de la première : le `pid` que la
@@ -114,11 +114,11 @@ const uniques = (gestes: readonly GesteDuJeu[]): GesteDuJeu[] => [...new Map(ges
 const idDEtape = (e: CascadeStep): string => e.id;
 /** Le `pid` des verbes d'un flux de cascade : l'id de la rangée due quand il est porté par l'acteur (`pidIsActor`),
  *  sinon l'id de l'étape. */
-const pidDuFlux = (cle: 'cascade' | 'cascadeBatch') => (e: CascadeStep): string | undefined =>
+const pidDuFlux = (cle: 'cascade' | 'cascadeEnBande') => (e: CascadeStep): string | undefined =>
   (FLOW_VERBS[cle].pidIsActor ? idDeLaRangeeDue(e.participants) : e.id);
 /** L'interaction d'étape que joue le flux de cascade `cle` : son flux, ses verbes, lus à l'usage (`reglagesDuJet.ts` est
  *  dans un cycle d'imports avec ce module), puis les verbes généraux qu'elle offre (`verbes`), et leur `pid`. */
-const joueePar = (cle: 'cascade' | 'cascadeBatch', verbes: VerbesDeFenetre = AUCUN_VERBE_DE_JOUEUR) => ({ flux: cle, get gestes() { return [...gestesDuFlux(cle), ...nommes(verbes)]; }, pid: pidDuFlux(cle) });
+const joueePar = (cle: 'cascade' | 'cascadeEnBande', verbes: VerbesDeFenetre = AUCUN_VERBE_DE_JOUEUR) => ({ flux: cle, get gestes() { return [...gestesDuFlux(cle), ...nommes(verbes)]; }, pid: pidDuFlux(cle) });
 
 /** L'interaction d'étape que règle le seul réglage `reglage` du flux `cascade`, sur l'étape (`pid`), d'après la lecture
  *  `lecture` ; lue à l'usage, comme `joueePar`. */
@@ -132,7 +132,7 @@ const regleePar = (reglage: 'choix' | 'quantite', lecture: (g: GesteDuJeu) => (e
  *  jet qui la joue (`flux`). Record total : une interaction neuve nomme ses gestes. */
 export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { gestes: readonly GesteDuJeu[]; pid: (e: CascadeStep) => string | undefined; reglage?: (e: CascadeStep) => Reglage; flux?: FlowKey }> = {
   jet: joueePar('cascade'),
-  batch: joueePar('cascadeBatch', VERBES_DU_JET_PSY),
+  batch: joueePar('cascadeEnBande', VERBES_DU_JET_PSY),
   table: { flux: 'cascadeTirage', get gestes() { return gestesDuFlux('cascadeTirage'); }, pid: idDEtape },
   de: { flux: 'cascadeTirage', get gestes() { return gestesDuFlux('cascadeTirage'); }, pid: idDEtape },
   quantite: regleePar('quantite', reglageDeLaQuantite),
@@ -227,13 +227,13 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
 }
 
 /**
- * FENÊTRES RÉACTIVES à drive ouvertes DANS l'étape `jet:'cast'` (Contre-sort #1028, opposition de cible #949,
+ * FENÊTRES RÉACTIVES à drive ouvertes DANS l'étape `jet:'incantation'` (Contre-sort #1028, opposition de cible #949,
  * `FENETRE_DU_JET.cast.reactives`) et leur drive d'auto-cadence (#1030). Le drive de l'ÉTAPE ne peut traverser ni l'une ni l'autre :
- * `jetValider('cast')` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
+ * `jetValider('incantation')` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
  * `jetValider('opposition')` refuse d'agréger tant qu'une rangée interactive n'a pas jeté — `autoDrive` y
  * re-tirait donc à vide (l'opposition allant jusqu'à se RÉOUVRIR à chaque passage, jets compris).
  * POLITIQUE du drive (pas une règle) : chaque rangée jouable ICI jette, puis « Appliquer » — les issues
- * restent tranchées par les agrégations canoniques (`jetValider('counterspell')` #1040, `jetValider('opposition')`),
+ * restent tranchées par les agrégations canoniques (`jetValider('contreSort')` #1040, `jetValider('opposition')`),
  * et les rangées non surfacées par leurs chemins existants (`applyCounterspellFallback`, jets témoins
  * roulés à l'ouverture). ORDRE = celui de la chaîne réelle (`resolveCastChain`) : le Contre-sort
  * précède l'opposition (une incantation n'ouvre jamais la seconde tant que la première est posée).

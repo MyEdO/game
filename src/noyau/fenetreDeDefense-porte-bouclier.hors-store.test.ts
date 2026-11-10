@@ -47,8 +47,8 @@ function ouvrirLaDefense(avantage: number, dejaUtilise = false, projete = avanta
   } as unknown as BattleState;
   banc.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, net: { ...initialNet(), mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
   openAttackCascade(g, banc.setState, { attackerId: ennemi.id, targetId: heros.id, location: null, result: null, weaponUid: 'ep' }, 'Attaque', 'action/attack');
-  g().jetLancer('attack');
-  g().jetValider('attack');
+  g().jetLancer('attaque');
+  g().jetValider('attaque');
   expect(g().pendingDefense, 'chemin : la Défense du héros s’ouvre').toBeTruthy();
   g().jetRegler('defense', 'reaction', 'parade');
   g().jetRegler('defense', 'armeDeParade', 'sh');

@@ -240,16 +240,16 @@ describe('un verbe de jet que son flux ferme ne se dessine pas, et dit pourquoi 
     const partie = creerPartie({ ...garde, ...patch }, ENTREES);
     try {
       partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
-      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetRegler@attack#localisation')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
-      partie.envoyer({ type: 'jetLancer', args: ['attack'] });
-      expect(geste(partie, 'jetLancer@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'jetAnnuler@attack')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
-      expect(geste(partie, 'jetRegler@attack#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
-      expect(geste(partie, 'jetImposerLeResultat@attack')).toEqual({ ouvert: true, raison: null });
-      expect(geste(partie, 'jetValider@attack')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetLancer@attaque')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetRegler@attaque#localisation')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetImposerLeResultat@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      expect(geste(partie, 'jetValider@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetNonLance') });
+      partie.envoyer({ type: 'jetLancer', args: ['attaque'] });
+      expect(geste(partie, 'jetLancer@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetAnnuler@attaque')).toEqual({ ouvert: false, raison: t('jet.ferme.jetLance') });
+      expect(geste(partie, 'jetRegler@attaque#localisation').ouvert, 'la Localisation se vise avant le jet').toBe(false);
+      expect(geste(partie, 'jetImposerLeResultat@attaque')).toEqual({ ouvert: true, raison: null });
+      expect(geste(partie, 'jetValider@attaque')).toEqual({ ouvert: true, raison: null });
     } finally {
       partie.fermer();
     }

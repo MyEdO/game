@@ -46,11 +46,13 @@ export interface FieldDesc {
  *  admis). */
 export interface ChoixDuContexte { valeur: unknown; libelle: string; refus: string | null }
 
-/** Le contexte du porteur d'un formulaire, à un chemin de sa donnée : le chemin est-il offert (`cheminOffert`), et les
- *  choix qu'il y pose, dans leur ordre (`choixDuChamp`), qui priment sur ceux du nœud (`choixDuNoeud`,
- *  `variantesAChoisir`) ; `undefined` : ceux du nœud. */
+/** Le contexte du porteur d'un formulaire, à un chemin de sa donnée : le chemin est-il offert (`cheminOffert`), s'y
+ *  écrit-il entier, retrait compris, là où la donnée vaut `actuelle` (`ecritureOfferte`), et les choix qu'il y pose, dans
+ *  leur ordre (`choixDuChamp`), qui priment sur ceux du nœud (`choixDuNoeud`, `variantesAChoisir`) ; `undefined` : ceux
+ *  du nœud. */
 export interface ContexteDuChamp {
   offert: (chemin: readonly (string | number)[]) => boolean;
+  ecrivable: (chemin: readonly (string | number)[], actuelle: unknown) => boolean;
   choix: (chemin: readonly (string | number)[]) => readonly ChoixDuContexte[] | undefined;
 }
 

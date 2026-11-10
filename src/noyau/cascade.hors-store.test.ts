@@ -364,9 +364,9 @@ describe('Cascade séquentielle influençable', () => {
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(false); // aucun participant lancé
     banc.getState().jetValider('cascade'); // batch pas prêt → no-op (aucun participant lancé)
     expect(applied).toHaveLength(0);
-    banc.getState().jetLancer('cascadeBatch', h1.id);
+    banc.getState().jetLancer('cascadeEnBande', h1.id);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(false); // h2 pas encore lancé
-    banc.getState().jetLancer('cascadeBatch', h2.id);
+    banc.getState().jetLancer('cascadeEnBande', h2.id);
     expect(stepReady(banc.getState().pendingCascade!.participants[0], banc.getState())).toBe(true);
     banc.getState().jetValider('cascade'); // agrège (essentiel ×2, MDG 14 l.19) puis applique
     expect(applied).toHaveLength(1);

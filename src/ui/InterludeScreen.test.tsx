@@ -770,7 +770,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     useGame.getState().menerLActionDeBataille(heroId, 'inspire');
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 20, success: true, sl: 2 } });
-    useGame.getState().jetValider('activity');
+    useGame.getState().jetValider('activite');
     expect(useGame.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
     const html = renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'inspire')} />);
     const raison = 'Déjà réalisée cette bataille (Activité non répétable).';

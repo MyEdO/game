@@ -21,13 +21,13 @@ export function FocusModal() {
   const pf = useGame((s) => s.pendingFocus);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'focus');
-  const reroll = useGesteDeJet('jetRelancer', 'focus');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'focus');
-  const darkPact = useGesteDeJet('jetPactiser', 'focus');
-  const force = useGesteDeJet('jetForcerLaReussite', 'focus');
-  const confirm = useGesteDeJet('jetValider', 'focus');
-  const cancel = useGesteDeJet('jetAnnuler', 'focus');
+  const roll = useGesteDeJet('jetLancer', 'focalisation');
+  const reroll = useGesteDeJet('jetRelancer', 'focalisation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'focalisation');
+  const darkPact = useGesteDeJet('jetPactiser', 'focalisation');
+  const force = useGesteDeJet('jetForcerLaReussite', 'focalisation');
+  const confirm = useGesteDeJet('jetValider', 'focalisation');
+  const cancel = useGesteDeJet('jetAnnuler', 'focalisation');
   if (!pf) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pf.casterId); // combat (file) ou hors combat (groupe)
   if (!caster) return null;
@@ -66,7 +66,7 @@ export function FocusModal() {
 
   return (
     <RollShell
-      flowKey="focus"
+      flowKey="focalisation"
       title={<><Icon id="flag/focus" size="sm" /> Focalisation</>}
       /* Z1 : QUI focalise QUOI. La PROGRESSION (DR cumulé vers le NI) n'est PAS ici — elle a sa zone
          unique, la barre de DR de la rangée (`extendedDr`, ci-dessus). */
