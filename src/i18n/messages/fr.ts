@@ -883,6 +883,7 @@ export const fr = {
   'ecran.editeur.couche.ajouter': 'Ajouter une couche',
   'ecran.editeur.identifier': 'Identifier',
   'ecran.editeur.identifiant': 'Identifiant',
+  'ecran.editeur.action.identifier': 'Identifier l’action « {id} »',
   'ecran.editeur.scenes': '{n} scène(s) au projet',
   'ecran.editeur.scenes.ajouter': 'Nouvelle scène',
   'ecran.editeur.scenes.dupliquer': 'Dupliquer la scène',

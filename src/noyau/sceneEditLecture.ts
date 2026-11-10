@@ -5,7 +5,7 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { dialoguesDeLaScene, sceneMetresPerTile, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { dialoguesDeLaScene, sceneMetresPerTile, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
@@ -34,6 +34,7 @@ import { armesDEntite, equipementDAuteurDe } from './equipementDessine';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
+import { actionNeuve } from './monde/usable';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
@@ -496,12 +497,12 @@ function rangDOffreDuTrait(fiche: CreatureData | undefined): (id: unknown) => nu
   };
 }
 
-/** Les choix que le contexte d'un personnage pose à ses options (`combat.optionals`, LDB 76) : d'un élément, sa variante,
+/** Les choix que le contexte d'un personnage pose à ses options (`combat.optionals`, LDB 76) : d'un élément présent, sa variante,
  *  le Trait, ou l'une des notes du Bestiaire de sa fiche, posée entière, verbatim (la courante restant offerte) ; de
  *  l'identifiant d'un Trait, tous les Traits, dans leur rang d'offre (`rangDOffreDuTrait`). */
 function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [combat, optionals, rang, cle, ...reste] = chemin;
-  if (combat !== 'combat' || optionals !== 'optionals' || typeof rang !== 'number' || reste.length) return undefined;
+  if (combat !== 'combat' || optionals !== 'optionals' || typeof rang !== 'number' || rang >= (ent.combat?.optionals?.length ?? 0) || reste.length) return undefined;
   const fiche = findCreatureById(ent.creature?.id);
   if (cle === 'id') {
     const rangDOffre = rangDOffreDuTrait(fiche);
@@ -568,17 +569,39 @@ function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: 
   return sorts ? choixDesSorts(ent, rang, presetDuNarratif(narratif)) : choixDesOptions(ent, chemin);
 }
 
+/** Les actions authorées d'un décor (`SceneEntity.usable`). */
+const ACTIONS_DU_DECOR = ['usable', 'actions'] as const;
+
+/** Les choix que le contexte du décor `ent` pose au chemin `chemin` de sa donnée : à son utilisable absent, puis au rang
+ *  qui suit sa dernière action, l'action neuve que ses actions laissent libre (`actionNeuve`), par son identifiant. */
+function choixDuDecor(ent: SceneEntity, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+  const actions = ent.usable?.actions ?? [];
+  const neuve = actionNeuve(actions);
+  const pose = (valeur: unknown) => [{ valeur, libelle: neuve.id, refus: null }];
+  if (chemin.length === 1 && chemin[0] === 'usable') return ent.usable ? undefined : pose({ actions: [neuve] });
+  const ajout = chemin.length === ACTIONS_DU_DECOR.length + 1 && chemin[ACTIONS_DU_DECOR.length] === actions.length;
+  return ajout && ACTIONS_DU_DECOR.every((cle, i) => chemin[i] === cle) ? pose(neuve) : undefined;
+}
+
+/** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
+ *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
+ *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
+const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'schema'> } = {
+  personnage: { champs: champsDuPersonnage, choix: choixDuPersonnage },
+  prop: { champs: () => [ACTIONS_DU_DECOR], choix: choixDuDecor },
+  heroStart: { champs: () => [] },
+};
+
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
  *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
- *  condition d'entrée ; d'une entité, la branche de son type : d'un personnage, ses champs (`champsDuPersonnage`), aux
- *  choix de son contexte (`choixDuPersonnage`). */
+ *  condition d'entrée ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
   declencheur: { schema: triggerSchema, champs: () => [['when']] },
   entite: {
     schema: sceneEntitySchema,
-    champs: (ent, cadre) => (ent.kind !== 'personnage' ? [] : champsDuPersonnage(ent, cadre)),
-    choix: choixDuPersonnage,
+    champs: (ent, cadre) => FORMULAIRE_DU_TYPE[ent.kind].champs(ent, cadre),
+    choix: (ent, chemin, cadre) => FORMULAIRE_DU_TYPE[ent.kind].choix?.(ent, chemin, cadre),
   },
 };
 

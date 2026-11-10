@@ -691,3 +691,44 @@ describe('le navire de la scène éditée (#3772)', () => {
     expect(vueDeLaScene(s).layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
   });
 });
+
+describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const poser = (ref: string) => jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref } }, { geste: 'appui', point: point(1, 1) }, { geste: 'relache', point: point(1, 1) });
+  const decor = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel)!;
+  const valeur = (s: SessionDEdition, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id: decor(s).id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
+  const choixDuDecor = (s: SessionDEdition, chemin: Segment[]) => choixDuChamp('entite', decor(s), chemin, cadreDeLaSession(s))?.map((c) => c.valeur);
+  const fouille = (id: string) => ({ id, flow: { kind: 'seq', steps: [] }, unique: true });
+
+  it('une action s’ajoute sous le premier identifiant libre, s’écrit champ par champ, se renomme par son geste dédié sous un identifiant libre seulement ; la dernière retirée, l’utilisable part', () => {
+    const pose = poser('brasero');
+    expect(formulaireDe('entite', decor(pose), cadreDeLaSession(pose)).map((f) => f.key)).toEqual(['usable']);
+    expect(choixDuDecor(pose, ['usable']), 'l’utilisable absent se pose avec sa première action').toEqual([{ actions: [fouille('fouiller')] }]);
+    const une = jouer(pose, valeur(pose, ['usable'], { actions: [fouille('fouiller')] }));
+    expect(choixDuDecor(une, ['usable', 'actions', 1])).toEqual([fouille('fouiller-2')]);
+    const deux = jouer(une, valeur(une, ['usable', 'actions'], [fouille('fouiller'), fouille('fouiller-2')]));
+    const ecrite = jouer(deux, valeur(deux, ['usable', 'actions', 1, 'label'], 'Ouvrir le coffre'), valeur(deux, ['usable', 'actions', 1, 'consume'], true),
+      valeur(deux, ['usable', 'actions', 1, 'unique'], false), valeur(deux, ['usable', 'actions', 1, 'minutes'], 5));
+    expect(decor(ecrite).usable?.actions?.[1]).toEqual({ id: 'fouiller-2', label: 'Ouvrir le coffre', flow: { kind: 'seq', steps: [] }, consume: true, unique: false, minutes: 5 });
+    expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'id'], 'coffre')), 'l’identifiant ne s’écrit qu’à son geste dédié').toBe('nonOffert');
+    const pas = flowFromEffects([{ type: 'endDialogue' }]);
+    const enchainee = jouer(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow'], pas));
+    expect(decor(enchainee).usable?.actions?.[1].flow, 'l’enchaînement s’écrit entier').toEqual(pas);
+    expect(refusDeLaValeur(ecrite, valeur(ecrite, ['usable', 'actions', 1, 'flow', 'steps'], [null])), 'un pas que son schéma ne bâtit pas').toBe('horsSorte');
+    const renommee = jouer(ecrite, { geste: 'identifier', action: 'fouiller-2', id: ' coffre ' });
+    expect(decor(renommee).usable?.actions?.map((a) => a.id)).toEqual(['fouiller', 'coffre']);
+    expect(jouer(renommee, { geste: 'identifier', action: 'coffre', id: 'fouiller' }), 'un identifiant déjà porté : aucun cran').toBe(renommee);
+    expect(jouer(renommee, { geste: 'identifier', action: 'coffre', id: ' ' }), 'un identifiant vide : aucun cran').toBe(renommee);
+    const retiree = jouer(renommee, valeur(renommee, ['usable', 'actions'], [decor(renommee).usable!.actions![1]]), valeur(renommee, ['usable', 'actions'], []));
+    expect(decor(retiree).usable).toBeUndefined();
+  });
+
+  it('l’assise posée à ses places reste quand la dernière action part', () => {
+    const table = jouer(poser('table-ronde-4-tabourets'), { geste: 'entite', patch: { assise: true } });
+    const actions = decor(table).usable?.actions ?? [];
+    const neuve = choixDuDecor(table, ['usable', 'actions', actions.length])!;
+    const avec = jouer(table, valeur(table, ['usable', 'actions'], [...actions, ...neuve]));
+    expect(decor(avec).usable?.actions).toHaveLength(actions.length + 1);
+    expect(decor(jouer(avec, valeur(avec, ['usable', 'actions'], []))).usable).toEqual({ assise: true });
+  });
+});

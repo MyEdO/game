@@ -39,7 +39,7 @@ import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import { tileKey, type Pt as ScenePt } from './monde/path';
 import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { entiteFootTiles } from './monde/spawn';
-import { ACTION_FOUILLER } from './monde/usable';
+import { actionNeuve } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
 import { ancreDuDecor } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
@@ -801,7 +801,7 @@ export function propRefPatch(ref: string, avant: Pick<SceneEntity, 'usable' | 'f
   const usable = avant?.usable;
   const cap = capDecorAdmis(refEstVolumique(ref), avant?.facing) ? {} : { facing: CAP_IDENTITE_PROP };
   if (findPropById(ref)?.searchable && !usable?.actions?.length)
-    return { decor: { id: ref }, ...cap, usable: { ...usable, actions: [{ id: ACTION_FOUILLER, flow: EMPTY_FLOW, unique: true }] } };
+    return { decor: { id: ref }, ...cap, usable: { ...usable, actions: [actionNeuve([])] } };
   return { decor: { id: ref }, ...cap };
 }
 
@@ -1037,12 +1037,12 @@ type Objet = Record<string, unknown>;
 /** Le nœud admet-il que son champ soit retiré ? */
 const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
 
-/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin ;
- *  pour chaque élément, « Retirer », la liste sans lui, et « Monter », celle où il passe avant le précédent (`null`
- *  pour le premier). */
-export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[]; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
+/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
+ *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
+ *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
+export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
   return {
-    ajouter: [...liste, neuve],
+    ajouter: neuve === undefined ? null : [...liste, neuve],
     elements: liste.map((e, rang) => ({
       retirer: liste.filter((_, i) => i !== rang),
       monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
