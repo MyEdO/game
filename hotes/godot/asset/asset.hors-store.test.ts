@@ -7,7 +7,7 @@ import { afterEach, describe, expect, it } from 'vitest';
 import { empreinte, sha256 } from './empreinte.ts';
 import { ecrireGlb, GlbIllisible, lireGlb } from './glb.ts';
 import { chargerLicences, MANIFESTE_DE_PRODUCTION, TableDesLicencesInvalide } from './dossierDeProduction.ts';
-import { importerPersonnage } from './importer.ts';
+import { importerPersonnage as importerDuDepot } from './importer.ts';
 import { ecrireProduction, ProductionRefusee, type SourcesDeBase } from '../../../scripts/personnage-3d/base/production.ts';
 import { cheminsAbsolus } from './manifeste.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
@@ -20,6 +20,18 @@ import {
 } from './release.ts';
 import { fichiersDuModele, validerModele } from './modeles';
 import { epinglesAPublier, recupererEpingles } from './epingles.ts';
+
+/** Les constructions d'essai des éléments sur base qu'importent ces tests : un `modele.py` par clé (`constructionManquante`,
+ *  `importer.ts`). */
+const CONSTRUCTIONS = (() => {
+  const dossier = mkdtempSync(join(tmpdir(), 'constructions-'));
+  for (const id of ['rigide--epee', 'accessoire--plumet', 'accessoire--baudrier', 'armure--baudrier']) {
+    mkdirSync(join(dossier, 'humanoide', id), { recursive: true });
+    writeFileSync(join(dossier, 'humanoide', id, 'modele.py'), '');
+  }
+  return dossier;
+})();
+const importerPersonnage: typeof importerDuDepot = (a) => importerDuDepot({ constructions: CONSTRUCTIONS, ...a });
 
 /** Un GLB minimal : en-tête glTF 2 et chunk JSON portant `nodes` et `animations`. */
 function glb(noeuds: readonly string[], animations: readonly string[], options: { skinned?: readonly string[]; joints?: readonly string[] } = {}): Uint8Array {
@@ -197,6 +209,20 @@ describe('import et chargement des modèles modulaires', () => {
     if (!r.ok) expect(r.refus.join('\n')).toContain(`[${code}]`);
     expect(verses).toEqual([]);
     expect(listerDossier(destination).map(f => [f, readFileSync(join(destination, f)).toString('base64')])).toEqual(avant);
+  });
+  it('refuse un élément sur base sans construction dans le dépôt, sauf hors Release, sans rien écrire', () => {
+    const destination = temporaire();
+    expect(importerDuDepot({ dossier: productionDeTest(temporaire(), baseDeTest(), GLB_DE_BASE), id: 'humanoide', destination, date: '2026-11-08', publier: null }).ok).toBe(true);
+    const vides = mkdtempSync(join(tmpdir(), 'constructions-'));
+    const production = productionDeTest(temporaire(), elementSchema3(), GLB_D_ELEMENT);
+    const avant = listerDossier(destination);
+    expect(importerDuDepot({ dossier: production, id: 'epee', destination, date: '2026-11-08', publier: null, constructions: vides })).toEqual({
+      ok: false, refus: [`[construction-absente] epee : ${join(vides, 'humanoide', 'rigide--epee', 'modele.py')}, la construction de l’élément dans le dépôt attendue`],
+    });
+    expect(listerDossier(destination)).toEqual(avant);
+    const chemin = join(production, MANIFESTE_DE_PRODUCTION);
+    writeFileSync(chemin, JSON.stringify({ ...JSON.parse(readFileSync(chemin, 'utf8')), hors_release: 'essai sur le poste' }));
+    expect(importerDuDepot({ dossier: production, id: 'epee', destination, date: '2026-11-08', publier: null, constructions: vides }).ok).toBe(true);
   });
   it('seule la déclaration propre de l’élément le tient hors Release, sa base reste publiée', async () => {
     const destination = temporaire();

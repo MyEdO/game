@@ -40,7 +40,7 @@ describe('Scénario 95 — Poursuite terrestre', () => {
     expect(enc).toBeTruthy();
     const members = enc.members ?? [];
     expect(members.length).toBe(3);
-    const refs = members.map((m) => scenarioConstruit.scene.entities.find((e) => e.id === m.entityId)?.ref);
+    const refs = members.map((m) => scenarioConstruit.scene.entities.find((e) => e.id === m.entityId)?.creature?.id);
     expect(refs.every((r) => r === 'humain')).toBe(true);
   });
 });

@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { acheterAuMarche } from './cargaison.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from './battleRng.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -110,7 +111,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
   it('CÂBLAGE : la porte du seam pose la Compétence NUE en `step.base`, le Soutien en ligne de mod', () => {
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
-    get().acheterLaCargaison('vessel', 'bois-mer', 20);
+    acheterAuMarche(get, 'port', 'vessel', 'bois-mer', 20);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
     expect(step.kind).toBe('port-buy-bargain');
     expect(step.base).toBe(45); // Niveau de Compétence NU (LDB 09 l.17) — la grandeur du départage (l.160)
@@ -240,7 +241,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
 /** Marchandage de l'armurier ambulant (Marchandage 45) ouvert sur un groupe donné. */
 function setupAmbulant(party: Combatant[]): void {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
+  sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
   set({ party, scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().ouvrirLeMarchand('pnj');
 }
@@ -249,7 +250,7 @@ function setupAmbulant(party: Combatant[]): void {
 function marchanderEgalite(): void {
   const { leader, helper } = pairAvecSoutien(40);
   setupAmbulant([leader, helper]);
-  get().marchanderLePrix('buy');
+  get().fenetreChoisir('marchand', 'marchander', 'buy');
   imposerLesD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
   get().jetLancer('bargain');
 }
@@ -258,10 +259,10 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
   beforeEach(() => setRule('test-auto-bands', 'off'));
   afterEach(() => { vi.restoreAllMocks(); });
 
-  it('CÂBLAGE : `marchanderLePrix` fond le Soutien dans `playerSkill` et en porte le détail (`support`)', () => {
+  it('CÂBLAGE : `marchand.marchander` fond le Soutien dans `playerSkill` et en porte le détail (`support`)', () => {
     const { leader, helper } = pairAvecSoutien(40);
     setupAmbulant([leader, helper]);
-    get().marchanderLePrix('buy');
+    get().fenetreChoisir('marchand', 'marchander', 'buy');
     const pb = get().pendingBargain!;
     expect(pb.support?.bonus).toBe(10); // 1 soutien éligible (l.189-190)
     expect(pb.playerSkill).toBe(50); // 40 (Compétence) + 10 (Soutien) — FONDU par `partyAssisted`

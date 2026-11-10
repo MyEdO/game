@@ -8,7 +8,7 @@ import { emptyScene } from '../../../noyau/monde/scene';
 
 const scene = (apparences: Record<string, string>) => ({
   ...emptyScene('scene-test', 2, 2),
-  entities: [{ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, appearance: { apparencesObjets: Object.fromEntries(Object.entries(apparences).map(([objet, id]) => [objet, { id }])) } }],
+  entities: [{ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, appearance: { apparencesObjets: Object.fromEntries(Object.entries(apparences).map(([objet, id]) => [objet, { id }])) } }],
 });
 
 describe('apparences d’objets d’auteur : références validées au parse de scène', () => {

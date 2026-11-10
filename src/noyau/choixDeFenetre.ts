@@ -22,23 +22,40 @@ import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
 import { corruptionTarget } from './corruptionFlow';
-import { activityById } from '../engine/activities';
+import { activityById, cleDEntrainement, craftCatalog, entrainementOptions, learnableTalents, qualitesDArtisanat, type ActivityDef, type ActivityResolver } from '../engine/activities';
+import { describeQuality } from '../engine/qualities/describe';
+import { libelleDePsy } from '../engine/psych/ciblage';
+import { formatMoney, fromBrass } from '../engine/money';
+import { interludeCatalog } from './interludeFlow';
+import {
+  brouillonDe, ciblesDActivite, refusDeLaComposition, refusDeLaValeur, type CompositionDActivite,
+} from './verdictsDInterlude';
 import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
 import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
 import type { IdDeHeros } from './designations';
 import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './partyFlow';
-import { BAISSES_DE_PRIX_MAX, catalogEntryOf, contexteDAchat, libelleDeLaRepartition, refusDAjout, sellRefusal, type MerchantState } from './merchantFlow';
+import {
+  BAISSES_DE_PRIX_MAX, MODES_DE_MARCHE, barterRefusal, catalogEntryOf, contexteDAchat, demandeDuTroc, devisDeTroc, devisDeVente, devisDuPanier, exemplaireCede, libelleDeLaRepartition, objetsAReparer,
+  optionsDeTroc, refusDAjout, refusDeMarchandage, refusDeRecherche, refusDeRefusDuMarche, sellRefusal, type MerchantState, type ModeDeMarche,
+} from './merchantFlow';
+import { findTrappingById } from '../data/index';
 import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
-import { refusDAlea } from './massBattleFlow';
+import { battleSceneById, herosQuiSePostent, postesDeBataille, refusDAlea, refusDeMelee, refusDeRassemblement, refusDeSceneDeBataille } from './massBattleFlow';
+import { formatDice } from '../engine/dice';
+import { massBattleHazardsDie } from '../data';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { inBattleId } from './monde/combatants';
-import type { ItemInstance } from '../engine/types';
+import type { Combatant, ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
 import { creaturesDeLaRecolte, refusDeDepecer } from './combatEffects';
+import { FORMULES_DES_MARCHES, devisDeLAchat, type FenetreDuMarche } from './cargaison';
+import { bulkCarriers } from './carriers';
+import { carrierFreeEnc, findCargoById } from '../engine/cargo';
+import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import {
   VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -100,6 +117,11 @@ const objetsALEchoppe = (axe: AxeDe<'marchand'>, retenu: (it: ItemInstance, m: M
     const m = s.merchant;
     return m ? s.party.flatMap((h) => (h.items ?? []).filter((it) => retenu(it, m)).map((it) => ouverte(it.uid, itemLabel(it), refus(it)))) : [];
   });
+/** Les valeurs du choix `axe` de l'échoppe ouverte `m` (`valeurs`), et sa valeur courante. */
+const aLEchoppe = (axe: AxeDe<'marchand'>, valeurs: (s: Jeu, m: MerchantState) => readonly ValeurDuReglage[], courant?: (s: Jeu) => ValeurDuReglage['valeur']) =>
+  reglage('marchand', axe, (s) => (s.merchant ? valeurs(s, s.merchant) : []), courant);
+/** Le côté `mode` d'un marché, fermé par `refus`. */
+const duMarche = (mode: ModeDeMarche, refus: string | null): ValeurDuReglage => ouverte(mode, garanti(libelleDuLitteral(mode), mode, 'côté du marché'), refus);
 const baissesDe = (m: MerchantState, it: ItemInstance): number => m.sellHalvings?.[it.uid] ?? 0;
 const enVente = (m: MerchantState, it: ItemInstance): boolean => (m.sellCart ?? []).some((c) => c.uid === it.uid);
 /** Le héros `pid` d'une rangée, hors de toute rangée tout héros : un héros du groupe. */
@@ -117,6 +139,86 @@ const duRepos = (v: string, axe: 'couchage' | 'pitance'): ValeurDuReglage => ouv
 
 /** Le combattant `id` de la bataille, nommé. */
 const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, garanti(inBattleId(s.battle, id), id, 'combattant de la pause').label);
+
+/** Ce qu'une valeur coûte, dit avec elle : une valeur de liste ne se montre que par son libellé. */
+export const auPrix = (label: string, prix: string): string => t('interlude.prix', { label, prix });
+
+/** Les Activités que compose un héros de l'interlude : celles du catalogue de ce lieu (`interludeCatalog`), hors de la
+ *  préparation de bataille (`menerLActionDeBataille`) et du Mécénat, une Opération bancaire. LDB 23 l.5 */
+export const activitesComposables = (s: Jeu): ActivityDef[] => interludeCatalog(s).filter((d) => !d.contexts.includes('bataille') && d.resolver !== 'mecenat');
+
+/** Le héros `pid` de l'interlude ouvert, l'Activité qu'il compose et sa composition, quand ce que lit `lue` (le
+ *  résolveur de l'Activité, et l'Artisanat en cours) la retient. */
+const composee = (s: Jeu, pid: IdDeHeros | undefined, lue: (resolver: ActivityResolver | undefined, h: Combatant) => boolean) => {
+  const c = pid === undefined ? undefined : s.interlude?.perHero[pid]?.composition;
+  const h = c && s.party.find((x) => x.id === pid);
+  const def = c && activityById(c.activite);
+  return h && c && def && lue(def.resolver, h) ? { h, c, def } : null;
+};
+/** Une Activité du catalogue, hors de ce que l'Artisanat, l'Apprentissage et l'Entraînement composent à part. */
+const duCatalogue = (r: ActivityResolver | undefined): boolean => r !== 'craftExtended' && r !== 'learnTalent' && r !== 'entrainement';
+/** L'ouvrage d'Artisanat à engager, le héros n'en ayant pas en cours. LDB 23 l.76 */
+const aEngager = (r: ActivityResolver | undefined, h: Combatant): boolean => r === 'craftExtended' && !h.craft;
+/** Le choix de la cible `cle` de l'Activité composée du catalogue : chacune de `liste`, fermée par son refus (`refusDeLaValeur`). */
+const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsy', cle: keyof CompositionDActivite['cibles'], liste: (h: Combatant, def: ActivityDef) => readonly T[], valeur: (x: T) => string, libelle: (x: T) => string) =>
+  reglage('interlude', axe, (s, pid) => {
+    const lu = composee(s, pid, duCatalogue);
+    return lu ? liste(lu.h, lu.def).map((x) => ouverte(valeur(x), libelle(x), refusDeLaValeur(s, lu.h.id, lu.c, axe, valeur(x)))) : [];
+  }, (s, pid) => composee(s, pid, duCatalogue)?.c.cibles[cle] ?? null);
+/** Un Atout ou un Défaut d'Artisanat, nommé. */
+const qualite = (id: string): ValeurDuReglage => ouverte(id, garanti(describeQuality({ id }), id, 'qualité d’artisanat').label);
+/** Les qualités que vise l'ouvrage composé (`retenue`), parmi les Atouts puis les Défauts. LDB 23 l.95 */
+const qualitesDeLOuvrage = (axe: 'ajouterLaQualite' | 'retirerLaQualite', retenue: (c: CompositionDActivite, q: string) => boolean) =>
+  reglage('interlude', axe, (s, pid) => {
+    const lu = composee(s, pid, aEngager);
+    const { atouts, defauts } = qualitesDArtisanat();
+    return lu ? [...atouts, ...defauts].filter((q) => retenue(lu.c, q)).map(qualite) : [];
+  });
+const visee = (c: CompositionDActivite, q: string): boolean => c.atouts.includes(q) || c.defauts.includes(q);
+/** Les choix du marché de cargaison `fenetre` ouvert : chaque offre, et sur l'achat en composition (`cargaison.ts`) chaque
+ *  porteur du groupe fermé par la raison du marché, l'Enc borné par le devis, la conclusion fermée par sa raison ; chaque
+ *  lot des porteurs du groupe, sa vente et son bradage fermés par la raison du marché. */
+const choixDuMarche = (fenetre: FenetreDuMarche) => {
+  const f = FORMULES_DES_MARCHES[fenetre];
+  const ouvert = (s: Jeu): boolean => garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre de marché').ouverte(s);
+  const brouillon = (s: Jeu) => (ouvert(s) ? f.brouillon(s) : undefined);
+  const lots = (s: Jeu, refus: (porteur: string, cargoId: string) => string | null): ValeurDuReglage[] => (ouvert(s)
+    ? bulkCarriers(s).flatMap((c) => c.cargo.map((l) => ouverte(l.uid, t('valeur.lot', { lot: findCargoById(l.cargoId)?.label ?? l.cargoId, enc: l.enc, porteur: c.label }), refus(c.id, l.cargoId))))
+    : []);
+  return {
+    offre: reglage(fenetre, 'offre', (s) => (ouvert(s) ? f.offres(s).map((o) => ouverte(o.cargoId, o.label)) : []), (s) => brouillon(s)?.offre ?? null),
+    porteur: reglage(fenetre, 'porteur', (s) => {
+      const achat = brouillon(s);
+      return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), f.refusDuPorteur(s, c.id))) : [];
+    }, (s) => brouillon(s)?.porteur ?? null),
+    // De 1 à la borne du devis.
+    enc: (s: Jeu): Reglage => {
+      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'enc' as const }, libelle: libelleDuChoix(fenetre, 'enc'), note: null };
+      const achat = brouillon(s);
+      const max = achat ? f.devis(s, achat.porteur, achat.offre).max : 0;
+      return achat && max >= 1
+        ? { ...base, courant: achat.enc, valeurs: null, bornes: { min: 1, max, pas: 1 } }
+        : { ...base, courant: null, valeurs: [], bornes: null };
+    },
+    acheter: reglage(fenetre, 'acheter', (s) => {
+      const achat = brouillon(s);
+      return achat ? [ouverte(true, libelleDuChoix(fenetre, 'acheter'), devisDeLAchat(s, f, achat).refus)] : [];
+    }),
+    vendre: reglage(fenetre, 'vendre', (s) => lots(s, (porteur) => f.refusDuPorteur(s, porteur))),
+    jeter: reglage(fenetre, 'jeter', (s) => lots(s, (porteur, cargoId) => f.refusDuPorteur(s, porteur) ?? f.refusDeBradage(s, cargoId))),
+  };
+};
+
+/** La bataille de masse est-elle à un Round ? */
+const enRoundDeBataille = (s: Jeu): boolean => s.massBattle?.phase === 'round';
+/** Chaque poste de la bataille (`postesDeBataille`) que `retenu` garde pour le héros `pid` qui se poste
+ *  (`herosQuiSePostent`), lu sur les PJ qui y sont postés ; hors de toute rangée, ce qu'il garde pour l'un d'eux. */
+const postesDuHeros = (s: Jeu, pid: IdDeHeros | undefined, retenu: (postes: readonly string[], heroId: string) => boolean): ValeurDuReglage[] => {
+  const mb = s.massBattle;
+  if (!mb) return [];
+  const heros = herosQuiSePostent(mb, s.party).map((h) => h.id).filter((id) => pid === undefined || id === pid);
+  return postesDeBataille(mb).filter((def) => heros.some((h) => retenu(mb.assignment[def.id] ?? [], h))).map((def) => ouverte(def.id, def.label));
+};
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
@@ -187,6 +289,38 @@ export const OUVERTS_DU_CHOIX = {
     baisserLePrix: objetsALEchoppe('baisserLePrix', (it, m) => sellRefusal(it) === null && baissesDe(m, it) < BAISSES_DE_PRIX_MAX),
     releverLePrix: objetsALEchoppe('releverLePrix', (it, m) => baissesDe(m, it) > 0),
     repartition: reglage('marchand', 'repartition', (s, pid) => (duGroupe(s, pid) ? (s.merchant?.pendingDistribution ?? []).map((d) => ouverte(d.uid, libelleDeLaRepartition(d))) : [])),
+    payer: aLEchoppe('payer', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'payer'), devisDuPanier(m, contexteDAchat(s, m)).refus)]),
+    vendre: aLEchoppe('vendre', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'vendre'), devisDeVente(m, s.party).refus)]),
+    refuser: aLEchoppe('refuser', (_s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeRefusDuMarche(m, mode)))),
+    marchander: aLEchoppe('marchander', (s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeMarchandage(s, m, mode)))),
+    chercher: aLEchoppe('chercher', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'chercher'), refusDeRecherche(s, m))]),
+    reparer: aLEchoppe('reparer', (s) => objetsAReparer(s.party).map((o) => ouverte(o.item.uid, `${o.item.label} · ${o.hero.label}`, o.refus))),
+    // LDB 59 l.64-76
+    trocCeder: aLEchoppe('trocCeder', (s) => optionsDeTroc(s.party).map((o) => {
+      const hero = garanti(s.party.find((h) => h.id === o.heroId), o.heroId, 'héros cédant');
+      return ouverte(exemplaireCede(hero, o.trappingId), `${garanti(findTrappingById(o.trappingId), o.trappingId, 'bien cédé').label} ×${o.count} (${hero.label})`, o.refus);
+    }), (s) => {
+      const cede = s.merchant?.troc?.cede;
+      const hero = cede && s.party.find((h) => h.id === cede.heroId);
+      return hero && cede ? exemplaireCede(hero, cede.trappingId) : null;
+    }),
+    trocRecevoir: aLEchoppe('trocRecevoir', (_s, m) => m.stock.filter((l) => l.qty > 0).map((l) => {
+      const refus = barterRefusal(l.id);
+      return { ...article(l.id), refus: refus && t('trade.barterRefused', { reason: refus }) };
+    }), (s) => s.merchant?.troc?.recu ?? null),
+    // Les exemplaires acquis : de 1 au stock de l'article choisi.
+    trocQuantite: (s): Reglage => {
+      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre: 'marchand' as const, axe: 'trocQuantite' as const }, libelle: libelleDuChoix('marchand', 'trocQuantite'), note: null };
+      const troc = s.merchant?.troc;
+      const stock = troc?.recu ? s.merchant?.stock.find((l) => l.id === troc.recu)?.qty ?? 0 : 0;
+      return troc && stock > 0
+        ? { ...base, courant: troc.quantite, valeurs: null, bornes: { min: 1, max: stock, pas: 1 } }
+        : { ...base, courant: null, valeurs: [], bornes: null };
+    },
+    troquer: aLEchoppe('troquer', (s, m) => {
+      const demande = demandeDuTroc(m);
+      return demande ? [ouverte(true, libelleDuChoix('marchand', 'troquer'), devisDeTroc(m, s.party, demande).refus)] : [];
+    }),
   },
   loot: { ligne: lignesDuButin('loot', (s) => s.pendingLoot?.gear) },
   // ZI 13
@@ -213,10 +347,52 @@ export const OUVERTS_DU_CHOIX = {
       return tireurs.length || s.preemptAiming ? [ouverte(null, t('valeur.viser.aucun')), ...tireurs.map((id) => combattant(s, id))] : [];
     }, (s) => s.preemptAiming),
   },
-  // ADE II 08 l.309
-  batailleDeMasse: {
-    alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle?.phase === 'round' ? BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s))) : [])),
+  // LDB 23 l.5 : chaque héros compose son Activité, puis la pratique.
+  interlude: {
+    activite: reglage('interlude', 'activite', (s, pid) => {
+      const h = pid === undefined || !s.interlude?.perHero[pid] ? undefined : s.party.find((x) => x.id === pid && !x.dead);
+      return h ? activitesComposables(s).map((def) => ouverte(def.id, def.label, refusDeLaComposition(s, h.id, brouillonDe(s.interlude?.perHero[h.id]?.composition, def.id), false))) : [];
+    }, (s, pid) => (pid === undefined ? null : s.interlude?.perHero[pid]?.composition?.activite ?? null)),
+    // LDB 23 l.66-72
+    talent: reglage('interlude', 'talent', (s, pid) => {
+      const lu = composee(s, pid, (r) => r === 'learnTalent');
+      return lu ? learnableTalents(lu.h).map((o) => ouverte(o.id, auPrix(o.label, t('interlude.px', { px: o.xpCost })), refusDeLaValeur(s, lu.h.id, lu.c, 'talent', o.id))) : [];
+    }, (s, pid) => composee(s, pid, (r) => r === 'learnTalent')?.c.cibles.talentId ?? null),
+    // LDB 23 l.132-136
+    entrainement: reglage('interlude', 'entrainement', (s, pid) => {
+      const lu = composee(s, pid, (r) => r === 'entrainement');
+      return lu ? entrainementOptions(lu.h).map((o) => ouverte(cleDEntrainement(o), auPrix(o.label, t('interlude.px', { px: o.xpCost })), refusDeLaValeur(s, lu.h.id, lu.c, 'entrainement', cleDEntrainement(o)))) : [];
+    }, (s, pid) => composee(s, pid, (r) => r === 'entrainement')?.c.entrainement ?? null),
+    // LDB 23 l.74-78
+    ouvrage: reglage('interlude', 'ouvrage', (s, pid) => {
+      const lu = composee(s, pid, aEngager);
+      return lu ? craftCatalog().map((o) => ouverte(o.id, auPrix(o.label, formatMoney(fromBrass(o.materialsBrass))), refusDeLaValeur(s, lu.h.id, lu.c, 'ouvrage', o.id))) : [];
+    }, (s, pid) => composee(s, pid, aEngager)?.c.ouvrage ?? null),
+    ajouterLaQualite: qualitesDeLOuvrage('ajouterLaQualite', (c, q) => !visee(c, q)),
+    retirerLaQualite: qualitesDeLOuvrage('retirerLaQualite', visee),
+    objet: cibleDuCatalogue('objet', 'itemUid', (h, def) => { const { armes, artefacts } = ciblesDActivite(h, def); return [...armes, ...artefacts]; }, (i) => i.uid, (i) => i.label),
+    sort: cibleDuCatalogue('sort', 'spellId', (h, def) => ciblesDActivite(h, def).sorts, (x) => x.spell.id, (x) => auPrix(x.spell.label, t('interlude.px', { px: x.cost }))),
+    traitPsy: cibleDuCatalogue('traitPsy', 'traitPsy', (h, def) => ciblesDActivite(h, def).traitsPsy, (x) => x.cle, (x) => libelleDePsy(x.trait.type, x.trait.cible)),
+    pratiquer: reglage('interlude', 'pratiquer', (s, pid) => {
+      const lu = composee(s, pid, () => true);
+      return lu ? [ouverte(true, libelleDuChoix('interlude', 'pratiquer'), refusDeLaComposition(s, lu.h.id, lu.c))] : [];
+    }),
   },
+  // ADE II 08 l.81, l.116-124, l.309 : la Scène et le Test spectaculaire au Round ; les postes en préparation aussi.
+  batailleDeMasse: {
+    scene: reglage('batailleDeMasse', 'scene', (s) => (enRoundDeBataille(s) ? s.massBattle!.situation.map((id) => ouverte(id, garanti(battleSceneById(id), id, 'Scène de bataille').label, refusDeSceneDeBataille(s, id))) : [])),
+    engager: reglage('batailleDeMasse', 'engager', (s) => (enRoundDeBataille(s) ? [ouverte(true, libelleDuChoix('batailleDeMasse', 'engager'), refusDeMelee(s))] : [])),
+    rallier: reglage('batailleDeMasse', 'rallier', (s) => (s.massBattle ? [ouverte(true, libelleDuChoix('batailleDeMasse', 'rallier'), refusDeRassemblement(s))] : [])),
+    ajouterAuPoste: reglage('batailleDeMasse', 'ajouterAuPoste', (s, pid) => postesDuHeros(s, pid, (postes, h) => !postes.includes(h))),
+    retirerDuPoste: reglage('batailleDeMasse', 'retirerDuPoste', (s, pid) => postesDuHeros(s, pid, (postes, h) => postes.includes(h))),
+    alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle
+      ? [ouverte(null, t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), refusDAlea(s)), ...BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s)))]
+      : [])),
+  },
+  // MDG 15 l.319-399, MSRC 13 l.129-160
+  port: choixDuMarche('port'),
+  marcheDeTerre: choixDuMarche('marcheDeTerre'),
+  ecranDuLieu: { entrer: reglage('ecranDuLieu', 'entrer', (s) => entreesDuLieu(s).map((p) => ouverte(p.id, p.label, refusDEntrerAuPoint(s, p)))) },
   // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   finDeSeance: {
     ambitionCourte: caseDuGroupe('ambitionCourte'),

@@ -84,7 +84,7 @@ describe('Cascade séquentielle influençable', () => {
     // Une étape insérée passe par un mint de la porte (`insert` n'accepte aucun littéral) : valeur
     // FOURNIE (40) à Intermédiaire (+0) — base 40, cible 40, comme le montage à la main d'avant.
     function step1Insert(actor: Combatant, id: string): BuiltCascadeStep {
-      return monoStep({ id, kind: cleDeFixture('tally'), actor, label: fixtureText(id), rollLabel: 'Résistance', difficulty: 'intermediaire', stake: combatStakeRef('fatigue'), ligne: { valeur: 40, valeurEtrangere: true } })!;
+      return monoStep({ id, kind: cleDeFixture('tally'), actor, label: fixtureText(id), rollLabel: 'Résistance', difficulty: 'intermediaire', stake: combatStakeRef('combat-fatigue'), ligne: { valeur: 40, valeurEtrangere: true } })!;
     }
     // Abri FORCÉ raté (dé 99) → insère 2 étapes d'Exposition.
     const shelter: CascadeStep = { id: 'abri', kind: 'shelter', actorId: h.id, label: fixtureText('Abri'), rollLabel: 'Survie', base: 40, target: 40, result: { roll: 99, target: 40, sl: -5, success: false }};

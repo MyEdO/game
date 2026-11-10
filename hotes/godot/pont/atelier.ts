@@ -14,7 +14,7 @@
  * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
  * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
  */
-import type { Attache, Repere } from '../asset/attache';
+import { rangDeCase, type Attache, type EmplacementOffert, type Repere } from '../asset/attache';
 import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
@@ -35,16 +35,8 @@ export interface ModelesDeLAtelier {
    *  celui de la prise retenue, sans miroir (#3319). Un objet tenu va aussi aux emplacements où se range sa forme
    *  `cle.apparence` (`emplacementsDeRangement` de la surface du noyau : le `rangement` des trappings de cette forme,
    *  puis chaque emplacement où un preset range un objet de cette apparence, `rangementsObjets`), et Godot l'y
-   *  range à plat contre le corps : le +Y de sa prise vers le bas du personnage, son +X (la paume) sur la normale
-   *  sortante de l'emplacement (sa position hors de l'axe de l'os, à défaut l'avant), si bien que la lame ou le fer,
-   *  dans le plan YZ de la prise, longe le corps ; la boîte pend de son haut, sa face arrière à 5 mm de la peau ou du
-   *  vêtement porté (ceinture comprise) qui saille le plus à cette hauteur, et penche, le bas vers le dehors, pour
-   *  passer au même jeu ce qui saille plus bas, la peau et les vêtements pris au repos, morphes posés. Un objet plus
-   *  long que la hauteur de son emplacement au-dessus du sol passe en bandoulière : à plat, le fer en haut, penché de
-   *  30° vers la droite du personnage, le milieu de sa boîte sur l'emplacement, sa face arrière à 5 mm de ce qui saille
-   *  le plus sous toute sa longueur (`MiseEnPage.axe_de_rangement`, `MiseEnPage.repere_de_rangement`,
-   *  `MiseEnPage.repere_en_bandouliere`, `MontageDeComposition._ranger`). Une attache
-   *  se pose en Euler XYZ de three, R = Rx·Ry·Rz (`asset/attache.ts`, `MontageDeComposition.repere`)
+   *  range (section « Atelier 3D », `MontageDeComposition._ranger`). Une attache se pose en Euler XYZ de three, R
+   *  = Rx·Ry·Rz (`asset/attache.ts`, `MontageDeComposition.repere`)
    *  (`.claude/skills/creer-un-personnage-3d/references/procedure.md`, rigide tenu ; `asset/evaluateur/evaluer.ts`,
    *  `monter`). Un rigide dont aucun mesh ne pend à un os (décor, véhicule, mesh à la racine) n'a aucun point ni
    *  ligne ; un élément lié au `squelette` ou en `surface`, ou un accessoire, n'a aucun point. Les `lignes` d'une
@@ -166,7 +158,7 @@ export interface BaseDeLAtelier {
 /**
  * @contrat Atelier 3D
  * Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
- * montent.
+ * montent. Les emplacements sont ceux de la base, puis ceux qu'offrent ses pièces sans que la base les offre.
  */
 export interface PointDAccroche {
   /** l'id de l'emplacement ou de la prise. */
@@ -175,10 +167,14 @@ export interface PointDAccroche {
   label: string;
   /** emplacement ou prise. */
   genre: 'emplacement' | 'prise';
-  /** son repère sur un os de la base. */
+  /** son repère sur un os de la base ; offert par des pièces, celui de la première (`offertPar`). */
   attache: Attache;
   /** les ids des éléments qui s'y montent. */
   elements: string[];
+  /** absent, la base l'offre ; sinon, par id d'élément de pièce qui l'offre (`emplacements` de son manifeste), son
+   *  repère et les os qu'il suit : Godot n'y range un objet que sous une pièce montée qui l'offre, à son repère, qui
+   *  suit ses `poids` (#3844). */
+  offertPar?: Record<string, EmplacementOffert>;
 }
 
 /**
@@ -264,8 +260,12 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
   const rangs: Record<string, { rang: number; couvre: readonly string[] }> = {};
   const catalogues = cataloguesDeComposition();
-  const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string =>
-    (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === id)?.label ?? id;
+  const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string => {
+    const [racine] = id.split('#');
+    const label = (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === racine)?.label ?? racine;
+    const rang = rangDeCase(id);
+    return rang === undefined ? label : `${label} ${rang}`;
+  };
   const libelleDeLAxe = (champ: 'tete' | 'coiffure'): string => catalogues.axes.find((a) => a.champ === champ)!.label;
   const servir = (servis: readonly EntreeDeModele[]): string[] =>
     servis.map(({ id, brut }) => {
@@ -298,7 +298,16 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
         const offert = genre === 'prise' ? (e: EntreeDeModele) => pendA(e, osDesPrises) : (e: EntreeDeModele) => pendA(e, [attache.os]) || seRangeIci(e);
         return { id: pointId, label: libelleDuPoint(pointId, genre), genre, attache, elements: servir(objets.filter(offert)) };
       });
-    const points = [...pointsDe('emplacement', m.emplacements), ...pointsDe('prise', m.prises ?? {})];
+    const offerts = new Map<string, Record<string, EmplacementOffert>>();
+    for (const e of pieces) {
+      for (const [pointId, attache] of Object.entries((e.brut as { emplacements?: Readonly<Record<string, EmplacementOffert>> }).emplacements ?? {}))
+        if (!(pointId in m.emplacements)) offerts.set(pointId, { ...offerts.get(pointId), [e.id]: attache });
+    }
+    const points = [
+      ...pointsDe('emplacement', m.emplacements),
+      ...pointsDe('emplacement', Object.fromEntries([...offerts].map(([pointId, par]) => [pointId, Object.values(par)[0]]))).map((p) => ({ ...p, offertPar: offerts.get(p.id)! })),
+      ...pointsDe('prise', m.prises ?? {}),
+    ];
     const choix = (idDeChoix: string, label: string, porte: (e: EntreeDeModele) => boolean): ChoixDeLigne => ({ id: idDeChoix, label, elements: servir(pieces.filter(porte)) });
     const racineDe = (e: EntreeDeModele) => {
       const piece = cleDe(e.brut).piece;
@@ -342,7 +351,7 @@ export interface PosteMonte {
 type ManifesteDeVehicule = Extract<ManifesteDElement, { categorie: 'vehicule' }>;
 
 /** Les postes du véhicule de manifeste `manifeste` qui porte les Améliorations `ameliorations` : ceux de son manifeste,
- *  chaque bord que nomme `selon.<amelioration>.postes` d'une Amélioration montée remplacé par les siens (MDG p.97). */
+ *  chaque bord que nomme `selon.<amelioration>.postes` d'une Amélioration montée remplacé par les siens (MDG 12 l.362). */
 export const postesEnVigueur = (manifeste: unknown, ameliorations: readonly string[]): ManifesteDeVehicule['postes'] => {
   const { postes, selon } = manifeste as ManifesteDeVehicule;
   return Object.assign({}, postes, ...ameliorations.map((a) => selon?.[a]?.postes));

@@ -177,16 +177,16 @@ describe('Nuit — contagion / cauchemars / entretien différé montés par `rol
     runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) });
 
     const kinds = deferred.map((t) => t.kind).sort();
-    expect(kinds, 'la journée doit bien produire les 4 familles visées').toEqual(['dessoulage', 'faim', 'soif', 'traumaFracture']);
+    expect(kinds, 'la journée doit bien produire les 4 familles visées').toEqual(['dessoulage', 'faim', 'soif', 'trauma-fracture']);
     for (const st of deferredUpkeepSteps(get().party, deferred)) {
       expect(inexplique(st), `chip « autres » sur l’étape ${st.kind}`).toBe(0);
     }
     // TOUS les producteurs NOMMENT leur Test et livrent une base NUE (#1685 : plus une seule formule maison).
     const nomme = deferred.filter((t) => t.test).map((t) => t.kind).sort();
-    expect(nomme, 'les quatre familles nomment leur Test').toEqual(['dessoulage', 'faim', 'soif', 'traumaFracture']);
+    expect(nomme, 'les quatre familles nomment leur Test').toEqual(['dessoulage', 'faim', 'soif', 'trauma-fracture']);
     const faim = deferred.find((t) => t.kind === 'faim')!;
     expect(faim.base).toBe(skillBaseValue(eprouve, { skill: { id: 'resistance' }, characteristic: 'endurance' }));
-    const conv = deferred.find((t) => t.kind === 'traumaFracture')!;
+    const conv = deferred.find((t) => t.kind === 'trauma-fracture')!;
     // Convalescence = « Test de Résistance Accessible (+20) » (LDB 18 l.202) : base NUE, État en chip.
     expect(conv.test).toEqual({ skill: { id: 'resistance' } });
     expect(conv.base).toBe(skillBaseValue(eprouve, { skill: { id: 'resistance' } }));
@@ -237,7 +237,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     fresh([marcheur]);
     const p = { ...restPending([marcheur], 'auberge'), travelMarch: [marcheur.id] } as never as PendingRest;
     const { steps } = buildNightCascade(get, set, p, { fedDaily: true });
-    const st = jetDe(steps.find((s) => s.kind === 'forcedMarch')!);
+    const st = jetDe(steps.find((s) => s.kind === 'forced-march')!);
     const nue = skillBaseValue(marcheur, { skill: { id: 'resistance' }, characteristic: 'endurance' });
     const jetee = testValue(marcheur, { skill: { id: 'resistance' }, characteristic: 'endurance' });
     expect(jetee, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
@@ -323,7 +323,7 @@ describe('Nuit — les 5 étapes de `restFlow` montées par `rollStep` (#1153 vo
     desso.participants![0].result = { roll: 50, target: desso.participants![0].target, sl: 0, success: true } as never;
     const out = applierDe('dessoulage')!(get, set, desso, get().party[0], { steps, index: 0 } as never);
     const bande = (out!.insert ?? [])[0];
-    expect(bande.kind).toBe('dessoulageHangover');
+    expect(bande.kind).toBe('dessoulage-hangover');
     const st = jetDe(bande);
     expect(st.label).toBe("Résistance à l'alcool");
     expect(st.base, 'base NUE — l’État a sa chip').toBe(skillBaseValue(ivre, { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' }));
@@ -341,7 +341,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     });
     const blesse = hero({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 4) });
     fresh([doc, blesse]);
-    get().ouvrirLeMedecin({ patientId: 'al' });
+    get().ouvrirLeMedecin('al');
     const ph = get().pendingHeal!;
     // Aucun soutien possible (le patient n'a pas Guérison) → la cible est celle du soigneur seul.
     expect(ph.target).toBe(clampTarget(testValue(doc, { skill: { id: 'guerison' } }) + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
@@ -356,7 +356,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     } as never);
     fresh([doc, patient]);
     set({ pendingSurgery: null } as never);
-    get().ouvrirLeMedecin({ patientId: 'p' });
+    get().ouvrirLeMedecin('p');
     get().jetLancer('heal'); // ARME la rééducation du brouillon et pose sa 1re passe
     const sg = get().medic!.surgery!;
     expect(sg.difficulty).toBe('accessible');

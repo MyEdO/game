@@ -25,25 +25,25 @@ it('les ambiances de toutes les scènes livrées appartiennent aux rôles ambian
 });
 
 it('le schéma admet chaque rôle ambiant et refuse une animation étrangère', () => {
-  const entite = { id: 'fixture', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } };
+  const entite = { id: 'fixture', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 } };
   for (const anim of roleAmbiantSchema.options) expect(sceneEntitySchema.safeParse({ ...entite, anim }).success).toBe(true);
   expect(sceneEntitySchema.safeParse({ ...entite, anim: 'animation-etrangere' }).success).toBe(false);
 });
 
-/** Scène MER minimale (eau, 6×6) portant une rencontre terse d'un seul ennemi `ref` — sert à exercer
- *  `creatureId()` (branché dans `normalizeEnemy`) sans dépendre d'un catalogue de créature particulier. */
-const sceneWithEnemyRef = (ref: string) =>
+/** Scène MER minimale (eau, 6×6) portant une rencontre terse d'un seul ennemi de corps `corps` — sert à exercer
+ *  `corpsValide()` (branché dans `validateEnemy`). */
+const sceneWithEnemyCorps = (corps: Record<string, { id: string }>) =>
   scene({
     id: 'v', label: 'V', base: 'eau', rows: ['......', '......', '......', '......', '......', '......'],
     entities: [{ id: 'start', kind: 'heroStart', pos: { x: 0, y: 0 } }],
-    encounters: [{ id: 'e', enemies: [{ ref, pos: { x: 3, y: 3 } }] }],
+    encounters: [{ id: 'e', enemies: [{ ...corps, pos: { x: 3, y: 3 } }] }],
   });
 
 const sceneWithOptional = (optional: unknown) =>
   scene({
     id: 'optional', label: 'Optional', base: 'terre', rows: ['......', '......', '......', '......', '......', '......'],
     entities: [{ id: 'start', kind: 'heroStart', pos: { x: 0, y: 0 } }],
-    encounters: [{ id: 'e', enemies: [{ ref: 'zombie', pos: { x: 3, y: 3 }, optionals: [optional] }] }],
+    encounters: [{ id: 'e', enemies: [{ creature: { id: 'zombie' }, pos: { x: 3, y: 3 }, optionals: [optional] }] }],
   });
 
 const sceneWithStatblockTraits = (traits: unknown[]) =>
@@ -67,8 +67,8 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
 
   it('NPC : espèce jouable, créature et race de rendu passent ; une coquille → throw', () => {
     for (const espece of ['halflings', 'rat-geant', 'skaven', 'araignee-geante'])
-      expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: espece } }).appearance.species).toBe(espece);
-    expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { species: 'rat-geants' } })).toThrow(/species.*« rat-geants » inconnue/);
+      expect(NPC('t', 0, 0, 'Test', { creature: { id: 'humain' }, appearance: { species: espece } }).appearance.species).toBe(espece);
+    expect(() => NPC('t', 0, 0, 'Test', { creature: { id: 'humain' }, appearance: { species: 'rat-geants' } })).toThrow(/species.*« rat-geants » inconnue/);
   });
 
   it('NPC : un LIBELLÉ de tenue → throw', () => {
@@ -77,18 +77,18 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
 
   it('NPC : une tenue par id de CARRIÈRE ou « nu » reste valide ; une CLASSE → throw (#3456)', () => {
     for (const tenue of ['archer', 'nu'])
-      expect(NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue } }).appearance.tenue).toBe(tenue);
-    expect(() => NPC('t', 0, 0, 'Test', { ref: 'humain', appearance: { tenue: 'roublards' } })).toThrow(/tenue « roublards » inconnue/);
+      expect(NPC('t', 0, 0, 'Test', { creature: { id: 'humain' }, appearance: { tenue } }).appearance.tenue).toBe(tenue);
+    expect(() => NPC('t', 0, 0, 'Test', { creature: { id: 'humain' }, appearance: { tenue: 'roublards' } })).toThrow(/tenue « roublards » inconnue/);
   });
 
   it('NPC : un LIBELLÉ d’objet d’inventaire → throw', () => {
     expect(() => NPC('t', 0, 0, 'Test', { inventaire: { Arc: false } })).toThrow(/inventaire/i);
   });
 
-  it('NPC : sans fiche, la `ref` est le profil standard de son espèce, posée en QUEUE (LDB 77 l.7, #1882)', () => {
+  it('NPC : sans fiche, la `creature` est le profil standard de son espèce, posée en QUEUE (LDB 77 l.7, #1882)', () => {
     const e = NPC('t', 0, 0, 'Test', { appearance: { species: 'nains' } });
-    expect(e.ref).toBe('nain');
-    expect(Object.keys(e).slice(-1)).toEqual(['ref']);
+    expect(e.creature).toEqual({ id: 'nain' });
+    expect(Object.keys(e).slice(-1)).toEqual(['creature']);
   });
 
   it('NPC : sans fiche ni espèce à profil standard → throw qui NOMME le PNJ', () => {
@@ -96,14 +96,14 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
     expect(() => NPC('t', 0, 0, 'Test', {})).toThrow(/PNJ « t » sans fiche/);
   });
 
-  it('NPC : un porteur fourni (statblock, presetId) prime — aucune `ref` posée', () => {
-    expect(NPC('t', 0, 0, 'Test', { statblock: { type: 'statblock', label: 'T', char: { B: 10 } }, appearance: { species: 'nains' } }).ref).toBeUndefined();
-    expect(NPC('t', 0, 0, 'Test', { presetId: 'baron', appearance: { species: 'nains' } }).ref).toBeUndefined();
+  it('NPC : un porteur fourni (statblock, presetId) prime — aucune `creature` posée', () => {
+    expect(NPC('t', 0, 0, 'Test', { statblock: { type: 'statblock', label: 'T', char: { B: 10 } }, appearance: { species: 'nains' } }).creature).toBeUndefined();
+    expect(NPC('t', 0, 0, 'Test', { presetId: 'baron', appearance: { species: 'nains' } }).creature).toBeUndefined();
   });
 
   it('optionals : un TraitInstance structuré par id passe intact', () => {
     const s = sceneWithOptional({ id: 'maladie' });
-    const zombie = s.entities.find((entity: { ref?: string }) => entity.ref === 'zombie');
+    const zombie = s.entities.find((entity: { creature?: { id: string } }) => entity.creature?.id === 'zombie');
     expect(zombie?.combat?.optionals).toEqual([{ id: 'maladie' }]);
   });
 
@@ -120,28 +120,23 @@ describe('lib.mjs — validateurs id-only (id passe, libellé THROW)', () => {
   });
 });
 
-// #218 — `creatureId()` accepte une COQUE (`vehicles.json`) comme ref d'entité légitime (naval).
-describe('lib.mjs — creatureId : créature ∪ véhicule (coque terse #218)', () => {
-  it('un ref de NAVIRE (vehicles.json) dans un enemies[] terse ne lève PAS', () => {
-    expect(() => sceneWithEnemyRef('cogue')).not.toThrow();
+// #218 — `corpsValide()` accepte une COQUE (`vehicles.json`) comme corps d'entité légitime (naval).
+describe('lib.mjs — corpsValide : chaque corps dans son catalogue (coque terse #218)', () => {
+  it('un NAVIRE (vehicles.json) sous `vehicule` dans un enemies[] terse ne lève PAS', () => {
+    expect(() => sceneWithEnemyCorps({ vehicule: { id: 'cogue' } })).not.toThrow();
   });
 
-  it('un ref irrésoluble (ni créature ni véhicule) lève en pointant les DEUX catalogues', () => {
-    expect(() => sceneWithEnemyRef('paquebot-transatlantique')).toThrow(/ni créature ni véhicule/i);
+  it('un corps irrésoluble lève en pointant le catalogue de sa clé', () => {
+    expect(() => sceneWithEnemyCorps({ vehicule: { id: 'paquebot-transatlantique' } })).toThrow(/vehicule introuvable « paquebot-transatlantique » \(Compendium → Véhicules\)/);
+    expect(() => sceneWithEnemyCorps({ creature: { id: 'paquebot-transatlantique' } })).toThrow(/creature introuvable « paquebot-transatlantique » \(Compendium → Bestiaire\)/);
   });
 });
 
-// #222 — `poste()` émet la forme AUTHORÉE de référence `{ trappingId, uid, side, crewIds }` et valide
+// #222 — `poste()` émet la forme AUTHORÉE de référence `{ trappingId, side, crewIds }` (uid de la place, #2907) et valide
 // que `trappingId` désigne un trapping du sous-type `armes-de-siege`.
 describe('lib.mjs — poste() : forme référence #222, trappingId du sous-type armes-de-siege', () => {
-  it('une pièce d’artillerie valide → { trappingId, uid, side, crewIds }, base NON matérialisée', () => {
-    const p = poste('canon-moyen', 'tribord');
-    expect(p.trappingId).toBe('canon-moyen');
-    expect(p.side).toBe('tribord');
-    expect(p.crewIds).toEqual([]);
-    expect(typeof p.uid).toBe('string');
-    expect(p.item).toBeUndefined(); // hydratée au spawn, jamais copiée en donnée (#222)
-    expect(p.damage).toBeUndefined();
+  it('une pièce d’artillerie valide → exactement { trappingId, side, crewIds }, base hydratée au spawn', () => {
+    expect(poste('canon-moyen', 'tribord')).toStrictEqual({ trappingId: 'canon-moyen', side: 'tribord', crewIds: [] });
   });
 
   it('crewIds explicites préservés', () => {

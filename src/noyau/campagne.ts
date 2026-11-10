@@ -1,5 +1,5 @@
 /** Mémoire de campagne : carnet d'indices, documents remis, héros désignés. */
-import { togglePin, marquerVus } from './monde/clues';
+import { poserLEpingle, marquerVus } from './monde/clues';
 import { decidingSeat } from './netOwnership';
 import { coupleDIdentite } from './monde/identites';
 import { reprendreLaSuite } from './combatEffects';
@@ -15,9 +15,9 @@ import { t } from '../i18n';
 
 export function creerActionsDeCampagne(get: Get, set: Set) {
   return {
-    epinglerLIndice: (indiceId) => {
+    epinglerLIndice: (indiceId, epingle) => {
       if (!get().clues[indiceId]) { refuserGesteDuSiege(get, set, t('carnet.refus.indiceInconnu', { id: indiceId })); return; }
-      set((s) => ({ clues: togglePin(s.clues, indiceId) }));
+      set((s) => ({ clues: poserLEpingle(s.clues, indiceId, epingle) }));
     },
     /** NOUVEAUTÉ VUE, MARQUÉE PAR SON SIÈGE : le siège vient de `decidingSeat` (le siège agissant quand
      *  l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — un siège ne

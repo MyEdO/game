@@ -1229,8 +1229,9 @@ export type GameOp =
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
   | { op: 'intoxicate' }
-  /** Narration de campagne : texte Markdown et provenance locale. #2001. */
-  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef }
+  /** Narration de campagne : texte Markdown et provenance locale. #2001. `nombre` : un nombre tiré à
+   *  l'application, annoncé après le texte. MDG 15 l.154-155 */
+  | { op: 'narrative'; text: string; nombre?: Formula; source?: SourceRef; adapteDe?: SourceRef }
   /** MORAL de l'équipage du navire (MDG 14) : `delta` signé tiré. Op de NAVIRE (`OPS_DU_NAVIRE`) — inerte
    *  dans `applyOps`, résolue sur la cible `navire` (`noyau/navireOps.ts`). MDG 15 l.180, l.220 */
   | { op: 'shipMorale'; delta: EffetSigne }
@@ -1288,20 +1289,35 @@ export type GameOp =
   /** COMBAT EN MER contre `adversaire.nombre` créatures (Traits facultatifs `optionals` posés) sur le pont du
    *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
    *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */
-  | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow };
+  | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow }
+  /** COMMISSION de transport : un port de destination est tiré au hasard parmi les ports de la carte hors l'escale ;
+   *  à l'accostage dans ce port, la bourse du groupe reçoit `montant`. Op de NAVIRE. MDG 15 l.261 */
+  | { op: 'commission'; montant: { brass: Formula } }
+  /** MARCHÉ D'UN PORT altéré : au port de l'escale jusqu'au départ du navire, les colonnes de l'Index basculent
+   *  (`colonnes`), OU un client offre au plus `offre.enc` Enc d'une cargaison tirée au hasard pour la saison à
+   *  `offre.remisePct` % sous son prix de base ; OU, dans un autre port tiré au hasard, la Demande d'une cargaison
+   *  tirée au hasard croît de `demande` pendant `jours` jours. Résolue une fois par la feuille qui la porte
+   *  (`estOpDuMarche`). MDG 15 l.253, l.256, l.259, l.263 */
+  | { op: 'marcheDuPort'; colonnes: 'penurie' | 'saturation'; offre?: never; demande?: never; jours?: never }
+  | { op: 'marcheDuPort'; offre: { enc: Formula; remisePct: number }; colonnes?: never; demande?: never; jours?: never }
+  | { op: 'marcheDuPort'; demande: number; jours: Formula; colonnes?: never; offre?: never };
 
 /** Aggravation d'une météo imposée : le dé de chaque matin, son seuil, et les axes qu'il impose. MDG 15 l.248 */
 export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<SeaWeather> }
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer', 'commission'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
 /** Op de la BOURSE DU GROUPE (`money` à `groupe`) : résolue une fois par la feuille de scène qui la porte
  *  (Effet `ops`, `noyau/combatEffects.ts`), inerte dans `applyOps`. */
 export const estOpDeLaBourseDuGroupe = (o: GameOp): o is Extract<GameOp, { op: 'money' }> => o.op === 'money' && o.groupe === true;
+
+/** Op du MARCHÉ D'UN PORT : résolue une fois par la feuille de scène qui la porte (Effet `ops`,
+ *  `noyau/combatEffects.ts`), inerte dans `applyOps`. */
+export const estOpDuMarche = (o: GameOp): o is Extract<GameOp, { op: 'marcheDuPort' }> => o.op === 'marcheDuPort';
 
 /** Op d'une liste lue par le collecteur `passiveMods` : sans `auTotal` (#3060). */
 export type OpPassive = Exclude<GameOp, { op: 'attrMod'; attr: 'wounds' }> | { op: 'attrMod'; attr: 'wounds'; mod: FormuleSansTirage; auTotal?: never };
@@ -3030,13 +3046,15 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'navireHostile':
       case 'infestation':
       case 'combatEnMer':
+      case 'commission':
+      case 'marcheDuPort':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
         // téléportation / rebond de Projectile / ops différées à échéance d'horloge) — résolus par la
         // couche state (combatFlow : applySummon / scheduleRespawn → file horloge / placeSpellZone ; les
         // hooks `freeAttack`/`focusInterrupt`/`bladeTrap` appelés par `runCombatFlow` ; `applyCast` scanne
         // push/teleport/chain ; `delayed` → `scheduleDelayedOps` aux points d'application d'un EffectOp ;
-        // les ops de navire → `noyau/navireOps.ts`),
+        // les ops de navire → `noyau/navireOps.ts` ; l'op du marché d'un port → `noyau/portFlow.ts`),
         // qui détient get/set et le combattant. `applyOps` (moteur pur) les laisse INERTES.
         break;
       case 'polymorph':
@@ -3259,7 +3277,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'narrative':
-        lines.push(o.text);
+        lines.push(o.nombre === undefined ? o.text : t('op.narrativeNombre', { text: o.text, n: Math.round(formuleDuCtx(o.nombre, ref, ctx)) }));
         break;
     }
   }

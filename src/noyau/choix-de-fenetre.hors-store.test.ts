@@ -31,6 +31,9 @@ const CHOIX_DE_L_HOTE: readonly (readonly [string, ArgumentsDuChoix, Record<stri
   ['council', ['council', 'paie', 'pas-de-paie'], { pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' } }],
   ['shoreLeave', ['shoreLeave', 'accorder', true], { pendingShoreLeave: { to: { id: 'B', label: 'B' } } }],
   ['finDeSeance', ['finDeSeance', 'ambitionCourte', true], { finDeSeance: { heros: {}, groupe: {} } }],
+  ['port', ['port', 'vendre', 'lot-1'], { port: { placeId: 'P', label: 'Port', port: { taille: 4, richesse: 4, production: [] }, offers: [] } }],
+  ['marcheDeTerre', ['marcheDeTerre', 'offre', 'metal'], { landMarket: { placeId: 'A', label: 'Halle', market: { taille: 4, richesse: 4, produits: [] }, offers: [] } }],
+  ['ecranDuLieu', ['ecranDuLieu', 'entrer', 'poi-cave'], { lieuOuvert: true }],
 ];
 
 describe('fenetreChoisir', () => {

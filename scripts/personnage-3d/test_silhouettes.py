@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
 import silhouettes  # noqa: E402
 import humanoide  # noqa: E402
-from formes import RABOT, STAGNATION_M, aux_noeuds, raboter, rapports, region_locale  # noqa: E402
+from formes import RABOT, STAGNATION_M, aux_noeuds, raboter, rapports, region_locale, retournees_par  # noqa: E402
 import noms_silhouettes  # noqa: E402
 from pas_des_poids import melanges_par_lots, minimum_du_carre  # noqa: E402
 from poids import PASSES_MAX, GroupePondere, decouper_trace, etats_ponderes, extremes, integrer_trace, preparer_correction, verifier_repos_cuit  # noqa: E402
@@ -360,6 +360,21 @@ class LissageSousCorrection(unittest.TestCase):
         for nom, attendu in attendus.items():
             self.assertGreater(numpy.abs(attendu @ vers_le_mesh - attendu).max(), 1e-2, nom)
             self.assertLess(numpy.abs(rendus[nom] @ vers_le_monde - attendu).max(), 1e-9, nom)
+
+
+class Retournement(unittest.TestCase):
+    """formes.retournees_par : une clé qui croise deux sommets retourne leur arête, longueur dans les bornes ou non."""
+
+    def test_une_arete_croisee_a_longueur_egale_est_retournee_et_ses_voisines_non(self):
+        x = numpy.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0], [2.0, 0.0, 0.0]])
+        aretes = numpy.array([[0, 1], [1, 2]])
+        champ = numpy.array([[1.0, 0.0, 0.0], [-1.0, 0.0, 0.0], [0.0, 0.0, 0.0]])
+        self.assertEqual(rapports(x, champ, aretes).tolist(), [1.0, 2.0])
+        self.assertEqual(retournees_par(x, champ, aretes).tolist(), [True, False])
+
+    def test_une_arete_ecrasee_en_un_point_est_retournee(self):
+        x = numpy.array([[0.0, 0.0, 0.0], [1.0, 0.0, 0.0]])
+        self.assertTrue(retournees_par(x, numpy.array([[0.5, 0.0, 0.0], [-0.5, 0.0, 0.0]]), numpy.array([[0, 1]]))[0])
 
 
 class Rabot(unittest.TestCase):

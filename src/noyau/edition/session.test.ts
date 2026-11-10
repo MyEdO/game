@@ -13,26 +13,40 @@
  * de `refusDeLEntite`.
  */
 import { describe, expect, it } from 'vitest';
-import { emptyScene, heightAt, type Scene } from '../monde/scene';
+import { emptyNarratif } from '../monde/campaignNarratif';
+import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, type GesteDEdition, type SessionDEdition } from './session';
-import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../sceneEdit';
+import { avertissementsDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
+import { poserLesNavires, provenanceDesNavires } from '../planDeNavire';
+import { validateScene } from '../validateScene';
+import { flowFromEffects } from '../monde/flow';
+import { fauteDAppui } from '../monde/poseDuDecor';
+import type { Effect } from '../../data/schemas/defs-scenes/effets';
+import { garanti } from '../../lib/garanti';
+import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDuPorteur } from '../sceneEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { choixDuChamp, entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
+import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, segmentDeLaSelection } from '../sceneEditLecture';
+import { champsDeclares, choixDuNoeud, elementDuNoeud } from '../codex/editFields';
+import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { refusDeLaValeur } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, traits } from '../../data';
+import { creatures, findCreatureById, spells, talents, traits } from '../../data';
+import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';
 import { seatSlotsOf } from '../monde/seating';
 import { props } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
+import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 
-const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
+/** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
+const NARRATIF_VIDE = emptyNarratif();
+
+const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
@@ -115,13 +129,13 @@ describe('session d’édition', () => {
     const [decor, autre] = props;
     const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: decor.id } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel);
-    expect(ent(pose)).toMatchObject({ kind: 'prop', ref: decor.id, pos: { x: 1, y: 1 }, label: decor.label });
+    expect(ent(pose)).toMatchObject({ kind: 'prop', decor: { id: decor.id }, pos: { x: 1, y: 1 }, label: decor.label });
     expect(ent(jouer(pose, { geste: 'nommer', nom: 'Comptoir' }))?.label).toBe('Comptoir');
     expect(ent(jouer(pose, { geste: 'nommer' }))?.label, 'sans nom, il n’en porte plus').toBeUndefined();
     const tourne = jouer(pose, { geste: 'entite', patch: { facing: 'E' } });
     expect([ent(tourne)?.facing, tourne.historique.passe.length]).toEqual(['E', pose.historique.passe.length + 1]);
     expect(jouer(tourne, { geste: 'entite', patch: { facing: 'E' } }), 'rien ne change : aucun cran').toBe(tourne);
-    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: autre.id } })), 'retypé, il garde son cap cardinal').toMatchObject({ ref: autre.id, facing: 'E' });
+    expect(ent(jouer(tourne, { geste: 'entite', patch: { ref: autre.id } })), 'retypé, il garde son cap cardinal').toMatchObject({ decor: { id: autre.id }, facing: 'E' });
     const etage = jouer(pose, { geste: 'ajouterCouche' }, { geste: 'couche', z: 0 }, { geste: 'appui', point: point(1, 1) }, { geste: 'entite', patch: { z: 1 } });
     expect(ent(etage)?.z).toBe(1);
     expect(ent(jouer(etage, { geste: 'entite', patch: { z: 0 } }))?.z).toBeUndefined();
@@ -191,7 +205,7 @@ describe('session d’édition', () => {
       { geste: 'poste', patch: { arc: 'tribord' } },
       { geste: 'poste', patch: { servants: [a, b] } },
       { geste: 'poste', patch: { servants: [b, a] } });
-    expect(ent(reglee)).toMatchObject({ ref: 'catapulte-petite', postes: [{ trappingId: 'catapulte-petite', side: 'tribord', crewIds: [b, a] }] });
+    expect(ent(reglee)).toMatchObject({ engin: { id: 'catapulte-petite' }, postes: [{ trappingId: 'catapulte-petite', side: 'tribord', crewIds: [b, a] }] });
     expect(ent(jouer(reglee, { geste: 'poste', patch: { arc: null } }))?.postes?.[0].side, 'omni').toBeUndefined();
     const equipage = jouer(pose, { geste: 'entite', patch: { crewIds: [a] } });
     expect(ent(equipage)?.crewIds).toEqual([a]);
@@ -249,15 +263,31 @@ describe('session d’édition', () => {
     expect(ent(jouer(tire, valeur(['combat', 'randomChars'], false)))?.combat).toEqual({ hiddenUntilCombat: true, randomChars: false });
   });
 
-  it('les sorts choisis d’un personnage s’écrivent à `combat.spells`, à côté de son embuscade ; vides, ils le quittent (#3715)', () => {
+  it('les sorts choisis d’un personnage s’écrivent au formulaire à `combat.spells`, à côté de son embuscade ; vides, ils le quittent (#3715, #3606 étape S)', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'l-ombre-du-fleuve' } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
     const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
-    const embusque: GesteDEdition[] = [{ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat'], valeur: {} }, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat', 'hiddenUntilCombat'], valeur: true }];
-    const choisis = jouer(pose, ...embusque, { geste: 'entite', patch: { sorts: ['choc', 'flechette'] } });
-    expect(ent(choisis)?.combat).toEqual({ hiddenUntilCombat: true, spells: ['choc', 'flechette'] });
-    expect(ent(jouer(choisis, { geste: 'entite', patch: { sorts: [] } }))?.combat).toEqual({ hiddenUntilCombat: true });
+    const valeur = (chemin: Segment[], v: unknown): GesteDEdition => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, valeur: v });
+    const choisis = jouer(pose, valeur(['combat'], {}), valeur(['combat', 'hiddenUntilCombat'], true), valeur(['combat', 'spells'], ['bondissant-comme-un-cerf']));
+    expect(ent(choisis)?.combat).toEqual({ hiddenUntilCombat: true, spells: ['bondissant-comme-un-cerf'] });
+    expect(ent(jouer(choisis, valeur(['combat', 'spells'], [])))?.combat).toEqual({ hiddenUntilCombat: true });
+  });
+
+  it('les sorts offerts à un personnage : ceux des listes qu’ouvre sa fiche, hors des autres choisis, la courante restant offerte, chacun refusé par ce qu’en dit `refusDesSortsChoisis` (#3715, #3606 étape S)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'l-ombre-du-fleuve' } }, { geste: 'appui', point: point(1, 1) });
+    const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
+    const valeur = (chemin: Segment[], v: unknown): GesteDEdition => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, valeur: v });
+    const choisis = jouer(pose, valeur(['combat'], {}), valeur(['combat', 'spells'], ['bondissant-comme-un-cerf']));
+    const ent = entiteDeLaSelection(sceneEditee(choisis), choisis.sel)!;
+    const offerts = (rang: number) => choixDuChamp('entite', ent, ['combat', 'spells', rang], NARRATIF_VIDE)!.map((o) => o.valeur);
+    const fiche = ficheDEntite(ent, presetDuNarratif(NARRATIF_VIDE));
+    const listes = listesDeSorts(fiche);
+    expect(offerts(1), 'au rang neuf : les sorts de ses listes, hors du choisi').toEqual(spells.filter((sp) => sp.id !== 'bondissant-comme-un-cerf' && listes.some((l) => l.admet(sp))).map((sp) => sp.id));
+    expect(offerts(0), 'au rang du choisi : le choisi reste offert').toContain('bondissant-comme-un-cerf');
+    expect(offerts(1), 'un Miracle d’un autre dieu n’est pas offert').not.toContain('feu-de-l-ame');
+    expect(choixDuChamp('entite', ent, ['combat', 'spells', 1], NARRATIF_VIDE)!.every((o) => o.refus === (refusDesSortsChoisis(fiche, ['bondissant-comme-un-cerf', o.valeur as string]) ?? null))).toBe(true);
   });
 
   it('une troupe : N copies sur les cases libres les plus proches, ids neufs, profils tirés, rencontres héritées, un seul cran (#3704)', () => {
@@ -276,7 +306,7 @@ describe('session d’édition', () => {
     const copies = scene.entities.filter((e) => !sceneEditee(allie).entities.some((a) => a.id === e.id));
     expect(copies.map((c) => [c.pos.x, c.pos.y]), 'l’anneau autour de l’original, hors du mur, du décor et de l’autre personnage').toEqual([[2, 2], [4, 2], [2, 4], [3, 4], [4, 4]]);
     expect(new Set([...scene.entities.map((e) => e.id)]).size).toBe(scene.entities.length);
-    expect(copies.every((c) => c.ref === 'humain' && c.inventaire?.['arme-simple'] && c.combat?.randomChars)).toBe(true);
+    expect(copies.every((c) => c.creature?.id === 'humain' && c.inventaire?.['arme-simple'] && c.combat?.randomChars)).toBe(true);
     const profils = [original, ...copies].map((c) => JSON.stringify(ficheDEntite(c, () => undefined).characteristics));
     expect(new Set(profils).size, 'chaque copie tire son profil sur son id').toBe(6);
     expect(scene.encounters[0].members?.filter((m) => copies.some((c) => c.id === m.entityId)).map((m) => m.side)).toEqual(Array(5).fill('ally'));
@@ -349,9 +379,9 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
   });
 });
 
-describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
+describe('le porteur `entite` du geste `valeur` (#3606 M1a, M1b)', () => {
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-  const poser = (ref: string, x: number) => jouer(ouverteSur(emptyScene('m1a', 6, 6)), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref } }, { geste: 'appui', point: point(x, 1) }, { geste: 'relache', point: point(x, 1) });
+  const poser = (ref: string, x: number, narratif = NARRATIF_VIDE) => jouer(ouverteSur(emptyScene('m1a', 6, 6), false, narratif), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref } }, { geste: 'appui', point: point(x, 1) }, { geste: 'relache', point: point(x, 1) });
   const idDe = (s: SessionDEdition) => (s.sel?.type === 'entity' ? s.sel.id : '');
   const valeur = (id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
 
@@ -364,17 +394,65 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     const barge = allBuiltinCampaigns.find((c) => c.id === 'barge-du-sel')!;
     const cogue = jouer(ouvrirLEdition(paquetDuJeu(barge), false), { geste: 'scenes', quoi: 'aller', id: 'barge-du-sel-embuscade' }, { geste: 'appui', point: point(18, 7) }, { geste: 'relache', point: point(18, 7) });
     const coque = idDe(cogue);
-    expect(entiteDeLaSelection(sceneEditee(cogue), cogue.sel), 'la coque pirate de l’embuscade').toMatchObject({ ref: 'cogue', upgrades: [{ id: 'renforce', value: 1 }] });
+    expect(entiteDeLaSelection(sceneEditee(cogue), cogue.sel), 'la coque pirate de l’embuscade').toMatchObject({ vehicule: { id: 'cogue' }, upgrades: [{ id: 'renforce', value: 1 }] });
     const amelioree = jouer(cogue, valeur(coque, ['upgrades', 0, 'value'], 2));
     expect(entiteDeLaSelection(sceneEditee(amelioree), amelioree.sel)?.upgrades).toEqual([{ id: 'renforce', value: 2 }]);
     expect(refusDeLaValeur(griffon, valeur(id, ['upgrades'], [{ id: 'renforce' }])), 'seule une coque porte des Améliorations').toBe('nonOffert');
   });
 
-  it('refuse un chemin que M1a n’offre pas : préréglage, apparence, sorts', () => {
+  it('refuse un chemin que le formulaire n’offre pas : un preset sans preset au narratif, l’apparence, et les sorts d’un personnage qu’aucune liste n’ouvre', () => {
     const griffon = poser('griffon-zoo-imperial', 1);
     const id = idDe(griffon);
     const combat = jouer(griffon, valeur(id, ['combat'], {}));
     expect([refusDeLaValeur(griffon, valeur(id, ['presetId'], 'x')), refusDeLaValeur(griffon, valeur(id, ['appearance'], {})), refusDeLaValeur(combat, valeur(id, ['combat', 'spells'], []))]).toEqual(['nonOffert', 'nonOffert', 'nonOffert']);
+  });
+
+  it('un profil personnalisé s’ajoute neuf au nom du personnage ou copié de sa créature du Bestiaire, puis s’écrit champ par champ, l’identifiant d’un Talent au catalogue ; une autre valeur entière est refusée (#3606 M1b)', () => {
+    const ombre = poser('l-ombre-du-fleuve', 1);
+    const id = idDe(ombre);
+    const ent = entiteDeLaSelection(sceneEditee(ombre), ombre.sel)!;
+    const creature = findCreatureById('l-ombre-du-fleuve')!;
+    expect(choixDuChamp('entite', ent, ['statblock'], NARRATIF_VIDE)!.map((c) => c.valeur)).toEqual([emptyStatblock(creature.label), statblockDeLaCreature(creature)]);
+    const copie = jouer(ombre, valeur(id, ['statblock'], statblockDeLaCreature(creature)), valeur(id, ['statblock', 'char', 'force'], 42), valeur(id, ['statblock', 'talents'], [{ id: 'affable' }]));
+    expect(entiteDeLaSelection(sceneEditee(copie), copie.sel)?.statblock).toEqual({ ...statblockDeLaCreature(creature), char: { ...statblockDeLaCreature(creature).char, force: 42 }, talents: [{ id: 'affable' }] });
+    const talent = formulaireDe('entite', entiteDeLaSelection(sceneEditee(copie), copie.sel)!, NARRATIF_VIDE).find((f) => f.key === 'statblock')!;
+    const idDuTalent = champsDeclares(elementDuNoeud(champsDeclares(talent.noeud)!.find(([cle]) => cle === 'talents')![1]))!.find(([cle]) => cle === 'id')![1];
+    expect(choixDuNoeud(idDuTalent)!.map((o) => o.valeur), 'l’identifiant d’un Talent : chaque Talent du catalogue').toEqual(talents.map((t) => t.id));
+    expect(refusDeLaValeur(ombre, valeur(id, ['statblock'], { type: 'statblock', label: 'autre', char: {} })), 'ni neuf ni copié').toBe('horsSorte');
+  });
+
+  it('un preset du narratif se choisit parmi ceux qu’il déclare, par son nom ; sans preset au narratif ni posé, il n’est pas offert (#3606 M1b)', () => {
+    const narratif = { ...NARRATIF_VIDE, presetsPnj: [{ id: 'aubergiste', base: { id: 'humain' }, profil: { label: 'Aubergiste' } }] };
+    const pose = poser('humain', 1, narratif as typeof NARRATIF_VIDE);
+    const id = idDe(pose);
+    const ent = entiteDeLaSelection(sceneEditee(pose), pose.sel)!;
+    expect(choixDuChamp('entite', ent, ['presetId'], narratif as typeof NARRATIF_VIDE)).toEqual([{ valeur: 'aubergiste', libelle: 'Aubergiste', refus: null }]);
+    expect(entiteDeLaSelection(sceneEditee(jouer(pose, valeur(id, ['presetId'], 'aubergiste'))), pose.sel)?.presetId).toBe('aubergiste');
+    expect(formulaireDe('entite', ent, NARRATIF_VIDE).map((f) => f.key)).not.toContain('presetId');
+  });
+
+  it('pour chaque créature du Bestiaire, un profil offert sans refus s’écrit en une entité que le schéma admet ; une copie que son schéma refuse le dit (#3606 M1b)', () => {
+    const fautives: string[] = [];
+    let refusees = 0;
+    for (const c of creatures) {
+      const ent = { id: 'e1', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: c.id } } as const;
+      for (const choix of choixDuChamp('entite', ent, ['statblock'], NARRATIF_VIDE) ?? []) {
+        if (choix.refus !== null) { refusees++; continue; }
+        const ecrite = avecLaValeurDuPorteur('entite', ent, ['statblock'], choix.valeur, NARRATIF_VIDE);
+        if (!ecrite.ok || !sceneEntitySchema.safeParse(ecrite.valeur).success) fautives.push(`${c.id} : ${choix.libelle}`);
+      }
+    }
+    expect(fautives).toEqual([]);
+    expect(refusees, 'des copies du Bestiaire sont refusées, chacune de sa raison').toBeGreaterThan(0);
+  });
+
+  it('un PNJ de carrière ne se voit offrir ni profil personnalisé ni preset, qu’il ne porte pas (#3606 M1b)', () => {
+    const narratif = { ...NARRATIF_VIDE, presetsPnj: [{ id: 'aubergiste', base: { id: 'humain' }, profil: { label: 'Aubergiste' } }] } as typeof NARRATIF_VIDE;
+    const pnj = { id: 'p', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' }, carrieres: { medecin: 3 } } as const;
+    expect(refusDeLEntite(pnj)).toEqual([]);
+    const champs = formulaireDe('entite', pnj, narratif).map((f) => f.key);
+    expect([champs.includes('statblock'), champs.includes('presetId')]).toEqual([false, false]);
+    expect([refusDeLaValeur(ouverteSur({ ...emptyScene('m1b', 4, 4), entities: [pnj] }, false, narratif), valeur('p', ['statblock'], emptyStatblock()))]).toEqual(['nonOffert']);
   });
 
   it('les options : tous les Traits, ceux de la fiche en tête puis les Traits standard (LDB 76 l.11, l.35) ; une note « swap » de la fiche se pose entière', () => {
@@ -382,13 +460,13 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     const id = idDe(griffon);
     const avecTrait = jouer(griffon, valeur(id, ['combat'], {}), valeur(id, ['combat', 'optionals'], [{ id: 'rapide' }]));
     const ent = entiteDeLaSelection(sceneEditee(avecTrait), avecTrait.sel)!;
-    const offerts = choixDuChamp('entite', ent, ['combat', 'optionals', 0, 'id'])!.map((o) => o.valeur);
+    const offerts = choixDuChamp('entite', ent, ['combat', 'optionals', 0, 'id'], NARRATIF_VIDE)!.map((o) => o.valeur);
     const facultatifs = findCreatureById('griffon-zoo-imperial')!.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
     const standard = traits.filter((t) => t.standard && !facultatifs.includes(t.id)).map((t) => t.id);
     expect(offerts).toHaveLength(traits.length);
     expect(offerts.slice(0, facultatifs.length + standard.length)).toEqual([...facultatifs, ...standard]);
     const note = findCreatureById('griffon-zoo-imperial')!.optionals.find((o) => 'note' in o && o.note === 'swap');
-    const variantes = choixDuChamp('entite', ent, ['combat', 'optionals', 0])!;
+    const variantes = choixDuChamp('entite', ent, ['combat', 'optionals', 0], NARRATIF_VIDE)!;
     expect(variantes.map((v) => v.valeur)).toEqual([{ id: 'rapide' }, note]);
     const posee = jouer(avecTrait, valeur(id, ['combat', 'optionals', 0], note));
     expect(entiteDeLaSelection(sceneEditee(posee), posee.sel)?.combat?.optionals).toEqual([note]);
@@ -396,18 +474,20 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     expect(entiteDeLaSelection(sceneEditee(editee), editee.sel)?.combat?.optionals?.[0], 'posée, la note s’édite').toEqual({ ...note, wounds: 30 });
   });
 
-  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, la fiche introuvable, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
+  it('les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, deux corps, l’engin qui n’est pas de siège, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)', () => {
     const fixtures = {
     sansPorteur: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 } },
-    refInconnue: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'pas-une-fiche' },
-    carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
-    volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', facing: 'NE' },
-    decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'brasero', calage: { x: 2, y: 0 } },
-    admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' },
+    deuxCorps: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, vehicule: { id: 'cogue' } },
+    enginHorsSiege: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, engin: { id: 'baton-de-combat' } },
+    carriereSurStatbloc: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, carrieres: { soldat: 1 }, appearance: { tenue: 'soldat' } },
+    volumiqueEnDiagonale: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, facing: 'NE' },
+    decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, calage: { x: 2, y: 0 } },
+    admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } },
     } as const;
     const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
-    expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['ref']]);
-    expect(fautes(fixtures.refInconnue)).toEqual([{ chemin: ['ref'], message: '« pas-une-fiche » ni créature, ni coque de véhicule, ni engin de siège' }]);
+    expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['creature']]);
+    expect(fautes(fixtures.deuxCorps).map((f) => f.chemin)).toEqual([['vehicule']]);
+    expect(fautes(fixtures.enginHorsSiege)).toEqual([{ chemin: ['engin', 'id'], message: '« baton-de-combat » n\'est pas un engin de siège' }]);
     expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
     expect(fautes(fixtures.volumiqueEnDiagonale).map((f) => f.chemin)).toEqual([['facing']]);
     expect(fautes(fixtures.decorHorsDeSaCase).map((f) => f.chemin), 'le calage d’un décor dans sa case (#3731)').toEqual([['calage', 'x']]);
@@ -418,5 +498,105 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
       const issues = sceneEntitySchema.safeParse(ent).error?.issues.filter((i) => i.code === 'custom') ?? [];
       expect(issues.map((i) => ({ chemin: i.path, message: i.message })), nom).toEqual(fautes(ent));
     }
+  });
+});
+
+describe('le navire de la scène éditée (#3772)', () => {
+  const bassin = (metresPerTile = 2) => ({ ...emptyScene('bassin', 24, 16), metresPerTile });
+  const poserLaCaraque = (s: SessionDEdition, cap: 'N' | 'E' | 'S' | 'O' = 'E') =>
+    [{ geste: 'outil', outil: { mode: 'navire', ref: 'caraque', cap } }, { geste: 'appui', point: point(10, 6) }].reduce<SessionDEdition>((t, g) => editer(t, g as GesteDEdition), s);
+  const caraque = { id: 'navire-0', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 6 }, facing: 'E', label: 'Caraque' };
+
+  it('l’outil navire pose la caraque à la case visée, à son cap, sélectionnée : la scène éditée ne porte que son entité', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    expect(sceneEditee(s)).toEqual({ ...bassin(), entities: [caraque] });
+    expect(s.sel).toEqual({ type: 'entity', id: 'navire-0' });
+    expect(s.historique.passe).toHaveLength(1);
+  });
+
+  it('ses ponts sont des couches de la vue, où l’on vise : une case de pont désigne le navire, un personnage s’y pose', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    expect(vueDeLaScene(s).layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
+    const surLePont = editer(editer(s, { geste: 'outil', outil: { mode: 'select' } }), { geste: 'couche', z: 2 });
+    expect(surLePont.z).toBe(2);
+    const [x, y] = garanti([...provenanceDesNavires(vueDeLaScene(s)).cases.keys()].find((cle) => cle.endsWith(',2')), 'pont', 'case du pont 2').split(',').map(Number);
+    const vise = editer(surLePont, { geste: 'appui', point: point(x, y) });
+    expect([vise.sel, vise.pointee]).toEqual([{ type: 'entity', id: 'navire-0' }, { x, y, z: 2 }]);
+    const marin = editer(editer(surLePont, { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }), { geste: 'appui', point: point(x, y) });
+    expect(sceneEditee(marin).entities.find((e) => e.creature?.id === 'humain')).toMatchObject({ pos: { x, y }, z: 2 });
+    expect(avertissementsDeLaSession(marin).map((w) => w.message).filter((m) => m.includes('inexistant'))).toEqual([]);
+    expect(sceneEditee(marin).layers.map((l) => l.z), 'la scène éditée ne reçoit aucune couche des ponts').toEqual([0]);
+  });
+
+  it('une couche que seuls les ponts posent ne se retire pas ; ajouter une couche la pose au-dessus des ponts', () => {
+    const s = editer(poserLaCaraque(ouverteSur(bassin())), { geste: 'couche', z: 3 });
+    expect(editer(s, { geste: 'retirerCouche' })).toBe(s);
+    const ajoutee = editer(s, { geste: 'ajouterCouche' });
+    expect([ajoutee.z, sceneEditee(ajoutee).layers.map((l) => l.z)]).toEqual([4, [0, 4]]);
+  });
+
+  it('le cap change à l’inspecteur : ses ponts tournent avec lui, la scène éditée ne porte toujours que son entité', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    const tourne = editer(s, { geste: 'entite', patch: { facing: 'N' } });
+    expect(sceneEditee(tourne)).toEqual({ ...bassin(), entities: [{ ...caraque, facing: 'N' }] });
+    const empriseDe = (t: SessionDEdition) => [...provenanceDesNavires(vueDeLaScene(t)).cases.keys()].map((cle) => cle.split(',').map(Number));
+    const etendue = (cases: number[][], axe: 0 | 1) => Math.max(...cases.map((c) => c[axe])) - Math.min(...cases.map((c) => c[axe])) + 1;
+    expect([etendue(empriseDe(s), 0), etendue(empriseDe(s), 1)]).toEqual([18, 5]);
+    expect([etendue(empriseDe(tourne), 0), etendue(empriseDe(tourne), 1)]).toEqual([5, 18]);
+  });
+
+  it('une scène qui n’est pas à l’échelle de son plan refuse le navire', () => {
+    const s = poserLaCaraque(ouverteSur(bassin(10)));
+    expect(sceneEditee(s).entities).toEqual([]);
+    expect(s.historique.passe).toEqual([]);
+  });
+
+  it('un navire chargé de biais ne fait pas tomber la vue : ses ponts ne s’y posent pas, et l’avertissement le dit', () => {
+    const s = ouverteSur({ ...bassin(), entities: [{ ...caraque, facing: 'NE' }] } as Scene);
+    expect(vueDeLaScene(s).layers.map((l) => l.z)).toEqual([0]);
+    expect(avertissementsDeLaSession(s).filter((w) => w.refId === 'navire-0').map((w) => [w.level, w.message])).toEqual([
+      ['error', expect.stringContaining("navire « caraque » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)")],
+    ]);
+  });
+
+  it('le formulaire tiré du schéma n’écrit pas le cap d’un navire : seul le choix du cap le tourne, aux cardinaux', () => {
+    const s = poserLaCaraque(ouverteSur(bassin()));
+    expect(refusDeLaValeur(s, { geste: 'valeur', porteur: { sorte: 'entite', id: 'navire-0' }, chemin: ['facing'], valeur: 'NE' })).toBe('nonOffert');
+    expect(capsOfferts(garanti(sceneEditee(s).entities[0], 'navire', 'entité'))).toEqual(['N', 'E', 'S', 'O']);
+  });
+
+  it('la validation lit le monde sur la vue : un départ, une empreinte, une chute, un appui sur un pont de la caraque, sans faux avertissement', () => {
+    const vue = poserLesNavires({ ...bassin(), entities: [caraque] } as Scene);
+    const [x, y] = garanti([...provenanceDesNavires(vue).cases.keys()].map((cle) => cle.split(',').map(Number))
+      .find(([cx, cy, cz]) => cz === 2 && isWalkable(vue, cx, cy, 2)), 'pont', 'case marchable du pont 2');
+    const depart = (p: { x: number; y: number }) => ({ ...bassin(), entities: [caraque, { id: 'depart', kind: 'heroStart', pos: p, z: 2 }] } as Scene);
+    expect(validateScene([depart({ x, y })]).filter((w) => w.refId === 'depart' || w.message.includes('inatteignable'))).toEqual([]);
+    const [bx, by] = garanti([...provenanceDesNavires(vue).cases.keys()].map((cle) => cle.split(',').map(Number))
+      .find(([cx, cy, cz]) => cz === 2 && !isWalkable(vue, cx, cy, 2)), 'pont', 'case barrée du pont 2');
+    expect(validateScene([depart({ x: bx, y: by })]).filter((w) => w.refId === 'depart').map((w) => w.message), 'une case barrée du pont se dit')
+      .toEqual([expect.stringContaining("la case n'est pas marchable")]);
+    const abordage = (p: { x: number; y: number }) => validateScene([{ ...bassin(), entities: [caraque, { id: 'marin', kind: 'personnage', creature: { id: 'humain' }, pos: p, z: 2 }],
+      encounters: [{ id: 'abordage', members: [{ entityId: 'marin' }] }] } as Scene]).filter((w) => w.refId === 'marin' && w.message.includes('non marchable'));
+    expect([abordage({ x, y }).length, abordage({ x: bx, y: by }).length], 'l’empreinte d’un membre se juge sur le pont').toEqual([0, 1]);
+    const chute = (to: { x: number; y: number }) => validateScene([{ ...bassin(), entities: [caraque],
+      triggers: [{ id: 'saut', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'fall', target: 'party', metres: 2, to: { ...to, z: 2 } }] as Effect[]) }] } as Scene])
+      .filter((w) => w.refId === 'saut' && w.message.startsWith('Chute')).length;
+    expect([chute({ x, y }), chute({ x: bx, y: by })], 'l’atterrissage d’une chute se juge sur le pont').toEqual([0, 1]);
+    const lettre = garanti(vue.entities.filter((e) => e.kind === 'prop' && e.id.startsWith('navire-0-'))
+      .map((sup) => ({ id: 'lettre', kind: 'prop' as const, decor: { id: 'lettre' }, pos: sup.pos, z: sup.z, sur: sup.id })).find((e) => !fauteDAppui(vue, e)), 'pont', 'décor du pont qui porte');
+    expect(validateScene([{ ...bassin(), entities: [caraque, lettre] } as Scene]).filter((w) => w.refId === 'lettre'), 'un décor posé sur un décor du pont tient').toEqual([]);
+  });
+
+  it('la volée lit la vue : ses étages comptent les ponts, et une couche que seuls les ponts posent la refuse', () => {
+    const s = editer(editer(poserLaCaraque(ouverteSur(bassin())), { geste: 'outil', outil: { mode: 'stair', toZ: 2 } }), { geste: 'appui', point: point(2, 2) });
+    expect(s.volee).toHaveLength(1);
+    expect(planDeLaVolee(s)).not.toEqual({ ok: false, reason: 'étage to=z2 inexistant' });
+    const surLePont = editer(editer(s, { geste: 'couche', z: 2 }), { geste: 'outil', outil: { mode: 'stair', toZ: 3 } });
+    expect(planDeLaVolee(surLePont)).toEqual({ ok: false, reason: "couche z2 des seuls ponts d'un navire : la volée ne s'y écrit pas" });
+  });
+
+  it('changer d’échelle vers celle du plan pose les ponts d’un navire, toujours à un cap cardinal', () => {
+    const s = editer(ouverteSur({ ...bassin(3), entities: [caraque] } as Scene), { geste: 'scene', patch: { scalaires: { metresPerTile: 2 } } });
+    expect(vueDeLaScene(s).layers.map((l) => l.z)).toEqual([0, 1, 2, 3]);
   });
 });

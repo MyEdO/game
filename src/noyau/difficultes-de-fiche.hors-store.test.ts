@@ -29,6 +29,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { draineCascade } from './cascade.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { pratiquer } from './interlude.testkit';
 
 /**
  * CÂBLAGE des Tests nommés (#2779, #1173) : la compétence et la Difficulté d'un Test que nomme une règle
@@ -233,7 +234,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const itl = g().interlude!;
     itl.perHero[hero.id] = { ...itl.perHero[hero.id], fx: undefined, left: 3 };
     banc.setState({ interlude: { ...itl } });
-    g().pratiquerLActivite(hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
+    pratiquer(g, hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
     g().jetLancer('activity');
     banc.setState({ pendingActivity: { ...g().pendingActivity!, roll: 98, success: false, sl: -5 } });
     g().jetValider('activity');

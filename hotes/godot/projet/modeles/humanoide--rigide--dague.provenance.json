@@ -1,11 +1,15 @@
 {
   "model": "humanoide--rigide--dague.glb",
-  "model_sha256": "17f680ec538144c505b61f11a8d7e40c6ba4bd7d5874742e880f479faeca0113",
-  "importe_le": "2026-11-05",
+  "model_sha256": "669a3f1c68d10f873621eb7c206b9e4fbfe289c7b8e21ba206d951803e949da2",
+  "importe_le": "2026-11-09",
   "licences": {},
   "licences_de_pack": [
     {
       "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
       "licence": "CC0 1.0 Universal (CC0 1.0)"
     },
     {

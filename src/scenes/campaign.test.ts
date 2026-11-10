@@ -48,7 +48,7 @@ describe('campagne du jeu — identité à l’import, paquet parsé au geste', 
     const [premiere, ...autres] = areneProjet.scenes;
     const refusee: BuiltinCampaign = {
       ...areneCampaign,
-      paquet: { ...areneProjet, scenes: [{ ...premiere, entities: [...premiere.entities, { id: 'x', kind: 'prop', ref: 'decor-inconnu', pos: { x: 0, y: 0 } }] }, ...autres] },
+      paquet: { ...areneProjet, scenes: [{ ...premiere, entities: [...premiere.entities, { id: 'x', kind: 'prop', decor: { id: 'decor-inconnu' }, pos: { x: 0, y: 0 } }] }, ...autres] },
     };
     expect(() => campagneDuJeu(refusee)).toThrow(ProjetRefuse);
     expect(() => copieDuJeu(refusee)).toThrow(ProjetRefuse);

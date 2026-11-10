@@ -25,13 +25,13 @@ import { refuseSi } from './verrousDeFiche';
 import { progresDActivite } from './progresEtendu';
 import { refuserGeste } from './refusVisible';
 import {
-  ciblesDActivite, devisDeDepot, optionDApprentissage, optionDEntrainement, refusDActivite, refusDArtisanat,
-  refusDeCommande, refusDeConfirmerLActivite, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, opsCiblees, viseDuTrait, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type CiblesChoisies, type TraitPsyVise,
+  brouillonDe, ciblesDActivite, devisDeDepot, poserDansLeBrouillon, optionDApprentissage, optionDEntrainement, refusDActivite,
+  refusDeCommande, refusDeConfirmerLActivite, refusDeRetrait, opsCiblees, viseDuTrait, preJetDActivite, devisDeCloture, pertesDArgentDuTirage, effetsDeLaPeriode, revenusDeLaPeriode, activitesPerduesAuGroupe, verificationDeFaillite, type AxeDuBrouillon, type CiblesChoisies, type CompositionDActivite, type TraitPsyVise,
 } from './verdictsDInterlude';
 import { resetInterruptedFavorProgress } from './favorFlow';
 import { confirmBattleActivity, engagerLaBataille, battlePrepEntries, soutienCouteUneActivite } from './massBattleFlow';
 import {
-  craftTarget, craftSpecOf, metierOf, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
+  craftTarget, craftSpecOf, metierOf, qualitesDArtisanat, statusIncome, statusIncomeMax, bankWithdrawOutcome, seuilDePerteBancaire, bankPayout, apprenticeshipTutorCost,
   entrainementTutorCost,
   ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
@@ -70,6 +70,7 @@ import { stepDetail } from './rollSeam';
 import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
+import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 export interface InterludeHeroState {
@@ -104,6 +105,8 @@ export interface InterludeHeroState {
   /** Faveurs (LDB 23 l.139-151, #509) déjà créditées d'une Activité CET interlude — trace la
    *  « consécutivité » (`Favor.progress`) pour `resetInterruptedFavorProgress` (noyau/favorFlow). */
   favorProgress?: string[];
+  /** L'Activité que le héros compose (`fenetreChoisir('interlude', …)`), que le choix `pratiquer` conclut. */
+  composition?: CompositionDActivite;
 }
 
 /** Un lot d'issues différées à la clôture, et le contexte gelé de l'Activité qui l'a produit (libellé,
@@ -165,7 +168,7 @@ function eventStep(hero: Combatant): CascadeStep {
     kind: 'interludeEvent', actorId: hero.id, icon: 'nav/dice',
     label: t('step.evenement'),
     table: interludeEventDecl(),
-    stake: combatStakeRef('interludeEvent'),
+    stake: combatStakeRef('interlude-event'),
   };
 }
 
@@ -414,9 +417,8 @@ const trappingLabelOf = (id: string): string => findTrappingById(id)?.label ?? i
 const craftQualLabel = (id: string): string => qualityRefLabel({ id });
 
 /** Engage un Artisanat : Compétence Métier, matériaux payés avant l'Activité ; l'engagement n'en consomme
- *  aucune (verdict `refusDArtisanat`). LDB 23 l.76 */
-export function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
-  if (refuseSi(get, set, (s) => refusDArtisanat(s, heroId, trappingId) ?? (trappingId ? null : msg('interlude.choisir.ouvrage')))) return;
+ *  aucune (verdict `refusDArtisanat`, que juge le choix `pratiquer`). LDB 23 l.76 */
+function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atouts: string[], defauts: string[]): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   const metier = h && metierOf(h);
@@ -484,17 +486,15 @@ function ouverteSansCible(def: ActivityDef): never {
   throw new Error(`Activité « ${def.id} » ouverte par refusDOuvertureDActivite sans la cible ou la compétence que son ouverture lit.`);
 }
 
-/** Ouvre la modale d'une Activité du CATALOGUE (TOUTES les Activités à jet d'interlude passent ici).
+/** Ouvre la modale d'une Activité du CATALOGUE (TOUTES les Activités à jet d'interlude passent ici), que le verdict
+ *  `refusDOuvertureDActivite` ouvre : le choix `pratiquer` et le retrait de Mécénat le jugent.
  *  Le Test (voie, valeur, Difficulté, modificateurs) est le PRÉ-JET de l'Activité (`preJetDActivite`),
  *  celui qu'affiche son volet ; le résolveur n'annexe que ses champs propres : Test étendu en cours
  *  (`craftExtended`, `ritualFocus`), Talent et tuteur tiré (`learnTalent`), coût (`reputation`), objet
  *  étudié (`identify`). Cibles éventuelles : objet (`itemUid`), sort (`spellId` — achat immédiat), dépôt
  *  (`depotId`), Talent (`talentId`). */
-export function openCatalogActivity(get: Get, set: Set, heroId: string, activityId: string, optsRecues?: CiblesChoisies | null): void {
-  const opts: CiblesChoisies = optsRecues ?? {}; // un intent forgé peut porter `null`
-  const def = activityById(activityId);
-  if (!def) { refuserGeste(get, set, t('if.activiteInconnue', { id: activityId })); return; }
-  if (refuseSi(get, set, (s) => refusDOuvertureDActivite(s, heroId, def, opts))) return;
+function openCatalogActivity(get: Get, set: Set, heroId: string, def: ActivityDef, opts: CiblesChoisies): void {
+  const activityId = def.id;
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   if (!st || !h) return ouverteSansCible(def);
@@ -906,15 +906,15 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
  *  dehors de votre Carrière » — PAS de Test (achat direct comme Passer commande/Banque). Coût en PX
  *  NORMAL (hors carrière, déjà doublé par `advanceCost`/`acheterLaCaracteristique`/`acheterLaCompetence`, LDB 07 l.91)
  *  + tuteur 1D10 sc (doublé pour une Compétence Avancée, l.135). `opt` recalculée ICI depuis les
- *  données du héros (`optionDEntrainement`) — jamais fait confiance à un id client non revérifié.
+ *  données du héros (`optionDEntrainement`), que le choix `pratiquer` a jugée (`refusDEntrainement`).
  *  Une Compétence de Base hors carrière encore inconnue est ACQUISE à 0 Augmentation puis augmentée
  *  (même geste qu'`acheterLaCompetence`, LDB 09 l.42). */
-export function entrainementStart(get: Get, set: Set, heroId: string, kind: 'skill' | 'characteristic', id: string, spec?: string): void {
+function entrainementStart(get: Get, set: Set, heroId: string, cle: string): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
-  if (refuseSi(get, set, (s) => refusDEntrainement(s, heroId, kind, id, spec))) return;
-  const opt = h && optionDEntrainement(h, kind, id, spec);
+  const opt = h && optionDEntrainement(h, cle);
   if (!st || !h || !opt) return;
+  const { kind, id, spec } = opt;
   const tutor = toBrass(entrainementTutorCost(opt.advanced, battleRng()));
   const tuteurHorsBourse = refusDeBourse(h, fromBrass(tutor), 'if.tuteurKo');
   if (tuteurHorsBourse) { refuserGeste(get, set, tuteurHorsBourse); return; }
@@ -1104,7 +1104,7 @@ export function bankWithdraw(get: Get, set: Set, depotId: IdDeDepot): void {
     // Retrait de Mécénat (ACE 12 l.49) = 1 Activité résolue par un Test d'Évaluation Intermédiaire :
     // la modale d'Activité applique la bande (payoutPct) et consomme l'Activité à la validation.
     const def = ACTIVITIES.find((a) => a.resolver === 'mecenat');
-    if (def) openCatalogActivity(get, set, dep.heroId, def.id, { depotId });
+    if (def) openCatalogActivity(get, set, dep.heroId, def, { depotId });
     return;
   }
   if (dep.kind === 'invest') {
@@ -1203,13 +1203,55 @@ function ligneNommee(ligne: { label?: string }, table: string): string {
 export function creerActionsDInterlude(get: Get, set: Set) {
   return {
     ouvrirLInterlude: (weeks) => ouvrirLInterlude(get, set, weeks),
-    fabriquerLObjet: (heroId, trapping, atouts, defauts) => craftStart(get, set, heroId, trapping, atouts, defauts),
     deposerALaBanque: (heroId, kind, amountBrass, indice) => bankDeposit(get, set, heroId, kind, amountBrass, indice),
     retirerDeLaBanque: (depotId) => bankWithdraw(get, set, depotId),
     commanderLObjet: (heroId, trapping) => orderItem(get, set, heroId, trapping),
-    suivreLEntrainement: (heroId, kind, id, spec) => entrainementStart(get, set, heroId, kind, id, spec),
-    pratiquerLActivite: (heroId, activityId, opts) => openCatalogActivity(get, set, heroId, activityId, opts),
   } satisfies FabriqueDuNoyau;
+}
+
+/** Pratique l'Activité `c` que compose le héros `heroId`, que le choix `pratiquer` a jugée (`refusDeLaComposition`) :
+ *  engage l'ouvrage d'Artisanat qu'il n'a pas en cours, suit l'Entraînement, sinon ouvre l'Activité sur ses cibles.
+ *  LDB 23 l.5 */
+function pratiquer(get: Get, set: Set, heroId: string, c: CompositionDActivite): void {
+  const def = garanti(activityById(c.activite), c.activite, 'Activité composée');
+  if (def.resolver === 'craftExtended' && !get().party.find((h) => h.id === heroId)?.craft) {
+    craftStart(get, set, heroId, garanti(c.ouvrage, heroId, 'ouvrage composé'), c.atouts, c.defauts);
+  } else if (def.resolver === 'entrainement') {
+    entrainementStart(get, set, heroId, garanti(c.entrainement, heroId, 'Entraînement composé'));
+  } else {
+    openCatalogActivity(get, set, heroId, def, c.cibles);
+  }
+}
+
+/** Le corps des choix de l'interlude (`fenetreChoisir('interlude', …)`) : le héros `pid` compose son Activité — une autre
+ *  Activité recommence la composition —, puis la pratique. */
+export function choixDInterlude(get: Get, set: Set) {
+  const composer = (pid: string, c: CompositionDActivite) => {
+    const itl = garanti(get().interlude, pid, 'interlude ouvert');
+    set({ interlude: { ...itl, perHero: { ...itl.perHero, [pid]: { ...garanti(itl.perHero[pid], pid, 'héros de l’interlude'), composition: c } } } });
+  };
+  const composee = (pid: string): CompositionDActivite => garanti(get().interlude?.perHero[pid]?.composition, pid, 'Activité composée');
+  const poser = (axe: AxeDuBrouillon) => (valeur: string, pid: string) => composer(pid, poserDansLeBrouillon(composee(pid), axe, valeur));
+  return {
+    interlude: {
+      activite: (activite, pid) => composer(pid, brouillonDe(get().interlude?.perHero[pid]?.composition, activite)),
+      talent: poser('talent'),
+      entrainement: poser('entrainement'),
+      ouvrage: poser('ouvrage'),
+      ajouterLaQualite: (q, pid) => {
+        const c = composee(pid);
+        composer(pid, qualitesDArtisanat().atouts.includes(q) ? { ...c, atouts: [...c.atouts, q] } : { ...c, defauts: [...c.defauts, q] });
+      },
+      retirerLaQualite: (q, pid) => {
+        const c = composee(pid);
+        composer(pid, { ...c, atouts: c.atouts.filter((x) => x !== q), defauts: c.defauts.filter((x) => x !== q) });
+      },
+      objet: poser('objet'),
+      sort: poser('sort'),
+      traitPsy: poser('traitPsy'),
+      pratiquer: (_vrai, pid) => pratiquer(get, set, pid, composee(pid)),
+    },
+  } satisfies Partial<CorpsDesChoix>;
 }
 
 export function validationsDInterlude(get: Get, set: Set) {

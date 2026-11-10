@@ -38,8 +38,8 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const r = t.jouer(verbe('creerLaPanoplie', heros));
     expect(r.erreur, r.texte).toBeNull();
   });
-  it('point d’intérêt du lieu : `entrerAuPointDInteret`, aucun hors d’un lieu', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('entrerAuPointDInteret', 'test-revisit-couloir'), /poi : "test-revisit-couloir" n’est pas un id de point d’intérêt du lieu \(valides : aucun ici\)/);
+  it('point d’intérêt du lieu : le choix `ecranDuLieu.entrer`, aucun hors d’un lieu', { timeout: 120_000 }, () => {
+    refuseLId(partie('revisit'), verbe('fenetreChoisir', 'ecranDuLieu', 'entrer', 'test-revisit-couloir'), /valeur : "test-revisit-couloir" n’est pas un id de point d’intérêt du lieu \(valides : aucun ici\)/);
   });
   it('entité de scène : `cliquerLaCase`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
@@ -53,11 +53,11 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
   it('indice : `epinglerLIndice`, et chaque indice affiché de `marquerLesIndices`', { timeout: 120_000 }, () => {
     const t = partie('enquete-carnet');
-    refuseLId(t, verbe('epinglerLIndice', 'ind-rumeur-forgeron'), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
+    refuseLId(t, verbe('epinglerLIndice', 'ind-rumeur-forgeron', true), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
     expect(t.jouer(verbe('cliquerLaCase', { x: 7, y: 6 })).erreur).toBeNull();
-    const [indice] = refuseLId(t, verbe('epinglerLIndice', 'nobody'), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
+    const [indice] = refuseLId(t, verbe('epinglerLIndice', 'nobody', true), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
     refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'refute', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
-    passeLeControle(t, verbe('epinglerLIndice', indice));
+    passeLeControle(t, verbe('epinglerLIndice', indice, true));
   });
   it('pré-tiré : `recruterLeHeros`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
     const t = partie('revisit');
@@ -73,12 +73,10 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {
     refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /uid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
   });
-  it('un id dans un tableau : `affecterLeHeros`', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('affecterLeHeros', 'motivation', ['nobody']), /heroIds\[0\] : "nobody" n’est pas un id de héros/);
-  });
-  it('un id du catalogue : `affecterLeHeros`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
+  it('un id du catalogue : `menerLActionDeBataille`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    refuseLId(t, verbe('affecterLeHeros', 'nulle', []), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
+    const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
+    refuseLId(t, verbe('menerLActionDeBataille', heros, 'nulle'), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
     refuseLId(t, verbe('ouvrirLaBoutique', 'forgeron'), /serviceId : "forgeron" n’est pas un id de service du lieu \(valides : aucun ici\)/);
   });
   it('une rangée de jet : la séquence d’entrée en scène, `jetLancer`', { timeout: 120_000 }, () => {
@@ -86,11 +84,9 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-sceneEntry-0\)/);
     passeLeControle(t, verbe('jetLancer', 'cascade', rangee));
   });
-  it('un id dans un objet d’options : `pratiquerLActivite`, le Trait psychologique porté', { timeout: 120_000 }, () => {
+  it('un id facultatif : `ouvrirLeMedecin`, le patient', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros/);
-    refuseLId(t, verbe('pratiquerLActivite', heros, 'plein-air', { traitPsy: 'nobody' }), /opts\.traitPsy : "nobody" n’est pas un id de Trait psychologique porté/);
-    refuseLId(t, verbe('pratiquerLActivite', heros, 'plein-air', { spellId: 'nobody' }), /opts\.spellId : "nobody" n’est pas un id de sort/);
+    refuseLId(t, verbe('ouvrirLeMedecin', 'nobody'), /patientId : "nobody" n’est pas un id de héros/);
   });
   it('la signature dit ce que le paramètre désigne', () => {
     const r = table().lire('verbes', { id: 'cliquerLaCase' });

@@ -8,7 +8,7 @@
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
 import { editer, ouvrirLEdition, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
 import type { SorteDePorteur } from './noyau/sceneEditLecture';
-import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur } from './hote/editeur';
+import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { estObjet } from './lib/objet.mjs';
 
@@ -65,19 +65,19 @@ function offres(elements: readonly (Choix | Ligne | Bouton | Formulaire)[]): Off
   }).filter((o) => !recursif(o.chemin));
 }
 
-/** Le geste d'édition que joue le jeu `jeu` des zones de la session `s`, passé en JSON comme le pont le reçoit ;
+/** Le geste d'édition que joue le jeu `jeu` des zones `zones` d'une session, passé en JSON comme le pont le reçoit ;
  *  `undefined` si les zones ne l'offrent pas. */
-function gesteDuJeu(s: SessionDEdition, jeu: Jeu): GesteDEdition | undefined {
+function gesteDuJeu(zones: ZonesDeLEditeur, jeu: Jeu): GesteDEdition | undefined {
   const recu = JSON.parse(JSON.stringify(jeu)) as Record<string, unknown>;
-  const zones = zonesDeLEditeur(s);
   if ('edition' in recu) return boutonDeLEdition(zones, recu.edition) ? (recu.edition as GesteDEdition) : undefined;
   return gesteDuFormulaire(zones, recu);
 }
 
 /** La session `s` où joue le bouton d'id `id` de ses zones. */
 function presser(s: SessionDEdition, id: string): SessionDEdition {
-  const b = Object.values(zonesDeLEditeur(s)).flat().flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : [])).find((v) => v.id === id);
-  const geste = b && gesteDuJeu(s, b.jeu);
+  const zones = zonesDeLEditeur(s);
+  const b = Object.values(zones).flat().flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : [])).find((v) => v.id === id);
+  const geste = b && gesteDuJeu(zones, b.jeu);
   if (!geste) throw new Error(`aucun bouton ${id} dans les zones de l’éditeur`);
   return editer(s, geste);
 }
@@ -92,11 +92,12 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
   let s = depart;
   const jouees = new Set<string>();
   for (let n = 0; n < GESTES_AU_PLUS; n++) {
-    const restantes = offres(zonesDeLEditeur(s)['editeur.inspecteur']).filter((o) => !jouees.has(o.id));
+    const zones = zonesDeLEditeur(s);
+    const restantes = offres(zones['editeur.inspecteur']).filter((o) => !jouees.has(o.id));
     const offre = restantes.find((o) => !o.emporte) ?? restantes[0];
     if (!offre) return s;
     jouees.add(offre.id);
-    const geste = gesteDuJeu(s, offre.jeu);
+    const geste = gesteDuJeu(zones, offre.jeu);
     if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
     const avant = sceneEditee(s);
     s = editer(s, geste);
@@ -112,9 +113,13 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
   throw new Error(`plus de ${GESTES_AU_PLUS} offres du geste valeur`);
 }
 
-/** La fiche du Bestiaire du personnage posé : ses options portent des Traits facultatifs et une note « swap » qui octroie
- *  des Caractéristiques et une Compétence (Vouivre, ZI). */
-const FICHE_A_OPTIONS = 'vouivre-zoo-imperial';
+/** Les fiches du Bestiaire des personnages posés : la Vouivre (ZI), dont les options portent des Traits facultatifs et
+ *  une note « swap » qui octroie des Caractéristiques et une Compétence ; l'Ombre du fleuve, dont les Miracles de Taal
+ *  ouvrent des sorts à choisir (`listesDeSorts`). */
+const FICHES = ['vouivre-zoo-imperial', 'l-ombre-du-fleuve'] as const;
+
+/** Le projet dont le narratif déclare des presets de PNJ (`presetsPnj`), qu'un personnage choisit (`presetId`). */
+const PROJET_A_PRESETS = 'la-diligence';
 
 /** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance (MDG 12), et sa case. */
 const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 } } as const;
@@ -124,9 +129,10 @@ const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 /** La session `s` où l'outil actif clique la case `(x, y)`. */
 const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => editer(editer(s, { geste: 'appui', point: point(x, y) }), { geste: 'relache', point: point(x, y) });
 
-/** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de `FICHE_A_OPTIONS` d'une scène
- *  neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), puis sur la coque `COQUE`,
- *  sélectionnée ; chacun joué à son inspecteur (`jouerLInspecteur`). */
+/** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
+ *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), puis sur un personnage de la
+ *  première des `FICHES` posé dans une scène neuve du `PROJET_A_PRESETS`, et sur la coque `COQUE`, sélectionnée ; chacun
+ *  joué à son inspecteur (`jouerLInspecteur`). */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false), 'scenes/ajouter');
@@ -134,7 +140,11 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(editer(editer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
-  jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${FICHE_A_OPTIONS}`), 5, 5), out);
+  FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
+  const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
+  if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
+  const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
+  jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
   const campagne = allBuiltinCampaigns.find((c) => c.id === COQUE.campagne);
   if (!campagne) throw new Error(`aucune campagne ${COQUE.campagne}`);
   const barge = presser(presser(ouvrirLEdition(paquetDuJeu(campagne), false), `scenes/${COQUE.scene}`), 'outil/select');

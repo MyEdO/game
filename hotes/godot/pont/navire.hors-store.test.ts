@@ -58,9 +58,9 @@ describe('la caraque posée dans la scène À bord de la caraque', () => {
     const [, hauteurs] = garanti(findVehicleById('caraque')?.ponts, 'caraque', 'ponts');
     const { oeilM, oeilsSousPlafond } = vueDe(appel('regarder', { regard: 'immersion' })).plateau!;
     expect(oeilM).toBe(EYE_H);
-    // (11, 4) de la scène, au milieu de la batterie (pont `e`, l'étage 1) sous le pont principal (`p`, l'étage 2)
-    expect(oeilsSousPlafond['11,4,1']).toBeCloseTo(hauteurs.p - MARGE_SOUS_PLAFOND_M - hauteurs.e, 6);
-    expect(oeilsSousPlafond['11,4,2']).toBeUndefined();
+    // (11, 3) de la scène, dans la batterie (pont `e`, l'étage 1) à côté du cabestan, sous le pont principal (`p`, l'étage 2)
+    expect(oeilsSousPlafond['11,3,1']).toBeCloseTo(hauteurs.p - MARGE_SOUS_PLAFOND_M - hauteurs.e, 6);
+    expect(oeilsSousPlafond['11,3,2']).toBeUndefined();
     appel('regarder', { regard: 'tactique' });
   });
 

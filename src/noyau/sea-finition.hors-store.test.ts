@@ -1,4 +1,6 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { acheterAuMarche } from './cargaison.testkit';
+import { reglageDuChoixDeFenetre } from './choixDeFenetre';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { t } from '../i18n';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
@@ -262,7 +264,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
   });
 });
 
-/** Draine la CASCADE de vente au port (`vendreLaCargaison` au port, dernier reliquat #275/#274 — Ragot → acheteur
+/** Draine la CASCADE de vente au port (le choix `vendre` au port, dernier reliquat #275/#274 — Ragot → acheteur
  *  → Marchandage, chacun un `openRoll` séparé enchaîné via `chainStep`/`programmer(…, 0)`, patron
  *  `seaVoyageFlow.ts` `sea-desertion`) : un `tick()` par itération reprend le jeton d'une étape
  *  déférée, comme un clic UI l'espacerait. */
@@ -284,12 +286,12 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     expect(st.offers.length).toBeGreaterThan(0); // bois (Production) et/ou produits de luxe (Surplus)
   });
 
-  it('acheterLaCargaison débite la bourse et embarque la cargaison ; vendreLaCargaison la revend (cascade Ragot→acheteur→Marchandage)', async () => {
+  it('l’achat de cargaison débite la bourse et embarque la cargaison  ; la vente la revend (cascade Ragot→acheteur→Marchandage)', async () => {
     seedBattleRng(2);
     get().ouvrirLePort();
     const offer = get().port!.offers[0];
     const before = partyMoneyTotal(get).gold;
-    get().acheterLaCargaison('vessel', offer.cargoId, Math.min(10, offer.enc));
+    acheterAuMarche(get, 'port', 'vessel', offer.cargoId, Math.min(10, offer.enc));
     await drainPortSellCascade(); // #266 — l'achat marchande par cascade (openRoll), comme la vente
     const vessel = get().vessel!;
     expect((vessel.cargo ?? []).length).toBe(1);
@@ -298,7 +300,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     set({ vessel: { ...get().vessel!, lastVoyageMilles: 550 }, port: null, lieu: 'B' });
     get().ouvrirLePort();
     const cargoLen = (get().vessel!.cargo ?? []).length;
-    get().vendreLaCargaison(get().vessel!.cargo![0].uid);
+    get().fenetreChoisir('port', 'vendre', get().vessel!.cargo![0].uid);
     await drainPortSellCascade();
     // La cascade se termine TOUJOURS (jamais de pendingCascade qui traîne) — vendu, ou refusé (RNG),
     // jamais cassé.
@@ -322,7 +324,11 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     fund(get().party[0].id, { gold: 100000, silver: 0, brass: 0 }); // bourse large pour l'achat en surcharge
     get().ouvrirLePort();
     const offer = get().port!.offers[0]; // production/surplus copieux (Taille 4 + Richesse 4 × d10 × 10)
-    get().acheterLaCargaison('vessel', offer.cargoId, 1000); // demande énorme → clampée au plafond dur (450 − 290 = 160)
+    get().fenetreChoisir('port', 'offre', offer.cargoId);
+    const plafond = Math.min(offer.enc, 160); // plafond dur : 450 − 290
+    expect(reglageDuChoixDeFenetre(get(), 'port', 'enc').bornes?.max, 'l’Enc se borne au plafond dur').toBe(plafond);
+    expect(acheterAuMarche(get, 'port', 'vessel', offer.cargoId, plafond + 1), 'au-delà du plafond dur').toBe(t('choix.refus.bornes'));
+    acheterAuMarche(get, 'port', 'vessel', offer.cargoId, plafond);
     await drainPortSellCascade(); // #266 — Marchandage d'achat SURFACÉ (cascade openRoll)
     const enc = (get().vessel!.cargo ?? []).reduce((s, l) => s + l.enc, 0);
     expect(enc).toBeLessThanOrEqual(450); // jamais au-delà du maximum absolu (150 %)
@@ -330,12 +336,12 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     expect(get().journal.some((l) => /SURCHARG/i.test(l))).toBe(true); // achat en zone de surcharge → avertissement
   });
 
-  it('jeterLaCargaison brade à ¼ du prix de base dans un port « commerce »', () => {
+  it('le bradage de cargaison brade à ¼ du prix de base dans un port « commerce »', () => {
     seedBattleRng(2);
     set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }] }, lieu: 'B' });
     get().ouvrirLePort();
     const before = partyMoneyTotal(get).gold;
-    get().jeterLaCargaison('lot-4');
+    get().fenetreChoisir('port', 'jeter', 'lot-4');
     expect((get().vessel!.cargo ?? []).length).toBe(0);
     expect(partyMoneyTotal(get).gold).toBeGreaterThan(before); // ¼ × 100 × 2 = 50 CO
   });
@@ -345,31 +351,32 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     set({ vessel: { ...get().vessel!, cargo: [{ uid: 'lot-4', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 }, { uid: 'lot-5', cargoId: 'bois-mer', enc: 10, basePriceGold: 2 }], perteAuDechargement: 30 }, lieu: 'B' });
     get().ouvrirLePort();
     const before = partyMoneyTotal(get).gold;
-    get().jeterLaCargaison('lot-4');
+    get().fenetreChoisir('port', 'jeter', 'lot-4');
     expect(partyMoneyTotal(get).gold - before).toBe(35); // ¼ × (100 − 30) × 2
     expect(get().vessel!.perteAuDechargement).toBeUndefined();
-    get().jeterLaCargaison('lot-5');
+    get().fenetreChoisir('port', 'jeter', 'lot-5');
     expect(partyMoneyTotal(get).gold - before).toBe(35 + 5); // ¼ × 10 × 2 : la perte ne frappe qu'une fois
   });
 
-  it('acheterLaCargaison au port : seule la cale du navire se négocie, un autre porteur est refusé en le disant', () => {
+  it('l’achat de cargaison au port : seule la cale du navire se négocie, un autre porteur est refusé en le disant', () => {
     seedBattleRng(2);
+    set({ possessions: [{ uid: 'pos-mule', ownerId: get().party[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }] });
     get().ouvrirLePort();
     const offer = get().port!.offers[0];
     const before = partyMoneyTotal(get).gold;
-    get().acheterLaCargaison('pos-mule', offer.cargoId, Math.min(10, offer.enc));
+    acheterAuMarche(get, 'port', 'pos-mule', offer.cargoId, Math.min(10, offer.enc));
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(partyMoneyTotal(get).gold).toBe(before);
     expect(get().journal.slice(-1)[0]).toBe(t('port.horsDuNavire'));
   });
 
-  it('jeterLaCargaison au port : deux lots du même bien, seul le lot désigné quitte la cale, à SON prix', () => {
+  it('le bradage de cargaison au port : deux lots du même bien, seul le lot désigné quitte la cale, à SON prix', () => {
     seedBattleRng(2);
     const garde = { uid: 'lot-a', cargoId: 'bois-mer', enc: 100, basePriceGold: 2 };
     set({ vessel: { ...get().vessel!, cargo: [garde, { uid: 'lot-b', cargoId: 'bois-mer', enc: 100, basePriceGold: 6 }] }, lieu: 'B' });
     get().ouvrirLePort();
     const before = partyMoneyTotal(get).gold;
-    get().jeterLaCargaison('lot-b');
+    get().fenetreChoisir('port', 'jeter', 'lot-b');
     expect(get().vessel!.cargo).toEqual([garde]);
     expect(partyMoneyTotal(get).gold).toBe(before + 150); // ¼ × 100 × 6 CO
   });

@@ -1,0 +1,29 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "etui_a_parchemin"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "parchemin",
+      "palette": "vet2"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
+    }
+  ],
+  "glb": {
+    "sha256": "b201725b4d1161a5c4fe6f3e833fdc31bc1516f475a2a295cc1f040daeb1714e",
+    "octets": 54224
+  }
+}

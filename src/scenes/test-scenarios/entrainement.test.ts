@@ -40,8 +40,8 @@ describe('entrainement — Scene produite par buildScene', () => {
   it('braséros posés (halos de lumière)', () => {
     const lice = s.entities.find((e) => e.id === 'brasero-lice');
     const couloir = s.entities.find((e) => e.id === 'brasero-couloir');
-    expect(lice).toMatchObject({ kind: 'prop', ref: 'brasero', pos: { x: 14, y: 8 } });
-    expect(couloir).toMatchObject({ kind: 'prop', ref: 'brasero', pos: { x: 8, y: 11 } });
+    expect(lice).toMatchObject({ kind: 'prop', decor: { id: 'brasero' }, pos: { x: 14, y: 8 } });
+    expect(couloir).toMatchObject({ kind: 'prop', decor: { id: 'brasero' }, pos: { x: 8, y: 11 } });
   });
 
   it('trigger de lice (bande x=7 → journal + startCombat)', () => {
@@ -70,10 +70,10 @@ describe('entrainement — Scene produite par buildScene', () => {
     expect(ent(2)?.pos).toEqual({ x: 21, y: 2 });
     expect(ent(0)?.statblock?.char.M).toBe(0);
     // 2 gobelins
-    expect(ent(3)).toMatchObject({ ref: 'gobelin', pos: { x: 15, y: 7 } });
-    expect(ent(4)).toMatchObject({ ref: 'gobelin', pos: { x: 16, y: 9 } });
+    expect(ent(3)).toMatchObject({ creature: { id: 'gobelin' }, pos: { x: 15, y: 7 } });
+    expect(ent(4)).toMatchObject({ creature: { id: 'gobelin' }, pos: { x: 16, y: 9 } });
     // cheval : monture alliée
-    expect(ent(5)).toMatchObject({ ref: 'cheval', pos: { x: 5, y: 10 } });
+    expect(ent(5)).toMatchObject({ creature: { id: 'cheval' }, pos: { x: 5, y: 10 } });
     const chevalMember = enc.members!.find((m) => m.entityId === 'enemy-enc-entrainement-5');
     expect(chevalMember?.mount).toBe(true);
     expect(chevalMember?.side).toBe('ally');

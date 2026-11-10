@@ -17,7 +17,7 @@ import { datasetFile, datasetSerializeRoot, setDataset } from '../data/overrides
 import { validateDataset } from '../data/schemas/validate';
 import { hasCondition } from '../engine/conditions';
 import { MINUTES_PER_DAY } from '../engine/clock';
-import { combatStakeRef, symptoms } from '../data';
+import { type CombatStakeId, combatStakeRef, symptoms } from '../data';
 import { t } from '../i18n';
 import { bandStep, monoStep, resultLine, rollStep } from './rollSeam';
 import type { PortProfile } from '../engine/seaVoyage';
@@ -48,7 +48,7 @@ const ligneDe = (out: ReturnType<typeof appliquer>): string => resultLine((out &
 const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: { id: 'ragot' } });
 
 /** Étape MONO de Ragot non tentable, montée par `monoStep` avec le refus de son porteur. */
-const ragotSansJet = (kind: GenreDEtape, hero: Combatant, label: PlayerText, meta: Record<string, string | number>): CascadeStep =>
+const ragotSansJet = (kind: Extract<GenreDEtape, CombatStakeId>, hero: Combatant, label: PlayerText, meta: Record<string, string | number>): CascadeStep =>
   monoStep({
     id: kind, kind, label, actor: hero, difficulty: 'intermediaire', stake: combatStakeRef(kind),
     ligne: { test: { skill: { id: 'ragot' }, characteristic: 'sociabilite' }, refus: refusRagot(hero) },

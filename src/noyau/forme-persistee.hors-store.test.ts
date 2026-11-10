@@ -72,8 +72,8 @@ describe('forme persistée — ce que le chargement lit', () => {
     // LE DÉFAUT, mesuré sur le chemin réel : ce que ferait le chargement si la version laissait passer.
     const scene = emptyScene('scene-test', 12, 12);
     scene.entities = [
-      { id: 'table-1', kind: 'prop', ref: 'table-ronde-4-tabourets', pos: { x: 5, y: 5 }, usable: { assise: true } },
-      { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 5, y: 6 } },
+      { id: 'table-1', kind: 'prop', decor: { id: 'table-ronde-4-tabourets' }, pos: { x: 5, y: 5 }, usable: { assise: true } },
+      { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 5, y: 6 } },
     ] as typeof scene.entities;
     const ancien = { 'table-1': { 'place-nord': { kind: 'entity' as const, entityId: 'pnj-1' } } };
     expect(pruneSeatAssignments({ ...scene, seatAssignments: ancien }, 4), 'l’élagage est MUET').toEqual({});
@@ -95,7 +95,7 @@ describe('forme persistée — ce que le chargement lit', () => {
   });
   it('l’empreinte d’un décor à recette TOURNE avec son cap (#1509)', () => {
     const scene = emptyScene('scene-test', 12, 12);
-    scene.entities = [{ id: 'table-1', kind: 'prop', ref: 'table-2x1', pos: { x: 5, y: 5 }, facing: 'E' }] as typeof scene.entities;
+    scene.entities = [{ id: 'table-1', kind: 'prop', decor: { id: 'table-2x1' }, pos: { x: 5, y: 5 }, facing: 'E' }] as typeof scene.entities;
     expect(entityBlockedAt(scene, 5, 6, 0), 'au cap E la table occupe la case au SUD').toBe(true);
     expect(entityBlockedAt(scene, 6, 5, 0), 'au cap E la case à l’EST est libre').toBe(false);
     const auSud = { ...scene, entities: [{ ...scene.entities[0], facing: 'S' }] as typeof scene.entities };
@@ -118,7 +118,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(arme.test.kind, 'la donnée doit porter le nœud, pas la graphie `resist`').toBe('test');
     expect(arme.test.test.stake, 'la DONNÉE ne porte pas d’enjeu : il est posé à l’armement').toBeUndefined();
     const traumas: Trauma[] = [];
-    const enjeu = combatStakeRef('critRowTest', { entryId: 'commotion-cerebrale', entryCategory: 'criticalsTete' });
+    const enjeu = combatStakeRef('crit-row-test', { entryId: 'commotion-cerebrale', entryCategory: 'criticalsTete' });
     stampCriticalEscalation(traumas, commotion.escalation!, 'tete', hero38(), makeRNG(1), [], enjeu);
     const pose = traumas.find((t) => t.critTrigger)!.critTrigger!.test;
     expect(pose.test.stake, 'le nœud PERSISTÉ doit porter l’enjeu de la rangée qui l’a armé').toEqual(enjeu);
@@ -132,7 +132,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     const marque = r.traumas.find((t) => t.pendingAmputation)!.pendingAmputation!;
     expect(marque.kind, 'le marqueur PERSISTÉ doit être un nœud `test`, pas la donnée `Amputation`').toBe('test');
     expect((marque as Extract<typeof marque, { kind: 'test' }>).test.stake, 'et porter l’enjeu de sa rangée')
-      .toEqual(combatStakeRef('critRowTest', { entryId: 'coupure-a-l-orteil', entryCategory: 'criticalsJambe' }));
+      .toEqual(combatStakeRef('crit-row-test', { entryId: 'coupure-a-l-orteil', entryCategory: 'criticalsJambe' }));
   });
   it('le coup à l’équipage d’un bateau s’ouvre en BANDE (#1657 B3-2)', () => {
     ouvrirLeBanc(); // les tables du jeu posées
@@ -141,7 +141,7 @@ describe('forme persistée — ce que le chargement lit', () => {
 
   it('les étapes d’entretien se servent par l’applier de la porte (#1657 B3-3)', () => {
     ouvrirLeBanc(); // les tables du jeu posées
-    expect(applierDe('diseaseTick'), 'l’applier du cycle de maladie doit exister').toBeDefined();
+    expect(applierDe('disease-tick'), 'l’applier du cycle de maladie doit exister').toBeDefined();
   });
 
   it('les jets en attente sauvés portent le nom figé (#1882, #1906)', () => {

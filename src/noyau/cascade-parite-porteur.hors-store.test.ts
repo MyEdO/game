@@ -152,7 +152,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     const heroId = montage();
     set({ travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
     // `progression` ∈ KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
-    const serie = (porteur: Porteur) => (['progression', 'tourbillon'] as const).map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
+    const serie = (porteur: Porteur) => (['crew-progression', 'crew-tourbillon'] as const).map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
     const monde = serie('monde');
     expect(monde, 'une surface qui diverge par le PORTEUR est une branche « spéciale monde »').toEqual(serie('heros'));
     expect(monde, 'et la série discrimine la routine de voyage').toEqual(['I', 'M']);

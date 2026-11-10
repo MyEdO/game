@@ -72,7 +72,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const sources = sceneFearSources(
       scene([
         ent({ id: 'pnj', statblock: TERREUR2 }),
-        ent({ id: 'porte', kind: 'prop', ref: 'Tonneau' }),
+        ent({ id: 'porte', kind: 'prop', decor: { id: 'Tonneau' } }),
         ent({ id: 'depart', kind: 'heroStart' }),
       ]),
       presetPnjById,
@@ -95,7 +95,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const h = timoreux('H');
     h.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('mort-vivant') }];
     banc.setState({ party: [h] });
-    banc.getState().lancerLaScene(scene([ent({ id: 'revenant', ref: 'humain', combat: { optionals: [{ id: 'mort-vivant' }] } })]));
+    banc.getState().lancerLaScene(scene([ent({ id: 'revenant', creature: { id: 'humain' }, combat: { optionals: [{ id: 'mort-vivant' }] } })]));
     const step = banc.getState().pendingCascade?.participants[0];
     expect(step?.encounterPsych?.kind).toBe('haine');
     expect(step?.encounterPsych?.cible).toBe(ciblePsy.groupe('mort-vivant'));
@@ -155,7 +155,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.encounterPsych?.kind).toBe('animosite');
-    banc.getState().jetDepenserLaDetermination('cascadeBatch', h.id);
+    banc.getState().depenserLaDetermination(h.id, 'immuniserALaPsychologie');
     expect(banc.getState().pendingCascade!.participants[0].participants![0].immune).toBe(true);
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
@@ -205,7 +205,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     b.resolve = 1;
     banc.setState({ party: [a, b] });
     banc.getState().lancerLaScene(scene([ent({ id: 'elfe', statblock: ELFE })]));
-    banc.getState().jetDepenserLaDetermination('cascadeBatch', a.id);
+    banc.getState().depenserLaDetermination(a.id, 'immuniserALaPsychologie');
     const band = banc.getState().pendingCascade!.participants[0];
     expect(band.participants![0].immune).toBe(true);
     expect(band.participants![1].immune).toBeUndefined();
@@ -379,7 +379,7 @@ describe('Terreur réussie : la Peur qui en découle est due à PLEIN Indice (LD
     h.resolve = 1;
     banc.setState({ party: [h], pendingCascade: null, battle: null });
     openScriptedPsych(banc.getState, banc.setState, 'terreur', 3, 'Un spectre hurlant', [h]);
-    banc.getState().jetDepenserLaDetermination('cascadeBatch', h.id);
+    banc.getState().depenserLaDetermination(h.id, 'immuniserALaPsychologie');
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
     expect(stacks(hero, 'brise')).toBe(0); // le Test de Terreur n'a pas eu lieu

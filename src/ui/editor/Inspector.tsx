@@ -26,6 +26,7 @@ import {
   type WallSecret,
   isDescriptiveZone,
   enrolledEntityIds,
+  idDuCorps,
   porteAuteur,
   reposDeScene,
   sceneMetresPerTile,
@@ -52,7 +53,7 @@ import { buildingsMeta } from '../../noyau/monde/buildings';
 import { FACADE_APPEARANCE_IDS } from '../../noyau/monde/facades';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { allMusicDefs } from '../../data/sons/musique';
-import { findCreatureById, creatureLabel, lightLevels, lightTones, findVehicleById, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, libelleDAuteur, MERCHANT_ARCHETYPES } from '../../data';
+import { findCreatureById, creatureLabel, lightLevels, lightTones, findPropById, matieresCouvrantes, matieresDe, structureAppearances, siegeEngines, libelleDAuteur, MERCHANT_ARCHETYPES } from '../../data';
 import { renameActionAuthoree, toitureEffective, TypeNonNomme, changePropRef, deleteSel, renameEntry, renameEffectZone, addMember, removeMember, patchMember, setEffectZoneArea, clearEffectZoneCarve, setPosteCrew, setPosteSide, setPosteEngine, editEntity, editEntityCombat, patchWall, setNorthDeg, setSceneFlags, removeSceneFlag, setSceneScalaires, setSceneLabel, renameScene, editEntry, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, patchStartMessage, setReliefDefault, patchSceneRoofDefaults, setSceneRest, patchTrigger, patchRestZone, patchZone, replaceEffectZone, patchArchitectureBody, poseToitureDuCorps, addRoofExclusion, patchRoofExclusion, removeRoofExclusion, patchArchitectureStorey, patchArchitecturePart, patchFacadeSection, setFacadeSectionZ, patchBuildingMass, addFacadeFeature, patchFacadeFeature, removeFacadeFeature, BORNES_D_OUVERTURE } from '../../noyau/sceneEdit';
 import { ciblesDAncreDeBataille } from '../../noyau/massBattleFlow';
 import { hintDeValeur, libelleDeValeur, optionsDuNoeud } from '../../data/schemas/grammaire/meta';
@@ -733,7 +734,7 @@ export function Inspector({
                 value={ent.presetId}
                 onChange={(presetId) => updateSel({ presetId })}
                 nullable
-                aucunIneligible={ent.ref === undefined && !ent.statblock}
+                aucunIneligible={idDuCorps(ent) === undefined && !ent.statblock}
               />
               {ent.presetId && ent.statblock && (
                 <p className="hint" style={{ color: 'var(--danger)' }}>
@@ -745,12 +746,12 @@ export function Inspector({
                 <>
                   <StatblockEditor chemin={`${ent.id}/statblock`} stat={ent.statblock} onChange={(sb) => updateSel({ statblock: sb })} />
                   {/* #1882 : quitter le profil personnalisé NOMME la fiche qui le remplace, dans le même geste. */}
-                  {ent.ref !== undefined ? (
-                    <button className="btn small" onClick={() => updateSel({ statblock: undefined })}>↩ Revenir à la fiche du bestiaire ({creatureLabel(ent.ref)})</button>
+                  {ent.creature !== undefined ? (
+                    <button className="btn small" onClick={() => updateSel({ statblock: undefined })}>↩ Revenir à la fiche du bestiaire ({creatureLabel(ent.creature.id)})</button>
                   ) : (
                     <label className="ed-field">
                       Remplacer par une fiche du bestiaire
-                      <select value="" onChange={(e) => { const cid = e.target.value; updateSel({ statblock: undefined, ref: cid }); }}>
+                      <select value="" onChange={(e) => { const cid = e.target.value; updateSel({ statblock: undefined, creature: { id: cid } }); }}>
                         <option value="" disabled>— fiche —</option>
                         {enemyCreatures.map((c) => (
                           <option key={c.id} value={c.id}>{c.label}</option>
@@ -764,15 +765,15 @@ export function Inspector({
                   <label className="ed-field">
                     Fiche (bestiaire)
                     {/* #1882 : aucune option ne retire la fiche ; la mention vide n'existe que tant qu'aucune n'est choisie. */}
-                    <select value={ent.ref ?? ''} onChange={(e) => { const cid = e.target.value; updateSel({ ref: cid }); }}>
-                      {ent.ref === undefined && <option value="" disabled>— fiche —</option>}
+                    <select value={ent.creature?.id ?? ''} onChange={(e) => { const cid = e.target.value; updateSel({ creature: { id: cid }, vehicule: undefined, engin: undefined }); }}>
+                      {ent.creature === undefined && <option value="" disabled>— fiche —</option>}
                       {enemyCreatures.map((c) => (
                         <option key={c.id} value={c.id}>{c.label}</option>
                       ))}
                     </select>
                   </label>
                   {(() => {
-                    const cr = ent.ref ? findCreatureById(ent.ref) : undefined;
+                    const cr = findCreatureById(ent.creature?.id);
                     if (!cr) return null;
                     return (
                       <>
@@ -844,7 +845,7 @@ export function Inspector({
             </Fold>
           )}
 
-          {ent && (!!ent.postes?.length || (ent.ref && !!findVehicleById(ent.ref)?.hull)) && <EmplacementFold ent={ent} scene={scene} setScene={setScene} />}
+          {ent && (!!ent.postes?.length || !!ent.vehicule) && <EmplacementFold ent={ent} scene={scene} setScene={setScene} />}
 
           {selT && (
             <>
@@ -1266,22 +1267,22 @@ export function Inspector({
  * l'inspecteur et le validateur disent la MÊME chose. Élire un vrai type l'ÉCRIT (`changePropRef`).
  */
 function SelecteurDeDecor({ scene, ent, setScene }: { scene: Scene; ent: SceneEntity; setScene: (s: Scene) => void }) {
-  const etat = findPropById(ent.ref)
+  const etat = findPropById(ent.decor?.id)
     ? null
-    : ent.ref === undefined
+    : ent.decor === undefined
       ? 'Décor sans type — choisissez-en un'
-      : `Décor inexistant « ${ent.ref} »`;
+      : `Décor inexistant « ${ent.decor.id} »`;
   return (
     <>
       <label className="ed-field">
         Décor
         <select
-          value={ent.ref ?? REF_DECOR_NON_NOMMEE}
+          value={ent.decor?.id ?? REF_DECOR_NON_NOMMEE}
           title={etat ?? undefined}
           onChange={(e) => setScene(changePropRef(scene, ent.id, e.target.value))}
         >
           {etat && (
-            <option value={ent.ref ?? REF_DECOR_NON_NOMMEE} disabled>
+            <option value={ent.decor?.id ?? REF_DECOR_NON_NOMMEE} disabled>
               {etat}
             </option>
           )}
@@ -1307,7 +1308,7 @@ function SelecteurDeDecor({ scene, ent, setScene }: { scene: Scene; ent: SceneEn
  * pas d'instance : il annonce l'empreinte au CAP D'IDENTITÉ (`Palette.tsx`).
  */
 function EmpreinteDeLInstance({ scene, ent }: { scene: Scene; ent: SceneEntity }) {
-  const cases = propFootTiles(ent.ref, ent.pos, ent.facing, sceneMetresPerTile(scene));
+  const cases = propFootTiles(ent.decor?.id, ent.pos, ent.facing, sceneMetresPerTile(scene));
   const w = Math.max(...cases.map((c) => c.x)) - ent.pos.x + 1;
   const h = Math.max(...cases.map((c) => c.y)) - ent.pos.y + 1;
   return (
@@ -1400,7 +1401,7 @@ function EntityPanel({
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
-              weapons={armesDEntite(objetDuNarratif(narratif), ent.ref, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
+              weapons={armesDEntite(objetDuNarratif(narratif), ent.creature?.id, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
             />
           </Fold>
           <Fold title="Rôle (dialogue, marchand)">
@@ -1900,7 +1901,7 @@ function CrewPicker({
   const candidates = scene.entities.filter((e) => e.kind === 'personnage' && e.id !== ent.id);
   const labelOf = (id: string) => {
     const e = scene.entities.find((x) => x.id === id);
-    return e ? e.label ?? e.ref ?? e.id : `${id} (supprimé)`;
+    return e ? e.label ?? idDuCorps(e) ?? e.id : `${id} (supprimé)`;
   };
   const addable = candidates.filter((c) => !ids.includes(c.id));
   return (
@@ -1913,7 +1914,7 @@ function CrewPicker({
             {!candidates.some((c) => c.id === id) && <option value={id}>{labelOf(id)}</option>}
             {candidates.map((c) => (
               <option key={c.id} value={c.id} disabled={ids.includes(c.id) && c.id !== id}>
-                {c.label ?? c.ref ?? c.id}
+                {c.label ?? idDuCorps(c) ?? c.id}
               </option>
             ))}
           </select>

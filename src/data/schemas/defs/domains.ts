@@ -57,7 +57,7 @@ const doc = document(
     rendu: ref('rendu').optional(),
 
     /** LDB 47 l.509 */
-    arcane: idDe('breathType').optional(),
+    arcane: ref('breathType').optional(),
     /** VDM 02 l.192 ; LDB 50. */
     dark: z.boolean().optional(),
     /** LDB 50 l.9 ; EDOC 13 l.606 */

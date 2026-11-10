@@ -1,12 +1,13 @@
 /**
  * VALEURS NEUVES DE L'ATELIER (#3059) qui ne lisent que les schémas et la donnée : la Condition
  * convertie à un type (`recast`), le report de type d'un bloc (`convertTo`, `memoriser`), les blocs neufs d'un Flow
- * authoré (`noeudTestNeuf`, `blocNeuf`) et le statbloc personnalisé neuf (`emptyStatblock`). Le défaut d'une union fermée est son PREMIER membre, lu au
+ * authoré (`noeudTestNeuf`, `blocNeuf`), le statbloc personnalisé neuf (`emptyStatblock`) et celui copié d'une créature
+ * (`statblockDeLaCreature`). Le défaut d'une union fermée est son PREMIER membre, lu au
  * schéma. Les fabriques qui lisent le moteur ou le monde vivent au noyau (`noyau/valeursNeuves.ts`).
  */
 import { EMPTY_FLOW, type Condition, type FlowTestNode } from '../engine/flowCore';
 import type { CustomStatblock } from '../engine/statblock';
-import { semencesDeScene } from './index';
+import { semencesDeScene, type CreatureData } from './index';
 import type { Effect, Flow } from './schemas/defs-scenes/effets';
 import { actorRefSchema, partyWhoSchema, startleCauseSchema } from './schemas/grammaire/mecanique';
 import { adresseUnPassage, hitLocationSchema } from './schemas/grammaire/valeurs';
@@ -98,6 +99,19 @@ export function memoriser(memoire: Record<string, unknown>, value: object): Reco
  *  Taille au spawn (LDB 85 ; `B` rempli = surcharge). */
 export function emptyStatblock(label = semencesDeScene.profil): CustomStatblock {
   return { type: 'statblock', label, char: { M: 4 } };
+}
+
+/** Statbloc personnalisé COPIÉ de la créature `c` du Bestiaire : son libellé, ses Caractéristiques, ses Traits posés, ses
+ *  Compétences, Talents et sorts, par id. */
+export function statblockDeLaCreature(c: CreatureData): CustomStatblock {
+  const char: CustomStatblock['char'] = {};
+  for (const [k, v] of Object.entries(c.char)) if (typeof v === 'number') (char as Record<string, number>)[k] = v;
+  return {
+    type: 'statblock', label: c.label, char, traits: c.traits,
+    ...(c.skills.length ? { skills: c.skills } : {}),
+    ...(c.talents.length ? { talents: c.talents } : {}),
+    ...(c.spells.length ? { spells: c.spells } : {}),
+  };
 }
 
 /** Nœud `test` NEUF : la compétence est la seule saisie laissée à l'auteur (sentinelle vide). */

@@ -16,9 +16,9 @@ export function testScene(): Scene {
   const enc = buildEncounter({
     id: 'enc-mutants',
     enemies: [
-      { ref: 'mutant', pos: { x: 16, y: 11 } },
-      { ref: 'mutant', pos: { x: 18, y: 12 } },
-      { ref: 'mutant', pos: { x: 17, y: 13 } },
+      { creature: { id: 'mutant' }, pos: { x: 16, y: 11 } },
+      { creature: { id: 'mutant' }, pos: { x: 18, y: 12 } },
+      { creature: { id: 'mutant' }, pos: { x: 17, y: 13 } },
     ],
   });
   return {

@@ -6,6 +6,7 @@
  * LDB 59 l.43.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { acheterAuMarche } from '../noyau/cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -67,11 +68,11 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
 
   it('bourse vide : l’achat de 5 Enc à 10 CO est fermé sur le plancher de 40 CO (−20 points), le geste n’ouvre aucun Marchandage', () => {
     expect(hasBargainBonus(get().party[0]), 'fixture : le meneur n’est pas Négociateur').toBe(false);
-    const texte = t('cargo.bourseSousPlancher', { plancher: 40 });
+    const texte = t('cargo.bourseSousPlancher', { plancher: '40 CO' });
     expect(geste('cargaison', 'port-buy-bois-mer')).toEqual({ ferme: 'true', raison: texte });
     const fenetres = () => Object.entries(get()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
     const avant = fenetres();
-    get().acheterLaCargaison('vessel', 'bois-mer', 5);
+    acheterAuMarche(get, 'port', 'vessel', 'bois-mer', 5);
     expect(fenetres(), 'aucun Test de Marchandage ouvert').toEqual(avant);
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(get().journal.some((l) => l.includes(texte))).toBe(true);

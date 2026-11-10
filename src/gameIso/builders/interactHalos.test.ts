@@ -35,7 +35,7 @@ function décor(
 /** L'ENTITÉ derrière l'élément de décor : l'élément de rendu ne porte plus AUCUNE offre, le halo la
  *  dérive de la scène (`estUtilisable`). Un geste authoré non épuisé est tout ce qu'il demande. */
 const fouillable = (id: string, x = 0, y = 0, label?: string): SceneEntity => ({
-  id, kind: 'prop', pos: { x, y }, ref: 'tonneau',
+  id, kind: 'prop', pos: { x, y }, decor: { id: 'tonneau' },
   ...(label ? { label } : {}),
   usable: { actions: [{ id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true }] },
 });
@@ -56,7 +56,7 @@ function jeton(ent: SceneEntity, visible = true): TokenEl {
 /** Un PNJ à qui PARLER : sa capacité d'instance vient de son dialogue, comme pour le curseur et le
  *  clic — aucune déclaration propre au halo. */
 const interlocuteur = (id: string, x = 5, y = 5, label?: string): SceneEntity => ({
-  id, kind: 'personnage', ref: 'humain', pos: { x, y }, ...(label ? { label } : {}), dialogueId: { id: 'dlg-aubergiste' },
+  id, kind: 'personnage', creature: { id: 'humain' }, pos: { x, y }, ...(label ? { label } : {}), dialogueId: { id: 'dlg-aubergiste' },
 });
 
 function scèneAvec(...entities: SceneEntity[]): Scene {
@@ -81,7 +81,7 @@ describe('Halos d’interaction — QUI est un utilisable (#1176 P3-0g)', () => 
 
   it('UNE action épuisée sur DEUX n’éteint rien : le halo s’éteint quand il ne reste PLUS RIEN à jouer', () => {
     const deux: SceneEntity = {
-      id: 'coffre', kind: 'prop', pos: { x: 3, y: 4 }, ref: 'tonneau',
+      id: 'coffre', kind: 'prop', pos: { x: 3, y: 4 }, decor: { id: 'tonneau' },
       usable: { actions: [
         { id: 'fouiller', flow: { kind: 'seq', steps: [] }, unique: true },
         { id: 'ouvrir', flow: { kind: 'seq', steps: [] }, unique: true },
@@ -95,7 +95,7 @@ describe('Halos d’interaction — QUI est un utilisable (#1176 P3-0g)', () => 
   });
 
   it('ni un décor SANS offre ni un overlay de TERRAIN n’appellent le joueur', () => {
-    const nu: SceneEntity = { id: 'mort', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'tonneau' };
+    const nu: SceneEntity = { id: 'mort', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'tonneau' } };
     const els = [
       décor('mort', 1, 1),
       { ...décor('arbre', 2, 2), source: 'terrain' as const, entId: undefined, span: undefined },
@@ -104,7 +104,7 @@ describe('Halos d’interaction — QUI est un utilisable (#1176 P3-0g)', () => 
   });
 
   it('un MEUBLE À PLACES appelle le joueur SANS aucune action authorée', () => {
-    const table: SceneEntity = { id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } };
+    const table: SceneEntity = { id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable: { assise: true } };
     const el = décor('table-1', 3, 3, { ref: 'table-ronde-4-tabourets' });
     expect(interactionHalos([], [el], scèneAvec(table), {}, RIEN).map((h) => h.id)).toEqual(['table-1']);
     // Un drapeau d'ÉPUISEMENT n'a aucune prise sur une place : ce n'est pas une ressource qui s'épuise.
@@ -116,7 +116,7 @@ describe('Halos d’interaction — QUI est un utilisable (#1176 P3-0g)', () => 
 describe('Halos d’interaction — CE QU’ON EN MONTRE (#1687)', () => {
   const els = [décor('coffre', 3, 4), décor('tonneau', 7, 7)];
   const scène = scèneAvec(fouillable('coffre', 3, 4, 'Coffre bardé de fer'), fouillable('tonneau', 7, 7));
-  const statique: SceneEntity = { id: 'poutre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'tonneau' };
+  const statique: SceneEntity = { id: 'poutre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'tonneau' } };
 
   it('RIEN n’est allumé en permanence : sans survol ni révélation, tout utilisable est MUET', () => {
     const halos = interactionHalos([], [...els, décor('poutre', 1, 1)], scèneAvec(...scène.entities, statique), {}, RIEN);
@@ -175,7 +175,7 @@ describe('Halos d’interaction — les DEUX corps d’un utilisable (#1687)', (
   });
 
   it('un PNJ SANS offre reste du décor vivant, et un jeton de COMBATTANT n’entre jamais dans la liste', () => {
-    const muet: SceneEntity = { id: 'badaud', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 } };
+    const muet: SceneEntity = { id: 'badaud', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 6, y: 6 } };
     expect(interactionHalos([jeton(muet)], [], scèneAvec(muet), {}, REVELE)).toHaveLength(0);
     const combattant: TokenEl = {
       kind: 'token', key: 'cbt:aubergiste', id: 'aubergiste', cell: { x: 5, y: 5, z: 0 },

@@ -130,6 +130,31 @@
     "label": "Cape"
   },
   {
+    "id": "besace",
+    "type": "apparences",
+    "label": "Besace"
+  },
+  {
+    "id": "bourse",
+    "type": "apparences",
+    "label": "Bourse"
+  },
+  {
+    "id": "etui_a_parchemin",
+    "type": "apparences",
+    "label": "Étui à parchemin"
+  },
+  {
+    "id": "sac_de_couchage",
+    "type": "apparences",
+    "label": "Sac de couchage"
+  },
+  {
+    "id": "amulette",
+    "type": "apparences",
+    "label": "Amulette"
+  },
+  {
     "id": "cimeterre",
     "type": "apparences",
     "label": "Cimeterre"
@@ -615,5 +640,15 @@
     "forme": {
       "id": "rond"
     }
+  },
+  {
+    "id": "fiole",
+    "type": "apparences",
+    "label": "Fiole"
+  },
+  {
+    "id": "parchemin",
+    "type": "apparences",
+    "label": "Parchemin"
   }
 ]

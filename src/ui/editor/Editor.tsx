@@ -1,7 +1,7 @@
 import { fabriqueLocale } from '../../engine/fabriqueDId';
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { useGame } from '../../state/store';
-import { Scene, emptyScene, tileAt, type CellSide } from '../../noyau/monde/scene';
+import { Scene, emptyScene, idDuCorps, tileAt, type CellSide } from '../../noyau/monde/scene';
 import { resizeGrid, editEntity, TypeNonNomme, IdentiteNonPatchable, type Pt, type ProjectScenes, deleteSel, dupliquerLEntite, nudgeSel, pasteEntity, addLayer, removeLayer, addArchitectureBody, addStoreyAbove, addArchitecturePart, addBuildingMass, addProjectScene, duplicateProjectScene, deleteProjectScene, switchProjectScene, poseBlocsAvances } from '../../noyau/sceneEdit';
 import { placeStairFlight } from '../../noyau/stairFlight';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../../noyau/validateScene';
@@ -507,7 +507,7 @@ export function Editor({
         // Recette #877 : INVENTAIRE du brouillon — les quatre champs qui identifient une entité,
         // COPIÉS à plat (`pos` comprise), jamais la référence de l'entité elle-même.
         listerEntites: () => scene.entities.map((e) => ({
-          id: e.id, kind: e.kind, ...(e.ref !== undefined ? { ref: e.ref } : {}), pos: { ...e.pos },
+          id: e.id, kind: e.kind, corps: idDuCorps(e), pos: { ...e.pos },
         })),
         // Recette #2306 : lecture du brouillon de carte du monde, COPIÉE (`when` cloné).
         lireCarteDuMonde: () => worldMap && {

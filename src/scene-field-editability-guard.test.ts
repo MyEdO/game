@@ -86,7 +86,7 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
   const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecrituresJouees() }));
 
-  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 240_000 }, () => {
+  it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 120_000 }, () => {
     const orphelins = orphanFields(auditReel());
     // Rendu en TEXTE : l'échec doit NOMMER les champs et leur `fichier:ligne`, pas afficher « …(9) ».
     const detail = orphelins
@@ -114,11 +114,11 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
     expect(zone('area.radius')?.pipeline).not.toContain('src/noyau/mapSpec.ts');
   });
 
-  it('crédite ce que l’éditeur Godot écrit en jouant `editer` — sonde réelle : le Test de traversée d’une zone d’effet', { timeout: 240_000 }, () => {
+  it('crédite ce que l’éditeur Godot écrit en jouant `editer` — sonde réelle : le Test de traversée d’une zone d’effet', { timeout: 120_000 }, () => {
     expect(auditReel().find((r) => r.id === 'SceneEffectZone.crossTest')?.authors).toContain(ALLER_RETOUR);
   });
 
-  it('une écriture jouée crédite le DERNIER pas de son chemin, marché sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON', () => {
+  it('une écriture jouée crédite le DERNIER pas de son chemin et, d’un objet écrit entier, chacune de ses clés, marchés sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON', () => {
     const program = virtualProgram({
       'src/noyau/monde/scene.ts': `export interface Rect { kind: 'rect'; w: number }
 export interface Disc { kind: 'disc'; radius: number }
@@ -140,6 +140,7 @@ export interface Scene { id: string; effectZones: SceneEffectZone[] }\n`,
       expect(rows.filter((r) => r.authors.length).map((r) => [r.id, r.authors])).toEqual([
         ['Disc.radius', [ALLER_RETOUR]],
         ['SceneEffectZone.crossTest', [ALLER_RETOUR]],
+        ['Test.difficulty', [ALLER_RETOUR]],
       ]);
     } finally { program.dispose(); }
   });
@@ -294,6 +295,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // #3012 S4b : `entryPoints` et `stations[].pos` composent `ptSchema` (`defs-scenes/communs.ts`), le `Pt` du noyau.
     // #3606 M1a : les options d'une entité sont la sortie de `optionalDeSceneSchema` (la note « swap », ses octrois de
     // Caractéristique et de Compétence), et une Amélioration celle de `navalTraitRefSchema`.
+    // #3606 M1b : le profil personnalisé est la sortie de `customStatblockSchema` (`defs-scenes/communs.ts`) ; sa
+    // pose de Trait nomme les champs de la pose, à son premier porteur, et son Talent est `TalentRef`.
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -305,6 +308,44 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     ).toEqual([
       'CaracteristiqueChiffree.characteristic @ src/data/schemas/grammaire/valeurs.ts',
       'CaracteristiqueChiffree.value @ src/data/schemas/grammaire/valeurs.ts',
+      'CharStats.B @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.M @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.agilite @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.capacite-de-combat @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.capacite-de-tir @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.dexterite @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.endurance @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.force @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.force-mentale @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.initiative @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.intelligence @ src/data/schemas/defs-scenes/communs.ts',
+      'CharStats.sociabilite @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.char @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.followsCharacterRules @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.groups @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.inert @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.label @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.randomChars @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.size @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.skills @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.spells @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.talents @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.traits @ src/data/schemas/defs-scenes/communs.ts',
+      'CustomStatblock.traits.alsoIn @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.arg @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.count @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.difficulte @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.hidden @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.id @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.maison @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.matiere @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.natural @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.parLocalisation @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.plage @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.range @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
+      'CustomStatblock.type @ src/data/schemas/defs-scenes/communs.ts',
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
@@ -326,25 +367,14 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'Pt.x @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.y @ src/data/schemas/defs-scenes/communs.ts',
       'Pt.z @ src/data/schemas/defs-scenes/communs.ts',
-      'SceneEntity.combat.optionals.alsoIn @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.arg @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.count @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.difficulte @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.hidden @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.id @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.maison @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.matiere @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.natural @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.parLocalisation @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.plage @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.range @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.source @ src/data/schemas/grammaire/reference.ts',
-      'SceneEntity.combat.optionals.value @ src/data/schemas/grammaire/reference.ts',
       'SceneEntity.upgrades.value @ src/data/schemas/grammaire/reference.ts',
       'SourceRef.book @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.note @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.page @ src/data/schemas/grammaire/valeurs.ts',
       'SourceRef.quote @ src/data/schemas/grammaire/valeurs.ts',
+      'TalentRef.id @ src/data/schemas/grammaire/reference.ts',
+      'TalentRef.spec @ src/data/schemas/grammaire/reference.ts',
+      'TalentRef.times @ src/data/schemas/grammaire/reference.ts',
     ]);
     // Contre-témoin : `Rect` ne doit RIEN à l'inclusion par identité — il est déclaré DANS le document,
     // son renommage `Trigger.rect.*` → `Rect.*` vient du NOMMAGE du porteur rendu par `z.infer`.

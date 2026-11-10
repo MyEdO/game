@@ -142,7 +142,7 @@ describe('inspecteur — un porteur renommé garde la saisie de ses champs (#199
   });
 
   const decor = (id: string, amount: number): SceneEntity => ({
-    id, kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau',
+    id, kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'tonneau' },
     usable: { actions: [{ id: 'fouiller', flow: fluxJson(amount), unique: true }] },
   } as SceneEntity);
 

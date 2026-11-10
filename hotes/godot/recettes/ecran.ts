@@ -299,9 +299,11 @@ export function figerVuesDeLEcran(): VueFigee[] {
   };
   const halle = auMarche('commerce-fluvial');
   figer('halle : chaque offre, son prix par Enc et son achat', halle.m);
-  const achat = halle.m.vue.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [])).find((x): x is Formulaire => x.id === 'acheter')!;
-  const valeurDe = (c: Saisie) => (c.type === 'saisieChoix' ? c.valeurs.find((v) => v.presse)!.valeur : c.type === 'fixe' || c.type === 'saisieNombre' ? c.valeur : null);
-  figer('halle : un lot acheté, sa vente, son bradage, son transfert', halle.p.jouer('jouer', { type: achat.verbe, args: achat.champs.map(valeurDe) }));
+  const achat = halle.m.vue.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [])).find((x): x is Bouton => x.id === 'acheter')!;
+  const compose = halle.p.jouer('jouer', achat.jeu);
+  figer('halle : l’achat en composition, son porteur, son Enc', compose);
+  const conclure = compose.vue.zones['fenetre.reglages'].find((x): x is Choix => x.type === 'choix' && x.id.endsWith('#acheter'))!.valeurs[0];
+  figer('halle : un lot acheté, sa vente, son bradage, son transfert', halle.p.jouer('jouer', conclure.jeu));
   halle.p.fermer();
   const port = auMarche('voyage-maritime');
   figer('escale maritime : la bourse et la cale du navire', port.m);

@@ -65,8 +65,9 @@ function lire(rel) {
   return doc;
 }
 
-/** Les écarts de FORME d'un document fusionné, entrée par entrée. L'ORDRE des clés n'est jugé que sur
- *  ce que cette migration ÉCRIT (`ordre`) : au rejeu, il n'est pas un geste qu'elle possède. */
+/** Les écarts de FORME d'un document fusionné, entrée par entrée. L'ORDRE des clés et la `cle` ne sont
+ *  jugés que sur ce que cette migration ÉCRIT (`ordre`) : au rejeu, ils ne sont pas des gestes qu'elle
+ *  possède (#2968 L19). */
 function ecartsDeForme(doc, quoi, { ordre = false } = {}) {
   if (!Array.isArray(doc)) return [`${quoi} : racine non-TABLEAU`];
   const ecarts = [];
@@ -79,7 +80,7 @@ function ecartsDeForme(doc, quoi, { ordre = false } = {}) {
     if (e.type !== TYPE) ecarts.push(`${ou} : \`type\` ${JSON.stringify(e.type)} ≠ ${JSON.stringify(TYPE)}`);
     if (typeof e.label !== 'string' || !e.label) ecarts.push(`${ou} : sans \`label\` de chaîne`);
     if (!CASCADES.has(e.cascade)) ecarts.push(`${ou} : \`cascade\` ${JSON.stringify(e.cascade)} inconnue`);
-    if (typeof e.cle !== 'string' || !e.cle) ecarts.push(`${ou} : sans \`cle\` de chaîne`);
+    if (ordre && (typeof e.cle !== 'string' || !e.cle)) ecarts.push(`${ou} : sans \`cle\` de chaîne`);
     for (const k of ['kind', 'stake']) if (k in e) ecarts.push(`${ou} : porte encore \`${k}\``);
     if (('template' in e) !== ('form' in e)) ecarts.push(`${ou} : \`form\` et \`template\` vont ensemble`);
     if (vus.has(e.id)) ecarts.push(`${ou} : id répété`);

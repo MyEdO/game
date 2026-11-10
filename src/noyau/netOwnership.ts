@@ -431,8 +431,6 @@ const idArg = (a: unknown): string | undefined => (typeof a === 'string' ? a : u
 const TOUJOURS: Route = { rule: () => true };
 /** Possession du combattant désigné par le 1ᵉʳ argument. */
 const PAR_ARG0: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[0])) };
-/** Possession du combattant désigné par le 2ᵉ argument. */
-const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[1])) };
 /** Possession du porteur de l'objet désigné par le 1ᵉʳ argument, lu dans l'état (`porteurDeLObjet`) ; objet sans
  *  porteur → personne. */
 const PAR_PORTEUR_DE_L_OBJET: Route = {
@@ -631,16 +629,12 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['recruterLeHeros', TOUJOURS],
     ['renvoyerLeHeros', TOUJOURS],
     ['remplacerLeHeros', TOUJOURS],
-    // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit
-    // (`pratiquerLActivite` = chemin UNIQUE des Activités à jet).
-    ['pratiquerLActivite', PAR_ARG0],
-    ['fabriquerLObjet', PAR_ARG0],
+    // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit ; composer et
+    // pratiquer une Activité se choisit au siège du héros de la rangée (`fenetreChoisir('interlude', …)`).
     ['commanderLObjet', PAR_ARG0],
     ['deposerALaBanque', PAR_ARG0],
-    ['suivreLEntrainement', PAR_ARG0],
     ['solderLaFaveur', PAR_ARG0],
-    // Préparation de bataille : le héros MENEUR est le 2ᵉ argument.
-    ['menerLActionDeBataille', PAR_ARG1],
+    ['menerLActionDeBataille', PAR_ARG0],
     // Retrait bancaire : le dépôt appartient à un héros — son propriétaire retire.
     ['retirerDeLaBanque', {
       rule: (s, seat, [depotId]) => {
@@ -652,6 +646,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['incanterLeSort', PAR_ARG0],
     ['focaliserLeSort', PAR_ARG0],
     ['dissiperLeSort', PAR_ARG0],
+    // La Détermination dépense le point de son porteur (1ᵉʳ argument), à sa barre comme dans la fenêtre d'un jet :
+    // le siège qui influence ce combattant (`seatInfluences`), jamais celui qui tient la main.
+    ['depenserLaDetermination', { rule: (s, seat, [id]) => typeof id === 'string' && seatInfluences(s, seat, id) }],
     // Les gestes d'un PORTEUR, en combat comme hors combat : le siège du porteur de l'objet, lu dans l'état.
     ['utiliserLObjet', PAR_PORTEUR_DE_L_OBJET],
     ['poserLObjet', PAR_PORTEUR_DE_L_OBJET],

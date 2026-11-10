@@ -32,7 +32,7 @@ import { BORNES } from '../gabarit.testkit.ts';
 import { preparerGabarit } from '../../../../scripts/personnage-3d/base/gabarit.ts';
 import { hauteurDesCandidats, peauxDesCandidats } from './candidatsDAppui.ts';
 import { grilleDesAppuis } from './grilleDesAppuis.ts';
-import { ANNEAU, ATTACHE, TABLE, formesAvecGabarit, glbFabrique, manifesteDe } from './glbFabrique.testkit.ts';
+import { ANNEAU, ATTACHE, TABLE, formesAvecGabarit, glbFabrique, manifesteDe, osLibres } from './glbFabrique.testkit.ts';
 
 /** La scène three du jouet `c` (`gabarit.testkit.ts`), ses formes `formes` en shape keys relatives, et les appuis de son pied. */
 function sceneDuJouet(c: ReturnType<typeof jouet>, formes: readonly { readonly nom: string; readonly deltas: readonly Vector3[] }[]) {
@@ -331,12 +331,13 @@ describe('gardeEchelleDuRigide', () => {
 });
 
 describe('gardeTranchantDuRigide', () => {
-  const tenue = (rotation: readonly [number, number, number]) => {
+  const tenue = (rotation: readonly [number, number, number], armes?: (lame: Mesh) => ReadonlySet<Mesh>) => {
     const { scene, haut, racine } = cylindre();
-    haut.add(Object.assign(new Mesh(new BoxGeometry(0.3, 1, 0.01), new MeshBasicMaterial()), { name: 'Lame' }));
+    const lame = Object.assign(new Mesh(new BoxGeometry(0.3, 1, 0.01), new MeshBasicMaterial()), { name: 'Lame' });
+    haut.add(lame);
     haut.add(Object.assign(new Mesh(new CylinderGeometry(0.02, 0.02, 1), new MeshBasicMaterial()), { name: 'Manche' }));
     racine.add(Object.assign(new Mesh(new BoxGeometry(0.5, 0.5, 0.01), new MeshBasicMaterial()), { name: 'Bouclier' }));
-    return gardeTranchantDuRigide(scene, { os: 'haut', position: [0.1, 0, 0], rotation }, libelle);
+    return gardeTranchantDuRigide(scene, { os: 'haut', position: [0.1, 0, 0], rotation }, libelle, armes?.(lame));
   };
 
   it('VERT : la lame s’étend sur le Z de la prise, le manche rond passe ; un rigide hors de la prise n’est pas mesuré', () => {
@@ -345,6 +346,11 @@ describe('gardeTranchantDuRigide', () => {
 
   it('ROUGE : la lame s’étend sur le X de la prise, l’axe de la paume', () => {
     expect(tenue([0, 0, 0]).map((e) => [e.code, e.mesh, e.seuil])).toEqual([['tranchant-vers-la-paume', '«Lame»', TOLERANCE_TRANCHANT_M]]);
+    expect(tenue([0, 0, 0], (lame) => new Set([lame])).map((e) => e.mesh)).toEqual(['«Lame»']);
+  });
+
+  it('VERT : un rigide qui n’est pas une arme (un sac plat sous la prise) n’a pas de tranchant', () => {
+    expect(tenue([0, 0, 0], () => new Set())).toEqual([]);
   });
 });
 
@@ -829,6 +835,14 @@ describe('libellesDesMeshes (#3229)', () => {
     expect(fiche.mesures.corps).toEqual(libelles);
     expect(fiche.ecarts.find((e) => e.garde === 'budget')?.detail).toBe(`4 triangles (${libelles.map((l) => `${l} 1`).join(', ')})`);
   });
+
+  it('le plafond assemblé ne compte que la base visible : la zone que couvre un élément sort du compte (#3743)', async () => {
+    const octets = glbFabrique({ clips: { Repos: [0, 0] } });
+    const budget = async (couches: Parameters<typeof evaluer>[0]['couches']) =>
+      (await evaluer({ base: octets, elements: [octets], couches, pas: 0.5, plafond: 1 })).ecarts.filter((e) => e.garde === 'budget').map((e) => e.valeur);
+    expect(await budget([null])).toEqual([2]);
+    expect(await budget([{ couche: 'tenue', couvre: ['torse'] }])).toEqual([]);
+  });
 });
 
 describe('les os sous leur nom glTF (#3233)', () => {
@@ -1063,7 +1077,7 @@ describe('validerManifesteDeBase', () => {
   it.each<[CodeDEcartDeBase, (m: ReturnType<typeof valide>) => unknown]>([
     ['forme', (m) => ({ ...m, base: 3 })],
     ['version-inconnue', (m) => ({ ...m, schema: 2 })],
-    ['os-inconnu', (m) => ({ ...m, os: ['racine', 'fantome'] })],
+    ['os-inconnu', (m) => ({ ...m, os: ['racine', 'fantome'], bornesArticulaires: osLibres(['racine', 'fantome']) })],
     ['chaine-sur-os-absent', (m) => ({ ...m, chaines: { jambe: ['fantome'] } })],
     ['zone-sans-mesh', (m) => ({ ...m, zones: ['torse', 'bras'] })],
     ['emplacement-sur-os-absent', (m) => ({ ...m, emplacements: { dos: { ...attache, os: 'fantome' } } })],
@@ -1614,5 +1628,52 @@ describe('pistes de chaîne (#3102)', () => {
     const fiche = await evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), pas: 1 });
     expect(fiche.ecarts.filter((e) => e.garde === 'chaines').map(({ code, clip }) => [code, clip])).toEqual([['piste-de-chaine-absente', 'Repos']]);
     expect(fiche.mesures.chaines).toMatchObject([{ chaine: 'jambe', os: 1, clipsPistes: 0, rotationMax: { os: 'racine', degres: 0 } }]);
+  });
+});
+
+describe('amplitude articulaire (#2992)', () => {
+  /** Un GLB dont le clip `Flexion` tourne `pelvis` de `degres` autour de x. */
+  const flechi = (degres: number) => glbFabrique({ pelvis: true, rotations: { Flexion: [Math.sin((degres * Math.PI) / 360), 0, 0, Math.cos((degres * Math.PI) / 360)] } });
+  const base = flechi(90);
+  const bornesArticulaires = { ...osLibres(['racine']), pelvis: { x: [-10, 45], y: [0, 0], z: [0, 0] } };
+  const amplitudes = async (glb: Uint8Array) => (await evaluer({ base: glb, manifeste: { ...manifesteDe(glb, ['racine', 'pelvis']), bornesArticulaires }, pas: 0.25 })).ecarts.filter((e) => e.garde === 'amplitude');
+
+  it('ROUGE : un clip tourne un os au-delà de sa borne, le pire dépassement de l’axe est rapporté', async () => {
+    const ecarts = await amplitudes(base);
+    expect(ecarts.map((e) => [e.garde, e.code, e.clip, e.t, e.seuil])).toEqual([['amplitude', 'amplitude-hors-bornes', 'Flexion', 1, 45]]);
+    expect(ecarts[0].valeur).toBeCloseTo(90, 4);
+  });
+
+  it('VERT : le même clip corrigé, sa rotation dans les bornes', async () => {
+    expect(await amplitudes(flechi(40))).toEqual([]);
+  });
+
+  it('ROUGE : sous la borne basse, en sens inverse', async () => {
+    expect((await amplitudes(flechi(-30))).map((e) => [e.seuil, Math.round(e.valeur as number)])).toEqual([[-10, -30]]);
+  });
+
+  it('un os déclaré libre ne se juge pas', async () => {
+    expect((await evaluer({ base, manifeste: manifesteDe(base, ['racine', 'pelvis']), pas: 0.25 })).ecarts.filter((e) => e.garde === 'amplitude')).toEqual([]);
+  });
+
+  it.each([
+    ['un os non déclaré', { fantome: { x: [0, 0], y: [0, 0], z: [0, 0] } }, [['os-inconnu', 'bornesArticulaires.fantome']]],
+    ['des bornes qui excluent le repos', { pelvis: { x: [10, 20], y: [0, 0], z: [0, 0] } }, [['forme', 'bornesArticulaires.pelvis.x']]],
+    ['un axe absent', { pelvis: { x: [0, 0], y: [0, 0] } }, [['forme', 'bornesArticulaires.pelvis.z']]],
+    ['un axe inconnu', { pelvis: { x: [0, 0], y: [0, 0], z: [0, 0], w: [0, 0] } }, [['forme', 'bornesArticulaires.pelvis.w']]],
+    ['une borne au-delà de 180°', { pelvis: { x: [-190, 0], y: [0, 0], z: [0, 0] } }, [['forme', 'bornesArticulaires.pelvis.x']]],
+    ['un os déclaré sans bornes', { pelvis: undefined }, [['forme', 'bornesArticulaires.pelvis']]],
+  ])('refuse %s', (_nom, bornes, attendus) => {
+    const bornesArticulaires = JSON.parse(JSON.stringify({ ...osLibres(['racine', 'pelvis']), ...bornes }));
+    const v = validerManifesteDeBase({ ...manifesteDe(base, ['racine', 'pelvis']), bornesArticulaires }, base);
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.ecarts.map(({ code, ou }) => [code, ou])).toEqual(attendus);
+  });
+
+  it('refuse un manifeste sans bornes articulaires', () => {
+    const { bornesArticulaires: _bornes, ...sans } = manifesteDe(base, ['racine', 'pelvis']);
+    const v = validerManifesteDeBase(sans, base);
+    expect(v.ok).toBe(false);
+    if (!v.ok) expect(v.ecarts.map(({ code, ou }) => [code, ou])).toEqual([['forme', 'bornesArticulaires']]);
   });
 });

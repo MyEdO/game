@@ -54,14 +54,15 @@ describe('lireDeclaration', () => {
 describe('champsDeclares', () => {
   const porteur = { espece: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 }
   const clips = { walk: 'Marche', idle: 'Repos', melee: 'Taille' }
+  const bornesArticulaires = { genou: { x: [-5, 150], y: [-30, 30], z: [-10, 10] } }
 
-  it('écrit au manifeste la base, le porteur et la table rôle → clip de la déclaration, et rien d’autre', () => {
-    assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, autre: 1 }), { base: 'corps', porteur, clips })
+  it('écrit au manifeste la base, le porteur, les bornes articulaires et la table rôle → clip de la déclaration, et rien d’autre', () => {
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, bornesArticulaires, clips, autre: 1 }), { base: 'corps', porteur, bornesArticulaires, clips })
   })
 
   it('y ajoute la table des rôles tenus à deux mains, déclarée', () => {
     const clipsDeuxMains = { hampe: { idle: 'Hampe_Repos_Loop' } }
-    assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, clipsDeuxMains }), { base: 'corps', porteur, clips, clipsDeuxMains })
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, bornesArticulaires, clips, clipsDeuxMains }), { base: 'corps', porteur, bornesArticulaires, clips, clipsDeuxMains })
   })
 
   it('y ajoute les prises occupées par clip, déclarées', () => {
@@ -71,6 +72,6 @@ describe('champsDeclares', () => {
 
   it('y ajoute les surfaces déclarées', () => {
     const surfaces = [{ nom: 'Peau', palette: 'peau' }]
-    assert.deepEqual(champsDeclares({ base: 'corps', porteur, clips, surfaces }), { base: 'corps', porteur, clips, surfaces })
+    assert.deepEqual(champsDeclares({ base: 'corps', porteur, bornesArticulaires, clips, surfaces }), { base: 'corps', porteur, bornesArticulaires, clips, surfaces })
   })
 })

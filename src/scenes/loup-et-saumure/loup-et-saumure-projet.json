@@ -265,7 +265,9 @@
       "tenue": "noble",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "aldo",
@@ -284,7 +286,9 @@
       "tenue": "pretre",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "kramer",
@@ -303,7 +307,9 @@
       "tenue": "marchand",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "griet",
@@ -322,7 +328,9 @@
       "tenue": "artiste",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "avitailleuse",
@@ -343,7 +351,9 @@
       "tenue": "bourgeois",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "armurier",
@@ -364,7 +374,9 @@
       "tenue": "artisan",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "avitailleur",
@@ -385,7 +397,9 @@
       "tenue": "bourgeois",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "p0",
@@ -394,7 +408,9 @@
       "x": 2,
       "y": 8
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "La jetée d’appareillage",
      "usable": {
       "actions": [
@@ -1440,7 +1456,9 @@
     {
      "id": "grimm",
      "kind": "personnage",
-     "ref": "loup-imperial",
+     "vehicule": {
+      "id": "loup-imperial"
+     },
      "pos": {
       "x": 3,
       "y": 7
@@ -1454,7 +1472,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -1509,7 +1526,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -1564,7 +1580,6 @@
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "proue",
        "crewIds": [],
        "ammo": [
@@ -1683,7 +1698,9 @@
     {
      "id": "cogue",
      "kind": "personnage",
-     "ref": "cogue",
+     "vehicule": {
+      "id": "cogue"
+     },
      "pos": {
       "x": 18,
       "y": 7
@@ -1700,7 +1717,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -1730,7 +1746,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -1760,7 +1775,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
        "ammo": [
@@ -1793,7 +1807,9 @@
     {
      "id": "pirate-1",
      "kind": "personnage",
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "pos": {
       "x": 18,
       "y": 6
@@ -1803,7 +1819,9 @@
     {
      "id": "pirate-2",
      "kind": "personnage",
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "pos": {
       "x": 18,
       "y": 8
@@ -1813,7 +1831,9 @@
     {
      "id": "chef-cogue",
      "kind": "personnage",
-     "ref": "jaego-roth",
+     "creature": {
+      "id": "jaego-roth"
+     },
      "pos": {
       "x": 19,
       "y": 7
@@ -2195,7 +2215,9 @@
       "tenue": "debardeur",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "kramer-erengrad",
@@ -2214,7 +2236,9 @@
       "tenue": "marchand",
       "sex": "F"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "charpentier",
@@ -2233,7 +2257,9 @@
       "tenue": "artisan",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     },
     {
      "id": "p0",
@@ -2242,7 +2268,9 @@
       "x": 2,
       "y": 7
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "Reprendre la mer vers Salzenmund",
      "usable": {
       "actions": [
@@ -2893,7 +2921,9 @@
     {
      "id": "grimm2",
      "kind": "personnage",
-     "ref": "loup-imperial",
+     "vehicule": {
+      "id": "loup-imperial"
+     },
      "pos": {
       "x": 3,
       "y": 7
@@ -2907,7 +2937,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -2962,7 +2991,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -3017,7 +3045,6 @@
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "poupe",
        "crewIds": [],
        "ammo": [
@@ -3136,7 +3163,9 @@
     {
      "id": "serpent-de-sel",
      "kind": "personnage",
-     "ref": "langskip",
+     "vehicule": {
+      "id": "langskip"
+     },
      "pos": {
       "x": 18,
       "y": 7
@@ -3153,7 +3182,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -3183,7 +3211,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -3213,7 +3240,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
        "ammo": [
@@ -3251,7 +3277,9 @@
     {
      "id": "norse-1",
      "kind": "personnage",
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "pos": {
       "x": 18,
       "y": 6
@@ -3261,7 +3289,9 @@
     {
      "id": "norse-2",
      "kind": "personnage",
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "pos": {
       "x": 18,
       "y": 8
@@ -3271,7 +3301,9 @@
     {
      "id": "olg",
      "kind": "personnage",
-     "ref": "olg-blodsalt",
+     "creature": {
+      "id": "olg-blodsalt"
+     },
      "pos": {
       "x": 19,
       "y": 7
@@ -3650,7 +3682,9 @@
       "tenue": "noble",
       "sex": "M"
      },
-     "ref": "humain"
+     "creature": {
+      "id": "humain"
+     }
     }
    ],
    "dialogues": [

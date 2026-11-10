@@ -363,8 +363,8 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
 
 /** Icône d'étape de cascade par `kind` de Test d'entretien différé. */
 const UPKEEP_STEP_ICON: Record<string, string> = {
-  faim: 'rest/feast', diseaseTick: 'medical/infection', diseaseGangrene: 'medical/infection', diseasePersist: 'medical/infection',
-  traumaFracture: 'medical/crutch', contagion: 'medical/infection',
+  faim: 'rest/feast', 'disease-tick': 'medical/infection', 'disease-gangrene': 'medical/infection', 'disease-persist': 'medical/infection',
+  'trauma-fracture': 'medical/crutch', contagion: 'medical/infection',
 };
 
 /** Convertit les Tests d'entretien DIFFÉRÉS (`runDailyUpkeep` onDeferTest — Faim/Soif/maladie/
@@ -431,9 +431,9 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   for (const id of p.travelMarch ?? []) {
     const h = party.find((x) => x.id === id);
     if (!h || h.dead) continue;
-    const st = monoStep({ id: `march-${id}`, kind: 'forcedMarch', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
+    const st = monoStep({ id: `march-${id}`, kind: 'forced-march', actor: h, label: t('step.marcheForcee'), icon: 'travel/foot',
       rollLabel: SKILL_RESISTANCE(), difficulty: 'intermediaire',
-      stake: nightStakeRef('forcedMarch'),
+      stake: nightStakeRef('forced-march'),
       ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } });
     pousseSi(steps, st);
   }
@@ -782,9 +782,9 @@ export function creerActionsDuRepos(get: Get, set: Set) {
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = [
-  ...EXPOSURE_BAND_KINDS, 'recovery', 'nightmare', 'shelter', 'exposure-heat-drop', 'forcedMarch', 'faim',
-  'soif', 'dessoulage', 'dessoulageHangover', 'traumaFracture', 'diseaseTick', 'diseaseGangrene',
-  'diseasePersist', 'contagion',
+  ...EXPOSURE_BAND_KINDS, 'recovery', 'nightmare', 'shelter', 'exposure-heat-drop', 'forced-march', 'faim',
+  'soif', 'dessoulage', 'dessoulage-hangover', 'trauma-fracture', 'disease-tick', 'disease-gangrene',
+  'disease-persist', 'contagion',
 ] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
@@ -827,7 +827,7 @@ export const TABLES = {
       }
       return { consequences: freeCons(applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log), insert };
     },
-    forcedMarch: bandeDeNuit((_get, _set, _band, row, hero) => {
+    'forced-march': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons([applyForcedMarch(hero, row.result!.success).line]) }; // LDB 51 l.195 : échec → +Exténué
     }),
     faim: bandeDeNuit((_get, _set, _band, row, hero) => {
@@ -848,22 +848,22 @@ export const TABLES = {
       const d = soberUpDissipate(hero, row.result!.sl);
       const alcool = { skill: { id: 'resistance-a-l-alcool' }, characteristic: 'endurance' } as const;
       const hangover = monoStep({
-        id: `dessoulageHangover-${hero.id}`, kind: 'dessoulageHangover', actor: hero, icon: 'time/night',
+        id: `dessoulage-hangover-${hero.id}`, kind: 'dessoulage-hangover', actor: hero, icon: 'time/night',
         rollLabel: testSkillLabel(alcool) ?? SKILL_RESISTANCE(), label: t('step.gueuleDeBois'), difficulty: 'intermediaire',
-        stake: nightStakeRef('dessoulageHangover'),
+        stake: nightStakeRef('dessoulage-hangover'),
         ligne: { test: alcool },
         ...(band.meta?.day !== undefined ? { meta: { day: band.meta.day } } : {}),
       });
       return { consequences: freeCons(d.log), insert: hangover ? [hangover] : [] };
     }),
-    dessoulageHangover: bandeDeNuit((get, _set, _band, row, hero) => {
+    'dessoulage-hangover': bandeDeNuit((get, _set, _band, row, hero) => {
       // 2ᵉ Test du dessoûlage (l.485), désormais influençable : le DR fixe la durée de la gueule de bois.
       return { consequences: freeCons(soberUpHangover(hero, get().gameTime, row.result!.sl).log) };
     }),
-    traumaFracture: bandeDeNuit((_get, _set, _band, row, hero) => {
+    'trauma-fracture': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyFractureEnd(hero, row.result!.success, String(row.meta?.severity ?? 'mineur'), String(row.meta?.location ?? ''), String(row.meta?.traumaLabel ?? t('rf.fractureFallback')))) };
     }),
-    diseaseTick: bandeDeNuit((get, _set, _band, row, hero) => {
+    'disease-tick': bandeDeNuit((get, _set, _band, row, hero) => {
       // Échec d'un Test de cycle quotidien → applique ses ops d'échec (`meta.opsEchec`), via applyOps. Couvre
       // les DEUX porteurs de ce canal : le Test d'un SYMPTÔME (`onTick` — Blessé → contractDisease
       // 'blessure-purulente', Toxine, Vers) ET le Test porté par la MALADIE (`DiseaseDef.dailyTest` —
@@ -877,10 +877,10 @@ export const TABLES = {
       const source = { kind: 'disease' as const, id: String(row.meta?.diseaseName ?? '') };
       return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source })) };
     }),
-    diseaseGangrene: bandeDeNuit((_get, _set, _band, row, hero) => {
+    'disease-gangrene': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { consequences: freeCons(applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0))) };
     }),
-    diseasePersist: bandeDeNuit((_get, _set, _band, row, hero) => {
+    'disease-persist': bandeDeNuit((_get, _set, _band, row, hero) => {
       // Fin de Durée : résolution ET réconciliation des États portés par un passif (LDB 20 l.188) en UN geste —
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
       return { consequences: freeCons(applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng())) };

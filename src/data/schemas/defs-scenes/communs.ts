@@ -53,22 +53,26 @@ const groupesDuStatblocSchema: z.ZodType<string[], string[]> = refs('groupe', { 
 export const charStatsSchema = profilChiffreSchema(z.number());
 
 /**
- * `CustomStatblock` (`engine/statblock.ts`) — profil PNJ/bête custom d'éditeur, DOCUMENT EMBARQUÉ du
- * document de scène : il porte son `type` comme tout document (#1467 L1b), et ses champs sont
- * déclarés UN À UN, calés sur l'interface TS (aucun champ n'y est plus large qu'elle — `char` compris,
- * dont les clés sont FERMÉES sur `charStatKeySchema`).
+ * `CustomStatblock` (`engine/statblock.ts`, sa forme de sortie) — profil PNJ/bête custom d'éditeur, DOCUMENT EMBARQUÉ du
+ * document de scène : il porte son `type` comme tout document (#1467 L1b) ; les clés de `char` sont FERMÉES sur
+ * `charStatKeySchema`.
  */
 export const customStatblockSchema = nommerChamps(z.strictObject({
   type: z.literal('statblock'),
   label: z.string(),
   char: charStatsSchema,
   traits: z.array(traitPoseDeSceneSchema).optional(),
+  /** LDB 85 ; absente, dérivée du Trait « Taille (X) ». */
   size: sizeCategorySchema.optional(),
+  /** LDB 21. */
   groups: groupesDuStatblocSchema.optional(),
   spells: sortsConnusSchema.optional(),
   skills: z.array(competenceChiffreeSchema).optional(),
   talents: z.array(talentRefSchema).optional(),
+  /** LDB 77 l.108 (`randomizeChars`). */
   randomChars: z.boolean().optional(),
+  /** AA/MDG 12 : un affût servi, sans réaction de combat ni tour propre (`isInanimate`). */
   inert: z.boolean().optional(),
+  /** #143 : propagé au spawn (`Combatant.followsCharacterRules`, `engine/relations.ts`). */
   followsCharacterRules: z.boolean().optional(),
 }), { type: { label: "type"  }, label: { label: "libellé" , texte: { regime: "designation"} }, char: { label: "caractéristiques" }, traits: { label: "Traits" }, size: { label: "Taille"  }, groups: { label: "groupes" , texte: { regime: "technique"} }, spells: { label: "sorts" , texte: { regime: "technique"} }, skills: { label: "Compétences" }, talents: { label: "Talents" }, randomChars: { label: "caractéristiques aléatoires" }, inert: { label: "inerte" }, followsCharacterRules: { label: "règles de personnage" } });

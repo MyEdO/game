@@ -1,0 +1,25 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "sac_de_couchage"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "toile",
+      "palette": "vet2"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "914c52d2ded6eec3f5e9c02f50c63d1f7ecf9a236bb004f838a43329ddfdeb81",
+    "octets": 41260
+  }
+}

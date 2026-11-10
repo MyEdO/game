@@ -45,6 +45,7 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit' }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', source: { book: 'ennemi-dans-l-ombre', page: 12 } }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', adapteDe: { book: 'ennemi-dans-l-ombre', page: 14 } }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', nombre: { dice: { n: 1, sides: 10 } } }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'narrative', text: 'un récit', quoiQueCeSoit: 3 }).success).toBe(false);
   });
 

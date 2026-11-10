@@ -108,10 +108,10 @@ export const ANGLES_MORTS: readonly string[] = [
   'Les ABSENCES d’enveloppe ne se comptent que sur les ENTRÉES DE RACINE (`id` partout, `label` sur les familles `entité`/`table`, `source` ou `maison` sur tout type dont la fabrique exige la provenance — `exigeSource`, `src/data/schemas/grammaire/sans-livre.ts`) : un document EMBARQUÉ n’est jamais sommé de porter un `id`.',
   'Le RÉGIME D’ENTRÉES vient de la famille DÉCLARÉE par le schéma zod (`liste` → les éléments, `record` → les valeurs, `config` → le document EST son entrée) ; un document qu’aucune def ne déclare serait classé par sa racine JSON — depuis #1466 L1a il n’y en a plus aucun, les projets livrés de `src/scenes` sont déclarés `config`. La FAMILLE mesurée (`entité`/`table`/`config`/`record`) se déduit du régime : `record` et `config` RECOPIENT la déclaration (régime `valeurs` / `racine`), seule la partition `entité` ⊕ `table` est observée (part des entrées à bornes numériques). Depuis #1467 L1b V-FLIP-RECORD, le régime `valeurs` descend dans `entries` quand le record porte son enveloppe.',
   'Une valeur mesurée hors de sa forme propre est enregistrée sous sa PROJECTION sur le vocabulaire du concept, suffixée `+…` ; de même pour une référence (clés de graphie + clés qui résolvent, charge utile repliée).',
-  'La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` en BORNE (nombre, ou `null` d’une bande ouverte, une au moins écrite) est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659, 2026-09-01 — les 5 `{min,max}` hors tableau des 2 racines entrent dans la mesure : `sea-events › params.impressed`, `› params.wrathful`, `tavernGames › pot.targetRange`, `› volley.libre`, `water-exposure › modifiers[].auto` ; #1595 — le `null` de `plageOuverteSchema`). Ce qui reste hors candidature est le TYPE : une borne ni numérique ni `null` n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.',
+  'La candidature `plage` est STRUCTURELLE et non plus positionnelle : tout objet portant `min` ET `max` en BORNE (nombre, ou `null` d’une bande ouverte, une au moins écrite) est candidat, élément d’un TABLEAU comme porté par un CHAMP (#1659 — les `{min,max}` hors tableau des 2 racines entrent dans la mesure : 90 objets sur 10 sites mesurés le 2026-11-09, dont `cargoes › avail.<saison>`, `ship-construction › standard[].lengthM`, `stars › entries[].sub`, `tavernGames › pot.targetRange`, `water-exposure › modifiers[].auto` ; #1595 — le `null` de `plageOuverteSchema`). Ce qui reste hors candidature est le TYPE : une borne ni numérique ni `null` n’ouvre pas la plage. `bornes` reste borné au tableau — aucun `{min,max}` hors tableau ne porte `default`/`step`.',
   'Une paire de bornes encodée en TUPLE `[min,max]` n’est mesurée par AUCUN concept : la mesure ne classe que des OBJETS, un tableau de deux nombres reste une valeur nue. 36 tuples à l’arbre sur 10 sites (2 racines, 2026-09-06 après l’entrée du dataset des terrains #1690 ; 7 sites au 2026-09-05 après la fusion des matières #1686 lot 2, 8 sites au 2026-09-01 après #1659 L-1659-3, 99 sur 18 à l’ouverture de la vague), et AUCUN n’est une plage — tous sont exclus nommément : 34 paramètres de recette de rendu (`detail.courses.blockWM` 15, `detail.speckle.rM` 17, `detail.tufts.hM` 2, sous `structureAppearance.json`/`materials.json`/`terrains.json`), `qualities.json › [].capabilities.fumbleDigits` (un ENSEMBLE de chiffres) et `structureAppearance.json › [].door.herse.traverseFracs` (des positions fractionnaires). SORTIES du stock parce que devenues des fourchettes `{min,max}` mesurées par le concept `plage` : les 72 disponibilités saisonnières (`sea-cargo.json › cargoes[].avail` 44, `land-cargo.json › cargoes[].avail` 28, L-1659-2), les 7 `ship-construction.json › standard[].lengthM` et les 4 `stars.json › [].sub` (L-1659-3). L’inventaire de ces 36 vit dans `src/data/plage-bornes-contrat.test.ts` (volet F) : il n’a plus à décroître, il a à ne pas repousser.',
   'Un concept exprimé en SCALAIRE hors liste (`species: "humain"`) est mesuré sous la forme `id-nu`, sans signature d’objet.',
-  '`kind` est polysémique et n’est pas dédoublonné (Condition, Flow, événement de mer, pion de scène).',
+  '`kind` est polysémique et n’est pas dédoublonné (Condition, Flow, pion de scène).',
   'Le classement est ORDONNÉ : une VALEUR (reconnue à sa pose, sinon à son noyau) passe avant une RÉFÉRENCE ; un objet qui recoupe deux concepts n’est compté qu’une fois.',
   'Deux comparateurs de `water-exposure.json` (`<=`/`>=` sous `woundsRemaining`/`woundsLost`) échappent à `conditionSchema` et restent comptés en op.',
   'Le scan AST est borné aux littéraux `z.object`/`z.strictObject`/`z.looseObject` (et au 3ᵉ argument de `document()`) des modules de schéma des documents, lus aux dossiers des registres de `SchemaDef` (`DOSSIERS_DE_DEFS`, `scripts/docs/lib/cibles-registres.mjs`) et keyés par BASENAME (deux modules homonymes LÈVENT) : il ne voit ni les clés ajoutées par `.extend(...)`, ni un schéma composé par une fabrique, ni un littéral hors de ces dossiers. Le « schéma commun candidat » est apparié par SIGNATURE EXACTE.',
@@ -523,10 +523,10 @@ export const CONCEPTS: readonly Concept[] = [
     noyau: ['min', 'max'],
     exigeCandidatureStructurelle: true,
     // Une fourchette portée par un CHAMP est la MÊME fourchette que celle d'un élément de tableau : le
-    // porteur ne change pas la forme (#1659, 2026-09-01). Non-recouvrement MESURÉ sur les 2 racines :
-    // 5 objets portent `min,max` numériques hors tableau (`sea-events › params.impressed` et
-    // `› params.wrathful`, `tavernGames › pot.targetRange` et `› volley.libre`,
-    // `water-exposure › modifiers[].auto`) et AUCUN d'eux ne porte `default`/`step` — la co-présence de
+    // porteur ne change pas la forme (#1659). Non-recouvrement MESURÉ sur les 2 racines (2026-11-09) :
+    // 90 objets sur 10 sites portent `min,max` numériques hors tableau (`cargoes › avail.<saison>`,
+    // `ship-construction › standard[].lengthM`, `tavernGames › pot.targetRange`…) et AUCUN d'eux ne
+    // porte `default`/`step` — la co-présence de
     // `bornes`, qui reste bornée au tableau, ne perd donc rien à cet élargissement.
     candidatureHorsTableau: true,
   },
@@ -683,8 +683,8 @@ export const CONCEPTS: readonly Concept[] = [
   //   (2) `coPresence` : le Test NOMME son sujet, invariant de `flowTestSchema`
   //       (`src/data/schemas/grammaire/mecanique.ts`, #1657 B3-3). Un porteur de `difficulty` sans
   //       `skill` ni `characteristic` sert un Test dont le sujet vit AILLEURS : au code (paramètre
-  //       de règle, `critical.ts`, `landMarketFlow.ts`), sous une autre clé (`sea-events › params`,
-  //       `testType`) ou sur le Test parent (`etats › difficultyBy`, `tavernGames › volley.rows`) ;
+  //       de règle, `critical.ts`, `landMarketFlow.ts`), sous une autre clé
+  //       (`testType`) ou sur le Test parent (`etats › difficultyBy`, `tavernGames › volley.rows`) ;
   //   (3) `horsDesignation` : un objet qui DÉSIGNE une entité (clé de `CLES_IDENTITE`, ou clé en
   //       `RX_CLE_REFERENCE`) EST cette entité ou sa référence — jamais le jet.
   // Partition MESURÉE sur les 2 racines (2026-11-05, 329 porteurs de `difficulty`) : plage 15,
@@ -779,7 +779,7 @@ export const CONCEPTS: readonly Concept[] = [
     // `Condition` n'ont que le discriminant `kind` en commun (`talents.json › when {kind}` ×4,
     // `{kind,of}`, `{kind,op,value}`, `{is,kind,who}`, `{kind,op,subject,value}`…) et RESTENT hors
     // strate. Un noyau réduit à `kind` capterait tout le dépôt : `kind` est POLYSÉMIQUE (Condition,
-    // Flow, événement de mer, pion de scène — angle mort déclaré ci-dessus), et ce qui les
+    // Flow, pion de scène — angle mort déclaré ci-dessus), et ce qui les
     // distinguerait est la VALEUR du discriminant, que le lexique ne lit pas.
     signatures: [{ sig: 'expr,kind', statut: 'cible' }],
     noyau: ['expr', 'kind'],

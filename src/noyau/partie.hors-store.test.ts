@@ -51,6 +51,8 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       expect(confirmation.journal.flatMap((l) => (l.de === 'combat' ? [l.evenement.kind] : [])), 'l’appel ne rend pas les lignes de combat qu’il a écrites').toEqual(expect.arrayContaining(['crit', 'death']));
       expect(partie.etat().battle!.log.map((l) => l.kind)).toEqual(expect.arrayContaining(['crit', 'death']));
       expect(combattant(partie, E.id).conditions).toEqual(expect.arrayContaining([expect.objectContaining({ id: 'inconscient' })]));
+      expect(confirmation.evenements, 'l’État gagné par l’appel se rend, une fois').toEqual(expect.arrayContaining([{ type: 'etatGagne', porteur: E.id, etat: 'inconscient' }]));
+      expect(partie.envoyer({ type: 'jetValider', args: ['cascade'] }).evenements.filter((e) => e.type === 'etatGagne' && e.etat === 'inconscient'), 'un État déjà porté ne se regagne pas').toEqual([]);
 
       const fin: string[] = [];
       for (let pas = 0; partie.etat().pendingCascade && pas < 10; pas++) {

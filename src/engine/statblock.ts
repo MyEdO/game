@@ -1,52 +1,27 @@
 /**
  * Statbloc PERSONNALISÉ (PNJ/bête custom d'éditeur) — foyer MOTEUR : `LivingRef` (`engine/possession.ts`)
- * porte la dualité bestiaire|custom du spawn (`spawnEnemy`, spawn.ts:347), d'où le besoin d'un type
- * engine-pur (règle 3). `noyau/monde/scene.ts` le RE-EXPORTE pour ses consommateurs.
+ * porte la dualité bestiaire|custom du spawn (`spawnEnemy`, spawn.ts:347). Son type est la sortie de son schéma
+ * (`customStatblockSchema`) ; `noyau/monde/scene.ts` le RE-EXPORTE pour ses consommateurs.
  */
-import { CHAR_KEYS, type CharKey, type Characteristics } from './types';
-import type { TraitPose } from '../data/schemas/grammaire/reference';
-import type { SizeCategory } from './size';
+import { CHAR_KEYS, type Characteristics } from './types';
 import { makeRNG, hashSeed } from './dice';
 
 /** Le PORTEUR DE FICHE d'un combattant spawné (#1882, `LDB 77 l.7`) : exactement UN, jamais aucun —
- *  l'absence est irreprésentable. `presetCreature` est la CreatureData d'un preset de PNJ nommé (#671),
+ *  l'absence est irreprésentable. `ref` est une créature du Bestiaire, `vehicule` une coque, `engin` un engin de
+ *  siège (#2968). `presetCreature` est la CreatureData d'un preset de PNJ nommé (#671),
  *  déjà mergée par la couche campagne (`resolvePresetCreature`) ; `presetId` est l'id de ce preset (#2206).
  *  `parcours` porte une réf. du Bestiaire au parcours de carrière d'un PNJ (`porterAuParcours`, #773). */
 export type PorteurDeFiche =
-  | { ref: string; parcours?: import('./pnjDeCarriere').ParcoursDeCarriere; statblock?: never; presetCreature?: never; presetId?: never }
-  | { statblock: CustomStatblock; ref?: never; parcours?: never; presetCreature?: never; presetId?: never }
-  | { presetCreature: import('../data').CreatureData; presetId: string; ref?: never; parcours?: never; statblock?: never };
+  | (SansPorteur<'ref' | 'parcours'> & { ref: string; parcours?: import('./pnjDeCarriere').ParcoursDeCarriere })
+  | (SansPorteur<'vehicule'> & { vehicule: string })
+  | (SansPorteur<'engin'> & { engin: string })
+  | (SansPorteur<'statblock'> & { statblock: CustomStatblock })
+  | (SansPorteur<'presetCreature' | 'presetId'> & { presetCreature: import('../data').CreatureData; presetId: string });
+/** Les champs des AUTRES porteurs de fiche que `K`, absents. */
+type SansPorteur<K extends string> = { [C in Exclude<'ref' | 'parcours' | 'vehicule' | 'engin' | 'statblock' | 'presetCreature' | 'presetId', K>]?: never };
 
-export interface CustomStatblock {
-  /** Type de document EMBARQUÉ (#1467 L1b) : le profil s'annonce dans la donnée, jamais hydraté en
-   *  mémoire — un statbloc extrait d'un projet reste identifiable hors de son porteur. */
-  type: 'statblock';
-  label: string;
-  char: Partial<Record<CharKey | 'M' | 'B', number>>;
-  /** Traits POSÉS du profil custom (id + value/arg) — édités par picker, résolus au spawn (`traitsDuPorteur`). */
-  traits?: TraitPose[];
-  /** Catégorie de Taille (LDB 85) — sinon dérivée du trait « Taille (X) », défaut Moyenne. */
-  size?: SizeCategory;
-  /** Groupes d'appartenance manuels supplémentaires (ids de groups.json) pour les Traits psy ciblés (LDB 21). */
-  groups?: string[];
-  /** Sorts connus (ids de spells.json) — choix d'AUTEUR ; l'IA incante les Projectiles magiques. */
-  spells?: string[];
-  /** Compétences STRUCTURÉES (`SkillRef` : id stable + valeur de Test FINALE) → avances dérivées au
-   *  spawn (valeur − Caractéristique, inverse de LDB 09). */
-  skills?: import('../data').SkillRef[];
-  /** Talents STRUCTURÉS (`TalentRef` : id stable + spécialisation/niveau). */
-  talents?: import('../data').TalentRef[];
-  /** Caractéristiques aléatoires au spawn (LDB 77 l.108 : « soustrayez -10 et ajoutez 2d10 »). */
-  randomChars?: boolean;
-  /** Objet INERTE servi (affût d'artillerie d'un emplacement, AA/MDG 12) : ciblable mais sans réaction de
-   *  combat (`isInanimate`) ni tour propre — son arme se sert via `postes`. Se rend par son espèce (engin). */
-  inert?: boolean;
-  /** Ce PNJ suit-il les règles de PERSONNAGE (#143 — Corruption LDB 19, composant d'incantation LDB 46,
-   *  Tests de fin de combat Maladie/Corruption LDB 18/20) — un PNJ humain hostile MODÉLISÉ (ex. sorcier
-   *  ennemi nommé) le peut ; une créature générique ne l'est pas. Propagé au spawn (`Combatant.followsCharacterRules`,
-   *  prédicat unique `engine/relations.ts`). Absent/`false` = créature (défaut RAW-défendable). */
-  followsCharacterRules?: boolean;
-}
+/** Le statbloc personnalisé, forme de sortie de son schéma (`customStatblockSchema`). */
+export type CustomStatblock = import('zod').z.output<typeof import('../data/schemas/defs-scenes/communs').customStatblockSchema>;
 
 /** Caractéristiques aléatoires (LDB 77 l.108 : « soustrayez -10 et ajoutez 2d10. Une Caractéristique de 30
  *  se traduit donc par 2d10+20. Si une Caractéristique vaut 5, lancez juste 1d10 ») — graine STABLE

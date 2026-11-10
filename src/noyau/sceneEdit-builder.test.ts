@@ -116,7 +116,7 @@ describe('édition de scène — zone d’effet : presentation/id (#841 FU-B, le
 describe('édition de scène — patch d’entité', () => {
   const base = (): Scene => {
     const s = emptyScene('scene-test', 6, 6);
-    s.entities = [{ id: 'e0', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, combat: { hiddenUntilCombat: true } }];
+    s.entities = [{ id: 'e0', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, combat: { hiddenUntilCombat: true } }];
     return s;
   };
 
@@ -170,7 +170,7 @@ describe('édition de scène — putLayer', () => {
  */
 describe('renameActionAuthoree — l’unicité d’un id d’action se garde au GESTE, pas au parse', () => {
   const decor = (actions: ActionAuthoree[]): SceneEntity =>
-    ({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'coffre', usable: { actions } });
+    ({ id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, usable: { actions } });
   const deux = (): ActionAuthoree[] => [
     { id: 'fouiller', flow: { kind: 'seq', steps: [] } },
     { id: 'crocheter', flow: { kind: 'seq', steps: [] } },

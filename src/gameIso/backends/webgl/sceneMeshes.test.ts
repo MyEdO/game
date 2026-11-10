@@ -228,7 +228,7 @@ describe('BILLBOARDS — sujets de la scène', () => {
   it('seul le décor est collecté, ancré aux pieds, avec son SVG isolé (#3160)', () => {
     // Chaque type du catalogue se cuit en volume (#3198) : seul le repli d'ERREUR d'une ref hors
     // catalogue (#877) se sert encore en billboard.
-    const avecRepli: Scene = { ...scene, entities: [...scene.entities, { id: 'repli', kind: 'prop', pos: { x: 1, y: 1 }, ref: REF_HORS_CATALOGUE } as SceneEntity] };
+    const avecRepli: Scene = { ...scene, entities: [...scene.entities, { id: 'repli', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: REF_HORS_CATALOGUE }} as SceneEntity] };
     const els = wholeSceneBillboardEls(avecRepli);
     const subs = collectBillboards(avecRepli, mpt, els);
     expect(subs.length).toBeGreaterThan(0);
@@ -968,7 +968,7 @@ describe('GROUPES DE SURFACE — la géométrie reste UNE, le dessin se scinde',
 describe('GROUPES DE SURFACE — un décor à recette se groupe par MATÉRIAU', () => {
   const scèneMeuble = () => {
     const s = emptyScene('scene-test', 8, 8);
-    s.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, ref: 'table-ronde-4-tabourets', facing: 'S' }] as typeof s.entities;
+    s.entities = [{ id: 'table-1', kind: 'prop', pos: { x: 2, y: 3 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'S' }] as typeof s.entities;
     return s;
   };
 

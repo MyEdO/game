@@ -355,10 +355,10 @@ function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, op
   return seats;
 }
 
-/** Réglage d'une partie : le jeu, le challenger, son vis-à-vis, la mise unitaire (sous de cuivre),
+/** Réglage d'une partie : le jeu, le vis-à-vis du challenger, la mise unitaire (sous de cuivre),
  *  le coéquipier d'un jeu d'équipe, l'effectif d'une table de pot. */
 export interface ReglageDePartie {
-  gameId: IdDeJeuDeTaverne; challengerId: IdDeHeros; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: IdDeProfilStandard; tablePlayers?: number;
+  gameId: IdDeJeuDeTaverne; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: IdDeProfilStandard; tablePlayers?: number;
 }
 
 /** Partie prête à jouer : ses acteurs résolus et sa mise plafonnée à la bourse du challenger. */
@@ -379,12 +379,12 @@ export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, k
 }
 
 /**
- * Résout le réglage d'une partie, ou dit pourquoi elle ne s'ouvre pas : table d'hôte
+ * Résout le réglage de la partie que le héros `heroId` défie, ou dit pourquoi elle ne s'ouvre pas : table d'hôte
  * (`refusDeTableDHote`), séquence déjà active, jeu inconnu, challenger absent, coéquipier d'un jeu
  * d'équipe, genre de vis-à-vis non offert (`refusDAdversaire`), vis-à-vis absent, profil de coéquipier inconnu, mise absente d'un jeu de pot. SOURCE
  * UNIQUE de `refusDeJouer` et de `jouerALaTaverne`.
  */
-function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus: string } {
+function preparerLaPartie(s: Jeu, heroId: string, opts: ReglageDePartie): PartiePrete | { refus: string } {
   const refusHote = refusDeTableDHote(s);
   if (refusHote) return { refus: refusHote };
   // RÉ-ENTRÉE REFUSÉE : `startSequence` ÉCRASE `state.sequence` — une partie en cours disparaîtrait
@@ -392,7 +392,7 @@ function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus:
   if (s.sequence) return { refus: t('tavern.dejaEnCours') };
   const game = findTavernGameById(opts.gameId);
   if (!game) return { refus: t('tavern.jeuInconnu', { id: opts.gameId }) };
-  const challenger = s.party.find((h) => h.id === opts.challengerId);
+  const challenger = s.party.find((h) => h.id === heroId);
   if (!challenger) return { refus: t('tavern.challengerAbsent', { jeu: game.label }) };
   const opp = opts.opponent;
   const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind, opp.id);
@@ -415,10 +415,10 @@ function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus:
   return { game, challenger, opponentActor, allie, stakeBrass };
 }
 
-/** Pourquoi la partie réglée par `opts` ne s'ouvre pas, ou `null` — verdict UNIQUE de `jouerALaTaverne`
+/** Pourquoi la partie réglée par `opts`, que défie `heroId`, ne s'ouvre pas, ou `null` — verdict UNIQUE de `jouerALaTaverne`
  *  et de la modale (`preparerLaPartie`). */
-export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
-  const p = preparerLaPartie(s, opts);
+export function refusDeJouer(s: Jeu, heroId: string, opts: ReglageDePartie): string | null {
+  const p = preparerLaPartie(s, heroId, opts);
   return 'refus' in p ? p.refus : null;
 }
 
@@ -427,8 +427,8 @@ export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
  * MISE UNITAIRE d'un jeu de pot, plafonnée à la bourse du challenger (`preparerLaPartie`) ; refusée,
  * la partie le DIT (`refusDeJouer`).
  */
-export function jouerALaTaverne(get: Get, set: Set, opts: ReglageDePartie): void {
-  const p = preparerLaPartie(get(), opts);
+export function jouerALaTaverne(get: Get, set: Set, heroId: string, opts: ReglageDePartie): void {
+  const p = preparerLaPartie(get(), heroId, opts);
   if ('refus' in p) { refuserGeste(get, set, p.refus); return; }
   const { game, challenger, opponentActor, allie, stakeBrass } = p;
   const opp = opts.opponent;
@@ -658,7 +658,7 @@ function equipeBande(get: Get, seq: SequenceState<TavernPayload>): { band: Built
     kind: TAVERN_ROUND_KIND,
     icon: 'nav/dice',
     label: stepDetail(dataLabel(game.label), t('step.tavernMiTemps', { n: ph.roundInPhase, phase: ph.phase })),
-    stake: combatStakeRef('tavernGame', {
+    stake: combatStakeRef('tavern-game', {
       values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' },
     }),
     meta: { gameId: game.id, opponentName: p.opponentName, stakeBrass: 0, round: seq.round },
@@ -738,7 +738,7 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
     kind: TAVERN_ROUND_KIND,
     icon: 'nav/dice',
     label: stepDetail(dataLabel(game.label), t('step.tavernTorchon', { lanceur: lanceur.label })),
-    stake: combatStakeRef('tavernGame', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
+    stake: combatStakeRef('tavern-game', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
     meta: { gameId: game.id, opponentName: p.opponentName, stakeBrass: 0, round: seq.round },
   }, rows);
   if (!band) return undefined;
@@ -801,7 +801,7 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
       actor: heros,
       difficulty,
       ligne: { test },
-      stake: combatStakeRef('tavernGame', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
+      stake: combatStakeRef('tavern-game', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } }),
       meta: { camp: lanceur.camp, who: lanceur.label } satisfies PinteDuLanceur,
     })
     : undefined;
@@ -919,7 +919,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   // adversaire à fiche perdrait sa rangée et retomberait sur le montage à jet adverse figé.
   const opponentHero = tavernActor(get, p.opponentId);
   const title = stepDetail(dataLabel(game.label), t('tavern.contre', { who: challenger.label, adversaire: p.opponentName }));
-  const stake = combatStakeRef('tavernGame', {
+  const stake = combatStakeRef('tavern-game', {
     values: {
       jeu: game.label, adversaire: p.opponentName,
       mise: p.stakeBrass > 0 ? formatMoney(fromBrass(p.stakeBrass)) : 'aucune',
@@ -1240,7 +1240,7 @@ export function potProchain(seats: readonly TavernSeat[], depuis: number, out: r
 
 /** L'ENJEU d'une étape de tour — la mise réelle, jamais « aucune ». */
 function potStake(game: TavernGame, p: TavernPayload) {
-  return combatStakeRef('tavernGame', {
+  return combatStakeRef('tavern-game', {
     values: { jeu: game.label, adversaire: p.opponentName, mise: formatMoney(fromBrass(p.stakeBrass)) },
   });
 }
@@ -2015,7 +2015,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const heros = actorIn(get(), lanceur.id);
   const surface = !!heros && !cadenceAuto() && jetSurfaced(get(), heros);
   const titre = t('tavern.volleyTour', { who: lanceur.label, n: st.jet, total: v.throws });
-  const stake = combatStakeRef('tavernGame', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } });
+  const stake = combatStakeRef('tavern-game', { values: { jeu: game.label, adversaire: p.opponentName, mise: 'aucune' } });
 
   // 1) LA LIGNE VISÉE : « avant de lancer un anneau, choisissez une cible » (l.70) — la décision
   //    précède le jet, dont elle règle la Difficulté ET les points.
@@ -2498,7 +2498,7 @@ function finalizeTavernGame(
 export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
     ouvrirLesJeux: (npcId?: string) => ouvrirLesJeux(get, set, npcId),
-    jouerALaTaverne: (opts) => jouerALaTaverne(get, set, opts),
+    jouerALaTaverne: (heroId, partie) => jouerALaTaverne(get, set, heroId, partie),
   } satisfies FabriqueDuNoyau;
 }
 

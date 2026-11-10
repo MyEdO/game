@@ -163,7 +163,7 @@ export function opSummary(o: GameOp): string {
     case 'rollThreshold': return `1d${o.sides} → ${o.thresholds.length} palier(s)`;
     case 'rollTable': return `${'tableId' in o ? `table « ${o.tableId} »` : `${formatDice(parseDiceRequired(o.die, 'rollTable.die'))} → ${o.entries.length} rangée(s)`}${o.addNegativeSL ? ' (+|DR néga.|)' : ''}${o.extraRollsPerStep ? ` +${o.extraRollsPerStep} jet/pas Surinc. (Durée)` : ''}`;
     case 'rollMutation': return `mutation ← « ${o.table} »${o.duration === 'permanent' ? ' (perm.)' : ''}`;
-    case 'narrative': return o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)';
+    case 'narrative': return `${o.text ? `« ${coupeAuMot(o.text, 40)} »` : '(vide)'}${o.nombre !== undefined ? ` : ${formulaSummary(o.nombre)}` : ''}`;
     case 'shipMorale': return `Moral ${formatEffetSigne(o.delta)}`;
     case 'manann': return o.factorId !== undefined ? `facteur « ${refLabel('seaManannFactors', { id: o.factorId })} »` : `Humeur ${formatEffetSigne(o.delta)}`;
     case 'shipCritical': return `${formulaSummary(o.count)} Critique(s) — ${o.location === 'aleatoire' ? 'Localisation aléatoire' : shipLocationLabel(o.location)}${o.equipageEpargne ? ' · équipage épargné' : ''}`;
@@ -175,6 +175,7 @@ export function opSummary(o: GameOp): string {
     case 'perilDeMer': return o.collision !== undefined ? `Collision : ${o.collision.id}` : `Tourbillon : ${o.tourbillon.id}`;
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;
     case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.targetDR} DR`;
+    case 'commission': return `colis livré contre ${formulaSummary(o.montant.brass)} sous de cuivre`;
     case 'combatEnMer': return `Combat : ${o.adversaire.nombre} × ${refLabel('creatures', o.adversaire)}${o.repousseAPct !== undefined ? ` · repoussé à ${o.repousseAPct} %` : ''}${o.victoire ? ' · sur la victoire' : ''}`;
     default: return `${(o as GameOp).op}`;
   }

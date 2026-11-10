@@ -100,13 +100,10 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   recruterLeHeros: 'invité', renvoyerLeHeros: 'invité', remplacerLeHeros: 'invité', epinglerLIndice: 'invité',
   marquerLesIndices: 'invité',
   // ═══ invité : INTERLUDE (LDB 23) — chaque Activité vise un héros (1er argument ou pending/dépôt),
-  // possession validée par `intentAllowedFor`. ═══
-  // `pratiquerLActivite` = chemin UNIQUE de toutes les Activités à jet (Revenus/Artisanat/Apprentissage/
-  // Identification + catalogue) ; `fabriquerLObjet` engage l'ouvrage (setup, sans jet).
-  pratiquerLActivite: 'invité', fabriquerLObjet: 'invité', commanderLObjet: 'invité',
-  deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', suivreLEntrainement: 'invité', solderLaFaveur: 'invité',
-  // Préparation de bataille : le héros MENEUR est le 2e argument ; l'affectation de l'armée
-  // (`affecterLeHeros`), partagée, reste à l'hôte.
+  // possession validée par `intentAllowedFor`. Composer et pratiquer une Activité : `fenetreChoisir('interlude', …)`. ═══
+  commanderLObjet: 'invité', deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', solderLaFaveur: 'invité',
+  // Préparation de bataille : le héros MENEUR est le 2e argument ; les postes de l'armée, partagés, restent à
+  // l'hôte (`fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', …)`).
   menerLActionDeBataille: 'invité',
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
@@ -117,7 +114,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   ouvrirLaCarte: 'hôte', ouvrirLeLieu: 'hôte', partirEnVoyage: 'hôte',
   marchanderLeBillet: 'hôte', reprendreLeVoyage: 'hôte',
-  fixerLaCadence: 'hôte', entrerAuPointDInteret: 'hôte', fouillerLaPiece: 'hôte',
+  fixerLaCadence: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
   jouerAction: 'hôte', actionnerLaPorte: 'hôte', avancerDUnPas: 'hôte', pivoterLeGroupe: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
@@ -131,19 +128,13 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
   remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
-  payerLesAchats: 'hôte', vendreLeLot: 'hôte',
-  troquerLesObjets: 'hôte', reparerLObjet: 'hôte', chercherLaDisponibilite: 'hôte', marchanderLePrix: 'hôte',
-  refuserLeMarche: 'hôte', ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
-  acheterLaCargaison: 'hôte', vendreLaCargaison: 'hôte', jeterLaCargaison: 'hôte',
+  ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
   evaluerLeVin: 'hôte', deplacerLaCargaison: 'hôte', ouvrirLePort: 'hôte', reparerLeNavire: 'hôte', carenerLeNavire: 'hôte',
   installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', recueillirLesRumeurs: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
-  attribuerLeRoleABord: 'hôte', affecterALaStation: 'hôte', attribuerLeRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
+  affecterAuRoleABord: 'hôte', affecterALaStation: 'hôte', affecterAuRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
-  // ── Interlude : bataille de masse ─────────────────────────────────────────────────────────────
-  affecterLeHeros: 'hôte', avancerLaBataille: 'hôte', engagerLaMelee: 'hôte',
-  affronterLePeril: 'hôte', rallierLesTroupes: 'hôte', jouerLaScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
   ouvrirLeRepos: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──
@@ -166,8 +157,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
 /** Activités d'interlude. `ouvrirLInterlude` est `hôte`, et la clôture se valide par l'hôte (`fenetreValider('interlude')`) :
  *  l'hôte seul ouvre et clôt la période. */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
-  'pratiquerLActivite', 'fabriquerLObjet', 'commanderLObjet', 'deposerALaBanque', 'retirerDeLaBanque',
-  'suivreLEntrainement', 'solderLaFaveur', 'menerLActionDeBataille',
+  'commanderLObjet', 'deposerALaBanque', 'retirerDeLaBanque', 'solderLaFaveur', 'menerLActionDeBataille',
 ]);
 
 /** Intents manuscrits du COMBAT : la classe `invité` hors groupe et interlude. */
@@ -219,8 +209,10 @@ const OUVERTURE_DES_FLUX = {
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
   steamSave: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
-  activity: { parInvite: ['pratiquerLActivite'] },
-  bargain: { parHote: ['marchanderLePrix'] },
+  // Interlude : le choix `interlude.pratiquer`, au siège du héros (`CHOIX_DES_FENETRES`).
+  activity: { parInvite: ['fenetreChoisir'] },
+  // Échoppe : le choix `marchand.marchander`, que l'hôte seul joue (`CHOIX_DES_FENETRES`).
+  bargain: { parInvite: ['fenetreChoisir'] },
   appraise: { parHote: ['evaluerLObjet'] },
   shanty: { parInvite: ['chanterLaChanson'] },
 } as const;

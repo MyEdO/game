@@ -14,7 +14,8 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
 
 /** Un GLB fabriqué (chunks JSON et BIN) : un triangle `Corps` (zone `torse`, shape key `feminin`) skinné sur l'os `racine`,
  *  avec au choix une texture d'image, un jeu d'influence `JOINTS_1`, un os `pelvis` enfant de `racine`, et des clips de
- *  translation de `pelvis` s'il est là, sinon de `racine`, ou explicitement de `racine` par `cibleDuClip` ; en marche,
+ *  translation de `pelvis` s'il est là, sinon de `racine`, ou explicitement de `racine` par `cibleDuClip` ;
+ *  en `rotations`, des clips de rotation du même os, de l'identité au quaternion `[x, y, z, w]` donné ; en marche,
  *  deux triangles de pied et leur cycle appui/vol, et en `formes` leurs shape keys, par nom, en déplacements à plat de
  *  leurs six sommets ; en
  *  anneau, `ANNEAU` (six sommets mi-`racine` mi-`pelvis`, puis un triangle de pied sur `racine`) et ses shape keys, par
@@ -24,7 +25,7 @@ const PNG = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
  *  le même mesh, le même skin et la même zone. */
 export interface MarcheFabriquee { racine?: number; decolle?: number; lateral?: number; bloque?: boolean; vitesseDroite?: number; nom?: string; sens?: number; vitesse?: number }
 
-export function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; formes?: Record<string, readonly number[]>; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[]; os?: readonly string[] } = {}): Uint8Array {
+export function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?: boolean; pelvis?: boolean; clips?: Record<string, readonly [number, number]>; rotations?: Record<string, readonly [number, number, number, number]>; cibleDuClip?: 'racine'; marche?: MarcheFabriquee; autresMarches?: readonly MarcheFabriquee[]; formes?: Record<string, readonly number[]>; anneau?: Record<string, readonly number[]>; bande?: Record<string, readonly number[]>; primitives?: number; instances?: readonly string[]; os?: readonly string[] } = {}): Uint8Array {
   const morceaux: Uint8Array[] = [];
   const vues: object[] = [];
   const accesseurs: object[] = [];
@@ -78,11 +79,16 @@ export function glbFabrique(options: { nom?: string; image?: boolean; jeuEtendu?
   const identite = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1];
   const joints = options.marche ? [1, 2, 3] : options.pelvis || options.anneau || options.bande ? [1, 2] : [1];
   const inverseBindMatrices = accesseur(Float32Array.from(joints.flatMap(() => identite)), 'MAT4');
-  const animations = Object.entries(options.clips ?? {}).map(([name, [de, a]]) => ({
+  const cible = options.cibleDuClip === 'racine' ? joints[0] : joints[joints.length - 1];
+  const piste = (name: string, path: 'translation' | 'rotation', valeurs: readonly number[]) => ({
     name,
-    channels: [{ sampler: 0, target: { node: options.cibleDuClip === 'racine' ? joints[0] : joints[joints.length - 1], path: 'translation' } }],
-    samplers: [{ input: accesseur(Float32Array.from([0, 1]), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from([0, de, 0, 0, a, 0]), 'VEC3'), interpolation: 'LINEAR' }],
-  }));
+    channels: [{ sampler: 0, target: { node: cible, path } }],
+    samplers: [{ input: accesseur(Float32Array.from([0, 1]), 'SCALAR', { min: [0], max: [1] }), output: accesseur(Float32Array.from(valeurs), path === 'rotation' ? 'VEC4' : 'VEC3'), interpolation: 'LINEAR' }],
+  });
+  const animations = [
+    ...Object.entries(options.clips ?? {}).map(([name, [de, a]]) => piste(name, 'translation', [0, de, 0, 0, a, 0])),
+    ...Object.entries(options.rotations ?? {}).map(([name, q]) => piste(name, 'rotation', [0, 0, 0, 1, ...q])),
+  ];
   for (const m of options.marche ? [options.marche, ...(options.autresMarches ?? [])] : []) {
     const temps = [0, 0.25, 0.5, 0.75, 1];
     const poses = [1, 2, 3].map((node) => temps.flatMap((t) => {
@@ -125,9 +131,12 @@ export const ANNEAU = [
 
 export const ATTACHE = { os: 'racine', position: [0, 0, 0], rotation: [0, 0, 0] };
 
+/** Les bornes articulaires d'os libres `os`. */
+export const osLibres = (os: readonly string[]) => tableTotale(os, () => ({ x: [-180, 180], y: [-180, 180], z: [-180, 180] }));
+
 /** Le manifeste qui décrit le GLB `octets` de `glbFabrique`, d'os `os`. */
 export const manifesteDe = (octets: Uint8Array, os = ['racine']) => ({
-  schema: 5, base: 'fabrique', os, chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
+  schema: 6, base: 'fabrique', os, bornesArticulaires: osLibres(os), chaines: { jambe: ['racine'] }, zones: ['torse'], emplacements: { dos: { ...ATTACHE } },
   prises: { main: { ...ATTACHE }, off: { ...ATTACHE } }, silhouettes: [FEMININ], gabarit: { ...TABLE, legs: [] },
   porteur: { espece: 'humain', gabarit: 'moyen', taille: 'moyenne', echelleDArt: 1 },
   clips: { walk: [...lireGlb(octets).animations][0] },

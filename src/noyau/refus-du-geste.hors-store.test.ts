@@ -32,10 +32,7 @@ const CAS_DU_CORPS: { readonly [V in keyof VerbesDeLaBarre]?: (a: Combatant, b: 
   faireUnBattement: (a, b) => [{ omis: [], designe: battementFoes(a, b)[0]?.id }],
   tenterDeDistraire: (a, b) => [{ omis: [], designe: distraireFoes(a, b)[0]?.id }],
   monterEnSelle: (a, b) => [{ omis: [], designe: mountablesNear(b, a)[0]?.id }],
-  servirLePoste: (a, b) => {
-    const sp = servablePostes(a, b.combatants)[0];
-    return [{ omis: [], designe: sp && { hullId: sp.hull.id, posteUid: sp.poste.item.uid } }];
-  },
+  servirLePoste: (a, b) => [{ omis: [], designe: servablePostes(a, b.combatants)[0]?.poste.item.uid }],
   chanterLaChanson: (a) => [{ omis: [], designe: a.id }],
   manoeuvrerLeNavire: (a) => [{ omis: [], designe: a.id }],
   // La munition se désigne toujours ; l'arme omise est la première arme à distance du porteur.
@@ -52,7 +49,7 @@ function horsCandidat(a: Combatant, b: BattleState): GesteDuNoyau[] {
     ['armerLAttaque', [X]], ['lancerLAttaqueDeZone', [X]], ['rechargerLArme', [X]], ['approvisionnerLArme', [X]],
     ['approvisionnerLArme', [munition, X]], ['aspergerDEau', [X]], ['aspergerDEau', [autre]], ['gagnerLAvantage', [X]],
     ['faireUnBattement', [X]], ['tenterDeDistraire', [X]], ['manoeuvrerSurSoi', [X]], ['monterEnSelle', [X]],
-    ['servirLePoste', [{ hullId: X, posteUid: X }]], ['manoeuvrerLeNavire', [autre]],
+    ['servirLePoste', [X]], ['manoeuvrerLeNavire', [autre]],
     ['chanterLaChanson', [autre]], ['chanterLaChanson', [X]],
   ];
   return gestes.map(([verbe, args]) => ({ verbe, args }) as GesteDuNoyau);

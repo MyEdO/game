@@ -8,7 +8,7 @@
  * exige : aucun refus de schéma, et le porteur mémoire garde un nœud `{kind:'test', test, success,
  * fail}` à la nouvelle Difficulté, ses deux branches intactes.
  *
- * CE QU'IL MORD AUSSI : l'AFFORDANCE. Le canal du cycle (`bandeDeNuit`, applier `diseaseTick`,
+ * CE QU'IL MORD AUSSI : l'AFFORDANCE. Le canal du cycle (`bandeDeNuit`, applier `disease-tick`,
  * `src/noyau/restFlow.ts`) rend une liste VIDE sur une réussite — une branche « Si RÉUSSITE » offerte
  * à l'auteur serait une case qui ne change rien, et le schéma du porteur la refuse peuplée
  * (`noeudTest`, option `echecSeulServi`). L'atelier n'en rend donc QU'UNE, celle de l'échec ; la même
@@ -64,7 +64,7 @@ describe('atelier du Codex — le cycle d’un symptôme porte un nœud `test`, 
       root.render(<CodexEdit categoryKey="symptoms" id={cible.id} onClose={() => {}} />);
     });
 
-    // UNE seule branche rendue : celle de l'ÉCHEC (le canal `diseaseTick` n'applique que celle-là).
+    // UNE seule branche rendue : celle de l'ÉCHEC (le canal `disease-tick` n'applique que celle-là).
     const etiquettes = [...container.querySelectorAll('.codex-edit-form .branch-label')].map((e) => e.textContent);
     expect(etiquettes, 'l’atelier offre une branche que le canal ne joue pas').toEqual(['Si ÉCHEC :']);
 

@@ -5,7 +5,7 @@
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { cataloguesDeComposition, compositionDuPreset, lireComposition, porteeDeComposition, presetDeComposition, type Axe, type Composition } from './composition';
-import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, piecesDeLObjet, trappingsInstanciables } from '../../data';
+import { findEnsembleParHabille, findPieceById, findPresetDePersonnageById, findTrappingById, findVarianteById, gardeRobe, piecesDeLObjet, presetsDePersonnage, trappingsInstanciables } from '../../data';
 import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
 import { file as FICHIER_DES_PRESETS, meta as metaDesPresets, type PresetDePersonnage } from '../../data/schemas/defs/presets-de-personnage';
@@ -176,6 +176,6 @@ describe('presetDeComposition', () => {
   });
 
   it('un preset inconnu est refusé, avec les ids des presets', () => {
-    expect(presetDeComposition(composition, 'inconnu')).toEqual({ ok: false, presets: ['soldat', 'gladiateur'] });
+    expect(presetDeComposition(composition, 'inconnu')).toEqual({ ok: false, presets: presetsDePersonnage.map((p) => p.id) });
   });
 });

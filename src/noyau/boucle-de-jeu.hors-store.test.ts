@@ -1403,14 +1403,14 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('acheterLeTalent in-carrière (Sociable) : créé à times 1, coût 100', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().acheterLeTalent('h', 'sociable');
+    banc.getState().acheterLeTalent('h', { id: 'sociable' });
     expect(h0().talents.find((t) => t.talentId === 'sociable')!.times).toBe(1);
     expect(h0().xp).toBe(900);
   });
 
   it('acheterLeTalent hors-carrière : refusé (LDB 07 l.93)', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().acheterLeTalent('h', 'castagneur'); // hors Niveau Agitateur
+    banc.getState().acheterLeTalent('h', { id: 'castagneur' }); // hors Niveau Agitateur
     expect(h0().talents.find((t) => t.talentId === 'castagneur')).toBeUndefined();
     expect(h0().xp).toBe(1000);
   });
@@ -1442,9 +1442,9 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('acheterLeTalent : Maxi 1 respecté (Lire/Écrire ×2 refusé, LDB 10)', () => {
     set1(mkHero({ xp: 1000 })); // Pamphlétaire : Lire/Écrire in-carrière
-    banc.getState().acheterLeTalent('h', 'lire-ecrire');
+    banc.getState().acheterLeTalent('h', { id: 'lire-ecrire' });
     expect(h0().talents.find((t) => t.talentId === 'lire-ecrire')!.times).toBe(1);
-    banc.getState().acheterLeTalent('h', 'lire-ecrire');
+    banc.getState().acheterLeTalent('h', { id: 'lire-ecrire' });
     expect(h0().talents.find((t) => t.talentId === 'lire-ecrire')!.times).toBe(1); // Maxi atteint
     expect(h0().xp).toBe(900);
   });
@@ -1452,17 +1452,17 @@ describe('Avancement par PX (store) — câblage moteur', () => {
   it('acheterLeTalent : Haine au Maxi (Bonus de Force Mentale) refuse un groupe neuf (LDB 10 l.18, l.548)', () => {
     // Flagellant Niveau 2 : « Haine (Hérétiques) » in-carrière ; FM 30 → Maxi 3.
     set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peau-verte', times: 3 }] }));
-    banc.getState().acheterLeTalent('h', 'haine', 'heretiques');
+    banc.getState().acheterLeTalent('h', { id: 'haine', spec: 'heretiques' });
     expect(h0().talents.some((t) => t.talentId === 'haine' && t.spec === 'heretiques')).toBe(false);
     expect(h0().xp).toBe(1000);
     set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peau-verte', times: 2 }] }));
-    banc.getState().acheterLeTalent('h', 'haine', 'heretiques');
+    banc.getState().acheterLeTalent('h', { id: 'haine', spec: 'heretiques' });
     expect(h0().talents.find((t) => t.talentId === 'haine' && t.spec === 'heretiques')?.times).toBe(1);
   });
 
   it('acheterLeTalent : « +5 Caractéristique de départ » passif à l\'achat (Guerrier né, LDB 10)', () => {
     set1(mkHero({ xp: 1000, career: 'soldat' })); // Recrue : Guerrier né in-carrière
-    banc.getState().acheterLeTalent('h', 'guerrier-ne');
+    banc.getState().acheterLeTalent('h', { id: 'guerrier-ne' });
     // La valeur brute reste inchangée (passif non cuit) ; baseWithTalents lit le charMod du talent.
     expect(h0().characteristics['capacite-de-combat']).toBe(30); // base INCHANGÉE
     expect(baseWithTalents(h0(), 'capacite-de-combat')).toBe(35); // base + passif Guerrier né = 35
@@ -1480,24 +1480,24 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     expect(slot.options!.some((o) => o.display === 'Savoir-vivre (Criminels)' && o.owned)).toBe(true);
     // Avant désignation : l'achat direct passe par le slot libre (auto-désignation) — ici on
     // teste la DÉSIGNATION explicite (0 PX) puis la montée.
-    banc.getState().designerLeCreneau('h', slot.slotKey, 'savoir-vivre', 'criminels');
+    banc.getState().designerLeCreneau('h', slot.slotKey, { id: 'savoir-vivre', spec: 'criminels' });
     expect(h0().careerSlotChoices?.['conseiller']?.[slot.slotKey]).toBe('savoir-vivre|criminels');
     expect(h0().xp).toBe(1000); // gratuit
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'criminels');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'criminels' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Criminels)')!.times).toBe(2);
     expect(h0().xp).toBe(800); // 2ᵉ acquisition = 200 PX (LDB 07 l.105)
     // Le slot étant désigné, une AUTRE spec est hors carrière → refusée (l.97).
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'nobles');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'nobles' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Nobles)')).toBeUndefined();
   });
 
   it('emplacement « (Au choix) » : l\'achat via un slot libre le DÉSIGNE automatiquement', () => {
     set1(mkHero({ xp: 1000, career: 'conseiller' }));
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'nobles');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'nobles' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Nobles)')!.times).toBe(1);
     expect(Object.values(h0().careerSlotChoices?.['conseiller'] ?? {})).toContain('savoir-vivre|nobles');
     // Slot consommé : une autre spec n'est plus achetable dans CETTE carrière.
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'criminels');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'criminels' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Criminels)')).toBeUndefined();
   });
 
@@ -2286,7 +2286,7 @@ describe('Ramasser un objet au sol en combat (un à la fois, `pickup` de `action
   it('un objet posé au sol (`objetsAuSol`) se ramasse d’une Action : il revient intact, son décor disparaît', () => {
     const bh = setup();
     const [objet, ...reste] = bh.items!;
-    const sol = { id: 'sol-1', kind: 'prop' as const, ref: 'bourse', pos: { x: 1, y: 0 } };
+    const sol = { id: 'sol-1', kind: 'prop' as const, decor: { id: 'bourse' }, pos: { x: 1, y: 0 } };
     const sansObjet = (c: Combatant): Combatant => ({ ...c, items: reste });
     banc.setState((st) => ({
       party: st.party.map(sansObjet), battle: { ...st.battle!, combatants: st.battle!.combatants.map(sansObjet) },
@@ -3190,7 +3190,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: {}, wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
     return sc;
   };
 
@@ -3223,7 +3223,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     expect(banc.getState().party[0].items!.length).toBe(0);
   });
 
-  it('panier : ajouterAuPanier → payerLesAchats débite le total + met en attente de répartition → confirm distribue', () => {
+  it('panier : ajouterAuPanier → payer débite le total + met en attente de répartition → confirm distribue', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
@@ -3231,7 +3231,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     expect(banc.getState().merchant!.cart).toEqual([{ id, qty: 2 }]);
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().payerLesAchats();
+    banc.getState().fenetreChoisir('marchand', 'payer', true);
     const st = banc.getState();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // total débité
     expect(st.merchant!.cart).toEqual([]); // panier vidé
@@ -3266,38 +3266,38 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.getState().fenetreFermer('marchand'); // quitte SANS payer
     banc.getState().ouvrirLeMarchand('pnj'); // réouverture (même réassort)
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // l'info est gardée
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     expect(banc.getState().pendingBargain).toBeNull(); // le marchand refuse de marchander
   });
 
-  it('refuserLeMarche(\'buy\') : vide le panier, annule la remise, VERROU PARTAGÉ (bloque achat ET vente), persiste', () => {
+  it('marchand.refuser buy : vide le panier, annule la remise, VERROU PARTAGÉ (bloque achat ET vente), persiste', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
-    banc.getState().refuserLeMarche('buy');
+    banc.getState().fenetreChoisir('marchand', 'refuser', 'buy');
     const st = banc.getState();
     expect(st.merchant!.cart).toEqual([]);
     expect(st.merchant!.bargainBuy ?? null).toBeNull(); // remise annulée
     expect(st.merchant!.bargainLocked).toBe(true);
     // verrou PARTAGÉ : la VENTE est aussi bloquée
-    banc.getState().marchanderLePrix('sell');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell');
     expect(banc.getState().pendingBargain).toBeNull();
     banc.getState().fenetreFermer('marchand');
     banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // persiste
   });
 
-  it('refuserLeMarche(\'sell\') : annule l’offre + VERROU PARTAGÉ (bloque l’ACHAT aussi)', () => {
+  it('marchand.refuser sell : annule l’offre + VERROU PARTAGÉ (bloque l’ACHAT aussi)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } })); // vente négociée
-    banc.getState().refuserLeMarche('sell');
+    banc.getState().fenetreChoisir('marchand', 'refuser', 'sell');
     const st = banc.getState();
     expect(st.merchant!.bargainSell ?? null).toBeNull();
     expect(st.merchant!.bargainLocked).toBe(true);
-    banc.getState().marchanderLePrix('buy'); // achat aussi bloqué
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy'); // achat aussi bloqué
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3316,7 +3316,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } }));
-    banc.getState().payerLesAchats(); // scelle le deal (paie)
+    banc.getState().fenetreChoisir('marchand', 'payer', true); // scelle le deal (paie)
     banc.getState().fenetreFermer('marchand');
     banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.bargainLocked).toBe(false); // pas de pénalité
@@ -3338,13 +3338,13 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     expect(banc.getState().merchant!.cart).toHaveLength(0);
   });
 
-  it('payerLesAchats : refuse si Bourse insuffisante (panier intact, rien en répartition)', () => {
+  it('marchand.payer : refuse si Bourse insuffisante (panier intact, rien en répartition)', () => {
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState({ party: [withBourseMoney(banc.getState().party[0], { gold: 0, silver: 0, brass: 1 }, idsDeTest)] }); // la bourse fond entre le panier et le paiement
-    banc.getState().payerLesAchats();
+    banc.getState().fenetreChoisir('marchand', 'payer', true);
     const st = banc.getState();
     expect(st.merchant!.pendingDistribution ?? null).toBeNull();
     expect(st.merchant!.cart).toHaveLength(1);
@@ -3355,7 +3355,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.getState().ouvrirLeMarchand('pnj');
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
-    banc.getState().payerLesAchats();
+    banc.getState().fenetreChoisir('marchand', 'payer', true);
     banc.getState().fenetreFermer('marchand'); // ferme sans confirmer → flush au sac du 1er héros
     expect(banc.getState().party[0].items!.some((i) => i.trappingId === id)).toBe(true);
   });
@@ -3365,38 +3365,38 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.setState({ party: [h], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
-    banc.getState().vendreLeLot();
+    banc.getState().fenetreChoisir('marchand', 'vendre', true);
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'x')).toBeUndefined();
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeGreaterThan(0); // Hallebarde 2 CO × 10 %
   });
 
-  it('reparerLObjet : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
+  it('marchand.reparer : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
     const h = hero(); h.items = [{ uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().reparerLObjet('a');
+    banc.getState().fenetreChoisir('marchand', 'reparer', 'a');
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'a')!.damageTaken).toBe(0); // réparé
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
   });
 
-  it('reparerLObjet : refuse une armure intacte (damageTaken 0) — pas de débit', () => {
+  it('marchand.reparer : refuse une armure intacte (damageTaken 0) — pas de débit', () => {
     const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().reparerLObjet('b');
+    banc.getState().fenetreChoisir('marchand', 'reparer', 'b');
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before); // rien à réparer
   });
 
-  it('reparerLObjet : répare une ARME endommagée à 10 %/point (LDB 62 l.135)', () => {
+  it('marchand.reparer : répare une ARME endommagée à 10 %/point (LDB 62 l.135)', () => {
     const h = hero(); h.items = [{ uid: 'w', trappingId: 'dague', label: 'Dague', kind: 'melee', damage: { plusBF: true, flat: 2 }, damageTaken: 1, qualities: [], enc: 0, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().reparerLObjet('w');
+    banc.getState().fenetreChoisir('marchand', 'reparer', 'w');
     const st = banc.getState();
     expect(st.party[0].items!.find((i) => i.uid === 'w')!.damageTaken).toBe(0); // réparée
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
@@ -3404,10 +3404,10 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
 
   const negotiator = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 40 }, skills: [], talents: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
 
-  it('marchanderLePrix : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
+  it('marchand.marchander : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     const pb = banc.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
@@ -3417,7 +3417,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   it('jetValider@bargain : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     // force un résultat gagné, sans RNG
     const pb = banc.getState().pendingBargain!;
     const win = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
@@ -3427,23 +3427,23 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     expect(banc.getState().pendingBargain).toBeNull();
     expect(banc.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
     expect(banc.getState().merchant!.soured).toBeFalsy(); // gagné → pas de méfiance
-    banc.getState().marchanderLePrix('buy'); // achat déjà négocié → no-op
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy'); // achat déjà négocié → no-op
     expect(banc.getState().pendingBargain).toBeNull();
-    banc.getState().marchanderLePrix('sell'); // la vente est une négociation DISTINCTE → s'ouvre
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell'); // la vente est une négociation DISTINCTE → s'ouvre
     expect(banc.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
   });
 
   it('jetValider@bargain : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     const pb = banc.getState().pendingBargain!;
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
     banc.getState().jetValider('bargain');
     expect(banc.getState().merchant!.soured).toBe(true);
-    banc.getState().marchanderLePrix('sell'); // marchand méfiant → toute négociation bloquée
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell'); // marchand méfiant → toute négociation bloquée
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3456,7 +3456,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
       banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id); // le Marchandage porte sur le panier déjà composé (LDB 59 l.43)
       banc.setState({ merchant: { ...banc.getState().merchant!, bargainBuy: bargain } });
       const before = toBrass(partyMoneyTotal(banc.getState));
-      banc.getState().payerLesAchats();
+      banc.getState().fenetreChoisir('marchand', 'payer', true);
       return before - toBrass(partyMoneyTotal(banc.getState));
     };
     const full = buyWith(null);
@@ -3474,7 +3474,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
       const m = banc.getState().merchant!;
       banc.setState({ merchant: { ...m, bargainSell } });
       banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', 'x');
-      banc.getState().vendreLeLot();
+      banc.getState().fenetreChoisir('marchand', 'vendre', true);
       return toBrass(partyMoneyTotal(banc.getState));
     };
     const lowball = sellWith(null); // ¼ par défaut (le marchand lowballe)
@@ -3608,7 +3608,7 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
   const hero = (): Combatant => combattantDeTest({ id: 'h', label: 'H', items: [], characteristics: { sociabilite: 35 }, skills: [], wounds: blessuresDeBase(10), conditions: [], weapons: [] });
   const merchantScene = () => {
     const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-    sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
+    sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } });
     return sc;
   };
 
@@ -3624,14 +3624,14 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
     expect(sansDispo).toBeGreaterThanOrEqual(complet);
   });
 
-  it("market-mode 'sans-marchandage' : marchanderLePrix ne propose plus de Marchandage", () => {
+  it("market-mode 'sans-marchandage' : marchander ne propose plus de Marchandage", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     expect(banc.getState().pendingBargain).not.toBeNull(); // complet : Marchandage proposé
     banc.setState({ pendingBargain: null });
     setRule('market-mode', 'sans-marchandage');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     expect(banc.getState().pendingBargain).toBeNull(); // désactivé
   });
 

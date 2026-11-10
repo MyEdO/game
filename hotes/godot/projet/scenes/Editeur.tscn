@@ -1,8 +1,10 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=7 format=3]
 
 [ext_resource type="Script" path="res://scripts/editeur.gd" id="1_editeur"]
 [ext_resource type="PackedScene" path="res://scenes/Monde.tscn" id="2_monde"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="3_zone"]
+[ext_resource type="Script" path="res://scripts/montage_des_navires.gd" id="4_navires"]
+[ext_resource type="Script" path="res://scripts/montage_de_composition.gd" id="5_montage"]
 
 [sub_resource type="Theme" id="Avis"]
 Label/font_sizes/font_size = 18
@@ -11,6 +13,13 @@ Label/font_sizes/font_size = 18
 script = ExtResource("1_editeur")
 
 [node name="Monde" parent="." instance=ExtResource("2_monde")]
+
+[node name="Navires" type="Node3D" parent="." node_paths=PackedStringArray("monde")]
+script = ExtResource("4_navires")
+monde = NodePath("../Monde")
+
+[node name="Chargeur" type="Node3D" parent="Navires"]
+script = ExtResource("5_montage")
 
 [node name="Interface" type="CanvasLayer" parent="."]
 
@@ -92,7 +101,7 @@ clip_tabs = false
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Combat"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
-ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/upgrades", "valeur/upgrades/", "inventaire", "inventaire/", "sorts/", "profil/")
+ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/statblock", "valeur/statblock/", "valeur/upgrades", "valeur/upgrades/", "inventaire", "inventaire/", "sorts/", "profil/")
 
 [node name="Rôles" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 

@@ -17,6 +17,19 @@ const LARGEUR_D_EMBLEME := 512.0
 const MATERIAUX := &"materiaux"
 ## La droite du personnage dans le squelette de la base, son avant sur +Z (glTF), le sol à y = 0.
 const DROITE_DU_PERSONNAGE := Vector3(-1.0, 0.0, 0.0)
+## Les corrections du tour d'un objet rangé à côté d'un autre, chacune sur ses sommets posés (`_ranger`).
+const PASSES_DE_TOUR := 2
+## La métadonnée d'un mesh dont les shape keys sont cuites (`cuire_les_formes`) : son mesh à shape keys.
+const FORMES := &"formes"
+## La métadonnée d'un mesh dont les shape keys sont cuites : le poids cuit de chacune, par nom de clé.
+const POIDS := &"poids_des_formes"
+## Le calque d'une pièce dessinée seule ; une pièce fondue (`refondre`) n'est sur aucun.
+const CALQUE := 1
+## Les poids d'un sommet d'une pièce rigide fondue : tout sur son os.
+const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
+## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
+## laisse.
+const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -64,12 +77,20 @@ var _noeuds: Dictionary = {}
 var _demandes: Dictionary = {}
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
-## Par id d'emplacement monté, ses objets rangés (`_ranger`) : le nœud qui porte leur repère de prise, leur boîte dans ce
-## repère, l'attache de l'emplacement et le squelette de la base.
-var _ranges: Dictionary = {}
+## Par id d'emplacement d'un objet rangé, ses meshes rangés : `{ noeud, piece }`, le nœud `Range_<point>` qui porte le
+## mesh et le mesh (`_ranger`).
+var _rangements: Dictionary = {}
+## Par point offert dont l'attache suit des `poids` (#3844) : par os de ces poids, le repère au repos de l'os du point
+## porté par cet os depuis son propre repos (`chaines`, chacune sous le `BoneAttachment3D` de `attaches`), leurs `poids`, et
+## les `Portage` des objets rangés au point (`_suivre_les_poids`).
+var _suivis: Dictionary = {}
+## Le mesh fondu des pièces du modèle (`refondre`), `null` sans lui.
+var fusion: MeshInstance3D = null
+## Une refonte est-elle demandée pour la fin de l'image (`_demander_la_refonte`) ?
+var _refonte_demandee := false
 ## Par id de prise montée dont l'élément se range à un emplacement de la base, ses nœuds tenus (`tenus`), ceux de sa
-## copie rangée (`ranges`) et l'id de cet emplacement (`emplacement`) : le clip joué montre l'un ou l'autre
-## (`poser_le_clip`, #3806).
+## copie rangée (`ranges`) et la ligne `<emplacement>#<prise>` de cette copie dans `_rangements` (`rangement`) : le clip
+## joué montre l'un ou l'autre (`poser_le_clip`, #3806).
 var _tenus_ranges: Dictionary = {}
 
 
@@ -96,6 +117,20 @@ static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
 ## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne.
 static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
 	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
+
+
+## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :
+## les erreurs du listage, les refus de l'index et celui du pont, que l'hôte dit en panne.
+static func indexer_les_modeles(hote: Node) -> Array[String]:
+	var recueil: Array[String] = []
+	var reponse := indexer(hote.get_node("/root/Pont") as PontDuNoyau, await lister(hote, recueil))
+	if reponse.get("ok") == true:
+		retenir_les_modeles(reponse)
+		for refus in reponse.refus:
+			recueil.append(str(refus))
+	elif reponse.get("ok") == false:
+		recueil.append(str(reponse.erreur.message))
+	return recueil
 
 
 ## Le premier `Skeleton3D` sous `noeud`, `null` s'il n'en porte aucun.
@@ -210,17 +245,22 @@ func vider() -> void:
 	seconde_prise.clear()
 	pieces.clear()
 	_noeuds.clear()
+	_rangements.clear()
+	_suivis.clear()
 	montes.clear()
 	emblemes.clear()
 	_emblemes_demandes.clear()
 	_demandes.clear()
-	_ranges.clear()
 	_tenus_ranges.clear()
+	fusion = null
 
 
 ## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses matériaux
 ## (`MATERIAUX`) et ses meshes relevés, habillés de la palette de la composition, son squelette (`squelette-absent` aux
-## erreurs sans lui), qui reçoit le modificateur du gabarit, et son lecteur de clips.
+## erreurs sans lui), qui reçoit le modificateur du gabarit, et son lecteur de clips. Ses modificateurs ne jouent que
+## sur une pose changée (`MODIFIER_CALLBACK_MODE_PROCESS_MANUAL`, `Skeleton3D::_make_dirty`, Godot 4.7-stable) : à
+## chaque image (`PROCESS_IDLE`), le gabarit reposerait les os et le squelette remettrait chaque peau à jour, clip en
+## pause compris.
 func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	base = posee
 	if scene == null:
@@ -237,9 +277,11 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	if squelette == null:
 		erreurs.append("squelette-absent : %s" % base.id)
 		return
+	squelette.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
 	gabarit = GabaritDuSquelette.new()
 	gabarit.lecteur = lecteur
 	squelette.add_child(gabarit)
+	squelette.skeleton_updated.connect(_suivre_les_poids, CONNECT_DEFERRED)
 
 
 ## Par ligne de `montes` de la composition retenue, sa première entrée qui monte un élément.
@@ -257,15 +299,17 @@ func demonter(id: String) -> void:
 	for noeud in _noeuds.get(id, []):
 		noeud.free()
 	_noeuds.erase(id)
+	_rangements.erase(id)
+	if _tenus_ranges.has(id):
+		_rangements.erase(_tenus_ranges[id].rangement)
+	_tenus_ranges.erase(id)
 	pieces.erase(id)
 	montes.erase(id)
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
-	_ranges.erase(id)
-	_tenus_ranges.erase(id)
+	_ranger()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
-	poser_les_rangements()
 
 
 ## @contrat Atelier 3D
@@ -330,7 +374,9 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	var rangees: Array[MeshInstance3D] = []
 	var noeuds_ranges: Array[Node] = []
 	var rangement := _rangement_du_tenu(id, element)
+	var ligne := ""
 	if not rangement.is_empty():
+		ligne = "%s#%s" % [rangement.id, id]
 		var copie := await scene_du_glb(element, recueil)
 		if demande != _demandes.get(id):
 			for noeud in noeuds:
@@ -344,13 +390,14 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 				var noms := _os_de_la_piece(piece)
 				if not noms.is_empty():
 					rangees.append(piece)
-					noeuds_ranges.append(_poser_la_piece(piece, noms, sous, id, rangement))
+					noeuds_ranges.append(_poser_la_piece(piece, noms, sous, ligne))
 			copie.free()
 	pieces[id] = trouvees + rangees
 	_noeuds[id] = noeuds + noeuds_ranges
 	if not noeuds_ranges.is_empty():
-		_tenus_ranges[id] = {tenus = noeuds, ranges = noeuds_ranges, emplacement = rangement.id}
+		_tenus_ranges[id] = {tenus = noeuds, ranges = noeuds_ranges, rangement = ligne}
 	montes[id] = element
+	_ranger()
 	poser_les_morphes()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
@@ -379,7 +426,7 @@ func _rangement_du_tenu(id: String, element: String) -> Dictionary:
 
 ## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté couvre sa zone et
 ## masque son porteur (`couvre` et `masque` de `couches` dans `modeles`, #2972), montré sinon ; la base est masquée par
-## toute couche.
+## toute couche. Les pièces se refondent (`refondre`).
 func masquer_les_zones_couvertes() -> void:
 	var couches: Dictionary = modeles.get("couches", {})
 	var porteurs: Array = [[_pieces_de_la_base, null]]
@@ -390,6 +437,7 @@ func masquer_les_zones_couvertes() -> void:
 			var zone: Variant = piece.get_meta("extras", {}).get("zone")
 			if zone != null:
 				piece.visible = not montes.values().any(func(par: String) -> bool: return _masque(couches.get(par, {}), porteur[1], zone))
+	_demander_la_refonte()
 
 
 ## La couche `couche` cache-t-elle la zone `zone` de `porteur`, un élément ou la base (`null`) ?
@@ -453,10 +501,13 @@ func poser_le_clip(_clip: StringName = &"") -> void:
 	for id in _tenus_ranges:
 		var objet: Dictionary = _tenus_ranges[id]
 		var rangee: bool = id in occupees or (id == "main" and a_deux_mains and not tenu_a_deux_mains)
+		if objet.ranges[0].visible == rangee and objet.tenus[0].visible != rangee:
+			continue
 		for noeud: Node3D in objet.tenus:
 			noeud.visible = not rangee
 		for noeud: Node3D in objet.ranges:
 			noeud.visible = rangee
+		_demander_la_refonte()
 
 
 ## Le clip du rôle `role` de la base posée : tant que la main libre tient la seconde prise (`seconde_prise`), celui de
@@ -517,16 +568,20 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 
 ## `piece`, qui pend aux os `noms`, posée sur `sous`, le squelette de la base, pour l'emplacement `id` : rigide, sous un
 ## os de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui
-## de la prise `id`, sans miroir, ou rangée à l'emplacement `id`, ou au point `rangement_force` s'il est donné (`_ranger`)
-## (#3319, `CONTRAT.md`) ;
-## skinnée, sous le squelette, son skin lié par nom dès l'import (`scene_du_glb`). Le nœud qui la porte dans la scène.
-func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String, rangement_force := {}) -> Node:
+## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_ranger`) (#3319, `CONTRAT.md`) ; un fourreau
+## (`extras.fourreau`) n'est montré que rangé ; skinnée, sous le squelette, son skin lié par nom dès l'import
+## (`scene_du_glb`). Le nœud qui la porte dans la scène.
+func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String) -> Node:
 	piece.owner = null
 	if piece.skin == null:
-		var cible := _point(id) if rangement_force.is_empty() else rangement_force
-		var nom := ("Monte_%s_%s_%s" % [id, cible.get("id", id), piece.name]).validate_node_name()
+		var nom := ("Monte_%s_%s" % [id, piece.name]).validate_node_name()
+		var cible := _point(id)
 		var origine := _prise_de_l_os(noms[0])
-		if cible.is_empty() or origine.is_empty() or (cible.genre == "emplacement" and cible.attache.os == noms[0]):
+		var reposee := not cible.is_empty() and not origine.is_empty()
+		var rangee: bool = reposee and cible.genre == "emplacement" and cible.attache.os != noms[0]
+		if piece.get_meta("extras", {}).get("fourreau", false):
+			piece.visible = rangee
+		if not rangee and not (reposee and cible.genre == "prise"):
 			var support := attacher(sous, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)
 			piece.reparent(support, false)
 			return support.get_parent()
@@ -543,74 +598,295 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3
 		attacher(sous, {os = cible.attache.os, position = ORIGINE, rotation = ORIGINE}, nom).add_child(rangement)
 		rangement.add_child(relais)
 		piece.reparent(relais, false)
-		var objet := {noeud = rangement, boite = _boite(piece, rangement), attache = cible.attache, squelette = sous}
-		_ranges[id] = _ranges.get(id, []) + [objet]
-		_ranger(objet)
+		_rangements.get_or_add(id, []).append({noeud = rangement, piece = piece})
 		return rangement.get_parent().get_parent()
 	piece.reparent(sous, false)
 	piece.skeleton = piece.get_path_to(sous)
 	return piece
 
 
-## Le point d'accroche `id` de la base posée, emplacement ou prise, `{}` si aucun.
+## Le point d'accroche `id` de la base posée, emplacement ou prise ; pour la ligne `<point>#<rang>` d'un objet suivant
+## au même point (`composerSurLaBase`), la case de ce rang si une pièce l'offre, sinon le point `<point>` ; `{}` si aucun.
 func _point(id: String) -> Dictionary:
-	for point in base.get("points", []):
-		if point.id == id:
-			return point
+	for cherche in [id, id.get_slice("#", 0)]:
+		for point in base.get("points", []):
+			if point.id == cherche:
+				return point
 	return {}
 
 
-## Chaque objet rangé reposé (`_ranger`) sur la peau et les vêtements portés, tels que les morphes les posent.
-func poser_les_rangements() -> void:
-	for id in _ranges:
-		for objet: Dictionary in _ranges[id]:
-			_ranger(objet)
+## Le repère du point `point` (`_point`) : le sien si la base l'offre ; offert par des pièces (`offertPar`), celui de la
+## première pièce montée qui l'offre, `{}` si aucune ne l'est.
+func _attache_du_point(point: Dictionary) -> Dictionary:
+	if not point.has("offertPar"):
+		return point.attache
+	for element: String in montes.values():
+		if point.offertPar.has(element):
+			return point.offertPar[element]
+	return {}
 
 
-## L'objet rangé `objet` posé à son emplacement (`MiseEnPage.repere_de_rangement`) sur les sommets au repos, morphes
-## posés, de chaque mesh skinné sous le squelette, peau de la base ou vêtement porté, à la hauteur de l'emplacement
-## au-dessus du sol du repos.
-static func _ranger(objet: Dictionary) -> void:
-	var sous: Skeleton3D = objet.squelette
-	var vers_l_os := sous.get_bone_global_rest(sous.find_bone(objet.attache.os)).affine_inverse()
-	var appuis := PackedVector3Array()
-	for enfant in sous.get_children():
-		var mesh := enfant as MeshInstance3D
-		if mesh != null and mesh.skin != null and mesh.mesh != null:
-			appuis.append_array(_sommets_au_repos(mesh, vers_l_os * mesh.transform))
-	var emplacement := repere(objet.attache)
-	var hauteur_au_sol := (vers_l_os.affine_inverse() * emplacement.origin).y
-	var droite := (vers_l_os.basis * DROITE_DU_PERSONNAGE).normalized()
-	objet.noeud.transform = MiseEnPage.repere_de_rangement(emplacement.basis, emplacement.origin, objet.boite, appuis, hauteur_au_sol, droite)
+## @contrat Atelier 3D
+## Godot range un objet à un emplacement (`bases` de `modeles`) : le +Y de sa prise vers le bas du
+## personnage, son +Z sur la normale sortante de l'emplacement (sa position hors de l'axe de l'os, à défaut l'avant),
+## sa poignée (l'origine de sa prise) sur l'emplacement (`MiseEnPage.axe_de_rangement`), ou, pour une arme au fourreau,
+## le haut de son fourreau, la poignée au-dessus (`_suspension`), tous ses meshes ensemble ; à plat, tourné d'un quart
+## de tour autour de ce +Y si sa boîte est moins large sur X que sur Z. Les objets rangés à un
+## même point (le point, puis chaque ligne `<point>#<rang>`, section « Composition d'un personnage ») s'y posent côte à
+## côte autour de l'axe de l'os, le premier sur l'emplacement, chaque suivant vers l'avant du personnage, tourné autour
+## de l'axe de l'os pour que ses sommets posés passent à 2 cm, ramenés à la distance de l'emplacement à l'axe, de ceux du
+## précédent (sur l'axe de l'os, décalé de 2 cm entre leurs boîtes le long de l'axe X du rangement). Chacun s'appuie sur
+## ce qui est porté dessous, la base et les éléments skinnés montés au repos, que vise, par case de 2 cm de l'objet, une
+## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
+## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
+## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
+## rien dessous, sa face arrière à 5 mm de l'emplacement
+## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
+## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
+## l'objet rangé. Un objet dont la boîte ainsi pendue descend sous le sol de la pose de repos (la hauteur de
+## l'emplacement au-dessus de y = 0) passe en bandoulière : le +Y de sa prise (le fer d'une hallebarde) vers le haut,
+## penché de 30° vers la droite du personnage (-X du squelette), le milieu de sa boîte sur l'emplacement, appuyé de même
+## (`MiseEnPage.biais_de_rangement`). Un emplacement qu'offre une pièce (`offertPar` du point, #3844) ne range un objet
+## que sous une pièce montée qui l'offre, à son repère, et le cache sinon ; s'il porte des `poids`, ses objets suivent,
+## posé ou non, le mélange des déplacements de ces os depuis leur repos, comme un sommet de la pièce
+## (`_suivre_les_poids`) ; la ligne `<point>#<rang>` va à la case de ce rang si une pièce l'offre, seule, et se pose sinon à côté des autres
+## objets du point.
+
+## Chaque objet rangé posé à son emplacement : les objets d'un même point (`<point>`, puis `<point>#<rang>` par rang,
+## `composerSurLaBase`) côte à côte autour de l'axe de l'os, le premier sur le point, chaque suivant vers l'avant du
+## personnage (`MiseEnPage.sens_vers_l_avant`) : tourné autour de l'axe de l'os pour que ses sommets posés passent à
+## `JEU_ENTRE_RANGES` de ceux du précédent (`MiseEnPage.tour_a_cote`, en `PASSES_DE_TOUR` corrections depuis
+## l'écart de leurs boîtes, `MiseEnPage.decalage_a_cote`), ou, sur l'axe, décalé le long de l'axe X du rangement ;
+## chaque objet à plat, sa plus petite largeur sur la normale sortante (`MiseEnPage.lacet_a_plat`), appuyé sur ce qui
+## est porté dessous (`_poser_range`), les meshes d'un objet ensemble ; un objet qui pendrait jusqu'au sol de la pose de
+## repos passe en bandoulière (`MiseEnPage.biais_de_rangement`, vers `DROITE_DU_PERSONNAGE`), le milieu de sa boîte sur
+## l'emplacement (`MiseEnPage.centre_en_bandouliere`).
+func _ranger() -> void:
+	for suivi: Dictionary in _suivis.values():
+		for attache: Node in suivi.attaches:
+			attache.free()
+	_suivis.clear()
+	var par_point := {}
+	for id: String in _rangements:
+		par_point.get_or_add(_point(id).id, []).append(id)
+	if par_point.is_empty():
+		return
+	var portes := _portes_au_repos()
+	for point: String in par_point:
+		var attache := _attache_du_point(_point(point))
+		var portages: Array[Node3D] = []
+		for id: String in par_point[point]:
+			for rangee in _rangements[id]:
+				rangee.noeud.visible = not attache.is_empty()
+				var portage: Node3D = rangee.noeud.get_parent()
+				portage.top_level = attache.has("poids")
+				portage.transform = Transform3D.IDENTITY
+				portages.append(portage)
+				if not attache.is_empty():
+					(portage.get_parent() as BoneAttachment3D).bone_name = attache.os
+		if attache.is_empty():
+			continue
+		if attache.has("poids"):
+			_suivis[point] = _suivi(point, attache, portages)
+		var os := squelette.get_bone_global_rest(squelette.find_bone(attache.os))
+		var emplacement := repere(attache)
+		var sens := MiseEnPage.sens_vers_l_avant(os.basis, MiseEnPage.axe_de_rangement(emplacement.basis, emplacement.origin, Vector3.AXIS_X))
+		var depuis := MiseEnPage.azimut(emplacement.origin, 0.0)
+		var hauteur := (os * emplacement.origin).y
+		var droite := (os.basis * _repere_de_rangement(attache, 0.0, 0.0).basis).inverse() * DROITE_DU_PERSONNAGE
+		var ids: Array = par_point[point]
+		ids.sort_custom(func(a: String, b: String) -> bool: return a.naturalnocasecmp_to(b) == -1)
+		var decalage := 0.0
+		var tour := 0.0
+		var precedente := AABB()
+		var azimuts := Vector2()
+		for id: String in ids:
+			var rangees: Array = _rangements[id]
+			var bruts := _sommets_ranges(rangees, Transform3D.IDENTITY)
+			var lacet := MiseEnPage.lacet_a_plat(_boite_de(bruts).size)
+			var suspension := _suspension(rangees)
+			var sommets := _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension))
+			var biais := MiseEnPage.biais_de_rangement(_boite_de(sommets).end.y, hauteur, droite)
+			if biais != 0.0:
+				suspension = MiseEnPage.centre_en_bandouliere(_boite_de(_sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), Vector3.ZERO))))
+				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.BACK, biais), Vector3.ZERO) * Transform3D(Basis(Vector3.UP, lacet), suspension))
+			var boite := _boite_de(sommets)
+			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes}
+			if id != ids[0]:
+				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
+				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
+				tour = MiseEnPage.tour_de_rangement(emplacement.basis, emplacement.origin, tour, pas)
+				for _passe in PASSES_DE_TOUR:
+					var etendue := _azimuts(bruts, _poser_range(rangement, tour, decalage), depuis)
+					tour = MiseEnPage.tour_a_cote(emplacement.basis, emplacement.origin, tour, sens, azimuts.x, azimuts.y, etendue.x, etendue.y)
+			var pose := _poser_range(rangement, tour, decalage)
+			for rangee in rangees:
+				rangee.noeud.transform = pose
+			precedente = boite
+			azimuts = _azimuts(bruts, pose, depuis)
 
 
-## Les sommets de `mesh` au repos, chaque shape key à son poids posé (une clé porte les positions de ses sommets, la
-## base comprise), passés par `repere`.
-static func _sommets_au_repos(mesh: MeshInstance3D, repere: Transform3D) -> PackedVector3Array:
+## Le suivi (`_suivis`) du point `point` d'attache `attache`, qui porte des `poids`, pour les `Portage` `portages` : par os
+## de ses poids, sous un `BoneAttachment3D` de cet os, le repère au repos de l'os du point, ramené du repos de cet os.
+func _suivi(point: String, attache: Dictionary, portages: Array[Node3D]) -> Dictionary:
+	var repos_du_point := squelette.get_bone_global_rest(squelette.find_bone(attache.os))
+	var suivi := {attaches = [], chaines = [], poids = PackedFloat64Array(), portages = portages}
+	for nom: String in attache.poids:
+		var depuis_le_repos := attacher(squelette, {os = nom, position = ORIGINE, rotation = ORIGINE}, ("Suivi_%s_%s" % [point, nom]).validate_node_name())
+		depuis_le_repos.transform = squelette.get_bone_global_rest(squelette.find_bone(nom)).affine_inverse()
+		var chaine := Node3D.new()
+		chaine.transform = repos_du_point
+		depuis_le_repos.add_child(chaine)
+		suivi.attaches.append(depuis_le_repos.get_parent())
+		suivi.chaines.append(chaine)
+		suivi.poids.append(attache.poids[nom])
+	return suivi
+
+
+## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated, après les `BoneAttachment3D` :
+## les `Portage` de chaque point suivi (`_suivis`) posés au mélange de ses `chaines` à leurs `poids`, chacune interpolée
+## dans le mélange des précédentes à sa part du poids cumulé (`MiseEnPage.part_du_melange`).
+func _suivre_les_poids() -> void:
+	for suivi: Dictionary in _suivis.values():
+		var melange: Transform3D = suivi.chaines[0].global_transform
+		var cumul: float = suivi.poids[0]
+		for indice in range(1, suivi.chaines.size()):
+			cumul = MiseEnPage.cumul_des_poids(cumul, suivi.poids[indice])
+			melange = melange.interpolate_with(suivi.chaines[indice].global_transform, MiseEnPage.part_du_melange(cumul, suivi.poids[indice]))
+		for portage: Node3D in suivi.portages:
+			portage.global_transform = melange
+
+
+## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
+## qui le monte à son point de suspension (`_suspension`), `biais`, son tour autour de la normale sortante en
+## bandoulière, ses `sommets` à plat, suspendus et tournés dans son repère de rangement,
+## ce qui est porté `portes`), tourné de `tour` autour de l'axe de l'os ou décalé de `decalage` sur cet axe
+## (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
+static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
+	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
+	var os: Transform3D = rangement.os
+	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes)
+	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).rotated_local(Vector3.BACK, rangement.biais).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
+
+
+## L'étendue (min, max) des azimuts (`MiseEnPage.azimut`, comptés depuis `depuis`) des sommets `sommets` posés par `pose`.
+static func _azimuts(sommets: PackedVector3Array, pose: Transform3D, depuis: float) -> Vector2:
+	var etendue := Vector2(INF, -INF)
+	for sommet in sommets:
+		var azimut := MiseEnPage.azimut(pose.translated_local(sommet).origin, depuis)
+		etendue = Vector2(MiseEnPage.plus_bas(etendue.x, azimut), MiseEnPage.plus_haut(etendue.y, azimut))
+	return etendue
+
+
+## Les sommets des meshes `rangees` d'un objet rangé (`_rangements`), dans le repère de leur rangement, posés par
+## `pose`.
+static func _sommets_ranges(rangees: Array, pose: Transform3D) -> PackedVector3Array:
 	var sommets := PackedVector3Array()
-	for surface in mesh.mesh.get_surface_count():
-		var base: PackedVector3Array = mesh.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]
-		var positions := base.duplicate()
-		var cles := mesh.mesh.surface_get_blend_shape_arrays(surface)
-		for rang in cles.size():
-			var poids := mesh.get_blend_shape_value(rang)
-			if poids == 0.0:
-				continue
-			var cle: PackedVector3Array = cles[rang][Mesh.ARRAY_VERTEX]
-			for k in positions.size():
-				positions[k] += (cle[k] - base[k]) * poids
-		for position in positions:
-			sommets.append(repere * position)
+	for rangee in rangees:
+		for sommet in _sommets(rangee.piece, rangee.noeud):
+			sommets.append(pose.translated_local(sommet).origin)
 	return sommets
 
 
-## La boîte de `piece` dans le repère du nœud `dans`, son ancêtre : la boîte de ses huit coins (`AABB.expand`).
-static func _boite(piece: MeshInstance3D, dans: Node3D) -> AABB:
-	var boite := piece.get_aabb()
-	var dans_le_repere := AABB(dans.to_local(piece.to_global(boite.get_endpoint(0))), Vector3.ZERO)
-	for coin in range(1, 8):
-		dans_le_repere = dans_le_repere.expand(dans.to_local(piece.to_global(boite.get_endpoint(coin))))
-	return dans_le_repere
+## Le décalage, dans le repère de rangement, qui suspend l'objet rangé de meshes `rangees` par le haut de son fourreau
+## (ses meshes `extras.fourreau`) à l'emplacement, au lieu de sa poignée ; nul sans fourreau.
+static func _suspension(rangees: Array) -> Vector3:
+	var fourreaux := rangees.filter(func(rangee: Dictionary) -> bool: return rangee.piece.get_meta("extras", {}).get("fourreau", false))
+	if fourreaux.is_empty():
+		return Vector3.ZERO
+	return MiseEnPage.suspension(_boite_de(_sommets_ranges(fourreaux, Transform3D.IDENTITY)).position.y)
+
+
+## Le repère, dans l'os de l'emplacement `attache`, du repère de prise d'un objet rangé tourné de `tour` radians autour
+## de l'axe Y de l'os, ou, sur cet axe, décalé de `decalage` mètres le long de son axe X (`MiseEnPage.point_de_rangement`),
+## puis ses axes de rangement (`MiseEnPage.axe_de_rangement`).
+static func _repere_de_rangement(attache: Dictionary, tour: float, decalage: float) -> Transform3D:
+	var emplacement := repere(attache).rotated(Vector3.UP, tour)
+	var axes := emplacement.basis
+	var point := emplacement.origin
+	return Transform3D(Basis(MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_X), MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Y),
+		MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)), MiseEnPage.point_de_rangement(axes, point, decalage))
+
+
+## Le recul (x), sur la normale sortante, et le pivot (y), autour de l'axe X, le bas vers l'extérieur, d'un objet rangé
+## de sommets `sommets` dans son repère de rangement, sur ce qui est porté au repos `portes` (`_portes_au_repos`) ;
+## `vers_le_squelette` et `depuis_le_squelette` passent de ce repère à celui du squelette au repos et retour (`_par`).
+## Par case de `CASE_DE_CONTACT` où l'objet a des sommets, une visée le long de la normale sortante, de
+## `PORTEE_DE_CONTACT` à son opposé, touche d'abord ce qui est porté le plus en dehors ; l'objet recule pour que sa face
+## arrière passe à `JEU_DE_RANGEMENT` au-dessus de son haut à `APPUI_DE_RANGEMENT` sous son attache (l'origine du repère
+## de rangement, ou son haut s'il est plus bas), puis pivote pour passer de même plus bas
+## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`).
+static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary]) -> Vector2:
+	var boite := _boite_de(sommets)
+	var arriere := {}
+	for v in sommets:
+		var case_ := MiseEnPage.case_de_contact(v)
+		arriere[case_] = MiseEnPage.plus_bas(arriere.get(case_, INF), v.z)
+	var dessus := {}
+	for case_: Vector2i in arriere:
+		var debut := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, MiseEnPage.PORTEE_DE_CONTACT))
+		var fin := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, -MiseEnPage.PORTEE_DE_CONTACT))
+		for porte in portes:
+			var a := _par(porte.vers_le_mesh, debut)
+			var b := _par(porte.vers_le_mesh, fin)
+			if not (porte.boite as AABB).intersects_segment(a, b):
+				continue
+			var touche: Dictionary = (porte.maille as TriangleMesh).intersect_segment(a, b)
+			if not touche.is_empty():
+				var cote := _par(depuis_le_squelette, _par(porte.vers_le_squelette, touche.position)).z
+				dessus[case_] = MiseEnPage.plus_haut(dessus.get(case_, -INF), cote)
+	var attache := MiseEnPage.plus_haut(boite.position.y, 0.0)
+	var recul := -INF
+	for case_: Vector2i in dessus:
+		recul = MiseEnPage.recul_sur_la_case(recul, case_, attache, dessus[case_], arriere[case_])
+	recul = MiseEnPage.recul_d_appui(recul, boite.position.z)
+	var angle := 0.0
+	for case_: Vector2i in dessus:
+		angle = MiseEnPage.pivot_sur_la_case(angle, case_, attache, dessus[case_], arriere[case_], recul)
+	return Vector2(recul, angle)
+
+
+## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`) et sa boîte
+## (`boite`) dans son repère, et les transformations (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour
+## (`vers_le_squelette`), par le premier os de son skin à son repos.
+func _portes_au_repos() -> Array[Dictionary]:
+	var meshes: Array = _pieces_de_la_base.duplicate()
+	for id in pieces:
+		meshes.append_array(pieces[id])
+	var portes: Array[Dictionary] = []
+	for mesh: MeshInstance3D in meshes:
+		if mesh.skin == null:
+			continue
+		var os := squelette.get_bone_global_rest(squelette.find_bone(mesh.skin.get_bind_name(0)))
+		var liaison := mesh.skin.get_bind_pose(0)
+		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(),
+			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
+	return portes
+
+
+## Le point `point` passé par les transformations `chaine`, dans leur ordre.
+static func _par(chaine: Array, point: Vector3) -> Vector3:
+	var passe := point
+	for transformation: Transform3D in chaine:
+		passe = transformation.translated_local(passe).origin
+	return passe
+
+
+## Les sommets de `piece` dans le repère du nœud `dans`.
+static func _sommets(piece: MeshInstance3D, dans: Node3D) -> PackedVector3Array:
+	var sommets := PackedVector3Array()
+	for surface in piece.mesh.get_surface_count():
+		for sommet: Vector3 in piece.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]:
+			sommets.append(dans.to_local(piece.to_global(sommet)))
+	return sommets
+
+
+## La boîte de `sommets`.
+static func _boite_de(sommets: PackedVector3Array) -> AABB:
+	var boite := AABB(sommets[0], Vector3.ZERO)
+	for v in sommets:
+		boite = boite.expand(v)
+	return boite
 
 
 ## La prise de la base posée dont l'os est `os`, `{}` si aucune.
@@ -665,8 +941,8 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 
 ## L'élément monté à l'emplacement `id` habillé de la palette de la composition, chaque emplacement de palette que
 ## colore la `palette` de son entrée de `montes` (sa teinte, #3456) pris à celle-ci quand cette entrée monte cet élément,
-## et de l'emblème demandé (`peindre`) ; rend si l'emblème est posé sur une surface au moins, et un emblème demandé
-## qu'aucune ne reçoit donne `blason-sans-surface`.
+## et de l'emblème demandé (`peindre`), puis les pièces refondues (`refondre`) ; rend si l'emblème est posé sur une
+## surface au moins, et un emblème demandé qu'aucune ne reçoit donne `blason-sans-surface`.
 func _habiller(id: String) -> bool:
 	var element: String = montes[id]
 	var embleme: String = _emblemes_demandes.get(id, VIDE)
@@ -678,12 +954,13 @@ func _habiller(id: String) -> bool:
 	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
+	_demander_la_refonte()
 	return posee
 
 
 ## Les meshes de la base posée habillés des matériaux de la composition et de sa palette (`peindre`, `surfaces` de la
 ## base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom (`materiaux_de_la_base`), un nom
-## absent du GLB ajoutant `materiau-absent` aux erreurs.
+## absent du GLB ajoutant `materiau-absent` aux erreurs ; puis les pièces refondues (`refondre`).
 func habiller_la_base() -> void:
 	if base.is_empty():
 		return
@@ -696,6 +973,7 @@ func habiller_la_base() -> void:
 		else:
 			remplacants[surface] = remplacant
 	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants)
+	_demander_la_refonte()
 
 
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau que
@@ -754,11 +1032,12 @@ static func _matiere_texturee(surface: Dictionary) -> String:
 	return matiere if not matiere.is_empty() and ResourceLoader.exists(VolumeDeScene.texture_de(matiere)) else ""
 
 
-## Le mesh de `piece` recopié, chaque surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la
-## matière projette l'UV1 sur les trois axes (`VolumeDeScene.texturer`), l'emblème garde son placement en UV2. Une pièce sans
-## telle surface, ou déjà recopiée, garde son mesh.
+## Le mesh de `piece` recopié (son mesh à shape keys s'il est cuit, recuit aux mêmes poids, `cuire_les_formes`), chaque
+## surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la matière projette l'UV1 sur les
+## trois axes (`VolumeDeScene.texturer`), l'emblème garde son placement en UV2. Une pièce sans telle surface, ou déjà
+## recopiée, garde son mesh.
 static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> void:
-	var source := piece.mesh as ArrayMesh
+	var source := (piece.get_meta(FORMES) if piece.has_meta(FORMES) else piece.mesh) as ArrayMesh
 	var rangs := range(source.get_surface_count()).filter(func(rang: int) -> bool:
 		var materiau := source.surface_get_material(rang)
 		var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
@@ -777,7 +1056,13 @@ static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> voi
 		copie.add_surface_from_arrays(source.surface_get_primitive_type(rang), tableaux, source.surface_get_blend_shape_arrays(rang))
 		copie.surface_set_material(rang, source.surface_get_material(rang))
 		copie.surface_set_name(rang, source.surface_get_name(rang))
+	if not piece.has_meta(FORMES):
+		piece.mesh = copie
+		return
+	var poids: Dictionary = piece.get_meta(POIDS)
+	piece.remove_meta(FORMES)
 	piece.mesh = copie
+	cuire_les_formes(piece, poids)
 
 
 ## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
@@ -838,22 +1123,199 @@ func poser_le_gabarit() -> Array[String]:
 	return absents
 
 
-## Les poids `morphes` de la composition posés par nom de shape key sur chaque mesh de la base et de chaque élément monté
-## qui porte la clé (#3086, D4) ; un mesh sans la clé n'en reçoit rien.
+## Les poids `morphes` de la composition (#3086, D4) cuits dans chaque mesh à shape keys de la base et de chaque élément
+## monté (`cuire_les_formes`), par nom de clé ; une clé que la composition ne nomme pas vaut 0. Les pièces se refondent
+## (`refondre`).
 func poser_les_morphes() -> void:
-	var morphes: Dictionary = composee.get("morphes", {})
-	for nom in morphes:
-		poser_des_morphes([nom], float(morphes[nom]))
-	poser_les_rangements()
-
-
-## Le poids `poids` posé à chaque shape key nommée dans `noms`, sur chaque mesh du modèle qui la porte.
-func poser_des_morphes(noms: Array, poids: float) -> void:
 	if modele == null:
 		return
+	var morphes: Dictionary = composee.get("morphes", {})
 	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
-		var mesh := noeud as MeshInstance3D
-		for nom in noms:
-			var rang := mesh.find_blend_shape_by_name(nom)
-			if rang != -1:
-				mesh.set_blend_shape_value(rang, poids)
+		cuire_les_formes(noeud as MeshInstance3D, morphes)
+	_demander_la_refonte()
+
+
+## Le mesh de `mesh` remplacé par sa copie sans shape key, chacune cuite à son poids dans `morphes` (par nom de clé, 0 si
+## absente, `MeshInstance3D.bake_mesh_from_current_blend_shape_mix`). Le rendu de compatibilité met à jour une surface à
+## shape keys en une passe de base et une passe par clé non nulle, en plus de celle du squelette, à chaque image où le
+## squelette bouge (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable) : cuite, seule
+## celle du squelette reste. Le mesh à shape keys est gardé en métadonnée `FORMES` et les poids cuits en `POIDS` ;
+## des poids inchangés ne recuisent rien. Un mesh sans shape key garde son mesh.
+static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
+	var formes := (mesh.get_meta(FORMES) if mesh.has_meta(FORMES) else mesh.mesh) as ArrayMesh
+	if formes == null or formes.get_blend_shape_count() == 0:
+		return
+	var poids := {}
+	for rang in formes.get_blend_shape_count():
+		var nom := String(formes.get_blend_shape_name(rang))
+		poids[nom] = float(morphes.get(nom, 0.0))
+	if mesh.has_meta(FORMES) and mesh.get_meta(POIDS) == poids:
+		return
+	mesh.mesh = formes
+	for rang in formes.get_blend_shape_count():
+		mesh.set_blend_shape_value(rang, poids[String(formes.get_blend_shape_name(rang))])
+	var cuit := mesh.bake_mesh_from_current_blend_shape_mix()
+	for rang in formes.get_surface_count():
+		cuit.surface_set_material(rang, formes.surface_get_material(rang))
+		cuit.surface_set_name(rang, formes.surface_get_name(rang))
+	mesh.set_meta(FORMES, formes)
+	mesh.set_meta(POIDS, poids)
+	mesh.mesh = cuit
+
+
+## @contrat Atelier 3D
+## Les pièces d'un corps composé se dessinent fondues (#3868) : chaque surface et chaque mesh skinné coûte, sous le rendu
+## de compatibilité, un appel de dessin par passe et une passe de skinning à chaque image où le squelette bouge
+## (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable). Après tout montage, démontage,
+## masque des zones, habillage ou cuisson des formes, `MontageDeComposition.refondre` réunit, une fois à la fin de
+## l'image, chaque mesh visible du modèle, de la base comme des éléments montés, en un seul `MeshInstance3D` skinné sous
+## le squelette de la base (`fusion`) : une surface par matériau équivalent (même classe, mêmes valeurs, mêmes
+## textures), sur un `Skin` qui réunit les liaisons de chaque pièce, une liaison nommée par os et par repère. Une pièce
+## skinnée y garde ses liaisons, une pièce rigide se lie à l'os de son `BoneAttachment3D`, au repère de la pièce dans
+## cet os, chaque sommet tout entier sur lui. La pièce fondue reste à sa place, sur aucun calque (`layers` 0) : ni
+## dessinée ni skinnée, elle garde ses matériaux, son mesh et sa visibilité, que lisent l'écran et les recettes. Reste
+## dessinée seule une pièce dont le skin n'est pas dans le repère du squelette, une pièce rigide portée par un nœud
+## `top_level` (un objet rangé qui suit des `poids`, `_suivre_les_poids`) ou dont un matériau projette ses UV dans le
+## repère du mesh (`uv1_triplanar` ou `uv2_triplanar` hors du monde), une surface qui n'est pas en triangles ou qui
+## porte huit poids par sommet. La recette autonome `projet/recettes/fusion-des-pieces.gd` le vérifie.
+
+## La refonte des pièces demandée pour la fin de l'image (`refondre`), une seule fois quel que soit le nombre de
+## demandes.
+func _demander_la_refonte() -> void:
+	if not _refonte_demandee:
+		_refonte_demandee = true
+		refondre.call_deferred()
+
+
+## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce
+## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; l'ancienne `fusion` libérée, aucune sans
+## squelette ou sans pièce à fondre.
+func refondre() -> void:
+	_refonte_demandee = false
+	if is_instance_valid(fusion):
+		fusion.free()
+	fusion = null
+	if squelette == null or not is_instance_valid(squelette):
+		return
+	var skin := Skin.new()
+	var liaisons := {}
+	var outils := {}
+	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
+		var piece := noeud as MeshInstance3D
+		var renvois := _renvois(piece, skin, liaisons)
+		piece.layers = CALQUE if renvois.is_empty() else 0
+		if renvois.is_empty():
+			continue
+		for surface in piece.mesh.get_surface_count():
+			var materiau := piece.get_active_material(surface)
+			var cle := _signature(materiau)
+			if not outils.has(cle):
+				outils[cle] = SurfaceTool.new()
+				(outils[cle] as SurfaceTool).set_material(materiau)
+			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois), 0, Transform3D.IDENTITY)
+	if outils.is_empty():
+		return
+	var mesh := ArrayMesh.new()
+	for outil: SurfaceTool in outils.values():
+		outil.commit(mesh)
+	fusion = MeshInstance3D.new()
+	fusion.name = "Fusion"
+	fusion.mesh = mesh
+	fusion.skin = skin
+	squelette.add_child(fusion)
+	fusion.skeleton = fusion.get_path_to(squelette)
+
+
+## Par liaison de `piece` (une seule pour une pièce rigide), le rang de la liaison de `skin` qui la porte, ajoutée à
+## `skin` et à `liaisons` (par os et repère) si elle est neuve ; vide si `piece` ne se fond pas : invisible dans le
+## modèle, déjà fondue elle-même, ou hors des cas de `refondre`.
+func _renvois(piece: MeshInstance3D, skin: Skin, liaisons: Dictionary) -> PackedInt32Array:
+	var renvois := PackedInt32Array()
+	var attache: BoneAttachment3D = null
+	var noeud: Node = piece
+	while noeud != modele:
+		if not (noeud as Node3D).visible or (noeud != piece and (noeud as Node3D).top_level and attache == null):
+			return renvois
+		if attache == null and noeud is BoneAttachment3D:
+			attache = noeud
+		noeud = noeud.get_parent()
+	if piece.mesh == null or not _surfaces_fondables(piece):
+		return renvois
+	if piece.skin != null:
+		if not piece.global_transform.is_equal_approx(squelette.global_transform):
+			return renvois
+		for liaison in piece.skin.get_bind_count():
+			renvois.append(_liaison(skin, liaisons, piece.skin.get_bind_name(liaison), piece.skin.get_bind_pose(liaison)))
+		return renvois
+	if attache == null or not _sans_projection(piece):
+		return renvois
+	var repere_ := Node3D.new()
+	attache.add_child(repere_)
+	repere_.global_transform = piece.global_transform
+	renvois.append(_liaison(skin, liaisons, attache.bone_name, repere_.transform))
+	repere_.free()
+	return renvois
+
+
+## Chaque surface de `piece` est-elle en triangles, à quatre poids par sommet au plus ?
+static func _surfaces_fondables(piece: MeshInstance3D) -> bool:
+	for surface in piece.mesh.get_surface_count():
+		if piece.mesh.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES or piece.mesh.surface_get_format(surface) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS:
+			return false
+	return true
+
+
+## Aucun matériau actif de `piece` ne projette-t-il ses UV dans le repère du mesh ?
+static func _sans_projection(piece: MeshInstance3D) -> bool:
+	for surface in piece.mesh.get_surface_count():
+		var materiau := piece.get_active_material(surface) as BaseMaterial3D
+		if materiau != null and ((materiau.uv1_triplanar and not materiau.uv1_world_triplanar) or (materiau.uv2_triplanar and not materiau.uv2_world_triplanar)):
+			return false
+	return true
+
+
+## Le rang dans `skin` de la liaison de l'os `os` au repère `repere_`, ajoutée si `liaisons` ne la porte pas encore.
+static func _liaison(skin: Skin, liaisons: Dictionary, os: StringName, repere_: Transform3D) -> int:
+	var cle := "%s|%s" % [os, repere_]
+	if not liaisons.has(cle):
+		liaisons[cle] = skin.get_bind_count()
+		skin.add_named_bind(os, repere_)
+	return liaisons[cle]
+
+
+## La clé des matériaux équivalents de `materiau` : sa classe et la valeur de chacune de ses propriétés enregistrées,
+## une ressource par son identité ; vide sans matériau.
+static func _signature(materiau: Material) -> String:
+	if materiau == null:
+		return ""
+	var valeurs := [materiau.get_class()]
+	for propriete in materiau.get_property_list():
+		if propriete.usage & PROPERTY_USAGE_STORAGE and not propriete.name in ["resource_name", "resource_path"]:
+			var valeur: Variant = materiau.get(propriete.name)
+			valeurs.append(valeur.get_instance_id() if valeur is Object else valeur)
+	return str(valeurs)
+
+
+## La surface `surface` de `piece` en mesh d'une surface, chaque sommet lié aux liaisons de la fusion par `renvois` : ses
+## os renvoyés pour une pièce skinnée ; tout sur la liaison de son os pour une pièce rigide (`POIDS_RIGIDE`) ; sans ses
+## canaux libres (`CANAUX_LIBRES`).
+static func _surface_liee(piece: MeshInstance3D, surface: int, renvois: PackedInt32Array) -> ArrayMesh:
+	var tableaux := piece.mesh.surface_get_arrays(surface)
+	var os := PackedInt32Array()
+	if piece.skin == null:
+		var poids := PackedFloat32Array()
+		var quatre := PackedInt32Array([renvois[0], renvois[0], renvois[0], renvois[0]])
+		for _sommet in (tableaux[Mesh.ARRAY_VERTEX] as PackedVector3Array).size():
+			os.append_array(quatre)
+			poids.append_array(POIDS_RIGIDE)
+		tableaux[Mesh.ARRAY_WEIGHTS] = poids
+	else:
+		os = tableaux[Mesh.ARRAY_BONES]
+		for rang in os.size():
+			os[rang] = renvois[os[rang]]
+	tableaux[Mesh.ARRAY_BONES] = os
+	for canal in CANAUX_LIBRES:
+		tableaux[canal] = null
+	var liee := ArrayMesh.new()
+	liee.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+	return liee

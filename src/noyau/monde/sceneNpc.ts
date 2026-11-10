@@ -6,7 +6,7 @@
  */
 import type { Combatant } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import type { Scene, SceneEntity } from './scene';
+import { idDuCorps, type Scene, type SceneEntity } from './scene';
 import { spawnEnemy } from './spawn';
 import type { PorteurDeFiche } from '../../engine/statblock';
 import { parcoursDe } from '../../engine/pnjDeCarriere';
@@ -15,23 +15,25 @@ import type { NomDIndividu } from '../../engine/psych/ciblage';
 import type { Jeu } from '../etat';
 import { inBattleId } from './combatants';
 import { typeNonNomme } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, findSpeciesById, isNamed, profilsStandard, refEntiteResolue, sexeDuPorteur } from '../../data';
+import { findCreatureById, findFicheDeVehicule, findSpeciesById, isNamed, profilsStandard, sexeDuPorteur } from '../../data';
 import { raceKeySchema, type RaceKey, type Sexe } from '../../data/schemas/grammaire/valeurs';
 import { generateName } from '../../engine/names';
 import { tirerLesDetails } from '../../engine/creation';
 import { hashSeed, makeRNG } from '../../engine/dice';
 
 /** Le porteur de fiche d'une entité et l'apparence qui l'accompagne — preset de PNJ nommé (#671),
- *  statbloc, puis réf, portée à son parcours de carrière s'il en a un (`parcoursDe`, #773), dans cet ordre ;
- *  `undefined` si elle n'en porte aucun, ou si son preset ou sa réf ne se résout pas (#1882). `presetDe` résout
- *  un preset (`nomDEntite`). */
+ *  statbloc, puis son corps : sa créature, portée à son parcours de carrière s'il en a un (`parcoursDe`, #773), sa
+ *  coque ou son engin, dans cet ordre ; `undefined` si elle n'en porte aucun, ou si son preset ou son corps ne se
+ *  résout pas (#1882). `presetDe` résout un preset (`nomDEntite`). */
 function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteur: PorteurDeFiche; appearance?: EntityAppearance } | undefined {
   if (ent.presetId) { // `''` n'est pas un porteur (`typeNonNomme`, `defs-scenes/scene.ts`)
     const preset = resolvePresetCreature(ent.presetId, presetDe);
     return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: { ...preset.apparence, ...ent.appearance } };
   }
   if (ent.statblock) return { porteur: { statblock: ent.statblock }, appearance: ent.appearance };
-  if (ent.ref) return refEntiteResolue(ent.ref) ? { porteur: { ref: ent.ref, parcours: parcoursDe(ent) }, appearance: ent.appearance } : undefined;
+  if (ent.creature) return findCreatureById(ent.creature.id) ? { porteur: { ref: ent.creature.id, parcours: parcoursDe(ent) }, appearance: ent.appearance } : undefined;
+  if (ent.vehicule) return findFicheDeVehicule(ent.vehicule.id) ? { porteur: { vehicule: ent.vehicule.id }, appearance: ent.appearance } : undefined;
+  if (ent.engin) return findFicheDeVehicule(ent.engin.id) ? { porteur: { engin: ent.engin.id }, appearance: ent.appearance } : undefined;
   return undefined;
 }
 
@@ -39,8 +41,8 @@ function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteu
  *  du bestiaire qui n'est pas un individu nommé (`isNamed`) et dont l'espèce, celle de l'auteur sinon celle de la fiche,
  *  est d'une race (`RaceKey`) ; son sexe (`sexeDuPorteur`, sinon `M`, #3253). */
 function individuAnonyme(ent: SceneEntity): { race: RaceKey; sexe: Sexe } | undefined {
-  if (ent.kind !== 'personnage' || ent.label || ent.presetId || ent.statblock || ent.ref === undefined) return undefined;
-  const creature = findCreatureById(ent.ref);
+  if (ent.kind !== 'personnage' || ent.label || ent.presetId || ent.statblock || ent.creature === undefined) return undefined;
+  const creature = findCreatureById(ent.creature.id);
   if (!creature || isNamed(creature)) return undefined;
   const espece = ent.appearance?.species ?? creature.appearance?.species;
   const race = findSpeciesById(espece)?.refChar ?? raceKeySchema.safeParse(espece).data;
@@ -64,7 +66,7 @@ export function nomDEntite(ent: SceneEntity, presetDe: ResolveurDePreset): strin
     return preset && nomDePreset(preset);
   }
   if (ent.statblock) return ent.statblock.label;
-  return ent.ref !== undefined ? findCreatureById(ent.ref)?.label : undefined;
+  return ent.creature && findCreatureById(ent.creature.id)?.label;
 }
 
 /** Ce que lit `nomDIndividu` de l'état de la partie : le groupe, la bataille, la scène et son narratif. */
@@ -102,11 +104,11 @@ function fiche(ent: SceneEntity, p: NonNullable<ReturnType<typeof porteurDeFiche
 
 /** Une entité sans porteur de fiche résoluble a franchi la porte (`sceneEntitySchema`, #1882) : bogue du jeu. */
 export class FicheAbsente extends Error {
-  constructor(readonly entite: string, presetId: string | undefined, ref: string | undefined) {
+  constructor(readonly entite: string, presetId: string | undefined, corps: string | undefined) {
     super(presetId
       ? `[fiche] personnage « ${entite} » : preset de PNJ « ${presetId} » irrésoluble (#1882)`
-      : ref && !refEntiteResolue(ref)
-        ? `[fiche] personnage « ${entite} » : réf. « ${ref} » irrésoluble (#1882)`
+      : corps
+        ? `[fiche] personnage « ${entite} » : réf. « ${corps} » irrésoluble (#1882)`
         : `[fiche] ${typeNonNomme({ id: entite, kind: 'personnage' })} (#1882)`);
     this.name = 'FicheAbsente';
   }
@@ -115,7 +117,7 @@ export class FicheAbsente extends Error {
 /** LA fiche d'une entité `personnage` ; lève `FicheAbsente` si elle n'en porte aucune de résoluble. */
 export function ficheDEntite(ent: SceneEntity, presetDe: ResolveurDePreset): Combatant {
   const p = porteurDeFiche(ent, presetDe);
-  if (!p) throw new FicheAbsente(ent.id, ent.presetId, ent.ref);
+  if (!p) throw new FicheAbsente(ent.id, ent.presetId, idDuCorps(ent));
   return fiche(ent, p, presetDe);
 }
 
@@ -146,7 +148,13 @@ export function pnjAuPreset(presetId: string, id: string, presetDe: ResolveurDeP
  * fiche, il n'en subit rien. Aucune simulation ne comble ce trou.
  */
 export function sceneNpc(scene: Scene | null | undefined, id: string, presetDe: ResolveurDePreset): Combatant | undefined {
-  const ent = scene?.entities.find((e) => e.id === id && e.kind === 'personnage');
-  const p = ent ? porteurDeFiche(ent, presetDe) : undefined;
-  return ent && p ? fiche(ent, p, presetDe) : undefined;
+  const ent = scene?.entities.find((e) => e.id === id);
+  return ent && ficheDuPersonnage(ent, presetDe);
+}
+
+/** La fiche du `personnage` `ent`, la MÊME que `ficheDEntite` ; `undefined` hors d'un personnage, ou d'un personnage sans
+ *  fiche. */
+export function ficheDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset): Combatant | undefined {
+  const p = ent.kind === 'personnage' ? porteurDeFiche(ent, presetDe) : undefined;
+  return p && fiche(ent, p, presetDe);
 }

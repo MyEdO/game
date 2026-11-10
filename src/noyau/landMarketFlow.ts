@@ -27,7 +27,7 @@ import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
 import { t } from '../i18n';
 import { actorIn } from './monde/combatants';
 import { garanti } from '../lib/garanti';
-import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney } from '../engine/money';
+import { fromBrass, formatMoney, PA_PER_CO, canAfford } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import {
@@ -51,8 +51,9 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
-/** Une offre d'achat générée à l'étape (l.36-42) — Enc disponible + prix de base NOTÉ (le Vin fige sa
- *  qualité secrète / son prix ICI, l.93-104). `wine` : cargaison à qualité incertaine. */
+/** Une offre d'achat générée à l'étape (l.36-42) — Enc disponible + prix de base NOTÉ en CO par point d'Enc
+ *  (`landCargoBasePrice` ; le Vin fige sa qualité secrète / son prix ICI, l.93-104). `wine` : cargaison à
+ *  qualité incertaine. */
 export interface LandOffer {
   cargoId: string;
   label: string;
@@ -80,6 +81,8 @@ export interface LandMarketState {
   /** Bande d'ambiance (surcharge de lieu `market.backdrop`, sinon défaut du catalogue) — slot `backdrop`
    *  du `ScreenShell`. */
   backdrop?: string;
+  /** L'achat en composition (`fenetreChoisir('marcheDeTerre', …)`). */
+  achat?: import('./cargaison').BrouillonDAchat;
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
@@ -181,17 +184,27 @@ export function generateTradeRumour(get: Get, set: Set, currentPlaceId: string, 
   log(get, set, [t('lm.rumeur', { biens: biensTxt, lieu: target.label })]); // MSRC 13 l.180
 }
 
+/** Refus d'évaluer le lot `cargoId` (MSRC 13 l.95) : `refusDeGesteSurLeGroupe`, hors de la halle, offre absente, lot
+ *  qui n'est pas du vin, vin déjà évalué, personne qui puisse tenter l'Évaluation (`appraiseRefus`) ; `null` sinon.
+ *  Tombe dans `evaluerLeVin`, lu par l'écran du marché. */
+export function refusDEvaluerLeVin(s: Pick<Jeu, 'net' | 'landMarket' | 'party'>, cargoId: string): string | null {
+  const groupe = refusDeGesteSurLeGroupe(s);
+  if (groupe) return groupe;
+  if (!s.landMarket) return t('lm.horsDeLaHalle');
+  const offre = s.landMarket.offers.find((o) => o.cargoId === cargoId);
+  if (!offre) return t('lm.offreAbsente');
+  if (!offre.wine) return t('lm.pasDuVin', { label: offre.label });
+  if (offre.wineTier) return t('lm.vinEvalue', { label: offre.label });
+  return appraiseRefus(s.party);
+}
+
 /** ÉVALUATION de la qualité SECRÈTE d'un lot de Vin/Eau-de-vie proposé (l.95) : Test d'Évaluation, difficulté
  *  Intermédiaire (Accessible si le meneur a Résistance à l'alcool ≥ 50). Sur un succès, révèle la vraie qualité ;
  *  sur un échec, une FAUSSE indication décalée du degré d'échec. Un lot ne s'évalue qu'une fois. */
 export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
-  const st = get().landMarket;
-  if (!st) return;
-  const offer = st.offers.find((o) => o.cargoId === cargoId);
-  if (!offer || !offer.wine || offer.wineTier) return; // pas du vin, ou déjà évalué
-  const refus = appraiseRefus(get().party);
-  if (refus) { log(get, set, [refus]); return; }
+  const refus = refusDEvaluerLeVin(get(), cargoId);
+  if (refus) { refuserGeste(get, set, refus); return; }
+  const offer = garanti(get().landMarket?.offers.find((o) => o.cargoId === cargoId), cargoId, 'vin à évaluer');
   const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluate.skill })!;
   const diff = wineEvalDifficulty(testValue(best.actor, { skill: { id: 'resistance-a-l-alcool' } }));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
@@ -254,13 +267,14 @@ export function raisonDuRefusDAchatDeCargaison(refus: RefusDAchatDeCargaison): s
     case 'lot-minimal': return t('lm.lotMinimal', { min: refus.min });
     case 'sans-porteur': return t('lm.sansPorteur');
     case 'contenance': return t('lm.contenance', { porteur: refus.porteur, libre: refus.libre, capacite: refus.capacite });
-    case 'bourse': return t('cargo.bourseSousPlancher', { plancher: refus.plancher });
+    case 'bourse': return t('cargo.bourseSousPlancher', { plancher: formatMoney(fromBrass(refus.plancher * PA_PER_CO)) });
   }
 }
 
-/** Prix d'un lot en CO (MSRC 13 l.127-131) : `pct` = effet du Marchandage, `partiel` = lot partiel. */
+/** Prix d'un lot en CO, arrondi au sou : `basePrice` en CO par point d'Enc, `pct` = effet du Marchandage,
+ *  `partiel` = lot partiel. MSRC 13 l.127-131 */
 export function prixDuLotDeCargaison(enc: number, basePrice: number, partiel: boolean, pct: number): number {
-  return Math.max(0, Math.round(enc * basePrice * (1 + (pct + (partiel ? partialSurchargePct() : 0)) / 100)));
+  return Math.max(0, Math.round(enc * basePrice * (1 + (pct + (partiel ? partialSurchargePct() : 0)) / 100) * PA_PER_CO)) / PA_PER_CO;
 }
 
 /** Devis d'achat d'un lot : `enc` retenu (défaut : l'offre entière dans la place libre du porteur),
@@ -288,15 +302,14 @@ export function devisDAchatDeCargaison(s: CarrierStateSlice & Pick<Jeu, 'landMar
   if (want < minCargoEnc()) return { ...base, refus: { motif: 'lot-minimal', min: minCargoEnc() } };
   if (!porteur) return { ...base, refus: { motif: 'sans-porteur' } };
   if (!carrierCanLoad(porteur, want)) return { ...base, refus: { motif: 'contenance', porteur: porteur.label, libre, capacite: porteur.capacity } };
-  if (!canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold }))) return { ...base, refus: { motif: 'bourse', plancher: plancherGold } };
+  if (!canAfford(totalDesBourses(s.party), fromBrass(plancherGold * PA_PER_CO))) return { ...base, refus: { motif: 'bourse', plancher: plancherGold } };
   return { ...base, porteur, refus: null };
 }
 
 /** ACHAT d'une cargaison (MSRC 13 l.129-131) : refus de `devisDAchatDeCargaison`, puis Marchandage opposé et
  *  prix `prixDuLotDeCargaison`. Débité, CHARGÉ sur le porteur désigné (plafond DUR #327). */
 export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCargaison, cargoId: string, enc: number): void {
-  const st = get().landMarket;
-  if (!st) return;
+  const st = garanti(get().landMarket, cargoId, 'halle ouverte à l’achat');
   const devis = devisDAchatDeCargaison(get(), porteurId, cargoId, enc);
   if (devis.refus) { refuserGeste(get, set, raisonDuRefusDAchatDeCargaison(devis.refus)); return; }
   const { offre: offer, porteur: carrier, enc: want, partiel: partial } = devis;
@@ -313,8 +326,8 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
     bargainLine = `${best.actor.label} — Marchandage (${opp.attacker.roll} vs ${opp.defender.roll}) : ${pct === 0 ? 'prix inchangé' : pct < 0 ? `remise de ${-pct} %` : `surcoût de ${pct} %`}.`;
   }
   const price = prixDuLotDeCargaison(want, offer.basePrice, partial, pct);
-  const cost = toMoney({ gold: price });
-  if (!canAfford(partyMoneyTotal(get), cost)) { refuserGeste(get, set, t('cargo.purseShort', { price, label: offer.label, bargain: bargainLine })); return; }
+  const cost = fromBrass(price * PA_PER_CO);
+  if (!canAfford(partyMoneyTotal(get), cost)) { refuserGeste(get, set, t('cargo.purseShort', { price: formatMoney(cost), label: offer.label, bargain: bargainLine })); return; }
   const lot: CargoLot = { uid: get().forgerUnId('it'), cargoId, enc: want, basePriceGold: offer.basePrice };
   const { carrier: loaded } = loadCargo(carrier, lot);
   // Cargaison de GROUPE (l.129-131) : débit sans bénéficiaire unique → cotisation gloutonne des bourses.
@@ -323,7 +336,7 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
     ...persistCarriersCargo(get(), [{ carrierId: carrier.id, cargo: loaded.cargo }]),
     landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, enc: o.enc - want } : o).filter((o) => o.enc > 0) },
   });
-  log(get, set, [t('lm.charge', { enc: want, label: offer.label, porteur: carrier.label, marchandage: bargainLine, partiel: partial ? t('lm.fragPartiel') : '', prix: formatMoney(fromBrass(toBrass(cost))) })]); // MSRC 13 l.131
+  log(get, set, [t('lm.charge', { enc: want, label: offer.label, porteur: carrier.label, marchandage: bargainLine, partiel: partial ? t('lm.fragPartiel') : '', prix: formatMoney(cost) })]); // MSRC 13 l.131
 }
 
 /**
@@ -387,12 +400,12 @@ function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: numbe
   // base. Non consommée (« autant qu'ils le souhaitent ») → elle reste sur le board.
   const rumourMult = tradeRumourMult(get().tradeRumours ?? [], st.placeId, lot.cargoId);
   const rumourHit = rumourMult > 1;
-  const gross = Math.max(0, Math.round(sellEnc * lot.basePriceGold * (offerPct / 100) * (1 + bargainPctVal / 100) * rumourMult));
+  const gross = Math.max(0, Math.round(sellEnc * lot.basePriceGold * (offerPct / 100) * (1 + bargainPctVal / 100) * rumourMult * PA_PER_CO));
   const newCargo = sellEnc >= lot.enc ? lots.filter((l) => l.uid !== lotId) : lots.map((l) => l.uid === lotId ? { ...l, enc: l.enc - sellEnc } : l);
   // Recette de cargaison de GROUPE (l.133-160) → crédit réparti par tête sur les bourses.
-  distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
+  distributeCredit(get, set, fromBrass(gross));
   set(persistCarriersCargo(get(), [{ carrierId: porteur.id, cargo: newCargo }]));
-  log(get, set, [t('lm.vendu', { enc: sellEnc, label, pct: offerPct, marchandage: bargainLine, rumeur: rumourHit ? t('lm.fragRumeur') : '', prix: formatMoney(fromBrass(gross * PA_PER_CO)) })]); // MSRC 13 l.180
+  log(get, set, [t('lm.vendu', { enc: sellEnc, label, pct: offerPct, marchandage: bargainLine, rumeur: rumourHit ? t('lm.fragRumeur') : '', prix: formatMoney(fromBrass(gross)) })]); // MSRC 13 l.180
 }
 
 /** Refus de brader le lot `cargoId` à la halle ouverte : `refusDeGesteSurLeGroupe`, puis lieu sans Commerce en
@@ -413,11 +426,11 @@ export function jeterALaHalle(get: Get, set: Set, lotId: IdDeCargaison): void {
   if (refus) { refuserGeste(get, set, refus); return; }
   const pct = garanti(landDumpingPct(st.market), st.placeId, 'pourcentage de bradage');
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
-  const gross = Math.max(0, Math.round(lot.enc * lot.basePriceGold * (pct / 100)));
+  const gross = Math.max(0, Math.round(lot.enc * lot.basePriceGold * (pct / 100) * PA_PER_CO));
   // Bradage de cargaison de GROUPE (l.160) → crédit réparti par tête sur les bourses.
-  distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
+  distributeCredit(get, set, fromBrass(gross));
   set(persistCarriersCargo(get(), [{ carrierId: porteur.id, cargo: porteur.cargo.filter((l) => l.uid !== lotId) }]));
-  log(get, set, [t('lm.brade', { enc: lot.enc, label, pct, prix: formatMoney(fromBrass(gross * PA_PER_CO)) })]);
+  log(get, set, [t('lm.brade', { enc: lot.enc, label, pct, prix: formatMoney(fromBrass(gross)) })]);
 }
 
 export function sortiesDuMarcheTerrestre(_get: Get, set: Set) {

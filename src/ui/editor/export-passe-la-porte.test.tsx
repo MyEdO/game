@@ -28,12 +28,12 @@ beforeAll(() => {
 /** Un type de décor que le catalogue ne porte pas : la faute que la voie de recette sait poser. */
 const DECOR_MORT = 'decor-absent-du-catalogue';
 
-/** Une scène SAINE : son unique décor nomme son type (`ref`) — ce que #877 rend REQUIS. */
+/** Une scène SAINE : son unique décor nomme son type (`decor`) — ce que #877 rend REQUIS. */
 const sceneSaine = (): Scene => ({
   ...emptyScene('scene-test', 4, 4),
   id: 'scene-export',
   label: 'Salle d’export',
-  entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'La jetée', ref: 'tonneau' }],
+  entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'La jetée', decor: { id: 'tonneau' } }],
 });
 
 let root: Root | null = null;
@@ -105,7 +105,7 @@ describe('Éditeur — « Exporter JSON » passe la MÊME porte qu’« Enregist
     expect(telecharge.length).toBeGreaterThan(0);
     const relu = parseProject(JSON.parse(telecharge));
     expect(relu.scenes.map((s) => s.id)).toEqual(['scene-export']);
-    expect(relu.scenes[0].entities[0].ref).toBe('tonneau');
+    expect(relu.scenes[0].entities[0].decor?.id).toBe('tonneau');
   });
 
   it('projet FAUTIF (décor à type MORT) : RIEN n’est téléchargé, et le refus nomme la scène et l’entité', async () => {
@@ -113,8 +113,8 @@ describe('Éditeur — « Exporter JSON » passe la MÊME porte qu’« Enregist
     // L'état fautif se FABRIQUE par la voie de recette, jamais par un document forgé à côté. Un type
     // RETIRÉ ne se fabrique plus (`editEntity` refuse, #1882) : la faute posée est un type absent du catalogue.
     let verdict = '';
-    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { ref: DECOR_MORT }); });
-    expect(verdict, 'le helper dit CE qu’il a posé').toContain('posé : ref');
+    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { decor: { id: DECOR_MORT } }); });
+    expect(verdict, 'le helper dit CE qu’il a posé').toContain('posé : decor');
 
     const { telecharge, refus } = await exporte();
     expect(telecharge, 'aucun téléchargement : `downloadText` n’est pas appelé').toBe('');
@@ -181,8 +181,8 @@ describe('Éditeur — « Importer JSON… » : DEUX causes de refus, chacune LU
     expect(refus, 'un fichier RELU se dit d’un autre format ; rien n’a été ouvert ni écrit')
       .toContain('Import refusé : projet d’un autre format, ou mal formé.');
     expect(refus, 'le titre ne nomme pas la faute').not.toContain('Faute :');
-    expect(refus, 'le détail technique nomme la scène et l’entité').toContain('scène « scene-importee » › entité « p0 » › référence');
-    expect(refus, 'et la règle enfreinte').toContain('« ref » absente');
+    expect(refus, 'le détail technique nomme la scène et l’entité').toContain('scène « scene-importee » › entité « p0 » › décor');
+    expect(refus, 'et la règle enfreinte').toContain('« decor » absent');
     expect(scenesChargees, 'rien du document refusé n’est chargé').not.toContain('Salle importée');
     expect(scenesChargees, 'la scène ouverte est intacte').toContain('Salle d’export');
   });
@@ -238,7 +238,7 @@ describe('Éditeur — « ▶ Tester » passe la MÊME porte que les autres sort
   it('projet FAUTIF avec un groupe : le refus NOMME scène et entité, l’écran reste l’éditeur', async () => {
     useGame.getState().fixerLeGroupe(makeShowcaseParty(idsDeTest));
     await monter(sceneSaine());
-    await act(async () => { await buildApi().editorPatchEntity('p0', { ref: DECOR_MORT }); });
+    await act(async () => { await buildApi().editorPatchEntity('p0', { decor: { id: DECOR_MORT } }); });
     const { refus, titre, ecran } = await metALEssai();
     expect(titre).toBe('Tester la scène');
     expect(refus).toContain('Mise à l’essai refusée');
@@ -303,15 +303,15 @@ describe('__wfrp.editorPatchEntity — SETUP de recette par le pont d’INTENTIO
   it('pose une clé, en retire une autre, et le DOCUMENT exporté le porte', async () => {
     await monter(sceneSaine());
     let verdict = '';
-    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { ref: 'caisse', label: undefined }); });
+    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { decor: { id: 'caisse' }, label: undefined }); });
     expect(verdict).toContain('✓');
-    expect(verdict).toContain('posé : ref');
+    expect(verdict).toContain('posé : decor');
     expect(verdict).toContain('retiré : label');
 
     const { telecharge, refus } = await exporte();
     expect(refus, 'une entité sans `label` reste valide : rien ne doit être refusé').toBeNull();
     const entite = parseProject(JSON.parse(telecharge)).scenes[0].entities[0];
-    expect(entite.ref).toBe('caisse');
+    expect(entite.decor?.id).toBe('caisse');
     expect('label' in entite, 'la clé est ABSENTE du document, pas posée à `undefined`').toBe(false);
   });
 
@@ -319,7 +319,7 @@ describe('__wfrp.editorPatchEntity — SETUP de recette par le pont d’INTENTIO
     await monter(sceneSaine());
     const avant = sceneCourante!;
     let verdict = '';
-    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { id: 'p9', ref: 'caisse' }); });
+    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { id: 'p9', decor: { id: 'caisse' } }); });
     expect(verdict, 'jamais un « ✓ posé : id » qui annoncerait une scène corrompue').toContain('✗');
     expect(verdict).toContain('IDENTITÉ');
     expect(verdict).toContain('id');
@@ -334,16 +334,16 @@ describe('__wfrp.editorPatchEntity — SETUP de recette par le pont d’INTENTIO
     await monter(sceneSaine());
     const avant = sceneCourante!;
     let verdict = '';
-    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { ref: undefined }); });
+    await act(async () => { verdict = await buildApi().editorPatchEntity('p0', { decor: undefined }); });
     expect(verdict).toContain('✗');
-    expect(verdict).toContain('décor « p0 » : « ref » absente');
+    expect(verdict).toContain('décor « p0 » : « decor » absent');
     expect(sceneCourante).toEqual(avant);
   });
 
   it('entité inconnue : refus NOMMÉ, portant les ids de la scène', async () => {
     await monter(sceneSaine());
     let verdict = '';
-    await act(async () => { verdict = await buildApi().editorPatchEntity('p-fantome', { ref: 'caisse' }); });
+    await act(async () => { verdict = await buildApi().editorPatchEntity('p-fantome', { decor: { id: 'caisse' } }); });
     expect(verdict).toContain('✗');
     expect(verdict).toContain('p-fantome');
     expect(verdict, 'les ids ouvrables sont rendus').toContain('p0');

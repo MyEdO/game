@@ -16,7 +16,7 @@ import { StakeRule, stakeRuleOf } from './StakeNote';
 import { RollShell } from './RollShell';
 import type { RollAction } from './RollShell';
 
-const stake = voyageStakeRef('riverCapsize', { rounds: 3 });
+const stake = voyageStakeRef('river-capsize', { rounds: 3 });
 const FICHE = codexLookupById('regles', 'navigation-chavirage')!.label;
 
 describe('StakeRule — le ⓘ s’annonce par sa FICHE, pas par le pas qui le porte', () => {

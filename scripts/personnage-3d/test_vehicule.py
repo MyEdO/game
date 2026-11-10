@@ -1,10 +1,12 @@
 """Construction des véhicules (#2987) : chaque modèle de `vehicule/` reconstruit depuis le dépôt les GLB et les
 manifestes publiés sous `hotes/godot/projet/modeles/`, octet pour octet (l'empreinte du manifeste) ; chaque véhicule et
-chaque Amélioration publiés y ont leur modèle ; une sortie dans le dépôt est refusée. La caraque suit ses ponts
+chaque Amélioration publiés y ont leur modèle. La caraque suit ses ponts
 (`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une caraque allongée dans la source aussi. Sur chaque
-navire, toute case des ponts s'atteint et tient un occupant debout (#3790)."""
+navire, toute case des ponts s'atteint et tient un occupant debout (#3790), et sa coque est close : ni trou dans un
+plancher, ni rayon qui sorte du navire depuis une case (#3815)."""
 import copy
 import hashlib
+import importlib
 import json
 import math
 import os
@@ -20,6 +22,7 @@ sys.path.insert(0, str(ICI / 'vehicule'))
 
 import bpy  # noqa: E402
 import construire  # noqa: E402
+import navire  # noqa: E402
 import plan_de_jeu  # noqa: E402
 from caraque import modele  # noqa: E402
 from mathutils import Vector  # noqa: E402
@@ -64,6 +67,7 @@ class Reconstruction(unittest.TestCase):
 
 TOLERANCE = 0.10      # une épaisseur de cloison (`CLOISON.epaisseur`)
 METRES_PAR_CASE = 2.0  # l'échelle du plan (`sceneMetresPerTile`, LDB 15 l.12), son origine au centre du plan
+STEP_MAX_M = 1.0      # la plus haute marche franchie à pied (`src/noyau/monde/relief.ts`)
 
 
 def touches(origine, direction, longueur):
@@ -84,22 +88,30 @@ def touches(origine, direction, longueur):
 
 def ecarts(P, sortie):
     """Les écarts, en mètres, entre la caraque construite dans la scène et ses ponts `P`, par famille : {famille: [(écart,
-    où)]}. Planchers : le sol sous le milieu de chaque case et la hauteur de son glyphe. Cloisons : la matière d'une
-    cloison ou d'une porte du plan et son arête, à 1 m du plus bas de ses planchers. Ouvertes : la matière à moins de 0,2 m
-    d'une arête sans cloison, à 0,6 m de son plancher.
-    Échelles : leur montant et leur arête, l'écoutille ouverte jusqu'au plancher du pied. Sabords : le plancher et la
-    case de chaque poste. Hune : son plancher et le pied du grand mât, la case du mât."""
+    où)]}. Planchers : le sol sous le milieu de l'emprise libre de chaque case (`cases`) et la hauteur de son glyphe.
+    Cloisons : la matière d'une cloison ou d'une porte du plan et son arête, à 1 m du plus bas de ses planchers (une
+    trappe au plancher de son pied), entre deux cases d'un pont ou entre une case et la place d'une case d'un autre pont
+    à une marche près. Ouvertes : la matière à moins de 0,2 m d'une arête sans cloison, au milieu de ce que les emprises
+    libres de ses deux cases en partagent, à 0,6 m de son plancher. Échelles : leur montant et leur arête, l'écoutille
+    ouverte jusqu'au plancher du pied. Sabords : le plancher et la case de chaque poste. Hune : son plancher et le pied
+    du grand mât, la case du mât. Mâts : le fût de chaque mât hors de l'emprise libre de chaque case qu'il traverse, au
+    milieu de la case de son pied."""
     D = runpy.run_path(str(ICI / 'vehicule' / 'caraque' / 'donnees.py'))
     x_de = lambda yp: (yp - P['H'] / 2) * METRES_PAR_CASE  # noqa: E731
     y_de = lambda xp: (xp - P['W'] / 2) * METRES_PAR_CASE  # noqa: E731
-    E = {f: [] for f in ('planchers', 'cloisons', 'ouvertes', 'echelles', 'sabords', 'hune')}
+    E = {f: [] for f in ('planchers', 'cloisons', 'ouvertes', 'echelles', 'sabords', 'hune', 'mats')}
 
     def sol(x, y, h):
         hauts = [h + 0.5 - d for d, n in touches((x, y, h + 0.5), (0, 0, -1), 1.0) if n.z > 0.5]
         return min((abs(z - h) for z in hauts), default=math.inf)
 
+    def emprise(cx, cy, z):
+        """L'emprise libre de la case (`cases` de la sortie), la case entière sinon : (x de, y de, x à, y à) en cases."""
+        return sortie['cases'].get(f'{cx},{cy},{z}', (cx, cy, cx + 1, cy + 1))
+
     for (cx, cy, z), g in sorted(P['cases'].items()):
-        E['planchers'].append((sol(x_de(cy + 0.5), y_de(cx + 0.5), P['hauteurs'][g]), ('case', cx, cy, z)))
+        x0, y0, x1, y1 = emprise(cx, cy, z)
+        E['planchers'].append((sol(x_de((y0 + y1) / 2), y_de((x0 + x1) / 2), P['hauteurs'][g]), ('case', cx, cy, z)))
 
     def matiere(milieu, n):
         """Écart entre l'arête de milieu `milieu` (normale horizontale `n`) et la matière qui la traverse, sondée des deux
@@ -119,12 +131,30 @@ def ecarts(P, sortie):
             return Vector((x_de(y + 0.5), y_de(x), zm)), Vector((0, 1, 0))
         return Vector((x_de(y), y_de(x + 0.5), zm)), Vector((1, 0, 0))
 
+    pieds = {trappe + (z,): plan_de_jeu.hauteur(P, z, *pied) for z, trappe, pied, _ in plan_de_jeu.echelles(P)}
+    for s, x, y, z, g in P['aretes']:
+        if g not in plan_de_jeu.MURS + plan_de_jeu.PORTE:
+            continue
+        places = plan_de_jeu.voisines(s, x, y)
+        sur = [p + (z,) for p in places if p + (z,) in P['cases']]
+        if not sur:
+            continue
+        h = min(pieds.get(c, P['hauteurs'][P['cases'][c]]) for c in sur)
+        if len(sur) == 1 and not any(k[:2] in places and k[2] != z and abs(P['hauteurs'][g2] - h) <= STEP_MAX_M
+                                     for k, g2 in P['cases'].items()):
+            continue
+        E['cloisons'].append((matiere(*arete(s, x, y, h + 1.0)), (s, x, y, z)))
+
     for z in range(P['ponts']):
-        for s, x, y, g in plan_de_jeu.murs(P, z):
-            h = min(plan_de_jeu.hauteur(P, z, *c) for c in plan_de_jeu.voisines(s, x, y))
-            E['cloisons'].append((matiere(*arete(s, x, y, h + 1.0)), (s, x, y, z)))
         for s, x, y in plan_de_jeu.ouvertes(P, z):
+            a, b = [emprise(*c, z) for c in plan_de_jeu.voisines(s, x, y)]
+            k = 1 if s == 't' else 0
             m, n = arete(s, x, y, plan_de_jeu.hauteur(P, z, *plan_de_jeu.voisines(s, x, y)[1]) + 0.6)
+            milieu = (max(a[k], b[k]) + min(a[k + 2], b[k + 2])) / 2
+            if s == 't':
+                m.x = x_de(milieu)
+            else:
+                m.y = y_de(milieu)
             E['ouvertes'].append((0.0 if not touches(m - n * 0.2, n, 0.4) else math.inf, (s, x, y, z)))
 
     EC, EH = D['ECOUTILLE'], D['ECHELLE']
@@ -150,11 +180,111 @@ def ecarts(P, sortie):
         E['sabords'].append((max(hors, abs(gy - plan_de_jeu.hauteur(P, z, cx, cy))), (bord, cx, cy, z)))
     E['sabords'].append((0.0 if all(rangs[b] == len(postes[b]) for b in postes) else math.inf, 'nombre'))
 
+    for nom, M in modele.mats(D, P, navire.Coque(D, P)).items():
+        fx, fy, fz = M['case']
+        for z in range(fz, P['ponts']):
+            if (fx, fy, z) not in P['cases'] or not M['emplanture'] <= plan_de_jeu.hauteur(P, z, fx, fy) < M['tete']:
+                continue
+            x0, y0, x1, y1 = sortie['cases'].get(f'{fx},{fy},{z}', (fx, fy, fx + 1, fy + 1))
+            cx, cy = fx + 0.5, fy + 0.5
+            d = math.hypot(max(x0 - cx, 0.0, cx - x1), max(y0 - cy, 0.0, cy - y1)) * METRES_PAR_CASE
+            E['mats'].append((max(0.0, M['rayons'][0] - d), (nom, fx, fy, z)))
+
     (mx, my, mz), = [k for k, g in P['cases'].items() if g == D['GLYPHES']['mat']]
     gx, gy, gz = sortie['ancrages']['nid-de-pie'][0]
     E['hune'].append((max(abs(gx - x_de(my + 0.5)), abs(-gz - y_de(mx + 0.5)),
                           abs(gy - D['HUNE'][0][0] - P['hauteurs'][D['GLYPHES']['hune']])), 'nid-de-pie'))
     return E
+
+
+PAS_DES_SONDES = 0.1   # en cases : le pas des sondes de plancher
+HAUTEURS_DES_RAYONS = (0.3, 0.6, 1.0, 1.4)   # au-dessus du plancher : des chevilles à l'épaule d'un occupant
+FRACTIONS = (0.1, 0.3, 0.5, 0.7, 0.9)        # le long de l'emprise libre d'une case
+AU_DELA = 0.1          # en cases : où l'on sonde le sol derrière une arête que le rayon passe
+
+
+def closes(D, P, sortie):
+    """Ce que la coque bâtie dans la scène laisse ouvert, par famille : {famille: [(écart, où)]}, l'écart nul ou infini.
+    Trous : chaque sonde (`navire.sonde`, au pas `PAS_DES_SONDES`) de chaque case, hors de la matière et enclose (ses
+    quatre rayons horizontaux touchent des faces tournées vers elle), touche un sol vers le bas avant d'être sous sa
+    hauteur, sauf dans l'écoutille d'une trappe, la moitié de sa case contre l'arête de son échelle. Étanchéité : depuis
+    le milieu de l'emprise libre de chaque case hors trappes (à la hauteur du pont du dessus, sous les murs du sien), en
+    `FRACTIONS` de cette emprise le long de chaque arête murée ou sabord (fermé sans l'Amélioration), à
+    `HAUTEURS_DES_RAYONS` au-dessus de son plancher, un rayon vers l'arête touche la coque ; s'il la passe, `AU_DELA`
+    derrière elle le sol ne tombe pas plus bas qu'une marche (`STEP_MAX_M`) sous ce plancher."""
+    C, E = navire.Coque(D, P), D['EMPRISE']
+    graphe = bpy.context.evaluated_depsgraph_get()
+    bas = Vector((0, 0, -1))
+
+    def sol(px, py, depuis):
+        """La hauteur du premier sol sous le point (px, py) du plan, depuis la hauteur `depuis` ; None sans sol."""
+        ok, lieu, _, _, _, _ = bpy.context.scene.ray_cast(graphe, Vector((C.x_du_plan(py), C.y_du_plan(px), depuis)), bas)
+        return lieu.z if ok else None
+
+    def enclose(px, py, h):
+        o = Vector((C.x_du_plan(py), C.y_du_plan(px), h + E['stature']))
+        return all(ok and n.dot(d) < 0 for d in (Vector((1, 0, 0)), Vector((-1, 0, 0)), Vector((0, 1, 0)), Vector((0, -1, 0)))
+                   for ok, _, n, _, _, _ in [bpy.context.scene.ray_cast(graphe, o, d)])
+
+    F = {f: [] for f in ('trous', 'etancheite')}
+    ecoutilles = {trappe + (z,): (s, x, y) for z, trappe, _, (s, x, y) in plan_de_jeu.echelles(P)}
+    n = round(1 / PAS_DES_SONDES)
+    for (cx, cy, z), g in sorted(P['cases'].items()):
+        h = P['hauteurs'][g]
+        trous = []
+        for i in range(n):
+            for j in range(n):
+                px, py = cx + (i + 0.5) / n, cy + (j + 0.5) / n
+                if (cx, cy, z) in ecoutilles:
+                    s, ax, ay = ecoutilles[(cx, cy, z)]
+                    if abs((px - ax) if s == 't' else (py - ay)) < 0.5:
+                        continue
+                if navire.sonde(C, E, px, py, h) is False and enclose(px, py, h):
+                    dessous = sol(px, py, h + E['stature'])
+                    if dessous is None or dessous < h - E['ecart']:
+                        trous.append((round(px, 2), round(py, 2)))
+        F['trous'].append((math.inf if trous else 0.0, ('case', cx, cy, z, len(trous), trous[:2])))
+
+    parois = {(s, x, y, z): g for s, x, y, z, g in P['aretes'] if g in plan_de_jeu.MURS + plan_de_jeu.SABORD}
+    for (cx, cy, z), g in sorted(P['cases'].items()):
+        if (cx, cy, z) in ecoutilles:
+            continue
+        h = P['hauteurs'][g]
+        x0, y0, x1, y1 = sortie['cases'].get(f'{cx},{cy},{z}', (cx, cy, cx + 1, cy + 1))
+        for s, ax, ay in (('t', cx, cy), ('t', cx + 1, cy), ('l', cx, cy), ('l', cx, cy + 1)):
+            if (s, ax, ay, z) not in parois:
+                continue
+            arete = ax if s == 't' else ay
+            milieu = (x0 + x1) / 2 if s == 't' else (y0 + y1) / 2
+            vers = 1 if arete > milieu else -1
+            loin = abs(arete - milieu)
+            for f in FRACTIONS:
+                for dh in HAUTEURS_DES_RAYONS:
+                    px, py = (milieu, y0 + f * (y1 - y0)) if s == 't' else (x0 + f * (x1 - x0), milieu)
+                    d = Vector((0, vers, 0)) if s == 't' else Vector((vers, 0, 0))
+                    t = touches(Vector((C.x_du_plan(py), C.y_du_plan(px), h + dh)), d, 80.0)
+                    if not t:
+                        ecart = math.inf
+                    elif t[0][0] <= (loin + AU_DELA) * C.case:
+                        ecart = 0.0
+                    else:
+                        qx, qy = (arete + vers * AU_DELA, py) if s == 't' else (px, arete + vers * AU_DELA)
+                        dessous = sol(qx, qy, h + dh)
+                        ecart = 0.0 if dessous is not None and dessous >= h - STEP_MAX_M else math.inf
+                    F['etancheite'].append((ecart, (s, ax, ay, z, 'depuis', cx, cy, round(f, 1), dh)))
+    return F
+
+
+def batir(fiche):
+    """Le navire de `fiche` bâti dans une scène neuve, sans le nœud `avec-sabord` (ses sabords bouchés) : ses données,
+    ses ponts et la sortie de son modèle."""
+    bpy.ops.wm.read_factory_settings(use_empty=True)
+    D = runpy.run_path(str(ICI / 'vehicule' / fiche['id'] / 'donnees.py'))
+    P = plan_de_jeu.depuis(fiche)
+    sortie = importlib.import_module(f'{fiche["id"]}.modele').construire(D, P)
+    for o in [o for o in bpy.data.objects if o.name.startswith('avec-sabord')]:
+        bpy.data.objects.remove(o)
+    return D, P, sortie
 
 
 def allongee(fiche, colonne, n):
@@ -169,14 +299,8 @@ class Ponts(unittest.TestCase):
     """La caraque bâtie sur ses ponts, puis sur ses ponts allongés de trois cases dans l'embelle : nul écart au-delà
     d'une épaisseur de cloison entre le modèle et la source."""
 
-    def batie(self, fiche):
-        bpy.ops.wm.read_factory_settings(use_empty=True)
-        D = runpy.run_path(str(ICI / 'vehicule' / 'caraque' / 'donnees.py'))
-        P = plan_de_jeu.depuis(fiche)
-        return P, modele.construire(D, P)
-
     def verifier(self, fiche):
-        P, sortie = self.batie(fiche)
+        _, P, sortie = batir(fiche)
         for famille, mesures in ecarts(P, sortie).items():
             with self.subTest(famille=famille):
                 self.assertTrue(mesures, f'{famille} : rien de mesuré')
@@ -196,7 +320,6 @@ class Ponts(unittest.TestCase):
         self.verifier(fiche)
 
 
-STEP_MAX_M = 1.0      # la plus haute marche franchie à pied (`src/noyau/monde/relief.ts`)
 CARRURE = 0.25        # la carrure d'un adulte, 0,5 m, en cases : le plus étroit où un pion se tient (#3767)
 BLOQUANTES = plan_de_jeu.MURS + plan_de_jeu.SABORD + 'o'
 
@@ -228,8 +351,9 @@ def atteintes(P, depart):
 
 
 class Navires(unittest.TestCase):
-    """Chaque navire à ponts (`ponts` de sa fiche) : toute case de ses ponts s'atteint, et l'emprise libre que son modèle
-    publié laisse à chaque case (`cases` de son manifeste) tient un occupant debout."""
+    """Chaque navire à ponts (`ponts` de sa fiche) : toute case de ses ponts s'atteint, l'emprise libre que son modèle
+    publié laisse à chaque case (`cases` de son manifeste) tient un occupant debout, et sa coque bâtie est close
+    (`closes`)."""
 
     def navires(self):
         sortie = [f for f in json.loads(plan_de_jeu.VEHICULES.read_text(encoding='utf-8')) if 'ponts' in f]
@@ -249,18 +373,12 @@ class Navires(unittest.TestCase):
                 emprises = json.loads(publie.read_text(encoding='utf-8')).get('cases', {})
                 self.assertEqual({k: e for k, e in emprises.items() if min(e[2] - e[0], e[3] - e[1]) < CARRURE}, {})
 
-
-class Sortie(unittest.TestCase):
-
-    def test_refuse_le_depot(self):
-        with self.assertRaises(ValueError):
-            construire.dossier_de_sortie(construire.habillage.DEPOT / 'hotes' / 'godot' / 'sortie-de-vehicule')
-
-    def test_refuse_un_dossier_occupe(self):
-        with tempfile.TemporaryDirectory() as dossier:
-            (Path(dossier) / 'autre.glb').write_bytes(b'')
-            with self.assertRaises(ValueError):
-                construire.dossier_de_sortie(dossier)
+    def test_la_coque_de_chaque_navire_est_close(self):
+        for fiche in self.navires():
+            for famille, mesures in closes(*batir(fiche)).items():
+                with self.subTest(navire=fiche['id'], famille=famille):
+                    self.assertTrue(mesures, f'{famille} : rien de mesuré')
+                    self.assertEqual([ou for e, ou in mesures if e > TOLERANCE], [], f'{famille} : ouvert')
 
 
 if __name__ == '__main__':

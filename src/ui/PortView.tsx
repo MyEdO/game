@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react';
-import { CAMPAIGN_VESSEL_CARRIER_ID, nomDuNavire } from '../noyau/carriers';
+import { nomDuNavire } from '../noyau/carriers';
+import { FORMULES_DES_MARCHES, achatDeLOffre } from '../noyau/cargaison';
 import { useGame } from '../state/store';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
 import { type PortProfile } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
-import { toMoney, priceToMoney } from '../engine/money';
+import { toMoney, priceToMoney, fromBrass, PA_PER_CO } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
 import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement } from '../noyau/portFlow';
@@ -117,9 +118,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const money = useMemo(() => partyMoneyTotal(useGame.getState), [party]);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('port');
-  const buy = useGame((s) => s.acheterLaCargaison);
-  const sell = useGame((s) => s.vendreLaCargaison);
-  const dump = useGame((s) => s.jeterLaCargaison);
+  const choisir = useGame((s) => s.fenetreChoisir);
   const repair = useGame((s) => s.reparerLeNavire);
   const careen = useGame((s) => s.carenerLeNavire);
   const install = useGame((s) => s.installerLAmelioration);
@@ -127,14 +126,18 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
   const dismiss = useGame((s) => s.renvoyerLEquipage);
   const pendingShoreLeave = useGame((s) => s.pendingShoreLeave);
   const refusHote = useGame(refusDeGesteSurLeGroupe);
-  const net = useGame((s) => s.net);
   const [tab, setTab] = useState<'coque' | 'cargaison' | 'escale'>(initialTab);
-  const [buyEnc, setBuyEnc] = useState<Record<string, number>>({});
 
   const vd = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   const upgrades = vessel ? ameliorationsAuChantier(vessel, money, refusHote) : [];
   if (!port || !vessel || !vd?.ship) return null;
-  const devisDe = (cargoId: string) => devisDAchatEnPort({ port, vessel, net, party }, CAMPAIGN_VESSEL_CARRIER_ID, cargoId, buyEnc[cargoId]);
+  const etat = useGame.getState();
+  const devisDe = (cargoId: string) => {
+    const achat = achatDeLOffre(etat, FORMULES_DES_MARCHES.port, cargoId);
+    return devisDAchatEnPort(etat, achat.porteur, achat.offre, achat.enc);
+  };
+  // L'achat de l'offre se compose avant d'être réglé ou conclu (`cargaison.ts`).
+  const composer = (cargoId: string) => { if (useGame.getState().port?.achat?.offre !== cargoId) choisir('port', 'offre', cargoId); };
   const chantier = devisDeChantier(vessel, money, refusHote);
   const cale = caleALEscale(vessel);
   const { max: woundsMax, current: woundsCur, missing, lissage, reparationGold: repairCost, carenagePct: careenPct, carenageGold: careenCost } = chantier;
@@ -240,7 +243,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   enc={(o) => o.enc}
                   encLabel="Dispo"
                   priceLabel="Prix/Enc"
-                  price={(o) => toMoney({ gold: o.basePrice })}
+                  price={(o) => fromBrass(o.basePrice * PA_PER_CO)}
                   disabled={(o) => {
                     const refus = devisDe(o.cargoId).refus;
                     return refus ? { reason: refus } : false;
@@ -251,8 +254,8 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                       <div className={`market-offer-buy ${devis.refus ? 'unaffordable' : ''}`}>
                         <NumberField
                           variant="nu" label={`Enc à embarquer — ${o.label}`}
-                          min={1} max={devis.max} value={devis.enc}
-                          onChange={(n) => setBuyEnc((s) => ({ ...s, [o.cargoId]: n }))}
+                          min={1} max={devis.max} value={devis.enc} disabled={!!refusHote}
+                          onChange={(n) => { composer(o.cargoId); choisir('port', 'enc', n); }}
                         />
                         <span className="market-offer-total">≈ <Coins money={toMoney({ gold: devis.estimationGold })} /></span>
                         <GatedAction
@@ -261,7 +264,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                           enabled={devis.refus === null}
                           {...raisonSi(devis.refus)}
                           descOfferte={devis.surcharge ? 'Embarquer en surcharge (pénalités d’assiette)' : 'Estimation avant Marchandage'}
-                          onClick={() => buy(CAMPAIGN_VESSEL_CARRIER_ID, o.cargoId, devis.enc)}
+                          onClick={() => { composer(o.cargoId); choisir('port', 'acheter', true); }}
                           primary={false}
                           btnClassName="small"
                         />
@@ -281,18 +284,18 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   label={(r) => cargoLabel(r.lot.cargoId)}
                   enc={(r) => r.lot.enc}
                   priceLabel="Prix base/Enc"
-                  price={(r) => toMoney({ gold: r.lot.basePriceGold })}
+                  price={(r) => fromBrass(r.lot.basePriceGold * PA_PER_CO)}
                   action={(r) => (
                     <div className="port-sell-actions">
                       <GatedAction
                         id={`port-sell-${r.i}`} label="Vendre" enabled={!refusHote} {...raisonSi(refusHote)}
                         descOfferte="Trouver un acheteur puis marchander"
-                        onClick={() => sell(r.lot.uid)} primary={false} btnClassName="small"
+                        onClick={() => choisir('port', 'vendre', r.lot.uid)} primary={false} btnClassName="small"
                       />
                       <GatedAction
-                        id={`port-dump-${r.i}`} label="Brader" enabled={refusDeBradageEnPort({ net, port }, r.lot.cargoId) == null} {...raisonSi(refusDeBradageEnPort({ net, port }, r.lot.cargoId))}
+                        id={`port-dump-${r.i}`} label="Brader" enabled={refusDeBradageEnPort(etat, r.lot.cargoId) == null} {...raisonSi(refusDeBradageEnPort(etat, r.lot.cargoId))}
                         descOfferte="Brader à ¼ du prix de base"
-                        onClick={() => dump(r.lot.uid)} primary={false} btnClassName="small ghost"
+                        onClick={() => choisir('port', 'jeter', r.lot.uid)} primary={false} btnClassName="small ghost"
                       />
                     </div>
                   )}

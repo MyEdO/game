@@ -14,7 +14,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDeLaBourseDuGroupe,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
@@ -57,6 +57,7 @@ import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } 
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
 import { mouvementDeLaBourseDuGroupe, condCtx, partyMoneyTotal } from './bourseFlow';
+import { alterLeMarche } from './portFlow';
 import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './monde/scene';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
@@ -337,7 +338,7 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
-    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
+    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvest-creature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
     pieces(0),
     parDegre(0),
   ), titre));
@@ -387,11 +388,13 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
  *  MAINTENANT contre la cible, OU `afterDuration:true` = l'échéance du contexte (fin de la durée du
  *  consommable — Bonnet de fou « Quand l'effet se dissipe… », LDB 71 l.20). `forMinutes/Hours/Days` :
  *  durée d'horloge PROPRE des ops différées (bakée sur la feuille programmée — Délice de Ranald :
- *  pénalité après les 3 h, LDB 71 l.24). Le Flow programmé cible le porteur par id (`on:'hero'`). */
+ *  pénalité après les 3 h, LDB 71 l.24). Le Flow programmé vise `cible`, par défaut le porteur par id
+ *  (`on:'hero'`) ; la cible `navire` le garde (`appliquerAuNavire`). MDG 15 l.258 */
 export function scheduleDelayedOps(
   get: Get, set: SetFn, target: Combatant,
   op: Extract<import('../engine/ops').GameOp, { op: 'delayed' }>,
   base: { now: number; untilTime?: number; label?: string },
+  cible: Pick<EffectOp, 'on' | 'heroId'> = { on: 'hero', heroId: target.id },
 ): void {
   const rng = battleRng();
   const delayMin = op.afterDuration
@@ -406,7 +409,7 @@ export function scheduleDelayedOps(
   const flow: Flow = {
     kind: 'do',
     effect: {
-      type: 'ops', on: 'hero', heroId: target.id, ops: op.ops,
+      type: 'ops', ...cible, ops: op.ops,
       ...(base.label ? { label: base.label } : {}),
       ...(forMin > 0 ? { untilTime: executeAt + forMin } : {}),
     },
@@ -813,18 +816,27 @@ export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDe
   return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (genreDeCible(on) ?? 'party'));
 }
 
-/** Résout les ops de la BOURSE DU GROUPE de la feuille `e`, une fois chacune, montant résolu sur le référent de
- *  scène (`referentDeScene`) ; rend la feuille sans elles, ou `null` s'il n'y reste rien. MDG 15 l.245-247 */
-function bougerLaBourseDuGroupe(env: EffectEnv, e: EffectOp, rng: RNG): EffectOp | null {
-  const bourse = e.ops.filter(estOpDeLaBourseDuGroupe);
-  if (!bourse.length) return e;
-  for (const o of meneurDuMonde(env.get()) ? bourse : []) {
+/** Op du MONDE : de la bourse du groupe ou du marché d'un port, sans cible de scène. */
+const estOpDuMonde = (o: GameOp): boolean => estOpDeLaBourseDuGroupe(o) || estOpDuMarche(o);
+
+/** Résout les ops du MONDE de la feuille `e` — la BOURSE DU GROUPE et le MARCHÉ D'UN PORT —, une fois chacune,
+ *  quantités résolues sur le référent de scène (`referentDeScene`) ; rend la feuille sans elles, ou `null` s'il
+ *  n'y reste rien. MDG 15 l.245-247, l.253, l.256, l.259, l.263 */
+function resoudreLesOpsDuMonde(env: EffectEnv, e: EffectOp, rng: RNG): EffectOp | null {
+  if (!e.ops.some(estOpDuMonde)) return e;
+  for (const o of meneurDuMonde(env.get()) ? e.ops.filter(estOpDuMonde) : []) {
+    if (estOpDuMarche(o)) {
+      const ref = referentDeScene(env.get, env.set);
+      alterLeMarche(env.get, env.set, o, nomDeSource({ label: e.label ?? env.label }), (f) => Math.max(0, Math.round(resolveFormula(f, ref, rng))), rng).forEach((l) => env.log(l));
+      continue;
+    }
+    if (!estOpDeLaBourseDuGroupe(o)) continue;
     const avant = toBrass(partyMoneyTotal(env.get));
     mouvementDeLaBourseDuGroupe(env.get, env.set, Math.round(resolveFormula(o.montant.brass, referentDeScene(env.get, env.set), rng)));
     const delta = toBrass(partyMoneyTotal(env.get)) - avant;
     if (delta) env.log(t('eff.bourseDuGroupe', { sens: delta > 0 ? '+' : '−', montant: formatMoney(fromBrass(Math.abs(delta))) }));
   }
-  const reste = e.ops.filter((o) => !estOpDeLaBourseDuGroupe(o));
+  const reste = e.ops.filter((o) => !estOpDuMonde(o));
   return reste.length ? { ...e, ops: reste } : null;
 }
 
@@ -1659,7 +1671,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const horsNavire = messageOpDuNavireHorsNavire(feuilleAuthoree);
       if (horsNavire) throw new Error(horsNavire);
       const base = { rng: battleRng(), sl: env.sl };
-      const e = bougerLaBourseDuGroupe(env, feuilleAuthoree, base.rng);
+      const e = resoudreLesOpsDuMonde(env, feuilleAuthoree, base.rng);
       if (!e) return;
       if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
       if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
@@ -2294,7 +2306,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
           label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
         })),
       },
-      stake: combatStakeRef('waterExposure'),
+      stake: combatStakeRef('water-exposure'),
     });
     return step ? [step] : [];
   });
@@ -2366,14 +2378,12 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
   if (!npc) { get().ecrireAuJournal(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
   if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medicNoHealSkill', { name: npc.label })); return; }
-  ouvrirLeMedecin(get, set, {
-    npc: {
-      id: e.entityId,
-      label: npc.label,
-      skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
-      intBonus: bonus(effectiveChar(npc, 'intelligence')),
-      acts,
-    },
+  ouvrirLeMedecin(get, set, undefined, {
+    id: e.entityId,
+    label: npc.label,
+    skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
+    intBonus: bonus(effectiveChar(npc, 'intelligence')),
+    acts,
   });
 }
 

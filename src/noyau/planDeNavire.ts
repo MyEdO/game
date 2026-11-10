@@ -1,22 +1,24 @@
 /**
- * Les ponts d'un navire posés dans une scène (#3686) : le navire est l'entité `personnage` dont la `ref` est un
+ * Les ponts d'un navire posés dans une scène (#3686) : le navire est l'entité `personnage` dont le `vehicule` est un
  * véhicule à plan des ponts (`PLANS_DE_NAVIRE`), le combattant qu'il est en mer. Dans une scène à l'échelle de son
  * plan (`sceneMetresPerTile`), les ponts de son TYPE et ce qu'y ajoutent ses Améliorations (`pontsDuNavire`),
  * compilés par `buildScene`, se recopient centrés sur son empreinte de combattant (`footprintN`, coin nord-ouest à sa
  * `pos`), à son cap (`facing`, cardinal) et à son étage (`z`). Un pont devient l'étage `z + rang`, à ses hauteurs ;
  * ses cloisons, portes, échelles et décors tournent avec lui ; ses pièces et ses décors prennent l'id du navire en
  * préfixe. Le plan d'un type a sa proue à `x = 0`, tribord à `y = 0` : au cap `O`, il se pose tel quel. Les ponts
- * se dérivent au chargement d'une scène en jeu (`poserLesNavires`, `registerScene`) ; ce qu'ils posent garde le
+ * se dérivent au chargement d'une scène en jeu (`poserLesNavires`, `registerScene`) et dans la vue de l'éditeur
+ * (`vueDeLaScene`), qui les pose (`poserUnNavire`) ; ce qu'ils posent garde le
  * navire d'où il vient (`provenanceDesNavires`), que l'hôte montre par le modèle 3D de son type posé au centre de
  * ses ponts (`naviresDeLaScene`), le repère du plan étant celui du modèle (`pontsDeLaFiche.ts`) ; l'occupant d'une
  * case que ce modèle rogne s'y tient au centre de son emprise libre (`stationsDuNavire`, #3767).
  */
 import type { NavalTraitRef } from '../engine/types';
 import { findNavalTrait, findVehicleById } from '../data';
+import { nextEntityId } from '../lib/entityId';
 import { vehicleCombatant } from '../engine/vehicle';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP } from '../data/props.types';
-import { estCardinal, rotateDir8, type Dir4 } from '../geometry/dir8';
+import { DIR4_ORDER, estCardinal, rotateDir8, type Dir4 } from '../geometry/dir8';
 import { garanti } from '../lib/garanti';
 import type { Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';
 import { edgeOf, heightAt, porteAuteur, sceneMetresPerTile, tileAt } from './monde/scene';
@@ -26,7 +28,8 @@ import { footprintN, propFootTiles } from './monde/footprint';
 import { estAbsent } from './monde/terrain';
 import { vehiculeDuCombattant, type VehiculeDuCombattant } from './apparence/combattant';
 import { ficheDEntite } from './monde/sceneNpc';
-import { addLayer, paintHeight, paintTiles, patchWall, setEdgeWall } from './sceneEdit';
+import { memoByRef } from './monde/sceneMemo';
+import { addEntity, addLayer, paintHeight, paintTiles, patchWall, setEdgeWall } from './sceneEdit';
 import { buildScene, type MapSpec } from './mapSpec';
 import { AMELIORATIONS_DE_LA_CARAQUE, PLAN_DE_LA_CARAQUE } from './planDeLaCaraque';
 import { PLAN_DE_LA_BARGE } from './planDeLaBarge';
@@ -47,10 +50,23 @@ export const PLANS_DE_NAVIRE: readonly PlanDeNavire[] = [
   { ponts: PLAN_DE_LA_BARGE, ameliorations: {} },
 ];
 
+/** Le plan des ponts du type de navire `ref`, `undefined` s'il n'en a pas. */
+const planDe = (ref: string | undefined): PlanDeNavire | undefined => PLANS_DE_NAVIRE.find((p) => p.ponts.id === ref);
+
+/** Les types de navire qui se posent par leurs ponts, chacun l'id de son véhicule et son nom. */
+export const TYPES_DE_NAVIRE: readonly { id: string; label: string }[] = PLANS_DE_NAVIRE.map(({ ponts }) => ({ id: ponts.id, label: ponts.label }));
+
+/** Les caps où un navire se pose par ses ponts : les cardinaux (`poseDe`). */
+export const CAPS_DES_PONTS: readonly Dir4[] = DIR4_ORDER;
+
+/** `scene` est-elle à l'échelle du plan des ponts du type de navire `ref` ? Ses ponts ne s'y posent qu'alors. */
+export const aLEchelleDesPonts = (scene: Scene, ref: string): boolean =>
+  sceneMetresPerTile(garanti(planDe(ref), ref, 'plan de navire').ponts) === sceneMetresPerTile(scene);
+
 /** Les ponts du type `ref` avec ce qu'y ajoutent les Améliorations `upgrades` ; une Amélioration qui ne change
  *  rien à bord (Bélier, Lissage…) n'y ajoute rien. */
 export function pontsDuNavire(ref: string, upgrades: readonly NavalTraitRef[]): MapSpec {
-  const plan = garanti(PLANS_DE_NAVIRE.find((p) => p.ponts.id === ref), ref, 'plan de navire');
+  const plan = garanti(planDe(ref), ref, 'plan de navire');
   return upgrades.reduce<MapSpec>((ponts, { id }) => {
     garanti(findNavalTrait(id), id, 'Amélioration de navire');
     const apport = plan.ameliorations[id];
@@ -98,14 +114,15 @@ interface PoseDeNavire {
   z: number;
 }
 
-/** La pose des ponts du navire `ent` dans `scene`, `null` si `ent` n'est pas un navire à plan des ponts ou si la scène
- *  n'est pas à l'échelle de son plan. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
+/** La pose des ponts du navire `ent` dans `scene`, `null` si `ent` n'est pas un navire à plan des ponts, si la scène
+ *  n'est pas à l'échelle de son plan, ou s'il n'est pas à un cap cardinal, faute que le schéma de scène nomme
+ *  (`refusDeLEntite`) : ses ponts ne se posent pas. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
  *  l'entier, au plus près quand leurs côtés n'ont pas la parité de l'empreinte. */
 function poseDe(scene: Scene, ent: SceneEntity): PoseDeNavire | null {
-  const plan = ent.kind === 'personnage' && ent.ref !== undefined ? PLANS_DE_NAVIRE.find((p) => p.ponts.id === ent.ref) : undefined;
-  if (!plan || sceneMetresPerTile(plan.ponts) !== sceneMetresPerTile(scene)) return null;
+  const plan = planDe(ent.vehicule?.id);
+  if (!plan || !aLEchelleDesPonts(scene, plan.ponts.id)) return null;
   const cap = ent.facing ?? 'N';
-  if (!estCardinal(cap)) throw new Error(`navire « ${ent.id} » : ses ponts se posent à un cap cardinal (N, E, S, O), pas « ${cap} »`);
+  if (!estCardinal(cap)) return null;
   const ref = plan.ponts.id;
   const n = footprintN(garanti(vehicleCombatant(garanti(findVehicleById(ref), ref, 'véhicule')), ref, 'coque de navire'));
   const [w, h] = plan.ponts.size;
@@ -194,7 +211,7 @@ function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
   // Un décor garde son emprise : son ancre est le coin nord-ouest de ses cases tournées ; son calage tourne avec le
   // pont (le coffre reste contre la même cloison) et son appui prend le préfixe de la pose.
   const decors: SceneEntity[] = (navire.entities ?? []).map((e) => {
-    const cases = propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => vers(c.x, c.y));
+    const cases = propFootTiles(e.decor?.id, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => vers(c.x, c.y));
     return {
       ...e,
       id: `${pose.id}-${e.id}`,
@@ -215,9 +232,19 @@ function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
 }
 
 /** `scene` avec les ponts de chacun de ses navires posés (`poserLeNavire`) : la dérivation qu'une scène subit à son
- *  chargement en jeu ; la dériver de nouveau rend la même scène. */
-export function poserLesNavires(scene: Scene): Scene {
-  return posesDe(scene).reduce((s, pose) => poserLeNavire(s, pontsCompiles(pose), pose), scene);
+ *  chargement en jeu, et la vue que l'éditeur en montre ; la dériver de nouveau rend la même scène. Mémoïsée par
+ *  l'identité de `scene` (`memoByRef`). */
+export const poserLesNavires = memoByRef((scene: Scene): Scene =>
+  posesDe(scene).reduce((s, pose) => poserLeNavire(s, pontsCompiles(pose), pose), scene));
+
+/** `scene` où un navire du type `ref` se pose : l'entité de son véhicule, nommée de son type, à la case `p` de la couche
+ *  `z`, au cap `cap`, et son id ; `null` si `scene` n'est pas à l'échelle de son plan (`aLEchelleDesPonts`), où ses
+ *  ponts ne se poseraient pas. */
+export function poserUnNavire(scene: Scene, ref: string, p: Pt, z: number, cap: Dir4): { scene: Scene; id: string } | null {
+  if (!aLEchelleDesPonts(scene, ref)) return null;
+  const id = nextEntityId('navire', scene.entities.map((e) => e.id));
+  const { label } = garanti(planDe(ref), ref, 'plan de navire').ponts;
+  return { scene: addEntity(scene, { id, kind: 'personnage', vehicule: { id: ref }, pos: { x: p.x, y: p.y }, facing: cap, label }, z), id };
 }
 
 /** Ce que les ponts des navires de `scene` y posent, par l'id de leur entité : leurs cases (clés `x,y,z`) et leurs arêtes

@@ -58,7 +58,7 @@ export interface CommandesEditeur {
    * mutable. Le contrat state-clean vise la DONNÉE D'ÉTAT (aucun `Scene`, aucun `ReactNode`, rien
    * qu'on puisse muter à distance), pas le diagnostic.
    */
-  listerEntites: () => { id: string; kind: string; ref?: string; pos: { x: number; y: number; z?: number } }[];
+  listerEntites: () => { id: string; kind: string; corps?: string; pos: { x: number; y: number; z?: number } }[];
   /**
    * LECTURE du brouillon de carte du monde — OBSERVATION de recette (#2306) : `null` si le projet
    * ouvert n'en porte aucune. Même contrat qu'`listerEntites` : une COPIE détachée des champs

@@ -918,7 +918,7 @@ function ChipDeRefusDemo() {
         fixe
         refus={{
           message: 'Ouverture refusée : projet d’un autre format, ou mal formé.',
-          detail: 'Projet d’un autre format, ou mal formé — 1 faute\n  - scenes « s1 » › entities « p0 » › ref: « ref » absente',
+          detail: 'Projet d’un autre format, ou mal formé — 1 faute\n  - scenes « s1 » › entities « p0 » › decor: « decor » absent',
         }}
       />
       <textarea aria-label="Motif de l'écart" aria-invalid aria-describedby="galerie-refus-motif" rows={2} />

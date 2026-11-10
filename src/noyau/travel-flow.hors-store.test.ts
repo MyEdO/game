@@ -92,7 +92,7 @@ describe('cascade du JOUR terrestre — les jets d’Étape sont influençables 
  *  attend sa fenêtre : le pilote partagé (`cascade.testkit › avanceEtapeCascade`) la LANCE puis valide,
  *  exactement comme le joueur qui voit la rangée et clique. */
 function passerLaMeteo(): void {
-  if (get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind !== 'stageWeather') return;
+  if (get().pendingCascade?.participants[get().pendingCascade!.cursor]?.kind !== 'stage-weather') return;
   avanceEtapeCascade(get);
 }
 
@@ -100,7 +100,7 @@ function passerLaMeteo(): void {
     seedBattleRng(1);
     setup(map({ km: 12, perilDie: 0 }), [hero({ travelRole: { activityId: 'approvisionnement' }, items: [] })]);
     get().partirEnVoyage('r1', 'pied');
-    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stageWeather')!;
+    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stage-weather')!;
     expect(meteo, 'la Météo est une étape à TABLE de monde').toBeTruthy();
     expect(meteo.worldOwner).toBe(true);
     // La SAISON choisit la TABLE — jamais un `mod` : un décalage saisonnier rendrait des lignes
@@ -111,7 +111,7 @@ function passerLaMeteo(): void {
   });
 
   it('la rangée APPLIQUÉE est celle que la ligne AFFICHÉE annonce — 100 jets × 4 saisons (#1463 L4)', () => {
-    // UN jet, DEUX lectures : l'applier `stageWeather` prend l'id de la rangée trouvée dans les `rows`
+    // UN jet, DEUX lectures : l'applier `stage-weather` prend l'id de la rangée trouvée dans les `rows`
     // de la table enregistrée (`step.table.result`), la ligne montrée passe par `weatherFromRoll` (les
     // bornes authorées de `weather.json`). Tant que la borne basse des `rows` était reconstruite par
     // POSITION, éditer un `min` au Codex les faisait diverger sans un mot.

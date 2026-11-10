@@ -101,7 +101,7 @@ describe('Taverne — une situation = une modale', () => {
   it('pendant la manche, seule la modale de jet est à l’écran : la table cède', () => {
     releverLeDefi();
     const [soldat] = g().party;
-    act(() => { g().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: soldat.id, opponent: { kind: 'npc', id: PNJ } }); });
+    act(() => { g().jouerALaTaverne(soldat.id, { gameId: 'bras-de-fer', opponent: { kind: 'npc', id: PNJ } }); });
     expect(pickActiveModalKey(g()), 'l’arbitre tient la manche').toBe('cascade');
     monterRacine(<><ActiveModal /><TavernGameModal /></>);
     expect(document.querySelectorAll('.modal-overlay')).toHaveLength(1);

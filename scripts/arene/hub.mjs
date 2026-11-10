@@ -491,7 +491,7 @@ export function makeHub() {
     effectZones: HUB_ROOMS,
     entities: [
       hero(24, 24),
-      { id: 'orn-echoppe-etal', kind: 'prop', pos: { x: 41, y: 26 }, facing: 'N', ref: 'etal-marche' },
+      { id: 'orn-echoppe-etal', kind: 'prop', pos: { x: 41, y: 26 }, facing: 'N', decor: { id: 'etal-marche' } },
       // ── Place centrale ──────────────────────────────────────────────────────────────────────
       NPC('maitre', 25, 20, 'Maître d’arène', {
         facing: 'S',
@@ -520,7 +520,7 @@ export function makeHub() {
       NPC('medecin', 26, 15, 'Médecin', {
         facing: 'S',
         // Sa FICHE (bestiaire) porte sa Guérison et son Int : l'effet `medicalAid` ne recopie rien.
-        ref: 'stefan-hochen',
+        creature: { id: 'stefan-hochen' },
         dialogueId: { id: 'dlg-medecin' },
         merchant: { archetype: { id: 'medecin' } },
         appearance: { species: 'humains-reiklander', tenue: 'apothicaire', sex: 'M' },
@@ -559,7 +559,7 @@ export function makeHub() {
       // ── Intérieur : CHAPELLE de Sigmar (empreinte x34..46 y3..13, nef de marbre) ──────────────
       NPC('frere', 40, 5, 'Frère Anselm', {
         facing: 'S',
-        ref: 'stefan-hochen', // Guérison des soins payants (dlg-frere)
+        creature: { id: 'stefan-hochen' }, // Guérison des soins payants (dlg-frere)
         dialogueId: { id: 'dlg-frere' },
         appearance: { species: 'humains-reiklander', tenue: 'pretre', sex: 'M' },
       }),

@@ -26,7 +26,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // fraîcheur se MESURE sur la dep elle-même — pas seulement sur l'identité rendue par l'accesseur.
     // L'édition porte donc sur ce qui CUIT (la recette) : un libellé seul ne recuit rien, par dessein.
     const scene = emptyScene('scene-test', 6, 6);
-    scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
+    scene.entities = [{ id: 'p1', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
     const mpt = sceneMetresPerTile(scene);
     const depsAvant = worldBakeDeps(scene, mpt);
     const avant = findPropById('tonneau')!;
@@ -48,7 +48,7 @@ describe('#1692 — une édition au seam est SERVIE aux lecteurs', () => {
     // édition ne les fait pas toutes changer. Ici l'édition ne touche QUE le libellé — la recette
     // (`volume`) garde son identité —, et le read-set doit être identique élément par élément.
     const scene = emptyScene('scene-test', 6, 6);
-    scene.entities = [{ id: 'p1', kind: 'prop', ref: 'tonneau', pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
+    scene.entities = [{ id: 'p1', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 2, y: 2 } } as (typeof scene.entities)[number]];
     const mpt = sceneMetresPerTile(scene);
     const depsAvant = worldBakeDeps(scene, mpt);
 

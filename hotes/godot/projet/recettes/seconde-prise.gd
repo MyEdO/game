@@ -130,13 +130,15 @@ func _verifier_le_clip(cas: String, montes: Dictionary, attendus: Dictionary) ->
 	montage.base = {points = [MAIN, OFF, {id = "dos", genre = "emplacement", attache = MAIN.attache, elements = ["hache", "epee"]}],
 		clips = CLIPS, clipsDeuxMains = CLIPS_DEUX_MAINS, prisesOccupees = {Coffre = ["off"], Lanterne = ["main"]}}
 	montage.squelette = squelette
+	montage.modele = Node3D.new()
+	montage.add_child(montage.modele)
 	montage.lecteur = lecteur
 	montage.montes = montes
 	var tenu := Node3D.new()
 	var range_ := Node3D.new()
 	montage.add_child(tenu)
 	montage.add_child(range_)
-	montage._tenus_ranges = {main = {tenus = [tenu], ranges = [range_], emplacement = "dos"}}
+	montage._tenus_ranges = {main = {tenus = [tenu], ranges = [range_], rangement = "dos#main"}}
 	montage.poser_la_seconde_prise()
 	var juste := true
 	for clip: String in attendus:

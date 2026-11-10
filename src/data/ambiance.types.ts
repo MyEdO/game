@@ -54,6 +54,8 @@ export interface WeatherFxDef {
   density?: number;
   precip?: WeatherPrecipDef;
   brume?: WeatherBrumeDef;
+  /** Joué en boucle tant que la scène porte cette météo (#3834). */
+  son?: { id: string };
 }
 export type WeatherFxId = 'pluie' | 'brouillard' | 'neige' | 'tempete';
 

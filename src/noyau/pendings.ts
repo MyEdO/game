@@ -635,9 +635,9 @@ export interface ShipManeuverParticipant extends RollParticipant {
   navigation: RefDesignee;
   /** Sens NARRATIVEMENT sollicité par CE Test précis (ex. Vigie du phare, MDG 13 l.337 — visuel), posé
    *  À LA CONSTRUCTION de l'étape par l'appelant qui connaît le contexte (`buildVoyageCrewStep`, kind
-   *  `'phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via
+   *  `'crew-phare'`, `seaVoyageFlow.ts`). Restreint les `skillMod` sense-scopés (Surdité, LDB 18) via
    *  `crewRoleValue`/`testValue`. Absent pour les Tests d'équipage sans sens narratif dédié
-   *  (manœuvre, bordée…) = comportement historique. */
+   *  (manœuvre, bordée…). */
   sense?: PairedSense;
   result: CrewRoleRoll | null;
   /** Refus NOMMÉ du contributeur qui ne peut pas tenter son rôle (`crewRoleValue().refus`, LDB 09 l.30) :
@@ -1746,7 +1746,7 @@ export interface CascadeStepMeta {
   onSuccess?: Flow;
   /** Branche d'échec d'une étape `triggeredTest`. */
   onFail?: Flow;
-  /** Ops d'échec d'un Test de cycle de maladie (`diseaseTick`, `engine/disease.ts`), appliquées à plat
+  /** Ops d'échec d'un Test de cycle de maladie (`disease-tick`, `engine/disease.ts`), appliquées à plat
    *  par `applyOps` (`noyau/restFlow.ts`). */
   opsEchec?: GameOp[];
   /** Branche OUI d'une étape `triggeredChoice` (décision opt-in acceptée — Frappe réactive « tenter »). */

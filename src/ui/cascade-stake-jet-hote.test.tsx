@@ -99,7 +99,7 @@ describe('enjeu d’un jet HÔTÉ — annoncé à la phase de DÉCISION (#1262 V
   });
 
   it('même zone pour un enjeu de CATALOGUE (le relais ne connaît pas la provenance)', () => {
-    const v = ouvrir(combatStakeRef('climbTest', { values: { metres: 4 } }));
+    const v = ouvrir(combatStakeRef('climb-test', { values: { metres: 4 } }));
     expect(ecran(v)).toContain('4 m de chute');
   });
 

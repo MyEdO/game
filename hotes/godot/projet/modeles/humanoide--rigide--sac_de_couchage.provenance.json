@@ -1,0 +1,21 @@
+{
+  "model": "humanoide--rigide--sac_de_couchage.glb",
+  "model_sha256": "914c52d2ded6eec3f5e9c02f50c63d1f7ecf9a236bb004f838a43329ddfdeb81",
+  "importe_le": "2026-11-09",
+  "licences": {},
+  "licences_de_pack": [
+    {
+      "fichier": "LICENSE-CC0-1.0-0f4beaf0fe360a77.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-6d01f55c6e4c49a2.txt",
+      "licence": "CC0 1.0 Universal (CC0 1.0)"
+    },
+    {
+      "fichier": "LICENSE-CC0-1.0-f6089cba01cb570a.txt",
+      "licence": "Creative Commons CC0 1.0 Universal"
+    }
+  ],
+  "packs_sources": []
+}

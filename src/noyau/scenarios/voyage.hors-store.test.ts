@@ -37,7 +37,7 @@ describe('16-voyage — Scenes produites par buildScene', () => {
 
   it('cité : cercle runique + trigger d’interlude (rect 5,3,3×3)', () => {
     const c = byId('test-voyage-cite');
-    expect(c.entities.find((e) => e.id === 'cercle')?.ref).toBe('cercle-runique');
+    expect(c.entities.find((e) => e.id === 'cercle')?.decor?.id).toBe('cercle-runique');
     const interlude = c.triggers.find((t) => t.id === 'interlude')!;
     expect(interlude.rect).toEqual({ x: 5, y: 3, w: 3, h: 3 });
   });
@@ -47,7 +47,7 @@ describe('16-voyage — Scenes produites par buildScene', () => {
     const enc = e.encounters.find((x) => x.id === 'enc-vembuscade')!;
     expect(enc.surprise).toBe('party');
     expect(enc.members).toEqual([{ entityId: 'enemy-enc-vembuscade-0' }, { entityId: 'enemy-enc-vembuscade-1' }]);
-    const gobs = e.entities.filter((x) => x.ref === 'gobelin');
+    const gobs = e.entities.filter((x) => x.creature?.id === 'gobelin');
     expect(gobs).toHaveLength(2);
     expect(gobs.every((g) => g.combat?.hiddenUntilCombat === true)).toBe(true);
     expect(gobs.map((g) => g.pos)).toEqual([{ x: 9, y: 3 }, { x: 10, y: 5 }]);

@@ -1,0 +1,49 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "robe"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "tenue",
+  "couvre": [
+    "torse",
+    "hanches",
+    "bras_haut_g",
+    "bras_haut_d",
+    "cuisse_g",
+    "cuisse_d",
+    "genou_g",
+    "genou_d"
+  ],
+  "chaines": [
+    "jupe"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "robe",
+      "palette": "vet1"
+    },
+    {
+      "nom": "dessous",
+      "palette": "vet2"
+    },
+    {
+      "nom": "poitrine",
+      "palette": "peau"
+    }
+  ],
+  "glb": {
+    "sha256": "fe9be3fee1610ddf1bc812e4faab504caa6af61f1722f5e6a1ead51c4bbf134d",
+    "octets": 660608
+  }
+}

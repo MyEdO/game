@@ -1,7 +1,8 @@
 /**
  * L'ÉDITEUR DE CARTE À L'ÉCRAN D'UN HÔTE (#3508) : ses zones et leurs éléments (`elements.ts`), lus de la session
  * d'édition du noyau (`SessionDEdition`). Les outils, les options de l'outil actif (pinceau, terrains, hauteurs, sorte
- * et structure d'une arête, étage rejoint et plan d'une volée, engin d'un emplacement de siège), les couches de la scène, l'historique, la presse,
+ * et structure d'une arête, étage rejoint et plan d'une volée, engin d'un emplacement de siège, type et cap d'un navire), les couches
+ * de la vue de la scène, ponts de ses navires compris, l'historique, la presse,
  * l'enregistrement au dépôt, la case pointée et la sélection, l'inspecteur de l'entité, de l'entrée, de la zone ou de l'arête sélectionnée et le
  * calque de référence de la couche ; chaque geste porte le geste d'édition qu'il joue (`{ edition }`), prêt à envoyer. Ce que le
  * pointeur trace sur la carte en cours de geste, le tracé de la volée, l'arête sélectionnée, les zones de la couche et la poignée de la
@@ -11,8 +12,8 @@
  */
 import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
-  capDeLEntite, capsOfferts, entiteDeLaSelection, entiteDuSchema, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
-  assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
+  capDeLEntite, capsOfferts, entiteDeLaSelection, ficheEditee, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
+  assoirALaPlace, idDuCorps, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
@@ -23,7 +24,8 @@ import {
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
   findCareerById, levelsForCareer, libelleDeLaValeur, parcoursDe, parcoursRetouche, parseRefKey, prisParLesAutres, refKey, refLabel, skillSlots, sousEmplacement, talentsDuParcours,
   trappingRefLabel, valeursDeLEmplacement, type EmplacementDeDotation, type ParcoursDeCarriere,
-  findSpellById, listesDeSorts, refusDesSortsChoisis, sceneNpc, sortsImprimes, spells,
+  findSpellById, listesDeSorts, sortsImprimes,
+  aLEchelleDesPonts, CAPS_DES_PONTS, TYPES_DE_NAVIRE, vueDeLaScene,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
 import { coupeAuMot } from '../lib/coupeAuMot.mjs';
@@ -51,10 +53,11 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * `src/noyau/sceneEdit.ts` : la case, le calage dans le jeu libre de son empreinte, aimanté au centre et aux bords, et
  * le décor dont le dessus porte le point) ; un décor glissé se pose de même au point, au relâché aussi, et emporte ce
  * qui est posé sur lui ; la sélection et la gomme désignent, parmi les entités de la case, celle dont l'ancre est la
- * plus proche du point), soit l'issue de l'écriture d'un enregistrement en cours, `{ geste: 'enregistrement',
- * reussi }`, soit celle du chargement d'une planche en cours, `{ geste: 'chargement', image }`, `image` nulle si
- * l'auteur renonce ou `{ largeur, hauteur }` en pixels entiers positifs, soit le geste `{ edition }` que porte un
- * bouton des zones de l'éditeur, égal en profondeur.
+ * plus proche du point ; sans entité, la sélection désigne le navire dont les ponts posent la case sur la couche
+ * éditée (`provenanceDesNavires`), sans glissé ; l'outil navire pose son navire sur la case), soit l'issue de
+ * l'écriture d'un enregistrement en cours, `{ geste: 'enregistrement', reussi }`, soit celle du chargement d'une
+ * planche en cours, `{ geste: 'chargement', image }`, `image` nulle si l'auteur renonce ou `{ largeur, hauteur }` en
+ * pixels entiers positifs, soit le geste `{ edition }` que porte un bouton des zones de l'éditeur, égal en profondeur.
  *
  * Le formulaire de l'inspecteur qui nomme l'entité, l'entrée, le déclencheur, la zone d'effet ou le corps sélectionné,
  * ou la scène sans sélection, se joue `{ type: 'nommer', args }` (`gesteDuFormulaire`, `src/hote/editeur.ts`), en `{
@@ -87,7 +90,8 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * champ que son porteur offre (`FORMULAIRES`, `cheminOffert`), le rang d'un élément d'une liste présente, une clé
  * déclarée d'un objet présent ou de la variante courante d'une union, jamais son discriminant, que tient le choix de la
  * variante, ni une clé `id` qui n'est pas une référence de catalogue ; et une valeur de la sorte du champ, l'une de ses
- * valeurs pour un choix (`choixDuNoeud`), la valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
+ * valeurs pour un choix (`choixDuNoeud`), l'un des choix admis que le contexte de son porteur y pose (`choixDuChamp`), la
+ * valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
  * choisir pour une union (`variantesAChoisir`), la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le
  * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise, une liste vidée part si la sienne
  * l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
@@ -119,8 +123,9 @@ export interface ZonesDeLEditeur {
    */
   'editeur.scenes': (Choix | Bouton)[];
   /**
-   * un choix des outils : sélection, terrain, hauteur, murs, volée, crénelage, décor, personnage, emplacement de siège,
-   * départ des héros, entrée, architecture, zone, gomme ; l'actif pressé
+   * un choix des outils : sélection, terrain, hauteur, murs, volée, crénelage, décor, personnage, navire, emplacement
+   * de siège, départ des héros, entrée, architecture, zone, gomme ; l'actif pressé ; le navire refusé, la raison dite,
+   * dans une scène qui n'est pas à l'échelle des ponts (`aLEchelleDesPonts`)
    */
   'editeur.outils': Choix[];
   /**
@@ -129,10 +134,13 @@ export interface ZonesDeLEditeur {
    * (`structuresCrenelables`) et la gomme de sa marque ; la gomme, qui efface la chose de sa case, n'en a aucune, ni le
    * départ ni l'entrée ; au décor, chaque décor du catalogue (`props`) en liste ; au personnage, chaque fiche du
    * bestiaire qui a des Blessures, les profils standard en tête (`fichesDePersonnage`), en liste ; à l'emplacement de
-   * siège, chaque engin (`siegeEngines`) en liste ; aux murs, la sorte d'arête posée, cloison, porte ou l'une des deux
-   * diagonales, et, pour une cloison ou une porte, son matériau en liste, « Par défaut » ou chaque structure qu'elle
-   * peut porter (`structuresDeLArete`) ; à la volée, l'étage qu'elle rejoint, chaque couche, son tracé en cases, ses
-   * cotes quand son plan tient (`planDeLaVolee`, `planStairFlight`), sinon, une case tracée, la raison du plan en
+   * siège, chaque engin (`siegeEngines`) en liste ; au navire, chaque type de navire à ponts (`TYPES_DE_NAVIRE`) en
+   * liste, refusé comme l'outil, et son cap parmi les quatre cardinaux (`CAPS_DES_PONTS`) : l'appui pose le navire
+   * choisi à ce cap, sur la case appuyée et la couche éditée, et le sélectionne (`poserUnNavire`) ; aux murs, la
+   * sorte d'arête posée, cloison, porte ou l'une des deux diagonales, et, pour une cloison ou une porte, son matériau
+   * en liste, « Par défaut » ou chaque structure qu'elle peut porter (`structuresDeLArete`) ; à la volée, l'étage
+   * qu'elle rejoint, chaque couche de la vue, son tracé en cases, ses cotes quand son plan tient (`planDeLaVolee`,
+   * `planStairFlight`), sinon, une case tracée, la raison du plan en
    * clair, « Poser la volée », refusé avec la raison du plan, et « Effacer le tracé », refusé sans case ; la retenue
    * pressée ; à l'architecture, le corps actif parmi ceux de la scène (`corpsActif` : celui de la sélection, sinon le
    * premier ; `{ geste: 'corps', id }` le sélectionne et édite la couche de son premier étage), l'action du clic
@@ -148,8 +156,9 @@ export interface ZonesDeLEditeur {
    */
   'editeur.options': (Choix | Ligne | Bouton)[];
   /**
-   * un choix des couches de la scène, l'éditée pressée ; ajouter une couche au-dessus de la plus haute ; retirer la
-   * couche éditée, refusé au rez
+   * un choix des couches de la vue de la scène, celles que posent les ponts de ses navires comprises (`vueDeLaScene`),
+   * l'éditée pressée ; ajouter une couche au-dessus de la plus haute ; retirer la couche éditée, refusé au rez et sur
+   * une couche que seuls les ponts d'un navire posent
    */
   'editeur.couches': (Choix | Bouton)[];
   /** annuler, rétablir, refusés sans cran */
@@ -169,7 +178,7 @@ export interface ZonesDeLEditeur {
    */
   'editeur.fichier': Bouton[];
   /**
-   * la dernière case appuyée : sa couche, son terrain, sa hauteur, puis son parapet crénelé s'il en porte un ; puis
+   * la dernière case appuyée : sa couche, son terrain, sa hauteur, lus sur la vue, puis son parapet crénelé s'il en porte un ; puis
    * l'arête sélectionnée : sa case, son côté, sa couche, porte, fenêtre ou mur, et son matériau ; ou l'entité
    * sélectionnée, sa sorte, son nom (`nomDEntite`, sinon sa sorte), sa case et sa couche ; ou l'entrée sélectionnée,
    * son nom, sa case et sa couche ; ou la zone, la partie ou la masse de toiture sélectionnée, sa sorte, son nom, son
@@ -200,7 +209,8 @@ export interface ZonesDeLEditeur {
    * ou `{ retirer }`, refusé à un rang absent).
    *
    * D'une entité : le formulaire qui la nomme, prérempli de son nom d'auteur ; le type d'un décor ou la fiche d'un
-   * personnage du bestiaire, en liste ; son cap parmi ceux que son type admet (`capsOfferts`) ; sa couche ;
+   * personnage du bestiaire, en liste ; son cap parmi ceux que son type admet (`capsOfferts` : les cardinaux d'un
+   * décor volumique ou d'un navire à ponts) ; sa couche ;
    *
    * d'un décor, sa lumière, allumée ou éteinte, son rayon à la réglette (−/+, au pas de 1 m, refusé sous 1 m) et son
    * ton en liste, celui du type ou chaque ton de `lightTones`, puis, si son type porte des places (`seatSlotsOf`), son
@@ -228,16 +238,14 @@ export interface ZonesDeLEditeur {
    * `carriere/dotation/<adresse>`, « Tiré » ou chacune de ses valeurs (`valeursDeLEmplacement`), la branche choisie
    * suivie de ses propres choix ;
    *
-   * d'un personnage porteur d'une fiche, son entité de son schéma (`entiteDuSchema`), son profil porté (`sceneNpc`,
-   * `ficheDuCombattant`) : d'un PNJ de carrière, le Niveau atteint et son Statut, puis ses Caractéristiques et ses
+   * d'un personnage porteur d'une fiche, son entité de son schéma (`ficheEditee`), son profil porté
+   * (`ficheDuCombattant`) : d'un PNJ de carrière, le Niveau atteint et son Statut, puis ses Caractéristiques et ses
    * Blessures, ses Compétences, ses Talents et ses possessions, chacun sur sa ligne `profil/<clé>` ;
    *
    * d'un personnage qui a une fiche, ses sorts (#3715), lus sur elle : ceux que son profil imprime, sur la ligne
-   * `sorts/imprimes`, sans choix ; sinon, s'il a une liste qu'ouvrent ses Talents ou Traits de lanceur
-   * (`listesDeSorts`), chaque sort choisi sur sa ligne `sorts/<id>` et « Retirer », la raison qui refuse ses choix en
-   * alerte (`refusDesSortsChoisis`), en liste chaque sort d'une de ses listes qu'il n'a pas choisi, à choisir, refusé
-   * avec sa raison au-delà d'un quota du livre, puis ses sorts au combat, choisis et tirés (`sortsDuPnj`), sur la ligne
-   * `sorts/connus` ;
+   * `sorts/imprimes` ; sinon, s'il a une liste qu'ouvrent ses Talents ou Traits de lanceur (`listesDeSorts`), ses sorts
+   * au combat, choisis et tirés (`sortsDuPnj`), sur la ligne `sorts/connus`, les sorts choisis s'écrivant au formulaire
+   * tiré du schéma ;
    *
    * puis chaque rencontre de la scène, enrôlé, ennemi ou allié, et piloté par l'IA s'il est allié, et l'enrôler dans
    * une rencontre neuve ;
@@ -248,18 +256,23 @@ export interface ZonesDeLEditeur {
    * de toute entité, les entrées de fiche qu'elle couvre, comme celles d'une zone, sous `entite/couvre` ;
    *
    * d'un personnage, le formulaire tiré du schéma de son type (`formulaireDe('entite', …)`), comme celui d'une zone
-   * d'effet : de son rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques et son
-   * embuscade, puis sa contrepartie d'amateur des arts (`amateur`), son animation (`anim`) et, d'une coque
-   * (`findVehicleById(ref).hull`), ses Améliorations (`upgrades`), au contexte de sa fiche (`choixDuChamp`) :
-   * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits
-   * standard en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le
-   * formulaire édite ensuite ; la supprimer.
+   * d'effet, dans le narratif du projet : son preset (`presetId`) s'il en porte un ou si le narratif en déclare ; de son
+   * rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques, son embuscade et, s'il en
+   * porte ou si sa fiche ouvre une liste de sorts sans imprimer les siens, ses sorts choisis (`combat.spells`) ; son
+   * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
+   * animation (`anim`) et, d'une coque, son véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa
+   * fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
+   * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; le profil absent, « Ajouter » choisit un profil
+   * neuf au nom du personnage (`emptyStatblock`) ou la copie de sa créature du Bestiaire (`statblockDeLaCreature`) ;
+   * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits standard
+   * en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le formulaire
+   * édite ensuite ; un sort choisi, chaque sort d'une liste qu'ouvre sa fiche hors des autres choisis, refusé avec sa
+   * raison au-delà d'un quota du livre (`refusDesSortsChoisis`) ; la supprimer.
    *
    * Chaque bouton joue `{ geste: 'entite', patch }`, `patch` portant `ref`, `facing`, `z`, `light` (`null` l'éteint),
    * `assise`, `objet` (l'intention sur un objet de l'inventaire, `{ porter }`, `{ retirer }` ou `{ ajouter }`,
    * appliquée par `inventaireApres`, `src/engine/items.ts`, l'inventaire vidé retiré), `parcours` (le parcours entier,
-   * `parcoursRetouche`, sans carrière le retirant), `sorts` (les sorts choisis entiers, `combat.spells`, vides les
-   * retirant), `crewIds` ou `couvre` (`null` : aucune) ; ou, du formulaire tiré du schéma, `{ geste: 'valeur', porteur:
+   * `parcoursRetouche`, sans carrière le retirant), `crewIds` ou `couvre` (`null` : aucune) ; ou, du formulaire tiré du schéma, `{ geste: 'valeur', porteur:
    * { sorte: 'entite', id }, chemin, valeur? }` ; `{ geste: 'place', place, occupant }` (`occupant` nul libère la
    * place) ; `{ geste: 'poste', patch }`, `patch` portant `engin`, `arc` (`null` : omni) ou `servants`, le chef en
    * tête ; ou `{ geste: 'membre', patch: { rencontre, enrole?, camp?, ia? } }`, `rencontre` nulle pour une rencontre
@@ -294,8 +307,9 @@ export interface ZonesDeLEditeur {
    * d'une union sans variantes nommées, sa ligne titre et les champs de la branche qu'il dessine (`formeAuPoint`) ;
    *
    * une liste présente, sa ligne titre, puis chaque élément, ses éléments, « Retirer » et, hors du premier, « Monter »,
-   * enfin « Ajouter », qui pose un élément neuf en fin, chacun de ces boutons écrivant la liste entière
-   * (`gestesDeLaListe`), et absente, « Ajouter » seul ;
+   * enfin « Ajouter », qui pose un élément neuf en fin, ou, d'un élément à choix, le choix de l'élément ajouté en fin,
+   * parmi ceux que son contexte pose au rang neuf, chacun de ces boutons écrivant la liste entière (`gestesDeLaListe`),
+   * et absente, « Ajouter » seul ;
    *
    * un choix, une énumération, un booléen, un littéral ou une référence au catalogue de son type, sa sous-liste
    * comprise, chaque option jouée d'un bouton, en liste au-delà de `CHOIX_EN_BOUTONS`, précédées de « Aucune » si son
@@ -432,7 +446,7 @@ const choix = (id: string, libelle: string, valeurs: Bouton[], type: Choix['type
  *  une case tracée, la raison du plan, en clair ; la poser (refusée avec cette raison) et effacer son tracé. */
 function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bouton)[] {
   const plan = planDeLaVolee(s)!;
-  const etages = sceneEditee(s).layers.map((l) => l.z).sort((a, b) => a - b)
+  const etages = couchesDeLaVue(s)
     .map((z) => bouton(`etage/${z}`, t('ecran.editeur.couche', { z }), { geste: 'outil', outil: { mode: 'stair', toZ: z } }, toZ === z));
   const arrondi = (m: number) => Math.round(m * 100) / 100;
   return [
@@ -447,7 +461,8 @@ function optionsDeLaVolee(s: SessionDEdition, toZ: number): (Choix | Ligne | Bou
 
 /** Les options de l'outil actif : la taille du pinceau (et le rectangle du terrain), puis les terrains, les hauteurs ou
  *  la structure du parapet, ou la gomme de sa marque ; la sorte et le matériau d'une arête ; la volée ; la sorte de
- *  zone à tracer ; le sens du pinceau d'emprise et sa fin. La gomme n'en a aucune : elle efface la chose de la case. */
+ *  zone à tracer ; le sens du pinceau d'emprise et sa fin ; le type et le cap du navire à poser. La gomme n'en a
+ *  aucune : elle efface la chose de la case. */
 function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   const outil = s.outil;
   if (outil.mode === 'select' || outil.mode === 'erase' || outil.mode === 'entry' || (outil.mode === 'entity' && outil.kind === 'heroStart')) return [];
@@ -461,6 +476,15 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   if (outil.mode === 'emplacement') {
     return [choix('engins', t('ecran.editeur.engins'),
       siegeEngines().map((e) => bouton(`engin/${e.id}`, e.label, { geste: 'outil', outil: { mode: 'emplacement', trappingId: e.id } }, outil.trappingId === e.id)), 'liste')];
+  }
+  if (outil.mode === 'navire') {
+    const scene = sceneEditee(s);
+    return [
+      choix('navires', t('ecran.editeur.navires'), TYPES_DE_NAVIRE.map(({ id, label }) =>
+        bouton(`navire/${id}`, label, { geste: 'outil', outil: { ...outil, ref: id } }, outil.ref === id, refusDuNavire(scene, id))), 'liste'),
+      choix('navire/cap', t('ecran.editeur.entite.cap'), CAPS_DES_PONTS.map((cap) =>
+        bouton(`navire/cap/${cap}`, t(`ecran.editeur.cap.${cap}`), { geste: 'outil', outil: { ...outil, cap } }, outil.cap === cap))),
+    ];
   }
   if (outil.mode === 'entity') {
     const kind = outil.kind;
@@ -591,34 +615,42 @@ function listeDIds(id: string, famille: 'zone.couvre' | 'scene.groupes', poses: 
 const couverture = (id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
   listeDIds(id, 'zone.couvre', couvre, COURT_DE_L_ENTREE, jeu);
 
-/** La rangée des couches de la scène éditée de `s`, la couche `z` pressée, chacune jouant `jeu`. */
+/** Pourquoi le navire du type `ref` ne se pose pas dans `scene` : elle n'est pas à l'échelle de ses ponts
+ *  (`aLEchelleDesPonts`) ; `null` s'il s'y pose. */
+const refusDuNavire = (scene: Scene, ref: string): string | null =>
+  aLEchelleDesPonts(scene, ref) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
+
+/** Les couches de la vue de la scène éditée de `s` (`vueDeLaScene`), dans l'ordre. */
+const couchesDeLaVue = (s: SessionDEdition): number[] => vueDeLaScene(s).layers.map((l) => l.z).sort((a, b) => a - b);
+
+/** La rangée des couches de la vue de la scène éditée de `s`, la couche `z` pressée, chacune jouant `jeu`. */
 const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: number) => GesteDEdition): Choix =>
-  choix(id, t('ecran.editeur.entite.couche'), sceneEditee(s).layers.map((l) => l.z).sort((a, b) => a - b)
+  choix(id, t('ecran.editeur.entite.couche'), couchesDeLaVue(s)
     .map((c) => bouton(`${id}/${c}`, t('ecran.editeur.couche', { z: c }), jeu(c), c === z)));
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
- *  bestiaire ; son cap parmi ceux que son type admet ; sa couche ; la lumière et les places d'un décor ; le poste d'un
- *  emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
+ *  bestiaire ; son cap parmi ceux que son type admet (`capsOfferts`) ; sa couche ; la lumière et les places d'un décor ;
+ *  le poste d'un emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
  *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
  *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
-  const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
+  const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
   const cap = capDeLEntite(ent);
   return [
     formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),
-      types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, ent.ref === o.id)), 'liste')] : []),
+      types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, idDuCorps(ent) === o.id)), 'liste')] : []),
     choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
     ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent)] : []),
     ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
-    ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
+    ...(ent.postes?.length || ent.vehicule
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
     ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
-    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent), ent as unknown as Record<string, unknown>),
+    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent, s.projet.narratif), ent as unknown as Record<string, unknown>),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -745,7 +777,7 @@ function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
  *  pas se tire au spawn (« Tiré »).
  *  Chaque bouton écrit le parcours entier, retouché (`parcoursRetouche`). */
 function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
-  if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.ref)) return [];
+  if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.creature?.id)) return [];
   const p: ParcoursDeCarriere = parcoursDe(ent) ?? { carrieres: {} };
   const ecrire = (q: ParcoursDeCarriere): GesteDEdition => ({ geste: 'entite', patch: { parcours: parcoursRetouche(q) } });
   const actuelle = carriereActuelle(p);
@@ -806,13 +838,12 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
   ];
 }
 
-/** Le profil porté du personnage `ent` de la session `s`, s'il est de son schéma (`entiteDuSchema`) et porte une fiche
- *  (`sceneNpc`, `ficheDuCombattant`) : d'un
+/** Le profil porté du personnage `ent` de la session `s`, s'il porte une fiche (`ficheEditee`, `ficheDuCombattant`) : d'un
  *  PNJ de carrière, le Niveau atteint de sa carrière actuelle et son Statut ; ses Caractéristiques et ses Blessures, ses
  *  Compétences à la valeur de leur Test, ses Talents et ses possessions. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
-  const porte = entiteDuSchema(ent) ? sceneNpc(scene, ent.id, presetDuNarratif(s.projet.narratif)) : undefined;
+  const porte = ficheEditee(ent, presetDuNarratif(s.projet.narratif));
   const fiche = porte && ficheDuCombattant(porte, (id) => {
     const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
@@ -830,30 +861,16 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
   ];
 }
 
-/** Les sorts du personnage `ent` de la session `s`, lus sur sa fiche (`sceneNpc`), s'il en a une : ceux que son profil imprime,
- *  sur une ligne ; sinon, s'il a une liste de sorts (`listesDeSorts`), chaque sort choisi, à retirer, la raison qui
- *  refuse les choix (`refusDesSortsChoisis`), en liste chaque sort d'une de ses listes qu'il n'a pas choisi, à ajouter,
- *  refusé avec sa raison, puis ses sorts au spawn, choisis et tirés (`sortsDuPnj`). Chaque bouton écrit les sorts
- *  choisis entiers. */
-function sorts(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne)[] {
-  const fiche = sceneNpc(sceneEditee(s), ent.id, presetDuNarratif(s.projet.narratif));
+/** Les sorts du personnage `ent` de la session `s`, lus sur sa fiche (`ficheEditee`), s'il en a une : ceux que son profil
+ *  imprime ; sinon, s'il a une liste de sorts (`listesDeSorts`), ses sorts au combat, choisis et tirés (`sortsDuPnj`).
+ *  Les sorts choisis s'écrivent au formulaire tiré du schéma (`formulaireDe`). */
+function sorts(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
+  const fiche = ficheEditee(ent, presetDuNarratif(s.projet.narratif));
   if (!fiche) return [];
-  const libelle = (id: string) => findSpellById(id)?.label ?? id;
-  const liste = (ids: readonly string[]) => ids.map(libelle).join(', ') || t('ecran.editeur.profil.aucun');
+  const liste = (ids: readonly string[]) => ids.map((id) => findSpellById(id)?.label ?? id).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);
   if (imprimes.length) return [ligne('sorts/imprimes', t('ecran.editeur.sorts.imprimes', { liste: liste(imprimes) }))];
-  const listes = listesDeSorts(fiche);
-  if (!listes.length) return [];
-  const choisis = ent.combat?.spells ?? [];
-  const ecrire = (ids: string[]): GesteDEdition => ({ geste: 'entite', patch: { sorts: ids } });
-  const refus = refusDesSortsChoisis(fiche, choisis);
-  return [
-    ...choisis.map((id) => choix(`sorts/${id}`, libelle(id), [bouton(`sorts/${id}/retirer`, t('ecran.editeur.sorts.retirer'), ecrire(choisis.filter((x) => x !== id)))])),
-    ...(refus ? [ligne('sorts/refus', refus, 'alerte')] : []),
-    choix('sorts/ajouter', t('ecran.editeur.sorts.ajouter'), spells.filter((sp) => !choisis.includes(sp.id) && listes.some((l) => l.admet(sp)))
-      .map((sp) => bouton(`sorts/ajouter/${sp.id}`, sp.label, ecrire([...choisis, sp.id]), false, refusDesSortsChoisis(fiche, [...choisis, sp.id]) ?? null)), 'liste'),
-    ligne('sorts/connus', t('ecran.editeur.sorts.connus', { liste: liste(fiche.spells ?? []) })),
-  ];
+  return listesDeSorts(fiche).length ? [ligne('sorts/connus', t('ecran.editeur.sorts.connus', { liste: liste(fiche.spells ?? []) }))] : [];
 }
 
 /** Les rencontres du personnage `ent` de la session `s` : dans chacune, enrôlé ou non, ennemi ou allié, piloté par l'IA
@@ -1161,7 +1178,7 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
 /** Les éléments du champ `f` du porteur `porteur`, de valeur `valeur` (`undefined` : absent), au chemin `ici`, d'id
  *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
  *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent :
- *  « Ajouter », qui pose sa valeur neuve (`valeurNeuveDe`). Une union nommée : sa variante (`elementsDeLUnion`). Une
+ *  « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
  *  liste : ses éléments (`elementsDeLaListe`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent. */
@@ -1169,7 +1186,7 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   const id = `valeur/${ici.join('/')}`;
   const retirer = valeur !== undefined && f.nullable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
   if (champsDeclares(f.noeud)) {
-    if (valeur === undefined) return [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))];
+    if (valeur === undefined) return [ajoutDeLObjet(porteur, f, ici)];
     const objet = valeur as Record<string, unknown>;
     return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, f.noeud, objet), objet, ici), ...retirer];
   }
@@ -1216,12 +1233,12 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
  *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), ses éléments, « Retirer » et, hors du premier,
- *  « Monter » ; puis « Ajouter », qui pose un élément neuf (`valeurNeuveDe`) en fin. Chaque bouton écrit la liste entière
- *  (`gestesDeLaListe`). */
+ *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). */
 function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const liste = Array.isArray(valeur) ? valeur : [];
-  const gestes = gestesDeLaListe(liste, valeurNeuveDe(elementDuNoeud(f.noeud)));
+  const element = elementDuNoeud(f.noeud);
+  const gestes = gestesDeLaListe(liste, valeurNeuveDe(element));
   const elements = liste.flatMap((e, rang) => {
     const champ = champDeLElement(f, rang);
     const { retirer, monter } = gestes.elements[rang];
@@ -1231,8 +1248,33 @@ function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unkno
       ...(monter ? [bouton(`${id}/${rang}/monter`, t('ecran.editeur.valeur.monter', { libelle: champ.label }), ecrireLaValeur(porteur, ici, monter))] : []),
     ];
   });
-  const ajouter = bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, gestes.ajouter));
+  const ajouter = ajoutALaListe(porteur, f, liste, ici, element, gestes.ajouter);
   return valeur === undefined ? [ajouter] : [ligne(id, f.label), ...elements, ajouter];
+}
+
+/** « Ajouter » de l'objet absent du champ `f`, au chemin `ici`, d'id `valeur/<chemin>/ajouter` : le choix de l'objet posé
+ *  parmi ceux que son contexte y pose (`FieldDesc.contexte`), sinon le bouton qui écrit sa valeur neuve (`valeurNeuveDe`). */
+function ajoutDeLObjet(porteur: PorteurDeValeur, f: FieldDesc, ici: Segment[]): Bouton | Choix | Formulaire {
+  const id = `valeur/${ici.join('/')}/ajouter`;
+  const libelle = t('ecran.editeur.valeur.ajouter', { libelle: f.label });
+  const valeurs = f.contexte?.choix(ici);
+  if (!valeurs) return bouton(id, libelle, ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)));
+  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: [...valeurs], bornes: null, note: null, champs: null };
+  return elementDeValeur(id, porteur, ici, { ...f, label: libelle }, a);
+}
+
+/** « Ajouter » à la liste `liste` du champ `f`, au chemin `ici`, d'élément `element`, d'id `valeur/<chemin>/ajouter` :
+ *  d'un élément à choix (`choixDuNoeud`), le choix de l'élément ajouté en fin, parmi ceux que son contexte pose au rang
+ *  qui suit le dernier (`FieldDesc.contexte`), sinon parmi ses valeurs ; sinon, le bouton qui écrit `neuve`, la liste où
+ *  s'ajoute un élément neuf (`valeurNeuveDe`). */
+function ajoutALaListe(porteur: PorteurDeValeur, f: FieldDesc, liste: readonly unknown[], ici: Segment[], element: unknown, neuve: unknown[]): Bouton | Choix | Formulaire {
+  const id = `valeur/${ici.join('/')}/ajouter`;
+  const libelle = t('ecran.editeur.valeur.ajouter', { libelle: f.label });
+  const duNoeud = choixDuNoeud(element);
+  const valeurs = duNoeud && (f.contexte?.choix([...ici, liste.length]) ?? duNoeud.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })));
+  if (!valeurs) return bouton(id, libelle, ecrireLaValeur(porteur, ici, neuve));
+  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: valeurs.map((v) => ({ ...v, valeur: [...liste, v.valeur] })), bornes: null, note: null, champs: null };
+  return elementDeValeur(id, porteur, ici, { ...f, label: libelle }, a);
 }
 
 /** L'inspecteur de la zone sélectionnée `zone` de la session `s` : la poignée qui la redimensionne ; d'un déclencheur,
@@ -1261,7 +1303,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
       ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez), ez as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez, s.projet.narratif), ez as unknown as Record<string, unknown>),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
@@ -1271,7 +1313,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     propre.push(
       bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once),
       ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur), declencheur as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur, s.projet.narratif), declencheur as unknown as Record<string, unknown>),
     );
   }
   if (sel?.type === 'restZone') {
@@ -1621,10 +1663,12 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * glissé (`resizeSel`) ; `surcouche.reperes`, chaque entité puis chaque entrée de la couche éditée, `{ sorte, id, x, y,
  * z, nom, choisi }` (plusieurs peuvent tenir dans une case : deux décors calés, un objet posé sur une table ; l'hôte y
  * montre la plaque de la sélection et joint leurs noms) (`prop`, `personnage`, `heroStart` ou `entree`, son nom comme à
- * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée (`aretesDeLaCouche`,
- * section « Vue », `plateau`), rendues avec `monde`. `monde` porte le volume du monde de la scène éditée jusqu'à la
- * couche éditée, sans les surplombs des couches au-dessus, qu'il porte en `ombre` avec ces couches
- * (`volumeDuMonde(scene, activeZ)`, section « Monde ») ; il n'est rendu qu'à l'ouverture, et sans geste en cours quand
+ * `editeur.pointee`, et si elle est sélectionnée). `aretes` porte les arêtes de la couche éditée hors des ponts des
+ * navires (`aretesDeLaCouche`, section « Vue », `plateau`), rendues avec `monde`, comme `navires`, les navires de la
+ * scène sous la forme de `corps.navires` (section « Corps d'un combattant »). `monde` porte le volume du monde de la
+ * vue de la scène éditée, les ponts de ses navires posés (`vueDeLaScene`), jusqu'à la couche éditée, sans les
+ * surplombs des couches au-dessus, qu'il porte en `ombre` avec ces couches (`volumeDuMonde(scene, activeZ)`, section
+ * « Monde ») ; il n'est rendu qu'à l'ouverture, et sans geste en cours quand
  * la scène ou la couche a changé depuis le dernier rendu : jamais pendant un glissé, dont la surcouche tient lieu. Le
  * geste « Enregistrer » rend `depot: { id, texte }`, le texte du projet, ses scènes à jour (`scenesDeLaSession`), passé
  * par la porte, en forme dépôt (`texteAEnregistrer`) ; l'enregistrement est en cours jusqu'à son issue, et les scènes
@@ -1648,13 +1692,16 @@ function refusDEnregistrer(s: SessionDEdition): string | null {
  * et le chemin pris ; l'ouverture le rend aussi quand elle a retiré des calques d'un autre format.
  * @contrat Éditeur
  */
-/** Les zones de l'éditeur de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de l'outil. */
+/** Les zones de l'éditeur de la session `s`. Le terrain s'ouvre sur le premier terrain, ou garde celui de l'outil ; le
+ *  navire, sur le premier type et le premier cap. Les couches et la case pointée se lisent sur la vue de la scène
+ *  (`vueDeLaScene`), ses navires posés par leurs ponts. */
 export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   const scene = sceneEditee(s);
   const terrain = s.outil.mode === 'tile' ? s.outil.terrain : terrainIds()[0];
   const outil = s.outil;
   const kindDeLOutil = (kind: 'prop' | 'personnage') => (outil.mode === 'entity' && outil.kind === kind ? outil.ref : undefined);
-  const etages = scene.layers.map((l) => l.z).sort((a, b) => a - b);
+  const etages = couchesDeLaVue(s);
+  const navire = outil.mode === 'navire' ? outil : { ref: TYPES_DE_NAVIRE[0].id, cap: CAPS_DES_PONTS[0] };
   const outils = [
     bouton('outil/select', t('ecran.editeur.outil.select'), { geste: 'outil', outil: { mode: 'select' } }, s.outil.mode === 'select'),
     bouton('outil/tile', t('ecran.editeur.outil.tile'), { geste: 'outil', outil: { mode: 'tile', terrain } }, s.outil.mode === 'tile'),
@@ -1664,6 +1711,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     bouton('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenellated', structure: structuresCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenellated'),
     bouton('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entity', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
     bouton('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
+    bouton('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene, navire.ref)),
     bouton('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     bouton('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entity', kind: 'heroStart' } }, s.outil.mode === 'entity' && s.outil.kind === 'heroStart'),
     bouton('outil/entry', t('ecran.editeur.outil.entry'), { geste: 'outil', outil: { mode: 'entry' } }, s.outil.mode === 'entry'),
@@ -1673,6 +1721,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
   ];
   const couches = etages.map((z) => bouton(`couche/${z}`, t('ecran.editeur.couche', { z }), { geste: 'couche', z }, s.z === z));
   const p = s.pointee;
+  const vue = vueDeLaScene(s);
   return {
     'editeur.titre': [ligne('scene', scene.label || scene.id)],
     'editeur.scenes': scenesDuProjet(s),
@@ -1681,7 +1730,8 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
     'editeur.couches': [
       choix('couches', t('ecran.editeur.couches'), couches),
       bouton('couche/ajouter', t('ecran.editeur.couche.ajouter'), { geste: 'ajouterCouche' }),
-      bouton('couche/retirer', t('ecran.editeur.couche.retirer'), { geste: 'retirerCouche' }, false, s.z === 0 ? t('ecran.editeur.couche.rez') : null),
+      bouton('couche/retirer', t('ecran.editeur.couche.retirer'), { geste: 'retirerCouche' }, false,
+        s.z === 0 ? t('ecran.editeur.couche.rez') : scene.layers.some((l) => l.z === s.z) ? null : t('ecran.editeur.couche.ponts')),
     ],
     'editeur.historique': [
       bouton('annuler', t('ecran.editeur.annuler'), { geste: 'annuler' }, false, s.historique.passe.length ? null : t('ecran.editeur.rien.annuler')),
@@ -1693,7 +1743,7 @@ export function zonesDeLEditeur(s: SessionDEdition): ZonesDeLEditeur {
       bouton('tester', t('ecran.editeur.tester'), { geste: 'tester' }),
     ],
     'editeur.pointee': [
-      ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(scene, p.x, p.y, p.z)), hauteur: heightAt(scene, p.x, p.y, p.z) }))] : []),
+      ...(p ? [ligne('pointee', t('ecran.editeur.pointee', { x: p.x, y: p.y, z: p.z, terrain: terrainLabel(tileAt(vue, p.x, p.y, p.z)), hauteur: heightAt(vue, p.x, p.y, p.z) }))] : []),
       ...ligneDuParapet(s),
       ...ligneDeLArete(s),
       ...ligneDeLaSelection(s),

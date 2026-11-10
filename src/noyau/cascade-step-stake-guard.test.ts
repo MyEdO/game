@@ -462,7 +462,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     const noeud = `const n = { kind: 'test', test: { skill: 'escalade', difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: f };`;
     const noeudAvec = `const n = { kind: 'test', test: { skill: 'escalade', difficulty: 'intermediaire', stake: flowStakeRef('climb-roll') }, success: EMPTY_FLOW, fail: f };`;
     const direct = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile' }, EMPTY_FLOW, fail);`;
-    const directAvec = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile', stake: combatStakeRef('actGate') }, EMPTY_FLOW, fail);`;
+    const directAvec = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile', stake: combatStakeRef('act-gate') }, EMPTY_FLOW, fail);`;
     const dynamique = `const t = { skill: 'calme', difficultyBy: [{ cond: c, difficulty: 'accessible' }] };`;
     const pasUnTest = `const a = { skill: 'artisanat', label: 'Fabriquer' };`; // aucune difficulté : pas un FlowTest
     expect(literalTestsWithoutStake(noeud)).toHaveLength(1);
@@ -521,7 +521,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
 
   it('FAIL-CLOSED : un `FlowTest` synthétique sans enjeu est DÉTECTÉ, avec enjeu il ne l’est pas', () => {
     const sans = `const f = testFlow({ skill: 'calme', difficulty: 'intermediaire', label: 'Approche' }, EMPTY_FLOW, brise);`;
-    const avec = `const f = testFlow({ skill: 'calme', difficulty: 'intermediaire', label: 'Approche', stake: combatStakeRef('combatPsych', { entryId: 'peur' }) }, EMPTY_FLOW, brise);`;
+    const avec = `const f = testFlow({ skill: 'calme', difficulty: 'intermediaire', label: 'Approche', stake: combatStakeRef('combat-psych', { entryId: 'peur' }) }, EMPTY_FLOW, brise);`;
     expect(flowTestsWithoutStake(sans)).toHaveLength(1);
     expect(flowTestsWithoutStake(avec)).toHaveLength(0);
   });
@@ -552,7 +552,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     // `kind` VIVANT (`deviation` : la fenêtre unique de la Blessure critique, #1426) — une fixture sur
     // un kind mort ne prouve rien du scan réel.
     const tableSans = `const s = { id: 'x', kind: 'deviation', actorId: t.id, table: critSeverityDecl(t, loc) };`;
-    const tableAvec = `const s = { id: 'x', kind: 'deviation', actorId: t.id, table: critSeverityDecl(t, loc), stake: combatStakeRef('critSeverity') };`;
+    const tableAvec = `const s = { id: 'x', kind: 'deviation', actorId: t.id, table: critSeverityDecl(t, loc), stake: combatStakeRef('crit-severity') };`;
     expect(stepsWithoutStake(sans)).toHaveLength(1);
     expect(stepsWithoutStake(avec)).toHaveLength(0);
     expect(stepsWithoutStake(raccourci)).toHaveLength(0);
@@ -648,7 +648,7 @@ describe('l’enjeu AUTHORÉ reste au contenu — le moteur passe par les datase
 
   it('FAIL-CLOSED : le motif attrape bien un enjeu authoré, et laisse passer une réf de dataset', () => {
     expect(AUTHORED.test(stripLiterals(`const s = { stake: { authored: 'ce que le jet met en jeu' } };`))).toBe(true);
-    expect(AUTHORED.test(stripLiterals(`const s = { stake: combatStakeRef('climbTest') };`))).toBe(false);
+    expect(AUTHORED.test(stripLiterals(`const s = { stake: combatStakeRef('climb-test') };`))).toBe(false);
     expect(AUTHORED.test(stripLiterals(`// authored: un commentaire n'est pas un site`))).toBe(false);
     expect(AUTHORED.test(stripLiterals(`export function captureMutation(current: Scene, authored: Scene) {}`)), 'une ANNOTATION de type n’est pas un enjeu posé').toBe(false);
     expect(AUTHORED.test(stripLiterals(`const s = { stake: { authored: texte } };`)), 'valeur par variable : un enjeu posé quand même').toBe(true);

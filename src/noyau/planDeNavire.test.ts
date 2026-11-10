@@ -18,13 +18,15 @@ import { footprintN } from './monde/footprint';
 import { registerScene, resetSceneRegistry } from './monde/registreDesScenes';
 import { walkNeighbors } from './monde/path';
 import { garanti } from '../lib/garanti';
+import { validateScene } from './validateScene';
+import { capsOfferts } from './sceneEditLecture';
 
 const plan = buildScene(PLAN_DE_LA_CARAQUE);
 
 /** Un bassin sans ses ponts : la caraque `c1` depuis (10, 2), au cap `facing`, à l'échelle `metresPerTile`. */
 const authored = (facing: 'N' | 'NE' | 'E' | 'O', metresPerTile?: number) => buildScene({
   id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', ...(metresPerTile ? { metresPerTile } : {}),
-  entities: [{ id: 'c1', kind: 'personnage', ref: 'caraque', pos: { x: 10, y: 2 }, facing }],
+  entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 10, y: 2 }, facing }],
 });
 
 describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
@@ -41,8 +43,22 @@ describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
     expect(naviresDeLaScene(enMer)).toEqual([]);
   });
 
-  it('ses ponts ne se posent qu’à un cap cardinal', () => {
-    expect(() => poserLesNavires(authored('NE'))).toThrow(/c1.*cardinal.*NE/);
+  /** `scene` dont la caraque `c1` est au cap `NE`, comme un JSON écrit hors de l'éditeur la porterait. */
+  const deBiais = (scene: Scene): Scene => ({ ...scene, entities: scene.entities.map((e) => (e.id === 'c1' ? { ...e, facing: 'NE' as const } : e)) });
+
+  it('à un cap non cardinal, le schéma refuse le navire, la validation nomme la faute et ses ponts ne se posent pas (#3772)', () => {
+    expect(() => authored('NE')).toThrow(/c1.*navire « caraque » au cap NE — un navire à ponts ne prend qu'un cap cardinal/);
+    const scene = deBiais(authored('O'));
+    expect(validateScene([scene]).filter((w) => w.refId === 'c1').map((w) => [w.level, w.message])).toEqual([
+      ['error', expect.stringContaining("navire « caraque » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)")],
+    ]);
+    expect(poserLesNavires(scene)).toEqual(scene);
+  });
+
+  it('un navire à ponts n’est offert qu’aux caps cardinaux, à toute échelle : changer d’échelle ne fait pas un navire de biais', () => {
+    expect(capsOfferts(authored('O').entities[0])).toEqual(['N', 'E', 'S', 'O']);
+    expect(capsOfferts(authored('O', 10).entities[0])).toEqual(['N', 'E', 'S', 'O']);
+    expect(() => authored('NE', 10)).toThrow(/navire « caraque » au cap NE/);
   });
 
   it('ses ponts se centrent sur son empreinte de combattant, au plus près d’une demi-case en travers', () => {
@@ -181,7 +197,7 @@ describe('chaque navire à ponts se parcourt d’un bout à l’autre (#3772)', 
   /** Le navire `ref` posé au cap `cap` dans un bassin de 30 × 30 cases. */
   const bassin = (ref: string, cap: 'N' | 'E' | 'S' | 'O') => poserLesNavires(buildScene({
     id: 'bassin', label: 'Bassin', size: [30, 30], terrain: 'eau',
-    entities: [{ id: 'n1', kind: 'personnage', ref, pos: { x: 13, y: 13 }, facing: cap }],
+    entities: [{ id: 'n1', kind: 'personnage', vehicule: { id: ref }, pos: { x: 13, y: 13 }, facing: cap }],
   }));
   const k = (p: { x: number; y: number; z?: number }) => `${p.x},${p.y},${p.z ?? 0}`;
   /** Les cases que joignent, de proche en proche depuis `depart`, la marche (`walkReachableFrom`) et les arêtes

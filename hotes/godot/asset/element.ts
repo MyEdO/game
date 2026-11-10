@@ -5,7 +5,8 @@
  * l'élément a une base (`REGLES_DES_CATEGORIES`) : sans base (décor, véhicule, #2987), il ne nomme aucune base et ses
  * meshes restent à la racine de sa scène ou sous ses propres nœuds ; une clé bien formée se résout contre la donnée
  * du jeu (`ecartsDeCleDElement`, surface du noyau). Ses surfaces (`surfaces.ts`) admettent le blason.
- * Un vêtement ou une armure offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116) ; un accessoire
+ * Un vêtement, une armure ou un accessoire offre des `emplacements`, ids de la garde-robe (`estEmplacement`, #3116), ou
+ * `<emplacement>#<rang>`, la case du rang-ième objet rangé à cet emplacement (`rangDeCase`, #3844) ; un accessoire
  * dont l'emplacement n'est offert ni par sa base ni par une pièce de cette base est rapporté, ni refusé ni servi
  * (`emplacementsNonOfferts`, `indexerModeles`). Un véhicule offre des `postes` : par bord (`FIRE_ARCS`), les positions de
  * sa scène où se montent les pièces des postes de ce bord ; et des `ancrages` : par Amélioration navale, les positions où
@@ -13,14 +14,14 @@
  * son Amélioration offre, où elle montre son nœud `ouvert` si une pièce y est montée, `ferme` sinon (#2987). Un véhicule
  * ou une pièce d'Amélioration dit, `selon` une Amélioration montée, ce qui change : ses nœuds `avec-<amelioration>`
  * (`noeudSelon`), montrés seulement quand elle est montée, `sans-<amelioration>` seulement quand elle ne l'est pas, et,
- * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG p.97, Sabord). Un
+ * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG 12 l.362, Sabord). Un
  * véhicule s'anime de ses `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base ; il dit l'emprise
  * libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { ecartsDeCleDElement, emplacementDePiece, estEmplacement, FIRE_ARCS, matieresDeDecor, type CodeDEcartDeCle, type EmprisesDesCases, type FireArc } from '../../../src/noyau/index.ts';
 import { ecartsAuGlb, ecartsAuxMatieres, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
-import { estListeDeChaines, estRepere, estTriplet, type Attache, type Repere } from './attache.ts';
+import { estListeDeChaines, estRepere, estTriplet, rangDeCase, TOLERANCE_DES_POIDS, type EmplacementOffert, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
@@ -81,7 +82,7 @@ export const REGLES_DES_CATEGORIES = {
   pilosite: { ...SKINNE, cle: ['coiffure'] },
   vetement: { ...SKINNE, cle: ['piece'], emplacements: true },
   armure: { ...SKINNE, cle: ['piece'], couches: ['armure'], emplacements: true },
-  accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel' },
+  accessoire: { ...SKINNE, cle: ['piece'], liaisons: ['rigide', 'surface'], couvre: 'optionnel', emplacements: true },
   rigide: { ...RIGIDE, cle: ['apparence'], secondePrise: true },
   trait: { ...SKINNE, cle: ['trait'] },
   decor: { ...RIGIDE, cle: ['prop'], base: false },
@@ -118,7 +119,7 @@ type ChampsDe<C extends CategorieDElement> = (Regles[C]['base'] extends true ? {
   & (Regles[C]['couches'] extends readonly Couche[] ? { readonly couche: Regles[C]['couches'][number] } : Rien)
   & Selon<Regles[C]['couvre'], { readonly couvre: Liste }, { readonly couvre?: Liste }>
   & (Regles[C]['chaines'] extends true ? { readonly chaines?: Liste } : Rien)
-  & (Regles[C]['emplacements'] extends true ? { readonly emplacements?: Readonly<Record<string, Attache>> } : Rien)
+  & (Regles[C]['emplacements'] extends true ? { readonly emplacements?: Readonly<Record<string, EmplacementOffert>> } : Rien)
   & (Regles[C]['silhouettes'] extends true ? { readonly silhouettes?: Liste } : Rien)
   & (Regles[C]['postes'] extends true ? { readonly postes?: Postes } : Rien)
   & (Regles[C]['ancrages'] extends true ? { readonly ancrages?: Readonly<Record<string, readonly Triplet[]>> } : Rien)
@@ -256,9 +257,19 @@ export function validerElement(brut: unknown, base: BaseDUnElement | null, octet
   if (regle.emplacements && brut.emplacements !== undefined) {
     if (!estObjet(brut.emplacements)) refus('forme', 'emplacements', 'objet attendu');
     else for (const [id, e] of Object.entries(brut.emplacements)) {
-      if (!(estObjet(e) && typeof e.os === 'string' && estRepere({ position: e.position, rotation: e.rotation }) && Object.keys(e).length === 3)) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres attendus');
+      if (!(estObjet(e) && typeof e.os === 'string' && estRepere({ position: e.position, rotation: e.rotation }) && Object.keys(e).length === (e.poids === undefined ? 3 : 4))) refus('forme', `emplacements.${id}`, '`os` chaîne, `position` et `rotation` triplets de nombres, `poids` facultatif, attendus');
       else if (!osDeBase.includes(e.os)) refus('emplacement-sur-os-absent', `emplacements.${id}.os`, `${e.os} n’est pas un os de la base \`${nomDeBase}\``);
-      if (!estEmplacement(id)) refus('emplacement-inconnu', `emplacements.${id}`, `${id} n’est aucun emplacement de \`garde-robe.json\``);
+      else if (e.poids !== undefined) {
+        const poids = estObjet(e.poids) ? Object.entries(e.poids) : [];
+        const absent = poids.find(([os]) => !osDeBase.includes(os));
+        if (absent) refus('emplacement-sur-os-absent', `emplacements.${id}.poids.${absent[0]}`, `${absent[0]} n’est pas un os de la base \`${nomDeBase}\``);
+        else if (!(poids.length > 0 && poids.every(([, w]) => typeof w === 'number' && w > 0)
+          && Math.abs(poids.reduce((somme, [, w]) => somme + (w as number), 0) - 1) <= TOLERANCE_DES_POIDS && poids.some(([os]) => os === e.os)))
+          refus('forme', `emplacements.${id}.poids`, `par os de la base, un poids positif, de somme 1, dont \`${e.os}\`, attendu`);
+      }
+      const [emplacement, rang] = id.split('#');
+      if (!estEmplacement(emplacement)) refus('emplacement-inconnu', `emplacements.${id}`, `${emplacement} n’est aucun emplacement de \`garde-robe.json\``);
+      else if (rang !== undefined && rangDeCase(id) === undefined) refus('forme', `emplacements.${id}`, `\`${emplacement}#<rang>\`, rang entier d’au moins 2, attendu`);
     }
   }
 

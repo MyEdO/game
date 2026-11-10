@@ -183,7 +183,9 @@
       "x": 2,
       "y": 6
      },
-     "ref": "tonneau",
+     "decor": {
+      "id": "tonneau"
+     },
      "label": "Appareiller vers l’îlot",
      "usable": {
       "actions": [
@@ -676,7 +678,9 @@
     {
      "id": "louve-grise",
      "kind": "personnage",
-     "ref": "loup-imperial",
+     "vehicule": {
+      "id": "loup-imperial"
+     },
      "pos": {
       "x": 3,
       "y": 7
@@ -690,7 +694,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -745,7 +748,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -800,7 +802,6 @@
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "proue",
        "crewIds": [],
        "ammo": [
@@ -917,7 +918,9 @@
     {
      "id": "cogue-pirate",
      "kind": "personnage",
-     "ref": "cogue",
+     "vehicule": {
+      "id": "cogue"
+     },
      "pos": {
       "x": 18,
       "y": 7
@@ -934,7 +937,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -964,7 +966,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -994,7 +995,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
        "ammo": [
@@ -1033,7 +1033,9 @@
     {
      "id": "pirate-1",
      "kind": "personnage",
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "pos": {
       "x": 18,
       "y": 6
@@ -1043,7 +1045,9 @@
     {
      "id": "pirate-2",
      "kind": "personnage",
-     "ref": "humain",
+     "creature": {
+      "id": "humain"
+     },
      "pos": {
       "x": 18,
       "y": 8
@@ -1053,7 +1057,9 @@
     {
      "id": "chef-pirate-1",
      "kind": "personnage",
-     "ref": "jaego-roth",
+     "creature": {
+      "id": "jaego-roth"
+     },
      "pos": {
       "x": 19,
       "y": 7

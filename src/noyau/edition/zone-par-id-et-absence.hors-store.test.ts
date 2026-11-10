@@ -6,11 +6,12 @@
  */
 import { describe, expect, it } from 'vitest';
 import { emptyScene, type Scene } from '../monde/scene';
+import { emptyNarratif } from '../monde/campaignNarratif';
 import { editer, ouvrirLEdition, sceneEditee, type SessionDEdition } from './session';
 import { patchZone } from '../sceneEdit';
 import { selRect, type Sel } from '../sceneEditLecture';
 
-const ouverteSur = (scene: Scene): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+const ouverteSur = (scene: Scene): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif: emptyNarratif() } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x: x + 0.5, y: y + 0.5 } });
 const zone = (id: string, x: number) => ({ id, label: id, area: { kind: 'rect' as const, x, y: 0, w: 2, h: 2 } });
 

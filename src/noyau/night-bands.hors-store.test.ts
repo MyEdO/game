@@ -112,7 +112,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
 
   it('la fabrique SÉPARE aussi deux jets de même entrée le MÊME jour chez le MÊME héros (deux fenêtres)', () => {
     const mono = (id: string, day: number) => nuit({
-      id, kind: 'traumaFracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60, meta: { day },
+      id, kind: 'trauma-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60, meta: { day },
     });
     const out = nightBands([mono('a', 4), mono('b', 4)]);
     expect(out).toHaveLength(2); // deux Convalescences échéant le même jour : deux fenêtres, jamais un doublon
@@ -126,7 +126,7 @@ describe('CLÉ de bande = (entrée de règle, JOUR)', () => {
    * (`nightRowId`) viseraient sinon la mauvaise. Le jour ne suffit pas : il faut aussi le rang.
    */
   const conv = (id: string, day?: number) => nuit({
-    id, kind: 'traumaFracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60,
+    id, kind: 'trauma-fracture', label: 'Convalescence', base: 40, difficulty: 'accessible', target: 60,
     ...(day !== undefined ? { meta: { day } } : {}),
   });
 
@@ -269,7 +269,7 @@ describe('gueule de bois (LDB 09 l.485) — due par TOUTE rangée du dessoûlage
     set({ pendingCascade: { ...p, participants: p.participants.map((s) => (s.id === desso.id ? { ...s, participants: rows } : s)) } });
     get().jetValider('cascade');
 
-    const hangover = bandsOf('dessoulageHangover');
+    const hangover = bandsOf('dessoulage-hangover');
     expect(hangover, 'le 2ᵉ Test est dû « une fois tous les effets dissipés », pas aux seuls perdants').toHaveLength(1);
     expect(hangover[0].participants!.map((r) => r.id)).toEqual(['h1', 'h2']);
   });
@@ -403,7 +403,7 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
 
 /**
  * SONDE B — les ids de BANDE doivent rester uniques dans une séquence : deux insertions issues du
- * MÊME `step.id` (la gueule de bois `dessoulageHangover-<héros>` de deux Dessoûlages) proviennent de
+ * MÊME `step.id` (la gueule de bois `dessoulage-hangover-<héros>` de deux Dessoûlages) proviennent de
  * DEUX appels distincts à la fabrique, qui ne peut donc pas les dédoublonner entre elles — c'est le
  * DISCRIMINANT de clé porté par l'id (le jour, sinon le rang) qui les sépare.
  */
@@ -426,7 +426,7 @@ describe('SONDE B — ids de bande UNIQUES dans la séquence', () => {
       get().jetValider('cascade');
     }
 
-    const hangovers = vus.filter((v) => v.kind === 'dessoulageHangover');
+    const hangovers = vus.filter((v) => v.kind === 'dessoulage-hangover');
     expect(hangovers, 'chaque Dessoûlage doit sa gueule de bois (LDB 09 l.485)').toHaveLength(2);
     const ids = vus.map((v) => v.id);
     const doublons = ids.filter((id, i) => ids.indexOf(id) !== i);

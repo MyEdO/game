@@ -37,6 +37,7 @@ import { choisirLaMunition } from '../engine/items';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { Scene } from './monde/scene';
 import { spawnEnemy } from './monde/spawn';
+import { posteDeLaBataille } from './monde/shipPostes';
 import { freeTilesNear, inscrireEnBataille } from './summonFlow';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 
@@ -612,12 +613,11 @@ export function sortiesDeLEquipage(_get: Get, set: SetFn) {
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
-    attribuerLeRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+    affecterAuRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
     affecterALaStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
-    approvisionnerLaPiece: (shipId, posteUid, ammoUid) => {
+    approvisionnerLaPiece: (posteUid, ammoUid) => {
       const b = get().battle;
-      const ship = inBattleId(b, shipId);
-      const poste = ship?.postes?.find((p) => p.item.uid === posteUid);
+      const poste = b && posteDeLaBataille(posteUid, b.combatants)?.poste;
       if (!b || !poste) return;
       // Le poste est PARTAGÉ par référence avec `mannedPoste` du chef (serveChef) → muter la même instance
       // suffit ; le `set` re-render (pattern combat : mutation + refresh). Le CHEF qui la sert lit la pièce par son

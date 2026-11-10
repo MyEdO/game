@@ -1,5 +1,5 @@
 /**
- * Prix d'achat jugé par le NOYAU (#3059, lot marchand) : le geste `payerLesAchats` débite le total de
+ * Prix d'achat jugé par le NOYAU (#3059, lot marchand) : le geste `marchand.payer` débite le total de
  * `devisDuPanier`, que l'écran du marchand affiche. Sous « Tenir les comptes », une ligne au prix listé
  * ≤ Statut du groupe coûte 0 au débit ET au devis. La réparation débite `coutDeReparation`, le Troc
  * refusé dit le refus de `devisDeTroc`. LDB 59 l.9-11 ; LDB 59 l.43 ; LDB 59 l.64-76 ; LDB 62 l.135.
@@ -15,6 +15,7 @@ import { bourseOf, withBourseMoney } from '../engine/bourse';
 import type { ItemInstance } from '../engine/types';
 import { itemFromTrappingById } from '../engine/items';
 import { t } from '../i18n';
+import { choixDuTroc } from './marchand.testkit';
 import { catalogEntryOf, devisDuPanier, prixDeLigne, coutDeReparation, devisDeTroc, devisDeVente, sellGain } from './merchantFlow';
 
 const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => moneyAdd(s, bourseOf(h)), fromBrass(0)));
@@ -23,7 +24,7 @@ const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => mo
 function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local' | 'guest' = 'local'): { partie: Partie; budget: number } {
   const { career, careerLevel, budget } = statutLePlusHaut();
   const scene = { ...emptyScene('marche', 4, 4), id: 'marche' };
-  scene.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, buyMarkup: MAJORATION } } as never);
+  scene.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, buyMarkup: MAJORATION } } as never);
   const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'market-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
@@ -58,7 +59,7 @@ function acheter(partie: Partie, id: string): { devis: ReturnType<typeof devisDu
   const devis = devisDuPanier(s.merchant!, { ent, party: s.party, bourse: s.party.reduce((acc, h) => moneyAdd(acc, bourseOf(h)), fromBrass(0)), refusHote: null });
   const unitaire = prixDeLigne(s.merchant!, id, ent, s.party);
   const avant = bourseDuGroupe(partie);
-  partie.envoyer({ type: 'payerLesAchats', args: [] });
+  partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'payer', true] });
   return { devis, unitaire, debit: avant - bourseDuGroupe(partie) };
 }
 
@@ -103,7 +104,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       const cout = 96;
       expect(toBrass(coutDeReparation(abimee))).toBe(cout);
       const avant = bourseDuGroupe(partie);
-      partie.envoyer({ type: 'reparerLObjet', args: ['abimee'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', 'abimee'] });
       expect(avant - bourseDuGroupe(partie)).toBe(cout);
       expect(partie.etat().party[0].items!.find((i) => i.uid === 'abimee')!.damageTaken).toBe(0);
     } finally {
@@ -111,18 +112,21 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
     }
   });
 
-  it('Troc d’une hallebarde contre de la corde, sans corde à céder : « il faut 5 × Corde », rien ne bouge', () => {
+  it('Troc d’une hallebarde contre de la corde, une seule corde à céder : « il faut 5 × Corde », rien ne bouge', () => {
     // Étal fixé : 3 hallebardes. LDB 59 l.66-76 : Commune contre Commune, 1:1, lots de valeur équivalente —
     // hallebarde 2 CO = 480 sous, corde 8 PA 4 s = 100 sous → ⌈480 / 100⌉ = 5 cordes.
     const { partie: ouverte } = ouvrir(false);
-    const etat = { ...ouverte.etat(), merchant: { ...ouverte.etat().merchant!, stock: [{ id: 'hallebarde', qty: 3 }], cart: [] } };
+    const base = ouverte.etat();
+    const corde = { ...itemFromTrappingById('corde', idsDeTest)!, uid: 'corde', equipped: false };
+    const party = base.party.map((h, i) => (i === 0 ? { ...h, items: [...(h.items ?? []), corde] } : h));
+    const etat = { ...base, party, merchant: { ...base.merchant!, stock: [{ id: 'hallebarde', qty: 3 }], cart: [] } };
     ouverte.fermer();
     const partie = creerPartie(etat, { graine: 4, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} });
     try {
       const demande = { giveHeroId: etat.party[0].id, giveTrappingId: 'corde', getStockId: 'hallebarde', getCount: 1 };
-      const texte = 'Troc : il faut 5 × Corde à céder (0 disponible(s)).';
+      const texte = 'Troc : il faut 5 × Corde à céder (1 disponible(s)).';
       expect(devisDeTroc(etat.merchant, etat.party, demande).refus).toBe(texte);
-      partie.envoyer({ type: 'troquerLesObjets', args: [demande] });
+      for (const args of choixDuTroc(etat, demande)) partie.envoyer({ type: 'fenetreChoisir', args });
       expect(partie.etat().merchant!.stock).toEqual([{ id: 'hallebarde', qty: 3 }]);
       expect(partie.etat().journal.some((l) => l.includes(texte))).toBe(true);
     } finally {
@@ -146,7 +150,7 @@ describe('#3059 — vente au panier : le crédit est le total du devis de l’é
       expect(toBrass(devis.total)).toBe(somme);
       expect(somme).toBeGreaterThan(0);
       const avant = bourseDuGroupe(partie);
-      partie.envoyer({ type: 'vendreLeLot', args: [] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'vendre', true] });
       expect(bourseDuGroupe(partie) - avant).toBe(toBrass(devis.total));
     } finally {
       partie.fermer();
@@ -162,7 +166,6 @@ describe('#3059 — siège invité : l’invité compose le panier, l’encaisse
     const { partie } = ouvrir(false, [abimee, avendre], 'guest');
     try {
       const s = partie.etat();
-      const heros = s.party[0];
       // Ligne que la bourse de 50 CO couvre, majoration 1,5 comprise.
       const ligne = s.merchant!.stock.find((l) => {
         const prix = toBrass(priceToMoney(catalogEntryOf(l.id)?.price ?? null));
@@ -170,18 +173,18 @@ describe('#3059 — siège invité : l’invité compose le panier, l’encaisse
       })!;
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterAuPanier', ligne.id] });
       expect(partie.etat().merchant!.cart).toEqual([{ id: ligne.id, qty: 1 }]);
-      partie.envoyer({ type: 'payerLesAchats', args: [] });
-      partie.envoyer({ type: 'reparerLObjet', args: ['abimee'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'payer', true] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', 'abimee'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'ajouterALaVente', 'avendre'] });
-      partie.envoyer({ type: 'vendreLeLot', args: [] });
-      partie.envoyer({ type: 'troquerLesObjets', args: [{ giveHeroId: heros.id, giveTrappingId: 'hallebarde', getStockId: ligne.id, getCount: 1 }] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'vendre', true] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'troquer', true] });
       const apres = partie.etat();
       expect(apres.merchant!.cart).toEqual([{ id: ligne.id, qty: 1 }]);
       expect(apres.merchant!.pendingDistribution ?? null).toBeNull();
       expect(apres.party[0].items!.find((i) => i.uid === 'abimee')!.damageTaken).toBe(2);
       expect(apres.party[0].items!.some((i) => i.uid === 'avendre')).toBe(true);
       expect(apres.merchant!.stock.find((l) => l.id === ligne.id)!.qty).toBe(ligne.qty);
-      expect(apres.journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length).toBe(4);
+      expect(apres.journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length).toBe(4);
     } finally {
       partie.fermer();
     }

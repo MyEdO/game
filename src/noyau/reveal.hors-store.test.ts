@@ -116,7 +116,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     encounters: [],
     entities: [
       { id: 'start', kind: 'heroStart', pos: { x: 6, y: 10 } },
-      { id: 'squ1', kind: 'personnage', ref: 'squelette', pos: { x: 10, y: 10 } },
+      { id: 'squ1', kind: 'personnage', creature: { id: 'squelette' }, pos: { x: 10, y: 10 } },
     ],
   };
 
@@ -188,7 +188,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     // …et sous elle, un jour de voyage parqué plus tôt, curseur au milieu de ses étapes.
     banc.setState({
       suspendedCascades: [
-        cascadeDeTest([{ id: 'j1', kind: 'progression' }, { id: 'j2', kind: 'orientation' }, { id: 'j3', kind: 'entretien' }], { title: 'Jour 2', purpose: 'travelDay', cursor: 1 }),
+        cascadeDeTest([{ id: 'j1', kind: 'crew-progression' }, { id: 'j2', kind: 'crew-orientation' }, { id: 'j3', kind: 'crew-entretien' }], { title: 'Jour 2', purpose: 'travelDay', cursor: 1 }),
         ...banc.getState().suspendedCascades,
       ],
     });

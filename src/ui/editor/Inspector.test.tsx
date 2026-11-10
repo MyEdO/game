@@ -68,7 +68,7 @@ function roundTrip(scene: Scene): Scene {
 
 describe('Inspector — apparences d’objets', () => {
   it('choisit une variante sur l’entité, conserve les autres réglages et retire le défaut', async () => {
-    const h = mount({ id: 'garde', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'humain', inventaire: { 'arme-simple': false }, appearance: { species: 'humains-reiklander' } });
+    const h = mount({ id: 'garde', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' }, inventaire: { 'arme-simple': false }, appearance: { species: 'humains-reiklander' } });
     await h.mount();
     const animation = [...h.container.querySelectorAll('label')].find((l) => l.textContent?.trim().startsWith('Animation d\'ambiance'))!;
     expect(animation.nextElementSibling?.textContent).toContain('Apparences d’objets');
@@ -262,7 +262,7 @@ describe('Inspector — ce que le schéma exige de l’auteur ne se préremplit 
 
 describe('Inspector — l’empreinte d’un décor n’est plus une propriété d’instance', () => {
   it('l’empreinte est ANNONCÉE, jamais saisie ; changer de ref ne pose rien sur l’entité', async () => {
-    const h = mount({ id: 'p', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau' });
+    const h = mount({ id: 'p', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'tonneau' } });
     await h.mount();
 
     // Annoncée : un tonneau tient sur sa case. Et AUCUN contrôle ne la saisit — l'empreinte se dérive
@@ -278,7 +278,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'tribune');
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    expect(h.entOf().ref).toBe('tribune');
+    expect(h.entOf().decor?.id).toBe('tribune');
     expect(h.entOf()).not.toHaveProperty('foot');
   });
 
@@ -305,13 +305,13 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
   });
 
   it('un décor à type DISPARU du catalogue nomme l’id fautif, au lieu d’emprunter un autre décor', async () => {
-    const h = mount({ id: 'mort', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau-imaginaire' });
+    const h = mount({ id: 'mort', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'tonneau-imaginaire' } });
     await h.mount();
 
     const affichee = selecteurDeDecor(h.container).options[selecteurDeDecor(h.container).selectedIndex];
     expect(affichee.textContent).toBe('Décor inexistant « tonneau-imaginaire »');
     expect(affichee.disabled).toBe(true);
-    expect(h.entOf().ref).toBe('tonneau-imaginaire');
+    expect(h.entOf().decor?.id).toBe('tonneau-imaginaire');
   });
 
   /**
@@ -321,7 +321,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
    */
   it('l’id fautif se relit ENTIER hors du sélecteur (alerte) et au survol (title)', async () => {
     const id = 'tonneau-imaginaire-au-nom-tres-long-que-le-champ-coupe';
-    const h = mount({ id: 'mort', kind: 'prop', pos: { x: 0, y: 0 }, ref: id });
+    const h = mount({ id: 'mort', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: id }});
     await h.mount();
 
     const alerte = h.container.querySelector('[role="status"]') as HTMLElement;
@@ -330,7 +330,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
   });
 
   it('un décor au type RÉSOLU ne porte ni alerte ni title — l’état ne se dit que quand il existe', async () => {
-    const h = mount({ id: 'sain', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau' });
+    const h = mount({ id: 'sain', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'tonneau' } });
     await h.mount();
 
     expect(h.container.querySelector('[role="status"]')).toBeNull();
@@ -346,7 +346,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
       Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value')!.set!.call(select, 'tonneau');
       select.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    expect(h.entOf().ref).toBe('tonneau');
+    expect(h.entOf().decor?.id).toBe('tonneau');
     const apres = selecteurDeDecor(h.container);
     expect(apres.options[apres.selectedIndex].textContent).toBe('Tonneau');
     expect(Array.from(apres.options).some((o) => o.disabled)).toBe(false);
@@ -359,7 +359,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
    * d'identité (`Palette.tsx`).
    */
   it('annonce l’empreinte au CAP RÉEL de l’instance, et ses cases suivent le changement de cap', async () => {
-    const h = mount({ id: 'longue', kind: 'prop', pos: { x: 1, y: 2 }, ref: 'table-2x1', facing: 'S' });
+    const h = mount({ id: 'longue', kind: 'prop', pos: { x: 1, y: 2 }, decor: { id: 'table-2x1' }, facing: 'S' });
     await h.mount();
 
     const ligne = () => (Array.from(h.container.querySelectorAll('p'))
@@ -379,7 +379,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
   /** La table MURALE a rejoint les meubles à deux cases par ré-authoring de ses cotes (#1509 L9′,
    *  fait utilisateur du 2026-08-31) : contre un mur, au cap E, elle occupe 1×2. */
   it('la table murale annonce 2×1 au sud et 1×2 à l’est', async () => {
-    const h = mount({ id: 'murale', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'table-murale-2-tabourets', facing: 'S' });
+    const h = mount({ id: 'murale', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'table-murale-2-tabourets' }, facing: 'S' });
     await h.mount();
     const ligne = () => (Array.from(h.container.querySelectorAll('p'))
       .find((el) => el.textContent?.startsWith('Empreinte')) as HTMLParagraphElement).textContent;
@@ -397,7 +397,7 @@ describe('Inspector — l’empreinte d’un décor n’est plus une propriété
 
 describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   it('light.radiusM : la case + le rayon atterrissent dans la Scène et survivent au round-trip', async () => {
-    const h = mount({ id: 'lanterne', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau' });
+    const h = mount({ id: 'lanterne', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'tonneau' } });
     await h.mount();
 
     const checkbox = Array.from(h.container.querySelectorAll('input[type="checkbox"]'))
@@ -418,7 +418,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   });
 
   it('light.tone : le ton d’instance SURVIT au rayon, s’élit/se retire, et survit au round-trip', async () => {
-    const h = mount({ id: 'brasero', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'tonneau', light: { radiusM: 4, tone: 'lanterne' } });
+    const h = mount({ id: 'brasero', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'tonneau' }, light: { radiusM: 4, tone: 'lanterne' } });
     await h.mount();
 
     // (1) régler le rayon ne DÉTRUIT pas le ton posé (l’objet `light` se patche, il ne se remplace pas).
@@ -452,7 +452,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   });
 
   it('combat.skills[] : une compétence ajoutée atterrit dans la Scène et survit au round-trip', async () => {
-    const h = mount({ id: 'brigand', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' });
+    const h = mount({ id: 'brigand', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } });
     await h.mount();
 
     const addSkill = Array.from(h.container.querySelectorAll('button'))
@@ -470,7 +470,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
     const x = competences.find((id) => !entreeOuverte('skill', id) && catalogueSpecs('skill', id).length >= 2)!;
     const [a, b] = catalogueSpecs('skill', x);
     const [y, z, w] = competences.filter((id) => id !== x);
-    const h = mount({ id: 'brigand', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain', combat: { skills: [{ id: x, spec: a, value: 40 }, { id: y, value: 30 }] } });
+    const h = mount({ id: 'brigand', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' }, combat: { skills: [{ id: x, spec: a, value: 40 }, { id: y, value: 30 }] } });
     await h.mount();
     const nom = 'Compétences ajoutées (fusionnées à celles du bestiaire au spawn)';
     const select = (n: string) => h.container.querySelector<HTMLSelectElement>(`select[aria-label="${n}"]`)!;
@@ -490,7 +490,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   });
 
   it('presetId : le choix atterrit dans la Scène et survit au round-trip (picker BORNÉ, jamais un texte libre — #834 audit-2 défaut 7)', async () => {
-    const h = mount({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } });
+    const h = mount({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 } });
     await h.mount();
 
     const select = Array.from(h.container.querySelectorAll('select'))
@@ -504,7 +504,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   });
 
   it('upgrades[] : une amélioration navale ajoutée atterrit dans la Scène et survit au round-trip', async () => {
-    const h = mount({ id: 'coque', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'cogue', postes: [{ trappingId: 'canon' }] });
+    const h = mount({ id: 'coque', kind: 'personnage', pos: { x: 0, y: 0 }, vehicule: { id: 'cogue' }, postes: [{ trappingId: 'canon' }] });
     await h.mount();
 
     const addUpgrade = Array.from(h.container.querySelectorAll('button'))
@@ -518,7 +518,7 @@ describe('Inspector — champs FU-E de l’instance d’entité (#841)', () => {
   });
 
   it('upgrades[] : authorable sur une coque SANS emplacement d’artillerie (Blindage/Lissage seuls, MDG 12 — #834 audit-2 défaut 8)', async () => {
-    const h = mount({ id: 'coque-nue', kind: 'prop', pos: { x: 0, y: 0 }, ref: 'cogue' }); // pas de `postes`
+    const h = mount({ id: 'coque-nue', kind: 'personnage', pos: { x: 0, y: 0 }, vehicule: { id: 'cogue' } }); // pas de `postes`
     await h.mount();
 
     expect(h.container.textContent).toContain('Emplacement de siège');
@@ -700,8 +700,8 @@ describe('Inspector — places assises d’un décor', () => {
     const scene: Scene = {
       ...emptyScene('scene-test', 8, 8),
       entities: [
-        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-        { id: 'pnj-aubergiste', kind: 'personnage', ref: 'humain', pos: { x: 6, y: 6 }, label: 'Aubergiste' },
+        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
+        { id: 'pnj-aubergiste', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 6, y: 6 }, label: 'Aubergiste' },
       ],
     };
     let latest = scene;
@@ -756,7 +756,7 @@ describe('Inspector — places assises d’un décor', () => {
       refSelect.value = 'tonneau';
       refSelect.dispatchEvent(new Event('change', { bubbles: true }));
     });
-    expect(sceneOf().entities.find((e) => e.id === 'table-1')?.ref).toBe('tonneau');
+    expect(sceneOf().entities.find((e) => e.id === 'table-1')?.decor?.id).toBe('tonneau');
     expect(sceneOf().seatAssignments).toEqual({});
   });
 });
@@ -776,25 +776,25 @@ describe('Inspector — orientation : les caps OFFERTS suivent le catalogue', ()
   };
 
   it('décor VOLUMIQUE : quatre cardinaux, aucune diagonale', () => {
-    const h = mount({ id: 'table-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'N' });
+    const h = mount({ id: 'table-1', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' });
     h.mount();
     expect(capsOfferts(h.container)).toEqual(['N', 'E', 'S', 'O']);
   });
 
   it('décor HORS catalogue (repli #877, sans recette) : les huit caps restent offerts', () => {
-    const h = mount({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'decor-hors-catalogue', facing: 'NE' });
+    const h = mount({ id: 'brasero-1', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'decor-hors-catalogue' }, facing: 'NE' });
     h.mount();
     expect(capsOfferts(h.container)).toEqual(['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO']);
   });
 
   it('PERSONNAGE : les huit caps restent offerts (la règle ne parle que du décor)', () => {
-    const h = mount({ id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, facing: 'SE' });
+    const h = mount({ id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, facing: 'SE' });
     h.mount();
     expect(capsOfferts(h.container)).toEqual(['N', 'NE', 'E', 'SE', 'S', 'SO', 'O', 'NO']);
   });
 
   it('cap HORS offre porté par la donnée : montré en option NON élisible, les cardinaux restent élisibles', () => {
-    const h = mount({ id: 'table-1', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'table-ronde-4-tabourets', facing: 'NE' });
+    const h = mount({ id: 'table-1', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'NE' });
     h.mount();
     const champ = [...h.container.querySelectorAll('label')].find((l) => l.textContent?.startsWith('Orientation'));
     const select = champ!.querySelector('select') as HTMLSelectElement;

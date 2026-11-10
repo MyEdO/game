@@ -1,0 +1,37 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "baton"
+  },
+  "liaison": {
+    "mode": "rigide",
+    "secondePrise": {
+      "position": [
+        0,
+        0.5,
+        0
+      ],
+      "rotation": [
+        0,
+        -1.570796,
+        0
+      ]
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "bois",
+      "palette": "bois"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
+    }
+  ],
+  "glb": {
+    "sha256": "370aa8b5ce1790562dd3bffa84b16cfe056d7a0117dc8d1479abe632fec51abd",
+    "octets": 36780
+  }
+}

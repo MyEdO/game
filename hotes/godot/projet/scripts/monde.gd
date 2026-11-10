@@ -5,7 +5,8 @@
 ## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), de biais en tactique, à la verticale et sans
 ## perspective au plateau ; et l'œil
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
-## Le clavier ne mène rien pendant une saisie (`clavier_libre`). Il rend la caméra posée (`camera`), la case du
+## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
+## (`forces_du_clavier`). Il rend la caméra posée (`camera`), la case du
 ## triangle que le rayon du pointeur
 ## touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
@@ -37,6 +38,8 @@ const AU_DESSUS_DU_LIEU_M := 1.0
 const ITEM_ATTEIGNABLE := 0
 const ITEM_CIBLE := 1
 const ITEM_SURVOL := 2
+## Les actions du clavier qui mènent la caméra et l'œil, dans l'ordre des forces (`forces_du_clavier`).
+const ACTIONS_DE_MARCHE: Array[StringName] = [&"gauche", &"droite", &"avant", &"arriere"]
 
 ## Les plaques des surbrillances, par item (`ITEM_*`), chacune posée sans ombre.
 @export var surbrillances: MeshLibrary
@@ -60,6 +63,8 @@ const ITEM_SURVOL := 2
 
 ## La case `[x, y, z]` de chaque triangle du maillage du monde, sa couche comprise, dans son ordre.
 var _cases_des_triangles: Array = []
+## Le son de la météo qui joue en boucle, `null` sans son (`poser_la_meteo`).
+var _son_de_la_meteo: AudioStreamPlayer = null
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
 var _lacet := 0.0
@@ -75,6 +80,8 @@ var _suivi: Tween
 var _suivi_lieu: Variant = null
 ## Le regard posé (`regarder`).
 var _regard := "tactique"
+## Les actions de marche dont l'appui a atteint `_input`, tant qu'elles restent tenues.
+var _prises: Dictionary = {}
 ## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
 ## occupant (`poser_les_stations`).
 var _stations := {}
@@ -112,11 +119,13 @@ func poser(monde: Dictionary) -> void:
 
 ## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
 ## averse de particules par boîte de `pluie.averses`, étirées dans le sens de leur chute et effacées près de la caméra,
-## et chaque nappe de brume, plate et translucide ; rien sans météo.
+## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834), que le même son laisse jouer ; rien
+## sans météo.
 func poser_la_meteo(meteo: Variant) -> void:
 	for posee in _meteo.get_children():
 		_meteo.remove_child(posee)
 		posee.free()
+	_entendre_la_meteo(null if meteo == null else meteo.son)
 	if meteo == null:
 		return
 	if meteo.pluie != null:
@@ -124,6 +133,31 @@ func poser_la_meteo(meteo: Variant) -> void:
 			_meteo.add_child(_averse(meteo.pluie, averse))
 	for nappe in meteo.nappes:
 		_meteo.add_child(_nappe_de_brume(nappe))
+
+
+## Le son `son` de la météo (`null` : aucun) joué partout en boucle, à la place du précédent s'il en diffère.
+func _entendre_la_meteo(son: Variant) -> void:
+	var voulu: String = "" if son == null else son.id
+	var joue: String = "" if _son_de_la_meteo == null else _son_de_la_meteo.get_meta("son")
+	if voulu == joue:
+		return
+	if _son_de_la_meteo != null:
+		_son_de_la_meteo.queue_free()
+		_son_de_la_meteo = null
+	if son == null:
+		return
+	_son_de_la_meteo = AudioStreamPlayer.new()
+	_son_de_la_meteo.name = "son-%s" % son.id
+	_son_de_la_meteo.set_meta("son", son.id)
+	_son_de_la_meteo.stream = Effets.variante_du_son(son, true)
+	_son_de_la_meteo.volume_db = linear_to_db(son.volume)
+	_son_de_la_meteo.autoplay = true
+	add_child(_son_de_la_meteo, true)
+
+
+## Le son de la météo qui joue, `null` sans son.
+func son_de_la_meteo() -> AudioStreamPlayer:
+	return _son_de_la_meteo
 
 
 func _averse(pluie: Dictionary, averse: Dictionary) -> CPUParticles3D:
@@ -444,11 +478,35 @@ func clavier_libre() -> bool:
 	return not (focus is LineEdit or focus is TextEdit)
 
 
+## Une touche de marche que l'interface n'a pas prise est au monde seul : les flèches ne déplacent pas le focus du
+## panneau. Une liste ouverte (le `PopupMenu` d'un `OptionButton`, fenêtre incrustée qui a le focus) reçoit la touche
+## avant tout `_input` de la scène, qui ne la voit pas (« Using InputEvent », « How does it work? », Godot 4.7).
+func _input(event: InputEvent) -> void:
+	if not event is InputEventKey or not clavier_libre():
+		return
+	for action in ACTIONS_DE_MARCHE:
+		if event.is_action(action):
+			get_viewport().set_input_as_handled()
+			if event.is_pressed():
+				_prises[action] = true
+
+
+## La force de chaque action de `ACTIONS_DE_MARCHE` dont l'appui a atteint `_input`, 0 pour les autres ; relâchée, une
+## action n'est plus prise.
+func forces_du_clavier() -> Array[float]:
+	var forces: Array[float] = []
+	for action in ACTIONS_DE_MARCHE:
+		if not Input.is_action_pressed(action):
+			_prises.erase(action)
+		forces.append(Input.get_action_strength(action) if _prises.has(action) else 0.0)
+	return forces
+
+
 ## La caméra des regards `tactique` et `plateau` glisse au clavier (ZQSD), dans le sens où elle regarde.
 func _process(delta: float) -> void:
 	if _regard == "immersion" or not clavier_libre():
 		return
-	var forces := [Input.get_action_strength(&"gauche"), Input.get_action_strength(&"droite"), Input.get_action_strength(&"avant"), Input.get_action_strength(&"arriere")]
+	var forces := forces_du_clavier()
 	if forces.all(func(f: float) -> bool: return f == 0.0):
 		return
 	if _suivi != null:
@@ -540,4 +598,6 @@ func _zoomer(sens: float) -> void:
 ## traverse (`VolumeDeScene.poser_les_nappes`). Aucune géométrie ni couleur ne se réécrit en GDScript.
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
-## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur.
+## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son
+## (`meteo.son` : la pluie, l'orage, #3834) en boucle, partout, sans lieu : la même météo garde son lecteur, une autre
+## le remplace, aucune le retire (recette `projet/recettes/meteo.gd`).

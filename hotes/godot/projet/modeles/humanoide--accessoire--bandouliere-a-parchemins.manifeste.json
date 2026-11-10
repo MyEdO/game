@@ -1,0 +1,177 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "bandouliere-a-parchemins"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "emplacements": {
+    "bandouliere": {
+      "os": "spine_03",
+      "position": [
+        -0.03658,
+        0.105564,
+        0.124207
+      ],
+      "rotation": [
+        -0.14182,
+        -0.318022,
+        -1.500701
+      ],
+      "poids": {
+        "spine_02": 0.1134,
+        "spine_03": 0.4689,
+        "clavicle_l": 0.1456,
+        "clavicle_r": 0.2721
+      }
+    },
+    "bandouliere#2": {
+      "os": "spine_03",
+      "position": [
+        0.015271,
+        0.069983,
+        0.140379
+      ],
+      "rotation": [
+        -0.0172,
+        -0.217135,
+        -1.380404
+      ],
+      "poids": {
+        "spine_01": 0.002,
+        "spine_02": 0.1761,
+        "spine_03": 0.5671,
+        "clavicle_l": 0.1664,
+        "upperarm_l": 0.0001,
+        "clavicle_r": 0.0883
+      }
+    },
+    "bandouliere#3": {
+      "os": "spine_03",
+      "position": [
+        0.020235,
+        0.026714,
+        0.139109
+      ],
+      "rotation": [
+        -0.109744,
+        -0.292987,
+        -1.578319
+      ],
+      "poids": {
+        "pelvis": 0.0001,
+        "spine_01": 0.0316,
+        "spine_02": 0.2912,
+        "spine_03": 0.4911,
+        "clavicle_l": 0.175,
+        "upperarm_l": 0.0023,
+        "clavicle_r": 0.0087
+      }
+    },
+    "bandouliere#4": {
+      "os": "spine_03",
+      "position": [
+        0.021997,
+        -0.009588,
+        0.138581
+      ],
+      "rotation": [
+        0.309101,
+        0.07531,
+        -1.356827
+      ],
+      "poids": {
+        "pelvis": 0.0012,
+        "spine_01": 0.0563,
+        "spine_02": 0.3621,
+        "spine_03": 0.4446,
+        "clavicle_l": 0.1314,
+        "upperarm_l": 0.0036,
+        "clavicle_r": 0.0007
+      }
+    },
+    "bandouliere#5": {
+      "os": "spine_02",
+      "position": [
+        0.032462,
+        0.121823,
+        0.136261
+      ],
+      "rotation": [
+        0.25605,
+        0.246334,
+        -1.213888
+      ],
+      "poids": {
+        "pelvis": 0.0053,
+        "spine_01": 0.0899,
+        "spine_02": 0.4108,
+        "spine_03": 0.3995,
+        "clavicle_l": 0.0921,
+        "upperarm_l": 0.0023
+      }
+    },
+    "bandouliere#6": {
+      "os": "spine_02",
+      "position": [
+        0.040322,
+        0.099148,
+        0.129741
+      ],
+      "rotation": [
+        0.314951,
+        0.293981,
+        -1.229616
+      ],
+      "poids": {
+        "pelvis": 0.0134,
+        "spine_01": 0.1312,
+        "spine_02": 0.4405,
+        "spine_03": 0.3498,
+        "clavicle_l": 0.0648,
+        "upperarm_l": 0.0004
+      }
+    },
+    "bandouliere#7": {
+      "os": "spine_02",
+      "position": [
+        0.056381,
+        0.081333,
+        0.118823
+      ],
+      "rotation": [
+        0.314951,
+        0.293981,
+        -1.229616
+      ],
+      "poids": {
+        "pelvis": 0.0271,
+        "spine_01": 0.1745,
+        "spine_02": 0.4574,
+        "spine_03": 0.3027,
+        "clavicle_l": 0.0379,
+        "upperarm_l": 0.0003
+      }
+    }
+  },
+  "surfaces": [
+    {
+      "nom": "sangle",
+      "palette": "vet2"
+    }
+  ],
+  "glb": {
+    "sha256": "3b83db72d04d9ff82e7e53dfec6a34ce27e87f0523a87f1f89e1724737a3cfa9",
+    "octets": 163576
+  }
+}

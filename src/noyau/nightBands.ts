@@ -32,7 +32,7 @@ import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
 import { sealskinDR, type ExposureKind } from '../engine/exposure';
 
 /** Discriminant d'ENTRÉE DE RÈGLE d'une étape de nuit, lu dans son `meta` : la maladie et son symptôme
- *  (`diseaseTick`/`diseaseGangrene`/`diseasePersist`/`contagion` sont des entrées DIFFÉRENTES), le volet
+ *  (`disease-tick`/`disease-gangrene`/`disease-persist`/`contagion` sont des entrées DIFFÉRENTES), le volet
  *  froid/chaleur de l'Exposition (LDB 18 l.330 vs l.334) et sa VAGUE. */
 function bandEntry(step: CascadeStep): string {
   const m = step.meta ?? {};
@@ -76,7 +76,7 @@ export const nightBands = makeBandFactory<BuiltCascadeStep>({
   situation: (step, { rang }) => ({
     // L'id de bande porte les DEUX discriminants de sa clé, dans des ESPACES DE NOMS SÉPARÉS (#1277) :
     //  - le JOUR (préfixé `j`), car deux insertions issues du MÊME `step.id` à des jours différents —
-    //    la gueule de bois de deux Dessoûlages, `dessoulageHangover-<héros>` — viennent de DEUX appels
+    //    la gueule de bois de deux Dessoûlages, `dessoulage-hangover-<héros>` — viennent de DEUX appels
     //    distincts à la fabrique, qui ne peut pas les dédoublonner entre eux ;
     //  - le RANG de dédoublement, car deux bandes séparées sous la MÊME clé (deux Convalescences du
     //    même héros) sortiraient sinon avec le même id.

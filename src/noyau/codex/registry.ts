@@ -1319,11 +1319,10 @@ const CODEX_SPECS = {
     build: () => datasetArray('miscastWrath').map((e) => miscastRowItem(e, miscastDie('miscast-colere'))),
   },
   stakes: {
-    // Enjeux des jets de cascade (#1117, collection #1681), groupés par cascade ; `sub` = la clé de
-    // consommation (le `kind` de l'étape servie, ou l'id du jet de modale).
+    // Enjeux des jets de cascade (#1117, collection #1681), groupés par cascade.
     label: 'codex.fiche.enjeuxDeJet', group: 'tables', sourceRef: 'LDB 09/15/16/18/19/20/21/46/47/62/85 · AA 07 · MSRC 7 · MDG 09/12/13/14',
     build: () => datasetArray('stakes').map((e) => depuisEnveloppe(e, {
-      group: valeurFR('stakes.json', 'cascade', e.cascade), sub: e.cle, desc: e.template, sections: sections(regleChips(e.rule)),
+      group: valeurFR('stakes.json', 'cascade', e.cascade), desc: e.template, sections: sections(regleChips(e.rule)),
     })),
   },
 

@@ -100,10 +100,19 @@ describe('composerSurLaBase', () => {
     expect(composer({ humanoide }, tenue).manquants).toContainEqual(expect.objectContaining({ ligne: 'main', champ: 'apparence', id: 'epee_soldat' }));
   });
 
+  it('le deuxième objet rangé au même point se monte sur la ligne `<point>#2`, le premier sur le point', () => {
+    const besace = { ...elementSchema3('humanoide'), cle: { apparence: 'besace' } };
+    const epee = { ...elementSchema3('humanoide'), cle: { apparence: 'epee' } };
+    const tenue = { ...soldat, prises: {}, objets: ['arme-simple', 'besace'], rangementsObjets: { 'arme-simple': { id: 'epaule_d' }, besace: { id: 'epaule_d' } } };
+    const { montes, manquants } = composer({ humanoide, besace, epee }, tenue);
+    expect(montes.filter((m) => m.ligne.startsWith('epaule_d'))).toEqual([{ ligne: 'epaule_d', element: 'epee' }, { ligne: 'epaule_d#2', element: 'besace' }]);
+    expect(manquants.filter((m) => m.ligne.startsWith('epaule_d'))).toEqual([]);
+  });
+
   it('un objet porté sans ensemble ni rangement va au rapport, sans point', () => {
-    const { rapport, manquants } = composer({ humanoide }, { ...soldat, objets: ['plastron', 'cape'] });
-    expect(rapport).toEqual(['objet « cape » : ni prise, ni ensemble, ni rangement']);
-    expect(manquants.map((m) => m.par?.id)).not.toContain('cape');
+    const { rapport, manquants } = composer({ humanoide }, { ...soldat, objets: ['plastron', 'rocher'] });
+    expect(rapport).toEqual(['objet « rocher » : ni prise, ni ensemble, ni rangement']);
+    expect(manquants.map((m) => m.par?.id)).not.toContain('rocher');
   });
 });
 
@@ -140,7 +149,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
 
   it('catalogues publie chaque champ en `{ id, label }` et ses axes, et presetDeComposition le Soldat sous son preset', () => {
     const catalogues = appeler('catalogues');
-    expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual([{ id: 'soldat', label: 'Soldat' }, { id: 'gladiateur', label: 'Gladiateur' }]);
+    expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual(presets.map(({ id, label }) => ({ id, label })));
     expect(catalogues.prises.map((c: { id: string }) => c.id)).toEqual(['main', 'off']);
     expect(catalogues.couleurs.map((c: { id: string }) => c.id)).toEqual([...SLOTS]);
     expect(catalogues.nuancier).toEqual(cataloguesDeComposition().nuancier);
@@ -153,7 +162,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
     expect(sansPreset.verdict.map((f: { chemin: unknown[] }) => f.chemin)).toEqual([['id'], ['label'], ['source']]);
     expect(appeler('presetDeComposition', { composition: soldat, preset: 'inconnu' }).erreur).toEqual({
       categorie: 'validation',
-      message: 'presetDeComposition : preset, l’id d’un preset de catalogues (soldat, gladiateur)',
+      message: `presetDeComposition : preset, l’id d’un preset de catalogues (${presets.map((p) => p.id).join(', ')})`,
     });
   });
 

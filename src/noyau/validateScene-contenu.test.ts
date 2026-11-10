@@ -6,7 +6,8 @@
  */
 import { describe, expect, it } from 'vitest';
 import { validateScene, type Warning } from './validateScene';
-import { emptyScene, type Scene, type WallSeg } from './monde/scene';
+import { emptyScene, type Scene, type SceneEntity, type WallSeg } from './monde/scene';
+import type { PorteurDeFiche } from '../engine/statblock';
 import { RefIrresoluble, spawnEnemy } from './monde/spawn';
 import { flowFromEffects } from './monde/flow';
 import { creatures, siegeEngines, spells, vehicles } from '../data';
@@ -81,41 +82,46 @@ describe('une pièce nommée que RIEN ne relie au départ du groupe se dit à l�
   });
 });
 
-describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas une surprise à l’écran', () => {
-  it('réf inconnue → erreur nominative sur l’entité', () => {
+describe('un CORPS que le spawn ne résout pas est une erreur, pas une surprise à l’écran', () => {
+  it('créature inconnue → erreur nominative sur l’entité', () => {
     const s = scene();
-    s.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref: 'gobelin-des-cavernes-oublie' });
+    s.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, creature: { id: 'gobelin-des-cavernes-oublie' } });
     const errs = validateScene([s]).filter((w) => w.level === 'error');
     expect(errs).toHaveLength(1);
     expect(errs[0].refId).toBe('e-1');
-    expect(errs[0].message).toContain('« gobelin-des-cavernes-oublie » ni créature, ni coque de véhicule, ni engin de siège');
+    expect(errs[0].message).toContain('« gobelin-des-cavernes-oublie » est absent du catalogue des créatures (creatures.json).');
   });
 
-  it('PARITÉ avec le spawn : les 3 branches du faisceau passent la validation ET se spawnent ; une réf fausse est dite ET lève', () => {
-    for (const ref of [REF_CREATURE, REF_COQUE, REF_ENGIN]) {
+  it('PARITÉ avec le spawn : les 3 corps passent la validation ET se spawnent ; un corps faux est dit ET lève', () => {
+    const corps: [Partial<SceneEntity>, PorteurDeFiche][] = [
+      [{ creature: { id: REF_CREATURE } }, { ref: REF_CREATURE }],
+      [{ vehicule: { id: REF_COQUE } }, { vehicule: REF_COQUE }],
+      [{ engin: { id: REF_ENGIN } }, { engin: REF_ENGIN }],
+    ];
+    for (const [entite, porteur] of corps) {
       const s = scene();
-      s.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref });
-      expect(validateScene([s]).filter((w) => w.level === 'error'), ref).toEqual([]);
-      expect(spawnEnemy({ ref: ref }, 'e-1', { x: 2, y: 2 }).porteurDeFiche, ref).toEqual({ ref });
+      s.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ...entite });
+      expect(validateScene([s]).filter((w) => w.level === 'error'), JSON.stringify(entite)).toEqual([]);
+      expect(spawnEnemy(porteur, 'e-1', { x: 2, y: 2 }).porteurDeFiche, JSON.stringify(entite)).toEqual(porteur);
     }
     const faux = scene();
-    faux.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref: 'ref-qui-nexiste-nulle-part' });
+    faux.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, creature: { id: 'ref-qui-nexiste-nulle-part' } });
     expect(validateScene([faux]).filter((w) => w.level === 'error')).toHaveLength(1);
     expect(() => spawnEnemy({ ref: 'ref-qui-nexiste-nulle-part' }, 'e-1', { x: 2, y: 2 })).toThrow(RefIrresoluble);
   });
 
   it('une réf du bestiaire passe ; une réf MORTE est dite même quand un statbloc la côtoie (#1882)', () => {
     const vraie = scene();
-    vraie.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref: REF_CREATURE });
+    vraie.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, creature: { id: REF_CREATURE } });
     expect(validateScene([vraie]).filter((w) => w.level === 'error')).toEqual([]);
 
     const custom = scene();
     custom.entities.push({
-      id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref: 'gobelin-des-cavernes-oublie',
+      id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, creature: { id: 'gobelin-des-cavernes-oublie' },
       statblock: { type: 'statblock', label: 'Brigand', char: { B: 10 } },
     });
     expect(validateScene([custom]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['entité « e-1 » › référence : « gobelin-des-cavernes-oublie » ni créature, ni coque de véhicule, ni engin de siège']);
+      .toEqual(['entité « e-1 » › créature › identifiant : « gobelin-des-cavernes-oublie » est absent du catalogue des créatures (creatures.json).']);
   });
 
   it('un PNJ nommé (`presetId`) passe sans réf ; sa réf MORTE est dite (#1882)', () => {
@@ -124,38 +130,40 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
     expect(validateScene([sans]).filter((w) => w.level === 'error')).toEqual([]);
 
     const avecRefMorte = scene();
-    avecRefMorte.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, presetId: 'pnj-de-la-campagne', ref: 'ref-qui-nexiste-nulle-part' });
+    avecRefMorte.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, presetId: 'pnj-de-la-campagne', creature: { id: 'ref-qui-nexiste-nulle-part' } });
     expect(validateScene([avecRefMorte]).filter((w) => w.level === 'error')).toHaveLength(1);
   });
 
   it('un DÉCOR à réf MORTE est une erreur, et un décor SANS type aussi — il se DIT ou se REFUSE (#877)', () => {
     const morte = scene();
-    morte.entities.push({ id: 'p-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau-imaginaire' });
+    morte.entities.push({ id: 'p-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'tonneau-imaginaire' } });
     expect(validateScene([morte]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['entité « p-1 » › référence : « tonneau-imaginaire » est absent du catalogue des décors (props.json).']);
+      .toEqual(['entité « p-1 » › décor › identifiant : « tonneau-imaginaire » est absent du catalogue des décors (props.json).']);
 
     const sansType = scene();
     sansType.entities.push({ id: 'p-2', kind: 'prop', pos: { x: 2, y: 2 } });
     expect(validateScene([sansType]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['entité « p-2 » › référence : « ref » absente — un décor NOMME son type au catalogue (props.json)']);
+      .toEqual(['entité « p-2 » › décor : « decor » absent — un décor NOMME son type au catalogue (props.json)']);
   });
 
   it('un décor LIBELLÉ se nomme UNE fois, par son libellé, et la faute se rattache à son id (#1897)', () => {
     const nomme = scene();
     nomme.entities.push({ id: 'p-1', kind: 'prop', pos: { x: 2, y: 2 }, label: 'Tonneau' });
     expect(validateScene([nomme]).filter((w) => w.level === 'error')).toEqual([
-      expect.objectContaining({ scope: 'entity', refId: 'p-1', message: 'entité « Tonneau » › référence : « ref » absente — un décor NOMME son type au catalogue (props.json)' }),
+      expect.objectContaining({ scope: 'entity', refId: 'p-1', message: 'entité « Tonneau » › décor : « decor » absent — un décor NOMME son type au catalogue (props.json)' }),
     ]);
   });
 
-  it('un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (réf, statbloc, preset) la lève (#1882)', () => {
+  it('un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (corps, statbloc, preset) la lève (#1882)', () => {
     const sansFiche = scene();
     sansFiche.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Aubergiste' });
     expect(validateScene([sansFiche]).filter((w) => w.level === 'error').map((w) => `${w.refId} ${w.message}`))
-      .toEqual(['e-1 entité « Aubergiste » › référence : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
+      .toEqual(['e-1 entité « Aubergiste » › créature : « creature », « vehicule », « engin », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, coque, engin de siège, statbloc ou preset de PNJ)']);
 
     for (const porteur of [
-      { ref: REF_CREATURE },
+      { creature: { id: REF_CREATURE } },
+      { vehicule: { id: 'cogue' } },
+      { engin: { id: 'baliste' } },
       { statblock: { type: 'statblock' as const, label: 'Brigand', char: { B: 10 } } },
       { presetId: 'pnj-de-la-campagne' },
     ]) {
@@ -163,13 +171,6 @@ describe('une RÉF de créature que le spawn ne résout pas est une erreur, pas 
       s.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ...porteur });
       expect(validateScene([s]).filter((w) => w.level === 'error'), Object.keys(porteur)[0]).toEqual([]);
     }
-  });
-
-  it('une réf de personnage VIDE n’est pas un porteur : le personnage est dit SANS fiche (#1882)', () => {
-    const vide = scene();
-    vide.entities.push({ id: 'e-1', kind: 'personnage', pos: { x: 2, y: 2 }, ref: '' });
-    expect(validateScene([vide]).filter((w) => w.level === 'error').map((w) => w.message))
-      .toEqual(['entité « e-1 » › référence : « ref », « statblock », « presetId » absents — un personnage NOMME sa fiche (bestiaire, statbloc ou preset de PNJ)']);
   });
 });
 
@@ -269,7 +270,7 @@ describe('le SCHÉMA de scène se joue sur une scène VIVANTE (#877, #1897)', ()
   /** Un personnage de la scène qui porte un sort d'auteur absent de `spells.json`. */
   const aSortMort = (): Scene => {
     const s = scene();
-    s.entities.push({ id: 'mage', kind: 'personnage', label: 'Mage', pos: { x: 2, y: 2 }, ref: 'pol-dankels', combat: { spells: ['sort-fantome'] } }); // Lanceur de Sorts : ouvre les Sorts mineurs (#3715)
+    s.entities.push({ id: 'mage', kind: 'personnage', label: 'Mage', pos: { x: 2, y: 2 }, creature: { id: 'pol-dankels' }, combat: { spells: ['sort-fantome'] } }); // Lanceur de Sorts : ouvre les Sorts mineurs (#3715)
     return s;
   };
   const erreurs = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error');

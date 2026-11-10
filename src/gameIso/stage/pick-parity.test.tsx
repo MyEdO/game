@@ -226,9 +226,9 @@ const PLATEAU_BOITE: [number, number, number, number] = [CASE_ETAGE.x - 1, CASE_
 
 const FIXTURE = buildScene(specFixture({
   entities: [
-    { id: MEUBLE_HAUT_ID, kind: 'prop', ref: MEUBLE_HAUT.id, pos: POSE_HAUTE, facing: 'S' },
-    { id: VOISIN_ID, kind: 'prop', ref: PLATEAU_FIN.id, pos: caseDuDessus(MEUBLE_HAUT, POSE_HAUTE), facing: 'S' },
-    { id: PLATEAU_FIN_ID, kind: 'prop', ref: PLATEAU_FIN.id, pos: POSE_FINE, facing: 'S' },
+    { id: MEUBLE_HAUT_ID, kind: 'prop', decor: { id: MEUBLE_HAUT.id }, pos: POSE_HAUTE, facing: 'S' },
+    { id: VOISIN_ID, kind: 'prop', decor: { id: PLATEAU_FIN.id }, pos: caseDuDessus(MEUBLE_HAUT, POSE_HAUTE), facing: 'S' },
+    { id: PLATEAU_FIN_ID, kind: 'prop', decor: { id: PLATEAU_FIN.id }, pos: POSE_FINE, facing: 'S' },
   ],
   terrainRects: [{ rect: PLATEAU_COIN, terrain: 'planches', z: 1 }],
   // Le plancher de l'étage est à UN niveau d'écran : le lift auquel le repli cross-couche inverse la couche 1.
@@ -503,7 +503,7 @@ describe('meuble HAUT — le rayon décide, la case dessinée n’est qu’un re
   const camera = cameraVolumique(dims, mpt);
 
   /** Sommet MONDE d'un décor POSÉ dans la scène, cap et altitude de son pied compris. */
-  const sommet = (ent: SceneEntity): number => sommetDuDecor(findPropById(ent.ref)!, {
+  const sommet = (ent: SceneEntity): number => sommetDuDecor(findPropById(ent.decor?.id)!, {
     ancre: ent.pos,
     facing: capVolumique(ent.facing)!,
     baseHeightM: heightAt(scene, ent.pos.x, ent.pos.y, ent.z ?? 0),
@@ -639,8 +639,8 @@ describe('verdict de picking — le rayon nomme, la surface ne devine pas (#1687
   const REF_VOLUMIQUE = props.find((p) => refEstVolumique(p.id))!.id;
   const scene = emptyScene('scene-test', 8, 8);
   scene.entities = [
-    { id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: REF_VOLUMIQUE, facing: 'S' },
-    { id: 'coffre-1', kind: 'prop', pos: { x: 3, y: 3 }, ref: REF_VOLUMIQUE, facing: 'S' },
+    { id: 'table-1', kind: 'prop', pos: { x: 3, y: 3 }, decor: { id: REF_VOLUMIQUE }, facing: 'S' },
+    { id: 'coffre-1', kind: 'prop', pos: { x: 3, y: 3 }, decor: { id: REF_VOLUMIQUE }, facing: 'S' },
   ] as unknown as SceneEntity[];
   const mpt = sceneMetresPerTile(scene);
   const camera = cameraVolumique(dimsDe(scene), mpt);
@@ -855,7 +855,7 @@ describe('sonde de recette — le verdict dit la CASE, le geste nomme le PNJ (#1
   const scene = emptyScene('scene-test', 8, 8);
   const PNJ = 'baron-a-la-case';
   scene.entities = [
-    { id: PNJ, kind: 'personnage', ref: 'humain', pos: { x: 4, y: 4 }, dialogueId: { id: 'dlg-baron' }, facing: 'S' },
+    { id: PNJ, kind: 'personnage', creature: { id: 'humain' }, pos: { x: 4, y: 4 }, dialogueId: { id: 'dlg-baron' }, facing: 'S' },
   ] as unknown as SceneEntity[];
   const mpt = sceneMetresPerTile(scene);
   const px = pixelVolumique(

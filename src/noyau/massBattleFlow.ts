@@ -51,6 +51,8 @@ import { refuseSi } from './verrousDeFiche';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
+import type { ValidationsDeFenetre } from './validationDeFenetre';
+import type { FermetureDuJet } from './rollFlowFactory';
 
 /** Une armée engagée dans la Puissance de Bataille, modélisée comme un COMBATTANT INANIMÉ à Blessures
  *  (même patron que les structures de siège `structureCombatant`) : `combatant.wounds.current` = Puissance
@@ -485,12 +487,24 @@ export function assignedHeroesFor(mb: MassBattleState, party: Combatant[], actio
     .filter((h): h is Combatant => !!h && !h.dead && !mb.actedHeroes.includes(h.id));
 }
 
-/** Enregistre l'AFFECTATION de PJ à une action du Round (Scène MULTI-PJ / Activité). */
-export function affecterLeHeros(get: Get, set: Set, actionId: string, heroIds: string[]): void {
-  const mb = get().massBattle;
-  if (!mb) return;
+/** Les postes de la bataille où se postent les PJ : en préparation, les Activités soutenables non réalisées
+ *  (ADE II 8 l.67, l.81) ; au Round, les Scènes de la situation qu'un PJ tente, ni résolues, ni après le Test
+ *  spectaculaire (l.116-120). */
+export function postesDeBataille(mb: MassBattleState): ActivityDef[] {
+  if (mb.phase === 'prep') return battlePrepEntries(mb).filter((e) => e.def.assisted && !e.done).map((e) => e.def);
+  if (mb.phase !== 'round' || mb.awaitingNext) return [];
+  return mb.situation.map(battleSceneById).filter((d): d is ActivityDef => !!d && !isCombatScene(d) && !mb.resolvedScenes.includes(d.id));
+}
+
+/** Les PJ qui se postent : en préparation, les vivants ; au Round, ceux qui n'ont pas agi ce Round (`herosLibres`). */
+export const herosQuiSePostent = (mb: MassBattleState, party: readonly Combatant[]): Combatant[] =>
+  (mb.phase === 'prep' ? party.filter((h) => !h.dead) : herosLibres(mb, party));
+
+/** Écrit l'AFFECTATION `heroIds` du poste `posteId` ; une liste vide l'efface. */
+function ecrireLePoste(get: Get, set: Set, posteId: string, heroIds: string[]): void {
+  const mb = get().massBattle!;
   const assignment = { ...mb.assignment };
-  if (heroIds.length) assignment[actionId] = heroIds; else delete assignment[actionId];
+  if (heroIds.length) assignment[posteId] = heroIds; else delete assignment[posteId];
   set({ massBattle: { ...mb, assignment } });
 }
 
@@ -565,7 +579,7 @@ export function preJetDePreparation(s: EtatDInterlude, mb: MassBattleState, hero
 
 /** Ouvre le Test d'une Activité de bataille pré-combat MENÉE par `heroId` (`preJetDePreparation`). Le meneur sans
  *  Activité restante ou qui ne peut pas tenter le Test est refusé, jamais remplacé. ADE II 8 l.65, LDB 09 l.30 */
-export function openMassBattleActivity(get: Get, set: Set, activityId: string, heroId: string): void {
+export function openMassBattleActivity(get: Get, set: Set, heroId: string, activityId: string): void {
   const mb = get().massBattle;
   const def = battleActivityById(activityId);
   const hero = get().party.find((h) => h.id === heroId);
@@ -580,8 +594,8 @@ export function openMassBattleActivity(get: Get, set: Set, activityId: string, h
 /** Les PJ vivants qui n'ont pas encore agi ce Round. ADE II 8 l.116-118 */
 export const herosLibres = (mb: MassBattleState, party: readonly Combatant[]): Combatant[] => party.filter((h) => !h.dead && !mb.actedHeroes.includes(h.id));
 
-/** Raison du refus d'engager la Scène `sceneId`, ou `null` — verdict UNIQUE de `openMassBattleScene` et de ce
- *  qu'un hôte montre : une Scène de la situation du Round, ni déjà résolue, ni après le Test spectaculaire ; une
+/** Raison du refus d'engager la Scène `sceneId`, ou `null` — verdict UNIQUE du choix `batailleDeMasse.scene` et
+ *  de ce qu'un hôte montre : une Scène de la situation du Round, ni déjà résolue, ni après le Test spectaculaire ; une
  *  Scène de combat engage tout le groupe ; une autre attend un PJ libre qui puisse la tenter, et une position
  *  rompue ne se tient plus. ADE II 8 l.116-118, l.161 */
 export function refusDeSceneDeBataille(s: Pick<Jeu, 'massBattle' | 'party'>, sceneId: string): string | null {
@@ -596,10 +610,9 @@ export function refusDeSceneDeBataille(s: Pick<Jeu, 'massBattle' | 'party'>, sce
   return libres.length ? battleActionRefus(mb, libres, scene) : t('mbf.allActed');
 }
 
-/** Choisit une Scène de la SITUATION : 'test' → modale de jet ; 'hold' → Test opposé de tenue ;
- *  'combat'/'threat' → combat tactique. Scène MULTI-PJ (l.116-118) résolue en SOUTIEN (LDB 12). */
-export function openMassBattleScene(get: Get, set: Set, sceneId: string): void {
-  if (refuseSi(get, set, (s) => refusDeSceneDeBataille(s, sceneId))) return;
+/** Engage une Scène de la SITUATION que `refusDeSceneDeBataille` admet : 'test' → modale de jet ; 'hold' → Test
+ *  opposé de tenue ; 'combat'/'threat' → combat tactique. Scène MULTI-PJ (l.116-118) résolue en SOUTIEN (LDB 12). */
+function openMassBattleScene(get: Get, set: Set, sceneId: string): void {
   const mb = get().massBattle!;
   const scene = battleSceneById(sceneId)!;
   if (isCombatScene(scene)) { startBattleCombat(get, set, scene); return; }
@@ -655,17 +668,16 @@ function heroDuRassemblement(mb: MassBattleState, party: readonly Combatant[]): 
 }
 
 /** Raison du refus du Rassemblement (entre les Rounds, un PJ qui ne l'a pas tenté), ou `null` — verdict
- *  UNIQUE de `openMassBattleRally` et du bouton. ADE II 08 l.122 */
+ *  UNIQUE du choix `batailleDeMasse.rallier`. ADE II 08 l.122 */
 export function refusDeRassemblement(s: Pick<Jeu, 'massBattle' | 'party'>): string | null {
   const mb = s.massBattle;
   if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return t('mbf.rallyHorsPhase');
   return heroDuRassemblement(mb, s.party) ? null : t('mbf.rallyNobody');
 }
 
-/** Ouvre le Rassemblement (`activities.json › rassemblement`) pour le prochain PJ (`heroDuRassemblement`),
- *  entre les Rounds. ADE II 08 l.122 */
-export function openMassBattleRally(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDeRassemblement)) return;
+/** Ouvre le Rassemblement (`activities.json › rassemblement`) que `refusDeRassemblement` admet, pour le prochain PJ
+ *  (`heroDuRassemblement`), entre les Rounds. ADE II 08 l.122 */
+function openMassBattleRally(get: Get, set: Set): void {
   const mb = get().massBattle!;
   const def = activityById('rassemblement');
   if (!def) return;
@@ -935,23 +947,36 @@ function poserLAlea(get: Get, set: Set, h: HazardRow): void {
 }
 
 /** Tire le facteur environnemental du Round au RNG de la partie (ADE II 08 l.309-311). */
-export function massBattleSetHazard(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDAlea)) return;
+function tirerLAlea(get: Get, set: Set): void {
   poserLAlea(get, set, battleHazard(rollDice(massBattleHazardsDie(), battleRng())));
 }
 
-/** Le choix du facteur environnemental du Round parmi les lignes de la table, au lieu du tirage (ADE II 08 l.309). */
+/** Refus du Test spectaculaire de Puissance du Round : déjà joué, le Round suivant attend. ADE II 08 l.120-124 */
+export function refusDeMelee(s: Pick<Jeu, 'massBattle'>): string | null {
+  return s.massBattle?.awaitingNext ? t('mbf.roundJoue') : null;
+}
+
+/** Les choix de la bataille, chacun admis par `refusDuChoix` : la Scène engagée (ADE II 08 l.116-118), le Test
+ *  spectaculaire (l.120), le Rassemblement (l.122), le PJ posté ou retiré d'un poste (l.81, l.116-118), et le facteur
+ *  environnemental, tiré (`null`) ou choisi (l.309). */
 export function choixDeLaBataille(get: Get, set: Set) {
+  const postes = (posteId: string) => get().massBattle!.assignment[posteId] ?? [];
   return {
-    batailleDeMasse: { alea: (id: string) => poserLAlea(get, set, BATTLE_HAZARDS.find((h) => h.id === id)!) },
+    batailleDeMasse: {
+      scene: (id: string) => openMassBattleScene(get, set, id),
+      engager: () => jouerLeTestSpectaculaire(get, set),
+      rallier: () => openMassBattleRally(get, set),
+      ajouterAuPoste: (id: string, pid: string) => ecrireLePoste(get, set, id, [...postes(id), pid]),
+      retirerDuPoste: (id: string, pid: string) => ecrireLePoste(get, set, id, postes(id).filter((h) => h !== pid)),
+      alea: (id: string | null) => (id === null ? tirerLAlea(get, set) : poserLAlea(get, set, BATTLE_HAZARDS.find((h) => h.id === id)!)),
+    },
   } satisfies Partial<CorpsDesChoix>;
 }
 
 /** Résout le Test spectaculaire de Puissance du Round (l.120) puis marque l'attente du Rassemblement /
- *  passage au Round suivant (l.122-124). Ne fait PAS avancer le Round (cf. `avancerLaBataille`). */
-export function engagerLaMelee(get: Get, set: Set): void {
-  const mb = get().massBattle;
-  if (!mb || mb.phase !== 'round' || mb.awaitingNext) return;
+ *  passage au Round suivant (l.122-124). */
+function jouerLeTestSpectaculaire(get: Get, set: Set): void {
+  const mb = get().massBattle!;
   const allyMod = mb.allyMod + (mb.round === 1 ? mb.firstRoundBonus : 0);
   const clash = resolveClash(armyMight(mb.ally), armyMight(mb.enemy), { allyMod, enemyMod: 0, rng: battleRng() });
   const ally = armyWithMightDelta(mb.ally, -clash.allyLoss, get().forgerUnId);
@@ -973,10 +998,18 @@ export function engagerLaMelee(get: Get, set: Set): void {
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
+/** Ce qui ferme le passage au Round suivant, la validation de la bataille : la préparation, la bataille terminée, ou
+ *  le Test spectaculaire du Round encore à jouer. ADE II 08 l.120-124 */
+export function fermetureDuRoundSuivant(s: Pick<Jeu, 'massBattle'>): FermetureDuJet | null {
+  const mb = s.massBattle;
+  if (mb?.phase === 'prep') return 'preparationDeBataille';
+  if (mb?.phase === 'over') return 'batailleTerminee';
+  return mb?.awaitingNext ? null : 'testSpectaculaireDu';
+}
+
 /** Passe au Round suivant (l.124) : compose la nouvelle SITUATION et réinitialise l'état par-Round. */
-export function avancerLaBataille(get: Get, set: Set): void {
-  const mb = get().massBattle;
-  if (!mb || mb.phase !== 'round' || !mb.awaitingNext) return;
+function passerAuRoundSuivant(get: Get, set: Set): void {
+  const mb = get().massBattle!;
   const advanced: MassBattleState = { ...mb, round: mb.round + 1 };
   const { situation, activeThreats, imposed } = composeSituation(advanced, battleRng());
   const threatLine = describeThreats(activeThreats);
@@ -988,6 +1021,11 @@ export function avancerLaBataille(get: Get, set: Set): void {
   };
   set({ massBattle: { ...next, log: threatLine ? [...next.log, threatLine] : next.log } });
   if (threatLine) get().ecrireAuJournal(threatLine);
+}
+
+/** La validation de la bataille : le Round suivant (`fermetureDuRoundSuivant`). ADE II 08 l.124 */
+export function validationsDeBatailleDeMasse(get: Get, set: Set) {
+  return { batailleDeMasse: () => passerAuRoundSuivant(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boolean): string {
@@ -1041,13 +1079,7 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     // Combat de masse / Puissance de Bataille (ADE II 08) — flux d'orchestration + jet de PJ différé.
     amorcerLaBataille: (spec) => amorcerLaBataille(get, set, spec),
     engagerLaBataille: () => engagerLaBataille(get, set),
-    menerLActionDeBataille: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
-    jouerLaScene: (sceneId) => openMassBattleScene(get, set, sceneId),
-    affecterLeHeros: (actionId, heroIds) => affecterLeHeros(get, set, actionId, heroIds),
-    rallierLesTroupes: () => openMassBattleRally(get, set),
-    affronterLePeril: () => massBattleSetHazard(get, set),
-    engagerLaMelee: () => engagerLaMelee(get, set),
-    avancerLaBataille: () => avancerLaBataille(get, set),
+    menerLActionDeBataille: (heroId, activityId) => openMassBattleActivity(get, set, heroId, activityId),
   } satisfies FabriqueDuNoyau;
 }
 

@@ -461,9 +461,9 @@ describe('MondeDeCampagne — un étage peint montre son décor, les deux voies 
     const scene = emptyScene('scene-test', 6, 6);
     scene.layers.push({ z: 1, tiles: new Array(36).fill('planches') });
     scene.entities = [
-      { id: 'lustre', kind: 'prop', pos: { x: 3, y: 3 }, z: 1, ref: REF_VOLUME, facing: 'S' },
-      { id: 'loge', kind: 'prop', pos: { x: 4, y: 3 }, z: 1, ref: REF_BILLBOARD },
-      { id: 'tabouret', kind: 'prop', pos: { x: 1, y: 1 }, ref: REF_BILLBOARD },
+      { id: 'lustre', kind: 'prop', pos: { x: 3, y: 3 }, z: 1, decor: { id: REF_VOLUME }, facing: 'S' },
+      { id: 'loge', kind: 'prop', pos: { x: 4, y: 3 }, z: 1, decor: { id: REF_BILLBOARD }},
+      { id: 'tabouret', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: REF_BILLBOARD }},
     ] as SceneEntity[];
     return scene;
   }

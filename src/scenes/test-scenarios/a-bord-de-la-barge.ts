@@ -27,7 +27,7 @@ export const scenario: TestScenario = {
       label: 'À bord de la barge fluviale',
       size: [14, 7],
       terrain: 'eau',
-      entities: [{ id: 'barge', kind: 'personnage', ref: 'barge-fluviale', pos: { x: 6, y: 2 }, facing: 'E', label: 'La barge' }],
+      entities: [{ id: 'barge', kind: 'personnage', vehicule: { id: 'barge-fluviale' }, pos: { x: 6, y: 2 }, facing: 'E', label: 'La barge' }],
       heroStart: { x: 8, y: 3, z: 1 },
     }),
   }),

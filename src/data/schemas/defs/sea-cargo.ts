@@ -8,6 +8,7 @@ import {
   ecartsDeCouverture,
   enumNomme,
   plageOuverteSchema,
+  prixDuLivreSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
 import { fixerLeTest, flowTestSchema } from '../grammaire/mecanique';
@@ -40,6 +41,8 @@ const offerPriceSchema = z
 export const issueDuTestSchema = enumNomme({ success: 'Succès', failure: 'Échec' });
 
 const champs = {
+  /** MDG 15 l.436 */
+  prixDuLivre: prixDuLivreSchema,
   buy: nommerChamps(z.strictObject({
     availabilityMultiplier: z.number(),
     merchantSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
@@ -134,6 +137,7 @@ const doc = document(
   famille,
   champs,
   {
+    prixDuLivre: { label: 'Unité du prix du livre', hint: 'Points d’Encombrement que couvre un prix de base du livre' },
     buy: { label: "Règles d'achat", hint: 'Barème de Marchandage et bonus de disponibilité à l’achat' },
     sell: { label: 'Règles de vente', hint: 'Barème de prix, Ragot préalable, DR de camp du Marchandage de vente' },
     overload: { label: 'Surcharge', hint: 'Paliers de surcharge de cale (malus de Mouvement/manœuvre)' },
