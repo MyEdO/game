@@ -23,10 +23,10 @@ import { isRation, LITRES_PAR_TONNEAU } from '../engine/provisions';
 
 import { rollShipCritical } from '../engine/shipCritical';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { dataLabel, findCrewRoleById, voyageStakeRef } from '../data';
+import { dataLabel, findCrewRoleById } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
-import { applyVesselCritical, buildVoyageCrewStep, combattreEnMer, coqueDuNavireDeCampagne, entrerDansLeTourbillon, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
+import { applyVesselCritical, combattreEnMer, coqueDuNavireDeCampagne, entrerDansLeTourbillon, etapeDEquipage, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
 import { findSeaHazard } from '../engine/seaPerils';
 import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
 import { startCascade } from './cascade';
@@ -233,15 +233,15 @@ const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
 
 /**
  * Ouvre le TEST D'ÉQUIPAGE d'un nœud `test` de Flow (`crewTestType`) : l'étape à participants du voyage
- * (`buildVoyageCrewStep`), dont l'applier `flowCrewTest` (`seaVoyageFlow.ts`) joue la branche du verdict
- * puis `after`. Son enjeu est celui que le Test nomme, sinon celui du type de Test. `false` : aucun marin
+ * (`etapeDEquipage`), dont l'applier `flowCrewTest` (`seaVoyageFlow.ts`) joue la branche du verdict
+ * puis `after`. Son enjeu est celui que le Test nomme (`flowTestSchema`). `false` : aucun marin
  * apte à bord, l'appelant joue l'échec. MDG 14 l.39 ; MDG 15 l.144-145
  */
 export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { kind: 'test' }>, after: Flow, label: string, sl?: number): boolean {
   const { crewTestType, stake } = node.test;
   const type = garanti(crewTestType, label, 'type de Test d’équipage');
   const { difficulty } = resoudreFlowTest(node.test, { cc: condCtx(get) });
-  const st = buildVoyageCrewStep(get, type, 'flowCrewTest', { difficulty, stake: stake ?? voyageStakeRef(type) });
+  const st = etapeDEquipage(get, type, 'flowCrewTest', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
   if (!st) return false;
   startCascade(get, set, {
     title: label, icon: 'travel/anchor', purpose: 'test',

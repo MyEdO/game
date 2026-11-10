@@ -1,12 +1,21 @@
 // L'ÉVALUATEUR EN LIGNE DE COMMANDE (#2972) : `evaluateur/evaluer.ts` sur un GLB, chargé comme les assets
 // (`chargerEvaluateur`, `charger.mjs`). Une ligne par écart ; code de sortie 1 s'il y a un écart ou
 // si la base ne porte pas un clip, une silhouette ou la carrure demandés, 0 sinon.
-//   npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>]
+//   npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
-//     [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit]
-// Avec `--base`, `<glb>` est un élément monté sur cette base ; sans lui, `<glb>` est la base. Sans `--manifeste`, seule
-// la racine a une position animée (`osAPositionAnimee` du manifeste de base).
-import { readFileSync, writeFileSync } from 'node:fs'
+//     [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit] [--porte]
+// Avec `--base`, chaque `<glb>` est un élément monté sur cette base, ensemble (une tenue), sa couche et ses zones lues
+// dans le manifeste d'élément voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import) :
+// la traversée des couches se mesure (#3743) ; seul un élément dont la forme `cle.apparence` est celle d'une arme (un
+// trapping `melee` ou `distance` de cette `shape`, `src/data/trappings.json`) porte un tranchant (`tranchantDuRigide`) :
+// un sac rangé n'en a pas. Sans `--base`, l'unique `<glb>` est la base. Sans `--manifeste`, seule
+// la racine a une position animée (`osAPositionAnimee` du manifeste de base). `--porte` joue les passes de la porte d'un
+// élément (#3743) : le corps neutre, puis chaque silhouette déclarée par le manifeste de base seule à 1, chacune dans son
+// processus, en parallèle sur les cœurs de la machine ; code 1 si une passe a un écart.
+import { spawn } from 'node:child_process'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { availableParallelism } from 'node:os'
+import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { chargerEvaluateur } from './charger.mjs'
 
@@ -28,6 +37,7 @@ try {
       base: { type: 'string' },
       manifeste: { type: 'string' },
       'etats-gabarit': { type: 'boolean' },
+      porte: { type: 'boolean' },
       facteurs: { type: 'string' },
       silhouettes: { type: 'string' },
       pas: { type: 'string' },
@@ -40,14 +50,21 @@ try {
   if (values['etats-gabarit'] && (!values.manifeste || values.facteurs !== undefined || values.silhouettes !== undefined)) {
     throw new Error('--etats-gabarit : --manifeste requis, --facteurs et --silhouettes incompatibles')
   }
+  if (values.porte && (!values.manifeste || values['etats-gabarit'] || values.silhouettes !== undefined || values.json !== undefined)) {
+    throw new Error('--porte : --manifeste requis, --etats-gabarit, --silhouettes et --json incompatibles')
+  }
   facteurs = values.facteurs === undefined ? undefined : lirePaires(values.facteurs, 'facteurs', FACTEURS)
   silhouettes = values.silhouettes === undefined ? undefined : lirePaires(values.silhouettes, 'silhouettes')
 } catch (erreur) {
   console.error(erreur.message)
   process.exit(2)
 }
-if (positionals.length !== 1) {
-  console.error('usage : npm run godot:evaluer -- <glb> [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit]')
+/** Le manifeste d'élément voisin du GLB `glb`, ou `undefined`. */
+const manifesteVoisin = (glb) => [glb.replace(/\.glb$/, '.element.json'), glb.replace(/\.glb$/, '.manifeste.json')].find(existsSync)
+const sansManifeste = values.base ? positionals.filter((g) => !manifesteVoisin(g)) : []
+if (values.base ? positionals.length === 0 || sansManifeste.length : positionals.length !== 1) {
+  if (sansManifeste.length) console.error(`sans manifeste d’élément voisin (<id>.element.json ou <id>.manifeste.json) : ${sansManifeste.join(', ')}`)
+  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--json <sortie>] [--etats-gabarit] [--porte]')
   console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
@@ -61,11 +78,42 @@ if (pas !== undefined && !(pas > 0)) {
 const ligneDEcart = (e) =>
   `[${e.garde}/${e.code}]${e.mesh ? ` ${e.mesh}` : ''}${e.clip ? ` ${e.clip}` : ''}${e.t === undefined ? '' : ` t=${e.t.toFixed(3)}`} : ${e.detail} (valeur ${typeof e.valeur === 'number' ? +e.valeur.toPrecision(6) : e.valeur}, seuil ${e.seuil ?? '—'})`
 
+if (values.porte) {
+  const { silhouettes: declarees = [] } = JSON.parse(readFileSync(values.manifeste, 'utf8'))
+  const passes = [['neutre', []], ...declarees.map((nom) => [nom, ['--silhouettes', `${nom}=1`]])]
+  const args = process.argv.slice(2).filter((a) => a !== '--porte')
+  const jouer = ([nom, ajout]) => new Promise((resolve) => {
+    const enfant = spawn(process.execPath, [fileURLToPath(import.meta.url), ...args, ...ajout], { stdio: ['ignore', 'pipe', 'pipe'] })
+    let sortie = ''
+    enfant.stdout.on('data', (d) => { sortie += d })
+    enfant.stderr.on('data', (d) => { sortie += d })
+    enfant.on('close', (code) => resolve({ nom, code, sortie }))
+  })
+  const resultats = []
+  const file = [...passes]
+  await Promise.all(Array.from({ length: Math.min(availableParallelism(), passes.length) }, async () => {
+    while (file.length) resultats.push(await jouer(file.shift()))
+  }))
+  for (const [nom] of passes) {
+    const r = resultats.find((x) => x.nom === nom)
+    console.log(`PASSE ${nom} : code ${r.code}`)
+    process.stdout.write(r.sortie)
+  }
+  process.exit(resultats.some((r) => r.code !== 0) ? 1 : 0)
+}
+
 const { evaluer } = await chargerEvaluateur()
-const [glb] = positionals
+const couche = (glb) => {
+  const { couche, couvre = [] } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
+  return couche ? { couche, couvre } : null
+}
+const FORMES_D_ARMES = new Set(JSON.parse(readFileSync(new URL('../../../src/data/trappings.json', import.meta.url), 'utf8'))
+  .filter((t) => t.shape && ['melee', 'distance'].includes(t.categorie)).map((t) => t.shape.id))
+const arme = (glb) => FORMES_D_ARMES.has(JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8')).cle?.apparence)
 const entree = {
-  base: readFileSync(values.base ?? glb),
-  elements: values.base ? [readFileSync(glb)] : [],
+  base: readFileSync(values.base ?? positionals[0]),
+  elements: values.base ? positionals.map((g) => readFileSync(g)) : [],
+  ...(values.base ? { couches: positionals.map(couche), armes: positionals.map(arme) } : {}),
   ...(values.manifeste ? { manifeste: JSON.parse(readFileSync(values.manifeste, 'utf8')) } : {}),
   ...(facteurs === undefined ? {} : { facteurs }),
   ...(silhouettes === undefined ? {} : { silhouettes }),

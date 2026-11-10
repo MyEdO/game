@@ -148,7 +148,13 @@ export function pnjAuPreset(presetId: string, id: string, presetDe: ResolveurDeP
  * fiche, il n'en subit rien. Aucune simulation ne comble ce trou.
  */
 export function sceneNpc(scene: Scene | null | undefined, id: string, presetDe: ResolveurDePreset): Combatant | undefined {
-  const ent = scene?.entities.find((e) => e.id === id && e.kind === 'personnage');
-  const p = ent ? porteurDeFiche(ent, presetDe) : undefined;
-  return ent && p ? fiche(ent, p, presetDe) : undefined;
+  const ent = scene?.entities.find((e) => e.id === id);
+  return ent && ficheDuPersonnage(ent, presetDe);
+}
+
+/** La fiche du `personnage` `ent`, la MÊME que `ficheDEntite` ; `undefined` hors d'un personnage, ou d'un personnage sans
+ *  fiche. */
+export function ficheDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset): Combatant | undefined {
+  const p = ent.kind === 'personnage' ? porteurDeFiche(ent, presetDe) : undefined;
+  return p && fiche(ent, p, presetDe);
 }

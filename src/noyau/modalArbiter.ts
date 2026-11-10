@@ -423,7 +423,13 @@ export const SURFACES_HORS_PENDING = [
   { key: 'aneantissement', tientLaMain: (s) => !!s.partyWiped, sortie: 'hote' },
   { key: 'repli', tientLaMain: (s) => defaiteDuCombat(s) && !!s.massBattle?.combatScene, sortie: 'hote' },
   { key: 'defaite', tientLaMain: (s) => defaiteDuCombat(s) && !s.massBattle?.combatScene, sortie: 'hote' },
-  { key: 'batailleDeMasse', tientLaMain: (s) => !!s.massBattle && s.screen === 'massBattle', sortie: 'hote' },
+  // La bataille de masse tient la main sur son écran ; elle est ouverte aussi pendant sa préparation, que joue l'interlude
+  // (ADE II 08 l.65), et ne s'y termine pas.
+  {
+    key: 'batailleDeMasse', tientLaMain: (s) => !!s.massBattle && s.screen === 'massBattle',
+    ouverte: (s) => !!s.massBattle && (s.screen === 'massBattle' || s.massBattle.phase === 'prep'),
+    validation: 'hote', sortie: 'hote', sortieFermee: (s) => (s.screen === 'massBattle' ? null : 'preparationDeBataille'),
+  },
   // L'interlude (LDB 22-23) : l'hôte le clôt.
   { key: 'interlude', tientLaMain: (s) => !!s.interlude, validation: 'hote' },
   // Un ÉCRAN plein autre que celui du jeu (groupe, interlude, `compendium`…) : la scène n'est pas à l'écran.

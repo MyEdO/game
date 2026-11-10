@@ -17,7 +17,7 @@ import type {
   IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDeRoute,
+  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDeServiceDuLieu, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
@@ -153,8 +153,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  marque prêt le siège qui décide (`decidingSeat`) et la valide au quorum ; refusé, et dit, hors de ce que sa
    *  déclaration ouvre (`refusDeLaValidation`). */
   fenetreValider: (fenetre: FenetreAValider) => void;
-  /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
-  epinglerLIndice: (indiceId: IdDIndice) => void;
+  /** Épingle (`epingle`) ou désépingle un indice du carnet (suivi joueur) ; refusé, et dit, si l'indice est encore
+   *  caché (`carnet.refus.indiceInconnu`). */
+  epinglerLIndice: (indiceId: IdDIndice, epingle: boolean) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
   marquerLesIndices: (affichés: readonly IndiceAffiché[]) => void;
   /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
@@ -170,21 +171,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   restaurerLaFortune: () => void;
   /** Ouvre le Test d'une Activité de bataille pré-combat (l.79-106). */
   menerLActionDeBataille: (activityId: IdDActivite, heroId: IdDeHeros) => void;
-  /** Choisit la Scène cinématique `activityId` du Round (Test de Compétence ou combat tactique). */
-  jouerLaScene: (activityId: IdDActivite) => void;
-  /** Affecte la LISTE des PJ postés à une action du Round (Scène MULTI-PJ résolue en Soutien, ou Activité
-   *  SOLO ; clé = id d'Activité) — le POSTE que la résolution honorera à défaut de la suggestion. Liste vide =
-   *  efface l'affectation. Réinitialisé à chaque Round. */
-  affecterLeHeros: (activityId: IdDActivite, heroIds: IdDeHeros[]) => void;
-  /** Ouvre le Test de Résistance de guérison du Rassemblement (l.122). */
-  rallierLesTroupes: () => void;
-  /** Tire le facteur environnemental du Round au RNG de la partie (l.309, 1d10) ; le choisir parmi la table se joue par
-   *  `fenetreChoisir('batailleDeMasse', 'alea', …)`. Refus dit hors Round, Round joué ou aléa déjà posé (`refusDAlea`). */
-  affronterLePeril: () => void;
-  /** Résout le Test spectaculaire de Puissance du Round (l.120). */
-  engagerLaMelee: () => void;
-  /** Passe au Round suivant après le Rassemblement (l.124). */
-  avancerLaBataille: () => void;
   /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
    *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
   deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
@@ -274,9 +260,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
-  /** Entre au point d'intérêt `poi` du plan du lieu où se tient le groupe : l'écran du lieu se ferme sur la scène où il
-   *  mène ; refus dit hors de l'écran du lieu ou hors de ses entrées (`refusDEntrerAuPoint`, `lieuFlow.ts`). */
-  entrerAuPointDInteret: (poi: IdDePointDInteret) => void;
   /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   ouvrirLesJeux: (npcId?: IdDEntiteDeScene) => void;
@@ -308,19 +291,19 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   partirEnVoyage: (routeId: IdDeRoute, mode: IdDeModeDeVoyage, opts?: import('./travelFlow').OptionsDeDepart) => void;
   /** Reprend un voyage interrompu par une péripétie. */
   reprendreLeVoyage: () => void;
-  /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
-   *  jour-par-jour » de l'écran de traversée, ou retour en commandée. */
+  /** Pose la CADENCE des ordres de la traversée en cours (couche `voyageCadence`), en valeur absolue :
+   *  jour-par-jour ou commandée. */
   fixerLaCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
-  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage EDOC 8),
+  /** EDOC 8 l.131. Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  attribuerLeRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: CompetenceDesignee } | null) => void;
-  /** Épingle (`roleId`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) — interface de gestion
-   *  du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
-  attribuerLeRoleABord: (crewId: IdDeCombattant, roleId: IdDeRoleABord | null) => void;
+  affecterAuRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: CompetenceDesignee } | null) => void;
+  /** MDG 14 l.11. Épingle (`roleId`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) —
+   *  interface de gestion du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
+  affecterAuRoleABord: (crewId: IdDeCombattant, roleId: IdDeRoleABord | null) => void;
   /** Épingle (`station`) ou détache (`null`) la STATION à bord d'un marin (`shipStation`, id de
    *  `ship-stations.json`) — où il se TROUVE quand un Critique frappe une présence (`MDG 13 l.680`,
    *  `MSRC 07 l.78/l.82/l.94`). Aucun défaut : détaché, il n'est visé par aucune présence. Même patron
-   *  qu'`attribuerLeRoleABord`. */
+   *  qu'`affecterAuRoleABord`. */
   affecterALaStation: (crewId: IdDeCombattant, station: IdDeStation | null) => void;
   /** Sélectionne la munition PERSISTANTE d'un poste d'artillerie (`ShipPoste.ammoUid` — boulet/mitraille,
    *  MDG 12 l.410-424), depuis la fiche du navire. `null` → retour au défaut (1re compatible). */
@@ -349,21 +332,13 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   recruterLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
   /** Débarque `count` PNJ salariés du rôle `roleId` (#228). */
   renvoyerLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
-  /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`). */
+  /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`) ; ses
+   *  achats, ventes et bradages sont ses choix (`fenetreChoisir('marcheDeTerre', …)`, comme au port, `cargaison.ts`). */
   ouvrirLeMarche: () => void;
-  /** Achète `enc` points d'une offre du marché ouvert, chargés sur le porteur `porteurId` dans la limite de sa
-   *  Contenance (#327) : au port, le navire (Type/Taille/Marchandage, MDG 15 l.319-349) ; à la halle, un porteur de
-   *  vrac (disponibilité 2 temps/Marchandage/lot partiel, MSRC 13 l.129-131). */
-  acheterLaCargaison: (porteurId: IdDePorteurDeCargaison, cargoId: IdDOffreDeCargaison, enc: number) => void;
-  /** Vend le lot `lotId` au marché ouvert : au port, un lot de la cale (Trouver un acheteur/Prix d'offre/Marchandage,
-   *  MDG 15 l.351-397) ; à la halle, le lot d'un porteur (Demande/Mise à prix/Marchandage, MSRC 13 l.133-160). */
-  vendreLaCargaison: (lotId: IdDeCargaison) => void;
-  /** Brade le lot `lotId` au marché ouvert : ¼ du prix de base au port (MDG 15 l.399), ½ dans un Lieu de Commerce
-   *  (MSRC 13 l.160). */
-  jeterLaCargaison: (lotId: IdDeCargaison) => void;
   /** Transfère `enc` du lot `lotId` vers le porteur CO-LOCALISÉ `toId` (bête/véhicule/navire, #327). */
   deplacerLaCargaison: (lotId: IdDeCargaison, toId: IdDePorteurDeCargaison, enc: number) => void;
-  /** Évalue la qualité secrète d'un lot de Vin proposé (Test d'Évaluation, MSRC 13 l.95). */
+  /** Évalue la qualité secrète d'un lot de Vin proposé (Test d'Évaluation, MSRC 13 l.95) ; chaque refus est dit
+   *  (`refusDEvaluerLeVin`, `landMarketFlow.ts`). */
   evaluerLeVin: (cargoId: IdDOffreDeCargaison) => void;
   /** Ouvre le Test de Ragot de l'auberge du hub de ville (#352, Activité `recueillir-informations`
    *  étendue au contexte `auberge`) : succès → rumeur commerciale (`generateTradeRumour`), échec →

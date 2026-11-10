@@ -297,6 +297,7 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	for id in _emplacements:
 		if montes.get(id) in _emplacements[id].elements:
 			_choisir(_emplacements[id], montes[id], emblemes.get(id, VIDE))
+	_monter_hors_panneau(_montage.cibles())
 	_poser_les_clips()
 	_poser_le_gabarit()
 	_montage.poser_les_morphes()
@@ -849,6 +850,22 @@ func _choisir(emplacement: Dictionary, element: String, embleme: String = VIDE) 
 	_montrer_l_etat()
 
 
+## Les lignes `<point>#<rang>` de `cibles` (`composerSurLaBase`), qu'aucune rangée du panneau ne porte : chacune monte
+## son élément sous l'emblème de son entrée, ou se rhabille de cet emblème si l'élément y est déjà monté ; tout autre
+## élément monté hors panneau est démonté.
+func _monter_hors_panneau(cibles: Dictionary) -> void:
+	for id in _montage.montes.keys():
+		if not _emplacements.has(id) and not cibles.has(id):
+			_montage.demonter(id)
+	for id in cibles:
+		if _emplacements.has(id):
+			continue
+		var embleme: String = cibles[id].get("embleme", {}).get("id", VIDE)
+		if _montage.montes.get(id) == cibles[id].element or await _montage.monter(id, cibles[id].element, _recueil):
+			_choisir_l_embleme(id, embleme)
+	_rejouer()
+
+
 ## @contrat Atelier 3D
 ## Un élément monté dont une surface porte `blason: true` (`surfaces`) offre, sous la rangée de son emplacement, une
 ## rangée « Emblème » : une liste déroulante (`cle` `"<emplacement>/embleme"`, `<emplacement>` valant l'id du point ou
@@ -1304,8 +1321,9 @@ func _attaquer() -> void:
 ## pastille de sa `couleur` ; une couleur choisie se pose dans `couleurs` de la composition courante (`{ id }`), « Par
 ## défaut » la retire, et un `couleurs` vide se retire. Chaque liste montre le champ de la composition courante. Un
 ## preset appliqué, un axe changé ou une couleur changée appelle `composer` sur la base posée : chaque emplacement
-## monte l'élément que `montes` lui donne (le premier non nul quand plusieurs entrées visent le même emplacement) et
-## démonte les autres, au montage décrit ci-dessous ; `gabarit` et `morphes` se posent (section « Gabarit d'une base
+## monte l'élément que `montes` lui donne (le premier non nul quand plusieurs entrées visent le même emplacement),
+## chaque ligne `<point>#<rang>`, sans rangée au panneau, monte le sien, et les autres se démontent, au montage décrit
+## ci-dessous ; `gabarit` et `morphes` se posent (section « Gabarit d'une base
 ## »), le squelette remis à sa pose de repos puis le clip engagé reposé à son instant. Une composition que `composer`
 ## refuse, `{}` compris (erreur `validation`, section « Composition d'un personnage »), ne compose rien : chaque
 ## emplacement est démonté, ni gabarit ni morphe ne reste, et « composition refusée : » suivi du message de l'erreur,
@@ -1484,6 +1502,7 @@ func _composer_la_courante() -> void:
 			_choisir(_emplacements[id], cible, _embleme_de_l_emplacement(id))
 		elif _montage.montes.has(id):
 			_choisir_l_embleme(id, embleme)
+	_monter_hors_panneau(cibles)
 	_montage.habiller_la_base()
 	_poser_le_gabarit()
 	_montage.poser_les_morphes()
@@ -1599,7 +1618,10 @@ func _publier_l_ecran() -> void:
 	var clip: Variant = _lecteur().assigned_animation if _a_un_clip() else null
 	var publies := {montes = {}, lignes = {}}
 	for id in _montage.montes:
-		publies[_emplacements[id].publie][_emplacements[id].cle] = _montage.montes[id]
+		if _emplacements.has(id):
+			publies[_emplacements[id].publie][_emplacements[id].cle] = _montage.montes[id]
+		else:
+			publies.montes[id] = _montage.montes[id]
 	var plages := {}
 	for champ in _selecteurs_d_axe:
 		var glissiere := _selecteurs_d_axe[champ] as HSlider

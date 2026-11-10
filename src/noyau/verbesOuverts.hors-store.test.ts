@@ -5,7 +5,8 @@
  * (`FermetureDuJet`). Le duel est celui de `combatDeTest.testkit.ts`, ses pendings posés comme `jetsEnVue`.
  */
 import { describe, it, expect } from 'vitest';
-import { VERBE_DE_REGLAGE, creerPartie, etatInitialDuJeu, fermeturesDeLaFenetre, fenetreDuJeu, type EntreesDeLaPartie, type Jeu } from './index';
+import { VERBE_DE_REGLAGE, creerPartie, etatInitialDuJeu, fenetreDeDetermination, fermeturesDeLaFenetre, fenetreDuJeu, libelleDeLaFermeture, type EntreesDeLaPartie, type Jeu } from './index';
+import { t } from '../i18n';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { rollOups } from '../engine/oups';
 import { makeRNG } from '../engine/dice';
@@ -81,6 +82,10 @@ function verbes(patch: Partial<Jeu>, reglages = false): { ouverts: string[]; fer
   return { ouverts: juges.filter(([, r]) => r === null).map(([v]) => v).sort(), fermes };
 }
 
+/** Les porteurs auxquels la fenêtre qui tient la main offre l'immunité de la Détermination, chacun avec son refus
+ *  (`fenetreDeDetermination`). */
+const immunite = (patch: Partial<Jeu>) => fenetreDeDetermination({ ...BASE, ...patch } as Jeu)?.porteur.options;
+
 /** L'étape-jet `jet` de la cascade, son pending posé. */
 const enEtape = (jet: HostJet, pending: Partial<Jeu>): Partial<Jeu> => ({ pendingCascade: cascade(etape(jet)), ...pending });
 
@@ -113,7 +118,8 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
   it('Test : avant le jet, lancer, annuler ou la Résilience, la Détermination sans malus psychologique fermée ; après, la clôture', () => {
     const avant = verbes(enEtape('test', { pendingTest: test(false) }));
     expect(avant.ouverts).toEqual(['jetAnnuler@test', 'jetForcerLaReussite@test', 'jetLancer@test']);
-    expect(avant.fermes).toMatchObject({ 'jetValider@test': 'jetNonLance', 'jetDepenserLaDetermination@test': 'sansMalusPsy', 'jetImposerLeResultat@test': 'jetNonLance' });
+    expect(avant.fermes).toMatchObject({ 'jetValider@test': 'jetNonLance', 'jetImposerLeResultat@test': 'jetNonLance' });
+    expect(immunite(enEtape('test', { pendingTest: test(false) })), 'sans malus psychologique, la Détermination offerte se ferme').toEqual([{ valeur: H.id, libelle: H.label, refus: t('cs.determinationSansMalusPsy') }]);
     const apres = verbes(enEtape('test', { pendingTest: test(true) }));
     expect(apres.ouverts).toEqual(['jetAjouterUnDR@test', 'jetImposerLeResultat@test', 'jetPactiser@test', 'jetValider@test']);
     expect(apres.fermes).toMatchObject({ 'jetLancer@test': 'jetLance', 'jetAnnuler@test': 'jetLance', 'jetRelancer@test': 'jetReussi', 'jetForcerLaReussite@test': 'jetReussi' });
@@ -169,9 +175,10 @@ describe('fermeturesDeLaFenetre — une étape-jet de combat n’ouvre que ce qu
   });
 
   it('Détermination : un malus psychologique l’ouvre avant le jet, tant que la réserve n’est pas vide (LDB 17 l.59)', () => {
-    const psy = (resolve: number) => verbes({ ...enEtape('test', { pendingTest: { ...test(false), psychMod: -20 } }), ...reserves({ resolve }) });
-    expect(psy(2).ouverts).toContain('jetDepenserLaDetermination@test');
-    expect(psy(0).fermes['jetDepenserLaDetermination@test']).toBe('sansDetermination');
+    const psy = (resolve: number): Partial<Jeu> => ({ ...enEtape('test', { pendingTest: { ...test(false), psychMod: -20 } }), ...reserves({ resolve }) });
+    expect(immunite(psy(2))).toEqual([{ valeur: H.id, libelle: H.label, refus: null }]);
+    expect(immunite(psy(0))).toEqual([{ valeur: H.id, libelle: H.label, refus: t('agate.noResolve') }]);
+    expect(immunite({ ...psy(2), pendingTest: { ...test(true), psychMod: -20 } }), 'après le jet, le malus a pesé').toEqual([{ valeur: H.id, libelle: H.label, refus: libelleDeLaFermeture('jetLance') }]);
   });
 
   it('incantation Critique d’un Sort : la clôture attend le choix de l’effet (LDB 46 l.28-32)', () => {

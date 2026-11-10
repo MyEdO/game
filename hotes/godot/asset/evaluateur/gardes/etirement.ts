@@ -98,15 +98,30 @@ function pires(liste: readonly RapportDArete[], n: number): RapportDArete[] {
   }).slice(0, n);
 }
 
+/** Par pose de base, par mesh, la longueur de chaque arête : la base se reprend à chaque échantillon. */
+const longueursDeBase = new WeakMap<Pose, Map<Mesh, Float64Array>>();
+
+function longueursDe(base: Pose, mesh: Mesh, liste: Uint32Array, p0: Float32Array): Float64Array {
+  let parMesh = longueursDeBase.get(base);
+  if (!parMesh) longueursDeBase.set(base, (parMesh = new Map()));
+  let l = parMesh.get(mesh);
+  if (!l) {
+    l = new Float64Array(liste.length / 2);
+    for (let k = 0; k < liste.length; k += 2) l[k / 2] = longueur(p0, liste[k], liste[k + 1]);
+    parMesh.set(mesh, l);
+  }
+  return l;
+}
+
 /** Pour chaque arête de `aretes` (par mesh) de longueur non nulle dans `base`, son rapport de longueur `pose` / `base`. */
 function parcourir(aretes: ReadonlyMap<Mesh, Uint32Array>, base: Pose, pose: Pose, visiter: (mesh: Mesh, a: number, b: number, rapport: number) => void): void {
   for (const [mesh, liste] of aretes) {
     const p0 = base.positions.get(mesh);
     const p = pose.positions.get(mesh);
     if (!p0 || !p) continue;
+    const l0 = longueursDe(base, mesh, liste, p0);
     for (let k = 0; k < liste.length; k += 2) {
-      const l0 = longueur(p0, liste[k], liste[k + 1]);
-      if (l0 > 0) visiter(mesh, liste[k], liste[k + 1], longueur(p, liste[k], liste[k + 1]) / l0);
+      if (l0[k / 2] > 0) visiter(mesh, liste[k], liste[k + 1], longueur(p, liste[k], liste[k + 1]) / l0[k / 2]);
     }
   }
 }
@@ -134,13 +149,17 @@ function decompte(bornes: Intervalle, codes: Codes) {
 /** L'étirement de l'échantillon `e` contre la pose `base` (gabarit complet, silhouettes et clés croisées à 0, formes indépendantes à leur influence d’entrée), sur les arêtes `aretes` (par mesh). */
 export function mesurerEtirement(aretes: ReadonlyMap<Mesh, Uint32Array>, base: Pose, e: Echantillon): MesureDEtirement {
   const hors = decompte(ETIREMENT_EN_CLIP, CODES_EN_CLIP);
-  let candidates: RapportDArete[] = [];
+  const meilleures: { readonly r: RapportDArete; readonly g: number }[] = [];
   parcourir(aretes, base, e, (mesh, a, b, rapport) => {
     hors.compter(mesh, rapport);
-    candidates.push({ mesh, a, b, t: e.t, rapport });
-    if (candidates.length > 4096) candidates = pires(candidates, PIRES_ARETES_PAR_CLIP);
+    const g = gravite(rapport);
+    if (meilleures.length === PIRES_ARETES_PAR_CLIP && g <= meilleures[PIRES_ARETES_PAR_CLIP - 1].g) return;
+    let k = Math.min(meilleures.length, PIRES_ARETES_PAR_CLIP - 1);
+    while (k > 0 && meilleures[k - 1].g < g) k--;
+    meilleures.splice(k, 0, { r: { mesh, a, b, t: e.t, rapport }, g });
+    if (meilleures.length > PIRES_ARETES_PAR_CLIP) meilleures.pop();
   });
-  return { clip: e.clip, t: e.t, horsBornes: hors.horsBornes(), pires: pires(candidates, PIRES_ARETES_PAR_CLIP) };
+  return { clip: e.clip, t: e.t, horsBornes: hors.horsBornes(), pires: meilleures.map((m) => m.r) };
 }
 
 /** Les cinq pires arêtes de chaque clip de `mesures`, chaque mesh sous son libellé. */

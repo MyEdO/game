@@ -762,7 +762,7 @@ function currentSeason(get: Get): Season {
  * rangée n'est rendue inatteignable par un décalage (`naturalRollForTableRow` rend un naturel pour
  * chacune de ses lignes, cf. `de-monde-surface.hors-store.test.ts`).
  */
-const STAGE_WEATHER_KIND = 'stageWeather';
+const STAGE_WEATHER_KIND = 'stage-weather';
 const STAGE_WEATHER_STEP_ID = 'stage-weather';
 const stageWeatherTableId = (season: Season): string => `stage-weather-${season}`;
 
@@ -817,7 +817,7 @@ function buildTravelDayCascade(
     pousseSi(steps, tableStep({
       id: 'land-peril', kind: 'landPeril', worldOwner: true, icon: 'ui/warning', label: t('step.landPeril'),
       table: { tableId: perilThresholdTableId(perilDie), spec: peripetieSeuilDie() },
-      stake: voyageStakeRef('landPeril', { seuil: perilDie }),
+      stake: voyageStakeRef('land-peril', { seuil: perilDie }),
       meta: { destLabel: dest.destLabel, seuil: perilDie },
     }));
   }
@@ -1220,7 +1220,7 @@ function buildForcedPaceStep(driver: { actor: Combatant; value: number; support?
     id: `land-forced-${galloped}`, kind: 'landForcedPace', actor: driver.actor, icon: 'travel/cart',
     label: t('step.conduiteForcee'), rollLabel: 'Conduite d’attelage',
     difficulty: 'intermediaire',
-    stake: voyageStakeRef('landForcedPace'),
+    stake: voyageStakeRef('land-forced-pace'),
     ligne: {
       test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value + (penalty?.value ?? 0), soutien: driver.support,
       ...(penalty ? { dansLaValeur: [penalty] } : {}),
@@ -1382,7 +1382,7 @@ export const TABLES = {
       const table = tableStep({
         id: 'land-peril-table', kind: 'landPerilTable', worldOwner: true, icon: 'ui/warning', label: t('step.landPerilTable'),
         table: { tableId: PERIL_TABLE_ID, spec: peripetieDie() },
-        stake: voyageStakeRef('landPerilTable'),
+        stake: voyageStakeRef('land-peril-table'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });
       return { consequences: freeCons(tiree.lines), insert: table ? [table] : [] };
@@ -1415,7 +1415,7 @@ export const TABLES = {
         const st = best && monoStep({
           id: 'peril-survie', kind: 'landPerilSurvie', actor: best.actor, icon: 'travel/compass', label: t('step.landPerilSurvie'),
           rollLabel: refLabel('skills', { id: 'survie-en-exterieur' }), difficulty: 'accessible',
-          stake: voyageStakeRef('landPerilSurvie'),
+          stake: voyageStakeRef('land-peril-survie'),
           ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
         });
         if (st) return { consequences: freeCons(j), insert: [st] };
@@ -1428,7 +1428,7 @@ export const TABLES = {
         const st = best && monoStep({
           id: 'peril-perception', kind: 'landPerilPerception', actor: best.actor, icon: 'ui/eye', label: t('step.landPerilPerception'),
           rollLabel: refLabel('skills', { id: 'perception' }), difficulty: 'accessible',
-          stake: voyageStakeRef('landPerilPerception'),
+          stake: voyageStakeRef('land-peril-perception'),
           ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
           meta: { destLabel, configured, ambushScene: route.ambush?.scene.id ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
         });
@@ -1522,7 +1522,7 @@ export const TABLES = {
             id: `${step.id}-control`, kind: 'landForcedPaceControl', actor: driver.actor, icon: 'travel/cart',
             label: t('step.reprendreControle'), rollLabel: 'Conduite d’attelage',
             difficulty: 'intermediaire',
-            stake: voyageStakeRef('landForcedPaceControl'),
+            stake: voyageStakeRef('land-forced-pace-control'),
             // MÊME jet que le km (Conduite d'attelage soutenue, `LDB 12 l.189`) : ni la pénalité de km
             // (`EDOC 07 l.253` ne la reconduit pas), ni une valeur figée. Les deux surfaces — étape
             // influençable et repli sans pilote ci-dessous — lisent le MÊME conducteur soutenu.

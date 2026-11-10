@@ -48,7 +48,7 @@ const KIND_A_PLI = cleDeFixture('test-mints-kind-a-pli');
 /** ENJEU de sonde (#1262 V2 L6d) : `MonoSpec.stake` est REQUIS — une étape mono ne se DÉCLARE plus
  *  sans dire ce qui se joue. Les tests ci-dessous mesurent d'autres champs, mais ils le déclarent
  *  comme tout producteur réel : c'est précisément ce que le murage rend inévitable. */
-const ENJEU: StakeRef = combatStakeRef('fatigue');
+const ENJEU: StakeRef = combatStakeRef('combat-fatigue');
 
 beforeEach(() => {
   banc.setState({ battle: null, party: [hero('H1')], pendingCascade: null, suspendedCascades: [] } as never);

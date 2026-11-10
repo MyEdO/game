@@ -731,8 +731,8 @@ describe('REGISTRE des chemins de jet (#1066) — les angles morts DÉCLARÉS so
 
   it('angle mort : un dé qui n’est ni `rollTest` ni `d100` (ex. `rollDice`) n’est vu par AUCUN des trois scanners', () => {
     const src = readFileSync(join(ROOT, 'src/noyau/massBattleFlow.ts'), 'utf8');
-    const hazard = /export function massBattleSetHazard[\s\S]*?\n}/.exec(src)?.[0] ?? '';
-    expect(hazard, 'massBattleSetHazard a bougé — l’exemple d’angle mort cité par la doc doit rester mesurable').toContain('rollDice(massBattleHazardsDie(), battleRng())');
+    const hazard = /function tirerLAlea[\s\S]*?\n}/.exec(src)?.[0] ?? '';
+    expect(hazard, 'tirerLAlea a bougé — l’exemple d’angle mort cité par la doc doit rester mesurable').toContain('rollDice(massBattleHazardsDie(), battleRng())');
     expect(scanRollSeamExclusivity('src/noyau/massBattleFlow.ts', hazard)).toEqual([]);
     expect(scanPendingJetFabrication('src/noyau/massBattleFlow.ts', hazard)).toEqual([]);
     expect(scanEngineDelegatedRoll('src/noyau/massBattleFlow.ts', hazard, delegues())).toEqual([]);

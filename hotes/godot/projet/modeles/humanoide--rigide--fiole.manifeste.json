@@ -1,0 +1,25 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "fiole"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "fiole",
+      "palette": "accent"
+    },
+    {
+      "nom": "bouchon",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "2c744f836db5b95655a7bd01315a8adca48dc8792e887e4463c4016b370f1514",
+    "octets": 34236
+  }
+}

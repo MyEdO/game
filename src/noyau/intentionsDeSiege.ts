@@ -102,8 +102,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ═══ invité : INTERLUDE (LDB 23) — chaque Activité vise un héros (1er argument ou pending/dépôt),
   // possession validée par `intentAllowedFor`. Composer et pratiquer une Activité : `fenetreChoisir('interlude', …)`. ═══
   commanderLObjet: 'invité', deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', solderLaFaveur: 'invité',
-  // Préparation de bataille : le héros MENEUR est le 2e argument ; l'affectation de l'armée
-  // (`affecterLeHeros`), partagée, reste à l'hôte.
+  // Préparation de bataille : le héros MENEUR est le 2e argument ; les postes de l'armée, partagés, restent à
+  // l'hôte (`fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', …)`).
   menerLActionDeBataille: 'invité',
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
@@ -114,7 +114,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   ouvrirLaCarte: 'hôte', ouvrirLeLieu: 'hôte', partirEnVoyage: 'hôte',
   marchanderLeBillet: 'hôte', reprendreLeVoyage: 'hôte',
-  fixerLaCadence: 'hôte', entrerAuPointDInteret: 'hôte', fouillerLaPiece: 'hôte',
+  fixerLaCadence: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
   jouerAction: 'hôte', actionnerLaPorte: 'hôte', avancerDUnPas: 'hôte', pivoterLeGroupe: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
@@ -129,16 +129,12 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
   ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
-  acheterLaCargaison: 'hôte', vendreLaCargaison: 'hôte', jeterLaCargaison: 'hôte',
   evaluerLeVin: 'hôte', deplacerLaCargaison: 'hôte', ouvrirLePort: 'hôte', reparerLeNavire: 'hôte', carenerLeNavire: 'hôte',
   installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', recueillirLesRumeurs: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
-  attribuerLeRoleABord: 'hôte', affecterALaStation: 'hôte', attribuerLeRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
+  affecterAuRoleABord: 'hôte', affecterALaStation: 'hôte', affecterAuRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
-  // ── Interlude : bataille de masse ─────────────────────────────────────────────────────────────
-  affecterLeHeros: 'hôte', avancerLaBataille: 'hôte', engagerLaMelee: 'hôte',
-  affronterLePeril: 'hôte', rallierLesTroupes: 'hôte', jouerLaScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
   ouvrirLeRepos: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──

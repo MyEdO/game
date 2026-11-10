@@ -59,7 +59,6 @@ import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
 import { resolveFocus, resolveMagicMissile, resolveCasting, rederiveCastSL, castTestDRMods, talentTestSLBonus, resolveCounterspell, counterspellOutcomeFrom, withCastTestDRMods, castTestOf, castTestTarget, castInfoIsPrayer, counterspellValue, malepierreDR, malepierreReserveOf, castingNumberOf, type CastResult } from '../engine/magic';
 import { discreetPrayerDifficulty } from '../engine/prayer';
 import { rule } from '../engine/policy';
-import { spendResolveForPsychImmunity } from '../engine/psychology';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
@@ -281,7 +280,6 @@ export interface VerbesDeJet {
   [NOM_DU_VERBE_DE_JET.forceSuccess]: (flux: FluxDuVerbe<'forceSuccess'>, pid?: IdDeRangee) => void;
   [NOM_DU_VERBE_DE_JET.setForcedRoll]: (flux: FluxDuVerbe<'setForcedRoll'>, roll: number, pid?: IdDeRangee) => void;
   [NOM_DU_VERBE_DE_JET.resist]: (flux: FluxDuVerbe<'resist'>, pid?: IdDeRangee) => void;
-  [NOM_DU_VERBE_DE_JET.determine]: (flux: FluxDuVerbe<'determine'>, pid?: IdDeRangee) => void;
   [NOM_DU_VERBE_DE_JET.cancel]: (flux: FluxDuVerbe<'cancel'>) => void;
   [NOM_DU_VERBE_DE_JET.reverse]: (flux: FluxDuVerbe<'reverse'>, pid?: IdDeRangee) => void;
   [NOM_DU_VERBE_DE_JET.confirm]: (flux: FluxDuVerbe<'confirm'>) => void;
@@ -332,7 +330,6 @@ export function creerVerbesDeJet(get: Get, set: Set, clotures: CloturesDuJet): V
     [NOM_DU_VERBE_DE_JET.bonusSL]: simple('bonusSL'),
     [NOM_DU_VERBE_DE_JET.darkPact]: simple('darkPact'),
     [NOM_DU_VERBE_DE_JET.resist]: simple('resist'),
-    [NOM_DU_VERBE_DE_JET.determine]: simple('determine'),
     [NOM_DU_VERBE_DE_JET.reverse]: simple('reverse'),
     [NOM_DU_VERBE_DE_JET.forceSuccess]: (flux, pid) => jouer('forceSuccess', flux, pid, (h, f, rangee) => h.forceSuccess(get, set, rangee, auJetDu(h, f, get, set, rangee))),
     [NOM_DU_VERBE_DE_JET.setForcedRoll]: (flux, roll, pid) => jouer('setForcedRoll', flux, pid, (h, _f, rangee) => h.setForcedRoll(get, set, roll, rangee)),
@@ -1791,33 +1788,12 @@ export const FLOWS = paresseux({
     rolled: (r) => !!r.result,
     actor: (s, r) => actorIn(s, r.id),
     // Une bande met en jeu les mêmes règles qu'une étape seule, et chaque rangée les joue POUR ELLE :
-    // Résilience (`forced`), Résistance (Menace) (`resist`, LDB 10 l.1016-1020) et Détermination
-    // (`determine`, LDB 17 l.59 — la Psychologie ne se teste qu'en bandes).
+    // Résilience (`forced`) et Résistance (Menace) (`resist`, LDB 10 l.1016-1020).
     caps: {
       forced: true,
       // Le tag `menace` de la rangée (`PendingBase.menace`, posé à la construction par le producteur de
       // la bande — comme sur l'étape mono) ouvre le verbe ; `resolve` reçoit alors `{ sl: BE }`.
       resist: true,
-      // Détermination : immunité TEMPORAIRE marquée SUR LA RANGÉE (`BatchParticipant.immune`), pas une
-      // réussite forcée (≠ `resist`) — l'applier de bande lit ce flag par rangée. La bande vaut UNE
-      // entrée de règle : la DÉCLARATION de Psychologie (type/source/indice) vit sur l'ÉTAPE courante,
-      // ce qui diverge par héros vit sur la rangée (`BatchParticipant.meta`). Le `result` synthétique
-      // (DR 0) ne sert qu'à faire avancer la bande.
-      determine: {
-        // Une rangée non résolue d'une étape de PSYCHOLOGIE : l'immunité est psychologique seulement.
-        fermeture: (s, slot, actor) => {
-          if (slot.result) return 'jetLance';
-          const st = s.pendingCascade?.participants[s.pendingCascade.cursor];
-          if (!st || (!st.combatPsych && !st.encounterPsych)) return 'sansMalusPsy';
-          return (actor.resolve ?? 0) <= 0 ? 'sansDetermination' : null;
-        },
-        appliquer: (slot, actor, get, _set, commit) => {
-          const msg = spendResolveForPsychImmunity(actor); // dépense + psychImmuneRoundsLeft (ActiveEffect 2 Rounds)
-          if (!msg) return;
-          commit({ immune: true, result: { roll: slot.target, target: slot.target, sl: 0, success: true } }, { touch: true });
-          get().ecrireAuJournal(msg);
-        },
-      },
     },
     resolve: (s, r, actor, _get, forced) => {
       if (!actor) return null; // rangée sans acteur résoluble (parité historique) — pas de jet
@@ -2209,26 +2185,7 @@ export const FLOWS = paresseux({
     touch: touchActors,
     // ISSUE au goulot (`apply`) — canal NARRATIF : `jetValider('test')` acquitte, il ne compose plus sa ligne.
     issue: (p) => describeTest(p),
-    caps: {
-      forced: true,
-      // Détermination (LDB 17 l.59) sur un Test de scène grevé d'un malus PSYCHOLOGIQUE social.
-      // MÊME verbe `determine` que la bande de cascade psy, et MÊME source unique de dépense —
-      // `spendResolveForPsychImmunity` (engine/psychology) : elle débite le point ET pose l'immunité
-      // de Round (`ActiveEffect` psychImmune). La part SPÉCIFIQUE au flux est la répercussion sur le
-      // Test EN COURS : `psychMod` est déjà intégré à `skillValue` ET `target` par `openSkillTest`
-      // (cf. `PendingTest`) — un acteur immunisé ne le porte plus, on le retranche des deux.
-      determine: {
-        // Avant le jet, et seulement si un malus psy pèse.
-        fermeture: (_s, p, actor) => (p.roll != null ? 'jetLance' : !p.psychMod ? 'sansMalusPsy' : (actor.resolve ?? 0) <= 0 ? 'sansDetermination' : null),
-        appliquer: (p, actor, get, _set, commit) => {
-          const msg = spendResolveForPsychImmunity(actor); // null = plus de Détermination → rien ne se passe
-          if (!msg || !p.psychMod) return;
-          commit({ skillValue: p.skillValue - p.psychMod, target: p.target - p.psychMod, psychMod: 0, psychDetail: undefined }, { touch: true });
-          get().ecrireAuJournal(msg);
-          get().ecrireAuJournal(t('psy.determinationSocial', { name: actor.label }));
-        },
-      },
-    },
+    caps: { forced: true },
     resolve: (_s, p, actor, _get, forced) => {
       const tDR = actor ? drDeReussiteDuTest(_s, actor, p.sujet ?? {}) : 0;
       // Capricieux (MSRC 15 l.149-159) : delta de DR de la table du d10 de l'interlocuteur, tiré à
@@ -2508,4 +2465,28 @@ function counterspellEngage(s: Jeu, part: CounterParticipant, actor: Combatant):
   const pcs = s.pendingCounterspell;
   const grp = part.declared === 'soutenu' ? counterspellSoutenu(s, pcs) : null;
   for (const c of grp ? grp.unis : [actor]) c.dispelledThisRound = true;
+}
+
+/** L'étape de bande courante de la séquence, `null` hors d'elle. */
+export function bandeCourante(s: Jeu) {
+  const etape = s.pendingCascade?.participants[s.pendingCascade.cursor];
+  return etape?.participants && stepInteraction(etape) === 'batch' ? etape : null;
+}
+
+/** Ce que l'immunité de `porteur` écarte de son jet de Psychologie ouvert : le malus du Test de scène, que
+ *  `openSkillTest` a porté à sa valeur et à sa cible, avec la ligne qui le dit ; sa rangée de la bande, réglée sans dé
+ *  (le DR 0 ne sert qu'à faire avancer la bande). `null` : aucun jet à frapper. */
+export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<Jeu, 'pendingTest' | 'pendingCascade'>>; ligne: string | null } | null {
+  const test = s.pendingTest;
+  if (test?.actorId === porteur.id && test.psychMod && test.roll == null) {
+    return {
+      patch: { pendingTest: { ...test, skillValue: test.skillValue - test.psychMod, target: test.target - test.psychMod, psychMod: 0, psychDetail: undefined } },
+      ligne: t('psy.determinationSocial', { name: porteur.label }),
+    };
+  }
+  const pc = s.pendingCascade;
+  const bande = bandeCourante(s);
+  if (!pc || !bande || !(bande.combatPsych || bande.encounterPsych) || !bande.participants?.some((p) => p.id === porteur.id && !p.result)) return null;
+  const participants = bande.participants.map((p) => (p.id === porteur.id ? { ...p, immune: true, result: { roll: p.target, target: p.target, sl: 0, success: true } } : p));
+  return { patch: { pendingCascade: { ...pc, participants: pc.participants.map((st, i) => (i === pc.cursor ? { ...st, participants } : st)) } }, ligne: null };
 }

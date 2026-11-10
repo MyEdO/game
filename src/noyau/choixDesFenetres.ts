@@ -12,6 +12,8 @@ import type { FateSaveOption } from '../engine/fortune';
 import type {
   IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
   IdDeQualiteDArtisanat, IdDeReponseDeDialogue, IdDEntrainement, IdDeSort, IdDeTalent, IdDeTireurRapide, IdDeTraitPsyPorte, IdDObjet, IdDObjetDuCatalogue, IdDuCoupleMonte,
+  IdDePosteDeBataille, IdDeSceneDeBataille,
+  IdDOffreDeCargaison, IdDePorteurDeCargaison, IdDeCargaison, IdDePointDInteret,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
 import type { ModeDeMarche } from './merchantFlow';
@@ -151,8 +153,24 @@ export interface ChoixDesFenetres {
     pratiquer: true;
   };
   batailleDeMasse: {
-    /** ADE II 08 l.309 : la ligne de la table choisie au lieu du tirage (`affronterLePeril`). */
-    alea: IdDAleaDeBataille;
+    /** ADE II 08 l.116-118 : la Scène de la situation que les PJ engagent. */
+    scene: IdDeSceneDeBataille;
+    /** ADE II 08 l.120 */
+    engager: true;
+    /** ADE II 08 l.122 */
+    rallier: true;
+    /** ADE II 08 l.81, l.116-118 : le poste où se poste le héros de la rangée. */
+    ajouterAuPoste: IdDePosteDeBataille;
+    /** Le poste que quitte le héros de la rangée. */
+    retirerDuPoste: IdDePosteDeBataille;
+    /** ADE II 08 l.309 : la ligne de la table choisie ; `null` : le dé la tire. */
+    alea: IdDAleaDeBataille | null;
+  };
+  port: ChoixDuMarche;
+  marcheDeTerre: ChoixDuMarche;
+  ecranDuLieu: {
+    /** Le point d'intérêt du plan du lieu où entrer (`entreesDuLieu`). */
+    entrer: IdDePointDInteret;
   };
   finDeSeance: {
     /** LDB 05 l.837 */
@@ -166,6 +184,20 @@ export interface ChoixDesFenetres {
     /** LDB 17 l.81 */
     motivation: boolean;
   };
+}
+
+/** Les choix d'un marché de cargaison (MDG 15 l.319-399, MSRC 13 l.129-160) : l'achat en composition (`cargaison.ts`),
+ *  sa conclusion, la vente et le bradage d'un lot. */
+export interface ChoixDuMarche {
+  /** L'offre dont l'achat se compose. */
+  offre: IdDOffreDeCargaison;
+  /** Le porteur qui charge l'achat. */
+  porteur: IdDePorteurDeCargaison;
+  /** L'Enc acheté. */
+  enc: number;
+  acheter: true;
+  vendre: IdDeCargaison;
+  jeter: IdDeCargaison;
 }
 
 /** Une fenêtre qui a des choix. */
@@ -202,6 +234,7 @@ const fige = { effet: 'fige', portee: 'fenetre', qui: 'proprietaire' } as const;
 const figeParLHote = { effet: 'fige', portee: 'fenetre', qui: 'hote' } as const;
 const duHerosParLHote = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
 const figeDuHeros = { effet: 'fige', portee: 'rangee', qui: 'proprietaire' } as const;
+const marche = { offre: reprenableParLHote, porteur: reprenableParLHote, enc: reprenableParLHote, acheter: figeParLHote, vendre: figeParLHote, jeter: figeParLHote } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const CHOIX_DES_FENETRES = {
@@ -236,7 +269,11 @@ export const CHOIX_DES_FENETRES = {
     activite: duHeros, talent: duHeros, entrainement: duHeros, ouvrage: duHeros, ajouterLaQualite: duHeros, retirerLaQualite: duHeros,
     objet: duHeros, sort: duHeros, traitPsy: duHeros, pratiquer: figeDuHeros,
   },
-  batailleDeMasse: { alea: figeParLHote },
+  batailleDeMasse: { scene: figeParLHote, engager: figeParLHote, rallier: figeParLHote, ajouterAuPoste: duHerosParLHote, retirerDuPoste: duHerosParLHote, alea: figeParLHote },
+  // La bourse, la cale et les porteurs du groupe sont à l'hôte.
+  port: marche,
+  marcheDeTerre: marche,
+  ecranDuLieu: { entrer: clotParLHote },
   finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 

@@ -26,9 +26,9 @@ describe('resolveStake — la porte UNIQUE, fail-closed (#1117)', () => {
    * de la règle du symptôme joué. Le repli sur le `kind` reste, DÉCLARÉ, pour un id introuvable.
    */
   it('l’ENTRÉE jouée prime : une étape de maladie renvoie au SYMPTÔME, pas à l’intro de chapitre', () => {
-    expect(resolveStake(nightStakeRef('diseaseTick', 'blesse')).rule).toEqual({ category: 'symptoms', id: 'blesse' });
-    expect(resolveStake(nightStakeRef('diseaseGangrene', 'gangrene')).rule).toEqual({ category: 'symptoms', id: 'gangrene' });
-    expect(resolveStake(nightStakeRef('diseasePersist', 'persistant')).rule).toEqual({ category: 'symptoms', id: 'persistant' });
+    expect(resolveStake(nightStakeRef('disease-tick', 'blesse')).rule).toEqual({ category: 'symptoms', id: 'blesse' });
+    expect(resolveStake(nightStakeRef('disease-gangrene', 'gangrene')).rule).toEqual({ category: 'symptoms', id: 'gangrene' });
+    expect(resolveStake(nightStakeRef('disease-persist', 'persistant')).rule).toEqual({ category: 'symptoms', id: 'persistant' });
   });
 
   it('la fiche du SYMPTÔME porte bien la règle attendue (le verbatim du Test quotidien)', () => {
@@ -37,8 +37,8 @@ describe('resolveStake — la porte UNIQUE, fail-closed (#1117)', () => {
   });
 
   it('REPLI DÉCLARÉ : sans entrée jouée — ou entrée inconnue — la fiche du `kind` reprend la main', () => {
-    expect(resolveStake(nightStakeRef('diseaseTick')).rule).toEqual({ category: 'regles', id: 'symptomes-des-maladies' });
-    expect(resolveStake(nightStakeRef('diseaseTick', 'symptome-fantome')).rule).toEqual({ category: 'regles', id: 'symptomes-des-maladies' });
+    expect(resolveStake(nightStakeRef('disease-tick')).rule).toEqual({ category: 'regles', id: 'symptomes-des-maladies' });
+    expect(resolveStake(nightStakeRef('disease-tick', 'symptome-fantome')).rule).toEqual({ category: 'regles', id: 'symptomes-des-maladies' });
   });
 
   it('un `entryId` sur un kind SANS catalogue d’entrées est ignoré (aucun renvoi fabriqué)', () => {
@@ -46,18 +46,19 @@ describe('resolveStake — la porte UNIQUE, fail-closed (#1117)', () => {
   });
 
   it('remplit les trous du gabarit avec les valeurs CALCULÉES', () => {
-    const r = resolveStake(voyageStakeRef('riverNav', { driftKm: 7, driftPct: 25 }));
+    const r = resolveStake(voyageStakeRef('river-nav', { driftKm: 7, driftPct: 25 }));
     expect(r.text).toContain('7');
     expect(r.text).not.toMatch(/\{[a-zA-Z]+\}/);
   });
 
   it('une clé INCONNUE jette (aucune surface muette en silence)', () => {
     expect(() => resolveStake({ key: { dataset: 'voyage', kind: 'kind-fantome' } })).toThrow(/aucune entrée d’enjeu|aucune entrée d'enjeu/);
+    // @ts-expect-error — `kind-fantome` n'est l'id d'aucun enjeu de voyage
     expect(() => voyageStakeRef('kind-fantome')).toThrow(/aucune entrée d'enjeu/);
   });
 
   it('un TROU sans valeur jette (jamais un « {driftKm} » rendu au joueur)', () => {
-    expect(() => resolveStake(voyageStakeRef('riverNav'))).toThrow(/driftKm/);
+    expect(() => resolveStake(voyageStakeRef('river-nav'))).toThrow(/driftKm/);
   });
 });
 

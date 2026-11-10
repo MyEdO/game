@@ -58,6 +58,7 @@ import { garanti } from '../lib/garanti';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { postingTenu } from '../engine/activities';
+import { refuserGesteDuSiege } from './refusVisible';
 import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -261,7 +262,7 @@ function buildExposureSteps(state: { party: Combatant[] }, stage: StageContext):
       id: `expo-${id}`, kind: 'stageExposure', actor: h, icon: 'rest/cold', label: t('step.exposition'),
       rollLabel: refLabel('skills', { id: 'resistance' }), difficulty: diff as Difficulty,
       // MÊME Test d'Exposition que la nuit de repos : EDOC 08 l.90 renvoie à LDB p181, donc MÊME entrée.
-      stake: voyageStakeRef('exposure', { chars: exposureFirstFailChars('froid') }),
+      stake: voyageStakeRef('voyage-exposure', { chars: exposureFirstFailChars('froid') }),
       ligne: { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } },
       meta: { weatherLabel: dataLabel(weatherCondition(stage.weather).label), warded: isWeatherWarded(h), coldSeason: isColdSeason(stage.season) },
     });
@@ -281,9 +282,12 @@ function coldExposureChill(hero: Combatant, coldSeason: boolean): string[] {
   });
 }
 
-export function creerActionsDesPostesDeVoyage(_get: Get, set: Set) {
+export function creerActionsDesPostesDeVoyage(get: Get, set: Set) {
   return {
-    attribuerLeRoleDeMarche: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
+    affecterAuRoleDeMarche: (heroId, role) => {
+      if (role && !postingTenu(role)) { refuserGesteDuSiege(get, set, t('tp.refusPosteNonTenu', { label: activityById(role.activityId)?.label ?? role.activityId })); return; }
+      set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined })));
+    },
   } satisfies FabriqueDuNoyau;
 }
 
@@ -421,7 +425,7 @@ export const TABLES = {
       const rencontre = bilan.rencontre ? tableStep({
         id: 'stage-encounter', kind: 'stageEncounter', worldOwner: true, icon: 'ui/warning', label: t(ENCOUNTER_KEY[bilan.rencontre]),
         table: { tableId: tableDeRencontre(bilan.rencontre), spec: encounterDie() },
-        stake: voyageStakeRef('stageEncounter'),
+        stake: voyageStakeRef('stage-encounter'),
       }) : undefined;
       return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert: [...(rencontre ? [rencontre] : []), ...(bilan.pleinAir ? [] : buildExposureSteps(get(), plan.stage))] };
     },

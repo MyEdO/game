@@ -646,7 +646,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "sea-ouragan-affaler",
+                "kind": "crew-affaler-ouragan",
                 "entryId": "ouragan",
                 "entryCategory": "seaBoardEvents"
               }
@@ -1476,7 +1476,7 @@
               "stake": {
                 "key": {
                   "dataset": "voyage",
-                  "kind": "sea-priere",
+                  "kind": "sea-priere-manann",
                   "entryId": "presage-divin-albatros",
                   "entryCategory": "seaBoardEvents"
                 }
@@ -2187,7 +2187,7 @@
               "stake": {
                 "key": {
                   "dataset": "voyage",
-                  "kind": "sea-priere",
+                  "kind": "sea-priere-manann",
                   "entryId": "presage-divin-feu-bleu",
                   "entryCategory": "seaBoardEvents"
                 }

@@ -10,6 +10,7 @@ import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalize
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { acheterAuMarche } from './cargaison.testkit';
 import { applierDe } from './cascade';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -140,7 +141,7 @@ describe('Présages divins : seul un Prêtre ou une Nonne de Manann prie (MDG 15
     const [h, ...reste] = get().party;
     set({ party: [{ ...h, skills: [...(h.skills ?? []), { id: 'priere', characteristic: 'sociabilite', advances: 20 }], talents: [...h.talents, ...talents] }, ...reste] });
   };
-  const etapeDePriere = () => get().pendingCascade?.participants.find((s) => s.stake && 'key' in s.stake && s.stake.key?.kind === 'sea-priere');
+  const etapeDePriere = () => get().pendingCascade?.participants.find((s) => s.stake && 'key' in s.stake && s.stake.key?.kind === 'sea-priere-manann');
 
   it('albatros, sans Prêtre de Manann (Prière seule) : aucun Test, l’Humeur et le Moral tombent', () => {
     prier([]);
@@ -254,7 +255,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])!;
       // Légère brise, vent arrière : aucun pourcentage de vent, le M du jour est le M de base.
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, weather: { ...plan.sea!.weather, vent: 'legere-brise' }, windFrom: 'ouest' } } });
-      applierDe('progression')!(get, set, { id: 'p', kind: 'progression', label: fixtureText('Progression'), result: { roll: 0, target: 0, sl: 2, success: true } }, undefined, { steps: [], index: 0 });
+      applierDe('crew-progression')!(get, set, { id: 'p', kind: 'crew-progression', label: fixtureText('Progression'), result: { roll: 0, target: 0, sl: 2, success: true } }, undefined, { steps: [], index: 0 });
       return get().travelPlan!.sea!.effMToday;
     };
     const sans = progression([]);
@@ -976,7 +977,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     jouerFlowEntier(runFlow(get, set, consequence('infestation-de-rats'), 'Infestation de rats'));
     expect(get().vessel!.infestation?.targetDR).toBe(10);
     set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0])! });
-    const appliquer = (sl: number) => applierDe('extermination')!(get, set, { id: 'extermination', kind: 'extermination', label: fixtureText('extermination'), result: { roll: 0, target: 0, sl, success: sl >= 0 } } as never, undefined, { steps: [], index: 0 });
+    const appliquer = (sl: number) => applierDe('crew-extermination')!(get, set, { id: 'crew-extermination', kind: 'crew-extermination', label: fixtureText('extermination'), result: { roll: 0, target: 0, sl, success: sl >= 0 } } as never, undefined, { steps: [], index: 0 });
     appliquer(6);
     expect(get().vessel!.infestation?.progres).toBe(6);
     appliquer(4);
@@ -1264,7 +1265,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     escale('trop-beau-pour-etre-vrai');
     ouvrirLePort(get, set);
     const offre = get().port!.offers.find((o) => o.remisePct === 50)!;
-    get().acheterLaCargaison(CAMPAIGN_VESSEL_CARRIER_ID, offre.cargoId, 10);
+    expect(acheterAuMarche(get, 'port', CAMPAIGN_VESSEL_CARRIER_ID, offre.cargoId, 10)).toBeNull();
     draineCascade(get);
     const lot = get().vessel!.cargo!.find((l) => l.cargoId === offre.cargoId)!;
     expect(lot.basePriceGold).toBe(offre.basePrice);

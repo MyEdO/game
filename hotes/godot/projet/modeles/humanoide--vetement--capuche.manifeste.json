@@ -1,0 +1,32 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "capuche"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "manteau",
+  "couvre": [
+    "tete",
+    "cou"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "capuche",
+      "palette": "accent"
+    }
+  ],
+  "glb": {
+    "sha256": "339d1704051ca00a3afbf6d7ba25afe993fc90825ac0dfb0c65288116098670c",
+    "octets": 623464
+  }
+}

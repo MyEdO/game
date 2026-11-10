@@ -748,10 +748,10 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
 /**
  * #1117 (arbitrage user : « Faudrait globaliser ça, histoire qu'on sache pourquoi on fait un jet ») —
  * chaque étape-jet de la journée fluviale porte son ENJEU, et cet enjeu vient de la DONNÉE ÉDITABLE
- * (`stakes.json`, gabarit par `cle`) : le flux n'apporte QUE les valeurs calculées.
+ * (`stakes.json`, gabarit par id) : le flux n'apporte QUE les valeurs calculées.
  */
 describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117)', () => {
-  it('les étapes du jour fluvial portent un enjeu, chacun issu du gabarit de sa `kind`', () => {
+  it('les étapes du jour fluvial portent un enjeu, chacun issu d’un gabarit du voyage', () => {
     launch(false, 45);
     const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0])!;
     // Vent fort de côté : louvoyage ET sauvegardes de vent sont au programme du jour.
@@ -764,7 +764,8 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
       // Le gabarit de la donnée est la SOURCE : aucun trou non rempli ne sort à l'écran (le résolveur
       // UNIQUE jette sur un trou sans valeur — on vérifie ici le texte RENDU).
       expect(resolveStake(s.stake!).text).not.toMatch(/\{[a-zA-Z]+\}/);
-      expect(VOYAGE_STAKES.some((e) => e.cle === s.kind)).toBe(true);
+      const cle = s.stake && 'key' in s.stake ? s.stake.key : undefined;
+      expect(cle?.dataset === 'voyage' && VOYAGE_STAKES.some((e) => e.id === cle.kind), `étape ${s.kind} : enjeu hors du catalogue du voyage`).toBe(true);
     }
   });
 
@@ -790,9 +791,10 @@ describe('enjeu des étapes de voyage — data-driven, valeurs calculées (#1117
   });
 
   it('le gabarit qui manque une valeur JETTE (la donnée et le flux ne divergent pas en silence)', () => {
-    expect(() => resolveStake(voyageStakeRef('riverNav'))).toThrow(/driftKm/);
+    expect(() => resolveStake(voyageStakeRef('river-nav'))).toThrow(/driftKm/);
     // FAIL-CLOSED à l'autre bout : demander l'enjeu d'un `kind` SANS gabarit JETTE — une étape muette
     // en silence est exactement ce que #1117 supprime.
+    // @ts-expect-error — `kind-inexistant` n'est l'id d'aucun enjeu de voyage
     expect(() => voyageStakeRef('kind-inexistant')).toThrow(/aucune entrée d'enjeu/);
   });
 });
@@ -824,9 +826,9 @@ describe('renvoi Codex au niveau ÉTAPE (#1117)', () => {
   });
 
   it('les fiches créées portent leur SOURCE (livre + folio + ligne)', () => {
-    // Périmètre STRUCTUREL : les fiches derrière les étapes FLUVIALES (`kind` river*), pas un préfixe
-    // d'id — le catalogue d'enjeux sert aussi la mer, dont les fiches viennent d'un autre livre.
-    const ids = new Set(VOYAGE_STAKES.filter((s) => s.cle.startsWith('river')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
+    // Périmètre : les fiches derrière les enjeux FLUVIAUX (`river-*`) — le catalogue d'enjeux sert aussi
+    // la mer, dont les fiches viennent d'un autre livre.
+    const ids = new Set(VOYAGE_STAKES.filter((s) => s.id.startsWith('river-')).flatMap((s) => (s.rule?.type === 'regle' ? [s.rule.id] : [])));
     expect(ids.size, 'des étapes fluviales portent bien une fiche').toBeGreaterThan(0);
     for (const f of regles.filter((r) => ids.has(r.id))) {
       expect(f.source.book).toBe('mort-sur-le-reik-compagnon');

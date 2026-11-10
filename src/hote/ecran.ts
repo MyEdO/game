@@ -541,19 +541,15 @@ function voyage(etat: Jeu): Element[] {
 }
 
 /** Le marché de cargaison ouvert (`marcheEnVue`) : la bourse, chaque offre en entité, son Enc disponible, son prix
- *  par Enc, la qualité de son vin ou son évaluation, puis son achat (le porteur qui le charge, l'Enc), fermé avec sa
- *  raison ; chaque lot des porteurs du groupe en entité, son porteur et son Enc, son prix de base, sa vente, son
- *  bradage, puis son transfert vers un porteur co-localisé. */
+ *  par Enc, la qualité de son vin ou son évaluation, puis le bouton qui en compose l'achat, pressé quand il se compose,
+ *  et son estimation (le porteur, l'Enc et la conclusion de l'achat en composition sont des réglages de la fenêtre) ;
+ *  chaque lot des porteurs du groupe en entité, son porteur et son Enc, son prix de base, sa vente, son bradage, puis
+ *  son transfert vers un porteur co-localisé. */
 function marche(etat: Jeu): Element[] {
   const m = marcheEnVue(etat);
   if (!m) return [];
   const enc = (n: number) => t('ecran.marche.enc', { enc: n });
   const parEnc = (prix: string) => puce('prix', t('ecran.marche.prix'), t('ecran.marche.parEnc', { prix }));
-  const nombre = (libelle: string, valeur: number, max: number): Saisie =>
-    ({ type: 'saisieNombre', id: 'enc', ton: 'neutre', nom: 'enc', optionnel: false, libelle, valeur, min: 1, max, pas: 1 });
-  /** Les porteurs `liste` à choisir, le premier saisi d'avance. */
-  const porteurs = (nom: string, libelle: string, liste: readonly { id: string; nom: string; libre: number; capacite: number }[]) =>
-    saisieDeValeurs(nom, libelle, liste.map((p, i) => ({ libelle: t('ecran.marche.place', { nom: p.nom, libre: p.libre, capacite: p.capacite }), valeur: p.id, refus: null, presse: i === 0 })));
   return [
     puce('bourse', t('ecran.bourse'), m.bourse),
     ...m.offres.map((o): Entite => ({
@@ -563,11 +559,8 @@ function marche(etat: Jeu): Element[] {
         parEnc(o.prix),
         ...(o.qualite ? [{ ...puce('qualite', t('ecran.marche.qualite'), o.qualite.fiable ? o.qualite.texte : t('ecran.marche.incertaine', { qualite: o.qualite.texte })), ton: o.qualite.fiable ? 'neutre' : 'alerte' } satisfies Puce] : []),
         ...(o.evaluer ? [boutonDuNoyau('evaluer', { ...o.evaluer, libelle: t('ecran.marche.evaluer') })] : []),
-        formulaireDuNoyau('acheter', t('ecran.marche.acheter'), { geste: { verbe: o.acheter.geste.verbe, args: [] }, refus: o.acheter.refus }, o.acheter.refus ? [] : [
-          porteurs('porteur', t('ecran.marche.porteur'), o.acheter.porteurs),
-          { type: 'fixe', id: 'offre', nom: 'offre', optionnel: false, valeur: o.id },
-          nombre(t('ecran.marche.aAcheter'), o.acheter.enc, o.acheter.max),
-        ]),
+        puce('estimation', t('ecran.marche.estimation'), o.acheter.estimation),
+        boutonDeGeste('acheter', t('ecran.marche.acheter'), o.acheter.geste, o.acheter.refus, o.acheter.compose),
       ],
     })),
     ...m.cargaison.flatMap((c) => c.lots.map((l): Entite => ({
@@ -578,8 +571,8 @@ function marche(etat: Jeu): Element[] {
         boutonDuNoyau('vendre', { ...l.vendre, libelle: t('ecran.marche.vendre') }),
         boutonDuNoyau('brader', { ...l.brader, libelle: t('ecran.marche.brader') }),
         formulaireDuNoyau('deplacer', t('ecran.marche.deplacer'), { geste: { verbe: l.deplacer.geste.verbe, args: [l.uid] }, refus: l.deplacer.refus }, l.deplacer.refus ? [] : [
-          porteurs('vers', t('ecran.marche.vers'), l.deplacer.vers),
-          nombre(t('ecran.marche.aDeplacer'), l.deplacer.enc, l.deplacer.max),
+          saisieDeValeurs('vers', t('ecran.marche.vers'), l.deplacer.vers.map((p, i) => ({ libelle: t('valeur.porteur', { nom: p.nom, libre: p.libre, capacite: p.capacite }), valeur: p.id, refus: null, presse: i === 0 }))),
+          { type: 'saisieNombre', id: 'enc', ton: 'neutre', nom: 'enc', optionnel: false, libelle: t('ecran.marche.aDeplacer'), valeur: l.deplacer.enc, min: 1, max: l.deplacer.max, pas: 1 },
         ]),
       ],
     }))),
@@ -587,7 +580,7 @@ function marche(etat: Jeu): Element[] {
 }
 
 /** Les clés des choix de fenêtre (`fenetreChoisir`) que jouent les boutons de `elements`, à toute profondeur : un choix
- *  que le corps porte ne se redessine pas en réglage. */
+ *  que le corps porte ne se redessine ni en réglage ni en geste. */
 function choixPortes(elements: readonly Element[]): Set<string> {
   const cles = new Set<string>();
   const parcourir = (e: Element | Bouton): void => {
@@ -918,7 +911,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'fenetre.etape': etape.length ? [ligne('etape', etape.join(t('ecran.separateur')))] : [],
     'fenetre.corps': corps,
     'fenetre.reglages': gestes.filter((g) => reglages.has(g.id) && !portes.has(g.id)),
-    'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id)),
+    'fenetre.gestes': gestes.filter((g) => !reglages.has(g.id) && !portes.has(g.id)),
     'combat.tour': c ? [ligne('tour', c.tour === null ? t('ecran.round', { round: c.round }) : t('ecran.tour', { round: c.round, tour: c.tour, tours: c.tours }))] : [],
     'combat.ordre': c ? ordreDuTour(etat, c) : [],
     'combat.actif': c?.actif ? [actifDuCombat(c.actif)] : [],

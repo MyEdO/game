@@ -143,8 +143,8 @@ describe('partirEnVoyage — à pied', () => {
     banc.getState().fenetreValider('rest');
     const cas = banc.getState().pendingCascade!;
     // Le jet de marche forcée du jour est une ÉTAPE influençable de la cascade de nuit.
-    expect(cas.participants[0].kind).toBe('forcedMarch');
-    expect(cas.participants.filter((s) => s.kind === 'forcedMarch').length).toBe(1); // 1 héros
+    expect(cas.participants[0].kind).toBe('forced-march');
+    expect(cas.participants.filter((s) => s.kind === 'forced-march').length).toBe(1); // 1 héros
   });
 
   it('route à RELAIS (inns) : la halte de nuit propose l’auberge — chambre privée débitée, puis arrivée', () => {
@@ -624,11 +624,11 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     expect(met).toBe(true);
   });
 
-  it('attribuerLeRoleDeMarche épingle puis détache le rôle de marche PERSISTANT', () => {
+  it('affecterAuRoleDeMarche épingle puis détache le rôle de marche PERSISTANT', () => {
     setup(map(), [hero({ id: 'h1' })]);
-    banc.getState().attribuerLeRoleDeMarche('h1', { activityId: 'plein-air' });
+    banc.getState().affecterAuRoleDeMarche('h1', { activityId: 'plein-air' });
     expect(banc.getState().party[0].travelRole).toEqual({ activityId: 'plein-air' });
-    banc.getState().attribuerLeRoleDeMarche('h1', null);
+    banc.getState().affecterAuRoleDeMarche('h1', null);
     expect(banc.getState().party[0].travelRole).toBeUndefined();
   });
 });

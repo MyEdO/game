@@ -85,7 +85,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## lecture d’un clip renouvelle aussi cette publication à chaque image, après mise en page, sans remesurer `peaux`.
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, retenu? }[], cases: Record<"x,y,z", [x, y]>, corps:
+## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>, corps:
 ##   Record<string, { base: string, elements: string[], emblemes: Record<string, string>, couleurs: Record<string,
 ##   Record<string, string>> }>, navires: string[] }`, plus le point de l'écran du sol de chaque case de chaque couche
 ##   du plateau, les ids des navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle
@@ -95,16 +95,16 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
 ##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/end-turn`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
-##   valeur d'un choix) ; une liste déroulante publie aussi `choix` et `retenu`, comme à l'atelier.
-## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, retenu? }[], saisies: { texte, x, y, element? }[],
+##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier.
+## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],
 ##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, chaque champ de
 ##   texte éditable à l'écran, son texte et son centre (`PontDuNoyau.saisies_a_l_ecran`), le point de l'écran du sol de
 ##   chaque case de la couche éditée, les zones, la surcouche et le calque de la dernière réponse de `editer` (section
 ##   « Éditeur »), le nombre d'arêtes posées sur le monde, les noms posés sur le monde par case `x,y,z`, et si le calque
 ##   y est posé, sa planche lue.
-## - À l'atelier : `{ boutons: { texte, x, y, cle?, choix?, retenu? }[], atelier: { base: string|null, empreinte:
+## - À l'atelier : `{ boutons: { texte, x, y, cle?, choix?, ids?, retenu? }[], atelier: { base: string|null, empreinte:
 ##   string|null, clip: string|null, instant: number|null, duree: number|null, lecture: boolean, vitesse: number,
-##   montes: Record<point, element>, lignes: Record<ligne, element>, emblemes: Record<emplacement, emblemeId>, aides: {
+##   montes: Record<point | `<point>#<rang>`, element>, lignes: Record<ligne, element>, emblemes: Record<emplacement, emblemeId>, aides: {
 ##   os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[], onglet: Onglet, onglets: Onglet[],
 ##   defilement: number, plages: Record<champ, { gauche: number, droite: number, y: number, valeur: number }>,
 ##   composition: { courante: Composition, preset: string|null, montes: Monte[], manquants: Manquant[], morphes:
@@ -169,8 +169,9 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   les listes de tête des modèles `"modele/corps"`, `"modele/vehicule"` et `"modele/<famille>"` de chaque famille
 ## d'échantillons, parce que leur texte (« Aucun », un
 ##   libellé) se répète d'une rangée à l'autre ; le préfixe `ligne/` sépare une ligne d'un point de même id. Une liste
-##   déroulante publie aussi le texte de chaque article (`choix`) et le rang de l'article choisi (`retenu`, -1 sans
-##   choix) : on la choisit en la cliquant, puis en descendant à son article au clavier. `lignes` porte l'élément monté
+##   déroulante publie aussi le texte de chaque article (`choix`), l'id de chaque article (`ids`, `null` pour un article
+##   sans id), et le rang de l'article choisi (`retenu`, -1 sans choix) : on la choisit en la cliquant, puis en
+##   descendant à son article au clavier. `lignes` porte l'élément monté
 ##   à chaque ligne de pièce, sous la clé `<ligne>` : la `sorte` d'un sélecteur (`tete`, `coiffure`), `piece/<id>` ou
 ##   `emplacement/<id>` ; une ligne sous « Aucun » ou démontée en est absente, comme un point de `montes`. `emblemes` ne
 ##   porte que les emplacements montés dont un emblème est posé, sous l'id du point ou `ligne/<ligne>` : un emplacement
@@ -214,8 +215,8 @@ func exposer(nom: String, rappel: Callable) -> void:
 
 ## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
 ## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :
-## `<type>/<id>`) s'il en porte un ; une liste déroulante, aussi le texte de chaque article (`choix`) et le rang de
-## l'article choisi (`retenu`, -1 sans choix) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
+## `<type>/<id>`) s'il en porte un ; une liste déroulante, aussi le texte de chaque article (`choix`), son id (`ids`,
+## sa métadonnée) et le rang de l'article choisi (`retenu`, -1 sans choix) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
 ## centre de son onglet (`onglet`).
 static func boutons_a_l_ecran(racines: Array) -> Array:
 	var boutons := []
@@ -239,6 +240,7 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 				if bouton is OptionButton:
 					var liste := bouton as OptionButton
 					publie.choix = range(liste.item_count).map(func(rang: int) -> String: return liste.get_item_text(rang))
+					publie.ids = range(liste.item_count).map(liste.get_item_metadata)
 					publie.retenu = liste.selected
 				boutons.append(publie)
 	return boutons

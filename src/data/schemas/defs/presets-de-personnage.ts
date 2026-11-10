@@ -16,7 +16,8 @@
  *   de palette ; chaque surface d'un élément monté prend celle de son emplacement.
  * - `variantesPieces` : l'apparence d'une pièce portée, une de ses variantes de la garde-robe (#3446) ; absente, la pièce
  *   elle-même (`varierSesPieces`).
- * - Rien n'est porté deux fois, ni un objet ni une pièce (`refuserLesPortesDeuxFois`).
+ * - Rien n'est porté deux fois, ni une pièce ni un objet tenu ; un objet porté peut l'être en plusieurs exemplaires, rangés
+ *   chacun à son rang du point (`refuserLesPortesDeuxFois`, #3844).
  *
  * `compositionSchema` est l'entrée sans son enveloppe, règles comprises : la composition
  * (`src/noyau/apparence/composition.ts`).
@@ -74,13 +75,13 @@ const metaDesChampsDuPreset = {
 
 type Chemin = (string | number)[];
 
-/** Aucune chose portée deux fois : aucun objet sur `prises` puis `objets` ; aucune pièce sur l'ensemble de la tenue, les
- *  `pieces` puis les pièces de chaque objet (`piecesDeLObjet`). L'issue va à l'élément qui la porte la seconde fois.
- *  Rend les pièces portées. */
+/** Aucune chose portée deux fois : aucun objet tenu sur `prises` puis `objets`, un objet porté pouvant revenir dans
+ *  `objets` en autant d'exemplaires ; aucune pièce sur l'ensemble de la tenue, les `pieces` puis les pièces de chaque
+ *  exemplaire d'objet (`piecesDeLObjet`). L'issue va à l'élément qui la porte la seconde fois. Rend les pièces portées. */
 function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet<string> {
   const e = v as Pick<PresetDePersonnage, 'tenue' | 'pieces' | 'objets' | 'prises'>;
   const pieces = new Map<string, string>();
-  const objets = new Map<string, string>();
+  const tenus = new Map<string, string>();
   const deuxFois = (path: Chemin, id: string, deja: string) => ctx.addIssue({ code: 'custom', path, message: `« ${id} » est porté deux fois : déjà par ${deja}.` });
   const porter = (ids: readonly string[], path: Chemin, par: string) => {
     for (const id of ids) {
@@ -92,17 +93,17 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet
   const ensemble = (habille: HabilleDEnsemble) => findEnsembleParHabille(habille)?.pieces ?? [];
   if (e.tenue) porter(ensemble({ id: e.tenue.id, type: 'tenue' }), ['tenue'], `l’ensemble de la tenue « ${e.tenue.id} »`);
   (e.pieces ?? []).forEach((id, i) => porter([id], ['pieces', i], `pieces[${i}]`));
-  const portes: [Chemin, string, string][] = [
+  const portes: [Chemin, string, string | undefined][] = [
     ...Object.entries(e.prises ?? {}).map(([main, tenu]): [Chemin, string, string] => [['prises', main], tenu.id, `la prise ${main}`]),
-    ...(e.objets ?? []).map((id, i): [Chemin, string, string] => [['objets', i], id, `objets[${i}]`]),
+    ...(e.objets ?? []).map((id, i): [Chemin, string, undefined] => [['objets', i], id, undefined]),
   ];
-  for (const [path, id, ou] of portes) {
-    const deja = objets.get(id);
+  for (const [path, id, prise] of portes) {
+    const deja = tenus.get(id);
     if (deja !== undefined) {
       deuxFois(path, id, deja);
       continue;
     }
-    objets.set(id, ou);
+    if (prise !== undefined) tenus.set(id, prise);
     porter(piecesDeLObjet(id), path, `l’objet « ${id} »`);
   }
   return new Set(pieces.keys());

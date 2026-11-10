@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { acheterAuMarche } from './cargaison.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from './battleRng.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -110,7 +111,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
   it('CÂBLAGE : la porte du seam pose la Compétence NUE en `step.base`, le Soutien en ligne de mod', () => {
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
-    get().acheterLaCargaison('vessel', 'bois-mer', 20);
+    acheterAuMarche(get, 'port', 'vessel', 'bois-mer', 20);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
     expect(step.kind).toBe('port-buy-bargain');
     expect(step.base).toBe(45); // Niveau de Compétence NU (LDB 09 l.17) — la grandeur du départage (l.160)

@@ -181,15 +181,14 @@ describe('#3059 — siège invité : vente, bradage et Conseil disent le refus d
     });
     try {
       const avant = bourseDuGroupe(partie);
-      partie.envoyer({ type: 'vendreLaCargaison', args: ['lot-2'] });
-      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-2'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'vendre', 'lot-2'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'jeter', 'lot-2'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['council', 'paie', 'paie-reguliere'] });
       const s = partie.etat();
       expect(s.vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
       expect(s.pendingCouncil?.phase).toBe('choix');
-      expect(s.journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length, 'vente et bradage').toBe(2);
-      expect(s.journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'paie').toBe(1);
+      expect(s.journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'vente, bradage et paie').toBe(3);
     } finally {
       partie.fermer();
     }
@@ -205,7 +204,7 @@ describe('#3059 — bradage au port : refusé sans « commerce » ni Demande pou
     });
     try {
       const avant = bourseDuGroupe(partie);
-      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-3'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'jeter', 'lot-3'] });
       expect(partie.etat().vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
       expect(partie.etat().journal.some((l) => l.includes('Bois : ce port ne rachète pas les cargaisons à brader (ni « commerce » ni Demande).'))).toBe(true);

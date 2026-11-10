@@ -107,6 +107,7 @@ import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
+import { refusDImmunite } from './determinationDuJet';
 import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
@@ -128,7 +129,7 @@ import { bus, EVT } from './bus';
 import { advanceCascade, maladresseCourante, finalizeCascade, setCascadeChoice, setCascadeAmount, suspendActiveCascade, resumeSuspendedCascade, poserCurseurCascade } from './cascade';
 import { abandonSequence, closeSequenceRound, pasVersLAbandon } from './sequenceCore';
 import { checkPartyWiped } from './partyWipe';
-import { FLOWS, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';
+import { FLOWS, jetImmunise, rangeesAReglerIci, type CloturesDuJet } from './rollFlowSpecs';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { actionsAuthorees } from './monde/usable';
@@ -1096,7 +1097,7 @@ export function createCombatSlice(get: Get, set: Set) {
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
-        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('teamCommand') },
+        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('team-command') },
         combatConditionCtx(active, {}), onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: active.id });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1303,23 +1304,27 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     /** Dépense un Point de Détermination du combattant `combattantId` pour l'une de ses trois options (LDB 17 l.59-61),
-     *  l'actif à sa barre, un défenseur à sa modale, un acteur de l'IA Brisé qui se ressaisit : verdict
-     *  `refusDeDetermination`, dit au siège qui pilote le porteur (`controlsCombatant`), muet pour un acteur de l'IA ;
-     *  l'immunité et les Critiques ignorés durent des Rounds, et se refusent hors combat. */
+     *  l'actif à sa barre, un défenseur à sa modale, le porteur d'un jet de Psychologie dans sa fenêtre
+     *  (`fenetreDeDetermination`), un acteur de l'IA Brisé qui se ressaisit : verdict `refusDeDetermination`, celui de
+     *  l'immunité `refusDImmunite`, dit au siège qui pilote le porteur (`controlsCombatant`), muet pour un acteur de
+     *  l'IA ; les Critiques ignorés durent des Rounds, et se refusent hors combat. L'immunité frappe le jet de
+     *  Psychologie ouvert du porteur (`jetImmunise`). */
     depenserLaDetermination: (combattantId: string, option: OptionDeDetermination, etat?: string) => {
       const s = get();
       const porteur = actorIn(s, combattantId);
       if (!porteur) return;
-      const refus = refusDeDetermination(porteur, option === 'retirerUnEtat' ? etat : undefined)
-        ?? (option === 'retirerUnEtat' ? (etat ? undefined : t('agate.stateNotCarried')) : s.battle ? undefined : t('cs.determinationHorsCombat'));
+      const refus = option === 'immuniserALaPsychologie' ? refusDImmunite(s, porteur)
+        : refusDeDetermination(porteur, option === 'retirerUnEtat' ? etat : undefined)
+          ?? (option === 'retirerUnEtat' ? (etat ? undefined : t('agate.stateNotCarried')) : s.battle ? undefined : t('cs.determinationHorsCombat'));
       if (refus) {
         if (controlsCombatant(s, porteur)) refuserGesteDuSiege(get, set, refus);
         return;
       }
       const ligne = depenseDeDetermination(porteur, option, etat, s.gameTime);
       if (!ligne) return; // rien à lever : le point n'est pas débité
-      set(touchActors(get()));
-      journaliser(get, set, [ligne], 'info', { actorId: porteur.id });
+      const jet = option === 'immuniserALaPsychologie' ? jetImmunise(get(), porteur) : null;
+      set({ ...jet?.patch, ...touchActors(get()) });
+      journaliser(get, set, [ligne, ...(jet?.ligne ? [jet.ligne] : [])], 'info', { actorId: porteur.id });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1831,7 +1836,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
     // applier 'combatPsych', résolue par les verbes de jet de la cascade. La Détermination (LDB 17 l.59) est offerte
-    // sur la RANGÉE par `jetDepenserLaDetermination('cascadeBatch')`.
+    // dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination` sur la rangée.
     // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'encounterPsych',
     // ouverte par `openEncounterPsych` à l'entrée de scène.
 
@@ -1867,7 +1872,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // COUTURE UNIQUE (`openSkillTest`) : l'observateur reste l'acteur imposé (`actorId`), et son
       // Test est PERSONNEL — `noSupport` (LDB 09 l.308, LDB 12 l.197).
       openSkillTest(get, set,
-        { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('skillAdvantage', { entryId: skillId, values: { capChar } }) },
+        { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('skill-advantage', { entryId: skillId, values: { capChar } }) },
         combatConditionCtx(active, {}), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW,
         { actorId: active.id, combatAdvantage: { combatantId: active.id, cap }, cancellable: true });
     },

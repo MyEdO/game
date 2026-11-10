@@ -15,6 +15,8 @@ const ORIGINE := [0.0, 0.0, 0.0]
 const LARGEUR_D_EMBLEME := 512.0
 ## La métadonnée de la scène d'un GLB (`scene_du_glb`) qui porte, par nom, chacun de ses matériaux.
 const MATERIAUX := &"materiaux"
+## Les corrections du tour d'un objet rangé à côté d'un autre, chacune sur ses sommets posés (`_ranger`).
+const PASSES_DE_TOUR := 2
 ## La métadonnée d'un mesh dont les shape keys sont cuites (`cuire_les_formes`) : son mesh à shape keys.
 const FORMES := &"formes"
 ## La métadonnée d'un mesh dont les shape keys sont cuites : le poids cuit de chacune, par nom de clé.
@@ -66,6 +68,13 @@ var _noeuds: Dictionary = {}
 var _demandes: Dictionary = {}
 ## Les meshes de la base posée, relevés avant tout montage.
 var _pieces_de_la_base: Array[MeshInstance3D] = []
+## Par id d'emplacement d'un objet rangé, ses meshes rangés : `{ noeud, piece }`, le nœud `Range_<point>` qui porte le
+## mesh et le mesh (`_ranger`).
+var _rangements: Dictionary = {}
+## Par point offert dont l'attache suit des `poids` (#3844) : par os de ces poids, le repère au repos de l'os du point
+## porté par cet os depuis son propre repos (`chaines`, chacune sous le `BoneAttachment3D` de `attaches`), leurs `poids`, et
+## les `Portage` des objets rangés au point (`_suivre_les_poids`).
+var _suivis: Dictionary = {}
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -91,6 +100,20 @@ static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
 ## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne.
 static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
 	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
+
+
+## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :
+## les erreurs du listage, les refus de l'index et celui du pont, que l'hôte dit en panne.
+static func indexer_les_modeles(hote: Node) -> Array[String]:
+	var recueil: Array[String] = []
+	var reponse := indexer(hote.get_node("/root/Pont") as PontDuNoyau, await lister(hote, recueil))
+	if reponse.get("ok") == true:
+		retenir_les_modeles(reponse)
+		for refus in reponse.refus:
+			recueil.append(str(refus))
+	elif reponse.get("ok") == false:
+		recueil.append(str(reponse.erreur.message))
+	return recueil
 
 
 ## Le premier `Skeleton3D` sous `noeud`, `null` s'il n'en porte aucun.
@@ -205,6 +228,8 @@ func vider() -> void:
 	seconde_prise.clear()
 	pieces.clear()
 	_noeuds.clear()
+	_rangements.clear()
+	_suivis.clear()
 	montes.clear()
 	emblemes.clear()
 	_emblemes_demandes.clear()
@@ -237,6 +262,7 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	gabarit = GabaritDuSquelette.new()
 	gabarit.lecteur = lecteur
 	squelette.add_child(gabarit)
+	squelette.skeleton_updated.connect(_suivre_les_poids, CONNECT_DEFERRED)
 
 
 ## Par ligne de `montes` de la composition retenue, sa première entrée qui monte un élément.
@@ -254,10 +280,12 @@ func demonter(id: String) -> void:
 	for noeud in _noeuds.get(id, []):
 		noeud.free()
 	_noeuds.erase(id)
+	_rangements.erase(id)
 	pieces.erase(id)
 	montes.erase(id)
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
+	_ranger()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 
@@ -324,6 +352,7 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	pieces[id] = trouvees
 	_noeuds[id] = noeuds
 	montes[id] = element
+	_ranger()
 	poser_les_morphes()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
@@ -450,15 +479,20 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 
 ## `piece`, qui pend aux os `noms`, posée sur `sous`, le squelette de la base, pour l'emplacement `id` : rigide, sous un
 ## os de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui
-## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_repere_de_rangement`) (#3319, `CONTRAT.md`) ;
-## skinnée, sous le squelette, son skin lié par nom dès l'import (`scene_du_glb`). Le nœud qui la porte dans la scène.
+## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_ranger`) (#3319, `CONTRAT.md`) ; un fourreau
+## (`extras.fourreau`) n'est montré que rangé ; skinnée, sous le squelette, son skin lié par nom dès l'import
+## (`scene_du_glb`). Le nœud qui la porte dans la scène.
 func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String) -> Node:
 	piece.owner = null
 	if piece.skin == null:
 		var nom := ("Monte_%s_%s" % [id, piece.name]).validate_node_name()
 		var cible := _point(id)
 		var origine := _prise_de_l_os(noms[0])
-		if cible.is_empty() or origine.is_empty() or (cible.genre == "emplacement" and cible.attache.os == noms[0]):
+		var reposee := not cible.is_empty() and not origine.is_empty()
+		var rangee: bool = reposee and cible.genre == "emplacement" and cible.attache.os != noms[0]
+		if piece.get_meta("extras", {}).get("fourreau", false):
+			piece.visible = rangee
+		if not rangee and not (reposee and cible.genre == "prise"):
 			var support := attacher(sous, {os = noms[0], position = ORIGINE, rotation = ORIGINE}, nom)
 			piece.reparent(support, false)
 			return support.get_parent()
@@ -475,40 +509,283 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3
 		attacher(sous, {os = cible.attache.os, position = ORIGINE, rotation = ORIGINE}, nom).add_child(rangement)
 		rangement.add_child(relais)
 		piece.reparent(relais, false)
-		rangement.transform = _repere_de_rangement(cible.attache, _arriere(piece, rangement))
+		_rangements.get_or_add(id, []).append({noeud = rangement, piece = piece})
 		return rangement.get_parent().get_parent()
 	piece.reparent(sous, false)
 	piece.skeleton = piece.get_path_to(sous)
 	return piece
 
 
-## Le point d'accroche `id` de la base posée, emplacement ou prise, `{}` si aucun.
+## Le point d'accroche `id` de la base posée, emplacement ou prise ; pour la ligne `<point>#<rang>` d'un objet suivant
+## au même point (`composerSurLaBase`), la case de ce rang si une pièce l'offre, sinon le point `<point>` ; `{}` si aucun.
 func _point(id: String) -> Dictionary:
-	for point in base.get("points", []):
-		if point.id == id:
-			return point
+	for cherche in [id, id.get_slice("#", 0)]:
+		for point in base.get("points", []):
+			if point.id == cherche:
+				return point
 	return {}
 
 
-## Le repère, dans l'os de l'emplacement `attache`, où se pose le repère de prise d'un objet rangé dont la face arrière
-## de la boîte, dans ce repère de prise, est à `arriere` : ses axes et son origine (`MiseEnPage.axe_de_rangement`,
-## `MiseEnPage.origine_de_rangement`).
-static func _repere_de_rangement(attache: Dictionary, arriere: float) -> Transform3D:
-	var emplacement := repere(attache)
-	var point := emplacement.origin
+## Le repère du point `point` (`_point`) : le sien si la base l'offre ; offert par des pièces (`offertPar`), celui de la
+## première pièce montée qui l'offre, `{}` si aucune ne l'est.
+func _attache_du_point(point: Dictionary) -> Dictionary:
+	if not point.has("offertPar"):
+		return point.attache
+	for element: String in montes.values():
+		if point.offertPar.has(element):
+			return point.offertPar[element]
+	return {}
+
+
+## @contrat Atelier 3D
+## Godot range un objet à un emplacement (`bases` de `modeles`) : le +Y de sa prise vers le bas du
+## personnage, son +Z sur la normale sortante de l'emplacement (sa position hors de l'axe de l'os, à défaut l'avant),
+## sa poignée (l'origine de sa prise) sur l'emplacement (`MiseEnPage.axe_de_rangement`), ou, pour une arme au fourreau,
+## le haut de son fourreau, la poignée au-dessus (`_suspension`), tous ses meshes ensemble ; à plat, tourné d'un quart
+## de tour autour de ce +Y si sa boîte est moins large sur X que sur Z. Les objets rangés à un
+## même point (le point, puis chaque ligne `<point>#<rang>`, section « Composition d'un personnage ») s'y posent côte à
+## côte autour de l'axe de l'os, le premier sur l'emplacement, chaque suivant vers l'avant du personnage, tourné autour
+## de l'axe de l'os pour que ses sommets posés passent à 2 cm, ramenés à la distance de l'emplacement à l'axe, de ceux du
+## précédent (sur l'axe de l'os, décalé de 2 cm entre leurs boîtes le long de l'axe X du rangement). Chacun s'appuie sur
+## ce qui est porté dessous, la base et les éléments skinnés montés au repos, que vise, par case de 2 cm de l'objet, une
+## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
+## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
+## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
+## rien dessous, sa face arrière à 5 mm de l'emplacement
+## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
+## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
+## l'objet rangé. Un emplacement qu'offre une pièce (`offertPar` du point, #3844) ne range un objet que sous une pièce
+## montée qui l'offre, à son repère, et le cache sinon ; s'il porte des `poids`, ses objets suivent, posé ou non, le
+## mélange des déplacements de ces os depuis leur repos, comme un sommet de la pièce (`_suivre_les_poids`) ;
+## la ligne `<point>#<rang>` va à la case de ce rang si une pièce l'offre, seule, et se pose sinon à côté des autres
+## objets du point.
+
+## Chaque objet rangé posé à son emplacement : les objets d'un même point (`<point>`, puis `<point>#<rang>` par rang,
+## `composerSurLaBase`) côte à côte autour de l'axe de l'os, le premier sur le point, chaque suivant vers l'avant du
+## personnage (`MiseEnPage.sens_vers_l_avant`) : tourné autour de l'axe de l'os pour que ses sommets posés passent à
+## `JEU_ENTRE_RANGES` de ceux du précédent (`MiseEnPage.tour_a_cote`, en `PASSES_DE_TOUR` corrections depuis
+## l'écart de leurs boîtes, `MiseEnPage.decalage_a_cote`), ou, sur l'axe, décalé le long de l'axe X du rangement ;
+## chaque objet à plat, sa plus petite largeur sur la normale sortante (`MiseEnPage.lacet_a_plat`), appuyé sur ce qui
+## est porté dessous (`_poser_range`), les meshes d'un objet ensemble.
+func _ranger() -> void:
+	for suivi: Dictionary in _suivis.values():
+		for attache: Node in suivi.attaches:
+			attache.free()
+	_suivis.clear()
+	var par_point := {}
+	for id: String in _rangements:
+		par_point.get_or_add(_point(id).id, []).append(id)
+	if par_point.is_empty():
+		return
+	var portes := _portes_au_repos()
+	for point: String in par_point:
+		var attache := _attache_du_point(_point(point))
+		var portages: Array[Node3D] = []
+		for id: String in par_point[point]:
+			for rangee in _rangements[id]:
+				rangee.noeud.visible = not attache.is_empty()
+				var portage: Node3D = rangee.noeud.get_parent()
+				portage.top_level = attache.has("poids")
+				portage.transform = Transform3D.IDENTITY
+				portages.append(portage)
+				if not attache.is_empty():
+					(portage.get_parent() as BoneAttachment3D).bone_name = attache.os
+		if attache.is_empty():
+			continue
+		if attache.has("poids"):
+			_suivis[point] = _suivi(point, attache, portages)
+		var os := squelette.get_bone_global_rest(squelette.find_bone(attache.os))
+		var emplacement := repere(attache)
+		var sens := MiseEnPage.sens_vers_l_avant(os.basis, MiseEnPage.axe_de_rangement(emplacement.basis, emplacement.origin, Vector3.AXIS_X))
+		var depuis := MiseEnPage.azimut(emplacement.origin, 0.0)
+		var ids: Array = par_point[point]
+		ids.sort_custom(func(a: String, b: String) -> bool: return a.naturalnocasecmp_to(b) == -1)
+		var decalage := 0.0
+		var tour := 0.0
+		var precedente := AABB()
+		var azimuts := Vector2()
+		for id: String in ids:
+			var rangees: Array = _rangements[id]
+			var bruts := _sommets_ranges(rangees, Transform3D.IDENTITY)
+			var lacet := MiseEnPage.lacet_a_plat(_boite_de(bruts).size)
+			var suspension := _suspension(rangees)
+			var sommets := _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension))
+			var boite := _boite_de(sommets)
+			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, sommets = sommets, portes = portes}
+			if id != ids[0]:
+				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
+				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
+				tour = MiseEnPage.tour_de_rangement(emplacement.basis, emplacement.origin, tour, pas)
+				for _passe in PASSES_DE_TOUR:
+					var etendue := _azimuts(bruts, _poser_range(rangement, tour, decalage), depuis)
+					tour = MiseEnPage.tour_a_cote(emplacement.basis, emplacement.origin, tour, sens, azimuts.x, azimuts.y, etendue.x, etendue.y)
+			var pose := _poser_range(rangement, tour, decalage)
+			for rangee in rangees:
+				rangee.noeud.transform = pose
+			precedente = boite
+			azimuts = _azimuts(bruts, pose, depuis)
+
+
+## Le suivi (`_suivis`) du point `point` d'attache `attache`, qui porte des `poids`, pour les `Portage` `portages` : par os
+## de ses poids, sous un `BoneAttachment3D` de cet os, le repère au repos de l'os du point, ramené du repos de cet os.
+func _suivi(point: String, attache: Dictionary, portages: Array[Node3D]) -> Dictionary:
+	var repos_du_point := squelette.get_bone_global_rest(squelette.find_bone(attache.os))
+	var suivi := {attaches = [], chaines = [], poids = PackedFloat64Array(), portages = portages}
+	for nom: String in attache.poids:
+		var depuis_le_repos := attacher(squelette, {os = nom, position = ORIGINE, rotation = ORIGINE}, ("Suivi_%s_%s" % [point, nom]).validate_node_name())
+		depuis_le_repos.transform = squelette.get_bone_global_rest(squelette.find_bone(nom)).affine_inverse()
+		var chaine := Node3D.new()
+		chaine.transform = repos_du_point
+		depuis_le_repos.add_child(chaine)
+		suivi.attaches.append(depuis_le_repos.get_parent())
+		suivi.chaines.append(chaine)
+		suivi.poids.append(attache.poids[nom])
+	return suivi
+
+
+## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated, après les `BoneAttachment3D` :
+## les `Portage` de chaque point suivi (`_suivis`) posés au mélange de ses `chaines` à leurs `poids`, chacune interpolée
+## dans le mélange des précédentes à sa part du poids cumulé (`MiseEnPage.part_du_melange`).
+func _suivre_les_poids() -> void:
+	for suivi: Dictionary in _suivis.values():
+		var melange: Transform3D = suivi.chaines[0].global_transform
+		var cumul: float = suivi.poids[0]
+		for indice in range(1, suivi.chaines.size()):
+			cumul = MiseEnPage.cumul_des_poids(cumul, suivi.poids[indice])
+			melange = melange.interpolate_with(suivi.chaines[indice].global_transform, MiseEnPage.part_du_melange(cumul, suivi.poids[indice]))
+		for portage: Node3D in suivi.portages:
+			portage.global_transform = melange
+
+
+## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
+## qui le monte à son point de suspension (`_suspension`), ses `sommets` à plat et suspendus dans son repère de rangement,
+## ce qui est porté `portes`), tourné de `tour` autour de l'axe de l'os ou décalé de `decalage` sur cet axe
+## (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
+static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
+	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
+	var os: Transform3D = rangement.os
+	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes)
+	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
+
+
+## L'étendue (min, max) des azimuts (`MiseEnPage.azimut`, comptés depuis `depuis`) des sommets `sommets` posés par `pose`.
+static func _azimuts(sommets: PackedVector3Array, pose: Transform3D, depuis: float) -> Vector2:
+	var etendue := Vector2(INF, -INF)
+	for sommet in sommets:
+		var azimut := MiseEnPage.azimut(pose.translated_local(sommet).origin, depuis)
+		etendue = Vector2(MiseEnPage.plus_bas(etendue.x, azimut), MiseEnPage.plus_haut(etendue.y, azimut))
+	return etendue
+
+
+## Les sommets des meshes `rangees` d'un objet rangé (`_rangements`), dans le repère de leur rangement, posés par
+## `pose`.
+static func _sommets_ranges(rangees: Array, pose: Transform3D) -> PackedVector3Array:
+	var sommets := PackedVector3Array()
+	for rangee in rangees:
+		for sommet in _sommets(rangee.piece, rangee.noeud):
+			sommets.append(pose.translated_local(sommet).origin)
+	return sommets
+
+
+## Le décalage, dans le repère de rangement, qui suspend l'objet rangé de meshes `rangees` par le haut de son fourreau
+## (ses meshes `extras.fourreau`) à l'emplacement, au lieu de sa poignée ; nul sans fourreau.
+static func _suspension(rangees: Array) -> Vector3:
+	var fourreaux := rangees.filter(func(rangee: Dictionary) -> bool: return rangee.piece.get_meta("extras", {}).get("fourreau", false))
+	if fourreaux.is_empty():
+		return Vector3.ZERO
+	return MiseEnPage.suspension(_boite_de(_sommets_ranges(fourreaux, Transform3D.IDENTITY)).position.y)
+
+
+## Le repère, dans l'os de l'emplacement `attache`, du repère de prise d'un objet rangé tourné de `tour` radians autour
+## de l'axe Y de l'os, ou, sur cet axe, décalé de `decalage` mètres le long de son axe X (`MiseEnPage.point_de_rangement`),
+## puis ses axes de rangement (`MiseEnPage.axe_de_rangement`).
+static func _repere_de_rangement(attache: Dictionary, tour: float, decalage: float) -> Transform3D:
+	var emplacement := repere(attache).rotated(Vector3.UP, tour)
 	var axes := emplacement.basis
+	var point := emplacement.origin
 	return Transform3D(Basis(MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_X), MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Y),
-		MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)), MiseEnPage.origine_de_rangement(axes, point, arriere))
+		MiseEnPage.axe_de_rangement(axes, point, Vector3.AXIS_Z)), MiseEnPage.point_de_rangement(axes, point, decalage))
 
 
-## La cote en z de la face arrière de la boîte de `piece` dans le repère du nœud `dans`, son ancêtre : la boîte de ses
-## huit coins (`AABB.expand`).
-static func _arriere(piece: MeshInstance3D, dans: Node3D) -> float:
-	var boite := piece.get_aabb()
-	var dans_le_repere := AABB(dans.to_local(piece.to_global(boite.get_endpoint(0))), Vector3.ZERO)
-	for coin in range(1, 8):
-		dans_le_repere = dans_le_repere.expand(dans.to_local(piece.to_global(boite.get_endpoint(coin))))
-	return dans_le_repere.position.z
+## Le recul (x), sur la normale sortante, et le pivot (y), autour de l'axe X, le bas vers l'extérieur, d'un objet rangé
+## de sommets `sommets` dans son repère de rangement, sur ce qui est porté au repos `portes` (`_portes_au_repos`) ;
+## `vers_le_squelette` et `depuis_le_squelette` passent de ce repère à celui du squelette au repos et retour (`_par`).
+## Par case de `CASE_DE_CONTACT` où l'objet a des sommets, une visée le long de la normale sortante, de
+## `PORTEE_DE_CONTACT` à son opposé, touche d'abord ce qui est porté le plus en dehors ; l'objet recule pour que sa face
+## arrière passe à `JEU_DE_RANGEMENT` au-dessus de son haut à `APPUI_DE_RANGEMENT` sous son attache (l'origine du repère
+## de rangement, ou son haut s'il est plus bas), puis pivote pour passer de même plus bas
+## (`MiseEnPage.recul_sur_la_case`, `recul_d_appui`, `pivot_sur_la_case`).
+static func _appuyer(sommets: PackedVector3Array, vers_le_squelette: Array, depuis_le_squelette: Array, portes: Array[Dictionary]) -> Vector2:
+	var boite := _boite_de(sommets)
+	var arriere := {}
+	for v in sommets:
+		var case_ := MiseEnPage.case_de_contact(v)
+		arriere[case_] = MiseEnPage.plus_bas(arriere.get(case_, INF), v.z)
+	var dessus := {}
+	for case_: Vector2i in arriere:
+		var debut := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, MiseEnPage.PORTEE_DE_CONTACT))
+		var fin := _par(vers_le_squelette, MiseEnPage.centre_de_contact(case_, -MiseEnPage.PORTEE_DE_CONTACT))
+		for porte in portes:
+			var a := _par(porte.vers_le_mesh, debut)
+			var b := _par(porte.vers_le_mesh, fin)
+			if not (porte.boite as AABB).intersects_segment(a, b):
+				continue
+			var touche: Dictionary = (porte.maille as TriangleMesh).intersect_segment(a, b)
+			if not touche.is_empty():
+				var cote := _par(depuis_le_squelette, _par(porte.vers_le_squelette, touche.position)).z
+				dessus[case_] = MiseEnPage.plus_haut(dessus.get(case_, -INF), cote)
+	var attache := MiseEnPage.plus_haut(boite.position.y, 0.0)
+	var recul := -INF
+	for case_: Vector2i in dessus:
+		recul = MiseEnPage.recul_sur_la_case(recul, case_, attache, dessus[case_], arriere[case_])
+	recul = MiseEnPage.recul_d_appui(recul, boite.position.z)
+	var angle := 0.0
+	for case_: Vector2i in dessus:
+		angle = MiseEnPage.pivot_sur_la_case(angle, case_, attache, dessus[case_], arriere[case_], recul)
+	return Vector2(recul, angle)
+
+
+## Ce qui est porté, au repos : par mesh skinné de la base et des éléments montés, ses triangles (`maille`) et sa boîte
+## (`boite`) dans son repère, et les transformations (`_par`) du repère du squelette au sien (`vers_le_mesh`) et retour
+## (`vers_le_squelette`), par le premier os de son skin à son repos.
+func _portes_au_repos() -> Array[Dictionary]:
+	var meshes: Array = _pieces_de_la_base.duplicate()
+	for id in pieces:
+		meshes.append_array(pieces[id])
+	var portes: Array[Dictionary] = []
+	for mesh: MeshInstance3D in meshes:
+		if mesh.skin == null:
+			continue
+		var os := squelette.get_bone_global_rest(squelette.find_bone(mesh.skin.get_bind_name(0)))
+		var liaison := mesh.skin.get_bind_pose(0)
+		portes.append({maille = mesh.mesh.generate_triangle_mesh(), boite = mesh.mesh.get_aabb(),
+			vers_le_mesh = [os.affine_inverse(), liaison.affine_inverse()], vers_le_squelette = [liaison, os]})
+	return portes
+
+
+## Le point `point` passé par les transformations `chaine`, dans leur ordre.
+static func _par(chaine: Array, point: Vector3) -> Vector3:
+	var passe := point
+	for transformation: Transform3D in chaine:
+		passe = transformation.translated_local(passe).origin
+	return passe
+
+
+## Les sommets de `piece` dans le repère du nœud `dans`.
+static func _sommets(piece: MeshInstance3D, dans: Node3D) -> PackedVector3Array:
+	var sommets := PackedVector3Array()
+	for surface in piece.mesh.get_surface_count():
+		for sommet: Vector3 in piece.mesh.surface_get_arrays(surface)[Mesh.ARRAY_VERTEX]:
+			sommets.append(dans.to_local(piece.to_global(sommet)))
+	return sommets
+
+
+## La boîte de `sommets`.
+static func _boite_de(sommets: PackedVector3Array) -> AABB:
+	var boite := AABB(sommets[0], Vector3.ZERO)
+	for v in sommets:
+		boite = boite.expand(v)
+	return boite
 
 
 ## La prise de la base posée dont l'os est `os`, `{}` si aucune.

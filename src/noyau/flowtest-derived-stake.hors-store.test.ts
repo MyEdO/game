@@ -266,7 +266,7 @@ describe('#1262 V2 L6d — TOUT `FlowTest` de la donnée dit ce qui se joue', ()
   /** L'ENJEU DÉCLARÉ PRIME — l'étage 1 du contrat : la dérivation ne recouvre jamais ce que le
    *  producteur (dataset) ou l'auteur (document) a dit lui-même. */
   it('un enjeu DÉCLARÉ sur le nœud prime sur celui du porteur', () => {
-    const declare = combatStakeRef('fatigue');
+    const declare = combatStakeRef('combat-fatigue');
     const ft = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister', stake: declare }, { kind: 'condition', id: 'empoisonne' });
     expect(ft.stake, 'la dérivation a recouvert un enjeu déclaré').toBe(declare);
 

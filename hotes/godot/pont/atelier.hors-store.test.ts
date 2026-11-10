@@ -41,12 +41,13 @@ describe('modelesDeLAtelier', () => {
   );
   const lignes = modeles.bases[0].lignes;
 
-  it('une base donne ses points, emplacements puis prises, et son empreinte', () => {
+  it('une base donne ses points, ses emplacements, ceux qu’offrent ses pièces, puis ses prises, et son empreinte (#3844)', () => {
     expect(modeles.bases.map(({ id, empreinte }) => ({ id, empreinte }))).toEqual([{ id: 'humanoide', empreinte: humanoide.glb.sha256 }]);
-    expect(modeles.bases[0].points.map(({ id, genre, attache }) => ({ id, genre, attache }))).toEqual([
-      { id: 'dos', genre: 'emplacement', attache: dos },
-      { id: 'main', genre: 'prise', attache: humanoide.prises.main },
-      { id: 'off', genre: 'prise', attache: humanoide.prises.off },
+    expect(modeles.bases[0].points.map(({ id, genre, attache, offertPar }) => ({ id, genre, attache, offertPar }))).toEqual([
+      { id: 'dos', genre: 'emplacement', attache: dos, offertPar: undefined },
+      { id: 'epaule_d', genre: 'emplacement', attache: chemise.emplacements.epaule_d, offertPar: { chemise: chemise.emplacements.epaule_d } },
+      { id: 'main', genre: 'prise', attache: humanoide.prises.main, offertPar: undefined },
+      { id: 'off', genre: 'prise', attache: humanoide.prises.off, offertPar: undefined },
     ]);
   });
 
@@ -59,7 +60,7 @@ describe('modelesDeLAtelier', () => {
   });
 
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
-    expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], main: ['epee'], off: ['epee'] });
+    expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], epaule_d: ['epee'], main: ['epee'], off: ['epee'] });
   });
 
   it('un objet tenu construit pour une prise est offert à chaque prise de sa base et aux emplacements où sa forme se range, jamais à un autre emplacement (#3319)', () => {

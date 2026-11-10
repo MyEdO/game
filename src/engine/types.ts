@@ -13,6 +13,7 @@ import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecaniq
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { CibleEtendue, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
+import type { NightStakeId } from '../data/index';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 /**
@@ -1925,8 +1926,8 @@ export const DIFFICULTY_MODIFIERS: Record<Difficulty, number> = {
  *  second rideau. Ajouter une étape de nuit = l'ajouter ICI et lui authorer son entrée d'enjeu. */
 export const NIGHT_TEST_KINDS = [
   'faim', 'soif', 'recovery', 'nightmare', 'shelter', 'exposure', 'sea-exposition', 'exposure-heat-drop',
-  'forcedMarch', 'traumaFracture', 'diseaseTick', 'diseaseGangrene', 'diseasePersist',
-  'contagion', 'dessoulage', 'dessoulageHangover',
+  'forced-march', 'trauma-fracture', 'disease-tick', 'disease-gangrene', 'disease-persist',
+  'contagion', 'dessoulage', 'dessoulage-hangover',
 ] as const;
 /** `kind` d'une étape de la cascade de nuit — union FERMÉE dérivée de `NIGHT_TEST_KINDS`. */
 export type NightTestKind = (typeof NIGHT_TEST_KINDS)[number];
@@ -1974,7 +1975,7 @@ export type TestIds =
  *  COLLECTE au lieu de le rouler (`noyau/upkeep` calcule la cible et en fait une étape de cascade,
  *  résolue par l'applicateur de `kind`). Garde l'invariante « si y'a un jet, y'a une étape ». */
 export type UpkeepDeferTest = (spec: {
-  kind: NightTestKind;
+  kind: NightStakeId;
   label: string;
   difficulty: Difficulty;
   /** Modificateurs NOMMÉS du Test : chacun voyage AVEC son étiquette et sa règle, depuis le producteur

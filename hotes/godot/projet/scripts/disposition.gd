@@ -21,7 +21,7 @@ extends Node
 ## du cadre `projet/cadres/monde.tscn`, un calque sous l'interface qui laisse le groupe à gauche et le journal à droite,
 ## le titre en grand et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y
 ## ajoute que son contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) range ses services (`service/`) et les
-## points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le bouton `entrerAuPointDInteret`) en grille,
+## points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le choix `ecranDuLieu` `entrer`) en grille,
 ## puis les trajets qui en partent, chacun sa destination et son départ ; la carte (`projet/ecrans/carteDuMonde.tscn`),
 ## son plan (`carte/plan` : chaque lieu visible, ici en `alerte`, sous chaque destination le départ du trajet qui y
 ## mène, le même élément qu'à l'écran du lieu, et chaque route entre deux lieux visibles, celles qui partent d'ici et
@@ -31,11 +31,12 @@ extends Node
 ## ôte une unité, puis le paiement de son total, refusé avec sa raison), les possessions de chaque héros (`vente/` :
 ## chacune à son gain, pressée tant qu'elle est au lot) et la vente du lot. Le marché de cargaison, à la halle
 ## (`projet/ecrans/marcheDeTerre.tscn`) comme au port (`projet/ecrans/port.tscn`, qui en hérite), est lu par
-## `marcheEnVue` (`src/noyau/marcheEnVue.ts`) sur la formule du marché ouvert (`formuleOuverte`,
+## `marcheEnVue` (`src/noyau/marcheEnVue.ts`) sur la formule de sa fenêtre (`FORMULES_DES_MARCHES`,
 ## `src/noyau/cargaison.ts`) : à gauche chaque offre (`offre/` : son Enc disponible, son prix de base par Enc, la
-## qualité de son vin évalué ou son évaluation, puis son achat en formulaire : le porteur qui le charge, le premier qui
-## le peut saisi d'avance, et l'Enc), à droite chaque lot des porteurs du groupe (`lot/` : son porteur et son Enc, son
-## prix de base, sa vente, son bradage, puis son transfert en formulaire vers un porteur co-localisé). Le voyage
+## qualité de son vin évalué ou son évaluation, l'estimation de son achat, puis son achat, qui la compose : le porteur
+## qui la charge, le premier qui le peut saisi d'avance, l'Enc et la conclusion sont les choix du marché), à droite
+## chaque lot des porteurs du groupe (`lot/` : son porteur et son Enc, son prix de base, sa vente, son bradage, puis
+## son transfert en formulaire vers un porteur co-localisé). Le voyage
 ## (`projet/ecrans/voyage.tscn`) est la disposition de toute étape d'une séquence jouée en route (`voyageEnVue`,
 ## `src/noyau/voyageEnVue.ts`) : la journée ne s'y arrête qu'aux vrais choix (`jouerLaJournee`, `src/noyau/cascade.ts`),
 ## le reste va au journal. Il montre dans le paysage l'heure de jeu et la météo du jour (`voyage/heure`,

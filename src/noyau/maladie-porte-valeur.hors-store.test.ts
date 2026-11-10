@@ -86,7 +86,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party] }));
 
     const steps = dort();
-    const tick = steps.find((s) => s.kind === 'diseaseTick' && (s.meta as { symptomId?: string })?.symptomId === 'vers-de-carie');
+    const tick = steps.find((s) => s.kind === 'disease-tick' && (s.meta as { symptomId?: string })?.symptomId === 'vers-de-carie');
     expect(tick, 'le Test de cycle du ver est une ÉTAPE de la nuit (pas un jet du moteur)').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
@@ -111,7 +111,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party] }));
 
     const steps = dort();
-    const tick = steps.find((s) => s.kind === 'diseaseTick' && (s.meta as { symptomId?: string })?.symptomId === 'fievre');
+    const tick = steps.find((s) => s.kind === 'disease-tick' && (s.meta as { symptomId?: string })?.symptomId === 'fievre');
     expect(tick, 'la pneumonie pose SON Test quotidien en étape').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
@@ -125,7 +125,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
   it('branche `fail` : la conséquence s’applique sur le résultat INJECTÉ dans l’étape, jamais sur un dé tiré ici', () => {
     rendMalade('h1', 'pneumonie', 0);
     const steps = dort();
-    const idx = steps.findIndex((s) => s.kind === 'diseaseTick');
+    const idx = steps.findIndex((s) => s.kind === 'disease-tick');
     expect(idx, 'la nuit porte le Test quotidien').toBeGreaterThanOrEqual(0);
 
     // ÉCHEC injecté sur la rangée du héros, puis validation de l'étape par la cascade.

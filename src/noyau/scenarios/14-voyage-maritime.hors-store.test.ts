@@ -141,10 +141,10 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     expect(get().gameTime - t0).toBeGreaterThan(24 * 60); // plus d’un jour de mer
     expect(kinds).toContain('sea-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
     // Les Tests d’équipage de VOYAGE ont bien été joués (Progression quotidienne, Orientation).
-    expect(kinds).toContain('progression');
-    expect(kinds).toContain('orientation');
+    expect(kinds).toContain('crew-progression');
+    expect(kinds).toContain('crew-orientation');
     // La coque partie endommagée a fait l’objet d’un entretien du soir (Test d’équipage d’entretien).
-    expect(kinds).toContain('entretien');
+    expect(kinds).toContain('crew-entretien');
     expect(get().journal.join('\n')).toMatch(/Accostage|Marienburg/);
   });
 

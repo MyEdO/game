@@ -24,7 +24,7 @@ export function ShipRolesPanel({ crew, onSet }: {
   onSet?: (heroId: string, role: string | null) => void;
 } = {}) {
   const party = useGame((s) => s.party);
-  const attribuerLeRoleABord = useGame((s) => s.attribuerLeRoleABord);
+  const affecterAuRoleABord = useGame((s) => s.affecterAuRoleABord);
   const heroes = crew ?? party.filter((h) => !h.dead && !h.outOfRencontre && h.kind === 'hero');
   return (
     <PostesRoster
@@ -33,7 +33,7 @@ export function ShipRolesPanel({ crew, onSet }: {
       heroes={heroes}
       postes={postesEquipage()}
       pinnedOf={(h) => h.shipRole}
-      onSet={onSet ?? attribuerLeRoleABord}
+      onSet={onSet ?? affecterAuRoleABord}
       codexCategory="crewRoles"
     />
   );

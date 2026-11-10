@@ -3,6 +3,7 @@ import type { ComponentProps, ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
 import { fermeturesDuFlux } from '../noyau/verbesOuverts';
+import { refusDImmunite } from '../noyau/determinationDuJet';
 import { RollShell, type RollAction } from './RollShell';
 import { VsHeader } from './VsHeader';
 import { StakeRule, OutcomeNote, sameCertainOps, sameEntityRef } from './StakeNote';
@@ -129,7 +130,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const batchDarkPact = useGesteDeJet('jetPactiser', 'cascadeBatch');
   const batchForce = useGesteDeJet('jetForcerLaReussite', 'cascadeBatch');
   const batchResist = useGesteDeJet('jetResister', 'cascadeBatch'); // Résistance (Menace) PAR RANGÉE (LDB 10)
-  const batchDetermine = useGesteDeJet('jetDepenserLaDetermination', 'cascadeBatch'); // Détermination PAR RANGÉE (LDB 17 l.59)
+  const depenserLaDetermination = useGame((s) => s.depenserLaDetermination); // Détermination PAR RANGÉE (LDB 17 l.59)
   const batchReverse = useGesteDeJet('jetInverser', 'cascadeBatch'); // Inversion PAR RANGÉE (LDB 12 l.42)
   const roll = useGesteDeJet('jetLancer', 'cascade'); // sans rangée : « Tout lancer » → bilan
   const reroll = useGesteDeJet('jetRelancer', 'cascade');
@@ -768,13 +769,13 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     }).map((r) => {
       // Verbes à RESSOURCE de la rangée (parité avec l'étape MONO, joués PAR RANGÉE — flux `cascadeBatch`) :
       // Résistance (Menace) sur une rangée TAGUÉE dont l'issue reste défavorable (LDB 10 l.1016-1020) ;
-      // Détermination avant le jet sur une bande de Psychologie (LDB 17 l.59), dont la DÉCLARATION vit
-      // sur l'étape (`cur.combatPsych`/`cur.encounterPsych`), les divergences par héros sur la rangée.
+      // Détermination avant le jet sur une bande de Psychologie (LDB 17 l.59), le verbe général
+      // `depenserLaDetermination` sur le combattant de la rangée, ouvert par `refusDImmunite`.
       const part = cur.participants!.find((x) => x.id === String(r.key));
       const a = r.actor;
       const ouverts = part ? fermeturesDuFlux(useGame.getState(), 'cascadeBatch', part.id) : null;
       const resistOk = !!part?.menace && ouverts?.resist === null;
-      const determineOk = ouverts?.determine === null;
+      const determineOk = !!a && !refusDImmunite(useGame.getState(), a);
       // Inversion (LDB 12 l.42) : offre et aperçu sont les verdicts du flux (`FLOWS.cascadeBatch`).
       const reverseOk = ouverts?.reverse === null;
       return {
@@ -783,7 +784,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         pid: String(r.key),
         key: witnessRowKey(cur.id, String(r.key)),
         ...(resistOk ? { resist: { menace: part!.menace!, onResist: () => batchResist(part!.id) } } : {}),
-        ...(determineOk ? { determination: { resolve: a!.resolve ?? 0, onResolve: () => batchDetermine(part!.id) } } : {}),
+        ...(determineOk ? { determination: { resolve: a!.resolve ?? 0, onResolve: () => depenserLaDetermination(a!.id, 'immuniserALaPsychologie') } } : {}),
         ...(reverseOk ? { reverse: { onReverse: () => batchReverse(part!.id), preview: FLOWS.cascadeBatch.reversePreview(useGame.getState, part!.id) } } : {}),
       };
     });

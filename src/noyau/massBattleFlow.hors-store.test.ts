@@ -12,6 +12,7 @@ import { t } from '../i18n';
 import { initialNet } from './etat';
 import { intentAllowedFor } from './netOwnership';
 import { refusDuChoix } from './choixDeFenetre';
+import { fenetreDuJeu } from './combatAuto';
 import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -61,6 +62,16 @@ function resolveBattleTest(over: { roll: number; success: boolean; sl: number } 
 
 const mbState = (): MassBattleState => banc.getState().massBattle!;
 
+/** La préparation close, la bataille engage son Round 1 sur son écran, comme la clôture de l'interlude l'engage. */
+const auRound = () => {
+  banc.getState().engagerLaBataille();
+  banc.setState({ screen: 'massBattle' });
+};
+/** Poste chaque PJ `heroIds` au poste `posteId` (`batailleDeMasse.ajouterAuPoste`). */
+const poster = (posteId: string, ...heroIds: string[]) => {
+  for (const h of heroIds) banc.getState().fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', posteId, h);
+};
+
 /** Le premier héros du groupe qui peut tenter la préparation `id` (`peutTenterAction`), à défaut le premier. */
 const meneurCapable = (id: string): string => {
   const def = battleActivityById(id)!;
@@ -109,7 +120,7 @@ describe('amorcerLaBataille / état', () => {
 describe('Situation par Round (l.114-116) — sous-ensemble, pas tout le catalogue', () => {
   it('une situation authorée est présentée telle quelle (≠ catalogue complet)', () => {
     start({ situations: [['motivation', 'ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     expect(mb.situation).toEqual(['motivation', 'ligne-de-mire']);
     expect(mb.situation.length).toBeLessThan(mb.pool.length);
@@ -117,7 +128,7 @@ describe('Situation par Round (l.114-116) — sous-ensemble, pas tout le catalog
 
   it('sans situation authorée, un tirage borné compose la situation (situationSize)', () => {
     start({ situationSize: 2 });
-    banc.getState().engagerLaBataille();
+    auRound();
     expect(mbState().situation.length).toBe(2);
   });
 });
@@ -247,7 +258,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   it('Scène de Round : personne en état de la tenter → refus nommé (Motivation)', () => {
     start({ situations: [['motivation']] }, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
     banc.setState({ party: banc.getState().party.map(ko) });
-    banc.getState().jouerLaScene('motivation');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     expect(pending()).toBeNull();
     expect(lastLine()).toBe('Personne dans le groupe ne peut tenter « Motivation ».');
   });
@@ -283,11 +294,11 @@ describe('Test combiné d\'Activité (l.75/102) — un jet vs deux compétences'
 describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
   it('deux PJ résolvent deux Scènes ; les deltas se CUMULENT avant le clash', () => {
     start({ situations: [['ligne-de-mire', 'compte-a-rebours']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('ligne-de-mire');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const first = pending()!.heroId;
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    banc.getState().jouerLaScene('compte-a-rebours');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'compte-a-rebours');
     const second = pending()!.heroId;
     expect(second).not.toBe(first);
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
@@ -299,40 +310,40 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
 
   it('une fois tous les PJ engagés, plus aucune Scène de Test ne s\'ouvre', () => {
     start({ situations: [['ligne-de-mire', 'compte-a-rebours', 'motivation']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('ligne-de-mire');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    banc.getState().jouerLaScene('compte-a-rebours');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'compte-a-rebours');
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    banc.getState().jouerLaScene('motivation');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     expect(pending()).toBeNull();
   });
 
   it('Ligne de mire : le général tombe sur un SUCCÈS (l.208, DR < 6 suffit) → −10', () => {
     start({ situations: [['ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('ligne-de-mire');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     resolveBattleTest({ roll: 10, success: true, sl: 2 }); // succès simple
     expect(armyMight(mbState().enemy)).toBe(55 - 10); // −5 (succès) −5 (général tombé)
   });
 
   it('Survol : le général ne tombe (−15) qu\'au Succès Stupéfiant (DR ≥ 6, l.217)', () => {
     start({ situations: [['survol'], ['survol']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('survol');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'survol');
     resolveBattleTest({ roll: 5, success: true, sl: 2 }); // succès simple : pas d'approche au Corps à corps
     expect(armyMight(mbState().enemy)).toBe(55 - 5); // −5 seulement, général debout
   });
 
   it('Survol : Échec Stupéfiant impose une Charge au Round suivant (l.217)', () => {
     start({ situations: [['survol'], ['motivation']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('survol');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'survol');
     resolveBattleTest({ roll: 3, success: false, sl: -6 });
     expect(mbState().imposed).toContain('charge');
     seedBattleRng(7);
-    banc.getState().engagerLaMelee();
-    banc.getState().avancerLaBataille();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
+    banc.getState().fenetreValider('batailleDeMasse');
     expect(mbState().situation).toContain('charge');
   });
 });
@@ -340,9 +351,9 @@ describe('Scènes cinématiques — MULTI-PJ en Soutien (l.116-118)', () => {
 describe('Scène MENACE (Intrus l.219)', () => {
   it('applique −20 aux Tests des autres Scènes et est levée par le combat', () => {
     start({ situations: [['intrus', 'ligne-de-mire']], sceneEncounters: { intrus: 'enc-x' } });
-    banc.getState().engagerLaBataille();
+    auRound();
     expect(mbState().activeThreats).toContain('intrus');
-    banc.getState().jouerLaScene('ligne-de-mire');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa = pending()!;
     expect(pa.target).toBe(Math.max(1, Math.min(99, pa.skillValue - 20)));
     banc.getState().jetValider('activity');
@@ -361,13 +372,13 @@ describe('Scène MENACE (Intrus l.219)', () => {
 describe('Enchaînement de Scènes (l.169) : Compte à rebours échoué → Motivation imposée', () => {
   it('impose la Scène de Motivation au Round suivant', () => {
     start({ situations: [['compte-a-rebours'], ['ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('compte-a-rebours');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'compte-a-rebours');
     resolveBattleTest({ roll: 95, success: false, sl: -2 });
     expect(mbState().imposed).toContain('motivation');
     seedBattleRng(7);
-    banc.getState().engagerLaMelee();
-    banc.getState().avancerLaBataille();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
+    banc.getState().fenetreValider('batailleDeMasse');
     expect(mbState().situation).toContain('motivation');
     expect(mbState().imposed).toEqual([]);
   });
@@ -376,7 +387,7 @@ describe('Enchaînement de Scènes (l.169) : Compte à rebours échoué → Moti
 describe('Scène de COMBAT — touches ET kills (l.139)', () => {
   it('massBattleTrackHit ne compte que les touches HÉROS → ENNEMI', () => {
     start({ situations: [['charge']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     banc.setState({ massBattle: { ...mb, combatScene: { sceneId: 'charge', hits: 0, hitters: [] } } });
     const hero = { id: 'h1', kind: 'hero', bodyShape: 'biped' } as unknown as Combatant;
@@ -394,7 +405,7 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
 
   it('Charge (l.139) : réduction = −1/touche + −2/kill (5 touches + 1 kill = −7)', () => {
     start({ situations: [['charge']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'charge', hits: 5, hitters: ['h1'] } },
@@ -413,7 +424,7 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
 describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
   it('solo (1 frappeur) : ennemi −20', () => {
     start({ situations: [['duel']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 3, hitters: ['h1'] } },
@@ -427,7 +438,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
 
   it('intervention (≥ 2 frappeurs) : ennemi −10 + Scène de Charge enchaînée', () => {
     start({ situations: [['duel']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 4, hitters: ['h1', 'h2'] } },
@@ -441,7 +452,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
 
   it('DÉFAITE du duel (le champion allié perd) → ALLIÉ −20 et la bataille CONTINUE (l.223)', () => {
     start({ situations: [['duel']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 2, hitters: ['h1'] } },
@@ -462,7 +473,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
 describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAITE', () => {
   it('VICTOIRE : allié +10 (plafonné au départ), pas de Charge imposée', () => {
     start({ situations: [['percee']], sceneEncounters: { percee: 'enc-x' } });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'percee', hits: 4, hitters: ['h1'] } },
@@ -476,7 +487,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
 
   it('DÉFAITE : Scène de Charge imposée au Round suivant (combatLost), bataille continue', () => {
     start({ situations: [['percee'], ['motivation']], sceneEncounters: { percee: 'enc-x' } });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'percee', hits: 1, hitters: ['h1'] } },
@@ -487,8 +498,8 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
     expect(armyMight(mbState().ally)).toBe(50);
     expect(mbState().phase).toBe('round');
     seedBattleRng(7);
-    banc.getState().engagerLaMelee();
-    banc.getState().avancerLaBataille();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
+    banc.getState().fenetreValider('batailleDeMasse');
     expect(mbState().situation).toContain('charge');
   });
 });
@@ -496,8 +507,8 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
 describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', () => {
   it('tenir un Round : Puissance ennemie −2, Scène réimposée', () => {
     start({ situations: [['tenez-votre-position']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('tenez-votre-position');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'tenez-votre-position');
     const pa = pending()!;
     expect(pa.battle).toBe('round');
     expect(pa.enemyValue).toBeGreaterThan(0); // jet opposé de l'ennemi figé
@@ -512,10 +523,10 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
 
   it('le Point de rupture ≥ 10 conclut la Scène par une déroute (plus de réimposition)', () => {
     start({ situations: [['tenez-votre-position']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb0 = mbState();
     banc.setState({ massBattle: { ...mb0, sceneState: { 'tenez-votre-position': { breakpoint: 8, held: 2, broken: false } } } });
-    banc.getState().jouerLaScene('tenez-votre-position');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'tenez-votre-position');
     resolveBattleTest({ roll: 60, success: false, sl: -1, enemySL: 4 }); // breakpoint 12 ≥ 10 → rupture
     const mb = mbState();
     expect(mb.sceneState['tenez-votre-position'].breakpoint).toBe(12);
@@ -529,10 +540,10 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
    *  cumulatif de +10 par Round — la fixture est celle d'une partie réelle, pas un `held` posé nu. */
   function openHold(heldRounds: number): PendingActivity {
     start({ situations: [['tenez-votre-position']], enemyMight: 55 - 2 * heldRounds });
-    banc.getState().engagerLaBataille();
+    auRound();
     const mb0 = mbState();
     banc.setState({ massBattle: { ...mb0, sceneState: { 'tenez-votre-position': { breakpoint: 0, held: heldRounds, broken: false } } } });
-    banc.getState().jouerLaScene('tenez-votre-position');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'tenez-votre-position');
     return pending()!;
   }
 
@@ -595,7 +606,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
   /** Rouvre la MÊME Scène de tenue dans la partie en cours (pending vidé, Scène non résolue). */
   function reopenHold(): PendingActivity {
     banc.setState({ pendingActivity: null });
-    banc.getState().jouerLaScene('tenez-votre-position');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'tenez-votre-position');
     return pending()!;
   }
 
@@ -634,11 +645,11 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
 
   it('(a) poster un PJ NON suggéré à une Scène de Test → CE PJ (meneur) résout la Scène, seul', () => {
     start({ situations: [['ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
-    const { suggested, other } = otherThanSuggested('ligne-de-mire', () => banc.getState().jouerLaScene('ligne-de-mire'));
+    auRound();
+    const { suggested, other } = otherThanSuggested('ligne-de-mire', () => banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire'));
     expect(other).not.toBe(suggested);
-    banc.getState().affecterLeHeros('ligne-de-mire', [other]);
-    banc.getState().jouerLaScene('ligne-de-mire');
+    poster('ligne-de-mire', other);
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa = pending()!;
     expect(pa.heroId).toBe(other);
     expect(pa.heroIds).toEqual([other]);
@@ -647,10 +658,10 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
 
   it('(a-bis) DEUX PJ postés → SOUTIEN (meneur + assistant), les DEUX consommés', () => {
     start({ situations: [['ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     const [a, b] = banc.getState().party.map((h) => h.id);
-    banc.getState().affecterLeHeros('ligne-de-mire', [a, b]);
-    banc.getState().jouerLaScene('ligne-de-mire');
+    poster('ligne-de-mire', a, b);
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa = pending()!;
     expect(pa.heroIds).toEqual(expect.arrayContaining([a, b]));
     expect(pa.heroIds).toHaveLength(2);
@@ -661,8 +672,8 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
 
   it('(b) sans affectation → SUGGESTION résout SEUL (pas de soutien)', () => {
     start({ situations: [['ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('ligne-de-mire');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa = pending()!;
     expect(mbState().assignment).toEqual({});
     expect(pa.skillValue).toBeGreaterThan(0);
@@ -670,21 +681,25 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
     expect(pa.heroIds).toEqual([pa.heroId]);
   });
 
-  it('(c) poster un PJ INDISPONIBLE (déjà engagé) → repli sur la suggestion', () => {
+  it('(c) poster un PJ INDISPONIBLE (déjà engagé) est refusé → repli sur la suggestion', () => {
     start({ situations: [['ligne-de-mire', 'compte-a-rebours']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('ligne-de-mire');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const acted = pending()!.heroId;
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    banc.getState().affecterLeHeros('compte-a-rebours', [acted]);
-    banc.getState().jouerLaScene('compte-a-rebours');
+    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'compte-a-rebours', acted)).toBe(t('choix.refus.valeur'));
+    poster('compte-a-rebours', acted);
+    expect(mbState().assignment).toEqual({});
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'compte-a-rebours');
     expect(pending()!.heroId).not.toBe(acted);
   });
 
-  it('(d) une Activité combinée est menée par le héros NOMMÉ, seul, quel que soit le poste', () => {
+  it('(d) une Activité combinée n’est pas un poste, et le héros NOMMÉ la mène seul', () => {
     start();
     const [a, b] = banc.getState().party.map((h) => h.id);
-    banc.getState().affecterLeHeros('reperage', [a]);
+    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'reperage', a)).toBe(t('choix.refus.valeur'));
+    poster('reperage', a);
+    expect(mbState().assignment).toEqual({});
     prep('reperage', b);
     const pa = pending()!;
     expect(pa.heroId).toBe(b);
@@ -694,12 +709,12 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
 
   it('un nouveau Round efface les affectations', () => {
     start({ plannedRounds: 2, situations: [['motivation'], ['ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().affecterLeHeros('ligne-de-mire', [banc.getState().party[0].id]);
+    auRound();
+    poster('motivation', banc.getState().party[0].id);
     expect(Object.keys(mbState().assignment)).toHaveLength(1);
     seedBattleRng(3);
-    banc.getState().engagerLaMelee();
-    banc.getState().avancerLaBataille();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
+    banc.getState().fenetreValider('batailleDeMasse');
     expect(mbState().assignment).toEqual({});
   });
 });
@@ -708,7 +723,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
   it('le meneur NOMMÉ + un PJ posté → SOUTIEN (heroIds=2, support.count ≥ 1)', () => {
     start({}, partyWithWarLore());
     const [a, b] = banc.getState().party.map((h) => h.id);
-    banc.getState().affecterLeHeros('planification', [a, b]);
+    poster('planification', a, b);
     prep('planification', b);
     const pa = pending()!;
     expect(pa.heroId).toBe(b);
@@ -717,6 +732,22 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     expect(pa.support!.count).toBeGreaterThanOrEqual(1);
     expect(pa.support!.bonus).toBeGreaterThanOrEqual(10);
     expect(pa.target2).toBeUndefined(); // Test simple (pas combiné)
+  });
+
+  it('en préparation, l’interlude tient la main : la fenêtre de la bataille y poste le Soutien, mais ne s’y termine pas', () => {
+    start({}, partyWithWarLore());
+    const [a, b] = banc.getState().party.map((h) => h.id);
+    expect(fenetreDuJeu(banc.getState())?.cle).toBe('interlude');
+    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'planification', a)).toBeNull();
+    poster('planification', a);
+    banc.getState().fenetreChoisir('batailleDeMasse', 'retirerDuPoste', 'planification', a);
+    poster('planification', b);
+    expect(mbState().assignment).toEqual({ planification: [b] });
+    banc.getState().fenetreFermer('batailleDeMasse');
+    expect(banc.getState().massBattle).not.toBeNull();
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.preparationDeBataille'));
+    banc.getState().fenetreValider('batailleDeMasse');
+    expect([mbState().phase, banc.getState().journal.slice(-1)[0]]).toEqual(['prep', t('jet.ferme.preparationDeBataille')]);
   });
 
   it('aucun autre PJ posté → meneur SEUL', () => {
@@ -729,10 +760,11 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     expect(pa.support).toEqual({ count: 0, bonus: 0, ids: [] });
   });
 
-  it('une Activité SOLO (Repérage) reste solo — pas de Soutien', () => {
+  it('une Activité SOLO (Repérage) n’est pas un poste et reste solo — pas de Soutien', () => {
     start();
     const [a, b] = banc.getState().party.map((h) => h.id);
-    banc.getState().affecterLeHeros('reperage', [a, b]);
+    poster('reperage', a, b);
+    expect(mbState().assignment).toEqual({});
     const meneur = meneurCapable('reperage');
     prep('reperage', meneur);
     const pa = pending()!;
@@ -747,7 +779,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     resetRule('interlude-assist-costs-activity');
     start({}, partyWithWarLore());
     const [a, b] = banc.getState().party.map((h) => h.id);
-    banc.getState().affecterLeHeros('planification', [a, b]);
+    poster('planification', a, b);
     prep('planification', b);
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
     expect(leftOf(a)).toBe(3); // l'assistant : gratuit
@@ -759,7 +791,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     try {
       start({}, partyWithWarLore());
       const [a, b] = banc.getState().party.map((h) => h.id);
-      banc.getState().affecterLeHeros('planification', [a, b]);
+      poster('planification', a, b);
       prep('planification', a);
       resolveBattleTest({ roll: 10, success: true, sl: 2 });
       expect(leftOf(a)).toBe(2); // meneur : −1
@@ -776,8 +808,8 @@ describe('Rassemblement (ADE II 8 l.122)', () => {
     start({ situations: [['motivation']] });
     const party = banc.getState().party.map((h, i) => i === 0 ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 1 } }) : h);
     banc.setState({ party });
-    banc.setState({ massBattle: { ...mbState(), phase: 'round', awaitingNext: true } });
-    banc.getState().rallierLesTroupes();
+    banc.setState({ massBattle: { ...mbState(), phase: 'round', awaitingNext: true }, screen: 'massBattle' });
+    banc.getState().fenetreChoisir('batailleDeMasse', 'rallier', true);
     const pa = pending()!;
     expect(pa.activityId).toBe('rassemblement');
     const hero = banc.getState().party.find((h) => h.id === pa.heroId)!;
@@ -811,10 +843,10 @@ describe('Rassemblement (ADE II 8 l.122)', () => {
 
   it('« tous les Personnages » (l.122) : un PJ NON blessé ouvre aussi son Rassemblement', () => {
     start({ situations: [['motivation']] });
-    banc.setState({ massBattle: { ...mbState(), phase: 'round', awaitingNext: true } });
+    banc.setState({ massBattle: { ...mbState(), phase: 'round', awaitingNext: true }, screen: 'massBattle' });
     const premier = banc.getState().party[0];
     expect(premier.wounds.current).toBe(premier.wounds.max);
-    banc.getState().rallierLesTroupes();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'rallier', true);
     expect(pending()?.activityId).toBe('rassemblement');
     expect(pending()?.heroId).toBe(premier.id);
   });
@@ -868,9 +900,9 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
   it('les Scènes de Round (`battle === \'round\'`) ne consomment PAS le budget d\'interlude', () => {
     start({ situations: [['ligne-de-mire']] });
     const hero = banc.getState().party[0].id;
-    banc.getState().affecterLeHeros('ligne-de-mire', [hero]);
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('ligne-de-mire');
+    poster('ligne-de-mire', hero);
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa = pending()!;
     expect(pa.battle).toBe('round');
     const before = leftOf(pa.heroId);
@@ -882,9 +914,9 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
 describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
   it('le clash réduit les deux Puissances d\'au moins 5 sans faire avancer le Round', () => {
     start({ plannedRounds: 3 });
-    banc.getState().engagerLaBataille();
+    auRound();
     seedBattleRng(7);
-    banc.getState().engagerLaMelee();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
     const mb = mbState();
     expect(mb.awaitingNext).toBe(true);
     expect(mb.round).toBe(1);
@@ -892,27 +924,27 @@ describe('Test spectaculaire, avancement & issue (l.120/124)', () => {
     expect(armyMight(mb.enemy)).toBeLessThanOrEqual(55 - 5);
   });
 
-  it('avancerLaBataille passe au Round suivant et réinitialise l\'état par-Round', () => {
+  it('la validation de la bataille passe au Round suivant et réinitialise l\'état par-Round', () => {
     start({ plannedRounds: 2, situations: [['motivation'], ['ligne-de-mire']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     seedBattleRng(3);
-    banc.getState().engagerLaMelee();
-    banc.getState().avancerLaBataille();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
+    banc.getState().fenetreValider('batailleDeMasse');
     const mb = mbState();
     expect(mb.round).toBe(2);
     expect(mb.awaitingNext).toBe(false);
     expect(mb.resolvedScenes).toEqual([]);
     expect(mb.actedHeroes).toEqual([]);
     expect(mb.situation).toEqual(['ligne-de-mire']);
-    banc.getState().engagerLaMelee();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
     expect(mbState().phase).toBe('over');
   });
 
   it('une armée réduite à 0 est détruite immédiatement', () => {
     start({ plannedRounds: 5, enemyMight: 5 });
-    banc.getState().engagerLaBataille();
+    auRound();
     seedBattleRng(9);
-    banc.getState().engagerLaMelee();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
     const mb = mbState();
     expect(armyMight(mb.enemy)).toBe(0);
     expect(mb.phase).toBe('over');
@@ -932,21 +964,21 @@ describe('Modèle Combattant-armée (Blessures = Puissance)', () => {
 
   it('un gain de Scène est plafonné NATURELLEMENT à la Puissance de départ (l.135)', () => {
     start({ allyMight: 50, situations: [['motivation']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('motivation');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     resolveBattleTest({ roll: 10, success: true, sl: 4 }); // +4 tenté, déjà à 50/50
     expect(armyMight(mbState().ally)).toBe(50);
   });
 
   it('après une perte, un gain de Scène ne remonte pas au-delà du départ', () => {
     start({ allyMight: 50, plannedRounds: 3, situations: [['motivation'], ['motivation']] });
-    banc.getState().engagerLaBataille();
+    auRound();
     seedBattleRng(7);
-    banc.getState().engagerLaMelee();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'engager', true);
     const afterClash = armyMight(mbState().ally);
     expect(afterClash).toBeLessThan(50);
-    banc.getState().avancerLaBataille();
-    banc.getState().jouerLaScene('motivation');
+    banc.getState().fenetreValider('batailleDeMasse');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     resolveBattleTest({ roll: 10, success: true, sl: 6 });
     expect(armyMight(mbState().ally)).toBeLessThanOrEqual(50);
     expect(armyMight(mbState().ally)).toBeGreaterThan(afterClash);
@@ -957,11 +989,11 @@ describe('Aléa & fermeture', () => {
   /** La bataille sans interlude : le Round 1 s'ouvre sur son écran, où la fenêtre tient la main. */
   const enRound = () => start({}, undefined, { interludeLeft: 0 });
 
-  it('affronterLePeril tire le facteur environnemental au RNG de la partie : même graine, même facteur (ADE II 08 l.309)', () => {
+  it('l’aléa `null` tire le facteur environnemental au RNG de la partie : même graine, même facteur (ADE II 08 l.309)', () => {
     const tire = (): string | undefined => {
       enRound();
       seedBattleRng(41);
-      banc.getState().affronterLePeril();
+      banc.getState().fenetreChoisir('batailleDeMasse', 'alea', null);
       return mbState().hazard?.label;
     };
     const premier = tire();
@@ -978,7 +1010,7 @@ describe('Aléa & fermeture', () => {
   it.each([
     ['un id hors de la table', () => banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'grele'), () => t('choix.refus.valeur')],
     ['un choix sur l’aléa déjà posé', () => banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'tempete'), () => t('mbf.aleaDejaPose', { label: 'Peur' })],
-    ['un tirage sur l’aléa déjà posé', () => banc.getState().affronterLePeril(), () => t('mbf.aleaDejaPose', { label: 'Peur' })],
+    ['un tirage sur l’aléa déjà posé', () => banc.getState().fenetreChoisir('batailleDeMasse', 'alea', null), () => t('mbf.aleaDejaPose', { label: 'Peur' })],
   ] as const)('refuse et le dit : %s', (_cas, geste, raison) => {
     enRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'peur');
@@ -997,7 +1029,7 @@ describe('Aléa & fermeture', () => {
 
   it('refuse et le dit : un tirage hors Round', () => {
     start();
-    banc.getState().affronterLePeril();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'alea', null);
     expect([mbState().hazard, banc.getState().journal.slice(-1)[0]]).toEqual([undefined, t('mbf.aleaHorsRound')]);
   });
 
@@ -1009,7 +1041,7 @@ describe('Aléa & fermeture', () => {
 
   it('la sortie de la bataille de masse REFUSE de clore sous un Test de bataille en cours, en le nommant (#1906)', () => {
     start({ situations: [['motivation']] }, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
-    banc.getState().jouerLaScene('motivation');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     const pa = pending()!;
     expect(pa?.battle, 'un Test de Scène est ouvert').toBeTruthy();
     banc.getState().fenetreFermer('batailleDeMasse');
@@ -1064,9 +1096,9 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
 
   it('(ii) Scène sous MENACE : le 1ᵉʳ jet CONSERVE la cible pré-cuite (mod −20 non relâché)', () => {
     start({ situations: [['intrus', 'ligne-de-mire']], sceneEncounters: { intrus: 'enc-x' } });
-    banc.getState().engagerLaBataille();
+    auRound();
     expect(mbState().activeThreats).toContain('intrus');
-    banc.getState().jouerLaScene('ligne-de-mire');
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa0 = pending()!;
     expect(pa0.mod).toBe(-20); // pénalité de Menace Intrus (l.219)
     expect(pa0.target).toBe(Math.max(1, Math.min(99, pa0.skillValue - 20))); // mod fondu par l'opener
@@ -1077,8 +1109,8 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
 
   it('(iii) Tenez votre position + Chance « +1 DR » : `success` reste cohérent avec `enemySL`', () => {
     start({ situations: [['tenez-votre-position']] });
-    banc.getState().engagerLaBataille();
-    banc.getState().jouerLaScene('tenez-votre-position');
+    auRound();
+    banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'tenez-votre-position');
     const pa0 = pending()!;
     expect(pa0.enemyValue).toBeGreaterThan(0); // jet ennemi opposé figé
     // DR de l'ennemi RECALCULÉ de son d100 figé : le pending est calé DESSUS (l'ennemi mène de 3 DR

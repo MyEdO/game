@@ -4,16 +4,18 @@
  * sélectionnée, l'entité copiée, l'enregistrement au dépôt et les calques de référence, et le seul réducteur qui les fait avancer
  * (`editer`) sur une union fermée de gestes. Chaque geste délègue au pointeur (`./pointeur`), à l'historique
  * (`./historique`), aux écrivains de `../sceneEdit` (dont l'écriture bornée du formulaire tiré du schéma), à la volée
- * (`../stairFlight`) et au calque (`./calque`) ; aucun
- * n'écrit de règle de scène. L'éditeur Godot la reçoit par le pont.
+ * (`../stairFlight`), au calque (`./calque`) et à la pose d'un navire (`../planDeNavire`) ; aucun n'écrit de règle de
+ * scène. Ce qu'elle montre est la vue de la scène éditée, ses navires posés par leurs ponts (`vueDeLaScene`). L'éditeur
+ * Godot la reçoit par le pont.
  */
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
+import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { refusDeLEntite, type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import { inventaireApres, type IntentionDObjet } from '../../engine/items';
 import { PARTS_RELIEF } from '../../data/materials.types';
-import type { Dir8 } from '../../geometry/dir8';
+import type { Dir4, Dir8 } from '../../geometry/dir8';
 import type { FireArc } from '../../engine/types';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
@@ -22,6 +24,7 @@ import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusD
 import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
+import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
 import { makeShowcaseParty } from '../../data/pregens';
@@ -56,10 +59,11 @@ const TOUS_LES_CALQUES: Layers = { triggers: true, spawns: true, roofs: true, en
 export const ACTIONS_D_ARCHITECTURE = ['select', 'facade', 'exclusion'] as const;
 export type ActionDArchitecture = (typeof ACTIONS_D_ARCHITECTURE)[number];
 
-/** Les outils que l'éditeur offre. */
+/** Les outils que l'éditeur offre, dont celui qui pose un navire du type `ref` au cap `cap` (`poserUnNavire`). */
 export type OutilDeLEditeur =
   | Extract<Tool, { mode: 'select' | 'tile' | 'height' | 'wall' | 'stair' | 'crenellated' | 'entity' | 'emplacement' | 'entry' | 'zone' | 'zoneTiles' | 'erase' }>
-  | { mode: 'architecture'; action: ActionDArchitecture };
+  | { mode: 'architecture'; action: ActionDArchitecture }
+  | { mode: 'navire'; ref: string; cap: Dir4 };
 
 /** Ce que bâtit l'outil d'architecture : un corps ou une partie sur la case pointée, l'étage au-dessus du corps actif,
  *  une masse de toiture sur la case pointée. */
@@ -114,7 +118,7 @@ export function casesDuDefaut(s: SessionDEdition): { x: number; y: number; z: nu
  *  l'outil d'architecture ; une entité ou un déclencheur sélectionné à l'outil de sélection. */
 function versLAvertissement(s: SessionDEdition, scene: Scene, w: Warning): SessionDEdition {
   const vers = (z: number | undefined, sel: Sel, outil: OutilDeLEditeur, defaut: string | null = null): SessionDEdition => ({
-    ...s, z: z !== undefined && scene.layers.some((l) => l.z === z) ? z : s.z, sel, outil, defaut, geste: null, volee: [], brouillon: null,
+    ...s, z: z !== undefined && coucheVue(scene, z) ? z : s.z, sel, outil, defaut, geste: null, volee: [], brouillon: null,
   });
   if (w.plan) {
     const at = w.plan.at;
@@ -234,8 +238,7 @@ export type PatchDArete = { [K in Exclude<keyof WallSeg, 'x' | 'y' | 'side' | 'z
 
 /** Ce que l'inspecteur écrit sur l'entité sélectionnée : son type (décor ou fiche), son cap, sa couche ; la lumière
  *  d'un décor (`null` l'éteint), son assise ; un objet de l'inventaire d'un personnage (`inventaireApres`), son
- *  parcours de carrière et ses sorts choisis ; l'équipage exposé à bord ; les entrées de fiche qu'elle couvre (`null` :
- *  aucune). */
+ *  parcours de carrière ; l'équipage exposé à bord ; les entrées de fiche qu'elle couvre (`null` : aucune). */
 export interface PatchDEntite {
   ref?: string;
   facing?: Dir8;
@@ -245,8 +248,6 @@ export interface PatchDEntite {
   objet?: IntentionDObjet;
   /** Le parcours de carrière entier ; sans carrière, il est retiré. */
   parcours?: ParcoursDeCarriere;
-  /** Les sorts choisis entiers (`combat.spells`, `sortsDuPnj`) ; vides, ils sont retirés. */
-  sorts?: string[];
   crewIds?: string[];
   couvre?: string[] | null;
 }
@@ -373,8 +374,16 @@ export type GesteDEdition =
   | { geste: 'caler'; actif: boolean }
   | { geste: 'retirerCalque' };
 
-/** La scène éditée. */
+/** La scène éditée : celle qui s'écrit et s'enregistre. */
 export const sceneEditee = (s: SessionDEdition): Scene => s.historique.present;
+
+/** La vue de la scène éditée de la session `s` : ses navires posés par leurs ponts (`poserLesNavires`), comme en jeu.
+ *  L'hôte la montre, le pointeur y vise les ponts, ses couches sont celles qu'on édite ; les écritures vont à la scène
+ *  éditée, qui ne porte de chaque navire que son entité. */
+export const vueDeLaScene = (s: SessionDEdition): Scene => poserLesNavires(sceneEditee(s));
+
+/** La couche `z` est-elle l'une de la vue de `scene` (`poserLesNavires`) ? */
+const coucheVue = (scene: Scene, z: number): boolean => poserLesNavires(scene).layers.some((l) => l.z === z);
 
 /** Les scènes du projet de la session `s`, dans l'ordre du document, la scène éditée à jour. */
 export const scenesDeLaSession = (s: SessionDEdition): Scene[] => s.projet.scenes.map((sc) => (sc.id === s.sceneId ? sceneEditee(s) : sc));
@@ -441,10 +450,13 @@ export function essaiDeLaScene(s: SessionDEdition) {
   });
 }
 
-/** Le plan de la volée tracée de la session `s` vers l'étage de son outil (`planStairFlight`), `null` hors de l'outil
- *  Volée. */
+/** Le plan de la volée tracée de la session `s` vers l'étage de son outil, lu sur la vue (`planStairFlight`,
+ *  `vueDeLaScene`) : jusqu'au pont d'un navire aussi ; refusé sur une couche que seuls les ponts d'un navire posent, où
+ *  la volée ne s'écrirait pas ; `null` hors de l'outil Volée. */
 export function planDeLaVolee(s: SessionDEdition): StairFlightPlan | null {
-  return s.outil.mode === 'stair' ? planStairFlight(sceneEditee(s), s.volee, s.z, s.outil.toZ) : null;
+  if (s.outil.mode !== 'stair') return null;
+  if (!sceneEditee(s).layers.some((l) => l.z === s.z)) return { ok: false, reason: `couche z${s.z} des seuls ponts d'un navire : la volée ne s'y écrit pas` };
+  return planStairFlight(vueDeLaScene(s), s.volee, s.z, s.outil.toZ);
 }
 
 /** Le corps de la sélection d'architecture `sel`, `undefined` hors d'elle. */
@@ -463,11 +475,12 @@ export function corpsActif(s: SessionDEdition): ArchitectureBody | null {
 /** L'étage du corps actif de la session `s` sur sa couche éditée, `null` sans lui. */
 export const etageActif = (s: SessionDEdition): ArchitectureStorey | null => corpsActif(s)?.storeys.find((e) => e.z === s.z) ?? null;
 
-/** Le contexte du pointeur de la session : l'outil d'architecture y est la sélection, en mode architecture. */
+/** Le contexte du pointeur de la session : l'outil d'architecture y est la sélection, en mode architecture ; l'outil
+ *  navire, que l'appui joue sans lui, la sélection. */
 function contexte(s: SessionDEdition): ContexteDuPointeur {
   const outil = s.outil;
   const architecture = outil.mode === 'architecture' ? { z: s.z, action: outil.action === 'facade' ? 'facade' as const : 'select' as const, bodyId: corpsActif(s)?.id ?? null } : null;
-  return { tool: outil.mode === 'architecture' ? { mode: 'select' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
+  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' ? { mode: 'select' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
 }
 
 /** Si le clic de la session `s` tire une exclusion de toiture du corps actif. */
@@ -573,10 +586,10 @@ function ecrireSurLaSelection<T>(s: SessionDEdition, scene: Scene, lire: (sc: Sc
 
 /** Le patch `patch` de l'inspecteur en patch d'entité pour `ent`, chaque absence posée par `champs` (`editEntity`) : le
  *  type d'un décor avec ses défauts de pose (`propRefPatch`), la couche au sol (`coucheEcrite`), la lumière éteinte, l'assise
- *  sans action, un parcours sans carrière, et un inventaire, un équipage, des sorts ou des entrées couvertes vides
- *  (`sansVide`) ; l'inventaire après l'intention sur un objet (`inventaireApres`). */
+ *  sans action, un parcours sans carrière, et un inventaire, un équipage ou des entrées couvertes vides (`sansVide`) ;
+ *  l'inventaire après l'intention sur un objet (`inventaireApres`). */
 function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEntity> {
-  const { ref, z, light, assise, objet, parcours, sorts, crewIds, couvre, ...reste } = patch;
+  const { ref, z, light, assise, objet, parcours, crewIds, couvre, ...reste } = patch;
   const avecCarrieres = parcours && Object.keys(parcours.carrieres).length ? parcours : undefined;
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
@@ -585,7 +598,6 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
     ...(z === undefined ? {} : { z: coucheEcrite(z) }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),
-    ...(sorts === undefined ? {} : { combat: { ...ent.combat, spells: sansVide(sorts) } }),
     ...(parcours === undefined ? {} : {
       carrieres: avecCarrieres?.carrieres,
       talentsDeCarriere: avecCarrieres?.talentsDeCarriere,
@@ -622,10 +634,10 @@ function membrePatche(scene: Scene, id: string, patch: PatchDeMembre): Scene {
 const enPatchDeSegment = (patch: PatchDArete): Partial<WallSeg> =>
   Object.fromEntries(Object.entries(patch).map(([k, v]) => [k, v ?? undefined]));
 
-/** La session revenue à l'état `historique` d'annuler ou de rétablir : la couche éditée reste, sauf disparue avec lui,
- *  où le rez la remplace. */
+/** La session revenue à l'état `historique` d'annuler ou de rétablir : la couche éditée reste, sauf disparue de sa
+ *  vue (`coucheVue`), où le rez la remplace. */
 function revenir(s: SessionDEdition, historique: Historique): SessionDEdition {
-  const z = historique.present.layers.some((l) => l.z === s.z) ? s.z : 0;
+  const z = coucheVue(historique.present, s.z) ? s.z : 0;
   return { ...s, historique, z, sel: null, geste: null, brouillon: null };
 }
 
@@ -645,39 +657,43 @@ function sceneAvecLEntite(scene: Scene, ent: SceneEntity, cle: string, ecrite: S
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: apres };
 }
 
-/** La scène `scene` où le geste `g` écrit sa valeur au formulaire de son porteur (`avecLaValeurDuPorteur`) : la zone
- *  d'effet remplacée, la condition d'entrée du déclencheur patchée (`patchTrigger`), le champ de l'entité posé par sa
- *  porte (`sceneAvecLEntite`) ; ou son refus, un porteur absent n'offrant aucun chemin. */
-function sceneAvecLaValeur(scene: Scene, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
+/** La scène `scene` de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
+ *  (`avecLaValeurDuPorteur`, les presets du narratif du projet) : la zone d'effet remplacée, la condition d'entrée du
+ *  déclencheur patchée (`patchTrigger`), le champ de l'entité posé par sa porte (`sceneAvecLEntite`) ; ou son refus, un
+ *  porteur absent n'offrant aucun chemin. */
+function sceneAvecLaValeur(s: SessionDEdition, scene: Scene, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
+  const presetDe = presetDuNarratif(s.projet.narratif);
   if (g.porteur.sorte === 'entite') {
     const ent = scene.entities.find((e) => e.id === g.porteur.id);
     if (!ent) return { ok: false, refus: 'nonOffert' };
-    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur);
+    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur, presetDe);
     return ecrite.ok ? sceneAvecLEntite(scene, ent, String(g.chemin[0]), ecrite.valeur) : ecrite;
   }
   if (g.porteur.sorte === 'zone') {
     const zone = (scene.effectZones ?? []).find((z) => z.id === g.porteur.id);
-    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur) : { ok: false as const, refus: 'nonOffert' as const };
+    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur, presetDe) : { ok: false as const, refus: 'nonOffert' as const };
     return ecrite.ok ? { ok: true, valeur: replaceEffectZone(scene, zone!.id, ecrite.valeur) } : ecrite;
   }
   const declencheur = scene.triggers.find((t) => t.id === g.porteur.id);
-  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur) : { ok: false as const, refus: 'nonOffert' as const };
+  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur, presetDe) : { ok: false as const, refus: 'nonOffert' as const };
   return ecrit.ok ? { ok: true, valeur: patchTrigger(scene, ecrit.valeur.id, { when: ecrit.valeur.when }) } : ecrit;
 }
 
 /** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`RefusDeValeur`) ; `null` si elle l'écrit. */
 export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): RefusDeValeur | null {
-  const ecrite = sceneAvecLaValeur(sceneEditee(s), g);
+  const ecrite = sceneAvecLaValeur(s, sceneEditee(s), g);
   return ecrite.ok ? null : ecrite.refus;
 }
 
-/** La session après le geste `g`, sur la couche éditée. Changer de couche efface le tracé de la volée, qui est celui de
- *  sa couche. Écrire sur l'arête sélectionnée la garde sélectionnée, sans cran quand l'arête n'en change pas. Pendant
+/** La session après le geste `g`, sur la couche éditée, l'une de la vue (`vueDeLaScene`) : les ponts d'un navire en sont.
+ *  Changer de couche efface le tracé de la volée, qui est celui de sa couche. L'appui de l'outil navire y pose le
+ *  navire à la case pointée, sélectionné. Écrire sur l'arête sélectionnée la garde sélectionnée, sans cran quand l'arête n'en change pas. Pendant
  *  le calage, l'appui cale le calque et le glissé n'ouvre aucun geste ; demander une planche l'abandonne, cacher le
  *  calque aussi. Écrire sur l'entité, l'entrée, la zone sélectionnée la garde sélectionnée, l'entrée et le déclencheur sous
  *  leur nouveau nom ;
  *  coller ou dupliquer sélectionne l'entité posée ; poser une troupe garde l'original sélectionné, ses copies sur un seul
- *  cran. Un geste sans objet (retirer la couche 0, une couche absente, poser
+ *  cran. Un geste sans objet (retirer la couche 0 ou une couche que seuls les ponts d'un navire posent, une couche
+ *  absente, poser un navire dans une scène qui n'est pas à l'échelle de son plan, poser
  *  une volée que son plan refuse, écrire sans arête, entité ou entrée sélectionnée, écrire une valeur que refuse
  *  `refusDeLaValeur`, renommer une entrée ou un déclencheur, ou
  *  réidentifier une zone d'effet, d'un nom vide ou déjà pris, copier sans entité sélectionnée, coller sans copie ou sans case pointée sur la couche éditée,
@@ -694,13 +710,13 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'rectangle':
       return { ...s, rectangle: g.actif };
     case 'couche':
-      return scene.layers.some((l) => l.z === g.z) ? { ...s, z: g.z, sel: null, geste: null, volee: [], brouillon: null } : s;
+      return coucheVue(scene, g.z) ? { ...s, z: g.z, sel: null, geste: null, volee: [], brouillon: null } : s;
     case 'ajouterCouche': {
-      const z = etageSuivant(scene);
+      const z = etageSuivant(vueDeLaScene(s));
       return { ...ecrire(s, addLayer(scene, z)), z };
     }
     case 'retirerCouche':
-      return s.z === 0 ? s : { ...ecrire(s, removeLayer(scene, s.z)), z: 0 };
+      return s.z === 0 || !scene.layers.some((l) => l.z === s.z) ? s : { ...ecrire(s, removeLayer(scene, s.z)), z: 0 };
     case 'appui': {
       const calque = calqueDeLaCouche(s);
       if (s.calage.step !== 'idle' && calque) {
@@ -708,6 +724,10 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
         return { ...s, calage: pas.progress, ...(pas.transform ? { calques: avecLeCalque(s, s.sceneId, s.z, { ...calque, calage: pas.transform }) } : {}) };
       }
       const pointee = { ...g.point.case, z: s.z };
+      if (s.outil.mode === 'navire') {
+        const pose = poserUnNavire(scene, s.outil.ref, g.point.case, s.z, s.outil.cap);
+        return pose ? { ...ecrire(s, pose.scene, { type: 'entity', id: pose.id }), pointee } : { ...s, pointee };
+      }
       if (enExclusion(s)) return { ...s, geste: { sorte: 'rectangle', depart: g.point.case, rect: rectFrom(g.point.case, g.point.case) }, pointee };
       const poignee = s.outil.mode === 'select' || (s.outil.mode === 'architecture' && s.outil.action === 'select') ? poigneeDeLaSelection(scene, s.sel, s.z) : null;
       const saisie = poignee?.x === g.point.case.x && poignee.y === g.point.case.y;
@@ -757,7 +777,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'zone':
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
-      const ecrite = sceneAvecLaValeur(scene, g);
+      const ecrite = sceneAvecLaValeur(s, scene, g);
       return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, (sc) => [sc.effectZones, sc.triggers, sc.entities]) : s;
     }
     case 'nommer': {

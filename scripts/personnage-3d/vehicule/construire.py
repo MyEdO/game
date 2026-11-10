@@ -13,36 +13,23 @@ champs du manifeste propres à l'élément : `postes`, `selon`, `ancrages`, `mon
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/construire.py <modele> --sortie <dossier neuf hors du dépôt>
 """
 import argparse
-import hashlib
 import importlib
-import json
 import runpy
-import shutil
 import sys
 from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
-sys.path.insert(0, str(ICI))
+sys.path[:0] = [str(ICI), str(ICI.parent)]
 
 import bpy  # noqa: E402
 import habillage  # noqa: E402
+from production import MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
 
-LICENCE = habillage.DEPOT / "hotes" / "godot" / "projet" / "modeles" / "LICENSE-CC0-1.0-f6089cba01cb570a.txt"
+LICENCES = {"LICENSE-CC0-1.0.txt": MODELES / "LICENSE-CC0-1.0-f6089cba01cb570a.txt"}
 
 
 def identifiant(categorie, cle):
     return f"{categorie}--{next(iter(cle.values()))}"
-
-
-def dossier_de_sortie(chemin):
-    """Le dossier de sortie, neuf ou vide et hors du dépôt : aucun GLB ne s'écrit dans l'arbre."""
-    sortie = Path(chemin).resolve()
-    if sortie == habillage.DEPOT or habillage.DEPOT in sortie.parents:
-        raise ValueError(f"{sortie} : dossier de sortie dans le dépôt {habillage.DEPOT}")
-    if sortie.exists() and any(sortie.iterdir()):
-        raise ValueError(f"{sortie} : dossier de sortie neuf ou vide attendu")
-    sortie.mkdir(parents=True, exist_ok=True)
-    return sortie
 
 
 def exporter(chemin, avec_uv):
@@ -63,18 +50,10 @@ def produire(element, sortie):
     temporaire = sortie / f"{element['glb']}.glb"
     octets = exporter(temporaire, bool(element["blasons"]))
     utilises = {m.name for o in bpy.data.objects if o.type == "MESH" for m in o.data.materials}
-    empreinte = hashlib.sha256(octets).hexdigest()
     for id_, (categorie, cle) in zip(ids, element["cles"]):
         manifeste = {"schema": 3, "categorie": categorie, "cle": cle, "liaison": {"mode": "rigide"}, **champs,
-                     "surfaces": habillage.surfaces(utilises, element["materiaux"], element["blasons"]),
-                     "glb": {"sha256": empreinte, "octets": len(octets)}}
-        dossier = sortie / id_
-        dossier.mkdir()
-        (dossier / f"{id_}.glb").write_bytes(octets)
-        (dossier / f"{id_}.element.json").write_text(json.dumps(manifeste, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        enveloppe = {"model": f"{id_}.glb", "model_sha256": empreinte, "manifeste": manifeste}
-        (dossier / "manifest.json").write_text(json.dumps(enveloppe, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-        shutil.copyfile(LICENCE, dossier / "LICENSE-CC0-1.0.txt")
+                     "surfaces": habillage.surfaces(utilises, element["materiaux"], element["blasons"])}
+        empreinte = ecrire_le_dossier(sortie / id_, id_, octets, manifeste, LICENCES)["glb"]["sha256"]
     temporaire.unlink()
     meshes = [o for o in bpy.data.objects if o.type == "MESH"]
     print("GLB", element["glb"], len(octets), empreinte, "TRIANGLES", sum(len(o.data.polygons) for o in meshes), "->", ", ".join(ids))

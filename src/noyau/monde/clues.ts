@@ -76,11 +76,11 @@ export function discreditClue(
   return { ...clues, [indice.id]: { ...réfuté, statut: 'refute' } };
 }
 
-/** Épingle/désépingle un indice PRÉSENT au carnet. */
-export function togglePin(clues: Record<string, ClueState>, indiceId: string): Record<string, ClueState> {
+/** Épingle (`epingle`) ou désépingle un indice PRÉSENT au carnet ; Record identique si rien ne change. */
+export function poserLEpingle(clues: Record<string, ClueState>, indiceId: string, epingle: boolean): Record<string, ClueState> {
   const existing = clues[indiceId];
-  if (!existing) return clues;
-  return { ...clues, [indiceId]: { ...existing, épinglé: !existing.épinglé } };
+  if (!existing || !!existing.épinglé === epingle) return clues;
+  return { ...clues, [indiceId]: { ...existing, épinglé: epingle } };
 }
 
 /** L'indice porte-t-il un changement que `seat` n'a pas affiché ? Seule définition de la nouveauté (#2415). */

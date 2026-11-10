@@ -3,8 +3,9 @@ extends PontDuNoyau
 
 ## Le pont figé des recettes de l'atelier (`hotes/godot/recettes/atelier.ts`) : `catalogues`, `vitrine` et `modeles`
 ## rendent leur réponse figée, toute autre méthode la réponse figée sous `fige[<méthode>]` à la clé de son entrée
-## (`JSON.stringify`), `modeles/listage.json` le listage figé et `modeles/<fichier>` le fichier du projet ; il garde les
-## entrées reçues hors de ces trois, et le dernier écran publié.
+## (`JSON.stringify`), `modeles/listage.json` le listage figé et tout autre chemin le fichier du projet, rien s'il est
+## absent (le dépôt de l'éditeur), chaque paramètre de l'adresse celui de `fige.parametres` ; il garde les entrées
+## reçues hors de ces trois, et le dernier écran publié.
 
 var fige: Dictionary
 var entrees: Array[String] = []
@@ -42,10 +43,15 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 func requeter(relative: String, recueil: Array[String], _methode := HTTPClient.METHOD_GET, _corps := "") -> PackedByteArray:
 	if relative == "modeles/listage.json":
 		return JSON.stringify(fige.listage).to_utf8_buffer()
-	var octets := FileAccess.get_file_as_bytes("res://%s" % relative)
+	var chemin := "res://%s" % relative
+	var octets := FileAccess.get_file_as_bytes(chemin) if FileAccess.file_exists(chemin) else PackedByteArray()
 	if octets.is_empty():
 		recueil.append("fichier absent : %s" % relative)
 	return octets
+
+
+func parametre(cle: String) -> String:
+	return str(fige.get("parametres", {}).get(cle, ""))
 
 
 func publier_l_ecran(publie: Dictionary) -> void:

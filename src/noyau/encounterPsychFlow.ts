@@ -10,7 +10,7 @@
  * `aggregate:'none'`). Le jet est le Test de Calme GÉNÉRIQUE de la bande (`FLOWS.cascadeBatch` →
  * `rollTest(Calme)`, kind-agnostique) ; la CONSÉQUENCE (psychState, Brisé de Terreur dérivé du DR)
  * vit dans l'applier `'encounterPsych'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
- * LDB 17 l.59) est offerte par la coquille via `jetDepenserLaDetermination('cascadeBatch')` sur la rangée.
+ * LDB 17 l.59) est offerte dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination`.
  */
 import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';
@@ -100,7 +100,7 @@ const psychBands = makeBandFactory<PsychDue>({
     id: `psych-${d.kind}-${index}`, kind: 'encounterPsych', icon, label,
     encounterPsych: d,
     contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
-    stake: combatStakeRef('encounterPsych', { entryId: d.kind, values: { indice: d.indice } }),
+    stake: combatStakeRef('encounter-psych', { entryId: d.kind, values: { indice: d.indice } }),
     // Les DEUX issues, dérivées des ops que l'applier appliquera (`psychBranchOps`) : la surface
     // les rend en chips codex-liées avant le jet, et le verdict est le MÊME bloc filtré (#1117).
     meta: { onSuccess: psychBranchFlow(d, true), onFail: psychBranchFlow(d, false) },

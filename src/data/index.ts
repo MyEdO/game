@@ -149,7 +149,7 @@ import shipConstructionJson from './ship-construction.json';
 import riverNavigationJson from './river-navigation.json';
 import seaCargoJson from './sea-cargo.json';
 import landCargoJson from './land-cargo.json';
-import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type NightTestKind, type StakeForm } from '../engine/types';
+import { CharKey, type HitLocation, Weapon, VehicleData, StructureData, Availability, type TestedAvailability, Difficulty, type StakeForm } from '../engine/types';
 import type { MutationData, MutationTable } from './mutations'; // type-only (évite le cycle data→mutations→engine→data)
 import type { DiseaseDef } from './schemas/defs/maladies';
 import type { PowerEstimateRow, MightModifierRow, WarMachineRow, StructureRow as MassBattleStructureRow, HazardRow } from '../engine/massBattle'; // type-only (le runtime de massBattle.ts importe ces tableaux d'ici)
@@ -235,15 +235,12 @@ export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
 export type StakeCascade = 'night' | 'voyage' | 'flow' | 'combat';
 
 /** ENJEU d'un jet de cascade (#1117, collection #1681) — cf. `schemas/defs/stakes.ts`. Lu à la clé
- *  `{ dataset: cascade, kind: cle }` par `resolveStake`. */
+ *  `{ dataset: cascade, kind: id }` par `resolveStake`. */
 export interface StakeEntry {
   id: string;
   type: 'stakes';
   label: string;
   cascade: StakeCascade;
-  /** Clé de consommation : le `kind` de l'étape servie (celui de l'applier, sinon du TIRAGE servi, car
-   *  une même étape peut jouer deux jeux de tables), ou l'id du jet de modale (`FlowStakeId`). */
-  cle: string;
   /** Gabarit du texte, trous `{nom}` remplis par le producteur — ABSENT quand l'issue du jet se lit en
    *  chips d'ops (#1117) : l'entrée ne porte alors que son foyer de règle. */
   template?: string;
@@ -261,9 +258,12 @@ export interface StakeEntry {
   source: SourceRef;
 }
 export const STAKES = stakesJson as StakeEntry[];
-/** Id d'un jet de modale mono : l'union GÉNÉRÉE des ids de la cascade `flow` (`scripts/gen-espaces.mts`),
- *  qui sont aussi leurs `cle`. */
+/** Ids des enjeux d'une cascade : l'union GÉNÉRÉE des ids de l'espace de la cascade (`scripts/gen-espaces.mts`),
+ *  l'argument de sa porte typée. */
+export type NightStakeId = IdsParEspace['stakes.json?cascade=night'];
+export type VoyageStakeId = IdsParEspace['stakes.json?cascade=voyage'];
 export type FlowStakeId = IdsParEspace['stakes.json?cascade=flow'];
+export type CombatStakeId = IdsParEspace['stakes.json?cascade=combat'];
 
 /** ENJEU d'une ACTIVITÉ (#1117 L3) — porté par l'ENTITÉ elle-même (`activities.json`), pas par un
  *  fichier d'enjeux tiers : une Activité EST déjà une entrée Codex éditable qui porte sa règle en
@@ -339,6 +339,7 @@ export type StakeDataset = StakeCascade | 'weather' | 'activity' | 'etat';
  *  s'applique qu'aux kinds qui n'en déclarent aucune). */
 export interface StakeKey {
   dataset: StakeDataset;
+  /** L'id de l'entrée dans son dataset : l'enjeu d'une cascade, la météo, l'Activité, l'État. */
   kind: string;
   entryId?: string;
   entryCategory?: string;
@@ -492,13 +493,13 @@ function shipCritPools(set: ShipCritSet, prefixe: string): Record<string, (id: s
  *  jamais un `if` par kind au rendu. La famille MALADIE l'énumère (les trois étapes de maladie jouent
  *  un SYMPTÔME nommé) ; les jets de modale mono la DÉRIVENT de leur donnée (`entryCategory`). */
 const stakeEntryCatalog = memoParVersion(['stakes'], (): Record<string, { category: string; has: (id: string) => boolean }> => ({
-  diseaseTick: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
-  diseaseGangrene: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
-  diseasePersist: { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
+  'disease-tick': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
+  'disease-gangrene': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
+  'disease-persist': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   ...Object.fromEntries(
     STAKES
       .filter((e) => e.entryCategory)
-      .map((e) => [e.cle, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
+      .map((e) => [e.id, { category: e.entryCategory!, has: STAKE_ENTRY_POOLS[e.entryCategory!] ?? (() => false) }]),
   ),
 }));
 
@@ -522,7 +523,7 @@ const STAKE_ENTRY_TEXTS: Record<string, (id: string) => string | undefined> = {
  *  (c) PAR LA SOURCE : le dataset pose `entryFromSource: true` (schéma `defs/stakes.ts`),
  *      qui déclare que la catégorie ne se connaît qu'au RUNTIME — le producteur la tire de
  *      `ActiveEffect.source` (`CATEGORY_BY_SOURCE_KIND`) et la verse par la porte (b) ; le kind
- *      `actGate` en vit (un même gate est exigé par un objet, un Talent, une maladie…).
+ *      `act-gate` en vit (un même gate est exigé par un objet, un Talent, une maladie…).
  *      CRITÈRE : `entryFromSource` ne se déclare que si la catégorie est irréductiblement dynamique
  *      (le même `kind` sert N natures de source) — si une déclaration statique peut la dire, c'est
  *      (a) ou (b). */
@@ -568,9 +569,9 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     if (!e?.stake) return undefined;
     return { text: e.stake, rule: e.rule ? cibleCodex(e.rule) : { category: 'activities', id: e.id } };
   }
-  // CASCADES (`stakes.json`) : `key.dataset` est la cascade, `key.kind` la clé de consommation `cle`.
+  // CASCADES (`stakes.json`) : `key.dataset` est la cascade, `key.kind` l'id de l'enjeu.
   const cascade: StakeCascade = key.dataset;
-  const e = STAKES.find((x) => x.cascade === cascade && x.cle === key.kind);
+  const e = STAKES.find((x) => x.cascade === cascade && x.id === key.kind);
   if (!e) return undefined;
   // La fiche de l'ENTRÉE jouée PRIME sur celle du `kind` (une étape « Blessé » renvoie au symptôme
   // Blessé, pas à l'intro du chapitre des maladies ; la maladie contractée, la manœuvre subie, la
@@ -607,23 +608,23 @@ function stakeRef(
 }
 
 /** Enjeu d'une étape de cascade de VOYAGE (`stakeRef`) : les valeurs remplissent les trous du gabarit. */
-export function voyageStakeRef(kind: string, values?: Record<string, string | number>): StakeRef {
-  return stakeRef('voyage', kind, { values });
+export function voyageStakeRef(id: VoyageStakeId, values?: Record<string, string | number>): StakeRef {
+  return stakeRef('voyage', id, { values });
 }
 
 /** Enjeu d'une étape de cascade de COMBAT (#1117 L2, `stakeRef`) : `entryId`/`entryCategory` viennent du
  *  `meta` de l'étape ou de la source de l'effet. */
 export function combatStakeRef(
-  kind: string,
+  id: CombatStakeId,
   opts?: { entryId?: string; entryCategory?: string; values?: Record<string, string | number> },
 ): StakeRef {
-  return stakeRef('combat', kind, opts);
+  return stakeRef('combat', id, opts);
 }
 
-/** Enjeu d'une étape de NUIT (`stakeRef`) : le TYPE ferme le vocabulaire (`NightTestKind`) en PREMIER
+/** Enjeu d'une étape de NUIT (`stakeRef`) : le TYPE ferme l'id (`NightStakeId`, généré) en PREMIER
  *  rideau, le throw est le second. `entryId` = le symptôme joué par une étape de maladie. */
-export function nightStakeRef(kind: NightTestKind, entryId?: string): StakeRef {
-  return stakeRef('night', kind, { entryId });
+export function nightStakeRef(id: NightStakeId, entryId?: string): StakeRef {
+  return stakeRef('night', id, { entryId });
 }
 
 /** L'Activité a-t-elle son enjeu authoré ? PRÉDICAT de la MÊME porte que `activityStakeRef` — pour
@@ -1711,7 +1712,7 @@ export interface ManeuverDef {
   /** ENJEU porté par l'ENTRÉE (#1117 L2, patron `ActivityDef.stake`/`PsychologyData.stake`) : les
    *  `effects` d'une manœuvre sont AUTHORÉS entrée par entrée (aucune formule commune), donc un
    *  gabarit au `kind` serait tautologique. Rendu par `resolveStake` (dataset `combat`, kind
-   *  `maneuverDefense`, `entryId` = l'id de la manœuvre) : il PRIME sur le gabarit du kind. */
+   *  `combat-maneuver-defense`, `entryId` = l'id de la manœuvre) : il PRIME sur le gabarit du kind. */
   stake?: string;
   /** FORME déclarée de l'enjeu — `verbatim` (contigu au Source) ou `descripteur` (assemblage des ops). */
   stakeForm?: StakeForm;
@@ -3165,6 +3166,10 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
 export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
 }
+/** Le véhicule `id` d'un PERSONNAGE (sa clé `vehicule`) est-il un navire à ponts (`vehicles.json › ponts`, #3686) ? Ses
+ *  ponts ne se posent qu'à un cap cardinal : le schéma de scène refuse les autres (`refusDeLEntite`), l'éditeur ne les
+ *  offre pas (`capsOfferts`). */
+export const estUnNavireAPonts = (id: string | undefined): boolean => id !== undefined && findVehicleById(id)?.ponts !== undefined;
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */

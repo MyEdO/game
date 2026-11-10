@@ -172,15 +172,15 @@ describe('ouvrirLeRepos / choix par héros', () => {
     expect(seen.filter((s) => s.kind === 'exposure').map((s) => s.rows)).toEqual([2, 2]);
   });
 
-  it('cascade : valider un TEST QUOTIDIEN de maladie raté applique son `onFail` (applicateur diseaseTick, #674)', () => {
-    // DERNIER maillon de prod : la bande est verrouillée par `jetValider('cascade')`, l'applier `diseaseTick`
+  it('cascade : valider un TEST QUOTIDIEN de maladie raté applique son `onFail` (applicateur disease-tick, #674)', () => {
+    // DERNIER maillon de prod : la bande est verrouillée par `jetValider('cascade')`, l'applier `disease-tick`
     // lit `row.meta.onFail` et le passe à `applyOps`. Aucun appel direct au moteur ici.
     const h = banc.getState().party[0];
     h.diseases = [contractDisease('pneumonie', battleRngFor())!];
     banc.setState((s) => ({ party: [...s.party] }));
     const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.fail, 'target');
     const bande = (id: string) => cascadeDeTest([
-      { id, kind: 'diseaseTick', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
+      { id, kind: 'disease-tick', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
         participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 30, target: 30,
           meta: { diseaseName: 'pneumonie', symptomId: 'fievre', opsEchec: onFail },
           result: { roll: 99, target: 30, sl: -6, success: false } }] },
@@ -197,12 +197,12 @@ describe('ouvrirLeRepos / choix par héros', () => {
     expect(symptomes, '2ᵉ échec, Fièvre DÉJÀ Grave : l’échelon suivant tombe').toContain('toxine');
   });
 
-  it('cascade : valider une MARCHE FORCÉE ratée applique +Exténué (applicateur forcedMarch)', () => {
+  it('cascade : valider une MARCHE FORCÉE ratée applique +Exténué (applicateur forced-march)', () => {
     const h = banc.getState().party[0];
     const exten0 = stacks(h, 'extenue');
     // Cascade à une BANDE de marche forcée (#1117 L3), jet de la rangée figé sur un ÉCHEC.
     banc.setState({ pendingCascade: cascadeDeTest([
-      { id: 'bande-m1', kind: 'forcedMarch', label: fixtureText('Marche forcée'), aggregate: 'none',
+      { id: 'bande-m1', kind: 'forced-march', label: fixtureText('Marche forcée'), aggregate: 'none',
         participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
     ], { title: 'Marche', purpose: 'travel' }) });
     banc.getState().jetValider('cascade'); // verrouille l'échec → +Exténué (applyForcedMarch)
@@ -435,7 +435,7 @@ describe('CHEMIN RÉEL — la règle d’une étape de maladie est celle du SYMP
     banc.getState().fenetreValider('rest');
     const p = banc.getState().pendingCascade;
     expect(p, 'la cascade de nuit s’ouvre').toBeTruthy();
-    const step = p!.participants.find((s) => s.kind === 'diseaseTick');
+    const step = p!.participants.find((s) => s.kind === 'disease-tick');
     expect(step, 'la nuit d’un malade porte le Test de cycle du symptôme').toBeTruthy();
     expect(step!.meta?.symptomId, 'le symptôme voyage jusqu’à l’étape').toBe('blesse');
     expect(step!.stake!.key!.entryId, 'la clé d’enjeu NOMME l’entrée jouée').toBe('blesse');

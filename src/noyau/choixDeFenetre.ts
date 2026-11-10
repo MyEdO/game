@@ -43,13 +43,19 @@ import { findTrappingById } from '../data/index';
 import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
-import { refusDAlea } from './massBattleFlow';
+import { battleSceneById, herosQuiSePostent, postesDeBataille, refusDAlea, refusDeMelee, refusDeRassemblement, refusDeSceneDeBataille } from './massBattleFlow';
+import { formatDice } from '../engine/dice';
+import { massBattleHazardsDie } from '../data';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { inBattleId } from './monde/combatants';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
 import { creaturesDeLaRecolte, refusDeDepecer } from './combatEffects';
+import { FORMULES_DES_MARCHES, devisDeLAchat, type FenetreDuMarche } from './cargaison';
+import { bulkCarriers } from './carriers';
+import { carrierFreeEnc, findCargoById } from '../engine/cargo';
+import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import {
   VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -169,6 +175,50 @@ const qualitesDeLOuvrage = (axe: 'ajouterLaQualite' | 'retirerLaQualite', retenu
     return lu ? [...atouts, ...defauts].filter((q) => retenue(lu.c, q)).map(qualite) : [];
   });
 const visee = (c: CompositionDActivite, q: string): boolean => c.atouts.includes(q) || c.defauts.includes(q);
+/** Les choix du marché de cargaison `fenetre` ouvert : chaque offre, et sur l'achat en composition (`cargaison.ts`) chaque
+ *  porteur du groupe fermé par la raison du marché, l'Enc borné par le devis, la conclusion fermée par sa raison ; chaque
+ *  lot des porteurs du groupe, sa vente et son bradage fermés par la raison du marché. */
+const choixDuMarche = (fenetre: FenetreDuMarche) => {
+  const f = FORMULES_DES_MARCHES[fenetre];
+  const ouvert = (s: Jeu): boolean => garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre de marché').ouverte(s);
+  const brouillon = (s: Jeu) => (ouvert(s) ? f.brouillon(s) : undefined);
+  const lots = (s: Jeu, refus: (porteur: string, cargoId: string) => string | null): ValeurDuReglage[] => (ouvert(s)
+    ? bulkCarriers(s).flatMap((c) => c.cargo.map((l) => ouverte(l.uid, t('valeur.lot', { lot: findCargoById(l.cargoId)?.label ?? l.cargoId, enc: l.enc, porteur: c.label }), refus(c.id, l.cargoId))))
+    : []);
+  return {
+    offre: reglage(fenetre, 'offre', (s) => (ouvert(s) ? f.offres(s).map((o) => ouverte(o.cargoId, o.label)) : []), (s) => brouillon(s)?.offre ?? null),
+    porteur: reglage(fenetre, 'porteur', (s) => {
+      const achat = brouillon(s);
+      return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), f.refusDuPorteur(s, c.id))) : [];
+    }, (s) => brouillon(s)?.porteur ?? null),
+    // De 1 à la borne du devis.
+    enc: (s: Jeu): Reglage => {
+      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'enc' as const }, libelle: libelleDuChoix(fenetre, 'enc'), note: null };
+      const achat = brouillon(s);
+      const max = achat ? f.devis(s, achat.porteur, achat.offre).max : 0;
+      return achat && max >= 1
+        ? { ...base, courant: achat.enc, valeurs: null, bornes: { min: 1, max, pas: 1 } }
+        : { ...base, courant: null, valeurs: [], bornes: null };
+    },
+    acheter: reglage(fenetre, 'acheter', (s) => {
+      const achat = brouillon(s);
+      return achat ? [ouverte(true, libelleDuChoix(fenetre, 'acheter'), devisDeLAchat(s, f, achat).refus)] : [];
+    }),
+    vendre: reglage(fenetre, 'vendre', (s) => lots(s, (porteur) => f.refusDuPorteur(s, porteur))),
+    jeter: reglage(fenetre, 'jeter', (s) => lots(s, (porteur, cargoId) => f.refusDuPorteur(s, porteur) ?? f.refusDeBradage(s, cargoId))),
+  };
+};
+
+/** La bataille de masse est-elle à un Round ? */
+const enRoundDeBataille = (s: Jeu): boolean => s.massBattle?.phase === 'round';
+/** Chaque poste de la bataille (`postesDeBataille`) que `retenu` garde pour le héros `pid` qui se poste
+ *  (`herosQuiSePostent`), lu sur les PJ qui y sont postés ; hors de toute rangée, ce qu'il garde pour l'un d'eux. */
+const postesDuHeros = (s: Jeu, pid: IdDeHeros | undefined, retenu: (postes: readonly string[], heroId: string) => boolean): ValeurDuReglage[] => {
+  const mb = s.massBattle;
+  if (!mb) return [];
+  const heros = herosQuiSePostent(mb, s.party).map((h) => h.id).filter((id) => pid === undefined || id === pid);
+  return postesDeBataille(mb).filter((def) => heros.some((h) => retenu(mb.assignment[def.id] ?? [], h))).map((def) => ouverte(def.id, def.label));
+};
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
@@ -328,10 +378,21 @@ export const OUVERTS_DU_CHOIX = {
       return lu ? [ouverte(true, libelleDuChoix('interlude', 'pratiquer'), refusDeLaComposition(s, lu.h.id, lu.c))] : [];
     }),
   },
-  // ADE II 08 l.309
+  // ADE II 08 l.81, l.116-124, l.309 : la Scène et le Test spectaculaire au Round ; les postes en préparation aussi.
   batailleDeMasse: {
-    alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle?.phase === 'round' ? BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s))) : [])),
+    scene: reglage('batailleDeMasse', 'scene', (s) => (enRoundDeBataille(s) ? s.massBattle!.situation.map((id) => ouverte(id, garanti(battleSceneById(id), id, 'Scène de bataille').label, refusDeSceneDeBataille(s, id))) : [])),
+    engager: reglage('batailleDeMasse', 'engager', (s) => (enRoundDeBataille(s) ? [ouverte(true, libelleDuChoix('batailleDeMasse', 'engager'), refusDeMelee(s))] : [])),
+    rallier: reglage('batailleDeMasse', 'rallier', (s) => (s.massBattle ? [ouverte(true, libelleDuChoix('batailleDeMasse', 'rallier'), refusDeRassemblement(s))] : [])),
+    ajouterAuPoste: reglage('batailleDeMasse', 'ajouterAuPoste', (s, pid) => postesDuHeros(s, pid, (postes, h) => !postes.includes(h))),
+    retirerDuPoste: reglage('batailleDeMasse', 'retirerDuPoste', (s, pid) => postesDuHeros(s, pid, (postes, h) => postes.includes(h))),
+    alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle
+      ? [ouverte(null, t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), refusDAlea(s)), ...BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s)))]
+      : [])),
   },
+  // MDG 15 l.319-399, MSRC 13 l.129-160
+  port: choixDuMarche('port'),
+  marcheDeTerre: choixDuMarche('marcheDeTerre'),
+  ecranDuLieu: { entrer: reglage('ecranDuLieu', 'entrer', (s) => entreesDuLieu(s).map((p) => ouverte(p.id, p.label, refusDEntrerAuPoint(s, p)))) },
   // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   finDeSeance: {
     ambitionCourte: caseDuGroupe('ambitionCourte'),

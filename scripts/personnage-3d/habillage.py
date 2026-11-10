@@ -1,4 +1,4 @@
-"""Habillage d'un véhicule ou d'une Amélioration (#2987) : les matériaux du GLB et les `surfaces` de son manifeste, lus
+"""Habillage d'un élément rigide, véhicule, Amélioration ou objet tenu (#2987, #3743) : les matériaux du GLB et les `surfaces` de son manifeste, lus
 dans la table `MATERIAUX` des données du modèle, `{nom: (emplacement de palette, matière)}`.
 
 La matière est l'id d'une matière du domaine `prop` de `src/data/materials.json` : la surface du manifeste la déclare
@@ -11,7 +11,7 @@ import json
 from pathlib import Path
 
 DOMAINE = "prop"
-DEPOT = Path(__file__).resolve().parents[3]
+DEPOT = Path(__file__).resolve().parents[2]
 
 
 def catalogue():

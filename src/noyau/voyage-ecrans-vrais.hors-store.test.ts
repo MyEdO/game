@@ -73,7 +73,7 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
-  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stageWeather')!;
+  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stage-weather')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);
@@ -223,7 +223,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     get().reprendreLeVoyage();
     const log = get().travelPlan!.log!;
     expect(log, 'le jour interrompu est clos, tel quel').toEqual([jourInterrompu]);
-    expect(get().pendingCascade?.participants[0].kind, 'la journée neuve tire sa Météo d’Étape').toBe('stageWeather');
+    expect(get().pendingCascade?.participants[0].kind, 'la journée neuve tire sa Météo d’Étape').toBe('stage-weather');
   });
 
   it('à pied, nuit passée en scène puis reprise : une carte = un jour, la journée neuve a sa météo', () => {
@@ -238,7 +238,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     const log = get().travelPlan!.log!;
     expect(log).toHaveLength(1);
     expect(log[0].hours).toBeLessThanOrEqual(6.01);
-    expect(get().pendingCascade?.participants[0].kind).toBe('stageWeather');
+    expect(get().pendingCascade?.participants[0].kind).toBe('stage-weather');
   });
 
   it('allure forcée, conducteur joueur : la journée neuve ouvre la Conduite d’attelage à la porte, aucun Test roulé hors porte', () => {

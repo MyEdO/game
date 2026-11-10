@@ -16,10 +16,13 @@ import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
-import type { StructureData } from '../engine/types';
-import { creatures, findCreatureById, profilsStandard, refEstVolumique, structureAppearances, structures, traits, type CreatureData } from '../data';
+import type { Combatant, StructureData } from '../engine/types';
+import { creatures, estUnNavireAPonts, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
+import { ficheDuPersonnage } from './monde/sceneNpc';
+import type { ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
-import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
+import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
@@ -353,9 +356,11 @@ export function entiteDeLaSelection(scene: Scene, sel: Sel): SceneEntity | undef
   return sel?.type === 'entity' ? scene.entities.find((e) => e.id === sel.id) : undefined;
 }
 
-/** L'entité `ent` est-elle de son schéma (`sceneEntitySchema`) ? Un brouillon du formulaire peut ne pas l'être : il ne se
- *  vérifie qu'à l'enregistrement et à l'essai. */
-export const entiteDuSchema = (ent: SceneEntity): boolean => sceneEntitySchema.safeParse(ent).success;
+/** La fiche du personnage `ent` (`ficheDuPersonnage`), les presets résolus par `presetDe`, s'il est de son schéma
+ *  (`sceneEntitySchema`) : un brouillon du formulaire peut ne pas l'être, il ne se vérifie qu'à l'enregistrement et à
+ *  l'essai. */
+export const ficheEditee = (ent: SceneEntity, presetDe: ResolveurDePreset): Combatant | undefined =>
+  (sceneEntitySchema.safeParse(ent).success ? ficheDuPersonnage(ent, presetDe) : undefined);
 
 /** Le cap de l'entité `ent` : le sien, sinon le cap d'identité (`CAP_IDENTITE_PROP`). */
 export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTITE_PROP;
@@ -363,9 +368,10 @@ export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTI
 /** La lumière que l'entité `ent` prend quand l'auteur l'allume : la sienne, ou un rayon de 6 m. */
 export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light']> => ({ ...ent.light, radiusM: ent.light?.radiusM ?? 6 });
 
-/** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet
- *  (`capDecorAdmis`). */
+/** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet, les
+ *  cardinaux seuls pour un décor volumique (`capDecorAdmis`) ou un navire à ponts (`estUnNavireAPonts`). */
 export function capsOfferts(ent: SceneEntity): Dir8[] {
+  if (ent.kind === 'personnage' && estUnNavireAPonts(ent.vehicule?.id)) return DIR8_ORDER.filter(estCardinal);
   return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
 }
 
@@ -410,16 +416,43 @@ export type SorteDePorteur = keyof DonneeDuPorteur;
 type CheminsOfferts = readonly (readonly string[])[];
 
 /** Ce qu'un porteur de formulaire tiré du schéma déclare : le nœud de sa donnée, les champs qu'il offre, et les choix que
- *  son contexte pose à un chemin de sa donnée (`choixDuChamp`). */
+ *  son contexte pose à un chemin de sa donnée (`choixDuChamp`), les presets du projet résolus par `presetDe`. */
 interface FormulaireDuPorteur<D> {
   schema: unknown;
-  champs: (donnee: D) => CheminsOfferts;
-  choix?: (donnee: D, chemin: readonly Segment[]) => readonly ChoixDuContexte[] | undefined;
+  champs: (donnee: D, presetDe: ResolveurDePreset) => CheminsOfferts;
+  choix?: (donnee: D, chemin: readonly Segment[], presetDe: ResolveurDePreset) => readonly ChoixDuContexte[] | undefined;
 }
 
 /** Les champs que le formulaire d'un personnage offre : de son rôle au combat, ses options, ses Compétences, le tirage
  *  de ses Caractéristiques et son embuscade ; sa contrepartie d'amateur des arts, son animation. */
 const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['amateur'], ['anim']];
+
+/** Les sorts que l'auteur choisit pour un personnage. */
+const SORTS_CHOISIS = ['combat', 'spells'] as const;
+
+/** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), ses sorts choisis s'il en porte, ou
+ *  si sa fiche (`ficheEditee`) ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ;
+ *  d'une coque, son véhicule et ses Améliorations (MDG 12). */
+function champsDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset): CheminsOfferts {
+  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDe);
+  const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
+  const coque = ent.vehicule ? [['vehicule'], ['upgrades']] : [];
+  return [...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
+}
+
+/** Les choix que le contexte d'un personnage pose à ses sorts choisis (`combat.spells`) : d'un élément au rang `rang`, ou
+ *  de l'élément neuf qui suit le dernier, chaque sort d'une liste que sa fiche ouvre (`listesDeSorts`), hors des autres
+ *  choisis, la courante restant offerte, refusé par ce que dit `refusDesSortsChoisis` des choisis où il prend ce rang ;
+ *  sans fiche (`ficheEditee`), la courante seule. */
+function choixDesSorts(ent: SceneEntity, rang: number, presetDe: ResolveurDePreset): readonly ChoixDuContexte[] {
+  const choisis = ent.combat?.spells ?? [];
+  const fiche = ficheEditee(ent, presetDe);
+  const listes = fiche ? listesDeSorts(fiche) : [];
+  const avec = (id: string) => [...choisis.slice(0, rang), id, ...choisis.slice(rang + 1)];
+  return spells
+    .filter((sp) => sp.id === choisis[rang] || (!choisis.includes(sp.id) && listes.some((l) => l.admet(sp))))
+    .map((sp) => ({ valeur: sp.id, libelle: sp.label, refus: (fiche && refusDesSortsChoisis(fiche, avec(sp.id))) ?? null }));
+}
 
 /** Le nœud de l'identifiant d'un Trait posé. */
 const noeudDuTrait = () => champsDeclares(traitInstanceSchema)!.find(([cle]) => cle === 'id')![1];
@@ -456,17 +489,25 @@ function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly
   });
 }
 
+/** Les choix que le contexte d'un personnage pose au chemin `chemin` de sa donnée : ceux d'un sort choisi
+ *  (`choixDesSorts`), ceux de ses options (`choixDesOptions`). */
+function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], presetDe: ResolveurDePreset): readonly ChoixDuContexte[] | undefined {
+  const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
+  const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
+  return sorts ? choixDesSorts(ent, rang, presetDe) : choixDesOptions(ent, chemin);
+}
+
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
- *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa condition d'entrée ; d'une entité, la
- *  branche de son type : d'un personnage, son rôle au combat, sa contrepartie d'amateur des arts, son animation, et d'une
- *  coque, son véhicule et ses Améliorations (MDG 12), aux choix de ses options (`choixDesOptions`). */
+ *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
+ *  condition d'entrée ; d'une entité, la branche de son type : d'un personnage, ses champs (`champsDuPersonnage`), aux
+ *  choix de son contexte (`choixDuPersonnage`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
   declencheur: { schema: triggerSchema, champs: () => [['when']] },
   entite: {
     schema: sceneEntitySchema,
-    champs: (ent) => (ent.kind !== 'personnage' ? [] : ent.vehicule ? [...CHAMPS_DU_PERSONNAGE, ['vehicule'], ['upgrades']] : CHAMPS_DU_PERSONNAGE),
-    choix: choixDesOptions,
+    champs: (ent, presetDe) => (ent.kind !== 'personnage' ? [] : champsDuPersonnage(ent, presetDe)),
+    choix: choixDuPersonnage,
   },
 };
 
@@ -478,25 +519,26 @@ export const cheminOffert = (offerts: CheminsOfferts, chemin: readonly Segment[]
   offerts.some((o) => prefixe(o, chemin) || prefixe(chemin, o));
 
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à
- *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre. */
-export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S]): { noeud: unknown; champs: CheminsOfferts } {
+ *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre, les presets résolus par
+ *  `presetDe`. */
+export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], presetDe: ResolveurDePreset): { noeud: unknown; champs: CheminsOfferts } {
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee) };
+  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, presetDe) };
 }
 
 /** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée
- *  (`FORMULAIRES`), dans leur ordre ; `undefined` : ceux du nœud. */
-export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+ *  (`FORMULAIRES`), dans leur ordre, les presets résolus par `presetDe` ; `undefined` : ceux du nœud. */
+export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], presetDe: ResolveurDePreset): readonly ChoixDuContexte[] | undefined {
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  return formulaire.choix?.(donnee, chemin);
+  return formulaire.choix?.(donnee, chemin, presetDe);
 }
 
-/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee` : le champ de tête de chacun de ses champs offerts
- *  (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son contexte : ce qu'il offre sous lui
- *  (`cheminOffert`) et ses choix (`choixDuChamp`). */
-export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S]): FieldDesc[] {
-  const { noeud, champs } = formeDuPorteur(sorte, donnee);
+/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, les presets résolus par `presetDe` : le champ de tête
+ *  de chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
+ *  contexte : ce qu'il offre sous lui (`cheminOffert`) et ses choix (`choixDuChamp`). */
+export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], presetDe: ResolveurDePreset): FieldDesc[] {
+  const { noeud, champs } = formeDuPorteur(sorte, donnee, presetDe);
   const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud, niveau: 'profondeur' });
-  const contexte: ContexteDuChamp = { offert: (chemin) => cheminOffert(champs, chemin), choix: (chemin) => choixDuChamp(sorte, donnee, chemin) };
+  const contexte: ContexteDuChamp = { offert: (chemin) => cheminOffert(champs, chemin), choix: (chemin) => choixDuChamp(sorte, donnee, chemin, presetDe) };
   return [...new Set(champs.map(([tete]) => tete))].flatMap((cle) => decrits.filter((f) => f.key === cle)).map((f) => ({ ...f, contexte }));
 }
