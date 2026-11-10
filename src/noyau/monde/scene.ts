@@ -20,7 +20,7 @@ import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema, architectureRectSchema,
   architectureStoreySchema, buildingMassSchema, dialogueChoiceSchema, dialogueNodeSchema,
   dialogueSchema, encounterDefSchema, encounterMemberSchema, entityKindSchema, facadeFeatureSchema,
-  facadeSectionSchema, layerSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
+  facadeSectionSchema, layerSchema, marchandDeSceneSchema, offreDeTaverneSchema, roofDefaultsSchema, sceneStationAnchorSchema, triggerSchema,
   victoryConditionSchema, wallClimbSchema, faceDAreteSchema, wallSecretSchema, wallSegSchema, zoneAreaSchema, messageIntroductionSchema, PORTEURS_DU_TYPE,
 } from '../../data/schemas/defs-scenes/scene';
 import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
@@ -69,10 +69,8 @@ export interface ActionAuthoree {
 }
 
 /** RESTE MANUSCRIT (les 22 autres formes de la scène sont des `z.infer` de
- *  `data/schemas/defs-scenes/scene.ts`) — un écart MESURÉ avec `sceneEntitySchema` :
- *  `appearance` porte ici `EntityAppearance`
- *  (`engine/authoringAppearance`) là où le schéma compose `entityAppearanceSchema`, nœud-FRONTIÈRE
- *  du vocabulaire partagé. */
+ *  `data/schemas/defs-scenes/scene.ts`) — un écart MESURÉ avec `sceneEntitySchema` : une interface
+ *  plate, aux identifiants nus, là où le schéma est une union par `kind` aux identifiants marqués. */
 export interface SceneEntity {
   id: string;
   kind: EntityKind;
@@ -139,8 +137,7 @@ export interface SceneEntity {
    *  `market-tenir-comptes`) — mêmes domaines de valeurs que la règle globale correspondante. Absent =
    *  HÉRITAGE du global (`engine/policy` `rule(...)`), jamais un 3ᵉ état ambigu. Lus par `marketRule`
    *  (noyau/merchantFlow, couture UNIQUE). */
-  merchant?: { archetype: { id: string }; settlement?: import('../../engine/disponibilite').Settlement; resaleRate?: number; buyMarkup?: number; restockDays?: number;
-      guild?: boolean; marketMode?: 'complet' | 'sans-disponibilite' | 'sans-marchandage' | 'simplifie'; tenirComptes?: boolean };
+  merchant?: z.input<typeof marchandDeSceneSchema>;
   /** JOUEUR de taverne (#1279 S4) : présent = ce personnage PROPOSE une partie, et il la joue de SA
    *  fiche (`TavernOpponent` `kind:'npc'` — ses Caractéristiques et ses Compétences avec avances,
    *  jamais une valeur recopiée). RÔLE optionnel, au même titre que `dialogue`/`merchant`.
@@ -947,6 +944,10 @@ export function normalizeScene(s: Scene): Scene {
     flags: s.flags ?? {},
   };
 }
+
+/** Les dialogues que la scène `scene` déclare, par identifiant (`sceneSchema`, portée `dialogues`). */
+export const dialoguesDeLaScene = (scene: Pick<Scene, 'dialogues'>): ReadonlyMap<string, Dialogue> =>
+  new Map(scene.dialogues.map((d) => [d.id, d]));
 
 /** `ambiance` ne distingue qu'intérieur vs extérieur (le jour/nuit vient de l'horloge). Absent → extérieur. */
 export function normalizeAmbiance(a: Scene['ambiance']): 'interieur' | 'exterieur' {

@@ -21,7 +21,8 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
+import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -124,8 +125,30 @@ export const actionAuthoreeSchema = nommerChamps(z.strictObject({
   minutes: z.number().min(0).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, flow: { label: "enchaînement", transparent: true }, consume: { label: "consommer" }, unique: { label: "unique" }, minutes: { label: "minutes" } });
 
-/** JOUEUR de taverne (`NADJ 04 l.72`, `SceneEntity.tavernGame`) : `id` du jeu de `tavernGames.json`, mise de DÉPART en sous. */
-export const offreDeTaverneSchema = ref('tavernGame', { stakeBrass: nommerNoeud(z.number().optional(), { nom: 'mise en cuivre' }) });
+/** JOUEUR de taverne (`NADJ 04 l.72`, `SceneEntity.tavernGame`) : `id` du jeu de `tavernGames.json`, mise de DÉPART en sous,
+ *  entière et jamais négative (invariant d'ingénierie). */
+export const offreDeTaverneSchema = ref('tavernGame', { stakeBrass: nommerNoeud(z.number().int().min(0).optional(), { nom: 'mise en cuivre' }) });
+
+/** Le système d'achat et de vente d'un marchand, qui surcharge la règle `market-mode` (LDB 59 l.15). */
+const marketModeSchema = enumNomme({
+  complet: 'Complet (Disponibilité + Marchandage)',
+  'sans-disponibilite': 'Sans Disponibilité (tout en stock)',
+  'sans-marchandage': 'Sans Marchandage (prix fixes)',
+  simplifie: 'Simplifié (les deux désactivés)',
+});
+
+/** Marchand d'une entité de scène : son archétype, et les surcharges de ses prix (`defs/merchants.ts`) et des 3 règles
+ *  maison Marché (LDB 59/60). */
+export const marchandDeSceneSchema = nommerChamps(z.strictObject({
+  archetype: ref('merchant'),
+  settlement: settlementSchema.optional(),
+  resaleRate: tauxDeRachatSchema.optional(),
+  buyMarkup: majorationDAchatSchema.optional(),
+  restockDays: joursDeReassortSchema.optional(),
+  guild: z.boolean().optional(),
+  marketMode: marketModeSchema.optional(),
+  tenirComptes: z.boolean().optional(),
+}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
 /** L'inventaire d'auteur d'un personnage : chaque objet du catalogue par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */
@@ -180,19 +203,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
   light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
-  /** Marchand : archétype + surcharges de prix et des 3 règles maison Marché (LDB 59/60). */
-  merchant: nommerChamps(z
-    .strictObject({
-      archetype: ref('merchant'),
-      settlement: z.enum(['village', 'ville', 'cite']).optional(),
-      resaleRate: z.number().optional(),
-      buyMarkup: z.number().optional(),
-      restockDays: z.number().optional(),
-      guild: z.boolean().optional(),
-      marketMode: z.enum(['complet', 'sans-disponibilite', 'sans-marchandage', 'simplifie']).optional(),
-      tenirComptes: z.boolean().optional(),
-    }), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } })
-    .optional(),
+  merchant: marchandDeSceneSchema.optional(),
   tavernGame: offreDeTaverneSchema.optional(),
   /** DÉCOR UTILISABLE — deux faits NOMMÉS que l'auteur pose sur CETTE instance : `assise` ouvre les
    *  places que le TYPE porte (`seatSlots` → `placesJouables`, `noyau/monde/seating.ts` — la seule capacité
