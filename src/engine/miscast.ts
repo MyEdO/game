@@ -349,12 +349,15 @@ export const MISCAST_TABLES: MiscastTableDef[] = data;
 const TABLE_IDS_LDB: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure', majeure: 'miscast-majeure', colere: 'miscast-colere' };
 const TABLE_IDS_VDM: Record<MiscastSeverity, string> = { mineure: 'miscast-mineure-vdm', majeure: 'miscast-majeure-vdm', colere: 'miscast-colere' };
 
+/** Les datasets du seam qui portent les rangées des 5 documents de `miscast.json` (#1667) : le témoin
+ *  de TOUT lecteur mémoïsé de ces tables. */
+export const MISCAST_DATASETS = ['miscastMinor', 'miscastMajor', 'miscastMinorVdm', 'miscastMajorVdm', 'miscastWrath'] as const;
+
 /** Rangées RUNTIME par table (ops closées sur les Points de Péché, Tests dépliés) — MÉMOÏSÉES sur
  *  les datasets de rangées du seam (#1692) : un dépliage figé à l'import faisait jouer à `rollMiscast`
  *  la rangée d'AVANT une édition au Codex pendant que `miscastRowAt` servait déjà la nouvelle — deux
- *  vérités sur le même tirage. Les deux tables VDM ne sont pas exposées au seam (3 des 5 documents le
- *  sont) : leur version ne bouge jamais, leur dépliage suit celui des trois autres. */
-const runtimeRows = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], (): Record<string, Row[]> =>
+ *  vérités sur le même tirage. */
+const runtimeRows = memoParVersion(MISCAST_DATASETS, (): Record<string, Row[]> =>
   Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, tableOuverte(t.entries).map(buildRow)])),
 );
 
@@ -391,7 +394,7 @@ export function miscastRowAt(tableId: string, die: number): MiscastTableRow & { 
   return findTableEntry(miscastTableRows(tableId), die);
 }
 
-const rangeesLues = memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], (): Record<string, (MiscastTableRow & { max: number })[]> =>
+const rangeesLues = memoParVersion(MISCAST_DATASETS, (): Record<string, (MiscastTableRow & { max: number })[]> =>
   Object.fromEntries(MISCAST_TABLES.map((t) => [t.id, tableOuverte(t.entries)])));
 
 /** Les rangées d'une table déclarée telles que `findTableEntry` les lit : « 151+ » (LDB 40 l.89)
@@ -418,13 +421,10 @@ function miscastTables(): Record<MiscastSeverity, Row[]> {
  *  le combattant qui subit la maladresse — c'est lui la « cible » du sous-Flow joué par `applyMiscast`). */
 const doOps = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } });
 
-/** Catégorie Codex de la LIGNE tirée, par table — porte (b) de `entryCategoryOf` (`src/data`) : le
- *  `kind` d'enjeu sert les trois tables, seule la sévérité dit sur laquelle la ligne vit. */
-const MISCAST_ROW_CATEGORY: Record<MiscastSeverity, string> = {
-  mineure: 'miscastMinor',
-  majeure: 'miscastMajor',
-  colere: 'miscastWrath',
-};
+/** Catégorie Codex de la LIGNE tirée sur la table d'une sévérité sous le jeu EN VIGUEUR — porte (b) de
+ *  `entryCategoryOf` (`src/data`) : celle que la table DÉCLARE (`MiscastTableDef.codexCategory`). */
+const categorieDesLignes = (severity: MiscastSeverity): string | undefined =>
+  MISCAST_TABLES.find((t) => t.id === miscastTableId(severity))?.codexCategory;
 
 /** Construit le nœud de Flow `test` d'une entrée (« Test de X Difficulté ou onFail » ; palier
  *  `onFailHard` via Condition Flow `slThreshold ≤ dr` dans la branche d'échec — comme Lot 4b). La
@@ -444,7 +444,7 @@ function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
     : doOps(t.onFail);
   return {
     kind: 'test',
-    test: poserEnjeu(t.test, combatStakeRef('miscast-row-test', { entryId: rowId, entryCategory: MISCAST_ROW_CATEGORY[severity] })),
+    test: poserEnjeu(t.test, combatStakeRef('miscast-row-test', { entryId: rowId, entryCategory: categorieDesLignes(severity) })),
     success: { kind: 'seq', steps: [] },
     fail,
   };

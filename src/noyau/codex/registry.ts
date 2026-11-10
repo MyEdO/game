@@ -1314,6 +1314,14 @@ const CODEX_SPECS = {
     label: 'codex.fiche.incantationsImparfaitesMajeures', group: 'magie', sourceRef: 'LDB 46',
     build: () => datasetArray('miscastMajor').map((e) => miscastRowItem(e, miscastDie('miscast-majeure'))),
   },
+  miscastMinorVdm: {
+    label: 'codex.fiche.incantationsImparfaitesMineuresVdm', group: 'magie', sourceRef: 'VDM 02',
+    build: () => datasetArray('miscastMinorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-mineure-vdm'))),
+  },
+  miscastMajorVdm: {
+    label: 'codex.fiche.incantationsImparfaitesMajeuresVdm', group: 'magie', sourceRef: 'VDM 02',
+    build: () => datasetArray('miscastMajorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-majeure-vdm'))),
+  },
   miscastWrath: {
     label: 'codex.fiche.colereDesDieux', group: 'magie', sourceRef: 'LDB 40',
     build: () => datasetArray('miscastWrath').map((e) => miscastRowItem(e, miscastDie('miscast-colere'))),
