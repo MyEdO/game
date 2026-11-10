@@ -3,7 +3,7 @@
 - Zone : chaque face du corps reçoit la zone de son os dominant (`ZONE_DE_L_OS`), puis les régions `genou`, `visage`
   et `nez` se découpent autour du genou et du centre des yeux (`GENOU_DEMI_HAUTEUR`, `VISAGE_AVANT`, `VISAGE_HAUT`,
   `NEZ`) ; un mesh par zone, `extras.zone` sur son nœud.
-- Emplacement : un point de la peau au repos, trouvé par un rayon (`surface_hit`), ou sur l'axe de l'os pour le
+- Emplacement : un point de la peau au repos, trouvé par un rayon, ou sur l'axe de l'os pour le
   poignet ; son repère a, au repos, les axes du personnage (glTF : +X sa gauche, +Y le haut, +Z l'avant).
 - Prise : le centre du creux du poing fermé d'un clip (`POING`), par l'ajustement d'un cercle sur chaque doigt replié ;
   +Y suit l'axe de la poignée de l'auriculaire vers l'index, +Z va du poignet vers les jointures.
@@ -15,9 +15,9 @@ import bpy
 import bmesh
 import numpy
 from mathutils import Matrix, Vector
+from mathutils.bvhtree import BVHTree
 
 from animation import assign_action
-from geometrie import surface_hit, surface_tree
 
 ZONES = ('tete', 'visage', 'nez', 'oeil_g', 'oeil_d', 'cou', 'torse', 'hanches',
          'bras_haut_g', 'bras_haut_d', 'avant_bras_g', 'avant_bras_d', 'main_g', 'main_d',
@@ -176,7 +176,7 @@ def attache(os_matrice, repere):
 
 def poser_emplacements(rig, corps, centre_des_yeux):
     """Les emplacements de la base, au repos, sur la peau de `corps` (le corps entier, avant découpe)."""
-    arbre = surface_tree(corps)
+    arbre = BVHTree.FromPolygons([v.co.copy() for v in corps.data.vertices], [list(p.vertices) for p in corps.data.polygons])
     axes = AXES_DU_PERSONNAGE.to_4x4()
     emplacements = {}
     for nom, (os, ancre, direction) in EMPLACEMENTS.items():
@@ -184,7 +184,10 @@ def poser_emplacements(rig, corps, centre_des_yeux):
         point = centre_des_yeux.copy() if ancre == 'yeux' else bone.head_local.lerp(bone.tail_local, ancre)
         if direction is not None:
             d = Vector(direction)
-            point, _ = surface_hit(arbre, point - d, d)
+            touche = arbre.ray_cast(point - d, d)[0]
+            if touche is None:
+                raise RuntimeError(f'emplacement {nom} : aucune peau sous {tuple(point - d)}')
+            point = touche
         repere = Matrix.Translation(point) @ axes
         emplacements[nom] = {'os': os, **attache(bone.matrix_local, repere)}
         print('EMPLACEMENT', nom, os, tuple(round(v, 4) for v in point), flush=True)

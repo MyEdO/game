@@ -1,4 +1,5 @@
-/** GARDE DU BUDGET DE TRIANGLES (#2972) : le total des triangles de l'assemblage sous un plafond, `PLAFOND_ASSEMBLE` par défaut. */
+/** GARDE DU BUDGET DE TRIANGLES (#2972) : le total des triangles de l'assemblage sous un plafond, `PLAFOND_ASSEMBLE` par défaut ;
+ *  l'évaluateur n'y passe que la base visible, sans les zones que couvre un élément (#3743). */
 import type { Mesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 

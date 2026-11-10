@@ -22,7 +22,7 @@ import tempfile
 from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
-sys.path.insert(0, str(ICI))
+sys.path[:0] = [str(ICI), str(ICI.parent)]
 
 import bpy  # noqa: E402
 import bmesh  # noqa: E402  (après bpy, qui le charge)

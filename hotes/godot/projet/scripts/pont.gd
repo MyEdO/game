@@ -104,7 +104,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   y est posé, sa planche lue.
 ## - À l'atelier : `{ boutons: { texte, x, y, cle?, choix?, ids?, retenu? }[], atelier: { base: string|null, empreinte:
 ##   string|null, clip: string|null, instant: number|null, duree: number|null, lecture: boolean, vitesse: number,
-##   montes: Record<point, element>, lignes: Record<ligne, element>, emblemes: Record<emplacement, emblemeId>, aides: {
+##   montes: Record<point | `<point>#<rang>`, element>, lignes: Record<ligne, element>, emblemes: Record<emplacement, emblemeId>, aides: {
 ##   os: boolean, emplacements: boolean, prises: boolean }, erreurs: string[], onglet: Onglet, onglets: Onglet[],
 ##   defilement: number, plages: Record<champ, { gauche: number, droite: number, y: number, valeur: number }>,
 ##   composition: { courante: Composition, preset: string|null, montes: Monte[], manquants: Manquant[], morphes:

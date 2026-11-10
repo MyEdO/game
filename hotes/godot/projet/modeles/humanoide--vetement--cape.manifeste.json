@@ -1,0 +1,32 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "vetement",
+  "cle": {
+    "piece": "cape"
+  },
+  "liaison": {
+    "mode": "squelette"
+  },
+  "couche": "manteau",
+  "couvre": [],
+  "chaines": [
+    "jupe"
+  ],
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "cape",
+      "palette": "accent"
+    }
+  ],
+  "glb": {
+    "sha256": "e202a6f9265bc3184c86bd6fbbd77347e7a6fa04c676d6c1de7a09d8205bf6d1",
+    "octets": 797836
+  }
+}

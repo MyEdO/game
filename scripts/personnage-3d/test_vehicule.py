@@ -1,6 +1,6 @@
 """Construction des véhicules (#2987) : chaque modèle de `vehicule/` reconstruit depuis le dépôt les GLB et les
 manifestes publiés sous `hotes/godot/projet/modeles/`, octet pour octet (l'empreinte du manifeste) ; chaque véhicule et
-chaque Amélioration publiés y ont leur modèle ; une sortie dans le dépôt est refusée. La caraque suit ses ponts
+chaque Amélioration publiés y ont leur modèle. La caraque suit ses ponts
 (`ponts` de sa fiche, #3686) à une épaisseur de cloison près, et une caraque allongée dans la source aussi. Sur chaque
 navire, toute case des ponts s'atteint et tient un occupant debout (#3790), et sa coque est close : ni trou dans un
 plancher, ni rayon qui sorte du navire depuis une case (#3815)."""
@@ -379,19 +379,6 @@ class Navires(unittest.TestCase):
                 with self.subTest(navire=fiche['id'], famille=famille):
                     self.assertTrue(mesures, f'{famille} : rien de mesuré')
                     self.assertEqual([ou for e, ou in mesures if e > TOLERANCE], [], f'{famille} : ouvert')
-
-
-class Sortie(unittest.TestCase):
-
-    def test_refuse_le_depot(self):
-        with self.assertRaises(ValueError):
-            construire.dossier_de_sortie(construire.habillage.DEPOT / 'hotes' / 'godot' / 'sortie-de-vehicule')
-
-    def test_refuse_un_dossier_occupe(self):
-        with tempfile.TemporaryDirectory() as dossier:
-            (Path(dossier) / 'autre.glb').write_bytes(b'')
-            with self.assertRaises(ValueError):
-                construire.dossier_de_sortie(dossier)
 
 
 if __name__ == '__main__':

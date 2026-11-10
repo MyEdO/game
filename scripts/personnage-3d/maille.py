@@ -1,9 +1,9 @@
-"""Primitives de maillage des véhicules (#2987), communes aux modèles de `vehicule/<modele>/modele.py` : la maille
-accumulée en coordonnées du monde, l'interpolation des tables de forme, les solides (révolution, boîte, poutre, tube,
-tore, roue) et l'objet Blender final.
+"""Primitives de maillage des éléments rigides (#2987, #3743), communes aux modèles de `vehicule/<modele>/modele.py` et
+d'`element/<base>/<id>/modele.py` : la maille accumulée en coordonnées du monde, l'interpolation des tables de forme, les
+solides (révolution, boîte, poutre, tube, tore, roue) et l'objet Blender final.
 
-Repère Blender de construction : z vers le haut, l'avant vers -y, la gauche (bâbord) vers +x ; l'export glTF (y vers le
-haut) place l'avant vers +z.
+Repère Blender d'un véhicule : z vers le haut, l'avant vers -y, la gauche (bâbord) vers +x ; l'export glTF (y vers le
+haut) place l'avant vers +z. Un élément tenu se construit dans le repère de sa prise (`element/construire.py`).
 """
 import math
 
@@ -86,12 +86,14 @@ def poutre(maille, a, b, largeur, epaisseur, normale, mat):
 
 
 def tour(maille, profil, axe, centre, segments, mats, ferme=False):
-    """Révolution du profil [(a, r)] autour de l'axe 'x', 'y' ou 'z' passant par `centre` ; r = 0 ferme sur l'axe.
+    """Révolution du profil [(a, r)] autour de l'axe 'x', 'y' ou 'z' passant par `centre` ; r = 0 ferme sur l'axe ; une
+    entrée (a, r, r_w) donne une section elliptique, `r` sur le premier axe du plan normal (`point`), `r_w` sur le second.
     `mats` : un matériau, ou un par tronçon du profil. `ferme` : profil en boucle (anneau)."""
     mats = mats if isinstance(mats, list) else [mats] * len(profil)
     anneaux = []
     sommets = []
-    for a, r in profil:
+    for a, r, *aplati in profil:
+        r_w = aplati[0] if aplati else r
         if r == 0:
             anneaux.append([len(sommets)])
             sommets.append(point(axe, centre, a, 0, 0))
@@ -99,7 +101,7 @@ def tour(maille, profil, axe, centre, segments, mats, ferme=False):
             debut = len(sommets)
             for k in range(segments):
                 t = 2 * math.pi * k / segments
-                sommets.append(point(axe, centre, a, r * math.cos(t), r * math.sin(t)))
+                sommets.append(point(axe, centre, a, r * math.cos(t), r_w * math.sin(t)))
             anneaux.append(list(range(debut, debut + segments)))
     paires = list(zip(range(len(profil) - 1), range(1, len(profil))))
     if ferme:

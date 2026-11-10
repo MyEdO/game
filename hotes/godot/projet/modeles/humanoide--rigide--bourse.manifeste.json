@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "bourse"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "9f756868e027de47db76fd7a437113f918656859af28619b95faab433e063c54",
+    "octets": 37512
+  }
+}

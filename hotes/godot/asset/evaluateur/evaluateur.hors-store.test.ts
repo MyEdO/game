@@ -331,12 +331,13 @@ describe('gardeEchelleDuRigide', () => {
 });
 
 describe('gardeTranchantDuRigide', () => {
-  const tenue = (rotation: readonly [number, number, number]) => {
+  const tenue = (rotation: readonly [number, number, number], armes?: (lame: Mesh) => ReadonlySet<Mesh>) => {
     const { scene, haut, racine } = cylindre();
-    haut.add(Object.assign(new Mesh(new BoxGeometry(0.3, 1, 0.01), new MeshBasicMaterial()), { name: 'Lame' }));
+    const lame = Object.assign(new Mesh(new BoxGeometry(0.3, 1, 0.01), new MeshBasicMaterial()), { name: 'Lame' });
+    haut.add(lame);
     haut.add(Object.assign(new Mesh(new CylinderGeometry(0.02, 0.02, 1), new MeshBasicMaterial()), { name: 'Manche' }));
     racine.add(Object.assign(new Mesh(new BoxGeometry(0.5, 0.5, 0.01), new MeshBasicMaterial()), { name: 'Bouclier' }));
-    return gardeTranchantDuRigide(scene, { os: 'haut', position: [0.1, 0, 0], rotation }, libelle);
+    return gardeTranchantDuRigide(scene, { os: 'haut', position: [0.1, 0, 0], rotation }, libelle, armes?.(lame));
   };
 
   it('VERT : la lame s’étend sur le Z de la prise, le manche rond passe ; un rigide hors de la prise n’est pas mesuré', () => {
@@ -345,6 +346,11 @@ describe('gardeTranchantDuRigide', () => {
 
   it('ROUGE : la lame s’étend sur le X de la prise, l’axe de la paume', () => {
     expect(tenue([0, 0, 0]).map((e) => [e.code, e.mesh, e.seuil])).toEqual([['tranchant-vers-la-paume', '«Lame»', TOLERANCE_TRANCHANT_M]]);
+    expect(tenue([0, 0, 0], (lame) => new Set([lame])).map((e) => e.mesh)).toEqual(['«Lame»']);
+  });
+
+  it('VERT : un rigide qui n’est pas une arme (un sac plat sous la prise) n’a pas de tranchant', () => {
+    expect(tenue([0, 0, 0], () => new Set())).toEqual([]);
   });
 });
 
@@ -828,6 +834,14 @@ describe('libellesDesMeshes (#3229)', () => {
     expect(fiche.mesures.triangles.parMesh).toEqual(libelles.map((mesh) => ({ mesh, triangles: 1 })));
     expect(fiche.mesures.corps).toEqual(libelles);
     expect(fiche.ecarts.find((e) => e.garde === 'budget')?.detail).toBe(`4 triangles (${libelles.map((l) => `${l} 1`).join(', ')})`);
+  });
+
+  it('le plafond assemblé ne compte que la base visible : la zone que couvre un élément sort du compte (#3743)', async () => {
+    const octets = glbFabrique({ clips: { Repos: [0, 0] } });
+    const budget = async (couches: Parameters<typeof evaluer>[0]['couches']) =>
+      (await evaluer({ base: octets, elements: [octets], couches, pas: 0.5, plafond: 1 })).ecarts.filter((e) => e.garde === 'budget').map((e) => e.valeur);
+    expect(await budget([null])).toEqual([2]);
+    expect(await budget([{ couche: 'tenue', couvre: ['torse'] }])).toEqual([]);
   });
 });
 

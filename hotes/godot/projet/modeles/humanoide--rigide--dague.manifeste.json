@@ -10,16 +10,16 @@
   },
   "surfaces": [
     {
-      "nom": "metal",
-      "palette": "metal"
-    },
-    {
       "nom": "cuir",
       "palette": "cuir"
+    },
+    {
+      "nom": "metal",
+      "palette": "metal"
     }
   ],
   "glb": {
-    "sha256": "17f680ec538144c505b61f11a8d7e40c6ba4bd7d5874742e880f479faeca0113",
-    "octets": 28948
+    "sha256": "669a3f1c68d10f873621eb7c206b9e4fbfe289c7b8e21ba206d951803e949da2",
+    "octets": 41788
   }
 }

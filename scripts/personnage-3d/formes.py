@@ -57,6 +57,12 @@ def rapports(x, champ, aretes):
             / numpy.linalg.norm(x[aretes[:, 0]] - x[aretes[:, 1]], axis=1))
 
 
+def retournees_par(x, champ, aretes):
+    """Par arête, vrai si les sommets `x` décalés de `champ` la retournent, sens opposé ou nul à celui sous `x` : (arêtes,)."""
+    y = x + champ
+    return numpy.einsum('ij,ij->i', y[aretes[:, 1]] - y[aretes[:, 0]], x[aretes[:, 1]] - x[aretes[:, 0]]) <= 0
+
+
 def aux_noeuds(champ, noeud):
     """Le champ par sommet `champ` (sommets, …) moyenné sur chaque nœud `noeud` (`poids.jumeaux`) : (nœuds, …)."""
     n = noeud.max() + 1
