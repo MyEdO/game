@@ -126,7 +126,6 @@ import { actorIn, ecrireActeur, inBattleId } from './monde/combatants';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
-import { posteHullOf } from './siegePush';
 import { progresDeRecharge } from './progresEtendu';
 import { touchActors, windsMagicModOf, seaMagicContext, ventsAnnonces } from './combatOrParty';
 import { followsCharacterRules, effectivelyHostile } from '../engine/relations';
@@ -182,7 +181,7 @@ import { lineOfSightCover, losClear, tilesBetween, tileSeenByFoe, makeLosMemo } 
 import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { coverModifier, couvertLePlusProtecteur } from '../engine/cover';
 import { couvertDuPoste } from '../engine/navalTraits';
-import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf, rechargeDuTour } from './monde/shipPostes';
+import { shipOfCrew, mountedWeaponBears, servingCrewPresent, servablePostes, serveAtPoste, crewPosteOf, rechargeDuTour, posteDeLaBataille } from './monde/shipPostes';
 import { isVehicle, profilNavalDe, estNavire } from '../engine/coque';
 import { targetArc, headingToBear } from './monde/fireArc';
 import { bearingPostes, mostArmedSide } from './monde/shipBattery';
@@ -8007,7 +8006,7 @@ export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arm
   if (pr.success && reloadGrantsAssessAdvantage(porteur)) campGain(get, porteur, 1);
   const issue = FLOWS.reload.apply(get, { p: pr, ctx: { after: total, weapon: arme.label } });
   const piece = porteur.mannedPoste?.item.uid === arme.uid ? porteur.mannedPoste : undefined;
-  const coque = piece && posteHullOf(piece, battle.combatants);
+  const coque = piece && posteDeLaBataille(piece.item.uid, battle.combatants)?.porteur;
   const b = activeCombatant(battle)?.id === porteur.id ? markActed(get, set) : get().battle!;
   set({ battle: { ...b, action: null,
     crewActed: piece && coque ? withCrewActed(b.crewActed, coque.id, piece.crewIds ?? []) : b.crewActed,
@@ -8552,8 +8551,8 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       bus.emit(EVT.SCENE_DIRTY);
     } else if (action.kind === 'manPoste') {
       // Servir la pièce : Action gratuite (LDB 13 l.106, arbitrage #3595), puis l'IA re-décide.
-      const { hullId, posteUid } = action; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
-      const poste = inBattleId(battle, hullId)?.postes?.find((p) => p.item.uid === posteUid);
+      const { posteUid } = action; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
+      const poste = posteDeLaBataille(posteUid, battle.combatants)?.poste;
       if (!poste || pieceServie || (poste.crewIds ?? []).includes(enemy.id)) break;
       pieceServie = true;
       serveAtPoste(enemy, poste, battle.combatants);

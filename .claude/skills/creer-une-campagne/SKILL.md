@@ -67,7 +67,7 @@ valide ; un bloc mal formé fait échouer `parseProject`.
   et s'enrôle par `encounters[].members` ; le schéma de scène refuse un corps hors de son catalogue (`creature`,
   `vehicule`, `engin` : un engin de siège, sous-type `armes-de-siege`) et deux corps sur un personnage. Une coque
   RICHE porte `crewIds`, `upgrades` et `postes`. Un poste est une RÉFÉRENCE JSON
-  `{ trappingId, side, crewIds?, uid?, ammo?, ammoUid? … }` (`AuthoredShipPoste`, `src/engine/types.ts`),
+  `{ trappingId, side, crewIds?, ammo?, ammoUid? … }` (`AuthoredShipPoste`, `src/engine/types.ts`),
   hydratée au spawn par `hydratePoste` (`src/engine/items.ts`), qui lève sur un `trappingId` inconnu.
   `src/scenes/bundled-projects.test.ts` contrôle l'équipage exposé (chaque `crewIds` de la coque = une
   entité de la scène), les améliorations (catalogue naval) et le coffre (`ammo` en munitions de quantité

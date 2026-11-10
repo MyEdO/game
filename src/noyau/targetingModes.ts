@@ -42,8 +42,7 @@ import { sceneMetresPerTile } from './monde/scene';
 import { combatDistance } from './monde/footprint';
 import { targetArc } from './monde/fireArc';
 import { bearingPostes } from './monde/shipBattery';
-import { serveTargetPoste, isPosteManned, translaterFormation } from './monde/shipPostes';
-import { posteHullOf } from './siegePush';
+import { serveTargetPoste, isPosteManned, translaterFormation, posteDeLaBataille } from './monde/shipPostes';
 import { spellOps } from '../engine/flowCore';
 import { mountOf, mountMovement, attackGeomOf, combatGeomOf, pickAttackWeapon } from './mount';
 import { pilotedByHuman } from './netOwnership';
@@ -541,7 +540,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // bouton hotbar (`servirLePoste`) et l'IA (`serveAtPoste`). `serveTargetPoste` = source unique de la cible.
   if (target.postes?.length) {
     const p = serveTargetPoste(active, target, battle.combatants);
-    if (p) { get().servirLePoste({ hullId: target.id, posteUid: p.item.uid }); return; }
+    if (p) { get().servirLePoste(p.item.uid); return; }
   }
   // ATTAQUE unifiée : l'`AttackOption` armée (`selectedAttack`, défaut 'arme' ; les modes
   // maneuver/tentacle mappent sur leur option).
@@ -743,7 +742,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
   const k = tileKey(pt.x, pt.y, pt.z);
   if (!battle.reachable.has(k)) return;
   const poste = active.mannedPoste;
-  const hull = poste && posteHullOf(poste, battle.combatants);
+  const hull = poste && posteDeLaBataille(poste.item.uid, battle.combatants)?.porteur;
   if (!poste || !hull?.pos) return;
   // Annulation (#199) : au PREMIER segment du Tour (`movementUsed === 0`), capture l'état AVANT de
   // pousser — MÊME snapshot que cliquerLaCaseDuCombat/moveAttack (positions + facing + movedPreAction +

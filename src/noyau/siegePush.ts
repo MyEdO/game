@@ -20,13 +20,7 @@ import { moveEnv } from './monde/combatGeometry';
 import { rule } from '../engine/policy';
 import { reachable, tileKey, tileFromKey } from './monde/path';
 import { isWalkable, type Scene } from './monde/scene';
-
-/** Le Combattant-affût qui PORTE `poste` (le poste vit sur `hull.postes`) — recherche par `uid` de la
- *  pièce (pas de dépendance à l'identité d'objet), MÊME esprit que `isPosteManned` (shipPostes.ts).
- *  `undefined` si `poste` n'appartient à aucun Combattant présent (scène désynchronisée). PUR. */
-export function posteHullOf(poste: ShipPoste, combatants: Combatant[]): Combatant | undefined {
-  return combatants.find((h) => h.postes?.some((p) => p.item.uid === poste.item.uid));
-}
+import { posteDeLaBataille } from './monde/shipPostes';
 
 /** L'arme dérivée d'un poste est-elle un engin de siège MOBILE (ADE II 8) : Groupe d'engins de siège
  *  (`groupeDeSiege`) portant la Qualité `equipe` (l.233 — l'Équipe requise, réutilisée comme seuil de
@@ -59,7 +53,7 @@ export function meleeWarMachineHullOf(actor: Combatant, combatants: Combatant[])
   if (!poste || poste.item.kind !== 'melee') return undefined;
   const w = mannedPosteWeapon(actor, poste);
   if (!w || !isMeleeWarMachine(w)) return undefined;
-  return posteHullOf(poste, combatants);
+  return posteDeLaBataille(poste.item.uid, combatants)?.porteur;
 }
 
 /** `active` est-il le CHEF d'un poste d'engin MOBILE (rôle/équipement — ne juge PAS l'effectif, cf.
@@ -99,7 +93,7 @@ export function pushMovement(): number {
 export function pushSlot(active: Combatant, combatants: Combatant[]): { show: boolean; undercrew: boolean } {
   const poste = pushEligible(active) ? active.mannedPoste : undefined;
   const w = poste ? mannedPosteWeapon(active, poste) : undefined;
-  const show = !!poste && !!w && !!posteHullOf(poste, combatants);
+  const show = !!poste && !!w && !!posteDeLaBataille(poste.item.uid, combatants);
   return { show, undercrew: show && !pushCrewOk(poste!, w!, combatants) };
 }
 
