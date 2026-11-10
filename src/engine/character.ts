@@ -34,7 +34,7 @@ import {
   tailleDuTalent,
   specPoolOf,
   findTalentById,
-  talentsAleatoires,
+  rangeesDesTalentsAleatoires,
   talentsAleatoiresDie,
   especeDApparence,
   findSpellById,
@@ -223,7 +223,7 @@ export function speciesSkillDefaults(sp: SpeciesData): { plus5: RefDesignee[]; p
  *  `possedes`, toutes utilisations confondues (LDB 10 l.17). Utilisation : `specChoisie` (`randomSpecPicks`,
  *  écrit par `withRandomTalentSpec`) si `specPoolOf` la propose, sinon la 1re non possédée, sinon la 1re. */
 function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } {
-  const { id } = findTableEntry(talentsAleatoires, rollDice(talentsAleatoiresDie(), rng));
+  const { id } = findTableEntry(rangeesDesTalentsAleatoires(), rollDice(talentsAleatoiresDie(), rng));
   const entry = garanti(findTalentById(id), id, 'Talent');
   const doublon = possedes.some((p) => p.id === entry.id);
   const specs = specPoolOf(entry); // tirage JOUEUR : ce que le Talent PROPOSE

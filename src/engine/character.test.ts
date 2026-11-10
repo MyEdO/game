@@ -1,7 +1,7 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { findSpeciesById, talentConcrete, talents, talentsAleatoires, specPoolOf, firstLevel, careerLevels, species } from '../data';
-import { deDeLaTable, setDataset, setDeDeTable } from '../data/overrides';
+import { findSpeciesById, talentConcrete, talents, talentsAleatoires, rangeesDesTalentsAleatoires, specPoolOf, firstLevel, careerLevels, species } from '../data';
+import { setDataset } from '../data/overrides';
 import { findTableEntry } from './tables';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { Combatant } from './types';
@@ -35,7 +35,7 @@ describe('speciesSkillDefaults — 3×+5 / 3×+3 (LDB 05 l.484)', () => {
 describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l.484)', () => {
   // Le tirage vit à l'adresse `especeTirage(PREALABLES, 0)`, quels que soient les Talents possédés : les
   // emplacements préalables non tenus portent un Talent hors du Tableau.
-  const DU_TABLEAU = new Set<string>(talentsAleatoires.map((r) => r.id));
+  const DU_TABLEAU = new Set<string>(rangeesDesTalentsAleatoires().map((r) => r.id));
   const PREALABLES = Math.max(1, ...talents.filter((t) => DU_TABLEAU.has(t.id)).map((t) => specPoolOf(t).length));
   const horsTableau = talents.find((t) => !DU_TABLEAU.has(t.id) && !specPoolOf(t).length)!;
   const tirage = (seed: number, possedes: RefDesignee[] = [], opts: { randomSpecPicks?: Record<string, string> } = {}) => {
@@ -74,14 +74,14 @@ describe('Talent d’espèce tiré — Tableau des Talents aléatoires (LDB 05 l
   });
 
   it('le tirage suit le `die` du document `talents-aleatoires`, jamais un d100 recopié (LDB 05 l.514 ; #3578)', () => {
-    const imprime = deDeLaTable('talentsAleatoires')!;
-    setDeDeTable('talentsAleatoires', 'd10');
+    const imprimes = [...talentsAleatoires];
+    setDataset('talentsAleatoires', imprimes.map((d) => ({ ...d, die: 'd10' })));
     try {
-      const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(talentsAleatoires, i + 1).id));
+      const atteignables = new Set(Array.from({ length: 10 }, (_, i) => findTableEntry(rangeesDesTalentsAleatoires(), i + 1).id));
       const tires = new Set(Array.from({ length: 200 }, (_, i) => tirage(i + 1).ref.id));
       expect(tires, 'un 1d10 n’atteint que les rangées de 1 à 10').toEqual(atteignables);
     } finally {
-      setDeDeTable('talentsAleatoires', imprime);
+      setDataset('talentsAleatoires', imprimes);
     }
   });
 

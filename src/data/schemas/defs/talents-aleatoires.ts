@@ -23,7 +23,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['talentsAleatoires'] },
-    edit: { niche: { categories: { talentsAleatoires: '[talents-aleatoires].entries' } } },
+    edit: { dataset: 'talentsAleatoires' },
   },
   {
     rangee,

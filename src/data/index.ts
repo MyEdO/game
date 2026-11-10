@@ -55,7 +55,8 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
-import { deDeTirageDe, rangeesDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
+import type { DocumentARangees } from './schemas/grammaire/document';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as imparfaites from './schemas/defs/miscast';
 import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
@@ -3084,11 +3085,14 @@ export const names = namesJson as NamePool[];
 export const pregens = pregensJson as PregenDef[];
 /** Tableau des Oups ! (LDB Maladresses) — app-owned éditable ; consommé par `oups.ts` (même référence). */
 export const oups = rangeesDe<typeof tableauDesOups>(oupsJson) as OupsRow[];
-/** Tableau des Talents aléatoires (LDB 05 l.514-531) — app-owned éditable ; tiré par `rollRandomTalent`
- *  (`engine/character.ts`), même référence. */
-export const talentsAleatoires = rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoiresJson, 'talents-aleatoires');
+/** Les documents du Tableau des Talents aléatoires (LDB 05 l.514-531), patron `mutationTables` : le dé est
+ *  un champ de l'entrée-document — app-owned éditable au Codex (`setDataset`), même référence. */
+export const talentsAleatoires = talentsAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesTalentsAleatoires>> & { die: string })[];
+/** Les rangées du Tableau des Talents aléatoires, lues à l'appel : tirées par `rollRandomTalent` (`engine/character.ts`). */
+export const rangeesDesTalentsAleatoires = (): RangeeDe<typeof tableDesTalentsAleatoires>[] =>
+  rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
 /** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
-export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoiresJson, 'talents-aleatoires');
+export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson) as InterludeEvent[];
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */

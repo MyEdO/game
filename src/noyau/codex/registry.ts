@@ -16,7 +16,7 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, talentsAleatoiresDie, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -2600,8 +2600,17 @@ const CODEX_SPECS = {
     build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: bandeAuDe(obsessionsDie(), o.min, o.max) })),
   },
   talentsAleatoires: {
-    label: 'codex.fiche.talentsAleatoires', group: 'tables', sourceRef: 'LDB 05',
-    build: () => talentsAleatoires.map((r) => ({ id: r.id, label: talentRefLabel({ id: r.id }), sub: bandeAuDe(talentsAleatoiresDie(), r.min, r.max) })),
+    label: 'codex.fiche.talentsAleatoires', group: 'tables',
+    build: () => talentsAleatoires.map((t) => depuisEnveloppe(t, {
+      sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+      sections: sections({
+        title: tr('codex.fiche.tirages'), layout: 'list',
+        rows: t.entries.map((r) => {
+          const label = talentRefLabel({ id: r.id });
+          return { t: 'ref', category: 'talents', id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(t), r.min, r.max) } as CodexRow;
+        }),
+      }),
+    })),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
