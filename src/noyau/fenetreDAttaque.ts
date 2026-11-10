@@ -137,7 +137,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const get = () => s;
   const arme = attackWeaponOf(battle, attaquant, cible, pa);
   const armeTenue = !pa.freeKind;
-  const intitule = armeTenue ? libelleDuJet('attack') : arme.label;
+  const intitule = armeTenue ? libelleDuJet('attaque') : arme.label;
   const res = pa.result;
   const jete = !!res;
   const tir = arme.type === 'ranged';
@@ -182,8 +182,8 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const inversion = FLOWS.attack.reverseAvailable(get) ? { apercu: FLOWS.attack.reversePreview(get) } : null;
   const bloque = apercu && (apercu.blocked || !apercu.inRange) ? t(apercu.blocked ? 'attaque.sansLigneDeVue' : 'attaque.horsDePortee') : null;
   const defenseAttendue = !!res && surfacedDefensePending(s, attaquant, cible, arme, pa);
-  const bascule = (reglage: ReglageDu<'attack'>, active: boolean, note: string | null): BasculeNommee => ({ geste: gesteDuReglage('attack', reglage), libelle: libelleDuReglage('attack', reglage), active, note });
-  const choix = <V extends string>(reglage: ReglageDu<'attack'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ geste: gesteDuReglage('attack', reglage), libelle: libelleDuReglage('attack', reglage), choisie, options });
+  const bascule = (reglage: ReglageDu<'attaque'>, active: boolean, note: string | null): BasculeNommee => ({ geste: gesteDuReglage('attaque', reglage), libelle: libelleDuReglage('attaque', reglage), active, note });
+  const choix = <V extends string>(reglage: ReglageDu<'attaque'>, choisie: V | null, options: ChoixNomme<V>['options']): ChoixNomme<V> => ({ geste: gesteDuReglage('attaque', reglage), libelle: libelleDuReglage('attaque', reglage), choisie, options });
   const localisations = (l: HitLocation): { valeur: HitLocation; libelle: string } => ({ valeur: l, libelle: t('attaque.lieuVise', { lieu: locationLabel(l, cible.bodyShape) }) });
 
   return {

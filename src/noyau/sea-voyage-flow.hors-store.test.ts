@@ -315,7 +315,7 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const muet = barreSansVoile();
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const step = driveToCrewStep('crew-progression')!;
-    for (const r of step.participants!) if (r.id !== muet) get().jetLancer('cascadeBatch', r.id);
+    for (const r of step.participants!) if (r.id !== muet) get().jetLancer('cascadeEnBande', r.id);
     const p = get().pendingCascade!;
     const rolled = p.participants[p.cursor];
     const somme = rolled.participants!.filter((r) => r.id !== muet).reduce((t, r) => t + jete(r.result).sl * (r.essential ? 2 : 1), 0);
@@ -332,10 +332,10 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const points = { fortune: Math.max(1, avant.fortune ?? 0), resilience: Math.max(1, avant.resilience ?? 0) };
     Object.assign(avant, points);
     seedBattleRng(9);
-    get().jetLancer('cascadeBatch', muet);
-    get().jetForcerLaReussite('cascadeBatch', muet);
-    get().jetAjouterUnDR('cascadeBatch', muet);
-    get().jetRelancer('cascadeBatch', muet);
+    get().jetLancer('cascadeEnBande', muet);
+    get().jetForcerLaReussite('cascadeEnBande', muet);
+    get().jetAjouterUnDR('cascadeEnBande', muet);
+    get().jetRelancer('cascadeEnBande', muet);
     const p = get().pendingCascade!;
     expect(p.participants[p.cursor].participants!.find((r) => r.id === muet)!.result).toEqual(ECHEC_SANS_JET);
     const apres = get().party.find((h) => h.id === muet)!;
@@ -518,7 +518,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       if (cur?.kind === 'crew-progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
       if (cur?.options && !cur.chosen) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetLancer('cascadeBatch', part.id); }
+      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetLancer('cascadeEnBande', part.id); }
       else if (cur && !cur.result) get().jetLancer('cascade', cur.id);
       get().jetValider('cascade');
     }

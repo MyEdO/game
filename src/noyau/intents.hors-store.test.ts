@@ -40,7 +40,7 @@ describe('#2724 — table TOTALE des classes coop : une action non classée ne c
 
   it('un ouvreur `parHote` reste `hôte`, une élection locale reste `local`', () => {
     const t = { terminerLeTour: 'invité' } as TableDesClasses;
-    // @ts-expect-error — `evaluerLObjet` ouvre le flux `appraise` depuis un écran d'hôte
+    // @ts-expect-error — `evaluerLObjet` ouvre le flux `evaluation` depuis un écran d'hôte
     const ouvreur: TableDesClasses = { ...t, evaluerLObjet: 'invité' };
     // @ts-expect-error — `designerLeSupport` n'écrit qu'un champ hors snapshot
     const election: TableDesClasses = { ...t, designerLeSupport: 'invité' };

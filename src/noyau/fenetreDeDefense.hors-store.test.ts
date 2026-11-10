@@ -39,8 +39,8 @@ function ouvrirLaDefense(): void {
   } as unknown as BattleState;
   banc.setState({ battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, net: { ...initialNet(), mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
   openAttackCascade(g, banc.setState, { attackerId: ennemi.id, targetId: heros.id, location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
-  g().jetLancer('attack');
-  g().jetValider('attack');
+  g().jetLancer('attaque');
+  g().jetValider('attaque');
 }
 
 describe('fenêtre de Défense — la cible de chaque réaction est celle du jet', () => {

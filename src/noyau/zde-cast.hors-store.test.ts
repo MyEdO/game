@@ -76,7 +76,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     expect(pc.zone).toMatchObject({ center: null, radius: 1 });
     expect(pc.targetId).toBe(w.id); // ancre lanceur — aucun effet ne lui est appliqué
     banc.setState({ pendingCast: { ...pc, result: okCast(4) as never } });
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 6, y: 6 }); // pose → application immédiate
     expect(banc.getState().pendingCast).toBeNull();
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
@@ -93,11 +93,11 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     banc.getState().cliquerLaCase({ x: 9, y: 9 });
     let pc = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc, result: okCast(ni + 2) as never } }); // surplus 2 → 1 allocation
-    banc.getState().jetRegler('cast', 'surincantationZone', 1);
+    banc.getState().jetRegler('incantation', 'surincantationZone', 1);
     pc = banc.getState().pendingCast!;
     expect(pc.overcast?.zone).toBe(1);
     expect(pc.zone!.radius).toBe(2); // r0m 2 m → ×2 = 4 m → 2 cases
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 10, y: 10 }); // e3 (12,12) à 2 cases du centre
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
     expect(hp('e3').current).toBeLessThan(hp('e3').max);
@@ -111,7 +111,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     banc.getState().cliquerLaCase({ x: 9, y: 9 });
     const pc = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc, result: okCast(4) as never } });
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 12, y: 12 }); // 10 cases > 4 → refus
     expect(banc.getState().journal.join('\n')).toMatch(/hors de portée/);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // toujours en pose

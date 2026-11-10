@@ -145,7 +145,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
   const steps: BuiltCascadeStep[] = [];
   // Postes AVEC Test → UN SEUL pas BATCH (une rangée par héros, jets INDÉPENDANTS — arbitrage user
   // 2026-07-11 : « chacun a son propre jet », pas de séquence « jet 1/5 »). Primitive #328 (`BatchParticipant`,
-  // flux `cascadeBatch`). Postes SANS Test → pas d'affichage à conséquence immédiate.
+  // flux `cascadeEnBande`). Postes SANS Test → pas d'affichage à conséquence immédiate.
   const batchParts: BatchParticipant[] = [];
   for (const hero of party) {
     const posting = plan.postes[hero.id];

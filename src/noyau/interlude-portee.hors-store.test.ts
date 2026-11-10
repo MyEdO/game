@@ -54,9 +54,9 @@ function revenusDeB(deA: number, carriereB: string, deB = DE.sansEffet): number 
   const { banc, b } = tirage(deA, carriereB, deB);
   banc.actions.ensemencerLeTirage(42);
   pratiquer(banc.getState, b, 'revenus');
-  banc.actions.jetLancer('activity');
+  banc.actions.jetLancer('activite');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 1 } }));
-  banc.actions.jetValider('activity');
+  banc.actions.jetValider('activite');
   return banc.getState().interlude!.perHero[b].revenueBrass;
 }
 

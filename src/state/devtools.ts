@@ -70,7 +70,7 @@ import { garanti } from '../lib/garanti';
 import { touchActors } from '../noyau/combatOrParty';
 import { checkBattleOver, etatDeTourNeuf, subirLaCharge, approachFearTrigger, aiTurnLog, clearAiTurnLog, maybeRunEnemyTurn, applyHullCriticalToTarget, maybeOpenDefense, defenseEnCours, placingZoneOf, effectiveSpellOf, aiCreatureFreeAttacks, armeDeLaGratuite, fileDesGratuites, refusDeDefenseReactive, choixPiegeLame, type PlacingZone } from '../noyau/combatFlow';
 import { aiDriven } from '../noyau/netOwnership';
-import { fluxAccepte, NOM_DU_VERBE_DE_JET } from '../noyau/flowVerbs';
+import { FLOW_VERBS, fluxAccepte, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from '../noyau/flowVerbs';
 import { combatDistance } from '../noyau/monde/footprint';
 import { reachTiles } from '../engine/engagement';
 import { canonEdge } from '../noyau/sceneEditLecture';
@@ -114,7 +114,7 @@ import { reglesMaisonMutables } from '../noyau/reglesMaison';
 import { cadence } from '../engine/cadence';
 import { setPreference, resetPreference } from './preferences';
 import { PREFERENCES, preferenceDef, type PrefValue } from '../noyau/preferences';
-import { pickActiveModalKey, autoPolicyOf } from '../noyau/modalArbiter';
+import { pickActiveModalKey, autoPolicyOf, horsModalByPending, MODAL_DEFS, type ModalDef } from '../noyau/modalArbiter';
 import { willAutoResolve } from '../noyau/combatAuto';
 import { combatAdvanceBlocked } from '../noyau/combatGate';
 import { endTurnArmed } from '../noyau/endTurnGuard';
@@ -348,15 +348,21 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           un) ; le flux joueur réel (tirages, choix, allocations) reste testé aux
  *                           clics, jamais via ce raccourci
  */
-/** Flux « jet différé » pilotable parmi des `pending*` ouverts — convention pending<Flux> ↔
+/** Le flux de jet d'un `pending*` : le porteur d'un flux mono (`FLOW_VERBS.jetOwner`), sinon le premier flux de la fenêtre
+ *  qui le couvre (`MODAL_DEFS.covers`, `HORS_MODAL`), la cascade pour la sienne. */
+function devFluxDuPending(k: string): FlowKey | undefined {
+  const mono = (Object.keys(FLOW_VERBS) as FlowKey[]).find((f) => { const v: FlowVerbs = FLOW_VERBS[f]; return v.kind === 'mono' && v.jetOwner.pending === k; });
+  if (mono) return mono;
+  if (k === 'pendingCascade') return 'cascade';
+  return (MODAL_DEFS as readonly ModalDef[]).find((d) => (d.covers as readonly string[]).includes(k))?.flux?.[0] ?? horsModalByPending()[k]?.flux?.[0];
+}
+
+/** Flux « jet différé » pilotable parmi des `pending*` ouverts (`devFluxDuPending`) ↔
  *  `jetLancer(flux)`/`jetValider(flux)`/`jetAnnuler(flux)`. Les files à verbe propre (pause de Round, victoire) et les invites de
  *  CIBLAGE (Cleave/DualStrike/choix de monture) sont exclues. */
-function devFluxOf(open: string[]): string | null {
+function devFluxOf(open: string[]): FlowKey | null {
   const special = new Set(['pendingRoundStart', 'pendingVictory', 'pendingCleave', 'pendingDualStrike', 'pendingMountTarget']);
-  const k = open.find((x) => !special.has(x));
-  if (!k) return null;
-  const name = k.slice('pending'.length);
-  return name.charAt(0).toLowerCase() + name.slice(1);
+  return open.filter((x) => !special.has(x)).map(devFluxDuPending).find((f) => f !== undefined) ?? null;
 }
 
 /** Pilote LA modale ouverte par convention (cf. __wfrp.roll/confirm/cancel). */

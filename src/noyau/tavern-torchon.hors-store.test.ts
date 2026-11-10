@@ -256,7 +256,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
       const pc = get().pendingCascade!;
       const cur = pc.participants[pc.cursor];
       if (cur?.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       } else if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       get().jetValider('cascade');
     }

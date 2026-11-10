@@ -55,8 +55,8 @@ describe('rechargerLArme sur la pièce d’un navire — Test étendu du chef (L
     seedBattleRng(1); // jet bas → réussite, DR ≥ 1 → 5 + DR ≥ 6 → rechargée
     setup();
     banc.getState().rechargerLArme('canon');
-    banc.getState().jetLancer('reload');
-    banc.getState().jetValider('reload');
+    banc.getState().jetLancer('rechargement');
+    banc.getState().jetValider('rechargement');
     const st = banc.getState();
     expect(pieceDe().loaded).toBe(true);
     expect(pieceDe().reloadProgress).toBe(0);
@@ -91,8 +91,8 @@ describe('rechargerLArme sur la pièce d’un navire — Test étendu du chef (L
     const pr = banc.getState().pendingReload!;
     expect(pr.soutien?.ids).toEqual(['aide']);
     expect(pr.soutien?.bonus).toBe(10);
-    banc.getState().jetLancer('reload');
-    banc.getState().jetValider('reload');
+    banc.getState().jetLancer('rechargement');
+    banc.getState().jetValider('rechargement');
     expect(banc.getState().battle!.crewActed?.['ship']).toEqual(expect.arrayContaining(['gunner', 'aide']));
   });
 });
@@ -126,8 +126,8 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     banc.setState({ battle: { combatants: all, order: ['ship'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never, party: [gunnerPJ()], facing: { ship: 'N' }, pendingShipBattery: null, pendingReload: null, scene: null as never });
     // Round 1 : bordée tribord → la pièce tire puis est DÉCHARGÉE.
     banc.getState().ouvrirLaBordee('ship', 'target');
-    banc.getState().jetLancer('shipBattery', 'gunner');
-    banc.getState().jetValider('shipBattery');
+    banc.getState().jetLancer('tirDeBatterie', 'gunner');
+    banc.getState().jetValider('tirDeBatterie');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(false);
     // Même Round : 2e bordée impossible (aucune pièce ne porte → ne s'ouvre pas).
     banc.getState().ouvrirLaBordee('ship', 'target');
@@ -136,8 +136,8 @@ describe('cycle bordée → recharge → re-bordée (MDG 12-14)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, round: 2, crewActed: {} } as never });
     banc.getState().rechargerLArme('canon');
     expect(banc.getState().pendingReload).toBeTruthy();
-    banc.getState().jetLancer('reload');
-    banc.getState().jetValider('reload');
+    banc.getState().jetLancer('rechargement');
+    banc.getState().jetValider('rechargement');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'ship')!.postes![0].loaded).toBe(true); // rechargée
     // Round 2, après recharge : la bordée redevient possible.
     banc.getState().ouvrirLaBordee('ship', 'target');

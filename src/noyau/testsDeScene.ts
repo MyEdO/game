@@ -28,7 +28,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { CorpsDesReglages } from './reglagesDuJet';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
- *  (`jetValider('extendedTest')`) et par la fenêtre. LDB 12 l.170-185 */
+ *  (`jetValider('testEtendu')`) et par la fenêtre. LDB 12 l.170-185 */
 export function issueDuRound(p: PendingExtendedTest): ReturnType<typeof extendedTestStep> | null {
   const cur = p.rounds[p.rounds.length - 1];
   return cur?.result ? extendedTestStep(p.total, cur.result, p.targetDR) : null;
@@ -41,7 +41,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // Par la PORTE (#1262 V2 L4). Le mint vérifie que `pendingExtendedTest` est posé — il vient de
       // l'être, ligne au-dessus. L'enjeu vit sur l'ÉTAPE, que `CascadeModal` lit (`cur.stake`, #1117).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'extended', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
+      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'testEtendu', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
       if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'ui/key', purpose: 'test', steps });
     },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
@@ -50,22 +50,22 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
         ...(opts.suite ? { suite: opts.suite } : {}),
         participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
       // « Une situation = une modale » : l'enfoncement est hôté dans la cascade (rendu par CascadeModal
-      // via l'étape `jet:'forceDoor'`). `pendingForceDoor` reste le porteur des données/participants ;
+      // via l'étape `jet:'enfoncerLaPorte'`). `pendingForceDoor` reste le porteur des données/participants ;
       // ses résolveurs ferment LES DEUX quand la porte cède. `groupOwner` → l'arbitre coop met l'owner à
       // '*' (action de GROUPE : chacun pilote ses héros), faute d'acteur unique sur l'étape.
       // #1262 V2 L4 : par la PORTE (`hostStep`, forme de GROUPE) — l'étape n'est plus un littéral, et le
       // mint vérifie que `pendingForceDoor` est posé (il vient de l'être).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'forceDoor', groupOwner: true }));
+      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'enfoncerLaPorte', groupOwner: true }));
       if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
     },
   } satisfies FabriqueDuNoyau;
 }
 
 /** Les réglages des Tests de scène (`CorpsDesReglages`) : `jetRegler` les joue, dans leur phase. */
-export function reglagesDesTestsDeScene(get: Get, set: Set): Pick<CorpsDesReglages, 'forceDoor' | 'test'> {
+export function reglagesDesTestsDeScene(get: Get, set: Set): Pick<CorpsDesReglages, 'enfoncerLaPorte' | 'test'> {
   return {
-    forceDoor: {
+    enfoncerLaPorte: {
       /** L'arme de la rangée `heroId`, parmi `armesDEnfoncement`, ou ses mains nues (`null`). EDO 11 l.93 */
       arme: (armeUid, heroId) => {
         const p = get().pendingForceDoor;
@@ -123,7 +123,7 @@ export const TABLES = {
 /** Les clôtures des Tests de scène (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
 export function cloturesDesTestsDeScene(get: Get, set: Set) {
   return {
-    extendedTest: () => {
+    testEtendu: () => {
       const p = get().pendingExtendedTest;
       if (!p) return;
       const issue = issueDuRound(p);
@@ -156,7 +156,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       // Round suivant : la cascade-hôte (1 étape) reste, seul `pendingExtendedTest` gagne un Round (re-rendu).
       set({ pendingExtendedTest: { ...p, total, rounds: [...p.rounds, { id: `round-${p.rounds.length + 1}`, interactive: true, result: null }] } });
     },
-    forceDoor: () => {
+    enfoncerLaPorte: () => {
       const p = get().pendingForceDoor;
       if (!p) return;
       const { degats: dmg, reste: doorB, cede } = bilanDuRound(p);

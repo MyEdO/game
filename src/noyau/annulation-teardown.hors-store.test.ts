@@ -15,7 +15,7 @@ const cascade = { purpose: 'combat', cursor: 0, participants: [] } as unknown as
 describe('cancel par défaut : la cascade se ferme avec le flux qu’elle héberge, jamais avec un autre', () => {
   it('flux NON hébergé (Rechargement) : son pending se ferme, la cascade ouverte à côté reste', () => {
     banc.setState({ pendingReload: { actorId: 'h1' } as unknown as Jeu['pendingReload'], pendingCascade: cascade });
-    banc.getState().jetAnnuler('reload');
+    banc.getState().jetAnnuler('rechargement');
     expect(banc.getState().pendingReload).toBeNull();
     expect(banc.getState().pendingCascade).toBe(cascade);
   });

@@ -120,11 +120,11 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
       pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     } as never);
 
-    g().jetRegler('disengage', 'fuir', true);
+    g().jetRegler('desengagement', 'fuir', true);
 
     const pd = g().pendingDisengage;
     expect(pd, 'la fenêtre de fuite a été résolue sans le fuyard').toBeTruthy();
-    expect(pd!.fuir, 'le flux `flee` doit être OUVERT').toBeTruthy();
+    expect(pd!.fuir, 'le flux `fuite` doit être OUVERT').toBeTruthy();
     expect(fleeTouche(pd!)!.interactive, 'le fuyard est un acteur JOUÉ : le Test de sa fiche `fuite` lui revient').toBe(true);
     expect(fleeToucheDu(pd!) ? fleeTouche(pd!)!.jet : null, 'le Test de sa fiche `fuite` a été jeté à sa place').toBeNull();
     // …et le siège qui le possède peut mener la fenêtre à son terme.

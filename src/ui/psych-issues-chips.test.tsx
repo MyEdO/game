@@ -110,7 +110,7 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     render();
     expect(ligne('Échec :'), 'la branche d’échec était annoncée AVANT le jet').toBeTruthy();
 
-    act(() => { useGame.getState().jetLancer('cascadeBatch', 'h'); });
+    act(() => { useGame.getState().jetLancer('cascadeEnBande', 'h'); });
     render();
     const res = bande().participants![0].result!;
     expect(res.success, 'Calme 10 : le Test est perdu').toBe(false);

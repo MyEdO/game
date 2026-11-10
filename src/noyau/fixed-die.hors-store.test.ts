@@ -84,7 +84,7 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
 
   it('APRÈS le jet : le dé saisi remplace le jet et l’issue se re-dérive AU NATUREL (33 = double → Critique)', () => {
     setupAttack();
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll).toBe(33);
     expect(res.hit).toBe(true);
@@ -95,7 +95,7 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
 
   it('un dé fixé peut ÉCHOUER (≠ Résilience, qui garantit la réussite)', () => {
     setupAttack();
-    banc.getState().jetImposerLeResultat('attack', 99);
+    banc.getState().jetImposerLeResultat('attaque', 99);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll).toBe(99);
     expect(res.hit).toBe(false);
@@ -106,13 +106,13 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
     setupAttack();
     const before = banc.getState().battle!.combatants.find((c) => c.id === 'A')!;
     const resil = before.resilience;
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.resilience).toBe(resil);
   });
 
   it('le journal de combat porte la mention « dé fixé »', () => {
     setupAttack();
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     const log = lignesDeCombat().join('\n');
     expect(log).toContain('dé fixé');
     // La valeur JOURNALISÉE est celle RÉELLEMENT appliquée au jet, relue sur le slot après commit.
@@ -154,7 +154,7 @@ describe('option OFF — l’option gate l’AFFORDANCE de celui qui clique, pas
   it('le dé d’un siège émetteur s’applique chez celui qui exécute sans l’option, avec sa provenance et sa ligne', () => {
     setupAttack();
     expect(canFixDie(banc.getState(), 'A'), 'précondition : option OFF, aucune affordance locale').toBe(false);
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     expect(attackRoll()).toBe(33);
     expect(banc.getState().pendingAttack!.fixed).toBe(true);
     expect(lignesDeCombat().join('\n')).toContain('dé fixé');
@@ -182,11 +182,11 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
 
   it('Résilience puis DEUX changements de dé successifs : chacun re-dérive (la cible reste lisible)', () => {
     openHandGate();
-    banc.getState().jetForcerLaReussite('handGate');
+    banc.getState().jetForcerLaReussite('mainEnsanglantee');
     expect(banc.getState().pendingHandGate!.roll).toBe(bestForcedRoll(60));
-    banc.getState().jetImposerLeResultat('handGate', 11);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 11);
     expect(banc.getState().pendingHandGate!.roll).toBe(11);
-    banc.getState().jetImposerLeResultat('handGate', 55);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 55);
     const p = banc.getState().pendingHandGate!;
     expect(p.roll).toBe(55);
     expect(p.sl).toBe(Math.max(evaluateTest(55, 60).sl, 1));
@@ -196,10 +196,10 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
   it('dé FIXÉ raté PUIS Résilience : la Résilience RE-TIRE le dé, la provenance « dé fixé » s’efface (LDB 17 l.68)', () => {
     openHandGate();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('handGate', 95);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 95);
     expect(banc.getState().pendingHandGate!.fixed).toBe(true);
     expect(banc.getState().pendingHandGate!.success, 'évalué au naturel : 95 > 60').toBe(false);
-    banc.getState().jetForcerLaReussite('handGate');
+    banc.getState().jetForcerLaReussite('mainEnsanglantee');
     const p = banc.getState().pendingHandGate!;
     expect([p.forced, p.success, !!p.fixed]).toEqual([true, true, false]);
   });
@@ -208,14 +208,14 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     openHandGate();
     setDesFixes(true);
     banc.setState({ pendingHandGate: null });
-    expect(() => banc.getState().jetImposerLeResultat('handGate', 11)).not.toThrow();
+    expect(() => banc.getState().jetImposerLeResultat('mainEnsanglantee', 11)).not.toThrow();
     expect(banc.getState().pendingHandGate).toBeNull();
   });
 
   it('un dé FIXÉ ne consomme ni ne marque la Résilience', () => {
     openHandGate();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('handGate', 41);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 41);
     expect(banc.getState().pendingHandGate!.forced).toBeFalsy();
     expect(banc.getState().battle!.combatants[0].resilience).toBe(3);
   });
@@ -223,7 +223,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
   it('journal : mention NOMINATIVE de la valeur appliquée', () => {
     openHandGate();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('handGate', 41);
+    banc.getState().jetImposerLeResultat('mainEnsanglantee', 41);
     expect(lignesDeCombat().join('\n')).toMatch(/Héros : dé fixé à 41/);
   });
 });
@@ -247,7 +247,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
 
   it('Résilience : « vous l’emportez avec au moins DR +1 » (LDB 17 l.68) — DR 6 contre un DR 5', () => {
     setupOpposed();
-    banc.getState().jetForcerLaReussite('attack');
+    banc.getState().jetForcerLaReussite('attaque');
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerDetail!.sl).toBe(6);
     expect(r.hit).toBe(true);
@@ -255,8 +255,8 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
 
   it('dé CHOISI ensuite (11) : le plancher opposé TIENT et le double donne son Critique', () => {
     setupOpposed();
-    banc.getState().jetForcerLaReussite('attack');
-    banc.getState().jetImposerLeResultat('attack', 11);
+    banc.getState().jetForcerLaReussite('attaque');
+    banc.getState().jetImposerLeResultat('attaque', 11);
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerRoll).toBe(11);
     expect(r.attackerDetail!.sl).toBe(6);
@@ -266,7 +266,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
   it('dé FIXÉ 11 (option, sans Résilience) : AUCUN plancher — le DR est celui du dé', () => {
     setupOpposed();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 11);
+    banc.getState().jetImposerLeResultat('attaque', 11);
     const r = banc.getState().pendingAttack!.result!;
     expect(r.attackerRoll).toBe(11);
     expect(r.attackerDetail!.sl).toBe(evaluateTest(11, 45).sl);
@@ -278,8 +278,8 @@ describe('coop — un siège TIERS ne fixe le dé de personne (sonde S4 promue)'
   it('la validation de possession accepte le PROPRIÉTAIRE et refuse le tiers', () => {
     setupAttack();
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, roomCode: 'R', ownership: { A: 1 } } as never });
-    expect(intentAllowedFor(banc.getState(), 1, 'jetImposerLeResultat', ['attack', 33])).toBe(true);
-    expect(intentAllowedFor(banc.getState(), 2, 'jetImposerLeResultat', ['attack', 33])).toBe(false);
+    expect(intentAllowedFor(banc.getState(), 1, 'jetImposerLeResultat', ['attaque', 33])).toBe(true);
+    expect(intentAllowedFor(banc.getState(), 2, 'jetImposerLeResultat', ['attaque', 33])).toBe(false);
   });
 });
 
@@ -288,7 +288,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
   it('la ligne d’issue produite par l’Appliquer porte la mention', () => {
     setupAttack();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 33); // double ≤ cible → touche + Critique
+    banc.getState().jetImposerLeResultat('attaque', 33); // double ≤ cible → touche + Critique
     banc.setState({ journal: [] });
     // Le pending est ENCORE ouvert pendant que l'applicateur compose : c'est la fenêtre du marquage.
     banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
@@ -305,7 +305,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
   it('aucun doublon : la ligne de fixation n’est pas re-marquée', () => {
     setupAttack();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     const ligne = lignesDeCombat().find((l) => l.includes('dé fixé'))!;
     expect(ligne).toBe('Att : dé fixé à 33.');
   });
@@ -313,7 +313,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
   it('pending REFERMÉ (hors modale) : plus aucune ligne n’est marquée', () => {
     setupAttack();
     setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attack', 33);
+    banc.getState().jetImposerLeResultat('attaque', 33);
     banc.setState({ pendingAttack: null, journal: [] });
     banc.getState().ecrireAuJournal('Le Gobelin se relève.');
     expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');

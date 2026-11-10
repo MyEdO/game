@@ -35,7 +35,7 @@ const AXES = {
     { purpose: 'combat', cursor: 0, participants: [P({ committed: true })] },
     { purpose: 'test', cursor: 0, participants: [P({ committed: false })] },
     { purpose: 'combat', cursor: 0, participants: [] },
-    { purpose: 'combat', cursor: 0, participants: [P({ committed: false, jet: 'attack' })] },
+    { purpose: 'combat', cursor: 0, participants: [P({ committed: false, jet: 'attaque' })] },
     { purpose: 'combat', cursor: 0, participants: [P({ committed: true }), P({ id: 'q', committed: false })] },
   ],
   battle: [null, ...[null, 'incantation', 'soins', 'dissipation', 'bordee', 'teleportation', 'poussee', 'attack'].map((action) => ({ action, combatants: [{ id: 'c' }, { id: 'a' }, { id: 'b' }, { id: 'g' }] }))],

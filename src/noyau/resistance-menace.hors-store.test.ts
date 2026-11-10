@@ -159,7 +159,7 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
     const bande = p.participants.find((s) => s.kind === 'combatEndDisease')!;
     const row = bande.participants!.find((r) => r.id === a.id)!;
     expect(row.menace).toBe('maladie');
-    banc.getState().jetResister('cascadeBatch', row.id);
+    banc.getState().jetResister('cascadeEnBande', row.id);
     const rolled = banc.getState().pendingCascade!.participants
       .find((s) => s.id === bande.id)!.participants!.find((r) => r.id === a.id)!;
     expect(rolled.result).toEqual({ roll: 1, target: row.target, sl: bonus(43), success: true });

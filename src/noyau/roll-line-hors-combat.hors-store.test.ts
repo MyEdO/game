@@ -357,7 +357,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     fresh([doc, patient]);
     set({ pendingSurgery: null } as never);
     get().ouvrirLeMedecin('p');
-    get().jetLancer('heal'); // ARME la rééducation du brouillon et pose sa 1re passe
+    get().jetLancer('soins'); // ARME la rééducation du brouillon et pose sa 1re passe
     const sg = get().medic!.surgery!;
     expect(sg.difficulty).toBe('accessible');
     const ps = get().pendingSurgery!;

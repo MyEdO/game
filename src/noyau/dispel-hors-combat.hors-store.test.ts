@@ -13,7 +13,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Dissipation HORS COMBAT (couture D, #461, LDB 46 l.160-162) : « pour votre Action » n'est pas
- *  bornée au combat — calque `focaliserLeSort`, réutilise `dispel.ts`/`jetValider('dispel')` tels quels. */
+ *  bornée au combat — calque `focaliserLeSort`, réutilise `dispel.ts`/`jetValider('dissipation')` tels quels. */
 describe('Dissipation permanente — hors combat (couture D, #461)', () => {
   const langue = { id: 'langue', spec: 'magick', characteristic: 'intelligence' as const, advances: 20 };
   const mk = (id: string, spells: string[], extra: Partial<Combatant> = {}): Combatant => (blessuresSurLeProfil({
@@ -60,7 +60,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
     banc.getState().dissiperLeSort('mage', 'malefice', 'ennemi');
     const pd = banc.getState().pendingDispel!;
     banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-    banc.getState().jetValider('dispel');
+    banc.getState().jetValider('dissipation');
     const cibleAfter = banc.getState().party.find((c) => c.id === cible.id)!;
     expect((cibleAfter.activeEffects ?? []).some((e) => e.spell?.spellId === 'malefice')).toBe(false);
     const mageAfter = banc.getState().party.find((c) => c.id === 'mage')!;
@@ -82,7 +82,7 @@ describe('Dissipation permanente — hors combat (couture D, #461)', () => {
       banc.getState().dissiperLeSort('mage', 'malefice', 'mage');
       const pd = banc.getState().pendingDispel!;
       banc.setState({ pendingDispel: { ...pd, result: { roll: 10, target: pd.value, sl: 1, success: true } } });
-      banc.getState().jetValider('dispel');
+      banc.getState().jetValider('dissipation');
       const total = banc.getState().party.find((c) => c.id === 'mage')!.dispel!.total;
       if (rule) resetRule('magic-vdm-incantation');
       return total;

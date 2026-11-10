@@ -289,9 +289,9 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
   const { cle } = garanti(fenetreDuJeu(etat), 'fenetre', 'fenêtre qui tient la main');
   const pc = etat.pendingCascade;
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
-  const attaque = jetDeLEtape === 'attack' ? fenetreDAttaque(etat) : null;
+  const attaque = jetDeLEtape === 'attaque' ? fenetreDAttaque(etat) : null;
   if (attaque) return corpsDeLAttaque(etat, attaque);
-  const incantation = jetDeLEtape === 'cast' ? fenetreDIncantation(etat) : null;
+  const incantation = jetDeLEtape === 'incantation' ? fenetreDIncantation(etat) : null;
   if (incantation) return corpsDeLIncantation(etat, incantation);
   const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;

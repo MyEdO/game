@@ -38,14 +38,14 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       expect(previewAttack(partie.etat, combattant(partie, H.id), combattant(partie, E.id)).soak, 'l’aperçu ne lit pas la cible').toBeGreaterThan(0);
       partie.envoyer({ type: 'cliquerLaCase', args: [{ ...E.pos! }, E.id, { confirm: true }] });
       expect(partie.etat().pendingAttack, 'la déclaration n’a pas ouvert la fenêtre d’attaque').toMatchObject({ targetId: E.id, result: null });
-      partie.envoyer({ type: 'jetLancer', args: ['attack'] });
-      partie.envoyer({ type: 'jetImposerLeResultat', args: ['attack', 11] });
+      partie.envoyer({ type: 'jetLancer', args: ['attaque'] });
+      partie.envoyer({ type: 'jetImposerLeResultat', args: ['attaque', 11] });
       const res = partie.etat().pendingAttack!.result!;
       expect(res.attackerRoll, 'le dé fixé de l’entrée n’a pas été posé').toBe(11);
       expect(res.defenderDetail, 'la défense du Mutant n’a pas été jouée').toBeTruthy();
       expect(res).toMatchObject({ hit: true, critical: true });
 
-      const confirmation = partie.envoyer({ type: 'jetValider', args: ['attack'] });
+      const confirmation = partie.envoyer({ type: 'jetValider', args: ['attaque'] });
       expect(confirmation.issue).toBe('appliquee');
       expect(emis(confirmation)).toContain('anim_attack');
       expect(confirmation.journal.flatMap((l) => (l.de === 'combat' ? [l.evenement.kind] : [])), 'l’appel ne rend pas les lignes de combat qu’il a écrites').toEqual(expect.arrayContaining(['crit', 'death']));
@@ -58,7 +58,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
       for (let pas = 0; partie.etat().pendingCascade && pas < 10; pas++) {
         const cascade = partie.etat().pendingCascade!;
         const rangee = cascade.participants[cascade.cursor]?.participants?.find((r) => !r.result);
-        fin.push(...emis(partie.envoyer(rangee ? { type: 'jetLancer', args: ['cascadeBatch', rangee.id] } : { type: 'jetValider', args: ['cascade'] })));
+        fin.push(...emis(partie.envoyer(rangee ? { type: 'jetLancer', args: ['cascadeEnBande', rangee.id] } : { type: 'jetValider', args: ['cascade'] })));
       }
       expect(partie.etat().pendingCascade, 'la cascade de fin de combat ne s’est pas close').toBeNull();
       expect(partie.etat().battle!.over).toBe('victoire');

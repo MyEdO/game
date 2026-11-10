@@ -83,9 +83,9 @@ describe('Entraînement au Combat (LDB 23 l.205-209) — jeton d’inversion SCO
     const pa = banc.getState().pendingActivity!;
     expect(pa.activityId).toBe('entrainement-au-combat');
     expect(['corps-a-corps', 'projectiles']).toContain(pa.chosenSkill?.id);
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     expect(banc.getState().pendingActivity).toBeNull();
     const hero = banc.getState().party[0];
     expect(consumeReverseToken(hero, { skill: { id: pa.chosenSkill!.id } })).toBe(true);
@@ -99,9 +99,9 @@ describe('Réputation (LDB 23 l.228-234) — coût dépensé DANS TOUS LES CAS, 
     pratiquer(banc.getState, heroId, 'reputation');
     const before = toBrass(partyMoneyTotal(banc.getState));
     expect(banc.getState().pendingActivity?.costBrass).toBeGreaterThan(0);
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     const hero = banc.getState().party[0];
     expect(banc.getState().interlude?.perHero[heroId].closeOps).toEqual([{ ops: [{ op: 'statusMod', amount: 1 }], ctx: { label: 'Réputation', source: { kind: 'activity', id: 'reputation' }, sl: 2 } }]);
     expect(hero.activeEffects?.some((e) => e.statusMod), 'posé avant la prochaine aventure').toBeFalsy();
@@ -116,17 +116,17 @@ describe('Semer la dissension (LDB 23 l.236-248) — DEUX Activités, la 2ᵉ ga
     expect(banc.getState().pendingActivity).toBeNull(); // gate : Repérage non encore réussi
 
     pratiquer(banc.getState, heroId, 'semer-dissension-reperage');
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     const itl = banc.getState().interlude!;
     expect(itl.perHero[heroId].dissensionReady).toBe(true);
 
     pratiquer(banc.getState, heroId, 'semer-dissension-emeute');
     expect(banc.getState().pendingActivity?.activityId).toBe('semer-dissension-emeute');
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     expect(banc.getState().interlude!.perHero[heroId].dissensionReady).toBe(false); // consommé
   });
 });

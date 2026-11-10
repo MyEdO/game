@@ -1,7 +1,7 @@
 /**
- * ACTE DE SOIN DE L'INFIRMERIE (#3059 L3, #3612) : l'acte se règle par `jetRegler('heal', 'mode')` sur le brouillon que
+ * ACTE DE SOIN DE L'INFIRMERIE (#3059 L3, #3612) : l'acte se règle par `jetRegler('soins', 'mode')` sur le brouillon que
  * la transition du jeu tient, jugé par `refusDuModeDuSoin` (hors combat : `refusDeLActeALInfirmerie`, `acteDeSoin.ts`) —
- * un acte refusé se DIT (journal hors combat), au siège qui a agi ; `jetLancer('heal')` pose le jet ou arme
+ * un acte refusé se DIT (journal hors combat), au siège qui a agi ; `jetLancer('soins')` pose le jet ou arme
  * l'opération. Une raison par cas, oracle littéral.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -43,12 +43,12 @@ function poser(party: Combatant[], medic: Partial<{ npc: MedicNpc; surgery: unkn
 }
 const dernierRefus = () => banc.getState().journal[banc.getState().journal.length - 1];
 
-describe('l’acte de l’infirmerie : `jetRegler(heal, mode)` sur le brouillon, joué par `jetLancer(heal)`', () => {
+describe('l’acte de l’infirmerie : `jetRegler(soins, mode)` sur le brouillon, joué par `jetLancer(soins)`', () => {
   it('Hémorragie verrouillée par Chirurgie, chirurgien présent : « Opérer » arme l’opération au lancer', () => {
     poser([chirurgien(), saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
     expect(banc.getState().medic?.surgery).toBeUndefined(); // le brouillon n'arme rien
-    banc.getState().jetLancer('heal');
+    banc.getState().jetLancer('soins');
     expect(banc.getState().medic?.surgery?.kind).toBe('chirurgie');
     expect(banc.getState().medic?.surgery?.healerId).toBe('doc');
     expect(banc.getState().journal).toEqual([]);
@@ -63,27 +63,27 @@ describe('l’acte de l’infirmerie : `jetRegler(heal, mode)` sur le brouillon,
   it('jet lancé : l’acte refusé, dit « Le jet est lancé. »', () => {
     poser([hero({ id: 'doc' }), saignant()]);
     expect(banc.getState().pendingHeal?.mode).toBe('hemorragie');
-    banc.getState().jetLancer('heal');
+    banc.getState().jetLancer('soins');
     const lance = banc.getState().pendingHeal;
-    banc.getState().jetRegler('heal', 'mode', 'hemorragie');
+    banc.getState().jetRegler('soins', 'mode', 'hemorragie');
     expect(banc.getState().pendingHeal).toBe(lance);
     expect(dernierRefus()).toBe('Le jet est lancé.');
   });
 
   it('opération armée, passe annulée : un acte au long cours refusé, dit « Une opération est en cours. »', () => {
     poser([chirurgien(), saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
-    banc.getState().jetLancer('heal');
-    banc.getState().jetAnnuler('surgery');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
+    banc.getState().jetLancer('soins');
+    banc.getState().jetAnnuler('chirurgie');
     expect(banc.getState().pendingHeal?.mode).toBe('chirurgie'); // la reprise de l'opération armée
-    banc.getState().jetRegler('heal', 'mode', 'reeducation');
+    banc.getState().jetRegler('soins', 'mode', 'reeducation');
     expect(banc.getState().pendingHeal?.mode).toBe('chirurgie');
     expect(dernierRefus()).toBe('Une opération est en cours.');
   });
 
   it('Rééducation sans Aide Médicale : refusée, dit « Aide Médicale requise avant de rééduquer le membre. »', () => {
     poser([hero({ id: 'doc' }), saignant({ traumas: [{ uid: 't1', label: 'Épaule luxée', location: 'brasD', targetDR: 6, awaitingMedicalAid: true, ops: [] }] })]);
-    banc.getState().jetRegler('heal', 'mode', 'reeducation');
+    banc.getState().jetRegler('soins', 'mode', 'reeducation');
     expect(banc.getState().pendingHeal?.mode).toBe('hemorragie');
     expect(dernierRefus()).toBe('Aide Médicale requise avant de rééduquer le membre.');
   });
@@ -92,14 +92,14 @@ describe('l’acte de l’infirmerie : `jetRegler(heal, mode)` sur le brouillon,
     poser([saignant({ wounds: blessuresDeBase(12, 4) })], { npc: BARBIER });
     creditBourse(banc.getState, banc.setState, 'p', { gold: 5, silver: 0, brass: 0 });
     expect(banc.getState().pendingHeal?.mode).toBe('blessures');
-    banc.getState().jetRegler('heal', 'mode', 'hemorragie');
+    banc.getState().jetRegler('soins', 'mode', 'hemorragie');
     expect(banc.getState().pendingHeal?.mode).toBe('blessures');
     expect(dernierRefus()).toBe('Barbier ne propose pas cet acte.');
   });
 
   it('aucun chirurgien au groupe : la Chirurgie refusée, dit « Aucun soigneur du groupe n’a le Talent Chirurgie. »', () => {
     poser([hero({ id: 'doc' }), saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
     expect(banc.getState().pendingHeal?.mode).toBe('hemorragie');
     expect(dernierRefus()).toBe('Aucun soigneur du groupe n’a le Talent Chirurgie.');
   });
@@ -112,29 +112,29 @@ describe('l’acte de l’infirmerie : `jetRegler(heal, mode)` sur le brouillon,
 
   it('raison du patient : Blessures pleines, dit « Blessures au maximum »', () => {
     poser([hero({ id: 'doc' }), saignant()]);
-    banc.getState().jetRegler('heal', 'mode', 'blessures');
+    banc.getState().jetRegler('soins', 'mode', 'blessures');
     expect(banc.getState().pendingHeal?.mode).toBe('hemorragie');
     expect(dernierRefus()).toBe('Blessures au maximum');
   });
 
   it('passe de Chirurgie posée : aucun brouillon ; le verdict dit « Un jet de soin est déjà posé. »', () => {
     poser([chirurgien(), saignant({ wounds: blessuresDeBase(12, 6), conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
-    banc.getState().jetLancer('heal');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
+    banc.getState().jetLancer('soins');
     expect(banc.getState().pendingSurgery).not.toBeNull();
     expect(banc.getState().pendingHeal).toBeNull();
     expect(refusDeLActeALInfirmerie(banc.getState(), 'blessures')).toBe('Un jet de soin est déjà posé.');
   });
 
-  it('C5 — hors combat, `heal.mode` recalcule le soin : le soigneur de l’acte, sa Difficulté, et le siège qui le lance', () => {
+  it('C5 — hors combat, `soins.mode` recalcule le soin : le soigneur de l’acte, sa Difficulté, et le siège qui le lance', () => {
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const chir = hero({ id: 'chir', label: 'Chirurgienne', skills: [{ id: 'guerison', advances: 5, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
     poser([doc, chir, saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
     banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { doc: 1, chir: 2, p: 0 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } } } as never);
     expect(banc.getState().pendingHeal).toMatchObject({ mode: 'hemorragie', healerId: 'doc' });
-    const lancer = () => [0, 1, 2].map((siege) => intentAllowedFor(banc.getState(), siege, 'jetLancer', ['heal']));
+    const lancer = () => [0, 1, 2].map((siege) => intentAllowedFor(banc.getState(), siege, 'jetLancer', ['soins']));
     expect(lancer()).toEqual([false, true, false]);
-    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
     expect(banc.getState().pendingHeal).toMatchObject({ mode: 'chirurgie', healerId: 'chir', difficulty: 'intermediaire' });
     expect(lancer()).toEqual([false, false, true]);
   });
@@ -143,7 +143,7 @@ describe('l’acte de l’infirmerie : `jetRegler(heal, mode)` sur le brouillon,
     poser([hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(12, 4) })], { npc: BARBIER });
     creditBourse(banc.getState, banc.setState, 'p', { gold: 5, silver: 0, brass: 0 });
     banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { p: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } }, journal: [] } as never);
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetRegler', ['heal', 'mode', 'hemorragie'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetRegler', ['soins', 'mode', 'hemorragie'])).toBe('appliquee');
     expect(banc.getState().pendingHeal?.mode).toBe('blessures');
     expect(banc.getState().journal).toEqual([]);
   });
@@ -166,11 +166,11 @@ function poserLeCombat(netMode: 'host' | 'local'): void {
   } as never);
 }
 
-describe('ouvrirLaGuerison et `heal.mode` lisent le filtre de combat', () => {
+describe('ouvrirLaGuerison et `soins.mode` lisent le filtre de combat', () => {
   it('Chirurgie demandée en combat : refusée, dit « Ce soin ne se pratique pas en combat. »', () => {
     poserLeCombat('local');
     banc.getState().ouvrirLaGuerison('al');
-    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
     expect(banc.getState().pendingHeal?.mode).toBe('blessures');
     expect(banc.getState().refus?.texte).toBe('Ce soin ne se pratique pas en combat.');
   });
@@ -204,7 +204,7 @@ describe('ouvrirLaGuerison et `heal.mode` lisent le filtre de combat', () => {
   it('Hémorragie demandée en combat : le jet se pose', () => {
     poserLeCombat('local');
     banc.getState().ouvrirLaGuerison('al');
-    banc.getState().jetRegler('heal', 'mode', 'hemorragie');
+    banc.getState().jetRegler('soins', 'mode', 'hemorragie');
     expect(banc.getState().pendingHeal?.mode).toBe('hemorragie');
   });
 });

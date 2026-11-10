@@ -72,8 +72,8 @@ function ambush(talents: TalentInstance[] = [], guetteurs = 1, perception = 5) {
 
 /** La BANDE : l'unique étape de Surprise que la cascade porte. */
 const bande = () => useGame.getState().pendingCascade!.participants[0];
-/** Lance la rangée d'un guetteur (flux `cascadeBatch` — un jet PAR rangée). */
-const lancer = (id: string) => act(() => { useGame.getState().jetLancer('cascadeBatch', id); });
+/** Lance la rangée d'un guetteur (flux `cascadeEnBande` — un jet PAR rangée). */
+const lancer = (id: string) => act(() => { useGame.getState().jetLancer('cascadeEnBande', id); });
 
 const render = () => act(() => { root.render(<CascadeBody />); });
 /** Le bloc des issues, tel qu'il est rendu (chips comprises). */
@@ -286,12 +286,12 @@ describe('#1117 — la Surprise est UNE bande : un jet d’embusqueur, N guetteu
     const resilienceOf = (id: string) => g().battle!.combatants.find((c) => c.id === id)!.resilience ?? 0;
     const resAvant = resilienceOf('h');
 
-    act(() => { g().jetForcerLaReussite('cascadeBatch', 'h'); });
+    act(() => { g().jetForcerLaReussite('cascadeEnBande', 'h'); });
     expect(bande().participants![0].result!.success, '« Je ne faillirai pas ! » n’a pas produit de réussite').toBe(true);
     const resApres = resilienceOf('h');
     expect(resApres, 'le point de Résilience est dépensé').toBe(resAvant - 1);
 
-    act(() => { g().jetImposerLeResultat('cascadeBatch', 11, 'h'); });
+    act(() => { g().jetImposerLeResultat('cascadeEnBande', 11, 'h'); });
     const apres = bande().participants![0].result!;
     expect(apres.roll, 'le dé CHOISI est celui appliqué').toBe(11);
     expect(apres.success, 'la réussite PAYÉE par le point de Résilience a été perdue au choix du dé').toBe(true);
