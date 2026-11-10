@@ -17,7 +17,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runEnemyAI } from './combatFlow';
 import { spawnEnemy } from './monde/spawn';
 import { chebyshev } from '../engine/grid';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
@@ -33,7 +33,7 @@ describe('ZdE ennemie — télégraphe visuel actorAoe (pose pendant le télégr
 
   /** Une cible héros minimale (sans Dissipation : aucune fenêtre de Contre-sort ne s'ouvre). */
   function target(x: number, y: number, id: string): Combatant {
-    const h = pregen(idsDeTest, PREGEN.sorcier);
+    const h = herosDeScenario(idsDeTest, 'sorcier');
     h.id = id; h.label = id; h.pos = { x, y };
     h.wounds = blessuresDeBase(30, 30, h);
     h.skills = []; // pas de Langue (Magick) → ne peut pas Dissiper → pas de pendingCounterspell

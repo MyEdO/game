@@ -15,7 +15,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
 import { conversationRepond } from './dialogue';
 import { withActingSeat } from './netOwnership';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Dialogue } from './monde/scene';
 import { t } from '../i18n';
 
@@ -34,7 +34,7 @@ const dlg: Dialogue = {
 function temoin(over: Partial<Jeu> = {}) {
   banc.setState({
     screen: 'campaign', mode: 'exploration', battle: null, scene: null, flags: {}, journal: [],
-    party: makeShowcaseParty(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
+    party: groupeVitrineDeScenario(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
     document: null, pendingLoot: null, pendingTest: null, pendingLogQueue: [], pendingOrders: [],
     worldMapOpen: false, port: null, landMarket: null,
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },

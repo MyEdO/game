@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
 
@@ -21,7 +21,7 @@ export const scenario: TestScenario = {
     'son décor à bord : fanaux, pile de tonneaux et cargaison bâchée des deux bords.',
   partyNote: 'Explorez librement : les cabines du rouf, la cale par l’échelle de sa trappe, puis les plates-formes de proue et de poupe par leurs échelles, la passerelle et les toits.',
   construire: (idNeuf) => ({
-    party: makePregens(idNeuf),
+    party: tousLesHerosDeScenario(idNeuf),
     scene: buildScene({
       id: 'a-bord-de-la-barge',
       label: 'À bord de la barge fluviale',

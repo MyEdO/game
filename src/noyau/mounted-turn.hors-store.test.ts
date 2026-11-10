@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 
@@ -16,7 +16,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function setup() {
-  const hero = makePregens(idsDeTest)[0];
+  const hero = tousLesHerosDeScenario(idsDeTest)[0];
   hero.pos = { x: 5, y: 5 };
   hero.initiative = 50;
   const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });

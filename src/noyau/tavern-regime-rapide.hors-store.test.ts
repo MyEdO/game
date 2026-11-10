@@ -14,7 +14,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { setRule } from '../engine/policy';
 import { findTavernGameById, fastTavernGame, TAVERN_GAMES, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
@@ -30,7 +30,7 @@ const get = () => banc.getState();
 
 /** Un héros seul à la table, face à un adversaire de la salle. */
 function seul(): Combatant {
-  const a = makePregens(idsDeTest)[0] as Combatant;
+  const a = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }

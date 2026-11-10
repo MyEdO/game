@@ -16,7 +16,8 @@ import { decidingSeat } from '../netOwnership';
 import { refusDAjoutAuGroupe, refusDeComposerLeHeros } from '../partyFlow';
 import { buildHero, draftWealth, stepIds, validateStep, type CreatorDraft } from './brouillon';
 import { pregens } from '../../data';
-import { idDuPretire, pretireAvecRichesse } from '../../data/pregens';
+import { idDuPretire, pretire, richesseDuPretire } from '../../data/pregens';
+import type { RNG } from '../../engine/dice';
 import { garanti } from '../../lib/garanti';
 import { t } from '../../i18n';
 
@@ -30,26 +31,30 @@ export type HerosEngage =
 /** La première étape invalide du brouillon `d` (`validateStep`) ; `null` s'il est complet. */
 const refusDuBrouillon = (d: CreatorDraft): string | null => stepIds().map((id) => validateStep(d, id)).find((e) => e !== null) ?? null;
 
-/** Le héros que bâtit le brouillon `d` (l'id `id` posé) et sa Richesse de départ (`draftWealth`). */
-const batirLeBrouillon = (d: CreatorDraft, idNeuf: FabriqueDId, id?: string): { hero: Combatant; wealth: Money } => ({ hero: buildHero(d, idNeuf, id), wealth: draftWealth(d).montant });
-
 /** Le verdict de `h` AVANT tout id forgé : l'id du héros qu'il bâtira quand il se connaît (pré-tiré, id de roster posé),
  *  absent pour un brouillon sans id ; sinon la raison qui le refuse (pré-tiré inconnu, étape invalide). */
 export function verdictDEngagement(h: HerosEngage): { id: string | undefined } | { refus: string } {
   if ('pretire' in h) {
     const def = pregens.find((p) => p.id === h.pretire);
-    return def ? { id: idDuPretire(def.seed) } : { refus: t('party.pretireInconnu', { id: String(h.pretire) }) };
+    return def ? { id: idDuPretire(def.id) } : { refus: t('party.pretireInconnu', { id: String(h.pretire) }) };
   }
   const refus = refusDuBrouillon(h.brouillon);
   return refus ? { refus } : { id: h.id };
 }
 
-/** Le héros que le noyau bâtit de `h`, que `verdictDEngagement` admet, et sa Richesse de départ : le pré-tiré de la donnée
- *  (`pretireAvecRichesse`) ou le brouillon, aux ids de `idNeuf`. */
-export function herosDeLEngagement(h: HerosEngage, idNeuf: FabriqueDId): { hero: Combatant; wealth: Money } {
-  if ('pretire' in h) return pretireAvecRichesse(garanti(pregens.find((p) => p.id === h.pretire), 'pré-tiré', String(h.pretire)), idNeuf);
-  const bati = batirLeBrouillon(h.brouillon, idNeuf, h.id);
-  return h.idDeRoster ? { ...bati, hero: { ...bati.hero, idDeRoster: h.idDeRoster } } : bati;
+/** Le héros que le noyau bâtit de `h`, que `verdictDEngagement` admet : le pré-tiré de la donnée (`pretire`) ou le
+ *  brouillon, aux ids de `idNeuf`. */
+export function herosDeLEngagement(h: HerosEngage, idNeuf: FabriqueDId): Combatant {
+  if ('pretire' in h) return pretire(idNeuf, h.pretire);
+  const hero = buildHero(h.brouillon, idNeuf, h.id);
+  return h.idDeRoster ? { ...hero, idDeRoster: h.idDeRoster } : hero;
+}
+
+/** La Richesse de départ de `h` au recrutement : le dé imprimé de la fiche du pré-tiré (`richesseDuPretire`), tiré à
+ *  `rng`, ou celle du brouillon (`draftWealth`). */
+export function richesseDeLEngagement(h: HerosEngage, rng: RNG): Money {
+  if ('pretire' in h) return richesseDuPretire(garanti(pregens.find((p) => p.id === h.pretire), String(h.pretire), 'pré-tiré'), rng);
+  return draftWealth(h.brouillon).montant;
 }
 
 /** Le refus d'un héros nouveau au groupe : le refus d'ajout du siège qui décide (`refusDAjoutAuGroupe`) ; `null` s'il
@@ -68,8 +73,7 @@ export function refusDEngagement(s: Pick<Jeu, 'battle' | 'party' | 'net'>, d: Cr
  *  l'engager de nouveau. */
 export function engagement(d: CreatorDraft, idDuRoster: FabriqueDuRoster, heroId?: IdDeHerosDuRoster): RosterEntry {
   const id = heroId ?? idDuRoster('hero');
-  const { hero, wealth } = batirLeBrouillon(d, idDuRoster, id);
-  return { hero: { ...hero, id }, wealth, draft: d };
+  return { hero: { ...buildHero(d, idDuRoster, id), id }, wealth: draftWealth(d).montant, draft: d };
 }
 
 /** L'intention qui engage au groupe le héros nouveau de `d`, pour un hôte sans roster. */

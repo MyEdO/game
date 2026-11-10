@@ -10,7 +10,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { resetSceneRegistry } from './monde/registreDesScenes';
 import { emptyScene, type Scene } from './monde/scene';
 import type { WorldMap } from './worldMap';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { lieuEnVue } from './lieuEnVue';
 import { DESIGNATIONS } from './designations';
 import { t } from '../i18n';
@@ -43,7 +43,7 @@ describe('le choix `ecranDuLieu.entrer`', () => {
   beforeEach(() => {
     resetSceneRegistry();
     banc = ouvrirLeBanc();
-    g().fixerLeGroupe(makePregens(idsDeTest));
+    g().fixerLeGroupe(tousLesHerosDeScenario(idsDeTest));
     g().chargerLeProjet({ scenes: [scene('poi-place'), scene('poi-cave')], entryId: 'poi-place', worldMap, projet: null });
     g().ouvrirLeLieu();
   });

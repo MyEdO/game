@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { modalOwnerOf } from './modalArbiter';
 import { seatOwns } from './sieges';
@@ -23,7 +23,7 @@ const NET0 = initialNet();
 
 /** Deux héros, l'un à l'hôte (siège 0), l'autre à l'invité (siège 1). */
 function deuxSieges(): [Combatant, Combatant] {
-  const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
+  const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as [Combatant, Combatant];
   banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
   return [a, b];

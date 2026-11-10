@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
@@ -138,6 +138,6 @@ export const scenario: TestScenario = {
   partyNote: 'Pré-tirés',
   construire: (idNeuf) => {
     const { documents } = paquetDuJeu(diligenceCampaign).narratif;
-    return { party: makePregens(idNeuf), scene: construireScene(documents), narratif: construireNarratif(documents) };
+    return { party: tousLesHerosDeScenario(idNeuf), scene: construireScene(documents), narratif: construireNarratif(documents) };
   },
 };

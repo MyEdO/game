@@ -15,7 +15,7 @@ import { rosterExport, rosterImport } from '../noyau/persistance/roster';
 import { stockageEnMemoire, stockageQuiLeve } from '../lib/stockage.testkit';
 import { brouillonComplet } from '../noyau/creation/engagement.testkit';
 import { idDuPretire } from '../data/pregens';
-import { pregens } from '../data';
+import { PRETIRE_DE_TEST, poserLesPretires } from '../noyau/creation/pretireDeTest.testkit';
 
 const CLE = 'wfrp4.roster';
 /** `FORMAT_ROSTER` avant que l'id d'un héros de roster soit un `IdDeHerosDuRoster` (#2907 L3). */
@@ -164,7 +164,8 @@ describe('engager un brouillon de création (#3059)', () => {
     const s = stockageEnMemoire();
     const auRoster = { ...membre(1), id: rosterDeTest('avant')('hero') };
     ajouterAuRoster(s, { hero: auRoster, wealth: { gold: 0, silver: 0, brass: 0 }, draft: brouillonComplet() });
-    const pretire = { ...membre(2), id: idDuPretire(pregens[0].seed) };
+    poserLesPretires();
+    const pretire = { ...membre(2), id: idDuPretire(PRETIRE_DE_TEST.id) };
     const banc = ouvrirLeBanc({ etat: { party: [auRoster, pretire] } });
     for (const h of [auRoster, pretire]) expect(engagerLeHeros(s, banc.getState(), brouillonComplet(), rosterDeTest('session'), h.id)).toBeNull();
     expect(banc.getState().party.map((h) => h.id)).toEqual([auRoster.id, pretire.id]);

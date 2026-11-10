@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { findSpeciesById } from '../../data';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
@@ -73,5 +73,5 @@ export const scenario: TestScenario = {
     'l’opposant joue sa fiche.',
   partyNote: 'Soldat · Chasseur',
   rules: { 'tavern-games': true },
-  construire: (idNeuf) => ({ party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupeDeScenario(idNeuf, 'soldat', 'chasseur'), scene: construireScene() }),
 };

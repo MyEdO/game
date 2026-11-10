@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { withBourseMoney } from '../engine/bourse';
 import { activityById, travelActivitySpec } from '../engine/activities';
@@ -34,7 +34,7 @@ const sommeMods = (mods: ModLine[] | undefined): number => (mods ?? []).reduce((
 function freshState() {
   seedBattleRng(7);
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     battle: null,
     travelPlan: null,
     travelRecap: null,

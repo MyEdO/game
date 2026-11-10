@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { idsDeTest, rosterDeTest } from '../engine/idsDeTest.testkit';
+import { rosterDeTest } from '../engine/idsDeTest.testkit';
 import type { HerosDuRoster } from '../noyau/persistance/roster';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { act, StrictMode } from 'react';
@@ -12,10 +12,10 @@ import { areneCampaign, builtinCampaigns, paquetDuJeu } from '../scenes/campaign
 import { datasetArray, setDataset } from '../data/overrides';
 import { resolveActiveAxes } from '../noyau/worldMap';
 import { emptyScene } from '../noyau/monde/scene';
-import { allAxes, pregens } from '../data';
+import { allAxes } from '../data';
 import { useGame } from '../state/store';
 import { heroSubtitle } from './CharCard';
-import { makePregens } from '../data/pregens';
+import { PRETIRE_DE_TEST, herosDeTest, poserLesPretires } from '../noyau/creation/pretireDeTest.testkit';
 import { stockageDuRoster } from '../state/roster';
 import { ajouterAuRoster } from '../hote/roster';
 import { initialNet, type NetState } from '../noyau/etat';
@@ -31,7 +31,7 @@ import type { HerosEngage } from '../noyau/creation/engagement';
 const ouverts = (party: Combatant[]) => Object.fromEntries(party.map((h) => [h.id, null]));
 
 function savedHero(): HerosDuRoster {
-  const h: HerosDuRoster = JSON.parse(JSON.stringify(makePregens(idsDeTest)[0]));
+  const h: HerosDuRoster = JSON.parse(JSON.stringify(herosDeTest(1)[0]));
   h.id = rosterDeTest('roster')('hero');
   h.label = 'Aventurière Sauvegardée';
   return h;
@@ -55,6 +55,12 @@ describe('HeroSelector — sélecteur dédié (écran plein-champ) : recrutement
     expect(html).toContain('Mes personnages');
     expect(html).toContain('candidate-card');
     expect(html).not.toContain('candidate-remplacement'); // recrutement = grandes cartes (gallery)
+  });
+
+  it('l’étal montre la Richesse imprimée de chaque pré-tiré, sa formule, jamais un montant tiré', () => {
+    poserLesPretires();
+    const html = renderToStaticMarkup(<HeroSelector party={[]} mode="recruit" onPick={noop} onClose={noop} />);
+    expect(new DOMParser().parseFromString(html, 'text/html').body.textContent).toContain(`${t('picker.hero.purse')} 4d10 sous de cuivre`);
   });
 
   it('roster non vide : MÊME carte-portrait (nom complet + recruter + outils export/suppr)', () => {
@@ -117,6 +123,7 @@ describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)'
   it('recruter un pré-tiré engage son id, recruter un personnage du roster engage son brouillon sous son id : le noyau bâtit le héros', () => {
     const d = brouillonComplet('Aventurière Sauvegardée');
     ajouterAuRoster(stockageDuRoster(), { hero: savedHero(), wealth: { gold: 1, silver: 0, brass: 0 }, draft: d });
+    poserLesPretires();
     const choisis: HerosEngage[] = [];
     act(() => root.render(<HeroSelector party={[]} mode="recruit" onPick={(h) => choisis.push(h)} onClose={noop} />));
     const recruter = () => [...host.querySelectorAll<HTMLButtonElement>('button')].find((b) => b.textContent?.includes('Recruter'))!;
@@ -124,7 +131,7 @@ describe('HeroSelector — le témoin d’un roster d’un autre format (#2404)'
     act(() => recruter().click());
     act(() => onglet(t('picker.tab.pregens')).click());
     act(() => recruter().click());
-    expect(choisis).toEqual([{ brouillon: d, id: 'roster-hero-1' }, { pretire: pregens[0].id }]);
+    expect(choisis).toEqual([{ brouillon: d, id: 'roster-hero-1' }, { pretire: PRETIRE_DE_TEST.id }]);
   });
 });
 
@@ -313,7 +320,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
     );
 
   it('siège occupé : contrat scellé — portrait + nom + rôle + cartouche « Contrat N » + sceau, personnage cliquable', () => {
-    const heroes = makePregens(idsDeTest).slice(0, 2);
+    const heroes = herosDeTest(2);
     const html = render(heroes, initialNet());
     expect(html).toContain('seat-card');
     expect(html).toContain('seat-card-contract');
@@ -347,7 +354,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
   });
 
   it('groupe complet : 4 cartes de siège, aucun siège vide, aucune galerie', () => {
-    const heroes = makePregens(idsDeTest).slice(0, 4);
+    const heroes = herosDeTest(4);
     const full = render(heroes, initialNet());
     expect((full.match(/seat-card-contract/g) ?? []).length).toBe(4);
     for (const h of heroes) expect(full).toContain(h.label);
@@ -356,7 +363,7 @@ describe('PartyScreen — présentation par le PERSONNAGE (plus de bouton « Qui
   });
 
   it('sous-titre d’archétype : la CARRIÈRE d’abord, l’espèce ensuite (arbitrage user 2026-07-13)', () => {
-    const hero = makePregens(idsDeTest)[0];
+    const hero = herosDeTest(1)[0];
     const sub = heroSubtitle(hero);
     expect(sub).toContain(' — '); // « Carrière — Espèce »
     // la carrière précède l'espèce (séparateur em-dash entre les deux)
@@ -462,7 +469,7 @@ describe('PartyScreen — « Lancer » sans choix lance l’Arène par la porte 
 
   beforeEach(() => {
     (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
-    useGame.setState({ pendingCampaign: null, scene: null, screen: 'party', party: makePregens(idsDeTest).slice(0, 1), net: initialNet() });
+    useGame.setState({ pendingCampaign: null, scene: null, screen: 'party', party: herosDeTest(1), net: initialNet() });
     container = document.createElement('div');
     document.body.appendChild(container);
     root = createRoot(container);
@@ -516,7 +523,7 @@ describe('PartyScreen — Modifier, Remplacer, Retirer suivent le verdict du noy
   afterEach(() => { demonterRacines(); vi.unstubAllGlobals(); });
 
   it('hôte : le héros de l’invité ferme ses gestes sur la raison du noyau, le sien les ouvre', () => {
-    const [mien, sien] = makePregens(idsDeTest);
+    const [mien, sien] = herosDeTest(2);
     useGame.setState({
       battle: null, scene: null, pendingCampaign: null, party: [mien, sien],
       net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 1, 0, 0], ownership: { [mien.id]: 0, [sien.id]: 1 }, rangs: { [mien.id]: 0, [sien.id]: 1 } },

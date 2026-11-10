@@ -4,7 +4,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { chooseEnemyAction } from './monde/ai';
 import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { spawnEnemy } from './monde/spawn';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -72,7 +72,7 @@ describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie ac
     e.resolve = 1;
     e.engagedWith = ['h'];
     e.movement = 4;
-    const h = pregen(idsDeTest, PREGEN.sorcier);
+    const h = herosDeScenario(idsDeTest, 'sorcier');
     h.id = 'h'; h.pos = { x: 6, y: 5 }; h.wounds = blessuresDeBase(30, 30, h); // adjacent → mêlée après déverrouillage
     const battle = {
       combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1,

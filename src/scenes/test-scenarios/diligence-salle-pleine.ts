@@ -1,4 +1,4 @@
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from './_heros';
 import { diligenceCampaign, paquetDuJeu } from '../campaign';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import { assignSeat, seatSlotsOf } from '../../noyau/monde/seating';
@@ -100,5 +100,5 @@ export const scenario: TestScenario = {
   title: 'La Diligence — salle pleine',
   tests: 'La salle meublée VUE HABITÉE : 16 convives authorés assis, un par place des 3 tables rondes et des 2 tables murales, chacun posé sur l’abord effectif de sa place.',
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — départ au milieu de la salle, aucun combat.',
-  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: meublerDeGens(poserDepart(paquetDuJeu(diligenceCampaign).scenes[0])) }),
+  construire: (idNeuf) => ({ party: groupeVitrineDeScenario(idNeuf), scene: meublerDeGens(poserDepart(paquetDuJeu(diligenceCampaign).scenes[0])) }),
 };

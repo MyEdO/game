@@ -20,7 +20,7 @@ import { actionGate } from './actionRegistry';
 import { castSpell } from './combatFlow';
 import { chooseEnemyAction, type CastableSpell } from './monde/ai';
 import { emptyScene } from './monde/scene';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import { rollMiscast, miscastRowSource, miscastTableId } from '../engine/miscast';
@@ -46,7 +46,7 @@ afterEach(() => resetDesFixes());
 
 /** Un prêtre de Sigmar (`beni` spécialisé) et un allié blessé. */
 function pretreEtAllie(peche: number) {
-  const [pretre, allie] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
+  const [pretre, allie] = groupeDeScenario(idsDeTest, 'pretre', 'soldat');
   pretre.sinPoints = peche;
   allie.wounds.current = allie.wounds.max - 5;
   return { pretre, allie };
@@ -115,7 +115,7 @@ describe('Colère des dieux — 41-45 « Votre cause est indigne » (LDB 40 l.64
 describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40 l.74)', () => {
   /** Le prêtre en combat, au contact d'un ennemi, son tour ; la rangée 76-80 subie (1d10 = `de`). */
   function penitent(de: number) {
-    const [pretre] = pregenParty(idsDeTest, PREGEN.pretre);
+    const [pretre] = groupeDeScenario(idsDeTest, 'pretre');
     pretre.sinPoints = 2;
     banc.setState({ party: [pretre] });
     banc.getState().lancerLaScene(testScene());

@@ -10,7 +10,7 @@ import { useGame } from './store';
 import { interceptGuestActions, restoreGuestActions } from './netFlow';
 import { initialNet } from '../noyau/etat';
 import { jouerLeClicDeCase, jouerLeClicDuCombattant } from '../noyau/combatOrParty';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../noyau/monde/spawn';
 
 const get = () => useGame.getState();
@@ -22,7 +22,7 @@ const arena = () => {
 /** Invité du siège 0, qui tient le tour de h1. Les verbes locaux sont des espions, que le substitut d'invité
  *  enrobe ; un espion EXTÉRIEUR enregistre ce que le site appelle dans l'état. */
 function invite() {
-  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
+  const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
   const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
   const battle = {
     combatants: [hero, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'],

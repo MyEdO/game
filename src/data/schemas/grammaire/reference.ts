@@ -263,6 +263,9 @@ export const dotationDeCatalogueSchema = nommerChamps(z.strictObject({
   qualityChoice: z.literal(true).optional(),
 }), { id: { label: 'identifiant' }, spec: { label: 'précision' }, count: { label: 'nombre' }, qualities: { label: 'qualités' }, qualityChoice: { label: 'qualité au choix' } });
 
+/** Dotation d'une ligne hors catalogue : son texte imprimé et sa quantité. */
+export const dotationDeTexteSchema = nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } });
+
 /** Ce qu'une dotation POSSÈDE hors du sac : une bête du bestiaire ou un véhicule (SOCLE POSSESSIONS #615). */
 export const typeDePossessionSchema = enumNomme({ creature: 'Créature', vehicle: 'Véhicule' });
 /** Dotation d'une POSSESSION : la référence typée, sa quantité et son libellé imprimé. */
@@ -279,7 +282,7 @@ export const trappingRefSchema: z.ZodType<
   | { wildcard: 'arme' }
 > = z.union([
   dotationDeCatalogueSchema,
-  nommerChamps(z.strictObject({ text: z.string(), count: countSpecSchema.optional() }), { text: { label: "texte" }, count: { label: "nombre" } }),
+  dotationDeTexteSchema,
   dotationDePossessionSchema,
   nommerChamps(z.strictObject({ choice: z.array(z.lazy(() => trappingRefSchema)) }), { choice: { label: "choix" } }),
   nommerChamps(z.strictObject({ wildcard: z.literal('arme') }), { wildcard: { label: "choix libre" } }),

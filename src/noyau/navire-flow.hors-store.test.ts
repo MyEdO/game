@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
@@ -56,7 +56,7 @@ const carte: WorldMap = {
 function etatFrais(): void {
   seedBattleRng(1);
   set({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: carte, lieu: 'A', travelPlan: null, pendingCascade: null, suspendedCascades: [],
     flags: {}, journal: [],

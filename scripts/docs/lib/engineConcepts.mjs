@@ -38,6 +38,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/castingNumber.ts', "Magie : Nombre d'Incantation"],
   ['src/engine/character.ts', 'Personnage : dérivés, résolution de fiche'],
   ['src/engine/adresseDeCreation.ts', 'Personnage : adresses des emplacements de création'],
+  ['src/engine/heroDeFiche.ts', "Personnage : héros d'une fiche imprimée (prétiré), sans tirage"],
   ['src/engine/characteristics.ts', 'Caractéristiques et bonus'],
   ['src/engine/classementDeTrait.ts', "Classement d'un Trait imprimé : fourchette, Indice par Localisation, Aspect"],
   ['src/engine/clock.ts', 'Horloge, temps de jeu'],
