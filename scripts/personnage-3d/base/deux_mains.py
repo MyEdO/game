@@ -22,6 +22,7 @@ from mathutils import Matrix, Quaternion, Vector
 
 from anatomie import zone_de_l_os
 from animation import assign_action, meshes_for
+from noms_silhouettes import CORPULENCE, FEMININ
 from pistes import aller_a, sacs
 from poids import deformer, instants, peau_lineaire
 from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE
@@ -58,7 +59,7 @@ la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle`, et son
 d'`echelle_plancher` : la marge et le plancher couvrent les silhouettes et les états du gabarit, que la mesure ne parcourt
 pas, sous lesquels une arête du poignet écrasée à 0,07 sur le corps neutre passe sous la borne basse, et l'aisselle et le
 haut de l'épaule, tenus à 0,12 sur le corps neutre, passent sous elle sous les silhouettes combinées (#3319)."""
-TRONC = {'zones': ('torse', 'hanches'), 'silhouettes': ((), ('corpulence',), ('feminin', 'corpulence')),
+TRONC = {'zones': ('torse', 'hanches'), 'silhouettes': ((), (CORPULENCE,), (FEMININ, CORPULENCE)),
          'echelle': 0.01, 'points': ((0.0, 0.11), (1 / 3, 0.05), (2 / 3, 0.05))}
 """Le tronc dont l'avant-bras se tient à l'écart (`peau_du_tronc`) : les sommets des `zones` (celle de l'os dominant,
 `anatomie.zone_de_l_os`), sous chaque jeu de `silhouettes` posées à 1. Les `points` de l'axe du bras, chacun sa fraction
