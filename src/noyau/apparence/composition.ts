@@ -9,7 +9,7 @@
 import { choixDeLaFeuilleDId, matieresDe, findApparenceById, findCoiffureById, findEnsembleParHabille, findGroupeDArmureById, findPresetDePersonnageById, findTeteById, findTrappingById, piecesDeLObjet, presetsDePersonnage, raceAppearance, trappingsInstanciables, type GabaritId } from '../../data';
 import type { HitLocation } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
-import { entityAppearanceSchema } from '../../data/schemas/grammaire/valeurs';
+import { entityAppearanceSchema, type Couleurs } from '../../data/schemas/grammaire/valeurs';
 import { serializeDataset } from '../../data/serialize';
 import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
 import { racineDesCandidats } from '../../engine/items';
@@ -89,7 +89,8 @@ export interface Portee {
 }
 
 /** Ce que porte un corps, et ce corps : son sexe, sa corpulence (absente, le corps neutre) et sa palette. */
-export interface PorteeDeComposition extends Pick<Composition, 'sex' | 'build' | 'couleurs'> {
+export interface PorteeDeComposition extends Pick<Composition, 'sex' | 'build'> {
+  couleurs?: Couleurs;
   portees: Portee[];
   embleme?: EmblemeResolu;
   /** Les objets ni tenus ni rangés : ni ensemble, ni prise, ni `rangement` (D1). */

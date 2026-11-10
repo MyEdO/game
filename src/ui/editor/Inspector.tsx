@@ -25,7 +25,6 @@ import {
   type FaceDArete,
   type WallSecret,
   isDescriptiveZone,
-  enrolledEntityIds,
   idDuCorps,
   porteAuteur,
   reposDeScene,
@@ -1401,7 +1400,7 @@ function EntityPanel({
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
-              weapons={armesDEntite(objetDuNarratif(narratif), ent.creature?.id, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
+              weapons={armesDEntite(objetDuNarratif(narratif), ent.creature?.id, equipementDAuteurDe(ent, scene))}
             />
           </Fold>
           <Fold title="Rôle (dialogue, marchand)">

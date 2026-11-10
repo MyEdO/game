@@ -297,6 +297,8 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
     // Caractéristique et de Compétence), et une Amélioration celle de `navalTraitRefSchema`.
     // #3606 M1b : le profil personnalisé est la sortie de `customStatblockSchema` (`defs-scenes/communs.ts`) ; sa
     // pose de Trait nomme les champs de la pose, à son premier porteur, et son Talent est `TalentRef`.
+    // #3606 M1c : l'apparence d'une entité est l'entrée d'`entityAppearanceSchema` (`grammaire/valeurs.ts`) ; ses
+    // couleurs, clés d'emplacement de palette d'un type mappé.
     const DOC = ['src/noyau/monde/scene.ts', 'src/data/schemas/defs-scenes/scene.ts'];
     const fichier = (r: { decl: ts.Declaration }) =>
       path.relative(ROOT, r.decl.getSourceFile().fileName).split(path.sep).join('/');
@@ -320,6 +322,19 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CharStats.initiative @ src/data/schemas/defs-scenes/communs.ts',
       'CharStats.intelligence @ src/data/schemas/defs-scenes/communs.ts',
       'CharStats.sociabilite @ src/data/schemas/defs-scenes/communs.ts',
+      'Couleurs.accent @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.bois @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.cheveux @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.corne @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.corps @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.cuir @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.fourrure @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.metal @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.peau @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.plume @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.vet1 @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.vet2 @ src/data/schemas/grammaire/valeurs.ts',
+      'Couleurs.yeux @ src/data/schemas/grammaire/valeurs.ts',
       'CustomStatblock.char @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.followsCharacterRules @ src/data/schemas/defs-scenes/communs.ts',
       'CustomStatblock.groups @ src/data/schemas/defs-scenes/communs.ts',
@@ -346,6 +361,13 @@ export interface Scene { id: string; walls: (typeof murSchema)['sortie'][]; voc:
       'CustomStatblock.traits.source @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.traits.value @ src/data/schemas/grammaire/reference.ts',
       'CustomStatblock.type @ src/data/schemas/defs-scenes/communs.ts',
+      'EntityAppearance.apparencesObjets @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.armurePortee @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.couleurs @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.embleme @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.sex @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.species @ src/data/schemas/grammaire/valeurs.ts',
+      'EntityAppearance.tenue @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.brass @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.gold @ src/data/schemas/grammaire/valeurs.ts',
       'MoneyPartial.silver @ src/data/schemas/grammaire/valeurs.ts',
