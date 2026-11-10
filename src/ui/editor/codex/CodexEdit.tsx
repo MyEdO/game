@@ -222,6 +222,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // Créature : `skills`/`talents` sont des REFS structurées (`SkillRef`/`TalentRef`) — éditées au FORMAT
   // LIVRE (porte partagée avec l'éditeur de statbloc de scène), jamais par le champ-liste générique.
   if (categoryKey === 'creatures') add('skills', 'talents');
+  if (categoryKey === 'pregens') add('trappings', 'talents'); // MÊMES refs que la créature : `TalentRef[]` et dotations (id catalogue ou texte)
   if (categoryKey === 'careerLevels') add('characteristics');
   if (categoryKey === 'domains') add('castBonus', 'missile', 'casterOps');
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
@@ -395,7 +396,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Avancement (espèce / niveau de carrière) : `skills`/`talents` = AdvancementRef[] (réf/joker/choix/aléatoire).
   const hasAdvancement = categoryKey === 'races' || categoryKey === 'careerLevels';
   // Possessions (classe / niveau de carrière / créature) : `trappings` = TrappingRef[] (id catalogue + quantité, ou texte).
-  const hasTrappings = categoryKey === 'classes' || categoryKey === 'careerLevels' || categoryKey === 'creatures';
+  const hasTrappings = categoryKey === 'classes' || categoryKey === 'careerLevels' || categoryKey === 'creatures' || categoryKey === 'pregens';
   // Niveau de carrière : `characteristics` = CharKey[] (vocab fermé) → multi-sélection (pas de saisie libre).
   const hasCharKeys = categoryKey === 'careerLevels';
   // Étoile : `sub` = la fourchette du 1d10 interne (Étoile du Sorcier, ADE II 03 l.63) → `PlageField`.
@@ -685,13 +686,15 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
               value={entry.skills as SkillRef[] | undefined} libelle={skillRefLabel} parse={parseSkillRef}
               onChange={(v) => edit('skills', v)}
             />
-            <LignesFormatLivreField
-              label="Talents"
-              hint="(un par ligne, format livre « Talent (Spéc) Niveau » : « Magie des Arcanes (Bête) », « Maîtrise du combat 3 », « Lire/Écrire »)"
-              value={entry.talents as TalentRef[] | undefined} libelle={talentRefLabel} parse={parseTalentRef}
-              onChange={(v) => edit('talents', v)}
-            />
           </>
+        )}
+        {(isCreature || categoryKey === 'pregens') && (
+          <LignesFormatLivreField
+            label="Talents"
+            hint="(un par ligne, format livre « Talent (Spéc) Niveau » : « Magie des Arcanes (Bête) », « Maîtrise du combat 3 », « Lire/Écrire »)"
+            value={entry.talents as TalentRef[] | undefined} libelle={talentRefLabel} parse={parseTalentRef}
+            onChange={(v) => edit('talents', v)}
+          />
         )}
         {isDetails && <DetailsTextsField value={entry.texts as DetailsTexts | undefined} onChange={(v) => edit('texts', v)} />}
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}

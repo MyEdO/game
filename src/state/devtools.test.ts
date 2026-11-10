@@ -10,6 +10,7 @@ import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
 import { itemFromTrappingById, formeResolue } from '../engine/items';
 import { herosDeTest } from '../noyau/creation/pretireDeTest.testkit';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from '../noyau/battleRng';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
 import { advanceTurn, choixPiegeLame } from '../noyau/combatFlow';
@@ -1048,7 +1049,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   const freshState = () => {
     seedBattleRng(1); // déterminisme (suite isolate:false)
     useGame.setState({
-      party: herosDeTest(3),
+      party: groupeDeScenario(idsDeTest, 'soldat', 'tueur', 'sorcier'),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
       worldMap: seaMap,

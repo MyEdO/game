@@ -5,6 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { argentDuPnj, carriereActuelle, designationsDeCarriere, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
 import { combattantDeTest } from './combattantDeTest.testkit';
+import { tableTotale } from '../lib/tableTotale';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
 import { levelsForCareer } from '../data';
@@ -120,7 +121,7 @@ describe('designationsDeCarriere — une Compétence d’une entrée sans choix 
     const complet = (cles: string[]) => {
       const refs = cles.map((k) => { const [id, spec] = k.split('|'); return spec ? { id, spec } : { id }; });
       const { designations } = designationsDeCarriere('conseiller', 3, refs);
-      const hero = combattantDeTest({ charAdvances: Object.fromEntries(availableChars(levels, 3).map((k) => [k, 15])), talents: [{ talentId: 'ergoteur', times: 1 }] });
+      const hero = combattantDeTest({ charAdvances: tableTotale(availableChars(levels, 3), () => 15), talents: [{ talentId: 'ergoteur', times: 1 }] });
       for (const r of refs) augmenterLaCompetence(hero.skills, r, 15);
       return isCareerLevelComplete(hero, 3, { skillSlots: skillSlots(levels, 3), talentSlots: talentSlots(levels, 3), careerChars: availableChars(levels, 3), designations });
     };
