@@ -121,6 +121,10 @@ const FICHES = ['vouivre-zoo-imperial', 'l-ombre-du-fleuve'] as const;
  *  (`EntityAppearance.apparencesObjets`, #2948). */
 const ENROLE = 'sergent-du-guet';
 
+/** La scène d'un projet du jeu qui déclare un dialogue, et la case libre où s'y pose un personnage de la première des
+ *  `FICHES`, qui le choisit (`dialogueId`). */
+const A_DIALOGUE = { campagne: 'loup-et-saumure', scene: 'ls-epilogue-salzenmund', case: { x: 4, y: 3 } } as const;
+
 /** Le projet dont le narratif déclare des presets de PNJ (`presetsPnj`), qu'un personnage choisit (`presetId`). */
 const PROJET_A_PRESETS = 'la-diligence';
 
@@ -135,7 +139,8 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => e
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), et un personnage d'`ENROLE`
  *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
- *  première des `FICHES` posé dans une scène neuve du `PROJET_A_PRESETS`, et sur la coque `COQUE`, sélectionnée ; chacun
+ *  première des `FICHES` posé dans une scène neuve du `PROJET_A_PRESETS` et dans la scène `A_DIALOGUE`, et sur la coque
+ *  `COQUE`, sélectionnée ; chacun
  *  joué à son inspecteur (`jouerLInspecteur`). */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
@@ -150,6 +155,10 @@ export function ecrituresJouees(): EcritureJouee[] {
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
   jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
+  const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
+  if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
+  const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');
+  jouerLInspecteur(cliquer(presser(dialogues, `personnage/${FICHES[0]}`), A_DIALOGUE.case.x, A_DIALOGUE.case.y), out);
   const campagne = allBuiltinCampaigns.find((c) => c.id === COQUE.campagne);
   if (!campagne) throw new Error(`aucune campagne ${COQUE.campagne}`);
   const barge = presser(presser(ouvrirLEdition(paquetDuJeu(campagne), false), `scenes/${COQUE.scene}`), 'outil/select');

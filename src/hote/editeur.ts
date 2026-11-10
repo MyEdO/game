@@ -257,14 +257,17 @@ export interface ZonesDeLEditeur {
    * de toute entité, les entrées de fiche qu'elle couvre, comme celles d'une zone, sous `entite/couvre` ;
    *
    * d'un personnage, le formulaire tiré du schéma de son type (`formulaireDe('entite', …)`), comme celui d'une zone
-   * d'effet, dans sa scène et le narratif du projet (`cadreDeLaSession`) : son preset (`presetId`) s'il en porte un ou si le narratif en déclare ; de son
+   * d'effet, dans sa scène et le narratif du projet (`cadreDeLaSession`) : son preset (`presetId`) s'il en porte un ou si le narratif en déclare ;
+   * son dialogue (`dialogueId`) s'il en porte un ou si sa scène en déclare ; de son
    * rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques, son embuscade et, s'il en
    * porte ou si sa fiche ouvre une liste de sorts sans imprimer les siens, ses sorts choisis (`combat.spells`) ; son
    * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
+   * marchand (`merchant`), son jeu de taverne (`tavernGame`), son
    * apparence (`appearance`), sans tenue pour un PNJ de carrière, ses couleurs par emplacement de palette, son
    * animation (`anim`) et, d'une coque, son véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa
    * fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
-   * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; le profil absent, « Ajouter » choisit un profil
+   * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; un dialogue, chacun de ceux que sa scène
+   * déclare (`dialoguesDeLaScene`) ; le profil absent, « Ajouter » choisit un profil
    * neuf au nom du personnage (`emptyStatblock`) ou la copie de sa créature du Bestiaire (`statblockDeLaCreature`) ;
    * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits standard
    * en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le formulaire

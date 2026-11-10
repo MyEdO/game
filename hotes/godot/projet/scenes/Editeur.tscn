@@ -108,7 +108,7 @@ ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/statblock", "
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Rôles"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
-ids = PackedStringArray("valeur/amateur", "valeur/amateur/")
+ids = PackedStringArray("valeur/dialogueId", "valeur/dialogueId/", "valeur/merchant", "valeur/merchant/", "valeur/tavernGame", "valeur/tavernGame/", "valeur/amateur", "valeur/amateur/")
 
 [node name="Apparence" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 

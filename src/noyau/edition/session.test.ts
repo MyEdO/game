@@ -35,7 +35,8 @@ import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves'
 import { valeurNeuveDe } from '../valeursNeuves';
 import { refusDeLaValeur } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { creatures, findCreatureById, spells, talents, traits } from '../../data';
+import { creatures, findCreatureById, MERCHANT_ARCHETYPES, spells, talents, traits } from '../../data';
+import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';
@@ -385,9 +386,9 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
   });
 });
 
-describe('le porteur `entite` du geste `valeur` (#3606 M1a, M1b)', () => {
+describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-  const poser = (ref: string, x: number, narratif = NARRATIF_VIDE) => jouer(ouverteSur(emptyScene('m1a', 6, 6), false, narratif), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref } }, { geste: 'appui', point: point(x, 1) }, { geste: 'relache', point: point(x, 1) });
+  const poser = (ref: string, x: number, narratif = NARRATIF_VIDE, scene = emptyScene('m1a', 6, 6)) => jouer(ouverteSur(scene, false, narratif), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref } }, { geste: 'appui', point: point(x, 1) }, { geste: 'relache', point: point(x, 1) });
   const idDe = (s: SessionDEdition) => (s.sel?.type === 'entity' ? s.sel.id : '');
   const valeur = (id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
 
@@ -444,6 +445,54 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a, M1b)', () => {
     expect(refusDeLaValeur(choisie, valeur(id, ['appearance', 'apparencesObjets', 'arme-simple'], valeurNeuveDe(recordDuNoeud(apparencesDObjetsSchema)!.valeur))), 'la valeur neuve hors des choix').toBe('horsSorte');
     expect(refusDeLaValeur(enrole, valeur(id, ['appearance', 'apparencesObjets', 'dague'], { id: autres[0].id })), 'un objet hors de ses armes').toBe('nonOffert');
     expect(refusDeLaValeur(enrole, valeur(id, ['appearance', 'apparencesObjets'], 'arme-simple')), 'une clé n’est pas sa valeur').toBe('horsSorte');
+  });
+
+  it('le marchand s’écrit champ par champ, son archétype choisi au catalogue, sa majoration positive, son taux de rachat entre 0 et 1, ses jours de réassort entiers ; une valeur hors des choix ou des bornes est refusée (#3606 M1d)', () => {
+    const pose = poser('humain', 1);
+    const id = idDe(pose);
+    const marchand = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel)?.merchant;
+    const [, second] = MERCHANT_ARCHETYPES;
+    const merchant = formulaireDe('entite', entiteDeLaSelection(sceneEditee(pose), pose.sel)!, cadre()).find((f) => f.key === 'merchant')!;
+    const archetype = champsDeclares(champsDeclares(merchant.noeud)!.find(([cle]) => cle === 'archetype')![1])!.find(([cle]) => cle === 'id')![1];
+    expect(choixDuNoeud(archetype)!.map((o) => o.valeur), 'chaque archétype de marchand du catalogue').toEqual(MERCHANT_ARCHETYPES.map((a) => a.id));
+    const ecrit = jouer(pose, valeur(id, ['merchant'], valeurNeuveDe(merchant.noeud)), valeur(id, ['merchant', 'archetype', 'id'], second.id),
+      valeur(id, ['merchant', 'settlement'], 'ville'), valeur(id, ['merchant', 'resaleRate'], 0.25), valeur(id, ['merchant', 'buyMarkup'], 1.5), valeur(id, ['merchant', 'restockDays'], 3),
+      valeur(id, ['merchant', 'guild'], true), valeur(id, ['merchant', 'marketMode'], 'simplifie'), valeur(id, ['merchant', 'tenirComptes'], false));
+    expect(marchand(ecrit)).toEqual({ archetype: { id: second.id }, settlement: 'ville', resaleRate: 0.25, buyMarkup: 1.5, restockDays: 3, guild: true, marketMode: 'simplifie', tenirComptes: false });
+    expect([
+      refusDeLaValeur(ecrit, valeur(id, ['merchant', 'archetype', 'id'], 'inconnu')),
+      refusDeLaValeur(ecrit, valeur(id, ['merchant', 'settlement'], 'hameau')),
+      refusDeLaValeur(ecrit, valeur(id, ['merchant', 'resaleRate'], 1.5)),
+      refusDeLaValeur(ecrit, valeur(id, ['merchant', 'buyMarkup'], 0)),
+      refusDeLaValeur(ecrit, valeur(id, ['merchant', 'restockDays'], -1)),
+      refusDeLaValeur(ecrit, valeur(id, ['merchant', 'restockDays'], 1.5)),
+    ]).toEqual(['horsSorte', 'horsSorte', 'horsSorte', 'horsSorte', 'horsSorte', 'horsSorte']);
+    expect(marchand(jouer(ecrit, valeur(id, ['merchant'])))).toBeUndefined();
+  });
+
+  it('le jeu de taverne se choisit au catalogue des jeux, sa mise de départ en sous (NADJ 04 l.72), entière et jamais négative ; un jeu hors du catalogue ou une mise négative ou fractionnaire est refusé (#3606 M1d)', () => {
+    const pose = poser('humain', 1);
+    const id = idDe(pose);
+    const [premier, second] = TAVERN_GAMES;
+    const ecrit = jouer(pose, valeur(id, ['tavernGame'], { id: premier.id }), valeur(id, ['tavernGame', 'id'], second.id), valeur(id, ['tavernGame', 'stakeBrass'], 20));
+    expect(entiteDeLaSelection(sceneEditee(ecrit), ecrit.sel)?.tavernGame).toEqual({ id: second.id, stakeBrass: 20 });
+    expect([refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'id'], 'inconnu')), refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'stakeBrass'], -1)), refusDeLaValeur(ecrit, valeur(id, ['tavernGame', 'stakeBrass'], 0.5))]).toEqual(['horsSorte', 'horsSorte', 'horsSorte']);
+  });
+
+  it('le dialogue se choisit parmi exactement ceux que sa scène déclare, entier ou par son identifiant ; une scène sans dialogue ne l’offre pas (#3606 M1d)', () => {
+    const dialogue = (id: string) => ({ id, start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [] }] });
+    const scene = { ...emptyScene('m1d', 6, 6), dialogues: [dialogue('dlg-a'), dialogue('dlg-b')] };
+    const pose = poser('humain', 1, NARRATIF_VIDE, scene);
+    const id = idDe(pose);
+    const ent = entiteDeLaSelection(sceneEditee(pose), pose.sel)!;
+    expect(choixDuChamp('entite', ent, ['dialogueId'], cadreDeLaSession(pose))!.map((c) => c.valeur)).toEqual([{ id: 'dlg-a' }, { id: 'dlg-b' }]);
+    expect(choixDuChamp('entite', ent, ['dialogueId', 'id'], cadreDeLaSession(pose))!.map((c) => c.valeur)).toEqual(['dlg-a', 'dlg-b']);
+    const choisi = jouer(pose, valeur(id, ['dialogueId'], { id: 'dlg-a' }), valeur(id, ['dialogueId', 'id'], 'dlg-b'));
+    expect(entiteDeLaSelection(sceneEditee(choisi), choisi.sel)?.dialogueId).toEqual({ id: 'dlg-b' });
+    expect([refusDeLaValeur(choisi, valeur(id, ['dialogueId', 'id'], 'dlg-z')), refusDeLaValeur(pose, valeur(id, ['dialogueId'], { id: 'dlg-z' }))]).toEqual(['horsSorte', 'horsSorte']);
+    const sansDialogue = poser('humain', 1);
+    expect(formulaireDe('entite', entiteDeLaSelection(sceneEditee(sansDialogue), sansDialogue.sel)!, cadreDeLaSession(sansDialogue)).map((f) => f.key)).not.toContain('dialogueId');
+    expect(refusDeLaValeur(sansDialogue, valeur(idDe(sansDialogue), ['dialogueId'], { id: 'dlg-a' }))).toBe('nonOffert');
   });
 
   it('un profil personnalisé s’ajoute neuf au nom du personnage ou copié de sa créature du Bestiaire, puis s’écrit champ par champ, l’identifiant d’un Talent au catalogue ; une autre valeur entière est refusée (#3606 M1b)', () => {

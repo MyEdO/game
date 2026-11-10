@@ -45,7 +45,7 @@ import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
-import type { Settlement } from '../../engine/disponibilite';
+import type { Settlement } from '../../data/schemas/grammaire/valeurs';
 import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';

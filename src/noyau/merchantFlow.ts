@@ -18,7 +18,8 @@ import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { appraiseEstimate } from '../engine/appraisal';
 import { makeRNG } from '../engine/dice';
 import { hasTalent } from '../engine/magic';
-import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type Settlement, type CatalogItem, type StockLine } from '../engine/disponibilite';
+import { rollStock, fullStock, availabilitySearchBonus, barterRatio, availabilityAfterHalvings, priceAfterHalvings, isTradable, outOfTradeReason, type CatalogItem, type StockLine } from '../engine/disponibilite';
+import type { Settlement } from '../data/schemas/grammaire/valeurs';
 import type { Availability } from '../engine/types';
 import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';

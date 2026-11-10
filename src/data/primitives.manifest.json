@@ -659,6 +659,15 @@
     "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, src/data/schemas/defs-scenes/dialogues-et-noeuds.test.ts, src/data/schemas/defs-scenes/routes-et-lieux.test.ts, src/data/schemas/defs-scenes/scenes-visees.test.ts, src/data/schemas/espaces-contrat.test.ts"
   },
   {
+    "id": "dialoguesDeLaScene",
+    "type": "primitives.manifest",
+    "label": "dialoguesDeLaScene",
+    "fichier": "src/noyau/monde/scene.ts",
+    "concept": "les dialogues qu’une scène déclare, par identifiant : la seule lecture par id de la collection `Scene.dialogues` dans le noyau et l’hôte",
+    "perimetre": "ouverture d’un dialogue (effet `startDialogue`, capacité « parler »), validation de l’éditeur (réfs d’effet, `EffectRefCtx.dialogues`), renommage et id frais d’un dialogue (`renameDialogue`, `addDialogue`), choix du dialogue d’un personnage au formulaire de l’éditeur Godot (`dialogueId`)",
+    "verrou": "src/noyau/edition/session.test.ts, src/noyau/sceneEdit-dialogue.test.ts"
+  },
+  {
     "id": "refCouvre",
     "type": "primitives.manifest",
     "label": "refCouvre",

@@ -7,7 +7,7 @@
  * vit hors du store. Les lectures (outil, sélection, picking, emprise du pinceau) vivent dans
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
-import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
+import { ActionAuthoree, DEFAULT_TERRAIN, dialoguesDeLaScene, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
@@ -894,7 +894,7 @@ export function renameEncounter(scene: Scene, from: string, to: string): Scene {
 
 /** Crée un dialogue d'un seul nœud de départ, sans choix (id frais). */
 export function addDialogue(scene: Scene): { scene: Scene; id: string } {
-  const id = nextEntityId('dlg', scene.dialogues.map((d) => d.id));
+  const id = nextEntityId('dlg', [...dialoguesDeLaScene(scene).keys()]);
   return { scene: { ...scene, dialogues: [...scene.dialogues, { id, start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [] }] }] }, id };
 }
 
@@ -913,7 +913,8 @@ export function removeDialogue(scene: Scene, id: string): Scene {
  *  déjà porté par un autre dialogue. `sceneSchema` (portée `dialogues`), `EFFECT_HANDLERS.startDialogue.refs`. */
 export function renameDialogue(scene: Scene, from: string, to: string): Scene {
   const next = to.trim();
-  if (!next || next === from || scene.dialogues.some((d) => d.id === next) || !scene.dialogues.some((d) => d.id === from)) return scene;
+  const declares = dialoguesDeLaScene(scene);
+  if (!next || next === from || declares.has(next) || !declares.has(from)) return scene;
   const copie = structuredClone(scene);
   for (const { effet } of sitesDeLaScene(copie).effets) if (effet.type === 'startDialogue' && effet.dialogue === from) effet.dialogue = next;
   const renomme = { ...copie, dialogues: copie.dialogues.map((d) => (d.id === from ? { ...d, id: next } : d)) };
