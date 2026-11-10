@@ -2,6 +2,7 @@ import { cibleMesuree, evaluateTest } from '../../engine/tests';
 import type { ComponentProps } from 'react';
 import { useGame } from '../../state/store';
 import { FLOWS } from '../../noyau/rollFlowSpecs';
+import { refusDImmunite } from '../../noyau/determinationDuJet';
 import { RollShell, type RollAction } from '../RollShell';
 import { buildRollRow } from '../rollRowBuild';
 import { PortraitPicker } from '../console/PortraitPicker';
@@ -33,7 +34,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
   const reroll = useGesteDeJet('jetRelancer', 'test');
   const bonusSL = useGesteDeJet('jetAjouterUnDR', 'test');
   const darkPact = useGesteDeJet('jetPactiser', 'test');
-  const determination = useGesteDeJet('jetDepenserLaDetermination', 'test');
+  const depenserLaDetermination = useGame((s) => s.depenserLaDetermination);
   const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'test');
   const reverseVerb = useGesteDeJet('jetInverser', 'test');
   const regler = useGame((s) => s.jetRegler);
@@ -129,8 +130,8 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
         fortune: actor?.fortune ?? 0,
         resilience: actor?.resilience ?? 0,
         reverse: reverseAvail ? { onReverse: reverseVerb, preview: reversePreview } : undefined,
-        /* Détermination (LDB 17 l.59) : AVANT le jet, si un malus psy social pèse, la dépense l'ignore. */
-        determination: FLOWS.test.fermetures(useGame.getState).determine ? undefined : { resolve: actor?.resolve ?? 0, onResolve: determination },
+        /* Détermination (LDB 17 l.59) : AVANT le jet, si un malus psy social pèse, la dépense l'ignore (`refusDImmunite`). */
+        determination: !actor || refusDImmunite(useGame.getState(), actor) ? undefined : { resolve: actor.resolve ?? 0, onResolve: () => depenserLaDetermination(actor.id, 'immuniserALaPsychologie') },
       }),
     ],
     outcome: rolled ? [recapLineOfEvent(ev('info', describeTest(pt), pt.actorId), party)] : undefined,

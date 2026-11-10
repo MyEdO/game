@@ -126,6 +126,23 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     });
   });
 
+  it('Bande de Peur : la Détermination offre l’immunité au porteur de chaque rangée, fermée par son refus (LDB 17 l.59)', { timeout: 120_000 }, () => {
+    auDebutDuRound((etat) => {
+      const [h1, h2] = etat.party;
+      const sansPoint = { ...etat, battle: { ...etat.battle!, combatants: etat.battle!.combatants.map((c) => (c.id === h2.id ? { ...c, resolve: 0 } : c)) } };
+      const rangee = (id: string, result: unknown = null) => ({ id, interactive: true, base: 50, target: 50, result });
+      const bande = (rangees: unknown[]): Jeu => ({ ...sansPoint, pendingRoundStart: null, pendingCascade: { title: 'Peur', cursor: 0, seq: 1, log: [], purpose: 'test', participants: [{
+        id: 'bande-peur', kind: 'combatPsych', label: 'Peur', aggregate: 'none', groupOwner: true, result: null, participants: rangees,
+        combatPsych: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+      }] } } as never);
+      const porteur = argumentDe(bande([rangee(h1.id), rangee(h2.id)]), 'depenserLaDetermination', 'combattantId');
+      expect(porteur.valeurs!.map((v) => [v.valeur, v.libelle, v.refus])).toEqual([[h1.id, h1.label, null], [h2.id, h2.label, t('agate.noResolve')]]);
+      expect(argumentDe(bande([rangee(h1.id)]), 'depenserLaDetermination', 'option').valeurs!.map((v) => v.valeur)).toEqual(['immuniserALaPsychologie']);
+      const jetee = fenetreADessiner(bande([rangee(h1.id, { roll: 30, target: 50, sl: 2, success: true })]))!.gestes.find((g) => g.verbe === 'depenserLaDetermination')!;
+      expect(jetee.arguments.find((x) => x.nom === 'combattantId')!.valeurs!.map((v) => v.refus), 'le jet tombé, la Peur a pesé').toEqual([t('jet.ferme.jetLance')]);
+    });
+  });
+
   it('Infirmerie : l’opération armée désigne la Blessure Critique à opérer, nommée avec sa Localisation', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
       const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];

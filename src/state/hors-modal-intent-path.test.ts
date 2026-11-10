@@ -38,6 +38,9 @@ const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
   dissiperLeSort: { parUI: true },
   // Le consommable d'un porteur : la fiche hors combat, la barre en combat (`CharacterSheet`, `actionRegistry`).
   utiliserLObjet: { parUI: true },
+  // La Détermination de son porteur : la barre (`resolve-*`, `actionRegistry`), la pastille d'État et la modale du jet
+  // (`DeterminationButton`, `useTestJetProps`, `CascadeModal`).
+  depenserLaDetermination: { parUI: true },
   poserLObjet: { sansSurface: 'hôte Godot : la fiche (`gestesDeLObjet`, bouton « Poser au sol ») et la barre (`drop-item`, `combat.offres`)' },
   // La sortie d'une fenêtre (`modalArbiter.sortieDeLaFenetre`) : le bouton qui ferme son écran, et les sorties
   // d'interlude du balayage et de la 2ᵉ frappe (`actionRegistry.ENTREES_PAR_RUN`).
