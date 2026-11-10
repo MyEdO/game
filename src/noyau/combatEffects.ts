@@ -22,6 +22,7 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
+import { dialoguesDeLaScene, type Dialogue } from './monde/scene';
 import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
@@ -388,11 +389,13 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
  *  MAINTENANT contre la cible, OU `afterDuration:true` = l'échéance du contexte (fin de la durée du
  *  consommable — Bonnet de fou « Quand l'effet se dissipe… », LDB 71 l.20). `forMinutes/Hours/Days` :
  *  durée d'horloge PROPRE des ops différées (bakée sur la feuille programmée — Délice de Ranald :
- *  pénalité après les 3 h, LDB 71 l.24). Le Flow programmé cible le porteur par id (`on:'hero'`). */
+ *  pénalité après les 3 h, LDB 71 l.24). Le Flow programmé vise `cible`, par défaut le porteur par id
+ *  (`on:'hero'`) ; la cible `navire` le garde (`appliquerAuNavire`). MDG 15 l.258 */
 export function scheduleDelayedOps(
   get: Get, set: SetFn, target: Combatant,
   op: Extract<import('../engine/ops').GameOp, { op: 'delayed' }>,
   base: { now: number; untilTime?: number; label?: string },
+  cible: Pick<EffectOp, 'on' | 'heroId'> = { on: 'hero', heroId: target.id },
 ): void {
   const rng = battleRng();
   const delayMin = op.afterDuration
@@ -407,7 +410,7 @@ export function scheduleDelayedOps(
   const flow: Flow = {
     kind: 'do',
     effect: {
-      type: 'ops', on: 'hero', heroId: target.id, ops: op.ops,
+      type: 'ops', ...cible, ops: op.ops,
       ...(base.label ? { label: base.label } : {}),
       ...(forMin > 0 ? { untilTime: executeAt + forMin } : {}),
     },
@@ -1280,7 +1283,8 @@ function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
 export interface EffectRefCtx {
   sceneIds: ReadonlySet<string>;
-  dialogueIds: ReadonlySet<string>;
+  /** Les dialogues de la scène (`dialoguesDeLaScene`). */
+  dialogues: ReadonlyMap<string, Dialogue>;
   encounterIds: ReadonlySet<string>;
   /** Entités `personnage` de la scène — les PNJ qu'un effet peut désigner (soigneur…). */
   entityIds: ReadonlySet<string>;
@@ -1403,10 +1407,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('startDialogue'), icon: 'journal/dialogue',
     make: () => ({ type: 'startDialogue', dialogue: '' }),
     apply: (e, env) => {
-      const dlg = env.get().scene?.dialogues.find((d) => d.id === e.dialogue);
+      const scene = env.get().scene;
+      const dlg = scene && dialoguesDeLaScene(scene).get(e.dialogue);
       if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId) });
     },
-    refs: (e, ctx) => ctx.dialogueIds.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
+    refs: (e, ctx) => ctx.dialogues.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
     ouvreDialogue: (e) => e.dialogue,
   },
   endDialogue: {

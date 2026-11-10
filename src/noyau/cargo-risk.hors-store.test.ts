@@ -14,7 +14,9 @@ import { rule, setRule } from '../engine/policy';
 import type { CascadeStep } from './pendings';
 import type { Possession } from '../engine/possession';
 import { vehicleCombatant } from '../engine/vehicle';
-import { findVehicleById } from '../data';
+import { findCreatureById, findVehicleById } from '../data';
+import { COMPETENCE_DU_MODE } from '../engine/propulsion';
+import { voileSansProfil } from '../engine/seaNavigation';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -201,6 +203,20 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
     get().jetValider('cascade');
     expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', label: 'La Dent de Manann', foeM: 5 });
+  });
+
+  it('fuir → le poursuivant navigue à la meilleure Voile de son chef et de son équipage, à défaut à la Voile maison (MDG 13 l.376)', () => {
+    const voileDe = (id: string) => findCreatureById(id)?.skills?.find((s) => s.id === COMPETENCE_DU_MODE.voile)?.value;
+    expect(voileDe('humain')).toBeUndefined();
+    const cas: [string | undefined, number | undefined][] = [['jaego-roth', voileDe('jaego-roth')], [undefined, voileSansProfil()]];
+    for (const [chefRef, attendu] of cas) {
+      expect(attendu).toBeDefined();
+      set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', ...(chefRef ? { chefRef } : {}), nombre: 25, label: 'La Dent de Manann' } } } as never } as never);
+      startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
+      get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
+      get().jetValider('cascade');
+      expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', foeSkill: attendu });
+    }
   });
 
   it('fuir sans navire hostile en vue : erreur nommée, jamais un pirate au nom inventé (#1906)', () => {

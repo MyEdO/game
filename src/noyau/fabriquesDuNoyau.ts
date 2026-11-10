@@ -64,7 +64,7 @@ import type { Main } from '../engine/types';
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
 type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'aider' | 'annuler' | 'approvisionner'
-  | 'armer' | 'asperger' | 'avancer' | 'basculer' | 'carener' | 'ceder' | 'changer' | 'chanter'
+  | 'armer' | 'asperger' | 'avancer' | 'avitailler' | 'basculer' | 'carener' | 'ceder' | 'changer' | 'chanter'
   | 'cliquer' | 'commander' | 'creer' | 'debarquer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
   | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'equiper'
   | 'evaluer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'

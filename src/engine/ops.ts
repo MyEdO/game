@@ -1229,8 +1229,9 @@ export type GameOp =
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
   | { op: 'intoxicate' }
-  /** Narration de campagne : texte Markdown et provenance locale. #2001. */
-  | { op: 'narrative'; text: string; source?: SourceRef; adapteDe?: SourceRef }
+  /** Narration de campagne : texte Markdown et provenance locale. #2001. `nombre` : un nombre tiré à
+   *  l'application, annoncé après le texte. MDG 15 l.154-155 */
+  | { op: 'narrative'; text: string; nombre?: Formula; source?: SourceRef; adapteDe?: SourceRef }
   /** MORAL de l'équipage du navire (MDG 14) : `delta` signé tiré. Op de NAVIRE (`OPS_DU_NAVIRE`) — inerte
    *  dans `applyOps`, résolue sur la cible `navire` (`noyau/navireOps.ts`). MDG 15 l.180, l.220 */
   | { op: 'shipMorale'; delta: EffetSigne }
@@ -1289,6 +1290,15 @@ export type GameOp =
    *  navire ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou moins, et `victoire` se joue
    *  quand le combat est gagné. Op de NAVIRE. MDG 15 l.136-139, l.142-143, l.165-168 */
   | { op: 'combatEnMer'; adversaire: { id: string; nombre: number; optionals?: TraitPose[] }; repousseAPct?: number; victoire?: Flow }
+  /** COMMISSION de transport : un port de destination est tiré au hasard parmi les ports de la carte hors l'escale ;
+   *  à l'accostage dans ce port, la bourse du groupe reçoit `montant`. Op de NAVIRE. MDG 15 l.261 */
+  | { op: 'commission'; montant: { brass: Formula } }
+  /** CONSTRUCTEUR DE NAVIRES D'ESCALE : jusqu'à l'appareillage, la réparation au port se teste à Métier (Constructeur
+   *  de navires) `competence` et prend `duree` jours. Op de NAVIRE. MDG 15 l.255 */
+  | { op: 'constructeurDEscale'; competence: number; duree: Formula }
+  /** RATIONS D'ESCALE : jusqu'à l'appareillage, la ration-jour de cale s'achète au port à `montant`. Op de NAVIRE.
+   *  MDG 15 l.262 */
+  | { op: 'rationsDEscale'; montant: { brass: Formula } }
   /** MARCHÉ D'UN PORT altéré : au port de l'escale jusqu'au départ du navire, les colonnes de l'Index basculent
    *  (`colonnes`), OU un client offre au plus `offre.enc` Enc d'une cargaison tirée au hasard pour la saison à
    *  `offre.remisePct` % sous son prix de base ; OU, dans un autre port tiré au hasard, la Demande d'une cargaison
@@ -1303,7 +1313,7 @@ export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<S
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer', 'commission', 'constructeurDEscale', 'rationsDEscale'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -3042,6 +3052,9 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'navireHostile':
       case 'infestation':
       case 'combatEnMer':
+      case 'commission':
+      case 'constructeurDEscale':
+      case 'rationsDEscale':
       case 'marcheDuPort':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /
@@ -3272,7 +3285,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'narrative':
-        lines.push(o.text);
+        lines.push(o.nombre === undefined ? o.text : t('op.narrativeNombre', { text: o.text, n: Math.round(formuleDuCtx(o.nombre, ref, ctx)) }));
         break;
     }
   }

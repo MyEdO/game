@@ -12,7 +12,7 @@ import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';
 import type { TraitPose } from '../data/schemas/grammaire/reference';
 import type { EntityAppearance } from '../engine/authoringAppearance';
 import { findCreatureById } from '../data';
-import type { SceneEntity } from './monde/scene';
+import { enrolledEntityIds, type Scene, type SceneEntity } from './monde/scene';
 import { emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 
 /** Clés d'objet lues par le dessin (#2097) : `FormeDArme` en dérive. */
@@ -93,10 +93,10 @@ interface EquipementDAuteur extends Pick<EntityAppearance, 'apparencesObjets'> {
   enrolled?: boolean;
 }
 
-/** Ce que déclare une entité de scène : son apparence d'auteur, son inventaire, son statbloc d'éditeur, son
- *  enrôlement. */
-export const equipementDAuteurDe = (ent: Pick<SceneEntity, 'id' | 'appearance' | 'inventaire' | 'statblock'>, enrolled?: boolean): EntityAppearance & EquipementDAuteur => ({
-  ...ent.appearance, inventaire: ent.inventaire, traits: ent.statblock?.traits, char: ent.statblock?.char, enrolled, porteur: ent.id,
+/** Ce que déclare une entité de la scène `scene` : son apparence d'auteur, son inventaire, son statbloc d'éditeur, son
+ *  enrôlement (`enrolledEntityIds`). */
+export const equipementDAuteurDe = (ent: Pick<SceneEntity, 'id' | 'appearance' | 'inventaire' | 'statblock'>, scene: Scene): EntityAppearance & EquipementDAuteur => ({
+  ...ent.appearance, inventaire: ent.inventaire, traits: ent.statblock?.traits, char: ent.statblock?.char, enrolled: enrolledEntityIds(scene).has(ent.id), porteur: ent.id,
 });
 
 /** Traits du porteur d'auteur, statbloc d'éditeur sinon record, tirés pour lui comme à son spawn
