@@ -6,6 +6,7 @@
 import { walkReachableFrom } from './monde/path';
 import { isDescriptiveZone, isWalkable, porteAuteur, setDoorOpen, setDoorRevealed, type Scene, type SceneEffectZone } from './monde/scene';
 import { sceneZoneTiles } from './monde/zones';
+import { memoByRef } from './monde/sceneMemo';
 
 const key = (x: number, y: number, z: number) => `${x},${y},${z}`;
 
@@ -28,13 +29,12 @@ export function zoneWalkableCells(scene: Scene, zone: SceneEffectZone): { x: num
 }
 
 /** La scène telle que l'AUTEUR la lit : chaque porte authorée (`porteAuteur`) est un PASSAGE — révélée si
- *  elle est secrète (`EDO 08 l.404`), ouverte si elle est fermée. PUR. */
-function sceneSelonAuteur(scene: Scene): Scene {
-  return (scene.walls ?? []).filter(porteAuteur).reduce((s, w) => {
-    const z = w.z ?? 0;
-    return setDoorOpen(setDoorRevealed(s, w.x, w.y, w.side, z, true), w.x, w.y, w.side, z, true);
-  }, scene);
-}
+ *  elle est secrète (`EDO 08 l.404`), ouverte si elle est fermée. PUR, une fois par scène (`memoByRef`) : la même
+ *  réf garde ses composantes marchables (`walkReachableFrom`). */
+const sceneSelonAuteur = memoByRef((scene: Scene): Scene => (scene.walls ?? []).filter(porteAuteur).reduce((s, w) => {
+  const z = w.z ?? 0;
+  return setDoorOpen(setDoorRevealed(s, w.x, w.y, w.side, z, true), w.x, w.y, w.side, z, true);
+}, scene));
 
 /** Zones descriptives (pièces nommées, `isDescriptiveZone`) dont AUCUNE case marchable n'est atteignable
  *  depuis `start`, toute porte authorée comprise (`sceneSelonAuteur`) — vide = toutes les pièces nommées sont
