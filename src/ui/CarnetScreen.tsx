@@ -33,13 +33,13 @@ function NouveautésChip({ n }: { n: number }) {
   return n > 0 ? <span className="chip tone-warn">{t('carnet.nouveau')} <span className="count">{n}</span></span> : null;
 }
 
-function EpingleButton({ clue, onToggle }: { clue: ClueState; onToggle: () => void }) {
+function EpingleButton({ clue, onEpingler }: { clue: ClueState; onEpingler: (epingle: boolean) => void }) {
   return (
     <button
       type="button"
       className="chip"
       aria-pressed={!!clue.épinglé}
-      onClick={onToggle}
+      onClick={() => onEpingler(!clue.épinglé)}
       title={clue.épinglé ? 'Désépingler' : 'Épingler'}
     >
       <Icon id="map-tool/pin" size="sm" /> {clue.épinglé ? 'Épinglé' : 'Épingler'}
@@ -66,7 +66,7 @@ function StadeLu({ indice, stade, documents, attenue }: { indice: Indice; stade:
   );
 }
 
-function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: Indice; clue: ClueState; nouveau: boolean; documents: readonly DocumentNarratif[]; onTogglePin: (id: string) => void }) {
+function ClueBand({ indice, clue, nouveau, documents, onEpingler }: { indice: Indice; clue: ClueState; nouveau: boolean; documents: readonly DocumentNarratif[]; onEpingler: (id: string, epingle: boolean) => void }) {
   const stadeCourant = indice.stades.find((s) => s.id === clue.stadeCourant);
   const précédents = clue.historique.filter((h) => h.stade !== clue.stadeCourant);
   return (
@@ -81,7 +81,7 @@ function ClueBand({ indice, clue, nouveau, documents, onTogglePin }: { indice: I
           {nouveau && <span className="chip tone-warn">{t('carnet.nouveau')}</span>}
           <span className="chip">{indice.kind === 'rumeur' ? 'Rumeur' : 'Indice'}</span>
           {clue.statut === 'refute' && <span className="chip tone-danger">Fausse piste</span>}
-          <EpingleButton clue={clue} onToggle={() => onTogglePin(indice.id)} />
+          <EpingleButton clue={clue} onEpingler={(epingle) => onEpingler(indice.id, epingle)} />
         </Row>
       }
     >
@@ -187,7 +187,7 @@ export function CarnetScreen({ onClose }: { onClose: () => void }) {
       {indicesDétail.map((i) => {
         const clue = clues[i.id];
         if (!clue) return null;
-        return <ClueBand key={i.id} indice={i} clue={clue} nouveau={estNouveau(i.id)} documents={documents} onTogglePin={epinglerLIndice} />;
+        return <ClueBand key={i.id} indice={i} clue={clue} nouveau={estNouveau(i.id)} documents={documents} onEpingler={epinglerLIndice} />;
       })}
     </Stack>
   );

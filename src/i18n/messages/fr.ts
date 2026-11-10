@@ -3643,6 +3643,7 @@ export const fr = {
   'tp.modStranding': 'Encombrement du navire et de sa cargaison',
   'tp.modPhysical': 'Tests physiques',
   'tp.activityDone': '{label} : déjà achevée ({dr}/{dr} DR).',
+  'tp.refusPosteNonTenu': 'Poste refusé : {label} se tient avec une Compétence nommée de sa liste.',
   'tp.countsAsRest': '{name} prend soin de ne pas se surmener — cette Étape compte comme un repos.',
   'tp.gatherInfo': '{name} glane des informations en route.',
   'tp.rationFound': '{name} reçoit une ration trouvée en chemin.',

@@ -1,6 +1,6 @@
 /**
  * Pratiquer une Compétence (EDOC 8 l.172 ; `activities.json › pratiquer-competence`) : le poste porte la
- * Compétence CHOISIE, de l'épinglage (`attribuerLeRoleDeMarche`) au départ (`partirEnVoyage`, qui pose les postes
+ * Compétence CHOISIE, de l'épinglage (`affecterAuRoleDeMarche`) au départ (`partirEnVoyage`, qui pose les postes
  * depuis les rôles) jusqu'à la rangée de l'Étape. Compétences offertes, dans la liste `freeSkill` de
  * l'Activité : LDB 09 l.30, l.36, l.44, l.46.
  * Sans Compétence choisie, le poste n'est pas tenu (EDOC 8 l.133).
@@ -13,6 +13,7 @@ import { setRule } from '../engine/policy';
 import { activityById, competencesAPratiquer, postingTenu, refusCandidatActivite, stageAssignmentFromRoles } from '../engine/activities';
 import { refusNePeutTenter } from '../engine/skills';
 import { refLabel, skills, specPoolOf } from '../data';
+import { t } from '../i18n';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { avanceEtapeCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
@@ -45,11 +46,11 @@ const CARTE: WorldMap = {
 };
 
 /** Rangée du héros dans la bande des postes de l'Étape, montée par le producteur réel : rôle épinglé
- *  (`attribuerLeRoleDeMarche`), départ (`partirEnVoyage`), qui ouvre la cascade du jour, puis la Météo d'Étape jouée. */
-function rangeeAuDepart(posting: Parameters<ReturnType<typeof banc.getState>['attribuerLeRoleDeMarche']>[1]): BatchParticipant | undefined {
+ *  (`affecterAuRoleDeMarche`), départ (`partirEnVoyage`), qui ouvre la cascade du jour, puis la Météo d'Étape jouée. */
+function rangeeAuDepart(posting: Parameters<ReturnType<typeof banc.getState>['affecterAuRoleDeMarche']>[1]): BatchParticipant | undefined {
   banc.setState({ party: [heros()], journal: [], pendingCascade: null, travelPlan: null });
   banc.getState().chargerLeProjet({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
-  banc.getState().attribuerLeRoleDeMarche('h', posting);
+  banc.getState().affecterAuRoleDeMarche('h', posting);
   banc.getState().partirEnVoyage('r1', 'pied');
   const bande = () => banc.getState().pendingCascade?.participants.find((s) => s.kind === 'stagePosteBatch');
   // La Météo d'Étape ouvre la cascade du jour ; la bande des postes la suit.
@@ -153,14 +154,15 @@ describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’É
 describe('Poste tenu : une seule source (`postingTenu`)', () => {
   beforeEach(() => banc.setState({ party: [heros()], journal: [] }));
 
-  it('`attribuerLeRoleDeMarche` refuse Pratiquer une Compétence sans Compétence : le rôle épinglé ne bouge pas', () => {
-    banc.getState().attribuerLeRoleDeMarche('h', { activityId: 'recuperer' });
-    banc.getState().attribuerLeRoleDeMarche('h', { activityId: 'pratiquer-competence' });
+  it('`affecterAuRoleDeMarche` refuse, et dit, Pratiquer une Compétence sans Compétence : le rôle épinglé ne bouge pas', () => {
+    banc.getState().affecterAuRoleDeMarche('h', { activityId: 'recuperer' });
+    banc.getState().affecterAuRoleDeMarche('h', { activityId: 'pratiquer-competence' });
     expect(banc.getState().party[0].travelRole).toEqual({ activityId: 'recuperer' });
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('tp.refusPosteNonTenu', { label: activityById('pratiquer-competence')!.label }));
   });
 
   it('un rôle épinglé que l’édition du catalogue rend non tenu n’est plus épinglé : l’Étape retombe sur le rôle inféré', () => {
-    banc.getState().attribuerLeRoleDeMarche('h', { activityId: 'recuperer' });
+    banc.getState().affecterAuRoleDeMarche('h', { activityId: 'recuperer' });
     avecActivite({ ...activityById('recuperer')!, freeSkill: [{ id: 'escalade' }] }, () => {
       const h = banc.getState().party[0];
       expect(postingTenu(h.travelRole!)).toBe(false);

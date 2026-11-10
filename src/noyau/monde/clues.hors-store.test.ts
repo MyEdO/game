@@ -84,13 +84,17 @@ describe('clues — câblage noyau (#670)', () => {
     expect(estNouveauPour(c, 1), 's2 est marqué vu pour un siège qui n’a affiché que s1').toBe(true);
   });
 
-  it('epinglerLIndice épingle/désépingle par l’action du noyau', () => {
+  it('epinglerLIndice épingle/désépingle par l’action du noyau, à la valeur absolue demandée', () => {
     banc.setState({ party: [hero()] });
     banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-e')], entryId: 'scene-e', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
-    banc.getState().epinglerLIndice('ind-lettre');
+    banc.getState().epinglerLIndice('ind-lettre', true);
     expect(banc.getState().clues['ind-lettre'].épinglé).toBe(true);
-    banc.getState().epinglerLIndice('ind-mono');
+    banc.getState().epinglerLIndice('ind-lettre', true);
+    expect(banc.getState().clues['ind-lettre'].épinglé, 'rejouée, la valeur absolue ne bascule pas').toBe(true);
+    banc.getState().epinglerLIndice('ind-lettre', false);
+    expect(banc.getState().clues['ind-lettre'].épinglé).toBe(false);
+    banc.getState().epinglerLIndice('ind-mono', true);
     expect(banc.getState().clues['ind-mono']).toBeUndefined();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('carnet.refus.indiceInconnu', { id: 'ind-mono' }));
   });
@@ -100,7 +104,7 @@ describe('clues — câblage noyau (#670)', () => {
       banc.setState({ party: [hero()] });
       banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-f')], entryId: 'scene-f', narratif, projet: null });
       applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
-      banc.getState().epinglerLIndice('ind-lettre');
+      banc.getState().epinglerLIndice('ind-lettre', true);
       applyEffects(banc.getState, banc.setState, [{ type: 'discreditClue', indiceId: 'ind-mono' }]);
       const before = banc.getState().clues;
       expect(before['ind-lettre'].épinglé).toBe(true);

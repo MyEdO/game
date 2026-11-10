@@ -230,11 +230,11 @@ describe('possession réseau (netOwnership)', () => {
   it('carnet d’enquête (#2415) : l’invité épingle et marque vu hors combat sans modale, en combat aussi', () => {
     const vu = [{ id: 'ind', étapes: 1, statut: 'revele', stadeCourant: 's1' }];
     const horsCombat = base({ battle: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(horsCombat, 1, 'epinglerLIndice', ['ind']), 'épingle refusée à l’invité hors combat').toBe(true);
+    expect(intentAllowedFor(horsCombat, 1, 'epinglerLIndice', ['ind', true]), 'épingle refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'marquerLesIndices', [vu]), 'nouveauté vue refusée à l’invité hors combat').toBe(true);
     expect(intentAllowedFor(horsCombat, 1, 'suivreLEntrainement', ['h1']), 'opposé : un geste POSSÉDÉ reste refusé').toBe(false);
     const enCombat = base({}); // actif = h1 (hôte) : le repli refuserait le siège 1
-    expect(intentAllowedFor(enCombat, 1, 'epinglerLIndice', ['ind'])).toBe(true);
+    expect(intentAllowedFor(enCombat, 1, 'epinglerLIndice', ['ind', true])).toBe(true);
     expect(intentAllowedFor(enCombat, 1, 'marquerLesIndices', [vu])).toBe(true);
   });
 });
