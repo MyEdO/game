@@ -1,9 +1,8 @@
 /**
- * LE PRÉTIRÉ DE TEST : une fiche imprimée DÉCLARÉE (`PregenDef`), posée au registre `pregens` lu à l'appel par un espion
- * sur son espace de noms, jamais une entrée de `pregens.json`, et retiré à la fin du test.
+ * LE PRÉTIRÉ DE TEST : une fiche imprimée DÉCLARÉE (`PregenDef`), posée au registre `pregens` par sa couture d'écriture (`setDataset`), jamais une entrée de `pregens.json`, et retiré à la fin du test.
  */
-import { onTestFinished, vi } from 'vitest';
-import * as donnees from '../../data';
+import { onTestFinished } from 'vitest';
+import { datasetArray, setDataset } from '../../data/overrides';
 import { ficheDuPretire, type PregenDef } from '../../data/pregens';
 import { heroDeFiche } from '../../engine/heroDeFiche';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
@@ -38,8 +37,9 @@ export const PRETIRE_DE_TEST: PregenDef = {
 
 /** Pose `defs` pour seuls prétirés du registre `pregens`, jusqu'à la fin du test courant. */
 export function poserLesPretires(defs: readonly PregenDef[] = [PRETIRE_DE_TEST]): void {
-  const espion = vi.spyOn(donnees, 'pregens', 'get').mockReturnValue(defs as PregenDef[]);
-  onTestFinished(() => espion.mockRestore());
+  const avant = [...datasetArray('pregens')];
+  setDataset('pregens', defs);
+  onTestFinished(() => setDataset('pregens', avant));
 }
 
 /** `n` héros distincts bâtis de la fiche de `PRETIRE_DE_TEST` (`heroDeFiche`), d'ids `heros-de-test-<i>`. */
