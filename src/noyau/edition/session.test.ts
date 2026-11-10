@@ -723,6 +723,19 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
     expect(decor(retiree).usable).toBeUndefined();
   });
 
+  it('l’utilisable ne s’écrit entier, retrait compris, que s’il n’emporte que ce que le formulaire offre : avec l’assise posée à ses places, refusé ; sans elle, admis', () => {
+    const table = jouer(poser('table-ronde-4-tabourets'), { geste: 'entite', patch: { assise: true } });
+    const actions = decor(table).usable?.actions ?? [];
+    const assise = jouer(table, valeur(table, ['usable', 'actions'], [...actions, ...choixDuDecor(table, ['usable', 'actions', actions.length])!]));
+    const usable = (s: SessionDEdition) => formulaireDe('entite', decor(s), cadreDeLaSession(s)).find((f) => f.key === 'usable')!;
+    expect(usable(assise).contexte!.ecrivable(['usable'], decor(assise).usable)).toBe(false);
+    expect([refusDeLaValeur(assise, valeur(assise, ['usable'])), refusDeLaValeur(assise, valeur(assise, ['usable'], {}))]).toEqual(['nonOffert', 'nonOffert']);
+    const brasero = poser('brasero');
+    const sansAssise = jouer(brasero, valeur(brasero, ['usable'], { actions: [fouille('fouiller')] }));
+    expect(usable(sansAssise).contexte!.ecrivable(['usable'], decor(sansAssise).usable)).toBe(true);
+    expect(decor(jouer(sansAssise, valeur(sansAssise, ['usable']))).usable).toBeUndefined();
+  });
+
   it('l’assise posée à ses places reste quand la dernière action part', () => {
     const table = jouer(poser('table-ronde-4-tabourets'), { geste: 'entite', patch: { assise: true } });
     const actions = decor(table).usable?.actions ?? [];

@@ -1480,19 +1480,24 @@ async function parcoursEditeur() {
   const decor = e.surcouche.reperes.find((r) => r.choisi)
   assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
   noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
-  const champDuNom = async () => (await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')
-  for (let n = 0; !((await champDuNom())?.y <= 480); n++) {
-    assert.ok(n < 20, 'le champ du nom amené par la molette au milieu du panneau')
-    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
-    await sleep(250)
+  /** Tape `texte` dans la saisie d'élément `element`, amenée par la molette au milieu du panneau, d'en haut comme d'en
+   *  bas, à la place du sien. */
+  const taper = async (element, texte) => {
+    const champ = async () => (await ecran()).saisies.find((x) => x.element === element)
+    for (let n = 0, y = (await champ())?.y; !(y >= 80 && y <= 480); n++, y = (await champ())?.y) {
+      assert.ok(n < 20, `la saisie ${element} amenée par la molette au milieu du panneau`)
+      await molette(session, { surface: 'canvas', x: 160, y: 400 }, y < 80 ? -100 : 100)
+      await sleep(250)
+    }
+    const c = await champ()
+    await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
+    await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
+    for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
+    for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
+    await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
   }
-  const champ = await champDuNom()
-  assert.equal(champ?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
-  await geste(session, { surface: 'canvas', x: champ.x, y: champ.y }, { qui: 'le champ du nom' }, clic())
-  await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
-  for (let n = 0; n < champ.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
-  for (const lettre of 'Comptoir') await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
-  await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === 'saisieTexte/nommer/nom')?.texte === 'Comptoir'`)
+  assert.equal((await ecran()).saisies.find((x) => x.element === 'saisieTexte/nommer/nom')?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
+  await taper('saisieTexte/nommer/nom', 'Comptoir')
   await cliquerAuPanneau({ element: 'formulaire/nommer' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx},${dy},0'] === 'Comptoir'`)
   noter(`« Renommer » : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
@@ -1626,21 +1631,6 @@ async function parcoursEditeur() {
   assert.equal(presse('valeur/merchant/settlement'), 'cité', 'la localité choisie se lit par son nom, pas par sa valeur « cite »')
   noter(`onglet Rôles, « Ajouter : marchand », localité « ${presse('valeur/merchant/settlement')} » : archétype « ${presse('valeur/merchant/archetype/id')} » ; « Ajouter : jeu de taverne » : « ${presse('valeur/tavernGame/id')} »`)
   await capturer('3606-m1d-1-marchand')
-  /** Tape `texte` dans la saisie d'élément `element`, amenée par la molette au milieu du panneau, à la place du sien. */
-  const taper = async (element, texte) => {
-    const champ = async () => (await ecran()).saisies.find((x) => x.element === element)
-    for (let n = 0; !((await champ())?.y <= 480); n++) {
-      assert.ok(n < 20, `la saisie ${element} amenée par la molette au milieu du panneau`)
-      await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
-      await sleep(250)
-    }
-    const c = await champ()
-    await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
-    await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
-    for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
-    for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
-    await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
-  }
   await cliquerAuPanneau({ element: 'bouton/outil/select' })
   await cliquerPoint(...cases[`${dx},${dy}`])
   await waitFor(session, `${montre('valeur/usable/ajouter')} || ${montre('valeur/usable/actions/ajouter')}`)

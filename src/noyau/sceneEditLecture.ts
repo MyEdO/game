@@ -13,6 +13,7 @@ import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuCo
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
+import { estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
@@ -612,6 +613,15 @@ const prefixe = (a: readonly Segment[], b: readonly Segment[]): boolean => a.len
 export const cheminOffert = (offerts: CheminsOfferts, chemin: readonly Segment[]): boolean =>
   offerts.some((o) => prefixe(o, chemin) || prefixe(chemin, o));
 
+/** L'écriture au chemin `chemin`, où la donnée vaut `actuelle`, est-elle offerte par les champs `offerts` : sous l'un
+ *  d'eux ; sur le chemin de l'un d'eux, si chaque clé que porte `actuelle` l'est, de proche en proche (elle n'emporte
+ *  aucun champ qu'ils n'offrent pas). */
+export function ecritureOfferte(offerts: CheminsOfferts, chemin: readonly Segment[], actuelle: unknown): boolean {
+  if (offerts.some((o) => prefixe(o, chemin))) return true;
+  if (!offerts.some((o) => prefixe(chemin, o))) return false;
+  return !estObjet(actuelle) || Object.entries(actuelle).every(([cle, v]) => v === undefined || ecritureOfferte(offerts, [...chemin, cle], v));
+}
+
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à
  *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre dans le cadre `cadre`. */
 export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): { noeud: unknown; champs: CheminsOfferts } {
@@ -635,10 +645,15 @@ export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeD
 
 /** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` : le champ de tête de
  *  chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
- *  contexte : ce qu'il offre sous lui (`cheminOffert`) et ses choix (`choixDuChamp`). */
+ *  contexte : ce qu'il offre sous lui (`cheminOffert`), où il s'écrit entier (`ecritureOfferte`) et ses choix
+ *  (`choixDuChamp`). */
 export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): FieldDesc[] {
   const { noeud, champs } = formeDuPorteur(sorte, donnee, cadre);
   const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud, niveau: 'profondeur' });
-  const contexte: ContexteDuChamp = { offert: (chemin) => cheminOffert(champs, chemin), choix: (chemin) => choixDuChamp(sorte, donnee, chemin, cadre) };
+  const contexte: ContexteDuChamp = {
+    offert: (chemin) => cheminOffert(champs, chemin),
+    ecrivable: (chemin, actuelle) => ecritureOfferte(champs, chemin, actuelle),
+    choix: (chemin) => choixDuChamp(sorte, donnee, chemin, cadre),
+  };
   return [...new Set(champs.map(([tete]) => tete))].flatMap((cle) => decrits.filter((f) => f.key === cle)).map((f) => ({ ...f, contexte }));
 }
