@@ -7,7 +7,8 @@
  */
 import type { Jeu } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
-import { inBattleId } from './monde/combatants';
+import { actorIn } from './monde/combatants';
+import { attaquantDeLaDefense } from './slotsDeJet';
 import { spendableAdvantage } from './combat/advantagePool';
 import { defenseSubOf, parryWeaponOf } from './rollFlowSpecs';
 import { ligneDeDefense } from './combatFlow';
@@ -63,10 +64,9 @@ const libelleDeParade = (w: Weapon): string => (w.hand === 'off' ? t('defense.se
 /** La fenêtre de la Défense en attente (`pendingDefense`), `null` sans Défense. PUR. */
 export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const pd = s.pendingDefense;
-  const battle = s.battle;
-  if (!pd || !battle) return null;
-  const attaquant: Combatant | undefined = inBattleId(battle, pd.attackerId);
-  const defenseur: Combatant | undefined = inBattleId(battle, pd.defenderId);
+  if (!pd) return null;
+  const attaquant: Combatant | undefined = attaquantDeLaDefense(s, pd);
+  const defenseur: Combatant | undefined = actorIn(s, pd.defenderId);
   if (!attaquant || !defenseur) return null;
   const jete = !!pd.result;
   // LDB 09 l.207, l.287
@@ -95,7 +95,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
     if (res) return genre === 'damage' && !gagnee ? t('defense.refus.degatsSansDefenseGagnee') : jetLance;
     if (pd.shieldReaction === genre) return null;
     if (defenseur.usedShieldReactionRound) return t('defense.refus.bouclierUtilise');
-    const avantage = spendableAdvantage(battle, defenseur);
+    const avantage = spendableAdvantage(s.battle, defenseur);
     return avantage < coutDuBouclier ? t('defense.refus.avantages', { cout: coutDuBouclier, nom: defenseur.label, avantage }) : null;
   };
   // LDB 10 l.1037
@@ -103,7 +103,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const portees = contre ? contresEpuisees(defenseur, contre) : null;
   const plafond = contre?.plafond;
   const refusDeLaRiposte = portees != null && plafond != null ? t('defense.refus.ripostesPortees', { n: portees, plafond }) : null;
-  const coup = res ? issueAuJet(defenseur, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple, defenseur), pd.weapon, attaquant) : null;
+  const coup = res ? issueAuJet(defenseur, coupAApplique(res, pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.mode === 'machine' ? pd.suite.coup.grapple : undefined, defenseur), pd.weapon, attaquant) : null;
   const ligne = res ? null : ligneDu(pd.mode);
   return {
     attaquantId: attaquant.id,

@@ -316,7 +316,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   const battleDe = (...ids: string[]) => ({ combatants: ids.map((id) => ({ id })) } as never);
   const ETAT_COMPLET: Record<HostJet, Record<string, unknown>> = {
     attack: { battle: battleDe('a', 'h'), pendingAttack: { attackerId: 'a', targetId: 'h' } },
-    defense: { battle: battleDe('a', 'h'), pendingDefense: { attackerId: 'a', defenderId: 'h' } },
+    defense: { battle: battleDe('a', 'h'), pendingDefense: { attackerId: 'a', defenderId: 'h', suite: { mode: 'machine', coup: {} } } },
     fumble: { battle: battleDe('h') }, // sans slot : la donnée est `step.fumble`
     cast: { pendingCast: {} },
     test: { pendingTest: {} },

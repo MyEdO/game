@@ -19,7 +19,7 @@ import { rollLine, type RollLineParts } from './ligneDeJet';
 import { toRecapLines } from './recapLine';
 import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
-import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
+import { activeCombatant, jetDeRecharge, appliquerLaRecharge, advanceCombatJet, STANCE_BLOCK, firedWeapon, openAttackCascade, poserLeTestDeMain, poserLEtapeDAttaque, startDisengage, completeFlee, startAuContact, startGrapple, resolveGrappleWin, applyAttackResult, jouerLesTirsDeBordee, openSurfacedDefense, castSpell, applyCast, effectiveSpellOf, finishPlayerAction, applyMiscast, useSpellComponent, checkBattleOver, resumeEnemyTurn, advanceTurn, resolveRoundBoundary, enterRoundStartPause, lancerLeRound, inFiringBand, maybeRunEnemyTurn, resumeSuspendedAI, resumeManeuverDefense, attackerFumbled, applyOups, jouerLApresCoup, ciblesDuBalayage, ciblesDeLaDoubleFrappe, resolveDualSecond, overcastTargetCandidates, overcastReset, drainerLesGratuites, poursuivreLaSerieSubie, ouvrirLesContagions, attackWeaponOf, victimeDuCoup, applyWail, spellSightOf, castZoneSpell, castCommitZone, zoneRadiusTilesAt, routeCounterspell, applyCounterspellOutcome, applyCounterspellFallback, counterspellJoinable, counterspellDeclarePhase, counterspellRolls, resumeAfterCounterspell, openCastOppositionStep, castExtraTargets, resolveCastChain, applySurprise, resolveMovement, retenuParLaPeur, markActed, noteApproachMove, clearApproachMoves, frenzyTarget, finishCombatEnd, battleAreaTargets, siegeBlastRadiusTiles, startleOnStormAtCombatStart, stampEnvWeatherAtCombatStart, windsOfMagicAtCombatStart, releaseSeatsOfCombatants } from './combatFlow';
 import { auContactEligible, grappleActionEligible, hasFreeWeaponAttack, resolveManeuver, availableAttacks, attaqueImmediate, startBattement, startDistraire, resolveBattement, resolveDistraire, battementFoes, distraireFoes, adversairesDuBattement, adversairesADistraire } from './combatManeuvers';
 import { resolveWeaponArea } from './combatArea';
 import { removeEntity, applyZoneCrossings, displaceSmaller } from './combatPlacement';
@@ -107,6 +107,7 @@ import { sceneZonesToBattle } from './monde/zones';
 import { resetFields } from './stateFields';
 import { seaMagicContext, touchActors } from './combatOrParty';
 import { actorIn, inBattleId } from './monde/combatants';
+import { attaquantDeLaDefense } from './slotsDeJet';
 import { refusDImmunite } from './determinationDuJet';
 import { porteurDeLObjet } from './monde/carrier';
 import { garanti } from '../lib/garanti';
@@ -2047,10 +2048,10 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
     },
     defense: {
       reaction: (mode) => {
-        const { pendingDefense: pd, battle } = get();
-        if (!pd || !battle) return;
-        const defenseur = inBattleId(battle, pd.defenderId);
-        const attaquant = inBattleId(battle, pd.attackerId);
+        const pd = get().pendingDefense;
+        if (!pd) return;
+        const defenseur = actorIn(get(), pd.defenderId);
+        const attaquant = attaquantDeLaDefense(get(), pd);
         // LDB 09 l.207, l.287
         const substitut = mode === 'social' && defenseur && attaquant ? combatSubstitute(defenseur, attaquant, 'defense')?.skillId : undefined;
         set({ pendingDefense: { ...pd, mode, substituteSkillId: substitut } });
@@ -2960,13 +2961,13 @@ export function cloturesDuCombat(get: Get, set: Set) {
     // volontaire (mêlée = Test opposé, LDB 13 l.123) → une fois offerte, la défense est obligatoire.
     defense: () => {
       // « Appliquer » : applique le résultat puis REPREND le tour de l'IA suspendu.
-      const { battle, pendingDefense: pd } = get();
-      if (!battle || !pd) return;
+      const pd = get().pendingDefense;
+      if (!pd) return;
       const lance = garanti(pd.result, pd.defenderId, 'jet de la défense');
       // La fenêtre ne se ferme que depuis SON étape : le curseur posé sur la défense de la séquence de combat.
       if (!surLEtapeDeDefense(get())) return;
-      const attacker = inBattleId(battle, pd.attackerId);
-      const defender = inBattleId(battle, pd.defenderId);
+      const attacker = attaquantDeLaDefense(get(), pd);
+      const defender = actorIn(get(), pd.defenderId);
       // LE SLOT SE VIDE ET L'ÉTAPE SE FERME DANS LE MÊME ÉTAT (#1852) : `committed` DIT à l'état que
       // cette étape a rendu sa donnée. Sans lui, l'état intermédiaire (slot vide, curseur encore posé
       // dessus) est un hôte ORPHELIN pour tout lecteur — le rendu, l'arbitre, la garde du curseur —,
@@ -3006,6 +3007,14 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (suite.mode === 'pilotee' && attacker && defender) {
         set({ pendingAttack: { ...suite.pa, result: lance, location: lance.location ?? suite.pa.location, ...(reaction ? { reaction } : {}), ...riposte } });
         get().jetValider('attack');
+        return;
+      }
+      // Série SUBIE (`subirDesAttaques`) : la touche s'applique, l'attaque suivante s'ouvre AVANT de quitter
+      // l'étape (patron `drainerLesGratuites`), et la série close ouvre ses contagions.
+      if (suite.mode === 'subie') {
+        const tient = !!defender && poursuivreLaSerieSubie(get, set, suite, defender, pd.weapon, lance);
+        quitterLaDefense();
+        if (!tient) ouvrirLesContagions(get, set, [pd.defenderId]);
         return;
       }
       // Le coup ENTIER (application + après-coup) : `true` = une fenêtre tient la main (sauvegarde,

@@ -1916,6 +1916,7 @@ export const fr = {
   'cf.pushThrough': '{name} écarte les plus petits et se déplace librement.',
   'cf.collapse': "{name} s'effondre, hors de combat.",
   'cf.coqueSansCritique': '{name} est un véhicule, pas un navire : il ne subit pas de Blessure Critique.',
+  'cf.attaquesSubies': '{name} subit {n} attaques de {assaillant}.',
   'cf.gangwayCollapse': "{name} chute de la passerelle qui s'effondre.",
   'cf.gangwayCollapseSansSurface': "{name} chute de la passerelle qui s'effondre : rien de praticable dessous, il gît au pied de la case.",
   'cf.deflect': '{name} dévie le Critique sur son armure (−1 PA, Critique ignoré).',

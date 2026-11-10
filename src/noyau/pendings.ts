@@ -1076,12 +1076,16 @@ export interface SuiteDeCoup {
  *    résultat OPPOSÉ — le chemin d'application de l'attaque (balayage, gratuites onHit, Maladresse, tir
  *    immobile…) reste UNIQUE ; le forçage de l'attaquant (LDB 17 l.68) voyage sur cette attaque ;
  *  - `machine` : le coup est appliqué ICI, et sa `SuiteDeCoup` est celle que le producteur aurait passée
- *    à `applyAttackResult` sur son chemin instantané — coup nu `{}`, maillon de balayage, ou gratuite.
+ *    à `applyAttackResult` sur son chemin instantané — coup nu `{}`, maillon de balayage, ou gratuite ;
+ *  - `subie` : une attaque d'une série SUBIE hors de toute bataille (`subirDesAttaques`) — l'assaillant sans
+ *    fiche voyage ICI (aucune file de combat ne le porte), et `restantes` compte les attaques de la série
+ *    encore à jouer après celle-ci. MDG 15 l.161, l.176.
  * JSON-sérialisable : elle voyage dans le snapshot coop avec le reste du pending.
  */
 export type SuiteDeDefense =
   | { mode: 'pilotee'; pa: PendingAttack }
-  | { mode: 'machine'; coup: SuiteDeCoup };
+  | { mode: 'machine'; coup: SuiteDeCoup }
+  | { mode: 'subie'; assaillant: Combatant; restantes: number };
 
 /** LA SUITE d'un coup dont la sauvegarde reste à jouer — union par SITE DE REPRISE, patron
  *  `PendingDeviation.mode` (`'melee'` ré-entre dans l'applier d'attaque, l'autre est auto-contenu).

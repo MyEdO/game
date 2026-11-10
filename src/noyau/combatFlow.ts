@@ -37,7 +37,7 @@ import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refu
 import { effectifAuContact } from './combat/surnombre';
 import { combatDistance, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, isFirearmQuality, reloadDRTarget } from '../engine/qualities/dispatch';
-import { applyTriggeredEffects, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
+import { applyTriggeredEffects, fireTriggers, maneuverEffectsOf, freeAttackSourcesOf, triggerEffectOps, fireOwnTestFailed, ciblesDeLEffet, flowOffert, type TriggerCtx } from './triggeredEffects';
 import { reloadGrantsAssessAdvantage, hasStealAdvantage, stealsOneAdvantage, shieldAdvantageLevel, shieldReactionCost, contreSurDefenseGagnee, contresEpuisees, talentCritExtraWounds, arcaneDomainIdOf, hasBattement, hasDistraire, canPreemptRanged, hasInstinctiveDiction, hasCritRollTwiceTalent, fleeMovementBonus } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
@@ -249,7 +249,7 @@ import { effectiveTalents } from '../engine/talentEffects';
 import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
-import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
+import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, SuiteDeDefense, PendingDefense, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
 import { APRES_COUP, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi, hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory, stepDetail, stepPrecision, stepPsych, stepSansPeur, type ChoiceSpec, type Consequence, type TableSpec } from './rollSeam';
@@ -3500,39 +3500,103 @@ export function maybeOpenDefense(
     });
     return openDefenseCascade(get, set, target);
   }
-  applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée, AVANT le jet (une seule fois)
-  // Le MÊME env que resolveAttack (météo, Flanc/dos +20, Surnombre, Combat monté) : le jet figé de la
-  // défense réactive l'omettait — un cavalier IA attaquait un héros sans son +20 (LDB 14 l.180). Le
-  // drapeau `flankRear` n'est PAS un champ du pending : il n'agit qu'ICI, au GEL du jet d'attaquant
-  // (bonus d'Assourdi de flanc, LDB 16 l.29) ; ce qui voyage ensuite dans la fenêtre, c'est `env`.
-  const { env, flankRear } = attackEnv(get, attacker, target, weapon);
-  const atk = rollMeleeAttacker(attacker, target, weapon, battleRng(), undefined, env, flankRear); // jet d'attaque figé, flanc/dos compris
-  // Charge montée (LDB 14 l.183) : Force (Bonus) + Taille de la MONTURE aux DÉGÂTS — la fenêtre porte le
-  // proxy, sinon l'opposition différée le perdrait (le chemin inline le passe, resolveAttack).
-  const dmgProxy = chargeDmgProxy(get().battle!.combatants, attacker, fromCharge);
-  // Composée HORS du littéral, avec les MÊMES options que le jet figé ci-dessus (flanc/dos compris) :
-  // la Difficulté affichée après la fenêtre est celle qui a fait la cible, pas une recomposition d'un
-  // contexte appauvri.
-  const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'melee', env, flankRear }));
   set({
     pendingDefense: {
-      attackerId: attacker.id,
-      defenderId: target.id,
-      weapon,
-      location: null, // l'IA ne vise pas de localisation
-      atk,
-      env,
-      atkCompo,
-      ...(dmgProxy ? { dmgProxy } : {}),
-      mode: bestDefenseMode(target),
-      def: null,
-      result: null,
+      ...gelerLeJetDeMelee(get, attacker, target, weapon, fromCharge),
       // CE QUE LA FERMETURE JOUERA : la suite que le producteur aurait passée à `applyAttackResult` sur
       // son chemin instantané (coup nu, maillon de balayage, gratuite — LDB 85 l.41-43).
       suite: { mode: 'machine', coup: suite ?? {} },
     },
   });
   return openDefenseCascade(get, set, target);
+}
+
+/** LE GEL du jet d'attaque de mêlée d'une fenêtre de Défense — SEUL site de son dé, pour l'attaque réactive
+ *  (`maybeOpenDefense`) et l'attaque subie (`subirDesAttaques`) : la fenêtre entière, sauf ce que la
+ *  fermeture jouera (`suite`). Hors bataille, aucun environnement positionnel ni monture ne s'applique. */
+function gelerLeJetDeMelee(get: Get, attacker: Combatant, target: Combatant, weapon: Weapon, fromCharge?: boolean): Omit<PendingDefense, 'suite'> {
+  applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée, AVANT le jet (une seule fois)
+  const battle = get().battle;
+  // Le MÊME env que resolveAttack (météo, Flanc/dos +20, Surnombre, Combat monté) : le jet figé de la
+  // défense réactive l'omettait — un cavalier IA attaquait un héros sans son +20 (LDB 14 l.180). Le
+  // drapeau `flankRear` n'est PAS un champ du pending : il n'agit qu'ICI, au GEL du jet d'attaquant
+  // (bonus d'Assourdi de flanc, LDB 16 l.29) ; ce qui voyage ensuite dans la fenêtre, c'est `env`.
+  const { env, flankRear } = battle ? attackEnv(get, attacker, target, weapon) : { env: [], flankRear: undefined };
+  const atk = rollMeleeAttacker(attacker, target, weapon, battleRng(), undefined, env, flankRear); // jet d'attaque figé, flanc/dos compris
+  // Charge montée (LDB 14 l.183) : Force (Bonus) + Taille de la MONTURE aux DÉGÂTS — la fenêtre porte le
+  // proxy, sinon l'opposition différée le perdrait (le chemin inline le passe, resolveAttack).
+  const dmgProxy = chargeDmgProxy(battle?.combatants, attacker, fromCharge);
+  // Composée HORS du littéral, avec les MÊMES options que le jet figé ci-dessus (flanc/dos compris) :
+  // la Difficulté affichée après la fenêtre est celle qui a fait la cible, pas une recomposition d'un
+  // contexte appauvri.
+  const atkCompo = composeAttack(attackModifiers(attacker, target, weapon, { kind: 'melee', env, flankRear }));
+  return {
+    attackerId: attacker.id,
+    defenderId: target.id,
+    weapon,
+    location: null, // l'IA ne vise pas de localisation
+    atk,
+    env,
+    atkCompo,
+    ...(dmgProxy ? { dmgProxy } : {}),
+    mode: bestDefenseMode(target),
+    def: null,
+    result: null,
+  };
+}
+
+/** La TOUCHE d'une attaque subie hors bataille : Blessures, Blessures critiques du coup (`compteDuCoup`), mort, puis
+ *  les effets `onHit` de l'assaillant sur les Blessures infligées. LDB 13 ; LDB 18 l.17 ; LDB 17 l.29. */
+function appliquerLaToucheSubie(get: Get, set: SetFn, assaillant: Combatant, victime: Combatant, weapon: Weapon, res: AttackResult): void {
+  get().ecrireAuJournal(res.log);
+  if (!toucheNonIgnoree(res)) return;
+  const avant = victime.wounds.current;
+  const { compte, lieu } = compteDuCoup(res, weapon, assaillant, victime, 0);
+  const perdues = loseWounds(victime, res.woundsLost ?? 0);
+  const log: string[] = [];
+  const ctx = { attackerId: assaillant.id, attackerKind: assaillant.kind, weapon: weapon.label, weaponObj: weapon };
+  const letal = compte.critiques.reduce((l, c) => applyCriticalToTarget(victime, lieu, c.overkill, log, set, { ctx, get, origine: c.origine }) || l, false);
+  if (letal || res.autoKill) finalizeHeroDeath(get, set, victime, 'hit', avant, assaillant);
+  log.push(...fireTriggers(get, assaillant, 'onHit', { victim: victime, weapon, woundsDealt: perdues, rng: battleRng(), set }));
+  log.forEach((l) => get().ecrireAuJournal(l));
+  set((s) => ({ party: [...s.party] }));
+}
+
+/** Joue les `restantes` attaques de la série jusqu'à la première fenêtre de Défense ouverte ; rend `true` quand une
+ *  fenêtre tient la main. Le défenseur SURFACÉ (`defenseSurfaced`) défend dans SA fenêtre ; sinon, comme sur le
+ *  chemin instantané, `resolveMelee` (passif d'une victime sans défense, LDB 16 l.113). La série s'arrête sur une
+ *  victime morte ou dont le Destin est en suspens. */
+function jouerLesAttaquesSubies(get: Get, set: SetFn, victime: Combatant, assaillant: Combatant, restantes: number): boolean {
+  const weapon = assaillant.weapons[0];
+  for (let n = restantes; n > 0; n--) {
+    if (victime.dead || get().pendingFateSave) return false;
+    if (!cannotDefend(victime) && defenseSurfaced(get(), victime)) {
+      set({ pendingDefense: { ...gelerLeJetDeMelee(get, assaillant, victime, weapon), suite: { mode: 'subie', assaillant, restantes: n - 1 } } });
+      if (openDefenseCascade(get, set, victime)) return true;
+      set({ pendingDefense: null });
+    }
+    const res = resolveMelee(assaillant, victime, weapon, battleRng(), { defense: cannotDefend(victime) ? 'none' : bestDefenseMode(victime), dodgeMods: defenseDodgeMods(get(), victime) });
+    appliquerLaToucheSubie(get, set, assaillant, victime, weapon, res);
+  }
+  return false;
+}
+
+/** HORS BATAILLE, le héros `victimeId` subit `nombre` attaques de mêlée de `assaillant` (un profil sans fiche : sa CC
+ *  et ses Traits, l'Arme comprise) — le nombre est DÉCLARÉ avant le premier jet ; la série close ouvre les contagions
+ *  de la victime (`ouvrirLesContagions`). MDG 15 l.161, l.176. */
+export function subirDesAttaques(get: Get, set: SetFn, victimeId: string, assaillant: Combatant, nombre: number): void {
+  const victime = garanti(actorIn(get(), victimeId), victimeId, 'victime des attaques subies');
+  get().ecrireAuJournal(tr('cf.attaquesSubies', { name: victime.label, n: nombre, assaillant: assaillant.label }));
+  if (!jouerLesAttaquesSubies(get, set, victime, assaillant, nombre)) ouvrirLesContagions(get, set, [victimeId]);
+}
+
+/** FERMETURE d'une fenêtre de la série subie (`jetValider('defense')`) : la touche défendue s'applique, puis la série
+ *  reprend ; rend `true` quand la fenêtre de l'attaque suivante tient la main. */
+export function poursuivreLaSerieSubie(
+  get: Get, set: SetFn, suite: Extract<SuiteDeDefense, { mode: 'subie' }>, victime: Combatant, weapon: Weapon, res: AttackResult,
+): boolean {
+  appliquerLaToucheSubie(get, set, suite.assaillant, victime, weapon, res);
+  return jouerLesAttaquesSubies(get, set, victime, suite.assaillant, suite.restantes);
 }
 
 /**

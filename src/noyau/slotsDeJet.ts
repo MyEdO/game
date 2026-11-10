@@ -3,7 +3,8 @@
  * et les prédicats purs qui en lisent l'état (orphelin, sans corps, en attente). Types seuls importés.
  */
 import type { Jeu } from './etat';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep, PendingDefense } from './pendings';
+import type { Combatant } from '../engine/types';
 import type { PendingKey } from './stateFields';
 
 /** Les jets qu'une étape peut HÔTER — union fermée de `CascadeStepBase.jet`. */
@@ -36,6 +37,13 @@ export const PENDING_BY_JET = {
 export type PorteurDEtape = Exclude<(typeof PENDING_BY_JET)[HostJet], null>;
 export const PORTEURS_D_ETAPE: readonly PorteurDEtape[] = Object.values(PENDING_BY_JET).filter((k): k is PorteurDEtape => k != null);
 
+/** L'ATTAQUANT d'une fenêtre de Défense — SEUL lecteur, pour tout ce qui la lit : celui que la suite déclare quand
+ *  la série est subie hors bataille (aucune file ne le porte), sinon celui de la file de combat ou du groupe (le
+ *  pool d'`actorIn`). */
+export function attaquantDeLaDefense(s: Partial<Jeu>, pd: Pick<PendingDefense, 'attackerId' | 'suite'>): Combatant | undefined {
+  return pd.suite.mode === 'subie' ? pd.suite.assaillant : (s.battle?.combatants ?? s.party ?? []).find((c) => c.id === pd.attackerId);
+}
+
 /**
  * HÔTE ORPHELIN (#1852) — « cette étape-jet n'a PAS de quoi rendre un corps ». DÉFINITION UNIQUE,
  * partagée par la porte du curseur (`cascade.poserLeCurseur`) et par les hooks de props des jets
@@ -65,7 +73,12 @@ export function sansCorps(s: Partial<Jeu>, step: CascadeStep | undefined): boole
   const present = (id: string | undefined): boolean => !!id && !!s.battle?.combatants.some((c) => c.id === id);
   switch (step.jet) {
     case 'attack': return !present(s.pendingAttack?.attackerId) || !present(s.pendingAttack?.targetId);
-    case 'defense': return !present(s.pendingDefense?.attackerId) || !present(s.pendingDefense?.defenderId);
+    case 'defense': {
+      // Hors bataille, le défenseur se lit au GROUPE (pool d'`actorIn`), l'assaillant subi sur sa suite.
+      const pd = s.pendingDefense!;
+      const pool = s.battle?.combatants ?? s.party ?? [];
+      return !attaquantDeLaDefense(s, pd) || !pool.some((c) => c.id === pd.defenderId);
+    }
     case 'fumble': return !step.fumble || !present(step.actorId);
     // Épreuve étendue : hors combat, l'acteur se lit au GROUPE (même pool que `useExtendedTestJetProps`).
     case 'extended': {
