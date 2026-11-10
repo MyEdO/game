@@ -113,15 +113,15 @@ export function TavernGameModal() {
   const oppCandidates = heroes.filter((h) => h.id !== challengerId);
   const joueurs = Math.max(2, tablePlayers);
   // LE RÉGLAGE que « Jouer » soumet au geste — et que son verdict (`refusDeJouer`) juge.
-  const reglage: ReglageDePartie = {
-    gameId, challengerId, stakeBrass,
+  const partie: ReglageDePartie = {
+    gameId, stakeBrass,
     opponent: oppKind === 'hero'
       ? { kind: 'hero', id: oppHeroId || oppCandidates[0]?.id || '' }
       : oppKind === 'npc' ? { kind: 'npc', id: npc?.id ?? '' } : { kind: 'profil', id: profilId },
     ...(equipe ? { allyProfil: allyProfilId } : {}),
     ...(game?.pot ? { tablePlayers: joueurs } : {}),
   };
-  const raison = useGame((s) => refusDeJouer(s, reglage));
+  const raison = useGame((s) => refusDeJouer(s, challengerId, partie));
   const refusHero = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'hero'));
   const refusNpc = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'npc'));
 
@@ -163,7 +163,7 @@ export function TavernGameModal() {
       <button className="btn" onClick={close}>Fermer</button>
       {/* Raison EN CLAIR (`raisonInline`) : dans une modale d'activité, le refus d'entrer en jeu est
           le seul texte qui explique l'écran — il ne se cache pas derrière un survol. */}
-      <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={!raison} {...raisonSi(raison)} onClick={() => play(reglage)} />
+      <GatedAction id="tavern-play" raisonInline label="Jouer" enabled={!raison} {...raisonSi(raison)} onClick={() => play(challengerId, partie)} />
     </>
   );
 

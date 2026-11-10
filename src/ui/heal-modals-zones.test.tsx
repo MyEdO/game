@@ -290,7 +290,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [soigneur(), patient], pendingHeal: null, pendingSurgery: null, medic: null,
     } as never);
-    act(() => useGame.getState().ouvrirLeMedecin({ patientId: patient.id }));
+    act(() => useGame.getState().ouvrirLeMedecin(patient.id));
     act(() => root.render(<MedicModal />));
     cliquer('Soigner les Blessures');
     expect(useGame.getState().pendingHeal?.mode, 'l’acte réglé sur le brouillon').toBe('wounds');

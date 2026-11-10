@@ -76,7 +76,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('un id du catalogue : `menerLActionDeBataille`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
     const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros \(valides : /);
-    refuseLId(t, verbe('menerLActionDeBataille', 'nulle', heros), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
+    refuseLId(t, verbe('menerLActionDeBataille', heros, 'nulle'), /activityId : "nulle" n’est pas un id d’Activité \(valides : plein-air, /);
     refuseLId(t, verbe('ouvrirLaBoutique', 'forgeron'), /serviceId : "forgeron" n’est pas un id de service du lieu \(valides : aucun ici\)/);
   });
   it('une rangée de jet : la séquence d’entrée en scène, `jetLancer`', { timeout: 120_000 }, () => {
@@ -84,9 +84,9 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-sceneEntry-0\)/);
     passeLeControle(t, verbe('jetLancer', 'cascade', rangee));
   });
-  it('un id dans un objet d’options : `ouvrirLeMedecin`, le patient', { timeout: 120_000 }, () => {
+  it('un id facultatif : `ouvrirLeMedecin`, le patient', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    refuseLId(t, verbe('ouvrirLeMedecin', { patientId: 'nobody' }), /opts\.patientId : "nobody" n’est pas un id de héros/);
+    refuseLId(t, verbe('ouvrirLeMedecin', 'nobody'), /patientId : "nobody" n’est pas un id de héros/);
   });
   it('la signature dit ce que le paramètre désigne', () => {
     const r = table().lire('verbes', { id: 'cliquerLaCase' });

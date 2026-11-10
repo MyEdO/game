@@ -94,7 +94,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
   function partie(): [Combatant, Combatant] {
     const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
     useGame.setState({ party: [a, b] });
-    get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'hero', id: b.id } });
     return [a, b];
   }
 
@@ -132,7 +132,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     a.characteristics.force = 45; // Bonus de Force 4 (l.34) — la partie tient plusieurs manches
     useGame.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'halfling' } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'halfling' } });
     render();
     expect(texte(), 'au départ, les deux camps sont à zéro').toContain('0/10 DR');
 
@@ -158,7 +158,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
   it('MANCHE PERDUE : le challenger reste à 0/10 (plancher RAW) — et le camp adverse, lui, PROGRESSE', () => {
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     poseMancheMono(-4, 2); // Test raté : −4 DR ; l'adversaire prend sa manche
     render();
     const cum = get().sequence!.cum as Record<string, number>;
@@ -196,7 +196,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
       scene: { ...emptyScene('scene-test'), entities: [negociant] },
       battle: null, sequence: null, pendingCascade: null,
     });
-    get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'npc', id: 'negociant' } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'npc', id: 'negociant' } });
 
     const pc = get().pendingCascade!;
     const band = pc.participants[0];
@@ -225,7 +225,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     useGame.setState({ party: [a] });
     // Dominos contre la salle : une manche UNIQUE sans cible de cumul — rien à suivre d'une manche à
     // l'autre (un jeu de LANCERS, lui, a un passage en cours à montrer : il porte un tableau).
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     render();
     expect(get().pendingCascade, 'la fenêtre de manche est bien ouverte').not.toBeNull();
     expect(board()).toBeNull();
@@ -237,7 +237,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
   it('Middenball : le tableau de marque porte le score PAR ÉQUIPE (buts) et la somme du tour', () => {
     const party = makePregens(idsDeTest).slice(0, 2) as Combatant[];
     useGame.setState({ party });
-    get().jouerALaTaverne({ gameId: 'middenball', challengerId: party[0].id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
+    get().jouerALaTaverne(party[0].id, { gameId: 'middenball', opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     // Un tour joué : options tranchées, puis 11 rangées à 3 DR contre 11 à 1 DR.
     for (let i = 0; i < 4; i++) {
       const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
@@ -277,7 +277,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
     creditBourse(get, useGame.setState, a.id, { gold: 0, silver: 0, brass: 2000 });
-    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 2 });
+    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 2 });
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     expect(cur().kind, 'le héros annonce d’abord la cible (étape de CHOIX)').toBe('tavern-pot-target');
     render();
@@ -291,7 +291,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
   it('Bras de fer héros contre héros (étape BANDE), « Abandonner » est offert', () => {
     const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
     useGame.setState({ party: [a, b] });
-    get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'hero', id: b.id } });
     expect(get().pendingCascade!.participants[0].participants, 'manche en bande').toBeDefined();
     render();
     expect(boutons(), 'branche batch').toContain('Abandonner');
@@ -300,7 +300,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
   it('Bras de fer contre l’habitué (étape MONO à jet figé), « Abandonner » est offert', () => {
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'humain' } });
     expect(get().pendingCascade!.participants[0].meta?.opposed, 'manche mono à jet figé').toBeDefined();
     render();
     expect(boutons(), 'branche mono-jet').toContain('Abandonner');
@@ -310,7 +310,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a], suspendedCascades: [], pendingTest: null } as never);
     try {
-      get().jouerALaTaverne({ gameId: 'bras-de-fer', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+      get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'profil', id: 'humain' } });
       expect(openSkillTest(get, useGame.setState, { characteristic: 'force', label: 'Force' }, condCtx(get), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW)).toBe(true);
       expect(get().pendingCascade!.purpose, 'fenêtre hébergée').not.toBe('sequence');
       expect(get().suspendedCascades.map((c) => c.purpose), 'la manche est parquée').toEqual(['sequence']);
@@ -347,7 +347,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
     creditBourse(get, useGame.setState, a.id, { gold: 0, silver: 0, brass: 2000 });
-    get().jouerALaTaverne({ gameId: 'al-zahr', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 2 });
+    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 2 });
     render();
     expect(boutons(), 'fenêtre d’ouverture : offert').toContain('Abandonner');
     expect(boutonAbandon()!.getAttribute('aria-disabled'), 'ouvert').not.toBe('true');
@@ -370,7 +370,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
   it('Fléchettes : un CHOIX dû après le jet — fermé, la raison nomme le choix (`stepInteraction`)', () => {
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'flechettes', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 0 });
+    get().jouerALaTaverne(a.id, { gameId: 'flechettes', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 0 });
     let vu = false;
     for (let i = 0; i < 40 && get().pendingCascade && !vu; i++) {
       const st = cur();
@@ -390,7 +390,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
   it('Torchon : offert à l’ouverture malgré le danseur TÉMOIN déjà roulé, fermé une fois la pinte due', () => {
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'torchon', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    get().jouerALaTaverne(a.id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     const band = cur();
     expect(band.participants!.some((r) => r.interactive === false && r.result), 'un témoin naît roulé').toBe(true);
     render();
@@ -424,7 +424,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
   it('Torchon : le lancer RATÉ posé non validé — l’abandon DEMANDÉ laisse la pinte due, survit à la sauvegarde, puis perd la partie à la clôture (NADJ 16 l.111)', () => {
     const [a] = makePregens(idsDeTest).slice(0, 1) as [Combatant];
     useGame.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'torchon', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
+    get().jouerALaTaverne(a.id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     const pc = get().pendingCascade!;
     const band = cur();
     const rows = band.participants!.map((r) => ({

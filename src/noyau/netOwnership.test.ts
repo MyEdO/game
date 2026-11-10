@@ -341,15 +341,15 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
     expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'stash', 120])).toBe(true);
   });
 
-  it('Entraînement, Faveur (1er argument) et préparation de bataille (meneur en 2e argument) : son propriétaire agit, pas les autres', () => {
+  it('Entraînement, Faveur et préparation de bataille (héros en 1er argument) : son propriétaire agit, pas les autres', () => {
     const s = interludeState();
     expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'entrainement', 'intelligence', 'h2'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'entrainement', 'intelligence', 'h1'])).toBe(false);
     expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h2'])).toBe(true);
     expect(intentAllowedFor(s, 1, 'solderLaFaveur', ['h1'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['planification', 'h2'])).toBe(true);
-    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['planification', 'h1'])).toBe(false);
-    expect(intentAllowedFor(s, 0, 'menerLActionDeBataille', ['planification', 'h2'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['h2', 'planification'])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'menerLActionDeBataille', ['h1', 'planification'])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'menerLActionDeBataille', ['h2', 'planification'])).toBe(false);
   });
 
   it('retrait bancaire : le dépôt appartient à un héros — son propriétaire retire', () => {

@@ -86,17 +86,17 @@ describe('Rassemblement — `refusDeRassemblement` (ADE II 08 l.122 : « tous le
 });
 
 describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
-  const alZahr = (challengerId: string, extra: Partial<ReglageDePartie> = {}): ReglageDePartie => ({
-    gameId: 'al-zahr', challengerId, opponent: { kind: 'profil', id: profilsStandard()[0] }, ...extra,
+  const alZahr = (extra: Partial<ReglageDePartie> = {}): ReglageDePartie => ({
+    gameId: 'al-zahr', opponent: { kind: 'profil', id: profilsStandard()[0] }, ...extra,
   });
 
   it('challenger à 11 sous de cuivre, mise de 11 sous : la partie s’ouvre, mise entière', () => {
     const [a] = heros(1);
     setBourseBrass(a, 11, idsDeTest);
     banc.setState({ party: [a] });
-    const reglage = alZahr(a.id, { stakeBrass: 11, tablePlayers: 3 });
-    expect(refusDeJouer(get(), reglage)).toBeNull();
-    get().jouerALaTaverne(reglage);
+    const partie = alZahr({ stakeBrass: 11, tablePlayers: 3 });
+    expect(refusDeJouer(get(), a.id, partie)).toBeNull();
+    get().jouerALaTaverne(a.id, partie);
     expect((get().sequence!.payload as { stakeBrass: number }).stakeBrass).toBe(11);
   });
 
@@ -104,17 +104,17 @@ describe('table de taverne — `refusDeJouer` (NADJ 16 l.17)', () => {
     const [a] = heros(1);
     setBourseBrass(a, 11, idsDeTest);
     banc.setState({ party: [a] });
-    get().jouerALaTaverne(alZahr(a.id, { stakeBrass: 1, tablePlayers: 12 }));
+    get().jouerALaTaverne(a.id, alZahr({ stakeBrass: 1, tablePlayers: 12 }));
     expect((get().sequence!.payload as { seats: unknown[] }).seats).toHaveLength(12);
   });
 
   it('sans mise : le verdict et le geste disent le même texte', () => {
     const [a] = heros(1);
     banc.setState({ party: [a] });
-    const reglage = alZahr(a.id, { stakeBrass: 0 });
+    const partie = alZahr({ stakeBrass: 0 });
     const texte = `${a.label} ne pose aucune mise : aucune partie ne s’ouvre.`;
-    expect(refusDeJouer(get(), reglage)).toBe(texte);
-    get().jouerALaTaverne(reglage);
+    expect(refusDeJouer(get(), a.id, partie)).toBe(texte);
+    get().jouerALaTaverne(a.id, partie);
     expect(get().sequence).toBeNull();
     expect(dernier()).toBe(texte);
   });

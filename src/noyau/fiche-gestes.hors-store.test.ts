@@ -430,7 +430,7 @@ describe('gestes de possession — le verdict (`refusGestePossession`) est celui
 describe('ouvrirLeMedecin — le verdict (`refusDeSoins`) est celui du geste', () => {
   it('en combat, l’infirmerie ne s’ouvre pas et le refus se dit (jamais un no-op muet)', () => {
     enCombat((partie, H) => {
-      partie.envoyer({ type: 'ouvrirLeMedecin', args: [{ patientId: H.id }] });
+      partie.envoyer({ type: 'ouvrirLeMedecin', args: [H.id] });
       expect(partie.etat().medic).toBeFalsy();
       expect(partie.etat().refus?.texte).toBe(t('medic.inCombat'));
     });
@@ -439,7 +439,7 @@ describe('ouvrirLeMedecin — le verdict (`refusDeSoins`) est celui du geste', (
   it('sur un héros indemne, l’infirmerie ne s’ouvre pas : le geste dit qu’il n’y a rien à soigner', () => {
     const heros = heroDuDuel();
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
-      const appel = partie.envoyer({ type: 'ouvrirLeMedecin', args: [{ patientId: heros.id }] });
+      const appel = partie.envoyer({ type: 'ouvrirLeMedecin', args: [heros.id] });
       expect(partie.etat().medic, 'l’infirmerie s’est ouverte sur un héros indemne').toBeFalsy();
       expect(lignesDuJournal(appel)).toEqual([t('medic.rienASoigner', { name: heros.label })]);
       expect(refusDeSoins(partie.etat(), heros.id), 'l’écran lit le refus que rend le geste').toBe(lignesDuJournal(appel)[0]);

@@ -355,10 +355,10 @@ function potSeats(challenger: Combatant, opponentHero: Combatant | undefined, op
   return seats;
 }
 
-/** Réglage d'une partie : le jeu, le challenger, son vis-à-vis, la mise unitaire (sous de cuivre),
+/** Réglage d'une partie : le jeu, le vis-à-vis du challenger, la mise unitaire (sous de cuivre),
  *  le coéquipier d'un jeu d'équipe, l'effectif d'une table de pot. */
 export interface ReglageDePartie {
-  gameId: IdDeJeuDeTaverne; challengerId: IdDeHeros; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: IdDeProfilStandard; tablePlayers?: number;
+  gameId: IdDeJeuDeTaverne; opponent: TavernOpponent; stakeBrass?: number; allyProfil?: IdDeProfilStandard; tablePlayers?: number;
 }
 
 /** Partie prête à jouer : ses acteurs résolus et sa mise plafonnée à la bourse du challenger. */
@@ -379,12 +379,12 @@ export function refusDAdversaire(s: Jeu, gameId: string, challengerId: string, k
 }
 
 /**
- * Résout le réglage d'une partie, ou dit pourquoi elle ne s'ouvre pas : table d'hôte
+ * Résout le réglage de la partie que le héros `heroId` défie, ou dit pourquoi elle ne s'ouvre pas : table d'hôte
  * (`refusDeTableDHote`), séquence déjà active, jeu inconnu, challenger absent, coéquipier d'un jeu
  * d'équipe, genre de vis-à-vis non offert (`refusDAdversaire`), vis-à-vis absent, profil de coéquipier inconnu, mise absente d'un jeu de pot. SOURCE
  * UNIQUE de `refusDeJouer` et de `jouerALaTaverne`.
  */
-function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus: string } {
+function preparerLaPartie(s: Jeu, heroId: string, opts: ReglageDePartie): PartiePrete | { refus: string } {
   const refusHote = refusDeTableDHote(s);
   if (refusHote) return { refus: refusHote };
   // RÉ-ENTRÉE REFUSÉE : `startSequence` ÉCRASE `state.sequence` — une partie en cours disparaîtrait
@@ -392,7 +392,7 @@ function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus:
   if (s.sequence) return { refus: t('tavern.dejaEnCours') };
   const game = findTavernGameById(opts.gameId);
   if (!game) return { refus: t('tavern.jeuInconnu', { id: opts.gameId }) };
-  const challenger = s.party.find((h) => h.id === opts.challengerId);
+  const challenger = s.party.find((h) => h.id === heroId);
   if (!challenger) return { refus: t('tavern.challengerAbsent', { jeu: game.label }) };
   const opp = opts.opponent;
   const refusDuVisAVis = refusDAdversaire(s, game.id, challenger.id, opp.kind, opp.id);
@@ -415,10 +415,10 @@ function preparerLaPartie(s: Jeu, opts: ReglageDePartie): PartiePrete | { refus:
   return { game, challenger, opponentActor, allie, stakeBrass };
 }
 
-/** Pourquoi la partie réglée par `opts` ne s'ouvre pas, ou `null` — verdict UNIQUE de `jouerALaTaverne`
+/** Pourquoi la partie réglée par `opts`, que défie `heroId`, ne s'ouvre pas, ou `null` — verdict UNIQUE de `jouerALaTaverne`
  *  et de la modale (`preparerLaPartie`). */
-export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
-  const p = preparerLaPartie(s, opts);
+export function refusDeJouer(s: Jeu, heroId: string, opts: ReglageDePartie): string | null {
+  const p = preparerLaPartie(s, heroId, opts);
   return 'refus' in p ? p.refus : null;
 }
 
@@ -427,8 +427,8 @@ export function refusDeJouer(s: Jeu, opts: ReglageDePartie): string | null {
  * MISE UNITAIRE d'un jeu de pot, plafonnée à la bourse du challenger (`preparerLaPartie`) ; refusée,
  * la partie le DIT (`refusDeJouer`).
  */
-export function jouerALaTaverne(get: Get, set: Set, opts: ReglageDePartie): void {
-  const p = preparerLaPartie(get(), opts);
+export function jouerALaTaverne(get: Get, set: Set, heroId: string, opts: ReglageDePartie): void {
+  const p = preparerLaPartie(get(), heroId, opts);
   if ('refus' in p) { refuserGeste(get, set, p.refus); return; }
   const { game, challenger, opponentActor, allie, stakeBrass } = p;
   const opp = opts.opponent;
@@ -2498,7 +2498,7 @@ function finalizeTavernGame(
 export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
     ouvrirLesJeux: (npcId?: string) => ouvrirLesJeux(get, set, npcId),
-    jouerALaTaverne: (opts) => jouerALaTaverne(get, set, opts),
+    jouerALaTaverne: (heroId, partie) => jouerALaTaverne(get, set, heroId, partie),
   } satisfies FabriqueDuNoyau;
 }
 

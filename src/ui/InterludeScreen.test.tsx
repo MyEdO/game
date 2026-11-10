@@ -768,7 +768,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     const seam = buildSeam();
     const heroId = seam.party[0].id;
     useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    useGame.getState().menerLActionDeBataille('inspire', heroId);
+    useGame.getState().menerLActionDeBataille(heroId, 'inspire');
     useGame.setState({ pendingActivity: { ...useGame.getState().pendingActivity!, roll: 20, success: true, sl: 2 } });
     useGame.getState().jetValider('activity');
     expect(useGame.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
@@ -776,7 +776,7 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     const raison = 'Déjà réalisée cette bataille (Activité non répétable).';
     expect(raisonDId(html, 'pane-prep-inspire-blocked')).toBe(raison);
     fermeeEtLiee(html, 'pane-prep-inspire');
-    expect(raisonDuGeste(() => useGame.getState().menerLActionDeBataille('inspire', heroId))).toEqual([raison]);
+    expect(raisonDuGeste(() => useGame.getState().menerLActionDeBataille(heroId, 'inspire'))).toEqual([raison]);
   });
 });
 
@@ -798,7 +798,7 @@ describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog: interludeCatalog(s), massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />);
     expect(ligneDePreJet(html)).toContain('46 +10 = 56');
     expect(ligneDePreJet(html)).toContain('Soutien');
-    useGame.getState().menerLActionDeBataille('planification', party[0].id);
+    useGame.getState().menerLActionDeBataille(party[0].id, 'planification');
     expect(useGame.getState().pendingActivity!.target).toBe(56);
   });
 

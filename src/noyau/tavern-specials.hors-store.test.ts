@@ -62,7 +62,7 @@ describe('L’Arène — Tireur d’élite, « un cran plus facile » (NADJ 16 l
     const a = heros(0, true);
     const b = heros(1, false);
     banc.setState({ party: [a, b] });
-    get().jouerALaTaverne({ gameId: 'arene', challengerId: a.id, opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'arene', opponent: { kind: 'hero', id: b.id } });
     expect((get().sequence!.payload as TavernPayload).specials, 'figés à l’ouverture, au seul siège qui a le Talent')
       .toEqual({ [a.id]: [expect.objectContaining({ effet: 'cran', hasTalent: 'tireur-d-elite', steps: 1 })] });
 
@@ -89,7 +89,7 @@ describe('Manche opposée contre la salle — la Difficulté du challenger ne s�
       : g)));
     const a = heros(0, true);
     banc.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'humain' } });
     const etape = get().pendingCascade!.participants[0];
     expect(etape.difficulty, 'le challenger, un cran plus facile').toBe('facile');
     const aT = etape.meta!.opposed!.aT!;
