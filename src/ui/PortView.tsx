@@ -5,6 +5,7 @@ import { useGame } from '../state/store';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
 import { type PortProfile } from '../engine/seaVoyage';
+import { REPARATION } from '../engine/seaNavigation';
 import { findCargoEntryById } from '../engine/cargo';
 import { toMoney, priceToMoney, fromBrass, PA_PER_CO } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
@@ -175,7 +176,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                 ariaLabel="Réparer la coque"
                 enabled={!chantier.refusReparation}
                 {...raisonSi(chantier.refusReparation)}
-                descOfferte={`1 CO par Blessure restaurée${lissage ? ' · +50 % coque lissée' : ''}`}
+                descOfferte={`${REPARATION.portCostGoldPerWound} CO par Blessure restaurée${lissage ? ` · +${REPARATION.lissageRepairSurcoutPct} % coque lissée` : ''}`}
                 onClick={repair}
                 primary={false}
               />

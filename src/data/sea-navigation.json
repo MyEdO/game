@@ -548,6 +548,8 @@
       "book": "mer-des-griffes",
       "page": 116,
       "note": "ch.13 « Navigation maritime » — RÉPARER LES NAVIRES + Réparations temporaires (l.639-651) ; entretienCrewTestDR croise ch.14 « Entretien » (l.122)."
-    }
+    },
+    "constructeurLocal": 50,
+    "maison": "Le constructeur naval local (MDG 13 l.643) n'a pas de profil : il teste son Métier (Constructeur de navires) à 50 (consigne utilisateur 2026-11-07)."
   }
 }

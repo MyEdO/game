@@ -283,6 +283,9 @@ export interface CampaignVessel {
   /** Colis à livrer (op `commission`) : le lieu de destination (`placeId`), le montant reçu à l'accostage dans ce
    *  lieu (sous de cuivre) et la source ; chaque commission tombe à sa livraison. MDG 15 l.261 */
   commissions?: { label: string; placeId: string; brass: number }[];
+  /** Constructeur de navires de l'escale (op `constructeurDEscale`) : la Compétence de son Test de réparation et la
+   *  durée tirée de la réparation (jours) ; levé à l'appareillage. MDG 15 l.255 */
+  constructeurDEscale?: { competence: number; jours: number };
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;

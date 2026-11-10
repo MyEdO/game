@@ -31,7 +31,8 @@ import shipConstructionJson from '../data/ship-construction.json';
 import steamBreakdownJson from '../data/steam-breakdown.json';
 import { findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
-import { roll, rollDice, type RNG, type Tirage } from './dice';
+import { roll, rollDice, tirer, type RNG, type Tirage } from './dice';
+import { REPARATION } from './seaNavigation';
 import { deDeTirageDe, rangeesDe } from '../data/rangees';
 import type * as panneDeVapeur from '../data/schemas/defs/steam-breakdown';
 import { rollTest } from './tests';
@@ -281,17 +282,18 @@ export function installCost(install: NavalInstall, lengthM: number, units = 1): 
 
 export interface RepairTick { roll: number; target: number; success: boolean; wounds: number; hours: number; costGold: number }
 
-/** UNE passe de réparation au PORT (l.643 : « 1 CO par Blessure restaurée. Chaque Test réussi prend
- *  1d10 heures de travail et restaure 1d10 Blessures ») — `skillValue` = Métier (Constructeur de
- *  navires), ou Métier (Charpentier) déjà pénalisé de −10 par l'appelant (l.641). `lissage` : le coût
- *  monte de 50 % (ch.12 l.295). PUR (RNG injecté). */
+/** Prix au port de `wounds` Blessures restaurées, coque lissée ou non. MDG 13 l.643 ; MDG 12 l.295 */
+export const prixDeLaReparation = (wounds: number, lissage: boolean): number =>
+  wounds * REPARATION.portCostGoldPerWound * (lissage ? 1 + REPARATION.lissageRepairSurcoutPct / 100 : 1);
+
+/** UNE passe de réparation au PORT : Test de Métier (Constructeur de navires) à `skillValue`, ou de Métier
+ *  (Charpentier) déjà pénalisé par l'appelant. MDG 13 l.641-643 ; MDG 12 l.295. PUR (RNG injecté). */
 export function rollPortRepair(skillValue: number, woundsMissing: number, rng: RNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
   const t = rollTest(skillValue, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
-  const hours = roll(1, 10, rng);
+  const hours = tirer(REPARATION.testHours, rng);
   if (!t.success) return { roll: t.roll, target: t.target, success: false, wounds: 0, hours, costGold: 0 };
-  const wounds = Math.min(woundsMissing, roll(1, 10, rng));
-  const costGold = wounds * (opts.lissage ? 1.5 : 1);
-  return { roll: t.roll, target: t.target, success: true, wounds, hours, costGold };
+  const wounds = Math.min(woundsMissing, tirer(REPARATION.woundsPerTest, rng));
+  return { roll: t.roll, target: t.target, success: true, wounds, hours, costGold: prixDeLaReparation(wounds, !!opts.lissage) };
 }
 
 /** UNE réparation TEMPORAIRE en mer (l.647-649) : Complexe (−10) à Très Difficile (−30) selon les

@@ -168,6 +168,12 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       set({ vessel: { ...vessel, commissions: [...(vessel.commissions ?? []), { label, placeId: port.id, brass }] } });
       return [t('eff.commission', { label, port: port.label, montant: formatMoney(fromBrass(brass)) })];
     }
+    case 'constructeurDEscale': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const jours = Math.max(1, Math.round(resolveFormula(o.duree, ref, ctx.rng)));
+      set({ vessel: { ...vessel, constructeurDEscale: { competence: o.competence, jours } } });
+      return [t('eff.constructeurDEscale', { label: nomDeSource(ctx), competence: o.competence, jours })];
+    }
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);

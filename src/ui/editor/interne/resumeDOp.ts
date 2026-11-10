@@ -176,6 +176,7 @@ export function opSummary(o: GameOp): string {
     case 'navireHostile': return `${refLabel('vehicles', o.navire)} · ${o.equipage.nombre} × ${refLabel('creatures', o.equipage)}${o.exigence === 'fouille' ? ' · fouille' : ''}`;
     case 'infestation': return `${refLabel('crewTestTypes', o.crewTestType)} · ${o.targetDR} DR`;
     case 'commission': return `colis livré contre ${formulaSummary(o.montant.brass)} sous de cuivre`;
+    case 'constructeurDEscale': return `Constructeur de navires ${o.competence} · ${formulaSummary(o.duree)} j`;
     case 'combatEnMer': return `Combat : ${o.adversaire.nombre} × ${refLabel('creatures', o.adversaire)}${o.repousseAPct !== undefined ? ` · repoussé à ${o.repousseAPct} %` : ''}${o.victoire ? ' · sur la victoire' : ''}`;
     default: return `${(o as GameOp).op}`;
   }
