@@ -79,23 +79,23 @@ describe('store — actions POV (pivoterLeGroupe / avancerDUnPas)', () => {
     expect(capDuGroupe(banc.getState())).toBe('NO'); // N -1 cran anti-horaire
   });
 
-  it("avancerDUnPas('forward') avance d'une case le long du regard ET garde le cap", () => {
+  it("avancerDUnPas('avant') avance d'une case le long du regard ET garde le cap", () => {
     setup('E'); // regard EST
-    banc.getState().avancerDUnPas('forward');
+    banc.getState().avancerDUnPas('avant');
     expect(banc.getState().partyPos).toEqual({ x: 4, y: 3 }); // un pas à l'est
     expect(capDuGroupe(banc.getState())).toBe('E'); // cap conservé
   });
 
-  it("avancerDUnPas('left') fait un pas de côté à 90° à gauche MAIS préserve le regard", () => {
+  it("avancerDUnPas('gauche') fait un pas de côté à 90° à gauche MAIS préserve le regard", () => {
     setup('E'); // regard EST → gauche relatif = NORD (E tourné de 6 crans = N)
-    banc.getState().avancerDUnPas('left');
+    banc.getState().avancerDUnPas('gauche');
     expect(banc.getState().partyPos).toEqual({ x: 3, y: 2 }); // un pas au nord (y-1)
     expect(capDuGroupe(banc.getState())).toBe('E'); // regard INCHANGÉ (pas latéral)
   });
 
-  it("avancerDUnPas('back') recule d'une case MAIS préserve le regard", () => {
+  it("avancerDUnPas('arriere') recule d'une case MAIS préserve le regard", () => {
     setup('E'); // dos = OUEST
-    banc.getState().avancerDUnPas('back');
+    banc.getState().avancerDUnPas('arriere');
     expect(banc.getState().partyPos).toEqual({ x: 2, y: 3 }); // un pas à l'ouest (x-1)
     expect(capDuGroupe(banc.getState())).toBe('E'); // regard INCHANGÉ
   });
@@ -104,7 +104,7 @@ describe('store — actions POV (pivoterLeGroupe / avancerDUnPas)', () => {
     setup('E');
     banc.setState({ mode: 'battle' });
     const pos0 = banc.getState().partyPos;
-    banc.getState().avancerDUnPas('forward');
+    banc.getState().avancerDUnPas('avant');
     expect(banc.getState().partyPos).toEqual(pos0);
   });
 });

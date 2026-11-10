@@ -18,6 +18,7 @@
  */
 import type { GameState } from './store';
 import type { ScreenDir } from './combatCursor';
+import type { PasRelatif } from '../noyau/actionsDuNoyau';
 import { surfaceTientLaMain, type ArbiterState } from '../noyau/modalArbiter';
 import { marcheOuverte } from '../noyau/marcheDuGroupe';
 import { modaleDuDessus } from './dismissStack';
@@ -28,7 +29,7 @@ import { clearTrackedTimer, scheduleFlowTimer } from '../web/minuteries';
  *  vue subjective. Les deux vues empruntent le même mécanisme, jamais deux. */
 export type PasTenu =
   | { vue: 'iso'; dir: ScreenDir }
-  | { vue: 'pov'; rel: 'forward' | 'back' | 'left' | 'right' };
+  | { vue: 'pov'; rel: PasRelatif };
 
 /** Identité d'un pas tenu : deux armements du MÊME pas ne se relâchent pas l'un l'autre. */
 const cle = (p: PasTenu): string => (p.vue === 'iso' ? `iso:${p.dir}` : `pov:${p.rel}`);

@@ -19,7 +19,7 @@ const AUTRE_MODE = MODE.options!.find((o) => o !== MODE.default)!;
 
 const HORS_COMBAT: Pick<Jeu, 'battle'> = { battle: null };
 const EN_COMBAT = { battle: { over: null } } as unknown as Pick<Jeu, 'battle'>;
-const COMBAT_FINI = { battle: { over: 'victory' } } as unknown as Pick<Jeu, 'battle'>;
+const COMBAT_FINI = { battle: { over: 'victoire' } } as unknown as Pick<Jeu, 'battle'>;
 
 const persiste = (s: ReturnType<typeof stockageEnMemoire>): unknown => JSON.parse(s.contenu.get(CLE)!);
 

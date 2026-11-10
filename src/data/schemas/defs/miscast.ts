@@ -119,17 +119,23 @@ const doc = document(
   'miscast',
   famille,
   {
-    /** Catégorie Codex où vivent les LIGNES de ce tableau quand elles y sont exposées. Les deux
-     *  révisions VDM n'en ont pas : le Codex n'expose que les trois tableaux du Livre de base, un
-     *  renvoi y serait mort. */
+    /** Catégorie Codex où vivent les LIGNES de ce tableau (#1667). */
     codexCategory: z.string().optional(),
   },
   {
     codexCategory: { label: 'Catégorie Codex des lignes', hint: 'Clé de la catégorie Compendium qui expose les rangées (absente = tableau non exposé)' },
   },
   {
-    codex: { keys: ['miscastMinor', 'miscastMajor', 'miscastWrath'] },
-    edit: { niche: { categories: { miscastMinor: '[miscast-mineure].entries', miscastMajor: '[miscast-majeure].entries', miscastWrath: '[miscast-colere].entries' } } },
+    codex: { keys: ['miscastMinor', 'miscastMajor', 'miscastMinorVdm', 'miscastMajorVdm', 'miscastWrath'] },
+    edit: {
+      niche: {
+        categories: {
+          miscastMinor: '[miscast-mineure].entries', miscastMajor: '[miscast-majeure].entries',
+          miscastMinorVdm: '[miscast-mineure-vdm].entries', miscastMajorVdm: '[miscast-majeure-vdm].entries',
+          miscastWrath: '[miscast-colere].entries',
+        },
+      },
+    },
   },
   { rangee, deDeTirage: true },
 );

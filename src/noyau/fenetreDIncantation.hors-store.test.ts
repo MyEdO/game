@@ -179,7 +179,7 @@ function enCombat(banc: Banc) {
   banc.setState({ party: [h] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const [E, ...autres] = b.combatants.filter((c) => c.kind === 'enemy');
@@ -199,7 +199,7 @@ describe('pose de la Zone d’Effet : refusée sur un Sort qui ne part pas, la p
   it('Explosion ratée : la pose de la zone (`cast.carte`) refusée, la fenêtre reste ouverte et s’applique', () => {
     const banc = ouvrirLeBanc({ desFixes: true });
     const { H } = enCombat(banc);
-    banc.setState({ battle: { ...banc.getState().battle!, action: 'cast', selectedSpellId: 'explosion' } });
+    banc.setState({ battle: { ...banc.getState().battle!, action: 'incantation', selectedSpellId: 'explosion' } });
     banc.getState().cliquerLaCase({ x: 9, y: 9 });
     expect(banc.getState().pendingCast, 'chemin : la zone s’ouvre sans centre').toMatchObject({ casterId: H.id, zone: { center: null } });
     banc.getState().jetLancer('cast');

@@ -1,7 +1,7 @@
 /**
- * LE VERDICT D'ARMEMENT VOYAGE AVEC LE GESTE (#1411, P0-A) — liaison web : le commit clavier
+ * L'INTENTION DU CLIC VOYAGE AVEC LE GESTE (#1411, P0-A) — liaison web : le commit clavier
  * (`combatCursor.commitCursor`) passe par les actions de store, que `netFlow.interceptGuestActions`
- * remplace chez l'invité. La règle (ré-entrée, verdict joint aux args, refus local) se joue au banc
+ * remplace chez l'invité. La règle (ré-entrée, intention jointe aux args et jugée, refus local) se joue au banc
  * du noyau, `src/noyau/geste-arme-voyage.hors-store.test.ts`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -18,7 +18,7 @@ function setup() {
   useGame.setState({ party: [hero] });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');
-  get().fenetreValider('roundStart');
+  get().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   const b = get().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -42,7 +42,7 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('(B) COOP — le verdict se calcule chez l’ÉMETTEUR et voyage dans les args', () => {
+describe('(B) COOP — l’intention part de l’ÉMETTEUR dans les args', () => {
   it('CLAVIER : `commitCursor` commet par l’ACTION DE STORE — donc par le wrapper d’invité', () => {
     const { E } = setup();
     // L'invité n'émet ses gestes que parce que `netFlow.interceptGuestActions` REMPLACE les actions de

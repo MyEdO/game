@@ -18,6 +18,7 @@
  *  • la CAPTURE de touche du panneau de remap lui-même (`ui/KeyBindingsPanel.tsx`).
  */
 import type { GameState } from '../store';
+import type { PasRelatif } from '../../noyau/actionsDuNoyau';
 import { activeCombatant } from '../../noyau/combatFlow';
 import { controlsActive } from '../../noyau/netOwnership';
 import { reponsesDuNoeud, conversationRepond, COUCHE_CONVERSATION } from '../../noyau/dialogue';
@@ -243,11 +244,11 @@ const EXPLORE_STEP: { code: string; dir: ScreenDir; labelKey: MsgKey; povId: str
 ];
 /** Pas clavier d'exploration en vue SUBJECTIVE (ZQSD cap-relatifs) : mêmes touches physiques, autre
  *  vocabulaire de direction — un seul mécanisme de marche tenue pour les deux vues (`stageWalk`). */
-const POV_STEP: { id: string; code: string; rel: 'forward' | 'back' | 'left' | 'right'; labelKey: MsgKey; isoId: string }[] = [
-  { id: 'pov-forward', code: 'KeyW', rel: 'forward', labelKey: 'key.povForward', isoId: 'explore-up' },
-  { id: 'pov-back', code: 'KeyS', rel: 'back', labelKey: 'key.povBack', isoId: 'explore-down' },
-  { id: 'pov-strafe-l', code: 'KeyA', rel: 'left', labelKey: 'key.povStrafeL', isoId: 'explore-left' },
-  { id: 'pov-strafe-r', code: 'KeyD', rel: 'right', labelKey: 'key.povStrafeR', isoId: 'explore-right' },
+const POV_STEP: { id: string; code: string; rel: PasRelatif; labelKey: MsgKey; isoId: string }[] = [
+  { id: 'pov-forward', code: 'KeyW', rel: 'avant', labelKey: 'key.povForward', isoId: 'explore-up' },
+  { id: 'pov-back', code: 'KeyS', rel: 'arriere', labelKey: 'key.povBack', isoId: 'explore-down' },
+  { id: 'pov-strafe-l', code: 'KeyA', rel: 'gauche', labelKey: 'key.povStrafeL', isoId: 'explore-left' },
+  { id: 'pov-strafe-r', code: 'KeyD', rel: 'droite', labelKey: 'key.povStrafeR', isoId: 'explore-right' },
 ];
 
 /** Contexte de l'ÉDITEUR de scène — le hook est monté au niveau application, l'écran arbitre. */
@@ -331,7 +332,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // focalisé, son activation native suffit (pas de double appel). La touche est un CONSOMMATEUR du
   // registre d'actions (`round-start`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
   {
-    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.roundStart.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
+    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.debutDuRound.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
     when: (s) => inBattle(s) && !!s.pendingRoundStart && !s.preemptAiming, // visée Tir rapide armée → Entrée TIRE (curseur), pas « commencer »
     run: (g) => jouerLOffreDeLEcran(g(), 'round-start'),
   },
@@ -345,7 +346,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       const shooters = preemptShooterIds(g);
       const i = g().preemptAiming ? shooters.indexOf(g().preemptAiming!) : -1;
       const next = i + 1 < shooters.length ? shooters[i + 1] : null; // tireur suivant, puis désarme après le dernier
-      g().fenetreChoisir('roundStart', 'viser', next);
+      g().fenetreChoisir('debutDuRound', 'viser', next);
       if (next) g().snapCursorToTarget(1); else g().clearCursor(); // pose le curseur sur la cible la plus proche
     },
   },
@@ -395,7 +396,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'cursor-cancel', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
-    run: (g) => { if (g().preemptAiming) g().fenetreChoisir('roundStart', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
+    run: (g) => { if (g().preemptAiming) g().fenetreChoisir('debutDuRound', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
   },
   {
     id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],

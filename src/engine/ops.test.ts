@@ -456,7 +456,7 @@ describe('applyOps — opérations unitaires', () => {
     it("ctx.location='brasG' → cible la main SECONDAIRE (off), la MAIN n'est pas touchée", () => {
       const c = withWeapon();
       applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasG' });
-      expect(c.loadouts![0].main).toBe('w1'); // rien tenu en `off` → inerte, l'arme MAIN reste
+      expect(c.loadouts![0].main).toBe('w1'); // rien tenu en `secondaire` → inerte, l'arme MAIN reste
     });
 
     it('aucun objet tenu dans cette main → inerte, journalisé (ne plante pas)', () => {
@@ -851,12 +851,12 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
 });
 
 describe('augmentWeapon — l’arme tenue est celle du set actif résolu', () => {
-  it('arme à deux mains en `main`, dague en `off` : la dague n’est pas tenue, l’enchantement qui la vise échoue', () => {
+  it('arme à deux mains en `main`, dague en `secondaire` : la dague n’est pas tenue, l’enchantement qui la vise échoue', () => {
     const c = hero({ items: [{ ...itemFromGive({ trappingId: 'grande-hache' }, idsDeTest), uid: 'grande-hache' }, { ...itemFromGive({ trappingId: 'dague' }, idsDeTest), uid: 'dague' }] });
     recomputeLoadout(c);
     const lo = c.loadouts![0];
     loadoutSetSlot(c, lo.id, 'main', 'grande-hache');
-    loadoutSetSlot(c, lo.id, 'off', 'dague');
+    loadoutSetSlot(c, lo.id, 'secondaire', 'dague');
     recomputeLoadout(c);
     const lignes = applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'], requiresWeapon: ['dague'] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sonde', defaultDurationRounds: 2 });
     expect(lignes).toEqual(['Cobaye : aucune arme en main à enchanter (Sonde).']);

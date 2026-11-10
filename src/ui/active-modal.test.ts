@@ -25,7 +25,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
   });
 
   it('un seul pending → sa modale', () => {
-    expect(pickActiveModalKey({ pendingRenounce: {} })).toBe('renounce');
+    expect(pickActiveModalKey({ pendingRenounce: {} })).toBe('renier');
   });
 
   it('la défense n’est PLUS une modale propre : étape `jet:\'defense\'` de la cascade `combat` (wrapper-fold)', () => {
@@ -49,7 +49,7 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
   it('le sauvetage par Destin domine tout', () => {
     expect(
       pickActiveModalKey({ pendingFateSave: {}, pendingDefense: {}, pendingCascade: cascadeDeTest([{ id: 'r', kind: 'round', reveal: { kind: 'round', title: 'x', lines: [] } }]), pendingAttack: {} }),
-    ).toBe('fateSave');
+    ).toBe('destin');
   });
 
   it('la Maladresse n’est PLUS une modale propre : étape `jet:\'fumble\'` de la cascade (passe avant la Corruption)', () => {

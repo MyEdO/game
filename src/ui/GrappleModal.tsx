@@ -96,9 +96,9 @@ export function GrappleModal() {
             <OptionChooser
               layout="grid"
               options={[
-                { key: 'damage', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('grapple', 'issue', 'damage'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
-                { key: 'entangle', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => regler('grapple', 'issue', 'entangle'), title: 'Conférer l’État Empêtré à l’adversaire.' },
-                { key: 'free', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => regler('grapple', 'issue', 'free'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
+                { key: 'degats', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('grapple', 'issue', 'degats'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
+                { key: 'empetrer', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => regler('grapple', 'issue', 'empetrer'), title: 'Conférer l’État Empêtré à l’adversaire.' },
+                { key: 'liberer', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => regler('grapple', 'issue', 'liberer'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
               ]}
             />
           </>

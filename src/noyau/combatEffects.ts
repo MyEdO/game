@@ -290,7 +290,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
 /** Attribue la ligne `uid` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
  *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
  *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot), corps des choix
- *  `loot.ligne` et `victory.ligne`. */
+ *  `butin.ligne` et `victoire.ligne`. */
 export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', uid: IdDeLigneDeButin, heroId: string) {
   const bucket = garanti(get()[key], key, 'butin ouvert');
   const ligne = garanti(bucket.gear?.find((g) => g.uid === uid), uid, 'ligne de butin');
@@ -301,7 +301,7 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que le choix `victory.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
+/** Les créatures que le choix `victoire.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
 export function creaturesDeLaRecolte(s: Jeu): string[] {
   const pv = s.pendingVictory;
   if (!pv) return [];
@@ -311,7 +311,7 @@ export function creaturesDeLaRecolte(s: Jeu): string[] {
 /** Refus du dépeçage de la créature `creatureId` de la victoire : ses pièces sont déjà récoltées ; `null` sinon. */
 export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
 
-/** Les créatures que le choix `victory.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
+/** Les créatures que le choix `victoire.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
 export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
@@ -2196,7 +2196,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   medicalAid: {
     group: 'Combat & social', label: libelleEffet('medicalAid'), icon: 'medical/aid',
     // tarif par défaut : « aide médicale 4-6 pistoles » (LDB 75) → 5 pa
-    make: () => ({ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }], entityId: '' }),
+    make: () => ({ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: '' }),
     apply: (e, env) => { openMedicalAidEffect(env.get, env.set, e); }, // soins payants d'un PNJ : ouvre son infirmerie (actes tarifés)
     // Le soigneur PORTE ses stats : sans entité résolvable, l'infirmerie n'a ni nom ni fiche à lire —
     // et sans la Compétence Guérison sur cette fiche, l'acte n'a aucune valeur à jouer (LDB 09 l.30).

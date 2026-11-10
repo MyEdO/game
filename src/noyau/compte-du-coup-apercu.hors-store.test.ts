@@ -34,7 +34,7 @@ function auJet({ seed, roll, paTouche = 0, pieces, tenue, current = 20 }: Jet, l
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: tenue ? 0 : undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -161,7 +161,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
       banc.getState().lancerLaScene(structuredClone(testScene()));
       banc.getState().lancerLeCombat('enc-mutants');
-      banc.getState().fenetreValider('roundStart');
+      banc.getState().fenetreValider('debutDuRound');
       banc.abandonner();
       const b = banc.getState().battle!;
       const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -210,7 +210,7 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.setState({ party: [tireur, allie], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const [H, A] = b.combatants.filter((c) => c.kind === 'hero');

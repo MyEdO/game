@@ -67,7 +67,7 @@ const construireVillage = (): Scene => buildScene({
               flow: flowFromEffects([
                 {
                   type: 'medicalAid', entityId: 'medecin',
-                  acts: [{ act: 'wounds', cost: { silver: 5 } }, { act: 'bleed', cost: { silver: 5 } }],
+                  acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }],
                 },
                 { type: 'endDialogue' },
               ]),

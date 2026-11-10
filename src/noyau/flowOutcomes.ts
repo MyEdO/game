@@ -84,9 +84,9 @@ export function describeEncounterPsych(pe: PendingEncounterPsych, name: string):
  *  portés par `target`). */
 export function describeHeal(ph: PendingHeal, target: Combatant): string {
   if (ph.roll == null) return '';
-  const wounds = ph.mode === 'wounds';
-  const trauma = ph.mode === 'trauma';
-  const ammo = ph.mode === 'ammo';
+  const wounds = ph.mode === 'blessures';
+  const trauma = ph.mode === 'traumatisme';
+  const ammo = ph.mode === 'munition';
   const rawPreview = wounds ? healWoundsDelta(ph.intBonus, ph.sl, ph.success) : 0;
   const preview = wounds ? cappedHealAmount(target, rawPreview) : rawPreview;
   if (ph.success) {
@@ -173,7 +173,7 @@ export function describeBargain(pb: PendingBargain): string {
   if (!won && drNet >= SL_ASTOUNDING) return t('out.bargainSuspicious', { who: pb.opposant.label });
   const c = pb.contrepartie;
   if (c.kind === 'billet') return won ? t('out.bargainWonBillet') : t('out.bargainLostBillet');
-  if (c.mode === 'sell') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
+  if (c.mode === 'vente') return verdictDeVente({ won, drNet, negotiator: pb.negotiator });
   return won ? t('out.bargainWonBuy', { discount: t('out.fragDiscount', { pct: bargainPct(won, drNet, pb.negotiator) }) }) : t('out.bargainLostBuy');
 }
 
@@ -188,7 +188,7 @@ export function verdictDeVente(o: BargainOutcome): string {
  *  applique la révélation + l'estimation chiffrée à part (jetValider('appraise')). */
 export function describeAppraise(pa: PendingAppraise): string {
   if (pa.roll == null) return '';
-  const detect = pa.mode === 'detect';
+  const detect = pa.mode === 'detection';
   if (detect) {
     return pa.success
       ? t('out.detectSomething', { name: pa.actorName, item: pa.itemName })

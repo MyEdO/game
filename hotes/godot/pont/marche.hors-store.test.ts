@@ -50,7 +50,7 @@ describe('le marché de cargaison par le pont', () => {
     expect(dans(corps(compose)['offre/laine-terre'], 'acheter'), 'l’achat composé, pressé').toMatchObject({ presse: true });
     const reglages = Object.fromEntries(compose.vue.zones['fenetre.reglages'].map((e) => [e.id, e]));
     expect(reglages['fenetreChoisir@marcheDeTerre#porteur'], 'chaque porteur de vrac et sa place, le retenu pressé').toMatchObject({ valeurs: [{ libelle: 'Charrette · 25/25 Enc libres', presse: true }, { libelle: 'Mule · 14/14 Enc libres', presse: false }] });
-    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#enc', 'fenetreChoisir@marcheDeTerre#acheter']);
+    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#encombrement', 'fenetreChoisir@marcheDeTerre#acheter']);
   });
 
   it('un lot acheté : son porteur et son Enc, sa vente, son bradage, son transfert vers la mule', () => {

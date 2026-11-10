@@ -916,7 +916,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
   // Titre de bande à la planche (`.cu-sechead .ttl` + `small`) : mot-clef en display, suite en
   // petites capitales — même prose qu'avant, seulement scindée.
   const [tirageMain, tirageSub] =
-    d.charMode === 'rolled' ? ['Le tirage', '2d10 par caractéristique'] : d.charMode === 'reassigned' ? ['Réassignation', 'des dix jets'] : ['Répartition', 'des points'];
+    d.charMode === 'tire' ? ['Le tirage', '2d10 par caractéristique'] : d.charMode === 'reassigne' ? ['Réassignation', 'des dix jets'] : ['Répartition', 'des points'];
 
   // Bande d'ACTION (slot requis de l'ossature) : LA MÉTHODE — le choix de la voie (#393 P3bis,
   // sélecteur PERMANENT segmenté, les trois options coexistent toujours) + le GESTE « Tirer aux
@@ -931,9 +931,9 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
         <OptionChooser
           layout="seg"
           options={[
-            { key: 'rolled', label: `Aux dés — garder le tirage`, mode: 'rolled' as const },
-            { key: 'reassigned', label: `Aux dés — réorganiser ensuite`, mode: 'reassigned' as const },
-            { key: 'pointBuy', label: `Répartir ${repartition(d, 'points').quota} points`, mode: 'pointBuy' as const },
+            { key: 'tire', label: `Aux dés — garder le tirage`, mode: 'tire' as const },
+            { key: 'reassigne', label: `Aux dés — réorganiser ensuite`, mode: 'reassigne' as const },
+            { key: 'repartition', label: `Répartir ${repartition(d, 'points').quota} points`, mode: 'repartition' as const },
           ].map(({ key, label, mode }) => ({
             key,
             label: <>{label} <em className="hint" style={{ fontStyle: 'normal' }}>+{charsXpDeLaMethode(d, mode)} PX</em></>,
@@ -945,7 +945,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
           Chaque Caractéristique s'écrit base + 2d10. Garder le tirage tel quel rapporte le plus de PX de création.
         </p>
       </Section>
-      {d.charMode !== 'pointBuy' && (
+      {d.charMode !== 'repartition' && (
         <CreatorDice
           label="Tirer les dix jets — 2d10 par Caractéristique"
           hint={<>Garder le tirage : +{XP_CHARS_KEPT} PX · réorganiser ensuite : +{XP_CHARS_REASSIGNED} PX · relancer : +{charsXpDeLaMethode(rerollDraftChars(d), d.charMode)} PX.</>}
@@ -970,7 +970,7 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
           <Band
             title={<>{tirageMain}<small>{tirageSub}</small></>}
             right={
-              d.charMode === 'pointBuy' ? (
+              d.charMode === 'repartition' ? (
                 <b className={points.total === points.quota ? 'ok-text' : 'warn-text'}>Points : {points.total}/{points.quota}</b>
               ) : (
                 <NotchGauge value={tiredCount} max={10} notches={10} format={(v, m) => `${v}/${m} tirées`} tone={tiredCount === 10 ? 'ok' : 'neutral'} />
@@ -1000,24 +1000,24 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                     sub={`base ${baseDEspece(sp, k)}`}
                     meta={
                       <>
-                        {d.charMode !== 'pointBuy' && rowRolling && (
+                        {d.charMode !== 'repartition' && rowRolling && (
                           <Row as="span">
                             <DiceRoll scene={false} landed={false} faces={null} onSkip={() => setSeq(null)} tone="gold" />
                           </Row>
                         )}
-                        {d.charMode !== 'pointBuy' && !rowRolling && !revealed && (
+                        {d.charMode !== 'repartition' && !rowRolling && !revealed && (
                           <Row as="span">
                             <span className="rm-die"><DieFace n={null} landed tone="gold" /></span>
                             <span className="rm-die"><DieFace n={null} landed tone="gold" /></span>
                           </Row>
                         )}
-                        {d.charMode === 'rolled' && revealed && (
+                        {d.charMode === 'tire' && revealed && (
                           <Row as="span">
                             <span className="rm-die"><DieFace n={pairs[i][0]} landed tone="gold" /></span>
                             <span className="rm-die"><DieFace n={pairs[i][1]} landed tone="gold" /></span>
                           </Row>
                         )}
-                        {d.charMode === 'reassigned' && revealed && (
+                        {d.charMode === 'reassigne' && revealed && (
                           <select
                             value={d.assignment[k]}
                             onChange={(e) => setD(withAssignment(d, k, Number(e.target.value)))}
@@ -1029,12 +1029,12 @@ export function CharScreen({ d, setD }: StepProps): ReactNode {
                             ))}
                           </select>
                         )}
-                        {d.charMode === 'pointBuy' && (
+                        {d.charMode === 'repartition' && (
                           <AllocStepper d={d} setD={setD} compteur={{ genre: 'points', k }} label={CHAR_LABELS[k]} />
                         )}
                       </>
                     }
-                    value={d.charMode !== 'pointBuy' && !revealed ? '—' : chars[k]}
+                    value={d.charMode !== 'repartition' && !revealed ? '—' : chars[k]}
                   />
                 );
               })}

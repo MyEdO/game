@@ -145,7 +145,7 @@ describe('doAttack — l\'IA gatée joue le MÊME Test inline (résolution forc�
     // Foe gaté sur la MAIN, mais la seule arme tenue est en OFF (uid 'e', non gaté) → firedWeapon la choisit.
     const foe = mkFoe('f', { handGates: ['main'], conditions: [{ id: 'hemorragique', value: 2 }],
       weapons: [SWORD('e')], items: [SWORD_ITEM('e')],
-      loadouts: [{ id: 'loe', off: 'e' }] as never, activeLoadoutId: 'loe' } as never);
+      loadouts: [{ id: 'loe', secondaire: 'e' }] as never, activeLoadoutId: 'loe' } as never);
     const { h, f } = setup(mkHero(), foe);
     doAttack(banc.getState, banc.setState, f, h);
     const s = banc.getState();

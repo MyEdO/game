@@ -12,7 +12,7 @@ import { useHoverTargeting, type HoverAim } from './useHoverTargeting';
 import { AimOverlay } from './AimOverlay';
 import type { Dims } from '../../geometry/iso';
 import type { Combatant } from '../../engine/types';
-import { armedIntentPortee, chargeArmee, PORTEE_COURSE } from '../../noyau/localIntent';
+import { armedIntentPortee, chargeArmee, intentionLocale, PORTEE_COURSE } from '../../noyau/localIntent';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
 import { cascadeDeTest } from '../../noyau/cascade.testkit';
@@ -44,7 +44,7 @@ function setup() {
   useGame.setState({ party: [hero] });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   const battle = useGame.getState().battle!;
   const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
   active.pos = { x: 6, y: 10 };
@@ -284,7 +284,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     const battle = useGame.getState().battle!;
     const foe = battle.combatants.find((c) => c.kind === 'enemy')!;
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
-    const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'off', damage: { plusBF: true, flat: 2 }, qualities: [] };
+    const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'secondaire', damage: { plusBF: true, flat: 2 }, qualities: [] };
     active.weapons = [...active.weapons, off as never];
     // L'interlude tel que `jetValider('attack')` le pose : l'étape `attack` au curseur, son slot vidé
     // (`pendingAttack` null), le coup fermé ; la 2ᵉ frappe attend une cible SUR LA CARTE.
@@ -381,7 +381,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
     const active = setup();
     const foe = foeAPorteeDeCharge(active);
     useGame.setState({ localIntent: { actionId: 'charge' } });
-    expect(chargeArmee(useGame.getState), 'l’action « charge » doit armer la portée de Charge').toBe(true);
+    expect(chargeArmee(intentionLocale(useGame.getState)), 'l’action « charge » doit armer la portée de Charge').toBe(true);
     const aim = probeAim({ x: foe.pos!.x, y: foe.pos!.y });
     expect(aim?.path?.length, 'le chemin réel de la Charge est tracé').toBeGreaterThan(1);
     const html = ecran(aim);
@@ -436,7 +436,7 @@ describe('useHoverTargeting — grisage hors-LdV du SORT', () => {
     vu.pos = { x: 16, y: 0 }; // brèche : ligne dégagée
     cache.pos = { x: 16, y: 4 }; // derrière le mur
     for (const autre of foes.slice(2)) autre.pos = { x: 0, y: 7 };
-    useGame.setState({ scene: murScene(), battle: { ...battle, action: 'cast', selectedSpellId: 'carreau', acted: true } });
+    useGame.setState({ scene: murScene(), battle: { ...battle, action: 'incantation', selectedSpellId: 'carreau', acted: true } });
 
     const ghosts = probeGhosts();
     expect(ghosts.has(cache.id), 'sans Ligne de Vue, l’ennemi est fantomatique').toBe(true);

@@ -58,6 +58,6 @@ describe('Activités en mer — le choix posé est RETENU, le focus va au geste 
     expect(repos?.getAttribute('aria-pressed')).toBe('true');
     expect(actif()).toBe('Valider la semaine');
     act(() => { (document.activeElement as HTMLElement).click(); });
-    expect(valides).toEqual(['seaActivities']);
+    expect(valides).toEqual(['activitesEnMer']);
   });
 });

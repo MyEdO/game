@@ -56,7 +56,7 @@ LDB compris ; la garde imprime le compte de dossiers hors format à chaque exéc
 | Trait | Forme canonique | Famille d'écart |
 |---|---|---|
 | Ligne 1 d'un chapitre | `*Pages PDF a-b*` (ou `*Pages PDF a*` pour une page unique) | `ligne1-hors-format` |
-| Folios | au moins une ancre `data-folio` par chapitre | `sans-folio` |
+| Folios | au moins une ancre `data-folio` par chapitre — sauf livre dont la liste de découpe DÉCLARE `sansFolio` (document qui n'imprime aucun folio, constat lu au PDF) | `sans-folio` — livre déclaré `sansFolio` : non jugé |
 | Ancres | `<span id="page-N-0" data-folio="F"></span>` **inline**, préfixe du texte qu'elle ouvre — jamais seule sur sa ligne | `ancre-seule` |
 | Nom de fichier | `NN - Titre imprimé.md` par `nomAscii` — jamais un signet Word (`_GoBack`, `_gjdgxs`, `Sans titre`) | `nom-de-signet` |
 | HTML | aucun, hors ancres et `<br>` | `html-residuel` |
@@ -204,7 +204,13 @@ PAVENT le livre — débuts croissants, aucun trou, au plus une page partagée �
 chapitre sont contiguës et son titre n'ouvre que sa première, aucune entrée en double, chaque titre
 survit à `nomAscii`, `onglets` est déclaré — chiffres romains valides, étendues dans le livre,
 disjointes et ordonnées, chaque `chapitre` couvert par au moins une ; `gabaritOnglet` non nul si et
-seulement si `onglets` l'est, et bien formé).
+seulement si `onglets` l'est, et bien formé ; `sansFolio` absent ou `true`).
+
+**Un livre SANS FOLIO IMPRIMÉ** — clé `sansFolio`, FACULTATIVE au niveau du LIVRE, à côté de `book` :
+`true` DÉCLARÉ pour un document qui n'imprime AUCUN folio (fiches de personnage autonomes du
+Compagnon du Pouvoir derrière le Trône, #3884), constat LU AU PDF — jamais un folio inventé. La
+famille `sans-folio` de `raw:check-source-format` ne juge alors aucun de ses chapitres ; un livre sans
+cette clé est jugé chapitre par chapitre. Lue par l'unique `_lib.mjs#sansFolioDe`.
 
 **Les ONGLETS DE CHAPITRE** — clé `onglets`, REQUISE au niveau du LIVRE, à côté de `book` :
 `[{ chiffre, pages: [a, b] }]`, le chiffre romain imprimé en onglet et l'ÉTENDUE de pages PDF, de la

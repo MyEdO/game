@@ -88,7 +88,7 @@ describe('EquipmentPanel (rendu)', () => {
   it('arme 2 mains en principale → cellule secondaire bloquée (pas de 2nde main)', () => {
     const h = mkHero();
     h.loadouts![0].main = 'halle';
-    h.loadouts![0].off = undefined;
+    h.loadouts![0].secondaire = undefined;
     recomputeLoadout(h);
     const html = renderToStaticMarkup(<EquipmentPanel hero={h} />);
     expect(html).toContain('deux mains'); // titre de la cellule 2nde bloquée
@@ -110,7 +110,7 @@ describe('EquipmentPanel (rendu)', () => {
   it('« En main » : les qualités de l’arme = chips canoniques (EntityRef)', () => {
     const h = mkHero();
     h.loadouts![0].main = 'halle'; // Hallebarde : Défensive/Taille/Empaleuse
-    h.loadouts![0].off = undefined;
+    h.loadouts![0].secondaire = undefined;
     recomputeLoadout(h);
     const html = renderToStaticMarkup(<EquipmentPanel hero={h} />);
     expect(html).toContain('weap-quals');

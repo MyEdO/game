@@ -60,15 +60,15 @@ describe('MedicModal — acte grisé = acte que `heal.mode` refuse, même raison
     expect(operer.ferme).toBe(false);
     expect(operer.raison).toBeNull();
     act(() => operer.bouton.click());
-    expect(useGame.getState().pendingHeal?.mode).toBe('surgery');
+    expect(useGame.getState().pendingHeal?.mode).toBe('chirurgie');
     expect(useGame.getState().medic?.surgery).toBeUndefined();
     act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
-    expect(useGame.getState().medic?.surgery?.kind).toBe('surgery');
+    expect(useGame.getState().medic?.surgery?.kind).toBe('chirurgie');
   });
 
   it('PNJ à 5 co, bourse vide : « Soigner les Blessures » fermé, raison « Le groupe n’a pas assez d’argent pour cet acte. »', () => {
     const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(12, 4) });
-    const npc = { id: 'barbier', label: 'Barbier', skill: { id: 'guerison', value: 50 }, intBonus: 3, acts: [{ act: 'wounds' as const, cost: { gold: 5 } }] };
+    const npc = { id: 'barbier', label: 'Barbier', skill: { id: 'guerison', value: 50 }, intBonus: 3, acts: [{ act: 'blessures' as const, cost: { gold: 5 } }] };
     useGame.setState({ party: [patient], medic: { patientId: 'p', npc } } as never);
     act(() => root.render(<MedicModal />));
     const soigner = acte('Soigner les Blessures');

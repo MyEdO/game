@@ -5,6 +5,7 @@ import type { BattleActionMode } from './actionRegistry';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
+import type { IdDIntention } from './designations';
 import type { RefusIHM } from './refusVisible';
 import type { EtatDeSequence } from './sequenceContract';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -40,11 +41,11 @@ export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test'
 export type Ecran = typeof SCREENS[number];
 
 /** Postures de tir PRÉ-ARMÉES d'un combattant (`BattleState.stances`) : les champs qu'elles
- *  pré-remplissent sur le `PendingAttack` de son prochain tir. `heldGround` — tir IMMOBILE
- *  (`LDB 14 l.70`) ; `intoCrowd` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
+ *  pré-remplissent sur le `PendingAttack` de son prochain tir. `tirImmobile` — tir IMMOBILE
+ *  (`LDB 14 l.70`) ; `dansLeTas` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
 export interface ShootingStance {
-  heldGround?: boolean;
-  intoCrowd?: boolean;
+  tirImmobile?: boolean;
+  dansLeTas?: boolean;
 }
 /** Champ de posture armable — l'id porté par le registre des actions (`ActionDef.stance`). */
 export type ShootingStanceKey = keyof ShootingStance;
@@ -85,7 +86,7 @@ export interface BattleState {
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
    *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
    *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
-   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
+   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleportation` = résolution d'un sort) —
    *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
@@ -119,7 +120,7 @@ export interface BattleState {
    *  `PendingAttack` qu'elle pré-remplit — aucune sémantique parallèle. */
   stances?: Record<string, ShootingStance>;
   log: CombatEvent[];
-  over: null | 'victory' | 'defeat';
+  over: null | 'victoire' | 'defaite';
   onVictory?: Flow;
   /** Objectif de victoire authorable (#197). Absent = `allEnemiesDead` (défaut historique, `checkBattleOver`). */
   victoryCondition?: VictoryCondition;
@@ -385,9 +386,9 @@ export interface EtatDeJeu {
    *  dérive. CAMPAGNE-scopé comme `objectives` ; vidé en nouvelle partie (`lancerLaScene`). */
   objectifsSoldes: Objective[];
   /** Borne d'ouverture du chapitre courant (#717) — posée à l'acquittement de l'ouverture
-   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('chapterRecap')`) ; null = aucun chapitre borné. */
+   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('finDeChapitre')`) ; null = aucun chapitre borné. */
   chapitreDepuis: ChapitreDepuis | null;
-  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('chapterRecap')`, lu par
+  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('finDeChapitre')`, lu par
    *  `armChapterRecapIfDue`. La clôture est une Condition, et une Condition vraie le RESTE (un drapeau
    *  ne se retire pas) : sans ce fait, le lot d'effets suivant ré-armerait un récap vide, à l'infini.
    *  Un seul booléen suffit : un paquet porte UNE `narratif.cloture`, et le fait meurt avec la partie
@@ -627,8 +628,8 @@ export interface EtatDeJeu {
   finDeSeance: FinDeSeance | null;
   /** Combat monté (AA 9 l.36) : clic sur un couple cavalier+monture (deux ennemis) → choisir lequel
    *  frapper (le cavalier −10 si l'on est plus petit que la monture ; abattre la monture désarçonne). */
-  /** `approche` = VERDICT D'ARMEMENT capturé au clic qui a ouvert ce choix (cf. `PendingApproach`). */
-  pendingMountTarget: { riderId: string; mountId: string; approche?: boolean } | null;
+  /** `intentionId` = l'intention du clic qui a ouvert ce choix (cf. `PendingApproach`). */
+  pendingMountTarget: { riderId: string; mountId: string; intentionId?: IdDIntention } | null;
   /** Temps de jeu : minutes depuis l'époque (Hexenstag 2512 00:00, cf. clock.ts). « Tout est horodaté ». */
   gameTime: number;
   // ── Voyage & nourriture (#T2) ──

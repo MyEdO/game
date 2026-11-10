@@ -160,9 +160,9 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
   });
 
   it.each([
-    ['fenetreValider', 'roundStart', 'pendingRoundStart', { round: 2 }],
-    ['fenetreFermer', 'victory', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
-    ['fenetreValider', 'rest', 'pendingRest', { phase: 'setup', perHero: {}, days: 1, readyBySeat: {} }],
+    ['fenetreValider', 'debutDuRound', 'pendingRoundStart', { round: 2 }],
+    ['fenetreFermer', 'victoire', 'pendingVictory', { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] }],
+    ['fenetreValider', 'repos', 'pendingRest', { phase: 'setup', perHero: {}, days: 1, readyBySeat: {} }],
   ] as const)('marquage : `%s(%s)` émis par le siège 1 ne marque que le siège 1, quels que soient ses args (#2439)', (verbe, fenetre, cle, pending) => {
     setup();
     banc.setState({ [cle]: pending } as never);

@@ -150,10 +150,10 @@ const dlgMedecin = {
           flow: flowOf([{
             type: 'medicalAid',
             acts: [
-              { act: 'wounds', cost: { silver: 4 } },
-              { act: 'bleed', cost: { silver: 4 } },
-              { act: 'trauma', cost: { silver: 5 } },
-              { act: 'surgery', cost: { silver: 6 } },
+              { act: 'blessures', cost: { silver: 4 } },
+              { act: 'hemorragie', cost: { silver: 4 } },
+              { act: 'traumatisme', cost: { silver: 5 } },
+              { act: 'chirurgie', cost: { silver: 6 } },
             ],
             entityId: 'medecin',
           }]),
@@ -262,7 +262,7 @@ const dlgFrere = {
           id: 'recevoir-soins',
           label: 'Recevoir des soins (actes payants).',
           icon: 'medical/aid',
-          flow: flowOf([{ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }, { act: 'bleed', cost: { silver: 5 } }], entityId: 'frere' }]),
+          flow: flowOf([{ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }], entityId: 'frere' }]),
         },
         {
           id: 'recevoir-benediction',

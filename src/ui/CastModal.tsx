@@ -381,7 +381,7 @@ export function CastModal() {
                 // éteint mais motivé, jamais un vide inexpliqué.
                 const situation = !part.declared
                   ? (!owned ? t('declaration.attente', { name: actor.label }) : undefined)
-                  : part.declared === 'pass'
+                  : part.declared === 'passer'
                     ? 'passe — ne tente pas la Dissipation ce Round'
                     : part.declared === 'soutenu' && grp
                       ? (lance ? `mène le Test Soutenu (+${grp.bonus})` : `soutient ${grp.leader.label} (+10)`)
@@ -407,7 +407,7 @@ export function CastModal() {
                     rolled={!!r}
                     forcedRoll={die.forcedRoll}
                     fixedMark={die.fixedMark}
-                    interactive={owned && part.declared !== 'pass'}
+                    interactive={owned && part.declared !== 'passer'}
                     rollLabel={<><Icon id="action/defend" size="sm" /> Contre-sort</>}
                     onRoll={onRoll}
                     rollBlocked={refusDeRangee(st, 'counterspell', part.id)}
@@ -422,7 +422,7 @@ export function CastModal() {
                           { key: 'solo', label: t('valeur.declaration.solo') },
                           // La raison du refus se lit au survol/focus/tap, jamais par un segment muet.
                           { key: 'soutenu', label: t('valeur.declaration.soutenu'), refus: counterspellJoinable(st, csp, part.id) ? undefined : 'Exige un autre dissipateur du même Domaine' },
-                          { key: 'pass', label: t('valeur.declaration.pass') },
+                          { key: 'passer', label: t('valeur.declaration.passer') },
                         ],
                         hint: situation,
                       }

@@ -56,12 +56,12 @@ function deroule(main: boolean, pilote = main): Issue {
     if (!s.battle || s.battle.over) return { issue: 'fin', fenetresTirRapide };
     const pd = s.pendingDefense;
     if (pd && !pd.result && pd.suite.mode === 'machine' && pd.suite.coup.enchainement?.mode === 'tirRapide') fenetresTirRapide++;
-    if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
+    if (s.pendingRoundStart) { g().fenetreValider('debutDuRound'); continue; }
     if (main) {
       const surDef = !s.pendingCascade || s.pendingCascade.participants[s.pendingCascade.cursor]?.jet === 'defense';
       if (surDef && pd && !pd.result) { g().jetLancer('defense'); continue; }
       if (surDef && pd?.result) { g().jetValider('defense'); continue; }
-      if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'negate'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survive'); continue; }
+      if (s.pendingFateSave) { g().fenetreChoisir('destin', 'issue', 'eviter'); if (g().pendingFateSave) g().fenetreChoisir('destin', 'issue', 'survivre'); continue; }
       const c = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
       if (c?.kind === 'hero' && !ouverts().length && s.battle.turn >= 0) { advanceTurn(banc.getState, banc.setState); banc.avancer(100); continue; }
     }

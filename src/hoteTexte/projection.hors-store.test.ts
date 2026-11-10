@@ -18,7 +18,7 @@ import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCar
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {
-  const r = rejouer(nouvelEntete(scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['roundStart'] }, ...gestes]);
+  const r = rejouer(nouvelEntete(scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['debutDuRound'] }, ...gestes]);
   enPartie(r, faire);
 }
 
@@ -150,7 +150,7 @@ describe('le journal', () => {
   it('la défaite ne recopie pas le journal du combat (`defaite-dome.jsonl`)', { timeout: 240_000 }, () => {
     aLaFixture('defaite-dome.jsonl', (r) => {
       const textes = r.journal.flatMap((l) => (l.ligne.de === 'combat' ? [l.ligne.evenement.text] : []));
-      expect(r.partie.etat().battle?.over, 'témoin : la partie va jusqu’à la défaite').toBe('defeat');
+      expect(r.partie.etat().battle?.over, 'témoin : la partie va jusqu’à la défaite').toBe('defaite');
       expect(textes.filter((t) => t.startsWith('Le combat commence')), 'le journal du combat est recopié après la défaite').toHaveLength(1);
       const log = r.partie.etat().battle!.log;
       expect(log.some((e) => / — Résistance : /.test(e.text)), 'la défaite efface du journal du combat les Tests de fin de combat').toBe(true);

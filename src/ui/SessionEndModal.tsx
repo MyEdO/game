@@ -25,7 +25,7 @@ import type { IdDeHeros } from '../noyau/designations';
  * Rend le CORPS et les GESTES à part : le cadre hôte pose `gestes` dans son pied (`Modal` ou
  * `ScreenShell` `footer`).
  */
-export function useSessionEnd({ fenetre, apercu }: { fenetre: 'finDeSeance' | 'chapterRecap'; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
+export function useSessionEnd({ fenetre, apercu }: { fenetre: 'finDeSeance' | 'finDeChapitre'; apercu?: boolean }): { corps: ReactNode; gestes: ReactNode } {
   const party = herosDeLaSeance({ party: useGame((s) => s.party) });
   const choisir = useGame((s) => s.fenetreChoisir);
   const valider = useGame((s) => s.fenetreValider);

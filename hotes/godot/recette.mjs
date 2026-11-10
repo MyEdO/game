@@ -8,7 +8,7 @@
 //   les éléments du projet (manifestes, provenances et licences de `projet/modeles`, GLB tirés de la Release par
 //   `recupererModeles`), puis `--element` importé (`importer.mjs --sans-publier`) ; le combat ouvert, chaque combattant
 //   à corps de la vue a la base de l'élément, celle que l'écran publie posée (`wfrpEcran.corps`), et le combattant dont
-//   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `off`, l'emblème de sa
+//   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème de sa
 //   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet. Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
@@ -335,7 +335,7 @@ async function preparerLesModeles() {
 }
 
 /** Le combat ouvert, chaque corps de la vue posé à l'écran (`wfrpEcran.corps`) sur la base de l'élément `elementId` ;
- *  le combattant dont le corps le monte a monté aussi la tête de sa vue et porte, à la ligne de sa prise `off`, l'emblème
+ *  le combattant dont le corps le monte a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème
  *  de sa donnée. */
 async function prouverLEmbleme(elementId) {
   const base = production(o.element).manifeste.base
@@ -346,7 +346,7 @@ async function prouverLEmbleme(elementId) {
   const [id, compose] = corps.find(([, c]) => c.montes.some((m) => m.element === elementId)) ?? []
   assert.ok(id, `un combattant monte « ${elementId} »`)
   const combattant = v.projection.combat.voisins.liste.find((c) => c.id === id)
-  const ligne = combattant.portee.portees.find((p) => p.point === 'off')?.point
+  const ligne = combattant.portee.portees.find((p) => p.point === 'secondaire')?.point
   const embleme = combattant.portee.embleme?.id
   const tete = compose.montes.find((m) => m.ligne === 'ligne/tete')?.element
   assert.ok(ligne && embleme && tete, `${combattant.nom} tient en main off, sa donnée nomme un emblème et sa tête a un élément : ${JSON.stringify(combattant.portee)}`)
@@ -1019,7 +1019,7 @@ async function parcoursVoyage() {
   await capturer('3534-voyage-1-jets')
   for (let k = 0; k < 4; k++) {
     await cliquerBouton('Lancer')
-    await attendreLaVue(`v.zones['fenetre.corps'].filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
+    await attendreLaVue(`v.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [e])).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
   }
   noter(`jets tombés : ${corps(await vue())}`)
   await capturer('3534-voyage-2-tombes')
@@ -1089,7 +1089,7 @@ async function parcoursRepos() {
   await cliquerBouton('Carte du monde')
   await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
   await cliquerBouton('À pied · 2 j')
-  await entrer('rest')
+  await entrer('repos')
   let v = await vue()
   noter(`repos : ${corps(v)}`)
   await capturer('3328-r1-1-nuit')
@@ -1126,7 +1126,7 @@ async function parcoursRepit() {
   await capturer('3328-m1-1-repit')
   await choisirDansLaListe(undefined, 'Revenus')
   await cliquerAmene('Entreprendre', 1)
-  await attendreLaVue("v.disposition === 'activity'")
+  await attendreLaVue("v.disposition === 'activite'")
   await capturer('3328-m1-2-revenus')
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
@@ -1179,7 +1179,7 @@ async function parcoursBataille() {
   await capturer('3328-n1-1-bataille')
   const [scene] = zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/') && e.elements.some((x) => x.id === 'postes'))
   await cliquerBouton('Résoudre')
-  await attendreLaVue("v.disposition === 'activity'")
+  await attendreLaVue("v.disposition === 'activite'")
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()

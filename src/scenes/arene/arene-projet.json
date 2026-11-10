@@ -4525,25 +4525,25 @@
              "type": "medicalAid",
              "acts": [
               {
-               "act": "wounds",
+               "act": "blessures",
                "cost": {
                 "silver": 4
                }
               },
               {
-               "act": "bleed",
+               "act": "hemorragie",
                "cost": {
                 "silver": 4
                }
               },
               {
-               "act": "trauma",
+               "act": "traumatisme",
                "cost": {
                 "silver": 5
                }
               },
               {
-               "act": "surgery",
+               "act": "chirurgie",
                "cost": {
                 "silver": 6
                }
@@ -4933,13 +4933,13 @@
              "type": "medicalAid",
              "acts": [
               {
-               "act": "wounds",
+               "act": "blessures",
                "cost": {
                 "silver": 5
                }
               },
               {
-               "act": "bleed",
+               "act": "hemorragie",
                "cost": {
                 "silver": 5
                }

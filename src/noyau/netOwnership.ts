@@ -445,7 +445,7 @@ const PAR_PORTEUR_DE_L_OBJET: Route = {
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
  * LE chemin : le balayage et la 2ᵉ frappe (`frapperEnBalayage`/`frapperDeLaSecondeArme`) sont la machinerie du clic
  * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `cliquerLaCase`. Ce clic retombait sur
- * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
+ * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `destin` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
  * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `cliquerLeCombattant`,
  * donc PERSONNE ne poursuivait le balayage. Tant qu'un pending hors-modale tient le ciblage
  * (`targetingHolder`, projection de `detenteurDuCiblage`, que l'aiguilleur projette aussi), le clic

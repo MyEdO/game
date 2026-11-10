@@ -110,7 +110,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     // 3) On résout la cascade de FIN par les ACTIONS → la Victoire s'enchaîne (finishCombatEnd → finishVictory).
     get().jetLancer('cascade');
     get().fenetreFermer('cascade');
-    expect(get().battle!.over).toBe('victory');
+    expect(get().battle!.over).toBe('victoire');
     expect(get().pendingVictory).toBeTruthy();
   });
 });

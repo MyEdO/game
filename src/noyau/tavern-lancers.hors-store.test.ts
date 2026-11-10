@@ -521,7 +521,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
     avecLesTables({ departages: { ...tablesDuJeu().departages, 'test-le-defiant-gagne': { departage: () => 'a' } } });
     const [a, b] = makePregens(idsDeTest).slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'heros', id: b.id } });
     banc.setState({ sequence: { ...get().sequence!, params: { ...get().sequence!.params, tieBreak: cleDeFixture('test-le-defiant-gagne') } } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4); // six boules à 4 DR : les deux camps à égalité
     const res = get().tavernGames!.result!;
@@ -532,7 +532,7 @@ describe('Plafond de DR et départage — les deux juges', () => {
   it('le départage RAW des boules reste le match nul (l.57)', () => {
     const [a, b] = makePregens(idsDeTest).slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'boules', opponent: { kind: 'heros', id: b.id } });
     for (let i = 0; i < 6; i++) poseLancer(12, 4);
     expect(get().tavernGames!.result!.winner).toBe('tie');
   });

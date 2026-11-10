@@ -31,7 +31,7 @@ export function tableDeDissipation(mode: 'host' | 'guest', porteurs: Record<stri
   }
   const battle = {
     combatants: [hero, ally, e1, e2], order: ['h1', 'h2', 'e1', 'e2'], baseOrder: ['h1', 'h2', 'e1', 'e2'],
-    turn: 0, round: 1, action: 'dispel', selectedSpellId: null, reachable: new Map(),
+    turn: 0, round: 1, action: 'dissipation', selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as never;
   return {

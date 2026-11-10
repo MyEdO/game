@@ -44,7 +44,7 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
     const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [H, L], net: NET('host', 0, L.id) } });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const lanceurEnCombat = banc.getState().battle!.combatants.find((c) => c.id === L.id)!;
     const recus: Record<string, unknown>[] = [];
     const host = new HostSession({

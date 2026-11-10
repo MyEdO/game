@@ -57,7 +57,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
   banc.setState({ party: [heros()], pendingRun: null, pendingApproach: null, pendingDisengage: null, pendingCascade: null });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -75,7 +75,7 @@ function auCombat(): { H: Combatant; E: Combatant } {
 function enSelle({ dejaEnSelle = true } = {}): { R: Combatant; monture: Combatant } {
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((sc) => sc.id === 'entrainement')!, idsDeTest));
   if (!g().battle) g().lancerLeCombat('enc-entrainement');
-  if (g().pendingRoundStart) g().fenetreValider('roundStart');
+  if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const monture = b.combatants.find((c) => c.mountable)!;
@@ -118,8 +118,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
   it('Course d’un cavalier : le clic de case au-delà de la Marche, Course armée, ouvre le Test de `course` sur Chevaucher (LDB 14 l.179), Difficulté de la fiche', () => {
     const { R } = enSelle();
     const cible = caseDeCourse();
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' }, difficulty: testDeFiche('course', 'courir').difficulty });
   });
@@ -132,8 +132,8 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const [cle] = [...computeRunReach(g)].sort((a, b) => b[1] - a[1])[0];
     const [x, y] = cle.split(',').map(Number);
     const cible = { x, y };
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
-    g().cliquerLaCase(cible, undefined, { courseArmee: true });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
+    g().cliquerLaCase(cible, undefined, { intentionId: 'course' });
     expect(g().pendingRun, 'la Course s’ouvre').toMatchObject({ combatantId: R.id, dest: cible });
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
@@ -188,7 +188,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     E.pos = { x: 13, y: 10 };
-    cliquerSurLeCombattant(g, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(g, E.id, { confirm: true, intentionId: 'charge' });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
   });
 

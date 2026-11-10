@@ -60,23 +60,23 @@ export type IdDObjet = string;
 export type IdDEntiteDeScene = string;
 /** Ce que le clic d'une case désigne (`cliquerLaCase`) : en combat un combattant, hors combat une entité de la scène. */
 export type IdDuClic = string;
-/** Un combattant que le choix `roundStart.promouvoir` accepte (`actFirstIds`, `turnEconomy.ts`). */
+/** Un combattant que le choix `debutDuRound.promouvoir` accepte (`actFirstIds`, `turnEconomy.ts`). */
 export type IdDeCombattantPromouvable = string;
-/** Un tireur que le choix `roundStart.viser` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
+/** Un tireur que le choix `debutDuRound.viser` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
 export type IdDeTireurRapide = string;
 /** Une chanson que le réglage `shanty.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
 export type IdDeChanson = string;
 /** Une forme d'arme invoquée que le lanceur du Sort en attente peut donner (`conjureFormOptions`), par l'id de son arme. LDB 47 */
 export type IdDeFormeConjuree = string;
-/** Un choix de paie que le choix `council.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
+/** Un choix de paie que le choix `conseil.paie` accepte (`choixDePaieOuverts`, `shipCrew.ts`). */
 export type IdDeChoixDePaie = string;
-/** Une créature que le choix `victory.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
+/** Une créature que le choix `victoire.depecer` accepte (`creaturesADepecer`, `combatEffects.ts`). */
 export type IdDeCreatureADepecer = string;
 /** Un adversaire que le réglage `battement.adversaire` accepte (`adversairesDuBattement`, `combatManeuvers.ts`). */
 export type IdDAdversaireDuBattement = string;
 /** Un adversaire que le réglage `distraire.adversaire` accepte (`adversairesADistraire`, `combatManeuvers.ts`). */
 export type IdDAdversaireADistraire = string;
-/** Le cavalier ou la monture que le choix `mountTarget.cible` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
+/** Le cavalier ou la monture que le choix `cibleDeMonture.cible` accepte (`idsDuCoupleMonte`, `targetingModes.ts`). */
 export type IdDuCoupleMonte = string;
 /** Une Activité en mer du catalogue (`seaActivitiesCatalog`, MDG 15 l.268). */
 export type IdDActiviteEnMer = string;

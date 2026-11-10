@@ -138,7 +138,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
   it('héros CONTRE héros : CHAQUE rangée de la bande porte SA seconde lecture', () => {
     const [a, b] = makePregens(idsDeTest) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-    get().jouerALaTaverne(a.id, { gameId: 'cerevis', opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'cerevis', opponent: { kind: 'heros', id: b.id } });
     const bande = get().pendingCascade!.participants[0];
     expect(bande.participants).toHaveLength(2);
     for (const r of bande.participants!) {

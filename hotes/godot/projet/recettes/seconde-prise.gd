@@ -1,10 +1,10 @@
 extends SceneTree
 
 ## Un objet tenu des deux mains (#3319, `hotes/godot/pont/CONTRAT.md`, section « Atelier 3D ») : monté à la prise `main`
-## avec une seconde prise (`secondesPrises` de `modeles`), il pose la main de la prise `off` sur elle
+## avec une seconde prise (`secondesPrises` de `modeles`), il pose la main de la prise `secondaire` sur elle
 ## (`scripts/seconde_prise.gd`). Sur un bras à trois os, le repère de prise de la main libre rejoint la seconde prise,
 ## ses doigts prennent la pose de ceux de la main qui tient, et l'épaule et le coude gardent leurs longueurs ; une cible
-## hors de portée tend le bras vers elle. La prise `off` occupée, ou un objet sans seconde prise, ne ploie rien. La pose
+## hors de portée tend le bras vers elle. La prise `secondaire` occupée, ou un objet sans seconde prise, ne ploie rien. La pose
 ## se relève au signal `skeleton_updated`, après les modificateurs et avant que le squelette ne restaure la pose du clip
 ## (`Skeleton3D::_notification`, Godot 4.7). Tant que la main libre tient la seconde prise, un rôle joue le clip de
 ## `clipsDeuxMains` de la base sous le maniement de l'objet tenu, `clips` sinon ou pour un maniement sans table
@@ -13,7 +13,7 @@ extends SceneTree
 const RECETTE_AUTONOME := true
 const EPSILON := 0.001
 const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position = [-0.02, 0.09, 0.003], rotation = [1.32, -3.1, -0.03]}}
-const OFF := {id = "off", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
+const OFF := {id = "secondaire", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const A_PORTEE := {position = [0.0, -0.05, 0.12], rotation = [0.0, 3.14159, 0.0]}
 const HORS_DE_PORTEE := {position = [0.0, 0.0, 2.0], rotation = [0.0, 0.0, 0.0]}
 const CLIPS := {idle = "Repos", hit = "Coup"}
@@ -29,7 +29,7 @@ func _recetter() -> void:
 	print("[seconde-prise] version=", Engine.get_version_info().string)
 	await _verifier("à portée", A_PORTEE, {main = "hache"}, true)
 	await _verifier("hors de portée", HORS_DE_PORTEE, {main = "hache"}, true)
-	await _verifier("prise off occupée", A_PORTEE, {main = "hache", off = "dague"}, false)
+	await _verifier("prise off occupée", A_PORTEE, {main = "hache", secondaire = "dague"}, false)
 	await _verifier("sans seconde prise", A_PORTEE, {main = "epee"}, false)
 	for faute in _fautes:
 		push_error("[seconde-prise] " + faute)

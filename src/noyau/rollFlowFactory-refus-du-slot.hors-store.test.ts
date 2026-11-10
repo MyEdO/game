@@ -26,7 +26,7 @@ describe('refusDuSlot — le refus de la rangée, lu par la poignée du flux', (
     banc.setState({ party: [mk('Anna', 707), mk('Bert', 101)] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const [A, B] = b.combatants.filter((c) => c.kind === 'hero') as Combatant[];
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');

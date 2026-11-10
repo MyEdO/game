@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
   type CombatEvent, type EntreeDeLaFiche, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -280,11 +280,36 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
   ...(j.oppose ? [drNet(`jets/${i}/drNet`, j.oppose.drNet)] : []),
 ];
 
+/** Les jets de la fenêtre (`jetsEnVue`) ; en route (`voyageEnVue`), le groupe en cartes (`heros/`) : chaque héros, ses
+ *  Blessures en jauge, ses États en puces, puis les jets de l'étape qu'il jette, sans redire son nom ; les autres jets
+ *  à la suite. */
+function jetsDeLaFenetre(etat: Jeu): Element[] {
+  const vues = jetsEnVue(etat);
+  const jets = vues.flatMap((j, i) => elementsDuJet(etat, j, i));
+  if (!voyageEnVue(etat)) return jets;
+  const qui = new Map<string, string | null>(vues.flatMap((j, i) => j.lignes.map((l, k) => [`jets/${i}/${k}`, l.qui] as const)));
+  const cartes = etat.party.map((h): Entite => {
+    const f = garanti(ficheDuPorteur(etat, h.id), h.id, 'héros du groupe');
+    return {
+      type: 'entite', id: `heros/${h.id}`, ton: 'neutre', nom: f.nom,
+      elements: [
+        jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
+        ...etatsEnPuces(f.etats),
+        ...jets.flatMap((e) => (qui.get(e.id) === h.id ? [{ ...(e as Jet), qui: null }] : [])),
+      ],
+    };
+  });
+  const posees = new Set(etat.party.map((h) => h.id));
+  return [...cartes, ...jets.filter((e) => !posees.has(qui.get(e.id) ?? ''))];
+}
+
 /** Le corps de la fenêtre qui tient la main : sur l'étape d'attaque de la cascade, la fenêtre d'attaque
  *  (`fenetreDAttaque`) ; sur son étape de Défense, qui attaque qui (`fenetreDeDefense`) et le jet de sa réaction avant
  *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle ou
- *  annonce, le Sauvetage par le Destin et la victoire en attente. */
+ *  annonce, le Sauvetage par le Destin et la victoire en attente ; les éléments propres à la fenêtre ont pour id la clé
+ *  qu'en donne le noyau (`fenetreDuJeu`). */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
+  const { cle } = garanti(fenetreDuJeu(etat), 'fenetre', 'fenêtre qui tient la main');
   const pc = etat.pendingCascade;
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
   const attaque = jetDeLEtape === 'attack' ? fenetreDAttaque(etat) : null;
@@ -308,13 +333,13 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
-    ...nuitDuRepos(etat),
-    ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
+    ...nuitDuRepos(etat, cle),
+    ...jetsDeLaFenetre(etat),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
     ...issueDeLEtape(etat),
-    ...destinEnJeu(etat),
-    ...victoire(etat),
+    ...destinEnJeu(etat, cle),
+    ...victoire(etat, cle),
     ...texteDuDocument(etat),
   ];
 }
@@ -464,17 +489,17 @@ const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): C
 /** La nuit à régler (`reposEnVue`) : la nuit, le temps qu'il fait (en alerte quand il expose), puis chaque dormeur en
  *  entité, son couchage et sa pitance en choix et ce qui l'attend cette nuit en puces d'alerte ; la note, en alerte
  *  quand les bourses ne la couvrent pas. */
-function nuitDuRepos(etat: Jeu): Element[] {
+function nuitDuRepos(etat: Jeu, cle: string): Element[] {
   const r = reposEnVue(etat);
   if (!r) return [];
   return [
-    ligne('repos/nuit', r.nuit),
-    ...(r.temps ? [ligne('repos/temps', r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
+    ligne(`${cle}/nuit`, r.nuit),
+    ...(r.temps ? [ligne(`${cle}/temps`, r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
     ...r.dormeurs.map((d): Entite => ({
-      type: 'entite', id: `repos/${d.id}`, ton: 'neutre', nom: d.nom,
+      type: 'entite', id: `${cle}/${d.id}`, ton: 'neutre', nom: d.nom,
       elements: [choixDuDormeur('couchage', d.couchage), choixDuDormeur('pitance', d.pitance), ...d.alertes.map((a, i) => puce(`alerte/${i}`, a, null, null, 'alerte'))],
     })),
-    ...(r.note ? [ligne('repos/note', r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
+    ...(r.note ? [ligne(`${cle}/note`, r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
   ];
 }
 
@@ -607,25 +632,25 @@ function texteDuDocument(etat: Jeu): Element[] {
 
 /** La victoire en attente : l'Expérience gagnée et l'argent pris en puces, puis chaque adversaire vaincu et chaque
  *  message de la rencontre ; l'équipement s'attribue par les réglages de la fenêtre (`fenetreDuButin`). */
-function victoire(etat: Jeu): Element[] {
+function victoire(etat: Jeu, cle: string): Element[] {
   const v = etat.pendingVictory;
   if (!v) return [];
   const argent = formatMoney(v.gold);
   return [
-    ...(v.xp ? [puce('victoire/xp', t('ecran.victoire.xp'), avecSigne(v.xp), null, 'reussite')] : []),
-    ...(v.gold.gold || v.gold.silver || v.gold.brass ? [puce('victoire/argent', t('ecran.victoire.argent'), argent, null, 'reussite')] : []),
-    ...v.defeated.map((d, i) => ligne(`victoire/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.label, nombre: d.count }) : d.label)),
-    ...(v.messages ?? []).map((m, i) => ligne(`victoire/message/${i}`, m)),
+    ...(v.xp ? [puce(`${cle}/xp`, t('ecran.victoire.xp'), avecSigne(v.xp), null, 'reussite')] : []),
+    ...(v.gold.gold || v.gold.silver || v.gold.brass ? [puce(`${cle}/argent`, t('ecran.victoire.argent'), argent, null, 'reussite')] : []),
+    ...v.defeated.map((d, i) => ligne(`${cle}/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.label, nombre: d.count }) : d.label)),
+    ...(v.messages ?? []).map((m, i) => ligne(`${cle}/message/${i}`, m)),
   ];
 }
 
 /** Le Sauvetage par le Destin en attente : ce qui emporte le héros, sa mort sans sacrifice au détail, et ses Points de
  *  Destin. */
-function destinEnJeu(etat: Jeu): Element[] {
+function destinEnJeu(etat: Jeu, cle: string): Element[] {
   const p = etat.pendingFateSave;
   const heros = p && porteurParId(etat, p.heroId);
   if (!heros) return [];
-  return [ligne('destin/enjeu', t(`ecran.destin.${p.source}`), 'alerte', t('ecran.destin.refus')), puce('destin/points', t('ecran.destin'), String(heros.fate ?? 0))];
+  return [ligne(`${cle}/enjeu`, t(`ecran.destin.${p.source}`), 'alerte', t('ecran.destin.refus')), puce(`${cle}/points`, t('ecran.destin'), String(heros.fate ?? 0))];
 }
 
 /** Ce que l'étape courante de la cascade révèle (fin de round, entrée de scène, mutation, Coup Critique…). Un Coup
@@ -673,7 +698,7 @@ const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
     jauge('mouvement', t('ecran.jauge.mouvement'), actif.mouvement),
     puce('avantage', t('ecran.avantage'), String(actif.avantage)),
     puce('action', t('ecran.action'), t(`ecran.action.${actif.action}`), null, actif.action === 'libre' ? 'reussite' : 'neutre'),
-    ...actif.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
+    ...etatsEnPuces(actif.etats),
   ],
 });
 
@@ -726,7 +751,7 @@ const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
   });
 
 /** Le ton de chaque issue du combat. */
-const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victory: 'reussite', defeat: 'echec' };
+const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victoire: 'reussite', defaite: 'echec' };
 
 /** Ce que le panneau du combat dit hors de ses jauges, quand aucune fenêtre ne tient la main : pourquoi la barre est
  *  fermée, la fin du tour armée par un premier geste qui laisserait l'Action intacte (`finDeTourArmee`) ; la fin du
@@ -754,6 +779,9 @@ const herosDuGroupe = (etat: Jeu, ouverte: FicheOuverte | null): Bouton[] =>
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
 
+/** Chaque État en puce, en `alerte`. */
+const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte'));
+
 /** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en ligne ; ses Blessures en jauge ;
  *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; chacun de ses États en puce. */
 function porteurDeLaFiche(f: FicheDuPorteur): Entite {
@@ -766,7 +794,7 @@ function porteurDeLaFiche(f: FicheDuPorteur): Entite {
       ...(f.carriere === null ? [] : [ligne('carriere', f.carriere)]),
       jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
       ...points,
-      ...f.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
+      ...etatsEnPuces(f.etats),
     ],
   };
 }
@@ -866,7 +894,7 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
     p.argent === null ? null : puce('argent', p.argent, null),
     p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant }), null),
     simple('porter', g.porter?.porte),
-    ...(g.mains ? (['main', 'off'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
+    ...(g.mains ? (['main', 'secondaire'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
     simple('utiliser'),
     g.ranger && listeDObjet('ranger', t('ecran.objet.ranger'), g.ranger),
     simple('sortir'),

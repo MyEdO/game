@@ -25,7 +25,7 @@ import { draineCascade } from './cascade.testkit';
 import { setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
 import { voyageStakeRef } from '../data';
-import { KINDS_SOUS_ORDRES } from './voyageCadence';
+import { KINDS_SOUS_ORDRES, type VoyageCadence } from './voyageCadence';
 import type { Combatant } from '../engine/types';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { refusNePeutTenter } from '../engine/skills';
@@ -54,7 +54,7 @@ function bandeDe(kind: GenreDeCascade, porteurs: Combatant[]): BuiltCascadeStep 
   return buildBand(get, { id: kind, kind, label: fixtureText(kind), difficulty: 'intermediaire', porteurs: porteurs.map((actor) => ({ actor, ligne })) })!;
 }
 
-function traversee(cadence: 'commande' | 'jour-par-jour', mode: 'sea' | 'river' = 'sea'): void {
+function traversee(cadence: VoyageCadence, mode: 'sea' | 'river' = 'sea'): void {
   set({ travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode, hoursPerDay: 8, km: 10, kmDone: 0, interrupted: false, orders: { cadence } } as never });
 }
 
@@ -65,7 +65,7 @@ beforeEach(() => {
 
 describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kind', () => {
   it('solo jour-par-jour : la fenêtre s’ouvre (M) pour tous les kinds — un jet subi n’est plus muet', () => {
-    traversee('jour-par-jour');
+    traversee('jourParJour');
     const mesure = KINDS_DE_MER.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, get().party)])] as const);
     expect(Object.fromEntries(mesure)).toEqual(tableTotale(KINDS_DE_MER, () => 'M'));
   });
@@ -125,7 +125,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   });
 
   it('siège MJ : la bande reste au JOUEUR (M) — le MJ ne prend que les dés qu’il TIENT (V pour le monde)', () => {
-    traversee('jour-par-jour');
+    traversee('jourParJour');
     set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } } as never);
     for (const k of KINDS_DE_MER) {
       expect(surfaceDesEtapes(get, [bandeDe(k, get().party)]), `« ${k} » : le porteur est un héros, son joueur le tient`).toBe('M');
@@ -138,7 +138,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   });
 
   it('cadence DÉFÉRÉE : la porte d’un JET rend I ; la fenêtre d’une SÉQUENCE, elle, reste (le pilote la déroule)', () => {
-    traversee('jour-par-jour');
+    traversee('jourParJour');
     setCadence('rapide');
     const h = get().party[0];
     const jet = monoStep({ id: 'sea-scorbut', kind: 'sea-scorbut', label: fixtureText('Scorbut'), actor: h, difficulty: 'intermediaire', ligne: { valeur: 40 }, stake: voyageStakeRef('sea-scorbut') })!;

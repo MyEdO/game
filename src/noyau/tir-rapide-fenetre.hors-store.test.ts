@@ -60,7 +60,7 @@ describe('#997 — Tir rapide de l’IA : chaque tir ouvre la fenêtre du défen
     finDeRound();
     advanceTurn(banc.getState, banc.setState); // → Round 2, pause de début de Round
     expect(g().pendingRoundStart).not.toBeNull();
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     // 1ʳᵉ fenêtre : E1 (talent ×2) sur H1. La boucle est PARQUÉE : E2 n'a pas tiré, le Round n'est pas ouvert.
     expect(g().pendingDefense?.attackerId).toBe('e1');
     expect(g().pendingDefense?.defenderId).toBe('h1');
@@ -118,7 +118,7 @@ describe('#997 — Tir rapide d’un tireur à gratuite de créature : la suite 
     de('e1').advantage = 3; // coût d'Avantage de la Morsure payable
     de('e2').talents = []; // E1 seul tireur : sa fenêtre fermée, la boucle finit et le Round s'ouvre
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense?.attackerId).toBe('e1');
     expect(g().pendingDefense?.weapon.uid, 'la fenêtre est celle du tir').toBe('arc');
     expect(g().pendingDefense?.atk.success, 'le tir de E1 réussit').toBe(true);
@@ -139,7 +139,7 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
   it('H1 rate sa défense sur un double : E2 attend le dé de Maladresse, puis tire UNE fois', () => {
     finDeRound();
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense?.attackerId).toBe('e1');
     g().jetLancer('defense');
     g().jetImposerLeResultat('defense', 99); // LDB 14 l.13
@@ -176,7 +176,7 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     }
     for (const id of ['e1', 'e2']) { de(id).talents = []; de(id).weapons = [LAME()]; }
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense?.attackerId).toBe('h1');
     expect(g().pendingDefense?.defenderId).toBe('e1');
     g().jetLancer('defense');
@@ -220,7 +220,7 @@ describe('#1765 — Tir rapide instantané : la sauvegarde de la cible suspend l
       de(id).traits = [{ id: 'protection', value: 10 }];
     }
     advanceTurn(banc.getState, banc.setState);
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     expect(g().pendingDefense, 'aucune fenêtre de défense : le tir est instantané').toBeNull();
     expect(tirsDe('e1'), 'E1 a tiré').toBe(1);
     const sauvegarde = etape();

@@ -91,8 +91,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
   const valider = useGame((s) => s.fenetreValider);
-  const attendreLAube = () => valider('departure');
-  const rester = () => fermer('departure');
+  const attendreLAube = () => valider('depart');
+  const rester = () => fermer('depart');
   // Coop : l'invité consulte la carte mais l'HÔTE décide des départs (le voyage déplace tout le
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
   const isGuest = useGame((s) => s.net.mode) === 'guest';
@@ -580,8 +580,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               <button
                 type="button"
                 className="btn small"
-                aria-pressed={!fastJoue && cadence === 'jour-par-jour'}
-                onClick={() => { setSeaFast(false); setCadence('jour-par-jour'); }}
+                aria-pressed={!fastJoue && cadence === 'jourParJour'}
+                onClick={() => { setSeaFast(false); setCadence('jourParJour'); }}
                 title={t(fluvialJoue ? 'wm.cadenceJourParJourFleuve' : 'wm.cadenceJourParJourMer')}
               >
                 {t('wm.jourParJour')}

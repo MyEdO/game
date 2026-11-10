@@ -13,6 +13,7 @@ import { buildSeaPlan, runSeaDay, continueSeaDayAfterCascade } from './seaVoyage
 import { runCascadeImmediate } from './cascade';
 import { checkPartyWiped } from './partyWipe';
 import { setCadence } from '../engine/cadence';
+import type { VoyageCadence } from './voyageCadence';
 import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
 import { creditBourse } from './bourseFlow';
 import { seedBattleRng } from './battleRng';
@@ -32,7 +33,6 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const get = () => banc.getState();
 const set: Banc['setState'] = (e) => banc.setState(e);
-type Cadence = 'commande' | 'jour-par-jour';
 
 const aTerre = (party: Combatant[]): Combatant[] => party.map((h) => ({ ...h, conditions: [{ id: 'inconscient', value: 1 }] }));
 const issue = () => ({ partyWiped: get().partyWiped, travelPlan: get().travelPlan, pendingRest: get().pendingRest });
@@ -47,7 +47,7 @@ const seaMap: WorldMap = {
   routes: [{ id: 'r1', a: { id: 'A' }, b: { id: 'B' }, km: 550, modes: ['mer'], sea: true, seaHeading: 'est' }],
 } as never;
 
-function journeeDeMer(cadence: Cadence): void {
+function journeeDeMer(cadence: VoyageCadence): void {
   seedBattleRng(1);
   set({
     party: makePregens(idsDeTest).slice(0, 3),
@@ -62,7 +62,7 @@ function journeeDeMer(cadence: Cadence): void {
   draineCascade(get, 80);
 }
 
-function journeeDeFleuve(cadence: Cadence): void {
+function journeeDeFleuve(cadence: VoyageCadence): void {
   seedBattleRng(7);
   const g = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'batelier', label: 'Gunnar', motivation: 'x', seed: 11, id: 'r-gunnar' });
   for (const [id, adv] of [['ramer', 50], ['voile', 45]] as const) g.skills.push({ id, characteristic: skillCharacteristicById(id), advances: adv } as never);
@@ -83,7 +83,7 @@ function journeeDeFleuve(cadence: Cadence): void {
 }
 
 describe('#1595 — un groupe à terre est vaincu, quel que soit le pilote de sa journée', () => {
-  for (const cadence of ['commande', 'jour-par-jour'] as const) {
+  for (const cadence of ['commande', 'jourParJour'] as const) {
     it(`mer, cadence ${cadence} : défaite, voyage et halte purgés`, () => {
       journeeDeMer(cadence);
       expect(issue()).toEqual(DEFAITE);
@@ -149,7 +149,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
 
     set({ party: aTerre(get().party) });
     setCadence('rapide');
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
 
     expect(get().partyWiped).toBe(true);
     expect(get().journal.some((l) => l.includes('Événement de port')), 'aucun événement de port sous l’écran de défaite').toBe(false);

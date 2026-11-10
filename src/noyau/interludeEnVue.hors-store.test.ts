@@ -59,12 +59,12 @@ describe('l’ouvrage et le dépôt de l’interlude en vue', () => {
     const depot = vue().depot;
     expect(depot, 'la bourse de 10 CO, par pistole').toMatchObject({ refus: null, geste: { verbe: 'deposerALaBanque', args: [id] }, max: 2400, pas: 12 });
     expect(depot.genres.map((g) => [g.valeur, g.refus]), 'un artisan Bronze n’investit pas, le Mécénat ne se pratique pas ici').toEqual([
-      ['invest', 'Forgeron : investir en banque exige le Statut Argent ou Or.'], ['stash', null], ['mecenat', 'Le Mécénat ne se pratique pas ici.'],
+      ['investir', 'Forgeron : investir en banque exige le Statut Argent ou Or.'], ['planque', null], ['mecenat', 'Le Mécénat ne se pratique pas ici.'],
     ]);
 
-    banc.actions.deposerALaBanque(id, null as unknown as 'stash', 120);
+    banc.actions.deposerALaBanque(id, null as unknown as 'planque', 120);
     expect(dernier(), 'le genre laissé vide est refusé, dit').toBe('Choisissez le dépôt : investir, planquer ou Mécénat.');
-    banc.actions.deposerALaBanque(id, 'stash', 120);
+    banc.actions.deposerALaBanque(id, 'planque', 120);
     expect(interludeEnVue(banc.getState())!.depots.map((d) => d.libelle), 'la planque rejoint les dépôts').toHaveLength(1);
   });
 });

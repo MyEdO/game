@@ -136,14 +136,14 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
               dans la modale ») : la fenêtre ANNONCE la posture armée et sa valeur, le CONTRÔLE vit dans
               la console (cases `posture-tir` / `posture-tas`). Aucun bouton ici, aucun setter. */}
           {vue.tirDansLeTas && (
-            <Row gap="md" align="center" data-posture="intoCrowd" data-armee={vue.tirDansLeTas.armee ? '' : undefined}>
+            <Row gap="md" align="center" data-posture="dansLeTas" data-armee={vue.tirDansLeTas.armee ? '' : undefined}>
               <span className="rm-note" data-ton="etat"><Icon id="action/aim" size="sm" /> {vue.tirDansLeTas.etat}</span>
               <CodexRef category="regles" id="tirer-dans-le-tas" label="Tirer dans le tas" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
               <span className="rm-note" data-ton="discret">{vue.tirDansLeTas.note}</span>
             </Row>
           )}
           {vue.tirImmobile && (
-            <Row gap="md" align="center" data-posture="heldGround" data-armee={vue.tirImmobile.armee ? '' : undefined}>
+            <Row gap="md" align="center" data-posture="tirImmobile" data-armee={vue.tirImmobile.armee ? '' : undefined}>
               <span className="rm-note" data-ton="etat"><Icon id="travel/anchor" size="sm" /> {vue.tirImmobile.etat}</span>
               <CodexRef category="regles" id="tir-en-mouvement" label="Tirer en se déplaçant" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
               <span className="rm-note" data-ton="discret">{vue.tirImmobile.note}</span>
