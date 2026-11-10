@@ -60,7 +60,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     const { H, E } = setup();
     E.characteristics['force-mentale'] = 20; // FM faible → DR d'opposition plafonné (max +2)
     frozenCast(H, E, 'fauche-demon', 6);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const pco = banc.getState().pendingCastOpposition;
     expect(pco).toBeTruthy();
     expect(pco!.test).toEqual({ characteristic: 'force-mentale' });
@@ -75,7 +75,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     const { H, E } = setup();
     E.characteristics['force-mentale'] = 20; // opposition ≤ +2 DR, l'incantation à +6 gagne toujours
     frozenCast(H, E, 'fauche-demon', 6);
-    banc.getState().jetValider('cast'); // ouvre l'opposition, IA auto-roulée
+    banc.getState().jetValider('incantation'); // ouvre l'opposition, IA auto-roulée
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;
     expect(part.result!.resisted).toBe(false);
     banc.getState().jetValider('opposition'); // agrège → applyCast
@@ -90,7 +90,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     E.characteristics['force-mentale'] = 100; // FM ≥ 100 → DR d'opposition toujours ≥ l'incantation à +0
     E.wounds = blessuresDeBase(20, 12, E);
     frozenCast(H, E, 'fauche-demon', 0);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;
     expect(part.result!.resisted).toBe(true);
     banc.getState().jetValider('opposition');
@@ -106,7 +106,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     E.skills = [];
     addCondition(E, COND.extenue);
     frozenCast(H, E, 'fauche-demon', 6);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const pco = banc.getState().pendingCastOpposition!;
     const part = pco.participants.find((p) => p.id === E.id)!;
     expect(libelleDOppositionDeSort(pco)).toBe('Force Mentale');
@@ -118,7 +118,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
   it('paramétrage par Sort : Parole de Tzeentch oppose l’INTELLIGENCE (pas la FM)', () => {
     const { H, E } = setup();
     frozenCast(H, E, 'parole-de-tzeentch', 4);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const pco = banc.getState().pendingCastOpposition!;
     expect(pco.test).toEqual({ characteristic: 'intelligence' });
   });
@@ -128,12 +128,12 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     const { H, E } = setup();
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 2, gmSeat: 2, ownership: {} } }); // rangée ennemie TENUE (jet dû)
     frozenCast(H, E, 'parole-de-tzeentch', 4);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     banc.getState().jetLancer('opposition', E.id);
     const avant = banc.getState().pendingCastOpposition!;
     expect(avant.participants[0].result, 'la rangée a opposé son Test').toBeTruthy();
 
-    banc.getState().jetValider('cast'); // re-entrée : 2ᵉ clic, intent réseau, beat d'auto-cadence…
+    banc.getState().jetValider('incantation'); // re-entrée : 2ᵉ clic, intent réseau, beat d'auto-cadence…
 
     const apres = banc.getState().pendingCastOpposition;
     expect(apres, 'la fenêtre due est toujours là').toBeTruthy();
@@ -173,7 +173,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
       },
     });
     const { openCastCascade, openCastOpposition } = await import('./combatFlow');
-    openCastCascade(banc.getState, banc.setState, H); // fenêtre = étape `jet:'cast'` du lanceur
+    openCastCascade(banc.getState, banc.setState, H); // fenêtre = étape `jet:'incantation'` du lanceur
     const ouvert = openCastOpposition(banc.getState, banc.setState, banc.getState().pendingCast!, [T]);
     expect(ouvert).toBe(true);
     return { H, T };
@@ -252,7 +252,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     banc.getState().ensemencerLeTirage(11);
     const { H, P } = setupPnj();
     frozen(H.id, P.id);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === P.id)!;
     expect(part.interactive, 'aucun siège ne tient ce jet → rangée témoin').toBe(false);
     expect(part.result, 'un jet non joué par un humain est roulé à l’ouverture, jamais laissé en suspens').toBeTruthy();
@@ -266,7 +266,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     const { H, E } = setupPnj();
     banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 2, gmSeat: 2, ownership: {}, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' } } });
     frozen(H.id, E.id);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;
     expect(part.interactive, 'l’ennemi est conduit par le siège MJ → sa rangée se joue').toBe(true);
     expect(part.result, 'rien n’est roulé avant que le MJ ne le décide').toBeNull();

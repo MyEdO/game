@@ -262,7 +262,7 @@ export interface VueDuPont {
   corps: CorpsDuCombat;
   /**
    * nomme la forme de la fenêtre qui tient la main (`FenetreADessiner.disposition`, `src/hote/gestes.ts`) : sa clé, ou
-   * `<clé>/<jet>` pour l'étape d'un jet (`cascade/attack` pour la fenêtre d'attaque) ; `null` sans fenêtre. L'hôte
+   * `<clé>/<jet>` pour l'étape d'un jet (`cascade/attaque` pour la fenêtre d'attaque) ; `null` sans fenêtre. L'hôte
    * n'écrit aucune clé de fenêtre : il cherche la scène qu'elle nomme.
    */
   disposition: string | null;

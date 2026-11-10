@@ -12,7 +12,7 @@
  *
  * La chaîne réparée : un Sort ennemi ouvre son étape en `groupOwner` (`combatFlow.openCastCascade`) →
  * `modalArbiter` rend l'owner `'*'` (pour que cible et contre-lanceurs voient la fenêtre) → sans route
- * par porteur, `intentAllowedFor` acceptait `jetForcerLaReussite('cast')` de N'IMPORTE quel siège.
+ * par porteur, `intentAllowedFor` acceptait `jetForcerLaReussite('incantation')` de N'IMPORTE quel siège.
  *
  * LIMITE STRUCTURELLE (consigne de design, #1013) : la fixture `state()` ci-dessous POSE le pending
  * d'après la table elle-même (`[jet.pending]:{[jet.field]:…}`). Elle vérifie donc le ROUTAGE (le
@@ -52,33 +52,33 @@ const JET_OWNED = ENTRIES.filter(([, w]) => w.kind === 'mono' && !!w.jetOwner);
  * disparue sortirait de l'itération sans rien casser (leçon #1015).
  */
 const INVENTORY: Record<string, readonly RollVerb[]> = {
-  attack:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'],
+  attaque:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'cancel', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'],
   defense:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'confirm'],
-  cast:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  disengage:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  incantation:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  desengagement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
   auContact:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  grapple:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  empoignade:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
   battement:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'],
   distraire:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  maneuver:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  run:        ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
-  reload:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  handGate:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  recover:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  focus:      ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  dispel:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  frenzy:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
-  approach:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse', 'cancel', 'confirm'],
-  ward:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
-  heal:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'],
-  surgery:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  manoeuvre:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  course:        ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
+  rechargement:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  mainEnsanglantee:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  recuperation:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  focalisation:      ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  dissipation:     ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  frenesie:     ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
+  approche:   ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'reverse', 'cancel', 'confirm'],
+  protection:       ['roll', 'reroll', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
+  soins:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'reverse', 'cancel', 'confirm'],
+  chirurgie:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
   corruption: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'confirm'],
   test:       ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'],
-  steamSave:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'confirm'],
-  activity:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'],
-  bargain:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  appraise:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
-  shanty:     ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
+  fuiteDeVapeur:  ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'confirm'],
+  activite:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'],
+  marchandage:    ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  evaluation:   ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'],
+  chansonDeMarin:     ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'cancel', 'confirm'],
 };
 
 const H_HOST = 'h1'; // héros du siège 0 (hôte)
@@ -88,7 +88,7 @@ const ENEMY = 'e1';
 /** L'étape-hôte qui rend le jet porté par `pending` (`PENDING_BY_JET`) : une cascade PARTAGÉE dont le
  *  corps est ce slot. Un pending hors cascade garde l'étape d'incantation. */
 const jetHote = (pending: string): HostJet =>
-  (Object.entries(PENDING_BY_JET) as [HostJet, string | null][]).find(([, slot]) => slot === pending)?.[0] ?? 'cast';
+  (Object.entries(PENDING_BY_JET) as [HostJet, string | null][]).find(([, slot]) => slot === pending)?.[0] ?? 'incantation';
 /** Fenêtre du flux `jet` OUVERTE sur `ownerId` (son pending posé selon `jetOwner`), étape de cascade
  *  PARTAGÉE (owner de modale '*'). Le pending est POSÉ PAR LA TABLE : ajouter un `jetOwner` à un flux
  *  l'amène dans la garde sans une ligne de fixture. */
@@ -112,7 +112,7 @@ const geste = (flux: string, v: RollVerb, pid?: string): [string, unknown[]] =>
 describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () => {
   it('la table porte bien les porteurs (sinon la garde ci-dessous ne mesure rien)', () => {
     expect(JET_OWNED.map(([k]) => k), 'aucun flux mono ne déclare `jetOwner`').not.toEqual([]);
-    expect(FLOW_VERBS.cast.jetOwner, 'la Résilience du lanceur doit être routée par porteur').toEqual(CAST_JET);
+    expect(FLOW_VERBS.incantation.jetOwner, 'la Résilience du lanceur doit être routée par porteur').toEqual(CAST_JET);
     // INVENTAIRE LITTÉRAL : la boucle par flux ci-dessous se contente en silence de ce que la table
     // déclare (une ligne retirée = un flux qui sort de l'itération, sans échec). Cette liste NOMME les
     // verbes attendus → toute ligne `jetOwner` disparue (ou ajoutée sans garde de flux réel) est rouge.
@@ -122,11 +122,11 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   /**
    * #700 — la CHUTE est un flux MULTI (`MultiPending<TombantParticipant>`) : ses gestes sortent de la
    * route par porteur mono et passent par le TOMBANT de la rangée (`pid` = son id) ; sa déclaration
-   * `jetRegler('fall', 'tenter', …)` suit la même possession (`seatInfluences`). Liste littérale.
+   * `jetRegler('chute', 'tenter', …)` suit la même possession (`seatInfluences`). Liste littérale.
    */
   it('#700 — la chute (multi) : ses intents suivent le TOMBANT de la rangée, jamais le porteur mono', () => {
     const verbes: RollVerb[] = ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact'];
-    expect([...FLOW_VERBS.fall.verbs].filter((v) => !estVerbeDeFenetre(v)).sort()).toEqual([...verbes].sort());
+    expect([...FLOW_VERBS.chute.verbs].filter((v) => !estVerbeDeFenetre(v)).sort()).toEqual([...verbes].sort());
     const s = state(CAST_JET, H_HOST, {
       pendingCascade: null,
       pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: [
@@ -135,11 +135,11 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
       ] },
     } as unknown as Partial<Jeu>);
     for (const v of verbes) {
-      expect(intentAllowedFor(s, 1, ...geste('fall', v, H_GUEST)), `${v} : le siège du tombant`).toBe(true);
-      expect(intentAllowedFor(s, 0, ...geste('fall', v, H_GUEST)), `${v} : l’initiateur ne joue pas la rangée d’un autre siège`).toBe(false);
+      expect(intentAllowedFor(s, 1, ...geste('chute', v, H_GUEST)), `${v} : le siège du tombant`).toBe(true);
+      expect(intentAllowedFor(s, 0, ...geste('chute', v, H_GUEST)), `${v} : l’initiateur ne joue pas la rangée d’un autre siège`).toBe(false);
     }
-    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'tenter', true, H_GUEST]), 'le siège du tombant déclare sa rangée').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'tenter', true, H_GUEST]), 'l’hôte ne déclare pas pour le héros d’un autre siège').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['chute', 'tenter', true, H_GUEST]), 'le siège du tombant déclare sa rangée').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['chute', 'tenter', true, H_GUEST]), 'l’hôte ne déclare pas pour le héros d’un autre siège').toBe(false);
   });
 
   it('(e) SURFACE RÉSEAU : chaque geste d’un flux mono est atteignable par un INVITÉ (#1017)', () => {
@@ -201,11 +201,11 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
       pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H_GUEST, interactive: true, result: null }] },
     } as unknown as Partial<Jeu>);
     // Le contre-lanceur / la cible du siège 1 jouent LEUR rangée…
-    expect(intentAllowedFor(s, 1, ...geste('counterspell', 'roll', H_GUEST))).toBe(true);
+    expect(intentAllowedFor(s, 1, ...geste('contreSort', 'roll', H_GUEST))).toBe(true);
     expect(intentAllowedFor(s, 1, ...geste('opposition', 'forceSuccess', H_GUEST))).toBe(true);
-    expect(intentAllowedFor(s, 0, ...geste('counterspell', 'roll', H_GUEST)), 'rangée d’un autre siège').toBe(false);
+    expect(intentAllowedFor(s, 0, ...geste('contreSort', 'roll', H_GUEST)), 'rangée d’un autre siège').toBe(false);
     // …pendant que la rangée du LANCEUR ennemi leur reste fermée.
-    expect(intentAllowedFor(s, 1, ...geste('cast', 'forceSuccess')), 'le gate du lanceur ne s’ouvre pas par la fenêtre partagée').toBe(false);
+    expect(intentAllowedFor(s, 1, ...geste('incantation', 'forceSuccess')), 'le gate du lanceur ne s’ouvre pas par la fenêtre partagée').toBe(false);
   });
 
   /**
@@ -222,8 +222,8 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     expect(intentAllowedFor(s, 2, ...geste('test', 'cancel')), 'le MJ ne ferme pas le Test d’un héros joueur').toBe(false);
     // Le même verdict vaut pour l'attaque (2ᵉ flux mono à porter `cancel`).
     const a = state({ pending: 'pendingAttack', field: 'attackerId' }, H_GUEST);
-    expect(intentAllowedFor(a, 1, ...geste('attack', 'cancel'))).toBe(true);
-    expect(intentAllowedFor(a, 0, ...geste('attack', 'cancel'))).toBe(false);
+    expect(intentAllowedFor(a, 1, ...geste('attaque', 'cancel'))).toBe(true);
+    expect(intentAllowedFor(a, 0, ...geste('attaque', 'cancel'))).toBe(false);
   });
 
   /**
@@ -236,7 +236,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
   it('(g) résolution d’un flux HORS registre de modales : Conclure suit le porteur, pas l’hôte', () => {
     const s = state({ pending: 'pendingBargain', field: 'playerId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<Jeu>);
     expect(modalOwnerOf(s), 'précondition : aucune modale du registre ne couvre le Marchandage').toBeNull();
-    for (const [a, args] of [geste('bargain', 'confirm'), geste('bargain', 'cancel')] as const) {
+    for (const [a, args] of [geste('marchandage', 'confirm'), geste('marchandage', 'cancel')] as const) {
       expect(intentAllowedFor(s, 1, a, [...args]), `${a} : le siège du négociateur clôt SON marchandage`).toBe(true);
       expect(intentAllowedFor(s, 0, a, [...args]), `${a} : l’hôte ne clôt pas le jet d’un autre siège`).toBe(false);
       expect(intentAllowedFor(s, 2, a, [...args]), `${a} : le MJ non plus`).toBe(false);
@@ -244,18 +244,18 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
     // Négociateur du siège HÔTE : le verdict s'inverse — l'hôte clôt, l'invité non (rien n'est ouvert
     // « à tous » par cette route).
     const h = state({ pending: 'pendingBargain', field: 'playerId' }, H_HOST, { pendingCascade: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(h, 0, 'jetValider', ['bargain'])).toBe(true);
-    expect(intentAllowedFor(h, 1, 'jetValider', ['bargain'])).toBe(false);
+    expect(intentAllowedFor(h, 0, 'jetValider', ['marchandage'])).toBe(true);
+    expect(intentAllowedFor(h, 1, 'jetValider', ['marchandage'])).toBe(false);
     // Évaluation : même contrat.
     const a = state({ pending: 'pendingAppraise', field: 'actorId' }, H_GUEST, { pendingCascade: null } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(a, 1, 'jetValider', ['appraise'])).toBe(true);
-    expect(intentAllowedFor(a, 0, 'jetValider', ['appraise'])).toBe(false);
+    expect(intentAllowedFor(a, 1, 'jetValider', ['evaluation'])).toBe(true);
+    expect(intentAllowedFor(a, 0, 'jetValider', ['evaluation'])).toBe(false);
   });
 
   it('SOLO (siège unique, aucune attribution) : le joueur garde ses propres dépenses', () => {
     const s = state(CAST_JET, H_HOST, { net: { mode: 'local', mySeat: 0, seatNames: {}, ownership: {}, slots: [0, 0, 0, 0] } } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(s, 0, ...geste('cast', 'forceSuccess'))).toBe(true);
-    expect(intentAllowedFor(s, 0, ...geste('cast', 'bonusSL'))).toBe(true);
+    expect(intentAllowedFor(s, 0, ...geste('incantation', 'forceSuccess'))).toBe(true);
+    expect(intentAllowedFor(s, 0, ...geste('incantation', 'bonusSL'))).toBe(true);
   });
 });
 
@@ -287,13 +287,13 @@ describe('#3368 — un réglage du jet (`jetRegler`) suit le PORTEUR du jet', ()
   it('correction déclarée : le Sort d’un ennemi, à fenêtre partagée (`*`), ne se règle plus de tout siège', () => {
     const s = state(CAST_JET, ENEMY);
     expect(modalOwnerOf(s), 'précondition : la fenêtre du Sort ennemi est à tous les sièges').toBe('*');
-    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', ['cast', 'effetCritique', 'puissance']))).toEqual([false, false, true]);
+    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', ['incantation', 'effetCritique', 'puissance']))).toEqual([false, false, true]);
     const sansMJ = state(CAST_JET, ENEMY, { net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<Jeu>);
-    expect([0, 1].map((siege) => intentAllowedFor(sansMJ, siege, 'jetRegler', ['cast', 'surincantationDuree', 1])), 'sans siège MJ, aucun invité ne règle le Sort ennemi').toEqual([false, false]);
+    expect([0, 1].map((siege) => intentAllowedFor(sansMJ, siege, 'jetRegler', ['incantation', 'surincantationDuree', 1])), 'sans siège MJ, aucun invité ne règle le Sort ennemi').toEqual([false, false]);
   });
 
   it('un réglage que son flux ne déclare pas ne se route à aucun siège', () => {
     const s = state(CAST_JET, H_GUEST);
-    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', ['cast', 'localisation', null]))).toEqual([false, false, false]);
+    expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', ['incantation', 'localisation', null]))).toEqual([false, false, false]);
   });
 });

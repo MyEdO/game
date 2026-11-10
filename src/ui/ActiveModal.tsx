@@ -31,7 +31,7 @@ import { HealModal } from './HealModal';
 import { MedicModal } from './MedicModal';
 import { RestModal } from './RestModal';
 import { CouncilModal } from './CouncilModal';
-// CastModal n'est plus monté ici : la situation d'incantation est une étape `jet:'cast'` de la
+// CastModal n'est plus monté ici : la situation d'incantation est une étape `jet:'incantation'` de la
 // cascade (rendue par `CascadeModal`, qui hôte `CastModal`) — cf. noyau/modalArbiter (entrée `cast` retirée).
 import { CascadeModal } from './CascadeModal';
 import { CorruptionModal } from './CorruptionModal';

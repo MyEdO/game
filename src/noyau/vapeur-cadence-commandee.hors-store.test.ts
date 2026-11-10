@@ -1,7 +1,7 @@
 /**
  * FUITE DE VAPEUR EN CADENCE COMMANDÉE (#1595) — la sauvegarde d'Initiative (`pendingSteamSave`) suspend
  * la journée AVANT son reste (MDG 12 l.326-328) ; le pilote immédiat n'en clôt pas le jour en
- * parallèle : la journée se clôt UNE fois, à la reprise par la sauvegarde (`jetValider('steamSave')`).
+ * parallèle : la journée se clôt UNE fois, à la reprise par la sauvegarde (`jetValider('fuiteDeVapeur')`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect, vi } from 'vitest';
@@ -48,8 +48,8 @@ describe('#1595 — Fuite de vapeur sous ordres : un seul dénouement de la jour
     const save = get().pendingSteamSave;
     expect(save, 'la Fuite de vapeur a ouvert sa sauvegarde').toBeTruthy();
     expect(halte, 'la journée ne se clôt pas sous la sauvegarde en attente').not.toHaveBeenCalled();
-    get().jetLancer('steamSave');
-    get().jetValider('steamSave');
+    get().jetLancer('fuiteDeVapeur');
+    get().jetValider('fuiteDeVapeur');
     unsub();
     expect(halte, 'la journée se clôt UNE fois, à la reprise').toHaveBeenCalledTimes(1);
   });

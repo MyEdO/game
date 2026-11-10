@@ -104,31 +104,31 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
     });
   }
 
-  it('jetValider@activity : une Activité ouverte puis plus couverte par le budget se refuse à la validation', () => {
+  it('jetValider@activite : une Activité ouverte puis plus couverte par le budget se refuse à la validation', () => {
     const { banc, heroId } = apresLeTirage();
     pratiquer(banc.getState, heroId, 'revenus');
     expect(banc.getState().pendingActivity?.heroId, 'témoin : les Revenus sont ouverts').toBe(heroId);
-    banc.actions.jetLancer('activity');
+    banc.actions.jetLancer('activite');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
     epuiser(banc, heroId);
     const st = () => banc.getState().interlude!.perHero[heroId];
     const avant = JSON.stringify(st());
-    expect(journalDe(banc, () => banc.actions.jetValider('activity'))).toEqual([PLUS_D_ACTIVITE]);
+    expect(journalDe(banc, () => banc.actions.jetValider('activite'))).toEqual([PLUS_D_ACTIVITE]);
     expect(JSON.stringify(st()), 'les Revenus ont été gagnés sans Activité').toBe(avant);
   });
 
-  it('jetValider@activity d’une préparation de bataille : sans Activité restante, rien n’est résolu ni consommé, et le refus se dit (ADE II 8 l.65)', () => {
+  it('jetValider@activite d’une préparation de bataille : sans Activité restante, rien n’est résolu ni consommé, et le refus se dit (ADE II 8 l.65)', () => {
     const { banc, heroId } = apresLeTirage();
     banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     expect(banc.getState().massBattle?.phase, 'témoin : la bataille attend sa préparation').toBe('prep');
     banc.actions.menerLActionDeBataille(heroId, 'reperage');
     expect(banc.getState().pendingActivity?.battle, 'témoin : une préparation est ouverte').toBe('prep');
-    banc.actions.jetLancer('activity');
+    banc.actions.jetLancer('activite');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
     epuiser(banc, heroId);
     const bataille = JSON.stringify(banc.getState().massBattle);
     const st = JSON.stringify(banc.getState().interlude!.perHero[heroId]);
-    expect(journalDe(banc, () => banc.actions.jetValider('activity'))).toEqual([PLUS_D_ACTIVITE]);
+    expect(journalDe(banc, () => banc.actions.jetValider('activite'))).toEqual([PLUS_D_ACTIVITE]);
     expect(JSON.stringify(banc.getState().massBattle), 'la préparation a été résolue sans Activité').toBe(bataille);
     expect(JSON.stringify(banc.getState().interlude!.perHero[heroId])).toBe(st);
     expect(banc.getState().pendingActivity).toBeNull();

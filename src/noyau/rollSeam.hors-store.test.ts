@@ -165,7 +165,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.result).toBeFalsy(); // pas d'agrégat pré-résolu — UNE rangée par contributeur, à lancer
     expect(step.participants).toHaveLength(1);
-    expect(step.participants![0].result).toBeNull(); // le contributeur n'a pas encore lancé (flux `cascadeBatch`)
+    expect(step.participants![0].result).toBeNull(); // le contributeur n'a pas encore lancé (flux `cascadeEnBande`)
     expect(applied).toHaveLength(0); // rien appliqué tant que l'étape n'est pas validée
   });
 

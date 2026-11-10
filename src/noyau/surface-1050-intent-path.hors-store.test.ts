@@ -74,7 +74,7 @@ const applyIntent = (seat: number, action: string, args: unknown[] = []) => appl
  *  (étape `groupOwner` → owner de modale '*'), la rangée d'opposition appartient à `h2`. */
 function ouvreOpposition() {
   banc.setState({
-    pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture('castJet'), jet: 'cast', groupOwner: true }]),
+    pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture('castJet'), jet: 'incantation', groupOwner: true }]),
     pendingCast: {
       casterId: 'e1', targetId: 'h2', spellId: 'fauche-demon', missile: false, focused: false,
       result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
@@ -240,15 +240,15 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
 });
 
 describe('#3327 — Maladresse et dé d’étape : leurs verbes de jet se jouent au siège de la fenêtre de l’étape', () => {
-  it('jetLancer@fumble sans rangée puis jetValider@fumble : la Maladresse d’un ennemi se tire et s’applique au siège de sa fenêtre, jamais chez un invité', () => {
+  it('jetLancer@maladresse sans rangée puis jetValider@maladresse : la Maladresse d’un ennemi se tire et s’applique au siège de sa fenêtre, jamais chez un invité', () => {
     const { e1 } = setup();
-    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'triggeredTest', actorId: 'e1', jet: 'fumble', fumble: { weapon: e1.weapons[0], result: null } }]) });
-    expect(applyIntent(1, 'jetLancer', ['fumble']), 'un invité tirait la Maladresse de l’ennemi').toBe('refusee');
+    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'triggeredTest', actorId: 'e1', jet: 'maladresse', fumble: { weapon: e1.weapons[0], result: null } }]) });
+    expect(applyIntent(1, 'jetLancer', ['maladresse']), 'un invité tirait la Maladresse de l’ennemi').toBe('refusee');
     expect(banc.getState().pendingCascade!.participants[0].fumble!.result).toBeNull();
-    expect(applyIntent(0, 'jetLancer', ['fumble'])).toBe('appliquee');
+    expect(applyIntent(0, 'jetLancer', ['maladresse'])).toBe('appliquee');
     expect(banc.getState().pendingCascade!.participants[0].fumble!.result, 'la rangée d’une étape sans acteur propre se lance sans possession de siège').toBeTruthy();
-    expect(applyIntent(1, 'jetValider', ['fumble'])).toBe('refusee');
-    expect(applyIntent(0, 'jetValider', ['fumble'])).toBe('appliquee');
+    expect(applyIntent(1, 'jetValider', ['maladresse'])).toBe('refusee');
+    expect(applyIntent(0, 'jetValider', ['maladresse'])).toBe('appliquee');
     expect(banc.getState().pendingCascade, 'la Maladresse appliquée clôt l’étape').toBeNull();
     expect(banc.getState().battle!.log.map((e) => e.text).join(' | '), 'les Oups ! tirés sont écrits au journal de combat').toMatch(/^e1 — Maladresse/);
   });

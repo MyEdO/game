@@ -448,10 +448,10 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
  * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
- * - `advanceCombatJet` (`jetValider('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ * - `advanceCombatJet` (`jetValider('attaque')`). Il retient le curseur tant qu'une fenêtre `pending*` est
  *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
  *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
- * - la validation qui clôt l'étape COURANTE (`jetValider('fumble')`, la Maladresse) : l'après-coup qui tient
+ * - la validation qui clôt l'étape COURANTE (`jetValider('maladresse')`, la Maladresse) : l'après-coup qui tient
  *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :

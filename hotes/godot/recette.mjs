@@ -415,7 +415,7 @@ async function parcoursCombat() {
   assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
   assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
   noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
-  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attack#localisation')
+  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attaque#localisation')
   const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
   await cliquerBouton(bouton(lieu))
   v = await vue()

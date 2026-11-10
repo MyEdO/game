@@ -8,7 +8,7 @@ import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import type { CorpsDesReglages, VerbeDeReglage } from './reglagesDuJet';
-import type { ActionDeJet, NomDeVerbeDeJet } from './flowVerbs';
+import type { ActionDeJet, FlowKey, NomDeVerbeDeJet } from './flowVerbs';
 import type { Majuscule } from './intentionsDeSiege';
 import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
@@ -61,6 +61,7 @@ import type { HealMode } from '../engine/healing';
 import type { GenreDeDepot } from '../engine/activities';
 import type { Main } from '../engine/types';
 import type { CleDeRegistre } from './modalArbiter';
+import type { HostJet } from './slotsDeJet';
 import type { ClueState } from './monde/clues';
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
@@ -108,25 +109,26 @@ export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachin
  *  nomment (#3614). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
   | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'activites' | 'alea' | 'ambition' | 'aneantissement'
-  | 'approche' | 'arriere' | 'au' | 'avant' | 'baisser' | 'bataille' | 'battement' | 'batterie' | 'blessures'
-  | 'bordee' | 'butin' | 'cacher' | 'campagne' | 'carte' | 'cascade' | 'chanson' | 'chapitre' | 'chercher'
-  | 'chirurgie' | 'chute' | 'cible' | 'commande' | 'commandes' | 'conseil' | 'contact' | 'corruption' | 'couchage'
-  | 'course' | 'courte' | 'dans' | 'de' | 'debut' | 'defaite' | 'degats' | 'depart' | 'depecer' | 'designation'
-  | 'destin' | 'detection' | 'dialogue' | 'dissipation' | 'distraire' | 'document' | 'droite' | 'du' | 'ecran'
-  | 'empetrer' | 'empoignade' | 'en' | 'encombrement' | 'ensanglantee' | 'entrainement' | 'etal' | 'evaluation'
-  | 'eviter' | 'file' | 'fin' | 'focalisation' | 'frappe' | 'frenesie' | 'fuite' | 'gauche' | 'hemorragie' | 'heros'
-  | 'immobile' | 'incantation' | 'infirmerie' | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jeter' | 'jeux'
-  | 'jour' | 'journal' | 'la' | 'le' | 'liberer' | 'lieu' | 'ligne' | 'longue' | 'lot' | 'main' | 'manoeuvre'
-  | 'marchand' | 'marchandage' | 'marche' | 'marin' | 'masse' | 'mecenat' | 'mer' | 'monde' | 'monture' | 'mortelle'
-  | 'motivation' | 'munition' | 'navire' | 'objet' | 'offre' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier'
-  | 'par' | 'passer' | 'patient' | 'payer' | 'personnelle' | 'pitance' | 'plaie' | 'planque' | 'plein' | 'pnj'
-  | 'port' | 'porteur' | 'poste' | 'poussee' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir' | 'protection'
+  | 'approche' | 'arriere' | 'attaque' | 'au' | 'avant' | 'baisser' | 'bande' | 'bataille' | 'battement' | 'batterie'
+  | 'blessures' | 'bordee' | 'butin' | 'cacher' | 'campagne' | 'carte' | 'cascade' | 'chanson' | 'chapitre'
+  | 'chercher' | 'chirurgie' | 'chute' | 'cible' | 'commande' | 'commandes' | 'conseil' | 'contact' | 'contre'
+  | 'corruption' | 'couchage' | 'course' | 'courte' | 'dans' | 'de' | 'debut' | 'defaite' | 'defense' | 'degats'
+  | 'depart' | 'depecer' | 'desengagement' | 'designation' | 'destin' | 'detection' | 'dialogue' | 'dissipation'
+  | 'distraire' | 'document' | 'droite' | 'du' | 'ecran' | 'empetrer' | 'empoignade' | 'en' | 'encombrement'
+  | 'ensanglantee' | 'entrainement' | 'etal' | 'etendu' | 'evaluation' | 'eviter' | 'file' | 'fin' | 'focalisation'
+  | 'frappe' | 'frenesie' | 'fuite' | 'gauche' | 'hemorragie' | 'heros' | 'immobile' | 'incantation' | 'infirmerie'
+  | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jeter' | 'jeux' | 'jour' | 'journal' | 'la' | 'le'
+  | 'liberer' | 'lieu' | 'ligne' | 'longue' | 'lot' | 'main' | 'maladresse' | 'manoeuvre' | 'marchand' | 'marchandage'
+  | 'marche' | 'marin' | 'masse' | 'mecenat' | 'mer' | 'monde' | 'monture' | 'mortelle' | 'motivation' | 'munition'
+  | 'navire' | 'objet' | 'offre' | 'opposition' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier' | 'par'
+  | 'passer' | 'patient' | 'payer' | 'personnelle' | 'pitance' | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port'
+  | 'porte' | 'porteur' | 'poste' | 'poussee' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir' | 'protection'
   | 'psychologique' | 'qualite' | 'quantite' | 'rallier' | 'reassigne' | 'recevoir' | 'rechargement' | 'recit'
-  | 'recuperation' | 'reeducation' | 'refuser' | 'refute' | 'relache' | 'renier' | 'repartition' | 'repli'
-  | 'reponse' | 'repos' | 'repousser' | 'revele' | 'round' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'siege'
-  | 'soins' | 'solo' | 'sort' | 'soutenu' | 'survivre' | 'talent' | 'tas' | 'taverne' | 'teleportation' | 'terre'
-  | 'tir' | 'tire' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'vapeur' | 'vendre' | 'vente' | 'victoire'
-  | 'vider' | 'visee' | 'viser' | 'voyage';
+  | 'recuperation' | 'reeducation' | 'refuser' | 'refute' | 'relache' | 'renier' | 'repartition' | 'repli' | 'reponse'
+  | 'repos' | 'repousser' | 'revele' | 'round' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'siege' | 'soins'
+  | 'solo' | 'sort' | 'soutenu' | 'survivre' | 'talent' | 'tas' | 'taverne' | 'teleportation' | 'terre' | 'test'
+  | 'tir' | 'tirage' | 'tire' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'vapeur' | 'vendre' | 'vente'
+  | 'victoire' | 'vider' | 'visee' | 'viser' | 'voyage';
 /** Les mots de `S`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`traitPsychologique` : `trait`,
  *  `psychologique`). */
 type Mots<S extends string, Cur extends string = ''> = S extends `${infer C}${infer R}`
@@ -158,7 +160,9 @@ const verrousDuLexique: [
   Verrou<Mots<NonNullable<BattleState['over']>>, MotDuLexique>,
   Verrou<Mots<CleDeRegistre>, MotDuLexique>,
   Verrou<Mots<ClueState['statut']>, MotDuLexique>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<FlowKey>, MotDuLexique>,
+  Verrou<Mots<HostJet>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

@@ -64,7 +64,7 @@ export type IdDuClic = string;
 export type IdDeCombattantPromouvable = string;
 /** Un tireur que le choix `debutDuRound.viser` et `declencherLeTirPreventif` acceptent (`preemptShooterIds`, `targeting.ts`). */
 export type IdDeTireurRapide = string;
-/** Une chanson que le réglage `shanty.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
+/** Une chanson que le réglage `chansonDeMarin.chanson` accepte (`chansonsDuChanteur`, `shipCrew.ts`). */
 export type IdDeChanson = string;
 /** Une forme d'arme invoquée que le lanceur du Sort en attente peut donner (`conjureFormOptions`), par l'id de son arme. LDB 47 */
 export type IdDeFormeConjuree = string;

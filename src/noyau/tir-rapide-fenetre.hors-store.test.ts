@@ -96,8 +96,8 @@ describe('#997 — Tir rapide du héros (`pa.interrupt`) : le défenseur surfac�
     advanceTurn(banc.getState, banc.setState);
     g().declencherLeTirPreventif('h1', 'e1');
     expect(g().pendingAttack?.interrupt).toBe(true);
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     expect(g().pendingDefense?.defenderId, 'la fenêtre de E1 s’interpose').toBe('e1');
     expect(g().pendingDefense?.suite.mode).toBe('pilotee');
     g().jetLancer('defense');
@@ -148,8 +148,8 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
     expect(g().pendingDefense, 'E2 n’a pas encore sa fenêtre').toBeNull();
     expect(de('e2').loseNextAction, 'E2 n’a pas tiré').toBeFalsy();
     expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
-    g().jetLancer('fumble');
-    g().jetValider('fumble');
+    g().jetLancer('maladresse');
+    g().jetValider('maladresse');
     expect(g().pendingDefense?.attackerId, 'la boucle reprend sur E2').toBe('e2');
     expect(tirsDe('e2'), 'E2 tire UNE fois').toBe(1);
     g().jetLancer('defense');
@@ -183,8 +183,8 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     g().jetImposerLeResultat('defense', 99); // LDB 14 l.13
     g().jetValider('defense');
     expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('fumbleJet');
-    g().jetLancer('fumble');
-    g().jetValider('fumble');
+    g().jetLancer('maladresse');
+    g().jetValider('maladresse');
     const solide = etape();
     expect(solide?.kind, 'le dé de Sauvegarde Solide tient la main').toBe('casseDArme');
     expect(g().pendingDefense, 'H2 n’a pas encore sa fenêtre').toBeNull();

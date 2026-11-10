@@ -183,38 +183,38 @@ type Ouvreurs<C extends ClasseCoop> = readonly [ActionDeClasse<C>, ...ActionDeCl
 export type Ouverture = { parInvite?: Ouvreurs<'invité'>; parHote?: Ouvreurs<'hôte'>; interne?: SiteInterne }
   & ({ parInvite: unknown } | { parHote: unknown } | { interne: unknown });
 const OUVERTURE_DES_FLUX = {
-  attack: { parInvite: ['cliquerLaCase'] },
+  attaque: { parInvite: ['cliquerLaCase'] },
   defense: { interne: 'réaction : combatFlow.maybeOpenDefense / openSurfacedDefense' },
-  cast: { parInvite: ['cliquerLaCase', 'incanterLeSort'] },
-  disengage: { parInvite: ['rompreLEngagement'] },
+  incantation: { parInvite: ['cliquerLaCase', 'incanterLeSort'] },
+  desengagement: { parInvite: ['rompreLEngagement'] },
   auContact: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
-  grapple: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  empoignade: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   battement: { parInvite: ['faireUnBattement'] },
   distraire: { parInvite: ['tenterDeDistraire'] },
-  maneuver: { parInvite: ['cliquerLaCase'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
-  run: { parInvite: ['cliquerLaCase'] }, // course armée (combatSlice.cliquerLaCaseDuCombat)
-  reload: { parInvite: ['rechargerLArme'] },
+  manoeuvre: { parInvite: ['cliquerLaCase'] }, // manœuvre de créature : ciblage (targetingModes.attackClickCommit)
+  course: { parInvite: ['cliquerLaCase'] }, // course armée (combatSlice.cliquerLaCaseDuCombat)
+  rechargement: { parInvite: ['rechargerLArme'] },
   // Main ensanglantée (AA 07 l.117) : posé par l'ouverture d'attaque (interne) ET par la 2ᵉ frappe à
   // deux armes, que joue le clic du combattant.
-  handGate: { parInvite: ['cliquerLaCase'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
-  recover: { parInvite: ['seRemettreDeLEtat'] },
-  focus: { parInvite: ['focaliserLeSort'] },
-  dispel: { parInvite: ['dissiperLeSort'] },
-  frenzy: { parInvite: ['entrerEnFrenesie'] },
-  approach: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
-  ward: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
+  mainEnsanglantee: { parInvite: ['cliquerLaCase'], interne: 'combatFlow.openAttackCascade (Test par Action)' },
+  recuperation: { parInvite: ['seRemettreDeLEtat'] },
+  focalisation: { parInvite: ['focaliserLeSort'] },
+  dissipation: { parInvite: ['dissiperLeSort'] },
+  frenesie: { parInvite: ['entrerEnFrenesie'] },
+  approche: { parInvite: ['cliquerLaCase'] }, // gate de Peur (combatSlice.fearGateBlocks)
+  protection: { parInvite: ['cliquerLaCase'] }, // ciblage (targetingModes.attackClickCommit)
   // Combat : ciblage (targetingModes). Infirmerie : le brouillon de l'ouverture et du patient choisi (`brouillonTenu`).
-  heal: { parInvite: ['cliquerLaCase', 'fenetreChoisir'], parHote: ['ouvrirLeMedecin'] },
-  surgery: { interne: 'acteDeSoin.lancerLActeDeSoin (jetLancer d’un acte d’opération) et medicFlow.appliquerLaPasse (passe suivante)' },
+  soins: { parInvite: ['cliquerLaCase', 'fenetreChoisir'], parHote: ['ouvrirLeMedecin'] },
+  chirurgie: { interne: 'acteDeSoin.lancerLActeDeSoin (jetLancer d’un acte d’opération) et medicFlow.appliquerLaPasse (passe suivante)' },
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
-  steamSave: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
+  fuiteDeVapeur: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
   // Interlude : le choix `interlude.pratiquer`, au siège du héros (`CHOIX_DES_FENETRES`).
-  activity: { parInvite: ['fenetreChoisir'] },
+  activite: { parInvite: ['fenetreChoisir'] },
   // Échoppe : le choix `marchand.marchander`, que l'hôte seul joue (`CHOIX_DES_FENETRES`).
-  bargain: { parInvite: ['fenetreChoisir'] },
-  appraise: { parHote: ['evaluerLObjet'] },
-  shanty: { parInvite: ['chanterLaChanson'] },
+  marchandage: { parInvite: ['fenetreChoisir'] },
+  evaluation: { parHote: ['evaluerLObjet'] },
+  chansonDeMarin: { parInvite: ['chanterLaChanson'] },
 } as const;
 type FluxOuverts = keyof typeof OUVERTURE_DES_FLUX;
 const _ouvertureTotale: Record<FluxMono, Ouverture> & Record<Exclude<FluxOuverts, FluxMono>, never> = OUVERTURE_DES_FLUX;

@@ -83,7 +83,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     expect(volley[0].weapon.qualities.some((q) => q.id === 'percutante')).toBe(true); // munition bakée
   });
 
-  it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (jetValider@shipBattery)', () => {
+  it('bordée jouable : la munition du poste est CONSOMMÉE au « Feu ! » (jetValider@tirDeBatterie)', () => {
     seedBattleRng(7);
     const boulet = ammoItem('boulet', 'Boulet et poudre', 2);
     const poste = mkPoste([boulet], 'boulet');
@@ -97,8 +97,8 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     });
     banc.getState().ouvrirLaBordee('ship', 'target');
     const p = banc.getState().pendingShipBattery!;
-    for (const part of p.participants) banc.getState().jetLancer('shipBattery', part.id);
-    banc.getState().jetValider('shipBattery');
+    for (const part of p.participants) banc.getState().jetLancer('tirDeBatterie', part.id);
+    banc.getState().jetValider('tirDeBatterie');
     expect(poste.ammo![0].qty).toBe(1); // 2 → 1 : un boulet parti avec la bordée
   });
 
@@ -126,7 +126,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     // doublé pour le rôle essentiel → Test d'équipage raté quels que soient le Moral et la graine.
     const p = banc.getState().pendingShipBattery!;
     banc.setState({ pendingShipBattery: { ...p, participants: p.participants.map((x) => ({ ...x, result: { roll: 95, target: 55, sl: -4 } })) } } as never);
-    banc.getState().jetValider('shipBattery');
+    banc.getState().jetValider('tirDeBatterie');
 
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'target')!.wounds.current).toBe(before); // aucune Blessure
     expect(poste.loaded).toBe(false); // … mais la pièce a fait feu : déchargée
@@ -200,7 +200,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     // Jet FORCÉ à la réussite franche (le dé n'est pas l'objet du test, la CAPTURE l'est) : le Test étendu aboutit.
     const pr = banc.getState().pendingReload!;
     banc.setState({ pendingReload: { ...pr, roll: 5, sl: 20, success: true } });
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     expect(poste.loaded).toBe(true);
     expect(poste.loadedAmmoUid).toBe('mitraille');
 
