@@ -112,9 +112,9 @@ export function refusDeRamasserHorsCombat(s: Pick<Jeu, 'scene' | 'objetsAuSol' |
   return null;
 }
 
-/** Ramasse hors combat l'objet `key` posé au sol du décor `entityId` : le héros `pid` le reçoit, le meneur sans lui. */
-export function ramasserHorsCombat(get: Get, set: Set, entityId: string, key: string, pid?: string): void {
-  const receveurId = pid ?? meneurDuMonde(get())?.id;
+/** Ramasse hors combat l'objet `key` posé au sol du décor `entityId` : le héros `heroId` le reçoit, le meneur sans lui. */
+export function ramasserHorsCombat(get: Get, set: Set, entityId: string, key: string, heroId?: string): void {
+  const receveurId = heroId ?? meneurDuMonde(get())?.id;
   const refus = refusDeRamasserHorsCombat(get(), entityId, key, receveurId);
   if (refus) return void refuserGeste(get, set, refus);
   const label = ramasserDuSol(get, set, entityId, receveurId!);

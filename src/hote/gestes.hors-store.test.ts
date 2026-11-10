@@ -71,7 +71,7 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
     // Une union de désignations : chacune garde la sienne (`verbesDeLaPartie.mjs`, `designee`).
-    ['evaluerLObjet', 'uid', 'IdDObjet,IdDeLigneDeButin'],
+    ['evaluerLObjet', 'aEvaluer', 'IdDObjet,IdDeLigneDeButin'],
   ])('%s.%s désigne %s', (verbe, nom, cles) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];

@@ -33,7 +33,7 @@ import {
 import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
 import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
-import type { IdDeHeros } from './designations';
+import type { IdDeHeros, IdDeRangee } from './designations';
 import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './partyFlow';
 import {
   BAISSES_DE_PRIX_MAX, MODES_DE_MARCHE, barterRefusal, catalogEntryOf, contexteDAchat, demandeDuTroc, devisDeTroc, devisDeVente, devisDuPanier, exemplaireCede, libelleDeLaRepartition, objetsAReparer,
@@ -405,8 +405,8 @@ export const OUVERTS_DU_CHOIX = {
 
 /** Le réglage du choix `axe` de la fenêtre `fenetre` dans l'état `s`, sur le héros `pid` d'un choix de rangée
  *  (`OUVERTS_DU_CHOIX`). */
-export const reglageDuChoixDeFenetre = (s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoix, pid?: IdDeHeros): Reglage =>
-  (OUVERTS_DU_CHOIX[fenetre] as Readonly<Record<string, (s: Jeu, pid: IdDeHeros | undefined) => Reglage>>)[axe](s, pid);
+export const reglageDuChoixDeFenetre = (s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoix, pid?: IdDeRangee): Reglage =>
+  (OUVERTS_DU_CHOIX[fenetre] as Readonly<Record<string, (s: Jeu, pid: IdDeRangee | undefined) => Reglage>>)[axe](s, pid);
 
 /** Un réglage ouvre-t-il une valeur ? */
 const ouvreUneValeur = (r: Reglage): boolean => !!r.bornes || !!r.valeurs?.length;
@@ -461,7 +461,7 @@ export function refusDuChoix(s: Jeu, fenetre: unknown, axe: unknown, valeur: unk
   if ((typeof pid === 'string') !== (declaration.portee === 'rangee')) return t('choix.refus.rangee');
   if (declaration.qui === 'hote' && s.net.mode === 'guest') return t('choix.refus.hoteSeul');
   if (declaration.portee === 'rangee' && declaration.qui === 'proprietaire' && !seatOwns(s, decidingSeat(s), pid as IdDeHeros)) return t('choix.refus.autreSiege');
-  const lu = reglageDuChoixDeFenetre(s, fenetre as FenetreAChoix, axe as AxeDuChoix, pid as IdDeHeros | undefined);
+  const lu = reglageDuChoixDeFenetre(s, fenetre as FenetreAChoix, axe as AxeDuChoix, pid as IdDeRangee | undefined);
   if (lu.bornes) return dansLesBornes(valeur, lu.bornes) ? null : t('choix.refus.bornes');
   const lue = lu.valeurs?.find((v) => v.valeur === valeur);
   return lue ? lue.refus : t('choix.refus.valeur');
@@ -474,7 +474,7 @@ export function creerChoixDeFenetre(get: Get, set: Set, corps: CorpsDesChoix): P
     fenetreChoisir: (...[fenetre, axe, valeur, pid]) => {
       const refus = refusDuChoix(get(), fenetre, axe, valeur, pid);
       if (refus) { refuserGesteDuSiege(get, set, refus); return; }
-      (corps[fenetre] as unknown as Readonly<Record<string, (v: unknown, pid: IdDeHeros | undefined) => void>>)[axe](valeur, pid);
+      (corps[fenetre] as unknown as Readonly<Record<string, (v: unknown, pid: IdDeRangee | undefined) => void>>)[axe](valeur, pid);
     },
   };
 }
