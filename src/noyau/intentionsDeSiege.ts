@@ -135,7 +135,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   evaluerLeVin: 'hôte', deplacerLaCargaison: 'hôte', ouvrirLePort: 'hôte', reparerLeNavire: 'hôte', carenerLeNavire: 'hôte',
   installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', recueillirLesRumeurs: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────
-  attribuerLeRoleABord: 'hôte', affecterALaStation: 'hôte', attribuerLeRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
+  affecterAuRoleABord: 'hôte', affecterALaStation: 'hôte', affecterAuRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────

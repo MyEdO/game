@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { revealClue, discreditClue, togglePin, marquerVus, estNouveauPour, type ClueState, type IndiceAffiché } from './clues';
+import { revealClue, discreditClue, poserLEpingle, marquerVus, estNouveauPour, type ClueState, type IndiceAffiché } from './clues';
 import { IND, IND_MONO, affichés } from './clues.fixture';
 
 describe('clues — helpers PURS (#670, mécanique maison)', () => {
@@ -84,7 +84,7 @@ describe('clues — helpers PURS (#670, mécanique maison)', () => {
 
   it('discreditClue sur un indice PRÉSENT : passe réfuté, garde stadeCourant/historique/épinglé', () => {
     const revealed = revealClue({}, IND, 100);
-    const pinned = togglePin(revealed, 'ind-lettre');
+    const pinned = poserLEpingle(revealed, 'ind-lettre', true);
     const out = discreditClue(pinned, IND, 300);
     expect(out['ind-lettre']).toEqual<ClueState>({ stadeCourant: 's1', statut: 'refute', épinglé: true, historique: [{ stade: 's1', at: 100 }] });
   });
@@ -100,13 +100,15 @@ describe('clues — helpers PURS (#670, mécanique maison)', () => {
     expect(again).toBe(discredited);
   });
 
-  it('togglePin flip un indice présent, no-op sur un indice absent', () => {
+  it('poserLEpingle pose la valeur absolue sur un indice présent, no-op sur un indice absent', () => {
     const revealed = revealClue({}, IND, 100);
-    const pinned = togglePin(revealed, 'ind-lettre');
+    const pinned = poserLEpingle(revealed, 'ind-lettre', true);
     expect(pinned['ind-lettre'].épinglé).toBe(true);
-    const unpinned = togglePin(pinned, 'ind-lettre');
+    expect(poserLEpingle(pinned, 'ind-lettre', true), 'déjà épinglé : Record identique').toBe(pinned);
+    const unpinned = poserLEpingle(pinned, 'ind-lettre', false);
     expect(unpinned['ind-lettre'].épinglé).toBe(false);
-    const absent = togglePin({}, 'ind-inconnu');
+    expect(poserLEpingle(revealed, 'ind-lettre', false), 'jamais épinglé : Record identique').toBe(revealed);
+    const absent = poserLEpingle({}, 'ind-inconnu', true);
     expect(absent).toEqual({});
   });
 });
@@ -187,8 +189,8 @@ describe('clues — nouveauté vue PAR SIÈGE (#2415)', () => {
     expect(estNouveauPour(marquerVus(remonté, vuEnRetard, 1)['ind-lettre'], 1), 's2 courant marqué vu sur l’affichage de s1').toBe(true);
   });
 
-  it('togglePin (geste du joueur) garde `vuParSiège`', () => {
-    const épinglé = togglePin(lu(revealClue({}, IND, 100), 'ind-lettre'), 'ind-lettre');
+  it('poserLEpingle (geste du joueur) garde `vuParSiège`', () => {
+    const épinglé = poserLEpingle(lu(revealClue({}, IND, 100), 'ind-lettre'), 'ind-lettre', true);
     expect(épinglé['ind-lettre'].épinglé).toBe(true);
     expect(épinglé['ind-lettre'].vuParSiège).toEqual({ 0: true });
   });

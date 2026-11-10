@@ -269,7 +269,7 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
 
 /**
  * UNE seule définition du défaut de cadence. `DEFAULT_VOYAGE_ORDERS` est la SOURCE : les deux
- * constructeurs de plan et la bascule du noyau (`fixerLaCadence`) la consomment — un plan bâti sans cadence explicite
+ * constructeurs de plan et le verbe du noyau (`fixerLaCadence`) la consomment — un plan bâti sans cadence explicite
  * porte donc exactement ces ordres, quel que soit le mode de voyage.
  */
 describe('DEFAULT_VOYAGE_ORDERS — source unique du défaut de cadence (mer ⇄ fleuve ⇄ store)', () => {

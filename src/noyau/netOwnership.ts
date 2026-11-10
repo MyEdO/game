@@ -652,6 +652,9 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['incanterLeSort', PAR_ARG0],
     ['focaliserLeSort', PAR_ARG0],
     ['dissiperLeSort', PAR_ARG0],
+    // La Détermination dépense le point de son porteur (1ᵉʳ argument), à sa barre comme dans la fenêtre d'un jet :
+    // le siège qui influence ce combattant (`seatInfluences`), jamais celui qui tient la main.
+    ['depenserLaDetermination', { rule: (s, seat, [id]) => typeof id === 'string' && seatInfluences(s, seat, id) }],
     // Les gestes d'un PORTEUR, en combat comme hors combat : le siège du porteur de l'objet, lu dans l'état.
     ['utiliserLObjet', PAR_PORTEUR_DE_L_OBJET],
     ['poserLObjet', PAR_PORTEUR_DE_L_OBJET],

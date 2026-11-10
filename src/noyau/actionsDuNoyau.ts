@@ -154,8 +154,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  marque prêt le siège qui décide (`decidingSeat`) et la valide au quorum ; refusé, et dit, hors de ce que sa
    *  déclaration ouvre (`refusDeLaValidation`). */
   fenetreValider: (fenetre: FenetreAValider) => void;
-  /** Épingle/désépingle un indice du carnet (suivi joueur, no-op si l'indice est encore caché). */
-  epinglerLIndice: (indiceId: IdDIndice) => void;
+  /** Épingle (`epingle`) ou désépingle un indice du carnet (suivi joueur) ; refusé, et dit, si l'indice est encore
+   *  caché (`carnet.refus.indiceInconnu`). */
+  epinglerLIndice: (indiceId: IdDIndice, epingle: boolean) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
   marquerLesIndices: (affichés: readonly IndiceAffiché[]) => void;
   /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
@@ -301,19 +302,19 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   partirEnVoyage: (routeId: IdDeRoute, mode: IdDeModeDeVoyage, opts?: import('./travelFlow').OptionsDeDepart) => void;
   /** Reprend un voyage interrompu par une péripétie. */
   reprendreLeVoyage: () => void;
-  /** Bascule la CADENCE des ordres de la traversée en cours (couche `voyageCadence`) — « Passer en
-   *  jour-par-jour » de l'écran de traversée, ou retour en commandée. */
+  /** Pose la CADENCE des ordres de la traversée en cours (couche `voyageCadence`), en valeur absolue :
+   *  jour-par-jour ou commandée. */
   fixerLaCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
-  /** Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage EDOC 8),
+  /** EDOC 8 l.131. Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  attribuerLeRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: CompetenceDesignee } | null) => void;
-  /** Épingle (`roleId`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) — interface de gestion
-   *  du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
-  attribuerLeRoleABord: (crewId: IdDeCombattant, roleId: IdDeRoleABord | null) => void;
+  affecterAuRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: CompetenceDesignee } | null) => void;
+  /** MDG 14 l.11. Épingle (`roleId`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) —
+   *  interface de gestion du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
+  affecterAuRoleABord: (crewId: IdDeCombattant, roleId: IdDeRoleABord | null) => void;
   /** Épingle (`station`) ou détache (`null`) la STATION à bord d'un marin (`shipStation`, id de
    *  `ship-stations.json`) — où il se TROUVE quand un Critique frappe une présence (`MDG 13 l.680`,
    *  `MSRC 07 l.78/l.82/l.94`). Aucun défaut : détaché, il n'est visé par aucune présence. Même patron
-   *  qu'`attribuerLeRoleABord`. */
+   *  qu'`affecterAuRoleABord`. */
   affecterALaStation: (crewId: IdDeCombattant, station: IdDeStation | null) => void;
   /** Sélectionne la munition PERSISTANTE d'un poste d'artillerie (`ShipPoste.ammoUid` — boulet/mitraille,
    *  MDG 12 l.410-424), depuis la fiche du navire. `null` → retour au défaut (1re compatible). */

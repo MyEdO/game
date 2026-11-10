@@ -60,8 +60,8 @@ import { t } from '../i18n';
 export type FermetureDuJet =
   | 'sansJet' | 'nonOffert' | 'sansActeur' | 'rangeeTemoin' | 'jetImpose'
   | 'jetNonLance' | 'jetLance' | 'jetReussi' | 'dejaRelance'
-  | 'sansChance' | 'sansResilience' | 'sansDetermination' | 'reserveAuxHeros'
-  | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance' | 'sansMalusPsy'
+  | 'sansChance' | 'sansResilience' | 'reserveAuxHeros'
+  | 'deNonFixable' | 'desFixesInactifs' | 'sansVoieDInversion' | 'sansMenace' | 'sansResistance'
   | 'declarationsDues' | 'oppositionsDues' | 'choixCritiqueDu' | 'actionEngagee'
   | 'choixDu' | 'etapesDues' | 'etapesJouees' | 'rienADeclarer' | 'contreSortDu' | 'soinEnCours' | 'acteAChanger' | 'paieDue' | 'halteDeVoyage' | 'herosADesigner'
   | 'quorumAttendu' | 'noteNonCouverte' | 'evenementsATirer' | 'rienARepartir' | 'seanceDuChapitre' | 'choixAReprendre'
@@ -368,16 +368,6 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     /** Ce flux accepte l'auto-succès du talent Résistance (Menace) (LDB 10) : son `resolve` porte la
      *  branche `forced.sl` (DR = Bonus d'Endurance). Offert seulement sur un slot tagué `menace`. */
     resist?: boolean;
-    /** Détermination (immunité PSY temporaire, LDB 17 l.59) : MÊME catégorie que `resist` (dépenser une
-     *  ressource pour infléchir un Test psy), PAS une réussite forcée. Le flux DÉCLARE l'effet SPÉCIFIQUE
-     *  (dépense de Détermination + marqueur `immune` sur le slot psy), la fabrique fournit le CÂBLAGE
-     *  (interface store/intent/modale via le verbe `determine` → geste `jetDepenserLaDetermination(flux, …)`, le handler
-     *  ci-dessous GATE `actor` et la `fermeture` du flux, puis dispatche `appliquer`). Exposé par les seuls flux à
-     *  `caps.determine`. */
-    determine?: {
-      fermeture: (s: Jeu, slot: Slot, actor: Combatant) => FermetureDuJet | null;
-      appliquer: (slot: Slot, actor: Combatant, get: Get, set: Set, commit: Commit<Slot>) => void;
-    };
   };
   /**
    * Undo MÉTIER optionnel de l'annulation (ex. défaire-charge de l'attaque…).
@@ -431,11 +421,6 @@ export interface RollFlowHandlers {
    *  taguée sur le slot (`menace`), DR = Bonus d'Endurance, 1× par spec et par séance. No-op sans
    *  `caps.resist`, sans tag, sans talent disponible, ou si le Test est déjà réussi. */
   resist: (get: Get, set: Set, pid?: string) => void;
-  /** Détermination (immunité PSY temporaire, LDB 17 l.59) : dépense 1 Détermination pour rendre l'acteur
-   *  IMMUNISÉ ce Round sur le slot psy ciblé (marqueur `immune`) — PAS une réussite forcée (≠ `resist`).
-   *  No-op sans `caps.determine`, sans acteur. La fabrique GATE `actor` + dispatche ; la garde d'éligibilité
-   *  fine (slot psy, non résolu) + la dépense vivent dans le handler du spec (`caps.determine`). */
-  determine: (get: Get, set: Set, pid?: string) => void;
   /** Ce flux sait-il RÉÉVALUER un dé saisi (option « Dés fixés ») ? Vrai ssi son ACCESSEUR DE DÉ est
    *  complet (lire où vit le dé ET réécrire l'issue re-dérivée). Faux ⇒ aucune affordance côté UI et
    *  verbe inerte côté store — jamais une réussite gratuite. */
@@ -845,7 +830,6 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         // Le dé FIXÉ se juge au siège qui le pose (`canFixDie`) ; l'op ne le rejuge pas (`VerbesDeJet.jetImposerLeResultat`).
         setForcedRoll: fermetureDuDeChoisi(slot, actor, p) ?? (!slot.forced && !canFixDie(s, actor?.id) ? 'desFixesInactifs' : null),
         resist: !spec.caps?.resist ? 'nonOffert' : temoin ? 'rangeeTemoin' : parActeur((a) => fermetureDeLaResistance(a, menace, rolled, spec.outcome(slot))),
-        determine: !spec.caps?.determine ? 'nonOffert' : parActeur((a) => spec.caps!.determine!.fermeture(s, slot, a)),
         cancel: fermetureDeLAnnulation(s, p),
         reverse: typeof voie === 'string' ? voie : null,
         confirm: fenetre || !spec.multi ? confirm : spec.clotures?.confirm === 'toujours' || rolled ? null : 'jetNonLance',
@@ -990,15 +974,6 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         ? (sl: number) => { const cur = L.actorTR(loc.slot); const tgt = lensDieTarget(loc.slot, actor) ?? 0; return L.applyRoll(s, loc.slot, actor!, get, forcedTR(1, tgt, sl, cur?.base), p); }
         : (sl: number) => spec.resolve(s, loc.slot, actor, get, { sl }, p);
       opResist(slot, actor, spec.rolled(loc.slot), spec.outcome(loc.slot), resolveResist, loc.commit);
-    },
-    determine(get, set, pid) {
-      const s = get(); const p = pendingOf(s); if (!p) return;
-      const loc = locate(set, get, p, pid); if (!loc) return;
-      const actor = spec.actor(s, loc.slot, p);
-      // La fabrique GATE `actor` et la fenêtre du flux (`caps.determine.fermeture`), puis dispatche ; la dépense
-      // (Détermination) vit dans le handler du spec (`caps.determine.appliquer`).
-      const d = spec.caps?.determine;
-      if (d && actor && !d.fermeture(s, loc.slot, actor)) d.appliquer(loc.slot, actor, get, set, loc.commit);
     },
     cancel(get, set) {
       const p = pendingOf(get());

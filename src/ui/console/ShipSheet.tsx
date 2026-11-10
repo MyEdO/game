@@ -150,7 +150,7 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
   const battle = useGame((s) => s.battle);
   const scene = useGame((s) => s.scene);
   const partyZ = useGame((s) => s.partyPos.z ?? 0); // le plan suit l'étage du groupe
-  const attribuerLeRoleABord = useGame((s) => s.attribuerLeRoleABord);
+  const affecterAuRoleABord = useGame((s) => s.affecterAuRoleABord);
   const facing = useGame((s) => s.facing);
   const [pickedPosteUid, setSelectedPosteUid] = useState<string | null>(null);
   const [tab, setTab] = useState<'postes' | 'manoeuvre'>('postes');
@@ -221,7 +221,7 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
         /* Le dossier montre l'équipage de la COQUE (PJ et marins PNJ, moins les servants de
            pièce) ; la carte du monde montre le GROUPE. Même roster, même règles, deux
            populations — la primitive les reçoit, elle ne les devine pas. */
-        <ShipRolesPanel crew={maneuverCrew} onSet={attribuerLeRoleABord} />
+        <ShipRolesPanel crew={maneuverCrew} onSet={affecterAuRoleABord} />
       )}
     </Planche>
   );

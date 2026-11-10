@@ -16,7 +16,7 @@
  *  LDB 10 — exposé par les seuls flux à `caps.resist` (Tests qui « résistent à une menace »).
  *  `cancel` = « Annuler » unifié (cascade-aware + `onCancel` métier) — exposé par les flux annulables ;
  *  sans `pid` (annuler ferme la modale/cascade entière, pas un slot). */
-export const VERBES_DE_JET = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'determine', 'cancel', 'reverse', 'confirm'] as const;
+export const VERBES_DE_JET = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'cancel', 'reverse', 'confirm'] as const;
 export type RollVerb = (typeof VERBES_DE_JET)[number];
 
 interface FlowVerbsBase {
@@ -84,8 +84,7 @@ export const FLOW_VERBS = {
   corruption:   { kind: 'mono',  verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'resist', 'confirm'], jetOwner: { pending: 'pendingCorruption', field: 'heroId' } },
   // Test générique : `actorId` est MUTABLE (réglage `test.testeur` — le Test change de testeur en place) ; la
   // possession se résout À LA LECTURE de l'état, donc sur le testeur COURANT.
-  // `determine` = Détermination (LDB 17 l.59) : même verbe que `cascadeBatch`, corps dans `FLOWS.test.caps`.
-  test:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'determine', 'cancel', 'reverse', 'confirm'], jetOwner: { pending: 'pendingTest', field: 'actorId' } },
+  test:         { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'], jetOwner: { pending: 'pendingTest', field: 'actorId' } },
   steamSave:    { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'confirm'], jetOwner: { pending: 'pendingSteamSave', field: 'actorId' } },
   activity:     { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'reverse', 'confirm'], jetOwner: { pending: 'pendingActivity', field: 'heroId' } },
   bargain:      { kind: 'mono', verbs: ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll', 'cancel', 'confirm'], jetOwner: { pending: 'pendingBargain', field: 'playerId' } },
@@ -112,9 +111,8 @@ export const FLOW_VERBS = {
   // Étape « batch » DANS une cascade : aucune action de clôture propre — la cascade valide l'étape (`jetValider('cascade')`).
   // PARITÉ de verbes avec l'étape MONO `cascade` : une bande met en jeu les MÊMES règles qu'une étape
   // seule — `resist` (LDB 10 l.1016-1020) s'y joue PAR RANGÉE, routé par le porteur du participant
-  // (`pidIsActor:true`), jamais sur la fenêtre partagée ; `determine` (LDB 17 l.59) de même, la
-  // Psychologie ne se testant qu'en bandes (déclaration sur l'ÉTAPE, immunité sur la RANGÉE).
-  cascadeBatch: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'resist', 'determine', 'reverse'] },
+  // (`pidIsActor:true`), jamais sur la fenêtre partagée.
+  cascadeBatch: { kind: 'multi', pidIsActor: true, verbs: ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact', 'resist', 'reverse'] },
   // Dé d'une étape de cascade, sur une table ou nu (#942, #1508) : un tirage, pas un Test — ni influence ni clôture
   // propre, la cascade valide l'étape. `pid` = id d'ÉTAPE.
   cascadeTirage: { kind: 'multi', pidIsActor: false, verbs: ['roll', 'setForcedRoll'] },
@@ -125,13 +123,13 @@ export const FLOW_VERBS = {
 export type FlowKey = keyof typeof FLOW_VERBS;
 
 /** Les actions des verbes de jet, `jet<Action>…` (#3371 §3.1) : celles de `NOM_DU_VERBE_DE_JET`, et `regler` (`VerbeDeReglage`). */
-export type ActionDeJet = 'lancer' | 'relancer' | 'ajouter' | 'pactiser' | 'forcer' | 'imposer' | 'resister' | 'depenser'
+export type ActionDeJet = 'lancer' | 'relancer' | 'ajouter' | 'pactiser' | 'forcer' | 'imposer' | 'resister'
   | 'annuler' | 'inverser' | 'valider' | 'regler';
 
 /** Le verbe du noyau de chaque verbe de jet, le flux en premier argument (`VerbesDeJet`) : la seule source de son nom. */
 export const NOM_DU_VERBE_DE_JET = {
   roll: 'jetLancer', reroll: 'jetRelancer', bonusSL: 'jetAjouterUnDR', darkPact: 'jetPactiser', forceSuccess: 'jetForcerLaReussite',
-  setForcedRoll: 'jetImposerLeResultat', resist: 'jetResister', determine: 'jetDepenserLaDetermination', cancel: 'jetAnnuler',
+  setForcedRoll: 'jetImposerLeResultat', resist: 'jetResister', cancel: 'jetAnnuler',
   reverse: 'jetInverser', confirm: 'jetValider',
 } as const satisfies { [V in RollVerb]: `jet${Capitalize<ActionDeJet>}${string}` };
 export type NomDeVerbeDeJet = (typeof NOM_DU_VERBE_DE_JET)[RollVerb];

@@ -135,7 +135,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     expect(row(H.id).extendedDrTarget).toBe(3);
 
     // Détermination : NE force PAS le succès — immunité temporaire. -1 Détermination, ActiveEffect psychImmune (2 Rounds).
-    banc.getState().jetDepenserLaDetermination('cascadeBatch', H.id);
+    banc.getState().depenserLaDetermination(H.id, 'immuniserALaPsychologie');
     expect(row(H.id).immune).toBe(true);
     const hMid = heroOf(H.id);
     expect(hMid.resolve).toBe(1);

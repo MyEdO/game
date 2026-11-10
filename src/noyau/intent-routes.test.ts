@@ -80,9 +80,9 @@ describe('#1051 — les familles de routes sont DISJOINTES (invariant verrouill�
 describe('#1051 — frontière table ⇄ REPLI universel', () => {
   it('le repli n’est PAS une entrée de la table : il porte les gestes routés au propriétaire de ce qu’ils touchent', () => {
     const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a)).sort();
-    expect(repli, 'population du repli universel : chacun se route au propriétaire du tour actif (`effacerLApercu`, `desarmerLeMode`, les verbes de la barre de l’actif), de son porteur (`prendreLaPanoplie`, `depenserLaDetermination`), ou du mobile (`franchirLArete`) ; un geste qui entre au repli ou en sort se nomme ici').toEqual([
+    expect(repli, 'population du repli universel : chacun se route au propriétaire du tour actif (`effacerLApercu`, `desarmerLeMode`, les verbes de la barre de l’actif), de son porteur (`prendreLaPanoplie`), ou du mobile (`franchirLArete`), sauf la Détermination, routée au siège qui influence son porteur ; un geste qui entre au repli ou en sort se nomme ici').toEqual([
       'aiderLEquipe', 'annulerLeDeplacement', 'approvisionnerLArme', 'armerLAttaque', 'armerLeMode', 'aspergerDEau', 'basculerLaPosture',
-      'basculerLaRepousse', 'chanterLaChanson', 'depenserLaDetermination', 'desarmerLeMode', 'effacerLApercu', 'entrerEnFrenesie',
+      'basculerLaRepousse', 'chanterLaChanson', 'desarmerLeMode', 'effacerLApercu', 'entrerEnFrenesie',
       'faireUnBattement', 'franchirLArete', 'gagnerLAvantage', 'lancerLAttaqueDeZone', 'manoeuvrerLeNavire', 'manoeuvrerSurSoi', 'mettrePiedATerre',
       'monterEnSelle', 'pousserLEngin', 'prendreLaDefensive', 'prendreLaPanoplie', 'prendreLaVisee', 'quitterLePoste',
       'ramasserLObjet', 'rechargerLArme', 'rompreLEngagement', 'seRelever', 'seRemettreDeLEtat', 'servirLePoste',
@@ -91,13 +91,13 @@ describe('#1051 — frontière table ⇄ REPLI universel', () => {
     expect(ROUTES.has('armerLeMode'), 'un geste de tour ordinaire ne se route pas').toBe(false);
   });
 
-  // La population est DÉRIVÉE : repli et routés PARTITIONNENT l'allowlist. La Détermination se joue PAR RANGÉE de
-  // bande, geste `jetDepenserLaDetermination('cascadeBatch', pid)`, qui est routé.
-  it('la population du repli est DÉRIVÉE (partition de l’allowlist) et la Détermination PAR RANGÉE est routée', () => {
+  // La population est DÉRIVÉE : repli et routés PARTITIONNENT l'allowlist. La Détermination se joue à la barre comme
+  // sur la rangée d'une bande, un seul geste `depenserLaDetermination(porteur, …)`, qui est routé.
+  it('la population du repli est DÉRIVÉE (partition de l’allowlist) et la Détermination est routée', () => {
     const routes = [...GUEST_INTENTS].filter((a) => ROUTES.has(a));
     const repli = [...GUEST_INTENTS].filter((a) => !ROUTES.has(a));
     expect(repli.length + routes.length, 'partition exacte de l’allowlist').toBe(GUEST_INTENTS.size);
-    expect(ROUTES.has('jetDepenserLaDetermination'), 'la Détermination PAR RANGÉE est routée (#1117)').toBe(true);
+    expect(ROUTES.has('depenserLaDetermination'), 'la Détermination est routée (#1117, #3612 L5)').toBe(true);
   });
 
   it('GARDE DE CLASSE (#2415) : tout intent de GROUPE a sa route — hors combat, le repli le refuserait à tout invité', () => {

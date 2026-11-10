@@ -612,7 +612,7 @@ export function sortiesDeLEquipage(_get: Get, set: SetFn) {
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {
   return {
-    attribuerLeRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
+    affecterAuRoleABord: (crewId, role) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipRole: role || undefined }))),
     affecterALaStation: (crewId, station) => set((s) => ecrireActeur(s, crewId, (c) => ({ ...c, shipStation: station || undefined }))),
     approvisionnerLaPiece: (shipId, posteUid, ammoUid) => {
       const b = get().battle;
