@@ -38,32 +38,46 @@ le haut du torse entre le cou et ce col, que les visées du trapèze traversent 
 BUDGET_TRIANGLES = 2500           # procédure, section 7 : vêtement par pièce
 EPAISSEUR = 0.006                 # HYPOTHÈSE : double nappe ; l'épaisseur de la fourrure est son `GONFLEMENT` ; à 12 mm, la nappe
                                   # intérieure se repliait sur l'épaule, où les rangs se serrent (triangles retournés)
-JEU = 0.016
-"""HYPOTHÈSE : jeu de la nappe intérieure à la bure ; à 6 mm, le col de la bure perçait la fourrure à la nuque (rendu,
+JEU = [(0.0, 0.034), (50.0, 0.030), (90.0, 0.022), (130.0, 0.030), (180.0, 0.034)]
+"""(azimut, jeu) de la nappe intérieure à la bure, interpolés comme `BORD`. HYPOTHÈSES mesurées : 22 mm partout, le torse de la
+bure passait devant la fourrure du devant et du dos (7,9 mm, Push_Loop, Zombie_Scratch ; 19 traversées sous `carrure_plus`),
+d'où le jeu plus grand au devant et au dos ; à 34 mm devant et 30 mm à 50°, la sangle du baudrier passait devant la fourrure
+sous `corpulence` (15,7 mm, Push_Loop) et la bure sous `carrure_plus` (5,6 mm, Death01), que le jeu ne gagnait pas : ces sommets, en haut du profil, gardaient le jeu du `COL` (`RAMPE_DU_JEU`) ; la sangle passe
+sur le haut de l'épaule gauche (azimut 75 à 120°, à 1,50–1,56 m), et à 30 mm sur l'épaule, elle passait devant la fourrure
+de 19,7 mm (`corpulence`, Push_Loop) au lieu de 14,7 ; à 40 mm de 30 à
+60°, avec 40 colonnes, la fourrure de l'aisselle s'étirait (×3,7 en neutre, Pistol_Aim_Down) et la bure la traversait de
+12 à 14 mm (Zombie_Scratch) ; sur l'épaule, il reste à 22 mm : à 16 mm, la bure passait devant la fourrure
+de l'épaule droite sous `feminin` (14 mm, Zombie_Scratch) ; à 6 mm, le col de la bure perçait la fourrure à la nuque (rendu,
 Idle_Loop) ; à 8 mm (celui de la cape sur la robe), le haut de la manche droite, bras levé, passait devant la fourrure de
 l'épaule (27 mm, Sword_Regular_B)."""
+RAMPE_DU_JEU = [(0.0, 20.0), (30.0, 20.0), (50.0, 7.0), (180.0, 7.0)]
+"""(azimut, degrés d'élévation) sur lesquels le jeu des visées passe du `jeu` du `COL` à `JEU`, interpolés comme `BORD`
+(HYPOTHÈSE) : devant, d'emblée à 34 mm, la première visée restait à la hauteur du col, sous le menton, et les faces du haut
+du devant allaient à la zone `visage` (clé `gabarit_head_plus` inerte) ; ailleurs, à 20°, le haut du profil gardait le jeu
+du col et le baudrier passait devant la fourrure (15,7 mm, `corpulence`, Push_Loop)."""
 GONFLEMENT = 0.03
 """HYPOTHÈSE : la fourrure gonfle de `GONFLEMENT` au milieu de sa hauteur (lobe sinus, nul au col et au bord), à
 l'horizontale de chaque colonne (le long de sa normale, la nappe se pinçait sur l'épaule, ×24) : l'illustration la dessine épaisse et bombée sur les épaules."""
 
-COLONNES = 36                     # intervalles en azimut (HYPOTHÈSE de maillage : une mèche toutes les deux colonnes)
-COL = {'os': 'neck_01', 'fenetre': 12.0, 'hauteur': 0.015, 'jeu': 0.016}
+COLONNES = 48                     # intervalles en azimut (HYPOTHÈSE de maillage : une mèche toutes les deux colonnes ; à 40, les
+                                  # cordes entre colonnes rentraient dans la bure, 12 à 14 mm, Zombie_Scratch)
+COL = {'os': 'neck_01', 'fenetre': 12.0, 'hauteur': 0.015, 'jeu': 0.024}
 """Le col, premier rang : un point par colonne, visé horizontalement de l'axe vertical de la tête de `os` vers le dehors,
 posé au `jeu` du cou, à `hauteur` au-dessus du bas de la zone `cou` de la base à ± `fenetre` degrés (base : la couture
 cou/torse, de 1,528 m devant à ~1,56 m derrière) ; il couvre le haut du col de la bure (au bas du cou + 0,015 m,
 `vetement--bure/donnees.py`).
 HYPOTHÈSE : col bas, sous le menton, pour que la tête baissée ne touche ni le visage ni la barbe. `jeu` : celui de la nappe
-intérieure au cou (HYPOTHÈSE) ; à 24 mm et 0,02 m de `hauteur`, le devant du col était plus près de la zone `visage`, sous
-le menton, que du cou."""
+intérieure au cou (HYPOTHÈSE) ; à 16 mm, le cou le traversait sous `corpulence` (19,5 mm, Sword_Regular_C) ; à 24 mm et
+0,02 m de `hauteur`, le devant du col était plus près de la zone `visage`, sous le menton, que du cou."""
 CENTRE = {'os': 'neck_01', 'dy': 0.0, 'z': 1.30}
 """Centre des visées des rangs suivants : sur l'axe vertical du cou (tête de `os`, décalée de `dy` en y), à la hauteur `z`
 (HYPOTHÈSE : sous les épaules, au niveau des pectoraux et des omoplates, pour que les visées les plus basses y
 atteignent le bord)."""
 ELEVATION_HAUT = 22.0             # HYPOTHÈSE : élévation de la première visée du profil, sur le trapèze, juste sous le col
-BORD = [(0.0, 93.0), (25.0, 70.0), (55.0, 37.0), (90.0, 33.0), (125.0, 45.0), (180.0, 90.0)]
-"""(azimut, élévation) du bord, interpolés linéairement, symétriques. Illustration : devant, le V descend jusqu'aux
-pectoraux (y ~430 px, ~0,30 m sous le sommet de l'épaule, soit z ≈ 1,33 m) et remonte vite vers les épaules ; sur les
-côtés, la fourrure couvre l'épaule jusqu'à sa pointe. Ici, HYPOTHÈSE, elle s'arrête en dedans de l'acromion (élévation 33°,
+BORD = [(0.0, 86.0), (30.0, 78.0), (60.0, 48.0), (90.0, 31.0), (125.0, 45.0), (155.0, 72.0), (180.0, 82.0)]
+"""(azimut, élévation) du bord, interpolés linéairement, symétriques. Illustration : devant, la collerette descend en
+arrondi sur le haut du torse (presque plate sur ±30°, sans pointe) et remonte vers les épaules ; sur les
+côtés, la fourrure couvre l'épaule jusqu'à sa pointe. Ici, HYPOTHÈSE, elle s'arrête en dedans de l'acromion (élévation 31°,
 x ≈ 0,17 m sur le haut de l'épaule, au jeu), comme le pan de la capuche et le haut de la cape
 (`vetement--capuche/donnees.py`, `vetement--cape/donnees.py`) : plus loin, la manche de la bure qui monte avec le bras la
 traverse (à 50°, la fourrure gagnait le bras en T jusqu'à x = 0,37 m et la manche passait devant elle de 51 mm,
@@ -80,6 +94,12 @@ LAMBEAUX = {'profondeur': 6.0, 'creux': 0.2, 'graine': 'humanoide--vetement--col
 """Mèches du bord : chaque colonne descend au-delà du bord de la profondeur que lui laisse `tissu.lambeaux`, ici en degrés
 d'élévation (6° ≈ 2,5 cm à 0,25 m du `CENTRE` ; à 9°, les mèches de l'épaule gagnaient le dessus du bras en T).
 Illustration : mèches pointues de 2 à 4 cm qui débordent."""
+MECHES = [(0.0, 1.6), (45.0, 1.4), (70.0, 0.8), (90.0, 0.5), (125.0, 1.0), (180.0, 1.6)]
+"""(azimut, facteur) de la profondeur des mèches, interpolés comme `BORD` : pleines devant et au dos (~4 cm), réduites sur
+l'acromion, où une mèche gagnerait le dessus du bras (HYPOTHÈSE)."""
+TOUFFES = {'ampleur': 0.008, 'graine': 'humanoide--vetement--col-de-fourrure'}
+"""Relief en touffes : chaque sommet sous le col sort à l'horizontale d'un tirage uniforme entre 0 et `ampleur` m, pondéré par son abscisse du col (0) au bord (1) : sans elle, le devant du premier rang avançait sous le menton (faces de la zone `visage`) ; à 15 mm, le baudrier passait devant la fourrure du devant (11,6 mm, Push_Loop) (HYPOTHÈSE :
+l'illustration dessine une fourrure irrégulière, en touffes, sur toute sa surface)."""
 LISSAGE_POIDS = 2
 """Passes laplaciennes des poids empruntés (HYPOTHÈSES mesurées en passe neutre) : sans lissage, l'arête du col (poids du
 cou) au rang suivant (poids de la bure) s'étirait à ×19 (Zombie_Scratch), et les rangs de la poitrine, aux poids du bras

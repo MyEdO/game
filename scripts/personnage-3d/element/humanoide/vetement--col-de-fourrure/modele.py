@@ -4,12 +4,13 @@ la bure et le baudrier publiés.
 Colonnes en azimut autour de l'axe vertical du cou. Le premier rang, le col, est visé horizontalement de cet axe vers le
 dehors, au-dessus de la couture cou/torse, et posé au jeu du cou ; sous lui, chaque colonne suit son profil, visé du dehors
 vers le `CENTRE`, sous les épaules, d'élévation en élévation (`PAS_D_ELEVATION`) de `ELEVATION_HAUT` à celle du bord de la
-colonne (`BORD`), le bord en mèches (`lambeaux`), et ses rangs s'y posent à abscisses curvilignes égales. Chaque visée
+colonne (`BORD`), le bord en mèches (`lambeaux`, `MECHES`), et ses rangs s'y posent à abscisses curvilignes égales. Chaque visée
 s'arrête au jeu de la plus extérieure des surfaces dessous (bure, baudrier, cou, torse), et la fourrure gonfle au-delà
-entre le col et le bord (`GONFLEMENT`). Double nappe, poids empruntés au plus proche de ces surfaces puis lissés, clés
+entre le col et le bord (`GONFLEMENT`), en touffes (`TOUFFES`). Double nappe, poids empruntés au plus proche de ces surfaces puis lissés, clés
 reprises de la bure et du corps. Toute cote vient de `donnees.py`.
 """
 import math
+import random
 
 import numpy as np
 from mathutils import Vector
@@ -31,10 +32,10 @@ def horizontale(psi):
     return np.array([math.sin(a), -math.cos(a), 0.0])
 
 
-def bord(D, psi):
-    """Élévation du bord à l'azimut `psi`, interpolée dans `BORD`, symétrique."""
-    a, e = zip(*D['BORD'])
-    return float(np.interp(abs((psi + 180.0) % 360.0 - 180.0), a, e))
+def selon(table, psi):
+    """La valeur de `table` (`[(azimut, valeur)]`, de 0 à 180°) à l'azimut `psi`, interpolée, symétrique."""
+    a, v = zip(*table)
+    return float(np.interp(abs((psi + 180.0) % 360.0 - 180.0), a, v))
 
 
 def construire(D, materiaux, b):
@@ -73,14 +74,18 @@ def construire(D, materiaux, b):
     C = np.array(b.tete(D['CENTRE']['os'])) + np.array([0.0, D['CENTRE']['dy'], 0.0])
     C[2] = D['CENTRE']['z']
     meches = lambeaux(D['LAMBEAUX'], m)
+    touffes = random.Random(sum(ord(x) * (i + 1) for i, x in enumerate(D['TOUFFES']['graine'])))
     colonnes = []
     for j, psi in enumerate(psis):
         # Le profil de la colonne : le col puis une visée par pas d'élévation jusqu'au bord ; les rangs s'y posent à
         # abscisses curvilignes égales (aux élévations égales, ils se serraient sur l'épaule, où le bord est proche du col).
-        bas = bord(D, psi) + meches[j]
+        bas = selon(D['BORD'], psi) + meches[j] * selon(D['MECHES'], psi)
         phis = np.linspace(D['ELEVATION_HAUT'], bas, max(2, int(math.ceil((bas - D['ELEVATION_HAUT']) / D['PAS_D_ELEVATION'])) + 1))
-        visees = [vise(C, math.sin(p) * horizontale(psi) + np.array([0.0, 0.0, math.cos(p)]), D['PORTEE'], D['PAS'], D['JEU'])
-                  for p in np.radians(phis)]
+        jeu = selon(D['JEU'], psi)
+        visees = [vise(C, math.sin(math.radians(p)) * horizontale(psi) + np.array([0.0, 0.0, math.cos(math.radians(p))]),
+                       D['PORTEE'], D['PAS'],
+                       float(np.interp(p, [D['ELEVATION_HAUT'], D['ELEVATION_HAUT'] + selon(D['RAMPE_DU_JEU'], psi)], [c['jeu'], jeu])))
+                  for p in phis]
         # Devant, les premières visées touchent le cou au-dessus du col : le profil ne garde que celles qui s'écartent de l'axe
         # du cou au-delà du col (sur l'épaule, presque à sa hauteur, une borne en hauteur les retirait presque toutes).
         rayon = lambda q: math.hypot(q[0] - axe[0], q[1] - axe[1])
@@ -89,8 +94,9 @@ def construire(D, materiaux, b):
         u = np.linspace(0.0, 1.0, D['RANGS'] + 1)
         pts = np.array([[np.interp(t * s_[-1], s_, profil[:, a]) for a in range(3)] for t in u])
         # Le gonflement est horizontal, dans le plan de la colonne : le long des visées, il montait la fourrure du devant vers
-        # le menton.
-        colonnes.append(pts + D['GONFLEMENT'] * np.sin(np.pi * u)[:, None] * horizontale(psi))
+        # le menton. Chaque sommet sous le col y ajoute sa touffe, tirée au hasard (graine des codes de caractères), croissante du col au bord.
+        touffe = np.array([0.0] + [t * touffes.uniform(0.0, D['TOUFFES']['ampleur']) for t in u[1:]])
+        colonnes.append(pts + (D['GONFLEMENT'] * np.sin(np.pi * u) + touffe)[:, None] * horizontale(psi))
     rangs = [[colonnes[j][k] for j in range(m)] for k in range(D['RANGS'] + 1)]
 
     M = Maillage()
