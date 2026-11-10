@@ -1570,7 +1570,8 @@ async function parcoursEditeur() {
   await waitFor(session, '!globalThis.wfrpEcran?.editeur?.surcouche.zones.some((z) => z.choisi)')
   noter('« Supprimer » : la pièce retirée')
   await cliquerAuPanneau({ element: 'bouton/outil/personnage' })
-  const fiche = (await editeur()).zones['editeur.options'].find((c) => c.id === 'fiches').valeurs.find((b) => b.presse).id.slice('personnage/'.length)
+  const fiche = 'griffon-zoo-imperial'
+  await choisirALaListe('fiches', `personnage/${fiche}`)
   await cliquerPoint(...cases[`${zx},${zy}`])
   /** L'inspecteur publié montre-t-il l'élément d'id `id` ? */
   const montre = (id) => `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === '${id}')`

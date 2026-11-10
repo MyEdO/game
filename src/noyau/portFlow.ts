@@ -190,7 +190,7 @@ export function devisDAchatEnPort(s: Pick<Jeu, 'port' | 'vessel' | 'net' | 'part
   const base = { enc: want, max, estimationGold: offre ? prixDuLotEnPort(want, offre, 0) : 0, plancherGold, surcharge: want > libre, offre };
   const refus = refusDeGesteSurLeGroupe(s) ?? (!offre || !s.vessel ? t('port.offreAbsente')
     : porteurId !== CAMPAIGN_VESSEL_CARRIER_ID ? t('port.horsDuNavire') : want <= 0 ? t('port.holdFull')
-    : !canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold })) ? t('cargo.bourseSousPlancher', { plancher: plancherGold })
+    : !canAfford(totalDesBourses(s.party), toMoney({ gold: plancherGold })) ? t('cargo.bourseSousPlancher', { plancher: formatMoney(toMoney({ gold: plancherGold })) })
     : null);
   return refus === null && offre ? { ...base, offre, refus } : { ...base, refus: refus ?? t('port.offreAbsente') };
 }
@@ -275,7 +275,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   if (enc <= 0) return [t('port.holdFull')];
   const price = prixDuLotEnPort(enc, { basePrice, remisePct: offer.remisePct }, pct);
   const cost = toMoney({ gold: price });
-  if (!canAfford(partyMoneyTotal(get), cost)) return [t('cargo.purseShort', { price, label: offer.label, bargain: bargainLine })];
+  if (!canAfford(partyMoneyTotal(get), cost)) return [t('cargo.purseShort', { price: formatMoney(cost), label: offer.label, bargain: bargainLine })];
   const cargo: CargoLot = { uid: get().forgerUnId('it'), cargoId, enc, basePriceGold: basePrice };
   const nextCargo = [...(vessel.cargo ?? []), cargo];
   payFromGroup(get, set, cost, { purpose: 'cargaison navire' });

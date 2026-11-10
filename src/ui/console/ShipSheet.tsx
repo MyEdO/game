@@ -40,7 +40,7 @@ type Poste = NonNullable<Combatant['postes']>[number];
 
 /** Détail du poste SÉLECTIONNÉ (MDG 12) : son bord, son STOCK DE MUNITIONS (l.410-424, sélecteur qui persiste
  *  `ShipPoste.ammoUid`) et son équipage de pièce (PLUSIEURS servants possibles, ch.14 l.9) en portraits. */
-export function PosteDetail({ hull, poste, combatants, readOnly }: { hull: Combatant; poste: Poste; combatants: Combatant[]; readOnly?: boolean }) {
+export function PosteDetail({ poste, combatants, readOnly }: { poste: Poste; combatants: Combatant[]; readOnly?: boolean }) {
   const approvisionnerLaPiece = useGame((s) => s.approvisionnerLaPiece);
   const gun = (poste.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
   const stock = (poste.ammo ?? []).filter((a) => (a.qty ?? 0) > 0);
@@ -61,7 +61,7 @@ export function PosteDetail({ hull, poste, combatants, readOnly }: { hull: Comba
           <span className="muted">Munition à charger</span>
           <select
             value={poste.ammoUid ?? stock[0].uid}
-            onChange={(e) => approvisionnerLaPiece(hull.id, poste.item.uid, e.target.value)}
+            onChange={(e) => approvisionnerLaPiece(poste.item.uid, e.target.value)}
           >
             {stock.map((a) => <option key={a.uid} value={a.uid}>{a.label} × {a.qty ?? 0}</option>)}
           </select>
@@ -103,7 +103,7 @@ export function ShipInspectBody({ hull, crew, cap }: { hull: Combatant; crew: Co
       {postes.length > 0 && (
         <div className="ship-section">
           <div className="mini-title">Armes · postes</div>
-          {postes.map((p) => <PosteDetail key={p.item.uid} hull={hull} poste={p} combatants={[hull, ...crew]} readOnly />)}
+          {postes.map((p) => <PosteDetail key={p.item.uid} poste={p} combatants={[hull, ...crew]} readOnly />)}
         </div>
       )}
       {traits.length > 0 && (
@@ -213,7 +213,7 @@ export function PosteSheet({ combatantIds, initialHullId, onClose }: { combatant
           stations={stations}
           selectedStationId={selectedStationId}
           onSelectStation={(s) => setSelectedPosteUid(s.ref.kind === 'poste' ? s.ref.posteUid : null)}
-          renderDetail={() => (selectedPoste ? <PosteDetail hull={hull} poste={selectedPoste} combatants={battle.combatants} /> : null)}
+          renderDetail={() => (selectedPoste ? <PosteDetail poste={selectedPoste} combatants={battle.combatants} /> : null)}
           subtitleOf={(s) => (s.side ? libelleDeValeur(posteSideSchema, s.side) : 'Omni')}
           detailTitle="Armes · postes"
         />

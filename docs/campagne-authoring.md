@@ -122,8 +122,8 @@ surplus depuis le catalogue. Des champs locaux surchargent le catalogue port par
 
 ## 6. Postes d'artillerie par référence (`poste`, #222)
 
-`poste(trappingId, side, crewIds?)` de la lib émet la forme de RÉFÉRENCE `{ trappingId, uid, side,
-crewIds }`. La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
+`poste(trappingId, side, crewIds?)` de la lib émet la forme de RÉFÉRENCE `{ trappingId, side,
+crewIds }` ; l'uid de la pièce se dérive de sa place sur son porteur au spawn (#2907). La base (Dégâts/Qualités/Enc/Portée) N'est PAS matérialisée : elle est HYDRATÉE au spawn
 depuis `trappingId` par `hydratePoste()` (`src/engine/items.ts`). `trappingId` doit désigner une pièce
 POSABLE (trapping de sous-type `armes-de-siege`, `siegeEngines()`) sinon `throw`. `crewIds` vide = poste servable en jeu par un
 héros adjacent (`serveAtPoste()`, `src/noyau/monde/shipPostes.ts`) — aucun id de héros n'est connu à l'authoring.

@@ -28,7 +28,7 @@ describe('ShipSheet — fiche du navire (état · postes · rôles)', () => {
   it('PosteDetail : le poste sélectionné affiche son bord + son nom + son servant', () => {
     const soldat = mk('Soldat', 50, [{ id: 'projectiles', advances: 20, spec: 'poudre-noire' }]);
     const ship = { id: 'ship', label: 'La Cogue', conditions: [] } as unknown as Combatant;
-    const html = renderToStaticMarkup(<PosteDetail hull={ship} poste={poste('Pierrier', 'p1', 'tribord', ['Soldat'])} combatants={[ship, soldat]} />);
+    const html = renderToStaticMarkup(<PosteDetail poste={poste('Pierrier', 'p1', 'tribord', ['Soldat'])} combatants={[ship, soldat]} />);
     expect(html).toContain('Tribord');
     expect(html).toContain('Pierrier');
     expect(html).toContain('Soldat');
@@ -36,7 +36,7 @@ describe('ShipSheet — fiche du navire (état · postes · rôles)', () => {
 
   it('PosteDetail : poste sans servant → « sans servant »', () => {
     const ship = { id: 'ship', label: 'La Cogue', conditions: [] } as unknown as Combatant;
-    const html = renderToStaticMarkup(<PosteDetail hull={ship} poste={poste('Couleuvrine', 'p2', 'babord', [])} combatants={[ship]} />);
+    const html = renderToStaticMarkup(<PosteDetail poste={poste('Couleuvrine', 'p2', 'babord', [])} combatants={[ship]} />);
     expect(html).toContain('Bâbord');
     expect(html).toContain('— sans servant —');
   });
@@ -44,8 +44,8 @@ describe('ShipSheet — fiche du navire (état · postes · rôles)', () => {
   it('PosteDetail : le détail change avec le poste sélectionné (maître-détail)', () => {
     const ship = { id: 'ship', label: 'La Cogue', conditions: [] } as unknown as Combatant;
     // Le plan/les puces choisissent LE poste ; PosteDetail n'affiche QUE celui-là.
-    const p1 = renderToStaticMarkup(<PosteDetail hull={ship} poste={poste('Pierrier', 'p1', 'tribord', [])} combatants={[ship]} />);
-    const p2 = renderToStaticMarkup(<PosteDetail hull={ship} poste={poste('Couleuvrine', 'p2', 'babord', [])} combatants={[ship]} />);
+    const p1 = renderToStaticMarkup(<PosteDetail poste={poste('Pierrier', 'p1', 'tribord', [])} combatants={[ship]} />);
+    const p2 = renderToStaticMarkup(<PosteDetail poste={poste('Couleuvrine', 'p2', 'babord', [])} combatants={[ship]} />);
     expect(p1).toContain('Pierrier');
     expect(p1).not.toContain('Couleuvrine');
     expect(p2).toContain('Couleuvrine');
@@ -58,8 +58,8 @@ describe('ShipSheet — fiche du navire (état · postes · rôles)', () => {
     const ship = { id: 'ship', label: 'Le Serpent', conditions: [] } as unknown as Combatant;
     const p: Poste = { item: { label: 'Baliste', uid: 'p1' }, side: 'tribord', loaded: true, loadedAmmoUid: 'a1',
       ammoUid: 'a2', ammo: [{ uid: 'a1', label: 'Boulet', qty: 8 }, { uid: 'a2', label: 'Mitraille', qty: 4 }] } as unknown as Poste;
-    const rw = renderToStaticMarkup(<PosteDetail hull={ship} poste={p} combatants={[ship]} />);
-    const ro = renderToStaticMarkup(<PosteDetail hull={ship} poste={p} combatants={[ship]} readOnly />);
+    const rw = renderToStaticMarkup(<PosteDetail poste={p} combatants={[ship]} />);
+    const ro = renderToStaticMarkup(<PosteDetail poste={p} combatants={[ship]} readOnly />);
     expect(rw).toContain('<select'); // éditable côté allié
     // La LÉGENDE du sélecteur est à l'écran, pas seulement en infobulle : sans elle, rien ne distingue
     // « ce qui sera chargé » de « ce qui est dans la pièce ».
@@ -73,7 +73,7 @@ describe('ShipSheet — fiche du navire (état · postes · rôles)', () => {
     const ship = { id: 'ship', label: 'Le Serpent', conditions: [] } as unknown as Combatant;
     const p: Poste = { item: { label: 'Baliste', uid: 'p1' }, side: 'tribord', loaded: false, ammoUid: 'a1',
       ammo: [{ uid: 'a1', label: 'Boulet', qty: 8 }] } as unknown as Poste;
-    const ro = renderToStaticMarkup(<PosteDetail hull={ship} poste={p} combatants={[ship]} readOnly />);
+    const ro = renderToStaticMarkup(<PosteDetail poste={p} combatants={[ship]} readOnly />);
     expect(ro).toContain('déchargée');
     expect(ro).not.toContain('Boulet');
   });

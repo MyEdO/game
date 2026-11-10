@@ -43,7 +43,7 @@ describe('le marché de cargaison par le pont', () => {
     const c = corps(suite);
     expect(c['bourse'], 'la bourse du groupe').toMatchObject({ type: 'puce', valeur: '5000 CO' });
     const offre = c['offre/laine-terre'];
-    expect([dans(offre, 'dispo'), dans(offre, 'prix')], 'son Enc et son prix').toMatchObject([{ valeur: '350 Enc' }, { valeur: '1 CO / Enc' }]);
+    expect([dans(offre, 'dispo'), dans(offre, 'prix')], 'son Enc et son prix, 1 CO les 10 Enc au livre (MSRC 13 l.91)').toMatchObject([{ valeur: '350 Enc' }, { valeur: '2/– / Enc' }]);
     expect(dans(offre, 'acheter'), 'l’achat ouvert, à composer').toMatchObject({ type: 'bouton', jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'offre', 'laine-terre'] }, presse: false, refus: null });
     expect(suite.vue.zones['fenetre.reglages'], 'rien à régler avant de composer').toEqual([]);
     const compose = jouer((dans(offre, 'acheter') as Bouton).jeu);

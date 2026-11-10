@@ -82,8 +82,8 @@ import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';
 import { spawnEnemy, placeCombatant } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
-import { applyShipPostes, autoFormCrews, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, rechargeDuTour } from './monde/shipPostes';
-import { posteHullOf, pushEligible, pushCrewOk, pushReachable } from './siegePush';
+import { applyShipPostes, autoFormCrews, shipOfCrew, servablePostes, serveAtPoste, leaveChef, isPosteManned, rechargeDuTour, posteDeLaBataille } from './monde/shipPostes';
+import { pushEligible, pushCrewOk, pushReachable } from './siegePush';
 import { applyShipManeuver, maneuverCrewTotal, deriveManeuverFromCrew } from './shipManeuver';
 import { crewTestContributors, navigationDuNavire, shipCrewAssignments, shipMoraleScore, shipUndercrew, shipSaboteurDR, applyShantyToCrew, quartIndex, quartChante, chanteurDuNavire, withCrewActed, chansonsDuChanteur } from './shipCrew';
 import { freeActFirst } from './turnEconomy';
@@ -1017,16 +1017,14 @@ export function createCombatSlice(get: Get, set: Set) {
     // d'équipe : occupe la pièce, compte dans l'Indice contre le sous-effectif, mais ne tire pas). MÊME mutation
     // KIND-AGNOSTIQUE (`serveAtPoste`) que l'IA et l'author-time ; `recomputeLoadout` canonicalise l'arme du chef.
     // GRATUIT (LDB 13 l.106). « Tout le monde peut servir une arme de siège » (cf. l'IA `manPoste`).
-    servirLePoste: (target?: { hullId: string; posteUid: string }) => {
+    servirLePoste: (posteUid?: string) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || isOutOfAction(active)) return;
       const servable = servablePostes(active, battle.combatants);
-      // Cible EXPLICITE (clic sur la pièce) → CE poste précis ; sinon (bouton hotbar) → le 1er servable.
-      const chosen = target && typeof target === 'object' && 'hullId' in target
-        ? servable.find((sp) => sp.hull.id === target.hullId && sp.poste.item.uid === target.posteUid)
-        : servable[0];
+      // Pièce DÉSIGNÉE (clic sur la pièce) → ce poste ; sinon (bouton hotbar) → le 1er servable.
+      const chosen = posteUid === undefined ? servable[0] : servable.find((sp) => sp.poste.item.uid === posteUid);
       if (!chosen) return;
       const joining = isPosteManned(chosen.poste, battle.combatants); // pièce déjà servie → on REJOINT en renfort
       serveAtPoste(active, chosen.poste, battle.combatants);
@@ -1072,7 +1070,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // refuse. Exiger `canTakeAction` ici faisait mentir le coût déclaré au registre.
       if (!active || !pushEligible(active) || (battle.movementUsed ?? 0) >= mountMovement(battle, active)) return;
       const poste = active.mannedPoste!;
-      const hull = posteHullOf(poste, battle.combatants);
+      const hull = posteDeLaBataille(poste.item.uid, battle.combatants)?.porteur;
       const w = mannedPosteWeapon(active, poste);
       if (!hull || !hull.pos || !active.pos || !w || !pushCrewOk(poste, w, battle.combatants)) return;
       const reach = pushReachable(battle, scene, active, hull);

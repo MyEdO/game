@@ -811,6 +811,13 @@ export const parSaison = <T extends z.ZodType>(valeur: T) =>
  */
 export const prixSaisonnierSchema = parSaison(z.number());
 
+/** UNITÉ du prix de base du livre d'une voie : l'Encombrement que couvre un prix (MSRC 13 l.91, MDG 15 l.436),
+ *  lue par `prixParPointDEnc` (`src/engine/cargo.ts`). */
+export const prixDuLivreSchema = nommerChamps(z.strictObject({ encParPrix: z.number().positive(), source: sourceRefSchema }), {
+  encParPrix: { label: 'Encombrement couvert par un prix' },
+  source: { label: 'Source' },
+});
+
 /**
  * TIRAGE — une valeur authorée TIRÉE au dé (`Tirage`, `src/engine/dice.ts`, lue par `tirer`) : prix du
  * Vin maritime (MDG 15 l.429), Blessures d'une avarie, jours d'un événement de mer… Le dé est le

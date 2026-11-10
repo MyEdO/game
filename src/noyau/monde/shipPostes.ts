@@ -350,6 +350,16 @@ export function isPosteManned(poste: ShipPoste, combatants: Combatant[]): boolea
   return !!chef && !isOutOfAction(chef) && chef.mannedPoste?.item.uid === poste.item.uid;
 }
 
+/** Le poste d'uid `uid` et le Combattant qui le porte (coque ou emplacement), parmi `combatants` : l'uid d'une pièce
+ *  est sa place sur son porteur, unique dans la bataille (`hydratePoste`, #2907). `undefined` hors de la bataille. */
+export function posteDeLaBataille(uid: string, combatants: Combatant[]): { porteur: Combatant; poste: ShipPoste } | undefined {
+  for (const porteur of combatants) {
+    const poste = porteur.postes?.find((p) => p.item.uid === uid);
+    if (poste) return { porteur, poste };
+  }
+  return undefined;
+}
+
 /** Le poste (et sa coque/emplacement) que `id` sert comme membre d'ÉQUIPAGE d'un poste ACTIF (coque encore en
  *  action), parmi `combatants` — SOURCE UNIQUE consultée par l'IA pour tenir sa FORMATION (#196 : un servant
  *  IA d'un engin crewé — bélier, batterie de siège — ne charge ni ne s'approche seul, c'est le poste qui le
