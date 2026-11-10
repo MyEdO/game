@@ -246,6 +246,8 @@ const nouvelEcran = (timeoutMs = 30000) => waitFor(session, '!!globalThis.wfrpEc
 const actif = (v) => v.projection.combat?.actif
 /** Les éléments que la vue montre dans la zone `zone` (`vue.zones`, `CONTRAT.md`). */
 const zone = (v, z) => v.zones[z]
+/** Le bouton de la carte d'un héros du groupe (`groupe.heros`) qui ouvre sa fiche. */
+const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
 /** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
@@ -1019,9 +1021,9 @@ async function parcoursVoyage() {
   await capturer('3534-voyage-1-jets')
   for (let k = 0; k < 4; k++) {
     await cliquerBouton('Lancer')
-    await attendreLaVue(`v.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [e])).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
+    await attendreLaVue(`v.zones['groupe.heros'].flatMap((h) => h.elements).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
   }
-  noter(`jets tombés : ${corps(await vue())}`)
+  noter(`jets tombés : ${zone(await vue(), 'groupe.heros').map((h) => `${h.nom} (${h.elements.map((e) => e.verdict ?? e.libelle).join(', ')})`).join(' | ')}`)
   await capturer('3534-voyage-2-tombes')
   await avancer('recitDeVoyage')
   await attendreLaVue("v.projection.fenetre?.cle === 'recitDeVoyage'")
@@ -1093,10 +1095,10 @@ async function parcoursRepos() {
   let v = await vue()
   noter(`repos : ${corps(v)}`)
   await capturer('3328-r1-1-nuit')
-  const dormeur = (v) => zone(v, 'fenetre.corps').find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
-  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée')
-  await cliquerBouton('Dehors')
-  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
+  const dormeur = (v) => element(v, 'groupe.heros', 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
+  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée, sur sa carte')
+  await choisirDansLaListe(undefined, 'Dehors')
+  await attendreLaVue("v.zones['groupe.heros'].find((e) => e.id === 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
   v = await vue()
   noter(`Bjorn : ${dormeur(v)}`)
   await capturer('3328-r1-2-dehors')
@@ -1204,11 +1206,11 @@ async function parcoursFiche() {
   let v = await vue()
   assert.equal(v.projection.fenetre, null, 'l’Entrée ferme la fenêtre du round')
   const [heros] = zone(v, 'groupe.heros')
-  assert.ok(heros, 'chaque héros du groupe a son bouton')
-  await cliquerBouton(bouton(heros))
+  assert.ok(heros, 'chaque héros du groupe a sa carte')
+  await cliquerBouton(bouton(ficheDuHeros(heros)))
   v = await vue()
-  assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.libelle, 'son bouton ouvre le statbloc du héros')
-  noter(`bouton « ${heros.libelle} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
+  assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.nom, 'le bouton de sa carte ouvre le statbloc du héros')
+  noter(`carte « ${heros.nom} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
   await capturer('3678-statbloc-1-heros')
   const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec')
   const [x, y, z] = cle.split(',').map(Number)
@@ -1230,9 +1232,9 @@ async function parcoursInventaire() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await fermerLesFenetres()
-  const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Rosa Brandt')
-  assert.ok(heros, 'Rosa Brandt a son bouton')
-  await cliquerBouton(bouton(heros))
+  const heros = zone(v, 'groupe.heros').find((c) => c.nom === 'Rosa Brandt')
+  assert.ok(heros, 'Rosa Brandt a sa carte')
+  await cliquerBouton(bouton(ficheDuHeros(heros)))
   v = await vue()
   const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)
   await cliquerBouton(bouton(possession('Justaucorps de cuir')))
