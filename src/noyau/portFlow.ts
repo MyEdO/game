@@ -25,17 +25,19 @@
 import { battleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
-import { lieuDuGroupe, placeById } from './worldMap';
+import { lieuDuGroupe, placeById, type MapPlace } from './worldMap';
 import { partyAssisted } from '../engine/skills';
 import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
-import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
+import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import { remiseMaximaleDeMarchandage } from './merchantFlow';
 import { refuserGeste } from './refusVisible';
-import { findVehicleById, findCrewRoleById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
+import { findVehicleById, findCrewRoleById, findTrappingById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
+import { VIVRES_DE_CALE } from '../engine/seaNavigation';
+import { ajouterDeLEau, ajouterDesRations } from './navireOps';
 import { t } from '../i18n';
 import { ajouterAuRoster, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
@@ -102,6 +104,14 @@ export function currentPort(get: Get): { placeId: string; label: string; ref?: s
   return { placeId: place.id, label: place.label, ref: place.port.ref, port, cosmopolite: !!place.port.cosmopolite };
 }
 
+/** Un port de la carte tiré au hasard, hors le lieu de l'escale (`vessel.escale`) ; `undefined` sans autre port.
+ *  MDG 15 l.259, l.261 */
+export function autrePortAuHasard(get: Get, rng: RNG): MapPlace | undefined {
+  const escale = get().vessel?.escale;
+  const ports = (get().worldMap?.places ?? []).filter((p) => p.port && p.id !== escale);
+  return ports.length ? ports[rng.int(0, ports.length - 1)] : undefined;
+}
+
 /** Résout l'op `marcheDuPort` sous la source `label`, ses quantités tirées par `quantite` ; rend les lignes du journal.
  *  Le port de l'escale est le lieu où le navire est à quai (`vessel.escale`) ; la Demande vise un autre port de la
  *  carte tiré au hasard. MDG 15 l.253, l.256, l.259, l.263 */
@@ -112,9 +122,8 @@ export function alterLeMarche(get: Get, set: Set, o: Extract<GameOp, { op: 'marc
   const ici = escale && get().worldMap ? placeById(get().worldMap!, escale) : undefined;
   const poser = (a: AlterationDuMarche): void => set({ alterationsDuMarche: [...get().alterationsDuMarche.filter((x) => x.jusqua === 'escale' || x.jusqua > now), a] });
   if (o.demande !== undefined) {
-    const ports = (get().worldMap?.places ?? []).filter((p) => p.port && p.id !== ici?.id);
-    if (!ports.length) return [t('eff.marcheSansAutrePort', { label })];
-    const port = ports[rng.int(0, ports.length - 1)];
+    const port = autrePortAuHasard(get, rng);
+    if (!port) return [t('eff.marcheSansAutrePort', { label })];
     const cargo = rollRandomCargo(season, rng);
     const jours = quantite(o.jours);
     poser({ placeId: port.id, jusqua: now + jours * MINUTES_PER_DAY, demande: { cargoId: cargo.id, delta: o.demande } });
@@ -529,6 +538,42 @@ export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1)
   return lines;
 }
 
+/** Devis d'AVITAILLEMENT de la cale à quai : `rations` rations-jour et `tonneaux` tonneaux d'eau douce
+ *  (`VIVRES_DE_CALE`), au prix du catalogue, la ration-jour au prix de l'escale s'il est posé
+ *  (`vessel.rationsDEscale`) ; `refus` est `null` quand l'achat passe. SOURCE UNIQUE d'`avitaillerLeNavire` et de
+ *  l'écran d'escale. PUR. MDG 14 l.248-252 ; MDG 15 l.262 */
+export interface DevisDAvitaillement { ration: Money; tonneau: Money; total: Money; refus: string | null }
+
+export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, rations: number, tonneaux: number): DevisDAvitaillement {
+  const prixAuCatalogue = (id: string) => priceToMoney(garanti(findTrappingById(id), id, 'objet de cale').price ?? null);
+  const ration = vessel?.rationsDEscale !== undefined ? fromBrass(vessel.rationsDEscale) : prixAuCatalogue(VIVRES_DE_CALE.ration);
+  const tonneau = prixAuCatalogue(VIVRES_DE_CALE.tonneau);
+  const total = fromBrass(rations * toBrass(ration) + tonneaux * toBrass(tonneau));
+  const refus = refusHote ?? (!vessel ? t('port.sansNavire')
+    : vessel.escale === undefined ? t('port.pasAQuai')
+    : !Number.isInteger(rations) || !Number.isInteger(tonneaux) || rations < 0 || tonneaux < 0 || rations + tonneaux === 0 ? t('port.avitaillementVide')
+    : rations > 0 && vessel.provisions == null ? t('port.vivresSansSuivi')
+    : tonneaux > 0 && vessel.waterLitres == null ? t('port.eauSansSuivi')
+    : !canAfford(bourse, total) ? t('port.avitaillementTropCher', { cost: formatMoney(total) })
+    : null);
+  return { ration, tonneau, total, refus };
+}
+
+/** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), les rations-jour vont aux
+ *  vivres de la cale, les tonneaux à son eau douce. Renvoie le journal. MDG 14 l.238-252 ; MDG 15 l.262 */
+export function avitaillerLeNavire(get: Get, set: Set, rations: number, tonneaux: number): string[] {
+  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), rations, tonneaux);
+  if (devis.refus) { refuserGeste(get, set, devis.refus); return []; }
+  payFromGroup(get, set, devis.total, { purpose: 'avitaillement navire' });
+  const lines = [
+    t('port.avitaille', { rations, tonneaux, cost: formatMoney(devis.total) }),
+    ...(rations > 0 ? ajouterDesRations(get, set, rations) : []),
+    ...(tonneaux > 0 ? ajouterDeLEau(get, set, tonneaux) : []),
+  ];
+  log(get, set, lines);
+  return lines;
+}
+
 export function sortiesDuPort(_get: Get, set: Set) {
   return { port: () => set({ port: null }) } satisfies Partial<SortiesDeFenetre>;
 }
@@ -538,6 +583,7 @@ export function creerActionsDuPort(get: Get, set: Set) {
     ouvrirLePort: () => ouvrirLePort(get, set),
     recruterLEquipage: (roleId, count) => recruterLEquipage(get, set, roleId, count),
     renvoyerLEquipage: (roleId, count) => renvoyerLEquipage(get, set, roleId, count),
+    avitaillerLeNavire: (rations, tonneaux) => avitaillerLeNavire(get, set, rations, tonneaux),
   } satisfies FabriqueDuNoyau;
 }
 

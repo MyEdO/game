@@ -2,7 +2,7 @@
  *  l'assise et la fouille de pièce (#1687). */
 import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite, estUtilisable, objetDuSol } from './monde/usable';
 import { ramasserHorsCombat } from './objetsAuSol';
-import { type SceneEntity, Scene } from './monde/scene';
+import { type SceneEntity, Scene, dialoguesDeLaScene } from './monde/scene';
 import { ouvrirDialogue } from './dialogue';
 import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type SeatPose, assignSeat } from './monde/seating';
 import { meneurDuMonde, poserCapDuGroupe } from './monde/combatants';
@@ -37,7 +37,7 @@ import { cheminsDepuis, type Pt } from './monde/path';
  */
 const JOUER_CAPACITE: Readonly<Record<CapaciteId, (get: Get, set: Set, ent: SceneEntity, scene: Scene) => void>> = {
   parler: (get, set, ent, scene) => {
-    const dlg = scene.dialogues.find((d) => d.id === ent.dialogueId?.id);
+    const dlg = ent.dialogueId && dialoguesDeLaScene(scene).get(ent.dialogueId.id);
     if (dlg) set({ dialogue: ouvrirDialogue(get(), dlg, ent.id) });
   },
   commercer: (get, _set, ent) => get().ouvrirLeMarchand(ent.id),

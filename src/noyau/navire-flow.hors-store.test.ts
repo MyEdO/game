@@ -6,7 +6,10 @@ import { seedBattleRng } from './battleRng';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import { applyEffects, jouerFlowEntier, runFlow } from './combatEffects';
-import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalizePortArrivalTo, portCareenVessel, portRepairVessel, runSeaDay, vesselManann } from './seaVoyageFlow';
+import { rollPortRepair } from '../engine/shipBuild';
+import { REPARATION } from '../engine/seaNavigation';
+import { findVehicleById } from '../data';
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
@@ -29,7 +32,7 @@ import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import { applyOps, nomDeSource, type GameOp } from '../engine/ops';
 import { findSeaHazard } from '../engine/seaPerils';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
-import { toBrass } from '../engine/money';
+import { formatMoney, fromBrass, toBrass } from '../engine/money';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { checkBattleOver } from './combatFlow';
 import { humanizeFlow } from './codex/humanize';
@@ -528,13 +531,25 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     expect(get().lieu).toBe('B');
   });
 
-  it('Passager clandestin non repéré : il rejoint l’équipage quand même (l.258)', () => {
+  it('Passager clandestin non repéré : sa présence se découvre après 1d10 jours de voyage, et il rejoint l’équipage alors (l.258)', () => {
     perdus(2);
     setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc, consequence: consequence('passager-clandestin', 'portEvents') })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
     joueLeTest(false);
-    expect(get().vessel!.crewLost).toBe(1);
     expect(get().lieu).toBe('B');
+    expect(get().vessel!.crewLost).toBe(2);
+    const [{ executeAt }] = get().scheduledEffects;
+    const jours = (executeAt - get().gameTime) / MINUTES_PER_DAY;
+    expect(jours).toBeGreaterThanOrEqual(1);
+    expect(jours).toBeLessThanOrEqual(10);
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc })) as never);
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'B', 'A', carte.routes[0], { cadence: 'jour-par-jour' })! });
+    get().avancerLHorloge(executeAt - get().gameTime - 1);
+    expect(get().vessel!.crewLost).toBe(2);
+    get().avancerLHorloge(1);
+    draineCascade(get);
+    expect(get().vessel!.crewLost).toBe(1);
+    expect(get().journal).toContain('vous découvrez sa présence');
   });
 
   it('Gangs des quais : 2d10 Enc perdus au prochain déchargement, levés à l’accostage suivant (l.250)', () => {
@@ -1211,10 +1226,137 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     }
   });
 
-  it.each([['la-tache-noire', PORT_EVENTS], ['constructeur-de-navires-itinerant', PORT_EVENTS], ['offre-de-mission', PORT_EVENTS], ['bonne-peche', PORT_EVENTS]] as const)(
+  it('Culte de la personnalité : le nombre d’initiés rassemblés se tire au second d10 et s’annonce (l.154-155)', () => {
+    for (const graine of [1, 2, 3]) {
+      seedBattleRng(graine);
+      set({ journal: [] });
+      jour('culte-de-la-personnalite');
+      draineCascade(get);
+      const annonces = get().journal.filter((l) => Array.from({ length: 10 }, (_, i) => t('op.narrativeNombre', { text: "combien d'initiés sensibles à ses paroles il a rassemblés", n: i + 1 })).some((a) => a === l));
+      expect(annonces, get().journal.join('\n')).toHaveLength(1);
+    }
+  });
+
+  it.each([['la-tache-noire', PORT_EVENTS]] as const)(
     '%s se raconte sans conséquence (omission dite au raw.manifest)', (id, table) => {
       expect(table.find((e) => e.id === id)!.consequence).toBeUndefined();
     });
+
+  it('Offre de mission : accepter le colis le destine à un autre port, et 200 CO tombent à la bourse du groupe à l’accostage là-bas, pas ailleurs (l.261)', () => {
+    escale('offre-de-mission');
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    expect(get().vessel!.commissions).toEqual([{ label: expect.any(String), placeId: 'A', brass: 200 * 240 }]);
+    const avant = toBrass(partyMoneyTotal(get));
+    escale(null);
+    expect(toBrass(partyMoneyTotal(get))).toBe(avant);
+    expect(get().vessel!.commissions).toHaveLength(1);
+    finalizePortArrivalTo(get, set, deuxPorts.places[0], true);
+    expect(toBrass(partyMoneyTotal(get))).toBe(avant + 200 * 240);
+    expect(get().vessel!.commissions).toBeUndefined();
+  });
+
+  it('Offre de mission : refuser le colis ne pose aucune commission', () => {
+    escale('offre-de-mission');
+    avanceEtapeCascade(get, undefined, () => 'no');
+    expect(get().vessel!.commissions).toBeUndefined();
+  });
+
+  /** Les passes de `rollPortRepair` à `competence` jusqu'à `manquantes` Blessures, sur la graine `graine`. */
+  const passesDeReparation = (graine: number, competence: number, manquantes: number) => {
+    const rng = makeRNG(graine);
+    const passes = [];
+    for (let restaurees = 0; restaurees < manquantes; restaurees += passes[passes.length - 1].wounds) passes.push(rollPortRepair(competence, manquantes - restaurees, rng));
+    return passes;
+  };
+  const reparer = (graine: number, manquantes: number) => {
+    set({ vessel: { ...get().vessel!, wounds: { current: 50 - manquantes, max: 50 } } });
+    creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
+    const avant = { bourse: toBrass(partyMoneyTotal(get)), temps: get().gameTime };
+    seedBattleRng(graine);
+    const lignes = portRepairVessel(get, set);
+    return { lignes, paye: avant.bourse - toBrass(partyMoneyTotal(get)), duree: get().gameTime - avant.temps };
+  };
+  /** La ligne de journal d'une réparation de 40 Blessures non lissée, faite des `passes` à `competence` en `duree`. */
+  const ligneDeChantier = (passes: ReturnType<typeof passesDeReparation>, competence: number, duree: string) => t('sv.hullRefit', {
+    ship: findVehicleById(get().vessel!.vehicleId)!.label, missing: 40, cost: 40 * REPARATION.portCostGoldPerWound, lissage: '', duree,
+    competence, reussis: passes.filter((p) => p.success).length, tests: passes.length,
+  });
+
+  it('Réparation au port : le constructeur local teste à `constructeurLocal`, un Test raté ne restaure rien, la coque finit pleine au prix des Blessures restaurées (MDG 13 l.643)', () => {
+    escale(null);
+    const passes = passesDeReparation(4, REPARATION.constructeurLocal, 40);
+    expect(passes.some((p) => !p.success && p.wounds === 0), 'la graine produit un Test raté').toBe(true);
+    const { lignes, paye, duree } = reparer(4, 40);
+    expect(get().vessel!.wounds).toEqual({ current: 50, max: 50 });
+    expect(paye).toBe(toBrass({ gold: 40 * REPARATION.portCostGoldPerWound, silver: 0, brass: 0 }));
+    const heures = passes.reduce((s, p) => s + p.hours, 0);
+    expect(duree).toBe(heures * 60);
+    expect(lignes).toEqual([ligneDeChantier(passes, REPARATION.constructeurLocal, t('sv.dureeHeures', { n: heures }))]);
+  });
+
+  it('Constructeur de navires itinérant : la réparation de l’escale se teste à Constructeur de navires 68 et prend ses 1d10 jours ; il part à l’appareillage (l.255)', () => {
+    escale('constructeur-de-navires-itinerant');
+    const constructeur = get().vessel!.constructeurDEscale!;
+    expect(constructeur.competence).toBe(68);
+    expect(constructeur.jours).toBeGreaterThanOrEqual(1);
+    expect(constructeur.jours).toBeLessThanOrEqual(10);
+    const passes = passesDeReparation(4, 68, 40);
+    const { lignes, duree } = reparer(4, 40);
+    expect(get().vessel!.wounds).toEqual({ current: 50, max: 50 });
+    expect(duree).toBe(constructeur.jours * MINUTES_PER_DAY);
+    expect(lignes).toEqual([ligneDeChantier(passes, 68, t('sv.dureeJours', { n: constructeur.jours }))]);
+    set({ lieu: 'B' });
+    get().partirEnVoyage('r1', 'mer');
+    expect(get().vessel!.constructeurDEscale).toBeUndefined();
+  });
+
+  /** À quai à Erengrad avec la seule rangée `id` à l'escale, cale suivie (10 rations-jour, 100 L), 10 CO de plus. */
+  const aQuai = (id: string | null) => {
+    escale(id);
+    set({ vessel: { ...get().vessel!, provisions: 10, waterLitres: 100 } });
+    creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
+  };
+  const cale = () => ({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) });
+  const RATION_PRESERVEE = 2 * 12, TONNEAU = 8 * 12 + 6;
+
+  it('Avitaillement à quai : n rations-jour et t tonneaux entrent dans la cale, la bourse paie n × 2/– + t × 8/6 (MDG 14 l.242, l.248-252)', () => {
+    aQuai(null);
+    const avant = cale();
+    get().avitaillerLeNavire(5, 2);
+    expect(cale()).toEqual({ provisions: avant.provisions! + 5, eau: avant.eau! + 2 * 145, bourse: avant.bourse - (5 * RATION_PRESERVEE + 2 * TONNEAU) });
+  });
+
+  it('Avitaillement hors quai : refus nommé, rien ne change', () => {
+    set({ vessel: { ...get().vessel!, provisions: 10, waterLitres: 100 }, journal: [] });
+    const avant = cale();
+    get().avitaillerLeNavire(5, 2);
+    expect(cale()).toEqual(avant);
+    expect(get().journal).toEqual([t('port.pasAQuai')]);
+  });
+
+  it('Avitaillement à bourse courte : refus nommé, rien ne change', () => {
+    aQuai(null);
+    set({ journal: [] });
+    const avant = cale();
+    const rations = Math.floor(avant.bourse / RATION_PRESERVEE) + 1;
+    get().avitaillerLeNavire(rations, 0);
+    expect(cale()).toEqual(avant);
+    expect(get().journal).toEqual([t('port.avitaillementTropCher', { cost: formatMoney(fromBrass(rations * RATION_PRESERVEE)) })]);
+  });
+
+  it('Bonne pêche : la ration-jour de cale coûte 3 sc à l’escale, puis revient au prix de la nourriture préservée à l’appareillage (l.262)', () => {
+    aQuai('bonne-peche');
+    let avant = cale();
+    get().avitaillerLeNavire(4, 0);
+    expect(cale()).toEqual({ ...avant, provisions: avant.provisions! + 4, bourse: avant.bourse - 4 * 3 });
+    set({ lieu: 'B' });
+    get().partirEnVoyage('r1', 'mer');
+    set({ travelPlan: null });
+    escale(null);
+    avant = cale();
+    get().avitaillerLeNavire(4, 0);
+    expect(cale()).toEqual({ ...avant, provisions: avant.provisions! + 4, bourse: avant.bourse - 4 * RATION_PRESERVEE });
+  });
 
   it('l’accostage met le navire à quai, l’appareillage l’en retire', () => {
     escale(null);

@@ -281,6 +281,15 @@ export interface CampaignVessel {
   /** Le lieu de la carte où le navire est à quai : posé à l'accostage, levé à l'appareillage ; absent en mer.
    *  Le « port de l'escale » de l'op `marcheDuPort`. MDG 15 l.129 */
   escale?: string;
+  /** Colis à livrer (op `commission`) : le lieu de destination (`placeId`), le montant reçu à l'accostage dans ce
+   *  lieu (sous de cuivre) et la source ; chaque commission tombe à sa livraison. MDG 15 l.261 */
+  commissions?: { label: string; placeId: string; brass: number }[];
+  /** Constructeur de navires de l'escale (op `constructeurDEscale`) : la Compétence de son Test de réparation et la
+   *  durée tirée de la réparation (jours) ; levé à l'appareillage. MDG 15 l.255 */
+  constructeurDEscale?: { competence: number; jours: number };
+  /** Prix d'une ration-jour de cale à l'escale (op `rationsDEscale`), en sous de cuivre ; levé à l'appareillage.
+   *  MDG 15 l.262 */
+  rationsDEscale?: number;
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
