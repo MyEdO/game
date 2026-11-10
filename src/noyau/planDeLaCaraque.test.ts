@@ -225,7 +225,7 @@ describe('le mobilier des pièces de la caraque (#3686)', () => {
     return { nom: `${nom} ${k(c)}`, case: { x: c.x, y: c.y, z: c.z }, plancher: gy, emprise, dedans, affut: au(piece.affut) };
   };
   /** Les postes en vigueur quand la caraque porte les Améliorations `ameliorations` : ceux du manifeste, chaque bord que
-   *  nomme une Amélioration remplacé par les siens (MDG p.97), comme `postesEnVigueur` de l'hôte Godot. */
+   *  nomme une Amélioration remplacé par les siens (MDG 12 l.362), comme `postesEnVigueur` de l'hôte Godot. */
   const enVigueur = (ameliorations: readonly string[]) => Object.entries(Object.assign({}, ...[
     ...Object.entries(manifeste.postes).map(([bord, points]) => ({ [bord]: points.map((p, i) => posteDu(`postes.${bord}[${i}]`, bord, p)) })),
     ...ameliorations.map((a) => Object.fromEntries(Object.entries(manifeste.selon[a].postes ?? {})

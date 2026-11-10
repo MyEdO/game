@@ -143,7 +143,7 @@ export interface CorpsDuVehicule {
    * dernier `modeles` sert un élément `vehicule` de même `definition`, à la position de son bord qui suit celles des
    * pièces précédentes de ce bord dans ses postes en vigueur (`postesEnVigueur`, `atelier.ts`) : `postes` du manifeste
    * de l'élément du véhicule (section « Atelier 3D »), chaque bord que nomme `selon.<amelioration>.postes` d'une
-   * Amélioration de `ameliorations` de sa projection remplacé par les siens (MDG p.97, Sabord), si ces postes
+   * Amélioration de `ameliorations` de sa projection remplacé par les siens (MDG 12 l.362, Sabord), si ces postes
    * l'offrent ; chacune y porte `element`, l'id de son élément, `bord`, `position` et `palette`, celle du véhicule où
    * la palette de sa `teinte` colore (`findTeinteById`).
    */
