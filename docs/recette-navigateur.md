@@ -1030,7 +1030,7 @@ le résout inline. Garde de ré-entrance : ce FM ne ré-émet jamais le trigger 
 
 **Points d'émission de `onOwnTestFailed`** (pour ne pas chercher à l'aveugle) :
 - `testsDeScene.cloturesDesTestsDeScene` (`jetValider('test')`) — Test de scène/compétence/combat (chemin modal joueur) ;
-- `interludeFlow.appliquerLActivite` (`jetValider('activity')`) — Activité d'interlude ratée ;
+- `interludeFlow.appliquerLActivite` (`jetValider('activite')`) — Activité d'interlude ratée ;
 - `combatFlow.applyAttackResult` — l'**ATTAQUANT** rate son jet d'attaque (CC/CT) **et** le **DÉFENSEUR**
   rate sa Parade/Esquive (Test opposé) — le porteur uniquement, pas la défense d'un non-porteur ;
 - `triggeredEffects.resolveInlineFlowTest` + `combat/triggeredTest` (inline ennemi/auto) ;
@@ -1055,7 +1055,7 @@ __wfrp.prefs('des-fixes', true)            // pour POSER les dés
 
 __wfrp.shipCrit('greement')                // 1. Critique sur la coque des HÉROS (défaut)
 // 2. valider l'étape « Critique de navire » (jetValider('cascade')), puis LANCER chaque rangée d'Athlétisme :
-//    la bande est une étape à RANGÉES — le geste est jetLancer('cascadeBatch', idDuTesteur), pas jetLancer('cascade', …).
+//    la bande est une étape à RANGÉES — le geste est jetLancer('cascadeEnBande', idDuTesteur), pas jetLancer('cascade', …).
 // 3. les étapes de dé de la chute suivent : jetLancer('cascadeTirage', id) puis jetImposerLeResultat('cascadeTirage', v, id)
 ```
 

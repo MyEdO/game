@@ -110,7 +110,7 @@ describe('L13 — gates & redirections', () => {
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     // Force le succès du Test de FM puis valide → l’attaque se relance (cascade d’attaque ouverte).
     banc.setState({ pendingWard: { ...banc.getState().pendingWard!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
-    banc.getState().jetValider('ward');
+    banc.getState().jetValider('protection');
     expect(banc.getState().pendingWard).toBeNull();
     expect(banc.getState().pendingCascade).not.toBeNull(); // l’attaque a été relancée
     expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/surmonte sa honte/);
@@ -126,7 +126,7 @@ describe('L13 — gates & redirections', () => {
     banc.setState({ battle: { ...banc.getState().battle!, turn, action: null, acted: false } });
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     banc.setState({ pendingWard: { ...banc.getState().pendingWard!, result: { success: false, roll: 96, target: 50, sl: -4 } } });
-    banc.getState().jetValider('ward');
+    banc.getState().jetValider('protection');
     expect(banc.getState().pendingWard).toBeNull();
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();

@@ -37,21 +37,21 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   const pa = useGame((s) => s.pendingAttack);
   const battle = useGame((s) => s.battle);
   const regler = useGame((s) => s.jetRegler);
-  const setLocation = (v: ReglagesDuJet['attack']['localisation']) => regler('attack', 'localisation', v);
-  const setWeapon = (v: ReglagesDuJet['attack']['arme']) => regler('attack', 'arme', v);
-  const setDualMode = (v: ReglagesDuJet['attack']['deuxArmes']) => regler('attack', 'deuxArmes', v);
-  const roll = useGesteDeJet('jetLancer', 'attack');
-  const reroll = useGesteDeJet('jetRelancer', 'attack');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'attack');
-  const darkPact = useGesteDeJet('jetPactiser', 'attack');
-  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'attack');
-  const reverseVerb = useGesteDeJet('jetInverser', 'attack');
-  const confirm = useGesteDeJet('jetValider', 'attack');
-  const cancel = useGesteDeJet('jetAnnuler', 'attack');
-  const setHarpoonRopeCut = (v: ReglagesDuJet['attack']['sansLaCorde']) => regler('attack', 'sansLaCorde', v);
-  const setWithhold = (v: ReglagesDuJet['attack']['retenirSesCoups']) => regler('attack', 'retenirSesCoups', v);
-  const setGrapple = (v: ReglagesDuJet['attack']['empoigner']) => regler('attack', 'empoigner', v);
-  const setCritLocation = (v: ReglagesDuJet['attack']['localisationDuCritique']) => regler('attack', 'localisationDuCritique', v);
+  const setLocation = (v: ReglagesDuJet['attaque']['localisation']) => regler('attaque', 'localisation', v);
+  const setWeapon = (v: ReglagesDuJet['attaque']['arme']) => regler('attaque', 'arme', v);
+  const setDualMode = (v: ReglagesDuJet['attaque']['deuxArmes']) => regler('attaque', 'deuxArmes', v);
+  const roll = useGesteDeJet('jetLancer', 'attaque');
+  const reroll = useGesteDeJet('jetRelancer', 'attaque');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'attaque');
+  const darkPact = useGesteDeJet('jetPactiser', 'attaque');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'attaque');
+  const reverseVerb = useGesteDeJet('jetInverser', 'attaque');
+  const confirm = useGesteDeJet('jetValider', 'attaque');
+  const cancel = useGesteDeJet('jetAnnuler', 'attaque');
+  const setHarpoonRopeCut = (v: ReglagesDuJet['attaque']['sansLaCorde']) => regler('attaque', 'sansLaCorde', v);
+  const setWithhold = (v: ReglagesDuJet['attaque']['retenirSesCoups']) => regler('attaque', 'retenirSesCoups', v);
+  const setGrapple = (v: ReglagesDuJet['attaque']['empoigner']) => regler('attaque', 'empoigner', v);
+  const setCritLocation = (v: ReglagesDuJet['attaque']['localisationDuCritique']) => regler('attaque', 'localisationDuCritique', v);
   const spendResolve = useGame((s) => s.depenserLaDetermination);
   const vue = pa && battle ? fenetreDAttaque(useGame.getState()) : null;
   if (!vue || !battle) return null;
@@ -94,7 +94,7 @@ export function useAttackJetProps(): ComponentProps<typeof RollShell> | null {
   );
 
   return {
-    flowKey: 'attack',
+    flowKey: 'attaque',
     title: vue.intitule,
     subtitle: vue.sousTitre,
     extra: <VsHeader actor={attacker} target={target} label={vue.degats === null ? vue.arme : `${vue.arme} · ${t('attaque.degats', { dmg: vue.degats })}`} />,

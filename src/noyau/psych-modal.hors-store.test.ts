@@ -63,7 +63,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     return { H: lu(heroes[0]), heroes: heroes.map(lu), E: lu(E) };
   }
 
-  it('Terreur : openRoundStartPsych ouvre la BANDE (déclaration sur l’étape, jet sur la rangée) ; jetLancer@cascadeBatch+jetValider@cascade applique le Brisé', () => {
+  it('Terreur : openRoundStartPsych ouvre la BANDE (déclaration sur l’étape, jet sur la rangée) ; jetLancer@cascadeEnBande+jetValider@cascade applique le Brisé', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('enorme'); // gap 2 → Terreur 2
     H.characteristics['force-mentale'] = 10; // Test de Calme raté → Brisé
@@ -79,7 +79,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     expect(band().target).toBeUndefined();
     expect(row(H.id).result).toBeNull();
 
-    banc.getState().jetLancer('cascadeBatch', H.id);
+    banc.getState().jetLancer('cascadeEnBande', H.id);
     banc.getState().jetValider('cascade');
     const h = heroOf(H.id);
     expect(h.conditions.some((x) => x.id === 'brise')).toBe(true);
@@ -93,7 +93,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     openRoundEndCascade(banc.getState, banc.setState);
     expect(band().combatPsych?.kind).toBe('peur');
     expect(band().combatPsych?.sourceId).toBe(E.id);
-    banc.getState().jetLancer('cascadeBatch', H.id);
+    banc.getState().jetLancer('cascadeEnBande', H.id);
     expect(typeof row(H.id).result!.sl).toBe('number');
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
@@ -108,7 +108,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
 
     // Résilience AVANT le jet : réussite garantie (dé 01 → DR max), −1 Résilience. La bande générique
     // force le succès ; l'applier 'combatPsych' cumule le DR vers l'Indice (vainc à ≥ Indice).
-    banc.getState().jetForcerLaReussite('cascadeBatch', H.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', H.id);
     const r = row(H.id).result!;
     expect(r.success).toBe(true);
     expect(r.roll).toBe(1);
@@ -160,13 +160,13 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
 
     // forceSuccess (dé par défaut 01 → DR max) PUIS dé CHOISI : on prend un dé MOYEN (réussite à plus
     // faible DR que le 01). Le DR gagné DOIT suivre ce dé (pas rester au max). La surface de pose du dé
-    // est celle de la RANGÉE (flux `cascadeBatch`), pas de l'étape.
-    banc.getState().jetForcerLaReussite('cascadeBatch', H.id);
+    // est celle de la RANGÉE (flux `cascadeEnBande`), pas de l'étape.
+    banc.getState().jetForcerLaReussite('cascadeEnBande', H.id);
     const target = jet(H.id).target;
     expect(FLOWS.cascadeBatch.picker?.(row(H.id), H)).toBeTruthy();
     const maxDR = row(H.id).result!.sl; // DR du dé 01 (max)
     const chosen = Math.max(1, target - 5); // dé élevé encore réussi → DR plus faible
-    banc.getState().jetImposerLeResultat('cascadeBatch', chosen, H.id);
+    banc.getState().jetImposerLeResultat('cascadeEnBande', chosen, H.id);
     const r = row(H.id).result!;
     expect(r.roll).toBe(chosen);
     expect(r.success).toBe(true);
@@ -186,10 +186,10 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     H.resilience = 1;
     openRoundStartPsych(banc.getState, banc.setState);
     expect(band().combatPsych?.kind).toBe('terreur');
-    banc.getState().jetForcerLaReussite('cascadeBatch', H.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', H.id);
     expect(FLOWS.cascadeBatch.picker?.(row(H.id), H)).toBeTruthy();
     const chosen = Math.max(1, jet(H.id).target - 5);
-    banc.getState().jetImposerLeResultat('cascadeBatch', chosen, H.id);
+    banc.getState().jetImposerLeResultat('cascadeEnBande', chosen, H.id);
     const r = row(H.id).result!;
     expect(r.roll).toBe(chosen);
     expect(r.success).toBe(true); // binaire : le dé change le DR affiché, jamais l'issue
@@ -208,7 +208,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     expect(row(H.id).target).toBe(row(H.id).base + 20); // Accessible (+20), pas Intermédiaire (+0)
 
     // Une réussite IGNORE la Peur d'emblée (un seul Test) → DR porté à l'Indice (Peur surmontée).
-    banc.getState().jetForcerLaReussite('cascadeBatch', H.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', H.id);
     banc.getState().jetValider('cascade');
     const peur = (heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)!;
     expect(peur).toBeTruthy();
@@ -303,10 +303,10 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     expect(c.participants[0].combatPsych?.kind).toBe('animosite');
     expect(c.participants[0].participants!.map((p) => p.id)).toEqual([A.id, B.id]);
     // La bande n'est PRÊTE qu'une fois toutes ses rangées jouées — puis la cascade se clôt d'un coup.
-    banc.getState().jetLancer('cascadeBatch', A.id);
+    banc.getState().jetLancer('cascadeEnBande', A.id);
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade!.cursor).toBe(0); // rangée B pas encore jouée
-    banc.getState().jetLancer('cascadeBatch', B.id);
+    banc.getState().jetLancer('cascadeEnBande', B.id);
     banc.getState().jetValider('cascade');
     expect(banc.getState().pendingCascade).toBeNull();
     const psy = banc.getState().battle!.combatants
@@ -373,8 +373,8 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     expect(bande1.participants!.every((p) => (p.extendedDrDone ?? 0) === 0)).toBe(true);
     // Réussites FORCÉES (dé 01 → DR max) : chaque rangée gagne son propre DR.
     for (const h of [A, B]) { h.resilience = 2; }
-    banc.getState().jetForcerLaReussite('cascadeBatch', A.id);
-    banc.getState().jetForcerLaReussite('cascadeBatch', B.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', A.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', B.id);
     const jouee = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'combatPsych')!;
     const gagne = Object.fromEntries(jouee.participants!.map((p) => [p.id, p.result!.sl]));
     banc.getState().jetValider('cascade');
@@ -395,9 +395,9 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
       expect(p.extendedDrTarget).toBe(6);
     }
     // …et le cumul CONTINUE de progresser à ce second Round.
-    banc.getState().jetForcerLaReussite('cascadeBatch', A.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', A.id);
     const avant = drOf(A.id);
-    banc.getState().jetForcerLaReussite('cascadeBatch', B.id);
+    banc.getState().jetForcerLaReussite('cascadeEnBande', B.id);
     banc.getState().jetValider('cascade');
     expect(drOf(A.id)).toBeGreaterThan(avant);
   });

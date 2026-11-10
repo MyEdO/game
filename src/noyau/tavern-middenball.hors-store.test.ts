@@ -324,7 +324,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
       const cur = etape();
       if (cur.kind === 'tavern-option') get().jetRegler('cascade', 'choix', '0', cur.id);
       else if (cur.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       }
       get().jetValider('cascade');
     }

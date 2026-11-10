@@ -236,7 +236,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
   });
 });
 
-// ── Marchand AMBULANT (LDB 59 l.43) : flux `bargain` de `rollFlowSpecs` ──────────────────────────
+// ── Marchand AMBULANT (LDB 59 l.43) : flux `marchandage` de `rollFlowSpecs` ──────────────────────────
 
 /** Marchandage de l'armurier ambulant (Marchandage 45) ouvert sur un groupe donné. */
 function setupAmbulant(party: Combatant[]): void {
@@ -252,7 +252,7 @@ function marchanderEgalite(): void {
   setupAmbulant([leader, helper]);
   get().fenetreChoisir('marchand', 'marchander', 'achat');
   imposerLesD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
-  get().jetLancer('bargain');
+  get().jetLancer('marchandage');
 }
 
 describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.160 / l.189-190)', () => {
@@ -282,7 +282,7 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
 
   it('CONSÉQUENCE : le marchandage conclu est PERDU — la visite ne porte aucune remise', () => {
     marchanderEgalite();
-    get().jetValider('bargain');
+    get().jetValider('marchandage');
     expect(get().merchant!.bargainBuy!.won).toBe(false);
   });
 });

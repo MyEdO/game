@@ -20,7 +20,7 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameActionAuthoree, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
 import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
@@ -322,7 +322,7 @@ export interface SessionDEdition {
  *  une valeur au chemin `chemin` du formulaire de la zone d'effet ou du déclencheur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ) ; nommer l'entité, l'entrée, le
  *  déclencheur, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité reprend le nom de sa fiche) ; changer l'identifiant de la zone
- *  d'effet sélectionnée, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
+ *  d'effet sélectionnée, de l'action `action` du décor sélectionné, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; poser une troupe de `nombre` copies du personnage sélectionné (`poserUneTroupe`,
  *  `nombre` entre `BORNES_DE_LA_TROUPE`) ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
@@ -354,7 +354,7 @@ export type GesteDEdition =
   | { geste: 'scenes'; quoi: 'aller'; id: string }
   | { geste: 'scenes'; quoi: 'ajouter' | 'dupliquer' | 'retirer' }
   | { geste: 'nommer'; nom?: string }
-  | { geste: 'identifier'; id: string }
+  | { geste: 'identifier'; id: string; action?: string }
   | { geste: 'entree'; z: number }
   | { geste: 'copier' }
   | { geste: 'coller' }
@@ -819,6 +819,12 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return patchee === scene ? s : ecrire(s, patchee, s.sel);
     }
     case 'identifier': {
+      if (g.action !== undefined) {
+        const ent = entiteDeLaSelection(scene, s.sel);
+        const actions = ent?.usable?.actions;
+        const renommees = actions && renameActionAuthoree(actions, g.action, g.id);
+        return ent && renommees !== actions ? ecrireSurLaSelection(s, editEntity(scene, ent.id, { usable: { ...ent.usable, actions: renommees } }), (sc) => entiteDeLaSelection(sc, s.sel)) : s;
+      }
       if (s.sel === null) return sceneRenommee(s, scene, g.id);
       if (s.sel?.type !== 'effectZone') return s;
       const renommee = renameEffectZone(scene, s.sel.id, g.id);

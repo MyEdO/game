@@ -79,7 +79,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
 
   // FOLD : le Critique de Sort ET l'Imparfaite/Colère sont des ÉTAPES de la cascade d'incantation
   // ACTIVE (comme l'attaque enchaîne Critique/Déviation), jamais une cascade séparée.
-  it('FOLD : une Imparfaite via jetValider@cast APPEND à la cascade d\'incantation (pas de cascade séparée)', () => {
+  it('FOLD : une Imparfaite via jetValider@incantation APPEND à la cascade d\'incantation (pas de cascade séparée)', () => {
     const w = wiz();
     w.spells = ['armure-aethyrique', ...(w.spells ?? [])];
     banc.setState({ party: [w] as Combatant[], pendingCast: null, pendingCascade: null });
@@ -93,8 +93,8 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     });
     // Situation d'incantation HÔTÉE par la cascade (comme l'aurait ouverte castSpell → openCastCascade).
     openCastCascade(banc.getState, banc.setState, w);
-    expect(banc.getState().pendingCascade?.title).toBe('Incantation'); // étape jet:'cast' au curseur 0
-    banc.getState().jetValider('cast');
+    expect(banc.getState().pendingCascade?.title).toBe('Incantation'); // étape jet:'incantation' au curseur 0
+    banc.getState().jetValider('incantation');
     const c = banc.getState().pendingCascade;
     expect(banc.getState().pendingCast).toBeNull(); // le JET est clos (CastModal disparaît)
     expect(c).toBeTruthy(); // la cascade reste OUVERTE : la conséquence s'y joue
@@ -117,7 +117,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
       },
     });
     openCastCascade(banc.getState, banc.setState, w);
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull(); // aucune conséquence → la situation se clôt
   });
@@ -130,7 +130,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     banc.setState({ party: [w] as Combatant[] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const rendu = draineEtLit(banc.getState).join('\n');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     expect(after.focus?.dr).toBeGreaterThanOrEqual(findSpellById('armure-aethyrique')!.cn ?? 0);
@@ -149,7 +149,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 1 };
     banc.setState({ party: [w] as Combatant[] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     const ni = findSpellById('manifestation-de-demon-mineur')!.cn ?? 0;
     expect(after.focus?.dr).toBe(1 + 3); // 1 (DR déjà accumulé) + 3 (BFM), loin sous le NI 8
@@ -164,7 +164,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.talents.push({ talentId: 'harmonisation-aethyrique', times: 1 });
     banc.setState({ party: [w] as Combatant[] });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Harmonisation aethyrique/);
     expect(j).not.toMatch(/Incantation Imparfaite Mineure \(/);
@@ -181,7 +181,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     banc.setState({ party: [w] as Combatant[] });
     seedBattleRng(143);
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Marqué par la Magie/);
     const marques = findEffectTableById('vdm-marques-arcaniques-feu').entries;

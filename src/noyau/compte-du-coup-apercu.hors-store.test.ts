@@ -152,7 +152,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
     expect(compteDuCoup(res, epee, H, cible, 0).compte.relance).toBe(current === 0);
   });
 
-  /** Un Projectile incanté par jetLancer('cast') sans double, appliqué par la chaîne d'incantation ; rend le journal et
+  /** Un Projectile incanté par jetLancer('incantation') sans double, appliqué par la chaîne d'incantation ; rend le journal et
    *  la Localisation de touche (LDB 46). `sauve` : la cible porte Protection 1+ (LDB 85 l.278). */
   function projectile(current: number, sauve = false): { journal: string; touche: string } {
     for (let seed = 1; seed < 100; seed++) {
@@ -172,7 +172,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       cible.important = true;
       if (sauve) cible.traits = [...(cible.traits ?? []), { id: 'protection', value: 1 }];
       banc.setState({ pendingCast: { casterId: H.id, targetId: cible.id, spellId: 'flechette', missile: true, focused: false, result: null } as never });
-      banc.getState().jetLancer('cast');
+      banc.getState().jetLancer('incantation');
       const jet = banc.getState().pendingCast!.result!;
       if (!jet.cast || jet.isCritical || jet.isFumble) continue;
       resolveCastChain(banc.getState, banc.setState);
@@ -201,8 +201,8 @@ describe('le verdict de relance naît sur la cible au compte', () => {
 
 const arc = { label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 7 }, qualities: [], range: 50 } as unknown as Weapon;
 
-/** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `jetLancer('attack')` la
- *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `jetValider('attack')`. */
+/** Touche déviée née contre la victime (LDB 14 l.106 ; LDB 14 l.116), posée au pending comme `jetLancer('attaque')` la
+ *  pose ; l'aperçu par l'expression de la fenêtre d'attaque (`noyau/fenetreDAttaque`), puis l'application par `jetValider('attaque')`. */
 function devieePuisApplication(cas: 'tas' | 'melee') {
   banc.getState().ensemencerLeTirage(3);
   const tireur = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Tireur', seed: 7 });
@@ -230,7 +230,7 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   const apercu = { critiques: compte.critiques.length, blessures: compte.blessures };
   const avant = structuredClone(victime);
   const visee = structuredClone(cible);
-  banc.getState().jetValider('attack');
+  banc.getState().jetValider('attaque');
   draineCascade(banc.getState, 200, () => 1);
   const apres = (c: Combatant) => banc.getState().battle!.combatants.find((x) => x.id === c.id)!;
   const applique = { critiques: (apres(victime).criticalWounds ?? 0) - (avant.criticalWounds ?? 0), blessures: res.woundsLost ?? 0 };

@@ -1877,7 +1877,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
   });
 }
 
-/** Résout la sauvegarde d'Initiative d'une « Fuite de vapeur » (appelée par `jetValider('steamSave')`) : ÉCHEC →
+/** Résout la sauvegarde d'Initiative d'une « Fuite de vapeur » (appelée par `jetValider('fuiteDeVapeur')`) : ÉCHEC →
  *  ébouillanté (`scaldOps` déjà roulés), puis le RESTE de la journée reprend (la cascade `'crew-progression'`
  *  s'était fermée SANS insérer la suite du jour, cf. son applier — `pendingSteamSave` suspendait). */
 export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void {

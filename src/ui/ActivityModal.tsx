@@ -21,20 +21,20 @@ import { useGesteDeJet } from './useGesteDeJet';
  * modificateur de SITUATION (Menace −20 / Planification) et Soutien multi-PJ en LIGNES de mod du
  * breakdown ; Test COMBINÉ (deux compétences, un jet) en 2ᵉ rangée témoin ; Test OPPOSÉ « Tenez votre
  * position » en rangée témoin figée de l'ennemi (winner + DR net). Le cycle d'influence reste piloté par
- * les verbes du flux `activity`.
+ * les verbes du flux `activite`.
  */
 export function ActivityModal() {
   const pa = useGame((s) => s.pendingActivity);
   const party = useGame((s) => s.party);
   const massBattle = useGame((s) => s.massBattle);
-  const roll = useGesteDeJet('jetLancer', 'activity');
-  const reroll = useGesteDeJet('jetRelancer', 'activity');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'activity');
-  const darkPact = useGesteDeJet('jetPactiser', 'activity');
-  const force = useGesteDeJet('jetForcerLaReussite', 'activity'); // Résilience (LDB 17 l.68)
-  const reverse = useGesteDeJet('jetInverser', 'activity'); // Inversion (LDB 12 l.42)
-  const cancel = useGesteDeJet('jetAnnuler', 'activity');
-  const confirm = useGesteDeJet('jetValider', 'activity');
+  const roll = useGesteDeJet('jetLancer', 'activite');
+  const reroll = useGesteDeJet('jetRelancer', 'activite');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'activite');
+  const darkPact = useGesteDeJet('jetPactiser', 'activite');
+  const force = useGesteDeJet('jetForcerLaReussite', 'activite'); // Résilience (LDB 17 l.68)
+  const reverse = useGesteDeJet('jetInverser', 'activite'); // Inversion (LDB 12 l.42)
+  const cancel = useGesteDeJet('jetAnnuler', 'activite');
+  const confirm = useGesteDeJet('jetValider', 'activite');
   if (!pa) return null;
   const actor = party.find((c) => c.id === pa.heroId);
   const rolled = pa.roll != null;
@@ -44,7 +44,7 @@ export function ActivityModal() {
   // modificateur de situation compris).
   const { base, mods: extraMods } = pa.ligne;
 
-  // « Échec » CANONIQUE : l'issue du flux `activity` (`FLOWS.activity.outcomeOf`), dont dérive aussi le
+  // « Échec » CANONIQUE : l'issue du flux `activite` (`FLOWS.activity.outcomeOf`), dont dérive aussi le
   // gating Chance/Pacte/Résilience du noyau.
   const failed = rolled && !FLOWS.activity.outcomeOf(useGame.getState)?.won;
 
@@ -124,7 +124,7 @@ export function ActivityModal() {
 
   return (
     <RollShell
-      flowKey="activity"
+      flowKey="activite"
       title={pa.label}
       /* Z3b : l'enjeu vient de l'ACTIVITÉ jouée (donnée éditable) — le ⓘ du titre s'accole tout seul
          (RollShell), et le foyer de règle est l'Activité elle-même à défaut d'un autre déclaré. */

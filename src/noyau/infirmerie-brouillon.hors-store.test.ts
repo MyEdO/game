@@ -1,6 +1,6 @@
 /**
- * LE BROUILLON DU SOIN DE L'INFIRMERIE (#3612 L1) : l'acte a une seule entrée, `jetRegler('heal', 'mode')`, sur le
- * brouillon que la transition du jeu tient (`brouillonTenu`, `acteDeSoin.ts`) ; `jetLancer('heal')` le joue. Contrat de
+ * LE BROUILLON DU SOIN DE L'INFIRMERIE (#3612 L1) : l'acte a une seule entrée, `jetRegler('soins', 'mode')`, sur le
+ * brouillon que la transition du jeu tient (`brouillonTenu`, `acteDeSoin.ts`) ; `jetLancer('soins')` le joue. Contrat de
  * coop (qui choisit, ferme, lance, valide) et d'argent (le tarif d'un PNJ se débite au lancer, jamais au brouillon).
  * LDB 75 ; LDB 12 l.170-174.
  */
@@ -66,25 +66,25 @@ describe('R3-D — après une validation ou une annulation, l’acte suivant res
     poser([mk('doc', { skills: GUERISON }), blesse('p')], { doc: 0, p: 1 });
     g().ouvrirLeMedecin('p');
     expect(g().pendingHeal?.mode).toBe('blessures');
-    g().jetLancer('heal');
-    g().jetValider('heal');
+    g().jetLancer('soins');
+    g().jetValider('soins');
     expect(g().medic).not.toBeNull();
     expect(g().pendingHeal).toMatchObject({ targetId: 'p', mode: 'hemorragie', roll: null });
-    expect(offerts()).toEqual(expect.arrayContaining(['jetLancer@heal', 'jetRegler@heal#mode']));
+    expect(offerts()).toEqual(expect.arrayContaining(['jetLancer@soins', 'jetRegler@soins#mode']));
   });
 
   it('passe d’opération annulée : le brouillon reprend l’opération armée, et son lancer rouvre la passe', () => {
     const chir = mk('doc', { skills: GUERISON, talents: [{ talentId: 'chirurgie', times: 1 }] });
     poser([chir, mk('p', { conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })], { doc: 0, p: 1 });
     g().ouvrirLeMedecin('p');
-    g().jetRegler('heal', 'mode', 'chirurgie');
-    g().jetLancer('heal');
+    g().jetRegler('soins', 'mode', 'chirurgie');
+    g().jetLancer('soins');
     const armee = g().medic?.surgery;
     expect(g().pendingSurgery).not.toBeNull();
-    g().jetAnnuler('surgery');
+    g().jetAnnuler('chirurgie');
     expect(g().pendingHeal).toMatchObject({ targetId: 'p', mode: 'chirurgie', roll: null });
-    expect(offerts()).toEqual(expect.arrayContaining(['jetLancer@heal', 'jetRegler@heal#mode']));
-    g().jetLancer('heal');
+    expect(offerts()).toEqual(expect.arrayContaining(['jetLancer@soins', 'jetRegler@soins#mode']));
+    g().jetLancer('soins');
     expect(g().pendingSurgery).not.toBeNull();
     expect(g().medic?.surgery, 'la même opération, son cumul intact').toBe(armee);
   });
@@ -94,22 +94,22 @@ describe('R3-A — soin lancé par un soigneur PNJ : la fenêtre au patient, son
   it('le patient lance, puis seul son siège valide ; le PNJ n’a aucune ressource que quiconque dépense', () => {
     poser([mk('doc'), blesse('p'), blesse('q')], { doc: 0, p: 1, q: 2 });
     ouvrirLeMedecin(g, banc.setState, 'p', { ...BARBIER, acts: [{ act: 'blessures' }, { act: 'hemorragie' }] });
-    expect(appliquerLIntentionDUnSiege(g, 1, 'jetLancer', ['heal'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(g, 1, 'jetLancer', ['soins'])).toBe('appliquee');
     expect(g().pendingHeal?.roll).not.toBeNull();
     expect(modalOwnerOf(g())).toBe('p');
-    expect(parSiege('jetValider', ['heal'])).toEqual([false, true, false]);
+    expect(parSiege('jetValider', ['soins'])).toEqual([false, true, false]);
     expect(parSiege('fenetreFermer', ['infirmerie'])).toEqual([false, true, false]); // au propriétaire ; la sortie elle-même se ferme (`soinEnCours`)
-    expect(parSiege('jetRelancer', ['heal'])).toEqual([false, false, false]);
+    expect(parSiege('jetRelancer', ['soins'])).toEqual([false, false, false]);
   });
 });
 
 describe('le brouillon ne s’annule pas : l’annulation fermée se dit', () => {
-  it('hors combat, `jetAnnuler(heal)` sur le brouillon est refusé, dit `jet.ferme.acteAChanger`, et l’état ne bouge pas', () => {
+  it('hors combat, `jetAnnuler(soins)` sur le brouillon est refusé, dit `jet.ferme.acteAChanger`, et l’état ne bouge pas', () => {
     poser([mk('doc', { skills: GUERISON }), blesse('p')], { doc: 0, p: 1 });
     g().ouvrirLeMedecin('p');
     const brouillon = g().pendingHeal;
     const medic = g().medic;
-    g().jetAnnuler('heal');
+    g().jetAnnuler('soins');
     expect(g().pendingHeal).toBe(brouillon);
     expect(g().medic).toBe(medic);
     expect(g().journal[g().journal.length - 1]).toBe(libelleDeLaFermeture('acteAChanger'));
@@ -123,12 +123,12 @@ describe('R4-E — aucun argent créé par l’infirmerie d’un PNJ payant', ()
     const avant = argent();
     ouvrirLeMedecin(g, banc.setState, 'p', BARBIER);
     expect(argent()).toBe(avant);
-    expect(appliquerLIntentionDUnSiege(g, 1, 'jetRegler', ['heal', 'mode', 'hemorragie'])).toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(g, 1, 'jetRegler', ['soins', 'mode', 'hemorragie'])).toBe('appliquee');
     expect(g().pendingHeal?.mode).toBe('hemorragie');
-    expect(offerts()).not.toContain('jetAnnuler@heal');
-    for (let i = 0; i < 3; i++) appliquerLIntentionDUnSiege(g, 1, 'jetAnnuler', ['heal']);
+    expect(offerts()).not.toContain('jetAnnuler@soins');
+    for (let i = 0; i < 3; i++) appliquerLIntentionDUnSiege(g, 1, 'jetAnnuler', ['soins']);
     expect(argent()).toBe(avant);
-    g().jetLancer('heal');
+    g().jetLancer('soins');
     expect(argent()).toBe(avant - toBrass(toMoney({ silver: 3 })));
   });
 });
@@ -144,7 +144,7 @@ describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe
     poser([mk('doc', { skills: GUERISON }), luxee('p')], { doc: 0, p: 1 });
     g().ouvrirLeMedecin('p');
     expect(g().pendingHeal?.mode).toBe('reeducation');
-    g().jetForcerLaReussite('heal');
+    g().jetForcerLaReussite('soins');
     expect(g().pendingHeal, 'aucun soin de rééducation tiré hors de l’opération').toBeNull();
     expect(g().medic?.surgery?.kind).toBe('reeducation');
     expect(g().pendingSurgery).not.toBeNull();
@@ -157,7 +157,7 @@ describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe
     ouvrirLeMedecin(g, banc.setState, 'p', { ...BARBIER, acts: [{ act: 'blessures', cost: { silver: 2 } }] });
     setDesFixes(true);
     try {
-      g().jetImposerLeResultat('heal', 5);
+      g().jetImposerLeResultat('soins', 5);
     } finally { setDesFixes(false); }
     expect(g().pendingHeal?.roll).toBe(5);
     expect(argent()).toBe(avant - toBrass(toMoney({ silver: 2 })));
@@ -167,7 +167,7 @@ describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe
     barbierPayant();
     const avant = argent();
     ouvrirLeMedecin(g, banc.setState, 'p', { ...BARBIER, acts: [{ act: 'blessures', cost: { silver: 2 } }] });
-    g().jetImposerLeResultat('heal', 5);
+    g().jetImposerLeResultat('soins', 5);
     const pose = g().pendingHeal?.roll != null;
     expect(argent()).toBe(pose ? avant - toBrass(toMoney({ silver: 2 })) : avant);
   });
@@ -177,7 +177,7 @@ describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe
     g().ouvrirLeMedecin('p');
     setDesFixes(true);
     try {
-      g().jetImposerLeResultat('heal', 3);
+      g().jetImposerLeResultat('soins', 3);
     } finally { setDesFixes(false); }
     expect(g().pendingHeal).toMatchObject({ mode: 'reeducation', roll: null });
     expect(g().medic?.surgery).toBeUndefined();

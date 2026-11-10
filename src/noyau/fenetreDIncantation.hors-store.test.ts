@@ -1,6 +1,6 @@
 /**
  * LA FENÊTRE D'INCANTATION EN DONNÉES (#3059) : chaque réglage que `fenetreDIncantation` annonce refuse exactement ce
- * que son verbe refuse, au banc du noyau (`desFixes` : le dé se pose par `jetImposerLeResultat('cast')`). Incantation
+ * que son verbe refuse, au banc du noyau (`desFixes` : le dé se pose par `jetImposerLeResultat('incantation')`). Incantation
  * Critique : LDB 46 l.26-32 (« si le Sort inflige des Dégâts, il inflige également une Blessure Critique », l.30) ;
  * Projectile en Zone d'Effet : LDB 47 l.453 ; Prières : LDB 40 ; Surincantation : LDB 47 l.15 ; pose de la zone :
  * LDB 47 l.15, l.28. Lanceur au siège MJ : réponse Q3 du design jugé (#3059).
@@ -65,8 +65,8 @@ function horsCombat(spellId: string, de: number | null = 11): { banc: Banc; V: C
   else banc.getState().incanterLeSort(L.id, spellId, V.id);
   expect(banc.getState().pendingCast, `chemin : ${spellId} s’ouvre`).toMatchObject({ casterId: L.id, spellId });
   if (de != null) {
-    banc.getState().jetLancer('cast');
-    banc.getState().jetImposerLeResultat('cast', de);
+    banc.getState().jetLancer('incantation');
+    banc.getState().jetImposerLeResultat('incantation', de);
   }
   return { banc, V };
 }
@@ -79,7 +79,7 @@ describe('Incantation Critique : l’effet offert par la fenêtre est celui que 
     const { banc } = horsCombat(FIXTURES.degats.id);
     expect(banc.getState().pendingCast!.result, 'le double 11 lance le Sort').toMatchObject({ cast: true, isCritical: true });
     expect(effet(banc.getState(), 'critique')?.refus ?? null).toBeNull();
-    banc.getState().jetRegler('cast', 'effetCritique', 'critique');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'critique');
     expect(choisi(banc.getState())).toBe('critique');
   });
 
@@ -87,9 +87,9 @@ describe('Incantation Critique : l’effet offert par la fenêtre est celui que 
     const { banc } = horsCombat('arme-aethyrique');
     expect(banc.getState().pendingCast!.result!.isCritical).toBe(true);
     expect(effet(banc.getState(), 'critique')?.refus).toBeTruthy();
-    banc.getState().jetRegler('cast', 'effetCritique', 'critique');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'critique');
     expect(choisi(banc.getState())).toBeUndefined();
-    banc.getState().jetRegler('cast', 'effetCritique', 'ineluctable');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'ineluctable');
     expect(choisi(banc.getState()), 'les deux autres effets restent offerts').toBe('ineluctable');
   });
 
@@ -97,7 +97,7 @@ describe('Incantation Critique : l’effet offert par la fenêtre est celui que 
     const { banc } = horsCombat(FIXTURES.priere.id);
     expect(fenetreDIncantation(banc.getState())!.critique).toBeNull();
     expect(refusDuChoixCritique(banc.getState(), 'critique')).toBeTruthy();
-    banc.getState().jetRegler('cast', 'effetCritique', 'critique');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'critique');
     expect(choisi(banc.getState())).toBeUndefined();
   });
 
@@ -107,7 +107,7 @@ describe('Incantation Critique : l’effet offert par la fenêtre est celui que 
         const { banc } = horsCombat(id);
         const refus = effet(banc.getState(), c)?.refus ?? null;
         expect(refus, 'la fenêtre et le refus pur disent la même chose').toBe(refusDuChoixCritique(banc.getState(), c));
-        banc.getState().jetRegler('cast', 'effetCritique', c);
+        banc.getState().jetRegler('incantation', 'effetCritique', c);
         expect(choisi(banc.getState()) === c).toBe(refus === null);
       });
     }
@@ -122,9 +122,9 @@ describe('Incantation Critique d’un lanceur humain : aucun effet retenu par d�
     expect(fenetreDIncantation(s)!.critique!.choisie).toBeNull();
     expect(castAfterCrit(s.pendingCast!.result!, s.pendingCast!.critChoice), '« Puissance totale » n’est pas lue en douce').toBe(false);
     expect(fenetreDIncantation(s)!.surincantation).toBeNull();
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     expect(banc.getState().pendingCast, 'la clôture attend le choix').toBeTruthy();
-    banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'puissance');
     expect(castAfterCrit(banc.getState().pendingCast!.result!, banc.getState().pendingCast!.critChoice), 'choisi, le Sort part (LDB 46 l.31)').toBe(true);
   });
 });
@@ -132,8 +132,8 @@ describe('Incantation Critique d’un lanceur humain : aucun effet retenu par d�
 describe('Blessure Critique d’un Sort à Dégâts hors Projectile (LDB 46 l.30)', () => {
   it('l’effet choisi inflige une Blessure critique à la cible qui subit les Dégâts', () => {
     const { banc, V } = horsCombat(FIXTURES.degats.id);
-    banc.getState().jetRegler('cast', 'effetCritique', 'critique');
-    banc.getState().jetValider('cast');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'critique');
+    banc.getState().jetValider('incantation');
     banc.reprendreTout();
     const cible = banc.getState().party.find((c) => c.id === V.id)!;
     expect(cible.wounds.current, 'les Dégâts du Sort sont subis').toBeLessThan(30);
@@ -142,8 +142,8 @@ describe('Blessure Critique d’un Sort à Dégâts hors Projectile (LDB 46 l.30
 
   it('témoin : « Force inéluctable » n’inflige aucune Blessure critique', () => {
     const { banc, V } = horsCombat(FIXTURES.degats.id);
-    banc.getState().jetRegler('cast', 'effetCritique', 'ineluctable');
-    banc.getState().jetValider('cast');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'ineluctable');
+    banc.getState().jetValider('incantation');
     banc.reprendreTout();
     expect(banc.getState().party.find((c) => c.id === V.id)!.criticalWounds ?? 0).toBe(0);
   });
@@ -156,10 +156,10 @@ describe('forme d’arme invoquée et ton de la Prière : le verbe refuse ce que
     const L = banc.getState().party[0];
     expect(vue.forme!.options.map((o) => o.valeur)).toEqual(conjureFormOptions(L).map((f) => f.weapon));
     expect(refusDeLaForme(banc.getState(), 'corde')).toBeTruthy();
-    banc.getState().jetRegler('cast', 'formeConjuree', 'corde');
+    banc.getState().jetRegler('incantation', 'formeConjuree', 'corde');
     expect(banc.getState().pendingCast!.conjureForm).toBeUndefined();
     const offerte = vue.forme!.options[vue.forme!.options.length - 1].valeur as string;
-    banc.getState().jetRegler('cast', 'formeConjuree', offerte);
+    banc.getState().jetRegler('incantation', 'formeConjuree', offerte);
     expect(banc.getState().pendingCast!.conjureForm?.weapon).toBe(offerte);
   });
 
@@ -167,7 +167,7 @@ describe('forme d’arme invoquée et ton de la Prière : le verbe refuse ce que
     const { banc } = horsCombat(FIXTURES.sansDegats.id, null);
     expect(fenetreDIncantation(banc.getState())!.ton).toBeNull();
     expect(refusDuReglage(banc.getState(), 'discret')).toBeTruthy();
-    banc.getState().jetRegler('cast', 'discret', true);
+    banc.getState().jetRegler('incantation', 'discret', true);
     expect(banc.getState().pendingCast!.discreet).toBeUndefined();
   });
 });
@@ -196,20 +196,20 @@ function enCombat(banc: Banc) {
 }
 
 describe('pose de la Zone d’Effet : refusée sur un Sort qui ne part pas, la partie continue (LDB 47 l.15, l.28)', () => {
-  it('Explosion ratée : la pose de la zone (`cast.carte`) refusée, la fenêtre reste ouverte et s’applique', () => {
+  it('Explosion ratée : la pose de la zone (`incantation.carte`) refusée, la fenêtre reste ouverte et s’applique', () => {
     const banc = ouvrirLeBanc({ desFixes: true });
     const { H } = enCombat(banc);
     banc.setState({ battle: { ...banc.getState().battle!, action: 'incantation', selectedSpellId: 'explosion' } });
     banc.getState().cliquerLaCase({ x: 9, y: 9 });
     expect(banc.getState().pendingCast, 'chemin : la zone s’ouvre sans centre').toMatchObject({ casterId: H.id, zone: { center: null } });
-    banc.getState().jetLancer('cast');
-    banc.getState().jetImposerLeResultat('cast', 99);
+    banc.getState().jetLancer('incantation');
+    banc.getState().jetImposerLeResultat('incantation', 99);
     expect(banc.getState().pendingCast!.result!.cast).toBe(false);
     expect(fenetreDIncantation(banc.getState())!.pose!.refus).toBe(refusDeLaPose(banc.getState(), true));
     expect(refusDeLaPose(banc.getState(), true)).toBeTruthy();
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     expect(banc.getState().pendingCast!.zone!.placing, 'la fenêtre ne s’efface pas').toBeFalsy();
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     expect(banc.getState().pendingCast, 'l’incantation ratée se clôt : rien ne bloque').toBeNull();
   });
 });
@@ -222,14 +222,14 @@ describe('lanceur ennemi au siège MJ : il surincante et annule comme un héros,
     const ouvrir = () => banc.setState({ pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false, focused: false, result: null } });
     ouvrir();
     expect(fenetreDIncantation(banc.getState())!.annulation).toBeNull();
-    banc.getState().jetAnnuler('cast');
+    banc.getState().jetAnnuler('incantation');
     expect(banc.getState().pendingCast, 'l’ennemi du MJ renonce').toBeNull();
     ouvrir();
-    banc.getState().jetLancer('cast');
-    banc.getState().jetImposerLeResultat('cast', 3);
+    banc.getState().jetLancer('incantation');
+    banc.getState().jetImposerLeResultat('incantation', 3);
     const sur = fenetreDIncantation(banc.getState())!.surincantation!;
     expect(sur.axes.find((a) => a.axe === 'duration')!.refusDAllouer).toBeNull();
-    banc.getState().jetRegler('cast', 'surincantationDuree', 1);
+    banc.getState().jetRegler('incantation', 'surincantationDuree', 1);
     expect(banc.getState().pendingCast!.overcast?.duration).toBe(1);
   });
 
@@ -239,14 +239,14 @@ describe('lanceur ennemi au siège MJ : il surincante et annule comme un héros,
       const { H, E } = enCombat(banc);
       banc.setState({ net: { ...banc.getState().net, gmSeat: 0 } });
       banc.setState({ pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false, focused: false, result: null } });
-      banc.getState().jetLancer('cast');
-      banc.getState().jetImposerLeResultat('cast', 3);
+      banc.getState().jetLancer('incantation');
+      banc.getState().jetImposerLeResultat('incantation', 3);
       banc.setState({ net: { ...banc.getState().net, gmSeat } });
       expect(refusDuPasDeSurincantation(banc.getState(), 'duration', 1) === null, 'le pas de Durée revient au seul siège qui pilote le lanceur').toBe(gmSeat === 0);
       for (const axe of ['range', 'duration', 'targets'] as const) {
         const avant = banc.getState().pendingCast!.overcast?.[axe] ?? 0;
         const refus = refusDuPasDeSurincantation(banc.getState(), axe, avant + 1);
-        banc.getState().jetRegler('cast', REGLAGE_DE_L_AXE[axe], avant + 1);
+        banc.getState().jetRegler('incantation', REGLAGE_DE_L_AXE[axe], avant + 1);
         expect((banc.getState().pendingCast!.overcast?.[axe] ?? 0) > avant, axe).toBe(refus === null);
       }
     });
@@ -279,10 +279,10 @@ describe('le NI d’un Sort se lit à un seul site, `castingNumberOf` (B3)', () 
     L.spells = [FIXTURES.rituel.id];
     banc.setState({ battle: null, party: [L] });
     banc.getState().incanterLeSort(L.id, FIXTURES.rituel.id, L.id);
-    banc.getState().jetLancer('cast');
-    banc.getState().jetImposerLeResultat('cast', 3);
+    banc.getState().jetLancer('incantation');
+    banc.getState().jetImposerLeResultat('incantation', 3);
     expect(banc.getState().pendingCast!.result, 'chemin : le Rituel part au NI réduit').toMatchObject({ cast: true, niRequired: 4 });
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     banc.reprendreTout();
     const porteur = banc.getState().party.find((c) => c.id === L.id)!;
     const effet = (porteur.activeEffects ?? []).find((e) => e.spell?.spellId === FIXTURES.rituel.id);
@@ -300,7 +300,7 @@ describe('la valeur du Contre-sort se lit à un seul site, `counterspellValue` (
         result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'x', niRequired: 0 } },
       pendingCounterspell: { participants: [{ id: H.id, interactive: true, declared: 'solo', result: null }] },
     } as unknown as Partial<Jeu>);
-    banc.getState().jetForcerLaReussite('counterspell', H.id);
+    banc.getState().jetForcerLaReussite('contreSort', H.id);
     const part = banc.getState().pendingCounterspell!.participants[0];
     expect(part.result?.counter.target).toBe(counterspellValue(banc.getState().battle!.combatants.find((c) => c.id === H.id)!));
   });

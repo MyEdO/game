@@ -87,7 +87,7 @@ describe('après un échec d’Évaluation : nouvel essai à DR 0 (LDB 12 l.94),
     banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } } as never);
     g().evaluerLObjet('L0');
     banc.setState({ pendingAppraise: { ...g().pendingAppraise!, roll: 95, success: false, sl } });
-    g().jetValider('appraise');
+    g().jetValider('evaluation');
   }
   const retenter = () => { g().evaluerLObjet('L0'); const ouverte = !!g().pendingAppraise; banc.setState({ pendingAppraise: null }); return ouverte; };
   afterEach(() => resetRule('market-evaluation-delai-jours'));

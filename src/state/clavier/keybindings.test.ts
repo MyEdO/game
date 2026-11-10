@@ -28,10 +28,10 @@ const fake = (over: Partial<GameState> = {}): GameState =>
 /** Cascade d'incantation dont l'étape courante DÉSIGNE ses cibles sur la carte (`pickingTargets`). */
 const cartePilote = (over: Partial<GameState> = {}) =>
   fake({
-    // Étape `jet:'cast'` RÉELLE : c'est elle que l'arbitre EFFACE pendant la désignation (entrée
+    // Étape `jet:'incantation'` RÉELLE : c'est elle que l'arbitre EFFACE pendant la désignation (entrée
     // `cascade`, `modalArbiter`). Une étape sans `jet` ne mesurerait pas la garde — l'arbitre élirait
     // la cascade et toutes les portes seraient fermées pour une autre raison.
-    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]),
+    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation' }]),
     pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     ...over,
   });

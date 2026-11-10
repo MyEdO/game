@@ -187,9 +187,9 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     expect(ph.skillValue).toBe(testValue(fiche, { skill: { id: 'guerison' } }));
     expect(m.npc!.intBonus).toBe(bonus(effectiveChar(fiche, 'intelligence')));
     expect(bourseOf(banc.getState().party.find((h) => h.id === ph.targetId)!).silver).toBe(10);
-    banc.getState().jetLancer('heal');
+    banc.getState().jetLancer('soins');
     expect(bourseOf(banc.getState().party.find((h) => h.id === ph.targetId)!).silver).toBe(5); // 10 − 5 pistoles débitées au lancer, à la bourse du patient
-    banc.getState().jetValider('heal');
+    banc.getState().jetValider('soins');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().medic).not.toBeNull(); // l'infirmerie reste ouverte (autre acte/patient)
     banc.getState().fenetreFermer('infirmerie');

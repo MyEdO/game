@@ -217,26 +217,26 @@ describe('#1262 — hostStep : jamais de fenêtre sans la donnée qu’elle rend
     });
   }
 
-  it('jet:\'fumble\' : aucun pending à attendre, sa charge vit SUR l’étape', () => {
-    const step = hostStep(banc.getState, { id: 'f', kind: 'fumbleJet', jet: 'fumble', actorId: 'H1', fumble: { weapon: ARME, result: null } })!;
+  it('jet:\'maladresse\' : aucun pending à attendre, sa charge vit SUR l’étape', () => {
+    const step = hostStep(banc.getState, { id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'H1', fumble: { weapon: ARME, result: null } })!;
     expect(step.fumble!.weapon.label).toBe('Épée');
   });
 
-  it('jet:\'fumble\' SANS sa charge → refusé au TYPE (union discriminée)', () => {
-    // @ts-expect-error — `fumble` requis par la branche `jet:'fumble'`
-    const nu: HostSpec = { id: 'f', kind: 'fumbleJet', jet: 'fumble', actorId: 'H1' };
-    expect(nu.jet).toBe('fumble');
+  it('jet:\'maladresse\' SANS sa charge → refusé au TYPE (union discriminée)', () => {
+    // @ts-expect-error — `fumble` requis par la branche `jet:'maladresse'`
+    const nu: HostSpec = { id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'H1' };
+    expect(nu.jet).toBe('maladresse');
   });
 
   it('une charge de Maladresse sur un AUTRE jet est inexprimable', () => {
     // @ts-expect-error — `fumble` interdit hors de sa branche
-    const croise: HostSpec = { id: 'x', kind: 'k', jet: 'attack', actorId: 'H1', fumble: { weapon: ARME, result: null } };
-    expect(croise.jet).toBe('attack');
+    const croise: HostSpec = { id: 'x', kind: 'k', jet: 'attaque', actorId: 'H1', fumble: { weapon: ARME, result: null } };
+    expect(croise.jet).toBe('attaque');
   });
 
   it('`groupOwner` est le SEUL canal de possession partagée de la famille (moment de cast partagé)', () => {
     banc.setState({ pendingCast: { marqueur: true } } as never);
-    const step = hostStep(banc.getState, { id: 'c', kind: 'cast', jet: 'cast', actorId: 'H1', groupOwner: true })!;
+    const step = hostStep(banc.getState, { id: 'c', kind: 'cast', jet: 'incantation', actorId: 'H1', groupOwner: true })!;
     expect(step.groupOwner).toBe(true);
     banc.setState({ pendingCast: null } as never);
   });
@@ -315,7 +315,7 @@ describe('#1262 — les portes d’APPEND', () => {
   });
 
   it('`pushHost` refuse aussi la fenêtre fantôme (le mint est le même des deux côtés)', () => {
-    expect(() => pushHost(banc.getState, banc.setState, { id: 'h', kind: cleDeFixture('k'), jet: 'attack', actorId: 'H1' })).toThrow(/pendingAttack/);
+    expect(() => pushHost(banc.getState, banc.setState, { id: 'h', kind: cleDeFixture('k'), jet: 'attaque', actorId: 'H1' })).toThrow(/pendingAttack/);
     expect(banc.getState().pendingCascade).toBeNull();
   });
 

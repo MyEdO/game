@@ -65,7 +65,7 @@ describe('Chance et +1 DR : l’issue canonique du seam est celle d’`evaluateT
       party: [h], battle: { combatants: [h], log: [] } as never,
       pendingCast: { casterId: h.id, targetId: h.id, spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 97, target: 99, sl: -1, isCritical: false, isFumble: false, log: '' } },
     } as never);
-    expect(FLOW_HANDLERS.cast.outcomeOf(get)?.won).toBe(false);
+    expect(FLOW_HANDLERS.incantation.outcomeOf(get)?.won).toBe(false);
   });
 });
 
@@ -83,7 +83,7 @@ describe('`jetsEnVue` annonce le verdict du résolveur', () => {
       party: [h], battle: { combatants: [h], log: [] } as never,
       pendingFocus: { casterId: h.id, spellId: 'drain', result: { dr: 0, success: true, isCritical: false, isFumble: false, roll: 40, target: 45, sl: 0, log: '' } },
     } as never);
-    expect(reussiDe(jetsEnVue(get()).find((j) => j.flux === 'focus')?.lignes[0])).toBe(true);
+    expect(reussiDe(jetsEnVue(get()).find((j) => j.flux === 'focalisation')?.lignes[0])).toBe(true);
   });
 });
 

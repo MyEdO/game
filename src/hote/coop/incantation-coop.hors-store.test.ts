@@ -58,8 +58,8 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
     guest.connect(b);
     castSpell(banc.getState, banc.setState, lanceurEnCombat, lanceurEnCombat, 'arme-aethyrique');
     expect(banc.getState().pendingCast, 'chemin : l’incantation du héros de l’invité s’ouvre chez l’hôte').toMatchObject({ casterId: L.id, result: null });
-    guest.sendIntent('jetLancer', ['cast']);
-    guest.sendIntent('jetImposerLeResultat', ['cast', 11]);
+    guest.sendIntent('jetLancer', ['incantation']);
+    guest.sendIntent('jetImposerLeResultat', ['incantation', 11]);
     expect(banc.getState().pendingCast!.result, 'chemin : le jet de l’invité est tombé chez l’hôte, au Critique').toMatchObject({ isCritical: true });
     host.broadcastSnapshot();
     const chezLInvite = appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1, L.id) }).etat;
@@ -70,9 +70,9 @@ describe('Incantation en coop : la même fenêtre des deux côtés, le choix au 
     const puissance = (v: FenetreDIncantation | null) => v?.critique?.options.find((o) => o.valeur === 'puissance')?.refus ?? null;
     expect(puissance(vueHote), 'chez l’hôte, l’effet du lanceur de l’invité est refusé').toBeTruthy();
     expect(puissance(vueInvite), 'chez l’invité, il est offert').toBeNull();
-    banc.getState().jetRegler('cast', 'effetCritique', 'puissance');
+    banc.getState().jetRegler('incantation', 'effetCritique', 'puissance');
     expect(banc.getState().pendingCast!.critChoice, 'l’hôte ne tranche pas l’effet du lanceur de l’invité').toBeUndefined();
-    guest.sendIntent('jetRegler', ['cast', 'effetCritique', 'puissance']);
+    guest.sendIntent('jetRegler', ['incantation', 'effetCritique', 'puissance']);
     expect(banc.getState().pendingCast!.critChoice).toBe('puissance');
   });
 });

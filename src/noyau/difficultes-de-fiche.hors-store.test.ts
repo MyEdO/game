@@ -107,11 +107,11 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     restaurerFiche();
   });
 
-  it('Course : `ouvrirLaCourse` pose le Test de `course`, `jetLancer@run` le jette', () => {
+  it('Course : `ouvrirLaCourse` pose le Test de `course`, `jetLancer@course` le jette', () => {
     const { H } = auCombat();
     g().ouvrirLaCourse({ x: 16, y: 10 });
     expect(g().pendingRun!.test).toMatchObject(testDeFiche('course', 'courir'));
-    g().jetLancer('run');
+    g().jetLancer('course');
     expect(g().pendingRun!.result!.target).toBe(cible(H, 'course', 'courir'));
   });
 
@@ -138,15 +138,15 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     expect(g().pendingRun!.test).toMatchObject({ skill: { id: 'chevaucher' } });
   });
 
-  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetLancer@fall` le jette', () => {
+  it('Chute volontaire : `franchirLArete` pose le Test de `chute`, `jetLancer@chute` le jette', () => {
     const s = emptyScene('scene-test', 4, 4);
     s.layers[0].height = Array.from({ length: 16 }, (_, i) => (i === 2 ? 4 : 0));
     const hero = heros();
     banc.setState({ party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingCascade: null });
     g().franchirLArete({ x: 2, y: 1 });
     expect(g().pendingFall!.test).toMatchObject(testDeFiche('chute', 'tenter'));
-    g().jetRegler('fall', 'tenter', true, hero.id);
-    g().jetLancer('fall', hero.id);
+    g().jetRegler('chute', 'tenter', true, hero.id);
+    g().jetLancer('chute', hero.id);
     expect(g().pendingFall!.participants[0].result!.target).toBe(cible(hero, 'chute', 'tenter'));
   });
 
@@ -159,7 +159,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     }
   });
 
-  it('Fuite : `jetRegler(\'disengage\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetLancer@flee` le jette', () => {
+  it('Fuite : `jetRegler(\'desengagement\', \'fuir\')` pose le Test de `fuite` sur le slot du fuyard, `jetLancer@fuite` le jette', () => {
     const { H, E } = auCombat();
     E.characteristics['capacite-de-combat'] = 90;
     H.engagedWith = [E.id];
@@ -168,9 +168,9 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
       battle: { ...g().battle! },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
-    g().jetRegler('disengage', 'fuir', true);
+    g().jetRegler('desengagement', 'fuir', true);
     expect(fleeTouche(g().pendingDisengage!)!.test).toMatchObject(testDeFiche('fuite', 'touche-en-fuyant'));
-    g().jetLancer('flee', H.id);
+    g().jetLancer('fuite', H.id);
     expect(fleeTouche(g().pendingDisengage!)!.jet!.target).toBe(cible(H, 'fuite', 'touche-en-fuyant'));
   });
 
@@ -180,7 +180,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     banc.setState({ battle: { ...g().battle!, reachable: new Map([['11,10', 1]]) } });
     g().cliquerLaCase({ x: 11, y: 10 }, undefined, { confirm: true });
     expect(g().pendingApproach!.test).toMatchObject(testDeFiche('calme-d-approche', 'se-rapprocher'));
-    g().jetLancer('approach');
+    g().jetLancer('approche');
     expect(g().pendingApproach!.result!.target).toBe(cible(H, 'calme-d-approche', 'se-rapprocher'));
   });
 
@@ -235,9 +235,9 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     itl.perHero[hero.id] = { ...itl.perHero[hero.id], fx: undefined, left: 3 };
     banc.setState({ interlude: { ...itl } });
     pratiquer(g, hero.id, 'tester-objets-magiques', { itemUid: 'art1' });
-    g().jetLancer('activity');
+    g().jetLancer('activite');
     banc.setState({ pendingActivity: { ...g().pendingActivity!, roll: 98, success: false, sl: -5 } });
-    g().jetValider('activity');
+    g().jetValider('activite');
     expect(g().pendingCorruption).toMatchObject({ nature: 'physique', test: testDeFiche('influences-corruptrices', 'physique') });
   });
 

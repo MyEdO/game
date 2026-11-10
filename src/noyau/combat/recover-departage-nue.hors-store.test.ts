@@ -81,7 +81,7 @@ describe('LDB 12 l.160 — la récupération opposée départage sur les valeurs
     for (let seed = 1; seed <= 200 && !tie; seed += 1) {
       seedBattleRng(seed);
       empetreCharge();
-      banc.getState().jetLancer('recover');
+      banc.getState().jetLancer('recuperation');
       const cur = banc.getState().pendingStateRecovery!;
       if (cur.roll && cur.opponentRoll && cur.roll.sl === cur.opponentRoll.sl) {
         tie = { actorSL: cur.roll.sl, oppSL: cur.opponentRoll.sl };
@@ -109,8 +109,8 @@ describe('LDB 12 l.160 — la récupération opposée départage sur les valeurs
     const avant = REPLIS_DEUX_CIBLES.count;
     seedBattleRng(7);
     empetreCharge();
-    banc.getState().jetLancer('recover');
-    banc.getState().jetRelancer('recover'); // Chance : re-oppose contre le jet FIGÉ de l'entrave
+    banc.getState().jetLancer('recuperation');
+    banc.getState().jetRelancer('recuperation'); // Chance : re-oppose contre le jet FIGÉ de l'entrave
     expect(REPLIS_DEUX_CIBLES.count, 'un départage du flux est retombé sur les cibles').toBe(avant);
   });
 });

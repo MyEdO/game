@@ -280,7 +280,7 @@ describe('fenetreChoisir', () => {
       expect(pa.gear).toEqual({ scope: 'loot', uid: 'L1' });
       banc.getState().fenetreChoisir('butin', 'ligne', 'L0', a);
       banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-      banc.getState().jetValider('appraise');
+      banc.getState().jetValider('evaluation');
       expect(banc.getState().pendingLoot?.gear.map((g) => [g.uid, g.effect.identified]), 'la dague, révélée').toEqual([['L1', undefined]]);
     });
 

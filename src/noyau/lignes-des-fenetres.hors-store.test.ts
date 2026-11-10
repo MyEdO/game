@@ -23,7 +23,7 @@ describe('Enfoncer une porte (EDO 11 l.89-95)', () => {
     const h = heros({ skills: [cc('escrime', 20), cc('bagarre', 0)] });
     banc.setState({ battle: null, party: [h], pendingForceDoor: null, pendingCascade: null, suspendedCascades: [], flags: {} } as never);
     banc.getState().enfoncerLaPorte({ label: 'Porte de la cave', doorBE: 4, doorB: 10, heroIds: [h.id] });
-    banc.getState().jetLancer('forceDoor', h.id);
+    banc.getState().jetLancer('enfoncerLaPorte', h.id);
     expect(banc.getState().pendingForceDoor!.participants[0].result!.target).toBe(40);
   });
 
@@ -33,8 +33,8 @@ describe('Enfoncer une porte (EDO 11 l.89-95)', () => {
     const h = heros({ skills: [cc('base', 10), cc('escrime', 20)], weapons: [hache(), unarmedWeapon()] });
     banc.setState({ battle: null, party: [h], pendingForceDoor: null, pendingCascade: null, suspendedCascades: [], flags: {} } as never);
     banc.getState().enfoncerLaPorte({ label: 'Porte', doorBE: 0, doorB: 10, heroIds: [h.id] });
-    banc.getState().jetRegler('forceDoor', 'arme', 'hache', h.id);
-    banc.getState().jetLancer('forceDoor', h.id);
+    banc.getState().jetRegler('enfoncerLaPorte', 'arme', 'hache', h.id);
+    banc.getState().jetLancer('enfoncerLaPorte', h.id);
     expect(banc.getState().pendingForceDoor!.participants[0].result!.target).toBe(50);
   });
 

@@ -371,7 +371,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
       const cur = courant();
       if (cur?.kind === 'tavern-throw') {
         vus.push(board!.camps[0].score);
-        for (const row of cur.participants ?? []) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
+        for (const row of cur.participants ?? []) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       }
       get().jetValider('cascade');
       await tick();

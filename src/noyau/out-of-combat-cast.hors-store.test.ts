@@ -9,7 +9,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Incantation HORS COMBAT (couture D, LDB 21/Magie) — RÉUTILISE le flux d'incantation existant
- * (pas de duplication) : `pendingCast` + jetLancer('cast')/…/jetValider('cast') + applyCast, rendus optionnels au
+ * (pas de duplication) : `pendingCast` + jetLancer('incantation')/…/jetValider('incantation') + applyCast, rendus optionnels au
  * combat (acteurs résolus dans `battle?.combatants ?? party` ; sortie vers `journal` hors combat).
  * Les Projectiles magiques (offensifs) restent réservés au combat.
  */
@@ -28,7 +28,7 @@ function forceCast(casterId: string) {
   const h = banc.getState().party.find((c) => c.id === casterId)!;
   if (!banc.getState().pendingCast!.result!.cast) {
     h.resilience = (h.resilience ?? 0) + 1;
-    banc.getState().jetForcerLaReussite('cast');
+    banc.getState().jetForcerLaReussite('incantation');
   }
 }
 
@@ -49,10 +49,10 @@ describe('Incantation hors combat (couture D)', () => {
     expect(pc!.casterId).toBe(priest.id);
     expect(pc!.targetId).toBe(ally.id);
 
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     forceCast(priest.id);
     const before = banc.getState().party.find((h) => h.id === ally.id)!.wounds.current;
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
 
     const after = banc.getState().party.find((h) => h.id === ally.id)!.wounds.current;
     expect(after).toBe(before + 1); // +1 PB (effet modélisé : parseHeal)
@@ -75,7 +75,7 @@ describe('Incantation hors combat (couture D)', () => {
     expect(banc.getState().pendingCast).toBeNull();
   });
 
-  it('Focalisation hors combat (sort d\'Arcane) : focaliserLeSort ouvre la modale ; jetValider@focus accumule caster.focus, journalisé, sans combat', () => {
+  it('Focalisation hors combat (sort d\'Arcane) : focaliserLeSort ouvre la modale ; jetValider@focalisation accumule caster.focus, journalisé, sans combat', () => {
     const wiz = herosDeScenario(idsDeTest, 'sorcier');
     wiz.spells = ['arme-aethyrique', ...(wiz.spells ?? [])];
     const foc = wiz.skills.find((s) => s.id === 'focalisation');
@@ -89,9 +89,9 @@ describe('Incantation hors combat (couture D)', () => {
     expect(pf).toBeTruthy();
     expect(pf!.casterId).toBe(wiz.id);
 
-    banc.getState().jetLancer('focus');
+    banc.getState().jetLancer('focalisation');
     expect(banc.getState().pendingFocus!.result).toBeTruthy();
-    banc.getState().jetValider('focus');
+    banc.getState().jetValider('focalisation');
 
     const after = banc.getState().party.find((h) => h.id === wiz.id)!;
     expect(after.focus?.spell).toBe('arme-aethyrique'); // accumulation enregistrée sur le héros (id stable)

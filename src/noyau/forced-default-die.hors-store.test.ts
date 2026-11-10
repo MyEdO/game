@@ -55,7 +55,7 @@ function setupAttack() {
 describe('attaque — le dé par défaut est le MEILLEUR, pas le dé raté', () => {
   it('un 88 raté ne survit PAS à la Résilience : dé = bestForcedRoll(45), DR maximal', () => {
     setupAttack();
-    banc.getState().jetForcerLaReussite('attack');
+    banc.getState().jetForcerLaReussite('attaque');
     const res = banc.getState().pendingAttack!.result!;
     const die = bestForcedRoll(45);
     expect(res.attackerRoll).toBe(die);
@@ -65,7 +65,7 @@ describe('attaque — le dé par défaut est le MEILLEUR, pas le dé raté', () 
 
   it('aucun Coup Critique FABRIQUÉ par le double du dé raté (88 → isDouble hérité)', () => {
     setupAttack();
-    banc.getState().jetForcerLaReussite('attack');
+    banc.getState().jetForcerLaReussite('attaque');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll).not.toBe(88);
     expect(res.critical).toBe(false); // 01 n'est pas un double — le Critique reste un CHOIX (dé 11)
@@ -113,11 +113,11 @@ describe('incantation — le dé par défaut ne gonfle pas le DR (sonde `cast` p
 
   it('le dé PAR DÉFAUT donne EXACTEMENT le même DR que le même dé choisi à la main', () => {
     setupCast();
-    banc.getState().jetForcerLaReussite('cast');
+    banc.getState().jetForcerLaReussite('incantation');
     const parDefaut = banc.getState().pendingCast!.result!;
     setupCast();
-    banc.getState().jetForcerLaReussite('cast');
-    banc.getState().jetImposerLeResultat('cast', bestForcedRoll(45));
+    banc.getState().jetForcerLaReussite('incantation');
+    banc.getState().jetImposerLeResultat('incantation', bestForcedRoll(45));
     const choisi = banc.getState().pendingCast!.result!;
     expect(parDefaut.roll).toBe(choisi.roll);
     // Un +1 DR fantôme au-dessus du maximum nourrirait la Surincantation sans rien dans la source.
@@ -139,7 +139,7 @@ describe('plancher de NI — la Résilience fait PARTIR le sort (sonde S3 promue
 
   it('un sort à NI élevé PART quand même (LDB 17 l.75 : « réaliser à la perfection un Sort »)', () => {
     setupSpell('maitre-de-la-bete'); // NI 10
-    banc.getState().jetForcerLaReussite('cast');
+    banc.getState().jetForcerLaReussite('incantation');
     const r = banc.getState().pendingCast!.result!;
     expect(r.cast).toBe(true);
     expect(r.sl).toBeGreaterThanOrEqual(10); // le DR atteint le NI : le plancher est SERVI
@@ -147,7 +147,7 @@ describe('plancher de NI — la Résilience fait PARTIR le sort (sonde S3 promue
 
   it('à NI 0, aucun +1 fantôme : le DR est EXACTEMENT celui du meilleur dé', () => {
     setupSpell('drain'); // NI 0
-    banc.getState().jetForcerLaReussite('cast');
+    banc.getState().jetForcerLaReussite('incantation');
     const r = banc.getState().pendingCast!.result!;
     expect(r.sl).toBe(evaluateTest(bestForcedRoll(45), 45).sl);
   });

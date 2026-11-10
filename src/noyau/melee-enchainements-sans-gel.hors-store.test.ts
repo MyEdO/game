@@ -61,7 +61,7 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     const cible = targetingHolder(s);
     if (cible && pickActiveModalKey(s) === 'cascade') doubleMain.push(`${cible} sur ${cur?.id}`);
     if (s.pendingRoundStart) { g().fenetreValider('debutDuRound'); continue; }
-    if (s.pendingFateSave) { g().fenetreChoisir('destin', 'issue', 'eviter'); if (g().pendingFateSave) g().fenetreChoisir('destin', 'issue', 'survivre'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetLancer('handGate'); else g().jetValider('handGate'); continue; }
+    if (s.pendingFateSave) { g().fenetreChoisir('destin', 'issue', 'eviter'); if (g().pendingFateSave) g().fenetreChoisir('destin', 'issue', 'survivre'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetLancer('mainEnsanglantee'); else g().jetValider('mainEnsanglantee'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetLancer('defense'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().jetValider('defense'); continue; }
     if (cible === 'pendingDualStrike' && !s.pendingHandGate) {
@@ -78,14 +78,14 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
       if (!g().pendingAttack) g().fenetreFermer('frappeMortelle');
       continue;
     }
-    if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetLancer('attack'); else g().jetValider('attack'); continue; }
-    if (cur?.jet === 'fumble') { avanceEtapeCascade(g); continue; }
+    if (cur?.jet === 'attaque' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetLancer('attaque'); else g().jetValider('attaque'); continue; }
+    if (cur?.jet === 'maladresse') { avanceEtapeCascade(g); continue; }
     if (c && !cur?.jet) { avanceEtapeCascade(g); banc.avancer(50); continue; }
     if (actif && (actif.kind === 'hero' || s.net.gmSeat != null) && !ouverts().length && s.battle.turn >= 0) {
       const t = !s.battle.acted && s.battle.combatants.find((x) => x.kind !== actif.kind && vivant(x) && adj(actif, x));
       if (t) {
         openAttackCascade(g, banc.setState, { attackerId: actif.id, targetId: t.id, location: null, result: null }, 'Attaque', 'action/attack');
-        if (actif.id === 'h1' || actif.id === 'e3') g().jetRegler('attack', 'deuxArmes', true);
+        if (actif.id === 'h1' || actif.id === 'e3') g().jetRegler('attaque', 'deuxArmes', true);
         continue;
       }
       g().terminerLeTour(); banc.avancer(100); continue;

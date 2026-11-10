@@ -88,10 +88,10 @@ describe('le groupe en exploration', () => {
     const t = table(fixture('croisee-ecuries.jsonl'));
     t.jouer(...saut.gestes.map((x) => verbe(x.verbe, ...x.args)));
     const pid = /pid (\S+)\)/.exec(t.lire('vue').texte)![1];
-    const r = t.jouer(verbe('jetLancer', 'fall', pid));
+    const r = t.jouer(verbe('jetLancer', 'chute', pid));
     expect(r.erreur, r.texte).toBe('regle');
     expect(r.texte.split('\n  ').join(' ')).toMatch(new RegExp(`chaque tombant déclare d’abord s’il tente le Test et s’il se suspend d’abord ; reste à déclarer : [^(]+ \\(${pid}\\)`));
-    expect(t.jouer(verbe('jetRegler', 'fall', 'suspendre', false, pid), verbe('jetRegler', 'fall', 'tenter', false, pid)).erreur).toBeNull();
+    expect(t.jouer(verbe('jetRegler', 'chute', 'suspendre', false, pid), verbe('jetRegler', 'chute', 'tenter', false, pid)).erreur).toBeNull();
     expect(/pid (\S+)\)/.exec(t.lire('vue').texte)?.[1], 'le pid passe au tombant suivant').not.toBe(pid);
   });
 

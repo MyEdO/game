@@ -37,7 +37,7 @@ describe('Désengagement après avoir attaqué (option A — LDB 15 l.47)', () =
     expect(pd!.canSacrifice).toBe(true);
     expect(pd!.refusEsquive).toBe(t('agate.actionSpent')); // Esquive indisponible (coûte l'Action, LDB 15 l.49) → pas de boucle infinie
 
-    banc.getState().jetRegler('disengage', 'sacrifier', true);
+    banc.getState().jetRegler('desengagement', 'sacrifier', true);
     st = banc.getState();
     expect(st.battle!.action).toBeNull(); expect(st.battle!.reachable.size).toBeGreaterThan(0); // mouvement libre rouvert (budget posé)
     expect(st.battle!.acted).toBe(true); // l'option A NE consomme PAS l'Action (préservée)

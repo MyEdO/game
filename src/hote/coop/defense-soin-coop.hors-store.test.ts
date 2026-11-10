@@ -72,8 +72,8 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
     combat(banc, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })], 0);
     const { guest, chezLInvite } = table(banc);
     openAttackCascade(banc.getState, banc.setState, { attackerId: 'e', targetId: 'h', location: null, result: null, weaponUid: 'ra' }, 'Attaque', 'action/attack');
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const vueHote = fenetreDeDefense(banc.getState());
     expect(vueHote?.reaction, 'chemin : la Défense du héros de l’invité s’ouvre chez l’hôte').toBeTruthy();
     expect(auMasque(fenetreDeDefense(chezLInvite()))).toEqual(auMasque(vueHote));
@@ -95,7 +95,7 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
     const vueInvite = fenetreDuSoin(chezLInvite());
     expect(auMasque(vueInvite)).toEqual(auMasque(vueHote));
     expect(vueInvite!.mode.options.map((o) => o.refus === null), 'chez l’invité, les mêmes actes s’offrent').toEqual(vueHote!.mode.options.map((o) => o.refus === null));
-    guest.sendIntent('jetRegler', ['heal', 'mode', 'hemorragie']);
+    guest.sendIntent('jetRegler', ['soins', 'mode', 'hemorragie']);
     expect(banc.getState().pendingHeal!.mode, 'l’Hémorragie de l’invité est posée chez l’hôte').toBe('hemorragie');
   });
 });

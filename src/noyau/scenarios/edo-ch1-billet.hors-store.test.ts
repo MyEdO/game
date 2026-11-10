@@ -87,9 +87,9 @@ function marchander(joueur: (cible: number) => number, vendeur: number): Bargain
   const pb = get().pendingBargain!;
   expect(pb.contrepartie).toEqual({ kind: 'billet', routeId: T1, vehicule: 'diligence', depuis: 'la-diligence', titre: t('out.bargainTitreBillet') });
   imposerLesD100(joueur(pb.playerSkill), vendeur);
-  get().jetLancer('bargain');
+  get().jetLancer('marchandage');
   vi.restoreAllMocks();
-  get().jetValider('bargain');
+  get().jetValider('marchandage');
   return get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')];
 }
 /** Victoire nette de 1 à 5 DR : le joueur réussit d'un Degré (cible − 10), le vendeur fait 27 sur 27 (DR 0). */
@@ -170,7 +170,7 @@ describe('(c) un seul Test de Marchandage par billet', () => {
     expect(pb.opposant.valeur).toBe(skillBaseValue(gunnar, { skill: { id: 'marchandage' } }));
     expect(pb.opposant.valeur).toBe(27); // Sociabilité 27, sans Augmentation en Marchandage
     vi.restoreAllMocks();
-    get().jetAnnuler('bargain');
+    get().jetAnnuler('marchandage');
     marchander(() => 99, 1);
     expect(get().pendingBargain).toBeNull();
     expect(get().marchandagesDeBillet[cleDeBillet(T1, 'diligence', 'la-diligence')]?.won).toBe(false);

@@ -1,7 +1,7 @@
 /**
  * #491 — Option « Vents Tourbillonnants » (LDB 46 l.179-190), câblage STATE : tirage à l'ouverture du
  * combat (`windsOfMagicAtCombatStart`), re-tirage au Round (grain `round`, `combat/roundHooks.ts`),
- * mod injecté aux Tests d'Incantation/Focalisation (`jetLancer('cast')`/`jetLancer('focus')`), détection Seconde vue.
+ * mod injecté aux Tests d'Incantation/Focalisation (`jetLancer('incantation')`/`jetLancer('focalisation')`), détection Seconde vue.
  * Le moteur PUR (table, tirage seedé, `hasSecondeVue`) est couvert par `engine/windsOfMagic.test.ts`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -116,7 +116,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
     const w = battle.combatants.find((c) => c.kind === 'hero')!;
     banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId: 'arc-de-t-essla', missile: false, focused: false, result: null } });
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     return banc.getState().pendingCast!.result!.target;
   }
 
@@ -136,7 +136,7 @@ describe('#491 — Vents Tourbillonnants, câblage state', () => {
     w.spells = ['arc-de-t-essla'];
     banc.setState({ battle: { ...battle, windsOfMagic: { roll: 5, mod, revealed: false } } });
     banc.setState({ pendingFocus: { casterId: w.id, spellId: 'arc-de-t-essla', result: null } });
-    banc.getState().jetLancer('focus');
+    banc.getState().jetLancer('focalisation');
     return banc.getState().pendingFocus!.result!.target;
   }
 

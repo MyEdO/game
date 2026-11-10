@@ -59,7 +59,7 @@ export function soutienDe(st: LigneJugeable): number {
 
 /** Dé NATUREL que le banc POSE sur une rangée de Test (étape mono, ou `rangee` d'une bande), sur la TABLE
  *  ou sur le DÉ NU d'une étape (#1508) — par l'option « Dés fixés » (`jetImposerLeResultat('cascade')` /
- *  `jetImposerLeResultat('cascadeBatch')` / `jetImposerLeResultat('cascadeTirage')`), le geste d'un
+ *  `jetImposerLeResultat('cascadeEnBande')` / `jetImposerLeResultat('cascadeTirage')`), le geste d'un
  *  joueur. `undefined` = le dé est lancé ; `null` = le banc REFUSE de lancer le dé de TABLE ou de DÉ NU,
  *  qui ne tombe alors que si le socle le résout lui-même (sur une rangée de Test, `null` vaut `undefined`).
  *  L'étape suffit à dire quel dé : `jetteLeDe` LÈVE sur une étape qui porte à la fois `table` et `de`, si
@@ -90,7 +90,7 @@ function jetteLeDe(get: () => Jeu, cur: CascadeStep, poser?: PoseDe): void {
  * JOUE UNE ÉTAPE de la cascade active, comme un joueur : elle est LANCÉE (bande → chaque rangée non
  * roulée ; table ou dé nu → son dé ; jet → son dé — chacun POSÉ par `poser` s'il le fixe), TRANCHÉE
  * (choix → `choisir`, sinon son défaut authoré), puis VALIDÉE ; une Maladresse se tire et s'applique par les verbes
- * de son flux (`jetLancer('fumble')`, `jetValider('fumble')`). Rend le `kind` de l'étape jouée
+ * de son flux (`jetLancer('maladresse')`, `jetValider('maladresse')`). Rend le `kind` de l'étape jouée
  * (`undefined` si aucune cascade active).
  *
  * Pilote CANONIQUE de la cascade en test (#1426) : une copie par fichier dérive, et c'est ainsi qu'un
@@ -106,9 +106,9 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
   const p = get().pendingCascade;
   if (!p) return undefined;
   const cur = p.participants[p.cursor];
-  if (cur?.jet === 'fumble') {
-    get().jetLancer('fumble');
-    get().jetValider('fumble');
+  if (cur?.jet === 'maladresse') {
+    get().jetLancer('maladresse');
+    get().jetValider('maladresse');
     return cur.kind;
   }
   if (cur) {
@@ -124,9 +124,9 @@ export function avanceEtapeCascade(get: () => Jeu, poser?: PoseDe, choisir?: Cho
     if (cur.participants) {
       for (const part of cur.participants) {
         if (part.result) continue;
-        get().jetLancer('cascadeBatch', part.id);
+        get().jetLancer('cascadeEnBande', part.id);
         const n = poser?.(cur, part);
-        if (n != null) get().jetImposerLeResultat('cascadeBatch', n, part.id);
+        if (n != null) get().jetImposerLeResultat('cascadeEnBande', n, part.id);
       }
     }
     jetteLeDe(get, cur, poser);
