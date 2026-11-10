@@ -750,6 +750,13 @@
     "color": "#7a7670"
   },
   {
+    "id": "fourrure-rousse",
+    "type": "materials",
+    "label": "Fourrure rousse",
+    "domain": "couleur",
+    "color": "#94562e"
+  },
+  {
     "id": "plume-rousse",
     "type": "materials",
     "label": "Plume rousse",

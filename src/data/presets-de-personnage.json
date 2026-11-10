@@ -251,5 +251,86 @@
         "id": "bois-brun"
       }
     }
+  },
+  {
+    "id": "pretre",
+    "type": "presets-de-personnage",
+    "label": "Prêtre",
+    "source": {
+      "book": "livre-de-base",
+      "page": 91,
+      "note": "Illustration LDB page 93 du PDF, folio imprimé 91 (`data-folio=\"91\"`, « 08 - Statut.md » l.2357), hors dépôt, et son contrat d’éléments (#3867). Carrière Prêtre (`pretre`), dont les possessions d’Initié donnent « symbole religieux, robes » (LDB 08 l.2391) et celles de Prêtre « livre (Religion) » (LDB 08 l.2401), et la classe Lettrés la `bourse` (LDB 05 l.562). La robe est la variante `bure` de la pièce `robe`, fermée, aux manches en cloche et à l’ourlet effilochés ; le col est la pièce `col-de-fourrure` ; la ceinture est sa variante `cordeliere`, la corde nouée de l’illustration ; la bandoulière de cuir sur l’épaule droite est le `baudrier`. Le symbole religieux pend au cou (`cou`, rangement de son trapping) ; il porte l’emblème `marteau-de-sigmar`, posé au montage sur sa surface `blason`, jamais modelé (#3111). Le livre de prières et la faucille pendent à la hanche gauche (`ceinture_g`), le livre sur le côté, la faucille glissée derrière lui ; la lecture de la lame en croissant comme une `faucille` est une hypothèse (#3867). Le bâton de combat, crosse au-dessus de l’épaule droite, est rangé à son rangement (`epaule_d`), et le rouleau de couchage en travers du haut du dos (`sac-de-couchage`, `dos`) ; les bandages des avant-bras sont l’objet `bandages`, que son ensemble habille de la pièce `bandages`. Omis : le camail de mailles au cou (aucune pièce, et la carrière ne donne aucune armure), le bouquet d’herbes de la main gauche (aucun objet), la feuille de parchemin pendue devant, les sceaux de cire et leurs rubans, les cicatrices (motifs peints). Pieds nus : aucune chaussure, et la bure ne couvre pas les mollets. La coiffure est `calvitie-et-barbe-rase`, la couronne de cheveux ras dégarnie au sommet et la barbe de quelques jours de l’illustration. Le sexe est masculin, celui de l’illustration. La corpulence vaut 0,8, ventre et visage ronds de l’illustration (hypothèse, #3867). Les couleurs sont lues sur l’illustration, chacune la plus proche du nuancier, qui reçoit pour elle la fourrure rousse qu’il n’avait pas : teint clair, cheveux et barbe gris, bure ocre, col de fourrure rousse, cuir brun, symbole d’argent, couverture du livre bleu-gris (`accent`), bâton de bois brun."
+    },
+    "race": {
+      "id": "humain"
+    },
+    "sex": "M",
+    "build": 0.8,
+    "tete": {
+      "id": "humain"
+    },
+    "coiffure": {
+      "id": "calvitie-et-barbe-rase"
+    },
+    "pieces": [
+      "robe",
+      "col-de-fourrure",
+      "ceinture",
+      "baudrier"
+    ],
+    "variantesPieces": {
+      "robe": {
+        "id": "bure"
+      },
+      "ceinture": {
+        "id": "cordeliere"
+      }
+    },
+    "objets": [
+      "symbole-religieux",
+      "livre-religion",
+      "faucille",
+      "bourse",
+      "baton-de-combat",
+      "sac-de-couchage",
+      "bandages"
+    ],
+    "rangementsObjets": {
+      "livre-religion": {
+        "id": "ceinture_g"
+      },
+      "faucille": {
+        "id": "ceinture_g"
+      }
+    },
+    "embleme": {
+      "id": "marteau-de-sigmar"
+    },
+    "couleurs": {
+      "peau": {
+        "id": "peau-claire"
+      },
+      "cheveux": {
+        "id": "cheveux-gris"
+      },
+      "vet1": {
+        "id": "tissu-ocre"
+      },
+      "cuir": {
+        "id": "cuir-brun"
+      },
+      "metal": {
+        "id": "argent"
+      },
+      "accent": {
+        "id": "tissu-bleu-gris"
+      },
+      "bois": {
+        "id": "bois-brun"
+      },
+      "fourrure": {
+        "id": "fourrure-rousse"
+      }
+    }
   }
 ]

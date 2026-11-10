@@ -155,6 +155,21 @@
     "label": "Amulette"
   },
   {
+    "id": "symbole_religieux",
+    "type": "apparences",
+    "label": "Symbole religieux"
+  },
+  {
+    "id": "livre",
+    "type": "apparences",
+    "label": "Livre"
+  },
+  {
+    "id": "faucille",
+    "type": "apparences",
+    "label": "Faucille"
+  },
+  {
     "id": "cimeterre",
     "type": "apparences",
     "label": "Cimeterre"
