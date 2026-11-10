@@ -141,12 +141,11 @@ describe('#1318 E4/C4-δ3 — parité des champs déclarés de la couche activit
     expect(lieuxServices.filter((s) => s.opensScreen && !s.enterLabel)).toEqual([]);
   });
 
-  it('MALADRESSES — `codexCategory` : exactement les trois tableaux du Livre de base', () => {
-    expect(MISCAST_TABLES.filter((t) => t.codexCategory).map((t) => `${t.id}:${t.codexCategory}`)).toEqual([
-      'miscast-mineure:miscastMinor', 'miscast-majeure:miscastMajor', 'miscast-colere:miscastWrath',
+  it('MALADRESSES — `codexCategory` : chaque table tirée expose ses lignes au Codex (#1667)', () => {
+    expect(MISCAST_TABLES.map((t) => `${t.id}:${t.codexCategory}`)).toEqual([
+      'miscast-mineure:miscastMinor', 'miscast-majeure:miscastMajor',
+      'miscast-mineure-vdm:miscastMinorVdm', 'miscast-majeure-vdm:miscastMajorVdm', 'miscast-colere:miscastWrath',
     ]);
-    // Les deux tables RÉVISÉES par les Vents de Magie n'en ont pas (un renvoi y serait mort).
-    expect(MISCAST_TABLES.filter((t) => !t.codexCategory).map((t) => t.id)).toEqual(['miscast-mineure-vdm', 'miscast-majeure-vdm']);
   });
 
   it('INCIDENTS DE MONTE — chaque suite mécanique porte exactement les entrées que le moteur nommait (EDOC 07)', () => {

@@ -9,7 +9,6 @@ Label/font_sizes/font_size = 22
 [node name="Monde" instance=ExtResource("1_monde")]
 
 [node name="Paysage" type="PanelContainer" parent="Cadre/Marges/Colonne/Contenu"]
-size_flags_vertical = 3
 theme_type_variation = &"Paysage"
 
 [node name="Marges" type="MarginContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage"]
@@ -53,11 +52,16 @@ script = ExtResource("2_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("voyage/etape/")
 
-[node name="Heros" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu"]
+[node name="Defilement" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Heros" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
+size_flags_horizontal = 3
 theme_override_constants/h_separation = 32
 theme_override_constants/v_separation = 12
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Heros"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Heros"]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("jets/")
+ids = PackedStringArray("heros/", "jets/")

@@ -449,6 +449,8 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   ...shipCritPools(RIVER_CRIT_SET, 'riverCriticals'),
   miscastMinor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure').some((r) => r.id === id),
   miscastMajor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure').some((r) => r.id === id),
+  miscastMinorVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm').some((r) => r.id === id),
+  miscastMajorVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm').some((r) => r.id === id),
   miscastWrath: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere').some((r) => r.id === id),
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),

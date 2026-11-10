@@ -1019,7 +1019,7 @@ async function parcoursVoyage() {
   await capturer('3534-voyage-1-jets')
   for (let k = 0; k < 4; k++) {
     await cliquerBouton('Lancer')
-    await attendreLaVue(`v.zones['fenetre.corps'].filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
+    await attendreLaVue(`v.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [e])).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
   }
   noter(`jets tombés : ${corps(await vue())}`)
   await capturer('3534-voyage-2-tombes')
