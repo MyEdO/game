@@ -101,7 +101,7 @@ clip_tabs = false
 [node name="Zone" type="Node" parent="Interface/Outils/Defilement/Pile/Inspecteur/Combat"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
-ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/upgrades", "valeur/upgrades/", "inventaire", "inventaire/", "sorts/", "profil/")
+ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/statblock", "valeur/statblock/", "valeur/upgrades", "valeur/upgrades/", "inventaire", "inventaire/", "sorts/", "profil/")
 
 [node name="Rôles" type="VBoxContainer" parent="Interface/Outils/Defilement/Pile/Inspecteur"]
 

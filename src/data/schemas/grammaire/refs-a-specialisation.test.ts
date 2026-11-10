@@ -34,7 +34,7 @@ const nomDeRacine = (rang: number): string => DEFS_DE_DOCUMENT[rang]?.file ?? `o
 
 /** STOCK : chaque site encore hors de la fabrique, et ce qui le solde. Une entrée de plus ou périmée rougit. */
 const STOCK: Readonly<Record<string, string>> = {
-  // `talentRefSchema` (`id` en `z.string()`) : réf de Talent de statbloc, `refOuSpec('talent', { times })` à régime `choix`.
+  // `talentRefSchema` (`id` en `idDe('talent', …, { nue: true })`) : réf de Talent de statbloc, `refOuSpec('talent', { times })` à régime `choix`.
   'creatures.json [].talents[]': '#1621',
 };
 

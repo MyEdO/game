@@ -13,6 +13,7 @@
  * de `refusDeLEntite`.
  */
 import { describe, expect, it } from 'vitest';
+import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
 import { avertissementsDeLaSession, champDuMessage, editer, groupesDuLieu, ouvrirLEdition, planDeLaVolee, sceneEditee, vueDeLaScene, type GesteDEdition, type SessionDEdition } from './session';
@@ -22,14 +23,16 @@ import { flowFromEffects } from '../monde/flow';
 import { fauteDAppui } from '../monde/poseDuDecor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import { garanti } from '../../lib/garanti';
-import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../sceneEdit';
+import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDuPorteur } from '../sceneEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
-import { capsOfferts, choixDuChamp, entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
+import { capsOfferts, choixDuChamp, entiteDeLaSelection, formulaireDe, segmentDeLaSelection } from '../sceneEditLecture';
+import { champsDeclares, choixDuNoeud, elementDuNoeud } from '../codex/editFields';
+import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { refusDeLaValeur } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, spells, traits } from '../../data';
+import { creatures, findCreatureById, spells, talents, traits } from '../../data';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';
@@ -37,13 +40,15 @@ import { seatSlotsOf } from '../monde/seating';
 import { props } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
+import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 
-const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
+/** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
+const NARRATIF_VIDE = emptyNarratif();
+
+const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
-/** Aucun preset de PNJ : les fiches de ces tests ne nomment que le Bestiaire. */
-const SANS_PRESET = (): undefined => undefined;
 
 describe('session d’édition', () => {
   it('ajouter une couche l’édite ; annuler l’ajout ramène au rez, rétablir garde le rez', () => {
@@ -276,13 +281,13 @@ describe('session d’édition', () => {
     const valeur = (chemin: Segment[], v: unknown): GesteDEdition => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, valeur: v });
     const choisis = jouer(pose, valeur(['combat'], {}), valeur(['combat', 'spells'], ['bondissant-comme-un-cerf']));
     const ent = entiteDeLaSelection(sceneEditee(choisis), choisis.sel)!;
-    const offerts = (rang: number) => choixDuChamp('entite', ent, ['combat', 'spells', rang], SANS_PRESET)!.map((o) => o.valeur);
-    const fiche = ficheDEntite(ent, SANS_PRESET);
+    const offerts = (rang: number) => choixDuChamp('entite', ent, ['combat', 'spells', rang], NARRATIF_VIDE)!.map((o) => o.valeur);
+    const fiche = ficheDEntite(ent, presetDuNarratif(NARRATIF_VIDE));
     const listes = listesDeSorts(fiche);
     expect(offerts(1), 'au rang neuf : les sorts de ses listes, hors du choisi').toEqual(spells.filter((sp) => sp.id !== 'bondissant-comme-un-cerf' && listes.some((l) => l.admet(sp))).map((sp) => sp.id));
     expect(offerts(0), 'au rang du choisi : le choisi reste offert').toContain('bondissant-comme-un-cerf');
     expect(offerts(1), 'un Miracle d’un autre dieu n’est pas offert').not.toContain('feu-de-l-ame');
-    expect(choixDuChamp('entite', ent, ['combat', 'spells', 1], SANS_PRESET)!.every((o) => o.refus === (refusDesSortsChoisis(fiche, ['bondissant-comme-un-cerf', o.valeur as string]) ?? null))).toBe(true);
+    expect(choixDuChamp('entite', ent, ['combat', 'spells', 1], NARRATIF_VIDE)!.every((o) => o.refus === (refusDesSortsChoisis(fiche, ['bondissant-comme-un-cerf', o.valeur as string]) ?? null))).toBe(true);
   });
 
   it('une troupe : N copies sur les cases libres les plus proches, ids neufs, profils tirés, rencontres héritées, un seul cran (#3704)', () => {
@@ -374,9 +379,9 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
   });
 });
 
-describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
+describe('le porteur `entite` du geste `valeur` (#3606 M1a, M1b)', () => {
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-  const poser = (ref: string, x: number) => jouer(ouverteSur(emptyScene('m1a', 6, 6)), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref } }, { geste: 'appui', point: point(x, 1) }, { geste: 'relache', point: point(x, 1) });
+  const poser = (ref: string, x: number, narratif = NARRATIF_VIDE) => jouer(ouverteSur(emptyScene('m1a', 6, 6), false, narratif), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref } }, { geste: 'appui', point: point(x, 1) }, { geste: 'relache', point: point(x, 1) });
   const idDe = (s: SessionDEdition) => (s.sel?.type === 'entity' ? s.sel.id : '');
   const valeur = (id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
 
@@ -395,11 +400,59 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     expect(refusDeLaValeur(griffon, valeur(id, ['upgrades'], [{ id: 'renforce' }])), 'seule une coque porte des Améliorations').toBe('nonOffert');
   });
 
-  it('refuse un chemin que M1a n’offre pas : préréglage, apparence, et les sorts d’un personnage qu’aucune liste n’ouvre', () => {
+  it('refuse un chemin que le formulaire n’offre pas : un preset sans preset au narratif, l’apparence, et les sorts d’un personnage qu’aucune liste n’ouvre', () => {
     const griffon = poser('griffon-zoo-imperial', 1);
     const id = idDe(griffon);
     const combat = jouer(griffon, valeur(id, ['combat'], {}));
     expect([refusDeLaValeur(griffon, valeur(id, ['presetId'], 'x')), refusDeLaValeur(griffon, valeur(id, ['appearance'], {})), refusDeLaValeur(combat, valeur(id, ['combat', 'spells'], []))]).toEqual(['nonOffert', 'nonOffert', 'nonOffert']);
+  });
+
+  it('un profil personnalisé s’ajoute neuf au nom du personnage ou copié de sa créature du Bestiaire, puis s’écrit champ par champ, l’identifiant d’un Talent au catalogue ; une autre valeur entière est refusée (#3606 M1b)', () => {
+    const ombre = poser('l-ombre-du-fleuve', 1);
+    const id = idDe(ombre);
+    const ent = entiteDeLaSelection(sceneEditee(ombre), ombre.sel)!;
+    const creature = findCreatureById('l-ombre-du-fleuve')!;
+    expect(choixDuChamp('entite', ent, ['statblock'], NARRATIF_VIDE)!.map((c) => c.valeur)).toEqual([emptyStatblock(creature.label), statblockDeLaCreature(creature)]);
+    const copie = jouer(ombre, valeur(id, ['statblock'], statblockDeLaCreature(creature)), valeur(id, ['statblock', 'char', 'force'], 42), valeur(id, ['statblock', 'talents'], [{ id: 'affable' }]));
+    expect(entiteDeLaSelection(sceneEditee(copie), copie.sel)?.statblock).toEqual({ ...statblockDeLaCreature(creature), char: { ...statblockDeLaCreature(creature).char, force: 42 }, talents: [{ id: 'affable' }] });
+    const talent = formulaireDe('entite', entiteDeLaSelection(sceneEditee(copie), copie.sel)!, NARRATIF_VIDE).find((f) => f.key === 'statblock')!;
+    const idDuTalent = champsDeclares(elementDuNoeud(champsDeclares(talent.noeud)!.find(([cle]) => cle === 'talents')![1]))!.find(([cle]) => cle === 'id')![1];
+    expect(choixDuNoeud(idDuTalent)!.map((o) => o.valeur), 'l’identifiant d’un Talent : chaque Talent du catalogue').toEqual(talents.map((t) => t.id));
+    expect(refusDeLaValeur(ombre, valeur(id, ['statblock'], { type: 'statblock', label: 'autre', char: {} })), 'ni neuf ni copié').toBe('horsSorte');
+  });
+
+  it('un preset du narratif se choisit parmi ceux qu’il déclare, par son nom ; sans preset au narratif ni posé, il n’est pas offert (#3606 M1b)', () => {
+    const narratif = { ...NARRATIF_VIDE, presetsPnj: [{ id: 'aubergiste', base: { id: 'humain' }, profil: { label: 'Aubergiste' } }] };
+    const pose = poser('humain', 1, narratif as typeof NARRATIF_VIDE);
+    const id = idDe(pose);
+    const ent = entiteDeLaSelection(sceneEditee(pose), pose.sel)!;
+    expect(choixDuChamp('entite', ent, ['presetId'], narratif as typeof NARRATIF_VIDE)).toEqual([{ valeur: 'aubergiste', libelle: 'Aubergiste', refus: null }]);
+    expect(entiteDeLaSelection(sceneEditee(jouer(pose, valeur(id, ['presetId'], 'aubergiste'))), pose.sel)?.presetId).toBe('aubergiste');
+    expect(formulaireDe('entite', ent, NARRATIF_VIDE).map((f) => f.key)).not.toContain('presetId');
+  });
+
+  it('pour chaque créature du Bestiaire, un profil offert sans refus s’écrit en une entité que le schéma admet ; une copie que son schéma refuse le dit (#3606 M1b)', () => {
+    const fautives: string[] = [];
+    let refusees = 0;
+    for (const c of creatures) {
+      const ent = { id: 'e1', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: c.id } } as const;
+      for (const choix of choixDuChamp('entite', ent, ['statblock'], NARRATIF_VIDE) ?? []) {
+        if (choix.refus !== null) { refusees++; continue; }
+        const ecrite = avecLaValeurDuPorteur('entite', ent, ['statblock'], choix.valeur, NARRATIF_VIDE);
+        if (!ecrite.ok || !sceneEntitySchema.safeParse(ecrite.valeur).success) fautives.push(`${c.id} : ${choix.libelle}`);
+      }
+    }
+    expect(fautives).toEqual([]);
+    expect(refusees, 'des copies du Bestiaire sont refusées, chacune de sa raison').toBeGreaterThan(0);
+  });
+
+  it('un PNJ de carrière ne se voit offrir ni profil personnalisé ni preset, qu’il ne porte pas (#3606 M1b)', () => {
+    const narratif = { ...NARRATIF_VIDE, presetsPnj: [{ id: 'aubergiste', base: { id: 'humain' }, profil: { label: 'Aubergiste' } }] } as typeof NARRATIF_VIDE;
+    const pnj = { id: 'p', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' }, carrieres: { medecin: 3 } } as const;
+    expect(refusDeLEntite(pnj)).toEqual([]);
+    const champs = formulaireDe('entite', pnj, narratif).map((f) => f.key);
+    expect([champs.includes('statblock'), champs.includes('presetId')]).toEqual([false, false]);
+    expect([refusDeLaValeur(ouverteSur({ ...emptyScene('m1b', 4, 4), entities: [pnj] }, false, narratif), valeur('p', ['statblock'], emptyStatblock()))]).toEqual(['nonOffert']);
   });
 
   it('les options : tous les Traits, ceux de la fiche en tête puis les Traits standard (LDB 76 l.11, l.35) ; une note « swap » de la fiche se pose entière', () => {
@@ -407,13 +460,13 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     const id = idDe(griffon);
     const avecTrait = jouer(griffon, valeur(id, ['combat'], {}), valeur(id, ['combat', 'optionals'], [{ id: 'rapide' }]));
     const ent = entiteDeLaSelection(sceneEditee(avecTrait), avecTrait.sel)!;
-    const offerts = choixDuChamp('entite', ent, ['combat', 'optionals', 0, 'id'], SANS_PRESET)!.map((o) => o.valeur);
+    const offerts = choixDuChamp('entite', ent, ['combat', 'optionals', 0, 'id'], NARRATIF_VIDE)!.map((o) => o.valeur);
     const facultatifs = findCreatureById('griffon-zoo-imperial')!.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
     const standard = traits.filter((t) => t.standard && !facultatifs.includes(t.id)).map((t) => t.id);
     expect(offerts).toHaveLength(traits.length);
     expect(offerts.slice(0, facultatifs.length + standard.length)).toEqual([...facultatifs, ...standard]);
     const note = findCreatureById('griffon-zoo-imperial')!.optionals.find((o) => 'note' in o && o.note === 'swap');
-    const variantes = choixDuChamp('entite', ent, ['combat', 'optionals', 0], SANS_PRESET)!;
+    const variantes = choixDuChamp('entite', ent, ['combat', 'optionals', 0], NARRATIF_VIDE)!;
     expect(variantes.map((v) => v.valeur)).toEqual([{ id: 'rapide' }, note]);
     const posee = jouer(avecTrait, valeur(id, ['combat', 'optionals', 0], note));
     expect(entiteDeLaSelection(sceneEditee(posee), posee.sel)?.combat?.optionals).toEqual([note]);

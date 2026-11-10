@@ -117,6 +117,9 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
  *  ouvrent des sorts à choisir (`listesDeSorts`). */
 const FICHES = ['vouivre-zoo-imperial', 'l-ombre-du-fleuve'] as const;
 
+/** Le projet dont le narratif déclare des presets de PNJ (`presetsPnj`), qu'un personnage choisit (`presetId`). */
+const PROJET_A_PRESETS = 'la-diligence';
+
 /** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance (MDG 12), et sa case. */
 const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 } } as const;
 
@@ -126,8 +129,9 @@ const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => editer(editer(s, { geste: 'appui', point: point(x, y) }), { geste: 'relache', point: point(x, y) });
 
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
- *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), puis sur la coque `COQUE`,
- *  sélectionnée ; chacun joué à son inspecteur (`jouerLInspecteur`). */
+ *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), puis sur un personnage de la
+ *  première des `FICHES` posé dans une scène neuve du `PROJET_A_PRESETS`, et sur la coque `COQUE`, sélectionnée ; chacun
+ *  joué à son inspecteur (`jouerLInspecteur`). */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
   let s = presser(ouvrirLEdition(paquetDuJeu(allBuiltinCampaigns[0]), false), 'scenes/ajouter');
@@ -136,6 +140,10 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = jouerLInspecteur(editer(editer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
   FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
+  const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
+  if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
+  const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
+  jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
   const campagne = allBuiltinCampaigns.find((c) => c.id === COQUE.campagne);
   if (!campagne) throw new Error(`aucune campagne ${COQUE.campagne}`);
   const barge = presser(presser(ouvrirLEdition(paquetDuJeu(campagne), false), `scenes/${COQUE.scene}`), 'outil/select');

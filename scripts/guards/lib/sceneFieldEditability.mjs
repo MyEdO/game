@@ -24,7 +24,9 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 //     (`auteurReachableScopes`). L'EXISTENCE d'un écrivain ne prouve rien : une primitive
 //     complète, testée, ré-exportée par l'éditeur et jamais appelée EST le défaut de #841.
 //  4. CRÉDIT PAR ALLER-RETOUR. Une écriture générique (le geste `valeur` du formulaire tiré du schéma, à clé calculée,
-//     que le scan ne voit pas) crédite le dernier pas d'un chemin qu'un aller-retour a JOUÉ en jouant `editer`
+//     que le scan ne voit pas) crédite le dernier pas d'un chemin qu'un aller-retour a JOUÉ en jouant `editer`, et, d'un
+//     objet ou d'une liste écrits entiers, chaque clé qu'ils portent, de proche en proche (`cheminsEcrits`), comme le scan
+//     crédite chaque propriété d'un littéral
 //     (`ecrituresJouees` d'`auditSceneFieldEditability`) : le document a changé à ce chemin, la valeur relue est la
 //     valeur jouée, la saisie n'est pas du JSON (`ecritureCreditee`). Le chemin se joint au périmètre en marchant le
 //     type `Scene` (`idsDuChemin`, par `idsOf`) : aucun second nommage.
@@ -422,6 +424,13 @@ export const ALLER_RETOUR = 'editer (aller-retour)';
 /** La valeur du document `doc` au chemin `chemin`. */
 const lireAuChemin = (doc, chemin) => chemin.reduce((v, pas) => (v === null || v === undefined ? undefined : v[pas]), doc);
 
+/** Les chemins qu'écrit la valeur `valeur` posée au chemin `chemin` : le sien, et, d'un objet ou d'une liste, celui de
+ *  chaque clé ou rang qu'elle porte, de proche en proche. */
+const cheminsEcrits = (chemin, valeur) =>
+  valeur !== null && typeof valeur === 'object'
+    ? [chemin, ...Object.entries(valeur).flatMap(([cle, v]) => cheminsEcrits([...chemin, Array.isArray(valeur) ? Number(cle) : cle], v))]
+    : [chemin];
+
 /** Une écriture jouée crédite-t-elle son dernier pas ? Le document a changé à son chemin, la valeur relue est la valeur
  *  jouée, et la saisie n'est pas du JSON (`saisieJson`). */
 export const ecritureCreditee = ({ avant, apres, chemin, valeur, saisie }) =>
@@ -773,8 +782,8 @@ export function auteurReachableScopes(checker, program, root) {
 /**
  * Audite le dépôt : pour chaque champ du document de scène, qui l'écrit et par quel chemin. Une écriture jouée par
  * l'éditeur (`ecrituresJouees`, un aller-retour qui joue `editer` : le document avant et après, le chemin écrit depuis
- * la scène, la valeur jouée et sa saisie) crédite le dernier pas de son chemin (`idsDuChemin`) quand `ecritureCreditee`,
- * sous la marque `ALLER_RETOUR`.
+ * la scène, la valeur jouée et sa saisie) crédite, quand `ecritureCreditee`, le dernier pas de chacun des chemins qu'elle
+ * écrit (`cheminsEcrits`, `idsDuChemin`), sous la marque `ALLER_RETOUR`.
  * @param {string} root racine du dépôt
  * @param {import('./tsProgram.mjs').SessionProgramme} [program] programme déjà construit — absent, bâti pour CET appel
  * @param {{ ecrituresJouees?: { avant: unknown, apres: unknown, chemin: (string | number)[], valeur: unknown, saisie: string }[] }} [options]
@@ -831,7 +840,7 @@ export function auditSceneFieldEditability(root, program, { ecrituresJouees = []
   }
   const scene = sceneType(program, root);
   for (const e of ecrituresJouees.filter(ecritureCreditee))
-    for (const id of idsDuChemin(checker, cles, scene, e.apres, e.chemin)) {
+    for (const id of cheminsEcrits(e.chemin, e.valeur).flatMap((chemin) => [...idsDuChemin(checker, cles, scene, e.apres, chemin)])) {
       const row = rows.get(id);
       if (row && !row.authors.includes(ALLER_RETOUR)) row.authors.push(ALLER_RETOUR);
     }

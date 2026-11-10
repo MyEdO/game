@@ -90,7 +90,8 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * champ que son porteur offre (`FORMULAIRES`, `cheminOffert`), le rang d'un élément d'une liste présente, une clé
  * déclarée d'un objet présent ou de la variante courante d'une union, jamais son discriminant, que tient le choix de la
  * variante, ni une clé `id` qui n'est pas une référence de catalogue ; et une valeur de la sorte du champ, l'une de ses
- * valeurs pour un choix (`choixDuNoeud`), la valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
+ * valeurs pour un choix (`choixDuNoeud`), l'un des choix admis que le contexte de son porteur y pose (`choixDuChamp`), la
+ * valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
  * choisir pour une union (`variantesAChoisir`), la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le
  * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise, une liste vidée part si la sienne
  * l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
@@ -255,14 +256,18 @@ export interface ZonesDeLEditeur {
    * de toute entité, les entrées de fiche qu'elle couvre, comme celles d'une zone, sous `entite/couvre` ;
    *
    * d'un personnage, le formulaire tiré du schéma de son type (`formulaireDe('entite', …)`), comme celui d'une zone
-   * d'effet : de son rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques, son
-   * embuscade et, s'il en porte ou si sa fiche ouvre une liste de sorts sans imprimer les siens, ses sorts choisis
-   * (`combat.spells`), puis sa contrepartie d'amateur des arts (`amateur`), son animation (`anim`) et, d'une coque, son
-   * véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa fiche (`choixDuChamp`, les presets du
-   * narratif du projet) : l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche
-   * puis les Traits standard en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée
-   * entière, que le formulaire édite ensuite ; un sort choisi, chaque sort d'une liste qu'ouvre sa fiche hors des
-   * autres choisis, refusé avec sa raison au-delà d'un quota du livre (`refusDesSortsChoisis`) ; la supprimer.
+   * d'effet, dans le narratif du projet : son preset (`presetId`) s'il en porte un ou si le narratif en déclare ; de son
+   * rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques, son embuscade et, s'il en
+   * porte ou si sa fiche ouvre une liste de sorts sans imprimer les siens, ses sorts choisis (`combat.spells`) ; son
+   * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
+   * animation (`anim`) et, d'une coque, son véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa
+   * fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
+   * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; le profil absent, « Ajouter » choisit un profil
+   * neuf au nom du personnage (`emptyStatblock`) ou la copie de sa créature du Bestiaire (`statblockDeLaCreature`) ;
+   * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits standard
+   * en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le formulaire
+   * édite ensuite ; un sort choisi, chaque sort d'une liste qu'ouvre sa fiche hors des autres choisis, refusé avec sa
+   * raison au-delà d'un quota du livre (`refusDesSortsChoisis`) ; la supprimer.
    *
    * Chaque bouton joue `{ geste: 'entite', patch }`, `patch` portant `ref`, `facing`, `z`, `light` (`null` l'éteint),
    * `assise`, `objet` (l'intention sur un objet de l'inventaire, `{ porter }`, `{ retirer }` ou `{ ajouter }`,
@@ -645,7 +650,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
       : []),
     ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
-    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent, presetDuNarratif(s.projet.narratif)), ent as unknown as Record<string, unknown>),
+    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent, s.projet.narratif), ent as unknown as Record<string, unknown>),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -1173,7 +1178,7 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
 /** Les éléments du champ `f` du porteur `porteur`, de valeur `valeur` (`undefined` : absent), au chemin `ici`, d'id
  *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
  *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent :
- *  « Ajouter », qui pose sa valeur neuve (`valeurNeuveDe`). Une union nommée : sa variante (`elementsDeLUnion`). Une
+ *  « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
  *  liste : ses éléments (`elementsDeLaListe`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent. */
@@ -1181,7 +1186,7 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   const id = `valeur/${ici.join('/')}`;
   const retirer = valeur !== undefined && f.nullable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
   if (champsDeclares(f.noeud)) {
-    if (valeur === undefined) return [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))];
+    if (valeur === undefined) return [ajoutDeLObjet(porteur, f, ici)];
     const objet = valeur as Record<string, unknown>;
     return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, f.noeud, objet), objet, ici), ...retirer];
   }
@@ -1247,6 +1252,17 @@ function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unkno
   return valeur === undefined ? [ajouter] : [ligne(id, f.label), ...elements, ajouter];
 }
 
+/** « Ajouter » de l'objet absent du champ `f`, au chemin `ici`, d'id `valeur/<chemin>/ajouter` : le choix de l'objet posé
+ *  parmi ceux que son contexte y pose (`FieldDesc.contexte`), sinon le bouton qui écrit sa valeur neuve (`valeurNeuveDe`). */
+function ajoutDeLObjet(porteur: PorteurDeValeur, f: FieldDesc, ici: Segment[]): Bouton | Choix | Formulaire {
+  const id = `valeur/${ici.join('/')}/ajouter`;
+  const libelle = t('ecran.editeur.valeur.ajouter', { libelle: f.label });
+  const valeurs = f.contexte?.choix(ici);
+  if (!valeurs) return bouton(id, libelle, ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)));
+  const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: [...valeurs], bornes: null, note: null, champs: null };
+  return elementDeValeur(id, porteur, ici, { ...f, label: libelle }, a);
+}
+
 /** « Ajouter » à la liste `liste` du champ `f`, au chemin `ici`, d'élément `element`, d'id `valeur/<chemin>/ajouter` :
  *  d'un élément à choix (`choixDuNoeud`), le choix de l'élément ajouté en fin, parmi ceux que son contexte pose au rang
  *  qui suit le dernier (`FieldDesc.contexte`), sinon parmi ses valeurs ; sinon, le bouton qui écrit `neuve`, la liste où
@@ -1287,7 +1303,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
       ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez, presetDuNarratif(s.projet.narratif)), ez as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez, s.projet.narratif), ez as unknown as Record<string, unknown>),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
@@ -1297,7 +1313,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     propre.push(
       bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once),
       ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur, presetDuNarratif(s.projet.narratif)), declencheur as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur, s.projet.narratif), declencheur as unknown as Record<string, unknown>),
     );
   }
   if (sel?.type === 'restZone') {
