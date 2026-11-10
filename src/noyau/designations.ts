@@ -14,7 +14,8 @@ import {
   ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
   findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
 } from '../data';
-import { ACTIVITIES, cleDEntrainement, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
+import { ACTIVITIES, cleDEntrainement, entrainementOptions, libelleDEntrainement, qualitesDArtisanat } from '../engine/activities';
+import { parseRefKey } from '../engine/careerSlots';
 import { libelleDePsy } from '../engine/psych/ciblage';
 import { TAVERN_GAMES } from '../engine/tavernGame';
 import { travelVehicles, vehicleTravel } from '../engine/travel';
@@ -322,7 +323,7 @@ export const DESIGNATIONS = {
     lire: () => sansDoublon([...ids(skills), ...ids(talents)]),
     nom: (_s, id) => labelParmi(skills, id) ?? labelParmi(talents, id),
   },
-  IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(lesEntrainements(s).map(cleDEntrainement)), nom: (s, cle) => lesEntrainements(s).find((o) => cleDEntrainement(o) === cle)?.label ?? null },
+  IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(lesEntrainements(s).map(cleDEntrainement)), nom: (_s, cle) => libelleDEntrainement(parseRefKey(cle)) },
   IdDActionDEntite: { mot: 'id d’offre d’entité', lire: (s) => sansDoublon(ids(lesActionsDEntite(s))), nom: (s, id) => labelParmi(lesActionsDEntite(s), id) },
   IdDeServiceDuLieu: { mot: 'id de service du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s, id) => labelParmi(echoppesDuLieu(s), id) },
   IdDAleaDeBataille: { mot: 'id d’aléa de bataille', lire: () => ids(BATTLE_HAZARDS), nom: (_s, id) => labelParmi(BATTLE_HAZARDS, id) },
