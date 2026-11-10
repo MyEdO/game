@@ -16,26 +16,19 @@ import type {
   IdDeCombattant, IdDeHeros, IdDePorteur, IdDePossession, IdDObjet,
   IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
-  IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDeRoute,
+  IdDActivite, IdDObjetDuCatalogue, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
+  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDeServiceDuLieu, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
-import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
+import type { RefDesignee, TexteLibre } from '../data/schemas/grammaire/ref';
 
-/** Un texte que le joueur écrit (un nom, une motivation) : jamais un id, que `DESIGNATIONS` désigne. */
-export type TexteLibre = string;
 /** Ce qu'un verbe reçoit sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que son roster
  *  lui donne (`HerosEngage`). Exempt de désignation seulement : l'hôte en lit chaque champ à sa forme (`lireALaForme`). */
 export type HorsDesignation<T> = T;
 /** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
 export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-/** Une Spécialisation de Compétence ou de Talent : un id du catalogue de l'entrée, ou, pour une entrée ouverte, un
- *  texte libre (`entreeOuverte`, LDB 09 l.40) ; le verbe la juge à l'entrée qu'il désigne. */
-type Specialisation = TexteLibre;
-/** Une Compétence désignée : son id, et sa Spécialisation (`RefDesignee`). */
-export interface CompetenceDesignee { id: IdDeCompetence; spec?: Specialisation }
 
 /** Les gestes de la BARRE de l'actif (#3610) : chacun est le verbe qu'une offre du registre déclare (`ENTREES_PAR_RUN`,
  *  `actionRegistry.ts`), et nul autre geste ne le joue. Le refus de son geste le juge (`refusDuGeste`), dont l'offre
@@ -97,8 +90,9 @@ export interface VerbesDeLaBarre {
    *  plus proche. */
   monterEnSelle: (mountId?: IdDeCombattant) => void;
   mettrePiedATerre: () => void;
-  /** « Servir cette pièce » (MDG 12) : le héros actif devient chef d'un poste de siège NON servi adjacent (arme octroyée) — coûte l'Action. KIND-AGNOSTIQUE. */
-  servirLePoste: (target?: { hullId: IdDeCombattant; posteUid: IdDObjet }) => void;
+  /** « Servir cette pièce » (MDG 12) : le héros actif sert le poste servable `posteUid` (chef s'il est libre, renfort
+   *  sinon) ; omis, le 1ᵉʳ servable. Action gratuite (LDB 13 l.106, #3595). KIND-AGNOSTIQUE. */
+  servirLePoste: (posteUid?: IdDePoste) => void;
   /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
   quitterLePoste: () => void;
   /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
@@ -171,22 +165,12 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  (logique partagée via `engine/fortune.restoreFortune`) — pas de duplication. */
   restaurerLaFortune: () => void;
   /** Ouvre le Test d'une Activité de bataille pré-combat (l.79-106). */
-  menerLActionDeBataille: (activityId: IdDActivite, heroId: IdDeHeros) => void;
-  /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
-   *  LANCER passe par `pratiquerLActivite('craft')`. Passer commande (Exotique) + banque restent dédiés. */
-  fabriquerLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue, atouts: IdDAtoutDArtisanat[], defauts: IdDeDefautDArtisanat[]) => void;
+  menerLActionDeBataille: (heroId: IdDeHeros, activityId: IdDActivite) => void;
   /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
    *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
   deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
-  /** Entraînement (ch.23 l.130-136) : Compétence/Caractéristique hors carrière, PX + tuteur 1D10 sc — sans jet. */
-  suivreLEntrainement: (heroId: IdDeHeros, kind: 'skill' | 'characteristic', id: IdDEntrainement, spec?: Specialisation) => void;
-  /** Activité du CATALOGUE data-driven (`activities.json`, contexte 'interlude' + gate `where`) — LE
-   *  CHEMIN UNIQUE de toutes les Activités à jet : Revenus, Artisanat, Apprentissage (`talentId`),
-   *  Identification (`itemUid`), Convalescence (ADE II), Activités d'Altdorf (ACE Annexe I). Cibles
-   *  éventuelles : `CiblesChoisies`. */
-  pratiquerLActivite: (heroId: IdDeHeros, activityId: IdDActivite, opts?: CiblesChoisies) => void;
   /** Composition d'équipe : ajoute le héros que le noyau bâtit de `heros` (`herosDeLEngagement`), avec sa Richesse de
    *  départ, dans un emplacement du siège qui décide (`decidingSeat`) / retire un héros (propriétaire seul). */
   recruterLeHeros: (heros: HerosEngage) => void;
@@ -212,11 +196,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   acheterLaCaracteristique: (heroId: IdDeHeros, char: CharKey) => void;
   /** Achète une Augmentation de Compétence (identité skillId+spec) ; acquiert la Compétence de
    *  carrière non connue à 0 ; l'achat via un slot « (Au choix) » libre le désigne. */
-  acheterLaCompetence: (heroId: IdDeHeros, skill: CompetenceDesignee) => void;
+  acheterLaCompetence: (heroId: IdDeHeros, skill: RefDesignee<IdDeCompetence>) => void;
   /** Achète/augmente un Talent (identité talentId+spec ; refusé hors carrière l.97 / Maxi atteint). */
-  acheterLeTalent: (heroId: IdDeHeros, talentId: IdDeTalent, spec?: Specialisation) => void;
+  acheterLeTalent: (heroId: IdDeHeros, talent: RefDesignee<IdDeTalent>) => void;
   /** Désigne GRATUITEMENT un emplacement « (Au choix) » de la carrière courante (LDB 09 l.38). */
-  designerLeCreneau: (heroId: IdDeHeros, slotKey: IdDeCreneau, optionId: IdDeCompetenceOuDeTalent, spec?: Specialisation) => void;
+  designerLeCreneau: (heroId: IdDeHeros, slotKey: IdDeCreneau, option: RefDesignee<IdDeCompetenceOuDeTalent>) => void;
   /** Apprentissage/mémorisation d'un sort (LDB 46/10) — coût PX via engine/grimoire. */
   acheterLeSort: (heroId: IdDeHeros, spellId: IdDeSort) => void;
   /** Achète un composant d'incantation pour un Sort d'Arcane/Domaine connu (LDB 46 l.113 — NI pistoles). */
@@ -274,7 +258,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   ouvrirLesJeux: (npcId?: IdDEntiteDeScene) => void;
-  jouerALaTaverne: (opts: tavernFlow.ReglageDePartie) => void;
+  jouerALaTaverne: (heroId: IdDeHeros, partie: tavernFlow.ReglageDePartie) => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
    *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
    *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est
@@ -284,7 +268,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
    *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant
    *  s'ouvre par l'effet `medicalAid`. */
-  ouvrirLeMedecin: (opts?: { patientId?: IdDeHeros }) => void;
+  ouvrirLeMedecin: (patientId?: IdDeHeros) => void;
   /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('rest', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé ; le lieu de la nuit est celui où
    *  se tient le groupe (`reposDuLieu`). */
@@ -307,7 +291,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   fixerLaCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
   /** EDOC 8 l.131. Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  affecterAuRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: CompetenceDesignee } | null) => void;
+  affecterAuRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: RefDesignee<IdDeCompetence> } | null) => void;
   /** MDG 14 l.11. Épingle (`roleId`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) —
    *  interface de gestion du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
   affecterAuRoleABord: (crewId: IdDeCombattant, roleId: IdDeRoleABord | null) => void;
@@ -316,9 +300,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  `MSRC 07 l.78/l.82/l.94`). Aucun défaut : détaché, il n'est visé par aucune présence. Même patron
    *  qu'`affecterAuRoleABord`. */
   affecterALaStation: (crewId: IdDeCombattant, station: IdDeStation | null) => void;
-  /** Sélectionne la munition PERSISTANTE d'un poste d'artillerie (`ShipPoste.ammoUid` — boulet/mitraille,
-   *  MDG 12 l.410-424), depuis la fiche du navire. `null` → retour au défaut (1re compatible). */
-  approvisionnerLaPiece: (shipId: IdDeCombattant, posteUid: IdDePoste, ammoUid: IdDObjet | null) => void;
+  /** Sélectionne la munition PERSISTANTE du poste `posteUid` (`ShipPoste.ammoUid`, MDG 12 l.410-424), sur le porteur
+   *  qui le tient dans la bataille. `null` → retour au défaut (1re compatible). */
+  approvisionnerLaPiece: (posteUid: IdDePoste, ammoUid: IdDObjet | null) => void;
   /** Renomme l'instance (`label`). */
   renommerLaPossession: (uid: IdDePossession, label: TexteLibre) => void;
   /** Dépose la possession au lieu courant du groupe. */

@@ -157,7 +157,7 @@ export type SujetDuJet = z.infer<typeof sujetDuJetSchema>;
  * porteur lisent ses régimes (`mecaniqueDe`).
  */
 const DECLARATIONS_D_OPS = {
-  narrative: proseNommee(nommerChamps(z.strictObject({ op: z.literal('narrative') }), { op: { label: 'opération'  } }), 'narrative.text'),
+  narrative: proseNommee(nommerChamps(z.strictObject({ op: z.literal('narrative'), nombre: formulaSchema.optional() }), { op: { label: 'opération'  }, nombre: { label: 'nombre tiré', texte: { regime: 'technique', usage: 'formule mécanique résolue par la grammaire' } } }), 'narrative.text'),
   banish: nommerChamps(z.strictObject({ op: z.literal('banish'), narration: banishNarrationSchema.optional(), onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional() }), { op: { label: "opération"  }, narration: { label: "narration"  }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} } }),
   corruption: nommerChamps(z.strictObject({
     op: z.literal('corruption'),
@@ -328,6 +328,11 @@ const DECLARATIONS_D_OPS = {
     repousseAPct: z.number().int().min(1).max(99).optional(),
     victoire: z.lazy(() => flowSchema).optional(),
   }), { op: { label: "opération"  }, adversaire: { label: "adversaire" }, repousseAPct: { label: "repoussé à (% des Blessures)" }, victoire: { label: "sur la victoire" } }),
+  /** `commission` — MDG 15 l.261 */
+  commission: nommerChamps(z.strictObject({
+    op: z.literal('commission'),
+    montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  }), { op: { label: "opération"  }, montant: { label: "montant à la livraison" } }),
   /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
    *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
   marcheDuPort: z.union([
@@ -1480,6 +1485,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   navireHostile: 'Navire hostile',
   infestation: 'Infestation du navire',
   combatEnMer: 'Combat en mer',
+  commission: 'Commission de transport',
   marcheDuPort: 'Marché d’un port',
 };
 

@@ -20,7 +20,7 @@ import { draineCascade } from './cascade.testkit';
 import { openAttackCascade } from './combatFlow';
 import { gainCorruption } from './corruptionFlow';
 import { ouvrirLeMedecin } from './medicFlow';
-import { intentAllowedFor } from './netOwnership';
+import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { NOM_DU_VERBE_DE_JET, type RollVerb } from './flowVerbs';
 import { modalOwnerOf } from './modalArbiter';
 import { seedBattleRng } from './battleRng';
@@ -29,6 +29,7 @@ import { testScene } from '../scenes/test-fixture';
 import { createHero } from '../engine/character';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { pratiquer } from './interlude.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -102,7 +103,7 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     hero.id = 'b';
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
     banc.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
-    ouvrirLeMedecin(g, banc.setState, { patientId: 'b', npc: { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] } });
+    ouvrirLeMedecin(g, banc.setState, 'b', { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] });
     expect(g().pendingHeal?.healerId, 'précondition : le brouillon du soin, au PNJ de scène').toBe('medecin-de-scene');
     for (const i of HEAL_VERBS.filter((v) => v !== 'jetLancer@heal')) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
     // Le lancer ne dépense rien : sans siège au porteur, il suit le repli universel — l'infirmerie, à tous tant
@@ -153,10 +154,10 @@ describe('#1015 — sonde 5 : `activity` (hors combat) — accord avec la route 
     banc.setState({ net: NET_COOP });
     g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
-    g().pratiquerLActivite('b', 'observer-une-cible');
+    withActingSeat(1, () => pratiquer(g, 'b', 'observer-une-cible'));
     expect(g().pendingActivity?.heroId, 'précondition : l’Activité du héros `b` est ouverte').toBe('b');
-    // Route `interlude*` (1er argument = le héros visé) et route par PORTEUR nomment le même siège.
-    expect([0, 1, 2].map((s) => intentAllowedFor(g(), s, 'pratiquerLActivite', ['b']))).toEqual([false, true, false]);
+    // Route du choix de l'interlude (le héros de la rangée) et route par PORTEUR nomment le même siège.
+    expect([0, 1, 2].map((s) => intentAllowedFor(g(), s, 'fenetreChoisir', ['interlude', 'pratiquer', true, 'b']))).toEqual([false, true, false]);
     for (const i of ACTIVITY_VERBS) expect(seats(i), i).toEqual([false, true, false]);
   });
 });
@@ -179,7 +180,7 @@ describe('#1015 — sonde 6 : SOLO bit-à-bit', () => {
     banc.setState({ net: NET_SOLO });
     g().ouvrirLInterlude(3);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
-    g().pratiquerLActivite('a', 'observer-une-cible');
+    pratiquer(g, 'a', 'observer-une-cible');
     expect(g().pendingActivity?.heroId).toBe('a');
     for (const i of ACTIVITY_VERBS) expect(intentAllowedFor(g(), 0, ...geste(i)), i).toBe(true);
   });

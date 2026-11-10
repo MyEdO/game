@@ -27,6 +27,7 @@ import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from './netOwnership';
 import { draineCascade } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
+import { pratiquer } from './interlude.testkit';
 
 /** Dés d'événements CHOISIS dans la donnée (fourchettes de `interludeEvents.json`). */
 const PREVOT = 22; // « Le Prévôt arrive » — moneyPct −30
@@ -236,7 +237,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     setDesFixes(true);
     banc.getState().ouvrirLInterlude(2);
     banc.setState({ journal: [] });
-    banc.getState().pratiquerLActivite(party[0].id, 'revenus');
+    pratiquer(banc.getState, party[0].id, 'revenus');
     expect(banc.getState().pendingActivity, 'Activité ouverte pendant le tirage').toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne peut rien entreprendre tant que les Événements/);
     // Les autres portes d'Activité tiennent le même garde (le budget se dépense partout ailleurs aussi).
@@ -253,7 +254,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.getState().jetValider('cascade');
     banc.getState().jetValider('cascade');
     banc.setState({ journal: [] });
-    banc.getState().pratiquerLActivite(party[0].id, 'revenus');
+    pratiquer(banc.getState, party[0].id, 'revenus');
     expect(banc.getState().pendingActivity).toBeNull();
     expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
   });

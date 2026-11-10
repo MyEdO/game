@@ -7,6 +7,7 @@ import {
   difficultySchema,
   ecartsDeCouverture,
   plageSchema,
+  prixDuLivreSchema,
   sourceRefSchema,
 } from '../grammaire/valeurs';
 
@@ -32,6 +33,8 @@ const offerByRichesseSchema = z
 
 
 const champs = {
+  /** MSRC 13 l.91 */
+  prixDuLivre: prixDuLivreSchema,
   /** MSRC 13 l.97 */
   wineQuality: tableTiree(
     nommerChamps(z.strictObject({ ...plageSchema.shape, label: z.string(), price: z.number(), source: sourceRefSchema }), {
@@ -103,6 +106,7 @@ const doc = document(
   famille,
   champs,
   {
+    prixDuLivre: { label: 'Unité du prix du livre', hint: 'Points d’Encombrement que couvre un prix de base du livre' },
     wineQuality: {
       label: 'Qualité du vin',
       hint: "Table secrète de prix du Vin/Eau-de-vie, tirée à part de la colonne saisonnière",

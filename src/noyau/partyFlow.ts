@@ -426,7 +426,8 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
 /** Désigne GRATUITEMENT un emplacement « (Au choix) » de la carrière courante sur une (id, spec)
  *  concrète (éventuellement déjà possédée via l'espèce) — il devient in-carrière et montable en
  *  PX. Arbitrage RAW : specs distinctes par carrière, désignations par carrière. */
-export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: string, optionId: string, spec?: string): void {
+export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: string, option: RefDesignee): void {
+  const { id: optionId, spec } = option;
   let msg = '';
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -442,7 +443,7 @@ export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: s
       msg = t('pf.designateRefused', { name: clone.label, reason: r.reason ?? '' });
       return h;
     }
-    const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', { id: optionId, spec }); // AFFICHAGE seul
+    const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', option); // AFFICHAGE seul
     msg = t('pf.designated', { name: clone.label, label });
     return clone;
   }));
@@ -453,12 +454,13 @@ export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: s
  *  emplacement du niveau COURANT le couvre (LDB 07 l.103 ; explicite, désigné, ou libre → désignation
  *  automatique), ou un ajout de carrière ; hors carrière interdit (LDB 07 l.93) ; Maxi respecté (LDB 10). Applique les effets d'acquisition
  *  (+5 Caractéristique de départ, Véloce) et recale Blessures/Chance/Détermination. */
-export function acheterLeTalent(get: Get, set: Set, heroId: string, talentId: string, spec?: string): void {
+export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefDesignee): void {
+  const { id: talentId, spec } = talent;
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const ctx = careerCtx(clone);
-    const talentLabel = refLabel('talents', { id: talentId, spec }); // AFFICHAGE + conversion pour le moteur
+    const talentLabel = refLabel('talents', talent); // AFFICHAGE + conversion pour le moteur
     const status = talentEnCarriere(clone, ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     if (!status) {
       msg = t('pf.talentOutOfCareer', { name: clone.label, label: talentLabel });
@@ -906,8 +908,8 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     accorderLesPx: (heroId, amount) => accorderLesPx(get, set, heroId, amount),
     acheterLaCaracteristique: (heroId, char) => acheterLaCaracteristique(get, set, heroId, char),
     acheterLaCompetence: (heroId, skill) => acheterLaCompetence(get, set, heroId, skill),
-    acheterLeTalent: (heroId, talentId, spec) => acheterLeTalent(get, set, heroId, talentId, spec),
-    designerLeCreneau: (heroId, slotKey, optionId, spec) => designerLeCreneau(get, set, heroId, slotKey, optionId, spec),
+    acheterLeTalent: (heroId, talent) => acheterLeTalent(get, set, heroId, talent),
+    designerLeCreneau: (heroId, slotKey, option) => designerLeCreneau(get, set, heroId, slotKey, option),
     /** Mémorise un sort (PX selon le Talent, LDB 46/10) ; un sort du Chaos corrompt (+1, seuil → mutation). */
     acheterLeSort: (heroId, spellId) => {
       const r = acheterLeSort(get, set, heroId, spellId);

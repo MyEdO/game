@@ -1472,7 +1472,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -1527,7 +1526,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -1582,7 +1580,6 @@
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "proue",
        "crewIds": [],
        "ammo": [
@@ -1720,7 +1717,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -1750,7 +1746,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -1780,7 +1775,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
        "ammo": [
@@ -2943,7 +2937,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-1",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -2998,7 +2991,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-2",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -3053,7 +3045,6 @@
       },
       {
        "trappingId": "pierrier",
-       "uid": "poste-3",
        "side": "poupe",
        "crewIds": [],
        "ammo": [
@@ -3191,7 +3182,6 @@
      "postes": [
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-4",
        "side": "tribord",
        "crewIds": [],
        "ammo": [
@@ -3221,7 +3211,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-5",
        "side": "babord",
        "crewIds": [],
        "ammo": [
@@ -3251,7 +3240,6 @@
       },
       {
        "trappingId": "canon-moyen",
-       "uid": "poste-6",
        "side": "proue",
        "crewIds": [],
        "ammo": [

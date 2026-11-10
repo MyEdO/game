@@ -579,7 +579,7 @@ export function preJetDePreparation(s: EtatDInterlude, mb: MassBattleState, hero
 
 /** Ouvre le Test d'une Activité de bataille pré-combat MENÉE par `heroId` (`preJetDePreparation`). Le meneur sans
  *  Activité restante ou qui ne peut pas tenter le Test est refusé, jamais remplacé. ADE II 8 l.65, LDB 09 l.30 */
-export function openMassBattleActivity(get: Get, set: Set, activityId: string, heroId: string): void {
+export function openMassBattleActivity(get: Get, set: Set, heroId: string, activityId: string): void {
   const mb = get().massBattle;
   const def = battleActivityById(activityId);
   const hero = get().party.find((h) => h.id === heroId);
@@ -1079,7 +1079,7 @@ export function creerActionsDeBatailleDeMasse(get: Get, set: Set) {
     // Combat de masse / Puissance de Bataille (ADE II 08) — flux d'orchestration + jet de PJ différé.
     amorcerLaBataille: (spec) => amorcerLaBataille(get, set, spec),
     engagerLaBataille: () => engagerLaBataille(get, set),
-    menerLActionDeBataille: (activityId, heroId) => openMassBattleActivity(get, set, activityId, heroId),
+    menerLActionDeBataille: (heroId, activityId) => openMassBattleActivity(get, set, heroId, activityId),
   } satisfies FabriqueDuNoyau;
 }
 

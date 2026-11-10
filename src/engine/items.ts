@@ -1027,7 +1027,7 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 /**
  * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la base
  * de la pièce depuis `trappingId` (`itemFromTrappingById`, la couture existante — JAMAIS une base copiée),
- * puis re-pose l'état d'INSTANCE propre au poste (uid stable, enchants de dérogation). Sans uid authoré, la pièce prend
+ * puis re-pose l'état d'INSTANCE propre au poste (enchants de dérogation). La pièce prend toujours
  * `uidDeLaPlace`, que l'appelant dérive de sa place sur la coque (#2907). `trappingId`
  * irrésoluble → throw explicite (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
  */
@@ -1036,7 +1036,7 @@ export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPo
   if (!base) throw new Error(`[poste] trappingId inconnu « ${a.trappingId} » — pièce non hydratable (#222)`);
   const item: ItemInstance = {
     ...base,
-    uid: a.uid ?? uidDeLaPlace, // uid d'instance STABLE (liens hotbar/log)
+    uid: uidDeLaPlace, // #2907
     ...(a.enchants?.length ? { enchants: a.enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
   };
   const poste: ShipPoste = { item };

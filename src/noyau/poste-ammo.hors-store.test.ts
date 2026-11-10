@@ -158,7 +158,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     expect(poste.loadedAmmoUid).toBe('boulet');
     mkBattle(hull, [chef, mkCrew('aide')], ['ship']);
 
-    banc.getState().approvisionnerLaPiece('ship', 'canon', 'mitraille');
+    banc.getState().approvisionnerLaPiece('canon', 'mitraille');
 
     expect(poste.loaded).toBe(false);            // le coup au boulet n'est plus là
     expect(poste.loadedAmmoUid).toBeUndefined();
@@ -175,7 +175,7 @@ describe('Munition FIXÉE AU CHARGEMENT — pièces d’artillerie', () => {
     serveChef(chef, poste);
     mkBattle(mkHull(poste), [chef], ['ship']);
 
-    banc.getState().approvisionnerLaPiece('ship', 'canon', 'boulet');
+    banc.getState().approvisionnerLaPiece('canon', 'boulet');
 
     expect(poste.loaded).toBe(true);
     expect(poste.loadedAmmoUid).toBe('boulet');

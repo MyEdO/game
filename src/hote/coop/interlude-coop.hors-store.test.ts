@@ -61,6 +61,10 @@ function table(): { banc: Banc; guest: GuestSession; hote: Combatant; invite: Co
 }
 
 const left = (banc: Banc, heroId: string) => banc.getState().interlude!.perHero[heroId].left;
+/** Les intentions qui composent l'Entraînement de l'Intelligence du héros `heroId`, puis le pratiquent (LDB 23 l.132). */
+const entrainement = (heroId: string) => [
+  ['interlude', 'activite', 'entrainement', heroId], ['interlude', 'entrainement', 'intelligence', heroId], ['interlude', 'pratiquer', true, heroId],
+];
 /** Une préparation de bataille que `h` peut mener (aucun prérequis). */
 const prepaDe = (h: Combatant) => ['inspire', 'reperage', 'rassembler-des-forces'].find((id) => peutTenterAction(h, battleActivityById(id)!))!;
 
@@ -68,7 +72,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
   it('Entraînement : l’Activité de son héros est dépensée', () => {
     const { banc, guest, invite } = table();
     const avant = left(banc, invite.id);
-    guest.sendIntent('suivreLEntrainement', [invite.id, 'characteristic', 'intelligence']);
+    for (const args of entrainement(invite.id)) guest.sendIntent('fenetreChoisir', args);
     expect(left(banc, invite.id)).toBe(avant - 1);
   });
 
@@ -83,7 +87,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
   it('préparation de bataille : le jet s’ouvre MENÉ par son héros', () => {
     const { banc, guest, invite } = table();
     banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    guest.sendIntent('menerLActionDeBataille', [prepaDe(invite), invite.id]);
+    guest.sendIntent('menerLActionDeBataille', [invite.id, prepaDe(invite)]);
     expect(banc.getState().pendingActivity?.heroId).toBe(invite.id);
   });
 });
@@ -94,11 +98,11 @@ describe('Interlude en coop : l’invité est refusé sur le héros d’un autre
     banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity]);
     const journal = banc.getState().journal.length;
-    guest.sendIntent('suivreLEntrainement', [hote.id, 'characteristic', 'intelligence']);
+    for (const args of entrainement(hote.id)) guest.sendIntent('fenetreChoisir', args);
     guest.sendIntent('solderLaFaveur', [hote.id, `faveur-${hote.id}`]);
-    guest.sendIntent('menerLActionDeBataille', [prepaDe(hote), hote.id]);
+    guest.sendIntent('menerLActionDeBataille', [hote.id, prepaDe(hote)]);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity])).toBe(avant);
-    expect(banc.getState().journal.slice(journal)).toEqual([REFUS_DE_SIEGE, REFUS_DE_SIEGE, REFUS_DE_SIEGE]);
+    expect(banc.getState().journal.slice(journal)).toEqual(Array(5).fill(REFUS_DE_SIEGE));
   });
 });
 
@@ -108,7 +112,7 @@ describe('Interlude en coop : la table de taverne est celle de l’hôte', () =>
     const banc = ouvrirLeBanc({ reglesMaison: { 'tavern-games': true }, etat: { party: [a, b], net: { ...NET_DE_L_HOTE(b.id), mode: 'guest', mySeat: 1 } } });
     const journal = banc.getState().journal.length;
     banc.actions.ouvrirLesJeux();
-    banc.actions.jouerALaTaverne({ gameId: 'dominos', challengerId: b.id, opponent: { kind: 'hero', id: a.id } });
+    banc.actions.jouerALaTaverne(b.id, { gameId: 'dominos', opponent: { kind: 'hero', id: a.id } });
     expect(banc.getState().tavernGames).toBeNull();
     expect(banc.getState().sequence ?? null).toBeNull();
     expect(banc.getState().journal.slice(journal)).toEqual([HOTE_SEUL, HOTE_SEUL]);

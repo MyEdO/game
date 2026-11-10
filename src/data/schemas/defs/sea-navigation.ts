@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 13 l.39-351 */
 import { z } from 'zod';
 import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
-import { difficultySchema, ecartsDeCouverture, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { difficultySchema, ecartsDeCouverture, maisonSchema, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 
@@ -157,12 +157,16 @@ const champs = {
     ),
     drDeltas: z.array(nommerChamps(tableRange.extend({ delta: z.number(), source: sourceRefSchema }), { ...metaDesChamps(tableRange, { exigees: true }), delta: { label: 'Variation' }, source: { label: 'Source' } })),
     lowMPenalty: z.array(nommerChamps(z.strictObject({ m: z.number(), dr: z.number(), source: sourceRefSchema }), { m: { label: 'Mouvement' }, dr: { label: 'Degrés de Réussite' }, source: { label: 'Source' } })),
+    voileSansProfil: z.number().int().min(1),
+    maison: maisonSchema,
   }), {
     distanceUnitM: { label: 'Unité de distance (m)' },
     source: { label: 'Source' },
     escapeDistances: { label: 'Distances d’échappement' },
     drDeltas: { label: 'Variations de DR' },
     lowMPenalty: { label: 'Pénalité de faible Mouvement' },
+    voileSansProfil: { label: 'Voile du Poursuivant sans profil' },
+    maison: { label: 'Arbitrage maison' },
   }),
   reparation: nommerChamps(z.strictObject({
     portCostGoldPerWound: z.number(),
