@@ -978,7 +978,7 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
 /** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
  *  (`loot` puis `victory`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
  *  l'un ni l'autre. */
-function aEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
+function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
   const item = s.party.find((h) => h.id === porteurDeLObjet(s, uid))?.items?.find((i) => i.uid === uid);
   if (item) return { target: { itemUid: uid }, cible: item, trappingId: item.trappingId };
   for (const scope of ['loot', 'victory'] as const) {
@@ -1008,9 +1008,9 @@ export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mo
 
 /** Évaluation (LDB 59 l.41) ou Détection d'artefact (LDB 10 l.336) d'un objet porté par un héros, ou d'une ligne de
  *  butin ENCORE en fenêtre, révélée avant de choisir qui l'emporte. Chaque refus est dit. */
-export function evaluerLObjet(get: Get, set: Set, uid: IdDObjet | IdDeLigneDeButin, mode: ModeDEvaluation = MODE_D_EVALUATION_PAR_DEFAUT): void {
-  if (porteurDeLObjet(get(), uid) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)))) return;
-  const cible = aEvaluer(get(), uid);
+export function evaluerLObjet(get: Get, set: Set, aEvaluer: IdDObjet | IdDeLigneDeButin, mode: ModeDEvaluation = MODE_D_EVALUATION_PAR_DEFAUT): void {
+  if (porteurDeLObjet(get(), aEvaluer) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, aEvaluer)))) return;
+  const cible = cibleAEvaluer(get(), aEvaluer);
   if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
   if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, gameDay(s)))) return;
   openAppraise(get, set, cible.target, cible.cible.label, mode, cible.trappingId, cible.cible);
@@ -1102,7 +1102,7 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     ouvrirLeMarchand: (entityId) => ouvrirLeMarchand(get, set, entityId),
     ouvrirLaBoutique: (serviceId) => ouvrirLaBoutique(get, set, serviceId),
-    evaluerLObjet: (uid, mode) => evaluerLObjet(get, set, uid, mode),
+    evaluerLObjet: (aEvaluer, mode) => evaluerLObjet(get, set, aEvaluer, mode),
   } satisfies FabriqueDuNoyau;
 }
 

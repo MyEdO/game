@@ -1305,7 +1305,7 @@ function applyEreintant(get: Get, set: Set): string[] {
 export function creerActionsDuVoyage(get: Get, set: Set) {
   return {
     ouvrirLaCarte: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
-    partirEnVoyage: (routeId, mode, opts) => partirEnVoyage(get, set, routeId, mode, opts),
+    partirEnVoyage: (routeId, modeDeVoyage, opts) => partirEnVoyage(get, set, routeId, modeDeVoyage, opts),
     reprendreLeVoyage: () => reprendreLeVoyage(get, set),
     fixerLaCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
   } satisfies FabriqueDuNoyau;

@@ -162,7 +162,8 @@ export type IdDeStation = string;
 export type IdDePoste = string;
 /** Un trait naval du catalogue (`naval-traits.json`) : Amélioration ou trait de navire. */
 export type IdDeTraitNaval = string;
-/** La rangée d'un flux de jet à plusieurs jets ouvert, par l'id de son slot (`RollFlowHandlers.rangees`). */
+/** La rangée d'un flux de jet à plusieurs jets ouvert, par l'id de son slot (`RollFlowHandlers.rangees`), ou d'un choix de
+ *  fenêtre, par l'id de son héros (`CorpsDesChoix`). */
 export type IdDeRangee = string;
 /** Une Compétence du catalogue (`skills.json`). */
 export type IdDeCompetence = string;
@@ -345,7 +346,7 @@ export const DESIGNATIONS = {
     },
   },
   IdDeTraitNaval: { mot: 'id de trait naval', lire: () => ids(NAVAL_TRAITS), nom: (_s, id) => labelParmi(NAVAL_TRAITS, id) },
-  IdDeRangee: { mot: 'id de rangée', lire: (s) => sansDoublon(FLUX_A_RANGEES.flatMap((flux) => FLOW_HANDLERS[flux].rangees(() => s))), nom: nomDeCombattant },
+  IdDeRangee: { mot: 'id de rangée', lire: (s) => sansDoublon([...FLUX_A_RANGEES.flatMap((flux) => FLOW_HANDLERS[flux].rangees(() => s)), ...ids(s.party)]), nom: nomDeCombattant },
   IdDeCompetence: { mot: 'id de Compétence', lire: () => ids(skills), nom: (_s, id) => labelParmi(skills, id) },
   IdDeManoeuvre: { mot: 'id de Manœuvre', lire: () => ids(maneuvers), nom: (_s, id) => labelParmi(maneuvers, id) },
   IdDAttaque: { mot: 'id d’attaque', lire: (s) => ids(lesAttaques(s)), nom: (s, id) => labelParmi(lesAttaques(s), id) },

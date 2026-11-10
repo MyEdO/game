@@ -812,18 +812,18 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // ── Sélection d'ATTAQUE (« Attaque ▾ ») : arme une `AttackOption` (Arme + gratuites/zone/Piétinement/
     // Tentacule). Source des entrées : `availableAttacks` (combatFlow). Le clic-ennemi résout l'armée. ──
-    armerLAttaque: (id: string) => {
+    armerLAttaque: (attaqueId: string) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active) return;
       // Arme une attaque pour le clic-ennemi (mode neutre : `action===null`). Re-sélectionner revient à l'Arme.
-      const next = battle.selectedAttack === id ? 'arme' : id;
+      const next = battle.selectedAttack === attaqueId ? 'arme' : attaqueId;
       set({ battle: { ...battle, action: null, selectedAttack: next, selectedSpellId: null, preview: null }, pendingSiegeAim: null });
       // Pièce INDIRECTE servie (mortier/catapulte, AA 10 l.169/171) : ARMER l'option « Servir … » ouvre le PLACEUR
       // DE CASE (le tir vise un point au sol, pas un combattant) ; le désarmer (retour à 'arme') le referme.
-      if (next === id) {
-        const opt = availableAttacks(active, battle).find((o) => o.id === id);
+      if (next === attaqueId) {
+        const opt = availableAttacks(active, battle).find((o) => o.id === attaqueId);
         if (opt?.indirect && opt.weaponUid) {
           const w = active.weapons.find((x) => x.uid === opt.weaponUid);
           if (w?.uid) set({ pendingSiegeAim: { gunnerId: active.id, weaponUid: w.uid, radius: siegeBlastRadiusTiles(active, w, get().scene), rangeTiles: null } });
@@ -1260,23 +1260,23 @@ export function createCombatSlice(get: Get, set: Set) {
       const recharge = rechargeDuTour(active, battle, weaponUid);
       if (recharge) set({ pendingReload: jetDeRecharge(recharge.porteur, recharge.arme, battle.combatants) });
     },
-    seRemettreDeLEtat: (state: string) => {
+    seRemettreDeLEtat: (etat: string) => {
       const { battle } = get();
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !canTakeAction(active)) return;
-      const inst = active.conditions.find((c) => c.id === state);
+      const inst = active.conditions.find((c) => c.id === etat);
       const n = inst?.value ?? 0;
       if (!inst || n <= 0) return; // pas porteur de l'État
       if (isConditionLocked(inst, active)) return; // État verrouillé : le Test ne l'ôterait pas (LDB 18)
       // Test de récupération (Empêtré « se libérer »/En flammes « se rouler », LDB 16 l.66/l.84) lu de la
       // DONNÉE (`EtatData.recover`) par la SOURCE UNIQUE `resolveRecoverTest` — Empêtré = opposé de Force
       // (escapeStrength figée prioritaire, sinon source vivante) ; En flammes = Athlétisme simple.
-      const rt = resolveRecoverTest(active, state, battle);
+      const rt = resolveRecoverTest(active, etat, battle);
       if (!rt) return; // État non récupérable par Action (pas de `recover` en donnée)
       set({
         pendingStateRecovery: {
-          actorId: active.id, actorName: active.label, state,
+          actorId: active.id, actorName: active.label, state: etat,
           skillLabel: rt.skillLabel, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
           opposition: rt.opposition, requireSl: rt.requireSl,
           entangleOnFail: rt.entangleOnFail, struggleDamage: rt.struggleDamage, stacks: n,
@@ -1328,14 +1328,14 @@ export function createCombatSlice(get: Get, set: Set) {
 
     // ── Ramasser un objet d'un décor : en combat, un à la fois, au prix de l'Action (`pickup` de `actions.json`) ──
     /** Ramasse l'objet `key` du décor `entityId`. Hors combat, un objet posé au sol (`ramasserHorsCombat`). En combat,
-     *  l'actif (`pid`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
-    ramasserLObjet: (entityId: string, key: string, pid?: string) => {
+     *  l'actif (`heroId`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
+    ramasserLObjet: (entityId: string, key: string, heroId?: string) => {
       const s = get();
-      if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, pid);
+      if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, heroId);
       const barre = barreDuGeste(s);
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
-      if (pid !== undefined && pid !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, pid)?.label ?? pid }));
+      if (heroId !== undefined && heroId !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, heroId)?.label ?? heroId }));
       if (refuseParSonEntree(get, set, 'pickup', active, battle, { entityId, pickKey: key })) return;
       const scene = s.scene!;
       const ent = scene.entities.find((e) => e.id === entityId && e.kind === 'prop');
@@ -1677,16 +1677,16 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Contre-mesure « Asperger d'eau » (MDG 16 l.19, #497) — Créature marine hors de l'eau ──
 
     /** « Asperger d'eau » : Action DIRECTE (aucun jet, aucune modale) — pose `wateredThisRound` sur
-     *  une Créature marine adjacente hors de l'eau, consomme l'Action. `targetId` explicite (choix
+     *  une Créature marine adjacente hors de l'eau, consomme l'Action. `cibleId` explicite (choix
      *  parmi plusieurs candidats) sinon le 1ᵉʳ candidat éligible (MÊME patron que `servirLePoste`).
      *  Gate : l'aspergeur PORTE un contenant d'eau (`hasWaterContainer`, trapping `waterContainer`). */
-    aspergerDEau: (targetId?: string) => {
+    aspergerDEau: (cibleId?: string) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || battle.acted || !canTakeAction(active) || !hasWaterContainer(active)) return;
       const candidates = waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind));
-      const target = targetId ? candidates.find((c) => c.id === targetId) : candidates[0];
+      const target = cibleId ? candidates.find((c) => c.id === cibleId) : candidates[0];
       if (!target) return;
       target.wateredThisRound = true;
       finishPlayerAction(get, set, [t('cs.waterSpray', { name: active.label, target: target.label })], 'detail');
