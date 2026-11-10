@@ -50,7 +50,7 @@ const construireScene = (): Scene => buildScene({
     'au forgeron du coin, sans preuve.' },
   entities: [
     {
-      id: 'commis', kind: 'personnage', ref: 'humain', label: 'Commis du comptoir',
+      id: 'commis', kind: 'personnage', creature: { id: 'humain' }, label: 'Commis du comptoir',
       pos: { x: 6, y: 3 }, dialogueId: { id: 'dlg-commis' },
     },
   ],

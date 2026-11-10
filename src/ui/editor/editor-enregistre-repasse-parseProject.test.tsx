@@ -109,7 +109,7 @@ describe('Éditeur — un projet que la porte REFUSE ne s’écrit pas', () => {
     expect(refus).toContain('ce projet ne pourrait plus être rouvert');
     expect(refus, 'la scène est nommée').toContain('Salle fautive');
     expect(refus, 'l’entité fautive est nommée').toContain('La jetée');
-    expect(refus, 'et la règle enfreinte est dite').toContain('« ref » absente');
+    expect(refus, 'et la règle enfreinte est dite').toContain('« decor » absent');
   });
 
   it('le document de la scène fautive est bien celui que la porte REFUSE (sans quoi on ne mesurerait rien)', () => {
@@ -117,18 +117,18 @@ describe('Éditeur — un projet que la porte REFUSE ne s’écrit pas', () => {
       type: 'projet', id: 'p', label: 'P', versionContenu: 1,
       maison: 'fixture de test', narratif: emptyNarratif(),
       scenes: [sceneAuDecorSansType()],
-    })).toThrow(/« ref » absente/);
+    })).toThrow(/« decor » absent/);
   });
 
   it('un projet SAIN s’enregistre comme avant — la porte ne barre que ce qui est fautif', async () => {
     const saine: Scene = {
       ...emptyScene('scene-test', 4, 4), id: 'scene-saine', label: 'Salle saine',
-      entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'tonneau' }],
+      entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'tonneau' } }],
     };
     const { ecrits, refus } = await enregistre(saine);
     expect(refus).toBeNull();
     expect(ecrits).toHaveLength(1);
-    expect((ecrits[0].project as { scenes: Scene[] }).scenes[0].entities[0].ref).toBe('tonneau');
+    expect((ecrits[0].project as { scenes: Scene[] }).scenes[0].entities[0].decor?.id).toBe('tonneau');
   });
 });
 

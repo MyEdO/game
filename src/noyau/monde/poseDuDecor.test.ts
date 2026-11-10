@@ -13,7 +13,7 @@ import { emptyScene, type Scene, type SceneEntity } from './scene';
 import { volumeDuMonde, type VolumeDuMonde } from './volume/volume';
 
 const decor = (id: string, ref: string, x: number, y: number, plus: Partial<SceneEntity> = {}): SceneEntity =>
-  ({ id, kind: 'prop', ref, pos: { x, y }, ...plus });
+  ({ id, kind: 'prop', decor: { id: ref }, pos: { x, y }, ...plus });
 const scene = (entities: SceneEntity[], metresPerTile?: number): Scene =>
   ({ ...emptyScene('pose-du-decor', 6, 4), entities, ...(metresPerTile ? { metresPerTile } : {}) });
 

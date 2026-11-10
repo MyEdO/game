@@ -1,5 +1,5 @@
-/** Builder partagé des emplacements de siège : une entité-personnage porte la référence d'un
- *  trapping du sous-type `armes-de-siege` et son poste d'artillerie, hydraté au spawn. */
+/** Builder partagé des emplacements de siège : une entité-personnage porte son engin (`engin`, un
+ *  trapping du sous-type `armes-de-siege`) et son poste d'artillerie, hydraté au spawn. */
 import type { SceneEntity } from './scene';
 import type { Dir8 } from '../../geometry/dir8';
 import type { FireArc, AuthoredShipPoste } from '../../engine/types';
@@ -34,7 +34,7 @@ export function siegeEmplacementEntity(
     kind: 'personnage', // seul kind enrôlable en rencontre → spawn en Combattant (affût servi)
     pos: { x: pos.x, y: pos.y },
     label: t.label,
-    ref: trappingId, // SOURCE de l'engin → branche siège de spawnEnemy (affût inerte)
+    engin: { id: trappingId }, // SOURCE de l'engin → branche siège de spawnEnemy (affût inerte)
     postes: [poste],
   };
   if (opts.facing) ent.facing = opts.facing;

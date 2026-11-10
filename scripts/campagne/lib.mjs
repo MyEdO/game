@@ -15,6 +15,7 @@
 import { buildScene } from '../../src/noyau/mapSpec.ts';
 import { documentDeProjet } from '../../src/noyau/worldMap.ts';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
+import { idDuCorps } from '../../src/noyau/monde/scene.ts';
 import { findCreatureById, byId, findSpellById, findTraitById, findTrappingById, findVehicleById, siegeEngines, species as SPECIES_CATALOG } from '../../src/data/index.ts';
 import { fauteDEspece, messageDeTenueInconnue, tenueFermeeSchema } from '../../src/data/schemas/grammaire/valeurs.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
@@ -25,12 +26,15 @@ import { estObjet } from '../../src/lib/objet.mjs';
 // un id valide passe tel quel, TOUT le reste → throw en pointant où trouver les ids (Compendium/
 // catalogue). Les pickers de l'éditeur/Compendium aident à trouver l'id à la saisie.
 
-/** `ref` d'entité : id STABLE de bestiaire OU de coque (`vehicles.json`, findVehicleById). Une coque est
- *  un ref d'entité LÉGITIME (naval, MDG ch.13) posé en `enemies[]` terse comme en `entities`. Valide →
- *  passe ; inconnu → throw (chercher au Compendium). */
-function creatureId(ref) {
-  if (findCreatureById(ref) || findVehicleById(ref)) return ref;
-  throw new Error(`campagne : réf introuvable « ${ref} » — ni créature ni véhicule du catalogue (Compendium → Bestiaire / Véhicules).`);
+/** Corps d'entité, chacun dans son catalogue : `creature` (bestiaire), `vehicule` (coque, `vehicles.json`, MDG ch.13),
+ *  posés en `enemies[]` terse comme en `entities`. Valide → passe ; inconnu → throw (chercher au Compendium). */
+const CORPS = {
+  creature: { trouve: (id) => findCreatureById(id), catalogue: 'Bestiaire' },
+  vehicule: { trouve: (id) => findVehicleById(id), catalogue: 'Véhicules' },
+};
+function corpsValide(e) {
+  for (const [cle, { trouve, catalogue }] of Object.entries(CORPS))
+    if (e[cle] && !trouve(e[cle].id)) throw new Error(`campagne : ${cle} introuvable « ${e[cle].id} » (Compendium → ${catalogue}).`);
 }
 /** Compétence : skillId STABLE. Valide → passe ; inconnu → throw. */
 function skillId(id) {
@@ -94,12 +98,12 @@ function presetRef(id, knownPresetIds) {
   throw new Error(`campagne : presetId introuvable « ${id} » — attendu un id de narratif.presetsPnj (${[...knownPresetIds].join(', ') || 'aucun preset déclaré'}).`);
 }
 
-/** Un ennemi authored terse : VALIDE `ref`/`spells`/`inventaire`/`appearance`/`presetId` (ids stables, throw
+/** Un ennemi authored terse : VALIDE son corps/`spells`/`inventaire`/`appearance`/`presetId` (ids stables, throw
  *  sinon), ainsi que les ids structurés de `optionals`/`statblock.traits`. PUR (copie ; ne mute pas les statblocs
  *  partagés). `knownPresetIds` optionnel : fourni → `presetId` validé fail-fast, sinon accepté (parse runtime). */
 function validateEnemy(e, knownPresetIds) {
   const out = { ...e };
-  if (out.ref) out.ref = creatureId(out.ref);
+  corpsValide(out);
   if (out.presetId) out.presetId = presetRef(out.presetId, knownPresetIds);
   if (out.inventaire) out.inventaire = inventaire(out.inventaire);
   if (out.optionals) out.optionals = out.optionals.map(optionalEntry);
@@ -195,7 +199,7 @@ let propSeq = 0;
 /** Décor. `extra` : interact / anim / label… L'empreinte vient du catalogue (le corps de `PropData.volume`), jamais de
  *  l'instance. L'id est auto (réinitialisé par scène via resetIds). */
 export function P(x, y, ref, extra = {}) {
-  return { id: `p${propSeq++}`, kind: 'prop', pos: { x, y }, ref, ...extra };
+  return { id: `p${propSeq++}`, kind: 'prop', pos: { x, y }, decor: { id: ref }, ...extra };
 }
 /** Remet à zéro TOUTES les séquences d'ids de scène (props ET postes) — à appeler au début de CHAQUE scène. */
 export function resetIds() {
@@ -205,14 +209,14 @@ export function resetIds() {
 
 /** Personnage (PNJ) : apparence/dialogue/marchand via opts. `inventaire`/`appearance.species`/`appearance.tenue`
  *  sont VALIDÉS (ids stables, fail-fast).
- *  FICHE (#1882) : sans `ref`/`statblock`/`presetId`, la `ref` est le profil standard de son espèce
+ *  FICHE (#1882) : sans corps/`statblock`/`presetId`, sa `creature` est le profil standard de son espèce
  *  (`LDB 77 l.7`, `species.json › profilStandard`), posée en QUEUE ; une espèce sans profil → throw. */
 export function NPC(id, x, y, label, opts = {}, knownPresetIds) {
   const e = { id, kind: 'personnage', pos: { x, y }, label, ...opts };
   if (e.inventaire != null) e.inventaire = inventaire(e.inventaire);
   if (e.presetId != null) e.presetId = presetRef(e.presetId, knownPresetIds); // #671 : PNJ nommé instancié base+surcharges
   if (e.appearance != null) e.appearance = validateAppearance(e.appearance);
-  if (e.ref == null && e.statblock == null && e.presetId == null) e.ref = profilStandardDe(id, e.appearance?.species);
+  if (idDuCorps(e) === undefined && e.statblock == null && e.presetId == null) e.creature = { id: profilStandardDe(id, e.appearance?.species) };
   return e;
 }
 
@@ -220,7 +224,7 @@ export function NPC(id, x, y, label, opts = {}, knownPresetIds) {
 function profilStandardDe(id, speciesId) {
   const profil = SPECIES_CATALOG.find((s) => s.id === speciesId)?.profilStandard?.id;
   if (profil) return profil;
-  throw new Error(`campagne : PNJ « ${id} » sans fiche — ni ref, ni statblock, ni presetId, et l'espèce « ${speciesId} » ne porte aucun profil standard (species.json › profilStandard, LDB 77 l.7).`);
+  throw new Error(`campagne : PNJ « ${id} » sans fiche — ni corps, ni statblock, ni presetId, et l'espèce « ${speciesId} » ne porte aucun profil standard (species.json › profilStandard, LDB 77 l.7).`);
 }
 
 export function hero(x, y) {

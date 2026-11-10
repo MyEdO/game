@@ -32,7 +32,7 @@ function negociateur(): Combatant {
 /** Ouvre l'armurier ambulant (Marchandage 45) et marchande la VENTE, d100 imposés (joueur, marchand). */
 function marchanderLaVente(joueur: number, marchand: number): void {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
+  sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
   set({ party: [negociateur()], scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().ouvrirLeMarchand('pnj');
   get().marchanderLePrix('sell');

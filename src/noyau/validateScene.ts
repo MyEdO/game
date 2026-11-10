@@ -1,4 +1,4 @@
-import { groupePosable, heightAt, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
+import { groupePosable, heightAt, idDuCorps, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
@@ -477,7 +477,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         const n = sizeFootprint(entitySize(membre));
         const z = membre.z ?? 0;
         const tuiles = footprintTiles(membre.pos, n);
-        const nom = membre.label ?? membre.ref ?? membre.id;
+        const nom = membre.label ?? idDuCorps(membre) ?? membre.id;
         const dehors = tuiles.filter((t) => !within(t.x, t.y));
         if (dehors.length)
           add('warn', 'entity', membre.id, `${nom} : empreinte ${n}×${n} débordant hors de la carte — ${dehors.map((t) => `(${t.x},${t.y})`).join(' ')}.`);

@@ -22,10 +22,10 @@ const PRISES = {
   'place-3': { kind: 'entity' as const, entityId: 'c' }, 'place-4': { kind: 'entity' as const, entityId: 'd' },
 };
 /** Table en (5,5) au cap N : abords nord (5,4), est (6,5), sud (5,6), ouest (4,5). */
-const table = (usable: SceneEntity['usable']): SceneEntity => ({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable });
-const coffre = (actions: typeof FOUILLE[]): SceneEntity => ({ id: 'coffre-1', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'coffre', usable: { actions } });
-const badaud: SceneEntity = { id: 'pnj-1', kind: 'personnage', ref: 'humain', label: 'Le badaud', pos: { x: 5, y: 5 } };
-const tonneau = (id: string, x: number, y: number): SceneEntity => ({ id, kind: 'prop', pos: { x, y }, ref: 'tonneau', label: 'Un tonneau' });
+const table = (usable: SceneEntity['usable']): SceneEntity => ({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable });
+const coffre = (actions: typeof FOUILLE[]): SceneEntity => ({ id: 'coffre-1', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'coffre' }, usable: { actions } });
+const badaud: SceneEntity = { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, label: 'Le badaud', pos: { x: 5, y: 5 } };
+const tonneau = (id: string, x: number, y: number): SceneEntity => ({ id, kind: 'prop', pos: { x, y }, decor: { id: 'tonneau' }, label: 'Un tonneau' });
 /** Huit tonneaux autour de (5,5) : aucune case adjacente libre, la cible est injoignable à pied. */
 const enceinte = (): SceneEntity[] =>
   [[4, 4], [5, 4], [6, 4], [4, 5], [6, 5], [4, 6], [5, 6], [6, 6]].map(([x, y], i) => tonneau(`mur-${i}`, x, y));

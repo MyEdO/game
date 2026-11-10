@@ -596,7 +596,7 @@ function enPatchDEntite(ent: SceneEntity, patch: PatchDEntite): Partial<SceneEnt
   const usable = { ...ent.usable, assise: assise || undefined };
   return {
     ...reste,
-    ...(ref === undefined ? {} : ent.kind === 'prop' ? propRefPatch(ref, ent) : { ref }),
+    ...(ref === undefined ? {} : ent.kind === 'prop' ? propRefPatch(ref, ent) : { creature: { id: ref } }),
     ...(z === undefined ? {} : { z: coucheEcrite(z) }),
     ...(light === undefined ? {} : { light: light ?? undefined }),
     ...(assise === undefined ? {} : { usable: usable.assise || usable.actions?.length ? usable : undefined }),

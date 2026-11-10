@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ambiance } from '../../data';
+import { sonDEffet } from '../../data/sons/registre';
 import { MAX_PRECIP, meteoDuRegard, openSkyRuns, sceneGroundSpan, scenePrecip, sceneWeatherFx } from './meteo';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from './scene';
 import { isSheltered, shelterField } from './volume/toits';
@@ -103,8 +104,8 @@ describe('meteoDuRegard', () => {
     expect(total).toBeGreaterThan(MAX_PRECIP - 80);
   });
 
-  it('au plateau, rien ne tombe ni ne se pose en nappe', () => {
-    expect(meteoDuRegard({ ...emptyScene('scene-test', 4, 4), weather: 'tempete' }, 'plateau')).toEqual({ pluie: null, nappes: [] });
+  it('au plateau, rien ne tombe ni ne se pose en nappe, mais l’orage s’entend', () => {
+    expect(meteoDuRegard({ ...emptyScene('scene-test', 4, 4), weather: 'tempete' }, 'plateau')).toEqual({ pluie: null, nappes: [], son: sonDEffet('orage') });
   });
 
   it('la brume se pose en nappes en tactique, une par couche de la donnée, au-dessus du sol le plus bas', () => {

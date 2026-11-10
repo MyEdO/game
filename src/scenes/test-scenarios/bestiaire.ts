@@ -57,16 +57,16 @@ const construireScene = (): Scene => buildScene({
       id: 'enc-bestiaire',
       enemies: [
         // Traits de créature (LDB 85).
-        { ref: 'fantome', pos: { x: 14, y: 4 } }, // Éthéré + Instable + Peur
-        { ref: 'demonette-de-slaanesh', pos: { x: 16, y: 7 } }, // Démoniaque/Champion/Perturbant/Corruption
-        { ref: 'troll', pos: { x: 15, y: 12 } }, // Régénération/Stupide/Infecté
+        { creature: { id: 'fantome' }, pos: { x: 14, y: 4 } }, // Éthéré + Instable + Peur
+        { creature: { id: 'demonette-de-slaanesh' }, pos: { x: 16, y: 7 } }, // Démoniaque/Champion/Perturbant/Corruption
+        { creature: { id: 'troll' }, pos: { x: 15, y: 12 } }, // Régénération/Stupide/Infecté
         // Infligeurs d'états + Énorme.
-        { ref: 'araignee-geante', pos: { x: 18, y: 15 } }, // Toile→Empêtré, Bestial, Venin
-        { ref: 'cockatrice', pos: { x: 20, y: 5 } }, // regard pétrifiant + Redoutable
-        { ref: 'griffon', pos: { x: 22, y: 10 } }, // Énorme → Piétinement (l'arène 26×20 lui laisse la place)
-        { ref: 'babrakkos', pos: { x: 24, y: 12 } }, // 6 sorts + Terreur
+        { creature: { id: 'araignee-geante' }, pos: { x: 18, y: 15 } }, // Toile→Empêtré, Bestial, Venin
+        { creature: { id: 'cockatrice' }, pos: { x: 20, y: 5 } }, // regard pétrifiant + Redoutable
+        { creature: { id: 'griffon' }, pos: { x: 22, y: 10 } }, // Énorme → Piétinement (l'arène 26×20 lui laisse la place)
+        { creature: { id: 'babrakkos' }, pos: { x: 24, y: 12 } }, // 6 sorts + Terreur
         // Statblocs d'auteur (LDB 76/78/85).
-        { ref: 'pieuvre-des-tourbieres', pos: { x: 18, y: 18 } }, // « 8 Tentacules +9 » gratuites, Empêtré
+        { creature: { id: 'pieuvre-des-tourbieres' }, pos: { x: 18, y: 18 } }, // « 8 Tentacules +9 » gratuites, Empêtré
         {
           statblock: { type: 'statblock',
             label: 'Sorcier mutant',
@@ -77,8 +77,8 @@ const construireScene = (): Scene => buildScene({
           appearance: { species: 'humains-reiklander' },
           pos: { x: 23, y: 6 },
         },
-        { ref: 'squelette', pos: { x: 20, y: 15 }, optionals: [{ id: 'elite' }], randomChars: true }, // facultatif Élite + caracs aléatoires
-        { ref: 'mutant', pos: { x: 16, y: 17 } }, // Mutant ennemi → visuels de mutation tirés au hasard du même registre
+        { creature: { id: 'squelette' }, pos: { x: 20, y: 15 }, optionals: [{ id: 'elite' }], randomChars: true }, // facultatif Élite + caracs aléatoires
+        { creature: { id: 'mutant' }, pos: { x: 16, y: 17 } }, // Mutant ennemi → visuels de mutation tirés au hasard du même registre
       ],
     },
   ],

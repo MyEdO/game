@@ -435,7 +435,7 @@ describe('__wfrp — autres commandes de recette', () => {
 
   it('editorPatchEntity (#877) avec un pont VIDE : rejet NOMMÉ, portant CE helper-là', async () => {
     expect(editeur.patcherEntite).toBeUndefined(); // aucun Editor monté dans ce banc
-    const p = buildApi().editorPatchEntity('p0', { ref: undefined }, 120);
+    const p = buildApi().editorPatchEntity('p0', { decor: undefined }, 120);
     const verdict = p.then(() => 'résolu', (e: Error) => e.message);
     await vi.advanceTimersByTimeAsync(400);
     expect(await verdict).toContain("l'éditeur ne s'est pas monté");

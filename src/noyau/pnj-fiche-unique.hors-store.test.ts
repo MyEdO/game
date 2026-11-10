@@ -35,8 +35,8 @@ function pose(entities: SceneEntity[]): void {
   set({ party: makePregens(idsDeTest).slice(0, 1) as Combatant[], scene: { ...emptyScene('scene-test'), entities }, battle: null, sequence: null, pendingCascade: null, medic: null } as never);
 }
 
-const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', ref: 'humain', tavernGame: { id: 'dominos' } };
-const MORT: SceneEntity = { id: 'fantome', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Le Fantôme', ref: 'creature-fantome-xyz', tavernGame: { id: 'dominos' } };
+const GERTA: SceneEntity = { id: 'gerta', kind: 'personnage', pos: { x: 1, y: 1 }, label: 'Gerta la Rusée', creature: { id: 'humain' }, tavernGame: { id: 'dominos' } };
+const MORT: SceneEntity = { id: 'fantome', kind: 'personnage', pos: { x: 2, y: 2 }, label: 'Le Fantôme', creature: { id: 'creature-fantome-xyz' }, tavernGame: { id: 'dominos' } };
 
 describe('#1882 — un PNJ, une fiche, UN nom', () => {
   
@@ -61,7 +61,7 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
 
 describe('#1882 — la porte et la fiche disent la MÊME chose d’un porteur', () => {
   it('un `presetId` VIDE n’est pas un porteur : l’entité que le schéma et `validateScene` acceptent, `ficheDEntite` la joue', () => {
-    const ent = { id: 'p', kind: 'personnage', pos: { x: 1, y: 1 }, ref: 'humain', presetId: '' } as SceneEntity;
+    const ent = { id: 'p', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' }, presetId: '' } as SceneEntity;
     expect(sceneEntitySchema.safeParse(ent).success).toBe(true);
     const sc = emptyScene('scene-test', 8, 8); sc.entities.push(ent);
     expect(validateScene([sc]).filter((w) => w.level === 'error')).toEqual([]);

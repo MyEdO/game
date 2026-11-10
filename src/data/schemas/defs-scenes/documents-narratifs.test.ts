@@ -137,7 +137,7 @@ describe('références narratives des Effects — résolues au parse du projet',
   });
 
   it('`documentId` pendant sous une ACTION d’entité (`usable.actions[].flow`) : refusé à son chemin complet', () => {
-    const coffre = { id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, ref: 'coffre', usable: { actions: [
+    const coffre = { id: 'coffre', kind: 'prop', pos: { x: 1, y: 1 }, decor: { id: 'coffre' }, usable: { actions: [
       { id: 'fouiller', flow: { kind: 'do', effect: { type: 'document', documentId: 'doc-fantome' } } },
     ] } };
     expect(fautes(projet({ scenes: [scene({ entities: [coffre] })] }))).toEqual([

@@ -59,12 +59,12 @@ describe('embuscade — Scene produite par buildScene', () => {
 
   it('props de carnage (épave, attelage, corps, sang) posés', () => {
     const prop = (id: string) => s.entities.find((e) => e.id === id);
-    expect(prop('epave')).toMatchObject({ kind: 'prop', ref: 'epave-carrosse', pos: { x: 15, y: 6 } });
-    expect(prop('cheval')).toMatchObject({ kind: 'prop', ref: 'cheval-mort', pos: { x: 12, y: 6 } });
-    expect(prop('corps1')).toMatchObject({ ref: 'cadavre', pos: { x: 11, y: 7 } });
+    expect(prop('epave')).toMatchObject({ kind: 'prop', decor: { id: 'epave-carrosse' }, pos: { x: 15, y: 6 } });
+    expect(prop('cheval')).toMatchObject({ kind: 'prop', decor: { id: 'cheval-mort' }, pos: { x: 12, y: 6 } });
+    expect(prop('corps1')).toMatchObject({ decor: { id: 'cadavre' }, pos: { x: 11, y: 7 } });
     expect(prop('corps2')?.pos).toEqual({ x: 14, y: 8 });
     expect(prop('corps3')?.pos).toEqual({ x: 17, y: 7 });
-    expect(prop('sang1')).toMatchObject({ ref: 'mare-sang', pos: { x: 13, y: 7 } });
+    expect(prop('sang1')).toMatchObject({ decor: { id: 'mare-sang' }, pos: { x: 13, y: 7 } });
     expect(prop('sang2')?.pos).toEqual({ x: 15, y: 7 });
     expect(prop('sang3')?.pos).toEqual({ x: 16, y: 8 });
     expect(prop('sang4')?.pos).toEqual({ x: 12, y: 8 });
@@ -100,7 +100,7 @@ describe('embuscade — Scene produite par buildScene', () => {
     expect(enc.onVictory).toBeDefined();
 
     const chef = s.entities.find((e) => e.id === 'enemy-enc-mutants-0');
-    expect(chef).toMatchObject({ ref: 'mutant', anim: 'standing', pos: { x: 17, y: 6 } });
+    expect(chef).toMatchObject({ creature: { id: 'mutant' }, anim: 'standing', pos: { x: 17, y: 6 } });
     expect(chef?.statblock?.label).toBe('Knud Cratinx');
     expect(chef?.statblock?.char['capacite-de-tir']).toBe(43);
     expect(chef?.statblock?.traits).toContainEqual({ id: 'a-distance', value: 9, arg: 'arbalete', range: 60 });

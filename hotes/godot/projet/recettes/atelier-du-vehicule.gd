@@ -16,7 +16,8 @@ extends SceneTree
 ## bouton par variante, par zone, par lumière, par son, par flottant et par musique de la vitrine (#3777, #3783, #3825,
 ## `vitrine`), chacun d'un visuel, d'un projectile et de fichiers sonores que Godot connaît ; le coup d'un canon y part de
 ## l'auteur, le souffle de feu pose sa nappe sur chaque case, la flamme son foyer sur la cible, le flottant critique
-## monte, une musique joue, cède la place à une autre et se tait ; le trébuchet choisi, sans place ni Amélioration à
+## monte, une musique joue, cède la place à une autre et se tait, la zone de feu dure sur ses cases, les marques des
+## États se posent sur la cible et se retirent (#3834) ; le trébuchet choisi, sans place ni Amélioration à
 ## monter, n'offre pas Équipement et attaque depuis l'onglet Animation : son clip de tir joue et sa pierre vole.
 
 const RECETTE_AUTONOME := true
@@ -106,6 +107,16 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 		_verifier(source.visuel == null or Foyer.FLAMMES.has(source.visuel), "visuel de lumière inconnu de Godot : %s" % source.visuel)
 		if source.son != null:
 			_connu({quoi = "son", son = source.son})
+	for zone in vitrine.zonesQuiDurent:
+		cles_des_boutons.append("zone-qui-dure/%s" % zone.id)
+		_verifier(Effets.GERBES.has(zone.zone.visuel), "visuel de zone qui dure inconnu de Godot : %s" % zone.zone.visuel)
+		if zone.zone.boucle != null:
+			_connu({quoi = "son", son = zone.zone.boucle})
+	for marque in vitrine.marques:
+		cles_des_boutons.append("marque/%s" % marque.id)
+		_verifier(marque.marque.visuel == null or Foyer.FLAMMES.has(marque.marque.visuel), "visuel de marque inconnu de Godot : %s" % marque.marque.visuel)
+		if marque.marque.son != null:
+			_connu({quoi = "son", son = marque.marque.son})
 	for musique in vitrine.musiques:
 		cles_des_boutons.append("musique/%s" % musique.id)
 		for piste in musique.musique.pistes:
@@ -129,6 +140,7 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	await create_timer(Effets.ELAN_S + 0.1).timeout
 	_verifier(noeud_des_effets.get_children().any(func(n: Node) -> bool: return n is Label3D), "le flottant critique de la vitrine ne monte pas")
 	await _ecouter(atelier, vitrine.musiques)
+	await _durer_et_marquer(atelier)
 	var foyers := atelier.get_node("Cible").get_children().filter(func(n: Node) -> bool: return n is Foyer)
 	_verifier(foyers.size() == 1 and foyers[0].get_node_or_null("feu") != null and foyers[0].get_node_or_null("son-crepitement") != null, "la flamme de la vitrine : un seul foyer, son feu et son crépitement attendus sur la cible, posés %s" % [foyers.map(func(f: Node) -> Array: return f.get_children().map(func(n: Node) -> String: return n.name))])
 	_choisir(atelier, "modele/vehicule", "trebuchet-ade2")
@@ -140,6 +152,28 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	_verifier(montage.lecteur != null and montage.lecteur.current_animation == montage.clips.get("ranged"), "le trébuchet ne joue pas son clip de tir")
 	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
 	await create_timer(ECLATS_ETEINTS_S).timeout
+
+
+## La zone qui dure du feu posée autour de la cible, une par case, puis retirée ; les marques En flammes et Sonné sur
+## la cible, puis la seule Sonné quand En flammes se relâche.
+func _durer_et_marquer(atelier: Node) -> void:
+	var zones := atelier.get_node("ZonesQuiDurent") as ZonesQuiDurent
+	var feu := _controle(atelier, "zone-qui-dure/sort-de-feu") as Button
+	feu.button_pressed = true
+	_verifier(zones.get_child_count() == 1 and zones.get_child(0).get_children().filter(func(n: Node) -> bool: return n.name.begins_with("nappe-de-flammes")).size() > 1, "la zone de feu de la vitrine ne pose pas sa nappe sur ses cases")
+	feu.button_pressed = false
+	await process_frame
+	_verifier(zones.get_child_count() == 0, "la zone de feu relâchée reste posée")
+	var marques := atelier.get_node("Cible/Marques") as MarquesDEtats
+	var en_flammes := _controle(atelier, "marque/en-flammes") as Button
+	en_flammes.button_pressed = true
+	(_controle(atelier, "marque/sonne") as Button).button_pressed = true
+	var textes := func() -> Array: return marques.get_children().filter(func(n: Node) -> bool: return n is Label3D and not n.is_queued_for_deletion()).map(func(t: Label3D) -> String: return t.text)
+	_verifier(textes.call() == ["En flammes", "Sonné"], "les marques de la vitrine : %s" % [textes.call()])
+	en_flammes.button_pressed = false
+	_verifier(textes.call() == ["Sonné"], "la marque relâchée reste posée : %s" % [textes.call()])
+	(_controle(atelier, "marque/sonne") as Button).button_pressed = false
+	await create_timer(Foyer.SON_LIBERE_S).timeout
 
 
 ## Les musiques `musiques` de la vitrine à leurs boutons à bascule : la première enfoncée joue, la deuxième enfoncée prend

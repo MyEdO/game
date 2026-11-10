@@ -48,9 +48,9 @@ const construireScene = (): Scene => buildScene({
       id: 'enc-rattrapage',
       hidden: true,
       enemies: [
-        { ref: 'humain', pos: { x: 1, y: 4 }, label: 'Brigand' },
-        { ref: 'humain', pos: { x: 1, y: 6 }, label: 'Brigand' },
-        { ref: 'humain', pos: { x: 0, y: 5 }, label: 'Brigand meneur' },
+        { creature: { id: 'humain' }, pos: { x: 1, y: 4 }, label: 'Brigand' },
+        { creature: { id: 'humain' }, pos: { x: 1, y: 6 }, label: 'Brigand' },
+        { creature: { id: 'humain' }, pos: { x: 0, y: 5 }, label: 'Brigand meneur' },
       ],
     },
   ],

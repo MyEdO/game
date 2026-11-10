@@ -71,7 +71,7 @@ describe('LogicDock — sortie à seuil de dommage (#215 ; MDG 15 l.143, l.166-1
   afterEach(demonterRacines);
   const rencontre = (victoryCondition: NonNullable<Scene['encounters'][number]['victoryCondition']>): Scene => {
     const scene = emptyScene('scene-test', 10, 10);
-    scene.entities = [{ id: 'syrene', kind: 'personnage', ref: 'syrene-bleue', pos: { x: 1, y: 1 } }];
+    scene.entities = [{ id: 'syrene', kind: 'personnage', creature: { id: 'syrene-bleue' }, pos: { x: 1, y: 1 } }];
     scene.encounters = [{ id: 'e1', members: [{ entityId: 'syrene' }], victoryCondition }];
     return scene;
   };

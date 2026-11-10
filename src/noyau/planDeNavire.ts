@@ -1,5 +1,5 @@
 /**
- * Les ponts d'un navire posés dans une scène (#3686) : le navire est l'entité `personnage` dont la `ref` est un
+ * Les ponts d'un navire posés dans une scène (#3686) : le navire est l'entité `personnage` dont le `vehicule` est un
  * véhicule à plan des ponts (`PLANS_DE_NAVIRE`), le combattant qu'il est en mer. Dans une scène à l'échelle de son
  * plan (`sceneMetresPerTile`), les ponts de son TYPE et ce qu'y ajoutent ses Améliorations (`pontsDuNavire`),
  * compilés par `buildScene`, se recopient centrés sur son empreinte de combattant (`footprintN`, coin nord-ouest à sa
@@ -119,7 +119,7 @@ interface PoseDeNavire {
  *  (`refusDeLEntite`) : ses ponts ne se posent pas. Ses ponts se centrent sur son empreinte de combattant, la case centrée sur
  *  l'entier, au plus près quand leurs côtés n'ont pas la parité de l'empreinte. */
 function poseDe(scene: Scene, ent: SceneEntity): PoseDeNavire | null {
-  const plan = ent.kind === 'personnage' ? planDe(ent.ref) : undefined;
+  const plan = planDe(ent.vehicule?.id);
   if (!plan || !aLEchelleDesPonts(scene, plan.ponts.id)) return null;
   const cap = ent.facing ?? 'N';
   if (!estCardinal(cap)) return null;
@@ -211,7 +211,7 @@ function poserLeNavire(hote: Scene, navire: Scene, pose: PoseDeNavire): Scene {
   // Un décor garde son emprise : son ancre est le coin nord-ouest de ses cases tournées ; son calage tourne avec le
   // pont (le coffre reste contre la même cloison) et son appui prend le préfixe de la pose.
   const decors: SceneEntity[] = (navire.entities ?? []).map((e) => {
-    const cases = propFootTiles(e.ref, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => vers(c.x, c.y));
+    const cases = propFootTiles(e.decor?.id, e.pos, e.facing, sceneMetresPerTile(navire)).map((c) => vers(c.x, c.y));
     return {
       ...e,
       id: `${pose.id}-${e.id}`,
@@ -244,7 +244,7 @@ export function poserUnNavire(scene: Scene, ref: string, p: Pt, z: number, cap: 
   if (!aLEchelleDesPonts(scene, ref)) return null;
   const id = nextEntityId('navire', scene.entities.map((e) => e.id));
   const { label } = garanti(planDe(ref), ref, 'plan de navire').ponts;
-  return { scene: addEntity(scene, { id, kind: 'personnage', ref, pos: { x: p.x, y: p.y }, facing: cap, label }, z), id };
+  return { scene: addEntity(scene, { id, kind: 'personnage', vehicule: { id: ref }, pos: { x: p.x, y: p.y }, facing: cap, label }, z), id };
 }
 
 /** Ce que les ponts des navires de `scene` y posent, par l'id de leur entité : leurs cases (clés `x,y,z`) et leurs arêtes

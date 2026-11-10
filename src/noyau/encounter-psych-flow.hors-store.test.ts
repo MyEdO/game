@@ -72,7 +72,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const sources = sceneFearSources(
       scene([
         ent({ id: 'pnj', statblock: TERREUR2 }),
-        ent({ id: 'porte', kind: 'prop', ref: 'Tonneau' }),
+        ent({ id: 'porte', kind: 'prop', decor: { id: 'Tonneau' } }),
         ent({ id: 'depart', kind: 'heroStart' }),
       ]),
       presetPnjById,
@@ -95,7 +95,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const h = timoreux('H');
     h.psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('mort-vivant') }];
     banc.setState({ party: [h] });
-    banc.getState().lancerLaScene(scene([ent({ id: 'revenant', ref: 'humain', combat: { optionals: [{ id: 'mort-vivant' }] } })]));
+    banc.getState().lancerLaScene(scene([ent({ id: 'revenant', creature: { id: 'humain' }, combat: { optionals: [{ id: 'mort-vivant' }] } })]));
     const step = banc.getState().pendingCascade?.participants[0];
     expect(step?.encounterPsych?.kind).toBe('haine');
     expect(step?.encounterPsych?.cible).toBe(ciblePsy.groupe('mort-vivant'));

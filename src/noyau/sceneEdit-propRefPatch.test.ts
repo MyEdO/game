@@ -7,13 +7,13 @@ import { empreinteDuProp } from '../data/props.types';
 describe('propRefPatch — l’action de FOUILLE pré-armée à la pose d’un décor `searchable`', () => {
   it('décor searchable sans action → pré-arme une action `fouiller` à Flow vide, jouable une fois', () => {
     const p = propRefPatch('coffre', undefined);
-    expect(p.ref).toBe('coffre');
+    expect(p.decor?.id).toBe('coffre');
     expect(p.usable).toEqual({ actions: [{ id: 'fouiller', flow: EMPTY_FLOW, unique: true }] });
   });
   it('décor searchable dont l’instance porte DÉJÀ une action → la liste de l’auteur est intacte', () => {
     const deja = { actions: [{ id: 'ouvrir', flow: EMPTY_FLOW }] };
     const p = propRefPatch('coffre', { usable: deja });
-    expect(p).toEqual({ ref: 'coffre' });
+    expect(p).toEqual({ decor: { id: 'coffre' } });
     expect('usable' in p).toBe(false);
   });
   it('l’ASSISE déjà activée survit à la pré-arme : les deux faits cohabitent dans l’enveloppe', () => {
@@ -22,16 +22,16 @@ describe('propRefPatch — l’action de FOUILLE pré-armée à la pose d’un d
   });
   it('décor pur (non searchable) → seulement ref, aucune action', () => {
     const p = propRefPatch('tonneau', undefined);
-    expect(p).toEqual({ ref: 'tonneau' });
+    expect(p).toEqual({ decor: { id: 'tonneau' } });
   });
 });
 
 describe('propRefPatch — l’empreinte n’est PAS une propriété d’instance', () => {
   it('gros décor (tribune 3×1) → aucune empreinte posée sur l’entité : elle vient du catalogue', () => {
-    expect(propRefPatch('tribune', undefined)).toEqual({ ref: 'tribune' });
+    expect(propRefPatch('tribune', undefined)).toEqual({ decor: { id: 'tribune' } });
     expect(empreinteDuProp(findPropById('tribune'), 'S', 2)).toEqual({ w: 3, h: 1 });
   });
   it('décor 1×1 (tonneau) → seulement la ref', () => {
-    expect(propRefPatch('tonneau', undefined)).toEqual({ ref: 'tonneau' });
+    expect(propRefPatch('tonneau', undefined)).toEqual({ decor: { id: 'tonneau' } });
   });
 });

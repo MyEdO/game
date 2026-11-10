@@ -130,12 +130,12 @@ describe('propFootTiles — l’empreinte d’un décor vient du CATALOGUE', () 
 
   it.each(TRAVERSABLES_A_RECETTE)('%s : recette NON solide — sa case reste traversable', (ref) => {
     expect(findPropById(ref)?.solid, `${ref} est solide : ce contrat mesurerait autre chose`).toBeFalsy();
-    const scene: Scene = { ...emptyScene('scene-test', 8, 8), entities: [{ id: 'd-1', kind: 'prop', ref, pos: { x: 3, y: 3 } }] as SceneEntity[] };
+    const scene: Scene = { ...emptyScene('scene-test', 8, 8), entities: [{ id: 'd-1', kind: 'prop', decor: { id: ref }, pos: { x: 3, y: 3 } }] as SceneEntity[] };
     expect(entityBlockedAt(scene, 3, 3, 0)).toBe(false);
   });
 
   it('témoin : un décor à recette SOLIDE, lui, bloque bien sa case (sans quoi le contrat ci-dessus passerait sur du vide)', () => {
-    const scene: Scene = { ...emptyScene('scene-test', 8, 8), entities: [{ id: 'd-1', kind: 'prop', ref: 'tonneau', pos: { x: 3, y: 3 } }] as SceneEntity[] };
+    const scene: Scene = { ...emptyScene('scene-test', 8, 8), entities: [{ id: 'd-1', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 3, y: 3 } }] as SceneEntity[] };
     expect(entityBlockedAt(scene, 3, 3, 0)).toBe(true);
   });
 });

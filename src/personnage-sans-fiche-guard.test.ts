@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import * as ts from 'typescript/unstable/ast';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
-import { typeNonNomme } from './data/schemas/defs-scenes/scene';
+import { PORTEURS_DU_TYPE, typeNonNomme } from './data/schemas/defs-scenes/scene';
 import { detenteur } from './lib/detenteur.testkit';
+import { tableTotale } from './lib/tableTotale';
 
 /**
  * PERSONNAGE SANS FICHE DANS UNE FIXTURE (#1882) — un test qui pose un `kind:'personnage'` sans porteur
@@ -37,12 +38,11 @@ const GARDE = {
 /** Les tests dont le personnage sans fiche est le SUJET (refus, transition jugée) — le littéral fautif
  *  est ce qu'ils prouvent. */
 const SANS_FICHE_PROUVES: readonly { fichier: string; it: string }[] = [
-  { fichier: 'src/noyau/validateScene-contenu.test.ts', it: 'un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (réf, statbloc, preset) la lève (#1882)' },
+  { fichier: 'src/noyau/validateScene-contenu.test.ts', it: 'un PERSONNAGE sans fiche est une erreur nommée ; chaque porteur SEUL (corps, statbloc, preset) la lève (#1882)' },
   { fichier: 'src/state/spawn-fallback.test.ts', it: 'une entité sans porteur qui franchit la porte est un BOGUE, dit par `FicheAbsente` en nommant l’entité' },
-  { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin `ref`' },
-  { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : une réf VIDE est une absence, une réf MORTE est refusée en la nommant (#1882)' },
+  { fichier: 'src/data/schemas/defs-scenes/personnage-fiche-schema.test.ts', it: 'au SCHÉMA : chaque porteur SEUL suffit, l’absence de tous est l’issue nommée au chemin du premier' },
   { fichier: 'src/noyau/sceneEdit.test.ts', it: 'un patch sans rapport sur une entité DÉJÀ sans type passe ; `validateScene` la nomme' },
-  { fichier: 'src/noyau/edition/session.test.ts', it: 'les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, la fiche introuvable, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)' },
+  { fichier: 'src/noyau/edition/session.test.ts', it: 'les fautes croisées d’une entité (`refusDeLEntite`) : le type non nommé, deux corps, l’engin qui n’est pas de siège, le PNJ de carrière fautif, le calage et le cap d’un décor, que le `superRefine` de `sceneEntitySchema` dit à leur champ (#1882)' },
 ];
 
 type Site = { rel: string; ligne: number; it?: string; faute: string };
@@ -94,9 +94,7 @@ export function personnagesSansFiche(rel: string, raw: string, sf = ast({ rel, t
         const faute = typeNonNomme({
           id: (id && texteLitteral(id)) ?? '?',
           kind: 'personnage',
-          ref: porte('ref'),
-          statblock: porte('statblock'),
-          presetId: porte('presetId'),
+          ...tableTotale(PORTEURS_DU_TYPE.personnage.porteurs, porte),
         });
         if (faute) out.push({ rel, ligne: sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1, it: itEnglobant(node), faute });
       }
@@ -123,22 +121,22 @@ describe('personnage-sans-fiche-guard : aucune fixture ne pose un personnage san
   it('le détecteur MORD : un personnage sans porteur est dit en NOMMANT l’entité', () => {
     const src = "const s = { entities: [{ id: 'badaud', kind: 'personnage', pos: { x: 0, y: 0 }, label: 'Badaud' }] };";
     expect(personnagesSansFiche('x.test.ts', src).map((s) => s.faute)).toEqual([typeNonNomme({ id: 'badaud', kind: 'personnage' })]);
-    expect(personnagesSansFiche('x.test.ts', "const e = { id: 'b', kind: 'personnage' as const, pos: P, ref: undefined };")).toHaveLength(1);
-    expect(personnagesSansFiche('x.test.ts', "const e = { id: 'b', kind: 'personnage', pos: P, ref: (undefined as any) };")).toHaveLength(1);
+    expect(personnagesSansFiche('x.test.ts', "const e = { id: 'b', kind: 'personnage' as const, pos: P, creature: undefined };")).toHaveLength(1);
+    expect(personnagesSansFiche('x.test.ts', "const e = { id: 'b', kind: 'personnage', pos: P, creature: (undefined as any) };")).toHaveLength(1);
   });
 
   it.each([
-    ["{ id: 'a', kind: 'personnage', pos: P, ref: 'humain' }", 'réf.'],
+    ["{ id: 'a', kind: 'personnage', pos: P, creature: { id: 'humain' } }", 'corps'],
     ["{ id: 'a', kind: 'personnage', pos: P, statblock: SB }", 'statbloc'],
     ["{ id: 'a', kind: 'personnage', pos: P, presetId: 'baron' }", 'preset'],
-    ["{ id: 'a', kind: 'prop', pos: P, ref: 'tonneau' }", 'autre kind'],
+    ["{ id: 'a', kind: 'prop', pos: P, decor: { id: 'tonneau' } }", 'autre kind'],
   ])('le détecteur laisse passer %s (%s)', (litteral) => {
     expect(personnagesSansFiche('x.test.ts', `const v = ${litteral};`)).toEqual([]);
   });
 
   it('aucune fixture de test ne pose un personnage sans fiche', { timeout: 60_000 }, () => {
     const fautes = sitesDuCorpus().filter((s) => !estSujetProuve(s)).map((s) => `${s.rel}:${s.ligne} ${s.faute}`);
-    expect(fautes, 'typer la fixture par la fiche que le test suppose (`ref`, `statblock` ou `presetId`)').toEqual([]);
+    expect(fautes, 'typer la fixture par la fiche que le test suppose (son corps, `statblock` ou `presetId`)').toEqual([]);
   });
 
   it('PEUPLEMENT : chaque sujet prouvé est VU par le scan (sinon exemption périmée)', () => {

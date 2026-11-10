@@ -13,7 +13,7 @@
 import {
   calqueDeLaCouche, calquesAStocker, coinsDuCalque, planDuCalque, type CalquesStockes,
   capDeLEntite, capsOfferts, entiteDeLaSelection, entiteDuSchema, fichesDePersonnage, nomDEntite, presetDuNarratif, props,
-  assoirALaPlace, findVehicleById, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
+  assoirALaPlace, idDuCorps, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
   ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
@@ -258,8 +258,8 @@ export interface ZonesDeLEditeur {
    *
    * d'un personnage, le formulaire tiré du schéma de son type (`formulaireDe('entite', …)`), comme celui d'une zone
    * d'effet : de son rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques et son
-   * embuscade, puis sa contrepartie d'amateur des arts (`amateur`), son animation (`anim`) et, d'une coque
-   * (`findVehicleById(ref).hull`), ses Améliorations (`upgrades`), au contexte de sa fiche (`choixDuChamp`) :
+   * embuscade, puis sa contrepartie d'amateur des arts (`amateur`), son animation (`anim`) et, d'une coque, son
+   * véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa fiche (`choixDuChamp`) :
    * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits
    * standard en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le
    * formulaire édite ensuite ; la supprimer.
@@ -630,18 +630,17 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
  *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
   const fiches = fichesDePersonnage();
-  const types = ent.kind === 'prop' ? props : ent.kind === 'personnage' && fiches.some((f) => f.id === ent.ref) ? fiches : [];
+  const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
   const cap = capDeLEntite(ent);
-  const caps = capsOfferts(ent);
   return [
     formulaireDuNom(ent.label, true),
     ...(types.length ? [choix('entite/type', t(ent.kind === 'prop' ? 'ecran.editeur.entite.type' : 'ecran.editeur.entite.fiche'),
-      types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, ent.ref === o.id)), 'liste')] : []),
-    choix('entite/cap', t('ecran.editeur.entite.cap'), caps.map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
+      types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, idDuCorps(ent) === o.id)), 'liste')] : []),
+    choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
     ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent)] : []),
     ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
-    ...(ent.postes?.length || (ent.ref && findVehicleById(ent.ref)?.hull)
+    ...(ent.postes?.length || ent.vehicule
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
     ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
@@ -773,7 +772,7 @@ function inventaire(ent: Scene['entities'][number]): (Choix | Ligne)[] {
  *  pas se tire au spawn (« Tiré »).
  *  Chaque bouton écrit le parcours entier, retouché (`parcoursRetouche`). */
 function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
-  if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.ref)) return [];
+  if (ent.statblock || ent.presetId || !fichesDePersonnage().some((f) => f.id === ent.creature?.id)) return [];
   const p: ParcoursDeCarriere = parcoursDe(ent) ?? { carrieres: {} };
   const ecrire = (q: ParcoursDeCarriere): GesteDEdition => ({ geste: 'entite', patch: { parcours: parcoursRetouche(q) } });
   const actuelle = carriereActuelle(p);

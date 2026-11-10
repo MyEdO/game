@@ -33,7 +33,7 @@ function construireScene(): Scene {
       "l'unique paroi praticable (Trait Grimpant : elle grimpe sans effort, à pleine vitesse)." },
   });
   setEncounters(scene, [
-    { id: 'enc-grimpant', enemies: [{ ref: 'araignee-geante', pos: { x: 5, y: 8 }, facing: 'N' }] },
+    { id: 'enc-grimpant', enemies: [{ creature: { id: 'araignee-geante' }, pos: { x: 5, y: 8 }, facing: 'N' }] },
   ]);
   return scene;
 }

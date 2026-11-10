@@ -26,7 +26,7 @@ function scene(entities: SceneEntity[]): Scene {
 }
 
 const tabouret = (over: Partial<SceneEntity> = {}): SceneEntity =>
-  ({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, ...over }) as SceneEntity;
+  ({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, ...over }) as SceneEntity;
 
 const ids = (sc: Scene, e: SceneEntity) => actionsDe(sc, e).map((a) => a.id);
 
@@ -36,7 +36,7 @@ const action = (id: string, over: Partial<ActionAuthoree> = {}): ActionAuthoree 
 
 describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activer', () => {
   it('un PNJ à `dialogueId` est utilisable SANS `usable`', () => {
-    const pnj: SceneEntity = { id: 'p', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, dialogueId: { id: 'd1' } };
+    const pnj: SceneEntity = { id: 'p', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, dialogueId: { id: 'd1' } };
     const sc = scene([pnj]);
     expect(ids(sc, pnj)).toEqual(['parler']);
     expect(estUtilisable(sc, pnj)).toBe(true);
@@ -44,7 +44,7 @@ describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activ
 
   it('dialogue, marchand et action authorée comptent chacun pour une offre, cumulables et dans cet ordre', () => {
     const pnj: SceneEntity = {
-      id: 'p', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 },
+      id: 'p', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 },
       dialogueId: { id: 'd1' },
       merchant: { archetype: { id: 'marchand-general' } },
       usable: { actions: [action(ACTION_FOUILLER)] },
@@ -56,7 +56,7 @@ describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activ
 
   it('le rôle `tavernGame` n’est PAS une offre : sa table se joue par le dialogue qui la sert', () => {
     const joueur: SceneEntity = {
-      id: 'j', kind: 'personnage', ref: 'humain', pos: { x: 1, y: 1 }, tavernGame: { id: 'dominos' },
+      id: 'j', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, tavernGame: { id: 'dominos' },
     };
     const sc = scene([joueur]);
     expect(actionsDe(sc, joueur)).toEqual([]);
@@ -64,14 +64,14 @@ describe('actionsDe — les CAPACITÉS D’INSTANCE se dérivent sans rien activ
   });
 
   it('un décor NU n’offre rien — il n’est pas utilisable', () => {
-    const caisse: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau' };
+    const caisse: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'tonneau' } };
     const sc = scene([caisse]);
     expect(actionsDe(sc, caisse)).toEqual([]);
     expect(estUtilisable(sc, caisse)).toBe(false);
   });
 
   it('le décor d’un objet posé au sol (`objetsAuSol`) offre de le ramasser, et lui seul', () => {
-    const sac: SceneEntity = { id: 'depot-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'bourse', label: 'Dague' };
+    const sac: SceneEntity = { id: 'depot-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'bourse' }, label: 'Dague' };
     const sc = scene([sac]);
     const objetsAuSol = { 'depot-1': [{ uid: 'dague-1', trappingId: 'dague', label: 'Dague' } as ItemInstance] };
     expect(actionsDe(sc, sac, { objetsAuSol })).toEqual([{ id: ACTION_RAMASSER, label: t('usable.ramasser'), origine: 'objet-pose' }]);
@@ -104,7 +104,7 @@ describe('actionsDe — l’ASSISE ne s’ouvre qu’à l’ACTIVATION de l’in
   });
 
   it('une entité ACTIVÉE dont le TYPE n’a aucune place n’en tire aucune action (l’activation n’invente rien)', () => {
-    const caisse: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau', usable: { assise: true } };
+    const caisse: SceneEntity = { id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'tonneau' }, usable: { assise: true } };
     const sc = scene([caisse]);
     expect(actionsDe(sc, caisse)).toEqual([]);
   });
@@ -119,7 +119,7 @@ describe('actionsDe — l’ASSISE ne s’ouvre qu’à l’ACTIVATION de l’in
 
 describe('actionsDe — les ACTIONS AUTHORÉES : origine, libellé, épuisement', () => {
   const coffre = (actions: ActionAuthoree[]): SceneEntity =>
-    ({ id: 'coffre', kind: 'prop', pos: { x: 3, y: 3 }, ref: 'tonneau', usable: { actions } });
+    ({ id: 'coffre', kind: 'prop', pos: { x: 3, y: 3 }, decor: { id: 'tonneau' }, usable: { actions } });
 
   it('une action authorée sort avec l’origine `authoree` et son id d’auteur', () => {
     const e = coffre([action('ouvrir'), action(ACTION_FOUILLER)]);

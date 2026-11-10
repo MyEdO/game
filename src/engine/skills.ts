@@ -32,7 +32,7 @@ import { maxBy } from './pick';
 function altCharKey(c: Combatant, skillId: string, ck: CharKey): CharKey {
   const alt = byId('skill', skillId)?.altChar;
   if (!alt || (alt.from && ck !== alt.from)) return ck;
-  const pick = alt.chars[String(rule(alt.gatedByRule))];
+  const pick = alt.chars[String(rule(alt.gatedByRule.id))];
   if (!pick) return ck;
   // Liste = la MEILLEURE des Caractéristiques citées chez ce porteur (argmax UNIQUE du moteur).
   return Array.isArray(pick) ? (maxBy(pick, (k) => effectiveChar(c, k))?.item ?? ck) : pick;

@@ -48,12 +48,12 @@ const construireScene = (): Scene => buildScene({
     'de même. Elle se rendra une fois la coque à moitié éventrée.' },
   entities: [
     // Coque ALLIÉE (le Grimm) — cap EST, deux bordées de canons moyens + une chasse de proue ; passagers = 2 marins.
-    { id: 'grimm-duel', kind: 'personnage', ref: 'loup-imperial', pos: { x: 3, y: 7 }, facing: 'E', label: 'Le Grimm',
+    { id: 'grimm-duel', kind: 'personnage', vehicule: { id: 'loup-imperial' }, pos: { x: 3, y: 7 }, facing: 'E', label: 'Le Grimm',
       crewIds: ['grimm-helm', 'grimm-gun'], postes: [canon('grimm-duel', 0, 'tribord'), canon('grimm-duel', 1, 'babord'), canon('grimm-duel', 2, 'proue')] } as SceneEntity,
     marine('grimm-helm', 'Timonier du Grimm', 3, 6, HELM),
     marine('grimm-gun', 'Maître canonnier du Grimm', 3, 8, GUN),
     // Coque ENNEMIE (cogue) — cap OUEST, deux bordées ; passagers = 2 marins pirates compétents.
-    { id: 'cogue-duel', kind: 'personnage', ref: 'cogue', pos: { x: 18, y: 7 }, facing: 'O', label: 'La cogue pirate',
+    { id: 'cogue-duel', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 18, y: 7 }, facing: 'O', label: 'La cogue pirate',
       crewIds: ['cogue-helm', 'cogue-gun'], postes: [canon('cogue-duel', 0, 'tribord'), canon('cogue-duel', 1, 'babord'), canon('cogue-duel', 2, 'proue')] } as SceneEntity,
     marine('cogue-helm', 'Barreur pirate', 18, 6, HELM),
     marine('cogue-gun', 'Canonnier pirate', 18, 8, GUN),

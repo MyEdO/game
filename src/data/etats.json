@@ -43,7 +43,8 @@
     ],
     "icon": "condition/deafened",
     "severity": 30,
-    "aiThreat": 2
+    "aiThreat": 2,
+    "marqueCouleur": "#9aa4b0"
   },
   {
     "id": "a-terre",
@@ -83,7 +84,8 @@
     "resolveHeals": 1,
     "icon": "condition/prone",
     "severity": 75,
-    "aiThreat": 3
+    "aiThreat": 3,
+    "marqueCouleur": "#b08a5a"
   },
   {
     "id": "aveugle",
@@ -128,7 +130,8 @@
     ],
     "icon": "condition/blinded",
     "severity": 65,
-    "aiThreat": 4
+    "aiThreat": 4,
+    "marqueCouleur": "#8a8aa8"
   },
   {
     "id": "brise",
@@ -324,7 +327,8 @@
       }
     ],
     "icon": "condition/broken",
-    "severity": 70
+    "severity": 70,
+    "marqueCouleur": "#c060c0"
   },
   {
     "id": "empetre",
@@ -354,7 +358,8 @@
     },
     "icon": "condition/entangled",
     "severity": 60,
-    "aiThreat": 5
+    "aiThreat": 5,
+    "marqueCouleur": "#7aa050"
   },
   {
     "id": "empoisonne",
@@ -465,7 +470,9 @@
     ],
     "icon": "condition/poisoned",
     "severity": 55,
-    "aiThreat": 4
+    "aiThreat": 4,
+    "marqueCouleur": "#5fc05a",
+    "marqueVisuel": "lueur"
   },
   {
     "id": "en-flammes",
@@ -528,7 +535,12 @@
     },
     "icon": "condition/ablaze",
     "severity": 58,
-    "aiThreat": 5
+    "aiThreat": 5,
+    "marqueCouleur": "#ff7a2a",
+    "marqueVisuel": "feu",
+    "marqueSon": {
+      "id": "crepitement"
+    }
   },
   {
     "id": "extenue",
@@ -548,7 +560,8 @@
     ],
     "perStack": true,
     "icon": "condition/fatigued",
-    "severity": 20
+    "severity": 20,
+    "marqueCouleur": "#8a8aa0"
   },
   {
     "id": "hemorragique",
@@ -598,7 +611,9 @@
     "stacksReducedBy": "bleedIgnore",
     "icon": "condition/bleeding",
     "severity": 52,
-    "aiThreat": 4
+    "aiThreat": 4,
+    "marqueCouleur": "#d02828",
+    "marqueVisuel": "lueur"
   },
   {
     "id": "inconscient",
@@ -618,7 +633,8 @@
     },
     "icon": "condition/unconscious",
     "severity": 100,
-    "aiThreat": 8
+    "aiThreat": 8,
+    "marqueCouleur": "#6a6a90"
   },
   {
     "id": "sonne",
@@ -729,7 +745,9 @@
     },
     "icon": "condition/stunned",
     "severity": 80,
-    "aiThreat": 6
+    "aiThreat": 6,
+    "marqueCouleur": "#e0d060",
+    "marqueVisuel": "flammeche"
   },
   {
     "id": "surpris",
@@ -774,7 +792,8 @@
     },
     "icon": "condition/surprised",
     "severity": 40,
-    "aiThreat": 4
+    "aiThreat": 4,
+    "marqueCouleur": "#f0e8a0"
   },
   {
     "id": "en-flammes-navire",
@@ -807,7 +826,12 @@
           }
         }
       }
-    ]
+    ],
+    "marqueCouleur": "#ff7a2a",
+    "marqueVisuel": "feu",
+    "marqueSon": {
+      "id": "crepitement"
+    }
   },
   {
     "id": "voie-d-eau",
@@ -839,7 +863,8 @@
           }
         }
       }
-    ]
+    ],
+    "marqueCouleur": "#4a8ad0"
   },
   {
     "id": "inondation",
@@ -945,7 +970,8 @@
           ]
         }
       }
-    ]
+    ],
+    "marqueCouleur": "#3a6ab0"
   },
   {
     "id": "alourdi",
@@ -956,7 +982,8 @@
       "page": 124
     },
     "desc": "Le navire est alourdi par l'eau embarquée (Inondation ≥ moitié de l'Endurance, MDG 13) : −1 M et −1 DR à tous les Tests de Navigation, jusqu'à ce que la voie d'eau soit réparée et la cale écopée.",
-    "maison": "DETTE de vocabulaire (#1024) : « Si cet Indice atteint la moitié du score d'Endurance du bateau, le vaisseau perd 1 M et subit une pénalité de –1 DR sur tous les Tests de Navigation, car il est alourdi par l'eau » (MDG 13, Voie d'eau). Le −1 DR n'a AUCUN point de branchement : « Tests de Navigation » est un terme GÉNÉRIQUE du livre (MDG 13 : Voile, Ramer, ou Métier (Ingénieur) selon la propulsion), il n'existe pas de compétence `navigation` dans `skills.json`, et le DR de ces Tests s'agrège par navire hors du vocabulaire `GameOp` (`shipSaboteurDR` + `navalTestTypeDR` en `flatDR`, `src/noyau/seaVoyageFlow.ts`) — canal que `skillDRBonus` d'un État ne rejoint pas (`skillDRBonus` ne lit pas `c.conditions`). Même trou pour `foulingEffects().navDR`/`.manDR` (MDG 13, Salissures), calculés mais jamais consommés. Le −1 M est dans le même cas : le M de voyage se compose dans `effectiveSeaM`, pas via `effectiveMovement`."
+    "maison": "DETTE de vocabulaire (#1024) : « Si cet Indice atteint la moitié du score d'Endurance du bateau, le vaisseau perd 1 M et subit une pénalité de –1 DR sur tous les Tests de Navigation, car il est alourdi par l'eau » (MDG 13, Voie d'eau). Le −1 DR n'a AUCUN point de branchement : « Tests de Navigation » est un terme GÉNÉRIQUE du livre (MDG 13 : Voile, Ramer, ou Métier (Ingénieur) selon la propulsion), il n'existe pas de compétence `navigation` dans `skills.json`, et le DR de ces Tests s'agrège par navire hors du vocabulaire `GameOp` (`shipSaboteurDR` + `navalTestTypeDR` en `flatDR`, `src/noyau/seaVoyageFlow.ts`) — canal que `skillDRBonus` d'un État ne rejoint pas (`skillDRBonus` ne lit pas `c.conditions`). Même trou pour `foulingEffects().navDR`/`.manDR` (MDG 13, Salissures), calculés mais jamais consommés. Le −1 M est dans le même cas : le M de voyage se compose dans `effectiveSeaM`, pas via `effectiveMovement`.",
+    "marqueCouleur": "#8a7a6a"
   },
   {
     "id": "naufrage",
@@ -966,7 +993,8 @@
       "book": "mer-des-griffes",
       "page": 124
     },
-    "desc": "L'Inondation a atteint l'Endurance du navire : le vaisseau COULE (MDG 13)."
+    "desc": "L'Inondation a atteint l'Endurance du navire : le vaisseau COULE (MDG 13).",
+    "marqueCouleur": "#2a5a90"
   },
   {
     "id": "derive",
@@ -976,7 +1004,8 @@
       "book": "mort-sur-le-reik-compagnon",
       "page": 29
     },
-    "desc": "Le gréement ou les rames sont hors d'usage (Critique de bateau fluvial, MSRC 7) : tant qu'ils ne sont pas réparés ou remplacés, le bateau ne peut que se laisser dériver."
+    "desc": "Le gréement ou les rames sont hors d'usage (Critique de bateau fluvial, MSRC 7) : tant qu'ils ne sont pas réparés ou remplacés, le bateau ne peut que se laisser dériver.",
+    "marqueCouleur": "#6aa0c0"
   },
   {
     "id": "gouvernail-brise",
@@ -986,7 +1015,8 @@
       "book": "mort-sur-le-reik-compagnon",
       "page": 29
     },
-    "desc": "Le gouvernail a volé en éclat (Critique de bateau fluvial, MSRC 7) : tant qu'il n'est pas réparé, tous les Tests de Navigation pour diriger le bateau sont Très Difficiles (–30)."
+    "desc": "Le gouvernail a volé en éclat (Critique de bateau fluvial, MSRC 7) : tant qu'il n'est pas réparé, tous les Tests de Navigation pour diriger le bateau sont Très Difficiles (–30).",
+    "marqueCouleur": "#a07040"
   },
   {
     "id": "digere",
@@ -996,7 +1026,8 @@
       "book": "ennemi-dans-l-ombre",
       "page": 147
     },
-    "desc": "Une victime absorbée gagne un nombre d’États Empêtré égal au Bonus de Force de la créature et compte comme étant Empoigné. Une victime absorbée perd le Bonus de Force de la créature en Blessures à la fin de chaque tour ; les Points d’Armure, ou le Bonus d’Endurance, ne réduisent pas cette perte. Le même nombre de Blessures est « guéri » par la créature. Toute attaque qui touche la créature inflige une quantité égale de Dégâts à la victime absorbée."
+    "desc": "Une victime absorbée gagne un nombre d’États Empêtré égal au Bonus de Force de la créature et compte comme étant Empoigné. Une victime absorbée perd le Bonus de Force de la créature en Blessures à la fin de chaque tour ; les Points d’Armure, ou le Bonus d’Endurance, ne réduisent pas cette perte. Le même nombre de Blessures est « guéri » par la créature. Toute attaque qui touche la créature inflige une quantité égale de Dégâts à la victime absorbée.",
+    "marqueCouleur": "#a0b040"
   },
   {
     "id": "munition-logee",
@@ -1007,6 +1038,7 @@
       "page": 298
     },
     "desc": "Si l'empalement vient d'une arme à distance, la munition utilisée s'est fermement logée dans le corps de la cible. Les flèches et les carreaux nécessitent un Test de Guérison Intermédiaire pour être retirés – les balles nécessitent un chirurgien (voir le Talent Chirurgie au Chapitre 4 : Compétences et Talents). Chaque flèche ou balle non retirée vous empêche de guérir 1 de vos Blessures.",
-    "persistsAfterCombat": true
+    "persistsAfterCombat": true,
+    "marqueCouleur": "#909090"
   }
 ]

@@ -139,7 +139,7 @@ describe('placeStairFlight — poser une volée tracée', () => {
 });
 
 describe('editEntity — l’identité d’une entité ne se patche pas', () => {
-  const avecDecor = (): Scene => ({ ...vide(), entities: [{ id: 'tonneau-0', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 1 } }] });
+  const avecDecor = (): Scene => ({ ...vide(), entities: [{ id: 'tonneau-0', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 1, y: 1 } }] });
 
   it('un patch qui nomme `id` ou `kind` est refusé nommément, la scène reste intacte', () => {
     const s = avecDecor();
@@ -147,11 +147,11 @@ describe('editEntity — l’identité d’une entité ne se patche pas', () => 
       expect(() => editEntity(s, 'tonneau-0', patch)).toThrow(IdentiteNonPatchable);
     }
     expect(() => editEntity(s, 'tonneau-0', { id: 'autre', kind: 'prop' })).toThrow('« id, kind » : clé d\'IDENTITÉ');
-    expect(s.entities[0]).toEqual({ id: 'tonneau-0', kind: 'prop', ref: 'tonneau', pos: { x: 1, y: 1 } });
+    expect(s.entities[0]).toEqual({ id: 'tonneau-0', kind: 'prop', decor: { id: 'tonneau' }, pos: { x: 1, y: 1 } });
   });
 
   it('un patch sans identité passe, et le refus du type reste distinct', () => {
     expect(editEntity(avecDecor(), 'tonneau-0', { label: 'Fût' }).entities[0].label).toBe('Fût');
-    expect(() => editEntity(avecDecor(), 'tonneau-0', { ref: undefined })).toThrow(TypeNonNomme);
+    expect(() => editEntity(avecDecor(), 'tonneau-0', { decor: undefined })).toThrow(TypeNonNomme);
   });
 });

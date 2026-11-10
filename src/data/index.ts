@@ -296,7 +296,8 @@ export interface ActionDef {
   run?: string;
   mode?: string;
   intent?: string;
-  armed?: string;
+  /** L'action ARME son `mode` dans `battle.action` (mode à bouton). */
+  armed?: true;
   /** Champ de POSTURE pré-armée basculé par l'action (`BattleState.stances`, spec HUD §1a G5). */
   stance?: 'heldGround' | 'intoCrowd';
   coutAction: 'action' | 'mouvement' | 'gratuit' | 'aucun';
@@ -771,10 +772,10 @@ export interface SpeciesData {
    *  Caractéristique dont le Bonus fixe le plafond de Domaines NON sombres du Talent
    *  `magie-des-arcanes` (`careerSlots.arcaneDomainCap`). Absent = plafond 1 (hors elfe). */
   arcaneDomainsBonusOf?: CharKey;
-  /** id d'`OptionalRule` (`src/data/reglesOptionnelles.json`) dont l'activation OUVRE l'espèce au
+  /** Règle optionnelle (`src/data/reglesOptionnelles.json`) dont l'activation OUVRE l'espèce au
    *  joueur — lu par `speciesAllowed` (`engine/creation`). Absent = espèce ouverte sans condition.
-   *  Portée sur `gnomes` (`NADJ 14 l.5`, règle `creation-gnome-jouable`). */
-  gatedByRule?: string;
+   *  NADJ 14 l.5 */
+  gatedByRule?: { id: string };
 }
 export interface ClassData {
   /** id STABLE (slug du libellé) — cible de `CareerData.class`. */
@@ -919,14 +920,14 @@ export interface SkillData {
    *  `engine/conditions`. LDB 18 l.273 « et autres » : seules les Compétences qu'il nomme sont classées. */
   senses?: PairedSense[];
   /** Caractéristique ALTERNATIVE de cette Compétence sous RÈGLE OPTIONNELLE (Métier comme Savoir → Int,
-   *  `LDB 09 l.358` ; Intimidation → FM/Int, `LDB 09 l.294`) : `gatedByRule` = id d'`OptionalRule`
-   *  (`idDe('regleOptionnelle')`, `schemas/defs/skills.ts`), `from` = Caractéristique de base à laquelle la
+   *  `LDB 09 l.358` ; Intimidation → FM/Int, `LDB 09 l.294`) : `gatedByRule` = la règle optionnelle
+   *  (`ref('regleOptionnelle')`, `schemas/defs/skills.ts`), `from` = Caractéristique de base à laquelle la
    *  substitution s'applique (absente = toutes), `chars` = Caractéristique à utiliser PAR VALEUR de la
    *  règle (clé = valeur rendue par `rule()` convertie en chaîne — `"true"` pour un interrupteur ; une
    *  LISTE = la MEILLEURE des Caractéristiques citées chez le porteur). Lu par `altCharKey`
    *  (`engine/skills`), POINT UNIQUE : le moteur ne nomme plus aucune compétence. */
   altChar?: {
-    gatedByRule: string;
+    gatedByRule: { id: string };
     from?: CharKey;
     chars: Record<string, CharKey | CharKey[]>;
   };
@@ -1458,6 +1459,10 @@ export interface EtatData extends StatusData {
   grantGroups?: string[];
   /** Type de Dégâts (`DamageTypeData.id`) des `effects` de l'État, lu par `degatsDeLEtatIgnores`. LDB 85 l.174 ; VDM 10 l.153 */
   typeDeDegats?: { id: string };
+  /** La marque de l'État sur son porteur (#3834) : sa teinte, son visuel et son son en boucle. */
+  marqueCouleur: string;
+  marqueVisuel?: VisuelDeLumiere;
+  marqueSon?: { id: string };
   /** Les magnitudes du `passive` sont-elles multipliées par le nombre de pions (Exténué −10/pion, LDB 16
    *  l.90) ? Appliqué à l'émission par le collecteur `passiveMods`. Défaut (absent) : magnitude fixe. */
   perStack?: boolean;
@@ -2071,11 +2076,10 @@ export interface DomainData {
   /** Rendu visuel et sonore d'un Sort du Domaine (`rendus.json`), à défaut celui des Sorts des Vents (#3771). */
   rendu?: { id: string };
   /** Domaine ENSEIGNABLE via le Talent Magie des Arcanes (LDB 48) : SOURCE du pool `arcaneDomains`
-   *  (SPEC_SOURCES) — fin de la liste `specs[]` maintenue à la main sur `magie-des-arcanes`. Les Lores de
-   *  sorts non-arcanes (ex. Magie des mers de Triton) ne le portent pas. La marque EST le Type de Souffle
-   *  (id de `breath-types.json`) du sort Souffle lancé par un mage du Domaine ; l'arbitrage se dit au
+   *  (SPEC_SOURCES). Les Lores de sorts non-arcanes (ex. Magie des mers de Triton) ne le portent pas.
+   *  La marque EST le Type de Souffle (`breath-types.json`) du sort Souffle lancé par un mage du Domaine ; l'arbitrage se dit au
    *  `maison` de l'entrée. LDB 47 l.509 */
-  arcane?: string;
+  arcane?: { id: string };
   /** `VDM 02 l.192` (`careerSlots.arcaneDomainGate`) — Nécromancie, Démonologie (LDB 50). */
   dark?: boolean;
   /** Ids de `groups.json` accordés au porteur d'un Talent ou d'un Trait dont la spécialisation nomme ce
@@ -2862,6 +2866,7 @@ export interface RenduDef {
   paradeSon?: { id: string };
   zoneVisuel?: VisuelDEffet;
   zoneSon?: { id: string };
+  zoneBoucle?: { id: string };
 }
 export type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 export type { VisuelDeLumiere } from './schemas/defs/lightTones';
@@ -3160,17 +3165,10 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
 export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
 }
-/** La réf d'un PERSONNAGE désigne-t-elle une fiche SPAWNABLE ? Créature du bestiaire, coque de véhicule
- *  (`vehicles.json` facette `hull`, MDG 13), engin du sous-type `armes-de-siege` (`trappings.json`, AA 10).
- *  SOURCE UNIQUE de la famille (#1882) : la porte du schéma (`sceneEntitySchema`), `validateScene` et le
- *  spawn (`spawnEnemy`) la lisent ici. */
-export function refEntiteResolue(ref: string): boolean {
-  return !!(findCreatureById(ref) || findFicheDeVehicule(ref));
-}
-/** La réf d'un PERSONNAGE désigne-t-elle un navire à ponts (`vehicles.json › ponts`, #3686) ? Ses ponts ne se posent
- *  qu'à un cap cardinal : le schéma de scène refuse les autres (`refusDeLEntite`), l'éditeur ne les offre pas
- *  (`capsOfferts`). */
-export const estUnNavireAPonts = (ref: string | undefined): boolean => ref !== undefined && findVehicleById(ref)?.ponts !== undefined;
+/** Le véhicule `id` d'un PERSONNAGE (sa clé `vehicule`) est-il un navire à ponts (`vehicles.json › ponts`, #3686) ? Ses
+ *  ponts ne se posent qu'à un cap cardinal : le schéma de scène refuse les autres (`refusDeLEntite`), l'éditeur ne les
+ *  offre pas (`capsOfferts`). */
+export const estUnNavireAPonts = (id: string | undefined): boolean => id !== undefined && findVehicleById(id)?.ponts !== undefined;
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  sous-type `armes-de-siege` (`trappings.json`, AA 10), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */
@@ -3218,8 +3216,8 @@ export function speciesSize(sp: SpeciesData): import('../engine/size').SizeCateg
 export function taillesDeLaRace(race: string): import('../engine/size').SizeCategory[] {
   return [...new Set(species.filter((sp) => sp.refChar === race).map(speciesSize))];
 }
-/** Race d'apparence par DÉFAUT, déclarée en donnée (`speciesRace.json` `default`). */
-export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: string }).default;
+/** Espèce d'apparence par DÉFAUT, entrée du plan de bestiaire déclarée en donnée (`speciesRace.json` `default`). */
+export const DEFAULT_RACE_ID: string = (speciesRaceJson as { default: { id: string } }).default.id;
 /** Espèce d'APPARENCE (clé `appearance.species`) d'un id d'espèce RULES : l'id passe tel quel ; sans
  *  argument, `DEFAULT_RACE_ID`.
  *  Pont UNIQUE règles→apparence (pregens/draft/creator/defaultAppearance). */
