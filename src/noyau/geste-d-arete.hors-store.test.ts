@@ -79,7 +79,7 @@ function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: bo
   banc.setState({ party: [hero], net: NET0 });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -235,10 +235,10 @@ describe('coûts et refus NOMMÉS (A4)', () => {
     const { H } = combat(falaise(), top, { acted: true });
     g().franchirLArete(foot);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
-    g().jetRegler('fall', 'tenter', true, H.id);
+    g().jetRegler('chute', 'tenter', true, H.id);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
     dit('fall.actionDejaPrise', { name: H.label });
-    g().jetRegler('fall', 'tenter', false, H.id); // sauter sans Test reste permis
+    g().jetRegler('chute', 'tenter', false, H.id); // sauter sans Test reste permis
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(foot);
     expect(g().battle!.acted).toBe(true);
   });
@@ -349,7 +349,7 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     banc.setState({ party: [H, S], net: NET0 });
     g().lancerLaScene(testScene());
     g().lancerLeCombat('enc-mutants');
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     const b = g().battle!;
     const cH = b.combatants.find((x) => x.id === H.id)!;
     const cS = b.combatants.find((x) => x.id === S.id)!;

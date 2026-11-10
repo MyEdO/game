@@ -65,7 +65,7 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   banc.setState({ party: heros });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');
@@ -258,7 +258,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
         },
       },
     } as never);
-    banc.getState().jetValider('flee');
+    banc.getState().jetValider('fuite');
 
     const st = parKind('fleeMove')!;
     expect(st, 'la fuite a son étape de REPRISE').toBeTruthy();
@@ -311,12 +311,12 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     // L'ordre « pending puis mint » n'est pas une convention d'écriture : c'est ce que la garde
     // EXIGE. Figé ici sans dépendre du nombre de suites que l'inversion ferait rougir.
     banc.setState({ pendingAttack: null } as never);
-    expect(() => hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'x' }))
+    expect(() => hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attaque', actorId: 'x' }))
       .toThrowError(/pendingAttack/);
     banc.setState({ pendingAttack: { attackerId: 'a', targetId: 'b', location: null, result: null } } as never);
-    const st = hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'a' });
+    const st = hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attaque', actorId: 'a' });
     expect(st, 'le pending posé, le mint rend l’étape').toBeTruthy();
-    expect(st!.jet).toBe('attack');
+    expect(st!.jet).toBe('attaque');
     banc.setState({ pendingAttack: null } as never);
   });
 
@@ -339,7 +339,7 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     cliquerSurLeCombattant(banc.getState, cible.id, { confirm: true });
 
     expect(banc.getState().pendingAttack?.freeKind, 'la donnée que la fenêtre rend').toBe('pietinement');
-    const st = steps().find((s) => s.jet === 'attack')!;
+    const st = steps().find((s) => s.jet === 'attaque')!;
     expect(st.kind).toBe('attackJet');
     expect(st.actorId).toBe(hero.id);
     expect(modalOwnerOf(banc.getState()), 'la fenêtre est celle du piétineur').toBe(hero.id);
@@ -362,11 +362,11 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
 
     startDisengage(banc.getState, banc.setState, fuyard);
     const avant = { ...steps()[banc.getState().pendingCascade!.cursor] };
-    expect(avant.jet).toBe('disengage');
+    expect(avant.jet).toBe('desengagement');
     expect(avant.groupOwner, 'à l’ouverture, la fenêtre est celle du seul fuyard').toBeUndefined();
     expect(modalOwnerOf(banc.getState())).toBe(fuyard.id);
 
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
 
     const apres = steps()[banc.getState().pendingCascade!.cursor] as unknown as Record<string, unknown>;
     expect(apres.groupOwner, 'deux acteurs JOUÉS → moment partagé, posé par le mint').toBe(true);

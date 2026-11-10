@@ -29,10 +29,10 @@ describe('choix d’un Sort lancé hors combat', () => {
       const [w, s] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
       const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
       banc.getState().incanterLeSort(w.id, sort.id, s.id);
-      banc.getState().jetLancer('cast');
+      banc.getState().jetLancer('incantation');
       const pc = banc.getState().pendingCast!;
       banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: 10, isCritical: false, isFumble: false } } });
-      banc.getState().jetValider('cast');
+      banc.getState().jetValider('incantation');
       const vues = draineEtapes(banc.getState, 30);
       expect(banc.getState().pendingCascade, 'la cascade se clôt').toBeNull();
       const choix = vues.filter((v) => v.kind === 'triggeredChoice');

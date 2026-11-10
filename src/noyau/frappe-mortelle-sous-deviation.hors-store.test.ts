@@ -34,7 +34,7 @@ function monte() {
   banc.setState({ party: heros });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
   const [H1, H2, H3] = b.combatants.filter((c) => c.kind === 'hero');
   const enemies = b.combatants.filter((c) => c.kind === 'enemy');

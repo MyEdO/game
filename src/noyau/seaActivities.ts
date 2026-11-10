@@ -198,12 +198,12 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
   return { steps, oppHeroIds };
 }
 
-/** Valide la semaine (`fenetreValider('seaActivities')`, l'hôte) : résout les Activités choisies (une par héros, l.268)
+/** Valide la semaine (`fenetreValider('activitesEnMer')`, l'hôte) : résout les Activités choisies (une par héros, l.268)
  *  puis rend la main à la halte de nuit — seam de jet (#273 Étape 2) : les jets deviennent des étapes de cascade
  *  influençables ; le Commerce d'opportunité (Test étendu) est SÉQUENCÉ ensuite, `continueSeaActivitiesAfterCascade`
  *  enchaîne. */
 function validerLaSemaine(get: Get, set: Set): void {
-  const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+  const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
   const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, pending.picks);
   set({ pendingSeaActivities: { ...pending, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }
@@ -274,12 +274,12 @@ export function seaActivitiesCatalog(): ActivityDef[] {
  *  d'opportunité (l.276), la planque de la Cartographie (l.292). */
 export function choixDeLaSemaineEnMer(get: Get, set: Set) {
   const choisir = (pid: string, pick: SeaActivityPick | null) => {
-    const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+    const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
     set({ pendingSeaActivities: { ...pending, picks: { ...pending.picks, [pid]: pick } } });
   };
   const choisie = (pid: string): SeaActivityPick => garanti(get().pendingSeaActivities?.picks[pid], pid, 'Activité choisie');
   return {
-    seaActivities: {
+    activitesEnMer: {
       activite: (activite, pid) => choisir(pid, activite === null ? null : { activityId: activite }),
       investir: (investGold, pid) => choisir(pid, { ...choisie(pid), investGold }),
       cacher: (stashGold, pid) => choisir(pid, { ...choisie(pid), stashGold }),
@@ -289,7 +289,7 @@ export function choixDeLaSemaineEnMer(get: Get, set: Set) {
 
 /** La validation de la semaine (`ValidationsDeFenetre`). */
 export function validationsDeLaSemaineEnMer(get: Get, set: Set) {
-  return { seaActivities: () => validerLaSemaine(get, set) } satisfies Partial<ValidationsDeFenetre>;
+  return { activitesEnMer: () => validerLaSemaine(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

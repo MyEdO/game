@@ -10,11 +10,11 @@ extends Node
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
 ## lui, une zone sans `ids` ceux qu'aucune autre zone de sa source ne nomme (`Zone.montrer_toutes`), si bien qu'aucun
-## élément ne se perd. L'écran d'attaque (`projet/ecrans/cascade/attack.tscn`), posé en bas du plateau, montre la cible,
+## élément ne se perd. L'écran d'attaque (`projet/ecrans/cascade/attaque.tscn`), posé en bas du plateau, montre la cible,
 ## l'arme et ses pastilles, le jet de l'attaquant face à celui de la défense (le nombre à atteindre et le dé en gros),
 ## l'issue, les options du coup puis les gestes en rangée ; l'écran de Défense (`projet/ecrans/cascade/defense.tscn`),
 ## sa réaction et son score à atteindre avant le dé face au jet de l'attaquant, révélé une fois le dé tombé. La fenêtre
-## d'incantation (`projet/ecrans/cascade/cast.tscn`), posée en bas du plateau comme l'attaque, montre le sort et sa
+## d'incantation (`projet/ecrans/cascade/incantation.tscn`), posée en bas du plateau comme l'attaque, montre le sort et sa
 ## cible, le jet du lanceur (son NI au libellé), la zone et le budget de Surincantation en pastilles, l'issue, puis
 ## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
@@ -43,7 +43,7 @@ extends Node
 ## `voyage/meteo`), ce qui tient la journée, les km faits sur ceux du trajet par son moyen (`voyage/route`), la frise
 ## (`voyage/etape/` : le départ, chaque nuit passée en route à son km, l'arrivée), puis sous le paysage, dans un
 ## défilement, le groupe en cartes (`heros/` : chaque héros, ses Blessures, ses États et le jet de l'étape qu'il jette),
-## les autres jets à la suite (`jets/`). La halte de nuit (`projet/ecrans/rest.tscn`) hérite du même cadre :
+## les autres jets à la suite (`jets/`). La halte de nuit (`projet/ecrans/repos.tscn`) hérite du même cadre :
 ## dans le paysage la nuit, son lieu et l'heure, la même route et sa frise, puis chaque dormeur et la note du repos.
 ## Le document remis (`projet/ecrans/document.tscn`) se pose au centre, son texte dans un
 ## défilement : le Markdown verbatim de la donnée, montré tel quel. Un écran dédié neuf, c'est une scène de plus sous

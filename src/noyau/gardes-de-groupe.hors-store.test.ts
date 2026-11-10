@@ -165,8 +165,8 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
   it('solo, nuit gratuite : « Dormir » ouvre la nuit d’un appel', () => {
     banc.setState({ party: heros(1) });
     ouvrir({ camp: true });
-    expect(refusDeLaValidation(get(), 'rest')).toBeNull();
-    get().fenetreValider('rest');
+    expect(refusDeLaValidation(get(), 'repos')).toBeNull();
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
 
@@ -174,12 +174,12 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     const [a, b] = heros(2);
     banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
     ouvrir({ camp: true });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest?.readyBySeat, '« Dormir » avant le quorum marque l’hôte prêt').toEqual({ 0: true });
-    expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.quorumAttendu'));
-    expect(appliquerLIntentionDUnSiege(get, 1, 'fenetreValider', ['rest'])).toBe('appliquee');
+    expect(refusDeLaValidation(get(), 'repos')).toBe(t('jet.ferme.quorumAttendu'));
+    expect(appliquerLIntentionDUnSiege(get, 1, 'fenetreValider', ['repos'])).toBe('appliquee');
     expect(get().pendingRest?.readyBySeat, 'le dernier prêt d’un invité ne dort pas pour l’hôte').toEqual({ 0: true, 1: true });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'au quorum, l’hôte dort').toBeNull();
   });
 
@@ -187,8 +187,8 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     const [a] = heros(1);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte' }, ownership: { [a.id]: 0 } } });
     ouvrir({ camp: true });
-    expect(refusDeLaValidation(get(), 'rest')).toBeNull();
-    get().fenetreValider('rest');
+    expect(refusDeLaValidation(get(), 'repos')).toBeNull();
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
 
@@ -197,9 +197,9 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     setBourseBrass(a, 0, idsDeTest);
     banc.setState({ party: [a] });
     ouvrir({ auberge: true });
-    get().fenetreChoisir('rest', 'couchage', 'privee', a.id);
+    get().fenetreChoisir('repos', 'couchage', 'privee', a.id);
     expect(toBrass(restCost(get().pendingRest!, get().party)), 'témoin : la chambre a un prix').toBeGreaterThan(0);
-    expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.noteNonCouverte'));
+    expect(refusDeLaValidation(get(), 'repos')).toBe(t('jet.ferme.noteNonCouverte'));
   });
 });
 

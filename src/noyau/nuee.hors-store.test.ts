@@ -90,7 +90,7 @@ function startNuee(scene: Scene) {
   banc.setState({ party: [hero], battle: null, pendingDisengage: null });
   banc.getState().lancerLaScene(scene);
   banc.getState().lancerLeCombat(ENC_NUEE);
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner(); // les tours d'IA du Round sont différés : ce banc ne joue que ses propres gestes
   return { battle: banc.getState().battle!, heroId: hero.id };
 }

@@ -26,7 +26,7 @@ describe('Tir immobile (tirImmobile)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -44,7 +44,7 @@ describe('Tir immobile (tirImmobile)', () => {
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },
       pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT, tirImmobile: true },
     });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.movementUsed).toBe(M); // Mouvement consommé par l'immobilisation
@@ -57,7 +57,7 @@ describe('Tir immobile (tirImmobile)', () => {
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },
       pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT },
     });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.movementUsed).toBe(0); // pas d'immobilisation → Mouvement intact

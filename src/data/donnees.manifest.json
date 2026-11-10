@@ -21,9 +21,10 @@
         },
         {
           "files": [
-            "talents.json"
+            "talents.json",
+            "talents-aleatoires.json"
           ],
-          "desc": "Talents"
+          "desc": "Talents · Tableau des Talents aléatoires (d100)"
         },
         {
           "files": [

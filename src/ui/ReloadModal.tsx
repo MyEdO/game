@@ -69,7 +69,7 @@ export function ReloadModalView({
 
   return (
     <RollShell
-      flowKey="reload"
+      flowKey="rechargement"
       stake={flowStakeRef('reload-roll', { values: { indice: pr.reload } })}
       title="Recharger"
       subtitle={<>{weaponName}</>}
@@ -92,12 +92,12 @@ export function ReloadModalView({
 export function ReloadModal() {
   const pr = useGame((s) => s.pendingReload);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'reload');
-  const reroll = useGesteDeJet('jetRelancer', 'reload');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'reload');
-  const darkPact = useGesteDeJet('jetPactiser', 'reload');
-  const confirm = useGesteDeJet('jetValider', 'reload');
-  const cancel = useGesteDeJet('jetAnnuler', 'reload');
+  const roll = useGesteDeJet('jetLancer', 'rechargement');
+  const reroll = useGesteDeJet('jetRelancer', 'rechargement');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'rechargement');
+  const darkPact = useGesteDeJet('jetPactiser', 'rechargement');
+  const confirm = useGesteDeJet('jetValider', 'rechargement');
+  const cancel = useGesteDeJet('jetAnnuler', 'rechargement');
   if (!pr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pr.actorId);
   return (

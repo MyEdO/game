@@ -118,7 +118,7 @@ function jouer(): string[] {
     const pc = g().pendingCascade;
     const st = pc?.participants[pc.cursor];
     if (!pc || !st) break;
-    if (st.jet === 'fumble') {
+    if (st.jet === 'maladresse') {
       trace.push(`fumbleJet:${st.actorId}(${st.fumble!.weapon.label})`);
       avanceEtapeCascade(g);
       continue;
@@ -223,19 +223,19 @@ describe('Maladresse de l’ATTAQUANT : une écriture, au temps `oupsAttaquant` 
   it('héros qui rate sur un double : UNE Maladresse, AVANT la suite (Action de la manœuvre rendue ensuite)', () => {
     const { h, e } = duel();
     openAttackCascade(g, banc.setState, { attackerId: h.id, targetId: e.id, location: null, result: null, weaponUid: 'sw', freeKind: 'morsure' }, 'Attaque', 'action/attack');
-    g().jetLancer('attack');
+    g().jetLancer('attaque');
     banc.setState({ pendingAttack: { ...g().pendingAttack!, result: {
       hit: true, attackerRoll: 33, netSL: 1, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: null,
       defenderDefeated: false, log: 'touche.', attackerDetail: { roll: 33, success: false, sl: -2 },
     } as unknown as AttackResult } });
-    g().jetValider('attack');
-    const maladresses = () => (g().pendingCascade?.participants ?? []).filter((st) => st.jet === 'fumble' && st.actorId === h.id);
+    g().jetValider('attaque');
+    const maladresses = () => (g().pendingCascade?.participants ?? []).filter((st) => st.jet === 'maladresse' && st.actorId === h.id);
     expect(maladresses(), 'une seule étape de Maladresse pour l’attaquant').toHaveLength(1);
     expect(g().battle!.acted, 'la suite attend la Maladresse').toBe(true);
     const pc = g().pendingCascade!;
-    expect(pc.participants[pc.cursor].jet, 'le curseur est sur la Maladresse').toBe('fumble');
-    g().jetLancer('fumble');
-    g().jetValider('fumble');
+    expect(pc.participants[pc.cursor].jet, 'le curseur est sur la Maladresse').toBe('maladresse');
+    g().jetLancer('maladresse');
+    g().jetValider('maladresse');
     expect(g().battle!.acted, 'la suite (Action de la manœuvre gratuite rendue) joue après la Maladresse').toBe(false);
     const log = g().battle!.log.map((l) => l.text);
     expect(log.filter((l) => l.startsWith('h — Maladresse !')), log.join(' | ')).toHaveLength(1);
@@ -280,7 +280,7 @@ describe('Piétinement d’un plus grand : le balayage suit, l’Action rendue �
       let restitutions = 0;
       const unsub = banc.subscribe((s, p) => { if (p.battle?.acted === true && s.battle?.acted === false) restitutions++; });
       try {
-        g().jetValider('attack');
+        g().jetValider('attaque');
         jouer();
         expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'le Piétinement a porté').toBeLessThan(200);
         const pc = g().pendingCleave;
@@ -288,7 +288,7 @@ describe('Piétinement d’un plus grand : le balayage suit, l’Action rendue �
         expect(pc?.hitIds).toEqual(['e1']);
         expect(pc?.count, 'aucun enchaînement consommé').toBe(0);
         expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
-        g().fenetreFermer('cleave');
+        g().fenetreFermer('frappeMortelle');
         expect(g().pendingCleave).toBeNull();
         expect(g().battle!.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
         expect(restitutions, 'l’Action est rendue UNE fois').toBe(1);
@@ -325,7 +325,7 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
       let restitutions = 0;
       const unsub = banc.subscribe((s, p) => { if (p.battle?.acted === true && s.battle?.acted === false) restitutions++; });
       try {
-        g().jetValider('attack');
+        g().jetValider('attaque');
         expect(etape()?.de, 'une étape à dé (sauvegarde) tient la main').toBeTruthy();
         expect(g().pendingCleave, 'le balayage n’est pas offert avant le dé').toBeNull();
         expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'aucune Blessure avant le dé').toBe(200);
@@ -336,7 +336,7 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
         expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'la sauvegarde ratée : le Piétinement a porté').toBeLessThan(200);
         expect(g().pendingCleave?.hitIds, 'à la reprise, le balayage est offert').toEqual(['e1']);
         expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
-        g().fenetreFermer('cleave');
+        g().fenetreFermer('frappeMortelle');
         expect(g().battle!.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
         expect(restitutions, 'la suite joue UNE fois, à la reprise').toBe(1);
       } finally {
@@ -407,7 +407,7 @@ describe('deux Maladresses du même porteur dans une séquence', () => {
     const coup = { attackerId: 'h', targetId: 'e', weapon: h.weapons[0], res, depuis: 'oupsDefenseur' as const, suite: { enchainement: { mode: 'aucun' as const } } };
     jouerLApresCoup(g, banc.setState, coup);
     jouerLApresCoup(g, banc.setState, coup);
-    const maladresses = () => g().pendingCascade!.participants.filter((s) => s.jet === 'fumble');
+    const maladresses = () => g().pendingCascade!.participants.filter((s) => s.jet === 'maladresse');
     expect(maladresses().map((s) => s.actorId)).toEqual(['e', 'e']);
     expect(new Set(maladresses().map((s) => s.id)).size, maladresses().map((s) => s.id).join(',')).toBe(2);
     for (const attendu of maladresses().map((s) => s.id)) {

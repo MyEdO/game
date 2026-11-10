@@ -18,7 +18,7 @@ function setup() {
   useGame.setState({ party: [hero] });
   get().lancerLaScene(testScene());
   get().lancerLeCombat('enc-mutants');
-  get().fenetreValider('roundStart');
+  get().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   const b = get().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;

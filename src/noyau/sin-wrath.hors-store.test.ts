@@ -35,7 +35,7 @@ function confirmPrayerWithRoll(casterId: string, targetId: string, roll: number,
   banc.setState({
     pendingCast: { casterId, targetId, spellId: 'benediction-de-guerison', missile: false, focused: false, result },
   });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
 }
 
 describe('Péché et Colère Divine (LDB 40)', () => {
@@ -82,7 +82,7 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     banc.setState({
       pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-guerison', missile: false, focused: false, result },
     });
-    banc.getState().jetValider('cast');
+    banc.getState().jetValider('incantation');
     const journal = draineEtLit(banc.getState).join('\n');
     expect(journal.match(/Colère des dieux \(/g)?.length).toBe(1); // un seul JET de table
     expect(banc.getState().party.find((h) => h.id === priest.id)!.sinPoints).toBe(1);

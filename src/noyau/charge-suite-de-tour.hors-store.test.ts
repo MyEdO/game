@@ -202,8 +202,8 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     expect([suite(), parquee()], 'chemin : la frappe est parquée').toEqual(['frappe', true]);
     jouerLaSequence();
     cliquerSurLeCombattant(g, 'e', { confirm: true });
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     jouerLaSequence();
     expect([attaques('h', 'e'), b().acted], 'le joueur a frappé à la main : son Action est dépensée').toEqual([1, true]);
     remettreLAutoCombat();
@@ -241,8 +241,8 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     tantQue(() => !!g().pendingDefense);
     passerEnManuel();
     cliquerSurLeCombattant(g, 'e', { confirm: true });
-    g().jetLancer('attack');
-    g().jetValider('attack');
+    g().jetLancer('attaque');
+    g().jetValider('attaque');
     jouerLaSequence();
     expect([suite(), parquee(), attaques('h', 'e'), b().acted], 'chemin : la frappe du joueur a devancé la suite, qui attend parquée ; l’Action est dépensée à la main').toEqual(['frappe', true, 1, true]);
     remettreLAutoCombat();
@@ -294,7 +294,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     expect(bandeOuverte(), 'chemin : l’approche ouvre la bande de Peur').toBe(true);
     banc.avancer(3000);
     expect([suite(), parquee(), attaques('e', 'h')], 'la frappe est parquée, rien frappé').toEqual(['frappe', true, 0]);
-    g().jetLancer('cascadeBatch', 'h');
+    g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     tantQue(() => !g().pendingDefense);
     jouerLaSequence();
@@ -312,7 +312,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     expect(bandeOuverte(), 'chemin : l’approche ouvre la bande de Peur').toBe(true);
     banc.avancer(3000);
     expect([suite(), parquee(), b().turn], 'l’« avancer » est parqué').toEqual(['avancer', true, 0]);
-    g().jetLancer('cascadeBatch', 'h');
+    g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     banc.reprendreTout();
     expect(attaques('e'), 'aucune frappe').toBe(0);
@@ -327,7 +327,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !bandeOuverte());
     expect([bandeOuverte(), suite(), parquee()], 'chemin : la bande est ouverte, la frappe attend son échéance').toEqual([true, 'frappe', false]);
-    g().jetLancer('cascadeBatch', 'h');
+    g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     tantQue(() => !g().pendingDefense);
     jouerLaSequence();
@@ -477,7 +477,7 @@ describe('#3058 — un geste décidé par l’IA ne part pas par-dessus une Acti
     fermerLaFenetreNeutre();
     g().incanterLeSort(h.id, 'flechette');
     cliquerSurLeCombattant(g, 'e', { confirm: true });
-    for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetLancer('cast'); else g().jetValider('cast'); }
+    for (let i = 0; i < 6 && g().pendingCast; i++) { if (g().pendingCast!.result == null) g().jetLancer('incantation'); else g().jetValider('incantation'); }
     jouerLaSequence();
     expect([n(), b().acted], 'le joueur a incanté à la main : son Action est dépensée').toEqual([1, true]);
     remettreLAutoCombat();
@@ -567,8 +567,8 @@ const cliquerLaCharge = () => cliquerSurLeCombattant(g, 'e', { confirm: true, in
 const frappeOuverte = () => (g().pendingAttack ? { de: g().pendingAttack!.attackerId, fromCharge: !!g().pendingAttack!.fromCharge, annulable: !!g().pendingAttack!.chargeUndo } : null);
 /** Le joueur lance et applique la frappe ouverte, puis joue la séquence jusqu'à sa clôture. */
 function frapper(): void {
-  g().jetLancer('attack');
-  g().jetValider('attack');
+  g().jetLancer('attaque');
+  g().jetValider('attaque');
   jouerLaSequence();
 }
 
@@ -625,7 +625,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.reprendreTout();
     expect(frappeOuverte(), 'aucune réaction : la frappe s’ouvre annulable').toEqual({ de: 'h', fromCharge: true, annulable: true });
     expect(fenetreDAttaque(g())?.annulation, 'la fenêtre offre l’Annuler').toBeNull();
-    g().jetAnnuler('attack');
+    g().jetAnnuler('attaque');
     expect([qui('h').pos, qui('h').chargedThisTurn, frappeOuverte(), g().pendingCascade], 'Annuler rend la case de départ et ferme la séquence').toEqual([{ x: 4, y: 0 }, false, null, null]);
     cliquerLaCharge();
     banc.reprendreTout();
@@ -639,7 +639,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.reprendreTout();
     const depuis = { ...qui('h').pos! };
     expect(fenetreDAttaque(g())?.annulation, 'la fenêtre ferme l’Annuler avec le texte du geste').toBe('La Charge est engagée : la cible a répondu, le Test de Corps à corps est dû.');
-    g().jetAnnuler('attack');
+    g().jetAnnuler('attaque');
     expect([frappeOuverte()?.annulable, qui('h').pos, qui('h').chargedThisTurn], 'la cible a répondu : Annuler est refusé, la Charge reste').toEqual([false, depuis, true]);
   });
 
@@ -681,7 +681,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     jouerLaSequence();
     finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
     expect(!!g().pendingFateSave, 'chemin : le Destin est offert').toBe(true);
-    g().fenetreChoisir('fateSave', 'issue', 'eviter');
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect([frappeOuverte()?.de, b().turn], 'la frappe du joueur s’ouvre, son tour tient').toEqual(['h', 0]);
   });
@@ -713,7 +713,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     chargeManuelle(4, { reactive: false });
     qui('h').fate = 1;
     finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
-    g().fenetreChoisir('fateSave', 'issue', 'eviter');
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
   });
@@ -726,7 +726,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     frapper();
     expect([attaques('h', 'e'), b().acted], 'chemin : l’Action est prise par la frappe').toEqual([1, true]);
     finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
-    g().fenetreChoisir('fateSave', 'issue', 'eviter');
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
   });

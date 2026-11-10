@@ -7,12 +7,12 @@
  * La CHIRURGIE (Test ÉTENDU, LDB 10 l.184 / 12 l.200) est « armée » sur l'infirmerie (`medic.surgery` :
  * chirurgien figé, patient verrouillé) ; chaque passe est un jet INFLUENÇABLE (`pendingSurgery` via
  * `FLOWS.surgery` — Chance/Pacte/Résilience comme tout jet de héros), qui inflige 1d10 PB + 1 Hémorragie
- * et cumule le DR (DrBar) à l'application (`jetValider('surgery')`). Le Test d'infection du patient (cible atteinte)
+ * et cumule le DR (DrBar) à l'application (`jetValider('chirurgie')`). Le Test d'infection du patient (cible atteinte)
  * est un jet SUBI poussé en RÉVÉLATION témoin. Entre deux passes, Bander (wounds) et Hémorragie (bleed)
  * redeviennent des ACTES NORMAUX du même patient — jet complet (Chance/Résilience), sans interrompre le cumul.
  *
- * L'acte se choisit par le réglage `heal.mode` du brouillon que la transition du jeu tient (`acteDeSoin.ts`), et se
- * joue par `jetLancer('heal')`. Acte PAYANT (PNJ `medicalAid`, LDB 75 : l'aide médicale se paie à l'acte, 4-6
+ * L'acte se choisit par le réglage `soins.mode` du brouillon que la transition du jeu tient (`acteDeSoin.ts`), et se
+ * joue par `jetLancer('soins')`. Acte PAYANT (PNJ `medicalAid`, LDB 75 : l'aide médicale se paie à l'acte, 4-6
  * pistoles) : débit au lancer ; arrêter une opération jamais commencée rembourse.
  */
 import { locationLabel } from '../engine/types';
@@ -65,14 +65,14 @@ export function ouvrirLeMedecin(get: Get, set: Set, patientId?: string, npc?: Me
   set({ medic: { npc, patientId: patientId ?? party.find((h) => isHealable(h))?.id ?? party[0]?.id ?? null } });
 }
 
-/** Les Blessures Critiques que le choix `medic.plaie` ouvre (`plaiesDeLOperation`), chacune nommée avec sa
+/** Les Blessures Critiques que le choix `infirmerie.plaie` ouvre (`plaiesDeLOperation`), chacune nommée avec sa
  *  Localisation. PUR. */
 export function plaiesNommees(s: Jeu): { uid: IdDePlaieDeLOperation; libelle: string }[] {
   const patient = s.party.find((h) => h.id === s.medic?.patientId);
   return patient ? plaiesDeLOperation(s).map((p) => ({ uid: p.uid, libelle: t('medic.plaie', { plaie: p.label, localisation: locationLabel(p.location, patient.bodyShape) }) })) : [];
 }
 
-/** APPLIQUE une passe de l'opération étendue (calque `jetValider('extendedTest')`) : prend le jet FIGÉ de `pendingSurgery`
+/** APPLIQUE une passe de l'opération étendue (calque `jetValider('testEtendu')`) : prend le jet FIGÉ de `pendingSurgery`
  *  (déjà roulé + influencé en modale) et cumule le DR (repart à 0 sous 0, LDB 12 l.174).
  *  - `kind:'chirurgie'` : chaque passe inflige 1d10 PB + 1 Hémorragie (LDB 10 l.184) ; à 0 PB → interruption.
  *    Cible atteinte → Blessure Critique réparée + Test d'infection du PATIENT (LDB 10 l.184) DIFFÉRÉ en ÉTAPE de
@@ -154,7 +154,7 @@ function operationArmee(s: Pick<Jeu, 'party'>, p: PendingHeal, kind: ActeOperato
 }
 
 /**
- * Le LANCER de l'acte hors combat (`jetLancer('heal')`) : jugé par `refusDeLActeALInfirmerie` ; le tarif d'un PNJ se
+ * Le LANCER de l'acte hors combat (`jetLancer('soins')`) : jugé par `refusDeLActeALInfirmerie` ; le tarif d'un PNJ se
  * débite ici, jamais au brouillon — DÉPENSE DE GROUPE (arbitrage user 2026-07-20 : « le groupe peut se cotiser pour
  * payer […] les soins »). Un acte d'opération arme l'opération (ou reprend l'opération armée, sans nouveau débit) et pose
  * sa passe à la place du brouillon. Rend `true` quand le jet du soin reste à tirer.
@@ -186,7 +186,7 @@ export function creerActionsDuMedecin(get: Get, set: Set) {
  *  celle de l'opération armée, sinon celle du brouillon d'une opération (`plaiesDeLOperation`). */
 export function choixDuMedecin(get: Get, set: Set) {
   return {
-    medic: {
+    infirmerie: {
       patient: (id) => set({ medic: { ...garanti(get().medic, id, 'infirmerie du patient'), patientId: id } }),
       abandon: () => abandonnerLOperation(get, set),
       plaie: (uid) => {
@@ -198,12 +198,12 @@ export function choixDuMedecin(get: Get, set: Set) {
   } satisfies Partial<CorpsDesChoix>;
 }
 
-/** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.medic.sortieFermee`) ; son brouillon part avec elle
+/** L'infirmerie se ferme hors soin en cours (`MODAL_DEFS.infirmerie.sortieFermee`) ; son brouillon part avec elle
  *  (`brouillonTenu`). */
 export function sortiesDuMedecin(_get: Get, set: Set) {
-  return { medic: () => set({ medic: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { infirmerie: () => set({ medic: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function cloturesDuMedecin(get: Get, set: Set) {
-  return { surgery: () => appliquerLaPasse(get, set) } satisfies Partial<CloturesDuJet>;
+  return { chirurgie: () => appliquerLaPasse(get, set) } satisfies Partial<CloturesDuJet>;
 }

@@ -144,7 +144,7 @@ describe('porte secrète — combat : aucune découverte', () => {
     banc.setState({ party: [heros()[0]] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const sc = plan();
     const b = banc.getState().battle!;

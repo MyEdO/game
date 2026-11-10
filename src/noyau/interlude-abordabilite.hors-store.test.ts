@@ -63,9 +63,9 @@ function viderLaBourse(banc: Banc, heroId: string): void {
 
 /** Lance le jet d'Activité ouvert, le pose réussi, puis le confirme. */
 function confirmerReussi(banc: Banc): void {
-  banc.actions.jetLancer('activity');
+  banc.actions.jetLancer('activite');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 3 } }));
-  banc.actions.jetValider('activity');
+  banc.actions.jetValider('activite');
 }
 
 describe('Apprentissage particulier — PX et tuteur', () => {
@@ -167,9 +167,9 @@ describe('Apprentissage particulier — seul un Talent de la liste du volet s’
     const horsDuJet = () => JSON.stringify([banc.getState().interlude, banc.getState().party.map((h) => [h.xp, h.talents, bourseOf(h)])]);
     const avant = horsDuJet();
     const journal = banc.getState().journal.length;
-    banc.actions.jetLancer('activity');
+    banc.actions.jetLancer('activite');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 3 } }));
-    banc.actions.jetValider('activity');
+    banc.actions.jetValider('activite');
     expect(banc.getState().journal.slice(journal)).toEqual(['Vétéran ne peut pas apprendre Chanceux par Apprentissage particulier (Talent de carrière, au Maxi, ou à spécialisation).']);
     expect(horsDuJet(), 'bourse, PX ou Activité dépensés').toBe(avant);
   });
@@ -229,9 +229,9 @@ function apresUneReputation(success: boolean, sl: number): { banc: Banc; heroId:
   banc.actions.ouvrirLInterlude(3);
   draineCascade(banc.getState);
   pratiquer(banc.getState, h.id, 'reputation');
-  banc.actions.jetLancer('activity');
+  banc.actions.jetLancer('activite');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: success ? 10 : 99, success, sl } }));
-  banc.actions.jetValider('activity');
+  banc.actions.jetValider('activite');
   expect(actorStatus(banc.getState().party[0]), 'témoin : Argent 1 pendant l’interlude').toEqual({ tier: 'argent', standing: 1 });
   return { banc, heroId: h.id };
 }

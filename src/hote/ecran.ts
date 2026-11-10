@@ -10,7 +10,7 @@
  * aucun id.
  */
 import {
-  ACTIONS, avecSigne, batailleEnVue, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
+  ACTIONS, avecSigne, batailleEnVue, fenetreDuJeu, carteEnVue, cleDuGeste, dayIndex, formatImperial, formatJourImperial, marchandEnVue, marcheEnVue, voyageEnVue, VERBE_DE_CHOIX, type AxeDuChoix, type FenetreAChoix, conditionLabel, conversationEnVue, difficultyText, documentEnVue, lieuEnVue, formatMoney, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, ficheDuPorteur, gestesDeLObjet, interludeEnVue, jetsEnVue, porteurParId, recitEnVue, reposEnVue, toneOf,
   type CombatEvent, type EntreeDeLaFiche, type FicheDuPorteur, type GesteAChoix, type GesteDuNoyau, type GesteFermable, type FenetreDAttaque, type FenetreDIncantation, type Jeu, type JetEnVue, type LigneDeJet, type LigneDuJournal, type ModLine, type RecapTone, type RollBreakdown, type TrajetEnVue,
 } from '../noyau/index';
 import { pluriel, t } from '../i18n';
@@ -306,13 +306,15 @@ function jetsDeLaFenetre(etat: Jeu): Element[] {
 /** Le corps de la fenêtre qui tient la main : sur l'étape d'attaque de la cascade, la fenêtre d'attaque
  *  (`fenetreDAttaque`) ; sur son étape de Défense, qui attaque qui (`fenetreDeDefense`) et le jet de sa réaction avant
  *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle ou
- *  annonce, le Sauvetage par le Destin et la victoire en attente. */
+ *  annonce, le Sauvetage par le Destin et la victoire en attente ; les éléments propres à la fenêtre ont pour id la clé
+ *  qu'en donne le noyau (`fenetreDuJeu`). */
 function corpsDeLaFenetre(etat: Jeu): Element[] {
+  const { cle } = garanti(fenetreDuJeu(etat), 'fenetre', 'fenêtre qui tient la main');
   const pc = etat.pendingCascade;
   const jetDeLEtape = pc?.participants[pc.cursor]?.jet;
-  const attaque = jetDeLEtape === 'attack' ? fenetreDAttaque(etat) : null;
+  const attaque = jetDeLEtape === 'attaque' ? fenetreDAttaque(etat) : null;
   if (attaque) return corpsDeLAttaque(etat, attaque);
-  const incantation = jetDeLEtape === 'cast' ? fenetreDIncantation(etat) : null;
+  const incantation = jetDeLEtape === 'incantation' ? fenetreDIncantation(etat) : null;
   if (incantation) return corpsDeLIncantation(etat, incantation);
   const defense = jetDeLEtape === 'defense' ? fenetreDeDefense(etat) : null;
   const nom = (id: string) => garanti(porteurParId(etat, id), id, 'combattant de la Défense').label;
@@ -331,13 +333,13 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...recitDuVoyage(etat),
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
-    ...nuitDuRepos(etat),
+    ...nuitDuRepos(etat, cle),
     ...jetsDeLaFenetre(etat),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
     ...issueDeLEtape(etat),
-    ...destinEnJeu(etat),
-    ...victoire(etat),
+    ...destinEnJeu(etat, cle),
+    ...victoire(etat, cle),
     ...texteDuDocument(etat),
   ];
 }
@@ -487,17 +489,17 @@ const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): C
 /** La nuit à régler (`reposEnVue`) : la nuit, le temps qu'il fait (en alerte quand il expose), puis chaque dormeur en
  *  entité, son couchage et sa pitance en choix et ce qui l'attend cette nuit en puces d'alerte ; la note, en alerte
  *  quand les bourses ne la couvrent pas. */
-function nuitDuRepos(etat: Jeu): Element[] {
+function nuitDuRepos(etat: Jeu, cle: string): Element[] {
   const r = reposEnVue(etat);
   if (!r) return [];
   return [
-    ligne('repos/nuit', r.nuit),
-    ...(r.temps ? [ligne('repos/temps', r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
+    ligne(`${cle}/nuit`, r.nuit),
+    ...(r.temps ? [ligne(`${cle}/temps`, r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
     ...r.dormeurs.map((d): Entite => ({
-      type: 'entite', id: `repos/${d.id}`, ton: 'neutre', nom: d.nom,
+      type: 'entite', id: `${cle}/${d.id}`, ton: 'neutre', nom: d.nom,
       elements: [choixDuDormeur('couchage', d.couchage), choixDuDormeur('pitance', d.pitance), ...d.alertes.map((a, i) => puce(`alerte/${i}`, a, null, null, 'alerte'))],
     })),
-    ...(r.note ? [ligne('repos/note', r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
+    ...(r.note ? [ligne(`${cle}/note`, r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
   ];
 }
 
@@ -630,25 +632,25 @@ function texteDuDocument(etat: Jeu): Element[] {
 
 /** La victoire en attente : l'Expérience gagnée et l'argent pris en puces, puis chaque adversaire vaincu et chaque
  *  message de la rencontre ; l'équipement s'attribue par les réglages de la fenêtre (`fenetreDuButin`). */
-function victoire(etat: Jeu): Element[] {
+function victoire(etat: Jeu, cle: string): Element[] {
   const v = etat.pendingVictory;
   if (!v) return [];
   const argent = formatMoney(v.gold);
   return [
-    ...(v.xp ? [puce('victoire/xp', t('ecran.victoire.xp'), avecSigne(v.xp), null, 'reussite')] : []),
-    ...(v.gold.gold || v.gold.silver || v.gold.brass ? [puce('victoire/argent', t('ecran.victoire.argent'), argent, null, 'reussite')] : []),
-    ...v.defeated.map((d, i) => ligne(`victoire/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.label, nombre: d.count }) : d.label)),
-    ...(v.messages ?? []).map((m, i) => ligne(`victoire/message/${i}`, m)),
+    ...(v.xp ? [puce(`${cle}/xp`, t('ecran.victoire.xp'), avecSigne(v.xp), null, 'reussite')] : []),
+    ...(v.gold.gold || v.gold.silver || v.gold.brass ? [puce(`${cle}/argent`, t('ecran.victoire.argent'), argent, null, 'reussite')] : []),
+    ...v.defeated.map((d, i) => ligne(`${cle}/vaincu/${i}`, d.count > 1 ? t('ecran.victoire.vaincus', { nom: d.label, nombre: d.count }) : d.label)),
+    ...(v.messages ?? []).map((m, i) => ligne(`${cle}/message/${i}`, m)),
   ];
 }
 
 /** Le Sauvetage par le Destin en attente : ce qui emporte le héros, sa mort sans sacrifice au détail, et ses Points de
  *  Destin. */
-function destinEnJeu(etat: Jeu): Element[] {
+function destinEnJeu(etat: Jeu, cle: string): Element[] {
   const p = etat.pendingFateSave;
   const heros = p && porteurParId(etat, p.heroId);
   if (!heros) return [];
-  return [ligne('destin/enjeu', t(`ecran.destin.${p.source}`), 'alerte', t('ecran.destin.refus')), puce('destin/points', t('ecran.destin'), String(heros.fate ?? 0))];
+  return [ligne(`${cle}/enjeu`, t(`ecran.destin.${p.source}`), 'alerte', t('ecran.destin.refus')), puce(`${cle}/points`, t('ecran.destin'), String(heros.fate ?? 0))];
 }
 
 /** Ce que l'étape courante de la cascade révèle (fin de round, entrée de scène, mutation, Coup Critique…). Un Coup

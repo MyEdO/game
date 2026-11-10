@@ -60,7 +60,7 @@ describe('la journée de route par le pont', () => {
       expect(pas, 'la journée se joue en quelques gestes').toBeLessThan(6);
       s = r.jouer((geste(s, 'Lancer') ?? geste(s, 'Continuer'))!.jeu);
     }
-    expect(s.vue.projection.fenetre?.cle, 'la halte de nuit').toBe('rest');
+    expect(s.vue.projection.fenetre?.cle, 'la halte de nuit').toBe('repos');
     const textes = r.lignes.map((l) => l.texte);
     const carte = textes.indexOf('Cartographie : 2/4 DR.');
     expect(carte, 'le bilan de l’Étape, au journal').toBeGreaterThanOrEqual(0);

@@ -26,7 +26,7 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   // Éloigne tous les ennemis pour libérer la grille autour du héros (couloir y=10 libre).
@@ -125,13 +125,13 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     expect(computeRunReach(banc.getState).size).toBe(0);
   });
 
-  it('jetValider@run : jet généreux → arrive à destination, Action consommée', () => {
+  it('jetValider@course : jet généreux → arrive à destination, Action consommée', () => {
     const { H } = setup();
     const p = { ...banc.getState().battle!.combatants.find((c) => c.id === H.id)!.pos! };
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y };
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     const st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(dest);
     expect(st.battle!.acted).toBe(true);
@@ -144,7 +144,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y }; // coût M+2 ; budget M + 2M = 3M → reliquat 2M−2
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: true, roll: 10, target: 60, dr: 4, bonusCases: 2 * M } } });
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     let st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(st.battle!.runBudget).toBe(3 * M);
@@ -163,7 +163,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const dest = { x: p.x + 2 * M, y: p.y }; // demandé : 2M cases plein est
     // Jet désastreux : bonus de Course 1 seule case → budget total M+1.
     banc.setState({ pendingRun: { combatantId: H.id, test: testDeRegle('course', 'courir'), dest, result: { success: false, roll: 96, target: 60, dr: -3, bonusCases: 1 } } });
-    banc.getState().jetValider('run');
+    banc.getState().jetValider('course');
     const st = banc.getState();
     const h = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.pos).toEqual({ x: p.x + M + 1, y: p.y }); // au max du possible le long du chemin

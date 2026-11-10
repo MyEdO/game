@@ -64,9 +64,9 @@ function finirLeTour(): ReturnType<typeof jouer> {
 describe('un tour complet par le pont', () => {
   it('attaque d’un héros par ses gestes, déplacement, attaque adverse jouée par le noyau, Défense', { timeout: 240_000 }, () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'dome', graine: 7 }));
-    expect(gesteDe(suite.vue, 'fenetreValider@roundStart'), 'l’ouverture du round : un bouton nommé, que l’Entrée joue plutôt qu’un réglage').toMatchObject({ libelle: 'Commencer le round', type: 'bouton', focus: true });
+    expect(gesteDe(suite.vue, 'fenetreValider@debutDuRound'), 'l’ouverture du round : un bouton nommé, que l’Entrée joue plutôt qu’un réglage').toMatchObject({ libelle: 'Commencer le round', type: 'bouton', focus: true });
     expect(suite.vue.champ, 'la barre fermée, le champ ne se clique pas').toBeNull();
-    ({ suite } = presser(bouton(suite, 'fenetreValider@roundStart')));
+    ({ suite } = presser(bouton(suite, 'fenetreValider@debutDuRound')));
 
     const heros = actifDe(suite);
     expect(heros.camp).toBe('hero');
@@ -86,16 +86,16 @@ describe('un tour complet par le pont', () => {
     const nomDeLaCible = nomDe(cible);
     ({ suite } = jouer(clicDuCombattant(suite.vue, cible)!));
     expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
-    expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attack');
-    expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attack#localisation');
-    expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetLancer@attack');
+    expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attaque');
+    expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attaque#localisation');
+    expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetLancer@attaque');
     expect(corpsDe(suite.vue, 'degats'), 'les Dégâts de l’arme, à part').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^\+\d+$/) });
     expect(corpsDe(suite.vue, 'cible'), 'la fenêtre nomme la cible').toMatchObject({ type: 'ligne', texte: expect.stringContaining(nomDeLaCible) });
     expect(corpsDe(suite.vue, 'jet'), 'le jet de l’attaquant, à lancer').toMatchObject({ type: 'jet', qui: heros.nom, cible: expect.stringMatching(/\d+$/), resultat: null, verdict: null, detail: expect.stringMatching(/^base \d+/) });
-    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetLancer@attack');
+    expect(attendu(suite), 'avant le jet, le jet est attendu').toBe('jetLancer@attaque');
 
     const localiser = () => {
-      const g = gesteDe(suite.vue, 'jetRegler@attack#localisation');
+      const g = gesteDe(suite.vue, 'jetRegler@attaque#localisation');
       if (g.type !== 'choix' && g.type !== 'liste') throw new Error(`la Localisation : ${g.type}, pas un choix`);
       return g.valeurs;
     };
@@ -109,7 +109,7 @@ describe('un tour complet par le pont', () => {
     expect(corpsDe(suite.vue, 'jet'), 'le jet tombé dit son verdict').toMatchObject({ type: 'jet', verdict: expect.any(String) });
     const issue = corpsDe(suite.vue, 'issue');
     expect(issue, 'le jet tombé dit son issue').toMatchObject({ type: 'ligne' });
-    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetValider@attack');
+    expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetValider@attaque');
     const confirmee = presser(bouton(suite, attendu(suite)));
     suite = confirmee.suite;
     expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
@@ -162,7 +162,7 @@ describe('un tour complet par le pont', () => {
     expect(vise.camp, 'l’adversaire vise un héros').toBe('hero');
     expect(defense.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: vise.nom });
     expect(etape, 'l’étape nomme le héros qui se défend').toContain(vise.nom);
-    expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['roundStart', 'cascade:attackJet', 'cascade:defenseJet']));
+    expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['debutDuRound', 'cascade:attackJet', 'cascade:defenseJet']));
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [] });
   });
 });

@@ -78,7 +78,7 @@ export function StateRecoveryModalView({
 
   return (
     <RollShell
-      flowKey="recover"
+      flowKey="recuperation"
       stake={stateRecoveryStakeRef(sr.state)}
       title={remedeDeLEtat(sr.state)?.label ?? conditionLabel(sr.state)}
       subtitle={<>{sub} · {sr.stacks} pion{sr.stacks > 1 ? 's' : ''}</>}
@@ -99,12 +99,12 @@ export function StateRecoveryModalView({
 export function StateRecoveryModal() {
   const sr = useGame((s) => s.pendingStateRecovery);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'recover');
-  const reroll = useGesteDeJet('jetRelancer', 'recover');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'recover');
-  const darkPact = useGesteDeJet('jetPactiser', 'recover');
-  const confirm = useGesteDeJet('jetValider', 'recover');
-  const cancel = useGesteDeJet('jetAnnuler', 'recover');
+  const roll = useGesteDeJet('jetLancer', 'recuperation');
+  const reroll = useGesteDeJet('jetRelancer', 'recuperation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'recuperation');
+  const darkPact = useGesteDeJet('jetPactiser', 'recuperation');
+  const confirm = useGesteDeJet('jetValider', 'recuperation');
+  const cancel = useGesteDeJet('jetAnnuler', 'recuperation');
   if (!sr || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === sr.actorId);
   return (

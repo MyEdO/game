@@ -361,7 +361,7 @@ export interface PendingActivityFields extends PendingBase {
   traitPsy?: TraitPsyVise;
   // ── Activité/Scène de BATAILLE de masse (ADE II 8 — contextes 'bataille'/'bataille-round') ──
   /** Activité de bataille : l'issue (delta de Puissance / modificateur de Test) porte sur l'ARMÉE, pas
-   *  sur le héros — routée par `jetValider('activity')` vers le résolveur de bataille. `prep` = Activité de
+   *  sur le héros — routée par `jetValider('activite')` vers le résolveur de bataille. `prep` = Activité de
    *  préparation ('bataille') ; `round` = Scène cinématique d'un Round ('bataille-round'). */
   battle?: 'prep' | 'round';
   /** Modificateur de SITUATION (fondu dans la cible, en LIGNE de mod pour la modale) : Menace −20 (l.219)
@@ -573,7 +573,7 @@ function mecenatPayout(get: Get, set: Set, h: Combatant, depotId: IdDeDepot, pay
 
 /** Issue d'un résolveur d'Activité : les lignes de journal + un `patch` de l'état d'interlude du
  *  héros (deltas NON exprimables en `GameOp` : DR du Test étendu, crédit différé des Revenus,
- *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetValider('activity')`). */
+ *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetValider('activite')`). */
 interface ResolverResult { lines: string[]; patch?: Partial<InterludeHeroState>; closeOps?: GameOp[] }
 
 /** Ce résolveur appartient-il à la famille INTERLUDE (`RESOLVER_OWNER`) ? */
@@ -581,7 +581,7 @@ const ownedByInterlude = (r: ActivityResolver): r is ResolverOf<'interlude'> => 
 
 /** Dispatch des résolveurs BESPOKE d'issue d'Activité (`ActivityDef.resolver` + bandes `resolver`) —
  *  chacun RÉUTILISE une logique PURE existante et implémente la règle RAW vérifiée. Le `patch` porte
- *  les deltas d'état d'interlude (le `set` final est fait par `jetValider('activity')`). FERMÉ sur le
+ *  les deltas d'état d'interlude (le `set` final est fait par `jetValider('activite')`). FERMÉ sur le
  *  sous-ensemble POSSÉDÉ par l'interlude (`RESOLVER_OWNER`) : un résolveur d'une autre famille qui
  *  arriverait ici est une erreur de routage, elle CRIE. */
 function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa: PendingActivity, h: Combatant, st: InterludeHeroState): ResolverResult {
@@ -1259,7 +1259,7 @@ export function validationsDInterlude(get: Get, set: Set) {
 }
 
 export function cloturesDInterlude(get: Get, set: Set) {
-  return { activity: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
+  return { activite: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

@@ -27,7 +27,7 @@ describe('Piétinement en combat (store)', () => {
     useGame.setState({ screen: 'campaign', party: [hero] });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -64,9 +64,9 @@ describe('Piétinement en combat (store)', () => {
     const pa = useGame.getState().pendingAttack;
     expect(pa?.freeKind, 'Entrée ouvre le jet du Piétinement').toBe('pietinement');
     expect(useGame.getState().pendingCascade, 'la modale s’ouvre').toBeTruthy();
-    useGame.getState().jetLancer('attack');
+    useGame.getState().jetLancer('attaque');
     expect(useGame.getState().pendingAttack!.result!.defenderDetail, 'la cible oppose sa défense').toBeDefined();
-    useGame.getState().jetValider('attack');
+    useGame.getState().jetValider('attaque');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.freeAttacksThisTurn?.pietinement).toBe(1);
     expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement'), 'l’option disparaît').toBe(false);
@@ -79,7 +79,7 @@ describe('Piétinement en combat (store)', () => {
     E.pos = { x: 13, y: 10 };
     pietinerAuClavier();
     expect(advDe(H.id), 'le coût est débité au commit').toBe(2);
-    useGame.getState().jetAnnuler('attack');
+    useGame.getState().jetAnnuler('attaque');
     const h = useGame.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.advantage).toBe(3);
     expect(availableAttacks(h, useGame.getState().battle!).some((o) => o.id === 'pietinement')).toBe(true);

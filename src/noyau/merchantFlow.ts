@@ -1160,8 +1160,8 @@ export function validationsDuMarchand(get: Get, set: Set) {
 
 export function cloturesDuMarchand(get: Get, set: Set) {
   return {
-    bargain: () => acquitterLeMarchandage(get, set),
-    appraise: () => acquitterLEvaluation(get, set),
+    marchandage: () => acquitterLeMarchandage(get, set),
+    evaluation: () => acquitterLEvaluation(get, set),
   } satisfies Partial<CloturesDuJet>;
 }
 

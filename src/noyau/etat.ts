@@ -386,9 +386,9 @@ export interface EtatDeJeu {
    *  dérive. CAMPAGNE-scopé comme `objectives` ; vidé en nouvelle partie (`lancerLaScene`). */
   objectifsSoldes: Objective[];
   /** Borne d'ouverture du chapitre courant (#717) — posée à l'acquittement de l'ouverture
-   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('chapterRecap')`) ; null = aucun chapitre borné. */
+   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('finDeChapitre')`) ; null = aucun chapitre borné. */
   chapitreDepuis: ChapitreDepuis | null;
-  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('chapterRecap')`, lu par
+  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('finDeChapitre')`, lu par
    *  `armChapterRecapIfDue`. La clôture est une Condition, et une Condition vraie le RESTE (un drapeau
    *  ne se retire pas) : sans ce fait, le lot d'effets suivant ré-armerait un récap vide, à l'infini.
    *  Un seul booléen suffit : un paquet porte UNE `narratif.cloture`, et le fait meurt avec la partie
@@ -481,10 +481,10 @@ export interface EtatDeJeu {
    *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.counterspell`). Null = pas de réaction. */
   pendingCounterspell: PendingCounterspell | null;
   /** Test Étendu en cours (LDB 12 : DR cumulé vers une cible, ex. crochetage) : flux multi
-   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetValider('extendedTest')`. */
+   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetValider('testEtendu')`. */
   pendingExtendedTest: PendingExtendedTest | null;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
-   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetValider('forceDoor')`. */
+   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetValider('enfoncerLaPorte')`. */
   pendingForceDoor: PendingForceDoor | null;
   /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
   pendingDesignationHeros: PendingDesignationHeros | null;
@@ -513,7 +513,7 @@ export interface EtatDeJeu {
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
    *  figée (`pendingCast.result`) — multijet DANS la modale de cast (cible IA = rangée témoin
    *  auto-roulée, cible héros = interactive). `jetValider('opposition')` agrège → `pendingCast.opposedOutcome`
-   *  → `jetValider('cast')` applique (cible résistante = aucune op ; sinon ops à la marge). */
+   *  → `jetValider('incantation')` applique (cible résistante = aucune op ; sinon ops à la marge). */
   pendingCastOpposition: PendingCastOpposition | null;
   /** Télégraphe d'intention ENNEMI : réticule « qui l'adversaire vise » + manière (`kind`), montré
    *  ~0,85 s AVANT l'action. Alimente le réticule/la ligne sur la carte ET la bannière d'annonce. */

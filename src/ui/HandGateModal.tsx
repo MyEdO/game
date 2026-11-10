@@ -19,13 +19,13 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function HandGateModal() {
   const pg = useGame((s) => s.pendingHandGate);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'handGate');
-  const reroll = useGesteDeJet('jetRelancer', 'handGate');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'handGate');
-  const darkPact = useGesteDeJet('jetPactiser', 'handGate');
-  const force = useGesteDeJet('jetForcerLaReussite', 'handGate');
-  const confirm = useGesteDeJet('jetValider', 'handGate');
-  const cancel = useGesteDeJet('jetAnnuler', 'handGate');
+  const roll = useGesteDeJet('jetLancer', 'mainEnsanglantee');
+  const reroll = useGesteDeJet('jetRelancer', 'mainEnsanglantee');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'mainEnsanglantee');
+  const darkPact = useGesteDeJet('jetPactiser', 'mainEnsanglantee');
+  const force = useGesteDeJet('jetForcerLaReussite', 'mainEnsanglantee');
+  const confirm = useGesteDeJet('jetValider', 'mainEnsanglantee');
+  const cancel = useGesteDeJet('jetAnnuler', 'mainEnsanglantee');
   if (!pg || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pg.attackerId);
   const rolled = pg.roll != null;
@@ -57,7 +57,7 @@ export function HandGateModal() {
 
   return (
     <RollShell
-      flowKey="handGate"
+      flowKey="mainEnsanglantee"
       title={<><Icon id="condition/bleeding" size="sm" /> Main ensanglantée</>}
       subtitle={
         <>

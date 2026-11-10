@@ -21,13 +21,13 @@ export function DispelModal() {
   const pd = useGame((s) => s.pendingDispel);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'dispel');
-  const reroll = useGesteDeJet('jetRelancer', 'dispel');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'dispel');
-  const darkPact = useGesteDeJet('jetPactiser', 'dispel');
-  const force = useGesteDeJet('jetForcerLaReussite', 'dispel');
-  const confirm = useGesteDeJet('jetValider', 'dispel');
-  const cancel = useGesteDeJet('jetAnnuler', 'dispel');
+  const roll = useGesteDeJet('jetLancer', 'dissipation');
+  const reroll = useGesteDeJet('jetRelancer', 'dissipation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'dissipation');
+  const darkPact = useGesteDeJet('jetPactiser', 'dissipation');
+  const force = useGesteDeJet('jetForcerLaReussite', 'dissipation');
+  const confirm = useGesteDeJet('jetValider', 'dissipation');
+  const cancel = useGesteDeJet('jetAnnuler', 'dissipation');
   if (!pd) return null;
   const caster = (battle?.combatants ?? party).find((c) => c.id === pd.casterId);
   if (!caster) return null;
@@ -63,7 +63,7 @@ export function DispelModal() {
 
   return (
     <RollShell
-      flowKey="dispel"
+      flowKey="dissipation"
       stake={flowStakeRef('dispel-roll', { values: { ni: pd.ni } })}
       title={<><Icon id="action/dispel" size="sm" /> Dissipation</>}
       /* Z1 : QUI dissipe QUOI. La PROGRESSION (DR cumulé vers le NI) n'est PAS ici — elle a sa zone

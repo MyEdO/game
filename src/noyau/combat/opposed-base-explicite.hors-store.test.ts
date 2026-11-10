@@ -131,7 +131,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -239,7 +239,7 @@ describe('G9 — « se libérer » d’Empêtré (`escapeStrength` FIGÉE) : nu 
       const pris = combatant({ id: 'pris', conditions: [{ id: 'empetre', value: 1, escapeStrength: 55 }] as never });
       setBattle([pris], 'pris');
       banc.getState().seRemettreDeLEtat('empetre');
-      banc.getState().jetLancer('recover');
+      banc.getState().jetLancer('recuperation');
     }
     expect(REPLIS_DEUX_CIBLES.count).toBe(avant);
   });

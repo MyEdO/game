@@ -21,12 +21,12 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function FrenzyModal() {
   const pf = useGame((s) => s.pendingFrenzy);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'frenzy');
-  const reroll = useGesteDeJet('jetRelancer', 'frenzy');
-  const darkPact = useGesteDeJet('jetPactiser', 'frenzy');
-  const force = useGesteDeJet('jetForcerLaReussite', 'frenzy');
-  const confirm = useGesteDeJet('jetValider', 'frenzy');
-  const cancel = useGesteDeJet('jetAnnuler', 'frenzy');
+  const roll = useGesteDeJet('jetLancer', 'frenesie');
+  const reroll = useGesteDeJet('jetRelancer', 'frenesie');
+  const darkPact = useGesteDeJet('jetPactiser', 'frenesie');
+  const force = useGesteDeJet('jetForcerLaReussite', 'frenesie');
+  const confirm = useGesteDeJet('jetValider', 'frenesie');
+  const cancel = useGesteDeJet('jetAnnuler', 'frenesie');
   if (!pf || !battle) return null;
   const c = battle.combatants.find((x) => x.id === pf.combatantId);
   if (!c) return null;
@@ -58,7 +58,7 @@ export function FrenzyModal() {
 
   return (
     <RollShell
-      flowKey="frenzy"
+      flowKey="frenesie"
       stake={flowStakeRef('frenzy-roll')}
       title={<><Icon id="flag/frenzy" size="sm" /> Frénésie</>}
       subtitle={

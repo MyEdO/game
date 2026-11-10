@@ -8,7 +8,7 @@ import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import type { CorpsDesReglages, VerbeDeReglage } from './reglagesDuJet';
-import type { ActionDeJet, NomDeVerbeDeJet } from './flowVerbs';
+import type { ActionDeJet, FlowKey, NomDeVerbeDeJet } from './flowVerbs';
 import type { Majuscule } from './intentionsDeSiege';
 import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
@@ -60,6 +60,9 @@ import type { CharMode } from './creation/brouillon';
 import type { HealMode } from '../engine/healing';
 import type { GenreDeDepot } from '../engine/activities';
 import type { Main } from '../engine/types';
+import type { CleDeRegistre } from './modalArbiter';
+import type { HostJet } from './slotsDeJet';
+import type { ClueState } from './monde/clues';
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
@@ -105,18 +108,27 @@ export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachin
 /** Les mots d'un id d'un domaine de verbe (littéral, axe) : les actions du lexique, et les mots que ses domaines
  *  nomment (#3614). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
-  | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'alea' | 'ambition' | 'arriere' | 'au' | 'avant' | 'baisser'
-  | 'blessures' | 'bordee' | 'cacher' | 'chercher' | 'chirurgie' | 'cible' | 'commande' | 'couchage' | 'courte'
-  | 'dans' | 'de' | 'defaite' | 'degats' | 'depecer' | 'detection' | 'dissipation' | 'droite' | 'du' | 'empetrer'
-  | 'encombrement' | 'entrainement' | 'evaluation' | 'eviter' | 'gauche' | 'hemorragie' | 'heros' | 'immobile'
-  | 'incantation' | 'investir' | 'issue' | 'jeter' | 'jour' | 'la' | 'le' | 'liberer' | 'ligne' | 'longue' | 'main'
-  | 'mecenat' | 'motivation' | 'munition' | 'objet' | 'offre' | 'oter' | 'ouvrage' | 'paie' | 'panier' | 'par'
-  | 'passer' | 'patient' | 'payer' | 'personnelle' | 'pitance' | 'plaie' | 'planque' | 'pnj' | 'porteur' | 'poste'
-  | 'poussee' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir' | 'psychologique' | 'qualite' | 'quantite' | 'rallier'
-  | 'reassigne' | 'recevoir' | 'reeducation' | 'refuser' | 'renier' | 'repartition' | 'reponse' | 'repousser'
-  | 'scene' | 'secondaire' | 'soins' | 'solo' | 'sort' | 'soutenu' | 'survivre' | 'talent' | 'tas' | 'teleportation'
-  | 'tir' | 'tire' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'vendre' | 'vente' | 'victoire' | 'vider'
-  | 'viser';
+  | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'activites' | 'alea' | 'ambition' | 'aneantissement'
+  | 'approche' | 'arriere' | 'attaque' | 'au' | 'avant' | 'baisser' | 'bande' | 'bataille' | 'battement' | 'batterie'
+  | 'blessures' | 'bordee' | 'butin' | 'cacher' | 'campagne' | 'carte' | 'cascade' | 'chanson' | 'chapitre'
+  | 'chercher' | 'chirurgie' | 'chute' | 'cible' | 'commande' | 'commandes' | 'conseil' | 'contact' | 'contre'
+  | 'corruption' | 'couchage' | 'course' | 'courte' | 'dans' | 'de' | 'debut' | 'defaite' | 'defense' | 'degats'
+  | 'depart' | 'depecer' | 'desengagement' | 'designation' | 'destin' | 'detection' | 'dialogue' | 'dissipation'
+  | 'distraire' | 'document' | 'droite' | 'du' | 'ecran' | 'empetrer' | 'empoignade' | 'en' | 'encombrement'
+  | 'ensanglantee' | 'entrainement' | 'etal' | 'etendu' | 'evaluation' | 'eviter' | 'file' | 'fin' | 'focalisation'
+  | 'frappe' | 'frenesie' | 'fuite' | 'gauche' | 'hemorragie' | 'heros' | 'immobile' | 'incantation' | 'infirmerie'
+  | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jeter' | 'jeux' | 'jour' | 'journal' | 'la' | 'le'
+  | 'liberer' | 'lieu' | 'ligne' | 'longue' | 'lot' | 'main' | 'maladresse' | 'manoeuvre' | 'marchand' | 'marchandage'
+  | 'marche' | 'marin' | 'masse' | 'mecenat' | 'mer' | 'monde' | 'monture' | 'mortelle' | 'motivation' | 'munition'
+  | 'navire' | 'objet' | 'offre' | 'opposition' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier' | 'par'
+  | 'passer' | 'patient' | 'payer' | 'personnelle' | 'pitance' | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port'
+  | 'porte' | 'porteur' | 'poste' | 'poussee' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir' | 'protection'
+  | 'psychologique' | 'qualite' | 'quantite' | 'rallier' | 'reassigne' | 'recevoir' | 'rechargement' | 'recit'
+  | 'recuperation' | 'reeducation' | 'refuser' | 'refute' | 'relache' | 'renier' | 'repartition' | 'repli' | 'reponse'
+  | 'repos' | 'repousser' | 'revele' | 'round' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'siege' | 'soins'
+  | 'solo' | 'sort' | 'soutenu' | 'survivre' | 'talent' | 'tas' | 'taverne' | 'teleportation' | 'terre' | 'test'
+  | 'tir' | 'tirage' | 'tire' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'vapeur' | 'vendre' | 'vente'
+  | 'victoire' | 'vider' | 'visee' | 'viser' | 'voyage';
 /** Les mots de `S`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`traitPsychologique` : `trait`,
  *  `psychologique`). */
 type Mots<S extends string, Cur extends string = ''> = S extends `${infer C}${infer R}`
@@ -130,7 +142,7 @@ const verrousDuLexique: [
   VerrouDuLexique<keyof ActionsDuNoyau>,
   VerrouDeLaMachinerie<keyof MachinerieDuNoyau>,
   Verrou<Mots<PasRelatif>, MotDuLexique>,
-  Verrou<Mots<ChoixDesFenetres['fateSave']['issue']>, MotDuLexique>,
+  Verrou<Mots<ChoixDesFenetres['destin']['issue']>, MotDuLexique>,
   Verrou<Mots<TavernOpponent['kind']>, MotDuLexique>,
   Verrou<Mots<AxeDuChoix>, MotDuLexique>,
   Verrou<Mots<ModeDeMarche>, MotDuLexique>,
@@ -146,7 +158,11 @@ const verrousDuLexique: [
   Verrou<Mots<ShootingStanceKey>, MotDuLexique>,
   Verrou<Mots<BattleActionMode>, MotDuLexique>,
   Verrou<Mots<NonNullable<BattleState['over']>>, MotDuLexique>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<CleDeRegistre>, MotDuLexique>,
+  Verrou<Mots<ClueState['statut']>, MotDuLexique>,
+  Verrou<Mots<FlowKey>, MotDuLexique>,
+  Verrou<Mots<HostJet>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

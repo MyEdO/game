@@ -9,7 +9,7 @@ import { fenetreDuJeu, TOUT_RESOUDRE, type FenetreDuJeu } from './combatAuto';
 import { stepInteraction } from './cascade';
 import type { PendingCascade } from './pendings';
 import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKey, type FlowVerbs, type RollVerb } from './flowVerbs';
-import { cleDuGeste, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
+import { cleDuGeste, type CleDeRegistre, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
 import { fermetureDeLaSortie } from './sortieDeFenetre';
 import { fermetureDeLaValidation } from './validationDeFenetre';
 import { FLOW_HANDLERS, fermetureDuReglage, rangeesAReglerIci } from './rollFlowSpecs';
@@ -37,19 +37,22 @@ function fermetureDeToutResoudre(s: Jeu, pc: PendingCascade): FermetureDuJet | n
   return !etape || stepInteraction(etape) === 'choix' ? fermeturesDuFlux(s, 'cascade').confirm : null;
 }
 
+/** Les fermetures des gestes qu'une fenêtre juge elle-même, par l'identité de chacun (`cleDuGeste`). */
+type FermeturesPropres = (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null;
+
 /** Ce qui ferme maintenant les gestes qu'une fenêtre juge elle-même, par sa clé, chacun par son identité
  *  (`cleDuGeste`) : « tout résoudre » sur la cascade, la déclaration du Contre-sort quand ce siège n'a plus de rangée à
  *  déclarer (`rangeesAReglerIci`) ; au début du Round, le clic du combattant sans visée armée (`preemptAiming`). Les
  *  valeurs d'un choix de fenêtre se ferment à `OUVERTS_DU_CHOIX`. */
-const FERMETURES_DES_VERBES: Partial<Record<string, (s: Jeu) => Partial<Record<string, FermetureDuJet | null>> | null>> = {
+const FERMETURES_DES_VERBES: Partial<Record<string, FermeturesPropres>> = {
   cascade: (s) => s.pendingCascade && {
     [cleDuGeste(TOUT_RESOUDRE)]: fermetureDeToutResoudre(s, s.pendingCascade),
-    [cleDuGeste({ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('counterspell', 'declaration')).length ? null : 'rienADeclarer',
+    [cleDuGeste({ verbe: 'jetRegler', flux: 'contreSort', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('contreSort', 'declaration')).length ? null : 'rienADeclarer',
   },
-  roundStart: (s) => ({
+  debutDuRound: (s) => ({
     cliquerLaCase: s.preemptAiming ? null : 'nonOffert',
   }),
-};
+} satisfies Partial<Record<CleDeRegistre, FermeturesPropres>>;
 
 /** Les arguments que la fenêtre pose d'office pour son geste `g` : la fenêtre d'une validation ou d'une sortie, la
  *  fenêtre et l'axe d'un choix, le flux d'un geste de jet, le flux et le réglage d'un réglage — et la valeur que son

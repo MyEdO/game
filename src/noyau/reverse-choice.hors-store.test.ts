@@ -89,7 +89,7 @@ const HERO = (over: Partial<Combatant>): Combatant =>
     ...over,
   })) as unknown as Combatant;
 
-describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ici NON couvert #558)', () => {
+describe('flux `attaque` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ici NON couvert #558)', () => {
   function setup() {
     const attacker = HERO({ id: 'A', label: 'Att' });
     applyOps(attacker, [{ op: 'grantReverseToken', skill: { id: 'corps-a-corps' }}], { idNeuf: idsDeTest, rng: desDuTest, label: 'Entraînement au Combat' });
@@ -112,16 +112,16 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
     expect(FLOWS.attack.reverseAvailable(banc.getState)).toBe(true);
   });
 
-  it('PREUVE échoue sans la couture — sans appeler `jetInverser@attack`, l’attaque reste ratée et le jeton intact (aucun automatisme)', () => {
+  it('PREUVE échoue sans la couture — sans appeler `jetInverser@attaque`, l’attaque reste ratée et le jeton intact (aucun automatisme)', () => {
     setup();
     expect(banc.getState().pendingAttack!.result!.hit).toBe(false);
     expect(banc.getState().pendingAttack!.result!.attackerDetail!.success).toBe(false);
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.activeEffects).toHaveLength(1);
   });
 
-  it('accepter (`jetInverser@attack`) : permute le dé attaquant, consomme le jeton, transforme le raté en touche', () => {
+  it('accepter (`jetInverser@attaque`) : permute le dé attaquant, consomme le jeton, transforme le raté en touche', () => {
     setup();
-    banc.getState().jetInverser('attack');
+    banc.getState().jetInverser('attaque');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerDetail!.roll).toBe(reverseRoll(82));
     expect(res.attackerDetail!.success).toBe(true);
@@ -129,7 +129,7 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'A')!.activeEffects).toHaveLength(0);
   });
 
-  it('sans jeton (compétence non couverte) : non disponible, `jetInverser@attack` no-op', () => {
+  it('sans jeton (compétence non couverte) : non disponible, `jetInverser@attaque` no-op', () => {
     const attacker = HERO({ id: 'A', label: 'Att' }); // aucun jeton
     const target = HERO({ id: 'B', label: 'Cible', kind: 'enemy', pos: { x: 1, y: 0 }, activeEffects: [] });
     banc.setState({
@@ -144,7 +144,7 @@ describe('flux `attack` (LDB 23 l.209 — Corps à corps/Projectiles, jusqu’ic
       },
     });
     expect(FLOWS.attack.reverseAvailable(banc.getState)).toBe(false);
-    banc.getState().jetInverser('attack');
+    banc.getState().jetInverser('attaque');
     expect(banc.getState().pendingAttack!.result!.attackerDetail!.roll).toBe(82);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * L'ALLER-RETOUR DE L'ÉDITEUR GODOT (#3606, garde #841) : les écritures que le formulaire tiré du schéma offre à
- * l'inspecteur d'une zone d'effet, d'un déclencheur, d'un personnage et d'une coque, jouées comme la méthode `editer` du pont les joue
+ * l'inspecteur d'une zone d'effet, d'un déclencheur, d'un personnage, d'un décor et d'une coque, jouées comme la méthode `editer` du pont les joue
  * (`hotes/godot/pont/pont.ts`) : le jeu d'un élément des zones passé en JSON, validé par `gesteDuFormulaire` ou
  * `boutonDeLEdition`, puis joué par `editer` sur la session d'édition ; le document relu avant et après. Partagé par la garde (`src/scene-field-editability-guard.test.ts`) et par la copie de
  * mesure de #841 ; la garde décide de ce qu'une écriture crédite (`ecritureCreditee`).
@@ -129,6 +129,10 @@ const A_DIALOGUE = { campagne: 'loup-et-saumure', scene: 'ls-epilogue-salzenmund
 /** Le projet dont le narratif déclare des presets de PNJ (`presetsPnj`), qu'un personnage choisit (`presetId`). */
 const PROJET_A_PRESETS = 'la-diligence';
 
+/** Le type du décor posé dans une scène neuve du `PROJET_A_PRESETS`, dont les actions authorées s'écrivent
+ *  (`usable.actions`). */
+const DECOR = 'brasero';
+
 /** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance (MDG 12), et sa case. */
 const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 } } as const;
 
@@ -140,7 +144,8 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => e
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), et un personnage d'`ENROLE`
  *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
- *  première des `FICHES` posé dans une scène neuve du `PROJET_A_PRESETS` et dans la scène `A_DIALOGUE`, et sur la coque
+ *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, sur un personnage de
+ *  la première des `FICHES` posé dans la scène `A_DIALOGUE`, et sur la coque
  *  `COQUE`, sélectionnée ; chacun
  *  joué à son inspecteur (`jouerLInspecteur`). */
 export function ecrituresJouees(): EcritureJouee[] {
@@ -155,7 +160,8 @@ export function ecrituresJouees(): EcritureJouee[] {
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
-  jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
+  const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
+  jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
   if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
   const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');

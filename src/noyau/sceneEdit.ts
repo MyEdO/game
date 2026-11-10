@@ -39,14 +39,14 @@ import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import { tileKey, type Pt as ScenePt } from './monde/path';
 import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { entiteFootTiles } from './monde/spawn';
-import { ACTION_FOUILLER } from './monde/usable';
+import { actionNeuve } from './monde/usable';
 import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
 import { ancreDuDecor } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { cheminOffert, choixDuChamp, formeDuPorteur, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { choixDuChamp, ecritureOfferte, formeDuPorteur, type CadreDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -801,7 +801,7 @@ export function propRefPatch(ref: string, avant: Pick<SceneEntity, 'usable' | 'f
   const usable = avant?.usable;
   const cap = capDecorAdmis(refEstVolumique(ref), avant?.facing) ? {} : { facing: CAP_IDENTITE_PROP };
   if (findPropById(ref)?.searchable && !usable?.actions?.length)
-    return { decor: { id: ref }, ...cap, usable: { ...usable, actions: [{ id: ACTION_FOUILLER, flow: EMPTY_FLOW, unique: true }] } };
+    return { decor: { id: ref }, ...cap, usable: { ...usable, actions: [actionNeuve([])] } };
   return { decor: { id: ref }, ...cap };
 }
 
@@ -1037,12 +1037,12 @@ type Objet = Record<string, unknown>;
 /** Le nœud admet-il que son champ soit retiré ? */
 const retirable = (noeud: unknown): boolean => videDuNoeud(noeud) === undefined;
 
-/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin ;
- *  pour chaque élément, « Retirer », la liste sans lui, et « Monter », celle où il passe avant le précédent (`null`
- *  pour le premier). */
-export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[]; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
+/** Ce que jouent les gestes de la liste `liste`, d'élément neuf `neuve` : « Ajouter », la liste où il s'ajoute en fin
+ *  (`null` sans élément neuf, `valeurNeuveDe` n'en bâtissant aucun) ; pour chaque élément, « Retirer », la liste sans
+ *  lui, et « Monter », celle où il passe avant le précédent (`null` pour le premier). */
+export function gestesDeLaListe(liste: readonly unknown[], neuve: unknown): { ajouter: unknown[] | null; elements: { retirer: unknown[]; monter: unknown[] | null }[] } {
   return {
-    ajouter: [...liste, neuve],
+    ajouter: neuve === undefined ? null : [...liste, neuve],
     elements: liste.map((e, rang) => ({
       retirer: liste.filter((_, i) => i !== rang),
       monter: rang ? [...liste.slice(0, rang - 1), e, liste[rang - 1], ...liste.slice(rang + 1)] : null,
@@ -1143,10 +1143,12 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
  *  (`formeDuPorteur`, dans le cadre `cadre` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`),
- *  ou son refus : un chemin hors de ses champs (`cheminOffert`) n'est pas offert. */
+ *  ou son refus : une écriture hors de ses champs, ou qui emporte un champ qu'ils n'offrent pas (`ecritureOfferte`),
+ *  n'est pas offerte. */
 export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, cadre: CadreDuPorteur): EcritureDeValeur<DonneeDuPorteur[S]> {
   const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, cadre);
-  if (!cheminOffert(offerts, chemin)) return { ok: false, refus: 'nonOffert' };
+  const actuelle = chemin.reduce<unknown>((o, pas) => (estObjet(o) || Array.isArray(o) ? (o as Record<Segment, unknown>)[pas] : undefined), donnee);
+  if (!ecritureOfferte(offerts, chemin, actuelle)) return { ok: false, refus: 'nonOffert' };
   return avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur, (ici) => choixDuChamp(sorte, donnee, ici, cadre)) as EcritureDeValeur<DonneeDuPorteur[S]>;
 }
 

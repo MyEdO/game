@@ -57,7 +57,7 @@ const leftOf = (heroId: string) => banc.getState().interlude?.perHero[heroId]?.l
 function resolveBattleTest(over: { roll: number; success: boolean; sl: number } & Record<string, unknown>) {
   const pa = banc.getState().pendingActivity!;
   banc.setState({ pendingActivity: { ...pa, ...over } });
-  banc.getState().jetValider('activity');
+  banc.getState().jetValider('activite');
 }
 
 const mbState = (): MassBattleState => banc.getState().massBattle!;
@@ -356,14 +356,14 @@ describe('Scène MENACE (Intrus l.219)', () => {
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const pa = pending()!;
     expect(pa.target).toBe(Math.max(1, Math.min(99, pa.skillValue - 20)));
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'intrus', hits: 3, hitters: ['h1'] } },
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Sanguinaire', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(mbState().activeThreats).not.toContain('intrus');
     expect(mbState().resolvedScenes).toContain('intrus');
   });
@@ -412,7 +412,7 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Mutant', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     const after = mbState();
     expect(armyMight(after.enemy)).toBe(55 - 7);
     expect(after.combatScene).toBeUndefined();
@@ -431,7 +431,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(armyMight(mbState().enemy)).toBe(55 - 20);
     expect(mbState().imposed).not.toContain('charge');
   });
@@ -445,7 +445,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(armyMight(mbState().enemy)).toBe(55 - 10);
     expect(mbState().imposed).toContain('charge');
   });
@@ -480,7 +480,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Garde', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(armyMight(mbState().ally)).toBe(Math.min(50 + 10, 50)); // plafonné à la Puissance de départ (l.135)
     expect(mbState().imposed).not.toContain('charge');
   });
@@ -565,7 +565,7 @@ describe('Tenez votre position (l.161) — Point de rupture + bonus cumulatif', 
       },
     });
     seedBattleRng(SEED);
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     const pa = pending()!;
     expect(pa.sl).toBe(pjSL);
     expect(pa.enemySL).toBe(0); // DR strictement égaux : seul le départage tranche
@@ -885,7 +885,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     const pa = pending()!;
     expect(pa.battle).toBeUndefined(); // Activité d'interlude ordinaire (pas de bataille)
     banc.setState({ pendingActivity: { ...pa, roll: 50, success: true, sl: 1 } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     expect(leftOf(hero)).toBe(0);
 
     // 4ᵉ Activité : budget épuisé → la préparation de bataille (Sabotage) est REFUSÉE (l.65).
@@ -1067,7 +1067,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     banc.setState({ pendingActivity: { ...pa0, roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' } });
     grant({ fortune: 1 });
     seedBattleRng(99);
-    banc.getState().jetRelancer('activity');
+    banc.getState().jetRelancer('activite');
     expect(pending()!.rerolled).toBe(true); // `failed` true pour un partiel → la relance de Chance a lieu
   });
 
@@ -1077,7 +1077,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     const pa0 = pending()!;
     banc.setState({ pendingActivity: { ...pa0, roll: 40, success: true, sl: 1, success2: false, sl2: -1, combinedLevel: 'partial' } });
     grant({ resilience: 1 });
-    banc.getState().jetForcerLaReussite('activity');
+    banc.getState().jetForcerLaReussite('activite');
     const pa = pending()!;
     expect(pa.combinedLevel).toBe('full');
     expect(pa.success2).toBe(true);
@@ -1090,7 +1090,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     banc.setState({ pendingActivity: { ...pa0, roll: 10, success: true, sl: 2, success2: true, sl2: 2, combinedLevel: 'full' } });
     grant({ resilience: 1 });
     const id = pending()!.heroId;
-    banc.getState().jetForcerLaReussite('activity');
+    banc.getState().jetForcerLaReussite('activite');
     expect(banc.getState().party.find((h) => h.id === id)!.resilience).toBe(1); // non dépensée (activityWon → null)
   });
 
@@ -1103,7 +1103,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     expect(pa0.mod).toBe(-20); // pénalité de Menace Intrus (l.219)
     expect(pa0.target).toBe(Math.max(1, Math.min(99, pa0.skillValue - 20))); // mod fondu par l'opener
     seedBattleRng(5);
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     expect(pending()!.target).toBe(pa0.target); // la résolution NE l'écrase PAS par une cible sans mod
   });
 
@@ -1120,7 +1120,7 @@ describe('Flux `activity` — défauts RAW corrigés (combiné partiel · Menace
     // PJ « réussi » numériquement (roll ≤ cible) MAIS l'ennemi l'emporte à l'opposition (enemySL 3 > 0).
     banc.setState({ pendingActivity: { ...pa0, roll: 20, target: 50, sl: pjSL, success: false, enemySL: 3 } });
     grant({ fortune: 1 });
-    banc.getState().jetAjouterUnDR('activity');
+    banc.getState().jetAjouterUnDR('activite');
     const pa = pending()!;
     expect(pa.sl).toBe(pjSL + 1);
     expect(pa.enemySL).toBe(2); // +1 DR au PJ → −1 au DR net de l'ennemi

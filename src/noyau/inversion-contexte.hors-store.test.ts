@@ -59,7 +59,7 @@ describe('jeton de Convalescence sur une bande de Psychologie (ADE II 09 l.33 ; 
     bande(banc, jeton(heros('H'), JETON_CONVALESCENCE), PSY);
     expect(FLOWS.cascadeBatch.reverseAvailable(banc.getState, 'H')).toBe(true);
     expect(FLOWS.cascadeBatch.reversePreview(banc.getState, 'H')).toEqual({ roll: 46, sl: 1, success: true });
-    banc.getState().jetInverser('cascadeBatch', 'H');
+    banc.getState().jetInverser('cascadeEnBande', 'H');
     expect(rangee(banc).result).toEqual({ roll: 46, target: 55, sl: 1, success: true });
     expect(jetonsDe(banc, 'H').filter((e) => e.reverseToken)).toEqual([]);
   });
@@ -68,7 +68,7 @@ describe('jeton de Convalescence sur une bande de Psychologie (ADE II 09 l.33 ; 
     const banc = ouvrirLeBanc();
     bande(banc, jeton(heros('H'), JETON_CONVALESCENCE), {});
     expect(FLOWS.cascadeBatch.reverseAvailable(banc.getState, 'H')).toBe(false);
-    banc.getState().jetInverser('cascadeBatch', 'H');
+    banc.getState().jetInverser('cascadeEnBande', 'H');
     expect(rangee(banc).result).toEqual(RANGEE.result);
     expect(jetonsDe(banc, 'H').filter((e) => e.reverseToken)).toHaveLength(1);
   });
@@ -82,7 +82,7 @@ describe('jeton de Convalescence sur une bande de Psychologie (ADE II 09 l.33 ; 
   it('jeton générique ET jeton de Convalescence : le jeton taillé pour ce Test est consommé, le générique reste', () => {
     const banc = ouvrirLeBanc();
     bande(banc, jeton(jeton(heros('H'), {}, 'Observer une cible'), JETON_CONVALESCENCE, 'Convalescence'), PSY);
-    banc.getState().jetInverser('cascadeBatch', 'H');
+    banc.getState().jetInverser('cascadeEnBande', 'H');
     expect(jetonsDe(banc, 'H').filter((e) => e.reverseToken).map((e) => e.label)).toEqual(['Observer une cible']);
   });
 
@@ -90,7 +90,7 @@ describe('jeton de Convalescence sur une bande de Psychologie (ADE II 09 l.33 ; 
     const banc = ouvrirLeBanc();
     bande(banc, jeton(heros('H'), JETON_CONVALESCENCE), { ...PSY, meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: 'B' } } as never });
     expect(FLOWS.cascadeBatch.reversePreview(banc.getState, 'H')).toEqual({ roll: 46, sl: 1, success: false });
-    banc.getState().jetInverser('cascadeBatch', 'H');
+    banc.getState().jetInverser('cascadeEnBande', 'H');
     expect(rangee(banc).result!.success).toBe(false);
   });
 
@@ -111,7 +111,7 @@ describe('dé fixé sur une rangée à +DR de Talent (MDG 09 l.54)', () => {
   it('dé 20, cible 40, +1 DR : DR 3, comme le jet tiré', () => {
     const banc = ouvrirLeBanc({ desFixes: true });
     bande(banc, heros('H'), {}, { base: 40, target: 40, bonusSlOnSuccess: 1, result: { roll: 88, target: 40, sl: -4, success: false } });
-    banc.getState().jetImposerLeResultat('cascadeBatch', 20, 'H');
+    banc.getState().jetImposerLeResultat('cascadeEnBande', 20, 'H');
     expect(rangee(banc).result).toEqual({ roll: 20, target: 40, sl: 3, success: true });
   });
 });
@@ -217,8 +217,8 @@ describe('coop : l’inversion se joue au siège du porteur', () => {
     coop(banc, jeton(heros('h2'), JETON_CONVALESCENCE), {
       pendingCascade: cascadeDeTest([{ id: 'b1', kind: cleDeFixture('combatPsych'), contexte: 'psych', aggregate: 'none', groupOwner: true, participants: [{ ...RANGEE, id: 'h2' }] }]),
     });
-    expect(intention(banc, 2, 'jetInverser', ['cascadeBatch', 'h2'])).toBe('refusee');
-    expect(intention(banc, 1, 'jetInverser', ['cascadeBatch', 'h2'])).toBe('appliquee');
+    expect(intention(banc, 2, 'jetInverser', ['cascadeEnBande', 'h2'])).toBe('refusee');
+    expect(intention(banc, 1, 'jetInverser', ['cascadeEnBande', 'h2'])).toBe('appliquee');
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result!.roll).toBe(46);
   });
 });

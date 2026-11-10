@@ -25,7 +25,7 @@ describe.each(['ecuries-clayonnage', 'siege-enceinte'])('les bornes de sortie su
   it('nouvelle, jouer, vue, offres, carte, cases, fiche et journal tiennent leurs bornes', { timeout: 240_000 }, () => {
     const t = table();
     tientSesBornes('nouvelle', 'nouvelle', t.nouvelle(scenario, { graine: 7 }));
-    tientSesBornes('fenetreValider', 'jouer', t.jouer(verbe('fenetreValider', 'roundStart')));
+    tientSesBornes('fenetreValider', 'jouer', t.jouer(verbe('fenetreValider', 'debutDuRound')));
     const vue = t.lire('vue');
     tientSesBornes('vue', 'vue', vue);
     expect(vue.texte, 'témoin : la vue est celle d’un tour de combat').toMatch(/^R1 tour \d+\/\d+ · actif /);

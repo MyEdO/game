@@ -21,7 +21,7 @@ describe('le repos par le pont', () => {
     suite = jouer(suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Carte du monde')!.jeu);
     const route = departDeLaCarte(suite.vue, 'r-grandroute');
     suite = jouer(route.valeurs.find((b) => b.id === 'pied')!.jeu);
-    for (let pas = 0; suite.vue.disposition !== 'rest'; pas++) {
+    for (let pas = 0; suite.vue.disposition !== 'repos'; pas++) {
       expect(pas, 'la journée de route mène à la halte').toBeLessThan(20);
       suite = jouer(enFocus(suite).jeu);
     }

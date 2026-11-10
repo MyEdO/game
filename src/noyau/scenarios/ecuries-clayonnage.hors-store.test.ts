@@ -99,7 +99,7 @@ function ouvrirCombat() {
   banc.setState({ party: groupe() });
   banc.getState().lancerLaScene(carte());
   banc.getState().lancerLeCombat(ENC);
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   return banc.getState().battle!;
 }
 type Bataille = ReturnType<typeof ouvrirCombat>;

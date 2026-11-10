@@ -187,12 +187,12 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     expect(ph.skillValue).toBe(testValue(fiche, { skill: { id: 'guerison' } }));
     expect(m.npc!.intBonus).toBe(bonus(effectiveChar(fiche, 'intelligence')));
     expect(bourseOf(banc.getState().party.find((h) => h.id === ph.targetId)!).silver).toBe(10);
-    banc.getState().jetLancer('heal');
+    banc.getState().jetLancer('soins');
     expect(bourseOf(banc.getState().party.find((h) => h.id === ph.targetId)!).silver).toBe(5); // 10 − 5 pistoles débitées au lancer, à la bourse du patient
-    banc.getState().jetValider('heal');
+    banc.getState().jetValider('soins');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().medic).not.toBeNull(); // l'infirmerie reste ouverte (autre acte/patient)
-    banc.getState().fenetreFermer('medic');
+    banc.getState().fenetreFermer('infirmerie');
   });
 
   it('PORTE : un soigneur sans fiche de Guérison n’ouvre AUCUNE infirmerie — rien à lire, rien à inventer (L2 #1548)', () => {
@@ -239,24 +239,24 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     expect(m.npc!.id).toBe('soigneur');
     expect(m.npc!.label).toBe('Frère Anselm'); // le nom de l'ENTITÉ, pas celui de la fiche
     expect(m.npc!.skill.value).toBe(GUERISON); // la valeur de la FICHE, que l'effet ne porte pas
-    banc.getState().fenetreFermer('medic');
+    banc.getState().fenetreFermer('infirmerie');
   });
 
-  it('le JOUEUR choisit le patient dans l’infirmerie (choix `medic.patient`)', () => {
+  it('le JOUEUR choisit le patient dans l’infirmerie (choix `infirmerie.patient`)', () => {
     const party = makeShowcaseParty(idsDeTest);
     party[0].wounds = { ...party[0].wounds, current: party[0].wounds.current - 3 };
     party[2].wounds = { ...party[2].wounds, current: party[2].wounds.current - 8 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'medecin' }]);
-    banc.getState().fenetreChoisir('medic', 'patient', party[2].id);
+    banc.getState().fenetreChoisir('infirmerie', 'patient', party[2].id);
     expect(banc.getState().medic!.patientId).toBe(party[2].id);
-    banc.getState().fenetreFermer('medic');
+    banc.getState().fenetreFermer('infirmerie');
   });
 
   it('sans patient pertinent, aucun acte ne s’offre (pas de brouillon, pas de jet)', () => {
     banc.setState({ party: makeShowcaseParty(idsDeTest), scene: hub, battle: null, pendingHeal: null, medic: null }); // groupe au max de PB
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'medecin' }]);
     expect(banc.getState().pendingHeal).toBeNull();
-    banc.getState().fenetreFermer('medic');
+    banc.getState().fenetreFermer('infirmerie');
   });
 });

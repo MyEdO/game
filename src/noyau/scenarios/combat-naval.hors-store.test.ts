@@ -179,7 +179,7 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
   it('Test des Artilleurs puis Feu ! : chaque pierrier tire sur le pirate, rien ne lève, aucun État naval', () => {
     seedBattleRng(7);
     lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
-    if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
+    if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
     const BARGE = 'enemy-enc-naval-4';
     const PIRATE = 'enemy-enc-naval-1';
     const pirate = () => banc.getState().battle!.combatants.find((c) => c.id === PIRATE)!;
@@ -188,8 +188,8 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
     banc.getState().ouvrirLaBordee(BARGE, PIRATE);
     const p = banc.getState().pendingShipBattery;
     expect(p, `bordée refusée : ${banc.getState().refus?.texte}`).not.toBeNull();
-    for (const x of p!.participants) if (!x.result) banc.getState().jetLancer('shipBattery', x.id);
-    expect(() => banc.getState().jetValider('shipBattery')).not.toThrow();
+    for (const x of p!.participants) if (!x.result) banc.getState().jetLancer('tirDeBatterie', x.id);
+    expect(() => banc.getState().jetValider('tirDeBatterie')).not.toThrow();
     draineCascade(banc.getState);
     const coups = banc.getState().battle!.log.slice(logAvant).filter((e) => e.targetId === PIRATE && GUNNER_IDS.includes(e.actorId ?? ''));
     expect(new Set(coups.map((e) => e.actorId)), 'un coup par pierrier servi, touché ou raté').toEqual(new Set(GUNNER_IDS));

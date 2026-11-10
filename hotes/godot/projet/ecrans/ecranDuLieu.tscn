@@ -10,12 +10,11 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Lieu" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
+theme_type_variation = &"PileAeree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 24
 
 [node name="Services" type="GridContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
-theme_override_constants/h_separation = 40
-theme_override_constants/v_separation = 20
+theme_type_variation = &"GrilleAeree"
 columns = 3
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Services"]
@@ -26,8 +25,7 @@ ids = PackedStringArray("service/", "poi/")
 [node name="Separation" type="HSeparator" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
 
 [node name="Trajets" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
-theme_override_constants/h_separation = 40
-theme_override_constants/v_separation = 20
+theme_type_variation = &"MosaiqueAeree"
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Trajets"]
 script = ExtResource("2_zone")

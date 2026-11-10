@@ -155,7 +155,7 @@ describe('(C) Sous-effectif — la pénalité d’Arme d’équipe s’applique 
 
 // (D) RECHARGE — le chef d'une pièce AU SOL la recharge à SON Tour, de son Action, comme une arme portée (LDB 62 l.335 ;
 //     LDB 13 l.106, arbitrage #3595 du 2026-11-07), soutenu par un servant adjacent (MDG 12 l.462).
-describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au sol (rechargerLArme/jetValider@reload)', () => {
+describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au sol (rechargerLArme/jetValider@rechargement)', () => {
   const setup = (order = ['chef', 'emplacement', 's1']) => {
     const item = itemFromTrappingById('baliste', idsDeTest)!; // Recharge 3, Indice 2
     const poste: ShipPoste = { item, crewIds: [], loaded: false, reloadProgress: 2 };
@@ -188,8 +188,8 @@ describe('(D) Recharge — Test étendu du chef rechargeant l’emplacement au s
     seedBattleRng(1); // CT 80 → réussite, DR ≥ 1 → 2 + DR ≥ 3 → rechargée
     const { item, poste } = setup();
     banc.getState().rechargerLArme(item.uid);
-    banc.getState().jetLancer('reload');
-    banc.getState().jetValider('reload');
+    banc.getState().jetLancer('rechargement');
+    banc.getState().jetValider('rechargement');
     expect(poste.loaded).toBe(true);
     expect(poste.reloadProgress).toBe(0);
     expect(banc.getState().battle!.acted).toBe(true);

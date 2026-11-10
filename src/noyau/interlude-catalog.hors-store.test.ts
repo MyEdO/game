@@ -46,9 +46,9 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
   function hero() { return banc.getState().party[0]; }
   function st() { return banc.getState().interlude!.perHero[hero().id]; }
   const forceRoll = (roll: number, success: boolean, sl: number) => {
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
   };
 
   it('gate `where` : hors d’Altdorf (le groupe à aucun lieu), la Pénitence n’est pas offerte, et le geste est refusé', () => {
@@ -242,7 +242,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     h.skills.push({ id: 'savoir', spec: 'magie', characteristic: 'intelligence', advances: 10 } as never);
     pratiquer(banc.getState, h.id, 'identify', { itemUid: 'art1' }); // voie ADE II (Savoir Magie)
     expect(banc.getState().pendingActivity?.activityId).toBe('identify');
-    banc.getState().jetAnnuler('activity');
+    banc.getState().jetAnnuler('activite');
     pratiquer(banc.getState, h.id, 'tester-objets-magiques', { itemUid: 'art1' }); // voie ACE
     expect(banc.getState().pendingActivity?.kind).toBe('catalog');
   });

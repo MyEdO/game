@@ -18,7 +18,9 @@
  * Choix et Spécialisations en ids (`ChoixDeCreation`) ; les emplacements de carrière utilisés sont
  * DÉSIGNÉS dans `careerSlotChoices` (cf. engine/careerSlots.ts).
  */
-import { RNG, roll, fluxDerive } from './dice';
+import { RNG, roll, rollDice, fluxDerive } from './dice';
+import { findTableEntry } from './tables';
+import { garanti } from '../lib/garanti';
 import { contexteDeNaissanceDObjet, buildInventory, recomputeLoadout, emptyArmour } from './items';
 import { groupsFor } from './groups';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails } from './types';
@@ -31,7 +33,9 @@ import {
   byId,
   tailleDuTalent,
   specPoolOf,
-  talents as talentTable,
+  findTalentById,
+  rangeesDesTalentsAleatoires,
+  talentsAleatoiresDie,
   especeDApparence,
   findSpellById,
   type AdvancementRef,
@@ -215,18 +219,12 @@ export function speciesSkillDefaults(sp: SpeciesData): { plus5: RefDesignee[]; p
   return { plus5: designees.slice(0, 3), plus3: designees.slice(3, 6) };
 }
 
-/** Tableau des Talents aléatoires (Livre de base) : talents avec borne d100, triés. */
-function randomTalentTable() {
-  return talentTable.filter((t) => t.rand != null).sort((a, b) => (a.rand as number) - (b.rand as number));
-}
-
-/** Tire un Talent sur le Tableau des Talents aléatoires (LDB 05 l.484). `doublon` : Talent déjà dans
+/** Tire un Talent sur le Tableau des Talents aléatoires (LDB 05 l.484, l.514-531). `doublon` : Talent déjà dans
  *  `possedes`, toutes utilisations confondues (LDB 10 l.17). Utilisation : `specChoisie` (`randomSpecPicks`,
  *  écrit par `withRandomTalentSpec`) si `specPoolOf` la propose, sinon la 1re non possédée, sinon la 1re. */
-function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } | null {
-  const r = roll(1, 100, rng);
-  const entry = randomTalentTable().find((t) => r <= (t.rand as number));
-  if (!entry) return null;
+function rollRandomTalent(rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } {
+  const { id } = findTableEntry(rangeesDesTalentsAleatoires(), rollDice(talentsAleatoiresDie(), rng));
+  const entry = garanti(findTalentById(id), id, 'Talent');
   const doublon = possedes.some((p) => p.id === entry.id);
   const specs = specPoolOf(entry); // tirage JOUEUR : ce que le Talent PROPOSE
   if (!specs.length) return { ref: { id: entry.id }, doublon };
@@ -265,8 +263,8 @@ export function resolveSpeciesTalentsDetail(sp: SpeciesData, opts: OptionsDeReso
     const relances = opts.talentRerolls?.[adresse] ?? 0;
     let rang = 0;
     let t = aRang(rang);
-    while (t?.doublon && rang < relances) t = aRang(++rang);
-    if (t) result.push({ ref: t.ref, tirage: { adresse, rang, doublon: t.doublon } });
+    while (t.doublon && rang < relances) t = aRang(++rang);
+    result.push({ ref: t.ref, tirage: { adresse, rang, doublon: t.doublon } });
   };
   sp.talents.forEach((ref, i) => {
     const adresse = adresseDeCreation.especeTalent(i);

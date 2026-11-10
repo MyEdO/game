@@ -355,7 +355,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
     useGame.setState({ party: [heros], screen: 'campaign', gameMenuOpen: false, dialogue: null });
     useGame.getState().lancerLaScene(testScene());
     act(() => { useGame.getState().lancerLeCombat('enc-mutants'); });
-    if (useGame.getState().pendingRoundStart) act(() => useGame.getState().fenetreValider('roundStart'));
+    if (useGame.getState().pendingRoundStart) act(() => useGame.getState().fenetreValider('debutDuRound'));
     const b = useGame.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     const cible = b.combatants.find((c) => c.kind !== 'hero')!;
@@ -426,7 +426,7 @@ describe('registre de raccourcis — il se tait sous un dialogue de la pile (mê
   it('(d) désignation des cibles d’un sort par la carte (aucune fenêtre) : ↑ déplace le curseur', async () => {
     const h = ouvrirCombat();
     act(() => useGame.setState({
-      pendingCascade: cascadeDeTest([{ actorId: h.id, id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]),
+      pendingCascade: cascadeDeTest([{ actorId: h.id, id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation' }]),
       pendingCast: { casterId: h.id, pickingTargets: true } as never,
     }));
     act(() => root.render(<StrictMode><ActiveModal /></StrictMode>));

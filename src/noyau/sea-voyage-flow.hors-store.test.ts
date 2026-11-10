@@ -315,7 +315,7 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const muet = barreSansVoile();
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const step = driveToCrewStep('crew-progression')!;
-    for (const r of step.participants!) if (r.id !== muet) get().jetLancer('cascadeBatch', r.id);
+    for (const r of step.participants!) if (r.id !== muet) get().jetLancer('cascadeEnBande', r.id);
     const p = get().pendingCascade!;
     const rolled = p.participants[p.cursor];
     const somme = rolled.participants!.filter((r) => r.id !== muet).reduce((t, r) => t + jete(r.result).sl * (r.essential ? 2 : 1), 0);
@@ -332,10 +332,10 @@ describe('Test d’équipage par CASCADE — seuil de succès injecté par le fl
     const points = { fortune: Math.max(1, avant.fortune ?? 0), resilience: Math.max(1, avant.resilience ?? 0) };
     Object.assign(avant, points);
     seedBattleRng(9);
-    get().jetLancer('cascadeBatch', muet);
-    get().jetForcerLaReussite('cascadeBatch', muet);
-    get().jetAjouterUnDR('cascadeBatch', muet);
-    get().jetRelancer('cascadeBatch', muet);
+    get().jetLancer('cascadeEnBande', muet);
+    get().jetForcerLaReussite('cascadeEnBande', muet);
+    get().jetAjouterUnDR('cascadeEnBande', muet);
+    get().jetRelancer('cascadeEnBande', muet);
     const p = get().pendingCascade!;
     expect(p.participants[p.cursor].participants!.find((r) => r.id === muet)!.result).toEqual(ECHEC_SANS_JET);
     const apres = get().party.find((h) => h.id === muet)!;
@@ -518,7 +518,7 @@ describe('Phare du port d’arrivée — Test de Perception VISUEL (MDG 13 l.337
       if (cur?.kind === 'crew-progression') progression = cur;
       // Le choix de Progression (MDG 14 l.63) se répond par défaut — voie d'équipage.
       if (cur?.options && !cur.chosen) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
-      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetLancer('cascadeBatch', part.id); }
+      else if (cur?.participants) { for (const part of cur.participants) if (!part.result) get().jetLancer('cascadeEnBande', part.id); }
       else if (cur && !cur.result) get().jetLancer('cascade', cur.id);
       get().jetValider('cascade');
     }
@@ -799,7 +799,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().pendingCascade).toBeNull();
     expect(get().suspendedCascades.length).toBe(1);
 
-    get().fenetreFermer('victory');
+    get().fenetreFermer('victoire');
     // APRÈS « Continuer » : la victoire s'efface ET la cascade-jour REPREND (teardown de combat,
     // couture universelle `resumeSuspendedCascade`).
     expect(get().pendingVictory).toBeNull();
@@ -838,7 +838,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     for (const c of battle.combatants) if (c.kind === 'enemy') c.dead = true;
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
-    get().fenetreFermer('victory');
+    get().fenetreFermer('victoire');
 
     expect(get().pendingCascade, 'la reprise après la victoire a rouvert une fenêtre').toBeNull();
     expect(get().suspendedCascades).toEqual([]);
@@ -1382,7 +1382,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     expect(get().pendingShoreLeave).toBeTruthy();
     expect(get().pendingShoreLeave!.to.id).toBe('B');
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // pas encore tiré
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingShoreLeave).toBeNull();
     draineCascade(get); // le dé de Désertion se joue dans SA fenêtre (siège du monde), puis la suite s'enchaîne
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(true); // tiré APRÈS le choix
@@ -1398,7 +1398,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     set({ travelPlan: { ...plan, kmDone: plan.km - 5, sea: { ...plan.sea!, milesToday: 5 } } });
     continueSeaDayAfterCascade(get, set);
     draineCascade(get); // Mal de mer du premier jour : sa bande se joue avant l'accostage (#1479)
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingCascade, 'le siège local possède le monde : son dé se joue, il ne se tire pas en silence').toBeTruthy();
     expect(get().journal.some((l) => l.includes('Événement de port')), 'la suite attend le geste').toBe(false);
     draineCascade(get);
@@ -1412,7 +1412,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     // temps) de surfacer AVANT la Désertion, seule étape que ce test veut ici.
     set({ travelPlan: { ...plan, kmDone: plan.km - 5, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
     continueSeaDayAfterCascade(get, set);
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingCascade).toBeTruthy(); // 'V' — surfacé au siège MJ, pas résolu d'office
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
     const owner = modalOwnerOf(get());
@@ -1511,7 +1511,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
     draineCascade(get);
     const sea = get().travelPlan!.sea!;
     set({ travelPlan: { ...get().travelPlan!, sea: { ...sea, daysToEvent: 99, weather: { ...sea.weather, ...tempsClement } } } });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     return jusquaLaBande(opts);
   }
 

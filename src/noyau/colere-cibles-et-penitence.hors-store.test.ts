@@ -57,7 +57,7 @@ function pretreEtAllie(peche: number) {
 function benir(casterId: string, targetId: string, roll: number, deDeTable = 50) {
   const result: CastResult = { cast: true, roll, target: 60, sl: 1, isCritical: false, isFumble: false, log: 'Prière exaucée.' };
   banc.setState({ pendingCast: { casterId, targetId, spellId: GUERISON, missile: false, focused: false, result } });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
   draineEtapes(banc.getState, 50, poseSurDeNonTombe(deDeTable));
 }
 
@@ -120,7 +120,7 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     banc.setState({ party: [pretre] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const { H, E, patch } = auContact(banc.getState());
     banc.setState(patch);

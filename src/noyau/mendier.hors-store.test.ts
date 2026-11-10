@@ -325,9 +325,9 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   function joue(sl: number, success: boolean, roll = 1): void {
     pratiquer(banc.getState, heroId(), 'mendier');
     expect(banc.getState().pendingActivity?.activityId).toBe('mendier');
-    banc.getState().jetLancer('activity');
+    banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
-    banc.getState().jetValider('activity');
+    banc.getState().jetValider('activite');
     draineCascade(banc.getState);
   }
 
