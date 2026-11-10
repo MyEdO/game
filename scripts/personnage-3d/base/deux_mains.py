@@ -78,9 +78,13 @@ def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
 REPOS = ((-0.02, -0.25, 1.2925), (0.85, 0.0, -0.53))
 """Le manche en travers de la poitrine, à une main de distance devant elle, la main droite devant l'épaule droite, la
 gauche devant le bas du sternum, le fer en haut à droite : l'avant-bras droit reste hors du ventre corpulent (#3806)."""
-GARDE = ((0.04, -0.36, 1.10), (0.525, 0.279, -0.804))
+REPOS_LOIN = ((-0.02, -0.40, 1.2925), (0.85, 0.0, -0.53))
+"""Le repos, les mains écartées de la poitrine : dans le recul et la chute, le dos qui se plie sur les hanches ne mène pas
+l'avant-bras gauche dans le ventre (#3806)."""
+GARDE = ((0.04, -0.38, 1.12), (0.40, 0.10, -0.91))
 """Les mains devant le ventre, assez loin de lui pour le ventre corpulent, la hache dressée, penchée vers l'épaule
-droite, le tranchant vers l'adversaire (#3806)."""
+droite, le tranchant vers l'adversaire, la main gauche sous la droite, à peine en arrière d'elle : l'arrière de
+l'aisselle gauche ne s'écrase pas sous les silhouettes féminine, corpulente ou mince (#3806)."""
 LEVEE = ((-0.12, -0.21, 1.18), (0.482, -0.269, -0.834))
 """Les mains montées devant la poitrine, côté droit, le fer dressé au-dessus de l'épaule droite."""
 ARME = ((-0.22, -0.18, 1.42), (0.12, -0.98, -0.15))
@@ -89,16 +93,18 @@ tête et non devant le visage, le tranchant vers le haut."""
 TAILLE = ((-0.06, -0.36, 1.26), (0.58, -0.101, -0.809))
 """Les mains descendues devant le visage, à bout de bras, le fer passant au-dessus de la tête : l'avant-bras gauche passe
 devant la poitrine et non contre elle (#3806)."""
-COUP = ((0.14, -0.36, 1.06), (0.42, 0.72, -0.55))
+COUP = ((0.10, -0.36, 1.06), (0.42, 0.72, -0.55))
 """Les mains abaissées devant le ventre, la gauche à gauche de la droite plus que derrière elle, le fer abattu devant, à
-hauteur de poitrine, le tranchant vers le bas : l'avant-bras gauche ne rentre pas dans le ventre corpulent (#3806)."""
+hauteur de poitrine, le tranchant vers le bas : l'avant-bras gauche ne rentre pas dans le ventre corpulent, et le bras
+droit, peu croisé devant le corps, n'écrase pas le haut de l'épaule droite au retour en garde (#3806)."""
 
 HAMPE_REPOS = ((-0.05, -0.25, 1.28), (0.55, 0.05, 0.83))
 """La hampe dressée devant le torse, penchée vers l'épaule gauche, la main droite à la hanche, la gauche devant le sein
 gauche, le fer au-dessus."""
-HAMPE_GISANT = ((-0.02, -0.25, 1.25), (0.85, 0.1, -0.52))
-"""La hampe en travers de la poitrine, la main droite devant l'épaule droite, la gauche devant le ventre, le fer en bas à
-gauche : couché sur le dos, le corps la garde en travers de lui, le fer vers le sol à sa gauche, et non dressée en l'air."""
+HAMPE_GISANT = ((-0.02, -0.33, 1.36), (0.88, 0.1, -0.4))
+"""La hampe en travers de la poitrine, la main droite devant l'épaule droite, la gauche devant le bas de la poitrine, le
+fer en bas à gauche : couché sur le dos, le corps la garde en travers de lui, le fer vers le sol à sa gauche, et non
+dressée en l'air ; les mains hautes et écartées du ventre, qui se plie dans la chute (#3806)."""
 HAMPE_GARDE = ((-0.175, -0.2, 1.0), (0.272, -0.809, 0.521))
 """La main droite au talon contre la hanche droite, la gauche devant, le fer pointé à hauteur de tête."""
 HAMPE_ARME = ((-0.13, -0.04, 1.143), (0.437, -0.354, 0.827))
@@ -114,15 +120,15 @@ CLIPS = {
                                                           cle(0.35, *ARME, -8, -20), cle(0.44, *TAILLE, 9.5, 9, elan=True),
                                                           cle(0.52, *COUP, 25, 35, elan=True),
                                                           cle(0.62, *COUP, 25, 35), cle(1.0, *GARDE, 8))),
-    'Lourde_Touche': ('Hit_Chest', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
-    'Lourde_Mort': ('Death01', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
+    'Lourde_Touche': ('Hit_Chest', 'spine_03', 'lourde2m', (cle(0.0, *REPOS_LOIN), cle(0.75, *REPOS_LOIN), cle(1.0, *REPOS))),
+    'Lourde_Mort': ('Death01', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(0.05, *REPOS_LOIN), cle(1.0, *REPOS_LOIN))),
     'Hampe_Repos_Loop': ('Idle_Loop', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
     'Hampe_Marche_Loop': ('Walk_Loop', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
     'Hampe_Attaque': ('Sword_Idle', 'root', 'hampe', (cle(0.0, *HAMPE_GARDE, 5), cle(0.3, *HAMPE_ARME, -5, -10),
                                                       cle(0.48, *HAMPE_COUP, 35, 25, elan=True),
                                                       cle(0.6, *HAMPE_COUP, 35, 25), cle(1.0, *HAMPE_GARDE, 5))),
     'Hampe_Touche': ('Hit_Chest', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
-    'Hampe_Mort': ('Death01', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(0.15, *HAMPE_GISANT), cle(1.0, *HAMPE_GISANT))),
+    'Hampe_Mort': ('Death01', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(0.12, *HAMPE_GISANT), cle(1.0, *HAMPE_GISANT))),
 }
 """Par clip dérivé : son clip source, l'os qui mène le repère de ses clés, son maniement (`SECONDES`) et ses clés de
 geste. L'attaque d'une arme lourde, une taille verticale, part de la garde et y revient, sur les jambes de la garde ;
