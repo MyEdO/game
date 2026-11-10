@@ -118,7 +118,7 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
       acheter(partie, 'convoi', 'metal', 10);
       expect(fenetres()).toEqual(avant);
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([]);
-      expect(journalDit(partie, t('cargo.bourseSousPlancher', { plancher: 90 }))).toBe(true);
+      expect(journalDit(partie, t('cargo.bourseSousPlancher', { plancher: '90 CO' }))).toBe(true);
       expect(devisDAchatDeCargaison(partie.etat(), 'convoi', 'metal', 10)).toMatchObject({ estimationGold: 110, plancherGold: 90, refus: { motif: 'bourse', plancher: 90 } });
     } finally {
       partie.fermer();

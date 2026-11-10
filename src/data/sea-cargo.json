@@ -2,6 +2,14 @@
   "id": "sea-cargo",
   "type": "sea-cargo",
   "label": "Cargaison maritime",
+  "prixDuLivre": {
+    "encParPrix": 1,
+    "source": {
+      "book": "mer-des-griffes",
+      "page": 137,
+      "note": "ch.15 « Longs voyages » — Générer les cargaisons disponibles, table des prix (l.436)."
+    }
+  },
   "buy": {
     "availabilityMultiplier": 10,
     "merchantSkill": {

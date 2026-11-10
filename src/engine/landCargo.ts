@@ -19,7 +19,7 @@ import { d100, parseDiceRequired, roll, rollDice, type RNG } from './dice';
 import { findTableEntry, findTableEntryIndex } from './tables';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
-import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasonalCargo, cargoBasePrice } from './cargo';
+import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasonalCargo, cargoBasePrice, prixParPointDEnc } from './cargo';
 
 /** La voie du catalogue que porte la table de ce livre (MSRC 13 l.71-78). */
 export const VOIE_TERRESTRE: Voie = 'terre';
@@ -114,9 +114,9 @@ export function rollRandomLandCargo(season: Season, rng: RNG): CargoDef {
   return rollSeasonalCargo([...marchandisesDe(VOIE_TERRESTRE)], season, rng);
 }
 
-/** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie (l.93-104) : le dé de la table (l.97) →
- *  qualité → prix de base (CO par 10 Enc). `bonusEchelons` (Kemperbad, l.95) monte le résultat de N crans
- *  dans le tableau. PUR. */
+/** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie : le dé de la table → qualité → prix de base
+ *  en CO par point d'Enc (`prixParPointDEnc`). `bonusEchelons` monte le résultat de N crans dans le tableau.
+ *  PUR. MSRC 13 l.91-104 */
 export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; label: string; price: number } {
   const { die, entries } = LAND.wineQuality;
   const tirage = rollDice(parseDiceRequired(die, 'land-cargo › wineQuality.die'), rng);
@@ -124,11 +124,11 @@ export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; la
   if (idx < 0) idx = 0;
   idx = Math.min(entries.length - 1, idx + Math.max(0, bonusEchelons));
   const tier = entries[idx];
-  return { roll: tirage, label: tier.label, price: tier.price };
+  return { roll: tirage, label: tier.label, price: prixParPointDEnc(tier.price, VOIE_TERRESTRE) };
 }
 
-/** Prix de BASE terrestre (CO par 10 Enc) : le Vin/Eau-de-vie passe par la table de qualité SECRÈTE
- *  (`rollWineQuality`, + bonus régional du Lieu) ; les autres biens par la colonne saisonnière. PUR. */
+/** Prix de BASE terrestre en CO par point d'Enc : le Vin/Eau-de-vie passe par la table de qualité SECRÈTE
+ *  (`rollWineQuality`, + bonus régional du Lieu) ; les autres biens par la colonne saisonnière. PUR. MSRC 13 l.80-104 */
 export function landCargoBasePrice(cargo: CargoDef, season: Season, place: LandMarketProfile | undefined, rng: RNG): number {
   if (cargo.wine) return rollWineQuality(rng, place?.wineBonusEchelons ?? 0).price;
   return cargoBasePrice(cargo, season, rng);
@@ -141,13 +141,13 @@ export function wineEvalDifficulty(alcoholResist: number): Difficulty {
 }
 
 /** RÉVÉLATION de la qualité SECRÈTE d'un lot de Vin après le Test d'Évaluation (l.95). La qualité réelle est
- *  déduite du prix de base FIGÉ à l'ouverture (`WINE_QUALITY`, prix uniques). Succès → la vraie qualité ; échec
+ *  déduite du prix de base FIGÉ à l'ouverture, en CO par point d'Enc (`WINE_QUALITY` converti, prix uniques). Succès → la vraie qualité ; échec
  *  → une FAUSSE indication décalée de |DR| échelons (« donnez-lui une fausse indication dont l'inexactitude est
  *  en rapport avec son degré d'échec », l.95 — direction vers le haut, ou vers le bas si plafonnée, pour rester FAUSSE ;
  *  la source ne chiffre ni la direction ni la magnitude du décalage, tranchées ici en donnée). PUR. */
 export function wineEvalReveal(basePrice: number, success: boolean, sl: number): { trueLabel: string; shownLabel: string } {
   const last = WINE_QUALITY.length - 1;
-  let idx = WINE_QUALITY.findIndex((w) => w.price === basePrice);
+  let idx = WINE_QUALITY.findIndex((w) => prixParPointDEnc(w.price, VOIE_TERRESTRE) === basePrice);
   if (idx < 0) idx = 0;
   const trueLabel = WINE_QUALITY[idx].label;
   if (success) return { trueLabel, shownLabel: trueLabel };

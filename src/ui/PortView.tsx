@@ -6,7 +6,7 @@ import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData } from '../data';
 import { type PortProfile } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
-import { toMoney, priceToMoney } from '../engine/money';
+import { toMoney, priceToMoney, fromBrass, PA_PER_CO } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
 import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement } from '../noyau/portFlow';
@@ -243,7 +243,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   enc={(o) => o.enc}
                   encLabel="Dispo"
                   priceLabel="Prix/Enc"
-                  price={(o) => toMoney({ gold: o.basePrice })}
+                  price={(o) => fromBrass(o.basePrice * PA_PER_CO)}
                   disabled={(o) => {
                     const refus = devisDe(o.cargoId).refus;
                     return refus ? { reason: refus } : false;
@@ -284,7 +284,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                   label={(r) => cargoLabel(r.lot.cargoId)}
                   enc={(r) => r.lot.enc}
                   priceLabel="Prix base/Enc"
-                  price={(r) => toMoney({ gold: r.lot.basePriceGold })}
+                  price={(r) => fromBrass(r.lot.basePriceGold * PA_PER_CO)}
                   action={(r) => (
                     <div className="port-sell-actions">
                       <GatedAction

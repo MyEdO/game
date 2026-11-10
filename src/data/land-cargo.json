@@ -2,6 +2,14 @@
   "id": "land-cargo",
   "type": "land-cargo",
   "label": "Cargaison terrestre",
+  "prixDuLivre": {
+    "encParPrix": 10,
+    "source": {
+      "book": "mort-sur-le-reik-compagnon",
+      "page": 72,
+      "note": "ch.11 « Règles du commerce » — TABLEAU DES PRIX DE BASE (l.91)."
+    }
+  },
   "wineQuality": {
     "die": "d10",
     "entries": [

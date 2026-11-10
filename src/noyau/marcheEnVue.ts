@@ -9,7 +9,7 @@
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau, GesteFermable } from './actionsDuNoyau';
-import { formatMoney, toMoney } from '../engine/money';
+import { formatMoney, fromBrass, PA_PER_CO } from '../engine/money';
 import { carrierFreeEnc, findCargoById, type CargoCarrier } from '../engine/cargo';
 import { bulkCarriers, planDeTransfert } from './carriers';
 import { FORMULES_DES_MARCHES, achatDeLOffre, devisDeLAchat, type FenetreDuMarche } from './cargaison';
@@ -44,7 +44,7 @@ export interface LotEnVue { uid: string; nom: string; enc: number; prix: string;
 /** Le marché ouvert. */
 export interface MarcheEnVue { bourse: string; offres: OffreEnVue[]; cargaison: (PorteurEnVue & { lots: LotEnVue[] })[] }
 
-const prixEnCo = (gold: number) => formatMoney(toMoney({ gold }));
+const prixEnCo = (gold: number) => formatMoney(fromBrass(gold * PA_PER_CO));
 
 /** Le choix `axe` du marché `fenetre`, à la valeur `valeur`. */
 const choix = (fenetre: FenetreDuMarche, axe: AxeDe<FenetreDuMarche>, valeur: string): GesteDuNoyau => ({ verbe: VERBE_DE_CHOIX, args: [fenetre, axe, valeur] });
