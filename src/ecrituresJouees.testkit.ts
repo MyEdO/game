@@ -112,9 +112,10 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
   throw new Error(`plus de ${GESTES_AU_PLUS} offres du geste valeur`);
 }
 
-/** La fiche du Bestiaire du personnage posé : ses options portent des Traits facultatifs et une note « swap » qui octroie
- *  des Caractéristiques et une Compétence (Vouivre, ZI). */
-const FICHE_A_OPTIONS = 'vouivre-zoo-imperial';
+/** Les fiches du Bestiaire des personnages posés : la Vouivre (ZI), dont les options portent des Traits facultatifs et
+ *  une note « swap » qui octroie des Caractéristiques et une Compétence ; l'Ombre du fleuve, dont les Miracles de Taal
+ *  ouvrent des sorts à choisir (`listesDeSorts`). */
+const FICHES = ['vouivre-zoo-imperial', 'l-ombre-du-fleuve'] as const;
 
 /** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance (MDG 12), et sa case. */
 const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 } } as const;
@@ -124,8 +125,8 @@ const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 /** La session `s` où l'outil actif clique la case `(x, y)`. */
 const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => editer(editer(s, { geste: 'appui', point: point(x, y) }), { geste: 'relache', point: point(x, y) });
 
-/** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de `FICHE_A_OPTIONS` d'une scène
- *  neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), puis sur la coque `COQUE`,
+/** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
+ *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), puis sur la coque `COQUE`,
  *  sélectionnée ; chacun joué à son inspecteur (`jouerLInspecteur`). */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
@@ -134,7 +135,7 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     s = jouerLInspecteur(editer(editer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
-  jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${FICHE_A_OPTIONS}`), 5, 5), out);
+  FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
   const campagne = allBuiltinCampaigns.find((c) => c.id === COQUE.campagne);
   if (!campagne) throw new Error(`aucune campagne ${COQUE.campagne}`);
   const barge = presser(presser(ouvrirLEdition(paquetDuJeu(campagne), false), `scenes/${COQUE.scene}`), 'outil/select');

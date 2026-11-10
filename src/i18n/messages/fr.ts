@@ -626,8 +626,6 @@ export const fr = {
   'ecran.editeur.profil.possessions': 'Possessions : {liste}',
   'ecran.editeur.profil.aucun': 'aucune',
   'ecran.editeur.sorts.imprimes': 'Sorts imprimés au profil : {liste}',
-  'ecran.editeur.sorts.retirer': 'Retirer',
-  'ecran.editeur.sorts.ajouter': 'Choisir un sort',
   'ecran.editeur.sorts.connus': 'Sorts au combat : {liste}',
   'ecran.editeur.rencontre': 'Rencontre « {id} »',
   'ecran.editeur.rencontre.enrole': 'Enrôlé',

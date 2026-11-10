@@ -29,7 +29,8 @@ import { allMusicDefs } from '../../data/sons/musique';
 import { capsOfferts, choixDuChamp, entiteDeLaSelection, segmentDeLaSelection } from '../sceneEditLecture';
 import { refusDeLaValeur } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, traits } from '../../data';
+import { findCreatureById, spells, traits } from '../../data';
+import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';
 import { seatSlotsOf } from '../monde/seating';
@@ -41,6 +42,8 @@ import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 const ouverteSur = (scene: Scene, duDepot = false): SessionDEdition => ouvrirLEdition({ scenes: [scene] } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
+/** Aucun preset de PNJ : les fiches de ces tests ne nomment que le Bestiaire. */
+const SANS_PRESET = (): undefined => undefined;
 
 describe('session d’édition', () => {
   it('ajouter une couche l’édite ; annuler l’ajout ramène au rez, rétablir garde le rez', () => {
@@ -255,15 +258,31 @@ describe('session d’édition', () => {
     expect(ent(jouer(tire, valeur(['combat', 'randomChars'], false)))?.combat).toEqual({ hiddenUntilCombat: true, randomChars: false });
   });
 
-  it('les sorts choisis d’un personnage s’écrivent à `combat.spells`, à côté de son embuscade ; vides, ils le quittent (#3715)', () => {
+  it('les sorts choisis d’un personnage s’écrivent au formulaire à `combat.spells`, à côté de son embuscade ; vides, ils le quittent (#3715, #3606 étape S)', () => {
     const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'humain' } }, { geste: 'appui', point: point(1, 1) });
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'l-ombre-du-fleuve' } }, { geste: 'appui', point: point(1, 1) });
     const ent = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), pose.sel);
     const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
-    const embusque: GesteDEdition[] = [{ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat'], valeur: {} }, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['combat', 'hiddenUntilCombat'], valeur: true }];
-    const choisis = jouer(pose, ...embusque, { geste: 'entite', patch: { sorts: ['choc', 'flechette'] } });
-    expect(ent(choisis)?.combat).toEqual({ hiddenUntilCombat: true, spells: ['choc', 'flechette'] });
-    expect(ent(jouer(choisis, { geste: 'entite', patch: { sorts: [] } }))?.combat).toEqual({ hiddenUntilCombat: true });
+    const valeur = (chemin: Segment[], v: unknown): GesteDEdition => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, valeur: v });
+    const choisis = jouer(pose, valeur(['combat'], {}), valeur(['combat', 'hiddenUntilCombat'], true), valeur(['combat', 'spells'], ['bondissant-comme-un-cerf']));
+    expect(ent(choisis)?.combat).toEqual({ hiddenUntilCombat: true, spells: ['bondissant-comme-un-cerf'] });
+    expect(ent(jouer(choisis, valeur(['combat', 'spells'], [])))?.combat).toEqual({ hiddenUntilCombat: true });
+  });
+
+  it('les sorts offerts à un personnage : ceux des listes qu’ouvre sa fiche, hors des autres choisis, la courante restant offerte, chacun refusé par ce qu’en dit `refusDesSortsChoisis` (#3715, #3606 étape S)', () => {
+    const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+    const pose = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'l-ombre-du-fleuve' } }, { geste: 'appui', point: point(1, 1) });
+    const id = pose.sel?.type === 'entity' ? pose.sel.id : '';
+    const valeur = (chemin: Segment[], v: unknown): GesteDEdition => ({ geste: 'valeur', porteur: { sorte: 'entite', id }, chemin, valeur: v });
+    const choisis = jouer(pose, valeur(['combat'], {}), valeur(['combat', 'spells'], ['bondissant-comme-un-cerf']));
+    const ent = entiteDeLaSelection(sceneEditee(choisis), choisis.sel)!;
+    const offerts = (rang: number) => choixDuChamp('entite', ent, ['combat', 'spells', rang], SANS_PRESET)!.map((o) => o.valeur);
+    const fiche = ficheDEntite(ent, SANS_PRESET);
+    const listes = listesDeSorts(fiche);
+    expect(offerts(1), 'au rang neuf : les sorts de ses listes, hors du choisi').toEqual(spells.filter((sp) => sp.id !== 'bondissant-comme-un-cerf' && listes.some((l) => l.admet(sp))).map((sp) => sp.id));
+    expect(offerts(0), 'au rang du choisi : le choisi reste offert').toContain('bondissant-comme-un-cerf');
+    expect(offerts(1), 'un Miracle d’un autre dieu n’est pas offert').not.toContain('feu-de-l-ame');
+    expect(choixDuChamp('entite', ent, ['combat', 'spells', 1], SANS_PRESET)!.every((o) => o.refus === (refusDesSortsChoisis(fiche, ['bondissant-comme-un-cerf', o.valeur as string]) ?? null))).toBe(true);
   });
 
   it('une troupe : N copies sur les cases libres les plus proches, ids neufs, profils tirés, rencontres héritées, un seul cran (#3704)', () => {
@@ -376,7 +395,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     expect(refusDeLaValeur(griffon, valeur(id, ['upgrades'], [{ id: 'renforce' }])), 'seule une coque porte des Améliorations').toBe('nonOffert');
   });
 
-  it('refuse un chemin que M1a n’offre pas : préréglage, apparence, sorts', () => {
+  it('refuse un chemin que M1a n’offre pas : préréglage, apparence, et les sorts d’un personnage qu’aucune liste n’ouvre', () => {
     const griffon = poser('griffon-zoo-imperial', 1);
     const id = idDe(griffon);
     const combat = jouer(griffon, valeur(id, ['combat'], {}));
@@ -388,13 +407,13 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a)', () => {
     const id = idDe(griffon);
     const avecTrait = jouer(griffon, valeur(id, ['combat'], {}), valeur(id, ['combat', 'optionals'], [{ id: 'rapide' }]));
     const ent = entiteDeLaSelection(sceneEditee(avecTrait), avecTrait.sel)!;
-    const offerts = choixDuChamp('entite', ent, ['combat', 'optionals', 0, 'id'])!.map((o) => o.valeur);
+    const offerts = choixDuChamp('entite', ent, ['combat', 'optionals', 0, 'id'], SANS_PRESET)!.map((o) => o.valeur);
     const facultatifs = findCreatureById('griffon-zoo-imperial')!.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
     const standard = traits.filter((t) => t.standard && !facultatifs.includes(t.id)).map((t) => t.id);
     expect(offerts).toHaveLength(traits.length);
     expect(offerts.slice(0, facultatifs.length + standard.length)).toEqual([...facultatifs, ...standard]);
     const note = findCreatureById('griffon-zoo-imperial')!.optionals.find((o) => 'note' in o && o.note === 'swap');
-    const variantes = choixDuChamp('entite', ent, ['combat', 'optionals', 0])!;
+    const variantes = choixDuChamp('entite', ent, ['combat', 'optionals', 0], SANS_PRESET)!;
     expect(variantes.map((v) => v.valeur)).toEqual([{ id: 'rapide' }, note]);
     const posee = jouer(avecTrait, valeur(id, ['combat', 'optionals', 0], note));
     expect(entiteDeLaSelection(sceneEditee(posee), posee.sel)?.combat?.optionals).toEqual([note]);

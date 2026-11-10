@@ -27,6 +27,9 @@ import { choixDeLaFeuilleDId } from '../../data';
 import { especeDApparenceSchema, tenueFermeeSchema } from '../../data/schemas/grammaire/valeurs';
 import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 
+/** Aucun preset de PNJ : une zone d'effet et un déclencheur n'en lisent aucun. */
+const SANS_PRESET = (): undefined => undefined;
+
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
 
@@ -52,7 +55,7 @@ function champ(champs: readonly FieldDesc[], donnee: unknown, cle: Segment, ...r
 
 describe('la description du formulaire d’une zone d’effet', () => {
   it('offre son Test de traversée, ses effets à la traversée et à chaque Round, chacun une liste d’ops, et son rendu ; absent, le Test s’ajoute vide', () => {
-    const champs = formulaireDe('zone', zone());
+    const champs = formulaireDe('zone', zone(), SANS_PRESET);
     expect(champs.map((c) => [c.key, c.label, c.nullable])).toEqual([['crossTest', 'Test de traversée', true], ['onCross', 'à la traversée', true], ['perRound', 'par Round', true], ['rendu', 'rendu', true]]);
     expect(valeurNeuveDe(champs[0].noeud)).toEqual({});
     for (const liste of champs.slice(1, 3)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
@@ -60,7 +63,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
 
   it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {
     const z = zone({ crossTest: { skill: { id: 'athletisme' as never }, characteristic: 'force', requireSL: 2 } });
-    const champs = formulaireDe('zone', z);
+    const champs = formulaireDe('zone', z, SANS_PRESET);
     const competence = champ(champs, z, 'crossTest', 'skill', 'id');
     expect(competence).toMatchObject({ nullable: false });
     expect(choixDuNoeud(competence.noeud)).toEqual(choixDeLaFeuilleDId({ type: 'skill' }).map((e) => ({ valeur: e.id, libelle: e.label })));
@@ -87,7 +90,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
 
   it('une op se choisit parmi toutes, chacune nommée, neuve par `newOp` ; typée, elle se décrit champ par champ, son `op` tenu par le choix', () => {
     const z = zone({ onCross: [{ op: 'charMod', characteristic: 'force', mod: -10 }] as never });
-    const champs = formulaireDe('zone', z);
+    const champs = formulaireDe('zone', z, SANS_PRESET);
     const op = champ(champs, z, 'onCross', 0);
     expect(op).toMatchObject({ key: '0', label: 'à la traversée 1', nullable: false });
     const variantes = variantesAChoisir(op.noeud, z.onCross![0])!;
@@ -103,7 +106,7 @@ describe('la description du formulaire d’une zone d’effet', () => {
   it('une op de `OPS_NON_TYPEES` choisie n’a pas de forme déclarée : sa saisie reste en JSON', () => {
     expect(OPS_NON_TYPEES).toContain('wounds');
     const valeur = { op: 'wounds', amount: 5 };
-    const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }))[1].noeud);
+    const noeud = elementDuNoeud(formulaireDe('zone', zone({ onCross: [valeur] as never }), SANS_PRESET)[1].noeud);
     const u = unionDuNoeud(noeud)!;
     expect(varianteCourante(u, valeur)).toMatchObject({ cle: 'wounds', noeud: undefined });
     expect(formeAuPoint(noeud, valeur)).toBeUndefined();
@@ -124,7 +127,7 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
   it('une Condition `all` qui porte un `not` : chaque union se choisit par variante nommée, la liste élément par élément', () => {
     const when: Condition = { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] };
     const d = declencheur(when);
-    const champs = formulaireDe('declencheur', d);
+    const champs = formulaireDe('declencheur', d, SANS_PRESET);
     expect(champs.map((c) => [c.key, c.nullable])).toEqual([['when', true]]);
     const variantes = variantesAChoisir(champs[0].noeud, when)!;
     expect(variantes).toHaveLength(35);
@@ -142,7 +145,7 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
 
   it('une variante qui est elle-même une union se choisit au même chemin, nommée par l’énumération de son discriminant ; ni `kind` ni `what` ne s’écrivent en champ', () => {
     const has = { kind: 'has', who: 'target', what: 'group', value: 'x' } as Condition;
-    const noeud = formulaireDe('declencheur', declencheur(has))[0].noeud;
+    const noeud = formulaireDe('declencheur', declencheur(has), SANS_PRESET)[0].noeud;
     const interne = varianteCourante(unionDuNoeud(noeud)!, has)!.noeud;
     const u = unionDuNoeud(interne)!;
     expect(u.discriminant).toBe('what');
@@ -235,7 +238,7 @@ describe('le geste `valeur` de la session', () => {
   });
 
   it('ajoute, change de variante, remplit, monte et retire les ops d’une liste ; la liste vidée quitte la zone', () => {
-    const element = elementDuNoeud(formulaireDe('zone', laZone(depart))[1].noeud);
+    const element = elementDuNoeud(formulaireDe('zone', laZone(depart), SANS_PRESET)[1].noeud);
     const neuve = valeurNeuveDe(element);
     const ajoutee = jouer(depart, ['onCross'], gestesDeLaListe([], neuve).ajouter);
     expect(laZone(ajoutee).onCross).toEqual([neuve]);
@@ -322,11 +325,11 @@ describe('les choix d’une union réunissent ses références, ses énumératio
 
   it('les choix d’une feuille unique et sa valeur neuve sont inchangés : la difficulté d’un Test de traversée, le Trait d’une condition d’entrée', () => {
     const z = zone({ crossTest: { characteristic: 'force' } });
-    const difficulte = champ(formulaireDe('zone', z), z, 'crossTest', 'difficulty').noeud;
+    const difficulte = champ(formulaireDe('zone', z, SANS_PRESET), z, 'crossTest', 'difficulty').noeud;
     expect(choixDuNoeud(difficulte)).toEqual(Object.entries(DIFFICULTY_LABELS).map(([valeur, libelle]) => ({ valeur, libelle })));
     expect(valeurNeuveDe(difficulte)).toBe(Object.keys(DIFFICULTY_LABELS)[0]);
     const d = declencheur({ kind: 'has', who: 'target', what: 'trait', value: 'a-distance' } as Condition);
-    const trait = champ(formulaireDe('declencheur', d), d, 'when', 'value').noeud;
+    const trait = champ(formulaireDe('declencheur', d, SANS_PRESET), d, 'when', 'value').noeud;
     expect(choixDuNoeud(trait)).toEqual(choixDeLaFeuilleDId({ type: 'trait' }).map((e) => ({ valeur: e.id, libelle: e.label })));
     expect(valeurNeuveDe(trait)).toBe(ids('trait')[0]);
   });
