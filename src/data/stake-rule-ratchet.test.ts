@@ -96,7 +96,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
   it('chaque nature de SOURCE a son pool d’entrées', () => {
     // La table des natures de source est TOTALE — le pool doit l'être.
     const POOLS_MANQUANTS = Object.values(CATEGORY_BY_SOURCE_KIND).filter(
-      (cat) => !resolveStake({ key: { dataset: 'combat', kind: 'actGate', entryId: PROBE_ID[cat], entryCategory: cat } }).rule,
+      (cat) => !resolveStake({ key: { dataset: 'combat', kind: 'act-gate', entryId: PROBE_ID[cat], entryCategory: cat } }).rule,
     );
     expect(POOLS_MANQUANTS, 'catégorie de source sans pool : le renvoi replierait en silence').toEqual([]);
   });
@@ -105,7 +105,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
    *  exigeant un jet renvoie à SA PROPRE fiche Codex, jamais au foyer du `kind` (amendement A). */
   it('une rangée de Colère des dieux renvoie sa règle : sa fiche, pas celle du kind', () => {
     const r = resolveStake({
-      key: { dataset: 'combat', kind: 'actGate', entryId: 'colere-purifier-la-chair', entryCategory: 'miscastWrath' },
+      key: { dataset: 'combat', kind: 'act-gate', entryId: 'colere-purifier-la-chair', entryCategory: 'miscastWrath' },
     });
     expect(r.rule).toEqual({ category: 'miscastWrath', id: 'colere-purifier-la-chair' });
   });
@@ -122,9 +122,9 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     const sansForme = psychologies.filter((p) => p.stake && !p.stakeForm).map((p) => p.id);
     expect(sansForme, 'enjeu sans forme déclarée (stakeForm)').toEqual([]);
     // Chemin RÉEL : la descente à l'entrée doit rendre le texte DE L'ENTRÉE, pas celui du kind.
-    const gabarit = STAKES.find((e) => e.cascade === 'combat' && e.cle === 'combatPsych')!.template;
+    const gabarit = STAKES.find((e) => e.id === 'combat-psych')!.template;
     for (const p of psychologies.filter((x) => x.stake)) {
-      const r = resolveStake({ key: { dataset: 'combat', kind: 'combatPsych', entryId: p.id }, values: { indice: 2 } });
+      const r = resolveStake({ key: { dataset: 'combat', kind: 'combat-psych', entryId: p.id }, values: { indice: 2 } });
       expect(r.text, `${p.id} : l’étape rend le gabarit du kind au lieu de l’enjeu de l’entrée`).not.toBe(gabarit);
       expect(r.rule, `${p.id} : renvoi hors de sa propre fiche`).toEqual({ category: 'psychologies', id: p.id });
     }
@@ -147,12 +147,12 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     const sansForme = maneuvers.filter((m) => m.stake && !m.stakeForm).map((m) => m.id);
     expect(sansForme, 'enjeu sans forme déclarée (stakeForm)').toEqual([]);
     // Chemin RÉEL : la descente à l'entrée doit rendre le texte DE L'ENTRÉE, pas celui du kind.
-    const gabarit = STAKES.find((e) => e.cascade === 'combat' && e.cle === 'maneuverDefense')!.template;
+    const gabarit = STAKES.find((e) => e.id === 'combat-maneuver-defense')!.template;
     // Les trous d'un enjeu (`{regleDuType}` du Souffle) reçoivent les valeurs de la composition (`ManeuverDef.enjeu`).
     const remplir = (texte: string) => texte.replace(/\{(\w+)\}/g, (_m, nom: string) => `«${nom}»`);
     for (const m of maneuvers) {
       const values = Object.fromEntries([...(m.stake ?? '').matchAll(/\{(\w+)\}/g)].map(([, nom]) => [nom, `«${nom}»`]));
-      const r = resolveStake({ key: { dataset: 'combat', kind: 'maneuverDefense', entryId: m.id }, ...(Object.keys(values).length ? { values } : {}) });
+      const r = resolveStake({ key: { dataset: 'combat', kind: 'combat-maneuver-defense', entryId: m.id }, ...(Object.keys(values).length ? { values } : {}) });
       expect(r.text, `${m.id} : l’étape rend le gabarit du kind au lieu de l’enjeu de l’entrée`).not.toBe(gabarit);
       expect(r.text, `${m.id} : enjeu vide`).toBe(remplir(m.stake!));
       expect(r.rule, `${m.id} : renvoi hors de sa propre fiche`).toEqual({ category: 'maneuvers', id: m.id });
@@ -182,7 +182,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
       // Les TROUS du gabarit sont remplis d'une valeur sonde : `resolveStake` est fail-closed sur un
       // trou vide, et ce test-ci mesure le RENVOI, pas le texte (la valeur réelle vient du producteur).
       const values = Object.fromEntries([...(e.template ?? '').matchAll(/\{(\w+)\}/g)].map((m) => [m[1], '·']));
-      const rule = resolveStake({ key: { dataset: e.cascade, kind: e.cle, entryId }, values }).rule;
+      const rule = resolveStake({ key: { dataset: e.cascade, kind: e.id, entryId }, values }).rule;
       if (rule?.category !== e.entryCategory || rule.id !== entryId) {
         muettes.push(`${e.id} → attendu ${e.entryCategory}:${entryId}, obtenu ${rule ? `${rule.category}:${rule.id}` : 'aucun renvoi'}`);
       }
@@ -190,16 +190,16 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     expect(muettes, 'entryCategory sans pool dans le résolveur : le renvoi replie en silence sur le kind').toEqual([]);
   });
 
-  /** #1681 — la clé de consommation `cle` vit DANS sa cascade (`exposure` sert la nuit ET le voyage) :
-   *  chaque entrée se résout à `{ dataset: cascade, kind: cle }` en SON gabarit et SON foyer. */
-  it('chaque enjeu de `stakes.json` se résout à SA clé, dans SA cascade', () => {
+  /** #2968 L19 — l'enjeu se résout à son id, dans sa cascade : `{ dataset: cascade, kind: id }` rend SON
+   *  gabarit et SON foyer. */
+  it('chaque enjeu de `stakes.json` se résout à SON id, dans SA cascade', () => {
     const ecarts: string[] = [];
     for (const e of STAKES) {
       const values = Object.fromEntries([...(e.template ?? '').matchAll(/\{(\w+)\}/g)].map((m) => [m[1], '·']));
-      const r = resolveStake({ key: { dataset: e.cascade, kind: e.cle }, values });
+      const r = resolveStake({ key: { dataset: e.cascade, kind: e.id }, values });
       const attendu = e.template?.replace(/\{\w+\}/g, '·');
       if (r.text !== attendu || r.rule?.id !== e.rule?.id) {
-        ecarts.push(`${e.cascade}/${e.cle} (${e.id}) → texte ${r.text === attendu ? 'tenu' : 'ÉTRANGER'}, foyer ${r.rule?.id ?? 'aucun'} ≠ ${e.rule?.id ?? 'aucun'}`);
+        ecarts.push(`${e.cascade}/${e.id} → texte ${r.text === attendu ? 'tenu' : 'ÉTRANGER'}, foyer ${r.rule?.id ?? 'aucun'} ≠ ${e.rule?.id ?? 'aucun'}`);
       }
     }
     expect(ecarts, 'une clé résolue hors de sa cascade sert l’enjeu d’une autre entrée').toEqual([]);

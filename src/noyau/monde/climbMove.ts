@@ -46,7 +46,7 @@ export function planClimb(scene: Scene, from: Pt, to: Pt, hasGrimpeur: boolean, 
     kind: 'test',
     flow: {
       kind: 'test',
-      test: { skill: { id: 'escalade' }, difficulty: c.difficulty ?? DIFFICULTE_PAR_DEFAUT, label: 'Escalade', stake: combatStakeRef('climbTest', { values: { metres } }) },
+      test: { skill: { id: 'escalade' }, difficulty: c.difficulty ?? DIFFICULTE_PAR_DEFAUT, label: 'Escalade', stake: combatStakeRef('climb-test', { values: { metres } }) },
       success: EMPTY_FLOW,
       fail: flowFromEffects([fall]),
     },

@@ -119,7 +119,7 @@ describe('#1479 — PARITÉ DE TRACE : le dé posé d’office par le curseur a 
     const [h] = get().party;
     const jet = monoStep({
       id: 'sonde-jet', kind: KIND_JET, actor: h, label: fixtureText('Jet de sonde'),
-      difficulty: 'intermediaire', stake: voyageStakeRef('progression'),
+      difficulty: 'intermediaire', stake: voyageStakeRef('crew-progression'),
       ligne: { valeur: 50 },
     })!;
     setCadence('rapide'); // cadence déférée à un automate → aucun siège ne tient l'étape

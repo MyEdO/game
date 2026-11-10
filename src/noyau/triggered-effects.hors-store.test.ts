@@ -444,7 +444,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.setState({
       party: [hero], battle: null,
       pendingCascade: cascadeDeTest([
-        { id: 'dt', kind: 'diseaseTick', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
+        { id: 'dt', kind: 'disease-tick', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
       ], { title: 'Entretien' }),
     });
     banc.getState().jetLancer('cascade');

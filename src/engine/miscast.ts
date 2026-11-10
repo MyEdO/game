@@ -444,7 +444,7 @@ function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
     : doOps(t.onFail);
   return {
     kind: 'test',
-    test: poserEnjeu(t.test, combatStakeRef('miscastRowTest', { entryId: rowId, entryCategory: MISCAST_ROW_CATEGORY[severity] })),
+    test: poserEnjeu(t.test, combatStakeRef('miscast-row-test', { entryId: rowId, entryCategory: MISCAST_ROW_CATEGORY[severity] })),
     success: { kind: 'seq', steps: [] },
     fail,
   };

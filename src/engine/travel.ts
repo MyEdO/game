@@ -227,7 +227,7 @@ export function forcedMarchTarget(c: Combatant): number {
 
 /** Applique le RÉSULTAT d'un Test de marche forcée (séparé du jet pour différer/influencer en
  *  cascade) : échec → +1 Exténué (+1 si Surchargé, p.293). Mute `c` ; renvoie le journal + gagnés.
- *  Partagé par `forcedMarchTest` (eager) et l'applicateur de cascade « forcedMarch ». */
+ *  Partagé par `forcedMarchTest` (eager) et l'applicateur de cascade « forced-march ». */
 export function applyForcedMarch(c: Combatant, success: boolean): { line: string; gained: number } {
   if (success) return { line: t('trv.forcedMarchOk', { name: c.label }), gained: 0 };
   const overloaded = encumbrancePenalties(c).tier > 0;

@@ -42,13 +42,13 @@ export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
  * Ce qui réunit ces jets est l'ORDRE donné au départ, attendu validé en recette #1426 « Traversée
  * commandée sans fenêtre » (#1479).
  *
- * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`poursuite`, `tourbillon`), le Test d'équipage d'un Flow (`flowCrewTest`)
- * et l'`extermination`, l'`embuscade` ancrée, le `voyage-rapide`, et tout Test dont l'échec ouvre une
+ * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`crew-poursuite`, `crew-tourbillon`), le Test d'équipage d'un Flow (`flowCrewTest`)
+ * et `crew-extermination`, `crew-embuscade` ancrée, `crew-voyage-rapide`, et tout Test dont l'échec ouvre une
  * DÉCISION. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
  * l'atterrage et le combat sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.
  */
 export const KINDS_SOUS_ORDRES: ReadonlySet<GenreDeCascade> = new Set<GenreDeCascade>([
-  'progression', 'affaler', 'phare', 'orientation', 'entretien',
+  'crew-progression', 'crew-affaler', 'crew-phare', 'crew-orientation', 'crew-entretien',
   'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement',
   'river-exposition-tirage', 'river-exposition',
 ]);

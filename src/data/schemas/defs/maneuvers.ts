@@ -57,7 +57,7 @@ const doc = document(
     damage: weaponDamageSpecSchema.optional(),
     effects: z.array(triggeredEffectSchema),
     /** ENJEU de l'ENTRÉE (#1117) — ce que la manœuvre met en jeu, COLLÉ à ses `effects` (éditable au
-     *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit du kind `maneuverDefense`. */
+     *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit de l’enjeu `combat-maneuver-defense`. */
     stake: z.string().optional(),
     stakeForm: stakeFormSchema.optional(),
     rendu: ref('rendu').optional(),

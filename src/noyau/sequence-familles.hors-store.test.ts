@@ -82,7 +82,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
     const step = monoStep({
       id: `passe-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText(`Passe ${seq.round}`), actor: h,
       difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-      stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
+      stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
     });
     return step ? { title: fixtureText(`Joute — passe ${seq.round}`), steps: [step], immediate: true, payload: { ...seq.payload, passes: [...seq.payload.passes, seq.round] } } : undefined;
   },
@@ -100,7 +100,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
         const step = monoStep({
           id: `b-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
       },
@@ -112,7 +112,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
         const step = monoStep({
           id: `p-${seq.round}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuitMove', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
       },

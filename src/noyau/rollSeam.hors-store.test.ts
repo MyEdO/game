@@ -40,9 +40,9 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     avecLesTables({ appliers: {
       ...tablesDuJeu().appliers,
       ...tableTotale(['seam-hero', 'seam-enemy', 'seam-subi', 'seam-batch'], () => sonde),
-      // Le VRAI applier `progression` (`seaVoyageFlow.ts`) lit `travelPlan.sea`, absent des plans SYNTHÉTIQUES
+      // Le VRAI applier `crew-progression` (`seaVoyageFlow.ts`) lit `travelPlan.sea`, absent des plans SYNTHÉTIQUES
       // de ce bloc : il isole la POLICY de la porte (surface I), pas la conséquence métier réelle.
-      progression: spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 })),
+      'crew-progression': spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 })),
     } });
   });
 
@@ -145,9 +145,9 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
-    // `progression` est doublé par le `beforeEach` du bloc (#275 Décision 4 cran 2).
-    openRoll(banc.getState, banc.setState, req, 'progression');
-    // 'progression' ∈ KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
+    // `crew-progression` est doublé par le `beforeEach` du bloc (#275 Décision 4 cran 2).
+    openRoll(banc.getState, banc.setState, req, 'crew-progression');
+    // 'crew-progression' ∈ KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
     // (`cascade.rollBatchParticipants` auto-roule le contributeur, `aggregateBatchStep` agrège au commit).
     expect(banc.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);

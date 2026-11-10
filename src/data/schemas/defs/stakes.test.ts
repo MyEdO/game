@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { schema } from './stakes';
 import stakesJson from '../../stakes.json';
 
-type Entree = { id: string; cascade: string; cle: string; [k: string]: unknown };
+type Entree = { id: string; cascade: string; [k: string]: unknown };
 const clone = (): Entree[] => structuredClone(stakesJson) as unknown as Entree[];
 const uneDe = (doc: Entree[], cascade: string, filtre: (e: Entree) => boolean = () => true): Entree => {
   const e = doc.find((x) => x.cascade === cascade && filtre(x));
@@ -46,22 +46,13 @@ describe('stakes.json — une collection, quatre cascades, leurs invariants gard
     expect(refus(doc)).toMatch(/« entryCategory » n’appartient qu’au\(x\) cas cascade « flow, combat »/);
   });
 
-  it('deux entrées d’une même cascade ne servent pas la même clé', () => {
-    const doc = clone();
-    const [a, b] = doc.filter((e) => e.cascade === 'combat');
-    b.cle = a.cle;
-    expect(refus(doc)).toMatch(new RegExp(`servent la même clé combat/${a.cle}`));
-  });
-
-  it('la même clé dans deux cascades est admise : la clé de consommation vit DANS sa cascade', () => {
-    const doc = clone();
-    uneDe(doc, 'combat').cle = uneDe(doc, 'night').cle;
-    expect(schema.safeParse(doc).success).toBe(true);
-  });
-
-  it('la clé d’un jet de modale est son identifiant (`FlowStakeId`)', () => {
-    const doc = clone();
-    uneDe(doc, 'flow').cle = 'autre-cle';
-    expect(refus(doc)).toMatch(/la clé d’un jet de modale est son identifiant/);
+  it('l’id est la seule identité : deux entrées ne portent pas le même, une `cle` est refusée', () => {
+    const doublon = clone();
+    const [a, b] = doublon.filter((e) => e.cascade === 'combat');
+    b.id = a.id;
+    expect(refus(doublon)).toMatch(new RegExp(`« ${a.id} » dupliqué`));
+    const cle = clone();
+    uneDe(cle, 'voyage').cle = 'riverNav';
+    expect(refus(cle)).toMatch(/Clé non reconnue : "cle"/);
   });
 });

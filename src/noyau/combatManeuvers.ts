@@ -586,7 +586,7 @@ function openManeuverDefenseCascade(
       base,
       target: base, // Test opposé Intermédiaire (+0) → cible = valeur nue ; l'issue vient de resolveOpposed(aT)
       label: attackerLabel,
-      stake: combatStakeRef('maneuverDefense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
+      stake: combatStakeRef('combat-maneuver-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
         opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
         maneuverDefense: { attackerId: attacker.id, def: structuredClone(def), indice, spent },

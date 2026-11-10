@@ -1,12 +1,12 @@
 /**
  * Schéma de `stakes.json` — l'ENJEU d'un jet de cascade (#1117, collection #1681) : ce que le jet met
  * en jeu, et le FOYER de la règle qui l'exige. Chargé en `STAKES` (`src/data/index.ts`), lu par
- * `resolveStake` à la clé `{ dataset: cascade, kind: cle }`, construite par `stakeRef` et ses portes
- * typées (`nightStakeRef`, `voyageStakeRef`, `flowStakeRef`, `combatStakeRef`).
+ * `resolveStake` à la clé `{ dataset: cascade, kind: id }`, construite par `stakeRef` et ses portes
+ * typées (`nightStakeRef`, `voyageStakeRef`, `flowStakeRef`, `combatStakeRef`), chacune typée par l'union
+ * des ids de sa cascade.
  *
  * Le discriminant `cascade` dit QUELLE famille de jets l'entrée sert (ses valeurs sont celles de
- * `StakeKey.dataset`) ; `cle` est la clé de consommation : le `kind` de l'étape (nuit, voyage, combat)
- * ou l'id du jet de modale (`FlowStakeId`). Le couple `(cascade, cle)` est unique.
+ * `StakeKey.dataset`) ; l'`id` est la seule identité de l'enjeu (#2968 L19).
  *
  * `template` est le texte, gabarit dont les trous `{nom}` reçoivent les valeurs CALCULÉES par le
  * producteur ; `form` dit sa nature : `verbatim` = chaque bloc est contigu au chapitre cité par
@@ -58,7 +58,6 @@ const doc = document(
   famille,
   {
     cascade: enumNomme(LIBELLES_DE_CASCADE),
-    cle: z.string().min(1),
     template: z.string().optional(),
     form: stakeFormSchema.optional(),
     rule: foyerDeRegleSchema.optional(),
@@ -67,10 +66,6 @@ const doc = document(
   },
   {
     cascade: { label: 'Cascade', hint: 'Famille de jets que l’enjeu sert — les champs admis en dépendent' },
-    cle: {
-      label: 'Clé de consommation',
-      hint: 'Étape de la cascade servie (ou du tirage, quand l’étape joue deux tables), ou identifiant du jet de modale — distincte de l’identifiant',
-    },
     template: {
       label: 'Gabarit du texte',
       // Les ACCOLADES restent hors du répertoire des libellés (garde `libelles-guard`) : ce sont des
@@ -104,7 +99,6 @@ const doc = document(
         const e = v as {
           id: string;
           cascade: StakeCascade;
-          cle: string;
           template?: string;
           form?: string;
           rule?: unknown;
@@ -119,20 +113,6 @@ const doc = document(
         }
         if (CHARGE_PAR_CASCADE[e.cascade]?.porte && !e.rule && !e.entryCategory && !e.entryFromSource) {
           ctx.addIssue({ code: 'custom', path: ['rule'], message: `${e.id} : ni foyer (rule) ni catégorie d’entrée` });
-        }
-        // Le jet de modale se désigne par son id (`FlowStakeId`, union générée des ids de la cascade).
-        if (e.cascade === 'flow' && e.cle !== e.id) {
-          ctx.addIssue({ code: 'custom', path: ['cle'], message: `${e.id} : la clé d’un jet de modale est son identifiant (« ${e.cle} »)` });
-        }
-      }),
-    affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
-        const vus = new Map<string, string>();
-        for (const e of v as { id: string; cascade: string; cle: string }[]) {
-          const cle = `${e.cascade}/${e.cle}`;
-          const deja = vus.get(cle);
-          if (deja) ctx.addIssue({ code: 'custom', path: [], message: `stakes.json : « ${deja} » et « ${e.id} » servent la même clé ${cle}` });
-          else vus.set(cle, e.id);
         }
       }),
   },

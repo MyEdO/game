@@ -1097,7 +1097,7 @@ export function createCombatSlice(get: Get, set: Set) {
       };
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
-        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('teamCommand') },
+        { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('team-command') },
         combatConditionCtx(active, {}), onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: active.id });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1872,7 +1872,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // COUTURE UNIQUE (`openSkillTest`) : l'observateur reste l'acteur imposé (`actorId`), et son
       // Test est PERSONNEL — `noSupport` (LDB 09 l.308, LDB 12 l.197).
       openSkillTest(get, set,
-        { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('skillAdvantage', { entryId: skillId, values: { capChar } }) },
+        { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('skill-advantage', { entryId: skillId, values: { capChar } }) },
         combatConditionCtx(active, {}), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW,
         { actorId: active.id, combatAdvantage: { combatantId: active.id, cap }, cancellable: true });
     },

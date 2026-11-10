@@ -118,7 +118,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
     const step = monoStep({
       id: `aaBleed-${c.id}`, kind: 'aaBleedUnconscious', icon: 'condition/bleeding', label: t('step.perteDeSang'),
       actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
-      stake: combatStakeRef('aaBleedUnconscious'),
+      stake: combatStakeRef('combat-aa-bleed'),
     });
     pousseSi(steps, step);
   }
@@ -132,7 +132,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
     const step = monoStep({
       id: `fatigue-${c.id}`, kind: 'fatigue', icon: 'condition/fatigued', label: t('step.effortSoutenu'),
       actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
-      stake: combatStakeRef('fatigue'),
+      stake: combatStakeRef('combat-fatigue'),
     });
     pousseSi(steps, step);
   }
@@ -208,7 +208,7 @@ export const TABLES = {
           id: `spellPlusTest-${hero.id}-${spellId}`, kind: 'spellPlusTest',
           actor: hero, ligne: { test: TEST_PROLONGATION }, difficulty: 'intermediaire',
           icon: 'nav/dice', label: stepProlonger(dataLabel(effect.label)),
-          meta: { sourceSpellId: spellId }, stake: combatStakeRef('spellPlusTest', { entryId: spellId }),
+          meta: { sourceSpellId: spellId }, stake: combatStakeRef('combat-spell-plus', { entryId: spellId }),
         });
         return;
       }
