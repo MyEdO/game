@@ -120,7 +120,7 @@ describe('#3610 — Dissiper : le mode s’offre une fois, chaque Sort dissipabl
     banc.setState({ battle: { combatants: [mk('mage'), cible], order: ['mage', 'cible'], turn: 0, round: 1, acted: false, over: null, log: [], reachable: new Map(), movementUsed: 0 } as never });
     const s = banc.getState();
     const offres = offresDeLActif({ active: s.battle!.combatants[0], battle: s.battle!, netMode: s.net.mode, gameTime: s.gameTime, state: s });
-    expect(offres.filter((o) => o.actionId === 'dispel').map((o) => o.geste)).toEqual([{ verbe: 'armerLeMode', args: ['dispel'] }]);
+    expect(offres.filter((o) => o.actionId === 'dispel').map((o) => o.geste)).toEqual([{ verbe: 'armerLeMode', args: ['dissipation'] }]);
     expect(offres.filter((o) => o.actionId === 'dispel-spell').map((o) => o.geste)).toEqual([
       { verbe: 'dissiperLeSort', args: ['mage', 'malefice', 'e1'] },
       { verbe: 'dissiperLeSort', args: ['mage', 'aveuglement', 'e2'] },

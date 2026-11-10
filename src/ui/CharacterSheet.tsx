@@ -472,7 +472,7 @@ function SpellbookSection({ hero }: { hero: Combatant }) {
  *  retire. LDB 14 l.78, l.138 */
 function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; mains: NonNullable<GestesDeLObjet['mains']> }) {
   const garnirLaPanoplie = useGame((s) => s.garnirLaPanoplie);
-  const { set: loId, main: { tenue: isMain, refus: refusMain }, off: { tenue: isOff, refus: refusOff } } = mains;
+  const { set: loId, main: { tenue: isMain, refus: refusMain }, secondaire: { tenue: isOff, refus: refusOff } } = mains;
   const malus = avecSigne(penaliteDeMainSecondaire(hero));
   return (
     <div className="ir-hand" title="Régler la main qui tient cette arme (set actif)">
@@ -488,14 +488,14 @@ function HandPicker({ hero, it, mains }: { hero: Combatant; it: ItemInstance; ma
           onSelect: () => garnirLaPanoplie(hero.id, loId, 'main', isMain ? null : it.uid),
         },
         {
-          key: 'off',
+          key: 'secondaire',
           label: <>2nde <em className="off-malus">{malus}</em></>,
           selected: isOff,
           // La RAISON du refus se lit au survol/focus/tap dans l'infobulle partagée (`refus`), jamais
           // par un `disabled` muet ; le `title` ne reste que pour l'option OFFERTE.
           title: refusOff ? undefined : `Main secondaire : ${malus} aux attaques de cette main`,
           refus: refusOff ?? undefined,
-          onSelect: () => garnirLaPanoplie(hero.id, loId, 'off', isOff ? null : it.uid),
+          onSelect: () => garnirLaPanoplie(hero.id, loId, 'secondaire', isOff ? null : it.uid),
         },
       ]}
     />
@@ -548,7 +548,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
             // E1 : état « en main » SANS jargon « set » (les sets = fonction avancée, cf. onglet Combat) —
             // on NOMME l'arme du set ACTIF Main principale / secondaire ; les autres armes n'affichent rien.
             const activeLo = (hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0];
-            return activeLo?.main === it.uid ? 'Main principale' : activeLo?.off === it.uid ? 'Main secondaire' : null;
+            return activeLo?.main === it.uid ? 'Main principale' : activeLo?.secondaire === it.uid ? 'Main secondaire' : null;
           }}
           rowExtra={(it, gestes) => (
               <>
@@ -571,7 +571,7 @@ function FicheBody({ hero, section }: { hero: Combatant; section: 'possessions' 
                     enabled={!gestes.detecter.refus}
                     {...raisonSi(gestes.detecter.refus)}
                     descOfferte="Détection d'artefact (Intuition, au toucher) : sentir l'aura magique — une seule tentative par objet"
-                    onClick={() => evaluerLObjet(it.uid, 'detect')}
+                    onClick={() => evaluerLObjet(it.uid, 'detection')}
                     primary={false}
                     btnClassName="small"
                   />

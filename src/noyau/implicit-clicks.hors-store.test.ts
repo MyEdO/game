@@ -121,7 +121,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const { H } = setup();
     expect(computeRunReach(banc.getState).size).toBeGreaterThan(0); // témoin : hors mode-case, la Course normale s'affiche
     const b = banc.getState().battle!;
-    banc.setState({ battle: { ...b, action: 'teleport', reachable: new Map([[`${H.pos!.x},${H.pos!.y}`, 0]]) } });
+    banc.setState({ battle: { ...b, action: 'teleportation', reachable: new Map([[`${H.pos!.x},${H.pos!.y}`, 0]]) } });
     expect(computeRunReach(banc.getState).size).toBe(0);
   });
 

@@ -168,7 +168,7 @@ describe('CampaignView — le geste de caméra du joueur, monté à l’écran',
 // LDB 46 l.158-162
 describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', () => {
   /** Combat à 2 héros, `h2` PORTEUR de 2 Sorts permanents. `action` arme (ou non) la Dissipation. */
-  function combatDissipation(action: 'dispel' | null) {
+  function combatDissipation(action: 'dissipation' | null) {
     demonterRacines();
     // `hoverClickCommits` (pointerCaps) interroge le pointeur : jsdom n'a pas `matchMedia`.
     vi.stubGlobal('matchMedia', (media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} }));
@@ -203,7 +203,7 @@ describe('CampaignView — le portrait du dock route le ciblage d’ENTITÉ', ()
   };
 
   it('mode Dissiper ARMÉ : le portrait de l’allié porteur ÉLIT le porteur (comme son jeton)', () => {
-    const { h2 } = combatDissipation('dispel');
+    const { h2 } = combatDissipation('dissipation');
     const b = portraitDock(h2.label);
     expect(b.getAttribute('aria-label')).toBe(`${h2.label} — cibler — ${t('ptile.geste2eInspecter')}`);
     act(() => { b.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
@@ -228,7 +228,7 @@ describe('CampaignView — le refus du repli de défaite vit le temps de la moda
   function defaite(party: Combatant[]): BattleState {
     return {
       combatants: party, order: party.map((h) => h.id), turn: 0, round: 1, action: null, selectedSpellId: null,
-      reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: 'defeat',
+      reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: 'defaite',
     };
   }
   const alerte = () => host.querySelector('.defeat-modal [role="alert"]');

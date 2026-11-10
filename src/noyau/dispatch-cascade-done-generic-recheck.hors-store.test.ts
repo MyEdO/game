@@ -59,7 +59,7 @@ describe('dispatchCascadeDone — re-check TOUT-PURPOSE de checkBattleOver (#345
     // Le re-check générique doit avoir statué : combat terminé, Victoire enchaînée (le dernier ennemi
     // était déjà mort AVANT l'ouverture de la cascade hypothétique).
     expect(get().pendingCascade).toBeNull(); // pas d'écrasement silencieux : rien ne reste bloqué
-    expect(get().battle!.over).toBe('victory');
+    expect(get().battle!.over).toBe('victoire');
     expect(get().pendingVictory).toBeTruthy();
   });
 });

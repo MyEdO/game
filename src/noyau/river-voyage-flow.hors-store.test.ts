@@ -123,7 +123,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
   beforeEach(() => launch());
 
   it('partirEnVoyage(barge) OUVRE une cascade travelDay dont les étapes-jet sont influençables', () => {
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     const pc = get().pendingCascade;
     expect(pc?.purpose).toBe('travelDay'); // le jour ne s'auto-résout plus : il ouvre la cascade
     // Au moins une étape-jet influençable (Navigation) est présente dans les participants.
@@ -137,7 +137,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
   });
 
   it('tant que la journée est ouverte, `runRiverDays` n’en ouvre pas une seconde (aucune étape doublée)', () => {
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     const ouverte = get().pendingCascade!.participants.map((s) => s.id);
     runRiverDays(get, set);
     expect(get().pendingCascade!.participants.map((s) => s.id)).toEqual(ouverte);
@@ -156,7 +156,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
 
   it('sur une barque, le rameur tient la Navigation (MSRC 7 l.13)', () => {
     launch(false, 45, { modes: ['barque-fluviale' as never, 'pied'] });
-    get().partirEnVoyage('r-reik', 'barque-fluviale' as never, { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barque-fluviale' as never, { cadence: 'jourParJour' });
     const pc = get().pendingCascade!;
     expect(pc.participants.find((s) => s.kind === 'riverNav')?.label).toBe(composeRollLabel(undefined, t('step.navigation'), { skill: { id: 'ramer' } }));
   });
@@ -345,7 +345,7 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
     // Un héros doté de points de Résilience à dépenser sur son jet du jour.
     set({ party: get().party.map((h) => (h.id === 'r-gunnar' ? { ...h, resilience: 2 } : h)) });
     seedBattleRng(7);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     const pc = get().pendingCascade!;
     expect(pc.purpose).toBe('travelDay');
     // La 1ʳᵉ étape-jet est bien un participant influençable de la cascade.
@@ -376,7 +376,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
   it('cadence JOUR-PAR-JOUR (déclarée au départ) : le dé de MONDE puis les Tests s’ouvrent en fenêtre, sans ligne de dé au journal', () => {
     launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     let g = 0;
     while (get().pendingCascade?.purpose === 'travelDay' && g++ < 200) avanceEtapeCascade(get);
     const chance = get().pendingCascade!;
@@ -393,7 +393,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
     // 24 km (1 jour ne suffit pas : ~plusieurs étapes de descente) avec exposition GARANTIE chaque jour.
     launch(false, 24, { riverExposure: { source: 'grande-ville-marais', mode: 'ingestion', chancePct: 100 } });
     seedBattleRng(4);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     // Draine la cascade du JOUR puis, ENCHAÎNÉE, la cascade d'Exposition (purpose riverExposure).
     draineCascade(get);
@@ -907,7 +907,7 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
   it('cadence JOUR-PAR-JOUR (la fenêtre s’ouvre) : AUCUNE ligne de dé au journal — la rangée les montre', () => {
     launch();
     seedBattleRng(7);
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     draineCascade(get); // le joueur roule chaque étape DANS la fenêtre
     expect(traceLines(), 'la fenêtre a montré les dés : le journal ne les redit pas').toEqual([]);
@@ -917,7 +917,7 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
 describe('#1111 — le libellé de l’étape de Navigation est celui de `composeRollLabel` (Z1)', () => {
   it('partirEnVoyage → jour de fleuve : l’étape `riverNav` porte « Navigation (<Compétence du barreur>) » du composeur', () => {
     launch();
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     const nav = get().pendingCascade!.participants.find((s) => s.kind === 'riverNav')!;
     const coque = get().travelPlan!.vehicle!;
     const competence = propulsionDuNavire(coque.creatureId, coque.upgrades, 'fluvial')!.competence;

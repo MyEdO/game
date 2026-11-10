@@ -29,7 +29,7 @@ function veteran() {
 
 /** Ce qu'une aventure précédente a laissé : une planque, un investissement, une Faveur Mineure due. */
 const HERITAGE = (heroId: string) => ({
-  bank: [{ uid: 'depot-planque', heroId, kind: 'stash' as const, brass: 100, rate: 0 }, { uid: 'depot-invest', heroId, kind: 'invest' as const, brass: 100, rate: 1 }],
+  bank: [{ uid: 'depot-planque', heroId, kind: 'planque' as const, brass: 100, rate: 0 }, { uid: 'depot-invest', heroId, kind: 'investir' as const, brass: 100, rate: 1 }],
   favors: [{ id: 'favor-1', heroId, level: 'mineure' as const, owedTo: 'Un échevin', desc: 'Un service', progress: 0 }],
 });
 
@@ -60,7 +60,7 @@ function apresLeTirage(): { banc: Banc; heroId: string } {
 /** Dépense les Activités restantes du héros (des dépôts en planque). */
 function epuiser(banc: Banc, heroId: string): void {
   const left = () => banc.getState().interlude!.perHero[heroId].left;
-  for (let i = 0; i < 3 && left() > 0; i++) banc.actions.deposerALaBanque(heroId, 'stash', 10);
+  for (let i = 0; i < 3 && left() > 0; i++) banc.actions.deposerALaBanque(heroId, 'planque', 10);
   expect(left(), 'témoin : plus aucune Activité').toBe(0);
 }
 
@@ -82,7 +82,7 @@ const GESTES_D_ACTIVITE: [string, (banc: Banc, heroId: string) => void][] = [
   ['pratiquer (Revenus)', (banc, heroId) => pratiquer(banc.getState, heroId, 'revenus')],
   ['commanderLObjet', (banc, heroId) => banc.actions.commanderLObjet(heroId, 'arquebuse')],
   ['pratiquer (Entraînement)', (banc, heroId) => pratiquer(banc.getState, heroId, 'entrainement', { entrainement: 'intelligence' })],
-  ['deposerALaBanque (planque)', (banc, heroId) => banc.actions.deposerALaBanque(heroId, 'stash', 10)],
+  ['deposerALaBanque (planque)', (banc, heroId) => banc.actions.deposerALaBanque(heroId, 'planque', 10)],
   ['retirerDeLaBanque (investissement)', (banc) => banc.actions.retirerDeLaBanque('depot-invest')],
   ['solderLaFaveur', (banc, heroId) => banc.actions.solderLaFaveur(heroId, 'favor-1')],
 ];
@@ -151,13 +151,13 @@ describe('refusDuTirage — un geste qui ne consomme pas d’Activité', () => {
   it('retirerDeLaBanque (planque) : retirer reste PERMIS sans Activité restante (LDB 23 l.170)', () => {
     const { banc, heroId } = sansActivite();
     banc.actions.retirerDeLaBanque('depot-planque');
-    expect(banc.getState().bank.filter((b) => b.heroId === heroId && b.kind === 'stash' && b.brass === 100)).toEqual([]);
+    expect(banc.getState().bank.filter((b) => b.heroId === heroId && b.kind === 'planque' && b.brass === 100)).toEqual([]);
   });
 
   it('retirerDeLaBanque (planque) : pendant le tirage, rien ne se retire et le refus se dit', () => {
     const { banc, heroId } = enTirage();
     expect(journalDe(banc, () => banc.actions.retirerDeLaBanque('depot-planque'))).toEqual([TIRAGE_EN_ATTENTE]);
-    expect(banc.getState().bank[0]).toEqual({ uid: 'depot-planque', heroId, kind: 'stash', brass: 100, rate: 0 });
+    expect(banc.getState().bank[0]).toEqual({ uid: 'depot-planque', heroId, kind: 'planque', brass: 100, rate: 0 });
   });
 });
 

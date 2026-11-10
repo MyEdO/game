@@ -159,7 +159,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
     settle();
     const b2 = banc.getState().battle!;
     expect(isOutOfAction(byId(b2, COGUE))).toBe(true); // prise à l'abordage
-    expect(b2.over).toBe('victory');
+    expect(b2.over).toBe('victoire');
   });
 });
 
@@ -245,6 +245,6 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     const b2 = banc.getState().battle!;
     // équipage passé par-dessus bord (outOfRencontre) → plus aucun ennemi debout → VICTOIRE
     for (const id of cogue.crewIds!) expect(isOutOfAction(byId(b2, id))).toBe(true);
-    expect(b2.over).toBe('victory');
+    expect(b2.over).toBe('victoire');
   });
 });

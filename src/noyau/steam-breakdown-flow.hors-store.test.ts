@@ -152,7 +152,7 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
       pendingCascade: null, suspendedCascades: [], gameTime: 8 * 60, lastUpkeepDay: 0, pendingSteamSave: null, journal: [],
       vessel: { vehicleId: 'cogue', upgrades: [{ id: 'propulsion-a-vapeur' }], morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const pc = get().pendingCascade;
       if (!pc || pc.participants[pc.cursor]?.kind === 'crew-progression') break;

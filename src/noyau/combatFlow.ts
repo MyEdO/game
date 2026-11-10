@@ -6,10 +6,10 @@ import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText } from '../i18n/playerText';
 import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
-import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, RevealEntry } from './pendings';
+import type { PendingCast, PendingDeviation, PendingCritSeverity, CoupSuspendu, CoupDeTouche, CoupDuMarin, DecisionDeCritique, DeviationCtx, PendingBladeTrap, FreeAttackFreeze, BladeTrapFreeze, ScheduledRespawn, PendingReload, PendingAttack, CascadeTableDecl, CascadeTableDone, PendingMiscastStep, CascadeStep, BatchParticipant, PendingCounterspell, CounterParticipant, CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier, RevealEntry } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
 import { toRecapLines } from './recapLine';
-import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource } from '../engine/types';
+import { Combatant, HitLocation, Weapon, Difficulty, type ShipPoste, type EffectSource, type Main } from '../engine/types';
 import type { FateSaveSource } from '../engine/fortune';
 import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
@@ -670,7 +670,7 @@ export function attackEnv(
   attacker: Combatant,
   target: Combatant,
   weapon: Weapon,
-  opts?: { intoCrowd?: boolean; heldGround?: boolean },
+  opts?: { dansLeTas?: boolean; tirImmobile?: boolean },
 ): AttackEnv {
   const scene = get().scene!;
   // Environnement composé sur le combat où l'attaquant est DÉJÀ à sa case d'attaque (Charge/rejoindre).
@@ -715,11 +715,11 @@ export function attackEnv(
     if (sc.attaque) env.push(sc.attaque);
     // Tir en bougeant (LDB 14 l.70) : si l'on bouge ET tire au même Round. Le Mouvement étant
     // DÉCOMPOSABLE (on peut bouger APRÈS le tir), un HÉROS qui garde sa mobilité encaisse la pénalité par défaut ;
-    // il ne l'évite qu'en décidant de tirer IMMOBILE (heldGround → consomme son Mouvement, cf. jetValider('attack'))
+    // il ne l'évite qu'en décidant de tirer IMMOBILE (tirImmobile → consomme son Mouvement, cf. jetValider('attack'))
     // — ou s'il NE PEUT PAS bouger (Mouvement effectif 0 : Empêtré/Surpris…), il est immobile d'office.
     // L'IA/ennemi (pas d'option) : seulement s'il a effectivement bougé ce Tour.
     const mobileShot = attacker.kind === 'hero'
-      ? (battle.movementUsed > 0 || (mountMovement(battle, attacker) > 0 && !opts?.heldGround))
+      ? (battle.movementUsed > 0 || (mountMovement(battle, attacker) > 0 && !opts?.tirImmobile))
       : battle.movementUsed > 0;
     if (mobileShot) env.push(ligneDeRegle('tir-en-mouvement', 'tir-en-mouvement'));
     // Tir dans la mêlée (LDB 14 l.116) : la cible est Engagée avec un allié du tireur. Règle optionnelle
@@ -729,11 +729,11 @@ export function attackEnv(
       const ally = inBattleId(battle, id);
       return !!ally && ally.kind === attacker.kind;
     });
-    if (inMelee && !opts?.intoCrowd) env.push(ligneDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')); // « Tirer dans le tas » la REMPLACE par son bonus (l.116)
+    if (inMelee && !opts?.dansLeTas) env.push(ligneDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')); // « Tirer dans le tas » la REMPLACE par son bonus (l.116)
     env.push(...mountedAttackMods(battle, attacker, target, 'ranged')); // LDB 14 l.180
     // « Tirer dans le tas » (LDB 14 l.106) : selon la taille du groupe serré.
-    const crowd = opts?.intoCrowd ? crowdEligible(battle, attacker, target) : [];
-    const cm = opts?.intoCrowd ? crowdMod(crowd.length) : null;
+    const crowd = opts?.dansLeTas ? crowdEligible(battle, attacker, target) : [];
+    const cm = opts?.dansLeTas ? crowdMod(crowd.length) : null;
     if (cm) env.push(cm);
     return { env, blocked: false, inMelee, crowd, cm, sc };
   }
@@ -763,8 +763,8 @@ export function resolveAttack(
   target: Combatant,
   location?: HitLocation,
   fromCharge?: boolean,
-  intoCrowd?: boolean,
-  heldGround?: boolean,
+  dansLeTas?: boolean,
+  tirImmobile?: boolean,
   armeDuCoup?: Weapon, // arme résolue par l'appelant piloté (`attackWeaponOf`, #1026) ; absente = auto-choix
   withhold?: boolean, // LDB 18 l.30 ; AA 07 l.59
 ): { res: AttackResult; weapon: Weapon; victim?: Combatant } | null {
@@ -782,11 +782,11 @@ export function resolveAttack(
   const dist = combatDistance(attackGeomOf(battle, attacker, weapon), combatGeomOf(battle, target));
   if (dist > reachTiles(weapon) && weapon.type === 'melee') return null; // hors de portée de mêlée (Allonge incluse, RAW-3)
   // (Sonné → +1 Avantage à l'attaquant en mêlée, LDB 16 l.125 : DÉJÀ géré par le flux d'attaque existant.)
-  const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { intoCrowd, heldGround });
+  const { env, blocked, inMelee, crowd, cm, flankRear } = attackEnv(get, attacker, target, weapon, { dansLeTas, tirImmobile });
   if (blocked) return null; // pas de Ligne de Vue (mur/décor/fumée) → pas de tir (LDB 13 l.114)
   if (weapon.type === 'ranged') {
     // « Tirer dans le tas » (LDB 14 l.106) : un ennemi AU HASARD est touché ; succès dû au seul bonus = 0 DR.
-    if (intoCrowd) {
+    if (dansLeTas) {
       const res = resolveRanged(attacker, target, weapon, battleRng(), dist, location, env, undefined, mpt, withhold);
       if (res.hit && crowd.length) {
         const victim = crowd[battleRng().int(0, crowd.length - 1)]; // « appliqué au hasard parmi les cibles éligibles »
@@ -836,7 +836,7 @@ export function resolveAttack(
 
 /** 2ᵉ attaque du Maniement de deux armes (LDB 10 l.767-773). Jet d'attaquant IMPOSÉ : `jet`, tranché à
  *  l'ouverture de la Seconde main (`PendingDualStrike.jet`, LDB 10 l.773). Le `target` (valeur à
- *  toucher) inclut déjà la pénalité de main secondaire (l'arme `off` porte `hand:'off'`, cf. plan #1). Le
+ *  toucher) inclut déjà la pénalité de main secondaire (l'arme `secondaire` porte `hand:'secondaire'`, cf. plan #1). Le
  *  défenseur fait un NOUVEAU jet de défense (LDB 10 l.773) : un défenseur SURFACÉ le joue dans SA fenêtre
  *  (#998) — on ne résout alors que le jet d'ATTAQUANT, et `jetValider('attack')` interpose la fenêtre
  *  (`openSurfacedDefense`), comme pour la 1ʳᵉ frappe (`resolveAttack`). */
@@ -925,7 +925,7 @@ export function previewAttack(
   attacker: Combatant,
   target: Combatant,
   location?: HitLocation,
-  opts?: { intoCrowd?: boolean; heldGround?: boolean; weaponUid?: string; harpoonRopeCut?: boolean; weapon?: Weapon },
+  opts?: { dansLeTas?: boolean; tirImmobile?: boolean; weaponUid?: string; harpoonRopeCut?: boolean; weapon?: Weapon },
 ): AttackPreview {
   const battle = get().battle;
   const mpt = sceneMetresPerTile(get().scene);
@@ -1329,19 +1329,19 @@ export function startGrapple(_get: Get, set: SetFn, actor: Combatant, foe: Comba
 }
 
 /** Cœur PARTAGÉ (flux joueur ET résolveur IA) d'une victoire d'Empoignade (LDB 14 l.161) : applique
- *  `GRAPPLE.win[mode]` (DONNÉE) — `free` se libère SOI-MÊME, `damage`/`entangle` frappent l'adversaire — et
+ *  `GRAPPLE.win[mode]` (DONNÉE) — `liberer` se libère SOI-MÊME, `degats`/`empetrer` frappent l'adversaire — et
  *  renvoie la ligne de journal. `dr` = DR du Test gagné (→ `ctx.sl`) ; `forceRoll` = jet de Force du VAINQUEUR
  *  (Localisation au lancer de Force, l.161). MUTE actor/foe ; ne touche NI `battle` NI `pending` (chaque
  *  appelant fait son propre `set`) → une SEULE application, deux orchestrations (modale joueur / instantané IA). */
-export function resolveGrappleWin(actor: Combatant, foe: Combatant, mode: 'damage' | 'entangle' | 'free', dr: number, forceRoll: number, idNeuf: FabriqueDId): string {
+export function resolveGrappleWin(actor: Combatant, foe: Combatant, mode: IssueDEmpoignade, dr: number, forceRoll: number, idNeuf: FabriqueDId): string {
   const beforeW = foe.wounds.current;
   const beforeEmp = stacks(actor, COND.empetre);
-  applyOps(mode === 'free' ? actor : foe, GRAPPLE.win[mode], { idNeuf, rng: battleRng(), caster: actor, sl: dr, source: GRAPPLE_SOURCE });
-  if (mode === 'damage') {
+  applyOps(mode === 'liberer' ? actor : foe, GRAPPLE.win[mode], { idNeuf, rng: battleRng(), caster: actor, sl: dr, source: GRAPPLE_SOURCE });
+  if (mode === 'degats') {
     const loc = locationLabel(hitLocationByShape(reverseRoll(forceRoll), foe.bodyShape), foe.bodyShape); // Localisation au lancer de Force (l.161)
     return tr('cs.grappleDamage', { name: actor.label, foe: foe.label, n: beforeW - foe.wounds.current, loc });
   }
-  if (mode === 'entangle') return tr('cs.grappleEntangle', { name: actor.label, foe: foe.label });
+  if (mode === 'empetrer') return tr('cs.grappleEntangle', { name: actor.label, foe: foe.label });
   return tr('cs.grappleFree', { name: actor.label, n: beforeEmp - stacks(actor, COND.empetre) });
 }
 
@@ -1355,7 +1355,7 @@ export function resolveGrappleOpposed(get: Get, actor: Combatant, foe: Combatant
   const foeRoll = rollGrappleForce(foe, battleRng());
   const opp = resolveOpposed(actorRoll, foeRoll);
   const result = disengageOutcome(opp.winner);
-  if (result === 'success') return resolveGrappleWin(actor, foe, 'damage', Math.max(0, opp.netSL), actorRoll.roll, get().forgerUnId);
+  if (result === 'success') return resolveGrappleWin(actor, foe, 'degats', Math.max(0, opp.netSL), actorRoll.roll, get().forgerUnId);
   if (result === 'failure') campGain(get, foe, 1); // l'adversaire l'emporte → +1 Avantage (l.161) — réserve du camp en mode groupe (AA 11 l.11-13)
   return tr(result === 'failure' ? 'cs.grappleLose' : 'cs.grappleTie', { name: actor.label, foe: foe.label });
 }
@@ -2898,7 +2898,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
 /** La réaction de Porte-bouclier part-elle en Dégâts ? Déclarée par le défenseur surfacé, décidée par l'IA
  *  sinon ; coût, réserve et défense gagnée jugés par `applyShieldReaction`. AA 13 l.84 ; #1595. */
 function reactionDeBouclierEnDegats(get: Get, set: SetFn, attacker: Combatant, target: Combatant, q: QueueDuCoup): boolean {
-  const reaction = q.suite?.reaction ?? (defenseSurfaced(get(), target) ? undefined : 'damage');
+  const reaction = q.suite?.reaction ?? (defenseSurfaced(get(), target) ? undefined : 'degats');
   return !!reaction && !!q.res.parryWeapon && applyShieldReaction(get, set, target, attacker, reaction, q.res.parryWeapon, defenseGagneeEnMelee(attacker, target, q.weapon, q.res));
 }
 
@@ -3354,15 +3354,15 @@ function demandesDeLaCasse(get: Get, casse: PendingCasseDArme): DemandeDeCasse[]
  * part : la poussée s'applique ici ; les Dégâts rendent `true`, la frappe passant par
  * `jouerLaFrappePassive` (Test opposé de défense gagné, `defenseGagnee`). #1595 c.6234104573 ; #1093.
  */
-function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, attacker: Combatant, kind: 'damage' | 'push', parryWeapon: Weapon | undefined, defenseGagnee: boolean): boolean {
+function applyShieldReaction(get: Get, set: SetFn, defender: Combatant, attacker: Combatant, kind: ReactionDeBouclier, parryWeapon: Weapon | undefined, defenseGagnee: boolean): boolean {
   const battle = get().battle;
   if (!battle || isOutOfAction(defender)) return false;
   const cost = shieldReactionCost(defender, parryWeapon);
   if (cost <= 0 || defender.usedShieldReactionRound || spendableAdvantage(get().battle, defender) < cost) return false;
-  if (kind === 'damage' && !defenseGagnee) return false;
+  if (kind === 'degats' && !defenseGagnee) return false;
   campSpend(get, defender, cost);
   defender.usedShieldReactionRound = true;
-  if (kind === 'damage') return true;
+  if (kind === 'degats') return true;
   const log = [...battle.log];
     if (defender.pos && attacker.pos && !isOutOfAction(attacker)) {
       const tiles = Math.max(1, Math.round(2 / sceneMetresPerTile(get().scene))); // 2 m RAW → cases
@@ -3632,15 +3632,15 @@ export function intoCrowdStanceBlock(battle: BattleState, c: Combatant, weapon?:
 /** Les postures de tir, par champ armé : UNE table, un seul contrat de prédicat. Le store, le gate du
  *  registre et la fenêtre de jet la lisent — aucune posture ne peut naître sans son prédicat. */
 export const STANCE_BLOCK: Record<ShootingStanceKey, (battle: BattleState, c: Combatant, weapon?: Weapon, target?: Combatant) => string | null> = {
-  heldGround: heldGroundStanceBlock,
-  intoCrowd: intoCrowdStanceBlock,
+  tirImmobile: heldGroundStanceBlock,
+  dansLeTas: intoCrowdStanceBlock,
 };
 
 /** Verse les POSTURES PRÉ-ARMÉES de l'attaquant (`battle.stances`, spec HUD §1a G5) dans le
  *  `PendingAttack` en construction. Un champ DÉJÀ porté par l'appelant prime — le Tir rapide
- *  d'interruption arme son `heldGround` d'office (`combatSlice`), la posture ne le contredit pas.
+ *  d'interruption arme son `tirImmobile` d'office (`combatSlice`), la posture ne le contredit pas.
  *  Chaque posture est ÉVALUÉE SUR CE COUP (arme réelle `attackWeaponOf` + cible réelle) : une attaque
- *  de MÊLÉE ne porte jamais `heldGround`/`intoCrowd` — le champ y mentirait, et rien ne le lirait. */
+ *  de MÊLÉE ne porte jamais `tirImmobile`/`dansLeTas` — le champ y mentirait, et rien ne le lirait. */
 function withArmedStance(get: Get, pa: PendingAttack): PendingAttack {
   const battle = get().battle;
   const attacker = battle ? inBattleId(battle, pa.attackerId) : null;
@@ -3681,7 +3681,7 @@ export function openAttackCascade(get: Get, set: SetFn, pa0: PendingAttack, titl
 /** Pose le Test de Dextérité Accessible (AA 07 l.117) de la main gatée `hand` avant l'Action `pa`, sur sa
  *  valeur de Test (`testValue`, LDB 16 l.125) ; cible montée par le MONTEUR, bornée et mesurée comme au jet
  *  (`FLOWS.handGate`). Mint UNIQUE de `pendingHandGate` : `openAttackCascade` et la 2ᵉ frappe « des deux armes ». */
-export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: 'main' | 'off', pa: PendingAttack, title: string, icon: string): void {
+export function poserLeTestDeMain(set: SetFn, attacker: Combatant, hand: Main, pa: PendingAttack, title: string, icon: string): void {
   const ligne = rollLine({ actor: attacker, test: { characteristic: 'dexterite' }, difficulty: 'accessible' });
   set({ pendingHandGate: {
     attackerId: attacker.id, actorName: attacker.label, hand, ligne, ...cibleMesuree(ligne),
@@ -3706,7 +3706,7 @@ export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, tit
  *  (jamais de modale, résolution forcée). SOURCE UNIQUE des chemins IA : attaque normale (`doAttack`), Tir
  *  rapide (`runPreemptShots`) et pilonnage servi (même point). Renvoie `true` si le coup peut se poursuivre ;
  *  sur ÉCHEC, l'objet de la main gatée glisse (op `disarm`) et l'on renvoie `false` (l'IA renonce à CE coup).
- *  `weaponUid` = arme réellement employée : une pièce SERVIE hors loadout main/off → `attackHandGate` = null →
+ *  `weaponUid` = arme réellement employée : une pièce SERVIE hors loadout main/secondaire → `attackHandGate` = null →
  *  jamais gatée (parité avec le pilonnage joueur, canon monté). */
 export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?: string): boolean {
   const gHand = attackHandGate(attacker, weaponUid);
@@ -3714,7 +3714,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const gt = rollSansPilote(get, attacker, testValue(attacker, { characteristic: 'dexterite' }), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
-    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'off' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
+    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
     if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('info', tr('cf.handGateFail', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'info', attacker.id)] } });
     return false;
   }
@@ -4809,7 +4809,7 @@ export function lancerLAttaque(get: Get, set: SetFn): void {
   // L'arme du JET est celle de l'APPLICATION (`attackWeaponOf`, #1026) : arme naturelle synthétisée
   // d'une gratuite de créature comprise.
   const weapon = attackWeaponOf(battle, attacker, target, pa);
-  const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.intoCrowd, pa.heldGround, weapon, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
+  const r = resolveAttack(get, attacker, target, pa.location ?? undefined, pa.fromCharge, pa.dansLeTas, pa.tirImmobile, weapon, pa.withhold); // LDB 14 l.183 ; LDB 18 l.30 ; AA 07 l.59
   if (!r) {
     get().ecrireAuJournal(weapon.type === 'ranged' ? tr('cf.noLoSMasked') : tr('cs.meleeOutOfRange'));
     set({ pendingAttack: null });
@@ -5042,7 +5042,7 @@ export function counterspellSupportFor(s: Jeu, pcs: PendingCounterspell | null |
 }
 
 /** Cette rangée LANCE-t-elle le dé de la fenêtre ? — déclarée `solo`, ou MENEUR du groupe uni (le
- *  Soutenu n'a qu'un jet, `LDB 12 l.189`). `pass` ne lance jamais. Prédicat UNIQUE, lu par la garde
+ *  Soutenu n'a qu'un jet, `LDB 12 l.189`). `passer` ne lance jamais. Prédicat UNIQUE, lu par la garde
  *  du jet (`counterspellEngage`) ET par l'affordance de la rangée (`CastModal`). */
 export function counterspellRolls(s: Jeu, pcs: PendingCounterspell | null | undefined, part: CounterParticipant): boolean {
   if (part.declared === 'solo') return true;
@@ -5054,13 +5054,13 @@ export function counterspellRolls(s: Jeu, pcs: PendingCounterspell | null | unde
  * DÉCLARATION AUTOMATIQUE des rangées non surfacées à l'ouverture de la fenêtre : la fenêtre ne peut
  * pas attendre une décision d'un contrôleur qui n'en rendra jamais. Les rangées TÉMOIN suivent leur
  * repli existant — le meilleur contre-lanceur non surfacé (`bestCounterspeller`, la MÊME sélection que
- * `applyCounterspellFallback`) contrerait, les autres non : `solo` pour lui, `pass` pour elles.
+ * `applyCounterspellFallback`) contrerait, les autres non : `solo` pour lui, `passer` pour elles.
  * Les rangées SURFACÉES restent vierges : c'est leur siège qui déclare.
  */
 export function autoDeclareWitnessRows(participants: CounterParticipant[], actors: readonly Combatant[]): CounterParticipant[] {
   const witnesses = participants.filter((p) => !p.interactive);
   const ia = bestCounterspeller(witnesses.map((p) => actors.find((c) => c.id === p.id)).filter((c): c is Combatant => !!c));
-  return participants.map((p) => (p.interactive ? p : { ...p, declared: (p.id === ia?.id ? 'solo' : 'pass') as CounterDeclaration }));
+  return participants.map((p) => (p.interactive ? p : { ...p, declared: (p.id === ia?.id ? 'solo' : 'passer') as CounterDeclaration }));
 }
 
 /** Un geste de dé PRÉ-ARMÉ est-il en cours ? (drapeau de module, cf. `withPreRollFixedDie`). */
@@ -5370,7 +5370,7 @@ export function zoneSousLeCurseur(get: Get, hover: Pt): { radius: number; valide
   const pz = placingZoneOf(s);
   if (pz) return inBattleId(battle, pz.casterId)?.pos ? { radius: pz.radius, valide: placedZoneValidAt(get, pz, hover) } : null;
   const active = s.mode === 'battle' ? activeCombatant(battle) : undefined;
-  if (battle.action !== 'cast' || !battle.selectedSpellId || active?.kind !== 'hero' || s.pendingCast || !active.pos) return null;
+  if (battle.action !== 'incantation' || !battle.selectedSpellId || active?.kind !== 'hero' || s.pendingCast || !active.pos) return null;
   const spell = findSpellById(battle.selectedSpellId);
   const radius = spell ? zdeRadiusTiles(spell.target, active) : null;
   if (!spell || radius == null) return null;
@@ -6346,7 +6346,7 @@ export function applyCast(
       // Zone persistante d'un sort de soutien/zone (Mur de feu : « Quiconque traverse… »).
       if (res.cast) placeSpellZone(get, caster, target, spell, spec, slFor(target), durationMult, durationBonusRounds, logLines);
       // TÉLÉPORTATION (Jalon 2.6 — « vous vous téléportez de BFM mètres (+BFM par +2 DR) »,
-      // LDB 47 l.517-519) : le choix de la case d'arrivée suit l'Appliquer (mode 'teleport',
+      // LDB 47 l.517-519) : le choix de la case d'arrivée suit l'Appliquer (mode 'teleportation',
       // cases = survol des obstacles, atterrissage libre — cliquerLaCaseDuCombat).
       const tpOp = spellOps(spell.effects, 'caster').find((o): o is Extract<GameOp, { op: 'teleport' }> => o.op === 'teleport');
       if (tpOp && res.cast) {
@@ -6436,7 +6436,7 @@ export function applyCast(
   finishPlayerAction(get, set, logLines, 'cast'); // sortie commune combat (log+conso Action) / hors combat (journal)
   // Téléportation (Jalon 2.6) : le choix de case suit la clôture du cast (qui remet action: null).
   if (teleportReach && get().battle) {
-    set({ battle: { ...get().battle!, action: 'teleport', reachable: teleportReach } });
+    set({ battle: { ...get().battle!, action: 'teleportation', reachable: teleportReach } });
     bus.emit(EVT.SCENE_DIRTY);
   }
 }
@@ -7179,14 +7179,14 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
     // interactif → pas de cascade), puis writeback. Pas d'écran de victoire à gater.
     openCombatEndCascade(get, set);
     finalizeBattle(get, set);
-    set({ battle: { ...get().battle!, over: 'defeat', log: [...get().battle!.log, ev('info', tr('cf.defeat'))] } });
+    set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('info', tr('cf.defeat'))] } });
     return true;
   }
   return false;
 }
 
 /**
- * Finalisation de la VICTOIRE : writeback (`finalizeBattle`) PUIS pose de `over:'victory'` + capture des
+ * Finalisation de la VICTOIRE : writeback (`finalizeBattle`) PUIS pose de `over:'victoire'` + capture des
  * récompenses dans `pendingVictory` (l'écran de victoire les lit). Appelée DIRECTEMENT par `checkBattleOver`
  * quand aucun Test de fin de combat n'est influençable, OU par `finishCombatEnd` à la fermeture de la
  * cascade de fin de combat. Idempotente vis-à-vis d'un `battle.over` déjà posé (garde en tête).
@@ -7195,7 +7195,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
   finalizeBattle(get, set); // writeback AVANT onVictory (qui ajoute XP/butin au groupe)
-  set({ battle: { ...get().battle!, over: 'victory', log: [...get().battle!.log, ev('info', tr('cf.victory'))] } });
+  set({ battle: { ...get().battle!, over: 'victoire', log: [...get().battle!.log, ev('info', tr('cf.victory'))] } });
   bus.emit(EVT.BATTLE_OVER, { victory: true }); // gong audio + hooks futurs
   // Capture des récompenses pour l'écran de victoire : on mesure ce que onVictory octroie (XP/or/butin)
   // par diff avant/après, + la liste des vaincus (groupée par nom). L'écran (VictoryScreen) lit `pendingVictory`.
@@ -7247,7 +7247,7 @@ export function finishCombatEnd(get: Get, set: SetFn): void {
   if (heroesAlive) { finishVictory(get, set); return; }
   // Cas-limite : la mutation/damnation a achevé le dernier héros pendant la cascade → défaite.
   finalizeBattle(get, set);
-  set({ battle: { ...get().battle!, over: 'defeat', log: [...get().battle!.log, ev('info', tr('cf.defeat'))] } });
+  set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('info', tr('cf.defeat'))] } });
 }
 
 /** Gantelet verrouillé (AA folio 94) — anti-lâcher GÉNÉRIQUE (capacité lue en DONNÉE `preventForcedDrop`,

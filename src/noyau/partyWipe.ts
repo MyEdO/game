@@ -1,7 +1,7 @@
 /**
  * ANÉANTISSEMENT DU GROUPE HORS COMBAT — invariant global de non-viabilité.
  *
- * En combat, la défaite est constatée par `checkBattleOver` (`!heroesAlive` → `battle.over='defeat'`).
+ * En combat, la défaite est constatée par `checkBattleOver` (`!heroesAlive` → `battle.over='defaite'`).
  * Hors combat (entretien/faim, exposition, maladie, cascade de nuit, damnation, effets de scène), rien
  * ne constatait la non-viabilité du groupe : un groupe entier mort de faim en mer laissait le voyage
  * continuer. `checkPartyWiped` est le pendant hors-combat, appelé aux carrefours de mort hors combat

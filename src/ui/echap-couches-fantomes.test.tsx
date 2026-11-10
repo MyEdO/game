@@ -166,13 +166,13 @@ describe('Menu système — le focus clavier entre dans la carte (#1752)', () =>
   });
 
   it('la CLASSE entière : l’écran de victoire, lui aussi monté en permanence, prend le focus à sa révélation', () => {
-    // La boîte ne se MONTE qu'à `over === 'victory' && revealed` : elle naît APRÈS le délai de tenue du
+    // La boîte ne se MONTE qu'à `over === 'victoire' && revealed` : elle naît APRÈS le délai de tenue du
     // coup fatal (`VICTORY_REVEAL_MS`, `VictoryScreen.tsx`), bien après le premier rendu.
     vi.useFakeTimers();
     try {
       act(() => root.render(<Ecran />));
       act(() => {
-        useGame.setState({ battle: { ...useGame.getState().battle!, over: 'victory' } } as never);
+        useGame.setState({ battle: { ...useGame.getState().battle!, over: 'victoire' } } as never);
       });
       act(() => { vi.advanceTimersByTime(1000); });
       const victoire = [...host.querySelectorAll<HTMLElement>('[role="dialog"]')]

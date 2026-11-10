@@ -11,7 +11,7 @@
     }
   ],
   "win": {
-    "damage": [
+    "degats": [
       {
         "op": "wounds",
         "amount": {
@@ -25,14 +25,14 @@
         "ignoreAP": true
       }
     ],
-    "entangle": [
+    "empetrer": [
       {
         "op": "condition",
         "id": "empetre",
         "value": 1
       }
     ],
-    "free": [
+    "liberer": [
       {
         "op": "removeCondition",
         "id": "empetre",

@@ -3,7 +3,7 @@ import { firedWeapon } from './combatFlow';
 import type { Combatant, Weapon } from '../engine/types';
 
 const W = (uid: string, name: string): Weapon =>
-  ({ uid, label: name, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: uid === 'm' ? 'main' : 'off', hands: 1 });
+  ({ uid, label: name, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: uid === 'm' ? 'main' : 'secondaire', hands: 1 });
 const atk = (): Combatant =>
   ({ id: 'a', name: 'A', kind: 'hero', pos: { x: 0, y: 0 }, weapons: [W('m', 'Épée'), W('o', 'Dague')], size: 3 } as unknown as Combatant);
 const tgt = (): Combatant =>

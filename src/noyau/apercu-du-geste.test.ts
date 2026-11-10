@@ -92,7 +92,7 @@ describe('G1 — la Difficulté aperçue d’un geste COMBINÉ compte l’attaqu
 });
 
 describe('G2 — l’aperçu du geste tire la Difficulté de l’arme ÉPINGLÉE par l’option armée', () => {
-  const dague = { label: 'Dague', name: 'Dague', type: 'melee', damage: { plusBF: true, flat: 2 }, hand: 'off', qualities: [], uid: 'D1' };
+  const dague = { label: 'Dague', name: 'Dague', type: 'melee', damage: { plusBF: true, flat: 2 }, hand: 'secondaire', qualities: [], uid: 'D1' };
   const epee = { label: 'Épée', name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, hand: 'main', qualities: [], uid: 'E1' };
 
   it('l’arme de main SECONDAIRE porte sa pénalité (LDB 14 l.181) — l’arme principale non', () => {

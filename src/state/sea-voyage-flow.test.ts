@@ -33,7 +33,7 @@ describe('#296 — state.vessel SOURCE UNIQUE de la coque de trajet (non-diverge
   });
 
   it('la jauge de l’écran de traversée et la tuile de voyage lisent la MÊME source vive après un soin', () => {
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const hull0 = get().travelPlan!.vehicle!.wounds.current;
     damageVesselHull(get, set, get().travelPlan!.vehicle!, 10);
     healVesselHull(get, set, get().travelPlan!.vehicle!, 3);

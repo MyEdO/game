@@ -822,7 +822,7 @@ describe('CombatConsole — assemblage : UN PONT, pas des blocs', () => {
     // exactement le même flux et le même compte de cases (loi 1) — c'est ce que ce contrat mesure.
     // (Le tour de l'adversaire, lui, change de FORME depuis l'arbitrage 2026-08-24 : il ne peut plus
     // servir de témoin de géométrie constante.)
-    monter(h, { foes: [e], action: 'battery' });
+    monter(h, { foes: [e], action: 'bordee' });
     expect(host.querySelectorAll('.cc-phase').length).toBe(1);
     expect(enFlux()).toEqual(auHeros);
     expect(host.querySelectorAll('.cc-cell').length).toBe(casesHeros);
@@ -1404,7 +1404,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     const h = hero('h1', 'Gunnar');
     h.conditions = [];
     h.items = [objet('dague', 'i-ep'), objet('pistolet', 'i-arb', { loaded: false, reloadProgress: 0 })];
-    h.loadouts = [{ id: 'lo-mixte', main: 'i-ep', off: 'i-arb' }];
+    h.loadouts = [{ id: 'lo-mixte', main: 'i-ep', secondaire: 'i-arb' }];
     h.activeLoadoutId = 'lo-mixte';
     recomputeLoadout(h);
     return h;
@@ -1439,11 +1439,11 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     expect(case5().disabled, 'arme de tir en main, Mouvement intact : la case est active').toBe(false);
 
     act(() => case5().click());
-    expect(useGame.getState().battle!.stances?.['h1']?.heldGround, 'le clic ARME la posture').toBe(true);
+    expect(useGame.getState().battle!.stances?.['h1']?.tirImmobile, 'le clic ARME la posture').toBe(true);
     expect(case5().classList.contains('on'), 'la case allumée dit que la posture est tenue').toBe(true);
 
     act(() => case5().click());
-    expect(useGame.getState().battle!.stances?.['h1']?.heldGround, 're-clic : la posture tombe').toBe(false);
+    expect(useGame.getState().battle!.stances?.['h1']?.tirImmobile, 're-clic : la posture tombe').toBe(false);
     expect(case5().classList.contains('on')).toBe(false);
 
     act(() => { useGame.setState({ battle: { ...useGame.getState().battle!, movementUsed: 1 } }); });
@@ -1595,7 +1595,7 @@ describe('CombatConsole — droit de la travée et du coin (juge vision 2026-08-
     const posture = host.querySelector('[data-cell="g5-posture"]') as HTMLButtonElement;
     expect(posture.className).not.toContain('cc-inert');
     act(() => posture.dispatchEvent(new MouseEvent('click', { bubbles: true })));
-    expect(useGame.getState().battle!.stances?.[h.id]?.heldGround, 'le rang 4 de la travée n’a pas armé la posture').toBe(true);
+    expect(useGame.getState().battle!.stances?.[h.id]?.tirImmobile, 'le rang 4 de la travée n’a pas armé la posture').toBe(true);
     // GRILLE : le rang N porte le badge N (1-8), et la touche exécute LE RANG — pas la N-ième branchée.
     const grille = [...host.querySelectorAll('.cc-grid-right .cc-cell')];
     expect(hotbar.capacites.length, 'la grille de capacités est publiée à sa géométrie entière').toBe(12);
@@ -2346,7 +2346,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     monter(h, { foes: [foe('e1', 6, 5)] });
     act(() => { useGame.setState({ pendingCleave: { attackerId: h.id, hitIds: [], count: 0 } as never }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Frappe Mortelle');
-    expect(bandeau()?.querySelector('[data-consigne]')?.textContent, 'le bandeau dit ce que la carte attend').toBe(t('consigne.cleave'));
+    expect(bandeau()?.querySelector('[data-consigne]')?.textContent, 'le bandeau dit ce que la carte attend').toBe(t('consigne.frappeMortelle'));
     const b = sortie('cleave-end');
     expect(b, 'la sortie « Terminer » de l’interlude cleave doit être à l’écran').not.toBeNull();
     expect(b!.textContent).toContain('Terminer');
@@ -2362,7 +2362,7 @@ describe('CombatConsole — bandeau d’interlude : tout ciblage par la carte po
     const h = hero('h1', 'Gunnar');
     monter(h, { foes: [foe('e1', 9, 9)] });
     // La scène est requise par `armerLeMode` (le désarmement lit `{ battle, scene }`).
-    act(() => { useGame.setState({ scene: emptyScene('scene-test'), battle: { ...useGame.getState().battle!, action: 'battery' } }); });
+    act(() => { useGame.setState({ scene: emptyScene('scene-test'), battle: { ...useGame.getState().battle!, action: 'bordee' } }); });
     expect(bandeau()?.querySelector('.cc-phase-label')?.textContent).toBe('Bordée');
     const b = sortie('battery-cancel');
     expect(b, 'la sortie « Annuler » de l’interlude bordée doit être à l’écran').not.toBeNull();
@@ -2474,7 +2474,7 @@ describe('CombatConsole — tour du NAVIRE contrôlé : ses Tests d’équipage 
   it('N-2 — la Bordée ARME son mode par le registre, et l’interlude prend la main pour en sortir', () => {
     monterNavire();
     act(() => caseAction('battery')!.click());
-    expect(useGame.getState().battle!.action, 'la case Bordée n’a pas armé le mode').toBe('battery');
+    expect(useGame.getState().battle!.action, 'la case Bordée n’a pas armé le mode').toBe('bordee');
     // Le mode armé est un CIBLAGE par la carte : la console passe sous son bandeau de phase, et c'est
     // LUI qui porte la sortie (aucune case ne reste cliquable pendant un interlude).
     expect(host.querySelector('.cc-phase .cc-phase-label')!.textContent).toBe('Bordée');
@@ -2624,7 +2624,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     const cell = host.querySelector('[data-action="dispel"]') as HTMLButtonElement;
     expect(cell, 'aucune alvéole Dissiper').toBeTruthy();
     act(() => { cell.dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(useGame.getState().battle!.action).toBe('dispel');
+    expect(useGame.getState().battle!.action).toBe('dissipation');
   });
 
   it('clic-porteur (2 Sorts) → panneau BORNÉ à SES Sorts ; le clic COMMET `dispel-spell` avec les bons ids', () => {
@@ -2654,7 +2654,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     act(() => { document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', code: 'Escape', bubbles: true })); });
     expect(panneau()).toBeNull();
     expect(useGame.getState().pendingDispel).toBeNull();
-    expect(useGame.getState().battle!.action, 'le mode reste armé : on vise un autre porteur').toBe('dispel');
+    expect(useGame.getState().battle!.action, 'le mode reste armé : on vise un autre porteur').toBe('dissipation');
   });
 
   it('l’alvéole PORTE la progression du Test étendu (DR cumulé / NI) dès qu’un Sort est entamé', () => {
@@ -2686,7 +2686,7 @@ describe('CombatConsole — Dissiper : alvéole → porteur → panneau-paramèt
     expect(survole(), 'témoin : rien d’armé, la règle de la case s’ouvre au survol').not.toBeNull();
 
     act(() => { cell().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
-    expect(useGame.getState().battle!.action, 'témoin : le mode doit être armé').toBe('dispel');
+    expect(useGame.getState().battle!.action, 'témoin : le mode doit être armé').toBe('dissipation');
     expect(survole(), 'pavé de règle ouvert pendant qu’on vise : il recouvre ce que le clic a armé').toBeNull();
 
     act(() => { cell().dispatchEvent(new MouseEvent('click', { bubbles: true })); });
@@ -3010,7 +3010,7 @@ describe('CombatConsole — l’allumage d’une case armée vient du REGISTRE',
     const soin = findActionById('heal')!;
     expect(soin.armed, 'l’entrée « Soigner » du registre arme son mode').toBe(true);
     const armed = soin.mode;
-    expect(armed, 'l’entrée « Soigner » du registre déclare le mode qu’elle arme').toBe('heal');
+    expect(armed, 'l’entrée « Soigner » du registre déclare le mode qu’elle arme').toBe('soins');
     expect(caseCell('q-soigner'), 'la case Soigner doit être à l’écran').not.toBeNull();
     expect(caseCell('q-soigner')!.className, 'rien n’est armé au départ').not.toContain(' on');
 
@@ -3044,7 +3044,7 @@ describe('CombatConsole — deux armes à distance : une case, un paramètre à 
       objet('balle-et-poudre', 'i-a1', { qty: 12 }),
       objet('balle-et-poudre', 'i-a2', { label: 'Balle bénie', qty: 4 }),
     ];
-    h.loadouts = [{ id: 'lo-2p', main: 'i-p1', ...(opts.deux === false ? {} : { off: 'i-p2' }) }];
+    h.loadouts = [{ id: 'lo-2p', main: 'i-p1', ...(opts.deux === false ? {} : { secondaire: 'i-p2' }) }];
     h.activeLoadoutId = 'lo-2p';
     recomputeLoadout(h);
     if (opts.charges) h.weapons.filter((w) => w.type === 'ranged').forEach((w) => loadWeapon(h, w));
@@ -3477,7 +3477,7 @@ describe('CombatConsole — geste secondaire de l’alvéole (Focaliser)', () =>
     act(() => { alveole('carreau').dispatchEvent(new MouseEvent('click', { bubbles: true })); });
     expect(useGame.getState().battle!.selectedSpellId, 'témoin : le clic arme bien l’incantation de CE sort').toBe('carreau');
     expect(alveole('carreau').classList.contains('on'), 'le sort élu s’allume').toBe(true);
-    expect(alveole('bouclier-magique').classList.contains('on'), 'le mode `cast` seul n’allume pas les autres sorts').toBe(false);
+    expect(alveole('bouclier-magique').classList.contains('on'), 'le mode `incantation` seul n’allume pas les autres sorts').toBe(false);
   });
 
   it('DEUX gestes secondaires sur le même hôte (entrée FABRIQUÉE) : panneau ancré, 2 candidats, Échap gratuit', () => {

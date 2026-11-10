@@ -10,7 +10,7 @@ import { interludeCatalog, type InterludeState, type InterludeHeroState, type Ba
 import {
   blocageDeRevenus, ciblesDActivite, desEnAttente, devisDeCloture, effetBloquantLesRevenus, effetsDeLaPeriode, devisDeDepot, interludeDrawPending, refusDAcquitterUneFaveur, refusDActivite,
   refusDArtisanat, refusDeCommande, refusDEntrainement, refusDeRetrait, refusDOuvertureDActivite, refusDuTirage, preJetDActivite,
-  brouillonDe, refusDeLaValeur, type AxeDuBrouillon, type CompositionDActivite, type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type GenreDeDepot, type PreJetDActivite,
+  brouillonDe, refusDeLaValeur, type AxeDuBrouillon, type CompositionDActivite, type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type PreJetDActivite,
 } from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
 import { refusDeLaValidation } from '../noyau/validationDeFenetre';
@@ -20,7 +20,7 @@ import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, 
 import {
   cleDEntrainement, craftCatalog, craftTarget, qualitesDArtisanat, learnableTalents, orderCatalog, bankPayout, seuilDePerteBancaire, entrainementOptions, entrainementTutorRange,
   activityById, testsDeLActivite,
-  type ActivityDef, type ActivityResolver, type CraftOption, type LearnOption,
+  type ActivityDef, type ActivityResolver, type CraftOption, type GenreDeDepot, type LearnOption,
 } from '../engine/activities';
 import { nomDeSource } from '../engine/ops';
 import { DIFFICULTY_LABELS, CHAR_LABELS } from '../engine/types';
@@ -985,8 +985,8 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
   const amountBrass = pa * PA_PER_SC;
   const quick = (frac: number) => setAmountPa(Math.max(1, Math.floor(purseBrass * frac / PA_PER_SC)));
   const devis = (kind: GenreDeDepot) => devisDeDepot(etat, hero.id, kind, amountBrass);
-  const investir = devis('invest');
-  const planquer = devis('stash');
+  const investir = devis('investir');
+  const planquer = devis('planque');
   const mecene = devis('mecenat');
   // La planque n'a que les refus communs aux trois dépôts (Activité, bourse) : ils font la bannière.
   const banniereBourse = mene ? undefined : planquer.refus ?? undefined;
@@ -1010,7 +1010,7 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
           ariaLabel="Investir"
           enabled={!mene && !investir.refus}
           {...raisonDuDepot(investir)}
-          onClick={() => bankDeposit(hero.id, 'invest', amountBrass)}
+          onClick={() => bankDeposit(hero.id, 'investir', amountBrass)}
           btnClassName="small"
         />
         <GatedAction
@@ -1019,7 +1019,7 @@ function BankPane({ hero, etat, mene, money, mecenat }: { hero: Combatant; etat:
           ariaLabel="Planquer"
           enabled={!mene && !planquer.refus}
           {...raisonDuDepot(planquer)}
-          onClick={() => bankDeposit(hero.id, 'stash', amountBrass)}
+          onClick={() => bankDeposit(hero.id, 'planque', amountBrass)}
           btnClassName="small"
         />
         {mecenat && (
@@ -1233,19 +1233,19 @@ function BankList({ etat, canDrive }: {
             key={i}
             id={`interlude-bank-withdraw-${i}`}
             label={<>
-              <Icon id={b.kind === 'invest' ? 'resource/gold-purse' : b.kind === 'mecenat' ? 'scenario/opera' : 'item/misc'} size="sm" />
+              <Icon id={b.kind === 'investir' ? 'resource/gold-purse' : b.kind === 'mecenat' ? 'scenario/opera' : 'item/misc'} size="sm" />
               {' '}{libelleOuAbsence(owner, 'heros', b.heroId)} : <CoinsB brass={b.brass} />
-              {b.kind === 'invest' && <> → <CoinsB brass={bankPayout('invest', b.brass, b.rate)} /> (Indice {b.rate})</>} — Retirer
+              {b.kind === 'investir' && <> → <CoinsB brass={bankPayout('investir', b.brass, b.rate)} /> (Indice {b.rate})</>} — Retirer
             </>}
             ariaLabel={`Retirer le dépôt de ${libelleOuAbsence(owner, 'heros', b.heroId)}`}
             enabled={!refus}
             {...raisonSi(refus)}
-            descOfferte={b.kind === 'invest'
-              ? `Retirer (1 Activité) : ${fmt(bankPayout('invest', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${seuilDePerteBancaire('invest', b.rate)})`
+            descOfferte={b.kind === 'investir'
+              ? `Retirer (1 Activité) : ${fmt(bankPayout('investir', b.brass, b.rate))} si la banque tient (faillite sur d100 ≤ ${seuilDePerteBancaire('investir', b.rate)})`
               // ACE 12 l.49/57-65
               : b.kind === 'mecenat'
                 ? 'Retirer le mécénat (1 Activité) : Test d’Évaluation Intermédiaire (+0) — rendu de 120 % à la perte totale'
-                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${seuilDePerteBancaire('stash', b.rate)}`}
+                : `Retirer la planque (libre) : ${fmt(b.brass)} — découverte sur d100 ≤ ${seuilDePerteBancaire('planque', b.rate)}`}
             onClick={() => withdraw(b.uid)}
             primary={false}
             btnClassName="small"

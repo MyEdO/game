@@ -268,7 +268,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     it('« Dégâts » déclaré, Défense perdue : le volet reste après le jet, Dégâts refusé avec sa cause', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 5);
-      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'damage'); });
+      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'degats'); });
       act(() => { useGame.getState().jetLancer('defense'); useGame.getState().jetImposerLeResultat('defense', 97); });
       expect(useGame.getState().pendingDefense!.result!.hit).toBe(true);
       const degats = segment('Porte-bouclier', 'Dégâts')!;
@@ -281,7 +281,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     it('« Dégâts » déclaré, Défense gagnée : Dégâts reste pressé, refusé seulement parce que le jet est lancé', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 90);
-      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'damage'); });
+      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'degats'); });
       act(() => { useGame.getState().jetLancer('defense'); useGame.getState().jetImposerLeResultat('defense', 5); });
       expect(useGame.getState().pendingDefense!.result!.advantageTo).toBe('defender');
       const degats = segment('Porte-bouclier', 'Dégâts')!;
@@ -293,7 +293,7 @@ describe('Défense : volets Riposte et Porte-bouclier', () => {
     it('« Dégâts » déclaré, Test opposé à égalité : l\'attaque ne touche pas, Dégâts refusé comme au moteur', () => {
       setRule('combat-aa-avantage-groupe', true);
       openDefense(undefined, porteBouclier, 30);
-      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'damage'); });
+      act(() => { useGame.getState().jetRegler('defense', 'porteBouclier', 'degats'); });
       // LDB 12 l.160 ; LDB 62 l.240
       act(() => { useGame.getState().jetLancer('defense'); useGame.getState().jetImposerLeResultat('defense', 75); });
       const res = useGame.getState().pendingDefense!.result!;

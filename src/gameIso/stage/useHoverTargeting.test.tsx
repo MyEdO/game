@@ -284,7 +284,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     const battle = useGame.getState().battle!;
     const foe = battle.combatants.find((c) => c.kind === 'enemy')!;
     foe.pos = { x: active.pos!.x + 1, y: active.pos!.y };
-    const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'off', damage: { plusBF: true, flat: 2 }, qualities: [] };
+    const off = { label: 'Dague', name: 'Dague', type: 'melee', uid: 'off-1', hand: 'secondaire', damage: { plusBF: true, flat: 2 }, qualities: [] };
     active.weapons = [...active.weapons, off as never];
     // L'interlude tel que `jetValider('attack')` le pose : l'étape `attack` au curseur, son slot vidé
     // (`pendingAttack` null), le coup fermé ; la 2ᵉ frappe attend une cible SUR LA CARTE.
@@ -436,7 +436,7 @@ describe('useHoverTargeting — grisage hors-LdV du SORT', () => {
     vu.pos = { x: 16, y: 0 }; // brèche : ligne dégagée
     cache.pos = { x: 16, y: 4 }; // derrière le mur
     for (const autre of foes.slice(2)) autre.pos = { x: 0, y: 7 };
-    useGame.setState({ scene: murScene(), battle: { ...battle, action: 'cast', selectedSpellId: 'carreau', acted: true } });
+    useGame.setState({ scene: murScene(), battle: { ...battle, action: 'incantation', selectedSpellId: 'carreau', acted: true } });
 
     const ghosts = probeGhosts();
     expect(ghosts.has(cache.id), 'sans Ligne de Vue, l’ennemi est fantomatique').toBe(true);

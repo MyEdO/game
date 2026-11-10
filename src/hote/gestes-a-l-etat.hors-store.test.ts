@@ -61,7 +61,7 @@ describe('une fenêtre ouverte n’offre que ce que son verbe accepte', () => {
       const victoire: Jeu = {
         ...etat,
         pendingRoundStart: null,
-        battle: { ...etat.battle!, over: 'victory' },
+        battle: { ...etat.battle!, over: 'victoire' },
         pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }, { label: 'Humain', count: 1, creatureId: 'humain' }, { label: 'Pillard', count: 2 }], harvested: [] },
       };
       const depecer = argumentDe(victoire, 'fenetreChoisir@victory#depecer', 'valeur');
@@ -100,7 +100,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
 
   it('Victoire : attribuer et évaluer désignent une ligne du butin, l’évaluation porte sur la victoire', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victory' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
+      const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victoire' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
       expect(lignes(argumentDe(victoire, 'fenetreChoisir@victory#ligne', 'valeur'))).toEqual(nommees);
       expect(lignes(argumentDe(victoire, 'evaluerLObjet', 'aEvaluer'))).toEqual(nommees);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
@@ -147,7 +147,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const plaies: Trauma[] = [{ uid: 'bras', label: 'Bras broyé', location: 'brasG', needsSurgery: true }, { uid: 'crane', label: 'Crâne fendu', location: 'tete', needsSurgery: true }, { uid: 'doigt', label: 'Doigt perdu', location: 'brasD' }];
       const patient = { ...etat.party[0], traumas: plaies };
-      const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
+      const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: 'Berta', skill: 40, intBonus: 3, traumaUid: 'crane', targetDR: 5, cumDR: 0, stake: {} } as never;
       const infirmerie: Jeu = { ...etat, pendingRoundStart: null, battle: null, party: [patient, ...etat.party.slice(1)], medic: { patientId: patient.id, surgery: operation } };
       const plaie = argumentDe(infirmerie, 'fenetreChoisir@medic#plaie', 'valeur');
       expect(lignes(plaie)).toEqual(['choix', [['bras', t('medic.plaie', { plaie: 'Bras broyé', localisation: locationLabel('brasG') })], ['crane', t('medic.plaie', { plaie: 'Crâne fendu', localisation: locationLabel('tete') })]]]);

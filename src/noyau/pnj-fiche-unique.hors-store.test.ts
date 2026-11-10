@@ -90,7 +90,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
 
   it('infirmerie : aucune infirmerie ne s’ouvre, le refus est DIT au journal', () => {
     pose([MORT]);
-    applyEffects(get, set, [{ type: 'medicalAid', entityId: 'fantome', acts: [{ act: 'wounds', cost: { silver: 5 } }] }]);
+    applyEffects(get, set, [{ type: 'medicalAid', entityId: 'fantome', acts: [{ act: 'blessures', cost: { silver: 5 } }] }]);
     expect(get().medic).toBeFalsy();
     expect(get().journal.some((l) => String(l).includes('« fantome »'))).toBe(true);
   });

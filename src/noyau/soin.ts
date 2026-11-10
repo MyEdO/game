@@ -69,8 +69,8 @@ export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' 
  *  le brouillon d'une opération, celui de l'opération qu'il arme, à sa cible de DR (`cibleDeLOperation`). */
 export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe' | 'targetId' | 'plaie'>): StakeRef {
   if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { targetDR: cibleDeLOperation(s, ph, ph.mode) } });
-  if (ph.mode === 'bleed') return flowStakeRef(ph.test === 'dexterite' ? 'heal-bleed-dexterite' : ph.bandagesDe ? 'heal-bleed-bandages' : 'heal-bleed');
-  if (ph.mode === 'wounds') return flowStakeRef(ph.bandagesDe ? 'heal-wounds-bandages' : 'heal-wounds');
+  if (ph.mode === 'hemorragie') return flowStakeRef(ph.test === 'dexterite' ? 'heal-bleed-dexterite' : ph.bandagesDe ? 'heal-bleed-bandages' : 'heal-bleed');
+  if (ph.mode === 'blessures') return flowStakeRef(ph.bandagesDe ? 'heal-wounds-bandages' : 'heal-wounds');
   return flowStakeRef(HEAL_STAKE[ph.mode]);
 }
 

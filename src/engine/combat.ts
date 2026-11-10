@@ -17,7 +17,7 @@ import { agilityTestPenalty } from './encumbrance';
 import { skillBaseValue, testValue, type TestDesigne } from './skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine } from './types';
+import { Combatant, HitLocation, Weapon, BodyShape, RangeBandId, DIFFICULTY_MODIFIERS, locationLabel, type CharKey, type Difficulty, type ModLine, type Main } from './types';
 import { weatherTestMods } from './weatherTestMod';
 import { precipitationTestMods } from './seaWeather';
 import { findTableEntry } from './tables';
@@ -107,18 +107,18 @@ export function shipHitLocation(rig: ShipRig, roll: number, tableId: string = 'n
 export { locationLabel } from './types';
 
 /** Main ensanglantée (AA 07 l.117) : la main tenant `weaponUid` est-elle « ensanglantée » (marqueur
- *  `handGates`, op `handGate`) ? Renvoie la main gatée (`'main'`/`'off'`) — qui impose un Test de
+ *  `handGates`, op `handGate`) ? Renvoie la main gatée (`'main'`/`'secondaire'`) — qui impose un Test de
  *  Dextérité (+20) AVANT l'Action, Échec → `disarm` — ou `null`. La DURÉE (« tant que vous êtes sous
  *  l'effet de cet État ») est portée par le marqueur lui-même : `removeCondition` le PURGE dès que
  *  l'Hémorragique tombe à 0 (lever machinerie UNIQUE) → sa seule présence suffit ici. Le marqueur
  *  par-main identifie QUELLE main. PUR — SOURCE UNIQUE des deux chemins (joueur/IA). */
-export function attackHandGate(c: Combatant, weaponUid?: string): 'main' | 'off' | null {
+export function attackHandGate(c: Combatant, weaponUid?: string): Main | null {
   if (!c.handGates?.length) return null;
   const lo = activeLoadout(c);
   // Main tenant l'arme : uid EXPLICITE → le slot correspondant (une arme NATURELLE/montée hors loadout →
   // `null`, jamais « tenue en main ») ; uid ABSENT (auto-choix joueur / IA) → main directrice par défaut.
-  const hand: 'main' | 'off' | null = weaponUid == null ? 'main'
-    : weaponUid === lo?.off ? 'off' : weaponUid === lo?.main ? 'main' : null;
+  const hand: Main | null = weaponUid == null ? 'main'
+    : weaponUid === lo?.secondaire ? 'secondaire' : weaponUid === lo?.main ? 'main' : null;
   return hand && c.handGates.includes(hand) ? hand : null;
 }
 
@@ -871,7 +871,7 @@ export function attackModifiers(
     out.push(ligneDeRegle('possession-pas-a-sa-taille', 'possession-pas-a-sa-taille'));
   }
   // Main secondaire (LDB 14 l.78) ; Ambidextre la réduit via le registre combatFeatures.
-  if (weapon.hand === 'off') {
+  if (weapon.hand === 'secondaire') {
     const l = ligneDeRegle('main-secondaire', 'main-secondaire', { ajuste: (mod) => offHandPenalty(attacker, mod) });
     if (l.value) out.push(l);
   }
@@ -909,7 +909,7 @@ export function penaliteDeMainSecondaire(c: Combatant): number {
  *  0 en main principale ; 0 si arme à 1 main + Défensive + le défenseur a Corps à corps (Parade) ; sinon
  *  `base` transformée par Ambidextre. */
 export function parryPenalty(defender: Combatant, weapon: Weapon | undefined, base: number): number {
-  if (!weapon || weapon.hand !== 'off') return 0;
+  if (!weapon || weapon.hand !== 'secondaire') return 0;
   if (weapon.hands === 1 && hasQuality(weapon, 'defensive') && !!speDeCorpsACorps(defender, 'parade')) return 0;
   return offHandPenalty(defender, base);
 }
@@ -1111,7 +1111,7 @@ export function backstabWeapon(foe: Combatant): Weapon {
  *  vide. LDB 10 l.500 ; LDB 14 l.139 ; LDB 85 l.33-35, l.47 ; #1595 c.6237601266 (feuilles 2b, 2c). */
 export function armeDeMainPrincipale(c: Combatant): Weapon {
   const force = forceDuPorteur(c);
-  const tenues = c.weapons.filter((w) => w.type === 'melee' && w.hand !== 'off' && !hasQuality(w, 'defensive'));
+  const tenues = c.weapons.filter((w) => w.type === 'melee' && w.hand !== 'secondaire' && !hasQuality(w, 'defensive'));
   return tenues.reduce<Weapon | undefined>((m, w) => (m && effectiveWeaponDamage(m, force) >= effectiveWeaponDamage(w, force) ? m : w), undefined) ?? unarmedWeapon();
 }
 

@@ -38,7 +38,7 @@ const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}):
 
 const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as unknown as Weapon;
-const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
+const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'secondaire', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const piece = (qualites: string[], pa: number): ItemInstance =>
   ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...LOCALISATIONS_DE_COUP], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 

@@ -177,7 +177,7 @@ import type { LandCargoData } from './schemas/defs/land-cargo';
  *  avec `ctx.sl = DR`. La mécanique vit ICI (GameOp éditables), le flux `pendingGrapple` n'orchestre que le choix. */
 export interface GrappleRule {
   init: import('../engine/ops').GameOp[];
-  win: { damage: import('../engine/ops').GameOp[]; entangle: import('../engine/ops').GameOp[]; free: import('../engine/ops').GameOp[] };
+  win: { degats: import('../engine/ops').GameOp[]; empetrer: import('../engine/ops').GameOp[]; liberer: import('../engine/ops').GameOp[] };
   source?: SourceRef;
 }
 export const GRAPPLE = grappleJson as GrappleRule;
@@ -299,7 +299,7 @@ export interface ActionDef {
   /** L'action ARME son `mode` dans `battle.action` (mode à bouton). */
   armed?: true;
   /** Champ de POSTURE pré-armée basculé par l'action (`BattleState.stances`, spec HUD §1a G5). */
-  stance?: 'heldGround' | 'intoCrowd';
+  stance?: 'tirImmobile' | 'dansLeTas';
   coutAction: 'action' | 'mouvement' | 'gratuit' | 'aucun';
   /** Arbitrage NON-verbatim du coût — la RAISON en clair (même patron que `TraitData.maison`). */
   maison?: string;

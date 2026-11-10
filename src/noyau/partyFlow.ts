@@ -3,7 +3,7 @@
  * `(get, set)` que combatFlow : équipement (équiper/transférer), avancement PX
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  */
-import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
+import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../engine/types';
 import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
@@ -259,21 +259,21 @@ export function supprimerLaPanoplie(get: Get, set: Set, heroId: string, id: stri
  *  raison affichée, ou `null`. Verdict UNIQUE du geste `garnirLaPanoplie` et des deux écrans d'armes
  *  (`EquipmentPanel`, `HandPicker`). `hero` = la copie que l'appelant lit (`actorIn`). LDB 14 l.138 */
 export function refusEmplacementDeMain(
-  s: Pick<Jeu, 'battle'>, hero: Combatant, loadoutId: string, slot: 'main' | 'off', uid: string | null,
+  s: Pick<Jeu, 'battle'>, hero: Combatant, loadoutId: string, slot: Main, uid: string | null,
 ): string | null {
   const verrou = refusDInventaire(s);
   if (verrou) return verrou;
   const lo = hero.loadouts?.find((l) => l.id === loadoutId);
   if (!lo) return t('pf.loadoutNotFound');
   if ((hero.items ?? []).find((it) => it.uid === lo.main)?.conjured) return t('pf.loadoutConjured');
-  if (slot === 'off' && setADeuxMains(hero, lo)) return t('pf.offHandTwoHanded');
+  if (slot === 'secondaire' && setADeuxMains(hero, lo)) return t('pf.offHandTwoHanded');
   if (uid == null) return null;
   const it = (hero.items ?? []).find((i) => i.uid === uid);
   if (!it) return t('pf.loadoutItemNotFound');
-  return slot === 'off' && !isOffHandEligible(it) ? t('pf.offHandIneligible') : null;
+  return slot === 'secondaire' && !isOffHandEligible(it) ? t('pf.offHandIneligible') : null;
 }
 
-export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string, slot: 'main' | 'off', uid: string | null): void {
+export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string, slot: Main, uid: string | null): void {
   const hero = actorIn(get(), heroId);
   if (!hero) return void refuserGeste(get, set, t('pf.loadoutNotFound'));
   const refus = refusEmplacementDeMain(get(), hero, id, slot, uid);

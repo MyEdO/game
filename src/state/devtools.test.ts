@@ -203,7 +203,7 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
 
     expect(out).toContain('✓');
     const b = useGame.getState().battle!;
-    expect(b.over).toBe('victory');
+    expect(b.over).toBe('victoire');
     expect(b.combatants.filter((c) => c.kind === 'enemy').every((c) => isOutOfAction(c))).toBe(true);
     expect(useGame.getState().pendingVictory).toBeTruthy();
   });
@@ -1076,7 +1076,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('advanceSeaDay() fait avancer d’UN jour (cascade + halte de nuit résolues), s’arrête sur la cascade FRAÎCHE du jour suivant', async () => {
-    useGame.getState().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    useGame.getState().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const p = buildApi().advanceSeaDay();
     await vi.runAllTimersAsync();
     const msg = await p;

@@ -117,7 +117,7 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   it('l’arme DÉRIVÉE d’un objet porté (Crochet, LDB 73) est l’arme actuelle comparée à un objet d’étal (#2907)', () => {
     const h = pregen(idsDeTest, PREGEN.soldat);
     h.items = [...(h.items ?? []), { ...itemFromTrappingById('crochet', idsDeTest)!, equipped: true }];
-    for (const lo of h.loadouts ?? []) { lo.main = undefined; lo.off = undefined; }
+    for (const lo of h.loadouts ?? []) { lo.main = undefined; lo.secondaire = undefined; }
     recomputeLoadout(h);
     const c = compareEquip(gabaritDObjet('arme-simple')!, h);
     expect(c.currentName).toBe('Crochet');

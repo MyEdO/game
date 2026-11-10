@@ -61,7 +61,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
         fin.push(...emis(partie.envoyer(rangee ? { type: 'jetLancer', args: ['cascadeBatch', rangee.id] } : { type: 'jetValider', args: ['cascade'] })));
       }
       expect(partie.etat().pendingCascade, 'la cascade de fin de combat ne s’est pas close').toBeNull();
-      expect(partie.etat().battle!.over).toBe('victory');
+      expect(partie.etat().battle!.over).toBe('victoire');
       expect(fin).toContain('battle_over');
     } finally {
       partie.fermer();

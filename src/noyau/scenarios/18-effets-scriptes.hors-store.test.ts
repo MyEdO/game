@@ -32,7 +32,7 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
     runFlow(banc.getState, banc.setState, choice.flow!);
     const medic = banc.getState().medic;
     expect(medic?.npc?.id).toBe('medecin');
-    expect(medic?.npc?.acts.map((a) => a.act)).toEqual(['wounds', 'bleed']);
+    expect(medic?.npc?.acts.map((a) => a.act)).toEqual(['blessures', 'hemorragie']);
     expect(medic?.npc?.acts[0].cost).toEqual({ silver: 5 });
   });
 

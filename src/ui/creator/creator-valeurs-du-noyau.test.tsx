@@ -54,7 +54,7 @@ describe('bornes des compteurs : celles du noyau', () => {
   });
 
   it('100 Points : 18 ferme « augmenter »', () => {
-    const d = withCompteur({ ...pret(), charMode: 'pointBuy' }, { genre: 'points', k: 'capacite-de-combat' }, 18);
+    const d = withCompteur({ ...pret(), charMode: 'repartition' }, { genre: 'points', k: 'capacite-de-combat' }, 18);
     expect(incFerme(renderToStaticMarkup(<CharScreen d={d} setD={() => {}} />), 'Capacité de Combat')).toBe(true);
   });
 });

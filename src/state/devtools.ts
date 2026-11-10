@@ -1768,7 +1768,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return {
         set: lo ? loadoutLabel(lo, c) : null,
         principale: objet(lo?.main),
-        seconde: objet(lo?.off),
+        seconde: objet(lo?.secondaire),
         tenues: (c.weapons ?? []).map((w) => ({ uid: w.uid ?? null, label: w.label, type: w.type })),
         armeDeParade: c.weapons?.[0]?.label ?? null,
         defense: bestDefenseMode(c),

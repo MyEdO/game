@@ -384,11 +384,11 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   it('le gain suit « Argent à gaspiller » : la bourse est vidée à la clôture, le dépôt bancaire SURVIT', () => {
     joue(3, true);
     expect(bourse(), '(BSoc 4 × 3 DR) × 4 heures').toBe(48);
-    banc.setState({ bank: [{ uid: 'depot-1', heroId: heroId(), kind: 'stash', brass: 60, rate: 5 }] });
+    banc.setState({ bank: [{ uid: 'depot-1', heroId: heroId(), kind: 'planque', brass: 60, rate: 5 }] });
     banc.getState().fenetreValider('interlude');
     draineCascade(banc.getState);
     expect(bourse(), 'LDB 23 l.166 : les pièces restantes sont perdues').toBe(0);
-    expect(banc.getState().bank).toEqual([{ uid: 'depot-1', heroId: banc.getState().party[0].id, kind: 'stash', brass: 60, rate: 5 }]);
+    expect(banc.getState().bank).toEqual([{ uid: 'depot-1', heroId: banc.getState().party[0].id, kind: 'planque', brass: 60, rate: 5 }]);
   });
 });
 

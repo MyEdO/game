@@ -31,7 +31,7 @@ function setBattle(combatants: Combatant[], activeId: string) {
     mode: 'battle',
     battle: {
       combatants, order, baseOrder: order, turn: order.indexOf(activeId), round: 1,
-      action: 'heal', selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
+      action: 'soins', selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false,
       log: [], over: null,
     } as any, // le Soin se commet depuis son mode armé (`HEAL_MODE`)
     pendingHeal: null,
@@ -62,12 +62,12 @@ describe('Guérison — flux combat', () => {
     const t = hero({ id: 'al', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } });
     setBattle([doc, t], 'doc');
     banc.getState().ouvrirLaGuerison('al'); // ciblage carte → mode par défaut
-    expect(banc.getState().pendingHeal!.mode).toBe('wounds');
-    banc.getState().jetRegler('heal', 'mode', 'bleed'); // l'allié a les DEUX soins applicables → on bascule
-    expect(banc.getState().pendingHeal!.mode).toBe('bleed');
+    expect(banc.getState().pendingHeal!.mode).toBe('blessures');
+    banc.getState().jetRegler('heal', 'mode', 'hemorragie'); // l'allié a les DEUX soins applicables → on bascule
+    expect(banc.getState().pendingHeal!.mode).toBe('hemorragie');
     banc.getState().jetLancer('heal'); // dé lancé → choix verrouillé
-    banc.getState().jetRegler('heal', 'mode', 'wounds');
-    expect(banc.getState().pendingHeal!.mode).toBe('bleed'); // inchangé post-jet
+    banc.getState().jetRegler('heal', 'mode', 'blessures');
+    expect(banc.getState().pendingHeal!.mode).toBe('hemorragie'); // inchangé post-jet
   });
 
   it('réglage heal.mode : refuse un mode non applicable à la cible', () => {
@@ -75,8 +75,8 @@ describe('Guérison — flux combat', () => {
     const t = hero({ id: 'al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } }); // aucune Hémorragie
     setBattle([doc, t], 'doc');
     banc.getState().ouvrirLaGuerison('al');
-    banc.getState().jetRegler('heal', 'mode', 'bleed'); // indisponible (pas d'hémorragie) → ignoré
-    expect(banc.getState().pendingHeal!.mode).toBe('wounds');
+    banc.getState().jetRegler('heal', 'mode', 'hemorragie'); // indisponible (pas d'hémorragie) → ignoré
+    expect(banc.getState().pendingHeal!.mode).toBe('blessures');
   });
 
   it('limite 1/rencontre : 2e « wounds » indisponible, « bleed » reste possible', () => {
@@ -84,9 +84,9 @@ describe('Guérison — flux combat', () => {
     const t = hero({ id: 'al', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }], soinRencontreUtilise: true, pos: { x: 2, y: 1 } });
     setBattle([doc, t], 'doc');
     banc.getState().ouvrirLaGuerison('al'); // l'acte d'ouverture saute les Blessures (déjà soigné cette rencontre)
-    expect(banc.getState().pendingHeal!.mode).toBe('bleed');
-    banc.getState().jetRegler('heal', 'mode', 'wounds'); // refusé
-    expect(banc.getState().pendingHeal!.mode).toBe('bleed');
+    expect(banc.getState().pendingHeal!.mode).toBe('hemorragie');
+    banc.getState().jetRegler('heal', 'mode', 'blessures'); // refusé
+    expect(banc.getState().pendingHeal!.mode).toBe('hemorragie');
   });
 
   it('soigner un allié Inconscient le relève une fois > 0 PB (LDB 18 l.15)', () => {
@@ -107,14 +107,14 @@ describe('Guérison — flux combat', () => {
     const t = hero({ id: 'al', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }], pos: { x: 2, y: 1 } });
     setBattle([doc, t], 'doc');
     banc.getState().ouvrirLaGuerison('al');
-    banc.getState().jetRegler('heal', 'mode', 'bleed');
+    banc.getState().jetRegler('heal', 'mode', 'hemorragie');
     expect(banc.getState().pendingHeal!.difficulty).toBe('intermediaire'); // mode LDB par défaut
-    banc.setState({ pendingHeal: null, battle: { ...banc.getState().battle!, action: 'heal' } }); // re-armé
+    banc.setState({ pendingHeal: null, battle: { ...banc.getState().battle!, action: 'soins' } }); // re-armé
 
     try {
       setRule('combat-aa-blessures', 'aa');
       banc.getState().ouvrirLaGuerison('al');
-      banc.getState().jetRegler('heal', 'mode', 'bleed');
+      banc.getState().jetRegler('heal', 'mode', 'hemorragie');
       expect(banc.getState().pendingHeal!.difficulty).toBe('accessible');
       expect(banc.getState().pendingHeal!.target).toBe(banc.getState().pendingHeal!.skillValue + 20);
     } finally { resetRule('combat-aa-blessures'); }
@@ -139,9 +139,9 @@ describe('Guérison — flux combat', () => {
       setRule('combat-aa-blessures', 'aa');
       banc.getState().ouvrirLaGuerison('al');
       expect(banc.getState().pendingHeal!.difficulty).toBe('intermediaire');
-      banc.getState().jetRegler('heal', 'mode', 'bleed');
+      banc.getState().jetRegler('heal', 'mode', 'hemorragie');
       expect(banc.getState().pendingHeal!.difficulty).toBe('accessible');
-      banc.getState().jetRegler('heal', 'mode', 'wounds');
+      banc.getState().jetRegler('heal', 'mode', 'blessures');
       expect(banc.getState().pendingHeal!.difficulty).toBe('intermediaire');
     } finally { resetRule('combat-aa-blessures'); }
   });
@@ -151,11 +151,11 @@ describe('Guérison — flux combat', () => {
     const t = hero({ id: 'al', wounds: blessuresDeBase(12, 3), pos: { x: 2, y: 1 } });
     setBattle([doc, t], 'doc');
     banc.getState().ouvrirLaGuerison('al');
-    banc.getState().jetRegler('heal', 'mode', 'ammo'); // refusé : aucune munition logée
-    expect(banc.getState().pendingHeal!.mode).toBe('wounds');
+    banc.getState().jetRegler('heal', 'mode', 'munition'); // refusé : aucune munition logée
+    expect(banc.getState().pendingHeal!.mode).toBe('blessures');
     banc.setState({ battle: { ...banc.getState().battle!, combatants: [doc, { ...t, conditions: [{ id: 'munition-logee', value: 1 }] }] } });
-    banc.getState().jetRegler('heal', 'mode', 'ammo');
-    expect(banc.getState().pendingHeal!.mode).toBe('ammo');
+    banc.getState().jetRegler('heal', 'mode', 'munition');
+    expect(banc.getState().pendingHeal!.mode).toBe('munition');
     expect(banc.getState().pendingHeal!.difficulty).toBe('intermediaire');
   });
 
@@ -165,7 +165,7 @@ describe('Guérison — flux combat', () => {
     const ennemi = hero({ id: 'e', kind: 'enemy', pos: { x: 9, y: 9 } }); // le combat dure au-delà de la 1re Action
     setBattle([doc, t, ennemi], 'doc');
     banc.getState().ouvrirLaGuerison('al');
-    banc.getState().jetRegler('heal', 'mode', 'ammo');
+    banc.getState().jetRegler('heal', 'mode', 'munition');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: true, sl: 0 } });
     banc.getState().jetValider('heal');
@@ -173,7 +173,7 @@ describe('Guérison — flux combat', () => {
     expect(al.conditions.find((c) => c.id === 'munition-logee')).toBeUndefined();
     // plafond relevé : un soin de Blessures ultérieur peut atteindre le max complet
     al.soinRencontreUtilise = false;
-    banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: 'heal' } });
+    banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: 'soins' } });
     banc.getState().ouvrirLaGuerison('al');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: true, sl: 5 } });
@@ -187,7 +187,7 @@ describe('Guérison — flux combat', () => {
     const t = hero({ id: 'al', wounds: blessuresDeBase(12, 10), conditions: [{ id: 'munition-logee', value: 1 }], pos: { x: 2, y: 1 } });
     setBattle([doc, t], 'doc');
     banc.getState().ouvrirLaGuerison('al');
-    banc.getState().jetRegler('heal', 'mode', 'ammo');
+    banc.getState().jetRegler('heal', 'mode', 'munition');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: false, sl: -2 } });
     banc.getState().jetValider('heal');
@@ -216,7 +216,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [doc, al], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('al');
     const ph = banc.getState().pendingHeal!;
-    expect(ph.mode).toBe('wounds');
+    expect(ph.mode).toBe('blessures');
     expect(banc.getState().battle).toBeNull(); // contexte hors combat (résolution via party)
     expect(ph.healerId).toBe('doc');
     banc.getState().jetLancer('heal');
@@ -234,10 +234,10 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const al = hero({ id: 'al', label: 'Saigné', conditions: [{ id: 'hemorragique', value: 2 }], skills: [] });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, al], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('al');
-    banc.getState().jetRegler('heal', 'mode', 'bleed');
+    banc.getState().jetRegler('heal', 'mode', 'hemorragie');
     const ph = banc.getState().pendingHeal!;
     expect(banc.getState().battle).toBeNull(); // résolu hors combat, via la party
-    expect(ph.mode).toBe('bleed');
+    expect(ph.mode).toBe('hemorragie');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: true, sl: 1 } });
     banc.getState().jetValider('heal');
@@ -253,10 +253,10 @@ describe('Guérison — infirmerie (hors combat)', () => {
     try {
       setRule('combat-aa-blessures', 'aa');
       banc.getState().ouvrirLeMedecin('al');
-      banc.getState().jetRegler('heal', 'mode', 'bleed');
+      banc.getState().jetRegler('heal', 'mode', 'hemorragie');
       expect(banc.getState().pendingHeal!.difficulty).toBe('accessible');
       resetRule('combat-aa-blessures');
-      banc.getState().jetRegler('heal', 'mode', 'bleed'); // l'acte recalcule son soin
+      banc.getState().jetRegler('heal', 'mode', 'hemorragie'); // l'acte recalcule son soin
       expect(banc.getState().pendingHeal!.difficulty).toBe('intermediaire');
     } finally { resetRule('combat-aa-blessures'); }
   });
@@ -279,8 +279,8 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({ id: 'p', label: 'Patient', skills: [], traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD', { be: 4 })]) }); // 26 j
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    banc.getState().jetRegler('heal', 'mode', 'trauma');
-    expect(banc.getState().pendingHeal!.mode).toBe('trauma');
+    banc.getState().jetRegler('heal', 'mode', 'traumatisme');
+    expect(banc.getState().pendingHeal!.mode).toBe('traumatisme');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: true, sl: 2 } });
     banc.getState().jetValider('heal');
@@ -294,14 +294,14 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({ id: 'p', label: 'Patient', skills: [], traumas: avecSequelles([], [tk('dechirure', 'mineur', 'jambeD', { be: 4 })]) }); // 26 j
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    banc.getState().jetRegler('heal', 'mode', 'trauma');
+    banc.getState().jetRegler('heal', 'mode', 'traumatisme');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: false, sl: -2 } });
     banc.getState().jetValider('heal');
     const p = banc.getState().party.find((c) => c.id === 'p')!;
     expect(p.traumas![0].recoveryDays).toBe(26); // aucun bénéfice…
     expect(p.traumas![0].healAccelerated).toBe(true); // …mais le jet est consommé
-    expect(availableHealModes(p)).not.toContain('trauma'); // l'acte n'est plus proposé
+    expect(availableHealModes(p)).not.toContain('traumatisme'); // l'acte n'est plus proposé
   });
 
   it('soin de Blessures : un jet RATÉ consomme le soin de la rencontre (LDB 09 l.233 : « un jet »)', () => {
@@ -309,7 +309,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const al = hero({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 4), skills: [] });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, al], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('al');
-    banc.getState().jetRegler('heal', 'mode', 'wounds');
+    banc.getState().jetRegler('heal', 'mode', 'blessures');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: false, sl: -1 } }); // BI+DR ≥ 0 : pas de dégâts
     banc.getState().jetValider('heal');
@@ -324,7 +324,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(12, 6) });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    banc.getState().jetRegler('heal', 'mode', 'wounds');
+    banc.getState().jetRegler('heal', 'mode', 'blessures');
     banc.getState().jetLancer('heal');
     // fige un Échec Stupéfiant reproductible (DR −6) avant Appliquer.
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: false, sl: -6 } });
@@ -338,7 +338,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    banc.getState().jetRegler('heal', 'mode', 'surgery');
+    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
     banc.getState().jetLancer('heal'); // ARME l'opération — chirurgien figé — et pose la 1re passe
     const sg0 = banc.getState().medic!.surgery!;
     expect(sg0.healerId).toBe('doc');
@@ -365,13 +365,13 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    banc.getState().jetRegler('heal', 'mode', 'surgery');
+    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
     banc.getState().jetLancer('heal');
     expect(banc.getState().pendingSurgery).not.toBeNull();
     banc.getState().jetAnnuler('surgery');
     expect(banc.getState().pendingSurgery).toBeNull();
     expect(banc.getState().medic?.surgery).toBeTruthy();
-    expect(banc.getState().pendingHeal?.mode, 'le brouillon reprend l’opération armée').toBe('surgery');
+    expect(banc.getState().pendingHeal?.mode, 'le brouillon reprend l’opération armée').toBe('chirurgie');
 
     banc.getState().jetLancer('heal'); // reprend : rouvre la passe
     expect(banc.getState().pendingHeal).toBeNull();
@@ -392,7 +392,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null, pendingCascade: null });
     banc.getState().ouvrirLeMedecin('p');
-    banc.getState().jetRegler('heal', 'mode', 'surgery');
+    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
     banc.getState().jetLancer('heal');
     const sg0 = banc.getState().medic!.surgery!;
     banc.setState({ medic: { ...banc.getState().medic!, surgery: { ...sg0, targetDR: 1, skill: 99 } } });
@@ -421,7 +421,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     });
     banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    banc.getState().jetRegler('heal', 'mode', 'surgery');
+    banc.getState().jetRegler('heal', 'mode', 'chirurgie');
     const brasD = patient.traumas!.find((t) => t.location === 'brasD')!;
     const jambeG = patient.traumas!.find((t) => t.location === 'jambeG')!;
     banc.getState().fenetreChoisir('medic', 'plaie', brasD.uid); // au brouillon : opérer la blessure du brasD
@@ -441,10 +441,10 @@ describe('Guérison — infirmerie (hors combat)', () => {
     });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, patient], pendingHeal: null, pendingSurgery: null, medic: null });
     banc.getState().ouvrirLeMedecin('p');
-    expect(banc.getState().pendingHeal!.mode).toBe('recovery');
+    expect(banc.getState().pendingHeal!.mode).toBe('reeducation');
     banc.getState().jetLancer('heal'); // ARME la rééducation et pose la 1re passe
     const sg0 = banc.getState().medic!.surgery!;
-    expect(sg0.kind).toBe('recovery');
+    expect(sg0.kind).toBe('reeducation');
     expect(sg0.difficulty).toBe('accessible'); // Test étendu de Guérison Accessible (+20), LDB 18 l.120/179
     expect(sg0.targetDR).toBe(6);
     // compétence très haute → converge en quelques passes ; on garde la vraie cible DR 6.
@@ -479,9 +479,9 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const al = hero({ id: 'al', label: 'Percé', conditions: [{ id: 'munition-logee', value: 1 }], skills: [] });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, al], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('al');
-    banc.getState().jetRegler('heal', 'mode', 'ammo');
+    banc.getState().jetRegler('heal', 'mode', 'munition');
     const ph = banc.getState().pendingHeal!;
-    expect(ph.mode).toBe('ammo');
+    expect(ph.mode).toBe('munition');
     expect(ph.difficulty).toBe('intermediaire');
     banc.getState().jetLancer('heal');
     banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, success: true, sl: 0 } });
@@ -495,8 +495,8 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const al = hero({ id: 'al', skills: [] });
     banc.setState({ mode: 'exploration', battle: null, party: [doc, al], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('al');
-    banc.getState().jetRegler('heal', 'mode', 'ammo');
-    expect(banc.getState().pendingHeal!.mode).toBe('wounds');
+    banc.getState().jetRegler('heal', 'mode', 'munition');
+    expect(banc.getState().pendingHeal!.mode).toBe('blessures');
   });
 
   it('PNJ payant : débit au lancer (DÉPENSE DE GROUPE), jamais au brouillon, qui ne s’annule pas', () => {
@@ -504,7 +504,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [al], pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, 'al', { gold: 0, silver: 10, brass: 0 }); // bourse du groupe (seul membre) = 10 pistoles
     const purse = () => bourseOf(banc.getState().party.find((h) => h.id === 'al')!);
-    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'wounds', cost: { silver: 5 } }] });
+    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'blessures', cost: { silver: 5 } }] });
     expect(banc.getState().pendingHeal!.healerName).toBe('Médecin');
     expect(purse().silver).toBe(10); // le brouillon ne coûte rien
     banc.getState().jetAnnuler('heal'); // fermé hors combat
@@ -522,7 +522,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const bob = hero({ id: 'bob', skills: [] }); // porte la bourse du groupe
     banc.setState({ mode: 'exploration', battle: null, party: [al, bob], pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, 'bob', { gold: 0, silver: 10, brass: 0 });
-    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'wounds', cost: { silver: 5 } }] });
+    ouvrirLeMedecin(banc.getState, banc.setState, 'al', { id: 'med', label: 'Médecin', skill: { id: 'guerison', value: 55 }, intBonus: 4, acts: [{ act: 'blessures', cost: { silver: 5 } }] });
     banc.getState().jetLancer('heal');
     // Le soin se lance MALGRÉ la bourse vide du patient : le groupe a payé.
     expect(banc.getState().pendingHeal!.healerName).toBe('Médecin');

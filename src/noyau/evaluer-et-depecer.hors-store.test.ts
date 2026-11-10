@@ -50,7 +50,7 @@ describe('evaluerLObjet : un verbe pour l’objet porté et la ligne de butin en
 
   it('une ligne de l’écran de victoire (`victory`)', () => {
     banc.setState({ party: [heros('a')], pendingVictory: victoire({ gear: [ligne('L0')] }) } as never);
-    g().evaluerLObjet('L0', 'evaluate');
+    g().evaluerLObjet('L0', 'evaluation');
     expect(g().pendingAppraise?.gear).toEqual({ scope: 'victory', uid: 'L0' });
   });
 
@@ -70,7 +70,7 @@ describe('evaluerLObjet : chaque refus est dit, aucune évaluation ne s’ouvre'
 
   it('la Détection d’une ligne déjà tentée par le seul détecteur (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', DETECTEUR)], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { detectTriedBy: ['a'] })] } } as never);
-    g().evaluerLObjet('L0', 'detect');
+    g().evaluerLObjet('L0', 'detection');
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Épée' }), null]);
   });
 
@@ -187,7 +187,7 @@ describe('coop à 3 sièges : évaluer et dépecer restent à l’hôte, refusé
 
   it.each([
     ['une ligne du butin', () => enCoop({ pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0']],
-    ['sa Détection', () => enCoop({ party: [heros('a', DETECTEUR), heros('b'), heros('c')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0', 'detect']],
+    ['sa Détection', () => enCoop({ party: [heros('a', DETECTEUR), heros('b'), heros('c')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0', 'detection']],
     ['une ligne de la victoire', () => enCoop({ pendingVictory: victoire({ gear: [ligne('V0')] }) }), ['V0']],
   ] as const)('evaluerLObjet sur %s : l’invité hors de la liste, rien ne s’ouvre', (_cas, poser, args) => {
     const issues = PAR_SIEGE.map((siege) => {
