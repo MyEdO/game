@@ -41,14 +41,14 @@ describe('la journée de route par le pont', () => {
     expect((c['voyage/route'] as Jauge), 'les km du trajet').toMatchObject({ courant: 24, max: 30 });
     expect(Object.keys(c).filter((id) => id.startsWith('voyage/etape/')), 'la frise : le départ, l’arrivée').toEqual(['voyage/etape/depart', 'voyage/etape/arrivee']);
     expect([(c['voyage/etape/depart'] as Puce).libelle, (c['voyage/etape/arrivee'] as Puce).libelle]).toEqual(['Weiler', 'Steinbruck']);
-    const cartes = Object.values(c).filter((e): e is Entite => e.id.startsWith('heros/'));
-    expect(cartes.map((h) => h.nom), 'le groupe en cartes').toEqual(['Bjorn (test)', 'Mira (test)', 'Aldric (test)', 'Greta Hartmann']);
+    const cartes: Entite[] = suite.vue.zones['groupe.heros'];
+    expect(cartes.map((h) => h.nom), 'le groupe en cartes, au pied de l’écran').toEqual(['Bjorn (test)', 'Mira (test)', 'Aldric (test)', 'Greta Hartmann']);
     for (const h of cartes) {
       expect(h.elements[0], `${h.nom} : ses Blessures`).toMatchObject({ type: 'jauge', id: 'blessures' });
       const jets = h.elements.filter((e): e is Jet => e.type === 'jet');
       expect(jets.map((j) => [j.qui, j.resultat]), `${h.nom} : son jet de l’étape, sur sa carte, à lancer`).toEqual([[null, null]]);
     }
-    expect(Object.values(c).some((e) => e.type === 'jet'), 'aucun jet de héros hors de sa carte').toBe(false);
+    expect(Object.values(c).some((e) => e.type === 'jet'), 'aucun jet de héros dans le corps de la fenêtre').toBe(false);
     expect(lignes.map((l) => l.texte), 'la météo du jour, tirée sans arrêt').toContain('Météo : Temps sec.');
     expect(c['voyage/meteo'], 'la météo du jour dans la scène').toMatchObject({ texte: 'Temps sec' });
   });

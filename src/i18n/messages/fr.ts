@@ -523,6 +523,7 @@ export const fr = {
   'ecran.fiche.resilience': 'Résilience',
   'ecran.fiche.determination': 'Détermination',
   'ecran.fiche.fermer': 'Fermer',
+  'ecran.fiche.ouvrir': 'Fiche',
   'ecran.fiche.competence': '{carac} {base} + {avances}',
   'ecran.fiche.nombre': '×{nombre}',
   'ecran.fiche.possession': '{libelle} ×{nombre}',

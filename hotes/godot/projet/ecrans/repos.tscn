@@ -42,13 +42,14 @@ ids = PackedStringArray("voyage/etape/")
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
-[node name="Dormeurs" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
+[node name="Reste" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
 theme_type_variation = &"Mosaique"
 size_flags_horizontal = 3
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Dormeurs"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Reste" node_paths=PackedStringArray("masque")]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
+masque = NodePath("../..")
 
 [node name="Note" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
 

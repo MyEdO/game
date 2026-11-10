@@ -5,7 +5,7 @@
 
 [node name="Jauge" type="HBoxContainer"]
 theme_type_variation = &"RangeeSerree"
-custom_minimum_size = Vector2(250, 0)
+custom_minimum_size = Vector2(214, 0)
 size_flags_horizontal = 3
 
 [node name="Libelle" type="Label" parent="."]

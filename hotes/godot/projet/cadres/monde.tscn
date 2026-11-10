@@ -52,10 +52,11 @@ source = "fenetre.etape"
 
 [node name="Bourse" type="HBoxContainer" parent="Cadre/Marges/Colonne"]
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Bourse"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Bourse" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("bourse")
+masque = NodePath("..")
 
 [node name="Contenu" type="VBoxContainer" parent="Cadre/Marges/Colonne"]
 theme_type_variation = &"Pile"

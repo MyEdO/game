@@ -5,7 +5,7 @@
  * autre héros, un consommable utilisé.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Jeu } from '../../../src/hote/elements';
 
@@ -38,7 +38,7 @@ describe('l’inventaire d’un héros par le pont', () => {
   it('hors combat, chaque geste d’une possession se joue et change la partie', () => {
     let { suite: s } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
     while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
-    const rosa = s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Apothicaire')!;
+    const rosa = ficheDuHeros(s.vue, 'Apothicaire');
     s = suiteDe(appel('fiche', rosa.jeu));
 
     s = choisir(s, 'Justaucorps de cuir');
@@ -78,7 +78,7 @@ describe('l’inventaire d’un héros par le pont', () => {
     s = jouer(donner.valeurs.find((v) => v.libelle === 'Soldat')!.jeu);
     expect(possessions(s).map((p) => p.libelle), 'donné, il quitte la fiche de son héros').not.toContain('Pilon et Mortier');
     expect(s.vue.zones['fiche.objet'], 'et n’est plus choisi').toEqual([]);
-    s = suiteDe(appel('fiche', s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Soldat')!.jeu));
+    s = suiteDe(appel('fiche', ficheDuHeros(s.vue, 'Soldat').jeu));
     expect(possessions(s).map((p) => p.libelle), 'il rejoint celle de l’autre héros').toContain('Pilon et Mortier');
   });
 });
