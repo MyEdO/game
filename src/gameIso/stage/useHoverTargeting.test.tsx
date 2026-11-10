@@ -12,7 +12,7 @@ import { useHoverTargeting, type HoverAim } from './useHoverTargeting';
 import { AimOverlay } from './AimOverlay';
 import type { Dims } from '../../geometry/iso';
 import type { Combatant } from '../../engine/types';
-import { armedIntentPortee, chargeArmee, PORTEE_COURSE } from '../../noyau/localIntent';
+import { armedIntentPortee, chargeArmee, intentionLocale, PORTEE_COURSE } from '../../noyau/localIntent';
 import { effectiveMovement } from '../../engine/encumbrance';
 import { t } from '../../i18n';
 import { cascadeDeTest } from '../../noyau/cascade.testkit';
@@ -381,7 +381,7 @@ describe('useHoverTargeting — le survol n’affiche que le FAISABLE, le refus 
     const active = setup();
     const foe = foeAPorteeDeCharge(active);
     useGame.setState({ localIntent: { actionId: 'charge' } });
-    expect(chargeArmee(useGame.getState), 'l’action « charge » doit armer la portée de Charge').toBe(true);
+    expect(chargeArmee(intentionLocale(useGame.getState)), 'l’action « charge » doit armer la portée de Charge').toBe(true);
     const aim = probeAim({ x: foe.pos!.x, y: foe.pos!.y });
     expect(aim?.path?.length, 'le chemin réel de la Charge est tracé').toBeGreaterThan(1);
     const html = ecran(aim);

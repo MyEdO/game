@@ -35,7 +35,7 @@ import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import type { GenreDeCascade, IssueDeTestEtendu, RegleDeSucces } from './tablesPosees';
 import type { MenaceId } from '../engine/menace';
-import type { IdDeLigneDeButin, IdDePlaieDeLOperation } from './designations';
+import type { IdDeLigneDeButin, IdDePlaieDeLOperation, IdDIntention } from './designations';
 /** Résultat du jet d'UN contributeur à un Test d'équipage par rôle (MDG 14). Défini ICI (neutre,
  *  avec les autres types de pending) pour que ce module ne dépende de RIEN du domaine naval —
  *  `shipManeuver.ts` le RÉ-IMPORTE (quarantaine d'import #328). */
@@ -701,11 +701,9 @@ export interface PendingApproach {
   sourceId: string;
   /** Son nom, FIGÉ au geste qui ouvre le Test. */
   sourceName: string;
-  /** Intention différée, relancée après un succès — avec le VERDICT D'ARMEMENT du geste d'origine
-   *  (`courseArmee`/`approche`, spec HUD § ARBITRAGE 2026-08-19). Il est CAPTURÉ ici parce que le clic
-   *  qui a ouvert ce gate a déjà dissous l'intention : le relire au store à la relance refuserait le
-   *  geste que le joueur vient de gagner (« armez la Charge » après un Test `calme-d-approche` réussi). */
-  intent: { kind: 'tile'; pt: Pt; courseArmee?: boolean } | { kind: 'entity'; id: string; approche?: boolean };
+  /** Geste différé, relancé après un succès avec l'intention de son clic d'origine (`OptionsDuClic.intentionId`), que ce
+   *  clic a dissoute. */
+  intent: { kind: 'tile'; pt: Pt; intentionId?: IdDIntention } | { kind: 'entity'; id: string; intentionId?: IdDIntention };
   result: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
   rerolled?: boolean;
 }
@@ -720,8 +718,8 @@ export interface PendingWard {
   targetId: string;
   /** Son nom, FIGÉ au geste qui ouvre le Test. */
   targetName: string;
-  /** VERDICT D'ARMEMENT capturé au clic qui a ouvert ce gate (même raison que `PendingApproach`). */
-  approche?: boolean;
+  /** L'intention du clic qui a ouvert ce gate (même raison que `PendingApproach`). */
+  intentionId?: IdDIntention;
   result: { success: boolean; roll: number; target?: number; clamped?: number; sl: number } | null;
   rerolled?: boolean;
 }

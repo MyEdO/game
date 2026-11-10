@@ -205,7 +205,7 @@ describe('les arguments de `jouer` se contrôlent contre le type du verbe', () =
 describe('les verbes et les scènes', () => {
   it('`lire verbes` rend la signature d’un verbe, ou les verbes dont le nom contient un morceau, sans partie', () => {
     const t = table();
-    expect(t.lire('verbes', { id: 'cliquerLaCase' }).texte).toBe('cliquerLaCase(pt: {"x": nombre, "y": nombre, "z"?: nombre}, entite?: id de combattant ou d’entité de scène, opts?: {"confirm"?: booleen, "approche"?: booleen,\n  "courseArmee"?: booleen})');
+    expect(t.lire('verbes', { id: 'cliquerLaCase' }).texte).toBe('cliquerLaCase(pt: {"x": nombre, "y": nombre, "z"?: nombre}, entite?: id de combattant ou d’entité de scène, opts?: {"confirm"?: booleen, "intentionId"?: id\n  d’intention})');
     expect(t.lire('verbes', { id: 'LObjet' }).texte).toMatch(/evaluerLObjet/);
     const tous = t.lire('verbes');
     expect(tous.erreur).toBeNull();

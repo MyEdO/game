@@ -12,7 +12,7 @@ export type { JeuDuNoyau } from './machinerieDuNoyau';
 export type { Get, Set } from './flowTypes';
 export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
-export { argsAvecVerdictLocal, porteesDuTour, preparerLIntentLocal } from './localIntent';
+export { argsAvecIntentionLocale, porteesDuTour, preparerLIntentLocal } from './localIntent';
 export { previewAttack, activeCombatant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, type Difficulty, type FireArc } from '../engine/types';
 export { formatMoney } from '../engine/money';

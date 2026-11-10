@@ -5,6 +5,7 @@ import type { BattleActionMode } from './actionRegistry';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
+import type { IdDIntention } from './designations';
 import type { RefusIHM } from './refusVisible';
 import type { EtatDeSequence } from './sequenceContract';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -618,8 +619,8 @@ export interface EtatDeJeu {
   finDeSeance: FinDeSeance | null;
   /** Combat monté (AA 9 l.36) : clic sur un couple cavalier+monture (deux ennemis) → choisir lequel
    *  frapper (le cavalier −10 si l'on est plus petit que la monture ; abattre la monture désarçonne). */
-  /** `approche` = VERDICT D'ARMEMENT capturé au clic qui a ouvert ce choix (cf. `PendingApproach`). */
-  pendingMountTarget: { riderId: string; mountId: string; approche?: boolean } | null;
+  /** `intentionId` = l'intention du clic qui a ouvert ce choix (cf. `PendingApproach`). */
+  pendingMountTarget: { riderId: string; mountId: string; intentionId?: IdDIntention } | null;
   /** Temps de jeu : minutes depuis l'époque (Hexenstag 2512 00:00, cf. clock.ts). « Tout est horodaté ». */
   gameTime: number;
   // ── Voyage & nourriture (#T2) ──

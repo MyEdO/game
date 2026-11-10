@@ -18,7 +18,7 @@ import type { Pt } from './monde/path';
 import type { IdDeCombattant, IdDeHeros, IdDePossession, IdDEntiteDeScene, IdDeTireurRapide, IdDIntention } from './designations';
 import type { OpenRestOpts } from './restFlow';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
-import type { BattleClickOpts, TileClickOpts } from './targetingModes';
+import type { BattleClickOpts, OptionsDuClic } from './targetingModes';
 import type { EtatDeJeu, Jeu, PaquetALancer, PendingInteract } from './etat';
 
 export interface MachinerieDuNoyau {
@@ -72,7 +72,7 @@ export interface MachinerieDuNoyau {
   cliquerLeCombattant: (id: IdDeCombattant, opts?: BattleClickOpts) => void;
   /** Le clic d'une case libre : le commit-case du mode de ciblage courant, sinon le déplacement de l'actif (aperçu,
    *  puis commit), la Course, ou le Désengagement de l'actif Engagé. */
-  cliquerLaCaseDuCombat: (pt: Pt, opts?: TileClickOpts) => void;
+  cliquerLaCaseDuCombat: (pt: Pt, opts?: OptionsDuClic) => void;
   // ── Commits de clic : le clic du champ (`cliquerLeCombattant`, `cliquerLaCaseDuCombat`) les appelle ──
   /** Tir rapide (talent, LDB 10) : INTERRUPTION à distance en début de Round (hors de l'ordre) ; le tir
    *  se résout par la modale de jet normale et épuise le tour normal du tireur (Action + Mouvement). */

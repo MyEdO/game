@@ -51,7 +51,7 @@ import { detenteurDuCiblage } from './targetingHolder';
 import { approachMs } from './combatDirector';
 import { ev } from './combatLog';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
-import { chargeArmee } from './localIntent';
+import { chargeArmee, intentionLocale } from './localIntent';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
@@ -63,6 +63,7 @@ import {
 import { selectedAttackOption, freeAttackTargetOk, auContactEligible, grappleActionEligible, type AttackOption } from './combatManeuvers';
 import { captureMoveSnapshot } from './monde/combatGeometry';
 import { displaceSmaller, applyZoneCrossings } from './combatPlacement';
+import type { IdDIntention } from './designations';
 
 export type HoverTargeting =
   | { kind: 'none' }
@@ -157,27 +158,20 @@ export interface TargetingMode {
 export type TileTargetingMode = TargetingMode & Required<Pick<TargetingMode, 'tileValidAt' | 'commitTile' | 'tilePreview'>>;
 
 /**
- * Les options que le clic d'une case porte (`cliquerLaCase`) : la confirmation et les deux verdicts d'armement.
- *
- * `approche` = VERDICT D'ARMEMENT de la Charge (spec HUD § ARBITRAGE 2026-08-19), sur un combattant : sans lui, un
- * clic-ennemi ne frappe qu'À PORTÉE et ne s'approche jamais tout seul. `courseArmee` en est le pendant exact pour la
- * zone de Course, sur une case libre. Ils VOYAGENT avec le geste, comme `confirm`, pour deux raisons mesurées :
- *  - COOP : l'intention est locale au CLIENT (`localIntent`, hors snapshot). L'hôte qui exécute
- *    l'intent d'un invité ne peut pas la relire dans SON store — il y verrait sa propre case. Le
- *    verdict se calcule donc chez l'émetteur (`localIntent.INTENT_VERDICT_ARGS`, joint par `netFlow`).
- *  - RÉ-ENTRÉE : un geste différé par un gate (Test `calme-d-approche`, Bénédiction de Protection,
- *    choix cavalier/monture) est REJOUÉ plus tard, quand l'intention a déjà été dissoute par le
- *    premier clic. Le verdict voyage donc aussi DANS le pending, et revient par ici à la relance.
- * Absent = « non renseigné » : le site d'appel local le calcule alors depuis SON store.
+ * Les options que le clic d'une case porte (`cliquerLaCase`) : la confirmation de l'émetteur, et l'intention que le clic
+ * commet (`intentionId`, spec HUD § ARBITRAGE 2026-08-19), d'où le receveur dérive la Charge et la Course et dont il juge
+ * l'offre (`localIntent.intentionDuClic`). Elle voyage avec le geste :
+ *  - COOP : l'intention est locale au CLIENT (`localIntent`, hors snapshot) ; l'émetteur la joint
+ *    (`localIntent.INTENTION_JOINTE_AUX_ARGS`) ;
+ *  - RÉ-ENTRÉE : un geste différé par un gate (Test `calme-d-approche`, Bénédiction de Protection, choix cavalier/monture)
+ *    est rejoué quand le premier clic a dissous l'intention ; elle voyage donc DANS le pending.
+ * Absente : l'intention locale du propriétaire du store.
  */
-export type OptionsDuClic = { confirm?: boolean; approche?: boolean; courseArmee?: boolean };
+export type OptionsDuClic = { confirm?: boolean; intentionId?: IdDIntention };
 
 /** Options du clic d'un combattant (`cliquerLeCombattant`) : celles du clic, et les sauts de portail d'une relance dans
  *  le noyau (`skipMountChoice`, `wardCleared`). */
-export type BattleClickOpts = Omit<OptionsDuClic, 'courseArmee'> & { skipMountChoice?: boolean; wardCleared?: boolean };
-
-/** Options du clic d'une case libre du combat (`cliquerLaCaseDuCombat`). */
-export type TileClickOpts = Omit<OptionsDuClic, 'approche'>;
+export type BattleClickOpts = OptionsDuClic & { skipMountChoice?: boolean; wardCleared?: boolean };
 
 /** Ops « cible » qui rendent un sort OFFENSIF → ciblable sur un ennemi (réticule + interdit hors portée,
  *  comme le tir). Tous les États WFRP sont négatifs (`condition`) ; `wounds` = Dégâts. Liste tenue
@@ -352,7 +346,7 @@ export type RefusDAttaque = { reason: Extract<HoverTargeting, { kind: 'invalid' 
 /**
  * Verdict UNIQUE de l'attaque du mode ATTAQUE : `attackAffordance` le rend en `invalid`, `attackClickCommit`
  * le lit en tête. `plan` = celui de l'approche-puis-frappe (`attackPlan`), `null` pour une option qui ne
- * frappe pas (zone, Au contact, Empoignade). `approche` = verdict d'armement de la Charge (`BattleClickOpts`).
+ * frappe pas (zone, Au contact, Empoignade). `approche` = la Charge armée par l'intention du clic (`chargeArmee`).
  * LDB 16 l.52 ; LDB 16 l.125 ; LDB 21 l.33 ; LDB 40 l.74 ; LDB 85 l.237 ; spec HUD § 2026-08-19.
  */
 export function refusDAttaque(get: Get, active: Combatant, target: Combatant, option: AttackOption, plan: AttackPlan | null, { approche }: { approche: boolean }): RefusDAttaque | null {
@@ -413,7 +407,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   // LE SURVOL N'AFFICHE QUE LE FAISABLE (contrat de ce fichier, arbitrage 2026-08-24) : le verdict du clic,
   // l'intention de Charge lue au client.
   const plan = planDuGeste(get, active, target, option);
-  const refus = refusDAttaque(get, active, target, option, plan, { approche: chargeArmee(get) });
+  const refus = refusDAttaque(get, active, target, option, plan, { approche: chargeArmee(intentionLocale(get)) });
   if (refus) return { kind: 'invalid', reason: refus.reason };
   if (option.targeting === 'zone') // Souffle/Vomi/Langue/Regard/Étreinte : réticule simple (portée/LdV au résolveur moteur)
     return { kind: 'ok', line: 'dashed', title: option.label, targetName: target.label, skill: 'Capacité de Combat', base: 0, mod: 0, dmg: null };
@@ -548,7 +542,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   if (!option || !scene) return;
   if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
   const plan = planDuGeste(get, active, target, option);
-  const refus = refusDAttaque(get, active, target, option, plan, { approche: !!opts?.approche });
+  const refus = refusDAttaque(get, active, target, option, plan, { approche: chargeArmee(opts?.intentionId ?? null) });
   if (refus) {
     refuserGesteDuSiege(get, set, refus.texte);
     if (battle.preview) set({ battle: { ...get().battle!, preview: null } });
@@ -580,19 +574,19 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     const rider = target.mountId ? target : inBattleId(battle, target.riderId);
     const mount = target.riderId ? target : inBattleId(battle, target.mountId);
     if (rider && mount && rider.kind !== 'hero' && mount.kind !== 'hero' && !isOutOfAction(rider) && !isOutOfAction(mount)) {
-      set({ pendingMountTarget: { riderId: rider.id, mountId: mount.id, approche: opts?.approche } });
+      set({ pendingMountTarget: { riderId: rider.id, mountId: mount.id, intentionId: opts?.intentionId } });
       return;
     }
   }
   // Peur (LDB 21 l.27) : charger / rejoindre une source de Peur = s'en RAPPROCHER (`retenuParLaPeur`).
-  if ((plan.kind === 'charge' || plan.kind === 'moveAttack') && retenuParLaPeur(get, set, active, plan.dest, { kind: 'entity', id, approche: opts?.approche })) return;
+  if ((plan.kind === 'charge' || plan.kind === 'moveAttack') && retenuParLaPeur(get, set, active, plan.dest, { kind: 'entity', id, intentionId: opts?.intentionId })) return;
   if (battle.preview) set({ battle: { ...get().battle!, preview: null } });
   // Bénédiction de Protection (LDB 41 l.142) : la cible bénie impose un Test de FM Accessible (+20)
   // AVANT d'engager quoi que ce soit (charge comprise). Le jet du HÉROS est INFLUENÇABLE (Chance/
   // Résilience) → il DIFFÈRE la déclaration derrière `pendingWard`. `wardCleared` = ce gate a déjà été
   // franchi pour CE clic (relance) → on le saute.
   if (!opts?.wardCleared && hasActiveFlag(target, 'attackWardFM')) {
-    set({ pendingWard: { attackerId: active.id, targetId: target.id, targetName: target.label, approche: opts?.approche, result: null }, battle: { ...get().battle!, preview: null } });
+    set({ pendingWard: { attackerId: active.id, targetId: target.id, targetName: target.label, intentionId: opts?.intentionId, result: null }, battle: { ...get().battle!, preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
     return;
   }
@@ -978,7 +972,7 @@ export function ciblageEntiteArme(get: Get): boolean {
 }
 
 /**
- * GESTES CONSOMMÉS CHEZ L'ÉMETTEUR (coop) — jumelle de `INTENT_VERDICT_ARGS` (`localIntent.ts`) :
+ * GESTES CONSOMMÉS CHEZ L'ÉMETTEUR (coop) — jumelle de `INTENTION_JOINTE_AUX_ARGS` (`localIntent.ts`) :
  * une action de clic, la façon de savoir si CE clic-là n'est qu'un choix d'ÉCRAN. Table déclarative,
  * jamais un `if (action === …)` au fil de `netFlow` ; les intents absents d'ici voyagent tous.
  *
