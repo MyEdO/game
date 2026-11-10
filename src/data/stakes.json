@@ -984,7 +984,6 @@
     "type": "stakes",
     "label": "Rumeurs commerciales",
     "cascade": "voyage",
-    "cle": "sea-rumeurs-commerciales",
     "template": "Réussi : une pénurie frappe un autre port — la Demande d’une cargaison y augmente pour un temps.",
     "form": "descripteur",
     "rule": {
