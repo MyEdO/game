@@ -5,7 +5,7 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { sceneMetresPerTile, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { dialoguesDeLaScene, sceneMetresPerTile, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
@@ -437,9 +437,9 @@ interface FormulaireDuPorteur<D> {
 }
 
 /** Les champs que le formulaire d'un personnage offre : de son rôle au combat, ses options, ses Compétences, le tirage de
- *  ses Caractéristiques et son embuscade ; son profil personnalisé ; sa contrepartie d'amateur des arts, son apparence,
- *  son animation. */
-const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['appearance'], ['anim']];
+ *  ses Caractéristiques et son embuscade ; son profil personnalisé ; sa contrepartie d'amateur des arts, son marchand, son
+ *  jeu de taverne, son apparence, son animation. */
+const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['merchant'], ['tavernGame'], ['appearance'], ['anim']];
 
 /** Les profils d'auteur qu'un PNJ de carrière ne porte pas (`refusDuPnjDeCarriere`) : son profil personnalisé et son preset. */
 const PROFILS_D_AUTEUR: readonly string[] = ['statblock', 'presetId'];
@@ -452,16 +452,18 @@ const APPARENCE_DU_PNJ_DE_CARRIERE: CheminsOfferts = champsDeclares(entityAppear
 const SORTS_CHOISIS = ['combat', 'spells'] as const;
 
 /** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), dans son cadre : son preset s'il en
- *  porte un ou si son narratif en déclare ; ses sorts choisis s'il en porte, ou si sa fiche (`ficheEditee`)
+ *  porte un ou si son narratif en déclare ; son dialogue s'il en porte un ou si sa scène en déclare
+ *  (`dialoguesDeLaScene`) ; ses sorts choisis s'il en porte, ou si sa fiche (`ficheEditee`)
  *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule et
  *  ses Améliorations (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
  *  et son apparence sans tenue (`APPARENCE_DU_PNJ_DE_CARRIERE`). */
-function champsDuPersonnage(ent: SceneEntity, { narratif }: CadreDuPorteur): CheminsOfferts {
+function champsDuPersonnage(ent: SceneEntity, { scene, narratif }: CadreDuPorteur): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
+  const dialogue = ent.dialogueId !== undefined || dialoguesDeLaScene(scene).size ? [['dialogueId']] : [];
   const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDuNarratif(narratif));
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
   const coque = ent.vehicule ? [['vehicule'], ['upgrades']] : [];
-  const champs = [...preset, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
+  const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
   if (!parcoursDe(ent)) return champs;
   return champs.flatMap((c) => (PROFILS_D_AUTEUR.includes(c[0]) ? [] : c[0] === 'appearance' ? APPARENCE_DU_PNJ_DE_CARRIERE : [c]));
 }
@@ -546,12 +548,20 @@ function choixDesApparencesDObjets(ent: SceneEntity, reste: readonly Segment[], 
   return apparencesChoisissablesDObjet(trappingId, objet).map((a) => ({ valeur: cle === undefined ? { id: a.id } : a.id, libelle: a.label, refus: null }));
 }
 
+/** Les choix que le contexte d'un personnage pose à son dialogue, sous lui au chemin `reste` : chaque dialogue que sa scène
+ *  déclare (`dialoguesDeLaScene`), posé entier ou par son identifiant. */
+function choixDuDialogue(reste: readonly Segment[], scene: Scene): readonly ChoixDuContexte[] | undefined {
+  if (reste.length > 1 || (reste.length === 1 && reste[0] !== 'id')) return undefined;
+  return [...dialoguesDeLaScene(scene).keys()].map((id) => ({ valeur: reste.length ? id : { id }, libelle: id, refus: null }));
+}
+
 /** Les choix que le contexte d'un personnage pose au chemin `chemin` de sa donnée, dans le cadre `cadre` : ceux de son
- *  profil personnalisé (`choixDuProfil`), de l'apparence de ses objets (`choixDesApparencesDObjets`), d'un sort choisi
- *  (`choixDesSorts`), de ses options (`choixDesOptions`). */
+ *  profil personnalisé (`choixDuProfil`), de son dialogue (`choixDuDialogue`), de l'apparence de ses objets
+ *  (`choixDesApparencesDObjets`), d'un sort choisi (`choixDesSorts`), de ses options (`choixDesOptions`). */
 function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const { narratif } = cadre;
   if (chemin.length === 1 && chemin[0] === 'statblock') return choixDuProfil(ent, presetDuNarratif(narratif));
+  if (chemin[0] === 'dialogueId') return choixDuDialogue(chemin.slice(1), cadre.scene);
   if (APPARENCES_D_OBJETS.every((cle, i) => chemin[i] === cle)) return choixDesApparencesDObjets(ent, chemin.slice(APPARENCES_D_OBJETS.length), cadre);
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;

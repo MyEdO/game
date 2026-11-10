@@ -25,7 +25,7 @@ import {
   seaNavigation, seaPerils, seaWeather, shipConstruction,
   disponibilite, riverNavigation, seaCargo, landCargo,
   GRAPPLE, STAKES,
-  regles,
+  regles, MERCHANT_ARCHETYPES,
 } from './index';
 // #157 : catalogues de CONTENU déjà chargés par un module dédié (`src/data/*.ts` ou `src/engine/*.ts`,
 // pas la façade `index.ts`) — importés DIRECTEMENT ici (même patron que `massBattle*` ci-dessus, qui
@@ -160,7 +160,7 @@ const ARRAYS = {
   // #157 : catalogues de CONTENU app-owned (façade `index.ts` ou module dédié), exposés au Codex.
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, navalTraits: NAVAL_TRAITS,
   montures: MOUNT_PROFILES, incidentsMonture: MOUNT_INCIDENTS, problemesVehicule: VEHICLE_PROBLEMS,
-  tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS,
+  tavernGames: TAVERN_GAMES, obsessions: OBSESSIONS, merchants: MERCHANT_ARCHETYPES,
   structureCriticals: STRUCTURE_CRITICALS, traumas,
   // Catalogue des cargaisons (#1684) : le dataset éditable est le tableau BRUT du JSON (marchandises ET
   // marqueurs de l'Index, des deux voies), pas la vue filtrée `marchandisesDe` — sinon une réécriture
