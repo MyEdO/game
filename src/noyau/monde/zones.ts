@@ -59,6 +59,9 @@ export interface BattleZone {
    *  Le Test de traversée (`crossTest`) en DÉRIVE son enjeu et son renvoi Codex (#1262 V2 L6d) :
    *  sans elle, la fenêtre demanderait un jet sans dire ce qui barre le passage. */
   source?: EffectSource;
+  /** Le rendu qui la montre tant qu'elle dure (#3834) : celui de la zone de scène, de la fumée d'un Souffle ; une
+   *  zone de sort prend celui de son sort (`source`). Aucun des deux : elle ne se voit pas. */
+  rendu?: { id: string };
 }
 
 /** Le combattant `mover` est-il GATÉ par la zone `z` (ciblé par sa barrière / son `perRound`) ? `gate:
@@ -143,6 +146,7 @@ export function sceneZonesToBattle(zones: SceneEffectZone[] | undefined, dims?: 
     perRound: z.perRound,
     barrier: z.barrier,
     crossTest: z.crossTest,
+    rendu: z.rendu,
   }));
 }
 

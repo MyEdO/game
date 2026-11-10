@@ -1,8 +1,10 @@
 """La caraque (fiche `caraque` de `src/data/vehicles.json`, #2987 lots V3 à V5) : les nœuds `coque`, `beaupre`,
 `misaine`, `grand_mat`, `grand_mat_arriere`, `artimon`, et ceux que l'Amélioration Sabord départage : `avec-sabord`
-(cadres et cartouches des sabords), `sans-sabord` (le bordé qui bouche leurs ouvertures) ; meshes sans skin ni
-armature. Ses ponts suivent leur source unique (`ponts` de la fiche, `plan_de_jeu.py`, #3686), que lit aussi le plan de
-jeu : pièces creusées, hauteurs, cloisons, portes, écoutilles, échelles et sabords sur les cases et arêtes du plan.
+(les cartouches sculptés du château autour de ses ouvertures), `sans-sabord` (le bordé qui bouche les ouvertures des
+sabords et les ouvertures vides, `OUVERTURES_VIDES`) ;
+meshes sans skin ni armature. Ses ponts suivent leur source unique (`ponts` de la fiche, `plan_de_jeu.py`, #3686), que
+lit aussi le plan de jeu : pièces creusées, hauteurs, cloisons, portes, écoutilles, échelles, sabords, pieds des mâts,
+proue et trappe de fret sur les cases et arêtes du plan (#3815).
 L'origine est le centre du plan ; z = 0 reste la flottaison. Les Améliorations navales se bâtissent sur sa coque
 (`ameliorations.py`)."""
 import math
@@ -12,9 +14,9 @@ from mathutils import Vector
 
 import habillage
 import plan_de_jeu
-from maille import Maille, lineaire, objet, poutre
-from navire import (AXES, Coque, Pieces, amenager, booleen, carre_de_blason, emprises, enceinte, espar, fondre, fuseau,
-                    nappe, reunir, uv_de_blason, vergue)
+from maille import Maille, boite, lineaire, objet, poutre
+from navire import (AXES, Coque, Pieces, amenager, booleen, carre_de_blason, cloison, emprises, enceinte, espar, fondre,
+                    fuseau, nappe, reunir, uv_de_blason, vergue)
 
 
 def grille_rayee(ns, rayures, bornes=()):
@@ -50,11 +52,13 @@ def voile_carree(maille, y0, z_haut, tete, bordure, z_bas, creux, grille, rayure
 
 def sabords_des_ponts(D, P, C, pieces):
     """Chaque sabord des ponts : (centre de son ouverture sur la face extérieure de la muraille, bord, plancher de sa
-    case, sorte de sa paroi, distance de la face extérieure à son arête). Au milieu de sa case sur un flanc ; sur le
-    tableau, au milieu de sa case tant que l'ouverture et son cadre y tiennent."""
+    case, sorte de sa paroi, distance de la face extérieure à son arête). Sur un flanc, au milieu de sa case, décalé
+    le long d'elle juste assez pour que sa pièce, à une épaisseur de cloison près, laisse passer l'échelle d'une trappe
+    de son pont (`echelles_au_sol`) ; sur le tableau, au milieu de sa case tant que l'ouverture et son cadre y tiennent."""
     E, CA = D["EMBRASURE"], D["CANON"]
     demi = E["ouverture"][0] / 2 + E["cadre"][0] + D["CLOISON"]["epaisseur"] / 2
     saillie = D["CHATEAU"]["niveaux"][4][1]
+    marge = D["CLOISON"]["epaisseur"]
     sortie = []
     for z, (cx, cy), bord in plan_de_jeu.sabords(P):
         c = (cx, cy, z)
@@ -63,6 +67,14 @@ def sabords_des_ponts(D, P, C, pieces):
         sorte = D["SOUS_LES_PONTS"][pieces.couverture[c]]["paroi"][0]
         if bord in ("tribord", "babord"):
             yy = C.y_du_plan(cx + 0.5)
+            mur = C.bord(C.f(yy), zc) if sorte == "bord" else C.lisse(C.f(yy)) + saillie
+            origine = mur - (CA["bouche"] - CA["saillie"])
+            dedans, dehors = sorted(AXES[bord].x * v for v in (origine - CA["derriere"], mur + CA["saillie"]))
+            for x0, x1, y0, y1 in echelles_au_sol(D, P, C, z):
+                if min(x1, dehors) > max(x0, dedans) and min(y1, yy + CA["demi_largeur"]) + marge > max(y0, yy - CA["demi_largeur"]):
+                    yy = y1 + marge + CA["demi_largeur"] if (y0 + y1) / 2 < yy else y0 - marge - CA["demi_largeur"]
+            if not C.y_du_plan(cx) + demi <= yy <= C.y_du_plan(cx + 1) - demi:
+                raise ValueError(f"sabord {c} : sa pièce ne laisse passer une échelle qu'hors de sa case")
             f = C.f(yy)
             mur = C.bord(f, zc) if sorte == "bord" else C.lisse(f) + saillie
             centre = Vector((AXES[bord].x * mur, yy, zc))
@@ -76,6 +88,154 @@ def sabords_des_ponts(D, P, C, pieces):
     return sortie
 
 
+def echelles_au_sol(D, P, C, z):
+    """L'emprise au sol de chaque échelle de trappe du pont `z`, comme `amenager` la pose à cheval sur son arête : (x de,
+    x à, y de, y à), en travers de son arête sa course au sol, le long d'elle sa largeur et ses montants."""
+    E = D["ECHELLE"]
+    sortie = []
+    for zz, trappe, pied, (sens, xp, yp) in plan_de_jeu.echelles(P):
+        if zz != z:
+            continue
+        course = (plan_de_jeu.hauteur(P, z, *trappe) - plan_de_jeu.hauteur(P, z, *pied)) / math.tan(math.radians(E["pente"])) / 2
+        large = E["largeur"] / 2 + E["montant"][0] / 2
+        if sens == "t":
+            x, y = C.x_du_plan(yp + 0.5), C.y_du_plan(xp)
+            sortie.append((x - large, x + large, y - course, y + course))
+        else:
+            x, y = C.x_du_plan(yp), C.y_du_plan(xp + 0.5)
+            sortie.append((x - course, x + course, y - large, y + large))
+    return sortie
+
+
+def ouvertures_vides(D, C):
+    """Chaque ouverture vide du Sabord (`OUVERTURES_VIDES`), des deux bords : (centre de son ouverture sur la face
+    extérieure de la muraille, bord, sorte de sa paroi)."""
+    for O in D["OUVERTURES_VIDES"]:
+        zc = C.hauteur(O["plancher"]) + O["axe"]
+        for xp in O["cases"]:
+            yy = C.y_du_plan(xp)
+            f = C.f(yy)
+            mur = C.bord(f, zc) if O["sorte"] == "bord" else C.lisse(f) + D["CHATEAU"]["niveaux"][4][1]
+            for bord in ("tribord", "babord"):
+                yield Vector((AXES[bord].x * mur, yy, zc)), bord, O["sorte"]
+
+
+def mats(D, P, C):
+    """Les `MATS`, chacun au milieu de la case de son pied (`GLYPHES["pieds"]`, de l'avant à l'arrière) : cette case,
+    son abscisse f, son x et son emplanture au plancher de cette case."""
+    pieds = sorted(k for k, g in P["cases"].items() if g in D["GLYPHES"]["pieds"])
+    return {nom: {**M, "case": (x, yy, z), "f": C.f(C.y_du_plan(x + 0.5)), "x": C.x_du_plan(yy + 0.5),
+                  "emplanture": P["hauteurs"][P["cases"][(x, yy, z)]]}
+            for (nom, M), (x, yy, z) in zip(D["MATS"].items(), pieds, strict=True)}
+
+
+def poulaine(D, P, C, coque, interieurs):
+    """La proue (`POULAINE`) : les cases du pont principal en avant du gaillard d'avant, sous le ciel ; la coque arasée au
+    plancher de ces cases jusqu'à la cloison avant du gaillard, la poulaine qui la prolonge au-delà de l'étrave sur son
+    éperon, et leur garde-corps le long de la coque arasée puis de la poulaine, fermé à son bout."""
+    PL, GL = D["POULAINE"], D["GLYPHES"]
+    debut = min(x for (x, _, z), g in P["cases"].items() if g == GL["gaillard"])
+    proue = [(x, yy, z) for (x, yy, z) in P["cases"]
+             if z == D["PONT_PRINCIPAL"] and x < debut and not any((x, yy, zz) in P["cases"] for zz in range(z + 1, P["ponts"]))]
+    h = max(P["hauteurs"][P["cases"][c]] for c in proue)
+    y_cloison = C.y_du_plan(debut) - D["CLOISON"]["sous_un_pont"] / 2
+    y_bout = C.y_du_plan(PL["bout"])
+    boite(interieurs, (-8.0, y_bout - 2.0, h + 0.005), (8.0, y_cloison, D["GAILLARD"]["niveaux"][0][0] - 0.01), "bois")
+    demi = PL["largeur"] / 2
+    boite(coque, (-demi, y_bout, h - 0.005 - PL["epaisseur"]), (demi, C.y_du_plan(1.0), h - 0.005), "bois")
+    (xa, za), (xb, zb) = PL["eperon"]
+    lp, hp = PL["section"]
+    poutre(coque, (0, C.y_du_plan(xa), za), (0, C.y_du_plan(xb), zb), hp, lp, (1, 0, 0), "bois")
+    hg, pas, sg = PL["garde_corps"]
+    retrait = 0.12
+    n = math.ceil((y_cloison - y_bout) / 0.25)
+    cote = [(max(demi, C.bord(C.f(yy), h)) - retrait, yy) for yy in (y_cloison - (y_cloison - y_bout - retrait) * i / n for i in range(n + 1))]
+    tour = [Vector((x, yy, 0)) for x, yy in cote + [(-x, yy) for x, yy in cote[::-1]]]
+    for a, b in zip(tour, tour[1:]):
+        for zr in (h + hg - sg / 2, h + hg / 2):
+            poutre(coque, a + Vector((0, 0, zr)), b + Vector((0, 0, zr)), sg, sg, (0, 0, 1), "bois")
+    cumul = [0.0]
+    for a, b in zip(tour, tour[1:]):
+        cumul.append(cumul[-1] + (b - a).length)
+    k = max(1, round(cumul[-1] / pas))
+    for i in range(k + 1):
+        d = cumul[-1] * i / k
+        j = min(max(next(j for j, c in enumerate(cumul) if c >= d - 1e-9), 1), len(tour) - 1)
+        a, b = tour[j - 1], tour[j]
+        p = a + (b - a) * ((d - cumul[j - 1]) / max(cumul[j] - cumul[j - 1], 1e-9))
+        poutre(coque, p + Vector((0, 0, h - 0.01)), p + Vector((0, 0, h + hg)), sg, sg, (1, 0, 0), "bois")
+
+
+def cloisons_au_bord_des_trappes(D, P, C, pieces, coque):
+    """Les cloisons du plan entre une case sous un pont qui ne se creuse pas (le dessous du gaillard d'avant) et la place
+    d'une trappe d'un autre pont, que `amenager` ne pose pas (`plan_de_jeu.murs` ne garde que les arêtes entre deux
+    cases) ; de son plancher au pont qui la couvre, une trappe à son niveau (`Pieces.au_niveau`) ; jusqu'à la paroi
+    quand la rangée voisine n'a pas de case."""
+    marge, ep = D["CLOISON"]["marge"], D["CLOISON"]["sous_un_pont"]
+    trappes = {k[:2] for k in pieces.pieds}
+    for s, x, yy, z, g in P["aretes"]:
+        if g not in plan_de_jeu.MURS:
+            continue
+        a, b = [(cx, cy, z) for cx, cy in plan_de_jeu.voisines(s, x, yy)]
+        for c, trou in ((a, b), (b, a)):
+            if c not in P["cases"] or trou in P["cases"] or trou[:2] not in trappes:
+                continue
+            bas, haut, couvrant = pieces.au_niveau(c)
+            if couvrant is None or D["SOUS_LES_PONTS"][couvrant]["paroi"] is not None:
+                continue
+            za, zb = bas - marge, haut + marge
+            if s == "t":
+                yc = C.y_du_plan(x)
+                hw = pieces.paroi(c, C.f(yc), (za + zb) / 2) + marge
+                s0 = C.x_du_plan(yy) if (c[0], yy - 1, z) in P["cases"] else -hw
+                s1 = C.x_du_plan(yy + 1) if (c[0], yy + 1, z) in P["cases"] else hw
+                cloison(coque, Vector((0, yc, 0)), Vector((1, 0, 0)), Vector((0, 1, 0)), s0, s1, za, zb, ep, None, D["PORTE"])
+            else:
+                cloison(coque, Vector((C.x_du_plan(yy), 0, 0)), Vector((0, 1, 0)), Vector((1, 0, 0)), C.y_du_plan(x),
+                        C.y_du_plan(x + 1), za, zb, ep, None, D["PORTE"])
+
+
+def trappes_de_fret(P):
+    """Chaque trappe de fret des ponts : un trou rectangulaire d'un pont, entouré de ses cases, hors des trappes des
+    échelles, au-dessus d'une case d'un pont plus bas ; (pont, (x de, y de, x à, y à) en cases,
+    fins exclues, plancher le plus haut sous le trou, hauteur du pont autour)."""
+    trappes = {trappe for _, trappe, _, _ in plan_de_jeu.echelles(P)}
+    for z in range(1, P["ponts"]):
+        vides = {(x, yy) for x in range(P["W"]) for yy in range(P["H"]) if (x, yy, z) not in P["cases"] and (x, yy) not in trappes}
+        while vides:
+            pile, trou = [vides.pop()], set()
+            while pile:
+                x, yy = pile.pop()
+                trou.add((x, yy))
+                for v in ((x + 1, yy), (x - 1, yy), (x, yy + 1), (x, yy - 1)):
+                    if v in vides:
+                        vides.discard(v)
+                        pile.append(v)
+            xs, ys = [x for x, _ in trou], [yy for _, yy in trou]
+            dessous = [P["hauteurs"][P["cases"][(x, yy, zz)]] for x, yy in trou for zz in range(z) if (x, yy, zz) in P["cases"]]
+            if min(xs) == 0 or min(ys) == 0 or max(xs) == P["W"] - 1 or max(ys) == P["H"] - 1 or not dessous:
+                continue
+            rect = (min(xs), min(ys), max(xs) + 1, max(ys) + 1)
+            assert len(trou) == (rect[2] - rect[0]) * (rect[3] - rect[1]), f"trappe de fret non rectangulaire au pont {z} : {sorted(trou)}"
+            autour = [P["hauteurs"][P["cases"][(vx, vy, z)]] for x, yy in trou for vx, vy in ((x + 1, yy), (x - 1, yy), (x, yy + 1), (x, yy - 1))
+                      if (vx, vy, z) in P["cases"]]
+            yield z, rect, max(dessous), max(autour)
+
+
+def trappe_de_fret(D, C, places, bas, haut, coque, interieurs):
+    """Le puits d'une trappe de fret (`trappes_de_fret`) creusé du plancher `bas`, qu'il découvre, au-dessus du pont
+    `haut`, et l'hiloire
+    (`ECOUTILLE`) qui borde son ouverture dans ce pont, à l'aplomb de ses bords."""
+    x0, y0, x1, y1 = places
+    xa, xb, ya, yb = C.x_du_plan(y0), C.x_du_plan(y1), C.y_du_plan(x0), C.y_du_plan(x1)
+    boite(interieurs, (xa, ya, bas), (xb, yb, haut + 0.3), "bois")
+    lh, hh = D["ECOUTILLE"]["hiloire"]
+    za, zb = haut - 0.1, haut + hh
+    for mini, maxi in (((xa, ya, za), (xa + lh, yb, zb)), ((xb - lh, ya, za), (xb, yb, zb)),
+                       ((xa + lh, ya, za), (xb - lh, ya + lh, zb)), ((xa + lh, yb - lh, za), (xb - lh, yb, zb))):
+        boite(coque, mini, maxi, "bois")
+
+
 def construire(D, P):
     """Bâtit la caraque sur ses ponts `P` (`plan_de_jeu.py`) ; rend les `postes`, `selon`, `ancrages` et `cases` de son manifeste,
     en mètres glTF."""
@@ -83,8 +243,7 @@ def construire(D, P):
     C = Coque(D, P)
     y = C.y
     GL = D["GLYPHES"]
-    (xm, ym_), = [(x, yy) for (x, yy, _), g in P["cases"].items() if g == GL["mat"]]
-    D = {**D, "MATS": {**D["MATS"], "grand_mat": {**D["MATS"]["grand_mat"], "f": C.f(C.y_du_plan(xm + 0.5)), "x": C.x_du_plan(ym_ + 0.5)}}}
+    D = {**D, "MATS": mats(D, P, C)}
 
     # coque : bordé lissé de la quille au plat-bord, préceinte, pavois, pont (un solide, que les sabords percent) ;
     # gouvernail
@@ -106,11 +265,6 @@ def construire(D, P):
     K = D["CHATEAU"]
     anneaux = [[(C.lisse(f) + saillie, y(f), z) for f in K["stations"]] for z, saillie in K["niveaux"]]
     enceinte(chateau, anneaux, False, K["garde_corps"], lambda _: C.hauteur(GL["plage"]), "bois")
-    F = D["FANAL"]
-    yf = y(1.0) - 0.4
-    espar(coque, (0, yf, C.hauteur(GL["plage"])), (0, yf, F["z"]), F["pied"], F["pied"], 6, "fer")
-    fuseau(coque, (0, yf, F["z"]), (0, yf, F["z"] + F["hauteur"]),
-           [(0, 0), (0, F["rayon"] * 0.6), (0.15, F["rayon"]), (0.75, F["rayon"]), (0.85, F["rayon"] * 0.5), (1, 0)], 8, "fer")
 
     # gaillard d'avant en surplomb : avant plat, fond, pavois, pont ; cloison arrière jusqu'au pont principal
     A = D["GAILLARD"]
@@ -119,6 +273,8 @@ def construire(D, P):
     anneaux = [[(lineaire(largeur, f) + saillie, y(f), z) for f in A["stations"]] for z, saillie in A["niveaux"]]
     gaillard = Maille(tous)
     enceinte(gaillard, anneaux, False, A["garde_corps"], lambda _: C.hauteur(GL["gaillard"]), "bois")
+    f_avant = A["stations"][0]
+    poulaine(D, P, C, coque, interieurs)
 
     # passerelle en travers de l'embelle : tablier sur ses cases, garde-corps, poutres de support sur des épontilles posées
     # sur le plat-bord ; un passage à travers le pavois du pont qui la prolonge à chacun de ses bouts
@@ -216,8 +372,8 @@ def construire(D, P):
         n_h = Vector((d.y, -d.x, 0))
         for za, zb in CV["lisses"]:
             poutre(coque, (x0, y0, (za + zb) / 2), (x1, y1, (za + zb) / 2), zb - za, ep, n_h, "bois")
-    x_av = lineaire(largeur, 0.0) + sa
-    poutre(coque, (-x_av, y(0.0) + 0.125, (z_mur + CV["haut"]) / 2), (x_av, y(0.0) + 0.125, (z_mur + CV["haut"]) / 2),
+    x_av = lineaire(largeur, f_avant) + sa
+    poutre(coque, (-x_av, y(f_avant) + 0.125, (z_mur + CV["haut"]) / 2), (x_av, y(f_avant) + 0.125, (z_mur + CV["haut"]) / 2),
            CV["haut"] - z_mur, 0.25, (0, 1, 0), "bois")
 
     # défenses verticales de l'embelle, entre les sabords de la batterie, épousant le bordé
@@ -236,11 +392,12 @@ def construire(D, P):
     lo, ho = E["ouverture"]
     cadre, saillie_cadre = E["cadre"]
     postes, sabords = {}, {}
-    ouvertures, cadres = Maille(tous), Maille(tous)
+    ouvertures, cartouches = Maille(tous), Maille(tous)
 
-    def au_pont(face, bord, plancher):
-        """Pièce dont la bouche passe par-dessus le plat-bord de face intérieure `face` (x ou y selon le bord)."""
-        origine = Vector(face) - AXES[bord] * CA["recul"]
+    def au_pont(face, bord, plancher, recul):
+        """Pièce dont la bouche passe par-dessus le plat-bord de face intérieure `face` (x ou y selon le bord), son origine
+        de `recul` derrière elle."""
+        origine = Vector(face) - AXES[bord] * recul
         postes.setdefault(bord, []).append((origine.x, origine.y, plancher))
 
     for G in D["POSTES_DU_PONT"]:
@@ -249,13 +406,13 @@ def construire(D, P):
                 for xp in G["cases"]:
                     yy = C.y_du_plan(xp + 0.5)
                     x = AXES[bord].x * (C.lisse(C.f(yy)) - D["PAVOIS"][0])
-                    au_pont((x, yy, 0), bord, C.pont(yy))
+                    au_pont((x, yy, 0), bord, C.pont(yy), G["recul"])
             else:
-                yy = y(0.0) + 0.25 if bord == "proue" else y(1.0) - D["BALUSTRADE"]["main"][0] - 0.02
+                yy = y(f_avant) + 0.25 if bord == "proue" else y(1.0) - D["BALUSTRADE"]["main"][0] - 0.02
                 for x in G["x"]:
-                    au_pont((x, yy, 0), bord, C.hauteur(G["plancher"]))
+                    au_pont((x, yy, 0), bord, C.hauteur(G["plancher"]), G["recul"])
 
-    def boite(maille, centre, axe, largeur, hauteur, devant, derriere, mat):
+    def caisson(maille, centre, axe, largeur, hauteur, devant, derriere, mat):
         """Boîte de `largeur` × `hauteur` centrée sur `centre`, de `derriere` avant lui à `devant` après lui le long
         d'`axe` (horizontal)."""
         cote = axe.cross(Vector((0, 0, 1))).normalized()
@@ -264,16 +421,13 @@ def construire(D, P):
         sommets = [tuple(centre - axe * derriere + c) for c in coins] + [tuple(centre + axe * devant + c) for c in coins]
         maille.ajouter(sommets, [[0, 1, 2, 3], [4, 7, 6, 5], [0, 4, 5, 1], [1, 5, 6, 2], [2, 6, 7, 3], [3, 7, 4, 0]], mat)
 
-    def sabord(centre, bord, plancher, cartouche, profondeur):
-        """Ouverture traversant la muraille au point `centre` de sa face extérieure, jusqu'à `profondeur` au moins ; cadre
-        et cartouche dans `cadres`."""
+    def ouverture(centre, bord, cartouche, profondeur):
+        """Ouverture traversant la muraille au point `centre` de sa face extérieure, jusqu'à `profondeur` au moins ; le
+        cartouche du château autour de son cadre (celui de la pièce de l'Amélioration) dans `cartouches`."""
         c, a = Vector(centre), AXES[bord]
         cote = a.cross(Vector((0, 0, 1))).normalized()
         haut = Vector((0, 0, 1))
-        boite(ouvertures, c, a, lo, ho, 0.6, max(0.7, profondeur + 0.1), "bois")
-        for s_ in (1, -1):
-            poutre(cadres, c + haut * s_ * (ho + cadre) / 2 - cote * (lo / 2 + cadre), c + haut * s_ * (ho + cadre) / 2 + cote * (lo / 2 + cadre), cadre, 2 * saillie_cadre, a, "bois")
-            poutre(cadres, c + cote * s_ * (lo + cadre) / 2 - haut * ho / 2, c + cote * s_ * (lo + cadre) / 2 + haut * ho / 2, cadre, 2 * saillie_cadre, a, "bois")
+        caisson(ouvertures, c, a, lo, ho, 0.6, max(0.7, profondeur + 0.1), "bois")
         if cartouche:
             r_arc, ep_arc, sa_arc = CT["arc"]
             r = lo / 2 + cadre + r_arc
@@ -283,20 +437,25 @@ def construire(D, P):
                 a0, a1 = math.pi * k / pas, math.pi * (k + 1) / pas
                 p0 = pied_arc + cote * (r * math.cos(a0)) + haut * (r * math.sin(a0))
                 p1 = pied_arc + cote * (r * math.cos(a1)) + haut * (r * math.sin(a1))
-                poutre(cadres, p0, p1, ep_arc, sa_arc, a, "dorure")
+                poutre(cartouches, p0, p1, ep_arc, sa_arc, a, "dorure")
             lp, hp, sp, ecart = CT["panneau"]
             centre_p = c + a * (sp / 2) - haut * (ho / 2 + cadre + ecart + hp / 2)
-            poutre(cadres, centre_p - cote * lp / 2, centre_p + cote * lp / 2, hp, 2 * sp, a, "bois")
-            poutre(cadres, centre_p + a * sp - cote * lp * 0.3, centre_p + a * sp + cote * lp * 0.3, hp * 0.45, 0.04, a, "dorure")
-        origine = c - a * (CA["bouche"] - CA["saillie"])
-        sabords.setdefault(bord, []).append((origine.x, origine.y, plancher))
+            poutre(cartouches, centre_p - cote * lp / 2, centre_p + cote * lp / 2, hp, 2 * sp, a, "bois")
+            poutre(cartouches, centre_p + a * sp - cote * lp * 0.3, centre_p + a * sp + cote * lp * 0.3, hp * 0.45, 0.04, a, "dorure")
 
     pieces = Pieces(D, P, C)
     for centre, bord, plancher, sorte, profondeur in sabords_des_ponts(D, P, C, pieces):
-        sabord(centre, bord, plancher, sorte != "bord", profondeur)
+        ouverture(centre, bord, sorte != "bord", profondeur)
+        origine = Vector(centre) - AXES[bord] * (CA["bouche"] - CA["saillie"])
+        sabords.setdefault(bord, []).append((origine.x, origine.y, plancher))
+    for centre, bord, sorte in ouvertures_vides(D, C):
+        ouverture(centre, bord, sorte != "bord", 0.0)
 
     pieces.creuser(interieurs)
     amenager(D, P, C, pieces, coque, interieurs)
+    cloisons_au_bord_des_trappes(D, P, C, pieces, coque)
+    for z, places, bas, haut in trappes_de_fret(P):
+        trappe_de_fret(D, C, places, bas, haut, coque, interieurs)
 
     # mâts
     noeuds = {}
@@ -376,8 +535,8 @@ def construire(D, P):
                 for a, b in zip(pts, pts[1:]):
                     poutre(coque, a, b, CO["enflechure"], CO["enflechure"], (0, 0, 1), "cordage")
                 z += D["ENFLECHURES"]
-    for (fa, za), (fb_, zb) in D["ETAIS"]:
-        fa = D["MATS"][fa]["f"] if fa in D["MATS"] else fa
+    for (mat, za), (fb_, zb) in D["ETAIS"]:
+        fa = D["MATS"][mat]["f"]
         poutre(coque, (0, y(fa), za), (0, y(fb_), zb), CO["etai"], CO["etai"], (1, 0, 0), "cordage")
 
     # pavillon de poupe sur sa hampe penchée vers l'arrière, flamme en tête du grand mât (toile, rayure)
@@ -403,8 +562,9 @@ def construire(D, P):
 
     # l'origine au centre du plan ; z = 0 reste la flottaison
     gltf = lambda x, yy, z: [round(x, 3), round(z, 3), round(-yy, 3)]  # noqa: E731
-    aux_cases = {nom: [gltf(x, C.y_du_plan(xp), C.pont(C.y_du_plan(xp)) if z == "pont" else z) for x, xp, z in points]
-                 for nom, points in D["ANCRAGES_AUX_CASES"].items()}
+    def z_de(xp, z):
+        return C.pont(C.y_du_plan(xp)) if z == "pont" else C.hauteur(z) if isinstance(z, str) else z
+    aux_cases = {nom: [gltf(x, C.y_du_plan(xp), z_de(xp, z)) for x, xp, z in points] for nom, points in D["ANCRAGES_AUX_CASES"].items()}
     lisse = {nom: [gltf(s_ * (C.lisse(C.f(C.y_du_plan(xp))) - D["PAVOIS"][0] / 2), C.y_du_plan(xp), lineaire(D["LISSE"], C.f(C.y_du_plan(xp))))
                    for xp in xps for s_ in (1, -1)] for nom, xps in D["ANCRAGES_LISSE"].items()}
     sortie = {
@@ -416,7 +576,7 @@ def construire(D, P):
     percer(objet("coque", coque, (0.0, 0.0, 0.0), 35), [objet("bordage", bordage, (0, 0, 0), 35), objet("chateau", chateau, (0, 0, 0), 35),
                                                      objet("gaillard", gaillard, (0, 0, 0), 35)],
            objet("interieurs", interieurs, (0, 0, 0), 35), objet("ouvertures", ouvertures, (0, 0, 0), 35))
-    objet("avec-sabord", cadres, (0.0, 0.0, 0.0), 35)
+    objet("avec-sabord", cartouches, (0.0, 0.0, 0.0), 35)
     for nom in ("beaupre", "misaine", "grand_mat", "grand_mat_arriere", "artimon"):
         mm, pied = noeuds[nom]
         objet(nom, mm, pied, 35)

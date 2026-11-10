@@ -35,13 +35,13 @@ export const XP_CHARS_REASSIGNED = 25; // LDB 05 l.339
 export const XP_STAR_ROLLED = 25; // ADE II 3 l.36 (signe astral tiré et accepté)
 
 /**
- * Espèce OUVERTE au joueur : une espèce peut déclarer `gatedByRule` (id d'`OptionalRule`) — elle
+ * Espèce OUVERTE au joueur : une espèce peut déclarer `gatedByRule` (une règle optionnelle) — elle
  * n'est proposée qu'avec cette règle active. SOURCE UNIQUE du filtre (tirage ET grille du créateur).
  * Porté par `gnomes` (`NADJ 14 l.5`) ; une espèce sans le champ est ouverte, quel que soit
  * son livre.
  */
 export function speciesAllowed(s: SpeciesData): boolean {
-  return !s.gatedByRule || !!rule(s.gatedByRule);
+  return !s.gatedByRule || !!rule(s.gatedByRule.id);
 }
 
 /**

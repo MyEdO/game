@@ -17,7 +17,7 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { creatures, estUnNavireAPonts, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
@@ -27,7 +27,7 @@ import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-nar
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
-import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
+import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
@@ -373,9 +373,10 @@ export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTI
 /** La lumière que l'entité `ent` prend quand l'auteur l'allume : la sienne, ou un rayon de 6 m. */
 export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light']> => ({ ...ent.light, radiusM: ent.light?.radiusM ?? 6 });
 
-/** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet
- *  (`capDecorAdmis`). */
+/** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet, les
+ *  cardinaux seuls pour un décor volumique (`capDecorAdmis`) ou un navire à ponts (`estUnNavireAPonts`). */
 export function capsOfferts(ent: SceneEntity): Dir8[] {
+  if (ent.kind === 'personnage' && estUnNavireAPonts(ent.vehicule?.id)) return DIR8_ORDER.filter(estCardinal);
   return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
 }
 
@@ -515,11 +516,11 @@ function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], narrati
 }
 
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
- *  traversée, ses effets à la traversée et à chaque Round ; d'un déclencheur, sa condition d'entrée ; d'une entité, la
- *  branche de son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son contexte
- *  (`choixDuPersonnage`). */
+ *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
+ *  condition d'entrée ; d'une entité, la branche de son type : d'un personnage, ses champs (`champsDuPersonnage`), aux
+ *  choix de son contexte (`choixDuPersonnage`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
-  zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound']] },
+  zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
   declencheur: { schema: triggerSchema, champs: () => [['when']] },
   entite: {
     schema: sceneEntitySchema,

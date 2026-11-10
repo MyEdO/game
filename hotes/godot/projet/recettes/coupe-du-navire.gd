@@ -118,7 +118,7 @@ func _ombre(montage: MontageDeVehicule, piece: Node3D) -> void:
 			for triangle: Array in VolumeDeScene.rangs_des_triangles(ordre.size()):
 				triangles.append(PackedVector3Array(triangle.map(func(rang_du_sommet: int) -> Vector3: return projetant.to_global(sommets[ordre[rang_du_sommet]]))))
 	var a_l_ombre := 0
-	for dz in [-4.0, 0.0, 4.0]:
+	for dz in [-4.0, 0.0, 3.0]:
 		for dx in [-1.0, 0.0, 1.0]:
 			var point := Vector3(ORIGINE.x + dx, pont, ORIGINE.z + dz)
 			if triangles.any(func(t: PackedVector3Array) -> bool:

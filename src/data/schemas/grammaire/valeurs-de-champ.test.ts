@@ -205,6 +205,8 @@ const NOMMES = [
   'main|off',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
+  // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.
+  'penurie|saturation',
 ].sort();
 
 /**

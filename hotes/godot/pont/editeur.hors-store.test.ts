@@ -11,7 +11,8 @@
  * éléments (#3606 M1a).
  */
 import { describe, expect, it } from 'vitest';
-import { erreurDe, table, type Reponse } from './pont.testkit';
+import { erreurDe, modelesCommites, servirLesModeles, table, type Reponse } from './pont.testkit';
+import type { NavireServi } from './pont';
 import type { AreteDessinee, Scene, VolumeDuMonde } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
@@ -30,6 +31,7 @@ interface Edition {
   surcouche: SurcoucheDeLEdition;
   monde?: VolumeDuMonde;
   aretes?: AreteDessinee[];
+  navires?: Record<string, NavireServi>;
   depot?: { id: string; texte: string };
   calque: CalqueAffiche | null;
   planche?: { image: string };
@@ -1126,6 +1128,55 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     rmSync(depot, { recursive: true, force: true });
     const relue = editionDe(rouvrir('editer', boutonDe(rouverte, `scenes/${neuve.id}`).jeu));
     expect((relue.vue.zones['editeur.validation'][0] as Ligne).texte, 'rouverte du dépôt, la porte la lit et la validation ne dit aucune erreur').toMatch(/^Validation : 0 erreur\(s\)/);
+  });
+});
+
+describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
+  it('l’outil navire pose la caraque à son cap ; la réponse sert son corps, le monde le sol de ses ponts sans le peindre, et ses ponts sont des couches', () => {
+    const { appel } = table();
+    servirLesModeles(appel, modelesCommites());
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    expect(ouverte.navires).toEqual({});
+    const outil = presser(boutonDe(ouverte, 'outil/navire'));
+    expect(valeursDe(outil, 'navires').map((b) => [b.id, b.libelle, b.refus])).toEqual([['navire/caraque', 'Caraque', null], ['navire/barge-fluviale', 'Barge fluviale', null]]);
+    expect(valeursDe(outil, 'navire/cap').map((b) => b.id)).toEqual(['navire/cap/N', 'navire/cap/E', 'navire/cap/S', 'navire/cap/O']);
+    presser(boutonDe(outil, 'navire/cap/E'));
+    const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
+    expect(Object.keys(posee.navires!)).toEqual(['navire-0']);
+    expect(posee.navires!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
+    expect(posee.monde!.surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
+    expect(posee.monde!.surfaces.filter((sf) => sf.flottaison === 'navire-0').length, 'sa mer').toBeGreaterThan(0);
+    const couches = posee.vue.zones['editeur.couches'].find((el) => el.id === 'couches') as Choix;
+    expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
+    const pont = presser(boutonDe(posee, 'couche/2'));
+    expect([pont.vue.couche, boutonDe(pont, 'couche/retirer').refus]).toEqual([2, 'Seuls les ponts d’un navire posent cette couche']);
+    expect(pont.aretes!.filter((a) => a.case.x >= 3 && a.case.x <= 20 && a.case.y >= 6 && a.case.y <= 10), 'aucune arête de ses ponts, que son modèle montre').toEqual([]);
+  });
+
+  it('l’inspecteur du navire : son cap parmi ceux de ses ponts, qui le tourne ; son équipage et ses Améliorations restent offerts', () => {
+    const { appel } = table();
+    servirLesModeles(appel, modelesCommites());
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/navire'));
+    const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
+    expect(valeursDeLInspecteur(posee, 'entite/cap').map((b) => [b.id, b.presse])).toEqual([['entite/cap/N', true], ['entite/cap/E', false], ['entite/cap/S', false], ['entite/cap/O', false]]);
+    expect(posee.vue.zones['editeur.inspecteur'].some((el) => el.id === 'equipage'), 'son équipage exposé').toBe(true);
+    expect(JSON.stringify(posee.vue.zones['editeur.inspecteur']), 'ses Améliorations, au formulaire tiré du schéma').toContain('"upgrades"');
+    const tournee = presser(boutonDe(posee, 'entite/cap/O'));
+    expect(tournee.navires!['navire-0'].corps.cap).toBe('O');
+    expect(erreurDe(appel('editer', { edition: { geste: 'entite', patch: { facing: 'NE' } } })).categorie, 'aucun bouton n’offre un cap de biais').toBe('validation');
+  });
+
+  it('une scène qui n’est pas à l’échelle des ponts refuse l’outil navire et chaque type, la raison dite', () => {
+    const { appel } = table();
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
+    const outil = presser(boutonDe(ouverte, 'outil/navire'));
+    const echelle = presser(boutonDe(editionDe(appel('editer', { edition: { geste: 'outil', outil: { mode: 'select' } } })), 'scene/echelle/plus'));
+    expect(boutonDe(echelle, 'outil/navire').refus).toBe('Ses ponts ne se posent pas dans une scène à 3 m par case');
+    expect(erreurDe(appel('editer', boutonDe(echelle, 'outil/navire').jeu)).categorie).toBe('regle');
+    expect(boutonDe(outil, 'navire/caraque').refus).toBeNull();
   });
 });
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { breathTypes, domains, lightTones, maneuvers, siegeEngines } from '../data';
+import { breathTypes, domains, etats, lightTones, maneuvers, rendus, siegeEngines } from '../data';
 import { allMusicDefs } from '../data/sons/musique';
 import { sonsDEffet } from '../data/sons/registre';
 import { TEINTE_DU_FLOTTANT, vitrineDesEffets, type Effet, type GenreDeFlottant } from './effetsDeLAppel';
@@ -88,6 +88,12 @@ describe('la vitrine des effets de l’atelier (#3777, #3783, #3825, #3822)', ()
 
   it('chaque musique de fond se joue, ses pistes du registre', () => {
     expect(v.musiques.map((m) => [m.id, m.musique.pistes.map((p) => p.id)])).toEqual(allMusicDefs().map((d) => [d.id, [d.id]]));
+  });
+
+  it('chaque rendu qu’une zone qui dure peut porter se pose autour de la cible ; chaque État montre sa marque', () => {
+    expect(v.zonesQuiDurent.map((z) => z.id)).toEqual(rendus.filter((r) => r.zoneVisuel ?? r.impactVisuel).map((r) => r.id));
+    expect(v.zonesQuiDurent.every((z) => z.zone.visuel !== null && z.zone.cases.some((c) => c.x === v.distanceM / v.metresParCase && c.y === 0))).toBe(true);
+    expect(v.marques.map((m) => [m.id, m.marque.texte])).toEqual(etats.map((e) => [e.id, e.label]));
   });
 
   it('l’auteur parcourt un chemin qui tourne depuis sa case, chaque pas à sa longueur sur le sol plat (#3822)', () => {

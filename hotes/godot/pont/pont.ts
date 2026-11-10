@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -143,7 +143,7 @@ export interface CorpsDuVehicule {
    * dernier `modeles` sert un élément `vehicule` de même `definition`, à la position de son bord qui suit celles des
    * pièces précédentes de ce bord dans ses postes en vigueur (`postesEnVigueur`, `atelier.ts`) : `postes` du manifeste
    * de l'élément du véhicule (section « Atelier 3D »), chaque bord que nomme `selon.<amelioration>.postes` d'une
-   * Amélioration de `ameliorations` de sa projection remplacé par les siens (MDG p.97, Sabord), si ces postes
+   * Amélioration de `ameliorations` de sa projection remplacé par les siens (MDG 12 l.362, Sabord), si ces postes
    * l'offrent ; chacune y porte `element`, l'id de son élément, `bord`, `position` et `palette`, celle du véhicule où
    * la palette de sa `teinte` colore (`findTeinteById`).
    */
@@ -288,6 +288,16 @@ export interface VueDuPont {
    * `null` au silence.
    */
   musique: MusiqueDeLaPartie | null;
+  /**
+   * les zones qui durent sur le plateau (`zonesQuiDurent`, `src/noyau/effetsDeLAppel.ts`), chacune dessinée tant
+   * qu'elle dure et nommée par sa `cle` d'une vue à l'autre (#3834).
+   */
+  zonesQuiDurent: ZoneQuiDure[];
+  /**
+   * par id d'un combattant dessiné, les marques de ses États (`marquesDesEtats`, `src/noyau/marquesDesEtats.ts`),
+   * dans leur ordre : le texte, la teinte, le visuel et le son en boucle de chacune (#3834).
+   */
+  marques: Record<string, MarqueDEtat[]>;
   /**
    * nomme le verbe du clic du champ (`CLIC_DU_CHAMP`, `src/noyau/actionsDuNoyau.ts` ; la barre de l'actif ouverte, ou
    * en exploration sans fenêtre), qui prend la case cliquée, `{ x, y }` au rez, `{ x, y, z }` à la couche `z` (`Pt`),
@@ -466,6 +476,16 @@ export function creerPont() {
     return ouverte;
   };
 
+  /** Par id de son entité, chaque navire de `scene` dont un élément `vehicule` est servi (`NavireServi`) : le jeu et
+   *  l'éditeur les montrent tous deux. */
+  const naviresServis = (scene: Scene): Record<string, NavireServi> => Object.fromEntries(naviresDeLaScene(scene).flatMap(({ id, vehicule, centre }) => {
+    const corps = modeles && corpsDuVehicule(vehicule, modeles);
+    if (!modeles || !corps) return [];
+    const manifeste = modeles.manifestes[corps.element];
+    const emprises = estObjet(manifeste) && estObjet(manifeste.cases) ? manifeste.cases as EmprisesDesCases : {};
+    return [[id, { corps, centre, stations: stationsDuNavire(scene, id, emprises) }]];
+  }));
+
   /** Les corps des combattants dessinés de `projection`, chacun sa portée composée sur l'unique base servie, leurs
    *  véhicules servis, hors des navires de `scene`, et les navires servis de `scene`. */
   const corpsDe = (projection: Projection, scene: Scene | null): CorpsDuCombat => {
@@ -483,13 +503,7 @@ export function creerPont() {
         const corps = vehicule && modeles && !navires.some((n) => n.id === id) && corpsDuVehicule(vehicule, modeles);
         return corps ? [[id, corps]] : [];
       })),
-      navires: Object.fromEntries(navires.flatMap(({ id, vehicule, centre }) => {
-        const corps = modeles && corpsDuVehicule(vehicule, modeles);
-        if (!modeles || !corps) return [];
-        const manifeste = modeles.manifestes[corps.element];
-        const emprises = estObjet(manifeste) && estObjet(manifeste.cases) ? manifeste.cases as EmprisesDesCases : {};
-        return [[id, { corps, centre, stations: stationsDuNavire(scene!, id, emprises) }]];
-      })),
+      navires: scene ? naviresServis(scene) : {},
     };
   };
 
@@ -507,6 +521,8 @@ export function creerPont() {
       plateau: etat.scene ? plateauDeLaScene(etat.scene, casesDuGroupe(etat), regardDuJeu(o.regard, !!etat.battle)) : null,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regardDuJeu(o.regard, !!etat.battle)) : null,
       musique: musiqueDeLaPartie(etat),
+      zonesQuiDurent: zonesQuiDurent(etat.battle?.zones ?? []),
+      marques: Object.fromEntries((combat?.voisins.liste ?? projection.exploration?.heros ?? []).map((c) => [c.id, marquesDesEtats(c.etats)])),
       champ: (combat ? combat.barre.forme === 'ouverte' : projection.exploration && !fenetre) ? CLIC_DU_CHAMP : null,
       occupants: Object.fromEntries((combat?.voisins.liste ?? []).flatMap((c) => (c.pos && !c.horsCombat ? [[`${c.pos[0]},${c.pos[1]},${c.pos[2]}`, c.id]] : []))),
     };
@@ -918,8 +934,8 @@ export function creerPont() {
      * tiré du schéma, ses deux saisies posées égales en profondeur à celles d'un formulaire des zones, `valeur` absente
      * pour retirer le champ (section « Éditeur »)
      *
-     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, aretes?, depot?, essai?, planche?, memoire?
-     * }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
+     * @returns `{ vue: { zones, couche }, surcouche, calque, monde?, aretes?, navires?, depot?, essai?, planche?,
+     * memoire? }` (section « Éditeur ») ; un bouton refusé se refuse en `regle`, avec sa raison, comme un enregistrement que la
      * porte refuse
      */
     editer(json) {
@@ -961,6 +977,7 @@ export function creerPont() {
         session = editer(s, geste);
       }
       const scene = sceneEditee(session);
+      const vue = vueDeLaScene(session);
       const neuf = !edition || 'ouvrir' in e || (session.geste === null && (scene !== edition.monde.scene || session.z !== edition.monde.z));
       edition = { session, monde: neuf ? { scene, z: session.z } : edition!.monde };
       const memoire = memoireDesCalques(avant, session);
@@ -969,7 +986,7 @@ export function creerPont() {
         vue: { zones: zonesDeLEditeur(session), couche: session.z },
         surcouche: surcoucheDeLEdition(session),
         calque: calqueAffiche(session),
-        ...(neuf ? { monde: volumeDuMonde(scene, session.z), aretes: aretesDeLaCouche(scene, session.z) } : {}),
+        ...(neuf ? { monde: volumeDuMonde(vue, session.z), aretes: aretesDeLaCouche(vue, session.z), navires: naviresServis(vue) } : {}),
         ...(depot ? { depot } : {}),
         ...('edition' in e && (e.edition as GesteDEdition).geste === 'tester' ? { essai: true } : {}),
         ...(charge ? { planche: { image: cheminDeLaPlanche(session.projet.id, charge.sceneId, charge.z) } } : {}),

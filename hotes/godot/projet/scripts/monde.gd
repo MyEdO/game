@@ -60,6 +60,8 @@ const ITEM_SURVOL := 2
 
 ## La case `[x, y, z]` de chaque triangle du maillage du monde, sa couche comprise, dans son ordre.
 var _cases_des_triangles: Array = []
+## Le son de la météo qui joue en boucle, `null` sans son (`poser_la_meteo`).
+var _son_de_la_meteo: AudioStreamPlayer = null
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
 var _sols: Dictionary = {}
 var _lacet := 0.0
@@ -112,11 +114,13 @@ func poser(monde: Dictionary) -> void:
 
 ## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
 ## averse de particules par boîte de `pluie.averses`, étirées dans le sens de leur chute et effacées près de la caméra,
-## et chaque nappe de brume, plate et translucide ; rien sans météo.
+## et chaque nappe de brume, plate et translucide, et son son en boucle (#3834), que le même son laisse jouer ; rien
+## sans météo.
 func poser_la_meteo(meteo: Variant) -> void:
 	for posee in _meteo.get_children():
 		_meteo.remove_child(posee)
 		posee.free()
+	_entendre_la_meteo(null if meteo == null else meteo.son)
 	if meteo == null:
 		return
 	if meteo.pluie != null:
@@ -124,6 +128,31 @@ func poser_la_meteo(meteo: Variant) -> void:
 			_meteo.add_child(_averse(meteo.pluie, averse))
 	for nappe in meteo.nappes:
 		_meteo.add_child(_nappe_de_brume(nappe))
+
+
+## Le son `son` de la météo (`null` : aucun) joué partout en boucle, à la place du précédent s'il en diffère.
+func _entendre_la_meteo(son: Variant) -> void:
+	var voulu: String = "" if son == null else son.id
+	var joue: String = "" if _son_de_la_meteo == null else _son_de_la_meteo.get_meta("son")
+	if voulu == joue:
+		return
+	if _son_de_la_meteo != null:
+		_son_de_la_meteo.queue_free()
+		_son_de_la_meteo = null
+	if son == null:
+		return
+	_son_de_la_meteo = AudioStreamPlayer.new()
+	_son_de_la_meteo.name = "son-%s" % son.id
+	_son_de_la_meteo.set_meta("son", son.id)
+	_son_de_la_meteo.stream = Effets.variante_du_son(son, true)
+	_son_de_la_meteo.volume_db = linear_to_db(son.volume)
+	_son_de_la_meteo.autoplay = true
+	add_child(_son_de_la_meteo, true)
+
+
+## Le son de la météo qui joue, `null` sans son.
+func son_de_la_meteo() -> AudioStreamPlayer:
+	return _son_de_la_meteo
 
 
 func _averse(pluie: Dictionary, averse: Dictionary) -> CPUParticles3D:
@@ -540,4 +569,6 @@ func _zoomer(sens: float) -> void:
 ## traverse (`VolumeDeScene.poser_les_nappes`). Aucune géométrie ni couleur ne se réécrit en GDScript.
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
-## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur.
+## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son
+## (`meteo.son` : la pluie, l'orage, #3834) en boucle, partout, sans lieu : la même météo garde son lecteur, une autre
+## le remplace, aucune le retire (recette `projet/recettes/meteo.gd`).

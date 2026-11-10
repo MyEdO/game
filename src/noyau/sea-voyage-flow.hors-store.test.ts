@@ -1223,7 +1223,6 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     const tiree = get().pendingCascade!.participants.find((s) => s.kind === 'seaBoardEvent')!.table!.result!;
     expect(tiree.id).toBe('navigation-ordinaire');
     const rangee = seaBoardEventById(tiree.id)!;
-    expect(rangee.kind).toBeUndefined();
     expect(rangee.consequence).toBeUndefined();
   });
 

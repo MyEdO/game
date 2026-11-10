@@ -85,7 +85,7 @@ import {
   evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, MANANN_BASE, seaBoardEventById,
   spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
-  type CargoOverload, type EvenementDeBord, type ManannMood, type PortProfile, type CargoLot,
+  type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
 } from '../engine/seaVoyage';
 import { navalMoveMod, navalTraitsDe, navalTestTypeDR, navalNavTestDR, shipHasNavalTrait, hullNavalTraits, vesselNavalTraits } from '../engine/navalTraits';
 import { rule } from '../engine/policy';
@@ -2119,7 +2119,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   if (lignes.length) { set({ party: [...get().party] }); tell(get, set, lignes); }
 }
 
-// ── Événements de bord (ch.15 l.132-236) — application MÉCANIQUE par `consequence` ou par `kind` ──
+// ── Événements de bord (ch.15 l.132-236) — application MÉCANIQUE par `consequence` ──
 
 /** Localisation TIRÉE d'un Coup Critique de coque (MDG 15 l.153, MDG 15 l.33-37). */
 export function localisationAleatoire(rng: RNG): ShipCritKey {
@@ -2131,7 +2131,7 @@ export function localisationAleatoire(rng: RNG): ShipCritKey {
  *  `sea-events.json`) — son écriture appartient à l'appelant : conséquence d'étape sous cascade,
  *  `ecrireAuJournal` direct hors cascade. Les lignes MÉCANIQUES de la conséquence (dégâts, Moral, avarie) restent
  *  du ressort des sites qui les produisent (`tell`), comme ailleurs dans ce flux. */
-function resolveBoardEvent(get: Get, set: Set, event: EvenementDeBord, roll?: number): string {
+function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, roll?: number): string {
   // MDG 15 l.89, l.228
   const vessel = get().vessel;
   if (vessel?.modificateurs?.some((m) => m.jusqua === 'evenementDeBord')) set({ vessel: { ...vessel, modificateurs: modificateursApresUnEvenement(vessel.modificateurs) } });
@@ -2388,7 +2388,7 @@ function trancherLaRelache(get: Get, set: Set, allow: boolean): void {
  *  propre cascade) puis arrivée au lieu (`arriverAuLieu`). SOURCE UNIQUE des deux gestes enchaînés,
  *  partagée par `trancherLaRelache` (inline) et la clôture de cascade surfacée (`dispatchCascadeDone`). */
 export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: boolean): void {
-  const accostage = accosterLeNavire(get, set);
+  const accostage = accosterLeNavire(get, set, to.id);
   if (accostage.length) log(get, set, accostage);
   const avant = get().pendingCascade;
   resolvePortArrival(get, set, to.port, battleRng(), allow);
@@ -2398,15 +2398,15 @@ export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: b
   arriverAuLieu(set, to);
 }
 
-/** À l'ACCOSTAGE : les recueillis sans solde rejoignent l'équipage pour une paie normale, et la perte au
- *  déchargement de l'escale précédente est levée. MDG 15 l.213-218, l.250 */
-function accosterLeNavire(get: Get, set: Set): string[] {
+/** À l'ACCOSTAGE au lieu `placeId` : le navire y est à quai (`escale`), les recueillis sans solde rejoignent
+ *  l'équipage pour une paie normale, la perte au déchargement est levée. MDG 15 l.129, l.213-218, l.250 */
+function accosterLeNavire(get: Get, set: Set, placeId: string): string[] {
   const vessel = get().vessel;
-  if (!vessel || (!vessel.recueillisSansSolde?.length && vessel.perteAuDechargement === undefined)) return [];
+  if (!vessel) return [];
   const recueillis = vessel.recueillisSansSolde ?? [];
   const crew = recueillis.reduce((roster, h) => ajouterAuRoster(roster, h.roleId, h.count), vessel.crew ?? []);
   const { recueillisSansSolde: _r, perteAuDechargement: _p, ...reste } = vessel;
-  set({ vessel: { ...reste, ...(recueillis.length ? { crew } : {}) } });
+  set({ vessel: { ...reste, escale: placeId, ...(recueillis.length ? { crew } : {}) } });
   const n = recueillis.reduce((s, h) => s + h.count, 0);
   return n ? [t('eff.recueillisEngages', { n })] : [];
 }

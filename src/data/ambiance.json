@@ -71,6 +71,9 @@
           "ceilingM": 9,
           "color": "#aebfd0",
           "opacity": 0.45
+        },
+        "son": {
+          "id": "pluie"
         }
       },
       "brouillard": {
@@ -147,6 +150,9 @@
             }
           ],
           "povTightenK": 0.7
+        },
+        "son": {
+          "id": "orage"
         }
       }
     }
