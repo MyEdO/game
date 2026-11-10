@@ -431,8 +431,6 @@ const idArg = (a: unknown): string | undefined => (typeof a === 'string' ? a : u
 const TOUJOURS: Route = { rule: () => true };
 /** Possession du combattant désigné par le 1ᵉʳ argument. */
 const PAR_ARG0: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[0])) };
-/** Possession du combattant désigné par le 2ᵉ argument. */
-const PAR_ARG1: Route = { rule: (s, seat, args) => seatOwns(s, seat, idArg(args[1])) };
 /** Possession du porteur de l'objet désigné par le 1ᵉʳ argument, lu dans l'état (`porteurDeLObjet`) ; objet sans
  *  porteur → personne. */
 const PAR_PORTEUR_DE_L_OBJET: Route = {
@@ -636,8 +634,7 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['commanderLObjet', PAR_ARG0],
     ['deposerALaBanque', PAR_ARG0],
     ['solderLaFaveur', PAR_ARG0],
-    // Préparation de bataille : le héros MENEUR est le 2ᵉ argument.
-    ['menerLActionDeBataille', PAR_ARG1],
+    ['menerLActionDeBataille', PAR_ARG0],
     // Retrait bancaire : le dépôt appartient à un héros — son propriétaire retire.
     ['retirerDeLaBanque', {
       rule: (s, seat, [depotId]) => {

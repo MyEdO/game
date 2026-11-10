@@ -211,7 +211,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
               enabled={!refusSoins}
               {...raisonSi(refusSoins)}
               descOfferte="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros"
-              onClick={() => ouvrirLeMedecin({ patientId: hero.id })}
+              onClick={() => ouvrirLeMedecin(hero.id)}
               primary={false}
               btnClassName="small"
             />

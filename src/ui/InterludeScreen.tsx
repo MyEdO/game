@@ -1192,7 +1192,7 @@ function BattlePrepPane({ hero, etat, def, refus, massBattle: mb }: {
   }
   const blocked = mb ? refusDePrepaDeBataille(mb, hero, def) : null;
   const soutien = noteDeSoutien(def);
-  const undertake = () => battleActivity(def.id, hero.id);
+  const undertake = () => battleActivity(hero.id, def.id);
   return (
     <ActivityPane
       id={`pane-prep-${def.id}`}

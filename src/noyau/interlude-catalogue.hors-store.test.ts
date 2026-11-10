@@ -220,12 +220,12 @@ describe('Préparation de bataille', () => {
   it('déjà faite : refusée et dite, rien en attente', () => {
     const { banc, heroId } = auLieu();
     banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    banc.actions.menerLActionDeBataille('inspire', heroId);
+    banc.actions.menerLActionDeBataille(heroId, 'inspire');
     expect(banc.getState().pendingActivity?.activityId, 'témoin : le Discours s’ouvre').toBe('inspire');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 20, success: true, sl: 2 } }));
     banc.actions.jetValider('activity');
     expect(banc.getState().massBattle?.activitiesDone, 'témoin : le Discours est fait').toContain('inspire');
-    expect(refuse(banc, () => banc.actions.menerLActionDeBataille('inspire', heroId))).toEqual(['Déjà réalisée cette bataille (Activité non répétable).']);
+    expect(refuse(banc, () => banc.actions.menerLActionDeBataille(heroId, 'inspire'))).toEqual(['Déjà réalisée cette bataille (Activité non répétable).']);
   });
 });
 

@@ -220,7 +220,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
     for (const id of [meneur.id, second.id]) b.actions.fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', 'planification', id);
     const s = b.getState();
     const { ligne } = preJetDePreparation(s, s.massBattle!, héros(b, meneur.id), battleActivityById('planification')!)!.pending;
-    b.actions.menerLActionDeBataille('planification', meneur.id);
+    b.actions.menerLActionDeBataille(meneur.id, 'planification');
     const pa = b.getState().pendingActivity!;
     expect(pa.support, 'témoin : le Second soutient').toMatchObject({ count: 1, ids: [second.id] });
     expect({ base: ligne.base, cible: ligne.target }).toEqual({ base: PLANIF.base, cible: PLANIF.cible });
@@ -250,7 +250,7 @@ describe('Pré-jet de préparation de bataille — la cible rendue par le volet 
       const pj = preJetDePreparation(s, s.massBattle!, héros(b, a.id), def);
       const refus = refusDePrepaDeBataille(s.massBattle!, héros(b, a.id), def);
       b.setState(() => ({ pendingActivity: null }));
-      b.actions.menerLActionDeBataille(def.id, a.id);
+      b.actions.menerLActionDeBataille(a.id, def.id);
       const pa = b.getState().pendingActivity;
       if (!pj || !pa) { if (refus == null) ecarts.push(`${def.id} : ouverte sans refus, pré-jet ${!!pj}, jet posé ${!!pa}`); continue; }
       const affiche = { cible: pj.pending.ligne.target, cible2: pj.ligne2?.target, difficulte: pj.pending.ligne.difficulty };

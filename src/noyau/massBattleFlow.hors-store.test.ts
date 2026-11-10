@@ -79,7 +79,7 @@ const meneurCapable = (id: string): string => {
   return (party.find((h) => peutTenterAction(h, def)) ?? party[0]).id;
 };
 /** Ouvre la préparation `id` MENÉE par `heroId`, par défaut `meneurCapable(id)`. */
-const prep = (id: string, heroId = meneurCapable(id)) => banc.getState().menerLActionDeBataille(id, heroId);
+const prep = (id: string, heroId = meneurCapable(id)) => banc.getState().menerLActionDeBataille(heroId, id);
 const pending = () => banc.getState().pendingActivity;
 
 describe('amorcerLaBataille / état', () => {

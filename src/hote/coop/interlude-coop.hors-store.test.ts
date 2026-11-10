@@ -87,7 +87,7 @@ describe('Interlude en coop : l’invité mène les Activités de SON héros', (
   it('préparation de bataille : le jet s’ouvre MENÉ par son héros', () => {
     const { banc, guest, invite } = table();
     banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    guest.sendIntent('menerLActionDeBataille', [prepaDe(invite), invite.id]);
+    guest.sendIntent('menerLActionDeBataille', [invite.id, prepaDe(invite)]);
     expect(banc.getState().pendingActivity?.heroId).toBe(invite.id);
   });
 });
@@ -100,7 +100,7 @@ describe('Interlude en coop : l’invité est refusé sur le héros d’un autre
     const journal = banc.getState().journal.length;
     for (const args of entrainement(hote.id)) guest.sendIntent('fenetreChoisir', args);
     guest.sendIntent('solderLaFaveur', [hote.id, `faveur-${hote.id}`]);
-    guest.sendIntent('menerLActionDeBataille', [prepaDe(hote), hote.id]);
+    guest.sendIntent('menerLActionDeBataille', [hote.id, prepaDe(hote)]);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity])).toBe(avant);
     expect(banc.getState().journal.slice(journal)).toEqual(Array(5).fill(REFUS_DE_SIEGE));
   });
@@ -112,7 +112,7 @@ describe('Interlude en coop : la table de taverne est celle de l’hôte', () =>
     const banc = ouvrirLeBanc({ reglesMaison: { 'tavern-games': true }, etat: { party: [a, b], net: { ...NET_DE_L_HOTE(b.id), mode: 'guest', mySeat: 1 } } });
     const journal = banc.getState().journal.length;
     banc.actions.ouvrirLesJeux();
-    banc.actions.jouerALaTaverne({ gameId: 'dominos', challengerId: b.id, opponent: { kind: 'hero', id: a.id } });
+    banc.actions.jouerALaTaverne(b.id, { gameId: 'dominos', opponent: { kind: 'hero', id: a.id } });
     expect(banc.getState().tavernGames).toBeNull();
     expect(banc.getState().sequence ?? null).toBeNull();
     expect(banc.getState().journal.slice(journal)).toEqual([HOTE_SEUL, HOTE_SEUL]);
