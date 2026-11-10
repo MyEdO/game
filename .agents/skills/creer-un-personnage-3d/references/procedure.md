@@ -220,9 +220,11 @@ Un élément sur base se construit **dans le dépôt**, comme un véhicule (#374
 
 - `donnees.py` : `MANIFESTE`, les champs publiés propres à l'élément (`categorie`, `cle`, `liaison`, et pour une pièce
   skinnée `couche`, `couvre`, `chaines`) ; `MATERIAUX`, `{nom: (emplacement de palette, matière)}` (`habillage.py`,
-  section 9), en gris de construction ; `BUDGET_TRIANGLES` (section 7) ; `PRISE` pour un rigide ; chaque dimension en
-  mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE à trancher en revue), jamais enfouie
-  dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et la coiffure) nomme ses ids.
+  section 9), en gris de construction ; `BLASONS`, s'il y en a, les matériaux qui reçoivent l'emblème (surfaces
+  `blason`, section 2), exportés avec leurs UV comme ceux d'un véhicule ; `BUDGET_TRIANGLES` (section 7) ; `PRISE`
+  pour un rigide ; chaque dimension en mètres, nommée, avec sa source (illustration, base, donnée du jeu ou HYPOTHÈSE
+  à trancher en revue), jamais enfouie dans `modele.py`. Un élément qui en contourne un publié (capuche sur la tête et
+  la coiffure) nomme ses ids.
 - `modele.py` : la construction seule. Un rigide : `construire(D, materiaux)` rend ses objets, bâtis dans le repère de
   sa prise. Une pièce skinnée : `construire(D, materiaux, base)` rend la pièce jointe, ses clés transférées.
 

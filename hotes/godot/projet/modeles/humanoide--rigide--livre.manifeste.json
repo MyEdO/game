@@ -15,7 +15,8 @@
     },
     {
       "nom": "plat",
-      "palette": "vet2"
+      "palette": "vet2",
+      "blason": true
     },
     {
       "nom": "pages",
@@ -31,7 +32,7 @@
     }
   ],
   "glb": {
-    "sha256": "ff8cec011e7adada771ef1ebaf46ea678a84e5b4890b6f1fd17a659534d1660b",
-    "octets": 44980
+    "sha256": "18f871311eb7e9ea4e67caa94fb43065129817f1fbd62cae273243fadd3eb669",
+    "octets": 48772
   }
 }
