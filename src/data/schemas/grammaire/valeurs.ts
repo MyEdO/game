@@ -920,7 +920,7 @@ export type Sexe = z.infer<typeof sexeSchema>;
 
 /** La main d'un objet tenu ou d'une arme, UNE déclaration : `defs/presets-de-personnage.ts` (`prises`) et
  *  `grammaire/mecanique.ts` (`weaponHand`). */
-export const mainSchema = enumNomme({ main: 'Main directrice', off: 'Main secondaire' });
+export const mainSchema = enumNomme({ main: 'Main directrice', secondaire: 'Main secondaire' });
 
 /** #2948 */
 export function validerApparenceDObjet(trappingId: string | undefined, apparence: string, ctx: z.RefinementCtx, path: string[]): void {

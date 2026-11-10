@@ -22,9 +22,9 @@ const SEANCE = { heros: {}, groupe: {} };
 /** Chaque fenêtre que l'hôte seul valide, et l'état qui l'ouvre. */
 const FENETRES_DE_L_HOTE: readonly (readonly [FenetreAValider, Record<string, unknown>])[] = [
   ['ouverture', { pendingOuverture: { titre: 'O' } }],
-  ['chapterRecap', { pendingChapterRecap: RECAP, finDeSeance: SEANCE }],
+  ['finDeChapitre', { pendingChapterRecap: RECAP, finDeSeance: SEANCE }],
   ['finDeSeance', { finDeSeance: SEANCE }],
-  ['departure', { pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } }],
+  ['depart', { pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } }],
   ['interlude', { interlude: { heroes: [] } }],
   ['marchand', { merchant: { pendingDistribution: [{ itemId: 'x' }] } }],
 ];
@@ -42,9 +42,9 @@ describe('fenetreValider', () => {
     const banc = ouvrirLeBanc();
     banc.getState().fenetreValider('cascade' as never);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.inconnue'));
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.fermee'));
-    expect(intentAllowedFor({ ...banc.getState(), net: { ...banc.getState().net, mode: 'host' } }, 0, 'fenetreValider', ['chapterRecap']), 'fenêtre fermée : aucun siège').toBe(false);
+    expect(intentAllowedFor({ ...banc.getState(), net: { ...banc.getState().net, mode: 'host' } }, 0, 'fenetreValider', ['finDeChapitre']), 'fenêtre fermée : aucun siège').toBe(false);
   });
 
   it.each(FENETRES_DE_L_HOTE)('la validation de l’hôte reste à l’hôte (%s) : refusée dans l’état d’un invité, et au siège d’un invité', (fenetre, ouverte) => {
@@ -63,7 +63,7 @@ describe('fenetreValider', () => {
   it('l’hôte valide le récapitulatif du chapitre : la fenêtre se ferme', () => {
     const banc = ouvrirLeBanc();
     banc.setState({ pendingChapterRecap: RECAP, finDeSeance: SEANCE });
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(banc.getState().pendingChapterRecap).toBeNull();
     expect(banc.getState().finDeSeance, 'la séance du récap est terminée').toBeNull();
   });
@@ -73,7 +73,7 @@ describe('la fenêtre à quorum : chaque siège requis se dit prêt, le dernier 
   it('solo : le quorum est l’hôte seul, la victoire se ferme d’un appel', () => {
     const banc = ouvrirLeBanc();
     banc.setState({ party: groupeDeScenario(idsDeTest, 'soldat'), pendingVictory: VICTOIRE } as never);
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(banc.getState().pendingVictory).toBeNull();
   });
 
@@ -81,13 +81,13 @@ describe('la fenêtre à quorum : chaque siège requis se dit prêt, le dernier 
     const banc = ouvrirLeBanc();
     hoteEtUnInvite(banc);
     banc.setState({ pendingVictory: VICTOIRE } as never);
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(banc.getState().pendingVictory?.readyBySeat, 'l’hôte forçait la fermeture sans le quorum').toEqual({ 0: true });
-    expect(fermetureDeLaSortie(banc.getState(), 'victory')).toBe('quorumAttendu');
-    banc.getState().fenetreFermer('victory');
+    expect(fermetureDeLaSortie(banc.getState(), 'victoire')).toBe('quorumAttendu');
+    banc.getState().fenetreFermer('victoire');
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.quorumAttendu'));
-    expect(intentAllowedFor(banc.getState(), 1, 'fenetreFermer', ['victory'])).toBe(true);
-    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'fenetreFermer', ['victory'])).toBe('appliquee');
+    expect(intentAllowedFor(banc.getState(), 1, 'fenetreFermer', ['victoire'])).toBe(true);
+    expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'fenetreFermer', ['victoire'])).toBe('appliquee');
     expect(banc.getState().pendingVictory, 'quorum atteint : la victoire se ferme').toBeNull();
   });
 });

@@ -27,7 +27,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDe
  *
  * DEUX combats témoins, parce que les NEUF natures ne coexistent pas : les anneaux de cible demandent
  * un tour disponible SANS attaque en cours, tandis que l'anneau « tirer dans le tas » demande un
- * `pendingAttack.intoCrowd` — lequel éteint justement les anneaux de cible (`combatHighlightsView`).
+ * `pendingAttack.dansLeTas` — lequel éteint justement les anneaux de cible (`combatHighlightsView`).
  * Leur RÉUNION couvre les neuf slots, et la sonde le vérifie.
  */
 (globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -79,7 +79,7 @@ function combatTémoin(over: Partial<BattleState> = {}): BattleState {
 }
 
 /** L'état de store qui arme « tirer dans le tas » : l'anneau de foule remplace les anneaux de cible. */
-const TIR_DANS_LE_TAS = { pendingAttack: { attackerId: 'h1', targetId: 'e1', intoCrowd: true } };
+const TIR_DANS_LE_TAS = { pendingAttack: { attackerId: 'h1', targetId: 'e1', dansLeTas: true } };
 
 /** L'état de store qui arme l'INTENTION de Charge (spec HUD zone 4) : la portée de Charge (M×2 cases)
  *  se peint EN PLUS des portées permanentes — c'est la réponse à « connaître la distance ». */

@@ -73,7 +73,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
     expect(gear.length).toBe(1);
     const heroId = banc.getState().party[0].id;
     const avant = new Set((banc.getState().party[0].items ?? []).map((i) => i.uid)); // le héros porte déjà l'équipement de sa carrière
-    banc.getState().fenetreChoisir('loot', 'ligne', gear[0].uid, heroId);
+    banc.getState().fenetreChoisir('butin', 'ligne', gear[0].uid, heroId);
     const hero = banc.getState().party.find((h) => h.id === heroId)!;
     const lame = hero.items!.find((i) => !avant.has(i.uid));
     expect(lame).toBeDefined();

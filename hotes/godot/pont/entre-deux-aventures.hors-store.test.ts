@@ -51,7 +51,7 @@ describe('l’ouvrage et le dépôt par le pont', () => {
     expect(apres.ouvrage, 'l’ouvrage engagé ne s’offre plus').toBeUndefined();
     expect(apres.pratiquer, 'l’Artisanat en cours se poursuit').toMatchObject({ type: 'bouton', refus: null });
 
-    suite = jouer({ type: depot.verbe, args: ['durin', 'stash', 120] });
+    suite = jouer({ type: depot.verbe, args: ['durin', 'planque', 120] });
     expect((suite.vue.zones['fenetre.corps'].find((e) => e.id === 'repit/depots') as Entite).elements.map((b) => (b as Bouton).libelle), 'la planque rejoint les dépôts').toHaveLength(1);
   });
 });

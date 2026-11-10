@@ -259,7 +259,7 @@ function stepWindowDrive(s: Jeu): readonly GesteDuJeu[] | typeof ATTENDRE | null
     const rows = w.rangees(s);
     if (!rows) continue;
     // Rangée RÉGLÉE = jetée, PASSÉE (déclaration terminale : elle ne jettera pas) ou non surfacée.
-    return rows.every((p) => p.result || p.declared === 'pass' || !p.interactive || influencesLocally(s, p.id)) ? w.drive : ATTENDRE;
+    return rows.every((p) => p.result || p.declared === 'passer' || !p.interactive || influencesLocally(s, p.id)) ? w.drive : ATTENDRE;
   }
   return null; // aucune fenêtre ouverte : l'étape garde son propre drive
 }
@@ -367,7 +367,7 @@ export function willAutoResolve(s: Jeu): boolean {
   switch (pol.mode) {
     case 'hostOnly': return false;
     case 'self': return true;
-    case 'choice': return cadenceAutoCombat() && (pickActiveModalKey(s) === 'fateSave' || !!pol.autoDrive);
+    case 'choice': return cadenceAutoCombat() && (pickActiveModalKey(s) === 'destin' || !!pol.autoDrive);
     case 'partial': {
       const pc = s.pendingCascade;
       if (!pc) return false;
@@ -387,7 +387,7 @@ export function spectatorSeatOfModal(s: Jeu): number | null {
   if (s.net.mode === 'local') return null;
   const key = pickActiveModalKey(s);
   if (!key) return null;
-  if ((key === 'cascade' || key === 'rest') && voyageHubActive(s)) return null;
+  if ((key === 'cascade' || key === 'repos') && voyageHubActive(s)) return null;
   if (willAutoResolve(s)) return null;
   const ownerId = modalOwnerOf(s);
   if (ownerId === '*' || ownerId === null || ownsLocal(s, ownerId)) return null;
@@ -410,11 +410,11 @@ export function tickCombatAuto(get: Get, set: Set): void {
       return;
     case 'choice':
       // Auto-combat seul : le Sauvetage par Destin est dépensé automatiquement pour éviter la mort,
-      // `negate` s'il est offert (`fateSaveOptions`), sinon `survive`. En Rapide, on NE touche PAS (la
+      // `eviter` s'il est offert (`fateSaveOptions`), sinon `survivre`. En Rapide, on NE touche PAS (la
       // modale reste — vrai choix du joueur).
-      if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave' && s.pendingFateSave) {
-        const negate = fateSaveOptions(s.pendingFateSave.source).includes('negate');
-        programmer(() => get().fenetreChoisir('fateSave', 'issue', negate ? 'negate' : 'survive'), beatHold(get, 'autoResolve'));
+      if (cadenceAutoCombat() && pickActiveModalKey(s) === 'destin' && s.pendingFateSave) {
+        const eviter = fateSaveOptions(s.pendingFateSave.source).includes('eviter');
+        programmer(() => get().fenetreChoisir('destin', 'issue', eviter ? 'eviter' : 'survivre'), beatHold(get, 'autoResolve'));
       }
       return;
     case 'partial':

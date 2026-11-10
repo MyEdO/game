@@ -36,7 +36,7 @@ describe('les gestes d’un objet', () => {
     const pilon = gestesDeLObjet(s, rosa.id, uid('Pilon et Mortier'))!;
     expect([pilon.evaluer, pilon.detecter], 'un objet non identifié s’évalue et se détecte, au verdict de l’Évaluation').toEqual([
       { refus: appraiseRefus(s.party), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier')] } },
-      { refus: refusDeDetection(s.party, rosa.items!.find((i) => i.label === 'Pilon et Mortier')!), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), 'detect'] } },
+      { refus: refusDeDetection(s.party, rosa.items!.find((i) => i.label === 'Pilon et Mortier')!), geste: { verbe: 'evaluerLObjet', args: [uid('Pilon et Mortier'), 'detection'] } },
     ]);
     expect(dague.poser, 'tout objet se pose, refusé sans sol où le poser')
       .toEqual({ refus: t('pf.poserSansScene', { item: 'Dague' }), geste: { verbe: 'poserLObjet', args: [uid('Dague')] } });

@@ -223,13 +223,13 @@ describe('evaluerLObjet : chaque refus est dit', () => {
   const detecteur = { talentId: 'detection-d-artefact', times: 1 };
   it('la Détection déjà tentée par chaque détecteur (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', { talents: [detecteur], items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTriedBy: ['a'] })] })] });
-    g().evaluerLObjet('inconnu', 'detect');
+    g().evaluerLObjet('inconnu', 'detection');
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Anneau' }), null]);
   });
 
   it('un second détecteur tente encore l’artefact qu’un premier a sondé (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', { talents: [detecteur], items: [objet({ uid: 'inconnu', label: 'Anneau', identified: false, detectTriedBy: ['a'] })] }), heros('b', { talents: [detecteur] })] });
-    g().evaluerLObjet('inconnu', 'detect');
+    g().evaluerLObjet('inconnu', 'detection');
     expect(g().pendingAppraise?.actorId).toBe('b');
   });
 });
@@ -261,7 +261,7 @@ describe('utiliserLObjet : chaque refus est dit', () => {
   });
 
   it('en combat clos, personne n’agit', () => {
-    enBataille([heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] })], { over: 'victory' });
+    enBataille([heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] })], { over: 'victoire' });
     g().utiliserLObjet('pa');
     expect(refus()).toBe(t('barre.personneNAgit'));
   });

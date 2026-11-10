@@ -363,7 +363,7 @@ describe('Scène MENACE (Intrus l.219)', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Sanguinaire', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(mbState().activeThreats).not.toContain('intrus');
     expect(mbState().resolvedScenes).toContain('intrus');
   });
@@ -412,7 +412,7 @@ describe('Scène de COMBAT — touches ET kills (l.139)', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Mutant', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     const after = mbState();
     expect(armyMight(after.enemy)).toBe(55 - 7);
     expect(after.combatScene).toBeUndefined();
@@ -431,7 +431,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(armyMight(mbState().enemy)).toBe(55 - 20);
     expect(mbState().imposed).not.toContain('charge');
   });
@@ -445,7 +445,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Général', count: 1 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(armyMight(mbState().enemy)).toBe(55 - 10);
     expect(mbState().imposed).toContain('charge');
   });
@@ -456,7 +456,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 2, hitters: ['h1'] } },
-      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defaite', combatants: [] } as any,
     });
     banc.getState().fenetreFermer('repli');
     const after = mbState();
@@ -480,7 +480,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
       pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [{ label: 'Garde', count: 3 }] } as any,
       battle: null,
     });
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     expect(armyMight(mbState().ally)).toBe(Math.min(50 + 10, 50)); // plafonné à la Puissance de départ (l.135)
     expect(mbState().imposed).not.toContain('charge');
   });
@@ -491,7 +491,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'percee', hits: 1, hitters: ['h1'] } },
-      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defaite', combatants: [] } as any,
     });
     banc.getState().fenetreFermer('repli');
     expect(mbState().imposed).toContain('charge');

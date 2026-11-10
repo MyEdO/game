@@ -28,11 +28,11 @@ export type ValidationsDeFenetre = { readonly [F in FenetreAValider]: () => void
  *  achat à répartir, la fin de séance que le récap de chapitre termine, la semaine en mer dont un choix n'est plus ouvert
  *  (`semaineAReprendre`), le Round de bataille dont le Test spectaculaire reste à jouer (`fermetureDuRoundSuivant`). */
 export const FERMETURES_DE_LA_VALIDATION: { readonly [F in FenetreAValider]?: (s: Jeu) => FermetureDuJet | null } = {
-  rest: (s) => (noteDAubergeCouverte(s) ? null : 'noteNonCouverte'),
+  repos: (s) => (noteDAubergeCouverte(s) ? null : 'noteNonCouverte'),
   interlude: (s) => (interludeDrawPending(s) ? 'evenementsATirer' : null),
   marchand: (s) => (s.merchant?.pendingDistribution?.length ? null : 'rienARepartir'),
   finDeSeance: seanceDuChapitre,
-  seaActivities: (s) => (semaineAReprendre(s) ? 'choixAReprendre' : null),
+  activitesEnMer: (s) => (semaineAReprendre(s) ? 'choixAReprendre' : null),
   batailleDeMasse: fermetureDuRoundSuivant,
 };
 

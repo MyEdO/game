@@ -44,7 +44,7 @@ export function canActFirst(c: Combatant, battle: BattleState): boolean {
   return (c.fortune ?? 0) > 0 || canStrikeFirst(c.weapons);
 }
 
-/** Les héros que le choix `roundStart.promouvoir` accepte pendant la pause de début de Round : ceux que le siège qui décide
+/** Les héros que le choix `debutDuRound.promouvoir` accepte pendant la pause de début de Round : ceux que le siège qui décide
  *  contrôle (`controlsCombatant`) et qui peuvent agir en premier (`canActFirst`). Vide hors pause. LDB 17 l.25. */
 export function actFirstIds(s: Jeu): string[] {
   const battle = s.battle;

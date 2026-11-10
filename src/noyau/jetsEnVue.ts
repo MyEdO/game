@@ -103,7 +103,7 @@ export const libelleDePuissance = (nom: string): string => `${nom} · Puissance`
 
 /** Le libellé de ligne d'une Évaluation/Détection. */
 export const libelleDEvaluation = (pa: { skillLabel?: string; mode?: keyof typeof APPRAISE_SKILL }): string =>
-  pa.skillLabel ?? refLabel('skills', APPRAISE_SKILL[pa.mode ?? 'evaluate'].skill);
+  pa.skillLabel ?? refLabel('skills', APPRAISE_SKILL[pa.mode ?? 'evaluation'].skill);
 
 /** Le libellé de ligne d'une opposition de cible à une incantation. */
 export const libelleDOppositionDeSort = (pcs: Pick<PendingCastOpposition, 'test'>): string => testSkillLabel(pcs.test);

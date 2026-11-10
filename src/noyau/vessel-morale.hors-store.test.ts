@@ -98,7 +98,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
 
   it('halte de nuit (ouvrirLeRepos puis la validation du repos) franchissant la semaine → le bilan de paie ne se journalise QU’UNE FOIS', () => {
     // Repro #216 : trois écritures indépendantes du MÊME bilan (upkeep.ts, buildNightCascade,
-    // fenetreValider('rest')) écrivaient chacune le journal — l'Argent ne bougeait qu'une fois (garde hebdo
+    // fenetreValider('repos')) écrivaient chacune le journal — l'Argent ne bougeait qu'une fois (garde hebdo
     // interne à `tickCampaignVesselWeek`), mais le texte apparaissait ×3 à l'écran.
     banc.setState({
       battle: null, mode: 'exploration', journal: [], travelPlan: null, pendingRest: null,
@@ -107,7 +107,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
-    banc.getState().fenetreValider('rest');
+    banc.getState().fenetreValider('repos');
     const wageLines = banc.getState().journal.filter((l) => l.includes('Solde hebdomadaire'));
     expect(wageLines).toHaveLength(1);
   });
@@ -135,23 +135,23 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
   it('choix « chiche » → facteur paie-chiche (−2d10) + demi-solde prélevée, bilan joué', () => {
     withCrew();
     banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
-    banc.getState().fenetreChoisir('council', 'paie', 'paie-chiche');
+    banc.getState().fenetreChoisir('conseil', 'paie', 'paie-chiche');
     const s = banc.getState();
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.morale.score).toBeLessThan(75); // « La paie est chiche » fait chuter le Moral
     expect(s.vessel!.morale.lastMoraleWeek).toBe(1); // semaine avancée à la validation
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(toBrass({ gold: 10, silver: 0, brass: 0 }) - 144); // ½ de 288
     expect((s.pendingCouncil?.results ?? []).some((e) => e.label.includes('chiche'))).toBe(true);
-    banc.getState().fenetreFermer('council');
+    banc.getState().fenetreFermer('conseil');
     expect(banc.getState().pendingCouncil).toBeNull();
   });
 
   it('bourse vide → seule « pas de paie » résout (option payante rejetée), dette cumulée', () => {
     withCrew({ gold: 0, silver: 0, brass: 0 });
     banc.getState().avancerLeTemps(8 * MINUTES_PER_DAY);
-    banc.getState().fenetreChoisir('council', 'paie', 'paie-reguliere'); // non payable → rejeté
+    banc.getState().fenetreChoisir('conseil', 'paie', 'paie-reguliere'); // non payable → rejeté
     expect(banc.getState().pendingCouncil?.phase).toBe('choix'); // reste en choix
-    banc.getState().fenetreChoisir('council', 'paie', 'pas-de-paie');
+    banc.getState().fenetreChoisir('conseil', 'paie', 'pas-de-paie');
     const s = banc.getState();
     expect(s.pendingCouncil?.phase).toBe('bilan');
     expect(s.vessel!.wagesOwed).toBe(288); // solde régulière due cumulée

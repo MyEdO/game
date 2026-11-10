@@ -42,7 +42,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -89,7 +89,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -141,7 +141,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(seed);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero');
     const frappeur = heroes.find((c) => c.label === 'A')!;
@@ -252,7 +252,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(6);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const [E1, E2] = b.combatants.filter((c) => c.kind === 'enemy');
@@ -287,7 +287,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -319,7 +319,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
       expect(pc?.hitIds).toEqual([E1.id]);
       expect(pc?.count, 'aucun enchaînement consommé').toBe(0);
       expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
-      banc.getState().fenetreFermer('cleave');
+      banc.getState().fenetreFermer('frappeMortelle');
       expect(banc.getState().battle!.acted, 'attaque GRATUITE : l’Action du fuyard retrouve sa valeur').toBe(false);
       expect(restitutions, 'l’Action est rendue UNE fois').toBe(1);
     } finally {
@@ -335,7 +335,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const [fuyard, voisin] = b.combatants.filter((c) => c.kind === 'hero');
     const [E] = b.combatants.filter((c) => c.kind === 'enemy');

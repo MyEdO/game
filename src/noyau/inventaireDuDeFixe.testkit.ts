@@ -151,11 +151,11 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: flatRead('pendingAppraise'),
   },
   heal: {
-    state: { pendingHeal: { healerId: 'H', targetId: 'H', mode: 'wounds', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: T, difficulty: 'intermediaire', ...rate } },
+    state: { pendingHeal: { healerId: 'H', targetId: 'H', mode: 'blessures', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingHeal'),
   },
   surgery: {
-    state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', kind: 'surgery', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
+    state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingSurgery'),
   },
   // Exposition à une Influence corruptrice (LDB 19 l.29) : un Test, donc la Résilience (LDB 17 l.68) et son

@@ -1,6 +1,6 @@
 /**
  * #3612 L2 — UN VERBE GÉNÉRAL PAR GESTE D'OBJET : `evaluerLObjet` évalue un objet porté comme une ligne d'un butin encore
- * en fenêtre (`loot`, `victory`), et chaque refus se dit ; le dépeçage est le choix `victory.depecer`, à l'hôte, parmi
+ * en fenêtre (`butin`, `victoire`), et chaque refus se dit ; le dépeçage est le choix `victoire.depecer`, à l'hôte, parmi
  * les créatures que la victoire ouvre ; `approvisionnerLArme` refuse, et dit, une munition que le porteur de l'arme ne
  * porte pas, sans rien écrire. LDB 59 l.41, LDB 10 l.336, ZI 13.
  */
@@ -42,15 +42,15 @@ const ligne = (uid: string, effet: Record<string, unknown> = {}) => ({ uid, labe
 const victoire = (over: Record<string, unknown> = {}) => ({ xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [], harvested: [], ...over });
 
 describe('evaluerLObjet : un verbe pour l’objet porté et la ligne de butin en fenêtre', () => {
-  it('une ligne du butin hors combat (`loot`)', () => {
+  it('une ligne du butin hors combat (`butin`)', () => {
     banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } } as never);
     g().evaluerLObjet('L0');
     expect(g().pendingAppraise?.gear).toEqual({ scope: 'loot', uid: 'L0' });
   });
 
-  it('une ligne de l’écran de victoire (`victory`)', () => {
+  it('une ligne de l’écran de victoire (`victoire`)', () => {
     banc.setState({ party: [heros('a')], pendingVictory: victoire({ gear: [ligne('L0')] }) } as never);
-    g().evaluerLObjet('L0', 'evaluate');
+    g().evaluerLObjet('L0', 'evaluation');
     expect(g().pendingAppraise?.gear).toEqual({ scope: 'victory', uid: 'L0' });
   });
 
@@ -70,7 +70,7 @@ describe('evaluerLObjet : chaque refus est dit, aucune évaluation ne s’ouvre'
 
   it('la Détection d’une ligne déjà tentée par le seul détecteur (LDB 10 l.336)', () => {
     banc.setState({ party: [heros('a', DETECTEUR)], pendingLoot: { title: 'Coffre', gear: [ligne('L0', { detectTriedBy: ['a'] })] } } as never);
-    g().evaluerLObjet('L0', 'detect');
+    g().evaluerLObjet('L0', 'detection');
     expect([dernier(), g().pendingAppraise]).toEqual([t('mf.detectDejaTentee', { label: 'Épée' }), null]);
   });
 
@@ -119,27 +119,27 @@ describe('victory.depecer : le dépeçage est un choix de la victoire, à l’h�
 
   it('l’hôte dépèce une créature que la victoire ouvre', () => {
     banc.setState({ party: [heros('a')], pendingVictory: ecran() } as never);
-    g().fenetreChoisir('victory', 'depecer', 'griffon');
+    g().fenetreChoisir('victoire', 'depecer', 'griffon');
     expect(g().pendingVictory?.harvested).toEqual(['griffon']);
   });
 
   it('dans l’état d’un invité, le choix est refusé, et le refus se dit', () => {
     banc.setState({ party: [heros('a')], pendingVictory: ecran() } as never);
     banc.setState({ net: { ...initialNet(), mode: 'guest' } });
-    g().fenetreChoisir('victory', 'depecer', 'griffon');
+    g().fenetreChoisir('victoire', 'depecer', 'griffon');
     expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('choix.refus.hoteSeul'), []]);
   });
 
   it('une créature sans profil de récolte est hors de l’offre : refusée, et le refus se dit', () => {
     banc.setState({ party: [heros('a')], pendingVictory: ecran() } as never);
-    g().fenetreChoisir('victory', 'depecer', 'humain');
+    g().fenetreChoisir('victoire', 'depecer', 'humain');
     expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('choix.refus.valeur'), []]);
   });
 
   it('une créature déjà dépecée reste offerte, refusée avec sa raison, et le refus se dit', () => {
     banc.setState({ party: [heros('a')], pendingVictory: { ...ecran(), harvested: ['griffon'] } } as never);
-    expect(reglageDuChoixDeFenetre(g(), 'victory', 'depecer').valeurs).toEqual([{ valeur: 'griffon', libelle: 'Griffon', refus: t('eff.dejaDepecee') }]);
-    g().fenetreChoisir('victory', 'depecer', 'griffon');
+    expect(reglageDuChoixDeFenetre(g(), 'victoire', 'depecer').valeurs).toEqual([{ valeur: 'griffon', libelle: 'Griffon', refus: t('eff.dejaDepecee') }]);
+    g().fenetreChoisir('victoire', 'depecer', 'griffon');
     expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('eff.dejaDepecee'), ['griffon']]);
   });
 });
@@ -148,7 +148,7 @@ describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa m
   /** Dépèce `creatureId`, puis valide le jet ouvert à `roll` contre `target` : les pièces que reçoit la fenêtre du butin. */
   function recolter(creatureId: string, roll: number, target: number, h: Combatant = heros('a', { skills: [{ id: 'savoir', spec: 'betes-sauvages', characteristic: 'intelligence', advances: 10 }] as never })) {
     banc.setState({ party: [h], pendingVictory: victoire({ defeated: [{ label: 'X', count: 1, creatureId }] }) } as never);
-    g().fenetreChoisir('victory', 'depecer', creatureId);
+    g().fenetreChoisir('victoire', 'depecer', creatureId);
     const pt = g().pendingTest!;
     const sl = Math.floor(target / 10) - Math.floor(roll / 10);
     banc.setState({ pendingTest: { ...pt, roll, target, success: roll <= target, sl } });
@@ -172,7 +172,7 @@ describe('victory.depecer : la récolte suit le DR du jet, et le récolteur sa m
   it('une créature venimeuse : le récolteur joue Métier (Empoisonneur), sa meilleure Compétence admise', () => {
     const empoisonneur = heros('a', { skills: [{ id: 'savoir', spec: 'betes-sauvages', characteristic: 'intelligence', advances: 5 }, { id: 'metier', spec: 'empoisonneur', characteristic: 'dexterite', advances: 30 }] as never });
     banc.setState({ party: [empoisonneur], pendingVictory: victoire({ defeated: [{ label: 'Vouivre', count: 1, creatureId: 'vouivre' }] }) } as never);
-    g().fenetreChoisir('victory', 'depecer', 'vouivre');
+    g().fenetreChoisir('victoire', 'depecer', 'vouivre');
     expect(g().pendingTest?.sujet).toEqual({ skill: { id: 'metier', spec: 'empoisonneur' } });
   });
 });
@@ -187,7 +187,7 @@ describe('coop à 3 sièges : évaluer et dépecer restent à l’hôte, refusé
 
   it.each([
     ['une ligne du butin', () => enCoop({ pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0']],
-    ['sa Détection', () => enCoop({ party: [heros('a', DETECTEUR), heros('b'), heros('c')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0', 'detect']],
+    ['sa Détection', () => enCoop({ party: [heros('a', DETECTEUR), heros('b'), heros('c')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } }), ['L0', 'detection']],
     ['une ligne de la victoire', () => enCoop({ pendingVictory: victoire({ gear: [ligne('V0')] }) }), ['V0']],
   ] as const)('evaluerLObjet sur %s : l’invité hors de la liste, rien ne s’ouvre', (_cas, poser, args) => {
     const issues = PAR_SIEGE.map((siege) => {
@@ -200,7 +200,7 @@ describe('coop à 3 sièges : évaluer et dépecer restent à l’hôte, refusé
   it('victory.depecer : l’hôte dépèce, chaque invité est refusé par la route', () => {
     const issues = PAR_SIEGE.map((siege) => {
       enCoop({ pendingVictory: victoire({ defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }] }) });
-      const args = ['victory', 'depecer', 'griffon'] as const;
+      const args = ['victoire', 'depecer', 'griffon'] as const;
       return [intentAllowedFor(g(), siege, 'fenetreChoisir', [...args]), appliquerLIntentionDUnSiege(g, siege, 'fenetreChoisir', args), g().pendingVictory?.harvested];
     });
     expect(issues).toEqual([[true, 'appliquee', ['griffon']], [false, 'refusee', []], [false, 'refusee', []]]);

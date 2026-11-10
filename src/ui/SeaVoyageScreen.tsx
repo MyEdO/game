@@ -82,7 +82,7 @@ export function SeaVoyageBody({ day }: { day: TravelRecapDay }) {
       {active && (
         <div className="sea-voyage-orders">
           {cadence === 'commande'
-            ? <button type="button" className="btn small" onClick={() => setCadence('jour-par-jour')} title={t('sv.passerJourParJourTitre')}>{t('sv.passerJourParJour')}</button>
+            ? <button type="button" className="btn small" onClick={() => setCadence('jourParJour')} title={t('sv.passerJourParJourTitre')}>{t('sv.passerJourParJour')}</button>
             : <button type="button" className="btn small" onClick={() => setCadence('commande')} title={t('sv.repasserCommandeeTitre')}>{t('sv.repasserCommandee')}</button>}
         </div>
       )}

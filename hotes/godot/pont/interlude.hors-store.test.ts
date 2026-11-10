@@ -51,7 +51,7 @@ describe('l’interlude par le pont', () => {
     const revenus = parLibelle(heros(suite, SIGMUND)).Entreprendre as Bouton;
     expect(revenus.refus, 'les Revenus se pratiquent').toBeNull();
     suite = jouer(revenus);
-    expect(suite.vue.disposition, 'le jet des Revenus tient la main').toBe('activity');
+    expect(suite.vue.disposition, 'le jet des Revenus tient la main').toBe('activite');
     expect(suite.vue.zones['fenetre.corps'].some((e) => e.type === 'entite'), 'l’interlude ne se montre pas sous le jet').toBe(false);
     suite = jouer(enFocus(suite));
     suite = jouer(suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Appliquer')!);

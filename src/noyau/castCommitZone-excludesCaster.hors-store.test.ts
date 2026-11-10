@@ -43,7 +43,7 @@ const distantFoe = (): Combatant => mk('FOE', 'enemy', 40, 40, 40);
 function setupBattle(c: Combatant, others: Combatant[], spellId: string, missile: boolean) {
   const battle = {
     combatants: [c, ...others], order: [c.id, ...others.map((o) => o.id)], baseOrder: [c.id, ...others.map((o) => o.id)],
-    turn: 0, round: 1, action: 'cast', selectedSpellId: spellId, reachable: new Map(),
+    turn: 0, round: 1, action: 'incantation', selectedSpellId: spellId, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null, zones: [],
   } as never;
   banc.setState({ battle, scene: undefined, party: [] });

@@ -15,7 +15,7 @@ import { RULE_REF } from './ruleRefs';
 import type { Combatant, Weapon, Trauma } from './types';
 
 const w1main = { name: 'Épée', type: 'melee', hands: 1, hand: 'main', qualities: [] } as unknown as Weapon; // 1 main, DROITE (principale)
-const w1off = { name: 'Dague', type: 'melee', hands: 1, hand: 'off', qualities: [] } as unknown as Weapon;   // 1 main, GAUCHE (secondaire)
+const w1off = { name: 'Dague', type: 'melee', hands: 1, hand: 'secondaire', qualities: [] } as unknown as Weapon;   // 1 main, GAUCHE (secondaire)
 const w2 = { name: 'Espadon', type: 'melee', hands: 2, qualities: [] } as unknown as Weapon;                 // 2 mains
 
 const withTraumas = (traumas: Trauma[]): Combatant => ({ traumas } as unknown as Combatant);

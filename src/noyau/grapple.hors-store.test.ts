@@ -33,7 +33,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -159,7 +159,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     banc.getState().jetValider('grapple');
     expect(banc.getState().pendingGrapple?.phase).toBe('options');
     const before = live(E.id).wounds.current;
-    banc.getState().jetRegler('grapple', 'issue', 'damage');
+    banc.getState().jetRegler('grapple', 'issue', 'degats');
     // BF(4) + DR(2) = 6, − BE(3) = 3, PA ignorés (armure 5 sans effet).
     expect(before - live(E.id).wounds.current).toBe(3);
     expect(banc.getState().battle!.acted).toBe(true);
@@ -176,7 +176,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
     const pd = banc.getState().pendingGrapple!;
     banc.setState({ pendingGrapple: { ...pd, def: pd.atk, result: 'success', phase: 'roll' } });
     banc.getState().jetValider('grapple');
-    banc.getState().jetRegler('grapple', 'issue', 'entangle');
+    banc.getState().jetRegler('grapple', 'issue', 'empetrer');
     expect(hasCondition(live(E.id), COND.empetre)).toBe(true);
   });
 
@@ -196,7 +196,7 @@ describe('Empoignade — store + funnel (LDB 14 l.159/161/169)', () => {
       atk: { roll: 50, target: 40, success: true, sl: 0, isDouble: false },
       result: 'success', phase: 'roll' } });
     banc.getState().jetValider('grapple');
-    banc.getState().jetRegler('grapple', 'issue', 'free');
+    banc.getState().jetRegler('grapple', 'issue', 'liberer');
     expect(stacks(live(H.id), COND.empetre)).toBe(1); // 3 − (1 + DR 1) = 1
   });
 

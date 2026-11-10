@@ -342,7 +342,7 @@ describe('Héros qui balaie sur une gratuite : l’Action d’origine au bout de
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'e1', location: null, result: toucheDuHeros(true) } as never });
     banc.getState().jetValider('attack');
     expect(banc.getState().pendingCleave).not.toBeNull();
-    banc.getState().fenetreFermer('cleave');
+    banc.getState().fenetreFermer('frappeMortelle');
     expect(banc.getState().battle!.acted, 'gratuite : l’Action d’avant à la fermeture de la chaîne').toBe(false);
   });
 

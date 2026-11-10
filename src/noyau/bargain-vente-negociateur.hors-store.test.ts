@@ -35,7 +35,7 @@ function marchanderLaVente(joueur: number, marchand: number): void {
   sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
   set({ party: [negociateur()], scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().ouvrirLeMarchand('pnj');
-  get().fenetreChoisir('marchand', 'marchander', 'sell');
+  get().fenetreChoisir('marchand', 'marchander', 'vente');
   imposerLesD100(joueur, marchand);
   get().jetLancer('bargain');
 }

@@ -45,7 +45,7 @@ function setup() {
   const hidden = spawnEnemy({ ref: 'humain' }, 'e-cache', { x: 16, y: 4 });
   const battle = {
     combatants: [w, seen, hidden], order: [w.id, 'e-vu', 'e-cache'], baseOrder: [w.id, 'e-vu', 'e-cache'],
-    turn: 0, round: 1, action: 'cast', selectedSpellId: 'carreau', reachable: new Map(),
+    turn: 0, round: 1, action: 'incantation', selectedSpellId: 'carreau', reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as never;
   banc.setState({ battle, scene: wallScene(), party: [] });
@@ -157,17 +157,17 @@ describe('ciblesHorsDeVue — le grisage que lit le survol', () => {
     poser({});
     banc.setState({ mode: 'exploration' });
     expect(ids()).toEqual([]);
-    poser({ over: 'victory' });
+    poser({ over: 'victoire' });
     expect(ids()).toEqual([]);
   });
 
   it('Incantation armée avec un sort → grisage du SORT, sans arme à distance', () => {
-    poser({ action: 'cast', selectedSpellId: 'carreau' });
+    poser({ action: 'incantation', selectedSpellId: 'carreau' });
     expect(ids()).toEqual(['e-cache']);
   });
 
   it('Incantation armée sans sort → verrou → vide', () => {
-    poser({ action: 'cast', selectedSpellId: null }, 'arc');
+    poser({ action: 'incantation', selectedSpellId: null }, 'arc');
     expect(ids()).toEqual([]);
   });
 

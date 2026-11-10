@@ -183,7 +183,7 @@ describe('#3059 — siège invité : vente, bradage et Conseil disent le refus d
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'vendre', 'lot-2'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'jeter', 'lot-2'] });
-      partie.envoyer({ type: 'fenetreChoisir', args: ['council', 'paie', 'paie-reguliere'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['conseil', 'paie', 'paie-reguliere'] });
       const s = partie.etat();
       expect(s.vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
@@ -253,7 +253,7 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
     try {
       const fenetres = () => Object.entries(partie.etat()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
       const avant = fenetres();
-      partie.envoyer({ type: 'fenetreValider', args: ['seaActivities'] });
+      partie.envoyer({ type: 'fenetreValider', args: ['activitesEnMer'] });
       const s = partie.etat();
       expect(fenetres()).toEqual(avant);
       expect(s.pendingSeaActivities?.opportunityQueue, 'aucune Activité résolue').toBeUndefined();

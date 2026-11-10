@@ -33,7 +33,7 @@ test('un champ de type nommé, un membre d’union discriminée et un nom non d�
     talent: [parametre('talent', objet('RefDesignee', [['id', designe('IdDeTalent')]]))],
     competence: [parametre('skill', objet('RefDesignee', [['id', designe('IdDeCompetence')]]))],
     taverne: [parametre('opponent', discriminee)],
-    flux: [parametre('mode', { genre: 'litteral', valeur: 'detect' })],
+    flux: [parametre('mode', { genre: 'litteral', valeur: 'detection' })],
     armer: [parametre('mode', designe('IdDeMode'))],
   }))
 })

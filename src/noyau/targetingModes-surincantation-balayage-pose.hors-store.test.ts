@@ -40,7 +40,7 @@ describe('Surincantation +Cible — LDB 47 l.28', () => {
     const { hero, ally, e1, e2 } = combat();
     banc.setState({ pendingCast: { casterId: 'h1', targetId: 'e1', spellId: 'carreau', missile: true, pickingTargets: true, result: { cast: true } } as never });
     const mode = currentTargetingMode(banc.getState);
-    expect(mode.id).toBe('overcast');
+    expect(mode.id).toBe('surincantation');
     const eligibles = mode.candidates!(banc.getState, hero).map((c) => c.id);
     expect(eligibles, 'fixture : e2 est une cible supplémentaire').toContain('e2');
     const vise = mode.affordance!(banc.getState, hero, e2);
@@ -55,7 +55,7 @@ describe('Frappe Mortelle — LDB 14 l.9', () => {
     const { hero } = combat();
     banc.setState({ pendingCleave: { attackerId: 'h1', hitIds: ['e1'], count: 1 } as never });
     const mode = currentTargetingMode(banc.getState);
-    expect(mode.id).toBe('cleave');
+    expect(mode.id).toBe('frappeMortelle');
     expect(mode.candidates!(banc.getState, hero).map((c) => c.id)).toEqual(['e2']);
   });
 
@@ -71,7 +71,7 @@ describe('pose de zone — portée et Ligne de vue (LDB 46 l.121)', () => {
     const { hero } = combat();
     banc.setState({ pendingSiegeAim: { gunnerId: 'h1', weaponUid: 'w', radius: 2, rangeTiles: 3 } as never });
     const mode = currentTargetingMode(banc.getState);
-    expect(mode.id).toBe('placing-zone');
+    expect(mode.id).toBe('poseDeLaZone');
     const valide = (pt: { x: number; y: number }) => (mode as { tileValidAt: (g: typeof banc.getState, a: typeof hero, p: typeof pt) => boolean }).tileValidAt(banc.getState, hero, pt);
     expect(valide({ x: 9, y: 6 })).toBe(true);
     expect(valide({ x: 10, y: 6 })).toBe(false);

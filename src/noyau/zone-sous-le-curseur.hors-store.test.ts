@@ -32,7 +32,7 @@ function poser(fm: number, battle: Record<string, unknown> = {}): Combatant {
     mode: 'battle', scene: wallScene(), party: [], pendingCast: null, pendingSiegeAim: null,
     battle: {
       combatants: [w, e], order: [w.id, 'e-1'], baseOrder: [w.id, 'e-1'], turn: 0, round: 1,
-      action: 'cast', selectedSpellId: 'explosion', reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
+      action: 'incantation', selectedSpellId: 'explosion', reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
       ...battle,
     } as never,
   });

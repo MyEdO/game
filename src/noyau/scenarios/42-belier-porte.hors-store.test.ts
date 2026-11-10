@@ -30,7 +30,7 @@ function startBelier(): { soldat: Combatant; crew: Combatant[]; ram: Combatant; 
   banc.setState({ party: scenario.construire(idsDeTest).party });
   banc.getState().lancerLaScene(scenarioConstruit.scene);
   banc.getState().lancerLeCombat('siege-belier');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const ram = b.combatants.find((c) => c.postes?.length)!;
@@ -171,7 +171,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     const movers = [ram, ...crew];
     const before = new Map(movers.map((c) => [c.id, { ...c.pos! }]));
     banc.getState().pousserLEngin();
-    expect(banc.getState().battle!.action).toBe('push');
+    expect(banc.getState().battle!.action).toBe('poussee');
     const dest = { x: soldat.pos!.x, y: soldat.pos!.y - 2 };
     banc.getState().cliquerLaCase(dest);
     const delta = { x: dest.x - before.get(soldat.id)!.x, y: dest.y - before.get(soldat.id)!.y };
@@ -201,7 +201,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     expect(banc.getState().battle!.reachable.has(`${tooFar.x},${tooFar.y}`)).toBe(false);
     banc.getState().cliquerLaCase(tooFar);
     expect(soldat.pos).toEqual(start);
-    expect(banc.getState().battle!.action).toBe('push'); // toujours ouvert : ce n'était pas un commit
+    expect(banc.getState().battle!.action).toBe('poussee'); // toujours ouvert : ce n'était pas un commit
     // Dans la portée (exactement le plafond) : le clic commet.
     const atCap = { x: start.x, y: start.y - cap };
     banc.getState().cliquerLaCase(atCap);
@@ -214,7 +214,7 @@ describe('Bélier — porte (belier-porte) : engin de siège CREWÉ, jamais une 
     setActive(soldatA.id);
     for (const c of crewA.filter((x) => x.id !== soldatA.id).slice(0, 3)) c.wounds = { ...c.wounds, current: 0 }; // 3/6 restants
     banc.getState().pousserLEngin();
-    expect(banc.getState().battle!.action).toBe('push'); // effectif suffisant → poussée ouverte
+    expect(banc.getState().battle!.action).toBe('poussee'); // effectif suffisant → poussée ouverte
 
     banc.setState({ battle: null });
     const { soldat: soldatB, crew: crewB } = startBelier();

@@ -1,10 +1,10 @@
 {"scenario":"fenetre-ecuries","graine":1,"regles":{},"cadence":"manuel","desFixes":false}
-{"type":"avancerDUnPas","args":["forward"]}
-{"type":"avancerDUnPas","args":["left"]}
-{"type":"avancerDUnPas","args":["right"]}
-{"type":"avancerDUnPas","args":["back"]}
-{"type":"avancerDUnPas","args":["forward"]}
-{"type":"avancerDUnPas","args":["forward"]}
+{"type":"avancerDUnPas","args":["avant"]}
+{"type":"avancerDUnPas","args":["gauche"]}
+{"type":"avancerDUnPas","args":["droite"]}
+{"type":"avancerDUnPas","args":["arriere"]}
+{"type":"avancerDUnPas","args":["avant"]}
+{"type":"avancerDUnPas","args":["avant"]}
 {"type":"cliquerLaCase","args":[{"x":6,"y":4,"z":1}]}
 {"type":"cliquerLaCase","args":[{"x":6,"y":3,"z":1}]}
 {"type":"cliquerLaCase","args":[{"x":7,"y":3,"z":1}]}

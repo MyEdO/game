@@ -62,7 +62,7 @@ export function combatHighlightsView(get: () => GameState, battle: BattleState, 
         ? new Set(validTargets(get).map((c) => c.id))
         : null,
     crowdIds: (() => {
-      if (!pendingAttack?.intoCrowd) return null;
+      if (!pendingAttack?.dansLeTas) return null;
       const atk = battle.combatants.find((c) => c.id === pendingAttack.attackerId);
       const tgt = battle.combatants.find((c) => c.id === pendingAttack.targetId);
       return atk && tgt ? new Set(crowdEligible(battle, atk, tgt).map((v) => v.id)) : null;

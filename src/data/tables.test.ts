@@ -38,7 +38,7 @@ describe('tables.json — tables d’effets référençables', () => {
       expect(['d10', 'd100']).toContain(t.die);
       expect(t.entries.length).toBeGreaterThan(0);
       expect(t.source?.book, `${t.id} sans source`).toBeTruthy();
-      for (const r of t.entries) expect(r.min).toBeLessThanOrEqual(r.max);
+      for (const r of findEffectTableById(t.id).entries) expect(r.min).toBeLessThanOrEqual(r.max);
     }
   });
 

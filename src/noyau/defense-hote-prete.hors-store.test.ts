@@ -29,7 +29,7 @@ function setup(seed: number) {
   g().lancerLaScene(built.scene);
   g().lancerLeCombat('enc-entrainement', undefined, { noSurprise: true });
   for (let i = 0; i < 20 && (g().pendingRoundStart || g().pendingCascade); i++) {
-    if (g().pendingRoundStart) g().fenetreValider('roundStart'); else avanceEtapeCascade(g);
+    if (g().pendingRoundStart) g().fenetreValider('debutDuRound'); else avanceEtapeCascade(g);
   }
   const b = g().battle!;
   const tireur = b.combatants.find((c) => c.id === 'tr-tireur')!;

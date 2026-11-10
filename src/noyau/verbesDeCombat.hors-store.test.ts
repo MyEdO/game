@@ -53,7 +53,7 @@ const courir = (partie: Partie, pt: { x: number; y: number }): void => {
 function etatDuDuel(): { etat: EtatDeJeu; idDeE: string } {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -166,7 +166,7 @@ describe('Course : un seul verdict pour l’offre, le geste et la zone (`refusDe
         const e = partie.etat();
         const intentions: Intention[] = e.pendingDefense
           ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }]
-          : activeCombatant(e.battle!) ? [{ type: 'terminerLeTour', args: [] }] : [{ type: 'fenetreValider', args: ['roundStart'] }];
+          : activeCombatant(e.battle!) ? [{ type: 'terminerLeTour', args: [] }] : [{ type: 'fenetreValider', args: ['debutDuRound'] }];
         for (const intention of intentions) jouer(partie, partie.envoyer(intention));
       }
       const b = partie.etat().battle!;

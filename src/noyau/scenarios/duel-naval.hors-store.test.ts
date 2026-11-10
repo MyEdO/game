@@ -27,7 +27,7 @@ function launch(seed: number) {
   g.fixerLeGroupe(scenario.construire(idsDeTest).party);
   g.lancerLaScene(scenarioConstruit.scene);
   g.lancerLeCombat('duel');
-  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
+  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
 }
 
 /** Gabarit d'un message du catalogue en RegExp (les `{param}` deviennent `.*`). */

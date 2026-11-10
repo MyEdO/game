@@ -51,7 +51,7 @@ describe('l’inventaire d’un héros par le pont', () => {
     expect(choisie(s)?.ton, 'portée de nouveau').toBe('reussite');
 
     s = choisir(s, 'Dague');
-    expect([geste(s, 'main'), geste(s, 'off')].map((g) => [g.libelle, (g as Bouton).presse, g.refus]), 'une arme tenue en main principale')
+    expect([geste(s, 'main'), geste(s, 'secondaire')].map((g) => [g.libelle, (g as Bouton).presse, g.refus]), 'une arme tenue en main principale')
       .toEqual([['Main principale', true, null], ['Main secondaire', false, null]]);
     s = jouer((geste(s, 'main') as Bouton).jeu);
     expect([(geste(s, 'main') as Bouton).presse, choisie(s)?.ton], 'lâchée par son geste pressé').toEqual([false, 'neutre']);

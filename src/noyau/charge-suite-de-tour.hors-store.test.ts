@@ -168,7 +168,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     charge(banc, 1, [], 1);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !b().over);
-    expect([b().over, attaques('e', 'h'), attaques('h')], 'chemin : la riposte a fini le combat avant la frappe du chargeur').toEqual(['defeat', 1, 0]);
+    expect([b().over, attaques('e', 'h'), attaques('h')], 'chemin : la riposte a fini le combat avant la frappe du chargeur').toEqual(['defaite', 1, 0]);
     expect([g().actorAim, g().actorMove, g().actorAoe], 'aucun télégraphe ne survit au combat').toEqual([null, null, null]);
   });
 
@@ -681,7 +681,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     jouerLaSequence();
     finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
     expect(!!g().pendingFateSave, 'chemin : le Destin est offert').toBe(true);
-    g().fenetreChoisir('fateSave', 'issue', 'negate');
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect([frappeOuverte()?.de, b().turn], 'la frappe du joueur s’ouvre, son tour tient').toEqual(['h', 0]);
   });
@@ -713,7 +713,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     chargeManuelle(4, { reactive: false });
     qui('h').fate = 1;
     finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
-    g().fenetreChoisir('fateSave', 'issue', 'negate');
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
   });
@@ -726,7 +726,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     frapper();
     expect([attaques('h', 'e'), b().acted], 'chemin : l’Action est prise par la frappe').toEqual([1, true]);
     finalizeHeroDeath(g, banc.setState, qui('h'), 'hit', 40, qui('e'));
-    g().fenetreChoisir('fateSave', 'issue', 'negate');
+    g().fenetreChoisir('destin', 'issue', 'eviter');
     banc.reprendreTout();
     expect(b().turn, 'le tour reste au joueur').toBe(0);
   });

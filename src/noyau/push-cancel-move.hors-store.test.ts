@@ -66,7 +66,7 @@ describe('#199 — annulerLeDeplacement défait une poussée d’engin de siège
   it('pousse d’une case : engin + chef + servants avancent, servants marqués loseNextMovement', () => {
     const { chef, hull, s1, s2 } = pushSetup();
     banc.getState().pousserLEngin();
-    expect(banc.getState().battle!.action).toBe('push');
+    expect(banc.getState().battle!.action).toBe('poussee');
     expect(banc.getState().battle!.reachable.size).toBeGreaterThan(0);
     const dest = reachDest(chef.pos!);
     banc.getState().cliquerLaCase(dest);

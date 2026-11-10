@@ -46,7 +46,7 @@ function refusNeuf(partie: Partie, envoyer: () => unknown): string | undefined {
 function enCombat(jouer: (partie: Partie, H: Combatant) => void, patch: Partial<EtatDeJeu> | ((H: Combatant) => Partial<EtatDeJeu>) = {}): void {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);
@@ -74,10 +74,10 @@ describe('garnirLaPanoplie — le verdict de main (`refusEmplacementDeMain`) est
     avecPartie({ ...etatInitialDuJeu(), party: [heros] }, (partie) => {
       const lu = () => partie.etat().party[0];
       const set = activeLoadout(lu())!;
-      const attendu = refusEmplacementDeMain(partie.etat(), lu(), set.id, 'off', arc.uid);
+      const attendu = refusEmplacementDeMain(partie.etat(), lu(), set.id, 'secondaire', arc.uid);
       expect(attendu, 'un arc long n’est ni une arme de mêlée à une main ni un pistolet').toBeTruthy();
-      const appel = partie.envoyer({ type: 'garnirLaPanoplie', args: [heros.id, set.id, 'off', arc.uid] });
-      expect(activeLoadout(lu())!.off, 'l’arc a été pris en seconde main').not.toBe(arc.uid);
+      const appel = partie.envoyer({ type: 'garnirLaPanoplie', args: [heros.id, set.id, 'secondaire', arc.uid] });
+      expect(activeLoadout(lu())!.secondaire, 'l’arc a été pris en seconde main').not.toBe(arc.uid);
       expect(lignesDuJournal(appel)).toEqual([attendu]);
     });
   });
@@ -172,7 +172,7 @@ describe('gestes d’objet et de fiche en combat — un verdict par famille, cel
       const avant = structuredClone(lu().items);
       const gestes: [string, () => void][] = [
         ['evaluerLObjet', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid] })],
-        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, 'detect'] })],
+        ['evaluerLObjet (detect)', () => partie.envoyer({ type: 'evaluerLObjet', args: [inconnu.uid, 'detection'] })],
       ];
       for (const [nom, envoyer] of gestes) {
         expect(refusNeuf(partie, envoyer), `${nom} n’a pas prononcé son refus`).toBe(refusDInventaire(partie.etat()));

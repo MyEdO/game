@@ -197,14 +197,14 @@ describe('__wfrp.killEnemies — commande de recette (élimine les ennemis, vict
     useGame.setState({ party: [hero] });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
 
     const out = buildApi().killEnemies();
 
     expect(out).toContain('✓');
     const b = useGame.getState().battle!;
-    expect(b.over).toBe('victory');
+    expect(b.over).toBe('victoire');
     expect(b.combatants.filter((c) => c.kind === 'enemy').every((c) => isOutOfAction(c))).toBe(true);
     expect(useGame.getState().pendingVictory).toBeTruthy();
   });
@@ -269,7 +269,7 @@ describe('__wfrp — autres commandes de recette', () => {
   it('trait (#555) : EN COMBAT, pose le Trait en un appel sur un ennemi puis sur le héros, relu au combattant', () => {
     const hero = useGame.getState().party[0];
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
     const ennemi = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -282,7 +282,7 @@ describe('__wfrp — autres commandes de recette', () => {
   it('psych : EN COMBAT, pose l’état psychologique par l’op beginPsych, relu au combattant', () => {
     const hero = useGame.getState().party[0];
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     const relu = (id: string) => useGame.getState().battle!.combatants.find((c) => c.id === id)!;
     expect(buildApi().psych(hero.id, 'frenesie')).toMatch(/^✓/);
@@ -292,7 +292,7 @@ describe('__wfrp — autres commandes de recette', () => {
   it('psych : refuse un type absent de psychology.json en listant les ids valides, sans rien poser', () => {
     const hero = useGame.getState().party[0];
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     const avant = structuredClone(useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!.psychState ?? []);
     const rendu = buildApi().psych(hero.id, 'Frénésie');
@@ -304,7 +304,7 @@ describe('__wfrp — autres commandes de recette', () => {
   it('condition : refuse un id d’État hors catalogue (un libellé) en listant les ids valides, sans rien poser', () => {
     const hero = useGame.getState().party[0];
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     const relu = () => useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     const avant = structuredClone(relu().conditions);
@@ -317,7 +317,7 @@ describe('__wfrp — autres commandes de recette', () => {
   it('condition : pose un État du catalogue (sonne) comme un marqueur narratif (petrifie), relus au combattant', () => {
     const hero = useGame.getState().party[0];
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     const relu = () => useGame.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     for (const id of ['sonne', 'petrifie']) {
@@ -594,7 +594,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
   /** Ouvre le Round (la pause n'a aucun actif) puis donne la main au héros, piloté par le joueur, la scène à l'écran. */
   const ouvrirLeRoundAuHeros = (api: ReturnType<typeof buildApi>) => {
     useGame.setState({ screen: 'campaign' });
-    if (useGame.getState().pendingRoundStart) useGame.getState().fenetreValider('roundStart');
+    if (useGame.getState().pendingRoundStart) useGame.getState().fenetreValider('debutDuRound');
     expect(api.turn(heroId)).toMatch(/^✓/);
   };
 
@@ -643,7 +643,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
 
   it('attaque pendant un tour d’IA en vol (minuteurs avancés) : refus nommé, rien n’est posé', () => {
     const api = buildApi();
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     const mutant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
     expect(api.turn(mutant.id)).toMatch(/^✓/);
     vi.advanceTimersByTime(10);
@@ -964,7 +964,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
     // Ordre forcé : les 3 Mutants d'abord — ils sont loin du héros (fixture) → pas de jet d'attaque (juste
     // du mouvement), donc pas d'issue RNG-dépendante (pas de risque de cascade de fin de combat).
     useGame.setState({ battle: { ...b, order: [...enemyIds, heroId], baseOrder: [...enemyIds, heroId], turn: -1 } });
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     // Le beat de tour armé par `lancerLeRound` EST la machinerie mesurée : l'annuler ici laissait
     // `fastForward` seul à relancer l'IA — ce qu'il ne fait plus (#1852, il n'amorce que ce qui est
     // arrêté et ne double jamais un tour). On le laisse vivre : `runAllTimersAsync` le déroule.
@@ -987,7 +987,7 @@ describe('__wfrp.fastForward — avance-rapide des tours IA (garde anti-boucle, 
     const heroId = b.combatants.find((c) => c.kind === 'hero')!.id;
     const enemyIds = b.combatants.filter((c) => c.kind === 'enemy').map((c) => c.id);
     useGame.setState({ battle: { ...b, order: [...enemyIds, heroId], baseOrder: [...enemyIds, heroId], turn: -1 } });
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers(); // PLUS AUCUN beat en vol : c'est `fastForward` SEUL qui doit ramorcer (#1852)
 
     const p = buildApi().fastForward(100);
@@ -1077,7 +1077,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   });
 
   it('advanceSeaDay() fait avancer d’UN jour (cascade + halte de nuit résolues), s’arrête sur la cascade FRAÎCHE du jour suivant', async () => {
-    useGame.getState().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    useGame.getState().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const p = buildApi().advanceSeaDay();
     await vi.runAllTimersAsync();
     const msg = await p;

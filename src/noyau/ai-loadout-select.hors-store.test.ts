@@ -23,7 +23,7 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
     banc.setState({ party: groupeVitrineDeScenario(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const ael = b.combatants.find((c) => c.id === idDuHerosDeScenario('chasseur'))!; // chasseur (fronde + arme simple)
     // Héros AUTO (cf. en-tête) : `runEnemyAI` ne joue QUE des combattants `aiDriven` — pour un héros,

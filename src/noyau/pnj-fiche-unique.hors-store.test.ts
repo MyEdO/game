@@ -46,7 +46,7 @@ describe('#1882 — un PNJ, une fiche, UN nom', () => {
     const taverne = sceneNpc(get().scene, 'gerta', presetPnjById)!;
     expect(combat.label).toBe('Gerta la Rusée');
     expect(taverne.label).toBe(combat.label);
-    jouerALaTaverne(get, set, get().party[0].id, { gameId: 'dominos', opponent: { kind: 'npc', id: 'gerta' } });
+    jouerALaTaverne(get, set, get().party[0].id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'gerta' } });
     expect(activeSequence<{ opponentName: string }>(get)!.payload.opponentName).toBe(combat.label);
   });
 
@@ -79,7 +79,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
   it('taverne : le PNJ n’est pas offert, et la partie ne s’ouvre pas contre lui', () => {
     pose([MORT]);
     expect(tavernNpcOffers(get().scene, presetPnjById)).toEqual([]);
-    jouerALaTaverne(get, set, get().party[0].id, { gameId: 'dominos', opponent: { kind: 'npc', id: 'fantome' } });
+    jouerALaTaverne(get, set, get().party[0].id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'fantome' } });
     expect(activeSequence(get)).toBeFalsy();
   });
 
@@ -90,7 +90,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
 
   it('infirmerie : aucune infirmerie ne s’ouvre, le refus est DIT au journal', () => {
     pose([MORT]);
-    applyEffects(get, set, [{ type: 'medicalAid', entityId: 'fantome', acts: [{ act: 'wounds', cost: { silver: 5 } }] }]);
+    applyEffects(get, set, [{ type: 'medicalAid', entityId: 'fantome', acts: [{ act: 'blessures', cost: { silver: 5 } }] }]);
     expect(get().medic).toBeFalsy();
     expect(get().journal.some((l) => String(l).includes('« fantome »'))).toBe(true);
   });

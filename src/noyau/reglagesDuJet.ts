@@ -15,7 +15,7 @@ import type { DefenseMode } from '../engine/combat';
 import type { OvercastAxis } from '../engine/overcast';
 import type { FermetureDuJet } from './rollFlowFactory';
 import type { Jeu } from './etat';
-import type { CounterDeclaration } from './pendings';
+import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from './pendings';
 import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDeRangee, IdDObjet, IdDOptionDEtape } from './designations';
 import { offreDeLIncantation, type ReglageOffertDeLIncantation } from './reglagesDIncantation';
 import { sequenceAbandonOf } from './sequenceCore';
@@ -47,7 +47,7 @@ export interface ReglagesDuJet {
     /** `null` : la main principale. */
     armeDeParade: IdDObjet | null;
     /** AA 13 l.84 ; `null` : aucune. */
-    porteBouclier: 'damage' | 'push' | null;
+    porteBouclier: ReactionDeBouclier | null;
     /** LDB 10 l.1037 */
     riposte: boolean;
   };
@@ -98,7 +98,7 @@ export interface ReglagesDuJet {
     /** LDB 14 l.161 */
     briser: true;
     /** LDB 14 l.161-165 */
-    issue: 'damage' | 'entangle' | 'free';
+    issue: IssueDEmpoignade;
   };
   fall: {
     /** LDB 15 l.82 ; `false` : la chute pleine, sans Test. */

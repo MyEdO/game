@@ -77,7 +77,7 @@ describe('#340 / #2533 — budget d’heures PAR JOUR CALENDAIRE (LDB 51 l.195)'
     expect(get().travelPlan).toBeNull(); // aucun « Étape 0 »
     expect(get().pendingCascade).toBeNull(); // ni météo ni péripétie d'un jour vide
     expect(get().pendingDeparture?.cause).toBe('budget');
-    get().fenetreValider('departure'); // patron de la porte de départ : la nuit se passe SUR PLACE
+    get().fenetreValider('depart'); // patron de la porte de départ : la nuit se passe SUR PLACE
     const nuit = get().pendingRest!;
     expect(nuit.lieu).toBe(sceneLieu(get));
     expect(nuit.travelHalt).toBeFalsy();
@@ -130,7 +130,7 @@ describe('#340 — porte d’heure de départ (terre & fleuve, maison ON par dé
     expect(get().pendingDeparture!.dawnAt).toBeGreaterThan(get().gameTime); // prochain départ possible = l'aube
 
     // « Attendre l'aube » : joue une nuit (repos) et lève la porte.
-    get().fenetreValider('departure');
+    get().fenetreValider('depart');
     expect(get().pendingDeparture).toBeNull();
     expect(get().pendingRest).not.toBeNull();
   });

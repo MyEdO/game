@@ -201,12 +201,12 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
     useGame.setState({ screen: 'campaign', party });
     useGame.getState().lancerLaScene(scene);
     useGame.getState().lancerLeCombat('siege-belier');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     const b0 = useGame.getState().battle!;
     const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
     useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
     useGame.getState().pousserLEngin();
-    expect(useGame.getState().battle!.action).toBe('push');
+    expect(useGame.getState().battle!.action).toBe('poussee');
     // Pousser vers le NORD (vers la porte) : un pas AXIAL de grille (dx=0,dy=-1) — le cas que le biais
     // diagonal-only de `nextCursorTile` ne pouvait jamais atteindre en un seul appui.
     useGame.getState().moveCursor('up');
@@ -219,7 +219,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
     const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 10 };
     const door = spawnEnemy({ ref: 'humain' }, 'door', { x: 7, y: 10 });
     const battle = {
-      combatants: [hero, door], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 1, action: 'teleport',
+      combatants: [hero, door], order: ['h1'], baseOrder: ['h1'], turn: 0, round: 1, action: 'teleportation',
       selectedSpellId: null, reachable: new Map(), // AUCUNE case de reach : (7,10) reste occupée/non commettable
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     };

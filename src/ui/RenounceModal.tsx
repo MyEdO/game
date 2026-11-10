@@ -15,9 +15,9 @@ export function RenounceModal() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const choisir = useGame((s) => s.fenetreChoisir);
-  const resolve = (renier: boolean) => choisir('renounce', 'renier', renier);
-  const refusSubir = useGame((s) => refusDuChoix(s, 'renounce', 'renier', false));
-  const refusRenier = useGame((s) => refusDuChoix(s, 'renounce', 'renier', true));
+  const resolve = (renier: boolean) => choisir('renier', 'renier', renier);
+  const refusSubir = useGame((s) => refusDuChoix(s, 'renier', 'renier', false));
+  const refusRenier = useGame((s) => refusDuChoix(s, 'renier', 'renier', true));
   if (!pr) return null;
   const hero = (battle?.combatants ?? party).find((c) => c.id === pr.heroId);
   if (!hero) return null;

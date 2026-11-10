@@ -62,7 +62,7 @@ describe('combatHighlightsView — anneaux de CANDIDATS, teinte déclarée par l
   beforeEach(() => { useGame.setState({ battle: null, party: [], localIntent: null }); });
 
   it('mode SOIN armé : l’allié blessé porte un anneau, et il est AMI', () => {
-    const battle = combat({ action: 'heal' });
+    const battle = combat({ action: 'soins' });
     const cand = vue(battle).candidates;
     expect(cand, 'le mode Soin peint ses candidats').not.toBeNull();
     expect(cand!.ids, 'seul le blessé adjacent est soignable').toEqual(['h2']);
@@ -83,6 +83,6 @@ describe('combatHighlightsView — anneaux de CANDIDATS, teinte déclarée par l
   });
 
   it('mode DISSIPER : aucun anneau de candidat — le mode ne le déclare pas', () => {
-    expect(vue(combat({ action: 'dispel' })).candidates).toBeNull();
+    expect(vue(combat({ action: 'dissipation' })).candidates).toBeNull();
   });
 });

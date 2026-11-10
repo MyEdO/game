@@ -56,7 +56,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     const h2 = dispeller(9, 8, 'h2'); // collés → un centre couvre les deux
     const battle = {
       combatants: [e, h1, h2], order: ['caster', 'h1', 'h2'], baseOrder: ['caster', 'h1', 'h2'],
-      turn: 0, round: 1, action: 'cast', selectedSpellId: spell.id, reachable: new Map(),
+      turn: 0, round: 1, action: 'incantation', selectedSpellId: spell.id, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     const scene = { id: 's', dimensions: { w: 20, h: 20 }, layers: [{ z: 0, tiles: [] }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
@@ -122,7 +122,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     const t1 = spawnEnemy({ ref: 'humain' }, 't1', { x: 8, y: 8 });
     const battle = {
       combatants: [w, t1], order: [w.id, 't1'], baseOrder: [w.id, 't1'],
-      turn: 0, round: 1, action: 'cast', selectedSpellId: spell.id, reachable: new Map(),
+      turn: 0, round: 1, action: 'incantation', selectedSpellId: spell.id, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     const scene = { id: 's', dimensions: { w: 20, h: 20 }, layers: [{ z: 0, tiles: [] }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;

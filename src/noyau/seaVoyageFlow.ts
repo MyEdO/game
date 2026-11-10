@@ -2353,8 +2353,8 @@ export function openPortAt(get: Get, set: Set, to: MapPlace): void {
   finalizePortArrivalTo(get, set, to, true);
 }
 
-/** ÉVÉNEMENT DE PORT (2d10 ± Humeur, ch.15 l.127-129 + Tableau l.239-263). `shoreLeave` = permission de
- *  faire relâche à terre accordée par le capitaine (`fenetreChoisir('shoreLeave', 'accorder', …)`, MDG 15 l.245) : gate les
+/** ÉVÉNEMENT DE PORT (2d10 ± Humeur, ch.15 l.127-129 + Tableau l.239-263). `relacheATerre` = permission de
+ *  faire relâche à terre accordée par le capitaine (`fenetreChoisir('relacheATerre', 'accorder', …)`, MDG 15 l.245) : gate les
  *  rangées `relache` — les DEUX entrées de la table qui la référencent nommément, Embrigadement (l.245,
  *  « cet événement n'a pas lieu » si refusée) et Fête de Manann (l.260, le bonus d'Humeur suppose « le
  *  capitaine autorise… à faire relâche »).
@@ -2459,7 +2459,7 @@ export function finalizePortArrival(get: Get, set: Set, arrival: NonNullable<Pen
 /** Les choix du port (`CorpsDesChoix`, MDG 15 l.245) : la relâche à terre. */
 export function choixDuVoyageEnMer(get: Get, set: Set) {
   return {
-    shoreLeave: { accorder: (accorder) => trancherLaRelache(get, set, accorder) },
+    relacheATerre: { accorder: (accorder) => trancherLaRelache(get, set, accorder) },
   } satisfies Partial<CorpsDesChoix>;
 }
 

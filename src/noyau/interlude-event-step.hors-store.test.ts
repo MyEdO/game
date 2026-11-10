@@ -242,7 +242,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     expect(banc.getState().journal.join('\n')).toMatch(/ne peut rien entreprendre tant que les Événements/);
     // Les autres portes d'Activité tiennent le même garde (le budget se dépense partout ailleurs aussi).
     banc.getState().commanderLObjet(party[0].id, 'dague');
-    banc.getState().deposerALaBanque(party[0].id, 'stash', 100);
+    banc.getState().deposerALaBanque(party[0].id, 'planque', 100);
     expect(banc.getState().pendingOrders).toEqual([]);
     expect(banc.getState().bank).toEqual([]);
     expect(perHeroOf(party[0].id).left, 'une Activité a été consommée pendant le tirage').toBe(2);

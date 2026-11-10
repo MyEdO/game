@@ -48,7 +48,7 @@ export interface HighlightsView {
   activeId: string | null;
   /** Cibles à anneau d'attaque (mode neutre) — null si le contexte ne les affiche pas. */
   eligibleIds: ReadonlySet<string> | null;
-  /** Cibles éligibles « tirer dans le tas » — null hors pendingAttack.intoCrowd. */
+  /** Cibles éligibles « tirer dans le tas » — null hors pendingAttack.dansLeTas. */
   crowdIds: ReadonlySet<string> | null;
   /** Candidats du mode de ciblage courant + teinte amie (soin) + déjà cochés (surincantation). */
   candidates: { ids: readonly string[]; friendly: boolean; checkedIds: ReadonlySet<string> | null } | null;

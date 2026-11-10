@@ -24,7 +24,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
     banc.setState({ party: [mk('Anna', 707), mk('Bert', 101)] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const [A, B] = b.combatants.filter((c) => c.kind === 'hero') as Combatant[];
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -96,7 +96,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
 
   it('rangée qui passe : son jet est refusé et dit, sans consommer son essai du Round', () => {
     const { A, B } = setup();
-    poser([{ id: A.id, interactive: true, declared: 'solo', result: null }, { id: B.id, interactive: true, declared: 'pass', result: null }]);
+    poser([{ id: A.id, interactive: true, declared: 'solo', result: null }, { id: B.id, interactive: true, declared: 'passer', result: null }]);
     banc.getState().jetLancer('counterspell', B.id);
     expect(part(B.id).result).toBeNull();
     expect(cur(B.id).dispelledThisRound ?? false).toBe(false);

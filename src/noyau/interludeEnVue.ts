@@ -9,13 +9,13 @@
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import type { Combatant } from '../engine/types';
-import { bankPayout, orderCatalog } from '../engine/activities';
+import { bankPayout, orderCatalog, type GenreDeDepot } from '../engine/activities';
 import { bourseOf } from '../engine/bourse';
 import { formatMoney, fromBrass, PA_PER_SC, toBrass } from '../engine/money';
 import { interludeCatalog } from './interludeFlow';
 import { refusDePrepaDeBataille } from './massBattleFlow';
 import {
-  devisDeDepot, eventLabelOf, refusDAcquitterUneFaveur, refusDActivite, refusDeCommande, refusDeRetrait, type GenreDeDepot,
+  devisDeDepot, eventLabelOf, refusDAcquitterUneFaveur, refusDActivite, refusDeCommande, refusDeRetrait,
 } from './verdictsDInterlude';
 import { auPrix, reglageDuChoixDeFenetre } from './choixDeFenetre';
 import { CHOIX_DES_FENETRES, VERBE_DE_CHOIX, type AxeDe } from './choixDesFenetres';
@@ -99,7 +99,7 @@ function activitesDuHeros(s: Etat, h: Combatant): ActiviteEnVue[] {
 }
 
 /** Les genres d'un dépôt en banque. LDB 23 l.164-170, ACE 12 l.45-49 */
-const GENRES_DE_DEPOT: readonly GenreDeDepot[] = ['invest', 'stash', 'mecenat'];
+const GENRES_DE_DEPOT: readonly GenreDeDepot[] = ['investir', 'planque', 'mecenat'];
 
 /** Le dépôt en banque de `h` : chaque genre fermé par son devis au plus que la bourse couvre (`devisDeDepot`), le
  *  dépôt fermé par le devis d'une planque, qui ne porte que les refus communs. LDB 23 l.164-170 */
@@ -107,7 +107,7 @@ function depotDuHeros(s: Etat, h: Combatant): DepotAFaire {
   const max = Math.floor(toBrass(bourseOf(h)) / PA_PER_SC) * PA_PER_SC;
   return {
     geste: { verbe: 'deposerALaBanque', args: [h.id] },
-    refus: devisDeDepot(s, h.id, 'stash', max).refus,
+    refus: devisDeDepot(s, h.id, 'planque', max).refus,
     genres: GENRES_DE_DEPOT.map((g) => ({ libelle: t(`interlude.genre.${g}`), valeur: g, refus: devisDeDepot(s, h.id, g, max).refus })),
     max, pas: PA_PER_SC,
   };
@@ -117,8 +117,8 @@ function depotDuHeros(s: Etat, h: Combatant): DepotAFaire {
 export function libelleDuDepot(s: Pick<Jeu, 'party'>, d: NonNullable<Etat['bank']>[number]): string {
   const heros = garanti(s.party.find((h) => h.id === d.heroId), d.heroId, 'héros du dépôt').label;
   const montant = formatMoney(fromBrass(d.brass));
-  return d.kind === 'invest'
-    ? t('interlude.depot.invest', { heros, montant, rendu: formatMoney(fromBrass(bankPayout('invest', d.brass, d.rate))), indice: d.rate })
+  return d.kind === 'investir'
+    ? t('interlude.depot.investir', { heros, montant, rendu: formatMoney(fromBrass(bankPayout('investir', d.brass, d.rate))), indice: d.rate })
     : t(`interlude.depot.${d.kind}`, { heros, montant });
 }
 

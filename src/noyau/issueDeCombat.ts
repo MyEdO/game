@@ -32,8 +32,8 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
  *  créature que le groupe dépèce (`harvestVictoryCreature`). */
 export function choixDuButin(get: Get, set: Set) {
   return {
-    loot: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingLoot', uid, heroId) },
-    victory: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingVictory', uid, heroId), depecer: (creatureId) => harvestVictoryCreature(get, set, creatureId) },
+    butin: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingLoot', uid, heroId) },
+    victoire: { ligne: (uid, heroId) => attribuerLaLigne(get, set, 'pendingVictory', uid, heroId), depecer: (creatureId) => harvestVictoryCreature(get, set, creatureId) },
   } satisfies Partial<CorpsDesChoix>;
 }
 
@@ -41,7 +41,7 @@ export function choixDuButin(get: Get, set: Set) {
 export function sortiesDIssueDeCombat(get: Get, set: Set) {
   return {
     /** Ferme l'écran de victoire, au quorum (`sortie: 'quorum'`), et revient à l'exploration. */
-    victory: () => {
+    victoire: () => {
       get().denouerLeVol('victory'); // combat gagné = le convoi est sauf (0 %), le flag s'éteint (#327)
       const pv = get().pendingVictory;
       const leftoverGear = (pv?.gear ?? []).map((g) => g.effect); // équipement non attribué → 1er héros par défaut
@@ -87,7 +87,7 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
       resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire
     },
     /** Ferme la fenêtre de loot — même contrat que la victoire : le non-attribué va au 1er héros. */
-    loot: () => {
+    butin: () => {
       const pl = get().pendingLoot;
       const leftover = (pl?.gear ?? []).map((g) => g.effect);
       set({ pendingLoot: null });

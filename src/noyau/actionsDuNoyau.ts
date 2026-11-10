@@ -1,4 +1,5 @@
-import type { CharKey } from '../engine/types';
+import type { CharKey, Main } from '../engine/types';
+import type { GenreDeDepot } from '../engine/activities';
 import type { BattleActionMode } from './actionRegistry';
 import type { ShootingStanceKey } from './etat';
 import type { AttackKind } from '../engine/creatureAttacks';
@@ -29,6 +30,8 @@ import type { RefDesignee, TexteLibre } from '../data/schemas/grammaire/ref';
 export type HorsDesignation<T> = T;
 /** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
 export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+/** Un pas relatif au cap du meneur (`avancerDUnPas`). */
+export type PasRelatif = 'avant' | 'arriere' | 'gauche' | 'droite';
 
 /** Les gestes de la BARRE de l'actif (#3610) : chacun est le verbe qu'une offre du registre déclare (`ENTREES_PAR_RUN`,
  *  `actionRegistry.ts`), et nul autre geste ne le joue. Le refus de son geste le juge (`refusDuGeste`), dont l'offre
@@ -96,7 +99,7 @@ export interface VerbesDeLaBarre {
   /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
   quitterLePoste: () => void;
   /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
-   *  ciblage-CASE 'push' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
+   *  ciblage-CASE 'poussee' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
    *  Chef d'un poste d'engin MOBILE, Action dispo, Équipe ≥ moitié requise (sinon no-op, comme un tir
    *  sous-effectif refusé). Mouvement SIMPLE, aucun jet ; plafonné à `rule('siege-engine-push-speed')`. */
   pousserLEngin: () => void;
@@ -152,7 +155,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  caché (`carnet.refus.indiceInconnu`). */
   epinglerLIndice: (indiceId: IdDIndice, epingle: boolean) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
-  marquerLesIndices: (affichés: readonly IndiceAffiché[]) => void;
+  marquerLesIndices: (affiches: readonly IndiceAffiché[]) => void;
   /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
    *  joue le geste. */
   leverLaMain: (levee: boolean) => void;
@@ -166,9 +169,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   restaurerLaFortune: () => void;
   /** Ouvre le Test d'une Activité de bataille pré-combat (l.79-106). */
   menerLActionDeBataille: (heroId: IdDeHeros, activityId: IdDActivite) => void;
-  /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
+  /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`investir`), tiré au d10 s'il est absent
    *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
-  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
+  deposerALaBanque: (heroId: IdDeHeros, kind: GenreDeDepot, amountBrass: number, indice?: IndiceDePlacement) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
   /** Composition d'équipe : ajoute le héros que le noyau bâtit de `heros` (`herosDeLEngagement`), avec sa Richesse de
@@ -184,7 +187,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
   creerLaPanoplie: (heroId: IdDeHeros) => void;
   supprimerLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
-  garnirLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie, slot: 'main' | 'off', uid: IdDObjet | null) => void;
+  garnirLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie, slot: Main, uid: IdDObjet | null) => void;
   /** Donne un objet de son porteur à `destinataireId` (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
   transmettreLObjet: (uid: IdDObjet, destinataireId: IdDePorteur) => void;
@@ -243,7 +246,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** POV : un pas RELATIF au cap du meneur (avance/recul/pas latéral) — cap monde = regard tourné de
    *  0/2/4/6 crans (90° par cadran), case d'arrivée via `povStepDest`. Le regard est préservé pour tout
    *  pas ≠ avant (un pas latéral/arrière ne réoriente pas le meneur). */
-  avancerDUnPas: (rel: 'forward' | 'back' | 'left' | 'right') => void;
+  avancerDUnPas: (rel: PasRelatif) => void;
   /** JOUE une offre NOMMÉE d'une entité (`ActionOfferte.id`) — l'exécuteur UNIQUE des gestes
    *  d'exploration ; `interagirAvecLEntite` n'en est que le raccourci « joue l'unique offre ». */
   jouerAction: (entityId: IdDEntiteDeScene, actionId: IdDActionDEntite) => void;
@@ -260,16 +263,16 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLesJeux: (entityId?: IdDEntiteDeScene) => void;
   jouerALaTaverne: (heroId: IdDeHeros, partie: tavernFlow.ReglageDePartie) => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
-   *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
+   *  `mode:'detection'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
    *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est
    *  dit (`refusDEvaluation`, `merchantFlow.ts`). */
   evaluerLObjet: (aEvaluer: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
 
-  /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
+  /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('infirmerie', …)`),
    *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant
    *  s'ouvre par l'effet `medicalAid`. */
   ouvrirLeMedecin: (patientId?: IdDeHeros) => void;
-  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('rest', …)`,
+  /** REPOS (noyau/restFlow) : modale de nuit — réglages PAR HÉROS (couchage + pitance, `fenetreChoisir('repos', …)`,
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé ; le lieu de la nuit est celui où
    *  se tient le groupe (`reposDuLieu`). */
   ouvrirLeRepos: () => void;

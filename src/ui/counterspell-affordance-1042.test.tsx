@@ -99,7 +99,7 @@ describe('#1042/#1059 — le CTA de Contre-sort ne ment jamais sur ce qu’il fe
   it('phase CLOSE et personne n’a dissipé : le bouton est ACTIF, sans raison affichée', () => {
     monter([
       { id: 'A', interactive: true, declared: 'solo', result: null },
-      { id: 'B', interactive: true, declared: 'pass', result: null },
+      { id: 'B', interactive: true, declared: 'passer', result: null },
     ]);
     expect(ctaA()!.getAttribute('aria-disabled'), 'rien ne s’oppose au jet : le CTA est vivant').toBeNull();
     expect(ctaA()!.disabled).toBe(false);
@@ -117,7 +117,7 @@ describe('sous-ligne de rangée — une `.rr-note` porte du CONTENU (#1078)', ()
       // A : déclarée « contrer seul », pas encore lancée → rien à dire sous sa ligne de jet.
       { id: 'A', interactive: true, declared: 'solo', result: null },
       // B : déclarée « passe » → sa situation MOTIVE l'extinction, elle occupe la sous-ligne.
-      { id: 'B', interactive: true, declared: 'pass', result: null },
+      { id: 'B', interactive: true, declared: 'passer', result: null },
     ]);
     const textes = notes().map((n) => n.textContent?.trim());
     expect(textes.filter((t) => t?.includes('passe')), 'la situation « passe » se lit sous la rangée B').toHaveLength(1);

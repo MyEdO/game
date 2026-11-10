@@ -142,7 +142,7 @@ describe('coutures du héros en combat (#2312)', () => {
     cbt(id).weapons = [];
     const avant = cbt(id).fortune ?? 0;
     expect(avant).toBeGreaterThan(0);
-    banc.getState().fenetreChoisir('roundStart', 'promouvoir', id);
+    banc.getState().fenetreChoisir('debutDuRound', 'promouvoir', id);
     expect(cbt(id).fortune).toBe(avant - 1);
     banc.setState({ pendingRoundStart: null });
     fin();

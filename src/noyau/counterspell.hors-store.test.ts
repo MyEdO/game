@@ -25,7 +25,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -110,7 +110,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     // Le Contre-sort passe par SA phase de déclaration (#1042/#1059) : les rangées surfacées passent, la
     // dernière déclaration referme la fenêtre par le résolveur canonique.
     if (st.pendingCounterspell) {
-      for (const p of st.pendingCounterspell.participants) banc.getState().jetRegler('counterspell', 'declaration', 'pass', p.id);
+      for (const p of st.pendingCounterspell.participants) banc.getState().jetRegler('counterspell', 'declaration', 'passer', p.id);
     } else banc.getState().jetValider('cast');
     banc.avancer(2000);
     // Une Maladresse de l'IA déclare son étape à table comme partout (#1426) : la main ne repasse

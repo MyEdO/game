@@ -179,7 +179,7 @@ describe('combat-naval — bordée de la barge sur un pirate, par la porte du jo
   it('Test des Artilleurs puis Feu ! : chaque pierrier tire sur le pirate, rien ne lève, aucun État naval', () => {
     seedBattleRng(7);
     lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
-    if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
+    if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
     const BARGE = 'enemy-enc-naval-4';
     const PIRATE = 'enemy-enc-naval-1';
     const pirate = () => banc.getState().battle!.combatants.find((c) => c.id === PIRATE)!;

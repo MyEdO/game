@@ -35,7 +35,7 @@ describe('la bataille de masse par le pont', () => {
     expect(sigmund(suite), 'Le Soldat posté à la Motivation').toMatchObject({ libelle: 'Soldat', presse: true });
 
     suite = jouer(parId(corps(suite)['scene/motivation'] as Entite).engager as Bouton);
-    expect(suite.vue.disposition, 'le jet de la Scène tient la main').toBe('activity');
+    expect(suite.vue.disposition, 'le jet de la Scène tient la main').toBe('activite');
     expect(suite.vue.zones['fenetre.corps'].some((e) => e.id.startsWith('scene/')), 'la bataille ne se montre pas sous le jet').toBe(false);
     suite = jouer(enFocus(suite));
     suite = jouer(suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Appliquer')!);

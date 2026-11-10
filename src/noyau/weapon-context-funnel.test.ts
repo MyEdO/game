@@ -23,7 +23,7 @@ const mk = (p: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
 }) as unknown as Combatant);
 const target = mk({ id: 't', kind: 'enemy', pos: { x: 1, y: 0 } });
 const fingers = (loc: 'brasG' | 'brasD', count: number): Trauma => ({ uid: 't1', label: '', traumaId: 'doigt-ampute', location: loc, count });
-// Arme à 1 main tenue à DROITE par défaut (hand indéfini ≠ 'off') → n'implique QUE brasD (weaponUsesHand, LDB 18).
+// Arme à 1 main tenue à DROITE par défaut (hand indéfini ≠ 'secondaire') → n'implique QUE brasD (weaponUsesHand, LDB 18).
 const weaponRight: Weapon = { label: 'Dague', type: 'melee', hands: 1, qualities: [], damage: { plusBF: true, flat: 3 } };
 
 describe('firedWeapon — règles d’arme contextuelles repliées sur le profil (LDB 62)', () => {

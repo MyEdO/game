@@ -52,7 +52,7 @@ function ouvreParadeAuBouclier(seed: number): void {
   expect(maybeOpenDefense(G, S, cur('a1'), cur('d1'), SWORD, { enchainement: { mode: 'aucun' } } as never)).toBe(true);
   G().jetRegler('defense', 'reaction', 'parade');
   G().jetRegler('defense', 'armeDeParade', 'sh1');
-  G().jetRegler('defense', 'porteBouclier', 'damage');
+  G().jetRegler('defense', 'porteBouclier', 'degats');
 }
 
 /** `jetValider('defense')` puis cascade vidée ; rend les bornes des tirages `rng.int` faits pendant la frappe. */

@@ -748,7 +748,7 @@ function prepareJourMaritime(seed: number): void {
     gameTime: 8 * 60, lastUpkeepDay: 0, journal: [],
     vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
   } as never);
-  const plan = buildSeaPlan(get, 'rmer', 'A', 'B', carteMer.routes[0], { cadence: 'jour-par-jour' })!;
+  const plan = buildSeaPlan(get, 'rmer', 'A', 'B', carteMer.routes[0], { cadence: 'jourParJour' })!;
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, daysToEvent: 1, forcedEventId: undefined } } });
 }
 const ouvreJourMaritime = (seed: number): void => { prepareJourMaritime(seed); runSeaDay(get, set); };

@@ -120,7 +120,7 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
     banc.setState({ party: [pretre] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const { H, E, patch } = auContact(banc.getState());
     banc.setState(patch);

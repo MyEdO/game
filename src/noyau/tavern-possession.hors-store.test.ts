@@ -37,7 +37,7 @@ beforeEach(() => {
 describe('#1279 S1 — la manche héros-vs-héros appartient AUX DEUX sièges', () => {
   it('Bras de fer : une BANDE de deux rangées À JOUER, une fenêtre PARTAGÉE', () => {
     const [a, b] = deuxSieges();
-    g().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'hero', id: b.id } });
+    g().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
 
     const step = g().pendingCascade!.participants[0];
     expect(step.kind).toBe('tavern-round');

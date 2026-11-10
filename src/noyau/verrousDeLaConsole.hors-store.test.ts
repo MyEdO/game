@@ -36,7 +36,7 @@ function jusquAuTour(partie: Partie, tenu: (c: Combatant) => boolean): Combatant
     const actif = activeCombatant(partie.etat().battle!);
     if (actif && tenu(actif)) return actif;
     const e = partie.etat();
-    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'terminerLeTour', args: [] } : { type: 'fenetreValider', args: ['roundStart'] }];
+    const intentions: Intention[] = e.pendingDefense ? [{ type: 'jetLancer', args: ['defense'] }, { type: 'jetValider', args: ['defense'] }] : [actif ? { type: 'terminerLeTour', args: [] } : { type: 'fenetreValider', args: ['debutDuRound'] }];
     for (const i of intentions) jouer(partie, partie.envoyer(i));
   }
   throw new Error('témoin : le tour attendu n’est pas venu');
@@ -146,7 +146,7 @@ describe('État qui verrouille l’Action (LDB 16 l.52) : la raison du verdict e
     try {
       const ctx = contexte(partie);
       addCondition(ctx.active, 'brise');
-      partie.envoyer({ type: 'armerLeMode', args: ['heal'] });
+      partie.envoyer({ type: 'armerLeMode', args: ['soins'] });
       expect(partie.etat().battle!.action, 'le Brisé a armé le Soin').toBeNull();
       expect(partie.etat().refus?.texte).toBe(actionGate('heal', ctx).reason);
     } finally {

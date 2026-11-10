@@ -535,7 +535,7 @@ function CorpsDuMonde() {
   // incantation (tooltip + gabarit ZdE), et détenteur du ciblage (`detenteurDuCiblage`).
   const hoverTracking =
     mode === 'battle' && !!battle && !battle.over &&
-    (((battle.action === null || battle.action === 'cast') && meneLActif) ||
+    (((battle.action === null || battle.action === 'incantation') && meneLActif) ||
       !!preemptAiming || // Tir rapide armé pendant la pause : on suit le survol (réticule + trait de visée) alors qu'il n'y a AUCUN actif
       cibleDetenue);
   // Le picking inverse la projection COMMISE : exacte à chaque commit du lacet (cran, départ, arrêt,

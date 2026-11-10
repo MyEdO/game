@@ -26,7 +26,7 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   // Éloigne tous les ennemis pour libérer la grille autour du héros (couloir y=10 libre).
@@ -121,7 +121,7 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const { H } = setup();
     expect(computeRunReach(banc.getState).size).toBeGreaterThan(0); // témoin : hors mode-case, la Course normale s'affiche
     const b = banc.getState().battle!;
-    banc.setState({ battle: { ...b, action: 'teleport', reachable: new Map([[`${H.pos!.x},${H.pos!.y}`, 0]]) } });
+    banc.setState({ battle: { ...b, action: 'teleportation', reachable: new Map([[`${H.pos!.x},${H.pos!.y}`, 0]]) } });
     expect(computeRunReach(banc.getState).size).toBe(0);
   });
 
