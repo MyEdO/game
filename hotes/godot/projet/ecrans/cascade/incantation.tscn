@@ -18,10 +18,10 @@ grow_vertical = 0
 theme_type_variation = &"Fenetre"
 
 [node name="Colonne" type="VBoxContainer" parent="."]
-theme_override_constants/separation = 8
+theme_type_variation = &"PileSerree"
 
 [node name="Tete" type="HBoxContainer" parent="Colonne"]
-theme_override_constants/separation = 12
+theme_type_variation = &"Rangee"
 
 [node name="Titre" type="VBoxContainer" parent="Colonne/Tete"]
 size_flags_horizontal = 3
@@ -55,7 +55,7 @@ source = "fenetre.corps"
 ids = PackedStringArray("jet")
 
 [node name="Pastilles" type="HFlowContainer" parent="Colonne"]
-theme_override_constants/h_separation = 16
+theme_type_variation = &"Frise"
 
 [node name="Zone" type="Node" parent="Colonne/Pastilles"]
 script = ExtResource("1_zone")
