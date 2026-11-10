@@ -252,6 +252,10 @@ export const ongletsDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(joi
  *  nulle part ailleurs. @param {string} bookId @param {string} [dir] */
 export const gabaritTitreDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(join(dir, `${bookId}.json`))).gabaritTitre
 
+/** Le livre DÉCLARE-t-il n'imprimer AUCUN folio ? Champ `sansFolio` de sa liste de découpe (`true`, ou
+ *  absent), lu ICI et nulle part ailleurs. @param {string} bookId @param {string} [dir] @returns {boolean} */
+export const sansFolioDe = (bookId, dir = DECOUPES_DIR) => JSON.parse(readText(join(dir, `${bookId}.json`))).sansFolio === true
+
 /** Les ids des livres dont la liste de découpe porte un `gabaritTitre` — la SEULE liste des livres à
  *  gabarit de titre. */
 export const livresATitres = () => livresDecoupes().filter((id) => gabaritTitreDe(id))

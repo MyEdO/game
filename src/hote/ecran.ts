@@ -280,6 +280,29 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
   ...(j.oppose ? [drNet(`jets/${i}/drNet`, j.oppose.drNet)] : []),
 ];
 
+/** Les jets de la fenêtre (`jetsEnVue`) ; en route (`voyageEnVue`), le groupe en cartes (`heros/`) : chaque héros, ses
+ *  Blessures en jauge, ses États en puces, puis les jets de l'étape qu'il jette, sans redire son nom ; les autres jets
+ *  à la suite. */
+function jetsDeLaFenetre(etat: Jeu): Element[] {
+  const vues = jetsEnVue(etat);
+  const jets = vues.flatMap((j, i) => elementsDuJet(etat, j, i));
+  if (!voyageEnVue(etat)) return jets;
+  const qui = new Map<string, string | null>(vues.flatMap((j, i) => j.lignes.map((l, k) => [`jets/${i}/${k}`, l.qui] as const)));
+  const cartes = etat.party.map((h): Entite => {
+    const f = garanti(ficheDuPorteur(etat, h.id), h.id, 'héros du groupe');
+    return {
+      type: 'entite', id: `heros/${h.id}`, ton: 'neutre', nom: f.nom,
+      elements: [
+        jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
+        ...etatsEnPuces(f.etats),
+        ...jets.flatMap((e) => (qui.get(e.id) === h.id ? [{ ...(e as Jet), qui: null }] : [])),
+      ],
+    };
+  });
+  const posees = new Set(etat.party.map((h) => h.id));
+  return [...cartes, ...jets.filter((e) => !posees.has(qui.get(e.id) ?? ''))];
+}
+
 /** Le corps de la fenêtre qui tient la main : sur l'étape d'attaque de la cascade, la fenêtre d'attaque
  *  (`fenetreDAttaque`) ; sur son étape de Défense, qui attaque qui (`fenetreDeDefense`) et le jet de sa réaction avant
  *  le dé ; puis les jets de la fenêtre (`jetsEnVue`), l'issue de la Défense, ce que l'étape de la cascade révèle ou
@@ -311,7 +334,7 @@ function corpsDeLaFenetre(etat: Jeu): Element[] {
     ...herosDeLInterlude(etat),
     ...champDeBataille(etat),
     ...nuitDuRepos(etat, cle),
-    ...jetsEnVue(etat).flatMap((j, i) => elementsDuJet(etat, j, i)),
+    ...jetsDeLaFenetre(etat),
     ...(defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
     ...issueDeLEtape(etat),
@@ -675,7 +698,7 @@ const actifDuCombat = (actif: NonNullable<Combat['actif']>): Entite => ({
     jauge('mouvement', t('ecran.jauge.mouvement'), actif.mouvement),
     puce('avantage', t('ecran.avantage'), String(actif.avantage)),
     puce('action', t('ecran.action'), t(`ecran.action.${actif.action}`), null, actif.action === 'libre' ? 'reussite' : 'neutre'),
-    ...actif.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
+    ...etatsEnPuces(actif.etats),
   ],
 });
 
@@ -756,6 +779,9 @@ const herosDuGroupe = (etat: Jeu, ouverte: FicheOuverte | null): Bouton[] =>
 /** Un nombre d'exemplaires, dit quand il y en a plusieurs. */
 const nombre = (n: number): string | null => (n > 1 ? t('ecran.fiche.nombre', { nombre: n }) : null);
 
+/** Chaque État en puce, en `alerte`. */
+const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte'));
+
 /** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en ligne ; ses Blessures en jauge ;
  *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; chacun de ses États en puce. */
 function porteurDeLaFiche(f: FicheDuPorteur): Entite {
@@ -768,7 +794,7 @@ function porteurDeLaFiche(f: FicheDuPorteur): Entite {
       ...(f.carriere === null ? [] : [ligne('carriere', f.carriere)]),
       jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
       ...points,
-      ...f.etats.map((e) => puce(`etat/${e.id}`, conditionLabel(e.id), String(e.valeur), null, 'alerte')),
+      ...etatsEnPuces(f.etats),
     ],
   };
 }

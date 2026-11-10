@@ -25,7 +25,7 @@ const doc = document(
   {},
   {
     codex: { keys: ['effectTables'] },
-    edit: { none: 'exposé au Codex en LECTURE seule — aucune clé de `CodexEdit.CATEGORY_DATASET` ne le route vers un formulaire d’atelier' },
+    edit: { dataset: 'effectTables' },
   },
   {
     rangee,
