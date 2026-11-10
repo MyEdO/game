@@ -57,7 +57,7 @@ Le vocabulaire est fermé des deux côtés, à étendre ensemble :
 - La `taille` d'une gerbe est sa vraie mesure, en mètres (#3832) : une particule ne garde son échelle que par
   `billboard_keep_scale` (`_quad_de_particule`). Juger une taille au rendu réel : `xvfb-run` et
   `--rendering-driver opengl3`, la sonde headless ne peint rien.
-- Un son en boucle (`Effets.variantes_du_son(son, true)`) libéré juste avant la sortie fuit : attendre
+- Un son en boucle (`Effets.son_en_boucle(son)`) libéré juste avant la sortie fuit : attendre
   `Foyer.SON_LIBERE_S` après avoir libéré son lecteur.
 - Plusieurs éclats d'un même visuel posés ensemble : `add_child(eclat, true)`, sinon Godot les renomme.
 - Toute arithmétique, comparaison d'ordre ou mesure GDScript vit dans `mise_en_page.gd` (garde

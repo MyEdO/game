@@ -50,7 +50,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
-import type { IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDObjet } from './designations';
+import type { IdDArticle, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDObjet } from './designations';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 import { porteurDeLObjet, refusDuHerosPorteur } from './monde/carrier';
@@ -85,6 +85,22 @@ export interface MerchantState {
   bargainLocked: boolean;
   bargainPaid?: boolean;
   bargainSellUsed?: boolean;
+  /** Le Troc en composition (LDB 59 l.64-76), conclu par le choix `marchand.troquer`. */
+  troc?: BrouillonDeTroc | null;
+}
+
+/** Le côté d'un marché négocié : l'achat ou la vente (LDB 59 l.43). */
+export type ModeDeMarche = 'buy' | 'sell';
+export const MODES_DE_MARCHE = ['buy', 'sell'] as const satisfies readonly ModeDeMarche[];
+
+/** Le Troc vide : rien de cédé, rien de reçu. */
+export const BROUILLON_DE_TROC_VIDE: BrouillonDeTroc = Object.freeze({ cede: null, recu: null, quantite: 1 });
+
+/** Un Troc en composition : le bien cédé (son porteur et son objet du catalogue), l'article acquis et sa quantité. */
+export interface BrouillonDeTroc {
+  cede: { heroId: IdDeHeros; trappingId: string } | null;
+  recu: IdDArticle | null;
+  quantite: number;
 }
 
 /** Une ligne de la répartition des achats payés, désignée par son `uid`. */
@@ -439,14 +455,11 @@ function finalizeSearchAvailability(get: Get, set: Set, entityId: string, restoc
  *  des Tests de Ragot ». Le groupe consacre UNE JOURNÉE (avance l'horloge) et jette un Test de Ragot ; sur
  *  un succès, un RÉASSORT FRAIS est tiré avec +10 % (cumulable avec la Carrière cohérente jusqu'au plafond
  *  +20 % du RAW). Sur un échec, la journée est perdue (réassort normal, sans le bonus de recherche). */
-export function chercherLaDisponibilite(get: Get, set: Set): void {
-  const m = get().merchant;
-  if (!m) return;
+function chercherLaDisponibilite(get: Get, set: Set): void {
+  const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   const ent = get().scene?.entities.find((e) => e.id === m.entityId);
-  const marketMode = marketRule(ent, 'marketMode') as string;
-  if (marketMode === 'sans-disponibilite' || marketMode === 'simplifie') return; // pas de Test de Disponibilité → rien à améliorer
-  const arch = findMerchantArchetypeById(m.archetype);
-  if (!arch) return;
+  // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
+  const arch = garanti(findMerchantArchetypeById(m.archetype), m.archetype, 'recherche de Disponibilité');
   const restockPeriod = (ent?.merchant?.restockDays ?? arch.restockDays ?? 1) * MINUTES_PER_DAY;
   // Test de Ragot du groupe (Soutien LDB 12) — Intermédiaire (+0), le RAW ne chiffre pas la difficulté.
   const best = partyAssisted(get().party, { skill: { id: 'ragot' }, characteristic: 'sociabilite' });
@@ -461,6 +474,13 @@ export function chercherLaDisponibilite(get: Get, set: Set): void {
     difficulty: 'intermediaire',
     stake: combatStakeRef(MERCHANT_RAGOT_KIND),
   }, MERCHANT_RAGOT_KIND, { entityId: m.entityId, restockPeriod });
+}
+
+/** Ce qui refuse la recherche active de Disponibilité dans l'échoppe `m` : un marché sans Test de Disponibilité
+ *  (LDB 59 l.15) ; `null` : elle se tente. */
+export function refusDeRecherche(s: Pick<Jeu, 'scene'>, m: MerchantState): string | null {
+  const marketMode = marketRule(s.scene?.entities.find((e) => e.id === m.entityId), 'marketMode') as string;
+  return marketMode === 'sans-disponibilite' || marketMode === 'simplifie' ? t('mf.rechercheSansDisponibilite') : null;
 }
 
 /** Quitte le marchand : un marché négocié non honoré verrouille la négociation jusqu'au réassort. */
@@ -483,8 +503,14 @@ function possessionDUnite(unit: UniteVendue, ownerId: string): Parameters<typeof
     : { nature: 'vehicule', vehicleId: unit.id, ownerId, location: { kind: 'avec-le-groupe' }, items: [] };
 }
 
-export function refuserLeMarche(get: Get, set: Set, mode: 'buy' | 'sell'): void {
-  const m = get().merchant; if (!m || (mode === 'buy' ? m.bargainBuy : m.bargainSell) == null) return;
+/** Ce qui refuse de refuser le marché `mode` de l'échoppe `m` : aucun marché négocié de ce côté ; `null` : il se
+ *  refuse. */
+export function refusDeRefusDuMarche(m: MerchantState, mode: ModeDeMarche): string | null {
+  return (mode === 'buy' ? m.bargainBuy : m.bargainSell) == null ? t('mf.rienARefuser') : null;
+}
+
+function refuserLeMarche(get: Get, set: Set, mode: ModeDeMarche): void {
+  const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   // Refuser une négociation → annule ce côté + VERROU PARTAGÉ (plus de marchandage achat NI vente jusqu'au réassort).
   const patch = mode === 'buy' ? { cart: [], bargainBuy: null } : { bargainSell: null };
   set((s) => ({
@@ -494,8 +520,8 @@ export function refuserLeMarche(get: Get, set: Set, mode: 'buy' | 'sell'): void 
   get().ecrireAuJournal(t('mf.bargainRefused'));
 }
 
-export function payerLesAchats(get: Get, set: Set): void {
-  const m = get().merchant; if (!m) return;
+function payerLesAchats(get: Get, set: Set): void {
+  const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   const cart = m.cart ?? [];
   const devis = devisDuPanier(m, contexteDAchat(get(), m));
   const total = devis.total;
@@ -594,7 +620,7 @@ export const BAISSES_DE_PRIX_MAX = 4;
 /** Refus de TROC d'un trapping, avec sa RAISON (null = trocable). LDB 59 l.66 : « comparez la
  *  Disponibilité des objets échangés avec celle des objets en cours d'acquisition » — sans Disponibilité,
  *  la comparaison n'a pas de terme et le RATIO n'existe pas. */
-function barterRefusal(id: string): string | null {
+export function barterRefusal(id: string): string | null {
   const t = findTrappingById(id);
   if (!t) return null;
   return isTradable(t.availability) ? null : outOfTradeReason(t.label);
@@ -631,17 +657,28 @@ function exemplairesCedables(hero: Combatant, trappingId: string): ItemInstance[
   return (hero.items ?? []).filter((i) => i.trappingId === trappingId && !i.equipped);
 }
 
-/** Un bien cédable au Troc : un trapping à prix listé chiffré, chez un héros, avec ses exemplaires. */
-export interface OptionDeTroc { heroId: string; trappingId: string; count: number }
+/** L'exemplaire du bien `trappingId` que `hero` cède au Troc (choix `marchand.trocCeder`) : le premier des
+ *  cédables. */
+export function exemplaireCede(hero: Combatant, trappingId: string): IdDObjet {
+  return garanti(exemplairesCedables(hero, trappingId)[0], trappingId, 'exemplaire cédable').uid;
+}
 
-/** Biens cédables au Troc (LDB 59 l.64-76) par (héros, trapping) — SOURCE UNIQUE de l'écran de Troc. */
-export function optionsDeTroc(party: Combatant[]): OptionDeTroc[] {
+/** Un bien cédable au Troc : un trapping chez un héros, avec ses exemplaires, et ce qui refuse de le céder (hors du
+ *  commerce ordinaire, ou sans prix listé chiffré). */
+export interface OptionDeTroc { heroId: string; trappingId: string; count: number; refus: string | null }
+
+/** Biens cédables au Troc (LDB 59 l.64-76) par (héros, trapping) — SOURCE UNIQUE de l'écran de Troc et du choix
+ *  `marchand.trocCeder`. */
+export function optionsDeTroc(party: readonly Combatant[]): OptionDeTroc[] {
   const out: OptionDeTroc[] = [];
   for (const h of party) {
     const ids = new Set((h.items ?? []).flatMap((it) => (it.trappingId && !it.equipped ? [it.trappingId] : [])));
     for (const trappingId of ids) {
       const trapping = findTrappingById(trappingId);
-      if (trapping && listedBrassOf(trapping) > 0) out.push({ heroId: h.id, trappingId, count: exemplairesCedables(h, trappingId).length });
+      if (!trapping) continue;
+      const horsCommerce = barterRefusal(trappingId);
+      const refus = horsCommerce ? t('trade.barterRefused', { reason: horsCommerce }) : listedBrassOf(trapping) > 0 ? null : t('mf.barterNoPrice');
+      out.push({ heroId: h.id, trappingId, count: exemplairesCedables(h, trappingId).length, refus });
     }
   }
   return out;
@@ -669,15 +706,21 @@ export function devisDeTroc(m: MerchantState, party: Combatant[], opts: DemandeD
   return refus == null && quote ? { refus: null, quote, getCount, max } : { refus: refus ?? t('mf.barterNoPrice'), quote, getCount, max };
 }
 
-/** Exécute un Troc (LDB 59 l.64) : le héros `giveHeroId` cède les exemplaires du devis (`devisDeTroc`) du
- *  trapping `giveTrappingId` (SANS argent) contre `getCount` exemplaires du stock `getStockId`. Les refus
- *  (`refusDeGesteSurLeGroupe`, puis celui du devis) tombent avant toute écriture. */
-export function troquerLesObjets(get: Get, set: Set, opts: DemandeDeTroc): void {
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
-  const m = get().merchant; if (!m) return;
+/** La demande du Troc composé dans l'échoppe `m` ; `null` : le bien cédé ou l'article acquis manque. */
+export function demandeDuTroc(m: MerchantState): DemandeDeTroc | null {
+  const b = m.troc;
+  return b?.cede && b.recu ? { giveHeroId: b.cede.heroId, giveTrappingId: b.cede.trappingId, getStockId: b.recu, getCount: b.quantite } : null;
+}
+
+/** Exécute le Troc composé (LDB 59 l.64) : le héros cédant donne les exemplaires du devis (`devisDeTroc`), SANS argent,
+ *  contre les exemplaires acquis du stock, puis le brouillon se vide. Le choix `marchand.troquer` n'est admis que sur un
+ *  devis sans refus. */
+function troquerLesObjets(get: Get, set: Set): void {
+  const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
+  const opts = garanti(demandeDuTroc(m), m.entityId, 'troc composé');
   const v = devisDeTroc(m, get().party, opts);
-  if (v.refus !== null) { refuserGeste(get, set, v.refus); return; }
-  const { quote, getCount } = v;
+  const quote = garanti(v.quote, opts.getStockId, 'devis du troc');
+  const { getCount } = v;
   const donne = garanti(findTrappingById(opts.giveTrappingId), opts.giveTrappingId, 'troc — objet cédé').label;
   const recu = garanti(findTrappingById(opts.getStockId), opts.getStockId, 'troc — objet reçu').label;
   const hero = garanti(get().party.find((h) => h.id === opts.giveHeroId), opts.giveHeroId, 'troc — héros cédant');
@@ -694,7 +737,7 @@ export function troquerLesObjets(get: Get, set: Set, opts: DemandeDeTroc): void 
         clone.items = (clone.items ?? []).filter((i) => !soldUids.includes(i.uid)); // biens cédés
         return acquis.reduce(avecObjet, clone); // biens acquis
       }),
-      merchant: { ...s.merchant!, stock: newStock },
+      merchant: { ...s.merchant!, stock: newStock, troc: null },
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
@@ -736,12 +779,10 @@ export function devisDeVente(m: MerchantState, party: Combatant[]): { lignes: Li
 
 /** Conclut la vente du panier (parité achat/`payerLesAchats`) : crédite le devis `devisDeVente`, retire les
  *  objets de leurs porteurs, honore la négociation de vente. */
-export function vendreLeLot(get: Get, set: Set): void {
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
-  const m = get().merchant; if (!m) return;
+function vendreLeLot(get: Get, set: Set): void {
+  const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   const devis = devisDeVente(m, get().party);
   for (const l of devis.lignes) if (l.refus) get().ecrireAuJournal(t('trade.sellRefused', { reason: l.refus }));
-  if (devis.refus) { refuserGeste(get, set, devis.refus); return; }
   const vendues = devis.lignes.filter((l) => !l.refus);
   const gainByHero: Record<string, Money> = {}; // crédit PERSONNEL : chaque gain revient au PORTEUR de l'objet vendu (#531 §8)
   for (const l of vendues) gainByHero[l.hero.id] = moneyAdd(gainByHero[l.hero.id] ?? fromBrass(0), l.gain);
@@ -769,18 +810,20 @@ export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote
   return refusHote ?? refusDeBourse(hero, coutDeReparation(item), 'mf.repairPurseKo', { label: item.label });
 }
 
+/** Chaque objet abîmé d'un héros du groupe, avec ce qui refuse de le réparer : une arme réduite à l'état improvisé
+ *  (`isRepairable`), puis la bourse de son porteur (`refusDeReparation`). */
+export function objetsAReparer(party: readonly Combatant[]): { hero: Combatant; item: ItemInstance; refus: string | null }[] {
+  return party.flatMap((hero) => (hero.items ?? []).filter((item) => (item.damageTaken ?? 0) > 0).map((item) => ({
+    hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null) : t('mf.repairIrreparable', { label: item.label }),
+  })));
+}
+
 /** Réparation d'un objet chez un artisan — armure (LDB 63 l.64) OU arme (LDB 62 l.135), au coût
- *  `coutDeReparation`, aux frais de son porteur (`porteurDeLObjet`). Une arme réduite à l'état improvisé est irréparable
- *  (isRepairable). Chaque refus est dit avant tout débit. */
-export function reparerLObjet(get: Get, set: Set, uid: string): void {
-  if (!get().merchant) return void refuserGeste(get, set, t('mf.repairNoMerchant'));
-  if (refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid))) return;
-  const heroId = porteurDeLObjet(get(), uid)!;
-  const hero = get().party.find((h) => h.id === heroId)!;
-  const item = hero.items!.find((i) => i.uid === uid)!;
-  if (!isRepairable(item)) return void refuserGeste(get, set, t((item.damageTaken ?? 0) > 0 ? 'mf.repairIrreparable' : 'mf.repairIntact', { label: item.label }));
-  const refus = refusDeReparation(hero, item, refusDeGesteSurLeGroupe(get()));
-  if (refus) { refuserGeste(get, set, refus); return; }
+ *  `coutDeReparation`, aux frais de son porteur (`porteurDeLObjet`). Le choix `marchand.reparer` ne l'admet que parmi
+ *  `objetsAReparer`, sans refus. */
+function reparerLObjet(get: Get, set: Set, uid: string): void {
+  const heroId = garanti(porteurDeLObjet(get(), uid), uid, 'porteur de l’objet réparé');
+  const item = garanti(get().party.find((h) => h.id === heroId)?.items?.find((i) => i.uid === uid), uid, 'objet réparé');
   const cost = coutDeReparation(item);
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
   set((s) => ecrireActeur(s, heroId, (h) => {
@@ -809,14 +852,20 @@ export function ouvrirMarchandage(get: Get, set: Set, contrepartie: Contrepartie
   } });
 }
 
-export function marchanderLePrix(get: Get, set: Set, mode: 'buy' | 'sell'): void {
-  const m = get().merchant; if (!m) return;
-  const ent = get().scene?.entities.find((e) => e.id === m.entityId);
-  const mkt = marketRule(ent, 'marketMode') as string;
-  if (mkt === 'sans-marchandage' || mkt === 'simplifie') return; // Marchandage désactivé (règle optionnelle LDB 59 l.15)
-  if (m.soured) return; // botch antérieur : le marchand se méfie, plus de marchandage (LDB 59 l.43)
-  if (m.bargainLocked) return; // VERROU PARTAGÉ : a refusé/renié un marché (achat OU vente) → plus de négociation jusqu'au réassort
-  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return; // 1 marchandage par MODE et par visite (achat ≠ vente)
+/** Ce qui refuse le Marchandage `mode` dans l'échoppe `m` : la règle optionnelle qui l'ôte (LDB 59 l.15), le marchand
+ *  qui se méfie après un échec retentissant (LDB 59 l.43), le verrou d'un marché refusé ou renié, une négociation déjà
+ *  menée de ce côté cette visite, ou personne dans le groupe pour la mener ; `null` : il se tente. */
+export function refusDeMarchandage(s: Pick<Jeu, 'scene' | 'party'>, m: MerchantState, mode: ModeDeMarche): string | null {
+  const mkt = marketRule(s.scene?.entities.find((e) => e.id === m.entityId), 'marketMode') as string;
+  if (mkt === 'sans-marchandage' || mkt === 'simplifie') return t('mf.marchandageOte');
+  if (m.soured) return t('mf.marchandMefiant');
+  if (m.bargainLocked) return t('mf.marchandageVerrouille');
+  if (mode === 'buy' ? m.bargainBuy : m.bargainSell) return t('mf.dejaMarchande');
+  return partyAssisted(s.party, { skill: { id: 'marchandage' }, characteristic: 'sociabilite' }) ? null : t('mf.sansNegociateur');
+}
+
+function marchanderLePrix(get: Get, set: Set, mode: ModeDeMarche): void {
+  const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   // L'ouverture refuse un archétype inconnu (`openMerchantByArchetype`) : ouvert, il est garanti.
   const arch = garanti(findMerchantArchetypeById(m.archetype), m.archetype, 'marchandage');
   // Le marchand est un PNJ de scène : sa fiche porte le portrait de la ligne adverse.
@@ -1053,14 +1102,7 @@ export function creerActionsDuMarchand(get: Get, set: Set) {
   return {
     ouvrirLeMarchand: (entityId) => ouvrirLeMarchand(get, set, entityId),
     ouvrirLaBoutique: (serviceId) => ouvrirLaBoutique(get, set, serviceId),
-    chercherLaDisponibilite: () => chercherLaDisponibilite(get, set),
-    refuserLeMarche: (mode) => refuserLeMarche(get, set, mode),
-    payerLesAchats: () => payerLesAchats(get, set),
-    vendreLeLot: () => vendreLeLot(get, set),
-    reparerLObjet: (uid) => reparerLObjet(get, set, uid),
-    marchanderLePrix: (mode) => marchanderLePrix(get, set, mode),
     evaluerLObjet: (uid, mode) => evaluerLObjet(get, set, uid, mode),
-    troquerLesObjets: (opts) => troquerLesObjets(get, set, opts),
   } satisfies FabriqueDuNoyau;
 }
 
@@ -1072,6 +1114,10 @@ export function choixDuMarchand(get: Get, set: Set) {
     set({ merchant: { ...m, ...patch(m) } });
   };
   const baisses = (uid: string, delta: number) => ecrire((m) => ({ sellHalvings: { ...m.sellHalvings, [uid]: (m.sellHalvings?.[uid] ?? 0) + delta } }));
+  const troc = (patch: (b: BrouillonDeTroc) => Partial<BrouillonDeTroc>) => ecrire((m) => {
+    const b = m.troc ?? BROUILLON_DE_TROC_VIDE;
+    return { troc: { ...b, ...patch(b) } };
+  });
   return {
     marchand: {
       ajouterAuPanier: (id) => ecrire((m) => ({ cart: m.cart.some((c) => c.id === id) ? m.cart.map((c) => (c.id === id ? { ...c, qty: c.qty + 1 } : c)) : [...m.cart, { id, qty: 1 }] })),
@@ -1084,6 +1130,20 @@ export function choixDuMarchand(get: Get, set: Set) {
       baisserLePrix: (uid) => baisses(uid, 1),
       releverLePrix: (uid) => baisses(uid, -1),
       repartition: (uid, heroId) => ecrire((m) => ({ pendingDistribution: (m.pendingDistribution ?? []).map((d) => (d.uid === uid ? { ...d, heroId } : d)) })),
+      payer: () => payerLesAchats(get, set),
+      vendre: () => vendreLeLot(get, set),
+      refuser: (mode) => refuserLeMarche(get, set, mode),
+      marchander: (mode) => marchanderLePrix(get, set, mode),
+      chercher: () => chercherLaDisponibilite(get, set),
+      reparer: (uid) => reparerLObjet(get, set, uid),
+      trocCeder: (uid) => {
+        const heroId = garanti(porteurDeLObjet(get(), uid), uid, 'porteur du bien cédé');
+        const trappingId = garanti(get().party.find((h) => h.id === heroId)?.items?.find((i) => i.uid === uid)?.trappingId, uid, 'bien cédé du catalogue');
+        troc(() => ({ cede: { heroId, trappingId } }));
+      },
+      trocRecevoir: (id) => troc(() => ({ recu: id, quantite: 1 })),
+      trocQuantite: (n) => troc(() => ({ quantite: n })),
+      troquer: () => troquerLesObjets(get, set),
     },
   } satisfies Partial<CorpsDesChoix>;
 }

@@ -10,6 +10,7 @@ import { ancreDuDecor } from '../monde/footprint';
 import { appliquerOutil, addFacadeSection, moveSel, poserLeDecorAuPoint, rectFrom, resizeSel, validerRectangle, type GesteDOutil, type Pt, type Rect } from '../sceneEdit';
 import { caseDe } from '../../data/props.types';
 import { canonEdge, dansLaCarte, empriseDuPinceau, hitAt, nearestEdge, pickArchitectureEdge, pickWallEdge, type Layers, type Sel, type Tool } from '../sceneEditLecture';
+import { provenanceDesNavires } from '../planDeNavire';
 
 /** Ce que l'éditeur tient autour du geste : l'outil, la couche, le pinceau, la rencontre que l'outil de rencontre
  *  complète et la fiche qu'il pose, les calques visibles, la sélection, le rectangle du terrain, et le mode
@@ -102,7 +103,8 @@ const rectangle = (p: Pt): EffetDuPointeur => ({ geste: { sorte: 'rectangle', de
 
 /** L'appui de l'outil de sélection : une façade sous le point, la façade posée sur l'arête en action « façade », la
  *  chose désignée sous la case en mode architecture ; hors de lui, une arête de mur proche l'emporte sur la case. Une
- *  chose désignée sous la case ouvre son déplacement. */
+ *  chose désignée sous la case ouvre son déplacement ; sans elle, une case des ponts d'un navire désigne son entité
+ *  (`provenanceDesNavires`), sans la déplacer. */
 function selectionner(scene: Scene, ctx: ContexteDuPointeur, pt: PointDeCarte): EffetDuPointeur {
   const a = ctx.architecture;
   if (a) {
@@ -119,8 +121,12 @@ function selectionner(scene: Scene, ctx: ContexteDuPointeur, pt: PointDeCarte): 
     const mur = pickWallEdge(scene, pt.f.x, pt.f.y, ctx.z);
     if (mur) return { geste: null, sel: { type: 'wall', x: mur.x, y: mur.y, side: mur.side, z: ctx.z } };
   }
-  const sel = hitAt(scene, caseDe(pt.f.x, pt.f.y), ctx.layers, ctx.z, a?.bodyId ?? undefined, pt.f);
-  if (!sel) return { geste: null, sel };
+  const p = caseDe(pt.f.x, pt.f.y);
+  const sel = hitAt(scene, p, ctx.layers, ctx.z, a?.bodyId ?? undefined, pt.f);
+  if (!sel) {
+    const navire = provenanceDesNavires(scene).cases.get(`${p.x},${p.y},${ctx.z}`);
+    return { geste: null, sel: navire === undefined ? null : { type: 'entity', id: navire } };
+  }
   const decor = decorDeLaSelection(scene, sel);
   const ancre = decor && ancreDuDecor(scene.entities.find((e) => e.id === decor)!, sceneMetresPerTile(scene));
   const prise = ancre && { x: ancre.x - pt.f.x, y: ancre.y - pt.f.y };

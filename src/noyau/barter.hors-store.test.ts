@@ -7,6 +7,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { barterQuote, sellGain, sellRefusal, type MerchantState } from './merchantFlow';
 import { partyMoneyTotal } from './bourseFlow';
+import { troquer } from './marchand.testkit';
+import { t } from '../i18n';
 import { itemFromTrappingById } from '../engine/items';
 import { toBrass } from '../engine/money';
 import { makePregens } from '../data/pregens';
@@ -31,13 +33,13 @@ describe('barterQuote (LDB 59 l.64-76)', () => {
   });
 });
 
-describe('troquerLesObjets', () => {
+describe('marchand.troquer', () => {
   it('cède les exemplaires requis, reçoit le bien acquis, décrémente le stock, bourse INCHANGÉE', () => {
     const hero = makePregens(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('hallebarde', idsDeTest), itemFromTrappingById('hallebarde', idsDeTest)].filter(Boolean) as ItemInstance[];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
+    troquer(banc.getState, { giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
     const st = banc.getState();
     const items = st.party[0].items ?? [];
     expect(items.filter((i) => i.trappingId === 'hallebarde')).toHaveLength(1); // 1 cédée
@@ -46,12 +48,23 @@ describe('troquerLesObjets', () => {
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before); // aucun argent échangé
   });
 
-  it('refuse si le héros n’a pas assez d’exemplaires à céder', () => {
+  it('refuse, et le dit, si le héros n’a pas assez d’exemplaires à céder', () => {
     const hero = makePregens(idsDeTest)[0] as Combatant;
-    hero.items = []; // rien à céder
+    hero.items = [itemFromTrappingById('dague', idsDeTest)!]; // une dague ne vaut pas une hallebarde
+    banc.setState({ party: [hero], merchant: merchant([{ id: 'hallebarde', qty: 5 }]) });
+    troquer(banc.getState, { giveHeroId: hero.id, giveTrappingId: 'dague', getStockId: 'hallebarde', getCount: 1 });
+    expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'hallebarde')).toBe(false);
+    expect(banc.getState().journal.join('\n')).toMatch(/il faut \d+ × Dague à céder \(1 disponible/);
+  });
+
+  it('le troc conclu vide son brouillon ; sans bien cédé, l’échange ne s’offre pas', () => {
+    const hero = makePregens(idsDeTest)[0] as Combatant;
+    hero.items = [itemFromTrappingById('hallebarde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
-    banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
-    expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'dague')).toBe(false);
+    banc.getState().fenetreChoisir('marchand', 'troquer', true);
+    expect(banc.getState().journal[banc.getState().journal.length - 1]).toBe(t('choix.refus.valeur'));
+    troquer(banc.getState, { giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
+    expect(banc.getState().merchant!.troc).toBeNull();
   });
 });
 
@@ -114,7 +127,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     const hero = makePregens(idsDeTest)[0] as Combatant;
     hero.items = [itemFromTrappingById('licence-de-guilde', idsDeTest)!, itemFromTrappingById('licence-de-guilde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
-    banc.getState().troquerLesObjets({ giveHeroId: hero.id, giveTrappingId: 'licence-de-guilde', getStockId: 'dague', getCount: 1 });
+    banc.getState().fenetreChoisir('marchand', 'trocCeder', hero.items[0].uid);
     expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'dague')).toBe(false);
     expect(banc.getState().journal.join('\n')).toMatch(/Troc impossible.*Licence de Guilde/);
   });

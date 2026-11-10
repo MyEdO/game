@@ -818,8 +818,6 @@ export const prixSaisonnierSchema = parSaison(z.number());
  */
 export const tirageSchema = nommerChamps(z.strictObject({ dice: diceSpecSchema }), { dice: { label: "dés" } });
 
-/** Un nombre OU un tirage (`QuantiteTiree`, `src/engine/dice.ts`). #1652 */
-export const quantiteTireeSchema = z.union([z.number(), tirageSchema]);
 
 /** Modificateur de dés SIGNÉ (`EffetSigne`, `src/engine/dice.ts`, lu par `tirerSigne`) : MDG 14 (Moral),
  *  MDG 15 l.97-124 (Humeur de Manann). #1652 */

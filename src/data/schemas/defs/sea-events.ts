@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** MDG 15 l.83-129 */
 import { z } from 'zod';
 import { document, tableTiree } from '../grammaire/document';
-import { EXPRESSION_DE_DE, ecartsDeCouverture, effetSigneSchema, plageOuverteSchema, quantiteTireeSchema, sourceRefSchema } from '../grammaire/valeurs';
+import { ecartsDeCouverture, effetSigneSchema, maisonSchema, plageOuverteSchema, sourceRefSchema } from '../grammaire/valeurs';
 import { listeCle } from '../grammaire/collection-cle';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
@@ -24,18 +24,11 @@ const manannFactor = nommerChamps(z.strictObject({
   source: { label: 'Source' },
 });
 
-/** Feuille d'un paramètre d'événement : un dé s'y écrit en tirage, jamais en chaîne (`EXPRESSION_DE_DE`). #1652 */
-const feuilleDeParam = z.union([
-  quantiteTireeSchema,
-  z.boolean(),
-  z.string().refine((s) => !EXPRESSION_DE_DE.test(s), { message: 'dé en chaîne : un tirage s’écrit `{ "dice": { "n", "sides", "plus"? } }`' }),
-]);
-
 /** `SeaEventDef` (`src/engine/seaVoyage.ts`) — `consequence` = sa suite MÉCANIQUE en grammaire (`Flow`),
- *  jouée par `runFlow` ; sans elle ni genre, la rangée est narrative. `kind`/`params` = le genre d'une
- *  rangée dont la suite est codée (`ParametresDeBord`, `ParametresDePort`). `relache` : la rangée ne se
- *  joue qu'avec la relâche à terre accordée (MDG 15 l.245, l.260) ; `taillePortMax` : qu'à l'escale d'un port
- *  de Taille au plus celle-ci (MDG 15 l.249). #1652 */
+ *  jouée par `runFlow` ; sans elle, la rangée est narrative. `relache` : la rangée ne se joue qu'avec la
+ *  relâche à terre accordée (MDG 15 l.245, l.260) ; `taillePortMax` : qu'à l'escale d'un port de Taille au
+ *  plus celle-ci (MDG 15 l.249). `maison` : la raison des valeurs que la `consequence` pose là où le livre
+ *  laisse la main au MJ (AGENTS.md règle 7). #1652 */
 const seaEventDef = nommerChamps(z.strictObject({
   ...plageOuverteSchema.shape,
   id: z.string(),
@@ -44,12 +37,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   relache: z.literal(true).optional(),
   taillePortMax: z.number().int().min(1).optional(),
   consequence: flowSchema.optional(),
-  kind: z.string().optional(),
-  params: z.record(z.string(), z.union([
-    feuilleDeParam,
-    z.array(feuilleDeParam),
-    z.record(z.string(), z.union([feuilleDeParam, z.record(z.string(), feuilleDeParam)])),
-  ])).optional(),
+  maison: maisonSchema.optional(),
   source: sourceRefSchema,
 }), {
   ...metaDesChamps(plageOuverteSchema, { exigees: true }),
@@ -59,8 +47,7 @@ const seaEventDef = nommerChamps(z.strictObject({
   relache: { label: 'Relâche à terre requise' },
   taillePortMax: { label: 'Taille de port maximale' },
   consequence: { label: 'Conséquence' },
-  kind: { label: 'Type' },
-  params: { label: 'Paramètres' },
+  maison: { label: 'Arbitrage maison' },
   source: { label: 'Source' },
 });
 
@@ -133,18 +120,6 @@ const doc = document(
           [['fastVoyage', 'entries'], `le ${d.fastVoyage?.die} du Voyage rapide`, d.fastVoyage?.entries ?? [], 'ouverte', 'ouverte'],
           ...(deDePort ? [[['portEvents', 'entries'], `le ${d.portEvents!.die} de l'escale, Humeur de Manann comprise`, d.portEvents!.entries, totalDuDe(deDePort, deDePort.n) - modDePort, facesDuDe(deDePort) + modDePort] as [(string | number)[], string, Bande[], number, number]] : []),
         ];
-        // #1652 : une rangée migrée porte sa `consequence` et perd `kind`/`params`.
-        for (const table of ['boardEvents', 'portEvents'] as const) {
-          ((d[table]?.entries ?? []) as { id?: string; consequence?: unknown; kind?: unknown; params?: unknown }[]).forEach((e, i) => {
-            if (e.consequence !== undefined && (e.kind !== undefined || e.params !== undefined)) {
-              ctx.addIssue({
-                code: 'custom',
-                path: [table, 'entries', i],
-                message: `sea-events.json › ${table} « ${e.id} » : \`consequence\` et \`kind\`/\`params\` coexistent — une rangée en grammaire perd son genre.`,
-              });
-            }
-          });
-        }
         for (const [path, domaine, bandes, depuis, jusqua] of tables) {
           const ecarts = ecartsDeCouverture(bandes, depuis, jusqua, (b) => `la bande « ${b.id} »`);
           if (ecarts.length) {

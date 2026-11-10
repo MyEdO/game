@@ -1,7 +1,7 @@
 /**
  * LA MUSIQUE DE LA PARTIE (#3825), que tout hôte du noyau joue telle quelle : la piste que la scène impose (éditeur :
  * piste précise, ou silence), sinon celles du contexte (exploration, intérieur, combat), et ses pistes telles qu'un
- * hôte les joue (`SonDEffet`), dont il tire une au hasard et qu'il boucle.
+ * hôte les joue (`SonDEffet`), dont il joue une à son tour et qu'il boucle.
  */
 import { musicDefsFor, type MusicSelection } from '../data/sons/musique';
 import { sonDEffet, type SonDEffet } from '../data/sons/registre';

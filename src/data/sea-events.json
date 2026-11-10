@@ -629,7 +629,8 @@
           "book": "mer-des-griffes",
           "page": 131,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 1ère moitié du d100 (l.132-189)."
-        }
+        },
+        "maison": "La créature repoussée compte comme vaincue, chacune est repoussée seule, aucun Test de Surprise (consigne utilisateur 2026-11-07)."
       },
       {
         "min": -53,
@@ -778,19 +779,59 @@
         "id": "culte-de-la-personnalite",
         "label": "Culte de la personnalité",
         "desc": "Culte de la personnalité. Un membre de l'équipage suit un credo extrême et considère le reste des gens à bord comme des recrues potentielles. Lancez 1d10 pour déterminer l'allégeance de ce zélote et un deuxième d10 pour savoir combien d'initiés sensibles à ses paroles il a rassemblés. 1 à 3 : une opinion politique révolutionnaire comme le nouveau millénarisme (voir page 140 de Middenheim) ou le kloszowskisme (voir page 34 d'Altdorf) ; 4 à 6 : une entreprise criminelle, comme la contrebande ; 7 à 9 : le culte de Stromfels ; 10 : le culte de Tzeentch.",
-        "kind": "culte",
-        "params": {
-          "allegianceRoll": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          },
-          "initiatesRoll": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "rollTable",
+                "die": "1d10",
+                "entries": [
+                  {
+                    "min": 1,
+                    "max": 3,
+                    "ops": [
+                      {
+                        "op": "narrative",
+                        "text": "une opinion politique révolutionnaire comme le nouveau millénarisme (voir page 140 de Middenheim) ou le kloszowskisme (voir page 34 d'Altdorf)"
+                      }
+                    ]
+                  },
+                  {
+                    "min": 4,
+                    "max": 6,
+                    "ops": [
+                      {
+                        "op": "narrative",
+                        "text": "une entreprise criminelle, comme la contrebande"
+                      }
+                    ]
+                  },
+                  {
+                    "min": 7,
+                    "max": 9,
+                    "ops": [
+                      {
+                        "op": "narrative",
+                        "text": "le culte de Stromfels"
+                      }
+                    ]
+                  },
+                  {
+                    "min": 10,
+                    "max": 10,
+                    "ops": [
+                      {
+                        "op": "narrative",
+                        "text": "le culte de Tzeentch"
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
           }
         },
         "source": {
@@ -967,7 +1008,8 @@
           "book": "mer-des-griffes",
           "page": 131,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 1ère moitié du d100 (l.132-189)."
-        }
+        },
+        "maison": "La créature repoussée compte comme vaincue, chacune est repoussée seule, aucun Test de Surprise (consigne utilisateur 2026-11-07)."
       },
       {
         "min": -23,
@@ -1377,7 +1419,8 @@
           "book": "mer-des-griffes",
           "page": 132,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 2e moitié du d100 (l.192-236)."
-        }
+        },
+        "maison": "Une caisse = 1 Enc (MDG 12 l.35 ne la chiffre pas) ; monter à bord : « non » par défaut ; le butin s'embarque sans volontaire (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 28,
@@ -1627,13 +1670,53 @@
         "id": "autres-voyageurs",
         "label": "Autres voyageurs",
         "desc": "Autres voyageurs. Vous repérez un autre navire à l'horizon. Il signale qu'il veut s'approcher. À vous de choisir si vous le laissez faire ou non. Le bateau pourrait vous poser des problèmes, mais les opportunités qu'il représente devraient l'emporter sur la menace potentielle. Au strict minimum, il est prêt à faire du commerce, partager les dernières rumeurs et vous prévenir des dangers plus loin sur la mer.",
-        "kind": "autres-voyageurs",
-        "params": {},
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Laisser le navire approcher",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "marcheDuPort",
+                  "demande": 2,
+                  "jours": {
+                    "dice": {
+                      "n": 2,
+                      "sides": 10,
+                      "plus": 10
+                    }
+                  }
+                },
+                {
+                  "op": "navireMod",
+                  "evite": [
+                    "iceberg",
+                    "debris-marins",
+                    "rocher",
+                    "bas-fonds"
+                  ],
+                  "jusqua": {
+                    "jours": {
+                      "dice": {
+                        "n": 1,
+                        "sides": 10
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 132,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 2e moitié du d100 (l.192-236)."
-        }
+        },
+        "maison": "MDG 15 l.205-208 laisse au MJ ce que le navire apporte : la rumeur reprend la Demande +2 pour 10+2d10 jours de l'escale (l.259), les dangers signalés écartent les périls pendant 1d10 jours, comme le Marsouin amical (l.229), car un péril se heurte PENDANT un événement de bord ; le commerce et la menace ne sont pas joués (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 89,
@@ -1815,7 +1898,8 @@
           "book": "mer-des-griffes",
           "page": 132,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 2e moitié du d100 (l.192-236)."
-        }
+        },
+        "maison": "Nautonier → navigateur, Médecin de bord → chirurgien ; Marin et Officier accroissent l'effectif anonyme ; le chat est narratif (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 103,
@@ -1887,13 +1971,66 @@
         "id": "ile-inconnue",
         "label": "Île inconnue",
         "desc": "Île inconnue. Vous repérez une île qui n'apparaît pas sur les cartes. Des dangers peuvent se trouver à proximité, par exemple des bancs de sable ou des créatures marines dangereuses, mais elle devrait offrir davantage en termes de récompenses que de périls. Vous pouvez puiser de l'eau douce dans ses sources et cueillir des plantes comestibles et chasser des animaux sur sa plage.",
-        "kind": "ile-inconnue",
-        "params": {},
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Accoster sur l’île",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "provisions",
+                  "eauTonneaux": {
+                    "dice": {
+                      "n": 2,
+                      "sides": 10
+                    }
+                  }
+                },
+                {
+                  "op": "provisions",
+                  "jours": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  }
+                },
+                {
+                  "op": "rollTable",
+                  "die": "1d10",
+                  "entries": [
+                    {
+                      "min": 1,
+                      "max": 2,
+                      "ops": [
+                        {
+                          "op": "perilDeMer",
+                          "collision": {
+                            "id": "bas-fonds"
+                          }
+                        }
+                      ]
+                    },
+                    {
+                      "min": 3,
+                      "max": 10,
+                      "ops": []
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 132,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 2e moitié du d100 (l.192-236)."
-        }
+        },
+        "maison": "MDG 15 l.221-223 ne chiffre ni l'eau, ni les vivres, ni les dangers : 2d10 tonneaux (l.194), 1d10 jours de vivres (l.235), les bas-fonds heurtés sur 1-2 au d10 (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 121,
@@ -1987,7 +2124,8 @@
           "book": "mer-des-griffes",
           "page": 132,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 2e moitié du d100 (l.192-236)."
-        }
+        },
+        "maison": "MDG 15 ne borne pas la durée : jusqu'au prochain événement de bord (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 135,
@@ -2023,7 +2161,8 @@
           "book": "mer-des-griffes",
           "page": 132,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 2e moitié du d100 (l.192-236)."
-        }
+        },
+        "maison": "Les périls écartés sont Rocher et Bas-fonds (MDG 13 l.493-499), Collision soudaine comprise, pendant 1d10 jours (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 141,
@@ -2843,7 +2982,8 @@
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "Toute la cargaison est déclarée (aucune mécanique ne la cache, l.247) ; les droits de 10 % s'arrondissent à l'inférieur (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 4,
@@ -2944,7 +3084,8 @@
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "Le butin : 1d10 jours de vivres (l.235) et 1d100 Enc de cargaison (l.209) (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 6,
@@ -2982,8 +3123,6 @@
         "id": "la-tache-noire",
         "label": "La tache noire",
         "desc": "La tache noire. Pendant votre séjour au port, vous êtes informé que vous vous êtes fait un ennemi d'un autre capitaine. Le MJ détermine de qui il s'agit, pourquoi il vous méprise à ce point et quand vous le rencontrerez la prochaine fois.",
-        "kind": "tache-noire",
-        "params": {},
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
@@ -2996,13 +3135,24 @@
         "id": "penuries",
         "label": "Pénuries",
         "desc": "Pénuries. Une pénurie de marchandises inattendue sévit dans ce port. Les marchandises de la colonne Production (voir Tableau p. 138) ne sont pas disponibles et celles de la colonne Surplus perdent leur statut de Surplus et passent dans la colonne Production.",
-        "kind": "penuries",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "marcheDuPort",
+                "colonnes": "penurie"
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "MDG 15 l.253 ne borne pas la pénurie : elle dure jusqu'au départ du navire. La cargaison de commerce (l.321), tirée de la colonne Production, n'est pas en vente ; le port garde sa mention Commerce pour la vente (l.360-391) (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 9,
@@ -3022,20 +3172,6 @@
         "id": "constructeur-de-navires-itinerant",
         "label": "Constructeur de navires itinérant",
         "desc": "Constructeur de navires itinérant. Un constructeur de navires talentueux est en ville. Si votre bateau a besoin de réparations, il possède Métier (Charpentier 72, Constructeur de navires 68, Tailleur 63). Il peut aussi ajouter des Améliorations au vaisseau. Chaque réparation ou Amélioration prend 1d10 jours.",
-        "kind": "constructeur-itinerant",
-        "params": {
-          "metier": {
-            "charpentier": 72,
-            "constructeur-de-navires": 68,
-            "tailleur": 63
-          },
-          "daysPerJob": {
-            "dice": {
-              "n": 1,
-              "sides": 10
-            }
-          }
-        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
@@ -3048,16 +3184,27 @@
         "id": "trop-beau-pour-etre-vrai",
         "label": "Trop beau pour être vrai ?",
         "desc": "Trop beau pour être vrai ? Un client suspect vous aborde sur les quais et propose de vous vendre jusqu'à 500 points d'Encombrement d'une cargaison choisie au hasard avec une remise incroyable de 50 %. Si vous acceptez l'offre, l'absence de papiers officiels vous encourage à quitter le port rapidement.",
-        "kind": "offre-suspecte",
-        "params": {
-          "maxEnc": 500,
-          "discountPct": 50
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "marcheDuPort",
+                "offre": {
+                  "enc": 500,
+                  "remisePct": 50
+                }
+              }
+            ]
+          }
         },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "MDG 15 l.256 : l'offre vaut jusqu'au départ du navire ; le Marchandage s'applique au prix remisé ; tant qu'il reste du lot, il tient la place de l'offre ordinaire de la même cargaison, une offre par cargaison à l'étal ; l'invitation à quitter le port n'est pas jouée (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 15,
@@ -3294,7 +3441,8 @@
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "Mousse → mousse, Nautonier → navigateur, Médecin de bord → chirurgien ; Marin, Mercenaire expérimenté et Officier accroissent l'effectif anonyme ; le passager non repéré rejoint l'équipage tout de suite (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 17,
@@ -3302,16 +3450,44 @@
         "id": "rumeurs-commerciales",
         "label": "Rumeurs commerciales",
         "desc": "Rumeurs commerciales. En prenant un verre dans une taverne sur les quais, vous apprenez qu'une grosse pénurie d'un produit donné frappe dans un autre port. Si vous réussissez un Test de Ragot Accessible (+20), choisissez une cargaison et un port au hasard. La Demande pour cette cargaison dans ce port augmente de 2 pour les 10+2d10 prochains jours.",
-        "kind": "rumeurs-commerciales",
-        "params": {
-          "gossipDifficulty": "accessible",
-          "demandBonus": 2,
-          "days": {
-            "dice": {
-              "n": 2,
-              "sides": 10,
-              "plus": 10
+        "consequence": {
+          "kind": "test",
+          "test": {
+            "skill": {
+              "id": "ragot"
+            },
+            "difficulty": "accessible",
+            "stake": {
+              "key": {
+                "dataset": "voyage",
+                "kind": "sea-rumeurs-commerciales",
+                "entryId": "rumeurs-commerciales",
+                "entryCategory": "seaPortEvents"
+              }
             }
+          },
+          "success": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "ops": [
+                {
+                  "op": "marcheDuPort",
+                  "demande": 2,
+                  "jours": {
+                    "dice": {
+                      "n": 2,
+                      "sides": 10,
+                      "plus": 10
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "fail": {
+            "kind": "seq",
+            "steps": []
           }
         },
         "source": {
@@ -3358,10 +3534,6 @@
         "id": "offre-de-mission",
         "label": "Offre de mission",
         "desc": "Offre de mission. Une personne qui dissimule son identité vous offre 200 CO pour livrer un « colis » sans l'ouvrir dans un port choisi au hasard. Le MJ détermine la description détaillée et les dimensions du colis.",
-        "kind": "offre-mission",
-        "params": {
-          "rewardCO": 200
-        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
@@ -3374,10 +3546,6 @@
         "id": "bonne-peche",
         "label": "Bonne pêche",
         "desc": "Bonne pêche. Récemment, les pêcheurs locaux remontent des filets grouillant de poissons ou de crabes. Vous pouvez les acheter en tant que rations pour un jour au prix réduit de 3sc.",
-        "kind": "bonne-peche",
-        "params": {
-          "rationPriceBronze": 3
-        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
@@ -3390,13 +3558,24 @@
         "id": "saturation-de-produits",
         "label": "Saturation de produits",
         "desc": "Saturation de produits. Les ballots de cargaison s'entassent dans les entrepôts du rivage. Tous les biens mentionnés dans la colonne Production passent dans la colonne Surplus et gagnent +1. Le nombre de tous les produits déjà mentionnés dans la colonne Surplus double.",
-        "kind": "saturation",
-        "params": {},
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "ops": [
+              {
+                "op": "marcheDuPort",
+                "colonnes": "saturation"
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "MDG 15 l.263 ne borne pas la saturation : elle dure jusqu'au départ du navire ; la mention Commerce n'est pas une marchandise et reste en Production (consigne utilisateur 2026-11-07)."
       }
     ]
   },

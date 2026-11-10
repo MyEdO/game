@@ -645,6 +645,11 @@ export function humanizeOp(o: GameOp): string {
       + `${o.adversaire.optionals ? t('codex.op.combatEnMer.optionals', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
       + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
       + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
+    case 'marcheDuPort': return o.colonnes !== undefined
+      ? t(o.colonnes === 'penurie' ? 'codex.op.marcheDuPort.penurie' : 'codex.op.marcheDuPort.saturation')
+      : o.offre !== undefined
+        ? t('codex.op.marcheDuPort.offre', { enc: humanizeFormula(o.offre.enc), pct: o.offre.remisePct })
+        : t('codex.op.marcheDuPort.demande', { delta: `${o.demande >= 0 ? '+' : '−'}${Math.abs(o.demande)}`, n: humanizeFormula(o.jours) });
   }
   return assertNever(o);
 }

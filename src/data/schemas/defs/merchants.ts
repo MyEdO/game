@@ -34,7 +34,7 @@ const doc = document(
      *  (`grammaire/sousListes.ts`) ; `curated` ignore la Disponibilité. */
     curated: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
     boniment: z.string().optional(),
-    unitKinds: z.array(z.enum(['bete', 'vehicule-terrestre'])).optional(), // 'navire' non géré à l'achat (payerLesAchats) -> #748
+    unitKinds: z.array(z.enum(['bete', 'vehicule-terrestre'])).optional(), // 'navire' non géré à l'achat (marchand.payer) -> #748
   },
   {
     category: { label: 'Familles vendues', hint: 'Filtre le catalogue vendu par type/sous-type de possession' },

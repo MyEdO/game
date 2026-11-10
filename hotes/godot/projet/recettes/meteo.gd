@@ -43,7 +43,7 @@ func _recetter() -> void:
 	if nappes.size() != 1 or not is_equal_approx((nappes[0] as MeshInstance3D).material_override.albedo_color.a, 0.3):
 		_fautes.append("nappes : %d posées, attendu une à l'opacité 0.3" % nappes.size())
 	var son := monde.son_de_la_meteo()
-	if son == null or not son.playing or (son.stream as AudioStreamRandomizer).get_stream(0).get("loop") != true:
+	if son == null or not son.playing or (son.stream as AudioStreamOggVorbis) == null or not (son.stream as AudioStreamOggVorbis).loop:
 		_fautes.append("la pluie ne s'entend pas en boucle")
 	monde.poser_la_meteo(METEO)
 	if monde.son_de_la_meteo() != son:

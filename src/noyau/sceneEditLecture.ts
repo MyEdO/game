@@ -17,12 +17,12 @@ import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { creatures, estUnNavireAPonts, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage } from './monde/sceneNpc';
 import type { ResolveurDePreset } from './monde/resolveursDuNarratif';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
-import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
+import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
@@ -368,9 +368,10 @@ export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTI
 /** La lumière que l'entité `ent` prend quand l'auteur l'allume : la sienne, ou un rayon de 6 m. */
 export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light']> => ({ ...ent.light, radiusM: ent.light?.radiusM ?? 6 });
 
-/** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet
- *  (`capDecorAdmis`). */
+/** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet, les
+ *  cardinaux seuls pour un décor volumique (`capDecorAdmis`) ou un navire à ponts (`estUnNavireAPonts`). */
 export function capsOfferts(ent: SceneEntity): Dir8[] {
+  if (ent.kind === 'personnage' && estUnNavireAPonts(ent.vehicule?.id)) return DIR8_ORDER.filter(estCardinal);
   return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
 }
 
