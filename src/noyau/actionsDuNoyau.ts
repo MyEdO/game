@@ -172,21 +172,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   restaurerLaFortune: () => void;
   /** Ouvre le Test d'une Activité de bataille pré-combat (l.79-106). */
   menerLActionDeBataille: (activityId: IdDActivite, heroId: IdDeHeros) => void;
-  /** Choisit la Scène cinématique `activityId` du Round (Test de Compétence ou combat tactique). */
-  jouerLaScene: (activityId: IdDActivite) => void;
-  /** Affecte la LISTE des PJ postés à une action du Round (Scène MULTI-PJ résolue en Soutien, ou Activité
-   *  SOLO ; clé = id d'Activité) — le POSTE que la résolution honorera à défaut de la suggestion. Liste vide =
-   *  efface l'affectation. Réinitialisé à chaque Round. */
-  affecterLeHeros: (activityId: IdDActivite, heroIds: IdDeHeros[]) => void;
-  /** Ouvre le Test de Résistance de guérison du Rassemblement (l.122). */
-  rallierLesTroupes: () => void;
-  /** Tire le facteur environnemental du Round au RNG de la partie (l.309, 1d10) ; le choisir parmi la table se joue par
-   *  `fenetreChoisir('batailleDeMasse', 'alea', …)`. Refus dit hors Round, Round joué ou aléa déjà posé (`refusDAlea`). */
-  affronterLePeril: () => void;
-  /** Résout le Test spectaculaire de Puissance du Round (l.120). */
-  engagerLaMelee: () => void;
-  /** Passe au Round suivant après le Rassemblement (l.124). */
-  avancerLaBataille: () => void;
   /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
    *  LANCER passe par `pratiquerLActivite('craft')`. Passer commande (Exotique) + banque restent dédiés. */
   fabriquerLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue, atouts: IdDAtoutDArtisanat[], defauts: IdDeDefautDArtisanat[]) => void;

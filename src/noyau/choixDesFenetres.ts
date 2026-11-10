@@ -10,7 +10,7 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
+  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDePosteDeBataille, IdDeReponseDeDialogue, IdDeSceneDeBataille,
   IdDeTireurRapide, IdDObjet, IdDuCoupleMonte,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
@@ -129,8 +129,18 @@ export interface ChoixDesFenetres {
     viser: IdDeTireurRapide | null;
   };
   batailleDeMasse: {
-    /** ADE II 08 l.309 : la ligne de la table choisie au lieu du tirage (`affronterLePeril`). */
-    alea: IdDAleaDeBataille;
+    /** ADE II 08 l.116-118 : la Scène de la situation que les PJ engagent. */
+    scene: IdDeSceneDeBataille;
+    /** ADE II 08 l.120 */
+    engager: true;
+    /** ADE II 08 l.122 */
+    rallier: true;
+    /** ADE II 08 l.81, l.116-118 : le poste où se poste le héros de la rangée. */
+    ajouterAuPoste: IdDePosteDeBataille;
+    /** Le poste que quitte le héros de la rangée. */
+    retirerDuPoste: IdDePosteDeBataille;
+    /** ADE II 08 l.309 : la ligne de la table choisie ; `null` : le dé la tire. */
+    alea: IdDAleaDeBataille | null;
   };
   finDeSeance: {
     /** LDB 05 l.837 */
@@ -208,7 +218,7 @@ export const CHOIX_DES_FENETRES = {
     promouvoir: { ...fige, porteurDeLaValeur: (_s, valeur) => (typeof valeur === 'string' ? valeur : undefined) },
     viser: { ...reprenable, porteurDeLaValeur: (s, valeur) => (typeof valeur === 'string' ? valeur : s.preemptAiming ?? undefined) },
   },
-  batailleDeMasse: { alea: figeParLHote },
+  batailleDeMasse: { scene: figeParLHote, engager: figeParLHote, rallier: figeParLHote, ajouterAuPoste: duHerosParLHote, retirerDuPoste: duHerosParLHote, alea: figeParLHote },
   finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },
 } as const satisfies { [F in FenetreAChoix]: { [A in AxeDe<F>]: DeclarationDuChoix } };
 

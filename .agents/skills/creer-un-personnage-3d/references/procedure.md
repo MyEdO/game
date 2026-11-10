@@ -490,8 +490,21 @@ et les nœuds de chaque GLB ; deux constructions donnent les mêmes octets.
 **Valider.** `npm run godot:valider -- /atelier/<type>/<id>/<id>.element.json /atelier/<type>/<id>/<id>.glb` pour chaque
 id ; `npm run personnage-3d:tests`, dont `test_vehicule.py` reconstruit chaque modèle et compare chaque manifeste, son
 empreinte comprise, à celui publié sous `hotes/godot/projet/modeles/` ; un véhicule ou une Amélioration publiés sans
-modèle y échouent ; sur chaque navire, toute case des ponts s'atteint et l'emprise libre de chacune tient un occupant
-debout. Rendre un GLB seul par `rendu.py --input` ; ses configurations par `revue.py`, d'après la `REVUE` des
+modèle y échouent ; sur chaque navire, toute case des ponts s'atteint, l'emprise libre de chacune tient un occupant
+debout, et la coque est close (`closes` : aucun rayon ne sort du navire depuis une case, sabords bouchés, et aucune fosse
+sans plancher sous une case). Au noyau, le test du plan du navire (`src/noyau/planDe*.test.ts`) garde ses postes : la
+pièce montée et son servant ne recouvrent ni meuble, ni fût de mât, ni trappe, ni échelle, ni la pièce d'un autre poste,
+ne franchissent ni mur ni porte, et reposent sur un plancher. Une garde qui refuse un poste se passe en décalant la pièce
+d'une case ou en la tournant, jamais en la retirant ni en vidant une cabine dessinée : le nombre de pièces par bord est
+celui de l'illustration qui les place (MDG 12 pour la caraque). Dans le jeu, la route à bord
+(`hotes/godot/recettes/route-a-bord.hors-store.test.ts`, une par scénario `a-bord-de-*`) prouve que chaque case
+s'atteint depuis le départ par les échelles, et la rejoue au clic dans l'export Web :
+
+```sh
+ROUTE=/atelier/routes npx vitest run --config vitest.noyau.config.ts hotes/godot/recettes/route-a-bord.hors-store.test.ts
+node hotes/godot/construire.mjs --export --sortie /atelier/web
+node hotes/godot/recette.mjs --web /atelier/web --captures /atelier/bord --parcours bord --scenario a-bord-de-la-caraque --route /atelier/routes/a-bord-de-la-caraque.json
+``` Rendre un GLB seul par `rendu.py --input` ; ses configurations par `revue.py`, d'après la `REVUE` des
 données (le véhicule, la pièce des postes, les configurations et les vues de l'intérieur), avec les textures que
 `npm run godot:sonde` dépose sous `hotes/godot/projet/textures/` :
 
@@ -504,7 +517,10 @@ véhicule à l'utilisateur, un juge neuf (`.claude/agents/juge.md`) statue parti
 le côte à côte de son illustration et de son rendu orthographique, de profil puis pont par pont : pour chaque plan de
 pont de l'illustration, le plan dessiné, le rendu de dessus coupé au-dessus du sol de ce pont et le plan de jeu
 (`ponts`, postes d'arme du manifeste), à la même échelle, cloisons, portes, écoutilles, échelles, mobilier et postes
-d'arme ; tout rendu montré à l'utilisateur porte son illustration à côté. Hors du dépôt, avec le recueil
+d'arme ; de profil, il compte les ouvertures (sabords, fenêtres, hublots) de l'illustration et du rendu, une à une, et
+rattache chacune à sa case. Son brief porte les points déjà tranchés aux rondes précédentes (ce que l'illustration
+arbitre, ce que l'utilisateur a choisi) pour qu'il ne les rouvre pas ; un motif qu'il réfute se reprend à sa
+place, jamais en retirant ce qu'il visait. Tout rendu montré à l'utilisateur porte son illustration à côté. Hors du dépôt, avec le recueil
 d'illustrations extrait :
 
 ```sh
@@ -514,8 +530,9 @@ node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/vehicule/cote
 **Publier.** Chaque dossier de production s'importe (section « Importer une base et ses éléments ») :
 `node hotes/godot/importer.mjs /atelier/<type>/<id> <id> --sans-publier`, `--remplacer` pour un élément déjà importé.
 Les manifestes, provenances et licences déposés sous `hotes/godot/projet/modeles/` se committent avec la source ; les
-GLB vont à la Release `modeles-3d` par une branche `transfert/<x>` partie de `main` (`git add -f` des GLB nommés par leur
-empreinte), que `.github/workflows/transfert.yml` vérifie, verse et efface.
+GLB vont à la Release `modeles-3d` par une branche `transfert/<x>` partie de la branche de travail, qui porte les
+provenances neuves qui les épinglent (`git add -f` des GLB nommés par leur empreinte), que
+`.github/workflows/transfert.yml` vérifie, verse et efface.
 
 ## Disponibilité à sonder avant chaque production
 
@@ -555,7 +572,7 @@ L'import refuse `[pack-source-mal-forme]` un `packs_sources` ou une entrée qui 
 Elles alimentent la provenance ; elles n'entrent pas dans le manifeste déposé. Une production sans
 composant licencié ni `LICENSE*.txt` est refusée `[licence-absente]`.
 
-Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<x>` partie de `main` qui porte la provenance et les fichiers ajoutés par `git add -f` (GLB nommés par leur empreinte, textures du catalogue) : `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
+Importer la base avant ses éléments, dans la même destination : publier un élément verse aussi le GLB de sa base épinglée ; `--sans-publier` reste le régime du poste (atelier, essais). Une session cloud, sans `gh release`, importe aussi en `--sans-publier`, puis pousse une branche `transfert/<x>` partie de sa branche de travail, qui porte la provenance neuve et les fichiers ajoutés par `git add -f` (GLB nommés par leur empreinte, textures du catalogue) : `.github/workflows/transfert.yml` vérifie chaque empreinte, verse sans écraser (`npm run godot:epingles`) et efface la branche, que le proxy du cloud ne peut pas supprimer lui-même.
 
 ```sh
 node hotes/godot/importer.mjs /atelier/base humanoide --destination /atelier/modeles --sans-publier

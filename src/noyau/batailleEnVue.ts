@@ -2,15 +2,14 @@
  * LA BATAILLE DE MASSE EN VUE (#3328) — ce qu'un hôte montre de la bataille qui tient la main (ADE II 8) : le Round,
  * chaque armée et sa Puissance, la Menace qui pèse sur les Tests, puis chaque Scène de la situation du Round, son effet,
  * sa position quand elle se tient, les PJ libres qui s'y postent, et le verbe qui l'engage, fermé par son verdict
- * (`refusDeSceneDeBataille`) ; l'aléa du Round, ou les gestes qui le tirent ; le Test spectaculaire, ou entre deux
+ * (`refusDuChoix`) ; l'aléa du Round, ou les gestes qui le tirent ; le Test spectaculaire, ou entre deux
  * Rounds le Rassemblement et le Round suivant ; l'issue de la bataille terminée. Lecteur PUR, lu par les hôtes du noyau
  * (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import {
-  armyMight, armyStartMight, battleSceneById, battleSceneEffectLabel, herosLibres, massBattleThreatPenalty, refusDeRassemblement,
-  refusDeSceneDeBataille, type MassBattleState,
+  armyMight, armyStartMight, battleSceneById, battleSceneEffectLabel, herosLibres, massBattleThreatPenalty, type MassBattleState,
 } from './massBattleFlow';
 import { BATTLE_HAZARDS, MIGHT_MAX } from '../engine/massBattle';
 import { formatDice } from '../engine/dice';
@@ -18,9 +17,21 @@ import { massBattleHazardsDie } from '../data';
 import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
+import { refusDuChoix } from './choixDeFenetre';
+import { refusDeLaValidation } from './validationDeFenetre';
 
 /** Un geste de la bataille : son nom, le verbe qui le joue, pourquoi il ne se joue pas (`null` s'il se joue). */
 export interface GesteDeBataille { libelle: string; geste: GesteDuNoyau; refus: string | null }
+
+type GesteDeLaFenetre =
+  | { verbe: 'fenetreChoisir'; args: ['batailleDeMasse', string, unknown] }
+  | { verbe: 'fenetreValider'; args: ['batailleDeMasse'] };
+
+/** Le geste de la fenêtre et son refus, lu là où le verbe le lit (`refusDuChoix`, `refusDeLaValidation`). */
+function gesteDeBataille(s: Jeu, libelle: string, geste: GesteDeLaFenetre): GesteDeBataille {
+  const refus = geste.verbe === 'fenetreValider' ? refusDeLaValidation(s, geste.args[0]) : refusDuChoix(s, ...geste.args);
+  return { libelle, geste, refus };
+}
 
 /** Une armée : son camp, son nom, sa Puissance sur `max`, sa Puissance de départ, et le bonus de ses Tests de
  *  Puissance ce Round (`0` : aucun). */
@@ -69,9 +80,9 @@ function scenesDuRound(s: Jeu, mb: MassBattleState): SceneEnVue[] {
       position: sc.sceneKind === 'hold' && sc.hold ? positionDe(mb, id, sc.hold.breakpoint) : null,
       postes: combat || resolue || mb.awaitingNext ? null : libres.map((h) => {
         const poste = postes.includes(h.id);
-        return { nom: h.label, poste, geste: { verbe: 'affecterLeHeros', args: [id, poste ? postes.filter((x) => x !== h.id) : [...postes, h.id]] } };
+        return { nom: h.label, poste, geste: { verbe: 'fenetreChoisir', args: ['batailleDeMasse', poste ? 'retirerDuPoste' : 'ajouterAuPoste', id, h.id] } };
       }),
-      engager: { libelle: t(combat ? 'mbf.engagerLeCombat' : 'mbf.resoudre'), geste: { verbe: 'jouerLaScene', args: [id] }, refus: refusDeSceneDeBataille(s, id) },
+      engager: gesteDeBataille(s, t(combat ? 'mbf.engagerLeCombat' : 'mbf.resoudre'), { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'scene', id] }),
     };
   });
 }
@@ -93,14 +104,14 @@ export function batailleEnVue(s: Jeu): BatailleEnVue | null {
     menace: enRound ? massBattleThreatPenalty(mb) : 0,
     scenes: enRound ? scenesDuRound(s, mb) : [],
     alea: mb.hazard ? { libelle: mb.hazard.label, texte: mb.hazard.text } : null,
-    tirerAlea: aleaOuvert ? { libelle: t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), geste: { verbe: 'affronterLePeril', args: [] }, refus: null } : null,
-    choisirAlea: aleaOuvert ? BATTLE_HAZARDS.map((h) => ({ libelle: h.label, geste: { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'alea', h.id] }, refus: null })) : [],
+    tirerAlea: aleaOuvert ? gesteDeBataille(s, t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'alea', null] }) : null,
+    choisirAlea: aleaOuvert ? BATTLE_HAZARDS.map((h) => gesteDeBataille(s, h.label, { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'alea', h.id] })) : [],
     gestes: !enRound ? [] : mb.awaitingNext
       ? [
-          { libelle: t('mbf.rallyLabel'), geste: { verbe: 'rallierLesTroupes', args: [] }, refus: refusDeRassemblement(s) },
-          { libelle: t('mbf.roundSuivant'), geste: { verbe: 'avancerLaBataille', args: [] }, refus: null },
+          gesteDeBataille(s, t('mbf.rallyLabel'), { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'rallier', true] }),
+          gesteDeBataille(s, t('mbf.roundSuivant'), { verbe: 'fenetreValider', args: ['batailleDeMasse'] }),
         ]
-      : [{ libelle: t('mbf.testSpectaculaire'), geste: { verbe: 'engagerLaMelee', args: [] }, refus: null }],
+      : [gesteDeBataille(s, t('mbf.testSpectaculaire'), { verbe: 'fenetreChoisir', args: ['batailleDeMasse', 'engager', true] })],
     issue: mb.phase === 'over' ? issueDe(mb) : null,
   };
 }

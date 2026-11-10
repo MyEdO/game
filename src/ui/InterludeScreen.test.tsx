@@ -782,7 +782,7 @@ describe('InterludeScreen — chaque volet affiche le pré-jet du noyau (#3059 S
     const party = seam.party.map((h, i) => ({ ...h, skills: [...h.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'guerre', characteristic: 'intelligence' as const, advances: i === 0 ? 10 : 5 }] }));
     useGame.setState({ party });
     useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
-    useGame.getState().affecterLeHeros('planification', party.map((h) => h.id));
+    for (const h of party) useGame.getState().fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', 'planification', h.id);
     const s = useGame.getState();
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, party, phase: 'activities', catalog: interludeCatalog(s), massBattle: s.massBattle, openPane: { heroId: party[0].id, pane: 'planification' } }} />);
     expect(ligneDePreJet(html)).toContain('46 +10 = 56');

@@ -105,8 +105,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // Identification + catalogue) ; `fabriquerLObjet` engage l'ouvrage (setup, sans jet).
   pratiquerLActivite: 'invité', fabriquerLObjet: 'invité', commanderLObjet: 'invité',
   deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', suivreLEntrainement: 'invité', solderLaFaveur: 'invité',
-  // Préparation de bataille : le héros MENEUR est le 2e argument ; l'affectation de l'armée
-  // (`affecterLeHeros`), partagée, reste à l'hôte.
+  // Préparation de bataille : le héros MENEUR est le 2e argument ; les postes de l'armée, partagés, restent à
+  // l'hôte (`fenetreChoisir('batailleDeMasse', 'ajouterAuPoste', …)`).
   menerLActionDeBataille: 'invité',
   // ═══ hôte / local : émis par un écran ═══
   // Élection LOCALE d'écran, hors réseau PAR CONSTRUCTION (même famille que `localIntent`) : le clic
@@ -139,9 +139,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   affecterAuRoleABord: 'hôte', affecterALaStation: 'hôte', affecterAuRoleDeMarche: 'hôte', approvisionnerLaPiece: 'hôte',
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
-  // ── Interlude : bataille de masse ─────────────────────────────────────────────────────────────
-  affecterLeHeros: 'hôte', avancerLaBataille: 'hôte', engagerLaMelee: 'hôte',
-  affronterLePeril: 'hôte', rallierLesTroupes: 'hôte', jouerLaScene: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
   ouvrirLeRepos: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──
