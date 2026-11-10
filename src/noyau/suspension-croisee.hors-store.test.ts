@@ -182,7 +182,7 @@ describe('combat : l’allège et la hauteur descendue en se suspendant se paien
     banc.setState({ party: [hero] });
     g().lancerLaScene(testScene());
     g().lancerLeCombat('enc-mutants');
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = g().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

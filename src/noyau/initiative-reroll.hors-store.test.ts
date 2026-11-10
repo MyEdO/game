@@ -25,7 +25,7 @@ describe('combat-init-reroll — relance de l’Initiative par Round (LDB 13 l.4
     banc.getState().lancerLaScene(testScene());
     seedBattleRng(777);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
   }
 

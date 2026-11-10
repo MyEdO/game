@@ -27,7 +27,7 @@ const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manu
 function leDuel() {
   const ouverture = creerPartie(etatInitialDuJeu(), ENTREES);
   ouverture.lancer({ party: [heroDuDuel()], scene: testScene(), combatDirect: 'enc-mutants' });
-  ouverture.envoyer({ type: 'fenetreValider', args: ['roundStart'] });
+  ouverture.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
   const garde = ouverture.etat();
   ouverture.fermer();
   const contact = auContact(garde);

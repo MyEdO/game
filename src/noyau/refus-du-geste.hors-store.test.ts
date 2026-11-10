@@ -95,7 +95,7 @@ describe('#3610 — refusDuGeste : l’offre est la projection du refus de son g
     const ecarts: string[] = [];
     for (let pas = 0; pas < 8 && banc.getState().battle && !banc.getState().battle!.over; pas++) {
       const s = banc.getState();
-      if (s.battle!.turn < 0) { banc.actions.fenetreValider('roundStart'); continue; }
+      if (s.battle!.turn < 0) { banc.actions.fenetreValider('debutDuRound'); continue; }
       ecarts.push(...ecartsDuTour(s, `${id}#${pas}`));
       advanceTurn(banc.getState, banc.setState);
     }

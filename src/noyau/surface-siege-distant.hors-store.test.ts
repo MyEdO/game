@@ -37,7 +37,7 @@ function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   set({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');

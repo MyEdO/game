@@ -28,7 +28,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     banc.getState().ensemencerLeTirage(7);
     const b = banc.getState().battle!;
@@ -60,7 +60,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     banc.getState().ensemencerLeTirage(7);
     const b = banc.getState().battle!;

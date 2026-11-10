@@ -81,7 +81,7 @@ function combat(seed = 7) {
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -134,7 +134,7 @@ function mur(structure = 'mur-en-pierre', graine = 1): { S: Combatant; H: Combat
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
   banc.getState().lancerLaScene(s);
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   return { S: b.combatants.find((c) => c.bodyShape === 'structure')!, H: b.combatants.find((c) => c.kind === 'hero')! };

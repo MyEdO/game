@@ -126,7 +126,7 @@ describe('Interlude — flux start/end', () => {
 
   it('en combat : refusé', () => {
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.getState().ouvrirLInterlude(1);
     draineCascade(banc.getState); // les dés d'Événement sont des étapes de séquence : elle se joue avant les Activités
     expect(banc.getState().interlude).toBeNull();

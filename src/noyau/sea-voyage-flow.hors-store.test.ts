@@ -799,7 +799,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().pendingCascade).toBeNull();
     expect(get().suspendedCascades.length).toBe(1);
 
-    get().fenetreFermer('victory');
+    get().fenetreFermer('victoire');
     // APRÈS « Continuer » : la victoire s'efface ET la cascade-jour REPREND (teardown de combat,
     // couture universelle `resumeSuspendedCascade`).
     expect(get().pendingVictory).toBeNull();
@@ -838,7 +838,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     for (const c of battle.combatants) if (c.kind === 'enemy') c.dead = true;
     set({ battle: { ...battle } });
     checkBattleOver(get, set);
-    get().fenetreFermer('victory');
+    get().fenetreFermer('victoire');
 
     expect(get().pendingCascade, 'la reprise après la victoire a rouvert une fenêtre').toBeNull();
     expect(get().suspendedCascades).toEqual([]);
@@ -1382,7 +1382,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     expect(get().pendingShoreLeave).toBeTruthy();
     expect(get().pendingShoreLeave!.to.id).toBe('B');
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // pas encore tiré
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingShoreLeave).toBeNull();
     draineCascade(get); // le dé de Désertion se joue dans SA fenêtre (siège du monde), puis la suite s'enchaîne
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(true); // tiré APRÈS le choix
@@ -1398,7 +1398,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     set({ travelPlan: { ...plan, kmDone: plan.km - 5, sea: { ...plan.sea!, milesToday: 5 } } });
     continueSeaDayAfterCascade(get, set);
     draineCascade(get); // Mal de mer du premier jour : sa bande se joue avant l'accostage (#1479)
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingCascade, 'le siège local possède le monde : son dé se joue, il ne se tire pas en silence').toBeTruthy();
     expect(get().journal.some((l) => l.includes('Événement de port')), 'la suite attend le geste').toBe(false);
     draineCascade(get);
@@ -1412,7 +1412,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     // temps) de surfacer AVANT la Désertion, seule étape que ce test veut ici.
     set({ travelPlan: { ...plan, kmDone: plan.km - 5, sea: { ...plan.sea!, daysAtSea: 5, milesToday: 5, weather: { ...plan.sea!.weather, vent: 'calme-plat' } } } });
     continueSeaDayAfterCascade(get, set);
-    get().fenetreChoisir('shoreLeave', 'accorder', true);
+    get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingCascade).toBeTruthy(); // 'V' — surfacé au siège MJ, pas résolu d'office
     expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
     const owner = modalOwnerOf(get());
@@ -1511,7 +1511,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
     draineCascade(get);
     const sea = get().travelPlan!.sea!;
     set({ travelPlan: { ...get().travelPlan!, sea: { ...sea, daysToEvent: 99, weather: { ...sea.weather, ...tempsClement } } } });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     return jusquaLaBande(opts);
   }
 

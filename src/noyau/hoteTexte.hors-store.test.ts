@@ -28,7 +28,7 @@ function auTourDUnHeros(): Partie {
     for (let pas = 0; file.length && pas < 500; pas++) jouer(partie.reprendre(file.shift()!));
   };
   jouer(partie.lancer(lancementDuScenario(PASTILLES, idsDeTest)));
-  for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'hero'; pas++) jouer(partie.envoyer({ type: 'fenetreValider', args: ['roundStart'] }));
+  for (let pas = 0; pas < 20 && activeCombatant(partie.etat().battle!)?.kind !== 'hero'; pas++) jouer(partie.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] }));
   expect(activeCombatant(partie.etat().battle!)?.kind, 'témoin : aucun héros n’est venu au tour').toBe('hero');
   return partie;
 }

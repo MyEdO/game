@@ -48,7 +48,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     set({ party: makePregens(idsDeTest).slice(0, 1), scene: emptyScene('scene-test', 10, 10), gameTime: campaignStart() + 20 * 60 });
     const t0 = armeLEcheance();
     get().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'Dormir a été refusé').toBeNull();
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);

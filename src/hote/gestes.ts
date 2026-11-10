@@ -221,8 +221,8 @@ function gesteAttendu(drive: readonly GesteDuJeu[] | undefined, fermetures: Read
  * (`FENETRE_DU_JET`, `src/noyau/combatAuto.ts`), chacun ouvert dessiné en élément de la zone `fenetre.gestes`. Un geste
  * est un verbe, et pour un verbe de jet (`jetLancer`, `jetRelancer`…) le flux qu'il vise, son premier argument, que la
  * fenêtre pose ; son identité est sa clé (`cle`, `cleDuGeste` : `jetLancer@attack`, `jetRegler@attack#localisation`
- * pour un réglage, `fenetreValider@roundStart` ou `fenetreFermer@cascade` pour la validation ou la sortie d'une
- * fenêtre, `fenetreChoisir@fateSave#issue` pour un choix de fenêtre (`fenetreChoisir`, `CHOIX_DES_FENETRES`,
+ * pour un réglage, `fenetreValider@debutDuRound` ou `fenetreFermer@cascade` pour la validation ou la sortie d'une
+ * fenêtre, `fenetreChoisir@destin#issue` pour un choix de fenêtre (`fenetreChoisir`, `CHOIX_DES_FENETRES`,
  * `src/noyau/choixDesFenetres.ts`), ou le nom du verbe). Un choix de rangée (`portee: 'rangee'`, l'Activité de chaque
  * héros de la semaine en mer) prend en dernier argument le héros qu'il vise (`pid`), saisi parmi les héros auxquels il
  * ouvre une valeur. Chaque verbe de la partie et ses paramètres viennent du registre dérivé du noyau

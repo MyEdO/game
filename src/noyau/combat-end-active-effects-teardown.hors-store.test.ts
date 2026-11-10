@@ -24,7 +24,7 @@ describe('finalizeBattle — un effet en Rounds revient au groupe et s’écoule
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     return b.combatants.find((c) => c.label === 'W')!;

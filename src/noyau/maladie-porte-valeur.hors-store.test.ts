@@ -5,7 +5,7 @@
  * « A partir du moment ou je dois faire un jet, il doit apparaitre. Y'a pas de "classe spéciale" si je
  * suis a l'initiative, que je le subit, face a un adversaire ou face a … une maladie ».
  *
- * Ce que ce fichier tient, sur le CHEMIN RÉEL du joueur (`ouvrirLeRepos` → `fenetreValider('rest')`, les DEUX bâtisseurs
+ * Ce que ce fichier tient, sur le CHEMIN RÉEL du joueur (`ouvrirLeRepos` → `fenetreValider('repos')`, les DEUX bâtisseurs
  * de la nuit, comme en jeu — jamais `deferredUpkeepSteps` appelé seul) :
  *  (i)   le Test de cycle du VER DE CARIE (MSRC 16 l.90 : « Test d'Endurance Accessible (+20) chaque
  *        jour ») est une ÉTAPE influençable dont la valeur est celle de la porte — Endurance NUE,
@@ -63,7 +63,7 @@ function rendMalade(id: string, maladie: string, jours = 0): Combatant {
 /** La nuit du joueur : auberge → « Dormir ». Rend les étapes de la cascade ouverte. */
 function dort(): CascadeStep[] {
   banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
-  banc.getState().fenetreValider('rest');
+  banc.getState().fenetreValider('repos');
   return banc.getState().pendingCascade?.participants ?? [];
 }
 
@@ -178,7 +178,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
-    banc.getState().fenetreValider('rest');
+    banc.getState().fenetreValider('repos');
     const vivant = banc.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();
 

@@ -110,7 +110,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * POURQUOI CHAQUE INTERLUDE PORTE SON PROPRE DISPATCHER (#1411 P0-B) — les sorties ne sont pas
  * interchangeables : `armerLeMode` (sortie de la bordée) est AVALÉ sous un flux différé
- * (`combatBusy`, `combatSlice.ts:2876`), là où `fenetreFermer('cleave')`/`fenetreFermer('dualStrike')` sont justement les verbes
+ * (`combatBusy`, `combatSlice.ts:2876`), là où `fenetreFermer('frappeMortelle')`/`fenetreFermer('secondeFrappe')` sont justement les verbes
  * DE ces flux. Un dispatcher mutualisé rendrait la sortie muette dès qu'un flux se superpose. Le
  * témoin POSITIF (sans flux, la sortie mord) borne la mesure.
  */

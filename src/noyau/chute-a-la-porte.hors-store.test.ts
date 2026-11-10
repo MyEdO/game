@@ -525,7 +525,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
     ouvrirChute(banc.setState, par('h2'), 4);
     suspendActiveCascade(banc.getState, banc.setState); // ex. une journée de voyage parquée par l'abordage
     ouvrirChute(banc.setState, par('h1'), 4);
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     const enVol = banc.getState().pendingCascade!;
     expect(enVol.participants[0].actorId, 'le teardown n’a pas piétiné le dé en vol').toBe('h1');
     expect(banc.getState().suspendedCascades, 'la parquée est restée parquée').toHaveLength(1);

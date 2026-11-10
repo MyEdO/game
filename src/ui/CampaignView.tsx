@@ -355,10 +355,10 @@ export function CampaignView() {
               onInspect={setInspectId}
               onHover={setHoverCombatant}
               hoveredId={hovered}
-              onPromote={(id) => choisir('roundStart', 'promouvoir', id)}
+              onPromote={(id) => choisir('debutDuRound', 'promouvoir', id)}
               canPreemptIds={canPreemptIds}
               preemptArmedId={preemptAiming}
-              onPreempt={(id) => choisir('roundStart', 'viser', preemptAiming === id ? null : id)}
+              onPreempt={(id) => choisir('debutDuRound', 'viser', preemptAiming === id ? null : id)}
               hand={netMode === 'local' ? undefined : {
                 raised: handRaised,
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
@@ -412,7 +412,7 @@ export function CampaignView() {
         {showVoyage && <VoyageScreen onClose={() => { if (!voyageStepUp) setVoyageMin(true); }} reduireRefus={voyageStepUp ? t('vs.reduireRefus') : undefined} />}
         {/* Hub de ville (#343) : écran-lieu plein-champ. Cédé aux écrans plein-champ qu'il ouvre
             (carte du monde, port, marché) — « Entrer » ferme le hub avant de les ouvrir. Cédé aussi à
-            la modale de repos (`pendingRest` → `ActiveModal` clé `rest`) : « Dormir » depuis le panneau
+            la modale de repos (`pendingRest` → `ActiveModal` clé `repos`) : « Dormir » depuis le panneau
             auberge armait `pendingRest` SANS fermer le hub, qui restait monté DERRIÈRE la modale flottante
             (bouton « Recueillir des informations » écrasé sous son bord, #376 pt.4). */}
         {lieuOuvert && hubPlace && !worldMapOpen && !port && !landMarket && !pendingRest && !merchant && (

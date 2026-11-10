@@ -30,7 +30,7 @@ function launch(seed = 1) {
 
 /** Dort à une halte de nuit (« Dormir » → cascade de nuit → reprise de la route au matin). */
 function sleepThroughHalt(): void {
-  get().fenetreValider('rest');
+  get().fenetreValider('repos');
   draineCascade(get, 80);
 }
 
@@ -47,9 +47,9 @@ function sailToPort(maxSteps = 400): string[] {
       if (k !== undefined) kinds.push(k);
       continue;
     }
-    if (get().pendingSeaActivities) { get().fenetreValider('seaActivities'); continue; }
+    if (get().pendingSeaActivities) { get().fenetreValider('activitesEnMer'); continue; }
     if (get().pendingRest) { sleepThroughHalt(); continue; }
-    if (get().pendingShoreLeave) { get().fenetreChoisir('shoreLeave', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
+    if (get().pendingShoreLeave) { get().fenetreChoisir('relacheATerre', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
     if (!get().travelPlan) break; // sécurité : plus de plan et pas au port → on s'arrête
   }
   return kinds;

@@ -102,12 +102,12 @@ describe('un argument qui désigne un élément de l’état se choisit parmi se
   });
 
   it.each([
-    ['council', 'paie', 'IdDeChoixDePaie'],
-    ['mountTarget', 'cible', 'IdDuCoupleMonte'],
-    ['medic', 'patient', 'IdDeHeros'],
-    ['victory', 'depecer', 'IdDeCreatureADepecer'],
-    ['roundStart', 'promouvoir', 'IdDeCombattantPromouvable'],
-    ['roundStart', 'viser', 'IdDeTireurRapide'],
+    ['conseil', 'paie', 'IdDeChoixDePaie'],
+    ['cibleDeMonture', 'cible', 'IdDuCoupleMonte'],
+    ['infirmerie', 'patient', 'IdDeHeros'],
+    ['victoire', 'depecer', 'IdDeCreatureADepecer'],
+    ['debutDuRound', 'promouvoir', 'IdDeCombattantPromouvable'],
+    ['debutDuRound', 'viser', 'IdDeTireurRapide'],
   ])('choix %s.%s désigne %s', (fenetre, axe, cle) => {
     const f = CHOIX[fenetre][axe];
     const membres = f.genre === 'union' ? f.membres : [f];

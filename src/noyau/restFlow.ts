@@ -660,7 +660,7 @@ export function choixDuRepos(get: Get, set: Set) {
     set({ pendingRest: { ...p, perHero: { ...p.perHero, [pid]: { ...p.perHero[pid], ...patch } } } });
   };
   return {
-    rest: {
+    repos: {
       couchage: (lodging, pid) => regler(pid, { lodging }),
       pitance: (food, pid) => regler(pid, { food }),
     },
@@ -673,7 +673,7 @@ export function noteDAubergeCouverte(s: Pick<Jeu, 'pendingRest' | 'party'>): boo
 }
 
 /** Dormir : paie (RAW ch.66), nourrit, puis ouvre la CHAÎNE de cascades de nuit (#347, `openRestNight`). Corps de la
- *  validation du repos (`fenetreValider('rest')`), que l'hôte joue au quorum, la note couverte. */
+ *  validation du repos (`fenetreValider('repos')`), que l'hôte joue au quorum, la note couverte. */
 function dormir(get: Get, set: Set): void {
   const p = get().pendingRest!;
   const rng = battleRng();
@@ -759,13 +759,13 @@ export function continueRestNights(get: Get, set: Set, ctx: { p: PendingRest; ni
   openRestNight(get, set, ctx.p, ctx.nightsLeft, []);
 }
 
-/** Le repos se renonce hors halte de voyage (`MODAL_DEFS.rest.sortieFermee`). */
+/** Le repos se renonce hors halte de voyage (`MODAL_DEFS.repos.sortieFermee`). */
 export function sortiesDuRepos(_get: Get, set: Set) {
-  return { rest: () => set({ pendingRest: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { repos: () => set({ pendingRest: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function validationsDuRepos(get: Get, set: Set) {
-  return { rest: () => dormir(get, set) } satisfies Partial<ValidationsDeFenetre>;
+  return { repos: () => dormir(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 export function creerActionsDuRepos(get: Get, set: Set) {

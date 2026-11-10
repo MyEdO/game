@@ -43,7 +43,7 @@ extends Node
 ## `voyage/meteo`), ce qui tient la journée, les km faits sur ceux du trajet par son moyen (`voyage/route`), la frise
 ## (`voyage/etape/` : le départ, chaque nuit passée en route à son km, l'arrivée), puis sous le paysage, dans un
 ## défilement, le groupe en cartes (`heros/` : chaque héros, ses Blessures, ses États et le jet de l'étape qu'il jette),
-## les autres jets à la suite (`jets/`). La halte de nuit (`projet/ecrans/rest.tscn`) hérite du même cadre :
+## les autres jets à la suite (`jets/`). La halte de nuit (`projet/ecrans/repos.tscn`) hérite du même cadre :
 ## dans le paysage la nuit, son lieu et l'heure, la même route et sa frise, puis chaque dormeur et la note du repos.
 ## Le document remis (`projet/ecrans/document.tscn`) se pose au centre, son texte dans un
 ## défilement : le Markdown verbatim de la donnée, montré tel quel. Un écran dédié neuf, c'est une scène de plus sous

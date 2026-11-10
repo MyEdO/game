@@ -9,7 +9,7 @@
  *    Échap pour TOUTE la session : plus rien ne désarmait, plus rien n'ouvrait le menu.
  *  - `VictoryScreen` appelle ses hooks AVANT son early-return (règle des Hooks) : hors victoire, il
  *    empilait une couche dont le congédiement COMMETTAIT (la sortie de la victoire, et en coop
- *    `fenetreFermer('victory')` RÉPLIQUÉ au relais) — le 1ᵉʳ Échap de la partie validait un butin absent.
+ *    `fenetreFermer('victoire')` RÉPLIQUÉ au relais) — le 1ᵉʳ Échap de la partie validait un butin absent.
  *
  * Ce banc monte les composants PERMANENTS avec le hook clavier RÉEL : c'est le seul endroit où le
  * défaut se voit, une modale montée à la main ne le reproduit pas.

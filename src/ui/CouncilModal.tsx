@@ -25,8 +25,8 @@ export function CouncilModal() {
   const purseBrass = useGame((s) => toBrass(partyMoneyTotal(() => s)));
   const choisir = useGame((s) => s.fenetreChoisir);
   const fermer = useGame((s) => s.fenetreFermer);
-  const lever = () => fermer('council');
-  const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDuChoix(s, 'council', 'paie', factorId)]))));
+  const lever = () => fermer('conseil');
+  const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDuChoix(s, 'conseil', 'paie', factorId)]))));
   if (!p) return null;
 
   const title = <><Icon id="scenario/naval" size="sm" /> Conseil de bord</>;
@@ -68,7 +68,7 @@ export function CouncilModal() {
           <span className="council-opt-effect">{f && formatEffetSigne(f.effect)} Moral</span>
         </>
       ),
-      onSelect: () => choisir('council', 'paie', factorId),
+      onSelect: () => choisir('conseil', 'paie', factorId),
     };
   });
 
