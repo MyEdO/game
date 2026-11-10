@@ -1,12 +1,12 @@
 ## La musique de la partie (`vue.musique`, `pont/CONTRAT.md`, section « Musique », #3825), telle que le noyau la choisit :
-## une de ses pistes au hasard, l'une de ses variantes (`Effets.variante_du_son`), en boucle, à son volume ; une autre sélection (sa `cle`) prend la place de la précédente en
+## une de ses pistes à son tour (`Effets.au_tour`), l'une de ses variantes (`Effets.variante_du_son`), en boucle, à son volume ; une autre sélection (sa `cle`) prend la place de la précédente en
 ## fondu enchaîné de `FONDU_S` secondes, le silence (`null`) éteint la précédente en fondu. La même sélection ne change
 ## rien.
 class_name Musique
 extends Node
 
 ## @contrat Musique
-## Godot (`projet/scripts/musique.gd`, nœud `Musique` de l'écran de combat) joue l'une des `pistes` au hasard, en boucle,
+## Godot (`projet/scripts/musique.gd`, nœud `Musique` de l'écran de combat) joue l'une des `pistes` à son tour (`Effets.au_tour`), en boucle,
 ## à son volume ; une autre `cle` prend la place de la précédente en fondu enchaîné, la même ne change rien.
 
 ## La durée (s) du fondu d'une piste qui entre ou qui sort.
@@ -33,7 +33,7 @@ func jouer(musique: Variant) -> void:
 		_lecteur = null
 	if musique == null:
 		return
-	var piste: Dictionary = musique.pistes.pick_random()
+	var piste: Dictionary = Effets.au_tour(musique.pistes)
 	_lecteur = AudioStreamPlayer.new()
 	_lecteur.name = "musique"
 	_lecteur.stream = Effets.variante_du_son(piste, true)
