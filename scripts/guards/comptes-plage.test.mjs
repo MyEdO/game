@@ -155,6 +155,49 @@ test('un détecteur qui reclasse id-nu sans migrer la donnée refuse ; la migrat
   }
 })
 
+test('#3884 la liste de découpe est une DÉCLARATION de l’image : le chapitre sans folio et la liste qui le déclare, ajoutés ensemble, passent sous le détecteur de la base ; le chapitre seul refuse', { timeout: 240_000 }, () => {
+  const dossier = mkdtempSync(join(tmpdir(), 'comptes-declaration-'))
+  const entree = 'scripts/guards/lib/corpusDesComptes.mts'
+  const liste = 'scripts/raw/decoupes/livre.json'
+  const chapitre = 'Source/Livre/01 - X.md'
+  const source = [
+    "import { existsSync, readFileSync } from 'node:fs';",
+    `const sansFolio = existsSync(${JSON.stringify(liste)}) && JSON.parse(readFileSync(${JSON.stringify(liste)}, 'utf8')).sansFolio === true;`,
+    `const occurrences = existsSync(${JSON.stringify(chapitre)}) && !sansFolio ? 1 : 0;`,
+    "const sites = occurrences ? [{ def: 'livre', champ: 'folio', concept: 'reference', signature: 'id-nu', statut: 'historique', commun: '', occurrences }] : [];",
+    "process.stdout.write(JSON.stringify([['STRUCTURES_REDECLARATIONS', sites]]));",
+  ].join('\n')
+  try {
+    const fichiers = {
+      'package.json': '{"type":"module"}',
+      'tsconfig.json': '{}',
+      'scripts/docs/build-all.mjs': 'export const genererCode = () => 0;',
+      [entree]: source,
+      'src/data/fixture.json': '[]',
+    }
+    const depot = forgerDepot(dossier)
+    const poser = (rel, texte) => {
+      mkdirSync(dirname(join(dossier, rel)), { recursive: true })
+      writeFileSync(join(dossier, rel), texte)
+    }
+    for (const [rel, texte] of Object.entries(fichiers)) poser(rel, texte)
+    assert.ok(reussi(commitDe(depot, { message: 'fondation', chemins: Object.keys(fichiers) })))
+    const base = shaDe(depot, 'HEAD')
+    poser(chapitre, '# X\n')
+    assert.ok(reussi(commitDe(depot, { message: 'chapitre seul', chemins: [chapitre] })))
+    const seul = shaDe(depot, 'HEAD')
+    poser(liste, '{"sansFolio":true,"entrees":[]}')
+    assert.ok(reussi(commitDe(depot, { message: 'sa liste', chemins: [liste] })))
+    const declare = shaDe(depot, 'HEAD')
+    const [refus, admis] = jugerDansTsx(dossier, [[base, seul], [base, declare]])
+    assert.equal(refus.ok, false, refus.texte)
+    assert.match(refus.texte, /détecteur de la base/)
+    assert.equal(admis.ok, true, admis.texte)
+  } finally {
+    rmSync(dossier, { recursive: true, force: true })
+  }
+})
+
 test('#1463 une fusion EN COURS se mesure sur l’arbre réel de sa base, jamais sur sa fusion automatique à marqueurs : refusé ce qui monte contre elle', { timeout: 240_000 }, () => {
   const dossier = mkdtempSync(join(tmpdir(), 'comptes-fusion-'))
   const entree = 'scripts/guards/lib/corpusDesComptes.mts'
