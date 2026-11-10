@@ -1,7 +1,8 @@
 /**
- * ENTRER À UN POINT D'INTÉRÊT DU LIEU (#3611) : le geste désigne un point du plan du lieu où se tient le groupe
- * (`IdDePointDInteret`), le noyau en lit la scène ; hors de l'écran du lieu, hors de ses entrées ou vers une scène
- * absente du registre, il refuse et le dit (`refusDEntrerAuPoint`). L'écran du lieu le projette en geste (`lieuEnVue`).
+ * ENTRER À UN POINT D'INTÉRÊT DU LIEU (#3611) : le choix `ecranDuLieu.entrer` désigne un point du plan du lieu où se
+ * tient le groupe (`IdDePointDInteret`), le noyau en lit la scène ; l'écran du lieu fermé, un point hors de ses entrées,
+ * un autre écran par-dessus ou une scène absente du registre, il refuse et le dit (`refusDuChoix`, `refusDEntrerAuPoint`).
+ * L'écran du lieu le projette en geste (`lieuEnVue`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -38,7 +39,7 @@ let banc: Banc;
 const g = () => banc.getState();
 const dernier = () => g().journal[g().journal.length - 1];
 
-describe('entrerAuPointDInteret', () => {
+describe('le choix `ecranDuLieu.entrer`', () => {
   beforeEach(() => {
     resetSceneRegistry();
     banc = ouvrirLeBanc();
@@ -53,28 +54,34 @@ describe('entrerAuPointDInteret', () => {
 
   it('l’écran du lieu projette chaque entrée en geste, fermée par sa raison', () => {
     expect(lieuEnVue(g())?.pointsDInteret.map((p) => [p.id, p.geste.geste, p.geste.refus])).toEqual([
-      ['poi-cave', { verbe: 'entrerAuPointDInteret', args: ['poi-cave'] }, null],
-      ['poi-perdu', { verbe: 'entrerAuPointDInteret', args: ['poi-perdu'] }, t('lieu.pointSansScene', { poi: 'Le puits' })],
+      ['poi-cave', { verbe: 'fenetreChoisir', args: ['ecranDuLieu', 'entrer', 'poi-cave'] }, null],
+      ['poi-perdu', { verbe: 'fenetreChoisir', args: ['ecranDuLieu', 'entrer', 'poi-perdu'] }, t('lieu.pointSansScene', { poi: 'Le puits' })],
     ]);
   });
 
   it('entre dans la scène du point et ferme l’écran du lieu', () => {
-    g().entrerAuPointDInteret('poi-cave');
+    g().fenetreChoisir('ecranDuLieu', 'entrer', 'poi-cave');
     expect([g().scene?.id, g().lieuOuvert]).toEqual(['poi-cave', false]);
   });
 
   it.each([
-    ['un id hors des entrées du lieu', 'nulle-part', () => t('lieu.pointInconnu', { poi: 'nulle-part' })],
-    ['un point qui mène à un service, pas à une scène', 'poi-auberge', () => t('lieu.pointInconnu', { poi: 'poi-auberge' })],
+    ['un id hors des entrées du lieu', 'nulle-part', () => t('choix.refus.valeur')],
+    ['un point qui mène à un service, pas à une scène', 'poi-auberge', () => t('choix.refus.valeur')],
     ['un point vers une scène absente du registre', 'poi-perdu', () => t('lieu.pointSansScene', { poi: 'Le puits' })],
   ] as const)('refuse et le dit : %s', (_cas, poi, raison) => {
-    g().entrerAuPointDInteret(poi);
+    g().fenetreChoisir('ecranDuLieu', 'entrer', poi);
     expect([g().scene?.id, g().lieuOuvert, dernier()]).toEqual(['poi-place', true, raison()]);
   });
 
-  it('refuse et le dit hors de l’écran du lieu', () => {
+  it('refuse et le dit l’écran du lieu fermé', () => {
     g().fenetreFermer('ecranDuLieu');
-    g().entrerAuPointDInteret('poi-cave');
-    expect([g().scene?.id, dernier()]).toEqual(['poi-place', t('lieu.horsDeLEcran')]);
+    g().fenetreChoisir('ecranDuLieu', 'entrer', 'poi-cave');
+    expect([g().scene?.id, dernier()]).toEqual(['poi-place', t('choix.refus.fermee')]);
+  });
+
+  it('refuse et le dit sous un autre écran : la carte du monde ouverte par-dessus', () => {
+    banc.setState({ worldMapOpen: true });
+    g().fenetreChoisir('ecranDuLieu', 'entrer', 'poi-cave');
+    expect([g().scene?.id, g().lieuOuvert, dernier()]).toEqual(['poi-place', true, t('lieu.horsDeLEcran')]);
   });
 });

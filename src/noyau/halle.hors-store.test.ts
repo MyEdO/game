@@ -1,6 +1,6 @@
 /**
  * Achat de cargaison terrestre jugé par le NOYAU (#3059, lot marchand) : `devisDAchatDeCargaison` rend le
- * refus que `acheterLaCargaison` applique à la halle et que l'écran du marché affiche — lot sous le minimum, sans porteur,
+ * refus que le choix `acheter` applique à la halle et que l'écran du marché affiche — lot sous le minimum, sans porteur,
  * contenance dépassée. MSRC 13 l.129-131.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -17,6 +17,11 @@ import { bourseOf, withBourseMoney } from '../engine/bourse';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import type { CargoLot } from '../engine/cargo';
 import { t } from '../i18n';
+import { acheterAuMarche } from './cargaison.testkit';
+
+/** Achète par les choix de la halle, chacun envoyé comme un hôte l'envoie. */
+const acheter = (partie: Partie, porteur: string, cargoId: string, enc: number) =>
+  acheterAuMarche(partie.etat, 'marcheDeTerre', porteur, cargoId, enc, (args) => partie.envoyer({ type: 'fenetreChoisir', args }));
 
 const carte: WorldMap = {
   id: 'm', label: 'Reikland',
@@ -56,7 +61,7 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
       const cargoId = offre(partie, minCargoEnc());
       const devis = devisDAchatDeCargaison(partie.etat(), 'convoi', cargoId, minCargoEnc() - 1);
       expect(devis.refus).toEqual({ motif: 'lot-minimal', min: minCargoEnc() });
-      partie.envoyer({ type: 'acheterLaCargaison', args: ['convoi', cargoId, minCargoEnc() - 1] });
+      acheter(partie, 'convoi', cargoId, minCargoEnc() - 1);
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([]);
       expect(journalDit(partie, t('lm.lotMinimal', { min: minCargoEnc() }))).toBe(true);
     } finally {
@@ -110,7 +115,7 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
       expect(hasBargainBonus(partie.etat().party[0]), 'fixture : le meneur n’est pas Négociateur').toBe(false);
       const fenetres = () => Object.entries(partie.etat()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
       const avant = fenetres();
-      partie.envoyer({ type: 'acheterLaCargaison', args: ['convoi', 'metal', 10] });
+      acheter(partie, 'convoi', 'metal', 10);
       expect(fenetres()).toEqual(avant);
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([]);
       expect(journalDit(partie, t('cargo.bourseSousPlancher', { plancher: 90 }))).toBe(true);
@@ -126,12 +131,13 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
     const lot: CargoLot = { uid: 'lot-1', cargoId: 'metal', enc: 12, basePriceGold: 10 };
     const partie = halleFixee('guest', [lot]);
     try {
-      partie.envoyer({ type: 'vendreLaCargaison', args: ['lot-1'] });
-      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-1'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'vendre', 'lot-1'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'jeter', 'lot-1'] });
       partie.envoyer({ type: 'evaluerLeVin', args: ['metal'] });
       partie.envoyer({ type: 'deplacerLaCargaison', args: ['lot-1', 'convoi', 5] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
-      expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length).toBe(4);
+      expect(partie.etat().journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'vente et bradage').toBe(2);
+      expect(partie.etat().journal.filter((l) => l.includes(t('groupe.hoteSeul'))).length, 'évaluation et transfert').toBe(2);
     } finally {
       partie.fermer();
     }
@@ -144,7 +150,7 @@ describe('#3059 — bradage à la halle : refusé hors d’un Lieu ayant le Comm
     const partie = halleFixee('local', [lot], ['vivres', 'vin-eau-de-vie', 'metal']);
     try {
       const bourse = bourseOf(partie.etat().party[0]);
-      partie.envoyer({ type: 'jeterLaCargaison', args: ['lot-2'] });
+      partie.envoyer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'jeter', 'lot-2'] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
       expect(bourseOf(partie.etat().party[0])).toEqual(bourse);
       expect(journalDit(partie, 'Métal : ce lieu ne brade pas les cargaisons (pas de Commerce en Produits).')).toBe(true);

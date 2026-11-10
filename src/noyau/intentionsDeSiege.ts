@@ -117,7 +117,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Exploration (miroir V1) ───────────────────────────────────────────────────────────────────
   ouvrirLaCarte: 'hôte', ouvrirLeLieu: 'hôte', partirEnVoyage: 'hôte',
   marchanderLeBillet: 'hôte', reprendreLeVoyage: 'hôte',
-  fixerLaCadence: 'hôte', entrerAuPointDInteret: 'hôte', fouillerLaPiece: 'hôte',
+  fixerLaCadence: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
   jouerAction: 'hôte', actionnerLaPorte: 'hôte', avancerDUnPas: 'hôte', pivoterLeGroupe: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
@@ -132,7 +132,6 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
   ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
-  acheterLaCargaison: 'hôte', vendreLaCargaison: 'hôte', jeterLaCargaison: 'hôte',
   evaluerLeVin: 'hôte', deplacerLaCargaison: 'hôte', ouvrirLePort: 'hôte', reparerLeNavire: 'hôte', carenerLeNavire: 'hôte',
   installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', recueillirLesRumeurs: 'hôte',
   // ── Navire / rôles / conseil de bord ──────────────────────────────────────────────────────────

@@ -45,6 +45,10 @@ import { inBattleId } from './monde/combatants';
 import type { ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
 import { creaturesDeLaRecolte, refusDeDepecer } from './combatEffects';
+import { FORMULES_DES_MARCHES, devisDeLAchat, type FenetreDuMarche } from './cargaison';
+import { bulkCarriers } from './carriers';
+import { carrierFreeEnc, findCargoById } from '../engine/cargo';
+import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import {
   VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -128,6 +132,40 @@ const duRepos = (v: string, axe: 'couchage' | 'pitance'): ValeurDuReglage => ouv
 
 /** Le combattant `id` de la bataille, nommé. */
 const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, garanti(inBattleId(s.battle, id), id, 'combattant de la pause').label);
+
+/** Les choix du marché de cargaison `fenetre` ouvert : chaque offre, et sur l'achat en composition (`cargaison.ts`) chaque
+ *  porteur du groupe fermé par la raison du marché, l'Enc borné par le devis, la conclusion fermée par sa raison ; chaque
+ *  lot des porteurs du groupe, sa vente et son bradage fermés par la raison du marché. */
+const choixDuMarche = (fenetre: FenetreDuMarche) => {
+  const f = FORMULES_DES_MARCHES[fenetre];
+  const ouvert = (s: Jeu): boolean => garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre de marché').ouverte(s);
+  const brouillon = (s: Jeu) => (ouvert(s) ? f.brouillon(s) : undefined);
+  const lots = (s: Jeu, refus: (porteur: string, cargoId: string) => string | null): ValeurDuReglage[] => (ouvert(s)
+    ? bulkCarriers(s).flatMap((c) => c.cargo.map((l) => ouverte(l.uid, t('valeur.lot', { lot: findCargoById(l.cargoId)?.label ?? l.cargoId, enc: l.enc, porteur: c.label }), refus(c.id, l.cargoId))))
+    : []);
+  return {
+    offre: reglage(fenetre, 'offre', (s) => (ouvert(s) ? f.offres(s).map((o) => ouverte(o.cargoId, o.label)) : []), (s) => brouillon(s)?.offre ?? null),
+    porteur: reglage(fenetre, 'porteur', (s) => {
+      const achat = brouillon(s);
+      return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), f.refusDuPorteur(s, c.id))) : [];
+    }, (s) => brouillon(s)?.porteur ?? null),
+    // De 1 à la borne du devis.
+    enc: (s: Jeu): Reglage => {
+      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'enc' as const }, libelle: libelleDuChoix(fenetre, 'enc'), note: null };
+      const achat = brouillon(s);
+      const max = achat ? f.devis(s, achat.porteur, achat.offre).max : 0;
+      return achat && max >= 1
+        ? { ...base, courant: achat.enc, valeurs: null, bornes: { min: 1, max, pas: 1 } }
+        : { ...base, courant: null, valeurs: [], bornes: null };
+    },
+    acheter: reglage(fenetre, 'acheter', (s) => {
+      const achat = brouillon(s);
+      return achat ? [ouverte(true, libelleDuChoix(fenetre, 'acheter'), devisDeLAchat(s, f, achat).refus)] : [];
+    }),
+    vendre: reglage(fenetre, 'vendre', (s) => lots(s, (porteur) => f.refusDuPorteur(s, porteur))),
+    jeter: reglage(fenetre, 'jeter', (s) => lots(s, (porteur, cargoId) => f.refusDuPorteur(s, porteur) ?? f.refusDeBradage(s, cargoId))),
+  };
+};
 
 /** La bataille de masse est-elle à un Round ? */
 const enRoundDeBataille = (s: Jeu): boolean => s.massBattle?.phase === 'round';
@@ -278,6 +316,10 @@ export const OUVERTS_DU_CHOIX = {
       ? [ouverte(null, t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), refusDAlea(s)), ...BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s)))]
       : [])),
   },
+  // MDG 15 l.319-399, MSRC 13 l.129-160
+  port: choixDuMarche('port'),
+  marcheDeTerre: choixDuMarche('marcheDeTerre'),
+  ecranDuLieu: { entrer: reglage('ecranDuLieu', 'entrer', (s) => entreesDuLieu(s).map((p) => ouverte(p.id, p.label, refusDEntrerAuPoint(s, p)))) },
   // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   finDeSeance: {
     ambitionCourte: caseDuGroupe('ambitionCourte'),

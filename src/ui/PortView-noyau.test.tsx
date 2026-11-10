@@ -6,6 +6,7 @@
  * LDB 59 l.43.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { acheterAuMarche } from '../noyau/cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { act } from 'react';
 import { createRoot } from 'react-dom/client';
@@ -71,7 +72,7 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
     expect(geste('cargaison', 'port-buy-bois-mer')).toEqual({ ferme: 'true', raison: texte });
     const fenetres = () => Object.entries(get()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
     const avant = fenetres();
-    get().acheterLaCargaison('vessel', 'bois-mer', 5);
+    acheterAuMarche(get, 'port', 'vessel', 'bois-mer', 5);
     expect(fenetres(), 'aucun Test de Marchandage ouvert').toEqual(avant);
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(get().journal.some((l) => l.includes(texte))).toBe(true);

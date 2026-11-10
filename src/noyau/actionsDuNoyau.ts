@@ -17,7 +17,7 @@ import type {
   IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDeRoute,
+  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
@@ -271,9 +271,6 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
-  /** Entre au point d'intérêt `poi` du plan du lieu où se tient le groupe : l'écran du lieu se ferme sur la scène où il
-   *  mène ; refus dit hors de l'écran du lieu ou hors de ses entrées (`refusDEntrerAuPoint`, `lieuFlow.ts`). */
-  entrerAuPointDInteret: (poi: IdDePointDInteret) => void;
   /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   ouvrirLesJeux: (npcId?: IdDEntiteDeScene) => void;
@@ -346,21 +343,13 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   recruterLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
   /** Débarque `count` PNJ salariés du rôle `roleId` (#228). */
   renvoyerLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
-  /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`). */
+  /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`) ; ses
+   *  achats, ventes et bradages sont ses choix (`fenetreChoisir('marcheDeTerre', …)`, comme au port, `cargaison.ts`). */
   ouvrirLeMarche: () => void;
-  /** Achète `enc` points d'une offre du marché ouvert, chargés sur le porteur `porteurId` dans la limite de sa
-   *  Contenance (#327) : au port, le navire (Type/Taille/Marchandage, MDG 15 l.319-349) ; à la halle, un porteur de
-   *  vrac (disponibilité 2 temps/Marchandage/lot partiel, MSRC 13 l.129-131). */
-  acheterLaCargaison: (porteurId: IdDePorteurDeCargaison, cargoId: IdDOffreDeCargaison, enc: number) => void;
-  /** Vend le lot `lotId` au marché ouvert : au port, un lot de la cale (Trouver un acheteur/Prix d'offre/Marchandage,
-   *  MDG 15 l.351-397) ; à la halle, le lot d'un porteur (Demande/Mise à prix/Marchandage, MSRC 13 l.133-160). */
-  vendreLaCargaison: (lotId: IdDeCargaison) => void;
-  /** Brade le lot `lotId` au marché ouvert : ¼ du prix de base au port (MDG 15 l.399), ½ dans un Lieu de Commerce
-   *  (MSRC 13 l.160). */
-  jeterLaCargaison: (lotId: IdDeCargaison) => void;
   /** Transfère `enc` du lot `lotId` vers le porteur CO-LOCALISÉ `toId` (bête/véhicule/navire, #327). */
   deplacerLaCargaison: (lotId: IdDeCargaison, toId: IdDePorteurDeCargaison, enc: number) => void;
-  /** Évalue la qualité secrète d'un lot de Vin proposé (Test d'Évaluation, MSRC 13 l.95). */
+  /** Évalue la qualité secrète d'un lot de Vin proposé (Test d'Évaluation, MSRC 13 l.95) ; chaque refus est dit
+   *  (`refusDEvaluerLeVin`, `landMarketFlow.ts`). */
   evaluerLeVin: (cargoId: IdDOffreDeCargaison) => void;
   /** Ouvre le Test de Ragot de l'auberge du hub de ville (#352, Activité `recueillir-informations`
    *  étendue au contexte `auberge`) : succès → rumeur commerciale (`generateTradeRumour`), échec →

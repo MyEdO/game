@@ -44,13 +44,13 @@ import { creerActionsDuJournal } from './journal';
 import { creerActionsDAvanceeDHorloge, creerActionsDHorloge } from './horloge';
 import { creerFabriqueDIds } from './idsDuMonde';
 import { creerActionsDuVoyage, sortiesDuVoyage, validationsDuVoyage } from './travelFlow';
-import { creerActionsDuLieu, sortiesDuLieu } from './lieuFlow';
+import { choixDuLieu, creerActionsDuLieu, sortiesDuLieu } from './lieuFlow';
 import { creerActionsDesPostesDeVoyage } from './travelPostes';
 import { creerActionsDuBillet } from './billetFlow';
 import { creerActionsDuPort, sortiesDuPort } from './portFlow';
 import { choixDuVoyageEnMer, creerActionsDuVoyageEnMer } from './seaVoyageFlow';
 import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landMarketFlow';
-import { creerActionsDeLaCargaison } from './cargaison';
+import { choixDesMarches } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 
@@ -61,12 +61,12 @@ type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'aider' | 'annuler
   | 'cliquer' | 'commander' | 'creer' | 'debarquer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
   | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'equiper'
   | 'evaluer' | 'fabriquer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
-  | 'incanter' | 'installer' | 'jeter' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer'
+  | 'incanter' | 'installer' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer'
   | 'mener' | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'pivoter' | 'poser' | 'pousser' | 'pratiquer'
   | 'prendre' | 'quitter' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
   | 'relever' | 'remettre' | 'remiser' | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre'
   | 'restaurer' | 'retirer' | 'rompre' | 'servir' | 'solder' | 'suivre' | 'supprimer' | 'tenter' | 'terminer'
-  | 'transmettre' | 'utiliser' | 'vendre';
+  | 'transmettre' | 'utiliser';
 /** Les actions des verbes de fenêtre, `fenetre<Action>` (`VerbeDeChoix`, `fenetreValider`, `fenetreFermer`). */
 type ActionDeFenetre = 'choisir' | 'valider' | 'fermer';
 
@@ -141,6 +141,8 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDuButin(get, set),
     ...choixDuRepos(get, set),
     ...choixDeLaBataille(get, set),
+    ...choixDesMarches(get, set),
+    ...choixDuLieu(get, set),
   } satisfies CorpsDesChoix;
 }
 
@@ -231,7 +233,6 @@ export function creerActionsDuNoyau(get: Get<JeuDuNoyau>, set: SetDesClesReserve
     ...creerActionsDuPort(get, set),
     ...creerActionsDuVoyageEnMer(get, set),
     ...creerActionsDuMarcheTerrestre(get, set),
-    ...creerActionsDeLaCargaison(get, set),
     ...creerActionsDeLAuberge(get, set),
   };
 }

@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { acheterAuMarche } from './cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { makePregens } from '../data/pregens';
@@ -100,7 +101,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     marchandeurEmpoisonne(leader);
     setupPort([leader]);
     seedBattleRng(1);
-    get().acheterLaCargaison('vessel', 'bois-mer', LOT_ENC);
+    acheterAuMarche(get, 'port', 'vessel', 'bois-mer', LOT_ENC);
     const step = get().pendingCascade!.participants[0] as CascadeStep;
     expect(testValue(leader, { skill: { id: 'marchandage' } })).toBe(NUE + ETAT); // l'État pèse sur la valeur de Test…
     expect(step.base).toBe(NUE); // …mais PAS sur la Compétence (LDB 09 l.17)
@@ -115,7 +116,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     expect(merchant).toBeGreaterThan(NUE + ETAT); // la valeur de Test EMPOISONNÉE perdrait (le piège)
     expect(merchant).toBeLessThan(NUE); // …la Compétence NUE, elle, l'emporte (l.160)
     seedBattleRng(seed);
-    get().acheterLaCargaison('vessel', 'bois-mer', LOT_ENC);
+    acheterAuMarche(get, 'port', 'vessel', 'bois-mer', LOT_ENC);
     const opened = get().pendingCascade!.participants[0] as CascadeStep;
     expect(opened.meta?.merchantValue).toBe(merchant);
     const step = { ...opened, result: { roll: die, target: opened.target!, sl, success: true } } as CascadeStep;

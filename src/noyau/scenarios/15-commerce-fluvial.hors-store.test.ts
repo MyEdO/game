@@ -1,4 +1,5 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
+import { acheterAuMarche } from '../cargaison.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { lancerLeScenario } from '../lancementDeScenario';
@@ -107,7 +108,7 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     const carrierId = primaryCargoCarrier(get())!.id;
     const buyEnc = Math.min(carrierFreeEnc(primaryCargoCarrier(get())!), offer.enc);
     const purseBeforeBuy = toBrass(partyMoneyTotal(get));
-    get().acheterLaCargaison(carrierId, offer.cargoId, buyEnc);
+    acheterAuMarche(get, 'marcheDeTerre', carrierId, offer.cargoId, buyEnc);
     const spent = purseBeforeBuy - toBrass(partyMoneyTotal(get));
     expect(spent).toBeGreaterThan(0);
     expect(primaryCargoCarrier(get())!.cargo.length).toBe(1);
@@ -129,7 +130,7 @@ describe('Scénario Commerce fluvial — boucle acheter → barge → revendre a
     const purseBeforeSell = toBrass(partyMoneyTotal(get));
     // Le dé d'acheteur est un dé de MONDE : le joueur le LANCE dans sa fenêtre (#1426), et la vente
     // s'enchaîne sur ses maillons différés (mise à prix, Marchandage).
-    get().vendreLaCargaison(lotId);
+    get().fenetreChoisir('marcheDeTerre', 'vendre', lotId);
     draineCascadeDifferee(get, () => banc.reprendreTout());
     const earned = toBrass(partyMoneyTotal(get)) - purseBeforeSell;
     expect(earned).toBeGreaterThan(0);

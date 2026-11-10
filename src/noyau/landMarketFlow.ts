@@ -80,6 +80,8 @@ export interface LandMarketState {
   /** Bande d'ambiance (surcharge de lieu `market.backdrop`, sinon défaut du catalogue) — slot `backdrop`
    *  du `ScreenShell`. */
   backdrop?: string;
+  /** L'achat en composition (`fenetreChoisir('marcheDeTerre', …)`). */
+  achat?: import('./cargaison').BrouillonDAchat;
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
@@ -181,17 +183,27 @@ export function generateTradeRumour(get: Get, set: Set, currentPlaceId: string, 
   log(get, set, [t('lm.rumeur', { biens: biensTxt, lieu: target.label })]); // MSRC 13 l.180
 }
 
+/** Refus d'évaluer le lot `cargoId` (MSRC 13 l.95) : `refusDeGesteSurLeGroupe`, hors de la halle, offre absente, lot
+ *  qui n'est pas du vin, vin déjà évalué, personne qui puisse tenter l'Évaluation (`appraiseRefus`) ; `null` sinon.
+ *  Tombe dans `evaluerLeVin`, lu par l'écran du marché. */
+export function refusDEvaluerLeVin(s: Pick<Jeu, 'net' | 'landMarket' | 'party'>, cargoId: string): string | null {
+  const groupe = refusDeGesteSurLeGroupe(s);
+  if (groupe) return groupe;
+  if (!s.landMarket) return t('lm.horsDeLaHalle');
+  const offre = s.landMarket.offers.find((o) => o.cargoId === cargoId);
+  if (!offre) return t('lm.offreAbsente');
+  if (!offre.wine) return t('lm.pasDuVin', { label: offre.label });
+  if (offre.wineTier) return t('lm.vinEvalue', { label: offre.label });
+  return appraiseRefus(s.party);
+}
+
 /** ÉVALUATION de la qualité SECRÈTE d'un lot de Vin/Eau-de-vie proposé (l.95) : Test d'Évaluation, difficulté
  *  Intermédiaire (Accessible si le meneur a Résistance à l'alcool ≥ 50). Sur un succès, révèle la vraie qualité ;
  *  sur un échec, une FAUSSE indication décalée du degré d'échec. Un lot ne s'évalue qu'une fois. */
 export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
-  if (refuseSi(get, set, refusDeGesteSurLeGroupe)) return;
-  const st = get().landMarket;
-  if (!st) return;
-  const offer = st.offers.find((o) => o.cargoId === cargoId);
-  if (!offer || !offer.wine || offer.wineTier) return; // pas du vin, ou déjà évalué
-  const refus = appraiseRefus(get().party);
-  if (refus) { log(get, set, [refus]); return; }
+  const refus = refusDEvaluerLeVin(get(), cargoId);
+  if (refus) { refuserGeste(get, set, refus); return; }
+  const offer = garanti(get().landMarket?.offers.find((o) => o.cargoId === cargoId), cargoId, 'vin à évaluer');
   const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluate.skill })!;
   const diff = wineEvalDifficulty(testValue(best.actor, { skill: { id: 'resistance-a-l-alcool' } }));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
@@ -295,8 +307,7 @@ export function devisDAchatDeCargaison(s: CarrierStateSlice & Pick<Jeu, 'landMar
 /** ACHAT d'une cargaison (MSRC 13 l.129-131) : refus de `devisDAchatDeCargaison`, puis Marchandage opposé et
  *  prix `prixDuLotDeCargaison`. Débité, CHARGÉ sur le porteur désigné (plafond DUR #327). */
 export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCargaison, cargoId: string, enc: number): void {
-  const st = get().landMarket;
-  if (!st) return;
+  const st = garanti(get().landMarket, cargoId, 'halle ouverte à l’achat');
   const devis = devisDAchatDeCargaison(get(), porteurId, cargoId, enc);
   if (devis.refus) { refuserGeste(get, set, raisonDuRefusDAchatDeCargaison(devis.refus)); return; }
   const { offre: offer, porteur: carrier, enc: want, partiel: partial } = devis;
