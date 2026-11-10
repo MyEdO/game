@@ -1296,6 +1296,9 @@ export type GameOp =
   /** CONSTRUCTEUR DE NAVIRES D'ESCALE : jusqu'à l'appareillage, la réparation au port se teste à Métier (Constructeur
    *  de navires) `competence` et prend `duree` jours. Op de NAVIRE. MDG 15 l.255 */
   | { op: 'constructeurDEscale'; competence: number; duree: Formula }
+  /** RATIONS D'ESCALE : jusqu'à l'appareillage, la ration-jour de cale s'achète au port à `montant`. Op de NAVIRE.
+   *  MDG 15 l.262 */
+  | { op: 'rationsDEscale'; montant: { brass: Formula } }
   /** MARCHÉ D'UN PORT altéré : au port de l'escale jusqu'au départ du navire, les colonnes de l'Index basculent
    *  (`colonnes`), OU un client offre au plus `offre.enc` Enc d'une cargaison tirée au hasard pour la saison à
    *  `offre.remisePct` % sous son prix de base ; OU, dans un autre port tiré au hasard, la Demande d'une cargaison
@@ -1310,7 +1313,7 @@ export interface AggravationMeteo { de: Formula; seuil: number; meteo: Partial<S
 
 /** Les ops de NAVIRE : résolues sur la seule cible `navire` d'un EffectOp (`noyau/navireOps.ts`), inertes
  *  partout ailleurs. */
-export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer', 'commission', 'constructeurDEscale'] as const satisfies readonly GameOp['op'][];
+export const OPS_DU_NAVIRE = ['shipMorale', 'manann', 'shipCritical', 'navireMod', 'meteoImposee', 'cargaison', 'provisions', 'equipage', 'perilDeMer', 'navireHostile', 'infestation', 'combatEnMer', 'commission', 'constructeurDEscale', 'rationsDEscale'] as const satisfies readonly GameOp['op'][];
 export type OpDuNavire = Extract<GameOp, { op: (typeof OPS_DU_NAVIRE)[number] }>;
 export const estOpDuNavire = (o: GameOp): o is OpDuNavire => (OPS_DU_NAVIRE as readonly string[]).includes(o.op);
 
@@ -3051,6 +3054,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
       case 'combatEnMer':
       case 'commission':
       case 'constructeurDEscale':
+      case 'rationsDEscale':
       case 'marcheDuPort':
         // Effets IMPURS (grille + initiative / reconstitution programmée / zones de bataille / ouverture
         // d'une frappe / interruption de Focalisation / désarmement-bris de Piège-lame / poussée /

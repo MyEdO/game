@@ -11,6 +11,7 @@ import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import { PortHeader, EscaleTab } from './PortView';
 import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { toMoney } from '../engine/money';
 
 // `ShoreLeaveBody` (composé par `EscaleTab`) lit l'événement en attente directement au store (SEULE
 // source, cf. VoyageScreen embedded), jamais via une prop `pendingXxx` ad hoc sur ce corps. `renderToStaticMarkup` (environnement Vitest `node`) fait passer zustand par
@@ -34,9 +35,9 @@ const vessel = (crew?: CampaignVessel['crew']): CampaignVessel => ({
 });
 const noop = () => {};
 const escaleProps = {
-  vessel: vessel(), refusHote: null,
+  vessel: vessel(), bourse: toMoney({}), refusHote: null,
   pendingShoreLeave: null,
-  onHire: noop, onDismiss: noop,
+  onHire: noop, onDismiss: noop, onAvitailler: noop,
 };
 
 describe('PortHeader — en-tête d’escale-hub (#228)', () => {

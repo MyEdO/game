@@ -3,6 +3,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document, tableTiree, type EnveloppeDocument } from '../grammaire/document';
 import { difficultySchema, ecartsDeCouverture, maisonSchema, plageOuverteSchema, sourceRefSchema, tirageSchema } from '../grammaire/valeurs';
+import { ref } from '../grammaire/ref';
 import { deDeLaTableTiree, facesDuDe } from '../../../engine/tables';
 import { parseDice, totalDuDe } from '../../../engine/dice';
 
@@ -138,11 +139,17 @@ const champs = {
     sansVoguerDeNuitDiviseur: z.number(),
     progressionPctParDR: z.number(),
     source: sourceRefSchema,
+    rationDeCale: ref('trapping'),
+    tonneauDeCale: ref('trapping'),
+    maison: maisonSchema,
   }), {
     millesParJourParM: { label: 'Milles par jour et par point de Mouvement' },
     sansVoguerDeNuitDiviseur: { label: 'Diviseur sans navigation de nuit' },
     progressionPctParDR: { label: 'Progression par DR (%)' },
     source: { label: 'Source' },
+    rationDeCale: { label: 'Ration-jour achetée pour la cale', texte: { regime: 'technique' } },
+    tonneauDeCale: { label: 'Tonneau d’eau acheté pour la cale', texte: { regime: 'technique' } },
+    maison: { label: 'Arbitrage maison' },
   }),
   poursuite: nommerChamps(z.strictObject({
     distanceUnitM: z.number(),
@@ -220,7 +227,7 @@ const doc = document(
     salissures: { label: 'Salissures de coque', hint: 'Paliers d’encrassement — pénalités de manœuvre/Navigation et coût de nettoyage' },
     orientation: { label: 'Orientation', hint: 'Repères de route et Changement de cap : issues par fourchette de DR' },
     phares: { label: 'Phares et clochers', hint: 'Portée de détection des phares, orientation par clocher' },
-    longsVoyages: { label: 'Longs voyages', hint: 'Milles par jour et par point de Mouvement, progression par DR' },
+    longsVoyages: { label: 'Longs voyages', hint: 'Milles par jour et par point de Mouvement, progression par DR, vivres et eau achetés pour la cale' },
     poursuite: { label: 'Course-poursuite', hint: "Distances d'échappement, delta de DR, pénalité à faible Mouvement" },
     reparation: { label: 'Réparations au port', hint: 'Coût, durée et rendement des réparations de coque, dont la réparation temporaire' },
   },

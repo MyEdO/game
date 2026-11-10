@@ -32,7 +32,7 @@ import { weeklyCrewWageBrass } from '../engine/crewMorale';
 import { applyOps, nomDeSource, type GameOp } from '../engine/ops';
 import { findSeaHazard } from '../engine/seaPerils';
 import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
-import { toBrass } from '../engine/money';
+import { formatMoney, fromBrass, toBrass } from '../engine/money';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { checkBattleOver } from './combatFlow';
 import { humanizeFlow } from './codex/humanize';
@@ -1237,7 +1237,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     }
   });
 
-  it.each([['la-tache-noire', PORT_EVENTS], ['bonne-peche', PORT_EVENTS]] as const)(
+  it.each([['la-tache-noire', PORT_EVENTS]] as const)(
     '%s se raconte sans conséquence (omission dite au raw.manifest)', (id, table) => {
       expect(table.find((e) => e.id === id)!.consequence).toBeUndefined();
     });
@@ -1308,6 +1308,54 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     set({ lieu: 'B' });
     get().partirEnVoyage('r1', 'mer');
     expect(get().vessel!.constructeurDEscale).toBeUndefined();
+  });
+
+  /** À quai à Erengrad avec la seule rangée `id` à l'escale, cale suivie (10 rations-jour, 100 L), 10 CO de plus. */
+  const aQuai = (id: string | null) => {
+    escale(id);
+    set({ vessel: { ...get().vessel!, provisions: 10, waterLitres: 100 } });
+    creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
+  };
+  const cale = () => ({ provisions: get().vessel!.provisions, eau: get().vessel!.waterLitres, bourse: toBrass(partyMoneyTotal(get)) });
+  const RATION_PRESERVEE = 2 * 12, TONNEAU = 8 * 12 + 6;
+
+  it('Avitaillement à quai : n rations-jour et t tonneaux entrent dans la cale, la bourse paie n × 2/– + t × 8/6 (MDG 14 l.242, l.248-252)', () => {
+    aQuai(null);
+    const avant = cale();
+    get().avitaillerLeNavire(5, 2);
+    expect(cale()).toEqual({ provisions: avant.provisions! + 5, eau: avant.eau! + 2 * 145, bourse: avant.bourse - (5 * RATION_PRESERVEE + 2 * TONNEAU) });
+  });
+
+  it('Avitaillement hors quai : refus nommé, rien ne change', () => {
+    set({ vessel: { ...get().vessel!, provisions: 10, waterLitres: 100 }, journal: [] });
+    const avant = cale();
+    get().avitaillerLeNavire(5, 2);
+    expect(cale()).toEqual(avant);
+    expect(get().journal).toEqual([t('port.pasAQuai')]);
+  });
+
+  it('Avitaillement à bourse courte : refus nommé, rien ne change', () => {
+    aQuai(null);
+    set({ journal: [] });
+    const avant = cale();
+    const rations = Math.floor(avant.bourse / RATION_PRESERVEE) + 1;
+    get().avitaillerLeNavire(rations, 0);
+    expect(cale()).toEqual(avant);
+    expect(get().journal).toEqual([t('port.avitaillementTropCher', { cost: formatMoney(fromBrass(rations * RATION_PRESERVEE)) })]);
+  });
+
+  it('Bonne pêche : la ration-jour de cale coûte 3 sc à l’escale, puis revient au prix de la nourriture préservée à l’appareillage (l.262)', () => {
+    aQuai('bonne-peche');
+    let avant = cale();
+    get().avitaillerLeNavire(4, 0);
+    expect(cale()).toEqual({ ...avant, provisions: avant.provisions! + 4, bourse: avant.bourse - 4 * 3 });
+    set({ lieu: 'B' });
+    get().partirEnVoyage('r1', 'mer');
+    set({ travelPlan: null });
+    escale(null);
+    avant = cale();
+    get().avitaillerLeNavire(4, 0);
+    expect(cale()).toEqual({ ...avant, provisions: avant.provisions! + 4, bourse: avant.bourse - 4 * RATION_PRESERVEE });
   });
 
   it('l’accostage met le navire à quai, l’appareillage l’en retire', () => {

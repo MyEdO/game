@@ -30,12 +30,14 @@ import { partyAssisted } from '../engine/skills';
 import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
-import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney } from '../engine/money';
+import { toBrass, fromBrass, formatMoney, PA_PER_CO, canAfford, toMoney, priceToMoney, type Money } from '../engine/money';
 import { partyMoneyTotal, payFromGroup, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
 import { remiseMaximaleDeMarchandage } from './merchantFlow';
 import { refuserGeste } from './refusVisible';
-import { findVehicleById, findCrewRoleById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
+import { findVehicleById, findCrewRoleById, findTrappingById, crewRoles, combatStakeRef, refLabel, type CrewRoleData } from '../data';
+import { VIVRES_DE_CALE } from '../engine/seaNavigation';
+import { ajouterDeLEau, ajouterDesRations } from './navireOps';
 import { t } from '../i18n';
 import { ajouterAuRoster, weeklyCrewWageBrass } from '../engine/crewMorale';
 import {
@@ -536,6 +538,42 @@ export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1)
   return lines;
 }
 
+/** Devis d'AVITAILLEMENT de la cale à quai : `rations` rations-jour et `tonneaux` tonneaux d'eau douce
+ *  (`VIVRES_DE_CALE`), au prix du catalogue, la ration-jour au prix de l'escale s'il est posé
+ *  (`vessel.rationsDEscale`) ; `refus` est `null` quand l'achat passe. SOURCE UNIQUE d'`avitaillerLeNavire` et de
+ *  l'écran d'escale. PUR. MDG 14 l.248-252 ; MDG 15 l.262 */
+export interface DevisDAvitaillement { ration: Money; tonneau: Money; total: Money; refus: string | null }
+
+export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusHote: string | null, rations: number, tonneaux: number): DevisDAvitaillement {
+  const prixAuCatalogue = (id: string) => priceToMoney(garanti(findTrappingById(id), id, 'objet de cale').price ?? null);
+  const ration = vessel?.rationsDEscale !== undefined ? fromBrass(vessel.rationsDEscale) : prixAuCatalogue(VIVRES_DE_CALE.ration);
+  const tonneau = prixAuCatalogue(VIVRES_DE_CALE.tonneau);
+  const total = fromBrass(rations * toBrass(ration) + tonneaux * toBrass(tonneau));
+  const refus = refusHote ?? (!vessel ? t('port.sansNavire')
+    : vessel.escale === undefined ? t('port.pasAQuai')
+    : !Number.isInteger(rations) || !Number.isInteger(tonneaux) || rations < 0 || tonneaux < 0 || rations + tonneaux === 0 ? t('port.avitaillementVide')
+    : rations > 0 && vessel.provisions == null ? t('port.vivresSansSuivi')
+    : tonneaux > 0 && vessel.waterLitres == null ? t('port.eauSansSuivi')
+    : !canAfford(bourse, total) ? t('port.avitaillementTropCher', { cost: formatMoney(total) })
+    : null);
+  return { ration, tonneau, total, refus };
+}
+
+/** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), les rations-jour vont aux
+ *  vivres de la cale, les tonneaux à son eau douce. Renvoie le journal. MDG 14 l.238-252 ; MDG 15 l.262 */
+export function avitaillerLeNavire(get: Get, set: Set, rations: number, tonneaux: number): string[] {
+  const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()), rations, tonneaux);
+  if (devis.refus) { refuserGeste(get, set, devis.refus); return []; }
+  payFromGroup(get, set, devis.total, { purpose: 'avitaillement navire' });
+  const lines = [
+    t('port.avitaille', { rations, tonneaux, cost: formatMoney(devis.total) }),
+    ...(rations > 0 ? ajouterDesRations(get, set, rations) : []),
+    ...(tonneaux > 0 ? ajouterDeLEau(get, set, tonneaux) : []),
+  ];
+  log(get, set, lines);
+  return lines;
+}
+
 export function sortiesDuPort(_get: Get, set: Set) {
   return { port: () => set({ port: null }) } satisfies Partial<SortiesDeFenetre>;
 }
@@ -545,6 +583,7 @@ export function creerActionsDuPort(get: Get, set: Set) {
     ouvrirLePort: () => ouvrirLePort(get, set),
     recruterLEquipage: (roleId, count) => recruterLEquipage(get, set, roleId, count),
     renvoyerLEquipage: (roleId, count) => renvoyerLEquipage(get, set, roleId, count),
+    avitaillerLeNavire: (rations, tonneaux) => avitaillerLeNavire(get, set, rations, tonneaux),
   } satisfies FabriqueDuNoyau;
 }
 

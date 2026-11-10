@@ -286,6 +286,9 @@ export interface CampaignVessel {
   /** Constructeur de navires de l'escale (op `constructeurDEscale`) : la Compétence de son Test de réparation et la
    *  durée tirée de la réparation (jours) ; levé à l'appareillage. MDG 15 l.255 */
   constructeurDEscale?: { competence: number; jours: number };
+  /** Prix d'une ration-jour de cale à l'escale (op `rationsDEscale`), en sous de cuivre ; levé à l'appareillage.
+   *  MDG 15 l.262 */
+  rationsDEscale?: number;
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
