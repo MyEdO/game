@@ -14,6 +14,7 @@ import type {
   IdDeTireurRapide, IdDObjet, IdDuCoupleMonte,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
+import type { ModeDeMarche } from './merchantFlow';
 import type { FlowKey } from './flowVerbs';
 import type { CleDeRegistre } from './modalArbiter';
 import type { EffetDuChoix, PorteeDuReglage } from './reglagesDuJet';
@@ -85,6 +86,25 @@ export interface ChoixDesFenetres {
     releverLePrix: IdDObjet;
     /** L'achat payé que prend le héros de la rangée. */
     repartition: IdDeLigneDeRepartition;
+    /** Le panier d'achat se paie. */
+    payer: true;
+    /** Le panier de vente se vend (LDB 59 l.52). */
+    vendre: true;
+    /** Le marché négocié de ce côté (LDB 59 l.43). */
+    refuser: ModeDeMarche;
+    /** LDB 59 l.43 */
+    marchander: ModeDeMarche;
+    /** LDB 59 l.50 */
+    chercher: true;
+    /** LDB 63 l.64, LDB 62 l.135 */
+    reparer: IdDObjet;
+    /** Un exemplaire du bien cédé, chez son porteur (LDB 59 l.64). */
+    trocCeder: IdDObjet;
+    trocRecevoir: IdDArticle;
+    /** Les exemplaires acquis. */
+    trocQuantite: number;
+    /** LDB 59 l.64-76 */
+    troquer: true;
   };
   loot: {
     /** La ligne du butin que prend le héros de la rangée. */
@@ -171,12 +191,14 @@ export const CHOIX_DES_FENETRES = {
   dialogue: { reponse: clot },
   designationHeros: { heros: clot },
   seaActivities: { activite: duHeros, investir: duHeros, cacher: duHeros },
-  // Le panier et la vente se composent au siège du propriétaire de l'échoppe (l'hôte), et dans l'état d'un invité (#3059) ;
-  // la répartition des achats payés est à l'hôte.
+  // Le panier, la vente et le troc se composent au siège du propriétaire de l'échoppe (l'hôte), et dans l'état d'un
+  // invité (#3059) ; ce qui touche la bourse, le stock ou les possessions est à l'hôte.
   marchand: {
     ajouterAuPanier: reprenable, oterDuPanier: reprenable, retirerDuPanier: reprenable, viderLePanier: reprenable,
     ajouterALaVente: reprenable, retirerDeLaVente: reprenable, viderLaVente: reprenable,
     baisserLePrix: reprenable, releverLePrix: reprenable, repartition: duHerosParLHote,
+    payer: figeParLHote, vendre: figeParLHote, refuser: figeParLHote, marchander: figeParLHote, chercher: figeParLHote, reparer: figeParLHote,
+    trocCeder: reprenable, trocRecevoir: reprenable, trocQuantite: reprenable, troquer: figeParLHote,
   },
   loot: { ligne: duHerosParLHote },
   victory: { ligne: duHeros, depecer: figeParLHote },

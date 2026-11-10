@@ -13,7 +13,7 @@
  * son Amélioration offre, où elle montre son nœud `ouvert` si une pièce y est montée, `ferme` sinon (#2987). Un véhicule
  * ou une pièce d'Amélioration dit, `selon` une Amélioration montée, ce qui change : ses nœuds `avec-<amelioration>`
  * (`noeudSelon`), montrés seulement quand elle est montée, `sans-<amelioration>` seulement quand elle ne l'est pas, et,
- * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG p.97, Sabord). Un
+ * pour un véhicule, les postes qu'elle offre, qui remplacent ceux de chaque bord qu'elle nomme (MDG 12 l.362, Sabord). Un
  * véhicule s'anime de ses `clips` : par rôle d'animation, le clip du GLB qu'il joue, comme une base ; il dit l'emprise
  * libre des `cases` de ses ponts que son modèle rogne (`EmprisesDesCases`, #3767).
  */

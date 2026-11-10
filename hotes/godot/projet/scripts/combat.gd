@@ -92,17 +92,10 @@ func _choisir_un_scenario() -> String:
 	return str(jeu.scenario)
 
 
-## Le listage du serveur et l'index du pont (`MontageDeComposition.lister`, `indexer`), retenu pour les corps du
-## plateau ; ses erreurs, les refus de l'index et celui du pont vont à l'avis de panne.
+## Le listage du serveur et l'index du pont, retenu pour les corps du plateau (`MontageDeComposition.indexer_les_modeles`) ;
+## ses erreurs, les refus de l'index et celui du pont vont à l'avis de panne.
 func _indexer_les_modeles() -> void:
-	var recueil: Array[String] = []
-	var reponse := MontageDeComposition.indexer(_pont, await MontageDeComposition.lister(self, recueil))
-	if reponse.get("ok") == true:
-		MontageDeComposition.retenir_les_modeles(reponse)
-		for refus in reponse.refus:
-			recueil.append(str(refus))
-	elif reponse.get("ok") == false:
-		recueil.append(str(reponse.erreur.message))
+	var recueil: Array[String] = await MontageDeComposition.indexer_les_modeles(self)
 	if not recueil.is_empty():
 		_panne.text = "\n".join(PackedStringArray(recueil))
 

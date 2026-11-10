@@ -25,11 +25,15 @@ import { itemFromTrappingById } from '../engine/items';
 import { shipboardSouls } from './shipCrew';
 import { t } from '../i18n';
 import { weeklyCrewWageBrass } from '../engine/crewMorale';
-import { applyOps, type GameOp } from '../engine/ops';
+import { applyOps, nomDeSource, type GameOp } from '../engine/ops';
+import { findSeaHazard } from '../engine/seaPerils';
+import { gameOpSchema } from '../data/schemas/grammaire/mecanique';
 import { toBrass } from '../engine/money';
 import { rule, setRule, resetRule } from '../engine/policy';
 import { checkBattleOver } from './combatFlow';
 import { humanizeFlow } from './codex/humanize';
+import { currentPort, devisDAchatEnPort, ouvrirLePort } from './portFlow';
+import { CAMPAIGN_VESSEL_CARRIER_ID } from './carriers';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -1155,5 +1159,213 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
   it('`combatEnMer` est inerte dans `applyOps` (op de navire)', () => {
     const h = get().party[0];
     expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { idNeuf: idsDeTest, rng: makeRNG(1) })).toEqual([]);
+  });
+});
+
+describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15, valeurs maison du 2026-11-07)', () => {
+  beforeEach(etatFrais);
+  afterEach(() => resetData());
+
+  const deuxPorts: WorldMap = {
+    ...carte,
+    places: [
+      { ...carte.places[0], port: { taille: 2, richesse: 2, production: ['poisson-sale'] } },
+      { ...carte.places[1], port: { taille: 3, richesse: 3, production: ['bois-mer', 'commerce-mer'], surplus: { vin: 1 } } },
+    ],
+  };
+  const deBord = (id: string) => BOARD_EVENTS.find((e) => e.id === id)!;
+  const dEscale = (id: string) => PORT_EVENTS.find((e) => e.id === id)!;
+  /** Accoste à Erengrad avec la seule rangée `id` à l'escale. */
+  const escale = (id: string | null) => {
+    const c = id ? dEscale(id).consequence : undefined;
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id: rangee, label, desc }) => ({ min, max, id: rangee, label, desc, ...(c ? { consequence: c } : {}) })) as never);
+    finalizePortArrivalTo(get, set, deuxPorts.places[1], true);
+  };
+  function jour(evenement: string): void {
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
+    runSeaDay(get, set);
+  }
+  const joueLeTest = (reussi: boolean) => {
+    get().jetLancer('test');
+    set({ pendingTest: { ...get().pendingTest!, roll: reussi ? 1 : 99, success: reussi, sl: reussi ? 1 : -3 } });
+    get().jetValider('test');
+  };
+  const profil = () => currentPort(get)!.port;
+  beforeEach(() => set({ worldMap: deuxPorts }));
+
+  it('aucune rangée ne porte plus de genre ni de paramètres', () => {
+    for (const e of [...BOARD_EVENTS, ...PORT_EVENTS]) expect(Object.keys(e), e.id).not.toContain('kind');
+    for (const e of [...BOARD_EVENTS, ...PORT_EVENTS]) expect(Object.keys(e), e.id).not.toContain('params');
+  });
+
+  it('Culte de la personnalité : l’allégeance du zélote se tire au d10 et se raconte (l.154-158)', () => {
+    for (const graine of [1, 2, 3]) {
+      seedBattleRng(graine);
+      set({ journal: [] });
+      jour('culte-de-la-personnalite');
+      draineCascade(get);
+      const j = get().journal.join('\n');
+      expect(['millénarisme', 'contrebande', 'Stromfels', 'Tzeentch'].some((mot) => j.includes(mot)), j).toBe(true);
+    }
+  });
+
+  it.each([['la-tache-noire', PORT_EVENTS], ['constructeur-de-navires-itinerant', PORT_EVENTS], ['offre-de-mission', PORT_EVENTS], ['bonne-peche', PORT_EVENTS]] as const)(
+    '%s se raconte sans conséquence (omission dite au raw.manifest)', (id, table) => {
+      expect(table.find((e) => e.id === id)!.consequence).toBeUndefined();
+    });
+
+  it('l’accostage met le navire à quai, l’appareillage l’en retire', () => {
+    escale(null);
+    expect(get().vessel!.escale).toBe('B');
+    set({ lieu: 'B' });
+    get().partirEnVoyage('r1', 'mer');
+    expect(get().vessel!.escale).toBeUndefined();
+  });
+
+  it('Pénuries : au port de l’escale, la Production manque et le Surplus passe en Production, jusqu’au départ du navire (l.253)', () => {
+    escale('penuries');
+    expect(get().lieu).toBe('B');
+    expect(profil().production).toEqual(['commerce-mer', 'vin']);
+    expect(profil().surplus).toEqual({});
+    get().partirEnVoyage('r1', 'mer');
+    expect(get().alterationsDuMarche).toEqual([]);
+  });
+
+  it('Saturation de produits : la Production passe en Surplus à +1, le Surplus double (l.263)', () => {
+    escale('saturation-de-produits');
+    expect(profil().production).toEqual(['commerce-mer']);
+    expect(profil().surplus).toEqual({ 'bois-mer': 1, vin: 2 });
+  });
+
+  it('Pénuries : l’étal du port n’offre plus la Production, la cargaison de commerce comprise (l.253, l.321)', () => {
+    escale('penuries');
+    for (const graine of [1, 2, 3, 4, 5]) {
+      seedBattleRng(graine);
+      ouvrirLePort(get, set);
+      for (const o of get().port!.offers) expect(o.cargoId, `graine ${graine}`).toBe('vin');
+    }
+  });
+
+  it('Trop beau pour être vrai : le client offre jusqu’à 500 Enc à −50 %, le lot embarqué garde son prix de base (l.256)', () => {
+    expect(dEscale('trop-beau-pour-etre-vrai').consequence).toEqual({ kind: 'do', effect: { type: 'ops', ops: [{ op: 'marcheDuPort', offre: { enc: 500, remisePct: 50 } }] } });
+    escale('trop-beau-pour-etre-vrai');
+    const [alteration] = get().alterationsDuMarche;
+    expect(alteration).toMatchObject({ placeId: 'B', jusqua: 'escale', offre: { enc: 500, remisePct: 50 } });
+    ouvrirLePort(get, set);
+    const offre = get().port!.offers.find((o) => o.remisePct === 50)!;
+    expect(offre).toMatchObject({ cargoId: alteration.offre!.cargoId, enc: 500 });
+    const devis = devisDAchatEnPort(get(), CAMPAIGN_VESSEL_CARRIER_ID, offre.cargoId, 10);
+    expect(devis.estimationGold).toBe(Math.round(10 * offre.basePrice / 2));
+  });
+
+  it('Trop beau : le lot acheté s’épuise dans l’offre, l’étal rouvert ne le remet pas', () => {
+    creditBourse(get, set, get().party[0].id, { gold: 5000, silver: 0, brass: 0 });
+    escale('trop-beau-pour-etre-vrai');
+    ouvrirLePort(get, set);
+    const offre = get().port!.offers.find((o) => o.remisePct === 50)!;
+    get().acheterLaCargaison(CAMPAIGN_VESSEL_CARRIER_ID, offre.cargoId, 10);
+    draineCascade(get);
+    const lot = get().vessel!.cargo!.find((l) => l.cargoId === offre.cargoId)!;
+    expect(lot.basePriceGold).toBe(offre.basePrice);
+    expect(get().alterationsDuMarche[0].offre!.enc).toBe(500 - lot.enc);
+  });
+
+  it('Trop beau : le lot épuisé rend à l’étal l’offre ordinaire de la même cargaison', () => {
+    escale(null);
+    set({ alterationsDuMarche: [{ placeId: 'B', jusqua: 'escale', offre: { cargoId: 'bois-mer', enc: 0, remisePct: 50 } }] });
+    const bois = [1, 2, 3, 4, 5].map((graine) => {
+      seedBattleRng(graine);
+      ouvrirLePort(get, set);
+      return get().port!.offers.find((o) => o.cargoId === 'bois-mer');
+    }).filter((o) => o !== undefined);
+    expect(bois.length).toBeGreaterThan(0);
+    for (const o of bois) expect(o.remisePct).toBeUndefined();
+  });
+
+  it('Rumeurs commerciales : Ragot réussi, la Demande d’une cargaison croît de 2 dans l’autre port pour 10+2d10 jours (l.259)', () => {
+    escale('rumeurs-commerciales');
+    joueLeTest(true);
+    const [a] = get().alterationsDuMarche;
+    expect(a.placeId).toBe('A');
+    expect(a.demande!.delta).toBe(2);
+    const jours = ((a.jusqua as number) - get().gameTime) / MINUTES_PER_DAY;
+    expect(jours).toBeGreaterThanOrEqual(12);
+    expect(jours).toBeLessThanOrEqual(30);
+    set({ lieu: 'A' });
+    expect(profil().demande?.[a.demande!.cargoId]).toBe(2);
+    set({ gameTime: a.jusqua as number });
+    expect(profil().demande?.[a.demande!.cargoId]).toBeUndefined();
+  });
+
+  it('Rumeurs commerciales : Ragot raté, rien ne change', () => {
+    escale('rumeurs-commerciales');
+    joueLeTest(false);
+    expect(get().alterationsDuMarche).toEqual([]);
+  });
+
+  it('Autres voyageurs : le laisser approcher apporte une rumeur et signale les périls pendant 1d10 jours (l.205-208)', () => {
+    jour('autres-voyageurs');
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    expect(get().alterationsDuMarche[0]?.demande?.delta).toBe(2);
+    const [mod] = get().vessel!.modificateurs!;
+    expect(mod.evite).toEqual(['iceberg', 'debris-marins', 'rocher', 'bas-fonds']);
+    const jours = ((mod.jusqua as number) - get().gameTime) / MINUTES_PER_DAY;
+    expect(jours).toBeGreaterThanOrEqual(0);
+    expect(jours).toBeLessThanOrEqual(10);
+  });
+
+  it('Autres voyageurs : les dangers signalés font éviter la Collision soudaine qui suit', () => {
+    jour('autres-voyageurs');
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    set({ journal: [], pendingCascade: null });
+    jour('collision-soudaine');
+    draineCascade(get);
+    expect(get().journal.join('\n')).toContain(t('sv.perilEvite', { hazard: findSeaHazard('rocher')!.label, label: deBord('autres-voyageurs').label }));
+  });
+
+  it('un `navireMod` qui évite un péril jusqu’au prochain événement de bord est refusé à la donnée', () => {
+    expect(gameOpSchema.safeParse({ op: 'navireMod', evite: ['rocher'], jusqua: 'evenementDeBord' }).success).toBe(false);
+    expect(gameOpSchema.safeParse({ op: 'navireMod', evite: ['rocher'], jusqua: { jours: 3 } }).success).toBe(true);
+  });
+
+  it('Autres voyageurs : le tenir à distance ne change rien', () => {
+    jour('autres-voyageurs');
+    avanceEtapeCascade(get, undefined, () => 'no');
+    expect(get().alterationsDuMarche).toEqual([]);
+    expect(get().vessel!.modificateurs ?? []).toEqual([]);
+  });
+
+  it('Île inconnue : accoster remplit les tonneaux et la cale, et les bancs de sable menacent sur 1-2 (l.221-223)', () => {
+    expect(deBord('ile-inconnue').consequence).toEqual({
+      kind: 'choice', prompt: 'Accoster sur l’île',
+      yes: { kind: 'do', effect: { type: 'ops', on: 'navire', ops: [
+        { op: 'provisions', eauTonneaux: { dice: { n: 2, sides: 10 } } },
+        { op: 'provisions', jours: { dice: { n: 1, sides: 10 } } },
+        { op: 'rollTable', die: '1d10', entries: [{ min: 1, max: 2, ops: [{ op: 'perilDeMer', collision: { id: 'bas-fonds' } }] }, { min: 3, max: 10, ops: [] }] },
+      ] } },
+    });
+    set({ vessel: { ...get().vessel!, waterLitres: 0, provisions: 0 } });
+    jour('ile-inconnue');
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    expect(get().vessel!.waterLitres).toBeGreaterThanOrEqual(2 * 145);
+    expect(get().vessel!.provisions).toBeGreaterThan(0);
+  });
+
+  it('`marcheDuPort` est inerte dans `applyOps` (op du monde)', () => {
+    const h = get().party[0];
+    expect(applyOps(h, [{ op: 'marcheDuPort', colonnes: 'penurie' }], { idNeuf: idsDeTest, rng: makeRNG(1) })).toEqual([]);
+  });
+
+  it('hors escale, les colonnes ne changent nulle part et le journal le dit', () => {
+    applyEffects(get, set, [{ type: 'ops', ops: [{ op: 'marcheDuPort', colonnes: 'saturation' }] } as never]);
+    expect(get().alterationsDuMarche).toEqual([]);
+    expect(get().journal.join('\n')).toContain(t('eff.marcheHorsPort', { label: nomDeSource(undefined) }));
+  });
+
+  it('la fiche Codex dit chaque altération', () => {
+    expect(humanizeFlow(dEscale('penuries').consequence!, [])).toContain(t('codex.op.marcheDuPort.penurie'));
+    expect(humanizeFlow(dEscale('trop-beau-pour-etre-vrai').consequence!, [])).toContain(t('codex.op.marcheDuPort.offre', { enc: '500', pct: 50 }));
+    expect(humanizeFlow(dEscale('rumeurs-commerciales').consequence!, [])).toContain('Demande +2');
   });
 });

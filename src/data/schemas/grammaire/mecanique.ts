@@ -247,7 +247,7 @@ const DECLARATIONS_D_OPS = {
     manDR: z.number().int().optional(),
     evite: z.array(idDe('seaHazard')).min(1).optional(),
     jusqua: z.union([z.literal('carenage'), z.literal('evenementDeBord'), nommerChamps(z.strictObject({ jours: formulaSchema }), { jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } })]),
-  }).refine((v) => v.m !== undefined || v.manDR !== undefined || v.evite !== undefined, { message: 'navireMod VIDE : nommer « m » (Mouvement), « manDR » (DR de Manœuvre) ou « evite » (périls évités).' }), { op: { label: "opération"  }, m: { label: "Mouvement" }, manDR: { label: "DR de Manœuvre" }, evite: { label: "périls évités" , texte: { regime: "technique"} }, jusqua: { label: "jusqu’à" } }),
+  }).refine((v) => v.m !== undefined || v.manDR !== undefined || v.evite !== undefined, { message: 'navireMod VIDE : nommer « m » (Mouvement), « manDR » (DR de Manœuvre) ou « evite » (périls évités).' }).refine((v) => !(v.evite && v.jusqua === 'evenementDeBord'), { message: 'navireMod : « evite » jusqu’au prochain événement de bord ne voit aucun péril, levé avant la conséquence qui le heurte ; borner en « jours » ou au « carenage ».' }), { op: { label: "opération"  }, m: { label: "Mouvement" }, manDR: { label: "DR de Manœuvre" }, evite: { label: "périls évités" , texte: { regime: "technique"} }, jusqua: { label: "jusqu’à" } }),
   /** `meteoImposee` — MDG 15 l.189, l.196-197, l.199, l.219, l.226-227, l.248, l.257 */
   meteoImposee: nommerChamps(z.strictObject({
     op: z.literal('meteoImposee'),
@@ -328,6 +328,23 @@ const DECLARATIONS_D_OPS = {
     repousseAPct: z.number().int().min(1).max(99).optional(),
     victoire: z.lazy(() => flowSchema).optional(),
   }), { op: { label: "opération"  }, adversaire: { label: "adversaire" }, repousseAPct: { label: "repoussé à (% des Blessures)" }, victoire: { label: "sur la victoire" } }),
+  /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
+   *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
+  marcheDuPort: z.union([
+    nommerChamps(z.strictObject({ op: z.literal('marcheDuPort'), colonnes: enumNomme({ penurie: 'Pénurie', saturation: 'Saturation de produits' }) }), { op: { label: "opération"  }, colonnes: { label: "colonnes de l’Index" } }),
+    nommerChamps(z.strictObject({
+      op: z.literal('marcheDuPort'),
+      offre: nommerChamps(z.strictObject({ enc: formulaSchema, remisePct: z.number().int().min(1).max(99) }), { enc: { label: "Encombrement offert" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, remisePct: { label: "remise (%)" } }),
+    }), { op: { label: "opération"  }, offre: { label: "offre" } }),
+    nommerChamps(z.strictObject({ op: z.literal('marcheDuPort'), demande: z.number().int(), jours: formulaSchema }), { op: { label: "opération"  }, demande: { label: "Demande" }, jours: { label: "jours" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  ], {
+    error: (iss) => {
+      const v = (iss.input ?? {}) as { colonnes?: unknown; offre?: unknown; demande?: unknown };
+      return [v.colonnes, v.offre, v.demande].filter((x) => x !== undefined).length !== 1
+        ? 'Marché EXCLUSIF : « colonnes » (bascule de l’Index), « offre » (lot offert à l’achat) OU « demande » (Demande accrue dans un autre port, avec « jours ») — exactement un des trois.'
+        : undefined;
+    },
+  }),
   /** `provisions` : jours de vivres gagnés (`jours`), part gâtée (`gateesPct`), rations de mer (`rations`) OU tonneaux
    *  d'eau (`eauTonneaux`), exclusifs. MDG 15 l.169-170, l.235-236, l.194 ; MDG 14 l.242 */
   provisions: z.union([
@@ -1463,6 +1480,7 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   navireHostile: 'Navire hostile',
   infestation: 'Infestation du navire',
   combatEnMer: 'Combat en mer',
+  marcheDuPort: 'Marché d’un port',
 };
 
 /** Payloads d'une famille, chacun nommé par le libellé de son op (`OP_LABEL`) : une FORME se ferme en `z.strictObject`,

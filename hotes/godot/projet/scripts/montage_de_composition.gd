@@ -15,6 +15,10 @@ const ORIGINE := [0.0, 0.0, 0.0]
 const LARGEUR_D_EMBLEME := 512.0
 ## La métadonnée de la scène d'un GLB (`scene_du_glb`) qui porte, par nom, chacun de ses matériaux.
 const MATERIAUX := &"materiaux"
+## La métadonnée d'un mesh dont les shape keys sont cuites (`cuire_les_formes`) : son mesh à shape keys.
+const FORMES := &"formes"
+## La métadonnée d'un mesh dont les shape keys sont cuites : le poids cuit de chacune, par nom de clé.
+const POIDS := &"poids_des_formes"
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -87,6 +91,20 @@ static func lister(hote: Node, recueil: Array[String]) -> Dictionary:
 ## La réponse de `pont` à `modeles` sur le listage `listage` (`lister`), `ok` vrai ou faux, `{}` en panne.
 static func indexer(pont: PontDuNoyau, listage: Dictionary) -> Dictionary:
 	return pont.appeler("modeles", {manifestes = listage.get("manifestes", {}), osDesRigides = listage.get("osDesRigides", {})})
+
+
+## Le listage des modèles (`lister`) indexé par le pont que `hote` rejoint (`indexer`) et retenu (`retenir_les_modeles`) :
+## les erreurs du listage, les refus de l'index et celui du pont, que l'hôte dit en panne.
+static func indexer_les_modeles(hote: Node) -> Array[String]:
+	var recueil: Array[String] = []
+	var reponse := indexer(hote.get_node("/root/Pont") as PontDuNoyau, await lister(hote, recueil))
+	if reponse.get("ok") == true:
+		retenir_les_modeles(reponse)
+		for refus in reponse.refus:
+			recueil.append(str(refus))
+	elif reponse.get("ok") == false:
+		recueil.append(str(reponse.erreur.message))
+	return recueil
 
 
 ## Le premier `Skeleton3D` sous `noeud`, `null` s'il n'en porte aucun.
@@ -209,7 +227,10 @@ func vider() -> void:
 
 ## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses matériaux
 ## (`MATERIAUX`) et ses meshes relevés, habillés de la palette de la composition, son squelette (`squelette-absent` aux
-## erreurs sans lui), qui reçoit le modificateur du gabarit, et son lecteur de clips.
+## erreurs sans lui), qui reçoit le modificateur du gabarit, et son lecteur de clips. Ses modificateurs ne jouent que
+## sur une pose changée (`MODIFIER_CALLBACK_MODE_PROCESS_MANUAL`, `Skeleton3D::_make_dirty`, Godot 4.7-stable) : à
+## chaque image (`PROCESS_IDLE`), le gabarit reposerait les os et le squelette remettrait chaque peau à jour, clip en
+## pause compris.
 func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	base = posee
 	if scene == null:
@@ -226,6 +247,7 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	if squelette == null:
 		erreurs.append("squelette-absent : %s" % base.id)
 		return
+	squelette.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
 	gabarit = GabaritDuSquelette.new()
 	gabarit.lecteur = lecteur
 	squelette.add_child(gabarit)
@@ -644,11 +666,12 @@ static func _matiere_texturee(surface: Dictionary) -> String:
 	return matiere if not matiere.is_empty() and ResourceLoader.exists(VolumeDeScene.texture_de(matiere)) else ""
 
 
-## Le mesh de `piece` recopié, chaque surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la
-## matière projette l'UV1 sur les trois axes (`VolumeDeScene.texturer`), l'emblème garde son placement en UV2. Une pièce sans
-## telle surface, ou déjà recopiée, garde son mesh.
+## Le mesh de `piece` recopié (son mesh à shape keys s'il est cuit, recuit aux mêmes poids, `cuire_les_formes`), chaque
+## surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la matière projette l'UV1 sur les
+## trois axes (`VolumeDeScene.texturer`), l'emblème garde son placement en UV2. Une pièce sans telle surface, ou déjà
+## recopiée, garde son mesh.
 static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> void:
-	var source := piece.mesh as ArrayMesh
+	var source := (piece.get_meta(FORMES) if piece.has_meta(FORMES) else piece.mesh) as ArrayMesh
 	var rangs := range(source.get_surface_count()).filter(func(rang: int) -> bool:
 		var materiau := source.surface_get_material(rang)
 		var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
@@ -667,7 +690,13 @@ static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> voi
 		copie.add_surface_from_arrays(source.surface_get_primitive_type(rang), tableaux, source.surface_get_blend_shape_arrays(rang))
 		copie.surface_set_material(rang, source.surface_get_material(rang))
 		copie.surface_set_name(rang, source.surface_get_name(rang))
+	if not piece.has_meta(FORMES):
+		piece.mesh = copie
+		return
+	var poids: Dictionary = piece.get_meta(POIDS)
+	piece.remove_meta(FORMES)
 	piece.mesh = copie
+	cuire_les_formes(piece, poids)
 
 
 ## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
@@ -728,21 +757,39 @@ func poser_le_gabarit() -> Array[String]:
 	return absents
 
 
-## Les poids `morphes` de la composition posés par nom de shape key sur chaque mesh de la base et de chaque élément monté
-## qui porte la clé (#3086, D4) ; un mesh sans la clé n'en reçoit rien.
+## Les poids `morphes` de la composition (#3086, D4) cuits dans chaque mesh à shape keys de la base et de chaque élément
+## monté (`cuire_les_formes`), par nom de clé ; une clé que la composition ne nomme pas vaut 0.
 func poser_les_morphes() -> void:
-	var morphes: Dictionary = composee.get("morphes", {})
-	for nom in morphes:
-		poser_des_morphes([nom], float(morphes[nom]))
-
-
-## Le poids `poids` posé à chaque shape key nommée dans `noms`, sur chaque mesh du modèle qui la porte.
-func poser_des_morphes(noms: Array, poids: float) -> void:
 	if modele == null:
 		return
+	var morphes: Dictionary = composee.get("morphes", {})
 	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
-		var mesh := noeud as MeshInstance3D
-		for nom in noms:
-			var rang := mesh.find_blend_shape_by_name(nom)
-			if rang != -1:
-				mesh.set_blend_shape_value(rang, poids)
+		cuire_les_formes(noeud as MeshInstance3D, morphes)
+
+
+## Le mesh de `mesh` remplacé par sa copie sans shape key, chacune cuite à son poids dans `morphes` (par nom de clé, 0 si
+## absente, `MeshInstance3D.bake_mesh_from_current_blend_shape_mix`). Le rendu de compatibilité met à jour une surface à
+## shape keys en une passe de base et une passe par clé non nulle, en plus de celle du squelette, à chaque image où le
+## squelette bouge (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable) : cuite, seule
+## celle du squelette reste. Le mesh à shape keys est gardé en métadonnée `FORMES` et les poids cuits en `POIDS` ;
+## des poids inchangés ne recuisent rien. Un mesh sans shape key garde son mesh.
+static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
+	var formes := (mesh.get_meta(FORMES) if mesh.has_meta(FORMES) else mesh.mesh) as ArrayMesh
+	if formes == null or formes.get_blend_shape_count() == 0:
+		return
+	var poids := {}
+	for rang in formes.get_blend_shape_count():
+		var nom := String(formes.get_blend_shape_name(rang))
+		poids[nom] = float(morphes.get(nom, 0.0))
+	if mesh.has_meta(FORMES) and mesh.get_meta(POIDS) == poids:
+		return
+	mesh.mesh = formes
+	for rang in formes.get_blend_shape_count():
+		mesh.set_blend_shape_value(rang, poids[String(formes.get_blend_shape_name(rang))])
+	var cuit := mesh.bake_mesh_from_current_blend_shape_mix()
+	for rang in formes.get_surface_count():
+		cuit.surface_set_material(rang, formes.surface_get_material(rang))
+		cuit.surface_set_name(rang, formes.surface_get_name(rang))
+	mesh.set_meta(FORMES, formes)
+	mesh.set_meta(POIDS, poids)
+	mesh.mesh = cuit

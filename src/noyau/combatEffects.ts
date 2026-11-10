@@ -14,7 +14,7 @@ import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
-import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDeLaBourseDuGroupe,
+import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, OPS_CTX_HORS_CANAL, estOpDuNavire, estOpDeLaBourseDuGroupe, estOpDuMarche, nomDeSource,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
 import { rule } from '../engine/policy';
 import { gainCorruption, corruptionTarget, poseCorruptionPending, expositionPending } from './corruptionFlow';
@@ -57,6 +57,7 @@ import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } 
 import { findSpellById } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
 import { mouvementDeLaBourseDuGroupe, condCtx, partyMoneyTotal } from './bourseFlow';
+import { alterLeMarche } from './portFlow';
 import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee, type Trigger } from './monde/scene';
 import { triggersEnJeu } from './monde/decouvertePorteSecrete';
 import { computeStateVisible } from './visionState';
@@ -813,18 +814,27 @@ export function estCibleDeScene(on: EffectOp['on']): on is Exclude<CibleDEffetDe
   return CIBLES_D_EFFET_DE_SCENE.some((c) => c.on === (genreDeCible(on) ?? 'party'));
 }
 
-/** Résout les ops de la BOURSE DU GROUPE de la feuille `e`, une fois chacune, montant résolu sur le référent de
- *  scène (`referentDeScene`) ; rend la feuille sans elles, ou `null` s'il n'y reste rien. MDG 15 l.245-247 */
-function bougerLaBourseDuGroupe(env: EffectEnv, e: EffectOp, rng: RNG): EffectOp | null {
-  const bourse = e.ops.filter(estOpDeLaBourseDuGroupe);
-  if (!bourse.length) return e;
-  for (const o of meneurDuMonde(env.get()) ? bourse : []) {
+/** Op du MONDE : de la bourse du groupe ou du marché d'un port, sans cible de scène. */
+const estOpDuMonde = (o: GameOp): boolean => estOpDeLaBourseDuGroupe(o) || estOpDuMarche(o);
+
+/** Résout les ops du MONDE de la feuille `e` — la BOURSE DU GROUPE et le MARCHÉ D'UN PORT —, une fois chacune,
+ *  quantités résolues sur le référent de scène (`referentDeScene`) ; rend la feuille sans elles, ou `null` s'il
+ *  n'y reste rien. MDG 15 l.245-247, l.253, l.256, l.259, l.263 */
+function resoudreLesOpsDuMonde(env: EffectEnv, e: EffectOp, rng: RNG): EffectOp | null {
+  if (!e.ops.some(estOpDuMonde)) return e;
+  for (const o of meneurDuMonde(env.get()) ? e.ops.filter(estOpDuMonde) : []) {
+    if (estOpDuMarche(o)) {
+      const ref = referentDeScene(env.get, env.set);
+      alterLeMarche(env.get, env.set, o, nomDeSource({ label: e.label ?? env.label }), (f) => Math.max(0, Math.round(resolveFormula(f, ref, rng))), rng).forEach((l) => env.log(l));
+      continue;
+    }
+    if (!estOpDeLaBourseDuGroupe(o)) continue;
     const avant = toBrass(partyMoneyTotal(env.get));
     mouvementDeLaBourseDuGroupe(env.get, env.set, Math.round(resolveFormula(o.montant.brass, referentDeScene(env.get, env.set), rng)));
     const delta = toBrass(partyMoneyTotal(env.get)) - avant;
     if (delta) env.log(t('eff.bourseDuGroupe', { sens: delta > 0 ? '+' : '−', montant: formatMoney(fromBrass(Math.abs(delta))) }));
   }
-  const reste = e.ops.filter((o) => !estOpDeLaBourseDuGroupe(o));
+  const reste = e.ops.filter((o) => !estOpDuMonde(o));
   return reste.length ? { ...e, ops: reste } : null;
 }
 
@@ -1659,7 +1669,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const horsNavire = messageOpDuNavireHorsNavire(feuilleAuthoree);
       if (horsNavire) throw new Error(horsNavire);
       const base = { rng: battleRng(), sl: env.sl };
-      const e = bougerLaBourseDuGroupe(env, feuilleAuthoree, base.rng);
+      const e = resoudreLesOpsDuMonde(env, feuilleAuthoree, base.rng);
       if (!e) return;
       if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
       if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
