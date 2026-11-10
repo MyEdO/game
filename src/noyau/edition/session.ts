@@ -10,7 +10,6 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { ArchitectureBody, ArchitectureStorey, BuildingMass, FacadeFeature, RoofDefaults, Scene, SceneEntity, SceneStationAnchor, WallSecret, WallSeg } from '../monde/scene';
 import { apparencesDeLOuverture } from '../monde/facades';
-import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { refusDeLEntite, type ReliefDefaults, type SceneRoofDefaults } from '../../data/schemas/defs-scenes/scene';
 import { inventaireApres, type IntentionDObjet } from '../../engine/items';
 import { PARTS_RELIEF } from '../../data/materials.types';
@@ -643,24 +642,24 @@ function sceneAvecLEntite(scene: Scene, ent: SceneEntity, cle: string, ecrite: S
 }
 
 /** La scène `scene` de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
- *  (`avecLaValeurDuPorteur`, les presets du narratif du projet) : la zone d'effet remplacée, la condition d'entrée du
+ *  (`avecLaValeurDuPorteur`, dans le narratif du projet) : la zone d'effet remplacée, la condition d'entrée du
  *  déclencheur patchée (`patchTrigger`), le champ de l'entité posé par sa porte (`sceneAvecLEntite`) ; ou son refus, un
  *  porteur absent n'offrant aucun chemin. */
 function sceneAvecLaValeur(s: SessionDEdition, scene: Scene, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
-  const presetDe = presetDuNarratif(s.projet.narratif);
+  const { narratif } = s.projet;
   if (g.porteur.sorte === 'entite') {
     const ent = scene.entities.find((e) => e.id === g.porteur.id);
     if (!ent) return { ok: false, refus: 'nonOffert' };
-    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur, presetDe);
+    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur, narratif);
     return ecrite.ok ? sceneAvecLEntite(scene, ent, String(g.chemin[0]), ecrite.valeur) : ecrite;
   }
   if (g.porteur.sorte === 'zone') {
     const zone = (scene.effectZones ?? []).find((z) => z.id === g.porteur.id);
-    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur, presetDe) : { ok: false as const, refus: 'nonOffert' as const };
+    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur, narratif) : { ok: false as const, refus: 'nonOffert' as const };
     return ecrite.ok ? { ok: true, valeur: replaceEffectZone(scene, zone!.id, ecrite.valeur) } : ecrite;
   }
   const declencheur = scene.triggers.find((t) => t.id === g.porteur.id);
-  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur, presetDe) : { ok: false as const, refus: 'nonOffert' as const };
+  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur, narratif) : { ok: false as const, refus: 'nonOffert' as const };
   return ecrit.ok ? { ok: true, valeur: patchTrigger(scene, ecrit.valeur.id, { when: ecrit.valeur.when }) } : ecrit;
 }
 

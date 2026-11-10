@@ -19,8 +19,13 @@ import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
 import { creatures, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
-import { ficheDuPersonnage } from './monde/sceneNpc';
-import type { ResolveurDePreset } from './monde/resolveursDuNarratif';
+import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
+import { t } from '../i18n';
+import { presetDuNarratif, type ResolveurDePreset } from './monde/resolveursDuNarratif';
+import { entreesNarratives, type CleDeReferenceNarrative } from './codex/libellesNarratifs';
+import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
+import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
@@ -415,28 +420,30 @@ export type SorteDePorteur = keyof DonneeDuPorteur;
 type CheminsOfferts = readonly (readonly string[])[];
 
 /** Ce qu'un porteur de formulaire tiré du schéma déclare : le nœud de sa donnée, les champs qu'il offre, et les choix que
- *  son contexte pose à un chemin de sa donnée (`choixDuChamp`), les presets du projet résolus par `presetDe`. */
+ *  son contexte pose à un chemin de sa donnée (`choixDuChamp`), dans le narratif du projet. */
 interface FormulaireDuPorteur<D> {
   schema: unknown;
-  champs: (donnee: D, presetDe: ResolveurDePreset) => CheminsOfferts;
-  choix?: (donnee: D, chemin: readonly Segment[], presetDe: ResolveurDePreset) => readonly ChoixDuContexte[] | undefined;
+  champs: (donnee: D, narratif: NarratifBlock) => CheminsOfferts;
+  choix?: (donnee: D, chemin: readonly Segment[], narratif: NarratifBlock) => readonly ChoixDuContexte[] | undefined;
 }
 
-/** Les champs que le formulaire d'un personnage offre : de son rôle au combat, ses options, ses Compétences, le tirage
- *  de ses Caractéristiques et son embuscade ; sa contrepartie d'amateur des arts, son animation. */
-const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['amateur'], ['anim']];
+/** Les champs que le formulaire d'un personnage offre : de son rôle au combat, ses options, ses Compétences, le tirage de
+ *  ses Caractéristiques et son embuscade ; son profil personnalisé ; sa contrepartie d'amateur des arts, son animation. */
+const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['anim']];
 
 /** Les sorts que l'auteur choisit pour un personnage. */
 const SORTS_CHOISIS = ['combat', 'spells'] as const;
 
-/** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), ses sorts choisis s'il en porte, ou
- *  si sa fiche (`ficheEditee`) ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ;
- *  d'une coque, son véhicule et ses Améliorations (MDG 12). */
-function champsDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset): CheminsOfferts {
-  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDe);
+/** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), dans le narratif `narratif` : son
+ *  preset s'il en porte un ou si le narratif en déclare ; ses sorts choisis s'il en porte, ou si sa fiche (`ficheEditee`)
+ *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule et
+ *  ses Améliorations (MDG 12). */
+function champsDuPersonnage(ent: SceneEntity, narratif: NarratifBlock): CheminsOfferts {
+  const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
+  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDuNarratif(narratif));
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
   const coque = ent.vehicule ? [['vehicule'], ['upgrades']] : [];
-  return [...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
+  return [...preset, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
 }
 
 /** Les choix que le contexte d'un personnage pose à ses sorts choisis (`combat.spells`) : d'un élément au rang `rang`, ou
@@ -488,12 +495,23 @@ function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly
   });
 }
 
-/** Les choix que le contexte d'un personnage pose au chemin `chemin` de sa donnée : ceux d'un sort choisi
- *  (`choixDesSorts`), ceux de ses options (`choixDesOptions`). */
-function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], presetDe: ResolveurDePreset): readonly ChoixDuContexte[] | undefined {
+/** Les profils personnalisés qu'un personnage reçoit (`statblock`) : un profil neuf à son nom (`emptyStatblock`), puis la
+ *  copie de sa créature du Bestiaire (`statblockDeLaCreature`), s'il en porte une. */
+function choixDuProfil(ent: SceneEntity, presetDe: ResolveurDePreset): readonly ChoixDuContexte[] {
+  const creature = findCreatureById(ent.creature?.id);
+  return [
+    { valeur: emptyStatblock(nomDEntite(ent, presetDe)), libelle: t('ecran.editeur.profil.neuf'), refus: null },
+    ...(creature ? [{ valeur: statblockDeLaCreature(creature), libelle: t('ecran.editeur.profil.copie', { fiche: creature.label }), refus: null }] : []),
+  ];
+}
+
+/** Les choix que le contexte d'un personnage pose au chemin `chemin` de sa donnée, dans le narratif `narratif` : ceux de
+ *  son profil personnalisé (`choixDuProfil`), d'un sort choisi (`choixDesSorts`), de ses options (`choixDesOptions`). */
+function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], narratif: NarratifBlock): readonly ChoixDuContexte[] | undefined {
+  if (chemin.length === 1 && chemin[0] === 'statblock') return choixDuProfil(ent, presetDuNarratif(narratif));
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
-  return sorts ? choixDesSorts(ent, rang, presetDe) : choixDesOptions(ent, chemin);
+  return sorts ? choixDesSorts(ent, rang, presetDuNarratif(narratif)) : choixDesOptions(ent, chemin);
 }
 
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
@@ -505,7 +523,7 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   declencheur: { schema: triggerSchema, champs: () => [['when']] },
   entite: {
     schema: sceneEntitySchema,
-    champs: (ent, presetDe) => (ent.kind !== 'personnage' ? [] : champsDuPersonnage(ent, presetDe)),
+    champs: (ent, narratif) => (ent.kind !== 'personnage' ? [] : champsDuPersonnage(ent, narratif)),
     choix: choixDuPersonnage,
   },
 };
@@ -518,26 +536,32 @@ export const cheminOffert = (offerts: CheminsOfferts, chemin: readonly Segment[]
   offerts.some((o) => prefixe(o, chemin) || prefixe(chemin, o));
 
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à
- *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre, les presets résolus par
- *  `presetDe`. */
-export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], presetDe: ResolveurDePreset): { noeud: unknown; champs: CheminsOfferts } {
+ *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre dans le narratif `narratif`. */
+export function formeDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], narratif: NarratifBlock): { noeud: unknown; champs: CheminsOfferts } {
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, presetDe) };
+  return { noeud: formeAuPoint(formulaire.schema, donnee)?.noeud, champs: formulaire.champs(donnee, narratif) };
 }
 
-/** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée
- *  (`FORMULAIRES`), dans leur ordre, les presets résolus par `presetDe` ; `undefined` : ceux du nœud. */
-export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], presetDe: ResolveurDePreset): readonly ChoixDuContexte[] | undefined {
+/** La clé `cle` est-elle une référence narrative (`REFERENCES_NARRATIVES`) ? */
+const estReferenceNarrative = (cle: Segment | undefined): cle is CleDeReferenceNarrative =>
+  typeof cle === 'string' && Object.prototype.hasOwnProperty.call(REFERENCES_NARRATIVES, cle);
+
+/** Les choix que le contexte du porteur de sorte `sorte`, de donnée `donnee`, pose au chemin `chemin` de sa donnée, dans
+ *  leur ordre, dans le narratif `narratif` : d'une référence narrative, chaque entrée du registre qu'elle désigne
+ *  (`entreesNarratives`) ; sinon ceux de son porteur (`FORMULAIRES`) ; `undefined` : ceux du nœud. */
+export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], narratif: NarratifBlock): readonly ChoixDuContexte[] | undefined {
+  const cle = chemin[chemin.length - 1];
+  if (estReferenceNarrative(cle)) return entreesNarratives(narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  return formulaire.choix?.(donnee, chemin, presetDe);
+  return formulaire.choix?.(donnee, chemin, narratif);
 }
 
-/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, les presets résolus par `presetDe` : le champ de tête
- *  de chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
+/** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le narratif `narratif` : le champ de tête de
+ *  chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
  *  contexte : ce qu'il offre sous lui (`cheminOffert`) et ses choix (`choixDuChamp`). */
-export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], presetDe: ResolveurDePreset): FieldDesc[] {
-  const { noeud, champs } = formeDuPorteur(sorte, donnee, presetDe);
+export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], narratif: NarratifBlock): FieldDesc[] {
+  const { noeud, champs } = formeDuPorteur(sorte, donnee, narratif);
   const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud, niveau: 'profondeur' });
-  const contexte: ContexteDuChamp = { offert: (chemin) => cheminOffert(champs, chemin), choix: (chemin) => choixDuChamp(sorte, donnee, chemin, presetDe) };
+  const contexte: ContexteDuChamp = { offert: (chemin) => cheminOffert(champs, chemin), choix: (chemin) => choixDuChamp(sorte, donnee, chemin, narratif) };
   return [...new Set(champs.map(([tete]) => tete))].flatMap((cle) => decrits.filter((f) => f.key === cle)).map((f) => ({ ...f, contexte }));
 }

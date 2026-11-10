@@ -9,7 +9,7 @@
  */
 import { ActionAuthoree, DEFAULT_TERRAIN, emptyScene, Scene, SceneEntity, SceneEffectZone, type SceneStationAnchor, type Dialogue, type DialogueChoice, type Trigger, type EncounterDef, CellSide, EncounterMember, crenellatedAt, heightAt, layerTiles, porteAuteur, secretAuteur, tileAt, sceneMetresPerTile, reposDeScene, WallSeg, WallSide, ArchitectureBody, ArchitectureEdgeRef, ArchitecturePart, type ArchitectureStorey, type FacadeFeature, ArchitectureRect, FacadeSection, BuildingMass, RoofDefaults, ZoneArea } from './monde/scene';
 import { memoByRef } from './monde/sceneMemo';
-import type { ResolveurDePreset } from './monde/resolveursDuNarratif';
+import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { FireArc, AuthoredShipPoste } from '../engine/types';
 import type { Dir8 } from '../geometry/dir8';
 import { EMPTY_FLOW } from '../engine/flowCore';
@@ -32,7 +32,7 @@ import {
 } from './monde/seating';
 import { METRES_PER_LEVEL } from './monde/relief';
 import { entityKindSchema, typeNonNomme, type Terrain, type SceneRoofDefaults, type ReliefDefaults, PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
-import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, videDuNoeud } from './codex/editFields';
+import { champsDeclares, choixDuNoeud, cleOfferte, elementDuNoeud, formeAuPoint, unionDuNoeud, varianteCourante, videDuNoeud, type ChoixDuContexte } from './codex/editFields';
 import { valeurNeuveDe, variantesAChoisir } from './valeursNeuves';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { buildingRoofMaterial } from './monde/buildings';
@@ -47,7 +47,7 @@ import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from 
 import { entitesEnCaseEtage } from './monde/decorIndex';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { sitesDeLaScene } from '../data/schemas/defs-scenes/sites-de-paquet';
-import { cheminOffert, formeDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
+import { cheminOffert, choixDuChamp, formeDuPorteur, type DonneeDuPorteur, type SorteDePorteur, type EntityTool, type Sel, type Tool, EFFECT_ZONE_SEEDS, canonEdge, dansLaCarte, edgeWallState, effectZoneArea, effectZoneRect, empriseDuPinceau, entityAt, selPos, selRect } from './sceneEditLecture';
 import { estObjet } from '../lib/objet.mjs';
 
 export type Rect = { x: number; y: number; w: number; h: number };
@@ -1111,9 +1111,10 @@ export type EcritureDeValeur<T> = { ok: true; valeur: T } | { ok: false; refus: 
 
 /** La donnée `donnee` de l'objet de schéma `objet` où `valeur` s'écrit au chemin `chemin` (`ecrit`), le champ retiré si
  *  elle vaut `undefined`, une liste vidée retirée si son nœud admet l'absence ; ou son refus : un pas que le
- *  formulaire n'offre pas (`noeudDuPas`), une valeur qui n'est pas de la sorte du champ (`admise`). Le schéma entier
- *  ne se vérifie qu'à l'enregistrement et à l'essai. */
-export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown): EcritureDeValeur<Objet> {
+ *  formulaire n'offre pas (`noeudDuPas`), une valeur qui n'est ni l'un des choix admis que le contexte de son porteur y
+ *  pose (`poses`), ni de la sorte du champ (`admise`). Le schéma entier ne se vérifie qu'à l'enregistrement et à
+ *  l'essai. */
+export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Segment[], valeur: unknown, poses: readonly ChoixDuContexte[] = []): EcritureDeValeur<Objet> {
   const noeuds: unknown[] = [];
   let point: unknown = donnee;
   for (const pas of chemin) {
@@ -1125,17 +1126,18 @@ export function avecLaValeur(objet: unknown, donnee: Objet, chemin: readonly Seg
   const dernier = noeuds[noeuds.length - 1];
   if (dernier === undefined) return { ok: false, refus: 'nonOffert' };
   const ecrite = Array.isArray(valeur) && !valeur.length && elementDuNoeud(dernier) !== undefined && retirable(dernier) ? undefined : valeur;
-  if (!admise(dernier, point, ecrite)) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
+  const posee = ecrite !== undefined && poses.some((c) => c.refus === null && jsonCanonique(c.valeur) === jsonCanonique(ecrite));
+  if (!posee && !admise(dernier, point, ecrite)) return { ok: false, refus: valeur === null ? 'illisible' : 'horsSorte' };
   return { ok: true, valeur: ecrit(donnee, chemin, ecrite, (rang) => retirable(noeuds[rang])) as Objet };
 }
 
 /** La donnée `donnee` du porteur de sorte `sorte` où `valeur` s'écrit au chemin `chemin` de son formulaire
- *  (`formeDuPorteur`, les presets résolus par `presetDe` ; `avecLaValeur`), ou son refus : un chemin hors de ses champs
- *  (`cheminOffert`) n'est pas offert. */
-export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, presetDe: ResolveurDePreset): EcritureDeValeur<DonneeDuPorteur[S]> {
-  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, presetDe);
+ *  (`formeDuPorteur`, dans le narratif `narratif` ; `avecLaValeur`, aux choix que son contexte y pose, `choixDuChamp`),
+ *  ou son refus : un chemin hors de ses champs (`cheminOffert`) n'est pas offert. */
+export function avecLaValeurDuPorteur<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], valeur: unknown, narratif: NarratifBlock): EcritureDeValeur<DonneeDuPorteur[S]> {
+  const { noeud, champs: offerts } = formeDuPorteur(sorte, donnee, narratif);
   if (!cheminOffert(offerts, chemin)) return { ok: false, refus: 'nonOffert' };
-  return avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur) as EcritureDeValeur<DonneeDuPorteur[S]>;
+  return avecLaValeur(noeud, donnee as unknown as Objet, chemin, valeur, choixDuChamp(sorte, donnee, chemin, narratif)) as EcritureDeValeur<DonneeDuPorteur[S]>;
 }
 
 /** La liste ou le record `v` d'un patch, `undefined` (son absence, `champ`) quand il est vide ou `null`. */

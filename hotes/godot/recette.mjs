@@ -1533,6 +1533,13 @@ async function parcoursEditeur() {
   e = await editeur()
   noter(`outil Personnage, ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte} ; onglet Combat, « Ajouter : rôle au combat », « Ajouter : options » : premier Trait offert « ${premierTrait.libelle} » ; « ${inspecte(e, 'valeur/combat/randomChars').libelle} » : ${inspecte(e, 'valeur/combat/randomChars').valeurs.find((b) => b.presse).libelle}`)
   await capturer('3606-m1a-1-combat')
+  const ajoutDuProfil = inspecte(e, 'valeur/statblock/ajouter')
+  const profilNeuf = ajoutDuProfil.valeurs[0]
+  await cliquerAuPanneau({ element: `bouton/${profilNeuf.id}` })
+  await waitFor(session, montre('valeur/statblock/char/force'))
+  e = await editeur()
+  noter(`onglet Combat, « ${ajoutDuProfil.libelle} », « ${profilNeuf.libelle} » : ${e.zones['editeur.inspecteur'].filter((l) => l.id.startsWith('valeur/statblock/char/') && l.type === 'formulaire').length} Caractéristiques à écrire`)
+  await capturer('3606-m1b-1-profil')
   await cliquerAuPanneau('Identité')
   const entree = inspecte(e, 'entite/couvre/ajouter').valeurs[0]
   await choisirALaListe('entite/couvre/ajouter', entree.id, 'editeur.inspecteur', montre(`entite/couvre/${entree.jeu.edition.patch.couvre[0]}`))

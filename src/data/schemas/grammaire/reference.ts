@@ -8,7 +8,7 @@ import { libelleDeValeur, nommerChamps, nommerNoeud } from './meta';
 import { z } from 'zod';
 import { caracteristiqueChiffreeSchema, countSpecSchema, difficultySchema, enumNomme, formuleSansTirageSchema, maisonSchema, matiereDArmureSchema, parLocalisationSchema, plageSchema, secondarySourceRefSchema, sizeCategorySchema, sourceRefSchema, varianteDeCibleSchema } from './valeurs';
 import { marquerProduit } from './interne/produits';
-import { idDe, idsDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refMorte, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
+import { idDe, marqueurDeLaForme, messageDeRefusDeSpec, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, refTypee, refusDeSpec } from './ref';
 import { findTraitById, psychologyLabel } from '../../index';
 import { cibleDeLArg, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
@@ -199,19 +199,15 @@ export const optionalSwapSchema = nommerNoeud(nommerChamps(z.strictObject({
  *  l.648), dont `validateScene` juge l'existence. #3045 */
 export const traitPoseDeSceneSchema = poseDeTrait('scene');
 
-/** `TalentRef` (`src/data/index.ts`) — référence + niveau facultatif (« Maîtrise du combat 2 »).
+/** `TalentRef` (`src/data/index.ts`) — référence au catalogue (`idDe`) + niveau facultatif (« Maîtrise du combat 2 »).
  *  Porte UNIQUE de la forme `{id, spec?, times?}` : `creatures`, le statbloc de scène et le profil de
  *  PNJ embarqué en dépendent. Sa spécialisation est jugée par `refusDeSpec` ; la sentinelle y passe
  *  (pas de régime `choix`, #1463 L3), et un Talent sans catalogue porte un texte d'instance (#1621).
  *  Les trois clés sont ÉCRITES, jamais épandues d'un autre schéma : le mesureur de redéclarations lit
  *  les littéraux par AST et ne résout pas un spread — la forme épandue lui présenterait la signature
  *  `times` seule, qu'il attribuerait à ce schéma sur tout littéral à clé `times` unique. */
-export const talentRefSchema = nommerChamps(z.strictObject({ id: z.string(), spec: z.string().optional(), times: z.number().optional() }).superRefine((r, ctx) => {
+export const talentRefSchema = nommerChamps(z.strictObject({ id: idDe('talent', undefined, { nue: true }), spec: z.string().optional(), times: z.number().optional() }).superRefine((r, ctx) => {
   if (r.spec === undefined) return;
-  if (!idsDe('talent').has(r.id)) {
-    ctx.addIssue({ code: 'custom', path: ['id'], message: refMorte('talent', r.id) });
-    return;
-  }
   const refus = refusDeSpec('talent', r.id, r.spec);
   if (refus === null || refus === 'sentinelle' || refus === 'nonSpecialisable') return;
   ctx.addIssue({ code: 'custom', path: ['spec'], message: messageDeRefusDeSpec('talent', r.id, r.spec, refus, false) });

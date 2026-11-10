@@ -597,6 +597,8 @@ export const fr = {
   'ecran.editeur.profil.talents': 'Talents : {liste}',
   'ecran.editeur.profil.possessions': 'Possessions : {liste}',
   'ecran.editeur.profil.aucun': 'aucune',
+  'ecran.editeur.profil.neuf': 'Profil neuf',
+  'ecran.editeur.profil.copie': 'Copie de {fiche}',
   'ecran.editeur.sorts.imprimes': 'Sorts imprimés au profil : {liste}',
   'ecran.editeur.sorts.connus': 'Sorts au combat : {liste}',
   'ecran.editeur.rencontre': 'Rencontre « {id} »',

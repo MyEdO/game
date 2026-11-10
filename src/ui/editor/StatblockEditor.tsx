@@ -20,26 +20,10 @@ import { NumberField } from '../NumberField';
 import { parseSkillRef, parseTalentRef } from '../../data/refFormatLivre';
 import { ListeDIds } from '../compendium/refField/RefField';
 import { customStatblockSchema } from '../../data/schemas/defs-scenes/communs';
+import { statblockDeLaCreature } from '../../data/valeursNeuves';
 
 const EXTRA: { key: 'M'; label: string; def: number }[] = [{ key: 'M', label: 'Mouvement', def: 4 }];
 
-/** Clone une créature du bestiaire en statbloc éditable (base à personnaliser) — par id. */
-function cloneFromCreature(creatureId: string): CustomStatblock | null {
-  const c = findCreatureById(creatureId);
-  if (!c) return null;
-  const char: CustomStatblock['char'] = {};
-  for (const [k, v] of Object.entries(c.char)) if (typeof v === 'number') (char as Record<string, number>)[k] = v;
-  return { type: 'statblock',
-    label: c.label,
-    char,
-    traits: c.traits, // statbloc éditeur = Traits posés (affichés/édités via formatTrait/parseTraitInstance)
-    // PNJ nommés (Eusapia…) : compétences/talents/sorts de la donnée embarqués dans le clone.
-    // CustomStatblock stocke des REFS structurées (comme le bestiaire) — ids, pas libellés (multilangue).
-    ...(c.skills.length ? { skills: c.skills } : {}), // déjà SkillRef[]
-    ...(c.talents.length ? { talents: c.talents } : {}), // déjà TalentRef[]
-    ...(c.spells.length ? { spells: c.spells } : {}),
-  };
-}
 
 export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; stat: CustomStatblock; onChange: (s: CustomStatblock) => void }) {
   const setChar = (k: string, v: number) => onChange({ ...stat, char: { ...stat.char, [k]: v } });
@@ -68,7 +52,8 @@ export function StatblockEditor({ chemin, stat, onChange }: { chemin: string; st
         <select
           value=""
           onChange={(e) => {
-            const base = cloneFromCreature(e.target.value);
+            const c = findCreatureById(e.target.value);
+            const base = c && statblockDeLaCreature(c);
             if (base) onChange({ ...base, label: stat.label || base.label }); // teste la présence d'un libellé saisi, jamais sa valeur : un profil sans libellé propre reprend celui de sa base, y compris quand l'auteur l'a nommé à l'identique
           }}
         >
