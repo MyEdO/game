@@ -352,7 +352,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   const structureStep = (id: string, forcedRoll?: number): CascadeStep => ({
     id, kind: cleDeFixture('stakeSpy'), label: fixtureText('Critique de Structure'), icon: 'nav/dice',
     table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 }, ...(forcedRoll ? { forcedRoll } : {}) },
-    stake: combatStakeRef('structureCritical'),
+    stake: combatStakeRef('structure-critical'),
   });
 
   const ruleOf = (st: CascadeStep) => resolveStake(st.stake!).rule;
@@ -395,7 +395,7 @@ describe('Étape à TABLE — l’enjeu DESCEND à la ligne jouée (#1117)', () 
   it('table SANS catégorie d’entrées : l’enjeu est rendu TEL QUEL (repli déclaré)', () => {
     const st: CascadeStep = {
       id: 'n1', kind: cleDeFixture('stakeSpy'), label: fixtureText('Neutre'), icon: 'nav/dice',
-      table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structureCritical'),
+      table: { tableId: NEUTRE, spec: { n: 1, sides: 100 }, forcedRoll: 50 }, stake: combatStakeRef('structure-critical'),
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
     banc.getState().jetLancer('cascadeTirage', 'n1');

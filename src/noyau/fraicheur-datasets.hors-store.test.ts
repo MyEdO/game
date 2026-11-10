@@ -341,9 +341,9 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('un enjeu de combat ÉDITÉ : la catégorie d’ENTRÉE déclarée suit `stakes`', () => {
     const maladie = maladies[0].id;
-    const ref = () => resolveStake(combatStakeRef('combatEndDisease', { entryId: maladie })).rule;
+    const ref = () => resolveStake(combatStakeRef('combat-end-disease', { entryId: maladie })).rule;
     expect(ref()).toEqual({ category: 'maladies', id: maladie });
-    setDataset('stakes', STAKES.map((e) => (e.cascade === 'combat' && e.cle === 'combatEndDisease' ? { ...e, entryCategory: undefined } : e)));
+    setDataset('stakes', STAKES.map((e) => (e.id === 'combat-end-disease' ? { ...e, entryCategory: undefined } : e)));
     expect(ref(), 'la catégorie d’entrée retirée au Codex reste déclarée').toBeUndefined();
   });
 

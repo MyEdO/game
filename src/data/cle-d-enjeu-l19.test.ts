@@ -1,0 +1,43 @@
+/**
+ * #2968 L19 — l'enjeu d'un jet n'a qu'une identité, son `id` (`stakes.json`, `schemas/defs/stakes.ts`) :
+ * `resolveStake` le résout à `{ dataset: cascade, kind: id }`, et chaque porte typée (`nightStakeRef`,
+ * `voyageStakeRef`, `flowStakeRef`, `combatStakeRef`) ne prend que les ids de SA cascade. Fixtures : enjeu
+ * résolu par son id, enjeu d'une autre famille refusé à la porte, clé inconnue refusée au typecheck, Test
+ * d'équipage sans enjeu refusé au parse.
+ */
+import { describe, expect, it } from 'vitest';
+import { STAKES, combatStakeRef, flowStakeRef, nightStakeRef, resolveStake, voyageStakeRef } from './index';
+import { flowTestSchema } from './schemas/grammaire/mecanique';
+
+const entree = (id: string) => STAKES.find((e) => e.id === id)!;
+
+describe('L19 — un enjeu, une identité : son id', () => {
+  it('chaque porte résout l’enjeu que son id nomme, son gabarit et son foyer', () => {
+    expect(resolveStake(combatStakeRef('combat-fatigue')).text).toBe(entree('combat-fatigue').template);
+    expect(resolveStake(voyageStakeRef('crew-progression')).rule).toEqual({ category: 'regles', id: 'test-equipage-progression' });
+    expect(resolveStake(nightStakeRef('forced-march')).text).toBe(entree('forced-march').template);
+    expect(resolveStake(flowStakeRef('run-roll')).text).toBe(entree('run-roll').template);
+    expect(combatStakeRef('combat-fatigue').key).toEqual({ dataset: 'combat', kind: 'combat-fatigue' });
+  });
+
+  it('une porte de famille refuse l’enjeu d’une autre famille', () => {
+    // @ts-expect-error — `crew-progression` est un enjeu de voyage
+    expect(() => combatStakeRef('crew-progression')).toThrow(/aucune entrée d'enjeu/);
+    // @ts-expect-error — `combat-fatigue` est un enjeu de combat
+    expect(() => nightStakeRef('combat-fatigue')).toThrow(/aucune entrée d'enjeu/);
+    expect(() => resolveStake({ key: { dataset: 'voyage', kind: 'exposure' } })).toThrow(/aucune entrée d'enjeu/);
+  });
+
+  it('une clé qui n’est l’id d’aucun enjeu est refusée au typecheck, puis à la construction', () => {
+    // @ts-expect-error — `enjeu-inconnu` n'est l'id d'aucun enjeu de voyage
+    expect(() => voyageStakeRef('enjeu-inconnu')).toThrow(/aucune entrée d'enjeu/);
+  });
+
+  it('un Test d’équipage de Flow nomme son enjeu : sans lui, il est refusé au parse', () => {
+    const test = { crewTestType: 'affaler', difficulty: 'difficile' };
+    const r = flowTestSchema.safeParse(test);
+    expect(r.success).toBe(false);
+    expect(r.success ? '' : r.error.issues.map((i) => i.message).join(' ')).toMatch(/Test d’équipage SANS enjeu/);
+    expect(flowTestSchema.safeParse({ ...test, stake: voyageStakeRef('crew-affaler') }).success).toBe(true);
+  });
+});

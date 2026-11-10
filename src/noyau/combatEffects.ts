@@ -337,7 +337,7 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
-    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvestCreature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
+    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvest-creature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
     pieces(0),
     parDegre(0),
   ), titre));
@@ -2294,7 +2294,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
           label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
         })),
       },
-      stake: combatStakeRef('waterExposure'),
+      stake: combatStakeRef('water-exposure'),
     });
     return step ? [step] : [];
   });

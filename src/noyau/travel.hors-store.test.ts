@@ -143,8 +143,8 @@ describe('partirEnVoyage — à pied', () => {
     banc.getState().fenetreValider('rest');
     const cas = banc.getState().pendingCascade!;
     // Le jet de marche forcée du jour est une ÉTAPE influençable de la cascade de nuit.
-    expect(cas.participants[0].kind).toBe('forcedMarch');
-    expect(cas.participants.filter((s) => s.kind === 'forcedMarch').length).toBe(1); // 1 héros
+    expect(cas.participants[0].kind).toBe('forced-march');
+    expect(cas.participants.filter((s) => s.kind === 'forced-march').length).toBe(1); // 1 héros
   });
 
   it('route à RELAIS (inns) : la halte de nuit propose l’auberge — chambre privée débitée, puis arrivée', () => {

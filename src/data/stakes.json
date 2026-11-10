@@ -4,7 +4,6 @@
     "type": "stakes",
     "label": "Faim",
     "cascade": "night",
-    "cle": "faim",
     "template": "lorsque vous n'avez plus de nourriture, vous devez effectuer un Test de Résistance tous les deux jours. Sur un premier échec, vous subissez une pénalité de –10 en **Force**  et **Endurance**.",
     "form": "verbatim",
     "source": {
@@ -22,7 +21,6 @@
     "type": "stakes",
     "label": "Soif",
     "cascade": "night",
-    "cle": "soif",
     "template": "chaque jour sans eau nécessite un Test de Résistance. Sur un premier échec, vous subissez une pénalité de -10 en **Intelligence***,*  **Force Mentale** et **Sociabilité**.",
     "form": "verbatim",
     "source": {
@@ -40,7 +38,6 @@
     "type": "stakes",
     "label": "Récupération",
     "cascade": "night",
-    "cle": "recovery",
     "template": "Vous guérissez un nombre de Points de Blessure équivalent à votre DR + Bonus d'Endurance.",
     "form": "verbatim",
     "source": {
@@ -58,7 +55,6 @@
     "type": "stakes",
     "label": "Cauchemars",
     "cascade": "night",
-    "cle": "nightmare",
     "template": "Échec : État *Exténué*.",
     "source": {
       "book": "livre-de-base",
@@ -76,7 +72,6 @@
     "type": "stakes",
     "label": "Abri de fortune",
     "cascade": "night",
-    "cle": "shelter",
     "template": "Si le Test échoue, vous devez faire un Test de **Résistance Intermédiaire (+0)** ou recevoir l'État *Exténué*.",
     "form": "verbatim",
     "source": {
@@ -94,7 +89,6 @@
     "type": "stakes",
     "label": "Exposition",
     "cascade": "night",
-    "cle": "exposure",
     "template": "**Chaleur :** sur un premier échec, vous subissez une pénalité de -10 en **Intelligence** et en **Force Mentale**, et vous gagnez un État *Exténué*.\n\n**Froid :** sur un premier échec, vous subissez une pénalité de -10 à votre Compétence de **CT**, à votre **Agilité** et votre **Dextérité**.",
     "form": "verbatim",
     "source": {
@@ -112,7 +106,6 @@
     "type": "stakes",
     "label": "Possession lourde (délestage)",
     "cascade": "night",
-    "cle": "exposure-heat-drop",
     "template": "Vous débarrasser d'une Possession lourde annule 1 Test échoué.",
     "form": "verbatim",
     "source": {
@@ -130,7 +123,6 @@
     "type": "stakes",
     "label": "Marche forcée",
     "cascade": "night",
-    "cle": "forcedMarch",
     "template": "S'il voyage plus rapidement ou plus loin, donnez un État *Exténué* à ceux échouant à ce Test, et un État *Exténué* supplémentaire si le Personnage est Encombré",
     "form": "verbatim",
     "source": {
@@ -148,7 +140,6 @@
     "type": "stakes",
     "label": "Convalescence (fracture)",
     "cascade": "night",
-    "cle": "traumaFracture",
     "template": "À la fin de cette période, un succès obtenu sur un Test de **Résistance Accessible (+20)** indique que l'os s'est remis correctement et que vous ne subirez aucun effet à long terme.",
     "form": "verbatim",
     "source": {
@@ -166,7 +157,6 @@
     "type": "stakes",
     "label": "Maladie — Test quotidien",
     "cascade": "night",
-    "cle": "diseaseTick",
     "template": "Échec : la conséquence du symptôme joué s’applique.",
     "source": {
       "book": "livre-de-base",
@@ -184,7 +174,6 @@
     "type": "stakes",
     "label": "Gangrène",
     "cascade": "night",
-    "cle": "diseaseGangrene",
     "template": "Chaque jour, effectuez un Test de **Résistance Accessible (+20)**. Sur un succès, la *Gangrène* est contenue. Sur un échec, elle empire.",
     "form": "verbatim",
     "source": {
@@ -202,7 +191,6 @@
     "type": "stakes",
     "label": "Fin de Maladie (Persistance)",
     "cascade": "night",
-    "cle": "diseasePersist",
     "template": "Sur un échec Minime (0), rajoutez 1d10 jours à la durée. Sur un échec (-2), vous subissez une *Blessure Purulente*. Sur un échec Stupéfiant (-6), vous développez *Infection du sang*.",
     "form": "verbatim",
     "source": {
@@ -220,7 +208,6 @@
     "type": "stakes",
     "label": "Contagion",
     "cascade": "night",
-    "cle": "contagion",
     "template": "Tout Personnage se trouvant dans votre environnement immédiat s'expose à la maladie dont vous êtes porteur et doit effectuer un Test pour en éviter la Contraction une fois par heure entamée d'exposition.",
     "form": "verbatim",
     "source": {
@@ -238,7 +225,6 @@
     "type": "stakes",
     "label": "Dessoûlage",
     "cascade": "night",
-    "cle": "dessoulage",
     "template": "Les effets de l'ivresse se dissiperont après 10-DR heures, et tous les modificateurs de Caractéristiques disparaîtront après ce délai.",
     "form": "verbatim",
     "source": {
@@ -256,7 +242,6 @@
     "type": "stakes",
     "label": "Gueule de bois",
     "cascade": "night",
-    "cle": "dessoulageHangover",
     "template": "Vous avez à présent la gueule de bois, qui correspond à l'État *Exténué* et ne peut pas être retiré pendant 5 – DR heures.",
     "form": "verbatim",
     "source": {
@@ -274,7 +259,6 @@
     "type": "stakes",
     "label": "Réparation du gréement",
     "cascade": "voyage",
-    "cle": "riverControlRepair",
     "template": "Réussi : malus de Navigation levés ({driftPenalty} dérive, {outOfControlPenalty} hors de contrôle).",
     "form": "descripteur",
     "source": {
@@ -292,7 +276,6 @@
     "type": "stakes",
     "label": "Navigation de l’étape",
     "cascade": "voyage",
-    "cle": "riverNav",
     "template": "Échec : dérive {driftKm} km en aval ({driftPct} % de la vitesse).",
     "form": "descripteur",
     "source": {
@@ -310,7 +293,6 @@
     "type": "stakes",
     "label": "Louvoyage",
     "cascade": "voyage",
-    "cle": "riverTack",
     "template": "Réussi : +{windPct} % de vitesse ; échec : +0 %.",
     "form": "descripteur",
     "source": {
@@ -328,7 +310,6 @@
     "type": "stakes",
     "label": "Retirer la voile (chavirage)",
     "cascade": "voyage",
-    "cle": "riverCapsize",
     "template": "Échec : chavirage — {rounds} Test(s) de redressement, puis naufrage.",
     "form": "descripteur",
     "source": {
@@ -346,7 +327,6 @@
     "type": "stakes",
     "label": "Préserver le gréement",
     "cascade": "voyage",
-    "cle": "riverRigging",
     "template": "Échec : Coup Critique au gréement, dérive hors de contrôle ({outOfControlPenalty} en Navigation).",
     "form": "descripteur",
     "source": {
@@ -364,7 +344,6 @@
     "type": "stakes",
     "label": "Redressement du bateau",
     "cascade": "voyage",
-    "cle": "riverRighting",
     "template": "Réussi : bateau redressé. Échec : Round suivant à {nextPenalty}, naufrage après le Round {rounds}.",
     "form": "descripteur",
     "source": {
@@ -382,7 +361,6 @@
     "type": "stakes",
     "label": "Évitement d’un péril",
     "cascade": "voyage",
-    "cle": "riverPerilNav",
     "template": "Échec : {hits} coup(s) à la coque, {damagePerHit} Dégâts par coup.",
     "form": "descripteur",
     "source": {
@@ -396,7 +374,6 @@
     "type": "stakes",
     "label": "Détection d’un péril",
     "cascade": "voyage",
-    "cle": "riverPerilDetect",
     "template": "Échec : {damage} Dégâts à la coque.",
     "form": "descripteur",
     "source": {
@@ -410,7 +387,6 @@
     "type": "stakes",
     "label": "Calfatage d’urgence",
     "cascade": "voyage",
-    "cle": "riverHoleRepair",
     "template": "Échec : le bateau coule dans {minutes} min.",
     "form": "descripteur",
     "source": {
@@ -428,7 +404,6 @@
     "type": "stakes",
     "label": "Renflouage",
     "cascade": "voyage",
-    "cle": "riverEchouageForce",
     "template": "Échec : le bateau reste échoué (aucune progression).",
     "form": "descripteur",
     "source": {
@@ -446,7 +421,6 @@
     "type": "stakes",
     "label": "Survitesse",
     "cascade": "voyage",
-    "cle": "sea-overspeed",
     "template": "Survitesse M+{overM} — {damage} Dégât(s) de coque par Test raté.",
     "form": "descripteur",
     "source": {
@@ -460,7 +434,6 @@
     "type": "stakes",
     "label": "Salissures",
     "cascade": "voyage",
-    "cle": "sea-salissures",
     "template": "Échec : la coque gagne un niveau de Salissures.",
     "form": "descripteur",
     "rule": {
@@ -478,7 +451,6 @@
     "type": "stakes",
     "label": "Forcer le rythme",
     "cascade": "voyage",
-    "cle": "sea-force-pace",
     "template": "Réussi : +{paceM} M aujourd’hui ; Test d’Épuisement au soir dans les deux cas.",
     "form": "descripteur",
     "source": {
@@ -492,7 +464,6 @@
     "type": "stakes",
     "label": "Épuisement",
     "cascade": "voyage",
-    "cle": "sea-epuisement",
     "template": "Échec : +1 État {condition}.",
     "form": "descripteur",
     "source": {
@@ -506,7 +477,6 @@
     "type": "stakes",
     "label": "Scorbut",
     "cascade": "voyage",
-    "cle": "sea-scorbut",
     "template": "Échec : contracte {disease}.",
     "form": "descripteur",
     "source": {
@@ -520,7 +490,6 @@
     "type": "stakes",
     "label": "Mal de mer",
     "cascade": "voyage",
-    "cle": "sea-mal-de-mer",
     "template": "Échec : contracte {disease}.",
     "form": "descripteur",
     "source": {
@@ -534,7 +503,6 @@
     "type": "stakes",
     "label": "Tonneau d’eau contaminé",
     "cascade": "voyage",
-    "cle": "sea-tonneau-expose",
     "template": "Échec : contracte {disease}.",
     "form": "descripteur",
     "source": {
@@ -548,7 +516,6 @@
     "type": "stakes",
     "label": "Tonneau d’eau",
     "cascade": "voyage",
-    "cle": "sea-tonneau-contamine",
     "template": "Échec : le tonneau passe à l’état contaminé ({disease}) — chaque buveur y testera ensuite sa Résistance.",
     "form": "descripteur",
     "source": {
@@ -562,7 +529,6 @@
     "type": "stakes",
     "label": "Exposition",
     "cascade": "voyage",
-    "cle": "exposure",
     "template": "Échec : −10 en {chars} ; 2ᵉ échec : toutes les autres ; 3ᵉ+ : 1d10 Dégâts (ignorent les PA).",
     "form": "descripteur",
     "rule": {
@@ -580,7 +546,6 @@
     "type": "stakes",
     "label": "Dégagement du navire",
     "cascade": "voyage",
-    "cle": "sea-degagement",
     "template": "Échec : le navire reste bloqué (aucune progression ce jour).",
     "form": "descripteur",
     "source": {
@@ -594,7 +559,6 @@
     "type": "stakes",
     "label": "Dégagement des Débris marins",
     "cascade": "voyage",
-    "cle": "sea-degagement-debris",
     "template": "Test étendu : tant que le total de {targetDR} DR n'est pas atteint, le navire reste empêtré.",
     "form": "descripteur",
     "rule": {
@@ -612,7 +576,6 @@
     "type": "stakes",
     "label": "Progression du bateau",
     "cascade": "voyage",
-    "cle": "progression",
     "template": "Le total de DR fixe les milles parcourus aujourd'hui.",
     "form": "descripteur",
     "rule": {
@@ -630,7 +593,6 @@
     "type": "stakes",
     "label": "Orientation du jour",
     "cascade": "voyage",
-    "cle": "orientation",
     "template": "Le total de DR se lit à la table des Repères : du cap tenu à la dérive, qui déclenche un Changement de cap (retard, demi-tour ou quart de tour).",
     "form": "descripteur",
     "rule": {
@@ -648,7 +610,6 @@
     "type": "stakes",
     "label": "Feu du phare",
     "cascade": "voyage",
-    "cle": "phare",
     "template": "Réussi : la lumière repérée donne un bonus de DR au Test d'Orientation.",
     "form": "descripteur",
     "rule": {
@@ -666,7 +627,6 @@
     "type": "stakes",
     "label": "Vigie avant l’abordage",
     "cascade": "voyage",
-    "cle": "embuscade",
     "template": "Échoué : le navire hostile aborde par Surprise.",
     "form": "descripteur",
     "rule": {
@@ -684,7 +644,6 @@
     "type": "stakes",
     "label": "Purge de la vermine",
     "cascade": "voyage",
-    "cle": "extermination",
     "template": "Test étendu : les DR s'accumulent jusqu'au seuil d'infestation, et chaque Test consomme 1d10 heures.",
     "form": "descripteur",
     "rule": {
@@ -702,7 +661,6 @@
     "type": "stakes",
     "label": "Entretien du soir",
     "cascade": "voyage",
-    "cle": "entretien",
     "template": "Le Test subit −2 DR ; à +1 DR ou mieux, la coque récupère 1d10 Blessures.",
     "form": "descripteur",
     "rule": {
@@ -720,7 +678,6 @@
     "type": "stakes",
     "label": "Affaler les voiles",
     "cascade": "voyage",
-    "cle": "affaler",
     "template": "Échoué : Coup Critique au gréement.",
     "form": "descripteur",
     "rule": {
@@ -738,7 +695,6 @@
     "type": "stakes",
     "label": "Affaler sous l’ouragan",
     "cascade": "voyage",
-    "cle": "sea-ouragan-affaler",
     "template": "L’équipage affale sous l’Ouragan : échoué, le vaisseau subit les Coups Critiques au Gréement que l’événement chiffre.",
     "form": "descripteur",
     "rule": {
@@ -756,7 +712,6 @@
     "type": "stakes",
     "label": "Rude épreuve du long voyage",
     "cascade": "voyage",
-    "cle": "voyage-rapide",
     "template": "Le total de DR entre dans le tirage du voyage rapide : il décide du palier subi (équipage, cargaison, coque).",
     "form": "descripteur",
     "rule": {
@@ -774,7 +729,6 @@
     "type": "stakes",
     "label": "Manche de Poursuite",
     "cascade": "voyage",
-    "cle": "poursuite",
     "template": "Le total de DR décide du terrain gagné ou perdu : à la Distance d'évasion le poursuivant abandonne, à zéro c'est l'abordage.",
     "form": "descripteur",
     "rule": {
@@ -792,7 +746,6 @@
     "type": "stakes",
     "label": "Manche de Tourbillon",
     "cascade": "voyage",
-    "cle": "tourbillon",
     "template": "La coque encaisse les Dégâts du Tourbillon à chaque manche ; les DR s'accumulent jusqu'au seuil d'évasion.",
     "form": "descripteur",
     "rule": {
@@ -810,7 +763,6 @@
     "type": "stakes",
     "label": "Progression — Test de Navigation",
     "cascade": "voyage",
-    "cle": "sea-progression-nav",
     "template": "Le DR se lit au tableau de progression : de M+2 (4 DR ou plus) à la moitié de M (−5 ou moins).",
     "form": "descripteur",
     "rule": {
@@ -828,7 +780,6 @@
     "type": "stakes",
     "label": "Péripéties de la route — le dé du jour",
     "cascade": "voyage",
-    "cle": "landPeril",
     "template": "Sur un résultat de {seuil}, un événement survient et se tire sur la table des Péripéties ; sinon, aucune péripétie ce jour-là.",
     "form": "descripteur",
     "rule": {
@@ -846,7 +797,6 @@
     "type": "stakes",
     "label": "Table des péripéties",
     "cascade": "voyage",
-    "cle": "landPerilTable",
     "template": "La péripétie du jour : l'événement tiré s'applique au groupe, et appelle parfois un Test.",
     "form": "descripteur",
     "rule": {
@@ -864,7 +814,6 @@
     "type": "stakes",
     "label": "Rencontre de l'Étape",
     "cascade": "voyage",
-    "cle": "stageEncounter",
     "template": "La Rencontre de l'Étape : l'entrée tirée sur la table de sa catégorie arrive au groupe.",
     "form": "descripteur",
     "rule": {
@@ -882,7 +831,6 @@
     "type": "stakes",
     "label": "Voyage éreintant — itinéraire de substitution",
     "cascade": "voyage",
-    "cle": "landPerilSurvie",
     "template": "Réussi : un bon itinéraire de substitution est trouvé. Échec : tout le monde arrive un jour plus tard avec un État Exténué.",
     "form": "descripteur",
     "rule": {
@@ -900,7 +848,6 @@
     "type": "stakes",
     "label": "Attaqués ! — repérer l'embuscade",
     "cascade": "voyage",
-    "cle": "landPerilPerception",
     "template": "Réussi : l'attaque est vue venir, personne n'est Surpris. Échec : le groupe tombe dans l'embuscade.",
     "form": "descripteur",
     "rule": {
@@ -918,7 +865,6 @@
     "type": "stakes",
     "label": "Attelage à l'allure forcée",
     "cascade": "voyage",
-    "cle": "landForcedPace",
     "template": "Échec : les animaux repassent au pas et chacun teste sa Résistance ou gagne un État Exténué — Échec Impressionnant ou pire de la bête : un État Exténué supplémentaire ; Échec Stupéfiant de la bête : 1d10 Blessures en plus (modifiées par le Bonus d'Endurance, minimum 1). Échec Stupéfiant (−6 DR) du conducteur : tirage sur les Problèmes de véhicule.",
     "form": "descripteur",
     "rule": {
@@ -936,7 +882,6 @@
     "type": "stakes",
     "label": "Attelage incontrôlable — reprendre le contrôle",
     "cascade": "voyage",
-    "cle": "landForcedPaceControl",
     "template": "Réussi : l'attelage est maîtrisé. Échec : Accident — 2d10 Blessures aux occupants, modifiées par le Bonus d'Endurance et les Points d'Armure (minimum 1).",
     "form": "descripteur",
     "rule": {
@@ -954,7 +899,6 @@
     "type": "stakes",
     "label": "Naufrage — rejoindre la côte",
     "cascade": "voyage",
-    "cle": "shipwreckSwim",
     "template": "Réussi : le nageur rejoint la côte, rescapé. Échec : emporté par les flots — il se noie.",
     "form": "descripteur",
     "rule": {
@@ -972,7 +916,6 @@
     "type": "stakes",
     "label": "Embrigadement — retrouver l'équipage",
     "cascade": "voyage",
-    "cle": "sea-embrigadement-ragot",
     "template": "Réussi : la trace des embrigadés est retrouvée, reste à les libérer. Échec : l'autre navire prend la mer — 1d10 membres d'équipage de plus perdus.",
     "form": "descripteur",
     "rule": {
@@ -990,7 +933,6 @@
     "type": "stakes",
     "label": "Embrigadement — libérer en douce",
     "cascade": "voyage",
-    "cle": "sea-embrigadement-discretion",
     "template": "Réussi : les compagnons sont libérés dans l'ombre. Échec : repéré — 1d10 membres d'équipage de plus perdus.",
     "form": "descripteur",
     "rule": {
@@ -1008,7 +950,6 @@
     "type": "stakes",
     "label": "Présage divin — Prière à Manann",
     "cascade": "voyage",
-    "cle": "sea-priere",
     "template": "Le présage se joue sur ce Test : un présage favorable ne s'obtient qu'en réussissant, un présage funeste ne s'évite qu'ainsi.",
     "form": "descripteur",
     "rule": {
@@ -1026,7 +967,6 @@
     "type": "stakes",
     "label": "Repérer le passager clandestin",
     "cascade": "voyage",
-    "cle": "sea-passager-clandestin",
     "template": "Repéré, le passager clandestin l’est avant de repartir ; sinon, sa présence se découvre en voyage.",
     "form": "descripteur",
     "rule": {
@@ -1044,7 +984,6 @@
     "type": "stakes",
     "label": "Contrôle à quai — suborner le superviseur",
     "cascade": "voyage",
-    "cle": "sea-controle-subornation",
     "template": "Réussi : un pot-de-vin de 2d10 CO peut faire « perdre » les formulaires. Échec : restent les droits de douane, ou la saisie de la cargaison.",
     "form": "descripteur",
     "rule": {
@@ -1062,7 +1001,6 @@
     "type": "stakes",
     "label": "Météo de l'Étape",
     "cascade": "voyage",
-    "cle": "stageWeather",
     "template": "Le temps de l'Étape : il commande le Test de Résistance de traversée (Neige/Blizzard) et les postes praticables du jour.",
     "form": "descripteur",
     "rule": {
@@ -1080,7 +1018,6 @@
     "type": "stakes",
     "label": "Événement de bord",
     "cascade": "voyage",
-    "cle": "seaBoardEvent",
     "template": "Ce que le d100 décide pour la journée : l'événement de bord appliqué au navire — l'Humeur de Manann en est le modificateur — puis le délai de 1d10 jours avant le prochain.",
     "form": "descripteur",
     "rule": {
@@ -1098,7 +1035,6 @@
     "type": "stakes",
     "label": "Chute volontaire — le choix",
     "cascade": "flow",
-    "cle": "fall-choice",
     "template": "Sauter : chute pleine de {metres} m. Tenter : le Test, 1 m de chute en moins par DR.",
     "form": "descripteur",
     "rule": {
@@ -1116,7 +1052,6 @@
     "type": "stakes",
     "label": "Chute volontaire — le Test",
     "cascade": "flow",
-    "cle": "fall-roll",
     "template": "Chute de {metres} m, réduite d’1 m par DR — 3 Dégâts par mètre restant +1d10, réduits par le Bonus d’Endurance et non par les PA ; plus de PB perdus que le Bonus d’Endurance ⇒ État À Terre.",
     "form": "descripteur",
     "rule": {
@@ -1134,7 +1069,6 @@
     "type": "stakes",
     "label": "Course",
     "cascade": "flow",
-    "cle": "run-roll",
     "template": "Distance de Course = Mouvement de Course + DR en mètres, en plus du Mouvement du Round (un DR négatif la raccourcit).",
     "form": "descripteur",
     "rule": {
@@ -1152,7 +1086,6 @@
     "type": "stakes",
     "label": "Désengagement — le menu",
     "cascade": "flow",
-    "cle": "disengage-choice",
     "template": "Sans désengagement, tu restes Engagé.",
     "form": "descripteur",
     "rule": {
@@ -1170,7 +1103,6 @@
     "type": "stakes",
     "label": "Désengagement — sacrifier l’Avantage",
     "cascade": "flow",
-    "cle": "disengage-sacrifice",
     "template": "Avantage ramené à 0 : tu t’éloignes de ton adversaire sans pénalité.",
     "form": "descripteur",
     "rule": {
@@ -1188,7 +1120,6 @@
     "type": "stakes",
     "label": "Désengagement — Retraite stratégique",
     "cascade": "flow",
-    "cle": "disengage-retraite",
     "template": "{cout} Avantage(s) de la réserve du camp : tu t’éloignes de tes adversaires sans pénalité.",
     "form": "descripteur",
     "rule": {
@@ -1206,7 +1137,6 @@
     "type": "stakes",
     "label": "Désengagement — Esquive",
     "cascade": "flow",
-    "cle": "disengage-esquive",
     "template": "Test opposé d’Esquive contre le Corps à corps de l’adversaire — gagné : tu quittes le corps à corps ; perdu : tu restes Engagé. L’Action est dépensée dans les deux cas.",
     "form": "descripteur",
     "rule": {
@@ -1224,7 +1154,6 @@
     "type": "stakes",
     "label": "Désengagement — Fuite",
     "cascade": "flow",
-    "cle": "disengage-fuir",
     "template": "L’adversaire gagne +1 Avantage et une attaque gratuite de Corps à corps non opposée, +20 (dos tourné). Touché : +1 Avantage de plus, et un Test — échec = État Brisé, +1 par DR sous 0. Puis Course dans la direction opposée, si tu en es encore capable (pas À Terre).",
     "form": "descripteur",
     "rule": {
@@ -1242,7 +1171,6 @@
     "type": "stakes",
     "label": "Au contact — le Test",
     "cascade": "flow",
-    "cle": "au-contact-roll",
     "template": "Test opposé de Corps à corps : le vainqueur choisit si le combat continue normalement ou « au contact ».",
     "form": "descripteur",
     "rule": {
@@ -1260,7 +1188,6 @@
     "type": "stakes",
     "label": "Au contact — le choix du vainqueur",
     "cascade": "flow",
-    "cle": "au-contact-choice",
     "template": "Au contact : toute arme plus longue que Courte est traitée comme une Arme improvisée, pour les deux camps.",
     "form": "descripteur",
     "rule": {
@@ -1278,7 +1205,6 @@
     "type": "stakes",
     "label": "Influence corruptrice mineure",
     "cascade": "flow",
-    "cle": "corruption-mineure",
     "template": "Échec : 1 Point de Corruption. Réussite : aucun.",
     "form": "descripteur",
     "rule": {
@@ -1296,7 +1222,6 @@
     "type": "stakes",
     "label": "Influence corruptrice modérée",
     "cascade": "flow",
-    "cle": "corruption-moderee",
     "template": "Échec : 2 Points de Corruption. Réussite de 0-1 DR : 1. Réussite de 2 DR ou plus : aucun.",
     "form": "descripteur",
     "rule": {
@@ -1314,7 +1239,6 @@
     "type": "stakes",
     "label": "Influence corruptrice majeure",
     "cascade": "flow",
-    "cle": "corruption-majeure",
     "template": "Échec : 3 Points de Corruption. Réussite de 0-1 DR : 2. De 2-3 DR : 1. De 4 DR ou plus : aucun.",
     "form": "descripteur",
     "rule": {
@@ -1332,7 +1256,6 @@
     "type": "stakes",
     "label": "Seuil de Corruption",
     "cascade": "flow",
-    "cle": "corruption-seuil",
     "template": "Réussi : la Corruption est contenue, pour cette fois. Raté : une mutation est tirée — la Résilience « Je te renie ! » peut encore l’éviter.",
     "form": "descripteur",
     "rule": {
@@ -1350,7 +1273,6 @@
     "type": "stakes",
     "label": "Dissipation permanente",
     "cascade": "flow",
-    "cle": "dispel-roll",
     "template": "Test étendu de Langue (Magick) : le DR cumule d’un Round à l’autre ; à {ni} DR cumulés, le Sort est dissipé.",
     "form": "descripteur",
     "rule": {
@@ -1368,7 +1290,6 @@
     "type": "stakes",
     "label": "Bénédiction de Protection",
     "cascade": "flow",
-    "cle": "ward-roll",
     "template": "Réussi : l’attaque sur la cible bénie a lieu. Raté : elle n’a pas lieu — il faut choisir une autre cible ou une autre Action.",
     "form": "descripteur",
     "rule": {
@@ -1386,7 +1307,6 @@
     "type": "stakes",
     "label": "Fuite de vapeur — sauvegarde d’Initiative",
     "cascade": "flow",
-    "cle": "steam-save-roll",
     "template": "Raté : ébouillanté — 1d10−5 Dégâts (1 minimum), qui ignorent l’Armure.",
     "form": "descripteur",
     "rule": {
@@ -1404,7 +1324,6 @@
     "type": "stakes",
     "label": "Entrée en Frénésie",
     "cascade": "flow",
-    "cle": "frenzy-roll",
     "template": "Réussi : tu entres en Frénésie — immunisé aux autres Traits Psychologiques, aucune fuite ni retraite, déplacement maximal vers l’ennemi le plus proche pour l’attaquer.",
     "form": "descripteur",
     "rule": {
@@ -1422,7 +1341,6 @@
     "type": "stakes",
     "label": "Rechargement",
     "cascade": "flow",
-    "cle": "reload-roll",
     "template": "Test étendu de Projectiles : le DR cumule vers l’Indice {indice} de Recharge ; atteint, l’arme est chargée. Interrompu, le cumul repart de zéro.",
     "form": "descripteur",
     "rule": {
@@ -1440,7 +1358,6 @@
     "type": "stakes",
     "label": "Battement",
     "cascade": "flow",
-    "cle": "battement-roll",
     "template": "Test de Corps à corps NON opposé — réussi : l’adversaire perd 1 Avantage, et 1 de plus par DR.",
     "form": "descripteur",
     "rule": {
@@ -1458,7 +1375,6 @@
     "type": "stakes",
     "label": "Distraire",
     "cascade": "flow",
-    "cle": "distraire-roll",
     "template": "Test opposé Athlétisme contre Calme — réussi : l’adversaire ne gagne pas d’Avantage jusqu’à la fin du prochain Round.",
     "form": "descripteur",
     "rule": {
@@ -1476,7 +1392,6 @@
     "type": "stakes",
     "label": "Chirurgie — une passe",
     "cascade": "flow",
-    "cle": "surgery-roll",
     "template": "Test étendu de Guérison : le DR cumule vers {targetDR}. Chaque passe coûte au patient 1d10 Blessures et 1 État Hémorragique.",
     "form": "descripteur",
     "rule": {
@@ -1494,7 +1409,6 @@
     "type": "stakes",
     "label": "Évaluation",
     "cascade": "flow",
-    "cle": "appraise-evaluate",
     "template": "Réussi : la valeur de l’objet est estimée à ±10 % et ses qualités cachées sont révélées.",
     "form": "descripteur",
     "rule": {
@@ -1512,7 +1426,6 @@
     "type": "stakes",
     "label": "Détection d’artefact",
     "cascade": "flow",
-    "cle": "appraise-detect",
     "template": "Réussi : l’objet est senti magique, et chaque DR en apprend une règle. Une seule tentative par artefact.",
     "form": "descripteur",
     "rule": {
@@ -1530,7 +1443,6 @@
     "type": "stakes",
     "label": "Détection",
     "cascade": "flow",
-    "cle": "perception-detect",
     "template": "Réussi : un détail dissimulé des lieux est remarqué. Une seule tentative.",
     "form": "descripteur",
     "rule": {
@@ -1548,7 +1460,6 @@
     "type": "stakes",
     "label": "Soin de Blessures",
     "cascade": "flow",
-    "cle": "heal-wounds",
     "template": "Réussi : le patient regagne Bonus d’Intelligence + DR Points de Blessure ; il ne bénéficie que d’un jet de Guérison par rencontre. Échec Stupéfiant : Infection Mineure.",
     "form": "descripteur",
     "rule": {
@@ -1566,7 +1477,6 @@
     "type": "stakes",
     "label": "Soin de Blessures sous Bandages",
     "cascade": "flow",
-    "cle": "heal-wounds-bandages",
     "template": "Réussi : le patient regagne Bonus d’Intelligence + DR Points de Blessure, et aucune Infection ne se développera suite à la blessure ; il ne bénéficie que d’un jet de Guérison par rencontre. Réussi ou non : une unité de Bandages s’use, et le patient reçoit une Aide Médicale. Échec Stupéfiant : Infection Mineure.",
     "form": "descripteur",
     "rule": {
@@ -1584,7 +1494,6 @@
     "type": "stakes",
     "label": "Arrêt d’Hémorragie",
     "cascade": "flow",
-    "cle": "heal-bleed",
     "template": "Réussi : 1 État Hémorragique retiré, et 1 de plus par DR.",
     "form": "descripteur",
     "rule": {
@@ -1602,7 +1511,6 @@
     "type": "stakes",
     "label": "Arrêt d’Hémorragie sous Bandages",
     "cascade": "flow",
-    "cle": "heal-bleed-bandages",
     "template": "Réussi : 1 État Hémorragique retiré, 1 de plus par DR, et 1 de plus pour les Bandages. Réussi ou non : une unité de Bandages s’use, et le patient reçoit une Aide Médicale.",
     "form": "descripteur",
     "rule": {
@@ -1620,7 +1528,6 @@
     "type": "stakes",
     "label": "Arrêt d’Hémorragie à la Dextérité",
     "cascade": "flow",
-    "cle": "heal-bleed-dexterite",
     "template": "Réussi : 1 État Hémorragique retiré. Réussi ou non : une unité de Bandages s’use, et le patient reçoit une Aide Médicale.",
     "form": "descripteur",
     "rule": {
@@ -1638,7 +1545,6 @@
     "type": "stakes",
     "label": "Soin d’une déchirure",
     "cascade": "flow",
-    "cle": "heal-trauma",
     "template": "Le jet est consommé, réussi ou non — une seule fois par séquelle. Réussi sur une déchirure mineure : convalescence raccourcie d’1 jour + 1 par DR ; sur une déchirure majeure, la Guérison ne fait que diagnostiquer le délai restant.",
     "form": "descripteur",
     "rule": {
@@ -1656,7 +1562,6 @@
     "type": "stakes",
     "label": "Retrait d’une munition logée",
     "cascade": "flow",
-    "cle": "heal-ammo",
     "template": "Réussi : 1 munition logée retirée. Raté : elle reste.",
     "form": "descripteur",
     "rule": {
@@ -1674,7 +1579,6 @@
     "type": "stakes",
     "label": "Chanson de marin",
     "cascade": "flow",
-    "cle": "shanty-roll",
     "template": "Test de Divertissement (Chant) — réussi : l’effet de la chanson porte sur tout l’équipage trois minutes, plus une minute par DR.",
     "form": "descripteur",
     "rule": {
@@ -1693,7 +1597,6 @@
     "type": "stakes",
     "label": "Sauvetage par le Destin — refus",
     "cascade": "flow",
-    "cle": "fate-save-choice",
     "template": "Sans sacrifice, le héros meurt.",
     "form": "descripteur",
     "rule": {
@@ -1711,7 +1614,6 @@
     "type": "stakes",
     "label": "Sauvetage par le Destin — Meurs un autre jour",
     "cascade": "flow",
-    "cle": "fate-save-survive",
     "template": "Le héros survit, mais ne prend plus part à la rencontre.",
     "form": "descripteur",
     "rule": {
@@ -1729,7 +1631,6 @@
     "type": "stakes",
     "label": "Sauvetage par le Destin — Comment ça a pu rater ?",
     "cascade": "flow",
-    "cle": "fate-save-negate",
     "template": "Les Dégâts sont évités : le héros poursuit ce qu’il faisait sans subir aucune pénalité, sans certitude de survie.",
     "form": "descripteur",
     "rule": {
@@ -1747,7 +1648,6 @@
     "type": "stakes",
     "label": "Test d’équipage",
     "cascade": "flow",
-    "cle": "crew-test-roll",
     "template": "Les DR de tous les rôles tenus se somment, le rôle essentiel comptant double ; le total décide de la réussite du Test d’équipage.",
     "form": "descripteur",
     "entryCategory": "crewTestTypes",
@@ -1762,7 +1662,6 @@
     "type": "stakes",
     "label": "Rééducation d’un membre — une passe",
     "cascade": "flow",
-    "cle": "surgery-recovery",
     "template": "Test étendu de Guérison Accessible (+20) : le DR cumule vers {targetDR}, sans aucun dégât pour le patient. Cible atteinte : l’usage du membre est rendu, au prix d’une pénalité de −10 aux Tests qui l’impliquent pendant 1d10 jours (Mouvement de moitié pour une jambe). Arrêter : le cumul est perdu.",
     "form": "descripteur",
     "rule": {
@@ -1780,7 +1679,6 @@
     "type": "stakes",
     "label": "Test étendu — un Round",
     "cascade": "flow",
-    "cle": "extended-test-roll",
     "template": "Le DR de chaque Round s’ajoute au total jusqu’à la cible ; un total passé sous 0 repart de zéro. Cible atteinte : la tâche aboutit et ce qu’elle gardait fermé s’ouvre. Renoncer reste possible à chaque Round — le cumul est alors perdu.",
     "form": "descripteur",
     "rule": {
@@ -1798,7 +1696,6 @@
     "type": "stakes",
     "label": "Les dés de l’étal",
     "cascade": "flow",
-    "cle": "etal-lot",
     "template": "Ce que l’étal aura : présence d’un marchand, cargaisons proposées, leur quantité et leur prix de base — un dé par ligne, tous posables avant l’ouverture.",
     "form": "descripteur",
     "source": {
@@ -1816,7 +1713,6 @@
     "type": "stakes",
     "label": "Contraction d’une maladie",
     "cascade": "combat",
-    "cle": "combatEndDisease",
     "template": "Échec : la maladie est contractée — incubation, puis ses symptômes. Réussite : aucune infection.",
     "form": "descripteur",
     "entryCategory": "maladies",
@@ -1831,7 +1727,6 @@
     "type": "stakes",
     "label": "Exposition à la Corruption",
     "cascade": "combat",
-    "cle": "combatEndCorruption",
     "template": "Échec : {gainEchec} point(s) de Corruption (exposition {niveau}) — au seuil, une mutation.",
     "form": "descripteur",
     "rule": {
@@ -1849,7 +1744,6 @@
     "type": "stakes",
     "label": "Effort soutenu",
     "cascade": "combat",
-    "cle": "fatigue",
     "template": "Échec : État Exténué. Réussite : le compteur d’effort baisse d’autant de Rounds que le DR.",
     "form": "descripteur",
     "rule": {
@@ -1867,7 +1761,6 @@
     "type": "stakes",
     "label": "Perte de sang",
     "cascade": "combat",
-    "cle": "aaBleedUnconscious",
     "template": "Échec : État Inconscient. Réussite : vous tenez bon ce Round — le Test revient au suivant tant que l’Hémorragie dure.",
     "form": "descripteur",
     "rule": {
@@ -1885,7 +1778,6 @@
     "type": "stakes",
     "label": "Prolonger un sort (Durée +)",
     "cascade": "combat",
-    "cle": "spellPlusTest",
     "template": "Réussite : l’effet dure un Round de plus. Échec : il expire normalement.",
     "form": "descripteur",
     "entryCategory": "spells",
@@ -1900,7 +1792,6 @@
     "type": "stakes",
     "label": "Défense contre une manœuvre",
     "cascade": "combat",
-    "cle": "maneuverDefense",
     "template": "Test opposé — vous l’emportez : la manœuvre est déjouée. L’attaquant l’emporte : ses effets s’appliquent, d’autant plus forts que sa marge de DR est grande.",
     "form": "descripteur",
     "entryCategory": "maneuvers",
@@ -1915,7 +1806,6 @@
     "type": "stakes",
     "label": "Psychologie en combat",
     "cascade": "combat",
-    "cle": "combatPsych",
     "template": "Test de sang-froid — ce que l’échec installe dépend de l’affliction affrontée (sa fiche le dit).",
     "form": "descripteur",
     "entryCategory": "psychologies",
@@ -1930,7 +1820,6 @@
     "type": "stakes",
     "label": "Psychologie de rencontre",
     "cascade": "combat",
-    "cle": "encounterPsych",
     "template": "Test de sang-froid — ce que l’échec installe dépend de l’affliction affrontée (sa fiche le dit).",
     "form": "descripteur",
     "entryCategory": "psychologies",
@@ -1945,7 +1834,6 @@
     "type": "stakes",
     "label": "Exposition hydrique",
     "cascade": "combat",
-    "cle": "waterExposure",
     "template": "Échec : un tirage sur la table des maladies de l’eau (+10 par DR négatif) — la maladie tirée est contractée directement. Réussite : rien.",
     "form": "descripteur",
     "rule": {
@@ -1963,7 +1851,6 @@
     "type": "stakes",
     "label": "Manche de poursuite",
     "cascade": "combat",
-    "cle": "pursuitMove",
     "template": "Test de Mouvement de la manche : les DR des deux camps se comparent et l’écart bouge la Distance ({distance}/{evasion}). À 0 ou moins, les poursuivants rattrapent ; à {evasion}, la proie est perdue.",
     "form": "descripteur",
     "rule": {
@@ -1981,7 +1868,6 @@
     "type": "stakes",
     "label": "Partie de jeu de taverne",
     "cascade": "combat",
-    "cle": "tavernGame",
     "template": "{jeu} contre {adversaire}. Mise engagée : {mise}.",
     "form": "descripteur",
     "rule": {
@@ -1999,7 +1885,6 @@
     "type": "stakes",
     "label": "Sévérité d’une Blessure critique",
     "cascade": "combat",
-    "cle": "critSeverity",
     "template": "Un d100 sur le Tableau des Critiques de la Localisation touchée : la ligne tirée dit les Points de Blessure perdus — Bonus d’Endurance et PA ignorés — et ses Effets supplémentaires.",
     "form": "descripteur",
     "rule": {
@@ -2017,7 +1902,6 @@
     "type": "stakes",
     "label": "Blessure critique — Test de la ligne tirée",
     "cascade": "combat",
-    "cle": "critRowTest",
     "rule": {
       "id": "blessures-critiques",
       "type": "regle"
@@ -2033,7 +1917,6 @@
     "type": "stakes",
     "label": "Critique de bateau — coup à l’équipage",
     "cascade": "combat",
-    "cle": "shipCrewHit",
     "rule": {
       "id": "critiques-de-bateau",
       "type": "regle"
@@ -2049,7 +1932,6 @@
     "type": "stakes",
     "label": "Incident de Tir par Salve",
     "cascade": "combat",
-    "cle": "artillerySalveMisfire",
     "template": "Un d10 sur les Incidents de Tir d’Artillerie par Salve : la ligne tirée dit la Localisation touchée, combien de fois l’équipe encaisse, et si la pièce est détruite.",
     "form": "descripteur",
     "entryCategory": "artilleryMisfire",
@@ -2064,7 +1946,6 @@
     "type": "stakes",
     "label": "Critique de Structure",
     "cascade": "combat",
-    "cle": "structureCritical",
     "template": "Un d100 sur les Coups Critiques contre une Structure : la ligne tirée dit les Blessures encaissées par la Structure et ce que l’impact fait subir à qui s’y trouve ; un Effondrement la met à 0 Blessure.",
     "form": "descripteur",
     "entryCategory": "structureCriticals",
@@ -2079,7 +1960,6 @@
     "type": "stakes",
     "label": "Incantation Imparfaite",
     "cascade": "combat",
-    "cle": "miscastTable",
     "template": "Un d100 sur le Tableau des Incantations Imparfaites : la ligne tirée dit le contrecoup subi — certaines lignes en appellent un nouveau lancer.",
     "form": "descripteur",
     "rule": {
@@ -2097,7 +1977,6 @@
     "type": "stakes",
     "label": "Incantation Imparfaite — Test de la ligne tirée",
     "cascade": "combat",
-    "cle": "miscastRowTest",
     "rule": {
       "id": "incantation-imparfaite",
       "type": "regle"
@@ -2113,7 +1992,6 @@
     "type": "stakes",
     "label": "Colère des dieux",
     "cascade": "combat",
-    "cle": "wrathTable",
     "template": "Un d100 sur le tableau de la Colère des dieux, +10 par Point de Péché déjà accumulé : la ligne tirée dit la sanction divine. Après le lancer, les Points de Péché baissent de 1, jusqu’à un minimum de 0.",
     "form": "descripteur",
     "entryCategory": "miscastWrath",
@@ -2128,7 +2006,6 @@
     "type": "stakes",
     "label": "Dissolution — corps ou esprit",
     "cascade": "combat",
-    "cle": "mutationNature",
     "template": "Ensuite, effectuez un lancer de pourcentage et reportez-vous au tableau qui suit pour définir si c'est votre corps ou votre esprit qui va renaître.",
     "form": "verbatim",
     "entryCategory": "mutationTables",
@@ -2143,7 +2020,6 @@
     "type": "stakes",
     "label": "Tableau de Corruption",
     "cascade": "combat",
-    "cle": "mutationTable",
     "template": "Un d100 sur le Tableau de Corruption de la nature tirée : la ligne atteinte EST la mutation acquise — une ligne à sous-table appelle un lancer de plus.",
     "form": "descripteur",
     "entryCategory": "mutations",
@@ -2158,7 +2034,6 @@
     "type": "stakes",
     "label": "Agir malgré l’effet",
     "cascade": "combat",
-    "cle": "actGate",
     "template": "Réussite : votre Round est entier. Échec : vous ne gardez qu’UNE des deux — l’Action ou le Mouvement.",
     "form": "descripteur",
     "entryFromSource": true,
@@ -2173,7 +2048,6 @@
     "type": "stakes",
     "label": "Événement de la période",
     "cascade": "combat",
-    "cle": "interludeEvent",
     "template": "Avant de choisir vos Activités, lancez d'abord 1d100 sur le tableau des Événements ci-après. Certains Événements n'affecteront que vous, alors que d'autres concerneront le groupe tout entier.",
     "form": "verbatim",
     "entryCategory": "interludeEvents",
@@ -2188,7 +2062,6 @@
     "type": "stakes",
     "label": "Escalade d’une paroi",
     "cascade": "combat",
-    "cle": "climbTest",
     "template": "Réussite : vous prenez pied en haut. Échec : vous lâchez prise et retombez au pied — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
     "rule": {
@@ -2206,7 +2079,6 @@
     "type": "stakes",
     "label": "Saut au-delà de la portée libre",
     "cascade": "combat",
-    "cle": "jumpTest",
     "template": "Réussite : le gouffre est franchi. Échec : vous manquez le bord et tombez — {metres} m de chute, 3 Dégâts par mètre +1d10 réduits par le seul Bonus d’Endurance (PA ignorés), et l’État À Terre si les Blessures perdues le dépassent.",
     "form": "descripteur",
     "rule": {
@@ -2224,7 +2096,6 @@
     "type": "stakes",
     "label": "Embuscade — repérer les embusqués",
     "cascade": "combat",
-    "cle": "ambushSurprise",
     "rule": {
       "id": "embuscade-surprise",
       "type": "regle"
@@ -2240,7 +2111,6 @@
     "type": "stakes",
     "label": "Vigilance — éviter la Surprise",
     "cascade": "combat",
-    "cle": "ambushVigilance",
     "rule": {
       "id": "vigilance",
       "type": "talent"
@@ -2256,7 +2126,6 @@
     "type": "stakes",
     "label": "Focalisation interrompue",
     "cascade": "combat",
-    "cle": "focusInterrupt",
     "template": "Réussite : votre concentration tient, les DR accumulés restent acquis. Échec : tous les DR du Test étendu de Focalisation sont perdus et vous subissez une Incantation Imparfaite Mineure — sans effet si un composant du Sort est sacrifié.",
     "form": "descripteur",
     "rule": {
@@ -2274,7 +2143,6 @@
     "type": "stakes",
     "label": "Piège-lame — Test opposé de Force",
     "cascade": "combat",
-    "cle": "bladeTrapForce",
     "template": "Test opposé de Force, votre DR de défense en renfort. Vous l’emportez : la lame de l’adversaire lui est arrachée — et brisée sur un Succès Stupéfiant si elle n’y résiste pas (Incassable, sauvegarde de Solide) ; un gantelet verrouillé la lui laisse en main. Il l’emporte : il libère sa lame et combat normalement.",
     "form": "descripteur",
     "rule": {
@@ -2292,7 +2160,6 @@
     "type": "stakes",
     "label": "Récolte de pièces de créature",
     "cascade": "combat",
-    "cle": "harvestCreature",
     "template": "Réussite : vous reconnaissez les parties prisées — {encPlein} Enc de pièces prélevées. Échec : la quantité exploitable descend d’un cran par Degré d’échec, jusqu’à rien.",
     "form": "descripteur",
     "rule": {
@@ -2310,7 +2177,6 @@
     "type": "stakes",
     "label": "Diriger une équipe d’arme",
     "cascade": "combat",
-    "cle": "teamCommand",
     "template": "Réussite : chaque chef d’équipe à portée de voix est dirigé — son équipe tire ensuite au score de Projectiles du commandant. Échec : rien. L’Action est dépensée dans les deux cas.",
     "form": "descripteur",
     "rule": {
@@ -2328,7 +2194,6 @@
     "type": "stakes",
     "label": "Cumuler l’Avantage par une Compétence",
     "cascade": "combat",
-    "cle": "skillAdvantage",
     "template": "Réussite : +1 Avantage, jusqu’au plafond de cette Compétence — le Bonus de la Caractéristique {capChar}. Échec : aucun. L’Action est dépensée dans les deux cas.",
     "form": "descripteur",
     "entryCategory": "skills",
@@ -2343,7 +2208,6 @@
     "type": "stakes",
     "label": "Rumeur commerciale au marché",
     "cascade": "combat",
-    "cle": "land-market-gossip",
     "template": "Réussite : une rumeur commerciale est glanée — les biens qu’elle vise se vendent au double du prix de base au Lieu désigné, sans échéance. Échec : aucune rumeur.",
     "form": "descripteur",
     "rule": {
@@ -2361,7 +2225,6 @@
     "type": "stakes",
     "label": "Évaluation d’un lot de vin",
     "cascade": "combat",
-    "cle": "land-market-wine-eval",
     "template": "Réussite : la qualité réelle du lot est révélée. Échec : une fausse qualité est annoncée, d’autant plus éloignée du vrai que le Degré d’échec est grand. Un lot ne s’évalue qu’une fois, quelle que soit l’issue.",
     "form": "descripteur",
     "rule": {
@@ -2379,7 +2242,6 @@
     "type": "stakes",
     "label": "Recherche active de Disponibilité",
     "cascade": "combat",
-    "cle": "merchant-ragot",
     "template": "Réussite : la journée aux étals paie — le stock du marchand est renouvelé avec +10 % de Disponibilité. Échec : il est renouvelé sans ce bonus. Une journée entière passe dans les deux cas.",
     "form": "descripteur",
     "rule": {
@@ -2397,7 +2259,6 @@
     "type": "stakes",
     "label": "Marchandage d’achat de cargaison",
     "cascade": "combat",
-    "cle": "port-buy-bargain",
     "template": "Test opposé de Marchandage contre le commerçant, où son camp compte {sellerDR} DR de vendeur (lot partiel, cargaison en Surplus). Vous l’emportez : le prix baisse de 10 %, de 10 % de plus sur un DR net stupéfiant, et de 10 % de plus avec le Talent Négociateur. Il l’emporte : le prix monte selon la même règle, son Négociateur compris.",
     "form": "descripteur",
     "rule": {
@@ -2415,7 +2276,6 @@
     "type": "stakes",
     "label": "Marchandage de vente de cargaison",
     "cascade": "combat",
-    "cle": "port-sell-bargain",
     "template": "Test opposé de Marchandage contre l’acheteur, où votre camp compte {sellerDR} DR de relation du port au bien. Vous l’emportez : le prix d’offre monte de 10 %, de 10 % de plus sur un DR net stupéfiant, et de 10 % de plus avec le Talent Négociateur. Il l’emporte : il baisse selon la même règle, son Négociateur compris.",
     "form": "descripteur",
     "rule": {
@@ -2433,7 +2293,6 @@
     "type": "stakes",
     "label": "Recherche d’un acheteur au port",
     "cascade": "combat",
-    "cle": "port-sell-gossip",
     "template": "Réussite : un acheteur potentiel est approché — le dé de recherche suit. Échec : personne ne s’intéresse à cette cargaison dans ce port.",
     "form": "descripteur",
     "rule": {

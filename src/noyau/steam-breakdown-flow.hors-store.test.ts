@@ -155,12 +155,12 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
     get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
     for (let i = 0; i < 30 && !get().pendingRest; i++) {
       const pc = get().pendingCascade;
-      if (!pc || pc.participants[pc.cursor]?.kind === 'progression') break;
+      if (!pc || pc.participants[pc.cursor]?.kind === 'crew-progression') break;
       avanceEtapeCascade(get);
     }
     const p = get().pendingCascade!;
     const step = p.participants[p.cursor];
-    expect(step?.kind).toBe('progression');
+    expect(step?.kind).toBe('crew-progression');
     const rows = step.participants!;
     expect(rows.length, 'la Progression a ses contributeurs').toBeGreaterThan(0);
     expect(rows[0].target!, 'la cible du contributeur dépasse la borne haute').toBeGreaterThanOrEqual(99);

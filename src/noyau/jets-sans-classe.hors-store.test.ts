@@ -119,9 +119,9 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
 
   it('CONTRÔLE POSITIF — un kind HORS de la politique d’ordres garde sa fenêtre, traversée commandée ou non', () => {
     traversee('commande');
-    expect(surfaceDesEtapes(get, [bandeDe('tourbillon', get().party)]), 'une CRISE interrompt toujours').toBe('M');
+    expect(surfaceDesEtapes(get, [bandeDe('crew-tourbillon', get().party)]), 'une CRISE interrompt toujours').toBe('M');
     // Et la politique DISCRIMINE bien : un kind de routine d'équipage se tait sous les mêmes ordres.
-    expect(surfaceDesEtapes(get, [bandeDe('progression', get().party)])).toBe('I');
+    expect(surfaceDesEtapes(get, [bandeDe('crew-progression', get().party)])).toBe('I');
   });
 
   it('siège MJ : la bande reste au JOUEUR (M) — le MJ ne prend que les dés qu’il TIENT (V pour le monde)', () => {

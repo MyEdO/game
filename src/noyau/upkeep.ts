@@ -32,7 +32,8 @@ import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal } from '../engine/provi
 import { testValue } from '../engine/skills';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
-import { type Difficulty, type UpkeepDeferTest, type NightTestKind, type TestIds } from '../engine/types';
+import { type Difficulty, type UpkeepDeferTest, type TestIds } from '../engine/types';
+import type { NightStakeId } from '../data/index';
 import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
 import { dailyDiseaseUpkeep } from '../engine/rest';
@@ -117,8 +118,8 @@ export function purgeAdventureEffects(get: Get, set: Set): string[] {
 /** Un Test de Résistance d'entretien DIFFÉRÉ, prêt à devenir une étape de cascade de nuit. */
 export interface DeferredUpkeepTest {
   heroId: string;
-  /** Vocabulaire FERMÉ des étapes de nuit (#1117 point 5) — un kind inventé ne compile pas. */
-  kind: NightTestKind;
+  /** L'id de l'enjeu de nuit du Test (#1117 point 5) — un kind inventé ne compile pas. */
+  kind: NightStakeId;
   label: string;
   /** JOUR calendaire (`dayIndex`) auquel ce Test est DÛ — l'entretien traite chaque franchissement
    *  (boucle ci-dessous), donc un saut de 3 jours doit 3 Tests de Dessoûlage au MÊME héros. Le jour
