@@ -748,13 +748,21 @@ export function refTypee<V extends string, E extends Record<string, z.ZodType> =
   return noeud;
 }
 
+/** Un texte que le joueur écrit (un nom, une motivation) : jamais un id, que `DESIGNATIONS` (`src/noyau/designations.ts`)
+ *  désigne. */
+export type TexteLibre = string;
+
 /** FORME de sortie d'un nœud de référence à spécialisation — DÉCLARÉE (et non inferée) : les `extra`
  *  du porteur n'y figurent pas, un site qui les lit redéclare son type (patron `AxesData`,
  *  `schemas/defs/axes.ts`). Sans cette déclaration, tout schéma RÉCURSIF annoté qui compose une réf
  *  (`flowSchema: ZodType<Flow<EffectOp>>`) perdrait sa forme et cesserait de typer son arbre.
  *  `RefDesignee` : la forme d'un porteur qui DÉSIGNE (régime `specSeule`) ; `RefASpecialisation` :
  *  celle d'un porteur d'EMPLACEMENT, qui admet aussi `choix`. */
-export interface RefDesignee { id: string; spec?: string }
+export interface RefDesignee<I extends string = string> {
+  id: I;
+  /** Un id du catalogue de l'entrée, ou, pour une entrée ouverte, un texte libre (`entreeOuverte`, LDB 09 l.40). */
+  spec?: TexteLibre;
+}
 export interface RefASpecialisation extends RefDesignee { choix?: true | string[] }
 
 /** La référence `ref` couvre-t-elle l'entrée `cible` du même id ? Sans `spec`, toutes ses
