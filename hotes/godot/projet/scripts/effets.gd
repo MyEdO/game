@@ -5,8 +5,8 @@
 ## puis sa nappe sur chacune de ses cases et son son au centre ; chaque son joue partout, autant de fois que l'effet le
 ## dit (les pas d'un déplacement, #3825). Les flottants d'un coup ou d'une incantation montent de sa cible à son arrivée,
 ## l'un après l'autre ; un flottant seul monte de son combattant ou de sa case. Une phase dessine son visuel, un éclat de
-## particules à textures procédurales et son éclair, et joue son son, une de ses variantes au hasard
-## (`AudioStreamRandomizer`), à son point. Chaque déplacement (#3822) part aussitôt, tous ensemble : le chemin de son
+## particules à textures procédurales et son éclair, et joue son son, une de ses variantes à son tour
+## (`variante_du_son`), à son point. Chaque déplacement (#3822) part aussitôt, tous ensemble : le chemin de son
 ## combattant, le lieu de chacune de ses cases et ses mètres, va à qui le parcourt (`deplacement`). Les autres effets d'un
 ## même appel se suivent, `ECART_S` secondes l'un après l'autre.
 class_name Effets
@@ -106,6 +106,8 @@ const TRAINEE := {nombre = 40, duree = 0.35, vitesse = [0.0, 0.2], pesanteur = V
 
 ## La tache ronde d'une particule, dégradée du centre au bord.
 static var _tache: GradientTexture2D = null
+## Par liste passée à `au_tour` (sa forme écrite), ses éléments dans l'ordre de leurs prochains tours.
+static var _tours := {}
 
 var _metres_par_case := 1.0
 
@@ -445,17 +447,26 @@ func projectile_de(nom: String, teinte: Color) -> Node3D:
 	return projectile
 
 
-## Les variantes du son `son` (`{ id, fichiers, volume }`), ses fichiers de `res://sons/` (Ogg Vorbis, ou MP3 pour une
-## musique), dont la lecture tire une au hasard ; chacune en boucle avec `boucle`.
-static func variantes_du_son(son: Dictionary, boucle: bool) -> AudioStreamRandomizer:
-	var variantes := AudioStreamRandomizer.new()
-	for fichier: String in son.fichiers:
-		var flux: AudioStream = load("res://sons/%s" % fichier)
-		if boucle:
-			flux = flux.duplicate()
-			flux.set("loop", true)
-		variantes.add_stream(-1, flux)
-	return variantes
+## L'une des variantes du son `son` (`{ id, fichiers, volume }`), celui de ses fichiers de `res://sons/` (Ogg Vorbis, ou
+## MP3 pour une musique) qui vient à son tour (`au_tour`), en boucle avec `boucle`. Un flux de fichier se joue en
+## échantillon sous le Web, par le navigateur et hors de l'image (`AudioStreamPlayer.playback_type`, Godot 4.7) ; un flux
+## composé (`AudioStreamRandomizer`, `AudioStreamSynchronized`) se mixe à chaque image et saccade dès qu'une image tarde.
+static func variante_du_son(son: Dictionary, boucle: bool) -> AudioStream:
+	var flux: AudioStream = load("res://sons/%s" % au_tour(son.fichiers))
+	if boucle:
+		flux = flux.duplicate()
+		flux.set("loop", true)
+	return flux
+
+
+## L'élément de `liste` qui vient à son tour : chacun l'un après l'autre, d'un appel au suivant sur la même liste.
+static func au_tour(liste: Array) -> Variant:
+	var cle := str(liste)
+	if not _tours.has(cle):
+		_tours[cle] = liste.duplicate()
+	var tour: Array = _tours[cle]
+	tour.push_back(tour.pop_front())
+	return tour.back()
 
 
 ## Le lecteur du son `son` (`{ id, fichiers, volume }`) qui joue en boucle à son point dès sa pose : une flamme, une
@@ -463,27 +474,27 @@ static func variantes_du_son(son: Dictionary, boucle: bool) -> AudioStreamRandom
 static func son_en_boucle(son: Dictionary) -> AudioStreamPlayer3D:
 	var lecteur := AudioStreamPlayer3D.new()
 	lecteur.name = "son-%s" % son.id
-	lecteur.stream = variantes_du_son(son, true)
+	lecteur.stream = variante_du_son(son, true)
 	lecteur.volume_db = linear_to_db(son.volume)
 	lecteur.unit_size = PORTEE_DU_SON
 	lecteur.autoplay = true
 	return lecteur
 
 
-## Le son `son` (`{ id, fichiers, volume }`), l'une de ses variantes au hasard, au point `point`, ou partout (`null`) ;
+## Le son `son` (`{ id, fichiers, volume }`), l'une de ses variantes à son tour, au point `point`, ou partout (`null`) ;
 ## retiré une fois joué.
 func _jouer_le_son(son: Dictionary, point: Variant) -> Node:
-	var variantes := variantes_du_son(son, false)
+	var variante := variante_du_son(son, false)
 	var lecteur: Node
 	if point == null:
 		var plat := AudioStreamPlayer.new()
-		plat.stream = variantes
+		plat.stream = variante
 		plat.volume_db = linear_to_db(son.volume)
 		plat.finished.connect(plat.queue_free)
 		lecteur = plat
 	else:
 		var spatial := AudioStreamPlayer3D.new()
-		spatial.stream = variantes
+		spatial.stream = variante
 		spatial.volume_db = linear_to_db(son.volume)
 		spatial.unit_size = PORTEE_DU_SON
 		spatial.position = point

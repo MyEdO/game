@@ -1457,11 +1457,9 @@ func _composer() -> void:
 ## monte l'élément que `montes` lui donne et démonte les autres. Un emplacement dont l'élément change perd sa surcharge et
 ## monte sous le défaut de la composition (`_embleme_de_l_emplacement`) ; un élément monté inchangé se rhabille de la
 ## palette de la réponse et de l'emblème de son entrée de `montes`, et la base de cette palette. Puis le gabarit et
-## les morphes de la réponse se posent,
-## les morphes de la précédente remis à 0. Refusée (erreur `validation`), rien n'est composé : chaque emplacement est
+## les morphes de la réponse se posent. Refusée (erreur `validation`), rien n'est composé : chaque emplacement est
 ## démonté, ni gabarit ni morphe, et le texte du refus est gardé. Le texte de « Copier » est effacé.
 func _composer_la_courante() -> void:
-	var anciens: Dictionary = _montage.composee.get("morphes", {})
 	_montage.composee = {}
 	_refus_de_composition = ""
 	%Verdict.text = ""
@@ -1488,7 +1486,6 @@ func _composer_la_courante() -> void:
 			_choisir_l_embleme(id, embleme)
 	_montage.habiller_la_base()
 	_poser_le_gabarit()
-	_montage.poser_des_morphes(anciens.keys(), 0.0)
 	_montage.poser_les_morphes()
 	_montrer_la_composition()
 
@@ -1713,11 +1710,9 @@ func _morphes_des_meshes() -> Dictionary:
 			emplacements[piece] = id
 	for noeud in _montage.modele.find_children("*", "MeshInstance3D", true, false):
 		var mesh := noeud as MeshInstance3D
-		if not mesh.mesh is ArrayMesh or mesh.mesh.get_blend_shape_count() == 0:
+		if not mesh.has_meta(MontageDeComposition.POIDS):
 			continue
-		var poids := {}
-		for rang in mesh.mesh.get_blend_shape_count():
-			poids[String(mesh.mesh.get_blend_shape_name(rang))] = mesh.get_blend_shape_value(rang)
+		var poids: Dictionary = mesh.get_meta(MontageDeComposition.POIDS)
 		var chemin := String(_montage.modele.get_path_to(mesh))
 		if emplacements.has(mesh):
 			morphes.montes[emplacements[mesh]][chemin] = poids

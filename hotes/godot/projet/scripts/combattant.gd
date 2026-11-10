@@ -199,9 +199,8 @@ func _base(id: String) -> Dictionary:
 
 ## La composition du dernier corps reçu montée sur la base posée : chaque emplacement de ses `montes` qui monte un
 ## élément le monte sous son emblème, ou rhabille celui qui y est déjà monté ; tout autre élément monté est démonté ;
-## puis la base se rhabille, et le gabarit et les morphes du corps se posent, ceux du précédent remis à 0.
+## puis la base se rhabille, et le gabarit et les morphes du corps se posent.
 func _composer() -> void:
-	var anciens: Dictionary = _montage.composee.get("morphes", {})
 	_montage.composee = _corps
 	var cibles := _montage.cibles()
 	for id in _montage.montes.keys():
@@ -216,7 +215,6 @@ func _composer() -> void:
 	_montage.habiller_la_base()
 	for os in _montage.poser_le_gabarit():
 		_montage.erreurs.append("os-absent : %s" % os)
-	_montage.poser_des_morphes(anciens.keys(), 0.0)
 	_montage.poser_les_morphes()
 	_rejouer()
 	_signaler()

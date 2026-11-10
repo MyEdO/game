@@ -144,7 +144,7 @@ func _entendre_la_meteo(son: Variant) -> void:
 	_son_de_la_meteo = AudioStreamPlayer.new()
 	_son_de_la_meteo.name = "son-%s" % son.id
 	_son_de_la_meteo.set_meta("son", son.id)
-	_son_de_la_meteo.stream = Effets.variantes_du_son(son, true)
+	_son_de_la_meteo.stream = Effets.variante_du_son(son, true)
 	_son_de_la_meteo.volume_db = linear_to_db(son.volume)
 	_son_de_la_meteo.autoplay = true
 	add_child(_son_de_la_meteo, true)
