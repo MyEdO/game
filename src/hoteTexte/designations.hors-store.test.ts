@@ -38,8 +38,8 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const r = t.jouer(verbe('creerLaPanoplie', heros));
     expect(r.erreur, r.texte).toBeNull();
   });
-  it('point d’intérêt du lieu : `entrerAuPointDInteret`, aucun hors d’un lieu', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('entrerAuPointDInteret', 'test-revisit-couloir'), /poi : "test-revisit-couloir" n’est pas un id de point d’intérêt du lieu \(valides : aucun ici\)/);
+  it('point d’intérêt du lieu : le choix `ecranDuLieu.entrer`, aucun hors d’un lieu', { timeout: 120_000 }, () => {
+    refuseLId(partie('revisit'), verbe('fenetreChoisir', 'ecranDuLieu', 'entrer', 'test-revisit-couloir'), /valeur : "test-revisit-couloir" n’est pas un id de point d’intérêt du lieu \(valides : aucun ici\)/);
   });
   it('entité de scène : `cliquerLaCase`', { timeout: 120_000 }, () => {
     const t = partie('revisit');

@@ -10,6 +10,7 @@ import { applyVesselCritical, buildSeaPlan, continueSeaDayAfterCascade, finalize
 import { rollShipCritical } from '../engine/shipCritical';
 import { makeRNG } from '../engine/dice';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { acheterAuMarche } from './cargaison.testkit';
 import { applierDe } from './cascade';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -1264,7 +1265,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     escale('trop-beau-pour-etre-vrai');
     ouvrirLePort(get, set);
     const offre = get().port!.offers.find((o) => o.remisePct === 50)!;
-    get().acheterLaCargaison(CAMPAIGN_VESSEL_CARRIER_ID, offre.cargoId, 10);
+    expect(acheterAuMarche(get, 'port', CAMPAIGN_VESSEL_CARRIER_ID, offre.cargoId, 10)).toBeNull();
     draineCascade(get);
     const lot = get().vessel!.cargo!.find((l) => l.cargoId === offre.cargoId)!;
     expect(lot.basePriceGold).toBe(offre.basePrice);

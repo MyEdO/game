@@ -1,7 +1,8 @@
 /**
  * LE MARCHÉ DE CARGAISON PAR LE PONT (#3534) : la halle de Grünburg (MSRC 13) et le port de Salzenmund (MDG 15) joués
- * comme Godot les joue (`marcheEnVue`). Chaque offre, son Enc et son prix, son achat (le porteur qui le charge, l'Enc) ;
- * le lot acheté, son porteur, sa vente, son bradage et son transfert vers un porteur co-localisé.
+ * comme Godot les joue (`marcheEnVue`). Chaque offre, son Enc et son prix, son achat composé par les choix du marché (le
+ * porteur qui le charge, l'Enc, la conclusion, en réglages de la fenêtre) ; le lot acheté, son porteur, sa vente, son
+ * bradage et son transfert vers un porteur co-localisé.
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { drainer, table } from './pont.testkit';
@@ -36,31 +37,33 @@ const dans = (e: Element, id: string) => (e as Entite).elements.find((x) => x.id
 const champ = (f: Formulaire, nom: string) => f.champs.find((c) => c.nom === nom) as Saisie;
 
 describe('le marché de cargaison par le pont', () => {
-  it('la halle : chaque offre, son Enc et son prix par Enc, son achat sur un porteur de vrac', () => {
-    const { suite } = marche('commerce-fluvial', 'ouvrirLeMarche', 'marcheDeTerre');
+  it('la halle : chaque offre, son Enc et son prix par Enc, son achat composé sur un porteur de vrac', () => {
+    const { suite, jouer } = marche('commerce-fluvial', 'ouvrirLeMarche', 'marcheDeTerre');
     expect(suite.vue.disposition, 'la halle a son écran').toBe('marcheDeTerre');
     const c = corps(suite);
     expect(c['bourse'], 'la bourse du groupe').toMatchObject({ type: 'puce', valeur: '5000 CO' });
     const offre = c['offre/laine-terre'];
     expect([dans(offre, 'dispo'), dans(offre, 'prix')], 'son Enc et son prix').toMatchObject([{ valeur: '350 Enc' }, { valeur: '1 CO / Enc' }]);
-    const achat = dans(offre, 'acheter') as Formulaire;
-    expect(achat, 'l’achat ouvert').toMatchObject({ verbe: 'acheterLaCargaison', refus: null });
-    expect(achat.champs.map((x) => x.nom), 'le porteur, l’offre, l’Enc, dans l’ordre du verbe').toEqual(['porteur', 'offre', 'enc']);
-    expect(champ(achat, 'porteur'), 'chaque porteur de vrac et sa place, le retenu saisi d’avance').toMatchObject({ valeurs: [{ libelle: 'Charrette · 25/25 Enc libres', presse: true }, { libelle: 'Mule · 14/14 Enc libres', presse: false }] });
-    expect(champ(achat, 'enc'), 'l’Enc que le porteur retenu charge').toMatchObject({ valeur: 25, min: 1, max: 350 });
-    expect(suite.vue.zones['fenetre.reglages'], 'rien ne se redit en réglage').toEqual([]);
+    expect(dans(offre, 'acheter'), 'l’achat ouvert, à composer').toMatchObject({ type: 'bouton', jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'offre', 'laine-terre'] }, presse: false, refus: null });
+    expect(suite.vue.zones['fenetre.reglages'], 'rien à régler avant de composer').toEqual([]);
+    const compose = jouer((dans(offre, 'acheter') as Bouton).jeu);
+    expect(dans(corps(compose)['offre/laine-terre'], 'acheter'), 'l’achat composé, pressé').toMatchObject({ presse: true });
+    const reglages = Object.fromEntries(compose.vue.zones['fenetre.reglages'].map((e) => [e.id, e]));
+    expect(reglages['fenetreChoisir@marcheDeTerre#porteur'], 'chaque porteur de vrac et sa place, le retenu pressé').toMatchObject({ valeurs: [{ libelle: 'Charrette · 25/25 Enc libres', presse: true }, { libelle: 'Mule · 14/14 Enc libres', presse: false }] });
+    expect(Object.keys(reglages), 'le porteur, l’Enc, la conclusion').toEqual(['fenetreChoisir@marcheDeTerre#porteur', 'fenetreChoisir@marcheDeTerre#enc', 'fenetreChoisir@marcheDeTerre#acheter']);
   });
 
   it('un lot acheté : son porteur et son Enc, sa vente, son bradage, son transfert vers la mule', () => {
     const { suite, jouer } = marche('commerce-fluvial', 'ouvrirLeMarche', 'marcheDeTerre');
-    const porteur = (champ(dans(corps(suite)['offre/laine-terre'], 'acheter') as Formulaire, 'porteur') as Extract<Saisie, { type: 'saisieChoix' | 'saisieCoches' }>).valeurs[0].valeur;
-    const c = corps(jouer({ type: 'acheterLaCargaison', args: [porteur, 'laine-terre', 25] }));
+    jouer((dans(corps(suite)['offre/laine-terre'], 'acheter') as Bouton).jeu);
+    const c = corps(jouer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'acheter', true] }));
     const lot = Object.values(c).find((e) => e.id.startsWith('lot/'))!;
     expect(lot, 'le lot de laine').toMatchObject({ type: 'entite', nom: 'Laine' });
     expect(dans(lot, 'porteur'), 'sur la charrette').toMatchObject({ libelle: 'Charrette', valeur: '25 Enc' });
-    expect(dans(c['offre/laine-terre'], 'acheter'), 'la charrette pleine, la mule charge le reste').toMatchObject({ refus: null, champs: [{ nom: 'porteur', valeurs: [{ libelle: 'Mule · 14/14 Enc libres', presse: true }, { libelle: 'Charrette · 0/25 Enc libres', presse: false }] }, {}, { valeur: 14 }] });
-    expect(dans(lot, 'vendre'), 'il se vend').toMatchObject({ jeu: { type: 'vendreLaCargaison' }, refus: null });
-    expect(dans(lot, 'brader'), 'son bradage dit sa raison').toMatchObject({ jeu: { type: 'jeterLaCargaison' } });
+    const recompose = jouer((dans(c['offre/laine-terre'], 'acheter') as Bouton).jeu);
+    expect(recompose.vue.zones['fenetre.reglages'].find((e) => e.id === 'fenetreChoisir@marcheDeTerre#porteur'), 'la charrette pleine, la mule charge le reste').toMatchObject({ valeurs: [{ libelle: 'Charrette · 0/25 Enc libres', presse: false }, { libelle: 'Mule · 14/14 Enc libres', presse: true }] });
+    expect(dans(lot, 'vendre'), 'il se vend').toMatchObject({ jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'vendre', lot.id.slice('lot/'.length)] }, refus: null });
+    expect(dans(lot, 'brader'), 'son bradage dit sa raison').toMatchObject({ jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'jeter', lot.id.slice('lot/'.length)] } });
     const deplacer = dans(lot, 'deplacer') as Formulaire;
     expect(deplacer, 'il passe sur la mule').toMatchObject({ verbe: 'deplacerLaCargaison', refus: null });
     expect(champ(deplacer, 'vers'), 'la mule, co-localisée').toMatchObject({ valeurs: [{ libelle: 'Mule · 14/14 Enc libres', presse: true }] });

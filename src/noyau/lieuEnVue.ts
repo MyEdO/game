@@ -1,7 +1,7 @@
 /**
  * LE LIEU EN VUE (#3534) — ce qu'un hôte montre de l'écran du lieu qui tient la main : le nom du lieu, chacun de ses
  * services (`placeServices`) et ce qu'on y fait, écrit en verbe du noyau avec ce qui le ferme maintenant, les points
- * d'intérêt de son plan qui mènent à une scène (`entreesDuLieu`, #3611), puis les trajets qui en partent
+ * d'intérêt de son plan qui mènent à une scène et le choix d'y entrer (`entreesDuLieu`, #3611), puis les trajets qui en partent
  * (`trajetsDepuis`). Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
@@ -12,6 +12,7 @@ import { refusDEntrerAuPort } from './portFlow';
 import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import { sceneDuRegistre } from './monde/registreDesScenes';
 import { fenetreDuJeu } from './combatAuto';
+import { VERBE_DE_CHOIX } from './choixDesFenetres';
 import { t } from '../i18n';
 
 /** Ce qu'on fait à un service : son nom, son verbe, pourquoi il ne se joue pas maintenant (`null` : il se joue). */
@@ -49,7 +50,7 @@ export function lieuEnVue(s: Jeu): LieuEnVue | null {
     .filter((svc) => svc.gestes.length > 0);
   const pointsDInteret = entreesDuLieu(s).map((p): PointDInteretEnVue => ({
     id: p.id, nom: p.label,
-    geste: { id: 'entrer', libelle: t('lieu.entrer'), geste: { verbe: 'entrerAuPointDInteret', args: [p.id] }, refus: refusDEntrerAuPoint(s, p.id) },
+    geste: { id: 'entrer', libelle: t('lieu.entrer'), geste: { verbe: VERBE_DE_CHOIX, args: ['ecranDuLieu', 'entrer', p.id] }, refus: refusDEntrerAuPoint(s, p) },
   }));
   return { nom: ici.label, services, pointsDInteret, trajets: trajetsDepuis(s, s.worldMap, ici) };
 }

@@ -85,6 +85,8 @@ export interface PortState {
   ref?: string;
   port: PortProfile;
   offers: PortOffer[];
+  /** L'achat en composition (`fenetreChoisir('port', …)`). */
+  achat?: import('./cargaison').BrouillonDAchat;
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
@@ -291,8 +293,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
  *  ses +DR de lot partiel/Surplus (l.339-341). Sans marchandeur dans le groupe, l'achat se conclut au prix
  *  plein (aucun jet). Débité, ajouté à la cale plafonnée à 150 % (MDG 12 l.75). */
 export function acheterAuPort(get: Get, set: Set, porteurId: IdDePorteurDeCargaison, cargoId: string, enc: number): void {
-  const st = get().port;
-  if (!st) return;
+  const st = garanti(get().port, cargoId, 'port ouvert à l’achat');
   const devis = devisDAchatEnPort(get(), porteurId, cargoId, enc);
   if (devis.refus !== null) { refuserGeste(get, set, devis.refus); return; }
   const { offre: offer, enc: want } = devis;
