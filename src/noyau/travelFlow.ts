@@ -451,11 +451,11 @@ export function partirEnVoyage(get: Get, set: Set, routeId: string, mode: Travel
   if (mode === 'mer') {
     const seaOpts = { pace: opts.seaPace, cadence: opts.cadence };
     const billetEnMain = billetApresDepart(get().billetEnMain, routeId, mode);
-    // Le navire appareille : il n'est plus à quai (`escale`, posé à l'accostage), les altérations du marché de
-    // l'escale sont levées. MDG 15 l.253, l.256, l.263
+    // Le navire appareille : il n'est plus à quai (`escale`, posé à l'accostage), le constructeur de navires, les
+    // rations et les altérations du marché de l'escale sont levés. MDG 15 l.253, l.255, l.256, l.262, l.263
     const vessel = get().vessel;
     if (vessel?.escale !== undefined) {
-      const { escale: _quai, ...enMer } = vessel;
+      const { escale: _quai, constructeurDEscale: _c, rationsDEscale: _r, ...enMer } = vessel;
       set({ vessel: enMer, alterationsDuMarche: get().alterationsDuMarche.filter((a) => a.jusqua !== 'escale') });
     }
     // Traversée RAPIDE (MDG 15 l.21-37) : un seul Test de Rude épreuve résout tout le trajet.
@@ -1305,7 +1305,7 @@ function applyEreintant(get: Get, set: Set): string[] {
 export function creerActionsDuVoyage(get: Get, set: Set) {
   return {
     ouvrirLaCarte: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
-    partirEnVoyage: (routeId, mode, opts) => partirEnVoyage(get, set, routeId, mode, opts),
+    partirEnVoyage: (routeId, modeDeVoyage, opts) => partirEnVoyage(get, set, routeId, modeDeVoyage, opts),
     reprendreLeVoyage: () => reprendreLeVoyage(get, set),
     fixerLaCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },
   } satisfies FabriqueDuNoyau;

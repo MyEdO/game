@@ -259,7 +259,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
   it('CHARGE annulée avant le jet → le déplacement est défait : aucun Test', () => {
     const { H, E } = field();
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : hors Marche, l'approche se demande.
-    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
     expect(banc.getState().pendingAttack?.fromCharge).toBe(true);
     expect(H.approachMoves).toHaveLength(1);

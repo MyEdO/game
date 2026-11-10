@@ -39,7 +39,7 @@ import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
-import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent';
+import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
 import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
@@ -113,7 +113,7 @@ import { garanti } from '../lib/garanti';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
-import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
+import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglage, type CorpsDesReglages } from './reglagesDuJet';
@@ -665,18 +665,18 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!foe || !grappleActionEligible(active, foe)) return void refuserGesteDuSiege(get, set, t('offre.sansCandidatDuContexte'));
       startGrapple(get, set, active, foe);
     },
-    cliquerLaCaseDuCombat: (pt: Pt, opts?: TileClickOpts) => {
+    cliquerLaCaseDuCombat: (pt: Pt, opts?: OptionsDuClic) => {
       const { battle, scene } = get();
       if (!battle || !scene || battle.over || champAttendSaFenetre(get())) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout et vaut
-      // confirmation (la case a été choisie sciemment).
-      // VERDICT D'ARMEMENT de la Course (spec § 2026-08-19) : il vient des OPTS quand le geste a déjà
-      // été jugé chez son émetteur (intent d'un invité — l'hôte n'a pas SON intention — ou relance d'un
-      // geste différé, dont l'intention a été dissoute au premier clic) ; sinon on le lit ICI, AVANT que
+      // confirmation (la case a été choisie sciemment). L'intention du clic (`intentionDuClic`) se lit AVANT que
       // `consumeIntent` ne l'efface.
-      const courseDemandee = opts?.courseArmee ?? courseArmee(get);
+      const intention = intentionDuClic(get, opts);
+      if ('refus' in intention) return void refuserGesteDuSiege(get, set, intention.refus);
+      const { intentionId } = intention;
+      const courseDemandee = courseArmee(intentionId);
       const armedTile = consumeIntent();
       const clickOpts = armedTile ? { ...opts, confirm: true } : opts;
       // Le MODE de ciblage courant peut posséder un commit-CASE (téléportation, pose de zone de sort
@@ -706,7 +706,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Peur (LDB 21 l.27) : `retenuParLaPeur`. L'intention rejoue le clic BRUT (`pt`) après le Test →
       // `cliquerLaCaseDuCombat` re-résout l'escalier ; le contrôle, lui, porte sur la destination réelle (`dest`).
       const fearGateBlocks = (): boolean =>
-        retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee });
+        retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, intentionId: intentionId ?? undefined });
       const geom = mountOf(battle, active) ?? active;
       const prev = battle.preview;
       if (movement.kind === 'run') {
@@ -797,14 +797,12 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout, et vaut
-      // confirmation (la cible a déjà été choisie sciemment).
-      // VERDICT D'ARMEMENT DE LA CHARGE (spec § 2026-08-19) : c'est lui — et lui seul — qui autorise
-      // l'approche vers la cible cliquée. Même règle que le clic-case : il vient des OPTS quand le
-      // geste a déjà été jugé chez son émetteur (intent d'un invité, ou relance d'un geste différé par
-      // un gate), sinon il se lit ici, avant que `consumeIntent` ne l'efface.
-      const approche = opts?.approche ?? chargeArmee(get);
+      // confirmation (la cible a déjà été choisie sciemment). L'intention du clic (`intentionDuClic`), seule à autoriser
+      // l'approche vers la cible (spec § 2026-08-19), se lit avant que `consumeIntent` ne l'efface.
+      const intention = intentionDuClic(get, opts);
+      if ('refus' in intention) return void refuserGesteDuSiege(get, set, intention.refus);
       const armed = consumeIntent();
-      const clickOpts = { ...opts, approche, ...(armed ? { confirm: true } : {}) };
+      const clickOpts: BattleClickOpts = { ...opts, intentionId: intention.intentionId ?? undefined, ...(armed ? { confirm: true } : {}) };
       // Le MODE de ciblage courant possède le commit-COMBATTANT (attaque/cast/soin/bordée, ou flux
       // différés : Surincantation +Cible / Frappe Mortelle / 2ᵉ frappe, ou pose de zone sur la case
       // d'un combattant). Source UNIQUE : targetingModes (réticule au survol = ce même mode).
@@ -812,18 +810,18 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // ── Sélection d'ATTAQUE (« Attaque ▾ ») : arme une `AttackOption` (Arme + gratuites/zone/Piétinement/
     // Tentacule). Source des entrées : `availableAttacks` (combatFlow). Le clic-ennemi résout l'armée. ──
-    armerLAttaque: (id: string) => {
+    armerLAttaque: (attaqueId: string) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active) return;
       // Arme une attaque pour le clic-ennemi (mode neutre : `action===null`). Re-sélectionner revient à l'Arme.
-      const next = battle.selectedAttack === id ? 'arme' : id;
+      const next = battle.selectedAttack === attaqueId ? 'arme' : attaqueId;
       set({ battle: { ...battle, action: null, selectedAttack: next, selectedSpellId: null, preview: null }, pendingSiegeAim: null });
       // Pièce INDIRECTE servie (mortier/catapulte, AA 10 l.169/171) : ARMER l'option « Servir … » ouvre le PLACEUR
       // DE CASE (le tir vise un point au sol, pas un combattant) ; le désarmer (retour à 'arme') le referme.
-      if (next === id) {
-        const opt = availableAttacks(active, battle).find((o) => o.id === id);
+      if (next === attaqueId) {
+        const opt = availableAttacks(active, battle).find((o) => o.id === attaqueId);
         if (opt?.indirect && opt.weaponUid) {
           const w = active.weapons.find((x) => x.uid === opt.weaponUid);
           if (w?.uid) set({ pendingSiegeAim: { gunnerId: active.id, weaponUid: w.uid, radius: siegeBlastRadiusTiles(active, w, get().scene), rangeTiles: null } });
@@ -1260,23 +1258,23 @@ export function createCombatSlice(get: Get, set: Set) {
       const recharge = rechargeDuTour(active, battle, weaponUid);
       if (recharge) set({ pendingReload: jetDeRecharge(recharge.porteur, recharge.arme, battle.combatants) });
     },
-    seRemettreDeLEtat: (state: string) => {
+    seRemettreDeLEtat: (etat: string) => {
       const { battle } = get();
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !canTakeAction(active)) return;
-      const inst = active.conditions.find((c) => c.id === state);
+      const inst = active.conditions.find((c) => c.id === etat);
       const n = inst?.value ?? 0;
       if (!inst || n <= 0) return; // pas porteur de l'État
       if (isConditionLocked(inst, active)) return; // État verrouillé : le Test ne l'ôterait pas (LDB 18)
       // Test de récupération (Empêtré « se libérer »/En flammes « se rouler », LDB 16 l.66/l.84) lu de la
       // DONNÉE (`EtatData.recover`) par la SOURCE UNIQUE `resolveRecoverTest` — Empêtré = opposé de Force
       // (escapeStrength figée prioritaire, sinon source vivante) ; En flammes = Athlétisme simple.
-      const rt = resolveRecoverTest(active, state, battle);
+      const rt = resolveRecoverTest(active, etat, battle);
       if (!rt) return; // État non récupérable par Action (pas de `recover` en donnée)
       set({
         pendingStateRecovery: {
-          actorId: active.id, actorName: active.label, state,
+          actorId: active.id, actorName: active.label, state: etat,
           skillLabel: rt.skillLabel, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
           opposition: rt.opposition, requireSl: rt.requireSl,
           entangleOnFail: rt.entangleOnFail, struggleDamage: rt.struggleDamage, stacks: n,
@@ -1328,14 +1326,14 @@ export function createCombatSlice(get: Get, set: Set) {
 
     // ── Ramasser un objet d'un décor : en combat, un à la fois, au prix de l'Action (`pickup` de `actions.json`) ──
     /** Ramasse l'objet `key` du décor `entityId`. Hors combat, un objet posé au sol (`ramasserHorsCombat`). En combat,
-     *  l'actif (`pid`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
-    ramasserLObjet: (entityId: string, key: string, pid?: string) => {
+     *  l'actif (`heroId`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
+    ramasserLObjet: (entityId: string, key: string, heroId?: string) => {
       const s = get();
-      if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, pid);
+      if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, heroId);
       const barre = barreDuGeste(s);
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
-      if (pid !== undefined && pid !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, pid)?.label ?? pid }));
+      if (heroId !== undefined && heroId !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, heroId)?.label ?? heroId }));
       if (refuseParSonEntree(get, set, 'pickup', active, battle, { entityId, pickKey: key })) return;
       const scene = s.scene!;
       const ent = scene.entities.find((e) => e.id === entityId && e.kind === 'prop');
@@ -1677,16 +1675,16 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Contre-mesure « Asperger d'eau » (MDG 16 l.19, #497) — Créature marine hors de l'eau ──
 
     /** « Asperger d'eau » : Action DIRECTE (aucun jet, aucune modale) — pose `wateredThisRound` sur
-     *  une Créature marine adjacente hors de l'eau, consomme l'Action. `targetId` explicite (choix
+     *  une Créature marine adjacente hors de l'eau, consomme l'Action. `cibleId` explicite (choix
      *  parmi plusieurs candidats) sinon le 1ᵉʳ candidat éligible (MÊME patron que `servirLePoste`).
      *  Gate : l'aspergeur PORTE un contenant d'eau (`hasWaterContainer`, trapping `waterContainer`). */
-    aspergerDEau: (targetId?: string) => {
+    aspergerDEau: (cibleId?: string) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || battle.acted || !canTakeAction(active) || !hasWaterContainer(active)) return;
       const candidates = waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind));
-      const target = targetId ? candidates.find((c) => c.id === targetId) : candidates[0];
+      const target = cibleId ? candidates.find((c) => c.id === cibleId) : candidates[0];
       if (!target) return;
       target.wateredThisRound = true;
       finishPlayerAction(get, set, [t('cs.waterSpray', { name: active.label, target: target.label })], 'detail');
@@ -1935,8 +1933,8 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
       cible: (id) => {
         const pm = garanti(get().pendingMountTarget, id, 'cible du couple monté');
         set({ pendingMountTarget: null });
-        // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
-        get().cliquerLeCombattant(id, { skipMountChoice: true, approche: pm.approche });
+        // L'intention du clic d'origine revient avec la relance (même raison que le gate de Peur).
+        get().cliquerLeCombattant(id, { skipMountChoice: true, intentionId: pm.intentionId });
       },
     },
     roundStart: {
@@ -2726,11 +2724,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
         : t('cs.courageNo', { name: c.label, src: pa.sourceName }), c.id, src?.id)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
-        // Relance l'intention différée (le gate est 'passed') AVEC son verdict d'armement :
-        // l'intention qui l'a produite a été dissoute par le premier clic, la relire ici refuserait le
-        // geste que le joueur vient de gagner à son Test `calme-d-approche`.
-        if (pa.intent.kind === 'tile') get().cliquerLaCaseDuCombat(pa.intent.pt, { confirm: true, courseArmee: pa.intent.courseArmee });
-        else get().cliquerLeCombattant(pa.intent.id, { confirm: true, approche: pa.intent.approche });
+        // Relance le geste différé (le gate est 'passed') AVEC l'intention de son clic d'origine, que ce clic a dissoute.
+        if (pa.intent.kind === 'tile') get().cliquerLaCaseDuCombat(pa.intent.pt, { confirm: true, intentionId: pa.intent.intentionId });
+        else get().cliquerLeCombattant(pa.intent.id, { confirm: true, intentionId: pa.intent.intentionId });
       }
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -2751,7 +2747,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         : t('cs.shameBlocked', { name: attacker.label, foe: target.label }), attacker.id, target.id)];
       set({ battle: { ...get().battle!, log } });
       // Succès : relance la déclaration d'attaque (le gate est franchi pour CE clic via `wardCleared`).
-      if (ok) get().cliquerLeCombattant(pw.targetId, { confirm: true, wardCleared: true, approche: pw.approche });
+      if (ok) get().cliquerLeCombattant(pw.targetId, { confirm: true, wardCleared: true, intentionId: pw.intentionId });
       bus.emit(EVT.SCENE_DIRTY);
     },
     reload: () => {

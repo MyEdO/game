@@ -427,7 +427,8 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
 /** Désigne GRATUITEMENT un emplacement « (Au choix) » de la carrière courante sur une (id, spec)
  *  concrète (éventuellement déjà possédée via l'espèce) — il devient in-carrière et montable en
  *  PX. Arbitrage RAW : specs distinctes par carrière, désignations par carrière. */
-export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: string, optionId: string, spec?: string): void {
+export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: string, option: RefDesignee): void {
+  const { id: optionId, spec } = option;
   let msg = '';
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
@@ -443,7 +444,7 @@ export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: s
       msg = t('pf.designateRefused', { name: clone.label, reason: r.reason ?? '' });
       return h;
     }
-    const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', { id: optionId, spec }); // AFFICHAGE seul
+    const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', option); // AFFICHAGE seul
     msg = t('pf.designated', { name: clone.label, label });
     return clone;
   }));
@@ -454,12 +455,13 @@ export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: s
  *  emplacement du niveau COURANT le couvre (LDB 07 l.103 ; explicite, désigné, ou libre → désignation
  *  automatique), ou un ajout de carrière ; hors carrière interdit (LDB 07 l.93) ; Maxi respecté (LDB 10). Applique les effets d'acquisition
  *  (+5 Caractéristique de départ, Véloce) et recale Blessures/Chance/Détermination. */
-export function acheterLeTalent(get: Get, set: Set, heroId: string, talentId: string, spec?: string): void {
+export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefDesignee): void {
+  const { id: talentId, spec } = talent;
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const ctx = careerCtx(clone);
-    const talentLabel = refLabel('talents', { id: talentId, spec }); // AFFICHAGE + conversion pour le moteur
+    const talentLabel = refLabel('talents', talent); // AFFICHAGE + conversion pour le moteur
     const status = talentEnCarriere(clone, ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     if (!status) {
       msg = t('pf.talentOutOfCareer', { name: clone.label, label: talentLabel });
@@ -833,28 +835,28 @@ export function renvoyerLeHeros(get: Get, set: Set, heroId: string): void {
   set((s2) => ({ party: s2.party.filter((h) => h.id !== heroId), net: { ...s2.net, ownership, rangs } }));
 }
 
-/** Remplace ATOMIQUEMENT le héros `oldId` par celui que le noyau bâtit de `heros` (`herosDeLEngagement`) à SA position dans `party` (substitution en
+/** Remplace ATOMIQUEMENT le héros `heroId` par celui que le noyau bâtit de `heros` (`herosDeLEngagement`) à SA position dans `party` (substitution en
  *  place → préserve l'index/ordre) et à SON rang (`net.rangs`) ; refusé par `refusDeComposerLeHeros`, la possession
- *  passe du siège qui décide (`decidingSeat`, qui possède `oldId`) au remplaçant (l'ancien id est libéré).
+ *  passe du siège qui décide (`decidingSeat`, qui possède `heroId`) au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Le remplaçant porte la Bourse du remplacé (un remplacement n'est pas un recrutement) ; un id
  *  déjà au groupe est refusé et dit. */
-export function remplacerLeHeros(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
+export function remplacerLeHeros(get: Get, set: Set, heroId: string, heros: HerosEngage): void {
   // Tout refus se juge AVANT de bâtir : un geste refusé ne consomme aucun id (#2907).
   const verdict = verdictDEngagement(heros);
-  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in verdict ? verdict.refus : null)) || 'refus' in verdict) return;
+  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), heroId, decidingSeat(get())) ?? ('refus' in verdict ? verdict.refus : null)) || 'refus' in verdict) return;
   const s = get();
-  const idx = s.party.findIndex((h) => h.id === oldId);
+  const idx = s.party.findIndex((h) => h.id === heroId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
-  const doublon = verdict.id !== undefined && verdict.id !== oldId ? s.party.find((h) => h.id === verdict.id) : undefined;
+  const doublon = verdict.id !== undefined && verdict.id !== heroId ? s.party.find((h) => h.id === verdict.id) : undefined;
   if (compositionRefusee(get, set, doublon ? t('pf.partyDuplicate', { name: doublon.label }) : null)) return;
   const copy = withBourseMoney(herosDeLEngagement(heros, get().forgerUnId), bourseOf(s.party[idx]), get().forgerUnId);
   const ownership = { ...s.net.ownership };
-  delete ownership[oldId];
+  delete ownership[heroId];
   ownership[copy.id] = decidingSeat(s);
   const rangs = rangsDuGroupe(s);
-  const rang = rangs[oldId];
-  delete rangs[oldId];
+  const rang = rangs[heroId];
+  delete rangs[heroId];
   rangs[copy.id] = rang;
   set({ party: s.party.map((h, i) => (i === idx ? copy : h)), net: { ...s.net, ownership, rangs } });
 }
@@ -894,20 +896,20 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
   return {
     recruterLeHeros: (heros) => recruterLeHeros(get, set, heros),
     renvoyerLeHeros: (heroId) => renvoyerLeHeros(get, set, heroId),
-    remplacerLeHeros: (oldId, heros) => remplacerLeHeros(get, set, oldId, heros),
+    remplacerLeHeros: (heroId, heros) => remplacerLeHeros(get, set, heroId, heros),
     equiperLObjet: (uid) => equiperLObjet(get, set, uid),
     rangerLObjet: (uid, containerUid) => rangerLObjet(get, set, uid, containerUid),
     creerLaPanoplie: (heroId) => creerLaPanoplie(get, set, heroId),
     supprimerLaPanoplie: (heroId, id) => supprimerLaPanoplie(get, set, heroId, id),
     garnirLaPanoplie: (heroId, id, slot, uid) => garnirLaPanoplie(get, set, heroId, id, slot, uid),
-    transmettreLObjet: (uid, toHeroId) => transmettreLObjet(get, set, uid, toHeroId),
+    transmettreLObjet: (uid, destinataireId) => transmettreLObjet(get, set, uid, destinataireId),
     poserLObjet: (uid) => poserLObjet(get, set, uid),
     poserLApparence: (uid, apparence) => poserLApparence(get, set, uid, apparence),
     accorderLesPx: (heroId, amount) => accorderLesPx(get, set, heroId, amount),
     acheterLaCaracteristique: (heroId, char) => acheterLaCaracteristique(get, set, heroId, char),
     acheterLaCompetence: (heroId, skill) => acheterLaCompetence(get, set, heroId, skill),
-    acheterLeTalent: (heroId, talentId, spec) => acheterLeTalent(get, set, heroId, talentId, spec),
-    designerLeCreneau: (heroId, slotKey, optionId, spec) => designerLeCreneau(get, set, heroId, slotKey, optionId, spec),
+    acheterLeTalent: (heroId, talent) => acheterLeTalent(get, set, heroId, talent),
+    designerLeCreneau: (heroId, slotKey, option) => designerLeCreneau(get, set, heroId, slotKey, option),
     /** Mémorise un sort (PX selon le Talent, LDB 46/10) ; un sort du Chaos corrompt (+1, seuil → mutation). */
     acheterLeSort: (heroId, spellId) => {
       const r = acheterLeSort(get, set, heroId, spellId);

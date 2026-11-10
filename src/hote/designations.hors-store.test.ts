@@ -9,7 +9,7 @@ import { describe, it, expect, afterAll, beforeAll } from 'vitest';
 import { DESIGNATIONS } from '../noyau/index';
 import { CHOIX, REGLAGES, VERBES } from './verbes.generated';
 import type { Forme } from './formes';
-import { gesteDuVerbe, SANS_PISTE } from './geste';
+import { argumentsDuVerbe, gesteDuVerbe, SANS_PISTE } from './geste';
 import { ErreurDeGeste, nouvelEntete, ouvrirLaPartie } from './partie';
 
 /** Les désignations que les formes d'une liste de paramètres portent. */
@@ -87,6 +87,11 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
       expect(choix(['medic', 'patient', 'pas-un-heros'])).toContain('pas-un-heros');
       expect(choix(['medic', 'paie', 'x'])).toContain('n’est pas un choix de la fenêtre medic');
       expect(choix(['cascade', 'abandon', true])).toContain('n’est pas une fenêtre à choix');
+    });
+
+    it('la rangée (`pid`) d’un choix de rangée désigne un héros du groupe, aucun flux de jet ouvert', () => {
+      const heroId = etat.party[0].id;
+      expect(argumentsDuVerbe(etat, 'fenetreChoisir', ['rest', 'couchage', 'commune', heroId], VERBES.fenetreChoisir)).toEqual(['rest', 'couchage', 'commune', heroId]);
     });
   });
 });

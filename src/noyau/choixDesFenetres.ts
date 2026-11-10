@@ -10,7 +10,7 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
+  IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeRangee, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
   IdDeQualiteDArtisanat, IdDeReponseDeDialogue, IdDEntrainement, IdDeSort, IdDeTalent, IdDeTireurRapide, IdDeTraitPsyPorte, IdDObjet, IdDObjetDuCatalogue, IdDuCoupleMonte,
   IdDePosteDeBataille, IdDeSceneDeBataille,
   IdDOffreDeCargaison, IdDePorteurDeCargaison, IdDeCargaison, IdDePointDInteret,
@@ -300,15 +300,15 @@ export interface VerbeDeChoix {
 /** Les arguments du verbe, union corrélée sur chaque axe : la valeur suit son axe jusque dans une intention
  *  (`Parameters<ActionsDuNoyau['fenetreChoisir']>`). */
 export type ArgumentsDuChoix = {
-  [F in FenetreAChoix]: { [A in AxeDe<F>]: [fenetre: F, axe: A, valeur: ChoixDesFenetres[F][A], pid?: IdDeHeros] }[AxeDe<F>];
+  [F in FenetreAChoix]: { [A in AxeDe<F>]: [fenetre: F, axe: A, valeur: ChoixDesFenetres[F][A], pid?: IdDeRangee] }[AxeDe<F>];
 }[FenetreAChoix];
 
 /** Le corps de chaque choix, table TOTALE sur `ChoixDesFenetres` : il reçoit la valeur, que `fenetreChoisir` n'a admise
  *  que parmi les valeurs ouvertes de l'axe (`OuvertsDuChoix`), et le héros d'un choix de rangée. */
-export type CorpsDesChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (valeur: ChoixDesFenetres[F][A], pid: IdDeHeros) => void } };
+export type CorpsDesChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (valeur: ChoixDesFenetres[F][A], pid: IdDeRangee) => void } };
 
 /** Les valeurs que l'état ouvre à chaque choix, table TOTALE sur `ChoixDesFenetres` : le réglage de l'argument
  *  `valeur` (son libellé, sa valeur courante, chaque valeur avec la raison qui la ferme, ou ses bornes), sur le héros
  *  `pid` d'un choix de rangée, que lisent le refus du verbe et les hôtes du noyau. Aucune valeur hors de ce réglage ne se
  *  joue. */
-export type OuvertsDuChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (s: Jeu, pid: IdDeHeros | undefined) => Reglage } };
+export type OuvertsDuChoix = { readonly [F in FenetreAChoix]: { readonly [A in AxeDe<F>]: (s: Jeu, pid: IdDeRangee | undefined) => Reglage } };

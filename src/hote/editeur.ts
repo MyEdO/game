@@ -16,9 +16,9 @@ import {
   assoirALaPlace, idDuCorps, labelEmplacement, lightTones, lumiereAllumee, PARTY_MAX, seatSlotsOf, siegeEngines, type SeatOccupant,
   DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FACES_D_ARETE, FIRE_ARCS, HAUTEURS, PINCEAUX, planDeLaVolee, areteDessinee, heightAt, libelleDeStructure, porteAuteur, sceneEditee, scenesDeLaSession, secretAuteur,
   segmentDeLaSelection, structureAppearances, structuresCrenelables, structuresDeLArete, crenellatedAt, terrainIds, terrainLabel, tileAt,
-  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
+  ACTIONS_D_ARCHITECTURE, avertissementsDeLaSession, cadreDeLaSession, BORNES_DE_LA_TROUPE, casesDuDefaut, PLAN_DEFECT_FAMILIES, versLaFautive, AMBIANCES, ENVIRONNEMENTS, METEOS, PARTS_RELIEF, lightLevels, matieresDe, reposDeScene, sceneMetresPerTile, matieresCouvrantes, PENTE_TOIT_DEG, PROFILS_DE_TOIT, toitureEffective, BORNES_D_OUVERTURE, buildingsMeta, corpsActif, DEFAUTS_D_OUVERTURE, FACADE_APPEARANCE_IDS, SORTES_D_OUVERTURE, OUVRAGES, refusDOuvrage, selRect, effectZoneRect, ENTREES_DE_DOSSIER, isRoomZone, poigneeDeLaSelection, sameSel, sceneZoneTiles,
   type AreteDessinee, type BrouillonDArete, type Difficulty, type GesteDEdition, type PatchDArete, type PatchDEntite, type PatchDeScene, type PatchDeZone, type Scene, type Sel, type SessionDEdition,
-  type WallPaint, ZONE_VARIANTS, bornesAuPoint, champDeLElement, champsDeclares, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
+  type WallPaint, ZONE_VARIANTS, bornesAuPoint, champDeLElement, champsDeclares, champsDuRecord, champsOfferts, choixDuNoeud, elementDuNoeud, formeAuPoint, recordDuNoeud, formulaireDe, gestesDeLaListe, refusDeLaValeur, unionDuNoeud, valeurNeuveDe, varianteCourante, variantesAChoisir, type FieldDesc, type Segment,
   allMusicDefs, apparencesDeLOuverture, champDuMessage, ciblesDAncreDeBataille, groupesDuLieu,
   isWearable, objetsDeLInventaire, trappingsInstanciables,
   candidatsDuSlot, carriereActuelle, careers, designationsDeCarriere, dotationsDuPnj, emplacementsDeDotation, estEmplacementRacine, ficheDuCombattant,
@@ -84,17 +84,18 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * (`gesteDuFormulaire`), refusé en `validation` si aucun formulaire des zones ne porte ce porteur et ce chemin, ni
  * aucune valeur d'un de leurs choix ce geste même ; `porteur` est `{ sorte: 'zone' | 'declencheur' | 'entite', id }`,
  * la zone d'effet, le déclencheur ou l'entité par son identifiant, et `chemin` les clés du champ depuis lui, le rang
- * entier d'un élément de liste compris.
+ * entier d'un élément de liste et la clé d'une entrée de record compris.
  *
  * Le geste, joué par un bouton ou par ce formulaire, n'écrit que ce que le formulaire offre (`avecLaValeur`) : sous un
  * champ que son porteur offre (`FORMULAIRES`, `cheminOffert`), le rang d'un élément d'une liste présente, une clé
- * déclarée d'un objet présent ou de la variante courante d'une union, jamais son discriminant, que tient le choix de la
- * variante, ni une clé `id` qui n'est pas une référence de catalogue ; et une valeur de la sorte du champ, l'une de ses
- * valeurs pour un choix (`choixDuNoeud`), l'un des choix admis que le contexte de son porteur y pose (`choixDuChamp`), la
- * valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
+ * d'un record présent qu'il porte, ou qu'il offre (l'une de celles que le contexte de son porteur y pose, sinon une
+ * qu'admet sa clé), une clé déclarée d'un objet présent ou de la variante courante d'une union, jamais son discriminant, que tient le choix de la
+ * variante, ni une clé `id` qui n'est pas une référence de catalogue ; et l'un des choix admis que le contexte de son
+ * porteur y pose (`choixDuChamp`), ou, sans eux, une valeur de la sorte du champ : l'une de ses valeurs pour un choix
+ * (`choixDuNoeud`), la valeur neuve d'un objet (`valeurNeuveDe`), l'une de ses variantes à
  * choisir pour une union (`variantesAChoisir`), la liste après l'un de ses gestes (`gestesDeLaListe`), sinon ce que le
- * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise, une liste vidée part si la sienne
- * l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
+ * schéma du champ parse ; `valeur` absente retire le champ si son absence est admise ou si c'est l'entrée d'un record,
+ * une liste vidée part si la sienne l'est, et l'objet que ce retrait vide part avec lui, de proche en proche.
  *
  * L'entité s'écrit par sa porte (`editEntity`), et l'écriture qui lui fait enfreindre une règle qu'elle n'enfreignait
  * pas (`refusDeLEntite`, `src/data/schemas/defs-scenes/scene.ts` ; `TypeNonNomme`) est refusée, la règle dite ; une
@@ -256,18 +257,24 @@ export interface ZonesDeLEditeur {
    * de toute entité, les entrées de fiche qu'elle couvre, comme celles d'une zone, sous `entite/couvre` ;
    *
    * d'un personnage, le formulaire tiré du schéma de son type (`formulaireDe('entite', …)`), comme celui d'une zone
-   * d'effet, dans le narratif du projet : son preset (`presetId`) s'il en porte un ou si le narratif en déclare ; de son
+   * d'effet, dans sa scène et le narratif du projet (`cadreDeLaSession`) : son preset (`presetId`) s'il en porte un ou si le narratif en déclare ;
+   * son dialogue (`dialogueId`) s'il en porte un ou si sa scène en déclare ; de son
    * rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques, son embuscade et, s'il en
    * porte ou si sa fiche ouvre une liste de sorts sans imprimer les siens, ses sorts choisis (`combat.spells`) ; son
    * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
+   * marchand (`merchant`), son jeu de taverne (`tavernGame`), son
+   * apparence (`appearance`), sans tenue pour un PNJ de carrière, ses couleurs par emplacement de palette, son
    * animation (`anim`) et, d'une coque, son véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa
    * fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
-   * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; le profil absent, « Ajouter » choisit un profil
+   * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; un dialogue, chacun de ceux que sa scène
+   * déclare (`dialoguesDeLaScene`) ; le profil absent, « Ajouter » choisit un profil
    * neuf au nom du personnage (`emptyStatblock`) ou la copie de sa créature du Bestiaire (`statblockDeLaCreature`) ;
    * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits standard
    * en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le formulaire
    * édite ensuite ; un sort choisi, chaque sort d'une liste qu'ouvre sa fiche hors des autres choisis, refusé avec sa
-   * raison au-delà d'un quota du livre (`refusDesSortsChoisis`) ; la supprimer.
+   * raison au-delà d'un quota du livre (`refusDesSortsChoisis`) ; l'apparence de ses objets, chacune de ses armes qui
+   * admet une autre apparence que sa forme, enrôlé s'il est membre d'une rencontre, puis l'une de ces apparences ; la
+   * supprimer.
    *
    * Chaque bouton joue `{ geste: 'entite', patch }`, `patch` portant `ref`, `facing`, `z`, `light` (`null` l'éteint),
    * `assise`, `objet` (l'intention sur un objet de l'inventaire, `{ porter }`, `{ retirer }` ou `{ ajouter }`,
@@ -650,7 +657,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
       : []),
     ...(ent.kind === 'personnage' ? [...inventaire(ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
-    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent, s.projet.narratif), ent as unknown as Record<string, unknown>),
+    ...elementsDuFormulaire({ sorte: 'entite', id: ent.id }, formulaireDe('entite', ent, cadreDeLaSession(s)), ent as unknown as Record<string, unknown>),
     bouton('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
 }
@@ -1179,7 +1186,7 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
  *  `valeur/<chemin>`, chacun jouant `{ geste: 'valeur', porteur, chemin, valeur }`. Un objet (`champsDeclares`)
  *  présent : son libellé, ses champs offerts (`champsOfferts`), et « Retirer » si son absence est admise ; absent :
  *  « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
- *  liste : ses éléments (`elementsDeLaListe`). Un objet d'une union sans variantes nommées : son libellé et les champs
+ *  liste : ses éléments (`elementsDeLaListe`). Un record qui offre des clés : ses entrées (`elementsDuRecord`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
  *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent. */
 function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
@@ -1192,11 +1199,21 @@ function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown
   }
   if (unionDuNoeud(f.noeud)) return elementsDeLUnion(porteur, f, valeur, ici);
   if (elementDuNoeud(f.noeud) !== undefined) return elementsDeLaListe(porteur, f, valeur, ici);
+  if (recordDuNoeud(f.noeud) && champsDuRecord(f, {}, ici).length) return elementsDuRecord(porteur, f, valeur, ici, retirer);
   const forme = formeAuPoint(f.noeud, valeur)?.noeud;
   if (estObjet(valeur) && champsDeclares(forme)) return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsSous(f, ici, forme, valeur), valeur, ici), ...retirer];
   const a = argumentDeValeur(f, valeur, ici);
   const aucune = a.saisie === 'choix' && f.nullable ? [bouton(`${id}/aucune`, t('ecran.editeur.valeur.aucune'), ecrireLaValeur(porteur, ici), valeur === undefined)] : [];
   return [elementDeValeur(id, porteur, ici, f, a), ...(a.saisie === 'choix' ? aucune : retirer)];
+}
+
+/** Les éléments du champ record `f` (`recordDuNoeud`) qui offre des clés (`champsDuRecord`), de valeur `valeur`, au
+ *  chemin `ici`, « Retirer » `retirer` : présent, son libellé, chacune de ses entrées, comme les champs d'un objet, et
+ *  « Retirer » ; absent, « Ajouter », qui le pose vide (`valeurNeuveDe`). */
+function elementsDuRecord(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[], retirer: Bouton[]): (Choix | Ligne | Bouton | Formulaire)[] {
+  const id = `valeur/${ici.join('/')}`;
+  if (estObjet(valeur)) return [ligne(id, f.label), ...elementsDuFormulaire(porteur, champsDuRecord(f, valeur, ici), valeur, ici), ...retirer];
+  return [bouton(`${id}/ajouter`, t('ecran.editeur.valeur.ajouter', { libelle: f.label }), ecrireLaValeur(porteur, ici, valeurNeuveDe(f.noeud)))];
 }
 
 /** Les éléments du champ union `f` (`unionDuNoeud`), de valeur `valeur`, au chemin `ici`, les discriminants `tenus` déjà
@@ -1303,7 +1320,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       bouton('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       bouton('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
       ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez, s.projet.narratif), ez as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'zone', id: ez.id }, formulaireDe('zone', ez, cadreDeLaSession(s)), ez as unknown as Record<string, unknown>),
     );
   }
   propre.push(choixDeLaCouche(s, 'zone/couche', zone.z, (z) => sur({ z })));
@@ -1313,7 +1330,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     propre.push(
       bouton('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once),
       ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })),
-      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur, s.projet.narratif), declencheur as unknown as Record<string, unknown>),
+      ...elementsDuFormulaire({ sorte: 'declencheur', id: declencheur.id }, formulaireDe('declencheur', declencheur, cadreDeLaSession(s)), declencheur as unknown as Record<string, unknown>),
     );
   }
   if (sel?.type === 'restZone') {

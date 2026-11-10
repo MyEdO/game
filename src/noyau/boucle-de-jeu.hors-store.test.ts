@@ -937,7 +937,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     banc.abandonner();
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : l'approche vers l'ennemi cliqué se DEMANDE.
-    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -1005,10 +1005,10 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     // Clic confirmé sur la monture → la modale de choix s'ouvre (pas d'attaque encore).
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le couple est hors d'Allonge, l'approche se demande.
-    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, intentionId: 'charge' });
     st = banc.getState();
-    // Le verdict voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
-    expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, approche: true });
+    // L'intention du clic voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
+    expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, intentionId: 'charge' });
     expect(st.pendingAttack).toBeNull();
     // Choisir la monture → modale fermée + attaque ciblée sur la monture.
     banc.getState().fenetreChoisir('mountTarget', 'cible', mount.id);
@@ -1403,14 +1403,14 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('acheterLeTalent in-carrière (Sociable) : créé à times 1, coût 100', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().acheterLeTalent('h', 'sociable');
+    banc.getState().acheterLeTalent('h', { id: 'sociable' });
     expect(h0().talents.find((t) => t.talentId === 'sociable')!.times).toBe(1);
     expect(h0().xp).toBe(900);
   });
 
   it('acheterLeTalent hors-carrière : refusé (LDB 07 l.93)', () => {
     set1(mkHero({ xp: 1000 }));
-    banc.getState().acheterLeTalent('h', 'castagneur'); // hors Niveau Agitateur
+    banc.getState().acheterLeTalent('h', { id: 'castagneur' }); // hors Niveau Agitateur
     expect(h0().talents.find((t) => t.talentId === 'castagneur')).toBeUndefined();
     expect(h0().xp).toBe(1000);
   });
@@ -1442,9 +1442,9 @@ describe('Avancement par PX (store) — câblage moteur', () => {
 
   it('acheterLeTalent : Maxi 1 respecté (Lire/Écrire ×2 refusé, LDB 10)', () => {
     set1(mkHero({ xp: 1000 })); // Pamphlétaire : Lire/Écrire in-carrière
-    banc.getState().acheterLeTalent('h', 'lire-ecrire');
+    banc.getState().acheterLeTalent('h', { id: 'lire-ecrire' });
     expect(h0().talents.find((t) => t.talentId === 'lire-ecrire')!.times).toBe(1);
-    banc.getState().acheterLeTalent('h', 'lire-ecrire');
+    banc.getState().acheterLeTalent('h', { id: 'lire-ecrire' });
     expect(h0().talents.find((t) => t.talentId === 'lire-ecrire')!.times).toBe(1); // Maxi atteint
     expect(h0().xp).toBe(900);
   });
@@ -1452,17 +1452,17 @@ describe('Avancement par PX (store) — câblage moteur', () => {
   it('acheterLeTalent : Haine au Maxi (Bonus de Force Mentale) refuse un groupe neuf (LDB 10 l.18, l.548)', () => {
     // Flagellant Niveau 2 : « Haine (Hérétiques) » in-carrière ; FM 30 → Maxi 3.
     set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peau-verte', times: 3 }] }));
-    banc.getState().acheterLeTalent('h', 'haine', 'heretiques');
+    banc.getState().acheterLeTalent('h', { id: 'haine', spec: 'heretiques' });
     expect(h0().talents.some((t) => t.talentId === 'haine' && t.spec === 'heretiques')).toBe(false);
     expect(h0().xp).toBe(1000);
     set1(mkHero({ xp: 1000, career: 'flagellant', careerLevel: 2, talents: [{ talentId: 'haine', spec: 'peau-verte', times: 2 }] }));
-    banc.getState().acheterLeTalent('h', 'haine', 'heretiques');
+    banc.getState().acheterLeTalent('h', { id: 'haine', spec: 'heretiques' });
     expect(h0().talents.find((t) => t.talentId === 'haine' && t.spec === 'heretiques')?.times).toBe(1);
   });
 
   it('acheterLeTalent : « +5 Caractéristique de départ » passif à l\'achat (Guerrier né, LDB 10)', () => {
     set1(mkHero({ xp: 1000, career: 'soldat' })); // Recrue : Guerrier né in-carrière
-    banc.getState().acheterLeTalent('h', 'guerrier-ne');
+    banc.getState().acheterLeTalent('h', { id: 'guerrier-ne' });
     // La valeur brute reste inchangée (passif non cuit) ; baseWithTalents lit le charMod du talent.
     expect(h0().characteristics['capacite-de-combat']).toBe(30); // base INCHANGÉE
     expect(baseWithTalents(h0(), 'capacite-de-combat')).toBe(35); // base + passif Guerrier né = 35
@@ -1480,24 +1480,24 @@ describe('Avancement par PX (store) — câblage moteur', () => {
     expect(slot.options!.some((o) => o.display === 'Savoir-vivre (Criminels)' && o.owned)).toBe(true);
     // Avant désignation : l'achat direct passe par le slot libre (auto-désignation) — ici on
     // teste la DÉSIGNATION explicite (0 PX) puis la montée.
-    banc.getState().designerLeCreneau('h', slot.slotKey, 'savoir-vivre', 'criminels');
+    banc.getState().designerLeCreneau('h', slot.slotKey, { id: 'savoir-vivre', spec: 'criminels' });
     expect(h0().careerSlotChoices?.['conseiller']?.[slot.slotKey]).toBe('savoir-vivre|criminels');
     expect(h0().xp).toBe(1000); // gratuit
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'criminels');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'criminels' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Criminels)')!.times).toBe(2);
     expect(h0().xp).toBe(800); // 2ᵉ acquisition = 200 PX (LDB 07 l.105)
     // Le slot étant désigné, une AUTRE spec est hors carrière → refusée (l.97).
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'nobles');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'nobles' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Nobles)')).toBeUndefined();
   });
 
   it('emplacement « (Au choix) » : l\'achat via un slot libre le DÉSIGNE automatiquement', () => {
     set1(mkHero({ xp: 1000, career: 'conseiller' }));
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'nobles');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'nobles' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Nobles)')!.times).toBe(1);
     expect(Object.values(h0().careerSlotChoices?.['conseiller'] ?? {})).toContain('savoir-vivre|nobles');
     // Slot consommé : une autre spec n'est plus achetable dans CETTE carrière.
-    banc.getState().acheterLeTalent('h', 'savoir-vivre', 'criminels');
+    banc.getState().acheterLeTalent('h', { id: 'savoir-vivre', spec: 'criminels' });
     expect(h0().talents.find((t) => talentConcrete(t) === 'Savoir-vivre (Criminels)')).toBeUndefined();
   });
 

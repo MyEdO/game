@@ -71,11 +71,22 @@ describe('chaque argument d’un verbe de fenêtre se dessine en mots du joueur'
 describe('un argument qui désigne un élément de l’état se choisit parmi ses éléments nommés (#2937)', () => {
   it.each([
     // Une union de désignations : chacune garde la sienne (`verbesDeLaPartie.mjs`, `designee`).
-    ['evaluerLObjet', 'uid', 'IdDObjet,IdDeLigneDeButin'],
+    ['evaluerLObjet', 'aEvaluer', 'IdDObjet,IdDeLigneDeButin'],
   ])('%s.%s désigne %s', (verbe, nom, cles) => {
     const p = VERBES[verbe].find((x) => x.nom === nom)!;
     const membres = p.forme.genre === 'union' ? p.forme.membres : [p.forme];
     expect(membres.flatMap((m) => (m.genre === 'chaine' && m.designe ? [m.designe.cle] : []))).toEqual(cles.split(','));
+  });
+
+  it.each([
+    // Le champ d'une référence générique se lit à l'argument de type qui le déclare (`verbesDeLaPartie.mjs`, `substitutions`).
+    ['acheterLeTalent', 'talent', 'IdDeTalent'],
+    ['designerLeCreneau', 'option', 'IdDeCompetenceOuDeTalent'],
+    ['acheterLaCompetence', 'skill', 'IdDeCompetence'],
+  ])('%s.%s : son `id` désigne %s, sa `spec` est un texte libre', (verbe, nom, cle) => {
+    const f = VERBES[verbe].find((x) => x.nom === nom)!.forme;
+    const champs = f.genre === 'objet' ? f.champs : [];
+    expect(champs.map((c) => [c.nom, c.optionnel, c.forme.genre === 'chaine' ? c.forme.designe?.cle ?? null : c.forme.genre])).toEqual([['id', false, cle], ['spec', true, null]]);
   });
 
   it.each([

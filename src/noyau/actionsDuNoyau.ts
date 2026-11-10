@@ -22,32 +22,26 @@ import type {
   IdDObjetRamassable,
 } from './designations';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
+import type { RefDesignee, TexteLibre } from '../data/schemas/grammaire/ref';
 
-/** Un texte que le joueur écrit (un nom, une motivation) : jamais un id, que `DESIGNATIONS` désigne. */
-export type TexteLibre = string;
 /** Ce qu'un verbe reçoit sans le désigner, parce que le geste le crée : le brouillon d'un héros et l'id que son roster
  *  lui donne (`HerosEngage`). Exempt de désignation seulement : l'hôte en lit chaque champ à sa forme (`lireALaForme`). */
 export type HorsDesignation<T> = T;
 /** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
 export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
-/** Une Spécialisation de Compétence ou de Talent : un id du catalogue de l'entrée, ou, pour une entrée ouverte, un
- *  texte libre (`entreeOuverte`, LDB 09 l.40) ; le verbe la juge à l'entrée qu'il désigne. */
-type Specialisation = TexteLibre;
-/** Une Compétence désignée : son id, et sa Spécialisation (`RefDesignee`). */
-export interface CompetenceDesignee { id: IdDeCompetence; spec?: Specialisation }
 
 /** Les gestes de la BARRE de l'actif (#3610) : chacun est le verbe qu'une offre du registre déclare (`ENTREES_PAR_RUN`,
  *  `actionRegistry.ts`), et nul autre geste ne le joue. Le refus de son geste le juge (`refusDuGeste`), dont l'offre
  *  est la projection : refusé, et dit, hors de l'entrée qui l'admet ; l'intention que cette offre arme s'arme chez l'émetteur. */
 export interface VerbesDeLaBarre {
-  /** Arme l'intention de l'offre `actionId` (`ActionDef.intent`) : sa portée se peint, le clic du champ la commet. */
-  armerLIntention: (actionId: IdDIntention) => void;
+  /** Arme l'intention de l'offre `intentionId` (`ActionDef.intent`) : sa portée se peint, le clic du champ la commet. */
+  armerLIntention: (intentionId: IdDIntention) => void;
   /** Arme le mode `mode` du combat (`battle.action`) : le clic-cible le commet. */
   armerLeMode: (mode: BattleActionMode) => void;
   /** Arme une ATTAQUE (id d'`AttackOption` : 'arme'/'morsure'/'tentacule'/'pietinement'…) pour le clic-ennemi
    *  — source UNIQUE de l'attaque armée. Toggle → 'arme'.
    *  Le clic-ennemi résout l'attaque armée via l'approche-puis-frappe (cliquerLeCombattant). */
-  armerLAttaque: (id: IdDAttaque) => void;
+  armerLAttaque: (attaqueId: IdDAttaque) => void;
   /** Manœuvre de ZONE / soi immédiate (Souffle/Vomi/Langue/Hurlement/Regard/Étreinte) : résolution
    *  directe par le résolveur moteur partagé. L'Étreinte glaciale coûte l'Action (LDB 85 l.112). */
   lancerLAttaqueDeZone: (kind: AttackKind) => void;
@@ -65,7 +59,7 @@ export interface VerbesDeLaBarre {
   basculerLaPosture: (stance: ShootingStanceKey) => void;
   /** « Asperger d'eau » (MDG 16 l.19, #497) — Action DIRECTE (aucune modale) : cible explicite ou
    *  1ᵉʳ candidat éligible adjacent (patron `servirLePoste`). */
-  aspergerDEau: (targetId?: IdDeCombattant) => void;
+  aspergerDEau: (cibleId?: IdDeCombattant) => void;
   /** « Sur la défensive » : utilise l'Action pour +20 en défense jusqu'au prochain tour. */
   prendreLaDefensive: () => void;
   /** Désengagement (LDB 15 l.43-68) : menu Sacrifier l'Avantage / Esquiver / Fuir / Renoncer. */
@@ -74,7 +68,7 @@ export interface VerbesDeLaBarre {
    *  Savoir/Survie/Prière) via la modale de Test standard ; sur réussite +1 Avantage plafonné. Coûte l'Action. */
   gagnerLAvantage: (skillId: IdDeCompetence) => void;
   /** Se libérer (Empêtré, Test opposé de Force) / se rouler au sol (En flammes, Athlétisme) : OUVRE la modale (LDB 16 l.66/84). */
-  seRemettreDeLEtat: (state: IdDeCondition) => void;
+  seRemettreDeLEtat: (etat: IdDeCondition) => void;
   /** Se relever d'À Terre (LDB 16 l.37) : consomme le Mouvement (pas l'Action) ; impossible à 0 PB (LDB 18 l.15). */
   seRelever: () => void;
   /** Battement (LDB 10 l.103 / AA 13 l.17) : Action, Test de Corps à corps NON opposé retirant de
@@ -140,8 +134,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Ramasse UN objet d'un décor à portée, sans l'équiper (`entityPickables`). En combat : le combattant actif, au prix de
    *  son Action (`pickup` de `actions.json`), un objet posé au sol ou une feuille donneuse d'une action authorée (`key` =
    *  `<actionId>:eff:<index>`). Hors combat : un objet posé au sol seulement (un décor authoré se fouille,
-   *  `jouerAction`), que le héros `pid` reçoit, le meneur sans lui. */
-  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable, pid?: IdDeHeros) => void;
+   *  `jouerAction`), que le héros `heroId` reçoit, le meneur sans lui. */
+  ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable, heroId?: IdDeHeros) => void;
   /** Prend le set d'armes `loadoutId` de `heroId`, Action gratuite (LDB 13 l.106), 1×/tour en combat. */
   prendreLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   /** Dépense un Point de Détermination de `combattantId` pour l'une de ses trois options, l'État `etat` pour le
@@ -181,19 +175,19 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  départ, dans un emplacement du siège qui décide (`decidingSeat`) / retire un héros (propriétaire seul). */
   recruterLeHeros: (heros: HerosEngage) => void;
   renvoyerLeHeros: (heroId: IdDeHeros) => void;
-  /** Remplace EN PLACE le héros `oldId` par celui que le noyau bâtit de `heros` (substitution atomique, possession
-   *  transférée au siège qui possédait `oldId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
+  /** Remplace EN PLACE le héros `heroId` par celui que le noyau bâtit de `heros` (substitution atomique, possession
+   *  transférée au siège qui possédait `heroId` ; ne touche pas la bourse) — créateur (édition) et bouton « Remplacer »
    *  du slot. */
-  remplacerLeHeros: (oldId: IdDeHeros, heros: HerosEngage) => void;
+  remplacerLeHeros: (heroId: IdDeHeros, heros: HerosEngage) => void;
   equiperLObjet: (uid: IdDObjet) => void;
   /** Range (`containerUid`) ou sort (null) un objet de son porteur d'un contenant (LDB 64). */
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
   creerLaPanoplie: (heroId: IdDeHeros) => void;
   supprimerLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
   garnirLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie, slot: 'main' | 'off', uid: IdDObjet | null) => void;
-  /** Donne un objet de son porteur à `toHeroId` (transfert d'inventaire). Arrive NON équipé chez le
+  /** Donne un objet de son porteur à `destinataireId` (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
-  transmettreLObjet: (uid: IdDObjet, toHeroId: IdDePorteur) => void;
+  transmettreLObjet: (uid: IdDObjet, destinataireId: IdDePorteur) => void;
   /** Pose au sol, à la case du groupe, un objet d'un porteur du groupe et le contenu de son contenant (`objetsAuSol.ts`). */
   poserLObjet: (uid: IdDObjet) => void;
   /** Choisit un id du catalogue d’apparences admis par l’objet ; le défaut retire la clé (#2113). */
@@ -202,11 +196,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   acheterLaCaracteristique: (heroId: IdDeHeros, char: CharKey) => void;
   /** Achète une Augmentation de Compétence (identité skillId+spec) ; acquiert la Compétence de
    *  carrière non connue à 0 ; l'achat via un slot « (Au choix) » libre le désigne. */
-  acheterLaCompetence: (heroId: IdDeHeros, skill: CompetenceDesignee) => void;
+  acheterLaCompetence: (heroId: IdDeHeros, skill: RefDesignee<IdDeCompetence>) => void;
   /** Achète/augmente un Talent (identité talentId+spec ; refusé hors carrière l.97 / Maxi atteint). */
-  acheterLeTalent: (heroId: IdDeHeros, talentId: IdDeTalent, spec?: Specialisation) => void;
+  acheterLeTalent: (heroId: IdDeHeros, talent: RefDesignee<IdDeTalent>) => void;
   /** Désigne GRATUITEMENT un emplacement « (Au choix) » de la carrière courante (LDB 09 l.38). */
-  designerLeCreneau: (heroId: IdDeHeros, slotKey: IdDeCreneau, optionId: IdDeCompetenceOuDeTalent, spec?: Specialisation) => void;
+  designerLeCreneau: (heroId: IdDeHeros, slotKey: IdDeCreneau, option: RefDesignee<IdDeCompetenceOuDeTalent>) => void;
   /** Apprentissage/mémorisation d'un sort (LDB 46/10) — coût PX via engine/grimoire. */
   acheterLeSort: (heroId: IdDeHeros, spellId: IdDeSort) => void;
   /** Achète un composant d'incantation pour un Sort d'Arcane/Domaine connu (LDB 46 l.113 — NI pistoles). */
@@ -223,7 +217,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   changerDeCarriere: (heroId: IdDeHeros, newCareer: IdDeCarriere, newLevel: number) => void;
   /** Le clic de la case `pt`, sur ce que le geste y désigne (`entite`), le combat lu dans `battle`. En combat, un
    *  combattant désigné se joue par `cliquerLeCombattant` (le mode de ciblage, le Tir rapide de la pause de Round), une
-   *  case libre par `cliquerLaCaseDuCombat` ; `opts` porte la confirmation et les verdicts d'armement (`OptionsDuClic`).
+   *  case libre par `cliquerLaCaseDuCombat` ; `opts` porte la confirmation et l'intention du clic (`OptionsDuClic`).
    *  En exploration, sur l'entité de scène désignée, ce qu'il joue est `intentionDuClicDExploration` (interagir, jouer
    *  l'offre, rejoindre, marcher, dire, annuler) ; la marche se joue en une passe, pas à pas, sauts compris
    *  (`marcherLeChemin`), et s'arrête au premier pas qui ne se joue plus. */
@@ -263,13 +257,13 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
   /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
-  ouvrirLesJeux: (npcId?: IdDEntiteDeScene) => void;
+  ouvrirLesJeux: (entityId?: IdDEntiteDeScene) => void;
   jouerALaTaverne: (heroId: IdDeHeros, partie: tavernFlow.ReglageDePartie) => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
    *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
    *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est
    *  dit (`refusDEvaluation`, `merchantFlow.ts`). */
-  evaluerLObjet: (uid: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
+  evaluerLObjet: (aEvaluer: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
 
   /** INFIRMERIE (hors combat, noyau/medicFlow) : modale de soins persistante — patients (`fenetreChoisir('medic', …)`),
    *  actes (`jetRegler('heal', 'mode', …)` sur le brouillon du soin, joué par `jetLancer('heal')`) ; le PNJ payant
@@ -286,10 +280,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLaCarte: () => void;
   /** Rouvre l'écran du lieu où se tient le groupe (`lieuFlow`). */
   ouvrirLeLieu: () => void;
-  /** « Marchander » le billet de `routeId` en `mode` depuis le lieu courant (`billetFlow`). */
-  marchanderLeBillet: (routeId: IdDeRoute, mode: IdDeModeDeVoyage) => void;
+  /** « Marchander » le billet de `routeId` en `modeDeVoyage` depuis le lieu courant (`billetFlow`). */
+  marchanderLeBillet: (routeId: IdDeRoute, modeDeVoyage: IdDeModeDeVoyage) => void;
   /** Démarre un voyage depuis le lieu courant le long d'une route (mode + classe + allure). */
-  partirEnVoyage: (routeId: IdDeRoute, mode: IdDeModeDeVoyage, opts?: import('./travelFlow').OptionsDeDepart) => void;
+  partirEnVoyage: (routeId: IdDeRoute, modeDeVoyage: IdDeModeDeVoyage, opts?: import('./travelFlow').OptionsDeDepart) => void;
   /** Reprend un voyage interrompu par une péripétie. */
   reprendreLeVoyage: () => void;
   /** Pose la CADENCE des ordres de la traversée en cours (couche `voyageCadence`), en valeur absolue :
@@ -297,7 +291,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   fixerLaCadence: (cadence: import('./voyageCadence').VoyageCadence) => void;
   /** EDOC 8 l.131. Épingle le RÔLE de marche PERSISTANT d'un héros (`travelRole`, poste d'Activité de voyage),
    *  ou le détache (`null` ⇒ rôle inféré). Réutilisé au départ de chaque trajet (0 ré-assignation/jour). */
-  affecterAuRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: CompetenceDesignee } | null) => void;
+  affecterAuRoleDeMarche: (heroId: IdDeHeros, role: { activityId: IdDActivite; freeSkill?: RefDesignee<IdDeCompetence> } | null) => void;
   /** MDG 14 l.11. Épingle (`roleId`) ou détache (`null`) le rôle d'ÉQUIPAGE naval d'un marin (`shipRole`) —
    *  interface de gestion du navire. Patche `party` ET `battle.combatants` (l'équipage vit dans la bataille en mer). */
   affecterAuRoleABord: (crewId: IdDeCombattant, roleId: IdDeRoleABord | null) => void;
@@ -310,17 +304,17 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  qui le tient dans la bataille. `null` → retour au défaut (1re compatible). */
   approvisionnerLaPiece: (posteUid: IdDePoste, ammoUid: IdDObjet | null) => void;
   /** Renomme l'instance (`label`). */
-  renommerLaPossession: (uid: IdDePossession, label: TexteLibre) => void;
+  renommerLaPossession: (possessionUid: IdDePossession, label: TexteLibre) => void;
   /** Dépose la possession au lieu courant du groupe. */
-  remiserLaPossession: (uid: IdDePossession) => void;
+  remiserLaPossession: (possessionUid: IdDePossession) => void;
   /** Reprend une possession déposée. */
-  recupererLaPossession: (uid: IdDePossession) => void;
+  recupererLaPossession: (possessionUid: IdDePossession) => void;
   /** Embarque la possession sur un hôte (véhicule/navire). */
-  embarquer: (uid: IdDePossession, hostUid: IdDePossession) => void;
+  embarquer: (possessionUid: IdDePossession, hostUid: IdDePossession) => void;
   /** Débarque une possession embarquée. */
-  debarquer: (uid: IdDePossession) => void;
+  debarquer: (possessionUid: IdDePossession) => void;
   /** Abandon (§6, décision №4) — pose `destroyed`, confirmation côté appelant. */
-  cederLaPossession: (uid: IdDePossession) => void;
+  cederLaPossession: (possessionUid: IdDePossession) => void;
   /** Ouvre l'écran Port si le groupe est à un lieu portuaire de la carte avec un navire de campagne. */
   ouvrirLePort: () => void;
   /** Répare la coque au chantier (1 CO/Blessure, MDG 13 l.643) — journalise le résultat. */
@@ -333,6 +327,8 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   recruterLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
   /** Débarque `count` PNJ salariés du rôle `roleId` (#228). */
   renvoyerLEquipage: (roleId: IdDeRoleABord, count?: number) => void;
+  /** Achète à quai `rations` rations-jour et `tonneaux` tonneaux d'eau douce pour la cale (MDG 14 l.248-252). */
+  avitaillerLeNavire: (rations: number, tonneaux: number) => void;
   /** Ouvre l'écran Marché si le groupe est à un Lieu de commerce terrestre de la carte (`MapPlace.market`) ; ses
    *  achats, ventes et bradages sont ses choix (`fenetreChoisir('marcheDeTerre', …)`, comme au port, `cargaison.ts`). */
   ouvrirLeMarche: () => void;

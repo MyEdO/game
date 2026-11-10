@@ -432,7 +432,7 @@
           "files": [
             "merchants.json"
           ],
-          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `merchantArchetypeById` (`data/index.ts`) indexe ce registre"
+          "desc": "Archétypes de marchand (#2) — catalogue par familles `category.types`/`subTypes`, Disponibilité/Statut/`unitKinds` (bêtes/véhicules vendus, dérivés de `creatures`/`vehicles` à facette `purchase`) ; aucun archétype en dur dans le code, `findMerchantArchetypeById` (`data/index.ts`) indexe ce registre"
         },
         {
           "files": [

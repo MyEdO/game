@@ -194,11 +194,11 @@ export function refusDOuvrirLaTaverne(s: Pick<Jeu, 'net'>): string | null {
   return refusDeTableDHote(s) ?? (rule('tavern-games') ? null : t('tavern.optionEteinte'));
 }
 
-/** OUVRE la table. `npcId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
+/** OUVRE la table. `entityId` = le PNJ qui PROPOSE la partie (son dialogue vient de l'ouvrir) : la
  *  modale s'ouvre sur SON offre. GÉNÉRIQUE — tout PNJ à `tavernGame` en hérite, aucun n'est nommé. */
-export function ouvrirLesJeux(get: Get, set: Set, npcId?: string): void {
+export function ouvrirLesJeux(get: Get, set: Set, entityId?: string): void {
   if (refuseSi(get, set, refusDOuvrirLaTaverne)) return;
-  set({ tavernGames: { result: null, ...(npcId ? { npcId } : {}) } });
+  set({ tavernGames: { result: null, ...(entityId ? { npcId: entityId } : {}) } });
 }
 
 /** Id de la définition de séquence des jeux de taverne (donnée : écrit dans les saves). */
@@ -2497,7 +2497,7 @@ function finalizeTavernGame(
 
 export function creerActionsDeTaverne(get: Get, set: Set) {
   return {
-    ouvrirLesJeux: (npcId?: string) => ouvrirLesJeux(get, set, npcId),
+    ouvrirLesJeux: (entityId?: string) => ouvrirLesJeux(get, set, entityId),
     jouerALaTaverne: (heroId, partie) => jouerALaTaverne(get, set, heroId, partie),
   } satisfies FabriqueDuNoyau;
 }

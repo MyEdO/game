@@ -127,6 +127,10 @@ const NOMMES = [
   'limitee|rare',
   'commune|limitee|rare|exotique|unique',
   'inoffensive|inquietante|menacante|mortelle',
+  // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
+  // marché et le mode de marché d'un marchand de scène.
+  'village|ville|cite',
+  'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
   'prop|roof|relief|objet|couleur',
@@ -243,7 +247,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'chaleur|froid',
   'classe|relais|compagnie|peage|patrouille',
   'complet|partiel',
-  'complet|sans-disponibilite|sans-marchandage|simplifie',
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
   'days|hours|minutes',
@@ -322,7 +325,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'veillee|parchemin',
   'verbatim|descripteur',
   'victim|self',
-  'village|ville|cite',
   'wounds|bleed|trauma|surgery',
   'x+|x-|y+|y-',
   'x|y',

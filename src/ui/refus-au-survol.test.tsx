@@ -20,6 +20,7 @@ import { OptionChooser, ChoiceButtons } from './OptionChooser';
 import { EscaleTab } from './PortView';
 import { t } from '../i18n';
 import { refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
+import { toMoney } from '../engine/money';
 import { ActivityPane, idBlocage } from './ActivityPane';
 import { MedicModal } from './MedicModal';
 import { MerchantPanelView } from './MerchantPanel';
@@ -165,9 +166,9 @@ describe('#1689 T2 — écrans migrés', () => {
   it('PORT (escale) : l’invité voit POURQUOI « Embaucher » lui est fermé', () => {
     const html = renderToStaticMarkup(
       <EscaleTab
-        vessel={vessel} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })}
+        vessel={vessel} bourse={toMoney({})} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })}
         pendingShoreLeave={null}
-        onHire={() => {}} onDismiss={() => {}}
+        onHire={() => {}} onDismiss={() => {}} onAvitailler={() => {}}
       />,
     );
     attendRefusAtteignable(html, 'Embaucher', 'L’hôte seul engage la bourse et la cale du groupe.');

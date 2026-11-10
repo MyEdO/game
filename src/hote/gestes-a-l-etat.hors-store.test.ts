@@ -102,7 +102,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const victoire: Jeu = { ...etat, pendingRoundStart: null, battle: { ...etat.battle!, over: 'victory' }, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear, defeated: [], harvested: [] } };
       expect(lignes(argumentDe(victoire, 'fenetreChoisir@victory#ligne', 'valeur'))).toEqual(nommees);
-      expect(lignes(argumentDe(victoire, 'evaluerLObjet', 'uid'))).toEqual(nommees);
+      expect(lignes(argumentDe(victoire, 'evaluerLObjet', 'aEvaluer'))).toEqual(nommees);
       const sansLigne: Jeu = { ...victoire, pendingVictory: { ...victoire.pendingVictory!, gear: [] } };
       expect(fenetreADessiner(sansLigne)!.gestes.filter((g) => !g.ouvert).map((g) => g.cle), 'sans ligne ni créature à dépecer, rien à attribuer, dépecer ni évaluer').toEqual(['fenetreChoisir@victory#ligne', 'fenetreChoisir@victory#depecer', 'evaluerLObjet']);
     });
@@ -112,7 +112,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
     auDebutDuRound((etat) => {
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear } };
       expect(lignes(argumentDe(butin, 'fenetreChoisir@loot#ligne', 'valeur'))).toEqual(nommees);
-      expect(lignes(argumentDe(butin, 'evaluerLObjet', 'uid'))).toEqual(nommees);
+      expect(lignes(argumentDe(butin, 'evaluerLObjet', 'aEvaluer'))).toEqual(nommees);
     });
   });
 
@@ -122,7 +122,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', trappingId: 'epee', identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', trappingId: 'bouclier', identified: false } }] as never;
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear: manquee } };
       expect(butin.party.some((h) => (h.talents ?? []).some((x) => x.talentId === 'detection-d-artefact')), 'témoin : aucun détecteur').toBe(false);
-      expect(argumentDe(butin, 'evaluerLObjet', 'uid').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
+      expect(argumentDe(butin, 'evaluerLObjet', 'aEvaluer').valeurs!.map((v) => [v.valeur, v.refus])).toEqual([['L0', t('mf.appraiseRetenter', { label: 'Épée', jours: 1 })], ['L1', null]]);
     });
   });
 

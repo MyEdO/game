@@ -206,7 +206,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'chirurgien-fantome' }]);
     expect(banc.getState().medic).toBeNull();
     // La validation d'ATELIER voit ce que voit le runtime : elle résout la FICHE (même `sceneNpc`).
-    const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
+    const ctx = { sceneIds: new Set<string>(), dialogues: new Map(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
     expect(EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }, ctx)).toEqual([]);
     const issues = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'chirurgien-fantome' }, ctx);
     expect(issues.map((i) => i.level)).toEqual(['error']);

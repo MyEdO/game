@@ -22,6 +22,7 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
+import { dialoguesDeLaScene, type Dialogue } from './monde/scene';
 import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
@@ -1282,7 +1283,8 @@ function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
 export interface EffectRefCtx {
   sceneIds: ReadonlySet<string>;
-  dialogueIds: ReadonlySet<string>;
+  /** Les dialogues de la scène (`dialoguesDeLaScene`). */
+  dialogues: ReadonlyMap<string, Dialogue>;
   encounterIds: ReadonlySet<string>;
   /** Entités `personnage` de la scène — les PNJ qu'un effet peut désigner (soigneur…). */
   entityIds: ReadonlySet<string>;
@@ -1405,10 +1407,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('startDialogue'), icon: 'journal/dialogue',
     make: () => ({ type: 'startDialogue', dialogue: '' }),
     apply: (e, env) => {
-      const dlg = env.get().scene?.dialogues.find((d) => d.id === e.dialogue);
+      const scene = env.get().scene;
+      const dlg = scene && dialoguesDeLaScene(scene).get(e.dialogue);
       if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId) });
     },
-    refs: (e, ctx) => ctx.dialogueIds.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
+    refs: (e, ctx) => ctx.dialogues.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
     ouvreDialogue: (e) => e.dialogue,
   },
   endDialogue: {

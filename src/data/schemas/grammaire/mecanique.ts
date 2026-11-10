@@ -333,6 +333,17 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('commission'),
     montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   }), { op: { label: "opération"  }, montant: { label: "montant à la livraison" } }),
+  /** `constructeurDEscale` — MDG 15 l.255 */
+  constructeurDEscale: nommerChamps(z.strictObject({
+    op: z.literal('constructeurDEscale'),
+    competence: z.number().int().min(1),
+    duree: formulaSchema,
+  }), { op: { label: "opération"  }, competence: { label: "Métier (Constructeur de navires)" }, duree: { label: "durée de la réparation (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  /** `rationsDEscale` — MDG 15 l.262 */
+  rationsDEscale: nommerChamps(z.strictObject({
+    op: z.literal('rationsDEscale'),
+    montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de cale" } }),
   /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
    *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
   marcheDuPort: z.union([
@@ -1486,6 +1497,8 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   infestation: 'Infestation du navire',
   combatEnMer: 'Combat en mer',
   commission: 'Commission de transport',
+  constructeurDEscale: 'Constructeur de navires d’escale',
+  rationsDEscale: 'Rations d’escale',
   marcheDuPort: 'Marché d’un port',
 };
 

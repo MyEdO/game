@@ -1,4 +1,4 @@
-import { groupePosable, heightAt, idDuCorps, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
+import { dialoguesDeLaScene, groupePosable, heightAt, idDuCorps, isMerScene, isWalkable, startOf, type Scene } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { unreachableDescriptiveZones } from './mapQC';
@@ -203,7 +203,6 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     }
   }
   for (const s of project) {
-    const dlgIds = new Set(s.dialogues.map((d) => d.id));
     const encIds = new Set(s.encounters.map((e) => e.id));
     const { w, h } = s.dimensions;
     const within = (x: number, y: number) => x >= 0 && y >= 0 && x < w && y < h;
@@ -219,7 +218,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Contexte de réfs PARTAGÉ pour cette scène : les `refs?` des handlers (noyau/combatEffects) le lisent
     // pour valider leurs réfs cassées (dialogue/rencontre/scène) et valeurs invalides (souffle de zone).
     const refCtx: EffectRefCtx = {
-      sceneIds, dialogueIds: dlgIds, encounterIds: encIds,
+      sceneIds, dialogues: dialoguesDeLaScene(s), encounterIds: encIds,
       entityIds: new Set(s.entities.filter((e) => e.kind === 'personnage').map((e) => e.id)),
       npcSheet: (id) => sceneNpc(s, id, presetDe),
       within,

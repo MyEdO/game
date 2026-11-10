@@ -7,7 +7,7 @@ import type { EntityAppearance, EspeceDApparence } from '../engine/authoringAppe
 import type { PlayerText } from '../i18n/playerText';
 import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
-import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure } from './schemas/grammaire/valeurs';
+import type { Sexe, SourceRef, SecondaryRef, RaceKey, RefCareerId, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
 import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
@@ -2403,7 +2403,7 @@ export function findRegleById(id: string): RegleData | undefined {
 }
 /** Tables numériques de Disponibilité & de Troc (LDB 59 « Faire son marché » p.290-291) — app-owned
  *  éditable ; consommé par `engine/disponibilite` (mêmes références). */
-export interface DispoPctRow { availability: TestedAvailability; pct: Record<'village' | 'ville' | 'cite', number>; source: SourceRef }
+export interface DispoPctRow { availability: TestedAvailability; pct: Record<Settlement, number>; source: SourceRef }
 export interface BarterRatioRow { give: Availability; ratios: Record<Availability, { give: number; get: number }>; source: SourceRef }
 export interface DispoData { dispoPct: DispoPctRow[]; barterRatios: BarterRatioRow[] }
 export const disponibilite = disponibiliteJson as DispoData;
@@ -2506,11 +2506,10 @@ const vehiculeParId = indexParId('vehicles', vehicles);
 export const findVehicleById: (id: string) => VehicleData | undefined = vehiculeParId;
 
 /** Archétypes de marchand (#2, donnée éditable — aucun archétype en dur dans le code) — FOYER UNIQUE
- *  app-owned, indexé par `merchantArchetypeById` :
+ *  app-owned, indexé par `findMerchantArchetypeById` :
  *  ajouter un archétype = une entrée JSON ici, rien d'autre. */
 export const MERCHANT_ARCHETYPES = merchantsJson as MerchantArchetypeDef[];
-export const merchantArchetypeById: Map<string, MerchantArchetypeDef> = new Map(MERCHANT_ARCHETYPES.map((m) => [m.id, m]));
-export const findMerchantArchetypeById = (id: string): MerchantArchetypeDef | undefined => merchantArchetypeById.get(id);
+export const findMerchantArchetypeById: (id: string) => MerchantArchetypeDef | undefined = indexParId('merchants', MERCHANT_ARCHETYPES);
 
 /** Structures destructibles de siège (ADE II 8) — catalogue app-owned éditable au Codex. Modèle à PV
  *  calqué sur la facette `hull` des véhicules ; lu par `engine/structures.ts` (`structureCombatant`). */

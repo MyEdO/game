@@ -31,7 +31,7 @@ describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)',
     expect(h.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes' && r.spec === 'feu')).toBe(true);
     banc.setState({ party: [h] });
-    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'feu');
+    banc.getState().acheterLeTalent(h.id, { id: 'magie-des-arcanes', spec: 'feu' });
     const apres = banc.getState().party[0];
     expect(apres.talents.find((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'feu')?.times).toBe(1);
     expect(apres.xp).toBe(400);
@@ -41,7 +41,7 @@ describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)',
     const h = soldat();
     expect(buildAdvancementView({ battle: null, flags: {} }, h).talents.some((r) => r.talentId === 'magie-des-arcanes')).toBe(false);
     banc.setState({ party: [h] });
-    banc.getState().acheterLeTalent(h.id, 'magie-des-arcanes', 'feu');
+    banc.getState().acheterLeTalent(h.id, { id: 'magie-des-arcanes', spec: 'feu' });
     const apres = banc.getState().party[0];
     expect(apres.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(apres.xp).toBe(500);
