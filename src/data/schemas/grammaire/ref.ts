@@ -617,15 +617,17 @@ export function refs(cible: TypeEntite | PorteeLocale, opts?: { min?: number; so
 }
 
 /** Record keyé par les ids de `type` : une clé refusée porte le message de sa feuille `idDe`, qui nomme le
- *  catalogue, jamais la « clé invalide » générique de zod. `sousListe` restreint chaque clé comme `idDe`.
- *  Au parse de mesure, la clé n'émet pas son repère (zod ne parserait plus la valeur) : le record le pose
- *  sur chaque clé, en `invalid_key`, après le parse de la valeur. */
-export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, valeur: V, sousListe?: SousListe) {
+ *  catalogue, jamais la « clé invalide » générique de zod. `sousListe` et `ouverte` restreignent chaque clé comme
+ *  `idDe`. Au parse de mesure, la clé n'émet pas son repère (zod ne parserait plus la valeur) : le record le pose
+ *  sur chaque clé, en `invalid_key`, après le parse de la valeur ; une clé ouverte absente de l'espace n'en a pas. */
+export function recordDIds<T extends TypeEntite, V extends z.ZodType>(type: T, valeur: V, sousListe?: SousListe, options?: { readonly ouverte?: boolean }) {
+  const ouverte = options?.ouverte === true;
   return z
-    .record(feuilleDId(type, sousListe, false, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
+    .record(feuilleDId(type, sousListe, ouverte, false), valeur, { error: (iss) => (iss as { issues?: readonly { message: string }[] }).issues?.[0]?.message })
     .superRefine((v, ctx) => {
       if (!parseDeMesure) return;
       for (const cle of Object.keys(v)) {
+        if (ouverte && !idsDesignes(espaceDe(type), `recordDIds('${type}')`).has(cle)) continue;
         const repere: z.core.$ZodIssueCustom = { code: 'custom', path: [], message: `repère de recordDIds('${type}')`, params: { [REPERE]: type } };
         ctx.addIssue({ code: 'invalid_key', origin: 'record', path: [cle], input: cle, issues: [repere], continue: true });
       }

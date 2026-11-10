@@ -17,7 +17,7 @@ import { messageDApparenceDObjet, findTrappingById } from '../../apparencesObjet
 import { type Amateur, type ContexteDeTest, type Availability, type TestedAvailability, CHAR_LABELS, COUVERT_DIFFICULTES, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP, REACH_LABELS, REACH_VARIABLE, STAKE_FORMS } from '../../../engine/types';
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
-import { ref, refOuSpec, idDe, refs, specDe, refTypee, type RefTypee } from './ref';
+import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type RefTypee } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { listeCle } from './collection-cle';
@@ -691,7 +691,7 @@ export const couleurHexSchema = z.string().regex(/^#[0-9a-f]{6}$/, 'couleur hexa
 /** Le libellé de chaque emplacement de palette (`SLOTS`, `src/lib/palette.ts`). */
 const LIBELLES_DES_SLOTS = {
   peau: 'Peau', cheveux: 'Cheveux', yeux: 'Yeux', vet1: 'Étoffe principale', vet2: 'Étoffe secondaire', cuir: 'Cuir', metal: 'Métal',
-  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume',
+  corps: 'Corps', accent: 'Accent', bois: 'Bois', corne: 'Corne', fourrure: 'Fourrure', plume: 'Plume', vegetal: 'Végétal',
 } as const satisfies Readonly<Record<Slot, string>>;
 
 /** Un emplacement de palette. */
@@ -923,7 +923,7 @@ export function validerApparenceDonnee(v: { op?: string; trappingId?: string; ap
 }
 
 /** Apparence par objet porté, clé = id de trapping : `EntityAppearance.apparencesObjets`, presets de personnage (#3086). */
-export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
+export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = recordDIds('trapping', ref('apparence'), undefined, { ouverte: true }).superRefine((v, ctx) => {
   for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
 });
 

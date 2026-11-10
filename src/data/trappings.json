@@ -4887,9 +4887,6 @@
     "id": "faucille",
     "type": "trappings",
     "label": "Faucille",
-    "shape": {
-      "id": "faucille"
-    },
     "categorie": "trapping",
     "subType": {
       "id": "outils-et-necessaires"
@@ -7379,6 +7376,9 @@
     "id": "belladone",
     "type": "trappings",
     "label": "Belladone",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -7483,6 +7483,9 @@
     "id": "faxtoryll",
     "type": "trappings",
     "label": "Faxtoryll",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -7619,6 +7622,9 @@
     "id": "racine-de-terre",
     "type": "trappings",
     "label": "Racine de terre",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -7667,6 +7673,9 @@
     "id": "soude-commune",
     "type": "trappings",
     "label": "Soude commune",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -7751,6 +7760,9 @@
     "id": "gesundheit",
     "type": "trappings",
     "label": "Gesundheit",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -7808,6 +7820,9 @@
     "id": "racine-des-tombes",
     "type": "trappings",
     "label": "Racine des tombes",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"
@@ -7930,6 +7945,9 @@
     "id": "rouille-mouchetee",
     "type": "trappings",
     "label": "Rouille mouchetée",
+    "shape": {
+      "id": "herbes"
+    },
     "categorie": "trapping",
     "subType": {
       "id": "herbes-et-potions"

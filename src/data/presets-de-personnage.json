@@ -259,7 +259,7 @@
     "source": {
       "book": "livre-de-base",
       "page": 91,
-      "note": "Illustration LDB page 93 du PDF, folio imprimé 91 (`data-folio=\"91\"`, « 08 - Statut.md » l.2357), hors dépôt, et son contrat d’éléments (#3867). Carrière Prêtre (`pretre`), dont les possessions d’Initié donnent « symbole religieux, robes » (LDB 08 l.2391) et celles de Prêtre « livre (Religion) » (LDB 08 l.2401), et la classe Lettrés la `bourse` (LDB 05 l.562). La robe est la variante `bure` de la pièce `robe`, fermée, aux manches en cloche et à l’ourlet effilochés ; le col est la pièce `col-de-fourrure` ; la ceinture est sa variante `cordeliere`, la corde nouée de l’illustration ; la bandoulière de cuir sur l’épaule droite est le `baudrier`. Le symbole religieux pend au cou (`cou`, rangement de son trapping) ; il porte l’emblème `marteau-de-sigmar`, posé au montage sur sa surface `blason`, jamais modelé (#3111). Le livre de prières et la faucille pendent à la hanche gauche (`ceinture_g`), le livre sur le côté, la faucille glissée derrière lui ; la lecture de la lame en croissant comme une `faucille` est une hypothèse (#3867). Le bâton de combat, crosse au-dessus de l’épaule droite, est rangé à son rangement (`epaule_d`), et le rouleau de couchage en travers du haut du dos (`sac-de-couchage`, `dos`) ; les bandages des avant-bras sont l’objet `bandages`, que son ensemble habille de la pièce `bandages`. Omis : le camail de mailles au cou (aucune pièce, et la carrière ne donne aucune armure), le bouquet d’herbes de la main gauche (aucun objet), la feuille de parchemin pendue devant, les sceaux de cire et leurs rubans, les cicatrices (motifs peints). Pieds nus : aucune chaussure, et la bure ne couvre pas les mollets. La coiffure est `calvitie-et-barbe-rase`, la couronne de cheveux ras dégarnie au sommet et la barbe de quelques jours de l’illustration. Le sexe est masculin, celui de l’illustration. La corpulence vaut 0,8, ventre et visage ronds de l’illustration (hypothèse, #3867). Les couleurs sont lues sur l’illustration, chacune la plus proche du nuancier, qui reçoit pour elle la fourrure rousse qu’il n’avait pas : teint clair, cheveux et barbe gris, bure ocre, col de fourrure rousse, cuir brun, symbole d’argent, couverture du livre bleu-gris (`accent`), bâton de bois brun."
+      "note": "Illustration LDB page 93 du PDF, folio imprimé 91 (`data-folio=\"91\"`, « 08 - Statut.md » l.2357), hors dépôt, et son contrat d’éléments (#3867). Carrière Prêtre (`pretre`), dont les possessions d’Initié donnent « symbole religieux, robes » (LDB 08 l.2391) et celles de Prêtre « livre (Religion) » (LDB 08 l.2401), et la classe Lettrés la `bourse` (LDB 05 l.562). La robe est la variante `bure` de la pièce `robe`, fermée, aux manches en cloche et à l’ourlet effilochés ; le col est la pièce `col-de-fourrure` ; la ceinture est sa variante `cordeliere`, la corde nouée de l’illustration ; la bandoulière de cuir sur l’épaule droite est le `baudrier`. Le symbole religieux pend au cou (`cou`, rangement de son trapping), à l’apparence `symbole_de_sigmar`, le marteau d’argent de l’illustration ; chaque dieu a la sienne, et le livre de prières porte l’emblème du dieu, `marteau-de-sigmar`, posé au montage sur la surface `blason` de sa couverture (#3111) ; Laurent, 2026-11-10 : « Oui y a l amulette qui a une forme et son livre de prière avec le symbole du dieu qui lui peut être un emblème » (#3867). Le livre de prières pend à la hanche gauche (`ceinture_g`). La faux portée en travers du dos, manche depuis l’épaule droite et lame à la hanche gauche (Laurent, 2026-11-10 : « C est une faux ça, elle commence en haut à gauche et fini au milieu à droite non ? », #3867), n’a d’objet dans aucun livre : elle est l’`arme-improvisee` (un outil de ferme, LDB p. 294) à l’apparence `faux`, rangée à l’épaule droite (`epaule_d`) avec le bâton. Le bâton de combat, crosse au-dessus de l’épaule droite, est rangé à son rangement (`epaule_d`), et le rouleau de couchage en travers du haut du dos (`sac-de-couchage`, `dos`) ; les bandages des avant-bras sont l’objet `bandages`, que son ensemble habille de la pièce `bandages`. La branche verte tenue dans la main gauche est une herbe, la `soude-commune` dont on écrase « une branche » (LDB 72 l.30), choix d’adaptation entre les herbes du jeu, que le bouquet d’`herbes` habille. Le sceau de cire et ses bandes de parchemin, pendus devant à la cordelière, sont la pièce `sceau-de-cire` ; Laurent, 2026-11-10 : « Les sceaux de cires reviennent très souvent, et le jeu gère les herbes non ? Ca remirent de les modéliser » (#3867). Omis : le camail de mailles au cou (aucune pièce, et la carrière ne donne aucune armure), les sceaux du bâton (élément publié), les cicatrices (motifs peints). Pieds nus : aucune chaussure, et la bure ne couvre pas les mollets. La coiffure est `calvitie-et-barbe-rase`, la couronne de cheveux ras dégarnie au sommet et la barbe de quelques jours de l’illustration. Le sexe est masculin, celui de l’illustration. La corpulence vaut 0,8, ventre et visage ronds de l’illustration (hypothèse, #3867). Les couleurs sont lues sur l’illustration, chacune la plus proche du nuancier, qui reçoit pour elle la fourrure rousse et le vert feuille qu’il n’avait pas : teint clair, cheveux et barbe gris, bure ocre, col de fourrure rousse, cuir brun, symbole d’argent, couverture du livre bleu-gris (`vet2`), cire rouge du sceau (`accent`), bâton de bois brun, branche d’herbe verte (`vegetal`, emplacement de palette ajouté pour les herbes)."
     },
     "race": {
       "id": "humain"
@@ -276,7 +276,8 @@
       "robe",
       "col-de-fourrure",
       "ceinture",
-      "baudrier"
+      "baudrier",
+      "sceau-de-cire"
     ],
     "variantesPieces": {
       "robe": {
@@ -289,7 +290,7 @@
     "objets": [
       "symbole-religieux",
       "livre-religion",
-      "faucille",
+      "arme-improvisee",
       "bourse",
       "baton-de-combat",
       "sac-de-couchage",
@@ -299,8 +300,21 @@
       "livre-religion": {
         "id": "ceinture_g"
       },
-      "faucille": {
-        "id": "ceinture_g"
+      "arme-improvisee": {
+        "id": "epaule_d"
+      }
+    },
+    "prises": {
+      "off": {
+        "id": "soude-commune"
+      }
+    },
+    "apparencesObjets": {
+      "symbole-religieux": {
+        "id": "symbole_de_sigmar"
+      },
+      "arme-improvisee": {
+        "id": "faux"
       }
     },
     "embleme": {
@@ -316,6 +330,9 @@
       "vet1": {
         "id": "tissu-ocre"
       },
+      "vet2": {
+        "id": "tissu-bleu-gris"
+      },
       "cuir": {
         "id": "cuir-brun"
       },
@@ -323,13 +340,16 @@
         "id": "argent"
       },
       "accent": {
-        "id": "tissu-bleu-gris"
+        "id": "tissu-rouge"
       },
       "bois": {
         "id": "bois-brun"
       },
       "fourrure": {
         "id": "fourrure-rousse"
+      },
+      "vegetal": {
+        "id": "vert-feuille"
       }
     }
   }

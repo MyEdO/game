@@ -190,7 +190,9 @@ déclare `blason: true` sur chaque surface qui reçoit l'emblème, dite surface 
 vient de la donnée du porteur, `embleme` de son apparence ou de sa composition (#3155), et se pose
 au montage (#3111). Un insigne d'uniforme est la pièce `insigne` (accessoire) à surface
 `blason` ; un signe peint sur une armure (tassette, brassard) est un emblème, reçu par une surface
-`blason` de la pièce.
+`blason` de la pièce. Un symbole religieux porté (`symbole-religieux`) a la forme de son dieu : il se modèle, une
+apparence de l'objet par dieu (`symbole_de_sigmar`, forme `symbole_religieux`) ; l'emblème du culte se pose sur la
+surface `blason` d'un autre objet, la couverture du livre de prières (#3867).
 
 Le matériau d'une surface `blason` ne couvre que la face porteuse : toute face de ce matériau reçoit
 l'emblème. Son îlot UV de `TEXCOORD_0` remplit le carré [0,1]², à l'échelle uniforme, sans miroir,

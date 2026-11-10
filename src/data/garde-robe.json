@@ -290,6 +290,16 @@
     }
   },
   {
+    "id": "sceau-de-cire",
+    "type": "garde-robe",
+    "label": "Sceau de cire",
+    "kind": "piece",
+    "categorie": "accessoire",
+    "emplacement": {
+      "id": "ceinture_avant"
+    }
+  },
+  {
     "id": "casque-a-cornes",
     "type": "garde-robe",
     "label": "Casque à cornes",

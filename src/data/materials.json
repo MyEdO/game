@@ -757,6 +757,13 @@
     "color": "#94562e"
   },
   {
+    "id": "vert-feuille",
+    "type": "materials",
+    "label": "Vert feuille",
+    "domain": "couleur",
+    "color": "#55703a"
+  },
+  {
     "id": "plume-rousse",
     "type": "materials",
     "label": "Plume rousse",

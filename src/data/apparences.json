@@ -160,14 +160,30 @@
     "label": "Symbole religieux"
   },
   {
+    "id": "symbole_de_sigmar",
+    "type": "apparences",
+    "label": "Marteau de Sigmar",
+    "forme": {
+      "id": "symbole_religieux"
+    }
+  },
+  {
     "id": "livre",
     "type": "apparences",
     "label": "Livre"
   },
   {
-    "id": "faucille",
+    "id": "faux",
     "type": "apparences",
-    "label": "Faucille"
+    "label": "Faux",
+    "forme": {
+      "id": "improvisee"
+    }
+  },
+  {
+    "id": "herbes",
+    "type": "apparences",
+    "label": "Herbes"
   },
   {
     "id": "cimeterre",

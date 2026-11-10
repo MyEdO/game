@@ -34,7 +34,8 @@ Interdits : générateur image → 3D, retopologie automatique, illustration pro
 coque moulée pour un vêtement de silhouette, couleur cuite, emblème modelé ou peint, mouvement des
 chaînes recalculé par l'hôte. Une couleur appartient à la palette, jamais à une
 variante de géométrie ; un emblème se pose au montage sur une surface `blason`, neutre, déclarée
-`blason: true` au manifeste et dépliée sur le carré UV (#3111).
+`blason: true` au manifeste et dépliée sur le carré UV (#3111). Un symbole religieux n'est pas un emblème : il a
+la forme de son dieu, une apparence de l'objet par dieu (#3867).
 
 Statut **NON VÉRIFIÉ par défaut**. Un juge neuf statue par signe identitaire ; la revue utilisateur
 consigne verbatim et date au ticket ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans

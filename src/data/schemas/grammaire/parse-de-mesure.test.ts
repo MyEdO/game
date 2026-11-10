@@ -306,6 +306,16 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
     it('un id PRÉSENT hors de la sous-liste est refusé', () => {
       expect(ouverte.safeParse({ k: IDS_PAR_ESPACE['trappings.json?service'][0] }).success).toBe(false);
     });
+
+    it('`recordDIds` ouvert : la clé présente ET la valeur sont mesurées, la clé absente ne rend que la valeur', () => {
+      const s = recordDIds('trapping', z.strictObject({ s: idDe('skill') }), undefined, { ouverte: true });
+      expect(masquagesDuTemoin(s, { [OBJET]: { s: COMPETENCE }, 'objet-de-campagne': { s: COMPETENCE } })).toEqual([]);
+      expect(reperesDuParse(s, { [OBJET]: { s: COMPETENCE }, 'objet-de-campagne': { s: COMPETENCE } })).toEqual([
+        { path: [OBJET, 's'], type: 'skill', parCle: false },
+        { path: ['objet-de-campagne', 's'], type: 'skill', parCle: false },
+        { path: [OBJET], type: 'trapping', parCle: true },
+      ]);
+    });
   });
 
   it('G — union dont une branche postérieure OPAQUE avale un nœud d’op atteint', () => {
