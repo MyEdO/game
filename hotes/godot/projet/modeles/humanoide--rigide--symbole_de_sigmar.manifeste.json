@@ -1,0 +1,25 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "symbole_de_sigmar"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "metal",
+      "palette": "metal"
+    },
+    {
+      "nom": "cuir",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "2e844df26734ccb56e367c1643457406117a339a9adf5edfe35250b62a6bbf53",
+    "octets": 39124
+  }
+}

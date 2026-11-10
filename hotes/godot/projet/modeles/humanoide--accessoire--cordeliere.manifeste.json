@@ -1,0 +1,28 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "accessoire",
+  "cle": {
+    "piece": "cordeliere"
+  },
+  "liaison": {
+    "mode": "surface"
+  },
+  "couche": "armure",
+  "silhouettes": [
+    "feminin",
+    "corpulence",
+    "carrure_moins",
+    "carrure_plus"
+  ],
+  "surfaces": [
+    {
+      "nom": "corde",
+      "palette": "cuir"
+    }
+  ],
+  "glb": {
+    "sha256": "1f9f0474e0c3bf1c82c9a922828573cb4e1ca7f4cb7179fda50f207232e29146",
+    "octets": 192412
+  }
+}
