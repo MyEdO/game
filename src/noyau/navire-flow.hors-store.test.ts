@@ -528,13 +528,25 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     expect(get().lieu).toBe('B');
   });
 
-  it('Passager clandestin non repéré : il rejoint l’équipage quand même (l.258)', () => {
+  it('Passager clandestin non repéré : sa présence se découvre après 1d10 jours de voyage, et il rejoint l’équipage alors (l.258)', () => {
     perdus(2);
     setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc, consequence: consequence('passager-clandestin', 'portEvents') })) as never);
     finalizePortArrivalTo(get, set, carte.places[1], true);
     joueLeTest(false);
-    expect(get().vessel!.crewLost).toBe(1);
     expect(get().lieu).toBe('B');
+    expect(get().vessel!.crewLost).toBe(2);
+    const [{ executeAt }] = get().scheduledEffects;
+    const jours = (executeAt - get().gameTime) / MINUTES_PER_DAY;
+    expect(jours).toBeGreaterThanOrEqual(1);
+    expect(jours).toBeLessThanOrEqual(10);
+    setDataset('seaPortEvents', PORT_EVENTS.map(({ min, max, id, label, desc }) => ({ min, max, id, label, desc })) as never);
+    set({ travelPlan: buildSeaPlan(get, 'r1', 'B', 'A', carte.routes[0], { cadence: 'jour-par-jour' })! });
+    get().avancerLHorloge(executeAt - get().gameTime - 1);
+    expect(get().vessel!.crewLost).toBe(2);
+    get().avancerLHorloge(1);
+    draineCascade(get);
+    expect(get().vessel!.crewLost).toBe(1);
+    expect(get().journal).toContain('vous découvrez sa présence');
   });
 
   it('Gangs des quais : 2d10 Enc perdus au prochain déchargement, levés à l’accostage suivant (l.250)', () => {
@@ -1211,10 +1223,40 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     }
   });
 
-  it.each([['la-tache-noire', PORT_EVENTS], ['constructeur-de-navires-itinerant', PORT_EVENTS], ['offre-de-mission', PORT_EVENTS], ['bonne-peche', PORT_EVENTS]] as const)(
+  it('Culte de la personnalité : le nombre d’initiés rassemblés se tire au second d10 et s’annonce (l.154-155)', () => {
+    for (const graine of [1, 2, 3]) {
+      seedBattleRng(graine);
+      set({ journal: [] });
+      jour('culte-de-la-personnalite');
+      draineCascade(get);
+      const annonces = get().journal.filter((l) => Array.from({ length: 10 }, (_, i) => t('op.narrativeNombre', { text: "combien d'initiés sensibles à ses paroles il a rassemblés", n: i + 1 })).some((a) => a === l));
+      expect(annonces, get().journal.join('\n')).toHaveLength(1);
+    }
+  });
+
+  it.each([['la-tache-noire', PORT_EVENTS], ['constructeur-de-navires-itinerant', PORT_EVENTS], ['bonne-peche', PORT_EVENTS]] as const)(
     '%s se raconte sans conséquence (omission dite au raw.manifest)', (id, table) => {
       expect(table.find((e) => e.id === id)!.consequence).toBeUndefined();
     });
+
+  it('Offre de mission : accepter le colis le destine à un autre port, et 200 CO tombent à la bourse du groupe à l’accostage là-bas, pas ailleurs (l.261)', () => {
+    escale('offre-de-mission');
+    avanceEtapeCascade(get, undefined, () => 'yes');
+    expect(get().vessel!.commissions).toEqual([{ label: expect.any(String), placeId: 'A', brass: 200 * 240 }]);
+    const avant = toBrass(partyMoneyTotal(get));
+    escale(null);
+    expect(toBrass(partyMoneyTotal(get))).toBe(avant);
+    expect(get().vessel!.commissions).toHaveLength(1);
+    finalizePortArrivalTo(get, set, deuxPorts.places[0], true);
+    expect(toBrass(partyMoneyTotal(get))).toBe(avant + 200 * 240);
+    expect(get().vessel!.commissions).toBeUndefined();
+  });
+
+  it('Offre de mission : refuser le colis ne pose aucune commission', () => {
+    escale('offre-de-mission');
+    avanceEtapeCascade(get, undefined, () => 'no');
+    expect(get().vessel!.commissions).toBeUndefined();
+  });
 
   it('l’accostage met le navire à quai, l’appareillage l’en retire', () => {
     escale(null);

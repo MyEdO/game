@@ -280,6 +280,9 @@ export interface CampaignVessel {
   /** Le lieu de la carte où le navire est à quai : posé à l'accostage, levé à l'appareillage ; absent en mer.
    *  Le « port de l'escale » de l'op `marcheDuPort`. MDG 15 l.129 */
   escale?: string;
+  /** Colis à livrer (op `commission`) : le lieu de destination (`placeId`), le montant reçu à l'accostage dans ce
+   *  lieu (sous de cuivre) et la source ; chaque commission tombe à sa livraison. MDG 15 l.261 */
+  commissions?: { label: string; placeId: string; brass: number }[];
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;

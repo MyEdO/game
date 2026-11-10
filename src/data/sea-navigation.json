@@ -505,7 +505,9 @@
       "book": "mer-des-griffes",
       "page": 109,
       "note": "ch.13 « Navigation maritime » — COURSE-POURSUITE, 1 point de Distance = 10 mètres (l.362)."
-    }
+    },
+    "voileSansProfil": 51,
+    "maison": "Un navire hostile dont ni le chef ni l'équipage n'ont de profil à Voile (MDG 15 l.150, l.171 n'en donnent pas) mène sa Poursuite avec la Voile 51 du profil Marin (MDG 14 l.321)."
   },
   "reparation": {
     "portCostGoldPerWound": 1,

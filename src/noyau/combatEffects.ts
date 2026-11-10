@@ -388,11 +388,13 @@ function jouerEffetsProgrammes(get: Get, set: SetFn, entrees: ScheduledEffect[])
  *  MAINTENANT contre la cible, OU `afterDuration:true` = l'échéance du contexte (fin de la durée du
  *  consommable — Bonnet de fou « Quand l'effet se dissipe… », LDB 71 l.20). `forMinutes/Hours/Days` :
  *  durée d'horloge PROPRE des ops différées (bakée sur la feuille programmée — Délice de Ranald :
- *  pénalité après les 3 h, LDB 71 l.24). Le Flow programmé cible le porteur par id (`on:'hero'`). */
+ *  pénalité après les 3 h, LDB 71 l.24). Le Flow programmé vise `cible`, par défaut le porteur par id
+ *  (`on:'hero'`) ; la cible `navire` le garde (`appliquerAuNavire`). MDG 15 l.258 */
 export function scheduleDelayedOps(
   get: Get, set: SetFn, target: Combatant,
   op: Extract<import('../engine/ops').GameOp, { op: 'delayed' }>,
   base: { now: number; untilTime?: number; label?: string },
+  cible: Pick<EffectOp, 'on' | 'heroId'> = { on: 'hero', heroId: target.id },
 ): void {
   const rng = battleRng();
   const delayMin = op.afterDuration
@@ -407,7 +409,7 @@ export function scheduleDelayedOps(
   const flow: Flow = {
     kind: 'do',
     effect: {
-      type: 'ops', on: 'hero', heroId: target.id, ops: op.ops,
+      type: 'ops', ...cible, ops: op.ops,
       ...(base.label ? { label: base.label } : {}),
       ...(forMin > 0 ? { untilTime: executeAt + forMin } : {}),
     },

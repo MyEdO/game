@@ -25,7 +25,7 @@
 import { battleRng } from './battleRng';
 import type { RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
-import { lieuDuGroupe, placeById } from './worldMap';
+import { lieuDuGroupe, placeById, type MapPlace } from './worldMap';
 import { partyAssisted } from '../engine/skills';
 import { resolveOpposed, bumpSL, estJete, type TestResult } from '../engine/tests';
 import { bargainPct } from '../engine/bargain';
@@ -102,6 +102,14 @@ export function currentPort(get: Get): { placeId: string; label: string; ref?: s
   return { placeId: place.id, label: place.label, ref: place.port.ref, port, cosmopolite: !!place.port.cosmopolite };
 }
 
+/** Un port de la carte tiré au hasard, hors le lieu de l'escale (`vessel.escale`) ; `undefined` sans autre port.
+ *  MDG 15 l.259, l.261 */
+export function autrePortAuHasard(get: Get, rng: RNG): MapPlace | undefined {
+  const escale = get().vessel?.escale;
+  const ports = (get().worldMap?.places ?? []).filter((p) => p.port && p.id !== escale);
+  return ports.length ? ports[rng.int(0, ports.length - 1)] : undefined;
+}
+
 /** Résout l'op `marcheDuPort` sous la source `label`, ses quantités tirées par `quantite` ; rend les lignes du journal.
  *  Le port de l'escale est le lieu où le navire est à quai (`vessel.escale`) ; la Demande vise un autre port de la
  *  carte tiré au hasard. MDG 15 l.253, l.256, l.259, l.263 */
@@ -112,9 +120,8 @@ export function alterLeMarche(get: Get, set: Set, o: Extract<GameOp, { op: 'marc
   const ici = escale && get().worldMap ? placeById(get().worldMap!, escale) : undefined;
   const poser = (a: AlterationDuMarche): void => set({ alterationsDuMarche: [...get().alterationsDuMarche.filter((x) => x.jusqua === 'escale' || x.jusqua > now), a] });
   if (o.demande !== undefined) {
-    const ports = (get().worldMap?.places ?? []).filter((p) => p.port && p.id !== ici?.id);
-    if (!ports.length) return [t('eff.marcheSansAutrePort', { label })];
-    const port = ports[rng.int(0, ports.length - 1)];
+    const port = autrePortAuHasard(get, rng);
+    if (!port) return [t('eff.marcheSansAutrePort', { label })];
     const cargo = rollRandomCargo(season, rng);
     const jours = quantite(o.jours);
     poser({ placeId: port.id, jusqua: now + jours * MINUTES_PER_DAY, demande: { cargoId: cargo.id, delta: o.demande } });
