@@ -1935,13 +1935,13 @@ async function cliquerAmene(quoi, sens, ou) {
   await amener(quoi, sens, ou)
   await cliquerBouton(quoi)
 }
-/** L'article `texte` choisi dans la liste déroulante de clé `cle`, amenée à l'écran dans le sens `sens` : la liste
- *  ouverte au clic, puis l'article atteint au clavier, chaque flèche descendant d'un article depuis le haut, et retenu
- *  à l'Entrée. */
-async function choisirDansLaListe(cle, texte, sens = 1) {
+/** L'article `article` choisi dans la liste déroulante de clé `cle`, amenée à l'écran dans le sens `sens` : son texte,
+ *  ou `{ id }`, son id publié (`ids`) ; la liste ouverte au clic, puis l'article atteint au clavier, chaque flèche
+ *  descendant d'un article depuis le haut, et retenu à l'Entrée. */
+async function choisirDansLaListe(cle, article, sens = 1) {
   const liste = await amener({ cle }, sens)
-  const rang = liste.choix.indexOf(texte)
-  assert.ok(rang >= 0, `« ${texte} » offert par la liste ${cle} : ${liste.choix.join(', ')}`)
+  const rang = typeof article === 'string' ? liste.choix.indexOf(article) : liste.ids.indexOf(article.id)
+  assert.ok(rang >= 0, `« ${typeof article === 'string' ? article : article.id} » offert par la liste ${cle} : ${liste.choix.join(', ')}`)
   await geste(session, { surface: 'canvas', x: liste.x, y: liste.y }, { qui: `liste ${cle}` }, clic())
   await sleep(400)
   for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
@@ -2003,9 +2003,9 @@ async function poserLesEmblemes(elementId) {
   return offerts
 }
 
-/** La fiche du véhicule que le parcours `atelier` pose sans `--modeles`, et les Améliorations qu'il installe, le Sabord en
- *  tête : il change les places de tribord et de bâbord. */
-const VEHICULE_DE_L_ATELIER = { definition: 'caraque', libelle: 'Caraque' }
+/** L'id de la fiche du véhicule que le parcours `atelier` pose sans `--modeles`, et les Améliorations qu'il installe,
+ *  le Sabord en tête : il change les places de tribord et de bâbord. */
+const VEHICULE_DE_L_ATELIER = 'caraque'
 const AMELIORATIONS_DE_L_ATELIER = ['sabord', 'figure-de-proue', 'ancre', 'nid-de-pie', 'clinfoc', 'embarcation-de-bord', 'safran', 'fourquines']
 /** Les places de poste que le parcours arme d'une pièce, par clé de leur liste (`poste/<bord>/<rang>`). */
 const PLACES_ARMEES = ['poste/tribord/0', 'poste/tribord/1', 'poste/babord/0', 'poste/babord/1', 'poste/proue/0']
@@ -2049,8 +2049,8 @@ async function parcoursAtelierDuVehicule() {
   await enHauteDefinition()
   await cliquerBouton('Atelier')
   await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
-  await choisirDansLaListe('modele/vehicule', VEHICULE_DE_L_ATELIER.libelle)
-  await attendreLeVehicule(`v.element !== null && v.definition === ${JSON.stringify(VEHICULE_DE_L_ATELIER.definition)}`)
+  await choisirDansLaListe('modele/vehicule', { id: VEHICULE_DE_L_ATELIER })
+  await attendreLeVehicule(`v.element !== null && v.definition === ${JSON.stringify(VEHICULE_DE_L_ATELIER)}`)
   const nue = await prouverLeVehicule()
   assert.deepEqual([nue.postes, nue.ameliorations], [[], []], 'la coque nue, sans pièce ni Amélioration')
   assert.ok(Math.max(...(await atelier()).vehicule.taille) > 30 && (await atelier()).cadre > 5, 'la coque d’une trentaine de mètres cadrée à sa taille')
