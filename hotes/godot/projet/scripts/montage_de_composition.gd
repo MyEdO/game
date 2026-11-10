@@ -21,6 +21,13 @@ const PASSES_DE_TOUR := 2
 const FORMES := &"formes"
 ## La métadonnée d'un mesh dont les shape keys sont cuites : le poids cuit de chacune, par nom de clé.
 const POIDS := &"poids_des_formes"
+## Le calque d'une pièce dessinée seule ; une pièce fondue (`refondre`) n'est sur aucun.
+const CALQUE := 1
+## Les poids d'un sommet d'une pièce rigide fondue : tout sur son os.
+const POIDS_RIGIDE := [1.0, 0.0, 0.0, 0.0]
+## Les canaux libres d'un mesh (`Mesh.ARRAY_CUSTOM0` à `3`), qu'aucun `BaseMaterial3D` ne lit : une pièce fondue les
+## laisse.
+const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTOM2, Mesh.ARRAY_CUSTOM3]
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -75,6 +82,10 @@ var _rangements: Dictionary = {}
 ## porté par cet os depuis son propre repos (`chaines`, chacune sous le `BoneAttachment3D` de `attaches`), leurs `poids`, et
 ## les `Portage` des objets rangés au point (`_suivre_les_poids`).
 var _suivis: Dictionary = {}
+## Le mesh fondu des pièces du modèle (`refondre`), `null` sans lui.
+var fusion: MeshInstance3D = null
+## Une refonte est-elle demandée pour la fin de l'image (`_demander_la_refonte`) ?
+var _refonte_demandee := false
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -234,6 +245,7 @@ func vider() -> void:
 	emblemes.clear()
 	_emblemes_demandes.clear()
 	_demandes.clear()
+	fusion = null
 
 
 ## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses matériaux
@@ -370,7 +382,7 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 
 ## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté couvre sa zone et
 ## masque son porteur (`couvre` et `masque` de `couches` dans `modeles`, #2972), montré sinon ; la base est masquée par
-## toute couche.
+## toute couche. Les pièces se refondent (`refondre`).
 func masquer_les_zones_couvertes() -> void:
 	var couches: Dictionary = modeles.get("couches", {})
 	var porteurs: Array = [[_pieces_de_la_base, null]]
@@ -381,6 +393,7 @@ func masquer_les_zones_couvertes() -> void:
 			var zone: Variant = piece.get_meta("extras", {}).get("zone")
 			if zone != null:
 				piece.visible = not montes.values().any(func(par: String) -> bool: return _masque(couches.get(par, {}), porteur[1], zone))
+	_demander_la_refonte()
 
 
 ## La couche `couche` cache-t-elle la zone `zone` de `porteur`, un élément ou la base (`null`) ?
@@ -840,8 +853,8 @@ func choisir_l_embleme(id: String, embleme: String) -> String:
 
 ## L'élément monté à l'emplacement `id` habillé de la palette de la composition, chaque emplacement de palette que
 ## colore la `palette` de son entrée de `montes` (sa teinte, #3456) pris à celle-ci quand cette entrée monte cet élément,
-## et de l'emblème demandé (`peindre`) ; rend si l'emblème est posé sur une surface au moins, et un emblème demandé
-## qu'aucune ne reçoit donne `blason-sans-surface`.
+## et de l'emblème demandé (`peindre`), puis les pièces refondues (`refondre`) ; rend si l'emblème est posé sur une
+## surface au moins, et un emblème demandé qu'aucune ne reçoit donne `blason-sans-surface`.
 func _habiller(id: String) -> bool:
 	var element: String = montes[id]
 	var embleme: String = _emblemes_demandes.get(id, VIDE)
@@ -853,12 +866,13 @@ func _habiller(id: String) -> bool:
 	var posee := peindre(pieces[id], modeles.surfaces[element], texture, palette)
 	if texture != null and not posee:
 		erreurs.append("blason-sans-surface : %s" % element)
+	_demander_la_refonte()
 	return posee
 
 
 ## Les meshes de la base posée habillés des matériaux de la composition et de sa palette (`peindre`, `surfaces` de la
 ## base) : chaque surface que `materiaux` nomme prend le matériau de la base de ce nom (`materiaux_de_la_base`), un nom
-## absent du GLB ajoutant `materiau-absent` aux erreurs.
+## absent du GLB ajoutant `materiau-absent` aux erreurs ; puis les pièces refondues (`refondre`).
 func habiller_la_base() -> void:
 	if base.is_empty():
 		return
@@ -871,6 +885,7 @@ func habiller_la_base() -> void:
 		else:
 			remplacants[surface] = remplacant
 	peindre(_pieces_de_la_base, modeles.surfaces[base.id], null, composee.get("palette", {}), remplacants)
+	_demander_la_refonte()
 
 
 ## Chaque surface de `meshes` dont le matériau du GLB porte le `nom` d'une de `surfaces` prend le matériau que
@@ -1021,13 +1036,15 @@ func poser_le_gabarit() -> Array[String]:
 
 
 ## Les poids `morphes` de la composition (#3086, D4) cuits dans chaque mesh à shape keys de la base et de chaque élément
-## monté (`cuire_les_formes`), par nom de clé ; une clé que la composition ne nomme pas vaut 0.
+## monté (`cuire_les_formes`), par nom de clé ; une clé que la composition ne nomme pas vaut 0. Les pièces se refondent
+## (`refondre`).
 func poser_les_morphes() -> void:
 	if modele == null:
 		return
 	var morphes: Dictionary = composee.get("morphes", {})
 	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
 		cuire_les_formes(noeud as MeshInstance3D, morphes)
+	_demander_la_refonte()
 
 
 ## Le mesh de `mesh` remplacé par sa copie sans shape key, chacune cuite à son poids dans `morphes` (par nom de clé, 0 si
@@ -1056,3 +1073,161 @@ static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
 	mesh.set_meta(FORMES, formes)
 	mesh.set_meta(POIDS, poids)
 	mesh.mesh = cuit
+
+
+## @contrat Atelier 3D
+## Les pièces d'un corps composé se dessinent fondues (#3868) : chaque surface et chaque mesh skinné coûte, sous le rendu
+## de compatibilité, un appel de dessin par passe et une passe de skinning à chaque image où le squelette bouge
+## (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable). Après tout montage, démontage,
+## masque des zones, habillage ou cuisson des formes, `MontageDeComposition.refondre` réunit, une fois à la fin de
+## l'image, chaque mesh visible du modèle, de la base comme des éléments montés, en un seul `MeshInstance3D` skinné sous
+## le squelette de la base (`fusion`) : une surface par matériau équivalent (même classe, mêmes valeurs, mêmes
+## textures), sur un `Skin` qui réunit les liaisons de chaque pièce, une liaison nommée par os et par repère. Une pièce
+## skinnée y garde ses liaisons, une pièce rigide se lie à l'os de son `BoneAttachment3D`, au repère de la pièce dans
+## cet os, chaque sommet tout entier sur lui. La pièce fondue reste à sa place, sur aucun calque (`layers` 0) : ni
+## dessinée ni skinnée, elle garde ses matériaux, son mesh et sa visibilité, que lisent l'écran et les recettes. Reste
+## dessinée seule une pièce dont le skin n'est pas dans le repère du squelette, une pièce rigide portée par un nœud
+## `top_level` (un objet rangé qui suit des `poids`, `_suivre_les_poids`) ou dont un matériau projette ses UV dans le
+## repère du mesh (`uv1_triplanar` ou `uv2_triplanar` hors du monde), une surface qui n'est pas en triangles ou qui
+## porte huit poids par sommet. La recette autonome `projet/recettes/fusion-des-pieces.gd` le vérifie.
+
+## La refonte des pièces demandée pour la fin de l'image (`refondre`), une seule fois quel que soit le nombre de
+## demandes.
+func _demander_la_refonte() -> void:
+	if not _refonte_demandee:
+		_refonte_demandee = true
+		refondre.call_deferred()
+
+
+## Les meshes visibles du modèle fondus en `fusion`, une surface par matériau équivalent (`_signature`), chaque pièce
+## fondue retirée de tout calque, chaque autre rendue au sien (`CALQUE`) ; l'ancienne `fusion` libérée, aucune sans
+## squelette ou sans pièce à fondre.
+func refondre() -> void:
+	_refonte_demandee = false
+	if is_instance_valid(fusion):
+		fusion.free()
+	fusion = null
+	if squelette == null or not is_instance_valid(squelette):
+		return
+	var skin := Skin.new()
+	var liaisons := {}
+	var outils := {}
+	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
+		var piece := noeud as MeshInstance3D
+		var renvois := _renvois(piece, skin, liaisons)
+		piece.layers = CALQUE if renvois.is_empty() else 0
+		if renvois.is_empty():
+			continue
+		for surface in piece.mesh.get_surface_count():
+			var materiau := piece.get_active_material(surface)
+			var cle := _signature(materiau)
+			if not outils.has(cle):
+				outils[cle] = SurfaceTool.new()
+				(outils[cle] as SurfaceTool).set_material(materiau)
+			(outils[cle] as SurfaceTool).append_from(_surface_liee(piece, surface, renvois), 0, Transform3D.IDENTITY)
+	if outils.is_empty():
+		return
+	var mesh := ArrayMesh.new()
+	for outil: SurfaceTool in outils.values():
+		outil.commit(mesh)
+	fusion = MeshInstance3D.new()
+	fusion.name = "Fusion"
+	fusion.mesh = mesh
+	fusion.skin = skin
+	squelette.add_child(fusion)
+	fusion.skeleton = fusion.get_path_to(squelette)
+
+
+## Par liaison de `piece` (une seule pour une pièce rigide), le rang de la liaison de `skin` qui la porte, ajoutée à
+## `skin` et à `liaisons` (par os et repère) si elle est neuve ; vide si `piece` ne se fond pas : invisible dans le
+## modèle, déjà fondue elle-même, ou hors des cas de `refondre`.
+func _renvois(piece: MeshInstance3D, skin: Skin, liaisons: Dictionary) -> PackedInt32Array:
+	var renvois := PackedInt32Array()
+	var attache: BoneAttachment3D = null
+	var noeud: Node = piece
+	while noeud != modele:
+		if not (noeud as Node3D).visible or (noeud != piece and (noeud as Node3D).top_level and attache == null):
+			return renvois
+		if attache == null and noeud is BoneAttachment3D:
+			attache = noeud
+		noeud = noeud.get_parent()
+	if piece.mesh == null or not _surfaces_fondables(piece):
+		return renvois
+	if piece.skin != null:
+		if not piece.global_transform.is_equal_approx(squelette.global_transform):
+			return renvois
+		for liaison in piece.skin.get_bind_count():
+			renvois.append(_liaison(skin, liaisons, piece.skin.get_bind_name(liaison), piece.skin.get_bind_pose(liaison)))
+		return renvois
+	if attache == null or not _sans_projection(piece):
+		return renvois
+	var repere_ := Node3D.new()
+	attache.add_child(repere_)
+	repere_.global_transform = piece.global_transform
+	renvois.append(_liaison(skin, liaisons, attache.bone_name, repere_.transform))
+	repere_.free()
+	return renvois
+
+
+## Chaque surface de `piece` est-elle en triangles, à quatre poids par sommet au plus ?
+static func _surfaces_fondables(piece: MeshInstance3D) -> bool:
+	for surface in piece.mesh.get_surface_count():
+		if piece.mesh.surface_get_primitive_type(surface) != Mesh.PRIMITIVE_TRIANGLES or piece.mesh.surface_get_format(surface) & Mesh.ARRAY_FLAG_USE_8_BONE_WEIGHTS:
+			return false
+	return true
+
+
+## Aucun matériau actif de `piece` ne projette-t-il ses UV dans le repère du mesh ?
+static func _sans_projection(piece: MeshInstance3D) -> bool:
+	for surface in piece.mesh.get_surface_count():
+		var materiau := piece.get_active_material(surface) as BaseMaterial3D
+		if materiau != null and ((materiau.uv1_triplanar and not materiau.uv1_world_triplanar) or (materiau.uv2_triplanar and not materiau.uv2_world_triplanar)):
+			return false
+	return true
+
+
+## Le rang dans `skin` de la liaison de l'os `os` au repère `repere_`, ajoutée si `liaisons` ne la porte pas encore.
+static func _liaison(skin: Skin, liaisons: Dictionary, os: StringName, repere_: Transform3D) -> int:
+	var cle := "%s|%s" % [os, repere_]
+	if not liaisons.has(cle):
+		liaisons[cle] = skin.get_bind_count()
+		skin.add_named_bind(os, repere_)
+	return liaisons[cle]
+
+
+## La clé des matériaux équivalents de `materiau` : sa classe et la valeur de chacune de ses propriétés enregistrées,
+## une ressource par son identité ; vide sans matériau.
+static func _signature(materiau: Material) -> String:
+	if materiau == null:
+		return ""
+	var valeurs := [materiau.get_class()]
+	for propriete in materiau.get_property_list():
+		if propriete.usage & PROPERTY_USAGE_STORAGE and not propriete.name in ["resource_name", "resource_path"]:
+			var valeur: Variant = materiau.get(propriete.name)
+			valeurs.append(valeur.get_instance_id() if valeur is Object else valeur)
+	return str(valeurs)
+
+
+## La surface `surface` de `piece` en mesh d'une surface, chaque sommet lié aux liaisons de la fusion par `renvois` : ses
+## os renvoyés pour une pièce skinnée ; tout sur la liaison de son os pour une pièce rigide (`POIDS_RIGIDE`) ; sans ses
+## canaux libres (`CANAUX_LIBRES`).
+static func _surface_liee(piece: MeshInstance3D, surface: int, renvois: PackedInt32Array) -> ArrayMesh:
+	var tableaux := piece.mesh.surface_get_arrays(surface)
+	var os := PackedInt32Array()
+	if piece.skin == null:
+		var poids := PackedFloat32Array()
+		var quatre := PackedInt32Array([renvois[0], renvois[0], renvois[0], renvois[0]])
+		for _sommet in (tableaux[Mesh.ARRAY_VERTEX] as PackedVector3Array).size():
+			os.append_array(quatre)
+			poids.append_array(POIDS_RIGIDE)
+		tableaux[Mesh.ARRAY_WEIGHTS] = poids
+	else:
+		os = tableaux[Mesh.ARRAY_BONES]
+		for rang in os.size():
+			os[rang] = renvois[os[rang]]
+	tableaux[Mesh.ARRAY_BONES] = os
+	for canal in CANAUX_LIBRES:
+		tableaux[canal] = null
+	var liee := ArrayMesh.new()
+	liee.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, tableaux)
+	return liee
