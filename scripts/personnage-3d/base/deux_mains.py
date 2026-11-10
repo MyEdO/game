@@ -14,7 +14,9 @@ Le repère de l'arme porte son +Y vers le fer (la seconde prise est sur cet axe,
 
 Repère Blender du rig : +X la gauche du personnage, −Y l'avant, +Z le haut.
 """
+import json
 import math
+from pathlib import Path
 from typing import NamedTuple
 
 import numpy
@@ -53,6 +55,13 @@ desquels une pose de bras se paie, et l'échelle du roulis de l'arme autour de s
 torsion au-delà de `torsion_max` ou une flexion au-delà de `flexion_max` se paient comme une limite, et refusent le clip. Dans les clips sources, la torsion
 et la flexion de la main restent sous 60° et 50° à 95 % des images, sous 80° de flexion à 99 %, et l'axe de flexion du
 coude s'écarte de son +X de moins de 45° à 90 %."""
+BORNES = json.loads(Path(__file__).with_name('humanoide.json').read_text(encoding='utf-8'))['bornesArticulaires']
+"""Par os, les bornes articulaires que déclare le corps (`bornesArticulaires`, #2992) : par axe, [min, max] en degrés du
+vecteur de rotation de l'os depuis son repos (`hors_des_bornes`) ; une pose d'avant-bras ou de main qui en sort, à
+`MARGE_DES_BORNES` près, se paie comme une limite."""
+MARGE_DES_BORNES = 1.0
+"""En degrés, la marge en deçà des bornes où l'IK tient une pose : l'export et l'interpolation entre deux images la
+déplacent de moins que cela, et la garde `amplitude` mesure la pose jouée."""
 PEAU = {'marge': 0.25, 'echelle': 0.02, 'plancher': 0.2, 'echelle_plancher': 0.01}
 """L'étirement des arêtes de la peau que meut un bras (`etirement_du_bras`), mesuré sur le corps neutre, se paie au-delà de
 la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle`, et son écrasement en deçà de `plancher`, par pas
@@ -277,18 +286,30 @@ def prix_du_tronc(tronc, coudes, poignet):
     return prix
 
 
-def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, precedent=None, peau=None,
-         tronc=None):
+def hors_des_bornes(rotation, bornes):
+    """Le dépassement, en degrés, sommé sur les axes, du vecteur de rotation de la matrice `rotation` (axe × angle,
+    l'angle dans [0, 180], `hotes/godot/asset/evaluateur/gardes/amplitude.ts` `vecteurDeRotation`) hors de `bornes`
+    (par axe, [min, max]) resserrées de `MARGE_DES_BORNES`."""
+    q = rotation.to_quaternion()
+    if q.w < 0:
+        q.negate()
+    v = q.axis * math.degrees(q.angle)
+    return sum(max(0.0, v[i] - bornes[a][1] + MARGE_DES_BORNES, bornes[a][0] + MARGE_DES_BORNES - v[i]) for i, a in enumerate('xyz'))
+
+
+def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, bornes, precedent=None,
+         peau=None, tronc=None):
     """La pose d'un bras dont la main prend la matrice `main` : le bras tourne au plus court depuis `axes_epaule` (sa pose
     au repos sous la clavicule), sans torsion, comme dans les clips sources ; l'avant-bras plie depuis le bras, puis tourne
     sur son axe, dans les bornes de `pronation`, pour détordre le poignet ; le coude tourne autour de l'axe
     épaule-poignet, à partir du côté de `pole`, jusqu'à la pose qui paie le moins (`POIGNET`), au plus près du tour
-    `precedent`, sous l'étirement de la peau (`PEAU`) quand `peau` porte la `PeauDuBras`, sa part fixe (`peau_fixe`),
+    `precedent`, dans les `bornes` de l'avant-bras puis de la main (`BORNES`, `hors_des_bornes`), sous l'étirement de
+    la peau (`PEAU`) quand `peau` porte la `PeauDuBras`, sa part fixe (`peau_fixe`),
     et l'indice d'os et l'inverse du repos du bras puis de l'avant-bras, et à l'écart du tronc posé `tronc`
     (`tronc_pose`, `prix_du_tronc`). `rel_avant_bras` et `rel_main` : chaque os dans
     le repère de son parent, au repos. Rend le prix de la pose, les axes du bras et de l'avant-bras, le coude, le tour
     retenu, en degrés, et le détail : torsion demandée et portée par l'avant-bras, flexion du poignet, écart de charnière,
-    étirement de la peau."""
+    dépassement des bornes, étirement de la peau."""
     poignet, articulation = coude(epaule, main.translation, *longueurs, pole)
     axe = (poignet - epaule).normalized()
     centre = epaule + axe * (articulation - epaule).dot(axe)
@@ -305,11 +326,13 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
         tourne = min(max(torsion, pronation[0]), pronation[1])
         avant_bras = plie @ Matrix.Rotation(math.radians(tourne), 3, 'Y')
         flexion = math.degrees(((avant_bras @ rel_main).transposed() @ axes_main).to_quaternion().to_swing_twist('Y')[0].angle)
+        hors = hors_des_bornes(repos.transposed() @ avant_bras, bornes[0]) \
+            + hors_des_bornes((avant_bras @ rel_main).transposed() @ axes_main, bornes[1])
         prix = ((torsion - tourne) / POIGNET['torsion']) ** 2 + (max(0.0, flexion - POIGNET['flexion']) / 10) ** 2 \
             + (max(0.0, charniere - POIGNET['charniere']) / 10) ** 2 + (tour / 45) ** 2 \
             + (0.0 if precedent is None else ((tour - precedent) / 10) ** 2) \
-            + 1e3 * (max(0.0, abs(torsion - tourne) - POIGNET['torsion_max']) + max(0.0, flexion - POIGNET['flexion_max'])) ** 2
-        return prix, humerus, avant_bras, coude_, tour, (round(torsion), round(tourne), round(flexion), round(charniere))
+            + 1e3 * (max(0.0, abs(torsion - tourne) - POIGNET['torsion_max']) + max(0.0, flexion - POIGNET['flexion_max']) + hors) ** 2
+        return prix, humerus, avant_bras, coude_, tour, (round(torsion), round(tourne), round(flexion), round(charniere), round(hors, 1))
 
     def essais(tours):
         gestes = [geste(t) for t in tours]
@@ -374,7 +397,8 @@ def _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, precedents, peaux, 
 
     def essai(roulis):
         roule = arme @ Matrix.Rotation(math.radians(roulis), 4, 'Y')
-        poses_ = {c: bras(t, a, roule @ mains[c], longueurs[c], p, r[0], r[1], PRONATION[c], precedents.get(c),
+        poses_ = {c: bras(t, a, roule @ mains[c], longueurs[c], p, r[0], r[1], PRONATION[c], (BORNES[BRAS[c][1]], BORNES[BRAS[c][2]]),
+                          precedents.get(c),
                           peau(c, roule @ mains[c], m, d, libres), tronc_)
                   for c, (t, a, p, r, m, d, libres) in poses.items()}
         prix = sum(e[0] for e in poses_.values()) + (roulis / POIGNET['roulis']) ** 2 \
@@ -433,7 +457,7 @@ def deriver(bpy, rig, reperes):
             for courbe in [c for c in sac.fcurves if c.data_path.split('"')[1:2] and c.data_path.split('"')[1] in animes]:
                 sac.fcurves.remove(courbe)
         assign_action(rig, action)
-        ecart, tours, poignets = 0.0, {}, {'torsion': 0, 'flexion': 0, 'coude': 1.0}
+        ecart, tours, poignets = 0.0, {}, {'torsion': 0, 'flexion': 0, 'coude': 1.0, 'bornes': 0.0}
         for image in images:
             aller_a(scene, image)
             for n in animes:
@@ -455,13 +479,13 @@ def deriver(bpy, rig, reperes):
                      'l': Matrix.Translation((0, cote, 0)) @ Matrix.Rotation(math.radians(tour_seconde), 4, 'Y') @ prise_off.inverted()}
             reste, tours, details = _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, tours, peaux, tronc)
             ecart = max(ecart, reste)
-            for cote_, (torsion_, tourne, flexion_, _, etire, ecrase) in details.items():
+            for cote_, (torsion_, tourne, flexion_, _, hors, etire, ecrase) in details.items():
                 if abs(torsion_ - tourne) > POIGNET['torsion_max'] or flexion_ > POIGNET['flexion_max']:
                     raise ValueError(f'{nom} image {image} : poignet {cote_} tordu de {torsion_ - tourne}°, plié de {flexion_}°')
                 if etire > ETIREMENT_EN_CLIP[1] or ecrase < ETIREMENT_EN_CLIP[0]:
                     raise ValueError(f'{nom} image {image} : peau du bras {cote_} étirée à {etire:.2f}, écrasée à {ecrase:.3f}')
                 poignets = {'torsion': max(poignets['torsion'], abs(torsion_ - tourne)), 'flexion': max(poignets['flexion'], flexion_),
-                            'coude': round(max(poignets['coude'], etire), 2)}
+                            'coude': round(max(poignets['coude'], etire), 2), 'bornes': max(poignets['bornes'], hors)}
             for n in animes:
                 pose[n].keyframe_insert('rotation_quaternion', frame=image)
         print('DEUX_MAINS', nom, 'de', source_nom, 'images', len(images), 'écart de main', round(ecart, 4), 'poignet',
