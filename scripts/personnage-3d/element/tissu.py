@@ -14,9 +14,10 @@ import random
 import bmesh
 import bpy
 import numpy as np
-from mathutils import Vector
+from mathutils import Matrix, Vector
 from mathutils.bvhtree import BVHTree
 
+from anatomie import attache
 from formes import aretes_des_triangles, aux_noeuds, decalages, poser_la_cle, rapports, region_locale, retournees_par, transferer_les_cles
 
 BORNES_DES_CLES = (0.4, 2.5)
@@ -54,6 +55,7 @@ class Base:
         self.os = manifeste['os']
         self.indice_os = {n: i for i, n in enumerate(self.os)}
         self._corps = {}
+        self.emplacements = {}
 
     def exiger(self, noms):
         absentes = [z for z in noms if z not in self.zones]
@@ -143,6 +145,18 @@ class Base:
         if len(points) < minimum:
             raise ValueError(f'coupe insuffisante au plan {tuple(origine)}, {tuple(normale)}')
         return np.array(points)
+
+    def offrir(self, nom, w, point, axes):
+        """Offre l'emplacement `nom` (`emplacements` du manifeste) : au repos, au `point` du repère Blender, d'axes `axes`
+        (colonnes X, Y, Z du repère glTF de l'emplacement, en Blender), attaché à l'os qui pèse le plus dans les poids `w`
+        (par os de la base, ceux de la pièce sous le point) dans son repère (`base/anatomie.py`, `attache`) ; il suit le
+        mélange de ces os (`poids`) s'ils sont plusieurs."""
+        w = np.asarray(w, dtype=float) / np.sum(w)
+        os_ = self.os[int(np.argmax(w))]
+        repere = Matrix.Translation(Vector(point)) @ Matrix([list(r) for r in np.array(axes).T]).to_4x4()
+        poids = {self.os[k]: round(float(x), 4) for k, x in enumerate(w) if round(float(x), 4) > 0}
+        self.emplacements[nom] = {'os': os_, **attache(self.rig.data.bones[os_].matrix_local, repere),
+                                  **({'poids': poids} if len(poids) > 1 else {})}
 
     def nappe(self, nom, X, normales, W, orientes, mat, epaisseur):
         """La double nappe skinnée `nom` sur la nappe extérieure (positions `X`, `normales`, poids `W` par os de la base,

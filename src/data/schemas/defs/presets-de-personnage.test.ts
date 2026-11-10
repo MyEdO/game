@@ -1,7 +1,7 @@
 /**
  * #3086 — ce que le SCHÉMA de `presets-de-personnage.json` tient au parse : toute référence (tenue, pièce,
  * objet instanciable) résout dans son espace, la corpulence reste dans son domaine (`src/lib/corpulence.ts`), et
- * rien n'est porté deux fois, ni un objet ni une pièce (D6(b)).
+ * rien n'est porté deux fois, ni une pièce ni un objet tenu (D6(b)) ; un objet porté se répète en exemplaires (#3844).
  */
 import { describe, expect, it } from 'vitest';
 import { schema } from './presets-de-personnage';
@@ -60,9 +60,14 @@ describe('presets-de-personnage.json — preset de personnage entier (#3086)', (
       ['pièce en double', { pieces: ['baudrier', 'baudrier'] }, { path: '0.pieces.1', message: '« baudrier » est porté deux fois : déjà par pieces[0].' }],
       ['pièce et ensemble d’un objet', { pieces: ['baudrier', casque] }, { path: '0.objets.0', message: `« ${casque} » est porté deux fois : déjà par pieces[1].` }],
       ['objet aux deux mains', { prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } }, { path: '0.prises.off', message: '« hallebarde » est porté deux fois : déjà par la prise main.' }],
-      ['objet en double', { objets: ['heaume', 'heaume', 'plastron'] }, { path: '0.objets.1', message: '« heaume » est porté deux fois : déjà par objets[0].' }],
+      ['pièce d’un objet en double', { objets: ['heaume', 'heaume', 'plastron'] }, { path: '0.objets.1', message: `« ${casque} » est porté deux fois : déjà par l’objet « heaume ».` }],
       ['objet tenu et rangé', { objets: ['heaume', 'hallebarde'] }, { path: '0.objets.1', message: '« hallebarde » est porté deux fois : déjà par la prise main.' }],
     ];
     for (const [nom, champs, attendu] of cas) expect(issues(avec(champs)), nom).toEqual([attendu]);
+  });
+
+  it('un objet porté sans pièce se porte en plusieurs exemplaires (#3844)', () => {
+    expect(piecesDeLObjet('parchemin')).toEqual([]);
+    accepte(avec({ objets: ['parchemin', 'parchemin', 'parchemin'] }));
   });
 });

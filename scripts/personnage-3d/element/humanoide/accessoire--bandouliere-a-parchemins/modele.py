@@ -4,16 +4,16 @@
 - `sangle` : une bande fermée autour du tronc, dans le plan oblique de l'épaule droite à la hanche gauche ; chaque
   colonne posée sur la robe publiée, au plus loin de ses deux bords et de son milieu (la sangle ponte les creux sans s'y
   plier), plus le jeu, en double nappe ; poids empruntés à la robe puis lissés.
-- rouleaux et fioles : des solides de révolution glissés en travers de la sangle, devant ; chacun suit d'un bloc le
-  sommet de la sangle sous lui (ses poids) : un objet aux poids de la robe sommet par sommet s'étire avec elle.
+- cases : les emplacements `bandouliere`, puis `bandouliere#<rang>`, que la sangle offre devant (`Base.offrir`), chacun
+  sur le milieu de la bande, son +Y glTF le long de l'objet qu'on y glisse, vers le haut, son +Z sur la normale sortante,
+  qui suit les poids de la sangle sous lui ; l'hôte y range les objets (#3844).
 Silhouettes et clés `gabarit_*` transférées de la robe publiée sous la sangle.
 """
 import math
 
 import numpy as np
-from maille import Maille, tour
 from mathutils import Vector
-from tissu import Maillage, centre_de, emprunter, joindre, lisser, maillage_skinne, poids_normalises, porteur_de, voisinage
+from tissu import Maillage, centre_de, emprunter, lisser, porteur_de, voisinage
 
 
 def unitaire(x):
@@ -29,22 +29,6 @@ def points_d_attache(b, D, robe):
     flanc = P[np.abs(P[:, 2] - D['HANCHE']) < 0.01]
     hanche = np.array([flanc[:, 0].max(), (flanc[:, 1].min() + flanc[:, 1].max()) / 2, D['HANCHE']])
     return epaule, hanche
-
-
-def solide(m, profil, mats, axe, centre, D):
-    """Révolution de `profil` [(a, r)] autour de `axe` passant par `centre` (monde), ajoutée à `m` ; rend son nombre de
-    sommets."""
-    local = Maille(m.materiaux)
-    tour(local, profil, 'y', (0.0, 0.0, 0.0), D['SEGMENTS_OBJET'], mats)
-    ex = unitaire(np.cross(axe, (0.0, 0.0, 1.0)) if abs(axe[2]) < 0.9 else np.cross(axe, (1.0, 0.0, 0.0)))
-    ez = np.cross(ex, axe)
-    debut = len(m.v)
-    noms = [x.name for x in m.materiaux]
-    for face, i in zip(local.f, local.m):
-        m.f.append([debut + k for k in face])
-        m.m.append(noms.index(local.materiaux[i].name))
-    m.v.extend(tuple(centre + x * ex + y * axe + z * ez) for x, y, z in local.v)
-    return len(local.v)
 
 
 def construire(D, materiaux, b):
@@ -115,37 +99,17 @@ def construire(D, materiaux, b):
             sortante = -sortante
         return p, tangente, sortante, W[bords[0][chemin[j + (u > 0.5)]]]
 
-    objets = Maille(list(materiaux.values()))
-    poids_objets = []
-
-    def poser(t, angle, decalage, rayon, profil, mats):
+    for rang, (t, angle, decalage) in enumerate(D['CASES'], start=1):
         p, tangente, sortante, w = sur_la_sangle(t)
         a = math.radians(angle)
         axe = unitaire(math.cos(a) * n - math.sin(a) * tangente)
-        centre_objet = p + sortante * (rayon + D['JEU_OBJET']) + axe * decalage
-        poids_objets.extend([w] * solide(objets, profil, mats, axe, centre_objet, D))
+        gauche = axe if axe[0] > 0 else -axe
+        haut = axe if axe[2] > 0 else -axe
+        z = unitaire(sortante - (sortante @ haut) * haut)
+        b.offrir(D['EMPLACEMENT'] if rang == 1 else f"{D['EMPLACEMENT']}#{rang}", w, p + gauche * decalage,
+                 (np.cross(haut, z), haut, z))
 
-    for t, angle, decalage, r, longueur in D['ROULEAUX']:
-        poser(t, angle, decalage, r, [(-longueur / 2, 0), (-longueur / 2, r), (longueur / 2, r), (longueur / 2, 0)],
-              'parchemin')
-    for t, angle, decalage, r, longueur, bouchon in D['FIOLES']:
-        a0, a1, a2 = -longueur / 2, longueur / 2 - bouchon, longueur / 2
-        poser(t, angle, decalage, r, [(a0, 0), (a0, r), (a1, r), (a1, 0.6 * r), (a2, 0.6 * r), (a2, 0)],
-              ['fiole', 'fiole', 'fiole', 'bouchon', 'bouchon'])
-
-    poids_objets = poids_normalises(np.array(poids_objets), b.os)
-    pieces = [sangle]
-    noms = [x.name for x in objets.materiaux]
-    for k, nom in enumerate(noms):
-        faces = [f for f, m in zip(objets.f, objets.m) if m == k]
-        if not faces:
-            continue
-        utilises = sorted({i for f in faces for i in f})
-        renum = {i: j for j, i in enumerate(utilises)}
-        pieces.append(maillage_skinne(nom, [objets.v[i] for i in utilises], [[renum[i] for i in f] for f in faces],
-                                      materiaux[nom], b.rig, [poids_objets[i] for i in utilises]))
-    piece = joindre(pieces)
-    piece.name = 'bandouliere-a-parchemins'
-    b.transferer(piece, D['ZONES'], masques=[([True] * len(piece.data.vertices), D['ZONES'],
-                                               {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']})])
-    return piece
+    sangle.name = 'bandouliere-a-parchemins'
+    b.transferer(sangle, D['ZONES'], masques=[([True] * len(sangle.data.vertices), D['ZONES'],
+                                                {D['CONTOURNE']['robe']: D['ZONES_DE_LA_ROBE']})])
+    return sangle

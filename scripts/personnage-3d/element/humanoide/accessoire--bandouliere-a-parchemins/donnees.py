@@ -4,7 +4,8 @@
 Illustration directrice : ligne de `INDEX.md` du recueil `illustrations-wfrp` « Sorcier | sorcier | `carrieres/sorcier.png` |
 Livre de Base | 94 | certaine » (hors dépôt). Ce qu'elle montre : une large sangle claire, piquée, qui descend de l'épaule
 droite (sous l'écharpe) en travers du buste vers la hanche gauche ; des rouleaux de parchemin glissés en travers de la
-sangle sur la poitrine, puis, plus bas, trois fioles bouchées (deux violettes, une verte). Le dos ne se voit pas
+sangle sur la poitrine, puis, plus bas, trois fioles bouchées (deux violettes, une verte) : ce sont des objets, rangés
+dans les cases que la sangle offre (`CASES`, #3844), jamais cuits dans la sangle. Le dos ne se voit pas
 (HYPOTHÈSE : la sangle remonte du flanc gauche à l'épaule droite par le dos, nue). Échelle relevée : environ 530 px/m (le
 personnage, du capuchon aux semelles, environ 960 px pour les 1,82 m de la base).
 
@@ -24,12 +25,8 @@ alors qu'elle ne la traverse pas, et sous l'écharpe de la capuche (`manteau`)."
 
 MATERIAUX = {
     'sangle': ('vet2', ((0.75, 0.73, 0.68), 0.0, 0.9)),
-    'parchemin': ('vet2', ((0.8, 0.78, 0.72), 0.0, 0.9)),
-    'fiole': ('accent', ((0.5, 0.5, 0.5), 0.0, 0.3)),
-    'bouchon': ('cuir', ((0.45, 0.45, 0.45), 0.0, 0.9)),
 }
-"""Illustration : sangle et rouleaux écrus comme la robe de dessous (`vet2`) ; fioles de verre teinté, `accent` (le vert de
-la capuche du preset `sorcier`, celui de la fiole verte) ; bouchons sombres, `cuir`. Gris de construction."""
+"""Illustration : sangle écrue comme la robe de dessous (`vet2`). Gris de construction."""
 
 BUDGET_TRIANGLES = 800            # procédure du skill, section 7 : accessoire
 
@@ -63,33 +60,26 @@ EPAISSEUR = 0.003                 # HYPOTHÈSE : double nappe d'une sangle de cu
 PORTEE = 0.5                      # m : départ des visées vers la robe, depuis le centre de la coupe, au-delà du tronc
 LISSAGE_POIDS = 2                 # HYPOTHÈSE : passes laplaciennes des poids empruntés à la robe, comme le pan de la capuche
 
-# Objets glissés en travers de la sangle, devant. `s` : position le long de la sangle, de l'épaule (0) à la hanche (1),
-# par le devant ; `angle` : degrés de l'axe de l'objet sur la perpendiculaire à la sangle, positif vers l'épaule ;
-# `decalage` : m de l'axe de l'objet le long de son axe, depuis la sangle (positif vers la gauche du personnage).
-ROULEAUX = [
-    # (s, angle, decalage, rayon, longueur)
-    (0.41, -35, 0.00, 0.016, 0.13),
-    (0.49, -30, 0.02, 0.015, 0.12),
-    (0.57, -40, -0.01, 0.016, 0.13),
-    (0.63, -30, -0.035, 0.014, 0.11),
+EMPLACEMENT = 'bandouliere'
+"""L'emplacement de la garde-robe que la sangle offre : sa première case, puis `bandouliere#<rang>` pour les suivantes."""
+CASES = [
+    # (s, angle, decalage)
+    (0.41, -35, 0.00),
+    (0.49, -30, 0.02),
+    (0.57, -40, -0.01),
+    (0.63, -30, -0.035),
+    (0.68, -20, -0.05),
+    (0.72, -20, -0.06),
+    (0.76, -20, -0.06),
 ]
-"""Illustration : quatre rouleaux lisibles sur la poitrine, sous l'écharpe ; le premier à s = 0,41 (à 0,30 et 0,36, il
-passe assez près du menton pour s'y lier : `suiviDuCorps/cle-inerte` sous `gabarit_head_plus`), ~15-18 px de diamètre (3 cm) et 50-65 px de long (11-13 cm),
-qui débordent de la sangle des deux côtés, à peu près à l'horizontale (sur cette sangle de base, à 30-40° de sa
-perpendiculaire). Le quatrième, remonté et décalé vers la droite, s'arrête à x = 0,08, à 1 cm du pan de la capuche publiée
-(devant, de x = 0,092 à 0,135, au-dessus de z = 1,26) : à s = 0,65, il passait sous lui, sans place entre le pan et la
-robe pour ses 3 cm, et le traversait (porte r25)."""
-FIOLES = [
-    # (s, angle, decalage, rayon, longueur, longueur du bouchon)
-    (0.68, -20, -0.05, 0.009, 0.065, 0.018),
-    (0.72, -20, -0.06, 0.009, 0.070, 0.018),
-    (0.76, -20, -0.06, 0.010, 0.075, 0.020),
-]
-"""Illustration : trois fioles bouchées sous les rouleaux, en travers de la sangle, ~10 px de diamètre (2 cm), ~40 px de
-long bouchon compris. Glissées vers la droite du personnage le long de leur axe, elles pendent sous le dernier rouleau, à
-gauche du bas du pan de la capuche publiée (devant, de x = 0,092 à 0,135, au-dessus de z = 1,26) : de s = 0,73 à 0,87 sur
-la sangle même, elles le traversaient (porte r25) ; plus bas, sur le ventre (0,80 à 0,88) ou le flanc (0,86 à 0,96), la
-manche gauche les cachait dans la tenue du bâton (Clément, 2026-11-09 : « Je vois des "parchemins" sur sa bandouillere
-mais pas de fiole »)."""
-SEGMENTS_OBJET = 6                # côtés d'un rouleau ou d'une fiole (HYPOTHÈSE de maillage)
-JEU_OBJET = 0.002                 # m entre la sangle et un objet glissé dessus
+"""Les cases offertes devant, dans l'ordre des rangs. `s` : position le long de la sangle, de l'épaule (0) à la hanche (1),
+par le devant ; `angle` : degrés de l'axe de l'objet glissé sur la perpendiculaire à la sangle, positif vers l'épaule ;
+`decalage` : m du point de la case le long de cet axe, depuis le milieu de la sangle, positif vers la gauche du
+personnage. Illustration : quatre rouleaux lisibles sur la poitrine, sous l'écharpe, à peu près à l'horizontale (sur
+cette sangle de base, à 30-40° de sa perpendiculaire) ; le premier à s = 0,41 (à 0,30 et 0,36, il passait assez près du
+menton pour s'y lier : `suiviDuCorps/cle-inerte` sous `gabarit_head_plus`) ; le quatrième, remonté et décalé vers la
+droite, à 1 cm du pan de la capuche publiée (devant, de x = 0,092 à 0,135, au-dessus de z = 1,26). Puis trois fioles
+sous le dernier rouleau, glissées vers la droite du personnage, à gauche du bas du pan : de s = 0,73 à 0,87 sur la
+sangle même, elles le traversaient (porte r25) ; plus bas, sur le ventre (0,80 à 0,88) ou le flanc (0,86 à 0,96), la
+manche gauche les cachait dans la tenue du bâton (Clément, 2026-11-09 : « Je vois des "parchemins" sur sa
+bandouillere mais pas de fiole »)."""

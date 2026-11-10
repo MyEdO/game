@@ -144,7 +144,7 @@
 //   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
 // - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie à
 //   l'onglet Outils, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
-//   montée ou nommée manquante, capturé de face, de trois quarts et de dos (glissés au bouton droit de l'orbite) : ce que
+//   montée dans la scène ou nommée manquante, capturé de face, de trois quarts et de dos (glissés au bouton droit de l'orbite) : ce que
 //   le jeu montrera d'un preset.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
 // console rendent un code non nul.
@@ -2477,6 +2477,10 @@ async function parcoursComposition() {
 
 /** Les lacets de l'orbite capturés par le parcours `preset`, en radians depuis la face : trois quarts, puis dos. */
 const VUES_DU_PRESET = [['face', 0], ['trois-quarts', -Math.PI / 4], ['dos', Math.PI]]
+/** Chaque élément de la composition (`composition.montes`) monté dans la scène (`montes` et `lignes` de l'atelier), ses
+ *  GLB lus : une capture plus tôt montre les premiers objets seuls. */
+const TOUT_EST_MONTE = `JSON.stringify(a.composition.montes.filter((m) => m.element).map((m) => m.element).sort())
+  === JSON.stringify([...Object.values(a.montes), ...Object.values(a.lignes)].sort())`
 /** Les radians de lacet par pixel d'un glissé de l'orbite (`MiseEnPage.RADIANS_PAR_PIXEL`). */
 const RADIANS_PAR_PIXEL = 0.005
 
@@ -2496,6 +2500,7 @@ async function parcoursPreset() {
   await cliquerBouton('Personnage')
   await cliquerAmene(preset.label, -1)
   await attendreLAtelier(`a.composition.preset === ${JSON.stringify(preset.id)}`, 120000)
+  await attendreLAtelier(TOUT_EST_MONTE, 120000)
   await sleep(3000)
   const a = await atelier()
   assert.deepEqual(a.erreurs, [], `${preset.label} composé sans erreur`)

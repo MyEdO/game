@@ -13,7 +13,8 @@ skinnée `couche`, `couvre`, `chaines`), `MATERIAUX` (`{nom: (emplacement de pal
 - `rigide` : `construire(D, materiaux)` rend les objets, bâtis dans le repère de la prise `PRISE` (une prise du manifeste
   de base) ; ils pendent à l'os de cette prise ;
 - `squelette` : `construire(D, materiaux, base)` reçoit la base au repos (`tissu.Base`) et rend la pièce jointe, ses clés
-  transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip.
+  transférées (`Base.transferer`) ; elle est découpée par zone et exportée avec l'armature, sans clip ; les emplacements
+  qu'elle offre (`Base.offrir`) vont à `emplacements` de son manifeste.
 
     node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/construire.py humanoide/rigide--baton \\
         --sortie <dossier neuf hors du dépôt>
@@ -28,16 +29,15 @@ import sys
 from pathlib import Path
 
 ICI = Path(__file__).resolve().parent
-sys.path[:0] = [str(ICI), str(ICI.parent)]
+sys.path[:0] = [str(ICI), str(ICI.parent), str(ICI.parent / "base")]
 
 import bpy  # noqa: E402
 from mathutils import Euler, Matrix, Quaternion, Vector  # noqa: E402
 import habillage  # noqa: E402
 import tissu  # noqa: E402
 from glb import lire_glb  # noqa: E402
-from production import MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
+from production import CACHE_DES_MODELES, MODELES, dossier_de_sortie, ecrire_le_dossier  # noqa: E402
 
-CACHE = Path.home() / ".cache" / "wfrp-modeles-3d"
 ECART_ROTATION_MAX = 1e-4      # rad, entre le nœud exporté et le repère de prise
 ECART_TRANSLATION_MAX = 1e-5   # m
 
@@ -164,13 +164,14 @@ def construire_squelette(D, modele, manifeste_de_base, glb_de_base, cache, tempo
     triangles = triangles_de([piece], D["BUDGET_TRIANGLES"])
     objets = base.decouper_par_zone(piece)
     octets = exporter(temporaire, base.rig, objets, skinne=True)
-    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"])}, triangles
+    offerts = {"emplacements": base.emplacements} if base.emplacements else {}
+    return octets, objets, {"silhouettes": list(manifeste_de_base["silhouettes"]), **offerts}, triangles
 
 
 def main():
     p = argparse.ArgumentParser()
     p.add_argument("element", choices=elements())
-    p.add_argument("--cache", type=Path, default=CACHE, help="cache des modèles, GLB nommés par empreinte")
+    p.add_argument("--cache", type=Path, default=CACHE_DES_MODELES, help="cache des modèles, GLB nommés par empreinte")
     p.add_argument("--sortie", required=True)
     args = p.parse_args()
     base, dossier = args.element.split("/")

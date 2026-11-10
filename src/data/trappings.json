@@ -5927,6 +5927,9 @@
     "source": {
       "book": "livre-de-base",
       "page": 304
+    },
+    "shape": {
+      "id": "parchemin"
     }
   },
   {
@@ -7529,6 +7532,9 @@
           ]
         }
       }
+    },
+    "shape": {
+      "id": "fiole"
     }
   },
   {
@@ -7568,6 +7574,9 @@
           }
         ]
       }
+    },
+    "shape": {
+      "id": "fiole"
     }
   },
   {
@@ -11637,7 +11646,10 @@
       "page": 105
     },
     "desc": "Préparée à partir du sang d'amphisbaena (dont chaque tête mord l'autre, rendant son sang un puissant antidote). Une préparation de sang d'amphisbaena confère un bonus de +40 pour résister aux effets de n'importe quel poison.",
-    "qualities": []
+    "qualities": [],
+    "shape": {
+      "id": "fiole"
+    }
   },
   {
     "id": "remede-de-lurek",
@@ -14388,6 +14400,9 @@
     "source": {
       "book": "vents-de-la-magie",
       "page": 153
+    },
+    "shape": {
+      "id": "parchemin"
     }
   },
   {
@@ -14774,6 +14789,9 @@
           "sides": 10
         }
       }
+    },
+    "shape": {
+      "id": "fiole"
     }
   },
   {
@@ -14804,6 +14822,9 @@
           }
         ]
       }
+    },
+    "shape": {
+      "id": "fiole"
     }
   },
   {
@@ -14845,6 +14866,9 @@
           "sides": 10
         }
       }
+    },
+    "shape": {
+      "id": "fiole"
     }
   },
   {
@@ -14893,6 +14917,9 @@
           "sides": 10
         }
       }
+    },
+    "shape": {
+      "id": "fiole"
     }
   },
   {
@@ -14934,6 +14961,9 @@
           "sides": 10
         }
       }
+    },
+    "shape": {
+      "id": "fiole"
     }
   },
   {

@@ -67,6 +67,10 @@ var _pieces_de_la_base: Array[MeshInstance3D] = []
 ## Par id d'emplacement d'un objet rangé, ses meshes rangés : `{ noeud, piece }`, le nœud `Range_<point>` qui porte le
 ## mesh et le mesh (`_ranger`).
 var _rangements: Dictionary = {}
+## Par point offert dont l'attache suit des `poids` (#3844) : par os de ces poids, le repère au repos de l'os du point
+## porté par cet os depuis son propre repos (`chaines`, chacune sous le `BoneAttachment3D` de `attaches`), leurs `poids`, et
+## les `Portage` des objets rangés au point (`_suivre_les_poids`).
+var _suivis: Dictionary = {}
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -207,6 +211,7 @@ func vider() -> void:
 	pieces.clear()
 	_noeuds.clear()
 	_rangements.clear()
+	_suivis.clear()
 	montes.clear()
 	emblemes.clear()
 	_emblemes_demandes.clear()
@@ -235,6 +240,7 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	gabarit = GabaritDuSquelette.new()
 	gabarit.lecteur = lecteur
 	squelette.add_child(gabarit)
+	squelette.skeleton_updated.connect(_suivre_les_poids, CONNECT_DEFERRED)
 
 
 ## Par ligne de `montes` de la composition retenue, sa première entrée qui monte un élément.
@@ -253,11 +259,11 @@ func demonter(id: String) -> void:
 		noeud.free()
 	_noeuds.erase(id)
 	_rangements.erase(id)
-	_ranger()
 	pieces.erase(id)
 	montes.erase(id)
 	emblemes.erase(id)
 	_emblemes_demandes.erase(id)
+	_ranger()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 
@@ -488,12 +494,24 @@ func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3
 	return piece
 
 
-## Le point d'accroche `id` de la base posée, emplacement ou prise, celui de `<point>` pour la ligne `<point>#<rang>`
-## d'un objet suivant au même point (`composerSurLaBase`), `{}` si aucun.
+## Le point d'accroche `id` de la base posée, emplacement ou prise ; pour la ligne `<point>#<rang>` d'un objet suivant
+## au même point (`composerSurLaBase`), la case de ce rang si une pièce l'offre, sinon le point `<point>` ; `{}` si aucun.
 func _point(id: String) -> Dictionary:
-	for point in base.get("points", []):
-		if point.id == id.get_slice("#", 0):
-			return point
+	for cherche in [id, id.get_slice("#", 0)]:
+		for point in base.get("points", []):
+			if point.id == cherche:
+				return point
+	return {}
+
+
+## Le repère du point `point` (`_point`) : le sien si la base l'offre ; offert par des pièces (`offertPar`), celui de la
+## première pièce montée qui l'offre, `{}` si aucune ne l'est.
+func _attache_du_point(point: Dictionary) -> Dictionary:
+	if not point.has("offertPar"):
+		return point.attache
+	for element: String in montes.values():
+		if point.offertPar.has(element):
+			return point.offertPar[element]
 	return {}
 
 
@@ -501,19 +519,22 @@ func _point(id: String) -> Dictionary:
 ## Godot range un objet à un emplacement (`bases` de `modeles`) : le +Y de sa prise vers le bas du
 ## personnage, son +Z sur la normale sortante de l'emplacement (sa position hors de l'axe de l'os, à défaut l'avant),
 ## sa poignée (l'origine de sa prise) sur l'emplacement (`MiseEnPage.axe_de_rangement`), ou, pour une arme au fourreau,
-## le haut de son fourreau, la poignée au-dessus (`_suspension`), tous ses meshes ensemble ; à
-## plat, tourné d'un quart de tour autour de ce +Y si sa boîte est moins large sur X que sur Z. Les objets rangés à un
+## le haut de son fourreau, la poignée au-dessus (`_suspension`), tous ses meshes ensemble ; à plat, tourné d'un quart de tour autour de ce +Y si sa boîte est moins large sur X que sur Z. Les objets rangés à un
 ## même point (le point, puis chaque ligne `<point>#<rang>`, section « Composition d'un personnage ») s'y posent côte à
 ## côte autour de l'axe de l'os, le premier sur l'emplacement, chaque suivant vers l'avant du personnage, tourné autour
 ## de l'axe de l'os pour que ses sommets posés passent à 2 cm, ramenés à la distance de l'emplacement à l'axe, de ceux du
 ## précédent (sur l'axe de l'os, décalé de 2 cm entre leurs boîtes le long de l'axe X du rangement). Chacun s'appuie sur
 ## ce qui est porté dessous, la base et les éléments skinnés montés au repos, que vise, par case de 2 cm de l'objet, une
 ## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
-## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté autour du +X de sa prise, le bas vers l'extérieur, pour passer
-## de même au-dessus de ce qui est porté plus bas ; sans rien dessous, sa face arrière à 5 mm de l'emplacement
+## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
+## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans rien dessous, sa face arrière à 5 mm de l'emplacement
 ## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
 ## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
-## l'objet rangé.
+## l'objet rangé. Un emplacement qu'offre une pièce (`offertPar` du point, #3844) ne range un objet que sous une pièce
+## montée qui l'offre, à son repère, et le cache sinon ; s'il porte des `poids`, ses objets suivent, posé ou non, le
+## mélange des déplacements de ces os depuis leur repos, comme un sommet de la pièce (`_suivre_les_poids`) ;
+## la ligne `<point>#<rang>` va à la case de ce rang si une pièce l'offre, seule, et se pose sinon à côté des autres
+## objets du point.
 
 ## Chaque objet rangé posé à son emplacement : les objets d'un même point (`<point>`, puis `<point>#<rang>` par rang,
 ## `composerSurLaBase`) côte à côte autour de l'axe de l'os, le premier sur le point, chaque suivant vers l'avant du
@@ -523,14 +544,32 @@ func _point(id: String) -> Dictionary:
 ## chaque objet à plat, sa plus petite largeur sur la normale sortante (`MiseEnPage.lacet_a_plat`), appuyé sur ce qui
 ## est porté dessous (`_poser_range`), les meshes d'un objet ensemble.
 func _ranger() -> void:
+	for suivi: Dictionary in _suivis.values():
+		for attache: Node in suivi.attaches:
+			attache.free()
+	_suivis.clear()
 	var par_point := {}
 	for id: String in _rangements:
-		par_point.get_or_add(id.get_slice("#", 0), []).append(id)
+		par_point.get_or_add(_point(id).id, []).append(id)
 	if par_point.is_empty():
 		return
 	var portes := _portes_au_repos()
 	for point: String in par_point:
-		var attache: Dictionary = _point(point).attache
+		var attache := _attache_du_point(_point(point))
+		var portages: Array[Node3D] = []
+		for id: String in par_point[point]:
+			for rangee in _rangements[id]:
+				rangee.noeud.visible = not attache.is_empty()
+				var portage: Node3D = rangee.noeud.get_parent()
+				portage.top_level = attache.has("poids")
+				portage.transform = Transform3D.IDENTITY
+				portages.append(portage)
+				if not attache.is_empty():
+					(portage.get_parent() as BoneAttachment3D).bone_name = attache.os
+		if attache.is_empty():
+			continue
+		if attache.has("poids"):
+			_suivis[point] = _suivi(point, attache, portages)
 		var os := squelette.get_bone_global_rest(squelette.find_bone(attache.os))
 		var emplacement := repere(attache)
 		var sens := MiseEnPage.sens_vers_l_avant(os.basis, MiseEnPage.axe_de_rangement(emplacement.basis, emplacement.origin, Vector3.AXIS_X))
@@ -561,6 +600,37 @@ func _ranger() -> void:
 				rangee.noeud.transform = pose
 			precedente = boite
 			azimuts = _azimuts(bruts, pose, depuis)
+
+
+## Le suivi (`_suivis`) du point `point` d'attache `attache`, qui porte des `poids`, pour les `Portage` `portages` : par os
+## de ses poids, sous un `BoneAttachment3D` de cet os, le repère au repos de l'os du point, ramené du repos de cet os.
+func _suivi(point: String, attache: Dictionary, portages: Array[Node3D]) -> Dictionary:
+	var repos_du_point := squelette.get_bone_global_rest(squelette.find_bone(attache.os))
+	var suivi := {attaches = [], chaines = [], poids = PackedFloat64Array(), portages = portages}
+	for nom: String in attache.poids:
+		var depuis_le_repos := attacher(squelette, {os = nom, position = ORIGINE, rotation = ORIGINE}, ("Suivi_%s_%s" % [point, nom]).validate_node_name())
+		depuis_le_repos.transform = squelette.get_bone_global_rest(squelette.find_bone(nom)).affine_inverse()
+		var chaine := Node3D.new()
+		chaine.transform = repos_du_point
+		depuis_le_repos.add_child(chaine)
+		suivi.attaches.append(depuis_le_repos.get_parent())
+		suivi.chaines.append(chaine)
+		suivi.poids.append(attache.poids[nom])
+	return suivi
+
+
+## Godot 4.7, Skeleton3D::_notification, NOTIFICATION_UPDATE_SKELETON, skeleton_updated, après les `BoneAttachment3D` :
+## les `Portage` de chaque point suivi (`_suivis`) posés au mélange de ses `chaines` à leurs `poids`, chacune interpolée
+## dans le mélange des précédentes à sa part du poids cumulé (`MiseEnPage.part_du_melange`).
+func _suivre_les_poids() -> void:
+	for suivi: Dictionary in _suivis.values():
+		var melange: Transform3D = suivi.chaines[0].global_transform
+		var cumul: float = suivi.poids[0]
+		for indice in range(1, suivi.chaines.size()):
+			cumul = MiseEnPage.cumul_des_poids(cumul, suivi.poids[indice])
+			melange = melange.interpolate_with(suivi.chaines[indice].global_transform, MiseEnPage.part_du_melange(cumul, suivi.poids[indice]))
+		for portage: Node3D in suivi.portages:
+			portage.global_transform = melange
 
 
 ## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`

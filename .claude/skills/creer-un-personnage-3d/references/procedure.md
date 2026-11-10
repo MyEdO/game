@@ -143,8 +143,12 @@ accessoire ; ses ids viennent des zones de la base. Une couverture déclarée re
 couverte du corps et des couches dessous : une pièce ne couvre une zone que si elle la cache sous tout angle du jeu.
 Sous un ourlet ouvert, évasé ou effiloché, pieds écartés, le mollet se voit ; la robe du Sorcier ne couvre donc pas
 `mollet_*`, et le preset habille les jambes d'une pièce (`bas`) (#3743).
-Seuls un vêtement et une armure peuvent ajouter/déplacer des emplacements, ids d'emplacement de
-`src/data/garde-robe.json` (`emplacement-inconnu` sinon) ; un accessoire dont l'emplacement n'est
+Un vêtement, une armure ou un accessoire peut ajouter/déplacer des emplacements, ids d'emplacement de
+`src/data/garde-robe.json` (`emplacement-inconnu` sinon), ou `<emplacement>#<rang>` pour la case du rang-ième objet rangé
+à cet emplacement (une bandoulière offre une case par parchemin, #3844). Une pièce skinnée les offre par `Base.offrir`
+(`element/tissu.py`), avec les poids de la pièce sous le point : l'emplacement suit le mélange de ces os, comme la pièce.
+Ce qu'une pièce porte et qu'un joueur peut changer (rouleaux, fioles, dagues) est un rigide à part, rangé sur ses cases,
+jamais cuit dans la pièce. Un accessoire dont l'emplacement n'est
 offert ni par sa base ni par une pièce de cette base va au rapport de l'index (`emplacement-non-offert`,
 `hotes/godot/asset/modeles.ts`) : il s'importe et se publie, mais l'atelier ne le sert à aucun point. Seul un véhicule
 offre des `postes` : par bord (`proue`, `tribord`, `poupe`, `babord`, `FIRE_ARCS`), les positions `[x, y, z]` de sa scène, en
@@ -259,9 +263,11 @@ la porte est la matrice des cinq passes, jamais la passe neutre seule.
 Un rigide rangé (`rangement` de son trapping ou `rangementsObjets` du preset) ne s'écarte ni ne se bascule lui-même :
 il se bâtit dans le repère de sa prise, et l'hôte le pose sur ce qui est porté au repos, corps et éléments skinnés
 montés, à 5 mm, pivoté si le bas touche, à plat ; plusieurs objets au même point se posent côte à côte autour de
-l'os, dans l'ordre des `objets` du preset (`MontageDeComposition._ranger`, section « Atelier 3D » du contrat du pont). Un
-fourreau est un objet du même GLB qui porte la propriété `fourreau` : l'hôte ne le montre que l'arme rangée. Un
-écart cuit dans l'élément le ferait flotter sur un autre porteur (#3743).
+l'os, dans l'ordre des `objets` du preset, sauf sur les cases qu'une pièce offre (`MontageDeComposition._ranger`,
+section « Atelier 3D » du contrat du pont). Un objet glissé en travers d'une sangle se centre sur son origine ; une
+arme pend par le haut de son fourreau, poignée au-dessus. Un fourreau est un objet du même GLB qui porte la propriété
+`fourreau` : l'hôte ne le montre que l'arme rangée. Un écart cuit dans l'élément le ferait flotter sur un autre porteur
+(#3743, #3844).
 
 Pour un personnage complet, trois agents `modeleur` à fichiers/sorties disjoints : tête et pilosité ;
 corps, vêtements et armure ; rigides et accessoires. Chaque brief donne base hachée, éléments,
@@ -463,7 +469,8 @@ ou dans une fiche `.claude/memory/user-*.md`, et son pointeur dans la provenance
 Un rendu Blender ne prouve pas Godot ; garder ce dernier contrôle ouvert jusqu'à sa recette : l'export Web
 (`node hotes/godot/construire.mjs --export --sortie <web>`, après `--sonde` verte) puis la capture du preset dans
 l'atelier (`node hotes/godot/recette.mjs --parcours preset --preset <id> --web <web> --captures <dossier>`, face,
-trois-quarts, dos), montrées à côté de l'illustration comme tout rendu.
+trois-quarts, dos), montrées à côté de l'illustration comme tout rendu. La capture attend que chaque élément de la
+composition soit monté dans la scène : un objet absent d'une seule vue se cherche dans sa pose, pas dans le délai.
 
 ## 8. Livrer et définir le fini
 

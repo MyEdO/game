@@ -14,7 +14,7 @@
  * Monté, un véhicule porte ses pièces aux postes en vigueur (`postesEnVigueur`), celles de ses Améliorations, et cache
  * les nœuds que ses Améliorations montées ou non changent (`noeudsCaches`).
  */
-import type { Attache, Repere } from '../asset/attache';
+import { rangDeCase, type Attache, type EmplacementOffert, type Repere } from '../asset/attache';
 import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
@@ -155,7 +155,7 @@ export interface BaseDeLAtelier {
 /**
  * @contrat Atelier 3D
  * Un point d'accroche d'une base : un emplacement ou une prise, son libellé, son repère, et les ids des éléments qui s'y
- * montent.
+ * montent. Les emplacements sont ceux de la base, puis ceux qu'offrent ses pièces sans que la base les offre.
  */
 export interface PointDAccroche {
   /** l'id de l'emplacement ou de la prise. */
@@ -164,10 +164,14 @@ export interface PointDAccroche {
   label: string;
   /** emplacement ou prise. */
   genre: 'emplacement' | 'prise';
-  /** son repère sur un os de la base. */
+  /** son repère sur un os de la base ; offert par des pièces, celui de la première (`offertPar`). */
   attache: Attache;
   /** les ids des éléments qui s'y montent. */
   elements: string[];
+  /** absent, la base l'offre ; sinon, par id d'élément de pièce qui l'offre (`emplacements` de son manifeste), son
+   *  repère et les os qu'il suit : Godot n'y range un objet que sous une pièce montée qui l'offre, à son repère, qui
+   *  suit ses `poids` (#3844). */
+  offertPar?: Record<string, EmplacementOffert>;
 }
 
 /**
@@ -253,8 +257,12 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
   const rangs: Record<string, { rang: number; couvre: readonly string[] }> = {};
   const catalogues = cataloguesDeComposition();
-  const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string =>
-    (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === id)?.label ?? id;
+  const libelleDuPoint = (id: string, genre: PointDAccroche['genre']): string => {
+    const [racine] = id.split('#');
+    const label = (genre === 'prise' ? catalogues.prises : gardeRobe.filter((g) => g.kind === 'emplacement')).find((c) => c.id === racine)?.label ?? racine;
+    const rang = rangDeCase(id);
+    return rang === undefined ? label : `${label} ${rang}`;
+  };
   const libelleDeLAxe = (champ: 'tete' | 'coiffure'): string => catalogues.axes.find((a) => a.champ === champ)!.label;
   const servir = (servis: readonly EntreeDeModele[]): string[] =>
     servis.map(({ id, brut }) => {
@@ -287,7 +295,16 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
         const offert = genre === 'prise' ? (e: EntreeDeModele) => pendA(e, osDesPrises) : (e: EntreeDeModele) => pendA(e, [attache.os]) || seRangeIci(e);
         return { id: pointId, label: libelleDuPoint(pointId, genre), genre, attache, elements: servir(objets.filter(offert)) };
       });
-    const points = [...pointsDe('emplacement', m.emplacements), ...pointsDe('prise', m.prises ?? {})];
+    const offerts = new Map<string, Record<string, EmplacementOffert>>();
+    for (const e of pieces) {
+      for (const [pointId, attache] of Object.entries((e.brut as { emplacements?: Readonly<Record<string, EmplacementOffert>> }).emplacements ?? {}))
+        if (!(pointId in m.emplacements)) offerts.set(pointId, { ...offerts.get(pointId), [e.id]: attache });
+    }
+    const points = [
+      ...pointsDe('emplacement', m.emplacements),
+      ...pointsDe('emplacement', Object.fromEntries([...offerts].map(([pointId, par]) => [pointId, Object.values(par)[0]]))).map((p) => ({ ...p, offertPar: offerts.get(p.id)! })),
+      ...pointsDe('prise', m.prises ?? {}),
+    ];
     const choix = (idDeChoix: string, label: string, porte: (e: EntreeDeModele) => boolean): ChoixDeLigne => ({ id: idDeChoix, label, elements: servir(pieces.filter(porte)) });
     const racineDe = (e: EntreeDeModele) => {
       const piece = cleDe(e.brut).piece;

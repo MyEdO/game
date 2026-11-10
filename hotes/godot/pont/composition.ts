@@ -7,6 +7,7 @@
  */
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import { poidsDeSilhouettes, poseDuGabarit, type PoseDuGabarit } from '../asset/gabarit';
+import { ligneAuRang } from '../asset/attache';
 import { BUILD_NEUTRE } from '../../../src/lib/corpulence';
 import { findCouleurById, findTeinteById, pieceRacine, emblemeDuPorteur, type EmblemeResolu, type Portee, type PorteeDeComposition, type SurchargesDEmblemes } from '../../../src/noyau/index';
 import { emblemeMonte, cleDe, type BaseDeLAtelier, type LigneDePiece } from './atelier';
@@ -151,7 +152,7 @@ export function composerSurLaBase(base: BaseDeLAtelier, manifestes: Readonly<Rec
     const emplacement = ouMonter(p);
     const rang = p.cle.champ === 'apparence' ? (rangsAuPoint.get(emplacement) ?? 0) + 1 : 1;
     rangsAuPoint.set(emplacement, rang);
-    const ligne = rang > 1 ? `${emplacement}#${rang}` : emplacement;
+    const ligne = ligneAuRang(emplacement, rang);
     const ids = p.cle.champ === 'apparence' && p.cle.racine !== undefined ? [p.cle.id, p.cle.racine] : [p.cle.id];
     const elements = elementsDe.get(emplacement) ?? [];
     const element = ids.map((id) => elements.find((e) => cleDe(manifestes[e])[p.cle.champ] === id)).find((e) => e !== undefined);

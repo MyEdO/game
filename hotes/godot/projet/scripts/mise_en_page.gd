@@ -493,6 +493,18 @@ static func axe_de_rangement(emplacement: Basis, point: Vector3, axe: int) -> Ve
 	return bas if axe == Vector3.AXIS_Y else bas.cross(sortante)
 
 
+## Le poids cumulé des repères d'un point suivi (`MontageDeComposition._suivre_les_poids`) de poids cumulé `cumul`, quand
+## s'y ajoute un repère de poids `poids`.
+static func cumul_des_poids(cumul: float, poids: float) -> float:
+	return cumul + poids
+
+
+## La part, dans le mélange des repères d'un point suivi, de poids cumulé `cumul` (`cumul_des_poids`), du dernier ajouté,
+## de poids `poids` : le mélange déjà fait s'interpole vers lui d'autant.
+static func part_du_melange(cumul: float, poids: float) -> float:
+	return poids / cumul
+
+
 ## Le décalage, le long du +Y (vers le bas) d'un repère de rangement, qui monte à son origine la cote `haut` d'un objet.
 static func suspension(haut: float) -> Vector3:
 	return Vector3(0.0, -haut, 0.0)

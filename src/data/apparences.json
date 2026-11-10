@@ -640,5 +640,15 @@
     "forme": {
       "id": "rond"
     }
+  },
+  {
+    "id": "fiole",
+    "type": "apparences",
+    "label": "Fiole"
+  },
+  {
+    "id": "parchemin",
+    "type": "apparences",
+    "label": "Parchemin"
   }
 ]

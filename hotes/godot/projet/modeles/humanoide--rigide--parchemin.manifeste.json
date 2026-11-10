@@ -1,0 +1,21 @@
+{
+  "schema": 3,
+  "base": "humanoide",
+  "categorie": "rigide",
+  "cle": {
+    "apparence": "parchemin"
+  },
+  "liaison": {
+    "mode": "rigide"
+  },
+  "surfaces": [
+    {
+      "nom": "parchemin",
+      "palette": "vet2"
+    }
+  ],
+  "glb": {
+    "sha256": "acaf4dde3bfd32badb52f3e796f23c05a5f1418c0e7741cf2b32c5447903e3d0",
+    "octets": 34468
+  }
+}

@@ -108,6 +108,12 @@
     "kind": "emplacement"
   },
   {
+    "id": "bandouliere",
+    "type": "garde-robe",
+    "label": "Bandoulière",
+    "kind": "emplacement"
+  },
+  {
     "id": "casque",
     "type": "garde-robe",
     "label": "Casque",

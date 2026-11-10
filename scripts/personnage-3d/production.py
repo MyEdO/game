@@ -12,6 +12,8 @@ from pathlib import Path
 
 DEPOT = Path(__file__).resolve().parents[2]
 MODELES = DEPOT / "hotes" / "godot" / "projet" / "modeles"
+CACHE_DES_MODELES = Path.home() / ".cache" / "wfrp-modeles-3d"
+"""Le cache des modèles, GLB nommés par empreinte (`CACHE_DES_MODELES` de `hotes/godot/asset/release.ts`)."""
 
 
 def dossier_de_sortie(chemin):
