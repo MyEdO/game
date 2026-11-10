@@ -471,12 +471,16 @@
     "lourde2m": {
       "idle": "Lourde_Repos_Loop",
       "walk": "Lourde_Marche_Loop",
-      "melee": "Lourde_Attaque"
+      "melee": "Lourde_Attaque",
+      "hit": "Lourde_Touche",
+      "death": "Lourde_Mort"
     },
     "hampe": {
       "idle": "Hampe_Repos_Loop",
       "walk": "Hampe_Marche_Loop",
-      "melee": "Hampe_Attaque"
+      "melee": "Hampe_Attaque",
+      "hit": "Hampe_Touche",
+      "death": "Hampe_Mort"
     }
   },
   "prisesOccupees": {
@@ -14902,7 +14906,7 @@
     }
   ],
   "glb": {
-    "sha256": "367a32af50ceab1a7153739b9cda192f0409a13d102e7be43753529928cf27c2",
-    "octets": 52563608
+    "sha256": "9848de76a22779a3c3067b3a41515bb9816d8265115b94984ded078b7c848caf",
+    "octets": 53496760
   }
 }
