@@ -146,7 +146,7 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
       }
       return {
         gameTime,
-        bank: ri(0, 4) < 3 ? [{ uid: 'depot-sonde', heroId: ids[0], kind: 'stash' as const, brass: ri(1, 900), rate: 0 }] : [],
+        bank: ri(0, 4) < 3 ? [{ uid: 'depot-sonde', heroId: ids[0], kind: 'planque' as const, brass: ri(1, 900), rate: 0 }] : [],
         pendingOrders: ri(0, 4) < 2 ? [{ heroId: ids[0], trappingId: 'dague' }] : [],
         party: [...s.party.map((h) => (morts.has(h.id) ? { ...h, dead: true } : h)), ...(intrus ? [intrus] : [])],
         interlude: { ...s.interlude!, perHero },

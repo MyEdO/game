@@ -449,7 +449,7 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
         { uid: 'n1', label: 'Gourde', kind: 'misc', qualities: [], enc: 1, equipped: false, inside: 'bag1' },
         { ...itemFromTrappingById('crochet', idsDeTest)!, uid: 'p1', equipped: true },
       ],
-      loadouts: [{ id: 'lo1', main: null, off: null }],
+      loadouts: [{ id: 'lo1', main: null, secondaire: null }],
       activeLoadoutId: 'lo1',
     }) as unknown as Combatant;
 

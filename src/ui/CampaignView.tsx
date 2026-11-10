@@ -434,7 +434,7 @@ export function CampaignView() {
         {/* Défaite : overlay centré (la victoire a son écran plein, VictoryScreen). Dans une Scène de
             combat de bataille de masse (ADE II 08), la sortie de la défaite fait CONTINUER la bataille (repli
             tactique, pas game-over) ; hors bataille de masse, il rend la main à la scène. */}
-        {mode === 'battle' && battle?.over === 'defeat' && <ModaleDeDefaite />}
+        {mode === 'battle' && battle?.over === 'defaite' && <ModaleDeDefaite />}
         {/* Anéantissement HORS COMBAT (`checkPartyWiped`) : MÊME écran de défaite que le combat, hors
             bataille (aucun `battle`) — le groupe entier est tombé (faim, exposition, damnation…). */}
         {partyWiped && (
@@ -446,7 +446,7 @@ export function CampaignView() {
         )}
       </main>
 
-      <VictoryScreen />{/* écran de fin de combat plein écran (se gate sur battle.over==='victory') */}
+      <VictoryScreen />{/* écran de fin de combat plein écran (se gate sur battle.over==='victoire') */}
       {/* Cadre de campagne (#717) : l'ouverture cérémonielle passe AVANT tout HUD (rideau) ; le récap
           de fin de chapitre attend qu'elle soit acquittée. */}
       {pendingOuverture && <CampaignOpeningScreen />}

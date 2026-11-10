@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { combatValue, defenseValue, hasWeaponGroupSkill, weaponGroupSkillMode, weaponUnmastered } from './combat';
-import type { Combatant, ItemInstance, Weapon } from './types';
+import type { Combatant, ItemInstance, Weapon, Main } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 
 /**
@@ -182,7 +182,7 @@ describe('Arme inhabituelle — maîtrise requise (ACE 12 l.17 « Entraînement 
 // #193 — Épaule luxée (LDB/AA) : « Tests effectués avec ce bras » subissent -10 pendant 1d10 jours.
 // `recoverDisabledLimb` scope le testMod{characteristic:'capacite-de-combat'} à la main du membre (weaponHand) — PAS l'autre main.
 describe('combatValue/defenseValue — testMod{characteristic} scopé par main (#193, weaponHand)', () => {
-  const withPenalty = (hand: 'main' | 'off') => hero({
+  const withPenalty = (hand: Main) => hero({
     activeEffects: [{ label: 'Épaule luxée (récupération)', bonus: 0, duration: { scale: 'permanent' }, testMod: -10, testModChar: 'capacite-de-combat', testModHand: hand }],
   });
 
@@ -194,7 +194,7 @@ describe('combatValue/defenseValue — testMod{characteristic} scopé par main (
 
   it("laisse INTACTE l'arme tenue dans L'AUTRE main (off)", () => {
     const c = withPenalty('main');
-    expect(combatValue(c, 'melee', { ...wpn('base'), hand: 'off' })).toBe(40); // pas de −10
+    expect(combatValue(c, 'melee', { ...wpn('base'), hand: 'secondaire' })).toBe(40); // pas de −10
   });
 
   it('sans arme (weapon absent, manœuvre générique) : le mod hand-scopé ne s’applique pas (info manquante)', () => {

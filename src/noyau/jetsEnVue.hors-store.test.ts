@@ -80,7 +80,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
     },
     flux: ['surgery'],
   },
-  heal: { patch: { pendingHeal: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['heal'] },
+  heal: { patch: { pendingHeal: { healerId: H.id, healerName: H.label, targetId: H.id, targetName: H.label, mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['heal'] },
   reload: { patch: { pendingReload: { actorId: H.id, actorName: H.label, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['reload'] },
   handGate: { patch: { pendingHandGate: { attackerId: H.id, actorName: H.label, hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'x' } }, flux: ['handGate'] },
   stateRecovery: {
@@ -114,7 +114,7 @@ const HORS_REGISTRE_A_JET: Record<string, Fixture> = {
   bargain: {
     patch: {
       pendingBargain: {
-        playerId: H.id, playerName: H.label, contrepartie: { titre: fixtureText(H.label), kind: 'marchand', mode: 'buy' }, opposant: { label: 'Marchand', valeur: 40 },
+        playerId: H.id, playerName: H.label, contrepartie: { titre: fixtureText(H.label), kind: 'marchand', mode: 'achat' }, opposant: { label: 'Marchand', valeur: 40 },
         playerSkill: 45, playerBase: 45, negotiator: false, roll: tr(20, 45), merchantRoll: tr(50, 40),
         result: { attacker: tr(20, 45), defender: tr(50, 40), winner: 'attacker', attackerWins: true, netSL: 4, decidedBy: 'dr' },
       },

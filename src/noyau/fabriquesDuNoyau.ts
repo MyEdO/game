@@ -15,7 +15,7 @@ import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
 import { creerChoixDeFenetre } from './choixDeFenetre';
 import type { AxeDuChoix, ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
-import { creerVerbesDeLaBarre } from './actionRegistry';
+import { creerVerbesDeLaBarre, type BattleActionMode } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
@@ -30,7 +30,7 @@ import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { choixDeConversation } from './conversation';
-import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
+import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand, type ModeDEvaluation, type ModeDeMarche } from './merchantFlow';
 import { creerActionsDeTaverne, sortiesDeLaTaverne, type TavernOpponent } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
 import { choixDuButin, creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
@@ -53,6 +53,13 @@ import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landM
 import { choixDesMarches } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
+import type { BattleState, ShootingStanceKey } from './etat';
+import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from './pendings';
+import type { VoyageCadence } from './voyageCadence';
+import type { CharMode } from './creation/brouillon';
+import type { HealMode } from '../engine/healing';
+import type { GenreDeDepot } from '../engine/activities';
+import type { Main } from '../engine/types';
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
@@ -98,13 +105,17 @@ export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachin
 /** Les mots d'un id d'un domaine de verbe (littéral, axe) : les actions du lexique, et les mots que ses domaines
  *  nomment (#3614). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
-  | 'a' | 'abandon' | 'accepter' | 'activite' | 'alea' | 'ambition' | 'arriere' | 'au' | 'avant' | 'baisser'
-  | 'cacher' | 'chercher' | 'cible' | 'couchage' | 'courte' | 'de' | 'depecer' | 'droite' | 'du' | 'encombrement'
-  | 'entrainement' | 'eviter' | 'gauche' | 'heros' | 'investir' | 'issue' | 'jeter' | 'la' | 'le' | 'ligne' | 'longue'
-  | 'motivation' | 'objet' | 'offre' | 'oter' | 'ouvrage' | 'paie' | 'panier' | 'patient' | 'payer' | 'personnelle'
-  | 'pitance' | 'plaie' | 'pnj' | 'porteur' | 'poste' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir'
-  | 'psychologique' | 'qualite' | 'quantite' | 'rallier' | 'recevoir' | 'refuser' | 'renier' | 'repartition'
-  | 'reponse' | 'scene' | 'sort' | 'survivre' | 'talent' | 'trait' | 'troc' | 'troquer' | 'vendre' | 'vente' | 'vider'
+  | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'alea' | 'ambition' | 'arriere' | 'au' | 'avant' | 'baisser'
+  | 'blessures' | 'bordee' | 'cacher' | 'chercher' | 'chirurgie' | 'cible' | 'commande' | 'couchage' | 'courte'
+  | 'dans' | 'de' | 'defaite' | 'degats' | 'depecer' | 'detection' | 'dissipation' | 'droite' | 'du' | 'empetrer'
+  | 'encombrement' | 'entrainement' | 'evaluation' | 'eviter' | 'gauche' | 'hemorragie' | 'heros' | 'immobile'
+  | 'incantation' | 'investir' | 'issue' | 'jeter' | 'jour' | 'la' | 'le' | 'liberer' | 'ligne' | 'longue' | 'main'
+  | 'mecenat' | 'motivation' | 'munition' | 'objet' | 'offre' | 'oter' | 'ouvrage' | 'paie' | 'panier' | 'par'
+  | 'passer' | 'patient' | 'payer' | 'personnelle' | 'pitance' | 'plaie' | 'planque' | 'pnj' | 'porteur' | 'poste'
+  | 'poussee' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir' | 'psychologique' | 'qualite' | 'quantite' | 'rallier'
+  | 'reassigne' | 'recevoir' | 'reeducation' | 'refuser' | 'renier' | 'repartition' | 'reponse' | 'repousser'
+  | 'scene' | 'secondaire' | 'soins' | 'solo' | 'sort' | 'soutenu' | 'survivre' | 'talent' | 'tas' | 'teleportation'
+  | 'tir' | 'tire' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'vendre' | 'vente' | 'victoire' | 'vider'
   | 'viser';
 /** Les mots de `S`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`traitPsychologique` : `trait`,
  *  `psychologique`). */
@@ -122,7 +133,20 @@ const verrousDuLexique: [
   Verrou<Mots<ChoixDesFenetres['fateSave']['issue']>, MotDuLexique>,
   Verrou<Mots<TavernOpponent['kind']>, MotDuLexique>,
   Verrou<Mots<AxeDuChoix>, MotDuLexique>,
-] = [true, true, true, true, true, true];
+  Verrou<Mots<ModeDeMarche>, MotDuLexique>,
+  Verrou<Mots<CharMode>, MotDuLexique>,
+  Verrou<Mots<VoyageCadence>, MotDuLexique>,
+  Verrou<Mots<ModeDEvaluation>, MotDuLexique>,
+  Verrou<Mots<CounterDeclaration>, MotDuLexique>,
+  Verrou<Mots<HealMode>, MotDuLexique>,
+  Verrou<Mots<GenreDeDepot>, MotDuLexique>,
+  Verrou<Mots<Main>, MotDuLexique>,
+  Verrou<Mots<ReactionDeBouclier>, MotDuLexique>,
+  Verrou<Mots<IssueDEmpoignade>, MotDuLexique>,
+  Verrou<Mots<ShootingStanceKey>, MotDuLexique>,
+  Verrou<Mots<BattleActionMode>, MotDuLexique>,
+  Verrou<Mots<NonNullable<BattleState['over']>>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

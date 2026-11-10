@@ -143,7 +143,7 @@ describe('Boucle de jeu (store)', () => {
     drainCombatEndCascade(); // mutants Corrompus → Test `influences-corruptrices` influençable AVANT victoire → on le résout
 
     const st = banc.getState();
-    expect(st.battle?.over).toBe('victory');
+    expect(st.battle?.over).toBe('victoire');
     const h = st.party[0];
     expect(h.wounds.current).toBe(4);                                              // Blessures persistées
     expect(h.criticalWounds).toBe(1);                                             // critiques persistés
@@ -594,7 +594,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
     advanceTurn(banc.getState, banc.setState);
     drainCombatEndCascade(); // mutants Corrompus → cascade de fin de combat AVANT victoire
-    expect(banc.getState().battle?.over).toBe('victory');
+    expect(banc.getState().battle?.over).toBe('victoire');
     expect(banc.getState().party[0].items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (3) Combat suivant : l'usure est ré-importée (carry-in + recomputeLoadout).
     banc.getState().lancerLeCombat('enc-mutants');
@@ -616,7 +616,7 @@ describe('Boucle de jeu (store)', () => {
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     const turn = st.battle!.order.indexOf(heroC.id);
-    banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'flechette', acted: false } });
+    banc.setState({ battle: { ...st.battle!, turn, action: 'incantation', selectedSpellId: 'flechette', acted: false } });
     // Flux par modale : cliquer la cible OUVRE l'incantation (jet différé), n'applique rien.
     cliquerSurLeCombattant(banc.getState, enemy.id);
     expect(banc.getState().pendingCast).not.toBeNull();
@@ -648,7 +648,7 @@ describe('Boucle de jeu (store)', () => {
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(heroC.id);
-    banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'benediction-de-bataille', acted: false } });
+    banc.setState({ battle: { ...st.battle!, turn, action: 'incantation', selectedSpellId: 'benediction-de-bataille', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id); // se cibler soi-même → ouvre la modale
     banc.getState().jetLancer('cast'); // « Lancer »
     banc.getState().jetValider('cast'); // « Appliquer »
@@ -1920,14 +1920,14 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detection');
     const pa = banc.getState().pendingAppraise!;
-    expect([pa.mode, pa.skillLabel]).toEqual(['detect', 'Intuition']);
+    expect([pa.mode, pa.skillLabel]).toEqual(['detection', 'Intuition']);
     banc.setState({ pendingAppraise: { ...pa, roll: 95, success: false, sl: -5 } });
     banc.getState().jetValider('appraise');
     const line = banc.getState().pendingLoot!.gear[0];
     expect([line.effect.detectTriedBy, line.effect.identified]).toEqual([['a'], false]);
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detection');
     expect(banc.getState().pendingAppraise).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectDejaTentee', { label: line.label }));
   });
@@ -1938,11 +1938,11 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter(talent), looter({ ...talent, id: 'b', label: 'B' } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detection');
     const premier = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...premier, roll: 95, success: false, sl: -5 } });
     banc.getState().jetValider('appraise');
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detection');
     const second = banc.getState().pendingAppraise!;
     expect(second.actorId, 'le détecteur qui n’a pas tenté').not.toBe(premier.actorId);
     banc.setState({ pendingAppraise: { ...second, roll: 5, success: true, sl: 2 } });
@@ -1957,7 +1957,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
-    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid, 'detection');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
     banc.getState().jetValider('appraise');
@@ -2808,7 +2808,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
       { uid: 'balles', label: 'Balles et poudre', kind: 'ammo', subType: 'Poudre noire', qty: 9, qualities: [], enc: 0, equipped: false },
       { uid: 'balles-fines', label: 'Balles fines', kind: 'ammo', subType: 'Poudre noire', qty: 4, qualities: [], enc: 0, equipped: false },
     ] as ItemInstance[];
-    H.loadouts = [{ id: 'duo', main: 'p1', off: 'p2' }] as never;
+    H.loadouts = [{ id: 'duo', main: 'p1', secondaire: 'p2' }] as never;
     H.activeLoadoutId = 'duo';
     recomputeLoadout(H);
     const of = (uid: string) => banc.getState().battle!.combatants.find((c) => c.id === H.id)!.weapons.find((w) => w.uid === uid)!;
@@ -3266,7 +3266,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.getState().fenetreFermer('marchand'); // quitte SANS payer
     banc.getState().ouvrirLeMarchand('pnj'); // réouverture (même réassort)
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // l'info est gardée
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).toBeNull(); // le marchand refuse de marchander
   });
 
@@ -3276,13 +3276,13 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
-    banc.getState().fenetreChoisir('marchand', 'refuser', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'refuser', 'achat');
     const st = banc.getState();
     expect(st.merchant!.cart).toEqual([]);
     expect(st.merchant!.bargainBuy ?? null).toBeNull(); // remise annulée
     expect(st.merchant!.bargainLocked).toBe(true);
     // verrou PARTAGÉ : la VENTE est aussi bloquée
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'vente');
     expect(banc.getState().pendingBargain).toBeNull();
     banc.getState().fenetreFermer('marchand');
     banc.getState().ouvrirLeMarchand('pnj');
@@ -3293,11 +3293,11 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } })); // vente négociée
-    banc.getState().fenetreChoisir('marchand', 'refuser', 'sell');
+    banc.getState().fenetreChoisir('marchand', 'refuser', 'vente');
     const st = banc.getState();
     expect(st.merchant!.bargainSell ?? null).toBeNull();
     expect(st.merchant!.bargainLocked).toBe(true);
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy'); // achat aussi bloqué
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat'); // achat aussi bloqué
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3407,7 +3407,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   it('marchand.marchander : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     const pb = banc.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
@@ -3417,7 +3417,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   it('jetValider@bargain : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     // force un résultat gagné, sans RNG
     const pb = banc.getState().pendingBargain!;
     const win = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
@@ -3427,23 +3427,23 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     expect(banc.getState().pendingBargain).toBeNull();
     expect(banc.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
     expect(banc.getState().merchant!.soured).toBeFalsy(); // gagné → pas de méfiance
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy'); // achat déjà négocié → no-op
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat'); // achat déjà négocié → no-op
     expect(banc.getState().pendingBargain).toBeNull();
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell'); // la vente est une négociation DISTINCTE → s'ouvre
-    expect(banc.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'vente'); // la vente est une négociation DISTINCTE → s'ouvre
+    expect(banc.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'vente', titre: t('out.bargainTitreVente') });
   });
 
   it('jetValider@bargain : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     const pb = banc.getState().pendingBargain!;
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
     banc.getState().jetValider('bargain');
     expect(banc.getState().merchant!.soured).toBe(true);
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell'); // marchand méfiant → toute négociation bloquée
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'vente'); // marchand méfiant → toute négociation bloquée
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3627,11 +3627,11 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
   it("market-mode 'sans-marchandage' : marchander ne propose plus de Marchandage", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).not.toBeNull(); // complet : Marchandage proposé
     banc.setState({ pendingBargain: null });
     setRule('market-mode', 'sans-marchandage');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).toBeNull(); // désactivé
   });
 

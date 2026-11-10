@@ -15,7 +15,7 @@ const hero = (): Combatant =>
 
 describe('sortie de la victoire — fermeture de l’écran de victoire', () => {
   it('ferme l’écran et revient à l’exploration', () => {
-    banc.setState({ party: [hero()], battle: { over: 'victory' } as never, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [] } as never });
+    banc.setState({ party: [hero()], battle: { over: 'victoire' } as never, pendingVictory: { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, defeated: [] } as never });
     banc.getState().fenetreFermer('victory');
     const st = banc.getState();
     expect(st.pendingVictory).toBeNull();
@@ -55,7 +55,7 @@ describe('le butin de victoire (`victory.ligne`) — équipement attribuable, qu
   });
 
   it('équipement non attribué → 1er héros à la fermeture (rien de perdu)', () => {
-    banc.setState({ battle: { over: 'victory' } as never });
+    banc.setState({ battle: { over: 'victoire' } as never });
     banc.getState().fenetreFermer('victory');
     const it = banc.getState().party[0].items?.find((x) => /dague/i.test(x.label));
     expect(it).toBeTruthy();

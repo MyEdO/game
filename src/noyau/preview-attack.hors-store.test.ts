@@ -92,7 +92,7 @@ describe('previewAttack — parité aperçu ↔ résolution (R4)', () => {
   it('choix d’arme : previewAttack(weaponUid) prend l’arme choisie + applique le -20 main secondaire, parité résolution', () => {
     const a = combatant({ id: 'A', pos: { x: 0, y: 0 }, weapons: [
       { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], hand: 'main', hands: 1, uid: 'm' },
-      { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, reach: 'Très courte', qualities: [], hand: 'off', hands: 1, uid: 'o' },
+      { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, reach: 'Très courte', qualities: [], hand: 'secondaire', hands: 1, uid: 'o' },
     ] as never });
     const b = combatant({ id: 'B', kind: 'enemy', pos: { x: 1, y: 0 } });
     const get = mkGet([a, b]);
@@ -189,7 +189,7 @@ describe('previewAttack — plafond des Difficultés NOMMÉ et cible écrêtée 
     // Deux entrées de la TABLE des Difficultés de Combat : Localisation visée −20 (`LDB 14 l.73`) et
     // Main secondaire −20 (l.78). Σ = −40 → la combinaison plafonne à −30 (l.95). Le plafond ne borne
     // QUE cette famille : c'est le seul régime où il mord.
-    const gauchere = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], hand: 'off' };
+    const gauchere = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, reach: 'Moyenne', qualities: [], hand: 'secondaire' };
     const a = combatant({ id: 'A', weapons: [gauchere] as never });
     const b = foe();
     const p = previewAttack(mkGet([a, b]), a, b, 'tete');

@@ -99,7 +99,7 @@ function monte(charge: Charge, susp: Suspension | null, temoin = false): void {
   g().jetLancer('defense');
   banc.setState({ pendingDefense: {
     ...g().pendingDefense!, result: res, mode: 'parade', parryWeaponUid: parade.uid,
-    ...(charge === 'reaction' ? { shieldReaction: 'push' as const } : {}),
+    ...(charge === 'reaction' ? { shieldReaction: 'repousser' as const } : {}),
   } });
 }
 

@@ -14,7 +14,7 @@
  *    (prix d'instance). Les deux ports désignés (l.290) exigeraient un graphe de ports : simplifiés en
  *    « toute route » par cette règle maison éditable.
  *  - Planque gratuite lors de la Cartographie (l.292) : dépôt optionnel (`pick.stashGold`) dans
- *    `bank` (kind `stash`, `chartSecured`), en sûreté tant que le dépositaire garde la carte-marine —
+ *    `bank` (kind `planque`, `chartSecured`), en sûreté tant que le dépositaire garde la carte-marine —
  *    sinon découverte sur un jet ≤ 50 (`bankWithdrawInner`).
  *  - Entraînement d'équipage (l.294-300) : GATE (MDG 14 l.39, l.296) — voir `seaActivityBlocked`.
  *  - Whitelist d'Activités TERRESTRES (l.270 : Apprentissage particulier, Artisanat, Entraînement,
@@ -319,7 +319,7 @@ export const TABLES = {
         if (stashGold > 0) {
           const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
-          set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
+          set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'planque', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292
           j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
         }

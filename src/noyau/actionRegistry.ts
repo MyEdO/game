@@ -240,11 +240,11 @@ export const ACTION_GATES: Record<string, (ctx: ActionCtx) => ActionGate> = {
    *  (`basculerLaPosture`), le versement dans le pending et la fenêtre de jet. Le refus est celui
    *  du prédicat : la raison appartient à `STANCE_BLOCK`, jamais au gate. */
   'tir-immobile-armable': ({ active, battle }) => {
-    const refus = STANCE_BLOCK.heldGround(battle, active);
+    const refus = STANCE_BLOCK.tirImmobile(battle, active);
     return refus ? no(refus) : ok;
   },
   'tir-dans-le-tas-armable': ({ active, battle }) => {
-    const refus = STANCE_BLOCK.intoCrowd(battle, active);
+    const refus = STANCE_BLOCK.dansLeTas(battle, active);
     return refus ? no(refus) : ok;
   },
   /** Battement (`LDB 10 l.103` · `AA 13 l.11-17` · `LDB 13 l.114`) : la case porte le prédicat du
@@ -341,7 +341,7 @@ function armesADistance(active: Combatant) {
 function setDeMelee(active: Combatant): boolean {
   const set = activeLoadout(active);
   const armes = set
-    ? [set.main, set.off].flatMap((uid) => active.weapons.filter((w) => !!uid && w.uid === uid))
+    ? [set.main, set.secondaire].flatMap((uid) => active.weapons.filter((w) => !!uid && w.uid === uid))
     : active.weapons;
   return armes.length === 0 || armes.some((w) => w.type === 'melee');
 }
@@ -407,7 +407,7 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
   'cibles-aspersion': ({ active, battle }) =>
     hasWaterContainer(active) ? waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind)) : [],
   /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. Le
-   *  mode Dissiper (`dispel`) s'offre une fois s'il en existe un. */
+   *  mode Dissiper (`dissipation`) s'offre une fois s'il en existe un. */
   'sorts-dissipables': sortsDissipables,
   /** Les MÊMES Sorts, chacun le candidat de son geste (`dispel-spell` → `dissiperLeSort`, `ACTION_PORTEURS`). */
   'sorts-a-dissiper': sortsDissipables,
@@ -806,7 +806,7 @@ const ENTREES_HORS_DES_VERBES_DE_LA_BARRE: Readonly<Record<string, EntreeDOffre>
     }
   }),
   desarmerLaBatterie: horsDuTour(() => geste('desarmerLeMode')),
-  /** Téléportation (`combatFlow.ts:5381` : `action: 'teleport'` + `reachable` = `flyReachable` depuis la case du lanceur,
+  /** Téléportation (`combatFlow.ts:5381` : `action: 'teleportation'` + `reachable` = `flyReachable` depuis la case du lanceur,
    *  qui contient donc SA case au coût 0, `path.ts:318`) : la sortie de l'interlude est un ARRIVAGE sur place — le même
    *  clic que le clic-sol. */
   resterSurPlace: horsDuTour(({ active }) => (active?.pos ? geste('cliquerLaCase', { ...active.pos }) : null)),
@@ -1113,21 +1113,21 @@ export function currentInterludeAction(get: () => Jeu): ActionDef | undefined {
  *  `src/noyau/action-atteignabilite.hors-store.test.ts`). */
 export const MODES_HORS_REGISTRE = {
   /** Armé par la RÉSOLUTION d'un sort de Téléportation (case d'arrivée), jamais par une case. */
-  teleport: 'sort de Téléportation (combatFlow)',
+  teleportation: 'sort de Téléportation (combatFlow)',
 } as const;
 
 /** Union des valeurs légales de `BattleState.action` — le type raconte le registre. */
 export type BattleActionMode =
-  | 'cast'
-  | 'heal'
-  | 'dispel'
-  | 'battery'
-  | 'push'
+  | 'incantation'
+  | 'soins'
+  | 'dissipation'
+  | 'bordee'
+  | 'poussee'
   | keyof typeof MODES_HORS_REGISTRE;
 
 /** Les MÊMES valeurs, énumérables à l'exécution — la garde `action-atteignabilite` vérifie qu'elles
  *  couvrent EXACTEMENT les modes `armed` du registre + `MODES_HORS_REGISTRE` (union validée, pas dérivée :
  *  un JSON importé n'a pas de type littéral). */
 export const BATTLE_ACTION_MODES: readonly BattleActionMode[] = [
-  'cast', 'heal', 'dispel', 'battery', 'push', 'teleport',
+  'incantation', 'soins', 'dissipation', 'bordee', 'poussee', 'teleportation',
 ];

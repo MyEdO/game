@@ -17,7 +17,7 @@ import type { GenreDeCascade } from './tablesPosees';
 
 /** COMMANDÉE : les Tests d'équipage de ROUTINE s'auto-résolvent (leurs lignes au PV) ; seules les
  *  décisions interrompent. JOUR-PAR-JOUR : chaque jet ouvre sa modale. */
-export type VoyageCadence = 'commande' | 'jour-par-jour';
+export type VoyageCadence = 'commande' | 'jourParJour';
 
 /** Ordres permanents d'une traversée, fixés au départ et persistés avec le `TravelPlan`. */
 export interface VoyageOrders {

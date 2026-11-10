@@ -749,7 +749,7 @@ const ordreDuTour = (etat: Jeu, c: Combat): Puce[] =>
   });
 
 /** Le ton de chaque issue du combat. */
-const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victory: 'reussite', defeat: 'echec' };
+const TON_DE_LA_FIN: Record<NonNullable<Combat['fin']>, Ton> = { victoire: 'reussite', defaite: 'echec' };
 
 /** Ce que le panneau du combat dit hors de ses jauges, quand aucune fenêtre ne tient la main : pourquoi la barre est
  *  fermée, la fin du tour armée par un premier geste qui laisserait l'Action intacte (`finDeTourArmee`) ; la fin du
@@ -892,7 +892,7 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
     p.argent === null ? null : puce('argent', p.argent, null),
     p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant }), null),
     simple('porter', g.porter?.porte),
-    ...(g.mains ? (['main', 'off'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
+    ...(g.mains ? (['main', 'secondaire'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
     simple('utiliser'),
     g.ranger && listeDObjet('ranger', t('ecran.objet.ranger'), g.ranger),
     simple('sortir'),

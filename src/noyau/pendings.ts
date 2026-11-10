@@ -3,12 +3,12 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
-import type { Availability, CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest } from '../engine/types';
+import type { Availability, CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest, Main } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { Pt } from './monde/path';
-import type { ModeDEvaluation } from './merchantFlow';
+import type { ModeDEvaluation, ModeDeMarche } from './merchantFlow';
 import type { Dir8 } from '../geometry/dir8';
 import type { Dialogue } from './monde/scene';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
@@ -297,11 +297,16 @@ export interface PendingStateRecovery {
   success: boolean;
   rerolled?: boolean;
 }
+/** La réaction de Porte-bouclier, `AA 13 l.84`. */
+export type ReactionDeBouclier = 'degats' | 'repousser';
+/** L'issue d'un Test opposé d'Empoignade gagné, clé de `grapple.json` `win`. */
+export type IssueDEmpoignade = 'degats' | 'empetrer' | 'liberer';
+
 /** Ce que le Marchandage négocie : les prix d'un marchand (achat ou vente, LDB 59 l.43), ou un
  *  billet de passage (EDO 01 l.142), avec le titre de sa modale. La confirmation
  *  (`jetValider('bargain')`) y aiguille l'issue. */
 export type ContrepartieDeMarchandage = { titre: PlayerText } & (
-  | { kind: 'marchand'; mode: 'buy' | 'sell' }
+  | { kind: 'marchand'; mode: ModeDeMarche }
   | { kind: 'billet'; routeId: string; vehicule: string; depuis: string }
 );
 
@@ -342,7 +347,7 @@ export interface PendingBargain {
 }
 /** Évaluation en attente (LDB 59 l.41 : « estimer les prix … à ±10 % ») — Test d'Évaluation (Int) ;
  *  un succès RÉVÈLE l'objet (`identified = true`, ses qualités cachées deviennent visibles) et donne
- *  une fourchette de prix. OU Détection d'artefact (`mode:'detect'`, LDB 10 l.336) — Test
+ *  une fourchette de prix. OU Détection d'artefact (`mode:'detection'`, LDB 10 l.336) — Test
  *  d'Intuition au toucher : succès = l'objet est senti MAGIQUE, chaque DR apprend une règle (qualité) ;
  *  une seule tentative par artefact. Même modale (« Lancer », résultat, Chance, acquittement). */
 export interface PendingAppraise {
@@ -353,7 +358,7 @@ export interface PendingAppraise {
   /** …ou ligne de butin ENCORE en fenêtre (loot/victoire) — révélation AVANT attribution. */
   gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin };
   itemName: string;
-  /** 'evaluate' (défaut) = Évaluation marchande ; 'detect' = Détection d'artefact (Intuition). */
+  /** 'evaluation' (défaut) = Évaluation marchande ; 'detection' = Détection d'artefact (Intuition). */
   mode?: ModeDEvaluation;
   /** Libellé de la compétence affiché en modale (« Évaluation » / « Intuition »). */
   skillLabel?: string;
@@ -410,11 +415,11 @@ export interface PendingAttack {
   /** « Tirer dans le tas » (LDB 14 l.106) : option de tir — bonus selon la taille du groupe, mais
    *  un combattant au contact de la cible (les DEUX camps, tir fratricide possible) est touché au hasard ;
    *  0 DR si le succès est dû au seul bonus. */
-  intoCrowd?: boolean;
+  dansLeTas?: boolean;
   /** Tir IMMOBILE (option de tir) : le héros décide de ne pas bouger ce Tour → annule la pénalité −10 « Tir
    *  en bougeant » (LDB 14 l.70) MAIS consomme son Mouvement (cf. jetValider('attack')). Proposé seulement s'il
    *  n'a pas déjà bougé. */
-  heldGround?: boolean;
+  tirImmobile?: boolean;
   /** Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : le joueur choisit de tirer sans la
    *  corde AVANT le jet — `weaponContextOf` en dérive `WeaponContext.harpoonRopeCut` (Portée 60, perte de
    *  l'Atout Immobilisante, cf. `effectiveWeapon`). Proposé seulement si l'arme tirée porte la capacité
@@ -450,7 +455,7 @@ export interface PendingAttack {
   freeKind?: AttackKind;
   /** Réaction de Porte-Bouclier déclarée par le défenseur SURFACÉ (`AA 13 l.84`) : la fenêtre de défense
    *  la rend ici avec le résultat opposé, et `jetValider('attack')` la verse dans la `SuiteDeCoup`. */
-  reaction?: 'damage' | 'push';
+  reaction?: ReactionDeBouclier;
   /** Riposte refusée par le défenseur SURFACÉ (LDB 10 l.1037), rendue comme `reaction`. */
   riposte?: boolean;
   /** PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : POINT D'IMPACT choisi au sol. Présent → la
@@ -469,8 +474,8 @@ export interface PendingAttack {
 export interface PendingHandGate {
   attackerId: string;
   actorName: string;
-  /** Main gatée (loadout actif) — pour le `disarm` sur Échec (convention DROITIER `main`/`off`). */
-  hand: 'main' | 'off';
+  /** Main gatée (loadout actif) — pour le `disarm` sur Échec (convention DROITIER `main`/`secondaire`). */
+  hand: Main;
   /** La ligne du jet, figée à l'ouverture (`rollLine`) : ce que la fenêtre annonce et ce que le résolveur jette. */
   ligne: RollLineParts;
   /** Rempli après « Lancer » ; null tant que le jet n'a pas eu lieu (Chance possible ensuite). */
@@ -611,7 +616,7 @@ export interface PendingFall extends MultiPending<TombantParticipant> {
 }
 /** Un TOMBANT d'une chute volontaire (`PendingFall`) — `id` = le combattant qui tombe. `attempt` = sa
  *  DÉCLARATION (LDB 15 l.82) : `null` = non déclarée (les jets restent verrouillés tant qu'une rangée
- *  ne l'est pas), `false` = chute PLEINE sans Test (rangée résolue sans jet, comme `declared === 'pass'`),
+ *  ne l'est pas), `false` = chute PLEINE sans Test (rangée résolue sans jet, comme `declared === 'passer'`),
  *  `true` = le Test de `PendingFall.test`. */
 export interface TombantParticipant extends RollParticipant {
   attempt: boolean | null;
@@ -1061,7 +1066,7 @@ export interface SuiteDeCoup {
   dualMain?: { offWeaponUid: string; mainRoll: number };
   /** Réaction de Porte-Bouclier DÉCLARÉE par le défenseur qui a paré (variante `AA 13 l.84`) : jouée
    *  au temps `reaction` de l'après-coup, APRÈS l'application — suspendue ou non. */
-  reaction?: 'damage' | 'push';
+  reaction?: ReactionDeBouclier;
   /** Riposte du défenseur (LDB 10 l.1037) : `false` = refusée à sa fenêtre ; absente = déclarée. */
   riposte?: boolean;
 }
@@ -1250,9 +1255,9 @@ export interface PendingDefense {
   /** Dé FIXÉ par le joueur (option « Dés fixés », `PendingBase.fixed`). */
   fixed?: boolean;
   /** Réaction de Porte-Bouclier (variante AA 13 l.84) déclarée par le défenseur pour CETTE défense au
-   *  Bouclier : 'damage' = causer des Dégâts « comme s'il s'agissait de son Action » ; 'push' = repousser
+   *  Bouclier : 'degats' = causer des Dégâts « comme s'il s'agissait de son Action » ; 'repousser' = repousser
    *  l'attaquant de 2 m et se désengager. Appliquée à l'Appliquer (`applyShieldReaction`), coût débité alors. */
-  shieldReaction?: 'damage' | 'push';
+  shieldReaction?: ReactionDeBouclier;
   /** Riposte (LDB 10 l.1037) : `false` = refusée ; absente = déclarée. */
   riposte?: boolean;
   /** CE QUE LA FERMETURE JOUERA (#1858) : déclaré par le producteur qui ouvre la fenêtre, jamais patché
@@ -1421,7 +1426,7 @@ export interface PendingCast {
 
 /** DÉCLARATION d'une rangée de Contre-sort : contrer SEUL, s'UNIR au Test Soutenu (LDB 46 l.162), ou
  *  PASSER. Source UNIQUE de la composition de la fenêtre — il n'y a pas d'autre drapeau d'union. */
-export type CounterDeclaration = 'solo' | 'soutenu' | 'pass';
+export type CounterDeclaration = 'solo' | 'soutenu' | 'passer';
 
 /** Un lanceur qui tente le Contre-sort : participant du flux MULTI (son propre jet + influence). */
 export interface CounterParticipant extends RollParticipant {

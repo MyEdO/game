@@ -76,9 +76,9 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
     expect(destin!.gestes.map(cleDuGeste)).toEqual(expect.arrayContaining(['fenetreChoisir@fateSave#issue']));
     const depart = fenetreDuJeu({ ...ETAT, pendingDeparture: { mode: 'pied', cause: 'nuit', dawnAt: 0 } } as unknown as Jeu);
     expect(depart).toMatchObject({ cle: 'departure', gestes: [{ verbe: 'fenetreValider', fenetre: 'departure' }, { verbe: 'fenetreFermer', fenetre: 'departure' }] });
-    const defaite = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' } } as unknown as Jeu);
+    const defaite = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defaite' } } as unknown as Jeu);
     expect(defaite).toMatchObject({ cle: 'defaite', gestes: [{ verbe: 'fenetreFermer', fenetre: 'defaite' }] });
-    const repli = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defeat' }, massBattle: { combatScene: { sceneId: 'duel' } } } as unknown as Jeu);
+    const repli = fenetreDuJeu({ ...ETAT, mode: 'battle', battle: { over: 'defaite' }, massBattle: { combatScene: { sceneId: 'duel' } } } as unknown as Jeu);
     expect(repli, 'dans le combat d’une bataille de masse, le repli').toMatchObject({ cle: 'repli', gestes: [{ verbe: 'fenetreFermer', fenetre: 'repli' }] });
     expect(fenetreDuJeu({ ...ETAT, partyWiped: true } as unknown as Jeu), 'hors combat, l’anéantissement').toMatchObject({ cle: 'aneantissement' });
   });

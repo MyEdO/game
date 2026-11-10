@@ -15,7 +15,7 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
-const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluate: 'appraise-evaluate', detect: 'appraise-detect' };
+const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluation: 'appraise-evaluate', detection: 'appraise-detect' };
 
 /** Vue pure de la modale d'Évaluation (testable sans store). */
 export function AppraiseModalView({
@@ -45,7 +45,7 @@ export function AppraiseModalView({
   owned?: boolean;
 }) {
   const rolled = pa.roll != null;
-  const detect = pa.mode === 'detect';
+  const detect = pa.mode === 'detection';
   // Repli aligné sur le flux (`openAppraise`) : le libellé vient du REGISTRE par id stable.
   const skill = libelleDEvaluation(pa);
   // La ligne figée à l'ouverture (`openAppraise`, Soutien LDB 12 compris) : celle que le résolveur jette.
@@ -78,7 +78,7 @@ export function AppraiseModalView({
   return (
     <RollShell
       flowKey="appraise"
-      stake={flowStakeRef(APPRAISE_STAKE[pa.mode ?? 'evaluate'])}
+      stake={flowStakeRef(APPRAISE_STAKE[pa.mode ?? 'evaluation'])}
       title={detect ? "Détecter l'aura" : 'Évaluer'}
       /* QUI évalue → portrait dans la ligne de jet (plus de nom en clair) ; la cible/DR vit dans le cadre. */
       subtitle={<>{pa.itemName}</>}

@@ -44,7 +44,7 @@ describe('téléportation — un grand qui se téléporte dégage les plus petit
 
     const b = banc.getState().battle!;
     banc.setState({
-      battle: { ...b, turn: b.order.indexOf(H.id), action: 'teleport', reachable: new Map([['8,10', 0]]) },
+      battle: { ...b, turn: b.order.indexOf(H.id), action: 'teleportation', reachable: new Map([['8,10', 0]]) },
     });
 
     banc.getState().cliquerLaCase({ x: 8, y: 10 });

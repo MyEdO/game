@@ -493,7 +493,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   // Ce que ces quatre contrats tiennent : ce qui DÉPEND de l'issue du coup ne se joue plus au retour de
   // l'appel (le dé n'est pas tombé) mais à la REPRISE, une fois — la suite voyage avec le coup.
   const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
-  const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
+  const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'secondaire', hands: 1, damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const griffe = { label: 'Griffe', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
   const demoniaque = [{ id: 'demoniaque', value: 8 }] as never;
   const nul = (): typeof CHARS => tableTotale(CHAR_KEYS, () => 1);

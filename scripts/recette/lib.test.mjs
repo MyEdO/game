@@ -1322,7 +1322,7 @@ const lecture = (champs = {}) => ({
 
 for (const [cas, l, attendu, opts] of [
   ['aucun combat', { ...lecture(), battle: null }, 'fini'],
-  ['combat terminé', lecture({ battle: { over: 'victory' } }), 'fini'],
+  ['combat terminé', lecture({ battle: { over: 'victoire' } }), 'fini'],
   ['arrêt atteint', lecture({ battle: { round: 3 } }), 'fini', { arret: (e) => e.battle.round >= 3 }],
   ['fenêtre au DOM', lecture({ modale: true }), 'resoudre'],
   ['modale active au store', lecture({ auto: { activeModal: 'pendingAttack' } }), 'resoudre'],

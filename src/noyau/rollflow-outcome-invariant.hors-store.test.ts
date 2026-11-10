@@ -150,7 +150,7 @@ const FIXTURES: Record<string, Fix> = {
   shanty: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
   // ── Opposés « joueur vs figé » avec re-résolution dédiée (récupération / marchandage) ──
   recover: { make: (win) => ({ battle: arena(), pendingStateRecovery: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
-  bargain: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'buy', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attacker' : 'defender', attackerWins: win, netSL: win ? 2 : -2 } } }) },
+  bargain: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attacker' : 'defender', attackerWins: win, netSL: win ? 2 : -2 } } }) },
   // ── MULTI (participant/round/étape « A ») ──
   counterspell: { pid: 'A', make: (win) => ({
     battle: arena(),

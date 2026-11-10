@@ -168,7 +168,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     charge(banc, 1, [], 1);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !b().over);
-    expect([b().over, attaques('e', 'h'), attaques('h')], 'chemin : la riposte a fini le combat avant la frappe du chargeur').toEqual(['defeat', 1, 0]);
+    expect([b().over, attaques('e', 'h'), attaques('h')], 'chemin : la riposte a fini le combat avant la frappe du chargeur').toEqual(['defaite', 1, 0]);
     expect([g().actorAim, g().actorMove, g().actorAoe], 'aucun télégraphe ne survit au combat').toEqual([null, null, null]);
   });
 

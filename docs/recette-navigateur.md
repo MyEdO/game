@@ -1516,7 +1516,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   #496 : clic « Humains » atterri sur « Nains »).
 
 - **Mode Pousser (bélier/engin de siège) au clavier — séquence exacte** (#199) : cliquer le slot
-  « Pousser » de la barre d'action ouvre le mode-CASE (`battle.action === 'push'`) mais laisse ce
+  « Pousser » de la barre d'action ouvre le mode-CASE (`battle.action === 'poussee'`) mais laisse ce
   BOUTON focalisé dans le DOM. `ArrowUp/Down/Left/Right` posent/déplacent `combatCursor` (le **1er
   appui pose le curseur sur la case de DÉPART elle-même**, coût 0 — `Pousser (0)` à l'aperçu, RIEN
   ne bouge encore ; il faut un **2e appui** pour quitter cette case et voir un coût > 0). `Entrée`/

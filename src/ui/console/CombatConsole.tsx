@@ -793,8 +793,8 @@ export function CombatConsole() {
     // fenêtre de jet n'en garde que l'affichage. Bascule (re-clic = désarmer), gate en texte visible.
     // Les DEUX cases existent dès qu'une arme de tir est au poing — « Dans le tas » se grise hors
     // contexte (aucun groupe serré), elle ne disparaît pas. Géométrie de la travée : arbitrage #1434.
-    cellFor('posture-tir', 'arme', { on: posture('heldGround') }),
-    cellFor('posture-tas', 'arme', { on: posture('intoCrowd') }),
+    cellFor('posture-tir', 'arme', { on: posture('tirImmobile') }),
+    cellFor('posture-tas', 'arme', { on: posture('dansLeTas') }),
     // G6bis — gestes d'ÉTAT du porteur (surface `geste-d-etat` du registre, spec §1a) : ce que sa
     // SITUATION ouvre — en selle, à une pièce servie, à la barre — jamais ce que son arme offre.
     cellFor('dismount', 'geste'),
@@ -921,7 +921,7 @@ export function CombatConsole() {
         cellFor('select-attack', 'attaque', { ...habillage, args: { attackId: a.id } }),
       ];
     }),
-    // L'alvéole d'un SORT arme l'incantation de CE sort (entrée `cast-spell`, armée, `mode: 'cast'`) et
+    // L'alvéole d'un SORT arme l'incantation de CE sort (entrée `cast-spell`, armée, `mode: 'incantation'`) et
     // porte ses GESTES SECONDAIRES (Focaliser : clic droit / appui long / touche Menu / RB). La
     // progression de la Focalisation en cours se lit sur le geste, comme le cumul de Dissipation sur
     // la sienne : `active.focus` ne vaut que pour le sort qu'il NOMME.
@@ -1061,7 +1061,7 @@ export function CombatConsole() {
           // Deux pistolets portent le MÊME libellé : la MAIN du set les distingue (le set dit ce qui est
           // tenu, `heldSet`), et l'état de charge dit lequel a besoin du geste.
           meta: [
-            heldSet?.main === w.uid ? 'main directrice' : heldSet?.off === w.uid ? 'main gauche' : undefined,
+            heldSet?.main === w.uid ? 'main directrice' : heldSet?.secondaire === w.uid ? 'main gauche' : undefined,
             chargee ? 'chargée' : `à recharger${prog ? ` ${prog}/${w.reload}` : ''}`,
           ].filter(Boolean).join(' · '),
           disabled: !cell?.run || !!cell.disabled,

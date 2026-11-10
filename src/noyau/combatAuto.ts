@@ -259,7 +259,7 @@ function stepWindowDrive(s: Jeu): readonly GesteDuJeu[] | typeof ATTENDRE | null
     const rows = w.rangees(s);
     if (!rows) continue;
     // Rangée RÉGLÉE = jetée, PASSÉE (déclaration terminale : elle ne jettera pas) ou non surfacée.
-    return rows.every((p) => p.result || p.declared === 'pass' || !p.interactive || influencesLocally(s, p.id)) ? w.drive : ATTENDRE;
+    return rows.every((p) => p.result || p.declared === 'passer' || !p.interactive || influencesLocally(s, p.id)) ? w.drive : ATTENDRE;
   }
   return null; // aucune fenêtre ouverte : l'étape garde son propre drive
 }

@@ -93,7 +93,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
     set({ travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [], flags: {}, scheduledEffects: [] });
     creditBourse(get, set, gunnar.id, { gold: 500, silver: 0, brass: 0 });
     const t0 = armeLEcheance();
-    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r-reik', 'barge', { cadence: 'jourParJour' });
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
   });
@@ -113,7 +113,7 @@ describe('l’horloge des chemins réels tire l’échéancier (#668)', () => {
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
     } as never);
     const t0 = armeLEcheance();
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     draineCascade(get, 30);
     attendQueLEcheanceTire(t0);
   });

@@ -63,7 +63,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
     get().moveCursor('right');
     expect(get().combatCursor, 'témoin : le curseur est posé').not.toBeNull();
     finishCombatEnd(get, useGame.setState);
-    expect(get().battle!.over).toBe('victory');
+    expect(get().battle!.over).toBe('victoire');
     expect(get().combatCursor).toBeNull();
   });
 

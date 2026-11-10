@@ -15,7 +15,7 @@ import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { seedBattleRng } from '../noyau/battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { ActiveModal } from './ActiveModal';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant, Weapon, Main } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 beforeAll(() => {
@@ -28,7 +28,7 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }, w
      weapons, advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(30), resilience: 2, fortune: 2,
      species: 'humains-reiklander', bodyShape: 'humanoide', movement: 4,
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
-const arme = (uid: string, hand: 'main' | 'off'): Weapon =>
+const arme = (uid: string, hand: Main): Weapon =>
   ({ uid, name: uid, label: uid, type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
 
 let root: Root | null = null;
@@ -43,7 +43,7 @@ afterEach(() => {
 /** Bretteur à deux armes contre un gobelin ; `gmSeat: 0` surface la défense du gobelin (#989). */
 function duel(gmSeat: number | undefined) {
   seedBattleRng(1);
-  const bretteur = mk('Bretteur', 'hero', { x: 0, y: 0 }, [arme('m', 'main'), arme('o', 'off')]);
+  const bretteur = mk('Bretteur', 'hero', { x: 0, y: 0 }, [arme('m', 'main'), arme('o', 'secondaire')]);
   bretteur.characteristics['capacite-de-combat'] = 95;
   const gobelin = mk('Gobelin', 'enemy', { x: 1, y: 0 }, [arme('g', 'main')]);
   gobelin.characteristics['capacite-de-combat'] = 5;

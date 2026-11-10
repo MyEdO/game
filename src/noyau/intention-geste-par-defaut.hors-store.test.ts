@@ -112,7 +112,7 @@ describe('(b) un MODE DE CIBLAGE garde son commit-CASE sous une intention armée
     const dest = { x: 19, y: 3 }; // très loin : jamais dans la portée peinte par l'intention
     expect(displayedReach(get).has(`${dest.x},${dest.y}`), 'témoin : la case est bien hors de la Marche').toBe(false);
     banc.jouerLaCase('mouvement');
-    banc.setState({ battle: { ...b, action: 'teleport', reachable: new Map([[`${dest.x},${dest.y}`, 1]]) } });
+    banc.setState({ battle: { ...b, action: 'teleportation', reachable: new Map([[`${dest.x},${dest.y}`, 1]]) } });
     get().cliquerLaCase(dest);
     expect(get().battle!.combatants.find((c) => c.id === H.id)!.pos, 'le commit-CASE du mode n’a pas été atteint').toEqual(dest);
     expect(get().battle!.action, 'le mode ne s’est pas refermé : son commit n’a pas tourné').toBeNull();

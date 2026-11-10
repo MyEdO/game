@@ -20,7 +20,7 @@ describe('sanitizeIntentArgs — l’événement React ne part pas sur le résea
   it('tronque la queue non sérialisable (événement circulaire, fonction) sans toucher aux vrais args', () => {
     const circular: Record<string, unknown> = {};
     circular.self = circular; // un SyntheticEvent est circulaire (nativeEvent/target)
-    expect(sanitizeIntentArgs(['h2', 'stash', 120, circular])).toEqual(['h2', 'stash', 120]);
+    expect(sanitizeIntentArgs(['h2', 'planque', 120, circular])).toEqual(['h2', 'planque', 120]);
     expect(sanitizeIntentArgs([circular])).toEqual([]);
     expect(sanitizeIntentArgs([() => {}])).toEqual([]);
     expect(sanitizeIntentArgs(['h1', { x: 1 }])).toEqual(['h1', { x: 1 }]);

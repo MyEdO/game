@@ -26,7 +26,7 @@ import { actorStatus } from '../engine/social';
 import { fromBrass, toBrass, toMoney, priceToMoney, formatMoney } from '../engine/money';
 import {
   ACTIVITIES, RESOLVER_OWNER, activityAvailableAt, activityById, cleDEntrainement, craftSpecOf, entrainementOptions, learnableTalents, metierOf, orderBlockOf, statusIncomeMax, travelActivitySpec,
-  type ActivityDef, type EntrainementOption, type LearnOption, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
+  type ActivityDef, type EntrainementOption, type GenreDeDepot, type LearnOption, type ResolverOf, type TravelActivitySpec, type VoieDActivite,
 } from '../engine/activities';
 import { outOfTradeReason } from '../engine/disponibilite';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
@@ -80,7 +80,7 @@ export function refusDeRetrait(s: EtatDeDepot, depotId: IdDeDepot): string | nul
   if (!dep) return null;
   const mecenat = dep.kind === 'mecenat' ? activiteDeMecenat() : undefined;
   if (mecenat) return refusDOuvertureDActivite(s, dep.heroId, mecenat, { depotId });
-  return dep.kind === 'stash' ? refusDuTirage(s, dep.heroId) : refusDActivite(s, dep.heroId);
+  return dep.kind === 'planque' ? refusDuTirage(s, dep.heroId) : refusDActivite(s, dep.heroId);
 }
 
 /** L'Activité de Mécénat, variante d'Opération bancaire. ACE 12 l.45-49 */
@@ -225,8 +225,6 @@ export function refusDeCommande(s: EtatDInterlude, heroId: string, trappingId: s
 /** L'état que lit le devis d'un dépôt : celui de l'interlude, et le lieu (Mécénat). */
 export type EtatDeDepot = EtatDInterlude & Pick<Jeu, 'lieu'>;
 
-/** Les trois dépôts d'une Opération bancaire. */
-export type GenreDeDepot = 'invest' | 'stash' | 'mecenat';
 
 /** Devis d'un dépôt. `refus` : la raison affichée, ou `null` ; `debite` : ce que la bourse paie (sous de
  *  cuivre) ; `depose` : ce que la banque reçoit. */
@@ -247,7 +245,7 @@ function refusDeDepot(s: EtatDeDepot, heroId: string, kind: GenreDeDepot, montan
   const refus = refusDActivite(s, heroId);
   const h = herosDe(s, heroId);
   if (refus || !h) return refus;
-  if (kind === 'invest' && actorStatus(h).tier === 'bronze') return t('if.bankTierKo', { name: h.label });
+  if (kind === 'investir' && actorStatus(h).tier === 'bronze') return t('if.bankTierKo', { name: h.label });
   if (kind === 'mecenat') {
     const def = activiteDeMecenat();
     if (!def || !activityAvailableAt(def, s.lieu)) return t('if.mecenatHorsLieu');

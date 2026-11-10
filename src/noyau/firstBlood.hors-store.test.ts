@@ -66,7 +66,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("0 Blessure (fin standard, RAW l.177) reste active en parallèle — même sous firstBlood, avec des coups ≤ seuil", () => {
@@ -78,7 +78,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("seuil ÉDITÉ en donnée (5) → un coup à 5 continue, à 6 termine", () => {

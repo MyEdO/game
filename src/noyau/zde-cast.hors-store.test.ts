@@ -58,7 +58,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     const e3 = spawnEnemy({ ref: 'humain' }, 'e3', { x: 12, y: 12 }); // hors zone
     const battle = {
       combatants: [w, e1, e2, e3], order: [w.id, 'e1', 'e2', 'e3'], baseOrder: [w.id, 'e1', 'e2', 'e3'],
-      turn: 0, round: 1, action: 'cast', selectedSpellId: 'explosion', reachable: new Map(),
+      turn: 0, round: 1, action: 'incantation', selectedSpellId: 'explosion', reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     const scene = { id: 's', dimensions: { w: 20, h: 20 }, layers: [{ z: 0, tiles: [] }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
@@ -128,7 +128,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     w.characteristics['force-mentale'] = 20; // portée du sort = FM mètres → 10 cases
     e3.pos = { x: 19, y: 19 }; // 17 cases depuis (2,2) : au-delà de la portée
     const mode = currentTargetingMode(banc.getState);
-    expect(mode.id).toBe('cast');
+    expect(mode.id).toBe('incantation');
     expect(mode.affordance!(banc.getState, w, e3), 'invalide = le survol n’affiche rien').toMatchObject({ kind: 'invalid' });
     expect(jouerLeClicDeCase(banc.getState, e3.pos!, true), 'le clic de la cible se joue').toBe(true);
     expect(banc.getState().pendingCast, 'une zone ne s’ouvre PAS sur une cible hors d’atteinte').toBeNull();

@@ -56,7 +56,7 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     // INFLUENÇABLE) AVANT l'écran de victoire. On la résout pour atteindre la victoire (+ réconciliation).
     draineCascade(banc.getState);
 
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
     const remaining = new Set(banc.getState().scene!.entities.map((e) => e.id));
     for (const id of ids) expect(remaining.has(id)).toBe(false);
     expect(remaining.has('badaud')).toBe(true);
@@ -70,7 +70,7 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     banc.setState({ battle: { ...b } });
     checkBattleOver(banc.getState, banc.setState);
 
-    expect(banc.getState().battle!.over).toBe('defeat');
+    expect(banc.getState().battle!.over).toBe('defaite');
     const remaining = new Set(banc.getState().scene!.entities.map((e) => e.id));
     for (const id of ids) expect(remaining.has(id)).toBe(true);
   });
@@ -91,7 +91,7 @@ describe('checkBattleOver — un engin INERTE ne compte ni pour la victoire ni p
     banc.setState({ battle: { ...b } });
     checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
-    expect(banc.getState().battle!.over).toBe('victory'); // l'engin inerte ne maintient PAS enemiesAlive
+    expect(banc.getState().battle!.over).toBe('victoire'); // l'engin inerte ne maintient PAS enemiesAlive
   });
 
   it('défaite NON bloquée par un engin ALLIÉ inerte (`kind:hero`)', () => {
@@ -101,7 +101,7 @@ describe('checkBattleOver — un engin INERTE ne compte ni pour la victoire ni p
     b.combatants.push(mkInertEngine('empl-ally', 'hero'));             // l'affût allié reste
     banc.setState({ battle: { ...b } });
     checkBattleOver(banc.getState, banc.setState);
-    expect(banc.getState().battle!.over).toBe('defeat'); // l'engin inerte ne maintient PAS heroesAlive
+    expect(banc.getState().battle!.over).toBe('defaite'); // l'engin inerte ne maintient PAS heroesAlive
   });
 });
 

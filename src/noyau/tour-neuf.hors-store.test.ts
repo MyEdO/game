@@ -34,7 +34,7 @@ function deuxHeros(ordre: 'AB' | 'BA' = 'AB', turn = 0): { A: Combatant; B: Comb
 describe('Tour neuf — `etatDeTourNeuf`, source unique du début de Tour', () => {
   it('`advanceTurn` : le sort et l’attaque armés par le précédent ne passent pas au suivant', () => {
     deuxHeros();
-    banc.setState({ battle: { ...g().battle!, action: 'cast', selectedSpellId: 'fleche-magique', selectedAttack: 'feinte' } });
+    banc.setState({ battle: { ...g().battle!, action: 'incantation', selectedSpellId: 'fleche-magique', selectedAttack: 'feinte' } });
     advanceTurn(g, banc.setState);
     const b = g().battle!;
     expect(b.selectedSpellId).toBeNull();

@@ -18,9 +18,9 @@ const HIT: AttackResult = {
 /**
  * Tir « immobile » (option, comme « Tirer dans le tas ») : puisque le Mouvement est décomposable et qu'on
  * peut bouger APRÈS le tir, un tir mobile garde la pénalité -10 (LDB 14 l.70). Décider de NE PAS bouger
- * (heldGround) annule la pénalité MAIS consomme le Mouvement du Tour (on ne pourra plus se déplacer).
+ * (tirImmobile) annule la pénalité MAIS consomme le Mouvement du Tour (on ne pourra plus se déplacer).
  */
-describe('Tir immobile (heldGround)', () => {
+describe('Tir immobile (tirImmobile)', () => {
   function setup() {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
@@ -42,7 +42,7 @@ describe('Tir immobile (heldGround)', () => {
     const M = effectiveMovement(H);
     banc.setState({
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },
-      pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT, heldGround: true },
+      pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: HIT, tirImmobile: true },
     });
     banc.getState().jetValider('attack');
     const st = banc.getState();
@@ -51,7 +51,7 @@ describe('Tir immobile (heldGround)', () => {
     expect(canMove(st.battle!, h)).toBe(false); // plus de déplacement après le tir immobile
   });
 
-  it('tir mobile (heldGround absent) : confirme → le Mouvement RESTE disponible (on peut encore bouger)', () => {
+  it('tir mobile (tirImmobile absent) : confirme → le Mouvement RESTE disponible (on peut encore bouger)', () => {
     const { H, E } = setup();
     banc.setState({
       battle: { ...banc.getState().battle!, acted: false, movementUsed: 0, movedPreAction: false },

@@ -328,7 +328,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   const interludeState = (over: Partial<Jeu> = {}): Jeu => base({
     battle: null,
     interlude: { weeks: 2, phase: 'activities', perHero: { h1: { eventRoll: 1, left: 2, revenueBrass: 0 }, h2: { eventRoll: 2, left: 2, revenueBrass: 0 } } },
-    bank: [{ uid: 'depot-h2', heroId: 'h2', kind: 'stash', brass: 100, rate: 0 }],
+    bank: [{ uid: 'depot-h2', heroId: 'h2', kind: 'planque', brass: 100, rate: 0 }],
     ...over,
   } as Partial<Jeu>);
 
@@ -338,7 +338,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
     expect(intentAllowedFor(s, 1, 'fenetreChoisir', ['interlude', 'pratiquer', true, 'h1'])).toBe(false);
     expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'ouvrage', 'dague', 'h1'])).toBe(true);
     expect(intentAllowedFor(s, 0, 'fenetreChoisir', ['interlude', 'talent', 'chanceux', 'h2'])).toBe(false);
-    expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'stash', 120])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'deposerALaBanque', ['h2', 'planque', 120])).toBe(true);
   });
 
   it('Entraînement, Faveur et préparation de bataille (héros en 1er argument) : son propriétaire agit, pas les autres', () => {

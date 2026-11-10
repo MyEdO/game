@@ -34,7 +34,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     const b = banc.getState().battle!;
     const heroC = b.combatants.find((c) => c.label === 'W')!;
     const turn = b.order.indexOf(heroC.id);
-    banc.setState({ battle: { ...b, turn, action: 'cast', selectedSpellId: 'allure-demoniaque', acted: false } });
+    banc.setState({ battle: { ...b, turn, action: 'incantation', selectedSpellId: 'allure-demoniaque', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id); // cible = soi (spell.target.kind === 'self')
     expect(banc.getState().pendingCast).not.toBeNull();
     // Résultat de Test FIGÉ (préconditions du scénario, PAS le câblage sous test) : DR 12 → budget
@@ -66,7 +66,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     const b = banc.getState().battle!;
     const heroC = b.combatants.find((c) => c.label === 'W')!;
     const turn = b.order.indexOf(heroC.id);
-    banc.setState({ battle: { ...b, turn, action: 'cast', selectedSpellId: 'allure-demoniaque', acted: false } });
+    banc.setState({ battle: { ...b, turn, action: 'incantation', selectedSpellId: 'allure-demoniaque', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id);
     banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 12, isCritical: false, isFumble: false, log: 'ok' } as CastResult } }));
     banc.getState().jetRegler('cast', 'surincantationDuree', 2);

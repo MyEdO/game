@@ -279,14 +279,14 @@ describe('refus du PRÉFIXE (`mobileDuTour`), dits par le geste', () => {
   const c = CAS[2];
   it('combat terminé → geste.refus.combatTermine', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ battle: { ...g().battle!, over: 'victory' } });
+    banc.setState({ battle: { ...g().battle!, over: 'victoire' } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.combatTermine');
   });
   it('action armée → geste.refus.ciblage', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ battle: { ...g().battle!, action: 'cast' } });
+    banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.ciblage');
@@ -307,7 +307,7 @@ describe('refus du PRÉFIXE (`mobileDuTour`), dits par le geste', () => {
   });
   it('refus en combat : dit à la bannière (`refus`), jamais au seul journal', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ battle: { ...g().battle!, action: 'cast' } });
+    banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     expect(g().journal).toEqual([]);
@@ -319,7 +319,7 @@ describe('`computeMoveReach` consomme le préfixe : une action armée éteint la
   it('action nulle → cases ; action armée → aucune (comme `resolveMovement`)', () => {
     combat(croisee(), { x: 0, y: 0 });
     expect(computeMoveReach(g).size).toBeGreaterThan(0);
-    banc.setState({ battle: { ...g().battle!, action: 'cast' } });
+    banc.setState({ battle: { ...g().battle!, action: 'incantation' } });
     expect(computeMoveReach(g).size).toBe(0);
     expect(resolveMovement(g, { x: 0, y: 1 })).toEqual({ status: 'blocked', reason: 'targeting' });
   });

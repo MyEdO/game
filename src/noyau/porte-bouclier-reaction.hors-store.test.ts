@@ -14,6 +14,7 @@ import { seedBattleRng } from './battleRng';
 import { setRule, resetRule } from '../engine/policy';
 import { isOutOfAction } from '../engine/conditions';
 import type { AttackResult } from '../engine/combat';
+import type { ReactionDeBouclier } from './pendings';
 import type { Combatant, Weapon } from '../engine/types';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade, poseSurDeNonTombe } from './cascade.testkit';
@@ -72,7 +73,7 @@ const S: Banc['setState'] = (e) => banc.setState(e);
 const alliesPool = (): number => G().battle!.advantagePools!.allies;
 const cur = (id: string): Combatant => G().battle!.combatants.find((c) => c.id === id)!;
 const draine = (): void => { for (let k = 0; k < 20 && G().pendingCascade; k++) avanceEtapeCascade(G, poseSurDeNonTombe(1), () => 'subir'); };
-const coup = (res: AttackResult, reaction: 'damage' | 'push', suite: Record<string, unknown> = {}) =>
+const coup = (res: AttackResult, reaction: ReactionDeBouclier, suite: Record<string, unknown> = {}) =>
   applyAttackResult(G, S, cur('a1'), cur('d1'), SWORD, res, { suite: { enchainement: { mode: 'aucun' }, reaction, ...suite } });
 
 describe('Porte-bouclier — réaction à coût d’Avantages (AA 13 l.84)', () => {
@@ -89,7 +90,7 @@ describe('Porte-bouclier — réaction à coût d’Avantages (AA 13 l.84)', () 
   it('B1 — défense gagnée : Dégâts du bouclier + DR opposé, par la touche (BF 4 + 2 + DR 3 − BE 4 = 5)', () => {
     setup({ reserve: 3 });
     const avant = alliesPool();
-    coup(defenseGagnee(), 'damage'); draine();
+    coup(defenseGagnee(), 'degats'); draine();
     expect(cur('a1').wounds.current).toBe(15);
     expect(alliesPool(), '+1 de la défense gagnée, −2 de la réaction (LDB 14 l.208-209)').toBe(avant + 1 - 2);
     expect(cur('d1').usedShieldReactionRound).toBe(true);
@@ -97,20 +98,20 @@ describe('Porte-bouclier — réaction à coût d’Avantages (AA 13 l.84)', () 
 
   it('B2 — dépassement des PB : Blessure critique (LDB 18 l.17)', () => {
     setup({ reserve: 3, pbAttaquant: 2 });
-    coup(defenseGagnee(), 'damage'); draine();
+    coup(defenseGagnee(), 'degats'); draine();
     expect(cur('a1').wounds.current).toBe(0);
     expect(cur('a1').criticalWounds ?? 0).toBeGreaterThan(0);
   });
 
   it('B2 — dépassement d’un PNJ mineur : Mort subite, hors de combat (LDB 18 l.46)', () => {
     setup({ reserve: 3, pbAttaquant: 2, important: false });
-    coup(defenseGagnee(), 'damage'); draine();
+    coup(defenseGagnee(), 'degats'); draine();
     expect(isOutOfAction(cur('a1'))).toBe(true);
   });
 
   it('B3 — défense perdue : aucune frappe, aucun débit (LDB 13 l.123)', () => {
     setup({ reserve: 3 });
-    coup(defensePerdue(), 'damage'); draine();
+    coup(defensePerdue(), 'degats'); draine();
     expect(cur('a1').wounds.current).toBe(20);
     expect(alliesPool()).toBe(3);
     expect(cur('d1').usedShieldReactionRound).toBeFalsy();
@@ -118,11 +119,11 @@ describe('Porte-bouclier — réaction à coût d’Avantages (AA 13 l.84)', () 
 
   it('B4 — une fois par Round : la 2ᵉ défense gagnée ne frappe ni ne débite', () => {
     setup({ reserve: 4 });
-    coup(defenseGagnee(), 'damage'); draine();
+    coup(defenseGagnee(), 'degats'); draine();
     const pb = cur('a1').wounds.current;
     const pool = alliesPool();
     expect(pb).toBeLessThan(20);
-    coup(defenseGagnee(), 'damage'); draine();
+    coup(defenseGagnee(), 'degats'); draine();
     expect(cur('a1').wounds.current).toBe(pb);
     expect(alliesPool()).toBe(pool + 1);
   });
@@ -131,13 +132,13 @@ describe('Porte-bouclier — réaction à coût d’Avantages (AA 13 l.84)', () 
     resetRule('combat-aa-avantage-groupe');
     setup({ reserve: 3 });
     expect(shieldReactionCost(cur('d1'), SHIELD)).toBe(0);
-    coup(defenseGagnee(), 'damage'); draine();
+    coup(defenseGagnee(), 'degats'); draine();
     expect(cur('a1').wounds.current).toBe(20);
   });
 
   it('B6 — « Repousser » : débite 2, repousse l’attaquant de 2 m et rompt l’Engagement', () => {
     setup({ reserve: 3 });
-    coup(defenseGagnee(), 'push'); draine();
+    coup(defenseGagnee(), 'repousser'); draine();
     expect(alliesPool()).toBe(3 + 1 - 2);
     expect(cur('a1').pos).toEqual({ x: 3, y: 5 });
     expect(cur('d1').engagedWith).not.toContain('a1');
@@ -147,14 +148,14 @@ describe('Porte-bouclier — réaction à coût d’Avantages (AA 13 l.84)', () 
 
   it('B6 — réserve insuffisante : réaction inerte', () => {
     setup({ reserve: 0 });
-    coup(defenseGagnee(), 'push'); draine();
+    coup(defenseGagnee(), 'repousser'); draine();
     expect(cur('d1').usedShieldReactionRound).toBeFalsy();
     expect(cur('a1').pos).toEqual({ x: 4, y: 5 });
   });
 
   it('B7 — une sauvegarde suspend la frappe, puis la reprise la termine et rend l’Action', () => {
     setup({ reserve: 3, traitsAttaquant: [{ id: 'demoniaque', value: 9 }] });
-    coup(defenseGagnee(), 'damage', { restitution: { prevActed: false } });
+    coup(defenseGagnee(), 'degats', { restitution: { prevActed: false } });
     expect(G().pendingCascade, 'la sauvegarde de l’attaquant tient la main').not.toBeNull();
     expect(G().battle!.acted, 'la suite du coup attend la reprise').toBe(true);
     draine();

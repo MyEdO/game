@@ -49,7 +49,7 @@ type EntreeAction = {
   candidates?: string;
   run?: string;
   intent?: string;
-  stance?: 'heldGround' | 'intoCrowd';
+  stance?: 'tirImmobile' | 'dansLeTas';
   blocked?: { ticket: string; raison: string };
   exitSafe?: boolean;
   role?: 'valide' | 'renonce';
@@ -82,7 +82,7 @@ const doc = document(
     armed: z.literal(true).optional(),
     /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
      *  `PendingAttack` qu'elle pré-remplit) — exigée par le verbe `basculerLaPosture`. */
-    stance: z.enum(['heldGround', 'intoCrowd']).optional(),
+    stance: z.enum(['tirImmobile', 'dansLeTas']).optional(),
     coutAction: coutActionSchema,
     /** FOYER de la règle : l'entrée Codex qui la porte (jamais une phrase recomposée). */
     rule: foyerDeRegleSchema.optional(),

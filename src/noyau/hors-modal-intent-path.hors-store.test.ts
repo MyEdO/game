@@ -24,20 +24,20 @@ import { modalOwnerOf } from './modalArbiter';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant, Weapon, Main } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
 
 const NET0 = initialNet();
 const CHARS = { 'capacite-de-combat': 55, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const ARM = () => ({ tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 });
-const W = (uid: string, hand: 'main' | 'off'): Weapon =>
+const W = (uid: string, hand: Main): Weapon =>
   ({ uid, name: hand === 'main' ? 'Épée' : 'Dague', label: hand === 'main' ? 'Épée' : 'Dague', type: 'melee',
      damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand, hands: 1 } as unknown as Weapon);
 
 const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...CHARS }, conditions: [], engagedWith: [], skills: [], talents: [],
-     weapons: [W('m', 'main'), W('o', 'off')], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
+     weapons: [W('m', 'main'), W('o', 'secondaire')], advantage: 0, size: 'moyenne', pos, wounds: blessuresDeBase(18),
      resolve: 2, fortune: 2, armour: ARM(), movement: 4 }) as unknown as Combatant);
 
 /** Arène coop : `h2` (siège 1) au contact de `e1`/`e2` et ACTIF ; `h3` (siège 2) est la VICTIME dont

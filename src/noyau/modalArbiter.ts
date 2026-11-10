@@ -397,7 +397,7 @@ export interface SurfaceHorsPendingDef {
 export const seanceDuChapitre = (s: ArbiterState): FermetureDuJet | null => (s.pendingChapterRecap ? 'seanceDuChapitre' : null);
 
 /** Un combat perdu tient l'écran. */
-const defaiteDuCombat = (s: ArbiterState): boolean => s.mode === 'battle' && s.battle?.over === 'defeat';
+const defaiteDuCombat = (s: ArbiterState): boolean => s.mode === 'battle' && s.battle?.over === 'defaite';
 
 export const SURFACES_HORS_PENDING = [
   // L'échoppe se valide par la répartition des achats entre les héros.

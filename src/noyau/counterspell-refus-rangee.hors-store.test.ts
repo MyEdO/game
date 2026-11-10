@@ -96,7 +96,7 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
 
   it('rangée qui passe : son jet est refusé et dit, sans consommer son essai du Round', () => {
     const { A, B } = setup();
-    poser([{ id: A.id, interactive: true, declared: 'solo', result: null }, { id: B.id, interactive: true, declared: 'pass', result: null }]);
+    poser([{ id: A.id, interactive: true, declared: 'solo', result: null }, { id: B.id, interactive: true, declared: 'passer', result: null }]);
     banc.getState().jetLancer('counterspell', B.id);
     expect(part(B.id).result).toBeNull();
     expect(cur(B.id).dispelledThisRound ?? false).toBe(false);

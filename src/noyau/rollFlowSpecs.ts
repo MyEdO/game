@@ -752,7 +752,7 @@ export const FLOWS = paresseux({
       }
       const battle = s.battle;
       if (!battle) return null;
-      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.intoCrowd, p.heldGround, attackWeaponOf(battle, actor, target, p), p.withhold);
+      const r = resolveAttack(get, actor, target, p.location ?? undefined, p.fromCharge, p.dansLeTas, p.tirImmobile, attackWeaponOf(battle, actor, target, p), p.withhold);
       // MÊME gel que `jetLancer('attack')` : l'OBJET arme réellement tiré (jamais l'uid, qui porte le choix du
       // joueur et discrimine l'attaque naturelle) — sans lui, toute re-dérivation re-passe par
       // `pickAttackWeaponList`, qui reprend la MÊLÉE dès qu'elle est à portée (`mount.ts`).
@@ -1032,7 +1032,7 @@ export const FLOWS = paresseux({
     key: 'pendingCounterspell',
     onCancel: laisserPasserLeContreSort,
     clotures: { confirm: 'toujours' },
-    // PORTE UNIQUE en phase de déclaration (#1042/#1059) : décliner s'y dit `pass` sur sa rangée ; ni laisser passer
+    // PORTE UNIQUE en phase de déclaration (#1042/#1059) : décliner s'y dit `passer` sur sa rangée ; ni laisser passer
     // ni appliquer avant que chacun ait déclaré (LDB 46 l.156), ni appliquer avant le jet de chaque rangée qui lance
     // tant que le Sort n'est pas dissipé (#3324).
     annulation: (p) => (counterspellDeclarePhase(p) ? 'declarationsDues' : null),

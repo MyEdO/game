@@ -580,8 +580,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               <button
                 type="button"
                 className="btn small"
-                aria-pressed={!fastJoue && cadence === 'jour-par-jour'}
-                onClick={() => { setSeaFast(false); setCadence('jour-par-jour'); }}
+                aria-pressed={!fastJoue && cadence === 'jourParJour'}
+                onClick={() => { setSeaFast(false); setCadence('jourParJour'); }}
                 title={t(fluvialJoue ? 'wm.cadenceJourParJourFleuve' : 'wm.cadenceJourParJourMer')}
               >
                 {t('wm.jourParJour')}

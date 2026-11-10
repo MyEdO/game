@@ -36,7 +36,7 @@ function enCombat(soigneur: Combatant, patient: Combatant): void {
     mode: 'battle', party: [soigneur, patient],
     battle: {
       combatants: [soigneur, patient], order, baseOrder: order, turn: 0, round: 1,
-      action: 'heal', selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false, log: [], over: null,
+      action: 'soins', selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false, log: [], over: null,
     } as never,
     pendingHeal: null,
   });
@@ -65,7 +65,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     g().ouvrirLaGuerison('al');
     const lignes = confronter();
     for (const l of lignes) expect(l.reglage, `${l.mode} : même verdict, même raison`).toBe(l.fenetre);
-    expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['wounds', 'bleed', 'ammo']);
+    expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['blessures', 'hemorragie', 'munition']);
   });
 
   it('« le patient sans Hémorragie » : l’Hémorragie et la Munition sont refusées par le patient', () => {
@@ -75,7 +75,7 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     g().ouvrirLaGuerison('al');
     const lignes = confronter();
     for (const l of lignes) expect(l.reglage, `${l.mode} : même verdict, même raison`).toBe(l.fenetre);
-    expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['wounds']);
+    expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['blessures']);
   });
 
   it('« le soigneur à la Dextérité » (sans Guérison, sous Bandages) : seule l’Hémorragie s’offre, refusée ailleurs par le Test', () => {
@@ -83,10 +83,10 @@ describe('fenêtre du soin — l’acte, refusé comme le réglage `heal.mode` l
     const al = cb({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 3), conditions: [{ id: 'hemorragique', value: 2 }, { id: 'munition-logee', value: 1 }], pos: { x: 2, y: 1 } });
     enCombat(doc, al);
     g().ouvrirLaGuerison('al');
-    expect(g().pendingHeal, 'chemin : la Dextérité sous Bandages ouvre l’Hémorragie').toMatchObject({ test: 'dexterite', mode: 'bleed' });
+    expect(g().pendingHeal, 'chemin : la Dextérité sous Bandages ouvre l’Hémorragie').toMatchObject({ test: 'dexterite', mode: 'hemorragie' });
     const lignes = confronter();
     for (const l of lignes) expect(l.reglage, `${l.mode} : même verdict, même raison`).toBe(l.fenetre);
-    expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['bleed']);
+    expect(lignes.filter((l) => l.fenetre === null).map((l) => l.mode)).toEqual(['hemorragie']);
   });
 
   it('après le dé, tout acte est refusé à la fenêtre', () => {

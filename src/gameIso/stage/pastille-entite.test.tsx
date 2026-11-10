@@ -306,7 +306,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     const btn = boutonDe(el, 'hull')!;
     expect(btn.textContent, 'le geste de la pièce servie est Pousser').toContain('Pousser');
     act(() => btn.click());
-    expect(useGame.getState().battle!.action, 'le mode de poussée est ARMÉ').toBe('push');
+    expect(useGame.getState().battle!.action, 'le mode de poussée est ARMÉ').toBe('poussee');
     expect(useGame.getState().battle!.reachable.size, 'et sa portée est peinte').toBeGreaterThan(0);
     act(() => boutonDe(el, 'hull')!.click());
     expect(useGame.getState().battle!.action, 'annulation GRATUITE au re-clic').toBeNull();
@@ -355,7 +355,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     const btn = boutonDe(el, 'hull')!;
     expect(btn.disabled, 'le geste reste OFFERT : le Sonné garde son Mouvement').toBe(false);
     act(() => btn.click());
-    expect(useGame.getState().battle!.action, 'et il MORD (aucun clic muet)').toBe('push');
+    expect(useGame.getState().battle!.action, 'et il MORD (aucun clic muet)').toBe('poussee');
   });
 
   it('CHEF CLOUÉ (Inconscient) : le geste est REFUSÉ AVEC SA RAISON, jamais un clic muet', () => {
