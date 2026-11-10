@@ -3613,6 +3613,21 @@
         "id": "bonne-peche",
         "label": "Bonne pêche",
         "desc": "Bonne pêche. Récemment, les pêcheurs locaux remontent des filets grouillant de poissons ou de crabes. Vous pouvez les acheter en tant que rations pour un jour au prix réduit de 3sc.",
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "rationsDEscale",
+                "montant": {
+                  "brass": 3
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
