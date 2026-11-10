@@ -2568,7 +2568,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 2 });
     banc.getState().ensemencerLeTirage(1);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('fateSave', 'issue', 'survivre');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead ?? false).toBe(false);
     expect(h.outOfRencontre).toBe(true);
@@ -2580,7 +2580,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
     banc.getState().ensemencerLeTirage(1);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'accept');
+    banc.getState().fenetreChoisir('fateSave', 'issue', 'accepter');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
   });
 

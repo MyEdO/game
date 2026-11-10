@@ -57,7 +57,7 @@
 {"type":"fenetreValider","args":["roundStart"]}
 {"type":"terminerLeTour","args":[]}
 {"type":"terminerLeTour","args":[]}
-{"type":"fenetreChoisir","args":["fateSave","issue","accept"]}
+{"type":"fenetreChoisir","args":["fateSave","issue","accepter"]}
 {"type":"fenetreValider","args":["roundStart"]}
 {"type":"terminerLeTour","args":[]}
 {"type":"terminerLeTour","args":[]}

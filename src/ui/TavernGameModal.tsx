@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { useGame } from '../state/store';
 import { TAVERN_GAMES, findTavernGameById, tavernFastRegime, difficulteDeBase, difficulteDuJoueur, specialsApplicables, type TavernGame } from '../engine/tavernGame';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
-import { HABITUE, refusDAdversaire, refusDeJouer, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type ReglageDePartie } from '../noyau/tavernFlow';
+import { HABITUE, refusDAdversaire, refusDeJouer, refusDOuvrirLaTaverne, tavernGameValue, tavernPartieEnCours, tavernNpcOffers, type ReglageDePartie, type TavernOpponent } from '../noyau/tavernFlow';
 import { pnjAuProfil, sceneNpc } from '../noyau/monde/sceneNpc';
 import { pickActiveModalKey } from '../noyau/modalArbiter';
 import { Row } from './Layout';
@@ -67,7 +67,7 @@ export function TavernGameModal() {
   const heroes = party.filter((h) => !h.dead);
   const [gameId, setGameId] = useState(TAVERN_GAMES[0]?.id ?? '');
   const [challengerId, setChallengerId] = useState(heroes[0]?.id ?? '');
-  const [oppMode, setOppMode] = useState<'hero' | 'npc' | 'profil'>(heroes.length > 1 ? 'hero' : 'profil');
+  const [oppMode, setOppMode] = useState<TavernOpponent['kind']>(heroes.length > 1 ? 'heros' : 'profil');
   const [oppNpcId, setOppNpcId] = useState('');
   const [oppHeroId, setOppHeroId] = useState('');
   // L'HABITUÉ et les coéquipiers figurants jouent une FICHE : un profil standard choisi (`LDB 77 l.7`).
@@ -90,7 +90,7 @@ export function TavernGameModal() {
   // CE QUE L'AUTEUR PRESCRIT (`NADJ 04 l.72` : un jeu ET une mise de départ) : la modale s'y POSE
   // quand on choisit ce PNJ — le joueur reste libre d'en dévier, l'auteur ne fait qu'ouvrir la table.
   useEffect(() => {
-    if (oppMode !== 'npc' || !npc) return;
+    if (oppMode !== 'pnj' || !npc) return;
     setGameId(npc.gameId);
     if (npc.stakeBrass != null) setStakeBrass(npc.stakeBrass);
   }, [oppMode, npc?.id, npc?.gameId, npc?.stakeBrass]);
@@ -100,7 +100,7 @@ export function TavernGameModal() {
   const proposeur = state?.npcId;
   useEffect(() => {
     if (!proposeur) return;
-    setOppMode('npc');
+    setOppMode('pnj');
     setOppNpcId(proposeur);
   }, [proposeur]);
 
@@ -109,21 +109,21 @@ export function TavernGameModal() {
   // JEU D'ÉQUIPE (Middenball) : le groupe joue ENSEMBLE — tous ses héros sont dans le MÊME camp. Un
   // compagnon ne peut donc pas y tenir le camp d'en face, qui est celui de la salle.
   const equipe = !!game?.team;
-  const oppKind: 'hero' | 'npc' | 'profil' = equipe ? 'profil' : oppMode;
+  const oppKind: TavernOpponent['kind'] = equipe ? 'profil' : oppMode;
   const oppCandidates = heroes.filter((h) => h.id !== challengerId);
   const joueurs = Math.max(2, tablePlayers);
   // LE RÉGLAGE que « Jouer » soumet au geste — et que son verdict (`refusDeJouer`) juge.
   const partie: ReglageDePartie = {
     gameId, stakeBrass,
-    opponent: oppKind === 'hero'
-      ? { kind: 'hero', id: oppHeroId || oppCandidates[0]?.id || '' }
-      : oppKind === 'npc' ? { kind: 'npc', id: npc?.id ?? '' } : { kind: 'profil', id: profilId },
+    opponent: oppKind === 'heros'
+      ? { kind: 'heros', id: oppHeroId || oppCandidates[0]?.id || '' }
+      : oppKind === 'pnj' ? { kind: 'pnj', id: npc?.id ?? '' } : { kind: 'profil', id: profilId },
     ...(equipe ? { allyProfil: allyProfilId } : {}),
     ...(game?.pot ? { tablePlayers: joueurs } : {}),
   };
   const raison = useGame((s) => refusDeJouer(s, challengerId, partie));
-  const refusHero = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'hero'));
-  const refusNpc = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'npc'));
+  const refusHero = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'heros'));
+  const refusNpc = useGame((s) => refusDAdversaire(s, gameId, challengerId, 'pnj'));
 
   if (!state || arbitreTientLaMain) return null;
   const result = state.result;
@@ -232,15 +232,15 @@ export function TavernGameModal() {
               options={[
                 // Chaque adversaire indisponible PORTE sa cause au survol/focus/tap : « équipe » et
                 // « personne à opposer » sont deux refus différents, et un segment muet les confondait.
-                { key: 'hero', label: 'Un compagnon', selected: oppKind === 'hero', refus: refusHero ?? undefined, onSelect: () => setOppMode('hero') },
-                { key: 'npc', label: 'Un joueur de la salle', selected: oppKind === 'npc', refus: refusNpc ?? undefined, onSelect: () => setOppMode('npc') },
+                { key: 'heros', label: 'Un compagnon', selected: oppKind === 'heros', refus: refusHero ?? undefined, onSelect: () => setOppMode('heros') },
+                { key: 'pnj', label: 'Un joueur de la salle', selected: oppKind === 'pnj', refus: refusNpc ?? undefined, onSelect: () => setOppMode('pnj') },
                 { key: 'profil', label: equipe ? 'L’équipe adverse' : 'Un habitué', selected: oppKind === 'profil', onSelect: () => setOppMode('profil') },
               ]}
             />
             {equipe && (
               <p className="tavern-detail muted">{refusHero}</p>
             )}
-            {oppKind === 'npc' ? (
+            {oppKind === 'pnj' ? (
               <div className="tavern-block">
                 {/* Le PNJ joue de SA fiche : on annonce SON nom et SA valeur de jeu, dérivée par le
                     même collecteur que celle du challenger — jamais une valeur saisie. */}
@@ -252,7 +252,7 @@ export function TavernGameModal() {
                   <p className="tavern-detail">{npc.label} : valeur de jeu <b>{tavernGameValue(npcActor, game)}</b> (de sa fiche).</p>
                 )}
               </div>
-            ) : oppKind === 'hero' ? (
+            ) : oppKind === 'heros' ? (
               <Row gap="sm" align="start">
                 {oppCandidates.map((h) => (
                   <CharFrame key={h.id} c={h} variant="identity" size="xs" selected={h.id === (oppHeroId || oppCandidates[0]?.id)} onClick={() => setOppHeroId(h.id)} />

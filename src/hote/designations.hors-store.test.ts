@@ -76,7 +76,7 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
     const choix = refusDe('fenetreChoisir');
 
     it('une valeur à la forme de son choix passe', () => {
-      expect(choix(['fateSave', 'issue', 'accept'])).toBeNull();
+      expect(choix(['fateSave', 'issue', 'accepter'])).toBeNull();
       expect(choix(['renounce', 'renier', false])).toBeNull();
       expect(choix(['medic', 'patient', etat.party[0].id])).toBeNull();
     });

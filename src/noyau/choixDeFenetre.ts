@@ -160,7 +160,7 @@ const duCatalogue = (r: ActivityResolver | undefined): boolean => r !== 'craftEx
 /** L'ouvrage d'Artisanat à engager, le héros n'en ayant pas en cours. LDB 23 l.76 */
 const aEngager = (r: ActivityResolver | undefined, h: Combatant): boolean => r === 'craftExtended' && !h.craft;
 /** Le choix de la cible `cle` de l'Activité composée du catalogue : chacune de `liste`, fermée par son refus (`refusDeLaValeur`). */
-const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsy', cle: keyof CompositionDActivite['cibles'], liste: (h: Combatant, def: ActivityDef) => readonly T[], valeur: (x: T) => string, libelle: (x: T) => string) =>
+const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsychologique', cle: keyof CompositionDActivite['cibles'], liste: (h: Combatant, def: ActivityDef) => readonly T[], valeur: (x: T) => string, libelle: (x: T) => string) =>
   reglage('interlude', axe, (s, pid) => {
     const lu = composee(s, pid, duCatalogue);
     return lu ? liste(lu.h, lu.def).map((x) => ouverte(valeur(x), libelle(x), refusDeLaValeur(s, lu.h.id, lu.c, axe, valeur(x)))) : [];
@@ -192,8 +192,8 @@ const choixDuMarche = (fenetre: FenetreDuMarche) => {
       return achat ? bulkCarriers(s).map((c) => ouverte(c.id, t('valeur.porteur', { nom: c.label, libre: carrierFreeEnc(c), capacite: c.capacity }), f.refusDuPorteur(s, c.id))) : [];
     }, (s) => brouillon(s)?.porteur ?? null),
     // De 1 à la borne du devis.
-    enc: (s: Jeu): Reglage => {
-      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'enc' as const }, libelle: libelleDuChoix(fenetre, 'enc'), note: null };
+    encombrement: (s: Jeu): Reglage => {
+      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre, axe: 'encombrement' as const }, libelle: libelleDuChoix(fenetre, 'encombrement'), note: null };
       const achat = brouillon(s);
       const max = achat ? f.devis(s, achat.porteur, achat.offre).max : 0;
       return achat && max >= 1
@@ -222,7 +222,7 @@ const postesDuHeros = (s: Jeu, pid: IdDeHeros | undefined, retenu: (postes: read
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
-const ISSUES_DU_DESTIN = ['negate', 'survive', 'accept'] as const;
+const ISSUES_DU_DESTIN = ['eviter', 'survivre', 'accepter'] as const;
 
 /** Les valeurs ouvertes de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const OUVERTS_DU_CHOIX = {
@@ -230,7 +230,7 @@ export const OUVERTS_DU_CHOIX = {
     issue: reglage('fateSave', 'issue', (s) => {
       const p = s.pendingFateSave;
       const offertes = p ? fateSaveOptions(p.source) : [];
-      return p ? ISSUES_DU_DESTIN.filter((v) => v === 'accept' || offertes.includes(v)).map((v) => ouverte(v, t(`valeur.issue.${v}`))) : [];
+      return p ? ISSUES_DU_DESTIN.filter((v) => v === 'accepter' || offertes.includes(v)).map((v) => ouverte(v, t(`valeur.issue.${v}`))) : [];
     }),
   },
   // LDB 17 l.67
@@ -372,7 +372,7 @@ export const OUVERTS_DU_CHOIX = {
     retirerLaQualite: qualitesDeLOuvrage('retirerLaQualite', visee),
     objet: cibleDuCatalogue('objet', 'itemUid', (h, def) => { const { armes, artefacts } = ciblesDActivite(h, def); return [...armes, ...artefacts]; }, (i) => i.uid, (i) => i.label),
     sort: cibleDuCatalogue('sort', 'spellId', (h, def) => ciblesDActivite(h, def).sorts, (x) => x.spell.id, (x) => auPrix(x.spell.label, t('interlude.px', { px: x.cost }))),
-    traitPsy: cibleDuCatalogue('traitPsy', 'traitPsy', (h, def) => ciblesDActivite(h, def).traitsPsy, (x) => x.cle, (x) => libelleDePsy(x.trait.type, x.trait.cible)),
+    traitPsychologique: cibleDuCatalogue('traitPsychologique', 'traitPsy', (h, def) => ciblesDActivite(h, def).traitsPsy, (x) => x.cle, (x) => libelleDePsy(x.trait.type, x.trait.cible)),
     pratiquer: reglage('interlude', 'pratiquer', (s, pid) => {
       const lu = composee(s, pid, () => true);
       return lu ? [ouverte(true, libelleDuChoix('interlude', 'pratiquer'), refusDeLaComposition(s, lu.h.id, lu.c))] : [];

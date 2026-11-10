@@ -29,6 +29,8 @@ import type { RefDesignee, TexteLibre } from '../data/schemas/grammaire/ref';
 export type HorsDesignation<T> = T;
 /** L'Indice d'intérêts d'un placement en banque, choisi entre 1 et 10 (LDB 23 l.168). */
 export type IndiceDePlacement = 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10;
+/** Un pas relatif au cap du meneur (`avancerDUnPas`). */
+export type PasRelatif = 'avant' | 'arriere' | 'gauche' | 'droite';
 
 /** Les gestes de la BARRE de l'actif (#3610) : chacun est le verbe qu'une offre du registre déclare (`ENTREES_PAR_RUN`,
  *  `actionRegistry.ts`), et nul autre geste ne le joue. Le refus de son geste le juge (`refusDuGeste`), dont l'offre
@@ -152,7 +154,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  caché (`carnet.refus.indiceInconnu`). */
   epinglerLIndice: (indiceId: IdDIndice, epingle: boolean) => void;
   /** Marque VUS par son siège les indices affichés au Carnet, tels qu'affichés (`marquerVus`, #2415). */
-  marquerLesIndices: (affichés: readonly IndiceAffiché[]) => void;
+  marquerLesIndices: (affiches: readonly IndiceAffiché[]) => void;
   /** Coop : pose (`levee`) ou retire la demande de pause du prochain début de Round (fenêtre Chance), du siège qui
    *  joue le geste. */
   leverLaMain: (levee: boolean) => void;
@@ -243,7 +245,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** POV : un pas RELATIF au cap du meneur (avance/recul/pas latéral) — cap monde = regard tourné de
    *  0/2/4/6 crans (90° par cadran), case d'arrivée via `povStepDest`. Le regard est préservé pour tout
    *  pas ≠ avant (un pas latéral/arrière ne réoriente pas le meneur). */
-  avancerDUnPas: (rel: 'forward' | 'back' | 'left' | 'right') => void;
+  avancerDUnPas: (rel: PasRelatif) => void;
   /** JOUE une offre NOMMÉE d'une entité (`ActionOfferte.id`) — l'exécuteur UNIQUE des gestes
    *  d'exploration ; `interagirAvecLEntite` n'en est que le raccourci « joue l'unique offre ». */
   jouerAction: (entityId: IdDEntiteDeScene, actionId: IdDActionDEntite) => void;

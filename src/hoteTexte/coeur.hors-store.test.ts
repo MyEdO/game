@@ -88,7 +88,7 @@ describe('la partie et son fichier', () => {
     expect(t.lire('vue').texte).not.toMatch(/intention armée/);
   });
   it('un geste refusé qui a touché l’état (son refus) ne laisse rien en mémoire : la partie est rejouée depuis le fichier', () => {
-    const t = partie('pont-vitrine', verbe('avancerDUnPas', 'back'));
+    const t = partie('pont-vitrine', verbe('avancerDUnPas', 'arriere'));
     const avant = t.lire('vue').texte;
     refuse(t, verbe('franchirLArete', { x: 13, y: 13 }), 'regle', /franchirLArete sans effet : /);
     expect(t.lire('vue').texte, 'la mémoire a divergé du fichier : la vue garde le refus').toBe(avant);
@@ -139,8 +139,8 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     refuse(partie('revisit'), verbe('dissiperLeSort', 'pregen-101', 'arme-aethyrique', 'pregen-101'), 'regle', /dissiperLeSort sans effet : Il faut la compétence Langue \(Magick\)/);
   });
   it('un pas bloqué n’émet qu’un événement informatif : sans effet, l’événement est la raison', { timeout: 120_000 }, () => {
-    const t = partie('pont-vitrine', verbe('avancerDUnPas', 'back'));
-    refuse(t, verbe('avancerDUnPas', 'back'), 'regle', /avancerDUnPas sans effet : move_blocked/);
+    const t = partie('pont-vitrine', verbe('avancerDUnPas', 'arriere'));
+    refuse(t, verbe('avancerDUnPas', 'arriere'), 'regle', /avancerDUnPas sans effet : move_blocked/);
     expect(t.lire('vue').texte).toMatch(/groupe \(7,0\)/);
   });
   it('un clic du champ sous un coup ouvert (son jet en attente) : le noyau le refuse, sans aperçu posé', { timeout: 120_000 }, () => {

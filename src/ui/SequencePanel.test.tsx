@@ -94,7 +94,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
   function partie(): [Combatant, Combatant] {
     const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
     useGame.setState({ party: [a, b] });
-    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
     return [a, b];
   }
 
@@ -196,7 +196,7 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
       scene: { ...emptyScene('scene-test'), entities: [negociant] },
       battle: null, sequence: null, pendingCascade: null,
     });
-    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'npc', id: 'negociant' } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'pnj', id: 'negociant' } });
 
     const pc = get().pendingCascade!;
     const band = pc.participants[0];
@@ -291,7 +291,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
   it('Bras de fer héros contre héros (étape BANDE), « Abandonner » est offert', () => {
     const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
     useGame.setState({ party: [a, b] });
-    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
     expect(get().pendingCascade!.participants[0].participants, 'manche en bande').toBeDefined();
     render();
     expect(boutons(), 'branche batch').toContain('Abandonner');

@@ -255,7 +255,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                         <NumberField
                           variant="nu" label={`Enc à embarquer — ${o.label}`}
                           min={1} max={devis.max} value={devis.enc} disabled={!!refusHote}
-                          onChange={(n) => { composer(o.cargoId); choisir('port', 'enc', n); }}
+                          onChange={(n) => { composer(o.cargoId); choisir('port', 'encombrement', n); }}
                         />
                         <span className="market-offer-total">≈ <Coins money={toMoney({ gold: devis.estimationGold })} /></span>
                         <GatedAction

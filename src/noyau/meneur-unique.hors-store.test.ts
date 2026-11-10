@@ -95,7 +95,7 @@ describe('un seul meneur — le premier du roster est à terre, c’est le suiva
     const anims: string[] = [];
     const ecoute = (p: { id: string }) => anims.push(p.id);
     bus.on(EVT.ANIM_MOVE, ecoute as never);
-    banc.getState().avancerDUnPas('left');
+    banc.getState().avancerDUnPas('gauche');
     bus.off(EVT.ANIM_MOVE, ecoute as never);
     expect(anims).toEqual(['b']);
     expect(capDuGroupe(banc.getState())).toBe('E'); // pas latéral : cap PRÉSERVÉ
