@@ -20,6 +20,8 @@ import { isPsychImmune } from '../engine/psychology';
 import type { Combatant } from '../engine/types';
 import type { BatchParticipant, CascadeStep } from './pendings';
 import { t } from '../i18n';
+import { fixtureText } from '../i18n/fixtureText';
+import { cleDeFixture } from './noyau.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -48,10 +50,10 @@ const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant
 
 /** Une bande de Peur (LDB 21 l.25) partagée par `h2` et `h3` : la fenêtre est à tous (`groupOwner`). */
 function bandeDePeur(rangees: BatchParticipant[] = [row('h2'), row('h3')]) {
-  const etape = {
-    id: 'bande-peur', kind: 'combatPsych', label: 'Peur', aggregate: 'none', participants: rangees, result: null, groupOwner: true,
+  const etape: CascadeStep = {
+    id: 'bande-peur', kind: 'combatPsych', label: fixtureText('Peur'), aggregate: 'none', participants: rangees, result: null, groupOwner: true,
     combatPsych: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
-  } as unknown as CascadeStep;
+  };
   startCascade(banc.getState, banc.setState, { title: 'Peur', purpose: 'test', steps: [etape] });
 }
 
@@ -107,7 +109,7 @@ describe('`fenetreDeDetermination` : la bande offre l’immunité à chacun de s
   });
 
   it('une bande sans Psychologie : chaque porteur fermé, rien à écarter, et le verbe ne dépense rien', () => {
-    const etape = { id: 'bande-nue', kind: 'bande-nue', label: 'Bande', aggregate: 'none', participants: [row('h2'), row('h3')], result: null, groupOwner: true } as unknown as CascadeStep;
+    const etape: CascadeStep = { id: 'bande-nue', kind: cleDeFixture('bande-nue'), label: fixtureText('Bande'), aggregate: 'none', participants: [row('h2'), row('h3')], result: null, groupOwner: true };
     startCascade(banc.getState, banc.setState, { title: 'Bande', purpose: 'test', steps: [etape] });
     expect(fenetreDeDetermination(banc.getState())!.porteur.options.map((o) => o.refus)).toEqual([t('cs.determinationSansMalusPsy'), t('cs.determinationSansMalusPsy')]);
     banc.getState().depenserLaDetermination('h2', 'immuniserALaPsychologie');
