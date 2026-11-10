@@ -201,7 +201,7 @@ describe('moveCursor/commitCursor en mode-CASE (belier-porte, #198 résidus) —
     useGame.setState({ screen: 'campaign', party });
     useGame.getState().lancerLaScene(scene);
     useGame.getState().lancerLeCombat('siege-belier');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     const b0 = useGame.getState().battle!;
     const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
     useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });

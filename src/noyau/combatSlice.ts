@@ -517,7 +517,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   // ouverte ; acteur actif non piloté par l'IA) : l'élargissement ne peut pas la faire agir à tort.
   // Continuation DÉTERMINISTE de la victoire différée (#345) d'abord : `checkBattleOver` a pu DIFFÉRER
   // la cascade de fin de combat tant que ce slot était occupé — on re-vérifie ICI, slot libre, sans
-  // dépendre d'un clic (`fenetreValider('roundStart')`). Le garde `!pendingCascade` (checkBattleOver) protège la
+  // dépendre d'un clic (`fenetreValider('debutDuRound')`). Le garde `!pendingCascade` (checkBattleOver) protège la
   // double-ouverture. `handled` (dénouement déjà joué : pause de Round, reprise de manœuvre…) garde
   // la main sur son propre enchaînement.
   if (!handled && get().battle) {
@@ -1383,7 +1383,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const { battle, pendingSiegeAim: sa } = get();
       if (!battle || battle.over || !sa) return;
       const gunner = inBattleId(battle, sa.gunnerId);
-      get().fenetreFermer('siegeAim'); // referme le placeur — MÊME porte que la sortie d'interlude
+      get().fenetreFermer('viseeDeSiege'); // referme le placeur — MÊME porte que la sortie d'interlude
       if (!gunner || isOutOfAction(gunner) || !canTakeAction(gunner) || battle.acted) return;
       const aim = battle.combatants
         .filter((c) => c.kind !== gunner.kind && !isOutOfAction(c) && c.pos && chebyshev(pt, c.pos) <= sa.radius)
@@ -1880,7 +1880,7 @@ export function createCombatSlice(get: Get, set: Set) {
 
 /** Les choix des fenêtres du combat (`CorpsDesChoix`) : `fenetreChoisir` les joue, parmi les valeurs que l'état ouvre
  *  (`OUVERTS_DU_CHOIX`). */
-export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave' | 'mountTarget' | 'roundStart'> {
+export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' | 'cibleDeMonture' | 'debutDuRound'> {
   /** Le Point de Destin sacrifié (LDB 17 l.29-32) résout la suspension `pendingFateSave`. */
   const issues = {
     eviter: () => {
@@ -1925,11 +1925,11 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
       if (source === 'slow') resolveRoundBoundary(get, set);
       else resumeEnemyTurn(get, set);
     },
-  } satisfies Record<ChoixDesFenetres['fateSave']['issue'], () => void>;
+  } satisfies Record<ChoixDesFenetres['destin']['issue'], () => void>;
   return {
-    fateSave: { issue: (issue) => issues[issue]() },
+    destin: { issue: (issue) => issues[issue]() },
     // LDB 14 l.181 : l'attaque ou la charge se relance sur l'id choisi, la modale court-circuitée (`skipMountChoice`).
-    mountTarget: {
+    cibleDeMonture: {
       cible: (id) => {
         const pm = garanti(get().pendingMountTarget, id, 'cible du couple monté');
         set({ pendingMountTarget: null });
@@ -1937,7 +1937,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
         get().cliquerLeCombattant(id, { skipMountChoice: true, intentionId: pm.intentionId });
       },
     },
-    roundStart: {
+    debutDuRound: {
       // LDB 17 l.25, LDB 62 l.298-300 : en tête de l'ordre du Round, 1 Chance sauf arme Rapide.
       promouvoir: (heroId) => {
         const battle = garanti(get().battle, heroId, 'bataille de la pause');
@@ -2374,27 +2374,27 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
 export function sortiesDuCombat(get: Get, set: Set) {
   return {
     cascade: () => terminerLaCascade(get, set),
-    mountTarget: () => set({ pendingMountTarget: null }),
+    cibleDeMonture: () => set({ pendingMountTarget: null }),
     /** REFERME le placeur de case du pilonnage SANS tirer : le pending tombe et l'option « Servir … »
      *  se désarme (l'attaque redevient celle de l'Arme) — l'état exact que laisse un re-clic sur la
      *  case d'attaque (`armerLAttaque`). Sortie de l'interlude `poseDeLaZone` quand la zone en cours
      *  vient du siège (`placingZoneOf` source `siege`), et point de fermeture unique de `poserLePointDImpact`.
      *  Aucun coût : rien n'a été jeté. */
-    siegeAim: () => set((s) => ({ pendingSiegeAim: null, ...(s.battle && { battle: { ...s.battle, selectedAttack: undefined, preview: null } }) })),
+    viseeDeSiege: () => set((s) => ({ pendingSiegeAim: null, ...(s.battle && { battle: { ...s.battle, selectedAttack: undefined, preview: null } }) })),
     /** Fin du balayage : la restitution que la chaîne portait, puis la clôture de l'étape-jet de la cascade (reprise). */
-    cleave: () => {
+    frappeMortelle: () => {
       const { battle, pendingCleave: pc } = get();
       set({ pendingCleave: null, ...(battle && pc?.restitution ? { battle: { ...battle, acted: pc.restitution.prevActed } } : {}) });
       advanceCombatJet(get);
     },
     /** Renoncer à la 2ᵉ frappe : pas de 2ᵉ attaque, pas d'Avantage. LDB 10 l.767-773 */
-    dualStrike: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); },
+    secondeFrappe: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); },
   } satisfies Partial<SortiesDeFenetre>;
 }
 
 /** La validation de la pause de début de Round : le Round se lance (`lancerLeRound`). */
 export function validationsDuCombat(get: Get, set: Set) {
-  return { roundStart: () => lancerLeRound(get, set) } satisfies Partial<ValidationsDeFenetre>;
+  return { debutDuRound: () => lancerLeRound(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les clôtures des flux du combat (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
@@ -2782,7 +2782,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attack', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       // 2ᵉ frappe « des deux armes » ratée : la 2ᵉ est renoncée (l'Action reste dépensée par la 1ʳᵉ frappe) →
-      // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('dualStrike')`).
+      // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('secondeFrappe')`).
       if (pg.pa.dualSecond) { set({ pendingDualStrike: null }); advanceCombatJet(get); return; }
       // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetValider('reload')).
       if (aiDriven(get(), attacker) && get().battle) resumeEnemyTurn(get, set);
@@ -3021,7 +3021,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!quitterLaDefense()) resumeEnemyTurn(get, set);
     },
     /** « Appliquer » : applique le soin (le jet est déjà figé). Coûte l'Action en combat. L'infirmerie
-     *  (`medic`) n'est PAS touchée : la modale persistante reste ouverte pour l'acte suivant. */
+     *  (`infirmerie`) n'est PAS touchée : la modale persistante reste ouverte pour l'acte suivant. */
     heal: () => {
       const ph = get().pendingHeal;
       if (!ph) return;

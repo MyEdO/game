@@ -367,7 +367,7 @@ export function willAutoResolve(s: Jeu): boolean {
   switch (pol.mode) {
     case 'hostOnly': return false;
     case 'self': return true;
-    case 'choice': return cadenceAutoCombat() && (pickActiveModalKey(s) === 'fateSave' || !!pol.autoDrive);
+    case 'choice': return cadenceAutoCombat() && (pickActiveModalKey(s) === 'destin' || !!pol.autoDrive);
     case 'partial': {
       const pc = s.pendingCascade;
       if (!pc) return false;
@@ -387,7 +387,7 @@ export function spectatorSeatOfModal(s: Jeu): number | null {
   if (s.net.mode === 'local') return null;
   const key = pickActiveModalKey(s);
   if (!key) return null;
-  if ((key === 'cascade' || key === 'rest') && voyageHubActive(s)) return null;
+  if ((key === 'cascade' || key === 'repos') && voyageHubActive(s)) return null;
   if (willAutoResolve(s)) return null;
   const ownerId = modalOwnerOf(s);
   if (ownerId === '*' || ownerId === null || ownsLocal(s, ownerId)) return null;
@@ -412,9 +412,9 @@ export function tickCombatAuto(get: Get, set: Set): void {
       // Auto-combat seul : le Sauvetage par Destin est dépensé automatiquement pour éviter la mort,
       // `eviter` s'il est offert (`fateSaveOptions`), sinon `survivre`. En Rapide, on NE touche PAS (la
       // modale reste — vrai choix du joueur).
-      if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave' && s.pendingFateSave) {
+      if (cadenceAutoCombat() && pickActiveModalKey(s) === 'destin' && s.pendingFateSave) {
         const eviter = fateSaveOptions(s.pendingFateSave.source).includes('eviter');
-        programmer(() => get().fenetreChoisir('fateSave', 'issue', eviter ? 'eviter' : 'survivre'), beatHold(get, 'autoResolve'));
+        programmer(() => get().fenetreChoisir('destin', 'issue', eviter ? 'eviter' : 'survivre'), beatHold(get, 'autoResolve'));
       }
       return;
     case 'partial':

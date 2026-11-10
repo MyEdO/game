@@ -44,7 +44,7 @@ function setup() {
   useGame.setState({ party: [hero] });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   const battle = useGame.getState().battle!;
   const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
   active.pos = { x: 6, y: 10 };

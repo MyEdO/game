@@ -135,7 +135,7 @@ describe('Scénario « La fenêtre sur les écuries » — l’homme de main se 
     const homme = () => g().battle!.combatants.find((c) => c.id === 'homme-de-main')!;
     expect(homme().pos!.z).toBe(1);
     for (let i = 0; i < 80 && !g().pendingDefense; i++) {
-      if (g().pendingRoundStart) g().fenetreValider('roundStart');
+      if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
       while (g().pendingCascade) avanceEtapeCascade(g);
       const b = g().battle!;
       const actif = b.combatants.find((c) => c.id === b.order[b.turn]);

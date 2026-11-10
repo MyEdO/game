@@ -42,7 +42,7 @@ function bargeTo(routeId: string, destPlaceId: string, maxSteps = 60): void {
     if (!get().travelPlan && get().lieu === destPlaceId) return;
     // Les jets du JOUR fluvial (et l'exposition) sont une cascade influençable : la drainer.
     if (get().pendingCascade) { drainCascade(); continue; }
-    if (get().pendingRest) { get().fenetreValider('rest'); drainCascade(); continue; }
+    if (get().pendingRest) { get().fenetreValider('repos'); drainCascade(); continue; }
     if (!get().travelPlan) return;
   }
 }
@@ -164,7 +164,7 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
         continue;
       }
       if (p) { fenetres.push(p.purpose); break; }
-      if (get().pendingRest) get().fenetreValider('rest');
+      if (get().pendingRest) get().fenetreValider('repos');
     }
     return fenetres;
   }

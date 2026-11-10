@@ -60,22 +60,22 @@ function deroule(): { issue: string; ouverts?: string[]; doubleMain: string[] } 
     const actif = s.battle.combatants.find((x) => x.id === s.battle!.order[s.battle!.turn]);
     const cible = targetingHolder(s);
     if (cible && pickActiveModalKey(s) === 'cascade') doubleMain.push(`${cible} sur ${cur?.id}`);
-    if (s.pendingRoundStart) { g().fenetreValider('roundStart'); continue; }
-    if (s.pendingFateSave) { g().fenetreChoisir('fateSave', 'issue', 'eviter'); if (g().pendingFateSave) g().fenetreChoisir('fateSave', 'issue', 'survivre'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetLancer('handGate'); else g().jetValider('handGate'); continue; }
+    if (s.pendingRoundStart) { g().fenetreValider('debutDuRound'); continue; }
+    if (s.pendingFateSave) { g().fenetreChoisir('destin', 'issue', 'eviter'); if (g().pendingFateSave) g().fenetreChoisir('destin', 'issue', 'survivre'); continue; } if (s.pendingHandGate) { if (s.pendingHandGate.roll == null) g().jetLancer('handGate'); else g().jetValider('handGate'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense && !s.pendingDefense.result) { g().jetLancer('defense'); continue; }
     if (cur?.jet === 'defense' && s.pendingDefense?.result) { g().jetValider('defense'); continue; }
     if (cible === 'pendingDualStrike' && !s.pendingHandGate) {
       const a = s.battle.combatants.find((x) => x.id === s.pendingDualStrike!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && vivant(x) && adj(a, x));
       if (t) g().frapperDeLaSecondeArme(t.id);
-      if (g().pendingDualStrike && !g().pendingAttack && !g().pendingHandGate) g().fenetreFermer('dualStrike');
+      if (g().pendingDualStrike && !g().pendingAttack && !g().pendingHandGate) g().fenetreFermer('secondeFrappe');
       continue;
     }
     if (cible === 'pendingCleave') {
       const a = s.battle.combatants.find((x) => x.id === s.pendingCleave!.attackerId)!;
       const t = s.battle.combatants.find((x) => x.kind !== a.kind && !s.pendingCleave!.hitIds.includes(x.id) && vivant(x) && adj(a, x));
       if (t) g().frapperEnBalayage(t.id);
-      if (!g().pendingAttack) g().fenetreFermer('cleave');
+      if (!g().pendingAttack) g().fenetreFermer('frappeMortelle');
       continue;
     }
     if (cur?.jet === 'attack' && s.pendingAttack) { if (!s.pendingAttack.result) g().jetLancer('attack'); else g().jetValider('attack'); continue; }

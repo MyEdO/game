@@ -79,7 +79,7 @@ function combat(scene: Scene, pos: Pt, tour: { movementUsed?: number; acted?: bo
   banc.setState({ party: [hero], net: NET0 });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -349,7 +349,7 @@ describe('Test d’Escalade (LDB 15 l.57) : celui du GRIMPEUR', () => {
     banc.setState({ party: [H, S], net: NET0 });
     g().lancerLaScene(testScene());
     g().lancerLeCombat('enc-mutants');
-    g().fenetreValider('roundStart');
+    g().fenetreValider('debutDuRound');
     const b = g().battle!;
     const cH = b.combatants.find((x) => x.id === H.id)!;
     const cS = b.combatants.find((x) => x.id === S.id)!;

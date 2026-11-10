@@ -73,7 +73,7 @@ function combat(actif: 'hero' | 'enemy' = 'hero') {
   useGame.setState({ party: [hero], net: NET0, battle: null });
   useGame.getState().lancerLaScene(testScene());
   useGame.getState().lancerLeCombat('enc-mutants');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   vi.clearAllTimers();
   vi.useRealTimers(); // `respirer` attend en temps réel
   const sc = corniche();

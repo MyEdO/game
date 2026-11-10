@@ -43,7 +43,7 @@ function setup() {
   banc.setState({ party: [mk('W1', 707, 20, 'feu'), mk('W2', 101, 10, 'feu'), mk('W3', 55, 15, 'mort')] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const b = banc.getState().battle!;
   const heroes = b.combatants.filter((c) => c.kind === 'hero');
   const enemies = b.combatants.filter((c) => c.kind === 'enemy');

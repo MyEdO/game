@@ -401,7 +401,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
     expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
     // La nuit franchie, la journée SUIVANTE se ré-arme (nouvelle cascade travelDay) — le voyage repart.
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest).toBeNull();
     expect(get().pendingCascade?.purpose).toBe('travelDay');
     expect(get().travelPlan?.river).toBeTruthy();
@@ -440,8 +440,8 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().partirEnVoyage('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) get().fenetreChoisir('rest', 'pitance', 'repas', h.id);
-    get().fenetreValider('rest');
+    for (const h of get().party) get().fenetreChoisir('repos', 'pitance', 'repas', h.id);
+    get().fenetreValider('repos');
     draineCascade(get);
     for (const h of get().party) {
       expect(h.hunger?.days ?? 0).toBe(0);
@@ -456,8 +456,8 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().partirEnVoyage('r-reik', 'barge');
     draineCascade(get);
     expect(get().pendingRest).toBeTruthy();
-    for (const h of get().party) { get().fenetreChoisir('rest', 'couchage', 'dehors', h.id); get().fenetreChoisir('rest', 'pitance', 'rien', h.id); }
-    get().fenetreValider('rest');
+    for (const h of get().party) { get().fenetreChoisir('repos', 'couchage', 'dehors', h.id); get().fenetreChoisir('repos', 'pitance', 'rien', h.id); }
+    get().fenetreValider('repos');
     draineCascade(get);
     for (const h of get().party) expect(h.hunger?.days ?? 0).toBe(1);
   });
@@ -472,7 +472,7 @@ describe('descente end-to-end — le Reik jusqu\'à Altdorf (cascades jour + nui
     for (let i = 0; i < 120; i++) {
       if (!get().travelPlan && get().lieu === 'B') break;
       if (get().pendingCascade) { draineCascade(get); continue; }
-      if (get().pendingRest) { get().fenetreValider('rest'); draineCascade(get); continue; }
+      if (get().pendingRest) { get().fenetreValider('repos'); draineCascade(get); continue; }
       if (!get().travelPlan) break;
     }
     expect(get().travelPlan).toBeNull();

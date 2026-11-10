@@ -299,7 +299,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *   __wfrp.advanceSeaDay() → symétrique VOYAGE de `fastForward` : pilote la journée en mer EN COURS
  *                           (cascade du jour, halte de nuit, Activités hebdo…) jusqu'au jour SUIVANT,
  *                           l'arrivée ou un combat — MÊME machinerie que le joueur (`jetLancer('cascade')`/
- *                           Finish, fenetreValider('rest'), fenetreValider('seaActivities')…), juste sans les clics ;
+ *                           Finish, fenetreValider('repos'), fenetreValider('activitesEnMer')…), juste sans les clics ;
  *                           advanceSeaDay({stopOnEveryEvent:true}) → s'arrête AUSSI au recap d'un événement
  *                           RACONTÉ (carte-parchemin de `travelDay.events`) — et SEULEMENT là : jamais
  *                           sur une étape STRUCTURELLE du jour (Progression, Orientation, Exposition…),
@@ -365,7 +365,7 @@ function devDriveModal(verb: 'Roll' | 'Confirm' | 'Cancel'): string {
   const open = Object.keys(s).filter((k) => /^pending/.test(k) && (Array.isArray(s[k]) ? (s[k] as unknown[]).length > 0 : s[k] != null));
   if (!open.length) return '✗ aucune modale ouverte';
   // File à verbe propre d'abord : pause d'ouverture de Round.
-  if (verb === 'Confirm' && open.includes('pendingRoundStart')) { useGame.getState().fenetreValider('roundStart'); return '✓ Round lancé'; }
+  if (verb === 'Confirm' && open.includes('pendingRoundStart')) { useGame.getState().fenetreValider('debutDuRound'); return '✓ Round lancé'; }
   const flux = devFluxOf(open);
   if (!flux) return `✗ pas de flux pilotable parmi : ${open.join(', ')}`;
   const deJet = verb === 'Roll' ? 'roll' : verb === 'Confirm' ? 'confirm' : 'cancel';
@@ -404,7 +404,7 @@ function riverDayCascade(): string {
  *  `setTimeout(0)` différé (`seaVoyageFlow.ts`) — une boucle purement synchrone les manquerait.
  *  `stopAtNextDay` (`advanceSeaDay`) : UNE journée = EXACTEMENT une cascade `purpose:'travelDay'`
  *  (`buildSeaDayCascade`/`runSeaDay` — jamais scindée) ; on la résout PUIS on laisse la halte de nuit
- *  se dérouler (défauts de logement/tambouille pré-remplis, `fenetreValider('rest')`) jusqu'à ce qu'une SECONDE
+ *  se dérouler (défauts de logement/tambouille pré-remplis, `fenetreValider('repos')`) jusqu'à ce qu'une SECONDE
  *  cascade `travelDay` FRAÎCHE (`cursor===0`, encore intacte) apparaisse — on s'arrête AVANT de la
  *  toucher (jamais `sea.daysAtSea`, qui avance AVANT la halte : #297 piège vécu — un guard sur ce seul
  *  compteur coupe la halte de nuit en plein vol). `skipToArrival` (`stopAtNextDay=false`) ignore ce
@@ -472,19 +472,19 @@ function driveSeaVoyage(stopAtNextDay: boolean, maxIters: number, stopOnEvent = 
           const jourClos = s.pendingRest.travelHalt ? s.travelPlan?.log?.[s.travelPlan.log.length - 1] : undefined; // `ouvrirLeRepos`
           const evts = jourClos?.events ?? [];
           if (stopOnEvent && evts.length) {
-            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible à la halte de nuit (__wfrp.modal()/state()) ; fenetreValider('rest') ou advanceSeaDay() reprend`);
+            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible à la halte de nuit (__wfrp.modal()/state()) ; fenetreValider('repos') ou advanceSeaDay() reprend`);
             return;
           }
-          s.fenetreValider('rest');
+          s.fenetreValider('repos');
           real(tick, 0); return;
         }
         if (s.pendingSeaActivities) {
           const evts = s.pendingSeaActivities.day.events ?? [];
           if (stopOnEvent && evts.length) {
-            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; fenetreValider('seaActivities') ou advanceSeaDay() reprend`);
+            resolve(`✓ événement de bord raconté au recap (${evts.length}) — carte-parchemin visible (Activités hebdo ouvertes) ; fenetreValider('activitesEnMer') ou advanceSeaDay() reprend`);
             return;
           }
-          s.fenetreValider('seaActivities'); real(tick, 0); return;
+          s.fenetreValider('activitesEnMer'); real(tick, 0); return;
         }
         const sr = s as unknown as Record<string, unknown>;
         const open = Object.keys(sr).filter((k) => /^pending/.test(k) && (Array.isArray(sr[k]) ? (sr[k] as unknown[]).length > 0 : sr[k] != null));
@@ -644,7 +644,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     // chargement ferait rejouer en boucle un scénario qui jette à `resumeLastScenario()`.
     rememberScenario(seed != null ? { id: sc.id, seed } : { id: sc.id });
     demarrerLeLancement(g, useGame.setState, construit);
-    if (g().pendingRoundStart) g().fenetreValider('roundStart');
+    if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
     if (construit.massBattle) return `✓ bataille de masse « ${sc.title} » lancée${g().interlude ? ' (préparation dans le menu d\'interlude)' : ''}`;
     return `✓ scénario « ${sc.title} » lancé${sc.autoCombat ? ' (combat direct, prêt à jouer)' : ''}`;
   };
@@ -1498,7 +1498,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const names = flux
         ? (['roll', 'confirm', 'cancel'] as const).filter((v) => fluxAccepte(flux, v)).map((v) => `${NOM_DU_VERBE_DE_JET[v]}('${flux}')`)
         : [];
-      return { open, pilote: flux ? names : open.includes('pendingRoundStart') ? ["fenetreValider('roundStart')"] : [] };
+      return { open, pilote: flux ? names : open.includes('pendingRoundStart') ? ["fenetreValider('debutDuRound')"] : [] };
     },
 
     /** OBSERVATION : le GESTE que la partie attend SUR LA CARTE, fenêtre masquée — `null` s'il n'y en a
@@ -1520,7 +1520,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
 
     /** Lance le jet de LA modale ouverte (`jetLancer(flux)`) */
     roll: () => devDriveModal('Roll'),
-    /** Applique/acquitte LA modale ouverte (Round → fenetreValider('roundStart'), sinon jetValider(flux)). */
+    /** Applique/acquitte LA modale ouverte (Round → fenetreValider('debutDuRound'), sinon jetValider(flux)). */
     confirm: () => devDriveModal('Confirm'),
     /** Annule LA modale ouverte (`jetAnnuler(flux)`). */
     cancel: () => devDriveModal('Cancel'),
@@ -2221,7 +2221,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         };
         // CONTRAT DU KICK : `fastForward` ne DÉCIDE rien et ne joue aucun tour à la place de la
         // machinerie — elle est auto-perpétuante (`advanceTurn` rappelle `maybeRunEnemyTurn` à chaque
-        // tour). Il ne fait que RAMORCER une chaîne ARRÊTÉE (juste après `fenetreValider('roundStart')`, ou un tour
+        // tour). Il ne fait que RAMORCER une chaîne ARRÊTÉE (juste après `fenetreValider('debutDuRound')`, ou un tour
         // immobile), et seulement quand PERSONNE ne tient la main (`combatAdvanceBlocked`) : une fenêtre
         // ouverte appartient au joueur, la pause de Round aussi. Le doublon, lui, est impossible en aval
         // (un tour d'IA décidé une fois, `battle.tourEnCours.decide`, #1852, #3058) — ici on ne fait que ne pas le
@@ -2244,7 +2244,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
           }
         };
         try {
-          kick(); // amorce si rien n'est déjà en vol (ex. juste après fenetreValider('roundStart'))
+          kick(); // amorce si rien n'est déjà en vol (ex. juste après fenetreValider('debutDuRound'))
           tick();
         } catch (e) {
           fail(e);

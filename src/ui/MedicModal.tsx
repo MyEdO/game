@@ -54,11 +54,11 @@ export function MedicModal() {
   const party = useGame((s) => s.party);
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
   const choisir = useGame((s) => s.fenetreChoisir);
-  const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'medic'));
-  const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'medic', 'patient', h.id)]))));
+  const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'infirmerie'));
+  const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'infirmerie', 'patient', h.id)]))));
   const regler = useGame((s) => s.jetRegler);
   const fermer = useGame((s) => s.fenetreFermer);
-  const close = () => fermer('medic');
+  const close = () => fermer('infirmerie');
   const soin = useHealJetProps({ embedded: true });
   const passe = useSurgeryJetProps();
   const jet = useRollShell(soin ?? passe);
@@ -77,7 +77,7 @@ export function MedicModal() {
   // et la sortie de l'état courant (l'arrêt d'une opération armée, sinon « Terminer »).
   const brouillon = !!ph && ph.roll == null;
   const sortie = sg ? (
-    <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={() => choisir('medic', 'abandon', true)} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
+    <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={() => choisir('infirmerie', 'abandon', true)} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
       {sg.kind === 'reeducation' ? 'Arrêter la rééducation' : 'Arrêter l’opération'}
     </button>
   ) : (
@@ -98,7 +98,7 @@ export function MedicModal() {
             variant="full"
             size="md"
             selected={h.id === medic.patientId}
-            onClick={refusDuPatient[h.id] ? undefined : () => choisir('medic', 'patient', h.id)}
+            onClick={refusDuPatient[h.id] ? undefined : () => choisir('infirmerie', 'patient', h.id)}
             nom={refusDuPatient[h.id] ? `${h.label} — ${refusDuPatient[h.id]}` : h.label}
           />
         ))}
@@ -141,7 +141,7 @@ export function MedicModal() {
                 <OptionChooser
                   layout="grid"
                   idPrefix="medic-plaie"
-                  options={plaies.map(({ uid, libelle }) => ({ key: uid, label: libelle, selected: uid === sg.traumaUid, onSelect: () => choisir('medic', 'plaie', uid) }))}
+                  options={plaies.map(({ uid, libelle }) => ({ key: uid, label: libelle, selected: uid === sg.traumaUid, onSelect: () => choisir('infirmerie', 'plaie', uid) }))}
                 />
               )}
               {/* EXCEPTION nommée au site unique `RollRow.extendedDr` (arbitrage user 2026-07-11, verrou

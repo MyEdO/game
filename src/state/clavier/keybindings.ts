@@ -332,7 +332,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   // focalisé, son activation native suffit (pas de double appel). La touche est un CONSOMMATEUR du
   // registre d'actions (`round-start`) : l'arbitrage solo/coop vit dans SON dispatcher, une seule fois.
   {
-    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.roundStart.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
+    id: 'round-start', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'verbe.debutDuRound.valider', section: 'combat', notWhenControlFocused: true, sharedBy: ['end-turn', 'cursor-commit', 'editeur-pan'],
     when: (s) => inBattle(s) && !!s.pendingRoundStart && !s.preemptAiming, // visée Tir rapide armée → Entrée TIRE (curseur), pas « commencer »
     run: (g) => jouerLOffreDeLEcran(g(), 'round-start'),
   },
@@ -346,7 +346,7 @@ export const KEYBINDINGS: KeyBinding[] = [
       const shooters = preemptShooterIds(g);
       const i = g().preemptAiming ? shooters.indexOf(g().preemptAiming!) : -1;
       const next = i + 1 < shooters.length ? shooters[i + 1] : null; // tireur suivant, puis désarme après le dernier
-      g().fenetreChoisir('roundStart', 'viser', next);
+      g().fenetreChoisir('debutDuRound', 'viser', next);
       if (next) g().snapCursorToTarget(1); else g().clearCursor(); // pose le curseur sur la cible la plus proche
     },
   },
@@ -396,7 +396,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   {
     id: 'cursor-cancel', codes: [CODE_ECHAP], labelKey: 'key.cursorCancel', section: 'curseur', sharedBy: ['clear-preview', 'toggle-menu', 'intent-cancel', 'interlude-exit', 'action-disarm', 'editeur-echap'],
     when: (s) => !!s.combatCursor || preemptCur(s), // armé sans cible en vue : Échap désarme quand même le Tir rapide
-    run: (g) => { if (g().preemptAiming) g().fenetreChoisir('roundStart', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
+    run: (g) => { if (g().preemptAiming) g().fenetreChoisir('debutDuRound', 'viser', null); g().clearCursor(); if (g().battle?.preview) g().effacerLApercu(); },
   },
   {
     id: 'end-turn', codes: ['Space', 'Enter', 'NumpadEnter'], labelKey: 'key.endTurn', section: 'combat', notWhenControlFocused: true, sharedBy: ['round-start', 'cursor-commit', 'editeur-pan'],

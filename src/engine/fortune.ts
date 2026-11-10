@@ -36,7 +36,7 @@ export type FateSaveSource = 'hit' | 'slow';
 export type FateSaveOption = 'survivre' | 'eviter';
 
 /** Options OFFERTES selon la source, dans l'ordre du livre : LDB 17 l.31-32. Source unique de la
- *  fenêtre, de son enjeu, du choix `fateSave.issue` et de l'auto-combat. */
+ *  fenêtre, de son enjeu, du choix `destin.issue` et de l'auto-combat. */
 export function fateSaveOptions(source: FateSaveSource): readonly FateSaveOption[] {
   return source === 'hit' ? ['survivre', 'eviter'] : ['survivre'];
 }

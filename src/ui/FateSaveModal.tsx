@@ -32,7 +32,7 @@ export function FateSaveModal() {
   if (!hero) return null;
   const fate = hero.fate ?? 0;
   const offre = fateSaveOptions(p.source);
-  const choisir = (issue: FateSaveOption | 'accepter') => () => choisirLIssue('fateSave', 'issue', issue);
+  const choisir = (issue: FateSaveOption | 'accepter') => () => choisirLIssue('destin', 'issue', issue);
   const refus = flowStakeRef(FATE_SAVE_STAKE.choice);
 
   return (

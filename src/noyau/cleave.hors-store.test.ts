@@ -64,7 +64,7 @@ describe('Balayage en combat (store)', () => {
     banc.setState({ party });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // on pilote l'ordre nous-mêmes
     return banc.getState().battle!;
   }
@@ -226,7 +226,7 @@ describe('Balayage en combat (store)', () => {
     banc.getState().frapperEnBalayage(E1.id);
     expect(banc.getState().pendingAttack).toBeNull(); // refusé : count >= BCC
 
-    banc.getState().fenetreFermer('cleave');
+    banc.getState().fenetreFermer('frappeMortelle');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 

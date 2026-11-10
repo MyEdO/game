@@ -127,7 +127,7 @@ const enVente = (m: MerchantState, it: ItemInstance): boolean => (m.sellCart ?? 
 /** Le héros `pid` d'une rangée, hors de toute rangée tout héros : un héros du groupe. */
 const duGroupe = (s: Jeu, pid: IdDeHeros | undefined): boolean => pid === undefined || s.party.some((h) => h.id === pid);
 /** Chaque ligne du butin `lignes`, au héros `pid` du groupe. */
-const lignesDuButin = (fenetre: 'loot' | 'victory', lignes: (s: Jeu) => readonly LootGear[] | undefined) =>
+const lignesDuButin = (fenetre: 'butin' | 'victoire', lignes: (s: Jeu) => readonly LootGear[] | undefined) =>
   reglage(fenetre, 'ligne', (s, pid) => (duGroupe(s, pid) ? (lignes(s) ?? []).map((g) => ouverte(g.uid, g.label)) : []));
 /** La nuit à régler, au dormeur `pid` (hors de toute rangée, la troupe). */
 const nuitDuDormeur = (s: Jeu, pid: IdDeHeros | undefined) => {
@@ -226,31 +226,31 @@ const ISSUES_DU_DESTIN = ['eviter', 'survivre', 'accepter'] as const;
 
 /** Les valeurs ouvertes de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const OUVERTS_DU_CHOIX = {
-  fateSave: {
-    issue: reglage('fateSave', 'issue', (s) => {
+  destin: {
+    issue: reglage('destin', 'issue', (s) => {
       const p = s.pendingFateSave;
       const offertes = p ? fateSaveOptions(p.source) : [];
       return p ? ISSUES_DU_DESTIN.filter((v) => v === 'accepter' || offertes.includes(v)).map((v) => ouverte(v, t(`valeur.issue.${v}`))) : [];
     }),
   },
   // LDB 17 l.67
-  renounce: { renier: reglage('renounce', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
-  mountTarget: {
-    cible: reglage('mountTarget', 'cible', (s) => DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDuCoupleMonte.nom(s, id), id, 'couple monté')))),
+  renier: { renier: reglage('renier', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
+  cibleDeMonture: {
+    cible: reglage('cibleDeMonture', 'cible', (s) => DESIGNATIONS.IdDuCoupleMonte.lire(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDuCoupleMonte.nom(s, id), id, 'couple monté')))),
   },
-  council: {
-    paie: reglage('council', 'paie', (s) => (s.pendingCouncil?.phase === 'choix'
+  conseil: {
+    paie: reglage('conseil', 'paie', (s) => (s.pendingCouncil?.phase === 'choix'
       ? payChoices().map(({ factorId }) => ouverte(factorId, garanti(findMoraleFactor(factorId), factorId, 'choix de paie').label, refusDeChoixDePaie(s, factorId)))
       : [])),
   },
-  shoreLeave: { accorder: reglage('shoreLeave', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
-  medic: {
-    patient: reglage('medic', 'patient', (s) => {
+  relacheATerre: { accorder: reglage('relacheATerre', 'accorder', ouiNon((s) => !!s.pendingShoreLeave)) },
+  infirmerie: {
+    patient: reglage('infirmerie', 'patient', (s) => {
       const verrou = soinEnCours(s) ? libelleDeLaFermeture('soinEnCours') : null;
       return s.party.map((h) => ouverte(h.id, h.label, verrou ?? (isHealable(h) ? null : t('medic.patientSansSoin'))));
     }, (s) => s.medic?.patientId ?? null),
-    abandon: reglage('medic', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('medic', 'abandon'))] : [])),
-    plaie: reglage('medic', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? s.pendingHeal?.plaie ?? null),
+    abandon: reglage('infirmerie', 'abandon', (s) => (s.medic?.surgery || s.pendingSurgery ? [ouverte(true, libelleDuChoix('infirmerie', 'abandon'))] : [])),
+    plaie: reglage('infirmerie', 'plaie', (s) => plaiesNommees(s).map((p) => ouverte(p.uid, p.libelle)), (s) => s.medic?.surgery?.traumaUid ?? s.pendingHeal?.plaie ?? null),
   },
   dialogue: { reponse: reglage('dialogue', 'reponse', (s) => reponsesDuNoeud(s).map((r) => ouverte(r.id, r.label, r.refus ?? (conversationRepond(s) ? null : t('barre.mainTenue'))))) },
   // EDO 02 l.91 : seuls les héros vivants se désignent.
@@ -259,14 +259,14 @@ export const OUVERTS_DU_CHOIX = {
   },
   // MDG 15 l.268 : une Activité par héros, ou aucune ; fermée pour tous (`seaActivityBlocked`), ou pour ce héros seul
   // (`seaActivityRefus`, LDB 09 l.30). Hors de toute rangée, chaque Activité avec ce qui la ferme pour tous.
-  seaActivities: {
-    activite: reglage('seaActivities', 'activite', (s, pid) => {
+  activitesEnMer: {
+    activite: reglage('activitesEnMer', 'activite', (s, pid) => {
       const hero = pid === undefined ? undefined : herosDeLaSemaine(s, pid);
       if (!s.pendingSeaActivities || (pid !== undefined && !hero)) return [];
       return [ouverte(null, t('valeur.activite.repos')), ...seaActivitiesCatalog().map((def) => ouverte(def.id, def.label, seaActivityBlocked(s, def) ?? (hero && seaActivityRefus(hero, def)) ?? null))];
     }, (s, pid) => choixDuHeros(s, pid)?.activityId ?? null),
-    investir: quantite('seaActivities', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s, pid) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
-    cacher: quantite('seaActivities', 'cacher', (s, pid) => {
+    investir: quantite('activitesEnMer', 'investir', (s, pid) => (herosDeLaSemaine(s, pid) && activiteChoisie(s, pid)?.resolver === 'opportunityTrade' ? plafondDeMiseDOpportunite(s, pid) : null), (s, pid) => choixDuHeros(s, pid)?.investGold ?? 0),
+    cacher: quantite('activitesEnMer', 'cacher', (s, pid) => {
       const hero = herosDeLaSemaine(s, pid);
       return hero && activiteChoisie(s, pid)?.resolver === 'seaChart' ? plafondDePlanque(s, hero) : null;
     }, (s, pid) => choixDuHeros(s, pid)?.stashGold ?? 0),
@@ -322,27 +322,27 @@ export const OUVERTS_DU_CHOIX = {
       return demande ? [ouverte(true, libelleDuChoix('marchand', 'troquer'), devisDeTroc(m, s.party, demande).refus)] : [];
     }),
   },
-  loot: { ligne: lignesDuButin('loot', (s) => s.pendingLoot?.gear) },
+  butin: { ligne: lignesDuButin('butin', (s) => s.pendingLoot?.gear) },
   // ZI 13
-  victory: {
-    ligne: lignesDuButin('victory', (s) => s.pendingVictory?.gear),
-    depecer: reglage('victory', 'depecer', (s) => creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer'), refusDeDepecer(s, id)))),
+  victoire: {
+    ligne: lignesDuButin('victoire', (s) => s.pendingVictory?.gear),
+    depecer: reglage('victoire', 'depecer', (s) => creaturesDeLaRecolte(s).map((id) => ouverte(id, garanti(DESIGNATIONS.IdDeCreatureADepecer.nom(s, id), id, 'créature à dépecer'), refusDeDepecer(s, id)))),
   },
   // LDB 66
-  rest: {
-    couchage: reglage('rest', 'couchage', (s, pid) => {
+  repos: {
+    couchage: reglage('repos', 'couchage', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
       return nuit ? lodgingOptions(nuit.p.places).map((v) => duRepos(v, 'couchage')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.lodging ?? null)),
-    pitance: reglage('rest', 'pitance', (s, pid) => {
+    pitance: reglage('repos', 'pitance', (s, pid) => {
       const nuit = nuitDuDormeur(s, pid);
       return nuit ? (nuit.dormeur ? foodOptions(nuit.p.places, nuit.dormeur) : nourrituresDeTroupe(nuit.p.places)).map((v) => duRepos(v, 'pitance')) : [];
     }, (s, pid) => (pid === undefined ? null : s.pendingRest?.perHero[pid]?.food ?? null)),
   },
   // LDB 17 l.25, LDB 11 l.97-103
-  roundStart: {
-    promouvoir: reglage('roundStart', 'promouvoir', (s) => actFirstIds(s).map((id) => combattant(s, id))),
-    viser: reglage('roundStart', 'viser', (s) => {
+  debutDuRound: {
+    promouvoir: reglage('debutDuRound', 'promouvoir', (s) => actFirstIds(s).map((id) => combattant(s, id))),
+    viser: reglage('debutDuRound', 'viser', (s) => {
       const tireurs = preemptShooterIds(() => s);
       return tireurs.length || s.preemptAiming ? [ouverte(null, t('valeur.viser.aucun')), ...tireurs.map((id) => combattant(s, id))] : [];
     }, (s) => s.preemptAiming),
@@ -442,7 +442,7 @@ const dansLesBornes = (valeur: unknown, bornes: NonNullable<Reglage['bornes']>):
  *  bourse, cale). La validation de la semaine reste fermée jusqu'à ce qu'il se reprenne. */
 export function semaineAReprendre(s: Jeu): boolean {
   return Object.keys(s.pendingSeaActivities?.picks ?? {}).some((pid) => herosDeLaSemaine(s, pid) && (['activite', 'investir', 'cacher'] as const).some((axe) => {
-    const lu = reglageDuChoixDeFenetre(s, 'seaActivities', axe, pid);
+    const lu = reglageDuChoixDeFenetre(s, 'activitesEnMer', axe, pid);
     if (lu.bornes) return !dansLesBornes(lu.courant, lu.bornes);
     if (axe !== 'activite') return false;
     const lue = lu.valeurs?.find((v) => v.valeur === lu.courant);

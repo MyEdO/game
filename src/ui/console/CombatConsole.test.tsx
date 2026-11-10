@@ -3211,7 +3211,7 @@ describe('CombatConsole — contrat SURFACE ⇄ RENDEUR', () => {
 
 /**
  * PAUSE DE ROUND EN COOP (#1411 P2-A) — le bouton du bandeau et la touche (`keybindings.round-start`) sont
- * un seul geste, la validation de la pause (`fenetreValider('roundStart')`), qui respecte le ready-check : le
+ * un seul geste, la validation de la pause (`fenetreValider('debutDuRound')`), qui respecte le ready-check : le
  * bandeau consomme l'entrée `round-start` du registre — LA porte, pour la souris comme pour la touche.
  */
 describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touche', () => {
@@ -3259,7 +3259,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
     pause('host');
     act(() => bouton()!.click());
     expect(useGame.getState().pendingRoundStart!.readyBySeat).toEqual({ 0: true });
-    act(() => { withActingSeat(1, () => useGame.getState().fenetreValider('roundStart')); });
+    act(() => { withActingSeat(1, () => useGame.getState().fenetreValider('debutDuRound')); });
     expect(useGame.getState().pendingRoundStart, 'quorum atteint : le Round devait s’ouvrir').toBeNull();
   });
 

@@ -288,7 +288,7 @@ describe('Piétinement d’un plus grand : le balayage suit, l’Action rendue �
         expect(pc?.hitIds).toEqual(['e1']);
         expect(pc?.count, 'aucun enchaînement consommé').toBe(0);
         expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
-        g().fenetreFermer('cleave');
+        g().fenetreFermer('frappeMortelle');
         expect(g().pendingCleave).toBeNull();
         expect(g().battle!.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
         expect(restitutions, 'l’Action est rendue UNE fois').toBe(1);
@@ -336,7 +336,7 @@ describe('Piétinement suspendu par une sauvegarde : la suite joue à la reprise
         expect(g().battle!.combatants.find((c) => c.id === 'e1')!.wounds.current, 'la sauvegarde ratée : le Piétinement a porté').toBeLessThan(200);
         expect(g().pendingCleave?.hitIds, 'à la reprise, le balayage est offert').toEqual(['e1']);
         expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
-        g().fenetreFermer('cleave');
+        g().fenetreFermer('frappeMortelle');
         expect(g().battle!.acted, 'action GRATUITE : l’Action retrouve sa valeur').toBe(false);
         expect(restitutions, 'la suite joue UNE fois, à la reprise').toBe(1);
       } finally {

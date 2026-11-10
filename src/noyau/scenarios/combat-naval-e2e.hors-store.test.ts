@@ -33,7 +33,7 @@ const COGUE = 'enemy-enc-naval-0';
 function launch(seed = 7): BattleState {
   seedBattleRng(seed);
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
-  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
+  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
   return banc.getState().battle!;
 }
 

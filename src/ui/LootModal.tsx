@@ -19,7 +19,7 @@ export function LootModal() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const appraise = useGame((s) => s.evaluerLObjet);
   const fermer = useGame((s) => s.fenetreFermer);
-  const dismiss = () => fermer('loot');
+  const dismiss = () => fermer('butin');
   const appraising = useGame((s) => !!s.pendingAppraise);
   const state = useGame();
   if (!pl || battle) return null; // un combat a éclaté : la fenêtre réapparaîtra après (Ramasser/victoire ont leurs flux)
@@ -42,7 +42,7 @@ export function LootModal() {
             <GearAssignList
               gear={pl.gear}
               assignable={assignable}
-              onAssign={(uid, heroId) => choisir('loot', 'ligne', uid, heroId)}
+              onAssign={(uid, heroId) => choisir('butin', 'ligne', uid, heroId)}
               onAppraise={net.mode === 'guest' ? undefined : appraise}
             />
           ),

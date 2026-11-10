@@ -29,7 +29,7 @@ describe('binding round-start', () => {
     const appels: unknown[] = [];
     const get = () => fake({ pendingRoundStart: { round: 2 } as never, fenetreValider: (cle: unknown) => { appels.push(cle); } } as never);
     binding().run(get);
-    expect(appels).toEqual(['roundStart']);
+    expect(appels).toEqual(['debutDuRound']);
   });
 
   it('inactif hors combat (pas de battle)', () => {

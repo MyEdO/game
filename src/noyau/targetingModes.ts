@@ -990,5 +990,5 @@ export function intentEluLocalement(get: Get, action: string, args: readonly unk
 }
 
 /** Le cavalier et la monture du couple désigné en attente (`pendingMountTarget`, LDB 14 l.181) : les ids que
- *  le choix `mountTarget.cible` accepte. */
+ *  le choix `cibleDeMonture.cible` accepte. */
 export const idsDuCoupleMonte = (s: Jeu): string[] => (s.pendingMountTarget ? [s.pendingMountTarget.riderId, s.pendingMountTarget.mountId] : []);

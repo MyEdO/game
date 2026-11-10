@@ -224,7 +224,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetValider('heal');
     expect(banc.getState().party.find((c) => c.id === 'al')!.wounds.current).toBeGreaterThan(4);
     expect(banc.getState().medic).not.toBeNull(); // PERSISTANTE : on enchaîne actes et patients
-    banc.getState().fenetreFermer('medic');
+    banc.getState().fenetreFermer('infirmerie');
     expect(banc.getState().medic).toBeNull();
     expect(banc.getState().pendingHeal).toBeNull(); // le brouillon part avec l'infirmerie
   });
@@ -268,9 +268,9 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.setState({ mode: 'exploration', battle: null, party: [doc, al, bob], pendingHeal: null, medic: null });
     banc.getState().ouvrirLeMedecin('al');
     banc.getState().jetLancer('heal');
-    banc.getState().fenetreChoisir('medic', 'patient', 'bob'); // refusé : jet en cours
+    banc.getState().fenetreChoisir('infirmerie', 'patient', 'bob'); // refusé : jet en cours
     expect(banc.getState().medic!.patientId).toBe('al');
-    banc.getState().fenetreFermer('medic'); // refusé aussi
+    banc.getState().fenetreFermer('infirmerie'); // refusé aussi
     expect(banc.getState().medic).not.toBeNull();
   });
 
@@ -381,7 +381,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetAnnuler('surgery');
     expect(banc.getState().pendingSurgery).toBe(jouee);
 
-    banc.getState().fenetreChoisir('medic', 'abandon', true);
+    banc.getState().fenetreChoisir('infirmerie', 'abandon', true);
     expect(banc.getState().pendingSurgery).toBeNull();
     expect(banc.getState().medic?.surgery).toBeUndefined();
     expect(banc.getState().medic).not.toBeNull();
@@ -413,7 +413,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     expect(p.diseases ?? []).toHaveLength(0); // rien contracté en silence AVANT la validation de l'étape
   });
 
-  it('Chirurgie : le joueur choisit QUELLE Blessure Critique opérer (choix `medic.plaie`, au brouillon puis avant la 1re passe)', () => {
+  it('Chirurgie : le joueur choisit QUELLE Blessure Critique opérer (choix `infirmerie.plaie`, au brouillon puis avant la 1re passe)', () => {
     const surgeon = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({
       id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(40),
@@ -424,11 +424,11 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().jetRegler('heal', 'mode', 'chirurgie');
     const brasD = patient.traumas!.find((t) => t.location === 'brasD')!;
     const jambeG = patient.traumas!.find((t) => t.location === 'jambeG')!;
-    banc.getState().fenetreChoisir('medic', 'plaie', brasD.uid); // au brouillon : opérer la blessure du brasD
+    banc.getState().fenetreChoisir('infirmerie', 'plaie', brasD.uid); // au brouillon : opérer la blessure du brasD
     expect(banc.getState().pendingHeal!.plaie).toBe(brasD.uid);
     banc.getState().jetLancer('heal');
     expect(banc.getState().medic!.surgery!.traumaUid).toBe(brasD.uid);
-    banc.getState().fenetreChoisir('medic', 'plaie', jambeG.uid); // opération armée, avant la 1re passe
+    banc.getState().fenetreChoisir('infirmerie', 'plaie', jambeG.uid); // opération armée, avant la 1re passe
     expect(banc.getState().medic!.surgery!.traumaUid).toBe(jambeG.uid);
   });
 

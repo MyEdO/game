@@ -18,7 +18,7 @@ import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCar
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {
-  const r = rejouer(nouvelEntete(scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['roundStart'] }, ...gestes]);
+  const r = rejouer(nouvelEntete(scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['debutDuRound'] }, ...gestes]);
   enPartie(r, faire);
 }
 

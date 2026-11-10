@@ -827,7 +827,7 @@ export const FLOWS = paresseux({
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
-      if (pa?.cleave) { set({ pendingAttack: null }); return get().fenetreFermer('cleave'); } // annuler = terminer le balayage (sa sortie clôt la cascade)
+      if (pa?.cleave) { set({ pendingAttack: null }); return get().fenetreFermer('frappeMortelle'); } // annuler = terminer le balayage (sa sortie clôt la cascade)
       set({ pendingAttack: null, ...(closeSeq ? { pendingCascade: null } : {}) });
     },
   }),
