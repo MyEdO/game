@@ -372,7 +372,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
     expect(serveTargetPoste(hero, hull, all)).toBeUndefined(); // sert déjà une pièce
   });
 
-  it('servirLePoste({hullId,posteUid}) sert la pièce CIBLÉE précise (clic), pas juste la première', () => {
+  it('servirLePoste(posteUid) sert la pièce DÉSIGNÉE (clic), pas juste la première', () => {
     const posteA = mkPoste('baliste');
     const posteB = mkPoste('baliste');
     const hullA = mkEmplacement(posteA, { x: 5, y: 5 });
@@ -385,7 +385,7 @@ describe('(G) Token — `serveTargetPoste` + clic-pièce rejoignent l’équipe 
       party: [hero], facing: {}, scene: groundScene() as never,
       pendingCleave: null, pendingDualStrike: null, pendingCast: null,
     });
-    banc.getState().servirLePoste({ hullId: 'hullB', posteUid: posteB.item.uid });
+    banc.getState().servirLePoste(posteB.item.uid);
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'hero')!;
     expect(h.mannedPoste!.item.uid).toBe(posteB.item.uid); // c'est bien la pièce B (ciblée) qui est servie
     expect(posteB.crewIds![0]).toBe('hero');

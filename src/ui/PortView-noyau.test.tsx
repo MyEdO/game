@@ -68,7 +68,7 @@ describe('#3059 — PortView lit les verdicts du noyau', () => {
 
   it('bourse vide : l’achat de 5 Enc à 10 CO est fermé sur le plancher de 40 CO (−20 points), le geste n’ouvre aucun Marchandage', () => {
     expect(hasBargainBonus(get().party[0]), 'fixture : le meneur n’est pas Négociateur').toBe(false);
-    const texte = t('cargo.bourseSousPlancher', { plancher: 40 });
+    const texte = t('cargo.bourseSousPlancher', { plancher: '40 CO' });
     expect(geste('cargaison', 'port-buy-bois-mer')).toEqual({ ferme: 'true', raison: texte });
     const fenetres = () => Object.entries(get()).filter(([k, v]) => k.startsWith('pending') && v).map(([k]) => k);
     const avant = fenetres();

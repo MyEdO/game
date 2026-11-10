@@ -189,7 +189,7 @@ describe('l’achat de cargaison au port — Marchandage d’achat SURFACÉ par 
     acheterAuMarche(get, 'port', 'vessel', 'bois-mer', 10);
     expect(get().pendingCascade).toBeNull(); // aucun Test de Marchandage ouvert
     expect(get().vessel!.cargo).toHaveLength(0);
-    expect(get().journal).toContain(t('cargo.bourseSousPlancher', { plancher: 100 }));
+    expect(get().journal).toContain(t('cargo.bourseSousPlancher', { plancher: '100 CO' }));
   });
 
   it('marchandeur présent → le Marchandage OUVRE une cascade (jet SURFACÉ, jamais silencieux)', () => {

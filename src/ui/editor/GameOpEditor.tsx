@@ -98,7 +98,7 @@ const OP_ICON: Record<GameOp['op'], IconIdInput> = {
   armourPierce: 'item/weapon', critOnRoll: 'journal/critical', spendAdvantage: 'flag/focus', rollThreshold: 'nav/dice',
   rollTable: 'nav/dice', rollMutation: 'nav/mutation', charDamage: 'mechanic/stat-mod',
   intoxicate: 'item/consumable', narrative: 'journal/detail',
-  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor', perilDeMer: 'nautical/wind', navireHostile: 'travel/anchor', infestation: 'medical/infection', combatEnMer: 'action/attack', marcheDuPort: 'merchant/cart',
+  shipMorale: 'travel/anchor', manann: 'travel/anchor', shipCritical: 'travel/anchor', navireMod: 'travel/anchor', meteoImposee: 'nautical/wind', cargaison: 'item/misc', provisions: 'item/consumable', equipage: 'travel/anchor', perilDeMer: 'nautical/wind', navireHostile: 'travel/anchor', infestation: 'medical/infection', combatEnMer: 'action/attack', marcheDuPort: 'merchant/cart', commission: 'merchant/cart',
 };
 
 /** TOUTES les op du vocabulaire, groupées par intention d'auteur. Libellé de groupe = texte SEUL

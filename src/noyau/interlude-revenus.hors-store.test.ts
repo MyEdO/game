@@ -9,6 +9,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { refusDeRevenus } from './verdictsDInterlude';
+import { pratiquer } from './interlude.testkit';
 
 /** d100 de « Répression du crime » (`interludeEvents.json`, 19-21) : Revenus bloqués aux roublards. */
 const REPRESSION_DU_CRIME = 20;
@@ -31,7 +32,7 @@ describe('refusDeRevenus — le geste Revenus d’un héros dont la Classe est b
     expect(raison).toBe('Larron ne peut pas entreprendre Revenus (événement : Répression du crime).');
     const avant = JSON.stringify(banc.getState().interlude);
     const journal = banc.getState().journal.length;
-    banc.actions.pratiquerLActivite(heroId, 'revenus');
+    pratiquer(banc.getState, heroId, 'revenus');
     expect(banc.getState().journal.slice(journal)).toEqual([raison]);
     expect(JSON.stringify(banc.getState().interlude), 'une Activité a été consommée').toBe(avant);
     expect(banc.getState().pendingActivity).toBeNull();
@@ -40,7 +41,7 @@ describe('refusDeRevenus — le geste Revenus d’un héros dont la Classe est b
   it('un guerrier sous le même Événement : aucun refus, les Revenus s’ouvrent', () => {
     const { banc, heroId } = apresLaRepression('soldat', 'Vétéran');
     expect(refusDeRevenus(banc.getState(), heroId)).toBeNull();
-    banc.actions.pratiquerLActivite(heroId, 'revenus');
+    pratiquer(banc.getState, heroId, 'revenus');
     expect(banc.getState().pendingActivity?.heroId).toBe(heroId);
   });
 });

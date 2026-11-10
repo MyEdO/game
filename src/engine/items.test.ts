@@ -956,8 +956,7 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
     expect(w.reload).toBeGreaterThan(0); // Recharge N (canon moyen)
   });
 
-  it('uid : préservé s’il est authoré, sinon celui de sa place', () => {
-    expect(hydratePoste({ trappingId: 'pierrier', uid: 'itm-fixe-1' }, 'poste-de-test').item.uid).toBe('itm-fixe-1');
+  it('uid : celui de sa place (#2907)', () => {
     expect(hydratePoste({ trappingId: 'pierrier' }, 'poste-de-test').item.uid).toBe('poste-de-test');
   });
 

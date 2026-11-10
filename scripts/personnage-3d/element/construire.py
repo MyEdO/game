@@ -28,6 +28,8 @@ import runpy
 import sys
 from pathlib import Path
 
+import numpy as np
+
 ICI = Path(__file__).resolve().parent
 sys.path[:0] = [str(ICI), str(ICI.parent), str(ICI.parent / "base")]
 
@@ -40,6 +42,10 @@ from production import CACHE_DES_MODELES, MODELES, dossier_de_sortie, ecrire_le_
 
 ECART_ROTATION_MAX = 1e-4      # rad, entre le nœud exporté et le repère de prise
 ECART_TRANSLATION_MAX = 1e-5   # m
+ECART_DE_NORMALES_MIN = 1e-3
+"""Écart minimal, par composante, entre deux normales différentes des coins d'un même sommet : l'export glTF les arrondit
+à 4 décimales avant de fusionner les coins égaux, et deux normales plus proches fusionnent ou non selon le dernier bit de
+la machine (#3865)."""
 
 
 def elements():
@@ -99,9 +105,34 @@ def pendre(objets, rig, prise):
     return attache
 
 
+def verifier_les_normales(objets):
+    """Refuse un objet dont deux coins d'un même sommet portent des normales différentes à moins de
+    `ECART_DE_NORMALES_MIN` l'une de l'autre : leur fusion à l'export dépendrait de la machine."""
+    fautes = {}
+    for objet in objets:
+        me = objet.data
+        normales = np.empty(len(me.loops) * 3, dtype=np.float32)
+        me.corner_normals.foreach_get("vector", normales)
+        sommets = np.empty(len(me.loops), dtype=np.int64)
+        me.loops.foreach_get("vertex_index", sommets)
+        ordre = np.argsort(sommets, kind="stable")
+        groupes = np.split(ordre, np.flatnonzero(np.diff(sommets[ordre])) + 1)
+        proches = 0
+        for groupe in groupes:
+            n = normales.reshape(-1, 3)[groupe]
+            ecart = np.abs(n[:, None] - n[None]).max(axis=2)
+            proches += int(((ecart > 0) & (ecart < ECART_DE_NORMALES_MIN)).sum()) // 2
+        if proches:
+            fautes[objet.name] = proches
+    if fautes:
+        raise ValueError(f"coins d'un même sommet aux normales presque égales, fusion à l'export instable : {fautes}")
+
+
 def exporter(chemin, rig, objets, skinne):
-    """Exporte `rig` et `objets` seuls, sans clip ; une pièce skinnée garde ses clés, et chaque objet ses propriétés en
-    `extras` : `zone` d'une pièce skinnée, `fourreau` d'un rigide (`element/lame.py`)."""
+    """Exporte `rig` et `objets` seuls, sans clip, leurs normales vérifiées (`verifier_les_normales`) ; une pièce skinnée
+    garde ses clés, et chaque objet ses propriétés en `extras` : `zone` d'une pièce skinnée, `fourreau` d'un rigide
+    (`element/lame.py`)."""
+    verifier_les_normales(objets)
     bpy.ops.object.select_all(action="DESELECT")
     rig.select_set(True)
     for objet in objets:

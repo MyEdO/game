@@ -355,10 +355,19 @@ export function sceneScope(program, root) {
   return out;
 }
 
+/** Les membres d'une union ou d'une intersection : chaque `getTypes()` est un aller-retour vers `tsc --api`, que le
+ *  client ne met pas en cache (`typescript/dist/api/sync/api.js`, `fetchTypes` sans poignées) ; un type est un objet
+ *  stable de sa session, ses membres se lisent donc une fois. */
+const membres = new WeakMap();
 function flatten(type, acc = []) {
   if (!type) return acc;
-  if ((type.isUnionType() || type.isIntersectionType())) for (const m of type.getTypes()) flatten(m, acc);
-  else acc.push(type);
+  if (!type.isUnionType() && !type.isIntersectionType()) {
+    acc.push(type);
+    return acc;
+  }
+  let lus = membres.get(type);
+  if (!lus) membres.set(type, (lus = type.getTypes()));
+  for (const m of lus) flatten(m, acc);
   return acc;
 }
 
@@ -470,6 +479,7 @@ export function fieldsWrittenIn(checker, sourceFile, cles, fieldNames, creditabl
    *  `source` qui n'en viennent pas déjà (l'étalement du porteur lui-même ne fait que recopier). */
   const apporte = (cible, source) => {
     for (const prop of flatten(source).flatMap((t) => checker.getPropertiesOfType(t))) {
+      if (!fieldNames.has(prop.name)) continue;
       const target = idsDe(cible, prop.name);
       if (target.size === 0) continue;
       const origin = idsDe(source, prop.name);

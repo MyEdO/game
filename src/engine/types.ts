@@ -1292,12 +1292,10 @@ export type CoverClass = 'none' | DeckCoverClass;
 /** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222). La base (Dégâts/Qualités/Enc/
  *  Portée…) n'est PLUS matérialisée : elle est HYDRATÉE au spawn depuis `trappingId` par `hydratePoste`
  *  (`itemFromTrappingById`/`buildWeapon`, coutures UNIQUES). Ne persiste QUE la réf catalogue + l'état propre
- *  au poste (uid, côté, équipage, recharge, munitions, dérogations). */
+ *  au poste (côté, équipage, recharge, munitions, dérogations) ; l'uid d'instance se dérive de la place (#2907). */
 export interface AuthoredShipPoste {
   /** Réf catalogue de la pièce (SOURCE de la base — hydratée en `item` au spawn). */
   trappingId: string;
-  /** uid d'instance STABLE (liens hotbar/log/persistance) ; généré à l'hydratation si absent. */
-  uid?: string;
   /** Dérogations d'INSTANCE : enchants ajoutés à CETTE pièce (magie/qualité hors catalogue), repliés sur
    *  l'arme dérivée par `mannedPosteWeapon` (`applyEnchants`). Hors base catalogue → persistés à part. */
   enchants?: WeaponEnchant[];

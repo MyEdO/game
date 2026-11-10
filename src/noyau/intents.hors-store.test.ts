@@ -83,7 +83,7 @@ describe('allowlist coop', () => {
 describe('Activités d’interlude allowlistées (audit M7) — l’ouverture/clôture reste à l’hôte', () => {
   it('les activités par héros et le flux de jet sont permis à l’invité', () => {
     for (const name of INTERLUDE_INTENTS) expect(GUEST_INTENTS.has(name), name).toBe(true);
-    expect(INTERLUDE_INTENTS.has('pratiquerLActivite')).toBe(true); // chemin UNIQUE des Activités à jet
+    expect(GUEST_INTENTS.has('fenetreChoisir'), 'composer et pratiquer une Activité').toBe(true);
     expect(GUEST_INTENTS.has('jetValider'), 'la clôture du jet d’Activité').toBe(true);
   });
 });

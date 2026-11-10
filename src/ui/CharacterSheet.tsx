@@ -211,7 +211,7 @@ export function CharacterSheet({ heroId, onClose }: { heroId: string; onClose: (
               enabled={!refusSoins}
               {...raisonSi(refusSoins)}
               descOfferte="Soins du groupe (Tests de Guérison) — ouvre l'infirmerie sur ce héros"
-              onClick={() => ouvrirLeMedecin({ patientId: hero.id })}
+              onClick={() => ouvrirLeMedecin(hero.id)}
               primary={false}
               btnClassName="small"
             />
@@ -748,7 +748,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
             }))}
             onPick={(key, owned) => {
               const ref = parseRefKey(key);
-              if (owned) designerLeCreneau(hero.id, slot.slotKey, ref.id, ref.spec);
+              if (owned) designerLeCreneau(hero.id, slot.slotKey, ref);
               // Acheter la 1re Augmentation désigne l'emplacement (LDB 09 l.38).
               else acheterLaCompetence(hero.id, ref);
             }}
@@ -771,7 +771,7 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               <GatedAction
                 id={`adv-talent-${t.slotKey}`} primary={false} btnClassName="small"
                 enabled={!t.refus} {...raisonSi(t.refus)}
-                onClick={() => acheterLeTalent(hero.id, t.talentId!, t.spec)}
+                onClick={() => acheterLeTalent(hero.id, { id: t.talentId!, spec: t.spec })}
                 label={`${t.times > 0 ? '+1' : 'Acquérir'} · ${t.nextCost} PX`}
               />
             </div>
@@ -783,9 +783,9 @@ export function AdvancementPanel({ hero }: { hero: Combatant }) {
               refusSansChoix={refus}
               options={(t.options ?? []).map((o) => ({ key: o.refKey, display: o.display, owned: o.owned, cost: o.nextCost, maxReached: o.maxReached, refus: o.refus }))}
               onPick={(key, owned) => {
-                const { id, spec } = parseRefKey(key);
-                if (owned) designerLeCreneau(hero.id, t.slotKey, id, spec);
-                else acheterLeTalent(hero.id, id, spec);
+                const ref = parseRefKey(key);
+                if (owned) designerLeCreneau(hero.id, t.slotKey, ref);
+                else acheterLeTalent(hero.id, ref);
               }}
             />
           ),

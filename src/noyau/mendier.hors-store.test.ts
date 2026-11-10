@@ -38,6 +38,7 @@ import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';
+import { pratiquer } from './interlude.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -322,7 +323,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
   const bourse = () => toBrass(bourseOf(banc.getState().party[0]));
 
   function joue(sl: number, success: boolean, roll = 1): void {
-    banc.getState().pratiquerLActivite(heroId(), 'mendier');
+    pratiquer(banc.getState, heroId(), 'mendier');
     expect(banc.getState().pendingActivity?.activityId).toBe('mendier');
     banc.getState().jetLancer('activity');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll, success, sl } });
@@ -337,7 +338,7 @@ describe('Mendier de bout en bout (bandes de DR, LDB 09 l.97)', () => {
 
   it('les `testMods` sont FONDUS dans la ligne de mod du pending (UNE ligne à l’écran)', () => {
     setRule('mendier-discours', -20);
-    banc.getState().pratiquerLActivite(heroId(), 'mendier');
+    pratiquer(banc.getState, heroId(), 'mendier');
     const pa = banc.getState().pendingActivity!;
     expect(pa.mod).toBe(-20);
     expect(pa.modLabel).toBe('Discours');
