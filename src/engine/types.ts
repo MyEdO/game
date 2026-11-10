@@ -705,7 +705,7 @@ export type EffectSourceKind =
   // l'entité source des effets d'un contrecoup est la LIGNE, dont la fiche Codex vit dans la catégorie
   // que SA table déclare (`MiscastTableDef.codexCategory`). Le `kind` porte donc le NOM de cette
   // catégorie, et `miscastRowSource` (`engine/miscast.ts`) est le seul à le fabriquer, depuis la donnée.
-  | 'miscastMinor' | 'miscastMajor' | 'miscastWrath';
+  | 'miscastMinor' | 'miscastMajor' | 'miscastMinorVdm' | 'miscastMajorVdm' | 'miscastWrath';
 
 /** Catégorie Codex de CHAQUE nature de source — table TOTALE, SOURCE UNIQUE des deux consommateurs :
  *  le routage d'affichage d'une pastille (`chipCodex`) ET la descente de l'ENJEU d'un jet à l'entité qui
@@ -716,7 +716,8 @@ export const CATEGORY_BY_SOURCE_KIND: Record<EffectSourceKind, string> = {
   quality: 'qualities', disease: 'maladies', symptom: 'symptoms', mutation: 'mutations',
   condition: 'etats', psychology: 'psychologies', maneuver: 'maneuvers', creature: 'creatures',
   activity: 'activities', rule: 'regles', tavernGame: 'tavernGames',
-  miscastMinor: 'miscastMinor', miscastMajor: 'miscastMajor', miscastWrath: 'miscastWrath',
+  miscastMinor: 'miscastMinor', miscastMajor: 'miscastMajor', miscastMinorVdm: 'miscastMinorVdm', miscastMajorVdm: 'miscastMajorVdm',
+  miscastWrath: 'miscastWrath',
 };
 
 /**

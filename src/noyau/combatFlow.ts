@@ -109,7 +109,7 @@ import { canCastFromGrimoire } from '../engine/grimoire';
 import { effectiveCastingNumber } from '../engine/castingNumber';
 import type { CastingNumberMod } from '../engine/castingNumber';
 import {
-  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, MISCAST_TABLES,
+  rollMiscast, componentDowngrade, miscastTableId, miscastRowAt, miscastTableRows, miscastRowSource, miscastDie, MISCAST_TABLES, MISCAST_DATASETS,
   type MiscastSeverity, type MiscastResult,
 } from '../engine/miscast';
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
@@ -9049,7 +9049,7 @@ export const TABLES = {
     // `tableOuverte`), famille mémoïsée sur les datasets du seam, et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
     // La catégorie Codex où vivent les LIGNES est DÉCLARÉE par la table elle-même (`codexCategory`,
     // miscast.json, #1117) : sans catégorie déclarée, l'enjeu reste au foyer du `kind` (repli déclaré).
-    memoParVersion(['miscastMinor', 'miscastMajor', 'miscastWrath'], () => new Map<string, TableStepDef>(
+    memoParVersion(MISCAST_DATASETS, () => new Map<string, TableStepDef>(
       MISCAST_TABLES.map((table) => [table.id, {
         label: table.label,
         die: facesDuDe(miscastDie(table.id)),
