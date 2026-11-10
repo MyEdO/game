@@ -25,6 +25,7 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'problemes-vehicule': { die: '1d100', ref: 'EDOC 07 l.259' },
   'structure-criticals': { die: '1d100', ref: 'AA 10 l.118' },
   obsessions: { die: '2d10', ref: 'EDOC 12 l.172' },
+  'talents-aleatoires': { die: '1d100', ref: 'LDB 05 l.514' },
   ivresse: { die: '1d10', ref: 'LDB 09 l.477' },
   'accidents-conduite-attelage': { die: '1d10', ref: 'LDB 09 l.142' },
   'force-des-vents': { die: '1d10', ref: 'LDB 46 l.183' },

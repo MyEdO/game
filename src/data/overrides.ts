@@ -17,7 +17,7 @@ import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
   qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
-  pregens, oups, interludeEvents, peripeties, details, semencesDeScene, defautsDeCompilation, names, allAxes,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
@@ -140,7 +140,7 @@ const ARRAYS = {
   // `src/noyau/monde/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
   // qu'une entrée éditée au Codex se voit dans l'éditeur et au rendu sans rechargement.
   buildings,
-  pregens, oups, interludeEvents, peripeties, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, names,
   // Axes de forces/faiblesses (#409) — mécanique MAISON, éditable au Codex comme tout catalogue.
   axes: allAxes,
   // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.

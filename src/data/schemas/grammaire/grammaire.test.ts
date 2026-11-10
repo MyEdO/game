@@ -724,7 +724,9 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         documents mono-tables `config` (84 → 79) — leurs lignes passent en `rangee`.
     //   #2993 : `planDeBestiaire` naît SCELLÉ (79 → 80) — le plan de bestiaire devient un dataset.
     //   #3771 : `rendus` naît SCELLÉ (80 → 81) — le catalogue des rendus des coups et des incantations.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 81, mesures: 0 });
+    //   #3578 : `talents-aleatoires` naît en def `entite` à charge `entries` (81 → 82) — la colonne
+    //         `talents[].rand` devient le document TABLE du Tableau des Talents aléatoires.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 82, mesures: 0 });
   });
 
 });

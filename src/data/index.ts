@@ -62,6 +62,7 @@ import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as tableauDesOups from './schemas/defs/oups';
+import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 import { trappings, findTrappingById } from './apparencesObjets';
@@ -129,6 +130,7 @@ import type { PresetDePersonnage } from './schemas/defs/presets-de-personnage';
 import godsJson from './gods.json';
 import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
+import talentsAleatoiresJson from './talents-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
 import peripetiesJson from './peripeties.json';
@@ -1016,8 +1018,6 @@ export interface TalentData {
   specsOpen?: boolean;
   /** Trait de créature conféré, la spécialisation de l'instance en argument (`traitsConferes`). LDB 10 l.506, l.548 */
   confereTrait?: { id: string };
-  /** Borne haute de plage d100 sur le Tableau des Talents aléatoires (null = hors table). */
-  rand?: number | null;
   source: SourceRef;
   /** Emplacements SECONDAIRES du même Talent (`sourceRefs.ts`), l'ancre `source` restant la seule à
    *  porter la `desc`. */
@@ -3082,6 +3082,11 @@ export const names = namesJson as NamePool[];
 export const pregens = pregensJson as PregenDef[];
 /** Tableau des Oups ! (LDB Maladresses) — app-owned éditable ; consommé par `oups.ts` (même référence). */
 export const oups = rangeesDe<typeof tableauDesOups>(oupsJson) as OupsRow[];
+/** Tableau des Talents aléatoires (LDB 05 l.514-531) — app-owned éditable ; tiré par `rollRandomTalent`
+ *  (`engine/character.ts`), même référence. */
+export const talentsAleatoires = rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoiresJson, 'talents-aleatoires');
+/** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
+export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoiresJson, 'talents-aleatoires');
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson) as InterludeEvent[];
 /** Péripéties de voyage (1d10) — app-owned éditable ; consommé par `peripeties.ts` (même référence). */

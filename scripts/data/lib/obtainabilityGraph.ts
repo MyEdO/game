@@ -17,7 +17,7 @@ import { readFileSync } from 'node:fs';
 import { listerProjetsLivres, PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
 import { join } from 'node:path';
 import {
-  talents, spells, careerLevels, species, creatures, mutations, stars, trappingsInstanciables, gods, effectTables,
+  talents, talentsAleatoires, spells, careerLevels, species, creatures, mutations, stars, trappingsInstanciables, gods, effectTables,
   findTalentById, specPoolOf,
   type AdvancementRef, type TalentData,
 } from '../../../src/data/index';
@@ -66,7 +66,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
   for (const sp of spells) walkNode(sp, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `sort:${sp.id}`); });
   for (const t of effectTables) walkNode(t, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `table:${t.id}`); });
 
-  if (sawRandomEntry) for (const t of talents) if (t.rand != null) addTalentSource(t.id, 'table-talents-aleatoires');
+  if (sawRandomEntry) for (const r of talentsAleatoires) addTalentSource(r.id, 'table-talents-aleatoires');
 
   const learnSpellIds = new Set<string>();
   for (const f of listerProjetsLivres(root).map((rel) => `${PROJETS_LIVRES.dossier}/${rel}`)) {

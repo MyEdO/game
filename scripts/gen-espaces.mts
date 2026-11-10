@@ -122,6 +122,7 @@ const HORS_DE_LA_PORTE: Readonly<Record<string, string>> = {
   obsessions: 'rangées sans `label` : leur `id` est un Groupe (`groups.json`), qui porte le libellé',
   shipConstructionTraits: 'entrées sans `label`',
   shipHullSizes: 'entrées sans `label`',
+  talentsAleatoires: 'rangées sans `label` : leur `id` est un Talent (`talents.json`), qui porte le libellé',
 };
 
 /** `suite` résolue contre `schema` en pas lisibles sans lui (`suivreLeChemin`) : un pas `[clé]` y porte
