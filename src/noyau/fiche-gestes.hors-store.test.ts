@@ -272,7 +272,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
       const lignes: [string, string | null, () => ResultatDeLAppel][] = [
         ['Caractéristique', c.refus, () => partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, c.key] })],
         ['Compétence', sk.refus, () => partie.envoyer({ type: 'acheterLaCompetence', args: [heros.id, sk.skill] })],
-        ['Talent', ta.refus, () => partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, ta.talentId!, ta.spec] })],
+        ['Talent', ta.refus, () => partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, { id: ta.talentId!, spec: ta.spec }] })],
         ['Carrière', tg.refus, () => partie.envoyer({ type: 'changerDeCarriere', args: [heros.id, tg.career, tg.level] })],
       ];
       for (const [nom, refus, envoyer] of lignes) {
@@ -307,12 +307,12 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       let ligne = buildAdvancementView(partie.etat(), partie.etat().party[0]).talents.find((r) => r.talentId && !r.maxReached)!;
       for (let pas = 0; !ligne.maxReached && pas < 10; pas++) {
-        partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, ligne.talentId!, ligne.spec] });
+        partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, { id: ligne.talentId!, spec: ligne.spec }] });
         ligne = buildAdvancementView(partie.etat(), partie.etat().party[0]).talents.find((r) => r.slotKey === ligne.slotKey)!;
       }
       expect(ligne.maxReached, 'témoin : le Talent a atteint son Maxi').toBe(true);
       const xp = partie.etat().party[0].xp;
-      const appel = partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, ligne.talentId!, ligne.spec] });
+      const appel = partie.envoyer({ type: 'acheterLeTalent', args: [heros.id, { id: ligne.talentId!, spec: ligne.spec }] });
       expect(partie.etat().party[0].xp, 'le geste a dépensé au-delà du Maxi').toBe(xp);
       expect(lignesDuJournal(appel)).toEqual([ligne.refus]);
     });

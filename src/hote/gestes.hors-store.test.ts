@@ -79,6 +79,17 @@ describe('un argument qui désigne un élément de l’état se choisit parmi se
   });
 
   it.each([
+    // Le champ d'une référence générique se lit à l'argument de type qui le déclare (`verbesDeLaPartie.mjs`, `substitutions`).
+    ['acheterLeTalent', 'talent', 'IdDeTalent'],
+    ['designerLeCreneau', 'option', 'IdDeCompetenceOuDeTalent'],
+    ['acheterLaCompetence', 'skill', 'IdDeCompetence'],
+  ])('%s.%s : son `id` désigne %s, sa `spec` est un texte libre', (verbe, nom, cle) => {
+    const f = VERBES[verbe].find((x) => x.nom === nom)!.forme;
+    const champs = f.genre === 'objet' ? f.champs : [];
+    expect(champs.map((c) => [c.nom, c.optionnel, c.forme.genre === 'chaine' ? c.forme.designe?.cle ?? null : c.forme.genre])).toEqual([['id', false, cle], ['spec', true, null]]);
+  });
+
+  it.each([
     ['shanty', 'chanson', 'IdDeChanson'],
     ['cast', 'formeConjuree', 'IdDeFormeConjuree'],
     ['heal', 'bandages', 'IdDeHeros'],
