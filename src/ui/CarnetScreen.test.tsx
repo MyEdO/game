@@ -105,7 +105,7 @@ describe('CarnetScreen — rendu (#670)', () => {
     expect(txt).toContain('Fausse piste');
   });
 
-  it('le bouton d’épingle appelle `epinglerLIndice` avec l’id de l’indice', async () => {
+  it('le bouton d’épingle appelle `epinglerLIndice` avec l’id de l’indice et la valeur voulue, l’inverse de l’état', async () => {
     const epinglerLIndice = vi.fn();
     useGame.setState({ campaignNarratif: narratif, clues: cluesUnSeulRévélé, epinglerLIndice });
     await mount();
@@ -113,8 +113,19 @@ describe('CarnetScreen — rendu (#670)', () => {
       el.textContent?.includes('Épingler'),
     ) as HTMLButtonElement;
     expect(pin).toBeTruthy();
+    expect(pin.getAttribute('aria-pressed')).toBe('false');
     await act(async () => pin.click());
-    expect(epinglerLIndice).toHaveBeenCalledWith('ind-1');
+    expect(epinglerLIndice).toHaveBeenCalledWith('ind-1', true);
+  });
+
+  it('épinglé, le bouton demande le désépinglage (`epingle: false`)', async () => {
+    const epinglerLIndice = vi.fn();
+    useGame.setState({ campaignNarratif: narratif, clues: { 'ind-1': { ...cluesUnSeulRévélé['ind-1'], épinglé: true } }, epinglerLIndice });
+    await mount();
+    const pin = container.querySelector('button.chip[aria-pressed="true"]') as HTMLButtonElement;
+    expect(pin?.textContent).toContain('Épinglé');
+    await act(async () => pin.click());
+    expect(epinglerLIndice).toHaveBeenCalledWith('ind-1', false);
   });
 
   it('état vide : aucun indice découvert affiche le message dédié', async () => {

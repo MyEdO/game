@@ -142,7 +142,7 @@ describe('TravelRolesPanel — Pratiquer une Compétence : jamais épinglé sans
 describe('TravelRolesPanel — un poste non tenu (`postingTenu`) ne s’affiche jamais comme affecté', () => {
   it('un rôle épinglé que l’édition du catalogue rend non tenu quitte sa case', () => {
     useGame.setState({ party: [hero('h4', 'Aldric')] });
-    useGame.getState().attribuerLeRoleDeMarche('h4', { activityId: 'recuperer' });
+    useGame.getState().affecterAuRoleDeMarche('h4', { activityId: 'recuperer' });
     const affecteARecuperer = (): boolean => {
       container = document.createElement('div');
       document.body.appendChild(container);

@@ -58,6 +58,7 @@ import { garanti } from '../lib/garanti';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
 import { postingTenu } from '../engine/activities';
+import { refuserGesteDuSiege } from './refusVisible';
 import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
@@ -281,9 +282,12 @@ function coldExposureChill(hero: Combatant, coldSeason: boolean): string[] {
   });
 }
 
-export function creerActionsDesPostesDeVoyage(_get: Get, set: Set) {
+export function creerActionsDesPostesDeVoyage(get: Get, set: Set) {
   return {
-    attribuerLeRoleDeMarche: (heroId, role) => { if (!role || postingTenu(role)) set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined }))); },
+    affecterAuRoleDeMarche: (heroId, role) => {
+      if (role && !postingTenu(role)) { refuserGesteDuSiege(get, set, t('tp.refusPosteNonTenu', { label: activityById(role.activityId)?.label ?? role.activityId })); return; }
+      set((s) => ecrireActeur(s, heroId, (h) => ({ ...h, travelRole: role ?? undefined })));
+    },
   } satisfies FabriqueDuNoyau;
 }
 

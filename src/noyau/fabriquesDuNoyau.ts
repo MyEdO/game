@@ -56,17 +56,17 @@ import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivit
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
-type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'aider' | 'annuler' | 'approvisionner' | 'armer'
-  | 'asperger' | 'attribuer' | 'avancer' | 'basculer' | 'carener' | 'ceder' | 'changer' | 'chanter' | 'chercher' | 'cliquer'
-  | 'commander' | 'creer' | 'debarquer' | 'depecer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
-  | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'eprouver'
-  | 'equiper' | 'evaluer' | 'fabriquer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
-  | 'incanter' | 'installer' | 'jeter' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer' | 'mener'
-  | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'payer' | 'pivoter' | 'poser' | 'pousser' | 'pratiquer' | 'prendre'
-  | 'promouvoir' | 'quitter' | 'rallier' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
-  | 'refuser' | 'relever' | 'remettre' | 'remiser' | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre'
-  | 'restaurer' | 'retirer' | 'rompre' | 'servir' | 'signaler' | 'soigner' | 'solder' | 'suivre' | 'supprimer' | 'tenter'
-  | 'terminer' | 'transmettre' | 'troquer' | 'utiliser' | 'vendre';
+type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'aider' | 'annuler' | 'approvisionner'
+  | 'armer' | 'asperger' | 'avancer' | 'basculer' | 'carener' | 'ceder' | 'changer' | 'chanter'
+  | 'cliquer' | 'commander' | 'creer' | 'debarquer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
+  | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'equiper'
+  | 'evaluer' | 'fabriquer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
+  | 'incanter' | 'installer' | 'jeter' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer'
+  | 'mener' | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'pivoter' | 'poser' | 'pousser' | 'pratiquer'
+  | 'prendre' | 'quitter' | 'rallier' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
+  | 'relever' | 'remettre' | 'remiser' | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre'
+  | 'restaurer' | 'retirer' | 'rompre' | 'servir' | 'solder' | 'suivre' | 'supprimer' | 'tenter' | 'terminer'
+  | 'transmettre' | 'utiliser' | 'vendre';
 /** Les actions des verbes de fenêtre, `fenetre<Action>` (`VerbeDeChoix`, `fenetreValider`, `fenetreFermer`). */
 type ActionDeFenetre = 'choisir' | 'valider' | 'fermer';
 
