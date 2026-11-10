@@ -28,9 +28,11 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
 import { applyVesselCritical, combattreEnMer, coqueDuNavireDeCampagne, entrerDansLeTourbillon, etapeDEquipage, heurterLePeril, localisationAleatoire, navireHostileEnVue, noteSeaLine, persistHullWounds, setVesselHull, vesselManann, voyageShip } from './seaVoyageFlow';
 import { findSeaHazard } from '../engine/seaPerils';
-import { applyLeafOps, OPS_DIFFEREES } from './combatEffects';
+import { applyLeafOps, OPS_DIFFEREES, scheduleDelayedOps } from './combatEffects';
 import { startCascade } from './cascade';
 import { condCtx } from './bourseFlow';
+import { autrePortAuHasard } from './portFlow';
+import { formatMoney, fromBrass } from '../engine/money';
 import type { Get, Set } from './flowTypes';
 
 /** La coque visée par `navire`, et l'écriture qui la persiste ; `null` sans navire de campagne à coque. */
@@ -157,6 +159,27 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       return navireHostileEnVue(get, set, coque, o, nomDeSource(ctx));
     case 'combatEnMer':
       return combattreEnMer(get, set, o, nomDeSource(ctx));
+    case 'commission': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const label = nomDeSource(ctx);
+      const port = autrePortAuHasard(get, ctx.rng);
+      if (!port) return [t('eff.commissionSansPort', { label })];
+      const brass = Math.max(0, Math.round(resolveFormula(o.montant.brass, ref, ctx.rng)));
+      set({ vessel: { ...vessel, commissions: [...(vessel.commissions ?? []), { label, placeId: port.id, brass }] } });
+      return [t('eff.commission', { label, port: port.label, montant: formatMoney(fromBrass(brass)) })];
+    }
+    case 'constructeurDEscale': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const jours = Math.max(1, Math.round(resolveFormula(o.duree, ref, ctx.rng)));
+      set({ vessel: { ...vessel, constructeurDEscale: { competence: o.competence, jours } } });
+      return [t('eff.constructeurDEscale', { label: nomDeSource(ctx), competence: o.competence, jours })];
+    }
+    case 'rationsDEscale': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const brass = Math.max(0, Math.round(resolveFormula(o.montant.brass, ref, ctx.rng)));
+      set({ vessel: { ...vessel, rationsDEscale: brass } });
+      return [t('eff.rationsDEscale', { label: nomDeSource(ctx), prix: formatMoney(fromBrass(brass)) })];
+    }
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);
@@ -213,7 +236,7 @@ function ajouterDesVivres(get: Get, set: Set, jours: number): string[] {
 }
 
 /** Ajoute `n` rations de mer (jours-homme) aux vivres de la cale. MDG 15 l.194 ; MDG 14 l.238 */
-function ajouterDesRations(get: Get, set: Set, n: number): string[] {
+export function ajouterDesRations(get: Get, set: Set, n: number): string[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
   set({ vessel: { ...vessel, provisions: vessel.provisions + n } });
@@ -221,7 +244,7 @@ function ajouterDesRations(get: Get, set: Set, n: number): string[] {
 }
 
 /** Embarque `n` tonneaux d'eau douce. MDG 15 l.194 ; MDG 14 l.242 */
-function ajouterDeLEau(get: Get, set: Set, n: number): string[] {
+export function ajouterDeLEau(get: Get, set: Set, n: number): string[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.waterLitres == null) return [t('eff.eauSansSuivi')];
   const litres = n * LITRES_PAR_TONNEAU;
@@ -281,6 +304,7 @@ export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx)
   while (file.length) {
     const o = file.shift()!;
     if (estTableDuNavire(o)) { file.unshift(...rangeeTiree(o, ctx.rng).ops); continue; }
+    if (o.op === 'delayed') { scheduleDelayedOps(get, set, coque, o, { now: get().gameTime, label: nomDeSource(ctx) }, { on: 'navire' }); continue; }
     if (!estOpDuNavire(o)) { pures.push(o); continue; }
     viderLesPures();
     lignes.push(...appliquerOpDuNavire(get, set, coque, o, ctx));

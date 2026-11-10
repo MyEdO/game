@@ -429,6 +429,10 @@ export function humanizeResolveWindow(w: ResolveWindow | undefined): string | un
   return `${t('codex.fenetre.suspend', { valeur, unite: plural(w.minutes, t('codex.unite.minute'), t('codex.unite.minutes')) })}${note}`;
 }
 
+/** Un montant d'op en sous de cuivre : la monnaie s'il est fixe, sa formule sinon. */
+const montantEnSous = (brass: Formula): string =>
+  typeof brass === 'number' ? formatMoney(fromBrass(brass)) : t('codex.op.money.enSous', { valeur: humanizeQuantite(brass).valeur });
+
 export function humanizeOp(o: GameOp): string {
   /** Signe affiché d'un modificateur : « + » devant un positif, le « - » du nombre sinon. */
   const signe = (n: number): string => `${n >= 0 ? '+' : ''}${n}`;
@@ -591,7 +595,7 @@ export function humanizeOp(o: GameOp): string {
     case 'spendAdvantage': return o.amount == null ? t('codex.op.spendAdvantage.tout') : t('codex.op.spendAdvantage', { n: o.amount });
     case 'light': return t('codex.op.light', { n: o.radiusM });
     case 'intoxicate': return t('codex.op.intoxicate');
-    case 'narrative': return o.text;
+    case 'narrative': return o.nombre === undefined ? o.text : t('codex.op.narrativeNombre', { text: o.text, n: humanizeFormula(o.nombre) });
     case 'shipMorale': return t('codex.op.shipMorale', { delta: formatEffetSigne(o.delta) });
     case 'manann': return o.factorId !== undefined
       ? t('codex.op.manann.facteur', { nom: refLabel('seaManannFactors', { id: o.factorId }) })
@@ -645,6 +649,9 @@ export function humanizeOp(o: GameOp): string {
       + `${o.adversaire.optionals ? t('codex.op.combatEnMer.optionals', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
       + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
       + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
+    case 'commission': return t('codex.op.commission', { valeur: montantEnSous(o.montant.brass) });
+    case 'constructeurDEscale': return t('codex.op.constructeurDEscale', { competence: o.competence, duree: humanizeFormula(o.duree) });
+    case 'rationsDEscale': return t('codex.op.rationsDEscale', { valeur: montantEnSous(o.montant.brass) });
     case 'marcheDuPort': return o.colonnes !== undefined
       ? t(o.colonnes === 'penurie' ? 'codex.op.marcheDuPort.penurie' : 'codex.op.marcheDuPort.saturation')
       : o.offre !== undefined

@@ -714,7 +714,8 @@
           "book": "mer-des-griffes",
           "page": 131,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 1ère moitié du d100 (l.132-189)."
-        }
+        },
+        "maison": "La némésis est le personnage d'une campagne, et aucune campagne du jeu n'en authore : l'événement se raconte sans mécanique."
       },
       {
         "min": -43,
@@ -830,6 +831,16 @@
                     ]
                   }
                 ]
+              },
+              {
+                "op": "narrative",
+                "text": "combien d'initiés sensibles à ses paroles il a rassemblés",
+                "nombre": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                }
               }
             ]
           }
@@ -1716,7 +1727,7 @@
           "page": 132,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS DE BORD, 2e moitié du d100 (l.192-236)."
         },
-        "maison": "MDG 15 l.205-208 laisse au MJ ce que le navire apporte : la rumeur reprend la Demande +2 pour 10+2d10 jours de l'escale (l.259), les dangers signalés écartent les périls pendant 1d10 jours, comme le Marsouin amical (l.229), car un péril se heurte PENDANT un événement de bord ; le commerce et la menace ne sont pas joués (consigne utilisateur 2026-11-07)."
+        "maison": "MDG 15 l.205-208 laisse au MJ ce que le navire apporte : la rumeur reprend la Demande +2 pour 10+2d10 jours de l'escale (l.259), les dangers signalés écartent les périls pendant 1d10 jours, comme le Marsouin amical (l.229), car un péril se heurte PENDANT un événement de bord ; aucun étal ne s'ouvre en mer, le livre ne disant ni ce qui se vend ni à quel prix, et la menace n'est pas jouée (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 89,
@@ -2983,7 +2994,7 @@
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         },
-        "maison": "Toute la cargaison est déclarée (aucune mécanique ne la cache, l.247) ; les droits de 10 % s'arrondissent à l'inférieur (consigne utilisateur 2026-11-07)."
+        "maison": "Toute la cargaison est déclarée, aucune règle ne disant comment la cacher (l.247) ; les droits de 10 % s'arrondissent à l'inférieur (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 4,
@@ -3127,7 +3138,8 @@
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "Le capitaine ennemi est le personnage d'une campagne, et aucune campagne du jeu n'en authore : l'événement se raconte sans mécanique."
       },
       {
         "min": 8,
@@ -3172,11 +3184,31 @@
         "id": "constructeur-de-navires-itinerant",
         "label": "Constructeur de navires itinérant",
         "desc": "Constructeur de navires itinérant. Un constructeur de navires talentueux est en ville. Si votre bateau a besoin de réparations, il possède Métier (Charpentier 72, Constructeur de navires 68, Tailleur 63). Il peut aussi ajouter des Améliorations au vaisseau. Chaque réparation ou Amélioration prend 1d10 jours.",
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "constructeurDEscale",
+                "competence": 68,
+                "duree": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "Le constructeur répare à son meilleur Métier, Constructeur de navires 68 contre Charpentier 72 − 10 (MDG 13 l.641) ; les 1d10 jours de la réparation se tirent à l'escale, et l'installation d'une Amélioration reste immédiate (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 14,
@@ -3359,75 +3391,90 @@
               "on": "navire",
               "ops": [
                 {
-                  "op": "rollTable",
-                  "die": "1d10",
-                  "entries": [
+                  "op": "delayed",
+                  "afterDays": {
+                    "dice": {
+                      "n": 1,
+                      "sides": 10
+                    }
+                  },
+                  "ops": [
                     {
-                      "min": 1,
-                      "max": 3,
-                      "ops": [
-                        {
-                          "op": "equipage",
-                          "delta": 1,
-                          "role": {
-                            "id": "mousse"
-                          }
-                        }
-                      ]
+                      "op": "narrative",
+                      "text": "vous découvrez sa présence"
                     },
                     {
-                      "min": 4,
-                      "max": 6,
-                      "ops": [
+                      "op": "rollTable",
+                      "die": "1d10",
+                      "entries": [
                         {
-                          "op": "equipage",
-                          "delta": 1
-                        }
-                      ]
-                    },
-                    {
-                      "min": 7,
-                      "max": 7,
-                      "ops": [
+                          "min": 1,
+                          "max": 3,
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": 1,
+                              "role": {
+                                "id": "mousse"
+                              }
+                            }
+                          ]
+                        },
                         {
-                          "op": "equipage",
-                          "delta": 1
-                        }
-                      ]
-                    },
-                    {
-                      "min": 8,
-                      "max": 8,
-                      "ops": [
+                          "min": 4,
+                          "max": 6,
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": 1
+                            }
+                          ]
+                        },
                         {
-                          "op": "equipage",
-                          "delta": 1,
-                          "role": {
-                            "id": "navigateur"
-                          }
-                        }
-                      ]
-                    },
-                    {
-                      "min": 9,
-                      "max": 9,
-                      "ops": [
+                          "min": 7,
+                          "max": 7,
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": 1
+                            }
+                          ]
+                        },
                         {
-                          "op": "equipage",
-                          "delta": 1,
-                          "role": {
-                            "id": "chirurgien"
-                          }
-                        }
-                      ]
-                    },
-                    {
-                      "min": 10,
-                      "max": 10,
-                      "ops": [
+                          "min": 8,
+                          "max": 8,
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": 1,
+                              "role": {
+                                "id": "navigateur"
+                              }
+                            }
+                          ]
+                        },
                         {
-                          "op": "equipage",
-                          "delta": 1
+                          "min": 9,
+                          "max": 9,
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": 1,
+                              "role": {
+                                "id": "chirurgien"
+                              }
+                            }
+                          ]
+                        },
+                        {
+                          "min": 10,
+                          "max": 10,
+                          "ops": [
+                            {
+                              "op": "equipage",
+                              "delta": 1
+                            }
+                          ]
                         }
                       ]
                     }
@@ -3442,7 +3489,7 @@
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
         },
-        "maison": "Mousse → mousse, Nautonier → navigateur, Médecin de bord → chirurgien ; Marin, Mercenaire expérimenté et Officier accroissent l'effectif anonyme ; le passager non repéré rejoint l'équipage tout de suite (consigne utilisateur 2026-11-07)."
+        "maison": "Mousse → mousse, Nautonier → navigateur, Médecin de bord → chirurgien ; Marin, Mercenaire expérimenté et Officier accroissent l'effectif anonyme ; les 1d10 jours du passager non repéré courent depuis l'escale (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 17,
@@ -3534,11 +3581,31 @@
         "id": "offre-de-mission",
         "label": "Offre de mission",
         "desc": "Offre de mission. Une personne qui dissimule son identité vous offre 200 CO pour livrer un « colis » sans l'ouvrir dans un port choisi au hasard. Le MJ détermine la description détaillée et les dimensions du colis.",
+        "consequence": {
+          "kind": "choice",
+          "prompt": "Accepter le colis",
+          "yes": {
+            "kind": "do",
+            "effect": {
+              "type": "ops",
+              "on": "navire",
+              "ops": [
+                {
+                  "op": "commission",
+                  "montant": {
+                    "brass": 48000
+                  }
+                }
+              ]
+            }
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "Le port de livraison est tiré parmi les ports de la carte hors l'escale, et le colis n'a ni Encombrement ni autre mécanique."
       },
       {
         "min": 20,
@@ -3546,6 +3613,21 @@
         "id": "bonne-peche",
         "label": "Bonne pêche",
         "desc": "Bonne pêche. Récemment, les pêcheurs locaux remontent des filets grouillant de poissons ou de crabes. Vous pouvez les acheter en tant que rations pour un jour au prix réduit de 3sc.",
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "rationsDEscale",
+                "montant": {
+                  "brass": 3
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,

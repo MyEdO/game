@@ -52,8 +52,8 @@ import { registerScene } from './monde/registreDesScenes';
 import { vehicleCombatant } from '../engine/vehicle';
 import { type StakeRef, type VoyageStakeId, voyageStakeRef, conditionLabel, findVehicleById, findCrewRoleById, findCrewTestTypeById, findNavalTrait, NAVAL_TRAITS, diseaseLabel, refLabel, libelleOuAbsence, testSkillLabel } from '../data';
 import { profilNavalDe } from '../engine/coque';
-import { installCost, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
-import { estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
+import { installCost, prixDeLaReparation, rollPortRepair, rollSteamBreakdown, steamBreakdownTriggered, shipSizeOfLength, propulsionDuNavire, STEAM_SKILL, type PropulsionDuNavire, type SteamBreakdownEntry } from '../engine/shipBuild';
+import { COMPETENCE_DU_MODE, estCompetenceDePropulsion, type PropulsionKind } from '../engine/propulsion';
 import { deMonde, formatDice, roll as rollDice, tirer, type RNG, type Tirage } from '../engine/dice';
 import { facesDuDe, findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
@@ -74,7 +74,7 @@ import {
 import {
   seaMilesPerDay, orientationOutcome, rollCourseChange, deDuChangementDeCap, foulingEffects, weeklyFoulingLevel,
   lighthouseSpotDifficulty, lighthouseOrientationDR, savoirOceansBonus, pursuitDistanceGain,
-  pursuitLowMPenalty, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
+  pursuitLowMPenalty, voileSansProfil, forcePaceDifficulty, exhaustionDifficulty, REPARATION, overspeedRow, overspeedDamage,
 } from '../engine/seaNavigation';
 import { expireOnRespite, exposureTarget, exposureCoatMods, exposureFirstFailChars, isWeatherWarded } from '../engine/exposure';
 import { pursuitOutcome } from '../engine/pursuit';
@@ -95,8 +95,8 @@ import { traverseeCommandee, voyageDayEntry, DEFAULT_VOYAGE_ORDERS, type VoyageO
 import { ajouterAuRoster, crewRoleValue, crewTestModParts, moraleBand, weeklyCrewWageBrass, crewTalentDR, UNDERCREW_DR, capToSuccesMinime, crewTestSuccess, rudeEpreuveMoraleDelta, SUCCES_MINIME_CAP } from '../engine/crewMorale';
 import type { NightEntry } from './restFlow';
 import { provisioningManifest } from '../engine/provisions';
-import { toMoney, canAfford, type Money } from '../engine/money';
-import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe } from './bourseFlow';
+import { toMoney, canAfford, formatMoney, fromBrass, type Money } from '../engine/money';
+import { partyMoneyTotal, payFromGroup, refusDeGesteSurLeGroupe, mouvementDeLaBourseDuGroupe } from './bourseFlow';
 import { rollShipCritical, applyCrewHit, exposedCrew, type ShipCriticalResolved } from '../engine/shipCritical';
 import { bandeTriggeredTest } from './combat/triggeredTest';
 import { drainPendingLog, jouerFlowEntier, runFlow } from './combatEffects';
@@ -116,7 +116,7 @@ import { startCascade, jouerLaJournee, pushStep, type TableStepDef } from './cas
 import { checkPartyWiped } from './partyWipe';
 import { memoParVersion } from '../data/versionDataset';
 import { exposureWaveBand } from './nightBands';
-import { creatureLabel, dataLabel } from '../data';
+import { creatureLabel, dataLabel, findCreatureById } from '../data';
 // Tuile de PONT d'une scène de bord : défaut de compilation (`defauts-de-compilation.json`), éditable
 // au Codex — la scène d'abordage est compilée, elle n'authore pas son sol.
 import { defautsDeCompilation } from '../data';
@@ -2039,6 +2039,13 @@ function startChaseBoarding(get: Get, set: Set): void {
   tell(get, set, [t('sv.noBoardingData')]);
 }
 
+/** Voile du Test de Navigation du navire hostile `b` : la meilleure de son chef et de son équipage, à défaut la
+ *  donnée `voileSansProfil`. MDG 13 l.376 */
+function voileDuPoursuivant(b: SeaBoarding): number {
+  const scores = [b.chefRef, b.crewRef].flatMap((id) => (findCreatureById(id)?.skills ?? []).filter((s) => s.id === COMPETENCE_DU_MODE.voile).map((s) => s.value));
+  return scores.length ? Math.max(...scores) : voileSansProfil();
+}
+
 /** Fuite = COURSE-POURSUITE (ch.13 l.354) devant le navire hostile `b`, à son M de conception : le seuil
  *  d'évasion suit la visibilité du jour (l.364-370). */
 function startSeaPursuit(get: Get, set: Set, b: SeaBoarding): void {
@@ -2046,7 +2053,7 @@ function startSeaPursuit(get: Get, set: Set, b: SeaBoarding): void {
   const escapeAt = sea.weather.visibilite === 'degage' ? 100 : sea.weather.visibilite === 'brume' ? 50 : 10;
   const foeM = garanti(propulsionDuNavire(b.shipRef, undefined, 'maritime'), b.shipRef, 'propulsion du navire hostile').m;
   patchSea(get, set, {
-    crisis: { kind: 'poursuite', label: b.label, distance: Math.floor(escapeAt / 2), escapeAt, foeM, foeSkill: 50 },
+    crisis: { kind: 'poursuite', label: b.label, distance: Math.floor(escapeAt / 2), escapeAt, foeM, foeSkill: voileDuPoursuivant(b) },
   });
   // MDG 13 l.362-370
   tell(get, set, [t('sv.fleeChase', { start: Math.floor(escapeAt / 2), escapeAt })]);
@@ -2222,7 +2229,7 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote
   const v = findVehicleById(vessel.vehicleId);
   const { max, current, missing } = blessuresDeCoqueARestaurer(vessel);
   const lissage = shipHasNavalTrait(vesselNavalTraits(vessel), 'lissage');
-  const reparationGold = Math.ceil(missing * (lissage ? 1.5 : 1));
+  const reparationGold = Math.ceil(prixDeLaReparation(missing, lissage));
   const foulLevel = vessel.fouling?.level ?? 0;
   const carenagePct = foulingEffects(foulLevel).repairPctOfBase;
   const carenageGold = Math.ceil((v?.purchase?.price?.gold ?? 0) * (carenagePct / 100));
@@ -2237,25 +2244,33 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusHote
   };
 }
 
-/** RÉPARATION au port (ch.13 l.643) : le constructeur naval local restaure TOUT pour « 1 CO par
- *  Blessure restaurée » (+50 % si la coque est Lissée, ch.12 l.295) ; « Chaque Test réussi prend 1d10
- *  heures … et restaure 1d10 Blessures » → le temps passe d'autant. Purge aussi les Critiques notés
- *  en voyage (remise en état). Refus si la bourse ne suit pas. */
+/** RÉPARATION au port : Tests de Métier (Constructeur de navires) du constructeur local, ou du constructeur de
+ *  l'escale (`vessel.constructeurDEscale`), jusqu'à la coque pleine ; le prix suit les Blessures restaurées, le temps
+ *  les heures des Tests, ou la durée du constructeur de l'escale. Purge les Critiques notés en voyage. Refus si la
+ *  bourse ne couvre pas le devis. MDG 13 l.641-643 ; MDG 12 l.295 ; MDG 15 l.255 */
 export function portRepairVessel(get: Get, set: Set): string[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return []; }
   const devis = devisDeChantier(vessel, partyMoneyTotal(get), refusDeGesteSurLeGroupe(get()));
   if (devis.refusReparation) { refuserGeste(get, set, devis.refusReparation); return []; }
-  const { max, missing, lissage, reparationGold: cost } = devis;
-  const costMoney = toMoney({ gold: cost });
+  const { max, missing, lissage } = devis;
   const rng = battleRng();
-  let hours = 0;
-  for (let healed = 0; healed < missing; healed += rollDice(1, 10, rng)) hours += rollDice(1, 10, rng); // 1d10 h / 1d10 B (l.643)
-  payFromGroup(get, set, costMoney, { purpose: 'réparation navire' });
+  const constructeur = vessel.constructeurDEscale;
+  const competence = constructeur?.competence ?? REPARATION.constructeurLocal;
+  let restaurees = 0, heures = 0, prix = 0, tests = 0, reussis = 0;
+  while (restaurees < missing) {
+    const passe = rollPortRepair(competence, missing - restaurees, rng, { lissage });
+    tests++;
+    if (passe.success) reussis++;
+    restaurees += passe.wounds; heures += passe.hours; prix += passe.costGold;
+  }
+  const cost = Math.ceil(prix);
+  payFromGroup(get, set, toMoney({ gold: cost }), { purpose: 'réparation navire' });
   set({ vessel: { ...get().vessel!, wounds: { current: max, max }, criticals: [] } });
-  get().avancerLHorloge(Math.max(1, hours) * 60);
-  return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed') : '', hours: Math.max(1, hours) })];
+  const duree = constructeur ? t('sv.dureeJours', { n: constructeur.jours }) : t('sv.dureeHeures', { n: Math.max(1, heures) });
+  get().avancerLeTemps(constructeur ? constructeur.jours * MINUTES_PER_DAY : Math.max(1, heures) * 60);
+  return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed', { pct: REPARATION.lissageRepairSurcoutPct }) : '', duree, competence, reussis, tests })];
 }
 
 /** CARÉNAGE en cale sèche (Salissures, ch.13 l.150-159) : « pour récurer un bateau de Taille Moyenne ou
@@ -2410,10 +2425,17 @@ function accosterLeNavire(get: Get, set: Set, placeId: string): string[] {
   if (!vessel) return [];
   const recueillis = vessel.recueillisSansSolde ?? [];
   const crew = recueillis.reduce((roster, h) => ajouterAuRoster(roster, h.roleId, h.count), vessel.crew ?? []);
-  const { recueillisSansSolde: _r, perteAuDechargement: _p, ...reste } = vessel;
-  set({ vessel: { ...reste, escale: placeId, ...(recueillis.length ? { crew } : {}) } });
+  const { recueillisSansSolde: _r, perteAuDechargement: _p, commissions = [], ...reste } = vessel;
+  const livrees = commissions.filter((c) => c.placeId === placeId);
+  const enCours = commissions.filter((c) => c.placeId !== placeId);
+  set({ vessel: { ...reste, escale: placeId, ...(recueillis.length ? { crew } : {}), ...(enCours.length ? { commissions: enCours } : {}) } });
   const n = recueillis.reduce((s, h) => s + h.count, 0);
-  return n ? [t('eff.recueillisEngages', { n })] : [];
+  const port = placeById(get().worldMap as WorldMap, placeId)?.label ?? placeId;
+  for (const c of livrees) mouvementDeLaBourseDuGroupe(get, set, c.brass);
+  return [
+    ...(n ? [t('eff.recueillisEngages', { n })] : []),
+    ...livrees.map((c) => t('eff.commissionLivree', { label: c.label, port, montant: formatMoney(fromBrass(c.brass)) })),
+  ];
 }
 
 

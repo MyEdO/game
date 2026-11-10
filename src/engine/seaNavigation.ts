@@ -54,18 +54,20 @@ const DATA = seaNavJson as unknown as {
     changementDeCap: { die: string; entries: (BandeOuverte & { outcome: CourseChangeOutcome; delayPct?: number; desc: string })[] };
   };
   phares: { voirLaLumiere: (BandeOuverte & { difficulty: Difficulty })[]; perilSpotBonus: number; clocher: { orientationDR: number; distanceDiviseur: number } };
-  longsVoyages: { millesParJourParM: number; sansVoguerDeNuitDiviseur: number; progressionPctParDR: number };
+  longsVoyages: { millesParJourParM: number; sansVoguerDeNuitDiviseur: number; progressionPctParDR: number; rationDeCale: { id: string }; tonneauDeCale: { id: string } };
   poursuite: {
     distanceUnitM: number;
     escapeDistances: { id: string; label: string; distance: number }[];
     drDeltas: (BandeOuverte & { delta: number })[];
     lowMPenalty: { m: number; dr: number }[];
+    voileSansProfil: number;
   };
   reparation: {
     portCostGoldPerWound: number; testHours: Tirage; woundsPerTest: Tirage; charpentierPenalty: number;
     lissageRepairSurcoutPct: number;
     temporaire: { difficultyMin: Difficulty; difficultyMax: Difficulty; hoursPerRepair: number; woundsPerRepair: Tirage; failDamage: Tirage };
     entretienCrewTestDR: number;
+    constructeurLocal: number;
   };
 };
 
@@ -81,6 +83,8 @@ const tables = memoParVersion('seaNavigation', () => ({
 
 export const WORK_PERIOD_HOURS = DATA.workPeriodHours;
 export const REPARATION = DATA.reparation;
+/** Les objets que le port vend pour la cale du navire : la ration-jour et le tonneau d'eau douce. MDG 14 l.248-252 */
+export const VIVRES_DE_CALE = { ration: DATA.longsVoyages.rationDeCale.id, tonneau: DATA.longsVoyages.tonneauDeCale.id };
 
 /** Bonus de Savoir (Océans) aux Tests de NAVIGATION en mer (MDG 13 l.20) : « le premier chiffre de leur score
  *  de Compétence » (36 → +3). 0 si la Compétence n'est pas ACQUISE (le bonus récompense une formation,
@@ -220,6 +224,11 @@ export function seaMilesPerDay(m: number, nightSailing: boolean, progressionDR =
 }
 
 // ── Course-poursuite (MDG 13 l.354-420) ─────────────────────────────────────────────────────────────────
+
+/** Voile du Test de Navigation d'un Poursuivant dont aucun profil du bord ne porte Voile (donnée maison). MDG 13 l.376 */
+export function voileSansProfil(): number {
+  return DATA.poursuite.voileSansProfil;
+}
 
 /** Pénalité de Poursuite des bateaux lents (MDG 13 l.399 : M 3 → −1 DR ; M 2 → −2 ; M 1 → −3). PUR. */
 export function pursuitLowMPenalty(m: number): number {
