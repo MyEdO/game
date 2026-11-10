@@ -173,7 +173,7 @@ export interface ZonesDeLEditeur {
    * enregistrer, refusé hors du dépôt, pendant un enregistrement en cours, et sur les scènes que le dépôt porte déjà ;
    * « Tester la scène », `{ geste: 'tester' }`, qui passe le projet, ses scènes à jour, par la porte, refusé avec la
    * raison de la porte (`essaiDeLaScene`), et rend `essai: true` : le lancement du projet, la scène éditée à l'entrée,
-   * les autres scènes, sa carte et son narratif, joué par le groupe vitrine (`makeShowcaseParty`), qu'ouvre `demarrer {
+   * les autres scènes, sa carte et son narratif, joué par le groupe vitrine (`groupeVitrine`), qu'ouvre `demarrer {
    * essai: true }` ; la session reste telle quelle
    */
   'editeur.fichier': Bouton[];

@@ -122,6 +122,14 @@ describe('heroDeFiche — le héros d\'une fiche imprimée', () => {
     expect(h.items?.find((i) => i.trappingId === 'fleche')?.qty).toBe(20);
   });
 
+  it('une possession hors catalogue devient autant d\'objets sans stats que sa quantité imprimée', () => {
+    const h = heroDeFiche({ ...HALFLING_HERBORISTE, trappings: [...HALFLING_HERBORISTE.trappings, { text: 'Gamelles', qte: 2 }] }, idsDeTest);
+    const gamelles = (h.items ?? []).filter((i) => i.label === 'Gamelles');
+    expect(gamelles.map((i) => [i.kind, i.trappingId, i.enc])).toEqual([['misc', undefined, 0], ['misc', undefined, 0]]);
+    expect(new Set(gamelles.map((i) => i.uid)).size).toBe(2);
+    expect(h.items?.find((i) => i.trappingId === 'fronde')?.equipped).toBe(true);
+  });
+
   it('aucun dé consommé ; la même création le consomme (espion câblé)', () => {
     expect(desConsommes(() => heroDeFiche(PRETRE_PUIS_HORS_LA_LOI, idsDeTest))).toBe(0);
     expect(desConsommes(() => createHero({ seed: 1, speciesId: 'halflings', careerId: 'herboriste', label: 'Tiré', idNeuf: idsDeTest }))).toBeGreaterThan(0);

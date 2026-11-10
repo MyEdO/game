@@ -1061,6 +1061,16 @@
           "page": 321
         },
         "pool": false
+      },
+      {
+        "id": "mandoline",
+        "label": "Mandoline",
+        "source": {
+          "book": "ennemi-dans-l-ombre-compagnon",
+          "page": 113,
+          "note": "EDOC 16 l.1110"
+        },
+        "pool": false
       }
     ],
     "desc": "Il s'agit de votre capacité à jouer d'un instrument de musique, assez bien, nous l'espérons, pour impressionner les autres. Un Test de Musique réussi vous permet de divertir les personnes suffisamment proches pour vous voir et vous entendre ; le DR indique la qualité du morceau joué.",
@@ -1757,6 +1767,16 @@
         "source": {
           "book": "guide-frenchy",
           "page": 468
+        },
+        "pool": false
+      },
+      {
+        "id": "ostermark",
+        "label": "Ostermark",
+        "source": {
+          "book": "zoo-imperial",
+          "page": 130,
+          "note": "ZI 14 l.761"
         },
         "pool": false
       }

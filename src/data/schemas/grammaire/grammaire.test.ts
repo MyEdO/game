@@ -888,6 +888,10 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // est donc exigible dès la création. `desc` ne l'est pas (les 6 compagnies de la liste l.27-34
     // n'ont que leur nom au Source — aucune prose à recopier, aucune à inventer).
     'reseau-routier.json · source',
+    // #3884 — les prétirés officiels sont des fiches imprimées : chacune adresse son folio et sa prose
+    // (« Apparence et personnalité », « Historique »).
+    'pregens.json · desc',
+    'pregens.json · source',
     // #1657 — `ship-stations` naît adopté : chacune des 5 présences porte le VERBATIM de la
     // clause qui la nomme (MDG 13 l.714/730/751, MDG 12 l.303, MSRC 07 l.94), `desc` est donc exigible
     // dès la création. `source` ne l'est pas au def : c'est déjà l'enveloppe qui refuse une entrée sans

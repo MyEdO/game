@@ -35,13 +35,13 @@
  *
  * `axisScore` reste NON durci (`possesses` — LDB 09 l.25 — les Compétences de Base se testent non
  * formées, c'est légitime). Le score BRUT d'une Compétence de Base nue (Caractéristique moyenne, zéro
- * avance) atterrit néanmoins dans une zone basse-mais-non-nulle (~0.25-0.45 sur les pré-tirés réels) :
+ * avance) atterrit néanmoins dans une zone basse-mais-non-nulle (~0.15-0.46 sur le groupe vitrine) :
  * suffisant pour un TEST, pas pour une FORCE affichée. `AXIS_QUALIFY_MIN` (3e reprise 2026-07-15, #417)
  * sépare les deux lectures : `dominantAxes`/`partyCoverage` (vitrines « forces marquées ») EXIGENT ce
  * plancher de QUALIFICATION en plus du tri décroissant — `axisScore` seul (jets, calculs internes)
- * reste inchangé. Calibré sur Wilhelmina Faust (`PREGEN.sorcier`) : Mêlée/Discrétion (Caractéristiques
- * nues, aucune avance) tombent à 0.44/0.25 — sous le seuil, écartées des « forces » — tandis que
- * Social/Savoir/Négoce (avances réelles) dépassent 0.49 et restent.
+ * reste inchangé. Mesuré sur Wanda Weltschmertz (prétiré `wanda-weltschmertz`) : Discrétion (Caractéristique
+ * nue, aucune avance) tombe à 0.22 — sous le seuil, écartée des « forces » — tandis que Mêlée/Savoir
+ * (avances réelles) dépassent 0.47 et restent.
  */
 import type { Combatant } from './types';
 import { skillBaseValue } from './skills';

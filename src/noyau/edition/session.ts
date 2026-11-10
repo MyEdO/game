@@ -26,7 +26,7 @@ import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stai
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrine } from '../../data/pregens';
 import type { LancementDeScenario } from '../lancementDeScenario';
 import { facadeFeatureKindSchema, messageIntroductionSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 import { champsOfferts, choixDuNoeud, elementDuNoeud, type FieldDesc, type ValeurDuChoix } from '../codex/editFields';
@@ -435,7 +435,7 @@ export function texteAEnregistrer(s: SessionDEdition) {
 }
 
 /** L'essai de la scène éditée de la session `s` : le projet, ses scènes à jour, passé par la porte, et ce qui construit
- *  son lancement, la scène éditée à l'entrée, joué par le groupe vitrine (`makeShowcaseParty`), à l'ouverture de la
+ *  son lancement, la scène éditée à l'entrée, joué par le groupe vitrine (`groupeVitrine`), à l'ouverture de la
  *  partie ; ou le refus de la porte. */
 export function essaiDeLaScene(s: SessionDEdition) {
   const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
@@ -443,7 +443,7 @@ export function essaiDeLaScene(s: SessionDEdition) {
   return aLaPorte('test', (): ((idNeuf: FabriqueDId) => LancementDeScenario) => {
     const projet = parseProject(doc);
     return (idNeuf) => ({
-      party: makeShowcaseParty(idNeuf), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
+      party: groupeVitrine(idNeuf), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
       ...(projet.worldMap ? { worldMap: projet.worldMap } : {}), narratif: projet.narratif,
     });
   });

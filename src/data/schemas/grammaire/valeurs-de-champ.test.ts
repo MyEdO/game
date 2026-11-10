@@ -149,6 +149,7 @@ const NOMMES = [
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',
   'generalDown|intervention|noIntervention|combatWon|combatLost',
+  'gold|silver|brass',
   'groupe|individu',
   'harness|jolt|wheel|crash',
   'incantation|focalisation|dissipation',

@@ -93,7 +93,7 @@ import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTrait, parseSkillRef } from '../../data/refFormatLivre';
 import { refsEnLignes, lignesEnRefs } from '../editor/codex/CodexEdit';
 import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
-import { makePregens } from '../../data/pregens';
+import { pretires } from '../../data/pregens';
 import { toMoney } from '../../engine/money';
 import { RoseAxes } from '../RoseAxes';
 import { CharStatsGrid } from '../CharStatsGrid';
@@ -144,7 +144,7 @@ export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] 
 export const carriereExemple = memoParVersion('careers', () => careers.find((c) => c.id === 'agitateur') ?? careers[0]);
 export const niveauxDeLaCarriereExemple = memoParVersion(['careers', 'careerLevels'], () => levelsForCareer(carriereExemple().id));
 export const signeAstralExemple = memoParVersion('stars', () => stars[0]);
-export const herosExemples = memoParVersion('pregens', () => makePregens(fabriqueLocale('galerie')));
+export const herosExemples = memoParVersion('pregens', () => pretires(fabriqueLocale('galerie')));
 export const herosExemple = () => herosExemples()[0];
 export const herosExempleB = () => herosExemples()[1] ?? herosExemples()[0];
 
@@ -1518,7 +1518,7 @@ function RecapLineDemo() {
     <RecapLineList
       lines={[
         { text: 'Gustav franchit le mur (DR +2).', tone: 'ok', icon: 'action/force' },
-        { text: 'Grunni rate son embuscade.', tone: 'bad', segments: [{ text: 'Grunni', team: 'enemy' }, { text: ' rate son embuscade.' }] },
+        { text: 'Harbull rate son embuscade.', tone: 'bad', segments: [{ text: 'Harbull', team: 'enemy' }, { text: ' rate son embuscade.' }] },
         { text: 'La nuit tombe sur le campement.', tone: 'info' },
         { text: '**Gustav** rejoint les compagnons au bord du chemin. La pluie a laissé de longues traces sur les pierres et chacun prend le temps de retrouver ses affaires avant de repartir.\n\nLe groupe observe les maisons, les fenêtres encore éclairées et les silhouettes qui traversent la place. Ce témoin synthétique conserve plusieurs paragraphes pour vérifier la lecture dans une rangée étroite.\n\n- Vérifier le passage près du vieux mur.\n- Rejoindre les compagnons sous le porche.\n- Consulter le [repère de lecture](https://example.com/recette-2001).', tone: 'ok', icon: 'action/force' },
       ]}

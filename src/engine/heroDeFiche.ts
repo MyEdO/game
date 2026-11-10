@@ -2,14 +2,14 @@
  * LE HÉROS D'UNE FICHE IMPRIMÉE (prétiré officiel) : Caractéristiques, Compétences, Talents, possessions, sorts et
  * parcours de carrière tels que la fiche les imprime, assemblés par `assemblerLeHeros`, sans aucun tirage.
  */
-import type { Combatant, Characteristics, CharKey, HeroDetails, SkillInstance } from './types';
+import type { Combatant, Characteristics, CharKey, HeroDetails, ItemInstance, SkillInstance } from './types';
 import { CHAR_KEYS } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findSpeciesById, levelsForCareer } from '../data';
 import { acquerirTalent, freeSlotFor, refKey, skillSlots, talentSlots, talentSlotsUpTo, type PorteurDeTalents } from './careerSlots';
 import { assemblerLeHeros, augmenterLaCompetence, type CreateHeroOptions } from './character';
 import { carriereActuelle, designationsDeCarriere, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
-import { contexteDeNaissanceDObjet, inventaireDesDotations } from './items';
+import { contexteDeNaissanceDObjet, customTrapping, inventaireDesDotations, type DotationResolue } from './items';
 import { baseWithTalents } from './talentEffects';
 import type { FabriqueDId } from './fabriqueDId';
 import { tableTotale } from '../lib/tableTotale';
@@ -27,8 +27,8 @@ export interface FicheDeHeros {
   charAdvances: Partial<Record<CharKey, number>>;
   skills: readonly (RefDesignee & { advances: number })[];
   talents: readonly (RefDesignee & { times: number })[];
-  /** Objets du catalogue, chacun à sa quantité imprimée. */
-  trappings: readonly (RefDesignee & { qte: number })[];
+  /** Possessions, chacune à sa quantité imprimée : un objet du catalogue, ou la ligne de la fiche hors catalogue. */
+  trappings: readonly ((RefDesignee | { text: string }) & { qte: number })[];
   /** Tous les sorts de la fiche, Bénédictions comprises. */
   spells: readonly string[];
   fate: number;
@@ -59,6 +59,21 @@ function designationsDeLaFiche(fiche: FicheDeHeros): Combatant['careerSlotChoice
     if (Object.keys(designations).length) out[carriere] = designations;
   }
   return Object.keys(out).length ? out : undefined;
+}
+
+/** Les objets des possessions de `fiche` : ceux du catalogue par `inventaireDesDotations`, chaque ligne hors
+ *  catalogue en objet sans stats (`customTrapping`), autant de fois que sa quantité. */
+function inventaireDeLaFiche(fiche: FicheDeHeros, carriere: string, idNeuf: FabriqueDId): ItemInstance[] {
+  const catalogue: DotationResolue[] = [];
+  const horsCatalogue: string[] = [];
+  for (const { qte, ...p } of fiche.trappings) {
+    if ('text' in p) horsCatalogue.push(...Array<string>(qte).fill(p.text));
+    else catalogue.push({ ref: p, n: qte });
+  }
+  return [
+    ...inventaireDesDotations(catalogue, idNeuf, contexteDeNaissanceDObjet({ species: fiche.speciesId, career: carriere })),
+    ...horsCatalogue.map((texte) => customTrapping(texte, idNeuf)),
+  ];
 }
 
 /** Le héros de la fiche imprimée `fiche`, sans aucun tirage ; `idNeuf` forge les uids de ses objets. Les
@@ -95,7 +110,7 @@ export function heroDeFiche(fiche: FicheDeHeros, idNeuf: FabriqueDId): Combatant
     charAdvances: { ...fiche.charAdvances },
     talents,
     skills,
-    items: inventaireDesDotations(fiche.trappings.map(({ qte, ...ref }) => ({ ref, n: qte })), idNeuf, contexteDeNaissanceDObjet({ species: fiche.speciesId, career: actuelle.id })),
+    items: inventaireDeLaFiche(fiche, actuelle.id, idNeuf),
     careerSlotChoices: designationsDeLaFiche(fiche),
     fate: fiche.fate,
     resilience: fiche.resilience,

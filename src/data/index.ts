@@ -3078,9 +3078,9 @@ export const gods = godsJson as GodData[];
 /** Banques de noms — UN document par race jouable, d'`id` égal à son `RaceKey` (celui de
  *  `species.refChar`) : `engine/names` retrouve la banque par cet id (#1467 L1b V-FLIP-RECORD). */
 export const names = namesJson as NamePool[];
-/** Personnages pré-tirés (DÉFINITIONS) — app-owned éditable au Codex ; la FABRIQUE (`createHero`)
+/** Prétirés officiels (fiches imprimées) — éditables au Codex ; la FABRIQUE (`heroDeFiche`)
  *  vit dans `pregens.ts`, qui consomme CE tableau (même référence → mutation live de l'éditeur). */
-export const pregens = pregensJson as PregenDef[];
+export const pregens = pregensJson as unknown as PregenDef[];
 /** Tableau des Oups ! (LDB Maladresses) — app-owned éditable ; consommé par `oups.ts` (même référence). */
 export const oups = rangeesDe<typeof tableauDesOups>(oupsJson) as OupsRow[];
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */

@@ -89,8 +89,8 @@ export function cleDOption(option: AdvancementRef): string {
 }
 
 /**
- * Les CHOIX de création d'un héros, en ids — la forme commune du brouillon du créateur (`CreatorDraft`),
- * des pré-tirés (`PregenDef`) et des options de `createHero`.
+ * Les CHOIX de création d'un héros, en ids — la forme commune du brouillon du créateur (`CreatorDraft`) et des
+ * options de `createHero`.
  */
 export interface ChoixDeCreation {
   /** Graine RACINE de la création : chaque étape aléatoire en dérive son flux (`fluxDeCreation`). */
@@ -568,7 +568,7 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
 }
 
 /** Répartition automatique des 5 Augmentations gratuites (2/2/1) sur les Caractéristiques de
- *  carrière — utilisée quand l'appelant (pré-tirés) ne fournit pas de répartition. */
+ *  carrière — utilisée quand l'appelant ne fournit pas de répartition. */
 function autoCharAlloc(careerChars: CharKey[]): Partial<Record<CharKey, number>> {
   const out: Partial<Record<CharKey, number>> = {};
   const parts = [2, 2, 1];

@@ -503,6 +503,16 @@
           "page": 184
         },
         "pool": false
+      },
+      {
+        "id": "rural",
+        "label": "Rural",
+        "source": {
+          "book": "ennemi-dans-l-ombre-compagnon",
+          "page": 113,
+          "note": "EDOC 16 l.493"
+        },
+        "pool": false
       }
     ],
     "rand": null,
