@@ -591,7 +591,7 @@ export function humanizeOp(o: GameOp): string {
     case 'spendAdvantage': return o.amount == null ? t('codex.op.spendAdvantage.tout') : t('codex.op.spendAdvantage', { n: o.amount });
     case 'light': return t('codex.op.light', { n: o.radiusM });
     case 'intoxicate': return t('codex.op.intoxicate');
-    case 'narrative': return o.text;
+    case 'narrative': return o.nombre === undefined ? o.text : t('codex.op.narrativeNombre', { text: o.text, n: humanizeFormula(o.nombre) });
     case 'shipMorale': return t('codex.op.shipMorale', { delta: formatEffetSigne(o.delta) });
     case 'manann': return o.factorId !== undefined
       ? t('codex.op.manann.facteur', { nom: refLabel('seaManannFactors', { id: o.factorId }) })
@@ -645,6 +645,10 @@ export function humanizeOp(o: GameOp): string {
       + `${o.adversaire.optionals ? t('codex.op.combatEnMer.optionals', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
       + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
       + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
+    case 'commission': {
+      const { brass } = o.montant;
+      return t('codex.op.commission', { valeur: typeof brass === 'number' ? formatMoney(fromBrass(brass)) : t('codex.op.money.enSous', { valeur: humanizeQuantite(brass).valeur }) });
+    }
     case 'marcheDuPort': return o.colonnes !== undefined
       ? t(o.colonnes === 'penurie' ? 'codex.op.marcheDuPort.penurie' : 'codex.op.marcheDuPort.saturation')
       : o.offre !== undefined

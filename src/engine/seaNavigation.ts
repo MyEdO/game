@@ -60,6 +60,7 @@ const DATA = seaNavJson as unknown as {
     escapeDistances: { id: string; label: string; distance: number }[];
     drDeltas: (BandeOuverte & { delta: number })[];
     lowMPenalty: { m: number; dr: number }[];
+    voileSansProfil: number;
   };
   reparation: {
     portCostGoldPerWound: number; testHours: Tirage; woundsPerTest: Tirage; charpentierPenalty: number;
@@ -220,6 +221,11 @@ export function seaMilesPerDay(m: number, nightSailing: boolean, progressionDR =
 }
 
 // ── Course-poursuite (MDG 13 l.354-420) ─────────────────────────────────────────────────────────────────
+
+/** Voile du Test de Navigation d'un Poursuivant dont aucun profil du bord ne porte Voile (donnée maison). MDG 13 l.376 */
+export function voileSansProfil(): number {
+  return DATA.poursuite.voileSansProfil;
+}
 
 /** Pénalité de Poursuite des bateaux lents (MDG 13 l.399 : M 3 → −1 DR ; M 2 → −2 ; M 1 → −3). PUR. */
 export function pursuitLowMPenalty(m: number): number {
