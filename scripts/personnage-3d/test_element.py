@@ -1,9 +1,9 @@
 """Construction des éléments sur base (#3743) : chaque élément d'`element/<base>/` reconstruit depuis le dépôt, sur les GLB
 épinglés lus dans le cache des modèles (`CACHE_DES_MODELES` de `hotes/godot/asset/release.ts`, que remplit `godot:sonde`
-avant ce test en CI), reproduit le manifeste publié sous `hotes/godot/projet/modeles/`, son empreinte de GLB à part, et
-la forme du GLB publié au flottant près (`forme`, `ecarts`), avec l'enveloppe de production et les licences des packs de
-la base : sur la même roue bpy, la file de fusion de #3795 a reconstruit chaque GLB à quelques dizaines d'octets du
-publié."""
+avant ce test en CI), reproduit le manifeste publié sous `hotes/godot/projet/modeles/` (`ecarts_du_manifeste`), son empreinte de GLB à part,
+et la forme du GLB publié (`forme`, `ecarts`), au flottant près, avec l'enveloppe de production et les licences des packs
+de la base : sur la même roue bpy, la file de fusion de #3795 a reconstruit chaque GLB à quelques dizaines d'octets du
+publié, et une position d'emplacement au dernier chiffre arrondi près."""
 import hashlib
 import json
 import os
@@ -21,6 +21,7 @@ from production import CACHE_DES_MODELES, MODELES  # noqa: E402
 ECART_DE_POSITION_MAX = 1e-4   # m, entre deux bornes de positions ou deux translations de nœud
 ECART_DE_ROTATION_MAX = 1e-4   # composante de quaternion
 ECART_DE_COMPTE_MAX = 0.02     # part des sommets ou des indices d'une primitive
+ECART_DE_VALEUR_MAX = 2e-4     # nombre d'un manifeste, arrondi au plus à 4 décimales (`poids` de `Base.offrir`)
 
 
 def lire(chemin):
@@ -65,6 +66,23 @@ def ecarts(a, b):
     return fautes
 
 
+def ecarts_du_manifeste(a, b, chemin='manifeste'):
+    """Les écarts entre deux manifestes : chaque clé, chaque longueur et chaque valeur non numérique à l'identique, chaque
+    nombre à `ECART_DE_VALEUR_MAX` près."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        if a.keys() != b.keys():
+            return [(chemin, sorted(a), sorted(b))]
+        return [e for k in a for e in ecarts_du_manifeste(a[k], b[k], f'{chemin}.{k}')]
+    if isinstance(a, list) and isinstance(b, list):
+        if len(a) != len(b):
+            return [(chemin, a, b)]
+        return [e for i, (u, v) in enumerate(zip(a, b)) for e in ecarts_du_manifeste(u, v, f'{chemin}[{i}]')]
+    nombre = lambda x: isinstance(x, (int, float)) and not isinstance(x, bool)
+    if nombre(a) and nombre(b):
+        return [] if abs(a - b) <= ECART_DE_VALEUR_MAX else [(chemin, a, b)]
+    return [] if type(a) is type(b) and a == b else [(chemin, a, b)]
+
+
 class Reconstruction(unittest.TestCase):
 
     def test_chaque_element_reproduit_son_publie(self):
@@ -89,7 +107,7 @@ class Reconstruction(unittest.TestCase):
                 publie = MODELES / f'{id_}.manifeste.json'
                 self.assertTrue(publie.exists(), f'{id_} : aucun manifeste publié sous {MODELES}')
                 publie = lire(publie)
-                self.assertEqual({k: v for k, v in manifeste.items() if k != 'glb'}, {k: v for k, v in publie.items() if k != 'glb'})
+                self.assertEqual(ecarts_du_manifeste({k: v for k, v in manifeste.items() if k != 'glb'}, {k: v for k, v in publie.items() if k != 'glb'}), [])
                 self.assertEqual(ecarts(forme(produit / f'{id_}.glb'), forme(CACHE_DES_MODELES / f"{publie['glb']['sha256']}.glb")), [])
 
 
