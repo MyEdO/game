@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
@@ -81,9 +81,9 @@ export const scenario: TestScenario = {
     'locuteur d’un nœud à l’autre — Gustav (session, `interagirAvecLEntite`) → Isolde → Phillipe → Gustav ; ' +
     'ZÉRO nom en clair dans la donnée. Reparler à Gustav après la tablée : reprise par `when` sur flag ' +
     'dans le MÊME dialogue — la réponse masquée ne consomme pas de numéro (touche 1 = 1ʳᵉ visible).',
-  partyNote: 'Sigmund (Soldat) · Tueur nain · Sorcier · Chasseur',
+  partyNote: 'Soldat · Tueur nain · Sorcier · Chasseur',
   construire: (idNeuf) => ({
-    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.chasseur),
+    party: groupeDeScenario(idNeuf, 'soldat', 'tueur', 'sorcier', 'chasseur'),
     scene: construireAuberge(),
   }),
 };

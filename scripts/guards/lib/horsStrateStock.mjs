@@ -136,7 +136,6 @@ export const STRUCTURES_LOCALES = [
   { fichier: 'src/data#naval-traits', ref: '[].install.installation|{bands,per=10m/5m/undefined/unite}', occurrence: 1 },
   { fichier: 'src/data#naval-traits', ref: '[].install.installation|{bands,per=10m/5m/undefined/unite}.bands[]', occurrence: 1 },
   { fichier: 'src/data#naval-traits', ref: '[].ram', occurrence: 1 },
-  { fichier: 'src/data#pregens', ref: '[].speciesTalentChoices{}|{random}', occurrence: 1 },
   { fichier: 'src/data#progression-schemas.derived', ref: '.schemas[]', occurrence: 1 },
   { fichier: 'src/data#progression-schemas.derived', ref: '.schemas[].lv', occurrence: 1 },
   { fichier: 'src/data#progression-schemas.derived', ref: '.schemas[].lv.1[]', occurrence: 1 },

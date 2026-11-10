@@ -5,12 +5,12 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useGame } from './store';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { currentTargetingMode } from '../noyau/targetingModes';
 
 function wiz() {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', ...(w.spells ?? [])]; // Explosion : Projectile magique ZdE (LDB 47 l.453)

@@ -19,7 +19,7 @@ import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { initialNet } from './etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant, Weapon } from '../engine/types';
 import { createHero } from '../engine/character';
 import { draineCascade } from './cascade.testkit';
@@ -122,7 +122,7 @@ describe('appliquerLIntentionDUnSiege — allowlist, possession, siège du trans
     expect(banc.getState().journal).toEqual(['Action refusée : elle ne revient pas au joueur qui l’a demandée.']);
   });
 
-  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(makePregens(idsDeTest)[0])), id, label: id });
+  const pregen = (id: string): Combatant => ({ ...JSON.parse(JSON.stringify(tousLesHerosDeScenario(idsDeTest)[0])), id, label: id });
   const hoteEtUnInvite = () => banc.setState({
     party: [], journal: [], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, slots: [1, 0, 0, 0] },
   });

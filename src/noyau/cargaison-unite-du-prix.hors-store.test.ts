@@ -5,7 +5,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type EtatDeJeu, type Partie } from './index';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import type { CampaignVessel } from './etat';
 import type { WorldMap } from './worldMap';
@@ -21,7 +21,7 @@ const entrees: EntreesDeLaPartie = { graine: 3, reglesMaison: {}, cadence: 'manu
 function partie(carte: WorldMap, etat: Partial<EtatDeJeu>): Partie {
   return creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens(idsDeTest).slice(0, 1), worldMap: carte, lieu: 'A', gameTime: 8 * 60,
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), worldMap: carte, lieu: 'A', gameTime: 8 * 60,
     scene: { ...emptyScene('lieu-a', 2, 2), label: 'Lieu', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     ...etat,
   }, entrees);
@@ -39,7 +39,7 @@ describe('#3646 — unité du prix de base d’une cargaison, par voie', () => {
     const p = partie({
       id: 'm', label: 'Reikland', routes: [],
       places: [{ id: 'A', label: 'Grünburg', pos: { x: 0, y: 0 }, scene: { id: 'lieu-a' }, market: { taille: 4, richesse: 4, produits: ['metal', 'vivres', 'laine-terre'] } }],
-    }, { possessions: [{ uid: 'convoi', ownerId: makePregens(idsDeTest)[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }] });
+    }, { possessions: [{ uid: 'convoi', ownerId: tousLesHerosDeScenario(idsDeTest)[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }] });
     try {
       p.envoyer({ type: 'ouvrirLeMarche', args: [] });
       const offres = p.etat().landMarket?.offers.filter((o) => !o.wine) ?? [];

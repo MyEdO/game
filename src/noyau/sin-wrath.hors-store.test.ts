@@ -10,7 +10,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { avanceEtapeCascade, draineEtLit } from './cascade.testkit';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 
@@ -18,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function priestParty(sin: number) {
-  const [priest, ally] = pregenParty(idsDeTest, PREGEN.pretre, PREGEN.soldat);
+  const [priest, ally] = groupeDeScenario(idsDeTest, 'pretre', 'soldat');
   const priere = priest.skills.find((s) => s.id === 'priere');
   if (priere) priere.advances = Math.max(priere.advances, 5);
   else priest.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 });

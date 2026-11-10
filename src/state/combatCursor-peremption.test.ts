@@ -13,7 +13,7 @@ import { finishCombatEnd, advanceTurn } from '../noyau/combatFlow';
 import { createHero } from '../engine/character';
 import { emptyScene } from '../noyau/monde/scene';
 import { seedBattleRng } from '../noyau/battleRng';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
@@ -87,7 +87,7 @@ describe('curseurPerime — le curseur suit la fenêtre de geste', () => {
   });
 
   it('enfourcher une monture Nerveux qui précède le cavalier décale le tour, pas la main : le curseur survit', () => {
-    const hero = makePregens(idsDeTest)[0];
+    const hero = tousLesHerosDeScenario(idsDeTest)[0];
     hero.pos = { x: 5, y: 5 };
     const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });
     horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never;

@@ -14,7 +14,7 @@ import { initialNet, type NetState } from '../../noyau/etat';
 import { tableDeDissipation } from '../../noyau/tableDeDissipation.testkit';
 import { applyEffects } from '../../noyau/combatEffects';
 import { affichés, narratif, hero as heroDesIndices, fixtureScene } from '../../noyau/monde/clues.fixture';
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../../noyau/monde/spawn';
 import { t } from '../../i18n';
 
@@ -203,7 +203,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
   });
 
   it('clics du champ : la frappe d’un ennemi et le clic-sol partent, l’action locale ne joue pas', () => {
-    const h = makePregens(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
+    const h = tousLesHerosDeScenario(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
     const w = 22, hh = 16;
     banc.setState({
@@ -223,7 +223,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
 describe('salon — le verbe de l’offre d’un invité : il part, l’attaque s’arme avant', () => {
   /** Le duel du héros `h1` de l'invité (siège 0 de la table) contre `e1`, à son tour. */
   function duel(): void {
-    const h = makePregens(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
+    const h = tousLesHerosDeScenario(idsDeTest)[0]; h.id = 'h1'; h.pos = { x: 6, y: 10 };
     const enemy = spawnEnemy({ ref: 'humain' }, 'e1', { x: 7, y: 10 });
     const w = 22, hh = 16;
     banc.setState({
@@ -257,7 +257,7 @@ describe('salon — le verbe de l’offre d’un invité : il part, l’attaque 
 
 describe('salon — lobby : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
   const hote = (): NetState => ({ ...initialNet(), mode: 'host', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
-  beforeEach(() => { banc.setState({ net: hote(), party: [{ ...makePregens(idsDeTest)[0], id: 'h' }], battle: null }); });
+  beforeEach(() => { banc.setState({ net: hote(), party: [{ ...tousLesHerosDeScenario(idsDeTest)[0], id: 'h' }], battle: null }); });
 
   it('netAssignSlot vers un emplacement occupé, puis hors de la table ; netAssign et setGmSeat hors de la table', () => {
     const avant = banc.getState().net;

@@ -180,8 +180,9 @@ const porteAlsoIn = (categoryKey: string): boolean => {
  * SOURCE UNIQUE : utilisée par le filtre de `CodexEdit` ET par le garde-fou `no-json-fields.test` (qui
  * vérifie qu'aucun champ d'aucun dataset éditable ne retombe en `kind:'json'`). Ajouter un éditeur dédié
  * = ajouter sa/ses clé(s) ici (et le composant dans le rendu). */
-/** Les tables d'événements de mer (`sea-events.json`), dont la `consequence` est un Flow de racine `evenementDeMer`. */
-const EVENEMENTS_DE_MER: readonly string[] = ['seaBoardEvents', 'seaPortEvents'];
+/** Les tables tirées de `sea-events.json` (événements de bord, d'escale, paliers du Voyage rapide), dont la
+ *  `consequence` est un Flow de racine `evenementDeMer`. */
+const EVENEMENTS_DE_MER: readonly string[] = ['seaBoardEvents', 'seaPortEvents', 'seaFastVoyage'];
 
 export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   const k = new Set<string>();
@@ -223,6 +224,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // Créature : `skills`/`talents` sont des REFS structurées (`SkillRef`/`TalentRef`) — éditées au FORMAT
   // LIVRE (porte partagée avec l'éditeur de statbloc de scène), jamais par le champ-liste générique.
   if (categoryKey === 'creatures') add('skills', 'talents');
+  if (categoryKey === 'pregens') add('trappings', 'talents'); // MÊMES refs que la créature : `TalentRef[]` et dotations (id catalogue ou texte)
   if (categoryKey === 'careerLevels') add('characteristics');
   if (categoryKey === 'domains') add('castBonus', 'missile', 'casterOps');
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
@@ -399,7 +401,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Avancement (espèce / niveau de carrière) : `skills`/`talents` = AdvancementRef[] (réf/joker/choix/aléatoire).
   const hasAdvancement = categoryKey === 'races' || categoryKey === 'careerLevels';
   // Possessions (classe / niveau de carrière / créature) : `trappings` = TrappingRef[] (id catalogue + quantité, ou texte).
-  const hasTrappings = categoryKey === 'classes' || categoryKey === 'careerLevels' || categoryKey === 'creatures';
+  const hasTrappings = categoryKey === 'classes' || categoryKey === 'careerLevels' || categoryKey === 'creatures' || categoryKey === 'pregens';
   // Niveau de carrière : `characteristics` = CharKey[] (vocab fermé) → multi-sélection (pas de saisie libre).
   const hasCharKeys = categoryKey === 'careerLevels';
   // Étoile : `sub` = la fourchette du sous-tirage (`starSubDie`, ADE II 03 l.63) → `PlageField`.
@@ -688,13 +690,15 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
               value={entry.skills as SkillRef[] | undefined} libelle={skillRefLabel} parse={parseSkillRef}
               onChange={(v) => edit('skills', v)}
             />
-            <LignesFormatLivreField
-              label="Talents"
-              hint="(un par ligne, format livre « Talent (Spéc) Niveau » : « Magie des Arcanes (Bête) », « Maîtrise du combat 3 », « Lire/Écrire »)"
-              value={entry.talents as TalentRef[] | undefined} libelle={talentRefLabel} parse={parseTalentRef}
-              onChange={(v) => edit('talents', v)}
-            />
           </>
+        )}
+        {(isCreature || categoryKey === 'pregens') && (
+          <LignesFormatLivreField
+            label="Talents"
+            hint="(un par ligne, format livre « Talent (Spéc) Niveau » : « Magie des Arcanes (Bête) », « Maîtrise du combat 3 », « Lire/Écrire »)"
+            value={entry.talents as TalentRef[] | undefined} libelle={talentRefLabel} parse={parseTalentRef}
+            onChange={(v) => edit('talents', v)}
+          />
         )}
         {isDetails && <DetailsTextsField value={entry.texts as DetailsTexts | undefined} onChange={(v) => edit('texts', v)} />}
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}

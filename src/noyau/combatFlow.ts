@@ -167,7 +167,7 @@ import { MINUTES_PER_DAY } from '../engine/clock';
 import { findSpell, findSpellById } from '../data/index';
 
 /** Résout un sort par ID STABLE. SOURCE UNIQUE de la résolution de sort dans le flux de combat.
- *  `Combatant.spells` = ids au runtime (créatures via spawn, héros via pregens) → AUCUN repli libellé
+ *  `Combatant.spells` = ids au runtime (créatures via spawn, héros assemblés) → AUCUN repli libellé
  *  (un fallback id→libellé = rétro-compatibilité, proscrite). Les libellés restent au seul niveau AUTHORING. */
 const resolveSpell = (id: string) => findSpellById(id);
 import { toBrass, fromBrass } from '../engine/money';

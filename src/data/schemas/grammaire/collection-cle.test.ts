@@ -256,7 +256,7 @@ describe('clé de collection — la co-descente re-dérive les racines, les cat�
       const racine = fichier === undefined ? undefined : racines.get(fichier);
       return racine === undefined || racine === tableau ? [] : [{ k, attendue: `${fichier}#${chercher(racine, tableau, '')}`, tableau }];
     });
-    expect(nichees).toHaveLength(58);
+    expect(nichees).toHaveLength(59);
     const fichiersNiches = new Set(nichees.map(({ attendue }) => attendue.split('#')[0]));
     const mesurees = collectionsDesDocuments(DEFS, new Map([...racines].filter(([f]) => fichiersNiches.has(f))));
     const parTableau = nichees.map(({ k, tableau }) => [k, mesurees.filter((c) => c.valeur === tableau).map((c) => c.cle)]);

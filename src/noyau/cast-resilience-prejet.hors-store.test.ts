@@ -7,7 +7,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { bestForcedRoll } from '../engine/tests';
 import type { Combatant } from '../engine/types';
 
@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const SPELL = 'armure-aethyrique';
 
 function sorcier(): Combatant {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   w.characteristics = { ...w.characteristics, intelligence: 55 };
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);

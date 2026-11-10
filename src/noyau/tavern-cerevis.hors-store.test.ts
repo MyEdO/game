@@ -21,7 +21,7 @@ import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { evaluateTest } from '../engine/tests';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById, TAVERN_GAMES } from '../engine/tavernGame';
 import { setDataset } from '../data/overrides';
@@ -46,7 +46,7 @@ const CEREVIS = findTavernGameById('cerevis')!;
 const OPPONENT = 40;
 
 function seul(): Combatant {
-  const a = makePregens(idsDeTest)[0] as Combatant;
+  const a = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }
@@ -136,7 +136,7 @@ describe('Le Cerevis — la donnée porte la règle, et dit ce qui est maison', 
   });
 
   it('héros CONTRE héros : CHAQUE rangée de la bande porte SA seconde lecture', () => {
-    const [a, b] = makePregens(idsDeTest) as Combatant[];
+    const [a, b] = tousLesHerosDeScenario(idsDeTest) as Combatant[];
     banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne(a.id, { gameId: 'cerevis', opponent: { kind: 'heros', id: b.id } });
     const bande = get().pendingCascade!.participants[0];

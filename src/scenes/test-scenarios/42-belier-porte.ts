@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN, idDuPretire } from '../../data/pregens';
+import { groupeDeScenario, idDuHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { setEncounters } from './_shared';
@@ -9,7 +9,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * BÉLIER — PORTE (ADE II 8 « Le théâtre de la guerre » l.233) : consommateur LIVE du modèle ENGIN DE
  * SIÈGE CREWÉ — le bélier n'est PAS une arme portée en solo : c'est un EMPLACEMENT (poste `ShipPoste`,
  * `Combatant.mannedPoste`/`postes`) servi par une ÉQUIPE (Qualité `equipe`, Indice 6), exactement comme les
- * autres machines de guerre. Le SOLDAT (héros, id STABLE `pregen-101`) est le CHEF de pièce (`crewIds[0]`,
+ * autres machines de guerre. Le SOLDAT (héros, id STABLE `soldat-de-test`) est le CHEF de pièce (`crewIds[0]`,
  * seul à tirer/manier) ; 5 servants PNJ (`brute`, IA) complètent l'Équipe de 6. `applyShipPostes`
  * sert le poste au chef au début du combat (aucune action « équiper » ni loadout) — le bélier SERVI est
  * assené contre une VRAIE porte (`porte-de-ville`, structure brèchable) : le jet d'attaque se résout sur la
@@ -30,7 +30,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * cases de la formation, aucune sur la colonne des 3 autres héros ((3,9)/(3,10)/(3,11)) ni sur l'affût.
  */
 const RAM_CREW = [
-  idDuPretire(PREGEN.soldat), // chef de pièce (crewIds[0]) : un héros, seul à manier le bélier
+  idDuHerosDeScenario('soldat'), // chef de pièce (crewIds[0]) : un héros, seul à manier le bélier
   'enemy-siege-belier-2', 'enemy-siege-belier-3', 'enemy-siege-belier-4', 'enemy-siege-belier-5', 'enemy-siege-belier-6', // 5 servants PNJ (Équipe 6, ADE II 8 l.233)
 ];
 
@@ -107,7 +107,7 @@ export const scenario: TestScenario = {
     "sur sa Force, jamais sa CC ; seule la porte encaisse des Dégâts (Atout Bélier).",
   partyNote: 'Le Soldat sert le bélier (chef de pièce) ; 5 servants PNJ complètent l’Équipe requise.',
   construire: (idNeuf) => ({
-    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.sorcier, PREGEN.tueur),
+    party: groupeDeScenario(idNeuf, 'soldat', 'chasseur', 'sorcier', 'tueur'),
     scene: construireScene(),
   }),
   autoCombat: 'siege-belier',

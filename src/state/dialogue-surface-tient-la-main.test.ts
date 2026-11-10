@@ -13,7 +13,7 @@ import { ouvrirDialogue } from '../noyau/dialogue';
 import { runBindingById } from './clavier/keybindings';
 import { withActingSeat } from '../noyau/netOwnership';
 import { parseProject } from '../noyau/worldMap';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Dialogue, Scene } from '../noyau/monde/scene';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
@@ -30,7 +30,7 @@ const dlg: Dialogue = {
 function temoin(over: Partial<GameState> = {}) {
   useGame.setState({
     screen: 'campaign', mode: 'exploration', battle: null, scene: null, flags: {}, journal: [],
-    party: makeShowcaseParty(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
+    party: groupeVitrineDeScenario(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
     document: null, pendingLoot: null, pendingTest: null, pendingLogQueue: [], pendingOrders: [],
     gameMenuOpen: false, codexOverlay: null, sheetId: null, worldMapOpen: false, port: null, landMarket: null,
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },
@@ -63,7 +63,7 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
   const nuitDuChat = quai.dialogues.find((d) => d.id === 'dlg-kramer-nuit-du-chat')!;
 
   it('Test → document ouvert → touche 2 inerte → document fermé → touche 2 joue', () => {
-    useGame.setState({ party: makeShowcaseParty(idsDeTest) });
+    useGame.setState({ party: groupeVitrineDeScenario(idsDeTest) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!), quai.id)).toBeNull();
     temoin({ scene: quai, document: null, dialogue: ouvrirDialogue({ dialogueHistory: [] }, nuitDuChat) });
     const get = useGame.getState;

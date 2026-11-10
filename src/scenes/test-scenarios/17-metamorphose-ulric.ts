@@ -1,6 +1,6 @@
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -60,7 +60,7 @@ export const scenario: TestScenario = {
     "auto-transformation de l'IA (self-buff valorisé data-driven).",
   partyNote: 'Groupe standard (Soldat · Sorcière · Tueur nain · Répurgateur) face à deux lycanthropes.',
   construire: (idNeuf) => ({
-    party: [pregen(idNeuf, PREGEN.soldat), pregen(idNeuf, PREGEN.sorcier), pregen(idNeuf, PREGEN.tueur), pregen(idNeuf, PREGEN.repurgateur)],
+    party: [herosDeScenario(idNeuf, 'soldat'), herosDeScenario(idNeuf, 'sorcier'), herosDeScenario(idNeuf, 'tueur'), herosDeScenario(idNeuf, 'repurgateur')],
     scene: construireScene(),
   }),
 };

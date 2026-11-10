@@ -3,7 +3,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 
 let banc: Banc;
 beforeEach(() => {
@@ -14,7 +14,7 @@ beforeEach(() => {
 
 describe('Effet inflictTrauma', () => {
   it('fracture mineure à la jambe → trauma posé (Mouvement ÷2) + criticalWounds++', () => {
-    const party = makePregens(idsDeTest).slice(0, 2);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2);
     banc.setState({ party });
     applyEffects(banc.getState, banc.setState, [
       { type: 'inflictTrauma', kind: 'fracture', severity: 'mineur', location: 'jambeG', heroId: party[0].id },
@@ -25,7 +25,7 @@ describe('Effet inflictTrauma', () => {
     expect(h.criticalWounds).toBe(1);
   });
   it('amputation au bras droit → séquelle permanente (main directrice)', () => {
-    const party = makePregens(idsDeTest).slice(0, 1);
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party });
     applyEffects(banc.getState, banc.setState, [
       { type: 'inflictTrauma', kind: 'amputation', location: 'brasD' },

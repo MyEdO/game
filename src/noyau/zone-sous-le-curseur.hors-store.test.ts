@@ -7,7 +7,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { zoneSousLeCurseur } from './combatFlow';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import type { Combatant } from '../engine/types';
 
@@ -24,7 +24,7 @@ function wallScene() {
 
 /** Lanceuse en (2,0), Force Mentale `fm`, au tour de jeu ; `explosion` sélectionnée, sans modale. */
 function poser(fm: number, battle: Record<string, unknown> = {}): Combatant {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   w.pos = { x: 2, y: 0 };
   w.characteristics['force-mentale'] = fm;
   const e = spawnEnemy({ ref: 'humain' }, 'e-1', { x: 16, y: 0 });

@@ -4,14 +4,14 @@ import { act, StrictMode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { useGame } from '../state/store';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { withBourseMoney } from '../engine/bourse';
 import { toMoney, spellMoney } from '../engine/money';
 import { SeaActivitiesModal } from './SeaActivitiesModal';
 import { PortView } from './PortView';
 
 const initial = useGame.getState();
-const hero = (gold: number) => withBourseMoney(makePregens(idsDeTest)[0], toMoney({ gold }), idsDeTest);
+const hero = (gold: number) => withBourseMoney(tousLesHerosDeScenario(idsDeTest)[0], toMoney({ gold }), idsDeTest);
 const vessel = { vehicleId: 'cogue', label: 'Navire de test', morale: { score: 75, lastMoraleWeek: 0, factors: [] } };
 const port = {
   placeId: 'port-test', label: 'Port de test',

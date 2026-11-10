@@ -10,7 +10,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { advanceTurn } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
@@ -18,7 +18,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wizardWithSecondeVue(): Combatant {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   w.skills = (w.skills as Combatant['skills']).filter((s) => s.id !== 'langue');
   w.skills.push({ id: 'langue', spec: 'magick', advances: 30 } as never);
   w.skills.push({ id: 'focalisation', spec: 'cieux', advances: 30 } as never); // domaine du sort de test (arc-de-t-essla)
