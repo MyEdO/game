@@ -232,7 +232,7 @@ describe('#1689 T2 — écrans migrés', () => {
     const rienASoigner = renderToStaticMarkup(<MedicModal />);
     expect(rienASoigner, 'un héros indemne : rien à soigner').toContain(`${sain.label} — ${t('medic.patientSansSoin')}`);
     expect(rienASoigner, 'un blessé se choisit : son nom seul').not.toContain(`${patient.label} — `);
-    const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, targetDR: 5, cumDR: 0, stake: {} };
+    const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, targetDR: 5, cumDR: 0, stake: {} };
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, { medic: { patientId: patient.id, surgery: operation } });
     const soinEnCours = renderToStaticMarkup(<MedicModal />);
     expect(soinEnCours, 'une opération en cours : chaque patient verrouillé').toContain(`${patient.label} — ${t('jet.ferme.soinEnCours')}`);

@@ -41,9 +41,9 @@ describe('Exemple RAW LDB 14 l.95 — « le Test devient simplement Très Diffic
     const attacker = mk('att', 'hero', 5);
     const target = mk('tgt', 'enemy', 8);
     const get = (() => ({ scene: fogScene(), battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 12 * 60 })) as unknown as Get;
-    // `heldGround` : le tireur déclare tirer IMMOBILE — isole les deux facteurs de l'exemple du livre
+    // `tirImmobile` : le tireur déclare tirer IMMOBILE — isole les deux facteurs de l'exemple du livre
     // (sans quoi la production ajoute aussi « Tir en bougeant » −10, LDB 14 l.70).
-    const env = attackEnv(get, attacker, target, bow, { heldGround: true }).env; // production RÉELLE, aucune valeur en dur
+    const env = attackEnv(get, attacker, target, bow, { tirImmobile: true }).env; // production RÉELLE, aucune valeur en dur
     const mods = attackModifiers(attacker, target, bow, { kind: 'ranged', location: 'tete', env });
     expect(ligneDe(env, RULE_REF['cible-dissimulee'])?.value).toBe(-20);
     expect(ligneDe(mods, refDeRegle('viser-une-localisation'))?.value).toBe(-20);
@@ -58,7 +58,7 @@ describe('Obscurité (LDB 14 l.75) et météo (l.76, l.82) : sommées sous le pl
     const attacker = mk('att', 'hero', 5);
     const target = mk('tgt', 'enemy', 8);
     const get = (() => ({ scene: nightScene(weather), battle: { combatants: [attacker, target], movementUsed: 0 }, facing: {}, gameTime: 23 * 60 })) as unknown as Get;
-    const env = attackEnv(get, attacker, target, bow, { heldGround: true }).env;
+    const env = attackEnv(get, attacker, target, bow, { tirImmobile: true }).env;
     return { env, total: combineMods(attackModifiers(attacker, target, bow, { kind: 'ranged', env })) };
   };
   it('nuit + tempête : deux lignes (−20, −20), plafonnées à −30', () => {

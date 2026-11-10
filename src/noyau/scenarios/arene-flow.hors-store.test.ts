@@ -167,7 +167,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     const acts = aids.flatMap((e: any) => e.acts as { act: string; cost?: { silver?: number } }[]);
     expect(acts.every((a) => (a.cost?.silver ?? 0) >= 4 && (a.cost?.silver ?? 0) <= 6)).toBe(true); // 4-6 pistoles RAW
     const medecin = aids.find((e: any) => e.entityId === 'medecin') as any;
-    expect(new Set(medecin.acts.map((a: { act: string }) => a.act))).toEqual(new Set(['wounds', 'bleed', 'trauma', 'surgery']));
+    expect(new Set(medecin.acts.map((a: { act: string }) => a.act))).toEqual(new Set(['blessures', 'hemorragie', 'traumatisme', 'chirurgie']));
   });
 
   it('medicalAid ouvre l’infirmerie du PNJ : nom/id viennent de l’entité (pas codés en dur), jamais dans le groupe', () => {
@@ -175,7 +175,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     creditBourse(banc.getState, banc.setState, party[1].id, { gold: 1, silver: 10, brass: 0 }); // le patient (party[1]) paie son acte (soloPayer)
-    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }], entityId: 'medecin' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: 'medecin' }]);
     const m = banc.getState().medic!;
     expect(m.npc!.id).toBe('medecin'); // l'id de l'entité PNJ
     expect(m.npc!.label).toBe('Médecin'); // le label de l'entité (renommable)
@@ -200,19 +200,19 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
     // `fidele` est un figurant de la chapelle : aucune réf de bestiaire, donc aucune Guérison.
-    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'fidele' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'fidele' }]);
     expect(banc.getState().medic).toBeNull();
     // Entité inexistante : même refus, et la validation d'atelier le NOMME.
-    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'chirurgien-fantome' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'chirurgien-fantome' }]);
     expect(banc.getState().medic).toBeNull();
     // La validation d'ATELIER voit ce que voit le runtime : elle résout la FICHE (même `sceneNpc`).
     const ctx = { sceneIds: new Set<string>(), dialogueIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
-    expect(EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }, ctx)).toEqual([]);
-    const issues = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'chirurgien-fantome' }, ctx);
+    expect(EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'medecin' }, ctx)).toEqual([]);
+    const issues = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'chirurgien-fantome' }, ctx);
     expect(issues.map((i) => i.level)).toEqual(['error']);
     expect(issues[0].message).toContain('chirurgien-fantome');
     // Entité EXISTANTE mais sans Guérison : l'atelier la nomme, elle aussi — la porte n'est plus aveugle.
-    const sansSoin = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'fidele' }, ctx);
+    const sansSoin = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'fidele' }, ctx);
     expect(sansSoin.map((i) => i.level)).toEqual(['error']);
     expect(sansSoin[0].message).toContain('fidele');
     expect(sansSoin[0].message).toContain('Guérison');
@@ -234,7 +234,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     const party = makeShowcaseParty(idsDeTest);
     party[1].wounds = { ...party[1].wounds, current: party[1].wounds.current - 6 };
     banc.setState({ party, scene: infirmerie, battle: null, pendingHeal: null, medic: null });
-    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }], entityId: 'soigneur' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: 'soigneur' }]);
     const m = banc.getState().medic!;
     expect(m.npc!.id).toBe('soigneur');
     expect(m.npc!.label).toBe('Frère Anselm'); // le nom de l'ENTITÉ, pas celui de la fiche
@@ -247,7 +247,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     party[0].wounds = { ...party[0].wounds, current: party[0].wounds.current - 3 };
     party[2].wounds = { ...party[2].wounds, current: party[2].wounds.current - 8 };
     banc.setState({ party, scene: hub, battle: null, pendingHeal: null, medic: null });
-    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'medecin' }]);
     banc.getState().fenetreChoisir('medic', 'patient', party[2].id);
     expect(banc.getState().medic!.patientId).toBe(party[2].id);
     banc.getState().fenetreFermer('medic');
@@ -255,7 +255,7 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
 
   it('sans patient pertinent, aucun acte ne s’offre (pas de brouillon, pas de jet)', () => {
     banc.setState({ party: makeShowcaseParty(idsDeTest), scene: hub, battle: null, pendingHeal: null, medic: null }); // groupe au max de PB
-    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'wounds' }], entityId: 'medecin' }]);
+    applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: 'medecin' }]);
     expect(banc.getState().pendingHeal).toBeNull();
     banc.getState().fenetreFermer('medic');
   });

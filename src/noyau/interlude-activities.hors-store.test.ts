@@ -204,11 +204,11 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.setState({ interlude: { ...itl } });
     hero().career = 'Agitateur'; // Pamphlétaire (niv.1) = Bronze 1 → invest refusé
     hero().careerLevel = 1;
-    banc.getState().deposerALaBanque(hero().id, 'invest', 120);
+    banc.getState().deposerALaBanque(hero().id, 'investir', 120);
     expect(banc.getState().bank).toHaveLength(0);
     expect(banc.getState().journal.join('\n')).toMatch(/investir en banque exige le Statut Argent ou Or/);
     const before = toBrass(partyMoneyTotal(banc.getState));
-    banc.getState().deposerALaBanque(hero().id, 'stash', 120);
+    banc.getState().deposerALaBanque(hero().id, 'planque', 120);
     expect(banc.getState().bank).toHaveLength(1);
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before - 120);
     expect(st().left).toBe(1);
@@ -219,18 +219,18 @@ describe('Activités d’interlude (LDB 23)', () => {
     itl.perHero[hero().id] = { ...st(), fx: undefined, left: 6 };
     banc.setState({ interlude: { ...itl } });
     const indices = () => banc.getState().bank.map((d) => d.rate);
-    banc.getState().deposerALaBanque(hero().id, 'invest', 120, 1);
-    banc.getState().deposerALaBanque(hero().id, 'invest', 120, 10);
+    banc.getState().deposerALaBanque(hero().id, 'investir', 120, 1);
+    banc.getState().deposerALaBanque(hero().id, 'investir', 120, 10);
     expect(indices()).toEqual([1, 10]);
     banc.getState().ensemencerLeTirage(5);
-    banc.getState().deposerALaBanque(hero().id, 'invest', 120);
+    banc.getState().deposerALaBanque(hero().id, 'investir', 120);
     banc.getState().ensemencerLeTirage(5);
-    banc.getState().deposerALaBanque(hero().id, 'invest', 120);
+    banc.getState().deposerALaBanque(hero().id, 'investir', 120);
     const [, , tire, retire] = indices();
     expect([tire >= 1 && tire <= 10, retire]).toEqual([true, tire]);
-    banc.getState().deposerALaBanque(hero().id, 'stash', 120, 3);
+    banc.getState().deposerALaBanque(hero().id, 'planque', 120, 3);
     expect([indices().length, banc.getState().journal.slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsPlacement')]);
-    banc.getState().deposerALaBanque(hero().id, 'invest', 120, 11 as never);
+    banc.getState().deposerALaBanque(hero().id, 'investir', 120, 11 as never);
     expect([indices().length, banc.getState().journal.slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsBornes', { indice: 11 })]);
     expect(st().left).toBe(2);
   });
@@ -347,7 +347,7 @@ describe('Activités d’interlude (LDB 23)', () => {
   it('Banque : le retrait d’une planque rend l’argent (ou la perd sur 🎲 ≤ 10) et vide le dépôt', () => {
     const itl = banc.getState().interlude!;
     itl.perHero[hero().id] = { ...st(), fx: undefined, left: 2 };
-    banc.setState({ interlude: { ...itl }, bank: [{ uid: 'depot-1', heroId: hero().id, kind: 'stash', brass: 240, rate: 0 }] });
+    banc.setState({ interlude: { ...itl }, bank: [{ uid: 'depot-1', heroId: hero().id, kind: 'planque', brass: 240, rate: 0 }] });
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().retirerDeLaBanque('depot-1');
     expect(banc.getState().bank).toHaveLength(0);

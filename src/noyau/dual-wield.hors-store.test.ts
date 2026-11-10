@@ -9,13 +9,13 @@ import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant, Weapon, Main } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const W = (uid: string, hand: 'main' | 'off'): Weapon =>
+const W = (uid: string, hand: Main): Weapon =>
   ({ uid, label: hand === 'main' ? 'Épée' : 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand, hands: 1 });
 
 const CHARS = (cc: number) => ({ 'capacite-de-combat': cc, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 });
@@ -25,7 +25,7 @@ const mkHero = (over: Partial<Combatant> = {}): Combatant => (blessuresSurLeProf
   id: 'h', name: 'H', kind: 'hero', pos: { x: 0, y: 0 }, size: 'moyenne',
   characteristics: CHARS(50), skills: [], talents: [], advantage: 0, conditions: [],
   wounds: blessuresDeBase(12),
-  weapons: [W('m', 'main'), W('o', 'off')], armour: ARM(), ...over,
+  weapons: [W('m', 'main'), W('o', 'secondaire')], armour: ARM(), ...over,
 }) as unknown as Combatant);
 
 const mkFoe = (id: string, x: number): Combatant => (blessuresSurLeProfil({
@@ -81,7 +81,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
   // replie `effectiveWeapon(off, weaponContextOf(attacker, off))` AVANT touche/Dégâts (le `res` est ensuite
   // appliqué tel quel). Cible Surprise → pas de jet de défense → DR déterministe (jet d'attaque forcé = 23).
   const flail = (): Weapon =>
-    ({ uid: 'o', label: 'Fléau', type: 'melee', subType: 'fleau', hand: 'off', hands: 1, damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'percutante' }] });
+    ({ uid: 'o', label: 'Fléau', type: 'melee', subType: 'fleau', hand: 'secondaire', hands: 1, damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'percutante' }] });
 
   it('Fléau en main secondaire SANS la Spé → Atouts retirés (Percutante perdue) vs AVEC la Spé', () => {
     const { h, f2 } = setupBattle();
@@ -229,24 +229,24 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
   // « Des deux armes » = UNE Action impliquant les DEUX mains (main directrice + 2nde). La directrice est testée
   // à la déclaration (`openAttackCascade`) ; si SEULE la 2nde est gatée, la 2ᵉ frappe joue le Test avant de se
   // résoudre. Sur Échec, l'objet de la 2nde main glisse (`disarm`) ; la 2ᵉ frappe est renoncée.
-  const gatedHero = (hands: ('main' | 'off')[]): Partial<Combatant> => ({
+  const gatedHero = (hands: Main[]): Partial<Combatant> => ({
     handGates: hands, activeLoadoutId: 'lo',
-    loadouts: [{ id: 'lo', main: 'm', off: 'o' }] as never,
+    loadouts: [{ id: 'lo', main: 'm', secondaire: 'o' }] as never,
     items: [{ uid: 'm', name: 'Épée', kind: 'melee', qualities: [] }, { uid: 'o', name: 'Dague', kind: 'melee', qualities: [] }] as never,
   });
 
   it('SEULE la 2nde main gatée → la 2ᵉ frappe interpose le Test (pas encore résolue)', () => {
-    setupBattle(gatedHero(['off']));
+    setupBattle(gatedHero(['secondaire']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     banc.getState().frapperDeLaSecondeArme('f2');
     const s = banc.getState();
-    expect(s.pendingHandGate?.hand).toBe('off');
+    expect(s.pendingHandGate?.hand).toBe('secondaire');
     expect(s.pendingAttack).toBeNull();
     expect(s.pendingDualStrike).not.toBeNull(); // le sous-flux dual reste ouvert pour la reprise
   });
 
   it('RÉUSSITE → la 2ᵉ frappe se résout (dualSecond pré-résolu)', () => {
-    setupBattle(gatedHero(['off']));
+    setupBattle(gatedHero(['secondaire']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     banc.getState().frapperDeLaSecondeArme('f2');
     const pg = banc.getState().pendingHandGate!;
@@ -259,7 +259,7 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
   });
 
   it('ÉCHEC → l\'objet de la 2nde main glisse (pas la directrice) ; 2ᵉ frappe renoncée, sous-flux clos', () => {
-    setupBattle(gatedHero(['off']));
+    setupBattle(gatedHero(['secondaire']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     banc.getState().frapperDeLaSecondeArme('f2');
     const pg = banc.getState().pendingHandGate!;
@@ -270,12 +270,12 @@ describe('Main ensanglantée (AA 07 l.117) — 2ᵉ frappe « des deux armes » 
     expect(s.pendingAttack).toBeNull();
     expect(s.pendingDualStrike).toBeNull();
     const hero = s.battle!.combatants.find((c) => c.id === 'h')!;
-    expect(hero.loadouts![0].off).toBeUndefined(); // 2nde arme lâchée
+    expect(hero.loadouts![0].secondaire).toBeUndefined(); // 2nde arme lâchée
     expect(hero.loadouts![0].main).toBe('m');       // main directrice CONSERVÉE
   });
 
   it('un SEUL Test par Action : main directrice AUSSI gatée → la 2nde n\'est PAS re-testée', () => {
-    setupBattle(gatedHero(['main', 'off']));
+    setupBattle(gatedHero(['main', 'secondaire']));
     banc.setState({ pendingDualStrike: { attackerId: 'h', offWeaponUid: 'o', jet: 3 } as any });
     banc.getState().frapperDeLaSecondeArme('f2');
     const s = banc.getState();

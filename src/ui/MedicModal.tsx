@@ -27,12 +27,12 @@ import { GatedAction } from './GatedAction';
 import { useSurgeryJetProps } from './jetProps/useSurgeryJetProps';
 
 const ACT_META: Record<HealMode, { icon: ReactNode; label: string }> = {
-  wounds: { icon: <Icon id="journal/heal" size="sm" />, label: 'Soigner les Blessures' },
-  bleed: { icon: <Icon id="condition/bleeding" size="sm" />, label: 'Arrêter l’Hémorragie' },
-  trauma: { icon: <Icon id="medical/tear" size="sm" />, label: 'Soigner la déchirure' },
-  surgery: { icon: <Icon id="medical/scalpel" size="sm" />, label: 'Opérer' },
-  recovery: { icon: <Icon id="medical/crutch" size="sm" />, label: 'Rééduquer un membre' },
-  ammo: { icon: <Icon id="item/ammo" size="sm" />, label: 'Retirer une munition' },
+  blessures: { icon: <Icon id="journal/heal" size="sm" />, label: 'Soigner les Blessures' },
+  hemorragie: { icon: <Icon id="condition/bleeding" size="sm" />, label: 'Arrêter l’Hémorragie' },
+  traumatisme: { icon: <Icon id="medical/tear" size="sm" />, label: 'Soigner la déchirure' },
+  chirurgie: { icon: <Icon id="medical/scalpel" size="sm" />, label: 'Opérer' },
+  reeducation: { icon: <Icon id="medical/crutch" size="sm" />, label: 'Rééduquer un membre' },
+  munition: { icon: <Icon id="item/ammo" size="sm" />, label: 'Retirer une munition' },
 };
 
 /**
@@ -78,7 +78,7 @@ export function MedicModal() {
   const brouillon = !!ph && ph.roll == null;
   const sortie = sg ? (
     <button className={sg.last ? 'btn btn-ghost danger' : 'btn btn-ghost'} onClick={() => choisir('medic', 'abandon', true)} title={sg.last ? 'Le cumul de DR est perdu' : 'Renoncer (acte remboursé)'}>
-      {sg.kind === 'recovery' ? 'Arrêter la rééducation' : 'Arrêter l’opération'}
+      {sg.kind === 'reeducation' ? 'Arrêter la rééducation' : 'Arrêter l’opération'}
     </button>
   ) : (
     <button className="btn" onClick={close}>Terminer</button>
@@ -113,7 +113,7 @@ export function MedicModal() {
       {patient && (
         <div className="medic-dossier" hidden={!!ph && !brouillon} inert={!!ph && !brouillon}>
           {sg && (() => {
-            const recovery = sg.kind === 'recovery';
+            const recovery = sg.kind === 'reeducation';
             const plaies = plaiesNommees(useGame.getState());
             const acte = HEAL_ACT[sg.kind];
             // Le chirurgien n'est un `Combatant` que s'il est du GROUPE : un PNJ tarifé (`healerId`
@@ -164,14 +164,14 @@ export function MedicModal() {
               const raison = (ph ? refusDuModeDuSoin(etat, a) : refusDeLActeALInfirmerie(etat, a)) ?? undefined;
               const healer = npc ? undefined : bestHealerFor(party, a)?.actor;
               const meta = ACT_META[a];
-              const pions = a === 'bleed' ? stacks(patient, 'hemorragique') : a === 'ammo' ? lodgedAmmoCount(patient) : 0;
+              const pions = a === 'hemorragie' ? stacks(patient, 'hemorragique') : a === 'munition' ? lodgedAmmoCount(patient) : 0;
               // L'acte est SA propre porte de règle (#1078) : le bouton s'englobe dans `CodexRef wrap`,
               // dont la cible est le FOYER de l'enjeu de CE jet (`HEAL_STAKE`) et l'`instance` le nom de
-              // l'acte. Un acte qui ARME une opération (`surgery`/`recovery`) n'a pas de cible au Codex avant
+              // l'acte. Un acte qui ARME une opération (`chirurgie`/`reeducation`) n'a pas de cible au Codex avant
               // l'armement, où naît la valeur de son enjeu (`targetDR`, `lancerLActeDeSoin`) : le même `CodexRef`
               // reste monté, `category`/`id` absents, et ne s'ouvre que s'il a quelque chose à dire — la
               // raison d'un refus (`refus`), sinon rien.
-              const stake = a === 'surgery' || a === 'recovery' ? undefined : flowStakeRef(HEAL_STAKE[a]);
+              const stake = a === 'chirurgie' || a === 'reeducation' ? undefined : flowStakeRef(HEAL_STAKE[a]);
               const rule = stake ? stakeRuleOf(stake) : undefined;
               // La raison d'un refus ne peut PAS naître d'un second `CodexRef` imbriqué dans celui de
               // la porte de règle (une seule infobulle par ancrage) : elle passe par `refus` de CE

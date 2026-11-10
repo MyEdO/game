@@ -50,7 +50,7 @@ describe('Placement de zone — z-blindness (#798)', () => {
     const ghost = foe('e-ghost', 8, 5, 0); // même (x,y), étage 0
     const battle = {
       combatants: [c, sameFloor, ghost], order: [c.id, 'e-same', 'e-ghost'], baseOrder: [c.id, 'e-same', 'e-ghost'],
-      turn: 0, round: 1, action: 'cast', selectedSpellId: 'explosion', reachable: new Map(),
+      turn: 0, round: 1, action: 'incantation', selectedSpellId: 'explosion', reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     banc.setState({ battle, scene: undefined, party: [] });

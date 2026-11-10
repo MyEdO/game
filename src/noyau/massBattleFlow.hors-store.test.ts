@@ -456,7 +456,7 @@ describe('Duel (l.225) — vraie Scène de combat + intervention', () => {
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'duel', hits: 2, hitters: ['h1'] } },
-      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defaite', combatants: [] } as any,
     });
     banc.getState().fenetreFermer('repli');
     const after = mbState();
@@ -491,7 +491,7 @@ describe('Percée (l.173) — vraie Scène de COMBAT + enchaînement sur DÉFAIT
     const mb = mbState();
     banc.setState({
       massBattle: { ...mb, combatScene: { sceneId: 'percee', hits: 1, hitters: ['h1'] } },
-      mode: 'battle', battle: { over: 'defeat', combatants: [] } as any,
+      mode: 'battle', battle: { over: 'defaite', combatants: [] } as any,
     });
     banc.getState().fenetreFermer('repli');
     expect(mbState().imposed).toContain('charge');

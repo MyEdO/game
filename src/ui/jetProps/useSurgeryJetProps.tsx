@@ -52,7 +52,7 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
     fortune,
     resilience: surgeon?.resilience ?? 0,
   });
-  const recovery = kind === 'recovery';
+  const recovery = kind === 'reeducation';
   const actions: RollAction[] = [
     { key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' },
     { key: 'confirm', label: 'Appliquer la passe', onClick: next, verbe: 'confirm' },
@@ -60,7 +60,7 @@ export function useSurgeryJetProps(): ComponentProps<typeof RollShell> | null {
   return {
     flowKey: 'surgery',
     stake,
-    title: <><Icon id={HEAL_ACT[kind ?? 'surgery'].icon} size="sm" /> {recovery ? 'Rééduquer (une passe)' : 'Opérer (une passe)'}</>,
+    title: <><Icon id={HEAL_ACT[kind ?? 'chirurgie'].icon} size="sm" /> {recovery ? 'Rééduquer (une passe)' : 'Opérer (une passe)'}</>,
     /* AUCUN sous-titre : la passe est EMBARQUÉE dans le dossier d'opération, qui porte déjà l'A→B
        (`VsHeader` soignant→patient) au-dessus. Le geste est le titre, la Difficulté la donnée de la
        LIGNE (#1072), le cumul la `DrBar` — il ne reste rien à écrire ici. */

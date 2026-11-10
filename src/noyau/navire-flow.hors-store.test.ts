@@ -133,7 +133,7 @@ describe('Présages divins : seul un Prêtre ou une Nonne de Manann prie (MDG 15
   afterEach(() => resetData());
 
   function jour(evenement: string): void {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
     runSeaDay(get, set);
   }
@@ -198,7 +198,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   afterEach(() => resetData());
 
   function jour(evenement: string): void {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
     runSeaDay(get, set);
   }
@@ -359,7 +359,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
   afterEach(() => resetData());
 
   function jour(evenement: string): void {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
     runSeaDay(get, set);
   }
@@ -446,7 +446,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
   afterEach(() => resetData());
 
   function jour(evenement: string): void {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
     runSeaDay(get, set);
   }
@@ -553,7 +553,7 @@ describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, vale
 
   /** Un jour de traversée neuf où se joue `evenement` ; la conduite du jour précédent est abandonnée. */
   function jour(evenement: string): void {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ pendingCascade: null, travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
     runSeaDay(get, set);
   }
@@ -918,7 +918,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
   const consequence = (id: string): Flow => BOARD_EVENTS.find((e) => e.id === id)!.consequence!;
   const bandeDeContraction = () => get().pendingCascade?.participants.find((s) => s.kind === 'combatEndDisease');
   const jour = (evenement: string): void => {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
     runSeaDay(get, set);
   };
@@ -1047,7 +1047,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
   const surLeNavire = (ops: unknown[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'navire', ops } as never });
   const d = (n: number, sides: number) => ({ dice: { n, sides } });
   /** En mer, sur la route `r1` : la coque de campagne porte le pont. */
-  const enMer = () => set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })! });
+  const enMer = () => set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })! });
   const ennemis = () => get().battle!.combatants.filter((c) => c.kind === 'enemy');
   const aDemi = (c: Combatant) => { c.wounds = { ...c.wounds, current: Math.floor(c.wounds.max / 2) }; };
   const log = () => JSON.stringify(get().battle!.log);
@@ -1076,7 +1076,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
   });
 
   it('Triton : le combat s’ouvre sur le pont, la traversée s’interrompt (l.136-137)', () => {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'triton' } } });
     runSeaDay(get, set);
     expect(ennemis().map((c) => c.creatureId)).toEqual(['triton']);
@@ -1091,7 +1091,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     for (const c of ennemis()) c.dead = true;
     expect(checkBattleOver(get, set)).toBe(true);
     draineCascade(get);
-    expect(get().battle!.over).toBe('victory');
+    expect(get().battle!.over).toBe('victoire');
     const ecart = Math.abs(get().vessel!.manann!.score - avant);
     expect(ecart).toBeGreaterThanOrEqual(2);
     expect(ecart).toBeLessThanOrEqual(20);
@@ -1104,7 +1104,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     jouerFlowEntier(runFlow(get, set, consequence('triton')!, 'Triton !'));
     for (const c of get().battle!.combatants.filter((x) => x.kind === 'hero')) c.dead = true;
     expect(checkBattleOver(get, set)).toBe(true);
-    expect(get().battle!.over).toBe('defeat');
+    expect(get().battle!.over).toBe('defaite');
     expect(vesselManann(get().vessel!).score).toBe(avant);
   });
 
@@ -1123,7 +1123,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     c.dead = true;
     expect(checkBattleOver(get, set)).toBe(true);
     draineCascade(get);
-    expect(get().battle!.over).toBe('victory');
+    expect(get().battle!.over).toBe('victoire');
   });
 
   it('une créature au-dessus de la moitié de ses Blessures reste au combat', () => {
@@ -1183,7 +1183,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     finalizePortArrivalTo(get, set, deuxPorts.places[1], true);
   };
   function jour(evenement: string): void {
-    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildSeaPlan(get, 'r1', 'A', 'B', carte.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: evenement } } });
     runSeaDay(get, set);
   }

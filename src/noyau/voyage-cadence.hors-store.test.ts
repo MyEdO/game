@@ -80,7 +80,7 @@ describe('jour SOUS ORDRES — d’un bloc en local ; en coop ou jour par jour, 
   const cas: { mode: 'local' | 'host'; cadence: VoyageCadence; fenetre: boolean }[] = [
     { mode: 'local', cadence: 'commande', fenetre: false },
     { mode: 'host', cadence: 'commande', fenetre: true },
-    { mode: 'local', cadence: 'jour-par-jour', fenetre: true },
+    { mode: 'local', cadence: 'jourParJour', fenetre: true },
   ];
   for (const [route, depart] of Object.entries(departs)) {
     for (const { mode, cadence, fenetre } of cas) {
@@ -177,7 +177,7 @@ describe('traversée JOUR-PAR-JOUR (mer) — cadence manuelle inchangée', () =>
   beforeEach(freshSea);
 
   it('chaque Test de Navigation ouvre sa cascade (pendingCascade), rien n’est auto-résolu', () => {
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const p = get().pendingCascade;
     expect(p?.purpose).toBe('travelDay');
     expect(get().travelPlan!.sea!.entries ?? []).toHaveLength(0); // pas de PV auto en cadence manuelle
@@ -248,7 +248,7 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
   });
 
   it('en JOUR-PAR-JOUR la même journée ouvre la cascade influençable (comportement historique)', () => {
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: plan } as never);
     runRiverDays(get, set);
     expect(get().pendingCascade).toBeTruthy();
@@ -303,7 +303,7 @@ describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de la Com
   beforeEach(freshSea);
 
   it('chaque contributeur porte sa paire Compétence + son rôle en ID (provenance)', () => {
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     let guard = 0;
     while (guard++ < 30 && get().pendingCascade) {
       const p = get().pendingCascade!;

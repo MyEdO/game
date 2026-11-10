@@ -35,7 +35,7 @@ function openCast() {
   banc.getState().ensemencerLeTirage(7);
   const b = banc.getState().battle!;
   const heroC = b.combatants.find((c) => c.label === 'W')!;
-  banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'cast', selectedSpellId: 'allure-demoniaque', acted: false } });
+  banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'incantation', selectedSpellId: 'allure-demoniaque', acted: false } });
   cliquerSurLeCombattant(banc.getState, heroC.id);
   banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: critRes } }));
   banc.getState().jetRegler('cast', 'effetCritique', 'puissance');

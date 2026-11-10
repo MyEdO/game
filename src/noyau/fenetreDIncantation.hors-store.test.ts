@@ -199,7 +199,7 @@ describe('pose de la Zone d’Effet : refusée sur un Sort qui ne part pas, la p
   it('Explosion ratée : la pose de la zone (`cast.carte`) refusée, la fenêtre reste ouverte et s’applique', () => {
     const banc = ouvrirLeBanc({ desFixes: true });
     const { H } = enCombat(banc);
-    banc.setState({ battle: { ...banc.getState().battle!, action: 'cast', selectedSpellId: 'explosion' } });
+    banc.setState({ battle: { ...banc.getState().battle!, action: 'incantation', selectedSpellId: 'explosion' } });
     banc.getState().cliquerLaCase({ x: 9, y: 9 });
     expect(banc.getState().pendingCast, 'chemin : la zone s’ouvre sans centre').toMatchObject({ casterId: H.id, zone: { center: null } });
     banc.getState().jetLancer('cast');

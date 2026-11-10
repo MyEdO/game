@@ -34,7 +34,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
     banc.setState({ battle: { ...b } });
     checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("destroyStructure : le dernier ennemi mort mais la structure INTACTE → le combat CONTINUE (bug exact du ticket)", () => {
@@ -63,7 +63,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("surviveRounds : victoire posée au DÉBUT du Round N+1, ennemis toujours vivants", () => {
@@ -74,7 +74,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("reachZone : un héros dans le rectangle déclenche la victoire, ennemis vivants", () => {
@@ -89,7 +89,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);
-    expect(banc.getState().battle!.over).toBe('victory');
+    expect(banc.getState().battle!.over).toBe('victoire');
   });
 
   it("reachZone : aucun héros dans le rectangle → le combat continue", () => {
@@ -114,7 +114,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const over = checkBattleOver(banc.getState, banc.setState);
       draineCascade(banc.getState);
       expect(over).toBe(true);
-      expect(banc.getState().battle!.over).toBe('victory');
+      expect(banc.getState().battle!.over).toBe('victoire');
       const resolved = banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!;
       expect(resolved.outOfRencontre).toBe(true);
       expect(resolved.exitReason).toBe('repousse');
@@ -160,7 +160,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const over = checkBattleOver(banc.getState, banc.setState);
       draineCascade(banc.getState);
       expect(over).toBe(true);
-      expect(banc.getState().battle!.over).toBe('victory');
+      expect(banc.getState().battle!.over).toBe('victoire');
     });
   });
 });

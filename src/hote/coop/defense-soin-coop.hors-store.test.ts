@@ -88,14 +88,14 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
     const al = mk('al', 'hero', { x: 1, y: 0 }, { wounds: blessuresDeBase(18, 5), conditions: [{ id: 'hemorragique', value: 2 }] } as Partial<Combatant>);
     combat(banc, [doc, al], 0);
     const { guest, chezLInvite } = table(banc);
-    banc.setState({ battle: { ...banc.getState().battle!, action: 'heal' } });
+    banc.setState({ battle: { ...banc.getState().battle!, action: 'soins' } });
     guest.sendIntent('cliquerLaCase', [{ x: 1, y: 0 }, 'al']);
     const vueHote = fenetreDuSoin(banc.getState());
-    expect(vueHote?.mode.choisie, 'chemin : le soin du héros de l’invité s’ouvre chez l’hôte').toBe('wounds');
+    expect(vueHote?.mode.choisie, 'chemin : le soin du héros de l’invité s’ouvre chez l’hôte').toBe('blessures');
     const vueInvite = fenetreDuSoin(chezLInvite());
     expect(auMasque(vueInvite)).toEqual(auMasque(vueHote));
     expect(vueInvite!.mode.options.map((o) => o.refus === null), 'chez l’invité, les mêmes actes s’offrent').toEqual(vueHote!.mode.options.map((o) => o.refus === null));
-    guest.sendIntent('jetRegler', ['heal', 'mode', 'bleed']);
-    expect(banc.getState().pendingHeal!.mode, 'l’Hémorragie de l’invité est posée chez l’hôte').toBe('bleed');
+    guest.sendIntent('jetRegler', ['heal', 'mode', 'hemorragie']);
+    expect(banc.getState().pendingHeal!.mode, 'l’Hémorragie de l’invité est posée chez l’hôte').toBe('hemorragie');
   });
 });

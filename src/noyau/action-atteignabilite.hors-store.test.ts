@@ -55,7 +55,7 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
    * ARMEMENT — la valeur qu'une action armée (`armed`) pose dans `battle.action` est le `mode` que la
    * MÊME entrée déclare, un MODE de ciblage du catalogue. Conséquence lue par les consommateurs :
    * « quel geste arme le mode X ? » se résout par le champ `mode` d'une entrée `armed`, l'id de l'entrée porteuse
-   * étant libre (`cast-spell` arme `cast`, `push-engine` arme `push`).
+   * étant libre (`cast-spell` arme `incantation`, `push-engine` arme `poussee`).
    */
   it('toute action `armed` arme un mode du catalogue (mode incantation → `cast-spell`)', () => {
     const armantes = ACTIONS.filter((a) => a.armed);
@@ -123,7 +123,7 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
     banc.setState({
       party: [h], scene: emptyScene('scene-test'), pendingCleave: null, pendingDualStrike: null, pendingCast: null,
       battle: {
-        combatants: [h], order: [h.id], baseOrder: [h.id], turn: 0, round: 1, action: 'battery',
+        combatants: [h], order: [h.id], baseOrder: [h.id], turn: 0, round: 1, action: 'bordee',
         selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false,
         log: [], over: null, ...over,
       } as unknown as BattleState,
@@ -144,7 +144,7 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
     expect(
       banc.getState().battle!.action,
       'la sortie de bordée est avalée sous `combatBusy` — c’est pourquoi cleave/dual portent leurs propres verbes',
-    ).toBe('battery');
+    ).toBe('bordee');
     // … et le verbe DE ce flux, lui, passe : chaque interlude sort par SON dispatcher.
     banc.jouerLaCase('cleave-end');
     expect(banc.getState().pendingCleave).toBeNull();

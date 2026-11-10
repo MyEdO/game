@@ -96,7 +96,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
     banc.setState({ battle: { ...battle } });
 
     checkBattleOver(banc.getState, banc.setState);
-    expect(banc.getState().battle!.over).toBe('defeat');
+    expect(banc.getState().battle!.over).toBe('defaite');
   });
 
   it('une bête à statbloc CUSTOM garde son tirage figé et ses traits appris (LDB 77 l.108, LDB 23 l.130)', () => {

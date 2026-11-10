@@ -276,7 +276,7 @@ describe('InterludeScreen — refonte LOT 6', () => {
     } };
     const html = mdToPlain(renderToStaticMarkup(<InterludeScreen seam={{
       ...seam, party, interlude, phase: 'closing', gameTime: 120, // Hexenstag 2512, 2 h : la première nuit s'achève à l'aube du même jour
-      bank: [{ uid: 'depot-1', heroId: a.id, kind: 'stash', brass: 36, rate: 0 }], pendingOrders: [{ heroId: a.id, trappingId: 'dague' }],
+      bank: [{ uid: 'depot-1', heroId: a.id, kind: 'planque', brass: 36, rate: 0 }], pendingOrders: [{ heroId: a.id, trappingId: 'dague' }],
     }} />));
     expect(html.slice(html.indexOf('Clore l\'interlude ?'))).toBe(
       'Clore l\'interlude ? 1 CO 5/– seront dépensés, bus, pariés ou donnés — en totalité. '
@@ -490,7 +490,7 @@ describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau 
   it('sans Activité restante : les entrées qui en consomment disent la raison du noyau, l’engagement d’Artisanat reste ouvert', () => {
     const seam = buildSeam(1);
     const hero = seam.party[0]; // Vétéran
-    for (let i = 0; i < 3 && useGame.getState().interlude!.perHero[hero.id].left > 0; i++) useGame.getState().deposerALaBanque(hero.id, 'stash', 10);
+    for (let i = 0; i < 3 && useGame.getState().interlude!.perHero[hero.id].left > 0; i++) useGame.getState().deposerALaBanque(hero.id, 'planque', 10);
     const s = useGame.getState();
     expect(s.interlude!.perHero[hero.id].left, 'témoin : plus aucune Activité').toBe(0);
     const html = renderToStaticMarkup(<InterludeScreen seam={{ ...seam, interlude: s.interlude!, party: s.party, bank: s.bank, phase: 'activities' }} />);
@@ -500,7 +500,7 @@ describe('InterludeScreen — l’entrée d’Activité lit le verdict du noyau 
     expect(raisonDe(html, 'craft'), 'engager un Artisanat ne consomme pas d’Activité').toBeUndefined();
     expect(entreeFermee(html, 'revenus')).toContain('aria-disabled="true"');
     // Retirer une planque ne consomme pas d'Activité (`refusDeRetrait`) : le bouton reste ouvert.
-    expect(s.bank[0]?.kind, 'témoin : une planque est déposée').toBe('stash');
+    expect(s.bank[0]?.kind, 'témoin : une planque est déposée').toBe('planque');
     expect(html).toMatch(/<button(?![^>]*aria-disabled)[^>]*aria-label="Retirer le dépôt de Vétéran"/);
     expect(html).not.toContain('id="interlude-bank-withdraw-0-reason"');
   });
@@ -638,8 +638,8 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
     expect(raisonDId(html, 'pane-bank-blocked'), 'la bannière : la bourse').toBe('La bourse de Forgeron ne couvre pas ce dépôt.');
     expect(raisonDId(html, 'interlude-bank-invest-reason'), 'Investir : le Statut').toBe('Forgeron : investir en banque exige le Statut Argent ou Or.');
     expect(raisonDId(html, 'interlude-bank-mecenat-reason'), 'Mécénat : le lieu').toBe('Le Mécénat ne se pratique pas ici.');
-    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'invest', 120))).toEqual(['Forgeron : investir en banque exige le Statut Argent ou Or.']);
-    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'stash', 120))).toEqual(['La bourse de Forgeron ne couvre pas ce dépôt.']);
+    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'investir', 120))).toEqual(['Forgeron : investir en banque exige le Statut Argent ou Or.']);
+    expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'planque', 120))).toEqual(['La bourse de Forgeron ne couvre pas ce dépôt.']);
     expect(raisonDuGeste(() => useGame.getState().deposerALaBanque(forgeron.id, 'mecenat', 120))).toEqual(['Le Mécénat ne se pratique pas ici.']);
   });
 
@@ -655,7 +655,7 @@ describe('InterludeScreen — abordabilité (#3059 S4) : chaque volet payant lit
     const avant = useGame.getState().bank.length;
     const bourse = () => toBrass(bourseOf(useGame.getState().party.find((h) => h.id === forgeron.id)!));
     const bourseAvant = bourse();
-    useGame.getState().deposerALaBanque(forgeron.id, 'stash', 120);
+    useGame.getState().deposerALaBanque(forgeron.id, 'planque', 120);
     expect(useGame.getState().bank.slice(avant).map((d) => d.brass), 'le geste dépose ce que le volet annonce').toEqual([96]);
     expect(bourseAvant - bourse(), 'la bourse paie le montant saisi').toBe(120);
   });

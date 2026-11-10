@@ -390,6 +390,9 @@ export const FIRE_ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
  *  vit ici pour que `Weapon`/`ItemInstance` le portent sans dépendance engine→state. */
 export type FireArc = (typeof FIRE_ARCS)[number];
 
+/** Une main du porteur : la directrice ou la secondaire. */
+export type Main = 'main' | 'secondaire';
+
 export interface Weapon extends ProprietesIntrinsequesDArme {
   label: string;
   type: 'melee' | 'ranged';
@@ -444,8 +447,8 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   organicProjectile?: boolean;
   /** Nombre de mains requises (1 ou 2). Dérivé de `(2M)` / arc / arbalète. */
   hands?: 1 | 2;
-  /** Main qui tient l'arme dans le loadout actif ('off' → pénalité de main secondaire). */
-  hand?: 'main' | 'off';
+  /** Main qui tient l'arme dans le loadout actif ('secondaire' → pénalité de main secondaire). */
+  hand?: Main;
   /** uid de l'ItemInstance source (loadout) — pour matcher un choix d'arme. Absent : Mains nues/Crochet. */
   uid?: string;
   /** id de trapping SOURCE d'une arme « built-in » (Mains nues = 'mains-nues') — marqueur STABLE,
@@ -942,7 +945,7 @@ export interface ActiveEffect {
   /** RESTREINT un `testModChar:'capacite-de-combat'` à l'arme tenue dans CETTE main (op `testMod.weaponHand`, #193 —
    *  Épaule luxée « Tests effectués avec ce bras », LDB 18/AA) : lu par `combatValue`/`defenseValue`
    *  (parade), jamais l'autre main. Absent = les deux mains (comportement historique). */
-  testModHand?: 'main' | 'off';
+  testModHand?: Main;
   /** RESTREINT `testMod`/`testModChar` aux Tests classés « déplacement » (op `testMod.movementOnly`,
    *  #193 — Genou démis « Tests impliquant cette jambe », LDB 18/AA) — MÊME catégorie `SkillData.movement`
    *  que l'État À Terre/Empêtré (engine/conditions `isMovementSkill`). Lu par `testValue`/`defenseValue`
@@ -1348,11 +1351,11 @@ export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
   item: ItemInstance;
 }
 
-/** Set d'armes nommé (les 2 mains). `off` ignoré si l'arme `main` est à 2 mains. uids → ItemInstance. */
+/** Set d'armes nommé (les 2 mains). `secondaire` ignoré si l'arme `main` est à 2 mains. uids → ItemInstance. */
 export interface WeaponLoadout {
   id: string;
   main?: string;
-  off?: string;
+  secondaire?: string;
 }
 
 /** Les trois zones ADRESSABLES de la console, nommées par leur FONCTION : la donnée du porteur ne
@@ -1698,7 +1701,7 @@ export interface Combatant {
    *  gatée impose un Test de Dextérité (+20) AVANT toute Action employant l'arme qu'elle tient
    *  (`attackHandGate`) ; sur un Échec, l'objet glisse (op `disarm`). Le gate tient TANT QUE l'État
    *  Hémorragique tient — `removeCondition` purge ce marqueur dès que l'Hémorragique tombe à 0. */
-  handGates?: ('main' | 'off')[];
+  handGates?: Main[];
   /** Points de Corruption (LDB 19) — dérive de l'âme vers le Chaos. Gagnés par expositions/
    *  Sombres Pactes/contrecoups magiques ; au-delà de BFM+BE : Test `corrompu` (LDB 19 l.70). Persisté. */
   corruption?: number;

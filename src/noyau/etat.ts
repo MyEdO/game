@@ -41,11 +41,11 @@ export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test'
 export type Ecran = typeof SCREENS[number];
 
 /** Postures de tir PRÉ-ARMÉES d'un combattant (`BattleState.stances`) : les champs qu'elles
- *  pré-remplissent sur le `PendingAttack` de son prochain tir. `heldGround` — tir IMMOBILE
- *  (`LDB 14 l.70`) ; `intoCrowd` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
+ *  pré-remplissent sur le `PendingAttack` de son prochain tir. `tirImmobile` — tir IMMOBILE
+ *  (`LDB 14 l.70`) ; `dansLeTas` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
 export interface ShootingStance {
-  heldGround?: boolean;
-  intoCrowd?: boolean;
+  tirImmobile?: boolean;
+  dansLeTas?: boolean;
 }
 /** Champ de posture armable — l'id porté par le registre des actions (`ActionDef.stance`). */
 export type ShootingStanceKey = keyof ShootingStance;
@@ -86,7 +86,7 @@ export interface BattleState {
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
    *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
    *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
-   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
+   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleportation` = résolution d'un sort) —
    *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
@@ -120,7 +120,7 @@ export interface BattleState {
    *  `PendingAttack` qu'elle pré-remplit — aucune sémantique parallèle. */
   stances?: Record<string, ShootingStance>;
   log: CombatEvent[];
-  over: null | 'victory' | 'defeat';
+  over: null | 'victoire' | 'defaite';
   onVictory?: Flow;
   /** Objectif de victoire authorable (#197). Absent = `allEnemiesDead` (défaut historique, `checkBattleOver`). */
   victoryCondition?: VictoryCondition;

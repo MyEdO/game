@@ -262,7 +262,7 @@ export const openPortSchema = nommerChamps(z.strictObject({ type: z.literal('ope
 export const medicalAidSchema = nommerChamps(z.strictObject({
   type: z.literal('medicalAid'),
   acts: z
-    .array(nommerChamps(z.strictObject({ act: z.enum(['wounds', 'bleed', 'trauma', 'surgery']), cost: moneyPartialSchema.optional() }), { act: { label: "acte"  }, cost: { label: "coût" } }))
+    .array(nommerChamps(z.strictObject({ act: z.enum(['blessures', 'hemorragie', 'traumatisme', 'chirurgie']), cost: moneyPartialSchema.optional() }), { act: { label: "acte"  }, cost: { label: "coût" } }))
     .optional(),
   entityId: z.string(),
 }), { type: { label: "type"  }, acts: { label: "actes" }, entityId: { label: "entité" , texte: { regime: "technique"} } });

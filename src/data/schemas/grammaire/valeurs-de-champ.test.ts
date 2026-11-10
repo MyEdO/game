@@ -202,7 +202,7 @@ const NOMMES = [
   'vetement|armure|accessoire',
   'trapping|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
-  'main|off',
+  'main|secondaire',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.
@@ -234,6 +234,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'aucun|retard|quart-de-tour|demi-tour',
   'bete|serviteur|vehicule',
   'bete|vehicule-terrestre',
+  'blessures|hemorragie|traumatisme|chirurgie',
   'bout-portant|courte|moyenne|longue|extreme',
   'brasPrincipal|random',
   'calme-plat|legere-brise|brise-fraiche|vent-modere|vent-violent|violente-tempete',
@@ -264,7 +265,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'extended|terreur|binary',
   'fleeing|pursuing',
   'froid|chaleur',
-  'heldGround|intoCrowd',
+  'tirImmobile|dansLeTas',
   'heure|minute|round',
   'imparfaite|moyenne|totale',
   'incantation|focalisation|seconde-vue',
@@ -322,7 +323,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'verbatim|descripteur',
   'victim|self',
   'village|ville|cite',
-  'wounds|bleed|trauma|surgery',
   'x+|x-|y+|y-',
   'x|y',
 ];

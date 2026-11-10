@@ -50,7 +50,7 @@ describe('intentionDuClicDeCase — clic-sol et commit du curseur (mode-aware)',
   it('combat terminé → null ; une case libre d’étage garde son `z`', () => {
     makeState();
     expect(intentionDuClicDeCase(banc.getState, { x: 12, y: 4, z: 1 })).toEqual({ kind: 'case', pt: { x: 12, y: 4, z: 1 } });
-    banc.setState({ battle: { ...banc.getState().battle!, over: 'victory' } as never });
+    banc.setState({ battle: { ...banc.getState().battle!, over: 'victoire' } as never });
     expect(intentionDuClicDeCase(banc.getState, { x: 12, y: 4 })).toBeNull();
   });
 

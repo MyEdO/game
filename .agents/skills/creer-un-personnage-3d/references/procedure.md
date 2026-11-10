@@ -164,9 +164,9 @@ n'imposent sa présence : la vérifier dans le GLB, et garder cette exigence NON
 l'import ne la refuse pas.
 
 Une **zone** est une région du corps ; un **emplacement**, un point d'accroche ; une
-**localisation**, une localisation de règle d'armure ; une **prise**, main ou off.
+**localisation**, une localisation de règle d'armure ; une **prise**, main ou secondaire.
 La base humanoïde déclare 16 emplacements dans `scripts/personnage-3d/base/anatomie.py`.
-Les prises se lisent dans son manifeste, main sur hand_r et off sur hand_l.
+Les prises se lisent dans son manifeste, main sur hand_r et secondaire sur hand_l.
 La donnée de pièce vise l'emplacement ; l'élément ne répète ni prise ni rangement.
 Un vêtement a coupe, volume et épaisseur ; un accessoire s'accroche. Une armure recouvre les
 couches inférieures. L'exclusion à couche égale et le montage après couverture relèvent de L3/L4.
@@ -309,7 +309,7 @@ Une pose utile absente relève de la base et de sa porte, pas d'un nouveau clip 
 Une arme à deux mains déclare `liaison.secondePrise`, le repère de prise de la main libre dans celui
 de sa prise, le long du manche : au-dessus sur le +Y (vers le fer) pour une hampe, au-dessous vers le talon pour une
 arme lourde (`hotes/godot/asset/element.ts`) ; tenue à la prise
-`main`, Godot y pose la main `off` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). Son côté
+`main`, Godot y pose la main `secondaire` (`hotes/godot/projet/scripts/seconde_prise.gd`, #3319). Son côté
 et son roulis sont ceux du maniement de l'arme dans les clips dérivés (`SECONDES` de
 `scripts/personnage-3d/base/deux_mains.py`, test `SecondesPrises`). La vérifier au rendu Godot sur
 repos, attaque et marche : poing fermé sur le manche, bras sans torsion. Un rendu Blender des clips montre la main

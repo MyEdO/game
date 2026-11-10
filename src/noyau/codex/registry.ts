@@ -1299,9 +1299,9 @@ const CODEX_SPECS = {
         source: src(g.source),
         sections: sections(
           passiveSection(g.init, tr('codex.fiche.aLaToucheEmpetre')),
-          passiveSection(g.win.damage, tr('codex.fiche.testOpposeGagneInfligerDesDegats')),
-          passiveSection(g.win.entangle, tr('codex.fiche.testOpposeGagneEmpetrerDavantage')),
-          passiveSection(g.win.free, tr('codex.fiche.testOpposeGagneSeLiberer')),
+          passiveSection(g.win.degats, tr('codex.fiche.testOpposeGagneInfligerDesDegats')),
+          passiveSection(g.win.empetrer, tr('codex.fiche.testOpposeGagneEmpetrerDavantage')),
+          passiveSection(g.win.liberer, tr('codex.fiche.testOpposeGagneSeLiberer')),
         ),
       }];
     },

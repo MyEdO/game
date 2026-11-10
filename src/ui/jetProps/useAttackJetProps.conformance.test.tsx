@@ -132,7 +132,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
     order: combatants.map((c) => c.id),
     baseOrder: combatants.map((c) => c.id),
     ...(opts.tasArme || opts.tirArme
-      ? { stances: { [attacker.id]: { ...(opts.tasArme ? { intoCrowd: true } : {}), ...(opts.tirArme ? { heldGround: true } : {}) } } }
+      ? { stances: { [attacker.id]: { ...(opts.tasArme ? { dansLeTas: true } : {}), ...(opts.tirArme ? { tirImmobile: true } : {}) } } }
       : {}),
     turn: 0,
     round: 1,
@@ -159,7 +159,7 @@ function renderAttack(opts: { ranged?: boolean; cases?: number; fog?: boolean; l
     useGame.setState,
     // Posture ARMÉE à la console : on laisse le VERSEMENT moteur (`withArmedStance`) trancher, comme
     // au vrai site de déclaration — un champ porté par l'appelant primerait et court-circuiterait le prédicat.
-    { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, ...(opts.morsure ? { freeKind: 'morsure' as const } : opts.pietinement ? { freeKind: 'pietinement' as const } : { weaponUid: weapon.uid }), ...(opts.tirArme ? {} : { heldGround: !opts.enMouvement }) },
+    { attackerId: attacker.id, targetId: target.id, location: opts.location ?? null, result: null, ...(opts.morsure ? { freeKind: 'morsure' as const } : opts.pietinement ? { freeKind: 'pietinement' as const } : { weaponUid: weapon.uid }), ...(opts.tirArme ? {} : { tirImmobile: !opts.enMouvement }) },
     'Attaque',
     'action/attack',
   );
@@ -232,7 +232,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
    */
   it('la posture de tir est AFFICHÉE en lecture seule — état lisible, aucun bouton de bascule', () => {
     const v = renderAttack({ ranged: true });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne, 'un tir de héros annonce sa posture').toBeTruthy();
     expect(ligne.hasAttribute('data-armee'), 'ce pending est armé immobile').toBe(true);
     expect(ligne.textContent).toContain('Tir immobile — armé');
@@ -242,7 +242,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
 
   it('posture NON armée : la fenêtre le dit aussi, et reste sans bouton', () => {
     const v = renderAttack({ ranged: true, enMouvement: true });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne.hasAttribute('data-armee')).toBe(false);
     expect(ligne.textContent).toContain('Tir immobile — non armé');
     expect(ligne.textContent).toContain('-10 « Tir en bougeant »');
@@ -257,7 +257,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
    */
   it('« Dans le tas » armée + cible ISOLÉE : la ligne est là, sans objet, avec sa raison', () => {
     const v = renderAttack({ ranged: true, tasArme: true });
-    const ligne = v.querySelector('[data-posture="intoCrowd"]')!;
+    const ligne = v.querySelector('[data-posture="dansLeTas"]')!;
     expect(ligne, 'une posture armée ne disparaît pas en silence').toBeTruthy();
     expect(ligne.hasAttribute('data-armee'), 'sans groupe, elle ne mord pas').toBe(false);
     expect(ligne.textContent).toContain('sans objet sur cette cible');
@@ -267,7 +267,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
 
   it('« Dans le tas » armée + cible EN GROUPE : la ligne de bonus normale (+20, 3 au contact)', () => {
     const v = renderAttack({ ranged: true, tasArme: true, badauds: 2 });
-    const ligne = v.querySelector('[data-posture="intoCrowd"]')!;
+    const ligne = v.querySelector('[data-posture="dansLeTas"]')!;
     expect(ligne.hasAttribute('data-armee')).toBe(true);
     expect(ligne.textContent).toContain('Dans le tas — armée (+20)');
     expect(ligne.textContent).toContain('3 au contact');
@@ -282,7 +282,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
    */
   it('« Tir immobile » armé puis Mouvement ENTAMÉ : la ligne est là, sans objet, avec sa raison', () => {
     const v = renderAttack({ ranged: true, tirArme: true, mouvementUse: 3 });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne, 'une posture armée ne disparaît pas en silence').toBeTruthy();
     expect(ligne.hasAttribute('data-armee'), 'le Mouvement entamé la périme').toBe(false);
     expect(ligne.textContent).toContain('sans objet sur ce tir');
@@ -292,7 +292,7 @@ describe('Attaque — contrat d’affichage Z0–Z15', () => {
 
   it('« Tir immobile » armé + Mouvement INTACT : la ligne de posture armée normale', () => {
     const v = renderAttack({ ranged: true, tirArme: true });
-    const ligne = v.querySelector('[data-posture="heldGround"]')!;
+    const ligne = v.querySelector('[data-posture="tirImmobile"]')!;
     expect(ligne.hasAttribute('data-armee')).toBe(true);
     expect(ligne.textContent).toContain('Tir immobile — armé');
     expect(ligne.textContent).toContain('Mouvement du Tour consommé');

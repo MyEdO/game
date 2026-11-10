@@ -52,9 +52,9 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const rolled = ph.roll != null;
   const acte = HEAL_ACT[ph.mode]; // vocabulaire PARTAGÉ avec le dossier d’opération (MedicModal)
 
-  const wounds = ph.mode === 'wounds';
-  const trauma = ph.mode === 'trauma';
-  const ammo = ph.mode === 'ammo';
+  const wounds = ph.mode === 'blessures';
+  const trauma = ph.mode === 'traumatisme';
+  const ammo = ph.mode === 'munition';
   // Surface UNIQUE du soin en combat : on a ciblé l'allié sur la carte (mode par défaut) ; si plusieurs
   // soins s'offrent (`fenetreDuSoin.mode`), on choisit ICI, avant le jet. L'infirmerie (embedded) garde
   // son propre choix d'acte → pas de seg.
@@ -110,9 +110,9 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
             groupLabel={fenetre.mode.libelle}
             options={combatModes.map((m) => ({
               key: m,
-              label: m === 'wounds'
+              label: m === 'blessures'
                 ? <><Icon id="journal/heal" size="sm" /> Blessures</>
-                : m === 'ammo'
+                : m === 'munition'
                   ? <><Icon id="item/ammo" size="sm" /> Munition ×{lodged}</>
                   : <><Icon id="condition/bleeding" size="sm" /> Hémorragie ×{bleed}</>,
               selected: ph.mode === m,

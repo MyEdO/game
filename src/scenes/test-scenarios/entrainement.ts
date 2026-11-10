@@ -75,7 +75,7 @@ function bretteur(idNeuf: FabriqueDId): Combatant {
   if (main && off) {
     const id = loadoutCreate(h);
     loadoutSetSlot(h, id, 'main', main.uid);
-    loadoutSetSlot(h, id, 'off', off.uid);
+    loadoutSetSlot(h, id, 'secondaire', off.uid);
   }
   recomputeLoadout(h);
   return h;

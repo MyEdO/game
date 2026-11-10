@@ -94,12 +94,12 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)?.value).toBe(-10);
   });
 
-  it('héros qui tire IMMOBILE (heldGround) → pas de pénalité « Tir en bougeant »', () => {
+  it('héros qui tire IMMOBILE (tirImmobile) → pas de pénalité « Tir en bougeant »', () => {
     seedBattleRng(1);
     const s = scene(7);
     const a = shooter();
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b, undefined, undefined, undefined, true); // heldGround = true
+    const r = resolveAttack(mkGet(s, [a, b]), a, b, undefined, undefined, undefined, true); // tirImmobile = true
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 
@@ -109,7 +109,7 @@ describe('resolveAttack — gate Ligne de Vue + Couvert (LDB 13 l.114 / 14)', ()
     const s = scene(7);
     const a = shooter({ conditions: [{ id: 'empetre', value: 1 }] });
     const b = target({ pos: { x: 6, y: 0 } });
-    const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas de heldGround, mais Mouvement nul
+    const r = resolveAttack(mkGet(s, [a, b]), a, b); // pas de tirImmobile, mais Mouvement nul
     expect(ligneDe(nomme(r!.res.attackerDetail!), TIR_EN_BOUGEANT)).toBeUndefined();
   });
 });

@@ -193,7 +193,7 @@ export interface CorpsDuVehicule {
  * dont elle est une des `carrieres`, `findTenueDeCarriere`, #3456). Une pièce n'y est portée qu'une fois, par le
  * premier qui la revêt (sa pièce racine). Les mains s'attribuent en un seul lieu (`armesDuCombattant`,
  * `src/noyau/equipementDessine.ts`) : les mains explicites du set passent avant les armes sans main du statbloc, qui
- * prennent `main` puis `off` ; un bouclier demande `off` ; une arme à deux mains réserve les deux mains ; une attaque
+ * prennent `main` puis `secondaire` ; un bouclier demande `secondaire` ; une arme à deux mains réserve les deux mains ; une attaque
  * naturelle n'en réserve aucune ; le surplus est rangé, après les objets des sets non tenus, sans modifier les armes
  * persistées ni leurs règles de combat. Son emblème est celui de son apparence d'auteur (`EntityAppearance.embleme`,
  * une référence `{ id }` à un emblème de la garde-robe, que le schéma refuse inconnue ou d'une autre catégorie), sinon

@@ -84,7 +84,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     enemyCast(E, h1);
     openCounter([h1.id, h2.id]);
     banc.getState().jetRegler('counterspell', 'declaration', 'solo', h1.id);
-    banc.getState().jetRegler('counterspell', 'declaration', 'pass', h2.id);
+    banc.getState().jetRegler('counterspell', 'declaration', 'passer', h2.id);
     banc.getState().jetLancer('counterspell', h1.id);
     banc.getState().jetLancer('counterspell', h2.id); // une rangée qui passe ne lance jamais
     const parts = banc.getState().pendingCounterspell!.participants;
@@ -176,7 +176,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       const { heroes, E } = setup();
       freezeCast(heroes[0], E, 3);
       banc.setState({ pendingCounterspell: { participants: [
-        { id: heroes[1].id, interactive: true, declared: 'pass', result: null },
+        { id: heroes[1].id, interactive: true, declared: 'passer', result: null },
         { id: E.id, interactive: false, declared: 'solo', result: null },
       ] } } as unknown as Partial<Jeu>);
       return E;

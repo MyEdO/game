@@ -60,7 +60,7 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
 
   it('combat ouvert le combat fini : la porte se rouvre', () => {
     const battle = startFixtureCombat();
-    banc.setState({ battle: { ...battle, over: 'victory' } });
+    banc.setState({ battle: { ...battle, over: 'victoire' } });
     expect(verrou().mutable).toBe(true);
   });
 

@@ -1,4 +1,5 @@
-import type { CharKey } from '../engine/types';
+import type { CharKey, Main } from '../engine/types';
+import type { GenreDeDepot } from '../engine/activities';
 import type { BattleActionMode } from './actionRegistry';
 import type { ShootingStanceKey } from './etat';
 import type { AttackKind } from '../engine/creatureAttacks';
@@ -98,7 +99,7 @@ export interface VerbesDeLaBarre {
   /** « Quitter la pièce » (release) : libère le poste servi pour un autre — coûte l'Action. */
   quitterLePoste: () => void;
   /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
-   *  ciblage-CASE 'push' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
+   *  ciblage-CASE 'poussee' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
    *  Chef d'un poste d'engin MOBILE, Action dispo, Équipe ≥ moitié requise (sinon no-op, comme un tir
    *  sous-effectif refusé). Mouvement SIMPLE, aucun jet ; plafonné à `rule('siege-engine-push-speed')`. */
   pousserLEngin: () => void;
@@ -168,9 +169,9 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   restaurerLaFortune: () => void;
   /** Ouvre le Test d'une Activité de bataille pré-combat (l.79-106). */
   menerLActionDeBataille: (heroId: IdDeHeros, activityId: IdDActivite) => void;
-  /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
+  /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`investir`), tiré au d10 s'il est absent
    *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
-  deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
+  deposerALaBanque: (heroId: IdDeHeros, kind: GenreDeDepot, amountBrass: number, indice?: IndiceDePlacement) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
   /** Composition d'équipe : ajoute le héros que le noyau bâtit de `heros` (`herosDeLEngagement`), avec sa Richesse de
@@ -186,7 +187,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   rangerLObjet: (uid: IdDObjet, containerUid: IdDObjet | null) => void;
   creerLaPanoplie: (heroId: IdDeHeros) => void;
   supprimerLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie) => void;
-  garnirLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie, slot: 'main' | 'off', uid: IdDObjet | null) => void;
+  garnirLaPanoplie: (heroId: IdDeHeros, loadoutId: IdDePanoplie, slot: Main, uid: IdDObjet | null) => void;
   /** Donne un objet de son porteur à `destinataireId` (transfert d'inventaire). Arrive NON équipé chez le
    *  destinataire ; recalcule les deux loadouts. Permet de confier une arme/armure au bon porteur. */
   transmettreLObjet: (uid: IdDObjet, destinataireId: IdDePorteur) => void;
@@ -262,7 +263,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   ouvrirLesJeux: (entityId?: IdDEntiteDeScene) => void;
   jouerALaTaverne: (heroId: IdDeHeros, partie: tavernFlow.ReglageDePartie) => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
-   *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
+   *  `mode:'detection'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
    *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est
    *  dit (`refusDEvaluation`, `merchantFlow.ts`). */
   evaluerLObjet: (aEvaluer: IdDObjet | IdDeLigneDeButin, mode?: ModeDEvaluation) => void;
