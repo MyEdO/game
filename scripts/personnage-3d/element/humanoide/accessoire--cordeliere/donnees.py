@@ -34,6 +34,10 @@ MATIERES_DE_LA_BURE = ['robe']
 ZONES_DE_LA_BURE = ['torse', 'hanches', 'cuisse_g', 'cuisse_d']
 ZONES = ['torse', 'hanches', 'cuisse_g', 'cuisse_d']   # zones du corps que la corde et ses bouts traversent
 
+EMPLACEMENT = 'ceinture_avant'
+"""L'emplacement de la garde-robe que la corde offre, sur elle, au milieu du devant : la bourse du preset y pend ; offert
+aussi par la bure dessous, il vient de la pièce montée la plus extérieure (procédure du skill, section 4)."""
+
 HAUTEUR = 1.02
 """z du milieu de la corde sur le flanc. Illustration : la corde à environ 645 px, 0,82 m sous le sommet du crâne
 (1,82 m) ; sous le ventre."""
@@ -49,14 +53,14 @@ JEU = 0.006
 """HYPOTHÈSE : l'intérieur de la corde à 6 mm de la bure, mesurés le long de chaque rayon de la coupe."""
 LISSAGE_POIDS = 2
 """Passes laplaciennes des poids empruntés à la bure, comme la bandoulière sur la robe : sans elles, une arête d'un bout
-s'écrasait sous `carrure_plus` (`Slide_Start`, l_c/l_b 0,0026, porte r7)."""
+s'écrasait sous `carrure_plus` (`Slide_Start`, l_c/l_b 0,0026)."""
 PORTEE = 0.6                      # m : départ des visées vers la bure, depuis l'axe du corps
 
 NOEUD = {'rayon': 0.016, 'longueur': 0.03, 'segments': 8, 'angle': 45}
 """Illustration : le nœud, un renflement d'environ 14 px (3,2 cm) ; HYPOTHÈSE : un fuseau de 3 cm de long, 1,6 cm de rayon,
 couché le long de la corde, noué devant à gauche, `angle` degrés depuis le milieu du devant vers la gauche du personnage.
 Au milieu du devant, les bouts pendaient sur le pli de l'aine : la bure les perçait (7 à 21 mm) quand la jambe monte, et
-leurs arêtes s'y écrasaient (`Roll`, `Slide_Start`, l_c/l_b 0,003 à 0,005 ; portes r2 à r7)."""
+leurs arêtes s'y écrasaient (`Roll`, `Slide_Start`, l_c/l_b 0,003 à 0,005)."""
 
 BOUTS = [(-0.008, -0.02), (0.008, 0.02)]
 """Les deux bouts qui pendent du nœud : (écart le long de la corde au départ, écart à la pointe), m. Brief : courts,
