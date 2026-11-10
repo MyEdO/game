@@ -144,7 +144,7 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     const ph = get().pendingHeal!;
     expect(ph.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
 
-    get().jetRegler('heal', 'mode', 'hemorragie');
+    get().jetRegler('soins', 'mode', 'hemorragie');
     const ph2 = get().pendingHeal!;
     expect(ph2.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph2.difficulty]).target);
 

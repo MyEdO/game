@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 /**
- * #3059 L3, #3612 — un acte de l'infirmerie (`MedicModal`) est grisé EXACTEMENT quand le réglage `heal.mode` du
+ * #3059 L3, #3612 — un acte de l'infirmerie (`MedicModal`) est grisé EXACTEMENT quand le réglage `soins.mode` du
  * brouillon le refuserait (`refusDuModeDuSoin`), ou, sans brouillon, l'infirmerie (`refusDeLActeALInfirmerie`,
  * `noyau/acteDeSoin.ts`), avec la même raison. Montage réel, clic réel sur le bouton de l'acte.
  */
@@ -50,7 +50,7 @@ function acte(nom: string) {
   return { bouton, ferme: bouton.getAttribute('aria-disabled') === 'true', raison: rid ? document.getElementById(rid)?.textContent ?? null : null };
 }
 
-describe('MedicModal — acte grisé = acte que `heal.mode` refuse, même raison', () => {
+describe('MedicModal — acte grisé = acte que `soins.mode` refuse, même raison', () => {
   it('Hémorragie verrouillée par Chirurgie, chirurgien présent : « Opérer » offert, le clic règle l’acte, « Lancer » arme l’opération', () => {
     const doc = hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({ id: 'p', label: 'Patient', skills: [], conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] });
@@ -62,7 +62,7 @@ describe('MedicModal — acte grisé = acte que `heal.mode` refuse, même raison
     act(() => operer.bouton.click());
     expect(useGame.getState().pendingHeal?.mode).toBe('chirurgie');
     expect(useGame.getState().medic?.surgery).toBeUndefined();
-    act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
+    act(() => useGame.getState().jetLancer('soins')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
     expect(useGame.getState().medic?.surgery?.kind).toBe('chirurgie');
   });
 

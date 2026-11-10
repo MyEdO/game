@@ -29,14 +29,14 @@ function benir(banc: Banc, pretreId: string, cibleId: string): string[] {
   const avant = banc.getState().journal.length;
   banc.getState().incanterLeSort(pretreId, 'benediction-de-tenacite', cibleId);
   expect(banc.getState().pendingCast?.targetId, 'témoin : le lancer s’ouvre sur la cible').toBe(cibleId);
-  banc.getState().jetLancer('cast');
+  banc.getState().jetLancer('incantation');
   if (!banc.getState().pendingCast!.result!.cast) {
     const p = banc.getState().party.find((c) => c.id === pretreId)!;
     p.resilience = (p.resilience ?? 0) + 1;
-    banc.getState().jetForcerLaReussite('cast');
+    banc.getState().jetForcerLaReussite('incantation');
   }
   expect(banc.getState().pendingCast!.result!.cast, 'témoin : la Bénédiction réussit').toBe(true);
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
   return banc.getState().journal.slice(avant);
 }
 

@@ -40,7 +40,7 @@ const ACT_META: Record<HealMode, { icon: ReactNode; label: string }> = {
  * et les pastilles d'États SONT le diagnostic) → dossier du patient (actes : Guérison / Hémorragie /
  * Déchirure / Chirurgie, tarifés chez un PNJ `medicalAid`) → zone de jet embarquée (`useHealJetProps`,
  * `useSurgeryJetProps`), dont la boîte des soins pose les gestes dans SON pied (`useRollShell`).
- * L'acte règle le brouillon du soin (`jetRegler('heal', 'mode')`), que « Lancer » joue. Elle ne se ferme
+ * L'acte règle le brouillon du soin (`jetRegler('soins', 'mode')`), que « Lancer » joue. Elle ne se ferme
  * pas après un jet : on enchaîne actes et patients. Le pied porte la sortie de l'état courant
  * (`docs/charte-ui.md`, `.cadre-pied`) : au brouillon, « Terminer » (ou « Arrêter l'opération » pendant une
  * opération armée, en `.danger` dès qu'une passe a abouti, LDB 10 l.184) et « Lancer » ; les gestes du jet
@@ -68,7 +68,7 @@ export function MedicModal() {
   const npc = medic.npc;
   const paid = npc?.acts.some((a) => a.cost);
 
-  // Les actes proposés : ceux du PNJ (tarifés) ou tous ceux du groupe — grisés avec la raison du réglage `heal.mode`
+  // Les actes proposés : ceux du PNJ (tarifés) ou tous ceux du groupe — grisés avec la raison du réglage `soins.mode`
   // du brouillon (`refusDuModeDuSoin`), ou de l'infirmerie sans brouillon (`refusDeLActeALInfirmerie`).
   const offers: { act: HealMode; cost?: { gold?: number; silver?: number; brass?: number } }[] =
     npc ? npc.acts : HEAL_MODES.map((a) => ({ act: a }));
@@ -189,7 +189,7 @@ export function MedicModal() {
                   ariaLabel={meta.label}
                   descOfferte={npc ? `Soigné par ${npc.label} · ${skillRefLabel(npc.skill)}` : healer ? `Soigné par ${healer.label}` : undefined}
                   enabled={!raison}
-                  onClick={() => regler('heal', 'mode', a)}
+                  onClick={() => regler('soins', 'mode', a)}
                   primary={false}
                   btnClassName="medic-act"
                 />

@@ -13,7 +13,7 @@ import {
   DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuChoix, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDeDetermination, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
   libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, voyageEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, VERBES_DU_JET_PSY, reposEnVue, interludeEnVue,
   stepInteraction,
-  VERBES_D_INTERACTION, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
+  VERBES_D_INTERACTION, type FlowKey, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
 } from '../noyau/index';
 import { garanti } from '../lib/garanti';
 import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './projection';
@@ -101,7 +101,7 @@ export interface FenetreADessiner {
 }
 
 /** Les réglages du flux de jet `flux` (`jetRegler`) : ceux de `reglages`, tous sans liste. */
-const duFlux = (flux: string, reglages?: readonly string[]) => (g: GesteDuJeu): boolean =>
+const duFlux = (flux: FlowKey, reglages?: readonly string[]) => (g: GesteDuJeu): boolean =>
   g.verbe === VERBE_DE_REGLAGE && g.flux === flux && (!reglages || reglages.includes(g.reglage ?? ''));
 /** Les gestes des verbes `verbes`. */
 const parmi = (verbes: readonly string[]) => (g: GesteDuJeu): boolean => verbes.includes(g.verbe);
@@ -118,11 +118,11 @@ const fluxNommes = (lecture: object) => {
 /** Les fenêtres lues qui règlent des gestes : chacune, sa lecture et les gestes qu'elle règle (`fluxNommes` sans
  *  `regle`). */
 const LECTEURS: readonly { lire: (s: Jeu) => object | null; regle?: (g: GesteDuJeu) => boolean }[] = [
-  { lire: fenetreDAttaque, regle: duFlux('attack') },
+  { lire: fenetreDAttaque, regle: duFlux('attaque') },
   { lire: fenetreDeDefense, regle: duFlux('defense') },
   // La fenêtre d'incantation nomme ses choix et les pas de Surincantation de chaque axe ; les cibles supplémentaires se
   // désignent sur la carte, que la carte tient (`carte`) ; les jets sur le Tableau sont un réglage qu'elle ne nomme pas.
-  { lire: fenetreDIncantation, regle: duFlux('cast', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
+  { lire: fenetreDIncantation, regle: duFlux('incantation', ['discret', 'formeConjuree', 'effetCritique', 'ciblesSupplementaires', 'carte', ...Object.values(REGLAGE_DE_L_AXE)]) },
   { lire: fenetreDuSoin },
   { lire: fenetreDuButin, regle: parmi(REGLAGES_DU_BUTIN) },
   { lire: fenetreDeDetermination, regle: parmi(VERBES_DU_JET_PSY) },
@@ -220,7 +220,7 @@ function gesteAttendu(drive: readonly GesteDuJeu[] | undefined, fermetures: Read
  * de jet (`jetRegler`, `REGLAGES_DU_JET`, `src/noyau/reglagesDuJet.ts`), choix de fenêtre et flux réactif compris
  * (`FENETRE_DU_JET`, `src/noyau/combatAuto.ts`), chacun ouvert dessiné en élément de la zone `fenetre.gestes`. Un geste
  * est un verbe, et pour un verbe de jet (`jetLancer`, `jetRelancer`…) le flux qu'il vise, son premier argument, que la
- * fenêtre pose ; son identité est sa clé (`cle`, `cleDuGeste` : `jetLancer@attack`, `jetRegler@attack#localisation`
+ * fenêtre pose ; son identité est sa clé (`cle`, `cleDuGeste` : `jetLancer@attaque`, `jetRegler@attaque#localisation`
  * pour un réglage, `fenetreValider@debutDuRound` ou `fenetreFermer@cascade` pour la validation ou la sortie d'une
  * fenêtre, `fenetreChoisir@destin#issue` pour un choix de fenêtre (`fenetreChoisir`, `CHOIX_DES_FENETRES`,
  * `src/noyau/choixDesFenetres.ts`), ou le nom du verbe). Un choix de rangée (`portee: 'rangee'`, l'Activité de chaque

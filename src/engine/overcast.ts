@@ -3,7 +3,7 @@
  * la donnée (`spell.family`). Arcane : `LDB 47 l.13-17` ; Miracle : `LDB 42 l.7-13` ; Bénédiction :
  * `LDB 41 l.21-27` ; `magic-vdm-incantation` : `VDM 02 l.194-215`.
  *
- * Pur (consommé par les réglages `cast.surincantation…`, jetValider('cast'), overcastTargetCandidates et CastModal).
+ * Pur (consommé par les réglages `incantation.surincantation…`, jetValider('incantation'), overcastTargetCandidates et CastModal).
  */
 
 import type { GameOp } from './ops';

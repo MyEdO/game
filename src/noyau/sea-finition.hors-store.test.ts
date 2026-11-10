@@ -72,7 +72,7 @@ function freshState() {
 /** Déroule la journée maritime jusqu'à une SUSPENSION (halte, Activités en mer) — la journée est
  *  désormais UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3) : chaque étape est soit MONO
  *  (Forcer le rythme/Prière) soit À PARTICIPANTS (batch, Tests d'équipage MDG
- *  ch.14 — `jetLancer('cascadeBatch')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
+ *  ch.14 — `jetLancer('cascadeEnBande')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
  *  `await tick()` reprend le jeton de reprise (`programmer`, 0 ms) d'un applier surfacé isolément
  *  (Ouragan/Prière — `seaVoyageFlow.ts`), comme un vrai clic UI l'espacerait. */
 const tick = async (): Promise<void> => { banc.avancer(0); };
@@ -100,8 +100,8 @@ async function runSeaActivities() {
     // La fenêtre `extended` d'abord : son étape hôte n'est prête que quand elle a rendu sa donnée (#1765).
     if (ext) {
       const cur = ext.rounds[ext.rounds.length - 1];
-      if (!cur.result) get().jetLancer('extendedTest', cur.id);
-      get().jetValider('extendedTest');
+      if (!cur.result) get().jetLancer('testEtendu', cur.id);
+      get().jetValider('testEtendu');
       await tick();
       continue;
     }
@@ -254,7 +254,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(get().pendingExtendedTest).toBeTruthy(); // Test étendu ouvert (primitive #273 Étape 1)
     expect(get().pendingExtendedTest!.maxAttempts).toBe(3);
     // L'enjeu est celui de l'Activité, sur l'étape que la fenêtre lit (#1117).
-    expect(get().pendingCascade?.participants.find((e) => e.jet === 'extended')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
+    expect(get().pendingCascade?.participants.find((e) => e.jet === 'testEtendu')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
     await runSeaActivities();
     // La halte suit la clôture du Test étendu (file `opportunityQueue` vidée).
     expect(get().pendingExtendedTest).toBeNull();

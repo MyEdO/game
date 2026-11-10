@@ -32,17 +32,17 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   const ph = useGame((s) => s.pendingHeal);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'heal');
-  const reroll = useGesteDeJet('jetRelancer', 'heal');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'heal');
-  const darkPact = useGesteDeJet('jetPactiser', 'heal');
-  const force = useGesteDeJet('jetForcerLaReussite', 'heal');
-  const confirm = useGesteDeJet('jetValider', 'heal');
-  const cancel = useGesteDeJet('jetAnnuler', 'heal');
+  const roll = useGesteDeJet('jetLancer', 'soins');
+  const reroll = useGesteDeJet('jetRelancer', 'soins');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'soins');
+  const darkPact = useGesteDeJet('jetPactiser', 'soins');
+  const force = useGesteDeJet('jetForcerLaReussite', 'soins');
+  const confirm = useGesteDeJet('jetValider', 'soins');
+  const cancel = useGesteDeJet('jetAnnuler', 'soins');
   const regler = useGame((s) => s.jetRegler);
-  const setMode = (v: ReglagesDuJet['heal']['mode']) => regler('heal', 'mode', v);
-  const setTest = (v: ReglagesDuJet['heal']['test']) => regler('heal', 'test', v);
-  const setBandages = (v: ReglagesDuJet['heal']['bandages']) => regler('heal', 'bandages', v);
+  const setMode = (v: ReglagesDuJet['soins']['mode']) => regler('soins', 'mode', v);
+  const setTest = (v: ReglagesDuJet['soins']['test']) => regler('soins', 'test', v);
+  const setBandages = (v: ReglagesDuJet['soins']['bandages']) => regler('soins', 'bandages', v);
   if (!ph) return null;
   const fenetre = fenetreDuSoin(useGame.getState());
   const pool = battle?.combatants ?? party; // même flux en combat (file) et hors combat (groupe)
@@ -88,7 +88,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
   ];
 
   return {
-    flowKey: 'heal',
+    flowKey: 'soins',
     stake: enjeuDuSoin(useGame.getState(), ph),
     title: wounds ? <><Icon id="journal/heal" size="sm" /> Soigner les Blessures</> : trauma ? <><Icon id="medical/tear" size="sm" /> Soigner une déchirure</> : ammo ? <><Icon id="item/ammo" size="sm" /> Retirer une munition</> : <><Icon id="condition/bleeding" size="sm" /> Arrêter l’Hémorragie</>,
     /* A→B canonique (décision utilisateur 2026-08-04) : portraits + flèche annotée de l'acte —

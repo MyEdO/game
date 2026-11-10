@@ -181,7 +181,7 @@ describe('G5 — postures et KIND du tireur (parité stricte avec `attackEnv`)',
         result: { hit: true, attackerRoll: 40, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' },
       },
     });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().battle!.movementUsed, 'aucun gain de posture → aucun Mouvement dépensé').toBe(0);
   });
 });
@@ -261,7 +261,7 @@ describe('G5 — posture « Dans le tas » (`dansLeTas`)', () => {
     banc.setState({
       pendingAttack: { ...pa, result: { hit: true, attackerRoll: 30, netSL: 1, location: 'corps', damage: 3, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: '' } } as never,
     });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
 
     expect(banc.getState().battle!.movementUsed, 'le tir immobile a bien payé son Mouvement').toBeGreaterThan(0);
     expect(armees().tirImmobile, 'la posture DÉPENSÉE tombe').toBeFalsy();

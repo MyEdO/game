@@ -162,12 +162,12 @@ describe('possession réseau (netOwnership)', () => {
   });
 
   it("sort ENNEMI ('*') : tout le monde peut agir (Contre-sort multi)", () => {
-    // Wrapper-fold : l'incantation est une étape `jet:'cast'` de la cascade. Sort ENNEMI → la cascade
+    // Wrapper-fold : l'incantation est une étape `jet:'incantation'` de la cascade. Sort ENNEMI → la cascade
     // est ouverte avec `groupOwner:true` → l'entrée `cascade`
     // met l'owner à '*' (moment partagé + Contre-sort multi en coop). `pendingCast` coexiste comme data.
     const s = base({
       pendingCast: { casterId: 'e1', targetId: 'h1' } as Jeu['pendingCast'],
-      pendingCascade: cascadeDeTest([{ id: 'c', jet: 'cast', kind: 'cast', actorId: 'e1', groupOwner: true }]),
+      pendingCascade: cascadeDeTest([{ id: 'c', jet: 'incantation', kind: 'cast', actorId: 'e1', groupOwner: true }]),
     });
     expect(modalOwnerOf(s)).toBe('*');
     expect(intentAllowedFor(s, 1, 'castCounterspell')).toBe(true);
@@ -362,7 +362,7 @@ describe('Activités d’interlude en coop (audit M7/M8) — chacun mène SES h�
   it('modale de jet d’Activité (arbitre M8) : owner = héros du pending', () => {
     const s = interludeState({ pendingActivity: { heroId: 'h2', kind: 'catalog', activityId: 'revenus' } as Jeu['pendingActivity'] });
     expect(modalOwnerOf(s)).toBe('h2');
-    expect(intentAllowedFor(s, 1, 'jetLancer', ['activity'])).toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetLancer', ['activity'])).toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['activite'])).toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['activite'])).toBe(false);
   });
 });

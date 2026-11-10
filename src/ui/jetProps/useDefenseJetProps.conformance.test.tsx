@@ -64,9 +64,9 @@ function openDefense(defenderWeapon?: Weapon, prepare?: (hero: Combatant, battle
   const g = useGame.getState;
   seedBattleRng(3);
   openAttackCascade(g, useGame.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-  g().jetLancer('attack');
-  if (atkDie != null) g().jetImposerLeResultat('attack', atkDie);
-  g().jetValider('attack');
+  g().jetLancer('attaque');
+  if (atkDie != null) g().jetImposerLeResultat('attaque', atkDie);
+  g().jetValider('attaque');
   host = document.createElement('div');
   document.body.appendChild(host);
   root = createRoot(host);

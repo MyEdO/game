@@ -203,7 +203,7 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
  *  influençables ; le Commerce d'opportunité (Test étendu) est SÉQUENCÉ ensuite, `continueSeaActivitiesAfterCascade`
  *  enchaîne. */
 function validerLaSemaine(get: Get, set: Set): void {
-  const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+  const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
   const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, pending.picks);
   set({ pendingSeaActivities: { ...pending, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }
@@ -274,7 +274,7 @@ export function seaActivitiesCatalog(): ActivityDef[] {
  *  d'opportunité (l.276), la planque de la Cartographie (l.292). */
 export function choixDeLaSemaineEnMer(get: Get, set: Set) {
   const choisir = (pid: string, pick: SeaActivityPick | null) => {
-    const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+    const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
     set({ pendingSeaActivities: { ...pending, picks: { ...pending.picks, [pid]: pick } } });
   };
   const choisie = (pid: string): SeaActivityPick => garanti(get().pendingSeaActivities?.picks[pid], pid, 'Activité choisie');

@@ -41,7 +41,7 @@ async function drain(): Promise<void> {
       const cur = p.participants[p.cursor];
       // Une manche héros-vs-héros est une BANDE : chaque rangée À JOUER se lance par son propre verbe.
       if (cur?.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       } else if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       get().jetValider('cascade');
     }

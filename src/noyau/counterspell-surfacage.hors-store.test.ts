@@ -69,7 +69,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     const { H, E } = setup();
     net({ gmSeat: 0 });
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     const pcs = banc.getState().pendingCounterspell;
     expect(pcs, 'la fenêtre de Contre-sort s’ouvre au lieu du jet inline').toBeTruthy();
     expect(pcs!.participants.map((p) => p.id)).toEqual([E.id]);
@@ -78,7 +78,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     expect(banc.getState().pendingCast!.result!.log, 'aucun Contre-sort en fait accompli').not.toContain('Contre-sort');
     expect(E.dispelledThisRound, 'l’essai du Round n’est pas consommé sans jet').toBeFalsy();
     // Fenêtre PARTAGÉE : l'étape `cast` bascule en groupe (le MJ voit la modale du lanceur héros).
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.jet === 'cast');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.jet === 'incantation');
     expect(step?.groupOwner, 'étape de GROUPE : la fenêtre porte les jets de deux sièges').toBe(true);
   });
 
@@ -87,13 +87,13 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     const { H, E } = setup();
     net({ mode: 'host', mySeat: 2, gmSeat: 2, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     expect(banc.getState().pendingCounterspell!.participants[0].id).toBe(E.id);
     const s = banc.getState();
     for (const verb of ['jetLancer', 'jetForcerLaReussite', 'jetPactiser']) {
-      expect(intentAllowedFor(s, 2, verb, ['counterspell', E.id]), `${verb} — siège MJ`).toBe(true);
-      expect(intentAllowedFor(s, 0, verb, ['counterspell', E.id]), `${verb} — hôte non MJ`).toBe(false);
-      expect(intentAllowedFor(s, 1, verb, ['counterspell', E.id]), `${verb} — joueur : ce n’est pas son jet`).toBe(false);
+      expect(intentAllowedFor(s, 2, verb, ['contreSort', E.id]), `${verb} — siège MJ`).toBe(true);
+      expect(intentAllowedFor(s, 0, verb, ['contreSort', E.id]), `${verb} — hôte non MJ`).toBe(false);
+      expect(intentAllowedFor(s, 1, verb, ['contreSort', E.id]), `${verb} — joueur : ce n’est pas son jet`).toBe(false);
     }
     expect(influencesLocally(s, E.id), 'siège local = MJ → la rangée est influençable').toBe(true);
     setDesFixes(true);
@@ -124,9 +124,9 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     expect(routeCounterspell(banc.getState, banc.setState)).toBe(true);
     // PHASE 1 (#1042/#1059) : la rangée du MJ déclare « contrer seul » — c'est le geste que le chemin
     // inline pose d'office pour l'IA ; les dés ne partent qu'ensuite (la différentielle porte sur eux).
-    banc.getState().jetRegler('counterspell', 'declaration', 'solo', E.id);
-    banc.getState().jetLancer('counterspell', E.id);
-    banc.getState().jetValider('counterspell');
+    banc.getState().jetRegler('contreSort', 'declaration', 'solo', E.id);
+    banc.getState().jetLancer('contreSort', E.id);
+    banc.getState().jetValider('contreSort');
     const windowed = banc.getState().pendingCast!.result;
     expect(windowed).toEqual(inline);
     // La modale du LANCEUR reste ouverte : l'issue revient là où le jet inline la déposait, le héros applique.
@@ -151,9 +151,9 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     expect(pcs!.participants.map((p) => p.id)).toEqual(expect.arrayContaining([H.id, h2.id]));
     expect(pcs!.participants.every((p) => p.interactive), 'deux héros joués → deux rangées interactives').toBe(true);
     const s = banc.getState();
-    expect(intentAllowedFor(s, 0, 'jetLancer', ['counterspell', H.id]), 'rangée du héros de l’hôte').toBe(true);
-    expect(intentAllowedFor(s, 1, 'jetLancer', ['counterspell', H.id]), 'un siège ne joue pas la rangée d’un autre').toBe(false);
-    expect(intentAllowedFor(s, 1, 'jetLancer', ['counterspell', h2.id]), 'rangée du héros du siège 1').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetLancer', ['counterspell', h2.id])).toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['contreSort', H.id]), 'rangée du héros de l’hôte').toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['contreSort', H.id]), 'un siège ne joue pas la rangée d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetLancer', ['contreSort', h2.id]), 'rangée du héros du siège 1').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetLancer', ['contreSort', h2.id])).toBe(false);
   });
 });

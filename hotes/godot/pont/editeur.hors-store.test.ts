@@ -805,6 +805,53 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const tenue = presser(boutonDe(pose, `${place.id}/heros-1`));
     expect([boutonDe(tenue, `${place.id}/heros-1`).presse, boutonDe(tenue, `${place.id}/personne`).presse]).toEqual([true, false]);
   });
+
+  it('un décor : une action ajoutée sous son identifiant libre, renommée à son formulaire, écrite au formulaire tiré du schéma, à l’onglet Rôles (#3606 M1e)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const decors = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/prop'));
+    presser(valeursDe(decors, 'decors').find((b) => b.id === 'prop/brasero')!);
+    jouer({ geste: 'appui', point: point(5, 5) });
+    const pose = jouer({ geste: 'relache', point: point(5, 5) });
+    const [fouiller] = valeursDeLInspecteur(pose, 'valeur/usable/ajouter');
+    expect(fouiller.libelle).toBe('fouiller');
+    const une = presser(fouiller);
+    expect(boutonDe(une, 'valeur/usable/retirer').libelle, 'sans assise, l’utilisable se retire entier').toBe('Retirer : utilisable');
+    const deux = presser(valeursDeLInspecteur(une, 'valeur/usable/actions/ajouter')[0]);
+    const formulaire = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Formulaire | undefined;
+    expect(formulaire(deux, 'identifier/action/fouiller-2')?.champs.map((c) => c.type)).toEqual(['fixe', 'saisieTexte']);
+    expect(formulaire(deux, 'valeur/usable/actions/1/flow/steps')?.champs.map((c) => c.type), 'les pas de l’enchaînement, récursifs, se saisissent en JSON').toEqual(['fixe', 'fixe', 'saisieJson']);
+    const renommee = editionDe(appel('editer', { type: 'identifier', args: ['fouiller-2', 'coffre'] }));
+    expect(formulaire(renommee, 'identifier/action/coffre')?.champs[1]).toMatchObject({ valeur: 'coffre' });
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['coffre'] })).categorie, 'sans action désignée').toBe('validation');
+    expect(erreurDe(appel('editer', { type: 'identifier', args: ['absente', 'x'] })).categorie, 'une action que l’inspecteur ne montre pas').toBe('validation');
+    const consommee = presser(valeursDeLInspecteur(renommee, 'valeur/usable/actions/1/consume').find((b) => (b.jeu as { args: unknown[] }).args[2] === true)!);
+    expect(valeursDeLInspecteur(consommee, 'valeur/usable/actions/1/consume').find((b) => b.presse)?.jeu).toMatchObject({ args: [{ sorte: 'entite' }, ['usable', 'actions', 1, 'consume'], true] });
+    const ecran = readFileSync(join(dirname(fileURLToPath(import.meta.url)), '../projet/scenes/Editeur.tscn'), 'utf8');
+    const roles = ecran.match(/Inspecteur\/Rôles"\]\nscript = [^\n]*\nsource = "editeur\.inspecteur"\nids = PackedStringArray\(([^)]*)\)/)![1];
+    expect([...roles.matchAll(/"([^"]*)"/g)].map((m) => m[1])).toEqual(expect.arrayContaining(['valeur/usable', 'valeur/usable/', 'identifier/action/']));
+  });
+
+  it('une table à l’assise posée : « Retirer : utilisable », qui l’emporterait, n’est pas offert ; ses actions se retirent une à une, l’assise reste (#3606 M1e)', () => {
+    const { appel } = table();
+    const jouer = (edition: unknown) => editionDe(appel('editer', { edition }));
+    const presser = (b: Bouton) => editionDe(appel('editer', b.jeu));
+    const decors = presser(boutonDe(editionDe(appel('editer', { ouvrir: CAMPAGNE })), 'outil/prop'));
+    presser(valeursDe(decors, 'decors').find((b) => b.id === 'prop/table-ronde-4-tabourets')!);
+    jouer({ geste: 'appui', point: point(5, 5) });
+    const assise = presser(boutonDe(jouer({ geste: 'relache', point: point(5, 5) }), 'assise'));
+    const avec = presser(valeursDeLInspecteur(assise, 'valeur/usable/actions/ajouter')[0]);
+    const ids = (e: Edition) => e.vue.zones['editeur.inspecteur'].map((el) => el.id);
+    expect(ids(avec)).toContain('valeur/usable/actions/0/retirer');
+    expect(ids(avec)).not.toContain('valeur/usable/retirer');
+    const { porteur } = (boutonDe(avec, 'valeur/usable/actions/0/retirer').jeu as { edition: { porteur: unknown } }).edition;
+    expect(erreurDe(appel('editer', { type: 'valeur', args: [porteur, ['usable']] })).categorie, 'un retrait que l’inspecteur ne montre pas').toBe('validation');
+    let retiree = avec;
+    while (ids(retiree).includes('valeur/usable/actions/0/retirer')) retiree = presser(boutonDe(retiree, 'valeur/usable/actions/0/retirer'));
+    expect(ids(retiree).filter((id) => id.startsWith('valeur/usable')), 'l’utilisable reste, sans action').toEqual(['valeur/usable', 'valeur/usable/actions/ajouter']);
+    expect(boutonDe(retiree, 'assise').presse, 'l’assise reste').toBe(true);
+  });
 });
 
 describe('l’éditeur de carte par le pont, l’inspecteur d’arête', () => {

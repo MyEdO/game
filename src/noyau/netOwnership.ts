@@ -258,17 +258,17 @@ const repondant = (id: string, result: unknown): ParticipantDeJetFige[] => [{ id
 export const JET_FIGE = {
   defense: (pd: PendingDefense): JetFige => ({ ownerId: pd.attackerId, participants: repondant(pd.defenderId, pd.result) }),
   /** Les répondants de l'incantation : l'opposition de cible et le Contre-sort. */
-  cast: (s: Pick<Jeu, 'pendingCastOpposition' | 'pendingCounterspell'>, pc: PendingCast): JetFige => ({
+  incantation: (s: Pick<Jeu, 'pendingCastOpposition' | 'pendingCounterspell'>, pc: PendingCast): JetFige => ({
     ownerId: pc.casterId,
     participants: [...(s.pendingCastOpposition?.participants ?? []), ...(s.pendingCounterspell?.participants ?? [])],
   }),
-  disengage: (pd: PendingDisengage): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
+  desengagement: (pd: PendingDisengage): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
   auContact: (pd: PendingAuContact): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
-  grapple: (pd: PendingGrapple): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.actorId, pd.def) }),
+  empoignade: (pd: PendingGrapple): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.actorId, pd.def) }),
   /** Le jet figé est le Calme du foe ; la réponse, l'Athlétisme du mover (`atk`). */
   distraire: (pd: PendingDistraire): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.atk) }),
   /** L'opposant du Marchandage n'est pas un combattant. */
-  bargain: (pb: PendingBargain): JetFige => ({ ownerId: undefined, participants: repondant(pb.playerId, pb.roll ?? undefined) }),
+  marchandage: (pb: PendingBargain): JetFige => ({ ownerId: undefined, participants: repondant(pb.playerId, pb.roll ?? undefined) }),
   /** L'étape opposée d'une cascade (`meta.opposed`) : chaque rangée de sa bande, ou son acteur. */
   cascade: (step: CascadeStep): JetFige => ({
     ownerId: step.meta?.opposed?.attackerId,

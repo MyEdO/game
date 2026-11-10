@@ -45,7 +45,7 @@ function drain(): void {
       else if (cur.options && cur.chosen == null) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
       else if (cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       else if (cur.participants?.some((r) => r.interactive !== false && !r.result)) {
-        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetLancer('cascadeBatch', r.id);
+        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetLancer('cascadeEnBande', r.id);
       }
     }
     get().jetValider('cascade');

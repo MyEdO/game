@@ -694,7 +694,7 @@ function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: Cas
 
 /** Résout le côté `batch` en étape À PARTICIPANTS (seam de jet #275 Décision 4 cran 1/2, FERME l'écart
  *  2 de la Ronde 0) : UNE rangée par contributeur (`CascadeStep.participants`), non résolue — le jet de
- *  chaque contributeur vit dans la modale (flux `cascadeBatch`) ou, en surface I, dans
+ *  chaque contributeur vit dans la modale (flux `cascadeEnBande`) ou, en surface I, dans
  *  `cascade.rollBatchParticipants` (`runCascadeImmediate`). L'AGRÉGAT (`step.aggregate` + `step.meta`
  *  NEUTRE : `aggregateFlatDR`/`aggregateCapTo`/`aggregateOpposeSl`) est calculé GÉNÉRIQUEMENT par
  *  `cascade.aggregateBatchStep` à la VALIDATION — ce constructeur ne lance AUCUN dé lui-même : chaque
@@ -1598,8 +1598,8 @@ type HostOwner =
 /** DÉCLARATION d'une étape HÔTE — union DISCRIMINÉE par `jet` : la Maladresse exige sa charge (elle
  *  n'a pas de pending), les huit autres n'en portent aucune (la leur vit dans leur `pending*`). */
 export type HostSpec = HostOwner & (
-  | (HostBase & { jet: 'fumble'; fumble: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup } })
-  | (HostBase & { jet: Exclude<HostJet, 'fumble'>; fumble?: never })
+  | (HostBase & { jet: 'maladresse'; fumble: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup } })
+  | (HostBase & { jet: Exclude<HostJet, 'maladresse'>; fumble?: never })
 );
 
 /**
@@ -1626,7 +1626,7 @@ export function hostStep(get: Get, spec: HostSpec): BuiltCascadeStep | undefined
     ...(spec.label ? { label: spec.label } : {}),
     ...(spec.icon ? { icon: spec.icon } : {}),
     ...(spec.groupOwner ? { groupOwner: true } : {}),
-    ...(spec.jet === 'fumble' ? { fumble: spec.fumble } : {}),
+    ...(spec.jet === 'maladresse' ? { fumble: spec.fumble } : {}),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `hostStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.

@@ -235,10 +235,10 @@ describe('coûts et refus NOMMÉS (A4)', () => {
     const { H } = combat(falaise(), top, { acted: true });
     g().franchirLArete(foot);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
-    g().jetRegler('fall', 'tenter', true, H.id);
+    g().jetRegler('chute', 'tenter', true, H.id);
     expect(phaseDeChute(g().pendingFall!)).toBe('choice');
     dit('fall.actionDejaPrise', { name: H.label });
-    g().jetRegler('fall', 'tenter', false, H.id); // sauter sans Test reste permis
+    g().jetRegler('chute', 'tenter', false, H.id); // sauter sans Test reste permis
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(foot);
     expect(g().battle!.acted).toBe(true);
   });

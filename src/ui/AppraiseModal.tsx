@@ -77,7 +77,7 @@ export function AppraiseModalView({
 
   return (
     <RollShell
-      flowKey="appraise"
+      flowKey="evaluation"
       stake={flowStakeRef(APPRAISE_STAKE[pa.mode ?? 'evaluation'])}
       title={detect ? "Détecter l'aura" : 'Évaluer'}
       /* QUI évalue → portrait dans la ligne de jet (plus de nom en clair) ; la cible/DR vit dans le cadre. */
@@ -99,12 +99,12 @@ export function AppraiseModalView({
 export function AppraiseModal() {
   const pa = useGame((s) => s.pendingAppraise);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'appraise');
-  const reroll = useGesteDeJet('jetRelancer', 'appraise');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'appraise');
-  const darkPact = useGesteDeJet('jetPactiser', 'appraise');
-  const confirm = useGesteDeJet('jetValider', 'appraise');
-  const cancel = useGesteDeJet('jetAnnuler', 'appraise');
+  const roll = useGesteDeJet('jetLancer', 'evaluation');
+  const reroll = useGesteDeJet('jetRelancer', 'evaluation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'evaluation');
+  const darkPact = useGesteDeJet('jetPactiser', 'evaluation');
+  const confirm = useGesteDeJet('jetValider', 'evaluation');
+  const cancel = useGesteDeJet('jetAnnuler', 'evaluation');
   // COOP (#1017) : ABONNEMENT à `net` AVANT le retour anticipé — une ré-attribution de siège en cours
   // de fenêtre re-rend la modale (sinon `owned` reste figé sur le 1er rendu).
   useGame((s) => s.net);

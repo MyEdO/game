@@ -150,7 +150,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
 
   /**
    * Lot 2 — voie nested cast↔test : un sous-Flow de sort SYNTHÉTIQUE `seq[ do, test, do ]` lancé via
-   * `runCombatFlow` EN CONTEXTE D'INCANTATION (cascade `jet:'cast'` déjà OUVERTE par openCastCascade,
+   * `runCombatFlow` EN CONTEXTE D'INCANTATION (cascade `jet:'incantation'` déjà OUVERTE par openCastCascade,
    * comme pendant un vrai `applyCast`). Le nœud `test` enfoui n'OUVRE PAS une seconde cascade : il
    * APPEND une étape `triggeredTest` à la MÊME cascade `cast` active (preuve « une seule cascade
    * enrichie »), comme Critique/Maladresse de sort. Sa validation (jetLancer('cascade', id)+jetValider('cascade')) joue la
@@ -163,14 +163,14 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     const before = live(H.id).wounds.current;
 
     // Ordre des sites de DÉCLARATION d'incantation (`castSpell`, et le chemin de pose de zone) : le
-    // `pendingCast` — la donnée que la fenêtre rend — est posé, PUIS la cascade `jet:'cast'` l'hôte.
+    // `pendingCast` — la donnée que la fenêtre rend — est posé, PUIS la cascade `jet:'incantation'` l'hôte.
     // `applyCast`, lui, n'ouvre rien : il joue les effets DANS cette cascade déjà ouverte.
     banc.setState({ pendingCast: { casterId: H.id, targetId: H.id, spellId: 'chute', missile: false, focused: false, result: null } });
     openCastCascade(banc.getState, banc.setState, H);
     const castCasc = banc.getState().pendingCascade!;
     expect(castCasc.purpose).toBe('combat');
     expect(castCasc.participants).toHaveLength(1);
-    expect(castCasc.participants[0].jet).toBe('cast'); // l'étape d'incantation, curseur dessus
+    expect(castCasc.participants[0].jet).toBe('incantation'); // l'étape d'incantation, curseur dessus
 
     // Le sous-Flow du sort (avec un Test interne) joué EN CONTEXTE CAST (opsCtx propagé : sl/label).
     runCombatFlow(
@@ -184,18 +184,18 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     const enriched = banc.getState().pendingCascade!;
     expect(enriched.purpose).toBe('combat');
     expect(enriched.participants).toHaveLength(2); // étape `cast` + étape `triggeredTest` APPENDUE (une seule cascade)
-    expect(enriched.participants[0].jet).toBe('cast');
+    expect(enriched.participants[0].jet).toBe('incantation');
     const step = enriched.participants[1];
     expect(step.kind).toBe('triggeredTest');
     expect(step.actorId).toBe(H.id);
     expect(step.result).toBeFalsy();        // pas encore lancé → influençable
     expect(step.meta?.after).toBeTruthy();  // la continuation voyage dans le meta (sérialisable, coop)
 
-    // jetValider('cast') (combatSlice:1771-1777) avance le curseur AU-DELÀ de l'étape `jet:'cast'` quand des
+    // jetValider('incantation') (combatSlice:1771-1777) avance le curseur AU-DELÀ de l'étape `jet:'incantation'` quand des
     // conséquences se sont appendues (`participants.length > castStepIdx + 1`) → la cascade JOUE l'étape
-    // `triggeredTest`. On reproduit ce seul pas d'orchestration (le test bypass `jetValider('cast')`).
+    // `triggeredTest`. On reproduit ce seul pas d'orchestration (le test bypass `jetValider('incantation')`).
     expect(enriched.cursor).toBe(0); // curseur encore sur l'étape `cast` (résolue par CastModal, hors test)
-    banc.setState({ pendingCascade: { ...enriched, cursor: 1 } }); // = jetValider('cast') : cursor → castStepIdx + 1
+    banc.setState({ pendingCascade: { ...enriched, cursor: 1 } }); // = jetValider('incantation') : cursor → castStepIdx + 1
 
     // Validation : la branche succès (−5) PUIS la continuation after (−7) s'appliquent.
     banc.getState().jetLancer('cascade', step.id);

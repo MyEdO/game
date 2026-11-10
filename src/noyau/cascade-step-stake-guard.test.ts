@@ -481,7 +481,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     for (const { jet, slot } of porteurs) for (const comment of ['difficulty', ...Object.keys(cibleEtendueSchema.shape)]) {
       const pose = `set({ ${slot}: { actorId: a.id, characteristic: 'force', ${comment}, roll: null } });`;
       const hote = (j: string, enjeu: string) => `const e = hostStep(get, { id: 'x', kind: 'k', jet: '${j}', actorId: a.id${enjeu} });`;
-      const autre = porteurs.find((p) => p.jet !== jet)?.jet ?? 'fumble';
+      const autre = porteurs.find((p) => p.jet !== jet)?.jet ?? 'maladresse';
       const cas = `${slot} (${comment})`;
       expect(literalTestsWithoutStake(`${pose}\n${hote(jet, ', ...(f.stake ? { stake: f.stake } : {})')}`), `${cas} : l’étape porte l’enjeu`).toHaveLength(0);
       expect(literalTestsWithoutStake(`${pose}\n${hote(jet, '')}`), `${cas} : étape hôte sans enjeu`).toHaveLength(1);

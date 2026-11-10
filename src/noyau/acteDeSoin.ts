@@ -117,7 +117,7 @@ function soigneurDeLActe(s: Pick<Jeu, 'medic' | 'party'>, act: HealMode): Soigne
 const plaiesDeLActe = (patient: Combatant, act: ActeOperatoire): Trauma[] =>
   (act === 'reeducation' ? recoverableTraumas(patient) : surgeryTraumas(patient));
 
-/** Les Blessures Critiques que le choix `infirmerie.plaie` ouvre, par l'`uid` que `jetValider('surgery')` lit : celles de
+/** Les Blessures Critiques que le choix `infirmerie.plaie` ouvre, par l'`uid` que `jetValider('chirurgie')` lit : celles de
  *  l'opération armée avant sa première passe, sinon celles du brouillon d'une opération ; vide sinon. */
 export function plaiesDeLOperation(s: Pick<Jeu, 'medic' | 'party' | 'pendingHeal'>): Trauma[] {
   const m = s.medic;

@@ -53,7 +53,7 @@ export const actePanse = (mode: HealMode): boolean => mode === 'blessures' || mo
 /** Pourquoi le Test déclaré `p.test` est refusé au soigneur pour l'acte `mode`, `null` s'il s'offre. `soigneur` `null` :
  *  un PNJ soigneur, sans fiche, qui ne jette que sa Guérison imprimée. Dextérité : LDB 74 l.41 ; Hémorragie seule ;
  *  décision de l'orchestrateur (2026-11-03, #3059) : ouverte à tout soigneur, Bandages exigés. VERDICT UNIQUE de
- *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `heal.test`), du choix d'acte (réglage `heal.mode`) et de la fenêtre. */
+ *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `soins.test`), du choix d'acte (réglage `soins.mode`) et de la fenêtre. */
 export function refusDuTestDeSoin(soigneur: Combatant | null, mode: HealMode, p: ParametresDeSoin): string | null {
   if (p.test === 'guerison') return soigneur && !possesses(soigneur, { id: HEAL_SKILL }) ? t('heal.raisonSansGuerison') : null;
   if (!soigneur) return t('heal.raisonDexteriteSansFiche');
@@ -144,7 +144,7 @@ const ACTES_IMMEDIATS: readonly HealMode[] = ['blessures', 'hemorragie', 'muniti
 export const estActeImmediat = (mode: HealMode): boolean => ACTES_IMMEDIATS.includes(mode);
 
 /** `raisonDeModeDeSoin` en combat : un mode hors-combat y est fermé. Verdict UNIQUE des gestes de soin en
- *  combat (`ouvrirLaGuerison`, réglage `heal.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
+ *  combat (`ouvrirLaGuerison`, réglage `soins.mode` et fenêtre du soin, `refusDuModeDuSoin`). */
 export function raisonDeModeDeSoinEnCombat(target: Combatant, mode: HealMode): string | null {
   return estActeImmediat(mode) ? raisonDeModeDeSoin(target, mode) : t('heal.raisonHorsCombat');
 }

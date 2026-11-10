@@ -100,7 +100,7 @@ describe('#1262 L0 — la rangée-participant vient du NOYAU (contrat mesuré su
         expect(Object.keys(rows[0]).sort()).toEqual([...p.champs].sort());
         expect(isBuiltRollRow(rows[0]), 'la rangée porte la marque du monteur').toBe(true);
         // Post-traitement par SPREAD (CascadeModal:644, DisengageModal:137) : la marque survit.
-        expect(isBuiltRollRow({ ...rows[0], flowKey: 'cascadeBatch' as const })).toBe(true);
+        expect(isBuiltRollRow({ ...rows[0], flowKey: 'cascadeEnBande' as const })).toBe(true);
         expect(rows[0].rolled, 'sur ces 6 présentations, « un dé affiché » ⇔ « un résultat »').toBe(!!res);
       }
     });

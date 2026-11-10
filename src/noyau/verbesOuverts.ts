@@ -47,7 +47,7 @@ type FermeturesPropres = (s: Jeu) => Partial<Record<string, FermetureDuJet | nul
 const FERMETURES_DES_VERBES: Partial<Record<string, FermeturesPropres>> = {
   cascade: (s) => s.pendingCascade && {
     [cleDuGeste(TOUT_RESOUDRE)]: fermetureDeToutResoudre(s, s.pendingCascade),
-    [cleDuGeste({ verbe: 'jetRegler', flux: 'counterspell', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('counterspell', 'declaration')).length ? null : 'rienADeclarer',
+    [cleDuGeste({ verbe: 'jetRegler', flux: 'contreSort', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('contreSort', 'declaration')).length ? null : 'rienADeclarer',
   },
   debutDuRound: (s) => ({
     cliquerLaCase: s.preemptAiming ? null : 'nonOffert',

@@ -73,7 +73,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
   it('Course jetée (`runFromTest`) : plafond nommé', () => {
     const H = heroCoureur();
     act(() => root.render(createElement(RunModal)));
-    act(() => { g().jetLancer('run'); });
+    act(() => { g().jetLancer('course'); });
     const p = g().pendingRun!;
     porteLaMesure(p.result, cibleDuTest(testValue(H, p.test), p.test.difficulty));
     nommeLEcretage('plafond', p.result!.target);
@@ -82,7 +82,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
   it('Course forcée AVANT le jet (Résilience) : plafond nommé', () => {
     const H = heroCoureur();
     act(() => root.render(createElement(RunModal)));
-    act(() => { g().jetForcerLaReussite('run'); });
+    act(() => { g().jetForcerLaReussite('course'); });
     const p = g().pendingRun!;
     porteLaMesure(p.result, cibleDuTest(testValue(H, p.test), p.test.difficulty));
     nommeLEcretage('plafond', p.result!.target);
@@ -97,7 +97,7 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null },
     } as never);
     act(() => root.render(createElement(ApproachModal)));
-    act(() => { g().jetLancer('approach'); });
+    act(() => { g().jetLancer('approche'); });
     porteLaMesure(g().pendingApproach!.result, cibleDuTest(testValue(H, test), test.difficulty));
     nommeLEcretage('plancher', 1);
   });
@@ -118,10 +118,10 @@ describe('bornage mesuré au constructeur — les routes des modales', () => {
     useGame.setState({ battle: { combatants: [H], log: [], order: ['H'], turn: 0, round: 1 },
       pendingStateRecovery: { actorId: 'H', actorName: 'H', state: 'en-flammes', skillLabel: 'Athlétisme', skillValue: 5, skillBase: 5, difficulty: 'tresDifficile', stacks: 1, roll: null, opponentRoll: null, netSL: 0, success: false } } as never);
     act(() => root.render(createElement(StateRecoveryModal)));
-    act(() => { g().jetLancer('recover'); });
+    act(() => { g().jetLancer('recuperation'); });
     porteLaMesure(g().pendingStateRecovery!.roll, cibleDuTest(5, 'tresDifficile'));
     nommeLEcretage('plancher', 1);
-    act(() => { g().jetForcerLaReussite('recover'); });
+    act(() => { g().jetForcerLaReussite('recuperation'); });
     porteLaMesure(g().pendingStateRecovery!.roll, cibleDuTest(5, 'tresDifficile'));
     nommeLEcretage('plancher', 1);
   });
@@ -140,7 +140,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     const A = combattantDeModale('A'); A.resilience = 2;
     useGame.setState({ battle: { combatants: [A, combattantDeModale('Cible', 'enemy')], log: [] }, pendingWard: { attackerId: 'A', targetId: 'Cible', targetName: 'Cible', result: null } } as never);
     act(() => root.render(createElement(WardModal)));
-    forceAvantLeJet(() => g().jetForcerLaReussite('ward'));
+    forceAvantLeJet(() => g().jetForcerLaReussite('protection'));
     porteLaMesure(g().pendingWard!.result, cibleDuTest(testValue(A, { characteristic: 'force-mentale' }), 'accessible'));
   });
 
@@ -151,7 +151,7 @@ describe('Résilience AVANT le jet, voie binaire : le jet forcé affronte la cib
     useGame.setState({ battle: { combatants: [H, combattantDeModale('Ogre', 'enemy')], log: [] },
       pendingApproach: { combatantId: 'H', test, sourceId: 'Ogre', sourceName: 'Ogre', intent: { kind: 'tile', pt: { x: 1, y: 0 } }, result: null } } as never);
     act(() => root.render(createElement(ApproachModal)));
-    forceAvantLeJet(() => g().jetForcerLaReussite('approach'));
+    forceAvantLeJet(() => g().jetForcerLaReussite('approche'));
     porteLaMesure(g().pendingApproach!.result, cibleDuTest(testValue(H, test), test.difficulty));
   });
 });
@@ -170,7 +170,7 @@ describe('rangée de bande à cible au-delà du plafond : l’écrêtage mesuré
     expect(rangee().target).toBe(clampTarget(cibleDuTest(testValue(H, { skill: { id: 'resistance' } }))).target);
     act(() => root.render(createElement(CascadeBody)));
     nommeLEcretage('plafond', 99);
-    act(() => { g().jetLancer('cascadeBatch', 'H'); });
+    act(() => { g().jetLancer('cascadeEnBande', 'H'); });
     nommeLEcretage('plafond', 99);
     // Bilan (« Tout lancer ») : la rangée témoin du pas validé garde sa mesure.
     act(() => { g().jetLancer('cascade'); });
@@ -195,7 +195,7 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
   it('Marchandage forcé AVANT le jet : la cible du joueur est bornée et mesurée', () => {
     const hero = combattantDeTest({ id: 'H', label: 'H', kind: 'hero', resilience: 5, fortune: 0, items: [] });
     useGame.setState({ party: [hero], pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: 125, merchantRoll: { roll: 20, target: 50, sl: 3, success: true, isDouble: false }, roll: null } } as never);
-    g().jetForcerLaReussite('bargain');
+    g().jetForcerLaReussite('marchandage');
     porteLaMesure(g().pendingBargain!.roll, cibleDuTest(125));
   });
 
@@ -205,8 +205,8 @@ describe('bornage mesuré au constructeur — routes sans modale montée', () =>
     const s = emptyScene('scene-test', 4, 4); const h = new Array(16).fill(0) as number[]; h[2] = 4; s.layers[0].height = h;
     useGame.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: { x: 2, y: 0 }, scene: s, pendingFall: null, pendingCascade: null });
     g().franchirLArete({ x: 2, y: 1 });
-    g().jetRegler('fall', 'tenter', true, hero.id);
-    g().jetForcerLaReussite('fall', hero.id);
+    g().jetRegler('chute', 'tenter', true, hero.id);
+    g().jetForcerLaReussite('chute', hero.id);
     const p = g().pendingFall!;
     porteLaMesure(p.participants.find((x) => x.id === hero.id)!.result, cibleDuTest(testValue(hero, p.test), p.test.difficulty));
   });

@@ -25,14 +25,14 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function GrappleModal() {
   const pd = useGame((s) => s.pendingGrapple);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'grapple');
-  const reroll = useGesteDeJet('jetRelancer', 'grapple');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'grapple');
-  const darkPact = useGesteDeJet('jetPactiser', 'grapple');
-  const force = useGesteDeJet('jetForcerLaReussite', 'grapple');
+  const roll = useGesteDeJet('jetLancer', 'empoignade');
+  const reroll = useGesteDeJet('jetRelancer', 'empoignade');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'empoignade');
+  const darkPact = useGesteDeJet('jetPactiser', 'empoignade');
+  const force = useGesteDeJet('jetForcerLaReussite', 'empoignade');
   const regler = useGame((s) => s.jetRegler);
-  const confirm = useGesteDeJet('jetValider', 'grapple');
-  const cancel = useGesteDeJet('jetAnnuler', 'grapple');
+  const confirm = useGesteDeJet('jetValider', 'empoignade');
+  const cancel = useGesteDeJet('jetAnnuler', 'empoignade');
   if (!pd || !battle) return null;
   const actor = battle.combatants.find((c) => c.id === pd.actorId);
   const foe = battle.combatants.find((c) => c.id === pd.foeId);
@@ -55,7 +55,7 @@ export function GrappleModal() {
   // Rangée TÉMOIN : Force du foe, figée à l'ouverture (jamais relancée) — MASQUÉE tant que l'acteur
   // n'a pas répondu (#990 : `pd.def` est SA réponse ; le calendrier est celui de tous les jets figés).
   const foeRow = frozenOpposedRow({
-    revele: jetFigeRevele(useGame.getState(), JET_FIGE.grapple(pd)),
+    revele: jetFigeRevele(useGame.getState(), JET_FIGE.empoignade(pd)),
     row: { combatant: foe, d: foeLine.d },
   });
   // Rangée INTERACTIVE : Force de l'acteur, porteur de son cycle d'influence.
@@ -83,7 +83,7 @@ export function GrappleModal() {
     return (
       <RollShell
         etape={pd.phase}
-        flowKey="grapple"
+        flowKey="empoignade"
         title="Empoignade"
         extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}
         rows={[foeRow, actorRow]}
@@ -96,9 +96,9 @@ export function GrappleModal() {
             <OptionChooser
               layout="grid"
               options={[
-                { key: 'degats', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('grapple', 'issue', 'degats'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
-                { key: 'empetrer', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => regler('grapple', 'issue', 'empetrer'), title: 'Conférer l’État Empêtré à l’adversaire.' },
-                { key: 'liberer', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => regler('grapple', 'issue', 'liberer'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
+                { key: 'degats', label: <><Icon id="journal/damage" size="sm" /> Dégâts</>, primary: true, onSelect: () => regler('empoignade', 'issue', 'degats'), title: 'BF + DR Dégâts, en IGNORANT tous les Points d’Armure (Localisation au lancer de Force).' },
+                { key: 'empetrer', label: <><Icon id="condition/entangled" size="sm" /> Empêtrer</>, onSelect: () => regler('empoignade', 'issue', 'empetrer'), title: 'Conférer l’État Empêtré à l’adversaire.' },
+                { key: 'liberer', label: <><Icon id="melee/tumble" size="sm" /> Se libérer</>, onSelect: () => regler('empoignade', 'issue', 'liberer'), title: 'Te défaire de ton État Empêtré, et en retirer 1 de plus par DR obtenu.' },
               ]}
             />
           </>
@@ -112,7 +112,7 @@ export function GrappleModal() {
     { key: 'cancel', label: 'Renoncer', onClick: cancel, verbe: 'cancel' },
     // Avantage supérieur : briser l'Empoignade gratuitement (par son Mouvement) — pré-jet uniquement.
     ...(pd.canBreak
-      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: () => regler('grapple', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
+      ? [{ key: 'break', label: "Briser l'Empoignade", onClick: () => regler('empoignade', 'briser', true), title: 'Avantage supérieur : briser l’Empoignade gratuitement (par ton Mouvement).', verbe: 'roll' } as RollAction]
       : []),
     { key: 'confirm', label: t('verbe.confirm'), onClick: confirm, verbe: 'confirm' },
   ];
@@ -120,7 +120,7 @@ export function GrappleModal() {
   return (
     <RollShell
       etape={pd.phase}
-      flowKey="grapple"
+      flowKey="empoignade"
       title="Empoignade"
       extra={<VsHeader actor={actor} target={foe} label="lutte au corps à corps" verb="melee/grapple" />}
       rows={[foeRow, actorRow]}

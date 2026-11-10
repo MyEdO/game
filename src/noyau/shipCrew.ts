@@ -552,7 +552,7 @@ export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
   return choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse');
 }
 
-/** Les chansons que réglage `shanty.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
+/** Les chansons que réglage `chansonDeMarin.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
  *  le catalogue porte, tant que le jet n'est pas tombé. MDG 09 l.32-40. */
 export function chansonsDuChanteur(s: Jeu): string[] {
   const p = s.pendingShanty;

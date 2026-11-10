@@ -36,7 +36,7 @@ describe('Cadence — couverture & validité de la politique auto', () => {
 
   it('JET_AUTO couvre tous les types de jet de cascade de combat', () => {
     const jets: NonNullable<import('./pendings').CascadeStep['jet']>[] = [
-      'attack', 'defense', 'fumble', 'test', 'cast', 'disengage', 'extended', 'forceDoor',
+      'attaque', 'defense', 'maladresse', 'test', 'incantation', 'desengagement', 'testEtendu', 'enfoncerLaPorte',
     ];
     for (const j of jets) expect(JET_AUTO[j], j).toBeDefined();
   });

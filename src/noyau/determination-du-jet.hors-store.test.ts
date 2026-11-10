@@ -102,7 +102,7 @@ describe('`fenetreDeDetermination` : la bande offre l’immunité à chacun de s
     ]);
     expect(f.option.options.map((o) => o.valeur)).toEqual(['immuniserALaPsychologie']);
     expect(f.etat.options.map((o) => o.valeur)).toEqual([null]);
-    banc.getState().jetLancer('cascadeBatch', 'h2');
+    banc.getState().jetLancer('cascadeEnBande', 'h2');
     expect(fenetreDeDetermination(banc.getState())!.porteur.options[0].refus, 'le jet tombé, la Peur a pesé').toBe(libelleDeLaFermeture('jetLance'));
     banc.getState().depenserLaDetermination('h2', 'immuniserALaPsychologie');
     expect(combattant('h2').resolve, 'le verbe lit le même refus que la fenêtre').toBe(2);
