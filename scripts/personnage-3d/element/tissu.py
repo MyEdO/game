@@ -223,12 +223,17 @@ class Base:
     def decouper_par_zone(self, piece):
         """La pièce découpée en un objet par zone du corps (#2972) : chaque face va à la zone de la base la plus proche
         de son centre au repos ; chaque objet porte sa zone (`zone`, exportée en `extras.zone`) et garde les normales
-        de la pièce entière, pour que la couture ne marque pas l'ombrage. Rend les objets."""
+        de la pièce entière, pour que la couture ne marque pas l'ombrage. Elles sont figées en normales libres (attribut
+        de coin `custom_normal`), copiées au bit près : encodées dans les espaces de normale de Blender, elles se
+        redécodaient, aux sommets que la découpe laisse en éventails disjoints, à quelques 1e-4 d'écart, fusionnés ou
+        non par l'export glTF selon l'arrondi de la machine (#3865). Rend les objets."""
         noms = sorted(self.zones)
         sup = self.porteur(noms)
         bornes = np.cumsum([len(self.corps(n)[1]) for n in noms])
         me = piece.data
-        me.normals_split_custom_set([tuple(n.vector) for n in me.corner_normals])
+        normales = np.empty(len(me.loops) * 3, dtype=np.float32)
+        me.corner_normals.foreach_get('vector', normales)
+        me.attributes.new('custom_normal', 'FLOAT_VECTOR', 'CORNER').data.foreach_set('vector', normales)
         attribut = me.attributes.new('zone_de_la_face', 'INT', 'FACE')
         for p in me.polygons:
             face = sup['arbre'].find_nearest(piece.matrix_world @ p.center)[2]
@@ -444,7 +449,10 @@ def maillage_skinne(nom, sommets, faces, mat, rig, poids):
 def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
     """Deux nappes et leurs bords : chaque sommet porté par plusieurs éventails de triangles est dédoublé par éventail,
     la nappe intérieure est la copie retournée à `epaisseur` le long des normales, chaque arête de bord est fermée ;
-    nappes lisses, bords à plat, normales recalculées vers l'extérieur."""
+    normales recalculées vers l'extérieur. Nappes et bords sont lisses chacun de son côté d'une arête vive : les coins d'un
+    sommet sur une même face d'un côté portent la même normale au bit près, que l'export glTF fusionne quel que soit
+    l'arrondi de la machine ; à plat, les faces presque coplanaires d'un bord donnaient des normales à quelques 1e-5,
+    fusionnées ou non selon leur arrondi à 4 décimales (#3865)."""
     points = [Vector(p.tolist()) for p in X]
     normales = [Vector(n.tolist()) for n in normales]
     poids = list(poids)
@@ -490,9 +498,11 @@ def double_nappe(nom, X, normales, poids, triangles, mat, rig, epaisseur):
     obj.data.materials.append(mat)
     for polygone, sorte in zip(obj.data.polygons, sortes):
         polygone.material_index = sorte
-        polygone.use_smooth = sorte != 2
+        polygone.use_smooth = True
     bm = bmesh.new()
     bm.from_mesh(obj.data)
+    for arete in bm.edges:
+        arete.smooth = len({f.material_index == 2 for f in arete.link_faces}) == 1
     bmesh.ops.recalc_face_normals(bm, faces=list(bm.faces))
     bm.to_mesh(obj.data)
     bm.free()
