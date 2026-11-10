@@ -78,7 +78,7 @@ describe('Les dominos — NADJ 16 l.105', () => {
     expect(findTavernGameById('dominos')?.difficulty, 'portée à la racine du jeu').toBe('accessible');
     const a = heros();
     banc.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'humain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'humain' } });
     const etape = get().pendingCascade!.participants[0];
     expect(etape.difficulty, 'le challenger').toBe('accessible');
     const aT = etape.meta!.opposed!.aT!;
@@ -90,7 +90,7 @@ describe('Les dominos — NADJ 16 l.105', () => {
     expect(findTavernGameById('dominos')?.tieBreak).toBe('units-lowest');
     const a = heros();
     banc.setState({ party: [a] });
-    get().jouerALaTaverne({ gameId: 'dominos', challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
+    get().jouerALaTaverne(a.id, { gameId: 'dominos', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     expect(get().sequence?.params.tieBreak).toBe('units-lowest');
   });
 
@@ -136,7 +136,7 @@ describe('Les dominos — NADJ 16 l.105', () => {
     const a = heros();
     for (const jeu of TAVERN_GAMES.filter((g) => g.mode === 'opposed')) {
       banc.setState({ party: [a], sequence: null, pendingCascade: null, tavernGames: null });
-      get().jouerALaTaverne({ gameId: jeu.id, challengerId: a.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
+      get().jouerALaTaverne(a.id, { gameId: jeu.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, ...(jeu.team ? { allyProfil: 'elfe-haut-et-sylvain' } : {}) });
       const seq = get().sequence;
       expect(seq?.def, `${jeu.id} : même orchestrateur pour tous`).toBe(TAVERN_SEQUENCE);
       expect(seq?.params, jeu.id).toEqual({

@@ -93,7 +93,7 @@ function activitesDuHeros(s: Etat, h: Combatant): ActiviteEnVue[] {
     })))] : []),
     ...interludeCatalog(s).filter((d) => d.contexts.includes('bataille')).map((def): ActiviteEnVue => {
       const refus = ferme ?? refusDePrepaDeBataille(garanti(s.massBattle, def.id, 'bataille à préparer'), h, def);
-      return { id: def.id, libelle: def.label, refus, cible: false, gestes: [{ libelle: def.label, geste: { verbe: 'menerLActionDeBataille', args: [def.id, h.id] }, refus }] };
+      return { id: def.id, libelle: def.label, refus, cible: false, gestes: [{ libelle: def.label, geste: { verbe: 'menerLActionDeBataille', args: [h.id, def.id] }, refus }] };
     }),
   ];
 }

@@ -121,7 +121,7 @@ describe('refusDActivite — un geste qui consomme une Activité', () => {
     const { banc, heroId } = apresLeTirage();
     banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     expect(banc.getState().massBattle?.phase, 'témoin : la bataille attend sa préparation').toBe('prep');
-    banc.actions.menerLActionDeBataille('reperage', heroId);
+    banc.actions.menerLActionDeBataille(heroId, 'reperage');
     expect(banc.getState().pendingActivity?.battle, 'témoin : une préparation est ouverte').toBe('prep');
     banc.actions.jetLancer('activity');
     expect(banc.getState().pendingActivity?.roll, 'témoin : le jet est posé').toBeTypeOf('number');
@@ -174,7 +174,7 @@ describe('menerLActionDeBataille — la préparation de bataille est MENÉE par 
       .find((id) => [veteranne, compagnon].every((h) => peutTenterAction(h, battleActivityById(id)!)))!;
     expect(banc.getState().interlude!.perHero[compagnon.id].left, 'témoin : le compagnon garde une Activité').toBeGreaterThan(0);
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().massBattle]);
-    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille(prepa, veteranne.id))).toEqual([PLUS_D_ACTIVITE]);
+    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille(veteranne.id, prepa))).toEqual([PLUS_D_ACTIVITE]);
     expect(banc.getState().pendingActivity, 'la préparation s’est ouverte sur un autre héros').toBeNull();
     expect(JSON.stringify([banc.getState().interlude, banc.getState().massBattle])).toBe(avant);
   });
@@ -183,7 +183,7 @@ describe('menerLActionDeBataille — la préparation de bataille est MENÉE par 
     const { banc, heroId } = apresLeTirage();
     banc.actions.amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
     expect(peutTenterAction(banc.getState().party[0], battleActivityById('planification')!), 'témoin : sans Savoir (Guerre)').toBe(false);
-    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille('planification', heroId)))
+    expect(journalDe(banc, () => banc.actions.menerLActionDeBataille(heroId, 'planification')))
       .toEqual(['Aucun Personnage désigné (Vétéran) ne peut tenter « Planification ».']);
     expect(banc.getState().pendingActivity).toBeNull();
   });

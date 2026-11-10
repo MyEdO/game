@@ -56,13 +56,13 @@ export function refusDeSoins(s: Pick<Jeu, 'battle' | 'party'>, heroId?: string, 
   return npc || s.party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } })) ? null : t('medic.aucunSoigneur');
 }
 
-/** Ouvre l'infirmerie (hors combat). Patient par défaut : celui demandé, sinon le premier soignable. */
-export function ouvrirLeMedecin(get: Get, set: Set, opts?: { patientId?: string; npc?: MedicNpc }): void {
-  const refus = refusDeSoins(get(), opts?.patientId, opts?.npc);
+/** Ouvre l'infirmerie (hors combat), tenue par le PNJ soigneur `npc` s'il y en a un (effet `medicalAid`).
+ *  Patient par défaut : celui demandé, sinon le premier soignable. */
+export function ouvrirLeMedecin(get: Get, set: Set, patientId?: string, npc?: MedicNpc): void {
+  const refus = refusDeSoins(get(), patientId, npc);
   if (refus) return void refuserGeste(get, set, refus);
   const party = get().party;
-  const patientId = opts?.patientId ?? party.find((h) => isHealable(h))?.id ?? party[0]?.id ?? null;
-  set({ medic: { npc: opts?.npc, patientId } });
+  set({ medic: { npc, patientId: patientId ?? party.find((h) => isHealable(h))?.id ?? party[0]?.id ?? null } });
 }
 
 /** Les Blessures Critiques que le choix `medic.plaie` ouvre (`plaiesDeLOperation`), chacune nommée avec sa
@@ -177,7 +177,7 @@ export function lancerLActeDeSoin(get: Get, set: Set, p: PendingHeal): boolean {
 
 export function creerActionsDuMedecin(get: Get, set: Set) {
   return {
-    ouvrirLeMedecin: (opts) => ouvrirLeMedecin(get, set, opts),
+    ouvrirLeMedecin: (patientId) => ouvrirLeMedecin(get, set, patientId),
   } satisfies FabriqueDuNoyau;
 }
 

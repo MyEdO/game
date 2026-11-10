@@ -341,7 +341,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     });
     const blesse = hero({ id: 'al', label: 'Blessé', wounds: blessuresDeBase(12, 4) });
     fresh([doc, blesse]);
-    get().ouvrirLeMedecin({ patientId: 'al' });
+    get().ouvrirLeMedecin('al');
     const ph = get().pendingHeal!;
     // Aucun soutien possible (le patient n'a pas Guérison) → la cible est celle du soigneur seul.
     expect(ph.target).toBe(clampTarget(testValue(doc, { skill: { id: 'guerison' } }) + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
@@ -356,7 +356,7 @@ describe('Infirmerie / Activité — cibles montées par `rollLine` (#1153 L3)',
     } as never);
     fresh([doc, patient]);
     set({ pendingSurgery: null } as never);
-    get().ouvrirLeMedecin({ patientId: 'p' });
+    get().ouvrirLeMedecin('p');
     get().jetLancer('heal'); // ARME la rééducation du brouillon et pose sa 1re passe
     const sg = get().medic!.surgery!;
     expect(sg.difficulty).toBe('accessible');

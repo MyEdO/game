@@ -2376,14 +2376,12 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
   const npc = sceneNpc(get().scene, e.entityId, presetDuNarratif(get().campaignNarratif));
   if (!npc) { get().ecrireAuJournal(t('eff.medicNoNpc', { id: e.entityId || '(aucun)' })); return; }
   if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medicNoHealSkill', { name: npc.label })); return; }
-  ouvrirLeMedecin(get, set, {
-    npc: {
-      id: e.entityId,
-      label: npc.label,
-      skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
-      intBonus: bonus(effectiveChar(npc, 'intelligence')),
-      acts,
-    },
+  ouvrirLeMedecin(get, set, undefined, {
+    id: e.entityId,
+    label: npc.label,
+    skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
+    intBonus: bonus(effectiveChar(npc, 'intelligence')),
+    acts,
   });
 }
 
