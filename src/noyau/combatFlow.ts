@@ -1161,7 +1161,7 @@ export function mobileDuTour(s: Jeu, battle: BattleState):
 /**
  * Résolution du DÉPLACEMENT vers `pt` (Marche ou Course) — verdict UNIQUE du clic-sol (aperçu tap-1 et
  * commit) et de l'aperçu au survol (`displayedReach`/`computeRunReach`/`pathTo`, géométrie de la monture
- * incluse). `armement.courseArmee` = intention de Course lue chez l'ÉMETTEUR du geste (jamais relue ici) ;
+ * incluse). `armement.courseArmee` = la Course armée par l'intention du clic (`localIntent.courseArmee`, jamais relue ici) ;
  * fournie, elle fait juger la Course non armée (spec HUD § 2026-08-19, exemption Frénésie) et la case qui
  * éloigne de la cible de Frénésie (LDB 21 l.33). Absente : ni l'un ni l'autre. La Peur reste une porte de
  * Test au commit (LDB 21 l.27).

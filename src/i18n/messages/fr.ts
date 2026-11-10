@@ -8,9 +8,7 @@ import type { NomDeParametre, ParametreDuVerbe } from '../nomsDeParametre.genera
 /** Le libellé d'un argument d'un verbe (`libelleDuParametre`, `noyau/libelles.ts`) : `parametre.<verbe>.<nom>`, sinon
  *  `parametre.<nom>`, typé contre les noms des verbes (`NomDeParametre`, `ParametreDuVerbe`). */
 const parametres = {
-  'parametre.approche': 'En approche',
   'parametre.confirm': 'Confirmer',
-  'parametre.courseArmee': 'En courant',
   'parametre.entite': 'Cible',
   'parametre.opts': 'Options',
   'parametre.foeId': 'Adversaire',

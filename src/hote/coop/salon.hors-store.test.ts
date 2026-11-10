@@ -182,13 +182,13 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
     expect(banc.getState().pendingDispel).toBeNull();
   });
 
-  it('Dissiper, porteur à 1 Sort : rien à élire, le geste part avec son verdict d’armement', () => {
+  it('Dissiper, porteur à 1 Sort : rien à élire, rien d’armé : le geste part tel quel', () => {
     banc.setState(tableDeDissipation('guest', { e1: 1 }));
     const envoyer = vi.fn();
     emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId).toBeNull();
     expect(banc.getState().pendingDispel, 'le commit s’est joué EN LOCAL').toBeNull();
-    expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1', { approche: false }]]]);
+    expect(envoyer.mock.calls).toEqual([['cliquerLaCase', [caseDe('e1'), 'e1']]]);
   });
 
   it('carnet : `marquerLesIndices` part en intention et ne se joue pas localement (#2415)', () => {

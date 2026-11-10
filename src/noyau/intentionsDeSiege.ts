@@ -230,7 +230,7 @@ export type IssueDIntention = 'hors-allowlist' | 'refusee' | 'appliquee';
  *  2. possession `intentAllowedFor` : refus au journal ;
  *  3. l'action AU NOM du siège (`withActingSeat`), seul canal du siège (`decidingSeat`) : les gardes « ce siège possède-t-il ce combattant ? »
  *     (`controlsCombatant`) jugent l'émetteur, et l'intention armée du propriétaire ne s'y lit pas
- *     (`localIntent.intentionDuProprietaire`) : seul compte le verdict joint aux args.
+ *     (`localIntent.intentionDuProprietaire`) : seule compte l'intention jointe aux args, jugée chez le propriétaire.
  */
 export function appliquerLIntentionDUnSiege(get: Get, siege: number, action: string, args: readonly unknown[]): IssueDIntention {
   if (!GUEST_INTENTS.has(action)) return 'hors-allowlist';

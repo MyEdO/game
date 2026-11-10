@@ -563,7 +563,7 @@ function chargeManuelle(seed: number, o: { reactive?: boolean; autres?: Combatan
   if (o.depart) qui('h').pos = { ...o.depart };
 }
 const qui = (id: string): Combatant => b().combatants.find((c) => c.id === id)!;
-const cliquerLaCharge = () => cliquerSurLeCombattant(g, 'e', { confirm: true, approche: true });
+const cliquerLaCharge = () => cliquerSurLeCombattant(g, 'e', { confirm: true, intentionId: 'charge' });
 const frappeOuverte = () => (g().pendingAttack ? { de: g().pendingAttack!.attackerId, fromCharge: !!g().pendingAttack!.fromCharge, annulable: !!g().pendingAttack!.chargeUndo } : null);
 /** Le joueur lance et applique la frappe ouverte, puis joue la séquence jusqu'à sa clôture. */
 function frapper(): void {
@@ -602,7 +602,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
   it('B (graine 4) : coop — l’invité charge par intent : chez l’hôte, la cible réagit avant, la frappe de l’invité s’ouvre après', () => {
     chargeManuelle(4);
     banc.setState({ net: { ...g().net, mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h: 1 }, slots: [1, 1, 0, 0] } } as never);
-    expect(appliquerLIntentionDUnSiege(g, 1, 'cliquerLaCase', [{ ...qui('e').pos! }, 'e', { confirm: true, approche: true }]), 'l’intent de l’invité est appliqué').toBe('appliquee');
+    expect(appliquerLIntentionDUnSiege(g, 1, 'cliquerLaCase', [{ ...qui('e').pos! }, 'e', { confirm: true, intentionId: 'charge' }]), 'l’intent de l’invité est appliqué').toBe('appliquee');
     expect([g().pendingDefense?.defenderId, attaques('h'), frappeOuverte()], 'la riposte ouvre la défense du chargeur avant toute frappe').toEqual(['h', 0, null]);
     for (let i = 0; i < 40; i++) {
       if (g().pendingDefense) { appliquerLIntentionDUnSiege(g, 1, 'jetLancer', ['defense']); appliquerLIntentionDUnSiege(g, 1, 'jetValider', ['defense']); continue; }

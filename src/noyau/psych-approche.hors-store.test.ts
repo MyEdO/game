@@ -91,11 +91,11 @@ describe('Approche sous Peur (store)', () => {
     const { H, E } = setup();
     E.pos = { x: 13, y: 10 }; // distance 3 ≤ 2M+1 (M4) → charge possible
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le clic ne s'approche plus tout seul.
-    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     let st = banc.getState();
-    // Le verdict d'armement est CAPTURÉ dans le pending : la relance après le Test `se-rapprocher` ne relit
+    // L'intention du clic est CAPTURÉE dans le pending : la relance après le Test `se-rapprocher` ne relit
     // pas l'intention (dissoute par ce clic), sans quoi le geste gagné serait refusé.
-    expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'entity', id: E.id, approche: true } });
+    expect(st.pendingApproach).toMatchObject({ combatantId: H.id, sourceId: E.id, intent: { kind: 'entity', id: E.id, intentionId: 'charge' } });
     expect(st.pendingAttack).toBeNull(); // la charge attend le Test
     banc.setState({ pendingApproach: { ...st.pendingApproach!, result: { success: true, roll: 5, target: 50, sl: 4 } } });
     banc.abandonner();

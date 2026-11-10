@@ -9,6 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import { effectiveMovement } from '../engine/encumbrance';
 import { chebyshev } from '../engine/grid';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { refusDeCharge } from './refusDuTour';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -93,11 +94,11 @@ describe('Course implicite — zone au-delà de la Marche, jet au commit (LDB 15
     const M = effectiveMovement(H);
     const dest = { x: p.x + M + 2, y: p.y }; // hors Marche, dans la Course
     // Spec HUD § ARBITRAGE 2026-08-19 : au-delà de la Marche, le champ ne court pas tout seul — la
-    // Course s'ARME, et son verdict voyage avec le geste (`courseArmee`), comme `confirm`.
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
+    // Course s'ARME, et son intention voyage avec le geste (`intentionId`), comme `confirm`.
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
     expect(banc.getState().battle!.preview).toMatchObject({ kind: 'run', tile: dest });
     expect(banc.getState().pendingRun).toBeNull(); // pas encore de jet
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
     const pr = banc.getState().pendingRun;
     expect(pr).toMatchObject({ combatantId: H.id, dest });
     expect(banc.getState().battle!.preview).toBeNull();
@@ -196,11 +197,11 @@ describe('clic-ennemi implicite', () => {
     e.pos = { x: h.pos!.x + 2, y: h.pos!.y };
     h.advantage = 0;
     // Spec HUD § ARBITRAGE 2026-08-19 : hors d'Allonge, l'approche se DEMANDE (Charge armée) — son
-    // verdict voyage avec le geste, y compris pour l'APERÇU (le survol dit déjà la même vérité).
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
+    // intention voyage avec le geste, y compris pour l'APERÇU (le survol dit déjà la même vérité).
+    cliquerSurLeCombattant(banc.getState, e.id, { intentionId: 'charge' });
     expect(banc.getState().battle!.preview).toMatchObject({ kind: 'charge', targetId: e.id, adv: 1 });
     banc.abandonner();
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
+    cliquerSurLeCombattant(banc.getState, e.id, { intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     const st = banc.getState();
     const hh = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -209,24 +210,21 @@ describe('clic-ennemi implicite', () => {
     expect(st.pendingAttack?.fromCharge).toBe(true);
   });
 
-  it('Mouvement entamé, approche ARMÉE : pas de Charge — rejoindre dans la Marche restante puis attaquer, sans bonus', () => {
+  it('Mouvement entamé, Charge demandée : son offre est refusée (`refusDeCharge`) — le clic le dit, rien ne bouge', () => {
     const { H } = setup();
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 1, movedPreAction: true } });
     const st0 = banc.getState();
     const h = st0.battle!.combatants.find((c) => c.id === H.id)!;
     const e = st0.battle!.combatants.find((c) => c.kind === 'enemy')!;
     e.pos = { x: h.pos!.x + 2, y: h.pos!.y };
-    h.advantage = 0;
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
-    expect(banc.getState().battle!.preview).toMatchObject({ kind: 'moveAttack', targetId: e.id });
-    banc.abandonner();
-    cliquerSurLeCombattant(banc.getState, e.id, { approche: true });
-    banc.reprendreLesEnAttente(); // joue le glissé d'approche → ouvre la frappe
+    const pos0 = { ...h.pos! };
+    cliquerSurLeCombattant(banc.getState, e.id, { confirm: true, intentionId: 'charge' });
+    banc.reprendreLesEnAttente();
     const st = banc.getState();
-    expect(st.battle!.combatants.find((c) => c.id === H.id)!.advantage).toBe(0);
-    expect(st.pendingAttack?.targetId).toBe(e.id);
-    expect(st.pendingAttack?.fromCharge).toBeUndefined();
-    expect(st.battle!.movementUsed).toBe(2); // 1 (déjà fait) + 1 (rejoindre)
+    expect(st.refus?.texte).toBe(refusDeCharge(st.battle!, st.battle!.combatants.find((c) => c.id === H.id)!));
+    expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(pos0);
+    expect(st.pendingAttack).toBeNull();
+    expect(st.battle!.movementUsed).toBe(1);
   });
 
   it('hors de portée de Charge (> 2M+1) : message, pas d’aperçu', () => {

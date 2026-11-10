@@ -937,7 +937,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     banc.abandonner();
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : l'approche vers l'ennemi cliqué se DEMANDE.
-    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -1005,10 +1005,10 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     // Clic confirmé sur la monture → la modale de choix s'ouvre (pas d'attaque encore).
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le couple est hors d'Allonge, l'approche se demande.
-    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, intentionId: 'charge' });
     st = banc.getState();
-    // Le verdict voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
-    expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, approche: true });
+    // L'intention du clic voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
+    expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, intentionId: 'charge' });
     expect(st.pendingAttack).toBeNull();
     // Choisir la monture → modale fermée + attaque ciblée sur la monture.
     banc.getState().fenetreChoisir('mountTarget', 'cible', mount.id);
