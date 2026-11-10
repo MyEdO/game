@@ -111,6 +111,9 @@ export const fr = {
   'jet.ferme.rienARepartir': 'Aucun achat à répartir.',
   'jet.ferme.seanceDuChapitre': 'La séance se termine avec le récap du chapitre.',
   'jet.ferme.choixAReprendre': 'Un choix posé n’est plus ouvert : reprenez-le.',
+  'jet.ferme.preparationDeBataille': 'La bataille se prépare pendant l’interlude.',
+  'jet.ferme.batailleTerminee': 'La bataille est terminée.',
+  'jet.ferme.testSpectaculaireDu': 'Le Test spectaculaire de Puissance du Round reste à jouer.',
   // Ce qui refuse la sortie d'une fenêtre (`refusDeLaSortie`, `noyau/sortieDeFenetre.ts`).
   'sortie.refus.inconnue': 'Cette fenêtre ne se ferme pas.',
   'sortie.refus.fermee': 'Cette fenêtre n’est pas ouverte.',
@@ -245,7 +248,12 @@ export const fr = {
   'verbe.roundStart.viser': 'Préempter',
   'verbe.rest.couchage': 'Logement',
   'verbe.rest.pitance': 'Nourriture',
-  'verbe.batailleDeMasse.alea': 'Choisir un facteur',
+  'verbe.batailleDeMasse.scene': 'Engager la Scène',
+  'verbe.batailleDeMasse.engager': 'Test spectaculaire de Puissance',
+  'verbe.batailleDeMasse.rallier': 'Rassemblement',
+  'verbe.batailleDeMasse.ajouterAuPoste': 'Poster',
+  'verbe.batailleDeMasse.retirerDuPoste': 'Retirer du poste',
+  'verbe.batailleDeMasse.alea': 'Facteur environnemental',
   'verbe.marchand.ajouterAuPanier': 'Ajouter au panier',
   'verbe.marchand.oterDuPanier': 'Un de moins',
   'verbe.marchand.retirerDuPanier': 'Retirer du panier',
@@ -295,6 +303,7 @@ export const fr = {
   'verbe.defaite.fermer': 'Reprendre',
   'verbe.repli.fermer': 'Poursuivre la bataille',
   'verbe.aneantissement.fermer': 'Retour au menu',
+  'verbe.batailleDeMasse.valider': 'Round suivant',
   'verbe.batailleDeMasse.fermer': 'Terminer la bataille',
   // Le libellé d'une valeur littérale qu'un verbe prend (`libelleDuLitteral`, `noyau/libelles.ts`) :
   // `valeur.<argument>.<v>`, sinon `valeur.<v>`.

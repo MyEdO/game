@@ -256,7 +256,7 @@ function rendu() {
   out += `  confondent, et un homonyme local d'un rouleur peut faire entrer un export au titre de la transitivité.\n`
   out += `- **(D)** ne scanne que \`src/state\` et \`src/ui\` (les consommateurs de flux) ; **(F)** scanne tout \`src\`.\n`
   out += `- **Un tirage qui n'appelle ni \`rollTest\` ni \`d100\` n'est vu par AUCUN des trois scanners** — ex. le \`rollDice\` de\n`
-  out += `  \`massBattleFlow.ts\` (\`massBattleSetHazard\`, facteur environnemental du Round, \`ADE II 8 l.309\`) : un jet du\n`
+  out += `  \`massBattleFlow.ts\` (\`tirerLAlea\`, facteur environnemental du Round, \`ADE II 8 l.309\`) : un jet du\n`
   out += `  RAW résolu en silence, hors de tout registre. Le surfaçage vit sur #1067, qui le nomme déjà.\n`
   out += `- Les formes **(S)** « position de spec » et **(M)** « dé de monde » restent des exclusions par FORME du garde\n`
   out += `  d'exclusivité (critères et angles morts : en-tête de \`scripts/guards/lib/rollSeamExclusivity.mjs\`).\n`
