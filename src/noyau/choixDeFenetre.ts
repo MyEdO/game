@@ -36,7 +36,9 @@ import { findTrappingById } from '../data/index';
 import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
-import { refusDAlea } from './massBattleFlow';
+import { battleSceneById, herosQuiSePostent, postesDeBataille, refusDAlea, refusDeMelee, refusDeRassemblement, refusDeSceneDeBataille } from './massBattleFlow';
+import { formatDice } from '../engine/dice';
+import { massBattleHazardsDie } from '../data';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { inBattleId } from './monde/combatants';
@@ -126,6 +128,17 @@ const duRepos = (v: string, axe: 'couchage' | 'pitance'): ValeurDuReglage => ouv
 
 /** Le combattant `id` de la bataille, nommé. */
 const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, garanti(inBattleId(s.battle, id), id, 'combattant de la pause').label);
+
+/** La bataille de masse est-elle à un Round ? */
+const enRoundDeBataille = (s: Jeu): boolean => s.massBattle?.phase === 'round';
+/** Chaque poste de la bataille (`postesDeBataille`) que `retenu` garde pour le héros `pid` qui se poste
+ *  (`herosQuiSePostent`), lu sur les PJ qui y sont postés ; hors de toute rangée, ce qu'il garde pour l'un d'eux. */
+const postesDuHeros = (s: Jeu, pid: IdDeHeros | undefined, retenu: (postes: readonly string[], heroId: string) => boolean): ValeurDuReglage[] => {
+  const mb = s.massBattle;
+  if (!mb) return [];
+  const heros = herosQuiSePostent(mb, s.party).map((h) => h.id).filter((id) => pid === undefined || id === pid);
+  return postesDeBataille(mb).filter((def) => heros.some((h) => retenu(mb.assignment[def.id] ?? [], h))).map((def) => ouverte(def.id, def.label));
+};
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
@@ -254,9 +267,16 @@ export const OUVERTS_DU_CHOIX = {
       return tireurs.length || s.preemptAiming ? [ouverte(null, t('valeur.viser.aucun')), ...tireurs.map((id) => combattant(s, id))] : [];
     }, (s) => s.preemptAiming),
   },
-  // ADE II 08 l.309
+  // ADE II 08 l.81, l.116-124, l.309 : la Scène et le Test spectaculaire au Round ; les postes en préparation aussi.
   batailleDeMasse: {
-    alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle?.phase === 'round' ? BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s))) : [])),
+    scene: reglage('batailleDeMasse', 'scene', (s) => (enRoundDeBataille(s) ? s.massBattle!.situation.map((id) => ouverte(id, garanti(battleSceneById(id), id, 'Scène de bataille').label, refusDeSceneDeBataille(s, id))) : [])),
+    engager: reglage('batailleDeMasse', 'engager', (s) => (enRoundDeBataille(s) ? [ouverte(true, libelleDuChoix('batailleDeMasse', 'engager'), refusDeMelee(s))] : [])),
+    rallier: reglage('batailleDeMasse', 'rallier', (s) => (s.massBattle ? [ouverte(true, libelleDuChoix('batailleDeMasse', 'rallier'), refusDeRassemblement(s))] : [])),
+    ajouterAuPoste: reglage('batailleDeMasse', 'ajouterAuPoste', (s, pid) => postesDuHeros(s, pid, (postes, h) => !postes.includes(h))),
+    retirerDuPoste: reglage('batailleDeMasse', 'retirerDuPoste', (s, pid) => postesDuHeros(s, pid, (postes, h) => postes.includes(h))),
+    alea: reglage('batailleDeMasse', 'alea', (s) => (s.massBattle
+      ? [ouverte(null, t('mbf.tirerAlea', { die: formatDice(massBattleHazardsDie()) }), refusDAlea(s)), ...BATTLE_HAZARDS.map((h) => ouverte(h.id, h.label, refusDAlea(s)))]
+      : [])),
   },
   // LDB 05 l.793-841, LDB 17 l.81 : chaque case se coche ou se décoche jusqu'à la fin de la séance, par l'hôte.
   finDeSeance: {
