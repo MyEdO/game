@@ -61,6 +61,7 @@ const doc = document(
     paradeSon: ref('son').optional(),
     zoneVisuel: visuelDEffetSchema.optional(),
     zoneSon: ref('son').optional(),
+    zoneBoucle: ref('son').optional(),
   },
   {
     couleur: { label: 'Couleur', hint: 'Teinte `#rrggbb` des visuels du rendu, à défaut de celle du Domaine' },
@@ -77,6 +78,7 @@ const doc = document(
     paradeSon: { label: 'Son de la parade', hint: 'Sur le défenseur, quand cette arme pare le coup' },
     zoneVisuel: { label: 'Visuel de la zone', hint: 'Sur chaque case d’une zone d’effet, à défaut le visuel de l’impact' },
     zoneSon: { label: 'Son de la zone', hint: 'Au centre d’une zone d’effet, à défaut le son de l’impact' },
+    zoneBoucle: { label: 'Son de la zone qui dure', hint: 'En boucle au centre d’une zone persistante, tant qu’elle dure' },
   },
   {
     codex: {

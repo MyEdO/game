@@ -294,7 +294,7 @@ describe('verrou de TYPE — une instance NUE de l’État en hérite', () => {
  */
 describe('etats.json — verrou de type sans libellé, et soin de Détermination', () => {
   const etat = (extra: Record<string, unknown>) => ([{
-    id: 'x', type: 'etats', label: 'X', desc: 'x', source: { book: 'livre-de-base', page: 1 }, ...extra,
+    id: 'x', type: 'etats', label: 'X', desc: 'x', source: { book: 'livre-de-base', page: 1 }, marqueCouleur: '#ffffff', ...extra,
   }]);
   const pbPleins = { kind: 'compare', subject: { who: 'target', field: 'woundsCurrent' }, op: '>=', value: 1 } as const;
 

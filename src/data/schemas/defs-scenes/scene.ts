@@ -724,6 +724,8 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   barrier: nommerChamps(z.strictObject({ blockGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional() }), { blockGroups: { label: "groupes bloqués" , texte: { regime: "technique"} } }).optional(),
   z: z.number().optional(),
   couvre: couvreSchema.optional(),
+  /** #3834 : le rendu qui la montre tant qu'elle dure ; absent, la zone ne se voit pas (un piège caché). */
+  rendu: ref('rendu').optional(),
 }).superRefine((zone, ctx) => {
   // Une PIÈCE vit à l'étage `zone.z` (`noyau/monde/rooms.ts`, `roomTiles`) : une case d'un autre étage est refusée.
   if (zone.presentation !== 'interior') return;
@@ -731,7 +733,7 @@ export const sceneEffectZoneSchema = nommerChamps(z.strictObject({
   (zone.tiles ?? []).forEach((t, i) => {
     if (t.z !== undefined && t.z !== etage) ctx.addIssue({ code: 'custom', path: ['tiles', i, 'z'], message: `zone intérieure « ${zone.id} » : la case (${t.x},${t.y}) est à l'étage ${t.z}, la pièce à l'étage ${etage} (\`z\`) — une pièce vit à un seul étage` });
   });
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, area: { label: "surface" }, presentation: { label: "présentation"  }, tiles: { label: "cases" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, z: { label: "étage" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, area: { label: "surface" }, presentation: { label: "présentation"  }, tiles: { label: "cases" }, blocksLoS: { label: "bloquer la vue" }, onCross: { label: "à la traversée" }, perRound: { label: "par Round" }, crossTest: { label: "Test de traversée" }, barrier: { label: "barrière" }, z: { label: "étage" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, rendu: { label: "rendu", hint: "Ce qui la montre tant qu’elle dure ; absent, la zone ne se voit pas" } });
 
 /** Nature d'une arête grimpable (`WallSeg.climb`). */
 export const wallClimbSchema = nommerChamps(z.strictObject({

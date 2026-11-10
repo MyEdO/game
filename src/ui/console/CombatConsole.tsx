@@ -921,7 +921,7 @@ export function CombatConsole() {
         cellFor('select-attack', 'attaque', { ...habillage, args: { attackId: a.id } }),
       ];
     }),
-    // L'alvéole d'un SORT arme l'incantation de CE sort (entrée `cast-spell`, `armed: 'cast'`) et
+    // L'alvéole d'un SORT arme l'incantation de CE sort (entrée `cast-spell`, armée, `mode: 'cast'`) et
     // porte ses GESTES SECONDAIRES (Focaliser : clic droit / appui long / touche Menu / RB). La
     // progression de la Focalisation en cours se lit sur le geste, comme le cumul de Dissipation sur
     // la sienne : `active.focus` ne vaut que pour le sort qu'il NOMME.

@@ -7,7 +7,9 @@
     "rendu": {
       "id": "sort-de-feu"
     },
-    "arcane": "feu",
+    "arcane": {
+      "id": "feu"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-feu"
     },
@@ -112,7 +114,9 @@
     "type": "domains",
     "label": "Lumière",
     "couleur": "#fff6d0",
-    "arcane": "electrique",
+    "arcane": {
+      "id": "electrique"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-lumiere"
     },
@@ -296,7 +300,9 @@
     "type": "domains",
     "label": "Mort",
     "couleur": "#a77bd6",
-    "arcane": "froid",
+    "arcane": {
+      "id": "froid"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-mort"
     },
@@ -427,7 +433,9 @@
     "type": "domains",
     "label": "Vie",
     "couleur": "#5fd35f",
-    "arcane": "poison",
+    "arcane": {
+      "id": "poison"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-vie"
     },
@@ -616,7 +624,9 @@
     "type": "domains",
     "label": "Cieux",
     "couleur": "#5fb8ff",
-    "arcane": "electrique",
+    "arcane": {
+      "id": "electrique"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-cieux"
     },
@@ -719,7 +729,9 @@
     "type": "domains",
     "label": "Métal",
     "couleur": "#ffd23f",
-    "arcane": "corrosif",
+    "arcane": {
+      "id": "corrosif"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-metal"
     },
@@ -777,7 +789,9 @@
     "type": "domains",
     "label": "Ombres",
     "couleur": "#9a9aa8",
-    "arcane": "fumee",
+    "arcane": {
+      "id": "fumee"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-ombres"
     },
@@ -829,7 +843,9 @@
     "type": "domains",
     "label": "Bête",
     "couleur": "#b5651d",
-    "arcane": "froid",
+    "arcane": {
+      "id": "froid"
+    },
     "tables": {
       "arcaneMark": "vdm-marques-arcaniques-bete"
     },
@@ -943,7 +959,9 @@
     "type": "domains",
     "label": "Gueule",
     "couleur": "#c0392b",
-    "arcane": "corrosif",
+    "arcane": {
+      "id": "corrosif"
+    },
     "desc": "Parfois appelé Gastromancie ou simplement Magie des Entrailles, le Domaine de la Gueule n’est disponible que pour les ogres (voir la Carrière Boucher Ogre). Cette magie met en avant une faim intense, des festins sanglants et une énergie effrénée. Chaque fois qu’un boucher ogre réussit à lancer un sort du Domaine de la Gueule, l’offrande qu’il consomme peut lui permettre de restaurer sa propre santé. Lancez 1d10. Si le résultat est un 10, ou s’il est égal ou supérieur au NI du sort lancé, sans modification de Focalisation et sans utiliser un Grimoire, le Boucher récupère un nombre de Blessures égal au NI non modifié du sort.\n\n**Composants :** les ogres se servent de restes ensanglantés pour alimenter leur magie. Elles sont généralement issues d’animaux et plus elles sont fraîches, mieux la magie opère. Il peut s’agir de morceaux de viande saignants, de bile provenant de l’estomac de créatures étranges, de la moelle de bêtes imposantes ou de la graisse séchée d’animaux domestiques, comme des cochons ou des vaches.",
     "source": {
       "book": "archives-de-l-empire-2",
@@ -957,7 +975,9 @@
     "type": "domains",
     "label": "Sorcellerie",
     "couleur": "#7a3fbf",
-    "arcane": "poison",
+    "arcane": {
+      "id": "poison"
+    },
     "desc": "Les Sorts de Sorcellerie se nourrissent de tous les Vents disponibles, sans se soucier des mélanges et d'éventuels résultats catastrophiques. À chaque fois qu'un pratiquant de la Sorcellerie fait un jet sur le Tableau des Incantations Imparfaites, il gagne 1 Point de Corruption. De plus, vous pouvez infliger un État *Hémorragique* à toute cible d'un Sort du Domaine de la Sorcellerie. Enfin, le fait de focaliser ou lancer des Sorts de ce Domaine nécessite systématiquement un lancer sur le Tableau des Incantations Imparfaites Mineures à moins d'être lancé avec un ingrédient, ou bien ce composant ne servira à rien si un jet sur le Tableau des Incantations Imparfaites doit malgré tout être effectué. Par chance, les ingrédients du Domaine de la Sorcellerie sont bon marché et facilement disponibles : la plupart du temps, ce sont des morceaux d'animaux de petite taille. Les composants coûtent le NI du Sort en sous de cuivre, à la place des pistoles d'argent habituelles.",
     "source": {
       "book": "livre-de-base",
@@ -983,7 +1003,9 @@
     "type": "domains",
     "label": "Nécromancie",
     "couleur": "#6fae6f",
-    "arcane": "poison",
+    "arcane": {
+      "id": "poison"
+    },
     "dark": true,
     "desc": "La Nécromancie est un antique art magique qui cherche à maîtriser la mort et à obtenir la vie éternelle, en utilisant le plus souvent des corps en décomposition. Considérée comme la forme la plus infecte de la Magie, une pure hérésie, l'étude de ses secrets n'est jamais prise à la légère, car l'horreur que représentent la mort et les morts-vivants ne doit jamais être sous-estimée.",
     "source": {
@@ -997,7 +1019,9 @@
     "type": "domains",
     "label": "Démonologie",
     "couleur": "#c02060",
-    "arcane": "froid",
+    "arcane": {
+      "id": "froid"
+    },
     "dark": true,
     "grantGroups": [
       "demonologue"
@@ -1014,7 +1038,9 @@
     "type": "domains",
     "label": "Magie naturelle",
     "couleur": "#7fb35a",
-    "arcane": "poison",
+    "arcane": {
+      "id": "poison"
+    },
     "desc": "Les pratiquants de la Magie naturelle mènent généralement des vies discrètes, en marge des plus petites colonies humaines, au service des communautés locales. Tout comme ils vivent entre la civilisation et la nature sauvage, une grande partie de leur Magie concerne l'espace se trouvant entre le monde matériel et le royaume des esprits.",
     "source": {
       "book": "livre-de-base",
@@ -1041,7 +1067,9 @@
       "book": "vents-de-la-magie",
       "page": 216
     },
-    "arcane": "poison",
+    "arcane": {
+      "id": "poison"
+    },
     "maison": "Type de Souffle, lecture révisable de LDB 47 l.509 (#3060) : Mòna erre dans les marais en quête de champignons vénéneux (VDM 15 l.240)."
   }
 ]

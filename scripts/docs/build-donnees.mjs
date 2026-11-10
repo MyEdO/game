@@ -458,8 +458,8 @@ function rendu() {
   out += `Les races JOUABLES ont UN seul espace de clés : l'id \`RaceKey\` (\`raceKeySchema\`,\n`
   out += `\`src/data/schemas/grammaire/valeurs.ts\`). \`species.refChar\` le porte côté données de personnage,\n`
   out += `chaque document de \`names.json\` le porte, et \`raceAppearance.json\` (keyé par le slug de son libellé)\n`
-  out += `donne aux 7 races jouables exactement leur \`RaceKey\` pour id. \`speciesRace.json\` ne porte que la race\n`
-  out += `d'apparence par défaut (\`default\`, lue en \`DEFAULT_RACE_ID\` de \`src/data/index.ts\`). Garde :\n`
+  out += `donne aux 7 races jouables exactement leur \`RaceKey\` pour id. \`speciesRace.json\` ne porte que l'espèce\n`
+  out += `d'apparence par défaut (\`default\`, une entrée du plan de bestiaire, lue en \`DEFAULT_RACE_ID\` de \`src/data/index.ts\`). Garde :\n`
   out += `\`src/data/names-species-keyspaces.test.ts\`.\n\n`
 
   out += `## §F — À COLLER DANS UN BRIEF D'AGENT « DONNÉE »\n\n`

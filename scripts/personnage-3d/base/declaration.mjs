@@ -1,5 +1,5 @@
-// LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, la table rôle → clip
-// (`clips`, dont `walk`, la marche plantée et mesurée), celle des rôles tenus à deux mains (`clipsDeuxMains`, #3319) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
+// LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, ses bornes articulaires
+// (`bornesArticulaires`, #2992), la table rôle → clip (`clips`, dont `walk`, la marche plantée et mesurée), celle des rôles tenus à deux mains (`clipsDeuxMains`, #3319) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
 // lue par le module runner de Vite (`chargerAssets`, `charger.mjs`).
 import { readFileSync } from 'node:fs'
 import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
@@ -9,10 +9,10 @@ let donnee
 const chargerDonnee = () =>
   (donnee ??= chargerAssets(["export { planDeBestiaire, gabarits, taillesDeLaRace } from '/src/data/index.ts';"]))
 
-/** La part déclarée du manifeste de base (`manifeste.mjs`) : `base`, `porteur`, `clips` et, déclarées, `clipsDeuxMains`
- *  et `surfaces`. */
-export const champsDeclares = ({ base, porteur, clips, clipsDeuxMains, surfaces }) => ({
-  base, porteur, clips, ...(clipsDeuxMains === undefined ? {} : { clipsDeuxMains }), ...(surfaces === undefined ? {} : { surfaces }),
+/** La part déclarée du manifeste de base (`manifeste.mjs`) : `base`, `porteur`, `bornesArticulaires`, `clips` et,
+ *  déclarées, `clipsDeuxMains` et `surfaces`. */
+export const champsDeclares = ({ base, porteur, bornesArticulaires, clips, clipsDeuxMains, surfaces }) => ({
+  base, porteur, bornesArticulaires, clips, ...(clipsDeuxMains === undefined ? {} : { clipsDeuxMains }), ...(surfaces === undefined ? {} : { surfaces }),
 })
 
 /** La déclaration du corps à `chemin`, jugée par `jugerDeclaration`. */

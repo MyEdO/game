@@ -38,10 +38,10 @@ const PORTEE_DU_SON := 30.0
 ## d'une même cible.
 const VIE_DU_FLOTTANT_S := 1.2
 const ECART_DES_FLOTTANTS_S := 0.3
-## La taille (px) du texte d'un flottant, celle d'un critique, et celle de son contour.
+## La taille (px) du texte d'un flottant, celle d'un critique, et celle du contour d'une étiquette (`etiquette`).
 const TAILLE_DU_FLOTTANT := 40
 const TAILLE_DU_CRITIQUE := 56
-const CONTOUR_DU_FLOTTANT := 10
+const CONTOUR_D_ETIQUETTE := 10
 
 ## Par visuel, ses gerbes, son éclair (`null` : aucun) et la durée (s) au bout de laquelle l'éclat s'éteint. Une gerbe :
 ## nombre de particules, durée de vie (s), vitesse (m/s, bornes), pesanteur (m/s²), taille (m, bornes), couleur
@@ -50,41 +50,41 @@ const CONTOUR_DU_FLOTTANT := 10
 ## mélange : une fumée, une poussière). Un éclair : son énergie et sa durée (s).
 const GERBES := {
 	"eclair-de-bouche": {vie = 1.8, eclair = {energie = 3.0, duree = 0.15}, gerbes = [
-		{nombre = 14, duree = 0.15, vitesse = [3.0, 6.0], pesanteur = Vector3.ZERO, taille = [0.25, 0.45], couleur = "#ffd27a", opacite = 1.0, dispersion = 60.0, anneau = null, lumineuse = true},
-		{nombre = 18, duree = 1.6, vitesse = [0.4, 1.0], pesanteur = Vector3(0.0, 0.6, 0.0), taille = [0.55, 1.05], couleur = "#8a8a8a", opacite = 0.55, dispersion = 45.0, anneau = null, lumineuse = false},
+		{nombre = 14, duree = 0.15, vitesse = [3.0, 6.0], pesanteur = Vector3.ZERO, taille = [0.5, 0.9], couleur = "#ffd27a", opacite = 1.0, dispersion = 60.0, anneau = null, lumineuse = true},
+		{nombre = 18, duree = 1.6, vitesse = [0.4, 1.0], pesanteur = Vector3(0.0, 0.6, 0.0), taille = [0.8, 1.4], couleur = "#8a8a8a", opacite = 0.55, dispersion = 45.0, anneau = null, lumineuse = false},
 	]},
 	"canalisation": {vie = 0.9, eclair = {energie = 1.0, duree = 0.4}, gerbes = [
-		{nombre = 24, duree = 0.7, vitesse = [0.5, 1.2], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.1, 0.2], couleur = "teinte", opacite = 1.0, dispersion = 10.0, anneau = [0.5, 0.4], lumineuse = true},
+		{nombre = 24, duree = 0.7, vitesse = [0.5, 1.2], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.2, 0.4], couleur = "teinte", opacite = 1.0, dispersion = 10.0, anneau = [0.5, 0.4], lumineuse = true},
 	]},
 	"etincelles": {vie = 0.55, eclair = {energie = 0.8, duree = 0.2}, gerbes = [
-		{nombre = 20, duree = 0.35, vitesse = [2.0, 4.0], pesanteur = Vector3(0.0, -9.8, 0.0), taille = [0.04, 0.08], couleur = "#ffe9a0", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
+		{nombre = 20, duree = 0.35, vitesse = [2.0, 4.0], pesanteur = Vector3(0.0, -9.8, 0.0), taille = [0.12, 0.22], couleur = "#ffe9a0", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
 	]},
 	"poussiere": {vie = 1.1, eclair = null, gerbes = [
-		{nombre = 16, duree = 0.9, vitesse = [0.5, 1.5], pesanteur = Vector3(0.0, -1.0, 0.0), taille = [0.3, 0.6], couleur = "#9a8a70", opacite = 0.6, dispersion = 70.0, anneau = null, lumineuse = false},
+		{nombre = 16, duree = 0.9, vitesse = [0.5, 1.5], pesanteur = Vector3(0.0, -1.0, 0.0), taille = [0.6, 1.1], couleur = "#9a8a70", opacite = 0.6, dispersion = 70.0, anneau = null, lumineuse = false},
 	]},
 	"explosion": {vie = 2.4, eclair = {energie = 6.0, duree = 0.4}, gerbes = [
-		{nombre = 30, duree = 0.5, vitesse = [2.0, 5.0], pesanteur = Vector3.ZERO, taille = [0.55, 1.05], couleur = "#ffa040", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
+		{nombre = 30, duree = 0.5, vitesse = [2.0, 5.0], pesanteur = Vector3.ZERO, taille = [0.8, 1.4], couleur = "#ffa040", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
 		{nombre = 24, duree = 2.2, vitesse = [0.5, 1.5], pesanteur = Vector3(0.0, 0.5, 0.0), taille = [1.0, 1.8], couleur = "#5a5550", opacite = 0.6, dispersion = 90.0, anneau = null, lumineuse = false},
 	]},
 	"eclat-magique": {vie = 0.65, eclair = {energie = 2.0, duree = 0.4}, gerbes = [
-		{nombre = 28, duree = 0.45, vitesse = [1.5, 3.5], pesanteur = Vector3.ZERO, taille = [0.14, 0.26], couleur = "teinte", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
+		{nombre = 28, duree = 0.45, vitesse = [1.5, 3.5], pesanteur = Vector3.ZERO, taille = [0.3, 0.5], couleur = "teinte", opacite = 1.0, dispersion = 180.0, anneau = null, lumineuse = true},
 	]},
 	"halo": {vie = 1.2, eclair = {energie = 1.5, duree = 0.4}, gerbes = [
-		{nombre = 30, duree = 1.0, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.14, 0.26], couleur = "teinte", opacite = 1.0, dispersion = 5.0, anneau = [0.6, 0.5], lumineuse = true},
+		{nombre = 30, duree = 1.0, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.3, 0.5], couleur = "teinte", opacite = 1.0, dispersion = 5.0, anneau = [0.6, 0.5], lumineuse = true},
 	]},
 	"gerbe-de-flammes": {vie = 1.6, eclair = {energie = 3.0, duree = 0.4}, gerbes = [
-		{nombre = 30, duree = 0.8, vitesse = [1.0, 2.5], pesanteur = Vector3(0.0, 2.0, 0.0), taille = [0.35, 0.65], couleur = "#ff7a2a", opacite = 1.0, dispersion = 35.0, anneau = null, lumineuse = true},
-		{nombre = 10, duree = 1.4, vitesse = [0.4, 0.8], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.5, 0.9], couleur = "#6a5a50", opacite = 0.5, dispersion = 30.0, anneau = null, lumineuse = false},
+		{nombre = 30, duree = 0.8, vitesse = [1.0, 2.5], pesanteur = Vector3(0.0, 2.0, 0.0), taille = [0.5, 0.9], couleur = "#ff7a2a", opacite = 1.0, dispersion = 35.0, anneau = null, lumineuse = true},
+		{nombre = 10, duree = 1.4, vitesse = [0.4, 0.8], pesanteur = Vector3(0.0, 0.8, 0.0), taille = [0.7, 1.2], couleur = "#6a5a50", opacite = 0.5, dispersion = 30.0, anneau = null, lumineuse = false},
 	]},
 	"nuage": {vie = 2.6, eclair = null, gerbes = [
-		{nombre = 8, duree = 2.2, vitesse = [0.2, 0.5], pesanteur = Vector3(0.0, 0.15, 0.0), taille = [0.9, 1.6], couleur = "teinte", opacite = 0.45, dispersion = 80.0, anneau = [0.6, 0.0], lumineuse = false},
+		{nombre = 12, duree = 2.2, vitesse = [0.2, 0.5], pesanteur = Vector3(0.0, 0.15, 0.0), taille = [1.4, 2.4], couleur = "teinte", opacite = 0.45, dispersion = 80.0, anneau = [0.6, 0.0], lumineuse = false},
 	]},
 	"onde": {vie = 0.8, eclair = {energie = 1.2, duree = 0.3}, gerbes = [
-		{nombre = 16, duree = 0.6, vitesse = [0.1, 0.3], pesanteur = Vector3.ZERO, taille = [0.25, 0.4], couleur = "teinte", opacite = 0.8, dispersion = 10.0, anneau = [0.9, 0.8], lumineuse = true},
+		{nombre = 16, duree = 0.6, vitesse = [0.1, 0.3], pesanteur = Vector3.ZERO, taille = [0.45, 0.7], couleur = "teinte", opacite = 0.8, dispersion = 10.0, anneau = [0.9, 0.8], lumineuse = true},
 	]},
 	"nappe-de-flammes": {vie = 2.0, eclair = {energie = 1.5, duree = 0.6}, gerbes = [
-		{nombre = 12, duree = 1.0, vitesse = [0.6, 1.4], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.3, 0.55], couleur = "#ff7a2a", opacite = 1.0, dispersion = 20.0, anneau = [0.8, 0.0], lumineuse = true},
-		{nombre = 5, duree = 1.6, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.6, 0.0), taille = [0.6, 1.0], couleur = "#5a5550", opacite = 0.45, dispersion = 25.0, anneau = [0.6, 0.0], lumineuse = false},
+		{nombre = 18, duree = 1.0, vitesse = [0.6, 1.4], pesanteur = Vector3(0.0, 1.5, 0.0), taille = [0.6, 1.0], couleur = "#ff7a2a", opacite = 1.0, dispersion = 20.0, anneau = [0.8, 0.0], lumineuse = true},
+		{nombre = 5, duree = 1.6, vitesse = [0.3, 0.6], pesanteur = Vector3(0.0, 0.6, 0.0), taille = [0.9, 1.5], couleur = "#5a5550", opacite = 0.45, dispersion = 25.0, anneau = [0.6, 0.0], lumineuse = false},
 	]},
 }
 
@@ -227,15 +227,8 @@ func _flotter(flottants: Array, sol: Vector3) -> void:
 ## Le flottant `flottant` (`{ genre, texte, couleur, critique }`) au-dessus du sol `sol` : son texte à sa teinte, plus
 ## grand pour un critique, face à la caméra et devant le décor, qui monte et s'éteint en `VIE_DU_FLOTTANT_S` secondes.
 func flottant_de(flottant: Dictionary, sol: Vector3) -> Label3D:
-	var texte := Label3D.new()
+	var texte := etiquette(flottant.texte, flottant.couleur, TAILLE_DU_CRITIQUE if flottant.critique else TAILLE_DU_FLOTTANT, _metres_par_case)
 	texte.name = "flottant"
-	texte.text = flottant.texte
-	texte.modulate = Color(flottant.couleur)
-	texte.font_size = TAILLE_DU_CRITIQUE if flottant.critique else TAILLE_DU_FLOTTANT
-	texte.outline_size = CONTOUR_DU_FLOTTANT
-	texte.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	texte.no_depth_test = true
-	texte.scale = MiseEnPage.echelle_au_plateau(_metres_par_case)
 	texte.position = MiseEnPage.point_du_flottant(sol, _metres_par_case)
 	add_child(texte, true)
 	var montee := create_tween().set_parallel()
@@ -243,6 +236,20 @@ func flottant_de(flottant: Dictionary, sol: Vector3) -> Label3D:
 	montee.tween_property(texte, "modulate:a", 0.0, VIE_DU_FLOTTANT_S).set_ease(Tween.EASE_IN)
 	montee.finished.connect(texte.queue_free)
 	return texte
+
+
+## L'étiquette `texte` à la teinte `couleur` (`#rrggbb`), de `taille` points, face à la caméra et devant le décor, à
+## l'échelle d'un plateau de `metres_par_case` mètres par case : un flottant, la marque d'un État.
+static func etiquette(texte: String, couleur: String, taille: int, metres_par_case: float) -> Label3D:
+	var texte_3d := Label3D.new()
+	texte_3d.text = texte
+	texte_3d.modulate = Color(couleur)
+	texte_3d.font_size = taille
+	texte_3d.outline_size = CONTOUR_D_ETIQUETTE
+	texte_3d.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	texte_3d.no_depth_test = true
+	texte_3d.scale = MiseEnPage.echelle_au_plateau(metres_par_case)
+	return texte_3d
 
 
 ## Le son `son` joué partout `fois` fois, `ecart_s` secondes l'un après l'autre.
@@ -279,6 +286,16 @@ func eclater(visuel: String, point: Vector3, teinte: Color) -> Node3D:
 		_eclairer(eclat, _couleur(premiere.couleur, teinte), recette.eclair.energie, 4.0, recette.eclair.duree)
 	get_tree().create_timer(recette.vie).timeout.connect(eclat.queue_free)
 	return eclat
+
+
+## La gerbe `gerbe` (`gerbe_de`) qui émet sans fin, ses particules nées d'avance (`preprocess`) : une flamme, une
+## zone qui dure, la marque d'un État.
+static func gerbe_continue(gerbe: Dictionary, taille: Array, teinte: Color) -> CPUParticles3D:
+	var particules := gerbe_de(gerbe, taille, teinte)
+	particules.one_shot = false
+	particules.explosiveness = 0.0
+	particules.preprocess = gerbe.duree
+	return particules
 
 
 static func _couleur(couleur: String, teinte: Color) -> Color:
@@ -320,11 +337,14 @@ static func gerbe_de(gerbe: Dictionary, taille: Array, teinte: Color) -> CPUPart
 	return particules
 
 
+## Le quad d'une particule, face à la caméra, à l'échelle de sa particule et de ses parents (`billboard_keep_scale`,
+## #3832 : sans elle, chaque particule se peint à la taille du quad).
 static func _quad_de_particule(lumineuse: bool) -> QuadMesh:
 	var quad := QuadMesh.new()
 	var matiere := StandardMaterial3D.new()
 	matiere.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 	matiere.billboard_mode = BaseMaterial3D.BILLBOARD_PARTICLES
+	matiere.billboard_keep_scale = true
 	matiere.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	matiere.blend_mode = BaseMaterial3D.BLEND_MODE_ADD if lumineuse else BaseMaterial3D.BLEND_MODE_MIX
 	matiere.vertex_color_use_as_albedo = true
@@ -436,6 +456,18 @@ static func variantes_du_son(son: Dictionary, boucle: bool) -> AudioStreamRandom
 			flux.set("loop", true)
 		variantes.add_stream(-1, flux)
 	return variantes
+
+
+## Le lecteur du son `son` (`{ id, fichiers, volume }`) qui joue en boucle à son point dès sa pose : une flamme, une
+## zone qui dure, la marque d'un État.
+static func son_en_boucle(son: Dictionary) -> AudioStreamPlayer3D:
+	var lecteur := AudioStreamPlayer3D.new()
+	lecteur.name = "son-%s" % son.id
+	lecteur.stream = variantes_du_son(son, true)
+	lecteur.volume_db = linear_to_db(son.volume)
+	lecteur.unit_size = PORTEE_DU_SON
+	lecteur.autoplay = true
+	return lecteur
 
 
 ## Le son `son` (`{ id, fichiers, volume }`), l'une de ses variantes au hasard, au point `point`, ou partout (`null`) ;
