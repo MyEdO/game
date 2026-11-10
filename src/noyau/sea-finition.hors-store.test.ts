@@ -326,7 +326,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     const offer = get().port!.offers[0]; // production/surplus copieux (Taille 4 + Richesse 4 × d10 × 10)
     get().fenetreChoisir('port', 'offre', offer.cargoId);
     const plafond = Math.min(offer.enc, 160); // plafond dur : 450 − 290
-    expect(reglageDuChoixDeFenetre(get(), 'port', 'enc').bornes?.max, 'l’Enc se borne au plafond dur').toBe(plafond);
+    expect(reglageDuChoixDeFenetre(get(), 'port', 'encombrement').bornes?.max, 'l’Enc se borne au plafond dur').toBe(plafond);
     expect(acheterAuMarche(get, 'port', 'vessel', offer.cargoId, plafond + 1), 'au-delà du plafond dur').toBe(t('choix.refus.bornes'));
     acheterAuMarche(get, 'port', 'vessel', offer.cargoId, plafond);
     await drainPortSellCascade(); // #266 — Marchandage d'achat SURFACÉ (cascade openRoll)

@@ -410,11 +410,11 @@ export function tickCombatAuto(get: Get, set: Set): void {
       return;
     case 'choice':
       // Auto-combat seul : le Sauvetage par Destin est dépensé automatiquement pour éviter la mort,
-      // `negate` s'il est offert (`fateSaveOptions`), sinon `survive`. En Rapide, on NE touche PAS (la
+      // `eviter` s'il est offert (`fateSaveOptions`), sinon `survivre`. En Rapide, on NE touche PAS (la
       // modale reste — vrai choix du joueur).
       if (cadenceAutoCombat() && pickActiveModalKey(s) === 'fateSave' && s.pendingFateSave) {
-        const negate = fateSaveOptions(s.pendingFateSave.source).includes('negate');
-        programmer(() => get().fenetreChoisir('fateSave', 'issue', negate ? 'negate' : 'survive'), beatHold(get, 'autoResolve'));
+        const eviter = fateSaveOptions(s.pendingFateSave.source).includes('eviter');
+        programmer(() => get().fenetreChoisir('fateSave', 'issue', eviter ? 'eviter' : 'survivre'), beatHold(get, 'autoResolve'));
       }
       return;
     case 'partial':

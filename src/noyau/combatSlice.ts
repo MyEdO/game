@@ -1883,7 +1883,7 @@ export function createCombatSlice(get: Get, set: Set) {
 export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave' | 'mountTarget' | 'roundStart'> {
   /** Le Point de Destin sacrifié (LDB 17 l.29-32) résout la suspension `pendingFateSave`. */
   const issues = {
-    negate: () => {
+    eviter: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);
@@ -1896,7 +1896,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
       set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateDodge', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
       resumeEnemyTurn(get, set);
     },
-    survive: () => {
+    survivre: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);
@@ -1912,7 +1912,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
       if (source === 'slow') resolveRoundBoundary(get, set);
       else resumeEnemyTurn(get, set);
     },
-    accept: () => {
+    accepter: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);

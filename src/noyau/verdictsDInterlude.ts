@@ -443,7 +443,7 @@ export const brouillonDe = (c: CompositionDActivite | undefined, activite: IdDAc
   (c?.activite === activite ? c : { activite, cibles: {}, atouts: [], defauts: [] });
 
 /** Où chaque axe de la composition pose sa valeur dans le brouillon : une cible, l'option d'Entraînement, l'ouvrage. */
-const POSE_DE_L_AXE = { talent: 'talentId', objet: 'itemUid', sort: 'spellId', traitPsy: 'traitPsy', entrainement: null, ouvrage: null } as const;
+const POSE_DE_L_AXE = { talent: 'talentId', objet: 'itemUid', sort: 'spellId', traitPsychologique: 'traitPsy', entrainement: null, ouvrage: null } as const;
 /** Un axe de la composition qui pose une valeur dans le brouillon. */
 export type AxeDuBrouillon = keyof typeof POSE_DE_L_AXE;
 

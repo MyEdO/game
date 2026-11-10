@@ -56,7 +56,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(t, verbe('epinglerLIndice', 'ind-rumeur-forgeron', true), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
     expect(t.jouer(verbe('cliquerLaCase', { x: 7, y: 6 })).erreur).toBeNull();
     const [indice] = refuseLId(t, verbe('epinglerLIndice', 'nobody', true), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
-    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'refute', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
+    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'refute', stadeCourant: 's1' }]), /affiches\[0\]\.id : "nobody" n’est pas un id d’indice/);
     passeLeControle(t, verbe('epinglerLIndice', indice, true));
   });
   it('pré-tiré : `recruterLeHeros`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {

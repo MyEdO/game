@@ -62,7 +62,7 @@ describe('L’Arène — Tireur d’élite, « un cran plus facile » (NADJ 16 l
     const a = heros(0, true);
     const b = heros(1, false);
     banc.setState({ party: [a, b] });
-    get().jouerALaTaverne(a.id, { gameId: 'arene', opponent: { kind: 'hero', id: b.id } });
+    get().jouerALaTaverne(a.id, { gameId: 'arene', opponent: { kind: 'heros', id: b.id } });
     expect((get().sequence!.payload as TavernPayload).specials, 'figés à l’ouverture, au seul siège qui a le Talent')
       .toEqual({ [a.id]: [expect.objectContaining({ effet: 'cran', hasTalent: 'tireur-d-elite', steps: 1 })] });
 

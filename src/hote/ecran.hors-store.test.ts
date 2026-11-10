@@ -70,8 +70,8 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
       expect(lent['fenetre.corps'], 'l’enjeu en alerte, puis les Points de Destin du héros').toMatchObject([{ id: 'destin/enjeu', ton: 'alerte' }, { id: 'destin/points', valeur: String(heros.fate ?? 0) }]);
       const issues = (zones: ReturnType<typeof ecran>) => zones['fenetre.gestes'].flatMap((g) => ('valeurs' in g ? g.valeurs.map((v) => ('args' in v.jeu ? v.jeu.args : null)) : []));
       expect(lent['fenetre.gestes'].map((g) => g.id), 'un seul choix, qui clôt la fenêtre').toEqual(['fenetreChoisir@fateSave#issue']);
-      expect(issues(lent), 'une mort lente ne s’évite pas : survivre ou l’accepter (LDB 17 l.31)').toEqual([['fateSave', 'issue', 'survive'], ['fateSave', 'issue', 'accept']]);
-      expect(issues(ecran('hit')), 'un coup qui porte s’évite aussi (LDB 17 l.32)').toEqual([['fateSave', 'issue', 'negate'], ['fateSave', 'issue', 'survive'], ['fateSave', 'issue', 'accept']]);
+      expect(issues(lent), 'une mort lente ne s’évite pas : survivre ou l’accepter (LDB 17 l.31)').toEqual([['fateSave', 'issue', 'survivre'], ['fateSave', 'issue', 'accepter']]);
+      expect(issues(ecran('hit')), 'un coup qui porte s’évite aussi (LDB 17 l.32)').toEqual([['fateSave', 'issue', 'eviter'], ['fateSave', 'issue', 'survivre'], ['fateSave', 'issue', 'accepter']]);
     } finally {
       partie.fermer();
     }

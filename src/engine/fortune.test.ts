@@ -40,10 +40,10 @@ const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, fla
 
 describe('fateSaveOptions — options offertes du sacrifice de Destin (LDB 17 l.29-32)', () => {
   it('sur le coup qui porte : « Meurs un autre jour » puis « Comment ça a pu rater ? », ordre du livre', () => {
-    expect(fateSaveOptions('hit')).toEqual(['survive', 'negate']);
+    expect(fateSaveOptions('hit')).toEqual(['survivre', 'eviter']);
   });
   it('sur une mort lente : « Meurs un autre jour » seul (lecture de LDB 17 l.32)', () => {
-    expect(fateSaveOptions('slow')).toEqual(['survive']);
+    expect(fateSaveOptions('slow')).toEqual(['survivre']);
   });
 });
 

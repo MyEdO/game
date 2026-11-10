@@ -1102,7 +1102,7 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
   const { choisir, composer } = useComposer(hero, def.id, composition);
   const { armes: weapons, artefacts, sorts: spellOptions, traitsPsy } = ciblesDActivite(hero, def);
   const refusDeLObjet = refusDesValeurs(etat, hero.id, def.id, 'objet');
-  const refusDuTrait = refusDesValeurs(etat, hero.id, def.id, 'traitPsy');
+  const refusDuTrait = refusDesValeurs(etat, hero.id, def.id, 'traitPsychologique');
   const refusDuSort = refusDesValeurs(etat, hero.id, def.id, 'sort');
   const uid = composition?.cibles.itemUid || weapons[0]?.uid || artefacts[0]?.uid || '';
   const spell = composition?.cibles.spellId || spellOptions[0]?.spell.id || '';
@@ -1132,7 +1132,7 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
           onClick={() => composer(() => {
             if (uid) choisir('interlude', 'objet', uid, hero.id);
             if (spell) choisir('interlude', 'sort', spell, hero.id);
-            if (traitPsy) choisir('interlude', 'traitPsy', traitPsy, hero.id);
+            if (traitPsy) choisir('interlude', 'traitPsychologique', traitPsy, hero.id);
             choisir('interlude', 'pratiquer', true, hero.id);
           })}
           btnClassName="small"
@@ -1150,7 +1150,7 @@ function CatalogPane({ hero, def, etat, mene }: { hero: Combatant; def: Activity
         </select>
       )}
       {traitsPsy.length > 0 && (
-        <select className="interlude-select" value={traitPsy} disabled={!!mene} onChange={(e) => composer(() => choisir('interlude', 'traitPsy', e.target.value, hero.id))} aria-label="Trait psychologique à éliminer">
+        <select className="interlude-select" value={traitPsy} disabled={!!mene} onChange={(e) => composer(() => choisir('interlude', 'traitPsychologique', e.target.value, hero.id))} aria-label="Trait psychologique à éliminer">
           {traitsPsy.map((x) => <option key={x.cle} value={x.cle} disabled={!!refusDuTrait(x.cle)} title={refusDuTrait(x.cle)}>{libelleDePsy(x.trait.type, x.trait.cible)}</option>)}
         </select>
       )}

@@ -45,10 +45,10 @@ describe('fenetreChoisir', () => {
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.fermee'));
     const { a } = hoteEtUnInvite(banc);
     banc.setState({ pendingFateSave: { heroId: a, source: 'slow' } as never });
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'negate');
+    banc.getState().fenetreChoisir('fateSave', 'issue', 'eviter');
     expect(banc.getState().journal.slice(-1)[0], 'une mort lente ne s’évite pas (LDB 17 l.31)').toBe(t('choix.refus.valeur'));
     expect(banc.getState().pendingFateSave, 'la fenêtre reste ouverte').not.toBeNull();
-    expect(intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', ['fateSave', 'inconnu', 'negate']), 'axe inconnu : aucun siège').toBe(false);
+    expect(intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', ['fateSave', 'inconnu', 'eviter']), 'axe inconnu : aucun siège').toBe(false);
   });
 
   it.each(CHOIX_DE_L_HOTE)('le choix de l’hôte reste à l’hôte (%s) : refusé dans l’état d’un invité, et au siège d’un invité', (_fenetre, args, ouverte) => {
@@ -69,7 +69,7 @@ describe('fenetreChoisir', () => {
     const banc = ouvrirLeBanc();
     const { b } = hoteEtUnInvite(banc);
     const ouvertes: readonly (readonly [Record<string, unknown>, ArgumentsDuChoix])[] = [
-      [{ pendingFateSave: { heroId: b, source: 'slow' } }, ['fateSave', 'issue', 'survive']],
+      [{ pendingFateSave: { heroId: b, source: 'slow' } }, ['fateSave', 'issue', 'survivre']],
       [{ pendingRenounce: { heroId: b, testRoll: 90, testTarget: 30 } }, ['renounce', 'renier', false]],
       [{ battle: { order: [b], turn: 0, combatants: [] }, pendingMountTarget: { riderId: 'r', mountId: 'm' } }, ['mountTarget', 'cible', 'r']],
     ];
@@ -88,7 +88,7 @@ describe('fenetreChoisir', () => {
     const s = banc.getState();
     expect(siegeDe(s, modalOwnerOf(s) as string), 'le Destin, à l’invité, tient la main').toBe(1);
     expect([0, 1].filter((siege) => intentAllowedFor(s, siege, 'fenetreChoisir', ['renounce', 'renier', true])), 'la mutation se renie au siège de son héros').toEqual([0]);
-    expect([0, 1].filter((siege) => intentAllowedFor(s, siege, 'fenetreChoisir', ['fateSave', 'issue', 'survive'])), 'le Destin, au siège du sien').toEqual([1]);
+    expect([0, 1].filter((siege) => intentAllowedFor(s, siege, 'fenetreChoisir', ['fateSave', 'issue', 'survivre'])), 'le Destin, au siège du sien').toEqual([1]);
   });
 
   it('la décision de groupe (dialogue, désignation) suit le siège du MONDE : l’hôte, ou le MJ posé', () => {

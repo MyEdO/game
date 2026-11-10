@@ -29,8 +29,8 @@ export const VERBE_DE_CHOIX = 'fenetreChoisir' as const satisfies keyof VerbeDeC
 /** Les choix de chaque fenêtre qui en a, et la forme de leur valeur. */
 export interface ChoixDesFenetres {
   fateSave: {
-    /** LDB 17 l.29-32 ; `accept` : le héros meurt. */
-    issue: FateSaveOption | 'accept';
+    /** LDB 17 l.29-32 ; `accepter` : le héros meurt. */
+    issue: FateSaveOption | 'accepter';
   };
   renounce: {
     /** LDB 17 l.67 ; `false` : la mutation se développe. */
@@ -148,7 +148,7 @@ export interface ChoixDesFenetres {
     /** Le sort à mémoriser. */
     sort: IdDeSort;
     /** Le Trait psychologique à éliminer. */
-    traitPsy: IdDeTraitPsyPorte;
+    traitPsychologique: IdDeTraitPsyPorte;
     /** LDB 23 l.5 : l'Activité composée se pratique. */
     pratiquer: true;
   };
@@ -194,7 +194,7 @@ export interface ChoixDuMarche {
   /** Le porteur qui charge l'achat. */
   porteur: IdDePorteurDeCargaison;
   /** L'Enc acheté. */
-  enc: number;
+  encombrement: number;
   acheter: true;
   vendre: IdDeCargaison;
   jeter: IdDeCargaison;
@@ -234,7 +234,7 @@ const fige = { effet: 'fige', portee: 'fenetre', qui: 'proprietaire' } as const;
 const figeParLHote = { effet: 'fige', portee: 'fenetre', qui: 'hote' } as const;
 const duHerosParLHote = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
 const figeDuHeros = { effet: 'fige', portee: 'rangee', qui: 'proprietaire' } as const;
-const marche = { offre: reprenableParLHote, porteur: reprenableParLHote, enc: reprenableParLHote, acheter: figeParLHote, vendre: figeParLHote, jeter: figeParLHote } as const;
+const marche = { offre: reprenableParLHote, porteur: reprenableParLHote, encombrement: reprenableParLHote, acheter: figeParLHote, vendre: figeParLHote, jeter: figeParLHote } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const CHOIX_DES_FENETRES = {
@@ -267,7 +267,7 @@ export const CHOIX_DES_FENETRES = {
   // Chaque héros compose son Activité et la pratique, à son siège.
   interlude: {
     activite: duHeros, talent: duHeros, entrainement: duHeros, ouvrage: duHeros, ajouterLaQualite: duHeros, retirerLaQualite: duHeros,
-    objet: duHeros, sort: duHeros, traitPsy: duHeros, pratiquer: figeDuHeros,
+    objet: duHeros, sort: duHeros, traitPsychologique: duHeros, pratiquer: figeDuHeros,
   },
   batailleDeMasse: { scene: figeParLHote, engager: figeParLHote, rallier: figeParLHote, ajouterAuPoste: duHerosParLHote, retirerDuPoste: duHerosParLHote, alea: figeParLHote },
   // La bourse, la cale et les porteurs du groupe sont à l'hôte.

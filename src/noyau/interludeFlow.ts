@@ -1248,7 +1248,7 @@ export function choixDInterlude(get: Get, set: Set) {
       },
       objet: poser('objet'),
       sort: poser('sort'),
-      traitPsy: poser('traitPsy'),
+      traitPsychologique: poser('traitPsychologique'),
       pratiquer: (_vrai, pid) => pratiquer(get, set, pid, composee(pid)),
     },
   } satisfies Partial<CorpsDesChoix>;

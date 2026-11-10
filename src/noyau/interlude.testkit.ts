@@ -20,7 +20,7 @@ export function pratiquer(get: () => Jeu & Pick<ActionsDuNoyau, 'fenetreChoisir'
     ...(c.talentId === undefined ? [] : [['interlude', 'talent', c.talentId, heroId]] satisfies ArgumentsDuChoix[]),
     ...(c.itemUid === undefined ? [] : [['interlude', 'objet', c.itemUid, heroId]] satisfies ArgumentsDuChoix[]),
     ...(c.spellId === undefined ? [] : [['interlude', 'sort', c.spellId, heroId]] satisfies ArgumentsDuChoix[]),
-    ...(c.traitPsy === undefined ? [] : [['interlude', 'traitPsy', c.traitPsy, heroId]] satisfies ArgumentsDuChoix[]),
+    ...(c.traitPsy === undefined ? [] : [['interlude', 'traitPsychologique', c.traitPsy, heroId]] satisfies ArgumentsDuChoix[]),
     ...(c.entrainement === undefined ? [] : [['interlude', 'entrainement', c.entrainement, heroId]] satisfies ArgumentsDuChoix[]),
     ...(c.ouvrage === undefined ? [] : [['interlude', 'ouvrage', c.ouvrage, heroId]] satisfies ArgumentsDuChoix[]),
     ...(c.qualites ?? []).map((q): ArgumentsDuChoix => ['interlude', 'ajouterLaQualite', q, heroId]),
