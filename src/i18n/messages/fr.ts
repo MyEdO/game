@@ -5225,6 +5225,7 @@ export const fr = {
   'codex.fiche.humeurDeManannFacteurs': 'Humeur de Manann — Facteurs',
   'codex.fiche.evenementsDeBordMer': 'Événements de bord (mer)',
   'codex.fiche.evenementsDePortMer': 'Événements de port (mer)',
+  'codex.fiche.voyageRapideMer': 'Voyage rapide (mer)',
   'codex.fiche.expositionALEauMaladiesHydriques': 'Exposition à l’eau (maladies hydriques)',
   'codex.fiche.malusParDrNegatifJetDe': 'Malus par DR négatif (jet de maladie)',
   'codex.fiche.maladiesJetApresEchecDu': 'Maladies (jet {die} après échec du Test)',
