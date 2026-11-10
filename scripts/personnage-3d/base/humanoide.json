@@ -3,8 +3,8 @@
   "porteur": { "espece": "humain", "gabarit": "moyen", "taille": "moyenne", "echelleDArt": 1 },
   "clips": { "idle": "Idle_Loop", "walk": "Walk_Loop", "melee": "Sword_Attack", "hit": "Hit_Chest", "death": "Death01" },
   "clipsDeuxMains": {
-    "lourde2m": { "idle": "Lourde_Repos_Loop", "walk": "Lourde_Marche_Loop", "melee": "Lourde_Attaque" },
-    "hampe": { "idle": "Hampe_Repos_Loop", "walk": "Hampe_Marche_Loop", "melee": "Hampe_Attaque" }
+    "lourde2m": { "idle": "Lourde_Repos_Loop", "walk": "Lourde_Marche_Loop", "melee": "Lourde_Attaque", "hit": "Lourde_Touche", "death": "Lourde_Mort" },
+    "hampe": { "idle": "Hampe_Repos_Loop", "walk": "Hampe_Marche_Loop", "melee": "Hampe_Attaque", "hit": "Hampe_Touche", "death": "Hampe_Mort" }
   },
   "prisesOccupees": {
     "A_TPose": ["main", "off"],

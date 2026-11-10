@@ -96,6 +96,9 @@ hauteur de poitrine, le tranchant vers le bas : l'avant-bras gauche ne rentre pa
 HAMPE_REPOS = ((-0.05, -0.25, 1.28), (0.55, 0.05, 0.83))
 """La hampe dressée devant le torse, penchée vers l'épaule gauche, la main droite à la hanche, la gauche devant le sein
 gauche, le fer au-dessus."""
+HAMPE_GISANT = ((-0.02, -0.25, 1.25), (0.85, 0.1, -0.52))
+"""La hampe en travers de la poitrine, la main droite devant l'épaule droite, la gauche devant le ventre, le fer en bas à
+gauche : couché sur le dos, le corps la garde en travers de lui, le fer vers le sol à sa gauche, et non dressée en l'air."""
 HAMPE_GARDE = ((-0.175, -0.2, 1.0), (0.272, -0.809, 0.521))
 """La main droite au talon contre la hanche droite, la gauche devant, le fer pointé à hauteur de tête."""
 HAMPE_ARME = ((-0.13, -0.04, 1.143), (0.437, -0.354, 0.827))
@@ -111,15 +114,21 @@ CLIPS = {
                                                           cle(0.35, *ARME, -8, -20), cle(0.44, *TAILLE, 9.5, 9, elan=True),
                                                           cle(0.52, *COUP, 25, 35, elan=True),
                                                           cle(0.62, *COUP, 25, 35), cle(1.0, *GARDE, 8))),
+    'Lourde_Touche': ('Hit_Chest', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
+    'Lourde_Mort': ('Death01', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
     'Hampe_Repos_Loop': ('Idle_Loop', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
     'Hampe_Marche_Loop': ('Walk_Loop', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
     'Hampe_Attaque': ('Sword_Idle', 'root', 'hampe', (cle(0.0, *HAMPE_GARDE, 5), cle(0.3, *HAMPE_ARME, -5, -10),
                                                       cle(0.48, *HAMPE_COUP, 35, 25, elan=True),
                                                       cle(0.6, *HAMPE_COUP, 35, 25), cle(1.0, *HAMPE_GARDE, 5))),
+    'Hampe_Touche': ('Hit_Chest', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
+    'Hampe_Mort': ('Death01', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(0.15, *HAMPE_GISANT), cle(1.0, *HAMPE_GISANT))),
 }
 """Par clip dérivé : son clip source, l'os qui mène le repère de ses clés, son maniement (`SECONDES`) et ses clés de
 geste. L'attaque d'une arme lourde, une taille verticale, part de la garde et y revient, sur les jambes de la garde ;
-celle d'une hampe dresse le fer de la main gauche, la droite au talon, puis le jette devant, loin du corps."""
+celle d'une hampe dresse le fer de la main gauche, la droite au talon, puis le jette devant, loin du corps. Touché et
+mort gardent l'arme de leur repos, menée par le haut du dos : le corps recule ou tombe, l'arme en travers de lui ; la
+hampe, dressée au repos, passe en travers dans la chute."""
 
 
 def avancee(t, depart, arrivee):
