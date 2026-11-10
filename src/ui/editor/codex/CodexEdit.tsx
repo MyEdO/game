@@ -60,7 +60,7 @@ import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
-import type { DomainData } from '../../../data';
+import type { DomainData, EffectTableRow } from '../../../data';
 import type { CharKey, Difficulty, Trauma, VehicleData } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
@@ -126,6 +126,7 @@ const OPS_FIELDS: Record<string, string[]> = {
   // que le vocabulaire `GameOp` réel), et `targetOps` (ops aux cibles de l'incantation).
   grapple: ['init'],
   miscastMinor: ['ops', 'targetOps'], miscastMajor: ['ops', 'targetOps'], miscastWrath: ['ops', 'targetOps'],
+  miscastMinorVdm: ['ops', 'targetOps'], miscastMajorVdm: ['ops', 'targetOps'],
   ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
@@ -199,7 +200,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
-  if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('entries');
+  if (['mutationTables', 'weather', 'effectTables'].includes(categoryKey)) add('entries');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
   if (EVENEMENTS_DE_MER.includes(categoryKey)) add('consequence'); // Flow joué par `runFlow` → FlowEditor (#1652)
@@ -378,6 +379,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isMutationTable = categoryKey === 'mutationTables';
   // Météo : ses `entries` (plages de son dé → type de météo) ont leur éditeur dédié.
   const isWeather = categoryKey === 'weather';
+  // Table d'effets : ses `entries` (plages de son dé → opérations) ont leur éditeur dédié (#1667).
+  const isEffectTable = categoryKey === 'effectTables';
   // Arme DÉRIVÉE (WeaponField) : portée par une Mutation (Tentacule…) OU une Possession (prothèse-arme).
   const hasDerivedWeapon = categoryKey === 'mutations' || categoryKey === 'trappings';
   const hasConsumable = categoryKey === 'trappings';
@@ -607,6 +610,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {hasConsumable && <TriggeredEffectsField noeud={noeudDe('onHitEffects')} label="effets à la touche de l’arme (onHit → Flow d’ops, ADE II)" value={entry.onHitEffects as TriggeredEffect[] | undefined} onChange={(v) => edit('onHitEffects', v.length ? v : undefined)} />}
         {isManeuver && <ManeuverDefField entry={entry} edit={edit} />}
         {isMutationTable && <MutationTableField domaine={domaineDuDe(entry.die)} value={entry.entries as MutationRange[] | undefined} onChange={(v) => edit('entries', v)} />}
+        {isEffectTable && <EffectTableRowsField domaine={domaineDuDe(entry.die)} value={entry.entries as EffectTableRow[] | undefined} onChange={(v) => edit('entries', v)} />}
         {isWeather && <WeatherRangesField domaine={domaineDuDe(entry.die)} value={entry.entries as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('entries', v)} />}
         {hasDerivedWeapon && <WeaponField value={entry.derivedWeapon as ArmeDerivee | undefined} onChange={(v) => edit('derivedWeapon', v)} />}
         {hasConsumable && (
@@ -1591,6 +1595,31 @@ function MutationTableField({ domaine, value, onChange }: { domaine: PlageDomain
         </div>
       ))}
       <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.min ?? 1, mutation: '' }])}>+ Plage</button>
+    </div>
+  );
+}
+
+/** Éditeur des RANGÉES d'une table d'effets (`tables.json`) : chaque rangée = un intervalle du dé, la bande
+ *  finale ouvrable (`plageOuverteSchema`) → son libellé RAW et ses opérations (`GameOpEditor` commun). La
+ *  table applique les opérations de la rangée dont l'intervalle contient le jet (`findTableEntry`). */
+function EffectTableRowsField({ domaine, value, onChange }: { domaine: PlageDomaine; value: EffectTableRow[] | undefined; onChange: (v: EffectTableRow[]) => void }) {
+  const list = value ?? [];
+  const set = (i: number, patch: Partial<EffectTableRow>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const cles = useClesDeRangees(value);
+  return (
+    <div className="ed-field">
+      <span>plages {domaine.nom ?? 'du dé'} → opérations (la table applique la rangée dont l'intervalle contient le jet)</span>
+      {list.map((r, i) => (
+        <div className="ed-subfield" key={cles[i]}>
+          <div className="tf-row">
+            <PlageField label={`Rangée ${i + 1}`} domaine={domaine} ouvrable value={{ min: r.min ?? domaine.min ?? 1, max: r.max }} onChange={(p) => p && set(i, p)} />
+            <label className="dr">Libellé<input aria-label={`Libellé de la rangée ${i + 1}`} value={r.label ?? ''} onChange={(e) => set(i, { label: e.target.value || undefined })} /></label>
+            <button className="btn small danger" aria-label={`Retirer la rangée ${i + 1}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+          </div>
+          <GameOpEditor ops={r.ops} onChange={(ops) => set(i, { ops })} />
+        </div>
+      ))}
+      <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.min ?? 1, ops: [] }])}>+ Plage</button>
     </div>
   );
 }

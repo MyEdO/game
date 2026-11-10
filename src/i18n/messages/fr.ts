@@ -4990,6 +4990,8 @@ export const fr = {
   'codex.fiche.testOpposeGagneSeLiberer': 'Test opposé gagné — Se libérer',
   'codex.fiche.incantationsImparfaitesMineures': 'Incantations Imparfaites — Mineures',
   'codex.fiche.incantationsImparfaitesMajeures': 'Incantations Imparfaites — Majeures',
+  'codex.fiche.incantationsImparfaitesMineuresVdm': 'Incantations Imparfaites révisées — Mineures',
+  'codex.fiche.incantationsImparfaitesMajeuresVdm': 'Incantations Imparfaites révisées — Majeures',
   'codex.fiche.colereDesDieux': 'Colère des dieux',
   'codex.fiche.enjeuxDeJet': 'Enjeux de jet',
   'codex.fiche.races': 'Races',

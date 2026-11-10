@@ -51,6 +51,7 @@ const EXEMPTES = new Map<string, string>([
   ['src/ui/CascadeModal.tsx|cur.label ?? \'\'', AUTHORE],
   ['src/ui/console/CombatConsole.tsx|setWeapon?.label ?? \'Mains nues\'', SANS_ARME],
   ['src/ui/editor/codex/CodexEdit.tsx|indice?.label ?? \'\'', AUTHORE],
+  ['src/ui/editor/codex/CodexEdit.tsx|r.label ?? \'\'', AUTHORE],
   ['src/ui/compendium/CompendiumScreen.tsx|cat?.label ?? \'\'', PLACEHOLDER],
   ['src/data/index.ts|e.label ?? \'\'', AUTHORE],
   ['src/ui/editor/codex/StructFields.tsx|findVehicleById(t.id)?.label ?? \'\'', PLACEHOLDER],
