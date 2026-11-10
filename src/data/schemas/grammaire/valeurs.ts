@@ -70,6 +70,10 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
   return noeud;
 }
 
+/** Taille d'agglomération d'un marché : la colonne de la table de Disponibilité (LDB 59 l.25-34). */
+export const settlementSchema = enumNomme({ village: 'village', ville: 'ville', cite: 'cité' });
+export type Settlement = z.output<typeof settlementSchema>;
+
 /** Contexte de Test d'une source d'inversion (`ContexteDeTest`, LDB 12 l.42). */
 export const contexteDeTestSchema = enumNomme({
   psych: 'pour résister à un Trait Psychologique',
@@ -930,7 +934,7 @@ export function validerApparenceDonnee(v: { op?: string; trappingId?: string; ap
 }
 
 /** Apparence par objet porté, clé = id de trapping : `EntityAppearance.apparencesObjets`, presets de personnage (#3086). */
-export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
+export const apparencesDObjetsSchema: z.ZodType<Record<string, { id: string }>, Record<string, { id: string }>> = z.record(idDe('trapping', undefined, { ouverte: true }), ref('apparence')).superRefine((v, ctx) => {
   for (const [trappingId, apparence] of Object.entries(v)) validerApparenceDObjet(trappingId, apparence.id, ctx, [trappingId, 'id']);
 });
 
@@ -965,7 +969,7 @@ export const emblemeSchema = ref('gardeRobe', undefined, 'embleme');
 /** Palette d'un personnage ou d'un élément 3D : une couleur du nuancier (`materials.json`, domaine `couleur`) par
  *  emplacement de palette. */
 export const couleursSchema = z.partialRecord(slotSchema, ref('material', undefined, 'couleur'));
-export type Couleurs = z.infer<typeof couleursSchema>;
+export type Couleurs = z.input<typeof couleursSchema>;
 
 /** `EntityAppearance` (`src/engine/authoringAppearance.ts`) — apparence d'entité, composée par
  *  `creatures`, la scène (`SceneEntity.appearance`) et le narratif. */

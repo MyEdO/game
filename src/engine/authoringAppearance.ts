@@ -5,7 +5,8 @@
  * (#187, #2884). Structurels purs (aucune valeur de rendu).
  */
 
-import type { Couleurs, Sexe } from '../data/schemas/grammaire/valeurs';
+import type { z } from 'zod';
+import type { entityAppearanceSchema, Sexe } from '../data/schemas/grammaire/valeurs';
 
 /** Vocabulaire (marque NOMINALE, #406) : id d'espèce jouable, de créature ou de race d'apparence
  *  (`especeDApparenceSchema`) — jamais un `SpeciesData.label` (« Humains (Reiklander) »). UNE seule
@@ -14,24 +15,8 @@ import type { Couleurs, Sexe } from '../data/schemas/grammaire/valeurs';
  *  `src/data/index.ts`). */
 export type EspeceDApparence = string & { readonly __especeDApparence: unique symbol };
 
-/** Surcharge d'apparence. */
-export interface EntityAppearance {
-  sex?: Sexe;
-  /** Espèce/race CHOISIE — découple l'apparence du nom (label/ref) : id d'APPARENCE (ex.
-   *  `nain`, `halflings`), jamais un libellé. Absente = l’espèce du record (`spawnEnemy`, `noyau/monde/spawn.ts`). */
-  species?: string;
-  /** Tenue CHOISIE — id STABLE, jamais un libellé (`tenueFermeeSchema`, `data/schemas/grammaire/valeurs.ts`,
-   *  #3116) ; `spawnEnemy` la porte sur `Combatant.career`. */
-  tenue?: string;
-  /** Armure de statblock (PA par localisation, sans inventaire) déclarée VISIBLE/portée — OPT-IN d'authoring
-   *  (#774, #775) : le statblock de PA ne pilote pas l'apparence. */
-  armurePortee?: boolean;
-  /** Apparence des objets sans instance : id de trapping → référence au catalogue des apparences. */
-  apparencesObjets?: Record<string, { id: string }>;
-  embleme?: { id: string };
-  /** Palette CHOISIE : id d'une couleur du nuancier par emplacement de palette (`couleursSchema`). */
-  couleurs?: Couleurs;
-}
+/** Surcharge d'apparence : l'entrée de son schéma (`entityAppearanceSchema`), ses identifiants nus. */
+export type EntityAppearance = z.input<typeof entityAppearanceSchema>;
 
 /** Descripteur d'apparence COSMÉTIQUE RÉSOLU (type pur ; l'engine ne le lit jamais). */
 export interface Appearance {
