@@ -26,6 +26,8 @@ import { entreesNarratives, type CleDeReferenceNarrative } from './codex/libelle
 import { REFERENCES_NARRATIVES } from '../data/schemas/defs-scenes/registres-narratifs';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
+import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
+import { parcoursDe } from '../engine/pnjDeCarriere';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
@@ -432,19 +434,23 @@ interface FormulaireDuPorteur<D> {
  *  ses Caractéristiques et son embuscade ; son profil personnalisé ; sa contrepartie d'amateur des arts, son animation. */
 const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['anim']];
 
+/** Les profils d'auteur qu'un PNJ de carrière ne porte pas (`refusDuPnjDeCarriere`) : son profil personnalisé et son preset. */
+const PROFILS_D_AUTEUR: readonly string[] = ['statblock', 'presetId'];
+
 /** Les sorts que l'auteur choisit pour un personnage. */
 const SORTS_CHOISIS = ['combat', 'spells'] as const;
 
 /** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), dans le narratif `narratif` : son
  *  preset s'il en porte un ou si le narratif en déclare ; ses sorts choisis s'il en porte, ou si sa fiche (`ficheEditee`)
  *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule et
- *  ses Améliorations (MDG 12). */
+ *  ses Améliorations (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`). */
 function champsDuPersonnage(ent: SceneEntity, narratif: NarratifBlock): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
   const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDuNarratif(narratif));
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
   const coque = ent.vehicule ? [['vehicule'], ['upgrades']] : [];
-  return [...preset, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
+  const champs = [...preset, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
+  return parcoursDe(ent) ? champs.filter(([tete]) => !PROFILS_D_AUTEUR.includes(tete)) : champs;
 }
 
 /** Les choix que le contexte d'un personnage pose à ses sorts choisis (`combat.spells`) : d'un élément au rang `rang`, ou
@@ -497,12 +503,15 @@ function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly
 }
 
 /** Les profils personnalisés qu'un personnage reçoit (`statblock`) : un profil neuf à son nom (`emptyStatblock`), puis la
- *  copie de sa créature du Bestiaire (`statblockDeLaCreature`), s'il en porte une. */
+ *  copie de sa créature du Bestiaire (`statblockDeLaCreature`), s'il en porte une, refusée du premier message de son
+ *  schéma (`customStatblockSchema`) qu'elle viole. */
 function choixDuProfil(ent: SceneEntity, presetDe: ResolveurDePreset): readonly ChoixDuContexte[] {
   const creature = findCreatureById(ent.creature?.id);
+  const copie = creature && statblockDeLaCreature(creature);
+  const lue = copie && customStatblockSchema.safeParse(copie);
   return [
     { valeur: emptyStatblock(nomDEntite(ent, presetDe)), libelle: t('ecran.editeur.profil.neuf'), refus: null },
-    ...(creature ? [{ valeur: statblockDeLaCreature(creature), libelle: t('ecran.editeur.profil.copie', { fiche: creature.label }), refus: null }] : []),
+    ...(creature && lue ? [{ valeur: copie, libelle: t('ecran.editeur.profil.copie', { fiche: creature.label }), refus: lue.success ? null : lue.error.issues[0].message }] : []),
   ];
 }
 

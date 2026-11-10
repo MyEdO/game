@@ -23,7 +23,7 @@ import { flowFromEffects } from '../monde/flow';
 import { fauteDAppui } from '../monde/poseDuDecor';
 import type { Effect } from '../../data/schemas/defs-scenes/effets';
 import { garanti } from '../../lib/garanti';
-import { addArchitectureBody, addFacadeFeature, addFacadeSection } from '../sceneEdit';
+import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDuPorteur } from '../sceneEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
 import { allMusicDefs } from '../../data/sons/musique';
@@ -32,7 +32,7 @@ import { champsDeclares, choixDuNoeud, elementDuNoeud } from '../codex/editField
 import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves';
 import { refusDeLaValeur } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { findCreatureById, spells, talents, traits } from '../../data';
+import { creatures, findCreatureById, spells, talents, traits } from '../../data';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';
@@ -429,6 +429,30 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a, M1b)', () => {
     expect(choixDuChamp('entite', ent, ['presetId'], narratif as typeof NARRATIF_VIDE)).toEqual([{ valeur: 'aubergiste', libelle: 'Aubergiste', refus: null }]);
     expect(entiteDeLaSelection(sceneEditee(jouer(pose, valeur(id, ['presetId'], 'aubergiste'))), pose.sel)?.presetId).toBe('aubergiste');
     expect(formulaireDe('entite', ent, NARRATIF_VIDE).map((f) => f.key)).not.toContain('presetId');
+  });
+
+  it('pour chaque créature du Bestiaire, un profil offert sans refus s’écrit en une entité que le schéma admet ; une copie que son schéma refuse le dit (#3606 M1b)', () => {
+    const fautives: string[] = [];
+    let refusees = 0;
+    for (const c of creatures) {
+      const ent = { id: 'e1', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: c.id } } as const;
+      for (const choix of choixDuChamp('entite', ent, ['statblock'], NARRATIF_VIDE) ?? []) {
+        if (choix.refus !== null) { refusees++; continue; }
+        const ecrite = avecLaValeurDuPorteur('entite', ent, ['statblock'], choix.valeur, NARRATIF_VIDE);
+        if (!ecrite.ok || !sceneEntitySchema.safeParse(ecrite.valeur).success) fautives.push(`${c.id} : ${choix.libelle}`);
+      }
+    }
+    expect(fautives).toEqual([]);
+    expect(refusees, 'des copies du Bestiaire sont refusées, chacune de sa raison').toBeGreaterThan(0);
+  });
+
+  it('un PNJ de carrière ne se voit offrir ni profil personnalisé ni preset, qu’il ne porte pas (#3606 M1b)', () => {
+    const narratif = { ...NARRATIF_VIDE, presetsPnj: [{ id: 'aubergiste', base: { id: 'humain' }, profil: { label: 'Aubergiste' } }] } as typeof NARRATIF_VIDE;
+    const pnj = { id: 'p', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' }, carrieres: { medecin: 3 } } as const;
+    expect(refusDeLEntite(pnj)).toEqual([]);
+    const champs = formulaireDe('entite', pnj, narratif).map((f) => f.key);
+    expect([champs.includes('statblock'), champs.includes('presetId')]).toEqual([false, false]);
+    expect([refusDeLaValeur(ouverteSur({ ...emptyScene('m1b', 4, 4), entities: [pnj] }, false, narratif), valeur('p', ['statblock'], emptyStatblock()))]).toEqual(['nonOffert']);
   });
 
   it('les options : tous les Traits, ceux de la fiche en tête puis les Traits standard (LDB 76 l.11, l.35) ; une note « swap » de la fiche se pose entière', () => {
