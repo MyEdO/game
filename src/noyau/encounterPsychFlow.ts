@@ -10,7 +10,7 @@
  * `aggregate:'none'`). Le jet est le Test de Calme GÉNÉRIQUE de la bande (`FLOWS.cascadeBatch` →
  * `rollTest(Calme)`, kind-agnostique) ; la CONSÉQUENCE (psychState, Brisé de Terreur dérivé du DR)
  * vit dans l'applier `'encounterPsych'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
- * LDB 17 l.59) est offerte par la coquille via `jetDepenserLaDetermination('cascadeBatch')` sur la rangée.
+ * LDB 17 l.59) est offerte dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination`.
  */
 import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';

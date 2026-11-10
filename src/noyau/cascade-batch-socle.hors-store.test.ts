@@ -6,6 +6,7 @@ import { bonus } from '../engine/characteristics';
 import { startCascade } from './cascade';
 import { spyApplier } from './cascade.testkit';
 import { estVerbeDeFenetre, FLOW_VERBS } from './flowVerbs';
+import { VERBES_D_INTERACTION } from './combatAuto';
 import { frozenOpposedBatchStep } from './combat/triggeredTest';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
@@ -55,15 +56,15 @@ beforeEach(() => {
 });
 
 describe('parité des VERBES : une bande offre ce qu’offre l’étape mono', () => {
-  it('`cascadeBatch` expose TOUS les verbes de rangée de `cascade` (resist compris) PLUS `determine`', () => {
+  it('`cascadeBatch` expose TOUS les verbes de rangée de `cascade` (resist compris), et la bande offre la Détermination', () => {
     const mono = FLOW_VERBS.cascade.verbs as readonly string[];
     const bande = FLOW_VERBS.cascadeBatch.verbs as readonly string[];
     // La validation (`confirm`) est un verbe de FENÊTRE : la cascade valide l'étape, bande comprise.
     const manquants = mono.filter((v) => !estVerbeDeFenetre(v as never) && !bande.includes(v));
     expect(manquants, 'verbe de l’étape mono absent de la bande — la rangée ne peut pas jouer sa règle').toEqual([]);
-    // La Psychologie ne se testant qu'en bandes, `determine` (LDB 17 l.59) n'est plus exposé QUE là :
-    // le filet de parité ci-dessus ne le couvre plus, il s'exige donc nommément.
-    expect(bande, 'la Détermination n’est plus jouable nulle part').toContain('determine');
+    // La Psychologie ne se testant qu'en bandes, la bande offre le verbe général de la Détermination (LDB 17 l.59) :
+    // le filet de parité ci-dessus ne le couvre pas, il s'exige donc nommément.
+    expect(VERBES_D_INTERACTION.batch.gestes.map((g) => g.verbe), 'la Détermination n’est plus jouable nulle part').toContain('depenserLaDetermination');
   });
 });
 
@@ -103,7 +104,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-psy': spyApplier(vues, (step) => ({ parts: (step.participants ?? []).map((p) => ({ id: p.id, immune: p.immune })) })) } });
     startCascade(banc.getState, banc.setState, { title: 'Peur', purpose: 'test', steps: [psychBand()] });
 
-    banc.getState().jetDepenserLaDetermination('cascadeBatch', h1.id);
+    banc.getState().depenserLaDetermination(h1.id, 'immuniserALaPsychologie');
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.participants![0].immune).toBe(true);
     expect(st.participants![0].result).toEqual({ roll: 50, target: 50, sl: 0, success: true });
@@ -123,7 +124,7 @@ describe('DÉTERMINATION par rangée (LDB 17 l.59)', () => {
     banc.setState({ party: [h1] });
     avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'bande-nue': spyApplier([], () => null) } });
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [band('bande-nue', [row(h1.id)])] });
-    banc.getState().jetDepenserLaDetermination('cascadeBatch', h1.id);
+    banc.getState().depenserLaDetermination(h1.id, 'immuniserALaPsychologie');
     expect(banc.getState().pendingCascade!.participants[0].participants![0].result).toBeNull();
     expect(banc.getState().party[0].resolve).toBe(2);
   });

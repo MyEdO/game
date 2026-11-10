@@ -188,8 +188,8 @@ export function RollRow({
             {resist && <ResistButton menace={resist.menace} show onResist={resist.onResist} />}
             {reverse && <ReverseButton show onReverse={reverse.onReverse} preview={reverse.preview} />}
             {/* Détermination (LDB 17 l.59) : POOL DISTINCT de la Résilience — sa fenêtre est la
-                PRÉSENCE de la donnée `determination`, posée par le site quand le verbe `determine`
-                de son flux est ouvert (réserve comprise). Jamais gatée par la Résilience. */}
+                PRÉSENCE de la donnée `determination`, posée par le site quand l'immunité du porteur
+                est ouverte (`refusDImmunite`, réserve comprise). Jamais gatée par la Résilience. */}
             {determineBtn}
           </InfluenceRow>
         </>
