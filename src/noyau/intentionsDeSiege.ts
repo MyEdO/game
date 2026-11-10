@@ -131,9 +131,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   cederLaPossession: 'hôte', renommerLaPossession: 'hôte', recupererLaPossession: 'hôte',
   remiserLaPossession: 'hôte', embarquer: 'hôte', debarquer: 'hôte',
   // ── Bourse du groupe : marché terrestre, marchand, port ───────────────────────────────────────
-  payerLesAchats: 'hôte', vendreLeLot: 'hôte',
-  troquerLesObjets: 'hôte', reparerLObjet: 'hôte', chercherLaDisponibilite: 'hôte', marchanderLePrix: 'hôte',
-  refuserLeMarche: 'hôte', ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
+  ouvrirLaBoutique: 'hôte', ouvrirLeMarche: 'hôte',
   acheterLaCargaison: 'hôte', vendreLaCargaison: 'hôte', jeterLaCargaison: 'hôte',
   evaluerLeVin: 'hôte', deplacerLaCargaison: 'hôte', ouvrirLePort: 'hôte', reparerLeNavire: 'hôte', carenerLeNavire: 'hôte',
   installerLAmelioration: 'hôte', recruterLEquipage: 'hôte', renvoyerLEquipage: 'hôte', recueillirLesRumeurs: 'hôte',
@@ -220,7 +218,8 @@ const OUVERTURE_DES_FLUX = {
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
   steamSave: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
   activity: { parInvite: ['pratiquerLActivite'] },
-  bargain: { parHote: ['marchanderLePrix'] },
+  // Échoppe : le choix `marchand.marchander`, que l'hôte seul joue (`CHOIX_DES_FENETRES`).
+  bargain: { parInvite: ['fenetreChoisir'] },
   appraise: { parHote: ['evaluerLObjet'] },
   shanty: { parInvite: ['chanterLaChanson'] },
 } as const;

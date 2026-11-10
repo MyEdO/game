@@ -2,8 +2,8 @@
  * L'ÉCHOPPE EN VUE (#3534) — ce qu'un hôte montre de l'échoppe qui tient la main : la bourse du groupe ; l'étal rangé
  * par famille (`merchantFamilies`), chaque article à son prix (`prixDeLigne`), sa quantité en stock et son ajout au
  * panier, fermé avec sa raison (`refusDAjout`) ; le panier (`devisDuPanier`), chaque ligne ôtée d'une unité, son total
- * et le paiement (`payerLesAchats`) ; les possessions de chaque héros à vendre, leur gain (`sellGain`) et leur refus
- * (`sellRefusal`), puis le lot (`devisDeVente`), son total et la vente (`vendreLeLot`). Lecteur PUR, lu par les hôtes du
+ * et le paiement (`marchand.payer`) ; les possessions de chaque héros à vendre, leur gain (`sellGain`) et leur refus
+ * (`sellRefusal`), puis le lot (`devisDeVente`), son total et la vente (`marchand.vendre`). Lecteur PUR, lu par les hôtes du
  * noyau (`hote/ecran.ts`).
  */
 import type { Jeu } from './etat';
@@ -15,7 +15,7 @@ import { findTrappingById, merchantFamilies } from '../data/index';
 import { catalogEntryOf, contexteDAchat, devisDeVente, devisDuPanier, prixDeLigne, refusDAjout, sellGain, sellRefusal, type MerchantState } from './merchantFlow';
 import { totalDesBourses } from './bourseFlow';
 import { fenetreDuJeu } from './combatAuto';
-import { VERBE_DE_CHOIX, type AxeDe } from './choixDesFenetres';
+import { VERBE_DE_CHOIX, type AxeDe, type ChoixDesFenetres } from './choixDesFenetres';
 import { garanti } from '../lib/garanti';
 
 /** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
@@ -44,7 +44,7 @@ export interface MarchandEnVue {
 }
 
 /** Le choix `axe` de l'échoppe à la valeur `valeur`. */
-const choix = (axe: AxeDe<'marchand'>, valeur: string): GesteDuNoyau => ({ verbe: VERBE_DE_CHOIX, args: ['marchand', axe, valeur] });
+const choix = <A extends AxeDe<'marchand'>>(axe: A, valeur: ChoixDesFenetres['marchand'][A]): GesteDuNoyau => ({ verbe: VERBE_DE_CHOIX, args: ['marchand', axe, valeur] });
 
 /** Le rang de rareté de l'article `id` : l'indice de sa Disponibilité dans le canon ordonné, après le dernier palier
  *  hors canon. */
@@ -99,7 +99,7 @@ export function marchandEnVue(s: Jeu): MarchandEnVue | null {
     panier: {
       lignes: devis.lignes.map((l) => ({ id: l.id, nom: catalogEntryOf(l.id)?.label ?? l.id, qty: l.qty, sousTotal: l.sousTotal ? formatMoney(l.sousTotal) : null, oter: choix('oterDuPanier', l.id) })),
       total: formatMoney(devis.total),
-      payer: { geste: { verbe: 'payerLesAchats', args: [] }, refus: devis.refus },
+      payer: { geste: choix('payer', true), refus: devis.refus },
     },
     vente: {
       heros: s.party.map((h) => ({
@@ -110,7 +110,7 @@ export function marchandEnVue(s: Jeu): MarchandEnVue | null {
         })),
       })),
       total: formatMoney(vente.total),
-      vendre: { geste: { verbe: 'vendreLeLot', args: [] }, refus: vente.refus },
+      vendre: { geste: choix('vendre', true), refus: vente.refus },
     },
   };
 }

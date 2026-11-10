@@ -57,7 +57,7 @@ describe('la naissance est câblée aux flux réels', () => {
 
   it('le panier fait naître sans propriétaire : aucune apparence, et la répartition n’en décide aucune', () => {
     banc.setState({ party: [porteur('nain'), porteur('humain', 'humains-reiklander')], merchant: marchand() });
-    banc.getState().payerLesAchats();
+    banc.getState().fenetreChoisir('marchand', 'payer', true);
     const attribution = banc.getState().merchant!.pendingDistribution?.[0];
     const objet = attribution && 'item' in attribution ? attribution.item : undefined;
     expect(objet).toBeDefined();

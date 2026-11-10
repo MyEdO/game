@@ -36,7 +36,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
   it('marketMode : override "sans-marchandage" prime alors que le global reste "complet"', () => {
     banc.setState({ party: [hero()], scene: sceneWith({ marketMode: 'sans-marchandage' }) });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     expect(banc.getState().pendingBargain).toBeNull(); // override local désactive le Marchandage
   });
 
@@ -44,7 +44,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
     banc.setState({ party: [hero()], scene: sceneWith({}) });
     setRule('market-mode', 'sans-marchandage');
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     expect(banc.getState().pendingBargain).toBeNull(); // hérité du global, pas un 3ᵉ état
   });
 
@@ -52,7 +52,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
     banc.setState({ party: [hero()], scene: sceneWith({ marketMode: 'complet' }) });
     setRule('market-mode', 'sans-marchandage');
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().marchanderLePrix('buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
     expect(banc.getState().pendingBargain).not.toBeNull(); // l'override local rouvre le Marchandage
   });
 
