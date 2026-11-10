@@ -55,6 +55,7 @@ size_flags_horizontal = 3
 alignment = 1
 
 [node name="Verdict" type="Label" parent="Chiffres/Issue"]
+custom_minimum_size = Vector2(96, 0)
 autowrap_mode = 3
 
 [node name="verdict" type="Node" parent="Chiffres/Issue/Verdict"]
