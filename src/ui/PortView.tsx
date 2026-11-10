@@ -7,7 +7,7 @@ import { findVehicleById, findNavalTrait, findNavalPortById, type NavalPortData 
 import { type PortProfile } from '../engine/seaVoyage';
 import { REPARATION } from '../engine/seaNavigation';
 import { findCargoEntryById } from '../engine/cargo';
-import { toMoney, priceToMoney, fromBrass, PA_PER_CO } from '../engine/money';
+import { toMoney, priceToMoney, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { moraleBand } from '../engine/crewMorale';
 import type { CampaignVessel } from '../noyau/etat';
 import { devisDAchatEnPort, caleALEscale, refusDeBradageEnPort, rolesRecrutables, refusDEmbauche, refusDeDebarquement } from '../noyau/portFlow';
@@ -176,7 +176,7 @@ export function PortView({ initialTab = 'coque' }: { initialTab?: 'coque' | 'car
                 ariaLabel="Réparer la coque"
                 enabled={!chantier.refusReparation}
                 {...raisonSi(chantier.refusReparation)}
-                descOfferte={`${REPARATION.portCostGoldPerWound} CO par Blessure restaurée${lissage ? ` · +${REPARATION.lissageRepairSurcoutPct} % coque lissée` : ''}`}
+                descOfferte={`${formatMoney(toMoney({ gold: REPARATION.portCostGoldPerWound }))} par Blessure restaurée${lissage ? ` · +${REPARATION.lissageRepairSurcoutPct} % coque lissée` : ''}`}
                 onClick={repair}
                 primary={false}
               />
