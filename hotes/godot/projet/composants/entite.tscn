@@ -1,16 +1,17 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/nom_d_entite.tres" id="t_nom_d_entite"]
 
 [node name="Entite" type="VBoxContainer"]
-theme_override_constants/separation = 6
+theme_type_variation = &"PileSerree"
 
 [node name="Nom" type="PanelContainer" parent="."]
 theme_type_variation = &"TeteDEntite"
 
 [node name="Texte" type="Label" parent="Nom"]
-theme_override_font_sizes/font_size = 20
+theme = ExtResource("t_nom_d_entite")
 
 [node name="nom" type="Node" parent="Nom/Texte"]
 script = ExtResource("1_liaison")
@@ -22,7 +23,7 @@ champ = "ton"
 propriete = &"theme_type_variation"
 
 [node name="Elements" type="HFlowContainer" parent="."]
-theme_override_constants/v_separation = 6
+theme_type_variation = &"FluxSerre"
 
 [node name="Zone" type="Node" parent="Elements"]
 script = ExtResource("2_zone")
