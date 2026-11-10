@@ -2080,10 +2080,10 @@
   {
     "id": "admissionApparenceDObjet",
     "type": "primitives.manifest",
-    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/referenceDApparenceDObjet/messageDApparenceDObjet",
+    "label": "candidatsDApparenceDObjet/apparencesAdmissiblesDObjet/apparencesChoisissablesDObjet/objetsAApparenceChoisie/referenceDApparenceDObjet/messageDApparenceDObjet",
     "fichier": "src/data/apparencesObjets.ts",
-    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; référence d’auteur absente pour la forme par défaut ou une apparence non admise ; refus commun aux références d’auteur",
-    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, sélecteurs d’apparence de la fiche et des éditeurs, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets, contrôles d’auteur d’objets non nés",
+    "concept": "résolution canonique des candidats d’un trapping par résolveur injecté (catalogue par défaut) : shape et formChoices admettent la racine de l’apparence ; lecteurs versionnés partagés avec la façade data/index ; apparences choisissables d’un objet (admises hors sa forme par défaut), seules à recevoir une référence d’auteur ; objets d’armes dont l’apparence se choisit ; refus commun aux références d’auteur",
+    "perimetre": "décision de naissance et choix explicite par choisirApparenceDObjet, sélecteurs d’apparence de la fiche et des éditeurs, parse de giveTrapping effet et op, EntityAppearance.apparencesObjets (éditeur web et formulaire de l’éditeur Godot), contrôles d’auteur d’objets non nés",
     "verrou": "src/data/schemas/grammaire/apparences-objets.test.ts, src/engine/apparences-candidates.test.ts"
   },
   {

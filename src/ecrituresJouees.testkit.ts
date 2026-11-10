@@ -117,6 +117,10 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
  *  ouvrent des sorts à choisir (`listesDeSorts`). */
 const FICHES = ['vouivre-zoo-imperial', 'l-ombre-du-fleuve'] as const;
 
+/** La fiche d'un personnage enrôlé dans une rencontre neuve : son arme simple admet d'autres apparences que sa forme
+ *  (`EntityAppearance.apparencesObjets`, #2948). */
+const ENROLE = 'sergent-du-guet';
+
 /** Le projet dont le narratif déclare des presets de PNJ (`presetsPnj`), qu'un personnage choisit (`presetId`). */
 const PROJET_A_PRESETS = 'la-diligence';
 
@@ -129,7 +133,8 @@ const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => editer(editer(s, { geste: 'appui', point: point(x, y) }), { geste: 'relache', point: point(x, y) });
 
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
- *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), puis sur un personnage de la
+ *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), et un personnage d'`ENROLE`
+ *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
  *  première des `FICHES` posé dans une scène neuve du `PROJET_A_PRESETS`, et sur la coque `COQUE`, sélectionnée ; chacun
  *  joué à son inspecteur (`jouerLInspecteur`). */
 export function ecrituresJouees(): EcritureJouee[] {
@@ -140,6 +145,7 @@ export function ecrituresJouees(): EcritureJouee[] {
     s = jouerLInspecteur(editer(editer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }), out);
   }
   FICHES.forEach((fiche, rang) => { s = jouerLInspecteur(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${fiche}`), 5 + rang, 5), out); });
+  s = jouerLInspecteur(presser(cliquer(presser(presser(s, 'outil/personnage'), `personnage/${ENROLE}`), 5 + FICHES.length, 5), 'rencontre/neuve'), out);
   const aPresets = allBuiltinCampaigns.find((c) => c.id === PROJET_A_PRESETS);
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');

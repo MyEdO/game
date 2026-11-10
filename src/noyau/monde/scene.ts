@@ -69,10 +69,8 @@ export interface ActionAuthoree {
 }
 
 /** RESTE MANUSCRIT (les 22 autres formes de la scène sont des `z.infer` de
- *  `data/schemas/defs-scenes/scene.ts`) — un écart MESURÉ avec `sceneEntitySchema` :
- *  `appearance` porte ici `EntityAppearance`
- *  (`engine/authoringAppearance`) là où le schéma compose `entityAppearanceSchema`, nœud-FRONTIÈRE
- *  du vocabulaire partagé. */
+ *  `data/schemas/defs-scenes/scene.ts`) — un écart MESURÉ avec `sceneEntitySchema` : une interface
+ *  plate, aux identifiants nus, là où le schéma est une union par `kind` aux identifiants marqués. */
 export interface SceneEntity {
   id: string;
   kind: EntityKind;

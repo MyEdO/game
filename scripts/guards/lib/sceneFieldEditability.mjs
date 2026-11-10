@@ -41,8 +41,7 @@ import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // `grammaire/valeurs.ts:moneyPartialSchema`).
 // La marche S'ARRÊTE aux nœuds-frontière, désignés eux aussi par IDENTITÉ (module + nom du
 // `export const`) : `conditionSchema`, `gameOpSchema`, `flowTestSchema`, `sceneFlowSchema`,
-// `effectSchema`, `entityAppearanceSchema` — du vocabulaire PARTAGÉ, qui a ses propres primitives
-// d'édition (`FlowEditor`, `GameOpEditor`). Un `z.custom<T>()` est une
+// `effectSchema` — du vocabulaire PARTAGÉ, qui a ses propres primitives d'édition (`FlowEditor`, `GameOpEditor`). Un `z.custom<T>()` est une
 // frontière STRUCTURELLE (aucun shape à marcher), détectée et jamais listée.
 // Le niveau importe : le SYMBOLE d'un type inféré d'un schéma zod est anonyme et déclaré dans
 // `zod/v4/core/util.d.cts`, alors que ses PROPRIÉTÉS pointent la ligne exacte du shape. Une
@@ -140,7 +139,6 @@ const FRONTIERE = [
   ['src/data/schemas/grammaire/mecanique.ts', 'conditionSchema'],
   ['src/data/schemas/grammaire/mecanique.ts', 'gameOpSchema'],
   ['src/data/schemas/grammaire/mecanique.ts', 'flowTestSchema'],
-  ['src/data/schemas/grammaire/valeurs.ts', 'entityAppearanceSchema'],
   ['src/data/schemas/defs-scenes/effets.ts', 'sceneFlowSchema'],
   ['src/data/schemas/defs-scenes/effets.ts', 'effectSchema'],
 ];
@@ -311,7 +309,7 @@ export function sceneScope(program, root) {
     if (idx) visit(idx.valueType, ownerPath, parentDecl);
 
     // FRONTIÈRE (par PROPRIÉTÉ) : un objet dont aucune propriété n'est déclarée par un module du
-    // document est du vocabulaire PARTAGÉ (Flow/Condition/GameOp/EntityAppearance/CustomStatblock…),
+    // document est du vocabulaire PARTAGÉ (Flow/Condition/GameOp…),
     // on ne descend pas.
     // Un champ dont le type est UN SEUL littéral de chaîne (le discriminant d'un document qui
     // S'ANNONCE : `Scene.type: 'scene'`, #1552) n'a pas de contrôle d'auteur PAR CONSTRUCTION — il n'a

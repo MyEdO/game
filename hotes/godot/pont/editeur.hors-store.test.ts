@@ -1237,6 +1237,9 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
     presser('valeur/crossTest/ajouter');
     choisir('valeur/crossTest/characteristic', 'Force');
+    choisir('valeur/crossTest/stake/forme', 'clé');
+    expect(formulaire('valeur/crossTest/stake/values').champs[2], 'un record à clé ouverte, sans clé offerte, se saisit en JSON').toMatchObject({ type: 'saisieJson' });
+    presser('valeur/crossTest/stake/forme/aucune');
     presser('valeur/onCross/ajouter');
     choisir('valeur/onCross/0/op', 'Points de Corruption');
     saisir('valeur/onCross/0/amount', 2);
