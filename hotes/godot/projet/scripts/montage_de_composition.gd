@@ -376,9 +376,8 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 ## `MontageDeComposition.masquer_les_zones_couvertes` cache chaque mesh de zone (`extras.zone` de son nœud glTF, que
 ## Godot importe en métadonnée `extras`), de la base ou d'un élément monté, dont la zone est couverte (`couvre` de
 ## `couches`) par un élément monté qui masque son porteur (`masque`), et le montre sinon ; toute couche masque la
-## base. La chemise sous le pourpoint ne montre ainsi que les pièces de ses zones qu'il ne couvre pas, son col. La
-## garde `traversee` de l'évaluateur (`asset/evaluateur/gardes/traversee.ts`) applique le même masque, puis mesure en
-## clip qu'aucune couche visible ne passe devant celle qui la couvre.
+## base. La chemise sous le pourpoint ne montre ainsi que les pièces de ses zones qu'il ne couvre pas, son col.
+## Évaluateur : `sansLesZonesMasquees` (`asset/evaluateur/gardes/traversee.ts`).
 
 ## Chaque mesh de zone (`extras.zone`), de la base ou d'un élément monté, caché si un élément monté couvre sa zone et
 ## masque son porteur (`couvre` et `masque` de `couches` dans `modeles`, #2972), montré sinon ; la base est masquée par

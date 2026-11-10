@@ -420,6 +420,10 @@ déclarée de la base seule à 1, une passe par processus, en parallèle sur les
 moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
 rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
 Ne pas valider une matrice entière avec le seul cas neutre.
+La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant celle qui la couvre.
+`couche-percee-au-repos` : au repos neutre, une couche est déjà devant celle qui la couvre. `membre-dans-un-vetement` :
+en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
+manche de l'autre bras.
 
 ## 7. Deux validations distinctes
 
