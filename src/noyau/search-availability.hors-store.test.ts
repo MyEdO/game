@@ -1,6 +1,6 @@
 /**
  * #57 — Recherche active de Disponibilité (LDB 59 l.50) : « passe une journée entière à effectuer des
- * achats et des Tests de Ragot ». `chercherLaDisponibilite` (marchand) consacre UNE JOURNÉE (avance l'horloge)
+ * achats et des Tests de Ragot ». `marchand.chercher` (marchand) consacre UNE JOURNÉE (avance l'horloge)
  * et jette un Test de Ragot du groupe ; sur un succès, un réassort FRAIS est tiré avec +10 % de
  * Disponibilité (LDB 59 l.50) — cumulable avec la Carrière cohérente jusqu'au plafond +20 %.
  */
@@ -34,7 +34,7 @@ const gossiper = (soc: number): Combatant =>
 
 const merchantScene = () => {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
+  sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
   return sc;
 };
 
@@ -50,7 +50,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     banc.setState({ party: [gossiper(90)], scene: merchantScene(), merchantStocks: {}, gameTime: 8 * 60 });
     banc.getState().ouvrirLeMarchand('pnj');
     const t0 = banc.getState().gameTime;
-    banc.getState().chercherLaDisponibilite();
+    banc.getState().fenetreChoisir('marchand', 'chercher', true);
     expect(banc.getState().gameTime).toBe(t0 + MINUTES_PER_DAY);
     expect(banc.getState().merchant).not.toBeNull(); // le marchand reste ouvert, stock rafraîchi
   });
@@ -62,7 +62,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     banc.setState({ party: [h], scene: merchantScene(), merchantStocks: {}, gameTime: 8 * 60, journal: [] });
     banc.getState().ouvrirLeMarchand('pnj');
     const des = vi.spyOn(battleRng(), 'int');
-    banc.getState().chercherLaDisponibilite();
+    banc.getState().fenetreChoisir('marchand', 'chercher', true);
     const d100 = des.mock.calls.flatMap((args, i) => (args[0] === 1 && args[1] === 100 ? [des.mock.results[i].value as number] : []));
     des.mockRestore();
     expect(d100, 'un seul d100 : le Ragot').toHaveLength(1);
@@ -82,7 +82,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
       banc.getState().ensemencerLeTirage(4);
       banc.setState({ party: [gossiper(soc)], scene: merchantScene(), merchantStocks: {}, gameTime: 8 * 60 });
       banc.getState().ouvrirLeMarchand('pnj');
-      banc.getState().chercherLaDisponibilite();
+      banc.getState().fenetreChoisir('marchand', 'chercher', true);
       return banc.getState().merchant!.stock.map((l) => `${l.id}:${l.qty}`).sort().join('|');
     };
     const success = run(99);
@@ -110,7 +110,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
     banc.setState({ party: [gossiper(90)], scene: merchantScene(), merchantStocks: {}, gameTime: 8 * 60 });
     banc.getState().ouvrirLeMarchand('pnj');
     const t0 = banc.getState().gameTime;
-    banc.getState().chercherLaDisponibilite();
+    banc.getState().fenetreChoisir('marchand', 'chercher', true);
     expect(banc.getState().gameTime).toBe(t0); // pas de journée consommée : le marché simplifié ignore la Disponibilité
   });
 });

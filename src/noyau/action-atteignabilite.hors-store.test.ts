@@ -52,20 +52,20 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
     ).toEqual([]);
   });
   /**
-   * ARMEMENT — la valeur qu'une action pose dans `battle.action` (`armed`) est un MODE de ciblage du
-   * catalogue, et c'est le `mode` que la MÊME entrée déclare. Conséquence lue par les consommateurs :
-   * « quel geste arme le mode X ? » se résout par le champ `mode`/`armed`, l'id de l'entrée porteuse
+   * ARMEMENT — la valeur qu'une action armée (`armed`) pose dans `battle.action` est le `mode` que la
+   * MÊME entrée déclare, un MODE de ciblage du catalogue. Conséquence lue par les consommateurs :
+   * « quel geste arme le mode X ? » se résout par le champ `mode` d'une entrée `armed`, l'id de l'entrée porteuse
    * étant libre (`cast-spell` arme `cast`, `push-engine` arme `push`).
    */
-  it('tout `armed` déclaré est un mode du catalogue, égal au `mode` de son entrée (mode incantation → `cast-spell`)', () => {
+  it('toute action `armed` arme un mode du catalogue (mode incantation → `cast-spell`)', () => {
     const armantes = ACTIONS.filter((a) => a.armed);
     expect(armantes.length, 'aucune action armante mesurée : la garde serait verte à vide').toBeGreaterThan(0);
     const bad = armantes
-      .filter((a) => !TARGETING_MODES.some((m) => m.id === a.armed) || a.mode !== a.armed)
-      .map((a) => `${a.id} → armed:${a.armed} / mode:${a.mode ?? '—'}`);
-    expect(bad, `action(s) dont l'armement ne désigne pas son propre mode de ciblage :\n  ${bad.join('\n  ')}`).toEqual([]);
+      .filter((a) => !TARGETING_MODES.some((m) => m.id === a.mode))
+      .map((a) => `${a.id} → mode:${a.mode ?? '—'}`);
+    expect(bad, `action(s) armée(s) dont le mode n'est pas un mode de ciblage :\n  ${bad.join('\n  ')}`).toEqual([]);
     // Résolution NOMMÉE du mode incantation : une seule entrée l'arme, et c'est `cast-spell`.
-    const incantation = armantes.filter((a) => a.armed === CAST_MODE.id).map((a) => a.id);
+    const incantation = armantes.filter((a) => a.mode === CAST_MODE.id).map((a) => a.id);
     expect(incantation, `le mode ${CAST_MODE.id} doit être armé par une entrée unique`).toEqual(['cast-spell']);
   });
 
@@ -95,9 +95,9 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
     // Fail-closed : un id inconnu ne « passe » jamais.
     expect(actionGate('id-inexistant', { active, battle, gameTime: 0 }).ok).toBe(false);
   });
-  it('`BattleState.action` se type DEPUIS le registre : `armed` + MODES_HORS_REGISTRE = BATTLE_ACTION_MODES', () => {
+  it('`BattleState.action` se type DEPUIS le registre : modes `armed` + MODES_HORS_REGISTRE = BATTLE_ACTION_MODES', () => {
     const derives = new Set([
-      ...ACTIONS.flatMap((a) => (a.armed ? [a.armed] : [])),
+      ...ACTIONS.flatMap((a) => (a.armed && a.mode ? [a.mode] : [])),
       ...Object.keys(MODES_HORS_REGISTRE),
     ]);
     expect([...derives].sort()).toEqual([...BATTLE_ACTION_MODES].sort());

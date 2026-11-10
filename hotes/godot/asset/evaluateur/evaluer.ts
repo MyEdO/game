@@ -3,7 +3,7 @@
  * squelette de la base, valide le manifeste de base, pose gabarit et silhouettes, mesure au repos les shape keys de la
  * base (`gardes/silhouettes.ts`), échantillonne les clips, puis appelle chaque garde de `gardes/` : `poids`,
  * `enroulement`, `budget`, `pistesDEchelle`, `chaines`, `echelleDuRigide`, `tranchantDuRigide`, `silhouettes`, `segments`, `appuis`,
- * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`.
+ * `piedsAuSol`, `etirement`, `suiviDuCorps`, `traversee`, `amplitude`.
  * Le corps est l'ensemble des meshes de zone de la base (`extras.zone`) ; une base sans zone est un corps d'un seul
  * tenant : ses meshes skinnés.
  */
@@ -31,6 +31,7 @@ import { gardePoids } from './gardes/poids.ts';
 import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from './gardes/silhouettes.ts';
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
+import { suivreLesAmplitudes } from './gardes/amplitude.ts';
 import { gardeTraversee, lierLesCouches, mesurerTraversee, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
 import { COUCHES, RANG_DU_CORPS, type Couche } from '../element.ts';
 
@@ -216,6 +217,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const repos = poseDeRepos(base.scene, meshes);
   const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
+  const amplitudes = suivreLesAmplitudes(base.scene, manifeste?.bornesArticulaires ?? {}, repos);
   const aretes = new Map(meshes.map((m) => [m, aretesDe(m)]));
   ecarts.push(...gardeEtirementAuRepos(aretes, libelle, sansCles, repos));
   const niveaux: NiveauDuCorps[] = [];
@@ -229,11 +231,12 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     niveaux.push({ clip: e.clip, t: e.t, plusBas: plusBas(e.positions, corps) });
     etirements.push(mesurerEtirement(aretes, sansCles, e));
     suiviDesChaines.echantillon(e);
+    amplitudes.echantillon(e);
     if (manifeste && e.clip === manifeste.clips.walk) posesDesPieds.push(...poserPieds(e, surfaces, racine));
   }
   const appuis = mesurerAppuis(posesDesPieds, manifeste ? { [manifeste.clips.walk]: manifeste.appuis.vitesseAuSol * (pose?.echelleDeVitesse ?? 1) } : {});
   ecarts.push(...appuis.ecarts);
-  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle));
+  ecarts.push(...gardePiedsAuSol(niveaux, new Set(entree.clipsAuSol ?? [])), ...gardeEtirement(etirements, libelle), ...gardeTraversee(traversees, libelle), ...amplitudes.ecarts());
 
   const parMesh = meshes.map((m) => ({ mesh: libelle(m), triangles: trianglesDe(m) }));
   return {

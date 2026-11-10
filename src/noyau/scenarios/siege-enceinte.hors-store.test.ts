@@ -220,7 +220,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     expect(affut.bodyShape).toBe('engin');
     expect(affut.species).toBeUndefined();
     expect(b.order).not.toContain(affutEnt.id); // affût inerte → aucun tour propre
-    expect(affutEnt.ref).toBe('canon-petit');
+    expect(affutEnt.engin?.id).toBe('canon-petit');
     expect(affutEnt.appearance).toBeUndefined();
     const input = buildAiInput(canonnier, banc.getState);
     expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
@@ -349,7 +349,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
       expect(m.ai).toBeUndefined(); // affût inerte : aucun tour propre
     }
     // Gobelins fantassins : 6 ennemis (marqueurs 'o').
-    const gobs = scenarioConstruit.scene.entities.filter((e) => e.ref === 'gobelin');
+    const gobs = scenarioConstruit.scene.entities.filter((e) => e.creature?.id === 'gobelin');
     expect(gobs.length).toBe(6);
     for (const g of gobs) expect(by(g.id)).toEqual({ entityId: g.id, side: 'enemy' });
   });

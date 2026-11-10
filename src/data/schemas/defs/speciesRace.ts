@@ -1,6 +1,6 @@
-/** Race d'apparence par défaut. */
-import { z } from 'zod';
+/** Espèce d'apparence par défaut. */
 import { document } from '../grammaire/document';
+import { ref } from '../grammaire/ref';
 
 export const file = 'speciesRace.json';
 export const famille = 'config';
@@ -9,16 +9,16 @@ const doc = document(
   'speciesRace',
   famille,
   {
-    default: z.string(),
+    default: ref('planDeBestiaire'),
   },
   {
-    default: { label: 'Race par défaut', hint: 'Race d’apparence retenue par défaut' },
+    default: { label: 'Espèce d’apparence par défaut', hint: 'Espèce du plan de bestiaire retenue quand aucune espèce n’est donnée' },
   },
   {
     codex: {
       exempt: {
         kind: 'vocabulaire-app-interne',
-        raison: "race d'apparence par défaut de l'authoring, pas une fiche de contenu.",
+        raison: "espèce d'apparence par défaut de l'authoring, pas une fiche de contenu.",
       },
     },
     edit: { none: 'aucune catégorie Codex ne l’expose, donc aucun formulaire d’atelier ne l’édite' },

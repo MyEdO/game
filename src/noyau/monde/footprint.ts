@@ -58,8 +58,8 @@ export function occupiesTile(pos: Pt, n: number, x: number, y: number): boolean 
  * parce qu'une lampe calée sur un autre point que sa propre géométrie s'en détacherait dès la première empreinte
  * non 1×1 — mesuré à 1,414 m sur une empreinte 2×2 (#1680 ligne 5). PURE.
  */
-export function ancreDuDecor(ent: Pick<SceneEntity, 'pos' | 'ref' | 'facing' | 'calage'>, mpt: number): { x: number; y: number } {
-  const prop = findPropById(ent.ref);
+export function ancreDuDecor(ent: Pick<SceneEntity, 'pos' | 'decor' | 'facing' | 'calage'>, mpt: number): { x: number; y: number } {
+  const prop = findPropById(ent.decor?.id);
   const { offX, offY } = decorFootGeometry(empreinteDuProp(prop, ent.facing, mpt));
   const decalage = decalageDuCalage(prop, ent.facing, mpt, ent.calage);
   return { x: ent.pos.x + offX + decalage.x, y: ent.pos.y + offY + decalage.y };

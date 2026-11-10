@@ -13,7 +13,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * #2547 — Marchandage de VENTE gagné par un Négociateur, par la couture du jeu (`marchanderLePrix` →
+ * #2547 — Marchandage de VENTE gagné par un Négociateur, par la couture du jeu (`marchand.marchander` →
  * `jetLancer('bargain')` → `jetValider('bargain')`) : LDB 59 l.54, LDB 10 l.818 ; arbitrage #2547 (2026-10-09).
  */
 const get = () => banc.getState();
@@ -32,10 +32,10 @@ function negociateur(): Combatant {
 /** Ouvre l'armurier ambulant (Marchandage 45) et marchande la VENTE, d100 imposés (joueur, marchand). */
 function marchanderLaVente(joueur: number, marchand: number): void {
   const sc = emptyScene('scene-test', 4, 4); sc.id = 'm';
-  sc.entities.push({ id: 'pnj', kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
+  sc.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' } } } as never);
   set({ party: [negociateur()], scene: sc, merchant: null, merchantStocks: {}, journal: [], pendingCascade: null, pendingBargain: null } as never);
   get().ouvrirLeMarchand('pnj');
-  get().marchanderLePrix('sell');
+  get().fenetreChoisir('marchand', 'marchander', 'sell');
   imposerLesD100(joueur, marchand);
   get().jetLancer('bargain');
 }

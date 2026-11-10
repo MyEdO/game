@@ -17,7 +17,7 @@ export const CORA = hero('cora');
 export function taverneAttablee(): Scene {
   let sc: Scene = emptyScene('scene-test', 12, 12);
   sc.id = 'taverne';
-  sc.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, ref: 'table-ronde-4-tabourets', facing: 'N', usable: { assise: true } });
+  sc.entities.push({ id: 'table-1', kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N', usable: { assise: true } });
   for (const rang of [1, 2]) {
     const r = assignSeat(sc, 'table-1', `place-${rang}`, { kind: 'party', rang }, 2);
     if (!r.ok) throw new Error(`assignSeat refusé (rang ${rang}) : ${r.reason}`);

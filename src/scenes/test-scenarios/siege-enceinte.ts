@@ -52,13 +52,13 @@ const gunner = (
   pos: { x: number; y: number },
   trappingId: string,
   label: string,
-  opts: { z?: number; facing?: SceneEntity['facing']; ref?: string } = {},
+  opts: { z?: number; facing?: SceneEntity['facing']; creature?: string } = {},
 ): SceneEntity => ({
   id,
   kind: 'personnage',
   pos,
   label,
-  ref: opts.ref ?? 'brute',
+  creature: { id: opts.creature ?? 'brute' },
   ...(opts.z ? { z: opts.z } : {}),
   ...(opts.facing ? { facing: opts.facing } : {}),
   combat: { skills: projForPiece(trappingId) },
@@ -218,8 +218,8 @@ export function spec(): MapSpec {
       gunner('crew-baliste', { x: 7, y: 38 }, 'baliste', 'Servant de baliste', { z: 1 }),
       gunner('crew-canon', { x: 20, y: 38 }, 'canon-petit', 'Servant de canon', { z: 1 }),
       // Servants de la BATTERIE assaillante (z0, côté assaut, facing S) — à x-1 de leur affût (k(21,15)→(20,15), p(8,2)→(7,2)).
-      gunner('brg-canon', { x: 20, y: 15 }, 'canon-petit', 'Canonnier de siège', { facing: 'S', ref: 'wolfgard-hohmann' }),
-      gunner('brg-cata', { x: 7, y: 2 }, 'catapulte-petite', 'Servant de catapulte', { facing: 'S', ref: 'wolfgard-hohmann' }),
+      gunner('brg-canon', { x: 20, y: 15 }, 'canon-petit', 'Canonnier de siège', { facing: 'S', creature: 'wolfgard-hohmann' }),
+      gunner('brg-cata', { x: 7, y: 2 }, 'catapulte-petite', 'Servant de catapulte', { facing: 'S', creature: 'wolfgard-hohmann' }),
     ],
 
     // ── BINDS des marqueurs → poses. Archers/guetteur = PNJ alliés-IA (arcs). Emplacements = affûts INERTES servis
@@ -228,12 +228,12 @@ export function spec(): MapSpec {
       '@': 'heroStart',
       // Archers défenseurs (z1, arcs) : PNJ alliés-IA (agissent seuls).
       A: {
-        entity: { kind: 'personnage', ref: 'brute', inventaire: { arc: false }, facing: 'N', z: 1, label: 'Archer du guet' },
+        entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1, label: 'Archer du guet' },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
       G: {
-        entity: { kind: 'personnage', ref: 'brute', inventaire: { arc: false }, facing: 'N', z: 1 },
+        entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1 },
         member: { enc: 'assaut', side: 'ally', ai: true },
       },
       // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).
@@ -243,11 +243,11 @@ export function spec(): MapSpec {
       k: { emplacement: 'canon-petit', crew: 'brg-canon', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
       p: { emplacement: 'catapulte-petite', crew: 'brg-cata', facing: 'S', member: { enc: 'assaut', side: 'enemy' } },
       // Fantassins gobelins (z0) : assaut ennemi qui traverse le pont et s'amasse à la porte.
-      o: { entity: { kind: 'personnage', ref: 'gobelin', facing: 'S' }, member: { enc: 'assaut', side: 'enemy' } },
+      o: { entity: { kind: 'personnage', creature: { id: 'gobelin' }, facing: 'S' }, member: { enc: 'assaut', side: 'enemy' } },
       // CAMP assaillant (décor PUR, rangées 0-1) : tentes / braséros / étendards — POSÉS PAR L'ASCII (zéro coordonnée).
-      T: { kind: 'prop', ref: 'tente' },
-      F: { kind: 'prop', ref: 'brasero' },
-      E: { kind: 'prop', ref: 'etendard' },
+      T: { kind: 'prop', decor: { id: 'tente' } },
+      F: { kind: 'prop', decor: { id: 'brasero' } },
+      E: { kind: 'prop', decor: { id: 'etendard' } },
     },
 
     // ── RENCONTRE : le roster des servants (alliés-IA au rempart ; mercenaires ennemis à la batterie) — le RESTE

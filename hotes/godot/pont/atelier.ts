@@ -348,7 +348,7 @@ export interface PosteMonte {
 type ManifesteDeVehicule = Extract<ManifesteDElement, { categorie: 'vehicule' }>;
 
 /** Les postes du véhicule de manifeste `manifeste` qui porte les Améliorations `ameliorations` : ceux de son manifeste,
- *  chaque bord que nomme `selon.<amelioration>.postes` d'une Amélioration montée remplacé par les siens (MDG p.97). */
+ *  chaque bord que nomme `selon.<amelioration>.postes` d'une Amélioration montée remplacé par les siens (MDG 12 l.362). */
 export const postesEnVigueur = (manifeste: unknown, ameliorations: readonly string[]): ManifesteDeVehicule['postes'] => {
   const { postes, selon } = manifeste as ManifesteDeVehicule;
   return Object.assign({}, postes, ...ameliorations.map((a) => selon?.[a]?.postes));

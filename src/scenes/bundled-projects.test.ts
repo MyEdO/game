@@ -8,7 +8,7 @@ import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { livreExtraitDe } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 import { parseProject, ProjetRefuse, type ProjectDoc } from '../noyau/worldMap';
 import { validateScene } from '../noyau/validateScene';
-import { emptyScene } from '../noyau/monde/scene';
+import { emptyScene, idDuCorps } from '../noyau/monde/scene';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { books, buildings, findCrewRoleById, findVehicleById } from '../data';
 import { findManannFactor } from '../engine/seaVoyage';
@@ -106,7 +106,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     for (const sc of doc.scenes)
       for (const e of sc.entities) {
         if (e.kind !== 'personnage') continue;
-        if (!e.ref && !e.statblock?.label && !e.label) anonymes.push(`${sc.id}:${e.id}`);
+        if (!idDuCorps(e) && !e.statblock?.label && !e.label) anonymes.push(`${sc.id}:${e.id}`);
       }
     expect(anonymes, 'entité(s) de personnage sans nom — le combattant spawne anonyme (spawn.ts:339)').toEqual([]);
   });
@@ -233,7 +233,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
       .flatMap(({ file, doc }) =>
         doc.scenes.flatMap((sc) =>
           sc.entities
-            .filter((e) => e.kind === 'personnage' && e.ref && !e.statblock && !e.presetId)
+            .filter((e) => e.kind === 'personnage' && e.creature && !e.statblock && !e.presetId)
             .map((e) => ({ file, doc, sceneId: sc.id, entityId: e.id, entity: e })),
         ),
       )[0];
@@ -242,7 +242,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     const casse = {
       ...doc,
       scenes: doc.scenes.map((sc) =>
-        sc.id !== sceneId ? sc : { ...sc, entities: sc.entities.map((e) => (e === entity ? { ...e, ref: 'creature-qui-n-existe-pas' } : e)) },
+        sc.id !== sceneId ? sc : { ...sc, entities: sc.entities.map((e) => (e === entity ? { ...e, creature: { id: 'creature-qui-n-existe-pas' } } : e)) },
       ),
     };
     const erreurs = erreursDe(casse);

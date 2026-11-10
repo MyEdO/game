@@ -17,7 +17,7 @@ export const IDS = props.map((p) => p.id);
 export const propsAvecPlaces = props.filter((p) => (p.seatSlots?.length ?? 0) > 0);
 
 export const propEntity = ({ id, ref, pos, facing }: { id: string; ref: string; pos: { x: number; y: number }; facing: 'N' | 'E' | 'S' | 'O' }): SceneEntity =>
-  ({ id, kind: 'prop', pos, ref, facing }) as SceneEntity;
+  ({ id, kind: 'prop', pos, decor: { id: ref }, facing }) as SceneEntity;
 export const sceneWith = (...entities: SceneEntity[]): Scene => ({ ...emptyScene('scene-test', 8, 8), entities });
 /** L'échelle des scènes de ces contrats — LUE sur la scène, jamais redite : `emptyScene` ne pose pas de
  *  `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`) qui s'applique. */

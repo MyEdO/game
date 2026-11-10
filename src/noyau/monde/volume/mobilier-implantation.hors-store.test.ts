@@ -38,7 +38,7 @@ function salle(w = 20, h = 16): Scene {
 
 /** Pose un meuble : ancre, réf de catalogue, cap. */
 const meuble = (id: string, ref: string, x: number, y: number, facing: SceneEntity['facing']): SceneEntity =>
-  ({ id, kind: 'prop', ref, pos: { x, y }, facing } as SceneEntity);
+  ({ id, kind: 'prop', decor: { id: ref }, pos: { x, y }, facing } as SceneEntity);
 
 const avec = (sc: Scene, ...meubles: SceneEntity[]): Scene => ({ ...sc, entities: [...sc.entities, ...meubles] });
 
@@ -62,7 +62,7 @@ const ancrageDe = (ent: SceneEntity) => ({
 /** AABB monde du meuble, dérivée de ses FACES réelles (`buildPropVolumes`) — jamais d'une relecture
  *  parallèle de la recette : ce que le test mesure est ce que le monde cuit. */
 function propBounds(ent: SceneEntity): Boite {
-  const faces = buildPropVolumes(findPropById(ent.ref)!, ancrageDe(ent), MPT);
+  const faces = buildPropVolumes(findPropById(ent.decor?.id)!, ancrageDe(ent), MPT);
   const pts = faces.flatMap((f) => f.poly);
   return {
     x0: Math.min(...pts.map((p) => p.x)), x1: Math.max(...pts.map((p) => p.x)),
@@ -77,7 +77,7 @@ function propBounds(ent: SceneEntity): Boite {
  * de sa place (`props-volumiques.test.ts`, ce dossier).
  */
 function corpsBounds(ent: SceneEntity): Boite {
-  const prop = findPropById(ent.ref)!;
+  const prop = findPropById(ent.decor?.id)!;
   const xs: number[] = [], ys: number[] = [];
   const ancre = ancrageDe(ent).ancre;
   for (const p of prop.volume?.primitives ?? []) {
@@ -100,7 +100,7 @@ function corpsBounds(ent: SceneEntity): Boite {
  * que le monde la cuit — c'est ce que le cap de l'entité décide.
  */
 function ferDuComptoir(ent: SceneEntity): { x: number; y: number } {
-  const faces = buildPropVolumes(findPropById(ent.ref)!, ancrageDe(ent), MPT).filter((f) => f.material.id === 'fer-noirci');
+  const faces = buildPropVolumes(findPropById(ent.decor?.id)!, ancrageDe(ent), MPT).filter((f) => f.material.id === 'fer-noirci');
   const pts = faces.flatMap((f) => f.poly);
   return {
     x: pts.reduce((s, p) => s + p.x, 0) / pts.length - ent.pos.x,
@@ -124,7 +124,7 @@ const caseBox = (x: number, y: number): Boite =>
 
 /** Boîte au sol de l'EMPREINTE d'un meuble posé (`empreinteDuProp`, #1509), depuis `pos` — le coin NO. */
 const empreinteBox = (ent: SceneEntity): Boite => {
-  const { w, h } = empreinteDuProp(findPropById(ent.ref), ent.facing, MPT);
+  const { w, h } = empreinteDuProp(findPropById(ent.decor?.id), ent.facing, MPT);
   return { x0: ent.pos.x - 0.5, x1: ent.pos.x + w - 0.5, y0: ent.pos.y - 0.5, y1: ent.pos.y + h - 0.5, h0: -Infinity, h1: Infinity };
 };
 
@@ -141,13 +141,13 @@ describe('le CORPS d’un meuble tient dans son EMPREINTE', () => {
       meuble('armoire', 'armoire', 8, 5, 'O'),
       meuble('comptoir', 'comptoir-droit', 11, 5, 'E'),
     ];
-    expect(poses.map((e) => empreinteDuProp(findPropById(e.ref!), e.facing, MPT))).toEqual([{ w: 1, h: 1 }, { w: 1, h: 1 }, { w: 1, h: 1 }]);
+    expect(poses.map((e) => empreinteDuProp(findPropById(e.decor!.id), e.facing, MPT))).toEqual([{ w: 1, h: 1 }, { w: 1, h: 1 }, { w: 1, h: 1 }]);
     expect(poses.filter((e) => !contenu(corpsBounds(e), caseBox(e.pos.x, e.pos.y))).map((e) => e.id)).toEqual([]);
   });
 
   it('une table murale au cap E couvre DEUX cases — son corps sort de sa seule case, jamais de son empreinte', () => {
     const murale = meuble('murale', 'table-murale-2-tabourets', 5, 5, 'E');
-    expect(empreinteDuProp(findPropById(murale.ref!), murale.facing, MPT)).toEqual({ w: 1, h: 2 });
+    expect(empreinteDuProp(findPropById(murale.decor!.id), murale.facing, MPT)).toEqual({ w: 1, h: 2 });
     expect(contenu(corpsBounds(murale), empreinteBox(murale)), 'dans son EMPREINTE 1×2').toBe(true);
     // CONTRE-ÉPREUVE : la même mesure contre SA SEULE case échoue — l'empreinte est bien ce qui mesure.
     expect(contenu(corpsBounds(murale), caseBox(murale.pos.x, murale.pos.y)), 'dans sa seule case').toBe(false);

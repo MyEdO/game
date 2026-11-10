@@ -533,7 +533,7 @@ describe('campagneDeLEntree — la campagne LANCÉE depuis une entrée, par la p
       id: 'proj-fautif', label: 'Fautive', startSceneId: 'scene-a', savedAt: 1, published: true,
       project: {
         type: 'projet', id: 'proj-fautif', label: 'Fautive', versionContenu: 1, maison: 'fixture de test',
-        scenes: [{ ...scene, entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Fantôme', ref: 'decor-inexistant' }] }],
+        scenes: [{ ...scene, entities: [{ id: 'p0', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Fantôme', decor: { id: 'decor-inexistant' } }] }],
         narratif,
       },
     } as unknown as SavedProject;

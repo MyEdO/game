@@ -18,6 +18,9 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
 - Une lumière : son ton (`lightTones.json`) porte `visuel` (feu, flammèche, lueur) et `son` en boucle.
 - Un flottant : son texte est un message de `src/i18n/messages/fr.ts` (clés `fx.*`), sa teinte `TEINTE_DU_FLOTTANT` ;
   un son de la partie (pas, heurt, victoire, dés) : son id dans `SONS_DE_LA_PARTIE` (`effetsDeLAppel.ts`).
+- Une zone qui dure (`battle.zones`) : la nappe de son rendu, son son en boucle `zoneBoucle` ; une zone de scène
+  ne se voit qu'avec son `rendu`. Un État : sa marque (`etats.json` : `marqueCouleur`, `marqueVisuel` de lumière, `marqueSon` en boucle).
+  Une météo : son `son` en boucle (`ambiance.json › iso.weather`).
 - Une musique : une définition `music: true` du registre (`src/data/sons/defs/`) ; le noyau la choisit
   (`musiqueDeLaPartie`), la scène peut l'imposer (`music.combat`, `music.ambient`).
 - Un JSON édité à la main se réécrit par `serializeDataset` (`src/data/serialize.ts`) : le test de round-trip
@@ -50,7 +53,10 @@ Le vocabulaire est fermé des deux côtés, à étendre ensemble :
 ## Pièges connus
 - Sous le rendu de compatibilité, une particule `CPUParticles3D` pas encore née se peint en noir : un éclat naît d'un
   coup (`explosiveness` 1), une gerbe continue naît d'avance (`preprocess`). Une gerbe lumineuse se fond par addition.
-- Un son en boucle (`Effets.variantes_du_son(son, true)`) libéré juste avant la sortie fuit : attendre
+- La `taille` d'une gerbe est sa vraie mesure, en mètres (#3832) : une particule ne garde son échelle que par
+  `billboard_keep_scale` (`_quad_de_particule`). Juger une taille au rendu réel : `xvfb-run` et
+  `--rendering-driver opengl3`, la sonde headless ne peint rien.
+- Un son en boucle (`Effets.son_en_boucle(son)`) libéré juste avant la sortie fuit : attendre
   `Foyer.SON_LIBERE_S` après avoir libéré son lecteur.
 - Plusieurs éclats d'un même visuel posés ensemble : `add_child(eclat, true)`, sinon Godot les renomme.
 - Toute arithmétique, comparaison d'ordre ou mesure GDScript vit dans `mise_en_page.gd` (garde

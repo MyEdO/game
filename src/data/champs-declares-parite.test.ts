@@ -86,8 +86,8 @@ describe('#1318 E4/C4-δ2 — parité « le moteur ne nomme plus d’id, l’ent
     };
     const fautives = skills.flatMap((s) =>
       Object.keys(s.altChar?.chars ?? {})
-        .filter((k) => !atteignables(s.altChar!.gatedByRule).includes(k))
-        .map((k) => `${s.id} → « ${k} » hors des valeurs de la règle ${s.altChar!.gatedByRule} [${atteignables(s.altChar!.gatedByRule).join(', ')}]`),
+        .filter((k) => !atteignables(s.altChar!.gatedByRule.id).includes(k))
+        .map((k) => `${s.id} → « ${k} » hors des valeurs de la règle ${s.altChar!.gatedByRule.id} [${atteignables(s.altChar!.gatedByRule.id).join(', ')}]`),
     );
     expect(fautives, 'clé de `altChar.chars` qu’aucune valeur de la règle ne produira jamais').toEqual([]);
     // La garde n'est pas vide-et-verte : elle mesure bien des clés réelles.

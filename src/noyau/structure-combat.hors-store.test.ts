@@ -172,7 +172,7 @@ describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 
     it(`'${mode}' : usesSuddenDeath est faux pour une Structure et un navire ; vrai pour un PNJ non important`, () => {
       setRule('combat-aa-blessures', mode);
       const { S, b } = start('porte');
-      const nav = spawnEnemy({ ref: 'cogue' }, 'nav', { x: 9, y: 5 });
+      const nav = spawnEnemy({ vehicule: 'cogue' }, 'nav', { x: 9, y: 5 });
       expect(usesSuddenDeath(S!)).toBe(false);
       expect(usesSuddenDeath(nav)).toBe(false);
       const pnj = b.combatants.find((c) => c.kind === 'enemy' && !c.important);

@@ -1157,7 +1157,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
     /** PRÉPARE l'état d'une entité de la scène OUVERTE à l'éditeur (#877) : patch PARTIEL, une clé à
      *  `undefined` vaut ABSENTE. Le patch passe la porte d'authoring (`noyau/sceneEdit.ts:editEntity`) :
      *  l'état fautif qu'une porte doit refuser se fabrique par un type INCONNU du catalogue
-     *  (`{ ref: 'decor-absent' }`), jamais en retirant le type (#1882). SETUP seulement : le patch passe
+     *  (`{ decor: { id: 'decor-absent' } }`), jamais en retirant le type (#1882). SETUP seulement : le patch passe
      *  par le pont d'INTENTION (`state/editeurBridge`, commande `patcherEntite`) — la MÊME voie
      *  qu'`editorOpen`, jamais un accès direct à l'état React d'un panneau. Quatre refus NOMMÉS :
      *  éditeur non monté (rejet, borne `montageMs`), entité inconnue (`✗ …` portant les ids de la
@@ -1168,7 +1168,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return editeur.patcherEntite!(entityId, patch);
     },
 
-    /** INVENTAIRE des entités du BROUILLON ouvert à l'éditeur (#877) : `{ id, kind, ref?, pos }` par
+    /** INVENTAIRE des entités du BROUILLON ouvert à l'éditeur (#877) : `{ id, kind, corps?, pos }` par
      *  entité — de quoi retrouver l'id que l'éditeur vient d'attribuer à ce qu'on a posé à la carte,
      *  puis le passer à `editorPatchEntity`. ATTENTION : `__wfrp.entities()` lit la scène du STORE DE JEU, pas
      *  le brouillon de l'éditeur : les deux divergent dès la première édition. Même voie et même

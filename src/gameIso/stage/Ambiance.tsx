@@ -14,7 +14,7 @@ export function Flies({ scene, dims }: { scene: Scene; dims: Dims }) {
   return (
     <>
       {scene.entities
-        .filter((e) => e.kind === 'prop' && e.ref === 'cadavre')
+        .filter((e) => e.kind === 'prop' && e.decor?.id === 'cadavre')
         .map((e) => {
           const { cx, cy } = tileCenter(e.pos.x, e.pos.y, dims);
           return (

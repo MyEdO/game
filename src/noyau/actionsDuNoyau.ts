@@ -17,7 +17,7 @@ import type {
   IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
   IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDArticle, IdDeRoute,
+  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
@@ -288,28 +288,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Entre au point d'intérêt `poi` du plan du lieu où se tient le groupe : l'écran du lieu se ferme sur la scène où il
    *  mène ; refus dit hors de l'écran du lieu ou hors de ses entrées (`refusDEntrerAuPoint`, `lieuFlow.ts`). */
   entrerAuPointDInteret: (poi: IdDePointDInteret) => void;
-  /** Recherche active de Disponibilité (LDB 59 l.50) : passer une journée entière + un Test de Ragot →
-   *  réassort frais avec +10 % de Disponibilité si le Ragot réussit (avance l'horloge d'une journée). */
-  chercherLaDisponibilite: () => void;
   /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   ouvrirLesJeux: (npcId?: IdDEntiteDeScene) => void;
   jouerALaTaverne: (opts: tavernFlow.ReglageDePartie) => void;
-  /** Troc (LDB 59 l.64-76) : céder N exemplaires d'un objet contre M exemplaires du stock, sans argent. */
-  troquerLesObjets: (opts: { giveHeroId: IdDeHeros; giveTrappingId: IdDObjetDuCatalogue; getStockId: IdDArticle; getCount?: number }) => void;
-  /** Refuse un marché NÉGOCIÉ (achat ou vente) : annule la négociation de ce côté + pose le VERROU PARTAGÉ
-   *  (plus aucune négociation, achat NI vente, jusqu'au réassort). L'achat vide aussi le panier. */
-  refuserLeMarche: (mode: 'buy' | 'sell') => void;
-  /** Paye le panier (`fenetreChoisir('marchand', …)`) : débite le Total (prix listés × Marchandage), retire du stock,
-   *  et met les objets achetés EN ATTENTE DE RÉPARTITION (`pendingDistribution`) — « qui récupère quoi ». */
-  payerLesAchats: () => void;
-  /** Conclut d'un coup la vente du panier de VENTE (#22b, `fenetreChoisir('marchand', …)`). */
-  vendreLeLot: () => void;
-  /** Réparation chez l'artisan : remet damageTaken à 0 contre le coût unifié — armure 10 %/PA (LDB 63 l.64)
-   *  ou arme 10 %/point de Dégâts (LDB 62 l.135). Arme improvisée = irréparable. */
-  reparerLObjet: (uid: IdDObjet) => void;
-  /** Marchandage (LDB 59 l.43) : ouvre un Test opposé (1/visite) ; réduit ensuite les prix (`bargainBuyFactor`). */
-  marchanderLePrix: (mode: 'buy' | 'sell') => void;
   /** Évaluation (LDB 59 l.41) : Test d'Évaluation (Int) ; un succès révèle l'objet + estime son prix.
    *  `mode:'detect'` = Détection d'artefact (LDB 10 l.336) : Intuition au toucher, une tentative par détecteur.
    *  L'objet est porté (`IdDObjet`) ou une ligne d'un butin encore en fenêtre (`IdDeLigneDeButin`) ; chaque refus est

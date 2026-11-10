@@ -314,7 +314,7 @@ describe('hors combat : le SURVOL publie la fiche que le POINTEUR désigne — c
     const volumique = props.find((p) => p.volume)!.id;
     const sc = useGame.getState().scene!;
     const ombre = { id: 'npc-ombre', kind: 'personnage', pos: { x: 5, y: 4 }, presetId: 'edo-josef-quartjin', label: 'Ombre' };
-    const decor = { id: 'decor-volumique', kind: 'prop', pos: { x: 0, y: 0 }, ref: volumique };
+    const decor = { id: 'decor-volumique', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: volumique }};
     useGame.setState({ screen: 'campaign', inspectId: null, scene: { ...sc, entities: [...sc.entities, ombre, decor] } as Scene });
     setSpritePicker(() => ({ kind: 'entity', id: 'npc-ombre' }));
     const survoler = survol();

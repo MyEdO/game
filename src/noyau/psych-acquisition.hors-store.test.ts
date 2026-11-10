@@ -323,7 +323,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
   };
 
   it('une Terreur causée par un PNJ de la scène mémorise ses Groupes perçus', () => {
-    const scene = { ...emptyScene('scene-banshee', 20, 20), entities: [{ id: 'banshee-1', kind: 'personnage', ref: 'banshee', pos: { x: 5, y: 5 } }] } as never;
+    const scene = { ...emptyScene('scene-banshee', 20, 20), entities: [{ id: 'banshee-1', kind: 'personnage', creature: { id: 'banshee' }, pos: { x: 5, y: 5 } }] } as never;
     banc.setState({ battle: null, mode: 'exploration', journal: [], pendingCascade: null, scene, party: [hero({ label: 'Hardi', characteristics: { ...CHARS, 'force-mentale': 90 }, terreursSubies: [] })] });
     const [banshee] = sceneFearSources(banc.getState().scene!, presetDuNarratif(banc.getState().campaignNarratif));
     const groupes = groupesPercus(banshee);

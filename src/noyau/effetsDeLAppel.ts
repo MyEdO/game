@@ -7,7 +7,7 @@
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
 import { allMusicDefs } from '../data/sons/musique';
-import { breathTypes, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
+import { breathTypes, conditionLabel, domains, etats, findDomainById, findRenduById, findSpellById, findTrappingById, findWeaponGroupById, lightTones, maneuvers, rendus, siegeEngines, type DomainData, type Projectile, type RenduDef, type VisuelDEffet } from '../data';
 import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
@@ -17,9 +17,10 @@ import { sourceDuTon, type SourceDeLumiere } from './lumiereDeLaScene';
 import type { Jeu } from './etat';
 import { porteurParId } from './monde/combatants';
 import { musiqueDeLaSelection, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
+import { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 import { hauteurDe, sceneMetresPerTile } from './monde/scene';
 import { FLAME_LIFT_M } from './monde/vision';
-import { discTiles } from './monde/zones';
+import { discTiles, type BattleZone } from './monde/zones';
 import type { Evenement } from './partie';
 
 /**
@@ -58,7 +59,8 @@ export type Effet =
    * Les `flottants` d'un coup ou d'une incantation montent de la cible à son arrivée, l'un après l'autre : les Blessures
    * perdues (`-N`, à la teinte du critique sur un critique), « Encaissé » sans Blessure, « Paré / Esquivé » ou « Raté »
    * sur un manque, « ✦ hors de combat » quand la cible tombe, « Incantation ratée » ; un `flottant` du bus (l'événement
-   * `anim_float` : un soin, une déviation, un État) monte du combattant `sur`, à défaut de la case `case`. Son texte
+   * `anim_float` : un soin, une déviation, un État) monte du combattant `sur`, à défaut de la case `case`, comme le nom
+   * d'un État gagné pendant l'appel (`etatGagne`, #3834) au-dessus de son porteur. Son texte
    * vient des messages du jeu (`src/i18n`), sa `couleur` de `TEINTE_DU_FLOTTANT` ; un flottant `critique` s'écrit plus
    * grand.
    */
@@ -258,10 +260,64 @@ function zone(rendu: RenduDef, couleur: string, z: ChargeDeZone, distanceM: numb
 
 /** Le rendu de la zone `z` et sa teinte : celui de son sort, celui de sa manœuvre, à défaut le repli d'un sort hors
  *  Domaine. */
-export function renduDeLaZone(z: ChargeDeZone): { rendu: RenduDef; couleur: string } {
+export function renduDeLaZone(z: Pick<ChargeDeZone, 'sort' | 'rendu'>): { rendu: RenduDef; couleur: string } {
   if (z.sort) return renduDuSort(z.sort);
   const rendu = catalogue(z.rendu ?? REPLI.sort);
   return { rendu, couleur: rendu.couleur };
+}
+
+/**
+ * Une zone qui dure (`vue.zonesQuiDurent`, `battle.zones`, #3834) se voit tant qu'elle dure : celle d'un sort au rendu
+ * de son Domaine, la fumée d'un Souffle au rendu de son Type, une zone de scène à son `rendu` ; sans rendu, elle ne se
+ * voit pas.
+ * @contrat Effets
+ */
+export interface ZoneQuiDure {
+  /** la nomme d'une vue à l'autre : une zone déjà posée reste telle quelle. */
+  cle: string;
+  /** ses cases, chacune à sa couche. */
+  cases: CaseDEffet[];
+  /** la case la plus proche de son barycentre, où joue sa `boucle`. */
+  centre: CaseDEffet;
+  /** sa teinte `#rrggbb`. */
+  couleur: string;
+  /** le visuel posé en continu sur chacune de ses cases (`zoneVisuel` de son rendu, à défaut son impact). */
+  visuel: VisuelDEffet | null;
+  /** le son qu'elle joue en boucle (`rendus.json › zoneBoucle`) ; `null` : aucun. */
+  boucle: SonDEffet | null;
+}
+
+/** Le rendu de la zone persistante `z` et sa teinte : le sien (une zone de scène, la fumée d'un Souffle), celui de son
+ *  sort ; `null` sans l'un ni l'autre, une zone qui ne se voit pas. */
+function renduDeLaZoneQuiDure(z: BattleZone): { rendu: RenduDef; couleur: string } | null {
+  if (z.rendu) return renduDeLaZone({ rendu: z.rendu.id });
+  return z.source?.kind === 'spell' ? renduDuSort(z.source.id) : null;
+}
+
+/** La case des cases `cases` la plus proche de leur barycentre. */
+function caseCentrale(cases: readonly CaseDEffet[]): CaseDEffet {
+  const mx = cases.reduce((a, c) => a + c.x, 0) / cases.length;
+  const my = cases.reduce((a, c) => a + c.y, 0) / cases.length;
+  return cases.reduce((m, c) => (Math.hypot(c.x - mx, c.y - my) < Math.hypot(m.x - mx, m.y - my) ? c : m));
+}
+
+/** Celles des zones persistantes `zones` (`battle.zones`) qui se voient, chacune à son rendu : la nappe de son rendu
+ *  (son visuel de zone, à défaut celui de son impact) et son son de zone qui dure. */
+export function zonesQuiDurent(zones: readonly BattleZone[]): ZoneQuiDure[] {
+  const vues = new Map<string, number>();
+  return zones.flatMap((z): ZoneQuiDure[] => {
+    const r = renduDeLaZoneQuiDure(z);
+    if (!r || !z.tiles.length) return [];
+    const centre = caseCentrale(z.tiles);
+    const base = `${z.id ?? z.rendu?.id ?? z.source?.id}@${centre.x},${centre.y},${centre.z ?? 0}`;
+    const rang = vues.get(base) ?? 0;
+    vues.set(base, rang + 1);
+    return [{
+      cle: rang ? `${base}#${rang}` : base, cases: z.tiles, centre, couleur: r.couleur,
+      visuel: r.rendu.zoneVisuel ?? r.rendu.impactVisuel ?? null,
+      boucle: r.rendu.zoneBoucle ? sonDEffet(r.rendu.zoneBoucle.id) : null,
+    }];
+  });
 }
 
 /** L'effet de l'attaque `a`, entre deux combattants posés à `distanceM` mètres l'un de l'autre. */
@@ -292,16 +348,18 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
  * - Un coup, une incantation ou une zone dont un combattant n'est pas posé sur le plateau, ou l'attaque spéciale d'une
  *   créature sur elle-même, ne rend aucun effet.
  * - `couleur` (`#rrggbb`) teint les visuels qui prennent la teinte de l'effet. Un son nomme ses variantes, des noms nus
- *   que Godot lit sous `res://sons/` et joue l'une au hasard (`AudioStreamRandomizer`), le dossier épinglé des sons
+ *   que Godot lit sous `res://sons/` et joue l'une à son tour (`Effets.variante_du_son`), le dossier épinglé des sons
  *   (`projet/sons/provenance.json`, `hotes/godot/asset/epingles.ts`), et son `volume` propre (0..1).
  * @contrat Effets
  */
 /** Les effets des événements `evenements` d'un appel (`ResultatDeLAppel.evenements`) sur l'état `etat` qui le suit, dans
  *  leur ordre ; un coup, une incantation ou une zone dont un combattant n'est pas posé, ou l'attaque spéciale d'une
  *  créature sur elle-même, n'en rend aucun. Un déplacement rend son chemin quand il quitte sa case, puis ses pas ; un pas
- *  refusé son heurt, la victoire son gong, les dés du joueur (`EVT.DICE_ROLL`) leur son. */
+ *  refusé son heurt, la victoire son gong, les dés du joueur (`EVT.DICE_ROLL`) leur son ; un État gagné, son flottant
+ *  sur son porteur. */
 export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Effet[] {
   return evenements.flatMap((e): Effet[] => {
+    if (e.type === 'etatGagne') return [{ quoi: 'flottant', sur: e.porteur, case: null, flottant: flottant('condition', conditionLabel(e.etat)) }];
     if (e.type !== 'emis') return [];
     if (e.evt === 'anim_attack') {
       if (e.payload.kind === 'creature') return [];
@@ -391,6 +449,10 @@ export interface VitrineDesEffets {
   flottants: EffetDeVitrine[];
   /** chaque musique du registre (`{ id, label, musique }`, `musique` comme `vue.musique`, section « Musique ») ; */
   musiques: { id: string; label: string; musique: MusiqueDeLaPartie }[];
+  /** chaque rendu qu'une zone qui dure peut porter (`{ id, label, zone }`), sa zone posée autour de la cible (#3834) ; */
+  zonesQuiDurent: { id: string; label: string; zone: ZoneQuiDure }[];
+  /** chaque État (`{ id, label, marque }`), sa marque à la valeur 1, comme `vue.marques` (#3834) ; */
+  marques: { id: string; label: string; marque: MarqueDEtat }[];
   /**
    * le déplacement de l'auteur sur un chemin qui tourne depuis sa case, que la base posée parcourt à « Parcourir un
    * chemin » (onglet Animation).
@@ -499,5 +561,12 @@ export function vitrineDesEffets(): VitrineDesEffets {
   ];
   const flottants = echantillons.map(([id, f]): EffetDeVitrine => ({ id, label: f.texte, effet: { quoi: 'flottant', sur: vers, case: null, flottant: f } }));
   const musiques = allMusicDefs().map((d) => ({ id: d.id, label: d.label, musique: musiqueDeLaSelection({ def: d.id })! }));
-  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques, deplacement: deplacement(de, CHEMIN_DE_LA_VITRINE, metresParCase, () => 0) };
+  const casesDeLaZone = discTiles(caseDeLaCible, RAYON_DE_ZONE_DE_LA_VITRINE);
+  const zones = rendus.filter((r) => r.zoneVisuel ?? r.impactVisuel).map((r) => ({
+    id: r.id,
+    label: r.label,
+    zone: zonesQuiDurent([{ label: r.label, tiles: casesDeLaZone, rounds: 1, rendu: { id: r.id } }])[0],
+  }));
+  const marques = etats.map((e) => ({ id: e.id, label: e.label, marque: marquesDesEtats([{ id: e.id, valeur: 1 }])[0] }));
+  return { de, vers, distanceM, metresParCase, armes, sorts, manoeuvres, souffles, sons, lumieres, attaques, flottants, musiques, zonesQuiDurent: zones, marques, deplacement: deplacement(de, CHEMIN_DE_LA_VITRINE, metresParCase, () => 0) };
 }

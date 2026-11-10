@@ -21,7 +21,7 @@ const PONT = 'p';
 const SOLS: ReliefSpec[] = [0, 2].map((y): ReliefSpec => ({ rect: [1, y, 2, y], height: garanti(HAUTEURS[PONT], PONT, 'hauteur du pont'), z: 1 }));
 
 /** Le décor de la barge, valeur d'adaptation relevée sur la planche du Bérébéli (profil, plan « Main Deck ») : le décor
- *  (`ref` de `props.json`), la case du coin nord-ouest de son emprise, son pont, son cap et son calage dans le jeu libre
+ *  (`decor`, id de `props.json`), la case du coin nord-ouest de son emprise, son pont, son cap et son calage dans le jeu libre
  *  de sa case (`SceneEntity.calage`, centré sans lui). Fanaux : deux sur la plate-forme de proue, un au pont avant, un
  *  au flanc du rouf, un sur le toit du bloc avant, deux sur celui de la maison ; la pile de tonneaux sur le toit du bloc,
  *  à bâbord du mât ; la cargaison bâchée de part et d'autre de l'allée du pont avant. */
@@ -33,11 +33,11 @@ const DECOR: readonly (readonly [ref: string, x: number, y: number, z: number, f
   ['cargaison-bachee', 1, 0, 1, 'S', { x: 0.89, y: 1 }], ['cargaison-bachee', 1, 2, 1, 'S', { x: 0.89, y: -1 }],
 ];
 
-/** Les décors de `DECOR`, chacun sous son `ref` suivi de son rang. */
+/** Les décors de `DECOR`, chacun sous l'id de son décor suivi de son rang. */
 const DECORS: SceneEntity[] = DECOR.map(([ref, x, y, z, facing, calage], i): SceneEntity => ({
   id: `${ref}-${DECOR.slice(0, i + 1).filter(([r]) => r === ref).length}`,
   kind: 'prop',
-  ref,
+  decor: { id: ref },
   pos: { x, y },
   z,
   facing,

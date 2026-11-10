@@ -168,6 +168,8 @@
 //   node hotes/godot/recette.mjs --parcours composition --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --base <production> --piece <production skinnée>
 //   node hotes/godot/recette.mjs --parcours preset --preset sorcier --web <export> --captures <dossier>
+//   node hotes/godot/recette.mjs --parcours bord --scenario a-bord-de-la-caraque --web <export> --captures <dossier>
+//     --route <route.json de hotes/godot/recettes/route-a-bord.hors-store.test.ts>
 /**
  * Les recettes de `hotes/godot/recette.mjs` partent du menu et ne jouent aucun geste par le pont. Le tour complet
  * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
@@ -204,9 +206,9 @@ import { chargerAssets } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
 })
-if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|brume|fiche|inventaire|creation|editeur|atelier|composition|preset]')
+if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|editeur|atelier|composition|preset]')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
@@ -699,6 +701,69 @@ function lireLesVues(fichier) {
   const noms = vues.map((v) => v.nom)
   assert.equal(new Set(noms).size, noms.length, `${fichier} : noms uniques`)
   return vues
+}
+
+async function parcoursBord() {
+  const { etapes } = JSON.parse(readFileSync(o.route, 'utf8'))
+  await cliquerBouton('Combat')
+  await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
+  await fermerLesFenetres()
+  await attendreLeMonde()
+  const ou = async () => { const x = (await vue()).projection.exploration; return { x: x.groupe[0], y: x.groupe[1], z: x.etage ?? 0 } }
+  const cleDe = (c) => `${c.x},${c.y},${c.z}`
+  const fautes = []
+  const couches = new Set()
+  let atteintes = 0
+  let total = 0
+  async function arriver(c) {
+    try { await attendreLaVue(`(() => { const x = v.projection.exploration; return x.groupe[0] === ${c.x} && x.groupe[1] === ${c.y} && (x.etage ?? 0) === ${c.z} })()`, 12000); return true } catch { return false }
+  }
+  async function aller(c) {
+    if (cleDe(await ou()) === cleDe(c)) return true
+    const pt = (await ecran()).cases?.[cleDe(c)]
+    if (!pt) return false
+    await cliquerPoint(pt[0], pt[1])
+    const ok = await arriver(c)
+    const v = await vue()
+    noter(`clic ${cleDe(c)} : ${ok ? 'atteinte' : 'groupe en ' + cleDe(await ou()) + ' ; fenêtre ' + JSON.stringify(v.projection.fenetre?.genre ?? v.projection.fenetre ?? null).slice(0, 120) + ' ; journal ' + JSON.stringify((v.zones?.['journal'] ?? []).slice(-1)).slice(0, 200)}`)
+    return ok
+  }
+  async function noterLaCouche(z) { if (!couches.has(z)) { couches.add(z); await capturer(`bord-couche-${z}`) } }
+  let i = 0
+  while (i < etapes.length) {
+    const lot = []
+    while (i < etapes.length && etapes[i].aller) lot.push(etapes[i++].aller)
+    const pied = etapes[i]?.escalade ? lot.pop() : null
+    total += lot.length + (pied ? 1 : 0)
+    let restants = lot
+    for (let passe = 0; passe < 2 && restants.length; passe++) {
+      const ratees = []
+      while (restants.length) {
+        const g = await ou()
+        restants.sort((p, q) => (p.z !== g.z) - (q.z !== g.z) || Math.hypot(p.x - g.x, p.y - g.y) - Math.hypot(q.x - g.x, q.y - g.y))
+        const c = restants.shift()
+        if (await aller(c)) { atteintes++; await noterLaCouche(c.z) } else ratees.push(c)
+      }
+      restants = ratees
+    }
+    for (const c of restants) { fautes.push(`case ${cleDe(c)} jamais atteinte au clic`); }
+    if (restants.length) { await capturer(`bord-faute-${fautes.length}`) }
+    if (!pied) continue
+    if (await aller(pied)) atteintes++
+    else { fautes.push(`pied d’échelle ${cleDe(pied)} jamais atteint (groupe en ${cleDe(await ou())})`); await capturer(`bord-faute-${fautes.length}`) }
+    const e = etapes[i++]
+    total++
+    const libelle = e.escalade === 'monter' ? 'Escalader' : 'Descendre en escalade'
+    const { boutons } = await ecran()
+    const candidats = boutons.filter((b) => b.texte === libelle)
+    if (candidats.length !== 1) { fautes.push(`« ${libelle} » ×${candidats.length} en ${cleDe(await ou())} ; boutons : ${boutons.map((b) => b.texte).join(' | ')}`); await capturer(`bord-faute-${fautes.length}`); continue }
+    await cliquerPoint(candidats[0].x, candidats[0].y)
+    if (await arriver(e.vers)) { atteintes++; await noterLaCouche(e.vers.z) }
+    else { fautes.push(`${libelle} vers ${cleDe(e.vers)} : le groupe reste en ${cleDe(await ou())}`); await capturer(`bord-faute-${fautes.length}`) }
+    noter(`étape ${i}/${etapes.length} : ${atteintes}/${total} atteintes, groupe en ${cleDe(await ou())}`)
+  }
+  noter(`bord : ${atteintes}/${total} étapes atteintes ; fautes : ${fautes.length ? '\n' + fautes.join('\n') : 'aucune'}`)
+  assert.deepEqual(fautes, [], 'chaque case des ponts atteinte au clic, chaque échelle franchie par son geste')
 }
 
 async function parcoursCadrages() {
@@ -2515,7 +2580,7 @@ async function parcoursPreset() {
   }
 }
 
-const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset }
+const PARCOURS = { combat: parcoursCombat, critique: parcoursCritique, fin: parcoursFin, dialogue: parcoursDialogue, document: parcoursDocument, incantation: parcoursIncantation, soin: parcoursSoin, voyage: parcoursVoyage, marche: parcoursMarche, repos: parcoursRepos, repit: parcoursRepit, ouvrage: parcoursOuvrage, bataille: parcoursBataille, exploration: parcoursExploration, relief: parcoursRelief, etage: parcoursEtage, regards: parcoursRegards, meteo: parcoursMeteo, vehicule: parcoursVehicule, cadrages: parcoursCadrages, bord: parcoursBord, brume: parcoursBrume, fiche: parcoursFiche, inventaire: parcoursInventaire, creation: parcoursCreation, editeur: parcoursEditeur, atelier: parcoursAtelier, composition: parcoursComposition, preset: parcoursPreset }
 if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Object.keys(PARCOURS).join(' ou ')} attendu`)
 
 let echec = null

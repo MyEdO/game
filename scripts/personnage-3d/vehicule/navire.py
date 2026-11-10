@@ -369,7 +369,8 @@ class Pieces:
 
     def paroi(self, c, f, z):
         """Demi-largeur intérieure en (f, z) de la pièce de la case `c` : creusée, la muraille de sa paroi (« bord » : le
-        bordé ; « chateau » : la muraille du château, `CHATEAU`) ; sous un pont ouvert ou le ciel, le pavois."""
+        bordé ; « chateau » : la muraille du château, `CHATEAU`, là où elle rentre le plus sur la hauteur de la pièce,
+        qu'aucune hauteur ne perce) ; sous un pont ouvert ou le ciel, le pavois."""
         C = self.C
         g = self.couverture[c]
         if not self.creusee(c):
@@ -377,7 +378,9 @@ class Pieces:
         sorte, decalage = self.D["SOUS_LES_PONTS"][g]["paroi"]
         if sorte == "bord":
             return C.bord(f, z) + decalage
-        return C.lisse(f) + self.D["CHATEAU"]["niveaux"][4][1] + decalage
+        K = self.D["CHATEAU"]["niveaux"]
+        za, zb = self.plancher(c), self.plafond(c)
+        return C.lisse(f) + min(lineaire(K, h) for h in [za, zb] + [h for h, _ in K if za < h < zb]) + decalage
 
     def creusees_en(self, x, y, za, zb):
         """Une case creusée à la place (x, y), sur un pont quelconque, dont la boîte croise les hauteurs de za à zb."""
@@ -598,28 +601,29 @@ def plus_grand_rectangle(libre):
     return meilleur
 
 
+def sonde(C, E, px, py, h):
+    """La sonde (`EMPRISE`) du point (px, py) du plan, partie d'une stature au-dessus de la hauteur `h` : None dans la
+    matière (ce qu'elle touche d'abord de part et d'autre en travers lui tourne le dos), sinon vrai quand, vers le bas,
+    elle touche d'abord un plancher à cette hauteur."""
+    graphe = bpy.context.evaluated_depsgraph_get()
+    o = Vector((C.x_du_plan(py), C.y_du_plan(px), h + E["stature"]))
+    cote = Vector((1, 0, 0))
+    if all(ok and normale.dot(d) > 0 for d in (cote, -cote) for ok, _, normale, _, _, _ in [bpy.context.scene.ray_cast(graphe, o, d)]):
+        return None
+    ok, lieu, normale, _, _, _ = bpy.context.scene.ray_cast(graphe, o, Vector((0, 0, -1)), distance=E["stature"] + E["ecart"])
+    return ok and normale.z > 0.5 and abs(lieu.z - h) <= E["ecart"]
+
+
 def emprises(D, P, C):
     """L'emprise libre de chaque case que la scène rogne au-delà de l'écart toléré, en cases du plan : {"x,y,z": [x0, y0,
-    x1, y1]}, la case (x, y) couvrant [x, x+1] × [y, y+1]. Une sonde de la grille de la case (`EMPRISE`) part d'une
-    stature au-dessus de sa hauteur : elle est libre quand elle n'est pas dans la matière (ce qu'elle touche d'abord de part
-    et d'autre en travers ne lui tourne pas le dos) et que, vers le bas, elle touche d'abord un plancher à cette hauteur. L'emprise est
-    le plus grand rectangle de sondes libres."""
+    x1, y1]}, la case (x, y) couvrant [x, x+1] × [y, y+1]. Une sonde de la grille de la case (`EMPRISE`) y est libre quand
+    elle touche un plancher à sa hauteur (`sonde`). L'emprise est le plus grand rectangle de sondes libres."""
     E = D["EMPRISE"]
-    graphe = bpy.context.evaluated_depsgraph_get()
     n = round(C.case / E["pas"])
-    bas, cote = Vector((0, 0, -1)), Vector((1, 0, 0))
-
-    def libre(px, py, h):
-        o = Vector((C.x_du_plan(py), C.y_du_plan(px), h + E["stature"]))
-        if all(ok and normale.dot(d) > 0 for d in (cote, -cote) for ok, _, normale, _, _, _ in [bpy.context.scene.ray_cast(graphe, o, d)]):
-            return False
-        ok, lieu, normale, _, _, _ = bpy.context.scene.ray_cast(graphe, o, bas, distance=E["stature"] + E["ecart"])
-        return ok and normale.z > 0.5 and abs(lieu.z - h) <= E["ecart"]
-
     sortie = {}
     for (cx, cy, z), g in sorted(P["cases"].items()):
         h = P["hauteurs"][g]
-        i0, j0, i1, j1 = plus_grand_rectangle([[libre(cx + (i + 0.5) / n, cy + (j + 0.5) / n, h) for j in range(n)] for i in range(n)])
+        i0, j0, i1, j1 = plus_grand_rectangle([[sonde(C, E, cx + (i + 0.5) / n, cy + (j + 0.5) / n, h) is True for j in range(n)] for i in range(n)])
         if max(i0, j0, n - i1, n - j1) * E["pas"] > E["ecart"] + 1e-9:
             sortie[f"{cx},{cy},{z}"] = [round(v, 3) for v in (cx + i0 / n, cy + j0 / n, cx + i1 / n, cy + j1 / n)]
     return sortie

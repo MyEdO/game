@@ -17,6 +17,10 @@ const LARGEUR_D_EMBLEME := 512.0
 const MATERIAUX := &"materiaux"
 ## Les corrections du tour d'un objet rangé à côté d'un autre, chacune sur ses sommets posés (`_ranger`).
 const PASSES_DE_TOUR := 2
+## La métadonnée d'un mesh dont les shape keys sont cuites (`cuire_les_formes`) : son mesh à shape keys.
+const FORMES := &"formes"
+## La métadonnée d'un mesh dont les shape keys sont cuites : le poids cuit de chacune, par nom de clé.
+const POIDS := &"poids_des_formes"
 
 
 ## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
@@ -220,7 +224,10 @@ func vider() -> void:
 
 ## La base `posee` retenue et, si `scene` (son GLB en scène) n'est pas nulle, posée sous ce nœud : ses matériaux
 ## (`MATERIAUX`) et ses meshes relevés, habillés de la palette de la composition, son squelette (`squelette-absent` aux
-## erreurs sans lui), qui reçoit le modificateur du gabarit, et son lecteur de clips.
+## erreurs sans lui), qui reçoit le modificateur du gabarit, et son lecteur de clips. Ses modificateurs ne jouent que
+## sur une pose changée (`MODIFIER_CALLBACK_MODE_PROCESS_MANUAL`, `Skeleton3D::_make_dirty`, Godot 4.7-stable) : à
+## chaque image (`PROCESS_IDLE`), le gabarit reposerait les os et le squelette remettrait chaque peau à jour, clip en
+## pause compris.
 func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	base = posee
 	if scene == null:
@@ -237,6 +244,7 @@ func poser_le_modele(posee: Dictionary, scene: Node3D) -> void:
 	if squelette == null:
 		erreurs.append("squelette-absent : %s" % base.id)
 		return
+	squelette.modifier_callback_mode_process = Skeleton3D.MODIFIER_CALLBACK_MODE_PROCESS_MANUAL
 	gabarit = GabaritDuSquelette.new()
 	gabarit.lecteur = lecteur
 	squelette.add_child(gabarit)
@@ -519,7 +527,8 @@ func _attache_du_point(point: Dictionary) -> Dictionary:
 ## Godot range un objet à un emplacement (`bases` de `modeles`) : le +Y de sa prise vers le bas du
 ## personnage, son +Z sur la normale sortante de l'emplacement (sa position hors de l'axe de l'os, à défaut l'avant),
 ## sa poignée (l'origine de sa prise) sur l'emplacement (`MiseEnPage.axe_de_rangement`), ou, pour une arme au fourreau,
-## le haut de son fourreau, la poignée au-dessus (`_suspension`), tous ses meshes ensemble ; à plat, tourné d'un quart de tour autour de ce +Y si sa boîte est moins large sur X que sur Z. Les objets rangés à un
+## le haut de son fourreau, la poignée au-dessus (`_suspension`), tous ses meshes ensemble ; à plat, tourné d'un quart
+## de tour autour de ce +Y si sa boîte est moins large sur X que sur Z. Les objets rangés à un
 ## même point (le point, puis chaque ligne `<point>#<rang>`, section « Composition d'un personnage ») s'y posent côte à
 ## côte autour de l'axe de l'os, le premier sur l'emplacement, chaque suivant vers l'avant du personnage, tourné autour
 ## de l'axe de l'os pour que ses sommets posés passent à 2 cm, ramenés à la distance de l'emplacement à l'axe, de ceux du
@@ -527,7 +536,8 @@ func _attache_du_point(point: Dictionary) -> Dictionary:
 ## ce qui est porté dessous, la base et les éléments skinnés montés au repos, que vise, par case de 2 cm de l'objet, une
 ## visée le long de la normale sortante : reculé sur la normale sortante pour que sa face arrière passe à 5 mm au-dessus
 ## de ce qui est porté de son haut à 5 cm sous son attache (sa poignée ou le haut de son fourreau), puis pivoté
-## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans rien dessous, sa face arrière à 5 mm de l'emplacement
+## autour du +X de sa prise, le bas vers l'extérieur, pour passer de même au-dessus de ce qui est porté plus bas ; sans
+## rien dessous, sa face arrière à 5 mm de l'emplacement
 ## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
 ## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
 ## l'objet rangé. Un emplacement qu'offre une pièce (`offertPar` du point, #3844) ne range un objet que sous une pièce
@@ -905,11 +915,12 @@ static func _matiere_texturee(surface: Dictionary) -> String:
 	return matiere if not matiere.is_empty() and ResourceLoader.exists(VolumeDeScene.texture_de(matiere)) else ""
 
 
-## Le mesh de `piece` recopié, chaque surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la
-## matière projette l'UV1 sur les trois axes (`VolumeDeScene.texturer`), l'emblème garde son placement en UV2. Une pièce sans
-## telle surface, ou déjà recopiée, garde son mesh.
+## Le mesh de `piece` recopié (son mesh à shape keys s'il est cuit, recuit aux mêmes poids, `cuire_les_formes`), chaque
+## surface `blason` de `par_nom` à matière texturée recevant en UV2 les UV du GLB : la matière projette l'UV1 sur les
+## trois axes (`VolumeDeScene.texturer`), l'emblème garde son placement en UV2. Une pièce sans telle surface, ou déjà
+## recopiée, garde son mesh.
 static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> void:
-	var source := piece.mesh as ArrayMesh
+	var source := (piece.get_meta(FORMES) if piece.has_meta(FORMES) else piece.mesh) as ArrayMesh
 	var rangs := range(source.get_surface_count()).filter(func(rang: int) -> bool:
 		var materiau := source.surface_get_material(rang)
 		var surface: Dictionary = {} if materiau == null else par_nom.get(materiau.resource_name, {})
@@ -928,7 +939,13 @@ static func _uv2_des_emblemes(piece: MeshInstance3D, par_nom: Dictionary) -> voi
 		copie.add_surface_from_arrays(source.surface_get_primitive_type(rang), tableaux, source.surface_get_blend_shape_arrays(rang))
 		copie.surface_set_material(rang, source.surface_get_material(rang))
 		copie.surface_set_name(rang, source.surface_get_name(rang))
+	if not piece.has_meta(FORMES):
+		piece.mesh = copie
+		return
+	var poids: Dictionary = piece.get_meta(POIDS)
+	piece.remove_meta(FORMES)
 	piece.mesh = copie
+	cuire_les_formes(piece, poids)
 
 
 ## Par emplacement monté dont une surface porte un matériau propre, la couleur d'albédo `#rrggbb` de ce matériau, par nom
@@ -989,21 +1006,39 @@ func poser_le_gabarit() -> Array[String]:
 	return absents
 
 
-## Les poids `morphes` de la composition posés par nom de shape key sur chaque mesh de la base et de chaque élément monté
-## qui porte la clé (#3086, D4) ; un mesh sans la clé n'en reçoit rien.
+## Les poids `morphes` de la composition (#3086, D4) cuits dans chaque mesh à shape keys de la base et de chaque élément
+## monté (`cuire_les_formes`), par nom de clé ; une clé que la composition ne nomme pas vaut 0.
 func poser_les_morphes() -> void:
-	var morphes: Dictionary = composee.get("morphes", {})
-	for nom in morphes:
-		poser_des_morphes([nom], float(morphes[nom]))
-
-
-## Le poids `poids` posé à chaque shape key nommée dans `noms`, sur chaque mesh du modèle qui la porte.
-func poser_des_morphes(noms: Array, poids: float) -> void:
 	if modele == null:
 		return
+	var morphes: Dictionary = composee.get("morphes", {})
 	for noeud in modele.find_children("*", "MeshInstance3D", true, false):
-		var mesh := noeud as MeshInstance3D
-		for nom in noms:
-			var rang := mesh.find_blend_shape_by_name(nom)
-			if rang != -1:
-				mesh.set_blend_shape_value(rang, poids)
+		cuire_les_formes(noeud as MeshInstance3D, morphes)
+
+
+## Le mesh de `mesh` remplacé par sa copie sans shape key, chacune cuite à son poids dans `morphes` (par nom de clé, 0 si
+## absente, `MeshInstance3D.bake_mesh_from_current_blend_shape_mix`). Le rendu de compatibilité met à jour une surface à
+## shape keys en une passe de base et une passe par clé non nulle, en plus de celle du squelette, à chaque image où le
+## squelette bouge (`drivers/gles3/storage/mesh_storage.cpp`, `update_mesh_instances`, Godot 4.7-stable) : cuite, seule
+## celle du squelette reste. Le mesh à shape keys est gardé en métadonnée `FORMES` et les poids cuits en `POIDS` ;
+## des poids inchangés ne recuisent rien. Un mesh sans shape key garde son mesh.
+static func cuire_les_formes(mesh: MeshInstance3D, morphes: Dictionary) -> void:
+	var formes := (mesh.get_meta(FORMES) if mesh.has_meta(FORMES) else mesh.mesh) as ArrayMesh
+	if formes == null or formes.get_blend_shape_count() == 0:
+		return
+	var poids := {}
+	for rang in formes.get_blend_shape_count():
+		var nom := String(formes.get_blend_shape_name(rang))
+		poids[nom] = float(morphes.get(nom, 0.0))
+	if mesh.has_meta(FORMES) and mesh.get_meta(POIDS) == poids:
+		return
+	mesh.mesh = formes
+	for rang in formes.get_blend_shape_count():
+		mesh.set_blend_shape_value(rang, poids[String(formes.get_blend_shape_name(rang))])
+	var cuit := mesh.bake_mesh_from_current_blend_shape_mix()
+	for rang in formes.get_surface_count():
+		cuit.surface_set_material(rang, formes.surface_get_material(rang))
+		cuit.surface_set_name(rang, formes.surface_get_name(rang))
+	mesh.set_meta(FORMES, formes)
+	mesh.set_meta(POIDS, poids)
+	mesh.mesh = cuit

@@ -2,7 +2,8 @@ extends SceneTree
 
 ## La météo posée dans le monde (#3625, `hotes/godot/pont/CONTRAT.md`, section « Monde », `meteo`) : une averse de
 ## particules par boîte de la pluie, au nombre, à la durée et dans le sens de la donnée, étirées dans ce sens, et une nappe
-## translucide par nappe de brume ; une météo absente retire ce qui était posé.
+## translucide par nappe de brume, et son son en boucle (#3834), qui joue encore, le même, quand la météo se repose ;
+## une météo absente retire ce qui était posé, son son compris.
 
 const RECETTE_AUTONOME := true
 const METEO := {
@@ -12,6 +13,7 @@ const METEO := {
 		couleur = "#aebfd0", opacite = 0.45,
 	},
 	nappes = [{positions = [0.0, 0.6, 0.0, 2.0, 0.6, 0.0, 2.0, 0.6, 2.0], couleur = "#aab4bd", alpha = 0.3}],
+	son = {id = "pluie", fichiers = ["pluie.ogg"], volume = 0.5},
 }
 var _fautes: Array[String] = []
 
@@ -40,10 +42,17 @@ func _recetter() -> void:
 			_fautes.append("averse : durée %s, repère local %s" % [averse.lifetime, averse.local_coords])
 	if nappes.size() != 1 or not is_equal_approx((nappes[0] as MeshInstance3D).material_override.albedo_color.a, 0.3):
 		_fautes.append("nappes : %d posées, attendu une à l'opacité 0.3" % nappes.size())
+	var son := monde.son_de_la_meteo()
+	if son == null or not son.playing or (son.stream as AudioStreamOggVorbis) == null or not (son.stream as AudioStreamOggVorbis).loop:
+		_fautes.append("la pluie ne s'entend pas en boucle")
+	monde.poser_la_meteo(METEO)
+	if monde.son_de_la_meteo() != son:
+		_fautes.append("la même météo reposée relance son son")
 	monde.poser_la_meteo(null)
 	await process_frame
-	if posee.get_child_count() != 0:
-		_fautes.append("sans météo : %d nœuds restent posés" % posee.get_child_count())
+	if posee.get_child_count() != 0 or monde.son_de_la_meteo() != null:
+		_fautes.append("sans météo : %d nœuds restent posés, son %s" % [posee.get_child_count(), monde.son_de_la_meteo()])
+	await create_timer(Foyer.SON_LIBERE_S).timeout
 	for faute in _fautes:
 		push_error("[meteo] " + faute)
 	print("[meteo] erreurs=", _fautes.size())

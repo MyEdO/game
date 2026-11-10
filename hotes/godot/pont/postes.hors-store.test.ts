@@ -2,7 +2,7 @@
  * LES PIÈCES MONTÉES AUX POSTES D'UN NAVIRE (#2987 ; `CONTRAT.md`, section « Corps d'un combattant ») : la vue donne à un
  * véhicule servi chaque pièce de ses postes à un bord dont un élément est servi, à la position suivante de ce bord que son
  * manifeste offre (`postesMontes`), à la palette du véhicule où celle de sa teinte colore ; les postes qu'une Amélioration
- * montée offre remplacent ceux des bords qu'elle nomme (`postesEnVigueur`, MDG p.97) ; les nœuds qu'elle change se cachent
+ * montée offre remplacent ceux des bords qu'elle nomme (`postesEnVigueur`, MDG 12 l.362) ; les nœuds qu'elle change se cachent
  * selon qu'elle est montée (`noeudsCaches`).
  */
 import { beforeAll, describe, expect, it } from 'vitest';

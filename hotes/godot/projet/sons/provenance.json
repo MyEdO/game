@@ -185,6 +185,12 @@
     "licence": "CC0-1.0",
     "traitement": "aucun : public/audio/musique-ville.mp3 tel quel"
   },
+  "orage.ogg": {
+    "sha256": "f0297c4fe3334ef7976f3a2897c4f0a493350cc69d46bffa9239ac68b5457676",
+    "source": "https://opengameart.org/content/rain-long-thunder (rain-thunder.ogg), WuxiaScrub",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
+  },
   "parade-1.ogg": {
     "sha256": "e07045693e4a2b3d165c424e3dab4c781d9ff8880a386880ac89a51315d7f831",
     "source": "https://kenney.nl/assets/impact-sounds (Kenney Impact Sounds)",
@@ -220,6 +226,12 @@
     "source": "https://kenney.nl/assets/rpg-audio (Kenney RPG Audio)",
     "licence": "CC0-1.0 (https://kenney.nl/support)",
     "traitement": "aucun : public/audio/piece.ogg tel quel"
+  },
+  "pluie.ogg": {
+    "sha256": "d98af83c5519f9cc8dbaff36c519610c5b7d23d11eee779629e61df4692e61ac",
+    "source": "https://opengameart.org/content/amb-rain-loop-1 (amb_rain_loop_1.ogg), Kresiek The Furry",
+    "licence": "CC0-1.0",
+    "traitement": "ffmpeg : mono, 44,1 kHz, Vorbis q4"
   },
   "porte-ferme.ogg": {
     "sha256": "834d29c60a8a8bfb50b158cdb6b7dfa8f02812a408a1ee9703d038dfab0b1aeb",

@@ -518,7 +518,7 @@ export function resolveManeuver(
       // ne bloque pas la Ligne de Vue à un autre étage de même (x,y).
       const cz = center.pos!.z;
       const tiles = cz ? rawTiles.map((tl) => ({ ...tl, z: cz })) : rawTiles;
-      const zones = [...(get().battle!.zones ?? []), { label: t('manv.smokeZone'), tiles, rounds: dur, blocksLoS: true }];
+      const zones = [...(get().battle!.zones ?? []), { label: t('manv.smokeZone'), tiles, rounds: dur, blocksLoS: true, ...(def.rendu ? { rendu: { id: def.rendu.id } } : {}) }];
       lines.push(t('manv.smoke', { dur }));
       set({ battle: { ...get().battle!, zones } });
     }

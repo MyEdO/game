@@ -21,7 +21,7 @@ import { heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from './sc
 function dessusA(support: SceneEntity, p: { x: number; y: number }, mpt: number): number | undefined {
   const a = ancreDuDecor(support, mpt);
   // LE site de conversion cases → mètres de l'appui (#1507, déclaré par `noyau/monde/echelle-de-scene.test.ts`).
-  return dessusSous(findPropById(support.ref), support.facing, (p.x - a.x) * mpt, (p.y - a.y) * mpt);
+  return dessusSous(findPropById(support.decor?.id), support.facing, (p.x - a.x) * mpt, (p.y - a.y) * mpt);
 }
 
 const entite = (scene: Scene, id: string): SceneEntity | undefined => scene.entities.find((e) => e.id === id);
@@ -96,7 +96,7 @@ function sansAppui(e: SceneEntity): SceneEntity {
  *  centre est le plus proche du point, bornée à la carte, et le calage borné à son jeu libre (`calageDuDecalage`). */
 export function poseDeLAncre(scene: Scene, ent: SceneEntity, a: { x: number; y: number }): { pos: { x: number; y: number }; calage: Calage } {
   const mpt = sceneMetresPerTile(scene);
-  const prop = findPropById(ent.ref);
+  const prop = findPropById(ent.decor?.id);
   const milieu = offsetAncre(empreinteDuProp(prop, ent.facing, mpt));
   const borne = (v: number, n: number) => Math.max(0, Math.min(n - 1, Math.round(v)));
   const pos = { x: borne(a.x - milieu.x, scene.dimensions.w), y: borne(a.y - milieu.y, scene.dimensions.h) };

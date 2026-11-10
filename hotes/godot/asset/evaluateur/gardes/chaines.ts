@@ -4,10 +4,10 @@
  * telle quelle. Et, par chaîne, sur les échantillons joués, la rotation locale la plus forte d'un de ses os depuis son
  * repos, l'os nommé comme `AnimationMixer` le trouve dans la scène (`PropertyBinding.findNode`, `chargement.ts`).
  */
-import { InterpolateLinear, Matrix4, PropertyBinding, Quaternion, Vector3, type AnimationClip, type Object3D } from 'three';
+import { InterpolateLinear, PropertyBinding, Quaternion, type AnimationClip, type Object3D } from 'three';
 import { tableTotale } from '../../../../../src/lib/tableTotale.ts';
 import type { Ecart } from '../ecart.ts';
-import type { Pose } from '../echantillonnage.ts';
+import { rotationLocale, type Pose } from '../echantillonnage.ts';
 
 const GARDE = 'chaines';
 
@@ -40,20 +40,6 @@ export function gardePistesDeChaine(scene: Object3D, clips: readonly AnimationCl
     }
   }
   return { ecarts, clipsPistes };
-}
-
-const parent = new Matrix4();
-const locale = new Matrix4();
-const position = new Vector3();
-const echelle = new Vector3();
-
-/** La rotation locale de l'os `os` dans `pose`, sous l'os `nomDuParent`, ou dans le monde si la pose n'a pas cet os. */
-function rotationLocale(pose: Pose, os: string, nomDuParent: string | undefined, sortie: Quaternion): Quaternion {
-  const monde = pose.os.get(os);
-  if (!monde) throw new Error(`${GARDE} : os ${os} absent de la pose`);
-  const du = nomDuParent === undefined ? undefined : pose.os.get(nomDuParent);
-  locale.copy(du ? parent.copy(du).invert().multiply(monde) : monde).decompose(position, sortie, echelle);
-  return sortie;
 }
 
 /** Le suivi des rotations des chaînes sur les échantillons : `echantillon` à chaque (clip, t) joué, `mesures` à la fin. */

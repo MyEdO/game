@@ -51,11 +51,11 @@ function champ(champs: readonly FieldDesc[], donnee: unknown, cle: Segment, ...r
 }
 
 describe('la description du formulaire d’une zone d’effet', () => {
-  it('offre son Test de traversée, ses effets à la traversée et à chaque Round, chacun une liste d’ops ; absent, le Test s’ajoute vide', () => {
+  it('offre son Test de traversée, ses effets à la traversée et à chaque Round, chacun une liste d’ops, et son rendu ; absent, le Test s’ajoute vide', () => {
     const champs = formulaireDe('zone', zone());
-    expect(champs.map((c) => [c.key, c.label, c.nullable])).toEqual([['crossTest', 'Test de traversée', true], ['onCross', 'à la traversée', true], ['perRound', 'par Round', true]]);
+    expect(champs.map((c) => [c.key, c.label, c.nullable])).toEqual([['crossTest', 'Test de traversée', true], ['onCross', 'à la traversée', true], ['perRound', 'par Round', true], ['rendu', 'rendu', true]]);
     expect(valeurNeuveDe(champs[0].noeud)).toEqual({});
-    for (const liste of champs.slice(1)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
+    for (const liste of champs.slice(1, 3)) expect(unionDuNoeud(elementDuNoeud(liste.noeud))?.discriminant, liste.key).toBe('op');
   });
 
   it('décrit le Test présent : la référence de Compétence au catalogue, la caractéristique et la difficulté au choix, les nombres bornés, sa garde en Condition, ses listes, son enjeu choisi par variante', () => {

@@ -38,8 +38,8 @@ describe('#230 — réconciliation combat : le nom d’instance ne touche QUE la
     type: 'scene', id: 's', label: 'Bataille navale', dimensions: { w: 8, h: 8 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
     layers: [{ z: 0, tiles: new Array(64).fill('eau') }],
     entities: [
-      { id: 'coque-campagne', kind: 'personnage', ref: 'cogue', pos: { x: 1, y: 1 } },
-      { id: 'coque-ennemie', kind: 'personnage', ref: 'langskip', pos: { x: 6, y: 6 } },
+      { id: 'coque-campagne', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 1, y: 1 } },
+      { id: 'coque-ennemie', kind: 'personnage', vehicule: { id: 'langskip' }, pos: { x: 6, y: 6 } },
     ],
     dialogues: [], triggers: [], flags: {},
     encounters: [{ id: 'enc-naval', members: [

@@ -45,7 +45,7 @@ describe('Identité unifiée SceneEntity ↔ Combatant (fix embuscade)', () => {
     startFixtureCombat();
     // Badaud non enrôlé (PNJ d'ambiance) : doit survivre à la fin du combat.
     const sc = banc.getState().scene!;
-    banc.setState({ scene: { ...sc, entities: [...sc.entities, { id: 'badaud', kind: 'personnage', pos: { x: 2, y: 2 }, ref: 'mutant' }] } });
+    banc.setState({ scene: { ...sc, entities: [...sc.entities, { id: 'badaud', kind: 'personnage', pos: { x: 2, y: 2 }, creature: { id: 'mutant' } }] } });
 
     const ids = enrolledEntityIds();
     const b = banc.getState().battle!;
@@ -110,7 +110,7 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
     const scene: Scene = {
       type: 'scene', id: 's', label: '', dimensions: { w: 4, h: 4 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
       layers: [{ z: 0, tiles: new Array(16).fill('herbe') }],
-      entities: (['a', 'b', 'c'] as const).map((id): SceneEntity => ({ id, kind: 'personnage', ref: 'humain', pos: { x: 0, y: 0 } })),
+      entities: (['a', 'b', 'c'] as const).map((id): SceneEntity => ({ id, kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 } })),
       dialogues: [], triggers: [], encounters: [], flags: {},
     };
     let stored: Scene = scene;
@@ -128,8 +128,8 @@ describe('removeEntities — retrait par lot (brique partagée)', () => {
       type: 'scene', id: 's', label: '', dimensions: { w: 6, h: 6 }, reliefDefaults: structuredClone(DEFAULT_RELIEF_DEFAULTS), roofDefaults: structuredClone(DEFAULT_ROOF_DEFAULTS),
       layers: [{ z: 0, tiles: new Array(36).fill('herbe') }],
       entities: [
-        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'table-ronde-4-tabourets', facing: 'N' },
-        { id: 'pnj-1', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 1 } }, // abord NORD : la `pos` d'un attablé
+        { id: 'table-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
+        { id: 'pnj-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 } }, // abord NORD : la `pos` d'un attablé
       ] as SceneEntity[],
       dialogues: [], triggers: [], encounters: [], flags: {},
       seatAssignments: { 'table-1': { 'place-1': assis } },
@@ -158,8 +158,8 @@ describe('ouverture de combat — un PNJ enrôlé ASSIS se lève', () => {
     const table = { x: pos.x, y: pos.y - 1 };
     const entities: SceneEntity[] = [
       ...sc.entities,
-      { id: 'table-1', kind: 'prop', pos: table, ref: 'table-ronde-4-tabourets', facing: 'N' },
-      { id: 'badaud', kind: 'personnage', pos: { x: table.x, y: table.y - 1 }, ref: 'mutant' },
+      { id: 'table-1', kind: 'prop', pos: table, decor: { id: 'table-ronde-4-tabourets' }, facing: 'N' },
+      { id: 'badaud', kind: 'personnage', pos: { x: table.x, y: table.y - 1 }, creature: { id: 'mutant' } },
     ];
     const combattant = { kind: 'entity' as const, entityId: enrole };
     const badaud = { kind: 'entity' as const, entityId: 'badaud' };

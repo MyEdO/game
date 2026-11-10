@@ -3,7 +3,8 @@ extends SceneTree
 ## Les foyers des sources de lumière (#3783, `hotes/godot/pont/CONTRAT.md`, section « Lumière ») : une source de ton
 ## flamme pose sa lampe, qui vacille, son feu et sa fumée, gerbes continues nées d'avance, et son crépitement en boucle
 ## tiré de `res://sons/` ; une source magique pose sa lueur, sans son ; un nouvel éclairage remplace les foyers du
-## précédent.
+## précédent. Aucune particule ne se peint plus large que sa taille au plateau (#3832 : sans la garder, le rendu de
+## compatibilité peignait chacune à la taille de son quad, un disque blanc de deux mètres autour d'une lanterne).
 
 const RECETTE_AUTONOME := true
 const METRES_PAR_CASE := 2.0
@@ -60,6 +61,11 @@ func _verifier(foyer: Node, visuel: String, gerbes: int, son: String) -> void:
 		return p != null and p.emitting and not p.one_shot and not is_zero_approx(p.preprocess))
 	if emises.size() != gerbes:
 		_fautes.append("%s : %d gerbes continues nées d'avance, attendu %d" % [visuel, emises.size(), gerbes])
+	for rang in emises.size():
+		var largeur := _largeur_peinte(emises[rang])
+		var taille: float = Foyer.FLAMMES[visuel][rang].taille[1] * MiseEnPage.echelle_au_plateau(METRES_PAR_CASE).x
+		if largeur > taille + 0.0001:
+			_fautes.append("%s : une particule se peint large de %.2f, sa taille au plateau est %.2f" % [visuel, largeur, taille])
 	var lecteurs := foyer.get_children().filter(func(n: Node) -> bool: return n is AudioStreamPlayer3D)
 	if son == "":
 		if not lecteurs.is_empty():
@@ -69,6 +75,15 @@ func _verifier(foyer: Node, visuel: String, gerbes: int, son: String) -> void:
 	if lecteur == null or not lecteur.autoplay:
 		_fautes.append("%s : %s ne joue pas" % [visuel, son])
 		return
-	var variantes := lecteur.stream as AudioStreamRandomizer
-	if variantes == null or variantes.streams_count == 0 or not (variantes.get_stream(0) as AudioStreamOggVorbis).loop:
+	var variante := lecteur.stream as AudioStreamOggVorbis
+	if variante == null or not variante.loop:
 		_fautes.append("%s : %s ne boucle pas" % [visuel, son])
+
+
+## La largeur au plateau où se peint la plus grosse particule de la gerbe `gerbe` : un quad face à la caméra, à
+## l'échelle de la particule et de ses parents seulement si son matériau la garde (`billboard_keep_scale`).
+func _largeur_peinte(gerbe: CPUParticles3D) -> float:
+	var quad := gerbe.mesh as QuadMesh
+	var matiere := quad.material as StandardMaterial3D
+	var echelle := gerbe.global_transform.basis.get_scale().x * gerbe.scale_amount_max if matiere.billboard_keep_scale else 1.0
+	return quad.size.x * echelle

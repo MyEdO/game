@@ -67,6 +67,11 @@ const HAUTEUR_DU_COUP := 1.1
 ## La hauteur (m) au-dessus de son sol d'où part un flottant, et celle qu'il gagne en montant.
 const HAUTEUR_DU_FLOTTANT := 2.1
 const MONTEE_DU_FLOTTANT := 0.8
+## La hauteur (m) de la première marque d'État au-dessus du sol de son porteur, l'écart (m) entre deux marques, et la
+## hauteur (m) du visuel d'une marque (#3834).
+const HAUTEUR_DES_MARQUES := 1.85
+const ECART_DES_MARQUES := 0.3
+const HAUTEUR_DU_VISUEL_DE_MARQUE := 0.9
 ## La marge, en pixels, entre le bord d'un plan et ses points.
 const MARGE_DU_PLAN := 28.0
 ## Le rayon, en pixels, d'un point du plan.
@@ -179,6 +184,17 @@ static func point_du_coup(sol: Vector3, metres_par_case: float) -> Vector3:
 ## au-dessus, sur le plateau d'une scène de `metres_par_case`.
 static func point_du_flottant(sol: Vector3, metres_par_case: float) -> Vector3:
 	return sol + Vector3.UP * hauteur_au_plateau(HAUTEUR_DU_FLOTTANT, metres_par_case)
+
+
+## Le point de la marque d'État de rang `rang` au-dessus du sol de son porteur, la première à `HAUTEUR_DES_MARQUES`,
+## les suivantes `ECART_DES_MARQUES` plus haut chacune, sur le plateau d'une scène de `metres_par_case`.
+static func point_de_la_marque(rang: int, metres_par_case: float) -> Vector3:
+	return Vector3.UP * hauteur_au_plateau(HAUTEUR_DES_MARQUES + rang * ECART_DES_MARQUES, metres_par_case)
+
+
+## Le point du visuel d'une marque d'État, `HAUTEUR_DU_VISUEL_DE_MARQUE` au-dessus du sol de son porteur.
+static func point_du_visuel_de_marque(metres_par_case: float) -> Vector3:
+	return Vector3.UP * hauteur_au_plateau(HAUTEUR_DU_VISUEL_DE_MARQUE, metres_par_case)
 
 
 ## Le point où s'éteint le flottant parti de `point`, `MONTEE_DU_FLOTTANT` plus haut.

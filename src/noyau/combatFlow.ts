@@ -6545,7 +6545,7 @@ function scheduleRespawnFromOp(
 
 /** Type de Souffle du Domaine des Arcanes du lanceur (`DomainData.arcane`). LDB 47 l.509 */
 function domainBreathType(caster: Combatant): string | undefined {
-  return findDomainById(arcaneDomainIdOf(caster))?.arcane;
+  return findDomainById(arcaneDomainIdOf(caster))?.arcane?.id;
 }
 
 /** Bonus d'incantation CONDITIONNEL du Domaine (Aqshy l.157 : +`bonus` par État `perCondition` situé à

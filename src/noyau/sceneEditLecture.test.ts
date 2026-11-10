@@ -19,8 +19,8 @@ describe('les lectures de l’édition', () => {
 
   it('les caps : les quatre cardinaux d’un décor du catalogue, les huit sinon', () => {
     const pos = { x: 0, y: 0 };
-    expect(capsOfferts({ id: 'a', kind: 'prop', ref: props[0].id, pos })).toEqual(['N', 'E', 'S', 'O']);
-    expect(capsOfferts({ id: 'b', kind: 'prop', ref: 'decor-hors-catalogue', pos })).toHaveLength(8);
-    expect(capsOfferts({ id: 'c', kind: 'personnage', ref: 'humain', pos })).toHaveLength(8);
+    expect(capsOfferts({ id: 'a', kind: 'prop', decor: { id: props[0].id }, pos })).toEqual(['N', 'E', 'S', 'O']);
+    expect(capsOfferts({ id: 'b', kind: 'prop', decor: { id: 'decor-hors-catalogue' }, pos })).toHaveLength(8);
+    expect(capsOfferts({ id: 'c', kind: 'personnage', creature: { id: 'humain' }, pos })).toHaveLength(8);
   });
 });

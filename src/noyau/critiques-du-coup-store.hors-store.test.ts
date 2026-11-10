@@ -46,7 +46,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
   const ennemis = b.combatants.filter((c) => c.kind === 'enemy');
-  if (vehicule) b.combatants[b.combatants.indexOf(ennemis[0])] = ennemis[0] = spawnEnemy({ ref: vehicule }, ennemis[0].id, ennemis[0].pos!);
+  if (vehicule) b.combatants[b.combatants.indexOf(ennemis[0])] = ennemis[0] = spawnEnemy({ vehicule }, ennemis[0].id, ennemis[0].pos!);
   const [cible, pretre] = ennemis;
   pretre.items = (pretre.items ?? []).filter((i) => i.kind !== 'armor');
   pretre.armour = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };

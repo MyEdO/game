@@ -123,12 +123,6 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('branche CHAMP SCALAIRE d’un document (`domains.json › [].arcane`) : jointe, au champ de la clé', () => {
-    expect(couplesTouches(slotsAuPath('domains.json', '[].arcane'))).toEqual(['domains.json | arcane']);
-    const c = couple('domains.json', 'arcane')!;
-    expect(c.atteintes).toBe(c.occurrences);
-  });
-
   it('branche LISTE d’ids nus (`arene-projet.json › tiles`) : chaque liste est UNE occurrence, atteinte par ses éléments', () => {
     expect(couplesTouches(slotsAuPath('arene-projet.json', 'scenes[].layers[].tiles[]'))).toContain('arene-projet.json | tiles');
     const c = couple('arene-projet.json', 'tiles')!;
@@ -145,7 +139,7 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
   });
 
   it('un couple ATTEINT EN PARTIE reste à la couverture, à son compte OBSERVÉ total', () => {
-    const c = couple('arene-projet.json', 'ref')!;
+    const c = couple('careerLevels.json', 'trappings')!;
     expect(c.atteintes).toBeGreaterThan(0);
     expect(c.atteintes).toBeLessThan(c.occurrences);
     expect(champsSansSlot(scan, SLOTS)).toContainEqual(c);
@@ -165,9 +159,9 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('RÉF DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `idDe(\'prop\')` (`diligence-projet.json › ref`, joint)', () => {
-    expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].ref').map((s) => s.type))).toEqual(new Set(['prop']));
-    const c = couple('diligence-projet.json', 'ref')!;
+  it('CORPS DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `ref(\'prop\')` (`diligence-projet.json › decor`, joint)', () => {
+    expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].decor.id').map((s) => s.type))).toEqual(new Set(['prop']));
+    const c = couple('diligence-projet.json', 'decor')!;
     expect(c.atteintes).toBe(c.occurrences);
   });
 
@@ -181,6 +175,25 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
       writeFileSync(join(dossier, 'src/data/marins.json'), JSON.stringify([{ id: 'm1', skills: [{ id: 'savoir', spec: 'art' }] }, { id: 'm2', skills: [{ skillId: 'art' }] }]));
       const fixture = scannerDonnees(dossier, []);
       expect(couplesDeReference(fixture, []).filter((c) => c.dataset === 'marins.json'), 'le témoin `skillId` se compte, la Spécialisation `art` non.').toEqual([{ dataset: 'marins.json', champ: 'skills', occurrences: 1, atteintes: 0 }]);
+    } finally {
+      rmSync(dossier, { recursive: true, force: true });
+    }
+  });
+
+  it('fixture : branche CHAMP SCALAIRE d’une entrée (`[].souffle`) : jointe, au champ de la clé', () => {
+    const dossier = mkdtempSync(join(tmpdir(), 'slots-scalaire-'));
+    try {
+      mkdirSync(join(dossier, 'src/data'), { recursive: true });
+      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
+      cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
+      writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
+      writeFileSync(join(dossier, 'src/data/ecoles.json'), JSON.stringify([{ id: 'e1', souffle: 'alpha' }, { id: 'e2', souffle: 'beta' }]));
+      const fixture = scannerDonnees(dossier, []);
+      const ecoles = fixture.brutParNom.get('ecoles.json') as { souffle: string }[];
+      const slots: Slot[] = ecoles.map((porteur) => ({ dataset: 'ecoles.json', path: '[].souffle', type: 'skill', porteur, cle: 'souffle', parCle: false }));
+      expect([...new Set([...occurrencesTouchees(fixture, slots)].map((o) => `${o.dataset} | ${o.champ}`))]).toEqual(['ecoles.json | souffle']);
+      expect(couplesDeReference(fixture, slots)).toEqual([{ dataset: 'ecoles.json', champ: 'souffle', occurrences: 2, atteintes: 2 }]);
+      expect(couplesDeReference(fixture, slots.slice(1)), 'une entrée sans slot : son occurrence n’est pas atteinte.').toEqual([{ dataset: 'ecoles.json', champ: 'souffle', occurrences: 2, atteintes: 1 }]);
     } finally {
       rmSync(dossier, { recursive: true, force: true });
     }

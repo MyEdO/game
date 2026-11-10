@@ -124,15 +124,15 @@ function construireScene(): Scene {
       'penchées dessus, qui se relèvent en grognant.' },
     // — Carnage : la diligence, l'attelage, les voyageurs, le sang (props visibles, décor de combat) —
     entities: [
-      { id: 'epave', kind: 'prop', pos: { x: 15, y: 6 }, ref: 'epave-carrosse', label: 'Diligence éventrée' },
-      { id: 'cheval', kind: 'prop', pos: { x: 12, y: 6 }, ref: 'cheval-mort', label: 'Attelage éventré' },
-      { id: 'corps1', kind: 'prop', pos: { x: 11, y: 7 }, ref: 'cadavre', label: 'Voyageur dépecé' },
-      { id: 'corps2', kind: 'prop', pos: { x: 14, y: 8 }, ref: 'cadavre', label: 'Voyageur dépecé' },
-      { id: 'corps3', kind: 'prop', pos: { x: 17, y: 7 }, ref: 'cadavre', label: 'Voyageur dépecé' },
-      { id: 'sang1', kind: 'prop', pos: { x: 13, y: 7 }, ref: 'mare-sang' },
-      { id: 'sang2', kind: 'prop', pos: { x: 15, y: 7 }, ref: 'mare-sang' },
-      { id: 'sang3', kind: 'prop', pos: { x: 16, y: 8 }, ref: 'mare-sang' },
-      { id: 'sang4', kind: 'prop', pos: { x: 12, y: 8 }, ref: 'mare-sang' },
+      { id: 'epave', kind: 'prop', pos: { x: 15, y: 6 }, decor: { id: 'epave-carrosse' }, label: 'Diligence éventrée' },
+      { id: 'cheval', kind: 'prop', pos: { x: 12, y: 6 }, decor: { id: 'cheval-mort' }, label: 'Attelage éventré' },
+      { id: 'corps1', kind: 'prop', pos: { x: 11, y: 7 }, decor: { id: 'cadavre' }, label: 'Voyageur dépecé' },
+      { id: 'corps2', kind: 'prop', pos: { x: 14, y: 8 }, decor: { id: 'cadavre' }, label: 'Voyageur dépecé' },
+      { id: 'corps3', kind: 'prop', pos: { x: 17, y: 7 }, decor: { id: 'cadavre' }, label: 'Voyageur dépecé' },
+      { id: 'sang1', kind: 'prop', pos: { x: 13, y: 7 }, decor: { id: 'mare-sang' } },
+      { id: 'sang2', kind: 'prop', pos: { x: 15, y: 7 }, decor: { id: 'mare-sang' } },
+      { id: 'sang3', kind: 'prop', pos: { x: 16, y: 8 }, decor: { id: 'mare-sang' } },
+      { id: 'sang4', kind: 'prop', pos: { x: 12, y: 8 }, decor: { id: 'mare-sang' } },
     ],
     dialogues,
     triggers: [
@@ -158,7 +158,7 @@ function construireScene(): Scene {
           {
             // Chef : reste en retrait, tire à l'arbalète (À distance dans le Trait — le Trait dérive déjà
             // l'arme de RENDU via `weaponFromTrapping`, plus de `weapon:` d'authoring redondant, #145).
-            pos: { x: 17, y: 6 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'standing',
+            pos: { x: 17, y: 6 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'standing',
             label: 'Knud Cratinx',
             statblock: { type: 'statblock',
               label: 'Knud Cratinx',
@@ -167,23 +167,23 @@ function construireScene(): Scene {
             },
           },
           {
-            pos: { x: 17, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'howling',
+            pos: { x: 17, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'howling',
             label: 'Mikael',
             statblock: { type: 'statblock', label: 'Mikael', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 1 }, traits: [{ id: 'arme', value: 7, arg: 'massue' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-bestiale-chien' }] },
           },
           {
-            pos: { x: 14, y: 8 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'feeding',
+            pos: { x: 14, y: 8 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'feeding',
             label: 'Erik',
             statblock: { type: 'statblock', label: 'Erik', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 2 }, traits: [{ id: 'arme', value: 7, arg: 'couteau' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'pattes-chevre' }] },
           },
           {
-            pos: { x: 14, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'standing',
+            pos: { x: 14, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'standing',
             label: 'Johann',
             statblock: { type: 'statblock', label: 'Johann', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 4 }, traits: [{ id: 'arme', value: 7, arg: 'dague' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'tete-pointue' }] },
           },
           {
             // « Mutile l'attelage à la hache » → arme dans le Trait (type Grande hache, libellé catalogué → shape).
-            pos: { x: 12, y: 7 }, ref: 'mutant', appearance: { species: 'humains-reiklander' }, anim: 'standing',
+            pos: { x: 12, y: 7 }, creature: { id: 'mutant' }, appearance: { species: 'humains-reiklander' }, anim: 'standing',
             label: 'Terenz',
             statblock: { type: 'statblock', label: 'Terenz', char: { M: 4, 'capacite-de-combat': 45, 'capacite-de-tir': 30, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 3 }, traits: [{ id: 'arme', value: 7, arg: 'grande-hache' }, { id: 'corruption', arg: 'mineure' }, { id: 'mutation', arg: 'cretin' }] },
           },

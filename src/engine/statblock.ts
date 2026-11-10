@@ -9,13 +9,18 @@ import type { SizeCategory } from './size';
 import { makeRNG, hashSeed } from './dice';
 
 /** Le PORTEUR DE FICHE d'un combattant spawné (#1882, `LDB 77 l.7`) : exactement UN, jamais aucun —
- *  l'absence est irreprésentable. `presetCreature` est la CreatureData d'un preset de PNJ nommé (#671),
+ *  l'absence est irreprésentable. `ref` est une créature du Bestiaire, `vehicule` une coque, `engin` un engin de
+ *  siège (#2968). `presetCreature` est la CreatureData d'un preset de PNJ nommé (#671),
  *  déjà mergée par la couche campagne (`resolvePresetCreature`) ; `presetId` est l'id de ce preset (#2206).
  *  `parcours` porte une réf. du Bestiaire au parcours de carrière d'un PNJ (`porterAuParcours`, #773). */
 export type PorteurDeFiche =
-  | { ref: string; parcours?: import('./pnjDeCarriere').ParcoursDeCarriere; statblock?: never; presetCreature?: never; presetId?: never }
-  | { statblock: CustomStatblock; ref?: never; parcours?: never; presetCreature?: never; presetId?: never }
-  | { presetCreature: import('../data').CreatureData; presetId: string; ref?: never; parcours?: never; statblock?: never };
+  | (SansPorteur<'ref' | 'parcours'> & { ref: string; parcours?: import('./pnjDeCarriere').ParcoursDeCarriere })
+  | (SansPorteur<'vehicule'> & { vehicule: string })
+  | (SansPorteur<'engin'> & { engin: string })
+  | (SansPorteur<'statblock'> & { statblock: CustomStatblock })
+  | (SansPorteur<'presetCreature' | 'presetId'> & { presetCreature: import('../data').CreatureData; presetId: string });
+/** Les champs des AUTRES porteurs de fiche que `K`, absents. */
+type SansPorteur<K extends string> = { [C in Exclude<'ref' | 'parcours' | 'vehicule' | 'engin' | 'statblock' | 'presetCreature' | 'presetId', K>]?: never };
 
 export interface CustomStatblock {
   /** Type de document EMBARQUÉ (#1467 L1b) : le profil s'annonce dans la donnée, jamais hydraté en

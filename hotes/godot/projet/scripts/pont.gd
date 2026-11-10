@@ -154,8 +154,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ##   (`taille`). Elle se mesure à la publication qui suit un geste ou un changement d'état, que l'atelier retient tant
 ##   que le skin d'un mesh skinné monté n'a pas ses os au serveur de rendu ; chaque image d'un clip en lecture republie
 ##   la dernière mesure, car la mesure relit au processeur les tampons de chaque mesh
-##   (`RenderingServer.mesh_get_surface`), une lecture synchrone sous WebGL (#3787). `morphes` porte les poids réels des
-##   shape keys de chaque mesh qui en possède (`MeshInstance3D.get_blend_shape_value`), par nom de clé : `corps` pour
+##   (`RenderingServer.mesh_get_surface`), une lecture synchrone sous WebGL (#3787). `morphes` porte les poids cuits des
+##   shape keys de chaque mesh qui en possède (`MontageDeComposition.cuire_les_formes`), par nom de clé : `corps` pour
 ##   les meshes de la base, `montes` pour ceux de chaque emplacement monté. Les clés `mesh` sont les chemins depuis la
 ##   racine du modèle. Un mesh sans shape key est absent ; un emplacement monté sans shape key porte un record vide.
 ##   `defilement` est la position verticale du défilement du panneau de l'onglet courant

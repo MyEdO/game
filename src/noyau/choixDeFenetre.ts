@@ -28,7 +28,11 @@ import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
 import type { IdDeHeros } from './designations';
 import { herosDeLaSeance, type AxeDuGroupe, type AxeDuHerosDeLaSeance } from './partyFlow';
-import { BAISSES_DE_PRIX_MAX, catalogEntryOf, contexteDAchat, libelleDeLaRepartition, refusDAjout, sellRefusal, type MerchantState } from './merchantFlow';
+import {
+  BAISSES_DE_PRIX_MAX, MODES_DE_MARCHE, barterRefusal, catalogEntryOf, contexteDAchat, demandeDuTroc, devisDeTroc, devisDeVente, devisDuPanier, exemplaireCede, libelleDeLaRepartition, objetsAReparer,
+  optionsDeTroc, refusDAjout, refusDeMarchandage, refusDeRecherche, refusDeRefusDuMarche, sellRefusal, type MerchantState, type ModeDeMarche,
+} from './merchantFlow';
+import { findTrappingById } from '../data/index';
 import { dormeurDuRepos, foodOptions, lodgingOptions, nourrituresDeTroupe } from './restFlow';
 import { itemLabel } from '../engine/items';
 import { BATTLE_HAZARDS } from '../engine/massBattle';
@@ -100,6 +104,11 @@ const objetsALEchoppe = (axe: AxeDe<'marchand'>, retenu: (it: ItemInstance, m: M
     const m = s.merchant;
     return m ? s.party.flatMap((h) => (h.items ?? []).filter((it) => retenu(it, m)).map((it) => ouverte(it.uid, itemLabel(it), refus(it)))) : [];
   });
+/** Les valeurs du choix `axe` de l'échoppe ouverte `m` (`valeurs`), et sa valeur courante. */
+const aLEchoppe = (axe: AxeDe<'marchand'>, valeurs: (s: Jeu, m: MerchantState) => readonly ValeurDuReglage[], courant?: (s: Jeu) => ValeurDuReglage['valeur']) =>
+  reglage('marchand', axe, (s) => (s.merchant ? valeurs(s, s.merchant) : []), courant);
+/** Le côté `mode` d'un marché, fermé par `refus`. */
+const duMarche = (mode: ModeDeMarche, refus: string | null): ValeurDuReglage => ouverte(mode, garanti(libelleDuLitteral(mode), mode, 'côté du marché'), refus);
 const baissesDe = (m: MerchantState, it: ItemInstance): number => m.sellHalvings?.[it.uid] ?? 0;
 const enVente = (m: MerchantState, it: ItemInstance): boolean => (m.sellCart ?? []).some((c) => c.uid === it.uid);
 /** Le héros `pid` d'une rangée, hors de toute rangée tout héros : un héros du groupe. */
@@ -187,6 +196,38 @@ export const OUVERTS_DU_CHOIX = {
     baisserLePrix: objetsALEchoppe('baisserLePrix', (it, m) => sellRefusal(it) === null && baissesDe(m, it) < BAISSES_DE_PRIX_MAX),
     releverLePrix: objetsALEchoppe('releverLePrix', (it, m) => baissesDe(m, it) > 0),
     repartition: reglage('marchand', 'repartition', (s, pid) => (duGroupe(s, pid) ? (s.merchant?.pendingDistribution ?? []).map((d) => ouverte(d.uid, libelleDeLaRepartition(d))) : [])),
+    payer: aLEchoppe('payer', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'payer'), devisDuPanier(m, contexteDAchat(s, m)).refus)]),
+    vendre: aLEchoppe('vendre', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'vendre'), devisDeVente(m, s.party).refus)]),
+    refuser: aLEchoppe('refuser', (_s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeRefusDuMarche(m, mode)))),
+    marchander: aLEchoppe('marchander', (s, m) => MODES_DE_MARCHE.map((mode) => duMarche(mode, refusDeMarchandage(s, m, mode)))),
+    chercher: aLEchoppe('chercher', (s, m) => [ouverte(true, libelleDuChoix('marchand', 'chercher'), refusDeRecherche(s, m))]),
+    reparer: aLEchoppe('reparer', (s) => objetsAReparer(s.party).map((o) => ouverte(o.item.uid, `${o.item.label} · ${o.hero.label}`, o.refus))),
+    // LDB 59 l.64-76
+    trocCeder: aLEchoppe('trocCeder', (s) => optionsDeTroc(s.party).map((o) => {
+      const hero = garanti(s.party.find((h) => h.id === o.heroId), o.heroId, 'héros cédant');
+      return ouverte(exemplaireCede(hero, o.trappingId), `${garanti(findTrappingById(o.trappingId), o.trappingId, 'bien cédé').label} ×${o.count} (${hero.label})`, o.refus);
+    }), (s) => {
+      const cede = s.merchant?.troc?.cede;
+      const hero = cede && s.party.find((h) => h.id === cede.heroId);
+      return hero && cede ? exemplaireCede(hero, cede.trappingId) : null;
+    }),
+    trocRecevoir: aLEchoppe('trocRecevoir', (_s, m) => m.stock.filter((l) => l.qty > 0).map((l) => {
+      const refus = barterRefusal(l.id);
+      return { ...article(l.id), refus: refus && t('trade.barterRefused', { reason: refus }) };
+    }), (s) => s.merchant?.troc?.recu ?? null),
+    // Les exemplaires acquis : de 1 au stock de l'article choisi.
+    trocQuantite: (s): Reglage => {
+      const base = { geste: { verbe: VERBE_DE_CHOIX, fenetre: 'marchand' as const, axe: 'trocQuantite' as const }, libelle: libelleDuChoix('marchand', 'trocQuantite'), note: null };
+      const troc = s.merchant?.troc;
+      const stock = troc?.recu ? s.merchant?.stock.find((l) => l.id === troc.recu)?.qty ?? 0 : 0;
+      return troc && stock > 0
+        ? { ...base, courant: troc.quantite, valeurs: null, bornes: { min: 1, max: stock, pas: 1 } }
+        : { ...base, courant: null, valeurs: [], bornes: null };
+    },
+    troquer: aLEchoppe('troquer', (s, m) => {
+      const demande = demandeDuTroc(m);
+      return demande ? [ouverte(true, libelleDuChoix('marchand', 'troquer'), devisDeTroc(m, s.party, demande).refus)] : [];
+    }),
   },
   loot: { ligne: lignesDuButin('loot', (s) => s.pendingLoot?.gear) },
   // ZI 13

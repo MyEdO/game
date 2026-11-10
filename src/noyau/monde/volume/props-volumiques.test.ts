@@ -35,8 +35,8 @@ const SANS_GISEMENT = 'une SOURCE d’instances volumiques a disparu du scan (co
 const cuire = (prop: PropData, ancrage: Parameters<typeof buildPropVolumes>[1]) =>
   buildPropVolumes(prop, ancrage, METRES_PAR_CASE);
 
-/** Un décor authoré quelque part dans `src/scenes` : sa provenance, son id, sa ref et son cap. */
-interface DecorAuthore { source: string; id: string; kind?: string; ref?: string; facing?: string; mpt: number }
+/** Un décor authoré quelque part dans `src/scenes` : sa provenance, son id, son type et son cap. */
+interface DecorAuthore { source: string; id: string; kind?: string; decor?: { id: string }; facing?: string; mpt: number }
 
 /**
  * TOUTES les instances de décor AUTHORÉES : les documents `.json` de `src/scenes` (récursif, toute
@@ -263,16 +263,16 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
    */
   it('chaque instance authorée d’un décor volumique couvre, à l’échelle RÉELLE de sa scène, les cases du catalogue', () => {
     const volumiques = new Set(IDS);
-    const instances = entitesAuthorees().filter((e) => e.kind === 'prop' && e.ref !== undefined && volumiques.has(e.ref));
+    const instances = entitesAuthorees().filter((e) => e.kind === 'prop' && e.decor !== undefined && volumiques.has(e.decor.id));
     expect(gisementsDe(instances), SANS_GISEMENT).toEqual(GISEMENTS);
     const ecarts = instances.filter((e) => {
-      const prop = findPropById(e.ref)!;
+      const prop = findPropById(e.decor?.id)!;
       const cap = (e.facing ?? CAP_IDENTITE_PROP) as Dir4;
       const chezElle = empreinteDeriveeDuProp(prop, cap, e.mpt);
       const auCatalogue = empreinteDeriveeDuProp(prop, cap, METRES_PAR_CASE);
       return chezElle.w !== auCatalogue.w || chezElle.h !== auCatalogue.h;
     });
-    expect(ecarts.map((e) => `${e.source}/${e.id} (${e.ref}, cap ${e.facing ?? CAP_IDENTITE_PROP}, ${e.mpt} m/case)`)).toEqual([]);
+    expect(ecarts.map((e) => `${e.source}/${e.id} (${e.decor?.id}, cap ${e.facing ?? CAP_IDENTITE_PROP}, ${e.mpt} m/case)`)).toEqual([]);
   });
 
   /**
@@ -284,10 +284,10 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
    */
   it('aucune instance authorée d’un décor VOLUMIQUE ne porte un cap DIAGONAL', () => {
     const volumiques = new Set(IDS);
-    const instances = entitesAuthorees().filter((e) => e.kind === 'prop' && e.ref !== undefined && volumiques.has(e.ref));
+    const instances = entitesAuthorees().filter((e) => e.kind === 'prop' && e.decor !== undefined && volumiques.has(e.decor.id));
     expect(gisementsDe(instances), SANS_GISEMENT).toEqual(GISEMENTS);
     expect(instances.filter((e) => e.facing && !DIR4_ORDER.includes(e.facing as Dir4))
-      .map((e) => `${e.source}/${e.id} (${e.ref}, cap ${e.facing})`)).toEqual([]);
+      .map((e) => `${e.source}/${e.id} (${e.decor?.id}, cap ${e.facing})`)).toEqual([]);
   });
 
   /**
@@ -300,8 +300,8 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
   it('chaque décor authoré NOMME un type que le catalogue RÉSOUT — aucun défaut, aucun repli', () => {
     const decors = entitesAuthorees().filter((e) => e.kind === 'prop');
     expect(gisementsDe(decors), SANS_GISEMENT).toEqual(GISEMENTS);
-    expect(decors.filter((e) => !findPropById(e.ref))
-      .map((e) => `${e.source}/${e.id} (${e.ref ?? 'aucun type nommé'})`)).toEqual([]);
+    expect(decors.filter((e) => !findPropById(e.decor?.id))
+      .map((e) => `${e.source}/${e.id} (${e.decor?.id ?? 'aucun type nommé'})`)).toEqual([]);
   });
 });
 
@@ -321,7 +321,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
  */
 describe('décor volumique — le cap DIAGONAL est refusé de bout en bout', () => {
   const entiteBrute = (ref: string, facing: string) =>
-    ({ id: 'e-1', kind: 'prop', pos: { x: 2, y: 2 }, ref, facing });
+    ({ id: 'e-1', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: ref }, facing });
 
   it('1. SCHÉMA : le parse refuse un décor volumique en diagonale, et l’accepte au cardinal', () => {
     expect(sceneEntitySchema.safeParse(entiteBrute('table-ronde-4-tabourets', 'NE')).success).toBe(false);

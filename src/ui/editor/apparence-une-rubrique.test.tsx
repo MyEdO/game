@@ -35,7 +35,7 @@ const reglage = (racine: HTMLElement, texte: string): HTMLElement | undefined =>
   [...racine.querySelectorAll<HTMLElement>('label.reglage-apparence')].find((l) => l.textContent?.trim().startsWith(texte));
 
 function monterInspecteur(): HTMLElement {
-  const scene: Scene = { ...emptyScene('scene-test', 4, 4), entities: [{ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, ref: 'humain' }] };
+  const scene: Scene = { ...emptyScene('scene-test', 4, 4), entities: [{ id: 'pnj', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } }] };
   const montage = monterRacine(null);
   act(() =>
     montage.rendre(

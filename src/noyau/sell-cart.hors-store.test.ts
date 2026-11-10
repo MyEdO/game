@@ -31,7 +31,7 @@ describe('Panier de vente (#22b)', () => {
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', a.uid); // doublon refusé : l'instance est déjà en vente
     expect(banc.getState().merchant!.sellCart, 'chaque objet, chez son porteur').toEqual([{ uid: a.uid, heroId }, { uid: b.uid, heroId }]);
 
-    banc.getState().vendreLeLot();
+    banc.getState().fenetreChoisir('marchand', 'vendre', true);
     const s = banc.getState();
     expect(s.merchant!.sellCart).toHaveLength(0);
     expect(s.party[0].items?.filter((i) => i.uid === a.uid || i.uid === b.uid)).toHaveLength(0); // les deux objets vendus, retirés (la Bourse créditée demeure)

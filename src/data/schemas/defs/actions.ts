@@ -55,6 +55,7 @@ type EntreeAction = {
   role?: 'valide' | 'renonce';
   hote?: { id: string };
   mode?: string;
+  armed?: true;
 };
 
 const doc = document(
@@ -77,8 +78,8 @@ const doc = document(
      *  local qui peint cette portée sur le champ. Le clic qui suit reste le geste par défaut du grid,
      *  et dissout l'intention (spec zone 4). */
     intent: z.string().optional(),
-    /** Valeur écrite dans `battle.action` quand l'action est ARMÉE (mode à bouton). */
-    armed: z.string().optional(),
+    /** L'action ARME son `mode` : il s'écrit dans `battle.action` (mode à bouton). */
+    armed: z.literal(true).optional(),
     /** POSTURE de tir pré-armée basculée par cette action (`BattleState.stances`, champ du
      *  `PendingAttack` qu'elle pré-remplit) — exigée par le verbe `basculerLaPosture`. */
     stance: z.enum(['heldGround', 'intoCrowd']).optional(),
@@ -120,7 +121,7 @@ const doc = document(
     },
     mode: { label: 'Mode de ciblage', hint: 'Identifiant du mode de ciblage armé par l’action' },
     intent: { label: 'Portée d’intention', hint: 'Identifiant de portée peinte sur le champ tant que l’action est armée' },
-    armed: { label: 'Valeur d’armement', hint: 'Valeur écrite quand l’action est armée (mode à bouton)' },
+    armed: { label: 'Arme son mode', hint: 'Le mode de ciblage de l’action s’arme à son bouton' },
     stance: {
       label: 'Posture de tir pré-armée',
       hint: 'Posture basculée par cette action (tenir sa position/foncer dans la mêlée)',
@@ -163,6 +164,9 @@ const doc = document(
     }
     if (a.surface === 'interlude' && (!a.mode || !a.run || a.exitSafe === undefined)) {
       ctx.addIssue({ code: 'custom', message: `${a.id} : action d’interlude sans mode de ciblage, sans geste de sortie ou sans exitSafe` });
+    }
+    if (a.armed && !a.mode) {
+      ctx.addIssue({ code: 'custom', message: `${a.id} : action armée sans mode de ciblage (mode) — rien ne s’écrirait dans battle.action` });
     }
     if (a.exitSafe !== undefined && a.surface !== 'interlude') {
       ctx.addIssue({ code: 'custom', message: `${a.id} : exitSafe hors d’une action d’interlude (aucune touche d’annulation ne la vise)` });

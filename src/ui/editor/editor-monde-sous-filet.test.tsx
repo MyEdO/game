@@ -45,7 +45,7 @@ describe('Éditeur — une espèce hors domaine se voit, elle ne lève pas', () 
     const initialScene: Scene = {
       ...emptyScene('scene-test', 6, 6),
       id: 'filet',
-      entities: [{ id: 'pnj-faute', kind: 'personnage', ref: 'humain', pos: { x: 2, y: 2 }, appearance: { species: 'espece-hors-vocabulaire' } }],
+      entities: [{ id: 'pnj-faute', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { species: 'espece-hors-vocabulaire' } }],
     };
     const container = await monter(initialScene);
 
@@ -70,7 +70,7 @@ describe('Éditeur — une sauvegarde locale fautive est écartée', () => {
     const fautive: Scene = {
       ...emptyScene('scene-test', 6, 6),
       id: 'scene-autosave-fautive',
-      entities: [{ id: 'p3', kind: 'prop', pos: { x: 2, y: 2 }, ref: 'tonneau', facing: 'NE' }],
+      entities: [{ id: 'p3', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'tonneau' }, facing: 'NE' }],
     };
     await autosaveSave({ sceneId: fautive.id, scene: fautive, savedAt: 999 });
     const container = await monter({ ...emptyScene('scene-test', 6, 6), id: fautive.id });

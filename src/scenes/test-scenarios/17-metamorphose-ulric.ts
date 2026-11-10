@@ -37,8 +37,8 @@ const construireScene = (): Scene => buildScene({
     {
       id: 'enc-ulric',
       enemies: [
-        { ref: 'enfant-d-ulric-humain', pos: { x: 12, y: 4 } }, // forme humaine → l'IA se métamorphose
-        { ref: 'enfant-d-ulric-humain', pos: { x: 13, y: 8 } }, // idem : tête de loup à la transformation
+        { creature: { id: 'enfant-d-ulric-humain' }, pos: { x: 12, y: 4 } }, // forme humaine → l'IA se métamorphose
+        { creature: { id: 'enfant-d-ulric-humain' }, pos: { x: 13, y: 8 } }, // idem : tête de loup à la transformation
       ],
     },
   ],

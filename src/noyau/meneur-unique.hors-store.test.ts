@@ -53,7 +53,7 @@ function scèneDeTaverne(): Scene {
   s.id = 'taverne';
   s.entities = [
     { id: 'hs', kind: 'heroStart', pos: { x: 0, y: 0 } },
-    { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, ref: TABLE, facing: 'N', usable: { assise: true } },
+    { id: PROP, kind: 'prop', pos: { x: 5, y: 5 }, decor: { id: TABLE }, facing: 'N', usable: { assise: true } },
   ];
   return s;
 }
