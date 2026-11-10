@@ -115,7 +115,7 @@ export function choixDesMarches(get: Get, set: Set) {
     return {
       offre: (cargoId: IdDOffreDeCargaison) => f.poser(get, set, achatDeLOffre(get(), f, cargoId)),
       porteur: (porteur: IdDePorteurDeCargaison) => f.poser(get, set, { ...brouillon(), porteur, enc: f.devis(get(), porteur, brouillon().offre).enc }),
-      enc: (enc: number) => f.poser(get, set, { ...brouillon(), enc }),
+      encombrement: (enc: number) => f.poser(get, set, { ...brouillon(), enc }),
       acheter: () => {
         const achat = brouillon();
         f.poser(get, set, undefined);

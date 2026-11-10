@@ -2,27 +2,21 @@
 
 [ext_resource type="PackedScene" path="res://cadres/monde.tscn" id="1_monde"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
-
-[sub_resource type="Theme" id="Heure_du_voyage"]
-Label/font_sizes/font_size = 22
+[ext_resource type="Theme" path="res://art/heure.tres" id="t_heure"]
 
 [node name="Monde" instance=ExtResource("1_monde")]
 
 [node name="Paysage" type="PanelContainer" parent="Cadre/Marges/Colonne/Contenu"]
-size_flags_vertical = 3
 theme_type_variation = &"Paysage"
 
 [node name="Marges" type="MarginContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage"]
-theme_override_constants/margin_left = 24
-theme_override_constants/margin_top = 20
-theme_override_constants/margin_right = 24
-theme_override_constants/margin_bottom = 20
+theme_type_variation = &"MargesDuPaysage"
 
 [node name="Scene" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges"]
-theme_override_constants/separation = 16
+theme_type_variation = &"Pile"
 
 [node name="Heure" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
-theme = SubResource("Heure_du_voyage")
+theme = ExtResource("t_heure")
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Heure"]
 script = ExtResource("2_zone")
@@ -45,19 +39,22 @@ source = "fenetre.corps"
 ids = PackedStringArray("voyage/route")
 
 [node name="Frise" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
-theme_override_constants/h_separation = 24
-theme_override_constants/v_separation = 8
+theme_type_variation = &"Frise"
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Frise"]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("voyage/etape/")
 
-[node name="Heros" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu"]
-theme_override_constants/h_separation = 32
-theme_override_constants/v_separation = 12
+[node name="Defilement" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu"]
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Heros"]
+[node name="Heros" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
+theme_type_variation = &"Mosaique"
+size_flags_horizontal = 3
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Heros"]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
-ids = PackedStringArray("jets/")
+ids = PackedStringArray("heros/", "jets/")

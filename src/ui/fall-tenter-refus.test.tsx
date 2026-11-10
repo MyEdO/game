@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * « Tenter le Test » (chute volontaire, LDB 15 l.82) consomme l'Action (LDB 13 l.86-88) :
- * Action déjà prise → l'option porte le refus de `jetRegler('fall', 'tenter')` (`refusDuTestDeChute`,
+ * Action déjà prise → l'option porte le refus de `jetRegler('chute', 'tenter')` (`refusDuTestDeChute`,
  * `noyau/gesteDArete.ts`), éteinte ; Action libre → offerte. Afficher = agir.
  */
 import { describe, it, expect, beforeEach, afterEach, beforeAll } from 'vitest';
@@ -55,7 +55,7 @@ function monter(acted: boolean): void {
   act(() => root.render(<FallModal />));
 }
 
-describe('chute volontaire — l’option « Tenter » suit le verdict de `jetRegler(\'fall\', \'tenter\')`', () => {
+describe('chute volontaire — l’option « Tenter » suit le verdict de `jetRegler(\'chute\', \'tenter\')`', () => {
   it('Action déjà prise : option éteinte (aria-disabled), clic inerte', () => {
     monter(true);
     expect(tenter().getAttribute('aria-disabled')).toBe('true');

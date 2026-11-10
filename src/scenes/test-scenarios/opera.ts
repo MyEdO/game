@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import type { Scene, SceneEntity } from '../../noyau/monde/scene';
 import type { CustomStatblock } from '../../engine/statblock';
 import type { MapSpec } from '../../noyau/mapSpec';
@@ -316,5 +316,5 @@ export const scenario: TestScenario = {
     '→ zoneBlast, désamorçage facilité par la Poudre noire, cancelFlag), pétards + vol des clés par Glimbrin ' +
     '(Test caché à deux issues), étudiants saboteurs (combat optionnel), dialogue gaté de la Comtesse, PX canoniques.',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

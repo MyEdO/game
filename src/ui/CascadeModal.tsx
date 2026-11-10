@@ -124,14 +124,14 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   const party = useGame((s) => s.party);
   const p = useGame((s) => s.pendingCascade);
   const identites = useIdentites();
-  const batchRoll = useGesteDeJet('jetLancer', 'cascadeBatch'); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
-  const batchReroll = useGesteDeJet('jetRelancer', 'cascadeBatch');
-  const batchBonusSL = useGesteDeJet('jetAjouterUnDR', 'cascadeBatch');
-  const batchDarkPact = useGesteDeJet('jetPactiser', 'cascadeBatch');
-  const batchForce = useGesteDeJet('jetForcerLaReussite', 'cascadeBatch');
-  const batchResist = useGesteDeJet('jetResister', 'cascadeBatch'); // Résistance (Menace) PAR RANGÉE (LDB 10)
+  const batchRoll = useGesteDeJet('jetLancer', 'cascadeEnBande'); // étape « batch » — un Test générique par participant (seam #275 Décision 4 cran 1)
+  const batchReroll = useGesteDeJet('jetRelancer', 'cascadeEnBande');
+  const batchBonusSL = useGesteDeJet('jetAjouterUnDR', 'cascadeEnBande');
+  const batchDarkPact = useGesteDeJet('jetPactiser', 'cascadeEnBande');
+  const batchForce = useGesteDeJet('jetForcerLaReussite', 'cascadeEnBande');
+  const batchResist = useGesteDeJet('jetResister', 'cascadeEnBande'); // Résistance (Menace) PAR RANGÉE (LDB 10)
   const depenserLaDetermination = useGame((s) => s.depenserLaDetermination); // Détermination PAR RANGÉE (LDB 17 l.59)
-  const batchReverse = useGesteDeJet('jetInverser', 'cascadeBatch'); // Inversion PAR RANGÉE (LDB 12 l.42)
+  const batchReverse = useGesteDeJet('jetInverser', 'cascadeEnBande'); // Inversion PAR RANGÉE (LDB 12 l.42)
   const roll = useGesteDeJet('jetLancer', 'cascade'); // sans rangée : « Tout lancer » → bilan
   const reroll = useGesteDeJet('jetRelancer', 'cascade');
   const bonusSL = useGesteDeJet('jetAjouterUnDR', 'cascade');
@@ -402,14 +402,14 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
   // les props du hook : celui qui porte DÉJÀ son enjeu (Test étendu, dont le pending le transporte)
   // garde le sien, sans jamais deux `StakeNote`.
   const JET_RENDERERS: Record<NonNullable<CascadeStep['jet']>, () => JSX.Element> = {
-    attack: () => <CoqueDEtape {...stakeProps} {...attackProps!} embedded={embedded} etape={etape} />,
+    attaque: () => <CoqueDEtape {...stakeProps} {...attackProps!} embedded={embedded} etape={etape} />,
     defense: () => <CoqueDEtape {...stakeProps} {...defenseProps!} embedded={embedded} etape={etape} />,
-    fumble: () => <CoqueDEtape {...stakeProps} {...fumbleProps!} embedded={embedded} etape={etape} />,
+    maladresse: () => <CoqueDEtape {...stakeProps} {...fumbleProps!} embedded={embedded} etape={etape} />,
     test: () => <CoqueDEtape {...stakeProps} {...testProps!} embedded={embedded} etape={etape} />,
-    extended: () => <CoqueDEtape {...stakeProps} {...extendedProps!} embedded={embedded} etape={etape} />,
-    disengage: () => <DisengageModal />,
-    forceDoor: () => <ForceDoorModal />,
-    cast: () => <CastModal />,
+    testEtendu: () => <CoqueDEtape {...stakeProps} {...extendedProps!} embedded={embedded} etape={etape} />,
+    desengagement: () => <DisengageModal />,
+    enfoncerLaPorte: () => <ForceDoorModal />,
+    incantation: () => <CastModal />,
   };
   // ÉTAPE-JET : le rendu est INCONDITIONNEL (#1852) — ce que garantissent DEUX portes en amont, et
   // elles seules : le socle refuse de poser le curseur sur un hôte qui n'a pas de quoi rendre un corps
@@ -742,7 +742,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     // clé + duplication visuelle. `buildParticipantRows` keye par id nu (correct pour ses 6 autres
     // appelants MONO-étape) ; ici on re-scope au site qui compose plusieurs pas — et l'id RÉEL du
     // participant part alors dans `pid` (le socle résout SON slot par là, jamais par la clé de rendu).
-    // Rangées du flux `cascadeBatch` (la coquille hôte porte la cascade) : `flowKey` de RANGÉE.
+    // Rangées du flux `cascadeEnBande` (la coquille hôte porte la cascade) : `flowKey` de RANGÉE.
     const rows: BuiltRollRow[] = buildParticipantRows(cur.participants!, pool, {
       onRoll: batchRoll, onReroll: batchReroll, onBonusSL: batchBonusSL, onDarkPact: batchDarkPact, onForce: batchForce,
       interactiveOf: (part) => part.interactive !== false && owns(part.id),
@@ -767,20 +767,20 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       // UNIQUE), visible AVANT et après le jet, persistante (arbitrage user 2026-07-11).
       extendedDrOf: (part) => cumulEtenduDeRangee(part, cur.participants!),
     }).map((r) => {
-      // Verbes à RESSOURCE de la rangée (parité avec l'étape MONO, joués PAR RANGÉE — flux `cascadeBatch`) :
+      // Verbes à RESSOURCE de la rangée (parité avec l'étape MONO, joués PAR RANGÉE — flux `cascadeEnBande`) :
       // Résistance (Menace) sur une rangée TAGUÉE dont l'issue reste défavorable (LDB 10 l.1016-1020) ;
       // Détermination avant le jet sur une bande de Psychologie (LDB 17 l.59), le verbe général
       // `depenserLaDetermination` sur le combattant de la rangée, ouvert par `refusDImmunite`.
       const part = cur.participants!.find((x) => x.id === String(r.key));
       const a = r.actor;
-      const ouverts = part ? fermeturesDuFlux(useGame.getState(), 'cascadeBatch', part.id) : null;
+      const ouverts = part ? fermeturesDuFlux(useGame.getState(), 'cascadeEnBande', part.id) : null;
       const resistOk = !!part?.menace && ouverts?.resist === null;
       const determineOk = !!a && !refusDImmunite(useGame.getState(), a);
       // Inversion (LDB 12 l.42) : offre et aperçu sont les verdicts du flux (`FLOWS.cascadeBatch`).
       const reverseOk = ouverts?.reverse === null;
       return {
         ...r,
-        flowKey: 'cascadeBatch' as const,
+        flowKey: 'cascadeEnBande' as const,
         pid: String(r.key),
         key: witnessRowKey(cur.id, String(r.key)),
         ...(resistOk ? { resist: { menace: part!.menace!, onResist: () => batchResist(part!.id) } } : {}),

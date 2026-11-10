@@ -28,7 +28,7 @@ import { ShoreLeaveBody } from './ShoreLeaveModal';
 import { CouncilModal } from './CouncilModal';
 import { RenounceModal } from './RenounceModal';
 import { findMoraleFactor } from '../engine/crewMorale';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { useGame } from '../state/store';
 import type { CampaignVessel } from '../noyau/etat';
 import type { Combatant, ItemInstance } from '../engine/types';
@@ -225,7 +225,7 @@ describe('#1689 T2 — écrans migrés', () => {
   });
 
   it('INFIRMERIE : la tuile d’un patient refusé garde le nom du héros, puis le refus du noyau', () => {
-    const [sain, blesse] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur);
+    const [sain, blesse] = groupeDeScenario(idsDeTest, 'soldat', 'tueur');
     const patient = { ...blesse, wounds: { ...blesse.wounds, current: blesse.wounds.max - 3 } };
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
       medic: { patientId: patient.id }, party: [sain, patient], pendingHeal: null, pendingSurgery: null,
@@ -233,7 +233,7 @@ describe('#1689 T2 — écrans migrés', () => {
     const rienASoigner = renderToStaticMarkup(<MedicModal />);
     expect(rienASoigner, 'un héros indemne : rien à soigner').toContain(`${sain.label} — ${t('medic.patientSansSoin')}`);
     expect(rienASoigner, 'un blessé se choisit : son nom seul').not.toContain(`${patient.label} — `);
-    const operation = { kind: 'surgery', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, targetDR: 5, cumDR: 0, stake: {} };
+    const operation = { kind: 'chirurgie', difficulty: 'intermediaire', healerName: sain.label, skill: 40, intBonus: 3, traumaIdx: 0, targetDR: 5, cumDR: 0, stake: {} };
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, { medic: { patientId: patient.id, surgery: operation } });
     const soinEnCours = renderToStaticMarkup(<MedicModal />);
     expect(soinEnCours, 'une opération en cours : chaque patient verrouillé').toContain(`${patient.label} — ${t('jet.ferme.soinEnCours')}`);
@@ -261,7 +261,7 @@ describe('#1689 T2 — écrans migrés', () => {
   });
 
   it('« JE TE RENIE ! » sans Point de Résilience : refusé par la raison du noyau (LDB 17 l.67)', () => {
-    const heros = { ...pregenParty(idsDeTest, PREGEN.soldat)[0], resilience: 0 };
+    const heros = { ...groupeDeScenario(idsDeTest, 'soldat')[0], resilience: 0 };
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
       party: [heros], pendingRenounce: { heroId: heros.id, testRoll: 90, testTarget: 30 },
     });

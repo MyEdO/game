@@ -16,7 +16,7 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -44,6 +44,8 @@ import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
 import { issueDuTestSchema } from '../../data/schemas/defs/sea-cargo';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
+import { carriereActuelle } from '../../engine/pnjDeCarriere';
+import { garanti } from '../../lib/garanti';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
@@ -1299,9 +1301,9 @@ const CODEX_SPECS = {
         source: src(g.source),
         sections: sections(
           passiveSection(g.init, tr('codex.fiche.aLaToucheEmpetre')),
-          passiveSection(g.win.damage, tr('codex.fiche.testOpposeGagneInfligerDesDegats')),
-          passiveSection(g.win.entangle, tr('codex.fiche.testOpposeGagneEmpetrerDavantage')),
-          passiveSection(g.win.free, tr('codex.fiche.testOpposeGagneSeLiberer')),
+          passiveSection(g.win.degats, tr('codex.fiche.testOpposeGagneInfligerDesDegats')),
+          passiveSection(g.win.empetrer, tr('codex.fiche.testOpposeGagneEmpetrerDavantage')),
+          passiveSection(g.win.liberer, tr('codex.fiche.testOpposeGagneSeLiberer')),
         ),
       }];
     },
@@ -1313,6 +1315,14 @@ const CODEX_SPECS = {
   miscastMajor: {
     label: 'codex.fiche.incantationsImparfaitesMajeures', group: 'magie', sourceRef: 'LDB 46',
     build: () => datasetArray('miscastMajor').map((e) => miscastRowItem(e, miscastDie('miscast-majeure'))),
+  },
+  miscastMinorVdm: {
+    label: 'codex.fiche.incantationsImparfaitesMineuresVdm', group: 'magie', sourceRef: 'VDM 02',
+    build: () => datasetArray('miscastMinorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-mineure-vdm'))),
+  },
+  miscastMajorVdm: {
+    label: 'codex.fiche.incantationsImparfaitesMajeuresVdm', group: 'magie', sourceRef: 'VDM 02',
+    build: () => datasetArray('miscastMajorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-majeure-vdm'))),
   },
   miscastWrath: {
     label: 'codex.fiche.colereDesDieux', group: 'magie', sourceRef: 'LDB 40',
@@ -1797,12 +1807,13 @@ const CODEX_SPECS = {
   },
   pregens: {
     label: 'codex.fiche.preTires', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => pregens.map((p) => ({
-      id: p.id,
-      label: p.label, sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(p.career.id)?.label ?? p.career.id),
-      meta: facts(fact(tr('codex.fiche.motivation'), p.motivation), fact(tr('codex.fiche.graine'), p.seed)),
-      sections: p.pettySpells?.length ? sections(chips(tr('codex.fiche.sorts'), p.pettySpells.map((id) => idRefRow('spells', id)))) : undefined,
-    })),
+    build: () => pregens.map((p) => {
+      const actuelle = garanti(carriereActuelle({ carrieres: p.carrieres }), p.id, 'carrière actuelle du pré-tiré');
+      return depuisEnveloppe(p, {
+        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(actuelle.id)?.label ?? actuelle.id, tr('codex.fiche.niveau2', { level: actuelle.niveau })),
+        meta: facts(fact(tr('codex.fiche.motivation'), p.motivation)),
+      });
+    }),
   },
   oups: {
     label: 'codex.fiche.oups', group: 'tables',
@@ -2590,6 +2601,19 @@ const CODEX_SPECS = {
   obsessions: {
     label: 'codex.fiche.obsessionsTable', group: 'tables',
     build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: bandeAuDe(obsessionsDie(), o.min, o.max) })),
+  },
+  talentsAleatoires: {
+    label: 'codex.fiche.talentsAleatoires', group: 'tables',
+    build: () => talentsAleatoires.map((t) => depuisEnveloppe(t, {
+      sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+      sections: sections({
+        title: tr('codex.fiche.tirages'), layout: 'list',
+        rows: t.entries.map((r) => {
+          const label = talentRefLabel({ id: r.id });
+          return { t: 'ref', category: 'talents', id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(t), r.min, r.max) } as CodexRow;
+        }),
+      }),
+    })),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

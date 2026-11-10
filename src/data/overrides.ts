@@ -15,9 +15,9 @@ import { tableTotale } from '../lib/tableTotale';
 import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
-  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
+  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
-  pregens, oups, interludeEvents, peripeties, details, semencesDeScene, defautsDeCompilation, names, allAxes,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
@@ -123,7 +123,7 @@ const rencontresDangereuses = encounterTable('dangereuses');
 /** Datasets-tableaux mutables (clé éditeur → MÊME référence d'array que l'export de la façade). */
 const ARRAYS = {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
-  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
+  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
   // mutation en place, et c'est lui qui rend vivante la lecture des vues par domaine (`matieresDe`,
   // `src/data/index.ts`) : une matière retouchée se voit au rendu sans rechargement. Son def déclare
@@ -140,7 +140,7 @@ const ARRAYS = {
   // `src/noyau/monde/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
   // qu'une entrée éditée au Codex se voit dans l'éditeur et au rendu sans rechargement.
   buildings,
-  pregens, oups, interludeEvents, peripeties, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, names,
   // Axes de forces/faiblesses (#409) — mécanique MAISON, éditable au Codex comme tout catalogue.
   axes: allAxes,
   // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.
@@ -201,10 +201,12 @@ const ARRAYS = {
   drivingMishap: MISHAP_TABLE,
   drunkenness: DRUNK_TABLE,
   encumbranceTiers: encumbranceTiersRawJson,
-  // #422 (FINAL) : Incantations Imparfaites Mineures/Majeures (LDB 46) + Colère des dieux (LDB 40)
-  // — les rangées de 3 des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b).
+  // Incantations Imparfaites Mineures/Majeures (LDB 46 ; VDM 02 l.218-263) + Colère des dieux (LDB 40)
+  // — les rangées des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b, #1667).
   miscastMinor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure'),
   miscastMajor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure'),
+  miscastMinorVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm'),
+  miscastMajorVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm'),
   miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
   // Enjeux des cascades (`stakes.json`, tableau RACINE, #1681) : le fichier disque est DÉRIVÉ de
   // l'`exposition.edit` du def.

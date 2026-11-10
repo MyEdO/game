@@ -35,7 +35,7 @@ import {
   entrainementTutorCost,
   ACTIVITIES, activitiesFor, activityById, matchOutcomes, activityAvailableAt,
   RESOLVER_OWNER,
-  type ActivityDef, type ActivityResolver, type ResolverOf,
+  type ActivityDef, type ActivityResolver, type GenreDeDepot, type ResolverOf,
 } from '../engine/activities';
 import { buildActivityWorldRollSteps } from './activityWorldRolls';
 import { actorStatus } from '../engine/social';
@@ -133,7 +133,7 @@ export interface BankDeposit {
   /** Son identité, posée au dépôt. */
   uid: string;
   heroId: string;
-  kind: 'invest' | 'stash' | 'mecenat';
+  kind: GenreDeDepot;
   /** Montant déposé, en sous de cuivre. */
   brass: number;
   /** Indice d'intérêts (1-10) — taux % ET risque de faillite (invest seulement). */
@@ -246,8 +246,8 @@ function finishInterludeEvent(get: Get, set: Set, hero: Combatant, roll: number)
     lines.push(msg('if.fortuneOmen', { name: hero.label, n: ev.fx.fortuneMaxDelta }));
   }
   let bank = get().bank ?? [];
-  if (ev.fx?.stashRaided && bank.some((b) => b.heroId === hero.id && b.kind === 'stash')) {
-    bank = bank.filter((b) => !(b.heroId === hero.id && b.kind === 'stash'));
+  if (ev.fx?.stashRaided && bank.some((b) => b.heroId === hero.id && b.kind === 'planque')) {
+    bank = bank.filter((b) => !(b.heroId === hero.id && b.kind === 'planque'));
     lines.push(msg('if.stashRaided', { name: hero.label }));
   }
   itl.perHero[hero.id] = { ...st, eventRoll: roll, fx: ev.fx, left: Math.max(0, left), granted: Math.max(0, left), ...(elfDuty && { elfDuty }) };
@@ -263,7 +263,7 @@ function denouementDuTirage(s: Jeu) {
   return {
     pertes: pertesDArgentDuTirage(s),
     perdues: heros.map((heroId) => ({ heroId, effets: activitesPerduesAuGroupe(s, heroId) })).filter((p) => p.effets.length),
-    faillite: heros.some((heroId) => verificationDeFaillite(s, heroId)) && (s.bank ?? []).some((d) => d.kind === 'invest'),
+    faillite: heros.some((heroId) => verificationDeFaillite(s, heroId)) && (s.bank ?? []).some((d) => d.kind === 'investir'),
   };
 }
 
@@ -292,7 +292,7 @@ function finishInterludeDraw(get: Get, set: Set): string[] {
   set({ interlude: { ...get().interlude!, perHero } });
   if (d.faillite) {
     for (const dep of [...(get().bank ?? [])].reverse()) {
-      if (dep.kind === 'invest') lines.push(...bankWithdrawInner(get, set, dep.uid, true));
+      if (dep.kind === 'investir') lines.push(...bankWithdrawInner(get, set, dep.uid, true));
     }
   }
   set({ interlude: { ...get().interlude!, phase: 'activities' } });
@@ -361,7 +361,7 @@ export interface PendingActivityFields extends PendingBase {
   traitPsy?: TraitPsyVise;
   // ── Activité/Scène de BATAILLE de masse (ADE II 8 — contextes 'bataille'/'bataille-round') ──
   /** Activité de bataille : l'issue (delta de Puissance / modificateur de Test) porte sur l'ARMÉE, pas
-   *  sur le héros — routée par `jetValider('activity')` vers le résolveur de bataille. `prep` = Activité de
+   *  sur le héros — routée par `jetValider('activite')` vers le résolveur de bataille. `prep` = Activité de
    *  préparation ('bataille') ; `round` = Scène cinématique d'un Round ('bataille-round'). */
   battle?: 'prep' | 'round';
   /** Modificateur de SITUATION (fondu dans la cible, en LIGNE de mod pour la modale) : Menace −20 (l.219)
@@ -573,7 +573,7 @@ function mecenatPayout(get: Get, set: Set, h: Combatant, depotId: IdDeDepot, pay
 
 /** Issue d'un résolveur d'Activité : les lignes de journal + un `patch` de l'état d'interlude du
  *  héros (deltas NON exprimables en `GameOp` : DR du Test étendu, crédit différé des Revenus,
- *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetValider('activity')`). */
+ *  compteur d'acharnement — fusionnés dans l'écriture finale de `jetValider('activite')`). */
 interface ResolverResult { lines: string[]; patch?: Partial<InterludeHeroState>; closeOps?: GameOp[] }
 
 /** Ce résolveur appartient-il à la famille INTERLUDE (`RESOLVER_OWNER`) ? */
@@ -581,7 +581,7 @@ const ownedByInterlude = (r: ActivityResolver): r is ResolverOf<'interlude'> => 
 
 /** Dispatch des résolveurs BESPOKE d'issue d'Activité (`ActivityDef.resolver` + bandes `resolver`) —
  *  chacun RÉUTILISE une logique PURE existante et implémente la règle RAW vérifiée. Le `patch` porte
- *  les deltas d'état d'interlude (le `set` final est fait par `jetValider('activity')`). FERMÉ sur le
+ *  les deltas d'état d'interlude (le `set` final est fait par `jetValider('activite')`). FERMÉ sur le
  *  sous-ensemble POSSÉDÉ par l'interlude (`RESOLVER_OWNER`) : un résolveur d'une autre famille qui
  *  arriverait ici est une erreur de routage, elle CRIE. */
 function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa: PendingActivity, h: Combatant, st: InterludeHeroState): ResolverResult {
@@ -1058,16 +1058,16 @@ function appliquerLActivite(get: Get, set: Set): void {
 }
 
 /** Refus de l'Indice d'intérêts `indice` d'un dépôt `kind` : seul un placement en porte un, entier de 1 à 10. LDB 23 l.168 */
-export function refusDIndice(kind: 'invest' | 'stash' | 'mecenat', indice: number | undefined): string | null {
+export function refusDIndice(kind: GenreDeDepot, indice: number | undefined): string | null {
   if (indice === undefined) return null;
-  if (kind !== 'invest') return msg('if.bankIndiceHorsPlacement');
+  if (kind !== 'investir') return msg('if.bankIndiceHorsPlacement');
   return Number.isInteger(indice) && indice >= 1 && indice <= 10 ? null : msg('if.bankIndiceHorsBornes', { indice });
 }
 
 /** Opérations bancaires (LDB 23 l.164-170) — dépôt (1 Activité). Invest : Statut Or/Argent.
  *  `mecenat` (ACE 12 l.49) : variante d'Opération bancaire — « au moins 5 CO » (minInvest de
  *  la donnée), gate géographique de l'Activité ; le retrait se résout par un Test d'Évaluation. */
-export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: number): void {
+export function bankDeposit(get: Get, set: Set, heroId: string, kind: GenreDeDepot, amountBrass: number, indice?: number): void {
   const st = heroState(get(), heroId);
   const h = get().party.find((x) => x.id === heroId);
   if (refuseSi(get, set, (s) => (kind ? devisDeDepot(s, heroId, kind, amountBrass).refus : msg('interlude.choisir.depot')))) return;
@@ -1076,7 +1076,7 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
   const lines: string[] = [];
   for (const { label, fx } of effetsDeLaPeriode(get(), heroId)) if (fx.bankPct) lines.push(msg('if.eventBankPct', { pct: fx.bankPct, event: label }));
-  const r = kind === 'invest' ? indice ?? d10(battleRng()) : 0;
+  const r = kind === 'investir' ? indice ?? d10(battleRng()) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
   const uid = get().forgerUnId('it');
   set({ bank: [...(get().bank ?? []), { uid, heroId, kind, brass: deposited, rate: r }] });
@@ -1084,11 +1084,11 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: 'invest' |
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
   set({ interlude: { ...itl } });
   lines.push(msg(
-    kind === 'invest' ? 'if.bankInvest' : kind === 'mecenat' ? 'if.bankMecenat' : 'if.bankStash',
+    kind === 'investir' ? 'if.bankInvest' : kind === 'mecenat' ? 'if.bankMecenat' : 'if.bankStash',
     { name: h.label, money: formatMoney(fromBrass(deposited)), rate: r },
   ));
   // Un dépôt en banque réputée vérifie la faillite sous la période qui l'exige. LDB 22 l.111
-  if (kind === 'invest' && verificationDeFaillite(get(), heroId)) {
+  if (kind === 'investir' && verificationDeFaillite(get(), heroId)) {
     lines.push(...bankWithdrawInner(get, set, uid, true));
   }
   for (const l of lines) get().ecrireAuJournal(l);
@@ -1107,7 +1107,7 @@ export function bankWithdraw(get: Get, set: Set, depotId: IdDeDepot): void {
     if (def) openCatalogActivity(get, set, dep.heroId, def, { depotId });
     return;
   }
-  if (dep.kind === 'invest') {
+  if (dep.kind === 'investir') {
     const st = heroState(get(), dep.heroId);
     if (!st) return;
     const itl = get().interlude!;
@@ -1133,7 +1133,7 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
     const threshold = seuilDePerteBancaire(dep.kind, dep.rate);
     return [msg('if.bankLost', {
       name: libelleOuAbsence(h, 'heros', dep.heroId), roll, threshold,
-      what: msg(dep.kind === 'invest' ? 'if.bankFailBank' : 'if.bankFailStash'),
+      what: msg(dep.kind === 'investir' ? 'if.bankFailBank' : 'if.bankFailStash'),
       money: formatMoney(fromBrass(dep.brass)),
     })];
   }
@@ -1143,7 +1143,7 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
   creditBourse(get, set, dep.heroId, fromBrass(payout)); // retrait PERSONNEL : recrédité au déposant
   return [msg('if.bankWithdraw', {
     name: libelleOuAbsence(h, 'heros', dep.heroId), money: formatMoney(fromBrass(payout)), roll,
-    extra: dep.kind === 'invest' ? msg('if.bankInterest', { rate: dep.rate }) : '',
+    extra: dep.kind === 'investir' ? msg('if.bankInterest', { rate: dep.rate }) : '',
   })];
 }
 
@@ -1248,7 +1248,7 @@ export function choixDInterlude(get: Get, set: Set) {
       },
       objet: poser('objet'),
       sort: poser('sort'),
-      traitPsy: poser('traitPsy'),
+      traitPsychologique: poser('traitPsychologique'),
       pratiquer: (_vrai, pid) => pratiquer(get, set, pid, composee(pid)),
     },
   } satisfies Partial<CorpsDesChoix>;
@@ -1259,7 +1259,7 @@ export function validationsDInterlude(get: Get, set: Set) {
 }
 
 export function cloturesDInterlude(get: Get, set: Set) {
-  return { activity: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
+  return { activite: () => appliquerLActivite(get, set) } satisfies Partial<CloturesDuJet>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

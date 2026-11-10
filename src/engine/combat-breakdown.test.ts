@@ -33,7 +33,7 @@ const bow: Weapon = { label: 'Arc', type: 'ranged', damage: { plusBF: false, fla
 
 describe('rollMeleeDefender : pénalité de main secondaire APPLIQUÉE au jet de parade (pas que l’affichage)', () => {
   const main: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'main', hands: 1, uid: 'm' };
-  const off: Weapon = { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'off', hands: 1, uid: 'o' };
+  const off: Weapon = { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'secondaire', hands: 1, uid: 'o' };
   it('parer avec l’arme de main secondaire (non Parade) → cible du jet -20 vs main principale', () => {
     const d = mk({ weapons: [main, off] });
     const withMain = rollMeleeDefender(d, 'parade', makeRNG(1), [], main).target;
@@ -43,7 +43,7 @@ describe('rollMeleeDefender : pénalité de main secondaire APPLIQUÉE au jet de
 });
 
 describe('attackModifiers : pénalité de main secondaire (LDB 14 l.181)', () => {
-  const off: Weapon = { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'off', hands: 1 };
+  const off: Weapon = { label: 'Dague', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [], hand: 'secondaire', hands: 1 };
   const main: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [], hand: 'main', hands: 1 };
   it('arme de main secondaire → -20', () => {
     const mods = attackModifiers(mk(), mk(), off, { kind: 'melee' });
@@ -61,7 +61,7 @@ describe('attackModifiers : pénalité de main secondaire (LDB 14 l.181)', () =>
 
 describe('parade : pénalité de main secondaire + exception Parade/Défensive (LDB 62 l.151)', () => {
   const parrySpec = { id: 'corps-a-corps', spec: 'parade', characteristic: 'capacite-de-combat', advances: 0 } as any;
-  const offShield: Weapon = { label: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'defensive' }], hand: 'off', hands: 1 };
+  const offShield: Weapon = { label: 'Bouclier', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [{ id: 'defensive' }], hand: 'secondaire', hands: 1 };
   it('parade main secondaire : bouclier Défensive + spé Parade → AUCUNE pénalité', () => {
     const mods = defenseModifiers(mk({ skills: [parrySpec] }), 'parade', [], offShield);
     expect(ligneDe(mods, refDeRegle('main-secondaire'))).toBeUndefined();

@@ -36,8 +36,8 @@ describe('Brisé — restriction d\'action (LDB 16 l.52)', () => {
     setup(false);
     banc.abandonner();
     // La cible est hors d'Allonge : depuis la spec HUD § ARBITRAGE 2026-08-19, le clic ne s'approche
-    // plus tout seul — le joueur ARME la Charge, et le verdict voyage avec le geste (`approche`).
-    cliquerSurLeCombattant(banc.getState, 'e', { confirm: true, approche: true });
+    // plus tout seul — le joueur ARME la Charge, et son intention voyage avec le geste (`intentionId`).
+    cliquerSurLeCombattant(banc.getState, 'e', { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     expect(banc.getState().pendingAttack).not.toBeNull();
   });

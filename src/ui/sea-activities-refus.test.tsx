@@ -104,6 +104,6 @@ describe('#3059 — siège invité : « Valider la semaine » lit le refus de va
     expect(document.getElementById(hilda.getAttribute('aria-describedby')!)?.textContent).toContain(t('choix.refus.autreSiege'));
     const cartographie = seaActivitiesCatalog().find((d) => d.label === 'Cartographie')!;
     act(() => { option('Karl', 'Cartographie').click(); });
-    expect(choix).toEqual([['seaActivities', 'activite', cartographie.id, 'h2']]);
+    expect(choix).toEqual([['activitesEnMer', 'activite', cartographie.id, 'h2']]);
   });
 });

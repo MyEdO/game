@@ -14,7 +14,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { setRule } from '../engine/policy';
 import { findTavernGameById, fastTavernGame, TAVERN_GAMES, TAVERN_FAST_RULE, tavernFastRegime } from '../engine/tavernGame';
@@ -30,7 +30,7 @@ const get = () => banc.getState();
 
 /** Un héros seul à la table, face à un adversaire de la salle. */
 function seul(): Combatant {
-  const a = makePregens(idsDeTest)[0] as Combatant;
+  const a = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
   banc.setState({ battle: null, party: [a], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return get().party[0];
 }
@@ -45,7 +45,7 @@ function drain(): void {
       else if (cur.options && cur.chosen == null) get().jetRegler('cascade', 'choix', cur.defaultChoice ?? cur.options[0].key, cur.id);
       else if (cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       else if (cur.participants?.some((r) => r.interactive !== false && !r.result)) {
-        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetLancer('cascadeBatch', r.id);
+        for (const r of cur.participants) if (r.interactive !== false && !r.result) get().jetLancer('cascadeEnBande', r.id);
       }
     }
     get().jetValider('cascade');

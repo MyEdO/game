@@ -50,7 +50,6 @@ const SECTIONS := [
 ## L'emplacement d'emblème d'un véhicule : ses voiles et son pavillon, les surfaces `blason` de son élément.
 const PAVILLON := "vehicule"
 
-const COULEUR_D_ERREUR := Color(1.0, 0.55, 0.5)
 ## Le texte du choix d'une couleur absente de la composition : la matière du modèle.
 const PAR_DEFAUT := "Par défaut"
 ## Le côté, en pixels, de la pastille d'une couleur du nuancier.
@@ -1075,10 +1074,7 @@ func _montrer_l_etat() -> void:
 	var erreurs := _toutes_les_erreurs()
 	lignes.append_array(erreurs)
 	_etat.text = "\n".join(PackedStringArray(lignes))
-	if erreurs.is_empty():
-		_etat.remove_theme_color_override("font_color")
-	else:
-		_etat.add_theme_color_override("font_color", COULEUR_D_ERREUR)
+	_etat.theme_type_variation = &"" if erreurs.is_empty() else &"echec"
 	_publier()
 
 

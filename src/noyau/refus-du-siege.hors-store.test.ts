@@ -38,7 +38,7 @@ function poser(netMode: 'host' | 'local'): void {
   const order = ['doc', 'al'];
   banc.setState({
     mode: 'battle', scene: testScene(), party: [doc, al],
-    battle: { combatants: [doc, al], order, baseOrder: order, turn: 0, round: 1, action: 'heal', selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: true, log: [], over: null } as never,
+    battle: { combatants: [doc, al], order, baseOrder: order, turn: 0, round: 1, action: 'soins', selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: true, log: [], over: null } as never,
     pendingHeal: null, pendingRun: null, refus: null,
     net: netMode === 'host'
       ? { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { doc: 1, al: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } }

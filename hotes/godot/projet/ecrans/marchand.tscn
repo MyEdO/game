@@ -6,8 +6,8 @@
 [node name="Monde" instance=ExtResource("1_monde")]
 
 [node name="Echoppe" type="HBoxContainer" parent="Cadre/Marges/Colonne/Contenu"]
+theme_type_variation = &"Rangee"
 size_flags_vertical = 3
-theme_override_constants/separation = 16
 
 [node name="Etal" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe"]
 size_flags_horizontal = 3
@@ -15,8 +15,8 @@ size_flags_stretch_ratio = 1.5
 horizontal_scroll_mode = 0
 
 [node name="Familles" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Etal"]
+theme_type_variation = &"Pile"
 size_flags_horizontal = 3
-theme_override_constants/separation = 16
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Etal/Familles"]
 script = ExtResource("2_zone")
@@ -30,8 +30,8 @@ size_flags_horizontal = 3
 horizontal_scroll_mode = 0
 
 [node name="Pile" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir"]
+theme_type_variation = &"Pile"
 size_flags_horizontal = 3
-theme_override_constants/separation = 16
 
 [node name="Panier" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile"]
 
@@ -43,7 +43,7 @@ ids = PackedStringArray("panier")
 [node name="Separation" type="HSeparator" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile"]
 
 [node name="Vente" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile"]
-theme_override_constants/separation = 12
+theme_type_variation = &"Pile"
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Echoppe/Comptoir/Pile/Vente"]
 script = ExtResource("2_zone")

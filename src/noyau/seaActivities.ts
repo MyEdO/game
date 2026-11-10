@@ -14,7 +14,7 @@
  *    (prix d'instance). Les deux ports désignés (l.290) exigeraient un graphe de ports : simplifiés en
  *    « toute route » par cette règle maison éditable.
  *  - Planque gratuite lors de la Cartographie (l.292) : dépôt optionnel (`pick.stashGold`) dans
- *    `bank` (kind `stash`, `chartSecured`), en sûreté tant que le dépositaire garde la carte-marine —
+ *    `bank` (kind `planque`, `chartSecured`), en sûreté tant que le dépositaire garde la carte-marine —
  *    sinon découverte sur un jet ≤ 50 (`bankWithdrawInner`).
  *  - Entraînement d'équipage (l.294-300) : GATE (MDG 14 l.39, l.296) — voir `seaActivityBlocked`.
  *  - Whitelist d'Activités TERRESTRES (l.270 : Apprentissage particulier, Artisanat, Entraînement,
@@ -198,12 +198,12 @@ function buildSeaActivitiesCascade(get: Get, set: Set, picks: Record<string, Sea
   return { steps, oppHeroIds };
 }
 
-/** Valide la semaine (`fenetreValider('seaActivities')`, l'hôte) : résout les Activités choisies (une par héros, l.268)
+/** Valide la semaine (`fenetreValider('activitesEnMer')`, l'hôte) : résout les Activités choisies (une par héros, l.268)
  *  puis rend la main à la halte de nuit — seam de jet (#273 Étape 2) : les jets deviennent des étapes de cascade
  *  influençables ; le Commerce d'opportunité (Test étendu) est SÉQUENCÉ ensuite, `continueSeaActivitiesAfterCascade`
  *  enchaîne. */
 function validerLaSemaine(get: Get, set: Set): void {
-  const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+  const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
   const { steps, oppHeroIds } = buildSeaActivitiesCascade(get, set, pending.picks);
   set({ pendingSeaActivities: { ...pending, opportunityQueue: oppHeroIds } });
   if (!steps.length) { continueSeaActivitiesAfterCascade(get, set); return; }
@@ -274,12 +274,12 @@ export function seaActivitiesCatalog(): ActivityDef[] {
  *  d'opportunité (l.276), la planque de la Cartographie (l.292). */
 export function choixDeLaSemaineEnMer(get: Get, set: Set) {
   const choisir = (pid: string, pick: SeaActivityPick | null) => {
-    const pending = garanti(get().pendingSeaActivities, 'seaActivities', 'semaine en mer ouverte');
+    const pending = garanti(get().pendingSeaActivities, 'activitesEnMer', 'semaine en mer ouverte');
     set({ pendingSeaActivities: { ...pending, picks: { ...pending.picks, [pid]: pick } } });
   };
   const choisie = (pid: string): SeaActivityPick => garanti(get().pendingSeaActivities?.picks[pid], pid, 'Activité choisie');
   return {
-    seaActivities: {
+    activitesEnMer: {
       activite: (activite, pid) => choisir(pid, activite === null ? null : { activityId: activite }),
       investir: (investGold, pid) => choisir(pid, { ...choisie(pid), investGold }),
       cacher: (stashGold, pid) => choisir(pid, { ...choisie(pid), stashGold }),
@@ -289,7 +289,7 @@ export function choixDeLaSemaineEnMer(get: Get, set: Set) {
 
 /** La validation de la semaine (`ValidationsDeFenetre`). */
 export function validationsDeLaSemaineEnMer(get: Get, set: Set) {
-  return { seaActivities: () => validerLaSemaine(get, set) } satisfies Partial<ValidationsDeFenetre>;
+  return { activitesEnMer: () => validerLaSemaine(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
@@ -319,7 +319,7 @@ export const TABLES = {
         if (stashGold > 0) {
           const stashBrass = stashGold * PA_PER_CO;
           payWithAllocation(get, set, { debits: soloPayer(hero.id, fromBrass(stashBrass)), recipient: hero.id, purpose: 'planque cartographie' });
-          set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'stash', brass: stashBrass, rate: 50, chartSecured: true }] });
+          set({ bank: [...get().bank, { uid: get().forgerUnId('it'), heroId: hero.id, kind: 'planque', brass: stashBrass, rate: 50, chartSecured: true }] });
           // MDG 15 l.292
           j.push(t('sact.stash', { name: hero.label, money: formatMoney(fromBrass(stashBrass)) }));
         }

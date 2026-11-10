@@ -8,6 +8,7 @@ import { describe, it, expect } from 'vitest';
 import type { Combatant } from './types';
 import { makeRNG } from './dice';
 import { rollMiscast } from './miscast';
+import { setRule, resetRule } from './policy';
 import { applyOps, type GameOp } from './ops';
 import {
   castingValue, castBlockedBy, prayerMaxZeroDR, evaluateCasting, castPenaltyMod,
@@ -410,5 +411,19 @@ describe('castPenalty.days — durée en jours FORMULAIRE (`GameOp[\'castPenalty
     const c = hero();
     applyOps(c, [{ op: 'castPenalty', skill: { id: 'priere' }, mod: -10, days: { sum: [{ dice: { n: 1, sides: 10 } }, 3] } }], { idNeuf: idsDeTest, label: 'Contrecoup à durée en jours', now: 0, rng: makeRNG(11) });
     expect(c.castPenalties![0].untilTime).toBe((attendu + 3) * 24 * 60);
+  });
+});
+
+describe('enjeu du Test imbriqué d’une rangée tirée (#1667)', () => {
+  it('sous le jeu VDM, l’enjeu vise la catégorie que déclare la table tirée', () => {
+    setRule('magic-vdm-incantation', true);
+    try {
+      const r = rollMiscast('mineure', makeRNG(1), 0, undefined, 53);
+      expect(r.rowId).toBe('mineure-vdm-visions-impies');
+      const test = r.testFlow as Extract<Flow, { kind: 'test' }>;
+      expect(test.test.stake?.key).toMatchObject({ entryId: 'mineure-vdm-visions-impies', entryCategory: 'miscastMinorVdm' });
+    } finally {
+      resetRule('magic-vdm-incantation');
+    }
   });
 });

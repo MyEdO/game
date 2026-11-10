@@ -42,7 +42,7 @@ describe('le pont avant sa partie', () => {
   it('`modeles` rend les modèles de l’atelier sans partie ; une entrée sans `manifestes` ou sans `osDesRigides` se refuse', () => {
     const manifestes = { humanoide: baseDeTest(), epee: elementSchema3() };
     expect(appel('modeles', { manifestes, osDesRigides: { humanoide: [], epee: ['root'] } })).toMatchObject({
-      ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'off', elements: ['epee'] }] }], glb: { humanoide: 'humanoide.glb', epee: 'epee.glb' }, refus: [],
+      ok: true, bases: [{ id: 'humanoide', points: [{ id: 'main', elements: ['epee'] }, { id: 'secondaire', elements: ['epee'] }] }], glb: { humanoide: 'humanoide.glb', epee: 'epee.glb' }, refus: [],
     });
     const sansManifestes = { categorie: 'validation', message: 'modeles : manifestes, un objet id de modèle → manifeste' };
     expect(erreurDe(appel('modeles', {}))).toEqual(sansManifestes);
@@ -68,7 +68,7 @@ describe('le pont avant sa partie', () => {
   });
 
   it('`vue`, `monde`, `jouer`, `fiche` et `reprendre` se refusent sans partie', () => {
-    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['jouer', { type: 'fenetreValider', args: ['roundStart'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
+    for (const [methode, entree] of [['vue', undefined], ['monde', undefined], ['jouer', { type: 'fenetreValider', args: ['debutDuRound'] }], ['fiche', { fiche: null }], ['regarder', { regard: 'plateau' }], ['reprendre', { jeton: 0 }]] as const) {
       expect(erreurDe(appel(methode, entree)), methode).toEqual({ categorie: 'validation', message: 'aucune partie : demarrer d’abord' });
     }
   });
@@ -139,7 +139,7 @@ describe('le pont et sa partie', () => {
   });
 
   it('chaque catégorie d’un geste refusé : `validation`, `permission`, `regle`', { timeout: 120_000 }, () => {
-    drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['roundStart'] }));
+    drainer(appel, appel('jouer', { type: 'fenetreValider', args: ['debutDuRound'] }));
     expect(erreurDe(appel('jouer', { type: 'armerLIntention', args: ['charge'], siege: 0 })).categorie).toBe('validation');
     expect(erreurDe(appel('jouer', { type: 'terminerLeTour', args: [], siege: 1 })).categorie).toBe('permission');
     expect(erreurDe(appel('jouer', { type: 'rompreLEngagement', args: [] })).categorie).toBe('regle');

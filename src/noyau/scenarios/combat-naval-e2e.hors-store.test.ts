@@ -33,7 +33,7 @@ const COGUE = 'enemy-enc-naval-0';
 function launch(seed = 7): BattleState {
   seedBattleRng(seed);
   lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scen, idsDeTest));
-  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('roundStart');
+  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
   return banc.getState().battle!;
 }
 
@@ -138,7 +138,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
   it('le Tueur traverse jusqu\'aux pirates, les abat, et la cogue crewless est prise → victoire', () => {
     const battle = launch(11);
     const scene = banc.getState().scene!;
-    const tueur = byId(battle, 'pregen-202'); // boarder de mêlée (le Tueur du groupe d'arène)
+    const tueur = byId(battle, 'tueur-de-test'); // boarder de mêlée (le Tueur du groupe d'arène)
     const cogue = byId(battle, COGUE);
     const crewIds = [...cogue.crewIds!];
 
@@ -159,7 +159,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
     settle();
     const b2 = banc.getState().battle!;
     expect(isOutOfAction(byId(b2, COGUE))).toBe(true); // prise à l'abordage
-    expect(b2.over).toBe('victory');
+    expect(b2.over).toBe('victoire');
   });
 });
 
@@ -245,6 +245,6 @@ describe('Combat naval e2e — VICTOIRE par NAUFRAGE', () => {
     const b2 = banc.getState().battle!;
     // équipage passé par-dessus bord (outOfRencontre) → plus aucun ennemi debout → VICTOIRE
     for (const id of cogue.crewIds!) expect(isOutOfAction(byId(b2, id))).toBe(true);
-    expect(b2.over).toBe('victory');
+    expect(b2.over).toBe('victoire');
   });
 });

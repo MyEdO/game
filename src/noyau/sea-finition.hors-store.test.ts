@@ -6,7 +6,7 @@ import { t } from '../i18n';
 import { jouerLaSemaine } from './semaineEnMer.testkit';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { buildSeaPlan } from './seaVoyageFlow';
 import { encLibreNominale, vesselMaxLoadEnc } from './portFlow';
@@ -51,7 +51,7 @@ const seaMap: WorldMap = {
 function freshState() {
   seedBattleRng(7);
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null,
     worldMap: seaMap,
@@ -72,7 +72,7 @@ function freshState() {
 /** Déroule la journée maritime jusqu'à une SUSPENSION (halte, Activités en mer) — la journée est
  *  désormais UNE cascade `purpose:'travelDay'` (#275 Ronde 2 cran 3) : chaque étape est soit MONO
  *  (Forcer le rythme/Prière) soit À PARTICIPANTS (batch, Tests d'équipage MDG
- *  ch.14 — `jetLancer('cascadeBatch')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
+ *  ch.14 — `jetLancer('cascadeEnBande')` par contributeur). Garde-fou 40 pas (crises/événements possibles).
  *  `await tick()` reprend le jeton de reprise (`programmer`, 0 ms) d'un applier surfacé isolément
  *  (Ouragan/Prière — `seaVoyageFlow.ts`), comme un vrai clic UI l'espacerait. */
 const tick = async (): Promise<void> => { banc.avancer(0); };
@@ -100,8 +100,8 @@ async function runSeaActivities() {
     // La fenêtre `extended` d'abord : son étape hôte n'est prête que quand elle a rendu sa donnée (#1765).
     if (ext) {
       const cur = ext.rounds[ext.rounds.length - 1];
-      if (!cur.result) get().jetLancer('extendedTest', cur.id);
-      get().jetValider('extendedTest');
+      if (!cur.result) get().jetLancer('testEtendu', cur.id);
+      get().jetValider('testEtendu');
       await tick();
       continue;
     }
@@ -129,7 +129,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     // Voile est une Compétence Avancée (LDB 09 l.30) : un PJ formé tente le Test du rythme forcé.
     const [marin, ...reste] = get().party;
     set({ party: [{ ...marin, skills: [...marin.skills, { id: 'voile', characteristic: 'agilite', advances: 10 }] }, ...reste] } as never);
-    get().partirEnVoyage('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { seaPace: 1, cadence: 'jourParJour' });
     const vues: CascadeStep[] = [];
     const kinds = await runOneSeaDay(vues);
     // Le recap du jour (halte de nuit) porte la journée ENTIÈRE — le journal, capé à 40 lignes,
@@ -145,7 +145,7 @@ describe('#27 Forcer le rythme (MDG 13 l.95-107)', () => {
     seedBattleRng(1);
     // Aucun prétiré n'a d'Augmentation en Voile : le rythme demandé ne peut pas être tenté.
     expect(get().party.some((h) => h.skills.some((sk) => sk.id === 'voile' && (sk.advances ?? 0) > 0))).toBe(false);
-    get().partirEnVoyage('r1', 'mer', { seaPace: 1, cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { seaPace: 1, cadence: 'jourParJour' });
     const kinds = await runOneSeaDay();
     const day = get().travelPlan!.log!.slice(-1)[0]!.lines.map((l) => l.text).join('\n');
     expect(day).toContain('Forcer le rythme : Personne dans le groupe ne peut tenter le Test de Voile (Cogue). Le navire garde son allure.');
@@ -219,7 +219,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     const before = toBrass(bourseOf(get().party[0]));
     jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie', stashGold: 50 } });
     await runSeaActivities();
-    const dep = get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'stash');
+    const dep = get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'planque');
     expect(dep).toBeTruthy();
     expect(dep!.brass).toBe(50 * PA_PER_CO);
     expect(dep!.rate).toBe(50); // seuil de découverte MDG (au lieu de 10, ch.23 l.170)
@@ -235,7 +235,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     set({ party: [...heroes], pendingSeaActivities: { picks: {}, day: { kmFrom: 0, kmTo: 40, hours: 24, lines: [] } } });
     jouerLaSemaine(get, { [heroes[0].id]: { activityId: 'cartographie' } });
     await runSeaActivities();
-    expect(get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'stash')).toBeUndefined();
+    expect(get().bank.find((b) => b.heroId === heroes[0].id && b.kind === 'planque')).toBeUndefined();
   });
 
   it('Commerce d’opportunité — Test étendu SÉQUENCÉ (#273 Étape 1, ≤ 3 tentatives, MDG 15 l.274-286)', async () => {
@@ -254,7 +254,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(get().pendingExtendedTest).toBeTruthy(); // Test étendu ouvert (primitive #273 Étape 1)
     expect(get().pendingExtendedTest!.maxAttempts).toBe(3);
     // L'enjeu est celui de l'Activité, sur l'étape que la fenêtre lit (#1117).
-    expect(get().pendingCascade?.participants.find((e) => e.jet === 'extended')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
+    expect(get().pendingCascade?.participants.find((e) => e.jet === 'testEtendu')?.stake).toEqual(activityStakeRef('commerce-opportunite'));
     await runSeaActivities();
     // La halte suit la clôture du Test étendu (file `opportunityQueue` vidée).
     expect(get().pendingExtendedTest).toBeNull();
@@ -326,7 +326,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     const offer = get().port!.offers[0]; // production/surplus copieux (Taille 4 + Richesse 4 × d10 × 10)
     get().fenetreChoisir('port', 'offre', offer.cargoId);
     const plafond = Math.min(offer.enc, 160); // plafond dur : 450 − 290
-    expect(reglageDuChoixDeFenetre(get(), 'port', 'enc').bornes?.max, 'l’Enc se borne au plafond dur').toBe(plafond);
+    expect(reglageDuChoixDeFenetre(get(), 'port', 'encombrement').bornes?.max, 'l’Enc se borne au plafond dur').toBe(plafond);
     expect(acheterAuMarche(get, 'port', 'vessel', offer.cargoId, plafond + 1), 'au-delà du plafond dur').toBe(t('choix.refus.bornes'));
     acheterAuMarche(get, 'port', 'vessel', offer.cargoId, plafond);
     await drainPortSellCascade(); // #266 — Marchandage d'achat SURFACÉ (cascade openRoll)

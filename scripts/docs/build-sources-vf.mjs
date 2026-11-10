@@ -130,6 +130,9 @@ livre VO AUTORISÉ ; la VO de L'Ennemi Intérieur se lit pour comprendre, fiche
   \`naval-traits.json\` : bouteur, murs blindés, coque de course, safran, plat-bord, allègement, gréement de
   course, fourquines), **ch.13 « Bestiaire fluvial »** (créatures), **ch.14 « Maladies transmises par
   l'eau »** (maladies/symptômes/états, \`water-exposure.json\`), véhicules fluviaux. Curation à la main.
+- **${abbr('pouvoir-derriere-le-trone-compagnon')}** (Le Pouvoir derrière le Trône – Compagnon) = \`${dir('pouvoir-derriere-le-trone-compagnon')}\`
+  — **prétirés seulement : Erina Eberhauer, Golthog** (fiches officielles VF, arbitrage utilisateur 2026-11-10) ; le
+  reste du Compagnon n'est pas extrait ; fiches sans folio imprimé.
 - **${abbr('nuits-agitees-et-dures-journees')}** (Nuits agitées & dures journées) = \`${dir('nuits-agitees-et-dures-journees')}\` —
   autorisé 2026-07-10 (arbitrage par-passage). Périmètre constaté : **appendice I « Gnomes »**
   (espèce jouable, \`species.json\`), **« Jeux de taverne »** (\`tavernGames.json\`), des entrées de

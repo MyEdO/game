@@ -23,7 +23,7 @@ import { validateScene } from '../../noyau/validateScene';
 import { encloseRect } from '../../noyau/sceneEdit.testkit';
 import { sceneZonesToBattle, sceneZoneTiles } from '../../noyau/monde/zones';
 import { useGame } from '../../state/store';
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from '../../scenes/test-scenarios/_heros';
 import { DialogueDetail } from './DialogueDetail';
 import { DialogueBox } from '../DialogueBox';
 import type { Ctx } from './EffectList';
@@ -529,7 +529,7 @@ function sceneNavale(): Scene {
 }
 
 const spawned = (scene: Scene, id: string) => {
-  useGame.setState({ party: pregenParty(idsDeTest, PREGEN.soldat) });
+  useGame.setState({ party: groupeDeScenario(idsDeTest, 'soldat') });
   useGame.getState().lancerLaScene(scene);
   useGame.getState().lancerLeCombat('abordage');
   return useGame.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -588,7 +588,7 @@ describe('Atelier de dialogue — ICÔNE d’un choix (`DialogueChoice.icon`, #8
       const boxRoot = createRoot(el);
       boxes.push({ el, root: boxRoot });
       await act(async () => {
-        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1', session: 1 }, party: pregenParty(idsDeTest, PREGEN.soldat) });
+        useGame.setState({ dialogue: { dialogue: d, nodeId: 'n1', session: 1 }, party: groupeDeScenario(idsDeTest, 'soldat') });
         boxRoot.render(<DialogueBox />);
       });
       return el;

@@ -16,7 +16,7 @@ import { activeCombatant } from '../../noyau/combatFlow';
 import { gesteDeLOffre, offreDeId } from '../../noyau/actionRegistry';
 import { testScene } from '../../scenes/test-fixture';
 import type { NetState } from '../../noyau/etat';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant } from '../../engine/types';
 
 const NET: NetState = {
@@ -26,7 +26,7 @@ const NET: NetState = {
 
 /** Un sorcier en Langue (Magick) 60, qui connaît l'Arme aethyrique. */
 function sorcier(id: string): Combatant {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = id; h.label = id;
   h.spells = ['arme-aethyrique'];
   h.skills = [...h.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof h.skills;
@@ -60,8 +60,8 @@ function enPause(): ReturnType<typeof table> {
 
 /** Le combat au tour du héros `id`, Action dépensée. */
 function auTourDe(t: ReturnType<typeof table>, id: string): void {
-  t.banc.getState().fenetreValider('roundStart');
-  t.envoyer('fenetreValider', ['roundStart']);
+  t.banc.getState().fenetreValider('debutDuRound');
+  t.envoyer('fenetreValider', ['debutDuRound']);
   const b = t.banc.getState().battle!;
   t.banc.setState({ battle: { ...b, turn: b.order.indexOf(id), acted: true, action: null }, pendingRoundStart: null });
 }
@@ -105,9 +105,9 @@ describe('Offres en coop : le verbe de l’offre voyage', () => {
   it('`round-start` déclare `fenetreValider` : son verbe marque le siège prêt', () => {
     const t = enPause();
     expect(t.banc.getState().pendingRoundStart, 'témoin : la pause de Round est ouverte').toBeTruthy();
-    expect(gesteDeLOffre(t.banc.getState(), offreDeId('round-start')!)).toEqual({ verbe: 'fenetreValider', args: ['roundStart'] });
+    expect(gesteDeLOffre(t.banc.getState(), offreDeId('round-start')!)).toEqual({ verbe: 'fenetreValider', args: ['debutDuRound'] });
     expect(t.banc.getState().pendingRoundStart!.readyBySeat?.[1] ?? false).toBe(false);
-    expect(t.envoyer('fenetreValider', ['roundStart'])).toBe('appliquee');
+    expect(t.envoyer('fenetreValider', ['debutDuRound'])).toBe('appliquee');
     expect(t.banc.getState().pendingRoundStart!.readyBySeat?.[1]).toBe(true);
   });
 

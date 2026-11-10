@@ -1322,7 +1322,7 @@ const lecture = (champs = {}) => ({
 
 for (const [cas, l, attendu, opts] of [
   ['aucun combat', { ...lecture(), battle: null }, 'fini'],
-  ['combat terminé', lecture({ battle: { over: 'victory' } }), 'fini'],
+  ['combat terminé', lecture({ battle: { over: 'victoire' } }), 'fini'],
   ['arrêt atteint', lecture({ battle: { round: 3 } }), 'fini', { arret: (e) => e.battle.round >= 3 }],
   ['fenêtre au DOM', lecture({ modale: true }), 'resoudre'],
   ['modale active au store', lecture({ auto: { activeModal: 'pendingAttack' } }), 'resoudre'],
@@ -2252,7 +2252,7 @@ test('piloterCombat : `arret` reçoit l’IDENTITÉ de la fenêtre — il s’ar
 })
 
 test('piloterCombat : une Défense qui s’ouvre PENDANT la résolution arrête aussi `resoudreModales`', async () => {
-  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'attackJet', jet: 'attack' }] } }
+  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'attackJet', jet: 'attaque' }] } }
   const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Attaque"><button id="lancer">Lancer</button></div></div>', { jeu, cascade: true })
   dom.window.__wfrp = { battle: () => ({ round: 1, over: false, endTurnArmed: false }), auto: () => ({ roundPause: false, activeModal: 'cascade', cascade: cascadeAffichage(dom), active: null }) }
   doc.querySelector('#lancer').onclick = () => {

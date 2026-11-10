@@ -64,7 +64,7 @@ describe('Balayage en combat (store)', () => {
     banc.setState({ party });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // on pilote l'ordre nous-mêmes
     return banc.getState().battle!;
   }
@@ -158,8 +158,8 @@ describe('Balayage en combat (store)', () => {
 
     // Touche primaire sur E1 → balayage déclenché (héros plus grand).
     cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const pc = banc.getState().pendingCleave;
     expect(pc).toBeTruthy();
     expect(pc!.hitIds).toEqual([E1.id]);
@@ -169,8 +169,8 @@ describe('Balayage en combat (store)', () => {
     const e2Before = banc.getState().battle!.combatants.find((c) => c.id === E2.id)!.wounds.current;
     banc.getState().frapperEnBalayage(E2.id);
     expect(banc.getState().pendingAttack!.cleave).toBe(true);
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().pendingCleave).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === E2.id)!.wounds.current).toBeLessThan(e2Before);
   });
@@ -200,9 +200,9 @@ describe('Balayage en combat (store)', () => {
     banc.getState().armerLAttaque('morsure');
     cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
     expect(banc.getState().pendingAttack!.freeKind).toBe('morsure');
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     expect(banc.getState().pendingAttack!.result!.hit).toBe(true);
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const pc = banc.getState().pendingCleave;
     expect(pc).toBeTruthy();
     expect(pc!.hitIds).toEqual([E1.id]);
@@ -226,7 +226,7 @@ describe('Balayage en combat (store)', () => {
     banc.getState().frapperEnBalayage(E1.id);
     expect(banc.getState().pendingAttack).toBeNull(); // refusé : count >= BCC
 
-    banc.getState().fenetreFermer('cleave');
+    banc.getState().fenetreFermer('frappeMortelle');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 

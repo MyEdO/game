@@ -7,7 +7,7 @@ import type { Get, Set } from './flowTypes';
 import { tickCombatAuto } from './combatAuto';
 import type { Jeu, BattleState, ShootingStanceKey } from './etat';
 import { ACTION_GATES, actionGate, armeADistanceParDefaut, etatDeLaBarre, refusDeLOffreHorsDuTour, type ContexteDOffre, type BattleActionMode, type EtatDeLaBarre } from './actionRegistry';
-import type { CounterParticipant, CounterDeclaration, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
+import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
 import * as travelFlow from './travelFlow';
@@ -39,7 +39,7 @@ import { heroCombatMount } from '../engine/mountTravel';
 import { ev, evLines, journaliser } from './combatLog';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
-import { chargeArmee, courseArmee, intentionDuProprietaire } from './localIntent';
+import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
 import { crochetDuSol, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
@@ -113,7 +113,7 @@ import { garanti } from '../lib/garanti';
 import { armeDuJetDeRecharge, progresDeDissipation, progresDeFocalisation } from './progresEtendu';
 import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './netOwnership';
-import { batteryBlock, currentTargetingMode, type BattleClickOpts, type TileClickOpts } from './targetingModes';
+import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglage, type CorpsDesReglages } from './reglagesDuJet';
@@ -243,7 +243,7 @@ function bordeeGunnersLine(get: Get, ship: Combatant, side: FireArc): string {
 }
 
 /**
- * APPLIQUE une bordée (MDG 14 l.128) — corps PARTAGÉ par le confirm JOUEUR (`jetValider('shipBattery')`) ET l'auto-pilote
+ * APPLIQUE une bordée (MDG 14 l.128) — corps PARTAGÉ par le confirm JOUEUR (`jetValider('tirDeBatterie')`) ET l'auto-pilote
  * NAVIRE (`tirerLaBordee`). Chaque pièce du bord qui porte a fait feu : elle se décharge (LDB 62 l.335) ; chaque
  * coup, touché ou raté, passe ensuite par la couture du coup (`jouerLesTirsDeBordee` → `applyAttackResult`), qui
  * le résout selon sa cible et consomme la munition. NE touche PAS au pending ni à `crewActed`. Rend `true` quand
@@ -316,7 +316,7 @@ function surLEtapeDeDefense(s: Jeu): boolean {
 function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
   const seq = get().pendingCascade;
   const cur = seq?.purpose === 'combat' ? seq.participants[seq.cursor] : undefined;
-  if (cur?.jet === 'attack' && !cur.committed) { set({ pendingAttack: pa }); return; }
+  if (cur?.jet === 'attaque' && !cur.committed) { set({ pendingAttack: pa }); return; }
   if (!poserLEtapeDAttaque(get, set, pa, seq?.title ?? 'Attaque', seq?.icon ?? 'action/attack')) return;
   const apres = get().pendingCascade!;
   if (apres.cursor !== apres.participants.length - 1) validerLEtape(get, set);
@@ -350,9 +350,9 @@ function applyAuContact(get: Get, set: Set, mover: Combatant, foe: Combatant, ch
 }
 
 /** Applique le CHOIX du vainqueur d'un Test opposé d'Empoignade gagné (LDB 14 l.161) côté JOUEUR : délègue
- *  l'issue au cœur PARTAGÉ `resolveGrappleWin` (`damage` = BF+DR PA ignorés / `entangle` / `free`, tout en
+ *  l'issue au cœur PARTAGÉ `resolveGrappleWin` (`degats` = BF+DR PA ignorés / `empetrer` / `liberer`, tout en
  *  DONNÉE) puis ferme le pending. Le Test opposé EST l'Action → `acted`. `dr` = DR net du Test (→ `ctx.sl`). */
-function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode: 'damage' | 'entangle' | 'free', dr: number, forceRoll: number): void {
+function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode: IssueDEmpoignade, dr: number, forceRoll: number): void {
   // Application 100% en DONNÉE, PARTAGÉE avec le résolveur IA (`resolveGrappleWin`) : une SEULE voie d'issue,
   // deux orchestrations (cette modale joueur / instantané IA). Le flux n'orchestre ICI que la fermeture du pending.
   const line = resolveGrappleWin(actor, foe, mode, dr, forceRoll, get().forgerUnId);
@@ -517,7 +517,7 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   // ouverte ; acteur actif non piloté par l'IA) : l'élargissement ne peut pas la faire agir à tort.
   // Continuation DÉTERMINISTE de la victoire différée (#345) d'abord : `checkBattleOver` a pu DIFFÉRER
   // la cascade de fin de combat tant que ce slot était occupé — on re-vérifie ICI, slot libre, sans
-  // dépendre d'un clic (`fenetreValider('roundStart')`). Le garde `!pendingCascade` (checkBattleOver) protège la
+  // dépendre d'un clic (`fenetreValider('debutDuRound')`). Le garde `!pendingCascade` (checkBattleOver) protège la
   // double-ouverture. `handled` (dénouement déjà joué : pause de Round, reprise de manœuvre…) garde
   // la main sur son propre enchaînement.
   if (!handled && get().battle) {
@@ -546,7 +546,7 @@ function validerLEtape(get: Get, set: Set): void {
 
 /** Actions de combat inline du store — déplacées VERBATIM. Spreadées EN TÊTE du `create`. */
 /** La 2ᵉ frappe du Maniement de deux armes sur `targetId` (LDB 10 l.767-773) ; `testPasse` : le Test de main de
- *  l'Action est déjà passé (reprise de `jetValider('handGate')`). */
+ *  l'Action est déjà passé (reprise de `jetValider('mainEnsanglantee')`). */
 function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boolean): void {
   const { battle, pendingDualStrike: ds } = get();
   if (!battle || !ds) return;
@@ -561,7 +561,7 @@ function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boo
   // gatée (la main directrice a déjà consommé le Test le cas échéant), la 2ᵉ frappe joue le Test ICI. Échec →
   // l'objet de la 2nde main glisse (`disarm`), la 2ᵉ frappe est renoncée. `testPasse` : Test déjà PASSÉ (reprise).
   if (!testPasse && attackHandGate(attacker, off.uid) && !attackHandGate(attacker)) {
-    poserLeTestDeMain(set, attacker, 'off', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attack');
+    poserLeTestDeMain(set, attacker, 'secondaire', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attack');
     return;
   }
   // 2ᵉ frappe : jet IMPOSÉ + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
@@ -665,18 +665,18 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!foe || !grappleActionEligible(active, foe)) return void refuserGesteDuSiege(get, set, t('offre.sansCandidatDuContexte'));
       startGrapple(get, set, active, foe);
     },
-    cliquerLaCaseDuCombat: (pt: Pt, opts?: TileClickOpts) => {
+    cliquerLaCaseDuCombat: (pt: Pt, opts?: OptionsDuClic) => {
       const { battle, scene } = get();
       if (!battle || !scene || battle.over || champAttendSaFenetre(get())) return;
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout et vaut
-      // confirmation (la case a été choisie sciemment).
-      // VERDICT D'ARMEMENT de la Course (spec § 2026-08-19) : il vient des OPTS quand le geste a déjà
-      // été jugé chez son émetteur (intent d'un invité — l'hôte n'a pas SON intention — ou relance d'un
-      // geste différé, dont l'intention a été dissoute au premier clic) ; sinon on le lit ICI, AVANT que
+      // confirmation (la case a été choisie sciemment). L'intention du clic (`intentionDuClic`) se lit AVANT que
       // `consumeIntent` ne l'efface.
-      const courseDemandee = opts?.courseArmee ?? courseArmee(get);
+      const intention = intentionDuClic(get, opts);
+      if ('refus' in intention) return void refuserGesteDuSiege(get, set, intention.refus);
+      const { intentionId } = intention;
+      const courseDemandee = courseArmee(intentionId);
       const armedTile = consumeIntent();
       const clickOpts = armedTile ? { ...opts, confirm: true } : opts;
       // Le MODE de ciblage courant peut posséder un commit-CASE (téléportation, pose de zone de sort
@@ -706,7 +706,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Peur (LDB 21 l.27) : `retenuParLaPeur`. L'intention rejoue le clic BRUT (`pt`) après le Test →
       // `cliquerLaCaseDuCombat` re-résout l'escalier ; le contrôle, lui, porte sur la destination réelle (`dest`).
       const fearGateBlocks = (): boolean =>
-        retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, courseArmee: courseDemandee });
+        retenuParLaPeur(get, set, active, dest, { kind: 'tile', pt: { ...pt }, intentionId: intentionId ?? undefined });
       const geom = mountOf(battle, active) ?? active;
       const prev = battle.preview;
       if (movement.kind === 'run') {
@@ -797,14 +797,12 @@ export function createCombatSlice(get: Get, set: Set) {
       const active = activeCombatant(battle);
       if (!active || !controlsCombatant(get(), active)) return;
       // INTENTION LOCALE armée (spec zone 4) : ce clic EST son commit — elle se dissout, et vaut
-      // confirmation (la cible a déjà été choisie sciemment).
-      // VERDICT D'ARMEMENT DE LA CHARGE (spec § 2026-08-19) : c'est lui — et lui seul — qui autorise
-      // l'approche vers la cible cliquée. Même règle que le clic-case : il vient des OPTS quand le
-      // geste a déjà été jugé chez son émetteur (intent d'un invité, ou relance d'un geste différé par
-      // un gate), sinon il se lit ici, avant que `consumeIntent` ne l'efface.
-      const approche = opts?.approche ?? chargeArmee(get);
+      // confirmation (la cible a déjà été choisie sciemment). L'intention du clic (`intentionDuClic`), seule à autoriser
+      // l'approche vers la cible (spec § 2026-08-19), se lit avant que `consumeIntent` ne l'efface.
+      const intention = intentionDuClic(get, opts);
+      if ('refus' in intention) return void refuserGesteDuSiege(get, set, intention.refus);
       const armed = consumeIntent();
-      const clickOpts = { ...opts, approche, ...(armed ? { confirm: true } : {}) };
+      const clickOpts: BattleClickOpts = { ...opts, intentionId: intention.intentionId ?? undefined, ...(armed ? { confirm: true } : {}) };
       // Le MODE de ciblage courant possède le commit-COMBATTANT (attaque/cast/soin/bordée, ou flux
       // différés : Surincantation +Cible / Frappe Mortelle / 2ᵉ frappe, ou pose de zone sur la case
       // d'un combattant). Source UNIQUE : targetingModes (réticule au survol = ce même mode).
@@ -812,18 +810,18 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     // ── Sélection d'ATTAQUE (« Attaque ▾ ») : arme une `AttackOption` (Arme + gratuites/zone/Piétinement/
     // Tentacule). Source des entrées : `availableAttacks` (combatFlow). Le clic-ennemi résout l'armée. ──
-    armerLAttaque: (id: string) => {
+    armerLAttaque: (attaqueId: string) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active) return;
       // Arme une attaque pour le clic-ennemi (mode neutre : `action===null`). Re-sélectionner revient à l'Arme.
-      const next = battle.selectedAttack === id ? 'arme' : id;
+      const next = battle.selectedAttack === attaqueId ? 'arme' : attaqueId;
       set({ battle: { ...battle, action: null, selectedAttack: next, selectedSpellId: null, preview: null }, pendingSiegeAim: null });
       // Pièce INDIRECTE servie (mortier/catapulte, AA 10 l.169/171) : ARMER l'option « Servir … » ouvre le PLACEUR
       // DE CASE (le tir vise un point au sol, pas un combattant) ; le désarmer (retour à 'arme') le referme.
-      if (next === id) {
-        const opt = availableAttacks(active, battle).find((o) => o.id === id);
+      if (next === attaqueId) {
+        const opt = availableAttacks(active, battle).find((o) => o.id === attaqueId);
         if (opt?.indirect && opt.weaponUid) {
           const w = active.weapons.find((x) => x.uid === opt.weaponUid);
           if (w?.uid) set({ pendingSiegeAim: { gunnerId: active.id, weaponUid: w.uid, radius: siegeBlastRadiusTiles(active, w, get().scene), rangeTiles: null } });
@@ -920,12 +918,12 @@ export function createCombatSlice(get: Get, set: Set) {
         battle: { ...battle, action: null, preview: null },
       });
       // Auto-roule les TÉMOINS (marins PNJ) — leur jet initial est résolu sans influence (cf. makeRollFlow).
-      for (const part of opened.participants) if (!part.interactive) get().jetLancer('shipManeuver', part.id);
+      for (const part of opened.participants) if (!part.interactive) get().jetLancer('manoeuvreDuNavire', part.id);
     },
 
     // ── BORDÉE (« Tir de batterie », MDG 14 l.128) — JUMEAU de la manœuvre : Test d'équipage MULTI des Artilleurs (★),
     //    dont le DR PARTAGÉ remplace le jet de chaque pièce du bord qui porte. `ouvrirLaBordee(shipId, targetId)` ouvre
-    //    la modale (le bord est dérivé de la cible via `targetArc`) ; `jetValider('shipBattery')` résout la volée (`resolveVolley`). ──
+    //    la modale (le bord est dérivé de la cible via `targetArc`) ; `jetValider('tirDeBatterie')` résout la volée (`resolveVolley`). ──
     ouvrirLaBordee: (shipId: string, targetId: string) => {
       const battle = get().battle;
       if (!battle) return;
@@ -944,7 +942,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingShipBattery: { shipId: ship.id, targetId: target.id, side, ...opened },
         battle: { ...battle, action: null, preview: null },
       });
-      for (const part of opened.participants) if (!part.interactive) get().jetLancer('shipBattery', part.id); // témoins (marins PNJ) auto-roulés
+      for (const part of opened.participants) if (!part.interactive) get().jetLancer('tirDeBatterie', part.id); // témoins (marins PNJ) auto-roulés
     },
 
     // ── AUTO-PILOTE : bordée HEADLESS (aucun pending) — l'IA de coque (couche Mer) lâche une bordée sur un navire
@@ -1049,7 +1047,7 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, Lot 2 #156) : ouvre le mode de
-    // ciblage-CASE 'push' — le clic-sol suivant (PUSH_MODE.commitTile, targetingModes.ts) commet la
+    // ciblage-CASE 'poussee' — le clic-sol suivant (PUSH_MODE.commitTile, targetingModes.ts) commet la
     // translation de la formation. Gate : chef d'un poste MOBILE (`pushEligible`), Action dispo, Équipe ≥
     // moitié requise (`pushCrewOk`, sinon no-op — comme un tir sous-effectif refusé, `firedAttackBlock`).
     // Ne consomme RIEN ici (la dépense de l'Action a lieu au COMMIT, comme `cliquerLaCaseDuCombat`/`servirLePoste`).
@@ -1057,9 +1055,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const battle = get().battle;
       const scene = get().scene;
       if (!battle || battle.over || !scene) return;
-      // Toggle (parité cast/heal) : re-cliquer « Pousser » alors qu'on est déjà en mode 'push' ferme le mode sans consommer
+      // Toggle (parité cast/heal) : re-cliquer « Pousser » alors qu'on est déjà en mode 'poussee' ferme le mode sans consommer
       // l'Action, comme le re-clic de sa case (`desarmerLeMode`).
-      if (battle.action === 'push') return void get().desarmerLeMode();
+      if (battle.action === 'poussee') return void get().desarmerLeMode();
       const active = activeCombatant(battle);
       // Pousser = le MOUVEMENT (pas l'Action) : bloqué si le Mouvement du chef est déjà dépensé, PAS si l'Action
       // a été prise (on peut pousser puis assener, ou l'inverse — ordre libre, LDB 13 l.79). Et pas davantage
@@ -1074,7 +1072,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const w = mannedPosteWeapon(active, poste);
       if (!hull || !hull.pos || !active.pos || !w || !pushCrewOk(poste, w, battle.combatants)) return;
       const reach = pushReachable(battle, scene, active, hull);
-      set({ battle: { ...battle, action: 'push', reachable: reach, preview: null } });
+      set({ battle: { ...battle, action: 'poussee', reachable: reach, preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Diriger l'équipe » (Commandant d'équipe, AA 13 l.29-35) : le Personnage doté du Talent aide une équipe
@@ -1142,13 +1140,13 @@ export function createCombatSlice(get: Get, set: Set) {
       if (weapon.type !== 'ranged') return void refuserGeste(get, set, t('cs.refusTirArmeDeMelee', { weapon: weapon.label }));
       if (!inFiringBand(hero, target, weapon, sceneMetresPerTile(scene))) return void refuserGeste(get, set, t('cf.outOfRange'));
       if (blocked) return void refuserGeste(get, set, t('cf.noLoSMasked'));
-      // Le tir se résout par la modale de jet NORMALE (jetLancer('attack')/jetValider('attack')) ; le tireur n'est PAS actif.
-      // `pendingAttack.interrupt` → jetValider('attack') applique le tir sans avancer le tour + épuise son tour normal.
+      // Le tir se résout par la modale de jet NORMALE (jetLancer('attaque')/jetValider('attaque')) ; le tireur n'est PAS actif.
+      // `pendingAttack.interrupt` → jetValider('attaque') applique le tir sans avancer le tour + épuise son tour normal.
       // La modale d'attaque est rendue par la CASCADE (CascadeModal → useAttackJetProps), comme TOUTE attaque :
-      // on ouvre donc une cascade à une étape `jet:'attack'` pour le tireur (refermée par jetValider('attack')).
-      // `heldGround: true` : l'interruption est un tir IMMOBILE d'office (elle coûte le Mouvement du tour) → pas
+      // on ouvre donc une cascade à une étape `jet:'attaque'` pour le tireur (refermée par jetValider('attaque')).
+      // `tirImmobile: true` : l'interruption est un tir IMMOBILE d'office (elle coûte le Mouvement du tour) → pas
       // de pénalité « Tir en bougeant » (LDB 14), qui n'aurait aucun sens hors du tour du tireur.
-      openAttackCascade(get, set, { attackerId: hero.id, targetId: target.id, location: null, result: null, interrupt: true, heldGround: true }, 'Tir rapide', 'action/shoot');
+      openAttackCascade(get, set, { attackerId: hero.id, targetId: target.id, location: null, result: null, interrupt: true, tirImmobile: true }, 'Tir rapide', 'action/shoot');
     },
     /** DEMANDE DE PAUSE au prochain Round, POSÉE (`levee`) ou RETIRÉE PAR SON SIÈGE : le siège vient de `decidingSeat`
      *  (le siège agissant quand l'hôte applique l'intent d'un invité, sinon le siège local), jamais d'un argument — la
@@ -1260,23 +1258,23 @@ export function createCombatSlice(get: Get, set: Set) {
       const recharge = rechargeDuTour(active, battle, weaponUid);
       if (recharge) set({ pendingReload: jetDeRecharge(recharge.porteur, recharge.arme, battle.combatants) });
     },
-    seRemettreDeLEtat: (state: string) => {
+    seRemettreDeLEtat: (etat: string) => {
       const { battle } = get();
       if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !canTakeAction(active)) return;
-      const inst = active.conditions.find((c) => c.id === state);
+      const inst = active.conditions.find((c) => c.id === etat);
       const n = inst?.value ?? 0;
       if (!inst || n <= 0) return; // pas porteur de l'État
       if (isConditionLocked(inst, active)) return; // État verrouillé : le Test ne l'ôterait pas (LDB 18)
       // Test de récupération (Empêtré « se libérer »/En flammes « se rouler », LDB 16 l.66/l.84) lu de la
       // DONNÉE (`EtatData.recover`) par la SOURCE UNIQUE `resolveRecoverTest` — Empêtré = opposé de Force
       // (escapeStrength figée prioritaire, sinon source vivante) ; En flammes = Athlétisme simple.
-      const rt = resolveRecoverTest(active, state, battle);
+      const rt = resolveRecoverTest(active, etat, battle);
       if (!rt) return; // État non récupérable par Action (pas de `recover` en donnée)
       set({
         pendingStateRecovery: {
-          actorId: active.id, actorName: active.label, state,
+          actorId: active.id, actorName: active.label, state: etat,
           skillLabel: rt.skillLabel, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
           opposition: rt.opposition, requireSl: rt.requireSl,
           entangleOnFail: rt.entangleOnFail, struggleDamage: rt.struggleDamage, stacks: n,
@@ -1328,14 +1326,14 @@ export function createCombatSlice(get: Get, set: Set) {
 
     // ── Ramasser un objet d'un décor : en combat, un à la fois, au prix de l'Action (`pickup` de `actions.json`) ──
     /** Ramasse l'objet `key` du décor `entityId`. Hors combat, un objet posé au sol (`ramasserHorsCombat`). En combat,
-     *  l'actif (`pid`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
-    ramasserLObjet: (entityId: string, key: string, pid?: string) => {
+     *  l'actif (`heroId`, s'il est nommé) au verdict de l'offre `pickup` (`refuseParSonEntree`), à portée (`aPorteeDe`). */
+    ramasserLObjet: (entityId: string, key: string, heroId?: string) => {
       const s = get();
-      if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, pid);
+      if (!s.battle) return ramasserHorsCombat(get, set, entityId, key, heroId);
       const barre = barreDuGeste(s);
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active, battle } = barre;
-      if (pid !== undefined && pid !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, pid)?.label ?? pid }));
+      if (heroId !== undefined && heroId !== active.id) return void refuserGesteDuSiege(get, set, t('cs.ramasserHorsDuTour', { name: actorIn(s, heroId)?.label ?? heroId }));
       if (refuseParSonEntree(get, set, 'pickup', active, battle, { entityId, pickKey: key })) return;
       const scene = s.scene!;
       const ent = scene.entities.find((e) => e.id === entityId && e.kind === 'prop');
@@ -1374,24 +1372,24 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.SCENE_DIRTY);
     },
 
-    // `jetAnnuler('attack')` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
+    // `jetAnnuler('attaque')` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
     // (`FLOWS.attack.onCancel`, cf. la liste de verbes ci-dessus) — plus d'action bespoke ici.
     // PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : la case d'impact est déposée par le placeur
     // ('siege', commitPlacedZone). Ouvre la modale de tir de la pièce indirecte servie (`pendingAttack` siège) :
     // le JET de tir (DR) reste l'attaque NORMALE (Chance/Résilience par la cascade), mais la touche DÉTONE sur
-    // la case — l'Explosion frappe tout le rayon (résolution dans jetValider('attack')). Cible-repère = ennemi le plus
+    // la case — l'Explosion frappe tout le rayon (résolution dans jetValider('attaque')). Cible-repère = ennemi le plus
     // proche de l'impact (bande de portée/DR) ; aucune dans le rayon → tir à vide annoncé, sans détonation.
     poserLePointDImpact: (pt: Pt) => {
       const { battle, pendingSiegeAim: sa } = get();
       if (!battle || battle.over || !sa) return;
       const gunner = inBattleId(battle, sa.gunnerId);
-      get().fenetreFermer('siegeAim'); // referme le placeur — MÊME porte que la sortie d'interlude
+      get().fenetreFermer('viseeDeSiege'); // referme le placeur — MÊME porte que la sortie d'interlude
       if (!gunner || isOutOfAction(gunner) || !canTakeAction(gunner) || battle.acted) return;
       const aim = battle.combatants
         .filter((c) => c.kind !== gunner.kind && !isOutOfAction(c) && c.pos && chebyshev(pt, c.pos) <= sa.radius)
         .sort((a, b) => chebyshev(pt, a.pos!) - chebyshev(pt, b.pos!))[0];
       if (!aim) { get().ecrireAuJournal(t('cf.siegeNoTarget', { name: gunner.label })); return; }
-      // Pilonnage : la pièce est SERVIE (hors loadout main/off) → `openAttackCascade` ne gate jamais un
+      // Pilonnage : la pièce est SERVIE (hors loadout main/secondaire) → `openAttackCascade` ne gate jamais un
       // canon monté (`attackHandGate` = null), mais passe par le MÊME point partagé que les autres attaques.
       openAttackCascade(get, set, { attackerId: gunner.id, targetId: aim.id, location: null, result: null, weaponUid: sa.weaponUid, center: { ...pt }, siege: true }, 'Pilonnage', 'fire/blast');
     },
@@ -1632,11 +1630,11 @@ export function createCombatSlice(get: Get, set: Set) {
       // Quitter le mode incantation oublie le sort sélectionné. Le déplacement et l'attaque sont
       // implicites au clic (cliquerLaCaseDuCombat/cliquerLeCombattant), sans mode : le reachable stocké ne
       // porte que les budgets spéciaux (Course, post-Désengagement), on ne le touche pas ici.
-      const selectedSpellId = a === 'cast' ? battle.selectedSpellId : null;
+      const selectedSpellId = a === 'incantation' ? battle.selectedSpellId : null;
       // Changer (ou quitter) le mode armé oublie le PORTEUR élu du mode Dissiper : son panneau de
       // paramètre n'a plus de déclencheur allumé d'où naître.
       // Le mode Pousser peint SA portée (`reachable`, `pousserLEngin`) : le quitter la purge.
-      const reachable = battle.action === 'push' && a !== 'push' ? new Map() : battle.reachable;
+      const reachable = battle.action === 'poussee' && a !== 'poussee' ? new Map() : battle.reachable;
       set({ battle: { ...battle, action: a, selectedSpellId, preview: null, reachable }, dispelCarrierId: null });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1652,10 +1650,10 @@ export function createCombatSlice(get: Get, set: Set) {
       if (barre.forme !== 'ouverte') return void refuserGesteDuSiege(get, set, barre.raison);
       const { active: healer, battle } = barre;
       if (refuseParSonEntree(get, set, 'heal', healer, battle)) return;
-      if (battle.action !== 'heal') return void refuserGesteDuSiege(get, set, t('heal.soinNonArme')); // le commit du mode armé (`HEAL_MODE`)
+      if (battle.action !== 'soins') return void refuserGesteDuSiege(get, set, t('heal.soinNonArme')); // le commit du mode armé (`HEAL_MODE`)
       const target = inBattleId(battle, targetId);
       if (!target) return void refuserGesteDuSiege(get, set, t('medic.patientIntrouvable'));
-      // L'acte d'ouverture : le premier que le soigneur ouvre sur la cible ; il se change par `jetRegler('heal', 'mode')`.
+      // L'acte d'ouverture : le premier que le soigneur ouvre sur la cible ; il se change par `jetRegler('soins', 'mode')`.
       const mode = modesDOuverture(target, healer)[0] ?? HEAL_MODES[0];
       const ouverture = soinDOuverture(healer, mode);
       const raison = raisonDeModeDeSoinEnCombat(target, mode) ?? (ouverture ? null : refusDuTestDeSoin(healer, mode, { test: 'guerison', bandages: false }));
@@ -1665,7 +1663,7 @@ export function createCombatSlice(get: Get, set: Set) {
         pendingHeal: {
           healerId: healer.id, healerName: healer.label, targetId: target.id, targetName: target.label,
           mode, intBonus: bonus(effectiveChar(healer, 'intelligence')),
-          // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (réglage `heal.bandages`).
+          // Le siège du soigneur ouvre : il n'engage que les Bandages de son héros (réglage `soins.bandages`).
           test: ouverture.test, bandagesDe: ouverture.bandages ? healer.id : null,
           skillValue, difficulty, roll: null, success: false, sl: 0,
           ligne, ...cibleMesuree(ligne),
@@ -1677,16 +1675,16 @@ export function createCombatSlice(get: Get, set: Set) {
     // ── Contre-mesure « Asperger d'eau » (MDG 16 l.19, #497) — Créature marine hors de l'eau ──
 
     /** « Asperger d'eau » : Action DIRECTE (aucun jet, aucune modale) — pose `wateredThisRound` sur
-     *  une Créature marine adjacente hors de l'eau, consomme l'Action. `targetId` explicite (choix
+     *  une Créature marine adjacente hors de l'eau, consomme l'Action. `cibleId` explicite (choix
      *  parmi plusieurs candidats) sinon le 1ᵉʳ candidat éligible (MÊME patron que `servirLePoste`).
      *  Gate : l'aspergeur PORTE un contenant d'eau (`hasWaterContainer`, trapping `waterContainer`). */
-    aspergerDEau: (targetId?: string) => {
+    aspergerDEau: (cibleId?: string) => {
       const battle = get().battle;
       if (!battle || battle.over) return;
       const active = activeCombatant(battle);
       if (!active || battle.acted || !canTakeAction(active) || !hasWaterContainer(active)) return;
       const candidates = waterSprayCandidates(active, battle.combatants.filter((c) => c.kind === active.kind));
-      const target = targetId ? candidates.find((c) => c.id === targetId) : candidates[0];
+      const target = cibleId ? candidates.find((c) => c.id === cibleId) : candidates[0];
       if (!target) return;
       target.wateredThisRound = true;
       finishPlayerAction(get, set, [t('cs.waterSpray', { name: active.label, target: target.label })], 'detail');
@@ -1705,7 +1703,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (battle) {
         const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: lanceur.label })) ?? refusActionDepensee(battle);
         if (refus) return void refuserGesteDuSiege(get, set, refus);
-        set({ battle: { ...battle, action: 'cast', selectedSpellId: spellId, reachable: new Map() } });
+        set({ battle: { ...battle, action: 'incantation', selectedSpellId: spellId, reachable: new Map() } });
         castZoneSpell(get, set, lanceur, spellId); // no-op si le sort n'est pas une ZdE chiffrable
         bus.emit(EVT.SCENE_DIRTY);
         return;
@@ -1751,9 +1749,9 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     // Test Étendu SÉQUENTIEL (LDB 12) : chaque Round est un slot du flux multi (fabrique UNIQUE).
-    // « Une situation = une modale » : le Test étendu EST une cascade à une étape `jet:'extended'`,
+    // « Une situation = une modale » : le Test étendu EST une cascade à une étape `jet:'testEtendu'`,
     // rendue par `CascadeModal` (via `useExtendedTestJetProps`). `pendingExtendedTest` coexiste comme
-    // porteur de données (les Rounds y vivent) ; `jetValider('extendedTest')` ferme les deux à la réussite.
+    // porteur de données (les Rounds y vivent) ; `jetValider('testEtendu')` ferme les deux à la réussite.
 
     // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
@@ -1875,17 +1873,17 @@ export function createCombatSlice(get: Get, set: Set) {
         { actorId: active.id, combatAdvantage: { combatantId: active.id, cap }, cancellable: true });
     },
 
-    // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) du flux `cast` (forceSuccess/dé choisi) —
+    // Résilience « Je ne faillirai pas ! » (LDB 17 l.68) du flux `incantation` (forceSuccess/dé choisi) —
     // cycle UNIFIÉ par la fabrique rollFlow. (`attack`/`defense` plus haut ; `test` reste côté store.)
   };
 }
 
 /** Les choix des fenêtres du combat (`CorpsDesChoix`) : `fenetreChoisir` les joue, parmi les valeurs que l'état ouvre
  *  (`OUVERTS_DU_CHOIX`). */
-export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave' | 'mountTarget' | 'roundStart'> {
+export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' | 'cibleDeMonture' | 'debutDuRound'> {
   /** Le Point de Destin sacrifié (LDB 17 l.29-32) résout la suspension `pendingFateSave`. */
   const issues = {
-    negate: () => {
+    eviter: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);
@@ -1898,7 +1896,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
       set({ battle: { ...battle, log: [...battle.log, ev('info', t('cs.fateDodge', { name: hero.label }), hero.id), ...(anim ? [ev('fear', anim, hero.id)] : [])] } });
       resumeEnemyTurn(get, set);
     },
-    survive: () => {
+    survivre: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);
@@ -1914,7 +1912,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
       if (source === 'slow') resolveRoundBoundary(get, set);
       else resumeEnemyTurn(get, set);
     },
-    accept: () => {
+    accepter: () => {
       const { battle, pendingFateSave: p } = get();
       if (!battle || !p) return;
       const hero = inBattleId(battle, p.heroId);
@@ -1927,19 +1925,19 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
       if (source === 'slow') resolveRoundBoundary(get, set);
       else resumeEnemyTurn(get, set);
     },
-  } satisfies Record<ChoixDesFenetres['fateSave']['issue'], () => void>;
+  } satisfies Record<ChoixDesFenetres['destin']['issue'], () => void>;
   return {
-    fateSave: { issue: (issue) => issues[issue]() },
+    destin: { issue: (issue) => issues[issue]() },
     // LDB 14 l.181 : l'attaque ou la charge se relance sur l'id choisi, la modale court-circuitée (`skipMountChoice`).
-    mountTarget: {
+    cibleDeMonture: {
       cible: (id) => {
         const pm = garanti(get().pendingMountTarget, id, 'cible du couple monté');
         set({ pendingMountTarget: null });
-        // Le verdict d'armement du clic d'origine revient avec la relance (même raison que le gate de Peur).
-        get().cliquerLeCombattant(id, { skipMountChoice: true, approche: pm.approche });
+        // L'intention du clic d'origine revient avec la relance (même raison que le gate de Peur).
+        get().cliquerLeCombattant(id, { skipMountChoice: true, intentionId: pm.intentionId });
       },
     },
-    roundStart: {
+    debutDuRound: {
       // LDB 17 l.25, LDB 62 l.298-300 : en tête de l'ordre du Round, 1 Chance sauf arme Rapide.
       promouvoir: (heroId) => {
         const battle = garanti(get().battle, heroId, 'bataille de la pause');
@@ -1957,7 +1955,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'fateSave
 }
 
 /** Les réglages des jets du combat (`CorpsDesReglages`) : `jetRegler` les joue, dans leur phase (`REGLAGES_DU_JET`). */
-export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'attack' | 'defense' | 'cast' | 'cascade' | 'counterspell' | 'disengage' | 'auContact' | 'grapple' | 'heal' | 'battement' | 'distraire' | 'maneuver' | 'shipManeuver' | 'shanty'> {
+export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'attaque' | 'defense' | 'incantation' | 'cascade' | 'contreSort' | 'desengagement' | 'auContact' | 'empoignade' | 'soins' | 'battement' | 'distraire' | 'manoeuvre' | 'manoeuvreDuNavire' | 'chansonDeMarin'> {
   /** Un champ de `pendingAttack` posé tel quel. */
   const attaque = <K extends 'location' | 'harpoonRopeCut' | 'withhold' | 'grapple'>(champ: K) => (v: PendingAttack[K]) => {
     const pa = get().pendingAttack;
@@ -1990,7 +1988,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
   };
   /**
    * DÉCLARATION d'une rangée de la fenêtre — PHASE 1 : contrer SEUL, s'UNIR au Test Soutenu
-   * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `jetValider('counterspell')` ci-dessous) ou
+   * (`LDB 46 l.162`, transposé à la fenêtre réactive — cf. `jetValider('contreSort')` ci-dessous) ou
    * PASSER. Le MENEUR n'est pas un choix : il se DÉRIVE des rangées unies (`counterspellSoutenu`)
    * et se re-dérive à chaque déclaration. Chaque rangée choisit pour elle (mix libre : unis et
    * lanceurs seuls coexistent dans la MÊME fenêtre) — arbitrages utilisateur 2026-08-04
@@ -2008,15 +2006,15 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
     if (choice === 'soutenu' && !counterspellJoinable(s, pcs, pid)) return;
     set({ pendingCounterspell: { ...pcs, participants: pcs.participants.map((p) => (p.id === pid ? { ...p, declared: choice } : p)) } });
     // PORTE UNIQUE : la phase close SANS aucun lanceur (tout le monde passe) n'a plus rien à jouer —
-    // la fenêtre se referme par le résolveur CANONIQUE (`jetValider('counterspell')`, qui agrège et retombe
+    // la fenêtre se referme par le résolveur CANONIQUE (`jetValider('contreSort')`, qui agrège et retombe
     // sur le repli IA), jamais par un troisième chemin de fermeture.
     const fresh = get().pendingCounterspell;
     if (fresh && !counterspellDeclarePhase(fresh) && !fresh.participants.some((p) => counterspellRolls(get(), fresh, p))) {
-      get().jetValider('counterspell');
+      get().jetValider('contreSort');
     }
   };
   return {
-    attack: {
+    attaque: {
       localisation: attaque('location'),
       arme: (uid) => {
         const pa = get().pendingAttack;
@@ -2068,7 +2066,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         if (pd) set({ pendingDefense: { ...pd, riposte } });
       },
     },
-    heal: {
+    soins: {
       /** Jugé par `refusDuModeDuSoin`. Hors combat, l'acte recalcule son soin entier (`soinDeLActe` : soigneur,
        *  ligne, Difficulté) ; en combat, la Difficulté dépend du mode (variante AA, cf. `healDifficulty`). */
       mode: (mode) => {
@@ -2103,7 +2101,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         set({ pendingHeal: { ...ph, bandagesDe: porteurId } });
       },
     },
-    cast: {
+    incantation: {
       /** Refusé par `refusDuChoixCritique`, que la fenêtre lit aussi. Le budget de Surincantation en dépend
        *  (`castOvercastBudget`) : l'allocation retombe (`overcastReset`). */
       effetCritique: (choice) => {
@@ -2184,13 +2182,13 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
     /** Sans rangée, « contrer seul » ou la valeur dite pour chaque rangée encore vierge de CE siège (le drive
      *  d'auto-cadence, `FENETRE_DU_JET`) ; les rangées TÉMOIN sont déjà déclarées à l'ouverture
      *  (`autoDeclareWitnessRows`). */
-    counterspell: {
+    contreSort: {
       declaration: (choice, pid) => {
         if (pid !== undefined) { declarerLaRangee(pid, choice); return; }
-        for (const id of rangeesAReglerIci(get(), declarationDuReglage('counterspell', 'declaration'))) declarerLaRangee(id, choice);
+        for (const id of rangeesAReglerIci(get(), declarationDuReglage('contreSort', 'declaration'))) declarerLaRangee(id, choice);
       },
     },
-    disengage: {
+    desengagement: {
       // « Sacrifier l'Avantage » (l.87) → ramener l'Avantage à 0, partir libre. L'Action N'EST PAS consommée.
       sacrifier: () => {
         const { battle, scene, pendingDisengage: pd } = get();
@@ -2220,7 +2218,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         bus.emit(EVT.SCENE_DIRTY);
       },
       // ── « Fuir » (LDB 15 l.59-68) : OUVRE le flux MULTI `flee` — un slot par acteur (coup dans le dos
-      //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `jetValider('flee')`
+      //    du FRAPPEUR, Test de la fiche `fuite` du FUYARD). Aucun jet ni aucune conséquence ici : `jetValider('fuite')`
       //    applique tout. La modale s'ouvre dès qu'UN des deux acteurs est JOUÉ (symétrie). ──
       fuir: () => {
         const { battle, pendingDisengage: pd } = get();
@@ -2242,9 +2240,9 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         // REMINTE l'étape hôte au lieu de la muter — `hostStep` est le seul mint qui expose `groupOwner`
         // (#1262 B6), et il revérifie au passage que `pendingDisengage`, la donnée que la fenêtre rend,
         // est toujours posé. Une étape hôte ne porte que sa déclaration : la situation vit dans le pending.
-        const partagee = cascade && cur?.jet === 'disengage' && played(foe) && played(mover)
+        const partagee = cascade && cur?.jet === 'desengagement' && played(foe) && played(mover)
           ? hostStep(get, {
-            id: cur.id, kind: cur.kind, jet: 'disengage', actorId: cur.actorId ?? mover.id, groupOwner: true,
+            id: cur.id, kind: cur.kind, jet: 'desengagement', actorId: cur.actorId ?? mover.id, groupOwner: true,
             ...(cur.label ? { label: cur.label } : {}),
             ...(cur.icon ? { icon: cur.icon } : {}),
             ...(cur.stake ? { stake: cur.stake } : {}),
@@ -2270,7 +2268,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         bus.emit(EVT.SCENE_DIRTY);
         // Rangée TÉMOIN auto-roulée à l'ouverture (comme les témoins d'`openCrewTestPending`) : le coup dans le dos d'un
         // frappeur non joué est résolu tout de suite ; celui d'un héros l'attend (il porte son cycle).
-        if (!played(foe)) get().jetLancer('flee', foe.id);
+        if (!played(foe)) get().jetLancer('fuite', foe.id);
         // Aucune modale affichable (aucun des deux acteurs JOUÉ, combat fini, Destin en attente) →
         // résolution HEADLESS par LE MÊME flux (jamais un chemin de calcul parallèle). MÊME prédicat que
         // les rangées ci-dessus (`played`) — une fenêtre se joue exactement quand une rangée est
@@ -2281,11 +2279,11 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         }
         const pdOpen = get().pendingDisengage;
         if (!pdOpen?.fuir) return;
-        if (!fleeBackstab(pdOpen)?.result) get().jetLancer('flee', foe.id);
+        if (!fleeBackstab(pdOpen)?.result) get().jetLancer('fuite', foe.id);
         const pdRolled = get().pendingDisengage;
-        if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().jetLancer('flee', mover.id);
+        if (pdRolled && fleeToucheDu(pdRolled) && !fleeTouche(pdRolled)?.jet) get().jetLancer('fuite', mover.id);
         tracerLaFuite(get, set, mover, foe, { dos: true, touche: true });
-        get().jetValider('flee');
+        get().jetValider('fuite');
       },
     },
     auContact: {
@@ -2299,7 +2297,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         applyAuContact(get, set, mover, foe, mode);
       },
     },
-    grapple: {
+    empoignade: {
       // « Briser l'Empoignade » (l.161) : gratuit (via le Mouvement), réservé à un Avantage SUPÉRIEUR, AVANT
       // tout jet. Libère les deux + retire l'*Empêtré* lié de l'acteur. NE consomme PAS l'Action.
       briser: () => {
@@ -2347,7 +2345,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         startDistraire(get, set, mover, foe);
       },
     },
-    maneuver: {
+    manoeuvre: {
       avantage: (n) => {
         const { battle, pendingManeuver: pm } = get();
         if (!battle || !pm) return;
@@ -2357,13 +2355,13 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         set({ pendingManeuver: { ...pm, avantageSpent: clamped } });
       },
     },
-    shipManeuver: {
+    manoeuvreDuNavire: {
       virage: (steps) => {
         const p = get().pendingShipManeuver;
         if (p) set({ pendingShipManeuver: { ...p, turnSteps: steps } });
       },
     },
-    shanty: {
+    chansonDeMarin: {
       chanson: (shantyId) => {
         const p = get().pendingShanty;
         if (p && chansonsDuChanteur(get()).includes(shantyId)) set({ pendingShanty: { ...p, shantyId } });
@@ -2376,27 +2374,27 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
 export function sortiesDuCombat(get: Get, set: Set) {
   return {
     cascade: () => terminerLaCascade(get, set),
-    mountTarget: () => set({ pendingMountTarget: null }),
+    cibleDeMonture: () => set({ pendingMountTarget: null }),
     /** REFERME le placeur de case du pilonnage SANS tirer : le pending tombe et l'option « Servir … »
      *  se désarme (l'attaque redevient celle de l'Arme) — l'état exact que laisse un re-clic sur la
-     *  case d'attaque (`armerLAttaque`). Sortie de l'interlude `placing-zone` quand la zone en cours
+     *  case d'attaque (`armerLAttaque`). Sortie de l'interlude `poseDeLaZone` quand la zone en cours
      *  vient du siège (`placingZoneOf` source `siege`), et point de fermeture unique de `poserLePointDImpact`.
      *  Aucun coût : rien n'a été jeté. */
-    siegeAim: () => set((s) => ({ pendingSiegeAim: null, ...(s.battle && { battle: { ...s.battle, selectedAttack: undefined, preview: null } }) })),
+    viseeDeSiege: () => set((s) => ({ pendingSiegeAim: null, ...(s.battle && { battle: { ...s.battle, selectedAttack: undefined, preview: null } }) })),
     /** Fin du balayage : la restitution que la chaîne portait, puis la clôture de l'étape-jet de la cascade (reprise). */
-    cleave: () => {
+    frappeMortelle: () => {
       const { battle, pendingCleave: pc } = get();
       set({ pendingCleave: null, ...(battle && pc?.restitution ? { battle: { ...battle, acted: pc.restitution.prevActed } } : {}) });
       advanceCombatJet(get);
     },
     /** Renoncer à la 2ᵉ frappe : pas de 2ᵉ attaque, pas d'Avantage. LDB 10 l.767-773 */
-    dualStrike: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); },
+    secondeFrappe: () => { set({ pendingDualStrike: null }); advanceCombatJet(get); },
   } satisfies Partial<SortiesDeFenetre>;
 }
 
 /** La validation de la pause de début de Round : le Round se lance (`lancerLeRound`). */
 export function validationsDuCombat(get: Get, set: Set) {
-  return { roundStart: () => lancerLeRound(get, set) } satisfies Partial<ValidationsDeFenetre>;
+  return { debutDuRound: () => lancerLeRound(get, set) } satisfies Partial<ValidationsDeFenetre>;
 }
 
 /** Les clôtures des flux du combat (`CloturesDuJet`) : `jetValider` les joue, tant que le flux les ouvre. */
@@ -2405,7 +2403,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
     // Valider l'étape courante de la cascade, quelle que soit son interaction.
     cascade: () => validerLEtape(get, set),
     // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.fumble`) s'appliquent.
-    fumble: () => {
+    maladresse: () => {
       const battle = get().battle;
       const step = maladresseCourante(get().pendingCascade);
       if (!battle || !step) return;
@@ -2431,7 +2429,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       validerLEtape(get, set);
     },
     // « Appliquer » : l'Esquive consomme l'Action dans les DEUX issues (l.89).
-    disengage: () => {
+    desengagement: () => {
       const { battle, scene, pendingDisengage: pd } = get();
       if (!battle || !scene || !pd) return;
       const mover = inBattleId(battle, pd.moverId);
@@ -2473,7 +2471,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
     //    de `battleRng` (localisation, Critique, effets déclenchés) : à graine égale, la suite d'un combat
     //    où l'on fuit DIVERGE de l'ancienne — assumé (l'application canonique prime sur la reproductibilité
     //    d'une graine historique). ──
-    flee: () => {
+    fuite: () => {
       const { battle, scene, pendingDisengage: pd } = get();
       if (!battle || !scene || !pd?.fuir) return;
       const mover = inBattleId(battle, pd.moverId);
@@ -2482,9 +2480,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const res = garanti(fleeBackstab(pd)?.result, pd.moverId, 'coup dans le dos de la Fuite');
       const toucheSlot = fleeTouche(pd);
       if (fleeToucheDu(pd) && !toucheSlot?.jet) {
-        get().jetLancer('flee', mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
+        get().jetLancer('fuite', mover.id); // fuyard non joué : sa rangée témoin se résout par le flux, puis on applique
         tracerLaFuite(get, set, mover, foe, { dos: false, touche: true });
-        return get().jetValider('flee');
+        return get().jetValider('fuite');
       }
       const seqBefore = get().pendingCascade;
       const stepsBefore = seqBefore?.participants.length ?? 0;
@@ -2511,7 +2509,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
           ]),
           fleeMove: { moverId: mover.id, foeId: foe.id, broken } });
         const casc = get().pendingCascade;
-        if (casc?.participants[casc.cursor]?.jet === 'disengage') validerLEtape(get, set); // avancer sur l'étape de Déviation
+        if (casc?.participants[casc.cursor]?.jet === 'desengagement') validerLEtape(get, set); // avancer sur l'étape de Déviation
         return;
       }
       completeFlee(get, set, mover.id, foe.id, broken);
@@ -2544,7 +2542,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
     // Cycle Chance/+1 DR/Pacte/Résilience (spec `grapple`) : foe (atk) figé, seul le jet de l'acteur se (re)joue.
     // « Appliquer » : le Test opposé EST l'Action. Succès → l'acteur choisit (phase 'options') ; échec →
     // +1 Avantage au foe (l.161) ; égalité → statu quo.
-    grapple: () => {
+    empoignade: () => {
       const { battle, pendingGrapple: pd } = get();
       if (!battle || !pd) return;
       const actor = inBattleId(battle, pd.actorId);
@@ -2592,7 +2590,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
     // ── Manœuvre de créature par modale (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85) : le jet de
     //    l'ATTAQUANT passe par FLOWS.maneuver (Lancer/Chance/Pacte/Résilience) ; « Appliquer » roule les
     //    défenseurs et résout l'opposition au feed via le RÉSOLVEUR GÉNÉRIQUE `resolveManeuver`. ──
-    maneuver: () => {
+    manoeuvre: () => {
       const { battle, pendingManeuver: pm } = get();
       if (!battle || !pm) return;
       const attacker = inBattleId(battle, pm.attackerId);
@@ -2615,7 +2613,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ battle: { ...get().battle!, acted } });
       checkBattleOver(get, set);
     },
-    run: () => {
+    course: () => {
       const { battle, scene, pendingRun: pr } = get();
       if (!battle || !scene || !pr || !pr.dest) return;
       const lance = garanti(pr.result, pr.combatantId, 'jet de la Course');
@@ -2665,7 +2663,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ battle: { ...b, action: null, runBudget, movementUsed: (battle.movementUsed ?? 0) + cost, reachable: new Map(), preview: null, log } });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    shipManeuver: () => {
+    manoeuvreDuNavire: () => {
       const { battle, pendingShipManeuver: p } = get();
       if (!battle || !p) return;
       const ship = inBattleId(battle, p.shipId);
@@ -2678,7 +2676,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ battle: { ...markActed(get, set), action: null, preview: null, crewActed: withCrewActed(bM.crewActed, p.shipId, p.participants.map((x) => x.id)) } }); // un jet = une Action ; marins engagés ce Round
       bus.emit(EVT.SCENE_DIRTY);
     },
-    shipBattery: () => {
+    tirDeBatterie: () => {
       const { battle, pendingShipBattery: p } = get();
       if (!battle || !p) return;
       const ship = inBattleId(battle, p.shipId);
@@ -2692,7 +2690,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!suspendu) checkBattleOver(get, set);
       bus.emit(EVT.SCENE_DIRTY);
     },
-    shanty: () => {
+    chansonDeMarin: () => {
       const { battle, pendingShanty: p } = get();
       if (!battle || !p || !p.shantyId) return;
       const lance = garanti(p.result, p.singerId, 'jet de la Chanson');
@@ -2712,7 +2710,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
     // ── Approche d'une source de Peur (LDB 21 l.27) : le Test `pendingApproach.test` qui DIFFÈRE le
     //    clic d'approche. Succès → fearGate 'passed' (approches libres ce Tour) + l'intention est relancée ;
     //    échec → fearGate 'failed' (aucune approche ce Tour). « Un jet = une modale ». ──
-    approach: () => {
+    approche: () => {
       const { battle, pendingApproach: pa } = get();
       if (!battle || !pa) return;
       const lance = garanti(pa.result, pa.combatantId, 'jet de l’Approche');
@@ -2726,18 +2724,16 @@ export function cloturesDuCombat(get: Get, set: Set) {
         : t('cs.courageNo', { name: c.label, src: pa.sourceName }), c.id, src?.id)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
-        // Relance l'intention différée (le gate est 'passed') AVEC son verdict d'armement :
-        // l'intention qui l'a produite a été dissoute par le premier clic, la relire ici refuserait le
-        // geste que le joueur vient de gagner à son Test `calme-d-approche`.
-        if (pa.intent.kind === 'tile') get().cliquerLaCaseDuCombat(pa.intent.pt, { confirm: true, courseArmee: pa.intent.courseArmee });
-        else get().cliquerLeCombattant(pa.intent.id, { confirm: true, approche: pa.intent.approche });
+        // Relance le geste différé (le gate est 'passed') AVEC l'intention de son clic d'origine, que ce clic a dissoute.
+        if (pa.intent.kind === 'tile') get().cliquerLaCaseDuCombat(pa.intent.pt, { confirm: true, intentionId: pa.intent.intentionId });
+        else get().cliquerLeCombattant(pa.intent.id, { confirm: true, intentionId: pa.intent.intentionId });
       }
       bus.emit(EVT.SCENE_DIRTY);
     },
     // ── Bénédiction de Protection (LDB 41 l.142) : Test de FM Accessible (+20) qui DIFFÈRE la déclaration
     //    d'attaque sur une cible bénie. Succès → l'attaque est relancée (`wardCleared` saute ce gate) ;
     //    échec → l'attaque n'a pas lieu (rien n'est consommé). « Un jet = une modale ». ──
-    ward: () => {
+    protection: () => {
       const { battle, pendingWard: pw } = get();
       if (!battle || !pw) return;
       const lance = garanti(pw.result, pw.attackerId, 'jet de la Protection');
@@ -2751,10 +2747,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
         : t('cs.shameBlocked', { name: attacker.label, foe: target.label }), attacker.id, target.id)];
       set({ battle: { ...get().battle!, log } });
       // Succès : relance la déclaration d'attaque (le gate est franchi pour CE clic via `wardCleared`).
-      if (ok) get().cliquerLeCombattant(pw.targetId, { confirm: true, wardCleared: true, approche: pw.approche });
+      if (ok) get().cliquerLeCombattant(pw.targetId, { confirm: true, wardCleared: true, intentionId: pw.intentionId });
       bus.emit(EVT.SCENE_DIRTY);
     },
-    reload: () => {
+    rechargement: () => {
       const { battle, pendingReload: pr } = get();
       if (!battle || !pr) return;
       set({ pendingReload: null });
@@ -2766,7 +2762,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (active && aiDriven(get(), active)) resumeEnemyTurn(get, set);
     },
     // Main ensanglantée (AA 07 l.117) : « Appliquer » le Test de Dextérité PAR ACTION.
-    handGate: () => {
+    mainEnsanglantee: () => {
       const { battle, pendingHandGate: pg } = get();
       if (!battle || !pg) return;
       const attacker = inBattleId(battle, pg.attackerId);
@@ -2781,17 +2777,17 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       // Échec : l'objet glisse (op `disarm`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
       // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
-      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'off' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
+      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
       const b1 = get().battle!;
       set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attack', attacker.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       // 2ᵉ frappe « des deux armes » ratée : la 2ᵉ est renoncée (l'Action reste dépensée par la 1ʳᵉ frappe) →
-      // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('dualStrike')`).
+      // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('secondeFrappe')`).
       if (pg.pa.dualSecond) { set({ pendingDualStrike: null }); advanceCombatJet(get); return; }
-      // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetValider('reload')).
+      // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetValider('rechargement')).
       if (aiDriven(get(), attacker) && get().battle) resumeEnemyTurn(get, set);
     },
-    recover: () => {
+    recuperation: () => {
       const { battle, pendingStateRecovery: sr } = get();
       if (!battle || !sr) return;
       const a = inBattleId(battle, sr.actorId);
@@ -2810,15 +2806,15 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const recoverIssue = FLOWS.recover.apply(get, { p: sr });
       finishPlayerAction(get, set, [...struggleLines, ...recoverIssue], 'condition'); // consomme l'Action
     },
-    steamSave: () => {
+    fuiteDeVapeur: () => {
       const p = get().pendingSteamSave;
       if (!p) return;
       set({ pendingSteamSave: null });
       resolveSteamSave(get, set, p); // échec → ébouillanté (scaldOps), puis la boucle maritime reprend
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `attack`) — Résilience (forceSuccess/setForcedRoll) plus bas.
-    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `jetAnnuler('attack')`.
-    attack: () => {
+    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `jetAnnuler('attaque')`.
+    attaque: () => {
       const { battle, pendingAttack: pa } = get();
       if (!battle || !pa) return;
       const lance = garanti(pa.result, pa.attackerId, 'jet de l’attaque');
@@ -2844,7 +2840,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Curseur : étape 'attack' (résolue) → étape 'defense' que la fenêtre vient d'appendre. Sans
         // cascade d'attaque en cours, la fenêtre a ouvert la sienne (curseur DÉJÀ sur la défense).
         const seq = get().pendingCascade;
-        if (seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attack') validerLEtape(get, set);
+        if (seq?.purpose === 'combat' && seq.participants[seq.cursor]?.jet === 'attaque') validerLEtape(get, set);
         return;
       }
       if (attacker && target && victim && weapon && pa.interrupt) {
@@ -2889,7 +2885,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Maladresse de l'attaquant (LDB 14 l.19) : ÉCRITE par le temps `oupsAttaquant` de l'après-coup ;
         // mesurée ICI parce qu'elle exclut le balayage que ce site déclare ci-dessous.
         const fumbled = attackerFumbled(lance, weapon, attacker);
-        const off = attacker.weapons.find((w) => w.hand === 'off' && w.type === 'melee' && (w.hands ?? 1) === 1);
+        const off = attacker.weapons.find((w) => w.hand === 'secondaire' && w.type === 'melee' && (w.hands ?? 1) === 1);
         const mainRoll = lance.attackerDetail?.roll;
         const coupPrincipal = attacker.kind === 'hero' && !wasChain && !isDualSecond && !pa.freeKind;
         // Frénésie (LDB 21 l.33), `grantFreeAttack{available}` : la suite rend l'Action (`restitution`) ;
@@ -2919,10 +2915,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Tir IMMOBILE (LDB 14 l.70) : le héros a renoncé à bouger pour annuler le −10 → on consomme son
         // Mouvement du Tour. Seule CETTE posture tombe : elle a un PRIX (le Mouvement). « Dans le tas » ne
         // coûte rien (`LDB 14 l.106`). HÉROS SEUL — parité stricte avec `attackEnv` et `heldGroundStanceBlock`.
-        if (pa.heldGround && weapon.type === 'ranged' && attacker.kind === 'hero') {
+        if (pa.tirImmobile && weapon.type === 'ranged' && attacker.kind === 'hero') {
           const b2 = get().battle;
           if (b2) {
-            const { heldGround: _depensee, ...restantes } = b2.stances?.[attacker.id] ?? {};
+            const { tirImmobile: _depensee, ...restantes } = b2.stances?.[attacker.id] ?? {};
             set({ battle: { ...b2, movementUsed: mountMovement(b2, attacker), stances: { ...b2.stances, [attacker.id]: restantes } } });
           }
         }
@@ -2992,9 +2988,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
         return true;
       };
       // Défense SURFACÉE d'une attaque PILOTÉE (#989, `openSurfacedDefense`) : l'issue OPPOSÉE rejoint le
-      // chemin d'application UNIQUE de l'attaque — `jetValider('attack')` reprend avec le résultat défendu. Le
+      // chemin d'application UNIQUE de l'attaque — `jetValider('attaque')` reprend avec le résultat défendu. Le
       // curseur est TOUJOURS sur l'étape 'defense' de la MÊME cascade d'attaque : aucun tour n'avance ici
-      // (c'est `advanceCombatJet`, au bout de `jetValider('attack')`, qui enchaîne le curseur).
+      // (c'est `advanceCombatJet`, au bout de `jetValider('attaque')`, qui enchaîne le curseur).
       // CE QUE CETTE FENÊTRE FERA APRÈS LE COUP (#1858) : la DÉCLARATION de celui qui l'a ouverte, lue
       // ICI et nulle part ailleurs. Une sauvegarde « 1d10 ≥ Indice » (LDB 85 l.98) ou une Déviation
       // ouverte par l'application l'emporte dans SA charge (#1508) : c'est la reprise qui la joue.
@@ -3005,7 +3001,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const riposte = pd.riposte != null ? { riposte: pd.riposte } : {};
       if (suite.mode === 'pilotee' && attacker && defender) {
         set({ pendingAttack: { ...suite.pa, result: lance, location: lance.location ?? suite.pa.location, ...(reaction ? { reaction } : {}), ...riposte } });
-        get().jetValider('attack');
+        get().jetValider('attaque');
         return;
       }
       // Le coup ENTIER (application + après-coup) : `true` = une fenêtre tient la main (sauvegarde,
@@ -3025,8 +3021,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!quitterLaDefense()) resumeEnemyTurn(get, set);
     },
     /** « Appliquer » : applique le soin (le jet est déjà figé). Coûte l'Action en combat. L'infirmerie
-     *  (`medic`) n'est PAS touchée : la modale persistante reste ouverte pour l'acte suivant. */
-    heal: () => {
+     *  (`infirmerie`) n'est PAS touchée : la modale persistante reste ouverte pour l'acte suivant. */
+    soins: () => {
       const ph = get().pendingHeal;
       if (!ph) return;
       set({ pendingHeal: null });
@@ -3039,23 +3035,23 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const panse = !!porteur && retirerUnBandage(porteur);
       if (panse && porteur) log.push(t('heal.bandageUtilise', { name: porteur.label }));
       const params = { test: ph.test, bandages: panse };
-      if (ph.mode === 'wounds') {
+      if (ph.mode === 'blessures') {
         const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), panse);
         log.push(...r.log);
         if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'heal' });
-      } else if (ph.mode === 'bleed') {
+      } else if (ph.mode === 'hemorragie') {
         log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
-      } else if (ph.mode === 'ammo') {
+      } else if (ph.mode === 'munition') {
         log.push(...resolveExtractLodgedAmmo(target, ph.success)); // LDB 62 l.250 — Test de Guérison Intermédiaire
       } else {
-        log.push(...treatTrauma(target, ph.sl, ph.success)); // mode 'trauma' — l'échec consomme aussi le jet (LDB 18 l.222)
+        log.push(...treatTrauma(target, ph.sl, ph.success)); // mode 'traumatisme' — l'échec consomme aussi le jet (LDB 18 l.222)
       }
       // Aide Médicale (LDB 18 l.308-311) : le soin réussi, ou le bandage appliqué, réussi ou non.
       if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid'));
       finishPlayerAction(get, set, log, 'heal'); // sortie commune combat / hors combat
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `cast`) — Résilience (forceSuccess/setForcedRoll) plus bas.
-    cast: () => {
+    incantation: () => {
       const { pendingCast: pc } = get();
       if (!pc) return;
       const lance = garanti(pc.result, pc.casterId, 'jet d’incantation');
@@ -3077,7 +3073,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         }
         // Lançable → la confirmation EST le passage en pose (la vraie application se fait à la pose,
         // castCommitZone).
-        get().jetRegler('cast', 'carte', 'zone');
+        get().jetRegler('incantation', 'carte', 'zone');
         // IA = HÉROS (même flux) : le héros manuel attend le clic réel sur la carte (return ci-dessous) ;
         // un lanceur aiDriven FOURNIT son clic — le centre décidé par l'IA pure (`pc.zone.autoCenter`,
         // équivalent du curseur souris). On pose ici via le MÊME `castCommitZone`, puis on reprend le tour
@@ -3100,12 +3096,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // `jetValider('opposition')` repose `opposedOutcome` puis reprend la chaîne (`resolveCastChain`, ce bloc est alors sauté).
       if (openCastOppositionStep(get, set)) return;
       // FOLD : on ne ferme PLUS la cascade d'incantation ici — seulement le JET (CastModal disparaît).
-      // La cascade `purpose:'combat'` (étape `jet:'cast'`) reste ACTIVE pour qu'un Critique de Sort
+      // La cascade `purpose:'combat'` (étape `jet:'incantation'`) reste ACTIVE pour qu'un Critique de Sort
       // (pushReveal 'critical') ou une Imparfaite/Colère (étape appendue) s'y APPENDENT comme l'attaque.
-      // On repère l'étape `jet:'cast'` SOUS le curseur AVANT applyCast (présente seulement si l'incantation
+      // On repère l'étape `jet:'incantation'` SOUS le curseur AVANT applyCast (présente seulement si l'incantation
       // a été ouverte par openCastCascade ; absente quand un test/IA pose pendingCast à la main).
       const cascBefore = get().pendingCascade;
-      const castStepIdx = cascBefore && cascBefore.purpose === 'combat' && cascBefore.participants[cascBefore.cursor]?.jet === 'cast'
+      const castStepIdx = cascBefore && cascBefore.purpose === 'combat' && cascBefore.participants[cascBefore.cursor]?.jet === 'incantation'
         ? cascBefore.cursor : -1;
       set({ pendingCast: null }); // ferme le JET ; la cascade d'incantation reste active (cursor sur 'cast')
       if (caster && target && spell) {
@@ -3121,7 +3117,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
           opposedOutcome: pc.opposedOutcome,
         });
       }
-      // Avance la cascade au-delà de l'étape `jet:'cast'` (résolue, CastModal éteint) : des conséquences
+      // Avance la cascade au-delà de l'étape `jet:'incantation'` (résolue, CastModal éteint) : des conséquences
       // appendues (Critique/Imparfaite/Colère) → la cascade les joue (cursor+1) ; aucune → ferme la situation.
       // (Si pas de cascade d'incantation hôte — test/IA direct — on laisse intacte la cascade que les
       // conséquences ont éventuellement démarrée elles-mêmes, cursor déjà sur la 1ʳᵉ conséquence.)
@@ -3137,7 +3133,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // ouverte) — elle reprendra elle-même (validation d'étape → resumeSuspendedAI à la clôture).
       if (caster && aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
     },
-    counterspell: () => {
+    contreSort: () => {
       const pcs = get().pendingCounterspell;
       if (!pcs) return;
       // SITE CANONIQUE (#1040) : PLUSIEURS lanceurs peuvent tenter de dissiper le MÊME Sort, chacun
@@ -3171,7 +3167,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       resolveCastChain(get, set); // opposition résolue → application (cibles résistantes ignorées, autres à la marge)
     },
     // Focalisation COMMUNE combat/hors-combat (couture D) : acteur via `actorIn`, sortie journal hors combat.
-    focus: () => {
+    focalisation: () => {
       const { pendingFocus: pf } = get();
       if (!pf) return;
       const caster = actorIn(get(), pf.casterId);
@@ -3218,13 +3214,13 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'majeure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
       finishPlayerAction(get, set, logLines, 'focus'); // sortie commune combat / hors combat (pose `acted:true`)
       // Lanceur ENNEMI (modale auto-pilotée) : le tour de l'IA était suspendu → reprise (calqué sur
-      // jetValider('cast')). No-op si une interaction bloquante s'est ouverte (Imparfaite/révélation) — elle
+      // jetValider('incantation')). No-op si une interaction bloquante s'est ouverte (Imparfaite/révélation) — elle
       // reprendra elle-même (resumeSuspendedAI à la clôture).
       if (aiDriven(get(), caster) && get().battle) resumeEnemyTurn(get, set);
     },
     // Dissipation COMMUNE combat/hors-combat (couture D, #461) : acteur via `actorIn`, sortie
-    // journal hors combat (calque `jetValider('focus')`).
-    dispel: () => {
+    // journal hors combat (calque `jetValider('focalisation')`).
+    dissipation: () => {
       const { pendingDispel: pd } = get();
       if (!pd) return;
       const caster = actorIn(get(), pd.casterId);
@@ -3251,7 +3247,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       finishPlayerAction(get, set, logLines, 'cast'); // Action consommée (catégorie magie au journal)
     },
-    frenzy: () => {
+    frenesie: () => {
       const { battle, pendingFrenzy: pf } = get();
       if (!battle || !pf) return;
       const lance = garanti(pf.result, pf.combatantId, 'jet de Frénésie');

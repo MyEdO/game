@@ -216,7 +216,7 @@ function rendu() {
     "import { arena } from './_shared';",
     "import type { TestScenario } from './_shared';",
     "import type { Scene } from '../../noyau/monde/scene';",
-    '// (+ createHero / makePregens / itemFromTrappingById selon le groupe voulu)',
+    '// (+ createHero / pretire / itemFromTrappingById selon le groupe voulu)',
     '',
     "function construireScene(): Scene {",
     "  const scene = arena({ id: 'test-xxx', label: '…', heroStart: { x: 2, y: 4 } });",

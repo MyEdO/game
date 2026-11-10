@@ -34,15 +34,15 @@ describe('fleeReachable — Fuite dans la direction OPPOSÉE à l’adversaire (
 });
 
 // Fuite (LDB 15 l.63-66) : le coup dans le dos du frappeur et le Test `fuite` du fuyard sont DEUX
-// jets du flux `flee` ; la complétion de la fuite est DIFFÉRÉE jusqu'au « Appliquer ».
+// jets du flux `fuite` ; la complétion de la fuite est DIFFÉRÉE jusqu'au « Appliquer ».
 describe('Fuite intégrée à la modale (store)', () => {
-  it('Fuir : coup dans le dos (témoin IA) + Test `fuite` DIFFÉRÉ (flux flee) ; fuite complétée au confirm, sans révélation', () => {
+  it('Fuir : coup dans le dos (témoin IA) + Test `fuite` DIFFÉRÉ (flux fuite) ; fuite complétée au confirm, sans révélation', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -56,7 +56,7 @@ describe('Fuite intégrée à la modale (store)', () => {
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
 
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
 
     const pdf = banc.getState().pendingDisengage!;
     expect(pdf).toBeTruthy();
@@ -70,10 +70,10 @@ describe('Fuite intégrée à la modale (store)', () => {
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBe(40);
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toEqual([E.id]);
 
-    // Le Test `fuite` passe par le flux `flee` (jet INFLUENÇABLE) : Lancer puis Appliquer.
-    banc.getState().jetLancer('flee', H.id);
+    // Le Test `fuite` passe par le flux `fuite` (jet INFLUENÇABLE) : Lancer puis Appliquer.
+    banc.getState().jetLancer('fuite', H.id);
     expect(fleeTouche(banc.getState().pendingDisengage!)!.jet).toBeTruthy(); // Test `fuite` résolu
-    banc.getState().jetValider('flee');
+    banc.getState().jetValider('fuite');
 
     // « Appliquer » applique le coup dans le dos puis complète la fuite (libération + Course).
     const after = banc.getState();
@@ -89,7 +89,7 @@ describe('Fuite intégrée à la modale (store)', () => {
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -113,14 +113,14 @@ describe('Fuite intégrée à la modale (store)', () => {
     });
 
     // Chance « +1 DR » : DR -2 → -1 ; l'échec NE bascule PAS en réussite (1 Point de Chance dépensé).
-    banc.getState().jetAjouterUnDR('flee', H.id);
+    banc.getState().jetAjouterUnDR('fuite', H.id);
     let st = banc.getState();
     expect(fleeTouche(st.pendingDisengage!)!.jet!.sl).toBe(-1);
     expect(fleeTouche(st.pendingDisengage!)!.jet!.success).toBe(false);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
 
     // « Appliquer » : broken = 1 + max(0, 1) = 2 États Brisés (au lieu de 3 sans le +1 DR).
-    banc.getState().jetValider('flee');
+    banc.getState().jetValider('fuite');
     st = banc.getState();
     expect(stacks(st.battle!.combatants.find((c) => c.id === H.id)!, COND.brise)).toBe(2);
     expect(st.pendingDisengage).toBeNull();
@@ -141,7 +141,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(seed);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const heroes = b.combatants.filter((c) => c.kind === 'hero');
     const frappeur = heroes.find((c) => c.label === 'A')!;
@@ -167,22 +167,22 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     fuyard.wounds = blessuresDeBase(60, 60, fuyard); // survit au Critique
     banc.setState({ battle: { ...banc.getState().battle! } });
 
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     const pd = banc.getState().pendingDisengage!;
     expect(pd.phase).toBe('fuir');
     const bs = fleeBackstab(pd)!;
     expect(bs.interactive).toBe(true); // le frappeur est piloté-humain → SON jet lui revient
 
     // Dé 11 CHOISI (Résilience, LDB 17 l.68) = double → Coup Critique, exactement comme le Piétinement.
-    banc.getState().jetLancer('flee', bs.id);
-    banc.getState().jetForcerLaReussite('flee', bs.id);
-    banc.getState().jetImposerLeResultat('flee', 11, bs.id);
+    banc.getState().jetLancer('fuite', bs.id);
+    banc.getState().jetForcerLaReussite('fuite', bs.id);
+    banc.getState().jetImposerLeResultat('fuite', 11, bs.id);
     expect(fleeBackstab(banc.getState().pendingDisengage!)!.result!.critical).toBe(true);
 
     const critBefore = live(fuyard.id).criticalWounds ?? 0;
     const pdAfter = banc.getState().pendingDisengage!;
-    if (fleeToucheDu(pdAfter)) banc.getState().jetLancer('flee', fleeTouche(pdAfter)!.id);
-    banc.getState().jetValider('flee');
+    if (fleeToucheDu(pdAfter)) banc.getState().jetLancer('fuite', fleeTouche(pdAfter)!.id);
+    banc.getState().jetValider('fuite');
     draineCascade(banc.getState); // la sévérité du Critique se tire DANS la fenêtre (#1426)
 
     expect(live(fuyard.id).criticalWounds ?? 0).toBeGreaterThan(critBefore); // Blessure critique RAW appliquée
@@ -209,7 +209,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     });
 
     const critBefore = live(fuyard.id).criticalWounds ?? 0;
-    banc.getState().jetValider('flee');
+    banc.getState().jetValider('fuite');
     draineCascade(banc.getState); // la sévérité du dépassement se tire DANS la fenêtre (#1426)
 
     const f = live(fuyard.id);
@@ -221,7 +221,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   it('symétrie du surfaçage : le slot du coup dans le dos suit SON frappeur (humain → interactif, IA → témoin)', () => {
     // (a) frappeur HÉROS (piloté-humain) : son jet est interactif et N'EST PAS auto-roulé.
     const { fuyard } = duelHeros(5);
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     const bsA = fleeBackstab(banc.getState().pendingDisengage!)!;
     expect(bsA.interactive).toBe(true);
     expect(bsA.result).toBeNull(); // en attente du frappeur — aucun jet roulé en silence
@@ -239,7 +239,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
       battle: { ...b },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     const pdB = banc.getState().pendingDisengage!;
     expect(fleeBackstab(pdB)!.interactive).toBe(false);
     expect(fleeBackstab(pdB)!.result).toBeTruthy(); // témoin auto-roulé
@@ -252,7 +252,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(6);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const [E1, E2] = b.combatants.filter((c) => c.kind === 'enemy');
@@ -267,7 +267,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     });
     const before = live(E1.id).wounds.current;
 
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
 
     expect(banc.getState().pendingDisengage).toBeNull(); // rien qui traîne
     expect(live(E1.id).wounds.current).toBeLessThan(before); // le coup dans le dos a bien été appliqué
@@ -287,7 +287,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -309,17 +309,17 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     let restitutions = 0;
     const unsub = banc.subscribe((st, prev) => { if (prev.battle?.acted === true && st.battle?.acted === false) restitutions++; });
     try {
-      banc.getState().jetRegler('disengage', 'fuir', true);
+      banc.getState().jetRegler('desengagement', 'fuir', true);
       const bs = fleeBackstab(banc.getState().pendingDisengage!)!;
-      banc.getState().jetLancer('flee', bs.id);
+      banc.getState().jetLancer('fuite', bs.id);
       expect(fleeBackstab(banc.getState().pendingDisengage!)!.result!.hit, 'pré-requis : le coup dans le dos touche').toBe(true);
-      banc.getState().jetValider('flee');
+      banc.getState().jetValider('fuite');
       const pc = banc.getState().pendingCleave;
       expect(pc?.attackerId, 'le balayage est offert').toBe(H.id);
       expect(pc?.hitIds).toEqual([E1.id]);
       expect(pc?.count, 'aucun enchaînement consommé').toBe(0);
       expect(restitutions, 'la chaîne porte l’Action jusqu’à sa fermeture').toBe(0);
-      banc.getState().fenetreFermer('cleave');
+      banc.getState().fenetreFermer('frappeMortelle');
       expect(banc.getState().battle!.acted, 'attaque GRATUITE : l’Action du fuyard retrouve sa valeur').toBe(false);
       expect(restitutions, 'l’Action est rendue UNE fois').toBe(1);
     } finally {
@@ -335,7 +335,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const [fuyard, voisin] = b.combatants.filter((c) => c.kind === 'hero');
     const [E] = b.combatants.filter((c) => c.kind === 'enemy');
@@ -353,12 +353,12 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
       battle: { ...b, turn: b.order.indexOf(fuyard.id), acted: false },
       pendingDisengage: { moverId: fuyard.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     const pd = banc.getState().pendingDisengage!;
     expect(fleeBackstab(pd)!.interactive, 'pré-requis : le frappeur est conduit par l’IA').toBe(false);
     expect(fleeBackstab(pd)!.result!.cleave, 'pré-requis : la touche d’un plus grand pose le balayage').toBe(true);
-    if (fleeToucheDu(pd)) banc.getState().jetLancer('flee', fleeTouche(pd)!.id);
-    banc.getState().jetValider('flee');
+    if (fleeToucheDu(pd)) banc.getState().jetLancer('fuite', fleeTouche(pd)!.id);
+    banc.getState().jetValider('fuite');
     draineCascade(banc.getState);
     const pdef = banc.getState().pendingDefense;
     expect(pdef?.attackerId, 'le frappeur enchaîne : fenêtre de défense du voisin du fuyard').toBe(E.id);
@@ -389,7 +389,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
       },
     });
 
-    banc.getState().jetValider('flee');
+    banc.getState().jetValider('fuite');
 
     // (1) SUSPENDU : le choix Dévier/Subir est posé, la fuite N'EST PAS complétée.
     const casc = banc.getState().pendingCascade!;
@@ -419,14 +419,14 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     fuyard.wounds = blessuresDeBase(40, 40, fuyard);
     banc.setState({ battle: { ...banc.getState().battle! } });
 
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     const bs = fleeBackstab(banc.getState().pendingDisengage!)!;
-    banc.getState().jetLancer('flee', bs.id);
+    banc.getState().jetLancer('fuite', bs.id);
     const res = fleeBackstab(banc.getState().pendingDisengage!)!.result!;
     expect(res.attackerDetail!.label).not.toMatch(/Projectiles/); // jet de CC, pas de CT
     const pdNow = banc.getState().pendingDisengage!;
-    if (fleeToucheDu(pdNow)) banc.getState().jetLancer('flee', fleeTouche(pdNow)!.id);
-    banc.getState().jetValider('flee');
+    if (fleeToucheDu(pdNow)) banc.getState().jetLancer('fuite', fleeTouche(pdNow)!.id);
+    banc.getState().jetValider('fuite');
     const log = banc.getState().battle!.log;
     expect(log.some((e) => e.kind === 'attack' && e.actorId === frappeur.id)).toBe(true);
     expect(log.some((e) => e.kind === 'shoot')).toBe(false); // jamais la branche TIR (munitions/dispersion)
@@ -439,9 +439,9 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     const { frappeur, fuyard } = duelHeros(8);
     banc.setState({
       net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { [frappeur.id]: 1 } },
-      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'disengageStep', jet: 'disengage', actorId: fuyard.id }], { title: 'Se désengager', icon: 'action/disengage', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'disengageStep', jet: 'desengagement', actorId: fuyard.id }], { title: 'Se désengager', icon: 'action/disengage', purpose: 'combat' }),
     });
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     const st = banc.getState();
 
     // Les deux rangées sont INTERACTIVES (acteurs joués), le coup dans le dos n'est PAS auto-roulé.
@@ -451,10 +451,10 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     // La fenêtre est un moment PARTAGÉ ('*') : sinon le siège du frappeur ne la verrait jamais.
     expect(modalOwnerOf(st)).toBe('*');
     // Chaque siège ne lance QUE le jet de SON héros (routage par possession du 1ᵉʳ argument).
-    expect(intentAllowedFor(st, 1, 'jetLancer', ['flee', frappeur.id])).toBe(true);
-    expect(intentAllowedFor(st, 0, 'jetLancer', ['flee', frappeur.id])).toBe(false);
-    expect(intentAllowedFor(st, 0, 'jetLancer', ['flee', fuyard.id])).toBe(true);
-    expect(intentAllowedFor(st, 1, 'jetLancer', ['flee', fuyard.id])).toBe(false);
+    expect(intentAllowedFor(st, 1, 'jetLancer', ['fuite', frappeur.id])).toBe(true);
+    expect(intentAllowedFor(st, 0, 'jetLancer', ['fuite', frappeur.id])).toBe(false);
+    expect(intentAllowedFor(st, 0, 'jetLancer', ['fuite', fuyard.id])).toBe(true);
+    expect(intentAllowedFor(st, 1, 'jetLancer', ['fuite', fuyard.id])).toBe(false);
   });
 
   // Bac-à-sable MJ (`gmSeat`) : l'ennemi frappeur est piloté par un humain (le MJ) mais n'est PAS un
@@ -475,15 +475,15 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
 
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
 
     const pdB = banc.getState().pendingDisengage!;
     expect(fleeBackstab(pdB)!.interactive).toBe(false);
     expect(fleeBackstab(pdB)!.result).toBeTruthy(); // résolu à l'ouverture : le fuyard n'attend personne
     expect(fleeTouche(pdB)!.interactive).toBe(true);
     // Le fuyard peut mener la fenêtre à son terme tout seul.
-    banc.getState().jetLancer('flee', H.id);
-    banc.getState().jetValider('flee');
+    banc.getState().jetLancer('fuite', H.id);
+    banc.getState().jetValider('fuite');
     expect(banc.getState().pendingDisengage).toBeNull();
   });
 });

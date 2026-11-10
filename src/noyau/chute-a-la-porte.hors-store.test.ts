@@ -525,7 +525,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
     ouvrirChute(banc.setState, par('h2'), 4);
     suspendActiveCascade(banc.getState, banc.setState); // ex. une journée de voyage parquée par l'abordage
     ouvrirChute(banc.setState, par('h1'), 4);
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     const enVol = banc.getState().pendingCascade!;
     expect(enVol.participants[0].actorId, 'le teardown n’a pas piétiné le dé en vol').toBe('h1');
     expect(banc.getState().suspendedCascades, 'la parquée est restée parquée').toHaveLength(1);
@@ -978,14 +978,14 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   };
 
   /**
-   * Joue le Test de la bande — le geste de la RANGÉE (`jetLancer('cascadeBatch')`, celui du kit de fenêtre) —
+   * Joue le Test de la bande — le geste de la RANGÉE (`jetLancer('cascadeEnBande')`, celui du kit de fenêtre) —
    * puis valide l'étape. L'Athlétisme est COMPLEXE (−20) sur une Agilité 36 : la cible est 16, et le
    * rng SEEDÉ le rate. L'échec est ASSERTÉ, jamais supposé : c'est la prémisse du contrat.
    */
   const raterLeTest = (): void => {
     const p = banc.getState().pendingCascade!;
     const bande = p.participants[p.cursor];
-    for (const r of bande.participants ?? []) banc.getState().jetLancer('cascadeBatch', r.id);
+    for (const r of bande.participants ?? []) banc.getState().jetLancer('cascadeEnBande', r.id);
     const jouee = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
     for (const r of jouee.participants ?? []) {
       expect(r.result, `la rangée ${r.id} a bien lancé`).not.toBeNull();

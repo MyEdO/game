@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { beginShipwreck } from './shipwreck';
 import { runSeaDay, buildSeaPlan } from './seaVoyageFlow';
 import { checkBattleOver } from './combatFlow';
@@ -68,7 +68,7 @@ function freshState() {
   seedBattleRng(1);
   resetCadence();
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     battle: null,
     worldMap: seaMap,
     lieu: 'A',

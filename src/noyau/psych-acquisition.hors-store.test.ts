@@ -54,7 +54,7 @@ function setBattle(combatants: Combatant[], fateSave: ReturnType<typeof banc.get
 /** Le tueur `e1`, aux Groupes déclarés `groups`. */
 const adversaire = (groups: string[]) => hero({ id: 'e1', label: 'Brigand de Reikland', kind: 'enemy', fate: 0, groups } as Partial<Combatant>);
 
-describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.issue`)', () => {
+describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue`)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
 
   const skaven = () => adversaire(['skaven']);
@@ -62,14 +62,14 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
   it('règle ON + Calme ÉCHOUE → Animosité envers la Cible ; un 2ᵉ échec même Cible → Haine (remplace)', () => {
     setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(1); // Calme (FM 30) échoue
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     let got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('skaven') }]);
 
     // Deuxième frôlement de la mort face aux mêmes Skavens → l'Animosité devient une Haine.
     setBattle([got, skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits).toEqual([{ type: 'haine', cible: ciblePsy.groupe('skaven') }]); // Animosité remplacée, pas doublée
   });
@@ -77,7 +77,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
   it('règle ON + Calme RÉUSSIT → aucun Trait acquis', () => {
     setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(7); // Calme (FM 30) réussit
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
@@ -86,7 +86,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
     resetRule('psych-acquisition-optional'); // défaut = OFF
     setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
@@ -94,13 +94,13 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
   it('mort lente (source slow, sans tueur) → pas d’Animosité (perte de sang, aucun individu)', () => {
     setBattle([hero()], { heroId: 'h1', source: 'slow' });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
 });
 
-describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath → choix `fateSave.issue`)', () => {
+describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath → choix `destin.issue`)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
 
   /** Un héros humain frôle la mort sous les coups de `foe`, dépense son Destin et rate son Calme. */
@@ -109,7 +109,7 @@ describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath �
     setBattle([h, foe], null);
     finalizeHeroDeath(banc.getState, banc.setState, h, 'hit', 10, foe);
     seedBattleRng(1); // Calme (FM 30) échoue
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
   };
   const traitsDuHeros = () => banc.getState().battle!.combatants.find((c) => c.id === 'h1')!.psychTraits ?? [];
 

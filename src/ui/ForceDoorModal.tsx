@@ -23,13 +23,13 @@ export function ForceDoorModal() {
   const party = useGame((s) => s.party);
   const owns = useOwns(); // possession locale à l'affichage (#1262) — hook : AVANT tout retour anticipé
   const p = useGame((s) => s.pendingForceDoor);
-  const roll = useGesteDeJet('jetLancer', 'forceDoor');
-  const reroll = useGesteDeJet('jetRelancer', 'forceDoor');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'forceDoor');
-  const darkPact = useGesteDeJet('jetPactiser', 'forceDoor');
-  const force = useGesteDeJet('jetForcerLaReussite', 'forceDoor');
-  const confirm = useGesteDeJet('jetValider', 'forceDoor');
-  const cancel = useGesteDeJet('jetAnnuler', 'forceDoor');
+  const roll = useGesteDeJet('jetLancer', 'enfoncerLaPorte');
+  const reroll = useGesteDeJet('jetRelancer', 'enfoncerLaPorte');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'enfoncerLaPorte');
+  const darkPact = useGesteDeJet('jetPactiser', 'enfoncerLaPorte');
+  const force = useGesteDeJet('jetForcerLaReussite', 'enfoncerLaPorte');
+  const confirm = useGesteDeJet('jetValider', 'enfoncerLaPorte');
+  const cancel = useGesteDeJet('jetAnnuler', 'enfoncerLaPorte');
   const regler = useGame((s) => s.jetRegler);
   if (!p) return null;
   const pool = battle?.combatants ?? party;
@@ -62,8 +62,8 @@ export function ForceDoorModal() {
         layout="seg"
         groupLabel={actor.label}
         options={[
-          { key: 'mains-nues', label: 'Mains nues', selected: !part.armeUid, onSelect: () => regler('forceDoor', 'arme', null, part.id) },
-          ...armes.map((w) => ({ key: w.uid!, label: w.label, selected: part.armeUid === w.uid, onSelect: () => regler('forceDoor', 'arme', w.uid!, part.id) })),
+          { key: 'mains-nues', label: 'Mains nues', selected: !part.armeUid, onSelect: () => regler('enfoncerLaPorte', 'arme', null, part.id) },
+          ...armes.map((w) => ({ key: w.uid!, label: w.label, selected: part.armeUid === w.uid, onSelect: () => regler('enfoncerLaPorte', 'arme', w.uid!, part.id) })),
         ]}
       />
     )];
@@ -76,7 +76,7 @@ export function ForceDoorModal() {
 
   return (
     <RollShell
-      flowKey="forceDoor"
+      flowKey="enfoncerLaPorte"
       title={<><Icon id="map-tool/door" size="sm" /> Enfoncer la porte</>}
       subtitle={<><strong>{p.label}</strong> — Endurance {p.doorBE} · Blessures {p.doorB}/{p.doorBmax}</>}
       instruction="Chacun frappe la porte, à mains nues ou avec une arme"

@@ -233,7 +233,7 @@ export interface RollRowProps {
   /** Ce jet a été SAISI par le joueur (option « Dés fixés ») → mention « dé fixé » sur la rangée. */
   fixedMark?: boolean;
   /** Flux PROPRE à cette rangée quand il DIFFÈRE de celui de la coquille (`RollShell.flowKey`) :
-   *  « Se désengager » héberge les rangées du flux `flee` (coup dans le dos + Test `fuite`), la cascade
+   *  « Se désengager » héberge les rangées du flux `fuite` (coup dans le dos + Test `fuite`), la cascade
    *  héberge l'étape courante. Sans lui, le sélecteur de dé serait dérivé du mauvais pending.
    *  `key` sert alors d'id de slot (participant) — c'est déjà sa valeur en multi. */
   flowKey?: keyof typeof FLOW_VERBS;

@@ -8,7 +8,7 @@
 //   les éléments du projet (manifestes, provenances et licences de `projet/modeles`, GLB tirés de la Release par
 //   `recupererModeles`), puis `--element` importé (`importer.mjs --sans-publier`) ; le combat ouvert, chaque combattant
 //   à corps de la vue a la base de l'élément, celle que l'écran publie posée (`wfrpEcran.corps`), et le combattant dont
-//   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `off`, l'emblème de sa
+//   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème de sa
 //   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet. Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
@@ -56,7 +56,7 @@
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
 //   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
-// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'à Grunni, son offre
+// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'au Tueur, son offre
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
 //   l'Entrée.
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
@@ -74,7 +74,7 @@
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
 // - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, celui d'un ennemi
 //   ouvert au clic droit sur sa case, et la fiche fermée par son bouton « Fermer ».
-// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Rosa Brandt,
+// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Apothicaire,
 //   son armure choisie dans ses possessions puis ôtée par « Porter », sa potion choisie.
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
@@ -338,7 +338,7 @@ async function preparerLesModeles() {
 }
 
 /** Le combat ouvert, chaque corps de la vue posé à l'écran (`wfrpEcran.corps`) sur la base de l'élément `elementId` ;
- *  le combattant dont le corps le monte a monté aussi la tête de sa vue et porte, à la ligne de sa prise `off`, l'emblème
+ *  le combattant dont le corps le monte a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème
  *  de sa donnée. */
 async function prouverLEmbleme(elementId) {
   const base = production(o.element).manifeste.base
@@ -349,7 +349,7 @@ async function prouverLEmbleme(elementId) {
   const [id, compose] = corps.find(([, c]) => c.montes.some((m) => m.element === elementId)) ?? []
   assert.ok(id, `un combattant monte « ${elementId} »`)
   const combattant = v.projection.combat.voisins.liste.find((c) => c.id === id)
-  const ligne = combattant.portee.portees.find((p) => p.point === 'off')?.point
+  const ligne = combattant.portee.portees.find((p) => p.point === 'secondaire')?.point
   const embleme = combattant.portee.embleme?.id
   const tete = compose.montes.find((m) => m.ligne === 'ligne/tete')?.element
   assert.ok(ligne && embleme && tete, `${combattant.nom} tient en main off, sa donnée nomme un emblème et sa tête a un élément : ${JSON.stringify(combattant.portee)}`)
@@ -418,7 +418,7 @@ async function parcoursCombat() {
   assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
   assert.equal(element(v, 'fenetre.corps', 'jet').verdict, null, 'le jet est à lancer')
   noter(`clic sur ${proche.nom} : jetons repris par les minuteurs, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} » ouverte ; ${corps(v)}`)
-  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attack#localisation')
+  const localiser = element(v, 'fenetre.reglages', 'jetRegler@attaque#localisation')
   const lieu = localiser.valeurs.find((x) => x.jeu.args.at(-1) !== null)
   await cliquerBouton(bouton(lieu))
   v = await vue()
@@ -967,13 +967,13 @@ async function parcoursSoin() {
       await fermerLesFenetres()
     }
   }
-  for (let tours = 0; (await aUnHeros(), zone(await vue(), 'combat.actif')[0]?.nom !== 'Grunni Pierre-de-Fer'); tours++) {
-    assert.ok(tours < 5, `Grunni prend la main : ${zone(await vue(), 'combat.actif')[0]?.nom}`)
+  for (let tours = 0; (await aUnHeros(), zone(await vue(), 'combat.actif')[0]?.nom !== 'Tueur'); tours++) {
+    assert.ok(tours < 5, `Le Tueur prend la main : ${zone(await vue(), 'combat.actif')[0]?.nom}`)
     await finirLeTour()
   }
   let v = await vue()
   const soigner = offre(v, 'heal')
-  assert.ok(soigner && !soigner.refus, `Grunni soigne : ${JSON.stringify(soigner)}`)
+  assert.ok(soigner && !soigner.refus, `Le Tueur soigne : ${JSON.stringify(soigner)}`)
   await cliquerBouton(bouton(soigner))
   v = await vue()
   const patient = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
@@ -1022,7 +1022,7 @@ async function parcoursVoyage() {
   await capturer('3534-voyage-1-jets')
   for (let k = 0; k < 4; k++) {
     await cliquerBouton('Lancer')
-    await attendreLaVue(`v.zones['fenetre.corps'].filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
+    await attendreLaVue(`v.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [e])).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
   }
   noter(`jets tombés : ${corps(await vue())}`)
   await capturer('3534-voyage-2-tombes')
@@ -1092,7 +1092,7 @@ async function parcoursRepos() {
   await cliquerBouton('Carte du monde')
   await attendreLaVue("v.projection.fenetre?.cle === 'carteDuMonde'")
   await cliquerBouton('À pied · 2 j')
-  await entrer('rest')
+  await entrer('repos')
   let v = await vue()
   noter(`repos : ${corps(v)}`)
   await capturer('3328-r1-1-nuit')
@@ -1129,7 +1129,7 @@ async function parcoursRepit() {
   await capturer('3328-m1-1-repit')
   await choisirDansLaListe(undefined, 'Revenus')
   await cliquerAmene('Entreprendre', 1)
-  await attendreLaVue("v.disposition === 'activity'")
+  await attendreLaVue("v.disposition === 'activite'")
   await capturer('3328-m1-2-revenus')
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
@@ -1182,7 +1182,7 @@ async function parcoursBataille() {
   await capturer('3328-n1-1-bataille')
   const [scene] = zone(v, 'fenetre.corps').filter((e) => e.id.startsWith('scene/') && e.elements.some((x) => x.id === 'postes'))
   await cliquerBouton('Résoudre')
-  await attendreLaVue("v.disposition === 'activity'")
+  await attendreLaVue("v.disposition === 'activite'")
   await marquer()
   await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
   await nouvelEcran()
@@ -1233,8 +1233,8 @@ async function parcoursInventaire() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await fermerLesFenetres()
-  const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Rosa Brandt')
-  assert.ok(heros, 'Rosa Brandt a son bouton')
+  const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Apothicaire')
+  assert.ok(heros, 'Apothicaire a son bouton')
   await cliquerBouton(bouton(heros))
   v = await vue()
   const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)

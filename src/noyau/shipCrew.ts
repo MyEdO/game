@@ -519,7 +519,7 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
 
 /**
  * CONSEIL DE BORD — le joueur ARRÊTE la paie de la semaine (#229). Phase `choix` (aucune mutation encore) →
- * `fenetreChoisir('council', 'paie', decision)` prélève la solde, recalcule le Moral (`resolveVesselWeek`, cœur PUR
+ * `fenetreChoisir('conseil', 'paie', decision)` prélève la solde, recalcule le Moral (`resolveVesselWeek`, cœur PUR
  * partagé avec la cadence auto) et bascule en phase `bilan` où le recalcul se JOUE (PV des facteurs + delta + nouvelle
  * bande). Le verbe n'admet qu'un choix que `refusDeChoixDePaie` ouvre (`OUVERTS_DU_CHOIX`) ; le choix GRATUIT reste
  * toujours offert.
@@ -537,7 +537,7 @@ function arreterLaPaie(get: Get, set: SetFn, decision: string): void {
   get().ecrireAuJournal(out.lines);
 }
 
-/** Les choix de paie que `fenetreChoisir('council', 'paie', …)` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
+/** Les choix de paie que `fenetreChoisir('conseil', 'paie', …)` accepte : ceux du registre (`payChoices`) que la bourse du groupe couvre, le choix
  *  gratuit compris. Vide hors phase `choix` du Conseil. #229 */
 export function choixDePaieOuverts(s: Jeu): string[] {
   const p = s.pendingCouncil;
@@ -552,7 +552,7 @@ export function refusDeChoixDePaie(s: Jeu, decision: string): string | null {
   return choixDePaieOuverts(s).includes(decision) ? null : t('crew.paieHorsBourse');
 }
 
-/** Les chansons que réglage `shanty.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
+/** Les chansons que réglage `chansonDeMarin.chanson` accepte : celles que le chanteur de `pendingShanty` connaît (`knownShanties`) et que
  *  le catalogue porte, tant que le jet n'est pas tombé. MDG 09 l.32-40. */
 export function chansonsDuChanteur(s: Jeu): string[] {
   const p = s.pendingShanty;
@@ -602,13 +602,13 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
 
 /** Le choix du Conseil de bord (`CorpsDesChoix`) : la paie de la semaine. #229 */
 export function choixDeLEquipage(get: Get, set: SetFn) {
-  return { council: { paie: (decision) => arreterLaPaie(get, set, decision) } } satisfies Partial<CorpsDesChoix>;
+  return { conseil: { paie: (decision) => arreterLaPaie(get, set, decision) } } satisfies Partial<CorpsDesChoix>;
 }
 
-/** Le Conseil de bord se lève au bilan (`MODAL_DEFS.council.sortieFermee`) : le recalcul a déjà été appliqué à la
+/** Le Conseil de bord se lève au bilan (`MODAL_DEFS.conseil.sortieFermee`) : le recalcul a déjà été appliqué à la
  *  validation de la paie. #229 */
 export function sortiesDeLEquipage(_get: Get, set: SetFn) {
-  return { council: () => set({ pendingCouncil: null }) } satisfies Partial<SortiesDeFenetre>;
+  return { conseil: () => set({ pendingCouncil: null }) } satisfies Partial<SortiesDeFenetre>;
 }
 
 export function creerActionsDeLEquipage(get: Get, set: SetFn) {

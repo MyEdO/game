@@ -70,7 +70,7 @@ import { generateName } from '../../engine/names';
 import { makeRNG } from '../../engine/dice';
 import { sexeSchema, type Sexe } from '../../data/schemas/grammaire/valeurs';
 
-export type CharMode = 'rolled' | 'reassigned' | 'pointBuy';
+export type CharMode = 'tire' | 'reassigne' | 'repartition';
 
 // ── Quotas d'allocation de la création (SOURCE UNIQUE : validation ET rendu les consomment) ──
 /** « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune » (LDB 05 l.484). */
@@ -165,7 +165,7 @@ export function newDraft(seed: number): CreatorDraft {
     coastalSwap: false,
     careerRolls: [],
     careerFreeRolls: 0,
-    charMode: 'rolled',
+    charMode: 'tire',
     charsRolled: false,
     charRerolls: 0,
     assignment: tableTotale(CHAR_KEYS, (_k, indice) => indice),
@@ -394,9 +394,9 @@ export function draftChars(d: CreatorDraft): Characteristics {
   for (let i = 0; i < CHAR_KEYS.length; i++) {
     const k = CHAR_KEYS[i];
     const base = baseDEspece(sp, k);
-    if (d.charMode === 'pointBuy') out[k] = base + d.pointBuy[k];
+    if (d.charMode === 'repartition') out[k] = base + d.pointBuy[k];
     // Agentivité (#393) : avant le geste « Tirer aux dés », aucun jet n'existe — base d'espèce seule.
-    else out[k] = base + (d.charsRolled ? rolls[d.charMode === 'reassigned' ? d.assignment[k] : i] : 0);
+    else out[k] = base + (d.charsRolled ? rolls[d.charMode === 'reassigne' ? d.assignment[k] : i] : 0);
   }
   return out;
 }
@@ -408,8 +408,8 @@ export function rollDraftChars(d: CreatorDraft): CreatorDraft {
 }
 export function charsXp(d: CreatorDraft): number {
   if (!draftSpecies(d)) return 0; // page blanche : pas de bonus 2d10 tant qu'aucune race n'existe
-  if (!d.charsRolled || d.charRerolls > 0 || d.charMode === 'pointBuy') return 0;
-  return d.charMode === 'rolled' ? XP_CHARS_KEPT : XP_CHARS_REASSIGNED;
+  if (!d.charsRolled || d.charRerolls > 0 || d.charMode === 'repartition') return 0;
+  return d.charMode === 'tire' ? XP_CHARS_KEPT : XP_CHARS_REASSIGNED;
 }
 /** PX de création qu'offre la méthode `mode` une fois les dix jets tirés (LDB 05 l.337-341). */
 export const charsXpDeLaMethode = (d: CreatorDraft, mode: CharMode): number => charsXp({ ...d, charMode: mode, charsRolled: true });
@@ -676,8 +676,7 @@ export const attendSaSpec = (r: RefDesignee): boolean => r.spec == null && estSp
 
 /** Sorts de Magie mineure INCLUS au Talent (LDB 10 l.714) : quota à choisir = BFM FINAL du probe
  *  (Augmentations gratuites + talents « +5 FM » appliqués, même pipeline que createHero) — 0 sans
- *  Talent de `castingKind:'mineure'`. Délègue à `pettySpellQuotaFor` (engine, source UNIQUE — même
- *  fonction que `src/data/pregens.ts`), le probe portant déjà les talents résolus en id. */
+ *  Talent de `castingKind:'mineure'`. Délègue à `pettySpellQuotaFor` (engine, source UNIQUE), le probe portant déjà les talents résolus en id. */
 export function pettySpellQuota(d: CreatorDraft): number {
   return pettySpellQuotaFor(probeHero(d, true, true));
 }
@@ -839,12 +838,12 @@ const STEP_VALIDATORS: Record<StepId, (c: StepCtx) => string | null> = {
   },
   chars: ({ d, sp }) => {
     if (!sp) return t('crea.choisirRace');
-    if (d.charMode !== 'pointBuy' && !d.charsRolled) return t('crea.tirerCaracteristiques');
-    if (d.charMode === 'pointBuy') {
+    if (d.charMode !== 'repartition' && !d.charsRolled) return t('crea.tirerCaracteristiques');
+    if (d.charMode === 'repartition') {
       const v = validatePointBuy(d.pointBuy as Record<CharKey, number>);
       if (!v.ok) return t('crea.repartitionDesPoints', { raison: v.reason });
     }
-    if (d.charMode === 'reassigned') {
+    if (d.charMode === 'reassigne') {
       const idx = CHAR_KEYS.map((k) => d.assignment[k]);
       if (new Set(idx).size !== 10) return t('crea.reassignationUnique');
     }

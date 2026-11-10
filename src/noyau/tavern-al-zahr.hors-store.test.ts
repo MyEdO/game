@@ -10,7 +10,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { toBrass, fromBrass, formatMoney } from '../engine/money';
 import { creditBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
@@ -74,7 +74,7 @@ async function drain(opts: { des?: number[]; choix?: string } = {}): Promise<{ t
 }
 
 function heros(): Combatant {
-  return makePregens(idsDeTest)[0] as Combatant;
+  return tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
 }
 
 /** Un héros à la bourse garnie, seul au groupe. */
@@ -191,10 +191,10 @@ describe('Al-zahr — la partie au store', () => {
 
   it('ABANDON en cours de manche (l.17) : FERMÉ « entre deux manches » — tour du héros, pli dû, fenêtre d’un autre héros ; on n’en sort que par le pli', () => {
     seedBattleRng(1);
-    const [a, b] = makePregens(idsDeTest).slice(0, 2) as [Combatant, Combatant];
+    const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as [Combatant, Combatant];
     banc.setState({ party: [a, b] });
     for (const h of [a, b]) creditBourse(get, banc.setState, h.id, { gold: 0, silver: 0, brass: 3000 });
-    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'hero', id: b.id }, stakeBrass: 10, tablePlayers: 3 });
+    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'heros', id: b.id }, stakeBrass: 10, tablePlayers: 3 });
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
     const fermeEntreDeuxManches = (quoi: string) => {
       expect(sequenceAbandonEtatOf(get)?.refus, `${quoi} : fermé`).toBe('Abandon possible entre deux manches.');
@@ -358,12 +358,12 @@ describe('Al-zahr — la partie au store', () => {
   });
 
   it('D1 — manche impossible à ouvrir : AUCUNE mise n’est prise (quorum avant débit)', async () => {
-    const [a, b] = makePregens(idsDeTest) as Combatant[];
+    const [a, b] = tousLesHerosDeScenario(idsDeTest) as Combatant[];
     banc.setState({ party: [a, b] });
     creditBourse(get, banc.setState, a.id, { gold: 0, silver: 0, brass: 5000 });
     const avant = toBrass(bourseOf(get().party[0]));
     // Le vis-à-vis est un COMPAGNON sans le sou : la table ne peut pas s'ouvrir à deux.
-    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'hero', id: b.id }, stakeBrass: 100, tablePlayers: 2 });
+    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'heros', id: b.id }, stakeBrass: 100, tablePlayers: 2 });
     const { journal } = await drain();
     expect(toBrass(bourseOf(get().party[0])), 'la mise du solvable n’est pas partie en fumée').toBe(avant);
     expect(get().tavernGames!.result!.netBrass).toBe(0);

@@ -23,7 +23,7 @@ describe('Effet castSpell (#98)', () => {
       banc.setState({ party: [wiz, ally] });
       banc.getState().lancerLaScene(testScene());
       banc.getState().lancerLeCombat('enc-mutants');
-      banc.getState().fenetreValider('roundStart');
+      banc.getState().fenetreValider('debutDuRound');
       const b = banc.getState().battle!;
       const W = b.combatants.find((c) => c.kind === 'hero' && c.label === 'W')!;
       const A = b.combatants.find((c) => c.kind === 'hero' && c.label === 'A')!;
@@ -59,7 +59,7 @@ describe('Effet castSpell (#98)', () => {
       const pc = banc.getState().pendingCast;
       expect(pc).not.toBeNull();
       expect(pc!.casterId).toBe(E.id);
-      expect(pc!.result).not.toBeNull(); // IA : `jetLancer('cast')` auto-roulé (même branche que `castSpell` direct, combatFlow)
+      expect(pc!.result).not.toBeNull(); // IA : `jetLancer('incantation')` auto-roulé (même branche que `castSpell` direct, combatFlow)
     });
 
     it('mode "forceSuccess" EN COMBAT : applique les effets du sort SANS jet, aucun `pendingCast` ouvert', () => {

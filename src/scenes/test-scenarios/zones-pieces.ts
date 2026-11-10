@@ -1,4 +1,4 @@
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrineDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import type { WallSpec } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
@@ -82,5 +82,5 @@ export const scenario: TestScenario = {
     "(murs d'arête + portes) sous un toit unique — révélation en cutaway (toit levé dès qu'un allié entre " +
     "dans l'empreinte), un nom par pièce, jamais au survol.",
   partyNote: 'Groupe vitrine (Soldat / Tueur / Sorcier / Chasseur) — promenade libre, aucun combat.',
-  construire: (idNeuf) => ({ party: makeShowcaseParty(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: groupeVitrineDeScenario(idNeuf), scene: construireScene() }),
 };

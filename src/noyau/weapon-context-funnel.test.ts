@@ -8,7 +8,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 
 // Funnel UNIQUE des règles d'arme contextuelles (LDB 62) : `firedWeapon` lie attaquant ⊕ arme ⊕ contexte.
 // La MÊME arme transformée sert la touche/les Dégâts (resolveAttack) ET la Maladresse sur un RATÉ
-// (jetValider('attack')/IA re-dérivent via firedWeapon → attackerFumbled/dangerousNine voient la Dangereuse).
+// (jetValider('attaque')/IA re-dérivent via firedWeapon → attackerFumbled/dangerousNine voient la Dangereuse).
 
 const CHARS = { 'capacite-de-combat': 50, 'capacite-de-tir': 35, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const fleau: Weapon = { label: 'Fléau', type: 'melee', subType: 'fleau', reach: 'Moyenne', uid: 'fl', damage: { plusBF: true, flat: 5 }, qualities: [{ id: 'perturbante' }] };
@@ -23,7 +23,7 @@ const mk = (p: Partial<Combatant>): Combatant => (blessuresSurLeProfil({
 }) as unknown as Combatant);
 const target = mk({ id: 't', kind: 'enemy', pos: { x: 1, y: 0 } });
 const fingers = (loc: 'brasG' | 'brasD', count: number): Trauma => ({ uid: 't1', label: '', traumaId: 'doigt-ampute', location: loc, count });
-// Arme à 1 main tenue à DROITE par défaut (hand indéfini ≠ 'off') → n'implique QUE brasD (weaponUsesHand, LDB 18).
+// Arme à 1 main tenue à DROITE par défaut (hand indéfini ≠ 'secondaire') → n'implique QUE brasD (weaponUsesHand, LDB 18).
 const weaponRight: Weapon = { label: 'Dague', type: 'melee', hands: 1, qualities: [], damage: { plusBF: true, flat: 3 } };
 
 describe('firedWeapon — règles d’arme contextuelles repliées sur le profil (LDB 62)', () => {

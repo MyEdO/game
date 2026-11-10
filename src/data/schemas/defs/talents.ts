@@ -78,7 +78,6 @@ const doc = document(
     specsOpen: z.boolean().optional(),
     /** LDB 10 l.506, l.548 */
     confereTrait: ref('trait').optional(),
-    rand: z.number().nullable(),
     effects: z.array(triggeredEffectSchema).optional(),
     /** Désignateur : `careerSkillAdditions` (`engine/talentEffects.ts`), la spec du Talent porteur. */
     passive: passifsDe(mecaniqueDe({ 'grantCareerSkill.skill': 'specOuChoixFacultatifs' }).gameOp).optional(),
@@ -100,7 +99,6 @@ const doc = document(
     grantsArcaneDomain: { label: 'Ouvre un Domaine arcanique' },
     specsOpen: { label: 'Spécialisation ouverte' },
     confereTrait: { label: 'Trait conféré', hint: 'Trait de créature que le Talent confère, sa spécialisation en argument' },
-    rand: { label: 'Seuil aléatoire (d100)' },
     effects: { label: 'Effets déclenchés' },
     passive: { label: 'Effets passifs' },
     combat: {

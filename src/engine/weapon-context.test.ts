@@ -241,7 +241,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
   const batarde = (c: Combatant) => c.weapons.find((w) => w.trappingId === 'epee-batarde')!;
   const tenirLeBouclier = (c: Combatant) => {
     const lo = activeLoadout(c)!;
-    loadoutSetSlot(c, lo.id, 'off', c.items!.find((i) => i.trappingId === 'bouclier')!.uid);
+    loadoutSetSlot(c, lo.id, 'secondaire', c.items!.find((i) => i.trappingId === 'bouclier')!.uid);
     recomputeLoadout(c);
   };
 
@@ -251,7 +251,7 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
     expect(setADeuxMains(c, activeLoadout(c)!)).toBe(false);
     tenirLeBouclier(c);
     expect(batarde(c).hands).toBe(1);
-    expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
+    expect(c.weapons.some((w) => w.hand === 'secondaire' && w.trappingId === 'bouclier')).toBe(true);
     expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
     expect(combatValue(c, 'melee', batarde(c))).toBe(65);
     expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice', 'epuisante', 'lente']);
@@ -274,17 +274,17 @@ describe('Épée bâtarde à une main avec Corps à Corps (Base) : Épuisante et
   it('la seule Spé de Base : à une main, et le set par défaut lui donne le bouclier', () => {
     const c = porteur([cac('base', 10)]);
     expect(batarde(c).hands).toBe(1);
-    expect(c.weapons.some((w) => w.hand === 'off' && w.trappingId === 'bouclier')).toBe(true);
+    expect(c.weapons.some((w) => w.hand === 'secondaire' && w.trappingId === 'bouclier')).toBe(true);
     expect(attackTestOf(c, batarde(c), 'melee')).toEqual({ skill: { id: 'corps-a-corps', spec: 'base' } });
   });
 
   it('sans Corps à Corps (Base) : deux mains, la main secondaire est refusée', () => {
     const c = porteur([cac('deux-mains', 10)]);
     expect(setADeuxMains(c, activeLoadout(c)!)).toBe(true);
-    activeLoadout(c)!.off = c.items!.find((i) => i.trappingId === 'bouclier')!.uid;
+    activeLoadout(c)!.secondaire = c.items!.find((i) => i.trappingId === 'bouclier')!.uid;
     recomputeLoadout(c);
     expect(batarde(c).hands).toBe(2);
-    expect(c.weapons.some((w) => w.hand === 'off')).toBe(false);
+    expect(c.weapons.some((w) => w.hand === 'secondaire')).toBe(false);
     expect(qualitesManiees(c, batarde(c))).toEqual(['defensive', 'devastatrice']);
   });
 

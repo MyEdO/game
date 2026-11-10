@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { zdeDiameterMeters, zdeRadiusTiles, spellRangeTiles } from '../engine/magic';
 import { findSpellById } from '../data';
@@ -18,7 +18,7 @@ import { jouerLeClicDeCase } from './combatOrParty';
 let banc: Banc;
 
 function wiz() {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   const sk = w.skills.find((s) => s.id === 'langue');
   if (sk) sk.advances = Math.max(sk.advances, 10);
   w.spells = ['explosion', ...(w.spells ?? [])]; // Explosion : Projectile magique ZdE (LDB 47 l.453)
@@ -58,7 +58,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     const e3 = spawnEnemy({ ref: 'humain' }, 'e3', { x: 12, y: 12 }); // hors zone
     const battle = {
       combatants: [w, e1, e2, e3], order: [w.id, 'e1', 'e2', 'e3'], baseOrder: [w.id, 'e1', 'e2', 'e3'],
-      turn: 0, round: 1, action: 'cast', selectedSpellId: 'explosion', reachable: new Map(),
+      turn: 0, round: 1, action: 'incantation', selectedSpellId: 'explosion', reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as never;
     const scene = { id: 's', dimensions: { w: 20, h: 20 }, layers: [{ z: 0, tiles: [] }], entities: [], dialogues: [], triggers: [], encounters: [] } as never;
@@ -76,7 +76,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     expect(pc.zone).toMatchObject({ center: null, radius: 1 });
     expect(pc.targetId).toBe(w.id); // ancre lanceur — aucun effet ne lui est appliqué
     banc.setState({ pendingCast: { ...pc, result: okCast(4) as never } });
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 6, y: 6 }); // pose → application immédiate
     expect(banc.getState().pendingCast).toBeNull();
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
@@ -93,11 +93,11 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     banc.getState().cliquerLaCase({ x: 9, y: 9 });
     let pc = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc, result: okCast(ni + 2) as never } }); // surplus 2 → 1 allocation
-    banc.getState().jetRegler('cast', 'surincantationZone', 1);
+    banc.getState().jetRegler('incantation', 'surincantationZone', 1);
     pc = banc.getState().pendingCast!;
     expect(pc.overcast?.zone).toBe(1);
     expect(pc.zone!.radius).toBe(2); // r0m 2 m → ×2 = 4 m → 2 cases
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 10, y: 10 }); // e3 (12,12) à 2 cases du centre
     const hp = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.wounds;
     expect(hp('e3').current).toBeLessThan(hp('e3').max);
@@ -111,7 +111,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     banc.getState().cliquerLaCase({ x: 9, y: 9 });
     const pc = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc, result: okCast(4) as never } });
-    banc.getState().jetRegler('cast', 'carte', 'zone');
+    banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 12, y: 12 }); // 10 cases > 4 → refus
     expect(banc.getState().journal.join('\n')).toMatch(/hors de portée/);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // toujours en pose
@@ -128,7 +128,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     w.characteristics['force-mentale'] = 20; // portée du sort = FM mètres → 10 cases
     e3.pos = { x: 19, y: 19 }; // 17 cases depuis (2,2) : au-delà de la portée
     const mode = currentTargetingMode(banc.getState);
-    expect(mode.id).toBe('cast');
+    expect(mode.id).toBe('incantation');
     expect(mode.affordance!(banc.getState, w, e3), 'invalide = le survol n’affiche rien').toMatchObject({ kind: 'invalid' });
     expect(jouerLeClicDeCase(banc.getState, e3.pos!, true), 'le clic de la cible se joue').toBe(true);
     expect(banc.getState().pendingCast, 'une zone ne s’ouvre PAS sur une cible hors d’atteinte').toBeNull();

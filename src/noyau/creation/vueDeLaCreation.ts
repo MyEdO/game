@@ -204,7 +204,7 @@ function compteur(d: CreatorDraft, c: Compteur, id: string, libelle: string): Ru
     option(String(v), geste('compteur', c, v), v === courante, v > max && v > courante ? t('crea.vue.rienAREpartir') : null)));
 }
 
-const METHODES: readonly CharMode[] = ['rolled', 'reassigned', 'pointBuy'];
+const METHODES: readonly CharMode[] = ['tire', 'reassigne', 'repartition'];
 
 /** 3) Les Caractéristiques (LDB 05 l.319-464) : la méthode, les dix 2d10 tirés puis relancés, chaque Caractéristique
  *  (tirée, réassignée à un jet, ou achetée), les 5 Augmentations de carrière, Destin et Résilience. */
@@ -212,8 +212,8 @@ function pageDesCaracteristiques(d: CreatorDraft): RubriqueDeCreation[] {
   const valeurs = draftChars(d);
   const jets = charRolls(d);
   const carac = (k: CharKey): RubriqueDeCreation => {
-    if (d.charMode === 'pointBuy') return compteur(d, { genre: 'points', k }, `carac/${k}`, charAbr(k));
-    if (d.charMode === 'reassigned' && d.charsRolled) return choix(`carac/${k}`, charAbr(k), jets.map((j, i) => option(String(j), geste('assigner', k, i), d.assignment[k] === i)));
+    if (d.charMode === 'repartition') return compteur(d, { genre: 'points', k }, `carac/${k}`, charAbr(k));
+    if (d.charMode === 'reassigne' && d.charsRolled) return choix(`carac/${k}`, charAbr(k), jets.map((j, i) => option(String(j), geste('assigner', k, i), d.assignment[k] === i)));
     return valeur(`carac/${k}`, charAbr(k), d.charsRolled ? String(valeurs[k]) : null, CHAR_LABELS[k]);
   };
   return [
@@ -221,7 +221,7 @@ function pageDesCaracteristiques(d: CreatorDraft): RubriqueDeCreation[] {
       const gain = charsXpDeLaMethode(d, m);
       return option(gain ? t('crea.vue.methodeEtPx', { methode: t(`crea.vue.methode.${m}`), px: gain }) : t(`crea.vue.methode.${m}`), geste('methode', m), d.charMode === m);
     })),
-    ...(d.charMode === 'pointBuy' ? []
+    ...(d.charMode === 'repartition' ? []
       : [d.charsRolled ? gesteDe('tirage', t('crea.vue.relancerCaracteristiques'), geste('relancerLesCaracteristiques')) : gesteDe('tirage', t('crea.vue.tirerCaracteristiques'), geste('tirerLesCaracteristiques'))]),
     ...CHAR_KEYS.map(carac),
     ...careerCharKeys(d).map((k) => compteur(d, { genre: 'augmentation', k }, `augmentation/${k}`, t('crea.vue.augmentation', { carac: charAbr(k) }))),

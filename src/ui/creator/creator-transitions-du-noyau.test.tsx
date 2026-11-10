@@ -46,7 +46,7 @@ afterEach(() => {
 
 describe('Caractéristiques réassignées', () => {
   it('donner le 4ᵉ jet à la Capacité de Combat rend le 1ᵉʳ à l’Endurance', () => {
-    monter(CharScreen, rollDraftChars(withCharMode(pret(), 'reassigned')));
+    monter(CharScreen, rollDraftChars(withCharMode(pret(), 'reassigne')));
     const selects = () => Array.from(container.querySelectorAll('select'));
     act(() => {
       const cc = selects()[0];

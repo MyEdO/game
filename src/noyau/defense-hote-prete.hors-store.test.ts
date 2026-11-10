@@ -29,11 +29,11 @@ function setup(seed: number) {
   g().lancerLaScene(built.scene);
   g().lancerLeCombat('enc-entrainement', undefined, { noSurprise: true });
   for (let i = 0; i < 20 && (g().pendingRoundStart || g().pendingCascade); i++) {
-    if (g().pendingRoundStart) g().fenetreValider('roundStart'); else avanceEtapeCascade(g);
+    if (g().pendingRoundStart) g().fenetreValider('debutDuRound'); else avanceEtapeCascade(g);
   }
   const b = g().battle!;
   const tireur = b.combatants.find((c) => c.id === 'tr-tireur')!;
-  const autre = b.combatants.find((c) => c.id === 'pregen-101')!;
+  const autre = b.combatants.find((c) => c.id === 'soldat-de-test')!;
   let far = 0;
   for (const c of b.combatants) if (c !== tireur && c !== autre) { c.pos = { x: 12 + (far % 12), y: 2 * Math.floor(far / 12) }; far++; }
   tireur.pos = { x: 3, y: 8 }; autre.pos = { x: 3, y: 10 };

@@ -106,7 +106,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
   it('interposition du chemin PILOTÉ (`openSurfacedDefense`) : étape hôte + pending cohérents', () => {
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
     openAttackCascade(banc.getState, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
     banc.setState({ pendingCascade: null } as never); // la fenêtre d'attaque se ferme, la défense s'interpose
     expect(openSurfacedDefense(banc.getState, banc.setState, enemy, hero, sword, pa)).toBe(true);
@@ -120,7 +120,7 @@ describe('#1262 lot 5a — ATTAQUE : l’étape hôte suit son `pendingAttack`',
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
     openAttackCascade(banc.getState, banc.setState, { attackerId: hero.id, targetId: enemy.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
     expect(banc.getState().pendingAttack).not.toBeNull();
-    const st = etape('attack')!;
+    const st = etape('attaque')!;
     expect(st.id).toBe('attack-jet-0'); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
     expect(st.kind).toBe('attackJet');
     expect(st.actorId).toBe(hero.id);
@@ -141,7 +141,7 @@ describe('#1262 lot 5a — DÉSENGAGEMENT : le menu est hôté sur `pendingDisen
     enemy.engagedWith = [hero.id];
     startDisengage(banc.getState, banc.setState, hero);
     expect(banc.getState().pendingDisengage!.moverId).toBe(hero.id);
-    const st = etape('disengage')!;
+    const st = etape('desengagement')!;
     expect(st.id).toBe('disengage');
     expect(st.kind).toBe('disengageStep');
     expect(st.actorId).toBe(hero.id);
@@ -158,7 +158,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     const { hero, enemy } = setup({ x: 1, y: 0 }, [sword]);
     poseCast(hero.id, enemy.id);
     openCastCascade(banc.getState, banc.setState, hero);
-    const st = etape('cast')!;
+    const st = etape('incantation')!;
     expect(st.id).toBe(`cast-${hero.id}-0`); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
     expect(st.kind).toBe('cast');
     expect(st.groupOwner).toBeUndefined();
@@ -169,7 +169,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     const { enemy, hero } = setup({ x: 1, y: 0 }, [sword]);
     poseCast(enemy.id, hero.id);
     openCastCascade(banc.getState, banc.setState, enemy);
-    expect(etape('cast')!.groupOwner, 'posé par le mint, jamais à la main au call-site').toBe(true);
+    expect(etape('incantation')!.groupOwner, 'posé par le mint, jamais à la main au call-site').toBe(true);
     expect(modalOwnerOf(banc.getState())).toBe('*');
   });
 
@@ -195,13 +195,13 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     const { wiz, cible } = deuxHeros();
     banc.setState({ pendingCast: { casterId: wiz.id, targetId: cible.id, spellId: 'fauche-demon', missile: false, focused: false, result: null } } as never);
     openCastCascade(banc.getState, banc.setState, wiz);
-    // `jetLancer('cast')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
+    // `jetLancer('incantation')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
     // est donc celui d'un jet DÉJÀ lancé, pas celui d'une cascade fraîche.
     const pc0 = banc.getState().pendingCast!;
     banc.setState({ pendingCast: { ...pc0, result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' } } } as never);
-    const avant = { ...etape('cast')! };
+    const avant = { ...etape('incantation')! };
     expect(openCastOpposition(banc.getState, banc.setState, banc.getState().pendingCast!, [cible])).toBe(true);
-    const apres = etape('cast')!;
+    const apres = etape('incantation')!;
     expect(Object.keys(avant).filter((k) => !(k in apres)), 'aucun champ de l’étape réelle n’est perdu au remint').toEqual([]);
     expect({ ...apres, groupOwner: undefined }, 'seule la possession change').toEqual({ ...avant, groupOwner: undefined });
     expect(apres.groupOwner).toBe(true);
@@ -218,7 +218,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     banc.setState({ pendingCascade: { ...p, participants: p.participants.map((s, i) => (i === 0
       ? { ...s, result: { roll: 12, target: 60, sl: 4, success: true }, outcome: [{ text: 'déjà affiché' }], fixed: true } : s)) } } as never);
     shareCastStep(banc.getState, banc.setState, [wiz.id, cible.id], wiz.id);
-    const apres = etape('cast')! as unknown as Record<string, unknown>;
+    const apres = etape('incantation')! as unknown as Record<string, unknown>;
     expect(apres.groupOwner).toBe(true);
     expect(apres.result, 'un jet n’est jamais scellé sur l’étape hôte (il vit dans le pending)').toBeUndefined();
     expect(apres.outcome).toBeUndefined();
@@ -232,7 +232,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     openCastCascade(banc.getState, banc.setState, hero);
     banc.setState({ pendingCast: null } as never); // la donnée a disparu : plus rien à partager
     expect(() => shareCastStep(banc.getState, banc.setState, [hero.id, enemy.id], hero.id)).toThrow(/pendingCast/);
-    expect(etape('cast')!.groupOwner, 'l’étape n’a PAS été mutée par un chemin de secours').toBeUndefined();
+    expect(etape('incantation')!.groupOwner, 'l’étape n’a PAS été mutée par un chemin de secours').toBeUndefined();
   });
 });
 
@@ -264,7 +264,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
       mode: 'melee', attackerId: enemy.id, targetId: hero.id, weapon: sword, res,
       crit, decides: [], reveal: previewCritEntry(hero, crit, 'coup-critique', { attackerId: enemy.id, weapon: sword.label }), resumeAfter: false,
     }, true);
-    const st = etape('fumble');
+    const st = etape('maladresse');
     expect(st, 'la Maladresse du défenseur est une étape de la séquence').toBeTruthy();
     expect(st!.kind).toBe('fumbleJet');
     expect(st!.actorId).toBe(hero.id);

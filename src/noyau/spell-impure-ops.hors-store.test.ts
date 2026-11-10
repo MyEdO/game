@@ -12,7 +12,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
-import { pregen, pregenParty, PREGEN } from '../data/pregens';
+import { herosDeScenario, groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { findCreatureById, findSpellById } from '../data';
 import { spellEffectOps } from '../engine/flowCore';
 import { effectiveChar } from '../engine/characteristics';
@@ -57,7 +57,7 @@ describe('effets « lourds » présents dans le Flow éditable (données app-own
 
 describe('résolution au lancement depuis le Flow', () => {
   it('Forme bestiale : la métamorphose (op polymorph) remplace les Caractéristiques du lanceur', () => {
-    const w = pregen(idsDeTest, PREGEN.sorcier);
+    const w = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [w] as Combatant[] });
     const ours = findCreatureById('ours')!;
     expect(typeof ours.char.force).toBe('number');
@@ -69,7 +69,7 @@ describe('résolution au lancement depuis le Flow', () => {
   });
 
   it('Vol de vie : l’op lifeSteal (on:caster) draine une fraction des Blessures infligées', () => {
-    const [w, cible] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
+    const [w, cible] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
     w.wounds.current = w.wounds.max - 5;
     cible.wounds.current = cible.wounds.max; // ≥ 3 PB encaissables
     banc.setState({ party: [w, cible] as Combatant[] });

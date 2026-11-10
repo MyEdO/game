@@ -4,7 +4,7 @@
  * qu'une entité de scène déclare (`armesDEntite`, l'éditeur), son emblème (`emblemeDe`) et la forme qu'une arme donne à
  * lire (`armeDeDessin`), keyés par ids stables.
  */
-import type { Combatant, Weapon } from '../engine/types';
+import type { Combatant, Weapon, Main } from '../engine/types';
 import { apparencesCandidates, apparencesObjetsDe, deciderApparencesDesArmes, isWeaponActive, objetDeSlot, objetsDeLInventaire, peutEtreTenu, weaponFromItem, weaponHands, type ContexteDeManiement, type TrappingResolver, isShieldItem } from '../engine/items';
 import { renderWeaponsFromTraits, traitsDevantLEquipement } from '../engine/creatureEquip';
 import type { TraitInstance } from '../engine/statEntry';
@@ -22,7 +22,7 @@ const CLES_ARME = ['attackKind', 'hands', 'natural', 'teinte', 'subType', 'type'
 export type FormeDArme = Pick<Weapon, (typeof CLES_ARME)[number]> & { candidats: readonly string[] };
 /** `hands` : mains qu'occupe l'arme pour SON porteur (`weaponHands`, monté ou non). */
 type ObjetDArme = FormeDArme & { bouclier: boolean; hands: 1 | 2 };
-type ArmeDeDessin = ObjetDArme & { hand: 'main' | 'off' };
+type ArmeDeDessin = ObjetDArme & { hand: Main };
 
 /** Copie DÉTACHÉE des seules clés listées : aucune référence vivante ne survit à la projection. */
 function projeter<T extends object, K extends keyof T>(src: T, cles: readonly K[]): Pick<T, K> {
@@ -37,18 +37,16 @@ export function armeDeDessin(w: Weapon, maniement: ContexteDeManiement = {}): Ar
   return { ...projeter(w, CLES_ARME), hands: weaponHands(w, maniement), candidats: apparencesCandidates(w), bouclier: isShieldItem(w), hand };
 }
 
-type Main = 'main' | 'off';
-
 /** Les armes tenues, chacune à sa main, et le surplus, chacun dans l'ordre relatif de `weapons` : la seule attribution
  *  des mains. Les mains explicites passent d'abord ; une arme naturelle ne réserve aucune main. */
 function mainsDesArmes(weapons: readonly Weapon[], maniement: ContexteDeManiement): { tenues: { arme: Weapon; hand: Main }[]; surplus: Weapon[] } {
-  const libres = new Set<Main>(['main', 'off']);
+  const libres = new Set<Main>(['main', 'secondaire']);
   const tenues: { position: number; arme: Weapon; hand: Main }[] = [];
   const surplus: { position: number; arme: Weapon }[] = [];
   const priorites = weapons.map((w, position) => ({ w, position })).sort((a, b) => Number(a.w.hand === undefined) - Number(b.w.hand === undefined));
   for (const { w, position } of priorites) {
     const hands = weaponHands(w, maniement);
-    const hand = w.hand ?? (isShieldItem(w) ? 'off' : w.natural || libres.has('main') ? 'main' : 'off');
+    const hand = w.hand ?? (isShieldItem(w) ? 'secondaire' : w.natural || libres.has('main') ? 'main' : 'secondaire');
     if (w.natural) { tenues.push({ position, arme: w, hand }); continue; }
     if (!libres.has(hand) || (hands === 2 && libres.size !== 2)) { surplus.push({ position, arme: w }); continue; }
     tenues.push({ position, arme: w, hand });
@@ -64,10 +62,10 @@ export function emblemeDe(override: Pick<EntityAppearance, 'embleme'> | undefine
   return emblemeDuPorteur(override?.embleme ?? findCreatureById(creatureId)?.appearance?.embleme);
 }
 
-/** Armes RANGÉES d'un combattant : les objets des slots `main`/`off` de TOUS ses sets (`objetDeSlot`), sauf
+/** Armes RANGÉES d'un combattant : les objets des slots `main`/`secondaire` de TOUS ses sets (`objetDeSlot`), sauf
  *  ceux qu'il tient (`isWeaponActive`). Un objet porté au fourreau n'est pas manié : aucun veto de maniement. */
 function armesRangees(c: Combatant, maniement: ContexteDeManiement): Weapon[] {
-  const uids = new Set((c.loadouts ?? []).flatMap((lo) => [lo.main, lo.off]));
+  const uids = new Set((c.loadouts ?? []).flatMap((lo) => [lo.main, lo.secondaire]));
   return [...uids].filter((uid) => !isWeaponActive(c, uid)).flatMap((uid) => {
     const it = objetDeSlot(c, uid);
     return it ? [weaponFromItem(it, undefined, maniement)] : [];

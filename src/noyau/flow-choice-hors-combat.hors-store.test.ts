@@ -6,7 +6,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { draineEtapes } from './cascade.testkit';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { spells } from '../data';
 import { walkFlow } from '../engine/flowCore';
 import { runCombatFlow } from './combat/triggeredTest';
@@ -26,13 +26,13 @@ describe('choix d’un Sort lancé hors combat', () => {
 
   for (const sort of sortsAChoixDirect) {
     it(`${sort.id} : le lanceur tranche, chaque étape une seule fois`, () => {
-      const [w, s] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
+      const [w, s] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
       const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
       banc.getState().incanterLeSort(w.id, sort.id, s.id);
-      banc.getState().jetLancer('cast');
+      banc.getState().jetLancer('incantation');
       const pc = banc.getState().pendingCast!;
       banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: 10, isCritical: false, isFumble: false } } });
-      banc.getState().jetValider('cast');
+      banc.getState().jetValider('incantation');
       const vues = draineEtapes(banc.getState, 30);
       expect(banc.getState().pendingCascade, 'la cascade se clôt').toBeNull();
       const choix = vues.filter((v) => v.kind === 'triggeredChoice');
@@ -51,7 +51,7 @@ describe('choix à coût d’Avantage hors combat (LDB 14 l.219)', () => {
   ] };
 
   it('n’est pas offert : la branche « non » puis la suite se jouent', () => {
-    const banc = ouvrirLeBanc({ graine: 7, etat: { party: pregenParty(idsDeTest, PREGEN.soldat) } });
+    const banc = ouvrirLeBanc({ graine: 7, etat: { party: groupeDeScenario(idsDeTest, 'soldat') } });
     const H = banc.getState().party[0];
     const avantages = H.advantage;
     runCombatFlow({ get: banc.getState, set: banc.setState, target: H, caster: H, label: 'Fixture' }, flux);

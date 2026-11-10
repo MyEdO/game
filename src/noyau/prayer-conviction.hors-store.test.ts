@@ -5,7 +5,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
@@ -13,7 +13,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function priest(): Combatant {
-  const p = pregen(idsDeTest, PREGEN.pretre);
+  const p = herosDeScenario(idsDeTest, 'pretre');
   const sk = p.skills.find((s) => s.id === 'priere');
   if (sk) sk.advances = Math.max(sk.advances, 5);
   else p.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 } as never);
@@ -26,8 +26,8 @@ function castTarget(discreet: boolean): number {
   banc.setState({ battle: null, party: [p], journal: [], pendingCast: null, pendingCascade: null, gameTime: 8 * 60 });
   banc.getState().ensemencerLeTirage(5);
   banc.getState().incanterLeSort(p.id, 'benediction-de-guerison', p.id);
-  if (discreet) banc.getState().jetRegler('cast', 'discret', true);
-  banc.getState().jetLancer('cast');
+  if (discreet) banc.getState().jetRegler('incantation', 'discret', true);
+  banc.getState().jetLancer('incantation');
   return banc.getState().pendingCast!.result!.target;
 }
 

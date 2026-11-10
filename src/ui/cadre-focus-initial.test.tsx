@@ -217,11 +217,11 @@ describe('infirmerie réelle (`MedicModal`) — le focus d’un cadre n’ouvre 
 
   it('soin lancé puis validé : le brouillon renaît sur l’acte suivant, le focus sur l’option retenue « Guérison », sans bulle', async () => {
     act(() => root.render(<MedicModal />));
-    expect(useGame.getState().pendingHeal?.mode, 'le brouillon : les Blessures').toBe('wounds');
-    act(() => useGame.getState().jetLancer('heal')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
+    expect(useGame.getState().pendingHeal?.mode, 'le brouillon : les Blessures').toBe('blessures');
+    act(() => useGame.getState().jetLancer('soins')); // le « Lancer » de la coquille joue ce verbe après son frisson (`useRollFrisson`)
     expect(useGame.getState().pendingHeal?.roll, 'le soin est lancé').not.toBeNull();
     act(() => bouton('Appliquer').click());
-    expect(useGame.getState().pendingHeal, 'le brouillon renaît sur l’Hémorragie').toMatchObject({ mode: 'bleed', roll: null });
+    expect(useGame.getState().pendingHeal, 'le brouillon renaît sur l’Hémorragie').toMatchObject({ mode: 'hemorragie', roll: null });
     await act(async () => { await tacheSuivante(); }); // le sauvetage du cadre se lit à la tâche suivante
     expect(document.activeElement, 'le sauvetage (#2533) pose le focus sur l’option retenue du groupe révélé : le Test « Guérison »').toBe(bouton('Guérison'));
     expect(bouton('Guérison').getAttribute('aria-pressed'), 'l’option retenue').toBe('true');

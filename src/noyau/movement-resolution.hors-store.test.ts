@@ -15,7 +15,7 @@ function setup() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   const battle = banc.getState().battle!;
   const active = battle.combatants.find((combatant) => combatant.kind === 'hero')!;
   active.pos = { x: 6, y: 10 };
@@ -84,12 +84,12 @@ describe('résolution canonique du déplacement', () => {
     const active = setup();
     const dest = { x: active.pos!.x + effectiveMovement(active) + 2, y: active.pos!.y };
     // Course ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : sans elle, le clic au-delà de la Marche refuse.
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
     const preview = banc.getState().battle!.preview;
     expect(preview?.kind).toBe('run');
     if (!preview || preview.kind !== 'run') throw new Error('aperçu de Course absent');
 
-    banc.getState().cliquerLaCase(dest, undefined, { courseArmee: true });
+    banc.getState().cliquerLaCase(dest, undefined, { intentionId: 'course' });
 
     expect(banc.getState().pendingRun?.path).toBe(preview.path);
     expect(banc.getState().pendingRun?.cost).toBe(preview.cost);

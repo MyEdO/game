@@ -131,7 +131,7 @@ describe('en combat', () => {
 
   it('l’arme qu’un Coup Critique fait lâcher tombe au sol, à la case de son porteur', () => {
     const actif = bataille();
-    const tenue = objetSourceDeLArme(actif, actif.weapons.find((w) => estUneVraieArme(w) && w.derivedFromItem == null && (w.hands === 2 || w.hand !== 'off'))!)!;
+    const tenue = objetSourceDeLArme(actif, actif.weapons.find((w) => estUneVraieArme(w) && w.derivedFromItem == null && (w.hands === 2 || w.hand !== 'secondaire'))!)!;
     const crit = resolveCritique('ldb', combattant(), 'brasD', desDuTest, { forcedRoll: 5 });
     expect(crit.ops, 'Choc au bras : il lâche ce qu’il tient').toContainEqual({ op: 'disarm' });
     applyCriticalToTarget(combattant(), 'brasD', 0, [], banc.setState, { prerolled: crit, get: banc.getState });

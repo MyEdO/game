@@ -18,7 +18,7 @@ import { controlsCombatant } from '../../noyau/netOwnership';
 import { resolveMovement } from '../../noyau/combatFlow';
 import { hoverTargeting, tilePreviewAt } from '../../noyau/targeting';
 import type { DifficultyShown } from '../../engine/combat';
-import { courseArmee } from '../../noyau/localIntent';
+import { courseArmee, intentionLocale } from '../../noyau/localIntent';
 import { modalBlocksMapHover } from '../../state/mapHover';
 import { detenteurDuCiblage, mapTargetingActive } from '../../noyau/targetingHolder';
 import type { RoomPortal } from '../../noyau/monde/roomPortals';
@@ -64,8 +64,8 @@ export function useHoverTargeting(
   const pendingCleave = useGame((s) => s.pendingCleave);
   const pendingDualStrike = useGame((s) => s.pendingDualStrike);
   const preemptAiming = useGame((s) => s.preemptAiming);
-  // Intention de Course du client (`localIntent`) : le verdict d'armement que le clic-sol joindra.
-  const intentionDeCourse = useGame((s) => courseArmee(() => s));
+  // Intention de Course du client (`localIntent`), celle que le clic-sol commettra.
+  const intentionDeCourse = useGame((s) => courseArmee(intentionLocale(() => s)));
 
   // Signaux de survol EFFECTIFS : le curseur clavier/manette PRIME sur la souris locale (hover) ET sur
   // le survol de frise — la souris reprend la main dès qu'elle bouge (onPointerMove → clearCursor()).

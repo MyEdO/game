@@ -64,7 +64,7 @@ EMPLACEMENTS = {
 cherche la peau en venant de l'extérieur, dans le repère Blender (+X gauche, −Y avant, +Z haut) ; sans direction,
 l'emplacement est sur l'axe de l'os."""
 
-POING = {'main': ('r', 'Sword_Idle', 8), 'off': ('l', 'Idle_Shield_Loop', 44)}
+POING = {'main': ('r', 'Sword_Idle', 8), 'secondaire': ('l', 'Idle_Shield_Loop', 44)}
 """Par prise : le côté de la main, le clip et l'image où le poing fermé tient sa poignée."""
 DOIGTS_DU_POING = ('index', 'middle', 'ring', 'pinky')
 
@@ -208,7 +208,7 @@ def cercle(points, axe):
 
 
 def reperes_des_prises(rig):
-    """Par prise `main` et `off`, son os et son repère dans le repère de cet os : le creux du poing fermé de son clip
+    """Par prise `main` et `secondaire`, son os et son repère dans le repère de cet os : le creux du poing fermé de son clip
     (`POING`) ; l'action du rig reste celle du dernier poing."""
     reperes, scene = {}, bpy.context.scene
     image = scene.frame_current
@@ -238,7 +238,7 @@ def reperes_des_prises(rig):
 
 
 def poser_prises(rig):
-    """Les attaches des prises `main` et `off` (`reperes_des_prises`)."""
+    """Les attaches des prises `main` et `secondaire` (`reperes_des_prises`)."""
     return {prise: {'os': os, **attache(Matrix.Identity(4), local)} for prise, (os, local) in reperes_des_prises(rig).items()}
 
 

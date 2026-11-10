@@ -13,7 +13,7 @@ export function acheterAuMarche(
   get: () => Jeu, fenetre: FenetreDuMarche, porteur: string, offre: string, enc: number,
   jouer: (args: ArgumentsDuChoix) => void = (args) => get().fenetreChoisir(...args),
 ): string | null {
-  const choix: ArgumentsDuChoix[] = [[fenetre, 'offre', offre], [fenetre, 'porteur', porteur], [fenetre, 'enc', enc], [fenetre, 'acheter', true]];
+  const choix: ArgumentsDuChoix[] = [[fenetre, 'offre', offre], [fenetre, 'porteur', porteur], [fenetre, 'encombrement', enc], [fenetre, 'acheter', true]];
   for (const args of choix) {
     const refus = refusDuChoix(get(), args[0], args[1], args[2]);
     jouer(args);

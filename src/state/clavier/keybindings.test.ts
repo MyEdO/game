@@ -28,10 +28,10 @@ const fake = (over: Partial<GameState> = {}): GameState =>
 /** Cascade d'incantation dont l'étape courante DÉSIGNE ses cibles sur la carte (`pickingTargets`). */
 const cartePilote = (over: Partial<GameState> = {}) =>
   fake({
-    // Étape `jet:'cast'` RÉELLE : c'est elle que l'arbitre EFFACE pendant la désignation (entrée
+    // Étape `jet:'incantation'` RÉELLE : c'est elle que l'arbitre EFFACE pendant la désignation (entrée
     // `cascade`, `modalArbiter`). Une étape sans `jet` ne mesurerait pas la garde — l'arbitre élirait
     // la cascade et toutes les portes seraient fermées pour une autre raison.
-    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]),
+    pendingCascade: cascadeDeTest([{ actorId: 'h1', id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation' }]),
     pendingCast: { casterId: 'h1', pickingTargets: true } as never,
     ...over,
   });
@@ -290,8 +290,8 @@ describe('raccourcis — Échap pendant un INTERLUDE de ciblage par la carte', (
     ['2ᵉ frappe', combat({ pendingDualStrike: { attackerId: 'h1', offWeaponUid: 'w1' } as never }), []],
     ['Surincantation', combat({ pendingCast: { casterId: 'h1', pickingTargets: true } as never }), ['interlude-exit']],
     ['pose de zone', combat({ pendingCast: { casterId: 'h1', result: {}, zone: { placing: true, radius: 2 } } as never }), ['interlude-exit']],
-    ['bordée', avecAction('battery'), ['interlude-exit']],
-    ['téléportation', avecAction('teleport'), []],
+    ['bordée', avecAction('bordee'), ['interlude-exit']],
+    ['téléportation', avecAction('teleportation'), []],
   ];
 
   for (const [nom, etat, attendu] of CAS) {
@@ -308,7 +308,7 @@ describe('raccourcis — Échap pendant un INTERLUDE de ciblage par la carte', (
 
   it('la sortie EXÉCUTÉE est celle du registre : la bordée joue le verbe de son offre de sortie, sans geste recopié', () => {
     const desarmerLeMode = vi.fn();
-    const s = avecAction('battery');
+    const s = avecAction('bordee');
     binding('interlude-exit').run(() => ({ ...s, desarmerLeMode }) as never);
     expect(desarmerLeMode).toHaveBeenCalledWith();
   });
@@ -328,7 +328,7 @@ describe('raccourcis — Échap pendant l’interlude d’un AUTRE siège (coop)
     fake({
       party: [H('h1'), H('h2')] as never,
       net: { mode: 'guest', mySeat, gmSeat: null, ownership: { h1: 0, h2: 1 } } as never,
-      battle: { over: null, order: ['h1', 'h2'], turn, combatants: [H('h1'), H('h2')], action: 'battery' } as never,
+      battle: { over: null, order: ['h1', 'h2'], turn, combatants: [H('h1'), H('h2')], action: 'bordee' } as never,
     });
 
   it('le siège QUI TIENT le ciblage prend sa sortie (et pas le menu)', () => {

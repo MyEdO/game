@@ -75,7 +75,7 @@ function drainCascade(): void {
 function runToEnd(maxSteps = 60): void {
   for (let i = 0; i < maxSteps; i++) {
     if (get().pendingCascade) { drainCascade(); continue; }
-    if (get().pendingRest) { get().fenetreValider('rest'); drainCascade(); continue; }
+    if (get().pendingRest) { get().fenetreValider('repos'); drainCascade(); continue; }
     if (!get().travelPlan) return;
   }
 }
@@ -165,7 +165,7 @@ function passerLaMeteo(): void {
     expect(get().pendingCascade!.purpose).toBe('travelDay');
     passerLaMeteo();
     const batch = get().pendingCascade!.participants.find((s) => s.kind === 'stagePosteBatch')!;
-    get().jetForcerLaReussite('cascadeBatch', batch.participants![0].id); // Résilience « Je ne faillirai pas ! » par rangée
+    get().jetForcerLaReussite('cascadeEnBande', batch.participants![0].id); // Résilience « Je ne faillirai pas ! » par rangée
     const after = get().pendingCascade!.participants.find((s) => s.kind === 'stagePosteBatch')!;
     expect(after.participants![0].result?.success).toBe(true);
   });

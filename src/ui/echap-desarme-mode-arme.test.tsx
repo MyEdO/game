@@ -22,7 +22,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { useGame } from '../state/store';
 import { KEYBINDINGS } from '../state/clavier/keybindings';
 import { initialNet } from '../noyau/etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from '../noyau/monde/spawn';
 import { useGameKeyboard } from './clavier/useGameKeyboard';
 import type { BattleActionMode } from '../noyau/actionRegistry';
@@ -49,8 +49,8 @@ const arene = () => {
  * l'actif (`controlsActive`), donc si la touche lui appartient.
  */
 function table(action: BattleActionMode | null, { turn = 0, mySeat = 0, mode = 'local' as 'local' | 'guest' } = {}) {
-  const hero = makePregens(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
-  const ally = makePregens(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
+  const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
+  const ally = tousLesHerosDeScenario(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e1', { x: 7, y: 6 });
   const e2 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e2', { x: 8, y: 6 });
   useGame.setState({
@@ -87,7 +87,7 @@ afterEach(() => {
 });
 
 /** Les modes ARMABLES sans interlude apparié — la liste que la trouvaille de recette désigne. */
-const ARMÉS_NUS: BattleActionMode[] = ['dispel', 'heal', 'cast', 'push'];
+const ARMÉS_NUS: BattleActionMode[] = ['dissipation', 'soins', 'incantation', 'poussee'];
 
 describe('Échap sur un mode armé NU (#1411)', () => {
   for (const action of ARMÉS_NUS) {
@@ -101,7 +101,7 @@ describe('Échap sur un mode armé NU (#1411)', () => {
   }
 
   it('un appui NEUF, plus rien d’armé : Échap rend bien le menu système', () => {
-    table('dispel');
+    table('dissipation');
     échap();
     relâcher();
     expect(get().battle!.action).toBeNull();
@@ -110,25 +110,25 @@ describe('Échap sur un mode armé NU (#1411)', () => {
   });
 
   it('bordée : rien ne change — sa SORTIE d’interlude garde la touche (aucun doublon)', () => {
-    table('battery');
+    table('bordee');
     expect(barreaux(get())).toEqual(['interlude-exit']);
   });
 
   it('téléportation : sortie qui COMMET (`exitSafe: false`) — Échap ne sélectionne toujours RIEN', () => {
-    table('teleport');
+    table('teleportation');
     expect(barreaux(get())).toEqual([]);
   });
 
   it('COOP — le siège qui NE contrôle PAS l’actif garde le menu (pas de vol d’Échap)', () => {
-    table('dispel', { turn: 0, mySeat: 1, mode: 'guest' }); // tour de h1 (siège 0), client au siège 1
+    table('dissipation', { turn: 0, mySeat: 1, mode: 'guest' }); // tour de h1 (siège 0), client au siège 1
     expect(barreaux(get())).toEqual(['toggle-menu']);
     échap();
     expect(get().gameMenuOpen, 'un siège sans geste à annuler serait enfermé').toBe(true);
-    expect(get().battle!.action, 'le mode armé d’AUTRUI a été désarmé à distance').toBe('dispel');
+    expect(get().battle!.action, 'le mode armé d’AUTRUI a été désarmé à distance').toBe('dissipation');
   });
 
   it('COOP — le siège QUI tient le mode armé le désarme', () => {
-    table('dispel', { turn: 1, mySeat: 1, mode: 'guest' }); // tour de h2, possédé par le siège 1
+    table('dissipation', { turn: 1, mySeat: 1, mode: 'guest' }); // tour de h2, possédé par le siège 1
     expect(barreaux(get())).toEqual(['action-disarm']);
     échap();
     expect(get().battle!.action).toBeNull();

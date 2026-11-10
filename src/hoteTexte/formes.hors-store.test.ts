@@ -106,7 +106,7 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
     expect(lire('recruterLeHeros', [{ brouillon: complet() }])).toHaveProperty('args');
   });
   it('une énumération de littéraux se refuse en nommant ses valeurs', () => {
-    expect(refus('jetLancer', ['zzz'])).toMatch(/flux : "zzz" n’est pas FluxDuVerbe \(admises : .*"attack"/);
+    expect(refus('jetLancer', ['zzz'])).toMatch(/flux : "zzz" n’est pas FluxDuVerbe \(admises : .*"attaque"/);
     expect(refus('fenetreFermer', ['zzz'])).toMatch(/fenetre : "zzz" n’est pas FenetreQuiSeFerme \(admises : /);
   });
   it('aucun brouillon légitime ne se refuse : neufs, complétés étape par étape, joués par les gestes des pages, rendus par le roster', () => {

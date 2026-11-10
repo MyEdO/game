@@ -60,7 +60,7 @@ import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
 import type { TraitPose } from '../../../data/schemas/grammaire/reference';
-import type { DomainData } from '../../../data';
+import type { DomainData, EffectTableRow } from '../../../data';
 import type { CharKey, Difficulty, Trauma, VehicleData } from '../../../engine/types';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, LOCALISATIONS_DE_COUP } from '../../../engine/types';
 import type { DiseaseSymptom } from '../../../data/schemas/defs/maladies';
@@ -119,13 +119,14 @@ const OPS_FIELDS: Record<string, string[]> = {
   seaShanties: ['crewOps', 'captainOps'],
   drunkenness: ['ops'], // #422 (suite) : effet mécanique optionnel d'un résultat d'Ivresse (LDB 09)
   stars: ['ops'], // #1467 L1b : effet du signe aux attributs de départ (ADE II 3 l.38) — GameOp[] comme les autres
-  // #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.damage/entangle/
-  // free`, sous `win`, retombent en sous-formulaire récursif `object`, hors guard — même patron `windEffect`
+  // #422 (FINAL) : Empoignade — `init` (à la touche) en `GameOp[]` top-level (`win.degats/empetrer/
+  // liberer`, sous `win`, retombent en sous-formulaire récursif `object`, hors guard — même patron `windEffect`
   // de `riverNavigation`). Incantations Imparfaites/Colère des dieux — `ops` (dialecte compilé, mais MÊMES
   // kinds `condition`/`wounds`/`corruption`/`reduceToZero`/`castPenalty`/`suppressTalents`/`deitySkillMod`/`deityBan`/`prayerForAction`
   // que le vocabulaire `GameOp` réel), et `targetOps` (ops aux cibles de l'incantation).
   grapple: ['init'],
   miscastMinor: ['ops', 'targetOps'], miscastMajor: ['ops', 'targetOps'], miscastWrath: ['ops', 'targetOps'],
+  miscastMinorVdm: ['ops', 'targetOps'], miscastMajorVdm: ['ops', 'targetOps'],
   ...tableTotale(SHIP_CRIT_CATEGORIES, () => ['ops']),
 };
 const opsFieldsOf = (categoryKey: string): string[] => OPS_FIELDS[categoryKey] ?? [];
@@ -199,7 +200,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   add(...opsFieldsOf(categoryKey)); // ops/occupantOps/crewOps/captainOps → GameOpEditor (#157)
   if (categoryKey === 'symptoms') add('passive', 'passiveBySeverity', 'onTick', 'visiblePassive', 'visibleLocations'); // GameOp[] + test de cycle + gate visibilité → éditeurs dédiés (capabilities = sous-form générique)
   if (categoryKey === 'stars') add('sub');
-  if (categoryKey === 'mutationTables' || categoryKey === 'weather') add('entries');
+  if (['mutationTables', 'weather', 'effectTables'].includes(categoryKey)) add('entries');
   if (['mutations', 'trappings'].includes(categoryKey)) add('derivedWeapon');
   if (categoryKey === 'trappings') add('consumable', 'consumableDuration', 'onHitEffects'); // onHitEffects → TriggeredEffectsField (#175)
   if (EVENEMENTS_DE_MER.includes(categoryKey)) add('consequence'); // Flow joué par `runFlow` → FlowEditor (#1652)
@@ -222,6 +223,7 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // Créature : `skills`/`talents` sont des REFS structurées (`SkillRef`/`TalentRef`) — éditées au FORMAT
   // LIVRE (porte partagée avec l'éditeur de statbloc de scène), jamais par le champ-liste générique.
   if (categoryKey === 'creatures') add('skills', 'talents');
+  if (categoryKey === 'pregens') add('trappings', 'talents'); // MÊMES refs que la créature : `TalentRef[]` et dotations (id catalogue ou texte)
   if (categoryKey === 'careerLevels') add('characteristics');
   if (categoryKey === 'domains') add('castBonus', 'missile', 'casterOps');
   // Rubrique de VENT (`windModifiers`, #729) : tableau top-level d'objets → éditeur GÉNÉRIQUE commun.
@@ -378,6 +380,8 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const isMutationTable = categoryKey === 'mutationTables';
   // Météo : ses `entries` (plages de son dé → type de météo) ont leur éditeur dédié.
   const isWeather = categoryKey === 'weather';
+  // Table d'effets : ses `entries` (plages de son dé → opérations) ont leur éditeur dédié (#1667).
+  const isEffectTable = categoryKey === 'effectTables';
   // Arme DÉRIVÉE (WeaponField) : portée par une Mutation (Tentacule…) OU une Possession (prothèse-arme).
   const hasDerivedWeapon = categoryKey === 'mutations' || categoryKey === 'trappings';
   const hasConsumable = categoryKey === 'trappings';
@@ -395,7 +399,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   // Avancement (espèce / niveau de carrière) : `skills`/`talents` = AdvancementRef[] (réf/joker/choix/aléatoire).
   const hasAdvancement = categoryKey === 'races' || categoryKey === 'careerLevels';
   // Possessions (classe / niveau de carrière / créature) : `trappings` = TrappingRef[] (id catalogue + quantité, ou texte).
-  const hasTrappings = categoryKey === 'classes' || categoryKey === 'careerLevels' || categoryKey === 'creatures';
+  const hasTrappings = categoryKey === 'classes' || categoryKey === 'careerLevels' || categoryKey === 'creatures' || categoryKey === 'pregens';
   // Niveau de carrière : `characteristics` = CharKey[] (vocab fermé) → multi-sélection (pas de saisie libre).
   const hasCharKeys = categoryKey === 'careerLevels';
   // Étoile : `sub` = la fourchette du 1d10 interne (Étoile du Sorcier, ADE II 03 l.63) → `PlageField`.
@@ -607,6 +611,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
         {hasConsumable && <TriggeredEffectsField noeud={noeudDe('onHitEffects')} label="effets à la touche de l’arme (onHit → Flow d’ops, ADE II)" value={entry.onHitEffects as TriggeredEffect[] | undefined} onChange={(v) => edit('onHitEffects', v.length ? v : undefined)} />}
         {isManeuver && <ManeuverDefField entry={entry} edit={edit} />}
         {isMutationTable && <MutationTableField domaine={domaineDuDe(entry.die)} value={entry.entries as MutationRange[] | undefined} onChange={(v) => edit('entries', v)} />}
+        {isEffectTable && <EffectTableRowsField domaine={domaineDuDe(entry.die)} value={entry.entries as EffectTableRow[] | undefined} onChange={(v) => edit('entries', v)} />}
         {isWeather && <WeatherRangesField domaine={domaineDuDe(entry.die)} value={entry.entries as { min: number; max: number; weather: string }[] | undefined} onChange={(v) => edit('entries', v)} />}
         {hasDerivedWeapon && <WeaponField value={entry.derivedWeapon as ArmeDerivee | undefined} onChange={(v) => edit('derivedWeapon', v)} />}
         {hasConsumable && (
@@ -685,13 +690,15 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
               value={entry.skills as SkillRef[] | undefined} libelle={skillRefLabel} parse={parseSkillRef}
               onChange={(v) => edit('skills', v)}
             />
-            <LignesFormatLivreField
-              label="Talents"
-              hint="(un par ligne, format livre « Talent (Spéc) Niveau » : « Magie des Arcanes (Bête) », « Maîtrise du combat 3 », « Lire/Écrire »)"
-              value={entry.talents as TalentRef[] | undefined} libelle={talentRefLabel} parse={parseTalentRef}
-              onChange={(v) => edit('talents', v)}
-            />
           </>
+        )}
+        {(isCreature || categoryKey === 'pregens') && (
+          <LignesFormatLivreField
+            label="Talents"
+            hint="(un par ligne, format livre « Talent (Spéc) Niveau » : « Magie des Arcanes (Bête) », « Maîtrise du combat 3 », « Lire/Écrire »)"
+            value={entry.talents as TalentRef[] | undefined} libelle={talentRefLabel} parse={parseTalentRef}
+            onChange={(v) => edit('talents', v)}
+          />
         )}
         {isDetails && <DetailsTextsField value={entry.texts as DetailsTexts | undefined} onChange={(v) => edit('texts', v)} />}
         {isTrait && <TraitSchemaField entry={entry} edit={edit} />}
@@ -1591,6 +1598,31 @@ function MutationTableField({ domaine, value, onChange }: { domaine: PlageDomain
         </div>
       ))}
       <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.min ?? 1, mutation: '' }])}>+ Plage</button>
+    </div>
+  );
+}
+
+/** Éditeur des RANGÉES d'une table d'effets (`tables.json`) : chaque rangée = un intervalle du dé, la bande
+ *  finale ouvrable (`plageOuverteSchema`) → son libellé RAW et ses opérations (`GameOpEditor` commun). La
+ *  table applique les opérations de la rangée dont l'intervalle contient le jet (`findTableEntry`). */
+function EffectTableRowsField({ domaine, value, onChange }: { domaine: PlageDomaine; value: EffectTableRow[] | undefined; onChange: (v: EffectTableRow[]) => void }) {
+  const list = value ?? [];
+  const set = (i: number, patch: Partial<EffectTableRow>) => onChange(list.map((r, j) => (j === i ? { ...r, ...patch } : r)));
+  const cles = useClesDeRangees(value);
+  return (
+    <div className="ed-field">
+      <span>plages {domaine.nom ?? 'du dé'} → opérations (la table applique la rangée dont l'intervalle contient le jet)</span>
+      {list.map((r, i) => (
+        <div className="ed-subfield" key={cles[i]}>
+          <div className="tf-row">
+            <PlageField label={`Rangée ${i + 1}`} domaine={domaine} ouvrable value={{ min: r.min ?? domaine.min ?? 1, max: r.max }} onChange={(p) => p && set(i, p)} />
+            <label className="dr">Libellé<input aria-label={`Libellé de la rangée ${i + 1}`} value={r.label ?? ''} onChange={(e) => set(i, { label: e.target.value || undefined })} /></label>
+            <button className="btn small danger" aria-label={`Retirer la rangée ${i + 1}`} onClick={() => onChange(list.filter((_, j) => j !== i))}>✕</button>
+          </div>
+          <GameOpEditor ops={r.ops} onChange={(ops) => set(i, { ops })} />
+        </div>
+      ))}
+      <button className="btn small" onClick={() => onChange([...list, { min: domaine.min ?? 1, max: domaine.min ?? 1, ops: [] }])}>+ Plage</button>
     </div>
   );
 }

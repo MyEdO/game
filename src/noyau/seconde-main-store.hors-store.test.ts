@@ -1,5 +1,5 @@
 /**
- * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le noyau (`jetValider('attack')` → `jouerLaSuiteDuCoup`).
+ * LA VALEUR DE LA 2ᵉ FRAPPE DU MANIEMENT DE DEUX ARMES, jouée par le noyau (`jetValider('attaque')` → `jouerLaSuiteDuCoup`).
  * LDB 10 l.773 ; LDB 18 l.53 ; LDB 13 l.183 ; LDB 41 l.170 ; MDG 13 l.656, l.724 ; AA 10 l.114 ; #1595 c.6229354257, c.6229550544.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -38,7 +38,7 @@ const mk = (kind: Combatant['kind'], id: string, over: Partial<Combatant> = {}):
 
 const epee = { uid: 'm', label: 'Épée', type: 'melee', hand: 'main', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const rapiere = { ...epee, label: 'Rapière', qualities: [{ id: 'empaleuse' }] } as unknown as Weapon;
-const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'off', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
+const dague = { uid: 'o', label: 'Dague', type: 'melee', hand: 'secondaire', hands: 1, damage: { plusBF: true, flat: 4 }, qualities: [] } as unknown as Weapon;
 const piece = (qualites: string[], pa: number): ItemInstance =>
   ({ uid: 'p1', label: 'Pièce', kind: 'armor', equipped: true, pa, locs: [...LOCALISATIONS_DE_COUP], qualities: qualites.map((id) => ({ id })) }) as unknown as ItemInstance;
 
@@ -59,7 +59,7 @@ interface Frappe {
   opsDuHeros?: GameOp[];
 }
 
-/** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetValider('attack')`. */
+/** La 1ʳᵉ frappe d'un Maniement de deux armes, confirmée par `jetValider('attaque')`. */
 function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, retenu = false, tenu = false, resoudre, opsDuHeros = [] }: Frappe) {
   const heros = mk('hero', 'bretteur', { weapons: [arme, dague] } as never);
   applyOps(heros, opsDuHeros, { idNeuf: idsDeTest, rng: desDuTest });
@@ -80,7 +80,7 @@ function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, rete
     ? resoudre(heros, cible, arme)
     : rederivePassiveAttack(heros, cible, arme, { roll, target: 90, success: true, sl: 3, isDouble: roll % 11 === 0 } as never, 'melee', { rng: battleRng() }, 'corps', retenu);
   banc.setState({ pendingAttack: { attackerId: heros.id, targetId: cible.id, location: 'corps', dualMode: true, result } as never });
-  banc.getState().jetValider('attack');
+  banc.getState().jetValider('attaque');
   return result;
 }
 

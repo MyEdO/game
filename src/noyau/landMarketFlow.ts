@@ -205,7 +205,7 @@ export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
   const refus = refusDEvaluerLeVin(get(), cargoId);
   if (refus) { refuserGeste(get, set, refus); return; }
   const offer = garanti(get().landMarket?.offers.find((o) => o.cargoId === cargoId), cargoId, 'vin à évaluer');
-  const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluate.skill })!;
+  const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluation.skill })!;
   const diff = wineEvalDifficulty(testValue(best.actor, { skill: { id: 'resistance-a-l-alcool' } }));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
   openPartyTest(get, set, {

@@ -10,7 +10,7 @@ import { gabaritDObjet, isWeaponActive, type GabaritDObjet } from '../engine/ite
 import { MERCHANT_COL_RENDERERS } from '../noyau/colonnesDuMarchand';
 import { describeQuality } from '../engine/qualities/describe';
 import { QualityChip } from './EntityChip';
-import { libelleDeLaRepartition, sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, demandeDuTroc, exemplaireCede, BROUILLON_DE_TROC_VIDE, type ContexteDAchat } from '../noyau/merchantFlow';
+import { libelleDeLaRepartition, sellGain, devisDeVente, sellBuyerAvailability, sellRefusal, catalogEntryOf, appraiseRefus, prixDeLigne, remiseDAchatPct, devisDuPanier, refusDAjout, coutDeReparation, refusDeReparation, optionsDeTroc, devisDeTroc, demandeDuTroc, exemplaireCede, BROUILLON_DE_TROC_VIDE, type ContexteDAchat, type ModeDeMarche } from '../noyau/merchantFlow';
 import { GatedAction, raisonSi } from './GatedAction';
 import { partyMoneyTotal, refusDeGesteSurLeGroupe } from '../noyau/bourseFlow';
 import type { Combatant, ItemInstance, QualityInstance } from '../engine/types';
@@ -48,6 +48,9 @@ const FAMILY_COLS: Record<string, { label: string; get: (id: string) => string; 
 const TREND_CLASS: Record<string, string> = { up: 'cmp-up', down: 'cmp-down', same: '' };
 const TREND_SYM: Record<string, string> = { up: '▲', down: '▼', same: '' };
 
+/** Les onglets de l'échoppe : les deux côtés du marché, la réparation, le troc. */
+type OngletDuMarchand = ModeDeMarche | 'reparation' | 'troc';
+
 /** Présentationnel (props) — testable hors store. `initialTab`/`initialDetails`/`initialBuyView` = état de départ (SSR/test). */
 export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerName, boniment, onAddToCart, onDecCart, onRemoveCart, onClearCart, onRefuse, onPay, onAssignDist, onConfirmDist, onAddToSellCart, onRemoveSellCart, onClearSellCart, onConfirmSell, onRepair, onBargain, onAppraise, onClose, onSellHalving, troc, onSearchAvailability, refusHote = null, initialTab, initialDetails, initialBuyView, initialSellView }: {
   merchant: MerchantState;
@@ -63,7 +66,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onDecCart: (id: string) => void;
   onRemoveCart: (id: string) => void;
   onClearCart: () => void;
-  onRefuse: (mode: 'buy' | 'sell') => void;
+  onRefuse: (mode: ModeDeMarche) => void;
   onPay: () => void;
   onAssignDist: (uid: string, heroId: string) => void;
   onConfirmDist: () => void;
@@ -72,7 +75,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   onClearSellCart: () => void;
   onConfirmSell: () => void;
   onRepair: (uid: string) => void;
-  onBargain: (mode: 'buy' | 'sell') => void;
+  onBargain: (mode: ModeDeMarche) => void;
   onAppraise: (uid: string) => void;
   onClose: () => void;
   /** « Baisse des prix » à la vente (LDB 59 l.60) — optionnel (rendu sans si absent). */
@@ -82,14 +85,14 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
   troc?: { ceder: (uid: string) => void; recevoir: (id: string) => void; quantite: (n: number) => void; troquer: () => void };
   /** Recherche active de Disponibilité (LDB 59 l.50) — optionnel : le bouton n'apparaît que s'il est fourni. */
   onSearchAvailability?: () => void;
-  initialTab?: 'buy' | 'sell' | 'repair' | 'barter';
+  initialTab?: OngletDuMarchand;
   initialDetails?: string;
   initialBuyView?: 'browse' | 'cart';
   initialSellView?: 'browse' | 'cart';
   /** Refus de dépense du groupe du siège (`refusDeGesteSurLeGroupe`) — absent hors store : aucun. */
   refusHote?: string | null;
 }) {
-  const [tab, setTab] = useState<'buy' | 'sell' | 'repair' | 'barter'>(initialTab ?? 'buy');
+  const [tab, setTab] = useState<OngletDuMarchand>(initialTab ?? 'achat');
   const [buyCat, setBuyCat] = useState<string | null>(null);
   const [details, setDetails] = useState<string | null>(initialDetails ?? null);
   const [buyView, setBuyView] = useState<'browse' | 'cart'>(initialBuyView ?? 'browse');
@@ -199,7 +202,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
     if (merchant.bargainLocked) return <span className="bargain-tag locked" title="Vous avez déjà négocié puis quitté sans conclure ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>;
     if (merchant.bargainBuy == null) return (
       <>
-        <button className="btn small" onClick={() => onBargain('buy')}><Icon id="merchant/haggle" size="sm" /> Marchander le panier</button>
+        <button className="btn small" onClick={() => onBargain('achat')}><Icon id="merchant/haggle" size="sm" /> Marchander le panier</button>
         <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
       </>
     );
@@ -287,7 +290,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
           <div className="cart-total">Total : <strong><Coins money={cartTotal} /></strong>{buyDiscount > 0 && <span className="cart-disc"> (marchandé −{buyDiscount} %)</span>}</div>
           <div className="cart-actions">
             {sealed
-              ? <button className="btn small danger" onClick={() => { onRefuse('buy'); setBuyView('browse'); }}>Refuser le marché</button>
+              ? <button className="btn small danger" onClick={() => { onRefuse('achat'); setBuyView('browse'); }}>Refuser le marché</button>
               : <button className="btn small" onClick={onClearCart}>Vider le panier</button>}
             <GatedAction
               id="merch-cart-pay"
@@ -604,39 +607,39 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
         <Tabs
           className="mp-tabnav"
           tabs={[
-            { key: 'buy' as const, label: 'Acheter', count: cartCount || undefined },
-            { key: 'sell' as const, label: 'Vendre', count: sellable.length || undefined },
-            { key: 'repair' as const, label: 'Réparer', count: damaged.length || undefined },
-            ...(troc ? [{ key: 'barter' as const, label: 'Troc' }] : []),
+            { key: 'achat' as const, label: 'Acheter', count: cartCount || undefined },
+            { key: 'vente' as const, label: 'Vendre', count: sellable.length || undefined },
+            { key: 'reparation' as const, label: 'Réparer', count: damaged.length || undefined },
+            ...(troc ? [{ key: 'troc' as const, label: 'Troc' }] : []),
           ]}
           active={tab}
           onChange={setTab}
         />
 
         <div className="merchant-body">
-          {tab === 'buy' && (dist ? renderDistribution() : buyView === 'cart' ? renderCart() : renderBrowse())}
+          {tab === 'achat' && (dist ? renderDistribution() : buyView === 'cart' ? renderCart() : renderBrowse())}
 
-          {tab === 'sell' && (
+          {tab === 'vente' && (
             <div className="merch-tab">
               <div className="haggle-bar">
                 {merchant.soured ? <span className="bargain-tag soured"><Icon id="ui/forbidden" size="sm" /> Marchand méfiant — fini de marchander</span>
                   : merchant.bargainLocked ? <span className="bargain-tag locked" title="Vous avez refusé/renié un marché ; revenez après son réassort"><Icon id="ui/lock" size="sm" /> Marchandage indisponible jusqu’au réassort</span>
                   : merchant.bargainSell == null ? (
                       <>
-                        <button className="btn small" onClick={() => onBargain('sell')}><Icon id="merchant/haggle" size="sm" /> Marchander la vente</button>
+                        <button className="btn small" onClick={() => onBargain('vente')}><Icon id="merchant/haggle" size="sm" /> Marchander la vente</button>
                         <CodexRef category="skills" id="marchandage" label="Marchandage" className="ab-codex-info"><Icon id="journal/info" size="sm" /></CodexRef>
                       </>
                     )
                   : <>
                       <span className={`bargain-tag ${merchant.bargainSell.won ? 'won' : ''}`}>{merchant.bargainSell.won ? '✔' : '✘'} {verdictDeVente(merchant.bargainSell)}</span>
-                      <button className="btn small danger" onClick={() => onRefuse('sell')} title="Décliner l’offre — le marchand ne marchandera plus (achat ni vente) jusqu’au réassort">Refuser l’offre</button>
+                      <button className="btn small danger" onClick={() => onRefuse('vente')} title="Décliner l’offre — le marchand ne marchandera plus (achat ni vente) jusqu’au réassort">Refuser l’offre</button>
                     </>}
               </div>
               {sellView === 'cart' ? renderSellCart() : renderSellBrowse()}
             </div>
           )}
 
-          {tab === 'repair' && (
+          {tab === 'reparation' && (
             <div className="merch-tab">
               {damaged.map(({ h, it }) => (
                 <div className="merch-row repair" key={it.uid}>
@@ -653,7 +656,7 @@ export function MerchantPanelView({ merchant, party, money, speakerEnt, speakerN
             </div>
           )}
 
-          {tab === 'barter' && renderBarter()}
+          {tab === 'troc' && renderBarter()}
         </div>
     </ScreenShell>
   );

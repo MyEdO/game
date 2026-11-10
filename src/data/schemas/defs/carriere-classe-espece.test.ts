@@ -13,6 +13,7 @@ import careerLevelsJson from '../../careerLevels.json';
 import careersJson from '../../careers.json';
 import pregensJson from '../../pregens.json';
 import activitiesJson from '../../activities.json';
+import { versDisque } from '../grammaire/prose';
 
 type Entree = Record<string, unknown>;
 
@@ -28,8 +29,7 @@ const messages = (schema: z.ZodType, doc: unknown): string => {
 const PORTEURS = [
   { porteur: 'careerLevels.json › career', schema: schemaNiveaux, doc: careerLevelsJson, cle: 'career', connue: 'agitateur', catalogue: 'carrières' },
   { porteur: 'careers.json › class', schema: schemaCarrieres, doc: careersJson, cle: 'class', connue: 'roublards', catalogue: 'classes de carrière' },
-  { porteur: 'pregens.json › career', schema: schemaPretires, doc: pregensJson, cle: 'career', connue: 'soldat', catalogue: 'carrières' },
-  { porteur: 'pregens.json › species', schema: schemaPretires, doc: pregensJson, cle: 'species', connue: 'nains', catalogue: 'espèces' },
+  { porteur: 'pregens.json › species', schema: schemaPretires, doc: versDisque(pregensJson), cle: 'species', connue: 'nains', catalogue: 'espèces' },
 ];
 
 describe('#2968 L03 — Carrière, Classe et espèce désignées par `ref(type)`', () => {

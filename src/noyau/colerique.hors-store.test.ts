@@ -7,7 +7,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtapes } from './cascade.testkit';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario, type RoleDeScenario } from '../scenes/test-scenarios/_heros';
 import { testScene } from '../scenes/test-fixture';
 import { castSpell } from './combatFlow';
 import { resolveFormula } from '../engine/ops';
@@ -24,10 +24,10 @@ interface Gestes { haine?: boolean; animosite?: boolean; personne?: string; calm
 
 /** L'incantation ouverte réussit à `dr` DR, puis la cascade se joue selon `gestes` ; rend ses étapes. */
 function reussirEtJouer(banc: Banc, dr: number, gestes: Gestes = {}): CascadeStep[] {
-  if (!banc.getState().pendingCast!.result) banc.getState().jetLancer('cast');
+  if (!banc.getState().pendingCast!.result) banc.getState().jetLancer('incantation');
   const pc = banc.getState().pendingCast!;
   banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: dr, isCritical: false, isFumble: false } } });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
   const oui = (v: boolean | undefined) => (v ? 'yes' : 'no');
   return draineEtapes(banc.getState, 20, (e) => (e.kind === 'triggeredTest' ? gestes.calme : undefined), (e) => {
     if (e.kind === 'personneChoisie') return gestes.personne;
@@ -46,7 +46,7 @@ const accordes = (c: Combatant) => ({
 
 describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l.324-330)', () => {
   function auCamp() {
-    const [w, s, p] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat, PREGEN.pretre);
+    const [w, s, p] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat', 'pretre');
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
     banc.getState().incanterLeSort(w.id, 'colerique', s.id);
     const heros = (id: string) => banc.getState().party.find((c) => c.id === id)!;
@@ -118,12 +118,12 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
 });
 
 describe('Colérique en combat', () => {
-  function enCombat(lanceur: number) {
-    const [a, s, p] = pregenParty(idsDeTest, lanceur, PREGEN.soldat, PREGEN.pretre);
+  function enCombat(lanceur: RoleDeScenario) {
+    const [a, s, p] = groupeDeScenario(idsDeTest, lanceur, 'soldat', 'pretre');
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, s, p] } });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const [e0, e1, e2] = b.combatants.filter((c) => c.kind === 'enemy');
@@ -138,7 +138,7 @@ describe('Colérique en combat', () => {
   }
 
   it('un héros vise un Mutant envers un héros : pas d’amis, pas de Test de Calme', () => {
-    const { banc, a, e0, e1 } = enCombat(PREGEN.sorcier);
+    const { banc, a, e0, e1 } = enCombat('sorcier');
     castSpell(banc.getState, banc.setState, a, e0, 'colerique');
     const vues = reussirEtJouer(banc, 9, { haine: true, personne: a.id });
     const designation = vues.find((v) => v.kind === 'personneChoisie')!;
@@ -148,7 +148,7 @@ describe('Colérique en combat', () => {
   });
 
   it('un lanceur PNJ désigne l’allié le plus proche de la cible et prend le palier le plus haut (#3045)', () => {
-    const { banc, s, p, e0 } = enCombat(PREGEN.chasseur);
+    const { banc, s, p, e0 } = enCombat('chasseur');
     e0.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 } as never);
     castSpell(banc.getState, banc.setState, e0, s, 'colerique');
     const vues = reussirEtJouer(banc, 9, { calme: 100 });
@@ -157,11 +157,11 @@ describe('Colérique en combat', () => {
   });
 
   it('un lanceur PNJ sans allié de la cible à désigner : le Trait reste sans effet', () => {
-    const [s] = pregenParty(idsDeTest, PREGEN.soldat);
+    const [s] = groupeDeScenario(idsDeTest, 'soldat');
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [s] } });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const S = b.combatants.find((c) => c.id === s.id)!;
@@ -172,6 +172,6 @@ describe('Colérique en combat', () => {
     castSpell(banc.getState, banc.setState, e0, S, 'colerique');
     reussirEtJouer(banc, 9);
     expect(accordes(S)).toEqual({ traits: [], echeances: [] });
-    expect(banc.getState().battle!.log.map((l) => l.text)).toContain('Colérique : aucune personne à désigner pour Sigmund Reikhardt, sans effet.');
+    expect(banc.getState().battle!.log.map((l) => l.text)).toContain('Colérique : aucune personne à désigner pour Soldat, sans effet.');
   });
 });

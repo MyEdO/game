@@ -3,7 +3,7 @@
  * `(get, set)` que combatFlow : équipement (équiper/transférer), avancement PX
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  */
-import { Combatant, CharKey, CHAR_LABELS, ItemInstance } from '../engine/types';
+import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../engine/types';
 import { choisirApparenceDObjet, recomputeLoadout, loadoutCreate, loadoutDelete, loadoutSetSlot, equipConflicts, canStow, isOffHandEligible, setADeuxMains } from '../engine/items';
 import type { Possession } from '../engine/possession';
 import { possessionLabel } from '../engine/possession';
@@ -56,7 +56,8 @@ import { transmettreLaPossession } from './possessionsFlow';
 import { poserLObjet } from './objetsAuSol';
 
 import type { Get, Set } from './flowTypes';
-import { herosDeLEngagement, verdictDEngagement, type HerosEngage } from './creation/engagement';
+import { battleRng } from './battleRng';
+import { herosDeLEngagement, richesseDeLEngagement, verdictDEngagement, type HerosEngage } from './creation/engagement';
 import type { Jeu } from './etat';
 import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { gainCorruption } from './corruptionFlow';
@@ -259,21 +260,21 @@ export function supprimerLaPanoplie(get: Get, set: Set, heroId: string, id: stri
  *  raison affichée, ou `null`. Verdict UNIQUE du geste `garnirLaPanoplie` et des deux écrans d'armes
  *  (`EquipmentPanel`, `HandPicker`). `hero` = la copie que l'appelant lit (`actorIn`). LDB 14 l.138 */
 export function refusEmplacementDeMain(
-  s: Pick<Jeu, 'battle'>, hero: Combatant, loadoutId: string, slot: 'main' | 'off', uid: string | null,
+  s: Pick<Jeu, 'battle'>, hero: Combatant, loadoutId: string, slot: Main, uid: string | null,
 ): string | null {
   const verrou = refusDInventaire(s);
   if (verrou) return verrou;
   const lo = hero.loadouts?.find((l) => l.id === loadoutId);
   if (!lo) return t('pf.loadoutNotFound');
   if ((hero.items ?? []).find((it) => it.uid === lo.main)?.conjured) return t('pf.loadoutConjured');
-  if (slot === 'off' && setADeuxMains(hero, lo)) return t('pf.offHandTwoHanded');
+  if (slot === 'secondaire' && setADeuxMains(hero, lo)) return t('pf.offHandTwoHanded');
   if (uid == null) return null;
   const it = (hero.items ?? []).find((i) => i.uid === uid);
   if (!it) return t('pf.loadoutItemNotFound');
-  return slot === 'off' && !isOffHandEligible(it) ? t('pf.offHandIneligible') : null;
+  return slot === 'secondaire' && !isOffHandEligible(it) ? t('pf.offHandIneligible') : null;
 }
 
-export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string, slot: 'main' | 'off', uid: string | null): void {
+export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string, slot: Main, uid: string | null): void {
   const hero = actorIn(get(), heroId);
   if (!hero) return void refuserGeste(get, set, t('pf.loadoutNotFound'));
   const refus = refusEmplacementDeMain(get(), hero, id, slot, uid);
@@ -768,8 +769,8 @@ export function partieEnCours(s: Pick<Jeu, 'scene' | 'pendingCampaign'>): boolea
 /** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
  *  du transport pour un intent), au rang `rangDAjout` — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
  *  créateur), le héros bâti par le noyau de `heros` (`herosDeLEngagement`), refusé par `refusDAjoutAuGroupe` ou par
- *  le brouillon incomplet. La Richesse de carrière
- *  (LDB 05 l.578-583) crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531) — plus de bourse de groupe. */
+ *  le brouillon incomplet. Sa Richesse de départ (`richesseDeLEngagement`, LDB 05 l.578-583), tirée ICI seul au RNG du
+ *  jeu (`battleRng`), crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531). */
 export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
   const seat = decidingSeat(s);
@@ -777,15 +778,15 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const verdict = verdictDEngagement(heros);
   const refus = 'refus' in verdict ? refusDAjoutAuGroupe(s, undefined, seat) ?? verdict.refus : refusDAjoutAuGroupe(s, verdict.id, seat);
   if (compositionRefusee(get, set, refus)) return;
-  const bati = herosDeLEngagement(heros, get().forgerUnId);
-  const copy: Combatant = ensureBourse(bati.hero, get().forgerUnId);
+  const copy: Combatant = ensureBourse(herosDeLEngagement(heros, get().forgerUnId), get().forgerUnId);
+  const wealth = richesseDeLEngagement(heros, battleRng());
   const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
   set({
     party: [...s.party, copy],
     net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat }, rangs },
   });
-  creditBourse(get, set, copy.id, bati.wealth);
-  get().ecrireAuJournal(t('pf.startingWealth', { name: copy.label, money: formatMoney(bati.wealth) }));
+  creditBourse(get, set, copy.id, wealth);
+  get().ecrireAuJournal(t('pf.startingWealth', { name: copy.label, money: formatMoney(wealth) }));
 }
 
 /**
@@ -834,29 +835,28 @@ export function renvoyerLeHeros(get: Get, set: Set, heroId: string): void {
   set((s2) => ({ party: s2.party.filter((h) => h.id !== heroId), net: { ...s2.net, ownership, rangs } }));
 }
 
-/** Remplace ATOMIQUEMENT le héros `oldId` par celui que le noyau bâtit de `heros` (`herosDeLEngagement`) à SA position dans `party` (substitution en
+/** Remplace ATOMIQUEMENT le héros `heroId` par celui que le noyau bâtit de `heros` (`herosDeLEngagement`) à SA position dans `party` (substitution en
  *  place → préserve l'index/ordre) et à SON rang (`net.rangs`) ; refusé par `refusDeComposerLeHeros`, la possession
- *  passe du siège qui décide (`decidingSeat`, qui possède `oldId`) au remplaçant (l'ancien id est libéré).
+ *  passe du siège qui décide (`decidingSeat`, qui possède `heroId`) au remplaçant (l'ancien id est libéré).
  *  Source UNIQUE du remplacement, réutilisée par le créateur (édition en place) et le bouton
  *  « Remplacer » du slot. Le remplaçant porte la Bourse du remplacé (un remplacement n'est pas un recrutement) ; un id
  *  déjà au groupe est refusé et dit. */
-export function remplacerLeHeros(get: Get, set: Set, oldId: string, heros: HerosEngage): void {
+export function remplacerLeHeros(get: Get, set: Set, heroId: string, heros: HerosEngage): void {
   // Tout refus se juge AVANT de bâtir : un geste refusé ne consomme aucun id (#2907).
   const verdict = verdictDEngagement(heros);
-  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), oldId, decidingSeat(get())) ?? ('refus' in verdict ? verdict.refus : null)) || 'refus' in verdict) return;
+  if (compositionRefusee(get, set, refusDeComposerLeHeros(get(), heroId, decidingSeat(get())) ?? ('refus' in verdict ? verdict.refus : null)) || 'refus' in verdict) return;
   const s = get();
-  const idx = s.party.findIndex((h) => h.id === oldId);
+  const idx = s.party.findIndex((h) => h.id === heroId);
   if (idx < 0) return;                                                    // l'ancien n'est plus là
-  const doublon = verdict.id !== undefined && verdict.id !== oldId ? s.party.find((h) => h.id === verdict.id) : undefined;
+  const doublon = verdict.id !== undefined && verdict.id !== heroId ? s.party.find((h) => h.id === verdict.id) : undefined;
   if (compositionRefusee(get, set, doublon ? t('pf.partyDuplicate', { name: doublon.label }) : null)) return;
-  const bati = herosDeLEngagement(heros, get().forgerUnId);
-  const copy = withBourseMoney(bati.hero, bourseOf(s.party[idx]), get().forgerUnId);
+  const copy = withBourseMoney(herosDeLEngagement(heros, get().forgerUnId), bourseOf(s.party[idx]), get().forgerUnId);
   const ownership = { ...s.net.ownership };
-  delete ownership[oldId];
+  delete ownership[heroId];
   ownership[copy.id] = decidingSeat(s);
   const rangs = rangsDuGroupe(s);
-  const rang = rangs[oldId];
-  delete rangs[oldId];
+  const rang = rangs[heroId];
+  delete rangs[heroId];
   rangs[copy.id] = rang;
   set({ party: s.party.map((h, i) => (i === idx ? copy : h)), net: { ...s.net, ownership, rangs } });
 }
@@ -896,13 +896,13 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
   return {
     recruterLeHeros: (heros) => recruterLeHeros(get, set, heros),
     renvoyerLeHeros: (heroId) => renvoyerLeHeros(get, set, heroId),
-    remplacerLeHeros: (oldId, heros) => remplacerLeHeros(get, set, oldId, heros),
+    remplacerLeHeros: (heroId, heros) => remplacerLeHeros(get, set, heroId, heros),
     equiperLObjet: (uid) => equiperLObjet(get, set, uid),
     rangerLObjet: (uid, containerUid) => rangerLObjet(get, set, uid, containerUid),
     creerLaPanoplie: (heroId) => creerLaPanoplie(get, set, heroId),
     supprimerLaPanoplie: (heroId, id) => supprimerLaPanoplie(get, set, heroId, id),
     garnirLaPanoplie: (heroId, id, slot, uid) => garnirLaPanoplie(get, set, heroId, id, slot, uid),
-    transmettreLObjet: (uid, toHeroId) => transmettreLObjet(get, set, uid, toHeroId),
+    transmettreLObjet: (uid, destinataireId) => transmettreLObjet(get, set, uid, destinataireId),
     poserLObjet: (uid) => poserLObjet(get, set, uid),
     poserLApparence: (uid, apparence) => poserLApparence(get, set, uid, apparence),
     accorderLesPx: (heroId, amount) => accorderLesPx(get, set, heroId, amount),

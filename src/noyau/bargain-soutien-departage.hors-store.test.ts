@@ -3,7 +3,7 @@ import { acheterAuMarche } from './cargaison.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from './battleRng.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng, battleRng } from './battleRng';
 import { setRule } from '../engine/policy';
 import { creditBourse } from './bourseFlow';
@@ -70,7 +70,7 @@ function setupPort(party: Combatant[]): void {
 
 /** Meneur à `nue` en Marchandage + un soutien éligible (≥ 1 Augmentation, LDB 12 l.195) plus faible. */
 function pairAvecSoutien(nue = 45): { leader: Combatant; helper: Combatant } {
-  const [leader, helper] = makePregens(idsDeTest);
+  const [leader, helper] = tousLesHerosDeScenario(idsDeTest);
   tuneSkill(leader, 'marchandage', nue);
   tuneSkill(helper, 'marchandage', 20);
   return { leader, helper };
@@ -236,7 +236,7 @@ describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSR
   });
 });
 
-// ── Marchand AMBULANT (LDB 59 l.43) : flux `bargain` de `rollFlowSpecs` ──────────────────────────
+// ── Marchand AMBULANT (LDB 59 l.43) : flux `marchandage` de `rollFlowSpecs` ──────────────────────────
 
 /** Marchandage de l'armurier ambulant (Marchandage 45) ouvert sur un groupe donné. */
 function setupAmbulant(party: Combatant[]): void {
@@ -250,9 +250,9 @@ function setupAmbulant(party: Combatant[]): void {
 function marchanderEgalite(): void {
   const { leader, helper } = pairAvecSoutien(40);
   setupAmbulant([leader, helper]);
-  get().fenetreChoisir('marchand', 'marchander', 'buy');
+  get().fenetreChoisir('marchand', 'marchander', 'achat');
   imposerLesD100(30, 20); // joueur 30 sur cible 50 → DR 2 ; marchand 20 sur cible 45 → DR 2
-  get().jetLancer('bargain');
+  get().jetLancer('marchandage');
 }
 
 describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.160 / l.189-190)', () => {
@@ -262,7 +262,7 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
   it('CÂBLAGE : `marchand.marchander` fond le Soutien dans `playerSkill` et en porte le détail (`support`)', () => {
     const { leader, helper } = pairAvecSoutien(40);
     setupAmbulant([leader, helper]);
-    get().fenetreChoisir('marchand', 'marchander', 'buy');
+    get().fenetreChoisir('marchand', 'marchander', 'achat');
     const pb = get().pendingBargain!;
     expect(pb.support?.bonus).toBe(10); // 1 soutien éligible (l.189-190)
     expect(pb.playerSkill).toBe(50); // 40 (Compétence) + 10 (Soutien) — FONDU par `partyAssisted`
@@ -282,7 +282,7 @@ describe('Marchandage AMBULANT soutenu : le Soutien ne départage pas (LDB 12 l.
 
   it('CONSÉQUENCE : le marchandage conclu est PERDU — la visite ne porte aucune remise', () => {
     marchanderEgalite();
-    get().jetValider('bargain');
+    get().jetValider('marchandage');
     expect(get().merchant!.bargainBuy!.won).toBe(false);
   });
 });

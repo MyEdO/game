@@ -7,8 +7,10 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { pregenParty, PREGEN, idDuPretire } from '../data/pregens';
-import { pregens, profilsStandard } from '../data';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
+import { profilsStandard } from '../data';
+import { pretire } from '../data/pregens';
+import { PRETIRE_DE_TEST, poserLesPretires } from './creation/pretireDeTest.testkit';
 import { ensureBourse, setBourseBrass } from '../engine/bourse';
 import { seedBattleRng } from './battleRng';
 import { refusDAjoutAuGroupe } from './partyFlow';
@@ -27,29 +29,28 @@ import type { Dialogue } from './monde/scene';
 import type { Combatant } from '../engine/types';
 
 let banc: Banc;
-beforeEach(() => { banc = ouvrirLeBanc(); seedBattleRng(7); });
+beforeEach(() => { poserLesPretires(); banc = ouvrirLeBanc(); seedBattleRng(7); });
 const get = () => banc.getState();
 const dernier = () => get().journal[get().journal.length - 1];
 
 const heros = (n: number): Combatant[] =>
-  pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur, PREGEN.sorcier, PREGEN.pretre, PREGEN.chasseur).slice(0, n).map((h) => ensureBourse(h, idsDeTest));
-/** L'engagement du pré-tiré `h` par son id. */
-const pretireDe = (h: Combatant) => ({ pretire: pregens.find((p) => idDuPretire(p.seed) === h.id)!.id });
+  groupeDeScenario(idsDeTest, 'soldat', 'tueur', 'sorcier', 'pretre', 'chasseur').slice(0, n).map((h) => ensureBourse(h, idsDeTest));
+/** L'engagement du prétiré de test, posé au registre par `poserLesPretires`. */
+const engagement = { pretire: PRETIRE_DE_TEST.id };
 
 describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('hôte coop au quota épuisé, groupe 1/4 : le verdict et le geste disent le quota', () => {
-    const [a, b] = heros(2);
+    const [a] = heros(1);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', slots: [0, 1, 1, 1], ownership: { [a.id]: 0 } } });
     expect(refusDAjoutAuGroupe(get(), undefined, 0)).toBe('Tous vos emplacements du groupe sont remplis.');
-    get().recruterLeHeros(pretireDe(b));
+    get().recruterLeHeros(engagement);
     expect(get().party.map((h) => h.id)).toEqual([a.id]);
     expect(dernier()).toBe('Tous vos emplacements du groupe sont remplis.');
   });
 
   it('groupe plein : le geste dit le groupe complet', () => {
-    const cinq = heros(5);
-    banc.setState({ party: cinq.slice(0, 4) });
-    get().recruterLeHeros(pretireDe(cinq[4]));
+    banc.setState({ party: heros(4) });
+    get().recruterLeHeros(engagement);
     expect(get().party).toHaveLength(4);
     expect(dernier()).toBe('Le groupe est complet (4 héros).');
   });
@@ -63,9 +64,9 @@ describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   });
 
   it('héros déjà présent : le geste le nomme', () => {
-    const [a] = heros(1);
+    const a = pretire(idsDeTest, PRETIRE_DE_TEST.id);
     banc.setState({ party: [a] });
-    get().recruterLeHeros(pretireDe(a));
+    get().recruterLeHeros(engagement);
     expect(dernier()).toBe(`${a.label} fait déjà partie du groupe.`);
   });
 });
@@ -165,8 +166,8 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
   it('solo, nuit gratuite : « Dormir » ouvre la nuit d’un appel', () => {
     banc.setState({ party: heros(1) });
     ouvrir({ camp: true });
-    expect(refusDeLaValidation(get(), 'rest')).toBeNull();
-    get().fenetreValider('rest');
+    expect(refusDeLaValidation(get(), 'repos')).toBeNull();
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
 
@@ -174,12 +175,12 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     const [a, b] = heros(2);
     banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
     ouvrir({ camp: true });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest?.readyBySeat, '« Dormir » avant le quorum marque l’hôte prêt').toEqual({ 0: true });
-    expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.quorumAttendu'));
-    expect(appliquerLIntentionDUnSiege(get, 1, 'fenetreValider', ['rest'])).toBe('appliquee');
+    expect(refusDeLaValidation(get(), 'repos')).toBe(t('jet.ferme.quorumAttendu'));
+    expect(appliquerLIntentionDUnSiege(get, 1, 'fenetreValider', ['repos'])).toBe('appliquee');
     expect(get().pendingRest?.readyBySeat, 'le dernier prêt d’un invité ne dort pas pour l’hôte').toEqual({ 0: true, 1: true });
-    get().fenetreValider('rest');
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'au quorum, l’hôte dort').toBeNull();
   });
 
@@ -187,8 +188,8 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     const [a] = heros(1);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte' }, ownership: { [a.id]: 0 } } });
     ouvrir({ camp: true });
-    expect(refusDeLaValidation(get(), 'rest')).toBeNull();
-    get().fenetreValider('rest');
+    expect(refusDeLaValidation(get(), 'repos')).toBeNull();
+    get().fenetreValider('repos');
     expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
 
@@ -197,9 +198,9 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     setBourseBrass(a, 0, idsDeTest);
     banc.setState({ party: [a] });
     ouvrir({ auberge: true });
-    get().fenetreChoisir('rest', 'couchage', 'privee', a.id);
+    get().fenetreChoisir('repos', 'couchage', 'privee', a.id);
     expect(toBrass(restCost(get().pendingRest!, get().party)), 'témoin : la chambre a un prix').toBeGreaterThan(0);
-    expect(refusDeLaValidation(get(), 'rest')).toBe(t('jet.ferme.noteNonCouverte'));
+    expect(refusDeLaValidation(get(), 'repos')).toBe(t('jet.ferme.noteNonCouverte'));
   });
 });
 

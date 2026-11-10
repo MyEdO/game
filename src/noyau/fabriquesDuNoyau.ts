@@ -3,19 +3,19 @@
  * lisent chaque propriétaire de l'état, le store web (`src/state/store.ts`) comme la partie
  * (`partie.ts`). Une fabrique ajoutée ici sert les deux.
  */
-import type { ActionsDuNoyau } from './actionsDuNoyau';
+import type { ActionsDuNoyau, PasRelatif } from './actionsDuNoyau';
 import type { JeuDuNoyau, MachinerieDuNoyau } from './machinerieDuNoyau';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import { creerReglageDuJet, creerVerbesDeJet, type CloturesDuJet } from './rollFlowSpecs';
 import type { CorpsDesReglages, VerbeDeReglage } from './reglagesDuJet';
-import type { ActionDeJet, NomDeVerbeDeJet } from './flowVerbs';
+import type { ActionDeJet, FlowKey, NomDeVerbeDeJet } from './flowVerbs';
 import type { Majuscule } from './intentionsDeSiege';
 import { choixDuCombat, cloturesDuCombat, createCombatSlice, reglagesDuCombat, sortiesDuCombat, validationsDuCombat } from './combatSlice';
 import { creerSortieDeFenetre, type SortiesDeFenetre } from './sortieDeFenetre';
 import { creerValidationDeFenetre, type ValidationsDeFenetre } from './validationDeFenetre';
 import { creerChoixDeFenetre } from './choixDeFenetre';
-import type { CorpsDesChoix } from './choixDesFenetres';
-import { creerVerbesDeLaBarre } from './actionRegistry';
+import type { AxeDuChoix, ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
+import { creerVerbesDeLaBarre, type BattleActionMode } from './actionRegistry';
 import { creerActionsDOrientation } from './orientation';
 import { creerActionsDeManoeuvre } from './shipManeuver';
 import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
@@ -30,8 +30,8 @@ import { creerActionsDeMarche } from './marcheDuGroupe';
 import { cloturesDeFranchissement, creerActionsDeFranchissement, reglagesDeFranchissement } from './gesteDArete';
 import { creerActionsDInteraction } from './interactionsDExploration';
 import { choixDeConversation } from './conversation';
-import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand } from './merchantFlow';
-import { creerActionsDeTaverne, sortiesDeLaTaverne } from './tavernFlow';
+import { choixDuMarchand, cloturesDuMarchand, creerActionsDuMarchand, sortiesDuMarchand, validationsDuMarchand, type ModeDEvaluation, type ModeDeMarche } from './merchantFlow';
+import { creerActionsDeTaverne, sortiesDeLaTaverne, type TavernOpponent } from './tavernFlow';
 import { creerActionsDesDes } from './battleRng';
 import { choixDuButin, creerActionsDIssueDeCombat, sortiesDIssueDeCombat } from './issueDeCombat';
 import { choixDuMedecin, cloturesDuMedecin, creerActionsDuMedecin, sortiesDuMedecin } from './medicFlow';
@@ -53,6 +53,16 @@ import { creerActionsDuMarcheTerrestre, sortiesDuMarcheTerrestre } from './landM
 import { choixDesMarches } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
+import type { BattleState, ShootingStanceKey } from './etat';
+import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from './pendings';
+import type { VoyageCadence } from './voyageCadence';
+import type { CharMode } from './creation/brouillon';
+import type { HealMode } from '../engine/healing';
+import type { GenreDeDepot } from '../engine/activities';
+import type { Main } from '../engine/types';
+import type { CleDeRegistre } from './modalArbiter';
+import type { HostJet } from './slotsDeJet';
+import type { ClueState } from './monde/clues';
 
 /** Les actions du lexique des verbes (#3371 §3.1) : un verbe manuscrit se nomme `<action>` ou `<action><Complément>`, ou
  *  à la forme pronominale (`seRelever`). */
@@ -95,8 +105,64 @@ type Verrou<Noms extends string, Lexique extends string> = [Exclude<Noms, Lexiqu
 export type VerrouDuLexique<Noms extends string> = Verrou<Noms, NomDeVerbe>;
 /** `true` si et seulement si `Noms` est du lexique de la machinerie ; sinon, les noms en faute. */
 export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachinerie>;
-/** VERROU : tout verbe du noyau se nomme dans le lexique des verbes, toute machinerie dans le sien. */
-const verrousDuLexique: [VerrouDuLexique<keyof ActionsDuNoyau>, VerrouDeLaMachinerie<keyof MachinerieDuNoyau>] = [true, true];
+/** Les mots d'un id d'un domaine de verbe (littéral, axe) : les actions du lexique, et les mots que ses domaines
+ *  nomment (#3614). */
+type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
+  | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'activites' | 'alea' | 'ambition' | 'aneantissement'
+  | 'approche' | 'arriere' | 'attaque' | 'au' | 'avant' | 'baisser' | 'bande' | 'bataille' | 'battement' | 'batterie'
+  | 'blessures' | 'bordee' | 'butin' | 'cacher' | 'campagne' | 'carte' | 'cascade' | 'chanson' | 'chapitre'
+  | 'chercher' | 'chirurgie' | 'chute' | 'cible' | 'commande' | 'commandes' | 'conseil' | 'contact' | 'contre'
+  | 'corruption' | 'couchage' | 'course' | 'courte' | 'dans' | 'de' | 'debut' | 'defaite' | 'defense' | 'degats'
+  | 'depart' | 'depecer' | 'desengagement' | 'designation' | 'destin' | 'detection' | 'dialogue' | 'dissipation'
+  | 'distraire' | 'document' | 'droite' | 'du' | 'ecran' | 'empetrer' | 'empoignade' | 'en' | 'encombrement'
+  | 'ensanglantee' | 'entrainement' | 'etal' | 'etendu' | 'evaluation' | 'eviter' | 'file' | 'fin' | 'focalisation'
+  | 'frappe' | 'frenesie' | 'fuite' | 'gauche' | 'hemorragie' | 'heros' | 'immobile' | 'incantation' | 'infirmerie'
+  | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jeter' | 'jeux' | 'jour' | 'journal' | 'la' | 'le'
+  | 'liberer' | 'lieu' | 'ligne' | 'longue' | 'lot' | 'main' | 'maladresse' | 'manoeuvre' | 'marchand' | 'marchandage'
+  | 'marche' | 'marin' | 'masse' | 'mecenat' | 'mer' | 'monde' | 'monture' | 'mortelle' | 'motivation' | 'munition'
+  | 'navire' | 'objet' | 'offre' | 'opposition' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier' | 'par'
+  | 'passer' | 'patient' | 'payer' | 'personnelle' | 'pitance' | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port'
+  | 'porte' | 'porteur' | 'poste' | 'poussee' | 'pratiquer' | 'prix' | 'profil' | 'promouvoir' | 'protection'
+  | 'psychologique' | 'qualite' | 'quantite' | 'rallier' | 'reassigne' | 'recevoir' | 'rechargement' | 'recit'
+  | 'recuperation' | 'reeducation' | 'refuser' | 'refute' | 'relache' | 'renier' | 'repartition' | 'repli' | 'reponse'
+  | 'repos' | 'repousser' | 'revele' | 'round' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'siege' | 'soins'
+  | 'solo' | 'sort' | 'soutenu' | 'survivre' | 'talent' | 'tas' | 'taverne' | 'teleportation' | 'terre' | 'test'
+  | 'tir' | 'tirage' | 'tire' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'vapeur' | 'vendre' | 'vente'
+  | 'victoire' | 'vider' | 'visee' | 'viser' | 'voyage';
+/** Les mots de `S`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`traitPsychologique` : `trait`,
+ *  `psychologique`). */
+type Mots<S extends string, Cur extends string = ''> = S extends `${infer C}${infer R}`
+  ? C extends '-' ? (Cur extends '' ? never : Cur) | Mots<R, ''>
+    : C extends Majuscule ? (Cur extends '' ? never : Cur) | Mots<R, Lowercase<C>>
+      : Mots<R, `${Cur}${C}`>
+  : Cur extends '' ? never : Cur;
+/** VERROU : tout verbe du noyau se nomme dans le lexique des verbes, toute machinerie dans le sien ; chaque domaine de
+ *  verbe vidé de ses mots étrangers ne prend que des mots du lexique (#3614). */
+const verrousDuLexique: [
+  VerrouDuLexique<keyof ActionsDuNoyau>,
+  VerrouDeLaMachinerie<keyof MachinerieDuNoyau>,
+  Verrou<Mots<PasRelatif>, MotDuLexique>,
+  Verrou<Mots<ChoixDesFenetres['destin']['issue']>, MotDuLexique>,
+  Verrou<Mots<TavernOpponent['kind']>, MotDuLexique>,
+  Verrou<Mots<AxeDuChoix>, MotDuLexique>,
+  Verrou<Mots<ModeDeMarche>, MotDuLexique>,
+  Verrou<Mots<CharMode>, MotDuLexique>,
+  Verrou<Mots<VoyageCadence>, MotDuLexique>,
+  Verrou<Mots<ModeDEvaluation>, MotDuLexique>,
+  Verrou<Mots<CounterDeclaration>, MotDuLexique>,
+  Verrou<Mots<HealMode>, MotDuLexique>,
+  Verrou<Mots<GenreDeDepot>, MotDuLexique>,
+  Verrou<Mots<Main>, MotDuLexique>,
+  Verrou<Mots<ReactionDeBouclier>, MotDuLexique>,
+  Verrou<Mots<IssueDEmpoignade>, MotDuLexique>,
+  Verrou<Mots<ShootingStanceKey>, MotDuLexique>,
+  Verrou<Mots<BattleActionMode>, MotDuLexique>,
+  Verrou<Mots<NonNullable<BattleState['over']>>, MotDuLexique>,
+  Verrou<Mots<CleDeRegistre>, MotDuLexique>,
+  Verrou<Mots<ClueState['statut']>, MotDuLexique>,
+  Verrou<Mots<FlowKey>, MotDuLexique>,
+  Verrou<Mots<HostJet>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */
