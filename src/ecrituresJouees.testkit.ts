@@ -8,7 +8,7 @@
 import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
 import { editer, ouvrirLEdition, sceneEditee, type GesteDEdition, type Scene, type Segment, type SessionDEdition } from './noyau/index';
 import type { SorteDePorteur } from './noyau/sceneEditLecture';
-import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur } from './hote/editeur';
+import { boutonDeLEdition, gesteDuFormulaire, zonesDeLEditeur, type ZonesDeLEditeur } from './hote/editeur';
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { estObjet } from './lib/objet.mjs';
 
@@ -65,19 +65,19 @@ function offres(elements: readonly (Choix | Ligne | Bouton | Formulaire)[]): Off
   }).filter((o) => !recursif(o.chemin));
 }
 
-/** Le geste d'édition que joue le jeu `jeu` des zones de la session `s`, passé en JSON comme le pont le reçoit ;
+/** Le geste d'édition que joue le jeu `jeu` des zones `zones` d'une session, passé en JSON comme le pont le reçoit ;
  *  `undefined` si les zones ne l'offrent pas. */
-function gesteDuJeu(s: SessionDEdition, jeu: Jeu): GesteDEdition | undefined {
+function gesteDuJeu(zones: ZonesDeLEditeur, jeu: Jeu): GesteDEdition | undefined {
   const recu = JSON.parse(JSON.stringify(jeu)) as Record<string, unknown>;
-  const zones = zonesDeLEditeur(s);
   if ('edition' in recu) return boutonDeLEdition(zones, recu.edition) ? (recu.edition as GesteDEdition) : undefined;
   return gesteDuFormulaire(zones, recu);
 }
 
 /** La session `s` où joue le bouton d'id `id` de ses zones. */
 function presser(s: SessionDEdition, id: string): SessionDEdition {
-  const b = Object.values(zonesDeLEditeur(s)).flat().flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : [])).find((v) => v.id === id);
-  const geste = b && gesteDuJeu(s, b.jeu);
+  const zones = zonesDeLEditeur(s);
+  const b = Object.values(zones).flat().flatMap((e: Choix | Ligne | Bouton | Formulaire) => (e.type === 'bouton' ? [e] : e.type === 'choix' || e.type === 'liste' ? e.valeurs : [])).find((v) => v.id === id);
+  const geste = b && gesteDuJeu(zones, b.jeu);
   if (!geste) throw new Error(`aucun bouton ${id} dans les zones de l’éditeur`);
   return editer(s, geste);
 }
@@ -92,11 +92,12 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
   let s = depart;
   const jouees = new Set<string>();
   for (let n = 0; n < GESTES_AU_PLUS; n++) {
-    const restantes = offres(zonesDeLEditeur(s)['editeur.inspecteur']).filter((o) => !jouees.has(o.id));
+    const zones = zonesDeLEditeur(s);
+    const restantes = offres(zones['editeur.inspecteur']).filter((o) => !jouees.has(o.id));
     const offre = restantes.find((o) => !o.emporte) ?? restantes[0];
     if (!offre) return s;
     jouees.add(offre.id);
-    const geste = gesteDuJeu(s, offre.jeu);
+    const geste = gesteDuJeu(zones, offre.jeu);
     if (geste?.geste !== 'valeur') throw new Error(`l’offre ${offre.id} ne joue pas le geste valeur`);
     const avant = sceneEditee(s);
     s = editer(s, geste);
