@@ -9,6 +9,10 @@
  */
 import type { FabriqueDId } from './fabriqueDId';
 import cargoesJson from '../data/cargoes.json';
+import landCargoJson from '../data/land-cargo.json';
+import seaCargoJson from '../data/sea-cargo.json';
+import type { LandCargoData } from '../data/schemas/defs/land-cargo';
+import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
 import { memoParVersion } from '../data/versionDataset';
 import { d100, rollDice, type DiceSpec, type RNG } from './dice';
 import { findTableEntryIndex } from './tables';
@@ -20,8 +24,9 @@ import { PA_PER_CO } from './money';
  *  (MSRC 13). */
 export type Voie = 'mer' | 'terre';
 
-/** Un type de cargaison (bien volumineux) : plages saisonnières d100 (Tableau des cargaisons) + prix de
- *  base par saison (CO par 10 points d'Encombrement) — ou un jet de dés (`{dice}`, ex. Vin maritime 3d10). */
+/** Un type de cargaison (bien volumineux) : plages saisonnières d100 (Tableau des cargaisons) + prix du
+ *  livre par saison, ou un jet de dés (`{dice}`), dans l'unité de sa voie (`prixParPointDEnc`). MSRC 13 l.80-91,
+ *  MDG 15 l.420-436 */
 export interface CargoDef {
   id: string;
   label: string;
@@ -118,11 +123,22 @@ export function rollSeasonalCargo(cargoes: CargoDef[], season: Season, rng: RNG)
   return cargoes[i];
 }
 
-/** Prix de BASE d'une cargaison (CO par 10 points d'Encombrement) pour la saison (MSRC 13 l.80-90, MDG 15
- *  l.420-436). Prix « à dés » (Vin maritime 3d10) tiré une fois à l'achat et NOTÉ. PUR (RNG injecté). */
+/** L'Encombrement que couvre un prix du livre, par voie : donnée de la configuration de chaque voie. */
+const ENC_PAR_PRIX: Readonly<Record<Voie, number>> = {
+  mer: (seaCargoJson as SeaCargoData).prixDuLivre.encParPrix,
+  terre: (landCargoJson as LandCargoData).prixDuLivre.encParPrix,
+};
+
+/** SEULE conversion d'un prix du livre de la voie en CO par point d'Enc, l'unité de `CargoLot.basePriceGold`.
+ *  PUR. MSRC 13 l.91, MDG 15 l.436 */
+export function prixParPointDEnc(prixDuLivre: number, voie: Voie): number {
+  return prixDuLivre / ENC_PAR_PRIX[voie];
+}
+
+/** Prix de BASE d'une cargaison pour la saison, en CO par point d'Enc (`prixParPointDEnc`). Prix « à dés » tiré
+ *  une fois à l'achat et NOTÉ. PUR (RNG injecté). MSRC 13 l.80-91, MDG 15 l.420-436 */
 export function cargoBasePrice(cargo: CargoDef, season: Season, rng: RNG): number {
-  if ('dice' in cargo.price) return rollDice(cargo.price.dice, rng);
-  return cargo.price[season];
+  return prixParPointDEnc('dice' in cargo.price ? rollDice(cargo.price.dice, rng) : cargo.price[season], cargo.voie);
 }
 
 /** Un LOT de cargaison en cale/soute (`basePriceGold` = prix de base NOTÉ à l'achat, CO par point d'Enc —
@@ -194,7 +210,7 @@ export function spoilCargoByPct(lots: CargoLot[], pct: number): { lots: CargoLot
   return spoilCargoByEnc(lots, Math.round(cargoTotalEnc(lots) * p / 100));
 }
 
-/** Issue d'une péripétie dangereuse terrestre pour la cargaison du convoi (arbitrage utilisateur #327).
+/** Issue d'une péripétie dangereuse terrestre pour la cargaison du convoi. https://github.com/MyEdO/game/issues/327#issuecomment-4945245936
  *  Combat gagné = le convoi est sauf ; fuite = perte partielle ; défaite = pillage lourd.
  *  Les taux sont des paramètres MAISON (`landRobberyFleePct`/`landRobberyLossPct`). */
 export type CargoRaidOutcome = 'victory' | 'fled' | 'defeat';
