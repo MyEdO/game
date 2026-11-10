@@ -21,7 +21,7 @@ import type { FoyerDeRegle } from '../data/schemas/grammaire/valeurs';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
 import { trappingsInstanciables, talents, levelsForCareer, skills, specPoolOf, specCatalogOf, refLabel, findCareerById, qualities, type TrappingData } from '../data';
 import { memoParVersion } from '../data/versionDataset';
-import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars } from './careerSlots';
+import { talentSlotsUpTo, designationsFor, talentMaxReached, talentAcquisitions, skillSlots, availableChars, refKey } from './careerSlots';
 import { talentCost, advanceCost, inCareerChar } from './advancement';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT } from './types';
@@ -855,6 +855,10 @@ export interface EntrainementOption {
   tutorMaxBrass: number;
 }
 
+/** La clé d'une option d'Entraînement : l'id de la Compétence et sa spécialisation, ou la Caractéristique, que nul id de
+ *  Compétence ne recouvre (`refKey`). */
+export const cleDEntrainement = (o: Pick<EntrainementOption, 'id' | 'spec'>): string => refKey(o.id, o.spec);
+
 /** Options d'Entraînement (LDB 23 l.132-136) : Compétences et Caractéristiques HORS carrière
  *  seulement — celles DE carrière s'achètent par l'Avancement normal (`buySkillAdvance`/
  *  `buyCharAdvance`), sans tuteur à payer. Une Compétence à Spécialisations liste UNE option par
@@ -989,7 +993,7 @@ export function tutorCostRange(talentXpCost: number): { minBrass: number; maxBra
 }
 
 export interface LearnOption {
-  /** `id` STABLE du Talent — clé de `learnFails` et `opts.talentId` de `pratiquerLActivite('learn')`. */
+  /** `id` STABLE du Talent — clé de `learnFails` et du choix `interlude.talent`. */
   id: string;
   label: string;
   /** Coût PX de la PROCHAINE acquisition (talentCost × fois déjà prises). */

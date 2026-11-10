@@ -100,11 +100,8 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   recruterLeHeros: 'invité', renvoyerLeHeros: 'invité', remplacerLeHeros: 'invité', epinglerLIndice: 'invité',
   marquerLesIndices: 'invité',
   // ═══ invité : INTERLUDE (LDB 23) — chaque Activité vise un héros (1er argument ou pending/dépôt),
-  // possession validée par `intentAllowedFor`. ═══
-  // `pratiquerLActivite` = chemin UNIQUE de toutes les Activités à jet (Revenus/Artisanat/Apprentissage/
-  // Identification + catalogue) ; `fabriquerLObjet` engage l'ouvrage (setup, sans jet).
-  pratiquerLActivite: 'invité', fabriquerLObjet: 'invité', commanderLObjet: 'invité',
-  deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', suivreLEntrainement: 'invité', solderLaFaveur: 'invité',
+  // possession validée par `intentAllowedFor`. Composer et pratiquer une Activité : `fenetreChoisir('interlude', …)`. ═══
+  commanderLObjet: 'invité', deposerALaBanque: 'invité', retirerDeLaBanque: 'invité', solderLaFaveur: 'invité',
   // Préparation de bataille : le héros MENEUR est le 2e argument ; l'affectation de l'armée
   // (`affecterLeHeros`), partagée, reste à l'hôte.
   menerLActionDeBataille: 'invité',
@@ -164,8 +161,7 @@ export const PARTY_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invit�
 /** Activités d'interlude. `ouvrirLInterlude` est `hôte`, et la clôture se valide par l'hôte (`fenetreValider('interlude')`) :
  *  l'hôte seul ouvre et clôt la période. */
 export const INTERLUDE_INTENTS: ReadonlySet<string> = new Set<ActionDeClasse<'invité'>>([
-  'pratiquerLActivite', 'fabriquerLObjet', 'commanderLObjet', 'deposerALaBanque', 'retirerDeLaBanque',
-  'suivreLEntrainement', 'solderLaFaveur', 'menerLActionDeBataille',
+  'commanderLObjet', 'deposerALaBanque', 'retirerDeLaBanque', 'solderLaFaveur', 'menerLActionDeBataille',
 ]);
 
 /** Intents manuscrits du COMBAT : la classe `invité` hors groupe et interlude. */
@@ -217,7 +213,8 @@ const OUVERTURE_DES_FLUX = {
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
   test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
   steamSave: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
-  activity: { parInvite: ['pratiquerLActivite'] },
+  // Interlude : le choix `interlude.pratiquer`, au siège du héros (`CHOIX_DES_FENETRES`).
+  activity: { parInvite: ['fenetreChoisir'] },
   // Échoppe : le choix `marchand.marchander`, que l'hôte seul joue (`CHOIX_DES_FENETRES`).
   bargain: { parInvite: ['fenetreChoisir'] },
   appraise: { parHote: ['evaluerLObjet'] },

@@ -631,13 +631,10 @@ export const ROUTES: ReadonlyMap<string, Route> = buildRoutes(
     ['recruterLeHeros', TOUJOURS],
     ['renvoyerLeHeros', TOUJOURS],
     ['remplacerLeHeros', TOUJOURS],
-    // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit
-    // (`pratiquerLActivite` = chemin UNIQUE des Activités à jet).
-    ['pratiquerLActivite', PAR_ARG0],
-    ['fabriquerLObjet', PAR_ARG0],
+    // Activités d'interlude (audit M7) : le 1er argument est le héros visé — son propriétaire agit ; composer et
+    // pratiquer une Activité se choisit au siège du héros de la rangée (`fenetreChoisir('interlude', …)`).
     ['commanderLObjet', PAR_ARG0],
     ['deposerALaBanque', PAR_ARG0],
-    ['suivreLEntrainement', PAR_ARG0],
     ['solderLaFaveur', PAR_ARG0],
     // Préparation de bataille : le héros MENEUR est le 2ᵉ argument.
     ['menerLActionDeBataille', PAR_ARG1],

@@ -10,8 +10,8 @@
  */
 import type { FateSaveOption } from '../engine/fortune';
 import type {
-  IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation, IdDeReponseDeDialogue,
-  IdDeTireurRapide, IdDObjet, IdDuCoupleMonte,
+  IdDActivite, IdDActiviteEnMer, IdDAleaDeBataille, IdDArticle, IdDeChoixDePaie, IdDeCombattantPromouvable, IdDeCreatureADepecer, IdDeHeros, IdDeLigneDeButin, IdDeLigneDeRepartition, IdDePlaieDeLOperation,
+  IdDeQualiteDArtisanat, IdDeReponseDeDialogue, IdDEntrainement, IdDeSort, IdDeTalent, IdDeTireurRapide, IdDeTraitPsyPorte, IdDObjet, IdDObjetDuCatalogue, IdDuCoupleMonte,
 } from './designations';
 import type { RestFood, RestLodging } from './restFlow';
 import type { ModeDeMarche } from './merchantFlow';
@@ -128,6 +128,28 @@ export interface ChoixDesFenetres {
     /** LDB 11 l.97-103 : le tireur dont le Tir rapide est armé ; `null` : aucun. */
     viser: IdDeTireurRapide | null;
   };
+  interlude: {
+    /** LDB 23 l.5 : l'Activité que compose le héros de la rangée. */
+    activite: IdDActivite;
+    /** LDB 23 l.66-72 */
+    talent: IdDeTalent;
+    /** LDB 23 l.132-136 */
+    entrainement: IdDEntrainement;
+    /** LDB 23 l.74-78 : l'ouvrage d'Artisanat à engager. */
+    ouvrage: IdDObjetDuCatalogue;
+    /** LDB 23 l.95 : un Atout ou un Défaut que vise l'ouvrage. */
+    ajouterLaQualite: IdDeQualiteDArtisanat;
+    /** LDB 23 l.95 */
+    retirerLaQualite: IdDeQualiteDArtisanat;
+    /** L'arme à maîtriser ou l'artefact à étudier. */
+    objet: IdDObjet;
+    /** Le sort à mémoriser. */
+    sort: IdDeSort;
+    /** Le Trait psychologique à éliminer. */
+    traitPsy: IdDeTraitPsyPorte;
+    /** LDB 23 l.5 : l'Activité composée se pratique. */
+    pratiquer: true;
+  };
   batailleDeMasse: {
     /** ADE II 08 l.309 : la ligne de la table choisie au lieu du tirage (`affronterLePeril`). */
     alea: IdDAleaDeBataille;
@@ -179,6 +201,7 @@ const reprenableParLHote = { effet: 'reprenable', portee: 'fenetre', qui: 'hote'
 const fige = { effet: 'fige', portee: 'fenetre', qui: 'proprietaire' } as const;
 const figeParLHote = { effet: 'fige', portee: 'fenetre', qui: 'hote' } as const;
 const duHerosParLHote = { effet: 'reprenable', portee: 'rangee', qui: 'hote' } as const;
+const figeDuHeros = { effet: 'fige', portee: 'rangee', qui: 'proprietaire' } as const;
 
 /** La déclaration de chaque choix, table TOTALE sur `ChoixDesFenetres`. */
 export const CHOIX_DES_FENETRES = {
@@ -207,6 +230,11 @@ export const CHOIX_DES_FENETRES = {
   roundStart: {
     promouvoir: { ...fige, porteurDeLaValeur: (_s, valeur) => (typeof valeur === 'string' ? valeur : undefined) },
     viser: { ...reprenable, porteurDeLaValeur: (s, valeur) => (typeof valeur === 'string' ? valeur : s.preemptAiming ?? undefined) },
+  },
+  // Chaque héros compose son Activité et la pratique, à son siège.
+  interlude: {
+    activite: duHeros, talent: duHeros, entrainement: duHeros, ouvrage: duHeros, ajouterLaQualite: duHeros, retirerLaQualite: duHeros,
+    objet: duHeros, sort: duHeros, traitPsy: duHeros, pratiquer: figeDuHeros,
   },
   batailleDeMasse: { alea: figeParLHote },
   finDeSeance: { ambitionCourte: reprenableParLHote, ambitionLongue: reprenableParLHote, ambitionPersonnelleCourte: duHerosParLHote, ambitionPersonnelleLongue: duHerosParLHote, motivation: duHerosParLHote },

@@ -21,7 +21,7 @@ import { creerActionsDeManoeuvre } from './shipManeuver';
 import { sortiesDuChapitre, validationsDuChapitre } from './chapitreRecap';
 import { choixDeCampagne, creerActionsDeCampagne, sortiesDeCampagne } from './campagne';
 import { creerActionsDEntreeEnScene } from './entreeEnScene';
-import { cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
+import { choixDInterlude, cloturesDInterlude, creerActionsDInterlude, validationsDInterlude } from './interludeFlow';
 import { choixDeLaBataille, creerActionsDeBatailleDeMasse, sortiesDeBatailleDeMasse } from './massBattleFlow';
 import { creerActionsDesFaveurs } from './favorFlow';
 import { choixDeLaFinDeSeance, creerActionsDuGroupe, sortiesDuGroupe, validationsDuGroupe } from './partyFlow';
@@ -60,12 +60,12 @@ type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'affronter' | 'aid
   | 'asperger' | 'attribuer' | 'avancer' | 'basculer' | 'carener' | 'ceder' | 'changer' | 'chanter' | 'chercher' | 'cliquer'
   | 'commander' | 'creer' | 'debarquer' | 'depecer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
   | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'eprouver'
-  | 'equiper' | 'evaluer' | 'fabriquer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
+  | 'equiper' | 'evaluer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
   | 'incanter' | 'installer' | 'jeter' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer' | 'mener'
-  | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'payer' | 'pivoter' | 'poser' | 'pousser' | 'pratiquer' | 'prendre'
+  | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'payer' | 'pivoter' | 'poser' | 'pousser' | 'prendre'
   | 'promouvoir' | 'quitter' | 'rallier' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
   | 'refuser' | 'relever' | 'remettre' | 'remiser' | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre'
-  | 'restaurer' | 'retirer' | 'rompre' | 'servir' | 'signaler' | 'soigner' | 'solder' | 'suivre' | 'supprimer' | 'tenter'
+  | 'restaurer' | 'retirer' | 'rompre' | 'servir' | 'signaler' | 'soigner' | 'solder' | 'supprimer' | 'tenter'
   | 'terminer' | 'transmettre' | 'troquer' | 'utiliser' | 'vendre';
 /** Les actions des verbes de fenêtre, `fenetre<Action>` (`VerbeDeChoix`, `fenetreValider`, `fenetreFermer`). */
 type ActionDeFenetre = 'choisir' | 'valider' | 'fermer';
@@ -140,6 +140,7 @@ function choixDesFenetres(get: Get, set: SetDesClesReservees): CorpsDesChoix {
     ...choixDuMarchand(get, set),
     ...choixDuButin(get, set),
     ...choixDuRepos(get, set),
+    ...choixDInterlude(get, set),
     ...choixDeLaBataille(get, set),
   } satisfies CorpsDesChoix;
 }

@@ -14,7 +14,7 @@ import {
   ACTIONS, NAVAL_TRAITS, apparences, careers, conditionIds, crewRoles, findConditionById, findCreatureById, findSeaShantyById,
   findTrappingById, maneuvers, pregens, profilsStandard, shipStations, skills, spells, talents, trappingsInstanciables,
 } from '../data';
-import { ACTIVITIES, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
+import { ACTIVITIES, cleDEntrainement, entrainementOptions, qualitesDArtisanat } from '../engine/activities';
 import { libelleDePsy } from '../engine/psych/ciblage';
 import { TAVERN_GAMES } from '../engine/tavernGame';
 import { travelVehicles, vehicleTravel } from '../engine/travel';
@@ -117,10 +117,8 @@ export type IdDeFaveur = string;
 export type IdDActivite = string;
 /** Un objet du catalogue (`trappings.json`). */
 export type IdDObjetDuCatalogue = string;
-/** Un Atout qu'un ouvrage d'Artisanat peut viser (`qualitesDArtisanat`). */
-export type IdDAtoutDArtisanat = string;
-/** Un Défaut qu'un ouvrage d'Artisanat peut viser (`qualitesDArtisanat`). */
-export type IdDeDefautDArtisanat = string;
+/** Un Atout ou un Défaut qu'un ouvrage d'Artisanat peut viser (`qualitesDArtisanat`). */
+export type IdDeQualiteDArtisanat = string;
 /** Une apparence du catalogue (`apparences.json`), ou la forme propre d'un objet (`TrappingData.shape`). */
 export type IdDApparence = string;
 /** Un Talent du catalogue (`talents.json`). */
@@ -131,7 +129,8 @@ export type IdDeCarriere = string;
 export type IdDeCreneau = string;
 /** Une Compétence ou un Talent du catalogue (`skills.json`, `talents.json`) : l'option d'un emplacement. */
 export type IdDeCompetenceOuDeTalent = string;
-/** Une Compétence ou une Caractéristique qu'un héros du groupe peut s'entraîner à acquérir (`entrainementOptions`). */
+/** Une Compétence ou une Caractéristique qu'un héros du groupe peut s'entraîner à acquérir (`entrainementOptions`), par sa
+ *  clé (`cleDEntrainement`). */
 export type IdDEntrainement = string;
 /** Une offre nommée d'une entité de la scène courante (`ActionOfferte.id`, `actionsDe`). */
 export type IdDActionDEntite = string;
@@ -304,8 +303,7 @@ export const DESIGNATIONS = {
   IdDeFaveur: { mot: 'id de Faveur', lire: (s) => ids(s.favors), nom: () => null },
   IdDActivite: { mot: 'id d’Activité', lire: () => ids(ACTIVITIES), nom: (_s, id) => labelParmi(ACTIVITIES, id) },
   IdDObjetDuCatalogue: { mot: 'id d’objet du catalogue', lire: () => ids(trappingsInstanciables()), nom: (_s, id) => findTrappingById(id)?.label ?? null },
-  IdDAtoutDArtisanat: { mot: 'id d’Atout d’Artisanat', lire: () => qualitesDArtisanat().atouts, nom: () => null },
-  IdDeDefautDArtisanat: { mot: 'id de Défaut d’Artisanat', lire: () => qualitesDArtisanat().defauts, nom: () => null },
+  IdDeQualiteDArtisanat: { mot: 'id de qualité d’Artisanat', lire: () => [...qualitesDArtisanat().atouts, ...qualitesDArtisanat().defauts], nom: () => null },
   IdDApparence: {
     mot: 'id d’apparence',
     lire: () => sansDoublon([...ids(apparences), ...trappingsInstanciables().flatMap((t) => (t.shape ? [t.shape.id] : []))]),
@@ -319,7 +317,7 @@ export const DESIGNATIONS = {
     lire: () => sansDoublon([...ids(skills), ...ids(talents)]),
     nom: (_s, id) => labelParmi(skills, id) ?? labelParmi(talents, id),
   },
-  IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(ids(lesEntrainements(s))), nom: () => null },
+  IdDEntrainement: { mot: 'id d’Entraînement', lire: (s) => sansDoublon(lesEntrainements(s).map(cleDEntrainement)), nom: (s, cle) => lesEntrainements(s).find((o) => cleDEntrainement(o) === cle)?.label ?? null },
   IdDActionDEntite: { mot: 'id d’offre d’entité', lire: (s) => sansDoublon(ids(lesActionsDEntite(s))), nom: (s, id) => labelParmi(lesActionsDEntite(s), id) },
   IdDeServiceDuLieu: { mot: 'id de service du lieu', lire: (s) => ids(echoppesDuLieu(s)), nom: (s, id) => labelParmi(echoppesDuLieu(s), id) },
   IdDAleaDeBataille: { mot: 'id d’aléa de bataille', lire: () => ids(BATTLE_HAZARDS), nom: (_s, id) => labelParmi(BATTLE_HAZARDS, id) },

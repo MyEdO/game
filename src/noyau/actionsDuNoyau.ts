@@ -16,12 +16,11 @@ import type {
   IdDeCombattant, IdDeHeros, IdDePorteur, IdDePossession, IdDObjet,
   IdDEntiteDeScene, IdDuClic, IdDePorte, IdDIndice, IdDIntention, IdDeLigneDeButin,
   IdDeCargaison, IdDePorteurDeCargaison, IdDOffreDeCargaison, IdDeDepot, IdDeSort, IdDePanoplie, IdDeCondition, IdDeFaveur,
-  IdDActivite, IdDObjetDuCatalogue, IdDAtoutDArtisanat, IdDeDefautDArtisanat, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
-  IdDeCompetenceOuDeTalent, IdDEntrainement, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDeRoute,
+  IdDActivite, IdDObjetDuCatalogue, IdDApparence, IdDeTalent, IdDeCarriere, IdDeCreneau,
+  IdDeCompetenceOuDeTalent, IdDActionDEntite, IdDeServiceDuLieu, IdDePointDInteret, IdDeRoute,
   IdDeModeDeVoyage, IdDeRoleABord, IdDeStation, IdDePoste, IdDeTraitNaval, IdDeCompetence, IdDAttaque, IdDeManoeuvre,
   IdDObjetRamassable,
 } from './designations';
-import type { CiblesChoisies } from './verdictsDInterlude';
 import type { FenetreAValider, FenetreQuiSeFerme } from './modalArbiter';
 
 /** Un texte que le joueur écrit (un nom, une motivation) : jamais un id, que `DESIGNATIONS` désigne. */
@@ -186,21 +185,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   engagerLaMelee: () => void;
   /** Passe au Round suivant après le Rassemblement (l.124). */
   avancerLaBataille: () => void;
-  /** Activités (LDB 23) : `craftStart` engage l'ouvrage (matériaux ¼ prix + `Combatant.craft`) ; le
-   *  LANCER passe par `pratiquerLActivite('craft')`. Passer commande (Exotique) + banque restent dédiés. */
-  fabriquerLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue, atouts: IdDAtoutDArtisanat[], defauts: IdDeDefautDArtisanat[]) => void;
   /** Opérations bancaires (LDB 23 l.164-170) : `indice` choisi pour un placement (`invest`), tiré au d10 s'il est absent
    *  (LDB 23 l.168) ; refusé et dit sur un autre dépôt. */
   deposerALaBanque: (heroId: IdDeHeros, kind: 'invest' | 'stash' | 'mecenat', amountBrass: number, indice?: IndiceDePlacement) => void;
   retirerDeLaBanque: (depotId: IdDeDepot) => void;
   commanderLObjet: (heroId: IdDeHeros, trappingId: IdDObjetDuCatalogue) => void;
-  /** Entraînement (ch.23 l.130-136) : Compétence/Caractéristique hors carrière, PX + tuteur 1D10 sc — sans jet. */
-  suivreLEntrainement: (heroId: IdDeHeros, kind: 'skill' | 'characteristic', id: IdDEntrainement, spec?: Specialisation) => void;
-  /** Activité du CATALOGUE data-driven (`activities.json`, contexte 'interlude' + gate `where`) — LE
-   *  CHEMIN UNIQUE de toutes les Activités à jet : Revenus, Artisanat, Apprentissage (`talentId`),
-   *  Identification (`itemUid`), Convalescence (ADE II), Activités d'Altdorf (ACE Annexe I). Cibles
-   *  éventuelles : `CiblesChoisies`. */
-  pratiquerLActivite: (heroId: IdDeHeros, activityId: IdDActivite, opts?: CiblesChoisies) => void;
   /** Composition d'équipe : ajoute le héros que le noyau bâtit de `heros` (`herosDeLEngagement`), avec sa Richesse de
    *  départ, dans un emplacement du siège qui décide (`decidingSeat`) / retire un héros (propriétaire seul). */
   recruterLeHeros: (heros: HerosEngage) => void;

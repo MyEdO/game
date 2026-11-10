@@ -22,7 +22,14 @@ import { refuserGesteDuSiege } from './refusVisible';
 import type { Reglage, ValeurDuReglage } from './reglages';
 import { refusDeChoixDePaie } from './shipCrew';
 import { corruptionTarget } from './corruptionFlow';
-import { activityById } from '../engine/activities';
+import { activityById, cleDEntrainement, craftCatalog, entrainementOptions, learnableTalents, qualitesDArtisanat, type ActivityDef, type ActivityResolver } from '../engine/activities';
+import { describeQuality } from '../engine/qualities/describe';
+import { libelleDePsy } from '../engine/psych/ciblage';
+import { formatMoney, fromBrass } from '../engine/money';
+import { interludeCatalog } from './interludeFlow';
+import {
+  brouillonDe, ciblesDActivite, refusDeLaComposition, refusDeLaValeur, type CompositionDActivite,
+} from './verdictsDInterlude';
 import { plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus } from './seaActivities';
 import { decidingSeat } from './netOwnership';
 import { seatOwns } from './sieges';
@@ -40,7 +47,7 @@ import { refusDAlea } from './massBattleFlow';
 import { actFirstIds } from './turnEconomy';
 import { preemptShooterIds } from './targeting';
 import { inBattleId } from './monde/combatants';
-import type { ItemInstance } from '../engine/types';
+import type { Combatant, ItemInstance } from '../engine/types';
 import type { LootGear } from './pendings';
 import { creaturesDeLaRecolte, refusDeDepecer } from './combatEffects';
 import {
@@ -126,6 +133,42 @@ const duRepos = (v: string, axe: 'couchage' | 'pitance'): ValeurDuReglage => ouv
 
 /** Le combattant `id` de la bataille, nommé. */
 const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, garanti(inBattleId(s.battle, id), id, 'combattant de la pause').label);
+
+/** Ce qu'une valeur coûte, dit avec elle : une valeur de liste ne se montre que par son libellé. */
+export const auPrix = (label: string, prix: string): string => t('interlude.prix', { label, prix });
+
+/** Les Activités que compose un héros de l'interlude : celles du catalogue de ce lieu (`interludeCatalog`), hors de la
+ *  préparation de bataille (`menerLActionDeBataille`) et du Mécénat, une Opération bancaire. LDB 23 l.5 */
+export const activitesComposables = (s: Jeu): ActivityDef[] => interludeCatalog(s).filter((d) => !d.contexts.includes('bataille') && d.resolver !== 'mecenat');
+
+/** Le héros `pid` de l'interlude ouvert, l'Activité qu'il compose et sa composition, quand ce que lit `lue` (le
+ *  résolveur de l'Activité, et l'Artisanat en cours) la retient. */
+const composee = (s: Jeu, pid: IdDeHeros | undefined, lue: (resolver: ActivityResolver | undefined, h: Combatant) => boolean) => {
+  const c = pid === undefined ? undefined : s.interlude?.perHero[pid]?.composition;
+  const h = c && s.party.find((x) => x.id === pid);
+  const def = c && activityById(c.activite);
+  return h && c && def && lue(def.resolver, h) ? { h, c, def } : null;
+};
+/** Une Activité du catalogue, hors de ce que l'Artisanat, l'Apprentissage et l'Entraînement composent à part. */
+const duCatalogue = (r: ActivityResolver | undefined): boolean => r !== 'craftExtended' && r !== 'learnTalent' && r !== 'entrainement';
+/** L'ouvrage d'Artisanat à engager, le héros n'en ayant pas en cours. LDB 23 l.76 */
+const aEngager = (r: ActivityResolver | undefined, h: Combatant): boolean => r === 'craftExtended' && !h.craft;
+/** Le choix de la cible `cle` de l'Activité composée du catalogue : chacune de `liste`, fermée par son refus (`refusDeLaValeur`). */
+const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsy', cle: keyof CompositionDActivite['cibles'], liste: (h: Combatant, def: ActivityDef) => readonly T[], valeur: (x: T) => string, libelle: (x: T) => string) =>
+  reglage('interlude', axe, (s, pid) => {
+    const lu = composee(s, pid, duCatalogue);
+    return lu ? liste(lu.h, lu.def).map((x) => ouverte(valeur(x), libelle(x), refusDeLaValeur(s, lu.h.id, lu.c, axe, valeur(x)))) : [];
+  }, (s, pid) => composee(s, pid, duCatalogue)?.c.cibles[cle] ?? null);
+/** Un Atout ou un Défaut d'Artisanat, nommé. */
+const qualite = (id: string): ValeurDuReglage => ouverte(id, garanti(describeQuality({ id }), id, 'qualité d’artisanat').label);
+/** Les qualités que vise l'ouvrage composé (`retenue`), parmi les Atouts puis les Défauts. LDB 23 l.95 */
+const qualitesDeLOuvrage = (axe: 'ajouterLaQualite' | 'retirerLaQualite', retenue: (c: CompositionDActivite, q: string) => boolean) =>
+  reglage('interlude', axe, (s, pid) => {
+    const lu = composee(s, pid, aEngager);
+    const { atouts, defauts } = qualitesDArtisanat();
+    return lu ? [...atouts, ...defauts].filter((q) => retenue(lu.c, q)).map(qualite) : [];
+  });
+const visee = (c: CompositionDActivite, q: string): boolean => c.atouts.includes(q) || c.defauts.includes(q);
 
 /** L'issue du Sauvetage par le Destin, dans l'ordre de la fenêtre : celles que sa source offre (`fateSaveOptions`), puis
  *  la mort acceptée. LDB 17 l.29-32 */
@@ -253,6 +296,37 @@ export const OUVERTS_DU_CHOIX = {
       const tireurs = preemptShooterIds(() => s);
       return tireurs.length || s.preemptAiming ? [ouverte(null, t('valeur.viser.aucun')), ...tireurs.map((id) => combattant(s, id))] : [];
     }, (s) => s.preemptAiming),
+  },
+  // LDB 23 l.5 : chaque héros compose son Activité, puis la pratique.
+  interlude: {
+    activite: reglage('interlude', 'activite', (s, pid) => {
+      const h = pid === undefined || !s.interlude?.perHero[pid] ? undefined : s.party.find((x) => x.id === pid && !x.dead);
+      return h ? activitesComposables(s).map((def) => ouverte(def.id, def.label, refusDeLaComposition(s, h.id, brouillonDe(s.interlude?.perHero[h.id]?.composition, def.id), false))) : [];
+    }, (s, pid) => (pid === undefined ? null : s.interlude?.perHero[pid]?.composition?.activite ?? null)),
+    // LDB 23 l.66-72
+    talent: reglage('interlude', 'talent', (s, pid) => {
+      const lu = composee(s, pid, (r) => r === 'learnTalent');
+      return lu ? learnableTalents(lu.h).map((o) => ouverte(o.id, auPrix(o.label, t('interlude.px', { px: o.xpCost })), refusDeLaValeur(s, lu.h.id, lu.c, 'talent', o.id))) : [];
+    }, (s, pid) => composee(s, pid, (r) => r === 'learnTalent')?.c.cibles.talentId ?? null),
+    // LDB 23 l.132-136
+    entrainement: reglage('interlude', 'entrainement', (s, pid) => {
+      const lu = composee(s, pid, (r) => r === 'entrainement');
+      return lu ? entrainementOptions(lu.h).map((o) => ouverte(cleDEntrainement(o), auPrix(o.label, t('interlude.px', { px: o.xpCost })), refusDeLaValeur(s, lu.h.id, lu.c, 'entrainement', cleDEntrainement(o)))) : [];
+    }, (s, pid) => composee(s, pid, (r) => r === 'entrainement')?.c.entrainement ?? null),
+    // LDB 23 l.74-78
+    ouvrage: reglage('interlude', 'ouvrage', (s, pid) => {
+      const lu = composee(s, pid, aEngager);
+      return lu ? craftCatalog().map((o) => ouverte(o.id, auPrix(o.label, formatMoney(fromBrass(o.materialsBrass))), refusDeLaValeur(s, lu.h.id, lu.c, 'ouvrage', o.id))) : [];
+    }, (s, pid) => composee(s, pid, aEngager)?.c.ouvrage ?? null),
+    ajouterLaQualite: qualitesDeLOuvrage('ajouterLaQualite', (c, q) => !visee(c, q)),
+    retirerLaQualite: qualitesDeLOuvrage('retirerLaQualite', visee),
+    objet: cibleDuCatalogue('objet', 'itemUid', (h, def) => { const { armes, artefacts } = ciblesDActivite(h, def); return [...armes, ...artefacts]; }, (i) => i.uid, (i) => i.label),
+    sort: cibleDuCatalogue('sort', 'spellId', (h, def) => ciblesDActivite(h, def).sorts, (x) => x.spell.id, (x) => auPrix(x.spell.label, t('interlude.px', { px: x.cost }))),
+    traitPsy: cibleDuCatalogue('traitPsy', 'traitPsy', (h, def) => ciblesDActivite(h, def).traitsPsy, (x) => x.cle, (x) => libelleDePsy(x.trait.type, x.trait.cible)),
+    pratiquer: reglage('interlude', 'pratiquer', (s, pid) => {
+      const lu = composee(s, pid, () => true);
+      return lu ? [ouverte(true, libelleDuChoix('interlude', 'pratiquer'), refusDeLaComposition(s, lu.h.id, lu.c))] : [];
+    }),
   },
   // ADE II 08 l.309
   batailleDeMasse: {

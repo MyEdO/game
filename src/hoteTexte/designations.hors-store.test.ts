@@ -86,11 +86,9 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-sceneEntry-0\)/);
     passeLeControle(t, verbe('jetLancer', 'cascade', rangee));
   });
-  it('un id dans un objet d’options : `pratiquerLActivite`, le Trait psychologique porté', { timeout: 120_000 }, () => {
+  it('un id dans un objet d’options : `ouvrirLeMedecin`, le patient', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [heros] = refuseLId(t, verbe('creerLaPanoplie', 'nobody'), /heroId : "nobody" n’est pas un id de héros/);
-    refuseLId(t, verbe('pratiquerLActivite', heros, 'plein-air', { traitPsy: 'nobody' }), /opts\.traitPsy : "nobody" n’est pas un id de Trait psychologique porté/);
-    refuseLId(t, verbe('pratiquerLActivite', heros, 'plein-air', { spellId: 'nobody' }), /opts\.spellId : "nobody" n’est pas un id de sort/);
+    refuseLId(t, verbe('ouvrirLeMedecin', { patientId: 'nobody' }), /opts\.patientId : "nobody" n’est pas un id de héros/);
   });
   it('la signature dit ce que le paramètre désigne', () => {
     const r = table().lire('verbes', { id: 'cliquerLaCase' });

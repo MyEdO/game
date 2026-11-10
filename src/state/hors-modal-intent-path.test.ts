@@ -56,12 +56,9 @@ const EMISSION: Record<string, { parUI: true } | { sansSurface: string }> = {
   recruterLeHeros: { parUI: true },
   renvoyerLeHeros: { parUI: true },
   remplacerLeHeros: { parUI: true },
-  pratiquerLActivite: { parUI: true },
-  fabriquerLObjet: { parUI: true },
   commanderLObjet: { parUI: true },
   deposerALaBanque: { parUI: true },
   retirerDeLaBanque: { parUI: true },
-  suivreLEntrainement: { parUI: true },
   solderLaFaveur: { parUI: true },
   menerLActionDeBataille: { parUI: true },
   // Réglages des jets (#3368) : l'arme d'enfoncement d'une rangée de `ForceDoorModal` (EDO 11 l.93), les Bandages du
