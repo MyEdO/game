@@ -5,7 +5,7 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { d100 } from '../engine/dice';
 import { evaluateTest } from '../engine/tests';
 import { bonus, effectiveChar } from '../engine/characteristics';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { massBattleTrackHit, armyMight, armyStartMight, battleActivityById, peutTenterAction, type MassBattleState } from './massBattleFlow';
 import { BATTLE_HAZARDS, type MassBattleSpec } from '../engine/massBattle';
 import { t } from '../i18n';
@@ -29,7 +29,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *  bataille SANS interlude (aucune préparation possible → Round 1 direct). */
 function start(
   spec: Partial<MassBattleSpec> = {},
-  party = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur),
+  party = groupeDeScenario(idsDeTest, 'soldat', 'chasseur'),
   opts: { interludeLeft?: number } = {},
 ) {
   seedBattleRng(1234);
@@ -43,7 +43,7 @@ function start(
 }
 
 /** Le groupe doté de Savoir (Guerre) — Compétence Avancée que la Planification exige (LDB 09 l.30). */
-function partyWithWarLore(party = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur)): Combatant[] {
+function partyWithWarLore(party = groupeDeScenario(idsDeTest, 'soldat', 'chasseur')): Combatant[] {
   return party.map((h) =>
     h.skills.some((s) => s.id === 'savoir' && s.spec === 'guerre' && (s.advances ?? 0) > 0)
       ? h
@@ -95,7 +95,7 @@ describe('amorcerLaBataille / état', () => {
   });
 
   it('sans interlude : aucune préparation possible → bataille engagée directement (écran massBattle, phase round)', () => {
-    start({}, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({}, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     const s = banc.getState();
     expect(s.screen).toBe('massBattle');
     expect(s.massBattle?.phase).toBe('round'); // Round 1 direct (pas de prep sans budget)
@@ -232,7 +232,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Planification : le meneur sans Savoir (Guerre) n’est pas remplacé par celui qui l’a', () => {
-    const [soldat, chasseur] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur);
+    const [soldat, chasseur] = groupeDeScenario(idsDeTest, 'soldat', 'chasseur');
     start({}, [partyWithWarLore([soldat])[0], chasseur]);
     prep('planification', chasseur.id);
     expect(pending()).toBeNull();
@@ -240,7 +240,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Activité SOLO : le meneur Inconscient n’est pas remplacé (Discours inspirant)', () => {
-    const [soldat, chasseur] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur);
+    const [soldat, chasseur] = groupeDeScenario(idsDeTest, 'soldat', 'chasseur');
     start({}, [ko(soldat), chasseur]);
     prep('inspire', soldat.id);
     expect(pending()).toBeNull();
@@ -248,7 +248,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Activité COMBINÉE : le meneur hors d’état de la tenter → refus nommé (Repérage)', () => {
-    const [soldat, chasseur] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur).map(ko);
+    const [soldat, chasseur] = groupeDeScenario(idsDeTest, 'soldat', 'chasseur').map(ko);
     start({}, [soldat, chasseur]);
     prep('reperage', soldat.id);
     expect(pending()).toBeNull();
@@ -256,7 +256,7 @@ describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : re
   });
 
   it('Scène de Round : personne en état de la tenter → refus nommé (Motivation)', () => {
-    start({ situations: [['motivation']] }, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({ situations: [['motivation']] }, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     banc.setState({ party: banc.getState().party.map(ko) });
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     expect(pending()).toBeNull();
@@ -865,7 +865,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
   it('un héros ne peut faire que 3 Activités AU TOTAL (mix prépa bataille + interlude normale) — la 4ᵉ est REFUSÉE', () => {
     // GROUPE À UN SEUL HÉROS : son budget d'interlude (3) est le SEUL budget de préparation → l'épuiser
     // épuise toute la préparation (le budget est UNIQUE, l.65). Repérage réussi débloque le Sabotage.
-    start({}, partyWithWarLore(pregenParty(idsDeTest, PREGEN.soldat)));
+    start({}, partyWithWarLore(groupeDeScenario(idsDeTest, 'soldat')));
     const [hero] = banc.getState().party.map((h) => h.id);
     expect(leftOf(hero)).toBe(3);
 
@@ -1034,13 +1034,13 @@ describe('Aléa & fermeture', () => {
   });
 
   it('la sortie de la bataille de masse la ferme', () => {
-    start({}, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({}, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     banc.getState().fenetreFermer('batailleDeMasse');
     expect(banc.getState().massBattle).toBeNull();
   });
 
   it('la sortie de la bataille de masse REFUSE de clore sous un Test de bataille en cours, en le nommant (#1906)', () => {
-    start({ situations: [['motivation']] }, pregenParty(idsDeTest, PREGEN.soldat, PREGEN.chasseur), { interludeLeft: 0 });
+    start({ situations: [['motivation']] }, groupeDeScenario(idsDeTest, 'soldat', 'chasseur'), { interludeLeft: 0 });
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'motivation');
     const pa = pending()!;
     expect(pa?.battle, 'un Test de Scène est ouvert').toBeTruthy();

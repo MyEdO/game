@@ -23,7 +23,7 @@ import { findTableEntry } from './tables';
 import { garanti } from '../lib/garanti';
 import { contexteDeNaissanceDObjet, buildInventory, recomputeLoadout, emptyArmour } from './items';
 import { groupsFor } from './groups';
-import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails } from './types';
+import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails, type ItemInstance } from './types';
 import {
   SpeciesData,
   CareerLevelData,
@@ -93,8 +93,8 @@ export function cleDOption(option: AdvancementRef): string {
 }
 
 /**
- * Les CHOIX de création d'un héros, en ids — la forme commune du brouillon du créateur (`CreatorDraft`),
- * des pré-tirés (`PregenDef`) et des options de `createHero`.
+ * Les CHOIX de création d'un héros, en ids — la forme commune du brouillon du créateur (`CreatorDraft`) et des
+ * options de `createHero`.
  */
 export interface ChoixDeCreation {
   /** Graine RACINE de la création : chaque étape aléatoire en dérive son flux (`fluxDeCreation`). */
@@ -418,61 +418,11 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   //    de dotation se résolvent par `opts.trappingChoices` AVANT `buildInventory`.
   const rawTrappings = resolveTrappingChoices(dotationsDuHeros(opts.careerId), opts.trappingChoices ?? {});
   const items = buildInventory(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
-
-  // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
-  // et Mutations » l.708 « Un Lourd Fardeau ») : résolu et posé sur `Combatant.traits` (MÊME résolution
-  // que le spawn de créature bestiaire, #513).
   const id = opts.id ?? opts.idNeuf('hero');
-  const speciesTraits = traitsDuPorteur(sp.traits ?? [], { id, indice: indiceSurLeProfil((k) => chars[k]) });
-
-  // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents
-  // résolus (espèce + carrière + signe astral) ci-dessus, sinon Moyenne.
-  const size = sizeFromTalents(talents.map((tt) => tt.talentId), tailleDuTalent) ?? 'moyenne';
 
   // Destin / Résilience
   const fateBase = sp.fate;
   const split = opts.fateSplit ?? autoFateSplit(fateBase.extra);
-  const fate = fateBase.fate + split.fate;
-  const resilience = fateBase.resilience + split.resilience;
-
-  const sansBlessures: Omit<Combatant, 'wounds'> = {
-    id,
-    label: opts.label,
-    kind: 'hero',
-    species: opts.speciesId,
-    career: opts.careerId,
-    groups: groupsFor({ speciesId: sp.id }), // Groupes déclarés par l'espèce ; carrière, classe, culte et Traits lus en direct (`groupesDe`). LDB 21
-    size,
-    characteristics: chars,
-    advantage: 0,
-    conditions: [],
-    weapons: [],
-    armour: emptyArmour(),
-    items,
-    skills,
-    talents,
-    traits: speciesTraits.length ? speciesTraits : undefined, // Trait racial d'espèce (#572) — Ogre : encombrance/consommation ×2 + Taille
-    movement: sp.movement,
-    fate,
-    fortune: fate,
-    resilience,
-    resolve: resilience,
-    motivation: opts.motivation,
-    details: opts.details,
-    // Avancement : les 5 Augmentations gratuites de la création (LDB 05 l.459) sont comptées dans
-    // charAdvances ; les PX bonus des choix aléatoires (LDB 04/05) restent à dépenser.
-    xp: opts.xpBonus ?? 0,
-    charAdvances,
-    careerLevel: 1,
-    ...(opts.apparence ? { appearance: { ...opts.apparence, species: especeDApparence(opts.speciesId) } } : {}),
-  };
-
-  // Blessures du profil (LDB 05 l.1001), effets d'acquisition des Talents (`appliquerAcquisitions`), puis
-  // Chance et Détermination.
-  const hero: Combatant = { ...sansBlessures, wounds: blessuresPosees(sansBlessures) };
-  appliquerAcquisitions(hero);
-  hero.fortune = fortuneMax(hero);
-  hero.resolve = resolveMax(hero);
 
   // Désignations des emplacements de carrière utilisés à la création (cf. careerSlots) :
   // compétences « (Au choix) » ayant reçu des augmentations + talent de carrière à choix.
@@ -483,17 +433,17 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     const i = (level?.skills ?? []).findIndex((_, j) => adresseDeCreation.carriereCompetence(j) === adresse);
     const slot = slotsDuNiveau[i];
     if (!slot?.needsChoice) continue;
-    const designation = designateSlot(hero, opts.careerId, slot, designee.id, designee.spec, sSlots);
+    const designation = designateSlot(heroSoFar, opts.careerId, slot, designee.id, designee.spec, sSlots);
     if (!designation.ok) throw new Error(`Compétence de carrière « ${refKey(designee.id, designee.spec)} » : ${designation.reason} (LDB 05 l.535).`);
   }
   if (chosenTalent) {
     const { id: talentId, spec } = chosenTalent;
     const all = [...sSlots, ...tSlots];
-    const designations = designationsFor(hero, opts.careerId);
+    const designations = designationsFor(heroSoFar, opts.careerId);
     const statut = statutOuRefus(tSlots, designations, talentId, spec, all);
     const quoi = `Talent de carrière « ${refKey(talentId, spec)} »`;
     switch (statut) {
-      case 'free': designateSlot(hero, opts.careerId, freeSlotFor(tSlots, designations, talentId, spec, all)!, talentId, spec, all); break;
+      case 'free': designateSlot(heroSoFar, opts.careerId, freeSlotFor(tSlots, designations, talentId, spec, all)!, talentId, spec, all); break;
       case 'explicit': case 'designated': break;
       case 'absent': throw new Error(`${quoi} : absent du Niveau 1 de « ${opts.careerId} » (LDB 05 l.535).`);
       case 'sansSpec': throw new Error(`${quoi} : l'emplacement « (Au choix) » du Niveau 1 de « ${opts.careerId} » exige une spécialisation (LDB 10 l.17).`);
@@ -501,22 +451,122 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     }
   }
 
-  // Sorts de Magie mineure (LDB 10 l.714), après les Bénédictions déjà octroyées par
-  // `applyTalentAcquisition`.
-  const quota = pettySpellQuotaFor(hero);
+  // Sorts de Magie mineure (LDB 10 l.714).
+  const quota = pettySpellQuotaFor(heroSoFar);
   const horsMagieMineure = (opts.pettySpells ?? []).filter((id) => findSpellById(id)?.family !== 'mineure');
   if (horsMagieMineure.length) throw new Error(`Sorts de Magie mineure « ${horsMagieMineure.join(', ')} » : absents du catalogue des sorts mineurs (LDB 10 l.714).`);
-  if (quota && opts.pettySpells?.length) {
-    const appris = opts.pettySpells.slice(0, quota).filter((id) => !(hero.spells ?? []).includes(id));
-    hero.spells = [...(hero.spells ?? []), ...appris];
-  }
+
+  return assemblerLeHeros({
+    espece: sp,
+    career: opts.careerId,
+    careerLevel: 1,
+    id,
+    label: opts.label,
+    characteristics: chars,
+    charAdvances,
+    talents,
+    skills,
+    items,
+    careerSlotChoices: heroSoFar.careerSlotChoices,
+    fate: fateBase.fate + split.fate,
+    resilience: fateBase.resilience + split.resilience,
+    spells: quota ? (opts.pettySpells ?? []).slice(0, quota) : [],
+    // Les 5 Augmentations gratuites de la création (LDB 05 l.459) sont comptées dans charAdvances ; les PX
+    // bonus des choix aléatoires (LDB 04/05) restent à dépenser.
+    xp: opts.xpBonus ?? 0,
+    details: opts.details,
+    motivation: opts.motivation,
+    apparence: opts.apparence,
+  });
+}
+
+/** Un héros aux valeurs DÉJÀ résolues — ni tirage ni choix par adresse : l'entrée d'`assemblerLeHeros`. */
+export interface HerosResolu {
+  espece: SpeciesData;
+  /** Carrière actuelle, son Niveau, et le parcours qui la contient (`Combatant.careerHistory`). */
+  career: string;
+  careerLevel: number;
+  careerHistory?: string[];
+  id: string;
+  label: string;
+  /** Valeurs stockées : Augmentations comprises, sans les `charMod` des Talents (passifs). LDB 05 l.463 */
+  characteristics: Characteristics;
+  charAdvances: Partial<Record<CharKey, number>>;
+  talents: TalentInstance[];
+  skills: SkillInstance[];
+  items: ItemInstance[];
+  careerSlotChoices?: Combatant['careerSlotChoices'];
+  fate: number;
+  resilience: number;
+  /** Sorts appris en plus des Bénédictions qu'octroient les Talents (`appliquerAcquisitions`). */
+  spells: readonly string[];
+  xp: number;
+  details?: HeroDetails;
+  motivation?: string;
+  apparence?: CreateHeroOptions['apparence'];
+}
+
+/** Le héros des valeurs résolues `r`, sans tirage : Traits d'espèce, Taille, Blessures, effets d'acquisition des
+ *  Talents, Chance et Détermination, sorts, loadout. */
+export function assemblerLeHeros(r: HerosResolu): Combatant {
+  const sp = r.espece;
+  // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
+  // et Mutations » l.708 « Un Lourd Fardeau ») : résolu et posé sur `Combatant.traits` (MÊME résolution
+  // que le spawn de créature bestiaire, #513).
+  const speciesTraits = traitsDuPorteur(sp.traits ?? [], { id: r.id, indice: indiceSurLeProfil((k) => r.characteristics[k]) });
+
+  // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents, sinon Moyenne.
+  const size = sizeFromTalents(r.talents.map((tt) => tt.talentId), tailleDuTalent) ?? 'moyenne';
+
+  const sansBlessures: Omit<Combatant, 'wounds'> = {
+    id: r.id,
+    label: r.label,
+    kind: 'hero',
+    species: sp.id,
+    career: r.career,
+    groups: groupsFor({ speciesId: sp.id }), // Groupes déclarés par l'espèce ; carrière, classe, culte et Traits lus en direct (`groupesDe`). LDB 21
+    size,
+    characteristics: r.characteristics,
+    advantage: 0,
+    conditions: [],
+    weapons: [],
+    armour: emptyArmour(),
+    items: r.items,
+    skills: r.skills,
+    talents: r.talents,
+    traits: speciesTraits.length ? speciesTraits : undefined, // Trait racial d'espèce (#572) — Ogre : encombrance/consommation ×2 + Taille
+    movement: sp.movement,
+    fate: r.fate,
+    fortune: r.fate,
+    resilience: r.resilience,
+    resolve: r.resilience,
+    motivation: r.motivation,
+    details: r.details,
+    xp: r.xp,
+    charAdvances: r.charAdvances,
+    careerLevel: r.careerLevel,
+    ...(r.careerHistory ? { careerHistory: r.careerHistory } : {}),
+    ...(r.careerSlotChoices ? { careerSlotChoices: r.careerSlotChoices } : {}),
+    ...(r.apparence ? { appearance: { ...r.apparence, species: especeDApparence(sp.id) } } : {}),
+  };
+
+  // Blessures du profil (LDB 05 l.1001), effets d'acquisition des Talents (`appliquerAcquisitions`), puis
+  // Chance et Détermination.
+  const hero: Combatant = { ...sansBlessures, wounds: blessuresPosees(sansBlessures) };
+  appliquerAcquisitions(hero);
+  hero.fortune = fortuneMax(hero);
+  hero.resolve = resolveMax(hero);
+
+  // Sorts appris, après les Bénédictions déjà octroyées par `applyTalentAcquisition`.
+  const appris = r.spells.filter((id) => !(hero.spells ?? []).includes(id));
+  if (appris.length) hero.spells = [...(hero.spells ?? []), ...appris];
 
   recomputeLoadout(hero); // dérive weapons/armure/encombrement ; auto-génère le loadout par défaut (Mêlée/Distance)
   return hero;
 }
 
 /** Répartition automatique des 5 Augmentations gratuites (2/2/1) sur les Caractéristiques de
- *  carrière — utilisée quand l'appelant (pré-tirés) ne fournit pas de répartition. */
+ *  carrière — utilisée quand l'appelant ne fournit pas de répartition. */
 function autoCharAlloc(careerChars: CharKey[]): Partial<Record<CharKey, number>> {
   const out: Partial<Record<CharKey, number>> = {};
   const parts = [2, 2, 1];

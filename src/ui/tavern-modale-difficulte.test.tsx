@@ -9,7 +9,7 @@ import { describe, it, expect, beforeAll, beforeEach, afterEach } from 'vitest';
 import { act } from 'react';
 import { monterRacine, demonterRacines } from '../monterRacine.testkit';
 import { useGame } from '../state/store';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule, resetRule } from '../engine/policy';
 import { findTavernGameById } from '../engine/tavernGame';
 import { TavernGameModal } from './TavernGameModal';
@@ -19,7 +19,7 @@ beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REAC
 beforeEach(() => {
   useGame.setState(useGame.getInitialState(), true);
   setRule('tavern-games', true);
-  useGame.setState({ party: pregenParty(idsDeTest, PREGEN.soldat) });
+  useGame.setState({ party: groupeDeScenario(idsDeTest, 'soldat') });
 });
 afterEach(() => {
   demonterRacines();

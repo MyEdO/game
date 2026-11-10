@@ -56,7 +56,7 @@
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
 //   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
-// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'à Grunni, son offre
+// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'au Tueur, son offre
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
 //   l'Entrée.
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
@@ -74,7 +74,7 @@
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
 // - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, celui d'un ennemi
 //   ouvert au clic droit sur sa case, et la fiche fermée par son bouton « Fermer ».
-// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Rosa Brandt,
+// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Apothicaire,
 //   son armure choisie dans ses possessions puis ôtée par « Porter », sa potion choisie.
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
@@ -176,7 +176,9 @@
  * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
  * « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit
  * par `importer.mjs --sans-publier` ; sans `--modeles`, il sert le dossier des modèles du projet et y pose un véhicule,
- * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. Un cran de molette de l'atelier attend
+ * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?rendu=econome`
+ * (`PontDuNoyau.RENDU_ECONOME`) : une image ne se dessine que si l'écran a changé, sans anticrénelage
+ * multiéchantillon ; une lecture de la page n'attend plus le dessin d'une image, et un geste en attend un moins long. Un cran de molette de l'atelier attend
  * que `atelier.defilement` change, jamais une publication quelconque.
  * Le parcours des cadrages (`--parcours cadrages --vues <fichier>`) attend que le monde soit posé, le modèle de
  * chaque navire de la vue (`navires`) et la base de chaque corps dessiné (`corps`), puis prend le regard de chaque
@@ -185,7 +187,8 @@
  * `hotes/godot/cadrages/a-bord-de-la-caraque.json`.
  * L'éditeur (`--parcours editeur`) sert une copie
  * neuve des projets manuscrits du dépôt, clique « Éditeur », puis ses boutons et les cases de la carte, lit son état
- * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il intercepte le choix de fichier de
+ * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il amène chaque bouton et chaque champ
+ * du panneau par la molette, aux crans que dit son point au défilement publié (`wfrpEcran.panneau`) ; il intercepte le choix de fichier de
  * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-planche]` d'une planche qu'il écrit.
  * @contrat Écran publié
  */
@@ -246,6 +249,8 @@ const nouvelEcran = (timeoutMs = 30000) => waitFor(session, '!!globalThis.wfrpEc
 const actif = (v) => v.projection.combat?.actif
 /** Les éléments que la vue montre dans la zone `zone` (`vue.zones`, `CONTRAT.md`). */
 const zone = (v, z) => v.zones[z]
+/** Le bouton de la carte d'un héros du groupe (`groupe.heros`) qui ouvre sa fiche. */
+const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
 /** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
@@ -964,13 +969,13 @@ async function parcoursSoin() {
       await fermerLesFenetres()
     }
   }
-  for (let tours = 0; (await aUnHeros(), zone(await vue(), 'combat.actif')[0]?.nom !== 'Grunni Pierre-de-Fer'); tours++) {
-    assert.ok(tours < 5, `Grunni prend la main : ${zone(await vue(), 'combat.actif')[0]?.nom}`)
+  for (let tours = 0; (await aUnHeros(), zone(await vue(), 'combat.actif')[0]?.nom !== 'Tueur'); tours++) {
+    assert.ok(tours < 5, `Le Tueur prend la main : ${zone(await vue(), 'combat.actif')[0]?.nom}`)
     await finirLeTour()
   }
   let v = await vue()
   const soigner = offre(v, 'heal')
-  assert.ok(soigner && !soigner.refus, `Grunni soigne : ${JSON.stringify(soigner)}`)
+  assert.ok(soigner && !soigner.refus, `Le Tueur soigne : ${JSON.stringify(soigner)}`)
   await cliquerBouton(bouton(soigner))
   v = await vue()
   const patient = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
@@ -1019,9 +1024,9 @@ async function parcoursVoyage() {
   await capturer('3534-voyage-1-jets')
   for (let k = 0; k < 4; k++) {
     await cliquerBouton('Lancer')
-    await attendreLaVue(`v.zones['fenetre.corps'].flatMap((e) => (e.type === 'entite' ? e.elements : [e])).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
+    await attendreLaVue(`v.zones['groupe.heros'].flatMap((h) => h.elements).filter((e) => e.type === 'jet' && e.resultat).length > ${k}`)
   }
-  noter(`jets tombés : ${corps(await vue())}`)
+  noter(`jets tombés : ${zone(await vue(), 'groupe.heros').map((h) => `${h.nom} (${h.elements.map((e) => e.verdict ?? e.libelle).join(', ')})`).join(' | ')}`)
   await capturer('3534-voyage-2-tombes')
   await avancer('recitDeVoyage')
   await attendreLaVue("v.projection.fenetre?.cle === 'recitDeVoyage'")
@@ -1093,10 +1098,10 @@ async function parcoursRepos() {
   let v = await vue()
   noter(`repos : ${corps(v)}`)
   await capturer('3328-r1-1-nuit')
-  const dormeur = (v) => zone(v, 'fenetre.corps').find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
-  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée')
-  await cliquerBouton('Dehors')
-  await attendreLaVue("v.zones['fenetre.corps'].find((e) => e.id === 'repos/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
+  const dormeur = (v) => element(v, 'groupe.heros', 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs.map((b) => `${b.libelle}${b.presse ? '*' : ''}`).join(' ')
+  assert.equal(dormeur(v), 'Privée* Commune Dehors', 'Bjorn en chambre privée, sur sa carte')
+  await choisirDansLaListe(undefined, 'Dehors')
+  await attendreLaVue("v.zones['groupe.heros'].find((e) => e.id === 'heros/bjorn').elements.find((x) => x.id === 'couchage').valeurs[2].presse")
   v = await vue()
   noter(`Bjorn : ${dormeur(v)}`)
   await capturer('3328-r1-2-dehors')
@@ -1204,11 +1209,11 @@ async function parcoursFiche() {
   let v = await vue()
   assert.equal(v.projection.fenetre, null, 'l’Entrée ferme la fenêtre du round')
   const [heros] = zone(v, 'groupe.heros')
-  assert.ok(heros, 'chaque héros du groupe a son bouton')
-  await cliquerBouton(bouton(heros))
+  assert.ok(heros, 'chaque héros du groupe a sa carte')
+  await cliquerBouton(bouton(ficheDuHeros(heros)))
   v = await vue()
-  assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.libelle, 'son bouton ouvre le statbloc du héros')
-  noter(`bouton « ${heros.libelle} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
+  assert.equal(zone(v, 'fiche.porteur')[0]?.nom, heros.nom, 'le bouton de sa carte ouvre le statbloc du héros')
+  noter(`carte « ${heros.nom} » : ${zone(v, 'fiche.profil').map((p) => `${p.libelle} ${p.valeur}`).join(' · ')} ; ${zone(v, 'fiche.sections').map((s) => s.nom).join(', ')}`)
   await capturer('3678-statbloc-1-heros')
   const [cle, ennemi] = Object.entries(v.occupants).find(([, id]) => element(v, 'combat.ordre', `ordre/${id}`)?.ton === 'echec')
   const [x, y, z] = cle.split(',').map(Number)
@@ -1230,9 +1235,9 @@ async function parcoursInventaire() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await fermerLesFenetres()
-  const heros = zone(v, 'groupe.heros').find((b) => b.libelle === 'Rosa Brandt')
-  assert.ok(heros, 'Rosa Brandt a son bouton')
-  await cliquerBouton(bouton(heros))
+  const heros = zone(v, 'groupe.heros').find((c) => c.nom === 'Apothicaire')
+  assert.ok(heros, 'Apothicaire a sa carte')
+  await cliquerBouton(bouton(ficheDuHeros(heros)))
   v = await vue()
   const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)
   await cliquerBouton(bouton(possession('Justaucorps de cuir')))
@@ -1293,20 +1298,38 @@ function ecrirePlanche(chemin, cote = 400, pas = 40) {
 async function parcoursEditeur() {
   await cliquerBouton('Éditeur')
   await waitFor(session, '!!globalThis.wfrpEcran?.editeur && !!wfrpEcran.cases', { timeoutMs: 120000 })
-  /** Le bouton `quoi` du panneau d'outils, amené à l'écran par la molette sur le panneau, vers le bas jusqu'à ce que
-   *  l'écran ne bouge plus, puis vers le haut, puis cliqué : chaque cran republie l'écran. */
-  const amenerAuPanneau = async (quoi) => {
-    let sens = 100
-    let avant = null
-    for (let n = 0; !trouver((await ecran()).boutons, quoi); n++) {
-      assert.ok(n < 120, `${JSON.stringify(quoi)} amené par la molette sur le panneau`)
-      const vus = JSON.stringify((await ecran()).boutons.map((b) => [b.element, b.y]))
-      if (vus === avant) sens = -sens
-      avant = vus
-      await molette(session, { surface: 'canvas', x: 160, y: 400 }, sens)
-      await sleep(250)
+  /** Le pas d'un cran de molette sur le panneau, en pixels de défilement, relevé au premier cran qui n'en touche pas un
+   *  bout : les crans suivants, tournés d'un geste, s'attendent jusqu'à la position qu'ils donnent. */
+  let pasDuCran = null
+  /** Le bouton, ou pour `sorte` `saisies` le champ, `quoi` du panneau d'outils, rendu tel que l'écran le publie : un
+   *  bouton à l'écran l'est tel quel, sinon, comme un champ, il est amené au milieu du cadre du panneau par la molette
+   *  sur le panneau : son point au défilement publié (`panneau`) dit les crans à tourner, d'un geste, jusqu'à ce qu'il
+   *  tienne dans la moitié centrale du cadre ou que la course s'achève. */
+  const amenerAuPanneau = async (quoi, sorte = 'boutons') => {
+    for (let n = 0; ; n++) {
+      const publie = await ecran()
+      const { panneau } = publie
+      const cible = trouver(panneau[sorte], quoi)
+      assert.ok(cible, `${JSON.stringify(quoi)} au panneau ; ${sorte} : ${panneau[sorte].map((b) => b.element ?? b.texte).join(' | ')}`)
+      const ecart = cible.y - (panneau.haut + panneau.bas) / 2
+      const fin = Math.max(panneau.contenu - panneau.page, 0)
+      const course = ecart < 0 ? panneau.valeur : fin - panneau.valeur
+      const visible = trouver(publie[sorte], quoi)
+      if (visible && (sorte === 'boutons' || Math.abs(ecart) <= (panneau.bas - panneau.haut) / 4 || course <= 0)) return visible
+      assert.ok(n < 6 && course > 0, `${JSON.stringify(quoi)} amené par la molette au milieu du panneau : à ${Math.round(cible.y)} px, défilé de ${panneau.valeur} sur ${fin}`)
+      const sens = Math.sign(ecart)
+      if (!pasDuCran) {
+        await molette(session, { surface: 'canvas', x: 160, y: 400 }, sens * CRAN_DE_MOLETTE)
+        await waitFor(session, `globalThis.wfrpEcran?.panneau?.valeur !== ${panneau.valeur}`)
+        const parcouru = Math.abs((await ecran()).panneau.valeur - panneau.valeur)
+        if (parcouru < course) pasDuCran = parcouru
+        continue
+      }
+      const crans = Math.max(1, Math.round(Math.min(Math.abs(ecart), course) / pasDuCran))
+      const attendu = Math.min(Math.max(panneau.valeur + sens * crans * pasDuCran, 0), fin)
+      await molette(session, { surface: 'canvas', x: 160, y: 400 }, sens * CRAN_DE_MOLETTE, { crans })
+      await waitFor(session, `Math.abs(globalThis.wfrpEcran?.panneau?.valeur - ${attendu}) < 0.5`)
     }
-    return trouver((await ecran()).boutons, quoi)
   }
   const cliquerAuPanneau = async (quoi) => {
     await amenerAuPanneau(quoi)
@@ -1343,13 +1366,7 @@ async function parcoursEditeur() {
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'scene/nord')?.texte === 'Nord : vers le haut du plan'`)
   noter('« Annuler » : le nord rendu au haut du plan')
   const message = 'Au relais\nEn route'
-  const champDuMessage = async () => (await ecran()).saisies.find((x) => x.element === 'saisieMultiligne/introduire/texte')
-  for (let n = 0; !((await champDuMessage())?.y <= 480); n++) {
-    assert.ok(n < 20, 'le champ du message de départ amené par la molette au milieu du panneau')
-    await molette(session, { surface: 'canvas', x: 160, y: 400 }, 100)
-    await sleep(250)
-  }
-  const champMessage = await champDuMessage()
+  const champMessage = await amenerAuPanneau({ element: 'saisieMultiligne/introduire/texte' }, 'saisies')
   assert.equal(champMessage.texte, '', 'la Diligence n’a pas de message de départ')
   await geste(session, { surface: 'canvas', x: champMessage.x, y: champMessage.y }, { qui: 'le champ du message de départ' }, clic())
   for (const lettre of message) {
@@ -1366,7 +1383,6 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `${valeurDuMessage} === ''`)
   noter('« Annuler » : la scène rendue sans message de départ')
-  for (let n = 0; n < 20; n++) await molette(session, { surface: 'canvas', x: 160, y: 400 }, -100)
   e = await editeur()
   for (const id of ['outil/height', 'hauteur/haute', 'pinceau/3']) {
     await cliquerAuPanneau({ element: `bouton/${id}` })
@@ -1385,8 +1401,9 @@ async function parcoursEditeur() {
     await emettre('souris', { type: 'mousePressed', x, y, button: 'left', clickCount: 1 })
     for (const d of [1, 2]) {
       const [cx, cy] = cases[`${x0 + d},${y0}`]
+      await marquer()
       await emettre('souris', { type: 'mouseMoved', x: cx, y: cy, button: 'left', buttons: 1 })
-      await sleep(300)
+      await nouvelEcran()
     }
     tenu = { surcouche: (await editeur()).surcouche, point: (await ecran()).cases[`${x0 + 2},${y0}`] }
     const [fx, fy] = cases[`${x0 + 2},${y0}`]
@@ -1480,27 +1497,16 @@ async function parcoursEditeur() {
   const decor = e.surcouche.reperes.find((r) => r.choisi)
   assert.deepEqual([decor.sorte, decor.x, decor.y, decor.nom, e.noms[`${dx},${dy},0`]], ['prop', dx, dy, catalogue.libelle, catalogue.libelle], 'l’outil Décor pose le décor choisi sur la case cliquée, sélectionné, nommé au-dessus d’elle')
   noter(`outil Décor, un clic : ${e.zones['editeur.pointee'].find((l) => l.id === 'entite').texte}`)
-  /** La saisie d'élément `element`, amenée par la molette au milieu du panneau, d'en haut comme d'en bas : l'écran ne
-   *  publie que les saisies qu'il montre. */
-  const amener = async (element) => {
-    const champ = async () => (await ecran()).saisies.find((x) => x.element === element)
-    for (let n = 0, y = (await champ())?.y; !(y >= 80 && y <= 480); n++, y = (await champ())?.y) {
-      assert.ok(n < 20, `la saisie ${element} amenée par la molette au milieu du panneau`)
-      await molette(session, { surface: 'canvas', x: 160, y: 400 }, y < 80 ? -100 : 100)
-      await sleep(250)
-    }
-    return champ()
-  }
-  /** Tape `texte` dans la saisie d'élément `element` (`amener`), à la place du sien. */
+  /** Tape `texte` dans la saisie d'élément `element` (`amenerAuPanneau`), à la place du sien. */
   const taper = async (element, texte) => {
-    const c = await amener(element)
+    const c = await amenerAuPanneau({ element }, 'saisies')
     await geste(session, { surface: 'canvas', x: c.x, y: c.y }, { qui: element }, clic())
     await realKey(session, { key: 'End', code: 'End', windowsVirtualKeyCode: 35 })
     for (let n = 0; n < c.texte.length; n++) await realKey(session, { key: 'Backspace', code: 'Backspace', windowsVirtualKeyCode: 8 })
     for (const lettre of texte) await realKey(session, { key: lettre, code: `Key${lettre.toUpperCase()}`, windowsVirtualKeyCode: lettre.toUpperCase().charCodeAt(0) })
     await waitFor(session, `globalThis.wfrpEcran?.saisies.find((x) => x.element === '${element}')?.texte === ${JSON.stringify(texte)}`)
   }
-  assert.equal((await amener('saisieTexte/nommer/nom'))?.texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
+  assert.equal((await amenerAuPanneau({ element: 'saisieTexte/nommer/nom' }, 'saisies')).texte, decor.nom, 'le champ du nom, prérempli, à l’inspecteur')
   await taper('saisieTexte/nommer/nom', 'Comptoir')
   await cliquerAuPanneau({ element: 'formulaire/nommer' })
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.noms['${dx},${dy},0'] === 'Comptoir'`)
@@ -1737,7 +1743,6 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/calque/caler' })
   for (const point of [cases[`${cx},${cy}`], noeud(cx), cases[`${cx + 4},${cy}`], noeud(cx + 8)]) {
     await cliquerPoint(...point)
-    await sleep(200)
   }
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.calque'] ?? []).some((l) => l.id === 'calque/calage')`)
   e = await editeur()
@@ -2641,7 +2646,7 @@ if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Obj
 
 let echec = null
 try {
-  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}` })
+  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&rendu=econome` })
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))

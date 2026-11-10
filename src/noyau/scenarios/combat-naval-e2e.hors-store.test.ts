@@ -138,7 +138,7 @@ describe('Combat naval e2e — VICTOIRE par ABORDAGE', () => {
   it('le Tueur traverse jusqu\'aux pirates, les abat, et la cogue crewless est prise → victoire', () => {
     const battle = launch(11);
     const scene = banc.getState().scene!;
-    const tueur = byId(battle, 'pregen-202'); // boarder de mêlée (le Tueur du groupe d'arène)
+    const tueur = byId(battle, 'tueur-de-test'); // boarder de mêlée (le Tueur du groupe d'arène)
     const cogue = byId(battle, COGUE);
     const crewIds = [...cogue.crewIds!];
 

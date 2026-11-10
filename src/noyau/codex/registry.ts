@@ -44,6 +44,8 @@ import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
 import { issueDuTestSchema } from '../../data/schemas/defs/sea-cargo';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
+import { carriereActuelle } from '../../engine/pnjDeCarriere';
+import { garanti } from '../../lib/garanti';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
@@ -62,7 +64,7 @@ import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
-import { deDesEvenementsDeBord } from '../../engine/seaVoyage';
+import { deDesEvenementsDeBord, deDuVoyageRapide } from '../../engine/seaVoyage';
 import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
@@ -805,8 +807,8 @@ function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
   });
 }
 
-/** Item Codex d'un Événement de bord/de port (`SeaEventDef` — MDG 15, #157 suite) : plage de jet
- *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim, et sa `consequence` en grammaire. */
+/** Item Codex d'un Événement de bord/de port ou d'un palier du Voyage rapide (`SeaEventDef` — MDG 15,
+ *  #157 suite, #1667) : plage de jet → texte verbatim, et sa `consequence` en grammaire. */
 function seaEventItem(e: SeaEventDef, faces?: number): CodexItem {
   return depuisEnveloppe(e, {
     sub: fourchette(e.min, e.max, faces),
@@ -1819,12 +1821,13 @@ const CODEX_SPECS = {
   },
   pregens: {
     label: 'codex.fiche.preTires', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => pregens.map((p) => ({
-      id: p.id,
-      label: p.label, sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(p.career.id)?.label ?? p.career.id),
-      meta: facts(fact(tr('codex.fiche.motivation'), p.motivation), fact(tr('codex.fiche.graine'), p.seed)),
-      sections: p.pettySpells?.length ? sections(chips(tr('codex.fiche.sorts'), p.pettySpells.map((id) => idRefRow('spells', id)))) : undefined,
-    })),
+    build: () => pregens.map((p) => {
+      const actuelle = garanti(carriereActuelle({ carrieres: p.carrieres }), p.id, 'carrière actuelle du pré-tiré');
+      return depuisEnveloppe(p, {
+        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(actuelle.id)?.label ?? actuelle.id, tr('codex.fiche.niveau2', { level: actuelle.niveau })),
+        meta: facts(fact(tr('codex.fiche.motivation'), p.motivation)),
+      });
+    }),
   },
   oups: {
     label: 'codex.fiche.oups', group: 'tables',
@@ -2241,6 +2244,10 @@ const CODEX_SPECS = {
   seaPortEvents: {
     label: 'codex.fiche.evenementsDePortMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
     build: () => datasetArray('seaPortEvents').map((e) => seaEventItem(e)),
+  },
+  seaFastVoyage: {
+    label: 'codex.fiche.voyageRapideMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
+    build: () => datasetArray('seaFastVoyage').map((e) => seaEventItem(e, facesDuDe(deDuVoyageRapide()))),
   },
   waterExposure: {
     label: 'codex.fiche.expositionALEauMaladiesHydriques', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 16',

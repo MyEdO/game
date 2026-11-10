@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spawnEnemy } from './monde/spawn';
 import { itemFromTrappingById, recomputeLoadout, loadWeapon } from '../engine/items';
 import { firedAttackBlock, attackWeaponOf, runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
@@ -30,7 +30,7 @@ const take = (id: string, over: Partial<ItemInstance> = {}): ItemInstance => {
 
 /** Héros RÉEL (pré-tiré) porteur d'une arme à distance (set 1) et d'une épée (set 2), arme de tir CHARGÉE. */
 function shooter(rangedId: string) {
-  const h = makePregens(idsDeTest)[0];
+  const h = tousLesHerosDeScenario(idsDeTest)[0];
   const ranged = take(rangedId);
   const epee = take('arme-simple');
   const ammo = take(rangedId === 'arbalete' ? 'carreau' : 'balle-et-poudre', { equipped: false });
@@ -148,7 +148,7 @@ describe('invariant « jamais sans arme » + statbloc', () => {
 
 describe('IA : tir pur Engagé (LDB 14 l.41)', () => {
   it('un PNJ IA au set de tir pur, Engagé, ne TIRE pas (il se replace) — plus de coup de poing automatique', () => {
-    const h = makePregens(idsDeTest)[0];
+    const h = tousLesHerosDeScenario(idsDeTest)[0];
     h.pos = { x: 3, y: 3 };
     // Un profil sans Trait Arme : celui d'un humain resterait à côté de l'arbalète (LDB 85, #3684).
     const e = spawnEnemy({ statblock: { type: 'statblock', label: 'Arbalétrier', char: { 'capacite-de-tir': 40, B: 12 } } }, 'e-tir', { x: 4, y: 3 });

@@ -15,7 +15,7 @@ import { testScene } from '../../scenes/test-fixture';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
 import { fenetreDIncantation, type FenetreDIncantation } from '../../noyau/fenetreDIncantation';
 import { etatInitialDuJeu, type NetState } from '../../noyau/etat';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant } from '../../engine/types';
 
 const NET = (mode: 'host' | 'guest', mySeat: number, invite: string): NetState => ({
@@ -25,7 +25,7 @@ const NET = (mode: 'host' | 'guest', mySeat: number, invite: string): NetState =
 
 /** Un sorcier en Langue (Magick) 60 : le dé 11 est un double réussi. */
 function sorcier(id: string): Combatant {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = id; h.label = id;
   h.spells = ['arme-aethyrique'];
   h.skills = [...h.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 60 }] as typeof h.skills;

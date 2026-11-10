@@ -24,7 +24,7 @@ import { t } from '../i18n';
 export interface ChoixDeRepos { libelle: string; valeurs: { libelle: string; geste: GesteDuNoyau; choisie: boolean }[] }
 
 /** Un dormeur : son couchage, sa pitance, et ce qui l'attend cette nuit. */
-export interface DormeurEnVue { id: string; nom: string; couchage: ChoixDeRepos; pitance: ChoixDeRepos; alertes: string[] }
+export interface DormeurEnVue { id: string; couchage: ChoixDeRepos; pitance: ChoixDeRepos; alertes: string[] }
 
 /** La nuit à régler : son titre, le temps qu'il fait (`null` : clément), ses dormeurs, et sa note (`null` : gratuite),
  *  couverte ou non par les bourses du groupe. */
@@ -65,7 +65,7 @@ export function reposEnVue(s: Jeu): ReposEnVue | null {
     dormeurs: s.party.filter((h) => !h.dead && p.perHero[h.id]).map((h) => {
       const { lodging, food } = p.perHero[h.id];
       return {
-        id: h.id, nom: h.label,
+        id: h.id,
         couchage: choix(s, h, 'couchage'),
         pitance: choix(s, h, 'pitance'),
         alertes: [

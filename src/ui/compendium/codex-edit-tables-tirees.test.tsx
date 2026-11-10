@@ -2,7 +2,8 @@
 /**
  * Atelier du Codex — les tables tirées s'éditent (#1667) : la rangée d'une table d'effets (`tables.json`)
  * s'enregistre et le lecteur du moteur la tire ; une rangée d'Incantation Imparfaite révisée (VDM) offre le
- * dé de son document et s'enregistre par le seam ; les colonnes des tableaux aléatoires (#3578) aussi.
+ * dé de son document et s'enregistre par le seam ; un palier du Voyage rapide (`sea-events.json`) offre le dé de
+ * sa table et l'éditeur de sa `consequence` ; les colonnes des tableaux aléatoires (#3578) s'éditent aussi.
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -12,6 +13,7 @@ import { CodexEdit } from '../editor/codex/CodexEdit';
 import { datasetArray, deDeLaTable, resetData } from '../../data/overrides';
 import { findEffectTableById } from '../../data/effectTables';
 import { findTableEntry } from '../../engine/tables';
+import { deDuVoyageRapide } from '../../engine/seaVoyage';
 import { careers, rangeesDesTalentsAleatoires, tableDeCarrieres, talents, talentsAleatoiresDie } from '../../data';
 
 beforeAll(() => {
@@ -81,6 +83,17 @@ describe('atelier du Codex — tables tirées', () => {
     saisir(de, '2d50');
     await enregistrer();
     expect(deDeLaTable('miscastMinorVdm')).toBe('2d50');
+  });
+
+  it('un palier du Voyage rapide offre l’éditeur de sa conséquence et le dé de sa table, enregistré par le seam', async () => {
+    monter('seaFastVoyage', 'desastreux');
+    const champs = [...container.querySelectorAll('.ed-field > span')].map((s) => s.textContent ?? '');
+    expect(champs.some((t) => t.startsWith('conséquence de l’événement')), 'la conséquence s’édite au FlowEditor').toBe(true);
+    const de = container.querySelector<HTMLInputElement>('input[aria-label="Dé de tirage"]')!;
+    expect(de.value).toBe('d10');
+    saisir(de, 'd20');
+    await enregistrer();
+    expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
   });
 
   it('les rangées et le dé du Tableau des Talents aléatoires s’éditent, et le lecteur suit (#3578)', async () => {

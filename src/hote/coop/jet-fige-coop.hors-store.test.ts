@@ -19,7 +19,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
 import { etatInitialDuJeu, type BattleState, type Jeu, type NetState } from '../../noyau/etat';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
@@ -101,7 +101,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
   });
 
   it('Contre-sort du héros de l’invité contre le sort que l’hôte jette au siège MJ', () => {
-    const L = pregen(idsDeTest, PREGEN.sorcier);
+    const L = herosDeScenario(idsDeTest, 'sorcier');
     L.id = 'L'; L.label = 'L';
     const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [L], net: NET('host', 0, 'L') } });
     banc.getState().lancerLaScene(testScene());

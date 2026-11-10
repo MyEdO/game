@@ -1,7 +1,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { CODEX, combatantSections } from './registry';
-import { pregen, PREGEN } from '../../data/pregens';
+import { HEROS_DE_SCENARIO, herosDeScenario, type RoleDeScenario } from '../../scenes/test-scenarios/_heros';
 import miscastRawJson from '../../data/miscast.json';
 
 /**
@@ -32,8 +32,8 @@ describe('Codex — aucun champ structuré rendu brut', () => {
     // (inspection en combat). Les prétirés portent des armes → exercent le rang d'armes (où w.damage est un
     // WeaponDamageSpec qui doit passer par damageString, pas être rendu brut).
     const offenders: string[] = [];
-    for (const key of Object.keys(PREGEN) as (keyof typeof PREGEN)[]) {
-      const c = pregen(idsDeTest, PREGEN[key]);
+    for (const key of Object.keys(HEROS_DE_SCENARIO) as RoleDeScenario[]) {
+      const c = herosDeScenario(idsDeTest, key);
       for (const sec of combatantSections(c)) {
         for (const row of sec.rows) {
           if (JSON.stringify(row).includes('[object Object]')) offenders.push(`${String(key)} › ${sec.title} › ${JSON.stringify(row)}`);

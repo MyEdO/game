@@ -13,8 +13,9 @@ import { appliquerLIntentionDUnSiege } from '../../noyau/intentionsDeSiege';
 import { appliquerLInstantane, instantaneDeLaCoop } from '../../noyau/coop';
 import { emplacementsDuGroupe } from '../../noyau/sieges';
 import { refusDeLancer } from '../../noyau/partyFlow';
-import { makePregens } from '../../data/pregens';
-import { pregens } from '../../data';
+import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
+import { idDuPretire } from '../../data/pregens';
+import { PRETIRE_DE_TEST, poserLesPretires } from '../../noyau/creation/pretireDeTest.testkit';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../../noyau/etat';
 import { t } from '../../i18n';
 import { engagerLeHeros } from '../roster';
@@ -23,7 +24,7 @@ import { stockageEnMemoire } from '../../lib/stockage.testkit';
 
 /** L'hôte (banc) d'une table à un invité au siège 1, qui remplit l'emplacement 2, relié par transport à l'invité. */
 function table() {
-  const [h1, g1] = makePregens(idsDeTest);
+  const [h1] = tousLesHerosDeScenario(idsDeTest);
   const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'host', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 0, 1, 0] } } });
   // L'invité : son état de jeu, posé par chaque instantané reçu (un seul jeu se branche par test).
   const invite = { etat: { ...etatInitialDuJeu(), net: { ...initialNet(), mode: 'guest' as const, mySeat: 1, roomCode: 'ABCDEF' } } as EtatDeJeu };
@@ -37,21 +38,22 @@ function table() {
   host.addGuest(a, 1);
   guest.connect(b);
   host.broadcastSnapshot();
-  return { hote, invite, host, guest, g1 };
+  return { hote, invite, host, guest };
 }
 
 const lecture = (s: EtatDeJeu) => ({ emplacements: emplacementsDuGroupe(s), refus: refusDeLancer(s) });
 
 describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité', () => {
   it('avant et après la composition de l’invité : mêmes emplacements, même refus de lancer', () => {
-    const { hote, invite, host, guest, g1 } = table();
+    poserLesPretires();
+    const { hote, invite, host, guest } = table();
     expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
     expect(lecture(hote.getState()).refus).toBe(t('party.action.start.guestPending'));
 
-    guest.sendIntent('recruterLeHeros', [{ pretire: pregens[1].id }]);
+    guest.sendIntent('recruterLeHeros', [{ pretire: PRETIRE_DE_TEST.id }]);
     host.broadcastSnapshot();
     expect(lecture(invite.etat)).toEqual(lecture(hote.getState()));
-    expect(lecture(hote.getState()).emplacements[2]).toEqual({ rang: 2, siege: 1, heroId: g1.id, proprietaire: 1 });
+    expect(lecture(hote.getState()).emplacements[2]).toEqual({ rang: 2, siege: 1, heroId: idDuPretire(PRETIRE_DE_TEST.id), proprietaire: 1 });
     expect(lecture(hote.getState()).refus).toBeNull();
   });
 
@@ -66,7 +68,7 @@ describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité'
 
 describe('Engager en coop : le héros de chaque siège entre au groupe (#2907 S3)', () => {
   it('l’hôte et deux invités engagent chacun un brouillon depuis le même instantané : trois héros de plus, aux ids distincts', () => {
-    const [h1] = makePregens(idsDeTest);
+    const [h1] = tousLesHerosDeScenario(idsDeTest);
     const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'host', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Berthe' }, slots: [0, 0, 1, 2] } } });
     const host = new HostSession({
       build: 'test',

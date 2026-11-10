@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
@@ -83,5 +83,5 @@ export const scenario: TestScenario = {
     '`species`, `status` — gate de choix de dialogue sur les VIVANTS du groupe, convention ' +
     'de préfixe « [Descripteur] » côté prose.',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

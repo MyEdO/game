@@ -179,7 +179,7 @@ export function applyStarOps(starId: string, chars: Characteristics, addTalent: 
  *  Sorts égal à votre Bonus de Force Mentale ») — 0 sans un Talent de `castingKind:'mineure'`
  *  (Magie mineure/Béni…) parmi ceux du héros. Le BFM passe par `baseWithTalents` (source unique des
  *  +5 de Talent), jamais une relecture manuelle des Caractéristiques brutes. Fonction PURE partagée
- *  par `createHero`-adjacent (`src/data/pregens.ts`) ET le créateur joueur (`src/noyau/creation/brouillon.ts`). */
+ *  par `createHero`, les sorts d'un PNJ (`sortsDuPnj`) et le créateur joueur (`src/noyau/creation/brouillon.ts`). */
 export function pettySpellQuotaFor(hero: Combatant): number {
   if (!(hero.talents ?? []).some((t) => castingKindOf(t.talentId) === 'mineure')) return 0;
   return bonus(baseWithTalents(hero, 'force-mentale'));

@@ -24,7 +24,7 @@ import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalo
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
 import { MANANN_FACTORS } from '../engine/seaVoyage';
-import { makePregens } from './pregens';
+import { pretires } from './pregens';
 import areneProject from '../scenes/arene/arene-projet.json';
 import loupProject from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
@@ -294,7 +294,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 
   // ── L'ADMISSION d'une `spec` se juge au SCHÉMA, par l'ENTRÉE visée (`refusDeSpec`, `grammaire/ref.ts`),
   // sur tout document registré de `src/data` et `src/scenes` (`schema-contract.test.ts`), libellé FR connu
-  // d'une entrée OUVERTE (`entreeOuverte`) compris. Restent ici les pré-tirés RUNTIME (`makePregens(idsDeTest)`),
+  // d'une entrée OUVERTE (`entreeOuverte`) compris. Restent ici les pré-tirés RUNTIME (`pretires(idsDeTest)`),
   // composés en mémoire, jamais parsés par un schéma.
   describe('GARDE — pré-tirés runtime', () => {
 
@@ -324,14 +324,14 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
       for (const v of Object.values(node)) walk(v, where);
     }
 
-    it('pregens(runtime — makePregens) : aucun libellé FR connu sur une entrée OUVERTE', () => {
-      walk(makePregens(idsDeTest), 'pregens(runtime — makePregens)'); // composition réelle career/species → Combatant
+    it('pregens(runtime — pretires) : aucun libellé FR connu sur une entrée OUVERTE', () => {
+      walk(pretires(idsDeTest), 'pregens(runtime — pretires)');
       expect(nonMigres, nonMigres.join('\n')).toEqual([]);
     });
 
-    it('pregens(runtime — makePregens) : toute spec de Compétence/Talent est ADMISE par son entrée (`refusDeSpec`)', () => {
+    it('pregens(runtime — pretires) : toute spec de Compétence/Talent est ADMISE par son entrée (`refusDeSpec`)', () => {
       const refus: string[] = [];
-      for (const h of makePregens(idsDeTest)) {
+      for (const h of pretires(idsDeTest)) {
         for (const [type, refs] of [['skill', h.skills], ['talent', h.talents]] as const) {
           for (const r of refs as { id?: string; talentId?: string; spec?: string }[]) {
             const id = r.talentId ?? r.id;

@@ -9,6 +9,8 @@ import { datasetArray, deDeLaTable, resetData, setDataset } from './overrides';
 import { effectTableDie, findEffectTableById } from './effectTables';
 import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
+import { deDuVoyageRapide, resolveFastVoyage } from '../engine/seaVoyage';
+import { makeRNG } from '../engine/dice';
 
 type Entree = Record<string, unknown>;
 const traits = () => datasetArray('traits') as unknown as Entree[];
@@ -104,5 +106,16 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe('Contrecoup édité');
     expect(enregistrerEntree('miscastMinorVdm', rangees[1], 1, '2d50').ok).toBe(true);
     expect(miscastDie('miscast-mineure-vdm')).toMatchObject({ n: 2, sides: 50 });
+  });
+
+  it('Voyage rapide : une rangée puis le dé édités changent ce que tire le lecteur', () => {
+    const paliers = datasetArray('seaFastVoyage') as unknown as Entree[];
+    const parfait = paliers.findIndex((p) => p.id === 'parfait');
+    // Lecture AVANT l'édition : le lecteur mémoïsé est construit, l'édition doit l'invalider.
+    expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe(paliers[parfait].label);
+    expect(enregistrerEntree('seaFastVoyage', { ...paliers[parfait], label: 'Palier édité' }, parfait).ok).toBe(true);
+    expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe('Palier édité');
+    expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, 'd20').ok).toBe(true);
+    expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
   });
 });

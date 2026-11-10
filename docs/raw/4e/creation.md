@@ -22,6 +22,7 @@ Ce fichier couvre le **processus complet de création de Personnage** (étapes 1
 - [Supplément Middenheim — 3 origines humaines](#supplément-middenheim--3-origines-humaines)
 - [Supplément ADE I — Nouvelles Carrières de départ](#supplément-ade-i--nouvelles-carrières-de-départ)
 - [Option 100 Points (création par points)](#option-100-points)
+- [Prétirés officiels — fiches imprimées](#prétirés-officiels--fiches-imprimées)
 - [Sources RAW](#sources-raw)
 - [Voir aussi](#voir-aussi)
 - [Implémenté](#implémenté)
@@ -623,6 +624,32 @@ Ces Carrières peuvent aussi être choisies librement à la création. `ADE I AN
 
 ---
 
+## Prétirés officiels — fiches imprimées
+
+Les compagnons de campagne et *Le Zoo impérial* impriment des Personnages prêts à jouer, sans tirage : ligne « Initiales », « Augmentation » et « Courantes », Compétences et Talents à leur Augmentation, possessions, « Richesse de départ » (un nombre de d10 d'une monnaie), « Apparence et personnalité », « Historique » et « Secrets ». Où vit chaque fiche :
+
+| Prétiré | Fiche | Apparence et personnalité | Historique | Secrets |
+|---|---|---|---|---|
+| Harbull Piedvelu | `EDOC 16 l.421` | `EDOC 16 l.549` | `EDOC 16 l.555` | `EDOC 16 l.561` |
+| Werner Murrmann | `EDOC 16 l.577` | `EDOC 16 l.704` | `EDOC 16 l.712` | `EDOC 16 l.718` |
+| Wanda Weltschmertz | `EDOC 16 l.734` | `EDOC 16 l.855` | `EDOC 16 l.861` | `EDOC 16 l.865` |
+| Johann « Dam'de nage » Dassbüt | `EDOC 16 l.887` | `EDOC 16 l.1012` | `EDOC 16 l.1020` | `EDOC 16 l.1026` |
+| Malmir Giluviel | `EDOC 16 l.1042` | `EDOC 16 l.1167` | `EDOC 16 l.1175` | `EDOC 16 l.1183` |
+| Kirsten Krank | `EDOC 16 l.1199` | `EDOC 16 l.1315` | `EDOC 16 l.1327` | `EDOC 16 l.1335` |
+| Sigrid Sommerfeld | `MSRC 19 l.498` | `MSRC 19 l.635` | `MSRC 19 l.641` | `MSRC 19 l.645` |
+| Erina Eberhauer | `PDTC 01 l.3` | `PDTC 01 l.157` | `PDTC 01 l.163` | `PDTC 01 l.167` |
+| Golthog | `PDTC 01 l.204` | `PDTC 01 l.355` | `PDTC 01 l.361` | `PDTC 01 l.367` |
+| Erich Massenbach | `ZI 14 l.55` | `ZI 14 l.180` | `ZI 14 l.180` | `ZI 14 l.202` |
+| Jorunn Gromsdottir | `ZI 14 l.219` | `ZI 14 l.359` | `ZI 14 l.365` | `ZI 14 l.369` |
+| Lynathryn Chantenuit | `ZI 14 l.386` | `ZI 14 l.490` | `ZI 14 l.496` | `ZI 14 l.510` |
+| Theodosius Schreiber | `ZI 14 l.527` | `ZI 14 l.666` | `ZI 14 l.672` | `ZI 14 l.684` |
+| Vasya Ghorshkov | `ZI 14 l.700` | `ZI 14 l.817` | `ZI 14 l.823` | `ZI 14 l.827` |
+| Kistiane Brockdorf | `ZI 14 l.848` | `ZI 14 l.974` | `ZI 14 l.980` | `ZI 14 l.984` |
+
+Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493`, Musicien (Mandoline) `EDOC 16 l.1110`, Savoir (Ostermark) `ZI 14 l.761`.
+
+---
+
 ## Sources RAW
 
 | Ref code | Source |
@@ -632,6 +659,10 @@ Ces Carrières peuvent aussi être choisies librement à la création. `ADE I AN
 | `LDB 10 l.714` | Livre de Base VF corrigé, chapitre 10 — Magie mineure à la création |
 | `Middenheim ANNEXE II l.XX` | Middenheim la Cité du Loup Blanc, Annexe II |
 | `ADE I ANNEXE I l.XX` | Archives de l'Empire vol. 1, Annexe I |
+| `EDOC 16 l.XX` | L'Ennemi dans l'Ombre — Compagnon, chapitre 12 — prétirés |
+| `MSRC 19 l.XX` | Mort sur le Reik — Compagnon, chapitre 17 — prétiré |
+| `PDTC 01 l.XX` | Le Pouvoir derrière le Trône — Compagnon, prétirés |
+| `ZI 14 l.XX` | Le Zoo impérial, Expéditions prévues — prétirés |
 
 ---
 

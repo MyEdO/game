@@ -9,7 +9,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById, TAVERN_GAMES, TAVERN_FAST_RULE } from '../engine/tavernGame';
 import { setRule } from '../engine/policy';
@@ -30,7 +30,7 @@ const NOM_HABITUE = pnjAuProfil('humain', HABITUE)!.label;
 const get = () => banc.getState();
 
 function heros(): Combatant {
-  return makePregens(idsDeTest)[0] as Combatant;
+  return tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
 }
 
 /** Séquence de partie en cours, telle que `jouerALaTaverne` la pose. */

@@ -4,7 +4,7 @@
  * que soldée, et la dernière engage le héros, qui rejoint le groupe de la partie avec les valeurs tirées et choisies.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, erreurDe, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Element, Jet, Puce } from '../../../src/hote/elements';
 
@@ -25,7 +25,7 @@ describe('la création d’un héros par le pont', () => {
     const { appel } = table();
     let s = drainer(appel, appel('demarrer', { scenario: 'marche-equipement', graine: 7 })).suite;
     while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (s.vue.zones['fenetre.gestes'].find((g) => g.type === 'bouton' && g.focus) as Bouton).jeu)).suite;
-    const avant = s.vue.zones['groupe.heros'].map((b) => b.libelle);
+    const avant = s.vue.zones['groupe.heros'].map((c) => c.nom);
     expect(s.vue.zones['creation.corps'], 'sans création, ses zones sont vides').toEqual([]);
     const creer = boutonDe(s, 'groupe.gestes', 'creation');
     expect([creer.libelle, creer.presse, creer.refus], 'un bouton ouvre la création').toEqual(['Nouveau héros', false, null]);
@@ -119,11 +119,11 @@ describe('la création d’un héros par le pont', () => {
     expect([engager.refus, engager.focus], 'l’engagement se joue à l’Entrée').toEqual([null, true]);
     const fin = jouer(engager);
     expect([fin.vue.zones['creation.titre'], fin.vue.zones['creation.corps'], fin.vue.zones['creation.gestes']], 'engagé, la création se ferme').toEqual([[], [], []]);
-    expect(fin.vue.zones['groupe.heros'].map((b) => b.libelle), 'le héros rejoint le groupe').toEqual([...avant, nom]);
+    expect(fin.vue.zones['groupe.heros'].map((c) => c.nom), 'le héros rejoint le groupe').toEqual([...avant, nom]);
     expect(fin.vue.projection.exploration!.heros.some((h) => h.nom === nom), 'la partie le porte').toBe(true);
     expect(fin.zones['journal.lignes'].some((l) => l.texte.includes(nom)), 'sa bourse de départ au journal').toBe(true);
 
-    s = suiteDe(appel('fiche', fin.vue.zones['groupe.heros'].find((b) => b.libelle === nom)!.jeu));
+    s = suiteDe(appel('fiche', ficheDuHeros(fin.vue, nom).jeu));
     const fiche = valeurs(s, 'fiche.profil');
     const caracs = Object.fromEntries(Object.entries(presentation).filter(([id]) => id.startsWith('carac/')));
     expect(Object.fromEntries(Object.entries(fiche).filter(([id]) => id.startsWith('carac/'))), 'ses dix Caractéristiques, celles que la présentation disait').toEqual(caracs);

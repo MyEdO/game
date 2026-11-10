@@ -25,6 +25,7 @@ import { weaponStatParts } from '../engine/weaponStats';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { traitLisible } from '../engine/traits/dispatch';
 import { formatMoney } from '../engine/money';
+import { bourseOf } from '../engine/bourse';
 import { careerLabelFor, charAbr, findCreatureById, findSpeciesById, findSpellById, findTalentById, findTraitById, qualityRefLabel, skillInstanceLabel, sourceRefLabel, talentConcrete } from '../data';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 
@@ -72,6 +73,8 @@ export interface FicheDuPorteur {
   resilience: number | null;
   determination: number | null;
   etats: { id: string; valeur: number }[];
+  /** Sa bourse (`bourseOf`). */
+  bourse: string;
   mouvement: number;
   caracteristiques: CaracteristiqueDeLaFiche[];
   armes: ArmeDeLaFiche[];
@@ -138,6 +141,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
     resilience: c.resilience ?? null,
     determination: c.resolve ?? null,
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
+    bourse: formatMoney(bourseOf(c)),
     mouvement: effectiveMovement(c),
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     armes: c.weapons.map((w) => ({

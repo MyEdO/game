@@ -416,7 +416,8 @@ describe('CharacterCreator (assistant) — ossature 2 zones + page blanche', () 
   it('L\'Étoile du Sorcier — la position déplie ses QUATRE destins en plaques (1d10, ADE II 3) et n\'en impose aucun', () => {
     const elu = { ...newDraft(7), star: 'l-etoile-du-sorcier-seconde-vue' };
     const html = renderToStaticMarkup(<StarScreen d={elu} setD={() => {}} />);
-    expect(html).toContain('Quatre destins');
+    expect(html).toContain('4 destins');
+    expect(html).toContain('ouvre 4 destins — la roue les déplie'); // le compte du bandeau d'action
     expect((html.match(/plaque-row/g) ?? []).length).toBe(4);
     expect(html).toMatch(/plaque-row sel/); // le destin élu porte la plaque chaude
     expect(html).toContain('1d10 4–6'); // sa fourchette de sous-table

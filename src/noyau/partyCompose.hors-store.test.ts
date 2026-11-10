@@ -2,11 +2,13 @@
  * Composition d'équipe coop (recruterLeHeros/renvoyerLeHeros + emplacements `net.slots`) :
  * point d'entrée unique de l'écran d'équipe — quota par siège, doublons, bourse, possession.
  */
-import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { makePregens, idDuPretire } from '../data/pregens';
+import { idDuPretire, richesseDuPretire } from '../data/pregens';
+import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { makeRNG } from '../engine/dice';
+import { battleRng, seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal } from './bourseFlow';
@@ -18,17 +20,12 @@ import { lancerCampagne } from '../scenes/campaign';
 import { t } from '../i18n';
 import { brouillonComplet, engage } from './creation/engagement.testkit';
 import { draftWealth, newDraft } from './creation/brouillon';
-import { pregens } from '../data';
+import { PRETIRE_DE_TEST, poserLesPretires } from './creation/pretireDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-function hero(id: string): Combatant {
-  const h: Combatant = JSON.parse(JSON.stringify(makePregens(idsDeTest)[0]));
-  h.id = id;
-  h.label = `Héros ${id}`;
-  return h;
-}
+const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'hero' });
 
 describe('composition d’équipe (partyFlow + net.slots)', () => {
   it('recruterLeHeros : le noyau bâtit le héros du brouillon, pose la possession du siège, crédite sa Richesse de départ', () => {
@@ -46,10 +43,28 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(journal[journal.length - 1]).toBe('Choisissez votre race.');
   });
 
-  it('recruterLeHeros : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée', () => {
-    const [def] = pregens;
+  it('recruterLeHeros : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée et tire sa Richesse au RNG du jeu', () => {
+    const def = PRETIRE_DE_TEST;
+    poserLesPretires();
+    seedBattleRng(31);
     banc.getState().recruterLeHeros({ pretire: def.id });
-    expect(banc.getState().party.map((h) => [h.id, h.label])).toEqual([[idDuPretire(def.seed), def.label]]);
+    const s = banc.getState();
+    expect(s.party.map((h) => [h.id, h.label])).toEqual([[idDuPretire(def.id), def.label]]);
+    expect(toBrass(bourseOf(s.party[0]))).toBe(toBrass(richesseDuPretire(def, makeRNG(31))));
+  });
+
+  it('remplacerLeHeros par un pré-tiré : aucun dé tiré, la Bourse du remplacé portée', () => {
+    const def = PRETIRE_DE_TEST;
+    poserLesPretires();
+    banc.getState().recruterLeHeros(engage('a'));
+    const bourseDeA = toBrass(bourseOf(banc.getState().party[0]));
+    seedBattleRng(31);
+    banc.getState().remplacerLeHeros('a', { pretire: def.id });
+    const s = banc.getState();
+    expect(s.party.map((h) => h.id)).toEqual([idDuPretire(def.id)]);
+    expect(toBrass(bourseOf(s.party[0]))).toBe(bourseDeA);
+    const temoin = makeRNG(31);
+    expect(battleRng().int(1, 1_000_000), 'le RNG du jeu reste à sa graine : le remplacement ne tire rien').toBe(temoin.int(1, 1_000_000));
   });
 
   it('recruterLeHeros : refuse les doublons d’id et le groupe plein', () => {

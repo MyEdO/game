@@ -17,7 +17,7 @@ const enFocus = (suite: Suite): Bouton => suite.vue.zones['fenetre.gestes'].find
 const heros = (suite: Suite, nom: string): Entite => suite.vue.zones['fenetre.corps'].find((e): e is Entite => e.type === 'entite' && e.nom === nom)!;
 const parLibelle = (e: Entite) => Object.fromEntries(e.elements.map((x: Element) => [(x as Bouton).libelle, x]));
 const valeur = (c: Element, libelle: string): Bouton => (c as Choix).valeurs.find((v) => v.libelle === libelle)!;
-const SIGMUND = 'Sigmund Reikhardt';
+const SIGMUND = 'Soldat';
 
 describe('l’interlude par le pont', () => {
   it('chaque héros compose son Activité, fermée par sa raison, et la pratique ; son jet tient la main, puis l’interlude revient', { timeout: 120_000 }, () => {
@@ -34,7 +34,7 @@ describe('l’interlude par le pont', () => {
     const composer = parLibelle(sigmund);
     expect(composer.Activité, 'l’Activité à composer, en liste').toMatchObject({ type: 'liste', refus: null });
     expect(valeur(composer.Activité, 'Revenus').refus, 'les Revenus se composent').toBeNull();
-    expect(valeur(composer.Activité, 'Identifier un artefact').refus, 'sans artefact, l’identification est fermée').toBe('Aucun objet non identifié dans le sac de Sigmund Reikhardt.');
+    expect(valeur(composer.Activité, 'Identifier un artefact').refus, 'sans artefact, l’identification est fermée').toBe('Aucun objet non identifié dans le sac de Soldat.');
     expect(composer.Entreprendre, 'rien à pratiquer avant de composer').toBeUndefined();
     expect((composer.Sabotage as Bouton).refus, 'une préparation de bataille et son préalable').toBe('Exige un Repérage réussi au préalable.');
 
@@ -43,7 +43,7 @@ describe('l’interlude par le pont', () => {
     expect(valeur(apprentissage.Activité, 'Apprentissage particulier').presse, 'l’Activité composée est pressée').toBe(true);
     const talents = apprentissage.Talent as Choix;
     expect(talents.type, 'un Talent par geste, en liste').toBe('liste');
-    expect(talents.valeurs[0].refus, 'chaque Talent fermé par sa raison').toBe('Sigmund Reikhardt : PX insuffisants (100).');
+    expect(talents.valeurs[0].refus, 'chaque Talent fermé par sa raison').toBe('Soldat : PX insuffisants (100).');
     expect(talents.valeurs[0].libelle, 'une valeur de liste se lit par son libellé seul : il dit ce qu’elle coûte').toMatch(/ · 100 PX$/);
     expect((apprentissage.Entreprendre as Bouton).refus, 'sans Talent choisi, l’Apprentissage ne se pratique pas').toBe(t('interlude.choisir.talent'));
 

@@ -37,8 +37,8 @@ const ARGS_TABLE = {
   worktree: ARBRE, date: DATE,
 };
 const FICHES_PJ = {
-  pjs: ['pregen-101', 'pregen-202', 'pregen-707', 'pregen-303'].map((id) => ({ id, nom: id, espece: 'humain', carriere: 'c', fiche: `fiche de ${id}` })),
-  groupe: { source: 'makeShowcaseParty', commande: 'npx tsx sonde.mts' },
+  pjs: ['pretire-wanda-weltschmertz', 'pretire-harbull-piedvelu', 'pretire-malmir-giluviel', 'pretire-werner-murrmann'].map((id) => ({ id, nom: id, espece: 'humain', carriere: 'c', fiche: `fiche de ${id}` })),
+  groupe: { source: 'groupeVitrine', commande: 'npx tsx sonde.mts' },
 };
 const SANS_SOSIE = { id: '', ref: '', motif: 'aucun passage du chapitre ne fait ressembler un PJ à un PNJ' };
 const jetsDe = (premier, n) => Array.from({ length: n }, (_, i) => ({

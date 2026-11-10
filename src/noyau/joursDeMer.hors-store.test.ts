@@ -8,7 +8,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie } from './index';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene } from './monde/scene';
 import type { WorldMap } from './worldMap';
 import type { NavalTraitRef } from '../engine/types';
@@ -35,7 +35,7 @@ function joursDeLaTraverseeRapide(navire: Navire, reglesMaison: Record<string, u
   const entrees: EntreesDeLaPartie = { graine: 7, reglesMaison, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     worldMap: carte,
     lieu: 'A',

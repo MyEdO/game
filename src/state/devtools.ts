@@ -102,7 +102,7 @@ import { builtinCampaigns, allBuiltinCampaigns, campagneDuJeu, lancerCampagne } 
 import { projectsLoad, projectSave } from './projectLibrary';
 import { type EntreeEcrite, type SavedProject } from '../noyau/persistance/bibliotheque';
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrine } from '../data/pregens';
 import { hoverTargeting } from '../noyau/targeting';
 import { maneuverShip } from '../noyau/shipManeuver';
 import { etageActif, getViewZ, setViewZ } from './viewLevel';
@@ -242,7 +242,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           initiative déterministe si seed) ; sans arg : liste les ids
  *   __wfrp.campaign('id', seed?, sceneId?) → charge une CAMPAGNE BUILT-IN (`builtinCampaigns`,
  *                           `scenes/campaign.ts`) SANS dérouler le character creator ×4 à la main :
- *                           groupe canonique (`makeShowcaseParty`, MÊME 4 piliers que l'Arène — les
+ *                           groupe vitrine (`groupeVitrine` — les
  *                           campagnes built-in ne portent pas leurs propres pré-tirés, seul le picker
  *                           `PartyScreen` propose `pregens.json` en libre-service), `setPendingCampaign` +
  *                           `lancerCampagne` (MÊME chemin que « Lancer » de `PartyScreen`), écran 'campaign'.
@@ -1249,7 +1249,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       }
       const s = g();
       if (seed != null) s.ensemencerLeTirage(seed);
-      s.fixerLeGroupe(makeShowcaseParty(s.forgerUnId)); // campagnes built-in sans pré-tirés propres — groupe canonique (4 piliers)
+      s.fixerLeGroupe(groupeVitrine(s.forgerUnId)); // campagnes built-in sans pré-tirés propres — groupe vitrine
       s.setPendingCampaign(lancee);
       const refus = lancerCampagne(g, lancee, sceneId);
       if (refus) return `✗ campagne « ${c.label} » refusée — ${refus}`;
@@ -1269,13 +1269,13 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
      *  chemin que le flux réel (`ouvrirLInterlude` : `state.interlude` peuplé — Événement d100 par héros,
      *  budget d'Activités `perHero[*].granted`, écran 'interlude') — le catalogue d'Activités reste dérivé
      *  de la DONNÉE (`interludeCatalog`/`activities.json`), rien d'inventé. Sans groupe chargé, pose le
-     *  groupe canonique (`makeShowcaseParty`, comme `campaign()`/`scenario()`). À conduire à la main
+     *  groupe vitrine (`groupeVitrine`, comme `campaign()`). À conduire à la main
      *  ensuite (Activités, clôture). `weeks` (défaut 3) fixe le budget d'Activités observable. */
     interlude: (weeks = 3) => {
       const s = g();
       if (s.battle) return '✗ combat en cours — impossible d\'ouvrir un interlude (voir __wfrp.killEnemies())';
       if (s.interlude) return `interlude déjà ouvert (${Object.keys(s.interlude.perHero).length} héros) — écran 'interlude', à conduire à la main`;
-      if (!s.party.length) s.fixerLeGroupe(makeShowcaseParty(s.forgerUnId)); // pas de groupe chargé → 4 piliers canoniques
+      if (!s.party.length) s.fixerLeGroupe(groupeVitrine(s.forgerUnId)); // pas de groupe chargé → groupe vitrine
       s.ouvrirLInterlude(weeks);
       const after = useGame.getState();
       if (!after.interlude) return '✗ interlude non ouvert — voir __wfrp.state()/__wfrp.log()';

@@ -665,8 +665,7 @@ export const attendSaSpec = (r: RefDesignee): boolean => r.spec == null && estSp
 
 /** Sorts de Magie mineure INCLUS au Talent (LDB 10 l.714) : quota à choisir = BFM FINAL du probe
  *  (Augmentations gratuites + talents « +5 FM » appliqués, même pipeline que createHero) — 0 sans
- *  Talent de `castingKind:'mineure'`. Délègue à `pettySpellQuotaFor` (engine, source UNIQUE — même
- *  fonction que `src/data/pregens.ts`), le probe portant déjà les talents résolus en id. */
+ *  Talent de `castingKind:'mineure'`. Délègue à `pettySpellQuotaFor` (engine, source UNIQUE), le probe portant déjà les talents résolus en id. */
 export function pettySpellQuota(d: CreatorDraft): number {
   return pettySpellQuotaFor(probeHero(d, true, true));
 }

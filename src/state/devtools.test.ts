@@ -9,7 +9,8 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { isOutOfAction } from '../engine/conditions';
 import { itemFromTrappingById, formeResolue } from '../engine/items';
-import { makePregens } from '../data/pregens';
+import { herosDeTest } from '../noyau/creation/pretireDeTest.testkit';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from '../noyau/battleRng';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
 import { advanceTurn, choixPiegeLame } from '../noyau/combatFlow';
@@ -1048,7 +1049,7 @@ describe('__wfrp.advanceSeaDay / skipToArrival / dealShipDamage / clickRoute —
   const freshState = () => {
     seedBattleRng(1); // déterminisme (suite isolate:false)
     useGame.setState({
-      party: makePregens(idsDeTest).slice(0, 3),
+      party: groupeDeScenario(idsDeTest, 'soldat', 'tueur', 'sorcier'),
       scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null,
       worldMap: seaMap,
@@ -1314,7 +1315,7 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       title: 'Plateau vide (garde du refus nommé)',
       tests: 'le refus de plateau vide',
       partyNote: 'pré-tirés',
-      construire: () => ({ party: makePregens(idsDeTest).slice(0, 1), scene: emptyScene('scene-test') }),
+      construire: () => ({ party: herosDeTest(1), scene: emptyScene('scene-test') }),
     };
     const api = () => buildApi([...testScenarios, vide]); // registre LOCAL : le tableau importé n'est pas touché
     api().scenario('entrainement', 5); // mémoire d'onglet posée par un lancement QUI ABOUTIT
@@ -1336,12 +1337,12 @@ describe('__wfrp.resumeLastScenario — reprise du dernier scénario après un r
       tests: 'le refus de plateau vide avant le démarrage',
       partyNote: 'pré-tirés',
       money: { gold: 7, silver: 0, brass: 0 },
-      construire: () => ({ party: makePregens(idsDeTest).slice(0, 1), scene: emptyScene('scene-test') }),
+      construire: () => ({ party: herosDeTest(1), scene: emptyScene('scene-test') }),
     };
     useGame.getState().setScreen('menu');
     expect(() => buildApi([...testScenarios, vide]).scenario('plateau-vide-demarrage', 3)).toThrowError(/VIDE/);
     expect(useGame.getState().screen).toBe('menu');
-    expect(bourseOf(useGame.getState().party[0])).toEqual(bourseOf(makePregens(idsDeTest)[0]));
+    expect(bourseOf(useGame.getState().party[0])).toEqual(bourseOf(herosDeTest(1)[0]));
   });
 });
 

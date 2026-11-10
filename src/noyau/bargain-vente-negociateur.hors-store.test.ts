@@ -2,7 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from './battleRng.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setRule } from '../engine/policy';
 import { emptyScene } from './monde/scene';
 import { testValue } from '../engine/skills';
@@ -21,7 +21,7 @@ const set: Banc['setState'] = (e) => banc.setState(e);
 
 /** Meneur Négociateur à exactement 80 en Marchandage. */
 function negociateur(): Combatant {
-  const [h] = makePregens(idsDeTest);
+  const [h] = tousLesHerosDeScenario(idsDeTest);
   h.talents = [...h.talents.filter((t) => t.talentId !== 'negociateur'), { talentId: 'negociateur', times: 1 }];
   h.skills = h.skills.filter((s) => s.id !== 'marchandage');
   h.skills.push({ id: 'marchandage', advances: 0 } as SkillInstance);
