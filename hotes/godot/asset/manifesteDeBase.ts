@@ -142,7 +142,7 @@ type Brut = Record<string, unknown>;
  *   déclaration du corps ; une liste vide ou une prise inconnue donne `forme` en `prisesOccupees.<clip>`, une table
  *   sur une base sans prises `forme` en `prisesOccupees`, un clip absent du GLB `clip-absent`. Un clip qui n'y figure
  *   pas n'en occupe aucune. Godot range l'objet tenu sous les clips qui occupent sa prise, et l'objet tenu des deux
- *   mains sous ceux qui occupent une prise sans être dérivés à deux mains (`MontageDeComposition.poser_le_clip`).
+ *   mains sous tout clip qui n'est pas dérivé à deux mains (`MontageDeComposition.poser_le_clip`).
  */
 
 /** La réduction de `brut` au schéma 5, ou ses écarts de forme. */

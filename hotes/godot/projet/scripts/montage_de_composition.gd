@@ -410,14 +410,13 @@ static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
 ## #3806) : ces modificateurs ne jouent que sous un clip de `clipsDeuxMains` du maniement de l'objet tenu, qui pose déjà
 ## les deux mains sur la seconde prise de son maniement, ou sans clip engagé. Un objet tenu à une prise, monté aussi, en
 ## copie cachée, au premier emplacement de la base où il se range (les `elements` de ce point), passe à cet emplacement
-## sous un clip dont le geste occupe sa prise (`prisesOccupees` de la base) ; l'objet tenu des deux mains y passe sous un
-## clip qui occupe l'une ou l'autre prise sans être dérivé à deux mains, et reste à la main droite, la main gauche libre,
-## sous un clip qui n'en occupe aucune ; un emplacement déjà monté le laisse tenu. La recette autonome
-## `projet/recettes/seconde-prise.gd` le vérifie aussi. Le repos de l'atelier est le clip `idle` de la composition montée
-## (`MontageDeComposition.clip`), à deux mains sous une seconde prise : il se joue à la pose d'une base sans clip de
-## reprise et à l'arrêt de la marche ; un montage ou un démontage passe le clip engagé à celui de son rôle sous la
-## nouvelle tenue, en lecture ou en pause comme lui (`_jouer_le_repos`, `_rejouer`, `projet/scripts/atelier.gd`). La
-## recette autonome `projet/recettes/repos-de-l-atelier.gd` le vérifie.
+## sous un clip dont le geste occupe sa prise (`prisesOccupees` de la base) ; l'objet tenu des deux mains y passe sous
+## tout clip qui n'est pas dérivé à deux mains, la main droite seule le tenant à son talon ; un emplacement déjà monté le
+## laisse tenu. La recette autonome `projet/recettes/seconde-prise.gd` le vérifie aussi. Le repos de l'atelier est le
+## clip `idle` de la composition montée (`MontageDeComposition.clip`), à deux mains sous une seconde prise : il se joue à
+## la pose d'une base sans clip de reprise et à l'arrêt de la marche ; un montage ou un démontage passe le clip engagé à
+## celui de son rôle sous la nouvelle tenue, en lecture ou en pause comme lui (`_jouer_le_repos`, `_rejouer`,
+## `projet/scripts/atelier.gd`). La recette autonome `projet/recettes/repos-de-l-atelier.gd` le vérifie.
 
 ## La main de la prise `off` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de
 ## `modeles`, #3319), si la prise `off` ne tient rien ; aucune sinon.
@@ -436,9 +435,9 @@ func poser_la_seconde_prise() -> void:
 ## Le clip engagé au lecteur posé sur la tenue (#3806), à chaque lancement de clip (`animation_started`), montage et
 ## démontage : la main libre ne tient la seconde prise (`seconde_prise`) que sous un clip de `clipsDeuxMains` du
 ## maniement de l'objet tenu, ou sans clip engagé ; l'objet tenu à une prise se range à son emplacement
-## (`_tenus_ranges`) si le clip occupe cette prise (`prisesOccupees`), et l'objet tenu des deux mains si le clip, qui
-## n'est pas dérivé à deux mains, occupe l'une ou l'autre ; sous un clip qui n'en occupe aucune, il reste à la main
-## droite. Un emplacement déjà monté ne reçoit rien : l'objet reste tenu.
+## (`_tenus_ranges`) si le clip occupe cette prise (`prisesOccupees`), et l'objet tenu des deux mains sous tout clip
+## qui n'est pas dérivé à deux mains : la main droite seule le tiendrait à son talon. Un emplacement déjà monté ne
+## reçoit rien : l'objet reste tenu.
 func poser_le_clip(_clip: StringName = &"") -> void:
 	if lecteur != null and not lecteur.animation_started.is_connected(poser_le_clip):
 		lecteur.animation_started.connect(poser_le_clip)
@@ -451,7 +450,7 @@ func poser_le_clip(_clip: StringName = &"") -> void:
 	var occupees: Array = base.get("prisesOccupees", {}).get(engage, [])
 	for id in _tenus_ranges:
 		var objet: Dictionary = _tenus_ranges[id]
-		var rangee: bool = not montes.has(objet.emplacement) and (id in occupees or (id == "main" and a_deux_mains and not tenu_a_deux_mains and not occupees.is_empty()))
+		var rangee: bool = not montes.has(objet.emplacement) and (id in occupees or (id == "main" and a_deux_mains and not tenu_a_deux_mains))
 		for noeud: Node3D in objet.tenus:
 			noeud.visible = not rangee
 		for noeud: Node3D in objet.ranges:
