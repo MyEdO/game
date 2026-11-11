@@ -68,7 +68,7 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
     temoin({ scene: quai, document: null, dialogue: ouvrirDialogue({ dialogueHistory: [] }, nuitDuChat) });
     const get = useGame.getState;
 
-    runBindingById('dialogue-choice-1', get); // « L’interroger sur sa nuit »
+    runBindingById('dialogue-reponse-1', get); // « L’interroger sur sa nuit »
     expect(get().pendingTest, 'la réponse ouvre la fenêtre de jet').toBeTruthy();
     useGame.setState({ pendingTest: { ...get().pendingTest!, roll: 99, success: false } });
     get().jetValider('test');
@@ -76,12 +76,12 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
     expect(get().dialogue?.nodeId, 'la conversation revient à son nœud, derrière le document').toBe('nc1');
     expect(get().dialogueHistory).toHaveLength(1);
 
-    runBindingById('dialogue-choice-2', get); // le joueur tape 2 en lisant le document
+    runBindingById('dialogue-reponse-2', get); // le joueur tape 2 en lisant le document
     expect(get().dialogue?.nodeId, 'sous le document, la touche ne répond pas').toBe('nc1');
     expect(get().dialogueHistory).toHaveLength(1);
 
     get().fenetreFermer('document');
-    runBindingById('dialogue-choice-2', get); // « La laisser tranquille »
+    runBindingById('dialogue-reponse-2', get); // « La laisser tranquille »
     expect(get().dialogueHistory, 'document fermé : la réponse 2 se joue').toHaveLength(2);
     expect(get().dialogue).toBeNull();
   });

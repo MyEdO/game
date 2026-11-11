@@ -7,7 +7,7 @@ import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
 import { lodgingOptions, foodOptions, nourrituresDeTroupe, restCost, partsDuRepos, noteDAubergeCouverte, type RestLodging, type RestFood } from '../noyau/restFlow';
-import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../noyau/combatFlow';
@@ -71,7 +71,7 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const severity = useGame((s) => activeExposureSeverity(() => s));
   const pleinAir = useGame((s) => nuitDispenseeParPleinAir(() => s));
   const state = useGame();
-  const refusDormir = useGame((s) => refusDeLaValidation(s, 'repos'));
+  const refusDormir = useGame((s) => refusDeLaValidationNommee(s, 'repos'));
   const couverte = useGame(noteDAubergeCouverte);
   // Héros PERSONNALISÉS (détachés du choix maître de troupe) — le reste SUIT la troupe. Arbitrage user
   // 2026-07-11 : « ≠ personnaliser » déplie les contrôles du héros seul, « ↺ » le rend au choix de troupe.

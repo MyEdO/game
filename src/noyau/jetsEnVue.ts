@@ -257,7 +257,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetEnVue | null> = {
   maladresse: (s) => {
     const m = maladresseCourante(s.pendingCascade);
     if (!m) return null;
-    const r = m.fumble.result;
+    const r = m.maladresse.result;
     return vue('maladresse', [{ genre: 'table', qui: m.actorId ?? null, table: libelleDeTest('oups'), jet: r ? { d100: r.roll, effectif: r.roll, ligne: r.label } : null }]);
   },
   cascadeEnBande: (s) => {

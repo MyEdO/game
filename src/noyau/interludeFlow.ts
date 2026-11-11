@@ -1126,9 +1126,9 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
   // dépositaire PORTE encore une carte-marine, le trésor n'est pas à découvert ; il ne l'est (jet ≤ rate)
   // que si la carte est perdue/volée.
   const chartHeld = !!h?.items?.some((it) => it.trappingId === 'carte-marine');
-  const outcome = dep.chartSecured && chartHeld ? 'ok' : bankWithdrawOutcome(dep.kind, dep.rate, roll);
+  const outcome = dep.chartSecured && chartHeld ? 'recu' : bankWithdrawOutcome(dep.kind, dep.rate, roll);
   const rest = (get().bank ?? []).filter((d) => d.uid !== depotId);
-  if (outcome === 'lost') {
+  if (outcome === 'perdu') {
     set({ bank: rest });
     const threshold = seuilDePerteBancaire(dep.kind, dep.rate);
     return [msg('if.bankLost', {

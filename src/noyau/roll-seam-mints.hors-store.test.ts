@@ -218,19 +218,19 @@ describe('#1262 — hostStep : jamais de fenêtre sans la donnée qu’elle rend
   }
 
   it('jet:\'maladresse\' : aucun pending à attendre, sa charge vit SUR l’étape', () => {
-    const step = hostStep(banc.getState, { id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'H1', fumble: { weapon: ARME, result: null } })!;
-    expect(step.fumble!.weapon.label).toBe('Épée');
+    const step = hostStep(banc.getState, { id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'H1', maladresse: { weapon: ARME, result: null } })!;
+    expect(step.maladresse!.weapon.label).toBe('Épée');
   });
 
   it('jet:\'maladresse\' SANS sa charge → refusé au TYPE (union discriminée)', () => {
-    // @ts-expect-error — `fumble` requis par la branche `jet:'maladresse'`
+    // @ts-expect-error — `maladresse` requis par la branche `jet:'maladresse'`
     const nu: HostSpec = { id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'H1' };
     expect(nu.jet).toBe('maladresse');
   });
 
   it('une charge de Maladresse sur un AUTRE jet est inexprimable', () => {
-    // @ts-expect-error — `fumble` interdit hors de sa branche
-    const croise: HostSpec = { id: 'x', kind: 'k', jet: 'attaque', actorId: 'H1', fumble: { weapon: ARME, result: null } };
+    // @ts-expect-error — `maladresse` interdit hors de sa branche
+    const croise: HostSpec = { id: 'x', kind: 'k', jet: 'attaque', actorId: 'H1', maladresse: { weapon: ARME, result: null } };
     expect(croise.jet).toBe('attaque');
   });
 

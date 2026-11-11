@@ -23,7 +23,7 @@ import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, fluxAccepte, rangeeFacultative, viseUneRangee, type FlowKey, type FluxDuVerbe, type RollVerb } from './flowVerbs';
 import { refuserGeste } from './refusVisible';
 import { deDuJet, FERMETURES_DITES, makeRollFlow, type FermetureDuJet, type ForcedPick, type RollFlowSpec, type RollFlowHandlers, type RollFlowLens, type PendingBase } from './rollFlowFactory';
-import { declarationDuReglage, fermetureDeLaPhase, type CorpsDesReglages, type DeclarationDuReglage, type FluxRegle, type VerbeDeReglage } from './reglagesDuJet';
+import { declarationDuReglage, declarationDuReglageNomme, fermetureDeLaPhase, type CorpsDesReglages, type DeclarationDuReglage, type FluxRegle, type ReglageDuJet, type VerbeDeReglage } from './reglagesDuJet';
 import { TestOutcome } from '../engine/testOutcome';
 import type { RollBreakdown, ModLine } from '../engine/combat';
 import { battleRng } from './battleRng';
@@ -1392,10 +1392,10 @@ export const FLOWS = paresseux({
     key: 'pendingCascade',
     multi: { slots: (p) => { const m = maladresseCourante(p); return m ? [m] : []; }, idOf: (st) => st.id, replace: remplacerLEtape, refusDuSlot: refusHorsDeLEtapeCourante },
     cloture: (p) => (maladresseCourante(p) ? null : 'sansJet'),
-    rolled: (st) => !!st.fumble?.result,
+    rolled: (st) => !!st.maladresse?.result,
     actor: (s, st) => (st.actorId ? actorIn(s, st.actorId) : undefined),
-    resolve: (_s, st) => (st.fumble ? { fumble: { ...st.fumble, result: rollOups(st.fumble.weapon, battleRng()) } } : null),
-    outcome: (st) => sealOutcome(true, 0, st.fumble?.result?.roll ?? 0, 100),
+    resolve: (_s, st) => (st.maladresse ? { maladresse: { ...st.maladresse, result: rollOups(st.maladresse.weapon, battleRng()) } } : null),
+    outcome: (st) => sealOutcome(true, 0, st.maladresse?.result?.roll ?? 0, 100),
   }),
 
   /**
@@ -2415,8 +2415,8 @@ function refusDuReglage(s: Jeu, flux: unknown, reglage: unknown, pid: unknown): 
  *  (`fermetureDeLaPhase`) jugée sur le lancer de son jet (`RollFlowHandlers.fermetures`, la fenêtre que lit
  *  `verbesOuverts`) — sur la fenêtre entière pour un réglage `horsDuJet`, que la rangée ait un jet ou non —, puis son
  *  offre (`DeclarationDuReglage.offre`) ; `null` : il se joue. */
-export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: string, pid?: string): FermetureDuJet | null {
-  const declaration = garanti(declarationDuReglage(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
+export function fermetureDuReglage(get: Get<Jeu>, flux: FluxRegle, reglage: ReglageDuJet, pid?: string): FermetureDuJet | null {
+  const declaration = garanti(declarationDuReglageNomme(flux, reglage), `${flux}.${reglage}`, 'réglage déclaré');
   const jugee = declaration.phase === 'horsDuJet' ? undefined : pid;
   return fermetureDeLaPhase(declaration.phase, FLOW_HANDLERS[flux].fermetures(get, jugee).roll) ?? declaration.offre?.(get()) ?? null;
 }

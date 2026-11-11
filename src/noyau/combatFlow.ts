@@ -2802,7 +2802,7 @@ function appliquerLaTouche(
   // d'atterrissage (floater FX + journal). Les tirs à Portée FIXE (arc/arbalète/poudre) ratent sans dévier.
   if (!res.hit && isThrownWeapon(weapon) && attacker.pos && target.pos) {
     const land = scatter(attacker.pos, target.pos, battleRng(), sceneMetresPerTile(get().scene), get().scene?.dimensions);
-    bus.emit(EVT.ANIM_FLOAT, { pos: land, text: tr('cf.scatterFloat'), kind: 'miss' });
+    bus.emit(EVT.ANIM_FLOAT, { pos: land, text: tr('cf.scatterFloat'), kind: 'rate' });
     log.push(ev(evKind, tr('cf.scatter', { name: attacker.label }), attacker.id, target.id));
   }
   log.push(...evLines(critLog, 'crit', attacker.id, target.id));
@@ -2940,7 +2940,7 @@ function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defense
  *  place. Rend `true` quand une fenêtre tient la main (l'étape, ou le dé de casse de l'arme). */
 function ecrireLaMaladresse(get: Get, set: SetFn, porteur: Combatant, arme: Weapon, suivant: QueueDuCoup): boolean {
   if (jetSurfaced(get(), porteur)) {
-    pushHost(get, set, (index) => ({ id: `cons-fumble-${porteur.id}-${index}`, kind: 'fumbleJet', jet: 'maladresse', actorId: porteur.id, fumble: { weapon: arme, result: null, coup: suivant } }));
+    pushHost(get, set, (index) => ({ id: `cons-fumble-${porteur.id}-${index}`, kind: 'fumbleJet', jet: 'maladresse', actorId: porteur.id, maladresse: { weapon: arme, result: null, coup: suivant } }));
     return true;
   }
   return applyOups(get, set, porteur, arme, rollOups(arme, battleRng()), new Map(), suivant) === OPS_DIFFEREES;

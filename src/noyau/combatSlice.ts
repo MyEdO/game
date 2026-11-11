@@ -116,7 +116,7 @@ import { aiDriven, controlsCombatant, influencesLocally, decidingSeat } from './
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
-import { declarationDuReglage, type CorpsDesReglages } from './reglagesDuJet';
+import { declarationDuReglageNomme, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
 import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuPasDeSurincantation } from './fenetreDIncantation';
 import { findSpellById } from '../data/index';
@@ -2185,7 +2185,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
     contreSort: {
       declaration: (choice, pid) => {
         if (pid !== undefined) { declarerLaRangee(pid, choice); return; }
-        for (const id of rangeesAReglerIci(get(), declarationDuReglage('contreSort', 'declaration'))) declarerLaRangee(id, choice);
+        for (const id of rangeesAReglerIci(get(), declarationDuReglageNomme('contreSort', 'declaration'))) declarerLaRangee(id, choice);
       },
     },
     desengagement: {
@@ -2402,21 +2402,21 @@ export function cloturesDuCombat(get: Get, set: Set) {
   return {
     // Valider l'étape courante de la cascade, quelle que soit son interaction.
     cascade: () => validerLEtape(get, set),
-    // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.fumble`) s'appliquent.
+    // Maladresse (LDB 14) : les Oups ! tirés sur l'étape COURANTE (`step.maladresse`) s'appliquent.
     maladresse: () => {
       const battle = get().battle;
       const step = maladresseCourante(get().pendingCascade);
       if (!battle || !step) return;
-      const oups = garanti(step.fumble.result, step.actorId, 'tirage des Oups !');
+      const oups = garanti(step.maladresse.result, step.actorId, 'tirage des Oups !');
       const c = inBattleId(battle, step.actorId);
       // La queue du coup dont cette Maladresse est un temps d'après-coup (#1508 T3b-4) : elle reprend
       // une fois la Maladresse appliquée — ou voyage avec le dé de casse qui la diffère.
-      const coup = step.fumble.coup;
-      if (!c) journaliser(get, set, [t('cascade.cibleDisparue', { label: step.fumble.weapon.label })], 'info');
+      const coup = step.maladresse.coup;
+      if (!c) journaliser(get, set, [t('cascade.cibleDisparue', { label: step.maladresse.weapon.label })], 'info');
       // Une casse d'arme peut partir à la porte (#1508 T3b-4) : la Maladresse n'est alors PAS appliquée,
       // son dé l'appliquera. L'étape de casse s'APPEND DERRIÈRE cette étape (`cascade.pushStep`), donc
       // le curseur y ARRIVE — la suite de ce verbe est le curseur, jamais une application.
-      const differee = !!c && applyOups(get, set, c, step.fumble.weapon, oups, new Map(), coup) === OPS_DIFFEREES;
+      const differee = !!c && applyOups(get, set, c, step.maladresse.weapon, oups, new Map(), coup) === OPS_DIFFEREES;
       const suite = get().pendingCascade;
       // Fail-fast : une casse différée sans étape derrière elle ferait FERMER la cascade au curseur
       // (`advanceCascade`, curseur au bout) — le dé en vol serait perdu avec sa Maladresse.
@@ -3038,7 +3038,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (ph.mode === 'blessures') {
         const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), panse);
         log.push(...r.log);
-        if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'heal' });
+        if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'soin' });
       } else if (ph.mode === 'hemorragie') {
         log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
       } else if (ph.mode === 'munition') {

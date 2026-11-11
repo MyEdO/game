@@ -16,7 +16,7 @@ import { makeRNG } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { hasCondition } from '../engine/conditions';
 import { devisDeCloture } from './verdictsDInterlude';
-import { refusDeLaValidation } from './validationDeFenetre';
+import { refusDeLaValidationNommee } from './validationDeFenetre';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 
@@ -106,7 +106,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     const banc = ouvrirLeBanc({ graine: 7, desFixes: true, etat: { party: [heros('Vétéran', 1601, 3, { gold: 2, silver: 0, brass: 0 })], scene: SCENE, lieu: 'altdorf' } });
     banc.actions.ouvrirLInterlude(2);
     expect(banc.getState().interlude?.phase, 'témoin : le tirage est ouvert').toBe('tirage');
-    expect(refusDeLaValidation(banc.getState(), 'interlude')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
+    expect(refusDeLaValidationNommee(banc.getState(), 'interlude')).toBe('L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.');
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
     banc.actions.fenetreValider('interlude');
@@ -115,7 +115,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
   });
 
   it('le tirage dénoué : la clôture est offerte à l’hôte', () => {
-    expect(refusDeLaValidation(groupeDeTrois().getState(), 'interlude')).toBeNull();
+    expect(refusDeLaValidationNommee(groupeDeTrois().getState(), 'interlude')).toBeNull();
   });
 });
 

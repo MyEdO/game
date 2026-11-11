@@ -302,7 +302,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'min|max|sum|first',
   'movement|all',
   'm|km',
-  'navTest|obstacle|detect',
+  'navigation|obstacle|perception',
   'navire|navire-fluvial',
   'night|voyage|weather|flow|activity|combat',
   'none|half|crawl',

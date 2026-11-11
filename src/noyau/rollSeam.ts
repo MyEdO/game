@@ -1493,7 +1493,7 @@ export interface DieStepSpec {
    *  Déclaré à l'étape — c'est lui que la rangée MONTRE (« 1d10 : 8 ≥ Protection (6+) »). */
   seuil?: SeuilDeSauvegarde;
   /** CHARGE de l'étape de sauvegarde (#1508) : les seuils restants + la suite du coup suspendu, que
-   *  l'applier ré-entre (patron de la charge `fumble` d'une étape hôte — la donnée vit SUR l'étape). */
+   *  l'applier ré-entre (patron de la charge `maladresse` d'une étape hôte — la donnée vit SUR l'étape). */
   wardSave?: PendingWardSave;
   /** CHARGE d'une étape de la grappe de dés d'une CASSE D'ARME (#1508 T3b-4) : les dés déjà tombés +
    *  le point d'application qui les consommera (`applyOups`/`applyBladeTrap`). */
@@ -1598,8 +1598,8 @@ type HostOwner =
 /** DÉCLARATION d'une étape HÔTE — union DISCRIMINÉE par `jet` : la Maladresse exige sa charge (elle
  *  n'a pas de pending), les huit autres n'en portent aucune (la leur vit dans leur `pending*`). */
 export type HostSpec = HostOwner & (
-  | (HostBase & { jet: 'maladresse'; fumble: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup } })
-  | (HostBase & { jet: Exclude<HostJet, 'maladresse'>; fumble?: never })
+  | (HostBase & { jet: 'maladresse'; maladresse: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup } })
+  | (HostBase & { jet: Exclude<HostJet, 'maladresse'>; maladresse?: never })
 );
 
 /**
@@ -1626,7 +1626,7 @@ export function hostStep(get: Get, spec: HostSpec): BuiltCascadeStep | undefined
     ...(spec.label ? { label: spec.label } : {}),
     ...(spec.icon ? { icon: spec.icon } : {}),
     ...(spec.groupOwner ? { groupOwner: true } : {}),
-    ...(spec.jet === 'maladresse' ? { fumble: spec.fumble } : {}),
+    ...(spec.jet === 'maladresse' ? { maladresse: spec.maladresse } : {}),
     ...(spec.stake ? { stake: spec.stake } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
   // eslint-disable-next-line murs/marques -- #1262 : porte `hostStep` du seam — forger `BuiltCascadeStep` depuis sa spec est son corps de métier.

@@ -92,8 +92,8 @@ export type AutoPolicy =
   | { mode: 'partial' }                                                    // cascade / révélation : pilote dédié (combatAuto)
   | { mode: 'hostOnly' };                                                  // hors-combat / hôte : jamais auto-résolu
 
-export interface ModalDef {
-  key: string;
+export interface ModalDef<K extends string = string> {
+  key: K;
   /** Le pending de cette modale est-il posé ? (condition d'ÉLECTION : la fenêtre à RENDRE) */
   when: (s: ArbiterState) => boolean;
   /** La situation TIENT-ELLE LA MAIN, même sans fenêtre rendue ? Défaut : `when`. Une modale peut
@@ -132,7 +132,7 @@ export interface ModalDef {
 export const MODAL_DEFS = [
   { key: 'destin', when: (s) => !!s.pendingFateSave, owner: (s) => s.pendingFateSave?.heroId, auto: { mode: 'choice' }, covers: ['pendingFateSave'] },
   // (La Maladresse est une étape `jet:'maladresse'` de la cascade `combat`, rendue par `cascade` ci-dessous
-  //  (CascadeModal → useFumbleJetProps). La donnée (arme/résultat) vit SUR l'étape (`step.fumble`), source
+  //  (CascadeModal → useFumbleJetProps). La donnée (arme/résultat) vit SUR l'étape (`step.maladresse`), source
   //  unique lue par `jetLancer('maladresse')` ; `jetValider('maladresse')` applique les Oups ! et enchaîne le curseur.)
   // (Le Renversement (Déstabilisante) n'ouvre AUCUNE modale et ne pose aucun `pending*` : il se résout
   //  dans l'attribution d'Avantage de `applyAttackResult` (`reversalStealOne`, `combat/advantagePool.ts`).)
@@ -264,7 +264,7 @@ export const MODAL_DEFS = [
 export type ModalKey = (typeof MODAL_DEFS)[number]['key'];
 
 /** PURE : la définition de la modale ACTIVE (1ʳᵉ entrée active du registre). `undefined` = aucune. */
-export const modaleActive = (s: ArbiterState): ModalDef | undefined => (MODAL_DEFS as readonly ModalDef[]).find((d) => d.when(s));
+export const modaleActive = (s: ArbiterState): ModalDef<ModalKey> | undefined => (MODAL_DEFS as readonly ModalDef<ModalKey>[]).find((d) => d.when(s));
 
 /** PURE : la modale à afficher MAINTENANT (`modaleActive`). `null` = aucune.
  *  Frappe Mortelle / 2ᵉ frappe / Surincantation « +Cible » = ciblages CARTE (pas de modale). */
@@ -317,8 +317,8 @@ export function voyageStepPending(s: ArbiterState): boolean {
  * ciblage carte… Chaque entrée déclare son OWNER coop, MÊME VOCABULAIRE que `ModalDef.owner`
  * ('*' = tous les sièges voient/agissent, `undefined` = hôte seul).
  */
-export interface HorsModalDef {
-  key: string;
+export interface HorsModalDef<K extends string = string> {
+  key: K;
   pendingKey: PendingKey;
   owner: (s: ArbiterState) => string | undefined | '*';
   /** Ce pending, posé, TIENT-IL LA MAIN (`surfaceTientLaMain`) ? REQUIS (patron `auto`) : chaque
@@ -378,8 +378,8 @@ export function horsModalByPending(): Record<string, HorsModalDef> {
  *  l'écran de l'hôte ne doit pas refuser le geste d'un invité. L'ÉCRAN plein (`screen`, dont l'écran
  *  `compendium`) est, lui, PARTAGÉ : le snapshot de l'hôte écrase `screen` chez chaque invité
  *  (`coop.appliquerLInstantane`). */
-export interface SurfaceHorsPendingDef {
-  key: string;
+export interface SurfaceHorsPendingDef<K extends string = string> {
+  key: K;
   tientLaMain: (s: ArbiterState) => boolean;
   /** La surface est ouverte sans tenir la main (la conversation, que la scène porte) ; sans elle : `tientLaMain`. */
   ouverte?: (s: ArbiterState) => boolean;
@@ -503,10 +503,14 @@ const VALIDATIONS_DECLAREES = gestesDeclares((d) => d.validation);
 
 /** La sortie de la fenêtre `cle`, telle que son registre la déclare ; `undefined` : aucune fenêtre de ce nom ne se ferme. */
 export const sortieDeLaFenetre = (cle: unknown): SortieDeLaFenetre | undefined => (typeof cle === 'string' ? SORTIES_DECLAREES.get(cle) : undefined);
+/** La clé `cle` (une donnée de frontière) est-elle celle d'une fenêtre qui se ferme ? */
+export const estFenetreQuiSeFerme = (cle: unknown): cle is FenetreQuiSeFerme => sortieDeLaFenetre(cle) !== undefined;
 
 /** La validation de la fenêtre `cle`, telle que son registre la déclare ; `undefined` : aucune fenêtre de ce nom ne se
  *  valide. Ce qui ferme sa validation maintenant se lit à `FERMETURES_DE_LA_VALIDATION`. */
 export const validationDeLaFenetre = (cle: unknown): ValidationDeLaFenetre | undefined => (typeof cle === 'string' ? VALIDATIONS_DECLAREES.get(cle) : undefined);
+/** La clé `cle` (une donnée de frontière) est-elle celle d'une fenêtre qui se valide ? */
+export const estFenetreAValider = (cle: unknown): cle is FenetreAValider => validationDeLaFenetre(cle) !== undefined;
 
 /**
  * UNE SURFACE PARTAGÉE TIENT-ELLE LA MAIN ? Verdict UNIQUE de « ce que TOUS les sièges ont sous les

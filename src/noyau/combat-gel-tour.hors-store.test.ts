@@ -317,7 +317,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
   const ETAT_COMPLET: Record<HostJet, Record<string, unknown>> = {
     attaque: { battle: battleDe('a', 'h'), pendingAttack: { attackerId: 'a', targetId: 'h' } },
     defense: { battle: battleDe('a', 'h'), pendingDefense: { attackerId: 'a', defenderId: 'h' } },
-    maladresse: { battle: battleDe('h') }, // sans slot : la donnée est `step.fumble`
+    maladresse: { battle: battleDe('h') }, // sans slot : la donnée est `step.maladresse`
     incantation: { pendingCast: {} },
     test: { pendingTest: {} },
     testEtendu: { battle: battleDe('h'), pendingExtendedTest: { actorId: 'h' } },
@@ -325,7 +325,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
     enfoncerLaPorte: { pendingForceDoor: {} },
   };
   const etape = (jet: HostJet): CascadeStep =>
-    ({ id: `x-${jet}`, kind: 'k', jet, actorId: 'h', ...(jet === 'maladresse' ? { fumble: { weapon: 'Épée' } } : {}) } as never);
+    ({ id: `x-${jet}`, kind: 'k', jet, actorId: 'h', ...(jet === 'maladresse' ? { maladresse: { weapon: 'Épée' } } : {}) } as never);
 
   it('pour CHAQUE jet hôté : donnée complète ⇒ pas orphelin ; slot vidé ⇒ orphelin', () => {
     for (const jet of JETS) {
@@ -345,7 +345,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
     }
   });
 
-  it('Maladresse : sa donnée vit SUR l’étape (`step.fumble`), invisible au slot ⇒ orphelin sans elle', () => {
+  it('Maladresse : sa donnée vit SUR l’étape (`step.maladresse`), invisible au slot ⇒ orphelin sans elle', () => {
     expect(hoteOrphelin(ETAT_COMPLET.maladresse as never, { id: 'f', kind: cleDeFixture('k'), jet: 'maladresse', actorId: 'h' })).toBe(true);
   });
 

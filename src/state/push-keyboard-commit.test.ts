@@ -29,7 +29,7 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
       combatCursor: { tile: { x: 1, y: 1 } }, net: { mode: 'local', mySeat: 0 }, dialogue: null,
     } as never;
     const b = dispatch('Enter', s, /* controlFocused: bouton Pousser encore focalisé */ true);
-    expect(b?.id).toBe('cursor-commit');
+    expect(b?.id).toBe('curseur-valider');
   });
 
   it('flux complet clavier (arène 42-belier-porte) : 2 flèches + Entrée EXÉCUTENT la poussée (positions changent, moveSnapshot posé)', async () => {

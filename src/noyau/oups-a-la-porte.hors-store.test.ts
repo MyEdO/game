@@ -155,7 +155,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   const monteHote = (arme: Weapon): Combatant => {
     const hero = mk('hero', 'bretteur', { weapons: [arme] });
     setBattle([hero], [hero]);
-    pushHost(banc.getState, banc.setState, (index) => ({ id: `cons-fumble-${hero.id}-${index}`, kind: 'fumbleJet', jet: 'maladresse', actorId: hero.id, fumble: { weapon: arme, result: null } }));
+    pushHost(banc.getState, banc.setState, (index) => ({ id: `cons-fumble-${hero.id}-${index}`, kind: 'fumbleJet', jet: 'maladresse', actorId: hero.id, maladresse: { weapon: arme, result: null } }));
     return hero;
   };
   const etapesDeCasse = (): CascadeStep[] =>
@@ -225,7 +225,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
       monteHote(arme);
       banc.getState().jetLancer('maladresse');
       const pc = banc.getState().pendingCascade!;
-      banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, fumble: { ...st.fumble!, result: INCIDENT } } : st)) } });
+      banc.setState({ pendingCascade: { ...pc, participants: pc.participants.map((st, k) => (k === pc.cursor ? { ...st, maladresse: { ...st.maladresse!, result: INCIDENT } } : st)) } });
       banc.getState().jetValider('maladresse');
     };
     const journal = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.text);

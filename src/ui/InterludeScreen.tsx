@@ -13,7 +13,7 @@ import {
   brouillonDe, refusDeLaValeur, type AxeDuBrouillon, type CompositionDActivite, type DevisDeDepot, type EtatDeCloture, type EtatDeDepot, type EtatDeFaveur, type EtatDInterlude, type PreJetDActivite,
 } from '../noyau/verdictsDInterlude';
 import { totalDesBourses } from '../noyau/bourseFlow';
-import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
 import { refusDOuvrirLaTaverne } from '../noyau/tavernFlow';
 import { favorRequiredActivities, type Favor } from '../engine/favor';
 import { armyMight, noteDeSoutien, preJetDePreparation, refusDePrepaDeBataille, type MassBattleState } from '../noyau/massBattleFlow';
@@ -208,7 +208,7 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
   const ownerName = (id: string) => nomDuSiege(net, net.ownership[id] ?? 0);
   // La validation de l'interlude se juge sur l'état de la partie, l'interlude et le siège que le seam lui donne.
   const etatDuJeu = useGame.getState();
-  const refusClore = refusDeLaValidation({ ...etatDuJeu, interlude, net: { ...etatDuJeu.net, ...net } }, 'interlude');
+  const refusClore = refusDeLaValidationNommee({ ...etatDuJeu, interlude, net: { ...etatDuJeu.net, ...net } }, 'interlude');
   const etat: EtatDeDepot & EtatDeFaveur = { interlude, party, bank, lieu, favors };
   return (
     <div className="interlude-shell tx-ink">

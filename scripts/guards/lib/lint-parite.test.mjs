@@ -474,7 +474,7 @@ test('murs/interne : la pose brute du clavier ne s’importe que sous src/ui/cla
     ['src/ui/parite-interne.test.ts',`import { ecouterClavier } from './clavier/interne/ecouterClavier';\n${QUITTER}`,1],
     ['src/ui/clavier/parite-interne-registre.ts',`import { ecouterClavier } from './interne/ecouterClavier';\n${QUITTER}`,0],
     ['src/ui/clavier/couches/parite-interne-couche.ts',`import { ecouterClavier } from '../interne/ecouterClavier';\n${QUITTER}`,0],
-    ['src/ui/parite-interne-remap.tsx',"import { useRemapDeTouche } from './clavier/remapDeTouche';\nexport const f=(r: { current: HTMLElement | null })=>useRemapDeTouche(r).armer('toggle-menu');",0],
+    ['src/ui/parite-interne-remap.tsx',"import { useRemapDeTouche } from './clavier/remapDeTouche';\nexport const f=(r: { current: HTMLElement | null })=>useRemapDeTouche(r).armer('menu-ouvrir');",0],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {

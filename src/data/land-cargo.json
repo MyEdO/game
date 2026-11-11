@@ -81,7 +81,7 @@
       }
     ]
   },
-  "buy": {
+  "achat": {
     "availabilityMultiplier": 10,
     "merchantSkill": {
       "d10": 2,
@@ -98,7 +98,7 @@
       "note": "ch.11 « Règles du commerce » — 4. Marchandage (l.125-131) ; l’évaluation du Vin (Test Évaluation Intermédiaire, Accessible si Résistance à l’alcool ≥50) est en l.95, folio 72."
     }
   },
-  "sell": {
+  "vente": {
     "targetPerSize": 10,
     "commerceBonus": 30,
     "dumpingPctOfBase": 50,

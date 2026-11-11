@@ -26,7 +26,7 @@ const offerByRichesseSchema = z
     if (ecarts.length) {
       ctx.addIssue({
         code: 'custom',
-        message: `land-cargo.json › sell.offerByRichesse : les bandes ne couvrent pas l'Indice de richesse 1 à 5 d'un seul tenant — ${ecarts.join(' ; ')}.`,
+        message: `land-cargo.json › vente.offerByRichesse : les bandes ne couvrent pas l'Indice de richesse 1 à 5 d'un seul tenant — ${ecarts.join(' ; ')}.`,
       });
     }
   });
@@ -44,7 +44,7 @@ const champs = {
       source: { label: 'Source' },
     }),
   ),
-  buy: nommerChamps(z.strictObject({
+  achat: nommerChamps(z.strictObject({
     availabilityMultiplier: z.number(),
     merchantSkill: nommerChamps(z.strictObject({ d10: z.number(), plus: z.number() }), { d10: { label: 'Dés à dix faces' }, plus: { label: 'Ajout' } }),
     partialSurchargePct: z.number(),
@@ -63,7 +63,7 @@ const champs = {
     wineAlcoholResistThreshold: { label: 'Seuil de Résistance à l’alcool' },
     source: { label: 'Source' },
   }),
-  sell: nommerChamps(z.strictObject({
+  vente: nommerChamps(z.strictObject({
     targetPerSize: z.number(),
     commerceBonus: z.number(),
     dumpingPctOfBase: z.number(),
@@ -111,8 +111,8 @@ const doc = document(
       label: 'Qualité du vin',
       hint: "Table secrète de prix du Vin/Eau-de-vie, tirée à part de la colonne saisonnière",
     },
-    buy: { label: "Règles d'achat", hint: 'Barème de Marchandage, disponibilité, seuils de dégustation du vin' },
-    sell: { label: 'Règles de vente', hint: 'Cible de production, bonus de Commerce, bradage, offre par richesse du lieu' },
+    achat: { label: "Règles d'achat", hint: 'Barème de Marchandage, disponibilité, seuils de dégustation du vin' },
+    vente: { label: 'Règles de vente', hint: 'Cible de production, bonus de Commerce, bradage, offre par richesse du lieu' },
     gossip: { label: 'Ragot', hint: 'Difficulté et modificateur du Test de Ragot préalable à la vente' },
     rumours: { label: 'Rumeurs', hint: 'Table de tirage de rumeurs commerciales' },
   },

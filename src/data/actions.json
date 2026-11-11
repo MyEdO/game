@@ -10,7 +10,7 @@
       "action-libre"
     ],
     "run": "armerLAttaque",
-    "mode": "attack",
+    "mode": "attaque",
     "intent": "portee-arme",
     "coutAction": "action",
     "keys": [

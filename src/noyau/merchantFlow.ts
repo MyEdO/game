@@ -955,7 +955,7 @@ export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & {
  *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.appraise`, `rollFlowSpecs.ts`). */
 function openAppraise(
   get: Get, set: Set,
-  target: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
+  target: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },
   itemName: string, mode: ModeDEvaluation, trappingId?: string, cible: CibleDeDetection = {},
 ): void {
   const best = garanti(appraiseLeader(get().party, mode, cible), itemName, 'meneur de l’évaluation (`refusDEvaluation`)');
@@ -977,12 +977,12 @@ export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
 }
 
 /** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
- *  (`loot` puis `victory`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
+ *  (`butin` puis `victoire`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
  *  l'un ni l'autre. */
 function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openAppraise>[2]; cible: CibleDEvaluation; trappingId?: string } | null {
   const item = s.party.find((h) => h.id === porteurDeLObjet(s, uid))?.items?.find((i) => i.uid === uid);
   if (item) return { target: { itemUid: uid }, cible: item, trappingId: item.trappingId };
-  for (const scope of ['loot', 'victory'] as const) {
+  for (const scope of ['butin', 'victoire'] as const) {
     const ligne = ligneDuButin(s, scope, uid);
     if (ligne) return { target: { gear: { scope, uid } }, cible: { ...ligne.effect, label: ligne.label }, trappingId: ligne.effect.trappingId };
   }
@@ -1018,15 +1018,15 @@ export function evaluerLObjet(get: Get, set: Set, aEvaluer: IdDObjet | IdDeLigne
 }
 
 /** La ligne `uid` du butin `scope` encore en fenêtre. */
-const ligneDuButin = (s: Jeu, scope: 'loot' | 'victory', uid: string) => (scope === 'loot' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
+const ligneDuButin = (s: Jeu, scope: 'butin' | 'victoire', uid: string) => (scope === 'butin' ? s.pendingLoot : s.pendingVictory)?.gear?.find((g) => g.uid === uid);
 
 /** Patch la cible de l'Évaluation/Détection — objet porté (party) ou ligne de butin en fenêtre. */
-function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin } },
+function patchAppraiseTarget(get: Get, set: Set, pa: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },
   { detecteur, ...patch }: { identified?: boolean; magicKnown?: boolean; detecteur?: string; appraiseTriedDay?: number }): void {
   /** La Détection tentée par `detecteur` s'ajoute à la liste de sa cible. LDB 10 l.336 */
   const avecDetecteur = (cible: { detectTriedBy?: string[] }) => (detecteur ? { detectTriedBy: [...(cible.detectTriedBy ?? []), detecteur] } : {});
   if (pa.gear) {
-    const key = pa.gear.scope === 'loot' ? 'pendingLoot' : 'pendingVictory';
+    const key = pa.gear.scope === 'butin' ? 'pendingLoot' : 'pendingVictory';
     const { uid } = pa.gear;
     set((s) => {
       const bucket = s[key];

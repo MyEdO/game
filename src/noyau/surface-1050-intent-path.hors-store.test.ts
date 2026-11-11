@@ -242,11 +242,11 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
 describe('#3327 — Maladresse et dé d’étape : leurs verbes de jet se jouent au siège de la fenêtre de l’étape', () => {
   it('jetLancer@maladresse sans rangée puis jetValider@maladresse : la Maladresse d’un ennemi se tire et s’applique au siège de sa fenêtre, jamais chez un invité', () => {
     const { e1 } = setup();
-    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'triggeredTest', actorId: 'e1', jet: 'maladresse', fumble: { weapon: e1.weapons[0], result: null } }]) });
+    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'triggeredTest', actorId: 'e1', jet: 'maladresse', maladresse: { weapon: e1.weapons[0], result: null } }]) });
     expect(applyIntent(1, 'jetLancer', ['maladresse']), 'un invité tirait la Maladresse de l’ennemi').toBe('refusee');
-    expect(banc.getState().pendingCascade!.participants[0].fumble!.result).toBeNull();
+    expect(banc.getState().pendingCascade!.participants[0].maladresse!.result).toBeNull();
     expect(applyIntent(0, 'jetLancer', ['maladresse'])).toBe('appliquee');
-    expect(banc.getState().pendingCascade!.participants[0].fumble!.result, 'la rangée d’une étape sans acteur propre se lance sans possession de siège').toBeTruthy();
+    expect(banc.getState().pendingCascade!.participants[0].maladresse!.result, 'la rangée d’une étape sans acteur propre se lance sans possession de siège').toBeTruthy();
     expect(applyIntent(1, 'jetValider', ['maladresse'])).toBe('refusee');
     expect(applyIntent(0, 'jetValider', ['maladresse'])).toBe('appliquee');
     expect(banc.getState().pendingCascade, 'la Maladresse appliquée clôt l’étape').toBeNull();

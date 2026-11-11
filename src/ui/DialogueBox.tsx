@@ -27,7 +27,7 @@ export function DialogueBox() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const net = useGame((s) => s.net);
   const meneur = nomDuSiege(net, groupDecisionSeat(useGame.getState()));
-  // SOURCE UNIQUE des réponses, partagée avec les touches `dialogue-choice-N` (`noyau/dialogue.ts`).
+  // SOURCE UNIQUE des réponses, partagée avec les touches `dialogue-reponse-N` (`noyau/dialogue.ts`).
   // Abonnement au RÉSULTAT, jamais à une liste d'entrées recopiée : la signature est une valeur
   // primitive, donc un changement d'état qui ne change aucune réponse ne re-rend rien.
   const signature = useGame((s) => JSON.stringify(reponsesDuNoeud(s)));

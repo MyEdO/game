@@ -23,11 +23,11 @@ export function useFumbleJetProps(): ComponentProps<typeof RollShell> | null {
   const battle = useGame((s) => s.battle);
   const lancer = useGesteDeJet('jetLancer', 'maladresse');
   const confirm = useGesteDeJet('jetValider', 'maladresse');
-  const step = pc?.participants[pc.cursor]; // SOURCE UNIQUE : l'étape courante PORTE la maladresse (`step.fumble`)
-  if (!battle || !pc || step?.jet !== 'maladresse' || !step.fumble) return null;
+  const step = pc?.participants[pc.cursor]; // SOURCE UNIQUE : l'étape courante PORTE la maladresse (`step.maladresse`)
+  if (!battle || !pc || step?.jet !== 'maladresse' || !step.maladresse) return null;
   const combatant = battle.combatants.find((c) => c.id === step.actorId);
   if (!combatant) return null;
-  const r = step.fumble.result;
+  const r = step.maladresse.result;
   const rolled = !!r;
   return {
     flowKey: 'maladresse',

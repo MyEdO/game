@@ -11,8 +11,8 @@ export type HostJet = NonNullable<CascadeStep['jet']>;
 
 /**
  * SLOT `pending*` porteur des données de CHAQUE jet hôté — table TOTALE : ajouter un `jet` à l'union
- * ne compile plus sans sa ligne ici. `fumble` est le seul à `null` : sa donnée (arme + résultat des
- * Oups !) vit SUR l'étape (`step.fumble`), il n'y a pas de `pendingFumble` à désynchroniser.
+ * ne compile plus sans sa ligne ici. `maladresse` est le seul à `null` : sa donnée (arme + résultat des
+ * Oups !) vit SUR l'étape (`step.maladresse`), il n'y a pas de `pendingFumble` à désynchroniser.
  *
  * Elle vit ICI, dans un module qui n'importe que des types : c'est une lecture du STORE, et ses deux
  * consommateurs sont aux deux bouts de la chaîne — le mint (`rollSeam.hostStep`, qui refuse d'ouvrir
@@ -43,7 +43,7 @@ export const PORTEURS_D_ETAPE: readonly PorteurDEtape[] = Object.values(PENDING_
  * INCONDITIONNELLEMENT (`{...props!}` sur un hook rendu `null` donne `{}` à `RollShell`, donc un crash).
  *
  * Trois causes, toutes portées ici — le slot VIDE, l'ACTEUR sorti du `battle`, et la donnée portée par
- * l'ÉTAPE (Maladresse : `PENDING_BY_JET.fumble` est `null`, son corps vit dans `step.fumble`).
+ * l'ÉTAPE (Maladresse : `PENDING_BY_JET.fumble` est `null`, son corps vit dans `step.maladresse`).
  * Une étape déjà VALIDÉE (`committed`) est hors sujet : elle a rendu sa donnée et se ferme.
  * Prédicat PUR (aucun runtime importé) et TOTAL sur les `HostJet`.
  */
@@ -66,7 +66,7 @@ export function sansCorps(s: Partial<Jeu>, step: CascadeStep | undefined): boole
   switch (step.jet) {
     case 'attaque': return !present(s.pendingAttack?.attackerId) || !present(s.pendingAttack?.targetId);
     case 'defense': return !present(s.pendingDefense?.attackerId) || !present(s.pendingDefense?.defenderId);
-    case 'maladresse': return !step.fumble || !present(step.actorId);
+    case 'maladresse': return !step.maladresse || !present(step.actorId);
     // Épreuve étendue : hors combat, l'acteur se lit au GROUPE (même pool que `useExtendedTestJetProps`).
     case 'testEtendu': {
       const id = s.pendingExtendedTest?.actorId;

@@ -429,8 +429,8 @@ function herosDeLInterlude(etat: Jeu): Element[] {
           ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
           : boutonDuNoyau(a.id, a.gestes[0]))),
         formulaireDuNoyau(`depot/${h.id}`, t('ecran.repit.depot'), h.depot, h.depot.refus ? [] : [
-          saisieDeValeurs('kind', t('ecran.repit.genre'), h.depot.genres),
-          { type: 'saisieNombre', id: 'amountBrass', ton: 'neutre', nom: 'amountBrass', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
+          saisieDeValeurs('genre', t('ecran.repit.genre'), h.depot.genres),
+          { type: 'saisieNombre', id: 'montant', ton: 'neutre', nom: 'montant', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
         ]),
       ],
     })),
@@ -596,7 +596,7 @@ function marche(etat: Jeu): Element[] {
         boutonDuNoyau('brader', { ...l.brader, libelle: t('ecran.marche.brader') }),
         formulaireDuNoyau('deplacer', t('ecran.marche.deplacer'), { geste: { verbe: l.deplacer.geste.verbe, args: [l.uid] }, refus: l.deplacer.refus }, l.deplacer.refus ? [] : [
           saisieDeValeurs('vers', t('ecran.marche.vers'), l.deplacer.vers.map((p, i) => ({ libelle: t('valeur.porteur', { nom: p.nom, libre: p.libre, capacite: p.capacite }), valeur: p.id, refus: null, presse: i === 0 }))),
-          { type: 'saisieNombre', id: 'enc', ton: 'neutre', nom: 'enc', optionnel: false, libelle: t('ecran.marche.aDeplacer'), valeur: l.deplacer.enc, min: 1, max: l.deplacer.max, pas: 1 },
+          { type: 'saisieNombre', id: 'encombrement', ton: 'neutre', nom: 'encombrement', optionnel: false, libelle: t('ecran.marche.aDeplacer'), valeur: l.deplacer.enc, min: 1, max: l.deplacer.max, pas: 1 },
         ]),
       ],
     }))),

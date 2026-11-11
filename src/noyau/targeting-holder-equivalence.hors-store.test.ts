@@ -38,13 +38,13 @@ const AXES = {
     { purpose: 'combat', cursor: 0, participants: [P({ committed: false, jet: 'attaque' })] },
     { purpose: 'combat', cursor: 0, participants: [P({ committed: true }), P({ id: 'q', committed: false })] },
   ],
-  battle: [null, ...[null, 'incantation', 'soins', 'dissipation', 'bordee', 'teleportation', 'poussee', 'attack'].map((action) => ({ action, combatants: [{ id: 'c' }, { id: 'a' }, { id: 'b' }, { id: 'g' }] }))],
+  battle: [null, ...[null, 'incantation', 'soins', 'dissipation', 'bordee', 'teleportation', 'poussee', 'attaque'].map((action) => ({ action, combatants: [{ id: 'c' }, { id: 'a' }, { id: 'b' }, { id: 'g' }] }))],
 };
 
 /** Issues distinctes : `<détenteur ou -> <mode> <gabarit JSON>`. Le code d'une issue est sa lettre
  *  de rang dans `CODES`. */
 const ISSUES = [
-  "- attack null",
+  "- attaque null",
   "- incantation null",
   "- soins null",
   "- dissipation null",

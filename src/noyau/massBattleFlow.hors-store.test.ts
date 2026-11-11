@@ -11,7 +11,7 @@ import { BATTLE_HAZARDS, type MassBattleSpec } from '../engine/massBattle';
 import { t } from '../i18n';
 import { initialNet } from './etat';
 import { intentAllowedFor } from './netOwnership';
-import { refusDuChoix } from './choixDeFenetre';
+import { refusDuChoixNomme } from './choixDeFenetre';
 import { fenetreDuJeu } from './combatAuto';
 import type { PendingActivity } from './interludeFlow';
 import { setRule, resetRule } from '../engine/policy';
@@ -687,7 +687,7 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'ligne-de-mire');
     const acted = pending()!.heroId;
     resolveBattleTest({ roll: 10, success: true, sl: 2 });
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'compte-a-rebours', acted)).toBe(t('choix.refus.valeur'));
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'compte-a-rebours', acted)).toBe(t('choix.refus.valeur'));
     poster('compte-a-rebours', acted);
     expect(mbState().assignment).toEqual({});
     banc.getState().fenetreChoisir('batailleDeMasse', 'scene', 'compte-a-rebours');
@@ -697,7 +697,7 @@ describe('Affectation explicite d\'un PJ à une action (poste ≠ auto « meille
   it('(d) une Activité combinée n’est pas un poste, et le héros NOMMÉ la mène seul', () => {
     start();
     const [a, b] = banc.getState().party.map((h) => h.id);
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'reperage', a)).toBe(t('choix.refus.valeur'));
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'reperage', a)).toBe(t('choix.refus.valeur'));
     poster('reperage', a);
     expect(mbState().assignment).toEqual({});
     prep('reperage', b);
@@ -738,7 +738,7 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     start({}, partyWithWarLore());
     const [a, b] = banc.getState().party.map((h) => h.id);
     expect(fenetreDuJeu(banc.getState())?.cle).toBe('interlude');
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'planification', a)).toBeNull();
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'ajouterAuPoste', 'planification', a)).toBeNull();
     poster('planification', a);
     banc.getState().fenetreChoisir('batailleDeMasse', 'retirerDuPoste', 'planification', a);
     poster('planification', b);
@@ -1024,7 +1024,7 @@ describe('Aléa & fermeture', () => {
     const args = ['batailleDeMasse', 'alea', 'peur'];
     expect([intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', args), intentAllowedFor(banc.getState(), 1, 'fenetreChoisir', args)]).toEqual([true, false]);
     banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } });
-    expect(refusDuChoix(banc.getState(), 'batailleDeMasse', 'alea', 'peur')).toBe(t('choix.refus.hoteSeul'));
+    expect(refusDuChoixNomme(banc.getState(), 'batailleDeMasse', 'alea', 'peur')).toBe(t('choix.refus.hoteSeul'));
   });
 
   it('refuse et le dit : un tirage hors Round', () => {

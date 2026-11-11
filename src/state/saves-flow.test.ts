@@ -77,10 +77,10 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
 
   it('le chargement garde les préférences de vue et de touches, et remet le reste de l’interface', () => {
     expect(useGame.getState().saveGame(1)).toBe(true);
-    useGame.setState({ camRot: 3, zoom: 2, keyOverrides: { 'toggle-menu': 'KeyP' }, sheetId: 'h', gameMenuOpen: true });
+    useGame.setState({ camRot: 3, zoom: 2, keyOverrides: { 'menu-ouvrir': 'KeyP' }, sheetId: 'h', gameMenuOpen: true });
     expect(useGame.getState().loadGame(1)).toBe(true);
     const s = useGame.getState();
-    expect([s.camRot, s.zoom, s.keyOverrides]).toEqual([3, 2, { 'toggle-menu': 'KeyP' }]);
+    expect([s.camRot, s.zoom, s.keyOverrides]).toEqual([3, 2, { 'menu-ouvrir': 'KeyP' }]);
     expect([s.sheetId, s.gameMenuOpen]).toEqual([null, false]);
   });
 

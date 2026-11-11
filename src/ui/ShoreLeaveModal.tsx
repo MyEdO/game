@@ -3,7 +3,7 @@ import { Modal } from './Modal';
 import { EmbeddedShell } from './RollShell';
 import { ChoiceButtons } from './OptionChooser';
 import { Icon } from './Icon';
-import { refusDuChoix } from '../noyau/choixDeFenetre';
+import { refusDuChoixNomme } from '../noyau/choixDeFenetre';
 
 /**
  * Permission de RELÂCHE À TERRE (MDG 15 l.245, événement de port) : posée à l'accostage AVANT le
@@ -19,8 +19,8 @@ export function ShoreLeaveBody({ embedded = false }: { embedded?: boolean } = {}
   const p = useGame((s) => s.pendingShoreLeave);
   const choisir = useGame((s) => s.fenetreChoisir);
   const resolve = (accorder: boolean) => choisir('relacheATerre', 'accorder', accorder);
-  const refusAccorder = useGame((s) => refusDuChoix(s, 'relacheATerre', 'accorder', true));
-  const refusRefuser = useGame((s) => refusDuChoix(s, 'relacheATerre', 'accorder', false));
+  const refusAccorder = useGame((s) => refusDuChoixNomme(s, 'relacheATerre', 'accorder', true));
+  const refusRefuser = useGame((s) => refusDuChoixNomme(s, 'relacheATerre', 'accorder', false));
   if (!p) return null;
   const title = <><Icon id="travel/anchor" size="sm" /> Accostage à {p.to.label}</>;
   const body = (

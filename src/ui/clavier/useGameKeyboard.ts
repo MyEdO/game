@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useGame } from '../../state/store';
-import { KEYBINDINGS, bindingParId, elireBinding, eventMods, runBindingUpById, CODE_ECHAP } from '../../state/clavier/keybindings';
+import { KEYBINDINGS, bindingParId, elireBinding, eventMods, runBindingUpById, CODE_ECHAP, type IdDeRaccourci } from '../../state/clavier/keybindings';
 import { resoudreEchap, echapRelachee } from '../../state/clavier/resoudreEchap';
 import { SURFACE, estChamp } from '../focus';
 import { ecouterClavier } from './interne/ecouterClavier';
@@ -37,7 +37,7 @@ const CODE_ACTIVATION = /^(Enter|NumpadEnter|Space)$/;
  * cliquer — mangerait les flèches de l'application (sélection de l'éditeur, curseur tactique).
  *
  * Un contrôle focalisé DANS une SURFACE (`SURFACE` : un dialogue, une infobulle) possède ses touches
- * d'ACTIVATION, même face à un raccourci qui ne se tait pas devant un contrôle (`cursor-commit`) : le
+ * d'ACTIVATION, même face à un raccourci qui ne se tait pas devant un contrôle (`curseur-valider`) : le
  * focus y a été posé par la surface (son focus d'entrée) ou par le joueur, jamais laissé là par un
  * clic antérieur sur le jeu. Hors surface, le focus résiduel du bouton « Pousser » laisse Entrée au
  * curseur (#199).
@@ -60,8 +60,8 @@ export function useGameKeyboard() {
     // UN APPUI, UN RACCOURCI : tant que la touche n'est pas relâchée, elle appartient au raccourci qui
     // l'a prise — la répétition automatique du clavier (l'OS réémet des `keydown` tant qu'on tient) ne la
     // passe jamais à un AUTRE. Sans cette mémoire, Échap désarmait l'intention au 1ᵉʳ `keydown` puis, la
-    // condition de `intent-cancel` étant retombée, ouvrait le menu système au suivant (#1411 P0-A).
-    const priseParCode = new Map<string, string>();
+    // condition de `intention-annuler` étant retombée, ouvrait le menu système au suivant (#1411 P0-A).
+    const priseParCode = new Map<string, IdDeRaccourci>();
     const onKey = (e: KeyboardEvent) => {
       const { saisie, controlFocused, activationDeSurface } = saisieEnCours(e);
       if (saisie || activationDeSurface) return;

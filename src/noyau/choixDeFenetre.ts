@@ -57,7 +57,7 @@ import { bulkCarriers } from './carriers';
 import { carrierFreeEnc, findCargoById } from '../engine/cargo';
 import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
 import {
-  VERBE_DE_CHOIX, declarationDuChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
+  VERBE_DE_CHOIX, declarationDuChoixNomme, estAxeDe, estFenetreAChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
 
 /** Le réglage de l'axe `axe` de la fenêtre `fenetre`, sur le héros `pid` d'un choix de rangée : ses valeurs `valeurs`,
@@ -429,7 +429,7 @@ export const reglagesDesChoix = (s: Jeu, gestes: readonly GesteDuJeu[]): Reglage
   gestes.flatMap((g) => {
     if (g.verbe !== VERBE_DE_CHOIX || !g.fenetre || !g.axe) return [];
     const fenetre = g.fenetre as FenetreAChoix;
-    const deRangee = declarationDuChoix(fenetre, g.axe)?.portee === 'rangee';
+    const deRangee = declarationDuChoixNomme(fenetre, g.axe)?.portee === 'rangee';
     return [reglageDuChoixDeFenetre(s, fenetre, g.axe), ...(deRangee ? [reglageDeLaRangee(s, fenetre, g.axe)] : [])];
   });
 
@@ -455,13 +455,20 @@ export function semaineAReprendre(s: Jeu): boolean {
  *  de l'hôte dans l'état d'un invité, le choix du héros d'un autre siège, une valeur que l'état n'ouvre pas ou hors de
  *  ses bornes, ou la raison qui la ferme ; `null` : il se joue. */
 export function refusDuChoix(s: Jeu, fenetre: unknown, axe: unknown, valeur: unknown, pid?: unknown): string | null {
-  const declaration = declarationDuChoix(fenetre, axe);
-  if (!declaration) return t('choix.refus.inconnu');
-  if (!garanti(fenetreDuRegistre(fenetre), String(fenetre), 'fenêtre à choix').ouverte(s)) return t('choix.refus.fermee');
-  if ((typeof pid === 'string') !== (declaration.portee === 'rangee')) return t('choix.refus.rangee');
+  return estFenetreAChoix(fenetre) && estAxeDe(fenetre, axe)
+    ? refusDuChoixNomme(s, fenetre, axe, valeur, typeof pid === 'string' ? pid : undefined)
+    : t('choix.refus.inconnu');
+}
+
+/** Ce qui refuse le choix `axe` de la fenêtre `fenetre` à la valeur `valeur`, sur la rangée `pid` d'un choix de rangée
+ *  (`refusDuChoix`) ; `null` : il se joue. */
+export function refusDuChoixNomme(s: Jeu, fenetre: FenetreAChoix, axe: AxeDuChoix, valeur: unknown, pid?: IdDeRangee): string | null {
+  const declaration = garanti(declarationDuChoixNomme(fenetre, axe), `${fenetre}.${axe}`, 'choix déclaré');
+  if (!garanti(fenetreDuRegistre(fenetre), fenetre, 'fenêtre à choix').ouverte(s)) return t('choix.refus.fermee');
+  if ((pid !== undefined) !== (declaration.portee === 'rangee')) return t('choix.refus.rangee');
   if (declaration.qui === 'hote' && s.net.mode === 'guest') return t('choix.refus.hoteSeul');
   if (declaration.portee === 'rangee' && declaration.qui === 'proprietaire' && !seatOwns(s, decidingSeat(s), pid as IdDeHeros)) return t('choix.refus.autreSiege');
-  const lu = reglageDuChoixDeFenetre(s, fenetre as FenetreAChoix, axe as AxeDuChoix, pid as IdDeRangee | undefined);
+  const lu = reglageDuChoixDeFenetre(s, fenetre, axe, pid);
   if (lu.bornes) return dansLesBornes(valeur, lu.bornes) ? null : t('choix.refus.bornes');
   const lue = lu.valeurs?.find((v) => v.valeur === valeur);
   return lue ? lue.refus : t('choix.refus.valeur');

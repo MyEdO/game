@@ -420,7 +420,7 @@ describe('Boucle de jeu (store)', () => {
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
@@ -436,7 +436,7 @@ describe('Boucle de jeu (store)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.criticalWounds).toBe(1);
@@ -463,7 +463,7 @@ describe('Boucle de jeu (store)', () => {
     expect(st.battle!.acted).toBe(true); // l'Action est consommée d'office
   });
 
-  it('Maladresse — fumble du DÉFENSEUR héros (défense ratée + double) → étape jet:fumble de la cascade', () => {
+  it('Maladresse — fumble du DÉFENSEUR héros (défense ratée + double) → étape jet:maladresse de la cascade', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
@@ -500,7 +500,7 @@ describe('Boucle de jeu (store)', () => {
     const cur = st.pendingCascade?.participants[st.pendingCascade!.cursor];
     expect(cur?.jet).toBe('maladresse');
     expect(cur?.actorId).toBe(h.id);
-    expect(cur?.fumble?.weapon).toBeTruthy();
+    expect(cur?.maladresse?.weapon).toBeTruthy();
     // Identité de l'étape poussée = compteur `seq` de la séquence (#1508) : une fixture sans `seq` donne `…-undefined`.
     expect(cur?.id).toBe(`cons-fumble-${h.id}-1`);
     expect(st.pendingCascade!.seq).toBe(2);
@@ -583,7 +583,7 @@ describe('Boucle de jeu (store)', () => {
     const witem = h.items!.find((i) => (i.kind === 'melee' || i.kind === 'ranged') && h.weapons.some((w) => w.uid === i.uid))!;
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
     // (1) Maladresse 21-40 → 1 Dégât d'arme, écrit sur l'ItemInstance source.
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, maladresse: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
     const hMid = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
@@ -1903,7 +1903,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.getState().interagirAvecLEntite('coffre');
     banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
-    expect(pa.gear).toEqual({ scope: 'loot', uid: banc.getState().pendingLoot!.gear[0].uid });
+    expect(pa.gear).toEqual({ scope: 'butin', uid: banc.getState().pendingLoot!.gear[0].uid });
     expect(pa.skillLabel ?? 'Évaluation').toBe('Évaluation');
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
     banc.getState().jetValider('evaluation');

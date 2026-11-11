@@ -828,7 +828,7 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/ui/echap-intention-consomme.test.tsx",
     motif: "désormais",
-    ancre: "désarme, et les suivants — l'intention désormais nulle — retombent sur `toggle-menu`.",
+    ancre: "désarme, et les suivants — l'intention désormais nulle — retombent sur `menu-ouvrir`.",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

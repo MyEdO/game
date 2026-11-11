@@ -41,11 +41,11 @@ function cartPossession(ownerId: string, lots: CargoLot[]): Possession {
 
 describe('Risque cargaison — tronc PUR (#327 lot D)', () => {
   it('cargoRaidLossPct : victoire = 0, fuite = fleePct, défaite = lossPct (bornés 0..100)', () => {
-    expect(cargoRaidLossPct('victory', 25, 75)).toBe(0);
-    expect(cargoRaidLossPct('fled', 25, 75)).toBe(25);
-    expect(cargoRaidLossPct('defeat', 25, 75)).toBe(75);
-    expect(cargoRaidLossPct('defeat', 25, 200)).toBe(100); // borné haut
-    expect(cargoRaidLossPct('fled', -5, 75)).toBe(0); // borné bas
+    expect(cargoRaidLossPct('victoire', 25, 75)).toBe(0);
+    expect(cargoRaidLossPct('fuite', 25, 75)).toBe(25);
+    expect(cargoRaidLossPct('defaite', 25, 75)).toBe(75);
+    expect(cargoRaidLossPct('defaite', 25, 200)).toBe(100); // borné haut
+    expect(cargoRaidLossPct('fuite', -5, 75)).toBe(0); // borné bas
   });
 
   it('spoilCargoByEnc : retire un montant borné au CONTENU, au fil des lots, sans égard au type', () => {
@@ -73,21 +73,21 @@ describe('Vol terrestre GRADUÉ par l’issue (#327 A5.1) — applyLandCargoRaid
   };
 
   it('victoire : le convoi est sauf (0 Enc perdu)', () => {
-    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'victory');
+    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'victoire');
     expect(r.pct).toBe(0);
     expect(r.losses).toHaveLength(0);
   });
 
   it('fuite : retire landRobberyFleePct (défaut 25 %) de l’Enc du convoi', () => {
-    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'fled');
+    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'fuite');
     expect(r.pct).toBe(25);
     expect(r.losses.reduce((n, l) => n + l.removed, 0)).toBe(10);
   });
 
   it('défaite : retire landRobberyLossPct (défaut 75 %) — et respecte la surcharge éditable', () => {
-    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defeat').losses.reduce((n, l) => n + l.removed, 0)).toBe(30);
+    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defaite').losses.reduce((n, l) => n + l.removed, 0)).toBe(30);
     setRule('landRobberyLossPct', 50);
-    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defeat').losses.reduce((n, l) => n + l.removed, 0)).toBe(20);
+    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defaite').losses.reduce((n, l) => n + l.removed, 0)).toBe(20);
   });
 });
 
@@ -98,21 +98,21 @@ describe('Vol terrestre — dénouement au teardown de combat (store)', () => {
   });
 
   it('denouerLeVol(defeat) retire 75 % des lots réels du véhicule et éteint le flag', () => {
-    get().denouerLeVol('defeat');
+    get().denouerLeVol('defaite');
     const cart = get().possessions[0];
     expect(cargoTotalEnc(cart.cargo ?? [])).toBe(10); // 40 − 30 (75 %)
     expect(get().cargoRaid).toBe(false);
   });
 
   it('denouerLeVol(victory) ne retire rien (convoi sauf) et éteint le flag', () => {
-    get().denouerLeVol('victory');
+    get().denouerLeVol('victoire');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
     expect(get().cargoRaid).toBe(false);
   });
 
   it('no-op quand aucun vol n’est en cours', () => {
     banc.setState({ cargoRaid: false } as never);
-    get().denouerLeVol('defeat');
+    get().denouerLeVol('defaite');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
   });
 });

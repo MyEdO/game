@@ -60,7 +60,7 @@ import { categoryByKey, codexGroupLabel } from '../noyau/codex/registry';
 import { sceneToAscii } from '../noyau/monde/sceneToAscii';
 import { FOND_ECRIT } from '../data/schemas/grammaire/carte-ascii';
 import { startCascade, stepInteraction, stepReady } from '../noyau/cascade';
-import { refusDeLaSortie } from '../noyau/sortieDeFenetre';
+import { refusDeLaSortieNommee } from '../noyau/sortieDeFenetre';
 import { poserLeGroupe } from '../noyau/marcheDuGroupe';
 import { routeDistanceLabel } from '../engine/travel';
 import { inscrireEnBataille } from '../noyau/summonFlow';
@@ -1563,7 +1563,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       // resterait bloqué sur une modale. Borne dure (la reprise 'combat' relance la boucle checkBattleOver).
       for (let guard = 0; useGame.getState().pendingCascade && !useGame.getState().battle?.over && guard < 8; guard++) {
         useGame.getState().jetLancer('cascade');
-        if (!refusDeLaSortie(useGame.getState(), 'cascade')) useGame.getState().fenetreFermer('cascade');
+        if (!refusDeLaSortieNommee(useGame.getState(), 'cascade')) useGame.getState().fenetreFermer('cascade');
         if (!useGame.getState().battle?.over) checkBattleOver(() => useGame.getState(), useGame.setState);
       }
       let lootNote = '';

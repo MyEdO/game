@@ -1,7 +1,7 @@
 import { Fragment, type ReactNode } from 'react';
 import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
-import { refusDuChoix } from '../noyau/choixDeFenetre';
+import { refusDuChoixNomme } from '../noyau/choixDeFenetre';
 import { fermetureDeLaSortie } from '../noyau/sortieDeFenetre';
 import { flowStakeRef, skillRefLabel } from '../data';
 import { stakeRuleOf } from './StakeNote';
@@ -55,7 +55,7 @@ export function MedicModal() {
   const money = partyMoneyTotal(useGame.getState); // somme des bourses (le groupe est abonné via `party`)
   const choisir = useGame((s) => s.fenetreChoisir);
   const sortieFermee = useGame((s) => fermetureDeLaSortie(s, 'infirmerie'));
-  const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoix(s, 'infirmerie', 'patient', h.id)]))));
+  const refusDuPatient = useGame(useShallow((s) => Object.fromEntries(s.party.map((h) => [h.id, refusDuChoixNomme(s, 'infirmerie', 'patient', h.id)]))));
   const regler = useGame((s) => s.jetRegler);
   const fermer = useGame((s) => s.fenetreFermer);
   const close = () => fermer('infirmerie');

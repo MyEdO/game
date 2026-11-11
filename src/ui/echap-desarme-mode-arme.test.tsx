@@ -4,12 +4,12 @@
  *
  * Trouvaille : Dissiper armé (aucun curseur, aucune intention, aucun interlude apparié), Échap
  * ouvrait le MENU SYSTÈME et laissait le mode armé — le seul désarmement était le re-clic sur la
- * case. L'échelle d'Échap ne couvrait que `intent-cancel`/`cursor-cancel`/`clear-preview`/
- * `interlude-exit` puis `toggle-menu` : aucun barreau ne touchait `battle.action`.
+ * case. L'échelle d'Échap ne couvrait que `intention-annuler`/`curseur-annuler`/`apercu-effacer`/
+ * `interlude-sortie` puis `menu-ouvrir` : aucun barreau ne touchait `battle.action`.
  *
  * FRONTIÈRE mesurée : les modes à entrée d'interlude (bordée, téléportation) ont DÉJÀ leur sortie
- * déclarée au registre — `interlude-exit` la prend, et rien ne change pour eux. Les armés NUS
- * (Dissiper, Soigner, Incanter, Munition, Poussée) n'en ont aucune : `action-disarm` est la leur.
+ * déclarée au registre — `interlude-sortie` la prend, et rien ne change pour eux. Les armés NUS
+ * (Dissiper, Soigner, Incanter, Munition, Poussée) n'en ont aucune : `mode-desarmer` est la leur.
  *
  * Trois états, trois contrats : mode armé → Échap désarme (menu FERMÉ) ; plus rien d'armé → Échap
  * ouvre le menu ; siège qui ne contrôle pas l'actif → menu direct (pas de vol d'Échap). L'état est
@@ -93,7 +93,7 @@ describe('Échap sur un mode armé NU (#1411)', () => {
   for (const action of ARMÉS_NUS) {
     it(`« ${action} » armé : Échap DÉSARME, et n’ouvre pas le menu système`, () => {
       table(action);
-      expect(barreaux(get()), 'un seul barreau doit répondre — et ce n’est pas le menu').toEqual(['action-disarm']);
+      expect(barreaux(get()), 'un seul barreau doit répondre — et ce n’est pas le menu').toEqual(['mode-desarmer']);
       échap();
       expect(get().battle!.action, 'le mode est resté armé après Échap').toBeNull();
       expect(get().gameMenuOpen, 'le menu système s’est ouvert par-dessus le mode armé').toBe(false);
@@ -111,7 +111,7 @@ describe('Échap sur un mode armé NU (#1411)', () => {
 
   it('bordée : rien ne change — sa SORTIE d’interlude garde la touche (aucun doublon)', () => {
     table('bordee');
-    expect(barreaux(get())).toEqual(['interlude-exit']);
+    expect(barreaux(get())).toEqual(['interlude-sortie']);
   });
 
   it('téléportation : sortie qui COMMET (`exitSafe: false`) — Échap ne sélectionne toujours RIEN', () => {
@@ -121,7 +121,7 @@ describe('Échap sur un mode armé NU (#1411)', () => {
 
   it('COOP — le siège qui NE contrôle PAS l’actif garde le menu (pas de vol d’Échap)', () => {
     table('dissipation', { turn: 0, mySeat: 1, mode: 'guest' }); // tour de h1 (siège 0), client au siège 1
-    expect(barreaux(get())).toEqual(['toggle-menu']);
+    expect(barreaux(get())).toEqual(['menu-ouvrir']);
     échap();
     expect(get().gameMenuOpen, 'un siège sans geste à annuler serait enfermé').toBe(true);
     expect(get().battle!.action, 'le mode armé d’AUTRUI a été désarmé à distance').toBe('dissipation');
@@ -129,7 +129,7 @@ describe('Échap sur un mode armé NU (#1411)', () => {
 
   it('COOP — le siège QUI tient le mode armé le désarme', () => {
     table('dissipation', { turn: 1, mySeat: 1, mode: 'guest' }); // tour de h2, possédé par le siège 1
-    expect(barreaux(get())).toEqual(['action-disarm']);
+    expect(barreaux(get())).toEqual(['mode-desarmer']);
     échap();
     expect(get().battle!.action).toBeNull();
     expect(get().gameMenuOpen).toBe(false);

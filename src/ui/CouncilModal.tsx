@@ -1,6 +1,6 @@
 import { useShallow } from 'zustand/react/shallow';
 import { useGame } from '../state/store';
-import { refusDuChoix } from '../noyau/choixDeFenetre';
+import { refusDuChoixNomme } from '../noyau/choixDeFenetre';
 import { Modal } from './Modal';
 import { OptionChooser } from './OptionChooser';
 import { MultiRollList } from './MultiRollList';
@@ -26,7 +26,7 @@ export function CouncilModal() {
   const choisir = useGame((s) => s.fenetreChoisir);
   const fermer = useGame((s) => s.fenetreFermer);
   const lever = () => fermer('conseil');
-  const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDuChoix(s, 'conseil', 'paie', factorId)]))));
+  const refusDe = useGame(useShallow((s) => Object.fromEntries(payChoices().map(({ factorId }) => [factorId, refusDuChoixNomme(s, 'conseil', 'paie', factorId)]))));
   if (!p) return null;
 
   const title = <><Icon id="scenario/naval" size="sm" /> Conseil de bord</>;

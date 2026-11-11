@@ -370,11 +370,11 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     const fiche = structuredClone(datasetObject('seaCargo'));
     const port = { taille: 1, richesse: 1, production: [] };
     expect(overloadMaxEnc(100)).toBe(fiche.overload.hardCapPct);
-    expect(offerPricePct(port, 'x')).toBe(100 + fiche.sell.offerPrice.find((b) => b.min === 2)!.pct);
+    expect(offerPricePct(port, 'x')).toBe(100 + fiche.vente.offerPrice.find((b) => b.min === 2)!.pct);
     setObjectDataset('seaCargo', {
       ...fiche,
       overload: { ...fiche.overload, hardCapPct: 175 },
-      sell: { ...fiche.sell, offerPrice: fiche.sell.offerPrice.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
+      vente: { ...fiche.vente, offerPrice: fiche.vente.offerPrice.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
     });
     expect(overloadMaxEnc(100)).toBe(175);
     expect(offerPricePct(port, 'x')).toBe(67);
@@ -382,9 +382,9 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
 
   it('les règles de négoce terrestre ÉDITÉES (#3433) : lot minimal, surcoût partiel et dés du marchand servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('landCargo'));
-    const { d10, plus } = fiche.buy.merchantSkill;
+    const { d10, plus } = fiche.achat.merchantSkill;
     expect(rollMerchantSkill(deFixe(1))).toBe(d10 + plus);
-    setObjectDataset('landCargo', { ...fiche, buy: { ...fiche.buy, minEnc: 20, partialSurchargePct: 15, merchantSkill: { d10: d10 + 1, plus } } });
+    setObjectDataset('landCargo', { ...fiche, achat: { ...fiche.achat, minEnc: 20, partialSurchargePct: 15, merchantSkill: { d10: d10 + 1, plus } } });
     expect(minCargoEnc()).toBe(20);
     expect(partialSurchargePct()).toBe(15);
     expect(rollMerchantSkill(deFixe(1))).toBe(d10 + 1 + plus);
