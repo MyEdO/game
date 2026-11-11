@@ -92,7 +92,8 @@ describe('Codex — la mitigation affichée est celle de la DONNÉE', () => {
 
     const ecarts: string[] = [];
     const dits: Record<string, number> = {};
-    for (const cat of CODEX.filter((c) => c.key.startsWith('miscast'))) {
+    const FICHES_D_INCANTATION_IMPARFAITE = new Set(['imparfaiteMineure', 'imparfaiteMajeure', 'imparfaiteMineureVdm', 'imparfaiteMajeureVdm', 'colereDesDieux']);
+    for (const cat of CODEX.filter((c) => FICHES_D_INCANTATION_IMPARFAITE.has(c.key))) {
       for (const item of cat.items ?? []) {
         const rendu = (item.sections ?? []).flatMap((s) => s.rows.map((r) => JSON.stringify(r)));
         for (const m of MITIGATIONS) {
