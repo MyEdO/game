@@ -270,10 +270,12 @@ export interface ZonesDeLEditeur {
    * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
    * marchand (`merchant`), son jeu de taverne (`tavernGame`), son
    * apparence (`appearance`), sans tenue pour un PNJ de carrière, ses couleurs par emplacement de palette, son
-   * animation (`anim`) et, d'une coque, son véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa
-   * fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
+   * animation (`anim`) et, d'une coque, son véhicule (`vehicule`), ses Améliorations (`upgrades`) et ses postes (`postes`),
+   * au contexte de sa fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
    * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; un dialogue, chacun de ceux que sa scène
-   * déclare (`dialoguesDeLaScene`) ; le profil absent, « Ajouter » choisit un profil
+   * déclare (`dialoguesDeLaScene`) ; un poste neuf ou la pièce d'un poste, chaque engin de siège (`siegeEngines`), un
+   * servant, chaque personnage de la scène hors de la coque et des autres servants du poste, sa munition choisie ou
+   * chargée, chacune de son coffre ; le profil absent, « Ajouter » choisit un profil
    * neuf au nom du personnage (`emptyStatblock`) ou la copie de sa créature du Bestiaire (`statblockDeLaCreature`) ;
    * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits standard
    * en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le formulaire

@@ -133,7 +133,8 @@ const PROJET_A_PRESETS = 'la-diligence';
  *  (`usable.actions`). */
 const DECOR = 'brasero';
 
-/** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance (MDG 12), et sa case. */
+/** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance et à postes dotés de leur
+ *  coffre (MDG 12), et sa case. */
 const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 } } as const;
 
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });

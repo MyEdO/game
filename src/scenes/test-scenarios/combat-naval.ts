@@ -1,6 +1,6 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { groupeVitrineDeScenario, idDuHerosDeScenario } from './_heros';
-import { gabaritDObjet, loadWeapon } from '../../engine/items';
+import { loadWeapon } from '../../engine/items';
 import type { AuthoredShipPoste, Combatant } from '../../engine/types';
 import { buildScene } from '../../noyau/mapSpec';
 import type { TestScenario } from './_shared';
@@ -17,10 +17,7 @@ const GUNNERS = [idDuHerosDeScenario('soldat'), idDuHerosDeScenario('chasseur')]
  * `applyShipPostes` la sert au chef (`mannedPoste`) → l'attaque dédiée « Servir le pierrier ».
  */
 function pierrierPoste(chefId: string): AuthoredShipPoste {
-  // Les uids des munitions se dérivent de leur place : le coffre du poste que sert `chefId`.
-  const balles = { ...gabaritDObjet('balles-et-poudre-pierrier')!, uid: `pierrier-${chefId}-balles`, qty: 10 }; // de quoi bombarder plusieurs Rounds (Recharge entre chaque tir)
-  const mitraille = { ...gabaritDObjet('petites-munitions-et-poudre-pierrier')!, uid: `pierrier-${chefId}-mitraille`, qty: 6 };
-  return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: [balles, mitraille], ammoUid: balles.uid };
+  return { trappingId: 'pierrier', side: 'tribord', crewIds: [chefId], ammo: { 'balles-et-poudre-pierrier': 10, 'petites-munitions-et-poudre-pierrier': 6 }, selectedAmmo: { id: 'balles-et-poudre-pierrier' } };
 }
 
 /**

@@ -1,6 +1,6 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
+import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, damageString, gabaritDObjet, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
@@ -962,6 +962,19 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
 
   it('fail-fast : `trappingId` inconnu → throw explicite', () => {
     expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' }, 'poste-de-test')).toThrow(/trappingId inconnu/);
+  });
+
+  it('coffre : chaque munition est le gabarit du catalogue à sa quantité, sous l’uid de sa place ; la choisie la désigne (MDG 12 l.410-424)', () => {
+    const p = hydratePoste({ trappingId: 'canon-moyen', ammo: { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }, selectedAmmo: { id: 'mitraille-et-poudre' } }, 'poste-de-test');
+    expect(p.ammo).toEqual([
+      { ...gabaritDObjet('boulet-et-poudre'), uid: 'poste-de-test-boulet-et-poudre', qty: 12 },
+      { ...gabaritDObjet('mitraille-et-poudre'), uid: 'poste-de-test-mitraille-et-poudre', qty: 4 },
+    ]);
+    expect(p.ammoUid).toBe('poste-de-test-mitraille-et-poudre');
+  });
+
+  it('fail-fast : une munition choisie hors du coffre → throw explicite', () => {
+    expect(() => hydratePoste({ trappingId: 'canon-moyen', ammo: { 'boulet-et-poudre': 12 }, selectedAmmo: { id: 'mitraille-et-poudre' } }, 'poste-de-test')).toThrow(/hors du coffre/);
   });
 });
 

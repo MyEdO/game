@@ -1025,32 +1025,29 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 }
 
 /**
- * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la base
- * de la pièce depuis `trappingId` (`itemFromTrappingById`, la couture existante — JAMAIS une base copiée),
- * puis re-pose l'état d'INSTANCE propre au poste (enchants de dérogation). La pièce prend toujours
- * `uidDeLaPlace`, que l'appelant dérive de sa place sur la coque (#2907). `trappingId`
- * irrésoluble → throw explicite (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
+ * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la pièce et chaque
+ * munition de son coffre depuis le catalogue (`gabaritDObjet`, `itemFromTrappingById` — JAMAIS une base copiée), puis
+ * re-pose l'état propre au poste. La pièce prend `uidDeLaPlace`, que l'appelant dérive de sa place sur la coque, et
+ * chaque munition `<uidDeLaPlace>-<id>` (#2907). Une pièce, une munition ou une munition choisie hors du coffre
+ * → throw explicite (fail-fast — un défaut d'authoring, pas un silence).
  */
 export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPoste {
-  const base = gabaritDObjet(a.trappingId);
-  if (!base) throw new Error(`[poste] trappingId inconnu « ${a.trappingId} » — pièce non hydratable (#222)`);
-  const item: ItemInstance = {
-    ...base,
-    uid: uidDeLaPlace, // #2907
-    ...(a.enchants?.length ? { enchants: a.enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
-  };
-  const poste: ShipPoste = { item };
-  if (a.side) poste.side = a.side;
-  if (a.cover) poste.cover = a.cover;
-  if (a.crewIds) poste.crewIds = a.crewIds;
-  if (a.loaded != null) poste.loaded = a.loaded;
-  if (a.reloadProgress != null) poste.reloadProgress = a.reloadProgress;
-  if (a.ammo) poste.ammo = a.ammo;
-  if (a.ammoUid) poste.ammoUid = a.ammoUid;
-  if (a.loadedAmmoUid) poste.loadedAmmoUid = a.loadedAmmoUid;
-  if (a.chambered != null) poste.chambered = a.chambered;
-  if (a.enchants?.length) poste.enchants = a.enchants;
-  if (a.anchor) poste.anchor = a.anchor;
+  const { trappingId, ammo, selectedAmmo, ...etat } = a;
+  const base = gabaritDObjet(trappingId);
+  if (!base) throw new Error(`[poste] trappingId inconnu « ${trappingId} » — pièce non hydratable (#222)`);
+  const poste: ShipPoste = { ...etat, item: { ...base, uid: uidDeLaPlace } };
+  const uidDeLaMunition = (id: string) => `${uidDeLaPlace}-${id}`;
+  if (ammo) {
+    poste.ammo = Object.entries(ammo).map(([id, qty]) => {
+      const munition = itemFromTrappingById(id, () => uidDeLaMunition(id));
+      if (!munition) throw new Error(`[poste] munition inconnue « ${id} » au coffre de « ${trappingId} » (#222)`);
+      return { ...munition, qty };
+    });
+  }
+  if (selectedAmmo) {
+    if (!ammo || !(selectedAmmo.id in ammo)) throw new Error(`[poste] munition choisie « ${selectedAmmo.id} » hors du coffre de « ${trappingId} » (#222)`);
+    poste.ammoUid = uidDeLaMunition(selectedAmmo.id);
+  }
   return poste;
 }
 

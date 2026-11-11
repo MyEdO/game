@@ -21,7 +21,6 @@ import { fileURLToPath } from 'node:url';
 import { scene, hero, NPC, P, flowOf, flagWhen, testNode, poste, resetIds, projectDoc, remetLeDocument } from '../campagne/lib.mjs';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif.ts';
 import { dailyWaterLitres } from '../../src/engine/seaWeather.ts';
-import { gabaritDObjet } from '../../src/engine/items.ts';
 
 /** Construction PURE du document de projet : la SOURCE possède 100 % de la donnée de l'artefact
  *  (`src/scenes/loup-et-saumure/loup-et-saumure-projet.json`), le CLI ci-dessous n'en est que la voie
@@ -37,22 +36,10 @@ const DOCUMENTS = {
   kramerDemasquee: { id: 'document-kramer-demasquee', titre: 'Kramer démasquée', prose: 'Elle craque. Ce n’est pas une négociante de Kislev, mais une initiée de Stromfels — c’est elle qui minait le Grimm depuis Salzenmund. Prise à découvert, elle n’a plus les mains libres : ses manigances cessent. L’équipage gronde.' },
   nuitDuChat: { id: 'document-la-nuit-du-chat', titre: 'La nuit du chat', prose: '« Une insomnie de plus, capitaine. La traversée est éprouvante pour tous. »' },
 };
-let ammoSeq = 0;
-/** Munition de bord (`ItemInstance` kind:'ammo') bâtie sur le gabarit CANONIQUE `gabaritDObjet`
- *  (Dégâts/Qualités du catalogue), estampillée d'un uid STABLE et de sa quantité (le fond de soute). */
-function ammoStock(trappingId, qty) {
-  const base = gabaritDObjet(trappingId);
-  if (!base) throw new Error(`munition inconnue au catalogue : ${trappingId}`);
-  return { ...base, uid: `ammo-${trappingId}-${++ammoSeq}`, qty };
-}
-/** Poste d'artillerie ARMÉ (#241) : le `poste()` DOTÉ de son coffre à boulets de bord (`ShipPoste.ammo`,
- *  MDG ch.12 l.410-424) + la munition sélectionnée par défaut (`ammoUid` = 1re du stock). Sans dotation,
- *  la pièce est muette (affordance « Pas de munitions ») — un baron n'arme jamais un caboteur à sec. */
-function armedPoste(trappingId, side, stock) {
-  const p = poste(trappingId, side);
-  p.ammo = stock.map((s) => ammoStock(s.ref, s.qty));
-  p.ammoUid = p.ammo[0].uid;
-  return p;
+/** Poste d'artillerie ARMÉ (#241) : le `poste()` doté de son coffre (`coffre`, chaque munition du catalogue par son id, sa
+ *  quantité) et de sa munition choisie, la première. MDG 12 l.410-424 */
+function armedPoste(trappingId, side, coffre) {
+  return { ...poste(trappingId, side), ammo: coffre, selectedAmmo: { id: Object.keys(coffre)[0] } };
 }
 
 // #241 — fond de cale du Grimm au départ : régime de bord médian (MDG 14 l.242) × 43 âmes (journal
@@ -405,17 +392,17 @@ scenes.push(scene({
   entities: [
     hero(3, 7),
     hull('grimm', 'loup-imperial', 3, 7, 'E', 'Le Grimm', ['aldo-crew', 'griet-crew'],
-      [armedPoste('canon-moyen', 'tribord', [{ ref: 'boulet-et-poudre', qty: 12 }, { ref: 'mitraille-et-poudre', qty: 4 }]),
-       armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 12 }, { ref: 'mitraille-et-poudre', qty: 4 }]),
-       armedPoste('pierrier', 'proue', [{ ref: 'balles-et-poudre-pierrier', qty: 16 }])]),
+      [armedPoste('canon-moyen', 'tribord', { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }),
+       armedPoste('canon-moyen', 'babord', { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }),
+       armedPoste('pierrier', 'proue', { 'balles-et-poudre-pierrier': 16 })]),
     marinDuGrimm('aldo-crew', 3, 6, 'Frère Aldo (équipage exposé)', HELM_SKILLS, ALDO_APPEARANCE),
     marinDuGrimm('griet-crew', 3, 8, 'Griet (équipage exposé)', GUN_SKILLS, GRIET_APPEARANCE),
     // Dent de Manann — passagers : les pirates + le chef (hors ordre/rendu à la Mer) ET des marins représentants
     // compétents (barreur/canonnier) pour que la coque manœuvre et fasse feu. Deux bordées + chasse de proue.
     hull('cogue', 'cogue', 18, 7, 'O', 'La Dent de Manann', ['pirate-1', 'pirate-2', 'chef-cogue', 'cogue-helm', 'cogue-gun'],
-      [armedPoste('canon-moyen', 'tribord', [{ ref: 'boulet-et-poudre', qty: 12 }]),
-       armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 12 }]),
-       armedPoste('canon-moyen', 'proue', [{ ref: 'boulet-et-poudre', qty: 8 }])]),
+      [armedPoste('canon-moyen', 'tribord', { 'boulet-et-poudre': 12 }),
+       armedPoste('canon-moyen', 'babord', { 'boulet-et-poudre': 12 }),
+       armedPoste('canon-moyen', 'proue', { 'boulet-et-poudre': 8 })]),
     { id: 'pirate-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 6 }, label: 'Pirate' },
     { id: 'pirate-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 8 }, label: 'Pirate' },
     { id: 'chef-cogue', kind: 'personnage', creature: { id: 'jaego-roth' }, pos: { x: 19, y: 7 }, label: 'Le chef de la Dent de Manann' },
@@ -582,17 +569,17 @@ scenes.push(scene({
   entities: [
     hero(3, 7),
     hull('grimm2', 'loup-imperial', 3, 7, 'E', 'Le Grimm', ['aldo-crew-2', 'griet-crew-2'],
-      [armedPoste('canon-moyen', 'tribord', [{ ref: 'boulet-et-poudre', qty: 12 }, { ref: 'mitraille-et-poudre', qty: 4 }]),
-       armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 12 }, { ref: 'mitraille-et-poudre', qty: 4 }]),
-       armedPoste('pierrier', 'poupe', [{ ref: 'balles-et-poudre-pierrier', qty: 16 }])]),
+      [armedPoste('canon-moyen', 'tribord', { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }),
+       armedPoste('canon-moyen', 'babord', { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }),
+       armedPoste('pierrier', 'poupe', { 'balles-et-poudre-pierrier': 16 })]),
     marinDuGrimm('aldo-crew-2', 3, 6, 'Frère Aldo (équipage exposé)', HELM_SKILLS, ALDO_APPEARANCE),
     marinDuGrimm('griet-crew-2', 3, 8, 'Griet (équipage exposé)', GUN_SKILLS, GRIET_APPEARANCE),
     // Le Serpent-de-Sel : Proue-idole de Stromfels (amélioration d'INSTANCE, #221) + Bélier de proue par sa
     // culture d'abordage. Passagers : les Norses + Olg (hors ordre/rendu) ET des marins représentants compétents.
     hull('serpent-de-sel', 'langskip', 18, 7, 'O', 'Le Serpent-de-Sel', ['norse-1', 'norse-2', 'olg', 'serpent-helm', 'serpent-gun'],
-      [armedPoste('canon-moyen', 'tribord', [{ ref: 'boulet-et-poudre', qty: 10 }]),
-       armedPoste('canon-moyen', 'babord', [{ ref: 'boulet-et-poudre', qty: 10 }]),
-       armedPoste('canon-moyen', 'proue', [{ ref: 'boulet-et-poudre', qty: 8 }])],
+      [armedPoste('canon-moyen', 'tribord', { 'boulet-et-poudre': 10 }),
+       armedPoste('canon-moyen', 'babord', { 'boulet-et-poudre': 10 }),
+       armedPoste('canon-moyen', 'proue', { 'boulet-et-poudre': 8 })],
       [{ id: 'proue-idole-de-stromfels' }]),
     { id: 'norse-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 6 }, label: 'Norse' },
     { id: 'norse-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 18, y: 8 }, label: 'Norse' },

@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
@@ -37,7 +37,7 @@ import { estUnNavireAPonts, siegeEngines } from '../../index';
 import { capDecorAdmis } from '../../props.types';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
-import type { AuthoredShipPoste } from '../../../engine/types';
+import { FIRE_ARCS } from '../../../engine/types';
 
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
@@ -56,8 +56,26 @@ export const rectSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.numb
 /** Offre de couchage d'une scène/zone (`RestPlaces` sans `bord`, réservé au navire de campagne). */
 export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean().optional(), maison: z.boolean().optional(), camp: z.boolean().optional() }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" } });
 
-/** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn. T3-b. */
-export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
+/** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn (`hydratePoste`, #222). MDG 12-13 */
+export const authoredShipPosteSchema = nommerChamps(z.strictObject({
+  trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { nue: true }),
+  /** Absent : pivot libre (`inFireArc`). */
+  side: z.enum(FIRE_ARCS).optional(),
+  cover: deckCoverSchema.optional(),
+  /** `crewIds[0]` : le chef de pièce. */
+  crewIds: z.array(z.string()).optional(),
+  /** LDB 62 l.229/231 */
+  chambered: z.number().optional(),
+  /** MDG 12 / LDB 62 l.333 */
+  loaded: z.boolean().optional(),
+  /** LDB 62 l.335 */
+  reloadProgress: z.number().optional(),
+  /** Le coffre de la pièce : chaque munition du catalogue par son id, sa quantité. MDG 12 l.410-424 */
+  ammo: recordDIds('trapping', nommerNoeud(z.number().int().min(1), { nom: 'quantité' }), 'ammunition').optional(),
+  /** L'une des munitions du coffre. MDG 12 l.410-424 */
+  selectedAmmo: ref('trapping', undefined, 'ammunition').optional(),
+  anchor: ptSchema.optional(),
+}), { trappingId: { label: "pièce", texte: { regime: "technique" } }, side: { label: "côté" }, cover: { label: "couvert" }, crewIds: { label: "servants", texte: { regime: "technique" } }, chambered: { label: "munitions chambrées" }, loaded: { label: "chargée" }, reloadProgress: { label: "progression de la recharge" }, ammo: { label: "munitions", texte: { regime: "technique" } }, selectedAmmo: { label: "munition choisie" }, anchor: { label: "ancre" } });
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
@@ -249,7 +267,7 @@ const brancheDuDecor = (() => {
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
 /** Une faute CROISÉE d'une entité de scène : le champ où elle se dit, et ce qu'elle dit. */
-export interface FauteDEntite { chemin: readonly string[]; message: string }
+export interface FauteDEntite { chemin: readonly (string | number)[]; message: string }
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
@@ -257,7 +275,7 @@ export interface FauteDEntite { chemin: readonly string[]; message: string }
  *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number } }): FauteDEntite[] {
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
@@ -269,6 +287,9 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
     if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
+    ent.postes?.forEach((p, rang) => {
+      if (p.selectedAmmo && !(p.selectedAmmo.id in (p.ammo ?? {}))) fautes.push({ chemin: ['postes', rang, 'selectedAmmo'], message: `munition choisie « ${p.selectedAmmo.id} » hors du coffre du poste` });
+    });
   }
   if (ent.kind === 'prop') {
     for (const axe of ['x', 'y'] as const)
