@@ -1336,26 +1336,38 @@ async function parcoursEditeur() {
     await cliquerBouton(quoi)
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  ouverte d'un clic, le pointeur sorti d'elle, qui n'y désigne aucun article, même quand la liste ouverte recouvre le
-   *  point du clic, la flèche descendue du premier jusqu'à elle, une image au moins entre deux flèches, puis Entrée ;
+   *  cliquée, qui prend le focus, le pointeur sorti d'elle, refermée par Échap puis rouverte par Entrée : ouverte au
+   *  clavier, elle désigne sa valeur pressée, sinon sa première valeur offerte (`OptionButton.show_popup`), alors qu'au
+   *  clic, elle désigne l'article qu'elle recouvre sous le pointeur ; la flèche montée ou descendue de là jusqu'à elle,
+   *  sur chaque valeur offerte, une image au moins entre deux flèches, puis Entrée ;
    *  l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. Une frappe perdue par la liste ouverte
    *  laisse l'écran inchangé : Échap la ferme et le choix se rejoue, trois essais au plus ; une autre valeur pressée
    *  depuis l'ouverture est l'échec rendu tel quel. */
   const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
-    const presses = async () => (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.map((b) => `${b.id}:${b.presse}`).join(',')
-    const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
+    const valeurs = async () => (await editeur()).zones[zone].find((el) => el.id === liste).valeurs
+    const presses = async () => (await valeurs()).map((b) => `${b.id}:${b.presse}`).join(',')
+    const libelle = (await valeurs()).find((b) => b.id === id).libelle
     const fait = attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`
     for (let essai = 1; ; essai++) {
       const ouverture = await presses()
       const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
       const rang = deroulante.choix.indexOf(libelle)
       assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
+      const offertes = (await valeurs()).map((b, i) => (b.refus === null ? i : -1)).filter((i) => i >= 0)
+      const pressee = (await valeurs()).findIndex((b) => b.presse && b.refus === null)
+      const depart = offertes.indexOf(pressee >= 0 ? pressee : offertes[0])
+      const pas = offertes.indexOf(rang) - depart
       await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
       await sleep(400)
       await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
       await sleep(400)
-      for (let n = 0; n <= rang; n++) {
-        await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
+      await realKey(session, { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      await sleep(400)
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await sleep(400)
+      const fleche = pas < 0 ? { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 } : { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 }
+      for (let n = 0; n < Math.abs(pas); n++) {
+        await realKey(session, fleche)
         await sleep(60)
       }
       await marquer()
@@ -1712,6 +1724,36 @@ async function parcoursEditeur() {
   await cliquerAuPanneau({ element: 'bouton/entite/supprimer' })
   await waitFor(session, '!(globalThis.wfrpEcran?.editeur?.surcouche.reperes ?? []).some((r) => r.choisi)')
   await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cases[`${dx},${dy}`])
+  const flux = `valeur/usable/actions/${rang}/flow`
+  await waitFor(session, montre(`${flux}/kind`))
+  await cliquerAuPanneau('Rôles')
+  /** L'id de la valeur du choix `choix` qui pose la variante de discriminant `kind`. */
+  const idDeLaVariante = (e, choix, kind) => inspecte(e, choix).valeurs.find((b) => b.jeu.args[2]?.kind === kind).id
+  /** Le pas neuf ajouté au rang `n` de la séquence du flux, sa branche `kind` choisie, l'élément `attendu` montré. */
+  const ajouterLePas = async (n, kind, attendu) => {
+    await cliquerAuPanneau({ element: `bouton/${flux}/steps/ajouter` })
+    await waitFor(session, montre(`${flux}/steps/${n}/kind`))
+    e = await editeur()
+    await cliquerAuPanneau({ element: `bouton/${idDeLaVariante(e, `${flux}/steps/${n}/kind`, kind)}` })
+    await waitFor(session, montre(attendu))
+  }
+  /** Le texte `texte` écrit au champ `champ` du flux, sa saisie tapée puis jouée. */
+  const ecrireAuFlux = async (champ, texte) => {
+    await taper(`saisieTexte/${flux}/${champ}/valeur`, texte)
+    await cliquerAuPanneau({ element: `formulaire/${flux}/${champ}` })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${flux}/${champ}')?.champs[2].valeur === ${JSON.stringify(texte)}`)
+  }
+  await ajouterLePas(0, 'do', `${flux}/steps/0/effect/flag`)
+  await ecrireAuFlux('steps/0/effect/flag', 'coffre')
+  await ajouterLePas(1, 'if', `${flux}/steps/1/cond/kind`)
+  e = await editeur()
+  await choisirALaListe(`${flux}/steps/1/cond/kind`, idDeLaVariante(e, `${flux}/steps/1/cond/kind`, 'flag'), 'editeur.inspecteur', montre(`${flux}/steps/1/cond/expr`))
+  await ecrireAuFlux('steps/1/cond/expr', 'coffre')
+  e = await editeur()
+  const branche = (id) => inspecte(e, id).valeurs.find((b) => b.presse).libelle
+  noter(`un clic sur le décor « Comptoir », onglet Rôles, le flux de l’action « coffre » : « ${branche(`${flux}/kind`)} » ; « ${inspecte(e, `${flux}/steps/ajouter`).libelle} » : un pas « ${branche(`${flux}/steps/0/kind`)} », effet « ${branche(`${flux}/steps/0/effect/type`)} » sur l’indicateur « coffre », puis un pas « ${branche(`${flux}/steps/1/kind`)} », condition « ${branche(`${flux}/steps/1/cond/kind`)} » « coffre »`)
+  await capturer('3606-m2b-1-flux')
   await cliquerPoint(...cases[`${zx},${zy}`])
   await waitFor(session, montre('valeur/merchant/settlement'))
   e = await editeur()
