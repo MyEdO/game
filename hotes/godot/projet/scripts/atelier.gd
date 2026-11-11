@@ -18,7 +18,7 @@
 ## parcourt (#3822).
 ## Le modèle se choisit en tête du panneau ; chaque onglet, et ce qu'il porte, se montre si le modèle posé lui offre
 ## quelque chose (#3792, `_adapter_les_onglets`, `.claude/rules/hote-godot.md`).
-## Chaque geste mis en page, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
+## Chaque geste mis en page, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`).
 extends Node3D
 
 const VIDE := MontageDeComposition.VIDE

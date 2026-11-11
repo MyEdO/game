@@ -2,4 +2,4 @@
 
 export function empaqueter(sortie: string | null): Promise<string>;
 
-export function pontDuBundle(code: string, console: Console): { appeler: (methode: string, json?: string) => string };
+export function pontDuBundle(code: string, console: Console): { appeler: (methode: string, json?: string | null) => string };

@@ -1,6 +1,6 @@
-## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
-## l'adresse de la page (`?scenario=<id>&graine=<n>`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
-## l'adresse n'en nommant aucun, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
+## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie des
+## paramètres `scenario` et `graine` (`PontDuNoyau.parametre`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
+## sans paramètre `scenario`, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
 ## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
@@ -12,7 +12,7 @@
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
 ## et la partie se joue sans corps. Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque
-## cadrage du monde, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
+## cadrage du monde, il publie ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
 ## recette lit. La bulle de l'aperçu
 ## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
 ## l'interface lui laisse.

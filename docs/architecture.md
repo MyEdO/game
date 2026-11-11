@@ -658,7 +658,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `scripts/guards/lib/gdscriptSansRegle.mjs`) ;
                             jetons armés en minuteurs. `construire.mjs --sonde` importe une copie du projet, contrôle
                             chaque script puis exécute les recettes sous `recettes/` déclarant au premier niveau
-                            `const RECETTE_AUTONOME := true`, sans argument externe ; `equipement.gd`, qui attend une
+                            `const RECETTE_AUTONOME := true`, avec `--pont=<vivant.mjs>` pour seul argument ; `equipement.gd`, qui attend une
                             vue JSON, ne porte pas cette déclaration. L'éditeur est épinglé (`npm run godot:sonde`,
                             étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
                             l'export Web, que `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues

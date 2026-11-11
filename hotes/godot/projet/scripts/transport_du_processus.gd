@@ -20,10 +20,13 @@ signal _ouvert(pret: bool)
 
 
 ## Un tuyau du processus, lu par lignes sans jamais bloquer : `get_length()` puis `get_buffer(n)`, jamais `get_line`.
+## Chaque octet reçu n'est cherché qu'une fois.
 class Tuyau:
 	var _fichier: FileAccess
-	## Ce que le tuyau a livré au-delà de la dernière ligne détachée.
-	var _recu := PackedByteArray()
+	## Le début de la ligne en cours, déjà cherché : il ne porte aucun `\n`.
+	var _debut := PackedByteArray()
+	## Ce que le tuyau a livré après `_debut`, pas encore cherché.
+	var _suite := PackedByteArray()
 
 	func _init(fichier: FileAccess) -> void:
 		_fichier = fichier
@@ -32,13 +35,17 @@ class Tuyau:
 	func ligne() -> Variant:
 		var n := _fichier.get_length()
 		if n != 0:
-			_recu.append_array(_fichier.get_buffer(n))
-		var fin := _recu.find(10)
+			_suite.append_array(_fichier.get_buffer(n))
+		var fin := _suite.find(10)
 		if fin == -1:
+			_debut.append_array(_suite)
+			_suite = PackedByteArray()
 			return null
-		var lue := _recu.slice(0, fin).get_string_from_utf8()
-		_recu = _recu.slice(fin)
-		_recu.remove_at(0)
+		_debut.append_array(_suite.slice(0, fin))
+		var lue := _debut.get_string_from_utf8()
+		_debut = PackedByteArray()
+		_suite = _suite.slice(fin)
+		_suite.remove_at(0)
 		return lue
 
 

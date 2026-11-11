@@ -60,12 +60,17 @@ describe('vivant', () => {
     expect([r.ok, r.erreur?.categorie]).toEqual([false, 'validation']);
   });
 
+  it('une requête dont une chaîne porte U+2028 ou U+2029, que le JSON.stringify de Godot laisse bruts, est une ligne', async () => {
+    const r = await appel('vue', { x: 'a b c' });
+    expect([r.ok, r.erreur?.categorie]).toEqual([false, 'validation']);
+  });
+
   it('la fin de l’entrée le fait sortir en 0, sa sortie n’ayant porté que l’annonce et une ligne par requête', async () => {
     processus.stdin.end();
     const [code] = await once(processus, 'exit');
     for (let r = await lignes.next(); !r.done; r = await lignes.next()) sortie.push(r.value);
     expect(code).toBe(0);
-    expect(sortie).toHaveLength(3);
+    expect(sortie).toHaveLength(4);
   });
 });
 
