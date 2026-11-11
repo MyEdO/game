@@ -12,7 +12,7 @@ import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
 import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuContexte, type ContexteDuChamp, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
-import { ammoFamily, gabaritDObjet } from '../engine/items';
+import { chargeLArme, gabaritDObjet } from '../engine/items';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
@@ -558,19 +558,19 @@ function choixDuDialogue(reste: readonly Segment[], scene: Scene): readonly Choi
   return [...dialoguesDeLaScene(scene).keys()].map((id) => ({ valeur: reste.length ? id : { id }, libelle: id, refus: null }));
 }
 
-/** Les munitions du coffre d'une pièce `trappingId` : chaque munition du catalogue de sa famille (`ammoFamily`).
+/** Les munitions du coffre d'une pièce `trappingId` : chaque munition du catalogue qu'elle charge (`chargeLArme`).
  *  MDG 12 l.410-424 */
 function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
-  const famille = ammoFamily(findTrappingById(trappingId)?.subType?.id);
+  const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
   return trappingsInstanciables()
-    .filter((m) => ammoFamily(m.subType?.id) === famille && gabaritDObjet(m.id)?.kind === 'ammo')
+    .filter((m) => gabaritDObjet(m.id)?.kind === 'ammo' && chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece))
     .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
 }
 
 /** Les choix que le contexte de la coque `ent`, dans le cadre `cadre`, pose à ses postes, sous eux au chemin `reste` : au
  *  rang qui suit le dernier, un poste neuf par engin de siège (`siegeEngines`) ; de la pièce d'un poste, chaque engin de
- *  siège ; d'un de ses servants, chaque personnage de la scène hors d'elle et des autres servants du poste, le courant
- *  restant offert ; des clés de son coffre, les munitions de sa pièce (`munitionsDeLaPiece`) ; de sa munition choisie,
+ *  siège ; d'un de ses servants, chaque personnage de la scène sans coque, hors des autres servants de la coque, le
+ *  courant restant offert ; des clés de son coffre, les munitions de sa pièce (`munitionsDeLaPiece`) ; de sa munition choisie,
  *  posée entière ou par son identifiant, chaque munition de son coffre. MDG 12 */
 function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, narratif }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const postes = ent.postes ?? [];
@@ -586,9 +586,10 @@ function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, na
     return Object.keys(poste.ammo ?? {}).map((id) => ({ valeur: element === undefined ? { id } : id, libelle: findTrappingById(id)?.label ?? id, refus: null }));
   }
   if (cle !== 'crewIds' || typeof element !== 'number') return undefined;
-  const servants = poste.crewIds ?? [];
+  const servants = postes.flatMap((p) => p.crewIds ?? []);
+  const courant = poste.crewIds?.[element];
   return scene.entities
-    .filter((e) => e.kind === 'personnage' && e.id !== ent.id && (e.id === servants[element] || !servants.includes(e.id)))
+    .filter((e) => e.kind === 'personnage' && !e.vehicule && (e.id === courant || !servants.includes(e.id)))
     .map((e) => ({ valeur: e.id, libelle: nomDEntite(e, presetDuNarratif(narratif)) ?? t('ecran.editeur.entite.personnage'), refus: null }));
 }
 

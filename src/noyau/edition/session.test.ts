@@ -38,7 +38,7 @@ import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scene
 import { creatures, findCreatureById, MERCHANT_ARCHETYPES, siegeEngines, spells, talents, traits } from '../../data';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
-import { gabaritDObjet, inventaireApres } from '../../engine/items';
+import { inventaireApres } from '../../engine/items';
 import type { Segment } from '../sceneEdit';
 import { seatSlotsOf } from '../monde/seating';
 import { props } from '../../data';
@@ -755,7 +755,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
   const choix = (s: SessionDEdition, chemin: Segment[]) => choixDuChamp('entite', coque(s), chemin, cadreDeLaSession(s))?.map((c) => c.valeur);
   const engins = siegeEngines().map((e) => e.id);
 
-  it('un poste s’ajoute par son engin de siège, sa pièce se choisit parmi eux, ses servants parmi les personnages de la scène, son coffre parmi les munitions de sa famille, sa munition dans son coffre, qu’elle ne quitte pas', () => {
+  it('un poste s’ajoute par son engin de siège, sa pièce se choisit parmi eux, ses servants parmi les personnages de la scène sans coque ni autre poste, son coffre parmi les munitions de sa pièce, sa munition dans son coffre, qu’elle ne quitte pas', () => {
     const postes = coque(cogue).postes!;
     expect(formulaireDe('entite', coque(cogue), cadreDeLaSession(cogue)).map((f) => f.key)).toContain('postes');
     expect(choix(cogue, ['postes', postes.length])).toEqual(engins.map((trappingId) => ({ trappingId })));
@@ -763,14 +763,22 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     expect(coque(ajoute).postes?.[postes.length]).toEqual({ trappingId: engins[1] });
     expect(choix(ajoute, ['postes', postes.length, 'trappingId'])).toEqual(engins);
     expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'pas-une-piece')), 'une pièce hors catalogue').toBe('horsSorte');
-    const personnages = sceneEditee(cogue).entities.filter((e) => e.kind === 'personnage' && e.id !== coque(cogue).id).map((e) => e.id);
-    expect(personnages.length, 'la scène pose des personnages hors de la coque').toBeGreaterThan(1);
-    expect(choix(ajoute, ['postes', postes.length, 'crewIds', 0])).toEqual(personnages);
-    const servi = jouer(ajoute, valeur(['postes', postes.length, 'crewIds'], [personnages[0]]));
-    expect(choix(servi, ['postes', postes.length, 'crewIds', 1]), 'un servant ne sert qu’une fois le poste').toEqual(personnages.slice(1));
-    const munitions = choix(cogue, ['postes', 0, 'ammo']) as string[];
-    expect(munitions, 'les munitions de la famille de la pièce').toContain('mitraille-et-poudre');
-    expect(munitions.every((id) => gabaritDObjet(id)?.kind === 'ammo')).toBe(true);
+    const entites = sceneEditee(cogue).entities;
+    expect(entites.some((e) => e.vehicule && e.id !== coque(cogue).id), 'la scène pose une autre coque').toBe(true);
+    const equipage = entites.filter((e) => e.kind === 'personnage' && !e.vehicule).map((e) => e.id);
+    expect(equipage.length, 'la scène pose des personnages sans coque').toBeGreaterThan(1);
+    expect(choix(ajoute, ['postes', postes.length, 'crewIds', 0])).toEqual(equipage);
+    const servi = jouer(ajoute, valeur(['postes', postes.length, 'crewIds'], [equipage[0]]));
+    expect(choix(servi, ['postes', postes.length, 'crewIds', 1]), 'un servant ne sert qu’une fois le poste').toEqual(equipage.slice(1));
+    expect(choix(servi, ['postes', 0, 'crewIds', 0]), 'ni un autre poste de la coque').toEqual(equipage.slice(1));
+    expect(choix(servi, ['postes', postes.length, 'crewIds', 0]), 'le servant courant reste offert').toEqual(equipage);
+    expect(coque(cogue).postes![0].trappingId).toBe('canon-moyen');
+    expect([...(choix(cogue, ['postes', 0, 'ammo']) as string[])].sort(), 'canon → boulet et mitraille seulement').toEqual(['boulet-et-poudre', 'mitraille-et-poudre']);
+    expect(choix(jouer(ajoute, valeur(['postes', postes.length, 'trappingId'], 'belier-ade2')), ['postes', postes.length, 'ammo']), 'bélier → aucune').toEqual([]);
+    expect(refusDeLaValeur(cogue, valeur(['postes', 0, 'ammo', 'carreau-de-baliste'], 2)), 'un carreau n’est pas offert au coffre d’un canon').toBe('nonOffert');
+    const canonACarreaux = { ...coque(cogue), postes: [{ trappingId: 'canon-moyen', ammo: { 'carreau-de-baliste': 2, 'boulet-et-poudre': 4 } }] };
+    expect(refusDeLEntite(canonACarreaux as Parameters<typeof refusDeLEntite>[0]), 'le parse refuse un carreau au coffre d’un canon')
+      .toEqual([{ chemin: ['postes', 0, 'ammo', 'carreau-de-baliste'], message: expect.stringContaining('ne charge pas') }]);
     const dote = jouer(cogue, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 3));
     expect(coque(dote).postes![0].ammo).toMatchObject({ 'mitraille-et-poudre': 3 });
     expect(refusDeLaValeur(dote, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 0)), 'une quantité nulle').toBe('horsSorte');

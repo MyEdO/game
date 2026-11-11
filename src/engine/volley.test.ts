@@ -13,9 +13,9 @@ import { LOCALISATIONS_DE_COUP } from './types';
 const gunner = (id: string, over: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({ id, label: id, kind: 'npc', characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, conditions: [], wounds: blessuresDeBase(10), items: [], ...over })) as unknown as Combatant;
 
-/** Pièce d'artillerie : Dégâts plats `flat`, qualités optionnelles, servie par `crewIds`. */
-const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: number }[] = []): ShipPoste =>
-  ({ side: 'tribord', item: { uid: 'gun-' + crewIds.join('') + flat, label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }, crewIds }) as unknown as ShipPoste;
+/** Pièce d'artillerie `trappingId` : Dégâts plats `flat`, qualités optionnelles, servie par `crewIds`. */
+const poste = (crewIds: string[], flat = 14, qualities: { id: string; value?: number }[] = [], trappingId = 'canon-moyen'): ShipPoste =>
+  ({ side: 'tribord', item: { uid: 'gun-' + crewIds.join('') + flat, trappingId, label: 'Canon', kind: 'ranged', subType: 'armes-de-siege', damage: { flat, plusBF: false }, range: 75, qualities }, crewIds }) as unknown as ShipPoste;
 
 const ship = (): Combatant => ({ id: 'ship', label: 'Navire', kind: 'npc', bodyShape: 'vehicule', conditions: [], weapons: [] }) as unknown as Combatant;
 
@@ -48,7 +48,7 @@ describe('resolveVolley — la bordée RÉUTILISE le pipeline de tir (MDG 14 l.1
   });
 
   it('munition fusionnée : Dégâts de la munition s’appliquent (réutilise weaponWithAmmo)', () => {
-    const g = gunner('g1', { items: [{ uid: 'boulet', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
+    const g = gunner('g1', { items: [{ uid: 'boulet', trappingId: 'boulet-et-poudre', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
     const r = volee([poste(['g1'])], target(), 3, true, [g], fixed(34));
     expect(r[0].coup.damage).toBe(21); // 14 + 4 (boulet) + 3
     expect(r[0].ammo?.label).toBe('Boulet');
@@ -56,9 +56,9 @@ describe('resolveVolley — la bordée RÉUTILISE le pipeline de tir (MDG 14 l.1
 
   it('Perforante de la munition perce le Blindage de la Coque (MDG 12 l.232)', () => {
     const armored = () => navire(90, 4); // BE 4 + Blindage 4
-    const plain = volee([poste(['g1'])], armored(), 3, true, [gunner('g1')], fixed(34));
-    const perf = gunner('g1', { items: [{ uid: 'p', label: 'Carreau', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 0, plusBF: false }, qualities: [{ id: 'perforante' }], qty: 5 } as never] });
-    const r = volee([poste(['g1'])], armored(), 3, true, [perf], fixed(34));
+    const plain = volee([poste(['g1'], 14, [], 'baliste')], armored(), 3, true, [gunner('g1')], fixed(34));
+    const perf = gunner('g1', { items: [{ uid: 'p', trappingId: 'carreau-de-baliste', label: 'Carreau', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 0, plusBF: false }, qualities: [{ id: 'perforante' }], qty: 5 } as never] });
+    const r = volee([poste(['g1'], 14, [], 'baliste')], armored(), 3, true, [perf], fixed(34));
     expect(r[0].coup.woundsLost).toBeGreaterThan(plain[0].coup.woundsLost!); // Perforante réduit la PA → plus de Blessures
   });
 
@@ -93,7 +93,7 @@ describe('resolveVolley — Test d’équipage RATÉ : la bordée manque en bloc
   const POINTUE = [{ id: 'pointue' }];
 
   it('les pièces font feu (Recharge + munition consommables) mais n’infligent NI Dégâts NI Blessures', () => {
-    const g = gunner('g1', { items: [{ uid: 'boulet', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
+    const g = gunner('g1', { items: [{ uid: 'boulet', trappingId: 'boulet-et-poudre', label: 'Boulet', kind: 'ammo', subType: 'munition-de-siege', damage: { flat: 4, plusBF: false }, qualities: [], qty: 5 } as never] });
     const r = volee([poste(['g1'])], target(), -1, false, [g], fixed(34));
     expect(r).toHaveLength(1); // la pièce a fait feu : l'appelant la décharge et consomme la munition
     expect(r[0].ammo?.uid).toBe('boulet');

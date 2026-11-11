@@ -33,7 +33,8 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { estUnNavireAPonts, siegeEngines } from '../../index';
+import { estUnNavireAPonts, findTrappingById, siegeEngines } from '../../index';
+import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
@@ -275,7 +276,7 @@ export interface FauteDEntite { chemin: readonly (string | number)[]; message: s
  *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'trappingId' | 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
@@ -288,6 +289,10 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
     ent.postes?.forEach((p, rang) => {
+      const piece = { trappingId: p.trappingId, subType: findTrappingById(p.trappingId)?.subType?.id };
+      for (const id of Object.keys(p.ammo ?? {})) {
+        if (!chargeLArme({ trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.trappingId} » ne charge pas` });
+      }
       if (p.selectedAmmo && !(p.selectedAmmo.id in (p.ammo ?? {}))) fautes.push({ chemin: ['postes', rang, 'selectedAmmo'], message: `munition choisie « ${p.selectedAmmo.id} » hors du coffre du poste` });
     });
   }

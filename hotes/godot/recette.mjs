@@ -1339,11 +1339,14 @@ async function parcoursEditeur() {
    *  ouverte d'un clic, le pointeur sorti d'elle, qui n'y désigne aucun article, même quand la liste ouverte recouvre le
    *  point du clic, la flèche descendue du premier jusqu'à elle, une image au moins entre deux flèches, puis Entrée ;
    *  l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. Une frappe perdue par la liste ouverte
-   *  laisse l'écran inchangé : Échap la ferme et le choix se rejoue, trois essais au plus. */
+   *  laisse l'écran inchangé : Échap la ferme et le choix se rejoue, trois essais au plus ; une autre valeur pressée
+   *  depuis l'ouverture est l'échec rendu tel quel. */
   const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
+    const presses = async () => (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.map((b) => `${b.id}:${b.presse}`).join(',')
     const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
     const fait = attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`
     for (let essai = 1; ; essai++) {
+      const ouverture = await presses()
       const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
       const rang = deroulante.choix.indexOf(libelle)
       assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
@@ -1361,7 +1364,7 @@ async function parcoursEditeur() {
         await waitFor(session, fait)
         return
       } catch (erreur) {
-        if (erreur.code !== ATTENTE_ECHUE || essai === 3) throw erreur
+        if (erreur.code !== ATTENTE_ECHUE || essai === 3 || (await presses()) !== ouverture) throw erreur
         noter(`liste ${liste} : « ${libelle} » non choisie à l’essai ${essai}, Échap puis un nouvel essai`)
       }
       await realKey(session, { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })

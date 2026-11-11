@@ -274,8 +274,8 @@ export interface ZonesDeLEditeur {
    * au contexte de sa fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
    * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; un dialogue, chacun de ceux que sa scène
    * déclare (`dialoguesDeLaScene`) ; un poste neuf ou la pièce d'un poste, chaque engin de siège (`siegeEngines`), un
-   * servant, chaque personnage de la scène hors de la coque et des autres servants du poste, sa munition choisie ou
-   * chargée, chacune de son coffre ; le profil absent, « Ajouter » choisit un profil
+   * servant, chaque personnage de la scène sans coque hors des autres servants de la coque, une munition du coffre,
+   * chacune que charge sa pièce (`chargeLArme`), sa munition choisie, chacune de son coffre ; le profil absent, « Ajouter » choisit un profil
    * neuf au nom du personnage (`emptyStatblock`) ou la copie de sa créature du Bestiaire (`statblockDeLaCreature`) ;
    * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits standard
    * en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le formulaire

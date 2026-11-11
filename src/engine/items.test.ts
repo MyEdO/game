@@ -896,6 +896,11 @@ describe('Munitions & rechargement', () => {
     expect(compatibleAmmo(c, pistolet).map((a) => a.label)).toContain('Balle et Poudre');
     expect(compatibleAmmo(c, arqRep).map((a) => a.label)).toContain('Balle et Poudre');
   });
+  it('compatibleAmmo : une arme de siège ne charge que les munitions de sa fiche (AA 10 l.150 ; MDG 12 l.410-424)', () => {
+    const c = { items: ['carreau-de-baliste', 'mitraille-et-poudre', 'bombe-de-mortier'].map((id) => itemFromTrappingById(id, idsDeTest)) } as unknown as Combatant;
+    const canon = weaponFromItem(itemFromTrappingById('canon-moyen', idsDeTest)!);
+    expect(compatibleAmmo(c, canon).map((a) => a.trappingId)).toEqual(['mitraille-et-poudre']);
+  });
   it('recomputeLoadout dérive reload depuis « Recharge N » + subType', () => {
     const c = {
       items: [{ ...itemFromTrappingById('tromblon', idsDeTest)!, equipped: true }],
@@ -973,9 +978,6 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
     expect(p.ammoUid).toBe('poste-de-test-mitraille-et-poudre');
   });
 
-  it('fail-fast : une munition choisie hors du coffre → throw explicite', () => {
-    expect(() => hydratePoste({ trappingId: 'canon-moyen', ammo: { 'boulet-et-poudre': 12 }, selectedAmmo: { id: 'mitraille-et-poudre' } }, 'poste-de-test')).toThrow(/hors du coffre/);
-  });
 });
 
 describe('wornArmourPoints (#612) — une pièce `destroyed` ne fournit plus de PA', () => {
