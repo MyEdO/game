@@ -1,11 +1,11 @@
 /**
- * CLIQUET nominatif des `ev('condition', …)` restants (#1330).
+ * CLIQUET nominatif des `ev('etat', …)` restants (#1330).
  *
- * `ev('condition', …)` est le site où un événement de journal est déclaré « État » SANS porter d'id
+ * `ev('etat', …)` est le site où un événement de journal est déclaré « État » SANS porter d'id
  * d'État : c'est ce qui oblige l'affichage à retrouver l'État en SCANNANT le texte français
  * (`conditionIdInText`, `engine/conditions`, consommé par `noyau/combatLog` + `gameIso/combatNarration`). Le stock ci-dessous est
  * NOMINATIF et DÉCROISSANT, cible ZÉRO : à zéro, le scan par libellé meurt et `ev()` peut être muré
- * (l'union `CombatEvent` devient discriminée, `condition` exigeant son `stateId`).
+ * (l'union `CombatEvent` devient discriminée, `etat` exigeant son `stateId`).
  *
  * Le cliquet mord dans les DEUX sens : un site migré doit BAISSER son compte ici (sinon rouge), et
  * aucun site nouveau ne peut apparaître (fichier absent de la liste = 0 toléré).
@@ -21,7 +21,7 @@ const REMAINING: Record<string, number> = {
   'src/noyau/combatFlow.ts': 5,
   'src/noyau/combatEffects.ts': 1,
   'src/noyau/combatPlacement.ts': 1,
-  // Tests qui FABRIQUENT un événement `condition` — ils tomberont avec leurs sites de production.
+  // Tests qui FABRIQUENT un événement `etat` — ils tomberont avec leurs sites de production.
   'src/noyau/combat/aa-bleed-unconscious.hors-store.test.ts': 1,
   'src/noyau/combat/bleed-death-aa.hors-store.test.ts': 1,
   'src/noyau/combat/bleed-death.hors-store.test.ts': 1,
@@ -36,13 +36,13 @@ function census(): Record<string, number> {
   const found: Record<string, number> = {};
   for (const { rel, text } of readCorpus(['src'], { tests: true })) {
     if (rel === SELF) continue;
-    const n = (text.match(/ev\('condition'/g) ?? []).length;
+    const n = (text.match(/ev\('etat'/g) ?? []).length;
     if (n > 0) found[rel] = n;
   }
   return found;
 }
 
-describe("#1330 — cliquet des `ev('condition')` sans id d'État", () => {
+describe("#1330 — cliquet des `ev('etat')` sans id d'État", () => {
   it('le stock recensé est EXACTEMENT celui déclaré (aucun site neuf, aucune migration non soldée)', () => {
     expect(census()).toEqual(REMAINING);
   });

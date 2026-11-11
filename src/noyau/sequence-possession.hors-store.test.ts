@@ -124,7 +124,7 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
     expect(step!.participants!.map((p) => p.id)).toEqual([H[0].id]);
     expect(step!.actorId, 'un seul porteur : la bande EST la sienne').toBe(H[0].id);
     expect(step!.groupOwner).toBeUndefined();
-    expect(step!.combatPsych?.sourceId, 'la déclaration de règle traverse le socle intacte').toBe(E[0].id);
+    expect(step!.psychologieDeCombat?.sourceId, 'la déclaration de règle traverse le socle intacte').toBe(E[0].id);
     expect(step!.aggregate, 'rangées INDÉPENDANTES').toBe('none');
     expect(modalOwnerOf(g())).toBe(H[0].id);
     expect(seatOwns(g(), 1, H[0].id)).toBe(true);

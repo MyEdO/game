@@ -750,7 +750,7 @@ export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success
   // Les lignes de la branche partent dans la file différée (SOURCE UNIQUE des hooks profonds) ; leur
   // destination est choisie par le ROUTAGE UNIQUE `journaliser` (`combatLog.ts`, #1881), jamais par une
   // écriture nue de `battle.log` ici.
-  journaliser(get, set, drainPendingLog(get, set).map((e) => e.text), 'condition');
+  journaliser(get, set, drainPendingLog(get, set).map((e) => e.text), 'etat');
   // Une feuille partie à la PORTE (#1508) a reçu la suite : l'appelant n'a plus à jouer ses clôtures
   // devant le dé — même compte canonique que `jouerLesClotures`.
   return comptePasDifferes(get()) > avant ? OPS_DIFFEREES : undefined;

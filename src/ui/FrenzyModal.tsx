@@ -68,7 +68,7 @@ export function FrenzyModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('frenzy', describeFrenzy(pf, c.label), c.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('frenesie', describeFrenzy(pf, c.label), c.id), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

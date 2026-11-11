@@ -481,8 +481,8 @@ describe('Attaque — issue d’un coup sans prise', () => {
     const res = useGame.getState().pendingAttack!.result!;
     expect([res.critical, res.sansPrise], 'précondition : Critique obtenu au jet, coup sans prise').toEqual([true, 'ethere']);
     const issue = rendues!.outcome![0];
-    expect(issue.icon, 'l’issue n’est pas celle d’un Critique').not.toBe(recapLineOfEvent(ev('crit', res.log)).icon);
-    expect(issue.icon, 'l’issue est celle d’une touche').toBe(recapLineOfEvent(ev('damage', res.log)).icon);
+    expect(issue.icon, 'l’issue n’est pas celle d’un Critique').not.toBe(recapLineOfEvent(ev('critique', res.log)).icon);
+    expect(issue.icon, 'l’issue est celle d’une touche').toBe(recapLineOfEvent(ev('degats', res.log)).icon);
   });
 
   it('jet forcé sur un double contre une cible Éthérée : aucun sélecteur de Localisation du Critique', () => {
@@ -515,7 +515,7 @@ describe('Attaque — l’annonce du Coup Critique lit le compte du coup (LDB 17
     act(() => useGame.getState().jetImposerLeResultat('attaque', force));
     const res = useGame.getState().pendingAttack!.result!;
     expect(res.hit, 'précondition : le jet forcé touche').toBe(true);
-    const iconeCrit = recapLineOfEvent(ev('crit', res.log)).icon;
+    const iconeCrit = recapLineOfEvent(ev('critique', res.log)).icon;
     return { selecteur: rendues!.forcedExtra !== undefined, grille: !!vue.querySelector('.rm-loc-grid'), crit: rendues!.outcome![0].icon === iconeCrit, marque: rendues!.outcome![0].text.includes('CRITIQUE'), res };
   }
 

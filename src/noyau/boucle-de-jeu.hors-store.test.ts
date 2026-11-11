@@ -420,7 +420,7 @@ describe('Boucle de jeu (store)', () => {
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
@@ -436,7 +436,7 @@ describe('Boucle de jeu (store)', () => {
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.criticalWounds).toBe(1);
@@ -502,7 +502,7 @@ describe('Boucle de jeu (store)', () => {
     expect(cur?.actorId).toBe(h.id);
     expect(cur?.maladresse?.weapon).toBeTruthy();
     // Identité de l'étape poussée = compteur `seq` de la séquence (#1508) : une fixture sans `seq` donne `…-undefined`.
-    expect(cur?.id).toBe(`cons-fumble-${h.id}-1`);
+    expect(cur?.id).toBe(`cons-maladresse-${h.id}-1`);
     expect(st.pendingCascade!.seq).toBe(2);
   });
 
@@ -583,7 +583,7 @@ describe('Boucle de jeu (store)', () => {
     const witem = h.items!.find((i) => (i.kind === 'melee' || i.kind === 'ranged') && h.weapons.some((w) => w.uid === i.uid))!;
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
     // (1) Maladresse 21-40 → 1 Dégât d'arme, écrit sur l'ItemInstance source.
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'maladresse', actorId: h.id, maladresse: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
     banc.getState().jetValider('maladresse');
     const hMid = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
@@ -2711,7 +2711,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     const pr = { ...banc.getState().pendingReload! };
     const journalAvant = banc.getState().journal.length;
     banc.getState().jetValider('rechargement');
-    const evs = banc.getState().battle!.log.filter((e) => e.kind === 'reload');
+    const evs = banc.getState().battle!.log.filter((e) => e.kind === 'rechargement');
     expect(evs, 'UNE ligne d’issue, dans le journal de COMBAT').toHaveLength(1);
     expect(banc.getState().journal.length, 'canal COMBAT : rien dans le journal narratif').toBe(journalAvant);
     // Voie IA : même pending, même DR réalisé, même nom d'arme → ligne IDENTIQUE (aucun 2ᵉ rédacteur).

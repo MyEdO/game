@@ -477,7 +477,7 @@ export function resolveManeuver(
   };
   emitCreatureAttackAnim(attacker, def.kind);
   const flushLog = () => {
-    set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lines, 'attack', attacker.id)] } });
+    set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lines, 'attaque', attacker.id)] } });
     bus.emit(EVT.SCENE_DIRTY);
   };
 

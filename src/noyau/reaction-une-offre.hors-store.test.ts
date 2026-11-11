@@ -286,7 +286,7 @@ describe('#3159 — enveloppe et arme', () => {
     else porteur.talents = [...(porteur.talents ?? []), { talentId: 'assaut-feroce', times: 1 }];
     doAttack(banc.getState, banc.setState, porteur, tiers);
     fermerLaSequence();
-    expect(banc.getState().battle!.log.some((l) => l.actorId === porteur.id && l.kind === 'attack'), 'la touche principale a eu lieu').toBe(true);
+    expect(banc.getState().battle!.log.some((l) => l.actorId === porteur.id && l.kind === 'attaque'), 'la touche principale a eu lieu').toBe(true);
     const E = vif(porteur.id);
     const cles = Object.keys(vif(E.id).freeAttacksThisTurn ?? {});
     expect(cles.filter((k) => (enAtout ? k.startsWith('weapon:') : k === 'assaut-feroce'))).toHaveLength(1);

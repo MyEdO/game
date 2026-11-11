@@ -155,7 +155,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
   const monteHote = (arme: Weapon): Combatant => {
     const hero = mk('hero', 'bretteur', { weapons: [arme] });
     setBattle([hero], [hero]);
-    pushHost(banc.getState, banc.setState, (index) => ({ id: `cons-fumble-${hero.id}-${index}`, kind: 'fumbleJet', jet: 'maladresse', actorId: hero.id, maladresse: { weapon: arme, result: null } }));
+    pushHost(banc.getState, banc.setState, (index) => ({ id: `cons-maladresse-${hero.id}-${index}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: hero.id, maladresse: { weapon: arme, result: null } }));
     return hero;
   };
   const etapesDeCasse = (): CascadeStep[] =>
@@ -415,7 +415,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
   const etapes = (): string[] => (banc.getState().pendingCascade?.participants ?? []).map((s) => `${s.kind}:${s.id}`);
   /** La Maladresse de l'attaquant (LDB 14 l.13), geste du siège MJ, au curseur dès que la défense est quittée. */
   const maladresseDeLaBrute = (): void => {
-    expect(etapeCourante(), 'la Maladresse de la brute ouvre la queue du coup').toMatchObject({ kind: 'fumbleJet', actorId: 'brute' });
+    expect(etapeCourante(), 'la Maladresse de la brute ouvre la queue du coup').toMatchObject({ kind: 'jetDeMaladresse', actorId: 'brute' });
     banc.getState().jetLancer('maladresse');
     banc.getState().jetValider('maladresse');
   };
@@ -425,18 +425,18 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     banc.getState().jetValider('defense');
     maladresseDeLaBrute();
     const temoin = etapes();
-    expect(temoin.some((s) => s.startsWith('fumbleJet:') && s.includes('heros')),
+    expect(temoin.some((s) => s.startsWith('jetDeMaladresse:') && s.includes('heros')),
       `témoin : ${temoin.join(' | ')}`).toBe(true);
 
     monteDefense(bacle(true), { enchainement: { mode: 'aucun' } });
     banc.getState().jetValider('defense');
     maladresseDeLaBrute();
     expect(etapeCourante()!.kind, 'le dé de casse part à la porte AVANT la Maladresse du héros').toBe('casseDArme');
-    expect(etapes().some((s) => s.startsWith('fumbleJet:') && s.includes('heros')), 'rien de la queue ne joue devant le dé').toBe(false);
+    expect(etapes().some((s) => s.startsWith('jetDeMaladresse:') && s.includes('heros')), 'rien de la queue ne joue devant le dé').toBe(false);
     poser(9);
-    const maladresses = etapes().filter((s) => s.startsWith('fumbleJet:') && s.includes('heros'));
+    const maladresses = etapes().filter((s) => s.startsWith('jetDeMaladresse:') && s.includes('heros'));
     expect(maladresses, 'la reprise rend la Maladresse SAUTÉE, une fois').toHaveLength(1);
-    expect(maladresses[0], 'id mint au rang de la séquence (#1852)').toMatch(/^fumbleJet:cons-fumble-heros-\d+$/);
+    expect(maladresses[0], 'id mint au rang de la séquence (#1852)').toMatch(/^jetDeMaladresse:cons-maladresse-heros-\d+$/);
   });
 
   it('la SUITE portée par la fenêtre (Action gratuite) est rendue par la reprise, une seule fois', () => {
@@ -460,7 +460,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     expect(banc.getState().net.gmSeat, 'aucun siège MJ ne tient la brute').toBeUndefined();
     monteDefense(bacle(true), { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } });
     banc.getState().jetValider('defense');
-    expect(etapeCourante(), 'les dés de la brute sont tirés d’office : le curseur est au héros').toMatchObject({ kind: 'fumbleJet', actorId: 'heros' });
+    expect(etapeCourante(), 'les dés de la brute sont tirés d’office : le curseur est au héros').toMatchObject({ kind: 'jetDeMaladresse', actorId: 'heros' });
     expect(etapes().filter((s) => s.startsWith('casseDArme:')), 'le dé de casse est né à la porte, une fois').toHaveLength(1);
     expect(lignesLues().some((l) => /^brute — Sauvegarde Solide — Épée bâclée : dé \d+/.test(l)), lignesLues().join(' | ')).toBe(true);
     expect(banc.getState().battle!.acted, 'la Maladresse du défenseur précède la suite').toBe(true);

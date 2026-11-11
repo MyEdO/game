@@ -155,7 +155,7 @@ function bandSpecOf(band: CascadeStep): BandSpec {
     ...(band.aggregate ? { aggregate: band.aggregate } : {}),
     ...(band.stake ? { stake: band.stake } : {}),
     ...(band.menace ? { menace: band.menace } : {}),
-    ...(band.combatPsych ? { combatPsych: band.combatPsych } : {}),
+    ...(band.psychologieDeCombat ? { psychologieDeCombat: band.psychologieDeCombat } : {}),
     ...(band.meta ? { meta: band.meta } : {}),
   };
 }

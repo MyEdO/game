@@ -1552,7 +1552,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
   });
 
   it('un Capitaine qui a Forcé le rythme teste, en Complexe, que le Test de Voile soit gagné ou perdu', () => {
-    for (const [de, issue] of [[1, 'won'], [100, 'lost']] as const) {
+    for (const [de, issue] of [[1, 'reussite'], [100, 'echec']] as const) {
       freshState();
       const [capitaine] = equipage(['capitaine', 'vigie', 'repos'], [0]);
       const bande = bandeDuJour({ pace: 1, poser: (etape) => (etape.kind === 'sea-force-pace' ? de : undefined) });

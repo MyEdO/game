@@ -212,8 +212,8 @@ describe('Effet inflictPsychology (Peur/Terreur scénique, LDB 21) — BANDE INF
     expect(steps).toHaveLength(1); // UNE entrée de règle = UNE bande (plus une étape par héros)
     expect(steps[0].participants?.map((p) => p.id)).toEqual(party.map((h) => h.id));
     expect(steps[0].participants?.every((p) => p.result == null)).toBe(true);
-    expect(steps[0].encounterPsych?.kind).toBe('peur');
-    expect(steps[0].encounterPsych?.indice).toBe(2);
+    expect(steps[0].psychologieDeRencontre?.kind).toBe('peur');
+    expect(steps[0].psychologieDeRencontre?.indice).toBe(2);
   });
 
   it('kind terreur → bande taguée terreur, une seule rangée quand un seul héros est ciblé', () => {
@@ -221,7 +221,7 @@ describe('Effet inflictPsychology (Peur/Terreur scénique, LDB 21) — BANDE INF
     banc.setState({ party, pendingCascade: null, journal: [] });
     applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'terreur', indice: 3, label: 'Un spectre hurlant', target: 'hero', heroId: party[0].id }]);
     const step = banc.getState().pendingCascade!.participants[0];
-    expect(step.encounterPsych?.kind).toBe('terreur');
+    expect(step.psychologieDeRencontre?.kind).toBe('terreur');
     expect(step.participants?.map((p) => p.id)).toEqual([party[0].id]);
   });
 });

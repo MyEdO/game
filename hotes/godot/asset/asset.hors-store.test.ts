@@ -376,26 +376,26 @@ describe('import et chargement des modèles modulaires', () => {
 
 describe('la table rôle → clip d’une base (#3253)', () => {
   it('accepte chaque rôle du vocabulaire dont le clip est au GLB', () => {
-    expect(validerModele({ ...baseDeTest(), clips: { walk: 'walk', idle: 'walk' } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clips: { walk: 'walk', idle: 'walk' } } });
+    expect(validerModele({ ...baseDeTest(), clips: { marche: 'walk', repos: 'walk' } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clips: { marche: 'walk', repos: 'walk' } } });
   });
   it.each([
-    ['un rôle hors du vocabulaire', { walk: 'walk', danse: 'walk' }, '[role-inconnu] clips.danse : danse'],
-    ['un clip absent du GLB', { walk: 'walk', idle: 'Idle_Loop' }, '[clip-absent] clips.idle : Idle_Loop'],
+    ['un rôle hors du vocabulaire', { marche: 'walk', danse: 'walk' }, '[role-inconnu] clips.danse : danse'],
+    ['un clip absent du GLB', { marche: 'walk', repos: 'Idle_Loop' }, '[clip-absent] clips.repos : Idle_Loop'],
   ])('refuse %s, en le nommant', (_, clips, refus) => {
     expect(validerModele({ ...baseDeTest(), clips }, GLB_DE_BASE)).toEqual({ ok: false, refus: [refus] });
   });
   it('accepte une table des rôles tenus à deux mains par maniement, et juge chacune comme `clips` (#3319)', () => {
-    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { hampe: { idle: 'walk' } } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clipsDeuxMains: { hampe: { idle: 'walk' } } } });
-    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { lourde2m: { danse: 'walk' }, hampe: { idle: 'Repos_Hampe' } } }, GLB_DE_BASE))
-      .toEqual({ ok: false, refus: ['[role-inconnu] clipsDeuxMains.lourde2m.danse : danse', '[clip-absent] clipsDeuxMains.hampe.idle : Repos_Hampe'] });
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { hampe: { repos: 'walk' } } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { clipsDeuxMains: { hampe: { repos: 'walk' } } } });
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { lourde2m: { danse: 'walk' }, hampe: { repos: 'Repos_Hampe' } } }, GLB_DE_BASE))
+      .toEqual({ ok: false, refus: ['[role-inconnu] clipsDeuxMains.lourde2m.danse : danse', '[clip-absent] clipsDeuxMains.hampe.repos : Repos_Hampe'] });
   });
   it('refuse une table de rôles tenus à deux mains sous un maniement inconnu, en le nommant', () => {
-    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { valse: { idle: 'walk' } } }, GLB_DE_BASE))
+    expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { valse: { repos: 'walk' } } }, GLB_DE_BASE))
       .toEqual({ ok: false, refus: ['[maniement-inconnu] clipsDeuxMains.valse : valse'] });
   });
   it('refuse l’élément d’une base dont la table est refusée', () => {
-    const base = { brut: { ...baseDeTest(), clips: { walk: 'Walk_Loop' } }, octets: GLB_DE_BASE };
-    expect(validerModele(elementSchema3(), GLB_D_ELEMENT, new Map([['humanoide', base]]))).toEqual({ ok: false, refus: ['[clip-absent] base clips.walk : Walk_Loop'] });
+    const base = { brut: { ...baseDeTest(), clips: { marche: 'Walk_Loop' } }, octets: GLB_DE_BASE };
+    expect(validerModele(elementSchema3(), GLB_D_ELEMENT, new Map([['humanoide', base]]))).toEqual({ ok: false, refus: ['[clip-absent] base clips.marche : Walk_Loop'] });
   });
 });
 
@@ -403,11 +403,11 @@ describe('la table rôle → clip d’un véhicule (#2987)', () => {
   const GLB = glbANoeuds(['affut'], ['marche', 'tir']);
   const vehicule = (clips: Record<string, string>) => ({ ...vehiculeDeTest('canon-moyen'), clips, glb: empreinte(GLB) });
   it('accepte chaque rôle du vocabulaire dont le clip est au GLB', () => {
-    expect(validerModele(vehicule({ walk: 'marche', ranged: 'tir' }), GLB)).toMatchObject({ ok: true, manifeste: { clips: { walk: 'marche', ranged: 'tir' } } });
+    expect(validerModele(vehicule({ marche: 'marche', tir: 'tir' }), GLB)).toMatchObject({ ok: true, manifeste: { clips: { marche: 'marche', tir: 'tir' } } });
   });
   it.each([
-    ['un rôle hors du vocabulaire', { walk: 'marche', salve: 'tir' }, '[role-inconnu] clips.salve : salve'],
-    ['un clip absent du GLB', { walk: 'marche', idle: 'repos' }, '[clip-absent] clips.idle : repos'],
+    ['un rôle hors du vocabulaire', { marche: 'marche', salve: 'tir' }, '[role-inconnu] clips.salve : salve'],
+    ['un clip absent du GLB', { marche: 'marche', repos: 'repos' }, '[clip-absent] clips.repos : repos'],
   ])('refuse %s, en le nommant', (_, clips, refus) => {
     expect(validerModele(vehicule(clips), GLB)).toEqual({ ok: false, refus: [refus] });
   });
@@ -853,7 +853,7 @@ describe('recupererModeles', () => {
   it('lève quand le manifeste ne se valide pas contre le GLB_DE_BASE tiré', async () => {
     const dossier = dossierDeModeles();
     const manifeste = JSON.parse(readFileSync(join(dossier, 'Essai.manifeste.json'), 'utf8'));
-    manifeste.clips.walk = 'Walking_A';
+    manifeste.clips.marche = 'Walking_A';
     writeFileSync(join(dossier, 'Essai.manifeste.json'), JSON.stringify(manifeste));
     await expect(recupererModeles({ dossier, cache: temporaire(), telecharger: serveur({ [url]: GLB_DE_BASE }).telecharger, journal: muet })).rejects.toThrow(/clip-absent/);
   });

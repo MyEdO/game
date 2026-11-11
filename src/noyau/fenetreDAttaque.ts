@@ -106,7 +106,7 @@ export interface FenetreDAttaque {
   opposition: OppositionEnVue | null;
   /** L'issue du coup, la ligne de touche du moteur (`issueAuJet`) ; `null` avant le jet ou quand une Défense
    *  surfacée va s'interposer (#1004). */
-  issue: { genre: 'crit' | 'damage' | 'attack'; ligne: string } | null;
+  issue: { genre: 'critique' | 'degats' | 'attaque'; ligne: string } | null;
   /** Une Défense surfacée va s'interposer avant l'application (`surfacedDefensePending`). */
   defenseAttendue: boolean;
   attente: string | null;
@@ -263,7 +263,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
     },
     opposition: res ? oppositionDuCoup(res) : null,
     issue: res && !defenseAttendue
-      ? { genre: coup?.compte.critiques.length ? 'crit' : res.hit ? 'damage' : 'attack', ligne: coup?.ligne ?? res.log }
+      ? { genre: coup?.compte.critiques.length ? 'critique' : res.hit ? 'degats' : 'attaque', ligne: coup?.ligne ?? res.log }
       : null,
     defenseAttendue,
     attente: res && defenseAttendue ? t('defense.awaiting', { cible: cible.label }) : null,

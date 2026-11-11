@@ -722,7 +722,7 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   get().orienterSelonLeChemin(active.id, [from, pt]);
   bus.emit(EVT.ANIM_MOVE, { id: active.id, path: [{ ...pt }] });
   if (mount) bus.emit(EVT.ANIM_MOVE, { id: mount.id, path: [{ ...pt }] });
-  set({ battle: { ...battle, action: null, reachable: new Map(), preview: null, log: [...battle.log, ev('move', t('cs.teleport', { name: active.label }), active.id)] } });
+  set({ battle: { ...battle, action: null, reachable: new Map(), preview: null, log: [...battle.log, ev('deplacement', t('cs.teleport', { name: active.label }), active.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
 }
 
@@ -761,7 +761,7 @@ function pushCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void {
     const c = inBattleId(battle, id);
     if (c) c.loseNextMovement = true;
   }
-  const log = [...battle.log, ev('move', t('cs.pushEngine', { name: active.label, weapon: hull.label, n: dist, s: dist > 1 ? 's' : '' }), active.id)];
+  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: active.label, weapon: hull.label, n: dist, s: dist > 1 ? 's' : '' }), active.id)];
   set({ battle: { ...get().battle!, moveSnapshot: snapshot, movementUsed: mountMovement(get().battle!, active), action: null, reachable: new Map(), preview: null, log } });
   bus.emit(EVT.SCENE_DIRTY);
 }
@@ -906,11 +906,11 @@ export const TARGETING_MODES: readonly TargetingMode[] = [
 ];
 
 /** Nom d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans bandeau). */
-export const targetingModeLabel = (modeId: string): string | undefined =>
+export const targetingModeLabel = (modeId: IdDeModeDeCiblage): string | undefined =>
   TARGETING_MODES.find((m) => m.id === modeId)?.label;
 
 /** Consigne d'affichage de la phase de ciblage d'un mode (`undefined` = mode sans consigne). */
-export const targetingModeConsigne = (modeId: string): PlayerText | undefined => {
+export const targetingModeConsigne = (modeId: IdDeModeDeCiblage): PlayerText | undefined => {
   const cle = TARGETING_MODES.find((m) => m.id === modeId)?.consigne;
   return cle ? t(cle) : undefined;
 };

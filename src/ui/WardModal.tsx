@@ -64,7 +64,7 @@ export function WardModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('info', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('information', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

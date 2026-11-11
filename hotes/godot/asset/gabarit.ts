@@ -185,9 +185,9 @@ export interface PoseDuGabarit {
 /** Ce que `poseDuGabarit` lit d'un manifeste de base ; la construction n'en a que la table. */
 export type ManifesteDuGabarit = Required<Pick<ManifesteDeBase, 'gabarit'>> & Partial<Pick<ManifesteDeBase, 'appuis' | 'clips' | 'clipsDeuxMains'>>;
 
-/** Les clips plantés de la base : le clip du rôle `walk`, à une main et à deux mains. */
+/** Les clips plantés de la base : le clip du rôle `marche`, à une main et à deux mains. */
 export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDeBase, 'clips' | 'clipsDeuxMains'>>): string[] =>
-  [...new Set([clips?.walk, ...Object.values(clipsDeuxMains ?? {}).map((table) => table.walk)].filter((clip): clip is string => clip !== undefined))];
+  [...new Set([clips?.marche, ...Object.values(clipsDeuxMains ?? {}).map((table) => table.marche)].filter((clip): clip is string => clip !== undefined))];
 
 /**
  * @contrat Gabarit d'une base
@@ -206,10 +206,10 @@ export const clipsPlantes = ({ clips, clipsDeuxMains }: Partial<Pick<ManifesteDe
  *   `racine.os` reçoit l'échelle uniforme `sl`. Chaque enfant os direct d'un os de `enfantsDe` reçoit sa position
  *   locale animée avec Y multiplié par le facteur de son parent ; X, Z, rotations et échelles des enfants sont
  *   conservés. La construction peut fournir uniquement la table `gabarit`. `pieds` relaie `appuis.pieds` pour les
- *   consommateurs d'appui et l'hôte. `echelleDeVitesse` vaut `sl` : la vitesse au sol du clip du rôle `walk`,
+ *   consommateurs d'appui et l'hôte. `echelleDeVitesse` vaut `sl` : la vitesse au sol du clip du rôle `marche`,
  *   `appuis.vitesseAuSol`, au gabarit, en est multipliée, pour la garde `appuis` de l'évaluateur (`evaluer.ts`) comme
  *   pour la marche de l'atelier (`MarcheDeLAtelier`). `jambes` relaie `gabarit.legs` ; `clipsPlantes`
- *   (`clipsPlantes(manifeste)`) liste, chacun une fois, le clip du rôle `walk` de `clips` et de chaque maniement de
+ *   (`clipsPlantes(manifeste)`) liste, chacun une fois, le clip du rôle `marche` de `clips` et de chaque maniement de
  *   `clipsDeuxMains` : les marches que la construction plante (#3314).
  *
  * Le manifeste de base, schéma `VERSION_DU_SCHEMA_DE_BASE`, porte `appuis.plusBas`, une liste non vide de copies de

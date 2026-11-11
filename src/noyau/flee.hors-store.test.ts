@@ -271,8 +271,8 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
 
     expect(banc.getState().pendingDisengage).toBeNull(); // rien qui traîne
     expect(live(E1.id).wounds.current).toBeLessThan(before); // le coup dans le dos a bien été appliqué
-    // …par l'applicateur CANONIQUE d'attaque (événement de journal 'attack'), pas par un chemin parallèle.
-    expect(banc.getState().battle!.log.some((e) => e.kind === 'attack' && e.actorId === E2.id)).toBe(true);
+    // …par l'applicateur CANONIQUE d'attaque (événement de journal 'attaque'), pas par un chemin parallèle.
+    expect(banc.getState().battle!.log.some((e) => e.kind === 'attaque' && e.actorId === E2.id)).toBe(true);
     expect(live(E1.id).engagedWith).toEqual([]); // fuite complétée
     // Lancés et clos dans le même geste, aucune rangée ne les a montrés : le journal porte leurs dés.
     const textes = banc.getState().battle!.log.map((e) => e.text);
@@ -428,8 +428,8 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     if (fleeToucheDu(pdNow)) banc.getState().jetLancer('fuite', fleeTouche(pdNow)!.id);
     banc.getState().jetValider('fuite');
     const log = banc.getState().battle!.log;
-    expect(log.some((e) => e.kind === 'attack' && e.actorId === frappeur.id)).toBe(true);
-    expect(log.some((e) => e.kind === 'shoot')).toBe(false); // jamais la branche TIR (munitions/dispersion)
+    expect(log.some((e) => e.kind === 'attaque' && e.actorId === frappeur.id)).toBe(true);
+    expect(log.some((e) => e.kind === 'tir')).toBe(false); // jamais la branche TIR (munitions/dispersion)
   });
 
   // Coop : les DEUX slots sont joués par des SIÈGES différents (héros frénétique qui frappe le héros

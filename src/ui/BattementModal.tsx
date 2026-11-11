@@ -89,7 +89,7 @@ export function BattementModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('attack', describeBattement(pb, attacker.label, foe.label), attacker.id, foe.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('attaque', describeBattement(pb, attacker.label, foe.label), attacker.id, foe.id), battle.combatants)] : undefined}
       actions={actions}
       onCancel={cancel}
     />

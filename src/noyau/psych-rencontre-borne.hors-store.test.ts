@@ -70,7 +70,7 @@ describe('#1224 — BORNE DE RENCONTRE des afflictions psy (LDB 21 l.9)', () => 
     // Nouvelle rencontre (autre scène), MÊME individu : l'affliction de la rencontre close a expiré…
     banc.getState().lancerLaScene(scene('s9', [ARAI('arai')]));
     expect(banc.getState().pendingCascade, 'la bande se REJOUE dans la nouvelle rencontre').toBeTruthy();
-    expect(banc.getState().pendingCascade!.participants[0].encounterPsych).toMatchObject({ kind: 'peur', sourceId: 'arai' });
+    expect(banc.getState().pendingCascade!.participants[0].psychologieDeRencontre).toMatchObject({ kind: 'peur', sourceId: 'arai' });
   });
 
   it('l’affliction ne survit pas non plus dans une scène SANS sa source (−1 DR à vie interdit)', () => {

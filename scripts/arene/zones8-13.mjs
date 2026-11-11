@@ -252,7 +252,7 @@ export function makeZone10() {
       hero(2, 21),
       NPC('prisonnier', 10, 5, 'Prisonnier en cage', {
         dialogueId: { id: 'dlg-prisonnier' },
-        anim: 'cowering',
+        anim: 'tapi',
         appearance: { species: 'halflings', tenue: 'mendiant', sex: 'M' },
       }),
       P(10, 6, 'cage', { label: 'Cage du garde-manger' }),

@@ -299,7 +299,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
   }
-  journaliser(get, set, lines, 'info', { actorId: hero.id });
+  journaliser(get, set, lines, 'information', { actorId: hero.id });
   releaseCorruptionSlot(get, set);
 }
 

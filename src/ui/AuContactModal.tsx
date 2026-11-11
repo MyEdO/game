@@ -82,7 +82,7 @@ export function AuContactModal() {
   });
 
   const issue = pd.def
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', outcome, mover.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]
     : undefined;
 
   const actions: RollAction[] = [

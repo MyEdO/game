@@ -84,7 +84,7 @@ export function AppraiseModalView({
       subtitle={<>{pa.itemName}</>}
       rows={[actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('info', describeAppraise(pa)))] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('information', describeAppraise(pa)))] : undefined}
       actions={actions}
       onCancel={rolled || !owned ? undefined : onCancel}
     />

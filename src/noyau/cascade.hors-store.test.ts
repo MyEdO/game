@@ -382,7 +382,7 @@ describe('Cascade séquentielle influençable', () => {
   it('`dejaDites` : les conséquences rendues sont AFFICHÉES sur l’étape, et écrites au journal UNE fois', () => {
     const h = hero();
     appliers.deja = (get, set) => {
-      journaliser(get, set, ['la conclusion, dite par l’applier'], 'info', { actorId: h.id });
+      journaliser(get, set, ['la conclusion, dite par l’applier'], 'information', { actorId: h.id });
       return { consequences: freeCons(['la conclusion, dite par l’applier']), dejaDites: true };
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: cleDeFixture('deja'), actorId: h.id }] });

@@ -54,7 +54,7 @@ export interface PorteurDeReference {
   readonly echelleDArt: number;
 }
 
-/** Les os des pieds, et la vitesse au sol en m/s du clip du rôle `walk` à la taille de construction. */
+/** Les os des pieds, et la vitesse au sol en m/s du clip du rôle `marche` à la taille de construction. */
 export interface Appuis {
   readonly pieds: readonly string[];
   readonly plusBas: readonly CandidatDAppui[];
@@ -81,8 +81,8 @@ export interface ManifesteDeBase {
   /** Propre à la base humanoïde. */
   readonly gabarit?: TableDeGabarit;
   readonly porteur: PorteurDeReference;
-  /** Le clip de chaque rôle que la base joue ; `walk` exigé. */
-  readonly clips: TableDeClips & { readonly walk: string };
+  /** Le clip de chaque rôle que la base joue ; `marche` exigé. */
+  readonly clips: TableDeClips & { readonly marche: string };
   /** Par maniement, le clip de chaque rôle que la base joue en tenant des deux mains un objet de ce maniement (#3319) ;
    *  un maniement ou un rôle absent joue celui de `clips`. */
   readonly clipsDeuxMains?: TablesDeuxMains;
@@ -124,10 +124,10 @@ type Brut = Record<string, unknown>;
  * @contrat Gabarit d'une base
  * - `clips` du manifeste de base (#3253) : le clip du GLB de chaque rôle d'animation que la base joue, rôles de
  *   `ROLES_D_ANIMATION` (`src/noyau/animation.ts`), copié de la déclaration du corps
- *   (`scripts/personnage-3d/base/humanoide.json`) par `manifeste.mjs` ; le rôle `walk` est exigé
+ *   (`scripts/personnage-3d/base/humanoide.json`) par `manifeste.mjs` ; le rôle `marche` est exigé
  *   (`validerManifesteDeBase`, `forme`), un rôle hors du vocabulaire est refusé par `role-inconnu` et un clip absent
  *   du GLB par `clip-absent` (`ecartsDeClips`, `asset/clips.ts`, appliqué à la base par `validerModele`,
- *   `asset/modeles.ts`). Le clip du rôle `walk` est la marche que la construction plante et que l'évaluateur mesure ;
+ *   `asset/modeles.ts`). Le clip du rôle `marche` est la marche que la construction plante et que l'évaluateur mesure ;
  *   `appuis.vitesseAuSol` est sa vitesse au sol, en m/s, mesurée sur le corps neutre ; au gabarit, la foulée des
  *   clips plantés suit `sl` seul (`poserLeGabarit`), et cette vitesse multipliée par `echelleDeVitesse` garde les
  *   pieds plantés.
@@ -137,7 +137,7 @@ type Brut = Record<string, unknown>;
  *   `clipsDeuxMains.<maniement>.<rôle>`), copié de la déclaration du corps. La construction de la base dérive ces
  *   clips de clips à une main (`scripts/personnage-3d/base/deux_mains.py`) : corps et jambes du clip source, dos
  *   fléchi, deux bras posés par IK sur une arme tenue à la seconde prise de son maniement (`SECONDES`) ; la marche à
- *   deux mains est plantée comme celle de `walk`, aux mêmes jambes. La réponse de `modeles` le sert vide pour une
+ *   deux mains est plantée comme celle de `marche`, aux mêmes jambes. La réponse de `modeles` le sert vide pour une
  *   base sans table.
  * - `bornesArticulaires` du manifeste de base (#2992), requis : pour chaque os de `os`, par axe `x`, `y`, `z`,
  *   `[min, max]` en degrés de la composante du vecteur de rotation (axe × angle) de l'os depuis sa rotation locale de
@@ -258,7 +258,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
     taille: id(p.taille, 'porteur.taille'), echelleDArt: positif(p.echelleDArt, 'porteur.echelleDArt'),
   };
   const clips = Object.fromEntries(Object.entries(objet(brut.clips, 'clips')).map(([role, nom]) => [role, chaine(nom, `clips.${role}`)]));
-  if (estObjet(brut.clips) && clips.walk === undefined) forme('clips.walk', 'le clip du rôle `walk` est exigé');
+  if (estObjet(brut.clips) && clips.marche === undefined) forme('clips.marche', 'le clip du rôle `marche` est exigé');
   const clipsDeuxMains = brut.clipsDeuxMains === undefined ? undefined
     : Object.fromEntries(Object.entries(objet(brut.clipsDeuxMains, 'clipsDeuxMains')).map(([maniement, table]) => {
       const ou = `clipsDeuxMains.${maniement}`;
@@ -297,7 +297,7 @@ function reduire(brut: unknown): { manifeste?: ManifesteDeBase; ecarts: EcartDeB
   const glb = objet(brut.glb, 'glb');
   const empreinte = { sha256: chaine(glb.sha256, 'glb.sha256'), octets: nombre(glb.octets, 'glb.octets') };
   if (ecarts.length || (prisesBrutes && (!prises.main || !prises.secondaire))) return { ecarts };
-  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, bornesArticulaires, chaines, zones, emplacements, ...(prises.main && prises.secondaire ? { prises: { main: prises.main, secondaire: prises.secondaire } } : {}), silhouettes, ...(gabarit ? { gabarit } : {}), porteur, clips: { ...clips, walk: clips.walk }, ...(clipsDeuxMains ? { clipsDeuxMains } : {}), appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
+  return { ecarts, manifeste: { schema: VERSION_DU_SCHEMA_DE_BASE, base, os, bornesArticulaires, chaines, zones, emplacements, ...(prises.main && prises.secondaire ? { prises: { main: prises.main, secondaire: prises.secondaire } } : {}), silhouettes, ...(gabarit ? { gabarit } : {}), porteur, clips: { ...clips, marche: clips.marche }, ...(clipsDeuxMains ? { clipsDeuxMains } : {}), appuis, osAPositionAnimee, ...(lues ? { surfaces: lues.surfaces } : {}), glb: empreinte } };
 }
 
 /** Le manifeste `brut` réduit au schéma 6 et validé contre le GLB de la base `octets`. */

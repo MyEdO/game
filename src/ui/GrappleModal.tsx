@@ -75,7 +75,7 @@ export function GrappleModal() {
   });
 
   const issue = pd.def
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', outcome, actor.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', outcome, actor.id, foe.id), battle.combatants)]
     : undefined;
 
   if (pd.phase === 'options') {

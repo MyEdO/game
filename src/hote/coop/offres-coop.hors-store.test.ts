@@ -21,7 +21,7 @@ import type { Combatant } from '../../engine/types';
 
 const NET: NetState = {
   mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { L: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  connection: 'connecte', hostAway: false, ownership: { L: 1 }, slots: [1, 1, 0, 0], rangs: {},
 };
 
 /** Un sorcier en Langue (Magick) 60, qui connaît l'Arme aethyrique. */

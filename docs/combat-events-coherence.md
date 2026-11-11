@@ -101,7 +101,7 @@ scène) ; `passeDePsy` route chaque rangée par `surfaceRow` : surfacée, elle r
 son jet sans pilote est résolu sur-le-champ par la même `resolveCombatPsychRow` (patron
 `deferInteractiveTest`). Le moment dépend de l'entrée (`retestAt` de `psychology.json`), jamais du porteur ;
 aucun hook `onTurnStart` ne joue la psychologie. Le Round concerné voyage sur la déclaration de bande
-(`combatPsych.round`). `LDB 21 l.9`, `l.19`, `l.25`, `l.39`, `l.48`.
+(`psychologieDeCombat.round`). `LDB 21 l.9`, `l.19`, `l.25`, `l.39`, `l.48`.
 
 **Reste à faire pour « un seul bus » complet** : #315 (exécuteur unique — `runPureFlowLines` à
 supprimer + garde de double-exécution).

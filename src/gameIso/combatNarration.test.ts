@@ -15,10 +15,10 @@ describe('narrateEvent — icône déduite du kind (zéro devinage)', () => {
     expect(n.important).toBe(true);
   });
   it('tir → action/shoot', () => {
-    expect(narrateEvent(ev('shoot', 'Grunni tire sur Machin — 5 dégâts', ally2.id, foe.id), cs).icon).toBe('action/shoot');
+    expect(narrateEvent(ev('tir', 'Grunni tire sur Machin — 5 dégâts', ally2.id, foe.id), cs).icon).toBe('action/shoot');
   });
   it('attaque mêlée → action/attack', () => {
-    expect(narrateEvent(ev('attack', 'Bidule attaque Machin', ally.id, foe.id), cs).icon).toBe('action/attack');
+    expect(narrateEvent(ev('attaque', 'Bidule attaque Machin', ally.id, foe.id), cs).icon).toBe('action/attack');
   });
   it('posture défensive → flag/defensive et important', () => {
     const n = narrateEvent(ev('defensive', 'Bidule se met en position défensive', ally.id), cs);
@@ -26,18 +26,18 @@ describe('narrateEvent — icône déduite du kind (zéro devinage)', () => {
     expect(n.important).toBe(true);
   });
   it('viser → action/aim', () => {
-    expect(narrateEvent(ev('aim', 'Grunni commence à viser', ally2.id), cs).icon).toBe('action/aim');
+    expect(narrateEvent(ev('visee', 'Grunni commence à viser', ally2.id), cs).icon).toBe('action/aim');
   });
   it('état Sonné (kind condition) → icône de effectIcons (condition/stunned)', () => {
-    expect(narrateEvent(ev('condition', 'Bidule est Sonné', ally.id), cs).icon).toBe('condition/stunned');
+    expect(narrateEvent(ev('etat', 'Bidule est Sonné', ally.id), cs).icon).toBe('condition/stunned');
   });
   it('hors de combat → journal/death et important', () => {
-    const n = narrateEvent(ev('death', 'Machin est mis hors de combat !', foe.id), cs);
+    const n = narrateEvent(ev('mort', 'Machin est mis hors de combat !', foe.id), cs);
     expect(n.icon).toBe('journal/death');
     expect(n.important).toBe(true);
   });
   it('déplacement → journal/move mais NON important (journal seul)', () => {
-    const n = narrateEvent(ev('move', 'Bidule se déplace', ally.id), cs);
+    const n = narrateEvent(ev('deplacement', 'Bidule se déplace', ally.id), cs);
     expect(n.icon).toBe('journal/move');
     expect(n.important).toBe(false);
   });
@@ -45,12 +45,12 @@ describe('narrateEvent — icône déduite du kind (zéro devinage)', () => {
 
 describe('ton — emphase/tenue dérivée du kind (source unique)', () => {
   it('critique et mise à mort → grave', () => {
-    expect(narrateEvent(ev('crit', 'Critique !', foe.id, ally.id), cs).tone).toBe('grave');
-    expect(narrateEvent(ev('death', 'Machin est mis hors de combat !', foe.id), cs).tone).toBe('grave');
+    expect(narrateEvent(ev('critique', 'Critique !', foe.id, ally.id), cs).tone).toBe('grave');
+    expect(narrateEvent(ev('mort', 'Machin est mis hors de combat !', foe.id), cs).tone).toBe('grave');
   });
   it('Peur → fort ; attaque ordinaire → normal', () => {
-    expect(narrateEvent(ev('fear', 'Bidule panique', ally.id), cs).tone).toBe('strong');
-    expect(narrateEvent(ev('attack', 'Bidule attaque Machin', ally.id, foe.id), cs).tone).toBe('normal');
+    expect(narrateEvent(ev('peur', 'Bidule panique', ally.id), cs).tone).toBe('strong');
+    expect(narrateEvent(ev('attaque', 'Bidule attaque Machin', ally.id, foe.id), cs).tone).toBe('normal');
   });
 });
 
@@ -96,9 +96,9 @@ describe('narrateIntent — annonce d’intention IA (hors journal)', () => {
 describe('combatFeed — derniers événements importants (bandeau)', () => {
   it('garde les N derniers importants, ordre préservé, exclut le déplacement', () => {
     const events = [
-      ev('move', 'Bidule se déplace', ally.id),
+      ev('deplacement', 'Bidule se déplace', ally.id),
       ev('charge', 'Machin charge Bidule', foe.id, ally.id),
-      ev('aim', 'Grunni commence à viser', ally2.id),
+      ev('visee', 'Grunni commence à viser', ally2.id),
     ];
     const feed = combatFeed(events, cs, 2);
     expect(feed.map((f) => f.icon)).toEqual(['journal/charge', 'action/aim']);
