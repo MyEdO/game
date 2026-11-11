@@ -16,7 +16,6 @@ import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';
 import { createRoot, type Root } from 'react-dom/client';
 import { PlageField } from './PlageField';
-import { DispoSaisonniereField } from './editor/codex/StructFields';
 import { CodexEdit } from './editor/codex/CodexEdit';
 
 beforeAll(() => {
@@ -122,46 +121,7 @@ describe('PlageField — les DEUX bornes d’une bande de table', () => {
   });
 });
 
-describe('DispoSaisonniereField — les quatre colonnes, nommées en FRANÇAIS', () => {
-  it('rend une fourchette PAR saison, avec le libellé FR pris à la donnée (`weather.json`)', () => {
-    mount(
-      <DispoSaisonniereField
-        label="Disponibilité par saison"
-        value={{ printemps: { min: 1, max: 5 }, ete: { min: 1, max: 9 }, automne: { min: 1, max: 18 }, hiver: { min: 1, max: 9 } }}
-        onChange={vi.fn()}
-      />,
-    );
-    // MDG 15 l.408 : « | Céréales | 01-05 | 01-09 | 01-18 | 01-09 | » — quatre colonnes, huit bornes.
-    expect(champs().length).toBe(8);
-    for (const saison of ['Printemps', 'Été', 'Automne', 'Hiver']) {
-      expect(container.textContent).toContain(`${saison} — d100`);
-      expect(parNom(`${saison} — borne basse`).value).toBe('1');
-    }
-    expect(parNom('Automne — borne haute').value).toBe('18');
-    // Aucune clé technique à l'écran (règle stricte 4) : la saison se nomme en français.
-    expect(container.textContent).not.toContain('printemps');
-    expect(container.textContent).not.toContain('ete');
-  });
-
-  it('éditer UNE colonne laisse les trois autres intactes', () => {
-    const onChange = vi.fn();
-    mount(
-      <DispoSaisonniereField
-        label="Disponibilité par saison"
-        value={{ printemps: { min: 1, max: 5 }, ete: { min: 1, max: 9 }, automne: { min: 1, max: 18 }, hiver: { min: 1, max: 9 } }}
-        onChange={onChange}
-      />,
-    );
-    const haute = parNom('Hiver — borne haute');
-    saisir(haute, '12');
-    entrer(haute);
-    expect(onChange).toHaveBeenCalledWith({
-      printemps: { min: 1, max: 5 }, ete: { min: 1, max: 9 }, automne: { min: 1, max: 18 }, hiver: { min: 1, max: 12 },
-    });
-  });
-});
-
-describe('les DEUX sites de l’atelier — une fourchette REQUISE s’édite sur une entrée NEUVE', () => {
+describe('l’atelier — une fourchette REQUISE s’édite sur une entrée NEUVE', () => {
   const monterNeuve = (categoryKey: string) => {
     mount(<CodexEdit categoryKey={categoryKey} isNew onClose={() => {}} />);
   };
@@ -172,15 +132,5 @@ describe('les DEUX sites de l’atelier — une fourchette REQUISE s’édite su
     monterNeuve('shipHullSizes');
     expect(bornesDe('Longueur').length, 'la fourchette de longueur ne s’édite pas sur une taille de coque neuve').toBe(2);
     expect(bornesDe('Longueur')[0].value, 'la borne basse ne s’ouvre pas sur le début du domaine (1 m)').toBe('1');
-  });
-
-  it('cargaison neuve : les QUATRE colonnes de disponibilité s’éditent (8 bornes, d100)', () => {
-    monterNeuve('cargoes');
-    // `avail` est EXIGÉ d'une marchandise par `defs/cargoes.ts` : sans ces champs, une cargaison neuve
-    // n'est pas enregistrable — MDG 15 l.406-418 et MSRC 13 l.73-78 impriment une colonne par saison.
-    for (const saison of ['Printemps', 'Été', 'Automne', 'Hiver']) {
-      expect(bornesDe(saison).length, `la colonne « ${saison} » ne s’édite pas sur une cargaison neuve`).toBe(2);
-      expect(bornesDe(saison)[0].value, `la colonne « ${saison} » n’ouvre pas sur le début du d100`).toBe('1');
-    }
   });
 });

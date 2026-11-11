@@ -14,8 +14,10 @@ import seaCargoJson from '../data/sea-cargo.json';
 import type { LandCargoData } from '../data/schemas/defs/land-cargo';
 import type { SeaCargoData } from '../data/schemas/defs/sea-cargo';
 import { memoParVersion } from '../data/versionDataset';
-import { d100, rollDice, type DiceSpec, type RNG } from './dice';
-import { findTableEntryIndex } from './tables';
+import { cargaisonsAleatoires } from '../data';
+import { garanti } from '../lib/garanti';
+import { rollDice, type DiceSpec, type RNG } from './dice';
+import { deDeLaTableTiree, findTableEntry } from './tables';
 import type { Season } from './travelStages';
 import type { PossessionLocation } from './possession';
 import { PA_PER_CO } from './money';
@@ -24,16 +26,14 @@ import { PA_PER_CO } from './money';
  *  (MSRC 13). */
 export type Voie = 'mer' | 'terre';
 
-/** Un type de cargaison (bien volumineux) : plages saisonnières d100 (Tableau des cargaisons) + prix du
- *  livre par saison, ou un jet de dés (`{dice}`), dans l'unité de sa voie (`prixParPointDEnc`). MSRC 13 l.80-91,
- *  MDG 15 l.420-436 */
+/** Un type de cargaison (bien volumineux) : prix du livre par saison, ou un jet de dés (`{dice}`), dans l'unité
+ *  de sa voie (`prixParPointDEnc`). MSRC 13 l.80-91, MDG 15 l.420-436 */
 export interface CargoDef {
   id: string;
   label: string;
   voie: Voie;
   /** Absent sur une cargaison marchande — présent et `false` sur un MARQUEUR (`CargoMarkerDef`). */
   echangeable?: true;
-  avail: Record<Season, { min: number; max: number }>;
   price: Record<Season, number> | { dice: DiceSpec };
   /** MSRC 13 l.93-104 */
   wine?: boolean;
@@ -77,14 +77,14 @@ export const CARGO_ENTRIES: readonly CargoEntry[] = cargoesJson as unknown as Ca
  *  unique, quelle que soit sa voie. */
 export const findCargoEntryById = (id: string): CargoEntry | undefined => CARGO_ENTRIES.find((c) => c.id === id);
 
-/** Les MARCHANDISES de chaque voie, filtrées À LA SOURCE sur le champ d'exclusion : négoce, table de
- *  cargaison aléatoire, éditeur et Compendium n'y voient jamais un marqueur. */
+/** Les MARCHANDISES de chaque voie, filtrées À LA SOURCE sur le champ d'exclusion : négoce, éditeur et
+ *  Compendium n'y voient jamais un marqueur. */
 const marchandisesParVoie = memoParVersion('cargoes', (): Readonly<Record<Voie, readonly CargoDef[]>> => {
   const marchandises = CARGO_ENTRIES.filter(isEchangeable);
   return { mer: marchandises.filter((c) => c.voie === 'mer'), terre: marchandises.filter((c) => c.voie === 'terre') };
 });
 
-/** Les marchandises de la table d'une voie, dans l'ordre du livre. */
+/** Les marchandises d'une voie, dans l'ordre du catalogue. */
 export const marchandisesDe = (voie: Voie): readonly CargoDef[] => marchandisesParVoie()[voie];
 
 /** Résout une MARCHANDISE, quelle que soit sa voie (les marqueurs ne sont ni achetables ni vendables). */
@@ -107,20 +107,18 @@ export function isTradeHubColumn(produits: readonly string[] | undefined): boole
   return (produits ?? []).some((id) => isTradeHubEntry(findCargoEntryById(id)));
 }
 
-/** Cargaison ALÉATOIRE de la saison : d100 dans la colonne saisonnière du tableau fourni (MSRC 13 l.71-78,
- *  MDG 15 l.402-418). PUR. La couverture EXACTE de la colonne (1 à 100, sans trou ni chevauchement) est un
- *  invariant de la DONNÉE, gardé au parse table par table (`catalogueSaisonnier`,
- *  `src/data/schemas/defs/cargoes.ts`) ; un jet que rien ne couvre est donc une ANOMALIE NOMMÉE, jamais
- *  le repli muet de `findTableEntry` sur la dernière cargaison du catalogue. */
-export function rollSeasonalCargo(cargoes: CargoDef[], season: Season, rng: RNG): CargoDef {
-  const r = d100(rng);
-  const i = findTableEntryIndex(cargoes.map((c) => c.avail[season]), r);
-  if (i < 0) {
-    throw new Error(
-      `rollSeasonalCargo : le jet ${r} ne tombe dans aucune plage de disponibilité de la saison « ${season} » sur les ${cargoes.length} cargaison(s) fournies — la colonne ne couvre pas le d100.`,
-    );
-  }
-  return cargoes[i];
+/** Le document de `cargaisons-aleatoires.json` qui tire la colonne `saison` de la table de `voie`, lu à l'appel.
+ *  MDG 15 l.404-418 ; MSRC 13 l.69-78 */
+export function tableDesCargaisons(voie: Voie, saison: Season): (typeof cargaisonsAleatoires)[number] {
+  return garanti(cargaisonsAleatoires.find((t) => t.voie === voie && t.saison === saison), `${voie} › ${saison}`, 'colonne du Tableau des cargaisons');
+}
+
+/** Cargaison ALÉATOIRE de la saison : au dé du document de la colonne (`tableDesCargaisons`), dont les rangées
+ *  couvrent ce dé au parse (`defs/cargaisons-aleatoires.ts`). PUR (RNG injecté). MDG 15 l.404 ; MSRC 13 l.69 */
+export function rollSeasonalCargo(voie: Voie, saison: Season, rng: RNG): CargoDef {
+  const table = tableDesCargaisons(voie, saison);
+  const { id } = findTableEntry(table.entries, rollDice(deDeLaTableTiree(table), rng));
+  return garanti(findCargoById(id), id, 'marchandise du Tableau des cargaisons');
 }
 
 /** L'Encombrement que couvre un prix du livre, par voie : donnée de la configuration de chaque voie. */
