@@ -216,8 +216,8 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable dans 
                             (`src/data/schemas/grammaire/vocabulaires.ts`) que `TYPES` déclare (#2968 P-art)
                             SEAM d'ÉCRITURE (`overrides.ts`) : `setDataset`/`setObjectDataset`/`resetData`
                             remplacent le CONTENU d'un dataset sans réassigner son binding (`splice` en
-                            place), `setDeDeTable` écrit le dé de tirage qu'un ANCÊTRE de la collection
-                            porte (document de table, racine qui le partage), et tous VERSIONNENT
+                            place), `setEnTete` écrit l'EN-TÊTE d'une collection nichée (les champs de
+                            ses ANCÊTRES, nommés par préfixe de suite, hors pas de collection), et tous VERSIONNENT
                             l'écriture (`bumperDataset`, module FEUILLE
                             `versionDataset.ts`) — l'identité du tableau ne bougeant jamais, cette version
                             est le SEUL témoin qu'un lecteur indexé peut consulter. Tout index de niveau

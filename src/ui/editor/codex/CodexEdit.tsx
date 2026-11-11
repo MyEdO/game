@@ -7,7 +7,7 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { Fragment, useEffect, useId, useMemo, useState, type Dispatch, type SetStateAction } from 'react';
-import { datasetArray, datasetObject, datasetFile, datasetObjectFile, deDeLaTable, type DatasetKey } from '../../../data/overrides';
+import { datasetArray, datasetObject, datasetFile, datasetObjectFile, ancetreDuDe, deDeLaTable, type DatasetKey } from '../../../data/overrides';
 import { REF_LIST_DATASET, editableDataset, editableEntries, editableObjectDataset, enregistrerEntree, validateEntry } from '../../../data/atelierDuCodex';
 import type { RefDesignee } from '../../../data/schemas/grammaire/ref';
 import type { SteamBreakdownEntry } from '../../../engine/shipBuild';
@@ -324,6 +324,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const [entry, setEntry] = useState<Entry>(() => structuredClone(src.initial));
   // DÉ DE TIRAGE porté par un ANCÊTRE de la table (`deDeLaTable`) : commun à toutes ses rangées, il
   // s'écrit dans la même transaction que l'entrée (#1667). `undefined` : la table n'en porte pas.
+  const ancetreDuDeDeLaTable = obj ? undefined : ancetreDuDe(src.dataset as DatasetKey);
   const deImprime = obj ? undefined : deDeLaTable(src.dataset as DatasetKey);
   const [deSaisi, setDeSaisi] = useState(deImprime);
   // Libellé COURANT de l'entrée (`entryKey`), celui de sa catégorie tant qu'elle n'en porte pas (#1830).
@@ -497,7 +498,7 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
 
   const save = async () => {
     // Transaction d'enregistrement de la donnée (`enregistrerEntree`) ; l'écriture disque reste ici.
-    const issue = enregistrerEntree(categoryKey, entry, src.index, deSaisi === deImprime ? undefined : deSaisi);
+    const issue = enregistrerEntree(categoryKey, entry, src.index, deSaisi === deImprime ? [] : [{ ancetre: ancetreDuDeDeLaTable!, champ: 'die', valeur: deSaisi }]);
     if (!issue.ok) { setSchemaError(issue.erreurs.join('\n')); setMsg(''); return; }
     setSchemaError(null);
     const text = issue.texte;

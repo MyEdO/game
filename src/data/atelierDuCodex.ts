@@ -2,8 +2,7 @@
  * Atelier du Codex, moitié DONNÉE : routes d'édition d'une catégorie, validation d'une entrée éditée
  * et sa TRANSACTION d'enregistrement (#3059). Tout hôte les appelle ; l'écriture disque reste à l'hôte.
  */
-import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, deDeLaTable, setDeDeTable, type DatasetKey, type ObjectDatasetKey } from './overrides';
-import { deDeTirageSchema } from './schemas/grammaire/valeurs';
+import { datasetArray, setDataset, datasetObject, datasetObjectSerializeRoot, setObjectDataset, datasetFile, datasetSerializeRoot, datasetObjectFile, champDEnTete, setEnTete, type DatasetKey, type EcritureDEnTete, type ObjectDatasetKey } from './overrides';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './schemas/exposition-derivee';
 import { validateDataset } from './schemas/validate';
 import { serializeDataset } from './serialize';
@@ -163,13 +162,12 @@ export type Enregistrement = { ok: true; fichier: string; texte: string } | { ok
 
 /**
  * Enregistre `entry` dans le dataset de `categoryKey` (#176, #1530) : à la position `index` d'un
- * dataset-liste (`-1` l'ajoute), en fusion d'un dataset-objet ; `deDeTable`, posé, est le dé de tirage
- * de la table que porte un ancêtre de sa collection (`setDeDeTable`, #1667), écrit dans la MÊME
- * transaction. Refuse sans rien poser une entrée que `validateEntry` refuse, ou un dé illisible ; sinon
- * la pose, valide la racine sérialisée contre son schéma et, au refus, REPREND l'état d'avant. Le texte
- * rendu est la forme disque de la source entière.
+ * dataset-liste (`-1` l'ajoute), en fusion d'un dataset-objet ; `enTete`, posé, écrit des champs de
+ * l'EN-TÊTE de sa collection (`setEnTete`, #1667) dans la MÊME transaction. Refuse sans rien poser une
+ * entrée que `validateEntry` refuse ; sinon la pose, valide la racine sérialisée contre son schéma et, au
+ * refus, REPREND l'état d'avant, entrée et en-tête. Le texte rendu est la forme disque de la source entière.
  */
-export function enregistrerEntree(categoryKey: string, entry: Entry, index: number, deDeTable?: string): Enregistrement {
+export function enregistrerEntree(categoryKey: string, entry: Entry, index: number, enTete: readonly EcritureDEnTete[] = []): Enregistrement {
   const obj = editableObjectDataset(categoryKey);
   if (obj) {
     const avant = structuredClone(datasetObject(obj.ds));
@@ -180,16 +178,14 @@ export function enregistrerEntree(categoryKey: string, entry: Entry, index: numb
   const ds = editableDataset(categoryKey)!;
   const entries = datasetArray(ds) as Entry[];
   const erreurs = validateEntry(categoryKey, entry, entries, index);
-  const deLu = deDeTable === undefined ? undefined : deDeTirageSchema.safeParse(deDeTable);
-  if (deLu && !deLu.success) erreurs.push(...deLu.error.issues.map((i) => `die : ${i.message}`));
   if (erreurs.length) return { ok: false, erreurs };
   const avant = entries.slice();
-  const deAvant = deDeLaTable(ds);
-  if (deDeTable !== undefined) setDeDeTable(ds, deDeTable);
+  const enTeteAvant = enTete.map((e) => ({ ...e, valeur: structuredClone(champDEnTete(ds, e.ancetre, e.champ)) }));
+  setEnTete(ds, enTete);
   setDataset(ds, (index < 0 ? [...entries, entry] : entries.map((x, i) => (i === index ? entry : x))) as never);
   return racineValidee(datasetFile(ds), datasetSerializeRoot(ds), () => {
     setDataset(ds, avant as never);
-    if (deDeTable !== undefined) setDeDeTable(ds, deAvant!);
+    setEnTete(ds, enTeteAvant);
   });
 }
 
