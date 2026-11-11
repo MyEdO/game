@@ -159,7 +159,7 @@ export interface HullCriticalOutcome {
   hullOps: GameOp[];
   /** Localisation « Équipage » : le marin exposé qui encaisse le coup, que l'appelant résout (MDG 13 l.584). */
   marinId?: string;
-  /** Éclats : marins touchés (effet data `SHRAPNEL_HIT` déjà appliqué — le Dégât réel, mitigé BE/PA, est
+  /** Éclats : marins touchés (effet data `set.shrapnelHit` déjà appliqué — le Dégât réel, mitigé BE/PA, est
    *  journalisé par l'op `wounds` dans `lines`, pas réintrospecté ici). */
   shrapnel: { crewId: string }[];
   /** Critiques de Coque SUPPLÉMENTAIRES résolus (1d10…) — ops déjà appliqués à la coque. */
