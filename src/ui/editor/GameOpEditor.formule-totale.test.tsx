@@ -181,7 +181,7 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
 
   it('GameOpEditor : le dialecte est celui du CHAMP — Péché sur `value`/`amount` (formulaSinSchema), jamais sur `escapeStrength`', () => {
     const ops = [
-      { op: 'condition', id: 'empetre', value: 1, escapeStrength: { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } } },
+      { op: 'condition', id: { id: 'empetre' }, value: 1, escapeStrength: { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } } },
       { op: 'wounds', amount: { sum: [{ dice: { n: 1, sides: 10 } }, { sinPoints: true }] } },
     ] as unknown as GameOp[];
     mount(<GameOpEditor noeud={opsDeMiscast()} ops={ops} onChange={() => {}} />);
@@ -202,7 +202,7 @@ describe('FormulaField — dialecte du Péché (#2099)', () => {
   it('GameOpEditor : chaque forme OFFERTE sur `escapeStrength` d’une rangée de miscast rend une valeur que le nœud du champ accepte', () => {
     const noeud = champDOpDeMiscast('escapeStrength');
     const depart = { times: { of: { dice: { n: 1, sides: 10 } }, factor: 10 } };
-    const op = { op: 'condition', id: 'empetre', value: 1, escapeStrength: depart } as unknown as GameOp;
+    const op = { op: 'condition', id: { id: 'empetre' }, value: 1, escapeStrength: depart } as unknown as GameOp;
     mount(<GameOpEditor noeud={opsDeMiscast()} ops={[op]} onChange={() => {}} />);
     const formes = formesDuChamp('Force');
     demonter();

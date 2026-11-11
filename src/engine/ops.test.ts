@@ -113,11 +113,11 @@ describe('AUCUN plancher de durée au moteur — toute échelle rend ce que la f
 
   it('État posé par une op `condition` : 0 Round et échéance nue, en Rounds comme à l’horloge', () => {
     const rounds = hero();
-    applyOps(rounds, [{ op: 'condition', id: 'sonne', durationRounds: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort' });
+    applyOps(rounds, [{ op: 'condition', id: { id: 'sonne' }, durationRounds: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort' });
     expect(rounds.conditions[0]).toMatchObject({ id: 'sonne', roundsLeft: 0 });
 
     const horloge = hero();
-    applyOps(horloge, [{ op: 'condition', id: 'sonne', durationMinutes: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort', now: 100 });
+    applyOps(horloge, [{ op: 'condition', id: { id: 'sonne' }, durationMinutes: 0 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort', now: 100 });
     expect(horloge.conditions[0]).toMatchObject({ id: 'sonne', untilTime: 100 });
   });
 
@@ -294,7 +294,7 @@ describe('applyOps — opérations unitaires', () => {
   it('condition : ajout avec valeur en formule (Bonus de FM du référent caster)', () => {
     const caster = hero({ id: 'c', label: 'Lanceur', characteristics: { ...hero().characteristics, 'force-mentale': 52 } });
     const c = hero();
-    applyOps(c, [{ op: 'condition', id: 'hemorragique', value: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
+    applyOps(c, [{ op: 'condition', id: { id: 'hemorragique' }, value: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster });
     expect(c.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(5);
   });
 
@@ -543,14 +543,14 @@ describe('applyOps — opérations unitaires', () => {
 
   it('reduceToZero + condition inconscient : Châtiment (LDB 40 l.79)', () => {
     const c = hero();
-    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: 'inconscient' }], { idNeuf: idsDeTest, rng: desDuTest });
+    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: { id: 'inconscient' } }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.wounds.current).toBe(0);
     expect(c.conditions.some((x) => x.id === 'inconscient')).toBe(true);
   });
 
   it('reduceToZero + condition en-flammes : Tonnerre et foudre (LDB 40 l.84)', () => {
     const c = hero();
-    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: 'en-flammes', value: 1 }], { idNeuf: idsDeTest, rng: desDuTest });
+    applyOps(c, [{ op: 'reduceToZero' }, { op: 'condition', id: { id: 'en-flammes' }, value: 1 }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.wounds.current).toBe(0);
     expect(c.conditions.some((x) => x.id === 'en-flammes')).toBe(true);
     expect(c.conditions.some((x) => x.id === 'inconscient')).toBe(false);
@@ -721,7 +721,7 @@ describe("op:'rollTable' — tirage sur table par fourchette (findTableEntry, so
     op: 'rollTable' as const, die: 'd10' as const,
     entries: [
       { min: 1, max: 2, ops: [{ op: 'charDamage' as const, characteristic: 'initiative' as const, amount: { dice: { n: 1, sides: 10 } } }] },
-      { min: 3, max: 8, ops: [{ op: 'condition' as const, id: 'sonne' }] },
+      { min: 3, max: 8, ops: [{ op: 'condition' as const, id: { id: 'sonne' } }] },
       { min: 9, max: 9, ops: [{ op: 'grantTrait' as const, trait: { id: 'nerveux' } }] },
       { min: 10, max: 99, ops: [{ op: 'kill' as const }] },
     ],
@@ -831,7 +831,7 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
     { op: 'wounds', amount: 2, ignoreTB: true, ignoreAP: true },
     { op: 'charMod', characteristic: 'agilite', mod: -10, durationRounds: 3 },
     { op: 'charMod', characteristic: 'endurance', mod: -10, durationRounds: 3 },
-    { op: 'condition', id: 'sonne', value: 1 },
+    { op: 'condition', id: { id: 'sonne' }, value: 1 },
   ] as never[];
 
   it('chaque ligne arrive avec son rang ; la ligne agrégée des charMod va au dernier de la suite', () => {
@@ -844,7 +844,7 @@ describe('OpsCtx.surLigne — les lignes d’une application, par rang d’op', 
 
   it('une op IMBRIQUÉE rend ses lignes à l’op qui la porte, une seule fois', () => {
     const recues: [number | null, string][] = [];
-    const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: 'sonne', value: 1 }] }] as never[], { idNeuf: idsDeTest, rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
+    const lignes = applyOps(cible(), [{ op: 'transform', tag: 'forme', ops: [{ op: 'condition', id: { id: 'sonne' }, value: 1 }] }] as never[], { idNeuf: idsDeTest, rng: makeRNG(1), surLigne: (rang, l) => { recues.push([rang, l]); } });
     expect(lignes).toEqual(['Cible reçoit 1 État Sonné.', 'Cible se métamorphose (forme).']);
     expect(recues).toEqual([[0, 'Cible reçoit 1 État Sonné.'], [0, 'Cible se métamorphose (forme).']]);
   });

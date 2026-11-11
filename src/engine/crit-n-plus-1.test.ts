@@ -47,7 +47,7 @@ const NEUVIEME: CritDoc = {
         kind: 'test',
         test: { difficulty: 'accessible' },
         success: { kind: 'seq', steps: [] },
-        fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'sonne', value: 1 }], on: 'target' } },
+        fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: { id: 'sonne' }, value: 1 }], on: 'target' } },
       },
       desc: 'Rangée de morsure — jamais authorée, posée en mémoire par ce test.',
       source: { book: 'livre-de-base', page: 174 },
