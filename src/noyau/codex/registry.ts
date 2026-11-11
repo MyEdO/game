@@ -16,7 +16,7 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -530,7 +530,7 @@ export function raceTalentSection(s: (typeof species)[number]): CodexSection | n
 
 /** Section « Carrières accessibles » d'une race — groupées par classe, cliquables (→ fiche carrière). */
 export function raceCareerSection(s: (typeof species)[number]): CodexSection | null {
-  const accessible = careersForSpecies(s.refCareer);
+  const accessible = careersForSpecies(s);
   const rows: CodexRow[] = [];
   for (const cl of classes) {
     const list = accessible.filter((c) => c.class.id === cl.id);
@@ -1106,6 +1106,20 @@ export function optionBody(o: { label: string; desc: string }): string {
   const sansPuce = o.desc.replace(/^\s*[-*]\s+/, '');
   const echappe = o.label.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   return sansPuce.replace(new RegExp(`^\\*\\*${echappe}\\s*:\\*\\*\\s*`), '');
+}
+
+/** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires)[number], category: string, libelle: (id: string) => string) {
+  return depuisEnveloppe(t, {
+    sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+    sections: sections({
+      title: tr('codex.fiche.tirages'), layout: 'list',
+      rows: t.entries.map((r) => {
+        const label = libelle(r.id);
+        return { t: 'ref', category, id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(t), r.min, r.max) } as CodexRow;
+      }),
+    }),
+  });
 }
 
 const CODEX_SPECS = {
@@ -2608,16 +2622,11 @@ const CODEX_SPECS = {
   },
   talentsAleatoires: {
     label: 'codex.fiche.talentsAleatoires', group: 'tables',
-    build: () => talentsAleatoires.map((t) => depuisEnveloppe(t, {
-      sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
-      sections: sections({
-        title: tr('codex.fiche.tirages'), layout: 'list',
-        rows: t.entries.map((r) => {
-          const label = talentRefLabel({ id: r.id });
-          return { t: 'ref', category: 'talents', id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(t), r.min, r.max) } as CodexRow;
-        }),
-      }),
-    })),
+    build: () => talentsAleatoires.map((t) => ficheDeTableDeRefs(t, 'talents', (id) => talentRefLabel({ id }))),
+  },
+  carrieresAleatoires: {
+    label: 'codex.fiche.carrieresAleatoires', group: 'tables',
+    build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, 'careers', (id) => refLabel('careers', { id }))),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

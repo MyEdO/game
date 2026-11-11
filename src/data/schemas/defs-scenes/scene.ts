@@ -38,7 +38,7 @@ import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
-import { FIRE_ARCS } from '../../../engine/types';
+import { posteSideSchema } from '../defs/vehicles';
 
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
@@ -61,7 +61,7 @@ export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean
 export const authoredShipPosteSchema = nommerChamps(z.strictObject({
   trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { nue: true }),
   /** Absent : pivot libre (`inFireArc`). */
-  side: z.enum(FIRE_ARCS).optional(),
+  side: posteSideSchema.optional(),
   cover: deckCoverSchema.optional(),
   /** `crewIds[0]` : le chef de pièce. */
   crewIds: z.array(z.string()).optional(),

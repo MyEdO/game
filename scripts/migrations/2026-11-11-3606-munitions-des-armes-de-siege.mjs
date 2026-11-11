@@ -10,9 +10,10 @@
  *
  * Entrées : `src/data/trappings.json`.
  *
- * Une arme nommée par `MUNITIONS` absente du catalogue, une `defaultAmmo` qui n'est pas la première munition de son
- * arme, une `defaultAmmo` sur une arme hors de `MUNITIONS`, ou un document non canonique sont un ARRÊT nominatif
- * (exit 1), AUCUNE écriture. Rejouée sur l'arbre migré : no-op byte-identique.
+ * Une arme nommée par `MUNITIONS` absente du catalogue passe sans faute (`scripts/migrations/lib/formeDAvant.mjs`).
+ * Une `defaultAmmo` qui n'est pas la première munition de son arme, une `defaultAmmo` sur une arme hors de
+ * `MUNITIONS`, ou un document non canonique sont un ARRÊT nominatif (exit 1), AUCUNE écriture. Rejouée sur l'arbre
+ * migré : no-op byte-identique.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -39,7 +40,6 @@ const doc = JSON.parse(brut);
 const arrets = [];
 if (brut !== `${JSON.stringify(doc, null, 2)}`) arrets.push('trappings.json : forme non canonique');
 let gestes = 0;
-for (const [id] of MUNITIONS) if (!doc.some((t) => t.id === id)) arrets.push(`« ${id} » absent du catalogue`);
 for (const t of doc) {
   const munitions = MUNITIONS.get(t.id);
   if (t.defaultAmmo !== undefined && !munitions) { arrets.push(`« ${t.id} » : defaultAmmo hors du tableau des munitions`); continue; }

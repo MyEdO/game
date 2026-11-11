@@ -63,7 +63,7 @@ import {
 import { adresseDeCreation, deFamille, tirageSous, type AdresseDeCreation } from '../../engine/adresseDeCreation';
 import { dotationsDuHeros, emplacementsDeDotation, emplacementTranche, estEmplacementRacine } from '../../engine/trappingChoices';
 import { refKey, talentMaxReached, acquerirTalent, type PorteurDeTalents, skillSlots, talentSlots, statutOuRefus } from '../../engine/careerSlots';
-import { findSpeciesById, findTalentById, specPoolOf, careers, classes, careersForSpecies, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef } from '../../data';
+import { findSpeciesById, findTalentById, specPoolOf, careersForSpecies, carrieresTirables, portionDeLaColonne, levelsForCareer, advancementLabel, refLabel, findStarById, celestialHouses, SpeciesData, CareerLevelData, trappingRefLabel, type AdvancementRef, type CareerData } from '../../data';
 import { estSpecialisable, type RefDesignee, type RefASpecialisation, memeSpecialisation } from '../../data/schemas/grammaire/ref';
 import type { Appearance } from '../../engine/authoringAppearance';
 import { generateName } from '../../engine/names';
@@ -279,33 +279,20 @@ export function withSpecies(d: CreatorDraft, id: string): CreatorDraft {
 }
 
 // ── 2) Carrière ──
-/** Couples (Classe remplaçante, Classe remplacée) déclarés en donnée (`ClassData.remplace`,
- *  MDG 09 l.9). */
-const remplacementsDeClasse = (): { par: string; de: string }[] => classes.flatMap((k) => (k.remplace ? [{ par: k.id, de: k.remplace.id }] : []));
-
-/** La colonne `col` du tableau tire-t-elle au moins une carrière de la Classe `classe` ? */
-const colonneTireLaClasse = (col: NonNullable<SpeciesData['refCareer']>, classe: string): boolean =>
-  careers.some((c) => c.class.id === classe && c.rand?.[col] != null);
-
-/** Remplacements offerts à la colonne de l'espèce : ceux dont la colonne porte les DEUX portions (les
- *  5 colonnes du LDB). Les tables régionales (Middenheim/ADE II/NADJ) ne sont pas étendues par MDG, et
- *  la table Norse embarque déjà les variantes côtières SANS portion remplacée. Dérivé de la DONNÉE. */
-const remplacementsOfferts = (d: CreatorDraft): { par: string; de: string }[] => {
+/** Le remplacement d'une portion de la colonne (MDG 09 l.9) s'offre-t-il à cette espèce ? Oui si une
+ *  portion porte sa colonne. */
+export const coastalSwapAvailable = (d: CreatorDraft): boolean => {
   const col = draftSpecies(d)?.refCareer;
-  if (!col) return [];
-  return remplacementsDeClasse().filter(({ par, de }) => colonneTireLaClasse(col, de) && colonneTireLaClasse(col, par));
+  return col !== undefined && portionDeLaColonne(col) !== undefined;
 };
 
-/** Le remplacement Riverains → Côtiers (MDG 09 l.9) s'offre-t-il à cette espèce ? */
-export const coastalSwapAvailable = (d: CreatorDraft): boolean => remplacementsOfferts(d).length > 0;
-
-/** Table de tirage EFFECTIVE : là où la colonne porte les deux portions, la Classe remplacée et sa
- *  remplaçante ne coexistent JAMAIS dans un même tirage (remplacement, pas cumul) ; ailleurs, la colonne
- *  est déjà la bonne table (Norse : variantes côtières seules ; régionales : Riverains seuls). */
-export const careerRollPool = (d: CreatorDraft): typeof careers => {
-  const exclues = new Set(remplacementsOfferts(d).map(({ par, de }) => (d.coastalSwap ? de : par)));
-  return exclues.size ? careers.filter((c) => !exclues.has(c.class.id)) : careers;
-};
+/** Les carrières offertes au brouillon : toutes sans le filtre de race (`careersForSpecies`), sinon celles que le tirage
+ *  offre sur la table effective de son espèce, au remplacement près (`carrieresTirables`) ; aucune sans espèce. */
+export function carrieresOffertes(d: CreatorDraft): CareerData[] {
+  const sp = draftSpecies(d);
+  if (!sp) return [];
+  return d.ignoreRestrictions ? careersForSpecies(sp, true) : carrieresTirables(sp, d.coastalSwap);
+}
 
 /** Bascule Riverains ↔ Côtiers (MDG 09 l.9 : « avant de lancer les dés ») — VERROUILLÉE dès qu'un
  *  jet existe (`careerRolls` non vide) : sans cette garde, cocher/décocher effaçait les jets et
@@ -319,7 +306,7 @@ export function withCoastalSwap(d: CreatorDraft, coastalSwap: boolean): CreatorD
   return { ...d, coastalSwap, careerRolls: [], careerFreeRolls: 0 };
 }
 
-/** Lève ou rétablit le filtre des carrières par espèce (`careersForSpecies`). */
+/** Lève ou rétablit le filtre des carrières par espèce (`carrieresOffertes`). */
 export function withIgnoreRestrictions(d: CreatorDraft, ignoreRestrictions: boolean): CreatorDraft {
   return ignoreRestrictions === d.ignoreRestrictions ? d : { ...d, ignoreRestrictions };
 }
@@ -327,24 +314,22 @@ export function withIgnoreRestrictions(d: CreatorDraft, ignoreRestrictions: bool
 export function rollDraftCareer(d: CreatorDraft): CreatorDraft {
   const sp = draftSpecies(d);
   if (!sp) return d; // pas de tirage de carrière sans race (l'UI empêche d'y arriver)
-  const pool = careerRollPool(d);
   const n = d.careerRolls.length;
   if (n === 0) {
-    const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere'));
-    // Chaque jet désigne une borne (`ids`) ; défaut = 1ʳᵉ carrière, le joueur peut en choisir une autre.
-    return r ? withCareer({ ...d, careerRolls: [r] }, r.ids[0]) : d;
+    const r = rollCareer(sp, d.coastalSwap, fluxDeCreation(d.seed, 'carriere'));
+    // Chaque jet rend la carrière tirée puis celles qu'il offre en plus (`ids`) ; défaut = la tirée, le joueur peut en choisir une autre.
+    return withCareer({ ...d, careerRolls: [r] }, r.ids[0]);
   }
   if (n === 1) {
     // « Faites deux lancers de plus, ce qui porte votre total à 3 choix » (LDB 05 l.211).
     const rng = fluxDeCreation(d.seed, 'carriere:deux-de-plus');
-    const r2 = rollCareer(pool, sp, rng);
-    const r3 = rollCareer(pool, sp, rng);
-    if (!r2 || !r3) return d;
+    const r2 = rollCareer(sp, d.coastalSwap, rng);
+    const r3 = rollCareer(sp, d.coastalSwap, rng);
     return { ...d, careerRolls: [...d.careerRolls, r2, r3] };
   }
   // « continuez à relancer jusqu'à obtenir quelque chose qui vous plaît » (l.212) — 0 PX.
-  const r = rollCareer(pool, sp, fluxDeCreation(d.seed, 'carriere:relance', d.careerFreeRolls));
-  return r ? withCareer({ ...d, careerFreeRolls: d.careerFreeRolls + 1 }, r.ids[0]) : d;
+  const r = rollCareer(sp, d.coastalSwap, fluxDeCreation(d.seed, 'carriere:relance', d.careerFreeRolls));
+  return withCareer({ ...d, careerFreeRolls: d.careerFreeRolls + 1 }, r.ids[0]);
 }
 export function careerXp(d: CreatorDraft): number {
   if (d.careerFreeRolls > 0) return 0;
@@ -830,9 +815,9 @@ const STEP_VALIDATORS: Record<StepId, (c: StepCtx) => string | null> = {
   species: ({ sp }) => (sp ? null : t('crea.choisirRace')),
   career: ({ d, sp, level }) => {
     if (!d.careerId) return t('crea.choisirCarriere');
-    // La carrière reste offerte à l'espèce courante, sous le filtre courant (`careersForSpecies`) : changer d'espèce
-    // ou rétablir le filtre ne laisse pas passer une carrière hors liste.
-    if (sp && !careersForSpecies(sp.refCareer, d.ignoreRestrictions).some((c) => c.id === d.careerId)) return t('crea.carriereHorsEspece');
+    // La carrière reste offerte au brouillon (`carrieresOffertes`) : changer d'espèce, rétablir le filtre ou basculer
+    // le remplacement ne laisse pas passer une carrière hors liste.
+    if (sp && !carrieresOffertes(d).some((c) => c.id === d.careerId)) return t('crea.carriereHorsEspece');
     if (!level) return t('crea.carriereSansNiveau1');
     return null;
   },

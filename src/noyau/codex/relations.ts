@@ -111,7 +111,7 @@ const graph = versionCached<ReverseGraph>(() => {
     for (const id of advancementIds(s.skills)) addReverse('skills', id, by);
     for (const id of advancementIds(s.talents)) addReverse('talents', id, by);
     // Carrières accessibles à l'espèce (LDB 05) → inverse « Races y accédant » sur la carrière.
-    for (const c of careersForSpecies(s.refCareer)) addReverse('careers', c.id, by, 'Races y accédant');
+    for (const c of careersForSpecies(s)) addReverse('careers', c.id, by, 'Races y accédant');
   }
 
   // 2) Carrières (cat `careers`) → classe.
