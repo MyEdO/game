@@ -62,13 +62,13 @@ const champs = {
     prixDOffre: prixDOffreSchema,
     cibleParTailleSansProduction: z.number(),
     bonusDeCommerce: z.number(),
-    producesGossip: nommerChamps(z.strictObject({ difficulty: difficultySchema, cibleParTaille: z.number(), millesMin: z.number() }), {
+    ragotSiProduction: nommerChamps(z.strictObject({ difficulty: difficultySchema, cibleParTaille: z.number(), millesMin: z.number() }), {
       difficulty: { label: 'Difficulté' },
       cibleParTaille: { label: 'Cible par taille' },
       millesMin: { label: 'Milles minimaux' },
     }),
-    surplusGossip: nommerChamps(z.strictObject({ difficulty: difficultySchema, cibleParTaille: z.number() }), { difficulty: { label: 'Difficulté' }, cibleParTaille: { label: 'Cible par taille' } }),
-    sellerDR: nommerChamps(z.strictObject({ sansProduction: z.number(), demande: z.number(), production: z.number(), surplus: z.number() }), {
+    ragotSiSurplus: nommerChamps(z.strictObject({ difficulty: difficultySchema, cibleParTaille: z.number() }), { difficulty: { label: 'Difficulté' }, cibleParTaille: { label: 'Cible par taille' } }),
+    drDuVendeur: nommerChamps(z.strictObject({ sansProduction: z.number(), demande: z.number(), production: z.number(), surplus: z.number() }), {
       sansProduction: { label: 'Absence de production' },
       demande: { label: 'Demande' },
       production: { label: 'Production' },
@@ -80,13 +80,13 @@ const champs = {
     prixDOffre: { label: 'Prix proposé' },
     cibleParTailleSansProduction: { label: 'Cible sans production par taille' },
     bonusDeCommerce: { label: 'Bonus de Commerce' },
-    producesGossip: { label: 'Ragot sur la production' },
-    surplusGossip: { label: 'Ragot sur le surplus' },
-    sellerDR: { label: 'DR du vendeur' },
+    ragotSiProduction: { label: 'Ragot sur la production' },
+    ragotSiSurplus: { label: 'Ragot sur le surplus' },
+    drDuVendeur: { label: 'DR du vendeur' },
     pctDeBradage: { label: 'Prix de liquidation (% du prix de base)' },
     source: { label: 'Source' },
   }),
-  overload: nommerChamps(z.strictObject({
+  surcharge: nommerChamps(z.strictObject({
     pctPlafond: z.number(),
     paliers: z.array(
       nommerChamps(z.strictObject({ id: z.string(), pctDepuis: z.number(), label: z.string(), mMod: z.number(), drDeManoeuvre: z.number() }), {
@@ -140,7 +140,7 @@ const doc = document(
     prixDuLivre: { label: 'Unité du prix du livre', hint: 'Points d’Encombrement que couvre un prix de base du livre' },
     achat: { label: "Règles d'achat", hint: 'Barème de Marchandage et bonus de disponibilité à l’achat' },
     vente: { label: 'Règles de vente', hint: 'Barème de prix, Ragot préalable, DR de camp du Marchandage de vente' },
-    overload: { label: 'Surcharge', hint: 'Paliers de surcharge de cale (malus de Mouvement/manœuvre)' },
+    surcharge: { label: 'Surcharge', hint: 'Paliers de surcharge de cale (malus de Mouvement/manœuvre)' },
     opportunite: {
       label: "Commerce d'opportunité",
       hint: 'Test, nombre de tentatives et issues (%) du placement spéculatif de cargaison',

@@ -369,11 +369,11 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
   it('les règles de négoce maritime ÉDITÉES (#3433) : plafond de surcharge et bandes du Prix d’offre servis NEUFS', () => {
     const fiche = structuredClone(datasetObject('seaCargo'));
     const port = { taille: 1, richesse: 1, production: [] };
-    expect(overloadMaxEnc(100)).toBe(fiche.overload.pctPlafond);
+    expect(overloadMaxEnc(100)).toBe(fiche.surcharge.pctPlafond);
     expect(offerPricePct(port, 'x')).toBe(100 + fiche.vente.prixDOffre.find((b) => b.min === 2)!.pct);
     setObjectDataset('seaCargo', {
       ...fiche,
-      overload: { ...fiche.overload, pctPlafond: 175 },
+      surcharge: { ...fiche.surcharge, pctPlafond: 175 },
       vente: { ...fiche.vente, prixDOffre: fiche.vente.prixDOffre.map((b) => (b.min === 2 ? { ...b, pct: -33 } : b)) },
     });
     expect(overloadMaxEnc(100)).toBe(175);

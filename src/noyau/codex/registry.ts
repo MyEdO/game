@@ -2483,7 +2483,7 @@ const CODEX_SPECS = {
     label: 'codex.fiche.commerceMaritimeAchatVenteSurcharge', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
     build: () => {
       const c = datasetObject('seaCargo');
-      const { achat, vente, overload, opportunite } = c;
+      const { achat, vente, surcharge, opportunite } = c;
       return [{
         id: 'seaCargo', label: c.label, source: src(c.source),
         sections: sections(
@@ -2506,17 +2506,17 @@ const CODEX_SPECS = {
             rows: [
               { t: 'kv', k: tr('codex.fiche.cibleSansProductionParTaille'), v: String(vente.cibleParTailleSansProduction) },
               { t: 'kv', k: tr('codex.fiche.bonusDeCommerce'), v: signe(vente.bonusDeCommerce) },
-              { t: 'kv', k: tr('codex.fiche.ragotSurLaProduction'), v: tr('codex.fiche.ragotCibleParTailleMilles', { v: DIFFICULTY_LABELS[vente.producesGossip.difficulty], cibleParTaille: vente.producesGossip.cibleParTaille, millesMin: vente.producesGossip.millesMin }) },
-              { t: 'kv', k: tr('codex.fiche.ragotSurLeSurplus'), v: tr('codex.fiche.ragotCibleParTaille', { v: DIFFICULTY_LABELS[vente.surplusGossip.difficulty], cibleParTaille: vente.surplusGossip.cibleParTaille }) },
-              { t: 'kv', k: tr('codex.fiche.drDuVendeur'), v: tr('codex.fiche.drDuVendeurParRelation', { sansProduction: signe(vente.sellerDR.sansProduction), demande: signe(vente.sellerDR.demande), production: signe(vente.sellerDR.production), surplus: signe(vente.sellerDR.surplus) }) },
+              { t: 'kv', k: tr('codex.fiche.ragotSurLaProduction'), v: tr('codex.fiche.ragotCibleParTailleMilles', { v: DIFFICULTY_LABELS[vente.ragotSiProduction.difficulty], cibleParTaille: vente.ragotSiProduction.cibleParTaille, millesMin: vente.ragotSiProduction.millesMin }) },
+              { t: 'kv', k: tr('codex.fiche.ragotSurLeSurplus'), v: tr('codex.fiche.ragotCibleParTaille', { v: DIFFICULTY_LABELS[vente.ragotSiSurplus.difficulty], cibleParTaille: vente.ragotSiSurplus.cibleParTaille }) },
+              { t: 'kv', k: tr('codex.fiche.drDuVendeur'), v: tr('codex.fiche.drDuVendeurParRelation', { sansProduction: signe(vente.drDuVendeur.sansProduction), demande: signe(vente.drDuVendeur.demande), production: signe(vente.drDuVendeur.production), surplus: signe(vente.drDuVendeur.surplus) }) },
               { t: 'kv', k: tr('codex.fiche.prixDeLiquidation'), v: tr('codex.fiche.pctDuPrixDeBase', { pct: vente.pctDeBradage }) },
             ],
           },
           {
             title: tr('codex.fiche.surchargeDeLaCale'), layout: 'list',
             rows: [
-              ...overload.paliers.map((p) => ({ t: 'kv', k: `> ${p.pctDepuis} %`, v: tr('codex.fiche.palierDeSurcharge', { label: p.label, mMod: signe(p.mMod), drDeManoeuvre: signe(p.drDeManoeuvre) }) } as CodexRow)),
-              { t: 'kv', k: tr('codex.fiche.limiteAbsolue'), v: `${overload.pctPlafond} %` },
+              ...surcharge.paliers.map((p) => ({ t: 'kv', k: `> ${p.pctDepuis} %`, v: tr('codex.fiche.palierDeSurcharge', { label: p.label, mMod: signe(p.mMod), drDeManoeuvre: signe(p.drDeManoeuvre) }) } as CodexRow)),
+              { t: 'kv', k: tr('codex.fiche.limiteAbsolue'), v: `${surcharge.pctPlafond} %` },
             ],
           },
           {
