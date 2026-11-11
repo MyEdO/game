@@ -54,6 +54,7 @@ import mutationTablesJson from './mutationTables.json';
 import { critiqueEntries } from './criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
+import structureCriticalsJson from './structure-criticals.json';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
@@ -2974,8 +2975,8 @@ export function libelleOuAbsence(e: { label: string } | undefined, nature: Natur
 }
 /** Effets par météo (visibilité, mods de tir, poudre, Tests physiques, plafond de mouvement…). */
 export const weatherConditions = weatherData.conditions;
-/** Caractéristiques réputées « physiques » (liste MAISON, EDOC 8 l.82 non chiffrée). */
-export const weatherPhysicalTestChars = weatherData.physicalTestChars;
+/** Caractéristiques réputées « physiques » (liste MAISON, EDOC 8 l.82 non chiffrée), lues à l'appel. */
+export const weatherPhysicalTestChars = (): CharKey[] => weatherData.physicalTestChars;
 export const details = detailsJson as DetailsData;
 /** Semences d'une scène NEUVE (#1716) — lues par `emptyScene` (`noyau/monde/scene.ts`), éditables au Codex. */
 export const semencesDeScene = semencesDeSceneJson as SemencesDeSceneData;
@@ -3213,6 +3214,8 @@ export function findPsychologyById(id: string): PsychologyData | undefined {
 export function conditionLabel(id: string): PlayerText {
   return dataLabel(etatParId(id)?.label, id);
 }
+/** Libellé d'affichage de la table des Critiques de Structure (rangée de tirage `TableRollLine`), lu VIVANT à l'appel. */
+export const structureCriticalsLabel = (): PlayerText => dataLabel(structureCriticalsJson.label);
 /** Libellé d'affichage d'un état psychologique par son `id` (`PsychType`), repli sur l'id — délègue au
  *  résolveur de libellé GÉNÉRIQUE (`refLabel`), jamais une copie locale du motif `MAP.get(id)?.label ?? id`. */
 export function psychologyLabel(id: string): PlayerText {

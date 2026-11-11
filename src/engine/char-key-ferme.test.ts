@@ -46,9 +46,9 @@ describe('CharKey fermé — les tokens courts ne s’écrivent pas (#311, #2724
     const cavalier: NonNullable<MountIncidentEffects['riderTest']> = { test: { skill: { id: 'chevaucher' }, characteristic: 'agilite', difficulty: 'complexe' }, fallM: 2 };
     // @ts-expect-error TS2322
     const cavalierCourt: NonNullable<MountIncidentEffects['riderTest']> = { test: { skill: { id: 'chevaucher' }, characteristic: 'Ag', difficulty: 'complexe' }, fallM: 2 };
-    const physique: (typeof weatherPhysicalTestChars)[number] = 'agilite';
+    const physique: ReturnType<typeof weatherPhysicalTestChars>[number] = 'agilite';
     // @ts-expect-error TS2322
-    const physiqueCourt: (typeof weatherPhysicalTestChars)[number] = 'Ag';
+    const physiqueCourt: ReturnType<typeof weatherPhysicalTestChars>[number] = 'Ag';
     expect([profil, profilCourt, test, testCourt, cavalier, cavalierCourt, physique, physiqueCourt]).toHaveLength(8);
   });
 });

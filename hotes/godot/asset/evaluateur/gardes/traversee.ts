@@ -1,25 +1,26 @@
 /**
- * GARDE DE LA TRAVERSÉE DES COUCHES (#2972, #3319) : en clip, une couche ne passe pas devant celle qui la couvre. Le
- * corps est sous toute couche ; un mesh skinné d'élément est sous ceux des éléments de couche plus extérieure (`COUCHES`,
- * `element.ts`) ; deux éléments de même couche ne se couvrent pas. Un mesh de zone (`extras.zone`) qu'un élément de
- * couche plus extérieure couvre (`couvre`) est masqué au montage (`sansLesZonesMasquees`,
- * `projet/scripts/montage_de_composition.gd`) : il n'est ni sujet ni couverture.
+ * GARDE DE LA TRAVERSÉE DES COUCHES (#2972, #3319, #3842) : une couche ne passe pas devant celle qui la couvre. Le
+ * corps est sous toute couche ; un mesh skinné d'élément est sous ceux des éléments qui couvrent le sien
+ * (`ordreDesCouches`, `pile.ts`). Les meshes masqués au montage (`sansLesZonesMasquees`) ne sont ni sujets ni
+ * couvertures.
  *
- * Au repos, chaque sommet v d'un sujet, de normale n_v, se lie au triangle de sa couverture le plus proche dont il est
- * derrière, à moins de `PORTEE_DE_COUVERTURE_M`, tourné du même côté (n·n_v > 0), sa projection dans le triangle : le
- * point lié p, aux coordonnées barycentriques de la projection, suit la couverture ; une doublure tournée vers le corps
- * ne couvre rien. À chaque échantillon, l'écart signé e(v) = (p − v)·n, n la normale du triangle posé :
- * `couche-traversee` si un sommet a e(v) < −`ECART_DE_SUIVI_M`, un écart par (sujet, couverture, clip), à son pire
- * instant. Un sommet devant sa couverture dès le repos n'est lié à rien : il relève du montage, pas du mouvement.
+ * Un triangle de la couverture couvre un sommet d'un sujet selon `visiterLaCouverture` (`pile.ts`), qui donne son écart
+ * signé e, positif derrière. Une doublure tournée vers le corps ne couvre rien.
+ *
+ * Au repos, chaque sommet se lie au triangle couvrant le plus proche dont il est derrière : le point lié p, aux
+ * coordonnées barycentriques de la projection, suit la couverture. À chaque échantillon, l'écart signé e(v) = (p − v)·n,
+ * n la normale du triangle posé : `couche-traversee` si un sommet a e(v) < −`ECART_DE_SUIVI_M`, un écart par (sujet,
+ * couverture, clip), à son pire instant.
+ *
+ * Au repos neutre, un sommet est percé si un triangle couvrant le met devant lui de plus de `ECART_DE_SUIVI_M` :
+ * `couche-percee-au-repos`, un écart par (sujet, couverture), avec le compte et le pire écart.
  */
 import { Triangle, Vector3, type Mesh, type SkinnedMesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { RANG_DU_CORPS } from '../../element.ts';
-
-/** La distance, en mètres, au-delà de laquelle une couche n'en couvre plus une autre : l'épaisseur d'une manche bouffante. */
-export const PORTEE_DE_COUVERTURE_M = 0.03;
+import { couvertureDe, normalesDesSommets, visiterLaCouverture } from '../../pile.ts';
 
 const GARDE = 'traversee';
 
@@ -33,6 +34,20 @@ export interface LiaisonDeCouches {
   readonly barycentres: Float32Array;
 }
 
+/** Les sommets d'un sujet percés au repos par sa couverture : leur nombre et l'écart signé le plus négatif. */
+export interface PercementAuRepos {
+  readonly sujet: Mesh;
+  readonly couverture: SkinnedMesh;
+  readonly sommets: number;
+  readonly pire: number;
+}
+
+/** Ce que la couverture fait des sommets d'un sujet au repos : la liaison et le percement. */
+interface ReleveSous {
+  readonly liaison: LiaisonDeCouches | null;
+  readonly percement: PercementAuRepos | null;
+}
+
 export interface TraverseeDUnEchantillon {
   readonly liaison: LiaisonDeCouches;
   readonly clip: string;
@@ -42,37 +57,18 @@ export interface TraverseeDUnEchantillon {
   readonly pire: number;
 }
 
-const positionsDe = (pose: Pick<Pose, 'positions'>, m: Mesh): Float32Array => {
+export const positionsDe = (pose: Pick<Pose, 'positions'>, m: Mesh): Float32Array => {
   const p = pose.positions.get(m);
   if (!p) throw new Error(`${GARDE} : mesh absent ${m.name}`);
   return p;
 };
 
-function indicesDe(m: Mesh, n: number): ArrayLike<number> {
+export function indicesDe(m: Mesh, n: number): ArrayLike<number> {
   const { index } = m.geometry;
   return index ? index.array : Uint32Array.from({ length: n }, (_, i) => i);
 }
 
-const cellule = (x: number): number => Math.floor(x / PORTEE_DE_COUVERTURE_M);
-const cle = (i: number, j: number, k: number): string => `${i},${j},${k}`;
-
-/** Les triangles non dégénérés de `couverture`, rangés par cellule de `PORTEE_DE_COUVERTURE_M` de côté qu'ils touchent. */
-function grilleDe(p: Float32Array, indices: ArrayLike<number>): Map<string, number[]> {
-  const grille = new Map<string, number[]>();
-  for (let t = 0; t + 2 < indices.length; t += 3) {
-    const [a, b, c] = [indices[t], indices[t + 1], indices[t + 2]];
-    const borne = (axe: number, f: (...v: number[]) => number) => cellule(f(p[a * 3 + axe], p[b * 3 + axe], p[c * 3 + axe]));
-    const [x0, y0, z0, x1, y1, z1] = [borne(0, Math.min), borne(1, Math.min), borne(2, Math.min), borne(0, Math.max), borne(1, Math.max), borne(2, Math.max)];
-    for (let i = x0; i <= x1; i++) for (let j = y0; j <= y1; j++) for (let k = z0; k <= z1; k++) {
-      const liste = grille.get(cle(i, j, k));
-      if (liste) liste.push(t);
-      else grille.set(cle(i, j, k), [t]);
-    }
-  }
-  return grille;
-}
-
-const forme = new Triangle(), normale = new Vector3(), v = new Vector3(), projection = new Vector3(), coordonnees = new Vector3();
+const forme = new Triangle(), normale = new Vector3(), v = new Vector3(), projection = new Vector3();
 
 function poserTriangle(p: Float32Array, a: number, b: number, c: number): boolean {
   forme.a.set(p[a * 3], p[a * 3 + 1], p[a * 3 + 2]);
@@ -83,53 +79,33 @@ function poserTriangle(p: Float32Array, a: number, b: number, c: number): boolea
   return true;
 }
 
-/** Les normales de sommet de `m` aux positions `p`, somme des normales de ses triangles pondérées par leur aire. */
-function normalesDe(m: Mesh, p: Float32Array): Float32Array {
-  const indices = indicesDe(m, p.length / 3);
-  const normales = new Float32Array(p.length);
-  for (let t = 0; t + 2 < indices.length; t += 3) {
-    const sommets = [indices[t], indices[t + 1], indices[t + 2]];
-    forme.a.set(p[sommets[0] * 3], p[sommets[0] * 3 + 1], p[sommets[0] * 3 + 2]);
-    forme.b.set(p[sommets[1] * 3], p[sommets[1] * 3 + 1], p[sommets[1] * 3 + 2]);
-    forme.c.set(p[sommets[2] * 3], p[sommets[2] * 3 + 1], p[sommets[2] * 3 + 2]);
-    normale.subVectors(forme.c, forme.b).cross(projection.subVectors(forme.a, forme.b));
-    for (const s of sommets) { normales[s * 3] += normale.x; normales[s * 3 + 1] += normale.y; normales[s * 3 + 2] += normale.z; }
-  }
-  return normales;
-}
+/** Les normales de sommet de `m` aux positions `p` (`normalesDesSommets`). */
+export const normalesDe = (m: Mesh, p: Float32Array): Float32Array => normalesDesSommets({ positions: p, indices: indicesDe(m, p.length / 3) });
 
-/** La liaison de `sujet` sous `couverture` dans la pose `repos`, ou `null` si aucun sommet n'est couvert. */
-export function lierSous(sujet: Mesh, couverture: SkinnedMesh, repos: Pick<Pose, 'positions'>): LiaisonDeCouches | null {
-  const ps = positionsDe(repos, sujet), pc = positionsDe(repos, couverture);
+/** Ce que `couverture` fait des sommets de `sujet` dans la pose `repos`. */
+function releverSous(sujet: Mesh, couverture: SkinnedMesh, repos: Pick<Pose, 'positions'>): ReleveSous {
+  const ps = positionsDe(repos, sujet);
   const ns = normalesDe(sujet, ps);
-  const indices = indicesDe(couverture, pc.length / 3);
-  const grille = grilleDe(pc, indices);
+  const pc = positionsDe(repos, couverture);
+  const surface = couvertureDe(pc, indicesDe(couverture, pc.length / 3));
   const sommets: number[] = [], triangles: number[] = [], barycentres: number[] = [];
+  let perces = 0, pire = 0;
   for (let s = 0; s < ps.length / 3; s++) {
-    v.set(ps[s * 3], ps[s * 3 + 1], ps[s * 3 + 2]);
-    const [nx, ny, nz] = [ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2]];
-    let retenu = -1, distance = Infinity, bx = 0, by = 0, bz = 0;
-    const [ci, cj, ck] = [cellule(v.x), cellule(v.y), cellule(v.z)];
-    const vus = new Set<number>();
-    for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (let k = ck - 1; k <= ck + 1; k++) {
-      for (const t of grille.get(cle(i, j, k)) ?? []) {
-        if (vus.has(t)) continue;
-        vus.add(t);
-        if (!poserTriangle(pc, indices[t], indices[t + 1], indices[t + 2]) || normale.x * nx + normale.y * ny + normale.z * nz <= 0) continue;
-        const e = projection.subVectors(forme.a, v).dot(normale);
-        if (e <= 0 || e > PORTEE_DE_COUVERTURE_M || e >= distance) continue;
-        projection.copy(v).addScaledVector(normale, e);
-        if (!forme.getBarycoord(projection, coordonnees) || coordonnees.x < 0 || coordonnees.y < 0 || coordonnees.z < 0) continue;
-        retenu = t; distance = e; bx = coordonnees.x; by = coordonnees.y; bz = coordonnees.z;
-      }
-    }
+    let retenu = -1, auPlusPresDerriere = Infinity, plusLoinDevant = 0, bx = 0, by = 0, bz = 0;
+    visiterLaCouverture(ps[s * 3], ps[s * 3 + 1], ps[s * 3 + 2], ns[s * 3], ns[s * 3 + 1], ns[s * 3 + 2], surface, (e, t, a, b, c) => {
+      if (e > 0 && e < auPlusPresDerriere) { retenu = t; auPlusPresDerriere = e; bx = a; by = b; bz = c; }
+      if (e < 0) plusLoinDevant = Math.min(plusLoinDevant, e);
+    });
+    if (plusLoinDevant < -ECART_DE_SUIVI_M) { perces++; pire = Math.min(pire, plusLoinDevant); }
     if (retenu < 0) continue;
     sommets.push(s);
-    triangles.push(indices[retenu], indices[retenu + 1], indices[retenu + 2]);
+    triangles.push(surface.indices[retenu], surface.indices[retenu + 1], surface.indices[retenu + 2]);
     barycentres.push(bx, by, bz);
   }
-  if (!sommets.length) return null;
-  return { sujet, couverture, sommets: Uint32Array.from(sommets), triangles: Uint32Array.from(triangles), barycentres: Float32Array.from(barycentres) };
+  return {
+    liaison: sommets.length ? { sujet, couverture, sommets: Uint32Array.from(sommets), triangles: Uint32Array.from(triangles), barycentres: Float32Array.from(barycentres) } : null,
+    percement: perces ? { sujet, couverture, sommets: perces, pire } : null,
+  };
 }
 
 /** Par zone, le rang le plus extérieur des éléments de `elements` qui la couvrent ; rend les meshes d'un rang donné
@@ -143,18 +119,39 @@ export function sansLesZonesMasquees(elements: readonly { readonly rang: number;
   });
 }
 
-/** Les meshes skinnés d'un élément et le rang de sa couche dans `COUCHES`. */
-export interface CoucheDElement {
-  readonly rang: number;
-  readonly meshes: readonly SkinnedMesh[];
+/** Les couches liées au repos : les liaisons du corps sous chaque élément, et de chaque élément sous ceux qui le
+ *  couvrent ; les percements des mêmes paires. */
+export interface CouchesAuRepos {
+  readonly liaisons: readonly LiaisonDeCouches[];
+  readonly percements: readonly PercementAuRepos[];
 }
 
-/** Les liaisons au repos du corps sous chaque élément, et de chaque élément sous ceux de couche plus extérieure. */
-export function lierLesCouches(corps: readonly Mesh[], elements: readonly CoucheDElement[], repos: Pick<Pose, 'positions'>): LiaisonDeCouches[] {
-  return elements.flatMap(({ rang, meshes }) => {
-    const sujets = [...corps, ...elements.filter((e) => e.rang < rang).flatMap((e) => e.meshes)];
-    return meshes.flatMap((couverture) => sujets.flatMap((sujet) => lierSous(sujet, couverture, repos) ?? []));
+/** Les relevés de la pose `pose`, chacun fait une fois. */
+function releverDans(pose: Pick<Pose, 'positions'>): (sujet: Mesh, couverture: SkinnedMesh) => ReleveSous {
+  const releves = new Map<Mesh, Map<Mesh, ReleveSous>>();
+  return (sujet, couverture) => {
+    const parCouverture = releves.get(sujet) ?? new Map<Mesh, ReleveSous>();
+    releves.set(sujet, parCouverture);
+    const connu = parCouverture.get(couverture);
+    if (connu) return connu;
+    const releve = releverSous(sujet, couverture, pose);
+    parCouverture.set(couverture, releve);
+    return releve;
+  };
+}
+
+/** Les couches de `corps` et des meshes skinnés de chacun des `elements` liées dans la pose `repos` ; `couvre(e, f)` dit
+ *  si l'élément `e` couvre `f` (`ordreDesCouches`, `pile.ts`). */
+export function lierLesCouches<E extends { readonly meshes: readonly SkinnedMesh[] }>(corps: readonly Mesh[], elements: readonly E[], repos: Pick<Pose, 'positions'>, couvre: (e: E, f: E) => boolean): CouchesAuRepos {
+  const relever = releverDans(repos);
+  const parPaire = elements.flatMap((e) => {
+    const sujets = [...corps, ...elements.filter((f) => couvre(e, f)).flatMap((f) => f.meshes)];
+    return e.meshes.flatMap((couverture) => sujets.map((sujet) => relever(sujet, couverture)));
   });
+  return {
+    liaisons: parPaire.flatMap((r) => r.liaison ?? []),
+    percements: parPaire.flatMap((r) => r.percement ?? []),
+  };
 }
 
 /** La traversée de chaque liaison dans l'échantillon `e` ; une liaison sans sommet au-delà de la tolérance n'y figure pas. */
@@ -189,3 +186,9 @@ export function gardeTraversee(mesures: readonly TraverseeDUnEchantillon[], libe
     detail: `${m.sommets} sommet(s) de ${libelle(m.liaison.sujet)}, sur ${m.liaison.sommets.length} couverts, passent devant la couverture : écart signé le plus négatif, en m`,
   }));
 }
+
+/** Un écart par percement au repos neutre. */
+export const gardePercementAuRepos = (percements: readonly PercementAuRepos[], libelle: LibelleDeMesh): Ecart[] => percements.map((p): Ecart => ({
+  garde: GARDE, code: 'couche-percee-au-repos', mesh: libelle(p.couverture), valeur: p.pire, seuil: -ECART_DE_SUIVI_M,
+  detail: `${p.sommets} sommet(s) de ${libelle(p.sujet)} devant la couverture au repos neutre : écart signé le plus négatif, en m`,
+}));

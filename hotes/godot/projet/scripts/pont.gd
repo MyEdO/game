@@ -1,5 +1,6 @@
 ## Le seul point de contact avec la page : `globalThis.wfrpPont` par JavaScriptBridge (`hotes/godot/pont/CONTRAT.md`), dont
-## l'image que l'auteur choisit sur son disque (`choisir_une_image`), et les requêtes au serveur qui la sert (`requeter`) ;
+## l'image que l'auteur choisit sur son disque (`choisir_une_image`) et la pile des couches d'une tenue
+## (`resoudre_la_pile`), et les requêtes au serveur qui la sert (`requeter`) ;
 ## ce que l'écran porte, publié à la page (`publier_l_ecran`), et ce que Godot lui expose (`exposer`).
 ## Un appel envoie le nom d'une méthode et une chaîne JSON, et rend la réponse décodée ; une réponse `ok: false` est un
 ## refus, que `refus` porte ; une réponse illisible ou une erreur de la page (`erreursGlobales`) est une panne.
@@ -363,6 +364,22 @@ func choisir_une_image() -> Dictionary:
 	while rendue.is_empty():
 		await get_tree().process_frame
 	return {} if str(rendue[0]) == "" else {octets = Marshalls.base64_to_raw(str(rendue[0])), type = str(rendue[1])}
+
+
+## La pile des couches `demande` (`PileDemandee`, en JSON, `CONTRAT.md`, « Pile des couches ») résolue par la page hors
+## du fil de l'image (`wfrpPont.resoudreLaPile`) : `rendre`, s'il vit encore, en reçoit la réponse décodée
+## (`PileResolue`), `{}` en panne ; un refus est signalé.
+func resoudre_la_pile(demande: String, rendre: Callable) -> void:
+	var rendue := []
+	var rappel := JavaScriptBridge.create_callback(func(args: Array) -> void: rendue.append_array(args))
+	_pont.call("resoudreLaPile", demande, rappel)
+	while rendue.is_empty():
+		await get_tree().process_frame
+	var reponse := _decoder("resoudreLaPile", rendue[0])
+	if reponse.get("ok") == false:
+		refus.emit(str(reponse.erreur.message))
+	if rendre.is_valid():
+		rendre.call(reponse)
 
 
 ## Le paramètre `cle` de l'adresse de la page, `""` s'il est absent.

@@ -83,7 +83,7 @@ import { addCondition } from '../engine/conditions';
 import { effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { findSeaHazard, findWhirlpool, strandingOccurs, strandingPenaltyLine, debrisEntangleFor } from '../engine/seaPerils';
 import {
-  evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, MANANN_BASE, seaBoardEventById,
+  evenementsDeBord, deDesEvenementsDeBord, deDesEvenementsDePort, deDuVoyageRapide, rollPortEvent, rollDaysToNextEvent, manannBase, seaBoardEventById,
   spoilCargoByEnc, spoilCargoByPct, cargoTotalEnc, cargoOverload, overloadMaxEnc, overloadMarks, resolveFastVoyage, FAST_VOYAGE_PALIERS,
   meteosActives, modificateursAuCarenage, modificateursApresUnEvenement, evitementDuPeril, sommeDesModificateurs,
   type CargoOverload, type SeaEventDef, type ManannMood, type PortProfile, type CargoLot,
@@ -309,7 +309,7 @@ export function touchParty(get: Get, set: Set): void {
 
 /** Humeur de Manann du navire de campagne (défaut : registre neuf). */
 export function vesselManann(vessel: CampaignVessel | null): ManannMood {
-  return vessel?.manann ?? { ...MANANN_BASE, applied: [...MANANN_BASE.applied] };
+  return vessel?.manann ?? manannBase();
 }
 
 /** Facteur de Moral de disette (MDG 14 l.171). */

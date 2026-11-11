@@ -5,7 +5,8 @@
  */
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { enregistrerEntree } from './atelierDuCodex';
-import { datasetArray, deDeLaTable, resetData, setDataset } from './overrides';
+import { ancetreDuDe, champDEnTete, datasetArray, deDeLaTable, resetData, setDataset, type DatasetKey } from './overrides';
+import { CATEGORY_DATASET_DERIVE } from './schemas/exposition-derivee';
 import { effectTableDie, findEffectTableById } from './effectTables';
 import { findTableEntry } from '../engine/tables';
 import { miscastDie, miscastRowAt } from '../engine/miscast';
@@ -59,28 +60,46 @@ describe('enregistrerEntree — transaction d’une entrée éditée', () => {
   });
 });
 
-describe('enregistrerEntree — dé de tirage de la table (#1667)', () => {
+describe('enregistrerEntree — écritures d’en-tête de la table (#1667)', () => {
   afterEach(() => resetData());
   const rangees = () => datasetArray('drunkenness') as unknown as Entree[];
+  const de = (valeur: string) => [{ ancetre: '', champ: 'die', valeur }];
 
   it('le dé posé s’écrit avec l’entrée, et la forme disque le porte', () => {
-    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, '2d10');
+    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, de('2d10'));
     expect(issue.ok).toBe(true);
     if (!issue.ok) return;
     expect(deDeLaTable('drunkenness')).toBe('2d10');
     expect(issue.texte).toContain('"die": "2d10"');
   });
 
-  it('un dé illisible est refusé sans rien poser', () => {
-    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, 'beaucoup');
+  it('un dé illisible : la racine refusée REPREND l’en-tête', () => {
+    const issue = enregistrerEntree('drunkenness', rangees()[0], 0, de('beaucoup'));
     expect(issue.ok).toBe(false);
     expect(deDeLaTable('drunkenness')).toBe('d10');
   });
 
-  it('une racine refusée par son schéma REPREND aussi le dé', () => {
-    const issue = enregistrerEntree('drunkenness', { ...rangees()[0], label: 42 }, 0, '2d10');
+  it('une racine refusée par son schéma REPREND l’entrée ET l’en-tête, champ ajouté compris', () => {
+    const entree = rangees()[0];
+    const issue = enregistrerEntree('drunkenness', { ...entree, label: 42 }, 0, [...de('2d10'), { ancetre: '', champ: 'ajout', valeur: 'x' }]);
     expect(issue.ok).toBe(false);
+    expect(rangees()[0]).toBe(entree);
     expect(deDeLaTable('drunkenness')).toBe('d10');
+    expect(champDEnTete('drunkenness', '', 'ajout')).toBeUndefined();
+  });
+
+  it('toute catégorie dont un ancêtre porte le dé refuse un dé illisible et garde le sien', () => {
+    const portees = Object.entries(CATEGORY_DATASET_DERIVE).flatMap(([categorie, ds]) => {
+      const ancetre = ancetreDuDe(ds as DatasetKey);
+      return ancetre === undefined ? [] : [{ categorie, ds: ds as DatasetKey, ancetre }];
+    });
+    expect(portees.length).toBeGreaterThan(0);
+    for (const { categorie, ds, ancetre } of portees) {
+      const avantDe = deDeLaTable(ds);
+      const issue = enregistrerEntree(categorie, (datasetArray(ds) as unknown as Entree[])[0], 0, [{ ancetre, champ: 'die', valeur: 'beaucoup' }]);
+      expect(issue.ok, categorie).toBe(false);
+      expect(deDeLaTable(ds), categorie).toBe(avantDe);
+    }
   });
 });
 
@@ -104,7 +123,7 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe(rangees[0].label);
     expect(enregistrerEntree('imparfaiteMineureVdm', { ...rangees[0], label: 'Contrecoup édité' }, 0).ok).toBe(true);
     expect(miscastRowAt('miscast-mineure-vdm', 1).label).toBe('Contrecoup édité');
-    expect(enregistrerEntree('imparfaiteMineureVdm', rangees[1], 1, '2d50').ok).toBe(true);
+    expect(enregistrerEntree('imparfaiteMineureVdm', rangees[1], 1, [{ ancetre: '[miscast-mineure-vdm]', champ: 'die', valeur: '2d50' }]).ok).toBe(true);
     expect(miscastDie('miscast-mineure-vdm')).toMatchObject({ n: 2, sides: 50 });
   });
 
@@ -115,7 +134,7 @@ describe('enregistrerEntree — les tables tirées s’éditent et le lecteur su
     expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe(paliers[parfait].label);
     expect(enregistrerEntree('seaFastVoyage', { ...paliers[parfait], label: 'Palier édité' }, parfait).ok).toBe(true);
     expect(resolveFastVoyage(20, 0, 0, makeRNG(1)).palier.label).toBe('Palier édité');
-    expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, 'd20').ok).toBe(true);
+    expect(enregistrerEntree('seaFastVoyage', paliers[0], 0, [{ ancetre: 'fastVoyage', champ: 'die', valeur: 'd20' }]).ok).toBe(true);
     expect(deDuVoyageRapide()).toMatchObject({ n: 1, sides: 20 });
   });
 });

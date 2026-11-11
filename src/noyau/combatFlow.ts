@@ -123,7 +123,7 @@ import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './s
 import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
-import { structureCriticalsDie, STRUCTURE_CRITICALS_LABEL } from '../data/structureCriticals';
+import { structureCriticalsDie } from '../data/structureCriticals';
 import { actorIn, ecrireActeur, inBattleId } from './monde/combatants';
 import type { IdDeCombattant } from './designations';
 import { nomDIndividu } from './monde/sceneNpc';
@@ -258,7 +258,7 @@ import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow,
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { revealToStep } from './revealStep';
 import type { BuiltCascadeStep } from './stepBrand';
-import { dataLabel, psychologyLabel } from '../data';
+import { dataLabel, psychologyLabel, structureCriticalsLabel } from '../data';
 import { coupFerme, zoneEnPose, type ZoneEnPose } from './targetingHolder';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
@@ -9040,7 +9040,7 @@ export const TABLES = {
       }),
     )),
     memoParVersion('structureCriticals', () => new Map<string, TableStepDef>([[STRUCTURE_CRIT_TABLE, {
-      label: dataLabel(STRUCTURE_CRITICALS_LABEL),
+      label: structureCriticalsLabel(),
       die: facesDuDe(structureCriticalsDie()),
       rows: tableDesCritiquesDeStructure(),
       lines: (die) => { const o = rollStructureCritical(battleRng(), die); return o.note ? [...o.log, o.note] : [...o.log]; },
