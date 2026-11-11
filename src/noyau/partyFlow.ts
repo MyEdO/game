@@ -42,7 +42,7 @@ import { toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { eligibleTalent, spellCost, verdictApprentissage } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, refLabel, dataLabel, type SpellData } from '../data/index';
+import { levelsForCareer, byId, careerLabelFor, findSpellById, findTrappingById, refLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { rangDAjout, rangsDuGroupe, seatOwns } from './sieges';
@@ -714,7 +714,7 @@ export function changerDeCarriere(get: Get, set: Set, heroId: string, newCareer:
       msg = t('pf.careerRefused', { name: clone.label, reason: r.reason ?? '' });
       return h;
     }
-    msg = t('pf.careerChanged', { name: clone.label, career: dataLabel(findCareerById(newCareer)?.label ?? newCareer), level: newLevel, cost: r.cost });
+    msg = t('pf.careerChanged', { name: clone.label, career: careerLabelFor({ career: newCareer, appearance: clone.appearance }), level: newLevel, cost: r.cost });
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);
