@@ -53,7 +53,7 @@ export const OP_REF_FIELDS: Partial<Record<GameOp['op'], readonly OpRefField[]>>
   aggravateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
   attenuateSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
   grantSymptom: [{ field: 'disease', ds: 'maladies', label: 'Maladie', required: true }, { field: 'symptomId', ds: 'symptoms', label: 'Symptôme', required: true }],
-  rollMutation: [{ field: 'table', ds: 'mutationTables', label: 'Table de Corruption', required: true }],
+  rollMutation: [{ field: 'table.id', ds: 'mutationTables', label: 'Table de Corruption', required: true }],
   summon: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
   polymorph: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],
   scheduleRespawn: [{ field: 'ref', ds: 'creatures', label: 'Créature', required: true }],

@@ -42,7 +42,7 @@ import { drunkennessOutcomeSchema } from '../../data/schemas/defs/drunkenness';
 import { progressionModeSchema } from '../../data/schemas/defs/naval-progression';
 import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
 import { issueDuTestSchema } from '../../data/schemas/defs/sea-cargo';
-import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
+import { attackKindSchema } from '../../data/schemas/grammaire/valeurs';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
 import { carriereActuelle } from '../../engine/pnjDeCarriere';
 import { garanti } from '../../lib/garanti';

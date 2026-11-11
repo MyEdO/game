@@ -188,8 +188,8 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'creatures', id: o.morphRef, label, show: label, badge: o.tag };
     }
     case 'rollMutation': {
-      const label = mutationTables.find((t) => t.id === o.table)?.label ?? o.table;
-      return { t: 'ref', category: 'mutationTables', id: o.table, label, show: label };
+      const label = mutationTables.find((t) => t.id === o.table.id)?.label ?? o.table.id;
+      return { t: 'ref', category: 'mutationTables', id: o.table.id, label, show: label };
     }
     default:
       return textRow(o);

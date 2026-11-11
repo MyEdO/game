@@ -62,6 +62,7 @@ export const TYPES = {
   crewRole: { espace: 'crew-roles.json', catalogue: 'rôles d’équipage' },
   crewTestType: { espace: 'crew-test-types.json#types', catalogue: 'types de Test d’équipage' },
   table: { espace: 'tables.json', catalogue: 'tables' },
+  mutationTable: { espace: 'mutationTables.json', catalogue: 'tables de mutation' },
   etat: { espace: 'etats.json', catalogue: 'états' },
   maladie: { espace: 'maladies.json', catalogue: 'maladies' },
   symptome: { espace: 'symptoms.json', catalogue: 'symptômes' },

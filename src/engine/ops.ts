@@ -436,7 +436,7 @@ export type GameOp =
   | { op: 'wounds'; amount: Formula; perSL?: PerSL; onlyGroups?: string[]; ignoreTB?: boolean; ignoreAP?: boolean;
       /** Quand les PA sont déduits (`ignoreAP:false`), IGNORE en plus les PA d'une matière (Cieux/Métal =
        *  `metal`, Ombres = `nonMagic`) — attribut de Domaine (l'arc d'Azyr perce le métal). */
-      bypassArmour?: 'metal' | 'nonMagic';
+      bypassArmour?: ArmourBypass;
       /** Localisation dont les PA sont déduits (quand `ignoreAP:false`). `corps` (défaut) ou `least` =
        *  la Localisation la MOINS protégée (En Flammes brûle là où l'armure protège le moins, LDB 16 l.84). */
       apFrom?: 'corps' | 'least';
@@ -881,7 +881,7 @@ export type GameOp =
   /** Accorde une ARME NATURELLE (Dent et griffe : Morsure BF+3 / Arme BF+4 ; Incarnation de Wyssan) :
    *  attaque ADDITIONNELLE de mêlée injectée dans `c.weapons` (recomputeLoadout), retirée à
    *  l'expiration. Dégâts SB-relatifs par défaut (`+BF+`+damage), `qualities` (Magique…) portés. */
-  | { op: 'grantNaturalWeapon'; label: string; damage: Formula; damagePlus?: number; plusBF?: boolean; bare?: boolean; qualities?: string[]; attackKind?: string; subType?: string }
+  | { op: 'grantNaturalWeapon'; label: string; damage: Formula; plusBF?: boolean; bare?: boolean; qualities?: string[]; attackKind?: string; subType?: { id: string } }
   /** ATTAQUE GRATUITE accordée par un talent/état (Frénésie : 1 attaque d'Arme/Round ; Assaut féroce :
    *  attaque supplémentaire à la touche ; Frappe réactive : riposte quand on est Chargé). Effet IMPUR (ouvre
    *  une frappe) RÉSOLU par la couche state (`accorderLAttaqueGratuite` de `combatFlow`, appelé par `runCombatFlow`
@@ -961,7 +961,7 @@ export type GameOp =
    *  DÉTACHE à l'expiration (`dropExpiredGrantedMutations`) ; PERMANENTE si `duration:'permanent'` OU si le
    *  ctx ne porte aucune durée (exactement `grantTrait`). Le chemin CORRUPTION (corruptionFlow →
    *  `attachMutation` direct) reste permanent, intouché. PUR (moteur : profil du personnage). */
-  | { op: 'rollMutation'; table: string; duration?: 'permanent' }
+  | { op: 'rollMutation'; table: { id: string }; duration?: 'permanent' }
   /** Perte PERMANENTE de Caractéristique (Vers de carie « −1d10 Initiative… », MSRC 16 l.94-97) : décrémente
    *  la Caractéristique de BASE (`c.characteristics`), jamais sous 0 — irréversible « sauf par des moyens
    *  magiques ou miraculeux » (l.103). `amount` = Formula (1d10). Distincte de `charMod` (temporisé, effet
@@ -1222,9 +1222,9 @@ export type GameOp =
    *  (`noyau/monde/vision.ts`) qui la ramène aux cases du brouillard de guerre. Côté OBJET (`passive`) :
    *  INERTE dans applyOps — lu par `combatantLights` (vision) pour les objets PORTÉS/TENUS. Côté SORT :
    *  pousse un `ActiveEffect.light` temporisé (durée), lu au MÊME point.
-   *  `tone` : id d'un `lightTones` — APPARENCE seule (couleur/intensité/vacillement), résolue au bord
+   *  `tone` : référence à un `lightTones` — APPARENCE seule (couleur/intensité/vacillement), résolue au bord
    *  du rendu et jamais ici ; absent = `flamme`. Le RAYON reste seul à porter une conséquence de règle. */
-  | { op: 'light'; radiusM: number; tone?: string; durationRounds?: Formula }
+  | { op: 'light'; radiusM: number; tone?: { id: string } }
   /** Boisson alcoolisée : enregistre UN échec de Résistance à l'alcool (LDB 09 l.475) sur la cible —
    *  −10 aux CC/CT/Ag/Dex/Int (plafond −30), et Ivresse (1d10) au seuil BE. Posé sur la branche `fail`
    *  du Flow de consommable d'une boisson (le Test de Résistance à l'alcool est le nœud `test` du Flow). */
@@ -2879,7 +2879,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // propre flux de mutation). Durée du ctx par défaut → ActiveEffect porteur qui la détache à
         // l'expiration ; permanente (`duration:'permanent'` OU ctx sans durée) → aucun porteur (comme grantTrait).
         const dur = o.duration === 'permanent' ? { scale: 'permanent' as const } : durationFromCtx(ctx);
-        const m = attachMutation(target, rollMutation(o.table, rng), rng);
+        const m = attachMutation(target, rollMutation(o.table.id, rng), rng);
         if (dur.scale !== 'permanent') {
           target.activeEffects = target.activeEffects ?? [];
           target.activeEffects.push({ label: nomDeSource(ctx, 'mutation'), bonus: 0, duration: dur, grantedMutation: m });
@@ -2902,7 +2902,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         break;
       }
       case 'grantNaturalWeapon': {
-        const n = Math.max(0, formuleDuCtx(o.damage, ref, ctx) + (o.damagePlus ?? 0));
+        const n = Math.max(0, formuleDuCtx(o.damage, ref, ctx));
         const accordees = (target.activeEffects ?? []).flatMap((e) => (e.naturalWeapon ? [e.naturalWeapon] : []));
         const weapon = armeNaturelleAccordee(o, n, { uid: uidDArme(`nat-sort-${norm(o.label)}`, accordees), source }); // #2907
         target.activeEffects = target.activeEffects ?? [];
@@ -3166,9 +3166,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): s
         // Chemin SORT : pose un ActiveEffect.light TEMPORISÉ (durée du sort), lu par `combatantLights`
         // (vision) au MÊME point que la lumière d'un objet porté. (Côté OBJET le `passive` n'est jamais
         // exécuté par applyOps → l'op est naturellement inerte là-bas.)
-        const dur: Duration = durationFromOp(o, ctx, ref);
-        const lumière = o.tone ? { radiusM: o.radiusM, tone: o.tone } : { radiusM: o.radiusM };
-        applyActiveEffect(target, { label: nomDeSource(ctx, 'lumiere'), bonus: 0, light: lumière, duration: dur });
+        const lumière = o.tone ? { radiusM: o.radiusM, tone: o.tone.id } : { radiusM: o.radiusM };
+        applyActiveEffect(target, { label: nomDeSource(ctx, 'lumiere'), bonus: 0, light: lumière, duration: durationFromCtx(ctx) });
         lines.push(t('op.light', { name: target.label, n: o.radiusM, src: nomDeSource(ctx) }));
         break;
       }

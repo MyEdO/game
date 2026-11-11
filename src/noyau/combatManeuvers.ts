@@ -30,7 +30,7 @@ import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/tr
 import { isFrenzied } from '../engine/psychology';
 import { creatureAttacks, attaqueDeCle, attaquesNaturelles, attaqueNaturelle, type AttackKind, type CreatureAttack } from '../engine/creatureAttacks';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
-import { attackKindSchema } from '../data/schemas/defs/maneuvers';
+import { attackKindSchema } from '../data/schemas/grammaire/valeurs';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
 import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';

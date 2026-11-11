@@ -894,7 +894,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 onChange={(radiusM) => upd({ radiusM })} />
             </label>
             <label className="dr">Ton
-              <select value={o.tone ?? ''} onChange={(e) => upd({ tone: e.target.value || undefined })}>
+              <select value={o.tone?.id ?? ''} onChange={(e) => upd({ tone: e.target.value ? { id: e.target.value } : undefined })}>
                 <option value="">— ton par défaut —</option>
                 {lightTones.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
               </select>
@@ -1011,8 +1011,8 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         {op.op === 'rollMutation' && (
           <>
             <label className="dr">Table de Corruption
-              <select value={o.table} onChange={(e) => upd({ table: e.target.value })}>
-                {!o.table && <option value="">— (choisir une table) —</option>}
+              <select value={o.table.id} onChange={(e) => upd({ table: { id: e.target.value } })}>
+                {!o.table.id && <option value="">— (choisir une table) —</option>}
                 {mutationTables.map((t) => (<option key={t.id} value={t.id}>{t.label}</option>))}
               </select>
             </label>

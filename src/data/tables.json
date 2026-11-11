@@ -170,7 +170,9 @@
         "ops": [
           {
             "op": "rollMutation",
-            "table": "edoc-phys-nurgle"
+            "table": {
+              "id": "edoc-phys-nurgle"
+            }
           }
         ]
       },
@@ -287,7 +289,9 @@
         "ops": [
           {
             "op": "rollMutation",
-            "table": "edoc-phys-slaanesh"
+            "table": {
+              "id": "edoc-phys-slaanesh"
+            }
           }
         ]
       },
@@ -461,7 +465,9 @@
         "ops": [
           {
             "op": "rollMutation",
-            "table": "edoc-phys-tzeentch"
+            "table": {
+              "id": "edoc-phys-tzeentch"
+            }
           }
         ]
       },
@@ -472,7 +478,9 @@
         "ops": [
           {
             "op": "rollMutation",
-            "table": "edoc-phys-tzeentch"
+            "table": {
+              "id": "edoc-phys-tzeentch"
+            }
           }
         ]
       },
@@ -1345,7 +1353,9 @@
           {
             "op": "light",
             "radiusM": 2,
-            "tone": "magique"
+            "tone": {
+              "id": "magique"
+            }
           }
         ]
       },
