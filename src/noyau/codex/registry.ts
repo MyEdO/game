@@ -2630,7 +2630,7 @@ const CODEX_SPECS = {
   },
   especesAleatoires: {
     label: 'codex.fiche.especesAleatoires', group: 'tables',
-    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('species', { id }))),
+    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('races', { id }))),
   },
   cargaisonsAleatoires: {
     label: 'codex.fiche.cargaisonsAleatoires', group: 'tables',
