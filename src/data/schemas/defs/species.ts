@@ -29,7 +29,7 @@ const doc = document(
     /** id STABLE — colonne d'espèce des tables Âge/Taille/Yeux/Cheveux (`raceKeySchema`, #313). */
     refChar: raceKeySchema,
     /** LDB 05 l.214 */
-    refCareer: idDe('carrieresAleatoires', { horsMarqueurs: ['colonne', 'carriere'] }),
+    refCareer: idDe('carrieresAleatoires', 'colonne'),
     rand: z.number(),
     movement: z.number(),
     fate: nommerChamps(z.strictObject({ fate: z.number(), resilience: z.number(), extra: z.number() }), {

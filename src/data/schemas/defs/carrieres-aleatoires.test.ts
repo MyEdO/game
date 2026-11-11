@@ -7,7 +7,7 @@ import carrieresAleatoiresJson from '../../carrieres-aleatoires.json';
 import speciesJson from '../../species.json';
 
 type Rangee = { id: string; min: number; max: number };
-type Colonne = { id: string; die: string; colonne?: string; carriere?: string; colonnes?: string[]; entries: Rangee[] };
+type Colonne = { id: string; die: string; kind: string; colonne?: string; carriere?: string; colonnes?: string[]; entries: Rangee[] };
 const clone = () => structuredClone(carrieresAleatoiresJson) as unknown as Colonne[];
 const doc = (docs: Colonne[], id: string) => docs.find((d) => d.id === id)!;
 const FICHIER = 'carrieres-aleatoires.json';
@@ -51,19 +51,19 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
   it('REFUSE une portion dont `colonne` désigne une autre portion', () => {
     const docs = clone();
     doc(docs, 'cotiers-humain').colonne = 'cotiers-nain';
-    expect(validateDataset(FICHIER, docs)).toMatch(/« cotiers-nain » porte le marqueur « colonne »/);
+    expect(validateDataset(FICHIER, docs)).toMatch(/« cotiers-nain » est hors de la sous-liste « colonne »/);
   });
 
   it('REFUSE une espèce dont `refCareer` désigne une portion', () => {
     const especes = structuredClone(speciesJson) as { refCareer: string }[];
     especes[0].refCareer = 'cotiers-humain';
-    expect(validateDataset('species.json', especes)).toMatch(/« cotiers-humain » porte le marqueur « colonne »/);
+    expect(validateDataset('species.json', especes)).toMatch(/« cotiers-humain » est hors de la sous-liste « colonne »/);
   });
 
   it('REFUSE une espèce dont `refCareer` désigne une variante', () => {
     const especes = structuredClone(speciesJson) as { refCareer: string }[];
     especes[0].refCareer = 'variantes-soldat';
-    expect(validateDataset('species.json', especes)).toMatch(/« variantes-soldat » porte le marqueur « carriere »/);
+    expect(validateDataset('species.json', especes)).toMatch(/« variantes-soldat » est hors de la sous-liste « colonne »/);
   });
 
   it('REFUSE, en nommant le trou, une variante qui ne couvre pas le d100', () => {
@@ -78,13 +78,25 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
     expect(validateDataset(FICHIER, docs)).toMatch(/variantes-erudit : aucune rangée ne désigne la carrière détaillée « erudit »/);
   });
 
-  it('REFUSE une variante sans `colonnes`, et une colonne qui porte `colonnes`', () => {
+  it('REFUSE, en la nommant, une portion sans `colonne`', () => {
+    const docs = clone();
+    delete doc(docs, 'cotiers-nain').colonne;
+    expect(validateDataset(FICHIER, docs)).toMatch(/« cotiers-nain » \(kind « portion »\) exige « colonne »/);
+  });
+
+  it('REFUSE, en la nommant, une variante sans `carriere`, et une sans `colonnes`', () => {
+    const sansCarriere = clone();
+    delete doc(sansCarriere, 'variantes-erudit').carriere;
+    expect(validateDataset(FICHIER, sansCarriere)).toMatch(/« variantes-erudit » \(kind « variante »\) exige « carriere »/);
     const sansPortee = clone();
     delete doc(sansPortee, 'variantes-cavalier').colonnes;
-    expect(validateDataset(FICHIER, sansPortee)).toMatch(/variantes-cavalier : `carriere` et `colonnes` vont ensemble/);
-    const colonneAPortee = clone();
-    doc(colonneAPortee, 'ogre').colonnes = ['humain'];
-    expect(validateDataset(FICHIER, colonneAPortee)).toMatch(/ogre : `carriere` et `colonnes` vont ensemble/);
+    expect(validateDataset(FICHIER, sansPortee)).toMatch(/« variantes-cavalier » \(kind « variante »\) exige « colonnes »/);
+  });
+
+  it('REFUSE, en la nommant, une colonne qui porte `colonnes`', () => {
+    const docs = clone();
+    doc(docs, 'ogre').colonnes = ['humain'];
+    expect(validateDataset(FICHIER, docs)).toMatch(/« colonnes » n’appartient qu’au\(x\) cas kind « variante » — refusée sur « ogre » \(kind « colonne »\)/);
   });
 
   it('REFUSE, en la nommant, une colonne de `colonnes` qui ne tire pas la carrière détaillée', () => {
@@ -96,6 +108,6 @@ describe('carrieres-aleatoires.json — colonnes, portions et couverture du dé'
   it('REFUSE une variante dont `colonnes` désigne une portion ou une variante', () => {
     const docs = clone();
     doc(docs, 'variantes-soldat').colonnes!.push('cotiers-humain');
-    expect(validateDataset(FICHIER, docs)).toMatch(/« cotiers-humain » porte le marqueur « colonne »/);
+    expect(validateDataset(FICHIER, docs)).toMatch(/« cotiers-humain » est hors de la sous-liste « colonne »/);
   });
 });
