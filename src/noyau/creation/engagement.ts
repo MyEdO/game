@@ -16,8 +16,9 @@ import { decidingSeat } from '../netOwnership';
 import { refusDAjoutAuGroupe, refusDeComposerLeHeros } from '../partyFlow';
 import { buildHero, draftWealth, stepIds, validateStep, type CreatorDraft } from './brouillon';
 import { pregens } from '../../data';
-import { idDuPretire, pretire, richesseDuPretire } from '../../data/pregens';
+import { idDuPretire, possessionsTireesDuPretire, pretire, richesseDuPretire } from '../../data/pregens';
 import type { RNG } from '../../engine/dice';
+import { recomputeLoadout } from '../../engine/items';
 import { garanti } from '../../lib/garanti';
 import { t } from '../../i18n';
 
@@ -42,10 +43,16 @@ export function verdictDEngagement(h: HerosEngage): { id: string | undefined } |
   return refus ? { refus } : { id: h.id };
 }
 
-/** Le héros que le noyau bâtit de `h`, que `verdictDEngagement` admet : le pré-tiré de la donnée (`pretire`) ou le
- *  brouillon, aux ids de `idNeuf`. */
-export function herosDeLEngagement(h: HerosEngage, idNeuf: FabriqueDId): Combatant {
-  if ('pretire' in h) return pretire(idNeuf, h.pretire);
+/** Le héros que le noyau bâtit de `h`, que `verdictDEngagement` admet : le pré-tiré de la donnée (`pretire`), augmenté de
+ *  ses possessions imprimées à quantité aux dés, tirées à `rng` (`possessionsTireesDuPretire`), ou le brouillon, aux ids de
+ *  `idNeuf`. */
+export function herosDeLEngagement(h: HerosEngage, idNeuf: FabriqueDId, rng: RNG): Combatant {
+  if ('pretire' in h) {
+    const hero = pretire(idNeuf, h.pretire);
+    (hero.items ??= []).push(...possessionsTireesDuPretire(garanti(pregens.find((p) => p.id === h.pretire), String(h.pretire), 'pré-tiré'), rng, idNeuf));
+    recomputeLoadout(hero);
+    return hero;
+  }
   const hero = buildHero(h.brouillon, idNeuf, h.id);
   return h.idDeRoster ? { ...hero, idDeRoster: h.idDeRoster } : hero;
 }
