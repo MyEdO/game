@@ -85,7 +85,7 @@ function advancementIds(list: AdvancementRef[] | undefined): string[] {
 /** États INFLIGÉS — ops `condition` des effets (Sort = Flow ; Trait/Qualité/Talent/Domaine =
  *  TriggeredEffect[].flow). On réutilise le walker `spellEffectOps` (zéro parsing maison). */
 const conditionIdsInFlow = (flow: Flow | undefined): string[] =>
-  spellEffectOps(flow).flatMap((o) => (o.op === 'condition' ? [o.id] : []));
+  spellEffectOps(flow).flatMap((o) => (o.op === 'condition' ? [o.id.id] : []));
 const conditionIdsInEffects = (effects: TriggeredEffect[] | undefined): string[] =>
   (effects ?? []).flatMap((e) => conditionIdsInFlow(e.flow));
 

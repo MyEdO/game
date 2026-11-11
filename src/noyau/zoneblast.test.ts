@@ -20,7 +20,7 @@ function fakeStore(party: Combatant[], partyPos: { x: number; y: number }) {
 describe('zoneBlast — souffle de zone (hors combat : le groupe à partyPos)', () => {
   it('groupe DANS le rayon (Chebyshev) → dégâts + État', () => {
     const f = fakeStore([hero('A', 30)], { x: 5, y: 5 });
-    applyEffects(f.get, f.set, [{ type: 'zoneBlast', center: { x: 6, y: 5 }, radius: 2, ops: [{ op: 'wounds', amount: 15 }, { op: 'condition', id: 'en-flammes' }] } as Effect]);
+    applyEffects(f.get, f.set, [{ type: 'zoneBlast', center: { x: 6, y: 5 }, radius: 2, ops: [{ op: 'wounds', amount: 15 }, { op: 'condition', id: { id: 'en-flammes' } }] } as Effect]);
     expect(f.state().party[0].wounds.current).toBe(15);
     expect(hasCondition(f.state().party[0], 'en-flammes')).toBe(true);
   });
@@ -44,7 +44,7 @@ describe('zoneBlast — souffle dans un DISQUE en combat (cibles par position)',
     const near2 = combatant('n2', { x: 6, y: 6 });
     const far = combatant('f', { x: 12, y: 12 });
     const f = combatStore([near1, near2, far]);
-    applyEffects(f.get, f.set, [{ type: 'zoneBlast', center: { x: 5, y: 5 }, radius: 2, ops: [{ op: 'wounds', amount: 10 }, { op: 'condition', id: 'en-flammes' }] } as Effect]);
+    applyEffects(f.get, f.set, [{ type: 'zoneBlast', center: { x: 5, y: 5 }, radius: 2, ops: [{ op: 'wounds', amount: 10 }, { op: 'condition', id: { id: 'en-flammes' } }] } as Effect]);
     const cs = f.state().battle.combatants as Combatant[];
     expect(cs.find((c) => c.id === 'n1')!.wounds.current).toBe(20);
     expect(cs.find((c) => c.id === 'n2')!.wounds.current).toBe(20);

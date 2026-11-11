@@ -46,8 +46,9 @@ export interface VueFigee {
  * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
  * (`projet/scripts/pont_de_planche.gd`). `nom` la nomme dans l'adresse (`?planche=<nom>`) et dans son fichier
  * (`hotes/godot/etalons/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
- * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer` et `monde` les réponses du pont à ces deux méthodes : la suite de l'état, sans
- * effet ni jeton, le journal de la partie entier sous `journal.lignes`, et le monde de sa scène.
+ * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer`, `monde` et `aretes` les réponses du pont à ces
+ * trois méthodes : la suite de l'état, sans effet ni jeton, le journal de la partie entier sous `journal.lignes`, le
+ * monde de sa scène et ses arêtes.
  */
 export interface Planche {
   nom: string;
@@ -55,6 +56,7 @@ export interface Planche {
   parametres: { scenario: string };
   demarrer: { ok: true } & Suite;
   monde: unknown;
+  aretes: unknown;
 }
 
 /** Un argument saisi du formulaire de recette. */
@@ -148,6 +150,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
       parametres: { scenario },
       demarrer: { ok: true, vue: s.vue, programmes: [], journal: [], zones: { 'journal.lignes': [...journal] }, effets: [] },
       monde: JSON.parse(pont.appeler('monde', null)),
+      aretes: JSON.parse(pont.appeler('aretes', null)),
     });
     const jouer = (methode: string, entree: unknown): Suite => {
       let s = appeler(methode, entree);

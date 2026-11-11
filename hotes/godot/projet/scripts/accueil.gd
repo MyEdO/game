@@ -20,4 +20,4 @@ func _ready() -> void:
 	if _pont.parametre("planche") != "":
 		PontDuNoyau.remplacer(get_tree(), PontDePlanche.new())
 		return
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([self])})
+	_pont.publier_l_ecran(func() -> Dictionary: return {boutons = PontDuNoyau.boutons_a_l_ecran([self])})

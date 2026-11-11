@@ -177,8 +177,8 @@
  * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
  * « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit
  * par `importer.mjs --sans-publier` ; sans `--modeles`, il sert le dossier des modèles du projet et y pose un véhicule,
- * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?rendu=econome`
- * (`PontDuNoyau.RENDU_ECONOME`) : une image ne se dessine que si l'écran a changé, sans anticrénelage
+ * qu'il compare à la réponse de `vehicule`, appelée de la page pour l'observer. La page s'ouvre sous `?recette=1`
+ * (`PontDuNoyau.en_recette`) : Godot y publie `wfrpEcran`, une image ne se dessine que si l'écran a changé, sans anticrénelage
  * multiéchantillon ; une lecture de la page n'attend plus le dessin d'une image, et un geste en attend un moins long. Un cran de molette de l'atelier attend
  * que `atelier.defilement` change, jamais une publication quelconque.
  * Le parcours des cadrages (`--parcours cadrages --vues <fichier>`) attend que le monde soit posé, le modèle de
@@ -1888,6 +1888,21 @@ async function parcoursEditeur() {
   const pressee = (id) => inspecte(e, id).valeurs.find((b) => b.presse).libelle
   noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/steps/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : l’op « ${pressee(`${pasDOps}/ops/0/op`)} », champ par champ, libellée « ${inspecte(e, `${pasDOps}/ops/0/label`).champs[2].valeur} », type d’attaque « ${pressee(`${pasDOps}/ops/0/attackKind`)} »`)
   await capturer('3606-m2a-1-op-typee')
+  const opTypee = pressee(`${pasDOps}/ops/0/op`)
+  await cliquerAuPanneau({ element: `bouton/${pasDOps}/ops/ajouter` })
+  await waitFor(session, montre(`${pasDOps}/ops/1/op`))
+  e = await editeur()
+  await choisirALaListe(`${pasDOps}/ops/1/op`, inspecte(e, `${pasDOps}/ops/1/op`).valeurs.find((b) => b.jeu.args[2]?.op === 'condition').id, 'editeur.inspecteur', montre(`${pasDOps}/ops/1/id/id`))
+  e = await editeur()
+  await choisirALaListe(`${pasDOps}/ops/1/id/id`, inspecte(e, `${pasDOps}/ops/1/id/id`).valeurs.find((b) => b.jeu.args[2] === 'sonne').id, 'editeur.inspecteur')
+  e = await editeur()
+  noter(`le même pas d’effet, une seconde op « ${pressee(`${pasDOps}/ops/1/op`)} », champ par champ : l’État « ${pressee(`${pasDOps}/ops/1/id/id`)} » choisi à la liste du catalogue`)
+  await capturer('3606-m2a2-1-etat')
+  for (let n = 0; n < 3; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, montre(`${pasDOps}/ops/0/op`))
+  e = await editeur()
+  assert.deepEqual([inspecte(e, `${pasDOps}/ops/1/op`), pressee(`${pasDOps}/ops/0/op`)], [undefined, opTypee], '« Annuler » trois fois, le déclencheur recliqué : la seconde op partie, l’op typée reste')
   for (let n = 0; n < 7; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/steps/${rangDuPas}/'))`)
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
@@ -2847,7 +2862,7 @@ if (!(o.parcours in PARCOURS)) throw new Error(`--parcours ${o.parcours} : ${Obj
 
 let echec = null
 try {
-  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&rendu=econome` })
+  await session.rpc('Page.navigate', { url: `${srv.url}index.html?scenario=${o.scenario}&graine=${o.graine}&recette=1` })
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
   await PARCOURS[o.parcours]()
   const releve = JSON.parse(await lire(`wfrpPont.appeler('erreursGlobales')`))
