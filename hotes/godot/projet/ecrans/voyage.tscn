@@ -6,9 +6,6 @@
 
 [node name="Monde" instance=ExtResource("1_monde")]
 
-[node name="Marges" parent="Cadre" index="0"]
-theme_type_variation = &"MargesDuVoyage"
-
 [node name="Paysage" type="PanelContainer" parent="Cadre/Marges/Colonne/Contenu"]
 theme_type_variation = &"Paysage"
 
