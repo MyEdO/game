@@ -5,7 +5,7 @@ geste vit derrière son déclencheur.
 
 ## Ce qu'est ce projet
 
-Un **jeu de rôle vidéoludique 100 % web, en français**, type *Neverwinter Nights / Baldur's Gate*
+Un **jeu de rôle vidéoludique web d'abord, en français**, type *Neverwinter Nights / Baldur's Gate*
 (tactique tour par tour, vue isométrique), basé sur **Warhammer Fantasy Roleplay** 4e ou 5e (au
 choix) : 4 aventuriers à travers la campagne **L'Ennemi Intérieur**.
 

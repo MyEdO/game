@@ -25,6 +25,7 @@
     "hote-texte": "node scripts/hote-texte.mjs",
     "pont:godot": "node hotes/godot/construire.mjs --pont-seul",
     "godot:sonde": "node hotes/godot/construire.mjs --sonde",
+    "godot:ouvrir": "node hotes/godot/construire.mjs --ouvrir",
     "godot:editeur": "node hotes/godot/construire.mjs --export --sortie dist/godot && node hotes/godot/servir.mjs --web dist/godot --depot",
     "godot:importer": "node hotes/godot/importer.mjs",
     "godot:epingles": "node hotes/godot/epingles.mjs",

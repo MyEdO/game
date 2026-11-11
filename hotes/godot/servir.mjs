@@ -1,5 +1,6 @@
 // LE SERVEUR DE L'EXPORT WEB DE L'HÔTE GODOT (#2928, #3086, `pont/CONTRAT.md`, section « Atelier 3D ») : l'export servi
-// en statique sur un port libre de la boucle locale, et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
+// en statique sur un port libre de la boucle locale (sans export, rien d'autre que les modèles et le dépôt : le pont
+// vivant, `vivant.mjs`), et, à côté de la page, le dossier des modèles : `GET /modeles/listage.json`
 // rend ses manifestes validés contre leur GLB et les os qui en portent les meshes rigides (`listage`), relus à chaque appel,
 // et `GET /modeles/<fichier>` chacun de ses fichiers, en `Cache-Control: no-store`. Avec `--depot`, l'éditeur de carte y
 // lit et y écrit les projets manuscrits du dépôt (`pont/CONTRAT.md`, section « Éditeur ») : `GET /depot/<id>` et
@@ -44,7 +45,7 @@ const CORPS_MAX = 32 * 1024 * 1024
 
 /**
  * Le dépôt est servi par `servir.mjs` lancé avec `--depot` (`npm run godot:editeur` exporte le projet dans `dist/godot`
- * puis l'y sert) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
+ * puis l'y sert), ou par le pont vivant (`vivant.mjs`, `npm run godot:ouvrir`) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
  * `scripts/guards/lib/projetsLivres.mjs`), prose adressée matérialisée (`lireProjetLivre`), en `no-store` ; `PUT
  * depot/<id>` écrit son corps à la place du fichier, 200, ou le refuse en 422 avec sa raison s'il n'est pas du JSON,
  * pas ce projet, ou pas en forme dépôt (`materialiser` le refuse). Un projet généré (`scripts/<dossier>/generate.mjs`)
@@ -110,10 +111,11 @@ function servirLeDepot(req, res, depot, id) {
   }
 }
 
-/** Sert `web` en statique et le dossier `modeles` sous `/modeles/`, sur un port libre de 127.0.0.1 ; avec `depot`, la
- *  racine d'un dépôt, ses projets manuscrits sous `/depot/` (`servirLeDepot`). */
+/** Sert le dossier `modeles` sous `/modeles/`, sur un port libre de 127.0.0.1 ; avec `web`, l'export en statique, sans
+ *  lui 404 hors de `/modeles/` et `/depot/` ; avec `depot`, la racine d'un dépôt, ses projets manuscrits sous `/depot/`
+ *  (`servirLeDepot`). */
 export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
-  const racine = resolve(web)
+  const racine = web && resolve(web)
   const dossier = resolve(modeles)
   const serveur = createServer((req, res) => {
     let rel
@@ -125,7 +127,7 @@ export function servir({ web, modeles = DOSSIER_DES_MODELES, depot }) {
     if (depot && rel.startsWith('depot/')) return servirLeDepot(req, res, resolve(depot), rel.slice('depot/'.length))
     if (rel === `modeles/${LISTAGE}`) return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(listage(dossier)))
     const [base, chemin, entetes] = rel.startsWith('modeles/') ? [dossier, rel.slice('modeles/'.length), { 'Cache-Control': 'no-store' }] : [racine, rel || 'index.html', {}]
-    const fichier = sous(base, chemin)
+    const fichier = base && sous(base, chemin)
     if (!fichier) return void res.writeHead(404).end()
     envoyer(res, fichier, entetes)
   })
