@@ -45,7 +45,7 @@ describe('garde `flowTestEngineRoll` — le critère sépare la FABRIQUE du ROUL
     expect(scan([
       'function mkTest(t: NestedTest): Flow {',
       '  const test: FlowTest = { skill: t.skill, difficulty: t.difficulty };',
-      "  return { kind: 'test', test: poserEnjeu(test, stake), success: EMPTY_FLOW, fail: doOps(t.onFail) };",
+      "  return { kind: 'test', test: poserEnjeu(test, stake), reussite: EMPTY_FLOW, echec: doOps(t.onFail) };",
       '}',
     ].join('\n'))).toEqual([]);
   });
@@ -55,7 +55,7 @@ describe('garde `flowTestEngineRoll` — le critère sépare la FABRIQUE du ROUL
       'function mkTest(t: NestedTest): Flow {',
       '  const test: FlowTest = { skill: t.skill, difficulty: t.difficulty };',
       '  rollTest(0, t.difficulty, rng);',
-      "  return { kind: 'test', test: poserEnjeu(test, stake), success: EMPTY_FLOW, fail: doOps(t.onFail) };",
+      "  return { kind: 'test', test: poserEnjeu(test, stake), reussite: EMPTY_FLOW, echec: doOps(t.onFail) };",
       '}',
     ].join('\n'));
     expect(sites.map(siteLabel)).toEqual(['src/engine/x.ts:3 [lecteur mkTest → rollTest]']);

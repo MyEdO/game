@@ -46,9 +46,9 @@ const enJeu = (c: Combatant): Combatant => ({ ...c, pos: { x: 1, y: 1 } });
 describe('coutures donnée → état (#2097)', () => {
   it('A — un effet `giveTrapping` d’une scène gelée : l’objet reçu n’atteint pas la scène', () => {
     const eff = { type: 'giveTrapping', trappingId: 'dague', teinte: { id: 'aethyrique' } };
-    const scene = { ...emptyScene('partage-a', 4, 4), triggers: [{ id: 't', when: { kind: 'enter' }, flow: { kind: 'do', effect: eff } }] } as unknown as Scene;
+    const scene = { ...emptyScene('partage-a', 4, 4), triggers: [{ id: 't', when: { kind: 'enter' }, flow: { kind: 'effet', effet: eff } }] } as unknown as Scene;
     geler(scene);
-    const gele = (scene as unknown as { triggers: { flow: { effect: typeof eff } }[] }).triggers[0].flow.effect;
+    const gele = (scene as unknown as { triggers: { flow: { effet: typeof eff } }[] }).triggers[0].flow.effet;
     expect(Object.isFrozen(gele.teinte)).toBe(true);
     banc.setState({ party: [herosDeScenario(idsDeTest, 'soldat')], scene });
     applyEffects(banc.getState, banc.setState, [gele as never]);

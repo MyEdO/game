@@ -821,7 +821,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const deux = presser(valeursDeLInspecteur(une, 'valeur/usable/actions/ajouter')[0]);
     const formulaire = (e: Edition, id: string) => e.vue.zones['editeur.inspecteur'].find((el) => el.id === id) as Formulaire | undefined;
     expect(formulaire(deux, 'identifier/action/fouiller-2')?.champs.map((c) => c.type)).toEqual(['fixe', 'saisieTexte']);
-    expect(boutonDe(deux, 'valeur/usable/actions/1/flow/steps/ajouter').libelle, 'les pas de l’enchaînement s’ajoutent au formulaire (#3606 M2b)').toMatch(/^Ajouter/);
+    expect(boutonDe(deux, 'valeur/usable/actions/1/flow/etapes/ajouter').libelle, 'les pas de l’enchaînement s’ajoutent au formulaire (#3606 M2b)').toMatch(/^Ajouter/);
     const renommee = editionDe(appel('editer', { type: 'identifier', args: ['fouiller-2', 'coffre'] }));
     expect(formulaire(renommee, 'identifier/action/coffre')?.champs[1]).toMatchObject({ valeur: 'coffre' });
     expect(erreurDe(appel('editer', { type: 'identifier', args: ['coffre'] })).categorie, 'sans action désignée').toBe('validation');
@@ -1164,7 +1164,7 @@ describe('l’éditeur de carte par le pont, une scène bâtie de bout en bout',
     expect(corps.facades!.flatMap((f) => f.features ?? []).map((f) => f.kind), 'une façade et son ouverture').toEqual(['gable']);
     expect(neuve.effectZones!.map((z) => [z.presentation, z.area]), 'la pièce').toEqual([['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]]);
     expect(neuve.entities.map((en) => [en.kind, en.pos, en.facing])).toEqual([['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]]);
-    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]]);
+    expect(neuve.triggers.map((tr) => [tr.rect, tr.flow]), 'le déclencheur tiré, au flux vide').toEqual([[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'sequence', etapes: [] }]]);
 
     const { appel: rouvrir } = table();
     const depot = mkdtempSync(join(tmpdir(), 'editeur-3508-'));
@@ -1263,9 +1263,9 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(valeursDeLInspecteur(e, 'valeur/flow/kind').map((b) => [b.libelle, b.presse]), 'le flux requis : ses cinq branches, la séquence neuve pressée, aucun retrait').toEqual([
       ['Séquence', true], ['Effet', false], ['Si', false], ['Test', false], ['Choix', false],
     ]);
-    presser('valeur/flow/steps/ajouter');
-    choisir('valeur/flow/steps/0/kind', 'Effet');
-    saisir('valeur/flow/steps/0/effect/flag', 'porte');
+    presser('valeur/flow/etapes/ajouter');
+    choisir('valeur/flow/etapes/0/kind', 'Effet');
+    saisir('valeur/flow/etapes/0/effet/flag', 'porte');
     expect(erreurDe(appel('editer', { type: 'valeur', args: [declencheur, ['once'], false] })).categorie, 'un champ qu’un geste dédié écrit, hors du formulaire').toBe('validation');
     choisir('valeur/when/kind', 'TOUS (ET)');
     expect(option('valeur/when/kind', 'TOUS (ET)').presse).toBe(true);
@@ -1327,7 +1327,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
     expect(neuve.triggers.find((t) => t.id === declencheur.id)).toMatchObject({
       when: { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] },
-      flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'porte' } }] },
+      flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'porte' } }] },
     });
     expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
       crossTest: { characteristic: 'force' },
@@ -1339,7 +1339,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(option('valeur/when/kind', 'TOUS (ET)').presse, 'rouverte, la condition du déclencheur').toBe(true);
     expect(option('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue').presse).toBe(true);
     expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
-    expect(formulaire('valeur/flow/steps/0/effect/flag').champs[2], 'rouvert, le flux du déclencheur').toMatchObject({ valeur: 'porte' });
+    expect(formulaire('valeur/flow/etapes/0/effet/flag').champs[2], 'rouvert, le flux du déclencheur').toMatchObject({ valeur: 'porte' });
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
     expect(option('valeur/onCross/0/characteristic', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);
@@ -1363,17 +1363,17 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
      *  « Drapeaux » `drapeau` ; un troisième pas ajouté se retire. */
     const ecrireLeFlux = (flux: string, effet: (pas: string) => void, drapeau: string) => {
       expect(option(`${flux}/kind`, 'Séquence').presse, 'le flux neuf est une séquence').toBe(true);
-      presser(`${flux}/steps/ajouter`);
-      choisir(`${flux}/steps/0/kind`, 'Séquence');
-      presser(`${flux}/steps/0/steps/ajouter`);
-      choisir(`${flux}/steps/0/steps/0/kind`, 'Effet');
-      effet(`${flux}/steps/0/steps/0/effect`);
-      presser(`${flux}/steps/ajouter`);
-      choisir(`${flux}/steps/1/kind`, 'Si');
-      choisir(`${flux}/steps/1/cond/kind`, 'Drapeaux');
-      saisir(`${flux}/steps/1/cond/expr`, drapeau);
-      presser(`${flux}/steps/ajouter`);
-      presser(`${flux}/steps/2/retirer`);
+      presser(`${flux}/etapes/ajouter`);
+      choisir(`${flux}/etapes/0/kind`, 'Séquence');
+      presser(`${flux}/etapes/0/etapes/ajouter`);
+      choisir(`${flux}/etapes/0/etapes/0/kind`, 'Effet');
+      effet(`${flux}/etapes/0/etapes/0/effet`);
+      presser(`${flux}/etapes/ajouter`);
+      choisir(`${flux}/etapes/1/kind`, 'Si');
+      choisir(`${flux}/etapes/1/condition/kind`, 'Drapeaux');
+      saisir(`${flux}/etapes/1/condition/expr`, drapeau);
+      presser(`${flux}/etapes/ajouter`);
+      presser(`${flux}/etapes/2/retirer`);
     };
     const validation = () => (e.vue.zones['editeur.validation'][0] as Ligne).texte;
 
@@ -1404,13 +1404,13 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
 
     const enregistree = editionDe(appel('editer', boutonDe(e, 'enregistrer').jeu));
     const scene = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.onCross?.some((o) => o.op === 'infestation')))!;
-    const si = (drapeau: string) => ({ kind: 'if', cond: { kind: 'flag', expr: drapeau }, then: { kind: 'seq', steps: [] } });
-    expect(scene.entities?.find((en) => en.usable)?.usable?.actions?.[0].flow).toEqual({ kind: 'seq', steps: [
-      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'braise' } }] },
+    const si = (drapeau: string) => ({ kind: 'si', condition: { kind: 'flag', expr: drapeau }, alors: { kind: 'sequence', etapes: [] } });
+    expect(scene.entities?.find((en) => en.usable)?.usable?.actions?.[0].flow).toEqual({ kind: 'sequence', etapes: [
+      { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'braise' } }] },
       si('braise'),
     ] });
-    expect(scene.effectZones!.flatMap((z) => z.onCross ?? []).find((o) => o.op === 'infestation')).toMatchObject({ chaqueNuit: { kind: 'seq', steps: [
-      { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } }] },
+    expect(scene.effectZones!.flatMap((z) => z.onCross ?? []).find((o) => o.op === 'infestation')).toMatchObject({ chaqueNuit: { kind: 'sequence', etapes: [
+      { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'corruption', amount: 1 }] } }] },
       si('rats'),
     ] } });
   });

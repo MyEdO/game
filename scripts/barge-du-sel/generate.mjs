@@ -194,13 +194,13 @@ scenes.push(scene({
       // son pavillon avant le naufrage complet.
       victoryCondition: { type: 'woundsThreshold', targetId: 'cogue-pirate', atOrBelowPercent: 40 },
       members: [
-        { entityId: 'louve-grise', side: 'ally' },
-        { entityId: 'cogue-pirate', side: 'enemy' },
-        { entityId: 'pirate-1', side: 'enemy' },
-        { entityId: 'pirate-2', side: 'enemy' },
-        { entityId: 'chef-pirate-1', side: 'enemy' },
-        { entityId: 'cogue-helm', side: 'enemy' },
-        { entityId: 'cogue-gun', side: 'enemy' },
+        { entityId: 'louve-grise', side: 'allie' },
+        { entityId: 'cogue-pirate', side: 'ennemi' },
+        { entityId: 'pirate-1', side: 'ennemi' },
+        { entityId: 'pirate-2', side: 'ennemi' },
+        { entityId: 'chef-pirate-1', side: 'ennemi' },
+        { entityId: 'cogue-helm', side: 'ennemi' },
+        { entityId: 'cogue-gun', side: 'ennemi' },
       ],
       onVictory: flowOf([
         { type: 'setFlag', flag: 'sel-embuscade-vaincue' },

@@ -4206,13 +4206,13 @@
         },
         "label": "Bière — Résistance à l'alcool"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -4488,13 +4488,13 @@
         "label": "Vin & spiritueux — Résistance à l'alcool",
         "difficulty": "difficile"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5089,9 +5089,9 @@
         "label": "Nécessaire antipoison",
         "noSupport": false
       },
-      "success": {
-        "kind": "do",
-        "effect": {
+      "reussite": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -5102,9 +5102,9 @@
           ]
         }
       },
-      "fail": {
-        "kind": "seq",
-        "steps": []
+      "echec": {
+        "kind": "sequence",
+        "etapes": []
       }
     }
   },
@@ -6634,13 +6634,13 @@
         "difficulty": "tresDifficile",
         "label": "Bave"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6678,11 +6678,11 @@
       "page": 306
     },
     "consumable": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -6734,13 +6734,13 @@
             ],
             "label": "Bonnet de fou"
           },
-          "success": {
-            "kind": "seq",
-            "steps": []
+          "reussite": {
+            "kind": "sequence",
+            "etapes": []
           },
-          "fail": {
-            "kind": "do",
-            "effect": {
+          "echec": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -6807,13 +6807,13 @@
         "menace": "poison",
         "label": "Brise-cœur"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6852,8 +6852,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -6944,16 +6944,16 @@
       "page": 306
     },
     "consumable": {
-      "kind": "if",
-      "cond": {
+      "kind": "si",
+      "condition": {
         "kind": "has",
         "who": "target",
         "what": "group",
         "value": "elfe"
       },
-      "then": {
-        "kind": "do",
-        "effect": {
+      "alors": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -6966,16 +6966,16 @@
           ]
         }
       },
-      "else": {
+      "sinon": {
         "kind": "test",
         "test": {
           "characteristic": "force-mentale",
           "difficulty": "tresDifficile",
           "label": "Fleur de lune"
         },
-        "success": {
-          "kind": "do",
-          "effect": {
+        "reussite": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -6993,9 +6993,9 @@
             ]
           }
         },
-        "fail": {
-          "kind": "do",
-          "effect": {
+        "echec": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -7050,8 +7050,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7061,8 +7061,8 @@
                 "trigger": "onHit",
                 "on": "victim",
                 "flow": {
-                  "kind": "if",
-                  "cond": {
+                  "kind": "si",
+                  "condition": {
                     "kind": "all",
                     "of": [
                       {
@@ -7084,7 +7084,7 @@
                       }
                     ]
                   },
-                  "then": {
+                  "alors": {
                     "kind": "test",
                     "test": {
                       "characteristic": "endurance",
@@ -7103,13 +7103,13 @@
                       },
                       "menace": "poison"
                     },
-                    "success": {
-                      "kind": "seq",
-                      "steps": []
+                    "reussite": {
+                      "kind": "sequence",
+                      "etapes": []
                     },
-                    "fail": {
-                      "kind": "do",
-                      "effect": {
+                    "echec": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "target",
                         "ops": [
@@ -7154,8 +7154,8 @@
       "page": 182
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7191,8 +7191,8 @@
       "page": 183
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7230,8 +7230,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7302,8 +7302,8 @@
       "page": 306
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7372,13 +7372,13 @@
         },
         "label": "Belladone"
       },
-      "success": {
-        "kind": "seq",
-        "steps": []
+      "reussite": {
+        "kind": "sequence",
+        "etapes": []
       },
-      "fail": {
-        "kind": "do",
-        "effect": {
+      "echec": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7429,8 +7429,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7469,8 +7469,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7508,8 +7508,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "if",
-      "cond": {
+      "kind": "si",
+      "condition": {
         "kind": "compare",
         "subject": {
           "who": "target",
@@ -7518,9 +7518,9 @@
         "op": ">=",
         "value": 1
       },
-      "then": {
-        "kind": "do",
-        "effect": {
+      "alors": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7563,8 +7563,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7605,8 +7605,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7653,8 +7653,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7692,8 +7692,8 @@
       "page": 307
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7745,9 +7745,9 @@
         "difficulty": "accessible",
         "label": "Gesundheit"
       },
-      "success": {
-        "kind": "do",
-        "effect": {
+      "reussite": {
+        "kind": "effet",
+        "effet": {
           "type": "ops",
           "ops": [
             {
@@ -7762,9 +7762,9 @@
           ]
         }
       },
-      "fail": {
-        "kind": "seq",
-        "steps": []
+      "echec": {
+        "kind": "sequence",
+        "etapes": []
       }
     }
   },
@@ -7794,8 +7794,8 @@
       "page": 14
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -7805,8 +7805,8 @@
                 "trigger": "onHit",
                 "on": "victim",
                 "flow": {
-                  "kind": "if",
-                  "cond": {
+                  "kind": "si",
+                  "condition": {
                     "kind": "all",
                     "of": [
                       {
@@ -7828,7 +7828,7 @@
                       }
                     ]
                   },
-                  "then": {
+                  "alors": {
                     "kind": "test",
                     "test": {
                       "characteristic": "endurance",
@@ -7850,13 +7850,13 @@
                       },
                       "menace": "poison"
                     },
-                    "success": {
-                      "kind": "seq",
-                      "steps": []
+                    "reussite": {
+                      "kind": "sequence",
+                      "etapes": []
                     },
-                    "fail": {
-                      "kind": "do",
-                      "effect": {
+                    "echec": {
+                      "kind": "effet",
+                      "effet": {
                         "type": "ops",
                         "on": "target",
                         "ops": [
@@ -7916,8 +7916,8 @@
       "page": 14
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -8324,8 +8324,8 @@
       "page": 308
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -13357,8 +13357,8 @@
       "page": 83
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -13969,8 +13969,8 @@
         "trigger": "onHit",
         "on": "victim",
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "on": "target",
             "ops": [
@@ -14449,8 +14449,8 @@
       "page": 161
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14487,8 +14487,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14517,8 +14517,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14548,8 +14548,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14598,8 +14598,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14637,8 +14637,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14675,8 +14675,8 @@
       "page": 162
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14715,11 +14715,11 @@
       "page": 162
     },
     "consumable": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
         {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {
@@ -14759,9 +14759,9 @@
             "difficulty": "accessible",
             "label": "Panacea Universalis"
           },
-          "success": {
-            "kind": "do",
-            "effect": {
+          "reussite": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -14771,9 +14771,9 @@
               ]
             }
           },
-          "fail": {
-            "kind": "seq",
-            "steps": []
+          "echec": {
+            "kind": "sequence",
+            "etapes": []
           }
         }
       ]
@@ -14797,8 +14797,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14838,8 +14838,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14871,8 +14871,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14915,8 +14915,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -14966,8 +14966,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -15010,8 +15010,8 @@
       "page": 163
     },
     "consumable": {
-      "kind": "do",
-      "effect": {
+      "kind": "effet",
+      "effet": {
         "type": "ops",
         "ops": [
           {
@@ -15349,15 +15349,15 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15494,15 +15494,15 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15556,15 +15556,15 @@
           "radiusMeters": 6
         },
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15582,15 +15582,15 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15611,13 +15611,13 @@
           "radiusMeters": 6
         },
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -15626,13 +15626,13 @@
               "difficulty": "complexe",
               "label": "Déchireur de sociabilité"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -15650,13 +15650,13 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 3
           },
-          "then": {
+          "alors": {
             "kind": "test",
             "test": {
               "skill": {
@@ -15665,13 +15665,13 @@
               "difficulty": "complexe",
               "label": "Déchireur de sociabilité"
             },
-            "success": {
-              "kind": "seq",
-              "steps": []
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
             },
-            "fail": {
-              "kind": "do",
-              "effect": {
+            "echec": {
+              "kind": "effet",
+              "effet": {
                 "type": "ops",
                 "ops": [
                   {
@@ -15878,15 +15878,15 @@
         "trigger": "onHit",
         "on": "self",
         "flow": {
-          "kind": "if",
-          "cond": {
+          "kind": "si",
+          "condition": {
             "kind": "slThreshold",
             "op": "<=",
             "value": 2
           },
-          "then": {
-            "kind": "do",
-            "effect": {
+          "alors": {
+            "kind": "effet",
+            "effet": {
               "type": "ops",
               "ops": [
                 {
@@ -15945,8 +15945,8 @@
         "on": "self",
         "coupCritique": true,
         "flow": {
-          "kind": "do",
-          "effect": {
+          "kind": "effet",
+          "effet": {
             "type": "ops",
             "ops": [
               {

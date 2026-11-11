@@ -490,7 +490,7 @@ export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG)
  *  une rangée influençable par guetteur dans la MÊME fenêtre) ; les autres (ennemi embusqué, héros en cadence
  *  auto) passent par l'exécuteur cadence-aware (`runCombatFlow`, jet inline) avec le MÊME freeze en
  *  `opposedFreeze`. L'embusqueur (`sneak`) est le `caster` ; Furtif (LDB 85) est baké en `attackerBonusSL`.
- *  Sur défaite d'un guetteur (branche `fail`) : Vigilance (talent, LDB 10) interpose un Test de Perception
+ *  Sur défaite d'un guetteur (branche `echec`) : Vigilance (talent, LDB 10) interpose un Test de Perception
  *  (+0) pour ignorer la Surprise, sinon l'État `Surpris` — la branche est jouée PAR RANGÉE, donc ce second
  *  Test n'est appendu à la cascade que pour le porteur concerné. Appelée APRÈS la pose du `battle` (sujet
  *  HORS-TOUR : Round 1 pas encore commencé) ; à la fermeture de la cascade, `resumeSuspendedAI` est un no-op
@@ -513,11 +513,11 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   // spécifiquement défaite, l'ouïe reste le dernier recours ; détonations/rixe = indices sonores). Un guetteur
   // Sourd reste donc VULNÉRABLE par défaut (`senseMatches`, trauma.ts : sens du Test inconnu → pénalité
   // appliquée, conservateur) plutôt qu'exempté en bloc — cohérent avec les scénarios d'embuscade cités.
-  const surprise: Flow = { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: COND.surpris, value: 1 }] } };
+  const surprise: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: COND.surpris, value: 1 }] } };
   const onLose: Flow = {
-    kind: 'if', cond: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
-    then: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
-    else: surprise,
+    kind: 'si', condition: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
+    alors: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
+    sinon: surprise,
   };
   // Embusqueur (Discrétion, FIGÉE comme attaquant opposé) vs guetteurs (Perception, les défenseurs qui jettent).
   const difficulty: Difficulty = 'intermediaire';
@@ -2981,7 +2981,7 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
   const flow = testFlow(
     { ...test, stake: combatStakeRef('focalisation-interrompue') },
     EMPTY_FLOW,
-    { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
+    { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
   );
   runCombatFlow({ get, set, target, caster: target, label: test.label }, flow);
   return []; // le journal voyage par la cascade (manuel) ou la file différée (inline) — pas de retour inline
@@ -4026,7 +4026,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts
 // ── Attaques GRATUITES accordées par un TALENT déclenché (Assaut féroce `onHit`, Frappe réactive
 //    `onCharged`) : op `grantFreeAttack{when:'immediate'}` portée en DONNÉE par le talent. Résolution
 //    INSTANTANÉE (motif aiAvailableFreeAttack — pas de modale), arme TENUE, Action PRÉSERVÉE. La frappe est
-//    OUVERTE par `accorderLAttaqueGratuite` que `runCombatFlow` appelle sur le `do`/`grantFreeAttack` — un
+//    OUVERTE par `accorderLAttaqueGratuite` que `runCombatFlow` appelle sur le `effet`/`grantFreeAttack` — un
 //    éventuel jet préalable (Frappe réactive : Test d'Initiative LDB 10 l.496-500) est un nœud Flow
 //    `test` EN AMONT (cadence-aware : héros manuel = jet influençable ; ennemi/auto = inline). ──
 
@@ -4034,7 +4034,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant, opts
  *  réactive, la victime touchée pour Assaut féroce) : plafond /Round (`fa.cap` = niveau, via
  *  `freeAttacksThisTurn[fa.key]`) + 1× par chargeur ; coût (Avantage) ; puis frappe INSTANTANÉE à l'arme
  *  tenue, Action préservée. Le plafond borne aussi la récursion (un onHit qui touche → +1 attaque, recomptée
- *  → s'arrête au niveau). Appelée par `accorderLAttaqueGratuite` quand `runCombatFlow` exécute le `do`/`grantFreeAttack`
+ *  → s'arrête au niveau). Appelée par `accorderLAttaqueGratuite` quand `runCombatFlow` exécute le `effet`/`grantFreeAttack`
  *  (le Test préalable a déjà réussi en amont, c'est un nœud Flow). */
 function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   const target = inBattleId(get().battle, fa.targetId);
@@ -4067,7 +4067,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
 }
 
 /** Pont exécuteur de Flow → vraie frappe, appelé par `runCombatFlow` (`combat/triggeredTest`) sur un
- *  `do`/`grantFreeAttack`. REND la
+ *  `effet`/`grantFreeAttack`. REND la
  *  suspension de la frappe (#1852) — le dispatcher d'ops s'arrête à la première fenêtre ouverte. */
 export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
   return applyTalentFreeAttack(get, set, actor, op, fa);
@@ -4075,8 +4075,8 @@ export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant,
 
 /** SEUL émetteur des Flows qui accordent une attaque gratuite (`flowHasFreeAttack`) de `actor` pour
  *  `trigger` (contre `victim`, le tiers threadé dans `ctx.freeAttack`) : le bus les saute
- *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choice`/`test`
- *  cadence-aware, `do`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
+ *  (`applyTriggeredEffects`). Chaque Flow est JOUÉ ENTIER par `runCombatFlow` (nœud `choix`/`test`
+ *  cadence-aware, `effet`/`grantFreeAttack` qui ouvre la frappe), aux cibles de la MÊME enveloppe que le bus
  *  (`ciblesDeLEffet`). `ctx` = le contexte de l'événement (arme de la touche, type d'attaque). Vaut héros
  *  ET IA. Rend le nombre de Flows joués ; la file s'arrête à la première défense ouverte. LDB 10 l.500. */
 export function resolveFreeAttacks(
@@ -5846,7 +5846,7 @@ function lancerLeSortGaranti(get: Get, set: SetFn, caster: Combatant, target: Co
  * pousse son journal dans la file différée `pendingLogQueue` ; `drainPendingLog` la vide ici et rend les
  * lignes (`.text`) — la file capte AUSSI les lignes des hooks profonds déclenchés par les ops du sort
  * (`onGainCondition` d'un ennemi → Mâchoires), donc elles ne sont plus orphelines. Aucun sort n'ayant
- * ENCORE de nœud Flow `test`, `runCombatFlow` s'exécute de bout en bout (do/if seulement).
+ * ENCORE de nœud Flow `test`, `runCombatFlow` s'exécute de bout en bout (effet/si seulement).
  *
  * L'ENTITÉ PORTEUSE (`source: {kind:'spell', id}`) entre dans l'`opsCtx` ICI, une fois pour les trois
  * appelants : c'est elle que les `ActiveEffect` posés portent, et c'est d'elle que les 46 `FlowTest`
@@ -7207,7 +7207,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   // l'écran) ; ceux qui CHANGENT le contexte (téléport/dialogue/combat) sont DIFFÉRÉS au clic « Continuer »
   // (la sortie de la victoire) — sinon le téléport masque l'écran de victoire (cas de l'arène).
   const CONTEXT = new Set(['transition', 'transitionBack', 'startDialogue', 'startCombat']);
-  // onVictory est un Flow (UN format avec triggers/dialogues) — on l'APLATIT ici (les `if` résolus contre
+  // onVictory est un Flow (UN format avec triggers/dialogues) — on l'APLATIT ici (les `si` résolus contre
   // l'état courant) pour garder la partition CONTEXT/immédiat + la mesure de récompense sur la séquence plate.
   const all = battle.onVictory ? flattenFlow(battle.onVictory, condCtx(get)) : [];
   const deferred = all.filter((e) => CONTEXT.has(e.type));
@@ -7271,7 +7271,7 @@ function lockedGauntletHolds(wielder: Combatant, drop: Weapon, round: number): b
  * `piegeALame`) : l'adversaire est désarmé de la lame visée (`bt.weaponUid`), arrachée de ses mains. Marge
  * NETTE `(DR final du défenseur + bt.defSL) − bt.attackerSL` ≥ 6 (Succès Stupéfiant, LDB 62 l.280) → la lame
  * est BRISÉE à moins qu'elle ne possède l'Atout Incassable (sauvegarde Solide gérée par `wearActiveWeapon`).
- * Échec/égalité au Test ⇒ branche `fail` (pas d'op, l'adversaire libère sa lame) → cette fonction n'est pas
+ * Échec/égalité au Test ⇒ branche `echec` (pas d'op, l'adversaire libère sa lame) → cette fonction n'est pas
  * appelée. La conséquence est EMPILÉE comme étape d'AFFICHAGE propre dans la cascade (`pushDisplay` →
  * `issueDuPiegeALame`, applier muet) — MÊME paradigme que le Coup Critique (une étape visible « l'un sous
  * l'autre », acquittée par « Continuer/Terminer ») plutôt qu'une ligne noyée. `defenderSL` = le DR PROPRE du
@@ -7886,7 +7886,7 @@ function cleDeTour(battle: BattleState, id: string): string {
  *  CE déplacement et affrontant la MÊME entrée de règle (la Peur de cette source, à cet Indice) forment
  *  UNE BANDE influençable quand ils sont pilotés à la main ; les autres (ennemi, héros auto) restent
  *  résolus INLINE par le même Flow — patron EXACT de la Surprise (`resolveAmbush`). La conséquence PURE
- *  de l'échec (1 État Brisé) est une op `condition` portée par la branche `fail`. */
+ *  de l'échec (1 État Brisé) est une op `condition` portée par la branche `echec`. */
 export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, fromPos: Pt, toPos?: Pt): void {
   const battle = get().battle;
   const arrivee = toPos ?? mover.pos;
@@ -7909,7 +7909,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   });
   const branches = {
     onSuccess: EMPTY_FLOW, // réussite : garde son sang-froid, rien à faire
-    onFail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: COND.brise, value: 1 }] } } as Flow,
+    onFail: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: COND.brise, value: 1 }] } } as Flow,
   };
   const bandes = new Map<number, Combatant[]>();
   for (const d of dues) {
@@ -8968,7 +8968,7 @@ export const TABLES = {
         // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
         // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
         { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('piege-lame-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
-        { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
+        { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
         EMPTY_FLOW,
       );
       runCombatFlow({ get, set, target: defender, caster: attacker, label: 'Piège-lame', piegeALame: bt }, flow);

@@ -266,7 +266,7 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     set({ battle: { ...battle, log, acted, action: null, movementUsed: (battle.movementUsed ?? 0) + cost, movedPreAction: battle.movedPreAction || !battle.acted, reachable: new Map(), preview: null } });
     bus.emit(EVT.SCENE_DIRTY);
     // Lanceur = le mobile (`actorId`), LDB 15 l.57.
-    if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, combatConditionCtx(mover, {}), plan.flow.success, plan.flow.fail, EMPTY_FLOW, { actorId: mover.id });
+    if (plan.kind === 'test') openSkillTest(get, set, plan.flow.test, combatConditionCtx(mover, {}), plan.flow.reussite, plan.flow.echec, EMPTY_FLOW, { actorId: mover.id });
   },
   /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus
    *  basse, `planFranchissement`) — geste JOUEUR seulement (IA hors périmètre : elle ne saute jamais). Ouvre le

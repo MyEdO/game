@@ -160,7 +160,7 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
     expect(etapeTest(), 'un porteur sans siège ne reçoit pas de fenêtre : la voie inline tranche').toBeFalsy();
     expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
       'e — Test de Résistance Intermédiaire (+0) : 63/35 → échec (DR -3).', // valeur NUE de la porte, pas un calcul maison
-      'e reçoit 1 État Sonné.', // LDB 18 l.72 — la branche `fail`, appliquée sur l'issue de la porte
+      'e reçoit 1 État Sonné.', // LDB 18 l.72 — la branche `echec`, appliquée sur l'issue de la porte
     ]);
     expect(stacks(enemy, 'sonne')).toBe(1);
   });
@@ -205,7 +205,7 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
     if (!f || f.kind !== 'test') throw new Error(`noeud test attendu, recu : ${f ? f.kind : 'rien'}`);
     return f;
   };
-  const etapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'seq' ? f.steps : f ? [f] : []);
+  const etapes = (f: Flow | undefined): Flow[] => (f && f.kind === 'sequence' ? f.etapes : f ? [f] : []);
 
   it('(vi) héros 2× Sonné, « Doigt sectionné » (dé 83) : la cible est celle de la PORTE, États compris', () => {
     seedBattleRng(1);
@@ -259,14 +259,14 @@ describe('#1657 B3-1b — le Test d’AMPUTATION naît comme une étape, à la v
 
     // Gate RÉUSSI (l.171 : la perte n'a lieu que « sur un échec ») — aucune conséquence, pas même un État.
     const sauf = mk('h', 'hero');
-    runPureFlowLines(sauf, sauf, gate.success, { idNeuf: idsDeTest, rng: desDuTest, sl: 3 });
+    runPureFlowLines(sauf, sauf, gate.reussite, { idNeuf: idsDeTest, rng: desDuTest, sl: 3 });
     expect(sauf.traumas).toEqual([]);
     expect(stacks(sauf, 'a-terre')).toBe(0);
 
     // Gate RATÉ → le Test d'Amputation (l.237) ; RATÉ à −2 DR → À Terre + Sonné + la perte de l'orteil.
-    const [interne, perte] = etapes(gate.fail);
+    const [interne, perte] = etapes(gate.echec);
     const touche = mk('h', 'hero');
-    runPureFlowLines(touche, touche, noeudDeTest(interne).fail, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
+    runPureFlowLines(touche, touche, noeudDeTest(interne).echec, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     runPureFlowLines(touche, touche, perte, { idNeuf: idsDeTest, rng: desDuTest, sl: -2 });
     expect(stacks(touche, 'a-terre')).toBe(1);
     expect(stacks(touche, 'sonne')).toBe(1);

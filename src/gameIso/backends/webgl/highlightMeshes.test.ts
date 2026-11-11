@@ -71,10 +71,10 @@ describe('Marques volumiques — le compte d’instances est celui des élément
     const c = comptesAttendus(ELS);
     expect(c.get('deplacement')).toBe(3);
     expect(c.get('course')).toBe(1); // `5,2` seul : `3,2` est déjà en Marche
-    expect(c.get('teamActive')).toBe(1);
-    expect(c.get('team')).toBe(1);
-    expect(c.get('zoneSmoke')).toBe(2);
-    expect(c.get('ringContour')).toBe(1);
+    expect(c.get('equipeActive')).toBe(1);
+    expect(c.get('equipe')).toBe(1);
+    expect(c.get('zoneDeFumee')).toBe(2);
+    expect(c.get('anneauDeContour')).toBe(1);
   });
 
   it('un pool par slot : `count` == le nombre d’éléments de ce slot, capacité en réserve', () => {
@@ -151,7 +151,7 @@ describe('Marques volumiques — pose MONDE et rang de superposition', () => {
   });
 
   it('rang de lift CROISSANT : deplacement < team < zone < ring (les coplanaires ne se z-fightent pas)', () => {
-    const lifts = ['deplacement', 'team', 'zoneSmoke', 'ringContour'] as const;
+    const lifts = ['deplacement', 'equipe', 'zoneDeFumee', 'anneauDeContour'] as const;
     const suite = lifts.map(slotLiftM);
     expect(suite).toEqual([...suite].sort((a, b) => a - b));
     expect(new Set(suite).size).toBe(4);
@@ -159,8 +159,8 @@ describe('Marques volumiques — pose MONDE et rang de superposition', () => {
   });
 
   it('un anneau posé sur une teinte d’équipe est AU-DESSUS d’elle, sur la même case', () => {
-    const anneau = ELS.find((e) => e.kind === 'ring')!;
-    const equipe = ELS.find((e) => e.kind === 'team' && e.cell.x === anneau.cell.x && e.cell.y === anneau.cell.y)!;
+    const anneau = ELS.find((e) => e.kind === 'anneau')!;
+    const equipe = ELS.find((e) => e.kind === 'equipe' && e.cell.x === anneau.cell.x && e.cell.y === anneau.cell.y)!;
     const y = (el: HighlightEl) => new THREE.Vector3().setFromMatrixPosition(highlightMatrix(el, MPT)).y;
     expect(y(anneau)).toBeGreaterThan(y(equipe));
   });
@@ -178,17 +178,17 @@ describe('Marques volumiques — pose MONDE et rang de superposition', () => {
     }
     const kinds = [...parKind.keys()];
     expect(kinds.length, 'la sonde doit VRAIMENT voir plusieurs natures').toBeGreaterThan(4);
-    expect(kinds[kinds.length - 1], 'les bandes de portée sont émises EN DERNIER (donc au-dessus)').toBe('rangeBand');
+    expect(kinds[kinds.length - 1], 'les bandes de portée sont émises EN DERNIER (donc au-dessus)').toBe('bandeDePortee');
     const bornes = [...parKind.values()].map((l) => [Math.min(...l), Math.max(...l)]);
     for (let i = 1; i < bornes.length; i++)
       expect(bornes[i][0], `le bloc de rangs du kind #${i} chevauche le précédent`).toBeGreaterThan(bornes[i - 1][1]);
   });
 
   it('deux slots d’un MÊME kind ne partagent pas leur rang (fumée + feu sur la même case)', () => {
-    const même = (slot: 'zoneFire' | 'zoneSmoke' | 'team' | 'teamActive' | 'ringCrowd' | 'ringContour') => slotLiftM(slot);
-    expect(même('zoneFire')).not.toBe(même('zoneSmoke'));
-    expect(même('team')).not.toBe(même('teamActive'));
-    expect(même('ringCrowd')).not.toBe(même('ringContour'));
+    const même = (slot: 'zoneDeFeu' | 'zoneDeFumee' | 'equipe' | 'equipeActive' | 'anneauDeFoule' | 'anneauDeContour') => slotLiftM(slot);
+    expect(même('zoneDeFeu')).not.toBe(même('zoneDeFumee'));
+    expect(même('equipe')).not.toBe(même('equipeActive'));
+    expect(même('anneauDeFoule')).not.toBe(même('anneauDeContour'));
   });
 });
 
@@ -207,8 +207,8 @@ describe('Marques volumiques — l’anneau-contour est un CADRE, pas un quad pl
   }
 
   it('le pool `ringContour` porte quatre bandes, jamais les deux triangles de la case pleine', () => {
-    const cadre = buildHighlightMesh('ringContour', 32).geometry;
-    const plein = buildHighlightMesh('ringCrowd', 32).geometry;
+    const cadre = buildHighlightMesh('anneauDeContour', 32).geometry;
+    const plein = buildHighlightMesh('anneauDeFoule', 32).geometry;
     expect(plein.getAttribute('position').count).toBe(6); // 2 triangles
     expect(cadre.getAttribute('position').count).toBe(24); // 4 bandes × 2 triangles
     // la case entière MOINS son liseré de grille, sur les quatre bords (`TILE_INSET_K`)
@@ -218,7 +218,7 @@ describe('Marques volumiques — l’anneau-contour est un CADRE, pas un quad pl
   });
 
   it('le cadre est CREUX : aucun sommet à l’intérieur du liseré', () => {
-    const cadre = buildHighlightMesh('ringContour', 32).geometry;
+    const cadre = buildHighlightMesh('anneauDeContour', 32).geometry;
     const p = cadre.getAttribute('position');
     const bord = Math.max(...Array.from({ length: p.count }, (_, i) => Math.max(Math.abs(p.getX(i)), Math.abs(p.getZ(i)))));
     expect(bord).toBeCloseTo(0.5, 9); // le cadre touche bien le bord de la case
@@ -238,13 +238,13 @@ describe('Marques volumiques — teintes du catalogue partagé, jamais un litté
   it('chaque nature prend la teinte que le catalogue partagé lui donne', () => {
     expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'deplacement' })).toBe(WALK_TINT);
     expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'zone', smoke: true })).toBe(ZONE_SMOKE_TINT);
-    expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'ring', tone: 'target' })).toBe(RING_TARGET_TINT);
-    expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'team', hero: true, active: false })).toBe(tileTint(true, false));
+    expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'anneau', tone: 'cible' })).toBe(RING_TARGET_TINT);
+    expect(highlightTint({ key: 'k', cell: { x: 0, y: 0, z: 0 }, h: 0, kind: 'equipe', hero: true, active: false })).toBe(tileTint(true, false));
   });
 
   it('la teinte voyage PAR INSTANCE : deux équipes dans le même pool, deux couleurs', () => {
-    const els = ELS.filter((e) => e.kind === 'team');
-    const mesh = buildHighlightMesh('team', slotCapacity(4));
+    const els = ELS.filter((e) => e.kind === 'equipe');
+    const mesh = buildHighlightMesh('equipe', slotCapacity(4));
     writeHighlightInstances(mesh, els.slice(0, 1), MPT);
     const c = new THREE.Color();
     mesh.getColorAt(0, c);

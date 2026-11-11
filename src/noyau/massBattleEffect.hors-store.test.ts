@@ -61,7 +61,7 @@ describe('Effet startMassBattle — sérialisation (round-trip éditeur)', () =>
     const def = EFFECT_HANDLERS.startMassBattle.make() as Extract<Effect, { type: 'startMassBattle' }>;
     apply([def]);
     const mb = banc.getState().massBattle!;
-    expect([mb.ally.label, mb.enemy.label]).toEqual([nomDArmee(def.battle, 'ally'), nomDArmee(def.battle, 'enemy')]);
+    expect([mb.allie.label, mb.ennemi.label]).toEqual([nomDArmee(def.battle, 'allie'), nomDArmee(def.battle, 'ennemi')]);
     expect([def.battle.allyName, def.battle.enemyName]).toEqual([undefined, undefined]);
   });
 });
@@ -73,12 +73,12 @@ describe('Effet startMassBattle — appliqué par applyEffects', () => {
     const s = banc.getState();
     expect(s.screen).toBe('massBattle');
     const mb = s.massBattle!;
-    expect(mb.ally.label).toBe('Ost du Reikland');
-    expect(mb.enemy.label).toBe('Horde de Khorne');
+    expect(mb.allie.label).toBe('Ost du Reikland');
+    expect(mb.ennemi.label).toBe('Horde de Khorne');
     // L'armée = un Combattant inanimé à Blessures : PB courantes = Puissance, PB max = Puissance de départ.
-    expect(armyMight(mb.ally)).toBe(60);
-    expect(armyStartMight(mb.ally)).toBe(60);
-    expect(armyMight(mb.enemy)).toBe(40);
+    expect(armyMight(mb.allie)).toBe(60);
+    expect(armyStartMight(mb.allie)).toBe(60);
+    expect(armyMight(mb.ennemi)).toBe(40);
     expect(mb.plannedRounds).toBe(2);
     expect(mb.allyMod).toBe(10);          // Modif. permanent (Planification) authoré
     expect(mb.situationSize).toBe(2);

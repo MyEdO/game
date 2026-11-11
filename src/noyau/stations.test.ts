@@ -46,11 +46,11 @@ describe('postesToStations — une Station par poste, ids/assignedIds/side/ref',
     expect(s1.kind).toBe('poste');
   });
 
-  it('faction dérivée du kind de la coque : hero→ally, enemy→enemy, npc→neutral', () => {
+  it('faction dérivée du kind de la coque : hero→allie, enemy→ennemi, npc→neutre', () => {
     const mk = (kind: Combatant['kind']) => postesToStations([mkHull('h', kind, [mkPoste('baliste', ['c'])])])[0];
-    expect(mk('hero').faction).toBe('ally');
-    expect(mk('enemy').faction).toBe('enemy');
-    expect(mk('npc').faction).toBe('neutral');
+    expect(mk('hero').faction).toBe('allie');
+    expect(mk('enemy').faction).toBe('ennemi');
+    expect(mk('npc').faction).toBe('neutre');
   });
 
   it('un Combattant SANS postes ne produit aucune Station', () => {
@@ -103,11 +103,11 @@ describe('battleScenesToStations — Scènes de la situation → Stations spatia
     expect(st[0].manned).toBe(false);
   });
 
-  it('faction : threat → enemy, sinon neutral', () => {
+  it('faction : threat → ennemi, sinon neutre', () => {
     const scene = sceneWith([{ sceneId: 'intrus', pos: { x: 6, y: 8 } }, { sceneId: 'motivation', pos: { x: 4, y: 12 } }]);
     const st = battleScenesToStations(['intrus', 'motivation'], {}, scene);
-    expect(st.find((s) => s.ref.kind === 'battleScene' && s.ref.sceneId === 'intrus')!.faction).toBe('enemy');
-    expect(st.find((s) => s.ref.kind === 'battleScene' && s.ref.sceneId === 'motivation')!.faction).toBe('neutral');
+    expect(st.find((s) => s.ref.kind === 'battleScene' && s.ref.sceneId === 'intrus')!.faction).toBe('ennemi');
+    expect(st.find((s) => s.ref.kind === 'battleScene' && s.ref.sceneId === 'motivation')!.faction).toBe('neutre');
   });
 
   it('affectation MULTI-PJ → assignedIds (liste ordonnée) + manned', () => {

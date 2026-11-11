@@ -1,3 +1,4 @@
+import type { Equipe } from '../engine/relations';
 import type { CSSProperties } from 'react';
 import { hpColor } from '../gameIso/teamColors';
 import { teamRingDecor } from '../gameIso/builders/dynamicMarks';
@@ -38,7 +39,7 @@ export interface PortraitTileProps {
    *  (or) et du picker (sel). Réciprocité frise↔carte. */
   hovered?: boolean;
   /** Fond d'équipe derrière le portrait (vert allié / rouge ennemi). */
-  team?: 'ally' | 'enemy';
+  team?: Equipe;
   ring?: ReturnType<typeof teamRingDecor>;
   maxStates?: number;
   /** Cellule d'États à EMPREINTE STABLE (arbitrage user 2026-07-11) : rendue vide sans État pour que

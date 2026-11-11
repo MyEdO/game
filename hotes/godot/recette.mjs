@@ -1778,10 +1778,10 @@ async function parcoursEditeur() {
   /** Le pas neuf ajouté au rang `n` de la séquence du flux d'id `flux`, sa branche `kind` choisie, l'élément `attendu`
    *  montré. */
   const ajouterLePas = async (flux, n, kind, attendu) => {
-    await cliquerAuPanneau({ element: `bouton/${flux}/steps/ajouter` })
-    await waitFor(session, montre(`${flux}/steps/${n}/kind`))
+    await cliquerAuPanneau({ element: `bouton/${flux}/etapes/ajouter` })
+    await waitFor(session, montre(`${flux}/etapes/${n}/kind`))
     e = await editeur()
-    await cliquerAuPanneau({ element: `bouton/${idDeLaVariante(e, `${flux}/steps/${n}/kind`, kind)}` })
+    await cliquerAuPanneau({ element: `bouton/${idDeLaVariante(e, `${flux}/etapes/${n}/kind`, kind)}` })
     await waitFor(session, montre(attendu))
   }
   /** Le texte `texte` écrit au champ `champ` du flux d'id `flux`, sa saisie tapée puis jouée. */
@@ -1790,15 +1790,15 @@ async function parcoursEditeur() {
     await cliquerAuPanneau({ element: `formulaire/${flux}/${champ}` })
     await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${flux}/${champ}')?.champs[2].valeur === ${JSON.stringify(texte)}`)
   }
-  await ajouterLePas(flux, 0, 'do', `${flux}/steps/0/effect/flag`)
-  await ecrireAuFlux(flux, 'steps/0/effect/flag', 'coffre')
-  await ajouterLePas(flux, 1, 'if', `${flux}/steps/1/cond/kind`)
+  await ajouterLePas(flux, 0, 'effet', `${flux}/etapes/0/effet/flag`)
+  await ecrireAuFlux(flux, 'etapes/0/effet/flag', 'coffre')
+  await ajouterLePas(flux, 1, 'si', `${flux}/etapes/1/condition/kind`)
   e = await editeur()
-  await choisirALaListe(`${flux}/steps/1/cond/kind`, idDeLaVariante(e, `${flux}/steps/1/cond/kind`, 'flag'), 'editeur.inspecteur', montre(`${flux}/steps/1/cond/expr`))
-  await ecrireAuFlux(flux, 'steps/1/cond/expr', 'coffre')
+  await choisirALaListe(`${flux}/etapes/1/condition/kind`, idDeLaVariante(e, `${flux}/etapes/1/condition/kind`, 'flag'), 'editeur.inspecteur', montre(`${flux}/etapes/1/condition/expr`))
+  await ecrireAuFlux(flux, 'etapes/1/condition/expr', 'coffre')
   e = await editeur()
   const branche = (id) => inspecte(e, id).valeurs.find((b) => b.presse).libelle
-  noter(`un clic sur le décor « Comptoir », onglet Rôles, le flux de l’action « coffre » : « ${branche(`${flux}/kind`)} » ; « ${inspecte(e, `${flux}/steps/ajouter`).libelle} » : un pas « ${branche(`${flux}/steps/0/kind`)} », effet « ${branche(`${flux}/steps/0/effect/type`)} » sur l’indicateur « coffre », puis un pas « ${branche(`${flux}/steps/1/kind`)} », condition « ${branche(`${flux}/steps/1/cond/kind`)} » « coffre »`)
+  noter(`un clic sur le décor « Comptoir », onglet Rôles, le flux de l’action « coffre » : « ${branche(`${flux}/kind`)} » ; « ${inspecte(e, `${flux}/etapes/ajouter`).libelle} » : un pas « ${branche(`${flux}/etapes/0/kind`)} », effet « ${branche(`${flux}/etapes/0/effet/type`)} » sur l’indicateur « coffre », puis un pas « ${branche(`${flux}/etapes/1/kind`)} », condition « ${branche(`${flux}/etapes/1/condition/kind`)} » « coffre »`)
   await capturer('3606-m2b-1-flux')
   await cliquerPoint(...cases[`${zx},${zy}`])
   await waitFor(session, montre('valeur/merchant/settlement'))
@@ -1850,7 +1850,7 @@ async function parcoursEditeur() {
   /** Le déclencheur tel que l'inspecteur le montre : sa condition pressée et les pas de son flux. */
   const etatDuDeclencheur = (e) => ({
     condition: inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse)?.id,
-    pas: e.zones['editeur.inspecteur'].filter((el) => /^valeur\/flow\/steps\/\d+\/kind$/.test(el.id)).length,
+    pas: e.zones['editeur.inspecteur'].filter((el) => /^valeur\/flow\/etapes\/\d+\/kind$/.test(el.id)).length,
   })
   const declencheurAvant = etatDuDeclencheur(e)
   await choisirALaListe('valeur/when/kind', inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.libelle === 'TOUS (ET)').id, 'editeur.inspecteur')
@@ -1862,34 +1862,34 @@ async function parcoursEditeur() {
   noter(`à l’inspecteur du déclencheur, la condition « ${inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse).libelle} », puis « Ajouter » : une condition « ${sousCondition} » dans son contenu`)
   await capturer('3606-m0b-1-condition-du-declencheur')
   const rangDuPas = declencheurAvant.pas
-  await ajouterLePas('valeur/flow', rangDuPas, 'do', `valeur/flow/steps/${rangDuPas}/effect/flag`)
-  await ecrireAuFlux('valeur/flow', `steps/${rangDuPas}/effect/flag`, 'piege')
+  await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
+  await ecrireAuFlux('valeur/flow', `etapes/${rangDuPas}/effet/flag`, 'piege')
   e = await editeur()
-  noter(`le flux du même déclencheur : « ${inspecte(e, 'valeur/flow/kind').valeurs.find((b) => b.presse).libelle} » ; « ${inspecte(e, 'valeur/flow/steps/ajouter').libelle} » : un pas « ${inspecte(e, `valeur/flow/steps/${rangDuPas}/kind`).valeurs.find((b) => b.presse).libelle} » après les ${rangDuPas} du flux, effet « ${inspecte(e, `valeur/flow/steps/${rangDuPas}/effect/type`).valeurs.find((b) => b.presse).libelle} » sur l’indicateur « piege »`)
+  noter(`le flux du même déclencheur : « ${inspecte(e, 'valeur/flow/kind').valeurs.find((b) => b.presse).libelle} » ; « ${inspecte(e, 'valeur/flow/etapes/ajouter').libelle} » : un pas « ${inspecte(e, `valeur/flow/etapes/${rangDuPas}/kind`).valeurs.find((b) => b.presse).libelle} » après les ${rangDuPas} du flux, effet « ${inspecte(e, `valeur/flow/etapes/${rangDuPas}/effet/type`).valeurs.find((b) => b.presse).libelle} » sur l’indicateur « piege »`)
   await capturer('3606-m2c-1-declencheur')
   for (let n = 0; n < 5; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/steps/${rangDuPas}/'))`)
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/when/of'))`)
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » cinq fois, le déclencheur recliqué : rendu à sa condition et à son flux d’avant les deux étapes')
-  await ajouterLePas('valeur/flow', rangDuPas, 'do', `valeur/flow/steps/${rangDuPas}/effect/flag`)
-  const pasDOps = `valeur/flow/steps/${rangDuPas}/effect`
+  await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
+  const pasDOps = `valeur/flow/etapes/${rangDuPas}/effet`
   e = await editeur()
   await choisirALaListe(`${pasDOps}/type`, inspecte(e, `${pasDOps}/type`).valeurs.find((b) => b.jeu.args[2]?.type === 'ops').id, 'editeur.inspecteur', montre(`${pasDOps}/ops/ajouter`))
   await cliquerAuPanneau({ element: `bouton/${pasDOps}/ops/ajouter` })
   await waitFor(session, montre(`${pasDOps}/ops/0/op`))
   e = await editeur()
   await choisirALaListe(`${pasDOps}/ops/0/op`, inspecte(e, `${pasDOps}/ops/0/op`).valeurs.find((b) => b.jeu.args[2]?.op === 'grantNaturalWeapon').id, 'editeur.inspecteur', montre(`${pasDOps}/ops/0/label`))
-  await ecrireAuFlux('valeur/flow', `steps/${rangDuPas}/effect/ops/0/label`, 'Griffe')
+  await ecrireAuFlux('valeur/flow', `etapes/${rangDuPas}/effet/ops/0/label`, 'Griffe')
   e = await editeur()
   await choisirALaListe(`${pasDOps}/ops/0/attackKind`, inspecte(e, `${pasDOps}/ops/0/attackKind`).valeurs.find((b) => b.jeu.args[2] === 'morsure').id, 'editeur.inspecteur')
   e = await editeur()
   const pressee = (id) => inspecte(e, id).valeurs.find((b) => b.presse).libelle
-  noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/steps/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : l’op « ${pressee(`${pasDOps}/ops/0/op`)} », champ par champ, libellée « ${inspecte(e, `${pasDOps}/ops/0/label`).champs[2].valeur} », type d’attaque « ${pressee(`${pasDOps}/ops/0/attackKind`)} »`)
+  noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/etapes/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : l’op « ${pressee(`${pasDOps}/ops/0/op`)} », champ par champ, libellée « ${inspecte(e, `${pasDOps}/ops/0/label`).champs[2].valeur} », type d’attaque « ${pressee(`${pasDOps}/ops/0/attackKind`)} »`)
   await capturer('3606-m2a-1-op-typee')
   for (let n = 0; n < 7; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/steps/${rangDuPas}/'))`)
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
   await cliquerPoint(...cases[`${dx + 1},${dy}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » sept fois, le déclencheur recliqué : rendu à son flux d’avant l’op')
@@ -2059,7 +2059,7 @@ async function parcoursEditeur() {
   assert.equal(batie.architecture[0].facades.flatMap((f) => f.features ?? []).length, 1, 'une façade et son ouverture')
   assert.deepEqual(batie.effectZones.map((z) => [z.presentation, z.area]), [['interior', { kind: 'rect', ...ici(0, 0), w: 3, h: 3 }]], 'la pièce')
   assert.deepEqual(batie.entities.map((en) => [en.kind, en.pos, en.facing]), [['prop', ici(5, 4), 'E'], ['heroStart', ici(3, 5), undefined]], 'le décor tourné, le départ')
-  assert.deepEqual(batie.triggers.map((tr) => [tr.rect, tr.flow]), [[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'seq', steps: [] }]], 'le déclencheur, au flux vide')
+  assert.deepEqual(batie.triggers.map((tr) => [tr.rect, tr.flow]), [[{ ...ici(6, 4), w: 3, h: 3 }, { kind: 'sequence', etapes: [] }]], 'le déclencheur, au flux vide')
   noter(`« Enregistrer » : ${MANUSCRITS[ecrit]} porte la scène ${batie.id} : ${batie.layers.length} couches, ${batie.walls.length} arêtes, ${batie.architecture[0].storeys.length} étages, ${batie.effectZones.length} pièce, ${batie.entities.length} entités, ${batie.triggers.length} déclencheur`)
   await cliquerAuPanneau({ element: 'bouton/tester' })
   await waitFor(session, '!globalThis.wfrpEcran?.editeur && !!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })

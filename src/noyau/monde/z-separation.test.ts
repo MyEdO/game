@@ -171,7 +171,7 @@ describe('z-blindness #807 — aura (`TriggeredEffect.on:{near}`, effet déclenc
   const auraEffect = {
     trigger: 'onHit' as const,
     on: { near: 'self' as const, radiusMeters: 4 }, // 4 m → 2 cases
-    flow: { kind: 'do' as const, effect: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 6 }] } },
+    flow: { kind: 'effet' as const, effet: { type: 'ops' as const, on: 'target' as const, ops: [{ op: 'wounds' as const, amount: 6 }] } },
   };
 
   it('POSITIF — un combattant du même étage, dans le rayon, subit l\'aura', () => {

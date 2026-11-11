@@ -98,7 +98,7 @@ interface Tranche { ops: GameOp[]; typeDeDegats?: { id: string } }
  *  Type de Dégâts, les tranches voisines d'un même Type dans une seule feuille, dans l'ordre (les règles
  *  lisent les Blessures subies, `woundsDealt`). Les Dégâts d'un Type composé n'ont pas de Type. LDB 85 l.174,
  *  l.326-328 ; EDOC 13 l.237 ; VDM 10 l.153 */
-function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches: Tranche[]): Flow {
+function feuilleTypee(feuille: Flow & { kind: 'effet'; effet: EffectOp }, tranches: Tranche[]): Flow {
   const fusion = tranches.filter((tr) => tr.ops.length).reduce<Tranche[]>((acc, tr) => {
     const der = acc[acc.length - 1];
     if (der && der.typeDeDegats?.id === tr.typeDeDegats?.id) der.ops.push(...tr.ops);
@@ -106,10 +106,10 @@ function feuilleTypee(feuille: Flow & { kind: 'do'; effect: EffectOp }, tranches
     return acc;
   }, []);
   const noeuds = fusion.map(({ ops, typeDeDegats }): Flow => {
-    const f: Flow = { ...feuille, effect: { ...feuille.effect, ops } };
-    return typeDeDegats ? { kind: 'if', cond: sansImmunite(typeDeDegats), then: f } : f;
+    const f: Flow = { ...feuille, effet: { ...feuille.effet, ops } };
+    return typeDeDegats ? { kind: 'si', condition: sansImmunite(typeDeDegats), alors: f } : f;
   });
-  return noeuds.length === 1 ? noeuds[0] : { kind: 'seq', steps: noeuds };
+  return noeuds.length === 1 ? noeuds[0] : { kind: 'sequence', etapes: noeuds };
 }
 
 /** Le Souffle `base` composé avec les règles et le rendu de son Type ; sans Type, le Souffle seul. Les
@@ -119,9 +119,9 @@ export function souffleDuType(base: ManeuverDef, typeId: string | undefined, dif
   const type = findBreathTypeById(typeId);
   const regles = type ? typesAppliques(type) : [];
   const ignoreAP = regles.some((r) => r.ignoreAP);
-  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireFlow(e.flow, (n) => (n.kind === 'do' && isEffectOp(n.effect) && n.effect.ops.some((o) => o.op === 'wounds')
-    ? feuilleTypee({ ...n, effect: n.effect }, [
-      { ops: n.effect.ops.map((o) => (o.op === 'wounds' && ignoreAP ? { ...o, ignoreAP: true } : o)), typeDeDegats: type?.typeDeDegats },
+  const effets = (base.effects ?? []).map((e) => ({ ...e, flow: reecrireFlow(e.flow, (n) => (n.kind === 'effet' && isEffectOp(n.effet) && n.effet.ops.some((o) => o.op === 'wounds')
+    ? feuilleTypee({ ...n, effet: n.effet }, [
+      { ops: n.effet.ops.map((o) => (o.op === 'wounds' && ignoreAP ? { ...o, ignoreAP: true } : o)), typeDeDegats: type?.typeDeDegats },
       ...regles.map((r) => ({ ops: opsDeLaRegle(r, difficulte), typeDeDegats: r.typeDeDegats })),
     ])
     : n)) }));

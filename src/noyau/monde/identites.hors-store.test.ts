@@ -59,7 +59,7 @@ function designer(party: ReturnType<typeof heros>[], heroId?: string) {
   get().chargerLeProjet({ scenes: [s], entryId: 'sc', narratif: narratif(), projet: null });
   banc.setState({ party });
   if (heroId === undefined) return;
-  runFlow(get, banc.setState, { kind: 'do', effect: { type: 'designerHeros', etat: 'sosie' } });
+  runFlow(get, banc.setState, { kind: 'effet', effet: { type: 'designerHeros', etat: 'sosie' } });
   get().fenetreChoisir('designationHeros', 'heros', heroId);
 }
 

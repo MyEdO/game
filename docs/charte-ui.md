@@ -338,7 +338,7 @@ module de sa primitive, déclaré au manifeste des primitives (champ `css`) et m
 | `team-segments.css` | `TeamSegments` | `.nm-ally`, `.nm-foe` |
 | `combat-banner.css` | `CombatBanner` | `.combat-feed`, `.cb-ev`, `.cb-now`, `.cb-tone-strong`, `.cb-tone-grave` |
 | `log-drawer.css` | `LogDrawer` / `NarratedLine` | `.log-drawer` (+ `.open`), `.ld-btn`, `.ld-panel`, `.jr-line`, `.jr-ic`, `.jr-tx` |
-| `portrait-tile.css` | `PortraitTile` | `.ptile*` (dont `.team-ally`/`.team-enemy`, `.active`, `.sel`, `.hov`), `.ptile-wrap`, `.ptile-face`, `.ptile-ring`, `.ptile-name`, `.ptile-caret`, `.ptile-more`, `.end-mark` (+ `.es-*`) |
+| `portrait-tile.css` | `PortraitTile` | `.ptile*` (dont `.team-allie`/`.team-ennemi`, `.active`, `.sel`, `.hov`), `.ptile-wrap`, `.ptile-face`, `.ptile-ring`, `.ptile-name`, `.ptile-caret`, `.ptile-more`, `.end-mark` (+ `.es-*`) |
 | `state-chips.css` | `StateChips` | `.ptile-states` (+ `[data-reserve]`), `.pt-state`, `.pt-void`, `.pt-n` — `--alv` (côté d'une alvéole) y prend sa valeur de BASE, le bandeau de groupe et la console posent la leur |
 | `initiative-strip.css` | `InitiativeStrip` | `.initiative-strip` (+ sa rampe de débord), `.is-tiles`, `.is-cell`, `.is-round`, `.is-score`, `.is-hand`, `.is-first`, `.is-preempt` |
 | `party-dock.css` | `PartyDock` | `.party-dock` (+ `.on`), `.pd-track`, `.pd-handle`, `.pd-count`, `.pd-label`, `.pd-micro` — identité et mise en page INTERNE seules : l'ANCRAGE de la bande (bord, rang d'empilement, réserve des coins) appartient à l'écran qui la monte (`hud.css`) |

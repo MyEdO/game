@@ -56,8 +56,8 @@ const rangee = (min: number) => rollShipCritical('greement', makeRNG(1), min, SH
 
 /** Les ops de la branche d'ÉCHEC, telles qu'elles sont AUTHORÉES (la porte joue cette branche). */
 const opsDEchec = (min: number): GameOp[] => {
-  const fail = rangee(min).crewHit!.test!.fail as { kind: string; effect: { type: string; ops: GameOp[] } };
-  return fail.effect.ops;
+  const fail = rangee(min).crewHit!.test!.echec as { kind: string; effet: { type: string; ops: GameOp[] } };
+  return fail.effet.ops;
 };
 
 /** Le patrouilleur : 25 m → Taille MOYENNE (MDG 12 l.126, 21-35) ; sa Taille est LUE, pas supposée. */

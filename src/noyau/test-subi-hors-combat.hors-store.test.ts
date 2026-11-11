@@ -82,16 +82,16 @@ type Rangee = { id: string; label: string; test: NoeudTest };
 function rangeeSonneSurLaCible(): Rangee {
   for (const table of crits as { entries?: Rangee[] }[]) {
     for (const e of table.entries ?? []) {
-      const f = e.test?.fail as { effect?: { type?: string; on?: string; ops?: GameOp[] } } | undefined;
-      if (f?.effect?.on !== 'target' || f.effect.type !== 'ops') continue;
-      const ops = f.effect.ops ?? [];
+      const f = e.test?.echec as { effet?: { type?: string; on?: string; ops?: GameOp[] } } | undefined;
+      if (f?.effet?.on !== 'target' || f.effet.type !== 'ops') continue;
+      const ops = f.effet.ops ?? [];
       if (ops.length === 1 && ops[0].op === 'condition' && (ops[0] as { id: string }).id === 'sonne') return e;
     }
   }
   throw new Error('aucune rangée de Critique à branche `on:target` posant un Sonné — le scan a glissé');
 }
 
-/** Le Test de fin de Round d'un État (`etats.json`) — celui de Sonné porte un `if` de branche. */
+/** Le Test de fin de Round d'un État (`etats.json`) — celui de Sonné porte un `si` de branche. */
 const noeudDEtat = (id: string): NoeudTest =>
   (etats as { id: string; effects?: { flow: Flow }[] }[]).find((e) => e.id === id)!
     .effects!.find((x) => x.flow.kind === 'test')!.flow as NoeudTest;
@@ -104,10 +104,10 @@ const noeudDeTalent = (id: string): NoeudTest =>
 /** Feuilles `ops` d'un Flow (branches comprises) — sert à CHOISIR un nœud par sa forme. */
 function feuilles(f: Flow | undefined): { on?: string; ops: GameOp[] }[] {
   if (!f) return [];
-  if (f.kind === 'do') return f.effect.type === 'ops' ? [f.effect as { on?: string; ops: GameOp[] }] : [];
-  if (f.kind === 'seq') return f.steps.flatMap(feuilles);
-  if (f.kind === 'if') return [...feuilles(f.then), ...feuilles(f.else)];
-  if (f.kind === 'test') return [...feuilles(f.success), ...feuilles(f.fail)];
+  if (f.kind === 'effet') return f.effet.type === 'ops' ? [f.effet as { on?: string; ops: GameOp[] }] : [];
+  if (f.kind === 'sequence') return f.etapes.flatMap(feuilles);
+  if (f.kind === 'si') return [...feuilles(f.alors), ...feuilles(f.sinon)];
+  if (f.kind === 'test') return [...feuilles(f.reussite), ...feuilles(f.echec)];
   return [...feuilles(f.oui), ...feuilles(f.non)];
 }
 /** Tous les nœuds `test` d'un Flow, racine comprise. */
@@ -141,7 +141,7 @@ function ligneDeLaConsequence(): string {
 function noeudDeSortACaster(): NoeudTest {
   for (const sp of spells as { effects?: Flow }[]) {
     for (const n of noeudsTest(sp.effects)) {
-      const caster = [...feuilles(n.success), ...feuilles(n.fail)]
+      const caster = [...feuilles(n.reussite), ...feuilles(n.echec)]
         .filter((e) => e.on === 'caster' && e.ops.some((o) => o.op !== 'narrative'));
       if (caster.length) return n;
     }
@@ -191,7 +191,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     // `etats.json` Sonné : la réussite retire 1 Sonné + 1 par DR, puis `if compare target` pose
     // Exténué quand il ne reste ni Sonné ni Exténué (LDB 16).
     const node = noeudDEtat('sonne');
-    // DR 0 : un seul Sonné retiré sur trois — la Condition de l'`if` reste fausse.
+    // DR 0 : un seul Sonné retiré sur trois — la Condition de le `si` reste fausse.
     decor();
     set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, conditions: [{ id: 'sonne', value: 3 }] } : c)) as never });
     const sujet = heros('h3');
@@ -199,7 +199,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     acquitter({ success: true, sl: 0 });
     expect(heros('h3').conditions!.find((c) => c.id === 'sonne')!.value).toBe(2);
     expect(etatsDe('h3')).not.toContain('extenue');
-    // DR 2 : 1 + 2 Sonné retirés → plus aucun → l'`if` sur le SUJET bascule et pose Exténué.
+    // DR 2 : 1 + 2 Sonné retirés → plus aucun → le `si` sur le SUJET bascule et pose Exténué.
     decor();
     set({ party: get().party.map((c) => (c.id === 'h3' ? { ...c, conditions: [{ id: 'sonne', value: 3 }] } : c)) as never });
     const avant = lesAutres('h3');
@@ -246,7 +246,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     // Le nœud de `spells.json` dont la branche porte elle-même un `test` (trouvé par sa forme).
     const node = (spells as { effects?: Flow }[])
       .flatMap((sp) => noeudsTest(sp.effects))
-      .find((n) => noeudsTest(n.fail).length > 0 || noeudsTest(n.success).length > 0)!;
+      .find((n) => noeudsTest(n.echec).length > 0 || noeudsTest(n.reussite).length > 0)!;
     expect(node, 'aucun nœud de sort à Test imbriqué — le scan a glissé').toBeTruthy();
     const sujet = decor();
     routeTriggeredTest(get, set, sujet, heros('h4'), node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort à second jet', source: sourceDuSort(node) });
@@ -264,9 +264,9 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
   it('T5b — branche à `choice` : la cascade s’ouvre hors combat, chez le SUJET', () => {
     const node = (spells as { effects?: Flow }[])
       .flatMap((sp) => noeudsTest(sp.effects))
-      .find((n) => n.fail?.kind === 'choice' || n.success?.kind === 'choice')!;
+      .find((n) => n.echec?.kind === 'choix' || n.reussite?.kind === 'choix')!;
     expect(node, 'aucun nœud de sort à `choice` en branche — le scan a glissé').toBeTruthy();
-    const brancheChoice = node.fail?.kind === 'choice';
+    const brancheChoice = node.echec?.kind === 'choix';
     const sujet = decor();
     routeTriggeredTest(get, set, sujet, sujet, node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Sort à choix' });
     acquitter({ success: !brancheChoice, sl: brancheChoice ? -1 : 1 });
@@ -291,8 +291,8 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     // Feuille `on:target` dont l'effet posé porte le nom de sa source (`ActiveEffect.label`).
     const node = {
       kind: 'test', test: { skill: { id: 'calme' }, difficulty: 'intermediaire', label: 'Jet de Calme' },
-      success: EMPTY_FLOW,
-      fail: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'corruptionExposure', easeSteps: 1 }] } },
+      reussite: EMPTY_FLOW,
+      echec: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'corruptionExposure', easeSteps: 1 }] } },
     } as unknown as NoeudTest;
     const sujet = decor();
     routeTriggeredTest(get, set, sujet, sujet, node, { idNeuf: idsDeTest, rng: desDuTest, label: 'Source nommée' });
@@ -320,8 +320,8 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     // son `heroId` — vocabulaire que `runCombatFlow` n'honore pas. Sans marqueur, elle reste sur `runFlow`.
     decor();
     const onSuccess = {
-      kind: 'seq',
-      steps: [{ kind: 'do', effect: { type: 'ops', on: 'hero', heroId: 'h4', ops: [{ op: 'teamCommander', commanderId: 'h1' }] } }],
+      kind: 'sequence',
+      etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'hero', heroId: 'h4', ops: [{ op: 'teamCommander', commanderId: 'h1' }] } }],
     } as unknown as Flow;
     openSkillTest(get, set, { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: 'Commandant d’équipe' },
       condCtx(get), onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: 'h1' });
@@ -336,13 +336,13 @@ describe('#1874 C0 — un oubli de routage HURLE, il ne se tait jamais', () => {
   beforeEach(() => { decor(); });
 
   it('T10a — une feuille `on:target` jouée par le marcheur de SCÈNE LÈVE en nommant sa porte', () => {
-    const flow = { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } } as unknown as Flow;
+    const flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } } as unknown as Flow;
     expect(() => runFlow(get, set, flow, 'Feuille égarée')).toThrow(/routeTriggeredTest/);
     expect(get().party.every((c) => !(c.conditions ?? []).length), 'rien n’a été appliqué avant le refus').toBe(true);
   });
 
   it('T10b — idem pour `on:caster`', () => {
-    const flow = { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: 'sonne' }] } } as unknown as Flow;
+    const flow = { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: 'sonne' }] } } as unknown as Flow;
     expect(() => runFlow(get, set, flow, 'Feuille égarée')).toThrow(/routeTriggeredTest/);
   });
 

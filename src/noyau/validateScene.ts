@@ -412,7 +412,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       }
     }
     /** Bornes des fenêtres horaires d'une Condition — chaque site de l'énumérateur unique (`sitesDeLaScene`,
-     *  `sites-de-paquet.ts` : `when`, `if`, `gate`, `difficultyBy`, `crossTest`). */
+     *  `sites-de-paquet.ts` : `when`, `si`, `gate`, `difficultyBy`, `crossTest`). */
     const checkCondTimes = (cond: Condition, refId: string, scope: Warning['scope']) =>
       walkConditionTimes(cond, (tc) => {
         for (const [k, v] of [['afterHour', tc.afterHour], ['beforeHour', tc.beforeHour]] as const)
@@ -420,7 +420,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         for (const [k, v] of [['afterMinute', tc.afterMinute], ['beforeMinute', tc.beforeMinute]] as const)
           if (v != null && (v < 0 || v > 59)) add('error', scope, refId, `Fenêtre horaire « ${refId} » : ${k} ${v} hors 0-59`);
       });
-    /** Parcours RÉCURSIF d'un Flow (branches `if`/`test`, et le `flow` imbriqué d'un `delayedEffect`) :
+    /** Parcours RÉCURSIF d'un Flow (branches `si`/`test`, et le `flow` imbriqué d'un `delayedEffect`) :
      *  effets référencés + ENJEU des jets (les Conditions passent par `sitesDeLaScene`).
      *
      *  FLOWS PORTÉS par une feuille : trouvés PAR LA FORME (`carriedFlows`, `engine/flowCore`) — l'échéance
@@ -436,9 +436,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
      *  document que `resolveStake` refuse d'afficher. */
     const checkFlow = (flow: Flow, refId: string, scope: Warning['scope']) => {
       walkFlow(flow, (node) => {
-        if (node.kind === 'do') {
-          checkEffect(node.effect, refId, scope);
-          for (const { flow: porte } of carriedFlows(node.effect)) checkFlow(porte, refId, scope);
+        if (node.kind === 'effet') {
+          checkEffect(node.effet, refId, scope);
+          for (const { flow: porte } of carriedFlows(node.effet)) checkFlow(porte, refId, scope);
         } else if (node.kind === 'test' && !stakeSpeaks(node.test.stake)) {
           add('error', scope, refId, `Jet « ${node.test.label ?? node.test.skill ?? node.test.characteristic ?? 'Test'} » sans enjeu : dites ce que ce jet met en jeu (champ Enjeu du bloc Test)`);
         }
@@ -463,7 +463,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     for (const e of s.encounters) {
       // onVictory est APPLIQUÉ À PLAT à la victoire (finishVictory → flattenFlow), pour préserver la
       // déférence transition/dialogue → « Continuer ». flattenFlow lève sur un nœud interactif → on
-      // l'interdit ici (les `if` conditionnels restent permis, eux, car flattenFlow les évalue).
+      // l'interdit ici (les `si` conditionnels restent permis, eux, car flattenFlow les évalue).
       if (e.onVictory && flowHasTest(e.onVictory)) add('error', 'encounter', e.id, `Rencontre « ${e.id} » : onVictory ne peut pas contenir de jet interactif (Test/Choix) — il est appliqué à plat à la victoire`);
       for (const m of e.members ?? []) {
         const membre = entById.get(m.entityId);

@@ -142,7 +142,7 @@ describe('opRows — renderer JOUEUR de GameOp[] (#495)', () => {
     it('rollTable INLINE (vers-de-carie, MSRC 16 l.90-101) : 8 rangées visibles, sous-titre + ops', () => {
       const s = findSymptomById('vers-de-carie');
       expect(s?.onTick).toBeTruthy();
-      const rows = opRows(spellOps(s!.onTick!.test!.fail, 'target'));
+      const rows = opRows(spellOps(s!.onTick!.test!.echec, 'target'));
       const subs = rows.filter((r) => r.t === 'sub');
       expect(subs).toHaveLength(8);
       expect(subs.map((r) => (r as { t: 'sub'; label: string }).label)).toEqual([

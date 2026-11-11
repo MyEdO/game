@@ -3,7 +3,7 @@
  *  - Formula `{indiceOf}` : injecte l'Indice de l'attaque naturelle (`ctx.indice`) dans un `wounds` op
  *    → Dégâts « Indice » codables en GameOp (mitigés par les drapeaux ignoreTB/ignoreAP).
  *  - Condition `{slThreshold, atLeast}` : « si la marge ≥ N DR » (`ctx.sl`) → issues échelonnées d'une
- *    manœuvre (Regard pétrifiant : ≥6 → Pétrifié) authorées en Flow `if`.
+ *    manœuvre (Regard pétrifiant : ≥6 → Pétrifié) authorées en Flow `si`.
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -49,9 +49,9 @@ describe('Condition {slThreshold} — issue échelonnée sur la marge', () => {
   });
   it('Flow if(slThreshold) branche sur la marge (Regard : ≥6 → Pétrifié)', () => {
     const flow: Flow = {
-      kind: 'if', cond: { kind: 'slThreshold', op: '>=', value: 6 },
-      then: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'petrifie' }] } },
-      else: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } },
+      kind: 'si', condition: { kind: 'slThreshold', op: '>=', value: 6 },
+      alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'petrifie' }] } },
+      sinon: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } },
     };
     const hi = mk({ id: 'h' });
     runPureFlowLines(hi, mk({ id: 'a' }), flow, { idNeuf: idsDeTest, rng: desDuTest, sl: 6 });

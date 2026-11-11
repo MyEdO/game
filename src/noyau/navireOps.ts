@@ -268,7 +268,7 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   if (!st) return false;
   startCascade(get, set, {
     title: label, icon: 'voyage/ancre', purpose: 'test',
-    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.success, onFail: node.fail, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }],
+    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.reussite, onFail: node.echec, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }],
   });
   return true;
 }

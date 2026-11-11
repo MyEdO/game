@@ -448,8 +448,8 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
     sc.entities.push({
       id: 'coffre', kind: 'prop', pos: { x: 4, y: 3 }, label: 'Un coffre',
       usable: { actions: [
-        { id: 'fouiller', flow: { kind: 'seq', steps: [] } },
-        { id: 'forcer', label: 'Forcer le couvercle', flow: { kind: 'seq', steps: [] } },
+        { id: 'fouiller', flow: { kind: 'sequence', etapes: [] } },
+        { id: 'forcer', label: 'Forcer le couvercle', flow: { kind: 'sequence', etapes: [] } },
       ] },
     } as never);
     return sc;

@@ -8986,25 +8986,25 @@
         "label": "Monter à bord",
         "unique": true,
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "setFlag",
             "flag": "edo-ch1-depart"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "clearObjective",
             "id": "edo-ch1-place-a-bord"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Les cochers ont enfin attelé : vous prenez place à bord de la diligence.",
             "adapteDe": {
@@ -9015,8 +9015,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "setObjective",
             "id": "edo-ch1-route",
             "desc": "Se rendre à Altdorf.",
@@ -9028,8 +9028,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "openWorldMap"
            }
           }
@@ -9052,11 +9052,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "edo-ch1-place-a-bord",
          "desc": "Trouver une place à bord d’une diligence pour Altdorf.",
@@ -20892,18 +20892,18 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setFlag",
          "flag": "edo-ch1-clos"
         }
        },
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "clearObjective",
          "id": "edo-ch1-route"
         }
@@ -21935,11 +21935,11 @@
         "id": "fouiller",
         "unique": true,
         "flow": {
-         "kind": "seq",
-         "steps": [
+         "kind": "sequence",
+         "etapes": [
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "journal",
             "desc": "Sous un buisson, un peu à l’écart de la diligence renversée, gît un autre corps : deux carreaux d’arbalète dans le dos, des vêtements de citadin.",
             "adapteDe": {
@@ -21950,8 +21950,8 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "designerHeros",
             "etat": "campagne-sosie-heros",
             "invite": "En retournant le cadavre, vous découvrez avec stupeur qu’il est le sosie de l’un d’entre vous. Lequel ?",
@@ -21963,45 +21963,45 @@
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "document",
             "documentId": "edo-document-3-heritage"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "revealClue",
             "indiceId": "edo-ch1-indice-heritage",
             "stade": "veste"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "document",
             "documentId": "edo-document-4-affidavit"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "revealClue",
             "indiceId": "edo-ch1-indice-heritage",
             "stade": "poche"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "setFlag",
             "flag": "edo-ch1-corps-kastor-fouille"
            }
           },
           {
-           "kind": "do",
-           "effect": {
+           "kind": "effet",
+           "effet": {
             "type": "clearObjective",
             "id": "edo-ch1-embuscade"
            }
@@ -24597,11 +24597,11 @@
      },
      "once": true,
      "flow": {
-      "kind": "seq",
-      "steps": [
+      "kind": "sequence",
+      "etapes": [
        {
-        "kind": "do",
-        "effect": {
+        "kind": "effet",
+        "effet": {
          "type": "setObjective",
          "id": "edo-ch1-embuscade",
          "desc": "Examiner les lieux de l’embuscade.",

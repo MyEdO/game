@@ -7,13 +7,13 @@
 //    son nœud (premier paramètre) ENTIER à une fonction — la PORTE nommée est l'appelée ; un membre qui
 //    LÈVE (`throw` à son premier niveau) est un routeur à porte `(lève)` : le fail-closed d'un hôte sans voie
 //    de jet ;
-//  - BRANCHES : un appel reçoit les DEUX branches d'un même nœud, `X.success` et `X.fail` (argument direct
+//  - BRANCHES : un appel reçoit les DEUX branches d'un même nœud, `X.reussite` et `X.echec` (argument direct
 //    ou valeur directe d'un littéral d'objet passé en argument) — la porte est l'appelée ;
-//  - INLINE : une conditionnelle choisit `X.success` ou `X.fail` — la porte est `(inline)`, le jet est
+//  - INLINE : une conditionnelle choisit `X.reussite` ou `X.echec` — la porte est `(inline)`, le jet est
 //    tombé dans le routeur lui-même.
 // Un site est rendu `{ file, fn, porte }`, trié et dédoublonné.
 //
-// ANGLES MORTS assumés : une branche lue seule (`X.success` puis, ailleurs, `X.fail`) ; un nœud remis entier
+// ANGLES MORTS assumés : une branche lue seule (`X.reussite` puis, ailleurs, `X.echec`) ; un nœud remis entier
 // hors d'un visiteur d'`executerFlow` (sa porte ne se voit que si les branches y sont remises ensemble) ; une
 // fonction passée en VALEUR comme membre `test` (`test: routeur`) ; un hôte lié par un autre nom qu'un import
 // nommé ou un espace de noms de `src/engine/flowCore.ts`.
@@ -24,7 +24,7 @@ import { parUnitesDeCode } from './lister.mjs';
 /** La marche d'exécution d'un Flow et son module, le FOYER des marcheurs (`src/marcheurs-de-flow-guard.test.ts`). */
 const MARCHE = { foyer: 'src/engine/flowCore.ts', fonction: 'executerFlow' };
 const APPEL_DE_LA_MARCHE = { [MARCHE.foyer]: [MARCHE.fonction] };
-const BRANCHES = new Set(['success', 'fail']);
+const BRANCHES = new Set(['reussite', 'echec']);
 
 /** Nom de la déclaration de NIVEAU MODULE qui contient `node`. @returns {string} */
 function declarationDeModule(ts, node, sf) {
@@ -38,7 +38,7 @@ function declarationDeModule(ts, node, sf) {
   return '(module)';
 }
 
-/** Récepteur d'un accès de branche `X.success` / `X.fail`, en texte ; `null` sinon. */
+/** Récepteur d'un accès de branche `X.reussite` / `X.echec`, en texte ; `null` sinon. */
 function recepteurDeBranche(ts, e, sf) {
   return ts.isPropertyAccessExpression(e) && BRANCHES.has(e.name.text) ? e.expression.getText(sf) : null;
 }

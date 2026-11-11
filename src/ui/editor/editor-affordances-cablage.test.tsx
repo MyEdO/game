@@ -524,7 +524,7 @@ function sceneNavale(): Scene {
   return {
     ...emptyScene('scene-test', 14, 14),
     entities,
-    encounters: [{ id: 'abordage', members: [{ entityId: 'coque' }, { entityId: 'marin', side: 'ally' }] }],
+    encounters: [{ id: 'abordage', members: [{ entityId: 'coque' }, { entityId: 'marin', side: 'allie' }] }],
   };
 }
 

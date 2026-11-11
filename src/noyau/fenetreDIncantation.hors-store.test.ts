@@ -25,7 +25,7 @@ import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
 const carreau = findSpellById('carreau')!;
 /** Sorts d'épreuve, clones du Carreau (Magie des Arcanes, une cible à portée) : seuls NI, Projectile, effets et Durée changent. */
 const epreuve = (id: string, champs: Partial<SpellData>): SpellData => ({ ...carreau, id, label: id, ...champs } as SpellData);
-const BLESSURES = { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 3 }] } }] } as SpellData['effects'];
+const BLESSURES = { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 3 }] } }] } as SpellData['effects'];
 const ROUNDS = { kind: 'rounds', value: { charOf: 'force-mentale' } } as const;
 const armure = findSpellById('armure-aethyrique')!;
 const FIXTURES = {
