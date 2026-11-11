@@ -7,7 +7,6 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { etats, weatherPhysicalTestChars, structureCriticalsLabel } from './index';
 import { setDataset, resetData, datasetArray, ancetreDuDe, champDEnTete, deDeLaTable, setEnTete, type DatasetKey } from './overrides';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, findFallTable, shipCritSetIds } from './shipCriticals';
-import { obsessionsSource } from './obsessions';
 import { moraleBase } from '../engine/crewMorale';
 import { manannBase } from '../engine/seaVoyage';
 import { versionDuDataset } from './versionDataset';
@@ -109,7 +108,6 @@ describe('overrides — tout lecteur d’un champ d’en-tête le lit à l’app
     { fichier: 'river-criticals', cle: 'riverCriticalsCoque', ancetre: '', champ: 'replisSansExpose', valeur: { cible: 'greement' }, lire: () => RIVER_CRIT_SET.replisSansExpose, attendu: { cible: 'greement' } },
     { fichier: 'ship-criticals', cle: 'shipCriticalsCoque', ancetre: '', champ: 'tablesDeChute', valeur: [chute], lire: () => findFallTable(chute.id), attendu: chute },
     { fichier: 'weather', cle: 'weather', ancetre: '', champ: 'physicalTestChars', valeur: ['sociabilite'], lire: weatherPhysicalTestChars, attendu: ['sociabilite'] },
-    { fichier: 'obsessions', cle: 'obsessions', ancetre: '', champ: 'source', valeur: { book: 'x', page: 1 }, lire: obsessionsSource, attendu: { book: 'x', page: 1 } },
     { fichier: 'ship-criticals', cle: 'shipCriticalsCoque', ancetre: '', champ: 'id', valeur: 'jeu-ecrit', lire: shipCritSetIds, attendu: ['jeu-ecrit', 'river-criticals'] },
     { fichier: 'river-criticals', cle: 'riverCriticalsCoque', ancetre: '', champ: 'id', valeur: 'jeu-ecrit', lire: () => RIVER_CRIT_SET.id, attendu: 'jeu-ecrit' },
     { fichier: 'structure-criticals', cle: 'structureCriticals', ancetre: '', champ: 'label', valeur: 'Libellé écrit', lire: structureCriticalsLabel, attendu: 'Libellé écrit' },

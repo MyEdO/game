@@ -180,7 +180,7 @@ export function enregistrerEntree(categoryKey: string, entry: Entry, index: numb
   const erreurs = validateEntry(categoryKey, entry, entries, index);
   if (erreurs.length) return { ok: false, erreurs };
   const avant = entries.slice();
-  const enTeteAvant = enTete.map((e) => ({ ...e, valeur: structuredClone(champDEnTete(ds, e.ancetre, e.champ)) }));
+  const enTeteAvant = enTete.map((e) => ({ ...e, valeur: champDEnTete(ds, e.ancetre, e.champ) }));
   setEnTete(ds, enTete);
   setDataset(ds, (index < 0 ? [...entries, entry] : entries.map((x, i) => (i === index ? entry : x))) as never);
   return racineValidee(datasetFile(ds), datasetSerializeRoot(ds), () => {
