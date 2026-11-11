@@ -93,7 +93,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     const caster = mk({ id: 'w', label: 'Sorcier' });
     const target = mk({ id: 't', label: 'Cible' });
     addCondition(target, 'a-terre');
-    applyOps(target, [{ op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
+    applyOps(target, [{ op: 'condition', id: { id: 'inconscient' }, durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: { id: 'a-terre' } }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
     expect(hasCondition(target, 'inconscient')).toBe(true);
     expect(target.conditions.find((x) => x.id === 'inconscient')?.roundsLeft).toBe(4); // BFM 40 → 4
   });
@@ -101,8 +101,8 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     const caster = mk({ id: 'w' });
     const target = mk({ id: 't' });
     applyOps(target, [
-      { op: 'condition', id: 'inconscient', durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: 'a-terre' },
-      { op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' },
+      { op: 'condition', id: { id: 'inconscient' }, durationRounds: { bonusOf: 'force-mentale' }, onlyIfCondition: { id: 'a-terre' } },
+      { op: 'condition', id: { id: 'a-terre' }, unlessCondition: { id: 'a-terre' } },
     ], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
     expect(hasCondition(target, 'inconscient')).toBe(false);
     expect(hasCondition(target, 'a-terre')).toBe(true);
@@ -111,7 +111,7 @@ describe('Sommeil — « Si la cible possède un État À Terre, elle gagne Inco
     const caster = mk({ id: 'w' });
     const target = mk({ id: 't' });
     addCondition(target, 'a-terre');
-    applyOps(target, [{ op: 'condition', id: 'a-terre', unlessCondition: 'a-terre' }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
+    applyOps(target, [{ op: 'condition', id: { id: 'a-terre' }, unlessCondition: { id: 'a-terre' } }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sommeil' });
     expect(target.conditions.filter((x) => x.id === 'a-terre')).toHaveLength(1);
     expect(target.conditions.find((x) => x.id === 'a-terre')?.value).toBe(1);
   });

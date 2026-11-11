@@ -223,6 +223,10 @@ const NOMMES = [
   'trapping|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
   'main|secondaire',
+  // `acteDeDeverrouillageSchema` (#3606 M2a2) : l'acte de soin qui lève le verrou d'un État (LDB 18).
+  'medicalAid|surgery|magic',
+  // `refDEtatSchema` (`grammaire/mecanique.ts`, #3606 M2a2) : les marqueurs narratifs, réserve de la référence d'État.
+  'petrifie',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.

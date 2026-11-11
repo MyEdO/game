@@ -13,12 +13,11 @@ import { marquerProduit } from './interne/produits';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSourceKind } from '../../../engine/types';
 import type { StakeRef } from '../../index';
 import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpPassive } from '../../../engine/ops';
-import { etatConnu } from '../../../engine/conditions';
-import { t } from '../../../i18n';
+import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import { acteDeDeverrouillageSchema, attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, idDIconeSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
-import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
+import { idDe, marquerOpAtteinte, ref, refs, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
 import { GROUPES_TIRABLES } from '../../obsessions';
 import { estCibleType, varianteAdmise } from '../../../engine/psych/ciblage';
@@ -54,6 +53,58 @@ export const ressourceDeDestinSchema = enumNomme({ fortune: 'Chance', fate: 'Des
 
 /** Sens d'arrondi de la fraction de l'op `lifeSteal`. */
 const arrondiSchema = enumNomme({ floor: 'inférieur', ceil: 'supérieur' });
+
+/** État que nomme une op `condition`/`removeCondition` : une entrée d'`etats.json` ou un marqueur narratif
+ *  (`NARRATIVE_MARKERS`, `engine/conditions.ts`). #1463 LD.1, #2995 */
+export const refDEtatSchema = ref(ouReserve(idDe('etat'), enumNomme(Object.fromEntries(NARRATIVE_MARKERS.map((m) => [m.id, m.label])))));
+
+/** Fenêtre de Détermination d'un État porté en passif (`ResolveWindow`, `engine/ops.ts`). */
+const fenetreDeDeterminationSchema = z.union([
+  z.literal('none'),
+  nommerChamps(z.strictObject({ scale: z.literal('rounds'), left: formulaSchema }), { scale: { label: 'échelle' }, left: { label: 'Rounds', texte: { regime: 'technique', usage: 'formule mécanique résolue par la grammaire' } } }),
+  nommerChamps(z.strictObject({ scale: z.literal('clock'), minutes: formulaSchema }), { scale: { label: 'échelle' }, minutes: { label: 'minutes', texte: { regime: 'technique', usage: 'formule mécanique résolue par la grammaire' } } }),
+]);
+
+/** Champs de l'op `condition` qu'un État PORTÉ (#1695) ne peut PAS tenir — LISTE CLOSE, alignée sur ce
+ *  que la branche `carried` d'`applyOps` transporte réellement (`id`/`value`/`resolveWindow`) :
+ *  les DURÉES et la récurrence (l'effet porteur les tient), les VERROUS (la source EST le verrou), et
+ *  les champs de LUTTE, figés par `addCondition` à la pose — que la réconciliation appelle NU. */
+export const CHAMPS_EXCLUS_DE_CARRIED = [
+  'durationRounds', 'durationMinutes', 'durationHours', 'perRound', 'lockedUntil', 'unlockBy',
+  'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'difficulte', 'argDifficulty', 'grapple',
+] as const;
+
+/** Refus du payload `condition` : `perRound` + durée d'HORLOGE, mot pour mot comme `applyOps` le lève
+ *  (`messageRecurrenceHorloge`, `engine/ops.ts`) ; `carried` + tout `CHAMPS_EXCLUS_DE_CARRIED` (#1695,
+ *  LDB 48 l.495) ; un verrou dont une Condition lit un état que le contexte de verrou ne porte pas. */
+function refusDeLaPoseDEtat(v: Readonly<Record<string, unknown>> & { id: { id: string } }, ctx: z.RefinementCtx): void {
+  const id = v.id.id;
+  if (v.perRound === true && (v.durationMinutes != null || v.durationHours != null)) {
+    ctx.addIssue({ code: 'custom', path: ['perRound'], message: messageRecurrenceHorloge(id) });
+  }
+  if (v.carried === true) {
+    for (const champ of CHAMPS_EXCLUS_DE_CARRIED) {
+      if (v[champ] == null) continue;
+      ctx.addIssue({
+        code: 'custom',
+        path: [champ],
+        message: `État « ${id} » : « carried » (porté par l'effet actif de la source, #1695) est EXCLUSIF de « ${champ} » `
+          + "— un État porté ne tient ni durée, ni verrou, ni champ de lutte en propre : sa durée est celle de l'effet porteur "
+          + '(`durationFromCtx`), sa source EST son verrou (un `unlockBy` y serait inerte, `releaseConditionLocks`), et le canal '
+          + 'passif ne transporte que `id`/`value`/`resolveWindow` — le reste serait PERDU à la pose. Retirer l’un des deux champs.',
+      });
+    }
+  }
+  for (const kind of sujetsNonGarantis(v.lockedUntil)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['lockedUntil'],
+      message: `Verrou d'État « ${id} » : la Condition « ${kind} » lit un état que le contexte de verrou ne porte PAS `
+        + "(`conditionLockCtx`, engine/actorView.ts — la vue du seul PORTEUR : Caractéristiques, PB, Taille, Avantage, camp, appartenances, États, Capacités). "
+        + 'Elle serait évaluée FAUSSE en silence : réécrire le verrou sur le porteur, ou étendre le contexte AVANT la donnée.',
+    });
+  }
+}
 
 /** Ce que l'op `loseTurn` retire ; absent = les deux. */
 export const loseTurnWhatSchema = enumNomme({ action: 'son Action', movement: 'son Mouvement' });
@@ -280,6 +331,37 @@ const DECLARATIONS_D_OPS = {
     perSL: nommerChamps(z.strictObject({ every: z.number().min(1), metersFormula: formulaSchema }), { every: { label: "intervalle" }, metersFormula: { label: "bonus (m)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
   }), { op: { label: "opération"  }, meters: { label: "distance (m)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, perSL: { label: "par DR" } }),
   armourPierce: nommerChamps(z.strictObject({ op: z.literal('armourPierce'), amount: z.number().min(0), bypass: armourBypassSchema.optional() }), { op: { label: "opération"  }, amount: { label: "PA retirés" }, bypass: { label: "armure ignorée" } }),
+  condition: nommerChamps(z.strictObject({
+    op: z.literal('condition'),
+    id: refDEtatSchema,
+    value: formulaSchema.optional(),
+    valuePerSL: perSLSchema.optional(),
+    perRound: z.boolean().optional(),
+    durationRounds: formulaSchema.optional(),
+    durationMinutes: formulaSchema.optional(),
+    durationHours: formulaSchema.optional(),
+    onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+    onlyIfCondition: refDEtatSchema.optional(),
+    unlessCondition: refDEtatSchema.optional(),
+    escapeStrength: formulaSchema.optional(),
+    escapeThreshold: formulaSchema.optional(),
+    entangleOnFail: z.boolean().optional(),
+    struggleDamage: formulaSchema.optional(),
+    difficulte: difficultySchema.optional(),
+    argDifficulty: z.boolean().optional(),
+    lockedUntil: z.lazy(() => conditionSchema).optional(),
+    resolveWindow: fenetreDeDeterminationSchema.optional(),
+    unlockBy: acteDeDeverrouillageSchema.optional(),
+    grapple: z.boolean().optional(),
+    carried: z.literal(true).optional(),
+  }).superRefine(refusDeLaPoseDEtat), { op: { label: "opération"  }, id: { label: "État" }, value: { label: "pions" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, valuePerSL: { label: "pions par DR" }, perRound: { label: "chaque Round" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: 'durée en minutes', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: 'durée en heures', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, onlyIfCondition: { label: "si la cible porte" }, unlessCondition: { label: "sauf si la cible porte" }, escapeStrength: { label: "Force d’évasion" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, escapeThreshold: { label: "DR d’évasion" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, entangleOnFail: { label: "aggravé sur échec" }, struggleDamage: { label: "dégâts de lutte" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, difficulte: { label: "difficulté d’élimination" }, argDifficulty: { label: "difficulté de l’argument" }, lockedUntil: { label: "verrouillé tant que" }, resolveWindow: { label: "fenêtre de Détermination" }, unlockBy: { label: "retiré seulement par" }, grapple: { label: "Empoignade" }, carried: { label: "porté par l’effet" } }),
+  removeCondition: nommerChamps(z.strictObject({
+    op: z.literal('removeCondition'),
+    id: refDEtatSchema.optional(),
+    value: formulaSchema.optional(),
+    valuePerSL: perSLSchema.optional(),
+    all: z.boolean().optional(),
+  }), { op: { label: "opération"  }, id: { label: "État" }, value: { label: "pions" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, valuePerSL: { label: "pions par DR" }, all: { label: "tous les pions" } }),
   rollMutation: nommerChamps(z.strictObject({ op: z.literal('rollMutation'), table: ref('mutationTable'), duration: z.literal('permanent').optional() }), { op: { label: "opération"  }, table: { label: "table de Corruption" , texte: { regime: "technique"} }, duration: { label: "permanente" } }),
   /** `money` — mouvement de la bourse PERSONNELLE de la cible. La charge porte son NOM (`montant`),
    *  comme toute autre action du vocabulaire (`giveMoney.montant`, `giveXp.amount`) : elle n'est jamais
@@ -789,89 +871,13 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  * Une entrée ne se retire que par le commit qui TYPE l'op dans `OP_DEFS`.
  */
 export const OPS_NON_TYPEES: readonly string[] = [
-  'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod', 'breakBlade', 'condition', 'crewTestMod',
+  'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod', 'breakBlade', 'crewTestMod',
   'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm', 'endTransform',
   'freeReroll', 'grantFreeAttack', 'handGate', 'ignoreAnimosity', 'ignoreStatePenalties', 'interruptFocus',
-  'intoxicate', 'martyr', 'mitigateIncoming', 'reduceToZero', 'removeCondition', 'removeShipPoste',
+  'intoxicate', 'martyr', 'mitigateIncoming', 'reduceToZero', 'removeShipPoste',
   'senseLoss', 'statusMod', 'suppressPsych', 'teamCommander', 'weaponDamageMod', 'weaponRollMod',
   'weatherWard',
 ];
-
-/** Champs de l'op `condition` qu'un État PORTÉ (#1695) ne peut PAS tenir — LISTE CLOSE, alignée sur ce
- *  que la branche `carried` d'`applyOps` transporte réellement (`id`/`value`/`resolveWindow`) :
- *  les DURÉES et la récurrence (l'effet porteur les tient), les VERROUS (la source EST le verrou), et
- *  les champs de LUTTE, figés par `addCondition` à la pose — que la réconciliation appelle NU. */
-export const CHAMPS_EXCLUS_DE_CARRIED = [
-  'durationRounds', 'durationMinutes', 'durationHours', 'perRound', 'lockedUntil', 'unlockBy',
-  'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'difficulte', 'argDifficulty', 'grapple',
-] as const;
-
-/** Champs d'une op `condition`/`removeCondition` qui nomment un État. */
-const CHAMPS_ID_D_ETAT = ['id', 'onlyIfCondition', 'unlessCondition'] as const;
-
-/** Refus d'un id d'État hors de `etatConnu` (#1463 LD.1, #2995), posé au champ qui le porte : le
- *  refus UNIQUE des ops loose et du dialecte miscast (`defs/miscast.ts`). */
-export function refuserEtatsInconnus(v: Readonly<Record<string, unknown>>, champs: readonly string[], ctx: z.RefinementCtx): void {
-  for (const champ of champs) {
-    const id = v[champ];
-    if (typeof id === 'string' && !etatConnu(id)) ctx.addIssue({ code: 'custom', path: [champ], message: t('etats.inconnu', { id }) });
-  }
-}
-
-/**
- * Refus qui portent sur une op encore LOOSE (`OPS_NON_TYPEES`) : ce que le payload strict dirait s'il
- * existait, dit AU PARSE plutôt qu'à l'application. Une entrée meurt avec le typage de son op.
- * — `condition` : `perRound` + durée d'HORLOGE, refusé mot pour mot comme `applyOps` le lève
- *   (`messageRecurrenceHorloge`, `engine/ops.ts`).
- * — `condition` : `carried` + tout `CHAMPS_EXCLUS_DE_CARRIED`, refusé NOMINATIVEMENT (#1695).
- * — `condition`, `removeCondition` : un id d'État hors de `etatConnu` (#1463 LD.1, #2995).
- * — `condition` : un `onlyGroups` qui n'est pas une liste, ou dont un id est hors de
- *   `refs('groupe', { sousListe: CIBLE_D_APPARTENANCE })`.
- */
-function refusLoose(v: Record<string, unknown>, ctx: z.RefinementCtx): void {
-  if (v.op === 'condition' && v.onlyGroups !== undefined) {
-    if (!Array.isArray(v.onlyGroups)) ctx.addIssue({ code: 'invalid_type', expected: 'array', input: v.onlyGroups, path: ['onlyGroups'] });
-    else v.onlyGroups.forEach((id: unknown, i) => {
-      if (typeof id !== 'string') {
-        ctx.addIssue({ code: 'invalid_type', expected: 'string', input: id, path: ['onlyGroups', i] });
-        return;
-      }
-      const refus = refusDeLId('groupe', id, CIBLE_D_APPARTENANCE);
-      if (refus !== null) ctx.addIssue({ code: 'custom', path: ['onlyGroups', i], message: refus });
-    });
-  }
-  if (v.op !== 'condition' && v.op !== 'removeCondition') return;
-  refuserEtatsInconnus(v, CHAMPS_ID_D_ETAT, ctx);
-  if (v.op !== 'condition') return;
-  if (v.perRound === true && (v.durationMinutes != null || v.durationHours != null)) {
-    ctx.addIssue({ code: 'custom', path: ['perRound'], message: messageRecurrenceHorloge(String(v.id ?? '')) });
-  }
-  // État PORTÉ (#1695, LDB 48 l.495) : le canal passif ne transporte que `id`/`value`/`resolveWindow`
-  // (`ops.ts`, branche `carried` d'`applyOps` → `syncDerivedConditions` → `addCondition` nu). Tout autre
-  // champ de l'op serait PERDU en silence — il est donc NOMMÉ au parse.
-  if (v.carried === true) {
-    for (const champ of CHAMPS_EXCLUS_DE_CARRIED) {
-      if (v[champ] == null) continue;
-      ctx.addIssue({
-        code: 'custom',
-        path: [champ],
-        message: `État « ${String(v.id ?? '')} » : « carried » (porté par l'effet actif de la source, #1695) est EXCLUSIF de « ${champ} » `
-          + "— un État porté ne tient ni durée, ni verrou, ni champ de lutte en propre : sa durée est celle de l'effet porteur "
-          + '(`durationFromCtx`), sa source EST son verrou (un `unlockBy` y serait inerte, `releaseConditionLocks`), et le canal '
-          + 'passif ne transporte que `id`/`value`/`resolveWindow` — le reste serait PERDU à la pose. Retirer l’un des deux champs.',
-      });
-    }
-  }
-  for (const kind of sujetsNonGarantis(v.lockedUntil)) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['lockedUntil'],
-      message: `Verrou d'État « ${String(v.id ?? '')} » : la Condition « ${kind} » lit un état que le contexte de verrou ne porte PAS `
-        + "(`conditionLockCtx`, engine/actorView.ts — la vue du seul PORTEUR : Caractéristiques, PB, Taille, Avantage, camp, appartenances, États, Capacités). "
-        + 'Elle serait évaluée FAUSSE en silence : réécrire le verrou sur le porteur, ou étendre le contexte AVANT la donnée.',
-    });
-  }
-}
 
 /** Familles de `Condition` qu'un contexte de VERROU d'État GARANTIT — elles ne lisent que la vue
  *  d'acteur (`buildActorView`). Tout le reste (drapeaux de scène, horloge, bourse, inventaire de
@@ -1614,8 +1620,7 @@ function construire(regimes: Regimes) {
   const condition = conditionDe(CONDITIONS_RESERVEES.filter((k) => regimes[`condition.${k}`] === 'admis'));
   /**
    * Un `GameOp` (`src/engine/ops.ts`) tel qu'il apparaît en DONNÉE. Une op de `OP_DEFS` est validée sur
-   * son payload STRICT ; une op de `OPS_NON_TYPEES` garde la forme LOOSE (aux refus de `refusLoose`
-   * près) ; une op inconnue des DEUX registres est NOMMÉE en erreur. Ce rouge vit ICI et nulle part
+   * son payload STRICT ; une op de `OPS_NON_TYPEES` garde la forme LOOSE ; une op inconnue des DEUX registres est NOMMÉE en erreur. Ce rouge vit ICI et nulle part
    * ailleurs : la clé `op` est surchargée en donnée (les comparateurs `>=`/`<=`/`==` d'une `Condition`
    * la portent aussi).
    */
@@ -1630,7 +1635,7 @@ function construire(regimes: Regimes) {
       if (!res.success) for (const issue of res.error.issues) ctx.addIssue({ ...issue, message: `GameOp « ${v.op} » : ${issue.message}` });
       return;
     }
-    if (OPS_NON_TYPEES.includes(v.op)) { refusLoose(v, ctx); return; }
+    if (OPS_NON_TYPEES.includes(v.op)) return;
     ctx.addIssue({
       code: 'custom',
       path: ['op'],

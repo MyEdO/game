@@ -49,7 +49,9 @@
           },
           {
             "op": "condition",
-            "id": "sonne"
+            "id": {
+              "id": "sonne"
+            }
           }
         ]
       },
@@ -1404,7 +1406,9 @@
           },
           {
             "op": "condition",
-            "id": "aveugle",
+            "id": {
+              "id": "aveugle"
+            },
             "value": 3
           },
           {
@@ -1599,7 +1603,9 @@
           },
           {
             "op": "condition",
-            "id": "aveugle",
+            "id": {
+              "id": "aveugle"
+            },
             "value": 3
           },
           {

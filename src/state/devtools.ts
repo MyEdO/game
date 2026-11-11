@@ -1931,7 +1931,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const c = actorIn(g(), id);
       if (!c) return `✗ combattant ${id} introuvable`;
       if (!etatConnu(name)) return `✗ État « ${name} » inconnu — ids valides : ${etatIdsConnus().join(', ')}`;
-      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: name, value: n }] }]), 'devtools.condition');
+      nePeutPasDifferer(applyEffects(() => useGame.getState(), useGame.setState, [{ type: 'ops', on: 'hero', heroId: id, ops: [{ op: 'condition', id: { id: name }, value: n }] }]), 'devtools.condition');
       return `✓ ${c.label} : +${n} ${name}`;
     },
 

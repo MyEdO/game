@@ -40,7 +40,7 @@ export function appliquerIssueActivite(
   const ops = [...r.ops, ...jetonDePratique];
   if (ops.length) cons.push(...freeCons(applyOps(hero, ops, opsCtx)));
   if (r.extenue) {
-    const extenue: GameOp = { op: 'condition', id: 'extenue', value: 1 };
+    const extenue: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 };
     applyOps(hero, [extenue], opsCtx);
     cons.push({ ops: [extenue] });
   }

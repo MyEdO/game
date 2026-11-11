@@ -697,7 +697,7 @@ export function psychBranchOps(
     const { base, perDeg } = failAmountSpec(res.failAmount, stake.indice);
     if (!outcome.success && res.failCondition && (base > 0 || perDeg > 0)) {
       ops.push({
-        op: 'condition', id: res.failCondition, value: base,
+        op: 'condition', id: { id: res.failCondition }, value: base,
         ...(perDeg ? { valuePerSL: { every: 1, amount: perDeg, onFailure: true } } : {}),
       });
     }
