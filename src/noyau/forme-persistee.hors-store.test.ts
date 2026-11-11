@@ -118,7 +118,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     expect(arme.test.kind, 'la donnée doit porter le nœud, pas la graphie `resist`').toBe('test');
     expect(arme.test.test.stake, 'la DONNÉE ne porte pas d’enjeu : il est posé à l’armement').toBeUndefined();
     const traumas: Trauma[] = [];
-    const enjeu = combatStakeRef('crit-row-test', { entryId: 'commotion-cerebrale', entryCategory: 'criticalsTete' });
+    const enjeu = combatStakeRef('critique-ligne-test', { entryId: 'commotion-cerebrale', entryCategory: 'criticalsTete' });
     stampCriticalEscalation(traumas, commotion.escalation!, 'tete', hero38(), makeRNG(1), [], enjeu);
     const pose = traumas.find((t) => t.critTrigger)!.critTrigger!.test;
     expect(pose.test.stake, 'le nœud PERSISTÉ doit porter l’enjeu de la rangée qui l’a armé').toEqual(enjeu);
@@ -132,7 +132,7 @@ describe('forme persistée — ce que le chargement lit', () => {
     const marque = r.traumas.find((t) => t.pendingAmputation)!.pendingAmputation!;
     expect(marque.kind, 'le marqueur PERSISTÉ doit être un nœud `test`, pas la donnée `Amputation`').toBe('test');
     expect((marque as Extract<typeof marque, { kind: 'test' }>).test.stake, 'et porter l’enjeu de sa rangée')
-      .toEqual(combatStakeRef('crit-row-test', { entryId: 'coupure-a-l-orteil', entryCategory: 'criticalsJambe' }));
+      .toEqual(combatStakeRef('critique-ligne-test', { entryId: 'coupure-a-l-orteil', entryCategory: 'criticalsJambe' }));
   });
   it('le coup à l’équipage d’un bateau s’ouvre en BANDE (#1657 B3-2)', () => {
     ouvrirLeBanc(); // les tables du jeu posées
@@ -141,7 +141,7 @@ describe('forme persistée — ce que le chargement lit', () => {
 
   it('les étapes d’entretien se servent par l’applier de la porte (#1657 B3-3)', () => {
     ouvrirLeBanc(); // les tables du jeu posées
-    expect(applierDe('disease-tick'), 'l’applier du cycle de maladie doit exister').toBeDefined();
+    expect(applierDe('maladie-test-quotidien'), 'l’applier du cycle de maladie doit exister').toBeDefined();
   });
 
   it('les jets en attente sauvés portent le nom figé (#1882, #1906)', () => {

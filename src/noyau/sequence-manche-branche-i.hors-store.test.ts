@@ -36,7 +36,7 @@ describe('#1595 — une manche résolue en branche I se clôt', () => {
         const step = monoStep({
           id: `m-${seq.round}`, kind: cleDeFixture('sondeMancheI'), label: fixtureText('Manche'), actor: g().party[0],
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Manche'), steps: [step] } : undefined;
       },

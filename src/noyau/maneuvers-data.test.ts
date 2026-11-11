@@ -122,7 +122,7 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
   it('l’enjeu de la défense dit la règle du Type : PA ignorées, États et leur Difficulté (LDB 85 l.322-329)', () => {
     const enjeu = (type?: string, difficulte?: 'difficile') => {
       const def = souffle(type, difficulte);
-      return resolveStake(combatStakeRef('combat-maneuver-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
+      return resolveStake(combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
     };
     const etat = (id: string) => findConditionById(id)!.label;
     expect(enjeu('texte-libre-fixture')).not.toMatch(/PA ignorées|État/);
@@ -145,7 +145,7 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
   it('l’enjeu dit la tranche du Froid et l’équipement rongé du Corrosif', () => {
     const enjeu = (type: string) => {
       const def = souffle(type);
-      return resolveStake(combatStakeRef('combat-maneuver-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
+      return resolveStake(combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) })).text!;
     };
     expect(enjeu('glace-fixture')).toContain(`État ${findConditionById('sonne')!.label} par tranche de 5 Blessures subies (minimum 1)`);
     expect(enjeu('ronge-fixture')).toContain('toutes les Armures et Armes portées subissent 1 Dégât');

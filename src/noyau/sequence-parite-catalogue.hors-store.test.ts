@@ -528,7 +528,7 @@ const V8C3: Site[] = [
 ];
 
 /* ── V8c₄ : les quatorze fichiers de la LONGUE TRAÎNE rendus au catalogue (invariant ZÉRO) ─────────
- * `provisions` (`prov.*`), `suffocation` (`suff.*`), `exposure` (`exp.*`), `mountTravel` (`mt.*`),
+ * `provisions` (`prov.*`), `suffocation` (`suff.*`), `exposition-nocturne` (`exp.*`), `mountTravel` (`mt.*`),
  * `shipCritical` (`shipCrit.*`/`shipLoc.*`), `spellRangeFormat` (`spellFmt.*`), `upkeep`, `medicFlow`
  * (`medic.*`), `netFlow` (`coop.*`), `travelPostes` (`tp.*`), `corruptionFlow` (`cor.*`),
  * `seaActivities` (`sact.*`), `portFlow` (`port.*`), `partyFlow` (`pf.*`). DEUX oracles portent le

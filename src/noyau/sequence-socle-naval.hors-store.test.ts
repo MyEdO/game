@@ -119,7 +119,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
     const step = monoStep({
       id: `crise-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText(`Manœuvre — manche ${seq.round}`),
       actor: barreur, difficulty: 'intermediaire', ligne: { test: { skill: { id: 'navigation' } } },
-      stake: combatStakeRef('pursuit-move', { values: { distance: seq.payload.metres, evasion: 500 } }),
+      stake: combatStakeRef('poursuite-manche', { values: { distance: seq.payload.metres, evasion: 500 } }),
     });
     if (!step) return undefined;
     return {
@@ -148,7 +148,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
         const step = monoStep({
           id: `b-${seq.round}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText('Boucle'), actor: h,
           difficulty: 'intermediaire', montee: { base: 50, target: 50 },
-          stake: combatStakeRef('pursuit-move', { values: { distance: 1, evasion: 10 } }),
+          stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Boucle'), steps: [step], immediate: true } : undefined;
       },

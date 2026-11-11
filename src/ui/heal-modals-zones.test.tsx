@@ -253,7 +253,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
   it('passe posée sur une opération qui a cumulé : Échap rend l’opération armée, cumul et patient intacts', () => {
     const surgeon = mk('Chirurgien');
     const patient = mk('Opéré', { conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as never);
-    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('surgery-roll', { values: { targetDR: 6 } }) };
+    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: surgeon.id, healerName: surgeon.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('chirurgie-test', { values: { targetDR: 6 } }) };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [surgeon, patient], pendingHeal: null, pendingSurgery: null,
@@ -302,7 +302,7 @@ describe('infirmerie — Échap annule le jet posé, jamais l’opération qui l
   it('après une passe annulée par Échap puis l’opération arrêtée, le brouillon renaît sur un acte du patient', () => {
     const patient = mk('Opéré', { wounds: { current: 4, max: 12 }, conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as never);
     const chir = soigneur();
-    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('surgery-roll', { values: { targetDR: 6 } }) };
+    const operation = { kind: 'chirurgie', difficulty: DIFF, healerId: chir.id, healerName: chir.label, skill: 45, intBonus: 4, targetDR: 6, cumDR: 3, last: { roll: 12, sl: 3 }, stake: flowStakeRef('chirurgie-test', { values: { targetDR: 6 } }) };
     useGame.setState({
       screen: 'campaign', mode: 'exploration', gameMenuOpen: false, dialogue: null, battle: null,
       party: [chir, patient], pendingHeal: null, pendingSurgery: null,

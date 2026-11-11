@@ -332,7 +332,7 @@ function bargainHeroTR(step: CascadeStep, r: CascadeRoll): TestResult {
   return { roll: r.roll, target: r.target, ...(step.base != null ? { base: step.base } : {}), success: r.success, sl: r.sl, isDouble: false };
 }
 
-const PORT_BUY_BARGAIN_KIND = 'port-buy-bargain';
+const PORT_BUY_BARGAIN_KIND = 'port-achat-marchandage';
 
 
 /** Le lot `lotId` de la cale du navire, et le navire, au port ouvert. */
@@ -384,7 +384,7 @@ function openPortSellBargainStep(get: Get, set: Set, lotId: IdDeCargaison, sellE
   }, PORT_SELL_BARGAIN_KIND, { lotId, sellEnc, offerPct, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, sellerDR });
 }
 
-const PORT_SELL_BARGAIN_KIND = 'port-sell-bargain';
+const PORT_SELL_BARGAIN_KIND = 'port-vente-marchandage';
 
 /** 2. Trouver un acheteur (dé de MONDE par `openWorldTest`, MDG 15 l.362) : cible = `chance.target`.
  *  Échec sur la 1ʳᵉ tentative SANS Ragot préalable → 2ᵉ tentative sur la moitié du lot (`attempt:2`). */
@@ -405,7 +405,7 @@ const PORT_SELL_BUYER_KIND = 'port-sell-buyer';
 
 /** 1. Test de Ragot PRÉALABLE éventuel (port qui produit / Surplus, l.366-372, hero-test). Aucun
  *  candidat au Ragot → même message qu'avant, aucun jet à ouvrir. */
-const PORT_SELL_GOSSIP_KIND = 'port-sell-gossip';
+const PORT_SELL_GOSSIP_KIND = 'port-vente-ragot';
 
 /** VENTE d'un lot de cargaison (l.351-397) : trouver un acheteur (relation du port au bien),
  *  Prix d'offre (% du prix de base par Richesse+Taille+Demande), Marchandage opposé (vendeur PJ +DR).

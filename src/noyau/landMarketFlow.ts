@@ -156,7 +156,7 @@ function apresHalle(get: Get, set: Set): void {
   }, LAND_GOSSIP_KIND, { placeId: cur.placeId });
 }
 
-const LAND_GOSSIP_KIND = 'land-market-gossip';
+const LAND_GOSSIP_KIND = 'marche-rumeur';
 
 /** Génère une RUMEUR CROSS-LIEU (MSRC 13 l.180) : tire un AUTRE Lieu à `market` de la carte, puis une
  *  rumeur (Tableau des rumeurs) désignant les biens qui s'y vendent au double. Ajoutée au board persistant
@@ -216,7 +216,7 @@ export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
   }, LAND_WINE_EVAL_KIND, { cargoId });
 }
 
-const LAND_WINE_EVAL_KIND = 'land-market-wine-eval';
+const LAND_WINE_EVAL_KIND = 'marche-evaluation-vin';
 
 /** TRANSFERT de cargaison entre deux porteurs CO-LOCALISÉS (#327, décision 8) — route par `transferCargo`
  *  du tronc (jamais une 2ᵉ arithmétique) puis RE-PERSISTE les deux porteurs. Le refus du plan

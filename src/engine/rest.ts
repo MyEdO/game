@@ -145,7 +145,7 @@ export function blessDiseaseDuration(c: Combatant, dz: Disease, days: number, on
 
 /** Jet d'une nuit (bilan structuré de la modale de Repos) : récupération ou cauchemars. */
 export interface RestRoll {
-  kind: 'recovery' | 'nightmare';
+  kind: 'recuperation' | 'cauchemar';
   base: number;
   target: number;
   roll: number;
@@ -173,7 +173,7 @@ export function needsRecoveryRoll(c: Combatant): boolean {
  * de sa CONSÉQUENCE : dissipation d'Exténué (sommeil, 16 l.91), soin volet a (DR+BE sur réussite) +
  * volet b (+BE inconditionnel, LDB 18 l.296), plafond « blessé » (l.110), réveil (l.28). Mute `c` ; renvoie
  * `{ wokeUp }` (l'appelant journalise — `restRecovery` agrège, la cascade journalise par étape).
- * Partagé par `restRecovery` (eager) et l'applicateur de cascade « recovery » — zéro duplication.
+ * Partagé par `restRecovery` (eager) et l'applicateur de cascade « recuperation » — zéro duplication.
  */
 export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; success: boolean } | null): { wokeUp: boolean } {
   if (c.dead || c.outOfRencontre || unstable(c)) return { wokeUp: false };
@@ -229,7 +229,7 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRol
     if (needsRecoveryRoll(c)) {
       const base = testValue(c, { skill: { id: 'resistance' } });
       const res = rollTest(base, 'accessible', rng);
-      collect?.push({ kind: 'recovery', base, target: res.target, roll: res.roll, sl: res.sl, success: res.success });
+      collect?.push({ kind: 'recuperation', base, target: res.target, roll: res.roll, sl: res.sl, success: res.success });
       roll = { sl: res.sl, success: res.success };
     }
     // Conséquence du jour (dissipation + soin volets a/b + plafond blessé + réveil) — logique PARTAGÉE.
@@ -239,7 +239,7 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, collect?: RestRol
       const before = stacks(c, 'extenue');
       const out: { base: number; result: import('./tests').TestResult }[] = [];
       nightmareCheck(c, testValue(c, { skill: { id: 'calme' } }), rng, out); // LDB 21 l.95 — Test de Calme, valeur de la porte
-      for (const o of out) collect?.push({ kind: 'nightmare', base: o.base, target: o.result.target, roll: o.result.roll, sl: o.result.sl, success: o.result.success });
+      for (const o of out) collect?.push({ kind: 'cauchemar', base: o.base, target: o.result.target, roll: o.result.roll, sl: o.result.sl, success: o.result.success });
       if (stacks(c, 'extenue') > before) nightmareNights++;
     }
   }

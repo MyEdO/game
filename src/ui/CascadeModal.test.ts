@@ -6,13 +6,13 @@ import type { Combatant } from '../engine/types';
 
 /**
  * #P0-2 (recette d'écran 2026-07-10) : une étape-JET `worldOwner` (seam #275 Décision 3 — Test du
- * navire, `sea-salissures`) n'a AUCUN `actorId` par conception — le vieux garde
+ * navire, `mer-salissures`) n'a AUCUN `actorId` par conception — le vieux garde
  * `if (!actor) return null` de `CascadeModal` rendait `null` pour TOUS les sièges, y compris l'owner
  * MJ (l'état disait « surfacé », l'écran ne montrait rien). `jetStepPresentable` est le prédicat
  * extrait qui remplace ce garde — testé ici en isolation (pas de harnais de rendu React dans ce repo).
  */
 function baseStep(overrides: Partial<CascadeTestStep> = {}): CascadeStep {
-  return { id: 's1', kind: 'sea-salissures', label: fixtureText('Salissures'), rollLabel: 'Endurance', target: 50, result: null, ...overrides };
+  return { id: 's1', kind: 'mer-salissures', label: fixtureText('Salissures'), rollLabel: 'Endurance', target: 50, result: null, ...overrides };
 }
 
 describe('jetStepPresentable — présentabilité d’une étape-JET de cascade', () => {

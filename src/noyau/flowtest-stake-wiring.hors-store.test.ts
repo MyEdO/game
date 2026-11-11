@@ -51,7 +51,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
   beforeEach(() => { banc.setState({ battle: null, pendingTest: null, pendingCascade: null, party: [hero()] }); });
 
   it('`openSkillTest` transporte `spec.stake` jusqu’à l’étape de la cascade', () => {
-    const stake = combatStakeRef('climb-test', { values: { metres: 4 } });
+    const stake = combatStakeRef('escalade-test', { values: { metres: 4 } });
     runFlow(banc.getState, banc.setState, testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW));
     const step = firstStep();
     expect(step.stake, 'étape muette : le joueur ne saurait pas ce que ce jet met en jeu').toEqual(stake);
@@ -83,7 +83,7 @@ describe('l’enjeu d’un `FlowTest` DESCEND jusqu’à l’étape qui lance, v
   });
 
   it('étage 1 : l’enjeu DÉCLARÉ prime — la dérivation ne recouvre jamais l’auteur', () => {
-    const stake = combatStakeRef('climb-test', { values: { metres: 4 } });
+    const stake = combatStakeRef('escalade-test', { values: { metres: 4 } });
     routeTriggeredTest(banc.getState, banc.setState, banc.getState().party[0], banc.getState().party[0],
       testFlow({ skill: { id: 'escalade' }, stake, requireSL: 0 }, EMPTY_FLOW, EMPTY_FLOW), { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'spell', id: 'chute' } });
     expect(firstStep().stake).toEqual(stake);

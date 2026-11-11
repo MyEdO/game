@@ -59,7 +59,7 @@ export function FrenzyModal() {
   return (
     <RollShell
       flowKey="frenesie"
-      stake={flowStakeRef('frenzy-roll')}
+      stake={flowStakeRef('frenesie-test')}
       title={<><Icon id="flag/frenzy" size="sm" /> Frénésie</>}
       subtitle={
         <>

@@ -7,8 +7,8 @@
  *   `river-navigation.json`  `.windDirections`              `d10`   MSRC 7 l.25 (« Direction (d10) »)
  *   `water-exposure.json`    `.diseases`                    `d100`  MSRC 16 l.53 (colonne « 1d100 »)
  *   `sea-navigation.json`    `.orientation.changementDeCap` `d10`   MDG 13 l.326 (« Résultat du d10 »)
- *   `land-cargo.json`        `.wineQuality`                 `d10`   MSRC 13 l.97 (colonne « d10 »)
- *   `land-cargo.json`        `.rumours`                     `d100`  MSRC 13 l.283 (colonne « D100 »)
+ *   `land-cargo.json`        `.qualiteDuVin`                `d10`   MSRC 13 l.97 (colonne « d10 »)
+ *   `land-cargo.json`        `.rumeurs`                     `d100`  MSRC 13 l.283 (colonne « D100 »)
  *   `sea-weather.json`       `.table`                       `d10`   MDG 13 l.170 (« Résultat du d10 »)
  *   `sea-weather.json`       `.roseDesVents`                `d10`   MDG 13 l.252 (colonne « d10 »)
  *   `mass-battle.json`       `.hazards`                     `1d10`  ADE II 08 l.311 (colonne « 1d10 »)
@@ -35,7 +35,7 @@ const TABLES = {
   'river-navigation.json': [[['windForces'], 'd10'], [['windDirections'], 'd10']],
   'water-exposure.json': [[['diseases'], 'd100']],
   'sea-navigation.json': [[['orientation', 'changementDeCap'], 'd10']],
-  'land-cargo.json': [[['wineQuality'], 'd10'], [['rumours'], 'd100']],
+  'land-cargo.json': [[['qualiteDuVin'], 'd10'], [['rumeurs'], 'd100']],
   'sea-weather.json': [[['table'], 'd10'], [['roseDesVents'], 'd10']],
   'mass-battle.json': [[['hazards'], '1d10']],
 };

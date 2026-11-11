@@ -248,7 +248,7 @@ describe('RollShell — coquille de jet unifiée', () => {
  * l'accole désormais elle-même, dérivé de la MÊME entrée d'enjeu que la phrase.
  */
 describe('RollShell — Z3b′ : le renvoi de règle est accolé au titre PAR LA COQUILLE', () => {
-  const stake = flowStakeRef('run-roll'); // un jet dont l'enjeu a un foyer (`regles/course`)
+  const stake = flowStakeRef('course-test'); // un jet dont l'enjeu a un foyer (`regles/course`)
 
   it('un `stake` à foyer donne le ℹ au titre SANS que le site ne compose quoi que ce soit', () => {
     const html = render(<RollShell flowKey="course" title="Course" rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);

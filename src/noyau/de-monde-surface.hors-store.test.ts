@@ -939,11 +939,11 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(a) TERRE — cadence manuelle, option OFF : la Météo d’Étape n’est pas un vrai choix, elle se tire et va au journal (#3534)', () => {
     ouvreJourTerrestre(11);
     expect(get().pendingCascade?.purpose).toBe('travelDay');
-    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stage-weather')!;
+    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'etape-meteo')!;
     expect(meteo.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
     expect(canFixDie(get(), undefined), 'option OFF : le siège qui possède le monde n’a rien à poser').toBe(false);
     expect(meteo.table!.result, 'le socle l’a tirée sans arrêt').toBeTruthy();
-    expect(etapeCourante()!.kind, 'la journée s’arrête au premier vrai choix, après elle').not.toBe('stage-weather');
+    expect(etapeCourante()!.kind, 'la journée s’arrête au premier vrai choix, après elle').not.toBe('etape-meteo');
     expect(get().journal.some((l) => l.includes('Météo')), 'la Météo d’Étape est au journal').toBe(true);
     expect(draineJour(false), 'aucune autre table ne retient la journée').toBeUndefined();
     expect(get().pendingRest, 'la journée va jusqu’à la halte de nuit').toBeTruthy();
@@ -960,7 +960,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     setDesFixes(true);
     ouvreJourTerrestre(11);
     const meteo = get().pendingCascade!.participants[0];
-    expect(meteo.kind).toBe('stage-weather');
+    expect(meteo.kind).toBe('etape-meteo');
     expect(canFixDie(get(), undefined), 'option ON + siège qui possède le monde : la pose est offerte').toBe(true);
     expect(meteo.table!.result, 'la pose ne tire pas non plus : c’est le joueur qui pose').toBeUndefined();
     const avant = get().pendingCascade;
@@ -981,9 +981,9 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     expect(canFixDie(get(), undefined), 'l’hôte ne pose pas le dé d’un siège qu’il ne tient pas').toBe(false);
     get().partirEnVoyage('rt', 'pied');
     const meteo = get().pendingCascade!.participants[0];
-    expect(meteo.kind).toBe('stage-weather');
+    expect(meteo.kind).toBe('etape-meteo');
     expect(meteo.table!.result, 'la pose viendra de CE client : l’hôte attend').toBeUndefined();
-    expect(draineJour(false), 'et rien ne franchit l’étape sans son geste').toBe('stage-weather');
+    expect(draineJour(false), 'et rien ne franchit l’étape sans son geste').toBe('etape-meteo');
   });
 
   it('(c) cadence AUTO — aucun siège à la manœuvre : le socle résout au rang de l’étape, sans geste', () => {
@@ -1085,7 +1085,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     prepareJourMaritime(6);
     const on = traceDesTirages();
     runSeaDay(get, set);
-    const etape = get().pendingCascade!.participants.find((x) => x.kind === 'sea-board-event')!;
+    const etape = get().pendingCascade!.participants.find((x) => x.kind === 'mer-evenement-de-bord')!;
     expect(etape.table!.result, 'option ON : le socle laisse la main').toBeUndefined();
     const arretOn = draineJour(true);
     expect({ arretOff, arretOn }, 'les deux journées vont jusqu’à la halte').toEqual({ arretOff: undefined, arretOn: undefined });

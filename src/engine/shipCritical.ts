@@ -56,7 +56,7 @@ export function shipCritEntryCodexCategory(setId: string, location: ShipCritKey)
  *  (`critical.ts`) : le producteur nomme la LIGNE qui exige le jet, sa catégorie Codex se choisit au
  *  tirage parmi les 10 tables de coque (porte (b) `entryCategory`, `src/data/index.ts`). PUR. */
 function enjeuDuCoup(setId: string, location: ShipCritKey, entryId: string): StakeRef {
-  return combatStakeRef('ship-crew-hit', { entryId, entryCategory: shipCritEntryCodexCategory(setId, location) });
+  return combatStakeRef('bateau-coup-equipage', { entryId, entryCategory: shipCritEntryCodexCategory(setId, location) });
 }
 
 /** Le coup à l'équipage d'une rangée, ENJEU POSÉ sur son nœud `test` — fabrique PURE, aucun dé

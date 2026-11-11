@@ -38,18 +38,18 @@ export const DEFAULT_VOYAGE_ORDERS: VoyageOrders = { cadence: 'commande' };
  * Mer : jets d'ÉQUIPAGE quotidiens (MDG 13 l.111) et Tests PERSONNELS de l'entretien-survie du bord
  * (MDG 13 l.203-225, 14 l.206-234). Fleuve : dé d'Exposition hydrique et son Test (MSRC 16 l.5-13).
  * L'Exposition y entre par le `kind` PROPRE à sa route (`sea-exposition`, `river-exposition`) : un ordre
- * de traversée ne commande ni la nuit de camp (`exposure`) ni un Effet de scène (`waterExposure`).
+ * de traversée ne commande ni la nuit de camp (`exposition-nocturne`) ni un Effet de scène (`waterExposure`).
  * Ce qui réunit ces jets est l'ORDRE donné au départ, attendu validé en recette #1426 « Traversée
  * commandée sans fenêtre » (#1479).
  *
- * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`crew-poursuite`, `crew-tourbillon`), le Test d'équipage d'un Flow (`flowCrewTest`)
- * et `crew-extermination`, `crew-embuscade` ancrée, `crew-voyage-rapide`, et tout Test dont l'échec ouvre une
+ * INTERROMPENT toujours (hors liste, donc fenêtre) : les CRISES (`equipage-poursuite`, `equipage-tourbillon`), le Test d'équipage d'un Flow (`flowCrewTest`)
+ * et `equipage-extermination`, `equipage-embuscade` ancrée, `equipage-voyage-rapide`, et tout Test dont l'échec ouvre une
  * DÉCISION. Les urgences (`pendingSteamSave`), les événements de bord à choix, le conseil de bord,
  * l'atterrage et le combat sont des surfaces PROPRES : ils suspendent la boucle par eux-mêmes.
  */
 export const KINDS_SOUS_ORDRES: ReadonlySet<GenreDeCascade> = new Set<GenreDeCascade>([
-  'crew-progression', 'crew-affaler', 'crew-phare', 'crew-orientation', 'crew-entretien',
-  'sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement',
+  'equipage-progression', 'equipage-affaler', 'equipage-phare', 'equipage-orientation', 'equipage-entretien',
+  'mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-mal-de-mer', 'mer-scorbut', 'sea-exposition', 'mer-epuisement',
   'river-exposition-tirage', 'river-exposition',
 ]);
 

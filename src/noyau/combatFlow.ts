@@ -515,13 +515,13 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   const surprise: Flow = { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: COND.surpris, value: 1 }] } };
   const onLose: Flow = {
     kind: 'if', cond: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
-    then: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('ambush-vigilance') }, EMPTY_FLOW, surprise),
+    then: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
     else: surprise,
   };
   // Embusqueur (Discrétion, FIGÉE comme attaquant opposé) vs guetteurs (Perception, les défenseurs qui jettent).
   const difficulty: Difficulty = 'intermediaire';
   const test: FlowTest = {
-    skill: { id: 'perception' }, difficulty, label: 'Surprise', stake: combatStakeRef('ambush-surprise'),
+    skill: { id: 'perception' }, difficulty, label: 'Surprise', stake: combatStakeRef('embuscade-reperer'),
     opposed: { attacker: 'agilite', attackerSkill: 'discretion', attackerBonusSL: sneakDR },
   };
   const branches = { onSuccess: EMPTY_FLOW, onFail: onLose }; // le guetteur résiste → pas de Surprise
@@ -1943,7 +1943,7 @@ export function applyStructureCriticalToTarget(
       id: `cons-critical-structure-${target.id}-${target.criticalWounds ?? 0}-${rolled.roll}`,
       kind: 'critical', actorId: target.id, icon: 'journal/critical', label: dataLabel(entry.title),
       table, result: rolled, reveal: entry, outcome: toRecapLines(rolled.lines),
-      stake: combatStakeRef('structure-critical'),
+      stake: combatStakeRef('structure-critique'),
     });
   }
   return outcome;
@@ -2103,7 +2103,7 @@ function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): void {
       ...(options ? { options, defaultChoice: 'devier' } : {}),
       // Avant le dé, l'enjeu est celui du TABLEAU (fiche `blessures-critiques`) ; après, la re-pose
       // le fait descendre à la Blessure tirée (catégorie déclarée par la table de la Localisation).
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     }));
     return;
   }
@@ -2978,7 +2978,7 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
   // (concentration maintenue, DR conservés). Le nœud `test` est résolu cadence-aware par `runCombatFlow`.
   const test = testDeRegle('interruption-de-focalisation', 'maintenir');
   const flow = testFlow(
-    { ...test, stake: combatStakeRef('focus-interrupt') },
+    { ...test, stake: combatStakeRef('focalisation-interrompue') },
     EMPTY_FLOW,
     { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
   );
@@ -3190,7 +3190,7 @@ function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse
     pushStep(set, (index) => tableStep({
       ...commun, id: `${id}-${index}`, icon: 'item/weapon',
       table: { tableId: lecture.tableId, spec: demande.spec },
-      stake: combatStakeRef('artillery-salve-misfire'),
+      stake: combatStakeRef('artillerie-salve-incident'),
     }), revealPurpose('sequence', false));
     return;
   }
@@ -4564,7 +4564,7 @@ function miscastTableSpec(caster: Combatant, ctx: PendingMiscastStep, id: string
     table: miscastTableDecl(ctx),
     // Deux tirages de nature DIFFÉRENTE partagent ce `kind` d'étape : le contrecoup magique (LDB 46)
     // et la sanction divine (LDB 40, +10 par Point de Péché) ne mettent pas la même chose en jeu.
-    stake: combatStakeRef(colere ? 'wrath-table' : 'miscast-table'),
+    stake: combatStakeRef(colere ? 'colere-des-dieux' : 'incantation-imparfaite-table'),
     incantationImparfaite: ctx,
   };
 }
@@ -6796,7 +6796,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
         rollLabel: 'Résistance', difficulty: d.difficulty,
         ligne: { valeur: resVal, surLaCible: conditionModLines(c, { skill: 'resistance', disease: d.disease }) },
         label: d.label, meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
-        stake: combatStakeRef('combat-end-disease', { entryId: d.disease }),
+        stake: combatStakeRef('combat-fin-maladie', { entryId: d.disease }),
         menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
       });
       pousseSi(monos, step);
@@ -6810,7 +6810,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
         label: stepPrecision(tr('step.expoCorruption'), dataLabel(corr.label)), meta: { level: corr.level, exposureLabel: corr.label },
         // L'enjeu DIT le coût de l'échec, lu à l'applier : `corruptionGain(niveau, false, …)` est constant
         // par niveau (1/2/3) — la valeur interpolée vient donc du MÊME calcul que la conséquence.
-        stake: combatStakeRef('combat-end-corruption', { values: { niveau: corr.label, gainEchec: corruptionGain(corr.level, false, 0) } }),
+        stake: combatStakeRef('combat-fin-corruption', { values: { niveau: corr.label, gainEchec: corruptionGain(corr.level, false, 0) } }),
         menace: 'corruption', // Test d'Exposition = « résister à la Corruption » (Résistance (Menace), LDB 10)
       });
       pousseSi(monos, step);
@@ -6893,7 +6893,7 @@ function ouvrirLaBandeDeContraction(
   openBand(get, set, {
     id: `infection-${porteurs.map((p) => p.id).join('-')}-${entry}-${disease}`, kind: 'combatEndDisease', icon: 'medical/infection',
     label: dataLabel(title), menace: 'maladie', meta: { entry, disease, ...(instant ? { instant: true } : {}) },
-    stake: combatStakeRef('combat-end-disease', { entryId: disease }),
+    stake: combatStakeRef('combat-fin-maladie', { entryId: disease }),
     difficulty,
     porteurs: porteurs.map((p) => ({ actor: p, ligne: { valeur: combatEndResistVal(p), surLaCible: conditionModLines(p, { skill: 'resistance', disease }) }, label: 'Résistance', menace: 'maladie' as const })),
     title, purpose: 'test',
@@ -7904,7 +7904,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   // de la CLÉ de bande (deux Indices = deux règles en jeu, donc deux fenêtres).
   const testFor = (indice: number): FlowTest & { difficulty: Difficulty; label: string } => ({
     ...testDeRegle('calme-d-approche', 'source-se-rapproche'),
-    stake: combatStakeRef('combat-psych', { entryId: 'peur', values: { indice } }),
+    stake: combatStakeRef('combat-psychologie', { entryId: 'peur', values: { indice } }),
   });
   const branches = {
     onSuccess: EMPTY_FLOW, // réussite : garde son sang-froid, rien à faire
@@ -8182,7 +8182,7 @@ const combatPsychBands = makeBandFactory<CombatPsychDue>({
     contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
     // L'enjeu descend à l'AFFLICTION affrontée : ses conséquences lui sont propres (`psychResolution`
     // lit `failCondition`/`failAmount`/`becomes` de SON entrée), donc son texte vit sur SON entrée.
-    stake: combatStakeRef('combat-psych', { entryId: d.kind, values: { indice: d.indice } }),
+    stake: combatStakeRef('combat-psychologie', { entryId: d.kind, values: { indice: d.indice } }),
     // Les DEUX issues, dérivées des ops que l'applier appliquera (`psychBranchOps`) : la surface
     // les rend en chips codex-liées avant le jet, et le verdict est le MÊME bloc filtré (#1117).
     meta: { onSuccess: psychBranchFlow(d, true), onFail: psychBranchFlow(d, false) },
@@ -8966,7 +8966,7 @@ export const TABLES = {
       const flow = testFlow(
         // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
         // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
-        { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('blade-trap-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
+        { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('piege-lame-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
         { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
         EMPTY_FLOW,
       );

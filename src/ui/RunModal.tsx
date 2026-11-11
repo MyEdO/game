@@ -60,7 +60,7 @@ export function RunModal() {
   return (
     <RollShell
       flowKey="course"
-      stake={flowStakeRef('run-roll')}
+      stake={flowStakeRef('course-test')}
       title={<><Icon id="melee/flee" size="sm" /> {pr.test.label}</>}
       subtitle={
         <>

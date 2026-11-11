@@ -459,7 +459,7 @@ export interface ActivityDef {
   /** ENJEU du jet (#1117) : ce que le Test de CETTE Activité met en jeu, en descripteur MÉCANIQUE
    *  (ce que le résolveur applique) et/ou verbatim court. Donnée ÉDITABLE au Codex, jamais un texte
    *  écrit au call-site — les surfaces (volet d'Activité, modale de jet) le résolvent par la porte
-   *  unique `resolveStake` (`src/data/index.ts`, dataset `activity`). */
+   *  unique `resolveStake` (`src/data/index.ts`, dataset `activite`). */
   stake?: string;
   /** FORME DÉCLARÉE du `stake` — même contrat que `stakes.form` (garde de forme). */
   stakeForm?: StakeForm;

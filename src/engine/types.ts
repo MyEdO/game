@@ -1893,9 +1893,9 @@ export const DIFFICULTY_MODIFIERS: Record<Difficulty, number> = {
  *  Union au TYPE = premier rideau : un kind inventé ne compile pas ; le résolveur d'enjeu jette en
  *  second rideau. Ajouter une étape de nuit = l'ajouter ICI et lui authorer son entrée d'enjeu. */
 export const NIGHT_TEST_KINDS = [
-  'faim', 'soif', 'recovery', 'nightmare', 'shelter', 'exposure', 'sea-exposition', 'exposure-heat-drop',
-  'forced-march', 'trauma-fracture', 'disease-tick', 'disease-gangrene', 'disease-persist',
-  'contagion', 'dessoulage', 'dessoulage-hangover',
+  'faim', 'soif', 'recuperation', 'cauchemar', 'abri-de-fortune', 'exposition-nocturne', 'sea-exposition', 'exposition-delestage',
+  'marche-forcee', 'convalescence-fracture', 'maladie-test-quotidien', 'maladie-gangrene', 'maladie-persistance',
+  'contagion', 'dessoulage', 'dessoulage-gueule-de-bois',
 ] as const;
 /** `kind` d'une étape de la cascade de nuit — union FERMÉE dérivée de `NIGHT_TEST_KINDS`. */
 export type NightTestKind = (typeof NIGHT_TEST_KINDS)[number];

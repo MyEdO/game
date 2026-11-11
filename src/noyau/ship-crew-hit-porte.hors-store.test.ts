@@ -90,9 +90,9 @@ const bandeDe = (steps: readonly BuiltCascadeStep[] | undefined): BuiltCascadeSt
 function greementEnPeril(): readonly BuiltCascadeStep[] | undefined {
   const barreur = get().party[0];
   const minte = monoStep({
-    id: 'river-rigging', kind: 'riverRigging', actor: barreur, label: fixtureText('Gréement'),
+    id: 'fleuve-preserver-greement', kind: 'riverRigging', actor: barreur, label: fixtureText('Gréement'),
     difficulty: 'accessible', ligne: { test: { skill: { id: 'voile' } } },
-    stake: voyageStakeRef('river-rigging', { outOfControlPenalty: -20 }),
+    stake: voyageStakeRef('fleuve-preserver-greement', { outOfControlPenalty: -20 }),
   })!;
   const step = { ...minte, result: { roll: 95, target: minte.target!, success: false, sl: -5, crit: false, fumble: false } };
   return applierDe('riverRigging')!(get, set, step, barreur, { steps: [step], index: 0 })?.insert;

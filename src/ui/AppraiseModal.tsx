@@ -15,7 +15,7 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque mode d'Évaluation. */
-const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluation: 'appraise-evaluate', detection: 'appraise-detect' };
+const APPRAISE_STAKE: Record<NonNullable<PendingAppraise['mode']>, FlowStakeId> = { evaluation: 'evaluation-evaluer', detection: 'evaluation-detecter' };
 
 /** Vue pure de la modale d'Évaluation (testable sans store). */
 export function AppraiseModalView({

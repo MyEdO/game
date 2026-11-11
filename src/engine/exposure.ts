@@ -115,7 +115,7 @@ export function exposureTarget(c: Combatant, resVal: number): number {
 }
 
 /** Caractéristiques DU PREMIER échec d'Exposition (`FIRST_FAIL`), en libellés du catalogue — SOURCE
- *  du descripteur d'enjeu de l'étape (`stakes.json`, `voyage-exposure`) : chaque terme est
+ *  du descripteur d'enjeu de l'étape (`stakes.json`, `voyage-exposition`) : chaque terme est
  *  l'effet que `applyExposureFailure` applique RÉELLEMENT, jamais une explication rédigée. PUR. */
 export function exposureFirstFailChars(kind: ExposureKind = 'froid'): string {
   return FIRST_FAIL[kind].map((k) => CHAR_LABELS[k]).join('/');
@@ -156,7 +156,7 @@ export function dropHeaviestPossession(c: Combatant): string | undefined {
  * reste ; 3+ → 1d10 Blessures (ignore les PA), Inconscient à 0 PB. Chaleur : 1 → −10 Int/FM
  * + Exténué ; 2 → −10 le reste + Exténué ; 3+ → 1d10 Blessures (ignore les PA). Mute `c` ; renvoie
  * le journal + les Blessures infligées. Partagé par `exposureNight` (eager), l'applicateur de
- * cascade « exposure » et la Température en mer (MDG 13 l.203-225).
+ * cascade « exposition-nocturne » et la Température en mer (MDG 13 l.203-225).
  */
 export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, kind: ExposureKind = 'froid'): { log: string[]; wounds: number } {
   const log: string[] = [];

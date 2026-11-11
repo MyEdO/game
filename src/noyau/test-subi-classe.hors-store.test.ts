@@ -108,7 +108,7 @@ function opsDesBranches(f: Flow | undefined, out: GameOp[] = []): GameOp[] {
 
 /** PORTE d'un nœud, dérivée de ce que le nœud EST — jamais d'une liste d'ids :
  *  - il EST le jet de cycle d'une maladie (`onTick.test` d'un symptôme, `dailyTest.test` d'une maladie,
- *    `porteDeMaladie`) → la porte de l'ENTRETIEN (étape `disease-tick` de la nuit) ;
+ *    `porteDeMaladie`) → la porte de l'ENTRETIEN (étape `maladie-test-quotidien` de la nuit) ;
  *  - ses ops exigent une COQUE (une chute dont la hauteur se lit sur la taille du navire) → la porte
  *    des bandes d'équipage (`bandeTriggeredTest`) ;
  *  - il EST le Flow bu d'une possession (chemin `.consumable…`, hors greffe d'arme `onHitEffects`) →
@@ -166,8 +166,8 @@ function jouerParSaPorte(n: Noeud, sujet: Combatant, issue: boolean, branchesVid
   const { opsCtx, poses } = preparerPorte(n);
   switch (porteDe(n)) {
     case 'maladie': {
-      // L'ENTRETIEN réel de la nuit : l'étape `disease-tick` reçoit l'issue imposée par un dé POSÉ. Le témoin
-      // est la MÊME nuit réussie : l'applier `disease-tick` (`noyau/restFlow.ts`) n'applique que l'échec.
+      // L'ENTRETIEN réel de la nuit : l'étape `maladie-test-quotidien` reçoit l'issue imposée par un dé POSÉ. Le témoin
+      // est la MÊME nuit réussie : l'applier `maladie-test-quotidien` (`noyau/restFlow.ts`) n'applique que l'échec.
       nuitDuMalade(get, n, 'h3', branchesVides || issue);
       return { jouee: true, poses };
     }

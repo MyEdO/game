@@ -168,7 +168,7 @@ function eventStep(hero: Combatant): CascadeStep {
     kind: 'interludeEvent', actorId: hero.id, icon: 'nav/dice',
     label: t('step.evenement'),
     table: interludeEventDecl(),
-    stake: combatStakeRef('interlude-event'),
+    stake: combatStakeRef('interlude-evenement'),
   };
 }
 
