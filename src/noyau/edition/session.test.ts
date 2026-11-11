@@ -51,7 +51,7 @@ import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 const NARRATIF_VIDE = emptyNarratif();
 
 /** Le cadre d'un porteur d'une scène vide, au narratif `narratif`. */
-const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), narratif });
+const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif } });
 
 const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);

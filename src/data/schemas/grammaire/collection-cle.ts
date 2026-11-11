@@ -225,11 +225,23 @@ export function listeCle<E extends z.ZodType>(
 /** Marque de collection portée par un nœud, `undefined` sinon. */
 export const collectionDe = (noeud: unknown): MarqueDeCollection | undefined => (estObjet(noeud) ? COLLECTIONS.get(noeud) : undefined);
 
-/** Les objets construits par `ouvrirPortees`, avec les portées qu'ils ouvrent. */
-const OUVREURS = new WeakMap<object, readonly PorteeLocale[]>();
+/** Les objets construits par `ouvrirPortees`, avec les portées qu'ils ouvrent et la marque de la collection de chacune. */
+const OUVREURS = new WeakMap<object, ReadonlyMap<PorteeLocale, MarqueDeCollection>>();
 
 /** Les portées locales qu'ouvre un objet construit par `ouvrirPortees`, aucune pour tout autre nœud. */
-export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (estObjet(noeud) ? (OUVREURS.get(noeud) ?? []) : []);
+export const porteesOuvertes = (noeud: unknown): readonly PorteeLocale[] => (estObjet(noeud) ? [...(OUVREURS.get(noeud)?.keys() ?? [])] : []);
+
+/** Les ids qu'admet la portée `portee` sous l'objet `ouvreur` (`ouvrirPortees`), de valeur `valeur` : ceux des entrées de
+ *  sa collection ; `undefined` si `ouvreur` ne l'ouvre pas, ou si sa collection n'est pas une liste. SEULE lecture des
+ *  ids d'une portée, celle du parse. */
+export const idsDeLaPortee = (ouvreur: unknown, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined =>
+  idsSousLaMarque(estObjet(ouvreur) ? OUVREURS.get(ouvreur)?.get(portee) : undefined, valeur, portee);
+
+/** Les ids de la collection de la portée `portee`, de marque `marque`, dans la valeur `valeur` de l'objet qui l'ouvre. */
+function idsSousLaMarque(marque: MarqueDeCollection | undefined, valeur: unknown, portee: PorteeLocale): readonly string[] | undefined {
+  const collection = estObjet(valeur) ? valeur[portee.collection] : undefined;
+  return marque && Array.isArray(collection) ? idsDeCollection(marque, collection) : undefined;
+}
 
 /**
  * Ouvre les PORTÉES LOCALES `portees` sur `objet` : chaque référence `ref(portee)` de son arbre est jugée
@@ -270,7 +282,10 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
     if (!designees.has(portee)) throw new Error(`ouvrirPortees : la portée des ${portee.catalogue} (« ${portee.collection} ») n’a aucune référence \`ref\` dans l’arbre de l’objet.`);
   const ouvreur = objet.superRefine((valeur, ctx) => {
     if (!estObjet(valeur)) return;
-    const ids = new Map([...marques].filter(([portee]) => Array.isArray(valeur[portee.collection])).map(([portee, marque]) => [portee, new Set(idsDeCollection(marque, valeur[portee.collection]))]));
+    const ids = new Map(portees.flatMap((portee) => {
+      const admis = idsSousLaMarque(marques.get(portee), valeur, portee);
+      return admis ? [[portee, new Set(admis)] as const] : [];
+    }));
     coDescendre(objet, valeur, ({ noeuds, valeur: id, chemin }) => {
       if (!noeuds.some((noeud) => porteurs.has(noeud))) return 'elaguer';
       if (typeof id !== 'string') return;
@@ -281,7 +296,7 @@ export function ouvrirPortees<N extends z.ZodObject<z.ZodRawShape>>(objet: N, po
       }
     });
   }, { when: () => true });
-  OUVREURS.set(ouvreur, portees);
+  OUVREURS.set(ouvreur, marques);
   return ouvreur;
 }
 
