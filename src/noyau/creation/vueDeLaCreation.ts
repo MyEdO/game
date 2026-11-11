@@ -6,7 +6,7 @@
  * qu'un geste tant que le joueur ne l'a pas fait ; son résultat ne se dit qu'après.
  */
 import {
-  apercuDuHeros, careerCharKeys, careerRollPool, careerSkillEntries, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
+  apercuDuHeros, careerCharKeys, careerSkillEntries, carrieresOffertes, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
   charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
@@ -18,9 +18,9 @@ import {
   type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
 } from './brouillon';
 import {
-  advancementLabel, careerLabelFor, careersForSpecies, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
+  advancementLabel, careerLabelFor, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
   findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, starDie, stars,
-  trappingRefLabel, type AdvancementRef, type CareerData, type SpeciesData,
+  trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
@@ -137,15 +137,6 @@ export function famillesDEspeces(): { famille: string; especes: SpeciesData[] }[
   }
   const duLivreDeBase = (f: (typeof familles)[number]) => Number(f.especes.some((s) => !!findBookById(s.source.book)?.coeur));
   return familles.sort((a, b) => duLivreDeBase(b) - duLivreDeBase(a));
-}
-
-/** Les carrières offertes au brouillon : celles de son espèce sous son filtre (`careersForSpecies`), dans la table de
- *  tirage effective (`careerRollPool`) ; aucune sans espèce. */
-export function carrieresOffertes(d: CreatorDraft): CareerData[] {
-  const sp = draftSpecies(d);
-  if (!sp) return [];
-  const table = new Set(careerRollPool(d).map((c) => c.id));
-  return careersForSpecies(sp.refCareer, d.ignoreRestrictions).filter((c) => table.has(c.id));
 }
 
 const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFor({ career: id, appearance: { sex: d.apparence.sex } });

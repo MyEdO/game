@@ -80,6 +80,7 @@ const NOMMES = [
   'feu|flammeche|lueur',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|pierre|cloture',
+  'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
   'heroStart|personnage|prop',

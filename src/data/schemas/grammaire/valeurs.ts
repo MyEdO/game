@@ -857,17 +857,6 @@ export const raceKeySchema = z.enum(['humain', 'halfling', 'nain', 'gnome', 'ogr
 export type RaceKey = z.infer<typeof raceKeySchema>;
 
 /**
- * `refCareerId` — `raceKeySchema` + 4 variantes culturelles humaines (Middenheim/Middenland/
- * Nordland/Norse) du Tableau des Classes et Carrières aléatoires (LDB 05 l.197+). Clé de
- * `species.json.refCareer` et `careers.json.rand` (#313).
- */
-export const refCareerIdSchema = z.enum([
-  'humain', 'halfling', 'nain', 'gnome', 'ogre', 'haut-elfe', 'elfe-sylvain',
-  'middenheim', 'middenland', 'nordland', 'norse',
-]);
-export type RefCareerId = z.infer<typeof refCareerIdSchema>;
-
-/**
  * `CastingNumberMod` (`src/engine/castingNumber.ts`) — modificateur de NIVEAU D'INCANTATION porté
  * par un objet, un lieu, un support de lecture ou une Activité. Partagé par tous les datasets qui
  * en portent (`arcane-phenomena.json`, `rituals.json`).
