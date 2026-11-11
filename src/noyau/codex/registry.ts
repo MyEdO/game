@@ -2630,7 +2630,7 @@ const CODEX_SPECS = {
   },
   especesAleatoires: {
     label: 'codex.fiche.especesAleatoires', group: 'tables',
-    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('species', { id }))),
+    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('races', { id }))),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
