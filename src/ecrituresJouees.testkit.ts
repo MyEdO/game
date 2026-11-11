@@ -120,18 +120,11 @@ function choixDeLInspecteur(s: SessionDEdition, id: string): Choix {
   return choix;
 }
 
-/** La session `s` où joue la valeur `v` d'un choix de ses zones, qui doit encore l'offrir. */
-function jouerLaValeur(s: SessionDEdition, v: Bouton): SessionDEdition {
-  const geste = gesteDuJeu(zonesDeLEditeur(s), v.jeu);
-  if (!geste) throw new Error(`la valeur ${v.id} n’est plus offerte`);
-  return editer(s, geste);
-}
-
-/** La session `s` où chaque variante du choix d'id `id` de l'inspecteur, la choisie d'abord, est choisie à son tour, son
- *  inspecteur joué (`jouerLInspecteur`) : chaque branche d'une union récursive (le `Flow`, #3606 M2b), dont l'inspecteur
- *  ne joue que la première variante non choisie. */
+/** La session `s` où chaque variante du choix d'id `id` de l'inspecteur, dans l'ordre du choix, est choisie à son tour,
+ *  son inspecteur joué (`jouerLInspecteur`) : chaque branche d'une union récursive (le `Flow`, #3606 M2b), dont
+ *  l'inspecteur ne joue que la première variante non choisie. */
 function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[]): SessionDEdition {
-  return choixDeLInspecteur(s, id).valeurs.reduce((t, v) => jouerLInspecteur(jouerLaValeur(t, v), out), s);
+  return choixDeLInspecteur(s, id).valeurs.reduce((t, v) => jouerLInspecteur(presser(t, v.id), out), s);
 }
 
 /** Les fiches du Bestiaire des personnages posés : la Vouivre (ZI), dont les options portent des Traits facultatifs et
@@ -190,7 +183,7 @@ export function ecrituresJouees(): EcritureJouee[] {
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
   const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
-  jouerLesVariantes(jouerLaValeur(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0]), FLUX_DU_DECOR, out);
+  jouerLesVariantes(presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id), FLUX_DU_DECOR, out);
   const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
   if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
   const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');
