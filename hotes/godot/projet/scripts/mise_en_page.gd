@@ -84,6 +84,21 @@ const ECART_SOUS_LE_POINT := 2.0
 const MARGE_DE_COUPE := 0.15
 
 
+## Le cadrage d'un portrait (`Portrait`) : la part de la hauteur de la tête montrée sous son haut, la marge au-dessus
+## d'elle en part du cadre, et l'angle de vue vertical de sa caméra, en degrés.
+const BUSTE_DU_PORTRAIT := 0.2
+const MARGE_DU_PORTRAIT := 0.08
+const ANGLE_DU_PORTRAIT := 20.0
+
+
+## La caméra d'un portrait qui cadre en buste un corps au haut de tête à `tete` (`Combattant.hauteur_de_la_tete`), de
+## face : sa hauteur (`x`) et sa distance au corps (`y`), le haut de la tête sous la marge, `BUSTE_DU_PORTRAIT` de sa
+## hauteur sous lui au bas du cadre.
+static func cadrage_en_buste(tete: float) -> Vector2:
+	var cadre := tete * BUSTE_DU_PORTRAIT / (1.0 - MARGE_DU_PORTRAIT)
+	return Vector2(tete + cadre * MARGE_DU_PORTRAIT - cadre / 2.0, cadre / 2.0 / tan(deg_to_rad(ANGLE_DU_PORTRAIT) / 2.0))
+
+
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
 ## `LARGEUR_DE_BULLE`.
 static func largeur_de_bulle(largeur: float) -> float:

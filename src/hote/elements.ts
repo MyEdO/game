@@ -106,8 +106,11 @@ export interface TraitDuPlan { id: string; de: string; vers: string; ton: Ton }
 /** Un plan : des points nommés posés dans un cadre, et les traits qui les relient. */
 export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits: TraitDuPlan[] }
 
+/** Le portrait d'un combattant : son corps, celui que l'hôte monte au plateau (`combattant`, son id), vu en buste. */
+export interface Portrait { type: 'portrait'; id: string; combattant: string }
+
 /** Un élément de la vue. */
-export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Bouton | Choix | Formulaire | Saisie;
+export type Element = Ligne | Puce | Jauge | Jet | Entite | Plan | Portrait | Bouton | Choix | Formulaire | Saisie;
 
 /** Les bornes d'une saisie de nombre sans réglage : tout entier sur 32 bits, qu'un contrôle au pas de 1 tient
  *  exactement (le pas se cale sur l'écart à la borne, en réels). */

@@ -124,6 +124,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_musique.jouer(_vue.musique)
 	if _disposition.disposer(_vue.disposition):
 		_relier()
+	Portrait.corps = _vue.corps.combattants
 	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
