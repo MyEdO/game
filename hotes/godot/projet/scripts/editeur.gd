@@ -280,4 +280,4 @@ func _publier_l_ecran() -> void:
 	if not is_inside_tree():
 		return
 	_a_publier = false
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})
+	_pont.publier_l_ecran(func() -> Dictionary: return {boutons = PontDuNoyau.boutons_a_l_ecran([_interface]), saisies = PontDuNoyau.saisies_a_l_ecran([_interface]), panneau = PontDuNoyau.defilement_publie(_defilement), cases = _monde.points(int(_vue.couche)), editeur = {zones = _vue.zones, surcouche = _surcouche, aretes = _monde.volume.ce_qui_est_pose().aretes, noms = _monde.noms(), calque = _calque, calque_pose = _monde.calque_pose()}})

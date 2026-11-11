@@ -121,7 +121,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       return { t: 'ref', category: 'psychologies', id: o.type.id, label, show: label, badge };
     }
     case 'condition': {
-      const label = conditionLabel(o.id);
+      const label = conditionLabel(o.id.id);
       // Quantité : le nombre RÉSOLU dès que le DR du jet est connu (verdict) — sinon la base, et la
       // progression par DR passe en badge, pour que l'annonce dise la règle ENTIÈRE et jamais un
       // nombre que la résolution démentira.
@@ -137,15 +137,15 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
         duree ?? (!persistante && o.perRound ? t('codex.ligne.parRound') : undefined),
         n == null && o.valuePerSL ? humanizePerSL(o.valuePerSL) : undefined,
       ].filter((s) => !!s).join(' · ') || undefined;
-      return { t: 'ref', category: 'etats', id: o.id, label, show, badge };
+      return { t: 'ref', category: 'etats', id: o.id.id, label, show, badge };
     }
     case 'removeCondition': {
       if (!o.id) return textRow(o); // « au choix » : pas d'ancre
-      const label = conditionLabel(o.id);
+      const label = conditionLabel(o.id.id);
       const n = resolvedCount(o.value, o.valuePerSL, ctx?.sl); // même contrat de quantité que `condition`
       const show = n != null ? `${n} × ${label}` : label;
       const badge = n == null && o.valuePerSL ? humanizePerSL(o.valuePerSL) : undefined;
-      return { t: 'ref', category: 'etats', id: o.id, label, show, badge };
+      return { t: 'ref', category: 'etats', id: o.id.id, label, show, badge };
     }
     case 'giveTrapping': {
       if (!o.trappingId) return textRow(o); // objet CUSTOM (misc) sans id de catalogue → repli

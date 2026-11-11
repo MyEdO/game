@@ -1,4 +1,4 @@
-/** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTC 01 l.3 */
+/** EDOC 16 l.421 ; MSRC 19 l.498 ; ZI 14 l.55 ; PDTP 01 l.3 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { messageDeRefusDeSpec, recordDIds, ref, refs, refusDeSpec } from '../grammaire/ref';

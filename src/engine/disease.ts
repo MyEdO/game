@@ -343,9 +343,9 @@ function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: 
     } else if (op.op === 'condition') {
       // Pose par la SOURCE UNIQUE (LDB 16 l.115 non-cumul, l.7 perte d'Avantage, déclencheur de gain).
       const valeur = typeof op.value === 'number' ? op.value : 1;
-      addCondition(c, op.id, valeur);
-      log.push(t('op.cond', { name: c.label, v: c.conditions.find((x) => x.id === op.id)?.value ?? valeur, cond: conditionLabel(op.id) }));
-      emit?.({ stateId: op.id, change: 'gain', targetId: c.id });
+      addCondition(c, op.id.id, valeur);
+      log.push(t('op.cond', { name: c.label, v: c.conditions.find((x) => x.id === op.id.id)?.value ?? valeur, cond: conditionLabel(op.id.id) }));
+      emit?.({ stateId: op.id.id, change: 'gain', targetId: c.id });
     }
   }
 }

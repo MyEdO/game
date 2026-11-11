@@ -65,12 +65,12 @@ describe('opValue — BUFF de combat = bénéfice marginal (armé > 0, désarmé
 
 describe('opValue — CONTRÔLE (condition) = aiThreat de etats.json', () => {
   it('Sonné (op:condition) → aiThreat lu en donnée sur etats.json (6)', () => {
-    expect(opValue(op({ op: 'condition', id: 'sonne' }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(6);
+    expect(opValue(op({ op: 'condition', id: { id: 'sonne' } }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(6);
   });
   it('État CONNU sans aiThreat → 1 (contrôle mineur, jamais 0) ; id hors du registre → lève (#1463 LD.1)', () => {
     const sansMenace = etatIdsConnus().find((id) => findConditionById(id)?.aiThreat === undefined)!;
-    expect(opValue(op({ op: 'condition', id: sansMenace }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(1);
-    expect(() => opValue(op({ op: 'condition', id: 'id-hors-registre' }), combatant(), combatant({ id: 'h' }), ctxOf())).toThrow(t('etats.inconnu', { id: 'id-hors-registre' }));
+    expect(opValue(op({ op: 'condition', id: { id: sansMenace } }), combatant(), combatant({ id: 'h' }), ctxOf())).toBe(1);
+    expect(() => opValue(op({ op: 'condition', id: { id: 'id-hors-registre' } }), combatant(), combatant({ id: 'h' }), ctxOf())).toThrow(t('etats.inconnu', { id: 'id-hors-registre' }));
   });
 });
 

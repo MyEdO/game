@@ -45,7 +45,7 @@ function withSyntheticTrait(id: string, effects: TriggeredEffect[]): Combatant {
 }
 const SELF_EMPETRE: TriggeredEffect = {
   trigger: 'onHit', on: 'self',
-  flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'empetre', value: 1 }] } },
+  flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'empetre' }, value: 1 }] } },
 };
 
 const TRAITS_LIVRES = [...traits];
@@ -71,7 +71,7 @@ describe('#316 — triggers orphelins câblés au bus (émission + déclenchemen
       {
         trigger: 'onCharged', on: 'self',
         flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [
-          { op: 'condition', id: 'a-terre', value: 1 },
+          { op: 'condition', id: { id: 'a-terre' }, value: 1 },
           { op: 'grantFreeAttack', when: 'immediate' } as never,
         ] } },
       },
