@@ -18,7 +18,7 @@ import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
 import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
 import type { CategorieCodexDuFichier } from '../_cles-de-dataset.generated';
-import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, vocabulaireDuFichier, type SousListeMarquee } from './cle-d-espace';
+import { baseDe, cleDesLibelles, cleDesSpecs, cleFiltree, lireCleDEspace, marqueurPorte, vocabulaireDuFichier, type FiltreDEspace, type SousListeMarquee } from './cle-d-espace';
 import { REGISTRE_DU_VOCABULAIRE_D_ART } from '../_vocabulaires-d-art.generated';
 import { norm } from '../../../lib/normalize';
 import { idsVivants } from './idsVivants';
@@ -132,10 +132,12 @@ export const TYPES = {
 export type TypeEntite = keyof typeof TYPES;
 
 /** PORTÉE LOCALE : la collection `collection` de l'objet qui l'ouvre, et son `catalogue` tel que l'auteur le
- *  nomme, comme `DeclarationDeType`. Une référence la désigne par IDENTITÉ. */
+ *  nomme, comme `DeclarationDeType` ; `retient` : les filtres (`retenuParFiltre`) que chaque entrée admise passe tous,
+ *  toute la collection sans eux. Une référence la désigne par IDENTITÉ. */
 export interface PorteeLocale {
   readonly collection: string;
   readonly catalogue: string;
+  readonly retient?: readonly FiltreDEspace[];
 }
 
 /** Ce que désigne une référence validée : un type de `TYPES`, ou la portée locale `local:<collection>`. */

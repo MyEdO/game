@@ -7,6 +7,7 @@ import { resolveStake, matieresDe, findTrappingById } from '../data';
 import { emptyScene, type Scene } from './monde/scene';
 import { METRES_PER_LEVEL } from './monde/relief';
 import type { WorldMap, MapPlace } from './worldMap';
+import type { Effect } from '../data/schemas/defs-scenes/effets';
 
 function base() {
   const s = emptyScene('scene-test', 5, 5);
@@ -408,7 +409,17 @@ describe('validateScene', () => {
       rect: { x: 0, y: 0, w: 1, h: 1 },
       flow: testFlow({ skill: { id: 'perception' }}, flowFromEffects([{ type: 'startDialogue', dialogue: { id: 'absent' } }]), EMPTY_FLOW),
     });
-    expect(msgs(validateScene([s])).some((m) => /dialogue inexistant/.test(m))).toBe(true);
+    expect(msgs(validateScene([s])).some((m) => m.includes('« absent » est absent du catalogue des dialogues de la scène'))).toBe(true);
+  });
+
+  it('une référence locale morte d’un effet : une faute, une seule erreur, celle du parse (#3606 M2d)', () => {
+    const erreursSur = (id: string, effet: Effect) => {
+      const s = base();
+      s.triggers.push({ id: 't-mort', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([effet]) });
+      return validateScene([s]).filter((w) => w.level === 'error' && w.message.includes(`« ${id} »`)).map((w) => w.message);
+    };
+    expect(erreursSur('dlg-fantome', { type: 'startDialogue', dialogue: { id: 'dlg-fantome' } })).toEqual([expect.stringContaining('« dlg-fantome » est absent du catalogue des dialogues de la scène')]);
+    expect(erreursSur('fantome', { type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fantome' } })).toEqual([expect.stringContaining('« fantome » est absent du catalogue des personnages de la scène')]);
   });
 
   /**

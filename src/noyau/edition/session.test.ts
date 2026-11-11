@@ -46,6 +46,7 @@ import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
+import areneProjet from '../../scenes/arene/arene-projet.json';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -493,6 +494,18 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const sansDialogue = poser('humain', 1);
     expect(formulaireDe('entite', entiteDeLaSelection(sceneEditee(sansDialogue), sansDialogue.sel)!, cadreDeLaSession(sansDialogue)).map((f) => f.key)).not.toContain('dialogueId');
     expect(refusDeLaValeur(sansDialogue, valeur(idDe(sansDialogue), ['dialogueId'], { id: 'dlg-a' }))).toBe('nonOffert');
+  });
+
+  it('la référence locale d’un effet se choisit parmi exactement sa portée : les scènes du projet, les personnages de la scène, ses marchands (#3606 M2d)', () => {
+    const hub = areneProjet.scenes.find((sc) => sc.id === 'arene-hub')! as unknown as Scene;
+    const offerts = (effect: Effect, champ: string) => {
+      const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'seq' as const, steps: [{ kind: 'do' as const, effect }] } };
+      return choixDuChamp('declencheur', declencheur, ['flow', 'steps', 0, 'effect', champ, 'id'], { scene: hub, projet: { scenes: areneProjet.scenes as unknown as Scene[], narratif: NARRATIF_VIDE } })!.map((c) => c.valeur);
+    };
+    expect(offerts({ type: 'transition', scene: { id: 'arene-hub' } }, 'scene')).toEqual(areneProjet.scenes.map((sc) => sc.id));
+    const personnages = hub.entities.filter((e) => e.kind === 'personnage');
+    expect(offerts({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, 'entityId')).toEqual(personnages.map((e) => e.id));
+    expect(offerts({ type: 'openMerchant', entityId: { id: 'medecin' } }, 'entityId')).toEqual(personnages.filter((e) => e.merchant).map((e) => e.id));
   });
 
   it('un profil personnalisé s’ajoute neuf au nom du personnage ou copié de sa créature du Bestiaire, puis s’écrit champ par champ, l’identifiant d’un Talent au catalogue ; une autre valeur entière est refusée (#3606 M1b)', () => {

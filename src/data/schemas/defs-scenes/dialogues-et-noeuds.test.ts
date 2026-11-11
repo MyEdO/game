@@ -4,7 +4,8 @@
  * `medicalAid.entityId`) se désignent par `ref(portee)` : `{ id }` jugé au parse contre la collection `nodes` du MÊME
  * dialogue, `dialogues` ou `entities` de la MÊME scène, que chacun ouvre (`ouvrirPortees`). Fixtures : référence
  * connue, inconnue, écrite en id nu, d'une portée ÉTRANGÈRE (le nœud d'un autre dialogue, le dialogue ou l'entité
- * d'une autre scène), et portée locale.
+ * d'une autre scène), entité de la scène hors du filtre de la portée (un décor n'est ni personnage ni marchand), et
+ * portée locale.
  */
 import { describe, expect, it } from 'vitest';
 import { sceneSchema } from './scene';
@@ -55,15 +56,15 @@ const PORTEURS = [
     avec: (v: unknown) => avecEffet({ type: 'startDialogue', dialogue: v }),
   },
   {
-    porteur: 'effet startDialogue.speakerId', chemin: `${EFFET}.speakerId`, connue: 'maitre', etrangere: 'prisonnier', catalogue: 'entités de la scène', collection: 'entities',
+    porteur: 'effet startDialogue.speakerId', chemin: `${EFFET}.speakerId`, connue: 'maitre', etrangere: 'prisonnier', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal'],
     avec: (v: unknown) => avecEffet({ type: 'startDialogue', dialogue: { id: 'dlg-garde' }, speakerId: v }),
   },
   {
-    porteur: 'effet openMerchant.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'entités de la scène', collection: 'entities',
+    porteur: 'effet openMerchant.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'marchands de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal', 'maitre'],
     avec: (v: unknown) => avecEffet({ type: 'openMerchant', entityId: v }),
   },
   {
-    porteur: 'effet medicalAid.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'entités de la scène', collection: 'entities',
+    porteur: 'effet medicalAid.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal'],
     avec: (v: unknown) => avecEffet({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: v }),
   },
 ];
@@ -95,6 +96,10 @@ describe('#2968 L15 — dialogues et nœuds désignés par `ref(portee)`', () =>
 
   it.each(PORTEURS)('$porteur : l’id d’une portée ÉTRANGÈRE (autre dialogue, autre scène) est refusé', ({ avec, etrangere, catalogue }) => {
     expect(messages(avec({ id: etrangere })).join(' ')).toContain(`« ${etrangere} » est absent du catalogue des ${catalogue}`);
+  });
+
+  it.each(PORTEURS.flatMap((p) => (p.horsDuFiltre ?? []).map((id) => ({ ...p, id }))))('$porteur : « $id », une entité de la scène hors du filtre de la portée, est refusée', ({ avec, id, catalogue }) => {
+    expect(messages(avec({ id })).join(' ')).toContain(`« ${id} » est absent du catalogue des ${catalogue}`);
   });
 
   it('la portée est LOCALE : un nœud ajouté au dialogue est désignable, un dialogue retiré de la scène ne l’est plus', () => {

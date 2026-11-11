@@ -15,16 +15,16 @@ import { nommerChamps, nommerNoeud, nomDeNoeud } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { validerApparenceDonnee } from '../grammaire/valeurs';
-import { descendre, ouverts } from '../grammaire/descente';
+import { ouverts } from '../grammaire/descente';
 import { proseNommee } from '../grammaire/prose';
 import { cell2Schema, chaosAlignSchema, enumNomme, exposureLevelSchema, hitLocationSchema, moneyPartialSchema, natureDInfluenceSchema } from '../grammaire/valeurs';
 import { arbreDeFlow, conditionSchema, effectOpSchema, executeesDe, extendedTestSchema } from '../grammaire/mecanique';
 import { designerHerosSchema, documentSchema, poserEtatSchema, revealClueSchema } from '../grammaire/campagne';
-import { idDe, porteeDeLaFeuille, ref, refOuSpec, refTypee } from '../grammaire/ref';
+import { idDe, ref, refOuSpec, refTypee } from '../grammaire/ref';
 import { typeDePossessionSchema } from '../grammaire/reference';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle } from '../grammaire/collection-cle';
-import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, ENTITES_DE_LA_SCENE, PORTEES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
+import { customStatblockSchema, DIALOGUES_DE_LA_SCENE, MARCHANDS_DE_LA_SCENE, PERSONNAGES_DE_LA_SCENE, ptSchema, SCENES_DU_PROJET, wallSideSchema } from './communs';
 import { waterAppliesToSchema } from '../defs/water-exposure';
 import type { ChampDeDecision, EffectOp, Flow as CoreFlow, FlowTest, TriggeredEffect as CoreTriggeredEffect } from '../../../engine/flowCore';
 import type { ScheduleSpec } from '../../../engine/clock';
@@ -203,7 +203,7 @@ export const transitionBackSchema = nommerChamps(z.strictObject({ type: z.litera
 export const startDialogueSchema = nommerChamps(z.strictObject({
   type: z.literal('startDialogue'),
   dialogue: ref(DIALOGUES_DE_LA_SCENE),
-  speakerId: ref(ENTITES_DE_LA_SCENE).optional(),
+  speakerId: ref(PERSONNAGES_DE_LA_SCENE).optional(),
 }), { type: { label: "type"  }, dialogue: { label: "dialogue" , texte: { regime: "technique"} }, speakerId: { label: "locuteur" , texte: { regime: "technique"} } });
 
 /** Ligne de journal : `descRef` (verbatim) ⊕ `adapteDe` (`grammaire/prose.ts`). */
@@ -247,9 +247,9 @@ export const setTimeSchema = nommerChamps(z
     }
   }), { type: { label: "type"  }, phase: { label: "phase"  }, hour: { label: "heure" }, minute: { label: "minute" } });
 
-/** Ouvre la boutique d'une entité marchande (par son id) — permet d'inclure le Marchand dans un
- *  dialogue (ex. choix « Montrez-moi vos marchandises »). L'entité doit porter `merchant` (#2). */
-export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: ref(ENTITES_DE_LA_SCENE) }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
+/** Ouvre la boutique d'un marchand de la scène (`MARCHANDS_DE_LA_SCENE`) — permet d'inclure le Marchand dans un
+ *  dialogue (ex. choix « Montrez-moi vos marchandises »). #2 */
+export const openMerchantSchema = nommerChamps(z.strictObject({ type: z.literal('openMerchant'), entityId: ref(MARCHANDS_DE_LA_SCENE) }), { type: { label: "type"  }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** Ouvre le PORT d'un lieu de la carte du monde — SCRIPTÉ (arrivée mise en scène, cinématique
  *  de quête) sur le MÊME chemin que l'accostage en mer (`openPortAt`, noyau/seaVoyageFlow) : avec profil
@@ -264,7 +264,7 @@ export const medicalAidSchema = nommerChamps(z.strictObject({
   acts: z
     .array(nommerChamps(z.strictObject({ act: z.enum(['blessures', 'hemorragie', 'traumatisme', 'chirurgie']), cost: moneyPartialSchema.optional() }), { act: { label: "acte"  }, cost: { label: "coût" } }))
     .optional(),
-  entityId: ref(ENTITES_DE_LA_SCENE),
+  entityId: ref(PERSONNAGES_DE_LA_SCENE),
 }), { type: { label: "type"  }, acts: { label: "actes" }, entityId: { label: "entité" , texte: { regime: "technique"} } });
 
 /** LDB 17 l.41 */
@@ -647,98 +647,77 @@ export type Effect =
   | z.infer<typeof adjustVesselSchema>
   | z.infer<typeof endDialogueSchema>;
 
-/** Les variantes de l'union `Effect`, dans l'ordre de `effectSchema`. Les variantes récursives se lisent à la
- *  construction de l'union, jamais avant. */
-const variantesDEffet = () => [
-  setFlagSchema,
-  poserEtatSchema,
-  designerHerosSchema,
-  setObjectiveSchema,
-  clearObjectiveSchema,
-  giveTrappingSchema,
-  givePossessionSchema,
-  giveMoneySchema,
-  giveXpSchema,
-  startCombatSchema,
-  startMassBattleSchema,
-  transitionSchema,
-  transitionBackSchema,
-  startDialogueSchema,
-  journalSchema,
-  documentSchema,
-  revealClueSchema,
-  discreditClueSchema,
-  extendedTestSchema,
-  forceDoorSchema,
-  setTimeSchema,
-  delayedEffectSchema,
-  openMerchantSchema,
-  openPortSchema,
-  medicalAidSchema,
-  restoreFortuneSchema,
-  restSchema,
-  mealPartySchema,
-  inflictNightmaresSchema,
-  ambitionLostSchema,
-  inflictPsychologySchema,
-  inflictDiseaseSchema,
-  inflictHungerSchema,
-  inflictThirstSchema,
-  exposureNightSchema,
-  inflictTraumaSchema,
-  // La feuille `type:'ops'` (`EffectOp`, `engine/flowCore.ts`) est un membre de l'union `Effect` :
-  // c'est le MÊME schéma que celui de la grammaire, jamais une seconde définition.
-  effectOpSchema,
-  zoneBlastSchema,
-  fallSchema,
-  setLightSchema,
-  setDoorSchema,
-  moveEntitySchema,
-  playSfxSchema,
-  giveSinSchema,
-  corruptionExposureSchema,
-  waterExposureSchema,
-  learnSpellSchema,
-  castSpellSchema,
-  petitePriereSchema,
-  sessionEndSchema,
-  openCharacterCreatorSchema,
-  interludeSchema,
-  grantFavorSchema,
-  startPursuitSchema,
-  openTavernGamesSchema,
-  openWorldMapSchema,
-  setVesselSchema,
-  adjustVesselSchema,
-  endDialogueSchema,
-] as const;
-
-/** Une variante de l'union `Effect` (`variantesDEffet`). */
-type VarianteDEffet = ReturnType<typeof variantesDEffet>[number];
-
 /** `Effect` — l'union des variantes. ANNOTÉE par le type manuscrit : la récursion mutuelle avec
  *  `sceneFlowSchema` n'est inférable ni dans un sens ni dans l'autre.
  *
  *  Ce schéma valide les DEUX racines authorées — `src/scenes` ET `src/data` (`effets.test.ts`) : il
  *  dit la FORME d'un Effet, pas le vocabulaire d'une scène. Ce qu'un Effet de SCÈNE peut viser se
  *  juge à la scène (`validateScene` → `EFFECT_HANDLERS.ops.refs`, `noyau/combatEffects.ts`). */
-export const effectSchema: z.ZodType<Effect> = z.lazy(() => z.discriminatedUnion('type', variantesDEffet()));
-
-/** La variante `variante` désigne-t-elle, dans son arbre, une portée locale de la scène (`PORTEES_DE_LA_SCENE`) ? */
-const designeLaScene = (variante: unknown): boolean => {
-  let designe = false;
-  descendre([variante], ({ noeud }) => {
-    const portee = porteeDeLaFeuille(noeud);
-    if (portee === undefined || !PORTEES_DE_LA_SCENE.includes(portee)) return;
-    designe = true;
-    return 'arreter';
-  });
-  return designe;
-};
-
-/** L'union `Effect` HORS SCÈNE : ses variantes (`variantesDEffet`) qui ne désignent aucune portée locale de la scène
- *  (`designeLaScene`), seules sensées là où aucune scène ne les ouvre (`routePerilSchema`). */
-export const effetHorsSceneSchema: z.ZodType<Effect> = z.lazy(() => z.discriminatedUnion('type', variantesDEffet().filter((v) => !designeLaScene(v)) as [VarianteDEffet, ...VarianteDEffet[]]));
+export const effectSchema: z.ZodType<Effect> = z.lazy(() =>
+  z.discriminatedUnion('type', [
+    setFlagSchema,
+    poserEtatSchema,
+    designerHerosSchema,
+    setObjectiveSchema,
+    clearObjectiveSchema,
+    giveTrappingSchema,
+    givePossessionSchema,
+    giveMoneySchema,
+    giveXpSchema,
+    startCombatSchema,
+    startMassBattleSchema,
+    transitionSchema,
+    transitionBackSchema,
+    startDialogueSchema,
+    journalSchema,
+    documentSchema,
+    revealClueSchema,
+    discreditClueSchema,
+    extendedTestSchema,
+    forceDoorSchema,
+    setTimeSchema,
+    delayedEffectSchema,
+    openMerchantSchema,
+    openPortSchema,
+    medicalAidSchema,
+    restoreFortuneSchema,
+    restSchema,
+    mealPartySchema,
+    inflictNightmaresSchema,
+    ambitionLostSchema,
+    inflictPsychologySchema,
+    inflictDiseaseSchema,
+    inflictHungerSchema,
+    inflictThirstSchema,
+    exposureNightSchema,
+    inflictTraumaSchema,
+    // La feuille `type:'ops'` (`EffectOp`, `engine/flowCore.ts`) est un membre de l'union `Effect` :
+    // c'est le MÊME schéma que celui de la grammaire, jamais une seconde définition.
+    effectOpSchema,
+    zoneBlastSchema,
+    fallSchema,
+    setLightSchema,
+    setDoorSchema,
+    moveEntitySchema,
+    playSfxSchema,
+    giveSinSchema,
+    corruptionExposureSchema,
+    waterExposureSchema,
+    learnSpellSchema,
+    castSpellSchema,
+    petitePriereSchema,
+    sessionEndSchema,
+    openCharacterCreatorSchema,
+    interludeSchema,
+    grantFavorSchema,
+    startPursuitSchema,
+    openTavernGamesSchema,
+    openWorldMapSchema,
+    setVesselSchema,
+    adjustVesselSchema,
+    endDialogueSchema,
+  ]),
+);
 
 /** `Flow<Effect>` (`engine/flowCore.ts:559`) — l'arbre `arbreDeFlow` de feuille `do` l'union `Effect`
  *  de scène, au coût de `choice` littéral (le template `$indice` n'a pas de porteur en scène). */

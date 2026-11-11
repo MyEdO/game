@@ -202,15 +202,12 @@ describe('Médecin (PNJ) — soins payants (LDB 75), via l’infirmerie', () => 
     // `fidele` est un figurant de la chapelle : aucune réf de bestiaire, donc aucune Guérison.
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fidele' } }]);
     expect(banc.getState().medic).toBeNull();
-    // Entité inexistante : même refus, et la validation d'atelier le NOMME.
+    // Entité inexistante : même refus ; la validation d'atelier la nomme par le parse (`validateScene.test.ts`).
     applyEffects(banc.getState, banc.setState, [{ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'chirurgien-fantome' } }]);
     expect(banc.getState().medic).toBeNull();
     // La validation d'ATELIER voit ce que voit le runtime : elle résout la FICHE (même `sceneNpc`).
-    const ctx = { sceneIds: new Set<string>(), dialogues: new Map(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
+    const ctx = { sceneIds: new Set<string>(), encounterIds: new Set<string>(), entityIds: new Set(hub.entities.map((e) => e.id)), npcSheet: (id: string) => sceneNpc(hub, id, presetPnjById), within: () => true, walkable: () => true };
     expect(EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, ctx)).toEqual([]);
-    const issues = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'chirurgien-fantome' } }, ctx);
-    expect(issues.map((i) => i.level)).toEqual(['error']);
-    expect(issues[0].message).toContain('chirurgien-fantome');
     // Entité EXISTANTE mais sans Guérison : l'atelier la nomme, elle aussi — la porte n'est plus aveugle.
     const sansSoin = EFFECT_HANDLERS.medicalAid.refs!({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'fidele' } }, ctx);
     expect(sansSoin.map((i) => i.level)).toEqual(['error']);
