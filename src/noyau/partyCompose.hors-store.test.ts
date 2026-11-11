@@ -5,9 +5,9 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { idDuPretire, richesseDuPretire } from '../data/pregens';
+import { idDuPretire, richesseDuPretire, type PregenDef } from '../data/pregens';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
-import { makeRNG } from '../engine/dice';
+import { makeRNG, rollDice } from '../engine/dice';
 import { battleRng, seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
 import { toBrass } from '../engine/money';
@@ -24,6 +24,9 @@ import { PRETIRE_DE_TEST, poserLesPretires } from './creation/pretireDeTest.test
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
+
+/** Un prétiré de fixture dont une possession du catalogue est imprimée à 1d10. */
+const AUX_DES: PregenDef = { ...PRETIRE_DE_TEST, trappings: [{ id: 'chiffons', count: { roll: { n: 1, sides: 10 } } }] };
 
 const hero = (id: string): Combatant => combattantDeTest({ id, label: `Héros ${id}`, kind: 'hero' });
 
@@ -65,6 +68,25 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(toBrass(bourseOf(s.party[0]))).toBe(bourseDeA);
     const temoin = makeRNG(31);
     expect(battleRng().int(1, 1_000_000), 'le RNG du jeu reste à sa graine : le remplacement ne tire rien').toBe(temoin.int(1, 1_000_000));
+  });
+
+  it('recruterLeHeros : une possession de pré-tiré imprimée à quantité aux dés se tire au RNG du jeu, avant la Richesse', () => {
+    poserLesPretires([AUX_DES]);
+    seedBattleRng(31);
+    banc.getState().recruterLeHeros({ pretire: AUX_DES.id });
+    const temoin = makeRNG(31);
+    const attendu = rollDice({ n: 1, sides: 10 }, temoin);
+    expect(banc.getState().party[0].items!.filter((i) => i.trappingId === 'chiffons')).toHaveLength(attendu);
+    expect(toBrass(bourseOf(banc.getState().party[0])), 'la Richesse se tire après les possessions').toBe(toBrass(richesseDuPretire(AUX_DES, temoin)));
+  });
+
+  it('remplacerLeHeros par un pré-tiré : ses possessions aux dés se tirent aussi', () => {
+    poserLesPretires([AUX_DES]);
+    banc.getState().recruterLeHeros(engage('a'));
+    seedBattleRng(31);
+    banc.getState().remplacerLeHeros('a', { pretire: AUX_DES.id });
+    const attendu = rollDice({ n: 1, sides: 10 }, makeRNG(31));
+    expect(banc.getState().party[0].items!.filter((i) => i.trappingId === 'chiffons')).toHaveLength(attendu);
   });
 
   it('recruterLeHeros : refuse les doublons d’id et le groupe plein', () => {

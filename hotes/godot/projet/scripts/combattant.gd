@@ -166,7 +166,7 @@ func vetir(corps: Variant) -> void:
 	_base_demandee = corps.base
 	var chargement := RefCounted.new()
 	_chargement = chargement
-	var scene := await _montage.scene_du_glb(corps.base, _montage.erreurs)
+	var scene := await _montage.scene_du_modele(corps.base, _montage.erreurs)
 	if chargement != _chargement:
 		if scene != null:
 			scene.free()

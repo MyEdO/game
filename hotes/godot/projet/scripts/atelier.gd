@@ -1,5 +1,5 @@
 ## L'atelier 3D (#3086) : les modèles listés à côté de l'export (`GET modeles/listage.json`), indexés par le pont
-## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque GLB chargé à l'exécution (`GET modeles/<id>.glb`). Le joueur y
+## (`modeles`, `hotes/godot/pont/atelier.ts`), et chaque modèle chargé à l'exécution sous la forme que sert le listage (`GET modeles/<fichier>`). Le joueur y
 ## choisit un corps, compose un personnage depuis un preset ou ses axes (`composer`, `catalogues`, `presetDeComposition`,
 ## `hotes/godot/pont/composition.ts`), le colore au nuancier, monte un élément par point d'accroche ou par ligne de pièce,
 ## joue les clips de la base image par image, fait marcher la base au clavier (`MarcheDeLAtelier`), montre les aides
@@ -215,7 +215,7 @@ func _charger(montes: Dictionary, emblemes: Dictionary) -> void:
 	if reponse.get("ok") != true:
 		_montrer_l_etat()
 		return
-	MontageDeComposition.retenir_les_modeles(reponse)
+	MontageDeComposition.retenir_les_modeles(reponse, listage)
 	for refus in reponse.refus:
 		_erreurs.append(str(refus))
 	%Rapport.text = "\n".join(PackedStringArray(reponse.rapport))
@@ -272,7 +272,7 @@ func _recharger() -> void:
 func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement: RefCounted) -> void:
 	var scene: Node3D = null
 	if base != null:
-		scene = await _montage.scene_du_glb(base.id, _erreurs)
+		scene = await _montage.scene_du_modele(base.id, _erreurs)
 	if chargement != _chargement:
 		if scene != null:
 			scene.free()

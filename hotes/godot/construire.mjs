@@ -15,7 +15,8 @@
 // (`hotes/godot/recettes/editeur.ts`) écrits dans la copie ; la CI la joue
 // (`npm run godot:sonde`). `--export --sortie <dossier>` y écrit le bundle,
 // puis l'export Web du projet (`export_presets.cfg`) et, à côté, le dossier des modèles et son listage
-// (`deposerLesModeles`, #3778) et les planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
+// (`deposerLesModeles`, #3778), chaque modèle en scène que l'éditeur fabrique de son GLB (`fabriquer`, #3946), et les
+// planches (`deposerLesPlanches`, #3935) : un site statique, que `deploy.yml` publie et que `recette.mjs` joue au navigateur, sur le modèle d'export que
 // son préréglage nomme (`modeleDuPreset`) : tiré par tranches (`Range`) de l'archive des modèles publiée, vérifié par sa
 // somme épinglée (`EDITEUR.modeles`), gardé sous `CACHE` (#2943), donné par `custom_template/release`. Godot ne
 // travaille que sur une copie du projet sous le dossier temporaire : l'arbre n'en reçoit rien, ni les modèles d'export
@@ -54,7 +55,7 @@ const PONT = 'wfrp-pont.js'
 const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier>
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
-  --export            le bundle, l'export Web du projet et ses modèles, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
+  --export            le bundle, l'export Web du projet et ses modèles fabriqués en scène, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --sortie <dossier>  le dossier où les écrire (sans lui, --pont-seul n'écrit rien)
   GODOT=<binaire>     un éditeur Godot de la version épinglée, à la place du téléchargement (le modèle d'export n'en dépend pas)`
 
@@ -338,7 +339,22 @@ function sonder(binaire) {
   })
 }
 
-/** L'export Web du projet dans `sortie`, sur le modèle `modele` : le préréglage de la copie le reçoit par `custom_template/release`. */
+/** La fabrique des modèles du projet (`projet/outils/fabrique_de_modeles.gd`), et la commande que `fabriquer` lui écrit. */
+const FABRIQUE = 'res://outils/fabrique_de_modeles.gd'
+const COMMANDE = 'fabrique.json'
+
+/** La scène de chaque modèle de `modeles` (`{ id, glb, scene }`, `deposerLesModeles`) fabriquée de son GLB par
+ *  l'éditeur sur la copie importée `copie`, qui reçoit la commande. */
+function fabriquer(binaire, copie, modeles) {
+  const commande = join(copie, COMMANDE)
+  writeFileSync(commande, JSON.stringify(modeles))
+  const { erreurs } = godot(binaire, copie, ['--script', FABRIQUE, '--', commande])
+  if (!erreurs.length) console.log(`[godot] ${modeles.length} modèles fabriqués en scène`)
+  return erreurs
+}
+
+/** L'export Web du projet dans `sortie`, sur le modèle `modele` : le préréglage de la copie le reçoit par
+ *  `custom_template/release` ; puis, à côté, le dossier des modèles déposé, ses scènes fabriquées sur la même copie. */
 function exporter(binaire, sortie, modele) {
   return surUneCopie(binaire, (copie) => {
     const presets = join(copie, PRESETS)
@@ -346,7 +362,8 @@ function exporter(binaire, sortie, modele) {
     const release = /^custom_template\/release=.*$/m
     if (!release.test(cfg)) return [`${PRESETS} : custom_template/release absent`]
     writeFileSync(presets, cfg.replace(release, `custom_template/release=${JSON.stringify(modele.split(sep).join('/'))}`))
-    return godot(binaire, copie, ['--export-release', 'Web', join(sortie, 'index.html')]).erreurs
+    const { erreurs } = godot(binaire, copie, ['--export-release', 'Web', join(sortie, 'index.html')])
+    return erreurs.length ? erreurs : deposerLesModeles(DOSSIER_DES_MODELES, sortie, (modeles) => fabriquer(binaire, copie, modeles))
   })
 }
 
@@ -393,7 +410,6 @@ async function principal() {
   await recupererEpingles({})
   const sortie = verdict(exporter(await editeur(), options.sortie, await modeleWeb()))
   if (sortie) return sortie
-  deposerLesModeles(DOSSIER_DES_MODELES, options.sortie)
   deposerLesPlanches(options.sortie)
   console.log(`[godot] export Web : ${listerDossier(options.sortie).map((f) => `${f} ${octets(statSync(join(options.sortie, f)).size)}`).join(', ')}`)
   return 0

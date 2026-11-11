@@ -42,7 +42,7 @@ import { toMoney, Money, formatMoney } from '../engine/money';
 import { isArcaneSpell } from '../engine/magic';
 import { eligibleTalent, spellCost, verdictApprentissage } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { levelsForCareer, byId, findCareerById, findSpellById, findTrappingById, refLabel, dataLabel, type SpellData } from '../data/index';
+import { levelsForCareer, byId, careerLabelFor, findSpellById, findTrappingById, refLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { rangDAjout, rangsDuGroupe, seatOwns } from './sieges';
@@ -714,7 +714,7 @@ export function changerDeCarriere(get: Get, set: Set, heroId: string, newCareer:
       msg = t('pf.careerRefused', { name: clone.label, reason: r.reason ?? '' });
       return h;
     }
-    msg = t('pf.careerChanged', { name: clone.label, career: dataLabel(findCareerById(newCareer)?.label ?? newCareer), level: newLevel, cost: r.cost });
+    msg = t('pf.careerChanged', { name: clone.label, career: careerLabelFor({ career: newCareer, appearance: clone.appearance }), level: newLevel, cost: r.cost });
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);
@@ -769,7 +769,7 @@ export function partieEnCours(s: Pick<Jeu, 'scene' | 'pendingCampaign'>): boolea
 /** Ajoute un héros au groupe dans un emplacement du siège qui décide (`decidingSeat` : le siège local, ou celui
  *  du transport pour un intent), au rang `rangDAjout` — point d'entrée UNIQUE de la composition d'équipe (PartyScreen, HeroSelector,
  *  créateur), le héros bâti par le noyau de `heros` (`herosDeLEngagement`), refusé par `refusDAjoutAuGroupe` ou par
- *  le brouillon incomplet. Sa Richesse de départ (`richesseDeLEngagement`, LDB 05 l.578-583), tirée ICI seul au RNG du
+ *  le brouillon incomplet. Les possessions aux dés d'un pré-tiré se tirent d'abord, puis sa Richesse de départ (`richesseDeLEngagement`, LDB 05 l.578-583), tirée ICI seul au RNG du
  *  jeu (`battleRng`), crédite SA propre Bourse (SOCLE POSSESSIONS §8, #531). */
 export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const s = get();
@@ -778,7 +778,7 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
   const verdict = verdictDEngagement(heros);
   const refus = 'refus' in verdict ? refusDAjoutAuGroupe(s, undefined, seat) ?? verdict.refus : refusDAjoutAuGroupe(s, verdict.id, seat);
   if (compositionRefusee(get, set, refus)) return;
-  const copy: Combatant = ensureBourse(herosDeLEngagement(heros, get().forgerUnId), get().forgerUnId);
+  const copy: Combatant = ensureBourse(herosDeLEngagement(heros, get().forgerUnId, battleRng()), get().forgerUnId);
   const wealth = richesseDeLEngagement(heros, battleRng());
   const rangs = { ...rangsDuGroupe(s), [copy.id]: rangDAjout(s, seat)! };
   set({
@@ -850,7 +850,7 @@ export function remplacerLeHeros(get: Get, set: Set, heroId: string, heros: Hero
   if (idx < 0) return;                                                    // l'ancien n'est plus là
   const doublon = verdict.id !== undefined && verdict.id !== heroId ? s.party.find((h) => h.id === verdict.id) : undefined;
   if (compositionRefusee(get, set, doublon ? t('pf.partyDuplicate', { name: doublon.label }) : null)) return;
-  const copy = withBourseMoney(herosDeLEngagement(heros, get().forgerUnId), bourseOf(s.party[idx]), get().forgerUnId);
+  const copy = withBourseMoney(herosDeLEngagement(heros, get().forgerUnId, battleRng()), bourseOf(s.party[idx]), get().forgerUnId);
   const ownership = { ...s.net.ownership };
   delete ownership[heroId];
   ownership[copy.id] = decidingSeat(s);

@@ -6,7 +6,7 @@
  * (`emplacementsDeRangement`), à chaque prise ceux dont un mesh pend à l'os de l'une de ses prises (`osDesRigides` du
  * listage, `asset/glb.ts` `meshes`, `asset/evaluateur/evaluer.ts` `monter`), que Godot repose du repère de leur prise
  * d'origine dans celui de la prise retenue, ou range à l'emplacement (#3319) ; ses lignes de pièce (#3086, D3), tirées de la
- * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; le fichier GLB de chaque élément servi
+ * garde-robe, où vont ses éléments liés au `squelette` ou en `surface` et ses accessoires, rigides compris ; les fichiers de chaque élément servi
  * (`fichiersDuModele`) et le libellé de la chose qu'il porte ; les surfaces de chaque base et de chaque élément servi
  * (`asset/surfaces.ts`), où se posent au montage la palette de la composition et les emblèmes de la garde-robe (#3111) ;
  * la table rôle → clip de chaque base et la vitesse au sol de son rôle `marche` ; chaque véhicule servi, élément sans base
@@ -56,9 +56,10 @@ export interface ModelesDeLAtelier {
    *  vaut la table rôle → clip de la base (`clips` du manifeste, « Gabarit d'une base ») et `vitesseAuSol` la vitesse
    *  au sol en m/s de son clip du rôle `marche` (`appuis.vitesseAuSol`). */
   bases: BaseDeLAtelier[];
-  /** le fichier, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne ou en véhicule
-   *  (`fichiersDuModele(id).glb`). */
-  glb: Record<string, string>;
+  /** les fichiers, sous `modeles/`, de chaque base et de chaque élément servi, à un point, à une ligne ou en véhicule
+   *  (`fichiersDuModele`) : son GLB et la scène que l'export en fabrique. Godot demande celui que nomme la `forme` du
+   *  listage. */
+  fichiers: Record<string, { glb: string; scene: string }>;
   /** ceux de l'index (`[base-absente]`, `[cle-en-doublon]`, `[base-en-doublon]`, `[forme]`). Un manifeste qui n'est
    *  ni une base (il porte `os`, schéma `VERSION_DU_SCHEMA_DE_BASE`, `asset/manifesteDeBase.ts`) ni un élément qui
    *  nomme sa `base` (schéma 3) ou d'une catégorie sans base (`decor`, `vehicule` : `estSansBase`,
@@ -240,6 +241,8 @@ type EmblemeDeLAtelier = Pick<EmblemeDef, 'id' | 'label' | 'svg'>;
 /** La `cle` du manifeste d'élément `manifeste`. */
 export const cleDe = (manifeste: unknown): Readonly<Record<string, string | undefined>> => (manifeste as ManifesteDElement).cle;
 const modeDe = (e: EntreeDeModele) => (e.brut as ManifesteDElement).liaison.mode;
+/** Le GLB du modèle `id` et la scène que l'export en fabrique (`fichiersDuModele`). */
+const formesDe = (id: string): ModelesDeLAtelier['fichiers'][string] => { const { glb, scene } = fichiersDuModele(id); return { glb, scene }; };
 /** La base de l'élément `e`, `undefined` s'il est sans base (`estSansBase`). */
 const baseDe = (e: EntreeDeModele): string | undefined => { const m = e.brut as ManifesteDElement; return 'base' in m ? m.base : undefined; };
 /** Les `nom` des surfaces `blason: true` du manifeste d'élément `manifeste`, dans l'ordre du manifeste. */
@@ -261,7 +264,7 @@ export const emblemeMonte = (embleme: EmblemeResolu | undefined, manifeste: unkn
 export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigides: Readonly<Record<string, readonly string[]>>): ModelesDeLAtelier {
   const index = indexerModeles(Object.entries(manifestes).map(([id, brut]) => ({ id, brut })));
   const elements = [...index.elements.values()];
-  const glb: Record<string, string> = {};
+  const fichiers: ModelesDeLAtelier['fichiers'] = {};
   const surfaces: Record<string, readonly Surface[]> = {};
   const libelles: Record<string, string> = {};
   const secondesPrises: Record<string, SecondePriseDeLAtelier> = {};
@@ -276,7 +279,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
   const libelleDeLAxe = (champ: 'tete' | 'coiffure'): string => catalogues.axes.find((a) => a.champ === champ)!.label;
   const servir = (servis: readonly EntreeDeModele[]): string[] =>
     servis.map(({ id, brut }) => {
-      glb[id] = fichiersDuModele(id).glb;
+      fichiers[id] = formesDe(id);
       surfaces[id] = (brut as ManifesteDElement).surfaces;
       libelles[id] = libelleDeCleDElement(cleDe(brut)) ?? id;
       const { couche, couvre } = brut as { couche?: Couche; couvre?: readonly string[] };
@@ -292,7 +295,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     const estUnePiece = (e: EntreeDeModele) => modeDe(e) !== 'rigide' || (e.brut as ManifesteDElement).categorie === 'accessoire';
     const objets = deLaBase.filter((e) => !estUnePiece(e));
     const pieces = deLaBase.filter(estUnePiece);
-    glb[id] = fichiersDuModele(id).glb;
+    fichiers[id] = formesDe(id);
     surfaces[id] = m.surfaces ?? [];
     const osDesPrises = Object.values(m.prises ?? {}).map((a) => a.os);
     const pointsDe = (genre: PointDAccroche['genre'], attaches: Readonly<Record<string, Attache>>): PointDAccroche[] =>
@@ -343,7 +346,7 @@ export function modelesDeLAtelier(manifestes: Record<string, unknown>, osDesRigi
     return m.categorie === categorie ? [[cleDe(m)[champ]!, servir([e])[0]]] : [];
   }));
   const vehicules = Object.fromEntries(Object.entries(parCle('vehicule', 'definition')).sort(([, a], [, b]) => libelles[a].localeCompare(libelles[b], 'fr')));
-  return { bases, glb, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration') };
+  return { bases, fichiers, refus: index.refus, rapport: index.rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules, ameliorations: parCle('amelioration', 'amelioration') };
 }
 
 /** Une pièce montée sur un véhicule : l'élément `vehicule` servi qui dessine sa fiche, son bord, sa position dans la

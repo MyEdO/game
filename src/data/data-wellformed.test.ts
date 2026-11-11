@@ -166,7 +166,7 @@ describe('Intégrité des données src/data/*.json', () => {
   it("4bis — le périmètre de template est PAR FICHIER : `$arg` dans une qualité est un placeholder (contre-épreuve)", () => {
     const probe = (file: string, gabarit: string) => {
       const s: Scan = { parseErrors: [], unknownOps: [], badFormulas: [], badPlaceholders: [], strayImpureOps: [], strayFreeAttacks: [] };
-      walk({ effects: [{ trigger: 'onCrit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'a-terre', durationRounds: gabarit }] } } }] }, file, '', s);
+      walk({ effects: [{ trigger: 'onCrit', on: 'victim', flow: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'a-terre' }, durationRounds: gabarit }] } } }] }, file, '', s);
       return s.badPlaceholders;
     };
     expect(probe('traits.json', '$arg'), 'un Trait porte un `$arg` : `withArg` le substitue.').toEqual([]);
@@ -308,7 +308,7 @@ describe('États portés par un canal PASSIF — la fenêtre de Détermination e
         for (const ops of listes) {
           if (!Array.isArray(ops)) continue;
           for (const op of ops) {
-            if ((op as Record<string, unknown>)?.op === 'condition') porteurs.push({ file, id: id ?? '?', cond: String((op as Record<string, unknown>).id), window: (op as Record<string, unknown>).resolveWindow });
+            if ((op as Record<string, unknown>)?.op === 'condition') porteurs.push({ file, id: id ?? '?', cond: ((op as Record<string, unknown>).id as { id: string }).id, window: (op as Record<string, unknown>).resolveWindow });
           }
         }
       }

@@ -204,8 +204,8 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
     setDataset('symptoms', [...SYMPTOMES_LIVRES, {
       id: SONDE, type: 'symptoms', label: 'Sonde',
       effects: [
-        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '==', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'sonne' }] } } } },
-        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '<', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'a-terre' }] } } } },
+        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '==', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: { id: 'sonne' } }] } } } },
+        { trigger: 'onOwnTestFailed', on: 'self', flow: { kind: 'if', cond: { kind: 'slThreshold', op: '<', value: 0 }, then: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: { id: 'a-terre' } }] } } } },
       ],
     } as never]);
     banc.setState({ party: [porteur()], journal: [], pendingCascade: null });

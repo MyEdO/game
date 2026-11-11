@@ -15,7 +15,7 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
+  skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
@@ -952,7 +952,7 @@ function miscastAmountLabel(a: unknown): string {
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
     case 'condition': {
-      const id = String(o.id ?? '');
+      const { id } = o.id as { id: string };
       const label = conditionLabel(id);
       const value = o.value != null ? miscastAmountLabel(o.value) : null;
       const dur = o.durationRounds != null ? tr('codex.fiche.roundS', { v: miscastAmountLabel(o.durationRounds) }) : undefined;
@@ -1824,7 +1824,7 @@ const CODEX_SPECS = {
     build: () => pregens.map((p) => {
       const actuelle = garanti(carriereActuelle({ carrieres: p.carrieres }), p.id, 'carrière actuelle du pré-tiré');
       return depuisEnveloppe(p, {
-        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(actuelle.id)?.label ?? actuelle.id, tr('codex.fiche.niveau2', { level: actuelle.niveau })),
+        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, careerLabelFor({ career: actuelle.id, appearance: { sex: p.sex } }), tr('codex.fiche.niveau2', { level: actuelle.niveau })),
         meta: facts(fact(tr('codex.fiche.motivation'), p.motivation)),
       });
     }),

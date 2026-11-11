@@ -122,6 +122,12 @@ describe('heroDeFiche — le héros d\'une fiche imprimée', () => {
     expect(h.items?.find((i) => i.trappingId === 'fleche')?.qty).toBe(20);
   });
 
+  it('le Maxi en Bonus de Caractéristique se lit sur la fiche imprimée, ses +N de Talents comptés une fois (LDB 10 l.17)', () => {
+    const fiche = (fois: number): FicheDeHeros => ({ ...HALFLING_HERBORISTE, initiales: { ...HALFLING_HERBORISTE.initiales, endurance: 45 }, charAdvances: {}, talents: [{ id: 'dur-a-cuire', times: fois }, { id: 'tres-resistant', times: 1 }] });
+    expect(heroDeFiche(fiche(4), idsDeTest).talents.find((t) => t.talentId === 'dur-a-cuire')?.times).toBe(4);
+    expect(() => heroDeFiche(fiche(5), idsDeTest)).toThrow(/Maxi/);
+  });
+
   it('une possession hors catalogue devient autant d\'objets sans stats que sa quantité imprimée', () => {
     const h = heroDeFiche({ ...HALFLING_HERBORISTE, trappings: [...HALFLING_HERBORISTE.trappings, { text: 'Gamelles', qte: 2 }] }, idsDeTest);
     const gamelles = (h.items ?? []).filter((i) => i.label === 'Gamelles');

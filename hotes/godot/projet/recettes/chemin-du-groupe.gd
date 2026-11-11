@@ -38,7 +38,7 @@ func _recetter() -> void:
 		quit(2)
 		return
 	PontFige.poser(self, lu)
-	MontageDeComposition.retenir_les_modeles(lu.modeles)
+	MontageDeComposition.retenir_les_modeles(lu.modeles, lu.listage)
 	await _le_plateau(lu)
 	_l_echelle()
 	await _l_atelier()

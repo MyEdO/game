@@ -9,10 +9,12 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { ACTION_GATES, actionGate, type ActionCtx } from './actionRegistry';
-import { ACTE_DE_DEVERROUILLAGE, hasCondition } from '../engine/conditions';
+import { hasCondition } from '../engine/conditions';
 import { findConditionById, type ActionDef, type ActionId } from '../data/index';
 import { t } from '../i18n';
 import type { ConditionInstance } from '../engine/types';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { acteDeDeverrouillageSchema } from '../data/schemas/grammaire/valeurs';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -43,7 +45,7 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     banc.setState({ battle: { ...banc.getState().battle! } });
     const verdict = actionGate('roulade', ctxDe());
     expect(verdict.ok, 'un remède offert sur un État que le Test ne peut pas ôter').toBe(false);
-    expect(verdict.reason).toBe(t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE.medicalAid }));
+    expect(verdict.reason).toBe(t('cond.lockedByAct', { acte: libelleDeValeur(acteDeDeverrouillageSchema, 'medicalAid') }));
     banc.getState().seRemettreDeLEtat('en-flammes');
     expect(banc.getState().pendingStateRecovery, 'le Test s’est ouvert sur un État verrouillé').toBeNull();
     expect(hasCondition(banc.getState().battle!.combatants.find((c) => c.id === H.id)!, 'en-flammes')).toBe(true);

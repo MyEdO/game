@@ -890,7 +890,7 @@ export function creerPont() {
      * `{ manifestes, osDesRigides }` : un objet id de modèle → manifeste et un objet id de modèle → liste d'os, ceux du
      * listage (`GET modeles/listage.json`, section « Atelier 3D »)
      *
-     * @returns `{ bases, glb, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
+     * @returns `{ bases, fichiers, refus, rapport, surfaces, libelles, secondesPrises, couches, emblemes, vehicules,
      * ameliorations }` : les modèles de l'atelier (`modelesDeLAtelier`, `atelier.ts`), retenus comme état du pont, que
      * lisent `composer` et le corps de chaque combattant de la vue (section « Corps d'un combattant ») ; avant ou après
      * `demarrer`
