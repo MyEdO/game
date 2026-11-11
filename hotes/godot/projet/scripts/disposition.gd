@@ -1,11 +1,13 @@
 ## La disposition de la fenêtre (#3328) : la scène d'éditeur, sans script, qui range les zones de la fenêtre qui tient
 ## la main. Celle que la vue nomme (`vue.disposition`, `res://ecrans/<disposition>.tscn`) quand elle existe, sinon la
-## générique (`GENERIQUE`) ; elle s'instancie sous le parent de ce nœud et remplace la précédente.
+## générique (`GENERIQUE`) ; elle s'instancie juste après ce nœud, sous les panneaux de la scène, et remplace la précédente.
 class_name Disposition
 extends Node
 
 ## @contrat L'écran de Godot
-## Les zones de la fenêtre vivent dans sa disposition, une scène d'éditeur sans script que le nœud `Disposition`
+## L'écran (`projet/scenes/Ecran.tscn`) se partage en trois : le journal à droite, le groupe au pied, et la scène
+## (`Scene`), l'espace qui reste, où se posent la disposition, le tour, l'actif et le dialogue ; rien ne recouvre le
+## groupe ni le journal. Les zones de la fenêtre vivent dans sa disposition, une scène d'éditeur sans script que le nœud `Disposition`
 ## (`projet/scripts/disposition.gd`) de l'écran instancie : `projet/ecrans/<disposition>.tscn` quand elle existe, la
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par
@@ -18,9 +20,9 @@ extends Node
 ## cible, le jet du lanceur (son NI au libellé), la zone et le budget de Surincantation en pastilles, l'issue, puis
 ## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
-## du cadre `projet/cadres/monde.tscn`, un calque sous l'interface qui laisse le groupe au pied et le journal à droite,
-## le titre en grand et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y
-## ajoute que son contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) range ses services (`service/`) et les
+## du cadre `projet/cadres/monde.tscn`, posé sous les panneaux de la scène comme toute disposition, le titre en grand
+## et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y ajoute que son
+## contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) range ses services (`service/`) et les
 ## points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le choix `ecranDuLieu` `entrer`) en grille,
 ## puis les trajets qui en partent, chacun sa destination et son départ ; la carte (`projet/ecrans/carteDuMonde.tscn`),
 ## son plan (`carte/plan` : chaque lieu visible, ici en `alerte`, sous chaque destination le départ du trajet qui y
@@ -67,6 +69,6 @@ func disposer(disposition: Variant) -> bool:
 		_posee.get_parent().remove_child(_posee)
 		_posee.queue_free()
 	_posee = load(chemin).instantiate()
-	get_parent().add_child(_posee)
+	add_sibling(_posee)
 	scene = chemin
 	return true

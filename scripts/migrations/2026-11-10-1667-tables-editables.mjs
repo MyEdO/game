@@ -4,7 +4,8 @@
  * base : `miscast-mineure-vdm` → `miscastMinorVdm`, `miscast-majeure-vdm` → `miscastMajorVdm`.
  *
  * Entrée : src/data/miscast.json. Un document nommé absent n'est pas une anomalie : la migration rejouée après
- * sa suppression sort 0 sans écrire.
+ * sa suppression sort 0 sans écrire. Un fichier dont AUCUN document ne porte `codexCategory` est la forme
+ * d'après `2026-11-11-1667-codex-category-derivee.mjs` (champ dérivé de l'exposition) : rien à poser.
  *
  * FORME ASSERTÉE SUR LE RÉSULTAT : un document nommé qui déclare déjà une AUTRE catégorie, ou un fichier non
  * canonique, est un ARRÊT nominatif (exit 1), AUCUNE écriture. Rejouée sur l'arbre migré : no-op byte-identique.
@@ -25,7 +26,7 @@ const brut = readFileSync(MISCAST, 'utf8');
 const docs = JSON.parse(brut);
 if (brut !== serializeDataset(docs)) arrets.push('miscast.json : forme non canonique');
 
-if (!arrets.length) {
+if (!arrets.length && docs.some((d) => 'codexCategory' in d)) {
   for (const [id, categorie] of Object.entries(CATEGORIES)) {
     const i = docs.findIndex((d) => d.id === id);
     if (i < 0) continue;
