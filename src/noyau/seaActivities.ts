@@ -29,7 +29,7 @@
  * `travelActivitySpec`, Commerce d'opportunité étendu) sont des étapes de cascade construites en
  * UNE passe (`buildSeaActivitiesCascade`) — plus de bulk synchrone. Cartographie/générique sont POUSSÉES
  * à la porte de séquence, qui dérive la surface de leurs porteurs ; le Commerce d'opportunité SÉQUENCE un
- * Test étendu (`ouvrirLeTestEtendu`, `maxAttempts`+`outcome` #273 Étape 1) par héros à la fois (un seul
+ * Test étendu (`ouvrirLeTestEtendu`, `tentativesMax`+`outcome` #273 Étape 1) par héros à la fois (un seul
  * `pendingExtendedTest` actif) — `pendingSeaActivities.opportunityQueue` porte la file, vidée par
  * `continueSeaActivitiesAfterCascade` jusqu'à la halte de nuit.
  */
@@ -139,13 +139,13 @@ function eligibleSeaActivityPicks(get: Get, picks: Record<string, SeaActivityPic
   return out;
 }
 
-/** Étape MONO « Cartographie » (l.288-290, `sea-activity-chart`) : Métier (Cartographe), Complexe (−10). */
+/** Étape MONO « Cartographie » (l.288-290, `merActiviteCarte`) : Métier (Cartographe), Complexe (−10). */
 function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityPick): BuiltCascadeStep | undefined {
   const chart = seaActivityTest(def)!;
   const test: RollRequest['test'] = chart;
   const difficulty = def.tests?.[0]?.difficulty ?? 'complexe';
   return monoStep({
-    id: `sea-activity-chart-${hero.id}`, kind: 'sea-activity-chart', actor: hero,
+    id: `merActiviteCarte-${hero.id}`, kind: 'merActiviteCarte', actor: hero,
     label: composeRollLabel(hero, dataLabel(def.label), test), difficulty, rollLabel: refLabel('skills', chart.skill),
     // L'enjeu d'une Activité EST l'Activité choisie : il vit sur SA fiche (`ActivityDef.stake`).
     stake: activityStakeRef(def.id),
@@ -154,7 +154,7 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
   });
 }
 
-/** Étape MONO chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : `travelActivitySpec` choisit la
+/** Étape MONO chemin GÉNÉRIQUE data-driven (`merActiviteGenerique`) : `travelActivitySpec` choisit la
  *  meilleure compétence TENTABLE de l'acteur, la porte lance le Test.
  *  `undefined` = Activité SANS Test (Récupérer…), appliquée d'office ici : aucune étape à jouer. La spec
  *  est toujours rendue : le schéma d'édition refuse `freeSkill` à une Activité de contexte 'mer'
@@ -175,7 +175,7 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
   const difficulty = spec.difficulty;
   const test: RollRequest['test'] = spec.test;
   return monoStep({
-    id: `sea-activity-generic-${hero.id}`, kind: 'sea-activity-generic', actor: hero,
+    id: `merActiviteGenerique-${hero.id}`, kind: 'merActiviteGenerique', actor: hero,
     label: composeRollLabel(hero, def.label, test), difficulty, rollLabel: def.label,
     // Idem : l'enjeu descend à l'Activité jouée, quelle qu'elle soit (fail-closed si elle n'en a pas).
     stake: activityStakeRef(def.id),
@@ -217,7 +217,7 @@ function validerLaSemaine(get: Get, set: Set): void {
 
 /** Ouvre le Commerce d'opportunité (Test étendu, #273 Étape 1) du PROCHAIN héros de la file — mise
  *  du choix, plafonnée par lui (`plafondDeMiseDOpportunite`), débitée d'office (comme l'ancien bulk synchrone) ; l'ISSUE
- *  (% récupéré) est résolue par l'applier `sea-activity-opportunity` (`meta` sérialisable, coop). */
+ *  (% récupéré) est résolue par l'applier `merActiviteOpportunite` (`meta` sérialisable, coop). */
 function openNextOpportunityTrade(get: Get, set: Set): void {
   const pending = get().pendingSeaActivities;
   const heroId = pending?.opportunityQueue?.[0];
@@ -239,8 +239,8 @@ function openNextOpportunityTrade(get: Get, set: Set): void {
   get().ouvrirLeTestEtendu({
     actorId: hero.id, label: dataLabel(def.label), skillLabel: refLabel('skills', OPPORTUNITE.test.skill), skill: OPPORTUNITE.test.skill,
     target: effectiveTarget(hero, test, OPPORTUNITE.test.difficulty), targetDR: OPPORTUNITE.targetDR,
-    maxAttempts: OPPORTUNITE.maxAttempts,
-    outcome: { kind: 'sea-activity-opportunity', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
+    tentativesMax: OPPORTUNITE.tentativesMax,
+    outcome: { kind: 'merActiviteOpportunite', meta: { heroId: hero.id, investBrass: invest * PA_PER_CO } },
     stake: activityStakeRef(def.id),
   });
 }
@@ -293,16 +293,16 @@ export function validationsDeLaSemaineEnMer(get: Get, set: Set) {
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['sea-activity-chart', 'sea-activity-generic'] as const;
+export const GENRES_D_ETAPE = ['merActiviteCarte', 'merActiviteGenerique'] as const;
 /** Les issues de Test étendu que ce module déclare (table `issuesDeTestEtendu`). */
-export const ISSUES_DE_TEST_ETENDU = ['sea-activity-opportunity'] as const;
+export const ISSUES_DE_TEST_ETENDU = ['merActiviteOpportunite'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    /** Cartographie (l.288-290, `sea-activity-chart`) : réussite → Carte marine (valeur = DR en CO, +2 DR
+    /** Cartographie (l.288-290, `merActiviteCarte`) : réussite → Carte marine (valeur = DR en CO, +2 DR
      *  d'Orientation) + Planque optionnelle (l.292). */
-    'sea-activity-chart': (get, set, step, hero) => {
+    'merActiviteCarte': (get, set, step, hero) => {
       if (!step.result || !hero) return;
       const stashGold = typeof step.meta?.stashGold === 'number' ? step.meta.stashGold : 0;
       const j: string[] = [];
@@ -329,10 +329,10 @@ export const TABLES = {
       set({ party: [...get().party] });
       return { consequences: freeCons(j) };
     },
-    /** Chemin GÉNÉRIQUE data-driven (`sea-activity-generic`) : recompose `travelActivitySpec` (déterministe,
+    /** Chemin GÉNÉRIQUE data-driven (`merActiviteGenerique`) : recompose `travelActivitySpec` (déterministe,
      *  pas de RNG) depuis `meta.activityId` et applique l'issue de l'Activité au jet DÉJÀ résolu
      *  (`appliquerIssueActivite`, source unique terre et mer). */
-    'sea-activity-generic': (get, set, step, hero) => {
+    'merActiviteGenerique': (get, set, step, hero) => {
       if (!step.result || !hero) return;
       const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
       const spec = def ? travelActivitySpec(hero, def) : null;
@@ -344,8 +344,8 @@ export const TABLES = {
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   issuesDeTestEtendu: {
     /** Issue de DOMAINE du Commerce d'opportunité (#273 Étape 1, Test étendu 3 tentatives max) : % récupéré
-     *  par la table verbatim (`opportunityTradePct`), qu'il ait atteint 10 DR ou buté sur `maxAttempts`. */
-    'sea-activity-opportunity': (get, set, p, total) => {
+     *  par la table verbatim (`opportunityTradePct`), qu'il ait atteint 10 DR ou buté sur `tentativesMax`. */
+    'merActiviteOpportunite': (get, set, p, total) => {
       const meta = p.outcome?.meta;
       const heroId = String(meta?.heroId);
       const investBrass = typeof meta?.investBrass === 'number' ? meta.investBrass : 0;

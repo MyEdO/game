@@ -327,7 +327,7 @@ describe('raccourcis — Échap pendant l’interlude d’un AUTRE siège (coop)
   const table = (turn: number, mySeat: number) =>
     fake({
       party: [H('h1'), H('h2')] as never,
-      net: { mode: 'guest', mySeat, gmSeat: null, ownership: { h1: 0, h2: 1 } } as never,
+      net: { mode: 'invite', mySeat, gmSeat: null, ownership: { h1: 0, h2: 1 } } as never,
       battle: { over: null, order: ['h1', 'h2'], turn, combatants: [H('h1'), H('h2')], action: 'bordee' } as never,
     });
 

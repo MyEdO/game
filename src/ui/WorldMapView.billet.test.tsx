@@ -147,7 +147,7 @@ describe('billet de la diligence — chemin du joueur', () => {
 
   it('coop : « Marchander » est fermé chez l’invité — l’hôte décide des départs', async () => {
     aBord();
-    useGame.setState({ net: { ...get().net, mode: 'guest', mySeat: 1 } });
+    useGame.setState({ net: { ...get().net, mode: 'invite', mySeat: 1 } });
     await act(async () => { root.render(<WorldMapView initialRouteId={T1} />); });
     await cliquer(bouton('Diligence'));
     const marchander = bouton('Marchander');

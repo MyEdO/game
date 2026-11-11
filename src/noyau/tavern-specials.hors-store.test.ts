@@ -32,20 +32,20 @@ const courant = (): CascadeStep | undefined => {
 
 /** Tranche le choix de ligne visée ouvert, et le commit. */
 function vise(cle: string): void {
-  expect(courant()?.kind, 'la ligne visée est à choisir').toBe('tavern-throw-aim');
+  expect(courant()?.kind, 'la ligne visée est à choisir').toBe('taverneLancerVisee');
   avanceEtapeCascade(get, undefined, () => cle);
 }
 
 /** Le lancer ouvert. */
 function lancer(): CascadeStep {
-  const band = get().pendingCascade!.participants.find((s) => s.kind === 'tavern-throw');
+  const band = get().pendingCascade!.participants.find((s) => s.kind === 'taverneLancer');
   expect(band, 'un lancer est ouvert').toBeDefined();
   return band!;
 }
 
 /** Pose un lancer raté (dé naturel 99) sur le lancer ouvert, puis le commit. */
 function rate(): void {
-  expect(courant()?.kind, 'le lancer est ouvert').toBe('tavern-throw');
+  expect(courant()?.kind, 'le lancer est ouvert').toBe('taverneLancer');
   avanceEtapeCascade(get, () => 99);
 }
 

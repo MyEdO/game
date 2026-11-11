@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
 import { castSpell, routeCounterspell, counterspellCandidates, isDispellableCast, withPreRollFixedDie } from './combatFlow';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import { effectivelyHostile } from '../engine/relations';
 import type { SpellLike } from '../engine/magic';
 import { createHero } from '../engine/character';
@@ -147,7 +147,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     const pcs = banc.getState().pendingCounterspell!;
     expect(pcs.participants.map((p) => p.id)).toEqual(expect.arrayContaining([h1.id, h2.id]));
     expect(pcs.participants.every((p) => !p.result), 'personne ne roule d’office').toBe(true);
-    const laisserPasser = () => FLOW_HANDLERS.contreSort.fermetures(banc.getState).cancel;
+    const laisserPasser = () => FLOWS.contreSort.fermetures(banc.getState).cancel;
     expect(laisserPasser(), 'phase 1 : « Laisser passer » attend les déclarations').toBe('declarationsDues');
     const cur = () => banc.getState().battle!.combatants;
     // PHASE 1 (#1042/#1059) : la composition se règle AVANT les dés — un jet lancé ici ne part pas.

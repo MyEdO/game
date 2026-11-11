@@ -462,7 +462,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
   });
 
   /**
-   * CÂBLAGE de la CHANCE, mesuré sur le CHEMIN RÉEL (l'action publique `FLOWS.attack.bonusSL`, celle
+   * CÂBLAGE de la CHANCE, mesuré sur le CHEMIN RÉEL (l'action publique `FLOWS.attaque.bonusSL`, celle
    * que la modale appelle, jouée sur le banc du noyau) et non sur la présence d'un argument dans le source : un
    * paramètre nommé `compo` qui vaudrait `undefined` passerait tous les scans. Dépenser un point de
    * Chance relève le DR — jamais la Difficulté ni ses chips.
@@ -483,7 +483,7 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
     expect(avant.difficulty, 'la fixture doit VRAIMENT composer un palier depuis l’env').toBe('tresDifficile');
 
     banc.setState({ pendingAttack: { attackerId: a.id, targetId: b.id, location: 'tete', result: r.res } } as never);
-    FLOWS.attack.bonusSL(banc.getState, banc.setState);
+    FLOWS.attaque.bonusSL(banc.getState, banc.setState);
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.sl, 'la Chance donne bien +1 DR').toBe(avant.sl + 1);
     expect(apres.difficulty, 'la Difficulté ne bouge pas d’un cran').toBe(avant.difficulty);
@@ -512,11 +512,11 @@ describe('Difficulté — parité PRÉ-jet ↔ ligne RÉSOLUE (#1153 L4)', () =>
       pendingAttack: { attackerId: a.id, targetId: b.id, location: null, result: null, weaponUid: 'bow' },
     } as never);
     seedBattleRng(3);
-    FLOWS.attack.roll(banc.getState, banc.setState);
+    FLOWS.attaque.roll(banc.getState, banc.setState);
     const avant = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(avant.label, 'la fixture doit VRAIMENT résoudre un TIR').toBe('Projectiles');
 
-    FLOWS.attack.bonusSL(banc.getState, banc.setState);
+    FLOWS.attaque.bonusSL(banc.getState, banc.setState);
     const apres = banc.getState().pendingAttack!.result!.attackerDetail!;
     expect(apres.sl).toBe(avant.sl + 1);
     expect(apres.label, 'le tir ne devient pas une frappe').toBe(avant.label);

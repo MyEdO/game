@@ -189,7 +189,7 @@ export function ShipDossierView({ vessel, party, onClose, initialTab = 'apercu',
             <section className="panel port-section">
               <h3>Cale</h3>
               <NotchGauge label="Soute" value={cargoEnc} max={cargoMax} marks={cargoMarks} stacked tone={cargoTone} format={(v) => `${v} / ${capacity} Enc${overload.palierId ? ` — ${overload.label} (${overload.ratioPct} %)` : ''}`} />
-              {overload.palierId && <p className="port-hint">Surcharge : <b>{overload.mMod} M</b>, <b>{overload.manoeuvreDR} DR Manœuvre</b>.</p>}
+              {overload.palierId && <p className="port-hint">Surcharge : <b>{overload.mMod} M</b>, <b>{overload.drDeManoeuvre} DR Manœuvre</b>.</p>}
               {vue.refusDAppareiller && <p className="port-hint">{vue.refusDAppareiller}</p>}
               {cargo.length === 0 ? (
                 <p className="port-hint">La cale est vide.</p>

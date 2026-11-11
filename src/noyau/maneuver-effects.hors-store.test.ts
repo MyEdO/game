@@ -96,12 +96,12 @@ describe('effets onHit des manœuvres de zone/action (data) — appliqués par l
  * Hurlement fantomatique porte un nœud Flow `test` enfoui dans son Flow
  * `seq[ do(1d10) , test{Résistance → Brisé} , do(3 Assourdi) ]`. Routé par les actions du noyau (un `test` non routé
  * LÈVE). La manœuvre cible `allFoes` → un banshee ENNEMI hurle sur le HÉROS : héros MANUEL → le Test
- * suspend en ÉTAPE de cascade `triggeredTest` INFLUENÇABLE (avec `meta.after` = le `do(3 Assourdi)`) ; le
+ * suspend en ÉTAPE de cascade `testDeclenche` INFLUENÇABLE (avec `meta.after` = le `do(3 Assourdi)`) ; le
  * `do(1d10)` AVANT s'applique tout de suite ; après `jetLancer('cascade', id)`+`jetValider('cascade')`, la branche PUIS la
  * continuation `after` (3 Assourdi) s'appliquent — preuve que l'ordre du Flow `seq` est préservé.
  */
 describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-aware)', () => {
-  it('banshee ENNEMIE hurle sur le HÉROS → étape triggeredTest (after = 3 Assourdi), rejouée à la résolution', () => {
+  it('banshee ENNEMIE hurle sur le HÉROS → étape testDeclenche (after = 3 Assourdi), rejouée à la résolution', () => {
     seedBattleRng(5);
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
@@ -124,7 +124,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     applyWail(banc.getState, banc.setState, banshee);
 
     // Le `do(1d10)` AVANT le test s'est appliqué tout de suite ; le test a suspendu en étape de cascade.
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(H.id);
     expect(step.result).toBeFalsy();        // pas encore lancé → influençable

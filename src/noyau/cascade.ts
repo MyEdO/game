@@ -131,7 +131,7 @@ function clotureDeCascade(done: PendingCascade): void {
 /**
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
- * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
+ * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `tentativesMax`.
  * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
@@ -1327,8 +1327,8 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     fenetreInsertion = fenetreAvant;
   }
   // SEAM CENTRAL `onOwnTestFailed` (tests DIFFÉRÉS d'entretien + tests déclenchés de combat en cascade) :
-  // toute étape à JET RATÉ (`faim`/`recovery`/`disease-tick`/`disease-persist`/`trauma-fracture`/`contagion`/
-  // `triggeredTest`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
+  // toute étape à JET RATÉ (`faim`/`recuperation`/`maladie-test-quotidien`/`maladie-persistance`/`convalescence-fracture`/`contagion`/
+  // `testDeclenche`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
   // `meta.noOwnTestFailed` (posée sur le FM de palier 2 des Crampes) coupe la ré-entrance. Sous-Test du FM
   // résolu INLINE (pas de `set` threadé : ouvrir une cascade IMBRIQUÉE dans un commitStep serait fragile).
   // Une BANDE émet PAR RANGÉE PERDANTE (`batchOwnTestFailedLines`) : le trigger est dû au Test, pas à la
@@ -1450,7 +1450,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  * PURGE les étapes d'ENTRÉE DE ZONE des cascades PARQUÉES — couture du changement de scène
  * (`quitterLaScene`, noyau/entreeEnScene.ts). Une carte narrative d'entrée parquée (par un combat, par une
  * autre séquence) narre la scène qu'on QUITTE : reprise plus tard, elle s'afficherait par-dessus la
- * scène SUIVANTE. La purge est bornée à CETTE classe d'étapes (`reveal.kind === 'sceneEntry'`) —
+ * scène SUIVANTE. La purge est bornée à CETTE classe d'étapes (`reveal.kind === 'entreeEnScene'`) —
  * toute autre séquence parquée (un jour de voyage suspendu par un abordage, un Test de rencontre)
  * traverse la transition INTACTE, avec son curseur. Une séquence vidée de toutes ses étapes sort de
  * la pile ; une séquence MIXTE garde son curseur POSÉ SUR LA MÊME ÉTAPE — il est décalé du nombre
@@ -1459,7 +1459,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  */
 export function dropSceneEntrySteps(get: Get, set: Set): void {
   const stack = get().suspendedCascades;
-  const isSceneEntry = (s: CascadeStep) => s.reveal?.kind === 'sceneEntry';
+  const isSceneEntry = (s: CascadeStep) => s.reveal?.kind === 'entreeEnScene';
   if (!stack.some((c) => c.participants.some(isSceneEntry))) return;
   const next = stack
     .map((c) => {

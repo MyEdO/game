@@ -61,7 +61,7 @@ export function amazingTestLabel(pt: PendingTest): { success: boolean; text: str
 }
 
 // (Psychologie EN COMBAT : PLUS de `describePsych` — l'issue des étapes de la cascade de Round est
-//  produite par l'applier 'combatPsych' (noyau/combatFlow), comme la psy de rencontre.)
+//  produite par l'applier 'psychologieDeCombat' (noyau/combatFlow), comme la psy de rencontre.)
 
 /** Psychologie À LA RENCONTRE, hors combat (couture C) : Trait ciblé social, Terreur ou Peur face à
  *  une source nommée. `name` = héros concerné. */

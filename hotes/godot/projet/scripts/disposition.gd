@@ -6,8 +6,9 @@ extends Node
 
 ## @contrat L'écran de Godot
 ## L'écran (`projet/scenes/Ecran.tscn`) se partage en trois : le journal à droite, le groupe au pied, et la scène
-## (`Scene`), l'espace qui reste, où se posent la disposition, le tour, l'actif et le dialogue ; rien ne recouvre le
-## groupe ni le journal. Les zones de la fenêtre vivent dans sa disposition, une scène d'éditeur sans script que le nœud `Disposition`
+## (`Scene`), l'espace qui reste, que la fiche ouverte rétrécit à sa gauche, où se posent la disposition, le tour, l'actif
+## et le dialogue, et où se cadre le monde (`Monde.cadre`) ; rien ne recouvre le groupe ni le journal. Les zones de la
+## fenêtre vivent dans sa disposition, une scène d'éditeur sans script que le nœud `Disposition`
 ## (`projet/scripts/disposition.gd`) de l'écran instancie : `projet/ecrans/<disposition>.tscn` quand elle existe, la
 ## générique `projet/ecrans/fenetre.tscn` sinon. Une disposition dédiée range autrement les mêmes sources : une zone qui
 ## nomme des `ids` n'en montre que ces éléments, un id fini par `/` nommant toute la famille des ids qui commencent par

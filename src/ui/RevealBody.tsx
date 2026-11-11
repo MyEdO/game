@@ -12,8 +12,8 @@ import { porteurDeScene } from './porteurDeProjet';
 
 /** Nom de la table tirée pour la rangée d100 (présentation canonique `TableRollLine`). */
 const TABLE_LABEL: Partial<Record<RevealEntry['kind'], string>> = {
-  miscast: 'Table des Imparfaites',
-  critical: 'Table des Critiques',
+  incantationImparfaite: 'Table des Imparfaites',
+  critique: 'Table des Critiques',
   mutation: 'Tableau des Corruptions',
 };
 
@@ -76,8 +76,8 @@ export function CriticalBody({ entry, actor, subject }: { entry: RevealEntry; ac
  */
 export function RevealBody({ entry, actor, subject }: { entry: RevealEntry; actor?: Combatant; subject?: Combatant }) {
   const campaignDoc = useGame((s) => s.campaignDoc);
-  if (entry.kind === 'critical') return <CriticalBody entry={entry} actor={actor} subject={subject} />;
-  if (entry.kind === 'sceneEntry') {
+  if (entry.kind === 'critique') return <CriticalBody entry={entry} actor={actor} subject={subject} />;
+  if (entry.kind === 'entreeEnScene') {
     return (
       <ParchmentCard>
         {entry.lines.map((l, i) => (

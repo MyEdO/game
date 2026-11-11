@@ -32,7 +32,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * LES TABLES, CHOIX et AFFICHAGES de combat PAR LA PORTE (#1262 V1 lot 5b) — Déviation, Piège-lame,
  * sévérité de Critique, Imparfaite/Colère, conséquence de Piège-lame, reprise de Fuite, Piétinement,
  * bascule de possession du Désengagement. Ce que ces tests verrouillent :
- *  - la CHARGE de l'applier voyage par la DÉCLARATION (`ChoiceSpec.deviation`/`bladeTrap`,
+ *  - la CHARGE de l'applier voyage par la DÉCLARATION (`ChoiceSpec.deviation`/`piegeALame`,
  *    `TableSpec.critSeverity`/`incantationImparfaite`, `DisplaySpec.fuite`) : une charge perdue au mint rendrait
  *    l'étape muette au commit — l'applier ne trouverait plus de quoi appliquer ;
  *  - l'AFFICHAGE pur reste pur : `displayStep` ne peut PAS déclarer `reveal`/`table`/`options`
@@ -77,7 +77,7 @@ function combat(nb: number, seed = 7, invites: number[] = []) {
   banc.setState({
     battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingDisengage: null,
     pendingLogQueue: [],
-    net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership },
+    net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership },
   } as never);
   return { H, E };
 }
@@ -108,7 +108,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     expect(ownsLocal(banc.getState(), hero.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
   });
 
-  it('PIÈGE-LAME (Critique en parant) : options + charge `bladeTrap` + enjeu des deux voies, défaut « Critique »', () => {
+  it('PIÈGE-LAME (Critique en parant) : options + charge `piegeALame` + enjeu des deux voies, défaut « Critique »', () => {
     const { H, E } = combat(1, 7, [0]);
     const defenseur = H[0];
     const attaquant = E[0];
@@ -126,7 +126,7 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     } as unknown as AttackResult;
     applyAttackResult(banc.getState, banc.setState, attaquant, defenseur, lame, res);
 
-    const st = parKind('bladeTrap')!;
+    const st = parKind('piegeALame')!;
     expect(st, 'le choix Piéger/Critique est une étape de la séquence').toBeTruthy();
     expect(stepInteraction(st)).toBe('choix');
     expect(st.options!.map((o) => o.key)).toEqual(['trap', 'crit']);
@@ -176,7 +176,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
       options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }],
       defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })!;
     expect(stepInteraction(st), 'tant que le dé n’est pas tombé, c’est un TIRAGE').toBe('table');
     expect(st.options!.map((o) => o.key), 'les voies sont RECOPIÉES par le mint').toEqual(['devier', 'subir']);
@@ -190,7 +190,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
       id: 'y', kind: 'deviation', label: fixtureText('Blessure critique'), actorId: 'a',
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
       options: [{ key: 'subir', label: fixtureText('Subir') }], defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })).toThrow(/defaultChoice/);
   });
 
@@ -202,7 +202,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     seedBattleRng(3);
     applyMiscast(banc.getState, banc.setState, H[0], 'mineure');
 
-    const st = parKind('miscastTable')!;
+    const st = parKind('tableDIncantationImparfaite')!;
     expect(stepInteraction(st)).toBe('table');
     expect(st.table!.result).toBeUndefined();
     expect(st.incantationImparfaite, 'sans sa charge, l’applier n’a plus de contrecoup à résoudre').toBeTruthy();
@@ -221,7 +221,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     applyBladeTrap(banc.getState, banc.setState, defenseur,
       { attackerId: attaquant.id, weaponUid: 'lame-visee', defSL: 0, attackerSL: 0 }, 2);
 
-    const st = parKind('bladeTrapResult')!;
+    const st = parKind('issueDuPiegeALame')!;
     expect(st, 'la conséquence est EMPILÉE comme étape propre').toBeTruthy();
     expect(stepInteraction(st), 'zéro dé, zéro décision : l’étape s’acquitte').toBe('affichage');
     expect(st.outcome!.length).toBeGreaterThan(0);
@@ -232,7 +232,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     expect(live(attaquant.id).weapons.find((w) => w.uid === 'lame-visee'), 'la lame est arrachée').toBeUndefined();
   });
 
-  it('reprise de FUITE : étape d’affichage + charge `fleeMove` (la fuite attend le coup gratuit)', () => {
+  it('reprise de FUITE : étape d’affichage + charge `mouvementDeFuite` (la fuite attend le coup gratuit)', () => {
     // Duel de HÉROS : c'est la configuration où le Critique du coup dans le dos OFFRE la Déviation au
     // fuyard blindé — donc où l'application est SUSPENDUE et où la fuite a besoin de son étape de
     // reprise. Le fuyard est tenu par l'HÔTE : l'offre de Déviation d'`applyAttackResult` est gardée
@@ -260,7 +260,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     } as never);
     banc.getState().jetValider('fuite');
 
-    const st = parKind('fleeMove')!;
+    const st = parKind('mouvementDeFuite')!;
     expect(st, 'la fuite a son étape de REPRISE').toBeTruthy();
     expect(stepInteraction(st)).toBe('affichage');
     expect(st.fuite, 'sans sa charge, `completeFlee` ne saurait plus qui fuit ni combien de Brisé').toBeTruthy();
@@ -281,7 +281,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
   it('le TYPE interdit à un affichage de se donner la forme d’un tirage ou d’une décision', () => {
     const base = { id: 'x', kind: 'x', label: 'x', actorId: 'a' };
     // @ts-expect-error une révélation est une FORME (dé + lignes de tirage), pas un affichage nu
-    expect(() => displayStep({ ...base, reveal: { kind: 'critical', title: 't', lines: [], subjectId: 'a' } })).not.toThrow();
+    expect(() => displayStep({ ...base, reveal: { kind: 'critique', title: 't', lines: [], subjectId: 'a' } })).not.toThrow();
     // @ts-expect-error un tirage à poser passe par `tableStep` (il a son cycle et son enjeu)
     expect(() => displayStep({ ...base, table: { tableId: 't', spec: { n: 1, sides: 100 } } })).not.toThrow();
     // @ts-expect-error une décision passe par `choiceStep` (elle a un porteur et un défaut)
@@ -295,7 +295,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     // que ce qu'il déclare, et une contrebande de forme n'atteint jamais l'étape.
     const contrebande = {
       id: 'x', kind: 'x', label: 'x', actorId: 'a',
-      reveal: { kind: 'critical', title: 't', lines: [], subjectId: 'a' },
+      reveal: { kind: 'critique', title: 't', lines: [], subjectId: 'a' },
       table: { tableId: 't', spec: { n: 1, sides: 100 } },
       options: [{ key: 'k', label: 'l' }],
       target: 40,
@@ -311,10 +311,10 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
     // L'ordre « pending puis mint » n'est pas une convention d'écriture : c'est ce que la garde
     // EXIGE. Figé ici sans dépendre du nombre de suites que l'inversion ferait rougir.
     banc.setState({ pendingAttack: null } as never);
-    expect(() => hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attaque', actorId: 'x' }))
+    expect(() => hostStep(banc.getState, { id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'x' }))
       .toThrowError(/pendingAttack/);
     banc.setState({ pendingAttack: { attackerId: 'a', targetId: 'b', location: null, result: null } } as never);
-    const st = hostStep(banc.getState, { id: 'attack-jet', kind: 'attackJet', jet: 'attaque', actorId: 'a' });
+    const st = hostStep(banc.getState, { id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'a' });
     expect(st, 'le pending posé, le mint rend l’étape').toBeTruthy();
     expect(st!.jet).toBe('attaque');
     banc.setState({ pendingAttack: null } as never);
@@ -340,7 +340,7 @@ describe('#1262 lot 5b — HÔTES du store : le pending d’abord, le mint ensui
 
     expect(banc.getState().pendingAttack?.freeKind, 'la donnée que la fenêtre rend').toBe('pietinement');
     const st = steps().find((s) => s.jet === 'attaque')!;
-    expect(st.kind).toBe('attackJet');
+    expect(st.kind).toBe('jetDAttaque');
     expect(st.actorId).toBe(hero.id);
     expect(modalOwnerOf(banc.getState()), 'la fenêtre est celle du piétineur').toBe(hero.id);
     expect(seatOwns(banc.getState(), 1, hero.id), 'COOP : le siège invité ne tient PAS ce jet').toBe(false);

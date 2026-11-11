@@ -85,19 +85,19 @@ describe('salon — l’hôte', () => {
   it('room créée : mode hôte, code de la room, socket hôte par jeton', async () => {
     salon = creerLeSalon(ports(banc, roomOuverte).p);
     expect(await salon.heberger(banc.getState, banc.setState, 'Hôte')).toBe(true);
-    expect(banc.getState().net).toMatchObject({ mode: 'host', roomCode: 'ABC234', seatNames: { 0: 'Hôte' } });
+    expect(banc.getState().net).toMatchObject({ mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte' } });
     const url = new URL(FakeSocket.last!.url);
     expect([url.origin, url.pathname, url.searchParams.get('token')]).toEqual(['ws://localhost:8787', '/room/ABC234', 'HT']);
   });
 
   it('coupure d’un invité : présence `away`, siège réservé GRACE_MS ; reprise avant la fin, rien ne ferme', async () => {
     const ws = await hoteAvecUnInvite();
-    expect(banc.getState().net.presence[1]).toBe('ok');
+    expect(banc.getState().net.presence[1]).toBe('present');
     ws.receive(JSON.stringify({ evt: 'gone', seat: 1 }));
-    expect(banc.getState().net.presence[1]).toBe('away');
+    expect(banc.getState().net.presence[1]).toBe('absent');
     vi.advanceTimersByTime(GRACE_MS - 1);
     ws.receive(JSON.stringify({ evt: 'resume', seat: 1, name: 'Anna' }));
-    expect(banc.getState().net.presence[1]).toBe('ok');
+    expect(banc.getState().net.presence[1]).toBe('present');
     vi.advanceTimersByTime(GRACE_MS);
     expect(banc.getState().journal).not.toContain(t('coop.seatClosed'));
   });
@@ -162,7 +162,7 @@ describe('salon — l’invité', () => {
     ws.receive(JSON.stringify({ evt: 'seated', seat: 2, token: 'NEUF' }));
     expect(await joining).toBeNull();
     expect(stocke.get(cleDuJeton('ABC234'))).toBe('NEUF');
-    expect(banc.getState().net).toMatchObject({ mode: 'guest', mySeat: 2, roomCode: 'ABC234' });
+    expect(banc.getState().net).toMatchObject({ mode: 'invite', mySeat: 2, roomCode: 'ABC234' });
     expect(invite.intercepter).toHaveBeenCalledTimes(1);
     salon.quitter(banc.setState);
     expect(invite.restaurer).toHaveBeenCalled();
@@ -174,7 +174,7 @@ const caseDe = (id: string) => ({ ...banc.getState().battle!.combatants.find((c)
 
 describe('salon — l’action d’un invité part en intention, sauf l’élection locale', () => {
   it('Dissiper, porteur à 2 Sorts : l’élection se joue chez l’émetteur, rien ne part (LDB 46 l.158-162)', () => {
-    banc.setState(tableDeDissipation('guest', { e1: 2 }));
+    banc.setState(tableDeDissipation('invite', { e1: 2 }));
     const envoyer = vi.fn();
     emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId, 'l’élection n’a pas eu lieu chez l’ÉMETTEUR').toBe('e1');
@@ -183,7 +183,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
   });
 
   it('Dissiper, porteur à 1 Sort : rien à élire, rien d’armé : le geste part tel quel', () => {
-    banc.setState(tableDeDissipation('guest', { e1: 1 }));
+    banc.setState(tableDeDissipation('invite', { e1: 1 }));
     const envoyer = vi.fn();
     emettreIntentInvite(banc.getState, 'cliquerLaCase', banc.getState().cliquerLaCase as never, envoyer, [caseDe('e1'), 'e1']);
     expect(banc.getState().dispelCarrierId).toBeNull();
@@ -209,7 +209,7 @@ describe('salon — l’action d’un invité part en intention, sauf l’élect
     banc.setState({
       battle: { combatants: [h, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'], turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
       scene: { id: 's', dimensions: { w, h: hh }, layers: [{ z: 0, tiles: new Array(w * hh).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never,
-      party: [h], mode: 'battle', net: { ...initialNet(), mode: 'guest', mySeat: 0, ownership: { h1: 0 } },
+      party: [h], mode: 'battle', net: { ...initialNet(), mode: 'invite', mySeat: 0, ownership: { h1: 0 } },
     });
     const local = vi.fn();
     const envoyer = vi.fn();
@@ -229,7 +229,7 @@ describe('salon — le verbe de l’offre d’un invité : il part, l’attaque 
     banc.setState({
       battle: { combatants: [h, enemy], order: ['h1', 'e1'], baseOrder: ['h1', 'e1'], turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
       scene: { id: 's', dimensions: { w, h: hh }, layers: [{ z: 0, tiles: new Array(w * hh).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [] } as never,
-      party: [h], mode: 'battle', screen: 'campaign', net: { ...initialNet(), mode: 'guest', mySeat: 0, ownership: { h1: 0 } }, localIntent: null,
+      party: [h], mode: 'battle', screen: 'campaign', net: { ...initialNet(), mode: 'invite', mySeat: 0, ownership: { h1: 0 } }, localIntent: null,
     });
   }
 
@@ -256,7 +256,7 @@ describe('salon — le verbe de l’offre d’un invité : il part, l’attaque 
 });
 
 describe('salon — lobby : une attribution refusée laisse `net` inchangé et dit son refus (#3059 F10)', () => {
-  const hote = (): NetState => ({ ...initialNet(), mode: 'host', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
+  const hote = (): NetState => ({ ...initialNet(), mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna' }, rangs: { h: 0 } });
   beforeEach(() => { banc.setState({ net: hote(), party: [{ ...tousLesHerosDeScenario(idsDeTest)[0], id: 'h' }], battle: null }); });
 
   it('netAssignSlot vers un emplacement occupé, puis hors de la table ; netAssign et setGmSeat hors de la table', () => {

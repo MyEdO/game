@@ -1,7 +1,7 @@
 /**
  * LE SOIN DÉCLARÉ (`pendingHeal`) : le Test que le soigneur jette et les Bandages qu'il engage (LDB 09 l.255-261 ;
  * LDB 74 l.41), lus à l'identique par l'ouverture, les réglages `soins.test`/`soins.bandages`, le résolveur
- * (`FLOWS.heal`, `jetValider('soins')`), l'annonce (`describeHeal`, `enjeuDuSoin`) et la fenêtre (`fenetreDuSoin`). PUR.
+ * (`FLOWS.soins`, `jetValider('soins')`), l'annonce (`describeHeal`, `enjeuDuSoin`) et la fenêtre (`fenetreDuSoin`). PUR.
  */
 import type { Combatant } from '../engine/types';
 import type { SupportDetail } from '../engine/skills';
@@ -69,8 +69,8 @@ export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' 
  *  le brouillon d'une opération, celui de l'opération qu'il arme, à sa cible de DR (`cibleDeLOperation`). */
 export function enjeuDuSoin(s: Pick<Jeu, 'party'>, ph: Pick<PendingHeal, 'mode' | 'test' | 'bandagesDe' | 'targetId' | 'plaie'>): StakeRef {
   if (estOperation(ph.mode)) return flowStakeRef(HEAL_STAKE[ph.mode], { values: { targetDR: cibleDeLOperation(s, ph, ph.mode) } });
-  if (ph.mode === 'hemorragie') return flowStakeRef(ph.test === 'dexterite' ? 'heal-bleed-dexterite' : ph.bandagesDe ? 'heal-bleed-bandages' : 'heal-bleed');
-  if (ph.mode === 'blessures') return flowStakeRef(ph.bandagesDe ? 'heal-wounds-bandages' : 'heal-wounds');
+  if (ph.mode === 'hemorragie') return flowStakeRef(ph.test === 'dexterite' ? 'soin-hemorragie-dexterite' : ph.bandagesDe ? 'soin-hemorragie-bandages' : 'soin-hemorragie');
+  if (ph.mode === 'blessures') return flowStakeRef(ph.bandagesDe ? 'soin-blessures-bandages' : 'soin-blessures');
   return flowStakeRef(HEAL_STAKE[ph.mode]);
 }
 

@@ -41,7 +41,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // Par la PORTE (#1262 V2 L4). Le mint vérifie que `pendingExtendedTest` est posé — il vient de
       // l'être, ligne au-dessus. L'enjeu vit sur l'ÉTAPE, que `CascadeModal` lit (`cur.stake`, #1117).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'extendedJet', jet: 'testEtendu', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
+      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'jetEtendu', jet: 'testEtendu', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
       if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'ui/key', purpose: 'test', steps });
     },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
@@ -56,7 +56,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // #1262 V2 L4 : par la PORTE (`hostStep`, forme de GROUPE) — l'étape n'est plus un littéral, et le
       // mint vérifie que `pendingForceDoor` est posé (il vient de l'être).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'forceDoorStep', jet: 'enfoncerLaPorte', groupOwner: true }));
+      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'enfoncerLaPorte', jet: 'enfoncerLaPorte', groupOwner: true }));
       if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/force', purpose: 'combat', steps });
     },
   } satisfies FabriqueDuNoyau;
@@ -104,7 +104,7 @@ export function reglagesDesTestsDeScene(get: Get, set: Set): Pick<CorpsDesReglag
 }
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
-export const GENRES_HOTES = ['extendedJet', 'forceDoorStep'] as const;
+export const GENRES_HOTES = ['jetEtendu', 'enfoncerLaPorte'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -131,7 +131,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const { total, done } = issue;
       // BORNE d'essais (Commerce d'opportunité, MDG 15 l.274-286 : « ≤ 3 tentatives ») — cible non
       // atteinte à la DERNIÈRE tentative permise = une ISSUE (résolue par `outcome`), pas une boucle infinie.
-      const exhausted = !done && p.maxAttempts != null && p.rounds.length >= p.maxAttempts;
+      const exhausted = !done && p.tentativesMax != null && p.rounds.length >= p.tentativesMax;
       if (done || exhausted) {
         set({ pendingExtendedTest: null, pendingCascade: null }); // ferme la cascade-hôte aussi
         get().ecrireAuJournal(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.targetDR }));
@@ -143,7 +143,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
           get().ecrireAuJournal(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
         }
         if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
-        // Issue de DOMAINE en donnée (kind-agnostique) : appliée qu'elle ait réussi ou buté sur `maxAttempts`.
+        // Issue de DOMAINE en donnée (kind-agnostique) : appliée qu'elle ait réussi ou buté sur `tentativesMax`.
         if (p.outcome) {
           const applier = tablesPosees().issuesDeTestEtendu[p.outcome.kind];
           const out = applier?.(get, set, p, total, done);

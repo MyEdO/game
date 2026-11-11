@@ -98,14 +98,14 @@ describe('Talents d’attaque déclenchée (grantFreeAttack en donnée)', () => 
     H.characteristics.initiative = 99; // Test d'Initiative Intermédiaire quasi-garanti
 
     resolveFreeAttacks(banc.getState, banc.setState, H, 'onCharged', E);
-    // 1) Étape de CHOIX opt-in `triggeredChoice` (aucune frappe en silence).
+    // 1) Étape de CHOIX opt-in `choixDeclenche` (aucune frappe en silence).
     const choice = banc.getState().pendingCascade!;
-    expect(choice.participants[choice.cursor].kind).toBe('triggeredChoice');
+    expect(choice.participants[choice.cursor].kind).toBe('choixDeclenche');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.freeAttacksThisTurn?.['frappe-reactive']).toBeUndefined();
     driveChoice('yes');
-    // 2) Test d'Init INFLUENÇABLE (étape `triggeredTest`).
+    // 2) Test d'Init INFLUENÇABLE (étape `testDeclenche`).
     const test = banc.getState().pendingCascade!;
-    expect(test.participants[test.cursor].kind).toBe('triggeredTest');
+    expect(test.participants[test.cursor].kind).toBe('testDeclenche');
     driveTest();
     // 3) Succès → la frappe gratuite s'est résolue (imputée 1× contre ce chargeur).
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.freeAttacksThisTurn?.['frappe-reactive']).toBe(1);

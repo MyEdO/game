@@ -305,7 +305,7 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
     expect(hero.wounds.current, 'aucune Blessure avant les dés').toBe(30);
     poser(9); // l'arme tient l'Incident de tir
     const table = etapeCourante()!;
-    expect(table.table?.tableId, 'le 2ᵉ dé est la TABLE (AA 10 l.264), pas un dé nu').toBe('artillery-salve-misfire');
+    expect(table.table?.tableId, 'le 2ᵉ dé est la TABLE (AA 10 l.264), pas un dé nu').toBe('artillerie-salve-incident');
     expect(stepInteraction(table)).toBe('table');
     poser(2); // ligne 1-4 « Bras principal » : « La pièce d’artillerie est détruite »
     expect(etapeCourante(), 'aucune 2ᵉ sauvegarde : UNE par Incident').toBeUndefined();
@@ -409,7 +409,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
       atk: { roll: 33, success: false, sl: -2, target: 45 }, def: { roll: 44, success: false, sl: -3, target: 45 },
       result, suite: { mode: 'machine', coup },
     } as unknown as PendingDefense,
-    pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }) });
+    pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }) });
     return { hero, brute };
   }
   const etapes = (): string[] => (banc.getState().pendingCascade?.participants ?? []).map((s) => `${s.kind}:${s.id}`);

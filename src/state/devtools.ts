@@ -305,7 +305,7 @@ function routesRendues(map: WorldMap, lieu: string | null): { route: MapRoute; o
  *                           sur une étape STRUCTURELLE du jour (Progression, Orientation, Exposition…),
  *                           que `jetLancer('cascade')` traverse aux défauts. Pour observer une étape
  *                           précise : advanceSeaDay({stopAt:'<kind>'}) → s'arrête AVANT de la résoudre
- *                           (ex. stopAt:'sea-progression-choice'), cascade rendue intacte
+ *                           (ex. stopAt:'merProgressionChoix'), cascade rendue intacte
  *   __wfrp.skipToArrival() → comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (ou interruption)
  *   __wfrp.advanceRiverDay() → symétrique FLUVIAL d'`advanceSeaDay` : pilote la journée de descente EN
  *                           COURS (cascade du jour, Exposition hydrique, halte de nuit) jusqu'au jour
@@ -1991,12 +1991,12 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       return `✓ ${c.label} (${creatureId}) apparu — ${side}, (${basePos.x},${basePos.y})`;
     },
 
-    /** RECETTE : ouvre l'étape de CHOIX « Piège-lame » (LDB 62 l.278-280) — `bladeTrap('hero-1','enemy-1', 2)`.
+    /** RECETTE : ouvre l'étape de CHOIX « Piège-lame » (LDB 62 l.278-280) — `piegeALame('hero-1','enemy-1', 2)`.
      *  Le héros `defenderId` a paré avec une arme Piège-lame face à la lame de `attackerId` (uid assigné si
      *  besoin) ; `defSL` = DR de la défense ajouté au Test opposé. Choisir « Piéger » ouvre alors un Test
      *  opposé de Force CADENCE-AWARE (héros manuel → étape influençable) ; succès → désarme (Stupéfiant →
      *  brise sauf Incassable). Reproduit l'entrée de production sans avoir à forcer un Critique défensif. */
-    bladeTrap: (defenderId: string, attackerId: string, defSL = 4) => {
+    piegeALame: (defenderId: string, attackerId: string, defSL = 4) => {
       const b = g().battle;
       if (!b) return '✗ pas en combat';
       const defender = inBattleId(b, defenderId);

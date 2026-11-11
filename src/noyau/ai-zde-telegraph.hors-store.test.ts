@@ -1,6 +1,6 @@
 /**
  * Télégraphe VISUEL de la ZdE de l'IA (juice, pas une règle) : quand un lanceur IA lance un sort de
- * ZONE (`case 'castArea'` de `runEnemyAI`), on PEINT le disque cible (centre + rayon) ~0,7 s AVANT la
+ * ZONE (`case 'incantationDeZone'` de `runEnemyAI`), on PEINT le disque cible (centre + rayon) ~0,7 s AVANT la
  * résolution — comme le missile montre déjà sa ligne/réticule (`actorAim`). Le télégraphe est
  * l'état transitoire `actorAoe { casterId, center, radius }`, jamais un `actorAim` DÉGÉNÉRÉ (ligne
  * enemy→enemy) qui n'indique PAS l'aire.

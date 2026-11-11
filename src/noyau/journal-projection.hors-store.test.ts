@@ -147,14 +147,14 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
       actorId: 'a', actorName: 'Brawn', weaponUid: 'w1', reload: 3, progressBefore: 0,
       skillValue: 50, difficulty: 'intermediaire', roll: 12, target: 50, sl: 2, success: true,
     } as PendingReload;
-    const lines = FLOWS.reload.apply(banc.getState, { p: pr, ctx: { after: 2, weapon: 'Arquebuse' } });
+    const lines = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: 2, weapon: 'Arquebuse' } });
     expect(lines).toHaveLength(1);
     expect(lines[0]).toContain('Arquebuse');
     expect(banc.getState().journal, 'canal COMBAT : rien dans le journal narratif').toEqual([]);
   });
 
   it('aucun pending, aucune issue déclarée → aucune ligne (le verbe est inerte, jamais une ligne forgée)', () => {
-    expect(FLOWS.reload.apply(banc.getState)).toEqual([]);
-    expect(FLOWS.attack.apply(banc.getState)).toEqual([]);
+    expect(FLOWS.rechargement.apply(banc.getState)).toEqual([]);
+    expect(FLOWS.attaque.apply(banc.getState)).toEqual([]);
   });
 });

@@ -7,9 +7,9 @@
  * « Une situation = une modale » (#1117 L1) : une BANDE par entrée de règle mise en jeu — une fenêtre
  * « Animosité (Elfes) », une « Terreur »… — dont la DÉCLARATION (type psy, source, cible, Indice) vit
  * sur l'ÉTAPE et dont les héros concernés sont les RANGÉES (`BatchParticipant`, jets INDÉPENDANTS
- * `aggregate:'none'`). Le jet est le Test de Calme GÉNÉRIQUE de la bande (`FLOWS.cascadeBatch` →
+ * `aggregate:'none'`). Le jet est le Test de Calme GÉNÉRIQUE de la bande (`FLOWS.cascadeEnBande` →
  * `rollTest(Calme)`, kind-agnostique) ; la CONSÉQUENCE (psychState, Brisé de Terreur dérivé du DR)
- * vit dans l'applier `'encounterPsych'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
+ * vit dans l'applier `'psychologieDeRencontre'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
  * LDB 17 l.59) est offerte dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination`.
  */
 import type { PlayerText } from '../i18n/playerText';
@@ -97,10 +97,10 @@ const psychBands = makeBandFactory<PsychDue>({
   cle: ({ decl: d }) => `${d.sourceId}|${identiteDeCiblage(d.kind, d.cible)}|${d.indice}`,
   rangee: (due) => psychRow(due.hero, due.decl.kind, !!due.sansPeur),
   situation: ({ decl: d, icon, label }, { index }) => ({
-    id: `psych-${d.kind}-${index}`, kind: 'encounterPsych', icon, label,
+    id: `psych-${d.kind}-${index}`, kind: 'psychologieDeRencontre', icon, label,
     psychologieDeRencontre: d,
     contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
-    stake: combatStakeRef('encounter-psych', { entryId: d.kind, values: { indice: d.indice } }),
+    stake: combatStakeRef('rencontre-psychologie', { entryId: d.kind, values: { indice: d.indice } }),
     // Les DEUX issues, dérivées des ops que l'applier appliquera (`psychBranchOps`) : la surface
     // les rend en chips codex-liées avant le jet, et le verdict est le MÊME bloc filtré (#1117).
     meta: { onSuccess: psychBranchFlow(d, true), onFail: psychBranchFlow(d, false) },
@@ -153,7 +153,7 @@ export function openEncounterPsych(get: Get, set: Set): void {
 
 /** Ouvre la bande des Tests de Calme pour une source de PEUR/TERREUR SCÉNIQUE (Effet d'auteur
  *  `inflictPsychology` — apparition, présage, vision d'horreur), sur la MÊME machinerie que
- *  `openEncounterPsych` (applier `'encounterPsych'` partagé) — `sceneFearSources`/`encounterPsych` restent
+ *  `openEncounterPsych` (applier `'psychologieDeRencontre'` partagé) — `sceneFearSources`/`psychologieDeRencontre` restent
  *  réservés aux PNJ de la scène (Peur/Terreur EXCLUES hors combat par design, cf. `engine/encounterPsych` :
  *  cet Effet est le seul déclencheur volontaire de l'auteur, pas une ré-activation automatique). No-op en
  *  combat ou si une cascade est déjà ouverte. */
@@ -179,7 +179,7 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
 /**
  * Conséquence d'un Test de Calme de rencontre POUR UNE RANGÉE : applique les `GameOp` de la branche
  * réalisée (`psychBranchOps`, dérivées de `psychology.json`) — les MÊMES ops que la surface annonce.
- * La résolution kind-agnostique (`rollTest(Calme)`) est faite par `FLOWS.cascadeBatch` ; ici on ne
+ * La résolution kind-agnostique (`rollTest(Calme)`) est faite par `FLOWS.cascadeEnBande` ; ici on ne
  * décide que de l'ISSUE et du cumul. SOURCE UNIQUE de la résolution par héros — l'applier de bande
  * l'appelle pour CHACUNE de ses rangées. Issue de modale = `describeEncounterPsych` (les lignes
  * génériques d'`applyOps` sont couvertes par ce verdict rédigé). La Terreur subie se mémorise par
@@ -212,7 +212,7 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['encounterPsych'] as const;
+export const GENRES_D_ETAPE = ['psychologieDeRencontre'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -220,7 +220,7 @@ export const TABLES = {
     /** Applier de BANDE : la déclaration de règle est celle de l'ÉTAPE, la conséquence se joue RANGÉE PAR
      *  RANGÉE (résultat + Détermination du porteur), et chaque verdict reste SUR SA rangée (le portrait
      *  attribue) — jamais un agrégat (`aggregate:'none'`). */
-    encounterPsych: (get, set, step) => {
+    psychologieDeRencontre: (get, set, step) => {
       const ep = step.psychologieDeRencontre;
       if (!ep || !step.participants) return;
       for (const part of step.participants) {

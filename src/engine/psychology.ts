@@ -225,7 +225,7 @@ export function fearSourceFor(self: Combatant, s: SourcePsy, selfSizeForSize?: S
 }
 
 /** Mode de RÉSOLUTION d'un état psy + ses conséquences d'échec, lus en DONNÉES (`psychology.json`) — SOURCE
- *  UNIQUE de l'applier `combatPsych` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
+ *  UNIQUE de l'applier `psychologieDeCombat` et du picker de Round : plus de `kind === 'terreur'` codé par-nom. */
 export function psychResolution(kind: PsychType): { mode?: 'extended' | 'terreur' | 'binary'; failCondition?: string; failAmount?: { base?: 'indice' | number; perDegreeOfFailure?: number }; becomes?: PsychType } {
   const d = findPsychologyById(kind);
   return { mode: d?.resolution, failCondition: d?.failCondition?.id, failAmount: d?.failAmount, becomes: d?.becomes?.id as PsychType | undefined };
@@ -257,7 +257,7 @@ export function isPsychAfflictionActive(p: PsychAffliction): boolean {
  *  défendez les êtres aimés » est PORTÉ PAR `active` : `refreshDefendedPsych` (seul détenteur du
  *  roster) l'éteint dès qu'aucun aimé n'est présent et en état d'être défendu. Aucun roster n'est donc
  *  requis ICI — les 3 résolutions d'attaque (`combineOpposed`/`resolveMeleePassive`/`resolveRanged`)
- *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`encounterPsych`.
+ *  n'en ont aucun en portée et lisent pourtant le MÊME verdict que `fearSourceFor`/`psychologieDeRencontre`.
  *  Data-driven : aucune entité nommée, aucun canal codé. */
 export function psychImmuneToFrom(self: Combatant, s: SourcePsy, channel: string): boolean {
   for (const p of self.psychState ?? []) {
@@ -348,7 +348,7 @@ export function targetCausedSourcesFor(self: Combatant, s: SourcePsy): { kind: '
 }
 
 /** Premier Test dû à `self` du fait d'un Trait `targetCauses` face aux entités `visible` (LDB 21 l.87) —
- *  MÊME forme de retour que `targetedTrigger`, pour la porte HORS COMBAT (`encounterPsych`) : l'objet de
+ *  MÊME forme de retour que `targetedTrigger`, pour la porte HORS COMBAT (`psychologieDeRencontre`) : l'objet de
  *  la Phobie ouvre la bande du régime qu'il CAUSE (Peur), pas un Test propre. Une source déjà affrontée
  *  (affliction portant son `sourceId`) ne se re-déclenche pas, et les immunités du canal s'appliquent
  *  ICI aussi — MÊME verdict que `fearSourceFor` sur la même situation (l.41/l.75). Pur. */
@@ -614,7 +614,7 @@ export function targetedTriggers(self: Combatant, visible: readonly SourceEnVue[
   return out;
 }
 
-/** Le premier de `targetedTriggers`, pour la porte hors combat (`encounterPsych`). */
+/** Le premier de `targetedTriggers`, pour la porte hors combat (`psychologieDeRencontre`). */
 export function targetedTrigger(self: Combatant, visible: readonly SourceEnVue[]): { type: PsychType; cible: CiblePsy; sourceId: string; indice?: number } | null {
   return targetedTriggers(self, visible)[0] ?? null;
 }
@@ -655,7 +655,7 @@ function failAmountSpec(
 }
 
 /** L'entrée de Psychologie MISE EN JEU par un Test, telle que la déclarent les deux sites (bande de
- *  rencontre `encounterPsych`, bande de combat `combatPsych`) : l'entrée affrontée, sa source, sa
+ *  rencontre `psychologieDeRencontre`, bande de combat `psychologieDeCombat`) : l'entrée affrontée, sa source, sa
  *  Cible et son Indice. */
 export interface PsychStake {
   kind: PsychType;

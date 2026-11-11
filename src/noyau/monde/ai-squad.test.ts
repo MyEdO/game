@@ -89,8 +89,8 @@ describe('Lot 4 — ÉVITEMENT du DANGER (danger-map)', () => {
     // d'adjacence) → il ne peut pas être visé en mêlée ; il ne fait que MENACER certaines cases d'arrivée.
     const archer = mk('archer', 'hero', { x: 13, y: 16 }, { weapons: [SHORTBOW] });
     const a = chooseEnemyAction(input(e, [prey, archer], { squad: [] }));
-    expect(a.kind).toBe('move');
-    if (a.kind === 'move') {
+    expect(a.kind).toBe('deplacement');
+    if (a.kind === 'deplacement') {
       expect(tidOf(a)).toBe('prey'); // la proie est la seule cible de mêlée atteignable ce tour
       // …abordée par la case ÉLOIGNÉE de l'archer (ouest), pas par la case proche (est) plus exposée.
       expect(a.to.x).toBeLessThan(prey.pos!.x);

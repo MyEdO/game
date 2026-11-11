@@ -50,8 +50,8 @@ export function ApproachModal() {
   }, {
     fortune: c.fortune ?? 0,
     resilience: c.resilience ?? 0,
-    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.approach`).
-    ...(FLOWS.approach.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.approach.reversePreview(useGame.getState) } } : {}),
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.approche`).
+    ...(FLOWS.approche.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.approche.reversePreview(useGame.getState) } } : {}),
   });
 
   const actions: RollAction[] = [

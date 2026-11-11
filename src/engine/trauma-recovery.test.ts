@@ -19,7 +19,7 @@ const C = (over: Partial<Combatant>): Combatant =>
 
 /** LA PORTE, côté test : `tickTraumaRecovery` ne roule plus le Test de fin de fracture (#1657 B3-3) —
  *  il le DIFFÈRE. `finDeFracture` INJECTE l'issue par la MÊME route que l'applier de nuit
- *  `trauma-fracture` (`noyau/restFlow.ts` → `applyFractureEnd`). */
+ *  `convalescence-fracture` (`noyau/restFlow.ts` → `applyFractureEnd`). */
 function porteFracture(): { specs: Parameters<UpkeepDeferTest>[0][]; defer: UpkeepDeferTest } {
   const specs: Parameters<UpkeepDeferTest>[0][] = [];
   return { specs, defer: (s) => { specs.push(s); } };
@@ -75,7 +75,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     const { specs: collected, defer } = porteFracture();
     tickTraumaRecovery(c, 1, defer);
     expect(collected[0]?.test, 'LDB 18 l.202 — « Test de Résistance »').toEqual({ skill: { id: 'resistance' } });
-    expect(collected[0]?.kind).toBe('trauma-fracture'); // Test de fin DIFFÉRÉ en étape
+    expect(collected[0]?.kind).toBe('convalescence-fracture'); // Test de fin DIFFÉRÉ en étape
     expect(c.traumas!.length).toBe(0); // la fracture est retirée (résolution déférée)
     expect(c.criticalWounds).toBe(0);
     // Échec à la validation → séquelle permanente ajoutée.

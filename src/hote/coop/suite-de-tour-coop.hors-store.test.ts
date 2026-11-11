@@ -25,7 +25,7 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): 
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, movement: 4 }) as unknown as Combatant);
 
 /** La table : l'hôte au siège 0, l'invité au siège 1, qui possède `h2`. */
-const NET = (mode: 'host' | 'guest', mySeat: number): NetState => ({
+const NET = (mode: 'hote' | 'invite', mySeat: number): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
   connection: 'connecte', hostAway: false, ownership: { h2: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
@@ -46,7 +46,7 @@ function table(chargeur: Combatant, charge: Combatant) {
     combatants, order: ids, baseOrder: ids, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
   } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'hero'), pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: NET('host', 0) } as never);
+  banc.setState({ battle, mode: 'battle', scene: testScene(), party: combatants.filter((c) => c.kind === 'hero'), pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: NET('hote', 0) } as never);
   const recus: Record<string, unknown>[] = [];
   const host = new HostSession({ build: 'test', applyIntent: () => {}, getSnapshot: () => instantaneDeLaCoop(banc.getState()) });
   const [a, b] = FakeTransport.pair();
@@ -81,8 +81,8 @@ describe('#3058 — coop : le tour d’IA de l’hôte charge un porteur de Frap
       expect(banc.getState().battle!.turn, 'le tour a avancé').toBe(1);
 
       expect(diffuse?.cle, 'chemin : un tour d’IA à suite a été diffusé').toBe(`1:0:${c.id}`);
-      const chezLInvite = appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1) }).etat;
-      expect(chezLInvite.net.mode, 'l’instantané est appliqué chez l’invité').toBe('guest');
+      const chezLInvite = appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('invite', 1) }).etat;
+      expect(chezLInvite.net.mode, 'l’instantané est appliqué chez l’invité').toBe('invite');
       expect(chezLInvite.battle?.tourEnCours, 'l’invité porte le tour d’IA de l’hôte').toEqual(banc.getState().battle!.tourEnCours);
     });
   }
@@ -101,15 +101,15 @@ describe('#3059 — coop : seul l’hôte rejoue la frappe pilotée d’un invit
       combatants: [h, e], order: ids, baseOrder: ids, turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
       movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
     } as unknown as BattleState;
-    banc.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: { ...NET('host', 0), ownership: { h: 1 } } } as never);
+    banc.setState({ battle, mode: 'battle', scene: testScene(), party: [h], pendingDefense: null, pendingAttack: null, pendingCascade: null, suspendedCascades: [], net: { ...NET('hote', 0), ownership: { h: 1 } } } as never);
     expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'cliquerLaCase', [{ x: 0, y: 0 }, 'e', { confirm: true, intentionId: 'charge' }]), 'chemin : l’intent est appliqué chez l’hôte').toBe('appliquee');
     banc.reprendreTout();
     const tour = banc.getState().battle!.tourEnCours;
     expect([tour?.suite?.geste.kind, tour?.parquee, !!banc.getState().pendingDefense], 'chemin : chez l’hôte, la frappe échue pendant la défense est parquée').toEqual(['frappePilotee', true, true]);
-    const chezLInvite = appliquerLInstantane(instantaneDeLaCoop(banc.getState()), { ...etatInitialDuJeu(), net: { ...NET('guest', 1), ownership: { h: 1 } } }).etat;
+    const chezLInvite = appliquerLInstantane(instantaneDeLaCoop(banc.getState()), { ...etatInitialDuJeu(), net: { ...NET('invite', 1), ownership: { h: 1 } } }).etat;
     banc.setState({ ...chezLInvite, pendingDefense: null, pendingCascade: null, suspendedCascades: [] } as never);
     banc.getState().reprendreLaCadence();
     banc.reprendreTout();
-    expect([banc.getState().net.mode, banc.getState().pendingAttack], 'l’invité n’ouvre aucune frappe de lui-même').toEqual(['guest', null]);
+    expect([banc.getState().net.mode, banc.getState().pendingAttack], 'l’invité n’ouvre aucune frappe de lui-même').toEqual(['invite', null]);
   });
 });

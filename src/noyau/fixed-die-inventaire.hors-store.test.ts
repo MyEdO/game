@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import { FLOW_VERBS, type FlowKey, type NomDeVerbeDeJet } from './flowVerbs';
 import { fermeturesDuFlux } from './verbesOuverts';
 import type { Combatant } from '../engine/types';
@@ -39,7 +39,7 @@ describe('socle du dé fixé — les flux passent TOUS par le même chemin', () 
   beforeEach(() => ouvrir(true));
 
   it('chaque flux portant `setForcedRoll` sait réévaluer un dé saisi (accesseur complet)', () => {
-    const sans = FLUX.filter((k) => !FLOW_HANDLERS[k].fixable);
+    const sans = FLUX.filter((k) => !FLOWS[k].fixable);
     expect(sans, 'flux sans ACCESSEUR DE DÉ — déclarer `die` (ou une lentille) sur sa spec').toEqual([]);
   });
 

@@ -127,7 +127,7 @@ describe('le début du Round (`fenetre.gestes`)', () => {
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
       const seul = { gestes: ['fenetreValider@debutDuRound'], reglages: ['fenetreChoisir@debutDuRound#promouvoir'] };
       expect(dessines(debut), 'seul : qui agit en premier, en réglage, et le lancer').toEqual(seul);
-      expect(dessines({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(seul);
+      expect(dessines({ ...debut, net: { ...debut.net, mode: 'hote' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(seul);
     } finally {
       partie.fermer();
     }

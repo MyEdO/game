@@ -50,7 +50,7 @@ const bow: Weapon = { name: 'Arc', label: 'Arc', type: 'ranged', damage: { plusB
 
 /** Deux sièges : l'HÔTE (0) joue, le héros appartient à l'INVITÉ (1) — la seule configuration où la
  *  possession d'une fenêtre est OBSERVABLE (en local, tout siège possède tout). */
-const COOP = { mode: 'host' as const, mySeat: 0, gmSeat: undefined, ownership: { h: 1 } };
+const COOP = { mode: 'hote' as const, mySeat: 0, gmSeat: undefined, ownership: { h: 1 } };
 
 function setup(enemyPos: { x: number; y: number }, enemyWeapons: Weapon[], net: Partial<ReturnType<typeof banc.getState>['net']> = COOP) {
   seedBattleRng(7);
@@ -82,7 +82,7 @@ describe('#1262 lot 5a — DÉFENSE : la fenêtre naît du pending, et va au si�
     // Id DÉRIVÉ du compteur de la séquence (#1852) : une seconde défense (attaque gratuite) rejoint la
     // même séquence, et deux étapes d'un id constant y seraient in-adressables.
     expect(st.id).toBe('defense-jet-0');
-    expect(st.kind).toBe('defenseJet');
+    expect(st.kind).toBe('jetDeDefense');
     expect(st.actorId, 'le DÉFENSEUR porte l’étape').toBe(hero.id);
     expect(banc.getState().pendingCascade!.title).toBe('Défense');
   });
@@ -122,7 +122,7 @@ describe('#1262 lot 5a — ATTAQUE : l’étape hôte suit son `pendingAttack`',
     expect(banc.getState().pendingAttack).not.toBeNull();
     const st = etape('attaque')!;
     expect(st.id).toBe('attack-jet-0'); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
-    expect(st.kind).toBe('attackJet');
+    expect(st.kind).toBe('jetDAttaque');
     expect(st.actorId).toBe(hero.id);
   });
 
@@ -143,7 +143,7 @@ describe('#1262 lot 5a — DÉSENGAGEMENT : le menu est hôté sur `pendingDisen
     expect(banc.getState().pendingDisengage!.moverId).toBe(hero.id);
     const st = etape('desengagement')!;
     expect(st.id).toBe('disengage');
-    expect(st.kind).toBe('disengageStep');
+    expect(st.kind).toBe('desengagement');
     expect(st.actorId).toBe(hero.id);
     expect(modalOwnerOf(banc.getState()), 'COOP : le fuyard de l’invité tranche SON désengagement').toBe(hero.id);
   });
@@ -159,8 +159,8 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     poseCast(hero.id, enemy.id);
     openCastCascade(banc.getState, banc.setState, hero);
     const st = etape('incantation')!;
-    expect(st.id).toBe(`cast-${hero.id}-0`); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
-    expect(st.kind).toBe('cast');
+    expect(st.id).toBe(`incantation-${hero.id}-0`); // id DÉRIVÉ du compteur de la séquence d'accueil (#1852)
+    expect(st.kind).toBe('incantation');
     expect(st.groupOwner).toBeUndefined();
     expect(modalOwnerOf(banc.getState()), 'COOP : la fenêtre est au siège du lanceur').toBe(hero.id);
   });
@@ -186,7 +186,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     banc.setState({
       battle, mode: 'battle', scene: testScene(), party: [wiz, cible],
       pendingCast: null, pendingCastOpposition: null, pendingCascade: null, suspendedCascades: [],
-      net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 } },
+      net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 } },
     } as never);
     return { wiz, cible };
   }
@@ -279,7 +279,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     seedBattleRng(3);
     applyMiscast(banc.getState, banc.setState, hero, 'mineure');
     avanceEtapeCascade(banc.getState); // le dé du Tableau tombe à son étape → la révélation suit
-    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'miscast')!;
+    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Imparfaite');
     expect(st.icon).toBe('fire/blast');
     expect(st.actorId).toBe(hero.id);
@@ -292,7 +292,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     seedBattleRng(3);
     applyMiscast(banc.getState, banc.setState, hero, 'colere');
     avanceEtapeCascade(banc.getState);
-    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'miscast')!;
+    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'incantationImparfaite')!;
     expect(st.label).toBe('Colère des dieux');
     expect(st.icon).toBe('magic/power');
   });
@@ -303,13 +303,13 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     const structure = mk('s', 'enemy', { x: 2, y: 0 }, []);
     const log: string[] = [];
     applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'hero', weapon: 'Épée' }, log, { forcedRoll: 42 });
-    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critical')!;
+    const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(st.actorId).toBe(structure.id);
     expect(st.table!.result!.roll, 'le dé est POSÉ : la fenêtre ne le re-jette pas').toBe(42);
     expect(st.reveal!.title).toBe('Critique de Structure');
     // L'enjeu du mint est la référence de règle descendue à la ligne tirée (`stakeAtTableRow`), au champ près.
     const decl = st.table!;
-    expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critical'), { ...decl, result: undefined } as never, decl.result!));
+    expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critique'), { ...decl, result: undefined } as never, decl.result!));
     expect(st.stake!.key!.entryId, 'l’enjeu descend à la LIGNE jouée, pas au `kind`').toBeTruthy();
   });
 });

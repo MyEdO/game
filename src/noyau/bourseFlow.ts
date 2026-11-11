@@ -21,7 +21,7 @@ const ZERO_MONEY: Money = Object.freeze({ gold: 0, silver: 0, brass: 0 }); // #2
  *  cargaison, évaluation de lot) depuis un siège invité (coop) : la raison affichée, ou `null`. Le geste
  *  noyau le lit en tête (`refuseSi`), l'écran le lit pour fermer sa case. */
 export function refusDeGesteSurLeGroupe(s: { net: Pick<Jeu['net'], 'mode'> }): string | null {
-  return s.net.mode === 'guest' ? t('groupe.hoteSeul') : null;
+  return s.net.mode === 'invite' ? t('groupe.hoteSeul') : null;
 }
 
 /** Refus d'une dépense de `cout` que la bourse PERSONNELLE du héros ne couvre pas : le message `cle` du

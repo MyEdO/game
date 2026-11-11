@@ -162,7 +162,7 @@ export const resolversOwnedBy = (owner: ResolverOwner): ActivityResolver[] =>
  *  `resolver` = logique bespoke nommée (cf. dispatch d'interlude) ; `payoutPct` = rendu monétaire d'un
  *  retrait de dépôt (Mécénat : 120/100/50/0) ; `note` = texte de résultat VERBATIM de la source. */
 export interface OutcomeBand {
-  on?: 'success' | 'failure' | 'fumble';
+  on?: 'reussite' | 'echec' | 'maladresse';
   minSL?: number;
   maxSL?: number;
   ops?: GameOp[];
@@ -186,18 +186,18 @@ export interface OutcomeBand {
 export type BattleCond =
   | 'generalDown' | 'intervention' | 'noIntervention' | 'combatWon' | 'combatLost';
 
-/** Bandes d'issue applicables à un jet résolu. Maladresse : les bandes `on:'fumble'` REMPLACENT toute
+/** Bandes d'issue applicables à un jet résolu. Maladresse : les bandes `on:'maladresse'` REMPLACENT toute
  *  autre issue (« réalisez un Test sur le Tableau de la Colère des Dieux […] à la place », ACE 12 l.15) ;
  *  sans bande de Maladresse déclarée, la Maladresse reste un échec ordinaire. Une bande sans `on`
  *  matche par DR seul. PUR. */
 export function matchOutcomes(def: ActivityDef, res: { success: boolean; sl: number; fumble?: boolean }): OutcomeBand[] {
   const bands = def.outcomes ?? [];
   if (res.fumble) {
-    const fb = bands.filter((b) => b.on === 'fumble');
+    const fb = bands.filter((b) => b.on === 'maladresse');
     if (fb.length) return fb;
   }
-  const on = res.success ? 'success' : 'failure';
-  return bands.filter((b) => b.on !== 'fumble' && (b.on == null || b.on === on)
+  const on = res.success ? 'reussite' : 'echec';
+  return bands.filter((b) => b.on !== 'maladresse' && (b.on == null || b.on === on)
     && (b.minSL == null || res.sl >= b.minSL) && (b.maxSL == null || res.sl <= b.maxSL));
 }
 
@@ -459,7 +459,7 @@ export interface ActivityDef {
   /** ENJEU du jet (#1117) : ce que le Test de CETTE Activité met en jeu, en descripteur MÉCANIQUE
    *  (ce que le résolveur applique) et/ou verbatim court. Donnée ÉDITABLE au Codex, jamais un texte
    *  écrit au call-site — les surfaces (volet d'Activité, modale de jet) le résolvent par la porte
-   *  unique `resolveStake` (`src/data/index.ts`, dataset `activity`). */
+   *  unique `resolveStake` (`src/data/index.ts`, dataset `activite`). */
   stake?: string;
   /** FORME DÉCLARÉE du `stake` — même contrat que `stakes.form` (garde de forme). */
   stakeForm?: StakeForm;

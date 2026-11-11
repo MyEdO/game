@@ -198,13 +198,13 @@ const LOSE = (target: number) => ({ roll: 99, target, sl: -2, success: false });
 const WIN = (target: number) => ({ roll: 1, target, sl: 2, success: true });
 
 describe('SEAM `onOwnTestFailed` PAR RANGÉE — toute bande, pas seulement la Psychologie', () => {
-  it('bande de VOYAGE (`weatherResistance`, EDOC 8 l.86/127) : la rangée ratée déclenche les Crampes de SON porteur', () => {
+  it('bande de VOYAGE (`resistanceALaMeteo`, EDOC 8 l.86/127) : la rangée ratée déclenche les Crampes de SON porteur', () => {
     const h1 = bandHero('h1', { diseases: [{ ...COLIQUE }] });
     const h2 = bandHero('h2', { diseases: [{ ...COLIQUE }] });
     banc.setState({ party: [h1, h2] });
     startCascade(banc.getState, banc.setState, {
       title: 'Traversée', purpose: 'test',
-      steps: [band('weatherResistance', [row(h1.id), row(h2.id)])],
+      steps: [band('resistanceALaMeteo', [row(h1.id), row(h2.id)])],
     });
     commitRows([LOSE(50), WIN(50)]);
     const [a, b] = banc.getState().party;

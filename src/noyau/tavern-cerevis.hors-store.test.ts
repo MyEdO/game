@@ -217,7 +217,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
     });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 1 }, { roll: 20, sl: 4 }));
     const etape = get().pendingCascade!.participants[0];
-    expect(etape.kind, 'le joueur décide s’il boit pour effacer').toBe('tavern-erase');
+    expect(etape.kind, 'le joueur décide s’il boit pour effacer').toBe('taverneEffacement');
     expect(etape.options!.map((o) => o.key)).toEqual(['efface', 'garde']);
     get().jetRegler('cascade', 'choix', 'efface', etape.id);
     get().jetValider('cascade');
@@ -234,7 +234,7 @@ describe('Le Cerevis — les chouettes s’effacent au geste du joueur (l.88)', 
       });
       const pc: MancheClose = {
         participants: [{
-          id: 'tavern-erase-2', kind: 'tavern-erase', actorId: a.id, label: fixtureText('Effacer ?'),
+          id: 'taverneEffacement-2', kind: 'taverneEffacement', actorId: a.id, label: fixtureText('Effacer ?'),
           options: [{ key: 'efface', label: fixtureText('e') }, { key: 'garde', label: fixtureText('g') }], chosen: 'efface',
         }],
       };

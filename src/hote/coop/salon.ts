@@ -154,7 +154,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
   }
 
   function presente(get: Get, set: Set, seat: number, gname: string): void {
-    set({ net: { ...get().net, seatNames: { ...get().net.seatNames, [seat]: gname }, presence: { ...get().net.presence, [seat]: 'ok' } } });
+    set({ net: { ...get().net, seatNames: { ...get().net.seatNames, [seat]: gname }, presence: { ...get().net.presence, [seat]: 'present' } } });
   }
 
   function quitter(set: Set): void {
@@ -211,13 +211,13 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       presente(get, set, seat, gname);
     };
     rh.onGone = (seat) => {
-      set({ net: { ...get().net, presence: { ...get().net.presence, [seat]: 'away' } } });
+      set({ net: { ...get().net, presence: { ...get().net.presence, [seat]: 'absent' } } });
       graces.set(seat, ports.minuterie.programmer(() => {
         graces.delete(seat);
         rh.closeSeat(seat); // → onClose du transport virtuel → onSeatClosed (héros à l'hôte)
       }, GRACE_MS));
     };
-    set({ net: { ...initialNet(), mode: 'host', roomCode: room.code, seatNames: { 0: name } } });
+    set({ net: { ...initialNet(), mode: 'hote', roomCode: room.code, seatNames: { 0: name } } });
     desabonner = ports.abonner(diffuser);
     return true;
   }
@@ -247,10 +247,10 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
         fail(reason);
       };
       rg.onHostAway = (away) => {
-        if (get().net.mode === 'guest') set({ net: { ...get().net, hostAway: away } });
+        if (get().net.mode === 'invite') set({ net: { ...get().net, hostAway: away } });
       };
       rg.onConnState = (s) => {
-        if (get().net.mode === 'guest') set({ net: { ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' } });
+        if (get().net.mode === 'invite') set({ net: { ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' } });
       };
       rg.onReconnected = () => guest?.rejoin();
       rg.onSeated = (seat) => {
@@ -268,7 +268,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           onFormatMismatch: () => get().ecrireAuJournal(t('coop.formatMismatch')),
           onClosed: () => quitter(set),
         });
-        set({ net: { ...initialNet(), mode: 'guest', mySeat: seat, roomCode: code, seatNames: { [seat]: name } } });
+        set({ net: { ...initialNet(), mode: 'invite', mySeat: seat, roomCode: code, seatNames: { [seat]: name } } });
         ports.invite.intercepter();
         guest.connect(rg);
         resolve(null);

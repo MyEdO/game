@@ -115,8 +115,8 @@ export function recapLinesOfEvents(events: CombatEvent[], combatants: ComLite[] 
 const INTENT: Record<ActorAimKind, { verb: string; kind: CombatEventKind }> = {
   charge: { verb: 'charge', kind: 'charge' },
   melee: { verb: 'attaque', kind: 'attaque' },
-  ranged: { verb: 'vise', kind: 'tir' },
-  cast: { verb: 'lance un sort sur', kind: 'sort' },
+  tir: { verb: 'vise', kind: 'tir' },
+  incantation: { verb: 'lance un sort sur', kind: 'sort' },
 };
 
 /** Narre l'INTENTION télégraphiée d'un combattant IA (« X charge / attaque / vise / lance un sort sur

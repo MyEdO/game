@@ -120,7 +120,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
   it('HÔTE-MJ (`gmSeat` === siège du héros) : le héros garde SA fenêtre (M) ; le dé de MONDE, lui, rend V', () => {
     const h = tousLesHerosDeScenario(idsDeTest)[0];
     set({ party: [h], battle: null });
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 0, ownership: { [h.id]: 0 } } });
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, gmSeat: 0, ownership: { [h.id]: 0 } } });
     expect(seatOwns(get(), 0, h.id), 'précondition : le siège MJ POSSÈDE bien ce héros').toBe(true);
     expect(surfaceHerosDe(h, cleDeFixture('x'), 'Résistance'), 'possédé par le siège MJ n’est pas CONDUIT par lui — le joueur roule son héros').toBe('M');
     const bande = buildBand(get, {
@@ -133,7 +133,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
   });
 
   it('coop AVEC siège MJ : V (le MJ voit/lance), et la possession du monde SUIT ce siège', () => {
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     expect(surfaceMonde()).toBe('V');
     expect(seatOwns(get(), 1, WORLD_STEP_OWNER), 'la fenêtre appartient au siège MJ').toBe(true);
     expect(seatOwns(get(), 0, WORLD_STEP_OWNER), 'et plus à l’hôte').toBe(false);
@@ -158,7 +158,7 @@ describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur 
       resetCadence();
       set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
       const solo = surface();
-      set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+      set({ net: { ...get().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
       const mj = surface();
       set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
       setCadence('rapide');
@@ -202,7 +202,7 @@ describe('#1426 socle — la surface se juge sur l’ID du porteur (combat comme
     set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: enFile([e]) });
     expect(seatOwns(get(), 0, e.id), 'le repli de possession rend vrai — c’est l’ACTION, pas la tenue du dé').toBe(true);
     expect(surfaceOf(get, e.id), 'aucun humain ne le tient : son étape se résout d’office').toBe(false);
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     expect(surfaceOf(get, e.id), 'un siège MJ le tient : elle se surface').toBe(true);
   });
 
@@ -296,7 +296,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
     const p = get().pendingCascade;
     expect(p, 'la vente ouvre une fenêtre au lieu de trancher en silence').toBeTruthy();
     const step = p!.participants[p!.cursor];
-    expect(step.kind).toBe('land-sell-buyer');
+    expect(step.kind).toBe('acheteurATerre');
     expect(step.worldOwner, 'étape de MONDE : aucun acteur ne la porte, le sentinel la route au siège').toBe(true);
     expect(step.actorId).toBeUndefined();
     // La cible EST la Demande du Lieu (Taille 4 × 10 + 30 Commerce) — posée par le call-site en
@@ -320,7 +320,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
     const p = get().pendingCascade;
     expect(p, 'la 2ᵉ tentative est une SECONDE étape posable').toBeTruthy();
     const step = p!.participants[p!.cursor];
-    expect(step.kind).toBe('land-sell-buyer');
+    expect(step.kind).toBe('acheteurATerre');
     expect(step.target, '« lancez à nouveau le dé en l’opposant au nombre précédemment obtenu »').toBe(70);
     expect(step.meta?.sellEnc, 'la MOITIÉ du lot, pas la moitié de la Demande').toBe(20);
   });
@@ -470,7 +470,7 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
     const desabonne = banc.subscribe((s) => { for (const st of s.pendingCascade?.participants ?? []) if (st.result) jouees.set(st.id, st); });
     draineCascadeDifferee(get, () => banc.reprendreLesEnAttente(), 5); // « Lancer » : le geste offert SANS option de pose
     desabonne();
-    const des = [...jouees.values()].filter((st) => st.kind === 'land-sell-buyer');
+    const des = [...jouees.values()].filter((st) => st.kind === 'acheteurATerre');
     expect(des.length, 'le dé d’acheteur a bien été joué dans sa fenêtre').toBeGreaterThan(0);
     for (const st of des) {
       expect(st.evaluation, 'un pourcentage RAW n’est pas un Test').toBe('seuil');
@@ -939,11 +939,11 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(a) TERRE — cadence manuelle, option OFF : la Météo d’Étape n’est pas un vrai choix, elle se tire et va au journal (#3534)', () => {
     ouvreJourTerrestre(11);
     expect(get().pendingCascade?.purpose).toBe('travelDay');
-    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'stage-weather')!;
+    const meteo = get().pendingCascade!.participants.find((st) => st.kind === 'etape-meteo')!;
     expect(meteo.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
     expect(canFixDie(get(), undefined), 'option OFF : le siège qui possède le monde n’a rien à poser').toBe(false);
     expect(meteo.table!.result, 'le socle l’a tirée sans arrêt').toBeTruthy();
-    expect(etapeCourante()!.kind, 'la journée s’arrête au premier vrai choix, après elle').not.toBe('stage-weather');
+    expect(etapeCourante()!.kind, 'la journée s’arrête au premier vrai choix, après elle').not.toBe('etape-meteo');
     expect(get().journal.some((l) => l.includes('Météo')), 'la Météo d’Étape est au journal').toBe(true);
     expect(draineJour(false), 'aucune autre table ne retient la journée').toBeUndefined();
     expect(get().pendingRest, 'la journée va jusqu’à la halte de nuit').toBeTruthy();
@@ -960,7 +960,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     setDesFixes(true);
     ouvreJourTerrestre(11);
     const meteo = get().pendingCascade!.participants[0];
-    expect(meteo.kind).toBe('stage-weather');
+    expect(meteo.kind).toBe('etape-meteo');
     expect(canFixDie(get(), undefined), 'option ON + siège qui possède le monde : la pose est offerte').toBe(true);
     expect(meteo.table!.result, 'la pose ne tire pas non plus : c’est le joueur qui pose').toBeUndefined();
     const avant = get().pendingCascade;
@@ -975,15 +975,15 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
   it('(b) COOP — le siège MJ (distant) tient la fenêtre : l’hôte n’a PAS tiré à sa place', () => {
     setDesFixes(true);
     prepareJourTerrestre(11);
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     expect(seatOwns(get(), 1, WORLD_STEP_OWNER), 'le monde appartient au siège MJ').toBe(true);
     expect(seatOwns(get(), 0, WORLD_STEP_OWNER), 'et plus à l’hôte').toBe(false);
     expect(canFixDie(get(), undefined), 'l’hôte ne pose pas le dé d’un siège qu’il ne tient pas').toBe(false);
     get().partirEnVoyage('rt', 'pied');
     const meteo = get().pendingCascade!.participants[0];
-    expect(meteo.kind).toBe('stage-weather');
+    expect(meteo.kind).toBe('etape-meteo');
     expect(meteo.table!.result, 'la pose viendra de CE client : l’hôte attend').toBeUndefined();
-    expect(draineJour(false), 'et rien ne franchit l’étape sans son geste').toBe('stage-weather');
+    expect(draineJour(false), 'et rien ne franchit l’étape sans son geste').toBe('etape-meteo');
   });
 
   it('(c) cadence AUTO — aucun siège à la manœuvre : le socle résout au rang de l’étape, sans geste', () => {
@@ -1085,7 +1085,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     prepareJourMaritime(6);
     const on = traceDesTirages();
     runSeaDay(get, set);
-    const etape = get().pendingCascade!.participants.find((x) => x.kind === 'sea-board-event')!;
+    const etape = get().pendingCascade!.participants.find((x) => x.kind === 'mer-evenement-de-bord')!;
     expect(etape.table!.result, 'option ON : le socle laisse la main').toBeUndefined();
     const arretOn = draineJour(true);
     expect({ arretOff, arretOn }, 'les deux journées vont jusqu’à la halte').toEqual({ arretOff: undefined, arretOn: undefined });

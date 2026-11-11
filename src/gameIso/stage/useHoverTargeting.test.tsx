@@ -147,7 +147,7 @@ describe('useHoverTargeting — modale bloquante (arbitre modal)', () => {
 
     act(() => startCascade(useGame.getState, useGame.setState, {
       title: 'Surprise', purpose: 'test',
-      steps: [{ id: 'surprise-1', kind: 'sceneEntry', actorId: active.id, reveal: { kind: 'sceneEntry', title: 'Surprise', lines: ['…'] } }],
+      steps: [{ id: 'surprise-1', kind: 'entreeEnScene', actorId: active.id, reveal: { kind: 'entreeEnScene', title: 'Surprise', lines: ['…'] } }],
     }));
 
     expect(probe({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim).toBeNull();
@@ -291,7 +291,7 @@ describe('useHoverTargeting — pendant un interlude piloté par la carte, le su
     useGame.setState({
       pendingAttack: null,
       pendingDualStrike: { attackerId: active.id, offWeaponUid: 'off-1', jet: 3 },
-      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'attackJet', jet: 'attaque', actorId: active.id }], { purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'r', kind: 'jetDAttaque', jet: 'attaque', actorId: active.id }], { purpose: 'combat' }),
     });
 
     const aim = probeAim({ x: foe.pos!.x, y: foe.pos!.y }).hoverAim;

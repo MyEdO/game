@@ -71,7 +71,7 @@ describe('Critique obtenu, touche sans prise', () => {
     const { finale, etapes } = frappe(h, spectre, res);
     expect(finale).toMatchObject({ critical: true, sansPrise: 'ethere' });
     expect(finale.critiques ?? 0).toBe(0);
-    expect(etapes.filter((k) => k === 'critical' || k === 'deviation')).toEqual([]);
+    expect(etapes.filter((k) => k === 'critique' || k === 'deviation')).toEqual([]);
     expect(vivant(spectre.id).criticalWounds ?? 0).toBe(0);
     expect(vivant(spectre.id).wounds.current).toBe(30);
   });
@@ -84,7 +84,7 @@ describe('Critique obtenu, touche sans prise', () => {
     expect(etapes).toContain('sauvegarde');
     expect(finale).toMatchObject({ hit: true, critical: true, sansPrise: 'sauvegarde' });
     expect(finale.critiques ?? 0).toBe(0);
-    expect(etapes.filter((k) => k === 'critical' || k === 'deviation')).toEqual([]);
+    expect(etapes.filter((k) => k === 'critique' || k === 'deviation')).toEqual([]);
     expect(vivant(demon.id).criticalWounds ?? 0).toBe(0);
     expect(vivant(demon.id).wounds.current).toBe(30);
   });
@@ -96,7 +96,7 @@ describe('Critique obtenu, touche sans prise', () => {
     const { finale, etapes } = frappe(h, proie, doubleReussi(h, proie), true);
     expect(finale).toMatchObject({ hit: true, critical: true, sansPrise: 'empoignade', woundsLost: 0 });
     expect(finale.critiques ?? 0).toBe(0);
-    expect(etapes.filter((k) => k === 'critical' || k === 'deviation')).toEqual([]);
+    expect(etapes.filter((k) => k === 'critique' || k === 'deviation')).toEqual([]);
     expect(vivant(proie.id).criticalWounds ?? 0).toBe(0);
     expect(vivant(proie.id).wounds.current).toBe(30);
   });

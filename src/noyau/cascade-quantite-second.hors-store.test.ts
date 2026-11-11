@@ -147,7 +147,7 @@ describe('Seconde lecture d’un jet — Test COMBINÉ (LDB 12 l.202-208)', () =
       id: 'm', kind: cleDeFixture('mesure-quantite'), label: fixtureText('Test combiné'), actor: h,
       difficulty: 'intermediaire', ligne: { test: { skill: { id: 'pari' } } },
       second: { label: 'Initiative', target: 40, base: 40, difficulty: 'intermediaire' },
-      stake: combatStakeRef('tavern-game', { values: { jeu: 'x', adversaire: 'y', mise: 'aucune' } }),
+      stake: combatStakeRef('taverne-partie', { values: { jeu: 'x', adversaire: 'y', mise: 'aucune' } }),
     })! as CascadeStep;
     expect(st.second).toEqual({ label: 'Initiative', target: 40, base: 40, difficulty: 'intermediaire' });
   });

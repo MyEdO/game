@@ -25,7 +25,7 @@ const NET0 = initialNet();
 function deuxSieges(): [Combatant, Combatant] {
   const [a, b] = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as [Combatant, Combatant];
   banc.setState({ battle: null, party: [a, b], journal: [], tavernGames: null, pendingCascade: null, sequence: null });
-  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
+  banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
   return [a, b];
 }
 
@@ -40,7 +40,7 @@ describe('#1279 S1 — la manche héros-vs-héros appartient AUX DEUX sièges', 
     g().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
 
     const step = g().pendingCascade!.participants[0];
-    expect(step.kind).toBe('tavern-round');
+    expect(step.kind).toBe('taverneRound');
     expect(step.participants!.map((r) => r.id).sort()).toEqual([a.id, b.id].sort());
     const sien = step.participants!.find((r) => r.id === b.id)!;
     expect(sien.interactive, 'la rangée de l’invité est À JOUER').toBe(true);

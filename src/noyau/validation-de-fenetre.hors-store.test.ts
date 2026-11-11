@@ -32,7 +32,7 @@ const FENETRES_DE_L_HOTE: readonly (readonly [FenetreAValider, Record<string, un
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): void {
   const [a, b] = groupeDeScenario(idsDeTest, 'soldat', 'tueur');
-  banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
+  banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
 }
 
 const VICTOIRE = { xp: 0, gold: { gold: 0, silver: 0, brass: 0 }, gear: [], defeated: [] };
@@ -44,18 +44,18 @@ describe('fenetreValider', () => {
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.inconnue'));
     banc.getState().fenetreValider('finDeChapitre');
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.fermee'));
-    expect(intentAllowedFor({ ...banc.getState(), net: { ...banc.getState().net, mode: 'host' } }, 0, 'fenetreValider', ['finDeChapitre']), 'fenêtre fermée : aucun siège').toBe(false);
+    expect(intentAllowedFor({ ...banc.getState(), net: { ...banc.getState().net, mode: 'hote' } }, 0, 'fenetreValider', ['finDeChapitre']), 'fenêtre fermée : aucun siège').toBe(false);
   });
 
   it.each(FENETRES_DE_L_HOTE)('la validation de l’hôte reste à l’hôte (%s) : refusée dans l’état d’un invité, et au siège d’un invité', (fenetre, ouverte) => {
     const banc = ouvrirLeBanc();
-    banc.setState({ ...ouverte, net: { ...banc.getState().net, mode: 'guest' } } as never);
+    banc.setState({ ...ouverte, net: { ...banc.getState().net, mode: 'invite' } } as never);
     const avant = banc.getState();
     banc.getState().fenetreValider(fenetre);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.hoteSeul'));
     for (const cle of Object.keys(ouverte)) expect((banc.getState() as unknown as Record<string, unknown>)[cle], 'la fenêtre reste ouverte').toBe((avant as unknown as Record<string, unknown>)[cle]);
 
-    banc.setState({ net: { ...banc.getState().net, mode: 'host' } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote' } });
     expect(intentAllowedFor(banc.getState(), 1, 'fenetreValider', [fenetre])).toBe(false);
     expect(intentAllowedFor(banc.getState(), 0, 'fenetreValider', [fenetre])).toBe(true);
   });

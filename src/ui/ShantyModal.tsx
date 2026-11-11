@@ -62,7 +62,7 @@ export function ShantyModal() {
   return (
     <RollShell
       flowKey="chansonDeMarin"
-      stake={flowStakeRef('shanty-roll', p.shantyId ? { entryId: p.shantyId } : undefined)}
+      stake={flowStakeRef('chanson-de-marin-test', p.shantyId ? { entryId: p.shantyId } : undefined)}
       title={<><Icon id="audio/music" size="sm" /> Chanson de marin</>}
       /* Z1 : acteur + le BÉNÉFICIAIRE, qui n'a de portrait nulle part (l'équipage entier). La
          Compétence est le label de la ligne (`Divertissement (Chant)`) — jamais redite ici. */

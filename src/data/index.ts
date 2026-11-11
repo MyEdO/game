@@ -244,7 +244,7 @@ export const WATER_EXPOSURE = waterExposureJson as WaterExposureData;
 
 /** CASCADE d'un enjeu de `stakes.json` : la famille de jets qu'il sert — ses valeurs sont celles de
  *  `StakeKey.dataset` (`schemas/defs/stakes.ts`). */
-export type StakeCascade = 'night' | 'voyage' | 'flow' | 'combat';
+export type StakeCascade = 'nuit' | 'voyage' | 'flux' | 'combat';
 
 /** ENJEU d'un jet de cascade (#1117, collection #1681) — cf. `schemas/defs/stakes.ts`. Lu à la clé
  *  `{ dataset: cascade, kind: id }` par `resolveStake`. */
@@ -272,9 +272,9 @@ export interface StakeEntry {
 export const STAKES = stakesJson as StakeEntry[];
 /** Ids des enjeux d'une cascade : l'union GÉNÉRÉE des ids de l'espace de la cascade (`scripts/gen-espaces.mts`),
  *  l'argument de sa porte typée. */
-export type NightStakeId = IdsParEspace['stakes.json?cascade=night'];
+export type NightStakeId = IdsParEspace['stakes.json?cascade=nuit'];
 export type VoyageStakeId = IdsParEspace['stakes.json?cascade=voyage'];
-export type FlowStakeId = IdsParEspace['stakes.json?cascade=flow'];
+export type FlowStakeId = IdsParEspace['stakes.json?cascade=flux'];
 export type CombatStakeId = IdsParEspace['stakes.json?cascade=combat'];
 
 /** ENJEU d'une ACTIVITÉ (#1117 L3) — porté par l'ENTITÉ elle-même (`activities.json`), pas par un
@@ -339,7 +339,7 @@ export const findActionById = (id: string): ActionDef | undefined => ACTIONS.fin
 /** DATASET d'enjeux servant une famille de jets (#1117). Union FERMÉE : une cascade de plus est une
  *  valeur de `StakeCascade` et ses entrées dans `stakes.json` ; les trois autres familles portent leur
  *  enjeu sur l'ENTITÉ (météo, Activité, État) et ont chacune leur branche dans `stakeEntry`. */
-export type StakeDataset = StakeCascade | 'weather' | 'activity' | 'etat';
+export type StakeDataset = StakeCascade | 'meteo' | 'activite' | 'etat';
 
 /** CLÉ d'enjeu — la coordonnée de la DONNÉE, jamais son texte. `entryId` fait DESCENDRE la résolution
  *  à l'ENTRÉE jouée quand elle existe (le symptôme d'une étape de maladie, la psychologie affrontée,
@@ -508,9 +508,9 @@ function shipCritPools(set: ShipCritSet): Record<string, (id: string) => boolean
  *  jamais un `if` par kind au rendu. La famille MALADIE l'énumère (les trois étapes de maladie jouent
  *  un SYMPTÔME nommé) ; les jets de modale mono la DÉRIVENT de leur donnée (`entryCategory`). */
 const stakeEntryCatalog = memoParVersion(['stakes'], (): Record<string, { category: string; has: (id: string) => boolean }> => ({
-  'disease-tick': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
-  'disease-gangrene': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
-  'disease-persist': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
+  'maladie-test-quotidien': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
+  'maladie-gangrene': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
+  'maladie-persistance': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
   ...Object.fromEntries(
     STAKES
       .filter((e) => e.entryCategory)
@@ -538,7 +538,7 @@ const STAKE_ENTRY_TEXTS: Record<string, (id: string) => string | undefined> = {
  *  (c) PAR LA SOURCE : le dataset pose `entryFromSource: true` (schéma `defs/stakes.ts`),
  *      qui déclare que la catégorie ne se connaît qu'au RUNTIME — le producteur la tire de
  *      `ActiveEffect.source` (`CATEGORY_BY_SOURCE_KIND`) et la verse par la porte (b) ; le kind
- *      `act-gate` en vit (un même gate est exigé par un objet, un Talent, une maladie…).
+ *      `agir-malgre-effet` en vit (un même gate est exigé par un objet, un Talent, une maladie…).
  *      CRITÈRE : `entryFromSource` ne se déclare que si la catégorie est irréductiblement dynamique
  *      (le même `kind` sert N natures de source) — si une déclaration statique peut la dire, c'est
  *      (a) ou (b). */
@@ -563,7 +563,7 @@ function entryText(key: StakeKey): string | undefined {
 }
 
 function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; id: string } } | undefined {
-  if (key.dataset === 'weather') {
+  if (key.dataset === 'meteo') {
     // MÉTÉO : l'enjeu de la traversée vit sur la CONDITION (`weather.json`, `resistanceTest.enjeu`) —
     // key.kind = l'id de météo. Même porte, même fail-closed : pas d'entrée → pas d'enjeu.
     const rt = weatherData.conditions.find((c) => c.id === key.kind)?.resistanceTest;
@@ -575,7 +575,7 @@ function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; 
     const r = etats.find((x) => x.id === key.kind)?.recover;
     return r ? { text: r.enjeu, rule: { category: 'etats', id: key.kind } } : undefined;
   }
-  if (key.dataset === 'activity') {
+  if (key.dataset === 'activite') {
     // ACTIVITÉS : `key.kind` = l'id de l'`ActivityDef`. Le FOYER par DÉFAUT est l'Activité ELLE-MÊME
     // (catégorie Codex `activities`, où vit sa `desc` verbatim) — une fiche `regles.json` doublon
     // serait le péché de l'amendement A. Une entrée peut NOMMER un autre foyer (`rule`) quand la
@@ -639,26 +639,26 @@ export function combatStakeRef(
 /** Enjeu d'une étape de NUIT (`stakeRef`) : le TYPE ferme l'id (`NightStakeId`, généré) en PREMIER
  *  rideau, le throw est le second. `entryId` = le symptôme joué par une étape de maladie. */
 export function nightStakeRef(id: NightStakeId, entryId?: string): StakeRef {
-  return stakeRef('night', id, { entryId });
+  return stakeRef('nuit', id, { entryId });
 }
 
 /** L'Activité a-t-elle son enjeu authoré ? PRÉDICAT de la MÊME porte que `activityStakeRef` — pour
  *  les surfaces qui rendent un catalogue MIXTE (le volet d'Activité sert aussi celles SANS Test, qui
  *  n'ont rien à mettre en jeu) sans connaître le stock ni rattraper un throw. */
 export function hasActivityStake(activityId: string): boolean {
-  return !!stakeEntry({ dataset: 'activity', kind: activityId });
+  return !!stakeEntry({ dataset: 'activite', kind: activityId });
 }
 
 /** Enjeu d'une ACTIVITÉ (#1117 L3, `stakeRef`) : le renvoi vise le foyer déclaré, à défaut la fiche
  *  Codex de l'Activité elle-même. */
 export function activityStakeRef(activityId: string): StakeRef {
-  return stakeRef('activity', activityId);
+  return stakeRef('activite', activityId);
 }
 
 /** Enjeu de MÉTÉO (Test de Résistance de traversée, `stakeRef`) : l'appelant n'appelle QUE si la
  *  condition déclare un Test (`weatherResistanceTest`). */
 export function weatherStakeRef(weatherId: string): StakeRef {
-  return stakeRef('weather', weatherId);
+  return stakeRef('meteo', weatherId);
 }
 
 /** Enjeu de RÉCUPÉRATION d'un État (`stakeRef`) : l'appelant n'appelle QUE pour un État qui déclare
@@ -673,7 +673,7 @@ export function flowStakeRef(
   id: FlowStakeId,
   opts?: { entryId?: string; values?: Record<string, string | number> },
 ): StakeRef {
-  return stakeRef('flow', id, opts);
+  return stakeRef('flux', id, opts);
 }
 
 /** ENTITÉ PORTEUSE d'un enjeu dérivé, résolue en `{catégorie Codex, fiche}` — `undefined` si la
@@ -1572,7 +1572,7 @@ export interface PsychologyData extends StatusData {
   triggerOn?: 'encounter' | 'threatened';
   /** Moment du re-test d'une affliction ciblée active ; absent = début du Round. LDB 21 l.9, l.19, l.39, l.48 */
   retestAt?: 'roundStart' | 'roundEnd';
-  /** Mode de RÉSOLUTION du Test de Psychologie (LDB 21), lu par l'applier GÉNÉRIQUE `combatPsych` (jamais
+  /** Mode de RÉSOLUTION du Test de Psychologie (LDB 21), lu par l'applier GÉNÉRIQUE `psychologieDeCombat` (jamais
    *  un dispatch `kind === 'terreur'` codé) : `'extended'` = Test ÉTENDU de Calme cumulant le DR vers l'Indice
    *  (Peur, l.27) ; `'terreur'` = Test BINAIRE dont l'échec inflige `failCondition` (Indice + |DR négatifs|)
    *  puis pose l'état `becomes` (Terreur → Peur, l.55-57) ; `'binary'` = Test BINAIRE activant l'affliction
@@ -1717,7 +1717,7 @@ export interface ManeuverDef {
   /** ENJEU porté par l'ENTRÉE (#1117 L2, patron `ActivityDef.stake`/`PsychologyData.stake`) : les
    *  `effects` d'une manœuvre sont AUTHORÉS entrée par entrée (aucune formule commune), donc un
    *  gabarit au `kind` serait tautologique. Rendu par `resolveStake` (dataset `combat`, kind
-   *  `combat-maneuver-defense`, `entryId` = l'id de la manœuvre) : il PRIME sur le gabarit du kind. */
+   *  `combat-manoeuvre-defense`, `entryId` = l'id de la manœuvre) : il PRIME sur le gabarit du kind. */
   stake?: string;
   /** FORME déclarée de l'enjeu — `verbatim` (contigu au Source) ou `descripteur` (assemblage des ops). */
   stakeForm?: StakeForm;

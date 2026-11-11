@@ -76,7 +76,7 @@ describe('reponsesDuNoeud — l’OFFRE, verdict partagé par le clic et par la 
 
   it('coop, siège qui ne DÉCIDE pas : toutes les réponses sont fermées, le texte nomme le siège qui répond', () => {
     const dlg = noeud([{ id: 'une', label: 'Une' }, { id: 'deux', label: 'Deux' }] as DialogueNode['choices']);
-    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'guest', mySeat: 1, ownership: {}, seatNames: { 0: 'Greta' } } as unknown as Jeu['net'] }));
+    const r = reponsesDuNoeud(etat(dlg, { net: { mode: 'invite', mySeat: 1, ownership: {}, seatNames: { 0: 'Greta' } } as unknown as Jeu['net'] }));
     expect(r.every((x) => !x.enabled && x.refus === 'Greta répond pour le groupe.')).toBe(true);
   });
 });

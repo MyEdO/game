@@ -117,7 +117,7 @@ const SkillChip = ({ skillId, show }: { skillId: string; show?: string }) => (
 
 /** Vue réseau minimale pour la possession (audit M7) — sous-ensemble de `GameState['net']`. */
 export interface InterludeNet {
-  mode: 'local' | 'host' | 'guest';
+  mode: 'local' | 'hote' | 'invite';
   mySeat: number;
   ownership: Record<string, number>;
   seatNames: Record<number, string>;

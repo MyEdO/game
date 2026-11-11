@@ -394,7 +394,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     // (1) SUSPENDU : le choix Dévier/Subir est posé, la fuite N'EST PAS complétée.
     const casc = banc.getState().pendingCascade!;
     expect(casc.participants.some((s) => s.kind === 'deviation')).toBe(true);
-    expect(casc.participants.some((s) => s.kind === 'fleeMove')).toBe(true); // étape de REPRISE de la fuite
+    expect(casc.participants.some((s) => s.kind === 'mouvementDeFuite')).toBe(true); // étape de REPRISE de la fuite
     expect(live(fuyard.id).engagedWith).toEqual([frappeur.id]); // toujours Engagé
     expect(stacks(live(fuyard.id), COND.brise)).toBe(0); // aucun État Brisé tant que le coup n'est pas résolu
     expect(banc.getState().battle!.reachable.size).toBe(0); // aucun budget de Course posé
@@ -438,8 +438,8 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
   it('coop : slots joués par deux sièges → étape de GROUPE, chaque siège ne pilote QUE son slot', () => {
     const { frappeur, fuyard } = duelHeros(8);
     banc.setState({
-      net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { [frappeur.id]: 1 } },
-      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'disengageStep', jet: 'desengagement', actorId: fuyard.id }], { title: 'Se désengager', icon: 'action/disengage', purpose: 'combat' }),
+      net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { [frappeur.id]: 1 } },
+      pendingCascade: cascadeDeTest([{ id: 'disengage', kind: 'desengagement', jet: 'desengagement', actorId: fuyard.id }], { title: 'Se désengager', icon: 'action/disengage', purpose: 'combat' }),
     });
     banc.getState().jetRegler('desengagement', 'fuir', true);
     const st = banc.getState();
@@ -470,7 +470,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     E.pos = { x: 8, y: 10 };
     E.characteristics['capacite-de-combat'] = 90;
     banc.setState({
-      net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 0 },
+      net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 0 },
       battle: { ...b },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });

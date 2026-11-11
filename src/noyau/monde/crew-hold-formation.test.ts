@@ -77,14 +77,14 @@ describe('#196 — tenue de formation IA', () => {
     const servant = mkServant('servant-1', { x: 5, y: 11 });
     const ennemiLointain = mkEnemyHero('cible', 5, 2); // loin, hors de portée de mêlée
     const action = chooseEnemyAction(input(servant, [ennemiLointain], { holdsFormation: !!crewPosteOf('servant-1', [hull, servant]) }));
-    expect(action.kind).toBe('end'); // ne s'approche ni ne charge : tient sa case
+    expect(action.kind).toBe('fin'); // ne s'approche ni ne charge : tient sa case
   });
 
   it('CONTRÔLE NÉGATIF : un PNJ IA non-crew, dans la MÊME situation, charge normalement (move vers la cible)', () => {
     const servant = mkServant('libre', { x: 5, y: 11 });
     const ennemiLointain = mkEnemyHero('cible', 5, 2);
     const action = chooseEnemyAction(input(servant, [ennemiLointain])); // holdsFormation absent
-    expect(action.kind).toBe('move'); // comportement inchangé : approche/charge
+    expect(action.kind).toBe('deplacement'); // comportement inchangé : approche/charge
   });
 
   it('cas ENGAGÉ : le servant du crew, avec un ennemi déjà ADJACENT, attaque DEPUIS sa case (pas de move)', () => {
@@ -106,6 +106,6 @@ describe('#196 — tenue de formation IA', () => {
     const holdsFormation = !!crewPosteOf('servant-1', [hull, servant]);
     expect(holdsFormation).toBe(false);
     const action = chooseEnemyAction(input(servant, [ennemiLointain], { holdsFormation }));
-    expect(action.kind).toBe('move'); // n'est plus tenu à la formation → charge de nouveau
+    expect(action.kind).toBe('deplacement'); // n'est plus tenu à la formation → charge de nouveau
   });
 });

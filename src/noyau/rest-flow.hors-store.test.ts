@@ -126,7 +126,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     const cas = banc.getState().pendingCascade!;
     // UNE fenêtre « Récupération » (#1117 L3), une RANGÉE par héros à soigner (8/12 PB).
     expect(cas.participants.length).toBe(1);
-    expect(cas.participants[0].kind).toBe('recovery');
+    expect(cas.participants[0].kind).toBe('recuperation');
     expect(cas.participants[0].participants!.map((r) => r.id)).toEqual(['h1', 'h2']);
     walkCascade();
     expect(banc.getState().pendingCascade).toBeNull(); // cascade terminée
@@ -163,24 +163,24 @@ describe('ouvrirLeRepos / choix par héros', () => {
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreValider('repos');
     const cas = banc.getState().pendingCascade!;
-    expect(cas.participants[0].kind).toBe('shelter'); // l'abri de fortune ouvre la séquence
+    expect(cas.participants[0].kind).toBe('abri-de-fortune'); // l'abri de fortune ouvre la séquence
     // L'Exposition n'est insérée qu'à la validation de l'abri (dépendance) — absente avant.
-    expect(cas.participants.some((s) => s.kind === 'exposure')).toBe(false);
+    expect(cas.participants.some((s) => s.kind === 'exposition-nocturne')).toBe(false);
     const seen = walkCascadeAbriFails(); // abri raté → campement exposé
     // 2 Tests RAW (pluie, sans abri) = 2 VAGUES successives, chacune UNE fenêtre à 2 rangées (2 campeurs) :
     // les 4 jets RAW sont tous là, mais en DEUX fenêtres au lieu de quatre.
-    expect(seen.filter((s) => s.kind === 'exposure').map((s) => s.rows)).toEqual([2, 2]);
+    expect(seen.filter((s) => s.kind === 'exposition-nocturne').map((s) => s.rows)).toEqual([2, 2]);
   });
 
-  it('cascade : valider un TEST QUOTIDIEN de maladie raté applique son `onFail` (applicateur disease-tick, #674)', () => {
-    // DERNIER maillon de prod : la bande est verrouillée par `jetValider('cascade')`, l'applier `disease-tick`
+  it('cascade : valider un TEST QUOTIDIEN de maladie raté applique son `onFail` (applicateur maladie-test-quotidien, #674)', () => {
+    // DERNIER maillon de prod : la bande est verrouillée par `jetValider('cascade')`, l'applier `maladie-test-quotidien`
     // lit `row.meta.onFail` et le passe à `applyOps`. Aucun appel direct au moteur ici.
     const h = banc.getState().party[0];
     h.diseases = [contractDisease('pneumonie', battleRngFor())!];
     banc.setState((s) => ({ party: [...s.party] }));
     const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.fail, 'target');
     const bande = (id: string) => cascadeDeTest([
-      { id, kind: 'disease-tick', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
+      { id, kind: 'maladie-test-quotidien', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
         participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 30, target: 30,
           meta: { diseaseName: 'pneumonie', symptomId: 'fievre', opsEchec: onFail },
           result: { roll: 99, target: 30, sl: -6, success: false } }] },
@@ -197,12 +197,12 @@ describe('ouvrirLeRepos / choix par héros', () => {
     expect(symptomes, '2ᵉ échec, Fièvre DÉJÀ Grave : l’échelon suivant tombe').toContain('toxine');
   });
 
-  it('cascade : valider une MARCHE FORCÉE ratée applique +Exténué (applicateur forced-march)', () => {
+  it('cascade : valider une MARCHE FORCÉE ratée applique +Exténué (applicateur marche-forcee)', () => {
     const h = banc.getState().party[0];
     const exten0 = stacks(h, 'extenue');
     // Cascade à une BANDE de marche forcée (#1117 L3), jet de la rangée figé sur un ÉCHEC.
     banc.setState({ pendingCascade: cascadeDeTest([
-      { id: 'bande-m1', kind: 'forced-march', label: fixtureText('Marche forcée'), aggregate: 'none',
+      { id: 'bande-m1', kind: 'marche-forcee', label: fixtureText('Marche forcée'), aggregate: 'none',
         participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
     ], { title: 'Marche', purpose: 'travel' }) });
     banc.getState().jetValider('cascade'); // verrouille l'échec → +Exténué (applyForcedMarch)
@@ -218,7 +218,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { camp: true } });
     banc.getState().fenetreValider('repos');
     const cas = banc.getState().pendingCascade!;
-    expect(cas.participants.some((s) => s.kind === 'exposure')).toBe(false); // tente → 0 Test difficile
+    expect(cas.participants.some((s) => s.kind === 'exposition-nocturne')).toBe(false); // tente → 0 Test difficile
     expect(cas.log.some((l) => /tente/i.test(l))).toBe(true); // « La tente est montée… »
   });
 });
@@ -266,8 +266,8 @@ describe('couchage À BORD (MDG) — le navire n’est pas un bivouac', () => {
     expect(banc.getState().pendingRest!.perHero['h1'].lodging).toBe('bord'); // défaut = à bord
     banc.getState().fenetreValider('repos');
     const cas = banc.getState().pendingCascade!;
-    expect(cas.participants.some((s) => s.kind === 'exposure' || s.kind === 'shelter')).toBe(false);
-    expect(cas.participants.every((s) => s.kind === 'recovery')).toBe(true); // récupération (Résistance +20) inchangée
+    expect(cas.participants.some((s) => s.kind === 'exposition-nocturne' || s.kind === 'abri-de-fortune')).toBe(false);
+    expect(cas.participants.every((s) => s.kind === 'recuperation')).toBe(true); // récupération (Résistance +20) inchangée
     walkCascade();
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -435,14 +435,14 @@ describe('CHEMIN RÉEL — la règle d’une étape de maladie est celle du SYMP
     banc.getState().fenetreValider('repos');
     const p = banc.getState().pendingCascade;
     expect(p, 'la cascade de nuit s’ouvre').toBeTruthy();
-    const step = p!.participants.find((s) => s.kind === 'disease-tick');
+    const step = p!.participants.find((s) => s.kind === 'maladie-test-quotidien');
     expect(step, 'la nuit d’un malade porte le Test de cycle du symptôme').toBeTruthy();
     expect(step!.meta?.symptomId, 'le symptôme voyage jusqu’à l’étape').toBe('blesse');
     expect(step!.stake!.key!.entryId, 'la clé d’enjeu NOMME l’entrée jouée').toBe('blesse');
     expect(resolveStake(step!.stake!).rule, 'le renvoi pointe la fiche du SYMPTÔME').toEqual({ category: 'symptoms', id: 'blesse' });
     // REPLI prouvé AU BÂTISSEUR, sur le MÊME chemin réel : une étape SANS entrée jouée (Récupération)
     // ne fabrique aucun `entryId` et garde la fiche de son `kind`.
-    const recovery = p!.participants.find((s) => s.kind === 'recovery');
+    const recovery = p!.participants.find((s) => s.kind === 'recuperation');
     expect(recovery, 'la nuit porte aussi le Test de Récupération').toBeTruthy();
     expect(recovery!.stake!.key!.entryId, 'aucune entrée jouée : pas d’entryId fabriqué').toBeUndefined();
     expect(resolveStake(recovery!.stake!).rule).toEqual({ category: 'regles', id: 'guerison-des-blessures' });

@@ -31,7 +31,7 @@ const mk = (id: string, kind: 'hero' | 'enemy'): Combatant =>
      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
 const SOLO = { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} };
-const COOP = (mySeat: number, gmSeat: number) => ({ mode: 'host', mySeat, gmSeat, roomCode: 'AAAA', seatNames: {}, presence: {}, ownership: {} });
+const COOP = (mySeat: number, gmSeat: number) => ({ mode: 'hote', mySeat, gmSeat, roomCode: 'AAAA', seatNames: {}, presence: {}, ownership: {} });
 
 /** Jet FIGÉ du lanceur : `cast:false` ⇒ l'offre de Résilience est ARMÉE côté flux (sinon l'absence ne
  *  prouverait rien) ; `cast:true` sert de contre-mesure (le « +1 DR » ne dépend pas du verdict). */

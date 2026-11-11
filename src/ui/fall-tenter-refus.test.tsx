@@ -86,7 +86,7 @@ describe('chute du groupe en coop (EDO 01 l.231) — chaque rangée se déclare 
   it('le siège 1 déclare pour Kurt ; la rangée du héros de l’hôte attend, sans option', () => {
     useGame.setState({
       mode: 'exploration', battle: null, party: [sauteur, compagnon],
-      net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { K: 1 } },
+      net: { ...useGame.getState().net, mode: 'invite', mySeat: 1, ownership: { K: 1 } },
       pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: sauteur.id, participants: [
         { id: sauteur.id, interactive: true, attempt: null, result: null },
         { id: compagnon.id, interactive: true, attempt: null, result: null },

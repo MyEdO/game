@@ -69,7 +69,7 @@ function setupCoop(opts: { heros?: number; invites?: number[]; vivants?: number 
   const ownership: Record<string, number> = {};
   for (const i of opts.invites ?? [0]) ownership[H[i].id] = 1;
   banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingLogQueue: [] } as never);
-  banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
+  banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership } } as never);
   return { H, E };
 }
 
@@ -86,7 +86,7 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
 
     applySurprise(g, banc.setState, 'party'); // les ennemis embusquent : les héros sont les guetteurs
 
-    const step = parKind('triggeredBatchTest');
+    const step = parKind('testDeclencheEnBande');
     expect(step, 'la bande des guetteurs existe').toBeTruthy();
     expect(step!.participants!.map((p) => p.id).sort()).toEqual([H[0].id, H[1].id].sort());
     const rangee = step!.participants!.find((p) => p.id === H[1].id)!;
@@ -103,7 +103,7 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
 
     approachFearTrigger(g, banc.setState, E[0], { x: 30, y: 30 }); // la source a fini PLUS PRÈS
 
-    const step = parKind('triggeredBatchTest');
+    const step = parKind('testDeclencheEnBande');
     expect(step, 'le craintif de l’invité est dans la bande').toBeTruthy();
     expect(step!.participants!.map((p) => p.id)).toEqual([H[0].id]);
     expect(step!.participants![0].result, 'rien n’a été roulé : la rangée est à jouer').toBeNull();
@@ -119,7 +119,7 @@ describe('#1262 lot 5c — la BANDE se compose sur la SURFACE, pas sur l’écra
 
     openRoundStartPsych(g, banc.setState);
 
-    const step = parKind('combatPsych');
+    const step = parKind('psychologieDeCombat');
     expect(step, 'la bande de Terreur existe pour le porteur de l’invité').toBeTruthy();
     expect(step!.participants!.map((p) => p.id)).toEqual([H[0].id]);
     expect(step!.actorId, 'un seul porteur : la bande EST la sienne').toBe(H[0].id);
@@ -141,7 +141,7 @@ describe('#1262 lot 5c — la fin de combat ne contracte plus en silence', () =>
 
     openCombatEndCascade(g, banc.setState);
 
-    const step = parKind('combatEndDisease');
+    const step = parKind('maladieDeFinDeCombat');
     expect(step, 'la bande influençable existe').toBeTruthy();
     expect(step!.actorId, 'une bande d’un seul porteur EST son porteur').toBe(H[0].id);
     const row = step!.participants!.find((r) => r.id === H[0].id)!;
@@ -168,7 +168,7 @@ describe('#1262 lot 5c — la fin de combat ne contracte plus en silence', () =>
 
     openCombatEndCascade(g, banc.setState);
 
-    expect(parKind('combatEndDisease'), 'hors d’action : aucune fenêtre à ce site').toBeUndefined();
+    expect(parKind('maladieDeFinDeCombat'), 'hors d’action : aucune fenêtre à ce site').toBeUndefined();
     expect(c.tookCriticalThisFight, 'le marqueur a bien été consommé par la voie inline').toBe(false);
   });
 });

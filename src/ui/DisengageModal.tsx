@@ -27,7 +27,7 @@ import { t } from '../i18n';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque fenêtre du Désengagement. */
-const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'disengage-choice', esquive: 'disengage-esquive', fuir: 'disengage-fuir' };
+const DISENGAGE_STAKE: Record<PendingDisengage['phase'], FlowStakeId> = { choice: 'desengagement-choix', esquive: 'desengagement-esquive', fuir: 'desengagement-fuir' };
 
 /**
  * Modale de Désengagement (LDB 15 l.43-68). Trois phases, une seule coquille de jet PARTAGÉE :
@@ -78,11 +78,11 @@ export function DisengageModal() {
       'avantage-superieur': "Tu as l'Avantage supérieur : pars librement, sans coût d'Action",
     }[voie] : undefined;
     const offertes = [
-      { stake: groupMode ? flowStakeRef('disengage-retraite', { values: { cout: retreatCost } }) : flowStakeRef('disengage-sacrifice'),
+      { stake: groupMode ? flowStakeRef('desengagement-retraite', { values: { cout: retreatCost } }) : flowStakeRef('desengagement-sacrifice'),
         option: { key: 'sacrifice', label: sacrificeLabel, hidden: !pd.canSacrifice, onSelect: () => regler('desengagement', 'sacrifier', true), title: sacrificeTitle } },
-      { stake: flowStakeRef('disengage-esquive'),
+      { stake: flowStakeRef('desengagement-esquive'),
         option: { key: 'esquive', label: <><Icon id="melee/tumble" size="sm" /> Esquiver</>, value: ligneDEsquiveDeDesengagement(useGame.getState(), mover).target, hidden: !!pd.refusEsquive, onSelect: esquiver, title: "Test opposé d'Esquive — coûte ton Action" } },
-      { stake: flowStakeRef('disengage-fuir'),
+      { stake: flowStakeRef('desengagement-fuir'),
         option: { key: 'fuir', label: <><Icon id="melee/flee" size="sm" /> Fuir (coup dans le dos)</>, hidden: pd.canFuir === false, onSelect: () => regler('desengagement', 'fuir', true), title: 'Tu tournes le dos : attaque gratuite contre toi (+20), puis tu cours si tu en es encore capable' } },
     ].filter((o) => !o.option.hidden);
     return (
@@ -104,7 +104,7 @@ export function DisengageModal() {
             <OptionChooser layout="grid" options={offertes.map((o) => ({ ...o.option, note: <StakeNote stake={o.stake} /> }))} />
             {pd.refusEsquive && <p className="modal-log">Esquive fermée : {pd.refusEsquive}.</p>}
           </div>
-          {/* Le renoncement (`disengage-choice`) : note du geste « Renoncer » du pied. */}
+          {/* Le renoncement (`desengagement-choix`) : note du geste « Renoncer » du pied. */}
           <StakeNote stake={choiceStake} />
           <div className="rm-influence">
             {/* Résilience AVANT le jet (LDB 17 l.68) : Esquive forcée en réussite. */}

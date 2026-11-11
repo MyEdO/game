@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * la spec du talent sont des ids stables : exposition à la Corruption ('corruption'),
  * seuil → mutation ('mutation'), Contraction de fin de combat ('maladie'), opposition à un Sort ('magie').
  * Poison ('poison') = tag de DONNÉE (`FlowTest.menace` du Venin/lames empoisonnées) → couvert par les
- * étapes `triggeredTest`.
+ * étapes `testDeclenche`.
  */
 const hero = (p: Partial<Combatant> = {}): Combatant =>
   (blessuresSurLeProfil({
@@ -148,7 +148,7 @@ describe('Résistance (Mutation) — Test de SEUIL de Corruption (LDB 19 l.70)',
 });
 
 describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51)', () => {
-  it('étape `combatEndDisease` taguée `menace: maladie` ; jetResister@cascade → réussite à DR = BE → PAS de contraction', () => {
+  it('étape `maladieDeFinDeCombat` taguée `menace: maladie` ; jetResister@cascade → réussite à DR = BE → PAS de contraction', () => {
     const a = hero({ diseaseExposure: [{ disease: 'blessure-purulente' }] });
     setBattle([a]);
     banc.setState({ party: [hero()] });
@@ -156,7 +156,7 @@ describe('Résistance (Maladie) — Contraction de fin de combat (LDB 20 l.25/51
     const p = banc.getState().pendingCascade!;
     // #1117 L4 : bande par entrée de règle — le tag `menace` et l'auto-succès vivent SUR LA RANGÉE
     // (deux porteurs d'une même bande ne partagent ni leur Talent ni leur consommation).
-    const bande = p.participants.find((s) => s.kind === 'combatEndDisease')!;
+    const bande = p.participants.find((s) => s.kind === 'maladieDeFinDeCombat')!;
     const row = bande.participants!.find((r) => r.id === a.id)!;
     expect(row.menace).toBe('maladie');
     banc.getState().jetResister('cascadeEnBande', row.id);

@@ -58,7 +58,7 @@ describe('SIÈGE-B — armes de siège ciblent les structures', () => {
     const gunner = mkGunner();
     expect(gunner.weapons.some((w) => w.type === 'ranged')).toBe(true); // sanity : la pièce est servie
     const action = chooseEnemyAction(input(gunner, [mkGate()]));
-    expect(action).toEqual({ kind: 'shoot', targetId: 'gate' });
+    expect(action).toEqual({ kind: 'tir', targetId: 'gate' });
   });
 
   it('on vise la FACE exposée de la porte (case côté champ), pas la case derrière le mur', () => {
@@ -70,13 +70,13 @@ describe('SIÈGE-B — armes de siège ciblent les structures', () => {
     const archer = mkActor('archer', 'enemy', { x: 14, y: 2 },
       [{ uid: 'arc', name: 'Arc', type: 'ranged', damage: { literal: '+7' }, range: 60, qualities: [] } as unknown as Weapon]);
     const action = chooseEnemyAction(input(archer, [mkGate()]));
-    expect(action.kind).not.toBe('shoot'); // Impénétrable + non-Siège → aucune attaque jouable (immobile → end)
+    expect(action.kind).not.toBe('tir'); // Impénétrable + non-Siège → aucune attaque jouable (immobile → end)
   });
 
   it('aucune structure dans l\'entrée (fixture standard) → comportement inchangé (pas de candidat structure)', () => {
     const gunner = mkGunner();
     const action = chooseEnemyAction({ ...input(gunner, []), structures: undefined });
-    expect(action.kind).not.toBe('shoot'); // le seul héros est hors LdV (derrière le mur) → pas de tir
+    expect(action.kind).not.toBe('tir'); // le seul héros est hors LdV (derrière le mur) → pas de tir
   });
 });
 

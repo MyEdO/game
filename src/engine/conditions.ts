@@ -948,7 +948,7 @@ export function pendingPlusExtensions(c: Combatant): ActiveEffect[] {
 /** Résout l'offre de prolongation (LDB 47 l.311) d'UN effet GELÉ (`awaitingExtension`) : succès (Test de
  *  Force Mentale réussi) → +1 Round, effet dégelé ; refus/échec → expiration NORMALE (mêmes réversions
  *  que `removeActiveEffects` — traits/armes/ressources accordés repris). Fonction PARTAGÉE par la
- *  résolution PNJ (inline, hook `end-of-round`) et l'applier de cascade héros (`spellPlusTest`). */
+ *  résolution PNJ (inline, hook `end-of-round`) et l'applier de cascade héros (`sortProlongeTest`). */
 export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: boolean): string[] {
   if (extended) {
     e.awaitingExtension = undefined;

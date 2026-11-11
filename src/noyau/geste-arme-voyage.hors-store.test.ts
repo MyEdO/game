@@ -141,7 +141,7 @@ describe('(B) COOP — l’intention part de l’ÉMETTEUR dans les args, l’h�
   function hoteArmeHerosConfie(caseId: 'charge' | 'course') {
     const net0 = get().net;
     const { H, E } = setup();
-    banc.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } });
+    banc.setState({ pendingRun: null, net: { ...net0, mode: 'hote', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } });
     banc.jouerLaCase(caseId);
     expect(get().localIntent, 'témoin : l’hôte a armé SA case').toEqual({ actionId: caseId });
     banc.setState({ net: { ...get().net, ownership: { [H.id]: 1 } } });
@@ -190,7 +190,7 @@ describe('(B) COOP — l’intention part de l’ÉMETTEUR dans les args, l’h�
   it('INVITÉ armé, HÔTE sans intention : la Course jointe à l’intent est jugée chez l’hôte et acceptée', () => {
     const net0 = get().net;
     const { H } = setup();
-    banc.setState({ pendingRun: null, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } });
+    banc.setState({ pendingRun: null, net: { ...net0, mode: 'hote', mySeat: 0, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } });
     expect(get().localIntent, 'témoin : l’hôte n’a RIEN armé').toBeNull();
     try {
       withActingSeat(1, () => get().cliquerLaCase({ x: 10 + 6, y: 10 }, undefined, { confirm: true, intentionId: 'course' }));
@@ -205,7 +205,7 @@ describe('(B) COOP — l’intention part de l’ÉMETTEUR dans les args, l’h�
   it('INVITÉ armé d’une Charge que l’état REFUSE (`refusDeCharge`) : l’hôte juge son offre et refuse le clic', () => {
     const net0 = get().net;
     const { H, E } = setup();
-    banc.setState({ battle: { ...get().battle!, movementUsed: 1 }, net: { ...net0, mode: 'host', mySeat: 0, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } });
+    banc.setState({ battle: { ...get().battle!, movementUsed: 1 }, net: { ...net0, mode: 'hote', mySeat: 0, ownership: { [H.id]: 1 }, slots: [1, 0, 0, 0] } });
     expect(refusDeCharge(get().battle!, H), 'témoin : l’état refuse la Charge').not.toBeNull();
     try {
       withActingSeat(1, () => cliquerSurLeCombattant(get, E.id, { confirm: true, intentionId: 'charge' }));

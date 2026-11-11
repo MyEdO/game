@@ -12,14 +12,14 @@ import { estVerbeDeFenetre, FLOW_VERBS, verbeDeJetDe, viseUneRangee, type FlowKe
 import { cleDuGeste, type CleDeRegistre, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu } from './modalArbiter';
 import { fermetureDeLaSortie } from './sortieDeFenetre';
 import { fermetureDeLaValidation } from './validationDeFenetre';
-import { FLOW_HANDLERS, fermetureDuReglage, rangeesAReglerIci } from './rollFlowSpecs';
+import { FLOWS, fermetureDuReglage, rangeesAReglerIci } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
 import { declarationDuReglageNomme, estFluxRegle, type ReglageDuJet } from './reglagesDuJet';
 
 /** Ce qui ferme chaque verbe du cycle du flux `flux` sur le slot `pid` (`null` : ouvert) ; sans `pid`, un flux à
  *  plusieurs jets se juge en fenêtre. */
 export function fermeturesDuFlux(s: Jeu, flux: FlowKey, pid?: string): FermeturesDuJet {
-  return FLOW_HANDLERS[flux].fermetures(() => s, pid);
+  return FLOWS[flux].fermetures(() => s, pid);
 }
 
 /** Le verbe du cycle que joue le geste `g` de la fenêtre sur son flux `flux`, un verbe de jet sur ce flux. `enFenetre` :

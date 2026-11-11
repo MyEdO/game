@@ -322,8 +322,8 @@ describe('Convalescence — Activité d’interlude (ADE II Annexe I « Les chos
     expect(conv!.contexts).toContain('interlude');
     expect(conv!.tests).toEqual([{ skill: { id: 'calme' }, difficulty: 'tresDifficile' }]); // ADE II 09 l.33
     expect(conv!.outcomes).toEqual([ // ADE II 09 l.33
-      { on: 'success', ops: [{ op: 'removePsychTrait' }] },
-      { on: 'failure', ops: [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }] },
+      { on: 'reussite', ops: [{ op: 'removePsychTrait' }] },
+      { on: 'echec', ops: [{ op: 'grantReverseToken', skill: { id: 'calme' }, contexte: 'psych' }] },
     ]);
     expect(conv!.source.book).toBe('archives-de-l-empire-2');
   });

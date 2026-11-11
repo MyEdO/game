@@ -249,7 +249,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
     const cible = sceneDuTest();
     cible.startMessage = { texte: TEXTE };
     get().chargerLeProjet({ scenes: [autre, cible], entryId: 'scene-porteur', narratif, projet: enCampagne ? { id: PROJET } : null });
-    const entree = [get().pendingCascade, ...get().suspendedCascades].flatMap((c) => c?.participants ?? []).map((st) => st.reveal).find((r) => r?.kind === 'sceneEntry');
+    const entree = [get().pendingCascade, ...get().suspendedCascades].flatMap((c) => c?.participants ?? []).map((st) => st.reveal).find((r) => r?.kind === 'entreeEnScene');
     expect(entree?.sceneId).toBe('scene-porteur');
     expect(porteurDeScene(get(), 'scene-porteur', 'startMessage.texte')).toEqual(enCampagne ? { type: 'projet', id: PROJET, chemin: 'scenes[1].startMessage.texte' } : undefined);
     await monter(<RevealBody entry={entree!} />);

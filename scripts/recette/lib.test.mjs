@@ -233,7 +233,7 @@ test('nom ARIA vide : contenu valide retrouvé avant title', async () => {
 for (const interaction of ['choix', 'quantite']) {
   test('interaction canonique : ' + interaction + ' ready refuse avant Continuer, arret observe sans geste', async () => {
     const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Décision"><button>Continuer</button></div></div>', { cascade: true })
-    dom.window.__wfrp = { auto: () => ({ activeModal: 'pendingCascade', cascade: { id: 'fixture-step', kind: 'defenseJet', interaction, ready: true, chosen: 'defaut', amount: 1 } }) }
+    dom.window.__wfrp = { auto: () => ({ activeModal: 'pendingCascade', cascade: { id: 'fixture-step', kind: 'jetDeDefense', interaction, ready: true, chosen: 'defaut', amount: 1 } }) }
     doc.querySelector('button').onclick = () => doc.querySelector('.modal-overlay').remove()
     await assert.rejects(() => resoudreModales(session, 'decision', { pauseMs: 1 }), new RegExp('interaction joueur « ' + interaction + ' ».*Décision.*Continuer'))
     assert.deepEqual(etat.emis, [])
@@ -248,8 +248,8 @@ for (const interaction of ['choix', 'quantite']) {
 
 for (const [cas, metadata] of [
   ['absente', null],
-  ['interaction vide', { id: 'fixture-step', kind: 'defenseJet', interaction: '', ready: true, chosen: null, amount: null }],
-  ['autre id', { id: 'autre-etape', kind: 'defenseJet', interaction: 'affichage', ready: true, chosen: null, amount: null }],
+  ['interaction vide', { id: 'fixture-step', kind: 'jetDeDefense', interaction: '', ready: true, chosen: null, amount: null }],
+  ['autre id', { id: 'autre-etape', kind: 'jetDeDefense', interaction: 'affichage', ready: true, chosen: null, amount: null }],
 ]) {
   test('observation canonique : ' + cas + ' refuse avant Continuer malgré portée explicite', async () => {
     const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Décision"><button>Continuer</button></div></div>', { cascade: true })
@@ -899,7 +899,7 @@ function pagePilotee(html, { auxLectures, recouvrir, battle, jeu = {}, cascade =
   const dom = new JSDOM(html, { runScripts: 'outside-only' })
   const doc = dom.window.document
   const etat = { lectures: 0, emis: [], cliques: [], marque: null }
-  dom.window.__game = { getState: () => ({ pendingCascade: cascade && doc.querySelector('.modal-overlay') ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] } : null, ...jeu }) }
+  dom.window.__game = { getState: () => ({ pendingCascade: cascade && doc.querySelector('.modal-overlay') ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] } : null, ...jeu }) }
   const gesteCarteAttendu = () => jeu.gesteCarte ?? null
   const dialogueDuDessus = () => {
     const overlay = [...doc.querySelectorAll('.modal-overlay')].at(-1)
@@ -1208,7 +1208,7 @@ for (const [nom, pc, election, coquille, permis] of [
   ['cascade élue avec coquille', true, true, true, true],
 ]) {
   test('preuve de flux : ' + nom, async () => {
-    const jeu = { pendingCascade: pc ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] } : null }
+    const jeu = { pendingCascade: pc ? { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] } : null }
     const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay" ' + (coquille ? 'data-champ data-plein' : '') + '><button>Terminer</button></div>', { jeu })
     dom.window.__wfrp = { auto: () => ({ activeModal: election && doc.querySelector('.modal-overlay') ? 'pendingCascade' : null, cascade: cascadeAffichage(dom) }) }
     doc.querySelector('button').onclick = () => { doc.querySelector('.modal-overlay').remove(); jeu.pendingCascade = null }
@@ -2264,21 +2264,21 @@ test('avancerDeRounds : sans combat, refus nommé', async () => {
 const DEFENSE = '<div role="dialog" aria-label="Défense"><div class="seg"><button>Parade</button><button>Esquive</button></div><button>Lancer</button></div>'
 
 test('piloterCombat : `arret` reçoit l’IDENTITÉ de la fenêtre — il s’arrête sur la Défense, laissée ouverte', async () => {
-  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] } }
+  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] } }
   const { dom, etat, session } = pagePilotee(`<div class="modal-overlay">${DEFENSE}</div>`, { jeu, cascade: true })
   dom.window.__wfrp = { battle: () => ({ round: 1, over: false, endTurnArmed: false }), auto: () => ({ roundPause: false, activeModal: 'cascade', cascade: cascadeAffichage(dom), active: null }) }
   const { lecture } = await piloterCombat(session, { pauseMs: 1, arret: (e) => e.fenetre?.jet === 'defense' })
-  assert.deepEqual({ ...lecture.fenetre }, { cle: 'cascade', jet: 'defense', etape: 'defenseJet', nom: 'Défense', id: 'fixture-step', kind: 'defenseJet', interaction: 'affichage', ready: true, chosen: null, amount: null })
+  assert.deepEqual({ ...lecture.fenetre }, { cle: 'cascade', jet: 'defense', etape: 'jetDeDefense', nom: 'Défense', id: 'fixture-step', kind: 'jetDeDefense', interaction: 'affichage', ready: true, chosen: null, amount: null })
   assert.deepEqual(etat.cliques, [])
 })
 
 test('piloterCombat : une Défense qui s’ouvre PENDANT la résolution arrête aussi `resoudreModales`', async () => {
-  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'attackJet', jet: 'attaque' }] } }
+  const jeu = { pendingCascade: { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDAttaque', jet: 'attaque' }] } }
   const { dom, doc, etat, session } = pagePilotee('<div class="modal-overlay"><div role="dialog" aria-label="Attaque"><button id="lancer">Lancer</button></div></div>', { jeu, cascade: true })
   dom.window.__wfrp = { battle: () => ({ round: 1, over: false, endTurnArmed: false }), auto: () => ({ roundPause: false, activeModal: 'cascade', cascade: cascadeAffichage(dom), active: null }) }
   doc.querySelector('#lancer').onclick = () => {
     doc.querySelector('.modal-overlay').innerHTML = DEFENSE
-    jeu.pendingCascade = { cursor: 0, participants: [{ id: 'fixture-step', kind: 'defenseJet', jet: 'defense' }] }
+    jeu.pendingCascade = { cursor: 0, participants: [{ id: 'fixture-step', kind: 'jetDeDefense', jet: 'defense' }] }
   }
   const { lecture } = await piloterCombat(session, { pauseMs: 1, arret: (e) => e.fenetre?.jet === 'defense' })
   assert.deepEqual(etat.cliques, ['Lancer'])

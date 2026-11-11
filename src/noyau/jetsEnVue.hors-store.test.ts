@@ -51,7 +51,7 @@ const ATTAQUE: PendingAttack = { attackerId: H.id, targetId: E.id, location: nul
 
 /** Une cascade d'une étape. */
 const cascade = (step: CascadeStep, cursor = 0): PendingCascade => ({ title: 'Témoin', cursor, seq: 1, log: [], purpose: 'combat', participants: [step] });
-const etapeHote = (jetHote: HostJet, extra: Pick<CascadeStep, 'maladresse' | 'groupOwner'> = {}): CascadeStep => ({ id: `hote-${jetHote}`, kind: 'triggeredTest', actorId: H.id, jet: jetHote, label: fixtureText(`hote-${jetHote}`), ...extra });
+const etapeHote = (jetHote: HostJet, extra: Pick<CascadeStep, 'maladresse' | 'groupOwner'> = {}): CascadeStep => ({ id: `hote-${jetHote}`, kind: 'testDeclenche', actorId: H.id, jet: jetHote, label: fixtureText(`hote-${jetHote}`), ...extra });
 
 /** `patch` en thunk quand il lit une table du jeu, posée à l'ouverture de la partie. */
 interface Fixture { patch: Partial<Jeu> | (() => Partial<Jeu>); flux: readonly JetEnVue['flux'][]; oppose?: true }
@@ -185,27 +185,27 @@ const PART = { id: H.id, base: 40, target: 40, result: jet(25, 40) };
 
 /** Les interactions de cascade qui lancent un dé, hors étape hôte. */
 const INTERACTIONS: Record<'jet' | 'jetOppose' | 'batch' | 'batchOppose' | 'table' | 'de' | 'bilan', Fixture> = {
-  jet: { patch: { pendingCascade: cascade({ id: 'j', kind: 'triggeredTest', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: jet(30, 45) }) }, flux: ['cascade'] },
+  jet: { patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: jet(30, 45) }) }, flux: ['cascade'] },
   jetOppose: {
-    patch: { pendingCascade: cascade({ id: 'j', kind: 'triggeredTest', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: { ...jet(30, 45), success: true }, meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: E.label } } }) },
+    patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: { ...jet(30, 45), success: true }, meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: E.label } } }) },
     flux: ['cascade'],
     oppose: true,
   },
-  batch: { patch: { pendingCascade: cascade({ id: 'b', kind: 'triggeredBatchTest', groupOwner: true, aggregate: 'none', participants: [{ ...PART, label: 'Calme' }] }) }, flux: ['cascadeEnBande'] },
+  batch: { patch: { pendingCascade: cascade({ id: 'b', kind: 'testDeclencheEnBande', groupOwner: true, aggregate: 'none', participants: [{ ...PART, label: 'Calme' }] }) }, flux: ['cascadeEnBande'] },
   batchOppose: {
-    patch: { pendingCascade: cascade({ id: 'b', kind: 'triggeredBatchTest', groupOwner: true, aggregate: 'none', participants: [{ ...PART, label: 'Calme' }], meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: E.label } } }) },
+    patch: { pendingCascade: cascade({ id: 'b', kind: 'testDeclencheEnBande', groupOwner: true, aggregate: 'none', participants: [{ ...PART, label: 'Calme' }], meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: E.label } } }) },
     flux: ['cascadeEnBande'],
     oppose: true,
   },
   table: { patch: () => ({ pendingCascade: cascade(tableJetee()) }), flux: ['cascadeTirage'] },
-  de: { patch: { pendingCascade: cascade({ id: 'd', kind: 'triggeredTest', actorId: H.id, de: { spec: { n: 2, sides: 10 }, unite: 'm', result: { roll: 7, total: 7 } } }) }, flux: ['cascadeTirage'] },
-  bilan: { patch: { pendingCascade: cascade({ id: 'j', kind: 'triggeredTest', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: jet(30, 45), committed: true }, 1) }, flux: ['cascade'] },
+  de: { patch: { pendingCascade: cascade({ id: 'd', kind: 'testDeclenche', actorId: H.id, de: { spec: { n: 2, sides: 10 }, unite: 'm', result: { roll: 7, total: 7 } } }) }, flux: ['cascadeTirage'] },
+  bilan: { patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: jet(30, 45), committed: true }, 1) }, flux: ['cascade'] },
 };
 
 function tableJetee(): CascadeStep {
   const tableId = Object.values(CRIT_TABLE_IDS)[0];
   const rangee = tableStepDef(tableId)!.rows[0];
-  return { id: 't', kind: 'triggeredTest', actorId: H.id, table: { tableId, spec: { n: 1, sides: 100 }, result: { roll: 5, die: 5, id: rangee.id, lines: [rangee.label ?? rangee.id] } } };
+  return { id: 't', kind: 'testDeclenche', actorId: H.id, table: { tableId, spec: { n: 1, sides: 100 }, result: { roll: 5, die: 5, id: rangee.id, lines: [rangee.label ?? rangee.id] } } };
 }
 
 /** Le dé d'une ligne est tombé et se lit en entier : d100, cible, DR et verdict ; la ligne tirée d'une table ; le
@@ -291,7 +291,7 @@ describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie'
   const partieSur = (pendingCascade: PendingCascade) => creerPartie({ ...(BASE as EtatDeJeu), pendingCascade }, ENTREES);
 
   it('« Résistance au Sonné » : après `jetLancer@cascade` puis `jetImposerLeResultat@cascade` à 30, la ligne dit Test, cible, dé, DR et verdict', () => {
-    const partie = partieSur(cascade({ id: 'sonne', kind: 'triggeredTest', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: null }));
+    const partie = partieSur(cascade({ id: 'sonne', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: null }));
     try {
       partie.envoyer({ type: 'jetLancer', args: ['cascade', 'sonne'] });
       partie.envoyer({ type: 'jetImposerLeResultat', args: ['cascade', 30, 'sonne'] });
@@ -304,7 +304,7 @@ describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie'
 
   it('table : après `jetLancer(\'cascadeTirage\')`, la ligne dit la table, le dé et la ligne tirée', () => {
     const tableId = Object.values(CRIT_TABLE_IDS)[0];
-    const partie = partieSur(cascade({ id: 't', kind: 'triggeredTest', actorId: H.id, table: { tableId, spec: { n: 1, sides: 100 } } }));
+    const partie = partieSur(cascade({ id: 't', kind: 'testDeclenche', actorId: H.id, table: { tableId, spec: { n: 1, sides: 100 } } }));
     try {
       expect(jetsEnVue(partie.etat())[0].lignes[0], 'avant le tirage : la table, à lancer').toMatchObject({ genre: 'table', jet: null });
       partie.envoyer({ type: 'jetLancer', args: ['cascadeTirage', 't'] });

@@ -75,7 +75,7 @@ describe('#989 — surfaçage de la défense : le pilote de l’ATTAQUANT ne dé
   });
 
   it('C — SANS siège MJ, coop hôte : le héros d’un AUTRE siège surface aussi, et SON siège tient le jet', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, ownership: { h: 1 } });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, ownership: { h: 1 } });
     expect(defenseSurfaced(banc.getState(), hero), 'seat-agnostique : le siège local ne décide pas').toBe(true);
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     const s = banc.getState();
@@ -165,7 +165,7 @@ describe('#1142 — la valeur NUE traverse la fenêtre de défense, dé POSÉ co
 
 describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
   it('siège MJ fermé → `net.gmSeat` null et l’ennemi repasse à l’IA (plus de modale orpheline)', () => {
-    const { enemy } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } });
+    const { enemy } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1, ownership: { h: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } });
     expect(aiDriven(banc.getState(), enemy)).toBe(false);
     banc.setState({ net: fermerLeSiege(banc.getState().net, 1) });
     const net = banc.getState().net;
@@ -175,7 +175,7 @@ describe('#989 LOT 0 — fermeture du siège MJ : `gmSeat` est PURGÉ', () => {
   });
 
   it('la fermeture d’un AUTRE siège ne touche pas le rôle MJ', () => {
-    setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, slots: [0, 1, 2, 0], seatNames: { 1: 'MJ', 2: 'Autre' } });
+    setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1, slots: [0, 1, 2, 0], seatNames: { 1: 'MJ', 2: 'Autre' } });
     banc.setState({ net: fermerLeSiege(banc.getState().net, 2) });
     expect(banc.getState().net.gmSeat).toBe(1);
   });
@@ -254,7 +254,7 @@ describe('#989 R2 — Résilience « Je ne faillirai pas ! » (LDB 17 l.68) hono
 describe('#989 R3 — cadence Rapide : l’auto-résolution suit le SIÈGE propriétaire (jamais « l’hôte par défaut »)', () => {
 
   it('C — fenêtre possédée par le siège MJ : l’hôte ne l’auto-résout PAS ; le siège MJ, si', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1, ownership: { h: 1 } });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1, ownership: { h: 1 } });
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     setCadence('rapide');
     expect(willAutoResolve(banc.getState()), 'l’hôte ne roule pas la défense d’un héros du siège 1').toBe(false);
@@ -263,7 +263,7 @@ describe('#989 R3 — cadence Rapide : l’auto-résolution suit le SIÈGE propr
   });
 
   it('C bis — étape MONDE/ennemi conduit par le MJ : l’hôte ne vole pas le jet (même routage `seatOwns`)', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1 });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1 });
     hero.aiControlled = true; // seul l'ENNEMI est surfacé → la fenêtre appartient au siège MJ
     expect(maybeOpenDefense(banc.getState, banc.setState, hero, enemy)).toBe(true);
     setCadence('rapide');
@@ -322,7 +322,7 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
     // La conséquence empilée par l'attaque est l'étape « Blessure critique » (#1426 : le tirage de
     // sévérité et la décision Dévier/Subir y sont UNE fenêtre) — ou sa révélation quand le Critique
     // arrive déjà tiré. C'est APRÈS elle que l'Oups! du défenseur se pose.
-    const iCrit = steps.findIndex((s) => s.kind === 'deviation' || s.kind === 'critical');
+    const iCrit = steps.findIndex((s) => s.kind === 'deviation' || s.kind === 'critique');
     const iFumble = steps.findIndex((s) => s.jet === 'maladresse' && s.actorId === hero.id);
     expect(iCrit, 'l’attaque a bien empilé sa conséquence').toBeGreaterThanOrEqual(0);
     expect(iFumble, 'l’Oups! du défenseur est là').toBeGreaterThanOrEqual(0);
@@ -334,7 +334,7 @@ describe('#989 R4 — Maladresse du défenseur : UN helper, MÊME ordre (après 
 
 describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manuelle)', () => {
   it('ennemi conduit par le MJ : `ownsLocal` (gate d’AFFICHAGE) répond comme `intentAllowedFor`', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, gmSeat: 1 });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, gmSeat: 1 });
     hero.aiControlled = true; // seul l'ENNEMI est surfacé → la fenêtre appartient au siège MJ
     expect(maybeOpenDefense(banc.getState, banc.setState, hero, enemy)).toBe(true);
     const s0 = banc.getState();
@@ -348,7 +348,7 @@ describe('#989 B1 — la fenêtre du siège MJ se REND chez le MJ (cadence manue
   });
 
   it('héros d’un autre siège : inchangé (le gate d’affichage reste l’ownership)', () => {
-    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'host', mySeat: 0, ownership: { h: 1 } });
+    const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], { mode: 'hote', mySeat: 0, ownership: { h: 1 } });
     expect(maybeOpenDefense(banc.getState, banc.setState, enemy, hero)).toBe(true);
     expect(ownsLocal(banc.getState(), hero.id)).toBe(false);
     banc.setState({ net: { ...banc.getState().net, mySeat: 1 } });
@@ -488,7 +488,7 @@ describe('#1000 — les deux camps forcent le MÊME Test opposé : les garanties
 
 describe('#989 B3 — Maladresse de défense d’un héros d’un AUTRE siège (coop)', () => {
   it('l’étape Oups! existe et porte le nom du héros du siège 1', () => {
-    const net = { mode: 'host' as const, mySeat: 0, ownership: { h: 1 } };
+    const net = { mode: 'hote' as const, mySeat: 0, ownership: { h: 1 } };
     let seed = 0;
     for (let sd = 1; sd <= 800 && !seed; sd++) {
       const { enemy, hero } = setup({ x: 1, y: 0 }, [sword], net);

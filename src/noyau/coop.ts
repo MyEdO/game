@@ -65,7 +65,7 @@ export function appliquerLInstantane(data: Record<string, unknown>, mien: EtatDe
     ...(mien.screen === 'creator' && entrant.screen === 'party' ? { screen: 'creator' as const } : null),
     net: {
       ...(entrant.net ?? mien.net),
-      mode: 'guest',
+      mode: 'invite',
       mySeat: mien.net.mySeat,
       connection: mien.net.connection,
       hostAway: mien.net.hostAway,
