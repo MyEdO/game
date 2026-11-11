@@ -64,7 +64,7 @@ function approche(z: 0 | 1) {
 describe('chooseEnemyAction — l’approche garde l’étage de la case atteinte (#2139)', () => {
   it('à l’étage : l’ennemi s’approche au contact du héros SUR le plancher z1', () => {
     const { hero, action } = approche(1);
-    expect(action.kind).toBe('move');
+    expect(action.kind).toBe('deplacement');
     const to = (action as { to: Pt }).to;
     expect(to.z).toBe(1);
     expect(chebyshev(to, hero.pos!)).toBe(1);
@@ -72,7 +72,7 @@ describe('chooseEnemyAction — l’approche garde l’étage de la case atteint
 
   it('opposé, au rez : la même approche rend une case au sol, sans z', () => {
     const { hero, action } = approche(0);
-    expect(action.kind).toBe('move');
+    expect(action.kind).toBe('deplacement');
     const to = (action as { to: Pt }).to;
     expect('z' in to).toBe(false);
     expect(chebyshev(to, hero.pos!)).toBe(1);
@@ -106,7 +106,7 @@ function cibleChoisie(plat: boolean) {
 describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)', () => {
   it('ennemi au sol : le héros sur l’estrade, joignable par la rampe, est frappable ce tour depuis le haut de la rampe', () => {
     const { input, haut, action, plan, ran } = cibleChoisie(false);
-    expect(action).toMatchObject({ kind: 'move', thenTargetId: 'haut' });
+    expect(action).toMatchObject({ kind: 'deplacement', thenTargetId: 'haut' });
     const to = (action as { to: Pt }).to;
     expect(heightAt(input.scene, to.x, to.y, 0)).toBe(4);
     expect(chebyshev(to, haut.pos!)).toBe(1);
@@ -117,7 +117,7 @@ describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)
 
   it('opposé, sans relief : même choix sur la carte plate', () => {
     const { haut, action, plan, ran } = cibleChoisie(true);
-    expect(action).toMatchObject({ kind: 'move', thenTargetId: 'haut' });
+    expect(action).toMatchObject({ kind: 'deplacement', thenTargetId: 'haut' });
     expect(chebyshev((action as { to: Pt }).to, haut.pos!)).toBe(1);
     expect(plan).toBe(action);
     expect(ran).toBeNull();
@@ -136,7 +136,7 @@ describe('aiApproachPlan — l’arrivée d’une Charge se mesure à la hauteur
     const { input, haut, plan, ran } = chargeVersEstrade(false);
     expect(ran).toBeNull();
     const to = (plan as { to: Pt }).to;
-    expect(plan.kind).toBe('move');
+    expect(plan.kind).toBe('deplacement');
     expect(heightAt(input.scene, to.x, to.y, 0)).toBe(4);
     expect(chebyshev(to, haut.pos!)).toBe(1);
   });
@@ -144,7 +144,7 @@ describe('aiApproachPlan — l’arrivée d’une Charge se mesure à la hauteur
   it('opposé, sans relief : la même Charge, au contact', () => {
     const { haut, plan, ran } = chargeVersEstrade(true);
     expect(ran).toBeNull();
-    expect(plan.kind).toBe('move');
+    expect(plan.kind).toBe('deplacement');
     expect(chebyshev((plan as { to: Pt }).to, haut.pos!)).toBe(1);
   });
 });

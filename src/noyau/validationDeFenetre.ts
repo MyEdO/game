@@ -55,7 +55,7 @@ export function refusDeLaValidation(s: Jeu, fenetre: unknown): string | null {
 export function refusDeLaValidationNommee(s: Jeu, fenetre: FenetreAValider): string | null {
   const validation = garanti(validationDeLaFenetre(fenetre), fenetre, 'validation déclarée');
   if (!validation.ouverte(s)) return t('validation.refus.fermee');
-  if (validation.qui === 'hote' && s.net.mode === 'guest') return t('validation.refus.hoteSeul');
+  if (validation.qui === 'hote' && s.net.mode === 'invite') return t('validation.refus.hoteSeul');
   const fermee = fermetureDeLaValidation(s, fenetre);
   return fermee && libelleDeLaFermeture(fermee);
 }

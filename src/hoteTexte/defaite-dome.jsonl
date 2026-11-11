@@ -75,7 +75,7 @@
 {"type":"jetLancer","args":["cascadeTirage","cons-deviation-sorciere-brasD-1"]}
 {"type":"jetValider","args":["cascade"]}
 {"type":"jetValider","args":["cascade"]}
-{"type":"jetLancer","args":["cascade","triggeredTest-sorciere-Résistance-3"]}
+{"type":"jetLancer","args":["cascade","testDeclenche-sorciere-Résistance-3"]}
 {"type":"jetValider","args":["cascade"]}
-{"type":"jetLancer","args":["cascade","triggeredTest-sorciere-Amputation-Résistance-4"]}
+{"type":"jetLancer","args":["cascade","testDeclenche-sorciere-Amputation-Résistance-4"]}
 {"type":"jetValider","args":["cascade"]}

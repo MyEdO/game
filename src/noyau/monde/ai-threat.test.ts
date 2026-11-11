@@ -57,7 +57,7 @@ describe('Lot 3 — ciblage par MENACE (targetThreat) ≠ PV le plus bas', () =>
     // dégâts attendus → pas de killSecure) → menace faible malgré la fragilité légèrement supérieure.
     const soft = mk('soft', 'hero', { x: 10, y: 16 }, { wounds: blessuresDeBase(12, 8), weapons: [FISTS] });
     const a = chooseEnemyAction(input(e, [dangerous, soft]));
-    expect(a.kind).toBe('shoot');
+    expect(a.kind).toBe('tir');
     expect(tidOf(a)).toBe('dangerous'); // la MENACE l'emporte sur le simple « PV le plus bas »
   });
 
@@ -113,7 +113,7 @@ describe('Lot 3 — valeur de CONTRÔLE : un sort qui inflige un État (op:condi
     const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 10, y: 13 });
     const a = chooseEnemyAction(input(e, [h], { spells: [controlSpell] }));
-    expect(a).toEqual({ kind: 'cast', targetId: 'h', spell: 'choc-mental' });
+    expect(a).toEqual({ kind: 'incantation', targetId: 'h', spell: 'choc-mental' });
   });
 });
 
@@ -122,7 +122,7 @@ describe('Lot 3 — positionValue : portée préférée & flanc/dos', () => {
     const e = mk('e', 'enemy', { x: 10, y: 10 }, { weapons: [RANGED], movement: 4 });
     const h = mk('h', 'hero', { x: 10, y: 14 }); // à 4 cases, en portée, LdV dégagée
     const a = chooseEnemyAction(input(e, [h]));
-    expect(a.kind).toBe('shoot'); // tire, ne charge pas en mêlée
+    expect(a.kind).toBe('tir'); // tire, ne charge pas en mêlée
   });
 
   it('à utilité d’attaque égale, l’approche choisit une case de FLANC/DOS quand c’est gratuit', () => {
@@ -132,8 +132,8 @@ describe('Lot 3 — positionValue : portée préférée & flanc/dos', () => {
     const h = mk('h', 'hero', { x: 10, y: 10 });
     const facing: Record<string, Dir8> = { h: 'N' }; // le héros regarde au nord (vers l'ennemi venant du nord)
     const a = chooseEnemyAction(input(e, [h], { facing }));
-    expect(a.kind).toBe('move');
-    if (a.kind === 'move') {
+    expect(a.kind).toBe('deplacement');
+    if (a.kind === 'deplacement') {
       // arrive au contact du héros…
       expect(chebyshev(a.to, { x: 10, y: 10 })).toBe(1);
       // …par une case HORS du champ de vision avant (flanc/dos) : pas la case nord (10,9) qui est plein

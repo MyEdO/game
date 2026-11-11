@@ -96,7 +96,7 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
     });
 
     it('sa rangée naît sans jet, témoin, avec son refus nommé', () => {
-      const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
+      const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'etapePosteEnBande')!;
       const part = batch.participants!.find((p) => p.id === 'h')!;
       expect(part.result).toBe(ECHEC_SANS_JET);
       expect(part.refus).toBe(refusNePeutTenter(banc.getState().party[0], { skill: { id: 'perception' } }));
@@ -104,7 +104,7 @@ describe('Poste de voyage : la meilleure compétence TENTABLE, sinon un échec s
     });
 
     it('validée, la rangée applique l’échec : Exténué (EDOC 8 l.133)', () => {
-      const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
+      const batch = buildStageSteps(banc.getState, banc.setState, 'beau', 'ete').find((s) => s.kind === 'etapePosteEnBande')!;
       startCascade(banc.getState, banc.setState, { title: 'Étape', purpose: 'test', steps: [batch] });
       banc.getState().jetValider('cascade');
       const hilda = banc.getState().party.find((h) => h.id === 'h')!;
@@ -170,8 +170,8 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
 
 describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () => {
   const decl = { kind: 'peur' as const, sourceId: 'goule', sourceName: 'la Goule', indice: 1 };
-  const bande = (cle: 'encounterPsych' | 'combatPsych'): CascadeStep => {
-    const champ = cle === 'encounterPsych' ? 'psychologieDeRencontre' : 'psychologieDeCombat';
+  const bande = (cle: 'psychologieDeRencontre' | 'psychologieDeCombat'): CascadeStep => {
+    const champ = cle === 'psychologieDeRencontre' ? 'psychologieDeRencontre' : 'psychologieDeCombat';
     const hero = banc.getState().party[0];
     const ligne = rollStep({ actor: hero, test: { skill: { id: 'calme' } }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: { id: 'calme' } }) });
     return bandStep({ id: cle, kind: cle, [champ]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
@@ -179,14 +179,14 @@ describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () =
 
   beforeEach(() => banc.setState({ party: [heros(INCONSCIENT)], journal: [], battle: null }));
 
-  it('encounterPsych : la rangée sans jet porte l’échec de la Peur', () => {
-    const step = bande('encounterPsych');
+  it('psychologieDeRencontre : la rangée sans jet porte l’échec de la Peur', () => {
+    const step = bande('psychologieDeRencontre');
     appliquer(step);
     expect(step.participants![0].outcome?.map((l) => l.text)).toContain(t('out.fear', { name: 'Hilda', foe: 'la Goule' }));
   });
 
-  it('combatPsych : la rangée sans jet reste sous l’emprise, aucun DR de Calme cumulé', () => {
-    const step = bande('combatPsych');
+  it('psychologieDeCombat : la rangée sans jet reste sous l’emprise, aucun DR de Calme cumulé', () => {
+    const step = bande('psychologieDeCombat');
     appliquer(step);
     expect(step.participants![0].outcome?.map((l) => l.text)).toContain("Hilda reste sous l'emprise de la Peur (0/1 DR).");
   });

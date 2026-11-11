@@ -365,7 +365,7 @@ describe('#1852 — hôte ORPHELIN : le prédicat est TOTAL, et le curseur ne s�
       pendingDefense: null,
       pendingCascade: cascadeDeTest([
         { id: 'affichage', kind: cleDeFixture('display'), actorId: 'h', label: fixtureText('X') },
-        { id: 'defense-jet-1', kind: 'defenseJet', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
+        { id: 'defense-jet-1', kind: 'jetDeDefense', jet: 'defense', actorId: 'h' }, // ORPHELINE : aucun pendingDefense
       ], { title: 'Défense', purpose: 'combat' }),
     });
     expect(() => banc.getState().jetValider('cascade')).toThrow(/orphelin/);
@@ -434,7 +434,7 @@ describe('#1852 — un combattant ne décide qu’UNE fois son tour', () => {
     banc.setState({ battle: { ...g().battle!, turn: -1 }, pendingRoundStart: { round: 1 } } as never);
     g().fenetreValider('debutDuRound');
     const joues = () => aiTurnLog().filter((r) => r.id === enemy.id && r.round === 1).length;
-    const bande = g().pendingCascade?.participants.find((st) => st.kind === 'combatPsych');
+    const bande = g().pendingCascade?.participants.find((st) => st.kind === 'psychologieDeCombat');
     expect([bande?.psychologieDeCombat?.kind, bande?.participants?.map((pa) => pa.id)], 'chemin : la Terreur du héros ouvre sa bande').toEqual(['terreur', [hero.id]]);
     banc.reprendreTout();
     expect([joues(), g().battle!.tourEnCours?.cle], 'la séquence tient la main : le tour n’est pas décidé').toEqual([0, undefined]);

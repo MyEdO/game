@@ -25,7 +25,7 @@ describe('Entrée dans la cascade', () => {
         const gestes: Element[] = gestesDessines(suite.vue);
         const focus = gestes.find((g): g is Bouton => g.type === 'bouton' && g.focus);
         if (fenetre.etape?.interaction === 'batch' && focus?.id === 'jetValider@cascade') vus.batchValide = true;
-        if (fenetre.etape?.genre === 'critical') {
+        if (fenetre.etape?.genre === 'critique') {
           vus.critique = true;
           expect(suite.vue.zones['fenetre.corps'].filter((e) => e.id.startsWith('defense/')), 'le Coup Critique sans la Défense d’une autre attaque').toEqual([]);
         }

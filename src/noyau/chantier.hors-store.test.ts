@@ -25,7 +25,7 @@ const navire = (patch: Partial<CampaignVessel> = {}): CampaignVessel =>
   ({ vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, ...patch }) as CampaignVessel;
 
 /** Partie à quai : un héros à la bourse `bourse`, le navire `vessel`. */
-function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'guest' = 'local', etat: Partial<EtatDeJeu> = {}): Partie {
+function aQuai(vessel: CampaignVessel, bourse: Money, mode: 'local' | 'invite' = 'local', etat: Partial<EtatDeJeu> = {}): Partie {
   const entrees: EntreesDeLaPartie = { graine: 2, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
     ...etatInitialDuJeu(),
@@ -151,7 +151,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
 describe('#3059 — siège invité : les dépenses du chantier disent le refus de dépense du groupe', () => {
   it('réparation, carénage, Amélioration et embauche refusés, rien de débité ni posé', () => {
     const trait = NAVAL_TRAITS.find((tr) => tr.kind === 'amelioration' && tr.install && (installCost(tr.install, COGUE.ship!.lengthM, 1).gold ?? 0) > 0)!;
-    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), { gold: 10000, silver: 0, brass: 0 }, 'guest');
+    const partie = aQuai(navire({ wounds: { current: B - 4, max: B }, fouling: { level: 2, lastWeek: 0 } }), { gold: 10000, silver: 0, brass: 0 }, 'invite');
     try {
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'reparerLeNavire', args: [] });
@@ -175,7 +175,7 @@ describe('#3059 — siège invité : vente, bradage et Conseil disent le refus d
   it('vente et bradage au port, paie du Conseil : refusés, rien ne bouge', () => {
     const lot = { uid: 'lot-2', cargoId: 'bois-mer', enc: 10, basePriceGold: 10 };
     const port = { taille: 4, richesse: 4, production: [] as string[] } as never;
-    const partie = aQuai(navire({ cargo: [lot] }), { gold: 500, silver: 0, brass: 0 }, 'guest', {
+    const partie = aQuai(navire({ cargo: [lot] }), { gold: 500, silver: 0, brass: 0 }, 'invite', {
       port: { placeId: 'P', label: 'Port', port, offers: [] },
       pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' },
     });
@@ -247,7 +247,7 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
       scene: { ...emptyScene('mer', 2, 2), label: 'Mer', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       gameTime: 8 * 60,
       vessel: navire(),
-      net: { ...etatInitialDuJeu().net, mode: 'guest' },
+      net: { ...etatInitialDuJeu().net, mode: 'invite' },
       pendingSeaActivities: { picks: { [heros[0].id]: { activityId: 'commerce-opportunite', investGold: 10 }, [heros[1].id]: { activityId: 'cartographie', stashGold: 5 } }, day: { kmFrom: 0, kmTo: 0, hours: 0, lines: [] } } as never,
     }, { graine: 5, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} });
     try {

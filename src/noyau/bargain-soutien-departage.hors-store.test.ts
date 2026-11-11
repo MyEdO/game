@@ -123,7 +123,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
     const sl = probeMerchantSL(11, 50);
-    const step = soutenuStep('port-achat-marchandage', leader.id, helper.id, sl, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
+    const step = soutenuStep('port-achat-marchandage', leader.id, helper.id, sl, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 50, merchantNegotiator: false, drDuVendeur: 0 });
     const out = applierDe('port-achat-marchandage')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/surcoût de \d+ %/);
@@ -134,7 +134,7 @@ describe('Marchandage PORTUAIRE soutenu : le Soutien ne départage pas (LDB 12 l
     const { leader, helper } = pairAvecSoutien();
     setupPort([leader, helper]);
     const sl = probeMerchantSL(11, 50);
-    const step = soutenuStep('port-vente-marchandage', leader.id, helper.id, sl, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: false, sellerDR: 0 });
+    const step = soutenuStep('port-vente-marchandage', leader.id, helper.id, sl, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: false, drDuVendeur: 0 });
     const out = applierDe('port-vente-marchandage')!(get, set, step, leader, { steps: [step], index: 0 });
     const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
     expect(line).toMatch(/Marchandage \(.*\) : -\d+ %/);

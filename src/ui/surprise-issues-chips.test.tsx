@@ -178,7 +178,7 @@ describe('#1117 — la Surprise DIT ses issues en chips d’ops, avant comme apr
     const aT = step.meta!.opposed!.aT;
     // Oracle = la valeur de Test de l'embusqueur, LUE à sa source (`testValue`) : `aT.base` ne peut pas
     // servir de référence — un `TestResult` ne porte de valeur nue que si son producteur la POSE
-    // (LDB 12 l.160), et l'opposition de `triggeredTest` n'en pose pas.
+    // (LDB 12 l.160), et l'opposition de `testDeclenche` n'en pose pas.
     expect(aT.target, 'le pré-jet de l’embusqueur SUBIT la Difficulté (−20)').toBe(testValue(embusqueur, { skill: { id: 'discretion' }, characteristic: 'agilite' }) - 20);
 
     act(() => { useGame.getState().jetLancer('cascade', step.id); });

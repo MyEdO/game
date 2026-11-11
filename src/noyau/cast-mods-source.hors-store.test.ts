@@ -279,7 +279,7 @@ describe('Focalisation — trois voies, même DR à dé égal (#948)', () => {
       const hero = focalisateur(pa);
       poser(hero);
       setDesFixes(true);
-      // Voie 1 — jet NATUREL du moteur (celui que `FLOWS.focus.resolve` appelle), dé 01.
+      // Voie 1 — jet NATUREL du moteur (celui que `FLOWS.focalisation.resolve` appelle), dé 01.
       const naturel = resolveFocus(hero, findSpellById(FOCUS_SPELL)!, RNG_DE).dr;
 
       // Voie 2 — dé SAISI (option « Dés fixés »).
@@ -315,7 +315,7 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
   const csDR = (pa: number) => {
     const hero = lanceur(pa);
     const castT = castTestOf(ENEMY_CAST);
-    // Voie 1 — jet naturel du moteur (celui de `FLOWS.counterspell.resolve`).
+    // Voie 1 — jet naturel du moteur (celui de `FLOWS.contreSort.resolve`).
     const naturel = resolveCounterspell(hero, castT, RNG_DE).counter.sl;
     // Voie 2 — dé saisi.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, focused: false, result: ENEMY_CAST },

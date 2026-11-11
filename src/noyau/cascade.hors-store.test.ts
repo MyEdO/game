@@ -134,7 +134,7 @@ describe('Cascade séquentielle influençable', () => {
     expect(stepReady({ ...choix, chosen: 'a' }, banc.getState())).toBe(true);
     expect(stepReady(aff, banc.getState())).toBe(true);
     // Étape HÔTE (#1765) : prête une fois sa fenêtre validée (`committed`) ou son slot rendu.
-    const hote: CascadeStep = { id: 'h', kind: 'defenseJet', jet: 'defense', actorId: 'x' };
+    const hote: CascadeStep = { id: 'h', kind: 'jetDeDefense', jet: 'defense', actorId: 'x' };
     const vivante = { pendingDefense: {} } as unknown as Parameters<typeof stepReady>[1];
     expect(stepInteraction(hote)).toBe('affichage');
     expect(stepReady(hote, vivante), 'la défense attend sa fenêtre').toBe(false);
@@ -284,7 +284,7 @@ describe('Cascade séquentielle influençable', () => {
     const g = banc.getState;
     const s = banc.setState;
     const h = hero();
-    appliers.extendedJet = spyApplier(applied, () => ({ kind: 'extendedJet', success: true }));
+    appliers.jetEtendu = spyApplier(applied, () => ({ kind: 'jetEtendu', success: true }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const sequence = (): CascadeStep[] => {
       g().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, targetDR: 15 });
@@ -298,7 +298,7 @@ describe('Cascade séquentielle influençable', () => {
     g().ensemencerLeTirage(7);
     const temoin = runCascadeImmediate(g, s, temoinSteps)!;
     const appliquesTemoin = [...applied];
-    expect(appliquesTemoin.map((a) => a.kind)).toEqual(['extendedJet', 'tally', 'note']);
+    expect(appliquesTemoin.map((a) => a.kind)).toEqual(['jetEtendu', 'tally', 'note']);
 
     applied.length = 0;
     const steps = sequence();
@@ -312,7 +312,7 @@ describe('Cascade séquentielle influençable', () => {
     expect(done, 'la reprise n’a pas fini la séquence : le curseur est resté sur une fenêtre').toBeTruthy();
     expect(done.cursor).toBe(steps.length);
     expect(g().pendingCascade, 'une fenêtre s’est rouverte après le rendu de l’hôte').toBeNull();
-    expect(applied.filter((a) => a.kind === 'extendedJet'), 'l’hôte validé plus d’une fois').toHaveLength(1);
+    expect(applied.filter((a) => a.kind === 'jetEtendu'), 'l’hôte validé plus d’une fois').toHaveLength(1);
     expect(done.participants.every((x) => x.committed)).toBe(true);
     expect(applied).toEqual(appliquesTemoin);
     expect(done.participants.map((x) => x.result?.roll)).toEqual(temoin.map((x) => x.result?.roll));

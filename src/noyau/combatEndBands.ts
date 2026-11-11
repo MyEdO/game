@@ -21,7 +21,7 @@ import { bandRowOfStep, bandCommonMeta, makeBandFactory } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 
 /** Les `kind` d'étape que cette fabrique regroupe — ceux dont l'applier exige des RANGÉES. */
-const COMBAT_END_KINDS = new Set(['combatEndDisease', 'combatEndCorruption']);
+const COMBAT_END_KINDS = new Set(['maladieDeFinDeCombat', 'corruptionDeFinDeCombat']);
 
 /** Discriminants d'ENTRÉE DE RÈGLE d'une étape de fin de combat, lus dans son `meta` : l'entrée
  *  (`entry` — Infection post-critique vs Contagion vs suites d'opération), la maladie visée et le

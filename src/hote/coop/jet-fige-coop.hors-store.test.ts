@@ -23,7 +23,7 @@ import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
-const NET = (mode: 'host' | 'guest', mySeat: number, invite: string): NetState => ({
+const NET = (mode: 'hote' | 'invite', mySeat: number, invite: string): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
   connection: 'connecte', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {}, gmSeat: 0,
 });
@@ -44,7 +44,7 @@ function table(banc: Banc, invite: string): { guest: GuestSession; chezLInvite: 
     guest,
     chezLInvite: () => {
       host.broadcastSnapshot();
-      return { ...banc.getState(), ...appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1, invite) }).etat };
+      return { ...banc.getState(), ...appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('invite', 1, invite) }).etat };
     },
   };
 }
@@ -73,7 +73,7 @@ const ligneEnVue = (s: Jeu, flux: FlowKey, qui: string) => jetsEnVue(s).find((v)
 
 describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa réponse, la même ligne ensuite', () => {
   it('Défense du héros de l’invité contre l’ennemi que l’hôte jette au siège MJ', () => {
-    const banc = ouvrirLeBanc({ etat: { net: NET('host', 0, 'h') } });
+    const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0, 'h') } });
     seedBattleRng(7);
     const combatants = [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })];
     const order = combatants.map((c) => c.id);
@@ -103,7 +103,7 @@ describe('Test opposé à jet figé en coop : masqué chez l’invité avant sa 
   it('Contre-sort du héros de l’invité contre le sort que l’hôte jette au siège MJ', () => {
     const L = herosDeScenario(idsDeTest, 'sorcier');
     L.id = 'L'; L.label = 'L';
-    const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [L], net: NET('host', 0, 'L') } });
+    const banc = ouvrirLeBanc({ desFixes: true, etat: { party: [L], net: NET('hote', 0, 'L') } });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
     banc.getState().fenetreValider('debutDuRound');

@@ -69,7 +69,7 @@ describe('creerPartie — une attaque jouée par la seule surface du noyau', () 
   });
 
   it('une intention de siège sans verdict ne court pas et laisse l’intention armée du propriétaire', () => {
-    const { H, partie: armee } = duel((etat, { H }) => ({ ...etat, net: { ...etat.net, mode: 'host', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } }));
+    const { H, partie: armee } = duel((etat, { H }) => ({ ...etat, net: { ...etat.net, mode: 'hote', mySeat: 0, ownership: { [H.id]: 0 }, slots: [1, 0, 0, 0] } }));
     armee.envoyer({ type: 'armerLIntention', args: ['course'] });
     expect(armee.etat().localIntent, 'témoin : le propriétaire a armé SA Course').toEqual({ actionId: 'course' });
     const garde = armee.etat();

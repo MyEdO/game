@@ -343,7 +343,7 @@ function rollFreshStock(
  *  seuls ses PARAMÈTRES le sont, cf. `CascadeStepMeta`) ; ouvre le panneau marchand (`ouvrirLeMarchand`) ou
  *  rafraîchit son stock si `merchant` porte déjà cette entité (`chercherLaDisponibilite`), au choix de
  *  `s.merchant?.entityId === entityId` — un seul applier pour les deux appelants. */
-const MERCHANT_STOCK_KIND = 'merchant-stock';
+const MERCHANT_STOCK_KIND = 'stockDuMarchand';
 
 /** Ouvre l'étape de cascade VISIBLE-LANÇABLE au siège MJ (#273 dernier volet) — jamais un tirage
  *  silencieux : le `meta` porte les PARAMÈTRES sérialisables du tirage (le rng seedé reste calculé par
@@ -882,9 +882,9 @@ function acquitterLeMarchandage(get: Get, set: Set): void {
   const won = res.attackerWins; // le joueur est l'attaquant
   const drNet = res.netSL;
   const outcome = { won, drNet, negotiator: pb.negotiator };
-  // ACQUITTEMENT par le goulot (`FLOWS.bargain.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
+  // ACQUITTEMENT par le goulot (`FLOWS.marchandage.apply`) : le verdict est déclaré AU FLUX (`spec.issue`),
   // journalisé là — ici on acquitte, avant de fermer le pending qui le porte.
-  FLOWS.bargain.apply(get);
+  FLOWS.marchandage.apply(get);
   const c = pb.contrepartie;
   // « Rater de beaucoup » (LDB 59 l.43) = perdre l'opposé par un net DR ≥ 6 (symétrique du Succès Stupéfiant
   // +6) → le marchand se méfie de votre monnaie : plus aucun marchandage cette visite.
@@ -952,7 +952,7 @@ export function refusDeDetection(party: Combatant[], cible: CibleDeDetection & {
 }
 
 /** Démarreur PARTAGÉ Évaluation/Détection — sur un objet d'inventaire (`itemUid`) OU une ligne de
- *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.appraise`, `rollFlowSpecs.ts`). */
+ *  butin encore en fenêtre (`gear`). Une seule modale, un seul flux de jet (`FLOWS.evaluation`, `rollFlowSpecs.ts`). */
 function openAppraise(
   get: Get, set: Set,
   target: { itemUid?: string; gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin } },

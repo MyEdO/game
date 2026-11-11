@@ -100,10 +100,10 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     expect(c).toBeTruthy(); // la cascade reste OUVERTE : la conséquence s'y joue
     expect(c!.title).toBe('Incantation'); // MÊME cascade (pas une « Conséquences » neuve) = le fold
     expect(c!.cursor).toBe(1); // curseur avancé au-delà de l'étape cast (cursor 0)
-    expect(c!.participants[1]?.kind).toBe('miscastTable'); // le dé du Tableau est l'étape appendue
+    expect(c!.participants[1]?.kind).toBe('tableDIncantationImparfaite'); // le dé du Tableau est l'étape appendue
     avanceEtapeCascade(banc.getState); // le dé tombe à son rang → la révélation rejoint la MÊME cascade
     expect(banc.getState().pendingCascade!.title, 'la révélation a ouvert une cascade neuve').toBe('Incantation');
-    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'miscast')).toBe(true);
+    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'incantationImparfaite')).toBe(true);
   });
 
   it('FOLD : un Sort SANS conséquence ferme la cascade d\'incantation (rien à enchaîner)', () => {
@@ -193,7 +193,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
 
 /**
  * Interruption de Focalisation (LDB 46 l.142-144) : le Test `interruption-de-focalisation` du focaliseur est routé
- * CADENCE-AWARE (comme tout jet héros). Héros MANUEL → étape de cascade `triggeredTest` INFLUENÇABLE
+ * CADENCE-AWARE (comme tout jet héros). Héros MANUEL → étape de cascade `testDeclenche` INFLUENÇABLE
  * (le joueur PEUT dépenser sa Chance pour garder son sort) ; ennemi / cadence auto → jet INLINE. La
  * conséquence d'échec (perte des DR + Imparfaite Mineure, op `interruptFocus`) s'exécute APRÈS le Test.
  */
@@ -210,7 +210,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     return enemy;
   }
 
-  it('héros MANUEL frappé en Focalisation → étape de cascade triggeredTest (non lancée, influençable)', () => {
+  it('héros MANUEL frappé en Focalisation → étape de cascade testDeclenche (non lancée, influençable)', () => {
     const w = wiz();
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
@@ -218,7 +218,7 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     const c = banc.getState().pendingCascade!;
     expect(c).toBeTruthy();
     expect(c.purpose).toBe('combat');
-    const step = c.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = c.participants.find((s) => s.kind === 'testDeclenche')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(w.id);
     expect(step.rollLabel).toBe(refLabel('skills', testDeRegle('interruption-de-focalisation', 'maintenir').skill)); // le Test RÉEL (≠ le libellé de situation)
@@ -232,16 +232,16 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
     checkFocusInterruption(banc.getState, banc.setState, w);
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     banc.getState().jetLancer('cascade', step.id);
-    banc.getState().jetValider('cascade'); // valide l'échec → applier `triggeredTest` → branche fail → hook
+    banc.getState().jetValider('cascade'); // valide l'échec → applier `testDeclenche` → branche fail → hook
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus).toBeUndefined(); // concentration BRISÉE : DR perdus
     // L'Imparfaite Mineure (conséquence d'échec) est appendue à la MÊME cascade : d'abord son TIRAGE
     // (étape à table), puis sa révélation une fois le dé tombé.
-    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'miscastTable')).toBe(true);
+    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'tableDIncantationImparfaite')).toBe(true);
     avanceEtapeCascade(banc.getState);
-    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'miscast')).toBe(true);
+    expect(banc.getState().pendingCascade!.participants.some((s) => s.kind === 'incantationImparfaite')).toBe(true);
   });
 
   it('héros MANUEL : Test `maintenir` RÉUSSI → concentration maintenue, DR conservés, aucune Imparfaite', () => {
@@ -251,12 +251,12 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     w.focus = { spell: 'armure-aethyrique', dr: 3 };
     inCombat(w);
     checkFocusInterruption(banc.getState, banc.setState, w);
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     banc.getState().jetLancer('cascade', step.id);
     banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === w.id)!;
     expect(h.focus?.dr).toBe(3); // succès : focalisation gardée
-    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'miscast') ?? false).toBe(false);
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'incantationImparfaite') ?? false).toBe(false);
   });
 
   it('ENNEMI focaliseur frappé → Test `interruption-de-focalisation` résolu INLINE, et son contrecoup tiré D’OFFICE', () => {
@@ -269,9 +269,9 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
     // Aucune étape INFLUENÇABLE : le Test `maintenir` est roulé inline. Le contrecoup, lui, DÉCLARE son
     // étape à table comme partout — et le socle la résout d'office, nul siège ne tenant cet ennemi.
     const ouverte = banc.getState().pendingCascade;
-    expect(ouverte?.participants.some((s) => s.kind === 'triggeredTest') ?? false).toBe(false);
+    expect(ouverte?.participants.some((s) => s.kind === 'testDeclenche') ?? false).toBe(false);
     for (const s of ouverte?.participants ?? []) {
-      if (s.kind === 'miscastTable') expect(s.table!.result, 'table sans siège restée non tirée').toBeTruthy();
+      if (s.kind === 'tableDIncantationImparfaite') expect(s.table!.result, 'table sans siège restée non tirée').toBeTruthy();
     }
     const e = banc.getState().battle!.combatants.find((x) => x.id === foe.id)!;
     expect(e.focus).toBeUndefined(); // DR perdus inline

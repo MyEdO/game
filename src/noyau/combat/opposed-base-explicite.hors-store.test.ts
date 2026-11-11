@@ -22,7 +22,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * DÉPARTAGE À DR ÉGAL du canal `triggeredTest` (#1153 L3) — `LDB 12 l.160` : « Si les deux participants
+ * DÉPARTAGE À DR ÉGAL du canal `testDeclenche` (#1153 L3) — `LDB 12 l.160` : « Si les deux participants
  * obtiennent le même DR, c'est le groupe avec la Compétence ou la Caractéristique la plus élevée qui
  * l'emporte. » La grandeur comparée est donc la valeur NUE, et elle l'est POUR LES DEUX CAMPS : opposer
  * la nue de l'un à la cible de l'autre comparerait deux grandeurs différentes.
@@ -161,7 +161,7 @@ describe('G4 — VOIE MONO : cascade opposée influençable et jet INLINE', () =
       banc.setState({ pendingCascade: null, pendingLogQueue: [] });
       seedBattleRng(seed);
       fireTriggers(banc.getState, wielder, 'onHit', { victim: H, weapon: assommante(), location: 'tete', rng: makeRNG(1), set: banc.setState });
-      const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+      const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
       const aT = step.meta!.opposed!.aT;
       expect(aT.base, 'le pré-jet de l’attaquant porte sa Force NUE').toBe(skillBaseValue(wielder, { characteristic: 'force' }));
       expect(step.base, 'l’étape du défenseur porte sa Résistance NUE').toBe(55);

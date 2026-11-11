@@ -98,7 +98,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
   });
 
   it('coop, siège qui ne DÉCIDE pas : la touche ne fait RIEN (et ne retombe sur aucun autre raccourci)', () => {
-    monter({ net: { mode: 'guest', mySeat: 1, seatNames: {}, presence: {}, connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'] });
+    monter({ net: { mode: 'invite', mySeat: 1, seatNames: {}, presence: {}, connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'] });
     frapper('Digit1');
     expect(choisis).toEqual([]);
   });

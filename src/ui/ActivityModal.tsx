@@ -44,9 +44,9 @@ export function ActivityModal() {
   // modificateur de situation compris).
   const { base, mods: extraMods } = pa.ligne;
 
-  // « Échec » CANONIQUE : l'issue du flux `activite` (`FLOWS.activity.outcomeOf`), dont dérive aussi le
+  // « Échec » CANONIQUE : l'issue du flux `activite` (`FLOWS.activite.outcomeOf`), dont dérive aussi le
   // gating Chance/Pacte/Résilience du noyau.
-  const failed = rolled && !FLOWS.activity.outcomeOf(useGame.getState)?.won;
+  const failed = rolled && !FLOWS.activite.outcomeOf(useGame.getState)?.won;
 
   const actorRow: BuiltRollRow = buildRollRow({
     actor,
@@ -69,8 +69,8 @@ export function ActivityModal() {
     fortune: actor?.fortune ?? 0,
     /* Test ÉTENDU (Artisanat) : barre de DR de RANGÉE — site unique `RollRow` (arbitrage user 2026-07-11). */
     extendedDr: progres ? { cum: rolled ? progres.total : pa.drBefore ?? 0, target: progres.cible } : undefined,
-    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.activity`).
-    ...(FLOWS.activity.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.activity.reversePreview(useGame.getState) } } : {}),
+    // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.activite`).
+    ...(FLOWS.activite.reverseAvailable(useGame.getState) ? { reverse: { onReverse: reverse, preview: FLOWS.activite.reversePreview(useGame.getState) } } : {}),
   });
 
   const rows: BuiltRollRow[] = [actorRow];

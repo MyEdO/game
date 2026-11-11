@@ -22,7 +22,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { FLOW_VERBS, type JetOwnerRef } from './flowVerbs';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import type { Jeu } from './etat';
 import type { Get } from './flowTypes';
 
@@ -61,7 +61,7 @@ describe('#1015 — le porteur déclaré (`FLOW_VERBS.jetOwner`) EST l’acteur 
   for (const [prefix, w] of MONO) {
     it(`${prefix} : \`${w.jetOwner!.pending}.${w.jetOwner!.field}\` = l’acteur de \`spec.actor\``, () => {
       const jet = w.jetOwner!;
-      const flow = FLOW_HANDLERS[prefix as keyof typeof FLOW_HANDLERS];
+      const flow = FLOWS[prefix as keyof typeof FLOWS];
       const seen = new Set<string>();
       const pending = ghostPending(seen);
       // 1ʳᵉ passe : aucun combattant — on RELÈVE les champs que `spec.actor` consulte.

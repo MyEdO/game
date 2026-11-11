@@ -78,16 +78,16 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
       for (let i = 0; i < 6 && banc.enAttente() && !banc.getState().pendingCascade; i++) banc.reprendreLesEnAttente();
     }).not.toThrow();
     expect(vif(E.id).chargedThisTurn).toBe(true);
-    expect(etapes()).toEqual(['triggeredChoice']);
+    expect(etapes()).toEqual(['choixDeclenche']);
     const etapesVues = new Map<string, string>();
     banc.subscribe((st) => { for (const p of st.pendingCascade?.participants ?? []) etapesVues.set(p.id, p.kind); });
     avanceEtapeCascade(banc.getState, undefined, () => reponse);
     if (reponse === 'yes') {
-      expect(etapeCourante()?.kind).toBe('triggeredTest');
+      expect(etapeCourante()?.kind).toBe('testDeclenche');
       avanceEtapeCascade(banc.getState);
       expect(vif(H.id).freeAttacksThisTurn?.['frappe-reactive']).toBe(1);
       fermerLaSequence();
-      expect([...etapesVues.values()].filter((k) => k === 'triggeredTest')).toHaveLength(1);
+      expect([...etapesVues.values()].filter((k) => k === 'testDeclenche')).toHaveLength(1);
     } else {
       expect(banc.getState().pendingCascade).toBeNull();
       expect(vif(H.id).freeAttacksThisTurn).toBeUndefined();
@@ -127,7 +127,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
     expect(vif(E.id).pos).not.toEqual({ x: 13, y: 10 });
     expect(vif(E.id).advantage).toBe(avantage);
     expect(vif(E.id).chargedThisTurn).toBe(true);
-    expect(etapes()).toEqual(['triggeredChoice']);
+    expect(etapes()).toEqual(['choixDeclenche']);
   });
 
   it.each([[2, false], [4, true]] as const)('C1 : Cornes (LDB 85 l.83) — Charge à distance %i : Cornes en file = %s (l’Avantage de la Charge, LDB 15 l.37)', (d, cornes) => {
@@ -165,7 +165,7 @@ describe('#3159 — une réaction n’est offerte qu’une fois par déclencheur
     expect(combatDistance(vif(E.id), vif(H.id)), 'au contact').toBeLessThanOrEqual(1);
     expect(charge).toBe(false);
     expect(vif(E.id).advantage).toBe(avantage);
-    expect(etapes()).not.toContain('triggeredChoice');
+    expect(etapes()).not.toContain('choixDeclenche');
   });
 });
 
@@ -244,8 +244,8 @@ describe('#3159 — classe : le bus ne joue aucun Flow à attaque gratuite, reso
       expect(vif(porteur.id).freeAttacksThisTurn).toBeUndefined();
       expect(empetre(tiers.id) + empetre(porteur.id)).toBe(0);
       resolveFreeAttacks(banc.getState, banc.setState, porteur, eff.trigger, tiers, { weapon, attackType });
-      for (let i = 0; i < 4 && etapeCourante()?.kind === 'triggeredChoice'; i++) avanceEtapeCascade(banc.getState, undefined, () => 'yes');
-      if (etapeCourante()?.kind === 'triggeredTest') avanceEtapeCascade(banc.getState);
+      for (let i = 0; i < 4 && etapeCourante()?.kind === 'choixDeclenche'; i++) avanceEtapeCascade(banc.getState, undefined, () => 'yes');
+      if (etapeCourante()?.kind === 'testDeclenche') avanceEtapeCascade(banc.getState);
       expect(imputees(porteur.id, tiers.id)).toBeLessThanOrEqual(1);
       expect(imputees(porteur.id, tiers.id) + empetre(tiers.id), 'resolveFreeAttacks a joué le Flow').toBeGreaterThan(0);
     });

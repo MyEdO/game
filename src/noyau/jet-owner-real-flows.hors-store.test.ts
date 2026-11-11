@@ -49,7 +49,7 @@ const arena = (combatants: Combatant[]): BattleState =>
      movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState);
 
 /** Sièges : 0 = hôte (héros `a`), 1 = joueur (héros `b`), 2 = MJ (ennemi `e`). */
-const NET_COOP = { ...NET0, mode: 'host' as const, mySeat: 0, gmSeat: 2, ownership: { b: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' } };
+const NET_COOP = { ...NET0, mode: 'hote' as const, mySeat: 0, gmSeat: 2, ownership: { b: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' } };
 const NET_SOLO = { ...NET0, mode: 'local' as const, mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
 
 const g = () => banc.getState();

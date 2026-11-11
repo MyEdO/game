@@ -61,7 +61,7 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   } as unknown as BattleState;
   banc.setState({
     ...initialFields(), battle, mode: 'battle', screen: 'campaign', scene: SCENE(), party: [h2, h3], gameTime: 0,
-    net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 },
+    net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 },
            slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' }, ...net },
   });
   return { h2, h3, e1 };
@@ -217,7 +217,7 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
     setup();
     banc.setState({
       pendingCascade: cascadeDeTest([
-        { id: 'st0', kind: 'combatEndDisease', actorId: 'h2', groupOwner: true, menace: 'magie', label: fixtureText('Menace'), target: 40, rollLabel: 'Résistance' },
+        { id: 'st0', kind: 'maladieDeFinDeCombat', actorId: 'h2', groupOwner: true, menace: 'magie', label: fixtureText('Menace'), target: 40, rollLabel: 'Résistance' },
       ]),
     });
   };
@@ -242,7 +242,7 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
 describe('#3327 — Maladresse et dé d’étape : leurs verbes de jet se jouent au siège de la fenêtre de l’étape', () => {
   it('jetLancer@maladresse sans rangée puis jetValider@maladresse : la Maladresse d’un ennemi se tire et s’applique au siège de sa fenêtre, jamais chez un invité', () => {
     const { e1 } = setup();
-    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'triggeredTest', actorId: 'e1', jet: 'maladresse', maladresse: { weapon: e1.weapons[0], result: null } }]) });
+    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'f0', kind: 'testDeclenche', actorId: 'e1', jet: 'maladresse', maladresse: { weapon: e1.weapons[0], result: null } }]) });
     expect(applyIntent(1, 'jetLancer', ['maladresse']), 'un invité tirait la Maladresse de l’ennemi').toBe('refusee');
     expect(banc.getState().pendingCascade!.participants[0].maladresse!.result).toBeNull();
     expect(applyIntent(0, 'jetLancer', ['maladresse'])).toBe('appliquee');
@@ -255,7 +255,7 @@ describe('#3327 — Maladresse et dé d’étape : leurs verbes de jet se jouent
 
   it('jetLancer@cascadeTirage et jetImposerLeResultat@cascadeTirage : le dé de l’étape d’un héros se joue à SON siège', () => {
     setup();
-    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'd0', kind: 'triggeredTest', actorId: 'h2', de: { spec: { n: 1, sides: 10 } } }]) });
+    banc.setState({ pendingCascade: cascadeDeTest([{ id: 'd0', kind: 'testDeclenche', actorId: 'h2', de: { spec: { n: 1, sides: 10 } } }]) });
     expect(applyIntent(2, 'jetLancer', ['cascadeTirage', 'd0']), 'un tiers tirait le dé du héros d’autrui').toBe('refusee');
     expect(applyIntent(0, 'jetImposerLeResultat', ['cascadeTirage', 3, 'd0'])).toBe('refusee');
     expect(banc.getState().pendingCascade!.participants[0].de!.result).toBeUndefined();

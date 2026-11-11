@@ -192,7 +192,7 @@ export function shipManeuverParams(ship: Combatant, milieu: MilieuDeNavigation):
   const mult = navalMoveMult(navalTraits);
   return {
     baseM: Math.round(((baseM + navalMoveMod(navalTraits) + place.m + (overload?.mMod ?? 0)) * mult.num) / mult.den),
-    manoeuvre: (vd?.manoeuvre ?? 0) + place.man + (overload?.manoeuvreDR ?? 0),
+    manoeuvre: (vd?.manoeuvre ?? 0) + place.man + (overload?.drDeManoeuvre ?? 0),
     // « Bouteur » (MSRC 12 l.66) → +20 au Test de Navigation pour diriger ; « Gréement de course » (l.137)
     // → −10. Converti en DR d'équipage (`navalNavTestDR`, ÷10) — injecté ICI UNE fois (deriveManeuver/FromCrew),
     // jamais dans openCrewTestPending, pour ne pas double-compter.

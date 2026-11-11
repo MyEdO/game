@@ -41,7 +41,7 @@ const engagement = { pretire: PRETIRE_DE_TEST.id };
 describe('composition du groupe — `refusDAjoutAuGroupe`', () => {
   it('hôte coop au quota épuisé, groupe 1/4 : le verdict et le geste disent le quota', () => {
     const [a] = heros(1);
-    banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', slots: [0, 1, 1, 1], ownership: { [a.id]: 0 } } });
+    banc.setState({ party: [a], net: { ...initialNet(), mode: 'hote', slots: [0, 1, 1, 1], ownership: { [a.id]: 0 } } });
     expect(refusDAjoutAuGroupe(get(), undefined, 0)).toBe('Tous vos emplacements du groupe sont remplis.');
     get().recruterLeHeros(engagement);
     expect(get().party.map((h) => h.id)).toEqual([a.id]);
@@ -173,7 +173,7 @@ describe('nuit — la validation du repos (`refusDeLaValidationNommee`, LDB 66)'
 
   it('coop : l’appel de l’hôte le marque prêt ; l’invité, prêt, ne dort pas ; l’hôte, au quorum, dort', () => {
     const [a, b] = heros(2);
-    banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
+    banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
     ouvrir({ camp: true });
     get().fenetreValider('repos');
     expect(get().pendingRest?.readyBySeat, '« Dormir » avant le quorum marque l’hôte prêt').toEqual({ 0: true });
@@ -186,7 +186,7 @@ describe('nuit — la validation du repos (`refusDeLaValidationNommee`, LDB 66)'
 
   it('hôte seul non prêt : son appel le marque prêt et, seul siège requis, la nuit s’ouvre', () => {
     const [a] = heros(1);
-    banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte' }, ownership: { [a.id]: 0 } } });
+    banc.setState({ party: [a], net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte' }, ownership: { [a.id]: 0 } } });
     ouvrir({ camp: true });
     expect(refusDeLaValidationNommee(get(), 'repos')).toBeNull();
     get().fenetreValider('repos');
@@ -219,7 +219,7 @@ describe('dialogue — le refus d’une réponse est un TEXTE, dit par le choix 
 
   it('siège qui ne décide pas pour le groupe : le refus nomme le siège qui répond, et le geste le dit', () => {
     const [a] = heros(1);
-    banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', gmSeat: 1, seatNames: { 1: 'Greta' } } });
+    banc.setState({ party: [a], net: { ...initialNet(), mode: 'hote', gmSeat: 1, seatNames: { 1: 'Greta' } } });
     banc.setState({ screen: 'campaign', dialogue: ouvrirDialogue(get(), dlg) });
     expect(reponsesDuNoeud(get())[0].refus).toBe('Greta répond pour le groupe.');
     get().fenetreChoisir('dialogue', 'reponse', 'payer');

@@ -151,7 +151,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
     const { H, cibles } = setup(['flechette']);
     seedBattleRng(11);
     // Auto-combat au siège 0 ; la rangée ENNEMIE est tenue par le MJ, siège 1.
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1, ownership: {} } as Jeu['net'] });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1, ownership: {} } as Jeu['net'] });
     const pcs = openWindow(H, cibles[0]);
     expect(pcs!.participants[0].interactive, 'la rangée du MJ est bien DUE').toBe(true);
 
@@ -177,7 +177,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
     const h2 = { ...b.combatants.find((c) => c.kind === 'hero')!, id: 'h2', label: 'W2', pos: { x: 10, y: 11 }, dispelledThisRound: undefined } as Combatant;
     banc.setState({
       battle: { ...b, combatants: [...b.combatants, h2], order: [...b.order, h2.id] },
-      net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } as Jeu['net'],
+      net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } as Jeu['net'],
     });
     castSpell(banc.getState, banc.setState, cibles[0], H, 'carreau'); // lanceur IA : jet figé + aiguillage
     const pcs = banc.getState().pendingCounterspell!;

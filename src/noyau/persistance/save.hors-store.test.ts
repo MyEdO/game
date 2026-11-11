@@ -77,7 +77,7 @@ describe('lireSave — la porte des scènes (`parseSceneDeProjet`)', () => {
 describe('chargerLaSave — l’état de jeu à ouvrir, ses règles, ses retraits', () => {
   it('ouvre une partie sur l’état chargé, écran campagne, session réseau neuve, règles maison posées', () => {
     const r = OPTIONAL_RULES.find((x) => x.kind === 'flag')!;
-    const avant = { ...etatInitialDuJeu(), flags: { 'quete-x': true }, gameTime: 12345, net: { ...initialNet(), mode: 'host' as const, roomCode: 'ABCDEF' } };
+    const avant = { ...etatInitialDuJeu(), flags: { 'quete-x': true }, gameTime: 12345, net: { ...initialNet(), mode: 'hote' as const, roomCode: 'ABCDEF' } };
     const save = JSON.parse(JSON.stringify(snapshotSave(avant, 'x', { [r.id]: !r.default }))) as SaveGame;
     const { etat, regles, retraits } = chargerLaSave(save);
     expect(retraits).toBeNull();

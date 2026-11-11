@@ -185,7 +185,7 @@ function tavernTestSpec(game: TavernGame): SujetDuJet {
 /** La table de taverne est PARTAGÉE (une seule séquence) : seul l'hôte l'ouvre et y fait jouer ; un siège
  *  invité est refusé. */
 export function refusDeTableDHote(s: Pick<Jeu, 'net'>): string | null {
-  return s.net.mode === 'guest' ? t('tavern.hoteSeul') : null;
+  return s.net.mode === 'invite' ? t('tavern.hoteSeul') : null;
 }
 
 /** Refus d'ouvrir la table : table d'hôte (`refusDeTableDHote`), puis option `tavern-games`
@@ -211,7 +211,7 @@ declare module './sequenceContract' {
 }
 
 /** Kind de l'étape-jet d'une manche (bande OU mono) — UNIQUE depuis #1279 S1. */
-export const TAVERN_ROUND_KIND = 'tavern-round';
+export const TAVERN_ROUND_KIND = 'taverneRound';
 
 /**
  * UNE PARTIE EST-ELLE EN COURS ? — lecture de l'UI, qui masque le formulaire de réglage tant que la
@@ -300,10 +300,10 @@ const CAMP_OPPONENT = 'opponent';
 const TAVERN_ABANDON = 'abandon';
 
 /** Kind de l'étape de CHOIX d'option de Test (Middenball l.119) — une par héros surfacé. */
-const TAVERN_CHOICE_KIND = 'tavern-option';
+const TAVERN_CHOICE_KIND = 'taverneOption';
 
 /** Kind de l'étape de Résistance à l'alcool d'un lancer RATÉ (Torchon l.111). */
-const TAVERN_DRINK_KIND = 'tavern-drink';
+const TAVERN_DRINK_KIND = 'taverneBoisson';
 
 /**
  * PARAMÈTRES DE SÉQUENCE d'un jeu — TOUS lus de son entrée de données : aucune valeur de règle n'est
@@ -751,14 +751,14 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   };
 }
 
-/** `meta` de l'étape `tavern-drink` : le camp et le nom du lanceur puni. */
+/** `meta` de l'étape `taverneBoisson` : le camp et le nom du lanceur puni. */
 interface PinteDuLanceur { camp: 'player' | 'opponent'; who: string }
 
 /** Lit le lanceur posé par `torchonRate`, SEUL producteur de l'étape (#1906). */
 function lirePinte(meta: CascadeStepMeta | undefined): PinteDuLanceur {
   const camp = meta?.camp;
   if ((camp !== 'player' && camp !== 'opponent') || typeof meta?.who !== 'string')
-    throw new Error('[tavern-drink] étape sans lanceur alors que `torchonRate` le pose (#1906)');
+    throw new Error('[taverneBoisson] étape sans lanceur alors que `torchonRate` le pose (#1906)');
   return { camp, who: meta.who };
 }
 
@@ -1160,11 +1160,11 @@ function tavernTeamClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame)
  */
 
 /** Étape du LANCER d'un tour (table à poser pour un héros tenu par un siège, affichage sinon). */
-const TAVERN_POT_KIND = 'tavern-pot-turn';
+const TAVERN_POT_KIND = 'tavernePotTour';
 /** Étape du choix « remettre ou abandonner ». */
-const TAVERN_FOLD_KIND = 'tavern-pot-fold';
+const TAVERN_FOLD_KIND = 'tavernePotCoucher';
 /** Étape du choix du NOMBRE CIBLE, en ouverture de manche. */
-const TAVERN_TARGET_KIND = 'tavern-pot-target';
+const TAVERN_TARGET_KIND = 'tavernePotCible';
 
 /** UN JOUEUR assis à la table. `hero` = un Combatant du groupe : sa bourse joue, il peut tenir un
  *  siège. Les autres sont les habitués de la salle, dont la table fixe le nombre. */
@@ -1894,13 +1894,13 @@ function tavernBoard(get: Get, seq: SequenceState<TavernPayload>): SequenceBoard
  */
 
 /** Kind de l'étape du LANCER d'une volée. */
-const TAVERN_THROW_KIND = 'tavern-throw';
+const TAVERN_THROW_KIND = 'taverneLancer';
 /** Kind de l'étape de CHOIX de la ligne visée (`pick: 'choix'`). */
-const TAVERN_AIM_KIND = 'tavern-throw-aim';
+const TAVERN_AIM_KIND = 'taverneLancerVisee';
 /** Kind de l'étape de CHOIX du gain, quand l'effet du lancer en offre plusieurs. */
-const TAVERN_GAIN_KIND = 'tavern-throw-gain';
+const TAVERN_GAIN_KIND = 'taverneLancerGain';
 /** Kind de l'étape de CHOIX du camp mené par le challenger (famille 8). */
-const TAVERN_SIDE_KIND = 'tavern-side';
+const TAVERN_SIDE_KIND = 'taverneCamp';
 
 /** LE PASSAGE EN COURS d'une volée — qui lance, à quel rang, avec quelle réserve et quelle ligne. */
 export interface TavernVolleyState {
@@ -2300,7 +2300,7 @@ function sidesClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): Seq
  */
 
 /** Kind de l'étape de CHOIX « effacer une marque » (l.88). */
-const TAVERN_ERASE_KIND = 'tavern-erase';
+const TAVERN_ERASE_KIND = 'taverneEffacement';
 
 /** LE COMPTE d'un camp dans un jeu à Test combiné : ses échecs de seconde lecture et ses effacements.
  *  Les MARQUES, elles, sont l'ACCUMULATEUR PAR CAMP du socle (`SequenceState.cum`). */

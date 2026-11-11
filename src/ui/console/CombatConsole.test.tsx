@@ -2538,7 +2538,7 @@ describe('CombatConsole — COOP : la console suit la POSSESSION, jamais le mode
     act(() => {
       useGame.setState({
         party: [a, b], scene: emptyScene('scene-test', 20, 20),
-        net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 } },
+        net: { ...useGame.getState().net, mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 } },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn, round: 1,
           action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,
@@ -3210,13 +3210,13 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
   const bouton = () => host.querySelector('.cc-phase [data-action="debut-de-round"]') as HTMLButtonElement | null;
 
   /** Combat en PAUSE de Round (personne n'agit : `turn: -1`), dans le mode réseau demandé. */
-  function pause(mode: 'local' | 'host' | 'guest', round = 2) {
+  function pause(mode: 'local' | 'hote' | 'invite', round = 2) {
     const a = hero('h1', 'Gunnar');
     const b = hero('h2', 'Rolf');
     act(() => {
       useGame.setState({
         party: [a, b], scene: emptyScene('scene-test', 20, 20),
-        net: { ...useGame.getState().net, mode, mySeat: mode === 'guest' ? 1 : 0, ownership: { h1: 0, h2: 1 }, seatNames: mode === 'local' ? {} : { 0: 'L’hôte', 1: 'Rolf' } },
+        net: { ...useGame.getState().net, mode, mySeat: mode === 'invite' ? 1 : 0, ownership: { h1: 0, h2: 1 }, seatNames: mode === 'local' ? {} : { 0: 'L’hôte', 1: 'Rolf' } },
         pendingRoundStart: { round },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn: -1, round,
@@ -3240,7 +3240,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
   });
 
   it('COOP invité — le bouton MARQUE le siège prêt et n’ouvre RIEN (le quorum décide)', () => {
-    pause('guest');
+    pause('invite');
     act(() => bouton()!.click());
     const prs = useGame.getState().pendingRoundStart;
     expect(prs, 'un invité a lancé le Round pour toute la table').not.toBeNull();
@@ -3248,7 +3248,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
   });
 
   it('COOP hôte — même porte : le clic marque le siège 0, et le Round attend l’autre siège requis', () => {
-    pause('host');
+    pause('hote');
     act(() => bouton()!.click());
     expect(useGame.getState().pendingRoundStart!.readyBySeat).toEqual({ 0: true });
     act(() => { withActingSeat(1, () => useGame.getState().fenetreValider('debutDuRound')); });
@@ -3256,7 +3256,7 @@ describe('CombatConsole — pause de Round : UNE porte pour le bouton et la touc
   });
 
   it('COOP — la bande porte la rangée des sièges REQUIS et éteint le bouton une fois ce siège prêt', () => {
-    pause('host');
+    pause('hote');
     expect(host.querySelectorAll('.cc-phase .ready-chip').length, 'deux sièges requis, deux chips').toBe(2);
     act(() => bouton()!.click());
     expect(bouton()!.disabled, 'un siège déjà prêt ne re-clique pas').toBe(true);
@@ -3284,7 +3284,7 @@ describe('CombatConsole — tour d’un siège distant : exactement UNE puce de 
     act(() => {
       useGame.setState({
         party: [a, b], scene: emptyScene('scene-test', 20, 20),
-        net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
+        net: { ...useGame.getState().net, mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf' } },
         battle: {
           combatants: [a, b], order: [a.id, b.id], baseOrder: [a.id, b.id], turn, round: 1,
           action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false,

@@ -142,8 +142,8 @@ declare module './sequenceContract' {
   }
 }
 
-const PURSUIT_MOVE_KIND = 'pursuitMove';
-const PURSUIT_CHOICE_KIND = 'pursuitChoice';
+const PURSUIT_MOVE_KIND = 'mouvementDePoursuite';
+const PURSUIT_CHOICE_KIND = 'choixDePoursuite';
 
 /** Difficulté du Test de Mouvement d'une manche : LDB 15 l.92 n'en pose aucune — le Test est nu. */
 const PURSUIT_DIFFICULTY: Difficulty = 'intermediaire';

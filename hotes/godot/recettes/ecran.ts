@@ -158,7 +158,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = jouer('jouer', focus(s));
   figer('jet d’attaque tombé', s);
   s = jouer('jouer', focus(s));
-  for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'defenseJet'; tours++) {
+  for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'jetDeDefense'; tours++) {
     if (tours > 4) throw new Error(`aucune Défense après ${tours} fins de tour : ${JSON.stringify(s.vue.projection.fenetre)}`);
     s = jouer('jouer', offre(s, 'fin-de-tour'));
     if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', offre(s, 'fin-de-tour'));
@@ -177,7 +177,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
     return c.intention && c.cibles.liste.length ? clicDuCombattant(s.vue, c.cibles.liste[0])!
       : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour')!).jeu;
   };
-  for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
+  for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critique'; pas++) {
     const c = s.vue.projection.combat!;
     if (pas > 300 || c.fin) throw new Error(`aucun Coup Critique après ${pas} gestes : combat ${c.fin ?? 'en cours'}`);
     s = jouer('jouer', presse(s));

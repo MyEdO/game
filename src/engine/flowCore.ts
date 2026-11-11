@@ -586,7 +586,7 @@ export type JetFixe<K extends 'skill' | 'difficulty' = never> = Omit<FlowTest, C
  *    d'Avantage optionnel dépensé sur `yes`. Primitive FONDAMENTALE des réactions de combat
  *    (Frappe Réactive « vous POUVEZ tenter », Déstabilisante « vous POUVEZ dépenser 2 Av ») et, à
  *    terme, des choix de dialogue/pièges. Son exécuteur (`resolveFlowChoice`) pousse une étape-choix
- *    GÉNÉRIQUE `triggeredChoice` (`pushCombatStep` yes/no + applier unique) — il n'invente pas de mécanisme.
+ *    GÉNÉRIQUE `choixDeclenche` (`pushCombatStep` yes/no + applier unique) — il n'invente pas de mécanisme.
  */
 export type Flow<E = EffectOp> =
   | { kind: 'seq'; steps: Flow<E>[] }

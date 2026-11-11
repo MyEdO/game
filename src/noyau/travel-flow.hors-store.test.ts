@@ -150,7 +150,7 @@ function passerLaMeteo(): void {
     expect(pc0?.purpose).toBe('travelDay'); // le jour ne s'auto-résout plus
     passerLaMeteo();
     const pc = get().pendingCascade;
-    const batch = pc!.participants.find((s) => s.kind === 'stagePosteBatch');
+    const batch = pc!.participants.find((s) => s.kind === 'etapePosteEnBande');
     expect(batch?.participants?.length).toBe(1); // une rangée pour le seul héros posté
     const part = batch!.participants![0];
     expect(part.target).toBeGreaterThan(0);
@@ -164,9 +164,9 @@ function passerLaMeteo(): void {
     get().partirEnVoyage('r1', 'pied');
     expect(get().pendingCascade!.purpose).toBe('travelDay');
     passerLaMeteo();
-    const batch = get().pendingCascade!.participants.find((s) => s.kind === 'stagePosteBatch')!;
+    const batch = get().pendingCascade!.participants.find((s) => s.kind === 'etapePosteEnBande')!;
     get().jetForcerLaReussite('cascadeEnBande', batch.participants![0].id); // Résilience « Je ne faillirai pas ! » par rangée
-    const after = get().pendingCascade!.participants.find((s) => s.kind === 'stagePosteBatch')!;
+    const after = get().pendingCascade!.participants.find((s) => s.kind === 'etapePosteEnBande')!;
     expect(after.participants![0].result?.success).toBe(true);
   });
 });
@@ -334,7 +334,7 @@ describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => 
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // #270 — Attelage FORCÉ (allure « galop », EDOC 07 l.229) : le Test de Conduite d'attelage au km était
 // roulé INLINE (aucune Chance offerte sur un jet répété qui peut se solder en Accident) — gate CONTRÔLEUR :
-// conducteur PILOTÉ PAR UN HUMAIN → chaîne d'étapes `landForcedPace` (cascade `travelDay`, UNE cascade,
+// conducteur PILOTÉ PAR UN HUMAIN → chaîne d'étapes `rythmeForceATerre` (cascade `travelDay`, UNE cascade,
 // pas N modales) ; sinon → chemin synchrone historique (`forcedPaceDay`, inchangé).
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
@@ -345,7 +345,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     ], routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km, modes: ['diligence', 'pied'], perilDie: 0 }] };
   }
 
-  it('conducteur JOUEUR (humanControlled) → la cascade travelDay s’ouvre sur une étape landForcedPace influençable', () => {
+  it('conducteur JOUEUR (humanControlled) → la cascade travelDay s’ouvre sur une étape rythmeForceATerre influençable', () => {
     setRule('travel-allures', true);
     seedBattleRng(1);
     const h = hero({ id: 'h', skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
@@ -357,11 +357,11 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     const pc = get().pendingCascade;
     expect(pc?.purpose).toBe('travelDay');
     const first = pc!.participants[0];
-    expect(first.kind).toBe('landForcedPace');
+    expect(first.kind).toBe('rythmeForceATerre');
     expect(first.result ?? null).toBeNull(); // pas encore roulé → influençable (Chance/Résilience)
   });
 
-  it('conducteur SANS pilote humain (aiControlled) → repli inline (aucune étape landForcedPace), même formule', () => {
+  it('conducteur SANS pilote humain (aiControlled) → repli inline (aucune étape rythmeForceATerre), même formule', () => {
     setRule('travel-allures', true);
     seedBattleRng(1);
     const h = hero({ id: 'h', aiControlled: true, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
@@ -370,10 +370,10 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     banc.setState({ gameTime: campaignStart() });
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 }); // passage de l'attelage (dépense de groupe)
     get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
-    // Résolu par le chemin synchrone historique : soit une cascade travelDay SANS étape landForcedPace
+    // Résolu par le chemin synchrone historique : soit une cascade travelDay SANS étape rythmeForceATerre
     // (postes/périls du jour, non liés à l'attelage), soit aucune cascade du tout.
     const pc = get().pendingCascade;
-    if (pc) expect(pc.participants.some((s) => s.kind === 'landForcedPace')).toBe(false);
+    if (pc) expect(pc.participants.some((s) => s.kind === 'rythmeForceATerre')).toBe(false);
     expect(get().journal.join('\n')).toMatch(/Conduite d'attelage \(allure forcée\)/);
   });
 
@@ -387,7 +387,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
     get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
     const pc = get().pendingCascade;
-    if (pc) expect(pc.participants.some((s) => s.kind === 'landForcedPace'), 'aucun km au pas de course').toBe(false);
+    if (pc) expect(pc.participants.some((s) => s.kind === 'rythmeForceATerre'), 'aucun km au pas de course').toBe(false);
     expect(get().journal.join('\n'), 'aucun Test de Conduite d’attelage au pas de course').not.toMatch(/Conduite d'attelage \(allure forcée\)/);
   });
 });
@@ -404,7 +404,7 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
     const steps = buildWeatherResistanceSteps(get, 'neige');
     expect(steps.length).toBe(1);
     const step = steps[0];
-    expect(step.kind).toBe('weatherResistance');
+    expect(step.kind).toBe('resistanceALaMeteo');
     expect(step.participants?.length).toBe(2); // un jet INDÉPENDANT par héros
     expect(resolveStake(step.stake!).text).toContain('Résistance Accessible (+20)'); // enjeu verbatim (l.86)
     const p0 = step.participants![0];
@@ -446,7 +446,7 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },
     } as never });
     const steps = buildStageSteps(get, set, 'pluie-diluvienne', 'ete');
-    const batch = steps.find((s) => s.kind === 'stagePosteBatch')!;
+    const batch = steps.find((s) => s.kind === 'etapePosteEnBande')!;
     const outPart = batch.participants!.find((p) => p.id === 'hOut')!;
     const cartoPart = batch.participants!.find((p) => p.id === 'hCarto')!;
     expect(cartoPart.label).toBe(refLabel('skills', { id: 'metier', spec: 'cartographe' }));
@@ -464,7 +464,7 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
       routeId: 'r1', fromPlaceId: 'pa', toPlaceId: 'pb', mode: 'pied', hoursPerDay: 6, km: 12, kmDone: 0, interrupted: false,
       postes: { hOut: { activityId: 'plein-air' }, hCarto: { activityId: 'etablir-cartes' } },
     } as never });
-    const batch = buildStageSteps(get, set, 'pluie-diluvienne', 'ete').find((s) => s.kind === 'stagePosteBatch')!;
+    const batch = buildStageSteps(get, set, 'pluie-diluvienne', 'ete').find((s) => s.kind === 'etapePosteEnBande')!;
     expect(batch.participants!.length).toBeGreaterThan(1);
     for (const part of batch.participants!) {
       const st = { base: part.base, target: part.target, mods: part.mods, difficulty: part.difficulty, clamped: part.clamped } as never;
@@ -482,12 +482,12 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
  * nue (`skillBaseValue`) de la valeur jetée (`testValue`), qu'une base fondue confondrait.
  */
 describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante (#1153 L2bis)', () => {
-  /** Le d10 de la table des péripéties (`landPerilTable`, LDB 51 l.210-221) POSÉ sur la rangée de la
+  /** Le d10 de la table des péripéties (`perilATerreTable`, LDB 51 l.210-221) POSÉ sur la rangée de la
    *  péripétie `peripetieKind` : son applier insère l'étape-jet de kind `kind`. */
   const perilInsert = (peripetieKind: string, kind: string) => {
     const p = PERIPETIES.find((x) => x.kind === peripetieKind)!;
-    const step = { id: 'p', kind: 'landPerilTable', table: { tableId: 'route-peripetie-table', result: { id: p.id, roll: p.roll, lines: [] } }, meta: { destLabel: 'B' } } as never;
-    const out = applierDe('landPerilTable')!(get, set, step, undefined, { steps: [step], index: 0 });
+    const step = { id: 'p', kind: 'perilATerreTable', table: { tableId: 'route-peripetie-table', result: { id: p.id, roll: p.roll, lines: [] } }, meta: { destLabel: 'B' } } as never;
+    const out = applierDe('perilATerreTable')!(get, set, step, undefined, { steps: [step], index: 0 });
     return (out?.insert ?? []).find((s) => s.kind === kind);
   };
 
@@ -506,7 +506,7 @@ describe('Péripétie terrestre — base NUE + Soutien NOMMÉ, cible invariante 
     const soutien = soutienDetail(get().party, lead, { skill: { id: 'survie-en-exterieur' } });
     expect(soutien.bonus, 'le camarade éligible soutient (l.195)').toBeGreaterThan(0);
 
-    const st = perilInsert('ereintant', 'landPerilSurvie')!;
+    const st = perilInsert('ereintant', 'perilATerreSurvie')!;
     expect(st, 'la péripétie « éreintant » insère bien son Test').toBeTruthy();
     expect(st.actorId).toBe('lead');
     expect(st.base, 'Niveau de Compétence NU (LDB 09 l.17)').toBe(nue);
@@ -549,7 +549,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
 
   it('1ᵉʳ km : base NUE, Soutien NOMMÉ, aucune chip anonyme', () => {
     ouvreJournee();
-    const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
+    const st = get().pendingCascade!.participants.find((s) => s.kind === 'rythmeForceATerre')!;
     const picked = partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } })!;
     expect(st.base).toBe(skillBaseValue(picked.actor, { skill: { id: 'conduite-d-attelage' } }));
     expect(soutienDe(st)).toBe(picked.support.bonus);
@@ -559,12 +559,12 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
 
   it('2ᵉ km : le −10/km est NOMMÉ une seule fois et la cible ne le compte pas deux fois (B1)', () => {
     ouvreJournee();
-    const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
+    const st = get().pendingCascade!.participants.find((s) => s.kind === 'rythmeForceATerre')!;
     const picked = partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } })!;
     // Le km courant RÉUSSIT → l'applier insère le km suivant (`galloped = 1`, pénalité −10).
     const reussi = { ...st, result: { roll: 5, target: st.target!, sl: 3, success: true } } as typeof st;
-    const out = applierDe('landForcedPace')!(get, set, reussi, get().party[0], { steps: [reussi], index: 0 });
-    const km2 = (out?.insert ?? []).find((s) => s.kind === 'landForcedPace')!;
+    const out = applierDe('rythmeForceATerre')!(get, set, reussi, get().party[0], { steps: [reussi], index: 0 });
+    const km2 = (out?.insert ?? []).find((s) => s.kind === 'rythmeForceATerre')!;
     expect(km2, 'le kilomètre suivant s’insère').toBeTruthy();
     expect(km2.base, 'base NUE : ni le Soutien ni la pénalité ne s’y cachent').toBe(skillBaseValue(picked.actor, { skill: { id: 'conduite-d-attelage' } }));
     expect(lignesDe(km2.mods, refDeRegle('allure-forcee-attelage'))).toEqual([ligneAllureForcee(1)]);
@@ -577,15 +577,15 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
    * #673 L3 (G1) — l'aggravation de `EDOC 07 l.253` (« Un Échec Impressionnant ou pire sur n'importe
    * quel Test de Résistance d'un animal impose un État *Exténué* supplémentaire, et un Échec
    * Stupéfiant coûte à la bête 1d10 Blessures en plus ») doit être atteignable DEPUIS LE CHEMIN RÉEL
-   * du joueur — la cascade `landForcedPace` — et non seulement depuis le résolveur pur. Le dé
+   * du joueur — la cascade `rythmeForceATerre` — et non seulement depuis le résolveur pur. Le dé
    * des bêtes vit dans `battleRng` : on cherche la graine qui produit le cas, sans stub.
    */
   function consequencesSurEchecDuConducteur(seed: number): string[] {
     seedBattleRng(seed);
-    const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
+    const st = get().pendingCascade!.participants.find((s) => s.kind === 'rythmeForceATerre')!;
     // Échec SIMPLE (−1 DR) : pas de Problème de véhicule (l.253 côté conducteur), seules les bêtes jouent.
     const rate = { ...st, result: { roll: 99, target: st.target!, sl: -1, success: false } } as typeof st;
-    const out = applierDe('landForcedPace')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+    const out = applierDe('rythmeForceATerre')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
     return (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
   }
 
@@ -618,7 +618,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
 
   it('EDOC 07 l.284 — plus personne ne peut tenir les rênes : l’attelage Incontrôlable devient un Accident, sans jet', () => {
     ouvreJournee();
-    const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
+    const st = get().pendingCascade!.participants.find((s) => s.kind === 'rythmeForceATerre')!;
     // Le conducteur et son aide tombent Inconscients pendant le km (LDB 16 l.113).
     banc.setState({ party: get().party.map((h) => ({ ...h, conditions: [...h.conditions, { id: 'inconscient', value: 1 }] })) });
     const avant = banc.getState();
@@ -628,7 +628,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
       banc.setState(avant);
       seedBattleRng(seed);
       const rate = { ...st, result: { roll: 99, target: st.target!, sl: -6, success: false } } as typeof st;
-      const out = applierDe('landForcedPace')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+      const out = applierDe('rythmeForceATerre')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
       lignes = (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
       insert = out?.insert ?? [];
     }
@@ -640,7 +640,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
 
   it('reprise de contrôle : MÊME conducteur soutenu que le km, sur les DEUX surfaces (B4)', () => {
     ouvreJournee();
-    const st = get().pendingCascade!.participants.find((s) => s.kind === 'landForcedPace')!;
+    const st = get().pendingCascade!.participants.find((s) => s.kind === 'rythmeForceATerre')!;
     const picked = partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } })!;
     // Échec STUPÉFIANT (−6 DR) : l'applier tire le Tableau des problèmes ; sur « Incontrôlable » il
     // insère la reprise de contrôle. Les autres tirages n'en insèrent pas — on cherche la graine qui
@@ -649,8 +649,8 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     for (let seed = 1; seed <= 200 && !control; seed++) {
       seedBattleRng(seed);
       const rate = { ...st, result: { roll: 99, target: st.target!, sl: -6, success: false } } as typeof st;
-      const out = applierDe('landForcedPace')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
-      control = (out?.insert ?? []).find((s) => s.kind === 'landForcedPaceControl') as typeof st | undefined;
+      const out = applierDe('rythmeForceATerre')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
+      control = (out?.insert ?? []).find((s) => s.kind === 'rythmeForceATerreControle') as typeof st | undefined;
     }
     expect(control, 'le cas « Incontrôlable » est atteignable').toBeTruthy();
     expect(control!.actorId).toBe(picked.actor.id);

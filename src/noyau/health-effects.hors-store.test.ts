@@ -208,7 +208,7 @@ describe('Effet inflictPsychology (Peur/Terreur scénique, LDB 21) — BANDE INF
     applyEffects(banc.getState, banc.setState, [{ type: 'inflictPsychology', kind: 'peur', indice: 2, label: 'Une ombre glaçante', target: 'party' }]);
     const pc = banc.getState().pendingCascade;
     expect(pc).not.toBeNull();
-    const steps = pc!.participants.filter((s) => s.kind === 'encounterPsych');
+    const steps = pc!.participants.filter((s) => s.kind === 'psychologieDeRencontre');
     expect(steps).toHaveLength(1); // UNE entrée de règle = UNE bande (plus une étape par héros)
     expect(steps[0].participants?.map((p) => p.id)).toEqual(party.map((h) => h.id));
     expect(steps[0].participants?.every((p) => p.result == null)).toBe(true);

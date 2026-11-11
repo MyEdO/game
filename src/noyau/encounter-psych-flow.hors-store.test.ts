@@ -25,7 +25,7 @@ import { ciblePsy } from '../engine/psych/ciblage';
  * CRÉATURE est COMBAT seulement → hors combat, seuls les Traits psy CIBLÉS du HÉROS se déclenchent —
  * Animosité/Haine/Préjugé/Amour/Camaraderie par leur Test propre, Phobie par le régime qu'elle CAUSE
  * (Peur, LDB 21 l.87). Depuis la VAGUE MULTI (#1117 L1) : c'est UNE cascade `purpose:'test'` de
- * BANDES — une étape `kind:'encounterPsych'` PAR ENTRÉE DE RÈGLE mise en jeu (type psy + source), et
+ * BANDES — une étape `kind:'psychologieDeRencontre'` PAR ENTRÉE DE RÈGLE mise en jeu (type psy + source), et
  * une RANGÉE (`participants`) par héros concerné, au lieu d'une étape par héros. On vérifie ce contrat.
  */
 let banc: Banc;
@@ -115,7 +115,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect(c).toBeTruthy();
     expect(c.purpose).toBe('test');
     const step = c.participants[0];
-    expect(step.kind).toBe('encounterPsych');
+    expect(step.kind).toBe('psychologieDeRencontre');
     expect(step.psychologieDeRencontre?.kind).toBe('animosite');
     expect(step.psychologieDeRencontre?.cible).toBe(ciblePsy.groupe('elfe'));
     // BANDE : le jet vit sur la RANGÉE, jamais sur l'étape (contrat `aggregate:'none'`).
@@ -271,7 +271,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const c = banc.getState().pendingCascade;
     expect(c, 'aucune bande : le phobique ne teste plus rien hors combat').toBeTruthy();
     const step = c!.participants[0];
-    expect(step.kind).toBe('encounterPsych');
+    expect(step.kind).toBe('psychologieDeRencontre');
     expect(step.psychologieDeRencontre).toMatchObject({ kind: 'peur', indice: 1, sourceId: 'arai', cible: ciblePsy.groupe('bete') });
     expect(step.participants!.map((p) => p.id)).toEqual([h.id]);
   });
@@ -401,7 +401,7 @@ describe('encounterPsychFlow — POSSESSION de la bande (classe #1268)', () => {
   it('deux héros appelés → fenêtre PARTAGÉE ; un seul → la bande EST la sienne', () => {
     const a = timoreux('A'); a.id = 'psy-a';
     const b = timoreux('B'); b.id = 'psy-b';
-    banc.setState({ party: [a, b], pendingCascade: null, battle: null, net: { ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
+    banc.setState({ party: [a, b], pendingCascade: null, battle: null, net: { ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [b.id]: 1 } } } as never);
     openScriptedPsych(banc.getState, banc.setState, 'terreur', 2, 'Une vision', [a, b]);
     const bande = banc.getState().pendingCascade!.participants[0];
     expect(bande.participants!.map((p) => p.id)).toEqual([a.id, b.id]);

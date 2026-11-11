@@ -1459,7 +1459,7 @@ function ActivityResolverField({ entry, edit }: { entry: Record<string, unknown>
 /** Table d'ISSUES d'une Activité (`OutcomeBand[]`, ACE Annexe I / ADE II 8) : chaque bande = une
  *  fourchette de DR (`minSL`/`maxSL`, primitive de PLAGE comme mutationTables/weather) filtrée par issue
  *  (`on`) et gate de bataille (`when`), portant sa note VERBATIM, son effet `ops` (GameOpEditor commun),
- *  ses issues de bataille et ses enchaînements. Maladresse (`on:'fumble'`) REMPLACE toute autre issue. */
+ *  ses issues de bataille et ses enchaînements. Maladresse (`on:'maladresse'`) REMPLACE toute autre issue. */
 function OutcomeBandsField({ value, onChange }: { value: OutcomeBand[] | undefined; onChange: (v: OutcomeBand[]) => void }) {
   const list = value ?? [];
   const set = (i: number, patch: Partial<OutcomeBand>) => onChange(list.map((b, j) => (j === i ? { ...b, ...patch } : b)));

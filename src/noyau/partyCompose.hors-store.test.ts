@@ -77,7 +77,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   });
 
   it('recruterLeHeros : respecte le quota d’emplacements du siège (hôte autoritaire)', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 0, 1] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 0, 1] } });
     const st = banc.getState();
     withActingSeat(1, () => st.recruterLeHeros(engage('g1')));
     withActingSeat(1, () => st.recruterLeHeros(engage('g2'))); // 1 seul slot au siège 1 → refusé
@@ -87,7 +87,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   });
 
   it('renvoyerLeHeros : le siège retire SON héros et nettoie sa possession', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     withActingSeat(1, () => banc.getState().renvoyerLeHeros('g1'));
     const s = banc.getState();
@@ -96,7 +96,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
   });
 
   it('D4 — l’hôte ne retire, ne remplace ni ne modifie le héros d’un invité : refusé, le refus au journal', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     const journal = banc.getState().journal.length;
     banc.getState().renvoyerLeHeros('g1');
@@ -168,7 +168,7 @@ describe('le rang de chaque héros est un état du jeu (`net.rangs`, #3059 F10)'
   });
 
   it('coop : un héros ajouté par un siège entre dans un emplacement de CE siège ; fermer le siège garde son rang', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 1, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 0, 1, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     banc.getState().recruterLeHeros(engage('h1'));
     expect(occupants(banc)).toEqual(['h1', null, 'g1', null]);
@@ -186,7 +186,7 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
   it('D2 — un siège invité nommé sans héros refuse le lancement, même quand un orphelin de l’hôte occupe son emplacement', () => {
     banc.setState({
       party: ['a', 'b', 'c', 'd'].map(hero),
-      net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] },
+      net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] },
     });
     expect(emplacementsDuGroupe(banc.getState())[1].heroId, 'témoin : l’orphelin de l’hôte occupe l’emplacement de l’invité').toBe('b');
     expect(refusDeLancer(banc.getState())).toBe(t('party.action.start.guestPending'));
@@ -195,7 +195,7 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
   });
 
   it('un groupe dont chaque siège invité a rempli ses emplacements se lance', () => {
-    banc.setState({ net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Inv' }, slots: [0, 1, 0, 0] } });
     withActingSeat(1, () => banc.getState().recruterLeHeros(engage('g1')));
     expect(refusDeLancer(banc.getState())).toBeNull();
   });

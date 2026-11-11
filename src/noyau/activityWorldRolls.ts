@@ -22,7 +22,7 @@ import { dataLabel } from '../data';
 import { t } from '../i18n';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
-export const ACTIVITY_WORLD_ROLL_KIND = 'activityWorldRoll';
+export const ACTIVITY_WORLD_ROLL_KIND = 'jetDuMondeDActivite';
 
 /**
  * Les étapes de monde d'une Activité pour UN acteur, dans l'ORDRE d'authoring (l'ordre EST le flux

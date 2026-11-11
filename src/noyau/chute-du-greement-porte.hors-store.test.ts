@@ -96,12 +96,12 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
+    applierDe('testDeclencheEnBande')!(get, set, rates, undefined, { steps: [rates], index: 0 });
 
     // #1508 : l'échec n'applique plus la chute — il OUVRE ses dés. La hauteur du gréement est un dé
     // (2d10), celle du nid-de-pie un ENTIER (aucun dé de hauteur, seuls les Dégâts se tirent) : c'est
     // déjà lisible sur les étapes ouvertes, AVANT qu'aucune Blessure ne tombe.
-    const ouvertes = get().pendingCascade!.participants.filter((s) => s.kind === 'opsDe');
+    const ouvertes = get().pendingCascade!.participants.filter((s) => s.kind === 'operationsDe');
     const pourLe = (id: string) => ouvertes.filter((s) => s.actorId === id);
     expect(pourLe(gabier.id).map((s) => s.de!.spec), 'gréement d’une coque Moyenne = 2d10 m (l.686), puis les Dégâts')
       .toEqual([{ n: 2, sides: 10 }]);
@@ -136,7 +136,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 5, target: p.target!, success: true, sl: 3, crit: false, fumble: false },
       })),
     };
-    applierDe('triggeredBatchTest')!(get, set, reussies, undefined, { steps: [reussies], index: 0 });
+    applierDe('testDeclencheEnBande')!(get, set, reussies, undefined, { steps: [reussies], index: 0 });
     for (const h of get().party) expect(h.wounds.current, `${h.id} est tombé sur une RÉUSSITE`).toBe(h.wounds.max);
   });
 
@@ -163,10 +163,10 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
+    applierDe('testDeclencheEnBande')!(get, set, rates, undefined, { steps: [rates], index: 0 });
     // La coque de la FILE a bien été retrouvée : sa Taille a donné le dé de hauteur (#1508 — la chute
     // s'ANNONCE au lieu de s'appliquer, et c'est ce dé qui prouve la lecture de la coque).
-    const ouverte = get().pendingCascade!.participants.find((s) => s.kind === 'opsDe');
+    const ouverte = get().pendingCascade!.participants.find((s) => s.kind === 'operationsDe');
     expect(ouverte, 'aucun dé de chute : la coque de la FILE n’a pas été retrouvée').toBeTruthy();
     expect(ouverte!.de!.spec, 'coque Moyenne au gréement').toEqual({ n: 2, sides: 10 });
     draineCascade(get);
@@ -193,7 +193,7 @@ describe('#1657 B3-2b-c — la chute du gréement traverse la porte avec SA coqu
         ...p, result: { roll: 98, target: p.target!, success: false, sl: -5, crit: false, fumble: false },
       })),
     };
-    const rendu = applierDe('triggeredBatchTest')!(get, set, rates, undefined, { steps: [rates], index: 0 });
+    const rendu = applierDe('testDeclencheEnBande')!(get, set, rates, undefined, { steps: [rates], index: 0 });
 
     const dit = JSON.stringify(rendu);
     expect(dit, `le refus n'est pas NOMMÉ : ${dit}`).toContain('n’est plus en jeu');

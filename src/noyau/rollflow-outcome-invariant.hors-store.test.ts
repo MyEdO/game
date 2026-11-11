@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { evaluateTest } from '../engine/tests';
 import { seedBattleRng } from './battleRng';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -181,7 +181,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   cascadeEnBande: { pid: 'A', make: (win) => ({
     battle: arena(),
     pendingCascade: cascadeDeTest([{
-      id: 'b1', kind: 'triggeredBatchTest', aggregate: 'none',
+      id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
       meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: 'B' } },
       participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: { roll: 8, target: 40, sl: win ? 9 : 1, success: win } }],
     }], { purpose: 'combat' }),
@@ -289,7 +289,7 @@ describe('#1318 V4 — l’issue canonique est COHÉRENTE avec les chiffres qu�
         seedBattleRng(9);
         banc.setState({ battle: null } as never);
         banc.setState(state as never);
-        const o = FLOW_HANDLERS[prefix as keyof typeof FLOW_HANDLERS].outcomeOf(banc.getState, fx.pid);
+        const o = FLOWS[prefix as keyof typeof FLOWS].outcomeOf(banc.getState, fx.pid);
         expect(o, `${prefix} : l’issue canonique doit être lisible sur un pending ouvert`).not.toBeNull();
         const propre = evaluateTest(o!.roll, o!.target).success;
         if (o!.won !== propre) divergences.push(`${nom} : won=${o!.won} roll=${o!.roll} cible=${o!.target}`);

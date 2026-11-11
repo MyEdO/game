@@ -179,9 +179,9 @@ const NOMMES = [
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
-  'success|failure|fumble',
   // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
   'reussite|echec',
+  'reussite|echec|maladresse',
   'test|combat|threat|hold|rally',
   'any|all',
   'group|talent|trait|psych|immunity',

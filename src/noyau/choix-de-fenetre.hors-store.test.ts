@@ -22,7 +22,7 @@ import type { Combatant } from '../engine/types';
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): { a: string; b: string } {
   const [a, b] = groupeDeScenario(idsDeTest, 'soldat', 'tueur');
-  banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
+  banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
   return { a: a.id, b: b.id };
 }
 
@@ -54,13 +54,13 @@ describe('fenetreChoisir', () => {
   it.each(CHOIX_DE_L_HOTE)('le choix de l’hôte reste à l’hôte (%s) : refusé dans l’état d’un invité, et au siège d’un invité', (_fenetre, args, ouverte) => {
     const banc = ouvrirLeBanc();
     hoteEtUnInvite(banc);
-    banc.setState({ ...ouverte, net: { ...banc.getState().net, mode: 'guest' } } as never);
+    banc.setState({ ...ouverte, net: { ...banc.getState().net, mode: 'invite' } } as never);
     const avant = banc.getState();
     banc.getState().fenetreChoisir(...args);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.hoteSeul'));
     for (const cle of Object.keys(ouverte)) expect((banc.getState() as unknown as Record<string, unknown>)[cle], 'la fenêtre reste ouverte').toBe((avant as unknown as Record<string, unknown>)[cle]);
 
-    banc.setState({ net: { ...banc.getState().net, mode: 'host' } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote' } });
     expect(intentAllowedFor(banc.getState(), 1, 'fenetreChoisir', args), 'au siège d’un invité').toBe(false);
     expect(intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', args), 'au siège de l’hôte').toBe(true);
   });
@@ -204,7 +204,7 @@ describe('fenetreChoisir', () => {
       const banc = ouvrirLeBanc();
       semaine(banc);
       expect([0, 1].filter((x) => intentAllowedFor(banc.getState(), x, 'fenetreValider', ['activitesEnMer']))).toEqual([0]);
-      banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+      banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
       banc.getState().fenetreValider('activitesEnMer');
       expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.hoteSeul'));
       expect(banc.getState().pendingSeaActivities, 'la semaine reste ouverte').not.toBeNull();
@@ -252,7 +252,7 @@ describe('fenetreChoisir', () => {
       const { b } = tout(banc);
       const deLHote: readonly ArgumentsDuChoix[] = [['butin', 'ligne', 'L0', b], ['marchand', 'repartition', 'D0', b]];
       for (const args of deLHote) expect(admis(banc, args), `${args[0]}.${args[1]}`).toEqual([0]);
-      banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+      banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
       for (const args of deLHote) {
         banc.getState().fenetreChoisir(...args);
         expect(banc.getState().journal.slice(-1)[0], `${args[0]}.${args[1]}`).toBe(t('choix.refus.hoteSeul'));
@@ -292,7 +292,7 @@ describe('fenetreChoisir', () => {
         ['marchand', 'viderLePanier', true], ['marchand', 'ajouterALaVente', 'u2'],
       ];
       for (const args of duPanier) expect(admis(banc, args), `${args[0]}.${args[1]}`).toEqual([0]);
-      banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+      banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
       banc.getState().fenetreChoisir('marchand', 'oterDuPanier', 'corde');
       expect(banc.getState().merchant?.cart, 'le panier de l’invité se compose chez lui').toEqual([]);
     });

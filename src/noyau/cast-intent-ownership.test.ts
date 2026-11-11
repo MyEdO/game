@@ -94,7 +94,7 @@ const jetHote = (pending: string): HostJet =>
  *  l'amène dans la garde sans une ligne de fixture. */
 const state = (jet: JetOwnerRef, ownerId: string, over: Partial<Jeu> = {}): Jeu =>
   ({
-    net: { mode: 'host', mySeat: 0, gmSeat: 2, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] },
+    net: { mode: 'hote', mySeat: 0, gmSeat: 2, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] },
     party: [{ id: H_HOST }, { id: H_GUEST }],
     battle: { order: [H_HOST, H_GUEST, ENEMY], turn: 0, combatants: [
       { id: H_HOST, kind: 'hero' }, { id: H_GUEST, kind: 'hero' }, { id: ENEMY, kind: 'enemy' },
@@ -178,7 +178,7 @@ describe('#1005/#1015 — flux MONO : la dépense suit le PORTEUR du jet', () =>
       // Le jet est à l'IA : l'affordance est refusée À TOUS par `seatInfluences`. Une garde routée sur
       // `seatOwns` seul retomberait sur `ownership ?? 0` et AUTORISERAIT l'hôte — l'écran dit non, l'hôte
       // dirait oui.
-      const s = state(w.jetOwner!, ENEMY, { net: { mode: 'host', mySeat: 0, gmSeat: null, seatNames: {}, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<Jeu>);
+      const s = state(w.jetOwner!, ENEMY, { net: { mode: 'hote', mySeat: 0, gmSeat: null, seatNames: {}, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<Jeu>);
       expect(seatInfluences(s, 0, ENEMY), 'précondition : l’affichage refuse l’ennemi sans MJ').toBe(false);
       for (const v of w.verbs) {
         const [intent, args] = geste(prefix, v);
@@ -288,7 +288,7 @@ describe('#3368 — un réglage du jet (`jetRegler`) suit le PORTEUR du jet', ()
     const s = state(CAST_JET, ENEMY);
     expect(modalOwnerOf(s), 'précondition : la fenêtre du Sort ennemi est à tous les sièges').toBe('*');
     expect([0, 1, 2].map((siege) => intentAllowedFor(s, siege, 'jetRegler', ['incantation', 'effetCritique', 'puissance']))).toEqual([false, false, true]);
-    const sansMJ = state(CAST_JET, ENEMY, { net: { mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<Jeu>);
+    const sansMJ = state(CAST_JET, ENEMY, { net: { mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] } } as unknown as Partial<Jeu>);
     expect([0, 1].map((siege) => intentAllowedFor(sansMJ, siege, 'jetRegler', ['incantation', 'surincantationDuree', 1])), 'sans siège MJ, aucun invité ne règle le Sort ennemi').toEqual([false, false]);
   });
 

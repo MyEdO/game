@@ -85,7 +85,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
   it('B — la rangée ennemie appartient au SEUL siège MJ (intent + affichage + dé fixé)', () => {
     banc.getState().ensemencerLeTirage(3);
     const { H, E } = setup();
-    net({ mode: 'host', mySeat: 2, gmSeat: 2, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
+    net({ mode: 'hote', mySeat: 2, gmSeat: 2, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
     banc.getState().jetLancer('incantation');
     expect(banc.getState().pendingCounterspell!.participants[0].id).toBe(E.id);
@@ -98,7 +98,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     expect(influencesLocally(s, E.id), 'siège local = MJ → la rangée est influençable').toBe(true);
     setDesFixes(true);
     expect(canFixDie(banc.getState(), E.id), 'dé fixé offert au MJ sur SA rangée').toBe(true);
-    net({ mode: 'host', mySeat: 1, gmSeat: 2, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
+    net({ mode: 'hote', mySeat: 1, gmSeat: 2, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
     expect(influencesLocally(banc.getState(), E.id), 'siège local = joueur → rangée en lecture').toBe(false);
     expect(canFixDie(banc.getState(), E.id)).toBe(false);
   });
@@ -142,7 +142,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     const b = banc.getState().battle!;
     const h2 = { ...w2, id: 'h2', pos: { x: 10, y: 11 }, kind: 'hero' } as unknown as Combatant;
     banc.setState({ battle: { ...b, combatants: [...b.combatants, h2], order: [...b.order, h2.id] } });
-    net({ mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h2.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
+    net({ mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [h2.id]: 1 }, slots: [0, 1, 0, 0] } as Partial<Jeu['net']>);
     expect(counterspellCandidates(banc.getState().battle, banc.getState().scene, E, H).map((c) => c.id))
       .toEqual(expect.arrayContaining([H.id, h2.id]));
     castSpell(banc.getState, banc.setState, E, H, 'carreau'); // lanceur IA : jet figé + aiguillage

@@ -71,7 +71,7 @@ export function VictoryScreen() {
           gear={gear}
           assignable={assignable}
           onAssign={(uid, heroId) => choisir('victoire', 'ligne', uid, heroId)}
-          onAppraise={net.mode === 'guest' ? undefined : evaluerLObjet}
+          onAppraise={net.mode === 'invite' ? undefined : evaluerLObjet}
         />
       ),
     });
@@ -85,7 +85,7 @@ export function VictoryScreen() {
         <Row gap="sm">
           {defeated.map((d) => {
             const done = (pv?.harvested ?? []).includes(d.creatureId ?? '');
-            const canHarvest = (done || aDepecer.includes(d.creatureId ?? '')) && net.mode !== 'guest';
+            const canHarvest = (done || aDepecer.includes(d.creatureId ?? '')) && net.mode !== 'invite';
             return (
               <Row key={d.label} className="chip">
                 {d.label}{d.count > 1 ? ` ×${d.count}` : ''}

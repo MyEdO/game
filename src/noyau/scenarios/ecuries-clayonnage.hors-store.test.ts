@@ -185,7 +185,7 @@ describe('IA hors siège — aucune décision ne porte sur une structure', () =>
   it('l’ennemi armé d’une arme à DISTANCE TIRE sur un personnage — décision nommée, pas « une structure quelconque »', () => {
     const tireurs = decisionsDesEnnemis().filter((l) => l.ennemi.weapons.some((w) => w.type === 'ranged'));
     expect(tireurs.length, 'la fixture arme bien un tireur').toBe(1);
-    expect(tireurs[0].action.kind).toBe('shoot');
+    expect(tireurs[0].action.kind).toBe('tir');
     expect(tireurs[0].cible!.kind).toBe('hero');
   });
 });
@@ -227,10 +227,10 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
     const tireurs = tireurDe(b);
     expect(tireurs.length, 'la fixture arme bien un tireur').toBe(1);
     const input = entreeDuTour(b, tireurs[0]);
-    expect(chooseEnemyAction(input).kind, 'mémo réel : il voit et il tire').toBe('shoot');
+    expect(chooseEnemyAction(input).kind, 'mémo réel : il voit et il tire').toBe('tir');
     /** Le mémo AVEUGLE : il répond « rien n'est visible » sans jamais consulter la carte. */
     const aveugle: LosMemo = { cover: () => ({ blocked: true, cover: 'totale' }), clear: () => false };
-    expect(chooseEnemyAction({ ...input, losMemo: aveugle }).kind, 'mémo aveugle : plus de Ligne de Vue, plus de tir').not.toBe('shoot');
+    expect(chooseEnemyAction({ ...input, losMemo: aveugle }).kind, 'mémo aveugle : plus de Ligne de Vue, plus de tir').not.toBe('tir');
   });
 
   it('(c) deux postes OPPOSÉS vers la même cible : le mémo réel les distingue, la clé amputée ressert le premier', () => {

@@ -95,7 +95,7 @@ describe('#3059 — achat de cargaison : un seul refus pour l’écran et le ges
 
 /** Halle FIXÉE : une offre de 20 Enc de métal à 10 CO, une diligence vide, un seul héros sans Négociateur,
  *  qui mène donc le Marchandage du groupe (`partyAssisted`). `mode` : siège local ou invité. */
-function halleFixee(mode: 'local' | 'guest', cargo: CargoLot[] = [], produits = carte.places[0].market!.produits): Partie {
+function halleFixee(mode: 'local' | 'invite', cargo: CargoLot[] = [], produits = carte.places[0].market!.produits): Partie {
   const heros = { ...tousLesHerosDeScenario(idsDeTest)[0], talents: [] };
   const entrees: EntreesDeLaPartie = { graine: 3, reglesMaison: {}, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   return creerPartie({
@@ -129,7 +129,7 @@ describe('#3059 — achat de cargaison : bourse sous le prix plancher au meilleu
 describe('#3059 — siège invité : les gestes de la halle sur la bourse et la cale disent le refus de groupe', () => {
   it('vente, bradage, évaluation du vin et transfert refusés, cargaison intacte', () => {
     const lot: CargoLot = { uid: 'lot-1', cargoId: 'metal', enc: 12, basePriceGold: 10 };
-    const partie = halleFixee('guest', [lot]);
+    const partie = halleFixee('invite', [lot]);
     try {
       partie.envoyer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'vendre', 'lot-1'] });
       partie.envoyer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'jeter', 'lot-1'] });

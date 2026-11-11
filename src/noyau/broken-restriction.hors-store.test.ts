@@ -65,7 +65,7 @@ describe('Brisé — restriction d\'action (LDB 16 l.52)', () => {
     const enemy = combattantDeTest({ id: 'e', kind: 'enemy', label: 'E', pos: { x: 5, y: 5 }, movement: 4, weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }], conditions: [{ id: 'brise', value: 1 }], wounds: blessuresDeBase(10), engagedWith: [] });
     const h = combattantDeTest({ id: 'h', kind: 'hero', label: 'H', pos: { x: 6, y: 5 }, wounds: blessuresDeBase(10) });
     const action = chooseEnemyAction({ enemy, heroes: [h], scene: scene(), blocked: new Set(['6,5']), movement: 4 } as never);
-    expect(action.kind).toBe('move');
+    expect(action.kind).toBe('deplacement');
     const to = (action as { to: { x: number; y: number } }).to;
     expect(chebyshev(to, { x: 6, y: 5 })).toBeGreaterThan(1); // plus loin du héros que (5,5)
   });

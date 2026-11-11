@@ -274,7 +274,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
 
   it('réussite : ni Exposition de fin d’Étape, ni Exposition de nuit', () => {
     const jour = journeeSousLAverse(1);
-    expect(jour).not.toContain('stageExposure');
+    expect(jour).not.toContain('etapeExposition');
     expect(get().travelPlan!.log![0].pleinAir).toBe(true);
     expect(activeExposureSeverity(get)).toBe('clement');
     const nuit = etapesDeLaNuit();
@@ -284,7 +284,7 @@ describe('#2533 — Plein air réussi dispense la nuit de son Exposition (EDOC 0
 
   it('test opposé, échec : les deux Expositions se jouent (LDB 18 l.328, EDOC 08 l.90)', () => {
     const jour = journeeSousLAverse(100);
-    expect(jour).toContain('stageExposure');
+    expect(jour).toContain('etapeExposition');
     expect(get().travelPlan!.log![0].pleinAir).toBeUndefined();
     expect(activeExposureSeverity(get)).toBe('extreme');
     expect(etapesDeLaNuit()).toContain('abri-de-fortune');
@@ -316,7 +316,7 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
     get().partirEnVoyage('r1', 'pied');
-    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
+    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerre')!;
     expect(seuil.worldOwner).toBe(true);
     expect(seuil.table!.spec, 'le dé de seuil est celui de la donnée (`peripeties.json › tirageQuotidien`)').toEqual(peripetieSeuilDie());
     expect(seuil.table!.result, 'le socle ne tire pas à la place du siège qui possède le monde').toBeUndefined();
@@ -333,10 +333,10 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
     setDesFixes(true);
     setup(map({ perilDie: 8 }));
     get().partirEnVoyage('r1', 'pied');
-    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'landPeril')!;
+    const seuil = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerre')!;
     get().jetImposerLeResultat('cascadeTirage', 8, seuil.id);
     get().jetValider('cascade');
-    const table = get().pendingCascade!.participants.find((s) => s.kind === 'landPerilTable')!;
+    const table = get().pendingCascade!.participants.find((s) => s.kind === 'perilATerreTable')!;
     expect(table, 'le seuil atteint insère la table des péripéties').toBeTruthy();
     expect(table.worldOwner, 'aucun acteur ne la porte : le sentinel la route au siège').toBe(true);
     expect(table.table!.result).toBeUndefined();

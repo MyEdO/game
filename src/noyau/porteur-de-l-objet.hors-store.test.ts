@@ -185,7 +185,7 @@ describe('coop : le geste d’un porteur revient au siège de ce porteur, lu dan
   beforeEach(() => {
     banc.setState({
       party: [heros('a', { wounds: blessuresDeBase(12, 6), items: [potion('pa')] }), heros('b', { wounds: blessuresDeBase(12, 6), items: [potion('pb')] })],
-      net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { a: 0, b: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
+      net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { a: 0, b: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } },
     });
   });
 

@@ -39,7 +39,7 @@ import { stepProlonger } from '../rollSeam';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
- *  l'étape héros (`spellPlusTest`) et du libellé de son choix (`opt.tenterProlonger`). */
+ *  l'étape héros (`sortProlongeTest`) et du libellé de son choix (`opt.tenterProlonger`). */
 const TEST_PROLONGATION = { characteristic: 'force-mentale' } as const satisfies RollRequest['test'];
 
 // ============================================================================================
@@ -60,7 +60,7 @@ function aaBleedUnconsciousDue(c: Combatant): boolean {
 function aaBleedUnconsciousApply(c: Combatant, success: boolean): string | null {
   if (success) return null; // reste conscient (À Terre)
   poserInconscientDeSaignement(c);
-  return t('cond.aaBleedUnconscious', { name: c.label });
+  return t('cond.hemorragieInconscient', { name: c.label });
 }
 /** Seuil de la règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est
  *  inactive (aucun tirage RNG consommé → franchissement de Round iso-comportement). */
@@ -107,7 +107,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
   const steps: BuiltCascadeStep[] = [];
   // 0) Récupération d'États en DONNÉES (Empoisonné Résistance LDB 16 l.70-72 ; plus tard En Flammes/Sonné) —
   //    chaque État porté dont la donnée déclare un `effects: onRoundEnd` à nœud `test` devient une étape
-  //    `triggeredTest` INFLUENÇABLE, bâtie depuis la MÊME donnée que la voie inline (ennemi/auto) et hors-combat
+  //    `testDeclenche` INFLUENÇABLE, bâtie depuis la MÊME donnée que la voie inline (ennemi/auto) et hors-combat
   //    (`simpleTriggeredTestStep`). Les DÉGÂTS périodiques ont DÉJÀ été appliqués par le dispatcher (hook
   //    `end-of-round`) ; seul le TEST passe en cascade. En TÊTE (physiologique).
   steps.push(...collectRoundEndTestSteps(get, c));
@@ -116,7 +116,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
   //    le héros manuel). Le résolveur générique de cascade tire le Test sur `target` ; l'applier applique.
   if (rule('combat-aa-blessures') === 'aa' && aaBleedUnconsciousDue(c)) {
     const step = monoStep({
-      id: `aaBleed-${c.id}`, kind: 'aaBleedUnconscious', icon: 'condition/bleeding', label: t('step.perteDeSang'),
+      id: `aaBleed-${c.id}`, kind: 'hemorragieInconscient', icon: 'condition/bleeding', label: t('step.perteDeSang'),
       actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
       stake: combatStakeRef('combat-aa-hemorragie'),
     });
@@ -138,13 +138,13 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
   }
   // 4) Durée « + » (LDB 47 l.311) : effets GELÉS (spell source marqué) — « vous POUVEZ effectuer un Test
   //    de Force Mentale pour prolonger » = décision OPT-IN, étape de CHOIX (Oui/Renoncer) ; sur Oui,
-  //    l'applier `spellPlusChoice` pousse le Test dans la MÊME cascade (`spellPlusTest`). En QUEUE (le
+  //    l'applier `sortProlongeChoix` pousse le Test dans la MÊME cascade (`sortProlongeTest`). En QUEUE (le
   //    plus optionnel), comme le reste des effets `optional` ci-dessus.
   for (const e of pendingPlusExtensions(c)) {
     const spellId = e.spell?.spellId ?? e.sourceSpellId;
     if (!spellId) continue; // pas de sort source identifiable — jamais atteint (spellDurationPlusSource l'exige déjà)
     const choix = choiceStep({
-      id: `spellPlusChoice-${c.id}-${spellId}`, kind: 'spellPlusChoice', actorId: c.id,
+      id: `sortProlongeChoix-${c.id}-${spellId}`, kind: 'sortProlongeChoix', actorId: c.id,
       icon: 'ui/think', label: stepProlonger(dataLabel(e.label), true),
       options: [{ key: 'yes', label: t('opt.tenterProlonger', { de: deElide(testSkillLabel(TEST_PROLONGATION)!), quoi: e.label }) }, { key: 'no', label: t('opt.renoncer') }],
       defaultChoice: 'no',
@@ -155,12 +155,12 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
   return steps;
 }
 
-// (La Résistance à l'Empoisonné passe par l'applier GÉNÉRIQUE : son étape est de kind `triggeredTest`,
-//  résolue par l'applier `triggeredTest` de la brique cadence-aware — la branche `success`/`fail` de la donnée
+// (La Résistance à l'Empoisonné passe par l'applier GÉNÉRIQUE : son étape est de kind `testDeclenche`,
+//  résolue par l'applier `testDeclenche` de la brique cadence-aware — la branche `success`/`fail` de la donnée
 //  (retire 1+DR, puis Exténué si vidé) y est rejouée.)
 
-// (La récupération du Brisé passe par l'applier GÉNÉRIQUE : son étape est de kind `triggeredTest`,
-//  résolue par l'applier `triggeredTest` de la brique cadence-aware — la branche `success`/`fail` de la donnée
+// (La récupération du Brisé passe par l'applier GÉNÉRIQUE : son étape est de kind `testDeclenche`,
+//  résolue par l'applier `testDeclenche` de la brique cadence-aware — la branche `success`/`fail` de la donnée
 //  (retire 1+DR, puis Exténué si vidé) y est rejouée.)
 
 /** Retrouve l'effet GELÉ (`awaitingExtension`) visé par une étape « Durée + », par son id STABLE
@@ -172,7 +172,7 @@ function findAwaitingExtension(hero: Combatant, step: CascadeStep): ActiveEffect
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['fatigue', 'aaBleedUnconscious', 'spellPlusChoice', 'spellPlusTest'] as const;
+export const GENRES_D_ETAPE = ['fatigue', 'hemorragieInconscient', 'sortProlongeChoix', 'sortProlongeTest'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -183,18 +183,18 @@ export const TABLES = {
       set(touchActors(get()));
       return { consequences: freeCons([line ?? t('turn.effortHeld', { name: hero.label })]) };
     },
-    aaBleedUnconscious: (get, set, step, hero) => {
+    hemorragieInconscient: (get, set, step, hero) => {
       if (!hero || !step.result) return;
       const line = aaBleedUnconsciousApply(hero, step.result.success);
       set(touchActors(get()));
       return { consequences: freeCons([line ?? t('cond.aaBleedHold', { name: hero.label })]) };
     },
     /** Étape de CHOIX « Durée + » (LDB 47 l.311, #543) — « vous POUVEZ effectuer un Test de Force Mentale » :
-     *  sur Oui, pousse le Test dans la MÊME cascade (`spellPlusTest`, réappendu = `liveMerge`) ; sur Renoncer
+     *  sur Oui, pousse le Test dans la MÊME cascade (`sortProlongeTest`, réappendu = `liveMerge`) ; sur Renoncer
      *  (défaut), l'effet expire NORMALEMENT (`resolvePlusExtension(…, false)` — mêmes réversions que
      *  `removeActiveEffects`). L'effet est retrouvé par son id STABLE (`sourceSpellId`, #142) parmi les
      *  effets GELÉS (`awaitingExtension`) du héros — jamais de closure sur l'`ActiveEffect` (coop). */
-    spellPlusChoice: (get, set, step, hero) => {
+    sortProlongeChoix: (get, set, step, hero) => {
       if (!hero) return;
       const effect = findAwaitingExtension(hero, step);
       if (!effect) return;
@@ -205,7 +205,7 @@ export const TABLES = {
         // qui engagent la perception (`LDB 16 l.45`), ce qu'un Test de Force Mentale de prolongation n'est
         // pas. Difficulté : aucune n'est indiquée (LDB 47 l.311) → Intermédiaire.
         pushMono(set, {
-          id: `spellPlusTest-${hero.id}-${spellId}`, kind: 'spellPlusTest',
+          id: `sortProlongeTest-${hero.id}-${spellId}`, kind: 'sortProlongeTest',
           actor: hero, ligne: { test: TEST_PROLONGATION }, difficulty: 'intermediaire',
           icon: 'nav/dice', label: stepProlonger(dataLabel(effect.label)),
           meta: { sourceSpellId: spellId }, stake: combatStakeRef('combat-sort-prolonge', { entryId: spellId }),
@@ -216,10 +216,10 @@ export const TABLES = {
       set(touchActors(get()));
       return { consequences: freeCons(lines) };
     },
-    /** Étape-JET « Durée + » (LDB 47 l.311, #543) — Test de Force Mentale poussé par `spellPlusChoice` sur
+    /** Étape-JET « Durée + » (LDB 47 l.311, #543) — Test de Force Mentale poussé par `sortProlongeChoix` sur
      *  « Oui » : succès → +1 Round (dégelé) ; échec → expiration NORMALE. Fonction PARTAGÉE avec la
      *  résolution PNJ inline (hook `end-of-round`) — `resolvePlusExtension`. */
-    spellPlusTest: (get, set, step, hero) => {
+    sortProlongeTest: (get, set, step, hero) => {
       if (!hero || !step.result) return;
       const effect = findAwaitingExtension(hero, step);
       if (!effect) return;

@@ -85,7 +85,7 @@ describe('un tour complet par le pont', () => {
     const nomDe = (id: string) => suite.vue.projection.combat!.voisins.liste.find((v) => v.id === id)!.nom;
     const nomDeLaCible = nomDe(cible);
     ({ suite } = jouer(clicDuCombattant(suite.vue, cible)!));
-    expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'attackJet' } });
+    expect(suite.vue.projection.fenetre, 'la charge ouvre la fenêtre d’attaque').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDAttaque' } });
     expect(suite.vue.disposition, 'la fenêtre d’attaque se dispose par sa clé et son jet').toBe('cascade/attaque');
     expect(suite.vue.zones['fenetre.reglages'].map((g) => g.id), 'la Localisation est une option du coup').toContain('jetRegler@attaque#localisation');
     expect(suite.vue.zones['fenetre.gestes'].map((g) => g.id), 'le jet est un pas de la séquence').toContain('jetLancer@attaque');
@@ -112,7 +112,7 @@ describe('un tour complet par le pont', () => {
     expect(attendu(suite), 'le jet tombé, la confirmation est attendue').toBe('jetValider@attaque');
     const confirmee = presser(bouton(suite, attendu(suite)));
     suite = confirmee.suite;
-    expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('attackJet');
+    expect(suite.vue.projection.fenetre?.etape?.genre, 'confirmée, la fenêtre d’attaque se ferme').not.toBe('jetDAttaque');
     expect(confirmee.lignes.map((l) => l.texte), 'l’issue confirmée entre au journal de l’écran').toContain((issue as Ligne).texte);
     const barre = suite.vue.zones['combat.offres'];
     const offres = [...barre.flatMap((o) => o.valeurs), ...barre.filter((c) => c.id.startsWith('offre/')).map((c) => ({ ...c, id: c.id.slice('offre/'.length) }))];
@@ -139,7 +139,7 @@ describe('un tour complet par le pont', () => {
     const adversaire = actifDe(suite);
     expect(adversaire.camp, 'les jetons repris, le noyau joue l’adversaire').toBe('enemy');
     const defense = suite.vue.projection.fenetre!;
-    expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'defenseJet' } });
+    expect(defense, 'la fenêtre de la Défense : l’étape du jet de Défense de la cascade').toMatchObject({ cle: 'cascade', etape: { genre: 'jetDeDefense' } });
     expect(corpsDe(suite.vue, 'defense/qui'), 'la Défense dit qui attaque').toMatchObject({ type: 'ligne', texte: expect.stringContaining(adversaire.nom) });
     const etape = suite.vue.zones['fenetre.etape'][0]?.texte;
     expect(suite.vue.disposition, 'la Défense se dispose par sa clé et son jet').toBe('cascade/defense');
@@ -162,7 +162,7 @@ describe('un tour complet par le pont', () => {
     expect(vise.camp, 'l’adversaire vise un héros').toBe('hero');
     expect(defense.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: vise.nom });
     expect(etape, 'l’étape nomme le héros qui se défend').toContain(vise.nom);
-    expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['debutDuRound', 'cascade:attackJet', 'cascade:defenseJet']));
+    expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['debutDuRound', 'cascade:jetDAttaque', 'cascade:jetDeDefense']));
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [] });
   });
 });

@@ -219,7 +219,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const h = hero({});
     const e = enemy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, criticalWounds: 0 });
     setBattle([h, e]);
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     expect(tenuParUnHumain(banc.getState(), 'e1'), 'un siège MJ tient les ennemis').toBe(true);
     // La décision appartient à la VICTIME : le MJ la tient, donc c'est LUI qui tranche — pas l'automate.
     const suspended = applyAttackResult(banc.getState, banc.setState, h, e, critWeapon, critRes());
@@ -236,7 +236,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const h = hero({});
     const e = enemy({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, criticalWounds: 0 });
     setBattle([h, e]);
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     applyAttackResult(banc.getState, banc.setState, h, e, critWeapon, critRes());
     resolveDeviation(banc.getState, banc.setState, tireLaSeverite().deviation!, false); // « Subir »
     const ee = banc.getState().battle!.combatants.find((c) => c.id === 'e1')!;

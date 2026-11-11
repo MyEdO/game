@@ -166,7 +166,7 @@ describe('#1689 T2 — écrans migrés', () => {
   it('PORT (escale) : l’invité voit POURQUOI « Embaucher » lui est fermé', () => {
     const html = renderToStaticMarkup(
       <EscaleTab
-        vessel={vessel} bourse={toMoney({})} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })}
+        vessel={vessel} bourse={toMoney({})} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'invite' } as never })}
         pendingShoreLeave={null}
         onHire={() => {}} onDismiss={() => {}} onAvitailler={() => {}}
       />,
@@ -243,7 +243,7 @@ describe('#1689 T2 — écrans migrés', () => {
   it('ESCALE (relâche) : les deux décisions de l’invité portent le refus du noyau', () => {
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
       pendingShoreLeave: { to: { label: 'Marienburg' } },
-      net: { ...initialNet, mode: 'guest' },
+      net: { ...initialNet, mode: 'invite' },
     });
     const html = renderToStaticMarkup(<ShoreLeaveBody />);
     attendRefusAtteignable(html, 'Accorder la relâche', t('choix.refus.hoteSeul'));
@@ -253,7 +253,7 @@ describe('#1689 T2 — écrans migrés', () => {
   it('CONSEIL DE BORD : chaque paie porte, chez l’invité, le refus du noyau', () => {
     Object.assign(useGame.getInitialState() as unknown as Record<string, unknown>, {
       vessel, pendingCouncil: { today: 7, wageBrass: 240, phase: 'choix' },
-      net: { ...initialNet, mode: 'guest' },
+      net: { ...initialNet, mode: 'invite' },
     });
     const html = renderToStaticMarkup(<CouncilModal />);
     attendRefusAtteignable(html, findMoraleFactor('pas-de-paie')!.label, t('choix.refus.hoteSeul'));

@@ -62,7 +62,7 @@ function combat(hero: Combatant, enemy: Combatant): void {
 }
 
 const etapeTest = (): CascadeStep | undefined =>
-  banc.getState().pendingCascade?.participants.find((s) => s.kind === 'triggeredTest');
+  banc.getState().pendingCascade?.participants.find((s) => s.kind === 'testDeclenche');
 
 /** Applique un Critique à `loc` sur `hero`, dé de sévérité POSÉ (`forcedRoll` = le dé NATUREL). */
 function subirCritique(hero: Combatant, loc: HitLocation, deSeverite: number): void {

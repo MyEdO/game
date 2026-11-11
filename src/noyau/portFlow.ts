@@ -9,7 +9,7 @@
  * Marchandage : Test opposé de Marchandage (l.335/385, « décrit en page 291 de WFJDR ») — jet direct
  * du meilleur PJ soutenu (LDB 12) contre le commerçant (`rollMerchantSkill`) ; le vainqueur module le
  * prix de ±`bargainPct` (`engine/bargain`). Les +DR de vendeur (`buySellerDR`
- * à l'achat, `sellChance.sellerDR` à la vente) s'ajoutent au DR de LEUR camp.
+ * à l'achat, `sellChance.drDuVendeur` à la vente) s'ajoutent au DR de LEUR camp.
  *
  * VENTE (`vendreAuPort`, dernier reliquat #275/#274) : CASCADE (`noyau/rollSeam.ts` `openRoll` +
  * `noyau/cascade.ts`) — Ragot (hero-test), recherche d'acheteur (dé de MONDE par `openWorldTest`,
@@ -17,7 +17,7 @@
  * `engine/seaVoyage.rollMerchantOpposition`, moteur pur) sont chacun une étape routée par la policy
  * M/V/I (`surfaceDeLEtape`) — chaque continuation ENCHAÎNE l'étape suivante depuis l'applier de la
  * précédente (patron `merchantFlow.ts` Ragot→réassort ; défère via `setTimeout` si la cascade est
- * encore EN COURS de commit, patron `seaVoyageFlow.ts` `sea-desertion`). ACHAT (`acheterAuPort`, #266)
+ * encore EN COURS de commit, patron `seaVoyageFlow.ts` `merDesertion`). ACHAT (`acheterAuPort`, #266)
  * suit le MÊME patron : le Marchandage d'achat s'ouvre par `openRoll` (hero-test) — SURFACÉ comme la
  * vente, jamais un jet interne silencieux. Seul le BRADAGE (`jeterAuPort`) reste synchrone (¼ du prix,
  * aucun Test de Marchandage au RAW, MDG 15 l.399).
@@ -259,7 +259,7 @@ function genererEtalPort(get: Get, set: Set, rng: RNG, phase: (label: string) =>
 }
 
 /** DR de camp SIGNÉ pour l'enjeu affiché (`stakes.json`, achat et vente) : le gabarit dit « compte
- *  {sellerDR} DR », le signe fait partie de la valeur — source UNIQUE des deux Marchandages. */
+ *  {drDuVendeur} DR », le signe fait partie de la valeur — source UNIQUE des deux Marchandages. */
 const signedDR = (dr: number) => (dr >= 0 ? `+${dr}` : String(dr));
 
 /** Finalise l'ACHAT une fois le Marchandage résolu (pct connu) : prix = Enc × prix de base × (1 + pct %),
@@ -292,7 +292,7 @@ function finalizePortBuy(get: Get, set: Set, cargoId: string, want: number, base
   // Surcharge de la cale (MDG 12 l.70-75) : au-delà de la Contenance nominale, avertir du palier d'assiette.
   const capacity = findVehicleById(vessel.vehicleId)?.ship?.capacity ?? 0;
   const over = cargoOverload(cargoTotalEnc(nextCargo), capacity);
-  if (over.palierId) lines.push(t('port.overloaded', { pct: over.ratioPct, label: over.label, m: over.mMod, dr: over.manoeuvreDR }));
+  if (over.palierId) lines.push(t('port.overloaded', { pct: over.ratioPct, label: over.label, m: over.mMod, dr: over.drDeManoeuvre }));
   return lines;
 }
 
@@ -320,8 +320,8 @@ export function acheterAuPort(get: Get, set: Set, porteurId: IdDePorteurDeCargai
     skill: { id: 'marchandage' },
     actionLabel: t('port.actionBuy'),
     difficulty: 'intermediaire',
-    stake: combatStakeRef(PORT_BUY_BARGAIN_KIND, { values: { sellerDR: signedDR(sellerDR) } }),
-  }, PORT_BUY_BARGAIN_KIND, { cargoId, want, basePrice: offer.basePrice, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, sellerDR });
+    stake: combatStakeRef(PORT_BUY_BARGAIN_KIND, { values: { drDuVendeur: signedDR(sellerDR) } }),
+  }, PORT_BUY_BARGAIN_KIND, { cargoId, want, basePrice: offer.basePrice, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, drDuVendeur: sellerDR });
 }
 
 /** `TestResult` du héros MARCHANDEUR reconstruit depuis son étape de cascade. `step.base` EST déjà le
@@ -375,13 +375,13 @@ function openPortSellBargainStep(get: Get, set: Set, lotId: IdDeCargaison, sellE
     log(get, set, [finalizePortSale(get, set, lotId, sellEnc, offerPct, 0, t('port.noBargainerSell'))]);
     return;
   }
-  const sellerDR = sellChance(st.port, lot.cargoId, vessel.lastVoyageMilles ?? 0).sellerDR;
+  const sellerDR = sellChance(st.port, lot.cargoId, vessel.lastVoyageMilles ?? 0).drDuVendeur;
   openPartyTest(get, set, {
     skill: { id: 'marchandage' },
     actionLabel: t('port.actionSell'),
     difficulty: 'intermediaire',
-    stake: combatStakeRef(PORT_SELL_BARGAIN_KIND, { values: { sellerDR: signedDR(sellerDR) } }),
-  }, PORT_SELL_BARGAIN_KIND, { lotId, sellEnc, offerPct, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, sellerDR });
+    stake: combatStakeRef(PORT_SELL_BARGAIN_KIND, { values: { drDuVendeur: signedDR(sellerDR) } }),
+  }, PORT_SELL_BARGAIN_KIND, { lotId, sellEnc, offerPct, merchantValue: merchant.value, merchantNegotiator: merchant.negotiator, drDuVendeur: sellerDR });
 }
 
 const PORT_SELL_BARGAIN_KIND = 'port-vente-marchandage';
@@ -401,7 +401,7 @@ function openPortSellBuyerStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc
   }, PORT_SELL_BUYER_KIND, { lotId, sellEnc, retryHalf: allowHalfRetry, attempt });
 }
 
-const PORT_SELL_BUYER_KIND = 'port-sell-buyer';
+const PORT_SELL_BUYER_KIND = 'acheteurAuPort';
 
 /** 1. Test de Ragot PRÉALABLE éventuel (port qui produit / Surplus, l.366-372, hero-test). Aucun
  *  candidat au Ragot → même message qu'avant, aucun jet à ouvrir. */
@@ -422,7 +422,7 @@ export function vendreAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   const chance = sellChance(st.port, lot.cargoId, milles);
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
 
-  if (chance.gossip) {
+  if (chance.ragot) {
     const best = partyAssisted(get().party, { skill: { id: 'ragot' } });
     if (!best) {
       log(get, set, [t('port.noCamelot', { label, relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') })]);
@@ -431,7 +431,7 @@ export function vendreAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
     openPartyTest(get, set, {
       skill: { id: 'ragot' },
       actionLabel: t('port.buyerSearch'),
-      difficulty: chance.gossip.difficulty,
+      difficulty: chance.ragot.difficulty,
       stake: combatStakeRef(PORT_SELL_GOSSIP_KIND),
     }, PORT_SELL_GOSSIP_KIND, { lotId });
     return;
@@ -602,7 +602,7 @@ export const TABLES = {
       const basePrice = Number(step.meta?.basePrice ?? 0);
       const merchantValue = Number(step.meta?.merchantValue ?? 0);
       const merchantNegotiator = !!step.meta?.merchantNegotiator;
-      const sellerDR = Number(step.meta?.sellerDR ?? 0);
+      const sellerDR = Number(step.meta?.drDuVendeur ?? 0);
       const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'marchandage au port');
       const heroTR: TestResult = bargainHeroTR(step, step.result);
       const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
@@ -622,7 +622,7 @@ export const TABLES = {
       const offerPct = Number(step.meta?.offerPct ?? 100);
       const merchantValue = Number(step.meta?.merchantValue ?? 0);
       const merchantNegotiator = !!step.meta?.merchantNegotiator;
-      const sellerDR = Number(step.meta?.sellerDR ?? 0);
+      const sellerDR = Number(step.meta?.drDuVendeur ?? 0);
       const actor = garanti(step.actorId ? actorIn(get(), step.actorId) : undefined, step.actorId, 'marchandage au port');
       const heroTR: TestResult = bargainHeroTR(step, step.result);
       const merchantRoll = rollMerchantOpposition(merchantValue, battleRng());
