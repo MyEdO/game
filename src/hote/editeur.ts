@@ -304,8 +304,8 @@ export interface ZonesDeLEditeur {
    * entrée des fiches commitées qu'il ne couvre pas (`ENTREES_DE_DOSSIER`), à couvrir ;
    *
    * d'une zone d'effet encore, le formulaire tiré du schéma de son Test de traversée (`crossTest`) et de ses effets à
-   * la traversée (`onCross`) et à chaque Round (`perRound`), d'un déclencheur, celui de sa condition d'entrée (`when`),
-   * jamais son flux, chaque élément d'id `valeur/<chemin>`, un élément de liste sous le rang de son chemin : un objet
+   * la traversée (`onCross`) et à chaque Round (`perRound`), d'un déclencheur, celui de sa condition d'entrée (`when`)
+   * et de son flux (`flow`), chaque élément d'id `valeur/<chemin>`, un élément de liste sous le rang de son chemin : un objet
    * présent, sa ligne titre, ses champs, puis « Retirer » si son absence est admise ; absent, « Ajouter », qui pose sa
    * valeur neuve (ses seuls champs requis) ;
    *
@@ -1325,7 +1325,7 @@ function ajoutALaListe(porteur: PorteurDeValeur, f: FieldDesc, liste: readonly u
  *  rendue, si elle coupe la ligne de vue, si elle barre le passage, les entrées de fiche qu'elle couvre, et le formulaire
  *  tiré du schéma de son Test de traversée et de ses effets à la traversée et à chaque Round (`formulaireDe`) ; sa couche ;
  *  d'un déclencheur, s'il ne joue qu'une fois, les entrées de fiche qu'il couvre et le formulaire tiré du schéma de sa
- *  condition d'entrée ; d'une zone de repos, ses lieux et
+ *  condition d'entrée et de son flux ; d'une zone de repos, ses lieux et
  *  sa qualité ; la supprimer. */
 function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
