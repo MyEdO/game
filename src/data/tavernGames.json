@@ -127,7 +127,9 @@
       "attrition": [
         {
           "op": "condition",
-          "id": "extenue",
+          "id": {
+            "id": "extenue"
+          },
           "value": 1
         }
       ],

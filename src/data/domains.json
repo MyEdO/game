@@ -91,7 +91,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "en-flammes"
+                  "id": {
+                    "id": "en-flammes"
+                  }
                 }
               ]
             }
@@ -167,7 +169,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "aveugle"
+                  "id": {
+                    "id": "aveugle"
+                  }
                 }
               ]
             }
@@ -380,7 +384,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "extenue"
+                  "id": {
+                    "id": "extenue"
+                  }
                 }
               ]
             }
@@ -498,12 +504,16 @@
               "ops": [
                 {
                   "op": "removeCondition",
-                  "id": "extenue",
+                  "id": {
+                    "id": "extenue"
+                  },
                   "value": 99
                 },
                 {
                   "op": "removeCondition",
-                  "id": "hemorragique",
+                  "id": {
+                    "id": "hemorragique"
+                  },
                   "value": 99
                 }
               ]

@@ -47,7 +47,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
     const crew = Array.from({ length: 8 }, (_, i) => sailor(`marin-${i}`));
     const r = applyHullCritical(ship, crew, 'voile', makeRNG(1), idsDeTest, 50, 8); // loc 50 → Coque ; d10 8 → Voie d'eau (Éclats 6)
     expect(r.location).toBe('coque');
-    expect(r.hullOps).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 1 }]);
+    expect(r.hullOps).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 1 }]);
     expect(r.shrapnel.map((s) => s.crewId)).toEqual(['marin-0', 'marin-1', 'marin-2', 'marin-3', 'marin-4', 'marin-5']);
     // COMPORTEMENT (pas la représentation) : chaque marin touché perd 9 − BE(3) − PA(0) = 6 PB (13 → 7) ;
     // les 2 marins au-delà de l'Indice 6 restent intacts. La valeur 9 vit dans la donnée (`shrapnelHit`).

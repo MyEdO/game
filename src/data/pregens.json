@@ -1074,7 +1074,7 @@
     "type": "pregens",
     "label": "Erina Eberhauer",
     "descRef": {
-      "book": "pouvoir-derriere-le-trone-compagnon",
+      "book": "pretires-du-pouvoir-derriere-le-trone",
       "ch": "01",
       "parts": [
         {
@@ -1090,9 +1090,9 @@
       ]
     },
     "source": {
-      "book": "pouvoir-derriere-le-trone-compagnon",
+      "book": "pretires-du-pouvoir-derriere-le-trone",
       "page": 1,
-      "note": "PDTC 01 l.157"
+      "note": "PDTP 01 l.157"
     },
     "species": {
       "id": "humains-reiklander"
@@ -1243,7 +1243,7 @@
     "type": "pregens",
     "label": "Golthog",
     "descRef": {
-      "book": "pouvoir-derriere-le-trone-compagnon",
+      "book": "pretires-du-pouvoir-derriere-le-trone",
       "ch": "01",
       "parts": [
         {
@@ -1259,9 +1259,9 @@
       ]
     },
     "source": {
-      "book": "pouvoir-derriere-le-trone-compagnon",
+      "book": "pretires-du-pouvoir-derriere-le-trone",
       "page": 3,
-      "note": "PDTC 01 l.355"
+      "note": "PDTP 01 l.355"
     },
     "species": {
       "id": "ogres"

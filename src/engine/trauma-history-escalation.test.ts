@@ -29,8 +29,8 @@ const C = (over: Partial<Combatant>): Combatant =>
 /** RNG qui débite une séquence fixe (int() ignore min/max — tests ciblés). */
 const seq = (vals: number[]): RNG => desEnSuite(vals, { boucle: true });
 
-const hasCondOp = (ops: { op: string; id?: string }[], id: string) =>
-  ops.some((o) => o.op === 'condition' && o.id === id);
+const hasCondOp = (ops: { op: string; id?: { id: string } }[], id: string) =>
+  ops.some((o) => o.op === 'condition' && o.id?.id === id);
 
 describe('#194 (1) — 2e occurrence d\'une entrée : escalation.onRepeat (Blessure majeure à l\'oreille, LDB 18 l.71)', () => {
   it('1re occurrence → séquelle de base « perte auditive partielle » ; entryId posé', () => {
@@ -84,7 +84,7 @@ describe('#194 (2) — Commotion cérébrale : déclencheur « autre critique t�
       test: {
         kind: 'test', test: { difficulty: 'accessible' },
         success: { kind: 'seq', steps: [] },
-        fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: 'inconscient', value: 1 }], on: 'target' } },
+        fail: { kind: 'do', effect: { type: 'ops', ops: [{ op: 'condition', id: { id: 'inconscient' }, value: 1 }], on: 'target' } },
       },
     },
   });

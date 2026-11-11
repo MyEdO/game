@@ -44,7 +44,7 @@ describe('choix d’un Sort lancé hors combat', () => {
 });
 
 describe('choix à coût d’Avantage hors combat (LDB 14 l.219)', () => {
-  const poser = (id: string): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id, value: 1 }] } });
+  const poser = (id: string): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id }, value: 1 }] } });
   const flux: Flow = { kind: 'seq', steps: [
     { kind: 'choice', prompt: 'Dépenser un Avantage', advantageCost: 1, oui: poser('a-terre'), non: poser('sonne') },
     poser('aveugle'),

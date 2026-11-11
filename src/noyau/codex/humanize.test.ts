@@ -136,8 +136,8 @@ describe('humanize — registre JOUEUR', () => {
   });
 
   it('`condition` et `charMod` disent leur durée propre à ses trois échelles, accordée au réel', () => {
-    expect(humanizeOp({ op: 'condition', id: 'sonne', durationHours: 2 } as GameOp)).toBe("gagne l'État *Sonné* pendant 2 heures");
-    expect(humanizeOp({ op: 'condition', id: 'sonne', durationRounds: 1 } as GameOp)).toBe("gagne l'État *Sonné* pendant 1 Round");
+    expect(humanizeOp({ op: 'condition', id: { id: 'sonne' }, durationHours: 2 } as GameOp)).toBe("gagne l'État *Sonné* pendant 2 heures");
+    expect(humanizeOp({ op: 'condition', id: { id: 'sonne' }, durationRounds: 1 } as GameOp)).toBe("gagne l'État *Sonné* pendant 1 Round");
     expect(humanizeOp({ op: 'charMod', characteristic: 'intelligence', mod: -40, durationMinutes: 30 } as GameOp)).toBe('subit -40 en Intelligence pendant 30 minutes');
   });
 
@@ -147,7 +147,7 @@ describe('humanize — registre JOUEUR', () => {
   });
 
   it('humanizeOp : État en libellé italique, jamais l’id', () => {
-    const op: GameOp = { op: 'condition', id: 'en-flammes' };
+    const op: GameOp = { op: 'condition', id: { id: 'en-flammes' } };
     expect(humanizeOp(op)).toBe("gagne l'État *En flammes*");
     expect(firstKebab(humanizeOp(op))).toBeUndefined();
   });

@@ -85,7 +85,7 @@ function rangeeSonneSurLaCible(): Rangee {
       const f = e.test?.fail as { effect?: { type?: string; on?: string; ops?: GameOp[] } } | undefined;
       if (f?.effect?.on !== 'target' || f.effect.type !== 'ops') continue;
       const ops = f.effect.ops ?? [];
-      if (ops.length === 1 && ops[0].op === 'condition' && (ops[0] as { id: string }).id === 'sonne') return e;
+      if (ops.length === 1 && ops[0].op === 'condition' && (ops[0] as { id: { id: string } }).id.id === 'sonne') return e;
     }
   }
   throw new Error('aucune rangée de Critique à branche `on:target` posant un Sonné — le scan a glissé');
@@ -336,13 +336,13 @@ describe('#1874 C0 — un oubli de routage HURLE, il ne se tait jamais', () => {
   beforeEach(() => { decor(); });
 
   it('T10a — une feuille `on:target` jouée par le marcheur de SCÈNE LÈVE en nommant sa porte', () => {
-    const flow = { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: 'sonne' }] } } as unknown as Flow;
+    const flow = { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'sonne' } }] } } as unknown as Flow;
     expect(() => runFlow(get, set, flow, 'Feuille égarée')).toThrow(/routeTriggeredTest/);
     expect(get().party.every((c) => !(c.conditions ?? []).length), 'rien n’a été appliqué avant le refus').toBe(true);
   });
 
   it('T10b — idem pour `on:caster`', () => {
-    const flow = { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: 'sonne' }] } } as unknown as Flow;
+    const flow = { kind: 'do', effect: { type: 'ops', on: 'caster', ops: [{ op: 'condition', id: { id: 'sonne' } }] } } as unknown as Flow;
     expect(() => runFlow(get, set, flow, 'Feuille égarée')).toThrow(/routeTriggeredTest/);
   });
 

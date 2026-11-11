@@ -61,19 +61,19 @@ describe('miscast.json — `days` formulaire et État RÉCURRENT à durée intri
 
   it('la forme de « Purifier la chair » est ACCEPTÉE : État posé + cause RÉCURRENTE de 1d10 Rounds', () => {
     const ops = [
-      { op: 'condition', id: 'inconscient', value: 1 },
-      { op: 'condition', id: 'inconscient', value: 1, perRound: true, unlessCondition: 'inconscient', durationRounds: { dice: { n: 1, sides: 10 } } },
+      { op: 'condition', id: { id: 'inconscient' }, value: 1 },
+      { op: 'condition', id: { id: 'inconscient' }, value: 1, perRound: true, unlessCondition: { id: 'inconscient' }, durationRounds: { dice: { n: 1, sides: 10 } } },
     ];
     expect(schema.safeParse(table(ops)).success).toBe(true);
   });
 
   it('le dialecte n’accueille QUE ce que la table utilise : `onlyIfCondition` est REFUSÉ (aucune rangée ne le pose)', () => {
-    const ops = [{ op: 'condition', id: 'inconscient', value: 1, onlyIfCondition: 'a-terre' }];
+    const ops = [{ op: 'condition', id: { id: 'inconscient' }, value: 1, onlyIfCondition: { id: 'a-terre' } }];
     expect(refus(table(ops))).toContain('onlyIfCondition');
   });
 
   it('le dialecte est CLOS : un champ qu’il ne déclare pas est REFUSÉ en le nommant', () => {
-    const ops = [{ op: 'condition', id: 'inconscient', value: 1, champInconnu: { dice: { n: 1, sides: 10 } } }];
+    const ops = [{ op: 'condition', id: { id: 'inconscient' }, value: 1, champInconnu: { dice: { n: 1, sides: 10 } } }];
     expect(refus(table(ops))).toContain('champInconnu');
   });
 });
