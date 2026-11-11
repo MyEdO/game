@@ -87,7 +87,8 @@ describe('N+1 — un 9ᵉ document-table lu sans une ligne de moteur', () => {
     expect(trouve.entry.label).toBe('Entaille de morsure');
     expect(trouve.table).toBe('tete');
     expect(trouve.jeu).toBe(JEU_NEUF);
-    expect(critEntryCodexCategory(trouve.table, trouve.jeu)).toBe('criticalsTete');
+    // Aucune catégorie tant que son exposition ne la déclare pas (`niche.categories`, `schemas/defs/criticals.ts`).
+    expect(critEntryCodexCategory(trouve.table, trouve.jeu)).toBeUndefined();
   });
 
   it('la RÉSOLUTION le joue dès que son régime est déclaré — UNE déclaration, aucune branche', () => {

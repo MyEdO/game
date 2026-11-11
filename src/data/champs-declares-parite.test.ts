@@ -1,6 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { skills, traits, talents, trappings, crewTestTypes, lieuxServices, categorieDeLaTableDeMiscast } from './index';
+import { skills, traits, talents, trappings, crewTestTypes, lieuxServices, categorieDeLaNiche } from './index';
+import { suiteDesEntrees } from './schemas/grammaire/cle-d-espace';
 import { MORALE_FACTORS } from '../engine/crewMorale';
 import { MISCAST_TABLES } from '../engine/miscast';
 import { MOUNT_INCIDENTS } from '../engine/travelTables';
@@ -142,7 +143,7 @@ describe('#1318 E4/C4-δ3 — parité des champs déclarés de la couche activit
   });
 
   it('MALADRESSES — la catégorie Codex des lignes de chaque table tirée vient de l’exposition (#1667)', () => {
-    expect(MISCAST_TABLES.map((t) => `${t.id}:${categorieDeLaTableDeMiscast(t.id)}`)).toEqual([
+    expect(MISCAST_TABLES.map((t) => `${t.id}:${categorieDeLaNiche('miscast.json', suiteDesEntrees(t.id))}`)).toEqual([
       'miscast-mineure:miscastMinor', 'miscast-majeure:miscastMajor',
       'miscast-mineure-vdm:miscastMinorVdm', 'miscast-majeure-vdm:miscastMajorVdm', 'miscast-colere:miscastWrath',
     ]);

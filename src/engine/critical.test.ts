@@ -8,6 +8,8 @@ import {
   critEntryCodexCategory, findCritEntrySuffered, critTableRows,
 } from './critical';
 import { removeSurgicalTrauma, permanentAmputations, avecSequelles } from './trauma';
+import { exposition as expositionDesCritiques } from '../data/schemas/defs/criticals';
+import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { applyOps, type GameOp } from './ops';
 import { spellOps, type Flow, type FlowTestNode } from './flowCore';
 import { setRule, resetRule } from './policy';
@@ -631,9 +633,16 @@ describe('findCritEntrySuffered — UNE boucle sur les 8 documents (id subi → 
       expect(found, `${doc.id}`).toBeTruthy();
       expect(found.table).toBe(doc.localisation);
       expect(found.jeu).toBe(doc.jeu);
-      expect(critEntryCodexCategory(found.table, found.jeu)).toBe(
-        `${doc.jeu === 'aa' ? 'aaCriticals' : 'criticals'}${doc.localisation === 'tete' ? 'Tete' : doc.localisation === 'bras' ? 'Bras' : doc.localisation === 'corps' ? 'Corps' : 'Jambe'}`,
-      );
+    }
+  });
+  it('la catégorie Codex de chaque document est celle que déclare son exposition (`niche.categories`)', () => {
+    const edit = expositionDesCritiques.edit;
+    const declarees = 'niche' in edit ? edit.niche.categories : {};
+    expect(CRITIQUE_DOCS).toHaveLength(8);
+    for (const doc of CRITIQUE_DOCS) {
+      const attendue = Object.keys(declarees).find((c) => declarees[c] === suiteDesEntrees(doc.id));
+      expect(attendue, doc.id).toBeDefined();
+      expect(critEntryCodexCategory(doc.localisation, doc.jeu), doc.id).toBe(attendue);
     }
   });
   it('un id inconnu rend `undefined` (aucune levée : le Codex reste défensif)', () => {

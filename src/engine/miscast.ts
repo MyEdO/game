@@ -21,7 +21,8 @@
 import { RNG, rollDice } from './dice';
 import { findTableEntry, tableOuverte, type DeDeTable } from './tables';
 import { rule } from './policy';
-import { categorieDeLaTableDeMiscast, findDomainById, combatStakeRef } from '../data';
+import { categorieDeLaNiche, findDomainById, combatStakeRef } from '../data';
+import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { GameOp, Formula } from './ops';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource, type EffectSourceKind } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -314,7 +315,7 @@ function buildRow(jr: JsonRow & { max: number }): Row {
 
 /** UN DOCUMENT de `miscast.json` : une table tirable, son identité STABLE, son libellé JOUEUR, sa
  *  provenance et ses rangées. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus
- *  (#1467 L1b). La catégorie Codex de ses LIGNES se lit par `categorieDeLaTableDeMiscast` (`src/data`). */
+ *  (#1467 L1b). La catégorie Codex de ses LIGNES se lit par `categorieDeLaNiche` (`src/data`). */
 export interface MiscastTableDef {
   id: string;
   label: string;
@@ -371,11 +372,11 @@ export function miscastDie(tableId: string): DeDeTable {
 }
 
 /** ENTITÉ SOURCE des effets posés par une rangée tirée (`OpsCtx.source` → `ActiveEffect.source`) : la
- *  RANGÉE elle-même, dans la catégorie Codex de SA table (`categorieDeLaTableDeMiscast`, dérivée de
+ *  RANGÉE elle-même, dans la catégorie Codex de SA table (`categorieDeLaNiche`, dérivée de
  *  l'exposition). Une table de plus n'ajoute aucune ligne ici. Absente quand la table n'expose pas ses lignes
  *  (aucune fiche à viser : une pastille reliée à rien ne promet rien, arbitrage user 2026-07-18). */
 export function miscastRowSource(tableId: string, rowId: string): EffectSource | undefined {
-  const categorie = categorieDeLaTableDeMiscast(tableId);
+  const categorie = categorieDeLaNiche('miscast.json', suiteDesEntrees(tableId));
   return categorie && estSourceKind(categorie) ? { kind: categorie, id: rowId } : undefined;
 }
 
@@ -419,9 +420,9 @@ function miscastTables(): Record<MiscastSeverity, Row[]> {
 const doOps = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } });
 
 /** Catégorie Codex de la LIGNE tirée sur la table d'une sévérité sous le jeu EN VIGUEUR — porte (b) de
- *  `entryCategoryOf` (`src/data`) : celle de sa table (`categorieDeLaTableDeMiscast`). */
+ *  `entryCategoryOf` (`src/data`) : celle de sa table (`categorieDeLaNiche`). */
 const categorieDesLignes = (severity: MiscastSeverity): string | undefined =>
-  categorieDeLaTableDeMiscast(miscastTableId(severity));
+  categorieDeLaNiche('miscast.json', suiteDesEntrees(miscastTableId(severity)));
 
 /** Construit le nœud de Flow `test` d'une entrée (« Test de X Difficulté ou onFail » ; palier
  *  `onFailHard` via Condition Flow `slThreshold ≤ dr` dans la branche d'échec — comme Lot 4b). La

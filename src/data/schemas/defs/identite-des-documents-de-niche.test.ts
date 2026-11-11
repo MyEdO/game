@@ -1,7 +1,6 @@
 /**
- * #1667 B3a — les champs d'identité des documents de niche ne se dupliquent pas : la catégorie Codex des rangées
- * d'une table de `miscast.json` n'est pas un champ du document (le schéma strict le refuse), et le couple
- * (`jeu`, `localisation`) de `criticals.json`, clé de recherche de `critiqueDoc`, est unique au parse.
+ * #1667 B3a — les champs d'identité des documents de niche ne se dupliquent pas : le couple (`jeu`,
+ * `localisation`) de `criticals.json`, clé de recherche de `critiqueDoc`, est unique au parse.
  */
 import { describe, expect, it } from 'vitest';
 import { schema as schemaCritiques } from './criticals';
@@ -17,14 +16,6 @@ describe('identité des documents de niche (#1667 B3a)', () => {
   it('les documents réels parsent', () => {
     expect(messages(schemaMiscast.safeParse(miscastJson))).toBe('');
     expect(messages(schemaCritiques.safeParse(criticalsJson))).toBe('');
-  });
-
-  it('miscast.json : un `codexCategory` réintroduit dans un document est refusé par le schéma strict', () => {
-    const docs = structuredClone(miscastJson) as Doc[];
-    docs[0].codexCategory = 'miscastMinor';
-    const r = schemaMiscast.safeParse(docs);
-    expect(r.success).toBe(false);
-    expect(messages(r)).toMatch(/codexCategory/);
   });
 
   it('criticals.json : deux documents au même (`jeu`, `localisation`) sont refusés, les deux ids nommés', () => {

@@ -706,7 +706,7 @@ export type EffectSourceKind =
   | 'tavernGame'
   // Une RANGÉE tirée d'un tableau d'Incantation Imparfaite / de Colère des dieux (`LDB 46`, `LDB 40`) :
   // l'entité source des effets d'un contrecoup est la LIGNE, dont la fiche Codex vit dans la catégorie
-  // de SA table (`categorieDeLaTableDeMiscast`, `src/data`). Le `kind` porte donc le NOM de cette
+  // de SA table (`categorieDeLaNiche`, `src/data`). Le `kind` porte donc le NOM de cette
   // catégorie, et `miscastRowSource` (`engine/miscast.ts`) est le seul à le fabriquer, depuis la donnée.
   | 'miscastMinor' | 'miscastMajor' | 'miscastMinorVdm' | 'miscastMajorVdm' | 'miscastWrath';
 

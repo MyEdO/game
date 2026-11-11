@@ -6,13 +6,14 @@
 import { CHAR_LABELS, DIFFICULTY_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
 import type { IconId } from '../data/icons';
 import {
-  categorieDeLaTableDeMiscast, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
+  categorieDeLaNiche, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
   creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
 } from '../data';
 import { ACTIVITIES } from '../engine/activities';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { deElide } from '../i18n';
 import { MISCAST_TABLES } from '../engine/miscast';
+import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { indiceDePeur, isFrenzied, psychTest, sousPeur } from '../engine/psychology';
 import { etatExige, conditionSeverity } from '../engine/conditions';
 import { roundsLabel } from '../engine/duration';
@@ -208,10 +209,10 @@ const CATALOGUE_HAS: Record<string, (id: string) => boolean> = {
   creatures: byId(creatures),
   activities: byId(ACTIVITIES),
   // Rangées des tableaux d'Incantation Imparfaite / de Colère des dieux, sous la catégorie de CHAQUE
-  // table (`categorieDeLaTableDeMiscast`, dérivée de l'exposition) : une table de plus n'ajoute aucune
+  // table (`categorieDeLaNiche`, dérivée de l'exposition) : une table de plus n'ajoute aucune
   // ligne ici, et une table sans catégorie n'en ouvre aucune (ses lignes n'ont pas de fiche à viser).
   ...Object.fromEntries(MISCAST_TABLES.flatMap((t) => {
-    const categorie = categorieDeLaTableDeMiscast(t.id);
+    const categorie = categorieDeLaNiche('miscast.json', suiteDesEntrees(t.id));
     return categorie ? [[categorie, byId(t.entries)] as const] : [];
   })),
 };

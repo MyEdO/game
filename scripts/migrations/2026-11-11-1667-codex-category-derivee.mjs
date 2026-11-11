@@ -1,7 +1,7 @@
 /**
  * Migration #1667 B3a — `codexCategory` sort des documents de `miscast.json` : la catégorie Codex des
  * rangées d'une table se DÉRIVE de l'exposition (`niche.categories`, `src/data/schemas/defs/miscast.ts`),
- * lue par `categorieDeLaTableDeMiscast` (`src/data/index.ts`). Le champ en était le doublon.
+ * lue par `categorieDeLaNiche` (`src/data/index.ts`). Le champ en était le doublon.
  *
  * Entrées : src/data/miscast.json.
  *

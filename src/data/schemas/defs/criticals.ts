@@ -2,7 +2,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 /** LDB 18 ; AA 07 ; LDB 18 l.53 ; AA 07 l.40 ; AA 07 l.79. */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { suiteAvecPas } from '../grammaire/cle-d-espace';
+import { suiteDesEntrees } from '../grammaire/cle-d-espace';
 import { cibleEtendueSchema, difficultySchema, enumNomme, hitLocationSchema, maisonSchema, plageOuverteSchema, sourceRefSchema, formulaSchema } from '../grammaire/valeurs';
 import { executeesDe, flowSchema, noeudTest, passifsDe } from '../grammaire/mecanique';
 import { refs } from '../grammaire/ref';
@@ -142,9 +142,7 @@ const doc = document(
     codex: { keys: Object.keys(CATEGORIES) },
     edit: {
       niche: {
-        categories: Object.fromEntries(
-          Object.entries(CATEGORIES).map(([categorie, id]) => [categorie, suiteAvecPas(suiteAvecPas('', { cle: id }), { champ: 'entries' })]),
-        ),
+        categories: Object.fromEntries(Object.entries(CATEGORIES).map(([categorie, id]) => [categorie, suiteDesEntrees(id)])),
       },
     },
   },
