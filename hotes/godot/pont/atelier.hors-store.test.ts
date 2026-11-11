@@ -12,6 +12,7 @@ import { describe, expect, it } from 'vitest';
 import { baseDeTest, elementSchema3, glbDElement, vehiculeDeTest } from '../asset/modeles.testkit.ts';
 import { empreinte } from '../asset/empreinte.ts';
 import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
+import { tableTotale } from '../../../src/lib/tableTotale';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
@@ -98,7 +99,7 @@ describe('modelesDeLAtelier', () => {
   });
 
   it('le GLB et la scène fabriquée de chaque base et de chaque élément servi, à un point ou à une ligne, sont nommés, et d’eux seuls', () => {
-    expect(modeles.fichiers).toEqual(Object.fromEntries(['humanoide', 'bouclier', 'epee', 'chemise', 'teteNaine', 'broche'].map((id) => [id, { glb: `${id}.glb`, scene: `${id}.scn` }])));
+    expect(modeles.fichiers).toEqual(tableTotale(['humanoide', 'bouclier', 'epee', 'chemise', 'teteNaine', 'broche'], (id) => ({ glb: `${id}.glb`, scene: `${id}.scn` })));
   });
 
   it('chaque base et chaque élément servi, quelle que soit sa liaison, et eux seuls, donnent leurs surfaces ; une base sans `surfaces`, aucune', () => {
