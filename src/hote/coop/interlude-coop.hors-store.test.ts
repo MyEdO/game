@@ -31,7 +31,7 @@ function heros(label: string, seed: number): Combatant {
 
 const NET_DE_L_HOTE = (invite: string): NetState => ({
   mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'connecte', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  connection: 'connecte', hoteAbsent: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 /** L'hôte (banc du noyau) d'un interlude ouvert, ses Activités ouvertes, et l'invité du siège 1 qui possède `invite`. */
@@ -109,7 +109,7 @@ describe('Interlude en coop : l’invité est refusé sur le héros d’un autre
 describe('Interlude en coop : la table de taverne est celle de l’hôte', () => {
   it('dans le store de l’invité, ouvrir la table et jouer une partie sont refusés, et le refus se dit', () => {
     const [a, b] = [heros('Hôtelier', 1601), heros('Invitée', 1602)];
-    const banc = ouvrirLeBanc({ reglesMaison: { 'tavern-games': true }, etat: { party: [a, b], net: { ...NET_DE_L_HOTE(b.id), mode: 'invite', mySeat: 1 } } });
+    const banc = ouvrirLeBanc({ reglesMaison: { 'jeux-de-taverne': true }, etat: { party: [a, b], net: { ...NET_DE_L_HOTE(b.id), mode: 'invite', mySeat: 1 } } });
     const journal = banc.getState().journal.length;
     banc.actions.ouvrirLesJeux();
     banc.actions.jouerALaTaverne(b.id, { gameId: 'dominos', opponent: { kind: 'heros', id: a.id } });

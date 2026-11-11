@@ -45,7 +45,7 @@ const PORTEURS = [
   },
   {
     porteur: 'species.json › gatedByRule', schema: schemaEspeces, chemin: `${RANG_ESPECE}.gatedByRule`,
-    connue: 'test-auto-bands', etrangere: 'poursuite', catalogue: 'règles optionnelles',
+    connue: 'test-bandes-auto', etrangere: 'poursuite', catalogue: 'règles optionnelles',
     avec: (v: unknown) => retouche(speciesJson, RANG_ESPECE, (e) => ({ ...e, gatedByRule: v })),
   },
   {

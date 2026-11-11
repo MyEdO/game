@@ -266,8 +266,8 @@ export function InterludeScreen({ seam }: { seam?: InterludeSeam } = {}) {
               </section>
             )}
             {/* Jeux de taverne (NADJ 16) — délassement entre deux aventures ; affordance montrée
-                seulement si l'option `tavern-games` est active. Ne consomme pas d'Activité. */}
-            {rule('tavern-games') && <TavernGamesEntry />}
+                seulement si l'option `jeux-de-taverne` est active. Ne consomme pas d'Activité. */}
+            {rule('jeux-de-taverne') && <TavernGamesEntry />}
             <div className="interlude-close">
               <p className="interlude-warning" title={t('interlude.close.warning.title')}>
                 <Icon id="resource/gold-purse" size="sm" /> {t('interlude.close.warning')}

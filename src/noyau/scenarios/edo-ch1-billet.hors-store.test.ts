@@ -95,8 +95,8 @@ function marchander(joueur: (cible: number) => number, vendeur: number): Bargain
 /** Victoire nette de 1 à 5 DR : le joueur réussit d'un Degré (cible − 10), le vendeur fait 27 sur 27 (DR 0). */
 const gagneDeUnPeu = (): BargainOutcome => marchander((cible) => cible - 10, 27);
 
-beforeEach(() => setRule('test-auto-bands', 'off'));
-afterEach(() => { resetRule('test-auto-bands'); vi.restoreAllMocks(); });
+beforeEach(() => setRule('test-bandes-auto', 'off'));
+afterEach(() => { resetRule('test-bandes-auto'); vi.restoreAllMocks(); });
 
 describe('(a) le billet La Diligence → Sept Rayons se paie UNE fois, au départ', () => {
   it('sans marchandage, 4 × 4/- au toit (192 sous) dépasse la bourse tirée du groupe showcase (160 sous) : départ refusé', () => {

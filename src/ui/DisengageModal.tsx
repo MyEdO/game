@@ -183,7 +183,7 @@ export function DisengageModal() {
 
   // ── Phase 'esquive' : Test OPPOSÉ (2 rangées) — le jet est déjà lancé en entrant ici. ──
   const outcome = describeDisengage(pd);
-  const winnerIndex = pd.result === 'success' ? 1 : pd.result === 'failure' ? 0 : null;
+  const winnerIndex = pd.result === 'reussite' ? 1 : pd.result === 'echec' ? 0 : null;
 
   // Test OPPOSÉ Corps à corps (foe) / Esquive (mover) : la Difficulté est DÉCLARÉE UNE fois pour
   // l'opposition entière (LDB 12 l.166 ; jet de combat, LDB 13 l.118).
@@ -209,7 +209,7 @@ export function DisengageModal() {
     row: { combatant: mover, d: moverLine.d },
     rerolled: !!pd.rerolled,
     // Égalité comprise : l'opposition n'est pas emportée (LDB 17 l.68).
-    lost: pd.result !== 'success',
+    lost: pd.result !== 'reussite',
     onReroll: reroll,
     onBonusSL: bonusSL,
     onDarkPact: darkPact,
@@ -230,7 +230,7 @@ export function DisengageModal() {
       rows={[foeRow, moverRow]}
       rolled
       winnerIndex={winnerIndex}
-      outcome={[recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]}
+      outcome={[recapLineOfEvent(ev(pd.result === 'reussite' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]}
       actions={actions}
     />
   );

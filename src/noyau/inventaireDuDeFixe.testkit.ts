@@ -52,10 +52,10 @@ const resultRead = (k: string) => (s: object) => ({ roll: P<{ result: { roll: nu
 const trRead = (k: string) => (s: object) => ({ roll: P<{ roll: { roll: number } }>(s, k).roll.roll, success: P<{ roll: { success: boolean } }>(s, k).roll.success });
 /** Participant à 3 champs : la réussite est le d100 propre (≤ cible). */
 const partRead = (get: (s: object) => { roll: number }) => (s: object) => { const r = get(s); return { roll: r.roll, success: r.roll <= T }; };
-/** Tests OPPOSÉS binaires : `def` = jet de l'acteur, `atk` figé, issue `'success'`. */
+/** Tests OPPOSÉS binaires : `def` = jet de l'acteur, `atk` figé, issue `'reussite'`. */
 const opposedFixture = (key: string, extra: Record<string, unknown>): Fixture => ({
   state: { [key]: { ...extra, def: rateTR, atk: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, result: 'fail' } },
-  read: (s) => ({ roll: P<{ def: { roll: number } }>(s, key).def.roll, success: P<{ result: string }>(s, key).result === 'success' }),
+  read: (s) => ({ roll: P<{ def: { roll: number } }>(s, key).def.roll, success: P<{ result: string }>(s, key).result === 'reussite' }),
 });
 
 export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
@@ -223,7 +223,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   empoignade: opposedFixture('pendingGrapple', { actorId: 'H', targetId: 'E' }),
   distraire: {
     state: { pendingDistraire: { moverId: 'H', targetId: 'E', atk: rateTR, defRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, result: 'fail' } },
-    read: (s) => ({ roll: P<{ atk: { roll: number } }>(s, 'pendingDistraire').atk.roll, success: P<{ result: string }>(s, 'pendingDistraire').result === 'success' }),
+    read: (s) => ({ roll: P<{ atk: { roll: number } }>(s, 'pendingDistraire').atk.roll, success: P<{ result: string }>(s, 'pendingDistraire').result === 'reussite' }),
   },
   manoeuvre: { state: { pendingManeuver: { attackerId: 'H', targetId: 'E', attaque: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
 };

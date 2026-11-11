@@ -408,14 +408,14 @@ describe('Effet openPort (#93 — MÊME chemin que l’accostage en mer)', () =>
 
 describe('Effet openTavernGames (NADJ 16)', () => {
   it('option active → ouvre la modale (state tavernGames posé)', () => {
-    setRule('tavern-games', true);
+    setRule('jeux-de-taverne', true);
     banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2), tavernGames: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'openTavernGames' }]);
     expect(banc.getState().tavernGames).not.toBeNull();
   });
 
   it('option éteinte → sans effet (comme interlude désactivé)', () => {
-    setRule('tavern-games', false);
+    setRule('jeux-de-taverne', false);
     banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 2), tavernGames: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'openTavernGames' }]);
     expect(banc.getState().tavernGames).toBeNull();

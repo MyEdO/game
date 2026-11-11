@@ -76,7 +76,7 @@ describe('Règles optionnelles — verrouillées tant qu’un combat est en cour
 
   it('le CONFORT n’est pas une exemption du registre : il n’y est PAS — la Cadence reste réglable en plein combat (#839)', () => {
     startFixtureCombat();
-    expect(OPTIONAL_RULES.some((r) => r.id === 'combat-cadence')).toBe(false);
+    expect(OPTIONAL_RULES.map((r): string => r.id)).not.toContain('combat-cadence');
     setPreference('combat-cadence', 'auto');
     expect(cadence()).toBe('auto');
     resetPreference('combat-cadence');

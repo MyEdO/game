@@ -76,7 +76,7 @@ Séquence obligatoire :
 
 > « Chaque règle de ce chapitre est optionnelle. » — LDB 21 l.110 (sous le titre `# OPTION : TOUT EST FACULTATIF`, LDB 21 l.108 — l'extraction ouvre la section « Entre deux aventures » en fin de `21 - Psychologie.md`).
 
-**Règle maison recommandée :** la règle optionnelle peut être désactivée entièrement (flag `interlude-enabled`, entrée de `src/data/reglesOptionnelles.json` lue par `src/engine/policy.ts`).
+**Règle maison recommandée :** la règle optionnelle peut être désactivée entièrement (flag `interlude-actif`, entrée de `src/data/reglesOptionnelles.json` lue par `src/engine/policy.ts`).
 
 ---
 
@@ -168,7 +168,7 @@ Les Personnages **elfes** doivent entreprendre **1 Activité** supplémentaire p
 > « Évidemment, si vous pensez que cela pénalise injustement un Personnage elfe, ou rend le jeu moins
 > amusant, n'hésitez pas à ignorer une ou deux restrictions. » — LDB 23 l.54.
 
-**Règle optionnelle :** flag `interlude-elf-duty` (`src/engine/policy.ts` l.342-348).
+**Règle optionnelle :** flag `interlude-devoir-elfique` (`src/engine/policy.ts` l.342-348).
 
 **Implémente :** [État calculé](../implemente.generated.md#4eactivitesamelioration-elfique-prestige-elfique)
 
@@ -590,8 +590,8 @@ Requiert accès à un lieu de repos (hospice, monastère, temple). Contexte : su
 
 | Règle | Source | Flag / Note |
 |-------|--------|-------------|
-| Tout le chapitre est optionnel | LDB 22 l.4 | flag `interlude-enabled` (`policy.ts`) |
-| Prestige Elfique / Devoir elfique | LDB 23 l.54-56 | flag `interlude-elf-duty` (`policy.ts`) |
+| Tout le chapitre est optionnel | LDB 22 l.4 | flag `interlude-actif` (`policy.ts`) |
+| Prestige Elfique / Devoir elfique | LDB 23 l.54-56 | flag `interlude-devoir-elfique` (`policy.ts`) |
 | Revenus : restriction Investir aux Statuts Or/Argent | LDB 23 l.168 | Non vérifiée côté code (arbitrage jeu-sans-MJ) |
 | Activités LDB 6 pendant un voyage | EDOC 5 l.101 | À discrétion du MJ |
 

@@ -540,21 +540,21 @@ describe('#1426 — la POSE fonctionne sur les tables de monde migrées', () => 
   });
 
   it('Événement de bord : l’Humeur de Manann DÉPLACE la fenêtre atteignable de la table (MDG 15 l.85)', () => {
-    const def = tableStepDef('sea-board-events')!;
+    const def = tableStepDef('evenements-de-bord')!;
     expect(def, 'table des événements de bord enregistrée').toBeTruthy();
     // La table court de −9999 à +9999 : le d100 seul n'en atteint qu'une TRANCHE, et l'Humeur la
     // déplace. Une ligne est visable exactement quand sa plage croise [1+mod, 100+mod] — c'est le RAW
     // (une Humeur très haute rend le naufrage inatteignable, une très basse rend la manne impossible).
     const visable = (mod: number, id: string) => {
       const row = def.rows.find((r) => r.id === id)!;
-      return naturalRollForTableRow({ tableId: 'sea-board-events', spec: { n: 1, sides: 100 }, ...(mod ? { mod } : {}) }, row) != null;
+      return naturalRollForTableRow({ tableId: 'evenements-de-bord', spec: { n: 1, sides: 100 }, ...(mod ? { mod } : {}) }, row) != null;
     };
     expect(visable(0, 'triton'), 'sans Humeur, les lignes très négatives sont hors du d100').toBe(false);
     expect(visable(-200, 'triton'), 'Humeur très basse : le triton devient atteignable').toBe(true);
     expect(visable(0, 'manne-de-manann'), 'sans Humeur, la manne est hors d’atteinte').toBe(false);
     expect(visable(200, 'manne-de-manann'), 'Humeur très haute : la manne s’ouvre').toBe(true);
     // Et à Humeur nulle, la tranche 1..100 offre bien des lignes à viser (la pose n'est pas morte).
-    const offertes = def.rows.filter((r) => naturalRollForTableRow({ tableId: 'sea-board-events', spec: { n: 1, sides: 100 } }, r) != null);
+    const offertes = def.rows.filter((r) => naturalRollForTableRow({ tableId: 'evenements-de-bord', spec: { n: 1, sides: 100 } }, r) != null);
     expect(offertes.length, 'au moins une ligne visable sans Humeur').toBeGreaterThan(0);
   });
 });
@@ -726,7 +726,7 @@ function siegeDuMonde(): void {
 function prepareJourTerrestre(seed: number): void {
   seedBattleRng(seed);
   siegeDuMonde();
-  setRule('travel-etapes', true);
+  setRule('voyage-etapes', true);
   set({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, suspendedCascades: [], travelRecap: null, journal: [], battle: null });
   get().chargerLeProjet({ scenes: [scenePlate('monde-a'), scenePlate('monde-b')], entryId: 'monde-a', worldMap: carteMonde, projet: null });
   set({ gameTime: campaignStart() });

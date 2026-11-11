@@ -369,7 +369,7 @@ const BATTERIE: readonly Geste[] = [
     nom: 'un pas',
     monter: monterHub,
     témoin: () => JSON.stringify(useGame.getState().partyPos),
-    agir: async () => { await act(async () => { useGame.getState().stepPartyDir('up'); }); },
+    agir: async () => { await act(async () => { useGame.getState().stepPartyDir('haut'); }); },
   },
   {
     nom: 'un quart de tour',

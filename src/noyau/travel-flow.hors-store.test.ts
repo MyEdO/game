@@ -84,7 +84,7 @@ function runToEnd(maxSteps = 60): void {
 // (b) INFLUENCE : les jets du JOUR terrestre sont des étapes influençables d'une cascade travelDay.
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 describe('cascade du JOUR terrestre — les jets d’Étape sont influençables (purpose travelDay)', () => {
-  beforeEach(() => setRule('travel-etapes', true));
+  beforeEach(() => setRule('voyage-etapes', true));
 
 /** Franchit la Météo d'Étape — étape à TABLE en tête du jour (#1426) dont l'applier INSÈRE les pas qui
  *  dépendent du temps qu'il fait (Résistance de traversée, postes). Sans elle, la séquence du jour n'a
@@ -178,7 +178,7 @@ function passerLaMeteo(): void {
 describe('GOLDEN — issues figées à graine égale', () => {
 
   it('Approvisionnement seed 1 : fourrage réussi (DR 7), 1 ration reçue', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     seedBattleRng(1);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
@@ -195,7 +195,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   });
 
   it('Approvisionnement seed 5 : échec 78/70 → Exténué, 0 ration', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     seedBattleRng(5);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
@@ -210,7 +210,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   });
 
   it('Exposition seed 2 : transi → escalade de froid (3 effets exposition-froid, rang 1)', () => {
-    setRule('travel-etapes', true); setRule('travel-attraper-froid', true);
+    setRule('voyage-etapes', true); setRule('voyage-attraper-froid', true);
     seedBattleRng(2);
     const h = hero({ travelRole: { activityId: 'recuperer' } });
     setup(map({ km: 12, perilDie: 0 }), [h]);
@@ -262,7 +262,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   });
 
   it('Rencontre seed 7 : Succès Impressionnant → « fullRecovery », soigne toutes les Blessures (routé par applyHealWounds, #473)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     seedBattleRng(7);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: blessuresDeBase(12, 5) });
     setup(map({ km: 12, perilDie: 0 }), [h]);
@@ -274,7 +274,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   });
 
   it('Rencontre seed 7 : « fullRecovery » avec munition logée → soin plafonné (LDB 62 l.250)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     seedBattleRng(7);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 60 } as any], wounds: blessuresDeBase(12, 5), conditions: [{ id: 'munition-logee', value: 1 }] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
@@ -285,7 +285,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
   });
 
   it('Rencontre seed 2 : échec d’Approvisionnement → Rencontre dangereuse (texte verbatim)', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     seedBattleRng(2);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [], skills: [{ id: 'survie-en-exterieur', advances: 0 } as any] });
     setup(map({ km: 12, perilDie: 0 }), [h]);
@@ -301,7 +301,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
 describe('enchaînement JOUR → halte de nuit → reprise → arrivée', () => {
 
   it('trajet long (30 km) avec Étapes : le jour ouvre la cascade, sa clôture pose la halte de nuit', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     seedBattleRng(1);
     const h = hero({ travelRole: { activityId: 'approvisionnement' }, items: [ration('r1'), ration('r2')], skills: [{ id: 'survie-en-exterieur', advances: 40 } as any] });
     setup(map({ km: 30, perilDie: 0 }), [h]);
@@ -346,7 +346,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
   }
 
   it('conducteur JOUEUR (humanControlled) → la cascade travelDay s’ouvre sur une étape rythmeForceATerre influençable', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     seedBattleRng(1);
     const h = hero({ id: 'h', skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     banc.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
@@ -362,7 +362,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
   });
 
   it('conducteur SANS pilote humain (aiControlled) → repli inline (aucune étape rythmeForceATerre), même formule', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     seedBattleRng(1);
     const h = hero({ id: 'h', aiControlled: true, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     banc.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
@@ -378,7 +378,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
   });
 
   it('aucun conducteur ne peut tenter la Conduite d’attelage (Inconscient) → la journée suit la cadence de base (LDB 16 l.113)', () => {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     seedBattleRng(1);
     const h = hero({ id: 'h', aiControlled: true, conditions: [{ id: 'inconscient', value: 1 }] as never, skills: [{ id: 'conduite-d-attelage', advances: 40 } as any] });
     banc.setState({ party: [h], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });
@@ -438,7 +438,7 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
 
 describe('#341 — breakdown de mods sur les rangées BATCH d’activité (source unique avec le mono)', () => {
   it('Pluie diluvienne : Plein air porte la ligne « Météo » ; carto (Métier=Dex) la ligne « Tests physiques »', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
     const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
@@ -457,7 +457,7 @@ describe('#341 — breakdown de mods sur les rangées BATCH d’activité (sourc
   /** #1153 L2bis (sonde du juge B3) : la rangée batch monte sa ligne par le MONTEUR — un `mods` posé
    *  APRÈS l'étalement l'écrasait, et l'écart météo repartait en chip « autres ». */
   it('la rangée d’Étape n’a AUCUNE part anonyme : base nue, chips météo, cible et écrêtage du monteur', () => {
-    setRule('travel-etapes', true);
+    setRule('voyage-etapes', true);
     const hOut = hero({ id: 'hOut', travelRole: { activityId: 'plein-air' }, skills: [{ id: 'survie-en-exterieur', advances: 20 } as never] });
     const hCarto = hero({ id: 'hCarto', travelRole: { activityId: 'etablir-cartes' }, skills: [{ id: 'metier', spec: 'cartographe', advances: 20 } as never] });
     set({ party: [hOut, hCarto], travelPlan: {
@@ -534,7 +534,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
   }
 
   function ouvreJournee(): void {
-    setRule('travel-allures', true);
+    setRule('voyage-allures', true);
     seedBattleRng(1);
     const { lead, aide } = attelage();
     banc.setState({ party: [lead, aide], gameTime: campaignStart(), travelPlan: null, pendingRest: null, pendingCascade: null, travelRecap: null, journal: [] });

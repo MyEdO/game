@@ -41,11 +41,11 @@ describe("CoopLobby -- libelles i18n Phase D", () => {
     expect(t("coop.title.guest")).toBe("Salon — invité");
     expect(t("coop.title.host")).toBe("Salon — hôte");
     expect(t("coop.back.quit")).toBe("Quitter");
-    expect(t("coop.host.invite.section")).toBe("Inviter — partagez le code");
-    expect(t("coop.host.players.section")).toBe("Joueurs connectés");
-    expect(t("coop.host.assign.section")).toBe("Attribution des héros");
-    expect(t("coop.host.compose")).toBe("Composer le groupe →");
-    expect(t("coop.host.loadGame")).toBe("Charger une partie");
+    expect(t("coop.hote.inviter.section")).toBe("Inviter — partagez le code");
+    expect(t("coop.hote.joueurs.section")).toBe("Joueurs connectés");
+    expect(t("coop.hote.attribution.section")).toBe("Attribution des héros");
+    expect(t("coop.hote.composer")).toBe("Composer le groupe →");
+    expect(t("coop.hote.chargerUnePartie")).toBe("Charger une partie");
     expect(t("coop.invite.attente.reconnexion")).toBe("Reconnexion en cours…");
   });
 });

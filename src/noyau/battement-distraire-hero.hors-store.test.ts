@@ -84,7 +84,7 @@ describe('Battement & Distraire — flux HÉROS (par modale, pas l’IA)', () =>
     expect(pd!.defRoll).toBeTruthy(); // Calme du foe déjà figé
 
     banc.getState().jetLancer('distraire'); // le flux tire l’Athlétisme, opposé au Calme figé
-    expect(banc.getState().pendingDistraire!.result).toBe('success');
+    expect(banc.getState().pendingDistraire!.result).toBe('reussite');
     banc.getState().jetValider('distraire'); // Appliquer → resolveDistraire
 
     const st = banc.getState();

@@ -28,7 +28,7 @@ interface RollLineBase {
    *  l.229). Les déclarer ici les compte UNE fois — dans la cible et sur la ligne. */
   surLaCible?: ModLine[];
   /** PLAFONNEMENT des `surLaCible` (`LDB 14 l.91-96`) : le monteur combine lui-même les
-   *  modificateurs (`combineMods`, plafonds data-driven `combat-diff-cap-bonus`/`-malus`, appliqués
+   *  modificateurs (`combineMods`, plafonds data-driven `combat-plafond-bonus-difficulte`/`-malus`, appliqués
    *  aux seules `famille: 'circonstance'`) et, quand la combinaison diffère de la somme brute, ÉMET
    *  l'écart en ligne NOMMÉE « plafond Difficultés » liée à sa fiche de règle. Sans ce mode, un
    *  appelant qui plafonnait sa cible à la main laissait l'amputation en chip « autres ». Réservé aux

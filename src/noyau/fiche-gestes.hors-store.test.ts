@@ -245,7 +245,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
       expect(dans.refus, 'témoin : la Caractéristique de carrière reste offerte').toBeNull();
       partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, dans.key] });
       expect(partie.etat().party[0].xp).toBe(5000 - dans.nextCost);
-    }, { ...ENTREES, reglesMaison: { 'advancement-mentor': true } });
+    }, { ...ENTREES, reglesMaison: { 'progression-mentor': true } });
   });
 
   it('à 0 PX : la vue refuse l’Augmentation au coût près, et le geste ne dépense rien', () => {

@@ -80,7 +80,7 @@ describe('ecrireActeur — chaque handler migré écrit là où le jeu lit (#231
   }
 
   it('ambitionLost en combat : le Trauma acquis atteint le combattant ET le groupe', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     try {
       const hero = poserGroupe();
       entrerEnCombat();
@@ -92,7 +92,7 @@ describe('ecrireActeur — chaque handler migré écrit là où le jeu lit (#231
       expect(auCombat(hero.id).psychTraits?.length).toBeGreaterThan(0);
       expect(auGroupe(hero.id).psychTraits).toEqual(auCombat(hero.id).psychTraits);
     } finally {
-      resetRule('psych-acquisition-optional');
+      resetRule('psycho-acquisition-optionnelle');
     }
   });
 

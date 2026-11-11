@@ -115,7 +115,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
   it('la table déclarée SUIT le jeu de tables en vigueur (LDB, ou VDM sous la règle optionnelle)', () => {
     expect(miscastTableId('mineure')).toBe('miscast-mineure');
     expect(miscastTableId('colere')).toBe('miscast-colere');
-    setRule('magic-vdm-incantation', true);
+    setRule('magie-vdm-incantation', true);
     expect(miscastTableId('mineure')).toBe('miscast-mineure-vdm');
     expect(miscastTableId('majeure')).toBe('miscast-majeure-vdm');
     expect(miscastTableId('colere'), 'la Colère des dieux n’est pas révisée par VDM').toBe('miscast-colere');

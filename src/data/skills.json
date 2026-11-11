@@ -585,7 +585,7 @@
     "acces": "base",
     "altChar": {
       "gatedByRule": {
-        "id": "test-intimidation-char"
+        "id": "test-intimidation-carac"
       },
       "chars": {
         "FM": "force-mentale",

@@ -1146,8 +1146,7 @@ function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onCh
         <div className="ed-subfield" key={cles[i]}>
           <div className="tf-row">
             <label className="dr">Règle
-              <select aria-label={`Règle de la variante ${i + 1}`} value={v.when.rule} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, when: { ...x.when, rule: e.target.value } } : x)))}>
-                <option value="">— (choisir une règle optionnelle) —</option>
+              <select aria-label={`Règle de la variante ${i + 1}`} value={v.when.rule} onChange={(e) => set(list.map((x, j) => (j === i ? { ...x, when: { ...x.when, rule: OPTIONAL_RULES[e.target.selectedIndex].id } } : x)))}>
                 {OPTIONAL_RULES.map((r) => <option key={r.id} value={r.id}>{r.label} — {r.id}</option>)}
               </select>
             </label>
@@ -1168,7 +1167,7 @@ function VariantsField({ chemin, value, resolved, entryFields, allFeatures, onCh
           {resolved.includes('combat') && <CombatField value={v.combat as Partial<CombatFeature> | undefined} allFeatures={allFeatures} onChange={(c) => patch(i, 'combat', c)} />}
         </div>
       ))}
-      <button className="btn small" onClick={() => set([...list, { when: { rule: '' } }])}>+ Variante</button>
+      <button className="btn small" onClick={() => set([...list, { when: { rule: OPTIONAL_RULES[0].id } }])}>+ Variante</button>
     </div>
   );
 }

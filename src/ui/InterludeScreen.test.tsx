@@ -751,14 +751,14 @@ describe('InterludeScreen — catalogue (#3059 S5) : chaque volet lit les cibles
     expect(raisonDuGeste(() => useGame.getState().solderLaFaveur(heroId, 'favor-1'))).toEqual([raison]);
   });
 
-  it('Soutien d’une préparation : la note est la décision du noyau (`interlude-assist-costs-activity`)', () => {
+  it('Soutien d’une préparation : la note est la décision du noyau (`interlude-assister-coute-un-creneau`)', () => {
     const note = (cout: boolean) => {
-      setRule('interlude-assist-costs-activity', cout);
+      setRule('interlude-assister-coute-un-creneau', cout);
       try {
         const seam = buildSeam();
         useGame.getState().amorcerLaBataille({ allyMight: 50, enemyMight: 55, plannedRounds: 3 });
         return mdToPlain(renderToStaticMarkup(<InterludeScreen seam={aAltdorf(seam, 'planification')} />));
-      } finally { resetRule('interlude-assist-costs-activity'); }
+      } finally { resetRule('interlude-assister-coute-un-creneau'); }
     };
     expect(note(false)).toContain('Les autres PJ peuvent prêter leur Soutien, gratuitement.');
     expect(note(true)).toContain('Les autres PJ peuvent prêter leur Soutien — chacun y dépense un créneau.');

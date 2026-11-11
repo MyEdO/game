@@ -22,10 +22,10 @@ function soldat(): Combatant {
 
 describe('Fiches — la valeur de Compétence est celle du moteur (#3059)', () => {
   beforeAll(() => { (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true; });
-  afterEach(() => { demonterRacines(); resetRule('test-intimidation-char'); });
+  afterEach(() => { demonterRacines(); resetRule('test-intimidation-carac'); });
 
   it('HeroSheet : Intimidation à FM 50 + 10, Exténué → 50 roulé, sa puce d’État, le libellé de la Caractéristique au survol', () => {
-    setRule('test-intimidation-char', 'FM');
+    setRule('test-intimidation-carac', 'FM');
     const h = soldat();
     useGame.setState({ party: [h], battle: null });
     const { container } = monterRacine(<HeroSheet hero={h} header={false} skillsVariant="valeurs" />);
@@ -36,7 +36,7 @@ describe('Fiches — la valeur de Compétence est celle du moteur (#3059)', () =
   });
 
   it('Avancement : Intimidation à FM 50 + 10 → Niveau de Compétence 60, hors États', () => {
-    setRule('test-intimidation-char', 'FM');
+    setRule('test-intimidation-carac', 'FM');
     const html = renderToStaticMarkup(<AdvancementPanel hero={soldat()} />);
     expect(html).toContain('Intimidation <em>60</em>');
   });

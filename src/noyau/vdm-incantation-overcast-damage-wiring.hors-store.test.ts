@@ -1,6 +1,6 @@
 /**
  * Câblage RÉEL de l'axe Dégâts de la Surincantation révisée (`VDM 02 l.198`, option
- * `magic-vdm-incantation`) jusqu'au CHEMIN DE PROD : Carreau (Projectile magique) lancé via le
+ * `magie-vdm-incantation`) jusqu'au CHEMIN DE PROD : Carreau (Projectile magique) lancé via le
  * noyau, DR alloués à l'axe Dégâts par le VRAI réglage de modale (`incantation.surincantationDegats`), appliqué
  * par la VRAIE `jetValider('incantation')` (→ `applyCast`) — aucun budget/damage recalculé à la main pour
  * l'occasion. Le jet est FIGÉ AVANT l'allocation (`evaluateMissile` à 0 pas, exactement ce que fait
@@ -23,7 +23,7 @@ import { cliquerSurLeCombattant } from './combatOrParty';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 function setup() {
   const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });

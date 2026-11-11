@@ -45,7 +45,7 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
     });
   });
   describe('Mort Subite — portée réglable (LDB 18 l.42) ; jamais les PJ', () => {
-    afterEach(() => resetRule('combat-sudden-death'));
+    afterEach(() => resetRule('combat-mort-subite'));
     const fig = mk({ kind: 'enemy' });
     const vip = mk({ kind: 'enemy', important: true } as Partial<Combatant>);
     const hero = mk({ kind: 'hero' });
@@ -55,12 +55,12 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
       expect(usesSuddenDeath(hero)).toBe(false);
     });
     it("'tous' : tous les non-héros (PNJ important inclus), PJ jamais", () => {
-      setRule('combat-sudden-death', 'tous');
+      setRule('combat-mort-subite', 'tous');
       expect(usesSuddenDeath(vip)).toBe(true);
       expect(usesSuddenDeath(hero)).toBe(false);
     });
     it("'off' : personne, même les figurants", () => {
-      setRule('combat-sudden-death', 'off');
+      setRule('combat-mort-subite', 'off');
       expect(usesSuddenDeath(fig)).toBe(false);
     });
   });

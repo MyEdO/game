@@ -21,7 +21,7 @@ import { findSpellById } from '../data/index';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const RULE = 'magic-vdm-incantation';
+const RULE = 'magie-vdm-incantation';
 
 /** Sorcier quasi certain de réussir son Test d'Incantation (DR élevé) — isole le doublement du bruit
  *  du d100, comme les autres câblages de ce fichier (`sea-magic-state.hors-store.test.ts`). */

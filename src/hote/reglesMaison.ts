@@ -6,7 +6,7 @@
  */
 import {
   poserLesReglesMaisonPersistees, retablirUneRegleMaison, ruleOverrides, surchargerUneRegleMaison,
-  type Jeu, type RetraitsDElagage, type RuleValue,
+  type Jeu, type RegleOptionnelleId, type RetraitsDElagage, type RuleValue,
 } from '../noyau/index';
 import { lireDictionnaire, type Stockage } from '../lib/stockage';
 import { prendreLeTemoin, temoigner, TEMOIN_DES_RETRAITS } from './temoin';
@@ -32,12 +32,12 @@ export function prendreLeTemoinDesReglesMaison(stockage: Stockage | null): Retra
 }
 
 /** Surcharge la règle `id` sous le verrou de `etat` (`surchargerUneRegleMaison`) et persiste ; rien sinon. */
-export function reglerUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle'>, id: string, valeur: RuleValue): void {
+export function reglerUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle'>, id: RegleOptionnelleId, valeur: RuleValue): void {
   if (surchargerUneRegleMaison(etat, id, valeur)) enregistrer(stockage);
 }
 
 /** Remet la règle `id` à son défaut sous le verrou de `etat` (`retablirUneRegleMaison`) et persiste ; rien sinon. */
-export function remettreUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle'>, id: string): void {
+export function remettreUneRegleMaison(stockage: Stockage | null, etat: Pick<Jeu, 'battle'>, id: RegleOptionnelleId): void {
   if (retablirUneRegleMaison(etat, id)) enregistrer(stockage);
 }
 

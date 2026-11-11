@@ -106,7 +106,7 @@ describe('#57 — recherche active de Disponibilité (LDB 59 l.50)', () => {
   });
 
   it('système simplifié (pas de Test de Disponibilité) : recherche = no-op (rien à améliorer, pas de journée perdue)', () => {
-    setRule('market-mode', 'simplifie');
+    setRule('marche-mode', 'simplifie');
     banc.setState({ party: [gossiper(90)], scene: merchantScene(), merchantStocks: {}, gameTime: 8 * 60 });
     banc.getState().ouvrirLeMarchand('pnj');
     const t0 = banc.getState().gameTime;

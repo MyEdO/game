@@ -211,7 +211,7 @@ describe('Gate d’Action par Round (combat/turnHooks) — canal COMBAT « Test 
   it('base = valeur de Test de combat BRUTE, la pénalité d’États est comptée UNE fois et nommée', () => {
     const porteur = hero({
       id: 'po', label: 'Porteur', conditions: ETAT,
-      activeEffects: [{ id: 'racine', label: 'Racine de mandragore', actGate: { characteristic: 'force-mentale' } }] as never,
+      activeEffects: [{ id: 'racine', label: 'Racine de mandragore', testDAgir: { characteristic: 'force-mentale' } }] as never,
     });
     setBattle([porteur], 'po');
 
@@ -248,7 +248,7 @@ describe('Résilience d’un contributeur d’équipage (shipManeuver) — cible
     // Un jet FORCÉ par la Résilience vise la MÊME cible qu'un jet roulé : `clampTarget`
     // (`engine/tests.ts`) la borne à `targetMax`, et le DR se compte sur cette cible (LDB 12 l.92).
     // `targetMax` vaut 99 tant que la règle optionnelle « Tests supérieurs à 100 % » (LDB 12
-    // l.73-77, `test-over-100`) est inactive — c'est le régime par défaut mesuré ici.
+    // l.73-77, `test-plus-de-100`) est inactive — c'est le régime par défaut mesuré ici.
     const barreur = hero({
       id: 'ba', label: 'Barreur', conditions: ETAT,
       characteristics: { 'capacite-de-combat': 35, 'capacite-de-tir': 40, force: 35, endurance: 40, initiative: 30, agilite: 105, dexterite: 32, intelligence: 40, 'force-mentale': 35, sociabilite: 30 },
@@ -382,7 +382,7 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
    * MATRICE du mode plafonné (`LDB 14 l.91-96`) — les six régimes de la règle, jugés sur TROIS
    * grandeurs : la cible que le combat applique, la DIFFICULTÉ que la ligne annonce, et l'écart
    * base→cible intégralement nommé. Les plafonds sont lus de la POLICY
-   * (`combat-diff-cap-bonus`/`-malus`, règles optionnelles), jamais écrits en dur : un jeu de
+   * (`combat-plafond-bonus-difficulte`/`-malus`, règles optionnelles), jamais écrits en dur : un jeu de
    * valeurs maison doit faire bouger l'attendu avec le moteur.
    *
    * DEUX formes d'annonce, une seule règle : `palier` = un CRAN de la table que les circonstances
@@ -391,8 +391,8 @@ describe('SONDES PROMUES (#1153 L1b) — ce que le monteur NE fait PAS encore', 
    * en fait « Combinée (+30) »). Dans les DEUX cas les circonstances quittent les chips et la
    * composition est portée par la Difficulté. Sans circonstance : rien à composer.
    */
-  const capB = rule('combat-diff-cap-bonus') as number;
-  const capM = rule('combat-diff-cap-malus') as number;
+  const capB = rule('combat-plafond-bonus-difficulte') as number;
+  const capM = rule('combat-plafond-malus-difficulte') as number;
   const MATRICE: { nom: string; mods: ModLine[]; attendu: number; mord: boolean; palier?: Difficulty; combine?: number }[] = [
     { nom: 'aucun plafond ne mord (un mod au jet, une circonstance)', mods: [{ label: 'Sonné', value: -10, famille: 'jet' }, { label: 'À Terre', value: 20, famille: 'circonstance' }], attendu: 10, mord: false, palier: 'accessible' },
     { nom: 'MALUS de CIRCONSTANCES mordant (Σ −60)', mods: [{ label: 'Brouillard', value: -20, famille: 'circonstance' }, { label: 'Localisation visée', value: -20, famille: 'circonstance' }, { label: 'Main secondaire', value: -20, famille: 'circonstance' }], attendu: -capM, mord: true, palier: 'tresDifficile' },
@@ -592,11 +592,11 @@ describe('DIFFICULTÉ COMPOSÉE — contrat balayé sur tout le produit cartési
     expect(echecs.slice(0, 20)).toEqual([]);
   });
 
-  /** Le plafond est une DONNÉE de policy (`combat-diff-cap-malus`), pas une constante : sous un jeu
+  /** Le plafond est une DONNÉE de policy (`combat-plafond-malus-difficulte`), pas une constante : sous un jeu
    *  maison à −50 (l'échelle EDO descend jusqu'à « Impossible (−50) »), la MÊME règle doit tenir —
    *  et une somme amputée à −50 y trouve un cran là où −30 n'en trouvait plus. */
   it('les six invariants tiennent avec un plafond de POLICY à −50 (échelle étendue EDO)', () => {
-    setRule('combat-diff-cap-malus', 50);
+    setRule('combat-plafond-malus-difficulte', 50);
     cas = 0; composees = 0; combinees = 0; echecs.length = 0;
     balaye();
     expect(combineMods([{ label: 'A', value: -40, famille: 'circonstance' }, { label: 'B', value: -40, famille: 'circonstance' }]), 'la policy doit VRAIMENT avoir bougé').toBe(-50);

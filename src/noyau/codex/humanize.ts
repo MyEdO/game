@@ -578,7 +578,7 @@ export function humanizeOp(o: GameOp): string {
     case 'handGate': return t('codex.op.handGate');
     case 'senseLoss': return t('codex.op.perd', { quoi: libelleDeValeur(senseSchema, o.sense) });
     case 'loseTurn': return t('codex.op.perd', { quoi: o.what ? libelleDeValeur(loseTurnWhatSchema, o.what) : t('codex.op.loseTurn.tout') });
-    case 'actGate': return t('codex.op.actGate', { car: CHAR_LABELS[o.characteristic] });
+    case 'testDAgir': return t('codex.op.testDAgir', { car: CHAR_LABELS[o.characteristic] });
     case 'diseaseTestMod': return t(o.amount >= 0 ? 'codex.op.diseaseTestMod.gagne' : 'codex.op.diseaseTestMod.subit', { mod: signe(o.amount) });
     case 'suppressSymptom': return t('codex.op.suppressSymptom', { nom: symptomLabel(o.symptomId) });
     case 'aggravateSymptom': return t('codex.op.aggravateSymptom', { nom: symptomLabel(o.symptomId) });

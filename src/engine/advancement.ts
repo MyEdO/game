@@ -177,7 +177,7 @@ export interface CareerChangeContext {
   targetLevelExists: boolean;
   /** Option MJ (LDB 07 l.140 + l.148, « Avec l'accord du MJ ») : autoriser un SAUT de Niveau (même
    *  Carrière, Niveau supérieur non-adjacent) ET l'accès au MÊME Niveau d'une autre Carrière de la
-   *  Classe. Piloté par la règle optionnelle `advancement-career-jump` côté state ; false = RAW strict. */
+   *  Classe. Piloté par la règle optionnelle `progression-saut-de-niveau` côté state ; false = RAW strict. */
   gmJump?: boolean;
 }
 
@@ -221,7 +221,7 @@ export function validateCareerChange(
  * Mentor requis (LDB 07 l.89 : « le MJ peut exiger que vous trouviez un mentor qui puisse vous
  * enseigner cette formation inhabituelle ») : une Augmentation HORS carrière (dont le coût est déjà
  * DOUBLÉ) est BLOQUÉE tant qu'aucun mentor n'est disponible, quand la règle optionnelle est active.
- * `policyOn` = règle `advancement-mentor` ; `hasMentor` = flag de groupe/scène. Renvoie vrai = bloqué.
+ * `policyOn` = règle `progression-mentor` ; `hasMentor` = flag de groupe/scène. Renvoie vrai = bloqué.
  */
 export function mentorBlocks(inCareer: boolean, policyOn: boolean, hasMentor: boolean): boolean {
   return !inCareer && policyOn && !hasMentor;

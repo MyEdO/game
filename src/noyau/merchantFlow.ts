@@ -183,11 +183,11 @@ function partyStatusBudgetBrass(party: Combatant[]): number {
 function marketRule(ent: SceneEntity | undefined, key: 'guild' | 'marketMode' | 'tenirComptes'): RuleValue {
   const override = ent?.merchant?.[key];
   if (override !== undefined) return override;
-  const ruleId = key === 'guild' ? 'market-guild' : key === 'marketMode' ? 'market-mode' : 'market-tenir-comptes';
+  const ruleId = key === 'guild' ? 'marche-guildes' : key === 'marketMode' ? 'marche-mode' : 'marche-tenir-comptes';
   return rule(ruleId);
 }
 
-/** « Tenir les comptes » (LDB 59 l.9-11, option `market-tenir-comptes`) : un objet dont le prix listé
+/** « Tenir les comptes » (LDB 59 l.9-11, option `marche-tenir-comptes`) : un objet dont le prix listé
  *  est ≤ au niveau de Statut du groupe s'achète « autant de fois que nécessaire », sans débit. */
 function comptesFree(ent: SceneEntity | undefined, party: Combatant[], listedBrass: number): boolean {
   return !!marketRule(ent, 'tenirComptes') && listedBrass > 0 && listedBrass <= partyStatusBudgetBrass(party);
@@ -389,7 +389,7 @@ function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype
   // Re-stock dans le temps (#T3) : on conserve le stock DÉPLÉTÉ entre visites ; on ne re-tire un stock
   // FRAIS (nouvelle Disponibilité) que si `restockPeriod` s'est écoulé depuis le dernier tirage.
   // Règles optionnelles « Marché » (LDB 59/60) : Guildes d'Artisans (Atouts/Défauts inversent la
-  // Disponibilité) ; système simplifié (pas de Test de Disponibilité) ; cf. `market-guild`/`market-mode`.
+  // Disponibilité) ; système simplifié (pas de Test de Disponibilité) ; cf. `marche-guildes`/`marche-mode`.
   if (!prev || now - prev.rolledAt >= restockPeriod) {
     // #273 dernier volet — porte : siège MJ présent → tirage VISIBLE-LANÇABLE (jamais silencieux) ;
     // sinon → inline INCHANGÉ (zéro friction locale).
@@ -994,12 +994,12 @@ function cibleAEvaluer(s: Jeu, uid: string): { target: Parameters<typeof openApp
 type CibleDEvaluation = CibleDeDetection & { label: string; appraiseTriedDay?: number };
 
 /** Les jours qui restent, au jour `jour`, avant de retenter l'Évaluation manquée de `cible` (règle maison
- *  `market-evaluation-delai-jours`) ; 0 : elle se retente. */
+ *  `marche-evaluation-delai-jours`) ; 0 : elle se retente. */
 const joursAvantDeRetenter = (cible: CibleDEvaluation, jour: number): number =>
-  (cible.appraiseTriedDay === undefined ? 0 : Math.max(0, cible.appraiseTriedDay + Number(rule('market-evaluation-delai-jours')) - jour));
+  (cible.appraiseTriedDay === undefined ? 0 : Math.max(0, cible.appraiseTriedDay + Number(rule('marche-evaluation-delai-jours')) - jour));
 
 /** Refus de l'Évaluation (`evaluation`) ou de la Détection d'artefact (`detection`) de `cible` au jour `jour` : manquée trop
- *  récemment (règle maison `market-evaluation-delai-jours`), personne ne peut la tenter (LDB 09 l.30), ou chaque
+ *  récemment (règle maison `marche-evaluation-delai-jours`), personne ne peut la tenter (LDB 09 l.30), ou chaque
  *  détecteur l'a déjà tentée (LDB 10 l.336) ; `null` sinon. Le verbe et la fenêtre du butin le lisent. */
 export function refusDEvaluation(party: Combatant[], cible: CibleDEvaluation, mode: ModeDEvaluation, jour: number): string | null {
   if (mode === 'detection') return refusDeDetection(party, cible);
@@ -1085,7 +1085,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
   }
   if (!pa.success) {
     // Un échec à DR 0 offre un nouvel essai (LDB 12 l.94) ; à DR négatif, le délai de la règle maison
-    // `market-evaluation-delai-jours` court.
+    // `marche-evaluation-delai-jours` court.
     if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
     get().ecrireAuJournal(t('mf.appraiseFail', { item: pa.itemName }));
     return;

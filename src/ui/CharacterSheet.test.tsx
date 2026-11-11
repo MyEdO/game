@@ -474,7 +474,7 @@ describe('Onglet Possessions — registre `Band`/`PlaqueRow` (#492 lot POSSESSIO
       expect(etat(profane, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: 'Personne dans le groupe ne peut tenter le Test d’Évaluation.' });
     });
 
-    it('« Évaluer » : manquée ce jour, reste rendu, fermé et NOMMÉ (délai maison `market-evaluation-delai-jours`)', () => {
+    it('« Évaluer » : manquée ce jour, reste rendu, fermé et NOMMÉ (délai maison `marche-evaluation-delai-jours`)', () => {
       const evaluateur = { ...hero(), id: 'e', items: [{ ...inconnu, appraiseTriedDay: gameDay(useGame.getState()) }], skills: [{ id: 'evaluation', characteristic: 'intelligence', advances: 5 }] } as unknown as Combatant;
       expect(etat(evaluateur, 'Évaluer', 'sheet-eval-u1')).toEqual({ rendu: true, ferme: 'true', raison: t('mf.appraiseRetenter', { label: 'Épée', jours: 1 }) });
     });

@@ -42,7 +42,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
 
   it('marketMode : absent → hérite du global', () => {
     banc.setState({ party: [hero()], scene: sceneWith({}) });
-    setRule('market-mode', 'sans-marchandage');
+    setRule('marche-mode', 'sans-marchandage');
     banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).toBeNull(); // hérité du global, pas un 3ᵉ état
@@ -50,7 +50,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
 
   it('marketMode : override "complet" prime même si le global est "sans-marchandage"', () => {
     banc.setState({ party: [hero()], scene: sceneWith({ marketMode: 'complet' }) });
-    setRule('market-mode', 'sans-marchandage');
+    setRule('marche-mode', 'sans-marchandage');
     banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).not.toBeNull(); // l'override local rouvre le Marchandage
@@ -58,7 +58,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
 
   it('guild : override true prime alors que le global est désactivé (stock valide, sans casse)', () => {
     banc.setState({ party: [hero()], scene: sceneWith({ guild: true }) });
-    resetRule('market-guild'); // global = false (défaut)
+    resetRule('marche-guildes'); // global = false (défaut)
     banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant!.stock.length).toBeGreaterThan(0);
   });
@@ -67,7 +67,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
     const { career, careerLevel, budget } = statutLePlusHaut();
     banc.setState({ party: [{ ...hero(), career, careerLevel }], scene: sceneWith({ tenirComptes: false }), journal: [] });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 100, silver: 0, brass: 0 });
-    setRule('market-tenir-comptes', true);
+    setRule('marche-tenir-comptes', true);
     banc.getState().ouvrirLeMarchand('pnj');
     const ligne = banc.getState().merchant!.stock.find((l) => {
       const prix = toBrass(priceToMoney(catalogEntryOf(l.id)?.price ?? null));
@@ -81,7 +81,7 @@ describe('#93 — marketRule : override par-entité prime sur le global', () => 
 
   it('tenirComptes : absent → hérite du global actif (achat gratuit dans les moyens du Statut)', () => {
     banc.setState({ party: [hero()], scene: sceneWith({}) });
-    setRule('market-tenir-comptes', true);
+    setRule('marche-tenir-comptes', true);
     banc.getState().ouvrirLeMarchand('pnj');
     expect(banc.getState().merchant).not.toBeNull(); // câblé sans casse (composition vérifiée par ailleurs)
   });

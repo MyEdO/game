@@ -100,7 +100,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const { H, E } = setup();
     H.advantage = 2;
     porterUnCritique(H, E, armeDuCatalogue('cimeterre'));
-    repondre('yes');
+    repondre('oui');
 
     expect(hemorragies(cible(E.id))).toBe(2);
     expect(cible(H.id)!.advantage).toBe(1);
@@ -110,7 +110,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const { H, E } = setup();
     H.advantage = 2;
     porterUnCritique(H, E, armeDuCatalogue('cimeterre'));
-    repondre('no');
+    repondre('non');
 
     expect(hemorragies(cible(E.id))).toBe(1);
     expect(cible(H.id)!.advantage).toBe(2);
@@ -123,7 +123,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
 
     const pc = banc.getState().pendingCascade!;
     expect(pc.participants[pc.cursor].options?.[0].label).toBe('Ouvrir la plaie (2 Av)');
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id))).toBe(2);
     expect(cible(H.id)!.advantage).toBe(1);
   });
@@ -156,10 +156,10 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     porterUnCritique(H, E, armeDuCatalogue('cimeterre'));
 
     const pc = banc.getState().pendingCascade!;
-    const oui = pc.participants[pc.cursor].options!.find((o) => o.key === 'yes')!;
+    const oui = pc.participants[pc.cursor].options!.find((o) => o.key === 'oui')!;
     expect(oui.refus, 'le refus ne porte AUCUNE cause (elle s’affiche au survol/focus/tap, jamais inline)')
       .toBe('Avantages insuffisants : 1 requis, 0 disponible(s).');
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id)), 'le 2ᵉ État a été posé sans Avantage payé').toBe(1);
     expect(cible(H.id)!.advantage).toBe(0);
   });
@@ -226,9 +226,9 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     // LDB 13 l.123 (étape 1) : « Si vous remportez le Test, vous touchez votre adversaire et gagnez +1
     // Avantage. » — les effets du Critique (l.177) viennent après. L'offre voit donc l'Avantage crédité.
     expect(cible(H.id)!.advantage, 'l’Avantage du coup porté n’est pas crédité quand l’offre s’ouvre').toBe(1);
-    expect(etape.options?.find((o) => o.key === 'yes')?.refus,
+    expect(etape.options?.find((o) => o.key === 'oui')?.refus,
       'l’écran refuse ce que le store accepterait (abordabilité mesurée avant le crédit)').toBeUndefined();
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id)) - hemoAvant, 'le 2ᵉ État Hémorragique manque').toBe(1);
     expect(cible(H.id)!.advantage).toBe(0);
   });
@@ -240,9 +240,9 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     const etape = offreDeTaillade()!;
     const hemoAvant = hemorragies(cible(E.id));
     expect(cible(H.id)!.advantage).toBe(1);
-    expect(etape.options?.find((o) => o.key === 'yes')?.refus)
+    expect(etape.options?.find((o) => o.key === 'oui')?.refus)
       .toBe('Avantages insuffisants : 2 requis, 1 disponible(s).');
-    repondre('yes');
+    repondre('oui');
     expect(hemorragies(cible(E.id)) - hemoAvant, 'le 2ᵉ État a été posé sans Avantage payé').toBe(0);
     expect(cible(H.id)!.advantage).toBe(1);
   });

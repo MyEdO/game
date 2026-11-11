@@ -2,7 +2,7 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { runFlow } from '../../noyau/combatEffects';
-import { setRule, resetRule } from '../../engine/policy';
+import { entreesDeRegles, setRule, resetRule } from '../../engine/policy';
 import { seedBattleRng } from '../../noyau/battleRng';
 import { hasTalent } from '../../engine/magic';
 import type { SkillInstance } from '../../engine/types';
@@ -23,9 +23,9 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
 
   beforeEach(() => {
     banc.setState({ battle: null, flags: {}, journal: [], mode: 'exploration', scene, party: scenario.construire(idsDeTest).party });
-    for (const [id, v] of Object.entries(scenario.rules ?? {})) setRule(id, v as never);
+    for (const [id, v] of entreesDeRegles(scenario.rules ?? {})) setRule(id, v);
   });
-  afterEach(() => { for (const id of Object.keys(scenario.rules ?? {})) resetRule(id); });
+  afterEach(() => { for (const [id] of entreesDeRegles(scenario.rules ?? {})) resetRule(id); });
 
   it('medicalAid : le dialogue du médecin ouvre l’infirmerie payante (entityId → PNJ, tarif à l’acte)', () => {
     const choice = scene.dialogues.find((d) => d.id === 'dlg-medecin')!.nodes[0].choices[0];
@@ -36,7 +36,7 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
     expect(medic?.npc?.acts[0].cost).toEqual({ silver: 5 });
   });
 
-  it('petitePriere : l’autel exauce un non-Béni (option `prayer-petites`, seuil relevé par la Compétence Prière)', () => {
+  it('petitePriere : l’autel exauce un non-Béni (option `priere-petites`, seuil relevé par la Compétence Prière)', () => {
     const p = banc.getState().party.find((h) => !hasTalent(h, 'beni'))!;
     expect(p).toBeTruthy(); // au moins un non-Béni chez les pré-tirés
     const sk = p.skills.find((s) => s.id === 'priere');

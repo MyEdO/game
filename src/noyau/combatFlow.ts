@@ -251,7 +251,7 @@ import { memoParVersion } from '../data/versionDataset';
 import { nightBands, splitBandRows } from './nightBands';
 import { combatEndBands, combatEndRowMeta } from './combatEndBands';
 import type { CascadeStepMeta, ChaineDeBalayage, EnchainementDuCoup, TirsDeBordee, RebondDeChaine, SeuilDeSauvegarde, SauvegardeSuite, SuiteDeCoup, ToucheDeProjectile, PendingCasseDArme, QueueDuCoup } from './pendings';
-import { APRES_COUP, type PendingApproach } from './pendings';
+import { APRES_COUP, type IssueOpposee, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { freeCons, resultLines, rollStep, rollSansPilote, surfaceOf, surfaceRow, monoStep, pousseSi, hostStep, idDansLaSequence, openSequence, openBand, pushHost, pushTableDone, pushTable, pushChoice, pushDisplay, pushDie, tableStep, makeBandFactory, stepDetail, stepPrecision, stepPsych, stepSansPeur, type ChoiceSpec, type Consequence, type TableSpec } from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
@@ -726,7 +726,7 @@ export function attackEnv(
     // Tir dans la mêlée (LDB 14 l.116) : la cible est Engagée avec un allié du tireur. Règle optionnelle
     // « Tir dans un corps à corps » (LDB 14 l.112-116) : si désactivée, ni pénalité NI artefact d'aperçu
     // (`inMelee` reste false → pas de tir égaré non plus).
-    const inMelee = !!rule('combat-ranged-melee-penalty') && (target.engagedWith ?? []).some((id) => {
+    const inMelee = !!rule('combat-tir-dans-la-melee') && (target.engagedWith ?? []).some((id) => {
       const ally = inBattleId(battle, id);
       return !!ally && ally.kind === attacker.kind;
     });
@@ -1224,8 +1224,8 @@ export function castOutOfSightTargetIds(get: Get): Set<string> {
  *  Avantage, animation, journal, fin de combat. */
 /** Issue du Test opposé d'Esquive du Désengagement : le mover est l'« attaquant » du test ;
  *  une égalité parfaite (tie) = statu quo (ni fuite, ni avantage à l'adversaire — LDB Tests). */
-export function disengageOutcome(winner: 'attacker' | 'defender' | 'tie'): 'success' | 'failure' | 'tie' {
-  return winner === 'attacker' ? 'success' : winner === 'tie' ? 'tie' : 'failure';
+export function disengageOutcome(winner: 'attacker' | 'defender' | 'tie'): IssueOpposee {
+  return winner === 'attacker' ? 'reussite' : winner === 'tie' ? 'egalite' : 'echec';
 }
 
 /** Lance le Désengagement d'un combattant Engagé (LDB 15 l.43-49) : départ libre (LDB 85 l.253,
@@ -1308,7 +1308,7 @@ export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: strin
 }
 
 /** Lance l'action « Au Contact » d'un héros Engagé en mêlée (LDB 62 l.176, Option « Longueur d'arme »,
- *  règle `combat-weapon-reach`) : Test opposé de Corps à corps `mover` vs `foe`. Le jet du foe est tiré et
+ *  règle `combat-longueur-arme`) : Test opposé de Corps à corps `mover` vs `foe`. Le jet du foe est tiré et
  *  FIGÉ d'avance (pattern Désengagement/Défense — montré dans la ligne adverse de la modale) ; le mover
  *  jouera SON jet influençable, et le VAINQUEUR choisira « combat normal » ou « au contact ». */
 export function startAuContact(_get: Get, set: SetFn, mover: Combatant, foe: Combatant): void {
@@ -1356,9 +1356,9 @@ export function resolveGrappleOpposed(get: Get, actor: Combatant, foe: Combatant
   const foeRoll = rollGrappleForce(foe, battleRng());
   const opp = resolveOpposed(actorRoll, foeRoll);
   const result = disengageOutcome(opp.winner);
-  if (result === 'success') return resolveGrappleWin(actor, foe, 'degats', Math.max(0, opp.netSL), actorRoll.roll, get().forgerUnId);
-  if (result === 'failure') campGain(get, foe, 1); // l'adversaire l'emporte → +1 Avantage (l.161) — réserve du camp en mode groupe (AA 11 l.11-13)
-  return tr(result === 'failure' ? 'cs.grappleLose' : 'cs.grappleTie', { name: actor.label, foe: foe.label });
+  if (result === 'reussite') return resolveGrappleWin(actor, foe, 'degats', Math.max(0, opp.netSL), actorRoll.roll, get().forgerUnId);
+  if (result === 'echec') campGain(get, foe, 1); // l'adversaire l'emporte → +1 Avantage (l.161) — réserve du camp en mode groupe (AA 11 l.11-13)
+  return tr(result === 'echec' ? 'cs.grappleLose' : 'cs.grappleTie', { name: actor.label, foe: foe.label });
 }
 
 /** Case ATTEIGNABLE adjacente à `target` qui coûte le moins de Mouvement (point d'arrivée d'une Charge). */
@@ -2055,7 +2055,7 @@ function autoDeviate(
   set: SetFn, target: Combatant, location: HitLocation,
   ctx: { attackerId?: string; weapon?: string }, roll: number, log: string[], heroConcerned: boolean,
 ): boolean {
-  if (!rule('combat-critical-deflect')) return false;
+  if (!rule('combat-deviation-critique')) return false;
   if (!deviatableArmourAt(target, location)) return false;
   if (!deflectCrit(target, location, log)) return false;
   if (heroConcerned)
@@ -2159,7 +2159,7 @@ export function applyCoupCritiqueSec(
   const attacker = ctx.attackerId ? inBattleId(get().battle, ctx.attackerId) : undefined;
   const heroConcerned = victim.kind === 'hero' || attacker?.kind === 'hero';
   const c2: DeviationCtx = { ...ctx, attackerKind: attacker?.kind, critTwice: attacker ? critRollTwiceFor(attacker) : undefined };
-  const deviable = !!rule('combat-critical-deflect') && deviatableArmourAt(victim, loc);
+  const deviable = !!rule('combat-deviation-critique') && deviatableArmourAt(victim, loc);
   if (deviable && !tenuParUnHumain(get(), victim.id)) {
     if (autoDeviate(set, victim, loc, ctx, roll, log, heroConcerned)) { breakBacleArmour(victim, loc, log); return; }
   } else if (deviable) {
@@ -2333,7 +2333,7 @@ function planifierLesCritiques<C extends CompteDuCoup>(
     const cloc = compte.lieu;
     // La casse suit le Coup Critique : l'entrée qui le porte voit encore sa pièce (`appliquerLesCritiques`).
     const cassee = compte.coupCritique && !compte.compte.critiques.slice(plan.length).some((c) => estUnCoupCritique(c.origine));
-    const deviable = regime.fenetre && !!rule('combat-critical-deflect') && p.deviable(cloc, devies(), cassee);
+    const deviable = regime.fenetre && !!rule('combat-deviation-critique') && p.deviable(cloc, devies(), cassee);
     if (deviable && !tenu) { plan.push({ deviation: 'devier', auto: true }); continue; }
     if (!regime.fenetre || (p.sousAttaque && !tenu)) { plan.push({}); continue; }
     const fenetre = { attackerId: p.attacker.id, targetId: target.id, decides: plan };
@@ -3113,7 +3113,7 @@ function ouvrirLeRound(get: Get, set: SetFn): void {
     if (active.loseNextAction) { acted = true; active.loseNextAction = false; battle.log.push(ev('detail', tr('cf.loseAction', { name: active.label }), active.id)); }
   }
   fireTurnStartTriggers(get, set, active);
-  // Gate d'action par Round (op `actGate` — Mandragore) : même couture que dans `advanceTurn`.
+  // Gate d'action par Round (op `testDAgir` — Mandragore) : même couture que dans `advanceTurn`.
   const gate = active ? resolveActGates(get, set, active) : { loseMovement: false, lines: [] };
   if (active) for (const line of gate.lines) battle.log.push(ev('detail', line, active.id));
   if (gate.loseMovement && movementUsed === 0 && active) movementUsed = mountMovement(battle, active);
@@ -4507,7 +4507,7 @@ export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId
 
 
 /**
- * Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magic-composant`) — appelé UNE fois
+ * Composant d'incantation (LDB 46 l.107-113, règle optionnelle `magie-composant`) — appelé UNE fois
  * au point d'incantation d'un Sort d'Arcane/Domaine par un lanceur qui suit les règles de PERSONNAGE
  * (#143 — `followsCharacterRules`, PAS un proxy `kind`). Si un composant pour ce Sort est possédé :
  * il est CONSUMÉ « même si aucune Incantation Imparfaite n'a été obtenue » (l.111), une ligne est
@@ -4517,7 +4517,7 @@ export function resumeManeuverDefense(get: Get, set: SetFn, resume: { attackerId
  * couvre le Sort. `lines` reçoit la ligne « composant consumé » le cas échéant.
  */
 export function useSpellComponent(caster: Combatant, spellId: string, lines: string[]): boolean {
-  if (!followsCharacterRules(caster) || rule('magic-composant') !== true) return false;
+  if (!followsCharacterRules(caster) || rule('magie-composant') !== true) return false;
   const owned = caster.componentSpells ?? [];
   if (!owned.includes(spellId)) return false;
   const i = owned.indexOf(spellId);
@@ -4560,7 +4560,7 @@ function miscastTableSpec(caster: Combatant, ctx: PendingMiscastStep, id: string
     id,
     kind: 'tableDIncantationImparfaite', actorId: caster.id,
     icon: colere ? 'magic/power' : 'fire/blast',
-    label: colere ? tr('step.colereDesDieux') : tr(ctx.severity === 'majeure' ? 'step.miscastMajeure' : 'step.miscastMineure'),
+    label: colere ? tr('step.colereDesDieux') : tr(ctx.severity === 'majeure' ? 'step.incantationImparfaiteMajeure' : 'step.incantationImparfaiteMineure'),
     table: miscastTableDecl(ctx),
     // Deux tirages de nature DIFFÉRENTE partagent ce `kind` d'étape : le contrecoup magique (LDB 46)
     // et la sanction divine (LDB 40, +10 par Point de Péché) ne mettent pas la même chose en jeu.
@@ -4668,7 +4668,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   // « vos cibles » (LDB 40 l.64) : les cibles de l'incantation, le lanceur en contexte (sa divinité).
   if (m.targetOps.length) {
     const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
-    if (!cibles.length) lines.push(tr('cf.miscastSansCible', { label: m.label }));
+    if (!cibles.length) lines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
     for (const c of cibles) {
       const cibleCtx: OpsCtx = { ...ctxPour(c), caster };
       lines.push(...applyOps(c, m.targetOps, cibleCtx));
@@ -4845,9 +4845,9 @@ export function lancerLIncantation(get: Get, set: SetFn): void {
   const aqshy = ctx.domain; // attribut d'Aqshy : +10/En flammes proche
   const winds = windsMagicModOf(get().battle); // Vents Tourbillonnants (LDB 46 l.179-190, option)
   const ward = ctx.total + winds;
-  // « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `prayer-conviction`) : une Prière murmurée
+  // « Prêchez, ma sœur ! » (LDB 40 l.40-42, option `priere-conviction`) : une Prière murmurée
   // (`pc.discreet`) subit une Difficulté d'un cran plus dure. Ne concerne QUE les Prières.
-  const discreet = !!pc.discreet && castInfoIsPrayer(spell) && !!rule('prayer-conviction');
+  const discreet = !!pc.discreet && castInfoIsPrayer(spell) && !!rule('priere-conviction');
   const difficulty = discreetPrayerDifficulty('intermediaire', discreet);
   const res = pc.missile && !unplacedZone
     ? resolveMagicMissile(caster, target, spell, battleRng(), pc.focused, ward, seaMagicContext(get()))
@@ -4967,7 +4967,7 @@ export function castSpell(
  *  - effet d'Incantation Critique EFFECTIVEMENT CHOISI (`pc.critChoice` ÉCRIT — aucun défaut lu ici,
  *    `LDB 46 l.28` : sans choix, l'effet retenu est le lancer sur les Imparfaites Mineures, pas un des
  *    trois) = Force inéluctable → indissipable. La CONDITION diffère par régime, point de lecture
- *    UNIQUE du delta (option `magic-vdm-incantation`) : OFF → `LDB 46 l.32` (DR suffisant requis,
+ *    UNIQUE du delta (option `magie-vdm-incantation`) : OFF → `LDB 46 l.32` (DR suffisant requis,
  *    `pc.result.cast`) ; ON → `VDM 02 l.56` (le choix suffit).
  *    « Puissance totale » (`LDB 46 l.31`, `VDM 02 l.55`) reste dissipable, et l'ABOUTISSEMENT du Sort
  *    n'est PAS une condition : `l.156` fait de l'incantation l'objet du Test opposé et rend sa
@@ -4977,7 +4977,7 @@ export function isDispellableCast(pc: PendingCast, spell: SpellLike): boolean {
   if (!pc.result || pc.result.dispelled) return false;
   if (!isDispellableSpell(spell)) return false;
   const ineluctable = pc.critChoice === 'ineluctable'
-    && (rule('magic-vdm-incantation') === true || pc.result.cast);
+    && (rule('magie-vdm-incantation') === true || pc.result.cast);
   return !ineluctable;
 }
 
@@ -5336,12 +5336,12 @@ export type PlacingZone = { source: ZoneEnPose['source']; label: string; casterI
 export function placingZoneOf(s: Pick<Jeu, 'pendingCast' | 'pendingSiegeAim' | 'battle'>): PlacingZone | null {
   const zp = zoneEnPose(s);
   switch (zp?.source) {
-    case 'cast': {
+    case 'incantation': {
       const pc = zp.cast;
       const caster = inBattleId(s.battle, pc.casterId);
       const spell = effectiveSpellOf(pc);
       return {
-        source: 'cast', label: spell?.label ?? pc.spellId, casterId: pc.casterId, radius: zp.zone.radius,
+        source: 'incantation', label: spell?.label ?? pc.spellId, casterId: pc.casterId, radius: zp.zone.radius,
         rangeTiles: spell && caster ? spellRangeTiles(spell.range, caster) : null,
       };
     }
@@ -5383,7 +5383,7 @@ export function commitPlacedZone(get: Get, set: SetFn, pt: Pt): void {
   const pz = placingZoneOf(get());
   if (!pz) return;
   switch (pz.source) {
-    case 'cast': castCommitZone(get, set, pt); return;
+    case 'incantation': castCommitZone(get, set, pt); return;
     case 'siege': get().poserLePointDImpact(pt); return; // pilonnage indirect → ouvre la modale de tir sur la case
     default: pz.source satisfies never;
   }
@@ -6167,7 +6167,7 @@ export function applyCast(
   // = source de Corruption à proximité (lieu ou créature) ; `sorcery` = Sort du Domaine de la
   // Sorcellerie, règle optionnelle active.
   const nearCorruption = isSort && castNearCorruption(get);
-  const sorcery = isSort && rule('magic-sorcellerie') === true && isSorceryDomain(spell);
+  const sorcery = isSort && rule('magie-sorcellerie') === true && isSorceryDomain(spell);
   // Sévérité DÉCIDÉE UNE fois (source unique du delta) : quand elle tombe, l'Imparfaite Mineure du
   // fumble est SUBSUMÉE (`malevolentHandled`), sinon on l'appliquerait en double.
   const malevolent = malevolentInfluenceSeverity(res.roll, evaluateTest(res.roll, res.target).success, nearCorruption, res.isFumble);
@@ -6656,7 +6656,7 @@ function combatEndResistVal(c: Combatant): number {
 function decideCombatEndHeroTests(
   c: Combatant, worstCorruption: import('../engine/corruption').ExposureLevel | null,
 ): { diseases: CombatEndDiseaseTest[]; corruption: import('../engine/corruption').ExposureLevel | null } {
-  const dm = rule('disease-mode') as string;
+  const dm = rule('maladie-mode') as string;
   const diseases: CombatEndDiseaseTest[] = [];
   // Infection Mineure post-critique (LDB 20 l.90) : Résistance Très Facile (+60) — sauf blessure PANSÉE
   // (LDB 18 l.298). Règle « Utilisation des Maladies » : seul 'full' (RAW) applique l'Infection Mineure.
@@ -6681,7 +6681,7 @@ function decideCombatEndHeroTests(
  *  difficulté de la maladie (`def.contractDifficulty`), décalée des crans de l'exposition. PUR. LDB 20 l.25/51 ;
  *  EDO App.2 l.228-230 */
 function contagionsDues(c: Combatant): CombatEndDiseaseTest[] {
-  if (rule('disease-mode') === 'off' || c.dead) return [];
+  if (rule('maladie-mode') === 'off' || c.dead) return [];
   return (c.diseaseExposure ?? []).flatMap((exp) => {
     const def = diseaseDefs()[exp.disease];
     return def && contractionDue(c, def.id) ? [{
@@ -7425,10 +7425,10 @@ export function advanceTurn(get: Get, set: SetFn) {
       // (Maladresse « agir en dernier » Oups! 21-40, pré-emption Chance) ne dure qu'UN Round (l.22-25).
       // Règle optionnelle « Relancer l'Initiative chaque Round » (LDB 13 l.43, « effectuer un lancer pour
       // chaque Round ») : on re-tire la VALEUR d'Initiative de chaque combattant via `rollInitiative` (même
-      // méthode `combat-init-method` qu'à l'ouverture) puis on recalcule l'ordre — ce nouvel ordre devient
+      // méthode `combat-methode-initiative` qu'à l'ouverture) puis on recalcule l'ordre — ce nouvel ordre devient
       // la base canonique de CE Round. OFF (défaut) : `baseOrder` est conservé (comportement inchangé).
       let base = battle.baseOrder ?? battle.order;
-      if (rule('combat-init-reroll')) {
+      if (rule('combat-relancer-initiative')) {
         for (const c of battle.combatants) c.initiative = rollInitiative(c, battleRng());
         base = combatOrder(battle.combatants, isMerScene(get().scene), battleRng());
         battle.baseOrder = base;
@@ -7480,7 +7480,7 @@ export function advanceTurn(get: Get, set: SetFn) {
     if (newActive.loseNextMovement) { movementUsed = mountMovement(battle, newActive); newActive.loseNextMovement = false; battle.log.push(ev('detail', tr('cf.loseMovement', { name: newActive.label }), newActive.id)); }
     if (newActive.loseNextAction) { acted = true; newActive.loseNextAction = false; battle.log.push(ev('detail', tr('cf.loseAction', { name: newActive.label }), newActive.id)); }
     fireTurnStartTriggers(get, set, newActive); // effets de bord « début de tour » authorés (inerte sans donnée)
-    // Gate d'action par Round (op `actGate` — Racine de mandragore, LDB 71 l.35) : héros manuel → étape
+    // Gate d'action par Round (op `testDAgir` — Racine de mandragore, LDB 71 l.35) : héros manuel → étape
     // de cascade influençable (issue appliquée sur la battle par l'applier) ; IA/auto → jet inline FOLDÉ
     // ici dans le budget du tour (l'Action est gardée, le Mouvement est perdu sur un échec).
     const gate = resolveActGates(get, set, newActive);
@@ -8541,7 +8541,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const before = stacks(enemy, action.id);
       get().depenserLaDetermination(enemy.id, 'retirerUnEtat', action.id);
       if (stacks(enemy, action.id) >= before) break; // dépense inopérante → on n'insiste pas (anti-boucle dure)
-    } else if (action.kind === 'empoignade' && action.resolution === 'break') {
+    } else if (action.kind === 'empoignade' && action.resolution === 'briser') {
       const targetId = action.targetId; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
       const foe = inBattleId(battle, targetId);
       if (!foe) break;

@@ -136,7 +136,7 @@ describe('Pratiquer une Compétence : la liste `freeSkill` éditée au Compendiu
 });
 
 describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’Étape', () => {
-  beforeEach(() => { setRule('travel-etapes', true); });
+  beforeEach(() => { setRule('voyage-etapes', true); });
 
   it('Compétence choisie : la rangée de la bande la teste, elle', () => {
     const rangee = rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'escalade' } })!;

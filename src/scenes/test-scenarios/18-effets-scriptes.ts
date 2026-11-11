@@ -27,7 +27,7 @@ const construireVillage = (): Scene => buildScene({
       id: 'medecin', kind: 'personnage', creature: { id: 'stefan-hochen' }, label: 'Médecin Holst',
       pos: { x: 8, y: 2 }, dialogueId: { id: 'dlg-medecin' },
     },
-    // Effet `petitePriere` (LDB 25 l.22-24, option `prayer-petites`) : site sacré pour un non-Béni.
+    // Effet `petitePriere` (LDB 25 l.22-24, option `priere-petites`) : site sacré pour un non-Béni.
     {
       id: 'autel', kind: 'prop', decor: { id: 'autel' }, pos: { x: 8, y: 7 },
       usable: { actions: [{ id: 'fouiller', unique: true, consume: false,
@@ -119,11 +119,11 @@ export const scenario: TestScenario = {
     'Quatre Effets d’auteur testés au moteur mais orphelins de scénario (#96/#97), chacun câblé à un ' +
     'déclencheur réel : `medicalAid` (dialogue du médecin, soins payants distincts de Guérison), ' +
     // LDB 25
-    '`petitePriere` (autel interactif, option `prayer-petites`), `ambitionLost` (dialogue du ' +
+    '`petitePriere` (autel interactif, option `priere-petites`), `ambitionLost` (dialogue du ' +
     // ADE II Annexe I ; LDB 15 ; LDB 18
     'messager), `fall`+`inflictTrauma` (trappe vermoulue, repositionnement), `openCharacterCreator` (avis ' +
     'd’enrôlement : la création s’ouvre sur un héros neuf).',
   partyNote: 'Pré-tirés',
   construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireVillage() }),
-  rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },
+  rules: { 'priere-petites': true, 'psycho-acquisition-optionnelle': true },
 };

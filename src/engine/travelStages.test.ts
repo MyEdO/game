@@ -137,7 +137,7 @@ describe('stageCount (EDOC 8 l.40) — distance → Étapes ± bonus', () => {
     expect(stageCount(200)).toBe(5);
     expect(stageCount(250)).toBe(6);
   });
-  it('bonus d’Étapes (règle travel-etapes-count-bonus) : +N additif', () => {
+  it('bonus d’Étapes (règle voyage-etapes-supplementaires) : +N additif', () => {
     expect(stageCount(10, 2)).toBe(3); // 1 + 2
     expect(stageCount(75, 3)).toBe(6); // 3 + 3
     expect(stageCount(10, 0)).toBe(1); // bonus 0 = inerte
@@ -145,11 +145,11 @@ describe('stageCount (EDOC 8 l.40) — distance → Étapes ± bonus', () => {
   it('bonus négatif ignoré (jamais < base)', () => {
     expect(stageCount(75, -3)).toBe(3);
   });
-  it('sans paramètre, le bonus est LU sur la règle optionnelle `travel-etapes-count-bonus`', () => {
+  it('sans paramètre, le bonus est LU sur la règle optionnelle `voyage-etapes-supplementaires`', () => {
     expect(stageCount(10)).toBe(1); // défaut de la règle = 0
-    setRule('travel-etapes-count-bonus', 2);
+    setRule('voyage-etapes-supplementaires', 2);
     expect(stageCount(10)).toBe(3); // 1 + 2 (EDOC 8 l.40 « augmentez le nombre d'Étapes de 2 ou plus »)
-    resetRule('travel-etapes-count-bonus');
+    resetRule('voyage-etapes-supplementaires');
     expect(stageCount(10)).toBe(1);
   });
 });
@@ -158,14 +158,14 @@ describe('stageCount — modificateur de Mouvement du groupe (EDOC 8 l.25)', () 
   it('sans Mouvement de groupe fourni : aucun modificateur (comportement inchangé)', () => {
     expect(stageCount(75)).toBe(3);
   });
-  it('Mouvement le plus faible ≤ 3 : +N Étapes (règle `travel-etapes-low-move-bonus`, défaut 1)', () => {
+  it('Mouvement le plus faible ≤ 3 : +N Étapes (règle `voyage-etapes-groupe-lent`, défaut 1)', () => {
     expect(stageCount(75, 0, 3)).toBe(4); // 3 (base) + 1 (défaut de la règle)
     expect(stageCount(10, 0, 1)).toBe(2); // 1 (base) + 1
   });
-  it('règle `travel-etapes-low-move-bonus` = 2 : +2 Étapes', () => {
-    setRule('travel-etapes-low-move-bonus', 2);
+  it('règle `voyage-etapes-groupe-lent` = 2 : +2 Étapes', () => {
+    setRule('voyage-etapes-groupe-lent', 2);
     expect(stageCount(75, 0, 3)).toBe(5); // 3 + 2
-    resetRule('travel-etapes-low-move-bonus');
+    resetRule('voyage-etapes-groupe-lent');
   });
   it('Mouvement le plus faible entre 4 et 5 : aucun modificateur (ni bonus ni division)', () => {
     expect(stageCount(75, 0, 4)).toBe(3);

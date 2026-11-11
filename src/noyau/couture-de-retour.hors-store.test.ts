@@ -96,7 +96,7 @@ describe('coutures du héros en combat (#2312)', () => {
   });
 
   it('les handlers tirent leurs dés comme le corps de base : flux RNG inchangé', () => {
-    setRule('psych-acquisition-optional', true);
+    setRule('psycho-acquisition-optionnelle', true);
     try {
       let id = combat(); seedBattleRng(4242); jouer({ type: 'inflictDisease', disease: 'vers-de-carie', heroId: id });
       const nouvD = [cbt(id).diseases?.find((d) => d.id === 'vers-de-carie'), tirages()];
@@ -115,7 +115,7 @@ describe('coutures du héros en combat (#2312)', () => {
         id = combat(); seedBattleRng(graine); const res = traumaOnImpossibleAmbition(grp(id), battleRng());
         expect(nouvA).toEqual([res?.trait ? [res.trait] : [], tirages()]);
       }
-    } finally { resetRule('psych-acquisition-optional'); }
+    } finally { resetRule('psycho-acquisition-optionnelle'); }
   });
 
   it('faim, soif et Chance gagnée en combat reviennent au groupe à finalizeBattle', () => {

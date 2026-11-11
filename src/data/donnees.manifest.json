@@ -158,13 +158,13 @@
           "files": [
             "arcane-phenomena.json"
           ],
-          "desc": "Magie ENVIRONNEMENTALE (VDM 14, folios 189-199) : paliers de Saturation, Effets de Saturation par Vent, phénomènes arcaniques (lignes de force, pierres gardiennes, Grand Vortex, nexus, appuis arcaniques, Tempête de Magie, Corruption), tables de Corruption chaotique/nécromantique et de Flux magique — option `magic-vdm-environnementale`"
+          "desc": "Magie ENVIRONNEMENTALE (VDM 14, folios 189-199) : paliers de Saturation, Effets de Saturation par Vent, phénomènes arcaniques (lignes de force, pierres gardiennes, Grand Vortex, nexus, appuis arcaniques, Tempête de Magie, Corruption), tables de Corruption chaotique/nécromantique et de Flux magique — option `magie-vdm-environnementale`"
         },
         {
           "files": [
             "surincantation.json"
           ],
-          "desc": "TABLEAU DE SURINCANTATION (VDM 02 l.207-215, folio 23) : palier de DR dépensés sur une colonne → Cible additionnelle, Dégât en plus, Portée/ZdE/Durée multipliées — lu par `src/engine/overcast.ts` sous l'option `magic-vdm-incantation`"
+          "desc": "TABLEAU DE SURINCANTATION (VDM 02 l.207-215, folio 23) : palier de DR dépensés sur une colonne → Cible additionnelle, Dégât en plus, Portée/ZdE/Durée multipliées — lu par `src/engine/overcast.ts` sous l'option `magie-vdm-incantation`"
         }
       ]
     },

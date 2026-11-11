@@ -101,7 +101,7 @@ export interface VerbesDeLaBarre {
   /** « Pousser » un engin de siège CREWÉ à roues (ADE II 8 l.258, #156) : ouvre le mode de
    *  ciblage-CASE 'poussee' (le clic-sol suivant commet la translation de formation, `targetingModes.ts`).
    *  Chef d'un poste d'engin MOBILE, Action dispo, Équipe ≥ moitié requise (sinon no-op, comme un tir
-   *  sous-effectif refusé). Mouvement SIMPLE, aucun jet ; plafonné à `rule('siege-engine-push-speed')`. */
+   *  sous-effectif refusé). Mouvement SIMPLE, aucun jet ; plafonné à `rule('engin-de-siege-vitesse-de-poussee')`. */
   pousserLEngin: () => void;
   /** « Diriger l'équipe » (Commandant d'équipe, AA) : Test de Commandement (+0) pour aider une équipe d'Arme
    *  d'équipe à portée de voix — sur réussite, elle tire au score de Projectiles du commandant. Coûte l'Action. */
@@ -164,7 +164,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Rompt une Faveur — Niveau de Carrière −1 (min 0) si la rumeur se répand (LDB 23 l.141). */
   rompreLaFaveur: (heroId: IdDeHeros, favorId: IdDeFaveur) => void;
   /** Regagne MAINTENANT les Points de Chance du groupe (LDB 17 l.47 « Longues Séances de Jeu » —
-   *  règle optionnelle `fortune-mid-session` en mode 'manual'). Réutilise l'Effet `restoreFortune`
+   *  règle optionnelle `chance-en-cours-de-session` en mode 'manual'). Réutilise l'Effet `restoreFortune`
    *  (logique partagée via `engine/fortune.restoreFortune`) — pas de duplication. */
   restaurerLaFortune: () => void;
   /** Ouvre le Test d'une Activité de bataille pré-combat (l.79-106). */
@@ -258,7 +258,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Marchand de LIEU (#369) — l'échoppe du service `serviceId` du lieu où se tient le groupe (forgeron du hub de
    *  ville…) : même système marchand, keyé sur `placeServiceMerchantId` (`worldMap.ts`). */
   ouvrirLaBoutique: (serviceId: IdDeServiceDuLieu) => void;
-  /** Jeux de taverne (option `tavern-games`, NADJ 16) : ouvrir la modale / jouer une partie
+  /** Jeux de taverne (option `jeux-de-taverne`, NADJ 16) : ouvrir la modale / jouer une partie
    *  (choisir un jeu + un adversaire, résolution par le moteur générique). */
   ouvrirLesJeux: (entityId?: IdDEntiteDeScene) => void;
   jouerALaTaverne: (heroId: IdDeHeros, partie: tavernFlow.ReglageDePartie) => void;
@@ -342,7 +342,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   evaluerLeVin: (cargoId: IdDOffreDeCargaison) => void;
   /** Ouvre le Test de Ragot de l'auberge du hub de ville (#352, Activité `recueillir-informations`
    *  étendue au contexte `auberge`) : succès → rumeur commerciale (`generateTradeRumour`), échec →
-   *  Exténué (EDOC 8 l.133). Avance l'horloge (`inn-gather-info-minutes`) quelle que soit l'issue. */
+   *  Exténué (EDOC 8 l.133). Avance l'horloge (`auberge-recueillir-informations-minutes`) quelle que soit l'issue. */
   recueillirLesRumeurs: () => void;
 }
 
