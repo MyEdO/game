@@ -310,7 +310,7 @@ describe('GARDE DU MASQUAGE — aucun nœud ne perd au parse de mesure une réf�
 
   it('G — union dont une branche postérieure OPAQUE avale un nœud d’op atteint', () => {
     const s = z.union([z.array(gameOpSchema), z.array(z.unknown())]);
-    expect(masquagesDuTemoin(s, [{ op: 'condition', id: conditionIds()[0] }])).toEqual(['témoin AVALEMENT : témoin']);
+    expect(masquagesDuTemoin(s, [{ op: 'condition', id: { id: conditionIds()[0] } }])).toEqual(['témoin AVALEMENT : témoin']);
   });
 
   it('les documents des DEUX racines n’en portent aucun (payloads de CHAQUE famille mécanique compris, re-parsés par son `gameOp`)', () => {

@@ -250,8 +250,8 @@ export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: {
     : refusDeMarqueur(type, entree.id, marqueurPorte(sousListe, entree));
 }
 
-/** Le refus d'un id par `idDe(type, sousListe?)` — `null` s'il est ADMIS —, pour un payload LOOSE que nulle
- *  feuille ne porte (`refusLoose`, `grammaire/mecanique.ts`). */
+/** Le refus d'un id par `idDe(type, sousListe?)` — `null` s'il est ADMIS —, pour un id que nulle feuille ne
+ *  porte (`defs/cargaisons-aleatoires.ts`). */
 export function refusDeLId(type: TypeEntite, id: string, sousListe?: SousListe): string | null {
   return refusDe(type, sousListe, `refusDeLId('${type}')`, id);
 }
@@ -658,15 +658,20 @@ function feuilleLocale(portee: PorteeLocale): z.ZodString {
   return feuille;
 }
 
+/** Feuille `idDe(type)` qui admet en plus des valeurs réservées (`ouReserve`, `grammaire/valeurs.ts`). */
+type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id<T>, string>, z.ZodLiteral<string>]>;
+
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`) ; sans
  *  `extra`, la sous-liste se nomme seule (`ref('material', undefined, 'objet')`) et la sortie reste `{ id }`.
- *  Sur une PORTÉE LOCALE, `{ id }` d'une entrée de sa collection. */
+ *  Sur une PORTÉE LOCALE, `{ id }` d'une entrée de sa collection. Sur une feuille `ouReserve(idDe(type), …)`,
+ *  `{ id }` d'une entrée du catalogue ou d'une valeur réservée. */
 export function ref(portee: PorteeLocale): ReturnType<typeof objetDeRef<z.ZodString, Record<never, never>>>;
+export function ref<T extends TypeEntite>(feuille: FeuilleOuReservee<T>): ReturnType<typeof objetDeRef<FeuilleOuReservee<T>, Record<never, never>>>;
 export function ref<T extends TypeEntite>(type: T, extra?: undefined, sousListe?: SousListe): ReturnType<typeof objetDeRef<z.ZodType<Id<T>, string>, Record<never, never>>>;
 export function ref<T extends TypeEntite, E extends Record<string, z.ZodType>>(type: T, extra: E, sousListe?: SousListe): ReturnType<typeof objetDeRef<z.ZodType<Id<T>, string>, E>>;
-export function ref(cible: TypeEntite | PorteeLocale, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
+export function ref(cible: TypeEntite | PorteeLocale | FeuilleOuReservee<TypeEntite>, extra?: Record<string, z.ZodType>, sousListe?: SousListe) {
   const extraDuPorteur = extra ?? {};
-  const feuille = typeof cible === 'string' ? idDe(cible, sousListe) : feuilleLocale(cible);
+  const feuille = typeof cible === 'string' ? idDe(cible, sousListe) : '_zod' in cible ? cible : feuilleLocale(cible);
   return objetDeRef(feuille, extraDuPorteur, metasExtra(extra), 'ref', extraDuPorteur);
 }
 

@@ -83,7 +83,7 @@ describe('#1189 — la bande de Psychologie DIT ses issues en chips d’ops', ()
     terreur();
     const step = bande();
     expect(branchCertainOps(step.meta?.onFail, heroNow())).toEqual([
-      { op: 'condition', id: 'brise', value: 2, valuePerSL: { every: 1, amount: 1, onFailure: true } },
+      { op: 'condition', id: { id: 'brise' }, value: 2, valuePerSL: { every: 1, amount: 1, onFailure: true } },
       opPsy.pose('peur', { indice: 2, calmeDR: 0, surmontee: false, sourceId: 'scripted:Une vision terrifiante' }),
     ]);
     expect(branchCertainOps(step.meta?.onSuccess, heroNow()), 'la réussite n’exempte que de la Terreur (LDB 21 l.56)').toEqual([

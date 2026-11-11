@@ -179,7 +179,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     setDesFixes(true);
     // Ligne CHOISIE dans la donnée : une entrée à État (op `condition`), ni létale ni amputante.
     const entry = critiqueTable('ldb', 'corps').find((e) => !e.lethal && !e.amputation && (e.ops ?? []).some((o) => o.op === 'condition'))!;
-    const cond = (entry.ops ?? []).find((o) => o.op === 'condition') as { op: 'condition'; id: string };
+    const cond = (entry.ops ?? []).find((o) => o.op === 'condition') as { op: 'condition'; id: { id: string } };
     applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('deviation');
@@ -191,7 +191,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     const victime = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(lastCrit(victime), 'la ligne posée n’est pas celle appliquée').toBe(entry.id);
     expect(victime.criticalWounds).toBe(1);
-    expect(hasCondition(victime, cond.id), `État « ${cond.id} » de la ligne non appliqué`).toBe(true);
+    expect(hasCondition(victime, cond.id.id), `État « ${cond.id.id} » de la ligne non appliqué`).toBe(true);
     // Le rendu RICHE du résultat reste l'étape de révélation (CriticalBody), appendée après la pose.
     const reveal = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(reveal.reveal!.dice).toBe(entry.min);

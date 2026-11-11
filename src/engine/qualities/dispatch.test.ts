@@ -87,13 +87,13 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
     expect(flow?.kind, 'la séquence « État automatique puis offre » a disparu').toBe('seq');
     const steps = flow?.kind === 'seq' ? flow.steps : [];
     const auto = steps[0]?.kind === 'do' && steps[0].effect.type === 'ops' ? steps[0].effect.ops : undefined;
-    expect(auto?.[0]).toMatchObject({ op: 'condition', id: 'hemorragique' });
+    expect(auto?.[0]).toMatchObject({ op: 'condition', id: { id: 'hemorragique' } });
     const choix = steps[1];
     expect(choix?.kind).toBe('choice');
     if (choix?.kind !== 'choice') throw new Error('nœud de choix absent');
     expect(choix.advantageCost).toBe('$indice'); // X = l'Indice imprimé (1A / 2A), jamais un coût figé
     const sup = choix.yes.kind === 'do' && choix.yes.effect.type === 'ops' ? choix.yes.effect.ops : undefined;
-    expect(sup?.[0]).toMatchObject({ op: 'condition', id: 'hemorragique' });
+    expect(sup?.[0]).toMatchObject({ op: 'condition', id: { id: 'hemorragique' } });
     expect(findQualityById('taillade')?.capabilities).toBeUndefined(); // plus de capability bespoke
   });
   it('Déstabilisante : effet onHit data-driven — choix (2 Av) → Test opposé Force/Athlétisme → À Terre (effects, donnée)', () => {
@@ -117,7 +117,7 @@ describe('Aux Armes p.89 — qualités de mêlée câblées', () => {
     // Défenseur PERD l'opposition (branche `fail`) → l'attaquant l'emporte → cible À Terre.
     expect(test.fail.kind).toBe('do');
     if (test.fail.kind !== 'do' || test.fail.effect.type !== 'ops') throw new Error('fail doit poser un État');
-    expect(test.fail.effect.ops[0]).toMatchObject({ op: 'condition', id: 'a-terre' });
+    expect(test.fail.effect.ops[0]).toMatchObject({ op: 'condition', id: { id: 'a-terre' } });
   });
 });
 

@@ -19,7 +19,7 @@ describe('rollShipCritical (MDG 13) — code générique sur ship-criticals.json
     const r = rollShipCritical('coque', makeRNG(1), 8);
     expect(r.id).toBe('voie-d-eau-au-dessus-de-la-ligne-de-flottaison'); // réf par id, jamais le label
     expect(r.shrapnel).toBe(6);
-    expect(r.ops).toEqual([{ op: 'condition', id: 'voie-d-eau', value: 1 }]);
+    expect(r.ops).toEqual([{ op: 'condition', id: { id: 'voie-d-eau' }, value: 1 }]);
     const c = ship();
     applyOps(c, r.ops, { idNeuf: idsDeTest, rng: desDuTest }); // l'appelant applique → l'État NAVAL data-driven se pose
     expect(stacks(c, 'voie-d-eau')).toBe(1);
@@ -27,14 +27,14 @@ describe('rollShipCritical (MDG 13) — code générique sur ship-criticals.json
 
   it('Cargaison 3 → En flammes 1 ; Cargaison 10 → En flammes 3 + 1d10 Critiques de Coque', () => {
     const fire1 = rollShipCritical('cargaison', makeRNG(1), 3);
-    expect(fire1.ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 1 }]);
+    expect(fire1.ops).toEqual([{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 1 }]);
     const c = ship();
     applyOps(c, fire1.ops, { idNeuf: idsDeTest, rng: desDuTest });
     expect(stacks(c, 'en-flammes-navire')).toBe(1);
 
     const boom = rollShipCritical('cargaison', makeRNG(7), 10);
     expect(boom.id).toBe('explosion-du-depot-de-munitions');
-    expect(boom.ops).toEqual([{ op: 'condition', id: 'en-flammes-navire', value: 3 }]);
+    expect(boom.ops).toEqual([{ op: 'condition', id: { id: 'en-flammes-navire' }, value: 3 }]);
     expect(boom.extraHullCrits).toBeGreaterThanOrEqual(1); // 1d10
     expect(boom.extraHullCrits).toBeLessThanOrEqual(10);
   });

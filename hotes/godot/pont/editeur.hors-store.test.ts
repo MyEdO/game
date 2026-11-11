@@ -1291,9 +1291,16 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(formulaire('valeur/onCross/0/amount').champs[2], 'sa quantité écrite').toMatchObject({ valeur: 3 });
     expect([option('valeur/onCross/0/ignoreTB', 'Non').presse, option('valeur/onCross/0/apFrom', 'la Localisation la moins protégée').presse], 'ses choix écrits').toEqual([true, true]);
     choisir('valeur/onCross/0/op', 'Poser un État');
+    expect(['id/id', 'value', 'perRound', 'onlyGroups/ajouter', 'grapple', 'carried'].every((champ) => inspecteur().some((el) => el.id === `valeur/onCross/0/${champ}`)), 'l’op `condition` offre ses champs (#3606 M2a2)').toBe(true);
+    expect(inspecteur().some((el) => el.id === 'valeur/onCross/0/motif'), 'sans repli JSON').toBe(false);
+    expect(['sonne', 'petrifie'].every((id) => valeursDeLInspecteur(e, 'valeur/onCross/0/id/id').some((b) => (b.jeu as { args: unknown[] }).args[2] === id)), 'l’État se choisit au catalogue et parmi les marqueurs narratifs').toBe(true);
+    choisir('valeur/onCross/0/id/id', 'Sonné');
+    saisir('valeur/onCross/0/value', 2);
+    expect([option('valeur/onCross/0/id/id', 'Sonné').presse, formulaire('valeur/onCross/0/value').champs[2]], 'son État et ses pions écrits').toMatchObject([true, { valeur: 2 }]);
+    choisir('valeur/onCross/0/op', 'Standing temporaire (prochaine aventure)');
     expect(inspecteur().find((el) => el.id === 'valeur/onCross/0/motif'), 'une op sans forme déclarée le dit').toMatchObject({ type: 'ligne' });
-    saisir('valeur/onCross/0', { op: 'condition', id: 'sonne' });
-    expect(formulaire('valeur/onCross/0').champs[2], 'et se saisit en JSON').toMatchObject({ type: 'saisieJson', valeur: '{"op":"condition","id":"sonne"}' });
+    saisir('valeur/onCross/0', { op: 'statusMod', amount: 1 });
+    expect(formulaire('valeur/onCross/0').champs[2], 'et se saisit en JSON').toMatchObject({ type: 'saisieJson', valeur: '{"op":"statusMod","amount":1}' });
     presser('valeur/onCross/0/retirer');
     expect(inspecteur().some((el) => el.id === 'valeur/onCross'), 'vidée, la liste quitte la zone').toBe(false);
     presser('valeur/crossTest/ajouter');

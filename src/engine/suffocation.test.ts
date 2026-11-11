@@ -180,7 +180,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
   it('Ombres étrangleuses : Exténué + suffocation + incantation coupée (« ne peuvent pas parler »)', () => {
     const ops = opsOf('ombres-etrangleuses');
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
-    expect(ops.some((o) => o.op === 'condition' && o.id === 'extenue')).toBe(true);
+    expect(ops.some((o) => o.op === 'condition' && o.id.id === 'extenue')).toBe(true);
     expect(ops.some((o) => o.op === 'castPenalty' && o.blocked)).toBe(true);
   });
   it('Transmutation de Chamon : États persistants + 1 PA + suffocation', () => {
@@ -188,7 +188,7 @@ describe('Effets curés — suffocation (lus de SpellData.effects)', () => {
     expect(ops.some((o) => o.op === 'suffocate')).toBe(true);
     expect(ops.some((o) => o.op === 'ap')).toBe(true);
     for (const name of ['aveugle', 'assourdi', 'sonne']) {
-      expect(ops.some((o) => o.op === 'condition' && o.id === name)).toBe(true);
+      expect(ops.some((o) => o.op === 'condition' && o.id.id === name)).toBe(true);
     }
   });
   it('op suffocate : pose l’effet porteur à la durée du sort', () => {

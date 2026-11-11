@@ -45,7 +45,9 @@
       "grave": [
         {
           "op": "condition",
-          "id": "inconscient",
+          "id": {
+            "id": "inconscient"
+          },
           "resolveWindow": {
             "scale": "clock",
             "minutes": {
@@ -230,7 +232,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "sonne"
+                  "id": {
+                    "id": "sonne"
+                  }
                 }
               ]
             }
@@ -263,7 +267,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "a-terre"
+                  "id": {
+                    "id": "a-terre"
+                  }
                 }
               ]
             }
@@ -287,7 +293,9 @@
               "ops": [
                 {
                   "op": "condition",
-                  "id": "inconscient"
+                  "id": {
+                    "id": "inconscient"
+                  }
                 }
               ]
             }
@@ -424,7 +432,9 @@
     "passive": [
       {
         "op": "condition",
-        "id": "extenue",
+        "id": {
+          "id": "extenue"
+        },
         "resolveWindow": "none"
       }
     ],
@@ -710,7 +720,9 @@
         },
         {
           "op": "condition",
-          "id": "sonne"
+          "id": {
+            "id": "sonne"
+          }
         }
       ]
     },

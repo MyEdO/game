@@ -80,7 +80,7 @@ describe('brise-coeur (LDB 71 l.22) — poison ingéré, Test au boire', () => {
     const f = consommableDe(itemFromTrappingById('brise-coeur', idsDeTest)!)! as Extract<Flow, { kind: 'test' }>;
     expect(f.kind).toBe('test');
     expect(f.test.difficulty).toBe('complexe');
-    expect(consumableOps(f.fail)).toEqual([{ op: 'condition', id: 'empoisonne', value: 4 }]);
+    expect(consumableOps(f.fail)).toEqual([{ op: 'condition', id: { id: 'empoisonne' }, value: 4 }]);
     expect(consumableOps(f.success)).toEqual([]);
   });
 });
@@ -98,7 +98,7 @@ describe('lotus-noir (LDB 71 l.31) — enduit arme, pas ingéré', () => {
   it("échec du Test → 2 états Empoisonné : « subissent immédiatement 2 États Empoisonnés »", () => {
     const then = onHitVeninThen('lotus-noir');
     const condOp = then.fail.effect.ops.find((o) => o.op === 'condition');
-    expect(condOp?.id).toBe('empoisonne');
+    expect(condOp?.id).toEqual({ id: 'empoisonne' });
     expect(condOp?.value).toBe(2);
   });
 });
@@ -162,10 +162,10 @@ describe('fleur-de-lune (LDB 71 l.26-29)', () => {
     const test = f.else as Extract<Flow, { kind: 'test' }>;
     expect(test.test.characteristic).toBe('force-mentale');
     expect(test.test.difficulty).toBe('tresDifficile');
-    expect(consumableOps(test.fail)).toEqual([{ op: 'condition', id: 'inconscient', durationHours: { dice: { n: 1, sides: 10, plus: 5 } } }]);
+    expect(consumableOps(test.fail)).toEqual([{ op: 'condition', id: { id: 'inconscient' }, durationHours: { dice: { n: 1, sides: 10, plus: 5 } } }]);
     expect(consumableOps(test.success)).toEqual([
       { op: 'skillMod', skill: { id: 'calme' }, mod: 20 },
-      { op: 'condition', id: 'extenue', value: 1 },
+      { op: 'condition', id: { id: 'extenue' }, value: 1 },
     ]);
   });
 });
@@ -216,7 +216,7 @@ describe('belladone (LDB 72 l.18)', () => {
     expect(f.test.skill).toEqual({ id: 'resistance' });
     const delayed = consumableOps(f.fail).find((o) => o.op === 'delayed') as Extract<import('./ops').GameOp, { op: 'delayed' }>;
     expect(delayed.afterMinutes).toBe(150); // « au bout de 2-3 heures » → milieu de fourchette (arbitrage)
-    expect(delayed.ops).toEqual([{ op: 'condition', id: 'inconscient', durationHours: { dice: { n: 1, sides: 10, plus: 4 } } }]);
+    expect(delayed.ops).toEqual([{ op: 'condition', id: { id: 'inconscient' }, durationHours: { dice: { n: 1, sides: 10, plus: 4 } } }]);
   });
 });
 

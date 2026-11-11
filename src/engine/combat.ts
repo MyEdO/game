@@ -1656,7 +1656,7 @@ export function issueAuJet(cible: Combatant, res: AttackResult, arme: Weapon, at
  *  ardente de Rhuin) ? Une telle arme NE peut PAS Retenir ses coups (Aux Armes 07 l.61). */
 export function weaponInflictsFlames(weapon: Weapon): boolean {
   return (weapon.onHitEffects ?? []).some((e) =>
-    spellEffectOps(e.flow).some((o) => o.op === 'condition' && o.id === COND.enFlammes),
+    spellEffectOps(e.flow).some((o) => o.op === 'condition' && o.id.id === COND.enFlammes),
   );
 }
 

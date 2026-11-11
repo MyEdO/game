@@ -122,7 +122,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'wounds': return { op: 'wounds', amount: 5 };
     case 'heal': return { op: 'heal', amount: 3 };
     case 'healCaster': return { op: 'healCaster', amount: 1 };
-    case 'condition': return { op: 'condition', id: '', value: 1 };
+    case 'condition': return { op: 'condition', id: { id: '' }, value: 1 };
     case 'removeCondition': return { op: 'removeCondition' };
     case 'endPsych': return opPsy.fin('');
     case 'beginPsych': return opPsy.pose('');

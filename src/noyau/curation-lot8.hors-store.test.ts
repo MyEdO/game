@@ -83,7 +83,7 @@ describe('ops de spec sur la branche Projectile (curées seulement)', () => {
     applyCast(banc.getState, banc.setState, w, cible, findSpellById('eblouissant')!, ok(2), false, false);
     const after = banc.getState().party.find((h) => h.id === cible.id)!;
     expect(after.conditions.find((x) => x.id === 'aveugle')?.value).toBe(1);
-    expect(after.activeEffects?.some((e) => e.opsPerRound?.some((o) => o.op === 'condition' && o.id === 'aveugle'))).toBe(true);
+    expect(after.activeEffects?.some((e) => e.opsPerRound?.some((o) => o.op === 'condition' && o.id.id === 'aveugle'))).toBe(true);
   });
 
   it('Innocence immaculée : retire 1 Point de Corruption (jamais sous 0)', () => {

@@ -9,6 +9,8 @@ import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
 import { conditionIds, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel, skills } from '../data';
 import { indexParId } from '../data/versionDataset';
+import { libelleDeValeur } from '../data/schemas/grammaire/meta';
+import { acteDeDeverrouillageSchema } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -60,8 +62,8 @@ export function etatNonCumulable(id: string): boolean {
 
 /** Marqueurs NARRATIFS hors LDB 16 (PAS des États `etats.json`, cf. `data-wellformed.test`) : Pétrifié
  *  (LDB 85), sans entrée catalogue — REGISTRE UNIQUE de l'exception (libellé, sévérité, icone) : le
- *  résolveur `etatConnu` et le nom scanné dans le journal (`conditionIdInText`) le COMPOSENT, aucun
- *  n'en garde de copie. */
+ *  résolveur `etatConnu`, le nom scanné dans le journal (`conditionIdInText`) et la référence d'État d'une
+ *  op (`refDEtatSchema`, `data/schemas/grammaire/mecanique.ts`) le COMPOSENT, aucun n'en garde de copie. */
 export const NARRATIVE_MARKERS: readonly { id: string; label: string; severity: number; icon: string }[] = [
   { id: 'petrifie', label: 'Pétrifié', severity: 95, icon: 'condition/petrified' },
 ];
@@ -70,8 +72,7 @@ const marqueurParId = indexParId('etats', NARRATIVE_MARKERS);
 
 /** État RÉSOLU par son id STABLE : catalogue VIVANT (`etats.json`) ∪ marqueurs narratifs
  *  (`NARRATIVE_MARKERS`), `undefined` hors des deux. SOURCE UNIQUE du jeu d'ids d'État connus : le
- *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`, refus d'État au
- *  parse `refuserEtatsInconnus` de `data/schemas/grammaire/mecanique.ts`), la sévérité (`conditionSeverity`) et l'icone
+ *  prédicat d'une frontière (`!!etatConnu(id)` : console `devtools.condition`), la sévérité (`conditionSeverity`) et l'icone
  *  (`gameIso/effectIcons.conditionMeta`) le composent. */
 export function etatConnu(id: string): { label: string; severity?: number; icon?: string } | undefined {
   return findConditionById(id) ?? marqueurParId(id);
@@ -260,21 +261,13 @@ export function isConditionLocked(inst: ConditionInstance, c: Combatant): boolea
   return raisonVerrouEtat(inst, c) !== undefined;
 }
 
-/** Les actes de soin qui lèvent un verrou d'État (LDB 18), en français — source unique du libellé,
- *  partagée par le refus d'un remède et l'éditeur d'op. */
-export const ACTE_DE_DEVERROUILLAGE: Record<import('./types').ConditionUnlock, string> = {
-  medicalAid: 'Aide Médicale',
-  surgery: 'Chirurgie',
-  magic: 'Soin magique',
-};
-
 /** POURQUOI cet État ne se lève pas maintenant — la raison DU VERROU QUI TIENT, `undefined` si aucun.
  *  Les trois formes sont évaluées séparément, chacune avec SA raison : l'acte de soin attendu
  *  (`unlockBy`), le prédicat posé par le Critique (`lockedUntil` d'instance), puis celui du TYPE
  *  (`EtatData.lockedUntil`, dont la raison est la donnée `lockedReason`). `isConditionLocked` lit ce
  *  même verdict : une seule évaluation, jamais deux copies du OU. */
 export function raisonVerrouEtat(inst: ConditionInstance, c: Combatant): string | undefined {
-  if (inst.unlockBy != null) return t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE[inst.unlockBy] });
+  if (inst.unlockBy != null) return t('cond.lockedByAct', { acte: libelleDeValeur(acteDeDeverrouillageSchema, inst.unlockBy) });
   const type = findConditionById(inst.id);
   if (!inst.lockedUntil && !type?.lockedUntil) return undefined; // aucun prédicat : rien à projeter
   const vue = conditionLockCtx(c);
@@ -380,7 +373,7 @@ function opPorteuseDEtat(c: Combatant, conditionId: string): Extract<GameOp, { o
   const src = c.conditions.find((x) => x.id === conditionId)?.derivedFrom?.src;
   if (!src) return undefined;
   for (const m of passiveMods(c)) {
-    if (m.op.op !== 'condition' || m.op.id !== conditionId) continue;
+    if (m.op.op !== 'condition' || m.op.id.id !== conditionId) continue;
     if (memeSource(m.src, src)) return m.op;
   }
   return undefined;
@@ -475,9 +468,9 @@ function reconcilierEtatsDerives(c: Combatant, emit?: ConditionEmit): string[] {
   for (const m of passiveMods(c)) {
     if (m.op.op !== 'condition') continue;
     const n = typeof m.op.value === 'number' ? m.op.value : 1;
-    const e = cible.get(m.op.id);
+    const e = cible.get(m.op.id.id);
     if (e) e.stacks += n;
-    else cible.set(m.op.id, { stacks: n, ...(m.src ? { src: m.src } : {}) });
+    else cible.set(m.op.id.id, { stacks: n, ...(m.src ? { src: m.src } : {}) });
   }
   const log: string[] = [];
   // `?? []` : un porteur FORGÉ (coque de navire, sonde de test) peut n'avoir aucune liste d'États — la

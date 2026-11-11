@@ -19,7 +19,7 @@ import { defDe, enfantsDe } from '../../data/schemas/grammaire/descente';
 import { noeudObjet, payloadDeFamille } from '../../data/schemas/validate';
 import { ChaosAlign, ExposureLevel } from '../../engine/corruption';
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
-import { chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
+import { acteDeDeverrouillageSchema, chaosAlignSchema, deDeTirageSchema, exposureLevelSchema } from '../../data/schemas/grammaire/valeurs';
 import { CHAR_LABELS, CharKey, ArmourBypass, type ConditionUnlock } from '../../engine/types';
 import { SUJETS_DE_VERROU, CHAMPS_EXCLUS_DE_CARRIED, OP_LABEL, armourBypassCategorieSchema, banishNarrationSchema, gameOpSchema, tablesDeCiblesSchema } from '../../data/schemas/grammaire/mecanique';
 import { ConditionEditor } from './ConditionEditor';
@@ -39,7 +39,6 @@ import { SaisieEnBrouillon } from '../compendium/refField/SaisieEnBrouillon';
 import { formatTrait } from '../../engine/traits/dispatch';
 import { relireTraits } from '../../data/refFormatLivre';
 import type { TraitPose } from '../../data/schemas/grammaire/reference';
-import { ACTE_DE_DEVERROUILLAGE } from '../../engine/conditions';
 import { AddMenu, TypeMenu, pickable, type TypeMenuGroup } from './AddMenu';
 import { JsonField } from './JsonField';
 import { Icon } from '../Icon';
@@ -53,10 +52,6 @@ import { FORME_DE_CLE, contientLePeche, formulaForShape, newOp, paramsDeRegle, s
 const SIZES = Object.keys(SIZE_LABEL) as SizeCategory[];
 
 const CHARS = Object.keys(CHAR_LABELS) as CharKey[];
-
-/** Actes de soin qui LÈVENT un verrou d'État (`ConditionUnlock`, LDB 18) — libellés du moteur
- *  (`ACTE_DE_DEVERROUILLAGE`), partagés avec le refus d'un remède sur un État verrouillé. */
-const UNLOCK_LABELS = Object.entries(ACTE_DE_DEVERROUILLAGE) as [ConditionUnlock, string][];
 
 // ---------------------------------------------------------------------------
 // Vocabulaire COMPLET — libellé + menu groupé par intention
@@ -709,7 +704,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
         )}
         {(op.op === 'condition' || op.op === 'removeCondition') && (
           <>
-            <select value={o.id ?? ''} onChange={(e) => upd({ id: e.target.value || undefined })}>
+            <select value={o.id?.id ?? ''} onChange={(e) => upd({ id: e.target.value ? { id: e.target.value } : undefined })}>
               {op.op === 'removeCondition' && <option value="">— au choix (1er État) —</option>}
               {op.op === 'condition' && !o.id && <option value="">— (choisir un État) —</option>}
               {etats.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
@@ -734,7 +729,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                 {/* État PORTÉ (#1695, LDB 48 l.495) : cocher « porté » EFFACE les champs que le canal
                     passif ne transporte pas (même patron d'exclusivité que Force d'évasion / Seuil de DR
                     ci-dessus), depuis la MÊME liste close que le refus au parse (`CHAMPS_EXCLUS_DE_CARRIED`)
-                    — la donnée ne peut donc pas naître dans la forme que `refusLoose` refuse. */}
+                    — la donnée ne peut donc pas naître dans la forme que le payload `condition` refuse. */}
                 <label className="dr"><input type="checkbox" checked={!!o.carried} onChange={(e) => upd(e.target.checked
                   ? { carried: true, ...tableTotale(CHAMPS_EXCLUS_DE_CARRIED, () => undefined) }
                   : { carried: undefined })}
@@ -754,7 +749,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
                       <label className="dr">Retiré par{/* LDB 18 : « ne peut être retiré que par [acte] » */}
                         <select value={o.unlockBy ?? ''} onChange={(e) => upd({ unlockBy: (e.target.value || undefined) as ConditionUnlock | undefined })}>
                           <option value="">— aucun acte requis —</option>
-                          {UNLOCK_LABELS.map(([k, l]) => <option key={k} value={k}>{l}</option>)}
+                          {optionsDuNoeud(acteDeDeverrouillageSchema).map(([k, l]) => <option key={k} value={k}>{l}</option>)}
                         </select>
                       </label>
                     </>
