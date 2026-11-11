@@ -12,13 +12,13 @@
  *    × Standing ; Or 1 couronne d'or × Standing.
  *  - Détails (LDB 05 l.701-768) : âge Humain 15+1d10, Nain 15+10d10, Halfling 15+5d10,
  *    Elfe 30+10d10 ; taille Humain 145+5d10 cm, Nain 130+3d10, Halfling 90+2d10,
- *    Elfe 180+2d10 ; yeux/cheveux : 2d10 sur les tables (eyes.json / hairs.json).
+ *    Elfe 180+2d10 ; yeux/cheveux : au dé de leur table (eyes.json / hairs.json).
  */
 import { RNG, roll, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
-import { SpeciesData, tableDeCarrieres, carrieresOffertesAvec, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
+import { SpeciesData, tableDeCarrieres, carrieresOffertesAvec, species as allSpecies, eyes as eyesTable, hairs as hairsTable, eyesDie, hairsDie, type DetailColorData, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
@@ -123,14 +123,14 @@ export function rollHeight(race: RaceKey, rng: RNG): number {
   return rollDice(detailTables.taille[race], rng);
 }
 
-/** Couleur des yeux (2d10, table LDB 05 l.742-754), colonne de la race `race`. */
+/** Couleur des yeux, colonne de la race `race`. LDB 05 l.742-754 */
 export function rollEyes(race: RaceKey, rng: RNG): string {
-  return rollDetail(eyesTable, race, rng);
+  return rollDetail(eyesTable, rollDice(eyesDie(), rng), race);
 }
 
-/** Couleur des cheveux (2d10, table LDB 05 l.756-768). */
+/** Couleur des cheveux, colonne de la race `race`. LDB 05 l.756-768 */
 export function rollHair(race: RaceKey, rng: RNG): string {
-  return rollDetail(hairsTable, race, rng);
+  return rollDetail(hairsTable, rollDice(hairsDie(), rng), race);
 }
 
 /** Âge, taille, yeux et cheveux de la race `race`, tirés dans cet ordre sur `rng`. LDB 05 l.701-768 */
@@ -138,13 +138,10 @@ export function tirerLesDetails(race: RaceKey, rng: RNG): { age: number; height:
   return { age: rollAge(race, rng), height: rollHeight(race, rng), eyes: rollEyes(race, rng), hair: rollHair(race, rng) };
 }
 
-function rollDetail(
-  table: { rand: number; randByRace?: Partial<Record<RaceKey, number>>; color: Partial<Record<RaceKey, string>> }[],
-  race: RaceKey,
-  rng: RNG,
-): string {
-  const r = roll(2, 10, rng);
-  const randFor = (e: { rand: number; randByRace?: Partial<Record<RaceKey, number>> }) => e.randByRace?.[race] ?? e.rand;
+/** La couleur de la colonne `race` atteinte par le jet `r` : première rangée dont la borne haute cumulée
+ *  (`randByRace` de la colonne, sinon `rand`) couvre `r`. */
+function rollDetail(table: DetailColorData[], r: number, race: RaceKey): string {
+  const randFor = (e: DetailColorData) => e.randByRace?.[race] ?? e.rand;
   const sorted = [...table].sort((a, b) => randFor(a) - randFor(b));
   const entry = sorted.find((e) => r <= randFor(e)) ?? sorted[sorted.length - 1];
   return entry.color[race] ?? entry.color.humain ?? '';

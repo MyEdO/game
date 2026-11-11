@@ -856,6 +856,23 @@ export const pointDuPlanSchema = nommerChamps(z.strictObject({ x: z.number(), y:
 export const raceKeySchema = z.enum(['humain', 'halfling', 'nain', 'gnome', 'ogre', 'haut-elfe', 'elfe-sylvain']);
 export type RaceKey = z.infer<typeof raceKeySchema>;
 
+/** Rangée d'une table de couleur par espèce, à son seuil du dé de la table — partagée par `eyes.json`
+ *  (LDB 05 l.742-754) et `hairs.json` (LDB 05 l.756-768). */
+export const rangeeDeCouleurSchema = nommerChamps(z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  rand: z.number(),
+  /** Borne haute propre à une colonne (NADJ 15 l.99-104, #420) ; défaut = `rand`. */
+  randByRace: z.partialRecord(raceKeySchema, z.number()).optional(),
+  color: z.partialRecord(raceKeySchema, z.string()),
+}), {
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  rand: { label: 'Seuil aléatoire (borne haute du dé)', hint: 'Borne haute cumulée du dé de la table qui atteint cette couleur, sauf borne propre à une race' },
+  randByRace: { label: 'Borne par race', hint: 'Borne haute du dé propre à une race, quand elle diffère du LDB' },
+  color: { label: 'Couleur par race', hint: 'Couleur affichée, par race (colonne du tableau)' },
+});
+
 /**
  * `CastingNumberMod` (`src/engine/castingNumber.ts`) — modificateur de NIVEAU D'INCANTATION porté
  * par un objet, un lieu, un support de lecture ou une Activité. Partagé par tous les datasets qui

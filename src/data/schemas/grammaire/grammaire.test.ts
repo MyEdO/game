@@ -728,7 +728,9 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         `talents[].rand` devient le document TABLE du Tableau des Talents aléatoires.
     //   #3578 L2a : `carrieres-aleatoires` naît en def `entite` à charge `entries` (82 → 83) — la colonne
     //         `careers[].rand` devient les documents TABLE du Tableau des Classes et Carrières aléatoires.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
+    //   #3578 L3 : `eyes` et `hairs` deviennent des documents mono-tables `config` (83 → 81) — leurs
+    //         lignes passent en `rangee`.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 81, mesures: 0 });
   });
 
 });

@@ -3,7 +3,8 @@
  * Atelier du Codex — les tables tirées s'éditent (#1667) : la rangée d'une table d'effets (`tables.json`)
  * s'enregistre et le lecteur du moteur la tire ; une rangée d'Incantation Imparfaite révisée (VDM) offre le
  * dé de son document et s'enregistre par le seam ; un palier du Voyage rapide (`sea-events.json`) offre le dé de
- * sa table et l'éditeur de sa `consequence` ; les colonnes des tableaux aléatoires (#3578) s'éditent aussi.
+ * sa table et l'éditeur de sa `consequence` ; les colonnes des tableaux aléatoires et le dé des Tableaux de couleur
+ * (#3578) s'éditent aussi.
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -14,7 +15,7 @@ import { datasetArray, deDeLaTable, resetData } from '../../data/overrides';
 import { findEffectTableById } from '../../data/effectTables';
 import { findTableEntry } from '../../engine/tables';
 import { deDuVoyageRapide } from '../../engine/seaVoyage';
-import { careers, rangeesDesTalentsAleatoires, tableDeCarrieres, talents, talentsAleatoiresDie } from '../../data';
+import { careers, eyesDie, hairsDie, rangeesDesTalentsAleatoires, tableDeCarrieres, talents, talentsAleatoiresDie } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -132,5 +133,18 @@ describe('atelier du Codex — tables tirées', () => {
       { id: seconde.id, min: seconde.min + 1, max: seconde.max },
     ]);
     expect(table.die).toMatchObject({ n: 2, sides: 50 });
+  });
+
+  it.each([
+    ['eyes', 'vert', eyesDie],
+    ['hairs', 'auburn', hairsDie],
+  ] as const)('une couleur de %s offre le dé de son tableau, et le lecteur suit (#3578)', async (categorie, id, de) => {
+    monter(categorie, id);
+    const champ = container.querySelector<HTMLInputElement>('input[aria-label="Dé de tirage"]');
+    expect(champ, 'le dé du tableau s’édite avec sa rangée').not.toBeNull();
+    expect(champ!.value).toBe('2d10');
+    saisir(champ!, '1d10');
+    await enregistrer();
+    expect(de()).toMatchObject({ n: 1, sides: 10 });
   });
 });

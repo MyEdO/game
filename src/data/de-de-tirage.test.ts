@@ -107,6 +107,8 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'tableau-des-evenements': { die: '1d100', ref: 'LDB 22 l.5' },
   'panne-de-vapeur': { die: '1d100', ref: 'MDG 12 l.323' },
   'signes-astrologiques': { die: '1d100', ref: 'ADE II 03 l.42' },
+  'couleur-des-yeux': { die: '2d10', ref: 'LDB 05 l.744' },
+  'couleur-des-cheveux': { die: '2d10', ref: 'LDB 05 l.758' },
   peripeties: { die: '1d10', ref: 'LDB 51 l.210' },
 };
 
