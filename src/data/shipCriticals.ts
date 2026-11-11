@@ -103,6 +103,8 @@ export interface ShipCritSet {
   die: DeDeTable | null;
   /** id STABLE du jeu — la valeur que porte `hull.criticalTable`. */
   id: string;
+  /** Fichier du jeu, racine de l'espace de ses tables (`categorieDeLaNiche`). */
+  fichier: string;
   /** Effet des Éclats — le SEUL jeu qui en porte est MDG (mot-clé « Éclats N », ch.13) ; MSRC ne
    *  l'emploie jamais. Absent ⇒ aucune rangée du jeu ne peut porter d'Indice, et `applyHullCritical`
    *  le dit par une anomalie nommée plutôt que par un repli muet. */
@@ -119,6 +121,7 @@ export interface ShipCritSet {
 /** Jeu MDG (mer, ch.13) — Éclats 9 Dégâts. */
 export const SHIP_CRIT_SET: ShipCritSet = {
   id: shipCriticalsJson.id,
+  fichier: 'ship-criticals.json',
   get die() { return deDeLaTableTiree(shipCriticalsJson); },
   shrapnelHit: SHRAPNEL_HIT,
   replisSansExpose: shipCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
@@ -129,6 +132,7 @@ export const SHIP_CRIT_SET: ShipCritSet = {
 /** Jeu MSRC (fleuve, ch.5) — Éclats +5 Dégâts, Localisations Gréement/Rames/Gouvernail/Coque/Superstructure. */
 export const RIVER_CRIT_SET: ShipCritSet = {
   id: riverCriticalsJson.id,
+  fichier: 'river-criticals.json',
   die: null,
   replisSansExpose: riverCriticalsJson.replisSansExpose as { cible: ShipCritKey; maison?: string },
   tables: riverCriticalsJson.tables as unknown as Partial<Record<ShipCritKey, ShipCritTable>>,
