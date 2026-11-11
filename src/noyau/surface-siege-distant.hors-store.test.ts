@@ -46,7 +46,7 @@ function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   const E = enemies.slice(0, vivants);
   H[0].pos = { x: 10, y: 10 };
   set({ battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingCleave: null, pendingDisengage: null } as never);
-  set({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, slots: [0, 1, 0, 0], ownership: { [H[0].id]: 1 } } } as never);
+  set({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, slots: [0, 1, 0, 0], ownership: { [H[0].id]: 1 } } } as never);
   return { H, E };
 }
 
@@ -71,7 +71,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
 
     aiCreatureFreeAttacks(g, set, E[0]);
 
-    const etape = (g().pendingCascade?.participants ?? []).find((s) => s.kind === 'maneuverDefense' && s.actorId === H[0].id);
+    const etape = (g().pendingCascade?.participants ?? []).find((s) => s.kind === 'defenseDeManoeuvre' && s.actorId === H[0].id);
     expect(etape, 'la défense de manœuvre du héros distant doit REMONTER').toBeTruthy();
     expect(etape!.result ?? null, 'et rien n’a été roulé à sa place').toBeNull();
     expect(seatOwns(g(), 1, H[0].id), 'la fenêtre appartient au siège qui possède le défenseur').toBe(true);

@@ -56,7 +56,7 @@ function setup(net: Record<string, unknown> = {}, turn = 0) {
   } as unknown as BattleState;
   banc.setState({
     ...initialFields(), battle, mode: 'battle', scene: testScene(), party: [h2, h3],
-    net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 },
+    net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { h2: 1, h3: 2 },
            slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité A', 2: 'Invité B' }, ...net },
   });
   return { h2, h3, e1, e2 };

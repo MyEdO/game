@@ -32,7 +32,7 @@ const marquesDe = (s: Jeu, g: GesteDeclare): Readonly<Record<number, boolean>> =
  *  `marques` : les sièges requis le sont (`quorumAtteint`), hors de l'état d'un invité, et pour `hoteAuQuorum` à l'appel
  *  de l'hôte. */
 function seJoueAuQuorum(s: Jeu, g: GesteDeclare, marques: Readonly<Record<number, boolean>>): boolean {
-  if (s.net.mode === 'guest' || !quorumAtteint(s, marques)) return false;
+  if (s.net.mode === 'invite' || !quorumAtteint(s, marques)) return false;
   return g.qui === 'quorum' || decidingSeat(s) === 0;
 }
 
@@ -74,7 +74,7 @@ export function refusDeLaSortie(s: Jeu, fenetre: unknown): string | null {
 export function refusDeLaSortieNommee(s: Jeu, fenetre: FenetreQuiSeFerme): string | null {
   const sortie = garanti(sortieDeLaFenetre(fenetre), fenetre, 'sortie déclarée');
   if (!sortie.ouverte(s)) return t('sortie.refus.fermee');
-  if (sortie.qui === 'hote' && s.net.mode === 'guest') return t('sortie.refus.hoteSeul');
+  if (sortie.qui === 'hote' && s.net.mode === 'invite') return t('sortie.refus.hoteSeul');
   const fermee = fermetureDeLaSortie(s, fenetre);
   return fermee && libelleDeLaFermeture(fermee);
 }

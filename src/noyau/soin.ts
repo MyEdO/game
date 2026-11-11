@@ -1,7 +1,7 @@
 /**
  * LE SOIN DÉCLARÉ (`pendingHeal`) : le Test que le soigneur jette et les Bandages qu'il engage (LDB 09 l.255-261 ;
  * LDB 74 l.41), lus à l'identique par l'ouverture, les réglages `soins.test`/`soins.bandages`, le résolveur
- * (`FLOWS.heal`, `jetValider('soins')`), l'annonce (`describeHeal`, `enjeuDuSoin`) et la fenêtre (`fenetreDuSoin`). PUR.
+ * (`FLOWS.soins`, `jetValider('soins')`), l'annonce (`describeHeal`, `enjeuDuSoin`) et la fenêtre (`fenetreDuSoin`). PUR.
  */
 import type { Combatant } from '../engine/types';
 import type { SupportDetail } from '../engine/skills';

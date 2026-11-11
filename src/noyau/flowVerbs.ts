@@ -7,8 +7,8 @@
  *
  * `FLOW_VERBS` porte, par flux, son type (mono/multi) et le SOUS-ENSEMBLE des verbes de jet qu'il accepte — MAIS PAS
  * le handler : le handler `FLOWS.x` référence `Get`/`Set` → `Jeu`, donc l'inclure dans la source du TYPE créerait un
- * CYCLE (`FLOWS` deviendrait `any`). `FLOW_HANDLERS` (rollFlowSpecs) associe le handler pour le seul RUNTIME, avec
- * exhaustivité garantie. Un geste de jet est UN verbe du noyau par verbe de `VERBES_DE_JET` (`jet<Verbe>`), le flux
+ * CYCLE (`FLOWS` deviendrait `any`). `FLOWS` (rollFlowSpecs) porte le handler de chaque flux, sous sa clé, pour le
+ * seul RUNTIME, avec exhaustivité garantie. Un geste de jet est UN verbe du noyau par verbe de `VERBES_DE_JET` (`jet<Verbe>`), le flux
  * en premier argument (`NOM_DU_VERBE_DE_JET`, `VerbesDeJet`) : la table dit quels flux il accepte (`FluxDuVerbe`).
  */
 

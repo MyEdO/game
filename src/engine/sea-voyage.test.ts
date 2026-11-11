@@ -145,19 +145,19 @@ describe('commerce maritime (MDG 15 l.309-436)', () => {
     // Salzenmund a « commerce » en Production → toujours 'no-produce' ; armes en Demande +1.
     expect(sellRelation(salzenmund, 'bois-mer')).toBe('no-produce');
     const armes = sellChance(salzenmund, 'armes', 500);
-    expect(armes.gossip).toBeNull();
+    expect(armes.ragot).toBeNull();
     expect(armes.target).toBe(80); // (4 + 1) × 10 + 30 (commerce)
-    expect(armes.sellerDR).toBe(2); // +1 no-produce/commerce, +1 Demande
+    expect(armes.drDuVendeur).toBe(2); // +1 no-produce/commerce, +1 Demande
     // Port producteur SANS commerce : Ragot Complexe, Taille × 10 ; à moins de 100 milles → traité en Surplus.
     const producer: PortProfile = { taille: 3, richesse: 3, production: ['poisson-sale'] };
     const far = sellChance(producer, 'poisson-sale', 500);
-    expect(far.gossip?.difficulty).toBe('complexe');
+    expect(far.ragot?.difficulty).toBe('complexe');
     expect(far.target).toBe(30);
-    expect(far.sellerDR).toBe(-2);
+    expect(far.drDuVendeur).toBe(-2);
     const near = sellChance(producer, 'poisson-sale', 50);
-    expect(near.gossip?.difficulty).toBe('tresDifficile'); // l.368 : « comme … un Surplus »
+    expect(near.ragot?.difficulty).toBe('tresDifficile'); // l.368 : « comme … un Surplus »
     expect(near.target).toBe(15);
-    expect(near.sellerDR).toBe(-3);
+    expect(near.drDuVendeur).toBe(-3);
   });
 
   it('prix d’offre (l.374-383) : Richesse+Taille+Demande ≥ 4 → 100 % ; 2 → 75 % ; brader = 25 % (l.399)', () => {

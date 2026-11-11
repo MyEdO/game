@@ -165,7 +165,7 @@ const INTERLUDE_PURPOSE = 'interlude' as const;
 function eventStep(hero: Combatant): CascadeStep {
   return {
     id: `interlude-event-${hero.id}`,
-    kind: 'interludeEvent', actorId: hero.id, icon: 'nav/dice',
+    kind: 'evenementDInterlude', actorId: hero.id, icon: 'nav/dice',
     label: t('step.evenement'),
     table: interludeEventDecl(),
     stake: combatStakeRef('interlude-evenement'),
@@ -177,8 +177,8 @@ function eventStep(hero: Combatant): CascadeStep {
 function purseStep(): CascadeStep {
   return {
     id: 'interlude-purse',
-    kind: 'interludePurse', icon: 'resource/gold-purse',
-    label: t('step.interludePurse'),
+    kind: 'bourseDInterlude', icon: 'resource/gold-purse',
+    label: t('step.bourseDInterlude'),
   };
 }
 
@@ -337,7 +337,7 @@ export interface PendingActivityFields extends PendingBase {
   /** Test étendu (Artisanat/Rituel) : progression (avant ce jet) et cible. */
   drBefore?: number;
   drTarget?: number;
-  /** Rituel (`VDM 02 l.377-393`) : id du Sort focalisé CE Round — branche `resolve` de `FLOWS.activity`
+  /** Rituel (`VDM 02 l.377-393`) : id du Sort focalisé CE Round — branche `resolve` de `FLOWS.activite`
    *  (`noyau/rollFlowSpecs.ts`) vers `resolveFocus` (`engine/magic.ts`) au lieu du Test simple générique. */
   ritualSpell?: string;
   /** DR bonus consommé par la malepierre CE Round (`FocusResult.malepierreConsumed`) — écrit à la
@@ -460,7 +460,7 @@ export function interludeCatalog(s: Pick<Jeu, 'lieu' | 'massBattle'>): ActivityD
  *  le sort visé vient d'`opts.spellId` au 1er Round, puis du Rituel déjà engagé. NI formule
  *  (`cn: null`, `ritual.cnFrom`) = volet 2 (#879), non engageable ici. `null` = refus (déjà
  *  loggé) — le Test étendu de Focalisation lui-même (`VDM 02 l.129-141`) est orchestré par
- *  `resolveFocus` (`engine/magic.ts`), branché dans `FLOWS.activity` (rollFlowSpecs.ts). */
+ *  `resolveFocus` (`engine/magic.ts`), branché dans `FLOWS.activite` (rollFlowSpecs.ts). */
 export function openRitualFocus(
   get: Get, set: Set, h: Combatant, spellId: string | undefined,
 ): (Partial<PendingActivityFields> & { label: string }) | undefined {
@@ -642,7 +642,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
     case 'ritualFocus': {
       // Rituel (Activité « Accomplir un Rituel », `VDM 02 l.777`) : Round de Focalisation cumulé par
       // `progresDActivite` (LDB 12 l.174). `pa.sl` porte le DR du Round (`FocusResult` via
-      // `FLOWS.activity`) : `dr` sur une réussite, le DR brut sur un échec. Composants/Conditions/
+      // `FLOWS.activite`) : `dr` sur une réussite, le DR brut sur un échec. Composants/Conditions/
       // Sacrifices/Conséquences restent en PROSE non structurée (`SpellData['ritual']`), non appliqués
       // ici. `h.ritual` (Combatant) survit à la clôture de l'interlude, #897.
       if (!h.ritual) return { lines: [] };
@@ -986,7 +986,7 @@ function appliquerLActivite(get: Get, set: Set): void {
   const closeOps: GameOp[] = [];
   let patch: Partial<InterludeHeroState> = {};
   const source: EffectSource = { kind: 'activity', id: def.id };
-  // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'fumble'` (Pénitence :
+  // Maladresse d'Activité (LDB 12 : double raté) — porte les bandes `on:'maladresse'` (Pénitence :
   // Colère des dieux « à la place », ACE 12 l.15).
   const fumble = isFumble(garanti(pa.roll, pa.heroId, 'jet de l’Activité'), pa.success);
   // Résolveur DIRECT (pas de table d'issues) : Revenus/Artisanat/Apprentissage/Identification —
@@ -1002,7 +1002,7 @@ function appliquerLActivite(get: Get, set: Set): void {
       ? matchOutcomes(def, { success: pa.success, sl: pa.sl, fumble })
       : pa.success && def.onSuccess?.length ? [{ ops: def.onSuccess }] : [])
       .map((b) => (b.ops ? { ...b, ops: opsCiblees(b.ops, pa.traitPsy) } : b));
-    if (fumble && def.outcomes?.some((b) => b.on === 'fumble')) lines.push(msg('if.fumble', { name: h.label, roll: String(pa.roll) }));
+    if (fumble && def.outcomes?.some((b) => b.on === 'maladresse')) lines.push(msg('if.fumble', { name: h.label, roll: String(pa.roll) }));
     for (const band of bands) {
       if (band.note) lines.push(band.note); // résultat VERBATIM de la table source
       // L'Activité est un geste délibéré : une issue sans objet pour le héros se DIT, `applyOps` la tait.
@@ -1263,7 +1263,7 @@ export function cloturesDInterlude(get: Get, set: Set) {
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['interludeEvent', 'interludePurse'] as const;
+export const GENRES_D_ETAPE = ['evenementDInterlude', 'bourseDInterlude'] as const;
 /** Les tables tirables que ce module déclare (table `tablesTirables`). */
 export const TABLES_TIRABLES = [INTERLUDE_EVENT_TABLE] as const;
 
@@ -1271,24 +1271,24 @@ export const TABLES_TIRABLES = [INTERLUDE_EVENT_TABLE] as const;
 export const TABLES = {
   appliers: {
     /** La LIGNE tirée résout l'Événement du héros de l'étape. */
-    interludeEvent: (get, set, step, hero) => {
+    evenementDInterlude: (get, set, step, hero) => {
       const rolled = step.table?.result;
       if (!rolled || !hero) return;
       return { consequences: freeCons(finishInterludeEvent(get, set, hero, rolled.roll)) };
     },
-    interludePurse: (get, set) => {
+    bourseDInterlude: (get, set) => {
       const lines = finishInterludeDraw(get, set);
       return { consequences: freeCons(lines.length ? lines : [msg('if.noPurseEvent')]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   annonces: {
     /** Ce que les bourses vont perdre, et la vérification de faillite que les placements vont passer. */
-    interludePurse: (get) => {
+    bourseDInterlude: (get) => {
       const d = denouementDuTirage(get());
       const lines = [...lignesDesPertes(get(), d), ...(d.faillite ? [msg('if.bankCrashDue')] : [])];
       return lines.length ? lines : [msg('if.noPurseEvent')];
     },
-  } satisfies PartDeTable<'annonces', readonly ['interludePurse']>,
+  } satisfies PartDeTable<'annonces', readonly ['bourseDInterlude']>,
   tablesTirables: {
     [INTERLUDE_EVENT_TABLE]: {
       label: msg('if.eventTableLabel'),

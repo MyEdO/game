@@ -585,7 +585,7 @@ export function applyVesselCrewLoss(get: Get, set: SetFn, delta: number): string
  * navire de campagne (`nominal − crewLost`, le MÊME agrégat que l'Embrigadement et le Manque de bras — pas
  * d'individus) ; les partants sont retirés par la couture partagée `applyVesselCrewLoss`. Événement SUBI
  * (pas un Test de héros, MDG 14 l.192-202). La FENÊTRE de ce dé existe et vit chez l'appelant : l'étape
- * `sea-desertion` ouverte par `seaVoyageFlow` (`openWorldTest`) ; ce corps en est le rejeu POST-POSE, d'où
+ * `merDesertion` ouverte par `seaVoyageFlow` (`openWorldTest`) ; ce corps en est le rejeu POST-POSE, d'où
  * la porte SILENCIEUSE du canal (`deMonde`) — un dé par membre présent. RNG injecté. Renvoie le journal.
  */
 export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): string[] {

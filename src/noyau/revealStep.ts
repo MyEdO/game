@@ -11,12 +11,12 @@ import type { IconIdGenerated as IconId } from '../data/icones.generated';
 
 /** Icône d'une étape de révélation, PAR kind — exhaustif (ajouter un kind force son icône). */
 const REVEAL_ICON: Record<RevealEntry['kind'], IconId> = {
-  miscast: 'nav/dice', // tirage sur la Table des Imparfaites
-  critical: 'journal/critical',
+  incantationImparfaite: 'nav/dice', // tirage sur la Table des Imparfaites
+  critique: 'journal/critical',
   round: 'journal/round',
   mutation: 'nav/mutation',
   effet: 'journal/info', // effet d'AUTEUR (scénario) : Blessure Critique / maladie infligée
-  sceneEntry: 'nav/entry-point', // entrée de zone : mise en contexte narrative (N1 — « le Journal n'est pas lu »)
+  entreeEnScene: 'nav/entry-point', // entrée de zone : mise en contexte narrative (N1 — « le Journal n'est pas lu »)
 };
 
 /** Une révélation → étape d'AFFICHAGE de la séquence : la charge riche `reveal` voyage TELLE QUELLE

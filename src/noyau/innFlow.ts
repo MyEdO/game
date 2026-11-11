@@ -25,7 +25,7 @@ import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 const ACTIVITY_ID = 'recueillir-informations';
-const INN_GOSSIP_KIND = 'inn-gather-info';
+const INN_GOSSIP_KIND = 'rumeurDAuberge';
 
 /** Durée (minutes) de l'Activité jouée à l'auberge — `rule('inn-gather-info-minutes')`, maison éditable. */
 export function innGatherInfoMinutes(): number {

@@ -4,7 +4,7 @@ import { setDataset } from '../data/overrides';
 /**
  * Activité de contexte 'mer' SANS résolveur, dérivée de l'entrée réelle `cartographie` d'`activities.json`
  * (résolveur retiré, id propre) : la donnée est éditable au Compendium, et le chemin réel qu'une telle
- * entrée emprunte est `sea-activity-generic` (`buildSeaGenericStep`). `over` surcharge ses champs.
+ * entrée emprunte est `merActiviteGenerique` (`buildSeaGenericStep`). `over` surcharge ses champs.
  */
 export const activiteMer = (over: Partial<ActivityDef> = {}): ActivityDef => {
   const { resolver: _resolver, ...reelle } = structuredClone(activityById('cartographie')!);

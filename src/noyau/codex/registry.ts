@@ -2506,16 +2506,16 @@ const CODEX_SPECS = {
             rows: [
               { t: 'kv', k: tr('codex.fiche.cibleSansProductionParTaille'), v: String(vente.cibleParTailleSansProduction) },
               { t: 'kv', k: tr('codex.fiche.bonusDeCommerce'), v: signe(vente.bonusDeCommerce) },
-              { t: 'kv', k: tr('codex.fiche.ragotSurLaProduction'), v: tr('codex.fiche.ragotCibleParTailleMilles', { v: DIFFICULTY_LABELS[vente.producesGossip.difficulty], targetPerSize: vente.producesGossip.cibleParTaille, minMilles: vente.producesGossip.millesMin }) },
-              { t: 'kv', k: tr('codex.fiche.ragotSurLeSurplus'), v: tr('codex.fiche.ragotCibleParTaille', { v: DIFFICULTY_LABELS[vente.surplusGossip.difficulty], targetPerSize: vente.surplusGossip.cibleParTaille }) },
-              { t: 'kv', k: tr('codex.fiche.drDuVendeur'), v: tr('codex.fiche.drDuVendeurParRelation', { noProduce: signe(vente.sellerDR.sansProduction), demand: signe(vente.sellerDR.demande), produces: signe(vente.sellerDR.production), surplus: signe(vente.sellerDR.surplus) }) },
+              { t: 'kv', k: tr('codex.fiche.ragotSurLaProduction'), v: tr('codex.fiche.ragotCibleParTailleMilles', { v: DIFFICULTY_LABELS[vente.producesGossip.difficulty], cibleParTaille: vente.producesGossip.cibleParTaille, millesMin: vente.producesGossip.millesMin }) },
+              { t: 'kv', k: tr('codex.fiche.ragotSurLeSurplus'), v: tr('codex.fiche.ragotCibleParTaille', { v: DIFFICULTY_LABELS[vente.surplusGossip.difficulty], cibleParTaille: vente.surplusGossip.cibleParTaille }) },
+              { t: 'kv', k: tr('codex.fiche.drDuVendeur'), v: tr('codex.fiche.drDuVendeurParRelation', { sansProduction: signe(vente.sellerDR.sansProduction), demande: signe(vente.sellerDR.demande), production: signe(vente.sellerDR.production), surplus: signe(vente.sellerDR.surplus) }) },
               { t: 'kv', k: tr('codex.fiche.prixDeLiquidation'), v: tr('codex.fiche.pctDuPrixDeBase', { pct: vente.pctDeBradage }) },
             ],
           },
           {
             title: tr('codex.fiche.surchargeDeLaCale'), layout: 'list',
             rows: [
-              ...overload.paliers.map((p) => ({ t: 'kv', k: `> ${p.pctDepuis} %`, v: tr('codex.fiche.palierDeSurcharge', { label: p.label, mMod: signe(p.mMod), manoeuvreDR: signe(p.drDeManoeuvre) }) } as CodexRow)),
+              ...overload.paliers.map((p) => ({ t: 'kv', k: `> ${p.pctDepuis} %`, v: tr('codex.fiche.palierDeSurcharge', { label: p.label, mMod: signe(p.mMod), drDeManoeuvre: signe(p.drDeManoeuvre) }) } as CodexRow)),
               { t: 'kv', k: tr('codex.fiche.limiteAbsolue'), v: `${overload.pctPlafond} %` },
             ],
           },

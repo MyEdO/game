@@ -298,7 +298,7 @@ export function flowTestsWithoutStake(src: string): number[] {
  * `testFlow`) ; or un jet se DÉCRIT dans un littéral, et ce littéral entre par bien d'autres portes :
  * un nœud `{ kind:'test', test:{…} }` monté à la main, un `FlowTest` passé DIRECTEMENT à
  * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'argument de `ouvrirLeTestEtendu`
- * (qui pose son enjeu sur l'étape `extendedJet`), l'opération armée de chirurgie
+ * (qui pose son enjeu sur l'étape `jetEtendu`), l'opération armée de chirurgie
  * (`medic.surgery`, dont `useSurgeryJetProps` lit l'enjeu). Toutes produisent un jet, aucune n'était
  * mesurée.
  *
@@ -496,12 +496,12 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
   it('RANGÉE DE BANDE (4ᵉ forme) : l’enjeu se demande à la bande qui la monte, jamais effacé', () => {
     const rangee = `const r = { id: h.id, label, skill: { id: s }, difficulty: 'intermediaire', result: null, interactive: true };`;
     const bande = (enjeu: string) => `return bandStep({ id: 'x', kind: 'k', label${enjeu} }, rangees);`;
-    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake: combatStakeRef(\'pursuitMove\')')}`), 'la bande porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake: combatStakeRef(\'mouvementDePoursuite\')')}`), 'la bande porte l’enjeu').toHaveLength(0);
     expect(literalTestsWithoutStake(`${rangee}\n${bande('')}`), 'bande sans enjeu').toHaveLength(1);
     expect(literalTestsWithoutStake(rangee), 'aucune bande').toHaveLength(1);
     expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake')}\n${bande('')}`), 'une des bandes sans enjeu').toHaveLength(1);
     const fabrique = (enjeu: string) => `const b = makeBandFactory<Due>({ cle: (d) => d.k, rangee: (d) => d.row, situation: (d) => ({ id: 'x', kind: 'k'${enjeu} }) });`;
-    expect(literalTestsWithoutStake(`${rangee}\n${fabrique(', stake: combatStakeRef(\'combatPsych\')')}`), 'la fabrique de bandes porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${fabrique(', stake: combatStakeRef(\'psychologieDeCombat\')')}`), 'la fabrique de bandes porte l’enjeu').toHaveLength(0);
     expect(literalTestsWithoutStake(`${rangee}\n${fabrique('')}`), 'fabrique sans enjeu').toHaveLength(1);
     const descripteur = `const t = { skill: { id: s }, difficulty: 'intermediaire' };\n${bande(', stake')}`;
     expect(literalTestsWithoutStake(descripteur), 'un descripteur, sans `result`/`interactive`, n’est pas une rangée').toHaveLength(1);
@@ -575,7 +575,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
    *    type ne peut pas atteindre, et c'est ce que le scan garde.
    */
   it('PARTITION : la déclaration d’un mint mono sort du scan (le TYPE la tient), le manuscrit y reste', () => {
-    const mint = `const st = monoStep({ id: 'expo-1', kind: 'stageExposure', actor: h, label: 'Exposition', difficulty: diff, ligne: { test: { skill: 'resistance' } } });`;
+    const mint = `const st = monoStep({ id: 'expo-1', kind: 'etapeExposition', actor: h, label: 'Exposition', difficulty: diff, ligne: { test: { skill: 'resistance' } } });`;
     const raccourci = `const st = monoStep({ id: 'x', kind: 'k', actor, label: 'L', difficulty: diff });`;
     const parSpread = `const st = monoStep({ ...commun, actor: h, ligne: { valeur: 40 } });`;
     const manuscrit = `const s = { id: 'x', kind: 'k', actorId: h.id, base: 40, target: 40, result: null };`;

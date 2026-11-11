@@ -1373,7 +1373,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
 
     // `jetAnnuler('attaque')` (« Annuler » / défaire-charge) est GÉNÉRÉ par la fabrique
-    // (`FLOWS.attack.onCancel`, cf. la liste de verbes ci-dessus) — plus d'action bespoke ici.
+    // (`FLOWS.attaque.onCancel`, cf. la liste de verbes ci-dessus) — plus d'action bespoke ici.
     // PILONNAGE INDIRECT (« viser une case », AA 10 l.169/171) : la case d'impact est déposée par le placeur
     // ('siege', commitPlacedZone). Ouvre la modale de tir de la pièce indirecte servie (`pendingAttack` siège) :
     // le JET de tir (DR) reste l'attaque NORMALE (Chance/Résilience par la cascade), mais la touche DÉTONE sur
@@ -1753,7 +1753,7 @@ export function createCombatSlice(get: Get, set: Set) {
     // rendue par `CascadeModal` (via `useExtendedTestJetProps`). `pendingExtendedTest` coexiste comme
     // porteur de données (les Rounds y vivent) ; `jetValider('testEtendu')` ferme les deux à la réussite.
 
-    // Incantation OPPOSÉE (multijet `FLOWS.castOpposition`) : chaque cible oppose son Test ; cible IA
+    // Incantation OPPOSÉE (multijet `FLOWS.opposition`) : chaque cible oppose son Test ; cible IA
     // = rangée témoin (jet auto-roulé à l'ouverture, cf. openCastOpposition). Mêmes 6 verbes que les autres flux.
     // Préfixe store `opposition` ≠ clé de flux `castOpposition` (handler passé explicitement).
     /** Focalise le sort d'Arcane ou de Domaine `spellId` de `lanceurId` (Test étendu de Focalisation, LDB 46) : OUVRE
@@ -1831,9 +1831,9 @@ export function createCombatSlice(get: Get, set: Set) {
       });
     },
     // Psychologie de COMBAT (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,
-    // applier 'combatPsych', résolue par les verbes de jet de la cascade. La Détermination (LDB 17 l.59) est offerte
+    // applier 'psychologieDeCombat', résolue par les verbes de jet de la cascade. La Détermination (LDB 17 l.59) est offerte
     // dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination` sur la rangée.
-    // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'encounterPsych',
+    // Psychologie À LA RENCONTRE (couture C, LDB 21) : cascade équivalente, applier 'psychologieDeRencontre',
     // ouverte par `openEncounterPsych` à l'entrée de scène.
 
     // ── Entrée en Frénésie d'un héros (LDB 21 l.31-35) : Test de FM, succès → +1 BF / immunité psy / attaque obligatoire ──
@@ -2501,8 +2501,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (suspended) {
         // Déviation Critique du fuyard : `applyAttackResult` a EMPILÉ son étape de choix — le coup gratuit
         // n'est PAS résolu. La fuite (Brisé + Course) attend SA résolution, dans la même fenêtre, via
-        // l'étape de reprise `fleeMove` (LDB 15 l.68 : « une fois que ce coup gratuit est résolu… »).
-        pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'fleeMove', actorId: mover.id, icon: 'melee/flee', label: t('step.fuite'),
+        // l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 : « une fois que ce coup gratuit est résolu… »).
+        pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/flee', label: t('step.fuite'),
           outcome: toRecapLines([
             t('cs.fuiteReprise', { name: mover.label, foe: foe.label }),
             ...(broken > 0 ? [t('cs.panic', { name: mover.label, broken })] : []),
@@ -2588,7 +2588,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       checkBattleOver(get, set);
     },
     // ── Manœuvre de créature par modale (Souffle/Vomi/Langue/Regard/Étreinte — LDB 85) : le jet de
-    //    l'ATTAQUANT passe par FLOWS.maneuver (Lancer/Chance/Pacte/Résilience) ; « Appliquer » roule les
+    //    l'ATTAQUANT passe par FLOWS.manoeuvre (Lancer/Chance/Pacte/Résilience) ; « Appliquer » roule les
     //    défenseurs et résout l'opposition au feed via le RÉSOLVEUR GÉNÉRIQUE `resolveManeuver`. ──
     manoeuvre: () => {
       const { battle, pendingManeuver: pm } = get();
@@ -2801,9 +2801,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (removed > 0) removeCondition(a, sr.state, removed);
       // Filets (Zoo Impérial p.29) : un échec de libération AGGRAVE l'Empêtré (≠ Immobilisante générique).
       if (!sr.success && sr.entangleOnFail) addCondition(a, sr.state, 1);
-      // ISSUE dérivée par le goulot (`FLOWS.recover.apply`, canal COMBAT) : le pending est FOURNI (fermé
+      // ISSUE dérivée par le goulot (`FLOWS.recuperation.apply`, canal COMBAT) : le pending est FOURNI (fermé
       // juste avant), les Dégâts de débattement restent la conséquence propre du site.
-      const recoverIssue = FLOWS.recover.apply(get, { p: sr });
+      const recoverIssue = FLOWS.recuperation.apply(get, { p: sr });
       finishPlayerAction(get, set, [...struggleLines, ...recoverIssue], 'etat'); // consomme l'Action
     },
     fuiteDeVapeur: () => {
@@ -2813,7 +2813,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       resolveSteamSave(get, set, p); // échec → ébouillanté (scaldOps), puis la boucle maritime reprend
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `attack`) — Résilience (forceSuccess/setForcedRoll) plus bas.
-    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attack.onCancel`) — regénère `jetAnnuler('attaque')`.
+    // `cancel` = « Annuler » unifié (défaire-charge dans `FLOWS.attaque.onCancel`) — regénère `jetAnnuler('attaque')`.
     attaque: () => {
       const { battle, pendingAttack: pa } = get();
       if (!battle || !pa) return;
@@ -3103,7 +3103,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const cascBefore = get().pendingCascade;
       const castStepIdx = cascBefore && cascBefore.purpose === 'combat' && cascBefore.participants[cascBefore.cursor]?.jet === 'incantation'
         ? cascBefore.cursor : -1;
-      set({ pendingCast: null }); // ferme le JET ; la cascade d'incantation reste active (cursor sur 'cast')
+      set({ pendingCast: null }); // ferme le JET ; la cascade d'incantation reste active (cursor sur 'incantation')
       if (caster && target && spell) {
         const ocDur = overcastDurationParts(overcastSourceOf(spell), pc.overcast?.duration ?? 0);
         applyCast(get, set, caster, target, spell, lance, pc.missile, pc.focused, pc.critChoice, {
@@ -3254,8 +3254,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const c = inBattleId(battle, pf.combatantId);
       set({ pendingFrenzy: null });
       if (!c) return;
-      // ISSUE dérivée par le goulot (`FLOWS.frenzy.apply`, canal COMBAT) : pending FOURNI (fermé juste avant).
-      const log = FLOWS.frenzy.apply(get, { p: pf });
+      // ISSUE dérivée par le goulot (`FLOWS.frenesie.apply`, canal COMBAT) : pending FOURNI (fermé juste avant).
+      const log = FLOWS.frenesie.apply(get, { p: pf });
       if (lance.success) (c.psychState ??= []).push({ type: 'frenesie' });
       set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ...evLines(log, 'frenesie', c.id)] } });
       checkBattleOver(get, set);

@@ -121,14 +121,14 @@ describe('marqueurs de geste d’arête — l’écran monté répond comme l’
 
   it('combat : ennemi mené par le siège MJ LOCAL → la chute est offerte (le siège le mène, `controlsCombatant`)', async () => {
     combat('enemy');
-    useGame.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] } });
+    useGame.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] } });
     await monter();
     expect(capacites()).toContain('chute');
   });
 
   it('combat : ennemi mené par un AUTRE siège (MJ distant) → aucune chute offerte', async () => {
     combat('enemy');
-    useGame.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: 1, ownership: {}, slots: [0, 1, 0, 0] } });
+    useGame.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: 1, ownership: {}, slots: [0, 1, 0, 0] } });
     await monter();
     expect(capacites()).not.toContain('chute');
   });

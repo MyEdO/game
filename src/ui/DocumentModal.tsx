@@ -17,7 +17,7 @@ import { porteurDuNarratif } from './porteurDeProjet';
 export function DocumentModal() {
   const doc = useGame((s) => s.document);
   const fermer = useGame((s) => s.fenetreFermer);
-  const invite = useGame((s) => s.net.mode === 'guest');
+  const invite = useGame((s) => s.net.mode === 'invite');
   const campaignDoc = useGame((s) => s.campaignDoc);
   const [masque, setMasque] = useState<number | null>(null);
   if (!doc) return null;

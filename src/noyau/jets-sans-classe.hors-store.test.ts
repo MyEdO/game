@@ -46,7 +46,7 @@ const NET0 = initialNet();
 const SOUS_ORDRES = [...KINDS_SOUS_ORDRES];
 
 /** Les `kind` de l'entretien-survie maritime, tels que les émettent les trois phases du jour. */
-const KINDS_DE_MER = ['mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-mal-de-mer', 'mer-scorbut', 'sea-exposition', 'mer-epuisement'] as const;
+const KINDS_DE_MER = ['mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-mal-de-mer', 'mer-scorbut', 'merExposition', 'mer-epuisement'] as const;
 
 const ligne = { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } as const;
 
@@ -83,7 +83,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
    */
   it('COOP × COMMANDÉE : le héros d’un invité garde sa fenêtre (M) pour chaque kind sous ordres, mer comme fleuve', () => {
     const invite = get().party[0];
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
     for (const mode of ['sea', 'river'] as const) {
       traversee('commande', mode);
       const mesure = SOUS_ORDRES.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, [invite])])] as const);
@@ -102,7 +102,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   /**
    * L'EXPOSITION DE NUIT/SCÈNE N'EST PAS SOUS LES ORDRES D'UNE TRAVERSÉE (#1479) — même RÈGLE
    * (LDB 18 l.326-334, même applier), autre ROUTE : « cap tenu, ne me réveillez pas » ne commande
-   * que l'entretien du BORD (`sea-exposition`). Un ordre de traversée qui éteindrait aussi
+   * que l'entretien du BORD (`merExposition`). Un ordre de traversée qui éteindrait aussi
    * l'Exposition d'un camp ou d'un effet de scène volerait au joueur un jet qu'il doit faire
    * (« A partir du moment ou je dois faire un jet, il doit apparaitre », utilisateur 2026-08-24) —
    * et il le volerait sur un plan FLUVIAL comme sur un plan de MER, la politique ne lisant que la
@@ -113,7 +113,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
       traversee('commande', mode);
       expect(surfaceDesEtapes(get, [bandeDe('exposition-nocturne', get().party)]), `« exposition-nocturne » sous ordres commandés (${mode})`).toBe('M');
       // CONTRÔLE POSITIF, même montage : la route de MER, elle, EST commandée.
-      expect(surfaceDesEtapes(get, [bandeDe('sea-exposition', get().party)]), `« sea-exposition » sous ordres commandés (${mode})`).toBe('I');
+      expect(surfaceDesEtapes(get, [bandeDe('merExposition', get().party)]), `« merExposition » sous ordres commandés (${mode})`).toBe('I');
     }
   });
 
@@ -126,7 +126,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
 
   it('siège MJ : la bande reste au JOUEUR (M) — le MJ ne prend que les dés qu’il TIENT (V pour le monde)', () => {
     traversee('jourParJour');
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, gmSeat: 1 } } as never);
     for (const k of KINDS_DE_MER) {
       expect(surfaceDesEtapes(get, [bandeDe(k, get().party)]), `« ${k} » : le porteur est un héros, son joueur le tient`).toBe('M');
     }
@@ -180,7 +180,7 @@ describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade
 
   it('siège DISTANT : le héros d’un invité TIENT sa rangée chez l’hôte (elle ne se tire pas en silence)', () => {
     const invite = get().party[0];
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
     const bande = bandeDe('mer-scorbut', [invite]);
     expect(bande.participants![0].interactive, 'c’est SON joueur qui la roulera').toBe(true);
     expect(bande.participants![0].result).toBeNull();

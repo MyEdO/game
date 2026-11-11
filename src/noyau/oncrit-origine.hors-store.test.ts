@@ -56,7 +56,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     for (let i = 0; i < 20 && banc.getState().pendingCascade; i++) {
       const pc = banc.getState().pendingCascade!;
       const cur = pc.participants[pc.cursor];
-      if (cur?.kind === 'triggeredChoice') return cur;
+      if (cur?.kind === 'choixDeclenche') return cur;
       avanceEtapeCascade(banc.getState);
     }
     return undefined;

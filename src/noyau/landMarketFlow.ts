@@ -369,7 +369,7 @@ function openLandSellBuyerStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc
   }, LAND_SELL_BUYER_KIND, { lotId, sellEnc, retryHalf: allowHalfRetry, attempt });
 }
 
-const LAND_SELL_BUYER_KIND = 'land-sell-buyer';
+const LAND_SELL_BUYER_KIND = 'acheteurATerre';
 
 /** 2-3. Mise à prix (l.148-156) puis Marchandage opposé (l.127), une fois l'acheteur trouvé — retire le
  *  lot (ou la fraction vendue) du porteur et crédite la bourse. `avant` = les lignes déjà dues au

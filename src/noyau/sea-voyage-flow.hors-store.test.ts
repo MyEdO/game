@@ -617,7 +617,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
     expect(get().travelPlan?.sea?.fast?.pendingFinalize).toBeFalsy();
   });
 
-  it.each(['equipage-voyage-rapide', 'flowCrewTest'] as const)('%s : un total de Rude épreuve à −2 DR retire 2 points de Moral au navire, un total positif aucun (MDG 14 l.110, MDG 15 l.27)', (kind) => {
+  it.each(['equipage-voyage-rapide', 'testDEquipage'] as const)('%s : un total de Rude épreuve à −2 DR retire 2 points de Moral au navire, un total positif aucun (MDG 14 l.110, MDG 15 l.27)', (kind) => {
     const traverser = (sl: number): number => {
       set({ vessel: { ...get().vessel!, morale: { ...get().vessel!.morale, score: 75 } } });
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
@@ -845,8 +845,8 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().travelPlan!.sea!.daysAtSea, 'la clôture du jour ne s’est pas jouée une fois').toBe(1);
     expect(get().travelPlan!.log, 'la clôture du jour ne s’est pas jouée une fois').toHaveLength(1);
     const ids = get().travelPlan!.log!.slice(-1)[0]!.entries!.map((e) => e.id ?? '');
-    expect(ids.filter((i) => i.startsWith('sea-equipage-progression')), 'les dés résolus avant l’embuscade manquent au PV').toHaveLength(progression.participants!.length);
-    expect(ids.some((i) => i.startsWith('sea-equipage-orientation')), 'le reste du jour ne s’est pas joué').toBe(true);
+    expect(ids.filter((i) => i.startsWith('mer-equipage-progression')), 'les dés résolus avant l’embuscade manquent au PV').toHaveLength(progression.participants!.length);
+    expect(ids.some((i) => i.startsWith('mer-equipage-orientation')), 'le reste du jour ne s’est pas joué').toBe(true);
   });
 
   it('route SANS embuscade authorée → le franchissement ne déclenche rien', () => {
@@ -1068,7 +1068,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
   it('Langskip skaeling : aucune extorsion (MDG 15 l.150-151) — fuir ou combattre, jamais se soumettre', () => {
     forceHail('langskip-skaeling');
     const cur = get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    expect(cur.kind).toBe('sea-pirate-hail');
+    expect(cur.kind).toBe('merPiratesSommation');
     expect(cur.options?.map((o) => o.key)).toEqual(['fuir', 'combattre']);
   });
 
@@ -1086,7 +1086,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     const p = get().pendingCascade;
     expect(p).toBeTruthy();
     const cur = p!.participants[p!.cursor];
-    expect(cur.kind).toBe('sea-pirate-hail');
+    expect(cur.kind).toBe('merPiratesSommation');
     expect(cur.options?.map((o) => o.key)).toEqual(['fuir', 'combattre', 'soumettre']); // les 3 choix présentés
     // Rien de tranché AVANT le choix : ni fuite (Poursuite), ni pillage — le joueur décide.
     expect(get().travelPlan!.sea!.crisis).toBeFalsy();
@@ -1138,7 +1138,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     get().jetValider('cascade');
     expect(get().vessel!.cargo!.reduce((n, l) => n + l.enc, 0)).toBe(0); // cale vidée (piratePillagePct 100 %)
     const p2 = get().pendingCascade;
-    expect(p2?.participants.some((s) => s.kind === 'sea-pirate-tribute')).toBe(true); // choix du tribut offert
+    expect(p2?.participants.some((s) => s.kind === 'merPiratesTribut')).toBe(true); // choix du tribut offert
   });
 });
 
@@ -1322,7 +1322,7 @@ describe('Port désert — #150 (resolvePortArrival appelé APRÈS purge de trav
     expect(get().travelPlan).toBeNull(); // reproduit exactement le contexte du bug : plan déjà purgé
     // Humeur de Manann neutre (mod 0) : 2d10 = 2+3 = 5 → « Port désert ». Puis 2d10 = 1+1 (heures, sans effet ici).
     resolvePortArrival(get, set, { taille: 2, richesse: 1, production: [] }, seq(2, 3, 1, 1));
-    expect(get().pendingCascade?.participants[0].kind).toBe('flowChoice');
+    expect(get().pendingCascade?.participants[0].kind).toBe('choixDeFlux');
     avanceEtapeCascade(get, undefined, () => 'yes');
     expect(get().vessel!.morale.score).toBeLessThan(75);
     expect(get().vessel!.morale.score).toBeGreaterThanOrEqual(65);
@@ -1488,7 +1488,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
    *  Progression (MDG 14 l.63), sinon son défaut. `undefined` si la journée se clôt sans la bande. */
   function jusquaLaBande(opts: { poser?: PoseDe; voie?: 'nav' | 'crew' }): CascadeStep | undefined {
     for (let i = 0; i < 120 && get().pendingCascade && get().pendingCascade!.purpose !== 'seaExhaustion'; i++) {
-      avanceEtapeCascade(get, opts.poser, (st) => (st.kind === 'sea-progression-choice' ? opts.voie : undefined));
+      avanceEtapeCascade(get, opts.poser, (st) => (st.kind === 'merProgressionChoix' ? opts.voie : undefined));
     }
     const casc = get().pendingCascade;
     return casc?.purpose === 'seaExhaustion' ? casc.participants.find((st) => st.kind === 'mer-epuisement') : undefined;
@@ -2031,7 +2031,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
       sousLaPluie(precip, 'commande');
       runSeaDay(get, set);
       expect(get().pendingCascade?.purpose ?? null, 'aucune fenêtre de jour en cadence commandée').not.toBe('travelDay');
-      return (get().travelPlan?.log?.slice(-1)[0]?.entries ?? []).filter((e) => e.id?.startsWith('sea-equipage-orientation-')).map((e) => e.d!);
+      return (get().travelPlan?.log?.slice(-1)[0]?.entries ?? []).filter((e) => e.id?.startsWith('mer-equipage-orientation-')).map((e) => e.d!);
     };
     const seche = lignesOrientation('aucune');
     const mouille = lignesOrientation('tres-abondantes');
@@ -2269,7 +2269,7 @@ describe('Exposition en mer — une étape influençable par Test, une cascade p
     // 4 Tests/jour (`seaExposureTestsPerDay('glaciale')`) = 4 VAGUES ; la 1ʳᵉ s'ouvre, les suivantes se
     // construisent après elle (#1117 L3) — une RANGÉE par héros vivant dans la fenêtre.
     expect(casc.participants).toHaveLength(1);
-    expect(casc.participants[0].kind).toBe('sea-exposition'); // applier d'escalade PARTAGÉ
+    expect(casc.participants[0].kind).toBe('merExposition'); // applier d'escalade PARTAGÉ
     expect(casc.participants[0].meta?.waves).toBe(4);
     expect(casc.participants[0].participants).toHaveLength(living);
     expect(casc.participants[0].participants!.every((r) => r.difficulty === 'intermediaire')).toBe(true);
@@ -2467,10 +2467,10 @@ describe('Soutien — il entre dans la CIBLE de toute étape soutenue (#1117)', 
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
-      if (cur?.kind === 'sea-progression-choice') { get().jetRegler('cascade', 'choix', 'nav', cur.id); get().jetValider('cascade'); break; }
+      if (cur?.kind === 'merProgressionChoix') { get().jetRegler('cascade', 'choix', 'nav', cur.id); get().jetValider('cascade'); break; }
       stepCascade();
     }
-    const nav = get().pendingCascade!.participants.find((x) => x.kind === 'sea-progression-nav');
+    const nav = get().pendingCascade!.participants.find((x) => x.kind === 'merProgressionNavigation');
     expect(nav, 'la voie Navigation est posée').toBeTruthy();
     expect(nav!.base!, 'la base soutenue franchit bien le plafond (sinon le cas ne prouve rien)').toBeGreaterThan(99);
     // Le CONTRAT d'abord (ce que le joueur lit), le mécanisme ensuite (ce qui le produit).
@@ -2510,7 +2510,7 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
   it('la Progression PROPOSE les deux voies RAW, équipage par défaut', () => {
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const p = get().pendingCascade!;
-    const choix = p.participants.find((s) => s.kind === 'sea-progression-choice');
+    const choix = p.participants.find((s) => s.kind === 'merProgressionChoix');
     expect(choix, 'le choix est POSÉ, jamais tranché en silence').toBeTruthy();
     expect(choix!.options!.map((o) => o.key)).toEqual(['crew', 'nav']);
     expect(choix!.defaultChoice, 'cadence commandée = voie d’équipage').toBe('crew');
@@ -2522,10 +2522,10 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
       const p = get().pendingCascade;
       if (!p) break;
       const cur = p.participants[p.cursor];
-      if (cur?.kind === 'sea-progression-choice') { get().jetRegler('cascade', 'choix', 'nav', cur.id); get().jetValider('cascade'); break; }
+      if (cur?.kind === 'merProgressionChoix') { get().jetRegler('cascade', 'choix', 'nav', cur.id); get().jetValider('cascade'); break; }
       stepCascade();
     }
-    const nav = get().pendingCascade!.participants.find((s) => s.kind === 'sea-progression-nav');
+    const nav = get().pendingCascade!.participants.find((s) => s.kind === 'merProgressionNavigation');
     expect(nav, 'la voie Navigation est insérée').toBeTruthy();
     expect(nav!.participants, 'voie MONO : un barreur, pas un batch d’équipage').toBeUndefined();
     const competence = navigationDuNavire(get, get().travelPlan!.vehicle!);
@@ -2536,7 +2536,7 @@ describe('Tests d’équipage — enjeu d’EFFET, règle en fiche, choix de Pro
   it('personne qui puisse tenter la Voile (LDB 09 l.30) : la voie Navigation reste OFFERTE, fermée avec son refus nommé', () => {
     set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((sk) => sk.id !== 'voile') })) });
     get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
-    const choix = get().pendingCascade!.participants.find((s) => s.kind === 'sea-progression-choice');
+    const choix = get().pendingCascade!.participants.find((s) => s.kind === 'merProgressionChoix');
     expect(choix, 'le choix MDG 14 l.63 reste posé').toBeTruthy();
     const nav = choix!.options!.find((o) => o.key === 'nav');
     expect(nav, 'la voie Navigation est présente').toBeTruthy();

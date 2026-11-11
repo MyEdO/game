@@ -147,7 +147,7 @@ export function CoopAssignList() {
 export function GmSeatSelect() {
   const net = useGame((s) => s.net);
   const setGmSeat = useGame((s) => s.setGmSeat);
-  if (net.mode !== 'host') return null;
+  if (net.mode !== 'hote') return null;
   return (
     <CoopAssignRow
       libelle="Maître du Jeu"
@@ -178,13 +178,13 @@ export function CoopBanner({ icone, children }: { icone: IconIdInput; children: 
 
 /** Ce que la vue réseau donne à SIGNALER — `null` : la liaison est saine, aucun bandeau. */
 export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: string } | null {
-  if (net.mode === 'guest' && net.connection === 'reconnexion')
+  if (net.mode === 'invite' && net.connection === 'reconnexion')
     return { icone: 'ui/warning', texte: 'Reconnexion en cours…' };
-  if (net.mode === 'guest' && net.hostAway)
+  if (net.mode === 'invite' && net.hostAway)
     return { icone: 'ui/wait', texte: 'L’hôte est déconnecté — la partie reprendra à son retour.' };
-  if (net.mode === 'host') {
+  if (net.mode === 'hote') {
     const away = Object.entries(net.presence)
-      .filter(([, p]) => p === 'away')
+      .filter(([, p]) => p === 'absent')
       .map(([s]) => nomDuSiege(net, Number(s)));
     if (away.length) return { icone: 'ui/warning', texte: `${away.join(', ')} : reconnexion en cours…` };
   }
@@ -205,6 +205,6 @@ export function CoopHostSections() {
 /** Sous-écran Coopération du menu ☰ : il n'a de contenu qu'en partie HÉBERGÉE. */
 export function CoopMenuSection() {
   const net = useGame((s) => s.net);
-  if (net.mode !== 'host') return null;
+  if (net.mode !== 'hote') return null;
   return <CoopHostSections />;
 }

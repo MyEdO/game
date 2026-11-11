@@ -254,8 +254,8 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     acquitter({ success: false, sl: -1 });
     const pc = get().pendingCascade;
     expect(pc, 'le Test imbriqué doit RE-suspendre hors combat').toBeTruthy();
-    const etape = pc!.participants.find((p) => p.kind === 'triggeredTest');
-    expect(etape, 'le second jet passe par l’étape générique `triggeredTest`').toBeTruthy();
+    const etape = pc!.participants.find((p) => p.kind === 'testDeclenche');
+    expect(etape, 'le second jet passe par l’étape générique `testDeclenche`').toBeTruthy();
     expect(etape!.actorId, 'le second jet reste chez le SUJET').toBe('h3');
     expect(referentDeLEtape(etape!), 'le lanceur voyage par le meta (ids, sérialisable)').toBe('h4');
     expect(() => JSON.parse(JSON.stringify(pc)), 'la cascade doit rester sérialisable').not.toThrow();

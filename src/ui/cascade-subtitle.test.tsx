@@ -198,7 +198,7 @@ describe('sous-titre de la branche JET — compteur en JETS DE DÉ', () => {
 
   it('un pas BATCH de 3 rangées compte 3 jets : le pas-jet suivant annonce « jet 4/4 »', () => {
     openSteps('Traversée', (id) => [
-      { id: 'batch', kind: 'weatherResistance', label: 'Traversée — Blizzard', interactive: true,
+      { id: 'batch', kind: 'resistanceALaMeteo', label: 'Traversée — Blizzard', interactive: true,
         participants: [1, 2, 3].map((n) => ({ id, label: `Rôle ${n}`, interactive: true, base: 40, target: 40, result: null })) } as unknown as CascadeStep,
       jetStep('j', id),
     ], 1);

@@ -39,7 +39,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
     const log: string[] = [];
     applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'h1', attackerKind: 'hero' }, get: banc.getState });
-    const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
+    const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critique');
     expect(crit).toBeTruthy();
   });
 
@@ -48,7 +48,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
     const log: string[] = [];
     applyCriticalToTarget(hero, 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'e1', attackerKind: 'enemy' }, get: banc.getState });
-    const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critical');
+    const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critique');
     expect(crit).toBeTruthy();
   });
 });

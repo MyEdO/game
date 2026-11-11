@@ -148,7 +148,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
   const { mode, mySeat } = state.net;
   if (mode === 'local') return true;
   if (actingSeat != null) return seatOwns(state, actingSeat, combatantId); // `seatOwns` traite l'absence d'acteur
-  if (!combatantId) return mode === 'host';
+  if (!combatantId) return mode === 'hote';
   return seatOwns(state, mySeat, combatantId);
 }
 

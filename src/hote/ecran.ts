@@ -660,7 +660,7 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
   const r = pc?.participants[pc.cursor]?.reveal;
   if (!r) return [];
-  const crit = r.kind === 'critical' ? r.crit : undefined;
+  const crit = r.kind === 'critique' ? r.crit : undefined;
   const ton: Ton = r.subjectId && porteurParId(etat, r.subjectId)?.kind === 'hero' ? 'echec' : 'reussite';
   const prefixe = crit ? 'critique' : 'revelation';
   return [

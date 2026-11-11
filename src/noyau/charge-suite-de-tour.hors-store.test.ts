@@ -282,7 +282,7 @@ function approche(banc: Banc, depart: { x: number; y: number }): void {
   e.movement = 2;
   poser(banc, 4, [e, h]);
 }
-const bandeOuverte = () => !!g().pendingCascade?.participants.some((s) => s.kind === 'triggeredBatchTest');
+const bandeOuverte = () => !!g().pendingCascade?.participants.some((s) => s.kind === 'testDeclencheEnBande');
 
 describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main pendant la suite du tour', () => {
   it('B (graine 1) : la frappe échoit sur la bande — parquée, puis UNE frappe à sa clôture', () => {
@@ -593,7 +593,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
     banc.setState({ net: { ...g().net, gmSeat: 0 } } as never);
     cliquerLaCharge();
     const etapes = () => g().pendingCascade?.participants.map((p) => p.kind) ?? [];
-    expect([etapes(), frappeOuverte(), attaques('h')], 'la réaction s’offre au pilote de la cible, avant toute frappe').toEqual([['triggeredChoice'], null, 0]);
+    expect([etapes(), frappeOuverte(), attaques('h')], 'la réaction s’offre au pilote de la cible, avant toute frappe').toEqual([['choixDeclenche'], null, 0]);
     jouerLaSequence();
     banc.reprendreTout();
     expect(frappeOuverte()?.de, 'la frappe du chargeur s’ouvre ensuite').toBe('h');
@@ -601,7 +601,7 @@ describe('#3059 — la Charge d’un héros MANUEL fait « être Chargé » ; sa
 
   it('B (graine 4) : coop — l’invité charge par intent : chez l’hôte, la cible réagit avant, la frappe de l’invité s’ouvre après', () => {
     chargeManuelle(4);
-    banc.setState({ net: { ...g().net, mode: 'host', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h: 1 }, slots: [1, 1, 0, 0] } } as never);
+    banc.setState({ net: { ...g().net, mode: 'hote', mySeat: 0, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h: 1 }, slots: [1, 1, 0, 0] } } as never);
     expect(appliquerLIntentionDUnSiege(g, 1, 'cliquerLaCase', [{ ...qui('e').pos! }, 'e', { confirm: true, intentionId: 'charge' }]), 'l’intent de l’invité est appliqué').toBe('appliquee');
     expect([g().pendingDefense?.defenderId, attaques('h'), frappeOuverte()], 'la riposte ouvre la défense du chargeur avant toute frappe').toEqual(['h', 0, null]);
     for (let i = 0; i < 40; i++) {

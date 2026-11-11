@@ -62,7 +62,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // skippable ; le Journal garde l'archive consultable. Poussée APRÈS `openEncounterPsych` et en
       // séquence PROPRE (`own`) : la carte passe DEVANT les Tests de Sang-froid de la rencontre, qui
       // sont parqués par la doctrine du slot et repris à la clôture de la carte — jamais perdus.
-      if (scene.startMessage) pushReveal(set, { kind: 'sceneEntry', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
+      if (scene.startMessage) pushReveal(set, { kind: 'entreeEnScene', title: scene.label, lines: [scene.startMessage.texte], sceneId: scene.id }, { own: true });
     },
     chargerLeProjet: ({ scenes, entryId, worldMap, narratif, projet }) => {
       // Enregistre toutes les scènes du projet (pour que les portes reveal:'door'
@@ -148,7 +148,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // N1 : entrée de zone (transition) en MODALE — étape d'AFFICHAGE skippable (Journal = archive),
       // poussée APRÈS `openEncounterPsych` et en séquence PROPRE (`own`), pour la même raison qu'à
       // `lancerLaScene` : la carte passe devant, les Tests de rencontre sont parqués puis repris.
-      if (target.startMessage) pushReveal(set, { kind: 'sceneEntry', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
+      if (target.startMessage) pushReveal(set, { kind: 'entreeEnScene', title: target.label, lines: [target.startMessage.texte], sceneId: target.id }, { own: true });
     },
   } satisfies FabriqueDuNoyau;
 }

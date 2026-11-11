@@ -53,7 +53,7 @@ describe('Seuil de Corruption — la SURFACE, pas l’affordance locale (#1426)'
     const h = heroAuSeuil();
     banc.setState({
       party: [h],
-      net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [0, 1, 0, 0] },
+      net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [h.id]: 1 }, slots: [0, 1, 0, 0] },
     });
     // Le prédicat d'affordance LOCALE dit NON chez l'hôte — c'est lui qui auto-résolvait.
     expect(pilotedByHuman(g(), h), 'affordance locale : l’hôte n’a pas la main').toBe(false);

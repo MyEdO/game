@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { openCastCascade } from './combatFlow'; // effet de bord : installe l'applier `triggeredTest` + le routeur de Test
+import { openCastCascade } from './combatFlow'; // effet de bord : installe l'applier `testDeclenche` + le routeur de Test
 import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
@@ -15,7 +15,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Lot 4b — un Sort dont le Flow d'effet porte un nœud `test` INTERNE (Chute : « la cible teste sa
  * Dextérité ou laisse tomber l'objet ») est résolu CADENCE-AWARE par `resolveFlowTest`, EN CONTEXTE
  * D'INCANTATION (cast cascade ouverte par `openCastCascade`, comme un vrai `castSpell`) :
- *  - la VICTIME est un HÉROS manuel → le test SUSPEND en APPENDANT une étape `triggeredTest` à la
+ *  - la VICTIME est un HÉROS manuel → le test SUSPEND en APPENDANT une étape `testDeclenche` à la
  *    MÊME cascade `cast` active (une seule cascade enrichie, influençable — Chance/Pacte/Résilience) ;
  *  - la VICTIME est un ENNEMI → jet INLINE + branche honorée + ligne de parité dans le journal de
  *    combat (jamais de jet silencieux), branchée sur la DONNÉE (`spells.json` : op `test` → nœud
@@ -66,7 +66,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     expect(step.fail.kind).toBe('do');     // échec = la branche narrative (« l'objet tombe »)
   });
 
-  it('VICTIME héros manuel → étape `triggeredTest` APPENDUE à la cascade `cast` (une seule cascade, influençable)', () => {
+  it('VICTIME héros manuel → étape `testDeclenche` APPENDUE à la cascade `cast` (une seule cascade, influençable)', () => {
     seedBattleRng(5);
     const { W, A } = setup();
     frozenCast(W, A);
@@ -78,10 +78,10 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
 
     const enriched = banc.getState().pendingCascade!;
     expect(enriched.purpose).toBe('combat');
-    expect(enriched.participants).toHaveLength(2);            // étape `cast` + `triggeredTest` APPENDUE (MÊME cascade)
+    expect(enriched.participants).toHaveLength(2);            // étape `cast` + `testDeclenche` APPENDUE (MÊME cascade)
     expect(enriched.participants[0].jet).toBe('incantation');
     const step = enriched.participants[1];
-    expect(step.kind).toBe('triggeredTest');
+    expect(step.kind).toBe('testDeclenche');
     expect(step.actorId).toBe(A.id);                         // c'est la VICTIME (héros) qui jette
     expect(step.result).toBeFalsy();                         // pas encore lancé → influençable (Chance/Pacte/Résilience)
     expect(step.meta?.onFail).toBeTruthy();                  // la branche échec voyage dans le meta (sérialisable, coop)

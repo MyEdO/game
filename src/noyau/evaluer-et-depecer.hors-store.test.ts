@@ -125,7 +125,7 @@ describe('victory.depecer : le dépeçage est un choix de la victoire, à l’h�
 
   it('dans l’état d’un invité, le choix est refusé, et le refus se dit', () => {
     banc.setState({ party: [heros('a')], pendingVictory: ecran() } as never);
-    banc.setState({ net: { ...initialNet(), mode: 'guest' } });
+    banc.setState({ net: { ...initialNet(), mode: 'invite' } });
     g().fenetreChoisir('victoire', 'depecer', 'griffon');
     expect([dernier(), g().pendingVictory?.harvested]).toEqual([t('choix.refus.hoteSeul'), []]);
   });
@@ -181,7 +181,7 @@ describe('coop à 3 sièges : évaluer et dépecer restent à l’hôte, refusé
   /** L'hôte au siège 0, un héros par siège. */
   const enCoop = (over: Record<string, unknown>) => {
     banc.setState({ party: [heros('a'), heros('b'), heros('c')], ...over } as never);
-    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, ownership: { a: 0, b: 1, c: 2 }, slots: [0, 1, 2, 0], seatNames: { 0: 'Hôte', 1: 'B', 2: 'C' } } });
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, ownership: { a: 0, b: 1, c: 2 }, slots: [0, 1, 2, 0], seatNames: { 0: 'Hôte', 1: 'B', 2: 'C' } } });
   };
   const PAR_SIEGE = [0, 1, 2] as const;
 

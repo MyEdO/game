@@ -136,7 +136,7 @@ describe('forme persistée — ce que le chargement lit', () => {
   });
   it('le coup à l’équipage d’un bateau s’ouvre en BANDE (#1657 B3-2)', () => {
     ouvrirLeBanc(); // les tables du jeu posées
-    expect(applierDe('triggeredBatchTest'), 'la porte qui sert désormais ce jet doit exister').toBeDefined();
+    expect(applierDe('testDeclencheEnBande'), 'la porte qui sert désormais ce jet doit exister').toBeDefined();
   });
 
   it('les étapes d’entretien se servent par l’applier de la porte (#1657 B3-3)', () => {

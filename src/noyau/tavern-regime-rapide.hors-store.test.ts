@@ -95,7 +95,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
       const avant = toBrass(bourseOf(get().party[0]));
       get().jouerALaTaverne(h.id, { gameId: entree.id, opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, stakeBrass: 500 });
       const ouverture = get().pendingCascade!;
-      expect(ouverture.participants.map((s) => s.kind), `${entree.id} : la manche opposée ordinaire, rien d’autre`).toEqual(['tavern-round']);
+      expect(ouverture.participants.map((s) => s.kind), `${entree.id} : la manche opposée ordinaire, rien d’autre`).toEqual(['taverneRound']);
       expect(ouverture.participants[0].difficulty, `${entree.id} : « Test opposé de Compétence Intermédiaire (+0) »`).toBe('intermediaire');
       drain();
       const res = get().tavernGames!.result!;
@@ -159,7 +159,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     get().jouerALaTaverne(h.id, { gameId: 'flechettes', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     // Aucune étape de volée : c'est la manche opposée ordinaire qui s'ouvre.
     const kinds = get().pendingCascade!.participants.map((s) => s.kind);
-    expect(kinds).toEqual(['tavern-round']);
+    expect(kinds).toEqual(['taverneRound']);
     drain();
     expect(get().tavernGames!.result!.rounds).toBe(1);
   });
@@ -169,7 +169,7 @@ describe('Régime RAPIDE — la règle optionnelle, DISTINCTE de l’ouverture d
     const h = seul();
     get().jouerALaTaverne(h.id, { gameId: 'cerevis', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' } });
     const cur = get().pendingCascade!.participants[0];
-    expect(cur.kind).toBe('tavern-round');
+    expect(cur.kind).toBe('taverneRound');
     expect(cur.second, 'le jeu rapide ne joue pas le Test combiné').toBeUndefined();
     // Et la Difficulté est celle du jeu rapide (« Intermédiaire (+0) »), pas le « Pari Accessible (+20) »
     // que l'entrée déclare pour sa manche complète.

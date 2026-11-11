@@ -225,7 +225,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const input = buildAiInput(canonnier, banc.getState);
     expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
     const action = chooseEnemyAction(input);
-    expect(action.kind).toBe('shoot');
+    expect(action.kind).toBe('tir');
     const tgt = b.combatants.find((c) => c.id === (action as { targetId: string }).targetId);
     expect(tgt && isStructure(tgt)).toBe(true); // … et c'est bien la STRUCTURE (porte) qui est visée
   });

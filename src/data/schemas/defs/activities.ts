@@ -81,7 +81,7 @@ export const sceneKindSchema = enumNomme({
 });
 
 /** Issue du Test qui ouvre une bande (absente = toute issue). */
-export const outcomeOnSchema = enumNomme({ success: 'Succès', failure: 'Échec', fumble: 'Maladresse' });
+export const outcomeOnSchema = enumNomme({ reussite: 'Succès', echec: 'Échec', maladresse: 'Maladresse' });
 
 const outcomeBandSchema = nommerChamps(z.strictObject({
   on: outcomeOnSchema.optional(),

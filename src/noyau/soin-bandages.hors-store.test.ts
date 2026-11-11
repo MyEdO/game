@@ -206,13 +206,13 @@ describe('+DR des Talents « Tests : » et inversion sur le soin (LDB 10 l.19, l
       if (c.bandages) banc.getState().jetRegler('soins', 'bandages', 'doc');
       expect(banc.getState().pendingHeal!.test).toBe(c.test);
       banc.setState({ pendingHeal: { ...banc.getState().pendingHeal!, roll: 82, target: 40, success: false, sl: -4 } });
-      expect(FLOWS.heal.reverseAvailable(banc.getState), JSON.stringify(c)).toBe(c.offert);
+      expect(FLOWS.soins.reverseAvailable(banc.getState), JSON.stringify(c)).toBe(c.offert);
     }
   });
 });
 
 describe('Coop : seul le siège du porteur engage ses Bandages (`user-arbitrage-coop-inventaire-par-proprietaire-bg3`)', () => {
-  const net = (ownership: Record<string, number>) => ({ ...initialNet(), mode: 'host' as const, mySeat: 0, ownership, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } });
+  const net = (ownership: Record<string, number>) => ({ ...initialNet(), mode: 'hote' as const, mySeat: 0, ownership, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } });
   const ph = (healerId: string) => ({ healerId, healerName: 'S', targetId: 'al', targetName: 'Al', mode: 'hemorragie' as const, intBonus: 4, test: 'guerison' as const, bandagesDe: null, skillValue: 50, difficulty: 'intermediaire' as const, ligne: { base: 50, mods: [], target: 50, difficulty: 'intermediaire' as const }, target: 50, roll: null, success: false, sl: 0 });
   const paire = () => [intentAllowedFor(banc.getState(), 2, 'jetRegler', ['soins', 'bandages', 'al']), intentAllowedFor(banc.getState(), 1, 'jetRegler', ['soins', 'bandages', 'al'])];
 

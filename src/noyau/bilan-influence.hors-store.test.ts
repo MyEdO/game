@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #253 — les jets du BILAN quotidien (Faim, Exposition, Contagion) passent par la surface
- * INFLUENÇABLE (cascade de nuit), au même titre que leurs frères maladie-test-quotidien/weatherResistance :
+ * INFLUENÇABLE (cascade de nuit), au même titre que leurs frères maladie-test-quotidien/resistanceALaMeteo :
  * chaque jet est une ÉTAPE lancée puis influençable à la Chance (LDB 17 l.21-25) AVANT de se
  * verrouiller. Ce test prouve, pour la nuit UNIQUE (chemin du bouton Repos, `fenetreValider('repos')` days=1) :
  *  1. le jet apparaît en étape de cascade (jamais pré-résolu dans le journal) ;

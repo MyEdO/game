@@ -28,7 +28,7 @@ import { BENCHED, chansonsDuChanteur, choixDePaieOuverts } from './shipCrew';
 import { creaturesADepecer, entityPickables } from './combatEffects';
 import { activeCombatant } from './combatFlow';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import { FLOW_VERBS, type FlowKey } from './flowVerbs';
 import { traitsPsyChoisissables } from './verdictsDInterlude';
 import { actorIn } from './monde/combatants';
@@ -346,7 +346,7 @@ export const DESIGNATIONS = {
     },
   },
   IdDeTraitNaval: { mot: 'id de trait naval', lire: () => ids(NAVAL_TRAITS), nom: (_s, id) => labelParmi(NAVAL_TRAITS, id) },
-  IdDeRangee: { mot: 'id de rangée', lire: (s) => sansDoublon([...FLUX_A_RANGEES.flatMap((flux) => FLOW_HANDLERS[flux].rangees(() => s)), ...ids(s.party)]), nom: nomDeCombattant },
+  IdDeRangee: { mot: 'id de rangée', lire: (s) => sansDoublon([...FLUX_A_RANGEES.flatMap((flux) => FLOWS[flux].rangees(() => s)), ...ids(s.party)]), nom: nomDeCombattant },
   IdDeCompetence: { mot: 'id de Compétence', lire: () => ids(skills), nom: (_s, id) => labelParmi(skills, id) },
   IdDeManoeuvre: { mot: 'id de Manœuvre', lire: () => ids(maneuvers), nom: (_s, id) => labelParmi(maneuvers, id) },
   IdDAttaque: { mot: 'id d’attaque', lire: (s) => ids(lesAttaques(s)), nom: (s, id) => labelParmi(lesAttaques(s), id) },

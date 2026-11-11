@@ -181,7 +181,7 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
     const editable = render([], initialNet(), false, { name: "L'Arène", canChange: true });
     expect(editable).toContain('Arène');
     expect(editable).toContain('Changer');
-    const guest = render([], { ...initialNet(), mode: 'guest', mySeat: 1 }, false, { name: 'Ma campagne' });
+    const guest = render([], { ...initialNet(), mode: 'invite', mySeat: 1 }, false, { name: 'Ma campagne' });
     expect(guest).toContain('Ma campagne');
     expect(guest).not.toContain('Changer');
     const absent = render([], initialNet());
@@ -198,14 +198,14 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
 
   it('invité : pas de « Reprendre » même partie en cours (l’hôte pilote)', () => {
     const html = render([], {
-      ...initialNet(), mode: 'guest', mySeat: 1, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: {}, slots: [0, 1, 1, 0],
+      ...initialNet(), mode: 'invite', mySeat: 1, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: {}, slots: [0, 1, 1, 0],
     }, true);
     expect(html).not.toContain('Reprendre');
   });
 
   it('invité : sièges des autres « en attente », son siège recrutable (Choisir), pas de « Commencer »', () => {
     const html = render([], {
-      ...initialNet(), mode: 'guest', mySeat: 1, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: {}, slots: [0, 1, 1, 0],
+      ...initialNet(), mode: 'invite', mySeat: 1, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: {}, slots: [0, 1, 1, 0],
     });
     expect(html).toContain('En attente de Hôte'); // sièges 0 et 3 (siège 0)
     expect(html).toContain('Choisir'); // l’invité recrute ses sièges via le sélecteur dédié
@@ -215,7 +215,7 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
 
   it('hôte : select de siège sur les sièges vides, « Commencer » grisé + RAISON portée tant qu’un siège invité est vide', () => {
     const html = render([savedHero()], {
-      ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: {}, slots: [0, 1, 0, 0],
+      ...initialNet(), mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: {}, slots: [0, 1, 0, 0],
     });
     expect(html).toContain('<select');
     expect(html).toContain('Antoine');
@@ -232,7 +232,7 @@ describe('PartyScreen — LA COMPAGNIE SEULE (aucune galerie inline) : coop, hô
   it('un héros de l’hôte dans l’emplacement d’un invité est nommé à SON siège, celui de l’hôte', () => {
     const h = savedHero();
     const html = render([h], {
-      ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { [h.id]: 0 }, slots: [1, 0, 0, 0], rangs: { [h.id]: 0 },
+      ...initialNet(), mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { [h.id]: 0 }, slots: [1, 0, 0, 0], rangs: { [h.id]: 0 },
     });
     const bandeau = html.match(/<div class="slot-owner hint">(.*?)<\/div>/)?.[1] ?? '';
     expect(bandeau).toContain('Hôte');
@@ -526,7 +526,7 @@ describe('PartyScreen — Modifier, Remplacer, Retirer suivent le verdict du noy
     const [mien, sien] = herosDeTest(2);
     useGame.setState({
       battle: null, scene: null, pendingCampaign: null, party: [mien, sien],
-      net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 1, 0, 0], ownership: { [mien.id]: 0, [sien.id]: 1 }, rangs: { [mien.id]: 0, [sien.id]: 1 } },
+      net: { ...initialNet(), mode: 'hote', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 1, 0, 0], ownership: { [mien.id]: 0, [sien.id]: 1 }, rangs: { [mien.id]: 0, [sien.id]: 1 } },
     });
     const el = monterRacine(<PartyScreen />).container;
     const boutons = [...el.querySelectorAll('button')].filter((b) => b.textContent === t('party.hero.remove'));

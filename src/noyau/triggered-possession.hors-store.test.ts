@@ -62,7 +62,7 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
   banc.setState({ battle: { ...b }, pendingCascade: null, suspendedCascades: [] } as never);
   banc.setState({
     net: {
-      ...NET0, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0],
+      ...NET0, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0],
       ...(opts.gmSeat != null ? { gmSeat: opts.gmSeat, ownership: {} } : { ownership: { [H.id]: 1 } }),
     },
   } as never);
@@ -70,7 +70,7 @@ function setupCoop(opts: { gmSeat?: number; vivants?: number } = {}): { H: Comba
 }
 
 const etapes = () => g().pendingCascade?.participants ?? [];
-const bande = () => etapes().find((s) => s.kind === 'triggeredBatchTest');
+const bande = () => etapes().find((s) => s.kind === 'testDeclencheEnBande');
 
 beforeEach(() => { seedBattleRng(4); });
 
@@ -121,7 +121,7 @@ describe('#1262 lot 3 — une BANDE nomme son porteur (sinon sa fenêtre échoit
 describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas chez l’hôte', () => {
   /**
    * Le guetteur d'un autre siège est dans la BANDE : le producteur (`applySurprise`) compose sa bande
-   * sur la SURFACE, pas sur l'affordance locale — jamais d'étape MONO `triggeredTest` par la voie
+   * sur la SURFACE, pas sur l'affordance locale — jamais d'étape MONO `testDeclenche` par la voie
    * inline, hors de l'entrée de règle partagée (LDB 13 l.77 : UN jet d'embusqueur contre TOUS les guetteurs).
    */
   it('Surprise (LDB 13 l.67-77) : le héros de l’invité tient SA rangée dans la bande, au lieu d’un jet muet', () => {
@@ -133,7 +133,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
 
     const h = g().battle!.combatants.find((c) => c.id === H.id)!;
     expect(hasCondition(h, COND.surpris), 'aucune Surprise prononcée en silence chez l’hôte').toBe(false);
-    expect(etapes().find((s) => s.kind === 'triggeredTest'), 'plus de voie MONO : la bande le porte').toBeUndefined();
+    expect(etapes().find((s) => s.kind === 'testDeclenche'), 'plus de voie MONO : la bande le porte').toBeUndefined();
     const step = bande();
     expect(step, 'l’étape influençable existe').toBeTruthy();
     expect(step!.participants!.map((p) => p.id)).toEqual([H.id]);
@@ -172,7 +172,7 @@ describe('#1262 lot 3 — un Test déclenché HORS fin de Round ne se roule pas 
 
     applyTriggeredEffects(g, H, [eff], 'onWoundLoss', { rng: desDuTest, set: banc.setState });
 
-    const step = etapes().find((s) => s.kind === 'triggeredTest');
+    const step = etapes().find((s) => s.kind === 'testDeclenche');
     expect(step, 'la porte ne filtre que sur la SURFACE : l’étape est là').toBeTruthy();
     expect(step!.actorId).toBe(H.id);
     expect(step!.result, 'et rien n’a été roulé à sa place').toBeFalsy();
@@ -189,7 +189,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
 
     resolveFreeAttacks(g, banc.setState, H, 'onCharged', E[0]);
 
-    const choix = etapes().find((s) => s.kind === 'triggeredChoice');
+    const choix = etapes().find((s) => s.kind === 'choixDeclenche');
     expect(choix, 'la décision de l’invité n’est plus prise à sa place').toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
     expect(choix!.defaultChoice, 'Renoncer par défaut').toBe('no');
@@ -215,7 +215,7 @@ describe('#1262 lot 3 — un « Vous pouvez… » ne se tranche pas chez l’hô
 
     applyTriggeredEffects(g, H, [eff], 'onHit', { rng: desDuTest, set: banc.setState });
 
-    const choix = etapes().find((s) => s.kind === 'triggeredChoice');
+    const choix = etapes().find((s) => s.kind === 'choixDeclenche');
     expect(choix, 'le « Vous pouvez » de l’invité n’est plus filtré à l’entrée du dispatcher').toBeTruthy();
     expect(choix!.actorId).toBe(H.id);
     expect(modalOwnerOf(g())).toBe(H.id);

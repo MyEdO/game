@@ -45,7 +45,7 @@ function derniereePlaceLibre(): void {
   banc.getState().lancerLaScene(s);
   banc.setState({
     partyPos: { ...ABORD_NORD },
-    net: { ...banc.getState().net, mode: 'host', mySeat: MJ, gmSeat: MJ, ownership: { h1: MJ, h2: INVITE } },
+    net: { ...banc.getState().net, mode: 'hote', mySeat: MJ, gmSeat: MJ, ownership: { h1: MJ, h2: INVITE } },
   });
 }
 

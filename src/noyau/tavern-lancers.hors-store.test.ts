@@ -70,7 +70,7 @@ const courant = (): CascadeStep | undefined => {
 /** POSE le jet du lancer ouvert, puis le commit. */
 function poseLancer(roll: number, sl: number): void {
   const pc = get().pendingCascade!;
-  const idx = pc.participants.findIndex((s) => s.kind === 'tavern-throw');
+  const idx = pc.participants.findIndex((s) => s.kind === 'taverneLancer');
   expect(idx, 'un lancer est bien ouvert').toBeGreaterThanOrEqual(0);
   const band = pc.participants[idx];
   const row = band.participants![0];
@@ -225,8 +225,8 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
   it('la cible choisie règle la DIFFICULTÉ du lancer, et le Critique paie la ligne SUIVANTE', () => {
     const a = seul();
     get().jouerALaTaverne(a.id, { gameId: 'arene', opponent: { kind: 'profil', id: 'humain' } });
-    trancher('tavern-throw-aim', '2'); // les Cornes : 30 points, Accessible (+20)
-    const band = get().pendingCascade!.participants.find((s) => s.kind === 'tavern-throw')!;
+    trancher('taverneLancerVisee', '2'); // les Cornes : 30 points, Accessible (+20)
+    const band = get().pendingCascade!.participants.find((s) => s.kind === 'taverneLancer')!;
     expect(band.participants![0].difficulty, 'la Difficulté vient de la ligne visée').toBe('accessible');
     poseLancer(11, 1); // Critique
     expect(volley().gains.player, 'la ligne SUIVANTE (40) au lieu des 30 visés').toEqual([40]);
@@ -235,10 +235,10 @@ describe('L’Arène — la cible se CHOISIT, le Critique encercle la suivante (
   it('sans Critique, la cible visée paie ses points — et un échec ne paie rien', () => {
     const a = seul();
     get().jouerALaTaverne(a.id, { gameId: 'arene', opponent: { kind: 'profil', id: 'humain' } });
-    trancher('tavern-throw-aim', '2');
+    trancher('taverneLancerVisee', '2');
     poseLancer(12, 1);
     expect(volley().gains.player).toEqual([30]);
-    trancher('tavern-throw-aim', '0'); // le nez : 10 points
+    trancher('taverneLancerVisee', '0'); // le nez : 10 points
     poseLancer(99, -2); // raté
     expect(volley().gains.player).toEqual([30, 0]);
   });
@@ -295,7 +295,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
   it('DÉPASSER 501 annule le lancer ET TERMINE LE TOUR : les fléchettes restantes ne sont pas lancées', () => {
     aDeuxDoigts(500);
     poseLancer(12, 2); // réussite : 1, 2, 10 ou 20 au choix
-    trancher('tavern-throw-gain', '20'); // 520 > 501
+    trancher('taverneLancerGain', '20'); // 520 > 501
     // Le passage du lanceur s'arrête là : la main passe au vis-à-vis, qui joue le sien d'office — la
     // manche se clôt donc dans la foulée. Ce que l'on mesure est ce qu'il en RESTE : le score n'a
     // pas bougé, et le héros rouvre au PREMIER lancer de la manche SUIVANTE (jamais à sa 2ᵉ
@@ -312,12 +312,12 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     poseLancer(11, 2); // Critique : le gain est libre (1..100)
     // Le gain libre n'est plus 100 boutons : c'est la 6ᵉ interaction de la coquille (saisie bornée).
     const gain = courant()!;
-    expect(gain.kind).toBe('tavern-throw-gain');
+    expect(gain.kind).toBe('taverneLancerGain');
     expect(gain.quantity, '« entre 1 et 100 points »').toEqual({ min: 1, max: 100, unit: 'points' });
     expect(gain.options, 'aucune liste d’options : une plage se saisit').toBeUndefined();
     // Valeur d'OUVERTURE = la politique du jeu : ce qu'il faut pile pour toucher 501.
     expect(gain.amount).toBe(1);
-    saisir('tavern-throw-gain', 1);
+    saisir('taverneLancerGain', 1);
     const res = get().tavernGames!.result!;
     expect([res.winner, res.playerSL]).toEqual(['player', 501]);
     expect(get().sequence).toBeNull();
@@ -369,7 +369,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
       const board = sequenceBoardOf(get);
       expect(board?.camps, 'le tableau de marque dit les deux camps').toHaveLength(2);
       const cur = courant();
-      if (cur?.kind === 'tavern-throw') {
+      if (cur?.kind === 'taverneLancer') {
         vus.push(board!.camps[0].score);
         for (const row of cur.participants ?? []) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       }

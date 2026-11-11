@@ -378,7 +378,7 @@ describe('refus de départ (#3059) — `partirEnVoyage` refuse en le disant', ()
 
   it('siège invité : le départ est refusé, « L’hôte décide des départs. »', () => {
     setup(map());
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest' } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
     banc.getState().partirEnVoyage('r1', 'pied');
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();

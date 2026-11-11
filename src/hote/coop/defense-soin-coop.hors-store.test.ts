@@ -19,7 +19,7 @@ import { etatInitialDuJeu, type BattleState, type Jeu, type NetState } from '../
 import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
-const NET = (mode: 'host' | 'guest', mySeat: number): NetState => ({
+const NET = (mode: 'hote' | 'invite', mySeat: number): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
   connection: 'connecte', hostAway: false, ownership: { h: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
@@ -51,7 +51,7 @@ function table(banc: Banc): { guest: GuestSession; chezLInvite: () => Jeu } {
     guest,
     chezLInvite: () => {
       host.broadcastSnapshot();
-      return { ...banc.getState(), ...appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('guest', 1) }).etat };
+      return { ...banc.getState(), ...appliquerLInstantane(recus[recus.length - 1], { ...etatInitialDuJeu(), net: NET('invite', 1) }).etat };
     },
   };
 }
@@ -67,7 +67,7 @@ function combat(banc: Banc, combatants: Combatant[], turn: number): void {
 
 describe('Défense et soin en coop : la même fenêtre des deux côtés', () => {
   it('la Défense du héros de l’invité : même réaction, mêmes cibles ; l’Esquive de l’invité se règle chez l’hôte', () => {
-    const banc = ouvrirLeBanc({ etat: { net: NET('host', 0) } });
+    const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0) } });
     seedBattleRng(7);
     combat(banc, [mk('e', 'enemy', { x: 1, y: 0 }), mk('h', 'hero', { x: 0, y: 0 })], 0);
     const { guest, chezLInvite } = table(banc);
@@ -83,7 +83,7 @@ describe('Défense et soin en coop : la même fenêtre des deux côtés', () => 
   });
 
   it('le soin du héros de l’invité : même acte, mêmes raisons ; l’Hémorragie de l’invité se règle chez l’hôte', () => {
-    const banc = ouvrirLeBanc({ etat: { net: NET('host', 0) } });
+    const banc = ouvrirLeBanc({ etat: { net: NET('hote', 0) } });
     const doc = mk('h', 'hero', { x: 0, y: 0 }, { skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] } as Partial<Combatant>);
     const al = mk('al', 'hero', { x: 1, y: 0 }, { wounds: blessuresDeBase(18, 5), conditions: [{ id: 'hemorragique', value: 2 }] } as Partial<Combatant>);
     combat(banc, [doc, al], 0);

@@ -85,7 +85,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
   });
 
   it('chez l’invité : sauvegarde refusée, message au journal, aucun emplacement écrit', () => {
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 2 } });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'invite', mySeat: 2 } });
     expect(useGame.getState().saveGame(1)).toBe(false);
     expect(autoSave()).toBe(false);
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('store.saveInvite'));

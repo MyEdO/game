@@ -241,11 +241,11 @@ describe('SequencePanel — une partie de Bras de fer n’est plus aveugle', () 
     // Un tour joué : options tranchées, puis 11 rangées à 3 DR contre 11 à 1 DR.
     for (let i = 0; i < 4; i++) {
       const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
-      if (!cur || cur.kind !== 'tavern-option') break;
+      if (!cur || cur.kind !== 'taverneOption') break;
       act(() => { get().jetRegler('cascade', 'choix', '0', cur.id); get().jetValider('cascade'); });
     }
     const pc = get().pendingCascade!;
-    const idx = pc.participants.findIndex((s) => s.kind === 'tavern-round');
+    const idx = pc.participants.findIndex((s) => s.kind === 'taverneRound');
     const band = pc.participants[idx];
     const rows = band.participants!.map((r) => ({
       ...r, result: { roll: 11, target: r.target!, sl: r.id.startsWith('figurant-o-') ? 1 : 3, success: true },
@@ -279,7 +279,7 @@ describe('ABANDON — servi par toute branche d’étape de séquence', () => {
     creditBourse(get, useGame.setState, a.id, { gold: 0, silver: 0, brass: 2000 });
     get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100, tablePlayers: 2 });
     const cur = () => get().pendingCascade!.participants[get().pendingCascade!.cursor];
-    expect(cur().kind, 'le héros annonce d’abord la cible (étape de CHOIX)').toBe('tavern-pot-target');
+    expect(cur().kind, 'le héros annonce d’abord la cible (étape de CHOIX)').toBe('tavernePotCible');
     render();
     expect(boutons(), 'branche choix').toContain('Abandonner');
     act(() => { get().jetRegler('cascade', 'choix', '7', cur().id); get().jetValider('cascade'); });
@@ -358,13 +358,13 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     ferme('dé posé', 'Abandon possible entre deux manches.');
     act(() => { get().jetValider('cascade'); });
     act(() => { get().jetImposerLeResultat('cascadeTirage', 4, cur().id); get().jetValider('cascade'); });
-    expect(cur().kind, 'le 4 appende le choix « remettre ou abandonner »').toBe('tavern-pot-fold');
+    expect(cur().kind, 'le 4 appende le choix « remettre ou abandonner »').toBe('tavernePotCoucher');
     render();
     ferme('pli dû', 'Abandon possible entre deux manches.');
     expect(sequenceAbandonOf(get), 'pli dû : non offert').toBeNull();
     act(() => { get().jetRegler('cascade', 'abandon', true); });
     expect(get().sequence?.abandon, 'aucune demande posée').toBeUndefined();
-    expect(cur().kind, 'le pli reste à trancher').toBe('tavern-pot-fold');
+    expect(cur().kind, 'le pli reste à trancher').toBe('tavernePotCoucher');
   });
 
   it('Fléchettes : un CHOIX dû après le jet — fermé, la raison nomme le choix (`stepInteraction`)', () => {
@@ -374,7 +374,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     let vu = false;
     for (let i = 0; i < 40 && get().pendingCascade && !vu; i++) {
       const st = cur();
-      if (st.options && st.chosen == null && st.kind === 'tavern-throw-gain') {
+      if (st.options && st.chosen == null && st.kind === 'taverneLancerGain') {
         render();
         ferme('gain à choisir', 'Répondez d’abord au choix en cours.');
         act(() => { get().jetRegler('cascade', 'abandon', true); });
@@ -403,13 +403,13 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
       useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants: rows }] } });
       get().jetValider('cascade');
     });
-    expect(cur().kind, 'le lancer raté appende la pinte').toBe('tavern-drink');
+    expect(cur().kind, 'le lancer raté appende la pinte').toBe('taverneBoisson');
     render();
     ferme('pinte due');
     expect(sequenceAbandonOf(get), 'pinte due : non offert').toBeNull();
     act(() => { get().jetRegler('cascade', 'abandon', true); });
     expect(get().sequence, 'la partie continue').not.toBeNull();
-    expect(cur().kind, 'le Test d’alcool reste à jouer').toBe('tavern-drink');
+    expect(cur().kind, 'le Test d’alcool reste à jouer').toBe('taverneBoisson');
   });
 
   /** Joue, comme le joueur, l'étape courante de la manche (jet, table, dé) puis « Suivant ». */
@@ -435,7 +435,7 @@ describe('ABANDON — entre deux Tests, jamais au milieu d’une manche', () => 
     expect(boutons(), 'manche résolue : offert').toContain('Abandonner');
     const manche = get().sequence!.round;
     act(() => { get().jetRegler('cascade', 'abandon', true); });
-    expect(cur().kind, 'la validation du lancer appende la pinte, qui reste due').toBe('tavern-drink');
+    expect(cur().kind, 'la validation du lancer appende la pinte, qui reste due').toBe('taverneBoisson');
     expect(get().sequence?.abandon, 'la demande est portée par l’état de la séquence').toBe('abandon');
     expect(sequenceAbandonOf(get), 'aucune seconde demande').toBeNull();
     render();

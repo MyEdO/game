@@ -126,14 +126,14 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
 
   it('siège MJ d’un AUTRE joueur → l’ennemi ne s’affiche pas comme fixable ici', () => {
     setupAttack({ id: 'A', kind: 'enemy' }, { id: 'B', kind: 'hero' });
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1, gmSeat: 0 } as never });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1, gmSeat: 0 } as never });
     expect(canFixDie(banc.getState(), 'A')).toBe(false);
   });
 
   it('étape MONDE (sans acteur) → siège MJ s’il existe, hôte sinon', () => {
     setupAttack();
     expect(canFixDie(banc.getState(), undefined)).toBe(true); // solo/hôte = siège 0
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } as never });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } as never });
     expect(canFixDie(banc.getState(), undefined)).toBe(false);
     banc.setState({ net: { ...banc.getState().net, gmSeat: 1 } as never });
     expect(canFixDie(banc.getState(), undefined)).toBe(true);
@@ -163,9 +163,9 @@ describe('option OFF — l’option gate l’AFFORDANCE de celui qui clique, pas
 
 describe('Résilience — le choix du dé reste OFFERT sans l’option (deux affordances, un sélecteur)', () => {
   it('le choix du dé n’est plus le privilège des flux à `caps.picker` : un flux à LENTILLE l’expose aussi', () => {
-    // `reload`/`recover`/`appraise`/`heal` ne déclarent AUCUN `caps.picker` — la fabrique le dérive de
+    // `rechargement`/`recuperation`/`evaluation`/`soins` ne déclarent AUCUN `caps.picker` — la fabrique le dérive de
     // leur lentille (`dieTarget` + `actorTR`), suggestion `bestForcedRoll` avant le jet.
-    for (const key of ['reload', 'handGate', 'appraise', 'heal', 'steamSave', 'surgery', 'dispel', 'shanty'] as const) {
+    for (const key of ['rechargement', 'mainEnsanglantee', 'evaluation', 'soins', 'fuiteDeVapeur', 'chirurgie', 'dissipation', 'chansonDeMarin'] as const) {
       expect(typeof FLOWS[key].picker, key).toBe('function');
     }
   });
@@ -277,7 +277,7 @@ describe('Test OPPOSÉ — plancher de Résilience vs évaluation naturelle du d
 describe('coop — un siège TIERS ne fixe le dé de personne (sonde S4 promue)', () => {
   it('la validation de possession accepte le PROPRIÉTAIRE et refuse le tiers', () => {
     setupAttack();
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, roomCode: 'R', ownership: { A: 1 } } as never });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, roomCode: 'R', ownership: { A: 1 } } as never });
     expect(intentAllowedFor(banc.getState(), 1, 'jetImposerLeResultat', ['attaque', 33])).toBe(true);
     expect(intentAllowedFor(banc.getState(), 2, 'jetImposerLeResultat', ['attaque', 33])).toBe(false);
   });

@@ -66,11 +66,11 @@ describe('Naufrage — Natation montée par `rollStep` (#1153 L3)', () => {
     const nue = skillBaseValue(nageur, { skill: { id: 'natation' }, characteristic: 'force' });
     const jetee = testValue(nageur, { skill: { id: 'natation' }, characteristic: 'force' });
     expect(jetee, 'l’État sépare la nue de la valeur jetée — sinon le test ne prouve rien').toBeLessThan(nue);
-    const diff = rule('sea-shipwreck-swim') as Difficulty;
+    const diff = rule('mer-naufrage-natation') as Difficulty;
     banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [] }, } as never);
 
     beginShipwreck(get, set);
-    const step = get().pendingCascade!.participants.find((s) => s.kind === 'shipwreckSwim')!;
+    const step = get().pendingCascade!.participants.find((s) => s.kind === 'naufrageNatation')!;
     expect(step.base, 'Niveau de Compétence NU (LDB 09 l.17)').toBe(nue);
     expect(step.difficulty, 'la ligne DIT sa Difficulté (#1072)').toBe(diff);
     // CIBLE INVARIANTE : exactement ce que roulait l'ancien monteur à la main.

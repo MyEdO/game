@@ -70,7 +70,7 @@ describe('coloration des noms par camp', () => {
 });
 
 describe('narrateIntent — annonce d’intention IA (hors journal)', () => {
-  const aim = (kind: 'melee' | 'charge' | 'ranged' | 'cast') => ({ fromId: 'e1', toId: 'h1', kind });
+  const aim = (kind: 'melee' | 'charge' | 'tir' | 'incantation') => ({ fromId: 'e1', toId: 'h1', kind });
   it('charge → journal/charge « Machin charge Bidule », noms colorés, ton normal', () => {
     const n = narrateIntent(aim('charge'), cs)!;
     expect(n.icon).toBe('journal/charge');
@@ -80,13 +80,13 @@ describe('narrateIntent — annonce d’intention IA (hors journal)', () => {
     expect(n.segments.find((s) => s.text === 'Bidule')?.team).toBe('ally');
   });
   it('tir → action/shoot « vise » ; mêlée → action/attack « attaque »', () => {
-    expect(narrateIntent(aim('ranged'), cs)!.icon).toBe('action/shoot');
-    expect(narrateIntent(aim('ranged'), cs)!.raw).toBe('Machin vise Bidule');
+    expect(narrateIntent(aim('tir'), cs)!.icon).toBe('action/shoot');
+    expect(narrateIntent(aim('tir'), cs)!.raw).toBe('Machin vise Bidule');
     expect(narrateIntent(aim('melee'), cs)!.icon).toBe('action/attack');
     expect(narrateIntent(aim('melee'), cs)!.raw).toBe('Machin attaque Bidule');
   });
   it('sort → action/cast « lance un sort sur »', () => {
-    expect(narrateIntent(aim('cast'), cs)!.raw).toBe('Machin lance un sort sur Bidule');
+    expect(narrateIntent(aim('incantation'), cs)!.raw).toBe('Machin lance un sort sur Bidule');
   });
   it('combattant introuvable → null', () => {
     expect(narrateIntent({ fromId: 'e1', toId: 'zzz', kind: 'melee' }, cs)).toBeNull();

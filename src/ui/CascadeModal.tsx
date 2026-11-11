@@ -327,7 +327,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
     </>
   );
   // ENCADRÉ « Réussite / Échec » en régime CALCULÉ (#1117) : les deux fabriques d'étape
-  // `triggeredTest` (`noyau/combat/triggeredTest.ts`) SÉRIALISENT déjà les Flows de branche dans le
+  // `testDeclenche` (`noyau/combat/triggeredTest.ts`) SÉRIALISENT déjà les Flows de branche dans le
   // `meta` — l'encadré se DÉRIVE donc de leurs ops effectives (`branchCertainOps` → `GameOpChips`),
   // règles optionnelles comprises, au lieu d'être une phrase stockée qui mentirait dès qu'une option
   // change le comportement. Rendu SEULEMENT quand au moins une branche est certaine.
@@ -566,7 +566,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
           /* Le CONCERNÉ (`RevealEntry.subjectId`) porte son portrait EN TÊTE de l'étape : on sait
              toujours à qui la révélation s'applique. Le Coup Critique le rend déjà dans son en-tête
              A→B (`CriticalBody`) — une seule surface, jamais deux portraits du même sujet. */
-          extra={revSubject && rev.kind !== 'critical' ? <ModalSubject c={revSubject} /> : undefined}
+          extra={revSubject && rev.kind !== 'critique' ? <ModalSubject c={revSubject} /> : undefined}
           rows={[]}
           postRollExtra={<RevealBody entry={rev} actor={revActor} subject={revSubject} />}
           actions={[continueAction]}
@@ -681,7 +681,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         ) : <SequencePanel />}
         postRollExtra={
           <>
-            {rev?.kind === 'critical' && <CriticalBody entry={rev} actor={revActor} subject={revSubject} />}
+            {rev?.kind === 'critique' && <CriticalBody entry={rev} actor={revActor} subject={revSubject} />}
             {cur.label && <Prose md={cur.label} paquet />}
             {!rev && cur.outcome?.length ? <RecapLineList lines={cur.outcome} /> : null}
             <OptionChooser
@@ -776,7 +776,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
       const ouverts = part ? fermeturesDuFlux(useGame.getState(), 'cascadeEnBande', part.id) : null;
       const resistOk = !!part?.menace && ouverts?.resist === null;
       const determineOk = !!a && !refusDImmunite(useGame.getState(), a);
-      // Inversion (LDB 12 l.42) : offre et aperçu sont les verdicts du flux (`FLOWS.cascadeBatch`).
+      // Inversion (LDB 12 l.42) : offre et aperçu sont les verdicts du flux (`FLOWS.cascadeEnBande`).
       const reverseOk = ouverts?.reverse === null;
       return {
         ...r,
@@ -785,7 +785,7 @@ export function CascadeBody({ embedded = false }: { embedded?: boolean } = {}) {
         key: witnessRowKey(cur.id, String(r.key)),
         ...(resistOk ? { resist: { menace: part!.menace!, onResist: () => batchResist(part!.id) } } : {}),
         ...(determineOk ? { determination: { resolve: a!.resolve ?? 0, onResolve: () => depenserLaDetermination(a!.id, 'immuniserALaPsychologie') } } : {}),
-        ...(reverseOk ? { reverse: { onReverse: () => batchReverse(part!.id), preview: FLOWS.cascadeBatch.reversePreview(useGame.getState, part!.id) } } : {}),
+        ...(reverseOk ? { reverse: { onReverse: () => batchReverse(part!.id), preview: FLOWS.cascadeEnBande.reversePreview(useGame.getState, part!.id) } } : {}),
       };
     });
     const ready = curReady;

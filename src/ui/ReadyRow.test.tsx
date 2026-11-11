@@ -43,7 +43,7 @@ function table(over: Partial<Combatant> = {}, ready: Record<number, boolean> = {
   act(() => {
     useGame.setState({
       party: [hero('h1', 'Gunnar'), hero('h2', 'Rolf', over)],
-      net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf', 2: 'Spectateur' } },
+      net: { ...useGame.getState().net, mode: 'hote', mySeat: 0, ownership: { h1: 0, h2: 1 }, seatNames: { 0: 'L’hôte', 1: 'Rolf', 2: 'Spectateur' } },
     });
   });
   act(() => { root.render(<ReadyRow ready={ready} />); });

@@ -29,9 +29,9 @@ function reussirEtJouer(banc: Banc, dr: number, gestes: Gestes = {}): CascadeSte
   banc.setState({ pendingCast: { ...pc, result: { ...pc.result!, cast: true, sl: dr, isCritical: false, isFumble: false } } });
   banc.getState().jetValider('incantation');
   const oui = (v: boolean | undefined) => (v ? 'yes' : 'no');
-  return draineEtapes(banc.getState, 20, (e) => (e.kind === 'triggeredTest' ? gestes.calme : undefined), (e) => {
+  return draineEtapes(banc.getState, 20, (e) => (e.kind === 'testDeclenche' ? gestes.calme : undefined), (e) => {
     if (e.kind === 'personneChoisie') return gestes.personne;
-    if (e.kind !== 'triggeredChoice') return undefined;
+    if (e.kind !== 'choixDeclenche') return undefined;
     return e.label?.includes('Haine') ? oui(gestes.haine) : oui(gestes.animosite);
   });
 }
@@ -56,7 +56,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
   it('DR 2 : aucun palier à choisir ; Préjugé envers la personne désignée, (BFM) heures', () => {
     const { banc, w, s, p, heros, maintenant } = auCamp();
     const vues = reussirEtJouer(banc, 2, { personne: p.id, calme: 100 });
-    expect(genres(vues)).toEqual(['personneChoisie', 'triggeredTest']);
+    expect(genres(vues)).toEqual(['personneChoisie', 'testDeclenche']);
     expect(vues[0].actorId, 'le lanceur désigne').toBe(w.id);
     expect(vues[0].options?.map((o) => o.key), 'une autre personne que la cible').toEqual([w.id, p.id]);
     expect(accordes(heros(s.id))).toEqual({
@@ -68,7 +68,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
   it('les deux personnes sont amies : le Test de Calme Accessible réussi annule le Sort', () => {
     const { banc, s, p, heros } = auCamp();
     const vues = reussirEtJouer(banc, 2, { personne: p.id, calme: 1 });
-    const test = vues.find((v) => v.kind === 'triggeredTest')!;
+    const test = vues.find((v) => v.kind === 'testDeclenche')!;
     expect(test.actorId, 'la cible résiste').toBe(s.id);
     expect(test.difficulty).toBe('accessible');
     expect(accordes(heros(s.id))).toEqual({ traits: [], echeances: [] });
@@ -77,7 +77,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
   it('DR 5 : l’Animosité se choisit, (BFM) jours', () => {
     const { banc, w, s, p, heros, maintenant } = auCamp();
     const vues = reussirEtJouer(banc, 5, { animosite: true, personne: p.id, calme: 100 });
-    expect(genres(vues)).toEqual(['triggeredChoice', 'personneChoisie', 'triggeredTest']);
+    expect(genres(vues)).toEqual(['choixDeclenche', 'personneChoisie', 'testDeclenche']);
     expect(vues[0].actorId).toBe(w.id);
     expect(accordes(heros(s.id))).toEqual({
       traits: [{ type: 'animosite', cible: ciblePsy.individu(p.id), src: SOURCE }],
@@ -103,7 +103,7 @@ describe('Colérique hors combat — le lanceur du groupe tranche tout (VDM 10 l
   it('DR 9, Haine refusée : l’Animosité s’offre encore', () => {
     const { banc, s, p, heros } = auCamp();
     const vues = reussirEtJouer(banc, 9, { haine: false, animosite: true, personne: p.id, calme: 100 });
-    expect(genres(vues)).toEqual(['triggeredChoice', 'triggeredChoice', 'personneChoisie', 'triggeredTest']);
+    expect(genres(vues)).toEqual(['choixDeclenche', 'choixDeclenche', 'personneChoisie', 'testDeclenche']);
     expect(accordes(heros(s.id)).traits.map((t) => t.type)).toEqual(['animosite']);
   });
 
@@ -143,7 +143,7 @@ describe('Colérique en combat', () => {
     const vues = reussirEtJouer(banc, 9, { haine: true, personne: a.id });
     const designation = vues.find((v) => v.kind === 'personneChoisie')!;
     expect(designation.defaultChoice, 'la proposition par défaut est l’allié le plus proche de la cible').toBe(e1.id);
-    expect(genres(vues)).not.toContain('triggeredTest');
+    expect(genres(vues)).not.toContain('testDeclenche');
     expect(accordes(e0).traits).toEqual([{ type: 'haine', cible: ciblePsy.individu(a.id), src: SOURCE }]);
   });
 
@@ -152,7 +152,7 @@ describe('Colérique en combat', () => {
     e0.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 } as never);
     castSpell(banc.getState, banc.setState, e0, s, 'colerique');
     const vues = reussirEtJouer(banc, 9, { calme: 100 });
-    expect(genres(vues), 'rien ne se surface au camp des héros, sinon le Test de la cible').toEqual(['triggeredTest']);
+    expect(genres(vues), 'rien ne se surface au camp des héros, sinon le Test de la cible').toEqual(['testDeclenche']);
     expect(accordes(s).traits).toEqual([{ type: 'haine', cible: ciblePsy.individu(p.id), src: SOURCE }]);
   });
 

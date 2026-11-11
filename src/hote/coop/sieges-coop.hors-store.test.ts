@@ -25,9 +25,9 @@ import { stockageEnMemoire } from '../../lib/stockage.testkit';
 /** L'hôte (banc) d'une table à un invité au siège 1, qui remplit l'emplacement 2, relié par transport à l'invité. */
 function table() {
   const [h1] = tousLesHerosDeScenario(idsDeTest);
-  const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'host', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 0, 1, 0] } } });
+  const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'hote', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, slots: [0, 0, 1, 0] } } });
   // L'invité : son état de jeu, posé par chaque instantané reçu (un seul jeu se branche par test).
-  const invite = { etat: { ...etatInitialDuJeu(), net: { ...initialNet(), mode: 'guest' as const, mySeat: 1, roomCode: 'ABCDEF' } } as EtatDeJeu };
+  const invite = { etat: { ...etatInitialDuJeu(), net: { ...initialNet(), mode: 'invite' as const, mySeat: 1, roomCode: 'ABCDEF' } } as EtatDeJeu };
   const host = new HostSession({
     build: 'test',
     applyIntent: (action, args, seat) => { appliquerLIntentionDUnSiege(hote.getState, seat, action, args); },
@@ -69,7 +69,7 @@ describe('Sièges en coop : la même lecture chez l’hôte et chez l’invité'
 describe('Engager en coop : le héros de chaque siège entre au groupe (#2907 S3)', () => {
   it('l’hôte et deux invités engagent chacun un brouillon depuis le même instantané : trois héros de plus, aux ids distincts', () => {
     const [h1] = tousLesHerosDeScenario(idsDeTest);
-    const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'host', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Berthe' }, slots: [0, 0, 1, 2] } } });
+    const hote = ouvrirLeBanc({ etat: { party: [h1], net: { ...initialNet(), mode: 'hote', roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Berthe' }, slots: [0, 0, 1, 2] } } });
     const host = new HostSession({
       build: 'test',
       applyIntent: (action, args, seat) => { appliquerLIntentionDUnSiege(hote.getState, seat, action, args); },
@@ -77,7 +77,7 @@ describe('Engager en coop : le héros de chaque siège entre au groupe (#2907 S3
     });
     // L'invité au siège `siege` : son miroir, ses intentions vers l'hôte ; l'entropie de chaque siège est sa source propre.
     const invite = (siege: number, label: string) => {
-      const miroir = { etat: { ...etatInitialDuJeu(), net: { ...initialNet(), mode: 'guest' as const, mySeat: siege, roomCode: 'ABCDEF' } } as EtatDeJeu };
+      const miroir = { etat: { ...etatInitialDuJeu(), net: { ...initialNet(), mode: 'invite' as const, mySeat: siege, roomCode: 'ABCDEF' } } as EtatDeJeu };
       const session = new GuestSession({ build: 'test', label, applySnapshot: (d) => { miroir.etat = appliquerLInstantane(d, miroir.etat).etat; } });
       const [a, b] = FakeTransport.pair();
       host.addGuest(a, siege);

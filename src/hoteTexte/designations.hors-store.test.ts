@@ -81,7 +81,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
   it('une rangée de jet : la séquence d’entrée en scène, `jetLancer`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-sceneEntry-0, /);
+    const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-entreeEnScene-0, /);
     passeLeControle(t, verbe('jetLancer', 'cascade', rangee));
   });
   it('un id facultatif : `ouvrirLeMedecin`, le patient', { timeout: 120_000 }, () => {

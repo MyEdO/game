@@ -250,7 +250,7 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
     const far = mkEnemyTarget('hero', 1, 1);
     far.kind = 'hero' as never;
     const action = chooseEnemyAction(input(enemy, [far], { servablePostes: [{ hullId: 'emplacement', posteUid: 'baliste-x' }] }));
-    expect(action.kind).toBe('manPoste');
+    expect(action.kind).toBe('servirLePoste');
     expect(action).toMatchObject({ hullId: 'emplacement', posteUid: 'baliste-x' });
   });
 
@@ -278,7 +278,7 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
     enemy.movement = 0;
     const far = mkEnemyTarget('hero', 1, 1);
     far.kind = 'hero' as never;
-    expect(chooseEnemyAction(input(enemy, [far])).kind).toBe('end');
+    expect(chooseEnemyAction(input(enemy, [far])).kind).toBe('fin');
   });
 });
 

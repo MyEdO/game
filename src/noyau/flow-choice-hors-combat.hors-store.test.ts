@@ -35,7 +35,7 @@ describe('choix d’un Sort lancé hors combat', () => {
       banc.getState().jetValider('incantation');
       const vues = draineEtapes(banc.getState, 30);
       expect(banc.getState().pendingCascade, 'la cascade se clôt').toBeNull();
-      const choix = vues.filter((v) => v.kind === 'triggeredChoice');
+      const choix = vues.filter((v) => v.kind === 'choixDeclenche');
       expect(choix.length, 'le choix est offert').toBeGreaterThan(0);
       expect(choix.every((v) => v.actorId === w.id), 'au lanceur').toBe(true);
       expect(new Set(vues.map((v) => v.id)).size, 'aucune étape jouée deux fois').toBe(vues.length);

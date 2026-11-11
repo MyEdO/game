@@ -46,7 +46,7 @@ const COUP: AttackResult = {
   attackerDetail: bd('Corps à corps', 21, 45), defenderDetail: bd('Esquive', 60, 40),
 };
 const cascade = (step: CascadeStep): PendingCascade => ({ title: 'Témoin', cursor: 0, seq: 1, log: [], purpose: 'combat', participants: [step] });
-const etape = (jet: HostJet): CascadeStep => ({ id: `hote-${jet}`, kind: 'triggeredTest', actorId: H.id, jet, label: fixtureText(`hote-${jet}`) });
+const etape = (jet: HostJet): CascadeStep => ({ id: `hote-${jet}`, kind: 'testDeclenche', actorId: H.id, jet, label: fixtureText(`hote-${jet}`) });
 
 const attaque = (result: AttackResult | null = null): PendingAttack => ({ attackerId: H.id, targetId: E.id, location: null, result });
 const defense = (jete: boolean, def = tr(60, 40)): PendingDefense => ({

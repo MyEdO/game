@@ -186,7 +186,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
 });
 
 describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PAGE (#717)', () => {
-  const guest = () => banc.setState({ net: { ...get().net, mode: 'guest', mySeat: 1 } });
+  const guest = () => banc.setState({ net: { ...get().net, mode: 'invite', mySeat: 1 } });
 
   it('chez l’invité, les trois gestes du cadre sont INERTES (aucune mutation locale)', () => {
     banc.setState({

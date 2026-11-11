@@ -39,7 +39,7 @@ const actions: RollAction[] = [
   { key: 'apply', label: 'Appliquer', onClick: noop, verbe: 'confirm' },
 ];
 
-/** La Course en attente, jetée (`result`) ou non : le seul fait que ses clôtures lisent (`FLOWS.run.rolled`). */
+/** La Course en attente, jetée (`result`) ou non : le seul fait que ses clôtures lisent (`FLOWS.course.rolled`). */
 const course = (result: unknown): Jeu['pendingRun'] => ({ combatantId: 'coureur', result } as unknown as Jeu['pendingRun']);
 beforeEach(() => useGame.setState({ pendingRun: course(null) }));
 afterEach(() => useGame.setState({ pendingRun: null }));

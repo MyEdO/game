@@ -323,7 +323,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     const [h1, h2] = heroes;
     freezeCast(E, h1);
     openWindow([h1.id, h2.id]);
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [h1.id]: 1, [h2.id]: 2 }, slots: [0, 1, 2, 0] } as Jeu['net'] });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [h1.id]: 1, [h2.id]: 2 }, slots: [0, 1, 2, 0] } as Jeu['net'] });
     const s = banc.getState();
     expect(intentAllowedFor(s, 1, 'jetRegler', ['contreSort', 'declaration', 'solo', h1.id]), 'le siège qui possède la rangée').toBe(true);
     expect(intentAllowedFor(s, 2, 'jetRegler', ['contreSort', 'declaration', 'solo', h1.id]), 'un autre siège ne déclare pas à sa place').toBe(false);

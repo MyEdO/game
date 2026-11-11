@@ -403,7 +403,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     const pc = banc.getState().pendingCascade;
     expect(pc).not.toBeNull(); // le Test d'infection est une modale différée, pas un jet subi
     // #1117 L4 : la Contraction est une BANDE (ici d'un seul porteur) — sa possession EST son porteur.
-    const bande = pc!.participants.find((s) => s.kind === 'combatEndDisease' && s.actorId === 'p')!;
+    const bande = pc!.participants.find((s) => s.kind === 'maladieDeFinDeCombat' && s.actorId === 'p')!;
     expect(bande).toBeTruthy();
     const row = bande.participants!.find((r) => r.id === 'p')!;
     expect(row.result).toBeFalsy(); // Infection DIFFÉRÉE : pas encore roulée (influençable d'abord)

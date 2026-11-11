@@ -52,7 +52,7 @@ describe('stakes.json — une collection, quatre cascades, leurs invariants gard
     b.id = a.id;
     expect(refus(doublon)).toMatch(new RegExp(`« ${a.id} » dupliqué`));
     const cle = clone();
-    uneDe(cle, 'voyage').cle = 'riverNav';
+    uneDe(cle, 'voyage').cle = 'fleuveNavigation';
     expect(refus(cle)).toMatch(/Clé non reconnue : "cle"/);
   });
 });

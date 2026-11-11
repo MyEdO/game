@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * cascade de SETUP (Surprise, purpose 'combat', ouverte au DÉBUT du combat) encore pendante quand la mort du
  * dernier ennemi remplit la condition de victoire ne doit PAS voir l'écran de Victoire (HORS_MODAL) s'empiler
  * par-dessus sa modale (clic intercepté) — doctrine suspension/reprise (cascade.ts). La cascade de Surprise
- * est construite ICI par `applySurprise` (VRAI `triggeredBatchTest` influençable, héros manuel) et RÉSOLUE par les
+ * est construite ICI par `applySurprise` (VRAI `testDeclencheEnBande` influençable, héros manuel) et RÉSOLUE par les
  * actions du noyau (`jetLancer('cascade')`/`fenetreFermer('cascade')`) : la continuation vers la victoire différée n'est
  * PROVOQUÉE par aucun `set()` manuel d'état interne ni `checkBattleOver` rappelé à la main — elle vient de
  * `dispatchCascadeDone` (combatSlice), qui re-vérifie `checkBattleOver` à la clôture d'une cascade 'combat'.
@@ -52,7 +52,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     // Surprise de setup RÉELLE : le camp héros est pris en embuscade (Test de Perception influençable, cascade).
     applySurprise(get, set, 'party');
     expect(get().pendingCascade?.purpose).toBe('combat');
-    expect(get().pendingCascade!.participants[0].kind).toBe('triggeredBatchTest'); // VRAI kind (la BANDE de guetteurs, pas un 'surpriseTest' inventé)
+    expect(get().pendingCascade!.participants[0].kind).toBe('testDeclencheEnBande'); // VRAI kind (la BANDE de guetteurs, pas un 'surpriseTest' inventé)
 
     // Le dernier ennemi meurt pendant que la Surprise est pendante ; le jeu appelle `checkBattleOver`.
     slayEnemies();
@@ -65,7 +65,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     expect(get().pendingVictory).toBeNull();
     expect(get().pendingCascade).toBeTruthy();
     expect(get().pendingCascade!.purpose).toBe('combat');
-    expect(get().pendingCascade!.participants[0].kind).toBe('triggeredBatchTest'); // TOUJOURS la Surprise, PAS écrasée
+    expect(get().pendingCascade!.participants[0].kind).toBe('testDeclencheEnBande'); // TOUJOURS la Surprise, PAS écrasée
 
     // L'arbitre n'offre QUE la cascade Surprise (aucun écran de Victoire empilé par-dessus).
     expect(pickActiveModalKey(get())).toBe('cascade');
@@ -84,14 +84,14 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
       pendingVictory: null, pendingCascade: null,
     });
 
-    // 1) Surprise de setup RÉELLE (applySurprise → triggeredBatchTest influençable), PUIS mort du dernier ennemi.
+    // 1) Surprise de setup RÉELLE (applySurprise → testDeclencheEnBande influençable), PUIS mort du dernier ennemi.
     applySurprise(get, set, 'party');
-    expect(get().pendingCascade!.participants[0].kind).toBe('triggeredBatchTest');
+    expect(get().pendingCascade!.participants[0].kind).toBe('testDeclencheEnBande');
     slayEnemies();
 
     // Mort du dernier ennemi AVEC Surprise pendante → Victoire différée, Surprise INTACTE (pas d'écrasement).
     expect(checkBattleOver(get, set)).toBe(true);
-    expect(get().pendingCascade!.participants[0].kind).toBe('triggeredBatchTest'); // TOUJOURS la Surprise, PAS une étape de fin
+    expect(get().pendingCascade!.participants[0].kind).toBe('testDeclencheEnBande'); // TOUJOURS la Surprise, PAS une étape de fin
     expect(get().battle!.over).toBeNull();
     expect(get().pendingVictory).toBeNull();
 
@@ -103,7 +103,7 @@ describe('F3 — Surprise (cascade de setup) vs Victoire : ordonnancement de che
     const fin = get().pendingCascade;
     expect(fin).toBeTruthy();
     expect(fin!.combatEndBoundary).toBe(true);
-    expect(fin!.participants.some((s) => s.kind === 'combatEndCorruption')).toBe(true);
+    expect(fin!.participants.some((s) => s.kind === 'corruptionDeFinDeCombat')).toBe(true);
     expect(get().battle!.over).toBeNull(); // victoire ENCORE différée (derrière la cascade de fin)
     expect(get().pendingVictory).toBeNull();
 

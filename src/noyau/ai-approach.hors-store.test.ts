@@ -64,7 +64,7 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
   it('cible à 6 cases (M4) : CHARGE à portée de Course — arrive AU CONTACT, sans jet', () => {
     const { plan, ran } = planFor(8); // distance 6 : marche (4) insuffisante, Course (8) au contact
     expect(ran).toBeNull(); // une charge ne demande pas de Test
-    expect(plan.kind).toBe('move');
+    expect(plan.kind).toBe('deplacement');
     const to = (plan as { to: { x: number; y: number } }).to;
     expect(chebyshev(to, { x: 8, y: 10 })).toBe(1); // adjacent au héros
   });
