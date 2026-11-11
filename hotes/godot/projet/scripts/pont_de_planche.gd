@@ -29,11 +29,12 @@ func _ready() -> void:
 	_calme.one_shot = true
 	add_child(_calme)
 	_calme.timeout.connect(_constater_le_calme)
-	_publier_la_planche_montree()
+	_publier_la_planche_montree(false)
 	_montrer(parametre("planche"))
 
 
-## La planche `nom` lue et montrée par le combat, sans son monde 3D à `&monde=sans` ; illisible, une panne le dit.
+## La planche `nom` lue et montrée par le combat, sans son monde 3D à `&monde=sans` ; illisible, une panne le dit et le
+## menu d'entrée reste celui du jeu.
 func _montrer(nom: String) -> void:
 	var recueil: Array[String] = []
 	var planche: Variant = JSON.parse_string((await requeter("%s/%s.json" % [DOSSIER, nom], recueil)).get_string_from_utf8())
@@ -51,30 +52,32 @@ func _montrer(nom: String) -> void:
 
 
 func appeler(methode: String, entree: Variant = null) -> Dictionary:
-	match methode:
-		"demarrer":
-			return _planche.demarrer
-		"monde":
-			return _monde
+	if not _planche.is_empty():
+		match methode:
+			"demarrer":
+				return _planche.demarrer
+			"monde":
+				return _monde
 	return super(methode, entree)
 
 
-## Le paramètre `cle` de la partie de la planche (`scenario`, `graine`), sinon celui de l'adresse de la page.
+## Le paramètre `cle` de la partie de la planche (son `scenario`), sinon celui de l'adresse de la page.
 func parametre(cle: String) -> String:
 	return str(_planche.parametres[cle]) if _planche.get("parametres", {}).has(cle) else super(cle)
 
 
 func publier_l_ecran(ecran: Dictionary) -> void:
 	super(ecran)
+	_publier_la_planche_montree(false)
 	_calme.start(CALME_S)
 
 
 func _constater_le_calme() -> void:
 	if StudioDePortraits.au_repos():
-		_publier_la_planche_montree()
+		_publier_la_planche_montree(true)
 	else:
 		_calme.start(CALME_S)
 
 
-func _publier_la_planche_montree() -> void:
-	JavaScriptBridge.eval("globalThis.wfrpPlancheMontree = %s" % JSON.stringify(_nom if _nom != "" else null), true)
+func _publier_la_planche_montree(montree: bool) -> void:
+	JavaScriptBridge.eval("globalThis.wfrpPlancheMontree = %s" % JSON.stringify(_nom if montree else null), true)

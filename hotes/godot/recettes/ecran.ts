@@ -45,14 +45,14 @@ export interface VueFigee {
 /**
  * Une planche (#3935) : un état de partie tel que le pont le rend, que le jeu montre sans le jouer
  * (`projet/scripts/pont_de_planche.gd`). `nom` la nomme dans l'adresse (`?planche=<nom>`) et dans son fichier
- * (`hotes/godot/etalons/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` sont ceux de l'adresse d'une partie
- * (`scenario`, `graine`), `demarrer` et `monde` les réponses du pont à ces deux méthodes : la suite de l'état, sans
+ * (`hotes/godot/etalons/planches/<nom>.json`), `titre` dit ce qu'elle montre, `parametres` porte le scénario de sa
+ * partie, que l'adresse d'une partie nomme (`?scenario=`), `demarrer` et `monde` les réponses du pont à ces deux méthodes : la suite de l'état, sans
  * effet ni jeton, le journal de la partie entier sous `journal.lignes`, et le monde de sa scène.
  */
 export interface Planche {
   nom: string;
   titre: string;
-  parametres: { scenario: string; graine: string };
+  parametres: { scenario: string };
   demarrer: { ok: true } & Suite;
   monde: unknown;
 }
@@ -135,17 +135,17 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
    *  de la suite `s` de sa partie. */
   const unPont = (journal: Ligne[]) => {
     const pont = creerPont();
-    let depart: { scenario: string; graine: number } | null = null;
+    let scenario = '';
     const appeler = (methode: string, entree: unknown): Suite => {
       const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
       if (!r.ok) throw new Error(`${methode} ${JSON.stringify(entree)} : ${JSON.stringify(r)}`);
-      if (methode === 'demarrer') depart = entree as typeof depart;
+      if (methode === 'demarrer') scenario = (entree as { scenario: string }).scenario;
       return r;
     };
     if (listage) appeler('modeles', { manifestes: listage.manifestes, osDesRigides: listage.osDesRigides });
     const planche = (nom: string, titre: string, s: Suite): Planche => ({
       nom, titre,
-      parametres: { scenario: depart!.scenario, graine: String(depart!.graine) },
+      parametres: { scenario },
       demarrer: { ok: true, vue: s.vue, programmes: [], journal: [], zones: { 'journal.lignes': [...journal] }, effets: [] },
       monde: JSON.parse(pont.appeler('monde', null)),
     });

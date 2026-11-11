@@ -26,7 +26,7 @@ const { values: o } = parseArgs({
 })
 if (!o.enregistrer === !o.web) throw new Error('usage : node hotes/godot/etalons.mjs --enregistrer | --web <dossier de l’export> [--poser] [--rapport <dossier>] [--planche <nom>]...')
 
-/** Le temps laissé à l'écran, la planche dite montrée, avant sa capture : celui des recettes (`capturer`, `recette.mjs`). */
+/** Le temps laissé à l'écran, la planche dite montrée, avant sa capture. */
 const POSE_MS = 400
 
 /** Les planches du pont écrites sous `planches/`, celles d'avant retirées, et le monde de chaque scénario sous `mondes/`. */
