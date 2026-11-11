@@ -458,12 +458,12 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   // La recherche filtre les RACES (nom de famille) ET les LIGNÉES (variantes) — une lignée matchée
   // garde/surligne sa carte de race (le filtre agit au niveau famille, jamais en éclatant la grille).
   const visibleFamilies = filterByLabel(families, (f) => `${f.famille} ${f.especes.map((s) => s.variant ?? s.label).join(' ')}`, search);
-  const activeFamilyIdx = Math.max(0, visibleFamilies.findIndex((f) => f.famille === sp?.family));
+  const activeFamilyIdx = Math.max(0, visibleFamilies.findIndex((f) => f.race === sp?.refChar));
   const selectFamily = (list: SpeciesData[]) => setD(withSpecies(d, sp && list.some((s) => s.id === sp.id) ? sp.id : list[0].id));
 
   // Lignées de la famille COURANTE (chips en tête du panneau détail) — masquées si la famille n'a
   // qu'une lignée (Gnomes/Hauts elfes/Elfes sylvains/Ogres du LDB) : rien à trancher.
-  const famList = sp ? families.find((f) => f.famille === sp.family)?.especes ?? [] : [];
+  const famList = sp ? families.find((f) => f.race === sp.refChar)?.especes ?? [] : [];
 
   // Encrier de tirage RACE (#393 P3, correction structurelle du verdict utilisateur 2026-07-14) :
   // rangée UNIQUE avec la recherche (recherche à gauche, encrier remplit le reste — pas de section
@@ -472,8 +472,9 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
   // se marque sur les surfaces existantes (badge « +20 PX » des chips de lignée, liseré des cartes de
   // famille) — la sélection reste la même mécanique (chips/cartes), le bonus de PX inchangé (`speciesXp`).
   const rolledIds = d.speciesRoll?.ids ?? [];
-  const rolledFamilies = new Set(rolledIds.map((id) => findSpeciesById(id)?.family).filter((f): f is string => !!f));
-  const rolledFamily = d.speciesRoll ? (sp && rolledIds.includes(sp.id) ? sp.family : findSpeciesById(rolledIds[0])?.family) : undefined;
+  const rolledRaces = new Set(rolledIds.map((id) => findSpeciesById(id)?.refChar));
+  const rolledRace = d.speciesRoll ? findSpeciesById(rolledIds[0])?.refChar : undefined;
+  const rolledFamily = families.find((f) => f.race === rolledRace)?.famille;
   const kept = speciesXp(d) > 0;
   const { rolling, landed, trigger, skip } = useRollFrisson(() => setD(rollDraftSpecies(d)));
   const faces = landed && d.speciesRoll ? d100Faces(d.speciesRoll.roll) : null;
@@ -528,11 +529,11 @@ export function SpeciesRaceScreen({ d, setD }: StepProps): ReactNode {
         onActivate={(idx) => selectFamily(visibleFamilies[idx].especes)}
       >
         {visibleFamilies.map((f, idx) => {
-          const selected = sp?.family === f.famille;
-          const rolled = !selected && rolledFamilies.has(f.famille);
+          const selected = sp?.refChar === f.race;
+          const rolled = !selected && rolledRaces.has(f.race);
           return (
             <FigTile
-              key={f.famille}
+              key={f.race}
               label={f.famille}
               sub={`${f.especes.length} lignée${f.especes.length > 1 ? 's' : ''}`}
               selected={selected}

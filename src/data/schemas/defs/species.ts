@@ -53,7 +53,7 @@ const doc = document(
     traits: z.array(traitInstanceSchema).optional(),
     /** VDM 02 l.190 ; LDB 46 l.177 */
     arcaneDomainsBonusOf: charKeySchema.optional(),
-    /** NADJ 14 l.5 */
+    /** NADJ 14 l.5 ; ADE II 02 l.110 */
     gatedByRule: ref('regleOptionnelle').optional(),
   },
   {

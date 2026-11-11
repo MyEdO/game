@@ -1304,6 +1304,30 @@ export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: numbe
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
 
+/** Un document d'un fichier de tables tirées : son dé et ses rangées. */
+type TableTiree = { readonly id: string; readonly die: string; readonly entries: readonly { min?: number | null; max?: number | null }[] };
+
+/**
+ * L'`affinerDataset` d'un fichier de tables tirées : chaque document que `tiree` retient couvre son dé
+ * (`ecartsDuDeDeLaTable`), refusé nominativement sur ses `entries`, ses rangées nommées par `nom`.
+ */
+export function couvertureDuDeParDocument<T extends TableTiree>(
+  fichier: string,
+  nom: (r: T['entries'][number], t: T) => string,
+  tiree: (t: T) => boolean = () => true,
+): (dataset: z.ZodType<unknown>) => z.ZodType<unknown> {
+  return (dataset) =>
+    dataset.superRefine((v, ctx) => {
+      for (const [i, t] of (v as T[]).entries()) {
+        if (!tiree(t)) continue;
+        const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
+        if (ecarts.length) {
+          ctx.addIssue({ code: 'custom', path: [i, 'entries'], message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
+        }
+      }
+    });
+}
+
 /**
  * DISPONIBILITÉ SAISONNIÈRE d'une cargaison — quatre colonnes d100, chacune une FOURCHETTE `{min, max}`
  * (MDG 15 l.406-418, MSRC 13 l.73-78). Nœud NOMMÉ du concept, symétrique de `prixSaisonnierSchema`.

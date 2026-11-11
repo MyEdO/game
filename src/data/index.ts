@@ -785,7 +785,7 @@ export interface SpeciesData {
   arcaneDomainsBonusOf?: CharKey;
   /** Règle optionnelle (`src/data/reglesOptionnelles.json`) dont l'activation OUVRE l'espèce au
    *  joueur — lu par `speciesAllowed` (`engine/creation`). Absent = espèce ouverte sans condition.
-   *  NADJ 14 l.5 */
+   *  NADJ 14 l.5 ; ADE II 02 l.110 */
   gatedByRule?: { id: string };
 }
 export interface ClassData {

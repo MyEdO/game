@@ -126,14 +126,14 @@ const valeur = (id: string, libelle: string, v: string | null, detail: string | 
 /** Les PX de création que la page vaut, quand elle en vaut. */
 const px = (n: number): RubriqueDeCreation[] => (n > 0 ? [valeur('px', t('crea.vue.px'), t('crea.vue.gainDePx', { px: n }))] : []);
 
-/** Les familles d'espèces jouables (`speciesAllowed`), dans l'ordre de la donnée, celles d'un livre de cœur (`coeur`) d'abord ;
- *  chacune ses espèces, sa première la canonique (LDB 04 l.91). */
-export function famillesDEspeces(): { famille: string; especes: SpeciesData[] }[] {
-  const familles: { famille: string; especes: SpeciesData[] }[] = [];
+/** Les races d'espèces jouables (`speciesAllowed`), groupées par `refChar`, dans l'ordre de la donnée, celles d'un livre de
+ *  cœur (`coeur`) d'abord ; chacune ses espèces, sa première la canonique, dont la `family` se lit (LDB 04 l.91). */
+export function famillesDEspeces(): { race: SpeciesData['refChar']; famille: string; especes: SpeciesData[] }[] {
+  const familles: { race: SpeciesData['refChar']; famille: string; especes: SpeciesData[] }[] = [];
   for (const s of species.filter(speciesAllowed)) {
-    const f = familles.find((x) => x.famille === s.family);
+    const f = familles.find((x) => x.race === s.refChar);
     if (f) f.especes.push(s);
-    else familles.push({ famille: s.family, especes: [s] });
+    else familles.push({ race: s.refChar, famille: s.family, especes: [s] });
   }
   const duLivreDeBase = (f: (typeof familles)[number]) => Number(f.especes.some((s) => !!findBookById(s.source.book)?.coeur));
   return familles.sort((a, b) => duLivreDeBase(b) - duLivreDeBase(a));
@@ -145,7 +145,7 @@ const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFo
 function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   const sp = draftSpecies(d);
   const familles = famillesDEspeces();
-  const famille = sp && familles.find((f) => f.famille === sp.family);
+  const famille = sp && familles.find((f) => f.race === sp.refChar);
   return [
     d.speciesRoll
       ? jet('tirage', t('crea.vue.tirageEspece'), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => species.find((s) => s.id === id)!.label)))

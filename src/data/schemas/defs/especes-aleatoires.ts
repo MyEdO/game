@@ -2,7 +2,7 @@ import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 /** LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE II 02 l.112-121 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ecartsDuDeDeLaTable, plageSchema } from '../grammaire/valeurs';
+import { couvertureDuDeParDocument, plageSchema } from '../grammaire/valeurs';
 import { ref } from '../grammaire/ref';
 
 export const file = 'especes-aleatoires.json';
@@ -28,19 +28,7 @@ const doc = document(
   {
     rangee,
     deDeTirage: true,
-    affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
-        for (const [i, t] of (v as { id: string; die: string; entries: z.output<typeof rangee>[] }[]).entries()) {
-          const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => `la rangée ${r.min}-${r.max} (${r.id})`);
-          if (ecarts.length) {
-            ctx.addIssue({
-              code: 'custom',
-              path: [i, 'entries'],
-              message: `especes-aleatoires.json › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.`,
-            });
-          }
-        }
-      }),
+    affinerDataset: couvertureDuDeParDocument<{ id: string; die: string; entries: z.output<typeof rangee>[] }>(file, (r) => `la rangée ${r.min}-${r.max} (${r.id})`),
   },
 );
 
