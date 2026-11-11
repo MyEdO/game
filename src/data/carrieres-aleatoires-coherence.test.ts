@@ -82,3 +82,29 @@ describe('races des carrières offertes en plus du tirage (AA 02 l.109-137 ; ADE
     expect(sansRaces(DOCUMENTS, carrieres)).toEqual(['gardechamps', 'piquier']);
   });
 });
+
+/** Bornes imprimées, `de-à` par colonne, `–` pour une carrière que la colonne ne tire pas. */
+const LIVRE: readonly [ref: string, carriere: string, bornes: Record<string, string>][] = [
+  ['Middenheim 09 l.15', 'apothicaire', { middenheim: '1-1', middenland: '1-1', nordland: '1-1' }],
+  ['Middenheim 09 l.20', 'pretre', { middenheim: '7-11', middenland: '7-11', nordland: '7-10' }],
+  ['Middenheim 09 l.46', 'villageois', { middenheim: '50-54', middenland: '46-50', nordland: '44-48' }],
+  ['Middenheim 09 l.74', 'frere-loup', { middenheim: '66-68', middenland: '59-60', nordland: '57-58' }],
+  ['Middenheim 09 l.75', 'batelier', { middenheim: '–', middenland: '61-62', nordland: '59-60' }],
+  ['Middenheim 09 l.80', 'contrebandier', { middenheim: '69-69', middenland: '71-71', nordland: '71-72' }],
+  ['Middenheim 09 l.96', 'soldat', { middenheim: '96-99', middenland: '96-99', nordland: '96-99' }],
+  ['Middenheim 09 l.97', 'tueur', { middenheim: '–', middenland: '–', nordland: '–' }],
+  ['Middenheim 09 l.98', 'pretre-guerrier', { middenheim: '100-100', middenland: '100-100', nordland: '100-100' }],
+  ['NADJ 14 l.106', 'juriste', { gnome: '46-46' }],
+  ['NADJ 14 l.107', 'erudit', { gnome: '47-48' }],
+  ['NADJ 14 l.125', 'mineur', { gnome: '89-96' }],
+  ['Rough Nights 08 l.98', 'villageois', { gnome: '97-100' }],
+];
+
+describe('bornes des colonnes Middenheim et Gnome au livre (Middenheim 09 l.13-98 ; NADJ 14 l.81-125)', () => {
+  it.each(LIVRE)('%s — %s', (_ref, carriere, bornes) => {
+    for (const [colonne, attendu] of Object.entries(bornes)) {
+      const rangee = DOCUMENTS.find((d) => d.id === colonne)!.entries.find((r) => r.id === carriere);
+      expect(rangee ? `${rangee.min}-${rangee.max}` : '–', colonne).toBe(attendu);
+    }
+  });
+});

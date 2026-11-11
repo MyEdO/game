@@ -836,7 +836,7 @@
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 87,
-      "note": "Tableau des Classes et Carrières aléatoires, NADJ 14 l.81-125"
+      "note": "Tableau des Classes et Carrières aléatoires, NADJ 14 l.81-125 ; Villageois 97-100 : Rough Nights 08 l.98"
     },
     "entries": [
       {
@@ -955,13 +955,13 @@
         "max": 45
       },
       {
-        "id": "erudit",
+        "id": "juriste",
         "min": 46,
-        "max": 47
+        "max": 46
       },
       {
-        "id": "juriste",
-        "min": 48,
+        "id": "erudit",
+        "min": 47,
         "max": 48
       },
       {
@@ -1507,198 +1507,203 @@
     },
     "entries": [
       {
-        "id": "agitateur",
+        "id": "apothicaire",
         "min": 1,
         "max": 1
       },
       {
-        "id": "artisan",
+        "id": "ingenieur",
         "min": 2,
-        "max": 4
+        "max": 2
       },
       {
-        "id": "bourgeois",
-        "min": 5,
+        "id": "juriste",
+        "min": 3,
+        "max": 3
+      },
+      {
+        "id": "nonne",
+        "min": 4,
+        "max": 5
+      },
+      {
+        "id": "medecin",
+        "min": 6,
         "max": 6
       },
       {
-        "id": "enqueteur",
+        "id": "pretre",
         "min": 7,
-        "max": 7
+        "max": 11
       },
       {
-        "id": "marchand",
-        "min": 8,
-        "max": 9
+        "id": "erudit",
+        "min": 12,
+        "max": 13
       },
       {
-        "id": "mendiant",
-        "min": 10,
-        "max": 12
+        "id": "sorcier",
+        "min": 14,
+        "max": 14
       },
       {
-        "id": "milicien",
-        "min": 13,
+        "id": "agitateur",
+        "min": 15,
         "max": 15
       },
       {
-        "id": "ratier",
+        "id": "artisan",
         "min": 16,
-        "max": 17
-      },
-      {
-        "id": "artiste",
-        "min": 18,
         "max": 18
       },
       {
-        "id": "conseiller",
+        "id": "mendiant",
         "min": 19,
-        "max": 19
-      },
-      {
-        "id": "duelliste",
-        "min": 20,
-        "max": 20
-      },
-      {
-        "id": "emissaire",
-        "min": 21,
         "max": 21
       },
       {
-        "id": "espion",
+        "id": "enqueteur",
         "min": 22,
         "max": 22
       },
       {
-        "id": "intendant",
+        "id": "marchand",
         "min": 23,
-        "max": 23
-      },
-      {
-        "id": "noble",
-        "min": 24,
         "max": 24
       },
       {
-        "id": "serviteur",
+        "id": "ratier",
         "min": 25,
-        "max": 27
+        "max": 26
       },
       {
-        "id": "cavalier",
-        "min": 28,
-        "max": 29
+        "id": "bourgeois",
+        "min": 27,
+        "max": 28
       },
       {
-        "id": "chevalier",
-        "min": 30,
-        "max": 30
+        "id": "milicien",
+        "min": 29,
+        "max": 31
       },
       {
-        "id": "garde",
-        "min": 31,
+        "id": "conseiller",
+        "min": 32,
+        "max": 32
+      },
+      {
+        "id": "artiste",
+        "min": 33,
         "max": 33
       },
       {
-        "id": "gladiateur",
+        "id": "duelliste",
         "min": 34,
         "max": 34
       },
       {
-        "id": "pretre-guerrier",
+        "id": "emissaire",
         "min": 35,
         "max": 35
       },
       {
-        "id": "soldat",
+        "id": "noble",
         "min": 36,
+        "max": 36
+      },
+      {
+        "id": "serviteur",
+        "min": 37,
         "max": 39
       },
       {
-        "id": "spadassin",
+        "id": "espion",
         "min": 40,
         "max": 40
       },
       {
-        "id": "chasseur-de-primes",
+        "id": "intendant",
         "min": 41,
         "max": 41
       },
       {
-        "id": "cocher",
+        "id": "bailli",
         "min": 42,
+        "max": 42
+      },
+      {
+        "id": "sorcier-de-village",
+        "min": 43,
         "max": 43
       },
       {
-        "id": "colporteur",
+        "id": "herboriste",
         "min": 44,
+        "max": 44
+      },
+      {
+        "id": "chasseur",
+        "min": 45,
         "max": 45
       },
       {
-        "id": "frere-loup",
+        "id": "mineur",
         "min": 46,
+        "max": 47
+      },
+      {
+        "id": "mystique",
+        "min": 48,
         "max": 48
       },
       {
-        "id": "messager",
+        "id": "eclaireur",
         "min": 49,
         "max": 49
       },
       {
-        "id": "patrouilleur-routier",
+        "id": "villageois",
         "min": 50,
-        "max": 50
-      },
-      {
-        "id": "repurgateur",
-        "min": 51,
-        "max": 51
-      },
-      {
-        "id": "saltimbanque",
-        "min": 52,
         "max": 54
       },
       {
-        "id": "apothicaire",
+        "id": "chasseur-de-primes",
         "min": 55,
         "max": 55
       },
       {
-        "id": "erudit",
+        "id": "cocher",
         "min": 56,
         "max": 57
       },
       {
-        "id": "ingenieur",
+        "id": "saltimbanque",
         "min": 58,
-        "max": 58
-      },
-      {
-        "id": "juriste",
-        "min": 59,
-        "max": 59
-      },
-      {
-        "id": "medecin",
-        "min": 60,
         "max": 60
       },
       {
-        "id": "nonne",
+        "id": "messager",
         "min": 61,
-        "max": 62
+        "max": 61
       },
       {
-        "id": "pretre",
-        "min": 63,
-        "max": 67
+        "id": "colporteur",
+        "min": 62,
+        "max": 63
       },
       {
-        "id": "sorcier",
-        "min": 68,
+        "id": "patrouilleur-routier",
+        "min": 64,
+        "max": 64
+      },
+      {
+        "id": "repurgateur",
+        "min": 65,
+        "max": 65
+      },
+      {
+        "id": "frere-loup",
+        "min": 66,
         "max": 68
       },
       {
@@ -1712,17 +1717,17 @@
         "max": 71
       },
       {
-        "id": "charlatan",
+        "id": "entremetteur",
         "min": 72,
-        "max": 72
+        "max": 73
       },
       {
-        "id": "entremetteur",
-        "min": 73,
+        "id": "charlatan",
+        "min": 74,
         "max": 74
       },
       {
-        "id": "hors-la-loi",
+        "id": "receleur",
         "min": 75,
         "max": 76
       },
@@ -1732,63 +1737,58 @@
         "max": 77
       },
       {
-        "id": "ranconneur",
+        "id": "hors-la-loi",
         "min": 78,
-        "max": 80
+        "max": 79
       },
       {
-        "id": "receleur",
-        "min": 81,
+        "id": "ranconneur",
+        "min": 80,
         "max": 82
       },
       {
-        "id": "sorcier-dissident",
+        "id": "voleur",
         "min": 83,
-        "max": 83
+        "max": 86
       },
       {
-        "id": "voleur",
-        "min": 84,
+        "id": "sorcier-dissident",
+        "min": 87,
         "max": 87
       },
       {
-        "id": "bailli",
+        "id": "cavalier",
         "min": 88,
-        "max": 88
-      },
-      {
-        "id": "chasseur",
-        "min": 89,
         "max": 89
       },
       {
-        "id": "eclaireur",
+        "id": "garde",
         "min": 90,
-        "max": 90
+        "max": 92
       },
       {
-        "id": "herboriste",
-        "min": 91,
-        "max": 91
-      },
-      {
-        "id": "mineur",
-        "min": 92,
+        "id": "chevalier",
+        "min": 93,
         "max": 93
       },
       {
-        "id": "mystique",
+        "id": "gladiateur",
         "min": 94,
         "max": 94
       },
       {
-        "id": "sorcier-de-village",
+        "id": "spadassin",
         "min": 95,
         "max": 95
       },
       {
-        "id": "villageois",
+        "id": "soldat",
         "min": 96,
+        "max": 99
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 100,
         "max": 100
       }
     ]
@@ -1805,242 +1805,242 @@
     },
     "entries": [
       {
-        "id": "agitateur",
+        "id": "apothicaire",
         "min": 1,
         "max": 1
       },
       {
-        "id": "artisan",
+        "id": "ingenieur",
         "min": 2,
+        "max": 2
+      },
+      {
+        "id": "juriste",
+        "min": 3,
         "max": 3
       },
       {
-        "id": "bourgeois",
+        "id": "nonne",
         "min": 4,
+        "max": 5
+      },
+      {
+        "id": "medecin",
+        "min": 6,
         "max": 6
       },
       {
-        "id": "enqueteur",
+        "id": "pretre",
         "min": 7,
-        "max": 7
-      },
-      {
-        "id": "marchand",
-        "min": 8,
-        "max": 8
-      },
-      {
-        "id": "mendiant",
-        "min": 9,
-        "max": 10
-      },
-      {
-        "id": "milicien",
-        "min": 11,
         "max": 11
       },
       {
-        "id": "ratier",
+        "id": "erudit",
         "min": 12,
         "max": 13
       },
       {
-        "id": "artiste",
+        "id": "sorcier",
         "min": 14,
         "max": 14
       },
       {
-        "id": "conseiller",
+        "id": "agitateur",
         "min": 15,
         "max": 15
       },
       {
-        "id": "duelliste",
+        "id": "artisan",
         "min": 16,
-        "max": 16
-      },
-      {
-        "id": "emissaire",
-        "min": 17,
         "max": 17
       },
       {
-        "id": "espion",
+        "id": "mendiant",
         "min": 18,
-        "max": 18
-      },
-      {
-        "id": "intendant",
-        "min": 19,
         "max": 19
       },
       {
-        "id": "noble",
+        "id": "enqueteur",
         "min": 20,
         "max": 20
       },
       {
-        "id": "serviteur",
+        "id": "marchand",
         "min": 21,
+        "max": 21
+      },
+      {
+        "id": "ratier",
+        "min": 22,
         "max": 23
       },
       {
-        "id": "cavalier",
+        "id": "bourgeois",
         "min": 24,
-        "max": 25
-      },
-      {
-        "id": "chevalier",
-        "min": 26,
         "max": 26
       },
       {
-        "id": "garde",
+        "id": "milicien",
         "min": 27,
+        "max": 27
+      },
+      {
+        "id": "conseiller",
+        "min": 28,
         "max": 28
       },
       {
-        "id": "gladiateur",
+        "id": "artiste",
         "min": 29,
         "max": 29
       },
       {
-        "id": "pretre-guerrier",
+        "id": "duelliste",
         "min": 30,
         "max": 30
       },
       {
-        "id": "soldat",
+        "id": "emissaire",
         "min": 31,
-        "max": 34
+        "max": 31
       },
       {
-        "id": "spadassin",
-        "min": 35,
+        "id": "noble",
+        "min": 32,
+        "max": 32
+      },
+      {
+        "id": "serviteur",
+        "min": 33,
         "max": 35
       },
       {
-        "id": "chasseur-de-primes",
+        "id": "espion",
         "min": 36,
         "max": 36
       },
       {
-        "id": "cocher",
+        "id": "intendant",
         "min": 37,
         "max": 37
       },
       {
-        "id": "colporteur",
+        "id": "bailli",
         "min": 38,
         "max": 38
       },
       {
-        "id": "frere-loup",
+        "id": "sorcier-de-village",
         "min": 39,
+        "max": 39
+      },
+      {
+        "id": "herboriste",
+        "min": 40,
         "max": 40
       },
       {
-        "id": "messager",
+        "id": "chasseur",
         "min": 41,
-        "max": 41
-      },
-      {
-        "id": "patrouilleur-routier",
-        "min": 42,
         "max": 42
       },
       {
-        "id": "repurgateur",
+        "id": "mineur",
         "min": 43,
         "max": 43
       },
       {
-        "id": "saltimbanque",
+        "id": "mystique",
         "min": 44,
+        "max": 44
+      },
+      {
+        "id": "eclaireur",
+        "min": 45,
         "max": 45
       },
       {
-        "id": "apothicaire",
+        "id": "villageois",
         "min": 46,
-        "max": 46
-      },
-      {
-        "id": "erudit",
-        "min": 47,
-        "max": 48
-      },
-      {
-        "id": "ingenieur",
-        "min": 49,
-        "max": 49
-      },
-      {
-        "id": "juriste",
-        "min": 50,
         "max": 50
       },
       {
-        "id": "medecin",
+        "id": "chasseur-de-primes",
         "min": 51,
         "max": 51
       },
       {
-        "id": "nonne",
+        "id": "cocher",
         "min": 52,
-        "max": 53
+        "max": 52
       },
       {
-        "id": "pretre",
-        "min": 54,
+        "id": "saltimbanque",
+        "min": 53,
+        "max": 54
+      },
+      {
+        "id": "messager",
+        "min": 55,
+        "max": 55
+      },
+      {
+        "id": "colporteur",
+        "min": 56,
+        "max": 56
+      },
+      {
+        "id": "patrouilleur-routier",
+        "min": 57,
+        "max": 57
+      },
+      {
+        "id": "repurgateur",
+        "min": 58,
         "max": 58
       },
       {
-        "id": "sorcier",
+        "id": "frere-loup",
         "min": 59,
-        "max": 59
+        "max": 60
       },
       {
         "id": "batelier",
-        "min": 60,
-        "max": 61
-      },
-      {
-        "id": "contrebandier",
-        "min": 62,
+        "min": 61,
         "max": 62
       },
       {
-        "id": "debardeur",
+        "id": "nautonier",
         "min": 63,
-        "max": 64
+        "max": 63
+      },
+      {
+        "id": "patrouilleur-fluvial",
+        "min": 64,
+        "max": 65
       },
       {
         "id": "femme-du-fleuve",
-        "min": 65,
-        "max": 67
+        "min": 66,
+        "max": 68
       },
       {
         "id": "marin",
-        "min": 68,
-        "max": 69
-      },
-      {
-        "id": "naufrageur",
-        "min": 70,
+        "min": 69,
         "max": 70
       },
       {
-        "id": "nautonier",
+        "id": "contrebandier",
         "min": 71,
         "max": 71
       },
       {
-        "id": "patrouilleur-fluvial",
+        "id": "debardeur",
         "min": 72,
         "max": 73
       },
       {
-        "id": "charlatan",
+        "id": "naufrageur",
         "min": 74,
         "max": 74
       },
@@ -2050,27 +2050,27 @@
         "max": 76
       },
       {
-        "id": "hors-la-loi",
+        "id": "charlatan",
         "min": 77,
-        "max": 80
-      },
-      {
-        "id": "pilleur-de-tombes",
-        "min": 81,
-        "max": 81
-      },
-      {
-        "id": "ranconneur",
-        "min": 82,
-        "max": 82
+        "max": 77
       },
       {
         "id": "receleur",
-        "min": 83,
+        "min": 78,
+        "max": 78
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 79,
+        "max": 79
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 80,
         "max": 83
       },
       {
-        "id": "sorcier-dissident",
+        "id": "ranconneur",
         "min": 84,
         "max": 84
       },
@@ -2080,43 +2080,43 @@
         "max": 87
       },
       {
-        "id": "bailli",
+        "id": "sorcier-dissident",
         "min": 88,
         "max": 88
       },
       {
-        "id": "chasseur",
+        "id": "cavalier",
         "min": 89,
         "max": 90
       },
       {
-        "id": "eclaireur",
+        "id": "garde",
         "min": 91,
-        "max": 91
-      },
-      {
-        "id": "herboriste",
-        "min": 92,
         "max": 92
       },
       {
-        "id": "mineur",
+        "id": "chevalier",
         "min": 93,
         "max": 93
       },
       {
-        "id": "mystique",
+        "id": "gladiateur",
         "min": 94,
         "max": 94
       },
       {
-        "id": "sorcier-de-village",
+        "id": "spadassin",
         "min": 95,
         "max": 95
       },
       {
-        "id": "villageois",
+        "id": "soldat",
         "min": 96,
+        "max": 99
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 100,
         "max": 100
       }
     ]
@@ -2133,212 +2133,217 @@
     },
     "entries": [
       {
-        "id": "agitateur",
+        "id": "apothicaire",
         "min": 1,
         "max": 1
       },
       {
-        "id": "artisan",
+        "id": "ingenieur",
         "min": 2,
+        "max": 2
+      },
+      {
+        "id": "juriste",
+        "min": 3,
         "max": 3
       },
       {
-        "id": "bourgeois",
+        "id": "nonne",
         "min": 4,
         "max": 5
       },
       {
-        "id": "enqueteur",
+        "id": "medecin",
         "min": 6,
         "max": 6
       },
       {
-        "id": "marchand",
+        "id": "pretre",
         "min": 7,
-        "max": 7
-      },
-      {
-        "id": "mendiant",
-        "min": 8,
-        "max": 9
-      },
-      {
-        "id": "milicien",
-        "min": 10,
         "max": 10
       },
       {
-        "id": "ratier",
+        "id": "erudit",
         "min": 11,
         "max": 12
       },
       {
-        "id": "artiste",
+        "id": "sorcier",
         "min": 13,
         "max": 13
       },
       {
-        "id": "conseiller",
+        "id": "agitateur",
         "min": 14,
         "max": 14
       },
       {
-        "id": "duelliste",
+        "id": "artisan",
         "min": 15,
-        "max": 15
-      },
-      {
-        "id": "emissaire",
-        "min": 16,
         "max": 16
       },
       {
-        "id": "espion",
+        "id": "mendiant",
         "min": 17,
-        "max": 17
-      },
-      {
-        "id": "intendant",
-        "min": 18,
         "max": 18
       },
       {
-        "id": "noble",
+        "id": "enqueteur",
         "min": 19,
         "max": 19
       },
       {
-        "id": "serviteur",
+        "id": "marchand",
         "min": 20,
+        "max": 20
+      },
+      {
+        "id": "ratier",
+        "min": 21,
         "max": 22
       },
       {
-        "id": "cavalier",
+        "id": "bourgeois",
         "min": 23,
         "max": 24
       },
       {
-        "id": "chevalier",
+        "id": "milicien",
         "min": 25,
         "max": 25
       },
       {
-        "id": "garde",
+        "id": "conseiller",
         "min": 26,
+        "max": 26
+      },
+      {
+        "id": "artiste",
+        "min": 27,
         "max": 27
       },
       {
-        "id": "gladiateur",
+        "id": "duelliste",
         "min": 28,
         "max": 28
       },
       {
-        "id": "pretre-guerrier",
+        "id": "emissaire",
         "min": 29,
         "max": 29
       },
       {
-        "id": "soldat",
+        "id": "noble",
         "min": 30,
+        "max": 30
+      },
+      {
+        "id": "serviteur",
+        "min": 31,
         "max": 33
       },
       {
-        "id": "spadassin",
+        "id": "espion",
         "min": 34,
         "max": 34
       },
       {
-        "id": "chasseur-de-primes",
+        "id": "intendant",
         "min": 35,
         "max": 35
       },
       {
-        "id": "cocher",
+        "id": "bailli",
         "min": 36,
         "max": 36
       },
       {
-        "id": "colporteur",
+        "id": "sorcier-de-village",
         "min": 37,
         "max": 37
       },
       {
-        "id": "frere-loup",
+        "id": "herboriste",
         "min": 38,
-        "max": 39
+        "max": 38
       },
       {
-        "id": "messager",
-        "min": 40,
+        "id": "chasseur",
+        "min": 39,
         "max": 40
       },
       {
-        "id": "patrouilleur-routier",
+        "id": "mineur",
         "min": 41,
         "max": 41
       },
       {
-        "id": "repurgateur",
+        "id": "mystique",
         "min": 42,
         "max": 42
       },
       {
-        "id": "saltimbanque",
+        "id": "eclaireur",
         "min": 43,
-        "max": 44
+        "max": 43
       },
       {
-        "id": "apothicaire",
-        "min": 45,
-        "max": 45
-      },
-      {
-        "id": "erudit",
-        "min": 46,
-        "max": 47
-      },
-      {
-        "id": "ingenieur",
-        "min": 48,
+        "id": "villageois",
+        "min": 44,
         "max": 48
       },
       {
-        "id": "juriste",
+        "id": "chasseur-de-primes",
         "min": 49,
         "max": 49
       },
       {
-        "id": "medecin",
+        "id": "cocher",
         "min": 50,
         "max": 50
       },
       {
-        "id": "nonne",
+        "id": "saltimbanque",
         "min": 51,
         "max": 52
       },
       {
-        "id": "pretre",
+        "id": "messager",
         "min": 53,
+        "max": 53
+      },
+      {
+        "id": "colporteur",
+        "min": 54,
+        "max": 54
+      },
+      {
+        "id": "patrouilleur-routier",
+        "min": 55,
+        "max": 55
+      },
+      {
+        "id": "repurgateur",
+        "min": 56,
         "max": 56
       },
       {
-        "id": "sorcier",
+        "id": "frere-loup",
         "min": 57,
-        "max": 57
+        "max": 58
       },
       {
         "id": "batelier",
-        "min": 58,
-        "max": 59
+        "min": 59,
+        "max": 60
       },
       {
-        "id": "contrebandier",
-        "min": 60,
+        "id": "nautonier",
+        "min": 61,
         "max": 61
       },
       {
-        "id": "debardeur",
+        "id": "patrouilleur-fluvial",
         "min": 62,
         "max": 63
       },
@@ -2353,22 +2358,17 @@
         "max": 70
       },
       {
-        "id": "naufrageur",
+        "id": "contrebandier",
         "min": 71,
-        "max": 71
-      },
-      {
-        "id": "nautonier",
-        "min": 72,
         "max": 72
       },
       {
-        "id": "patrouilleur-fluvial",
+        "id": "debardeur",
         "min": 73,
         "max": 74
       },
       {
-        "id": "charlatan",
+        "id": "naufrageur",
         "min": 75,
         "max": 75
       },
@@ -2378,27 +2378,27 @@
         "max": 77
       },
       {
-        "id": "hors-la-loi",
+        "id": "charlatan",
         "min": 78,
-        "max": 81
-      },
-      {
-        "id": "pilleur-de-tombes",
-        "min": 82,
-        "max": 82
-      },
-      {
-        "id": "ranconneur",
-        "min": 83,
-        "max": 83
+        "max": 78
       },
       {
         "id": "receleur",
-        "min": 84,
+        "min": 79,
+        "max": 79
+      },
+      {
+        "id": "pilleur-de-tombes",
+        "min": 80,
+        "max": 80
+      },
+      {
+        "id": "hors-la-loi",
+        "min": 81,
         "max": 84
       },
       {
-        "id": "sorcier-dissident",
+        "id": "ranconneur",
         "min": 85,
         "max": 85
       },
@@ -2408,43 +2408,43 @@
         "max": 87
       },
       {
-        "id": "bailli",
+        "id": "sorcier-dissident",
         "min": 88,
         "max": 88
       },
       {
-        "id": "chasseur",
+        "id": "cavalier",
         "min": 89,
         "max": 90
       },
       {
-        "id": "eclaireur",
+        "id": "garde",
         "min": 91,
-        "max": 91
-      },
-      {
-        "id": "herboriste",
-        "min": 92,
         "max": 92
       },
       {
-        "id": "mineur",
+        "id": "chevalier",
         "min": 93,
         "max": 93
       },
       {
-        "id": "mystique",
+        "id": "gladiateur",
         "min": 94,
         "max": 94
       },
       {
-        "id": "sorcier-de-village",
+        "id": "spadassin",
         "min": 95,
         "max": 95
       },
       {
-        "id": "villageois",
+        "id": "soldat",
         "min": 96,
+        "max": 99
+      },
+      {
+        "id": "pretre-guerrier",
+        "min": 100,
         "max": 100
       }
     ]
