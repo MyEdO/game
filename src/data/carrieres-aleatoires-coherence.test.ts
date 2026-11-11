@@ -100,7 +100,6 @@ const LIVRE: readonly [ref: string, carriere: string, bornes: Record<string, str
   ['NADJ 14 l.106', 'juriste', { gnome: '46-46' }],
   ['NADJ 14 l.107', 'erudit', { gnome: '47-48' }],
   ['NADJ 14 l.125', 'mineur', { gnome: '89-96' }],
-  ['Rough Nights 08 l.98', 'villageois', { gnome: '97-100' }],
 ];
 
 describe('bornes des colonnes Middenheim et Gnome au livre (Middenheim 09 l.13-98 ; NADJ 14 l.81-125)', () => {

@@ -840,8 +840,9 @@
     "source": {
       "book": "nuits-agitees-et-dures-journees",
       "page": 87,
-      "note": "Tableau des Classes et Carrières aléatoires, NADJ 14 l.81-125 ; Villageois 97-100 : Rough Nights 08 l.98"
+      "note": "Tableau des Classes et Carrières aléatoires, NADJ 14 l.81-125 (couvre 01-96, sans Villageois) ; Villageois 97-100 maison : place déduite du trou de la VF, largeur prise à la VO, qui imprime Villager sur 4 valeurs dans une autre numérotation (Rough Nights 08 l.98, « 59–62 »)"
     },
+    "maison": "Villageois 97-100 : la VF s’arrête à Mineur 89-96 (NADJ 14 l.125) ; rangée déduite, proposée au ticket #3578 (https://github.com/MyEdO/game/issues/3578#issuecomment-6783883265)",
     "entries": [
       {
         "id": "agitateur",
@@ -1511,7 +1512,7 @@
     "source": {
       "book": "middenheim",
       "page": 148,
-      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46, l.65-98"
+      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
     },
     "entries": [
       {
@@ -1810,7 +1811,7 @@
     "source": {
       "book": "middenheim",
       "page": 148,
-      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46, l.65-98"
+      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
     },
     "entries": [
       {
@@ -2139,7 +2140,7 @@
     "source": {
       "book": "middenheim",
       "page": 148,
-      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46, l.65-98"
+      "note": "Tableau des Classes et Carrières aléatoires, Middenheim 09 l.13-46 (folio 148), l.65-98 (folio 149)"
     },
     "entries": [
       {
