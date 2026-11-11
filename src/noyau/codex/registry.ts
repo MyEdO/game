@@ -16,7 +16,7 @@ import {
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -1109,7 +1109,7 @@ export function optionBody(o: { label: string; desc: string }): string {
 }
 
 /** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
-function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires)[number], category: string, libelle: (id: string) => string) {
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires)[number], category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
     sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
     sections: sections({
@@ -2627,6 +2627,10 @@ const CODEX_SPECS = {
   carrieresAleatoires: {
     label: 'codex.fiche.carrieresAleatoires', group: 'tables',
     build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, 'careers', (id) => refLabel('careers', { id }))),
+  },
+  especesAleatoires: {
+    label: 'codex.fiche.especesAleatoires', group: 'tables',
+    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('races', { id }))),
   },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —

@@ -1,8 +1,8 @@
 /**
  * Tables & bonus de la création de personnage — LDB chapitres 04/05 « Personnage ».
  *
- *  - Races aléatoires (LDB 04 l.93-101) : d100 → 01-90 Humain, 91-94 Halfling, 95-98 Nain,
- *    99 Haut elfe, 00 Elfe sylvain ; +20 PX si le PREMIER tirage est accepté.
+ *  - Races aléatoires (LDB 04 l.91-101 ; NADJ 14 l.66-75 ; ADE II 02 l.112-121) : au dé de la table de
+ *    `especes-aleatoires.json` qui s'applique ; +20 PX si le PREMIER tirage est accepté.
  *  - Classes et Carrières aléatoires (LDB 05 l.208-212) : 1er jet accepté = +50 PX ; sinon
  *    2 jets de plus et choix parmi les 3 = +25 PX ; sinon choix libre / relances = 0 PX.
  *  - Caractéristiques (LDB 05 l.337-341) : tirage 2d10 gardé = +50 PX ; réassignation des dix
@@ -15,13 +15,14 @@
  *    Elfe 180+2d10 ; yeux/cheveux : au dé de leur table (eyes.json / hairs.json).
  */
 import { RNG, roll, rollDice } from './dice';
-import { findTableEntry } from './tables';
+import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
-import { SpeciesData, tableDeCarrieres, carrieresOffertesAvec, species as allSpecies, eyes as eyesTable, hairs as hairsTable, eyesDie, hairsDie, type DetailColorData, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
+import { SpeciesData, findSpeciesById, tableDesRacesAleatoires, tableDeCarrieres, carrieresOffertesAvec, species as allSpecies, eyes as eyesTable, hairs as hairsTable, eyesDie, hairsDie, type DetailColorData, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
+import { garanti } from '../lib/garanti';
 import { bonus } from './characteristics';
 import { baseWithTalents } from './talentEffects';
 import { castingKindOf } from './combatFeatures/dispatch';
@@ -34,43 +35,34 @@ export const XP_CHARS_KEPT = 50; // LDB 05 l.337
 export const XP_CHARS_REASSIGNED = 25; // LDB 05 l.339
 export const XP_STAR_ROLLED = 25; // ADE II 3 l.36 (signe astral tiré et accepté)
 
-/**
- * Espèce OUVERTE au joueur : une espèce peut déclarer `gatedByRule` (une règle optionnelle) — elle
- * n'est proposée qu'avec cette règle active. SOURCE UNIQUE du filtre (tirage ET grille du créateur).
- * Porté par `gnomes` (`NADJ 14 l.5`) ; une espèce sans le champ est ouverte, quel que soit
- * son livre.
- */
+/** Espèce OUVERTE au joueur : sans `gatedByRule`, ou sa règle optionnelle active. Lue par le tirage et la grille
+ *  du créateur. NADJ 14 l.5 ; ADE II 02 l.110 */
 export function speciesAllowed(s: SpeciesData): boolean {
   return !s.gatedByRule || !!rule(s.gatedByRule.id);
 }
 
-/**
- * Tableau des Races aléatoires (LDB 04 l.93-101) — DÉRIVÉ des données : chaque espèce porte sa
- * borne haute d100 (`SpeciesData.rand`, suppléments inclus). Plusieurs espèces partagent une
- * même borne (variantes régionales d'ADE, Gnome/Ogre…) : c'est VOULU par le RAW. Un jet désigne
- * une BORNE, et le joueur CHOISIT librement parmi toutes les espèces de cette borne en conservant
- * le bonus de PX (l'acceptation récompense d'avoir accepté le TIRAGE, pas une option imposée).
- * On renvoie donc, pour chaque borne, TOUTES les espèces éligibles — sans priorité codée.
- */
-export function randomSpeciesTable(): { max: number; ids: string[] }[] {
-  const byBound = new Map<number, string[]>();
-  for (const s of allSpecies) {
-    if (typeof s.rand !== 'number') continue;
-    // Espèce gatée par une règle inactive : hors du tableau. Quand elle est active, l'espèce est une
-    // option NORMALE de sa borne (Gnome : 98, partagée avec l'Ogre ADE II), sans priorité.
-    if (!speciesAllowed(s)) continue;
-    byBound.set(s.rand, [...(byBound.get(s.rand) ?? []), s.id]);
-  }
-  return [...byBound.entries()]
-    .sort(([a], [b]) => a - b)
-    .map(([max, ids]) => ({ max, ids }));
+/** Une rangée du Tableau des Races aléatoires : sa fourchette, l'espèce nominale de sa race puis les autres
+ *  espèces ouvertes de la même race, au choix du joueur. LDB 04 l.91 ; ADE I 02 l.257 */
+export interface RangeeDeRaces { min: number; max: number; ids: string[] }
+
+/** Le Tableau des Races aléatoires qui s'applique : la table dont les races égalent celles des espèces
+ *  ouvertes (`tableDesRacesAleatoires`), et son dé. LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE II 02 l.112-121 */
+export function randomSpeciesTable(): { die: DeDeTable; entries: RangeeDeRaces[] } {
+  const ouvertes = allSpecies.filter(speciesAllowed);
+  const table = tableDesRacesAleatoires(new Set(ouvertes.map((s) => s.refChar)));
+  return {
+    die: deDeLaTableTiree(table),
+    entries: table.entries.map(({ id, min, max }) => {
+      const race = garanti(findSpeciesById(id), id, 'espèce du Tableau des Races aléatoires').refChar;
+      return { min, max, ids: [id, ...ouvertes.filter((s) => s.refChar === race && s.id !== id).map((s) => s.id)] };
+    }),
+  };
 }
 
 export function rollSpecies(rng: RNG): { roll: number; ids: string[] } {
   const table = randomSpeciesTable();
-  const r = roll(1, 100, rng);
-  const entry = table.find((e) => r <= e.max) ?? table[table.length - 1];
-  return { roll: r, ids: entry.ids };
+  const r = rollDice(table.die, rng);
+  return { roll: r, ids: findTableEntry(table.entries, r).ids };
 }
 
 /**

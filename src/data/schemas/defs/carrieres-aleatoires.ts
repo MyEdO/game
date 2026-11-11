@@ -2,7 +2,7 @@ import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 /** LDB 05 l.214-299 ; MDG 09 l.9, l.21-30 ; AA 02 l.109-128 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { ecartsDeCouverture, ecartsDuDeDeLaTable, enumNomme, plageSchema } from '../grammaire/valeurs';
+import { couvertureDuDeParDocument, ecartsDeCouverture, ecartsDuDeDeLaTable, enumNomme, plageSchema } from '../grammaire/valeurs';
 import { idDe, ref, refs } from '../grammaire/ref';
 
 export const file = 'carrieres-aleatoires.json';
@@ -68,15 +68,10 @@ const doc = document(
     deDeTirage: true,
     espace: { discriminant: 'kind', chargeParDiscriminant: { colonne: [], portion: ['colonne'], variante: ['carriere', 'colonnes'] } },
     affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
+      couvertureDuDeParDocument<Document>(file, nomDeRangee, (t) => t.kind !== 'portion')(dataset).superRefine((v, ctx) => {
         const documents = v as Document[];
         const refus = (i: number, champ: string, message: string) => ctx.addIssue({ code: 'custom', path: [i, champ], message: `carrieres-aleatoires.json › ${documents[i].id} : ${message}.` });
         const colonneDeBase = (id: string) => documents.find((d) => d.id === id && d.kind === 'colonne');
-        for (const [i, t] of documents.entries()) {
-          if (t.kind === 'portion') continue;
-          const ecarts = ecartsDuDeDeLaTable(t, t.entries, nomDeRangee);
-          if (ecarts.length) refus(i, 'entries', `les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}`);
-        }
         const vues = new Map<string, string>();
         for (const [i, p] of documents.entries()) {
           if (p.kind !== 'portion' || p.colonne === undefined) continue;

@@ -67,7 +67,7 @@ describe('#2968 L18 — Type de Souffle, règle optionnelle requise et espèce d
       return mesureDuParse(schema, doc).reperes.filter((r) => r.type === type).length;
     };
     expect(compte(schemaDomaines, domainsJson, 'breathType')).toBe(14);
-    expect(compte(schemaEspeces, speciesJson, 'regleOptionnelle')).toBe(1);
+    expect(compte(schemaEspeces, speciesJson, 'regleOptionnelle')).toBe(speciesJson.filter((s) => 'gatedByRule' in s).length);
     expect(compte(schemaCompetences, skillsJson, 'regleOptionnelle')).toBe(2);
     expect(compte(schemaEspeceParDefaut, speciesRaceJson, 'planDeBestiaire')).toBe(1);
   });
