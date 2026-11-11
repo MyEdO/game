@@ -55,7 +55,7 @@ import { SYMPTOM_SEVERITIES } from '../../../data';
 import type { AttackKind } from '../../../engine/creatureAttacks';
 import { WeaponField } from '../WeaponField';
 import type { ArmeDerivee } from '../../../data';
-import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DispoSaisonniereField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
+import { SymptomsField, SymptomTickField, DiseaseDailyTestField, type DiseaseDailyTest, ShipCrewHitField, type ShipCrewHitValue, TalentTestField, CombatField, AdvancementRefField, TrappingRefField, CharKeysField, DomainEffectsField, TraitListField, OptionalsListField, HarvestField, SpecsField, RuleValueField, RuleActionField, type RuleShape } from './StructFields';
 import { AlsoInField } from '../../AlsoInField';
 import type { OptionalRule } from '../../../engine/policy';
 import type { OptionalEntry } from '../../../engine/statEntry';
@@ -245,12 +245,9 @@ export function dedicatedFieldKeys(categoryKey: string): Set<string> {
   // #422 (suite) : Disponibilité & Troc (`disponibilite`, mode 'single', patron `waterExposure`) —
   // `dispoPct`/`barterRatios` (tableaux top-level) → éditeur GÉNÉRIQUE commun (`GenericArrayField`).
   if (categoryKey === 'disponibilite') add('dispoPct', 'barterRatios');
-  // Fourchettes à DEUX bornes (#1659) — toutes servies par la MÊME primitive (`PlageField`) : la
-  // longueur de coque (bande finale ouverte, MDG 12 l.129), le sous-tirage astral (ADE II 03
-  // l.63) ci-dessus, et les quatre colonnes de disponibilité saisonnière (d100). Sans cette ligne,
-  // `avail` retombait sur le sous-formulaire générique et rendait ses clefs techniques à l'écran.
+  // Fourchettes à DEUX bornes (#1659) — servies par la MÊME primitive (`PlageField`) : la longueur de
+  // coque (bande finale ouverte, MDG 12 l.129) et le sous-tirage astral (ADE II 03 l.63) ci-dessus.
   if (categoryKey === 'shipHullSizes') add('lengthM');
-  if (categoryKey === 'cargoes') add('avail');
   // #168 : Activité — Test « posté » (contexts/tests « au choix »/difficulty) + table d'issues
   // `outcomes` (OutcomeBand[]) → éditeurs dédiés ; `onSuccess` couvert par opsFieldsOf ci-dessus.
   // `resolver` (#1318 V6) : vocabulaire FERMÉ → sélecteur dédié, jamais le champ texte générique.
@@ -406,8 +403,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
   const hasCharKeys = categoryKey === 'careerLevels';
   // Étoile : `sub` = la fourchette du sous-tirage (`starSubDie`, ADE II 03 l.63) → `PlageField`.
   const hasStarSub = categoryKey === 'stars';
-  // Cargaison : `avail` = quatre colonnes d100, une fourchette par saison.
-  const hasDispoSaisonniere = categoryKey === 'cargoes';
   // Domaine de magie : `castBonus`/`missile`/`casterOps` = attributs de domaine (éditeur dédié).
   const hasDomainEffects = categoryKey === 'domains';
   // Créature : `traits`/`optionals` = TraitPose[] (réutilise `TraitListField` du StatblockEditor),
@@ -650,13 +645,6 @@ function AtelierDEntree({ categoryKey, id, onClose, isNew, connexion, setConnexi
             activation="sous-tirage"
             value={entry.sub as PlageValue | undefined}
             onChange={(v) => edit('sub', v)}
-          />
-        )}
-        {hasDispoSaisonniere && (
-          <DispoSaisonniereField
-            label="Disponibilité par saison"
-            value={entry.avail as Parameters<typeof DispoSaisonniereField>[0]['value']}
-            onChange={(v) => edit('avail', v)}
           />
         )}
         {hasDomainEffects && (

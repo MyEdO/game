@@ -4,24 +4,6 @@
     "type": "cargoes",
     "label": "Céréales",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 1,
-        "max": 5
-      },
-      "ete": {
-        "min": 1,
-        "max": 9
-      },
-      "automne": {
-        "min": 1,
-        "max": 18
-      },
-      "hiver": {
-        "min": 1,
-        "max": 9
-      }
-    },
     "price": {
       "printemps": 2,
       "ete": 1,
@@ -39,24 +21,6 @@
     "type": "cargoes",
     "label": "Armes",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 6,
-        "max": 8
-      },
-      "ete": {
-        "min": 10,
-        "max": 12
-      },
-      "automne": {
-        "min": 19,
-        "max": 21
-      },
-      "hiver": {
-        "min": 10,
-        "max": 12
-      }
-    },
     "price": {
       "printemps": 6,
       "ete": 5,
@@ -74,24 +38,6 @@
     "type": "cargoes",
     "label": "Produits de luxe",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 9,
-        "max": 13
-      },
-      "ete": {
-        "min": 13,
-        "max": 16
-      },
-      "automne": {
-        "min": 22,
-        "max": 25
-      },
-      "hiver": {
-        "min": 13,
-        "max": 16
-      }
-    },
     "price": {
       "printemps": 25,
       "ete": 25,
@@ -109,24 +55,6 @@
     "type": "cargoes",
     "label": "Métaux",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 14,
-        "max": 19
-      },
-      "ete": {
-        "min": 17,
-        "max": 22
-      },
-      "automne": {
-        "min": 26,
-        "max": 30
-      },
-      "hiver": {
-        "min": 17,
-        "max": 25
-      }
-    },
     "price": {
       "printemps": 4,
       "ete": 4,
@@ -144,24 +72,6 @@
     "type": "cargoes",
     "label": "Bois",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 20,
-        "max": 28
-      },
-      "ete": {
-        "min": 23,
-        "max": 44
-      },
-      "automne": {
-        "min": 31,
-        "max": 46
-      },
-      "hiver": {
-        "min": 26,
-        "max": 36
-      }
-    },
     "price": {
       "printemps": 1.5,
       "ete": 0.75,
@@ -179,24 +89,6 @@
     "type": "cargoes",
     "label": "Vin",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 29,
-        "max": 33
-      },
-      "ete": {
-        "min": 45,
-        "max": 56
-      },
-      "automne": {
-        "min": 47,
-        "max": 60
-      },
-      "hiver": {
-        "min": 37,
-        "max": 56
-      }
-    },
     "price": {
       "dice": {
         "n": 3,
@@ -214,24 +106,6 @@
     "type": "cargoes",
     "label": "Laine",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 34,
-        "max": 50
-      },
-      "ete": {
-        "min": 57,
-        "max": 62
-      },
-      "automne": {
-        "min": 61,
-        "max": 65
-      },
-      "hiver": {
-        "min": 57,
-        "max": 60
-      }
-    },
     "price": {
       "printemps": 0.5,
       "ete": 0.75,
@@ -249,24 +123,6 @@
     "type": "cargoes",
     "label": "Sel",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 51,
-        "max": 60
-      },
-      "ete": {
-        "min": 63,
-        "max": 75
-      },
-      "automne": {
-        "min": 66,
-        "max": 72
-      },
-      "hiver": {
-        "min": 61,
-        "max": 64
-      }
-    },
     "price": {
       "printemps": 2,
       "ete": 3,
@@ -284,24 +140,6 @@
     "type": "cargoes",
     "label": "Huile",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 61,
-        "max": 70
-      },
-      "ete": {
-        "min": 76,
-        "max": 82
-      },
-      "automne": {
-        "min": 73,
-        "max": 83
-      },
-      "hiver": {
-        "min": 65,
-        "max": 81
-      }
-    },
     "price": {
       "printemps": 3,
       "ete": 2,
@@ -319,24 +157,6 @@
     "type": "cargoes",
     "label": "Poisson salé",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 71,
-        "max": 90
-      },
-      "ete": {
-        "min": 83,
-        "max": 90
-      },
-      "automne": {
-        "min": 84,
-        "max": 90
-      },
-      "hiver": {
-        "min": 82,
-        "max": 90
-      }
-    },
     "price": {
       "printemps": 3,
       "ete": 2,
@@ -354,24 +174,6 @@
     "type": "cargoes",
     "label": "Pièces détachées de navire",
     "voie": "mer",
-    "avail": {
-      "printemps": {
-        "min": 91,
-        "max": 100
-      },
-      "ete": {
-        "min": 91,
-        "max": 100
-      },
-      "automne": {
-        "min": 91,
-        "max": 100
-      },
-      "hiver": {
-        "min": 91,
-        "max": 100
-      }
-    },
     "price": {
       "printemps": 8,
       "ete": 7,
@@ -416,24 +218,6 @@
     "type": "cargoes",
     "label": "Vivres",
     "voie": "terre",
-    "avail": {
-      "printemps": {
-        "min": 1,
-        "max": 9
-      },
-      "ete": {
-        "min": 1,
-        "max": 19
-      },
-      "automne": {
-        "min": 1,
-        "max": 35
-      },
-      "hiver": {
-        "min": 1,
-        "max": 19
-      }
-    },
     "price": {
       "printemps": 1,
       "ete": 0.5,
@@ -451,24 +235,6 @@
     "type": "cargoes",
     "label": "Armement",
     "voie": "terre",
-    "avail": {
-      "printemps": {
-        "min": 10,
-        "max": 15
-      },
-      "ete": {
-        "min": 20,
-        "max": 23
-      },
-      "automne": {
-        "min": 36,
-        "max": 40
-      },
-      "hiver": {
-        "min": 20,
-        "max": 23
-      }
-    },
     "price": {
       "printemps": 12,
       "ete": 10,
@@ -486,24 +252,6 @@
     "type": "cargoes",
     "label": "Produits de luxe",
     "voie": "terre",
-    "avail": {
-      "printemps": {
-        "min": 16,
-        "max": 20
-      },
-      "ete": {
-        "min": 24,
-        "max": 29
-      },
-      "automne": {
-        "min": 41,
-        "max": 44
-      },
-      "hiver": {
-        "min": 24,
-        "max": 29
-      }
-    },
     "price": {
       "printemps": 50,
       "ete": 50,
@@ -521,24 +269,6 @@
     "type": "cargoes",
     "label": "Métal",
     "voie": "terre",
-    "avail": {
-      "printemps": {
-        "min": 21,
-        "max": 30
-      },
-      "ete": {
-        "min": 30,
-        "max": 39
-      },
-      "automne": {
-        "min": 45,
-        "max": 60
-      },
-      "hiver": {
-        "min": 30,
-        "max": 44
-      }
-    },
     "price": {
       "printemps": 8,
       "ete": 8,
@@ -556,24 +286,6 @@
     "type": "cargoes",
     "label": "Bois",
     "voie": "terre",
-    "avail": {
-      "printemps": {
-        "min": 31,
-        "max": 55
-      },
-      "ete": {
-        "min": 40,
-        "max": 74
-      },
-      "automne": {
-        "min": 61,
-        "max": 80
-      },
-      "hiver": {
-        "min": 45,
-        "max": 60
-      }
-    },
     "price": {
       "printemps": 3,
       "ete": 1.5,
@@ -592,24 +304,6 @@
     "label": "Vin/Eau-de-vie",
     "voie": "terre",
     "wine": true,
-    "avail": {
-      "printemps": {
-        "min": 56,
-        "max": 75
-      },
-      "ete": {
-        "min": 75,
-        "max": 85
-      },
-      "automne": {
-        "min": 81,
-        "max": 95
-      },
-      "hiver": {
-        "min": 61,
-        "max": 95
-      }
-    },
     "price": {
       "printemps": 3,
       "ete": 3,
@@ -627,24 +321,6 @@
     "type": "cargoes",
     "label": "Laine",
     "voie": "terre",
-    "avail": {
-      "printemps": {
-        "min": 76,
-        "max": 100
-      },
-      "ete": {
-        "min": 86,
-        "max": 100
-      },
-      "automne": {
-        "min": 96,
-        "max": 100
-      },
-      "hiver": {
-        "min": 96,
-        "max": 100
-      }
-    },
     "price": {
       "printemps": 1,
       "ete": 1.5,
