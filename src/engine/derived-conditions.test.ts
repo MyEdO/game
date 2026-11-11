@@ -208,7 +208,7 @@ describe('Malaise → l’État Exténué est MATÉRIALISÉ et COLLANT (LDB 20 l
  */
 describe('un porteur NON-symptôme porte son État par le même socle (#1599)', () => {
   const porteurMutation = (): Combatant =>
-    hero({ mutations: [{ id: 'corpulent', label: 'Corpulent', passive: [{ op: 'condition', id: 'sonne' }] }] } as Partial<Combatant>);
+    hero({ mutations: [{ id: 'corpulent', label: 'Corpulent', passive: [{ op: 'condition', id: { id: 'sonne' } }] }] } as Partial<Combatant>);
 
   it('la mutation pose l’État, le pion est MARQUÉ et le journal la nomme', () => {
     const c = porteurMutation();

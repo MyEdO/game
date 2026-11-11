@@ -952,7 +952,7 @@ function miscastAmountLabel(a: unknown): string {
 function miscastOpRow(o: Record<string, unknown>): CodexRow {
   switch (o.op) {
     case 'condition': {
-      const id = String(o.id ?? '');
+      const { id } = o.id as { id: string };
       const label = conditionLabel(id);
       const value = o.value != null ? miscastAmountLabel(o.value) : null;
       const dur = o.durationRounds != null ? tr('codex.fiche.roundS', { v: miscastAmountLabel(o.durationRounds) }) : undefined;

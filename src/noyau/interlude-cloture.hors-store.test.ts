@@ -61,7 +61,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
       interlude: { ...s.interlude!, perHero: {
         ...s.interlude!.perHero,
         [a]: { ...s.interlude!.perHero[a], didRevenus: true, revenueBrass: 120 },
-        [c]: { ...s.interlude!.perHero[c], closeOps: [{ ops: [{ op: 'condition', id: 'extenue', value: 1 }], ctx: { label: 'Faire jaser la cour' } }] },
+        [c]: { ...s.interlude!.perHero[c], closeOps: [{ ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], ctx: { label: 'Faire jaser la cour' } }] },
       } },
     }));
     return banc;
@@ -78,7 +78,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
       conserve: 1200,
       commandes: ['dague'],
       ouvrages: [],
-      lots: [{ heroId: c, lots: [{ ops: [{ op: 'condition', id: 'extenue', value: 1 }], ctx: { label: 'Faire jaser la cour' } }] }],
+      lots: [{ heroId: c, lots: [{ ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], ctx: { label: 'Faire jaser la cour' } }] }],
       jours: 14,
       reprise: 19020, // aube (05:00) du 13ᵉ jour après Hexenstag 2512, 02:00
     });
@@ -142,7 +142,7 @@ describe('Clôture — devis = geste = oracle, sur 60 groupes tirés', () => {
       for (const id of ids) {
         const did = ri(0, 1) === 1;
         perHero[id] = { ...perHero[id], didRevenus: did, revenueBrass: did ? ri(0, 600) : 0,
-          ...(ri(0, 4) < 2 ? { closeOps: [{ ops: [{ op: 'condition', id: 'extenue', value: 1 }], ctx: { label: 'Sonde' } }] } : {}) };
+          ...(ri(0, 4) < 2 ? { closeOps: [{ ops: [{ op: 'condition', id: { id: 'extenue' }, value: 1 }], ctx: { label: 'Sonde' } }] } : {}) };
       }
       return {
         gameTime,

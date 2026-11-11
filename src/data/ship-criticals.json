@@ -90,7 +90,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "en-flammes-navire",
+            "id": {
+              "id": "en-flammes-navire"
+            },
             "value": 1
           }
         ],
@@ -120,7 +122,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "en-flammes-navire",
+            "id": {
+              "id": "en-flammes-navire"
+            },
             "value": 3
           }
         ],
@@ -446,7 +450,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "a-terre",
+                    "id": {
+                      "id": "a-terre"
+                    },
                     "value": 1
                   }
                 ],
@@ -495,7 +501,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "a-terre",
+                    "id": {
+                      "id": "a-terre"
+                    },
                     "value": 1
                   }
                 ],
@@ -536,7 +544,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "a-terre",
+                    "id": {
+                      "id": "a-terre"
+                    },
                     "value": 1
                   }
                 ],
@@ -578,7 +588,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "a-terre",
+                    "id": {
+                      "id": "a-terre"
+                    },
                     "value": 1
                   }
                 ],
@@ -596,7 +608,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "voie-d-eau",
+            "id": {
+              "id": "voie-d-eau"
+            },
             "value": 1
           }
         ],
@@ -611,7 +625,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "voie-d-eau",
+            "id": {
+              "id": "voie-d-eau"
+            },
             "value": 2
           }
         ],
@@ -626,7 +642,9 @@
         "ops": [
           {
             "op": "condition",
-            "id": "voie-d-eau",
+            "id": {
+              "id": "voie-d-eau"
+            },
             "value": 4
           }
         ],
@@ -666,7 +684,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "a-terre",
+                    "id": {
+                      "id": "a-terre"
+                    },
                     "value": 1
                   }
                 ],
@@ -732,7 +752,9 @@
                 "ops": [
                   {
                     "op": "condition",
-                    "id": "a-terre",
+                    "id": {
+                      "id": "a-terre"
+                    },
                     "value": 1
                   }
                 ],
