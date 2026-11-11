@@ -47,7 +47,8 @@ que la couche, la catégorie et les chaînes de la base, déjà déclarées.
 3. **Ne pas retenir à tort.** Une couverture qui flotte sur une chaîne (jupe, cape) ne retient pas ce qu'une chaîne ne
    porte pas. Une couverture qui tient à une autre partie du corps (ni les mêmes os, ni un os et son parent) ne retient
    rien : c'est l'échec documenté de Roblox.
-4. **Suivre.** Les points de la même pièce à moins de 3 cm d'un point retenu le suivent, en fondu avec la distance.
+4. **Suivre.** Les points de la même pièce à moins de 3 cm d'un point plus retenu qu'eux le suivent, en fondu avec la
+   distance : la part retenue ne varie pas plus vite, d'un voisin à l'autre, que ce fondu.
 5. **Garder rigide ce qui l'est.** Des points que leur auteur a liés aux mêmes poids par leurs arêtes forment un bloc,
    qui ne cède qu'autant que le moins retenu de ses points : à moitié couvert, il garde les poids de son auteur.
 6. **Reculer.** Un point retenu devant sa couverture, ou à moins de 3 mm derrière elle, recule vers 3 mm, à proportion

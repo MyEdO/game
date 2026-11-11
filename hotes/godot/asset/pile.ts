@@ -7,8 +7,9 @@
  * `PORTEE_DE_COUVERTURE_M` derrière lui au plus, ou `PERCEE_M` devant. Sa couverture le retient : il reprend, au point couvrant, les
  * poids de peau qu'elle a une fois résolue, tout entier jusqu'à `SERRAGE_M` d'elle, de moins en moins jusqu'à
  * `PORTEE_DE_COUVERTURE_M`. Elle ne le retient pas si elle flotte sur une chaîne plus que lui (`FLOTTEMENT`), ni si elle tient à
- * une autre partie du corps que lui (`PARENTE`). Les points de sa pièce à moins de `HALO_M` d'un point retenu le
- * suivent, en fondu avec la distance, et des points que leur auteur a liés aux mêmes poids restent liés pareil.
+ * une autre partie du corps que lui (`PARENTE`). Les points de sa pièce à moins de `HALO_M` d'un point plus retenu
+ * qu'eux le suivent, en fondu avec la distance, et des points que leur auteur a liés aux mêmes poids restent liés
+ * pareil.
  *
  * Un point retenu devant sa couverture, ou à moins de `JEU_M` derrière elle, recule à `JEU_M`, et ses voisins d'arête
  * reculent avec lui sans qu'aucun triangle se retourne (`ENTRAINEMENT`). Un triangle dont les trois points sont retenus
@@ -356,7 +357,8 @@ const LIBRE: Reprise = { poids: new Map(), part: 0 };
 
 /** Ce que chaque point de `points` reprend d'une couverture qui retient `tenues` : ce qu'elle en retient, ou, s'ils
  *  sont retenus plus que lui, les poids des points retenus à moins de `HALO_M` de lui, chacun pesé par sa proximité,
- *  pour une part qui s'éteint avec la distance au plus proche. */
+ *  pour la plus grande part que l'un d'eux lui laisse, la sienne éteinte avec leur distance : deux voisins ne sont pas
+ *  retenus d'un écart plus grand que ce fondu. */
 function reprendre(points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>): Map<Point, Reprise> {
   const cellule = (x: number): number => Math.floor(x / HALO_M);
   const grille = new Map<number, Point[]>();
@@ -370,7 +372,7 @@ function reprendre(points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>
   for (const q of points) {
     const [ci, cj, ck] = [cellule(q.x), cellule(q.y), cellule(q.z)];
     const poids = new Map<string, number>();
-    let somme = 0, part = 0, proche = Infinity;
+    let somme = 0, part = 0;
     for (let i = ci - 1; i <= ci + 1; i++) for (let j = cj - 1; j <= cj + 1; j++) for (let k = ck - 1; k <= ck + 1; k++) {
       for (const c of grille.get(cle(i, j, k)) ?? []) {
         const d = Math.hypot(c.x - q.x, c.y - q.y, c.z - q.z);
@@ -378,13 +380,11 @@ function reprendre(points: readonly Point[], tenues: ReadonlyMap<Point, Reprise>
         const tenue = tenues.get(c) as Reprise;
         const noyau = (1 - d / HALO_M) ** 2 / (d * d + SOUDURE_M * SOUDURE_M);
         for (const [nom, pk] of tenue.poids) poids.set(nom, (poids.get(nom) ?? 0) + noyau * pk);
-        part += noyau * tenue.part;
+        part = Math.max(part, tenue.part * (1 - fondu(d / HALO_M)));
         somme += noyau;
-        proche = Math.min(proche, d);
       }
     }
     if (somme <= 0) continue;
-    part = (part / somme) * (1 - fondu(proche / HALO_M));
     const propre = tenues.get(q) ?? LIBRE;
     if (propre.part >= part) continue;
     for (const [nom, pk] of poids) poids.set(nom, (pk / somme) * (part - propre.part) / part);

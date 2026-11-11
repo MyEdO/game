@@ -91,6 +91,17 @@ describe('resoudreLaPile', () => {
     expect(dessines.has(dedans)).toBe(false);
   });
 
+  it('un point peu retenu suit son voisin le plus retenu, en fondu avec leur distance', () => {
+    const lache = SERRAGE_M + 0.9 * (PORTEE_DE_COUVERTURE_M - SERRAGE_M), pas = 0.2 / 16;
+    const dessous = nappe(0, 'bras', 0.2, 16, 0, 'avant_bras');
+    const [tenu, voisin] = [sommetEn(dessous, 0), sommetEn(dessous, pas)];
+    const [auteurTenu, auteurVoisin] = [poidsSur(dessous, tenu, 'avant_bras'), poidsSur(dessous, voisin, 'avant_bras')];
+    empiler([piece(dessous), piece(nappe(SERRAGE_M, 'bras', 0.1, 8, -0.05 + pas / 2), nappe(lache, 'bras', 0.1, 8, 0.05 + pas / 2))]);
+    const t = pas / HALO_M;
+    expect(1 - poidsSur(dessous, tenu, 'avant_bras') / auteurTenu).toBeCloseTo(1, 6);
+    expect(1 - poidsSur(dessous, voisin, 'avant_bras') / auteurVoisin).toBeCloseTo(1 - t * t * (3 - 2 * t), 4);
+  });
+
   it('un bloc que son auteur lie aux mêmes poids ne cède qu’autant que le moins retenu de ses points', () => {
     const lache = (SERRAGE_M + PORTEE_DE_COUVERTURE_M) / 2;
     const dessous = nappe(0, 'bras', 0.08), dessus = piece(nappe(SERRAGE_M, 'manche', 0.1, 8, -0.05), nappe(lache, 'manche', 0.1, 8, 0.05));
