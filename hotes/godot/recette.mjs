@@ -312,9 +312,9 @@ async function enHauteDefinition() {
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000, evaluerMs: FIL_DE_LA_PAGE_MS })
 }
 async function finirLeTour() {
-  await cliquerBouton({ element: 'bouton/end-turn' })
+  await cliquerBouton({ element: 'bouton/fin-de-tour' })
   const v = await vue()
-  if (v.projection.combat.finDeTourArmee) await cliquerBouton({ element: 'bouton/end-turn' })
+  if (v.projection.combat.finDeTourArmee) await cliquerBouton({ element: 'bouton/fin-de-tour' })
 }
 
 /** Le dossier neuf `--modeles` rempli des modèles épinglés du projet (`modelesEpingles`) : le manifeste, la provenance
@@ -521,7 +521,7 @@ async function jouerEnJoueurPresse(fini, quoi) {
     } else if (c.intention && c.cibles.liste.length) {
       const cible = c.voisins.liste.find((x) => x.id === c.cibles.liste[0])
       await cliquerCase({ x: cible.pos[0], y: cible.pos[1], z: cible.pos[2] })
-    } else if (c.barre.forme === 'ouverte') await cliquerBouton(bouton(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')))
+    } else if (c.barre.forme === 'ouverte') await cliquerBouton(bouton(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour')))
     else {
       await marquer()
       await nouvelEcran()
@@ -909,7 +909,7 @@ async function parcoursIncantation() {
   await fermerLesFenetres()
   let v = await vue()
   assert.equal(zone(v, 'combat.actif')[0]?.nom, 'Aelindra, Haute Sorcière', 'la Haute Sorcière ouvre le combat')
-  const sorts = zone(v, 'combat.offres').find((c) => c.id === 'offre/cast-spell')
+  const sorts = zone(v, 'combat.offres').find((c) => c.id === 'offre/incantation')
   assert.ok(sorts, `les sorts de l’actif sont un choix : ${zone(v, 'combat.offres').map((c) => c.id).join(' | ')}`)
   noter(`« ${sorts.libelle} » : ${sorts.valeurs.length} sorts en ${sorts.type}`)
   await capturer('3328-j1-1-sorts')
@@ -964,7 +964,7 @@ async function parcoursSoin() {
   /** La main à un héros : sa barre offre la fin du tour, toute fenêtre vidée. */
   const aUnHeros = async () => {
     for (;;) {
-      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'end-turn')", 120000)
+      await attendreLaVue("!!v.projection.fenetre || v.zones['combat.offres'].flatMap((c) => c.valeurs).some((b) => b.id === 'fin-de-tour')", 120000)
       if (!(await vue()).projection.fenetre) return
       await fermerLesFenetres()
     }
@@ -974,7 +974,7 @@ async function parcoursSoin() {
     await finirLeTour()
   }
   let v = await vue()
-  const soigner = offre(v, 'heal')
+  const soigner = offre(v, 'soins')
   assert.ok(soigner && !soigner.refus, `Le Tueur soigne : ${JSON.stringify(soigner)}`)
   await cliquerBouton(bouton(soigner))
   v = await vue()

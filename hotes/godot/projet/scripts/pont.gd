@@ -101,7 +101,7 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## `montes`, l'id de
 ##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre, la
 ##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
-##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/end-turn`
+##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
 ##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier.
 ## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],

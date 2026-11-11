@@ -295,7 +295,7 @@ export const ACTIVITY_STAKES = activitiesStakeJson as ActivityStakeEntry[];
  *  de code qui l'exécutent. Le CODE derrière ces ids vit dans `src/noyau/actionRegistry.ts` —
  *  `src/data` n'en dépend jamais. */
 export interface ActionDef {
-  id: string;
+  id: ActionId;
   label: string;
   icon: string;
   surface:
@@ -328,9 +328,11 @@ export interface ActionDef {
   /** L'action fait naître un panneau-paramètre de SON alvéole : la surface y pose l'ancre. */
   panneau?: boolean;
   /** Entrée HÔTE d'un `surface: 'geste-secondaire'` : l'alvéole de CETTE action porte le geste. */
-  hote?: { id: string };
+  hote?: { id: ActionId };
 }
 export const ACTIONS = actionsJson as ActionDef[];
+/** Id d'une action du registre : l'union GÉNÉRÉE des ids de `actions.json` (`scripts/gen-espaces.mts`). */
+export type ActionId = IdsParEspace['actions.json'];
 /** Action par id STABLE (jamais par libellé). */
 export const findActionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
 

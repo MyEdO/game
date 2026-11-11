@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 /**
  * GARDE-FOU « TOUR GÂCHÉ » (#1411 P2-A) — finir son tour avec l'Action INTACTE demande DEUX gestes,
- * et c'est la politique du verbe que déclare l'ENTRÉE DE REGISTRE `end-turn` (`terminerLeTour`) : il arme
+ * et c'est la politique du verbe que déclare l'ENTRÉE DE REGISTRE `fin-de-tour` (`terminerLeTour`) : il arme
  * puis passe la main. Les deux surfaces — la plaque de sortie de la console et la touche Espace —
  * jouent le MÊME verbe, donc le même garde-fou ; le libellé « Finir
  * quand même ? » se lit dans l'état du combat (`battle.endTurnArmed`), jamais dans un état d'écran.
@@ -132,14 +132,14 @@ describe('fin de tour — la plaque de la console et la touche passent par la M�
   it('le CLIC arme, la TOUCHE finit : un seul garde-fou pour les deux surfaces', () => {
     combat();
     act(() => { root.render(<CombatConsole />); });
-    const plaque = host.querySelector<HTMLButtonElement>('[data-cell="end-turn"]');
+    const plaque = host.querySelector<HTMLButtonElement>('[data-cell="fin-de-tour"]');
     expect(plaque, 'la plaque de sortie n’est pas dessinée').not.toBeNull();
     act(() => { plaque!.click(); });
     expect(battle().turn, 'le clic a passé la main sans confirmation').toBe(0);
     expect(endTurnArmed(battle())).toBe(true);
     // L'armement se LIT à l'écran (il vit dans le combat, pas dans un état d'écran).
-    expect(host.querySelector('[data-cell="end-turn"]')?.getAttribute('data-armed')).toBe('');
-    expect(host.querySelector('[data-cell="end-turn"]')?.textContent).toContain('Finir quand même');
+    expect(host.querySelector('[data-cell="fin-de-tour"]')?.getAttribute('data-armed')).toBe('');
+    expect(host.querySelector('[data-cell="fin-de-tour"]')?.textContent).toContain('Finir quand même');
     // …et la TOUCHE consomme CET armement : aucune surface n'a son propre compteur de clics.
     act(() => { runBindingById('end-turn', useGame.getState); });
     expect(battle().turn, 'la touche a rouvert un 2ᵉ garde-fou pour son propre compte').toBe(1);

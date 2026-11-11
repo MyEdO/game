@@ -2232,7 +2232,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
   });
 });
 
-describe('Ramasser un objet au sol en combat (un à la fois, `pickup` de `actions.json`)', () => {
+describe('Ramasser un objet au sol en combat (un à la fois, `ramassage` de `actions.json`)', () => {
   beforeEach(() => reset());
 
   function setup() {

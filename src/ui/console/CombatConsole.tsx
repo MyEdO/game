@@ -10,7 +10,7 @@ import { attackWeapon } from '../../engine/combat';
 import { activeCombatant, previewResourceDelta, STANCE_BLOCK } from '../../noyau/combatFlow';
 import { availableAttacks } from '../../noyau/combatManeuvers';
 import type { ManeuverDef } from '../../data/index';
-import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef } from '../../data/index';
+import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef, type ActionId } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
 import { actionGate, offreArmee, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ContexteDOffre } from '../../noyau/actionRegistry';
 import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
@@ -65,7 +65,7 @@ type Cell = {
   key: string;
   /** ID D'ACTION du registre — l'IDENTITÉ de la case : rendue en `data-action`, publiée au pont
    *  clavier, jouée par son geste. Jamais une closure anonyme (spec HUD « Zone 12 »). */
-  id: string;
+  id: ActionId;
   icon: ReactNode;
   label: string;
   family: CellFamily;
@@ -265,13 +265,13 @@ const bandeauDiscret = (def: ActionDef) => def.role === 'renonce';
 /** Entrée de registre de la DISSIPATION : la case qui arme le mode et qui DÉCLARE (champ `panneau`)
  *  faire naître le panneau du Sort à dissiper. Le panneau relit SON ancre par cet id — l'ancre, elle,
  *  est posée génériquement sur toute case dont la def porte `panneau`. */
-const ACTION_DISSIPER = 'dispel';
+const ACTION_DISSIPER = 'dissipation';
 
 /** Entrée de registre du RECHARGEMENT : la case qui déclare (champ `panneau`) faire naître le panneau
  *  des armes à recharger, et qui déclare la liste d'armes à distance (`candidates`) lue par l'en-tête.
  *  Les sites `cellFor` gardent l'id LITÉRAL : c'est lui que lit la garde d'atteignabilité du registre
  *  (`action-atteignabilite.test.ts:61`). */
-const ACTION_RECHARGER = 'reload';
+const ACTION_RECHARGER = 'rechargement';
 
 /** Bandeau partagé de phase ; `data-phase` en porte l'adresse, `.skin-bois` la matière. */
 export function PhaseBanner({ label, consigne, actions, ready, adresse = 'pont' }: PhaseBanner & {
@@ -478,7 +478,7 @@ export function CombatConsole() {
   const siegeModale = useGame(spectatorSeatOfModal);
   // PANNEAUX-PARAMÈTRES de la travée gauche : la MUNITION (déclencheur = le chip d'en-tête de CETTE
   // arme — deux pistolets, deux chips, deux ancres) et l'ARME À RECHARGER (déclencheur = l'alvéole
-  // `reload`, ancre posée génériquement par `ancreDePanneau`). L'ouverture est un état d'ÉCRAN (rien
+  // `rechargement`, ancre posée génériquement par `ancreDePanneau`). L'ouverture est un état d'ÉCRAN (rien
   // n'est engagé tant qu'aucun candidat n'est cliqué) — elle se referme au tour suivant comme le
   // garde-fou de fin de tour. L'état porte l'`uid` de l'arme dont le panneau est ouvert.
   const ammoChipRefs = useRef(new Map<string, HTMLButtonElement>());
@@ -503,10 +503,10 @@ export function CombatConsole() {
   // (l'action `surface: 'interlude'` du mode courant, § registre). Un interlude sans bandeau serait un
   // ciblage SANS SORTIE — le joueur aurait seulement le clic-carte pour en sortir.
   const interlude = interludeId ? findActionById(interludeId) : undefined;
-  // PAUSE DE ROUND : le geste est l'ENTRÉE `round-start` du registre — la MÊME porte que la touche
+  // PAUSE DE ROUND : le geste est l'ENTRÉE `debut-de-round` du registre — la MÊME porte que la touche
   // (`keybindings.round-start`), donc le même arbitrage solo/coop. En réseau, le bouton ne lance rien :
   // il marque CE siège prêt, et la bande montre les sièges REQUIS et leur état (`ReadyRow`).
-  const roundStartDef = pendingRoundStart ? findActionById('round-start') : undefined;
+  const roundStartDef = pendingRoundStart ? findActionById('debut-de-round') : undefined;
   const enReseau = net.mode !== 'local';
   const dejaPret = !!pendingRoundStart?.readyBySeat?.[net.mySeat];
   const phase: PhaseBanner | null = pendingRoundStart && roundStartDef
@@ -633,7 +633,7 @@ export function CombatConsole() {
    *  sans dispatcher (`blocked`) rend une case DESSINÉE mais inerte : le registre le dit, elle ne feint pas.
    *  Le seul verrou de la case est le verdict d'offre ; l'écran n'y ajoute que l'inertie d'interlude (`live`). */
   const cellFor = (
-    actionId: string,
+    actionId: ActionId,
     family: CellFamily,
     over: { key?: string; label?: string; icon?: ReactNode; rule?: CodexTarget; on?: boolean; adv?: number; mouv?: boolean; args?: ContexteDOffre;
       /** PROGRESSION du Test étendu en cours sur le candidat de la case, portée par le libellé du
@@ -654,7 +654,7 @@ export function CombatConsole() {
     const arme = offreArmee({ battle, localIntent }, def, over.args);
     return {
       key: over.key ?? def.keys?.[0] ?? def.id,
-      id: def.id,
+      id: actionId,
       family,
       icon: over.icon ?? icon(def.icon as IconIdInput),
       label: over.label ?? def.label,
@@ -674,13 +674,13 @@ export function CombatConsole() {
   // ── Travée GAUCHE : l'arsenal du set au poing + le nécessaire ──────────────────────────────
   const loadouts = active.loadouts ?? [];
   // ARMES À DISTANCE du porteur — le SÉLECTEUR DU REGISTRE (`armes-a-distance`, déclaré par l'entrée
-  // `reload`), jamais un filtre recopié : deux pistolets sont DEUX armes, chacune avec son cycle de
+  // `rechargement`), jamais un filtre recopié : deux pistolets sont DEUX armes, chacune avec son cycle de
   // charge (`weaponLoad.ts`, registre par `uid`) et sa munition — ce que les dispatchers mesurent déjà
   // (`rechargerLArme`, `approvisionnerLArme`, tous deux paramétrés par l'arme).
   const rangedWs = ACTION_CANDIDATES['armes-a-distance'](gateCtx) as Weapon[];
   const heldSet = activeLoadout(active);
-  /** Un AUTRE set se prend-il : la porte du registre (`switch-loadout`), jamais `loadoutSwapped` relu ici. */
-  const setsCommutables = actionGate('switch-loadout', gateCtx).ok;
+  /** Un AUTRE set se prend-il : la porte du registre (`panoplie`), jamais `loadoutSwapped` relu ici. */
+  const setsCommutables = actionGate('panoplie', gateCtx).ok;
   // G1 porte l'arme DU SET, lue par `uid` — jamais la première arme de `c.weapons`, dont l'ordre ne dit
   // rien de ce qui est TENU. Sans set (statbloc de créature) : l'arme que le moteur ferait parler à
   // distance (`attackWeapon`, source unique du choix d'arme).
@@ -718,7 +718,7 @@ export function CombatConsole() {
     const chargee = chambrePleine(active, w);
     const options: ParamOption[] = choisissable
       ? choix.map((a) => {
-          const cell = cellFor('select-ammo', 'arme', {
+          const cell = cellFor('munition', 'arme', {
             key: `munition-${w.uid}-${a.uid}`,
             label: a.label,
             args: { ammoUid: a.uid, weaponUid: w.uid },
@@ -775,7 +775,7 @@ export function CombatConsole() {
         : cellFor('attaque', 'arme', { icon: icon('melee/grapple'), label: 'Mains nues', rule: { category: 'trappings', id: 'mains-nues' }, args: { attackId: 'arme' } }),
     // G4 — Recharger : le porteur de l'état est l'ARME (progression du Test étendu), et c'est ELLE
     // que le dispatcher reçoit.
-    cellFor('reload', 'arme', {
+    cellFor('rechargement', 'arme', {
           label: `Recharger${reloadProg ? ` ${reloadProg}/${rechargeables[0].reload}` : ''}`,
           on: needsReload,
           args: { weaponUid: (armesARecharger[0] ?? rechargeables[0])?.uid },
@@ -785,10 +785,10 @@ export function CombatConsole() {
     // corps à corps, `set-de-melee`) et son verdict d'offre (`charge-possible`) viennent du registre.
     cellFor('charge', 'geste'),
     // G3 — Viser
-    cellFor('aim', 'arme'),
+    cellFor('visee', 'arme'),
     // G6 — geste d'ARME : la jauge est l'ARSENAL tenu (`canPushback`). L'Empoignade n'en est PAS un
     // (LDB 14 l.155, l.159) : elle reste à la modale d'attaque à mains nues (`noyau/fenetreDAttaque.ts` `empoigner`).
-    cellFor('pushback', 'geste', { on: !!active.pushbackMode }),
+    cellFor('repousse', 'geste', { on: !!active.pushbackMode }),
     // G5 — postures de tir PRÉ-ARMÉES (`battle.stances`, spec §1a G5) : les cases portent le choix, la
     // fenêtre de jet n'en garde que l'affichage. Bascule (re-clic = désarmer), gate en texte visible.
     // Les DEUX cases existent dès qu'une arme de tir est au poing — « Dans le tas » se grise hors
@@ -797,19 +797,19 @@ export function CombatConsole() {
     cellFor('posture-tas', 'arme', { on: posture('dansLeTas') }),
     // G6bis — gestes d'ÉTAT du porteur (surface `geste-d-etat` du registre, spec §1a) : ce que sa
     // SITUATION ouvre — en selle, à une pièce servie, à la barre — jamais ce que son arme offre.
-    cellFor('dismount', 'geste'),
-    cellFor('leave-poste', 'geste'),
+    cellFor('pied-a-terre', 'geste'),
+    cellFor('abandon-poste', 'geste'),
     // La barre : le BARREUR la tient, et la COQUE elle-même quand c'est SON tour (gate `a-la-barre`) — même
     // case, mêmes arguments (`manoeuvrerLeNavire` accepte l'un ou l'autre, `combatSlice.ts:1363`).
-    cellFor('maneuver-ship', 'geste', { args: { crewId: active.id } }),
+    cellFor('manoeuvre-du-navire', 'geste', { args: { crewId: active.id } }),
     // NAVIRE (échelle Mer) : au tour de la coque, ses Tests d'équipage sont les gestes de la travée —
     // les MÊMES cases du registre, pas une 2ᵉ barre. La bordée dépense l'Action du navire
     // (gate `navire-action`) ; chant et recharge sont des tâches parallèles, fermées par leurs gates de préalable
     // (`chanteur-disponible`, `arme-a-recharger` : l'Action du chef de pièce), sans Action du navire.
     // Recharge : LDB 62 l.335 ; bordée, chant : MDG 14.
-    cellFor('battery', 'attaque'),
-    cellFor('sing-shanty', 'geste', { args: { shipId: active.id } }),
-    cellFor('ship-reload', 'geste', { args: { weaponUid: reloadable?.uid } }),
+    cellFor('bordee', 'attaque'),
+    cellFor('chanson-de-marin', 'geste', { args: { shipId: active.id } }),
+    cellFor('rechargement-piece', 'geste', { args: { weaponUid: reloadable?.uid } }),
   ];
   // ADRESSE FIXE — chaque case d'une zone rend ce que le PORTEUR y a posé (`active.barre`), et à
   // défaut le pré-remplissage déduit (`dispositionDeduite`). Une case laissée vide RESTE à sa place :
@@ -836,7 +836,7 @@ export function CombatConsole() {
   const rapides: (Cell | undefined)[] = [
     ...consumableGroups.map((g) => {
       const it = consumables.find((i) => i.uid === g.uids[0])!;
-      return cellFor('use-item', 'geste', {
+      return cellFor('usage-objet', 'geste', {
         key: `q-objet-${g.key}`,
         icon: <ItemIcon item={it} />,
         label: `${g.label}${g.uids.length > 1 ? ` ×${g.uids.length}` : ''}`,
@@ -844,9 +844,9 @@ export function CombatConsole() {
         args: { itemUid: g.uids[0] },
       });
     }),
-    cellFor('heal', 'geste', { key: 'q-soigner' }),
+    cellFor('soins', 'geste', { key: 'q-soigner' }),
     // L'aspersion s'offre par allié (`cibles-aspersion`) : la case joue le premier, que le verbe prend par défaut.
-    cellFor('water', 'geste', { args: argsDuPremierCandidat('water') }),
+    cellFor('aspersion', 'geste', { args: argsDuPremierCandidat('aspersion') }),
   ];
   const quick = placer('accesRapide', rapides.filter((c): c is Cell => !!c));
 
@@ -873,13 +873,13 @@ export function CombatConsole() {
   const candidates: Cell[] = [
     cellFor('course', 'mouvement'),
     cellFor('mouvement', 'mouvement'),
-    cellFor('disengage', 'mouvement'),
-    cellFor('defend', 'defense'),
+    cellFor('desengagement', 'mouvement'),
+    cellFor('defensive', 'defense'),
     // Une Compétence porte l'icône de SA caractéristique (source unique `charIcon`) : six alvéoles
-    // d'Avantage ne partagent plus le même glyphe. UNE entrée de registre (`gain-advantage`), N cases.
+    // d'Avantage ne partagent plus le même glyphe. UNE entrée de registre (`avantage`), N cases.
     ...advSkills.map((s) =>
-      cellFor('gain-advantage', 'avantage', {
-        key: `advantage-${s.skillId}`,
+      cellFor('avantage', 'avantage', {
+        key: `avantage-${s.skillId}`,
         icon: icon(charIcon(byId('skill', s.skillId)?.characteristic)),
         label: byId('skill', s.skillId)?.label ?? s.skillId,
         rule: { category: 'skills', id: s.skillId },
@@ -892,43 +892,43 @@ export function CombatConsole() {
     // déclaré, l'ordre est celui de la donnée. Un remède hors d'atteinte garde sa case, fermée, avec sa
     // raison (verrou de l'État — `LDB 18 l.15`).
     ...remedes.map((def) => cellFor(def.id, def.coutAction === 'mouvement' ? 'mouvement' : 'geste')),
-    cellFor('frenzy', 'geste'),
-    cellFor('aid-team', 'geste'),
+    cellFor('frenesie', 'geste'),
+    cellFor('direction-equipe', 'geste'),
     // DÉTERMINATION — deux des trois dépenses (LDB 17 l.59-60) sont des alvéoles, comme toute action :
     // leurs dispatchers sont DIRECTS (`depenserLaDetermination` dépense le
     // point au clic), il n'y a donc plus rien à ARMER. La 3ᵉ (« Retirez un État », l.61) vit sur la
     // PASTILLE de l'État qu'elle retire (plus bas, `retraitDEtat`). Le chiffre entre parenthèses est la
     // RÉSERVE restante — l'ancienne case d'armement la portait seule.
-    cellFor('resolve-psych-immune', 'defense', { label: `${findActionById('resolve-psych-immune')!.label} (${active.resolve ?? 0})` }),
-    cellFor('resolve-ignore-crit', 'defense', { label: `${findActionById('resolve-ignore-crit')!.label} (${active.resolve ?? 0})` }),
+    cellFor('determination-psychologie', 'defense', { label: `${findActionById('determination-psychologie')!.label} (${active.resolve ?? 0})` }),
+    cellFor('determination-critique', 'defense', { label: `${findActionById('determination-critique')!.label} (${active.resolve ?? 0})` }),
     // DISSIPER (LDB 46 l.158-162) : la case ARME le mode, le clic-token élit le PORTEUR, et le SORT
     // se choisit au panneau-paramètre ci-dessous. La PROGRESSION du Test étendu (le cumul de DR vers
     // le NI, `active.dispel.total`) se lit sur l'alvéole : c'est le seul endroit où le joueur voit
     // qu'un Sort est déjà entamé — et par combien.
-    cellFor('dispel', 'magie', {
+    cellFor('dissipation', 'magie', {
       label: `${findActionById(ACTION_DISSIPER)!.label}${dispelProg ? ` ${dispelProg.total}/${dispelProg.ni}` : ''}`,
     }),
     ...selfManeuvers.map((m) =>
-      cellFor('self-maneuver', 'geste', { key: `self-${m.id}`, label: m.label, rule: { category: 'maneuvers', id: m.id }, args: { maneuverId: m.id } }),
+      cellFor('manoeuvre-sur-soi', 'geste', { key: `soi-${m.id}`, label: m.label, rule: { category: 'maneuvers', id: m.id }, args: { maneuverId: m.id } }),
     ),
     // Attaques de trait : adossées au conduit (elles se paient en crans d'Avantage). Une attaque de
-    // ZONE immédiate (Hurlement) part par `maneuver-area` ; les autres ARMENT le clic (`select-attack`) —
+    // ZONE immédiate (Hurlement) part par `attaque-zone` ; les autres ARMENT le clic (`attaque-trait`) —
     // l'énumérateur offre chacune par la seule entrée qui la porte.
     ...attacks.flatMap((a) => {
       const habillage = { key: `attaque-${a.id}`, icon: icon(a.icon), label: a.label, rule: { category: 'traits', id: a.id } as CodexTarget, adv: a.cost?.advantage ?? 0, mouv: !!a.cost?.movement };
       return [
-        cellFor('maneuver-area', 'attaque', { ...habillage, args: { attackKind: a.kind } }),
-        cellFor('select-attack', 'attaque', { ...habillage, args: { attackId: a.id } }),
+        cellFor('attaque-zone', 'attaque', { ...habillage, args: { attackKind: a.kind } }),
+        cellFor('attaque-trait', 'attaque', { ...habillage, args: { attackId: a.id } }),
       ];
     }),
-    // L'alvéole d'un SORT arme l'incantation de CE sort (entrée `cast-spell`, armée, `mode: 'incantation'`) et
+    // L'alvéole d'un SORT arme l'incantation de CE sort (entrée `incantation`, armée, `mode: 'incantation'`) et
     // porte ses GESTES SECONDAIRES (Focaliser : clic droit / appui long / touche Menu / RB). La
     // progression de la Focalisation en cours se lit sur le geste, comme le cumul de Dissipation sur
     // la sienne : `active.focus` ne vaut que pour le sort qu'il NOMME.
     ...spells.map((sp) => {
       const dr = active.focus?.spell === sp.id ? active.focus.dr : null;
       const progres = dr != null && sp.cn ? `DR ${dr}/${sp.cn}` : undefined;
-      return cellFor('cast-spell', 'magie', {
+      return cellFor('incantation', 'magie', {
         key: `sort-${sp.id}`, icon: icon('magic/power'), label: sp.label, rule: { category: 'spells', id: sp.id },
         args: { spellId: sp.id }, progres,
       });
@@ -981,14 +981,14 @@ export function CombatConsole() {
   const advCap = advantageCapFor(active);
   const meaningfulLeft = hasMeaningfulOption(gateCtx);
   // Garde-fou « tour gâché » (spec §1c-bis COIN) : finir avec l'Action NON DÉPENSÉE demande deux gestes.
-  // La POLITIQUE est celle de l'entrée de registre `end-turn` (`terminerLeTour` arme puis finit) : la
+  // La POLITIQUE est celle de l'entrée de registre `fin-de-tour` (`terminerLeTour` arme puis finit) : la
   // plaque ne décide rien, elle passe par le geste de l'offre comme la touche et LIT l'armement du combat.
   const wastingAction = wastesAction(active, battle, pendingCleave);
   const arme = endTurnArmed(battle);
-  const onEndTurn = () => jouerLOffreDeLEcran(useGame.getState(), 'end-turn');
+  const onEndTurn = () => jouerLOffreDeLEcran(useGame.getState(), 'fin-de-tour');
   // 3ᵉ ligne de la plaque de sortie : elle dit l'état VRAI du tour — l'armement du 2ᵉ geste, sinon
   // l'avertissement « Action non dépensée », sinon « Tour fini », sinon SA touche (Espace,
-  // `keybindings.ts` `end-turn`). Un héros Sonné n'a rien à dépenser : il lit la touche, pas un reproche.
+  // `keybindings.ts` `fin-de-tour`). Un héros Sonné n'a rien à dépenser : il lit la touche, pas un reproche.
   // Armée, elle redit le libellé : hors du nom accessible, qui porte le texte vu UNE fois.
   const endNote = arme ? 'Finir quand même ?' : wastingAction ? 'Action non dépensée' : actionPrise(battle, pendingCleave) ? 'Tour fini' : 'ESPACE';
 
@@ -1002,9 +1002,9 @@ export function CombatConsole() {
    *  pastille y reste purement informative. */
   const retraitDEtat = (chip: EffectChip) => {
     if (!chip.condId) return undefined;
-    const geste = cellFor('resolve-remove-condition', 'geste', {
+    const geste = cellFor('determination-etat', 'geste', {
       key: `etat-${chip.condId}`,
-      label: `${findActionById('resolve-remove-condition')!.label} : ${chip.label} (1 Détermination)`,
+      label: `${findActionById('determination-etat')!.label} : ${chip.label} (1 Détermination)`,
       args: { conditionId: chip.condId },
     });
     // Un refus qui vient de L'ÉTAT LUI-MÊME (source unique `raisonRefusDetermination` — LDB 20 l.188)
@@ -1021,14 +1021,14 @@ export function CombatConsole() {
 
   // ── PANNEAU-PARAMÈTRE de la Dissipation (spec §1d + zone 10) ───────────────────────────────────
   // Le porteur est élu (clic-token), il ne manque QUE le Sort : liste BORNÉE à ce que CE porteur
-  // porte, jamais le catalogue des sorts. Chaque candidat EST une entrée du registre (`dispel-spell`) :
+  // porte, jamais le catalogue des sorts. Chaque candidat EST une entrée du registre (`dissipation-sort`) :
   // même verdict d'offre, même dispatcher, même foyer de règle que n'importe quelle alvéole — le
   // panneau n'est qu'un lieu d'accueil.
   const dissiper = findActionById(ACTION_DISSIPER);
   const dispelCarrier = dissiper && offreArmee({ battle, localIntent }, dissiper) && dispelCarrierId ? inBattleId(battle, dispelCarrierId) : undefined;
   const dispelOptions: ParamOption[] = dispelCarrier
     ? dispellableOnCarrier(useGame.getState, dispelCarrier.id).map((d) => {
-        const cell = cellFor('dispel-spell', 'magie', {
+        const cell = cellFor('dissipation-sort', 'magie', {
           key: `dispel-${d.spellId}@${d.casterId}`,
           label: d.label,
           args: { spellId: d.spellId, casterId: d.casterId },
@@ -1046,17 +1046,17 @@ export function CombatConsole() {
 
   // ── PANNEAU-PARAMÈTRE de l'ARME À RECHARGER (spec §1a + zone 10) ───────────────────────────────
   // Le geste est décidé (recharger), il ne manque QUE l'arme : liste BORNÉE aux armes à Recharge du
-  // porteur. Chaque candidat EST l'entrée de registre `reload` avec SON `weaponUid` — même verdict
+  // porteur. Chaque candidat EST l'entrée de registre `rechargement` avec SON `weaponUid` — même verdict
   // d'offre, même dispatcher (`rechargerLArme`) que l'alvéole à une seule arme.
   // Une arme DÉJÀ CHARGÉE est un candidat INERTE, avec son état dit : le verdict de sa case (gate
   // `arme-a-recharger`, `aRecharger` de `src/engine/weaponLoad.ts`).
   const rechargeOptions: ParamOption[] = rechargeChoisissable
     ? rechargeables.map((w) => {
-        const cell = cellFor('reload', 'arme', { key: `recharge-${w.uid}`, label: w.label, args: { weaponUid: w.uid } });
+        const cell = cellFor('rechargement', 'arme', { key: `rechargement-${w.uid}`, label: w.label, args: { weaponUid: w.uid } });
         const chargee = weaponLoaded(active, w);
         const prog = reloadProgressOf(active, w);
         return {
-          key: `recharge-${w.uid}`,
+          key: `rechargement-${w.uid}`,
           label: w.label,
           // Deux pistolets portent le MÊME libellé : la MAIN du set les distingue (le set dit ce qui est
           // tenu, `heldSet`), et l'état de charge dit lequel a besoin du geste.
@@ -1175,11 +1175,11 @@ export function CombatConsole() {
                         key={lo.id}
                         type="button"
                         data-set={lo.id}
-                        data-action="switch-loadout"
+                        data-action="panoplie"
                         className={`chip cc-set${held ? ' on' : ''}`}
                         disabled={!live || (!held && !setsCommutables)}
                         aria-label={unloaded ? `${loadoutLabel(lo, active)}, VIDE` : loadoutLabel(lo, active)}
-                        onClick={() => jouerLOffreDeLEcran(useGame.getState(), 'switch-loadout', { loadoutId: lo.id })}
+                        onClick={() => jouerLOffreDeLEcran(useGame.getState(), 'panoplie', { loadoutId: lo.id })}
                       >
                         <i className="cc-set-n">{i + 1}</i>
                         {mainItem ? <ItemIcon item={mainItem} /> : <Icon id="item/weapon" size="sm" />}
@@ -1219,7 +1219,7 @@ export function CombatConsole() {
             gate du registre (`deplacement-annulable`, MIROIR de la garde de `annulerLeDeplacement`) passe. */}
         <ConsoleArch
           active={active}
-          move={{ value: moveLeft, max: moveMax, spend: previewDelta.move, geste: cellFor('undo-move', 'mouvement') }}
+          move={{ value: moveLeft, max: moveMax, spend: previewDelta.move, geste: cellFor('annulation-deplacement', 'mouvement') }}
           action={{ value: actAvail, max: actMax, spend: previewDelta.action }}
           etats={actorStateChips(active, battle)}
           retraitDEtat={retraitDEtat}
@@ -1257,8 +1257,8 @@ export function CombatConsole() {
         <div className="cc-corner">
           <button
             type="button"
-            data-cell="end-turn"
-            data-action="end-turn"
+            data-cell="fin-de-tour"
+            data-action="fin-de-tour"
             data-armed={arme ? '' : undefined}
             className={`chip cc-cell cc-end${!meaningfulLeft ? ' pulse' : ''}`}
             disabled={!live}
@@ -1288,7 +1288,7 @@ export function CombatConsole() {
       )}
 
       {/* … celui de la MUNITION naît du chip de SON arme (`ammoChipRefs`, une ancre par arme à
-          distance) : même primitive, même annulation gratuite. Le clic COMMET `select-ammo` et referme. */}
+          distance) : même primitive, même annulation gratuite. Le clic COMMET `munition` et referme. */}
       {munitions.filter((m) => ammoOuvert === m.w.uid).map((m) => (
         <PanneauParametre
           key={m.w.uid}
@@ -1298,7 +1298,7 @@ export function CombatConsole() {
           onClose={() => setAmmoOuvert(null)}
         />
       ))}
-      {/* … et celui de l'ARME À RECHARGER naît de l'alvéole `reload` elle-même (ancre posée par
+      {/* … et celui de l'ARME À RECHARGER naît de l'alvéole `rechargement` elle-même (ancre posée par
           `ancreDePanneau`, champ `panneau` du registre) : une seule case, deux pistolets. */}
       {rechargeOuverte && (
         <PanneauParametre

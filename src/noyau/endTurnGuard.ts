@@ -5,7 +5,7 @@ import { canTakeAction } from '../engine/conditions';
 
 /**
  * GARDE-FOU « TOUR GÂCHÉ » (spec HUD combat §1c-bis, COIN) — module FEUILLE : finir son tour avec
- * l'Action INTACTE demande DEUX gestes. La POLITIQUE est celle de l'entrée de registre `end-turn`
+ * l'Action INTACTE demande DEUX gestes. La POLITIQUE est celle de l'entrée de registre `fin-de-tour`
  * (`actionRegistry`), franchie par la plaque de sortie de la console COMME par la touche ; l'armement
  * vit dans le combat (`battle.endTurnArmed`), donc il est répliqué et il se LIT à l'écran.
  */

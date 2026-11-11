@@ -208,7 +208,7 @@ async function jusquAuTourDuJoueur(session) {
   for (let i = 0; i < 6; i++) {
     await resoudreModales(session, 'mise en place', { dans: '.modal-overlay' });
     if (await evaluate(session, `!!document.querySelector('.combat-console button.cc-cell')`)) return;
-    if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='round-start']:not(:disabled)")`)) {
+    if (await evaluate(session, `!!document.querySelector(".cc-phase [data-action='debut-de-round']:not(:disabled)")`)) {
       await ouvrirRound(session);
       await sleep(800);
       await resoudreModales(session, 'ouverture de Round', { dans: '.modal-overlay' });

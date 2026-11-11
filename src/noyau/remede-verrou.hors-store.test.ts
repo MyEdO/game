@@ -10,7 +10,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { ACTION_GATES, actionGate, type ActionCtx } from './actionRegistry';
 import { ACTE_DE_DEVERROUILLAGE, hasCondition } from '../engine/conditions';
-import { findConditionById, type ActionDef } from '../data/index';
+import { findConditionById, type ActionDef, type ActionId } from '../data/index';
 import { t } from '../i18n';
 import type { ConditionInstance } from '../engine/types';
 
@@ -41,7 +41,7 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     const { H } = setup();
     H.conditions = [{ id: 'en-flammes', value: 1, unlockBy: 'medicalAid' }] as ConditionInstance[];
     banc.setState({ battle: { ...banc.getState().battle! } });
-    const verdict = actionGate('roll-fire', ctxDe());
+    const verdict = actionGate('roulade', ctxDe());
     expect(verdict.ok, 'un remède offert sur un État que le Test ne peut pas ôter').toBe(false);
     expect(verdict.reason).toBe(t('cond.lockedByAct', { acte: ACTE_DE_DEVERROUILLAGE.medicalAid }));
     banc.getState().seRemettreDeLEtat('en-flammes');
@@ -53,7 +53,7 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     const { H } = setup();
     H.conditions = [{ id: 'en-flammes', value: 1 }] as ConditionInstance[];
     banc.setState({ battle: { ...banc.getState().battle! } });
-    expect(actionGate('roll-fire', ctxDe()).ok).toBe(true);
+    expect(actionGate('roulade', ctxDe()).ok).toBe(true);
     banc.getState().seRemettreDeLEtat('en-flammes');
     expect(banc.getState().pendingStateRecovery, 'le Test ne s’est pas ouvert').toBeTruthy();
   });
@@ -67,7 +67,7 @@ describe('remède d’État — un État VERROUILLÉ refuse le Test, et le dit',
     expect(findConditionById(etat)!.lockedUntil, 'la fixture a gagné un verrou').toBeUndefined();
     H.conditions = [{ id: etat, value: 1 }] as ConditionInstance[];
     banc.setState({ battle: { ...banc.getState().battle! } });
-    const def = { id: 'remede-fixture', rule: { id: etat, type: 'etat' } } as ActionDef;
+    const def = { id: 'remede-fixture' as ActionId, rule: { id: etat, type: 'etat' } } as ActionDef;
     expect(ACTION_GATES['etat-porte'](ctxDe(def)).ok, 'l’État est porté').toBe(true);
     expect(ACTION_GATES['remede-atteignable'](ctxDe(def)).ok, 'aucun verrou : le geste est atteignable').toBe(true);
     const parTest = ACTION_GATES['etat-recuperable-par-test'](ctxDe(def));

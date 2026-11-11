@@ -261,7 +261,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
     try {
       engage(H, E);
       addCondition(H, 'sonne');
-      expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
+      expect(actionGate('desengagement', contexte(partie))).toEqual({ ok: true });
       envoyer(partie, 'rompreLEngagement');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.unableToAct'), canFuir: true });
       envoyer(partie, 'jetLancer', 'desengagement');
@@ -277,7 +277,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       engage(H, E);
       envoyer(partie, 'prendreLaDefensive');
       expect(partie.etat().battle!.acted, 'témoin : l’Action est dépensée').toBe(true);
-      expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
+      expect(actionGate('desengagement', contexte(partie))).toEqual({ ok: true });
       envoyer(partie, 'rompreLEngagement');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: false, refusEsquive: t('agate.actionSpent'), canFuir: true });
       envoyer(partie, 'jetRegler', 'desengagement', 'fuir', true);
@@ -292,7 +292,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
     try {
       actionEtMouvementDepenses(partie);
       engage(H, E);
-      expect(actionGate('disengage', contexte(partie))).toEqual({ ok: false, reason: t('agate.actionSpent') });
+      expect(actionGate('desengagement', contexte(partie))).toEqual({ ok: false, reason: t('agate.actionSpent') });
       envoyer(partie, 'rompreLEngagement');
       expect(partie.etat().pendingDisengage).toBeNull();
       expect(refusDit(partie)).toBe(t('agate.actionSpent'));
@@ -307,7 +307,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
       actionEtMouvementDepenses(partie);
       engage(H, E);
       H.advantage = 2;
-      expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
+      expect(actionGate('desengagement', contexte(partie))).toEqual({ ok: true });
       envoyer(partie, 'rompreLEngagement');
       expect(partie.etat().pendingDisengage).toMatchObject({ canSacrifice: true, refusEsquive: t('agate.actionSpent'), canFuir: false });
     } finally {
@@ -326,7 +326,7 @@ describe('Désengagement (LDB 15 l.43-49) : une option par verdict', () => {
         actionEtMouvementDepenses(partie);
         engage(H, E);
         poser(H, E);
-        expect(actionGate('disengage', contexte(partie))).toEqual({ ok: true });
+        expect(actionGate('desengagement', contexte(partie))).toEqual({ ok: true });
         envoyer(partie, 'rompreLEngagement');
         expect(partie.etat().battle!.combatants.find((c) => c.id === H.id)!.engagedWith ?? []).toEqual([]);
       } finally {

@@ -67,7 +67,7 @@ function auTourDe(t: ReturnType<typeof table>, id: string): void {
 }
 
 describe('Offres en coop : le verbe de l’offre voyage', () => {
-  it('le verbe de `end-turn` de l’invité finit le tour de SON héros ; au tour d’autrui il est refusé', () => {
+  it('le verbe de `fin-de-tour` de l’invité finit le tour de SON héros ; au tour d’autrui il est refusé', () => {
     const t = enPause();
     auTourDe(t, 'L');
     expect(t.envoyer('terminerLeTour', [])).toBe('appliquee');
@@ -102,19 +102,19 @@ describe('Offres en coop : le verbe de l’offre voyage', () => {
     expect(recu.localIntent?.actionId, 'l’instantané a écrasé l’intention locale').toBe('attaque');
   });
 
-  it('`round-start` déclare `fenetreValider` : son verbe marque le siège prêt', () => {
+  it('`debut-de-round` déclare `fenetreValider` : son verbe marque le siège prêt', () => {
     const t = enPause();
     expect(t.banc.getState().pendingRoundStart, 'témoin : la pause de Round est ouverte').toBeTruthy();
-    expect(gesteDeLOffre(t.banc.getState(), offreDeId('round-start')!)).toEqual({ verbe: 'fenetreValider', args: ['debutDuRound'] });
+    expect(gesteDeLOffre(t.banc.getState(), offreDeId('debut-de-round')!)).toEqual({ verbe: 'fenetreValider', args: ['debutDuRound'] });
     expect(t.banc.getState().pendingRoundStart!.readyBySeat?.[1] ?? false).toBe(false);
     expect(t.envoyer('fenetreValider', ['debutDuRound'])).toBe('appliquee');
     expect(t.banc.getState().pendingRoundStart!.readyBySeat?.[1]).toBe(true);
   });
 
-  it('`raise-hand` déclare `leverLaMain` : son verbe lève la main du siège 1, hors de son tour', () => {
+  it('`pause` déclare `leverLaMain` : son verbe lève la main du siège 1, hors de son tour', () => {
     const t = enPause();
     auTourDe(t, 'H');
-    expect(gesteDeLOffre(t.banc.getState(), offreDeId('raise-hand')!)).toEqual({ verbe: 'leverLaMain', args: [true] });
+    expect(gesteDeLOffre(t.banc.getState(), offreDeId('pause')!)).toEqual({ verbe: 'leverLaMain', args: [true] });
     expect(t.envoyer('leverLaMain', [true])).toBe('appliquee');
     expect(t.banc.getState().battle!.handRaisedBy).toEqual([1]);
   });

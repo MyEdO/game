@@ -135,7 +135,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** Le porteur du consommable `uid` (`porteurDeLObjet`) l'utilise, Action gratuite (LDB 13 l.106). */
   utiliserLObjet: (uid: IdDObjet) => void;
   /** Ramasse UN objet d'un décor à portée, sans l'équiper (`entityPickables`). En combat : le combattant actif, au prix de
-   *  son Action (`pickup` de `actions.json`), un objet posé au sol ou une feuille donneuse d'une action authorée (`key` =
+   *  son Action (`ramassage` de `actions.json`), un objet posé au sol ou une feuille donneuse d'une action authorée (`key` =
    *  `<actionId>:eff:<index>`). Hors combat : un objet posé au sol seulement (un décor authoré se fouille,
    *  `jouerAction`), que le héros `heroId` reçoit, le meneur sans lui. */
   ramasserLObjet: (entityId: IdDEntiteDeScene, key: IdDObjetRamassable, heroId?: IdDeHeros) => void;

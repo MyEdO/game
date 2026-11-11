@@ -174,7 +174,7 @@ describe('InitiativeStrip', () => {
 });
 
 /**
- * PIED DE FRISE — l'interrupteur « pause au prochain Round » (#1411 P2-A). `raise-hand` était une
+ * PIED DE FRISE — l'interrupteur « pause au prochain Round » (#1411 P2-A). `pause` était une
  * entrée du registre SANS surface : posée, la demande ne pouvait plus être retirée avant la pause
  * suivante. Elle vit ici (c'est l'enchaînement des Rounds qu'elle suspend), en interrupteur, avec un
  * refus VISIBLE quand le geste n'est pas offert (hors coop).
@@ -189,7 +189,7 @@ describe('InitiativeStrip — interrupteur de pause de Round', () => {
   };
 
   it('la frise PORTE l’entrée du registre (c’est SA surface, au même marqueur que la console)', () => {
-    expect(rendu()).toContain('data-action="raise-hand"');
+    expect(rendu()).toContain('data-action="pause"');
   });
 
   it('OFFERT : le geste est cliquable et se nomme', () => {
@@ -208,6 +208,6 @@ describe('InitiativeStrip — interrupteur de pause de Round', () => {
     const html = rendu({ reason: 'partie locale' });
     expect(html).toContain('disabled');
     expect(html).toContain('partie locale');
-    expect(html, 'la raison doit être liée au bouton (a11y), jamais un title muet').toContain('aria-describedby="raise-hand-reason"');
+    expect(html, 'la raison doit être liée au bouton (a11y), jamais un title muet').toContain('aria-describedby="pause-reason"');
   });
 });

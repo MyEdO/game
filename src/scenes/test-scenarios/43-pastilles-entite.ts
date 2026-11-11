@@ -12,11 +12,11 @@ import type { Scene } from '../../noyau/monde/scene';
  *
  * Les trois familles sont réunies AUTOUR DU MÊME HÉROS, adjacentes à sa case d'arrivée — la recette se
  * joue donc sans un pas de déplacement, en un seul tour (anti-grind : le DoD tient en ≤ 2 Rounds) :
- *  • MONTURE (`mount`) — un cheval libre du même camp, à une case ;
- *  • OBJETS AU SOL (`pickup`) — un coffre à DEUX objets : une même entité offre N candidats, donc un
+ *  • MONTURE (`mise-en-selle`) — un cheval libre du même camp, à une case ;
+ *  • OBJETS AU SOL (`ramassage`) — un coffre à DEUX objets : une même entité offre N candidats, donc un
  *    panneau-paramètre né de la pastille (et non une liste) ;
- *  • PIÈCE (`push-engine`) — le bélier ADE II servi par le Soldat (chef de pièce) et son Équipe : la
- *    pastille de l'engin porte « Pousser », et son refus se lit si l'Équipe fond. `man-poste` n'y est
+ *  • PIÈCE (`poussee`) — le bélier ADE II servi par le Soldat (chef de pièce) et son Équipe : la
+ *    pastille de l'engin porte « Pousser », et son refus se lit si l'Équipe fond. `service-poste` n'y est
  *    PAS offert : le Soldat sert déjà l'unique pièce du banc (`servablePostes` écarte son propre poste).
  *
  * Le Soldat est CHEF du bélier (`crewIds[0]`) : c'est lui l'actif qui voit les quatre gestes. Les 5
@@ -95,8 +95,8 @@ export const scenario: TestScenario = {
   icon: 'scenario/siege',
   title: 'Pastilles d’entité — Monter / Ramasser / Pousser',
   tests:
-    'Zone 4 de la spec HUD : les gestes d’ENTITÉ (`surface: "pastille-entite"` du registre — `mount`, ' +
-    '`pickup`, `push-engine` ; `man-poste` ne s’y offre pas, le Soldat servant DÉJÀ l’unique pièce) ' +
+    'Zone 4 de la spec HUD : les gestes d’ENTITÉ (`surface: "pastille-entite"` du registre — `mise-en-selle`, ' +
+    '`ramassage`, `poussee` ; `service-poste` ne s’y offre pas, le Soldat servant DÉJÀ l’unique pièce) ' +
     'naissent de la chose qui les offre et vivent HORS de la ' +
     'console (géométrie immuable). Couvre : une pastille par entité offrante, le panneau-paramètre ' +
     'quand une même entité porte N candidats (coffre à deux objets), le coût affiché, le refus VISIBLE ' +

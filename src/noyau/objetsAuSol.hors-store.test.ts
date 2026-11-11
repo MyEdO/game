@@ -3,7 +3,7 @@
  * groupe et l'objet vit dans `objetsAuSol` ; l'exploration offre de le ramasser, comme le clic sur son décor (`actionsDe`), il revient
  * intact (uids, état, contenu) et son décor sort avec son entrée ; il survit à l'aller-retour de scène
  * (`SceneMutation.entitesChangees`) et à une sauvegarde rechargée. En combat (#3744), l'actif pose d'une Action gratuite
- * (`drop-item`) et l'arme qu'un Coup Critique fait lâcher tombe à la case de son porteur (`OpsCtx.onLacher`).
+ * (`depot`) et l'arme qu'un Coup Critique fait lâcher tombe à la case de son porteur (`OpsCtx.onLacher`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -121,7 +121,7 @@ describe('en combat', () => {
   it('l’actif pose un objet d’une Action gratuite, à sa case ; le ramasser coûte l’Action', () => {
     const actif = bataille();
     const objet = actif.items!.find((i) => !i.inside && !i.container)!;
-    banc.jouerLaCase('drop-item', { itemUid: objet.uid });
+    banc.jouerLaCase('depot', { itemUid: objet.uid });
     const [decor] = decorsAuSol();
     expect(combattant().items!.some((i) => i.uid === objet.uid), 'il quitte le combattant').toBe(false);
     expect([decor?.pos, banc.getState().battle!.acted], 'à sa case, sans prendre l’Action').toEqual([{ x: 2, y: 2 }, false]);

@@ -1,7 +1,8 @@
-// Un nom, un type désigné (`unNomUnTypeDesigne`, .claude/rules/verbes-du-noyau.md) sur des tables de verbes forgées.
+// Un nom, un type désigné (`unNomUnTypeDesigne`) et les littéraux en mots du lexique (`litterauxDuLexique`),
+// .claude/rules/verbes-du-noyau.md, sur des tables de verbes forgées.
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { unNomUnTypeDesigne } from './verbesDeLaPartie.mjs'
+import { litterauxDuLexique, unNomUnTypeDesigne } from './verbesDeLaPartie.mjs'
 
 const designe = (cle) => ({ genre: 'chaine', designe: { cle, mot: cle } })
 const parametre = (nom, forme) => ({ nom, optionnel: false, type: 'string', forme })
@@ -36,4 +37,30 @@ test('un champ de type nommé, un membre d’union discriminée et un nom non d�
     flux: [parametre('mode', { genre: 'litteral', valeur: 'detection' })],
     armer: [parametre('mode', designe('IdDeMode'))],
   }))
+})
+
+const litteral = (valeur) => ({ genre: 'litteral', valeur })
+const LEXIQUE = new Set(['brouillon', 'trot', 'galop', 'bras', 'droit'])
+
+test('un littéral de paramètre, à travers champs, unions et types récursifs, en mots du lexique passe', () => {
+  const allure = { genre: 'union', membres: [litteral('trot'), litteral('galop'), { genre: 'null' }] }
+  assert.doesNotThrow(() => litterauxDuLexique(
+    { partir: [parametre('opts', objet('{ allure: Allure; }', [['allure', allure], ['localisation', { genre: 'ref', type: 'Loc' }]]))] },
+    { Loc: { genre: 'union', membres: [litteral('brasDroit'), { genre: 'tableau', element: { genre: 'ref', type: 'Loc' } }] } },
+    LEXIQUE,
+    [],
+  ))
+})
+
+test('un littéral de paramètre hors du lexique lève, en nommant le verbe, le paramètre, le membre et ses mots en faute', () => {
+  assert.throws(
+    () => litterauxDuLexique({ partir: [parametre('opts', objet('{ allure: Allure; }', [['allure', { genre: 'union', membres: [litteral('trot'), litteral('gallopFast')] }]]))] }, {}, LEXIQUE, []),
+    /partir\(opts\)\.allure `gallopFast` \(gallop, fast\)/,
+  )
+})
+
+test('une union qui recopie un espace d’ids est une donnée, hors du lexique', () => {
+  const caracteristique = { genre: 'union', membres: [litteral('force'), litteral('capacite-de-tir')] }
+  assert.doesNotThrow(() => litterauxDuLexique({ acheter: [parametre('char', caracteristique)] }, {}, LEXIQUE, [new Set(['force', 'capacite-de-tir', 'endurance'])]))
+  assert.throws(() => litterauxDuLexique({ acheter: [parametre('char', caracteristique)] }, {}, LEXIQUE, [new Set(['force'])]), /acheter\(char\) `force`/)
 })

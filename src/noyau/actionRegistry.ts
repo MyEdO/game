@@ -117,7 +117,7 @@ function horsVerrouDEtat({ active }: ActionCtx): ActionGate {
 }
 
 /** Le porteur PEUT-il effectuer une Action (`canTakeAction`, `LDB 16 l.125`) ? Composé par `actionLibre`,
- *  et seul par l'entrée qui n'engage pas l'Action du Tour elle-même (`select-attack`). */
+ *  et seul par l'entrée qui n'engage pas l'Action du Tour elle-même (`attaque-trait`). */
 function peutAgir({ active }: ActionCtx): ActionGate {
   return verdict(refusHorsDEtatDAgir(active));
 }
@@ -409,15 +409,15 @@ export const ACTION_CANDIDATES: Record<string, (ctx: ActionSelectorCtx) => unkno
   /** Dissiper est un Test de Langue (Magick) (`LDB 46 l.158-162`) : sans elle, rien n'est dissipable par ce porteur. Le
    *  mode Dissiper (`dissipation`) s'offre une fois s'il en existe un. */
   'sorts-dissipables': sortsDissipables,
-  /** Les MÊMES Sorts, chacun le candidat de son geste (`dispel-spell` → `dissiperLeSort`, `ACTION_PORTEURS`). */
+  /** Les MÊMES Sorts, chacun le candidat de son geste (`dissipation-sort` → `dissiperLeSort`, `ACTION_PORTEURS`). */
   'sorts-a-dissiper': sortsDissipables,
   /** Méthodes d'Avantage POSSÉDÉES (dédupliquées par Compétence : un Savoir groupé = une case). Le
    *  PLAFOND ne filtre plus ici : il est le verdict d'offre `avantage-sous-plafond`, qui laisse la case
    *  dessinée fermée avec sa raison — une seule source, jamais un filtre muet doublé d'un gate. */
   'competences-avantage': ({ active }) =>
     [...new Map(combatAdvantageSkills(active).map((s) => [s.skillId, s])).values()],
-  /** Attaques de TRAIT qui ARMENT le clic, une cible ou un point à désigner (`select-attack`), et attaques IMMÉDIATES,
-   *  sans cible (`maneuver-area`) : le tri se lit à la forme de ciblage de leur manœuvre (`attaqueImmediate`). L'attaque
+  /** Attaques de TRAIT qui ARMENT le clic, une cible ou un point à désigner (`attaque-trait`), et attaques IMMÉDIATES,
+   *  sans cible (`attaque-zone`) : le tri se lit à la forme de ciblage de leur manœuvre (`attaqueImmediate`). L'attaque
    *  d'ARME est le geste du conduit (`attaque`), jamais une case de la grille. */
   'attaques-de-trait': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && !attaqueImmediate(a)),
   'attaques-de-zone': ({ active, battle }) => availableAttacks(active, battle).filter((a) => a.kind !== 'arme' && attaqueImmediate(a)),

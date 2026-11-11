@@ -1675,8 +1675,8 @@ function PartyDockDemo() {
  *  la partie (`useGame`) : la galerie étant un écran de l'application EN COURS (`App.tsx`),
  *  l'amorcer d'ici injecterait un combat factice dans la partie du joueur. Ce qui reste en balisage
  *  de maquette est ce que la console rend EN LIGNE, indissociable du store : la coque, les travées,
- *  la colonne de sets (chaque vignette dispatche `switch-loadout`), le conduit d'Avantage et le coin
- *  de fin de tour (dispatch `end-turn`). Le pont se dimensionne sur la FENÊTRE : la piste positionnée
+ *  la colonne de sets (chaque vignette dispatche `panoplie`), le conduit d'Avantage et le coin
+ *  de fin de tour (dispatch `fin-de-tour`). Le pont se dimensionne sur la FENÊTRE : la piste positionnée
  *  d'un champ défilant (`.gallery-scene-track`) le montre à la largeur de recette du bureau. */
 function CombatConsoleMock() {
   const actif = herosExemple();
@@ -1695,20 +1695,20 @@ function CombatConsoleMock() {
                 <span className="cc-bay-head">ÉPÉE ET BOUCLIER</span>
                 <div className="cc-arsenal-body">
                   <div className="cc-sets" role="group" aria-label="Sets d’armes">
-                    <button type="button" data-set="s1" data-action="switch-loadout" className="chip cc-set on" aria-label="Épée et bouclier">
+                    <button type="button" data-set="s1" data-action="panoplie" className="chip cc-set on" aria-label="Épée et bouclier">
                       <i className="cc-set-n">1</i>
                       <Icon id="item/weapon" size="sm" />
                       <span className="cc-key">X</span>
                     </button>
-                    <button type="button" data-set="s2" data-action="switch-loadout" className="chip cc-set" aria-label="Arquebuse, VIDE">
+                    <button type="button" data-set="s2" data-action="panoplie" className="chip cc-set" aria-label="Arquebuse, VIDE">
                       <i className="cc-set-n">2</i>
                       <Icon id="item/weapon" size="sm" />
                       <i className="cc-set-load">VIDE</i>
                     </button>
                   </div>
                   <div className="cc-grid cc-grid-left" aria-label="Arsenal">
-                    <ConsoleCell cell={{ key: 'attack', id: 'attack', family: 'arme', label: 'Attaquer', icon: <Icon id="action/attack" />, run: rien }} />
-                    <ConsoleCell cell={{ key: 'shoot', id: 'shoot', family: 'arme', label: 'Tirer', icon: <Icon id="action/shoot" />, on: true, run: rien }} />
+                    <ConsoleCell cell={{ key: 'attaque', id: 'attaque', family: 'arme', label: 'Attaquer', icon: <Icon id="action/attack" />, run: rien }} />
+                    <ConsoleCell cell={{ key: 'tir', id: 'attaque', family: 'arme', label: 'Tirer', icon: <Icon id="action/shoot" />, on: true, run: rien }} />
                     <ConsoleCell cell={{ key: 'charge', id: 'charge', family: 'attaque', label: 'Charger', icon: <Icon id="action/attack" />, gate: 'Déjà engagé au contact' }} />
                     <ConsoleCell cell={undefined} />
                   </div>
@@ -1717,7 +1717,7 @@ function CombatConsoleMock() {
               <div className="cc-quick">
                 <span className="cc-bay-head">ACCÈS RAPIDE</span>
                 <div className="cc-grid cc-grid-quick" aria-label="Accès rapide">
-                  <ConsoleCell cell={{ key: 'consume', id: 'consume', family: 'geste', label: 'Potion de soin', icon: <Icon id="action/consume" />, run: rien }} />
+                  <ConsoleCell cell={{ key: 'usage-objet', id: 'usage-objet', family: 'geste', label: 'Potion de soin', icon: <Icon id="action/consume" />, run: rien }} />
                   <ConsoleCell cell={undefined} />
                 </div>
               </div>
@@ -1725,7 +1725,7 @@ function CombatConsoleMock() {
           </div>
           <ConsoleArch
             active={actif}
-            move={{ value: 3, max: 4, spend: 1, geste: { key: 'undo-move', id: 'undo-move', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="ui/undo" />, run: rien } }}
+            move={{ value: 3, max: 4, spend: 1, geste: { key: 'annulation-deplacement', id: 'annulation-deplacement', family: 'mouvement', label: 'Annuler le déplacement', icon: <Icon id="ui/undo" />, run: rien } }}
             action={{ value: 1, max: 1 }}
           />
           <div className="cc-bay cc-bay-right">
@@ -1737,13 +1737,13 @@ function CombatConsoleMock() {
               <span className="cc-conduit-plate">2/6</span>
             </div>
             <div className="cc-grid cc-grid-right" aria-label="Capacités">
-              <ConsoleCell hotkey={1} cell={{ key: 'dodge', id: 'dodge', family: 'defense', label: 'Esquiver', icon: <Icon id="action/defend" />, run: rien }} advantage={2} />
-              <ConsoleCell hotkey={2} cell={{ key: 'cast', id: 'cast', family: 'magie', label: 'Incanter', icon: <Icon id="action/cast" />, adv: 3, run: rien }} advantage={2} />
+              <ConsoleCell hotkey={1} cell={{ key: 'defensive', id: 'defensive', family: 'defense', label: 'Esquiver', icon: <Icon id="action/defend" />, run: rien }} advantage={2} />
+              <ConsoleCell hotkey={2} cell={{ key: 'incantation', id: 'incantation', family: 'magie', label: 'Incanter', icon: <Icon id="action/cast" />, adv: 3, run: rien }} advantage={2} />
               <ConsoleCell hotkey={3} cell={undefined} />
             </div>
           </div>
           <div className="cc-corner">
-            <button type="button" data-cell="end-turn" data-action="end-turn" className="chip cc-cell cc-end">
+            <button type="button" data-cell="fin-de-tour" data-action="fin-de-tour" className="chip cc-cell cc-end">
               <span className="cc-ico"><Icon id="ui/turn-end" /></span>
               <span className="cc-lbl">Fin du tour</span>
               <span className="cc-key">F</span>

@@ -78,6 +78,8 @@ const NOMMES = [
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
   'feu-proche|volcan-actif|ville-en-flammes|charnier|lieu-de-massacre|lieu-sans-mort|eau-abondante|milieu-sec|mois-sommerzeit|mois-vorgeheim|mois-ulriczeit|mois-vorhexen|tour|colline-elevee|sommet-de-montagne|en-vol|voyage-vers-equateur|metaux-abondants|temps-orageux|temps-brumeux|temps-ensoleille|brise-legere|ville|cite|pleine-nature|region-reculee|middenheim|assistance-chantee',
   'feu|flammeche|lueur',
+  // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
+  'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|pierre|cloture',
   'colonne|portion|variante',
@@ -277,7 +279,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'tirImmobile|dansLeTas',
   'heure|minute|round',
   'imparfaite|moyenne|totale',
-  'incantation|focalisation|seconde-vue',
   'income|craftExtended|learnTalent|identify|entrainement|mecenat|ritualFocus|masterWeapon|identifyByResearch|memorizeDiscount|combatTraining|punchausen|knowledgeResearch|reputation|wrathOfTheGods|dissensionScout|dissensionEmeute|contremaitre|forage|seaChart|opportunityTrade|crewTraining',
   'indice|rumeur',
   'inferieur|superieur',

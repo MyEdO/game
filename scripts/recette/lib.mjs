@@ -1910,9 +1910,9 @@ function decrireLectureModales(l) {
 }
 
 /** OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») par la case de phase
- *  `round-start` — le geste du joueur, au vrai bouton, jamais un `.click()` en JS. */
+ *  `debut-de-round` — le geste du joueur, au vrai bouton, jamais un `.click()` en JS. */
 export async function ouvrirRound(session) {
-  return cliquerAction(session, 'round-start', { racine: '.cc-phase' });
+  return cliquerAction(session, 'debut-de-round', { racine: '.cc-phase' });
 }
 
 /** Lecture du combat pour le pilote (`__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) ; `fenetre`
@@ -1930,16 +1930,16 @@ export const LECTURE_COMBAT = `(() => {
 })()`;
 
 /**
- * FINIT le tour du héros actif à la PLAQUE de fin de tour (`end-turn`) : un premier clic ARME le
+ * FINIT le tour du héros actif à la PLAQUE de fin de tour (`fin-de-tour`) : un premier clic ARME le
  * garde-fou quand l'Action n'est pas dépensée (`endTurnArmed`), le second passe la main. Rend le
  * nombre de clics émis.
  */
 export async function finDuTour(session, { pauseMs = 300 } = {}) {
-  await cliquerAction(session, 'end-turn');
+  await cliquerAction(session, 'fin-de-tour');
   await sleep(pauseMs);
   const arme = await evaluate(session, `(() => { const b = window.__wfrp.battle(); return typeof b === 'object' && !!b.endTurnArmed; })()`);
   if (!arme) return 1;
-  await cliquerAction(session, 'end-turn');
+  await cliquerAction(session, 'fin-de-tour');
   await sleep(pauseMs);
   return 2;
 }

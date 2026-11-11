@@ -45,7 +45,7 @@ describe('Entrée dans la cascade', () => {
         const offres = suite.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
         jeu = combat!.intention && combat!.cibles.liste.length
           ? clicDuCombattant(suite.vue, combat!.cibles.liste[0])!
-          : (offres.find((o) => o.id === 'attaque' && !combat!.intention) ?? offres.find((o) => o.id === 'end-turn'))!.jeu;
+          : (offres.find((o) => o.id === 'attaque' && !combat!.intention) ?? offres.find((o) => o.id === 'fin-de-tour'))!.jeu;
       }
       ({ suite } = drainer(appel, appel('jouer', jeu)));
     }

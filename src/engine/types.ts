@@ -13,7 +13,7 @@ import type { ArmourBypass, SujetDuJet } from '../data/schemas/grammaire/mecaniq
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { CibleEtendue, ProfilDePropulsion, ProfilDeVoile } from '../data/schemas/grammaire/valeurs';
 import type { StagePosting } from './activities';
-import type { NightStakeId } from '../data/index';
+import type { ActionId, NightStakeId } from '../data/index';
 
 declare const MAXIMUM_DES_BLESSURES: unique symbol;
 /**
@@ -1331,12 +1331,12 @@ export interface WeaponLoadout {
 export type ZoneBarre = 'arsenal' | 'accesRapide' | 'capacites';
 
 /** UNE case posée : l'action du registre (`src/data/actions.json`) et la CLÉ DÉCLARÉE de la case,
- *  qui distingue les N alvéoles d'une même action (`sort-<spellId>`, `advantage-<skillId>`,
- *  `q-objet-<trappingId>`, `attaque-<attackId>`, `self-<maneuverId>`, ou `ActionDef.keys[0]`).
+ *  qui distingue les N alvéoles d'une même action (`sort-<spellId>`, `avantage-<skillId>`,
+ *  `q-objet-<trappingId>`, `attaque-<attackId>`, `soi-<maneuverId>`, ou `ActionDef.keys[0]`).
  *  Cette clé est une identité de MODÈLE, déclarée au site de la case — jamais un uid d'INSTANCE
  *  (boire une potion changerait l'uid et tuerait l'adresse), jamais un libellé. */
 export interface EntreeBarre {
-  actionId: string;
+  actionId: ActionId;
   cle: string;
 }
 

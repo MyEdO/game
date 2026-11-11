@@ -32,12 +32,12 @@ describe('le soin par le pont', () => {
     let suite = jouer(appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] }));
     for (let tours = 0; suite.vue.zones['combat.actif'][0]?.nom !== 'Tueur'; tours++) {
       expect(tours, 'Le Tueur prend la main').toBeLessThan(5);
-      suite = jouer(appel('jouer', offre(suite, 'end-turn').jeu));
-      if (suite.vue.projection.combat!.finDeTourArmee) suite = jouer(appel('jouer', offre(suite, 'end-turn').jeu));
+      suite = jouer(appel('jouer', offre(suite, 'fin-de-tour').jeu));
+      if (suite.vue.projection.combat!.finDeTourArmee) suite = jouer(appel('jouer', offre(suite, 'fin-de-tour').jeu));
     }
-    expect(offre(suite, 'heal'), 'Le Tueur soigne').toMatchObject({ libelle: 'Soigner', refus: null });
+    expect(offre(suite, 'soins'), 'Le Tueur soigne').toMatchObject({ libelle: 'Soigner', refus: null });
 
-    ({ suite } = drainer(appel, appel('jouer', offre(suite, 'heal').jeu)));
+    ({ suite } = drainer(appel, appel('jouer', offre(suite, 'soins').jeu)));
     const [patient] = suite.vue.projection.combat!.cibles.liste;
     ({ suite } = drainer(appel, appel('jouer', clicDuCombattant(suite.vue, patient)!)));
     const corps = () => Object.fromEntries(suite.vue.zones['fenetre.corps'].map((e) => [e.id, e]));
