@@ -337,7 +337,7 @@ function opsDeReussite(def: ActivityDef): GameOp[] | null {
 /** Refus d'une Activité dont la RÉUSSITE, sous la cible choisie, n'aurait rien à changer au héros
  *  (`reussiteSansObjet`, jugée avant le jet). ACE 12 l.15, ADE II 09 l.33 */
 function refusDeReussiteSansObjet(h: Combatant, def: ActivityDef, opts: CiblesChoisies): string | null {
-  const raison = reussiteSansObjet(h, opsCiblees(opsDeReussite(def) ?? [], viseDuTrait(h, opts.traitPsy)), { avantLeJet: true, source: { kind: 'activity', id: def.id } });
+  const raison = reussiteSansObjet(h, opsCiblees(opsDeReussite(def) ?? [], viseDuTrait(h, opts.traitPsy)), { avantLeJet: true, source: { kind: 'activite', id: def.id } });
   return raison ? t('if.reussiteSansObjet', { raison, label: def.label }) : null;
 }
 

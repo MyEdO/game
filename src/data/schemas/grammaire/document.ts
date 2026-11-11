@@ -12,7 +12,7 @@
  */
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
-import { deDeTirageSchema, maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
+import { deDeTirageSchema, idDIconeSchema, maisonSchema, sourceRefSchema, secondarySourceRefSchema, variantOf, type GenreDeFragment } from './valeurs';
 import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { noyauEnum, nommerChamps, metaDesChamps, type MetaChamp, type MetaDesChamps } from './meta';
 import { exigeSource } from './sans-livre';
@@ -342,7 +342,7 @@ function enveloppe(type: string, idDocument?: z.ZodType<string>, exiges: readonl
      * deux racines, mesuré RÉCURSIVEMENT et gardé par `src/data/maison-sans-source.test.ts`.
      */
     maison: champEnveloppe(maisonSchema, requis('maison')),
-    icon: champEnveloppe(z.string(), requis('icon'), z.string().min(1)),
+    icon: champEnveloppe(idDIconeSchema, requis('icon')),
   };
 }
 

@@ -31,7 +31,7 @@ function hero(p: Partial<Combatant> = {}): Combatant {
 const SORT_ID = 'toile-de-lumiere';
 const SOURCE: CodexTarget = { category: 'spells', id: SORT_ID };
 const LABEL = 'Toile de lumière';
-const CTX = { label: LABEL, source: { kind: 'spell' as const, id: SORT_ID }, defaultDurationRounds: 3, now: 0, rng: makeRNG(7) };
+const CTX = { label: LABEL, source: { kind: 'sort' as const, id: SORT_ID }, defaultDurationRounds: 3, now: 0, rng: makeRNG(7) };
 
 /** Les quatre ops qui vivaient en champs SCALAIRES de l'`ActiveEffect` avant #1791. */
 const OPS = [

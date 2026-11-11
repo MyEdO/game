@@ -175,10 +175,10 @@ export const TABLES = {
       if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet
       if (step.chosen === 'mouvement') {
         set({ battle: { ...battle, acted: true } });
-        return { consequences: freeCons([t('op.loseAction', { name: hero.label })]) };
+        return { consequences: freeCons([t('op.actionPerdue', { name: hero.label })]) };
       }
       set({ battle: { ...battle, movementUsed: mountMovement(battle, hero) } });
-      return { consequences: freeCons([t('op.loseMovement', { name: hero.label })]) };
+      return { consequences: freeCons([t('op.mouvementPerdu', { name: hero.label })]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   crochetsDeCombat: [

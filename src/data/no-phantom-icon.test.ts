@@ -11,10 +11,8 @@ import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichier
 
 /**
  * Garde-fou anti-icône-fantôme (#269) : une réf d'icône `icon: '...'`/`"icon": "..."` posée en
- * DONNÉE (les zones de `SCAN_DIRS` et `src/data/*.json`) porte le type large `IconIdInput`
- * (`src/data/icons/types.ts`) — pas l'union `IconId` GÉNÉRÉE qui verrouille les composants à la
- * compilation. Une réf inconnue n'y throw QU'AU RENDU (DEV), absorbée en silence par
- * `SceneErrorBoundary` — c'est ce trou que ce test de BUILD ferme : toute réf littérale hors du
+ * DONNÉE (les zones de `SCAN_DIRS` et `src/data/*.json`) se lit au texte, avant tout parse
+ * ni compilation : toute réf littérale hors du
  * registre (`src/data/icons/_registry.generated.ts`, régénéré par `npm run gen`) fait échouer la suite.
  * Mécanique d'extraction (regex `icon:`/`"icon":`, dédup, ligne de 1ʳᵉ occurrence) :
  * `scripts/guards/lib/iconRefs.mjs` (module .mjs pur).

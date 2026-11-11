@@ -13,7 +13,7 @@ import { readCorpus } from '../../../../scripts/guards/lib/sourceCorpus.mjs';
 import { z } from 'zod';
 import { classeDeProduit, empreinteDeNoeud } from './produits';
 import { ref, refOuSpec, refTypee, pick } from './ref';
-import { descRefSchemaDe, parSaison, profilChiffreSchema, formulaSchema, variantOf } from './valeurs';
+import { descRefSchemaDe, idDIconeSchema, parSaison, profilChiffreSchema, formulaSchema, variantOf } from './valeurs';
 import { mecaniqueDe, noeudTest } from './mecanique';
 import { proseAdressable, proseNommee } from './prose';
 import { descendre } from './descente';
@@ -167,6 +167,8 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
     return [...new Set(vus)];
   };
   const lu = (noeud: unknown): string | undefined => lus(noeud)[0];
+  /** L'icône d'un `choice` est le vocabulaire des ids d'icône du registre (`idDIconeSchema`). */
+  const ICONE = `optional<:${empreinteDeNoeud(idDIconeSchema)}>`;
   const entree = nommerChamps(z.strictObject({ a: z.number().optional(), b: z.array(z.string()) }), { a: { label: 'a' }, b: { label: 'b' } });
   const fiche = document('talent', 'entite', { max: z.number() }, { max: { label: 'Maximum' } }, EXPOSITION);
   const palette = document('palette-jouet', 'record', {}, {}, EXPOSITION, { valeurRecord: z.string() });
@@ -221,7 +223,7 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
       'arbreDeFlow flow.do {}',
       'arbreDeFlow flow.if {}',
       'noeudTest test {}',
-      'proseNommee flow.choice.prompt {"advantageCost":"optional<:union<|0:number,|1:literal[\\"$indice\\"]>>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","non":"optional<:lazy>","oui":"lazy"}',
+      `proseNommee flow.choice.prompt ${JSON.stringify({ advantageCost: 'optional<:union<|0:number,|1:literal["$indice"]>>', icon: ICONE, kind: 'literal["choice"]', non: 'optional<:lazy>', oui: 'lazy' })}`,
     ]);
   });
 
@@ -231,7 +233,7 @@ describe('lecture — `classeDeProduit` nomme la fabrique, le rôle et les clés
       'arbreDeFlow flow.do {}',
       'arbreDeFlow flow.if {}',
       'noeudTest test {}',
-      'proseNommee flow.choice.prompt {"advantageCost":"optional<:number>","icon":"optional<:string>","kind":"literal[\\"choice\\"]","non":"optional<:lazy>","oui":"lazy"}',
+      `proseNommee flow.choice.prompt ${JSON.stringify({ advantageCost: 'optional<:number>', icon: ICONE, kind: 'literal["choice"]', non: 'optional<:lazy>', oui: 'lazy' })}`,
     ]);
   });
 

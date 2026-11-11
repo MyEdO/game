@@ -108,7 +108,7 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
     const cases = [{ x: 1, y: 1 }, { x: 2, y: 1 }, { x: 3, y: 1 }];
     const sort = findSpellById('mur-de-feu')!;
     const [feu, fumee, seconde] = zonesQuiDurent([
-      { label: 'Mur', tiles: cases, rounds: 3, source: { kind: 'spell', id: sort.id } },
+      { label: 'Mur', tiles: cases, rounds: 3, source: { kind: 'sort', id: sort.id } },
       { label: 'Fumée', tiles: cases, rounds: 2, blocksLoS: true, rendu: { id: 'souffle-de-fumee' } },
       { label: 'Piège', tiles: cases, rounds: 1, permanent: true, perRound: [] },
       { label: 'Fumée', tiles: cases, rounds: 2, rendu: { id: 'souffle-de-fumee' } },

@@ -6,7 +6,7 @@
  * `<select>` de référence brut de l'ancien fichier monolithique y sont migrés.
  */
 import { Icon } from '../Icon';
-import { ICON_DEFS } from '../../data/icons';
+import { ICON_DEFS, estIdDIcone, type IconId } from '../../data/icons';
 import { BACKDROPS } from '../backdrops';
 import { SceneBackdrop } from '../SceneBackdrop';
 import { MediaSelect, type MediaOption } from '../MediaSelect';
@@ -22,18 +22,16 @@ const ICON_OPTIONS: MediaOption[] = [
 ];
 
 /** Picker d'icône de médaillon (lieu/POI) — remplace le champ « emoji libre » (#361, BLOQUANT doctrine
- *  no-emoji-affordance). Une valeur héritée hors catalogue (emoji d'ancienne donnée) n'est PAS
- *  proposée à la ressaisie mais reste signalée dans le déclencheur. */
-export function IconField({ label, value, onChange }: { label: string; value?: string; onChange: (v: string | undefined) => void }) {
-  const known = value != null && !!ICON_DEFS[value];
+ *  no-emoji-affordance). */
+export function IconField({ label, value, onChange }: { label: string; value?: IconId; onChange: (v: IconId | undefined) => void }) {
   return (
     <label className="ed-field">
       {label}
       <MediaSelect
         options={ICON_OPTIONS}
-        value={known ? value : undefined}
-        onSelect={(k) => onChange(k || undefined)}
-        placeholder={value && !known ? `Icône héritée « ${value} » — choisir dans le catalogue` : 'Épingle par défaut'}
+        value={value}
+        onSelect={(k) => onChange(estIdDIcone(k) ? k : undefined)}
+        placeholder="Épingle par défaut"
       />
     </label>
   );

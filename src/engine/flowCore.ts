@@ -23,6 +23,7 @@
  * délègue (appliquer une feuille, ouvrir une modale de Test, suspendre, reprendre) vit chez ses hôtes
  * du noyau (`runFlow`, `runCombatFlow`…).
  */
+import type { IconId } from '../data/icons';
 import { toDate } from './clock';
 import type { CharKey, Difficulty, EffectSource, HitLocation } from './types';
 import { relationBetween, type Camp, type Relation } from './relations';
@@ -593,7 +594,7 @@ export type Flow<E = EffectOp> =
   | { kind: 'do'; effect: E }
   | { kind: 'if'; cond: Condition; then: Flow<E>; else?: Flow<E> }
   | { kind: 'test'; test: FlowTest; success: Flow<E>; fail: Flow<E> }
-  | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: string; oui: Flow<E>; non?: Flow<E> };
+  | { kind: 'choice'; prompt: string; source?: SourceRef; adapteDe?: SourceRef; advantageCost?: number | IndiceTemplate; icon?: IconId; oui: Flow<E>; non?: Flow<E> };
 
 /** TEMPLATE d'instance du coût d'Avantage d'un `choice` : l'Indice de l'entité PORTEUSE (Taillade 1A/2A,
  *  `AA 08 l.87`), substitué par `withArg` (`noyau/triggeredEffects`) avant exécution. Resté tel quel, le

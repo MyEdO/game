@@ -116,49 +116,49 @@
     },
     "leger": {
       "arriere": {
-        "pct": 5
+        "pourcentage": 5
       },
       "cote": {
-        "pct": 0
+        "pourcentage": 0
       },
       "contraire": {
-        "pct": -5
+        "pourcentage": -5
       }
     },
     "modere": {
       "arriere": {
-        "pct": 10
+        "pourcentage": 10
       },
       "cote": {
-        "pct": 5,
-        "tack": true
+        "pourcentage": 5,
+        "louvoyage": true
       },
       "contraire": {
-        "pct": -10
+        "pourcentage": -10
       }
     },
     "fort": {
       "arriere": {
-        "pct": 20
+        "pourcentage": 20
       },
       "cote": {
-        "pct": 10,
-        "tack": true
+        "pourcentage": 10,
+        "louvoyage": true
       },
       "contraire": {
-        "pct": -20
+        "pourcentage": -20
       }
     },
     "tres-fort": {
       "arriere": {
-        "pct": 25
+        "pourcentage": 25
       },
       "cote": {
-        "capsizeRisk": true
+        "risqueDeChavirage": true
       },
       "contraire": {
-        "pct": -25,
-        "riggingRisk": true
+        "pourcentage": -25,
+        "risqueDeGreement": true
       }
     }
   },

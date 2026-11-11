@@ -21,7 +21,7 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, idDIconeSchema, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
 import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
@@ -565,9 +565,8 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
   /** Icône d'affordance (registre `src/data/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
-   *  un emoji collé au `label` (#290, doctrine anti-emoji). Id de string brute (cf. AGENTS.md : la
-   *  logique reste pure, `<Icon>` valide l'id au rendu). */
-  icon: z.string().optional(),
+   *  un emoji collé au `label` (#290, doctrine anti-emoji). */
+  icon: idDIconeSchema.optional(),
   /** Condition d'AFFICHAGE du choix (algèbre `Condition`, cf. `evalCondition`). Absente = toujours visible. */
   when: conditionSchema.optional(),
   /** Prix de l'option (service payant : auberge, péage, pot-de-vin…). Le choix est RÉPÉTABLE mais

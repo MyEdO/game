@@ -284,7 +284,7 @@ describe('applyOps — opérations unitaires', () => {
 
   it('grantTrait Démoniaque : le porteur est un Démon tant qu’il porte le Trait (LDB 85 l.94)', () => {
     const c = hero({ groups: ['humain'] });
-    const ctx = { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'spell' as const, id: 'sort-fixture' } };
+    const ctx = { idNeuf: idsDeTest, rng: desDuTest, source: { kind: 'sort' as const, id: 'sort-fixture' } };
     applyOps(c, [{ op: 'grantTrait', trait: { id: 'demoniaque' } }], ctx);
     expect(groupMatch('demon', groupesDe(c))).toBe(true);
     applyOps(c, [{ op: 'removeTrait', trait: { id: 'demoniaque' } }], ctx);
@@ -574,9 +574,9 @@ describe('applyOps — opérations unitaires', () => {
 });
 
 describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveChar', () => {
-  const sort = (id: string, casterId = 'm') => ({ source: { kind: 'spell' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
-  /** ctx de `runCastFlow` (`src/noyau/combatFlow.ts`) : `source.kind` vaut `spell` pour TOUT lancement. */
-  const priere = (id: string) => ({ source: { kind: 'spell' as const, id }, sourceSpellId: id });
+  const sort = (id: string, casterId = 'm') => ({ source: { kind: 'sort' as const, id }, sourceSpell: { spellId: id, ni: 5, casterId, label: id } });
+  /** ctx de `runCastFlow` (`src/noyau/combatFlow.ts`) : `source.kind` vaut `sort` pour TOUT lancement. */
+  const priere = (id: string) => ({ source: { kind: 'sort' as const, id }, sourceSpellId: id });
   const pose = (c: Combatant, mod: number, ctx: object) => applyOps(c, [{ op: 'charMod', characteristic: 'force', mod }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Effet', defaultDurationRounds: 6, ...ctx });
   it('deux Prières DIFFÉRENTES se somment ; la MÊME Prière ne se cumule pas (LDB 40 l.19)', () => {
     const c = hero(); pose(c, 10, priere('benediction-de-bataille')); pose(c, 10, priere('prouesses-martiales'));
@@ -592,7 +592,7 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
     const caster = hero({ id: 'pretre' });
     const lancer = (t: Combatant, id: string) => {
       const sp = findSpellById(id)!;
-      applyOps(t, spellOps(sp.effects, 'target'), { idNeuf: idsDeTest, rng: desDuTest, caster, label: sp.label, sourceSpellId: id, source: { kind: 'spell', id }, defaultDurationRounds: 6 });
+      applyOps(t, spellOps(sp.effects, 'target'), { idNeuf: idsDeTest, rng: desDuTest, caster, label: sp.label, sourceSpellId: id, source: { kind: 'sort', id }, defaultDurationRounds: 6 });
     };
     const t = hero(); lancer(t, 'benediction-de-bataille'); lancer(t, 'prouesses-martiales');
     expect(effectiveChar(t, 'capacite-de-combat')).toBe(t.characteristics['capacite-de-combat'] + 20);
@@ -604,7 +604,7 @@ describe('applyActiveEffect — pose réelle (applyOps charMod) puis effectiveCh
     expect(effectiveChar(c, 'force')).toBe(40);
   });
   it('objet −10 + Sort −10 se somment (LDB 14 l.95)', () => {
-    const c = hero(); pose(c, -10, { source: { kind: 'trapping', id: 'o' } }); pose(c, -10, sort('s'));
+    const c = hero(); pose(c, -10, { source: { kind: 'objet', id: 'o' } }); pose(c, -10, sort('s'));
     expect(effectiveChar(c, 'force')).toBe(10);
   });
   it('un même Sort d’un même lanceur n’est actif qu’une fois : la nouvelle pose remplace (LDB 46 l.119)', () => {
@@ -634,8 +634,8 @@ describe("op:'grantPsychTrait' / op:'removePsychTrait' — Traits psychologiques
   });
   it("grantPsychTrait porte la PROVENANCE de l'effet, comme l'op grantTrait (#1853)", () => {
     const c = hero({ psychTraits: [] });
-    applyOps(c, [opPsy.octroi('frenesie')], { idNeuf: idsDeTest, rng: desDuTest, label: 'Colère', source: { kind: 'spell', id: 'colere' } });
-    expect(c.psychTraits).toEqual([{ type: 'frenesie', src: { kind: 'spell', id: 'colere' } }]);
+    applyOps(c, [opPsy.octroi('frenesie')], { idNeuf: idsDeTest, rng: desDuTest, label: 'Colère', source: { kind: 'sort', id: 'colere' } });
+    expect(c.psychTraits).toEqual([{ type: 'frenesie', src: { kind: 'sort', id: 'colere' } }]);
   });
   it("removePsychTrait { psychType } retire le Trait correspondant (laisse les autres)", () => {
     const c = hero({ psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('serpent') }, { type: 'haine', cible: ciblePsy.groupe('skaven') }] });

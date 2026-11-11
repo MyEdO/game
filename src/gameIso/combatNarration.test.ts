@@ -59,13 +59,13 @@ describe('coloration des noms par camp', () => {
     const n = narrateEvent(ev('charge', 'Machin charge Bidule', foe.id, ally.id), cs);
     const machin = n.segments.find((s) => s.text === 'Machin');
     const bidule = n.segments.find((s) => s.text === 'Bidule');
-    expect(machin?.team).toBe('enemy');
-    expect(bidule?.team).toBe('ally');
+    expect(machin?.team).toBe('ennemi');
+    expect(bidule?.team).toBe('allie');
     expect(n.segments.map((s) => s.text).join('')).toBe('Machin charge Bidule');
   });
   it('préfère le nom le plus long (Rat géant, pas “Rat”)', () => {
     const n = narrateEvent(ev('charge', 'Rat géant charge Bidule', foe2.id, ally.id), cs);
-    expect(n.segments.some((s) => s.text === 'Rat géant' && s.team === 'enemy')).toBe(true);
+    expect(n.segments.some((s) => s.text === 'Rat géant' && s.team === 'ennemi')).toBe(true);
   });
 });
 
@@ -76,8 +76,8 @@ describe('narrateIntent — annonce d’intention IA (hors journal)', () => {
     expect(n.icon).toBe('journal/charge');
     expect(n.tone).toBe('normal');
     expect(n.segments.map((s) => s.text).join('')).toBe('Machin charge Bidule');
-    expect(n.segments.find((s) => s.text === 'Machin')?.team).toBe('enemy');
-    expect(n.segments.find((s) => s.text === 'Bidule')?.team).toBe('ally');
+    expect(n.segments.find((s) => s.text === 'Machin')?.team).toBe('ennemi');
+    expect(n.segments.find((s) => s.text === 'Bidule')?.team).toBe('allie');
   });
   it('tir → action/tirer « vise » ; mêlée → action/attaquer « attaque »', () => {
     expect(narrateIntent(aim('tir'), cs)!.icon).toBe('action/tirer');

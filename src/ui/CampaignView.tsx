@@ -9,7 +9,6 @@ import { actorIn, inBattleId } from '../noyau/monde/combatants';
 import { sceneNpc } from '../noyau/monde/sceneNpc';
 import { refusDeSauvegarde } from '../noyau/persistance/save';
 import { refusDeFinDeSeance } from '../noyau/partyFlow';
-import type { IconIdInput } from '../data/icons';
 import { ciblageEntiteArme } from '../noyau/targetingModes';
 import { MondeDeCampagne } from '../gameIso/stage/MondeDeCampagne';
 import { SceneErrorBoundary } from './SceneErrorBoundary';
@@ -362,7 +361,7 @@ export function CampaignView() {
               hand={netMode === 'local' ? undefined : {
                 raised: handRaised,
                 reason: handVerdict.ok ? undefined : handVerdict.reason,
-                label: <><Icon id={handDef.icon as IconIdInput} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
+                label: <><Icon id={handDef.icon} size="sm" /> {handRaised ? 'Pause demandée' : 'Pause'}{autresMains > 0 ? ` +${autresMains}` : ''}</>,
                 ariaLabel: `${handRaised ? `${handDef.label} : retirer ma demande` : handDef.label}${autresMains > 0 ? ` — déjà demandée par ${autresMains} autre${autresMains > 1 ? 's' : ''} joueur${autresMains > 1 ? 's' : ''}` : ''}`,
                 onToggle: () => jouerLOffreDeLEcran(useGame.getState(), handDef.id),
               }}

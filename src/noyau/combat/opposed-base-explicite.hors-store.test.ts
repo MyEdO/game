@@ -198,7 +198,7 @@ describe('G4 — producteurs de Tests SIMPLES : leur base est la NUE, aucun dép
   it('mono et bande simples posent `skillBaseValue`, jamais une valeur fondue', () => {
     const c = combatant({ id: 'simple', conditions: [{ id: 'sonne', value: 1 }] as never });
     // L'enjeu vient du PORTEUR, comme en production (#1262 V2 L6d) : `MonoSpec.stake` est requis.
-    const ft: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, { kind: 'condition', id: 'empoisonne' });
+    const ft: FlowTest = withDerivedStake({ skill: { id: 'resistance' }, label: 'Résister' }, { kind: 'etat', id: 'empoisonne' });
     const nue = skillBaseValue(c, { skill: { id: 'resistance' } });
     expect(nue, 'sonde inerte : sans État, nue et valeur testée se confondraient').not.toBe(testValue(c, { skill: { id: 'resistance' } }));
     expect(simpleTriggeredTestStep(c, ft, combatConditionCtx(c, {}), BRANCHES, EMPTY_FLOW)!.base).toBe(nue);

@@ -192,8 +192,13 @@ export function findTavernGameById(id: string): TavernGame | undefined {
   return g && tavernFastRegime() ? fastTavernGame(g) : g;
 }
 
+/** Le camp d'une partie de taverne : le challenger et son vis-à-vis. */
+export type CampDeTaverne = 'joueur' | 'adversaire';
+/** L'issue d'une partie ou d'une manche de taverne. */
+export type VainqueurDeTaverne = CampDeTaverne | 'egalite';
+
 export interface TavernGameResult {
-  winner: 'player' | 'opponent' | 'tie';
+  winner: VainqueurDeTaverne;
   /** Score du joueur (DR de la manche, ou DR cumulés en mode étendu). */
   playerSL: number;
   opponentSL: number;
@@ -226,7 +231,7 @@ export function rollTavernTest(value: number, rng: RNG, difficulty: Difficulty =
 /** Issue d'UNE manche entre deux `TestResult` DÉJÀ roulés — PUR (aucun rng, aucune décision de
  *  surfaçage) : compare via `resolveOpposed`, plafonne par `game.drCap` (Boules). */
 export interface TavernRoundOutcome {
-  winner: 'player' | 'opponent' | 'tie';
+  winner: VainqueurDeTaverne;
   playerSL: number;
   opponentSL: number;
 }
@@ -254,7 +259,7 @@ export function resolveTavernRound(
   const opp = resolveOpposed({ ...playerTR, sl: ps }, { ...opponentTR, sl: os });
   // NADJ 16 l.105 ; #1921 c.6233078802.
   const departageGeneral = game.tieBreak === undefined || opp.decidedBy === 'dr';
-  const winner = !departageGeneral || opp.winner === 'egalite' ? 'tie' : opp.winner === 'attaquant' ? 'player' : 'opponent';
+  const winner = !departageGeneral || opp.winner === 'egalite' ? 'egalite' : opp.winner === 'attaquant' ? 'joueur' : 'adversaire';
   return { winner, playerSL: ps, opponentSL: os };
 }
 

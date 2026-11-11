@@ -74,7 +74,7 @@ interface CondMeta { icon: IconId; severity: number; important: boolean; }
  *  connu sans icône) ; sévérité déléguée à `conditionSeverity` (même résolveur). `important` =
  *  sévérité ≥ 50 (incapacitant, créneau unique de l'ordre de bataille). */
 export function conditionMeta(id: string): CondMeta {
-  const icon = (etatExige(id).icon as IconId | undefined) ?? 'journal/information';
+  const icon = etatExige(id).icon ?? 'journal/information';
   const severity = conditionSeverity(id);
   return { icon, severity, important: severity >= 50 };
 }

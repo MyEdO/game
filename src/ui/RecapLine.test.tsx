@@ -84,7 +84,7 @@ describe('RecapLineRow — Markdown avec et sans segments', () => {
     expect(html).toContain('class="prose-compact"');
   });
   it('le journal et le récap gardent le même Markdown et les mêmes tons', () => {
-    const segments = [{ text: '**' }, { text: 'Gustav', team: 'ally' as const }, { text: '** rencontre ' }, { text: 'Rat géant', team: 'enemy' as const }];
+    const segments = [{ text: '**' }, { text: 'Gustav', team: 'allie' as const }, { text: '** rencontre ' }, { text: 'Rat géant', team: 'ennemi' as const }];
     const text = segments.map(s => s.text).join('');
     const journal = renderToStaticMarkup(<TeamSegments segments={segments} />);
     const recap = renderToStaticMarkup(<RecapLineRow line={{ text, segments }} />);

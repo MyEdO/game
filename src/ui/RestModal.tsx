@@ -17,19 +17,19 @@ import { toBrass } from '../engine/money';
 import { ReadyRow } from './ReadyRow';
 import { ownsLocal } from '../noyau/netOwnership';
 import { Icon } from './Icon';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import type { Combatant } from '../engine/types';
 import { GatedAction, raisonSi } from './GatedAction';
 import { Row } from './Layout';
 
-const LODGING_META: Record<RestLodging, { icon: IconIdInput; labelKey: MsgKey }> = {
+const LODGING_META: Record<RestLodging, { icon: IconId; labelKey: MsgKey }> = {
   privee: { icon: 'repos/lit', labelKey: 'valeur.couchage.privee' },
   commune: { icon: 'repos/canape', labelKey: 'valeur.couchage.commune' },
   maison: { icon: 'repos/chez-soi', labelKey: 'valeur.couchage.maison' },
   dehors: { icon: 'repos/campement', labelKey: 'valeur.couchage.dehors' },
   bord: { icon: 'voyage/navire-a-voile', labelKey: 'valeur.couchage.bord' },
 };
-const FOOD_META: Record<RestFood, { icon: IconIdInput; labelKey: MsgKey }> = {
+const FOOD_META: Record<RestFood, { icon: IconId; labelKey: MsgKey }> = {
   repas: { icon: 'repos/ragout', labelKey: 'valeur.pitance.repas' },
   maison: { icon: 'repos/repas-fait-maison', labelKey: 'valeur.pitance.maison' },
   ration: { icon: 'objet/divers', labelKey: 'valeur.pitance.ration' },

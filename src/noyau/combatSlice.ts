@@ -365,11 +365,11 @@ function applyGrapple(get: Get, set: Set, actor: Combatant, foe: Combatant, mode
  *  Engagement — routé vers le Désengagement avant d'arriver ici) : elles ne répondent à aucun geste, et
  *  ne disent donc rien. */
 const REFUS_DEPLACEMENT: Partial<Record<MovementBlockReason, (get: Get, active: Combatant) => string>> = {
-  'out-of-range': () => t('cs.refusCaseHorsPortee'),
-  'movement-spent': () => t('cs.refusMouvementEpuise'),
-  'no-path': () => t('cs.refusAucunChemin'),
-  'course-non-armee': () => t('cs.refusCourseNonArmee'),
-  'frenesie-eloigne': (get, active) => t('cs.frenzyMustCharge', { name: active.label, foe: garanti(frenzyTarget(get, active), active.id, 'cible de Frénésie').label }),
+  horsDePortee: () => t('cs.refusCaseHorsPortee'),
+  mouvementEpuise: () => t('cs.refusMouvementEpuise'),
+  sansChemin: () => t('cs.refusAucunChemin'),
+  courseNonArmee: () => t('cs.refusCourseNonArmee'),
+  frenesieEloigne: (get, active) => t('cs.frenzyMustCharge', { name: active.label, foe: garanti(frenzyTarget(get, active), active.id, 'cible de Frénésie').label }),
 };
 
 /**

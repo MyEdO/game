@@ -154,7 +154,6 @@ function rendu(entree) {
 
   const TYPES_TS = lire('src/data/icons/types.ts')
   const ALIAS_ID = capture(TYPES_TS, /export type (IconId) =/, "l'alias `IconId`", 'src/data/icons/types.ts')
-  const ID_INPUT = capture(TYPES_TS, /export type IconIdInput = ([^;]+);/, "l'alias `IconIdInput`", 'src/data/icons/types.ts').trim()
 
   // ── Données JSON porteuses d'une icône ───────────────────────────────────────────────────────────
 
@@ -347,9 +346,9 @@ Les trois throw en DEV sur un id inconnu (\`import.meta.env?.DEV\` — \`?.\` ca
 n'existe pas sous \`tsx\`), en nommant le geste : déposer une def dans \`${CHAMPS_ENTREE.dir}/\` puis
 \`npm run gen\`. Pas de repli muet ; en prod (non-DEV), \`Icon\`/\`IconG\` rendent \`null\`/\`''\`.
 
-\`IconIdInput\` (\`src/data/icons/types.ts\`) = \`${ID_INPUT}\` : les 3 primitives acceptent aussi un
-\`string\` brut porté par la DONNÉE JSON, pas seulement l'union typée — l'autocomplete reste côté
-code authoré en TS, la validation se fait au rendu.
+Les 3 primitives prennent un \`${ALIAS_ID}\` : un id porté par la DONNÉE se refuse au parse par le nœud
+\`idDIconeSchema\` (\`src/data/schemas/grammaire/valeurs.ts\`), un id de saisie passe par \`estIdDIcone\`
+(\`src/data/icons/index.ts\`).
 
 ## 5. Icône portée par une DONNÉE (JSON)
 

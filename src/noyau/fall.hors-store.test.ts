@@ -67,8 +67,8 @@ describe('Effet fall — chute', () => {
     banc.setState({ mode: 'exploration', scene: balconScene(), partyPos: { x: 5, y: 5, z: 1 }, journal: [], pendingCascade: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'fall', target: 'party', metres: 4, to: { x: 5, y: 8, z: 1 } }] as Effect[]);
     expect(banc.getState().partyPos).toEqual({ x: 5, y: 5, z: 1 });
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('eff.fallAtterrissageRefuse'));
-    expect(t('eff.fallAtterrissageRefuse')).not.toMatch(/[0-9]/);
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('eff.chuteAtterrissageRefuse'));
+    expect(t('eff.chuteAtterrissageRefuse')).not.toMatch(/[0-9]/);
     expect(banc.getState().pendingCascade, 'aucun dé de chute ouvert').toBeNull();
     draineCascade(banc.getState);
     expect(banc.getState().party[0].wounds.current).toBe(before);

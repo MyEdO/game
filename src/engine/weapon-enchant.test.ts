@@ -59,7 +59,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
     const sp = findSpellById(spellId)!;
     const lignes = applyOps(c, spellOps(sp.effects, 'target'), { idNeuf: idsDeTest,
       rng: desDuTest, caster: c, label: sp.label, sourceSpellId: spellId,
-      source: { kind: 'spell', id: spellId }, defaultDurationRounds: 4,
+      source: { kind: 'sort', id: spellId }, defaultDurationRounds: 4,
     });
     expect(isMagicWeapon(c.weapons[0])).toBe(magique);
     if (magique) expect(item.enchants).toHaveLength(1);

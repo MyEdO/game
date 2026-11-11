@@ -268,7 +268,7 @@ export function effectSummary(effect: Effect, ctx: Pick<Ctx, 'scenes' | 'cibles'
     case 'corruptionExposure': return `Influence corruptrice (${e.level ?? 'mineure'}, ${e.nature ? libelleDeLaNature(e.nature) : 'au choix'})${e.align ? ` — ${libelleDeValeur(chaosAlignSchema, e.align)}` : ''}`;
     case 'waterExposure': return `Eau souillée (${e.mode === 'immersion' ? 'immersion' : 'ingestion'}${e.source ? ` · ${e.source}` : ''}) → ${e.target === 'party' ? 'groupe' : (e.heroId || '1ᵉʳ héros')}`;
     case 'learnSpell': return `Apprendre : ${e.spell ? refLabel('spells', { id: e.spell }) : '?'}`;
-    case 'castSpell': return `Incanter ${e.spellId ? refLabel('spells', { id: e.spellId }) : '?'} — ${e.casterId || '?'}${e.targetId ? ` → ${e.targetId}` : ''}${e.mode === 'forceSuccess' ? ' (garanti)' : ''}`;
+    case 'castSpell': return `Incanter ${e.spellId ? refLabel('spells', { id: e.spellId }) : '?'} — ${e.casterId || '?'}${e.targetId ? ` → ${e.targetId}` : ''}${e.mode === 'forcerLaReussite' ? ' (garanti)' : ''}`;
     case 'petitePriere': {
       const n = e.reward ? (e.reward.kind === 'seq' ? e.reward.steps.length : 1) : 0;
       return `Petites Prières (site sacré)${e.heroId ? ` → ${e.heroId}` : ''} · ${n} bloc(s) si exaucée`;
@@ -688,7 +688,7 @@ export function EffectFields({ effect, onChange, ctx }: { effect: Effect; onChan
             )}
             <select value={e.mode ?? 'jet'} onChange={(ev) => upd({ mode: ev.target.value })}>
               <option value="jet">Jet réel (RAW — modale influençable si piloté par un humain)</option>
-              <option value="forceSuccess">Rituel garanti (arbitrage d'auteur, aucun jet)</option>
+              <option value="forcerLaReussite">Rituel garanti (arbitrage d'auteur, aucun jet)</option>
             </select>
           </>
         )}

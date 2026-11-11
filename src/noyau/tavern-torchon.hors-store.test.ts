@@ -263,7 +263,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     expect(get().sequence, 'la séquence est retirée').toBeNull();
     const res = get().tavernGames!.result!;
     expect(res.rounds).toBe(24);
-    expect(['player', 'opponent', 'tie']).toContain(res.winner);
+    expect(['joueur', 'adversaire', 'egalite']).toContain(res.winner);
   });
 });
 

@@ -10,12 +10,13 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import React from 'react';
 import { Icon } from '../src/ui/Icon';
 import { ICON_FAMILIES } from '../src/data/icons/_registry.generated';
+import type { IconId } from '../src/data/icons';
 
 const ALL = ICON_FAMILIES.flat();
 const families = [...new Set(ALL.map((d) => d.id.split('/')[0]))];
 export const OUT = fileURLToPath(new URL('../public/icon-gallery.html', import.meta.url));
 
-const cell = (id: string, label: string) => {
+const cell = (id: IconId, label: string) => {
   const at = (size: number) => renderToStaticMarkup(React.createElement(Icon, { id, size }));
   return `<figure class="cell">
     <div class="sizes">${at(14)}${at(18)}${at(24)}</div>

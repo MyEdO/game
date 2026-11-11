@@ -1017,13 +1017,15 @@ describe('document() — verrous d’ENVELOPPE paramétrés (#1467 L1b V-P0c)', 
     const strict = document('fiche-jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION, {
       exiges: ['icon', 'alsoIn'],
     });
-    const base = { ...ENV('fiche-jouet'), max: 2, icon: 'epee', alsoIn: [{ book: 'aux-armes', page: 12 }] };
+    const sansIcone = { ...ENV('fiche-jouet'), max: 2, alsoIn: [{ book: 'aux-armes', page: 12 }] };
+    const base = { ...sansIcone, icon: 'melee/au-contact' };
     expect(strict.entree.safeParse(base).success).toBe(true);
     expect(strict.entree.safeParse({ ...base, icon: '' }).success).toBe(false);
     expect(strict.entree.safeParse({ ...base, alsoIn: [] }).success).toBe(false);
-    // Non exigées, ces mêmes clés gardent leur forme d'origine (l'option n'est pas un durcissement global).
+    // Non exigées, ces mêmes clés restent optionnelles et `alsoIn` admet `[]` (l'option n'est pas un durcissement global).
     const libre = document('fiche-jouet', 'entite', { max: z.number() }, { max: { label: 'Max' } }, EXPOSITION);
-    expect(libre.entree.safeParse({ ...base, icon: '', alsoIn: [] }).success).toBe(true);
+    expect(libre.entree.safeParse({ ...sansIcone, alsoIn: [] }).success).toBe(true);
+    expect(strict.entree.safeParse(sansIcone).success).toBe(false);
   });
 
   it('`idDocument` qui admettrait la CHAÎNE VIDE est REFUSÉ à la déclaration', () => {

@@ -1,7 +1,7 @@
 import { useId, type ReactNode } from 'react';
 import { Icon } from './Icon';
 import { GatedAction } from './GatedAction';
-import type { IconIdInput } from '../data/icons';
+import type { IconId } from '../data/icons';
 import { RuleDivider } from './Ornaments';
 import { t } from '../i18n';
 
@@ -129,7 +129,7 @@ export function MenuSection({ label, rule = true, ruleClassName, className, chil
  *  `tone` mappe les variantes canon `.btn-primary`/`.btn-test` ; `refus` ferme le bouton sur sa raison
  *  (`GatedAction`). */
 export function MenuButton({ icon, tone, onClick, href, target, rel, title, refus, children }: {
-  icon: IconIdInput;
+  icon: IconId;
   tone?: 'primary' | 'test';
   onClick?: () => void;
   href?: string;

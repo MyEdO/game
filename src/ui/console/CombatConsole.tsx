@@ -43,7 +43,7 @@ import { StateChips } from '../StateChips';
 import { LifeBar } from '../LifeBar';
 import { Icon } from '../Icon';
 import { ItemIcon } from '../ItemIcon';
-import type { IconIdInput } from '../../data/icons';
+import type { IconId } from '../../data/icons';
 
 /** Les zones adressables tiennent leur nombre de cases de `TAILLE_ZONE`. */
 const LEFT_CELLS = TAILLE_ZONE.arsenal; // travée gauche : 2×3 — les gestes déduits du set (§1a) puis les cases LIBRES
@@ -239,7 +239,7 @@ export function ConsoleCell({ cell, hotkey, advantage = 0, ciblageArme = false, 
     : button;
 }
 
-function icon(id: IconIdInput) {
+function icon(id: IconId) {
   return <Icon id={id} />;
 }
 
@@ -519,7 +519,7 @@ export function CombatConsole() {
           label: enReseau
             ? (dejaPret ? 'En attente des autres…' : 'Prêt')
             : pendingRoundStart.round <= 1 ? 'Commencer le combat' : `Commencer le round ${pendingRoundStart.round}`,
-          icon: <Icon id={roundStartDef.icon as IconIdInput} size="sm" />,
+          icon: <Icon id={roundStartDef.icon} size="sm" />,
           primary: true,
           disabled: enReseau && dejaPret,
           run: () => jouerLOffreDeLEcran(useGame.getState(), roundStartDef.id),
@@ -532,7 +532,7 @@ export function CombatConsole() {
           actions: [{
             key: interlude.id,
             label: interlude.label,
-            icon: <Icon id={interlude.icon as IconIdInput} size="sm" />,
+            icon: <Icon id={interlude.icon} size="sm" />,
             primary: !bandeauDiscret(interlude),
             run: () => jouerLOffreDeLEcran(useGame.getState(), interlude.id),
           }],
@@ -657,7 +657,7 @@ export function CombatConsole() {
       key: over.key ?? def.keys?.[0] ?? def.id,
       id: actionId,
       family,
-      icon: over.icon ?? icon(def.icon as IconIdInput),
+      icon: over.icon ?? icon(def.icon),
       label: over.label ?? def.label,
       rule: over.rule ?? (def.rule ? cibleCodex(def.rule) : undefined),
       gate: verdict.ok ? undefined : verdict.reason,

@@ -9,6 +9,7 @@
  * INTERRUPTIONS — chaque jet de ROUTINE auto-résolu laisse sa ligne au PV DU JOUR (l'auto-pilote pilote
  * LE MÊME flux de jet, jamais un `rollTest` inline). Décision requise = modale/cascade ; routine = PV.
  */
+import type { IconId } from '../data/icons';
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import type { StakeRef } from '../data';
@@ -78,7 +79,7 @@ export function voyageDayEntry(opts: {
   id: string;
   actorId?: string;
   label: string;
-  icon?: string;
+  icon?: IconId;
   d?: RollBreakdown;
   text?: string;
   tone?: NightEntry['tone'];

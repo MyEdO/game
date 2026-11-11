@@ -75,8 +75,8 @@ function Harness({ picker, de = 5 }: { picker: boolean; de?: number }) {
         rolled,
       }]}
       actions={[
-        { key: 'cancel', label: 'Annuler', onClick: () => {} },
-        { key: 'apply', label: 'Appliquer', onClick: () => {} },
+        { key: 'abandonner', label: 'Annuler', onClick: () => {} },
+        { key: 'confirmer', label: 'Appliquer', onClick: () => {} },
       ]}
     />
   );

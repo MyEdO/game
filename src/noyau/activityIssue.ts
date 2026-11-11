@@ -30,7 +30,7 @@ export function appliquerIssueActivite(
   roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null,
 ): { result: TravelActivityResult; consequences: Consequence[] } {
   const r = applyTravelActivityResult({ ...spec, actorId: hero.id }, def, roll);
-  const opsCtx: OpsCtx = { idNeuf: get().forgerUnId, label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activity', id: def.id } };
+  const opsCtx: OpsCtx = { idNeuf: get().forgerUnId, label: def.label, rng: battleRng(), now: get().gameTime, source: { kind: 'activite', id: def.id } };
   const cons: Consequence[] = [];
   if (roll == null && spec.refus != null) cons.push(...freeCons([spec.refus]));
   else if (roll == null) cons.push({ say: 'out.activityDone', vars: { name: hero.label, activity: def.label } });

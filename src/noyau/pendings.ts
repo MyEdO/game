@@ -3,6 +3,7 @@
  * monnaie — types PURS, sans logique, tenus hors du store.
  * Le store les ré-exporte (les imports existants `from './store'` restent valides).
  */
+import type { IconId } from '../data/icons';
 import type { Availability, CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest, Main } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
 import type { PorteurDeFiche } from '../engine/statblock';
@@ -494,7 +495,7 @@ export interface PendingHandGate {
    *  de la cascade des 3 sites de déclaration : flux normal / Tir rapide / Pilonnage). Sérialisable (coop). */
   pa: PendingAttack;
   title: string;
-  icon: string;
+  icon: IconId;
 }
 /** Pilonnage INDIRECT EN COURS (« viser une case », AA 10 l.169/171) : une pièce indirecte SERVIE attend le
  *  POINT D'IMPACT au sol — placeur de zone PARTAGÉ (`placingZoneOf` source 'siege', même gabarit que les
@@ -2098,7 +2099,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   kind: GenreDeCascade;
   /** Héros qui lance (résolu via `actorIn`). Absent → étape de groupe (rare). */
   actorId?: string;
-  icon?: string;
+  icon?: IconId;
   /** Étape-JET : le jet d'attaque/défense/magie/Test/désengagement/porte EST l'étape 0 de
    *  la séquence, rendu par `CascadeModal` via le hook ou la modale correspondante (`useAttackJetProps`/
    *  `useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
@@ -2318,7 +2319,7 @@ export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; auxV
  * d'étape (conséquence par `kind` au lieu d'un cumul de DR) change. */
 export interface PendingCascade extends MultiPending<CascadeStep> {
   title: string;
-  icon?: string;
+  icon?: IconId;
   /** Index de l'étape courante dans `participants`. */
   cursor: number;
   /**

@@ -1929,7 +1929,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect([line.effect.detectTriedBy, line.effect.identified]).toEqual([['a'], false]);
     banc.getState().evaluerLObjet(uid, 'detection');
     expect(banc.getState().pendingAppraise).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectDejaTentee', { label: line.label }));
+    expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectionDejaTentee', { label: line.label }));
   });
 
   it('Détection d’artefact (LDB 10 l.336) : un second détecteur tente le même artefact ; DR≥1 → identifié', () => {

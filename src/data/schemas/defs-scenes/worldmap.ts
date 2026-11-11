@@ -11,7 +11,7 @@ import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { effectSchema, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme, pointDuPlanSchema } from '../grammaire/valeurs';
+import { enumNomme, idDIconeSchema, pointDuPlanSchema } from '../grammaire/valeurs';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema } from '../grammaire/route';
 import { idDe, recordDIds, ref, refs } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -102,7 +102,7 @@ export const placePoiSchema = nommerChamps(z
     label: z.string(),
     /** Coordonnées PLAN-LOCALES, indépendantes de `MapPlace.pos`. */
     pos: pointDuPlanSchema,
-    icon: z.string().optional(),
+    icon: idDIconeSchema.optional(),
     sceneId: ref(SCENES_DU_PROJET).optional(),
     serviceKind: ref('serviceDeLieu').optional(),
   })
@@ -124,7 +124,7 @@ export const mapPlaceSchema = nommerChamps(z.strictObject({
   scene: ref(SCENES_DU_PROJET),
   entry: z.string().optional(),
   /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
-  icon: z.string().optional(),
+  icon: idDIconeSchema.optional(),
   port: portProfileSchema.optional(),
   market: landMarketProfileSchema.optional(),
   services: z.array(placeServiceSchema).optional(),

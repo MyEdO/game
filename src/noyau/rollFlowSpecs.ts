@@ -1154,7 +1154,7 @@ export const FLOWS = paresseux({
     // Issue CANONIQUE : la cible RÉSISTE au sort (`resisted`) ; sinon le lanceur l'emporte → SA Chance (héros défenseur).
     outcome: (part) => sealOutcome(!!part.result?.resisted, part.result?.oppose.sl ?? 0, part.result?.oppose.roll ?? 0, part.result?.oppose.target ?? 0),
     // `resister` : « résister aux sorts » = la menace 'Magie' du talent (tag posé par openCastOpposition).
-    caps: { forced: true, resist: true },
+    caps: { forced: true, resister: true },
     // ACCESSEUR DE DÉ : le dé de la cible vit dans `result.oppose`. LDB 17 l.68 — « vous choisissez le
     // résultat » ; Test opposé contre l'incantation FIGÉE → « vous l'emportez avec au moins DR +1 »
     // (`resilience` : la cible résiste). Un dé FIXÉ s'évalue au naturel — l'opposition tranche.
@@ -1308,7 +1308,7 @@ export const FLOWS = paresseux({
     // gagné dépend du dé, LDB 21 l.27) — pas sur une étape BINAIRE (Terreur/cible/Test de scène/nuit/opposé).
     caps: {
       forced: true,
-      resist: true,
+      resister: true,
     },
     bonus: {
       derive: (_s, st) => {
@@ -1795,7 +1795,7 @@ export const FLOWS = paresseux({
       forced: true,
       // Le tag `menace` de la rangée (`PendingBase.menace`, posé à la construction par le producteur de
       // la bande — comme sur l'étape mono) ouvre le verbe ; `resolve` reçoit alors `{ sl: BE }`.
-      resist: true,
+      resister: true,
     },
     resolve: (s, r, actor, _get, forced) => {
       if (!actor) return null; // rangée sans acteur résoluble (parité historique) — pas de jet
@@ -2251,10 +2251,10 @@ export const FLOWS = paresseux({
     key: 'pendingCorruption',
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.heroId),
-    // Résistance (Menace) (LDB 10, `caps.resist`) : exposition → menace 'Corruption' ; seuil (échec =
+    // Résistance (Menace) (LDB 10, `caps.resister`) : exposition → menace 'Corruption' ; seuil (échec =
     // mutation) → menace 'Mutation'. Résilience (LDB 17 l.68, `caps.forced`) : ce Test en est un comme
     // un autre. Test SIMPLE → aucun plancher opposé ; l'accesseur de dé vient de la lentille.
-    caps: { forced: true, resist: true },
+    caps: { forced: true, resister: true },
     resolve: (_s, p, actor) => (actor ? jetPose(jetDeLaLigne(ligneDuTestNomme(actor, p.test))) as Partial<PendingCorruption> : null),
     outcome: (p) => rollOutcome(p.roll, p.target ?? 0, p.sl),
     // Chance « +1 DR » (`bumpSL`, success intact), Résilience (LDB 17 l.68 — dé par défaut ET dé choisi,
