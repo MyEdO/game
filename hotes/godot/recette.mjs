@@ -144,7 +144,7 @@
 //   la composition et sur les matériaux de la pièce ; pièce skinnée montée et démontée, courtaud, corpulence aux
 //   bornes, marche au clavier au corps neutre et couplage de la racine au temps du clip, puis repos.
 // - `preset` (`--preset <id>`) : sur le dossier des modèles du projet, à deviceScaleFactor 2, la base du preset choisie à
-//   l'onglet Outils, puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
+//   la liste de tête « Corps », puis le preset à l'onglet Personnage ; le personnage composé sans erreur, chaque chose qu'il porte
 //   montée dans la scène ou nommée manquante, capturé de face, de trois quarts et de dos (glissés au bouton droit de l'orbite) : ce que
 //   le jeu montrera d'un preset.
 // Chaque étape est assertée ; une assertion fausse, une erreur relevée par le pont (`erreursGlobales`) ou une erreur de
@@ -2793,9 +2793,8 @@ async function parcoursPreset() {
   await session.rpc('Page.reload')
   await waitFor(session, '!!globalThis.wfrpEcran && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   await cliquerBouton('Atelier')
-  await attendreLAtelier('Array.isArray(a.erreurs)', 120000)
-  await cliquerBouton('Outils')
-  await cliquerAmene('humanoide', 1)
+  await attendreLAtelier('a.base === "humanoide"', 120000)
+  await choisirDansLaListe('modele/corps', 'humanoide')
   await attendreLAtelier('a.base === "humanoide"', 120000)
   await cliquerBouton('Personnage')
   await cliquerAmene(preset.label, -1)
