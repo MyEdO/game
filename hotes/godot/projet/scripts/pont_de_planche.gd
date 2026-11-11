@@ -1,12 +1,15 @@
-## Le pont d'une planche (#3935) : il rend à `demarrer`, à `monde` et à `aretes` les réponses enregistrées d'un état de
-## partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont de la page. Le combat
+## Le pont d'une planche (#3935) : il rend à `demarrer`, à `monde`, à `morceaux`, à `retrait` et à `aretes` les réponses
+## enregistrées d'un état de partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont de la
+## page. Le combat
 ## (`combat.gd`) montre alors cet état comme une partie qu'il démarre, sans la jouer.
 class_name PontDePlanche
 extends PontDuNoyau
 
 ## @contrat Écran publié
 ## Une planche est un état de partie enregistré (`hotes/godot/etalons/planches/<nom>.json`, servi sous
-## `planches/<nom>.json`, le monde de son scénario sous `planches/mondes/<scenario>.json`). L'adresse `?planche=<nom>`
+## `planches/<nom>.json` : les réponses de `demarrer`, `aretes` et `retrait`), le monde de son scénario sous
+## `planches/mondes/<scenario>.json` (`{ monde, morceaux }` : la réponse de `monde`, et celle de `morceaux` à toutes ses
+## clés, que le pont de la planche rend à toute entrée). L'adresse `?planche=<nom>`
 ## l'ouvre à la place du menu d'entrée : le combat la montre par son routeur, comme la partie de `?scenario=` qu'il
 ## démarre, et un geste qu'on y presse est refusé par le pont, aucune partie n'étant démarrée. `&monde=sans` ne dessine
 ## pas le monde 3D sous l'écran (`Viewport.disable_3d`) : l'image ne dépend alors que de l'interface. Godot publie à la
@@ -57,7 +60,11 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 			"demarrer":
 				return _planche.demarrer
 			"monde":
-				return _monde
+				return _monde.monde
+			"morceaux":
+				return _monde.morceaux
+			"retrait":
+				return _planche.retrait
 			"aretes":
 				return _planche.aretes
 	return super(methode, entree)

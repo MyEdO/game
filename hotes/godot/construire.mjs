@@ -104,7 +104,7 @@ async function empaqueter(sortie) {
 }
 
 /** Les API de navigateur que le bundle lit, et que la page de Godot porte : chacune prise au global de Node, rien de plus. */
-const API_DU_NAVIGATEUR = ['structuredClone', 'console', 'performance', 'URL', 'atob', 'setTimeout', 'clearTimeout', 'queueMicrotask']
+const API_DU_NAVIGATEUR = ['structuredClone', 'console', 'performance', 'URL', 'atob', 'btoa', 'setTimeout', 'clearTimeout', 'queueMicrotask']
 
 /** Le scénario que l'exécution démarre : le combat des tests du pont (`hotes/godot/pont/tour.hors-store.test.ts`). */
 const SCENARIO = 'dome'

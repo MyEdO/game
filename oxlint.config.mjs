@@ -210,6 +210,9 @@ const VERROU_SANS_HOTE_SYNTAXE = [
   "NewExpression[callee.name='Date'][arguments.length=0]",
   "CallExpression[callee.name='Date']",
 ].map((selector) => ({ selector, message: MSG_SANS_HOTE }));
+const SOURCE_DU_BASE64 = 'src/lib/base64.ts';
+const CODECS_BASE64 = ['btoa', 'atob'];
+const MSG_BASE64 = `Base64 (#3948) : \`btoa\` et \`atob\` ne s’écrivent que dans \`${SOURCE_DU_BASE64}\` ; des octets passent par \`enBase64\`, un texte par \`depuisBase64\`.`;
 const GLOBALES_D_HOTE = [...HOTES, 'performance', 'crypto', 'document', 'navigator', 'location', 'fetch', 'indexedDB', 'process', 'queueMicrotask', 'requestIdleCallback', 'requestAnimationFrame'];
 
 const TYPES_CLAVIER = '/^key(down|up|press)$/';
@@ -710,6 +713,15 @@ export const BLOCS_LINT = [
     files: CODE_DES_ZONES,
     excludeFiles: ['src/web/entropie.ts', '**/*.test.*', '**/*.bench.*'],
     rules: { 'murs/entropie': ['error', ...VERROU_ENTROPIE] },
+  },
+  {
+    // #3948
+    files: CODE_DES_ZONES,
+    excludeFiles: [SOURCE_DU_BASE64, '**/*.test.*', '**/*.bench.*'],
+    rules: {
+      'murs/base64': ['error', ...CODECS_BASE64.map((name) => ({ name, message: MSG_BASE64 }))],
+      'murs/base64-hote': ['error', ...HOTES.flatMap((object) => CODECS_BASE64.map((property) => ({ object, property, message: MSG_BASE64 })))],
+    },
   },
   {
     // #2817

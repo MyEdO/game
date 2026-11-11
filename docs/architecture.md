@@ -320,6 +320,8 @@ src/lib/                     Couche NEUTRE, feuille de `COUCHES`, en amont de to
                             `lireLeTexte` et `retirerLaCle`, et les lecteurs JSON appliqués à un `Stockage` : `lireDictionnaire`
                             et `lireTableau`, avec `lesChaines` (#2404) ; `stockage.testkit.ts`, ses stockages de test (en mémoire, qui lève,
                             posé en `localStorage`).
+                            `base64.ts` : le base64 des octets dans les deux sens (`enBase64`, `depuisBase64`),
+                            seul site de `btoa` et `atob` (`murs/base64`, #3948).
 src/web/                     Services d'exécution du NAVIGATEUR (`window`, `document`, `localStorage`,
                             `indexedDB`, `setTimeout`, `navigator`), feuille de `COUCHES` : `state`,
                             `audio` et la présentation l'importent, ni `noyau` ni `data`.

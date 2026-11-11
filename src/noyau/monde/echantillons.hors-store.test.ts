@@ -8,6 +8,7 @@ import { cretesDePerimetre } from './volume/creneaux';
 import { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type FamilleDEchantillon } from './echantillons';
 
 const matieres = (dessine: { surfaces: { matiere: string }[] }): string[] => dessine.surfaces.map((s) => s.matiere);
+const matieresDuVolume = (volume: { morceaux: { surfaces: { matiere: string }[] }[] }): string[] => volume.morceaux.flatMap(matieres);
 const entrees = (famille: FamilleDEchantillon): string[] => famillesDEchantillons().find((f) => f.id === famille)!.entrees.map((e) => e.id);
 
 describe('les échantillons du monde (#3802)', () => {
@@ -22,12 +23,12 @@ describe('les échantillons du monde (#3802)', () => {
   });
 
   it.each(entrees('decor'))('le décor %s se pose en volume, chaque primitive à sa matière', (id) => {
-    const posees = new Set(matieres(echantillonDessine('decor', id).monde).filter((m) => m.startsWith('prop--')));
+    const posees = new Set(matieresDuVolume(echantillonDessine('decor', id).monde).filter((m) => m.startsWith('prop--')));
     expect(posees).toEqual(new Set(findPropById(id)!.volume.primitives.map((p) => `prop--${p.material}`)));
   });
 
   it.each(entrees('sol'))('le sol %s couvre la scène de sa matière', (id) => {
-    expect(matieres(echantillonDessine('sol', id).monde)).toContain(`terrain--${id}`);
+    expect(matieresDuVolume(echantillonDessine('sol', id).monde)).toContain(`terrain--${id}`);
   });
 
   it.each(entrees('relief'))('la matière de relief %s habille chaque partie de la terrasse', (id) => {
@@ -35,7 +36,7 @@ describe('les échantillons du monde (#3802)', () => {
     const parties = buildFloors(scene, undefined, { activeZ: Math.max(...scene.layers.map((l) => l.z)) })
       .flatMap((el) => el.faces).filter((f) => f.material.domain === 'relief' && f.material.id === id).map((f) => f.material.part);
     expect([...new Set(parties)].sort()).toEqual([...PARTS_RELIEF].sort());
-    expect(matieres(echantillonDessine('relief', id).monde)).toContain(`relief--${id}`);
+    expect(matieresDuVolume(echantillonDessine('relief', id).monde)).toContain(`relief--${id}`);
   });
 
   it.each(entrees('toit'))('la matière de toit %s couvre une nappe par profil', (id) => {
@@ -56,6 +57,6 @@ describe('les échantillons du monde (#3802)', () => {
     const cretes = cretesDePerimetre(sceneDEchantillon('mur', apparence.id));
     expect(new Set(cretes.map(({ arete: { x, y, side } }) => `${x},${y},${side}`)).size).toBe(apparence.parapet ? 4 : 0);
     expect(cretes.every((c) => c.apparence.id === apparence.id)).toBe(true);
-    expect(matieres(echantillonDessine('mur', apparence.id).monde).includes(`structure--${apparence.id}`)).toBe(apparence.parapet !== undefined);
+    expect(matieresDuVolume(echantillonDessine('mur', apparence.id).monde).includes(`structure--${apparence.id}`)).toBe(apparence.parapet !== undefined);
   });
 });

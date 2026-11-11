@@ -11,9 +11,9 @@
  * éléments (#3606 M1a).
  */
 import { describe, expect, it } from 'vitest';
-import { erreurDe, modelesCommites, servirLesModeles, table, type Reponse } from './pont.testkit';
-import type { NavireServi } from './pont';
-import type { AreteDessinee, Scene, VolumeDuMonde } from '../../../src/noyau/index';
+import { erreurDe, modelesCommites, morceauxDe, servirLesModeles, table, type Reponse } from './pont.testkit';
+import type { MondeDuPont, MorceauxDuPont, NavireServi } from './pont';
+import type { AreteDessinee, RetraitDuMonde, Scene } from '../../../src/noyau/index';
 import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import type { Bouton, Choix, Formulaire, Ligne } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
@@ -29,7 +29,8 @@ import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };
   surcouche: SurcoucheDeLEdition;
-  monde?: VolumeDuMonde;
+  monde?: NonNullable<MondeDuPont['monde']>;
+  retrait?: RetraitDuMonde;
   aretes?: AreteDessinee[];
   navires?: Record<string, NavireServi>;
   depot?: { id: string; texte: string };
@@ -84,7 +85,8 @@ describe('l’éditeur de carte par le pont', () => {
     const ouverte = editionDe(appel('editer', { ouvrir: CAMPAGNE }));
     expect(ouverte.vue.zones['editeur.titre']).toHaveLength(1);
     expect(boutonDe(ouverte, 'outil/select').presse).toBe(true);
-    expect(ouverte.monde!.cases.length, 'le monde de la scène, à l’ouverture').toBeGreaterThan(0);
+    expect(ouverte.monde!.morceaux.length, 'le manifeste du monde de la scène, à l’ouverture').toBeGreaterThan(0);
+    expect(ouverte.retrait, 'et le masque de la couche éditée').toMatchObject({ largeur: expect.any(Number), rangees: 2 * ouverte.monde!.hauteurs.length * ouverte.monde!.hauteurs[0].rangees.length });
     expect(boutonDe(ouverte, 'annuler').refus).toBe('Rien à annuler');
 
     const visee = jouer({ geste: 'appui', point: point(1, 1) });
@@ -103,7 +105,16 @@ describe('l’éditeur de carte par le pont', () => {
     const fini = jouer({ geste: 'relache', point: point(1, 1) });
     expect(fini.surcouche.cases).toEqual([]);
     expect(fini.monde, 'au relâché, le monde peint').toBeDefined();
-    expect(fini.monde).not.toEqual(ouverte.monde);
+    const empreinteAvant = new Map(ouverte.monde!.morceaux.map((m) => [m.cle, m.empreinte]));
+    const bouges = fini.monde!.morceaux.filter((m) => empreinteAvant.get(m.cle) !== m.empreinte);
+    expect(bouges.length, 'des morceaux ont bougé').toBeGreaterThan(0);
+    expect(bouges.map((m) => m.cle).filter((cle) => !/^(sol|pose)\/0\/0\/0$/.test(cle)), 'seuls ceux du bloc de la case peinte').toEqual([]);
+    const recus = appel('morceaux', { source: 'edition', volume: bouges.map((m) => m.cle), toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(recus.volume.map((m) => [m.cle, m.empreinte]), 'morceaux, source edition, les rend tels qu’au manifeste').toEqual(bouges.map((m) => [m.cle, m.empreinte]));
+    const cles = fini.monde!.morceaux.map((m) => m.cle);
+    const tous = appel('morceaux', { source: 'edition', volume: ['sol/99/0/0', ...[...cles].reverse()], toits: [], couronnes: [] }) as unknown as MorceauxDuPont;
+    expect(cles.length, 'plusieurs morceaux').toBeGreaterThan(1);
+    expect(tous.volume.map((m) => m.cle), 'dans l’ordre du manifeste, l’inconnue omise').toEqual(cles);
 
     const annule = presser(boutonDe(fini, 'annuler'));
     expect(annule.monde).toEqual(ouverte.monde);
@@ -1192,8 +1203,9 @@ describe('l’éditeur de carte par le pont, le navire (#3772)', () => {
     const posee = editionDe(appel('editer', { edition: { geste: 'appui', point: point(10, 6) } }));
     expect(Object.keys(posee.navires!)).toEqual(['navire-0']);
     expect(posee.navires!['navire-0']).toMatchObject({ corps: { element: 'vehicule--caraque', cap: 'E', taille: 'reelle' } });
-    expect(posee.monde!.surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
-    expect(posee.monde!.surfaces.filter((sf) => sf.flottaison === 'navire-0').length, 'sa mer').toBeGreaterThan(0);
+    const surfaces = morceauxDe(appel, 'edition', posee.monde!).flatMap((m) => m.surfaces);
+    expect(surfaces.filter((sf) => sf.navire === 'navire-0').length, 'le sol de ses ponts, touché sans être peint').toBeGreaterThan(0);
+    expect(surfaces.filter((sf) => sf.flottaison === 'navire-0').length, 'sa mer').toBeGreaterThan(0);
     const couches = posee.vue.zones['editeur.couches'].find((el) => el.id === 'couches') as Choix;
     expect(couches.valeurs.map((b) => b.id)).toEqual(['couche/0', 'couche/1', 'couche/2', 'couche/3']);
     const pont = presser(boutonDe(posee, 'couche/2'));

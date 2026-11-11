@@ -31,8 +31,6 @@ matiere_du_calque = SubResource("Materiau_calque")
 
 [node name="Corps" type="StaticBody3D" parent="VolumeDeScene/Volume"]
 
-[node name="Forme" type="CollisionShape3D" parent="VolumeDeScene/Volume/Corps"]
-
 [node name="Meteo" type="Node3D" parent="VolumeDeScene/Volume"]
 
 [node name="Surbrillance" type="Node3D" parent="."]

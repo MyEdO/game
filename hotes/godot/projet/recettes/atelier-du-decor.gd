@@ -66,7 +66,7 @@ func _conforme(pont: PontFige, cle: String, reponse: Dictionary, geste: String) 
 	var attendu := {
 		famille = entree.famille,
 		id = entree.id,
-		triangles = reponse.monde.cases.size(),
+		triangles = reponse.monde.morceaux.reduce(func(somme: int, morceau: Dictionary) -> int: return somme + morceau.cases.size(), 0),
 		aretes = reponse.aretes.size(),
 		toits = reponse.toits.size(),
 		couronnes = reponse.couronnes.size() - reponse.couronnesAbattues.size(),

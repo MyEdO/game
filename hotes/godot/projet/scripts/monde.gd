@@ -1,14 +1,14 @@
 ## Le monde 3D d'une scène, que le plateau du jeu et l'éditeur de carte instancient tous deux : le volume de la scène
-## (`VolumeDeScene`, `volume`), touché des deux côtés, sa lumière, et ses caméras (`regarder`) : celle des regards
+## (`VolumeDeScene`, `volume`), touché des deux côtés par une forme par morceau, au-delà de ce que son masque retire, sa
+## lumière, et ses caméras (`regarder`) : celle des regards
 ## `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E d'un quart de tour, bouton du milieu tenu
 ## librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour revenir au lieu suivi), centrée sur lui puis
 ## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), posé au centre de la part de la fenêtre que
 ## l'interface laisse au monde (`cadre`), de biais en tactique, à la verticale et sans perspective au plateau ; et l'œil
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
-## (`forces_du_clavier`). Il rend la caméra posée (`camera`), la case du
-## triangle que le rayon du pointeur
-## touche et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
+## (`forces_du_clavier`). Il rend la caméra posée (`camera`), la case du triangle que le rayon du pointeur touche, hors
+## des cases que le masque du volume retire, et le point de la carte touché, et le point de l'écran d'un lieu ; il pose les plaques de surbrillance et les
 ## noms que lui passe qui l'instancie, l'arête choisie, les nappes de toit du volume, chacune levée quand le groupe est
 ## dessous, ses couronnes crénelées, chacune cachée quand son mur tombe, ses arêtes dégagées, abattues sous le cran de
 ## la caméra (`cacher_le_bati`), la météo (`poser_la_meteo`) et le calque de référence de l'éditeur ; tout autre chose
@@ -24,6 +24,8 @@ const DUREE_QUART_S := 0.25
 const TANGAGE_TACTIQUE := -0.9
 ## Une hauteur sous tout monde, où finit le rayon qui cherche le sol sous un lieu.
 const SOUS_LE_MONDE := -1000.0
+## Le nombre de fois au plus qu'un rayon reprend au-delà d'une case que le masque du volume retire (`_toucher`).
+const TRAVERSEES_DU_RAYON := 64
 ## La vitesse (m/s) de la caméra qui glisse au clavier.
 const VITESSE_DE_GLISSE_M_S := 16.0
 ## La distance (cases) en deçà de laquelle une particule de météo s'efface devant la caméra, et celle où elle est
@@ -50,7 +52,7 @@ const ACTIONS_DE_MARCHE: Array[StringName] = [&"gauche", &"droite", &"avant", &"
 
 ## Le volume de la scène, que qui instancie le monde pose (`VolumeDeScene`).
 @onready var volume: VolumeDeScene = $VolumeDeScene
-@onready var _forme: CollisionShape3D = $VolumeDeScene/Volume/Corps/Forme
+@onready var _corps: StaticBody3D = $VolumeDeScene/Volume/Corps
 @onready var _meteo: Node3D = $VolumeDeScene/Volume/Meteo
 @onready var _pivot: Node3D = $Pivot
 @onready var _inclinaison: Node3D = $Pivot/Inclinaison
@@ -61,8 +63,6 @@ const ACTIONS_DE_MARCHE: Array[StringName] = [&"gauche", &"droite", &"avant", &"
 @onready var _arete_choisie: MeshInstance3D = $AreteChoisie
 @onready var _calque: MeshInstance3D = $Calque
 
-## La case `[x, y, z]` de chaque triangle du maillage du monde, sa couche comprise, dans son ordre.
-var _cases_des_triangles: Array = []
 ## Le son de la météo qui joue en boucle, `null` sans son (`poser_la_meteo`).
 var _son_de_la_meteo: AudioStreamPlayer = null
 ## Par couche `z`, le sol de chaque case, `[y][x]`.
@@ -98,30 +98,41 @@ func _ready() -> void:
 	_lacet = _pivot.rotation.y
 
 
-## Le volume du monde de la scène (`monde`) posé par le volume (`VolumeDeScene.poser`), avec l'ombre de ce que le
-## regard en retire, en forme hors des mers des navires, que le rayon du pointeur touche des deux côtés, le sol de chaque
-## case de chaque couche, et la caméra centrée sur lui. Chaque tableau du volume retourné en entier
-## (`VolumeDeScene._maillage_de`) retourne l'ordre des triangles, que suivent leurs cases.
-func poser(monde: Dictionary) -> void:
-	volume.poser(monde)
-	var tous := PackedFloat32Array(monde.positions).to_byte_array().to_vector3_array()
+## Le monde du manifeste `monde` (`{ monde, toits, couronnes }`, méthode `monde`) posé par le volume
+## (`VolumeDeScene.poser`, les géométries reçues `recus`, réponse de `morceaux`), chaque morceau en forme sous le corps
+## du monde, réconciliée comme lui (`VolumeDeScene.reconcilier`, `_forme_de`), le sol de chaque case de chaque couche, et
+## la caméra centrée sur lui.
+func poser(monde: Dictionary, recus: Dictionary) -> void:
+	volume.poser(monde, recus)
+	VolumeDeScene.reconcilier(_corps, monde.monde.morceaux, VolumeDeScene.par_cle(recus.volume), _forme_de)
+	_sols.clear()
+	for couche in monde.monde.hauteurs:
+		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.monde.metresParCase)))
+	_pivot.position = MiseEnPage.centre_du_plateau(taille())
+
+
+## La forme du morceau `morceau` (`MorceauDuMonde`) que le rayon du pointeur touche des deux côtés, hors des mers des
+## navires (`flottaison`), avec la case de chacun de ses triangles (`cases`, dans leur ordre) et la première rangée de
+## son plan au masque (`rangee`) ; `null` s'il n'a que de la mer.
+func _forme_de(morceau: Dictionary) -> CollisionShape3D:
+	var tous := PackedFloat32Array(morceau.positions).to_byte_array().to_vector3_array()
 	var sommets := PackedVector3Array()
-	_cases_des_triangles = []
-	for surface: Dictionary in monde.surfaces:
+	var cases := []
+	for surface: Dictionary in morceau.surfaces:
 		if surface.has("flottaison"):
 			continue
 		sommets.append_array(tous.slice(int(surface.debut), int(surface.fin)))
-		_cases_des_triangles.append_array(monde.cases.slice(int(MiseEnPage.triangles(int(surface.debut))), int(MiseEnPage.triangles(int(surface.fin)))))
-	sommets.reverse()
-	_cases_des_triangles.reverse()
+		cases.append_array(morceau.cases.slice(int(MiseEnPage.triangles(int(surface.debut))), int(MiseEnPage.triangles(int(surface.fin)))))
+	if sommets.is_empty():
+		return null
 	var forme := ConcavePolygonShape3D.new()
 	forme.set_faces(sommets)
 	forme.backface_collision = true
-	_forme.shape = forme
-	_sols.clear()
-	for couche in monde.hauteurs:
-		_sols[int(couche.z)] = couche.rangees.map(func(rangee: Array) -> Array: return rangee.map(func(hauteur: float) -> float: return MiseEnPage.hauteur_au_plateau(hauteur, monde.metresParCase)))
-	_pivot.position = MiseEnPage.centre_du_plateau(taille())
+	var noeud := CollisionShape3D.new()
+	noeud.shape = forme
+	noeud.set_meta("cases", cases)
+	noeud.set_meta("rangee", int(morceau.rangee))
+	return noeud
 
 
 ## La météo du regard (`meteo`, `CONTRAT.md`, section « Monde ») dans le volume, à la place de la précédente : une
@@ -373,23 +384,33 @@ func a_l_ecran(lieu: Vector3) -> Variant:
 ## Ce que le rayon de la caméra du regard par `point` touche le premier (`_toucher`), `null` hors du monde.
 func touche_sous(point: Vector2) -> Variant:
 	var camera := get_viewport().get_camera_3d()
-	return _toucher(camera.project_ray_origin(point), camera.project_position(point, camera.far))
+	return _toucher(camera.project_ray_origin(point), camera.project_position(point, camera.far), camera.project_ray_normal(point))
 
 
 ## Le sol que touche le premier un rayon tombé à la verticale de `lieu` (`_toucher`), `null` hors du monde.
 func sol_sous(lieu: Vector3) -> Variant:
-	return _toucher(lieu, Vector3(lieu.x, SOUS_LE_MONDE, lieu.z))
+	return _toucher(lieu, Vector3(lieu.x, SOUS_LE_MONDE, lieu.z), Vector3.DOWN)
 
 
-## Ce que le rayon de `origine` à `fin` touche le premier : `{ case, f, lieu }`, la case de son triangle et sa couche
-## (`Vector3i(x, y, z)`), le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`) et le lieu touché, `null`
-## hors du monde.
-func _toucher(origine: Vector3, fin: Vector3) -> Variant:
-	var touche := get_world_3d().direct_space_state.intersect_ray(PhysicsRayQueryParameters3D.create(origine, fin))
-	if touche.is_empty():
-		return null
-	var case: Array = _cases_des_triangles[touche.face_index]
-	return {case = Vector3i(int(case[0]), int(case[1]), int(case[2])), f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
+## Ce que le rayon de `origine` à `fin`, de sens `sens`, touche le premier hors des cases que le masque du volume retire
+## (`VolumeDeScene.retiree`) : touchant une case retirée, il reprend au-delà (`MiseEnPage.point_au_dela`), au plus
+## `TRAVERSEES_DU_RAYON` fois. Rend `{ case, f, lieu }`, la case du triangle touché et sa couche (`Vector3i(x, y, z)`,
+## lue à la forme de son morceau, `_forme_de`), le point de la carte touché (`MiseEnPage.point_de_carte_du_lieu`) et le
+## lieu touché ; `null` hors du monde.
+func _toucher(origine: Vector3, fin: Vector3, sens: Vector3) -> Variant:
+	var requete := PhysicsRayQueryParameters3D.create(origine, fin)
+	var rayon := Basis(Quaternion(Vector3.FORWARD, sens))
+	for _traversee in TRAVERSEES_DU_RAYON:
+		var touche := get_world_3d().direct_space_state.intersect_ray(requete)
+		if touche.is_empty():
+			return null
+		var forme := _corps.shape_owner_get_owner(_corps.shape_find_owner(touche.shape)) as CollisionShape3D
+		var c: Array = forme.get_meta("cases")[touche.face_index]
+		var case := Vector3i(int(c[0]), int(c[1]), int(c[2]))
+		if not volume.retiree(Vector2i(case.x, case.y), forme.get_meta("rangee")):
+			return {case = case, f = MiseEnPage.point_de_carte_du_lieu(to_local(touche.position)), lieu = touche.position}
+		requete.from = MiseEnPage.point_au_dela(touche.position, rayon)
+	return null
 
 
 ## La case du triangle du monde et sa couche (`Vector3i(x, y, z)`) que le rayon de la caméra par `point` touche le premier,
@@ -610,22 +631,35 @@ func _zoomer(sens: float) -> void:
 ## @contrat Monde
 ## Le volume de la scène (`projet/scenes/VolumeDeScene.tscn`, `VolumeDeScene`, #3802), que le monde
 ## (`projet/scenes/Monde.tscn`, que le plateau du jeu et l'éditeur de carte instancient, #3508) et l'atelier (section
-## « Atelier 3D ») instancient tous deux, le pose une fois, à l'échelle `1 / metresParCase` et décalé d'une demi-case,
-## dans son repère d'une unité par case, avec les arêtes, les nappes de toit et les couronnes ; le monde le tient sous
-## sa lumière et sa caméra et en tire la forme que touche le rayon du pointeur ; les pions, les surbrillances et les
-## noms se posent à la hauteur de leur case (`hauteurs`, en mètres), et la case cliquée est celle du triangle que le
-## rayon du pointeur touche, sa couche comprise (`cases`) : un plancher d'étage désigne sa case à l'étage. Les
-## tableaux plats se chargent tels quels en tableaux de vecteurs et de
-## couleurs (`PackedByteArray.to_vector3_array`, `to_color_array`).
+## « Atelier 3D ») instancient tous deux, se pose à l'échelle `1 / metresParCase` et décalé d'une demi-case, dans son
+## repère d'une unité par case, par morceaux (#3948) : Godot lit le manifeste (méthode `monde`), demande à `morceaux`
+## les seules clés dont l'empreinte diffère de celle qu'il a posée (`VolumeDeScene.manquants`), et réconcilie par clé
+## (`VolumeDeScene.poser`) : un morceau, une nappe de toit ou une couronne dont l'empreinte n'a pas bougé garde son nœud,
+## un reçu le remplace, une clé partie quitte l'arbre. Chaque morceau est un nœud nommé par sa clé : une instance vue,
+## sans ombre portée, et une instance en ombre seule (`SHADOWS_ONLY`) du même maillage, dont chaque sommet porte en
+## `UV2` le texel de sa case au masque du retrait (`rangee + y`, colonne `x`). Le monde le tient sous sa lumière et sa
+## caméra, et en tire une forme par morceau, hors des mers des navires, que touche le rayon du pointeur ; les pions,
+## les surbrillances et les noms se posent à la hauteur de leur case (`hauteurs`, en mètres), et la case cliquée est
+## celle du triangle que le rayon du pointeur touche, sa couche comprise (`cases`) : un plancher d'étage désigne sa case
+## à l'étage. Les tableaux plats se chargent tels quels en tableaux de vecteurs et de couleurs
+## (`PackedByteArray.to_vector3_array`, `to_color_array`).
 ##
-## Le monde rend chaque surface de sa texture, `projet/textures/<matiere>.jpg`, et de son relief,
+## Ce que le regard retire du volume ne touche à aucune géométrie : le masque (méthode `retrait`, rappelée quand
+## `plateau.cleDuRetrait` change ; `retrait` de `editer` à l'éditeur) devient une texture d'un octet par case
+## (`VolumeDeScene.retirer`), que le shader de monde (`projet/art/monde.gdshader`) lit dans `vertex()` pour replier
+## chaque sommet d'une case retirée ; l'instance en ombre seule n'est jamais masquée : le retiré ne se voit pas et porte
+## son ombre (recette `projet/recettes/ombres-du-regard.gd`). Le rayon du pointeur, et celui qui cherche le sol sous un
+## lieu, traverse une case retirée (`Monde._toucher`, recette `projet/recettes/morceaux-du-monde.gd`).
+##
+## Le shader de monde rend chaque surface de sa texture, `projet/textures/<matiere>.jpg`, et de son relief,
 ## `<matiere>.normale.jpg`, projetés sur les trois axes du volume, un motif tous les deux mètres ; une matière sans
 ## texture garde la couleur de ses sommets. La provenance et la licence de chaque texture sont dans
 ## `projet/textures/provenance.json` ; celles du kit des arêtes, dans `projet/kit/provenance.json` (dossiers épinglés,
 ## `asset/epingles.ts`).
 ##
-## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, que le rayon du pointeur
-## traverse (`VolumeDeScene.poser_les_nappes`). Aucune géométrie ni couleur ne se réécrit en GDScript.
+## Le monde pose chaque nappe de toit et chaque couronne crénelée en maillage sous le volume, dans une matière du shader
+## de monde que le masque ne lie jamais, et que le rayon du pointeur traverse. Aucune géométrie ni couleur ne se
+## réécrit en GDScript.
 ##
 ## `Monde.poser_la_meteo` pose la météo (`meteo`) dans le volume : une averse de particules par boîte, étirées dans le
 ## sens de leur chute, et chaque nappe translucide, sans éclairage ni brume de profondeur. Il joue aussi son son

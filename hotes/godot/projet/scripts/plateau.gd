@@ -239,11 +239,11 @@ func points() -> Dictionary:
 	return points
 
 
-## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume (`Monde.poser`), ses
-## nappes de toit et ses couronnes crénelées (`VolumeDeScene.poser_les_nappes`).
-func poser_le_monde(monde: Dictionary) -> void:
-	_monde.poser(monde.monde)
-	_monde.volume.poser_les_nappes(monde.toits, monde.couronnes)
+## Le monde de la scène (`monde`, la réponse de l'appel `monde`) sous le plateau : son volume, ses nappes de toit et
+## ses couronnes crénelées (`Monde.poser`, les géométries reçues `recus`, réponse de `morceaux`), et sa météo
+## (`Monde.poser_la_meteo`).
+func poser_le_monde(monde: Dictionary, recus: Dictionary) -> void:
+	_monde.poser(monde, recus)
 	_monde.poser_la_meteo(monde.meteo)
 
 

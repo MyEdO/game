@@ -3,8 +3,9 @@
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, et applique chaque réponse. Le texte qu'une
 ## réponse donne à enregistrer s'écrit au dépôt (`PUT depot/<id>`), et l'issue de l'écriture revient au pont.
 ## Avant d'ouvrir, il indexe les modèles du serveur (`MontageDeComposition.indexer_les_modeles`), que le pont lit pour
-## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`), sur la couche éditée, avec les arêtes de
-## la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
+## servir le corps de chaque navire. Le monde rendu va au monde (`Monde.poser`) : son manifeste, et la géométrie de ses
+## seuls morceaux dont l'empreinte a bougé (`morceaux`, source `edition`), masqué au-dessus de la couche éditée
+## (`retrait`, `VolumeDeScene.retirer`), avec les arêtes de la couche (`VolumeDeScene.poser_les_aretes`) et les navires de la scène, chacun sous le modèle de son corps
 ## (`MontageDesNavires`) ; la surcouche : chaque zone de la couche nommée au-dessus de sa première case, les cases de
 ## la zone sélectionnée en plaques, la poignée de la sélection en survol, puis chaque repère d'une entité ou d'une entrée
 ## de la couche, en plaque sur le sol de sa case, celle du repère sélectionné en survol, et nommé au-dessus d'elle
@@ -25,7 +26,8 @@ extends Node
 ## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
 ## menu) ouvre la campagne de l'adresse de la page (`?campagne=<id>`, la Diligence sans elle), avec le `projet` que sert
 ## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés
-## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`), ses arêtes
+## (`MontageDeComposition.indexer_les_modeles`), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
+## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
 ## (`VolumeDeScene.poser_les_aretes`) et ses navires, chacun sous le modèle de son corps comme au plateau
 ## (`MontageDesNavires`), la surcouche en plaques sur le sol de ses cases (`Monde.peindre`) : chaque zone nommée
 ## au-dessus de sa première case, les cases de la zone sélectionnée, la poignée de la sélection en survol, chaque
@@ -109,6 +111,21 @@ func _ready() -> void:
 	_suivre(_pont.appeler("editer", ouvrir))
 
 
+## Le monde d'une réponse de `editer` (`reponse.monde`, le manifeste du volume) posé au monde (`Monde.poser`), sans
+## nappe de toit ni couronne, la géométrie des seuls morceaux dont l'empreinte posée diffère demandée à `morceaux`
+## (`VolumeDeScene.manquants`), puis son masque (`reponse.retrait`, `VolumeDeScene.retirer`).
+func _poser_le_monde(reponse: Dictionary) -> void:
+	var monde := {monde = reponse.monde, toits = [], couronnes = []}
+	var manquants := _monde.volume.manquants(monde)
+	var recus := {volume = [], toits = [], couronnes = []}
+	if not manquants.volume.is_empty():
+		recus = _pont.appeler("morceaux", manquants.merged({source = "edition"}))
+		if recus.get("ok") != true:
+			return
+	_monde.poser(monde, recus)
+	_monde.volume.retirer(reponse.retrait)
+
+
 func _jouer(jeu: Dictionary) -> void:
 	_suivre(_pont.appeler("editer", jeu))
 
@@ -126,7 +143,7 @@ func _suivre(reponse: Dictionary) -> void:
 		return
 	_refus.text = ""
 	if reponse.has("monde"):
-		_monde.poser(reponse.monde)
+		_poser_le_monde(reponse)
 		_monde.volume.poser_les_aretes(reponse.aretes)
 		_navires.poser(reponse.navires, {}, reponse.monde.metresParCase)
 	_vue = reponse.vue

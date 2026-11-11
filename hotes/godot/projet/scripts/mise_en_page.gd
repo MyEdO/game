@@ -7,7 +7,8 @@
 ## d'un point, la largeur d'un texte de bulle replié, le point où se dit le nom de ce qui occupe une case, la pose
 ## d'une arête (mur ou porte) sur le côté de sa case et l'échelle d'une pièce du kit qui s'y pose, l'échelle métrique d'un modèle et d'une hauteur sur le plateau et
 ## la hauteur d'un point du corps à son gabarit, le point d'un lieu sur le plan et le coin de ce qui se pose sous lui, la
-## coupe d'un navire et le compte des triangles d'une géométrie. Seul script où l'arithmétique et la mesure sont permises
+## coupe d'un navire, le compte des triangles d'une géométrie, le texel d'une case au masque du retrait et le point
+## au-delà d'un point que touche un rayon. Seul script où l'arithmétique et la mesure sont permises
 ## (`scripts/guards/lib/gdscriptSansRegle.mjs`) : des constantes et des fonctions statiques, chacune typée et sur au
 ## plus un vecteur, sans état.
 class_name MiseEnPage
@@ -31,6 +32,8 @@ const JEU_ENTRE_RANGES := 0.02
 const JEU_DE_RANGEMENT := 0.005
 ## Le côté, en mètres, des cases où un objet rangé se confronte à ce qui est porté dessous (`case_de_contact`).
 const CASE_DE_CONTACT := 0.02
+## Le pas (unités du plateau) dont un rayon reprend au-delà d'un point touché (`point_au_dela`).
+const PAS_AU_DELA := 0.001
 ## La hauteur, en mètres, sous l'attache d'un objet rangé jusqu'où il s'appuie sur ce qui est porté ; plus bas, il pivote
 ## (`recul_sur_la_case`, `pivot_sur_la_case`).
 const APPUI_DE_RANGEMENT := 0.05
@@ -240,6 +243,22 @@ static func opacite_de_coupe(hauteur: float, bas: float, haut: float) -> float:
 ## Le nombre de triangles que portent `sommets` sommets, trois par triangle.
 static func triangles(sommets: int) -> float:
 	return sommets / 3.0
+
+
+## Le compte de `triangles` triangles, plus ceux que portent `sommets` sommets (`triangles`).
+static func triangles_de_plus(triangles: int, sommets: int) -> float:
+	return triangles + sommets / 3.0
+
+
+## Le texel, dans le masque du retrait (`RetraitDuMonde`), de la case `case` du plan de première rangée `rangee`.
+static func texel_du_masque(case: Vector2i, rangee: int) -> Vector2i:
+	return Vector2i(case.x, case.y + rangee)
+
+
+## Le point d'où un rayon reprend au-delà du point `touche` qu'il touche, de `PAS_AU_DELA` dans son sens, l'axe -Z du
+## repère `rayon`.
+static func point_au_dela(touche: Vector3, rayon: Basis) -> Vector3:
+	return touche - rayon.z * PAS_AU_DELA
 
 
 ## La hauteur du calque de référence posé sur le plan `plan` (mètres), décalé de `decalage` : juste au-dessus du sol
