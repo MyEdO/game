@@ -15,6 +15,8 @@ const ORIGINE := [0.0, 0.0, 0.0]
 const LARGEUR_D_EMBLEME := 512.0
 ## La métadonnée de la scène d'un GLB (`scene_du_glb`) qui porte, par nom, chacun de ses matériaux.
 const MATERIAUX := &"materiaux"
+## La droite du personnage dans le squelette de la base, son avant sur +Z (glTF), le sol à y = 0.
+const DROITE_DU_PERSONNAGE := Vector3(-1.0, 0.0, 0.0)
 ## Les corrections du tour d'un objet rangé à côté d'un autre, chacune sur ses sommets posés (`_ranger`).
 const PASSES_DE_TOUR := 2
 ## La métadonnée d'un mesh dont les shape keys sont cuites (`cuire_les_formes`) : son mesh à shape keys.
@@ -98,6 +100,10 @@ var pile: Dictionary = {}
 var _pile_fondue := ""
 ## La signature de la demande de pile en vol, `""` sans elle.
 var _pile_demandee := ""
+## Par id de prise montée dont l'élément se range à un emplacement de la base, ses nœuds tenus (`tenus`), ceux de sa
+## copie rangée (`ranges`) et la ligne `<emplacement>#<prise>` de cette copie dans `_rangements` (`rangement`) : le clip
+## joué montre l'un ou l'autre (`poser_le_clip`, #3806).
+var _tenus_ranges: Dictionary = {}
 
 
 ## La réponse `reponse` de `modeles` retenue : les GLB lus et les emblèmes rastérisés sous la précédente sont oubliés.
@@ -257,6 +263,7 @@ func vider() -> void:
 	emblemes.clear()
 	_emblemes_demandes.clear()
 	_demandes.clear()
+	_tenus_ranges.clear()
 	fusion = null
 
 
@@ -305,6 +312,9 @@ func demonter(id: String) -> void:
 		noeud.free()
 	_noeuds.erase(id)
 	_rangements.erase(id)
+	if _tenus_ranges.has(id):
+		_rangements.erase(_tenus_ranges[id].rangement)
+	_tenus_ranges.erase(id)
 	pieces.erase(id)
 	montes.erase(id)
 	emblemes.erase(id)
@@ -373,14 +383,52 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 	for rang in trouvees.size():
 		noeuds.append(_poser_la_piece(trouvees[rang], os_des_pieces[rang], sous, id))
 	scene.free()
-	pieces[id] = trouvees
-	_noeuds[id] = noeuds
+	var rangees: Array[MeshInstance3D] = []
+	var noeuds_ranges: Array[Node] = []
+	var rangement := _rangement_du_tenu(id, element)
+	var ligne := ""
+	if not rangement.is_empty():
+		ligne = "%s#%s" % [rangement.id, id]
+		var copie := await scene_du_glb(element, recueil)
+		if demande != _demandes.get(id):
+			for noeud in noeuds:
+				noeud.free()
+			if copie != null:
+				copie.free()
+			return false
+		if copie != null:
+			for noeud in copie.find_children("*", "MeshInstance3D", true, false):
+				var piece := noeud as MeshInstance3D
+				var noms := _os_de_la_piece(piece)
+				if not noms.is_empty():
+					rangees.append(piece)
+					noeuds_ranges.append(_poser_la_piece(piece, noms, sous, ligne))
+			copie.free()
+	var toutes := trouvees.duplicate()
+	toutes.append_array(rangees)
+	pieces[id] = toutes
+	var tous := noeuds.duplicate()
+	tous.append_array(noeuds_ranges)
+	_noeuds[id] = tous
+	if not noeuds_ranges.is_empty():
+		_tenus_ranges[id] = {tenus = noeuds, ranges = noeuds_ranges, rangement = ligne}
 	montes[id] = element
 	_ranger()
 	poser_les_morphes()
 	masquer_les_zones_couvertes()
 	poser_la_seconde_prise()
 	return true
+
+
+## Le premier emplacement de la base posée où se range `element`, monté à la prise `id` (les `elements` de ce point,
+## `emplacementsDeRangement` de sa forme), `{}` si `id` n'est pas une prise ou si l'élément ne se range nulle part.
+func _rangement_du_tenu(id: String, element: String) -> Dictionary:
+	if _point(id).get("genre") != "prise":
+		return {}
+	for point in base.get("points", []):
+		if point.genre == "emplacement" and element in point.elements:
+			return point
+	return {}
 
 
 ## @contrat Atelier 3D
@@ -415,20 +463,25 @@ static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
 ## @contrat Atelier 3D
 ## Un élément monté à la prise `main` qui a une seconde prise (`secondesPrises` de `modeles`) se tient des deux mains
 ## tant que la prise `secondaire` ne monte rien (#3319) : `MontageDeComposition.poser_la_seconde_prise`
-## (`projet/scripts/montage_de_composition.gd`), rappelée à chaque montage et démontage, pose sous le squelette, après
-## le gabarit, les modificateurs natifs de `SecondePrise.poser` (`projet/scripts/seconde_prise.gd`, tenus dans
-## `seconde_prise`), et les retire sinon. Dans l'ordre : un `AimModifier3D` tourne l'os de la prise `main` pour
-## pointer vers l'os de la prise `secondaire` du clip celui de ses axes le plus proche de la direction de la seconde prise ;
-## un `ModifierBoneTarget3D` suit cet os et porte le repère de la seconde prise, puis celui où l'os de la prise `secondaire`
-## la tient ; un `FABRIK3D` y ploie le bras de la main `secondaire` (l'os de la prise `secondaire` et ses deux parents), en partant
-## chaque fois de la pose du clip ; un `CopyTransformModifier3D` donne enfin à l'os de la main `secondaire` l'orientation de
-## ce repère, et à chacun de ses descendants la rotation de son homologue sous la main `main`, appariés enfant par
-## enfant, en même nombre (le poing de la main qui tient). La recette autonome `projet/recettes/seconde-prise.gd` le
-## vérifie à 1 mm. Le repos de l'atelier est le clip `repos` de la composition montée (`MontageDeComposition.clip`), à
-## deux mains sous une seconde prise : il se joue à la pose d'une base sans clip de reprise et à l'arrêt de la marche
-## ; un montage ou un démontage passe le clip engagé à celui de son rôle sous la nouvelle tenue, en lecture ou en
-## pause comme lui (`_jouer_le_repos`, `_rejouer`, `projet/scripts/atelier.gd`). La recette autonome
-## `projet/recettes/repos-de-l-atelier.gd` le vérifie.
+## (`projet/scripts/montage_de_composition.gd`), rappelée à chaque montage et démontage, pose sous le squelette, après le
+## gabarit, les modificateurs natifs de `SecondePrise.poser` (`projet/scripts/seconde_prise.gd`, tenus dans
+## `seconde_prise`), et les retire sinon. Dans l'ordre : un `ModifierBoneTarget3D` suit l'os de la prise `main` et porte
+## le repère de la seconde prise, puis celui où l'os de la prise `secondaire` la tient ; un `FABRIK3D` y ploie le bras de la
+## main `secondaire` (l'os de la prise `secondaire` et ses deux parents), en partant chaque fois de la pose du clip ; un
+## `CopyTransformModifier3D` donne enfin à l'os de la main `secondaire` l'orientation de ce repère, et à chacun de ses
+## descendants la rotation de son homologue sous la main `main`, appariés enfant par enfant, en même nombre (le poing de
+## la main qui tient). La recette autonome `projet/recettes/seconde-prise.gd` le vérifie à 1 mm. Le clip engagé règle la
+## tenue à chaque lancement (`animation_started` du lecteur), montage et démontage (`MontageDeComposition.poser_le_clip`,
+## #3806) : ces modificateurs ne jouent que sous un clip de `clipsDeuxMains` du maniement de l'objet tenu, qui pose déjà
+## les deux mains sur la seconde prise de son maniement, ou sans clip engagé. Un objet tenu à une prise, monté aussi, en
+## copie cachée, au premier emplacement de la base où il se range (les `elements` de ce point), passe à cet emplacement
+## sous un clip dont le geste occupe sa prise (`prisesOccupees` de la base) ; l'objet tenu des deux mains y passe sous
+## tout clip qui n'est pas dérivé à deux mains, la main droite seule le tenant à son talon, même sur un emplacement qui
+## porte déjà un objet. La recette autonome `projet/recettes/seconde-prise.gd` le vérifie aussi. Le repos de l'atelier est le
+## clip `repos` de la composition montée (`MontageDeComposition.clip`), à deux mains sous une seconde prise : il se joue à
+## la pose d'une base sans clip de reprise et à l'arrêt de la marche ; un montage ou un démontage passe le clip engagé à
+## celui de son rôle sous la nouvelle tenue, en lecture ou en pause comme lui (`_jouer_le_repos`, `_rejouer`,
+## `projet/scripts/atelier.gd`). La recette autonome `projet/recettes/repos-de-l-atelier.gd` le vérifie.
 
 ## La main de la prise `secondaire` posée sur la seconde prise de l'élément monté à la prise `main` (`secondesPrises` de
 ## `modeles`, #3319), si la prise `secondaire` ne tient rien ; aucune sinon.
@@ -439,10 +492,37 @@ func poser_la_seconde_prise() -> void:
 	var seconde: Variant = modeles.get("secondesPrises", {}).get(montes.get("main", VIDE))
 	var tenante := _point("main")
 	var libre := _point("secondaire")
-	if squelette == null or seconde == null or montes.has("secondaire") or tenante.is_empty() or libre.is_empty():
-		return
-	seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde.repere)
+	if squelette != null and seconde != null and not montes.has("secondaire") and not tenante.is_empty() and not libre.is_empty():
+		seconde_prise = SecondePrise.poser(squelette, tenante.attache, libre.attache, seconde.repere)
+	poser_le_clip()
 
+
+## Le clip engagé au lecteur posé sur la tenue (#3806), à chaque lancement de clip (`animation_started`), montage et
+## démontage : la main libre ne tient la seconde prise (`seconde_prise`) que sous un clip de `clipsDeuxMains` du
+## maniement de l'objet tenu, ou sans clip engagé ; l'objet tenu à une prise se range à son emplacement
+## (`_tenus_ranges`) si le clip occupe cette prise (`prisesOccupees`), et l'objet tenu des deux mains sous tout clip
+## qui n'est pas dérivé à deux mains : la main droite seule le tiendrait à son talon. Un emplacement qui porte déjà un
+## objet le reçoit aussi.
+func poser_le_clip(_clip: StringName = &"") -> void:
+	if lecteur != null and not lecteur.animation_started.is_connected(poser_le_clip):
+		lecteur.animation_started.connect(poser_le_clip)
+	var engage := String(lecteur.assigned_animation) if lecteur != null else ""
+	var a_deux_mains := not seconde_prise.is_empty()
+	var derives: Array = base.get("clipsDeuxMains", {}).get(modeles.secondesPrises[montes.main].maniement, {}).values() if a_deux_mains else []
+	var tenu_a_deux_mains := engage == "" or engage in derives
+	for modificateur in seconde_prise:
+		modificateur.active = tenu_a_deux_mains
+	var occupees: Array = base.get("prisesOccupees", {}).get(engage, [])
+	for id in _tenus_ranges:
+		var objet: Dictionary = _tenus_ranges[id]
+		var rangee: bool = id in occupees or (id == "main" and a_deux_mains and not tenu_a_deux_mains)
+		if objet.ranges[0].visible == rangee and objet.tenus[0].visible != rangee:
+			continue
+		for noeud: Node3D in objet.tenus:
+			noeud.visible = not rangee
+		for noeud: Node3D in objet.ranges:
+			noeud.visible = rangee
+		_demander_la_refonte()
 
 
 ## Le clip du rôle `role` de la base posée : tant que la main libre tient la seconde prise (`seconde_prise`), celui de
@@ -578,10 +658,13 @@ func _attache_du_point(point: Dictionary) -> Dictionary:
 ## rien dessous, sa face arrière à 5 mm de l'emplacement
 ## (`MiseEnPage.recul_sur_la_case`, `pivot_sur_la_case`, recette `projet/recettes/prise-reposee.gd`). Un mesh rigide
 ## qui porte `extras.fourreau` (le fourreau d'une arme, `scripts/personnage-3d/element/lame.py`) n'est montré que
-## l'objet rangé. Un emplacement qu'offre une pièce (`offertPar` du point, #3844) ne range un objet que sous une pièce
-## montée qui l'offre, à son repère, et le cache sinon ; s'il porte des `poids`, ses objets suivent, posé ou non, le
-## mélange des déplacements de ces os depuis leur repos, comme un sommet de la pièce (`_suivre_les_poids`) ;
-## la ligne `<point>#<rang>` va à la case de ce rang si une pièce l'offre, seule, et se pose sinon à côté des autres
+## l'objet rangé. Un objet dont la boîte ainsi pendue descend sous le sol de la pose de repos (la hauteur de
+## l'emplacement au-dessus de y = 0) passe en bandoulière : le +Y de sa prise (le fer d'une hallebarde) vers le haut,
+## penché de 30° vers la droite du personnage (-X du squelette), le milieu de sa boîte sur l'emplacement, appuyé de même
+## (`MiseEnPage.biais_de_rangement`). Un emplacement qu'offre une pièce (`offertPar` du point, #3844) ne range un objet
+## que sous une pièce montée qui l'offre, à son repère, et le cache sinon ; s'il porte des `poids`, ses objets suivent,
+## posé ou non, le mélange des déplacements de ces os depuis leur repos, comme un sommet de la pièce
+## (`_suivre_les_poids`) ; la ligne `<point>#<rang>` va à la case de ce rang si une pièce l'offre, seule, et se pose sinon à côté des autres
 ## objets du point.
 
 ## Chaque objet rangé posé à son emplacement : les objets d'un même point (`<point>`, puis `<point>#<rang>` par rang,
@@ -590,7 +673,9 @@ func _attache_du_point(point: Dictionary) -> Dictionary:
 ## `JEU_ENTRE_RANGES` de ceux du précédent (`MiseEnPage.tour_a_cote`, en `PASSES_DE_TOUR` corrections depuis
 ## l'écart de leurs boîtes, `MiseEnPage.decalage_a_cote`), ou, sur l'axe, décalé le long de l'axe X du rangement ;
 ## chaque objet à plat, sa plus petite largeur sur la normale sortante (`MiseEnPage.lacet_a_plat`), appuyé sur ce qui
-## est porté dessous (`_poser_range`), les meshes d'un objet ensemble.
+## est porté dessous (`_poser_range`), les meshes d'un objet ensemble ; un objet qui pendrait jusqu'au sol de la pose de
+## repos passe en bandoulière (`MiseEnPage.biais_de_rangement`, vers `DROITE_DU_PERSONNAGE`), le milieu de sa boîte sur
+## l'emplacement (`MiseEnPage.centre_en_bandouliere`).
 func _ranger() -> void:
 	for suivi: Dictionary in _suivis.values():
 		for attache: Node in suivi.attaches:
@@ -622,6 +707,8 @@ func _ranger() -> void:
 		var emplacement := repere(attache)
 		var sens := MiseEnPage.sens_vers_l_avant(os.basis, MiseEnPage.axe_de_rangement(emplacement.basis, emplacement.origin, Vector3.AXIS_X))
 		var depuis := MiseEnPage.azimut(emplacement.origin, 0.0)
+		var hauteur := MiseEnPage.hauteur_au_sol(os.basis, emplacement.origin, os.origin.y)
+		var droite := MiseEnPage.dans_la_base(_repere_de_rangement(attache, 0.0, 0.0).basis, MiseEnPage.dans_la_base(os.basis, DROITE_DU_PERSONNAGE))
 		var ids: Array = par_point[point]
 		ids.sort_custom(func(a: String, b: String) -> bool: return a.naturalnocasecmp_to(b) == -1)
 		var decalage := 0.0
@@ -634,8 +721,12 @@ func _ranger() -> void:
 			var lacet := MiseEnPage.lacet_a_plat(_boite_de(bruts).size)
 			var suspension := _suspension(rangees)
 			var sommets := _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension))
+			var biais := MiseEnPage.biais_de_rangement(_boite_de(sommets).end.y, hauteur, droite)
+			if biais != 0.0:
+				suspension = MiseEnPage.centre_en_bandouliere(_boite_de(_sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), Vector3.ZERO))).get_center())
+				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension).rotated(Vector3.BACK, biais))
 			var boite := _boite_de(sommets)
-			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, sommets = sommets, portes = portes}
+			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes}
 			if id != ids[0]:
 				var pas := MiseEnPage.decalage_a_cote(0.0, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
 				decalage = MiseEnPage.decalage_a_cote(decalage, sens, precedente.position.x, precedente.end.x, boite.position.x, boite.end.x)
@@ -682,14 +773,15 @@ func _suivre_les_poids() -> void:
 
 
 ## La pose, dans l'os, d'un objet rangé `rangement` (`attache`, `os` au repos, `lacet` qui le met à plat, `suspension`
-## qui le monte à son point de suspension (`_suspension`), ses `sommets` à plat et suspendus dans son repère de rangement,
+## qui le monte à son point de suspension (`_suspension`), `biais`, son tour autour de la normale sortante en
+## bandoulière, ses `sommets` à plat, suspendus et tournés dans son repère de rangement,
 ## ce qui est porté `portes`), tourné de `tour` autour de l'axe de l'os ou décalé de `decalage` sur cet axe
 ## (`_repere_de_rangement`), appuyé sur ce qui est porté (`_appuyer`).
 static func _poser_range(rangement: Dictionary, tour: float, decalage: float) -> Transform3D:
 	var repere_ := _repere_de_rangement(rangement.attache, tour, decalage)
 	var os: Transform3D = rangement.os
 	var appui := _appuyer(rangement.sommets, [repere_, os], [os.affine_inverse(), repere_.affine_inverse()], rangement.portes)
-	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
+	return repere_.rotated_local(Vector3.RIGHT, appui.y).translated_local(Vector3(0.0, 0.0, appui.x)).rotated_local(Vector3.BACK, rangement.biais).translated_local(rangement.suspension).rotated_local(Vector3.UP, rangement.lacet)
 
 
 ## L'étendue (min, max) des azimuts (`MiseEnPage.azimut`, comptés depuis `depuis`) des sommets `sommets` posés par `pose`.

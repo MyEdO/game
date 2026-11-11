@@ -86,7 +86,7 @@ const croise = (a: readonly number[], b: readonly number[], marge: number): bool
   [0, 1, 2].every((k) => a[k] <= b[3 + k] + marge && b[k] <= a[3 + k] + marge);
 
 /** Chaque (zone, vêtement) des paires dont la zone passe à travers le vêtement dans l'échantillon `e`. */
-export function mesurerMembres(paires: readonly PaireHorsDeZone[], e: Echantillon): MembreDUnEchantillon[] {
+export function mesurerMembresDansUnVetement(paires: readonly PaireHorsDeZone[], e: Echantillon): MembreDUnEchantillon[] {
   const boites = new Map<Mesh, number[]>();
   const boite = (m: Mesh): number[] => {
     const connue = boites.get(m);

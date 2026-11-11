@@ -8,7 +8,10 @@ extends SceneTree
 ## se relève au signal `skeleton_updated`, après les modificateurs et avant que le squelette ne restaure la pose du clip
 ## (`Skeleton3D::_notification`, Godot 4.7). Tant que la main libre tient la seconde prise, un rôle joue le clip de
 ## `clipsDeuxMains` de la base sous le maniement de l'objet tenu, `clips` sinon ou pour un maniement sans table
-## (`MontageDeComposition.clip`), et chaque clip retrouve son rôle.
+## (`MontageDeComposition.clip`), et chaque clip retrouve son rôle. Au lancement d'un clip (#3806,
+## `MontageDeComposition.poser_le_clip`), la main libre ne tient la seconde prise que sous un clip à deux mains ; l'objet
+## tenu passe à son emplacement de rangement sous un clip qui occupe sa prise (`prisesOccupees`), l'objet tenu des deux
+## mains sous tout clip qui n'est pas dérivé à deux mains, même sur un emplacement qui porte déjà un objet.
 
 const RECETTE_AUTONOME := true
 const EPSILON := 0.001
@@ -29,8 +32,11 @@ func _recetter() -> void:
 	print("[seconde-prise] version=", Engine.get_version_info().string)
 	await _verifier("à portée", A_PORTEE, {main = "hache"}, true)
 	await _verifier("hors de portée", HORS_DE_PORTEE, {main = "hache"}, true)
-	await _verifier("prise off occupée", A_PORTEE, {main = "hache", secondaire = "dague"}, false)
+	await _verifier("prise secondaire occupée", A_PORTEE, {main = "hache", secondaire = "dague"}, false)
 	await _verifier("sans seconde prise", A_PORTEE, {main = "epee"}, false)
+	await _verifier_le_clip("à deux mains", {main = "hache"}, {Repos_DeuxMains = [true, false], Coffre = [false, true], Saut = [false, true], Lanterne = [false, true]})
+	await _verifier_le_clip("emplacement monté", {main = "hache", dos = "carquois"}, {Coffre = [false, true], Repos_DeuxMains = [true, false]})
+	await _verifier_le_clip("à une main", {main = "epee"}, {Coffre = [false, false], Lanterne = [false, true]})
 	for faute in _fautes:
 		push_error("[seconde-prise] " + faute)
 	print("[seconde-prise] erreurs=", _fautes.size())
@@ -105,6 +111,48 @@ func _verifier(cas: String, seconde: Dictionary, montes: Dictionary, ploie: bool
 	print("[seconde-prise] %s : %s" % [cas, "OK" if juste else "KO"])
 	MontageDeComposition.modeles = {}
 	montage.free()
+	squelette.queue_free()
+	await process_frame
+
+
+## Sous chaque clip de `attendus`, joué au lecteur du montage de la tenue `montes`, la seconde prise active et l'objet
+## tenu à la prise `main` rangé, comme `attendus` les donne.
+func _verifier_le_clip(cas: String, montes: Dictionary, attendus: Dictionary) -> void:
+	var squelette := _squelette()
+	var lecteur := AnimationPlayer.new()
+	var bibliotheque := AnimationLibrary.new()
+	for nom in [CLIPS.repos, CLIPS.coup, CLIPS_DEUX_MAINS.lourde2m.repos, "Coffre", "Saut", "Lanterne"]:
+		bibliotheque.add_animation(nom, Animation.new())
+	lecteur.add_animation_library("", bibliotheque)
+	root.add_child(lecteur)
+	var montage := MontageDeComposition.new()
+	MontageDeComposition.modeles = {secondesPrises = {hache = {repere = A_PORTEE, maniement = "lourde2m"}}}
+	montage.base = {points = [MAIN, OFF, {id = "dos", genre = "emplacement", attache = MAIN.attache, elements = ["hache", "epee"]}],
+		clips = CLIPS, clipsDeuxMains = CLIPS_DEUX_MAINS, prisesOccupees = {Coffre = ["secondaire"], Lanterne = ["main"]}}
+	montage.squelette = squelette
+	montage.modele = Node3D.new()
+	montage.add_child(montage.modele)
+	montage.lecteur = lecteur
+	montage.montes = montes
+	var tenu := Node3D.new()
+	var range_ := Node3D.new()
+	montage.add_child(tenu)
+	montage.add_child(range_)
+	montage._tenus_ranges = {main = {tenus = [tenu], ranges = [range_], rangement = "dos#main"}}
+	montage.poser_la_seconde_prise()
+	var juste := true
+	for clip: String in attendus:
+		lecteur.play(clip)
+		await process_frame
+		var active: bool = not montage.seconde_prise.is_empty() and montage.seconde_prise.all(func(m: SkeletonModifier3D) -> bool: return m.active)
+		var rangee := range_.visible and not tenu.visible
+		if active != attendus[clip][0] or rangee != attendus[clip][1] or tenu.visible == range_.visible:
+			juste = false
+			_fautes.append("%s, %s : seconde prise %s, rangé %s, attendus %s" % [cas, clip, active, rangee, attendus[clip]])
+	print("[seconde-prise] clip %s : %s" % [cas, "OK" if juste else "KO"])
+	MontageDeComposition.modeles = {}
+	montage.free()
+	lecteur.queue_free()
 	squelette.queue_free()
 	await process_frame
 

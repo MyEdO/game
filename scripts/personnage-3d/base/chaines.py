@@ -149,8 +149,8 @@ def rotations_de_jupe(cuisses):
     avance = max(0.0, *(a for a, _ in cuisses.values()))
     recule = max(0.0, *(-a for a, _ in cuisses.values()))
     return {'avant': Matrix.Rotation(-avance, 3, 'X'), 'arriere': Matrix.Rotation(recule, 3, 'X'),
-            'g': Matrix.Rotation(max(0.0, cuisses['g'][1]), 3, 'Y'),
-            'd': Matrix.Rotation(-max(0.0, cuisses['d'][1]), 3, 'Y')}
+            'g': Matrix.Rotation(-max(0.0, cuisses['g'][1]), 3, 'Y'),
+            'd': Matrix.Rotation(max(0.0, cuisses['d'][1]), 3, 'Y')}
 
 
 def rotation_de_cape(dos_pose, dos_repos, cape_repos):

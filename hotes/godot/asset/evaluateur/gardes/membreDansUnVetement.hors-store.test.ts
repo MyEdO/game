@@ -5,7 +5,7 @@ import type { Echantillon } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { PORTEE_DE_COUVERTURE_M } from '../../pile.ts';
 import { TOLERANCE_JUMEAUX_POSITION_M } from './poids.ts';
-import { gardeMembreDansUnVetement, mesurerMembres, pairesHorsDeZone, zonesVoisines } from './membreDansUnVetement.ts';
+import { gardeMembreDansUnVetement, mesurerMembresDansUnVetement, pairesHorsDeZone, zonesVoisines } from './membreDansUnVetement.ts';
 
 /** Un carré de 0,2 m de côté à la hauteur `z`, en grille 3 × 3, décalé de `dx` en X. */
 function carre(z: number, dx = 0): Float32Array {
@@ -44,7 +44,7 @@ describe('membreDansUnVetement', () => {
   /** La main inclinée de pente `pente` en X, sa hauteur `z` au centre. */
   const inclinee = (z: number, pente: number) => carre(z).map((v, i, p) => (i % 3 === 2 ? v + p[i - 2] * pente : v));
   const mesurer = (main_: Float32Array, manche_: Float32Array, t = 0.5, vetement: Mesh = manche) =>
-    mesurerMembres([{ membre: main, zone: 'main_d', vetement }], echantillon(new Map([[main, main_], [vetement, manche_]]), t));
+    mesurerMembresDansUnVetement([{ membre: main, zone: 'main_d', vetement }], echantillon(new Map([[main, main_], [vetement, manche_]]), t));
 
   it('ROUGE : la main traverse la manche, des sommets de chaque côté ; un écart par (zone, mesh, clip) à son pire instant', () => {
     const mesures = [mesurer(inclinee(0.01, 0.2), carre(0.01), 0), mesurer(inclinee(0.01, 0.25), carre(0.01), 1)].flat();
