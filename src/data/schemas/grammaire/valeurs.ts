@@ -829,6 +829,15 @@ export const parSaison = <T extends z.ZodType>(valeur: T) =>
     hiver: { get label() { return libelleDeSaison('hiver'); } },
   }), 'parSaison', 'saisons');
 
+/** Les clés de `parSaison`, lues sur son nœud. */
+type Saison = keyof ReturnType<typeof parSaison<z.ZodNever>>['shape'];
+
+/** Une SAISON, valeur d'un champ : les clés de `parSaison`, chacune nommée par sa fiche (`saisonParId`), lue
+ *  à chaque accès. */
+export const saisonSchema = enumNomme(
+  Object.defineProperties({}, tableTotale(Object.keys(parSaison(z.never()).shape) as Saison[], (s) => ({ enumerable: true, get: () => libelleDeSaison(s) }))) as Record<Saison, string>,
+);
+
 /**
  * PRIX DE BASE d'une cargaison par SAISON (MDG 15 l.422-434, MSRC 13 l.80-90) : le résolveur y lit la
  * colonne de la saison courante.
@@ -1346,57 +1355,6 @@ export function couvertureDuDeParDocument<T extends TableTiree>(
         }
       }
     });
-}
-
-/**
- * DISPONIBILITÉ SAISONNIÈRE d'une cargaison — quatre colonnes d100, chacune une FOURCHETTE `{min, max}`
- * (MDG 15 l.406-418, MSRC 13 l.73-78). Nœud NOMMÉ du concept, symétrique de `prixSaisonnierSchema`.
- */
-export const dispoSaisonniereSchema = parSaison(plageSchema);
-
-/** Les quatre colonnes, DÉRIVÉES du nœud : la liste des saisons n'est écrite qu'une fois (`parSaison`). */
-const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
-
-/** Ce que le refine lit d'une entrée du catalogue : un libellé (le refus est NOMINATIF), les quatre
- *  colonnes d'une MARCHANDISE, et le CHAMP d'exclusion d'un MARQUEUR de colonne Production/Produits
- *  (`echangeable: false`, sans colonne), lu comme le moteur le lit (`isEchangeable`, `src/engine/cargo.ts`). */
-type EntreeDuCatalogue = Record<string, unknown> & { label: string; echangeable?: boolean; avail?: z.infer<typeof dispoSaisonniereSchema> };
-
-/**
- * CATALOGUE DE CARGAISONS TIRÉ AU D100 — raffinement du catalogue des cargaisons (maritime MDG 15
- * l.406-418, terrestre MSRC 13 l.73-78) : chaque TABLE du catalogue, les MARCHANDISES d'une même valeur
- * du champ `tablePar`, couvre le d100 de 1 à 100 d'un seul tenant dans chacune de ses quatre colonnes
- * saisonnières. L'invariant porte sur la COLONNE d'une table, jamais sur une entrée — d'où sa place au
- * CATALOGUE ; et chaque livre imprime SA table, tirée seule (`rollSeasonalCargo`, `src/engine/cargo.ts`).
- *
- * @param catalogue le nœud du catalogue (`affinerDataset` de son def)
- * @param options `site` = le porteur cité en tête du refus ; `tablePar` = le champ dont chaque valeur
- *  désigne une table du livre
- */
-export function catalogueSaisonnier(catalogue: z.ZodType<unknown>, options: { site: string; tablePar: string }): z.ZodType<unknown> {
-  return catalogue.superRefine((valeur, ctx) => {
-    const tables = new Map<unknown, EntreeDuCatalogue[]>();
-    for (const e of valeur as EntreeDuCatalogue[]) {
-      if (e.echangeable === false || !e.avail) continue;
-      tables.set(e[options.tablePar], [...(tables.get(e[options.tablePar]) ?? []), e]);
-    }
-    for (const [table, marchandes] of tables) {
-      for (const saison of SAISONS_DE_DISPO) {
-        const ecarts = ecartsDeCouverture(
-          marchandes.map((c) => ({ ...c.avail![saison], label: c.label })),
-          1,
-          100,
-          (f) => `« ${f.label} » (${f.min}–${f.max})`,
-        );
-        if (ecarts.length) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `${options.site} › ${options.tablePar} « ${String(table)} » : la colonne de disponibilité ${saison} ne couvre pas le d100 de 1 à 100 d'un seul tenant — ${ecarts.join(' ; ')}.`,
-          });
-        }
-      }
-    }
-  });
 }
 
 /**

@@ -31,7 +31,7 @@ import type { Flow, JetFixe } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
-import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, marchandisesDe, rollSeasonalCargo } from './cargo';
+import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, rollSeasonalCargo } from './cargo';
 import { tableTotale } from '../lib/tableTotale';
 
 /** La voie du catalogue que porte la table de ce livre (MDG 15 l.406-418). */
@@ -279,7 +279,7 @@ export function profilDuMarche(port: PortProfile, alterations: readonly Alterati
 
 /** Cargaison ALÉATOIRE de la saison (l.402-418) : d100 dans la colonne saisonnière (tableau MARITIME). PUR. */
 export function rollRandomCargo(season: Season, rng: RNG): CargoDef {
-  return rollSeasonalCargo([...marchandisesDe(VOIE_MARITIME)], season, rng);
+  return rollSeasonalCargo(VOIE_MARITIME, season, rng);
 }
 
 /** Enc DISPONIBLE d'une cargaison à l'achat (l.323-331) : « additionnez la Taille et la Richesse du

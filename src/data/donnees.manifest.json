@@ -409,9 +409,10 @@
         },
         {
           "files": [
-            "cargoes.json"
+            "cargoes.json",
+            "cargaisons-aleatoires.json"
           ],
-          "desc": "Catalogue des cargaisons, une table par voie : maritime (MDG 15) et terrestre/fluviale (MSRC 13)"
+          "desc": "Catalogue des cargaisons, maritime (MDG 15) et terrestre/fluviale (MSRC 13) · Tableau des cargaisons (d100), un document par voie et saison"
         },
         {
           "files": [

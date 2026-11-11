@@ -132,7 +132,7 @@ describe('la description de la condition d’entrée d’un déclencheur', () =>
     const when: Condition = { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] };
     const d = declencheur(when);
     const champs = formulaireDe('declencheur', d, CADRE_VIDE);
-    expect(champs.map((c) => [c.key, c.nullable])).toEqual([['when', true]]);
+    expect(champs.map((c) => [c.key, c.nullable]), 'la condition d’entrée, absente admise, puis le flux, requis').toEqual([['when', true], ['flow', false]]);
     const variantes = variantesAChoisir(champs[0].noeud, when)!;
     expect(variantes).toHaveLength(35);
     expect(new Set(variantes.map((v) => v.libelle)).size, 'chacune nommée par son schéma, d’un nom propre').toBe(35);
@@ -306,7 +306,9 @@ describe('le geste `valeur` de la session', () => {
     expect(refusDeLaValeur(avecOps, geste(porteur, ['onCross', 0, 'id'], ['aveugle'])), 'une op sans forme déclarée n’offre aucun champ').toBe('nonOffert');
     const avecHas = surDeclencheur(depart, ['when'], recast(CONDITION_TOUJOURS, 'has'));
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'what'], ['trait'])), 'un discriminant se change par le choix de la variante').toBe('nonOffert');
-    expect(refusDeLaValeur(avecHas, geste(surTrig, ['flow'], [{ kind: 'seq', steps: [] }])), 'le flux n’est pas offert').toBe('nonOffert');
+    for (const chemin of [['once'], ['rect', 'z']] as Segment[][]) {
+      expect(refusDeLaValeur(avecHas, geste(surTrig, chemin, [1])), `${chemin.join('/')} : un champ qu’un geste dédié écrit, hors du formulaire`).toBe('nonOffert');
+    }
     expect(refusDeLaValeur(avecHas, geste(surTrig, ['when', 'who'], ['caster']))).toBeNull();
   });
 });

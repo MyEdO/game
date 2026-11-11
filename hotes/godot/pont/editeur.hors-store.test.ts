@@ -1231,7 +1231,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
   const manuscrit = listerProjetsLivres().find((rel) => rel.split('/').pop()! in PROJETS_MANUSCRITS)!;
   const servi = lireProjetLivre(manuscrit) as { id: string };
 
-  it('la condition d’entrée d’un déclencheur, le Test de traversée et les listes d’ops d’une zone d’effet s’écrivent au formulaire, variante par variante, élément par élément ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
+  it('la condition d’entrée et le flux d’un déclencheur, le Test de traversée et les listes d’ops d’une zone d’effet s’écrivent au formulaire, variante par variante, élément par élément ; enregistrés, rouverts du dépôt, ils sont relus et la validation ne dit aucune erreur', { timeout: 120_000 }, () => {
     const { appel } = table();
     let e = editionDe(appel('editer', { ouvrir: servi.id, projet: JSON.stringify(servi) }));
     const jouer = (edition: unknown) => (e = editionDe(appel('editer', { edition })));
@@ -1260,7 +1260,13 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const declencheur = porteurDe('valeur/when/kind/aucune');
     expect(declencheur.sorte).toBe('declencheur');
     expect(boutonDe(e, 'valeur/when/kind/aucune').presse, 'sans condition d’entrée').toBe(true);
-    expect(inspecteur().some((el) => el.id.startsWith('valeur/flow')), 'le flux n’est pas au formulaire').toBe(false);
+    expect(valeursDeLInspecteur(e, 'valeur/flow/kind').map((b) => [b.libelle, b.presse]), 'le flux requis : ses cinq branches, la séquence neuve pressée, aucun retrait').toEqual([
+      ['Séquence', true], ['Effet', false], ['Si', false], ['Test', false], ['Choix', false],
+    ]);
+    presser('valeur/flow/steps/ajouter');
+    choisir('valeur/flow/steps/0/kind', 'Effet');
+    saisir('valeur/flow/steps/0/effect/flag', 'porte');
+    expect(erreurDe(appel('editer', { type: 'valeur', args: [declencheur, ['once'], false] })).categorie, 'un champ qu’un geste dédié écrit, hors du formulaire').toBe('validation');
     choisir('valeur/when/kind', 'TOUS (ET)');
     expect(option('valeur/when/kind', 'TOUS (ET)').presse).toBe(true);
     expect(inspecteur().some((el) => el.id.startsWith('valeur/when/of/0')), 'TOUS de « Toujours » : une liste vide').toBe(false);
@@ -1319,7 +1325,10 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     const rouverte = editionDe(rouvrir('editer', { ouvrir: servi.id, projet: JSON.stringify(lireProjetLivre(manuscrit, depot)) }));
     rmSync(depot, { recursive: true, force: true });
     const neuve = (JSON.parse(enregistree.depot!.texte) as { scenes: Scene[] }).scenes.find((sc) => sc.effectZones?.some((z) => z.id === zone.id))!;
-    expect(neuve.triggers.find((t) => t.id === declencheur.id)?.when).toEqual({ kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] });
+    expect(neuve.triggers.find((t) => t.id === declencheur.id)).toMatchObject({
+      when: { kind: 'all', of: [{ kind: 'flag', expr: 'porte' }, { kind: 'not', of: { kind: 'foeInLoS' } }] },
+      flow: { kind: 'seq', steps: [{ kind: 'do', effect: { type: 'setFlag', flag: 'porte' } }] },
+    });
     expect(neuve.effectZones!.find((z) => z.id === zone.id)).toMatchObject({
       crossTest: { characteristic: 'force' },
       onCross: [{ op: 'charMod', characteristic: 'agilite', mod: -5 }, { op: 'corruption', amount: 2 }],
@@ -1330,6 +1339,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     expect(option('valeur/when/kind', 'TOUS (ET)').presse, 'rouverte, la condition du déclencheur').toBe(true);
     expect(option('valeur/when/of/1/of/kind', 'Ennemi en Ligne de Vue').presse).toBe(true);
     expect(formulaire('valeur/when/of/0/expr').champs[2]).toMatchObject({ valeur: 'porte' });
+    expect(formulaire('valeur/flow/steps/0/effect/flag').champs[2], 'rouvert, le flux du déclencheur').toMatchObject({ valeur: 'porte' });
     rouvrir('editer', { edition: { geste: 'appui', point: point(3, 3) } });
     e = editionDe(rouvrir('editer', { edition: { geste: 'relache', point: point(3, 3) } }));
     expect(option('valeur/onCross/0/characteristic', 'Agilité').presse, 'rouverte, les ops de la zone').toBe(true);

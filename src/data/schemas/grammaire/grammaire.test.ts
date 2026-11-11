@@ -732,7 +732,9 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         lignes passent en `rangee`.
     //   #3578 L4 : `especes-aleatoires` naît en def `entite` à charge `entries` (81 → 82) — la colonne
     //         `species[].rand` devient les documents TABLE du Tableau des Races aléatoires.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 82, mesures: 0 });
+    //   #3578 L5 : `cargaisons-aleatoires` naît en def `entite` à charge `entries` (82 → 83) — la
+    //         disponibilité `cargoes[].avail` devient les documents TABLE du Tableau des cargaisons.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
   });
 
 });
