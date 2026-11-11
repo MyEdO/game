@@ -14,13 +14,17 @@ Le repère de l'arme porte son +Y vers le fer (la seconde prise est sur cet axe,
 
 Repère Blender du rig : +X la gauche du personnage, −Y l'avant, +Z le haut.
 """
+import json
 import math
+from pathlib import Path
 from typing import NamedTuple
 
 import numpy
 from mathutils import Matrix, Quaternion, Vector
 
-from animation import meshes_for
+from anatomie import zone_de_l_os
+from animation import assign_action, meshes_for
+from noms_silhouettes import CORPULENCE, FEMININ
 from pistes import aller_a, sacs
 from poids import deformer, instants, peau_lineaire
 from seuils import ETIREMENT_EN_CLIP, POIDS_NEGLIGEABLE
@@ -51,12 +55,27 @@ desquels une pose de bras se paie, et l'échelle du roulis de l'arme autour de s
 torsion au-delà de `torsion_max` ou une flexion au-delà de `flexion_max` se paient comme une limite, et refusent le clip. Dans les clips sources, la torsion
 et la flexion de la main restent sous 60° et 50° à 95 % des images, sous 80° de flexion à 99 %, et l'axe de flexion du
 coude s'écarte de son +X de moins de 45° à 90 %."""
+BORNES = json.loads(Path(__file__).with_name('humanoide.json').read_text(encoding='utf-8'))['bornesArticulaires']
+"""Par os, les bornes articulaires que déclare le corps (`bornesArticulaires`, #2992) : par axe, [min, max] en degrés du
+vecteur de rotation de l'os depuis son repos (`hors_des_bornes`) ; une pose d'avant-bras ou de main qui en sort, à
+`MARGE_DES_BORNES` près, se paie comme une limite."""
+MARGE_DES_BORNES = 1.0
+"""En degrés, la marge en deçà des bornes où l'IK tient une pose : l'export et l'interpolation entre deux images la
+déplacent de moins que cela, et la garde `amplitude` mesure la pose jouée."""
 PEAU = {'marge': 0.25, 'echelle': 0.02, 'plancher': 0.2, 'echelle_plancher': 0.01}
 """L'étirement des arêtes de la peau que meut un bras (`etirement_du_bras`), mesuré sur le corps neutre, se paie au-delà de
 la borne haute de `ETIREMENT_EN_CLIP` moins `marge`, par pas d'`echelle`, et son écrasement en deçà de `plancher`, par pas
 d'`echelle_plancher` : la marge et le plancher couvrent les silhouettes et les états du gabarit, que la mesure ne parcourt
 pas, sous lesquels une arête du poignet écrasée à 0,07 sur le corps neutre passe sous la borne basse, et l'aisselle et le
 haut de l'épaule, tenus à 0,12 sur le corps neutre, passent sous elle sous les silhouettes combinées (#3319)."""
+TRONC = {'zones': ('torse', 'hanches'), 'silhouettes': ((), (CORPULENCE,), (FEMININ, CORPULENCE)),
+         'echelle': 0.01, 'points': ((0.0, 0.11), (1 / 3, 0.05), (2 / 3, 0.05))}
+"""Le tronc dont l'avant-bras se tient à l'écart (`peau_du_tronc`) : les sommets des `zones` (celle de l'os dominant,
+`anatomie.zone_de_l_os`), sous chaque jeu de `silhouettes` posées à 1. Les `points` de l'axe du bras, chacun sa fraction
+du coude au poignet et sa marge, à moins de sa marge de la peau ou dedans, se paient par pas d'`echelle` : le coude ne
+rentre pas dans le dos ni l'avant-bras dans le ventre (#3806). La marge d'un point est le rayon de la peau autour de lui :
+celle du coude couvre le pli du coude, que la corpulence gonfle à 0,11 de l'axe. La garde `membres` de l'évaluateur mesure
+la peau elle-même."""
 
 
 def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
@@ -65,25 +84,45 @@ def cle(u, milieu, direction, flexion=0.0, torsion=0.0, elan=False):
     return u, Vector(milieu), Vector(direction).normalized(), Vector((flexion, torsion)), elan
 
 
-REPOS = ((0.07, -0.21, 1.15), (0.78, 0.0, -0.62))
-"""Le manche en travers du corps, bas, le fer en haut à droite."""
-GARDE = ((0.04, -0.33, 1.05), (0.525, 0.279, -0.804))
-"""Les mains devant le ventre, la hache dressée, penchée vers l'épaule droite, le tranchant vers l'adversaire."""
-LEVEE = ((-0.12, -0.21, 1.18), (0.482, -0.269, -0.834))
-"""Les mains montées devant la poitrine, côté droit, le fer dressé au-dessus de l'épaule droite."""
-ARME = ((-0.22, -0.12, 1.42), (0.12, -0.98, -0.15))
-"""Les mains montées à droite du menton, la hache armée au-dessus de l'épaule droite, le manche le long de la tête et non
-devant le visage, le tranchant vers le haut."""
-COUP = ((0.14, -0.32, 1.0), (0.31, 0.91, -0.45))
-"""Les mains abaissées devant le ventre, le fer abattu devant, à hauteur de poitrine, le tranchant vers le bas."""
+REPOS = ((-0.02, -0.25, 1.2925), (0.85, 0.0, -0.53))
+"""Le manche en travers de la poitrine, à une main de distance devant elle, la main droite devant l'épaule droite, la
+gauche devant le bas du sternum, le fer en haut à droite : l'avant-bras droit reste hors du ventre corpulent (#3806)."""
+REPOS_LOIN = ((-0.02, -0.40, 1.2925), (0.85, 0.0, -0.53))
+"""Le repos, les mains écartées de la poitrine : dans le recul et la chute, le dos qui se plie sur les hanches ne mène pas
+l'avant-bras gauche dans le ventre ; une fois le corps à terre, les mains reviennent au repos, sur la poitrine, et ne
+tendent pas l'arme vers le ciel (#3806)."""
+GARDE = ((0.04, -0.38, 1.12), (0.40, 0.10, -0.91))
+"""Les mains devant le ventre, assez loin de lui pour le ventre corpulent, la hache dressée, penchée vers l'épaule
+droite, le tranchant vers l'adversaire, la main gauche sous la droite, à peine en arrière d'elle : l'arrière de
+l'aisselle gauche ne s'écrase pas sous les silhouettes féminine, corpulente ou mince (#3806)."""
+LEVEE = ((-0.24, -0.22, 1.16), (0.25, -0.25, -0.93))
+"""Les mains montées devant l'épaule droite, le fer dressé au-dessus d'elle, le manche presque droit à droite du menton
+et non en travers du visage (#3806)."""
+ARME = ((-0.38, -0.12, 1.40), (-0.05, -0.98, -0.2))
+"""Les mains montées à droite de la tête, la hache armée au-dessus de l'épaule droite, le manche le long de la tête et
+non devant le visage ni dans la bouche, le tranchant vers le haut (#3806)."""
+TAILLE = ((-0.06, -0.36, 1.26), (0.58, -0.101, -0.809))
+"""Les mains descendues devant le visage, à bout de bras, le fer passant au-dessus de la tête : l'avant-bras gauche passe
+devant la poitrine et non contre elle (#3806)."""
+COUP = ((0.10, -0.36, 1.06), (0.42, 0.72, -0.55))
+"""Les mains abaissées devant le ventre, la gauche à gauche de la droite plus que derrière elle, le fer abattu devant, à
+hauteur de poitrine, le tranchant vers le bas : l'avant-bras gauche ne rentre pas dans le ventre corpulent, et le bras
+droit, peu croisé devant le corps, n'écrase pas le haut de l'épaule droite au retour en garde (#3806)."""
 
 HAMPE_REPOS = ((-0.05, -0.25, 1.28), (0.55, 0.05, 0.83))
 """La hampe dressée devant le torse, penchée vers l'épaule gauche, la main droite à la hanche, la gauche devant le sein
 gauche, le fer au-dessus."""
+HAMPE_CHUTE = ((-0.02, -0.33, 1.36), (0.88, 0.1, -0.4))
+"""La hampe en travers de la poitrine, la main droite devant l'épaule droite, la gauche devant le bas de la poitrine, le
+fer en bas à gauche : dans la chute, le corps la garde en travers de lui et non dressée en l'air, les mains hautes et
+écartées du ventre, qui se plie (#3806)."""
+HAMPE_GISANT = ((-0.02, -0.22, 1.30), (0.88, 0.1, -0.4))
+"""La hampe de la chute, couchée sur la poitrine du corps à terre, le fer vers le sol à sa gauche (#3806)."""
 HAMPE_GARDE = ((-0.175, -0.2, 1.0), (0.272, -0.809, 0.521))
 """La main droite au talon contre la hanche droite, la gauche devant, le fer pointé à hauteur de tête."""
-HAMPE_ARME = ((-0.13, -0.017, 1.143), (0.437, -0.354, 0.827))
-"""La main gauche montée devant la poitrine, la droite à la hanche droite, le fer dressé haut, penché devant à gauche."""
+HAMPE_ARME = ((-0.13, -0.04, 1.143), (0.437, -0.354, 0.827))
+"""La main gauche montée devant la poitrine, hors de la poitrine corpulente, la droite à la hanche droite, le fer dressé
+haut, penché devant à gauche (#3806)."""
 HAMPE_COUP = ((-0.07, -0.36, 1.0), (0.4, -0.85, 0.25))
 """Le corps penché dans le coup, les mains devant les hanches, le fer jeté devant, à hauteur de tête à deux mètres."""
 
@@ -91,17 +130,26 @@ CLIPS = {
     'Lourde_Repos_Loop': ('Idle_Loop', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
     'Lourde_Marche_Loop': ('Walk_Loop', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(1.0, *REPOS))),
     'Lourde_Attaque': ('Sword_Idle', 'root', 'lourde2m', (cle(0.0, *GARDE, 8), cle(0.2, *LEVEE, 0, -5, elan=True),
-                                                          cle(0.35, *ARME, -8, -20), cle(0.52, *COUP, 25, 35, elan=True),
+                                                          cle(0.35, *ARME, -8, -20), cle(0.44, *TAILLE, 9.5, 9, elan=True),
+                                                          cle(0.52, *COUP, 25, 35, elan=True),
                                                           cle(0.62, *COUP, 25, 35), cle(1.0, *GARDE, 8))),
+    'Lourde_Touche': ('Hit_Chest', 'spine_03', 'lourde2m', (cle(0.0, *REPOS_LOIN), cle(0.75, *REPOS_LOIN), cle(1.0, *REPOS))),
+    'Lourde_Mort': ('Death01', 'spine_03', 'lourde2m', (cle(0.0, *REPOS), cle(0.05, *REPOS_LOIN), cle(0.42, *REPOS_LOIN),
+                                                    cle(0.52, *REPOS), cle(1.0, *REPOS))),
     'Hampe_Repos_Loop': ('Idle_Loop', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
     'Hampe_Marche_Loop': ('Walk_Loop', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
     'Hampe_Attaque': ('Sword_Idle', 'root', 'hampe', (cle(0.0, *HAMPE_GARDE, 5), cle(0.3, *HAMPE_ARME, -5, -10),
                                                       cle(0.48, *HAMPE_COUP, 35, 25, elan=True),
                                                       cle(0.6, *HAMPE_COUP, 35, 25), cle(1.0, *HAMPE_GARDE, 5))),
+    'Hampe_Touche': ('Hit_Chest', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(1.0, *HAMPE_REPOS))),
+    'Hampe_Mort': ('Death01', 'spine_03', 'hampe', (cle(0.0, *HAMPE_REPOS), cle(0.12, *HAMPE_CHUTE), cle(0.42, *HAMPE_CHUTE),
+                                                cle(0.52, *HAMPE_GISANT), cle(1.0, *HAMPE_GISANT))),
 }
 """Par clip dérivé : son clip source, l'os qui mène le repère de ses clés, son maniement (`SECONDES`) et ses clés de
 geste. L'attaque d'une arme lourde, une taille verticale, part de la garde et y revient, sur les jambes de la garde ;
-celle d'une hampe dresse le fer de la main gauche, la droite au talon, puis le jette devant, loin du corps."""
+celle d'une hampe dresse le fer de la main gauche, la droite au talon, puis le jette devant, loin du corps. Touché et
+mort gardent l'arme de leur repos, menée par le haut du dos : le corps recule ou tombe, l'arme en travers de lui ; la
+hampe, dressée au repos, passe en travers dans la chute."""
 
 
 def avancee(t, depart, arrivee):
@@ -182,16 +230,86 @@ def etirement_du_bras(peau, fixe, libres):
     return rapports.max(axis=1), rapports[:, meues].min(axis=1)
 
 
-def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, precedent=None, peau=None):
+class PeauDuTronc(NamedTuple):
+    """Les sommets du tronc (`TRONC`) : par jeu de silhouettes, leurs positions au repos, homogènes, dans le repère du rig,
+    leurs normales au repos et leurs poids sur chaque os."""
+    x: numpy.ndarray
+    n: numpy.ndarray
+    w: numpy.ndarray
+
+
+def peau_du_tronc(peaux, noms, monde_vers_rig):
+    """La `PeauDuTronc` de `peaux` (`poids.peau_lineaire`, os `noms`) ; `monde_vers_rig` passe du repère monde à celui du
+    rig."""
+    jeux, normales, poids = [[] for _ in TRONC['silhouettes']], [], []
+    vers_rig = numpy.array(monde_vers_rig)
+    for peau in peaux:
+        x, w = peau_lineaire(peau, noms)
+        garde = numpy.array([zone_de_l_os(noms[i]) in TRONC['zones'] for i in w.argmax(axis=1)])
+        if not garde.any():
+            continue
+        tour = vers_rig[:3, :3] @ numpy.array(peau.matrix_world.to_3x3())
+        cles = peau.data.shape_keys.key_blocks if peau.data.shape_keys else {}
+        base = numpy.array([v.co for v in peau.data.vertices], dtype=numpy.float64)[garde]
+        for jeu, silhouettes in zip(jeux, TRONC['silhouettes']):
+            ecart = sum((numpy.array([c.co for c in cles[n].data], dtype=numpy.float64)[garde] - base for n in silhouettes),
+                        numpy.zeros_like(base))
+            jeu.append(x[garde].astype(numpy.float64) @ vers_rig.T + numpy.c_[ecart @ tour.T, numpy.zeros(len(base))])
+        normales.append(numpy.array([v.normal for v in peau.data.vertices], dtype=numpy.float64)[garde] @ tour.T)
+        poids.append(w[garde].astype(numpy.float64))
+    return PeauDuTronc(numpy.stack([numpy.concatenate(j) for j in jeux]), numpy.concatenate(normales), numpy.concatenate(poids))
+
+
+def tronc_pose(tronc, matrices):
+    """Les sommets de `tronc` (`PeauDuTronc`) sous les matrices de peau `matrices` (os, 4, 4) : par jeu, leurs positions
+    (jeux, sommets, 3), et leurs normales (sommets, 3)."""
+    positions = numpy.stack([deformer(tronc.w, x, matrices[None])[0] for x in tronc.x])
+    normales = numpy.einsum('nb,bij,nj->ni', tronc.w, matrices[:, :3, :3], tronc.n)
+    return positions, normales / numpy.linalg.norm(normales, axis=1, keepdims=True)
+
+
+def prix_du_tronc(tronc, coudes, poignet):
+    """Par coude de `coudes` (essais, 3), le prix des `points` de son axe jusqu'au `poignet` près du tronc posé
+    (`tronc_pose`) : le plus proche sommet de chaque jeu, et l'enfoncement du point sous sa normale."""
+    if tronc is None:
+        return numpy.zeros(len(coudes))
+    positions, normales = tronc
+    points = numpy.stack([coudes + (numpy.array(poignet) - coudes) * f for f, _ in TRONC['points']], axis=1)
+    marges = numpy.array([marge for _, marge in TRONC['points']])
+    prix = numpy.zeros(len(coudes))
+    for jeu in positions:
+        ecarts = jeu[None, None] - points[:, :, None]
+        proche = numpy.linalg.norm(ecarts, axis=3).argmin(axis=2)
+        dedans = numpy.einsum('epk,epk->ep', numpy.take_along_axis(ecarts, proche[..., None, None], axis=2)[:, :, 0],
+                              normales[proche])
+        prix += ((numpy.maximum(0.0, dedans + marges) / TRONC['echelle']) ** 2).sum(axis=1)
+    return prix
+
+
+def hors_des_bornes(rotation, bornes):
+    """Le dépassement, en degrés, sommé sur les axes, du vecteur de rotation de la matrice `rotation` (axe × angle,
+    l'angle dans [0, 180], `hotes/godot/asset/evaluateur/gardes/amplitude.ts` `vecteurDeRotation`) hors de `bornes`
+    (par axe, [min, max]) resserrées de `MARGE_DES_BORNES`."""
+    q = rotation.to_quaternion()
+    if q.w < 0:
+        q.negate()
+    v = q.axis * math.degrees(q.angle)
+    return sum(max(0.0, v[i] - bornes[a][1] + MARGE_DES_BORNES, bornes[a][0] + MARGE_DES_BORNES - v[i]) for i, a in enumerate('xyz'))
+
+
+def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, pronation, bornes, precedent=None,
+         peau=None, tronc=None):
     """La pose d'un bras dont la main prend la matrice `main` : le bras tourne au plus court depuis `axes_epaule` (sa pose
     au repos sous la clavicule), sans torsion, comme dans les clips sources ; l'avant-bras plie depuis le bras, puis tourne
     sur son axe, dans les bornes de `pronation`, pour détordre le poignet ; le coude tourne autour de l'axe
     épaule-poignet, à partir du côté de `pole`, jusqu'à la pose qui paie le moins (`POIGNET`), au plus près du tour
-    `precedent`, et sous l'étirement de la peau (`PEAU`) quand `peau` porte la `PeauDuBras`, sa part fixe (`peau_fixe`),
-    et l'indice d'os et l'inverse du repos du bras puis de l'avant-bras. `rel_avant_bras` et `rel_main` : chaque os dans
+    `precedent`, dans les `bornes` de l'avant-bras puis de la main (`BORNES`, `hors_des_bornes`), sous l'étirement de
+    la peau (`PEAU`) quand `peau` porte la `PeauDuBras`, sa part fixe (`peau_fixe`),
+    et l'indice d'os et l'inverse du repos du bras puis de l'avant-bras, et à l'écart du tronc posé `tronc`
+    (`tronc_pose`, `prix_du_tronc`). `rel_avant_bras` et `rel_main` : chaque os dans
     le repère de son parent, au repos. Rend le prix de la pose, les axes du bras et de l'avant-bras, le coude, le tour
     retenu, en degrés, et le détail : torsion demandée et portée par l'avant-bras, flexion du poignet, écart de charnière,
-    étirement de la peau."""
+    dépassement des bornes, étirement de la peau."""
     poignet, articulation = coude(epaule, main.translation, *longueurs, pole)
     axe = (poignet - epaule).normalized()
     centre = epaule + axe * (articulation - epaule).dot(axe)
@@ -208,11 +326,13 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
         tourne = min(max(torsion, pronation[0]), pronation[1])
         avant_bras = plie @ Matrix.Rotation(math.radians(tourne), 3, 'Y')
         flexion = math.degrees(((avant_bras @ rel_main).transposed() @ axes_main).to_quaternion().to_swing_twist('Y')[0].angle)
+        hors = hors_des_bornes(repos.transposed() @ avant_bras, bornes[0]) \
+            + hors_des_bornes((avant_bras @ rel_main).transposed() @ axes_main, bornes[1])
         prix = ((torsion - tourne) / POIGNET['torsion']) ** 2 + (max(0.0, flexion - POIGNET['flexion']) / 10) ** 2 \
             + (max(0.0, charniere - POIGNET['charniere']) / 10) ** 2 + (tour / 45) ** 2 \
             + (0.0 if precedent is None else ((tour - precedent) / 10) ** 2) \
-            + 1e3 * (max(0.0, abs(torsion - tourne) - POIGNET['torsion_max']) + max(0.0, flexion - POIGNET['flexion_max'])) ** 2
-        return prix, humerus, avant_bras, coude_, tour, (round(torsion), round(tourne), round(flexion), round(charniere))
+            + 1e3 * (max(0.0, abs(torsion - tourne) - POIGNET['torsion_max']) + max(0.0, flexion - POIGNET['flexion_max']) + hors) ** 2
+        return prix, humerus, avant_bras, coude_, tour, (round(torsion), round(tourne), round(flexion), round(charniere), round(hors, 1))
 
     def essais(tours):
         gestes = [geste(t) for t in tours]
@@ -227,9 +347,10 @@ def bras(epaule, axes_epaule, main, longueurs, pole, rel_avant_bras, rel_main, p
                     pose_.translation = origine
                     matrices[os_].append(numpy.array(pose_ @ inverse))
             etires, ecrases = etirement_du_bras(peau_, fixe, [(os_, numpy.array(m)) for os_, m in matrices.items()])
-        return [(g[0] + (max(0.0, e - ETIREMENT_EN_CLIP[1] + PEAU['marge']) / PEAU['echelle']) ** 2
+        troncs = prix_du_tronc(tronc, numpy.array([g[3] for g in gestes]), poignet)
+        return [(g[0] + t + (max(0.0, e - ETIREMENT_EN_CLIP[1] + PEAU['marge']) / PEAU['echelle']) ** 2
                  + (max(0.0, PEAU['plancher'] - c) / PEAU['echelle_plancher']) ** 2, *g[1:5], (*g[5], float(e), float(c)))
-                for g, e, c in zip(gestes, etires, ecrases)]
+                for g, e, c, t in zip(gestes, etires, ecrases, troncs)]
 
     meilleur = min(essais(range(-120, 121, 6)), key=lambda e: e[0])
     for pas in (2, 0.5):
@@ -246,15 +367,17 @@ def repere_de_l_arme(flanc, prise, fer):
     return repere
 
 
-def _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, precedents, peaux):
+def _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, precedents, peaux, tronc):
     """Les deux bras posés (`bras`) sur l'arme au repère `arme`, roulée autour de son manche (son +Y) du tour qui paie le
     moins, bras compris, au plus près du roulis `precedents['roulis']` : par côté, `mains` porte la matrice de sa main
-    dans le repère de l'arme, et `peaux` la peau que meut son bras (`peau_du_bras`). Rend l'écart de position restant,
+    dans le repère de l'arme, et `peaux` la peau que meut son bras (`peau_du_bras`) ; chaque bras se tient à l'écart de
+    la `PeauDuTronc` `tronc`. Rend l'écart de position restant,
     les tours retenus et le détail de chaque bras (`bras`)."""
     pose, repos = rig.pose.bones, rig.data.bones
     noms = [b.name for b in repos]
     inverses = {n: repos[n].matrix_local.inverted() for n in noms}
     courantes = numpy.array([numpy.array(pose[n].matrix @ inverses[n]) for n in noms])
+    tronc_ = tronc_pose(tronc, courantes)
     poses = {}
     for cote in mains:
         epaule = pose[BRAS[cote][0]]
@@ -274,8 +397,9 @@ def _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, precedents, peaux):
 
     def essai(roulis):
         roule = arme @ Matrix.Rotation(math.radians(roulis), 4, 'Y')
-        poses_ = {c: bras(t, a, roule @ mains[c], longueurs[c], p, r[0], r[1], PRONATION[c], precedents.get(c),
-                          peau(c, roule @ mains[c], m, d, libres))
+        poses_ = {c: bras(t, a, roule @ mains[c], longueurs[c], p, r[0], r[1], PRONATION[c], (BORNES[BRAS[c][1]], BORNES[BRAS[c][2]]),
+                          precedents.get(c),
+                          peau(c, roule @ mains[c], m, d, libres), tronc_)
                   for c, (t, a, p, r, m, d, libres) in poses.items()}
         prix = sum(e[0] for e in poses_.values()) + (roulis / POIGNET['roulis']) ** 2 \
             + (0.0 if precedents.get('roulis') is None else ((roulis - precedents['roulis']) / 10) ** 2)
@@ -315,12 +439,12 @@ def deriver(bpy, rig, reperes):
     peaux = {cote: peau_du_bras(meshes_for(bpy, rig), noms, [o.name for o in (rig.data.bones[b], *rig.data.bones[b].children_recursive)],
                                 rig.matrix_world.inverted())
              for cote, (b, _, _) in BRAS.items()}
+    tronc = peau_du_tronc(meshes_for(bpy, rig), noms, rig.matrix_world.inverted())
     animes = [n for os in BRAS.values() for n in os] + list(CLAVICULES) + list(DOS)
     derivees = []
     for nom, (source_nom, os_du_cadre, maniement, cles) in CLIPS.items():
         source = bpy.data.actions[source_nom]
-        rig.animation_data_create()
-        rig.animation_data.action = source
+        assign_action(rig, source)
         images = instants(source)
         debut, fin = images[0], images[-1]
         dos_source = {}
@@ -332,9 +456,8 @@ def deriver(bpy, rig, reperes):
         for sac in sacs(action):
             for courbe in [c for c in sac.fcurves if c.data_path.split('"')[1:2] and c.data_path.split('"')[1] in animes]:
                 sac.fcurves.remove(courbe)
-        rig.animation_data.action = action
-        rig.animation_data.action_slot = action.slots[0]
-        ecart, tours, poignets = 0.0, {}, {'torsion': 0, 'flexion': 0, 'coude': 1.0}
+        assign_action(rig, action)
+        ecart, tours, poignets = 0.0, {}, {'torsion': 0, 'flexion': 0, 'coude': 1.0, 'bornes': 0.0}
         for image in images:
             aller_a(scene, image)
             for n in animes:
@@ -354,15 +477,15 @@ def deriver(bpy, rig, reperes):
             arme = repere_de_l_arme(cadre.to_3x3() @ Vector((1, 0, 0)), cadre @ prise, cadre.to_3x3() @ direction * math.copysign(1, cote))
             mains = {'r': prise_main.inverted(),
                      'l': Matrix.Translation((0, cote, 0)) @ Matrix.Rotation(math.radians(tour_seconde), 4, 'Y') @ prise_off.inverted()}
-            reste, tours, details = _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, tours, peaux)
+            reste, tours, details = _poser_les_bras(bpy, rig, arme, mains, cadre, longueurs, tours, peaux, tronc)
             ecart = max(ecart, reste)
-            for cote_, (torsion_, tourne, flexion_, _, etire, ecrase) in details.items():
+            for cote_, (torsion_, tourne, flexion_, _, hors, etire, ecrase) in details.items():
                 if abs(torsion_ - tourne) > POIGNET['torsion_max'] or flexion_ > POIGNET['flexion_max']:
                     raise ValueError(f'{nom} image {image} : poignet {cote_} tordu de {torsion_ - tourne}°, plié de {flexion_}°')
                 if etire > ETIREMENT_EN_CLIP[1] or ecrase < ETIREMENT_EN_CLIP[0]:
                     raise ValueError(f'{nom} image {image} : peau du bras {cote_} étirée à {etire:.2f}, écrasée à {ecrase:.3f}')
                 poignets = {'torsion': max(poignets['torsion'], abs(torsion_ - tourne)), 'flexion': max(poignets['flexion'], flexion_),
-                            'coude': round(max(poignets['coude'], etire), 2)}
+                            'coude': round(max(poignets['coude'], etire), 2), 'bornes': max(poignets['bornes'], hors)}
             for n in animes:
                 pose[n].keyframe_insert('rotation_quaternion', frame=image)
         print('DEUX_MAINS', nom, 'de', source_nom, 'images', len(images), 'écart de main', round(ecart, 4), 'poignet',

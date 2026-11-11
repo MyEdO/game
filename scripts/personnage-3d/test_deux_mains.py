@@ -3,6 +3,8 @@ ramène une cible hors de portée sur la sphère de portée ; les clés de geste
 repos, sauf à une clé d'élan, la prise `main` à la moitié de l'écart du milieu de chaque clé ; le repère de l'arme porte
 son +Y vers le fer et son +X au plus près du flanc donné ; chaque clip dérivé a une clé au début et une à la fin, et un
 maniement dont la seconde prise est déclarée ; le bras ne se tord pas et l'avant-bras porte la torsion dans ses bornes ;
+le dépassement des bornes articulaires se lit sur le vecteur de rotation, à la marge près, et écarte l'IK d'une pose qui
+en sort ;
 une peau déplacée d'un bloc garde ses longueurs, un os plié étire l'arête à cheval, l'écrasement ne lit que les arêtes
 que meuvent les os libres ; la seconde
 prise de chaque arme tourne comme celle des clips de son maniement."""
@@ -17,10 +19,11 @@ from mathutils import Matrix, Vector
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / 'base'))
 
-from deux_mains import (CLIPS, POIGNET, PRONATION, SECONDES, PeauDuBras, bras, cle, coude,  # noqa: E402
-                        etirement_du_bras, interpoler, peau_fixe, repere_de_l_arme)
+from deux_mains import (CLIPS, MARGE_DES_BORNES, POIGNET, PRONATION, SECONDES, PeauDuBras, bras, cle, coude,  # noqa: E402
+                        etirement_du_bras, hors_des_bornes, interpoler, peau_fixe, repere_de_l_arme)
 
 L1, L2 = 0.25, 0.24
+LIBRE = {a: [-180, 180] for a in 'xyz'}
 
 
 class Coude(unittest.TestCase):
@@ -51,12 +54,23 @@ class Bras(unittest.TestCase):
     AXES = Matrix(((0, 1, 0), (0, 0, -1), (-1, 0, 0)))
     """Le bras gauche au repos en T : son +Y vers la gauche du personnage (+X), son +X vers le bas."""
 
-    def poser(self, tourne, cible=Vector((0.15, -0.38, 1.2))):
+    def poser(self, tourne, cible=Vector((0.15, -0.38, 1.2)), bornes=(LIBRE, LIBRE)):
         devant = self.AXES.col[1].rotation_difference(Vector((0, -1, 0))).to_matrix() @ self.AXES
         main = (devant @ Matrix.Rotation(math.radians(tourne), 3, 'Y')).to_4x4()
         main.translation = cible
         un = Matrix.Identity(3)
-        return main, bras(self.EPAULE, self.AXES, main, (L1, L2), Vector((0.55, 0.35, -0.75)), un, un, PRONATION['l'])
+        return main, bras(self.EPAULE, self.AXES, main, (L1, L2), Vector((0.55, 0.35, -0.75)), un, un, PRONATION['l'], bornes)
+
+    def test_une_borne_de_l_avant_bras_ecarte_l_ik_de_la_pose_qui_en_sort(self):
+        _, (_, humerus, avant_bras, _, _, _) = self.poser(0)
+        q = (humerus.transposed() @ avant_bras).to_quaternion()
+        v = q.axis * math.degrees(q.angle)
+        axe = max(range(3), key=lambda i: abs(v[i]))
+        serree = {**LIBRE, 'xyz'[axe]: [-abs(v[axe]) / 2, abs(v[axe]) / 2]}
+        _, (_, humerus_, avant_bras_, _, _, detail) = self.poser(0, bornes=(serree, LIBRE))
+        self.assertLess(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree),
+                        hors_des_bornes(humerus.transposed() @ avant_bras, serree))
+        self.assertAlmostEqual(detail[4], round(hors_des_bornes(humerus_.transposed() @ avant_bras_, serree), 1), places=6)
 
     def test_le_bras_ne_se_tord_pas_et_l_avant_bras_porte_la_torsion_dans_ses_bornes(self):
         for tourne in (-150, -90, -40, 0, 30, 90):
@@ -79,6 +93,15 @@ class Bras(unittest.TestCase):
                 main, (_, humerus, avant_bras, _, _, _) = self.poser(tourne)
                 self.assertAlmostEqual(torsion(humerus, avant_bras), PRONATION['l'][1], places=2)
                 self.assertGreater(torsion(avant_bras, main.to_3x3()), 0)
+
+
+class HorsDesBornes(unittest.TestCase):
+    def test_le_vecteur_de_rotation_se_lit_par_axe_a_la_marge_pres(self):
+        bornes = {'x': [-20, 50], 'y': [-180, 180], 'z': [-10, 20]}
+        self.assertEqual(hors_des_bornes(Matrix.Identity(3), bornes), 0)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(30), 3, 'Z'), bornes), 10 + MARGE_DES_BORNES, places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(-30), 3, 'X'), bornes), 10 + MARGE_DES_BORNES, places=4)
+        self.assertAlmostEqual(hors_des_bornes(Matrix.Rotation(math.radians(19.5), 3, 'Z'), bornes), 0.5, places=4)
 
 
 class Peau(unittest.TestCase):
