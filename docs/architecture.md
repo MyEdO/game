@@ -661,6 +661,11 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
                             l'export Web, que `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
                             nommées d'une scène (`--parcours cadrages`, `cadrages/`).
+  etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
+                            `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune
+                            (`<nom>.png`, sa capture) et `valides.json` (l'empreinte des étalons validés). `npm run
+                            godot:etalons` exporte le jeu et refuse tout pixel d'écart entre une planche et son étalon
+                            (#3935, `.claude/rules/ecrans-godot.md`).
 src/state/                  ADAPTATEUR de l'hôte web : il pose le résultat du noyau (store Zustand), sélectionne
                             pour l'affichage et persiste (saves, roster, bibliothèque, préférences), sans
                             décider d'aucun effet de jeu (§ Couches).

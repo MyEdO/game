@@ -18,13 +18,8 @@ func _init(lu: Dictionary) -> void:
 
 ## Le pont figé `lu` posé à la place du pont de l'arbre (`/root/Pont`).
 static func poser(arbre: SceneTree, lu: Dictionary) -> PontFige:
-	var ancien := arbre.root.get_node_or_null("Pont")
-	if ancien != null:
-		arbre.root.remove_child(ancien)
-		ancien.free()
 	var pont := PontFige.new(lu)
-	pont.name = "Pont"
-	arbre.root.add_child(pont)
+	PontDuNoyau.remplacer(arbre, pont)
 	return pont
 
 
