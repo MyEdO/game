@@ -4,27 +4,31 @@
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
 [ext_resource type="Theme" path="res://art/nom_d_entite.tres" id="t_nom_d_entite"]
 
-[node name="Entite" type="VBoxContainer"]
+[node name="Entite" type="PanelContainer"]
+theme_type_variation = &"Entite"
+size_flags_horizontal = 3
+
+[node name="Pile" type="VBoxContainer" parent="."]
 theme_type_variation = &"PileSerree"
 
-[node name="Nom" type="PanelContainer" parent="."]
+[node name="Nom" type="PanelContainer" parent="Pile"]
 theme_type_variation = &"TeteDEntite"
 
-[node name="Texte" type="Label" parent="Nom"]
+[node name="Texte" type="Label" parent="Pile/Nom"]
 theme = ExtResource("t_nom_d_entite")
 
-[node name="nom" type="Node" parent="Nom/Texte"]
+[node name="nom" type="Node" parent="Pile/Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "nom"
 
-[node name="ton" type="Node" parent="Nom/Texte"]
+[node name="ton" type="Node" parent="Pile/Nom/Texte"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
 
-[node name="Elements" type="HFlowContainer" parent="."]
+[node name="Elements" type="HFlowContainer" parent="Pile"]
 theme_type_variation = &"FluxSerre"
 
-[node name="Zone" type="Node" parent="Elements"]
+[node name="Zone" type="Node" parent="Pile/Elements"]
 script = ExtResource("2_zone")
 source = "elements"

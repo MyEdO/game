@@ -50,8 +50,9 @@ func montrer(elements: Array) -> void:
 		if conteneur is TabContainer:
 			var onglets := conteneur as TabContainer
 			onglets.set_tab_title(onglets.get_tab_idx_from_control(noeud), str(e.nom if e.has("nom") else e.libelle))
-			if noeud.has_node("Nom"):
-				(noeud.get_node("Nom") as Control).visible = false
+			var nom := noeud.find_child("Nom", true, false) as Control
+			if nom != null:
+				nom.visible = false
 		dernier = noeud
 	if not ajout:
 		for cle in dessines:

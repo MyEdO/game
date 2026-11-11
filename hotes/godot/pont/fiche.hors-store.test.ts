@@ -7,7 +7,7 @@
  * combat a la sienne. Une possession s'y choisit et dit ses gestes ; elle s'ouvre et se ferme sans toucher la partie.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Puce } from '../../../src/hote/elements';
 import { findCreatureById, sourceRefLabel } from '../../../src/data';
@@ -88,7 +88,7 @@ describe('la fiche d’un combattant par le pont', () => {
     expect((gestes.find((g) => g.id === 'main') as Bouton | undefined)?.presse, 'la main qui la tient pressée').toBe(true);
     expect(gestes.every((g) => g.refus === 'En combat, l’équipement se gère depuis la barre d’action.'), 'en combat, chacun refusé, sa raison dite').toBe(true);
 
-    const avance = drainer(appel, appel('jouer', debut.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)).suite;
+    const avance = drainer(appel, appel('jouer', enFocus(debut.vue)!.jeu)).suite;
     expect(avance.vue.zones['fiche.objet'][0]?.nom, 'la fiche reste ouverte, sa possession choisie, quand la partie avance').toBe('Bâton de combat');
 
     s = suiteDe(appel('fiche', avance.vue.zones['fiche.gestes'].find((b) => b.id === 'fermer')!.jeu));

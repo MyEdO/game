@@ -4,7 +4,7 @@
  * ramasser, et elle revient sur un héros du groupe.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Entite, Jeu } from '../../../src/hote/elements';
 
@@ -25,7 +25,7 @@ function possessionsDe(s: Suite, libelle: string): string[] {
 describe('les objets au sol par le pont', () => {
   it('posée depuis la fiche, une possession devient un décor du monde, et l’exploration la ramasse', () => {
     let { suite: s } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
-    while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
+    while (s.vue.projection.fenetre) s = jouer(enFocus(s.vue)!.jeu);
     const avant = s.vue.plateau!.cleDuMonde;
     const rosa = ficheDuHeros(s.vue, 'Apothicaire');
     s = suiteDe(appel('fiche', rosa.jeu));

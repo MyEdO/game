@@ -5,7 +5,7 @@
  * autre héros, un consommable utilisé.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Jeu } from '../../../src/hote/elements';
 
@@ -37,7 +37,7 @@ const jouer = (jeu: Jeu): Suite => drainer(appel, appel('jouer', jeu)).suite;
 describe('l’inventaire d’un héros par le pont', () => {
   it('hors combat, chaque geste d’une possession se joue et change la partie', () => {
     let { suite: s } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
-    while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
+    while (s.vue.projection.fenetre) s = jouer(enFocus(s.vue)!.jeu);
     const rosa = ficheDuHeros(s.vue, 'Apothicaire');
     s = suiteDe(appel('fiche', rosa.jeu));
 
@@ -61,7 +61,7 @@ describe('l’inventaire d’un héros par le pont', () => {
     s = choisir(s, 'Potion de guérison');
     expect(geste(s, 'utiliser').refus, 'un consommable de son héros s’utilise hors combat').toBeNull();
     s = jouer((geste(s, 'utiliser') as Bouton).jeu);
-    while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
+    while (s.vue.projection.fenetre) s = jouer(enFocus(s.vue)!.jeu);
     expect(possessions(s).map((p) => p.libelle), 'utilisé, il est consommé').not.toContain('Potion de guérison');
 
     s = choisir(s, 'Pilon et Mortier');

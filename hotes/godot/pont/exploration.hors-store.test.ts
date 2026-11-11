@@ -4,7 +4,7 @@
  * le groupe et rend le chemin de son meneur (#3822), la porte dessinée sur le plateau, fermée puis ouverte, le volume du monde de la scène (`monde`).
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import { CLIC_DU_CHAMP, type plateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
@@ -18,7 +18,7 @@ describe('l’exploration par le pont', () => {
     expect(suite.vue.champ, 'une fenêtre tient la main : le champ ne se clique pas').toBeNull();
     expect(suite.vue.zones['exploration.gestes'], 'ni les gestes d’exploration').toEqual([]);
     while (suite.vue.projection.fenetre) {
-      const continuer = suite.vue.zones['fenetre.gestes'].find((g) => g.type === 'bouton' && g.focus);
+      const continuer = enFocus(suite.vue);
       expect(continuer, 'la fenêtre se poursuit par son geste en focus').toBeDefined();
       ({ suite } = drainer(appel, appel('jouer', (continuer as Bouton).jeu)));
     }

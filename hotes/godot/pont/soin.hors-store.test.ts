@@ -4,7 +4,7 @@
  * et règle l'acte et le Test en choix nommés (`fenetreDuSoin`), chaque option fermée avec sa raison.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, gestesDessines, table, type Reponse } from './pont.testkit';
+import { drainer, gestesDessines, table, type Reponse, enFocus } from './pont.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton, Choix } from '../../../src/hote/elements';
 import { clicDuCombattant, type Suite } from './pont';
@@ -52,7 +52,7 @@ describe('le soin par le pont', () => {
       ['Guérison', true, null], ['Dextérité', false, 'La Dextérité n’arrête que l’Hémorragie'],
     ]);
 
-    ({ suite } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)));
+    ({ suite } = drainer(appel, appel('jouer', enFocus(suite.vue)!.jeu)));
     expect(corps()['jets/0/0'], 'le jet de Guérison tombe').toMatchObject({ qui: 'Tueur', libelle: 'Guérison' });
     expect((corps()['jets/0/0'] as { resultat: string | null }).resultat, 'son dé').not.toBeNull();
     expect(Object.values(reglages()).flatMap((c) => c.valeurs).every((b) => b.presse || b.refus), 'le jet tombé, l’acte et le Test ne se règlent plus').toBe(true);

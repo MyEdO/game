@@ -4,7 +4,7 @@
  * que soldée, et la dernière engage le héros, qui rejoint le groupe de la partie avec les valeurs tirées et choisies.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, erreurDe, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Element, Jet, Puce } from '../../../src/hote/elements';
 
@@ -24,7 +24,7 @@ describe('la création d’un héros par le pont', () => {
   it('chaque page jouée par ses boutons, le héros engagé rejoint le groupe avec ses valeurs', () => {
     const { appel } = table();
     let s = drainer(appel, appel('demarrer', { scenario: 'marche-equipement', graine: 7 })).suite;
-    while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (s.vue.zones['fenetre.gestes'].find((g) => g.type === 'bouton' && g.focus) as Bouton).jeu)).suite;
+    while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (enFocus(s.vue) as Bouton).jeu)).suite;
     const avant = s.vue.zones['groupe.heros'].map((c) => c.nom);
     expect(s.vue.zones['creation.corps'], 'sans création, ses zones sont vides').toEqual([]);
     const creer = boutonDe(s, 'groupe.gestes', 'creation');

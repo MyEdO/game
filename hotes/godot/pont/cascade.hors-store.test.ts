@@ -6,7 +6,7 @@
  * Le Coup Critique d'une Défense ne montre pas la Défense de l'attaque suivante, déjà en attente.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, gestesDessines } from './pont.testkit';
 import { clicDuCombattant } from './pont';
 import type { Bouton, Choix, Element } from '../../../src/hote/elements';
 
@@ -22,7 +22,7 @@ describe('Entrée dans la cascade', () => {
       const { fenetre, combat } = suite.vue.projection;
       let jeu: unknown;
       if (fenetre) {
-        const gestes: Element[] = suite.vue.zones['fenetre.gestes'];
+        const gestes: Element[] = gestesDessines(suite.vue);
         const focus = gestes.find((g): g is Bouton => g.type === 'bouton' && g.focus);
         if (fenetre.etape?.interaction === 'batch' && focus?.id === 'jetValider@cascade') vus.batchValide = true;
         if (fenetre.etape?.genre === 'critical') {

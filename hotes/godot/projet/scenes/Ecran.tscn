@@ -1,4 +1,4 @@
-[gd_scene load_steps=7 format=3]
+[gd_scene load_steps=8 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
@@ -6,6 +6,7 @@
 [ext_resource type="Theme" path="res://art/statbloc.tres" id="4_statbloc"]
 [ext_resource type="Theme" path="res://art/avis.tres" id="t_avis"]
 [ext_resource type="Theme" path="res://art/petit.tres" id="t_petit"]
+[ext_resource type="Theme" path="res://art/entites_en_cartes.tres" id="t_en_cartes"]
 
 [node name="Ecran" type="Node"]
 
@@ -143,6 +144,7 @@ masque = NodePath("../../..")
 
 [node name="Heros" type="HFlowContainer" parent="Interface/Ossature/Colonne/Pied/Pile"]
 theme_type_variation = &"Cartes"
+theme = ExtResource("t_en_cartes")
 
 [node name="Zone" type="Node" parent="Interface/Ossature/Colonne/Pied/Pile/Heros" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")

@@ -5,7 +5,7 @@
  * rejoué la création ouverte, il la laisse telle quelle.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
@@ -14,7 +14,7 @@ const { appel } = table();
 describe('l’Effet de scène « nouveau héros » par le pont', () => {
   it('signer l’avis d’enrôlement ouvre la création sur un héros neuf', () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'effets-scriptes', graine: 7 }));
-    while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)));
+    while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', enFocus(suite.vue)!.jeu)));
     ({ suite } = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 2, y: 6 }] })));
     const signer = suite.vue.zones['exploration.gestes'].find((b) => b.libelle.startsWith('Avis d’enrôlement'));
     expect(signer, 'à portée, l’avis offre son geste d’exploration').toBeDefined();

@@ -4,7 +4,7 @@
  * choix que le corps porte ne se redessine pas en réglage.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { departDeLaCarte, drainer, table } from './pont.testkit';
+import { departDeLaCarte, drainer, table, gestesDessines } from './pont.testkit';
 import type { Bouton, Element, Entite, Puce } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
@@ -20,7 +20,7 @@ function echoppe() {
   const avancer = (jusqua?: string) => {
     for (let pas = 0; s.vue.projection.fenetre && s.vue.projection.fenetre.cle !== jusqua; pas++) {
       expect(pas, 'les fenêtres se vident').toBeLessThan(80);
-      const g = s.vue.zones['fenetre.gestes'];
+      const g = gestesDessines(s.vue);
       s = jouer((g.find((x): x is Bouton => x.type === 'bouton' && x.focus) ?? g.find((x): x is Bouton => x.type === 'bouton' && !x.refus)!).jeu);
     }
   };

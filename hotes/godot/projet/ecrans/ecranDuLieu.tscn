@@ -1,7 +1,8 @@
-[gd_scene load_steps=3 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="PackedScene" path="res://cadres/monde.tscn" id="1_monde"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
+[ext_resource type="Theme" path="res://art/entites_en_cartes.tres" id="t_en_cartes"]
 
 [node name="Monde" instance=ExtResource("1_monde")]
 
@@ -12,20 +13,19 @@ horizontal_scroll_mode = 0
 [node name="Lieu" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
 theme_type_variation = &"PileAeree"
 size_flags_horizontal = 3
+theme = ExtResource("t_en_cartes")
 
 [node name="Services" type="GridContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
 theme_type_variation = &"GrilleAeree"
-columns = 3
+columns = 4
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Services"]
 script = ExtResource("2_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("service/", "poi/")
 
-[node name="Separation" type="HSeparator" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
-
-[node name="Trajets" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
-theme_type_variation = &"MosaiqueAeree"
+[node name="Trajets" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu"]
+theme_type_variation = &"PileSerree"
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Lieu/Trajets"]
 script = ExtResource("2_zone")
