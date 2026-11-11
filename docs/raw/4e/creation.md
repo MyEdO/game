@@ -681,16 +681,16 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 
 | Mécanique | Fichier(s) code |
 |-----------|----------------|
-| Tirage espèce d100 / +20 PX | `src/engine/creation.ts l.25, 33` — `LDB 04 l.91, 93` |
-| Tirage carrière d100 / +50/+25 PX | `src/engine/creation.ts l.26-27, 64` — `LDB 05 l.210-211` |
-| Tirage 2d10 Caractéristiques / +50/+25 PX | `src/engine/creation.ts l.28-29, 81` — `LDB 05 l.337-385` |
+| Tirage espèce d100 / +20 PX | `src/engine/creation.ts l.30, 69` — `LDB 04 l.91, 93` |
+| Tirage carrière d100 / +50/+25 PX | `src/engine/creation.ts l.31-32, 82` — `LDB 05 l.210-211` |
+| Tirage 2d10 Caractéristiques / +50/+25 PX | `src/engine/creation.ts l.33-34` · `src/engine/character.ts l.315` — `LDB 05 l.337-385` |
 | Profils d'espèce (bonus de Caractéristique) | `src/data/species.json` |
 | Blessures = BF+(2×BE)+BFM | `src/engine/characteristics.ts` |
-| Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 112` — `LDB 05 l.578-583` |
-| Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.131` — `LDB 05 l.705-711` |
-| Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.136` — `LDB 05 l.728` |
-| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.142` — `LDB 05 l.742-754` |
-| Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.147` — `LDB 05 l.756-768` |
+| Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 110` — `LDB 05 l.578-583` |
+| Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.117` — `LDB 05 l.705-711` |
+| Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.122` — `LDB 05 l.728` |
+| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.127` — `LDB 05 l.742-754` |
+| Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.132` — `LDB 05 l.756-768` |
 | 5 Augmentations gratuites sur 3 Caractéristiques de carrière | `src/engine/character.ts l.256, 263` — `LDB 05 l.459, 463` |
 | 40 Augmentations de Compétences de carrière (max 10 / Comp.) | `src/engine/character.ts` (`CAREER_SKILL_ADVANCES`) · `src/noyau/creation/brouillon.ts` |
 | Magie mineure : BFM sorts mémorisés à la création | `src/noyau/creation/brouillon.ts` (`pettySpellQuota`) — `LDB 10 l.714` |

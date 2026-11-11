@@ -2743,22 +2743,32 @@ const CODEX_SPECS = {
  *  est un getter re-projetable (fraîcheur). */
 export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
-/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table (de la
- *  borne précédente, ou du plus petit total du dé, à son `rand`), sous la source du tableau. */
+/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
+ *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
+ *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
 function couleursDuTableau(table: typeof tableDesYeux, de: DeDeTable): CodexItem[] {
-  const bornes = table.entries.map((e) => e.rand);
+  const rangee = (e: (typeof eyes)[number]) => e.rand;
+  const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
+  /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */
+  const bande = (borne: (e: (typeof eyes)[number]) => number, e: (typeof eyes)[number]) => {
+    const precedentes = table.entries.map(borne).filter((b) => b < borne(e));
+    return bandeAuDe(de, precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n), borne(e));
+  };
   return table.entries.map((e) => {
-    const precedentes = bornes.filter((b) => b < e.rand);
-    const min = precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n);
-    return depuisEnveloppe({ ...e, source: table.source }, { sub: bandeAuDe(de, min, e.rand), sections: sections(colorTableSection(e)) });
+    const sub = bande(rangee, e);
+    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, (race) => bande(colonne(race), e))) });
   });
 }
 
-/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce. */
-function colorTableSection(c: (typeof eyes)[number]): CodexSection {
+/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce, suivie de la bande de la colonne
+ *  quand elle diffère de `sub`, la bande de la rangée. */
+function colorTableSection(c: (typeof eyes)[number], sub: string, bandeDeColonne: (race: RaceKey) => string): CodexSection {
   return {
     title: tr('codex.fiche.couleurParEspeceColonneRefchar'), layout: 'list',
-    rows: Object.entries(c.color).filter(([, v]) => v).map(([sp, v]) => ({ t: 'kv', k: sp, v } as CodexRow)),
+    rows: (Object.entries(c.color) as [RaceKey, string | undefined][]).filter(([, v]) => v).map(([sp, v]) => {
+      const bandeSp = bandeDeColonne(sp);
+      return { t: 'kv', k: sp, v: bandeSp === sub ? v! : `${v} · ${bandeSp}` } as CodexRow;
+    }),
   };
 }
 

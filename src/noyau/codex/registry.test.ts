@@ -679,6 +679,12 @@ describe('Codex — Tableaux de couleur des yeux et des cheveux (#3578)', () => 
     expect(sousTitres('eyes')).toEqual(['2d10 2', '2d10 3', '2d10 4', '2d10 5–7', '2d10 8–11', '2d10 12–14', '2d10 15–17', '2d10 18', '2d10 19', '2d10 20']);
     expect(sousTitres('hairs')).toEqual(sousTitres('eyes'));
   });
+  it('une colonne à bornes propres affiche sa bande à côté de sa couleur (NADJ 15 l.99-104)', () => {
+    const gnome = (id: string) => categoryByKey('hairs')!.items.find((i) => i.id === id)!.sections![0].rows.find((r) => r.t === 'kv' && r.k === 'gnome');
+    expect(gnome('blond-roux')).toMatchObject({ v: 'Brun · 2d10 4–6' });
+    expect(gnome('brun-clair')).toMatchObject({ v: 'Auburn · 2d10 11' });
+    expect(gnome('blond-blanc')).toMatchObject({ v: 'Noir' });
+  });
   it('la bande suit le dé posé sur la table par le seam', () => {
     const imprime = deDeLaTable('eyes')!;
     setDeDeTable('eyes', '1d10');
