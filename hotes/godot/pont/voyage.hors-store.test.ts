@@ -74,8 +74,16 @@ describe('le voyage par le pont', () => {
     expect(suite.vue.zones['fenetre.titre'].map((l) => l.texte), 'le lieu en titre').toEqual(['Steinbruck']);
     expect(suite.vue.projection.scene?.id, 'le groupe n’est pas entré dans la scène du lieu').toBe('test-voyage-village');
     const corps = parId(suite.vue.zones['fenetre.corps']);
-    const gestes = (id: string) => (corps[id] as Entite).elements.map((b) => [(b as Bouton).libelle, ((b as Bouton).jeu as { type: string }).type]);
+    const plan = corps['lieu/plan'] as Plan;
+    expect(plan.points.filter((pt) => pt.ton === 'alerte').map((pt) => pt.nom), 'le plan de la carte vu d’ici, le lieu du groupe en alerte').toEqual(['Steinbruck']);
+    expect(plan.points.flatMap((pt) => pt.elements), 'rien sous les lieux de ce plan : on part depuis les trajets').toEqual([]);
+    expect(((corps['lieu/carte'] as Bouton).jeu as { type: string }).type, 'la carte s’ouvre d’ici').toBe('ouvrirLaCarte');
+    const habits = (id: string) => (corps[id] as Entite).elements.filter((e) => e.type !== 'bouton').map((e) => (e.type === 'fond' ? e.fond : e.type));
+    const gestes = (id: string) => (corps[id] as Entite).elements.filter((e): e is Bouton => e.type === 'bouton').map((b) => [b.libelle, (b.jeu as { type: string }).type]);
+    expect(habits('service/auberge'), 'l’auberge : son fond, son icône, le boniment de son hôte').toEqual(['taverne-commune', 'icone', 'ligne']);
     expect(gestes('service/auberge'), 'l’auberge : dormir, recueillir des informations').toEqual([['Dormir', 'ouvrirLeRepos'], ['Recueillir des informations', 'recueillirLesRumeurs']]);
+    expect(habits('service/forgeron'), 'le forgeron : son fond et son icône, sans boniment').toEqual(['forge', 'icone']);
+    expect([(corps['lieu/services'] as Ligne).texte, (corps['lieu/trajets'] as Ligne).texte], 'chaque rubrique sous son titre').toEqual(['Ce qu’on peut faire ici', 'Partir']);
     expect(gestes('service/forgeron'), 'le forgeron : son échoppe').toEqual([['Entrer', 'ouvrirLaBoutique']]);
     const retour = corps['trajet/r-grandroute'] as Entite;
     expect([retour.nom, retour.elements.map((x) => (x as Choix).libelle)], 'le trajet qui en part, le même départ que sur la carte').toEqual(['Weiler', ['30 km']]);

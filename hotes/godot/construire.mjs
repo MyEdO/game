@@ -38,7 +38,8 @@ import { chargerAssets } from './asset/charger.mjs'
 import { deposerLesModeles, listage } from './listage.mjs'
 import { deposerLesPlanches } from './planches.mjs'
 
-const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire } = await chargerAssets([
+const { DOSSIER_DES_MODELES, enCacheOuTire, recupererModeles, recupererEpingles, verifierSomme, figerVuesDeLEcran, figerLeVehicule, figerLeRepos, figerLeDecor, figerLeChemin, figerLEditeurDuNavire, figerLesDessins } = await chargerAssets([
+  "export { figerLesDessins } from '/hotes/godot/asset/dessins.ts';",
   "export { figerVuesDeLEcran } from '/hotes/godot/recettes/ecran.ts';",
   "export { figerLeVehicule } from '/hotes/godot/recettes/vehicule.ts';",
   "export { figerLeRepos } from '/hotes/godot/recettes/atelier.ts';",
@@ -292,11 +293,13 @@ function godot(binaire, projet, args) {
   return { erreurs, lignes }
 }
 
-/** Joue `faire(copie)` sur une copie du projet, importée par `binaire`, sous le dossier temporaire ; rend ses erreurs. */
+/** Joue `faire(copie)` sur une copie du projet, le catalogue des dessins (`figerLesDessins`) déposé sous `art/dessins.json`,
+ *  importée par `binaire`, sous le dossier temporaire ; rend ses erreurs. */
 function surUneCopie(binaire, faire) {
   const copie = mkdtempSync(join(tmpdir(), 'wfrp-godot-'))
   try {
     cpSync(PROJET, copie, { recursive: true, filter: (source) => !source.split(sep).includes('.godot') })
+    writeFileSync(join(copie, 'art', 'dessins.json'), JSON.stringify(figerLesDessins()))
     const { erreurs } = godot(binaire, copie, ['--import'])
     return erreurs.length ? erreurs : faire(copie)
   } finally {
