@@ -386,7 +386,7 @@ export function gabaritDObjet(id: string, resolveTrapping: TrappingResolver = fi
     desc: t.desc,
     subType: t.subType?.id,
     ...(t.weaponGroup ? { weaponGroup: t.weaponGroup.id } : {}),
-    ...(t.defaultAmmo ? { defaultAmmo: t.defaultAmmo.id } : {}),
+    ...(t.munitions?.length ? { defaultAmmo: t.munitions[0] } : {}),
     ...(t.derivedWeapon ? { derivedWeapon: armeDeLaDonnee(t.derivedWeapon) } : {}),
     hands: kind === 'melee' || kind === 'ranged' ? (t.hands === 2 ? 2 : 1) : undefined, // champ typé (LDB 62)
     qty: kind === 'ammo' ? (t.packSize ?? 1) : undefined, // taille de paquet typée
@@ -1025,32 +1025,26 @@ export function mannedPosteWeapon(c: Combatant, poste: ShipPoste): Weapon | unde
 }
 
 /**
- * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la base
- * de la pièce depuis `trappingId` (`itemFromTrappingById`, la couture existante — JAMAIS une base copiée),
- * puis re-pose l'état d'INSTANCE propre au poste (enchants de dérogation). La pièce prend toujours
- * `uidDeLaPlace`, que l'appelant dérive de sa place sur la coque (#2907). `trappingId`
- * irrésoluble → throw explicite (fail-fast — une pièce fantôme est un défaut d'authoring, pas un silence).
+ * HYDRATATION d'un poste AUTHORÉ (#222) — couture UNIQUE, appelée au spawn (`spawnEnemy`). Résout la pièce et chaque
+ * munition de son coffre depuis le catalogue (`gabaritDObjet`, `itemFromTrappingById` — JAMAIS une base copiée), puis
+ * re-pose l'état propre au poste. La pièce prend `uidDeLaPlace`, que l'appelant dérive de sa place sur la coque, et
+ * chaque munition `<uidDeLaPlace>-<id>` (#2907). Une pièce ou une munition inconnue → throw explicite (fail-fast —
+ * un défaut d'authoring, pas un silence).
  */
 export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPoste {
-  const base = gabaritDObjet(a.trappingId);
-  if (!base) throw new Error(`[poste] trappingId inconnu « ${a.trappingId} » — pièce non hydratable (#222)`);
-  const item: ItemInstance = {
-    ...base,
-    uid: uidDeLaPlace, // #2907
-    ...(a.enchants?.length ? { enchants: a.enchants } : {}), // dérogation de CETTE pièce (hors base catalogue)
-  };
-  const poste: ShipPoste = { item };
-  if (a.side) poste.side = a.side;
-  if (a.cover) poste.cover = a.cover;
-  if (a.crewIds) poste.crewIds = a.crewIds;
-  if (a.loaded != null) poste.loaded = a.loaded;
-  if (a.reloadProgress != null) poste.reloadProgress = a.reloadProgress;
-  if (a.ammo) poste.ammo = a.ammo;
-  if (a.ammoUid) poste.ammoUid = a.ammoUid;
-  if (a.loadedAmmoUid) poste.loadedAmmoUid = a.loadedAmmoUid;
-  if (a.chambered != null) poste.chambered = a.chambered;
-  if (a.enchants?.length) poste.enchants = a.enchants;
-  if (a.anchor) poste.anchor = a.anchor;
+  const { trappingId, ammo, selectedAmmo, ...etat } = a;
+  const base = gabaritDObjet(trappingId);
+  if (!base) throw new Error(`[poste] trappingId inconnu « ${trappingId} » — pièce non hydratable (#222)`);
+  const poste: ShipPoste = { ...etat, item: { ...base, uid: uidDeLaPlace } };
+  const uidDeLaMunition = (id: string) => `${uidDeLaPlace}-${id}`;
+  if (ammo) {
+    poste.ammo = Object.entries(ammo).map(([id, qty]) => {
+      const munition = itemFromTrappingById(id, () => uidDeLaMunition(id));
+      if (!munition) throw new Error(`[poste] munition inconnue « ${id} » au coffre de « ${trappingId} » (#222)`);
+      return { ...munition, qty };
+    });
+  }
+  if (selectedAmmo) poste.ammoUid = uidDeLaMunition(selectedAmmo.id);
   return poste;
 }
 
@@ -1407,14 +1401,23 @@ export function ammoFamilyLabel(subType?: string, defaultAmmo?: string): string 
   }
 }
 
-/** Munitions compatibles avec une arme à distance (même famille canonique, qty>0) : l'inventaire du
+/** La munition `munition` charge-t-elle l'arme `arme` ? Une arme de siège, les seules munitions que sa fiche nomme
+ *  (`munitions`) ; toute autre arme, celles de sa famille (`ammoFamily`). AA 10 l.150 ; MDG 12 l.410-424 */
+export function chargeLArme(munition: { trappingId?: string; subType?: string }, arme: { trappingId?: string; subType?: string }): boolean {
+  if (groupeDeSiege(arme.subType)) {
+    const munitions = arme.trappingId ? findTrappingById(arme.trappingId)?.munitions : undefined;
+    return munition.trappingId !== undefined && (munitions ?? []).includes(munition.trappingId);
+  }
+  const famille = ammoFamily(arme.subType);
+  return famille !== '' && ammoFamily(munition.subType) === famille;
+}
+
+/** Munitions compatibles avec une arme à distance (`chargeLArme`, qty>0) : l'inventaire du
  *  porteur, PLUS — s'il SERT cette pièce (`mannedPoste`) — le STOCK DU POSTE (MDG 12 l.410-424 :
  *  le coffre à boulets de la pièce), en tête (le stock de bord prime sur la besace du servant). */
 export function compatibleAmmo(c: Combatant, weapon: Weapon): ItemInstance[] {
   if (weapon.type !== 'ranged') return [];
-  const fam = ammoFamily(weapon.subType);
-  if (!fam) return [];
-  const match = (i: ItemInstance) => i.kind === 'ammo' && (i.qty ?? 0) > 0 && ammoFamily(i.subType) === fam;
+  const match = (i: ItemInstance) => i.kind === 'ammo' && (i.qty ?? 0) > 0 && chargeLArme(i, weapon);
   const poste = c.mannedPoste;
   const posteStock = poste && poste.item.uid === weapon.uid ? (poste.ammo ?? []).filter(match) : [];
   return [...posteStock, ...(c.items ?? []).filter(match)];

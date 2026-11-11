@@ -201,6 +201,8 @@ const NOMMES = [
   'all|random',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
+  // `posteSideSchema` (#3606 M1f) : le bord d'un poste, à la fiche de navire comme au poste monté d’une scène (`authoredShipPosteSchema.side`).
+  'proue|tribord|poupe|babord',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.

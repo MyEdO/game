@@ -72,7 +72,7 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
     const rencontres = docs.flatMap((d) => d.scenes.flatMap((sc) => sc.encounters));
     const muettes = Object.entries({
       'amélioration navale d’instance': entites.some((e) => e.upgrades?.length),
-      'coffre à munitions de poste': entites.some((e) => (e.postes ?? []).some((p) => p.ammo?.length)),
+      'coffre à munitions de poste': entites.some((e) => (e.postes ?? []).some((p) => p.ammo)),
       'équipage exposé (crewIds)': entites.some((e) => e.crewIds?.length),
       'marchand à archétype': entites.some((e) => e.merchant?.archetype),
       'CustomStatblock d’auteur': entites.some((e) => e.statblock),
@@ -131,13 +131,10 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
   });
 
   /**
-   * ARMEMENT ET ÉQUIPAGE D'UNE COQUE — les contrats que le moteur naval lit sur l'authoring, relus
-   * PAR GLOB (l'id d'une amélioration d'instance, `upgrades`, se juge au parse) : un poste servable
-   * porte un coffre à munitions dont chaque pièce est une munition en quantité, sa sélection
-   * persistante (`ammoUid`) désigne une pièce RÉELLEMENT en soute (sinon `selectedAmmo` ne la retrouve
-   * pas), et un équipage exposé (`crewIds`) nomme des entités de SA scène.
+   * ÉQUIPAGE D'UNE COQUE, relu PAR GLOB : un équipage exposé (`crewIds`) nomme des entités de SA scène. Le coffre d'un
+   * poste et sa munition choisie se jugent au parse (`authoredShipPosteSchema`, `refusDeLEntite`).
    */
-  it.each(bundledFiles.map((f) => [f] as const))('%s : coques — coffres à munitions cohérents, équipage exposé résoluble', (file) => {
+  it.each(bundledFiles.map((f) => [f] as const))('%s : coques — équipage exposé résoluble', (file) => {
     const doc = parseProject(lireProjetLivre(file));
     const fautifs: string[] = [];
     for (const sc of doc.scenes) {
@@ -145,14 +142,6 @@ describe('paquets de campagne bundlés — se relisent tous dans le modèle COUR
       for (const e of sc.entities) {
         for (const id of e.crewIds ?? [])
           if (!ids.has(id)) fautifs.push(`${sc.id}:${e.id} équipage exposé « ${id} » : aucune entité de cette scène`);
-        for (const p of e.postes ?? []) {
-          for (const a of p.ammo ?? []) {
-            if (a.kind !== 'ammo') fautifs.push(`${sc.id}:${e.id}/${p.trappingId} : « ${a.uid} » n’est pas une munition`);
-            if ((a.qty ?? 0) <= 0) fautifs.push(`${sc.id}:${e.id}/${p.trappingId} : munition « ${a.uid} » en quantité nulle`);
-          }
-          if (p.ammoUid && !(p.ammo ?? []).some((a) => a.uid === p.ammoUid))
-            fautifs.push(`${sc.id}:${e.id}/${p.trappingId} : ammoUid « ${p.ammoUid} » hors du coffre`);
-        }
       }
     }
     expect(fautifs).toEqual([]);

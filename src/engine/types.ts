@@ -430,7 +430,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  liste d'ids en dur. VDM 05 *Défaut* : « Tous les Atouts de l'arme disparaissent ». Le nom du champ
    *  d'op reste `removeType` : il est PERSISTÉ en donnée, son rename appartient à #1468 (L1c). */
   removedTypes?: ('atout' | 'defaut')[];
-  /** `id` de munition REPRÉSENTATIVE d'une arme de siège (cf. `TrappingData.defaultAmmo`) — discrimine la
+  /** `id` de munition REPRÉSENTATIVE d'une arme de siège (la première de `TrappingData.munitions`) — discrimine la
    *  bonne famille de munition (pierrier/canon/baliste/mortier) là où `subType` seul ne le fait pas. Lu par
    *  `ammoFamilyLabel` pour le hint joueur. */
   defaultAmmo?: string;
@@ -1293,63 +1293,29 @@ export type DeckCoverClass = 'imparfaite' | 'moyenne' | 'totale';
  *  (`LDB 14 l.72/81/86`) plus l'absence de couvert. Barème et fusion : `engine/cover.ts`. */
 export type CoverClass = 'none' | DeckCoverClass;
 
-/** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222). La base (Dégâts/Qualités/Enc/
- *  Portée…) n'est PLUS matérialisée : elle est HYDRATÉE au spawn depuis `trappingId` par `hydratePoste`
- *  (`itemFromTrappingById`/`buildWeapon`, coutures UNIQUES). Ne persiste QUE la réf catalogue + l'état propre
- *  au poste (côté, équipage, recharge, munitions, dérogations) ; l'uid d'instance se dérive de la place (#2907). */
-export interface AuthoredShipPoste {
-  /** Réf catalogue de la pièce (SOURCE de la base — hydratée en `item` au spawn). */
-  trappingId: string;
-  /** Dérogations d'INSTANCE : enchants ajoutés à CETTE pièce (magie/qualité hors catalogue), repliés sur
-   *  l'arme dérivée par `mannedPosteWeapon` (`applyEnchants`). Hors base catalogue → persistés à part. */
-  enchants?: WeaponEnchant[];
-  /** Côté de montage relatif au cap → arc de tir (`inFireArc`). NAVAL : toujours authoré (bordée).
-   *  EMPLACEMENT AU SOL (siège) : ABSENT = pivot libre (tir omni, aucune contrainte d'arc) ; présent =
-   *  arc relatif à l'orientation-monde DU CHEF de pièce (pas d'une coque). */
-  side?: FireArc;
-  /** COUVERT du servant à ce poste (`DeckCoverClass`) : gun-port (Sabord) → `totale`, Plat-bord → `moyenne`,
-   *  Murs blindés → `totale` ; absent = tir depuis le pont, à découvert. La coque y ajoute ses
-   *  Améliorations couvrantes au tir (`couvertDuPoste`). */
-  cover?: DeckCoverClass;
-  /** Équipage servant la pièce ; `crewIds[0]` = chef de pièce (nominé pour le Test, Arme d'équipe). */
-  crewIds?: string[];
-  /** À répétition (Indice) (LDB 62 l.229/231) / Salve : munitions restantes dans le chargeur de LA PIÈCE
-   *  — même cycle que toute arme (elle remplit et vide son chargeur), écrit par `loadWeapon`/
-   *  `spendChamberedRound`/`unloadWeapon`. Absent = pas de chargeur, ou chargeur vide. */
-  chambered?: number;
-  /** Recharge (MDG 12 / LDB 62 l.333) — Test ÉTENDU de Projectiles, PAS d'auto-rechargement passif.
-   *  `loaded === false` = la pièce a tiré et reste muette tant que l'équipage n'a pas complété le Test
-   *  (absent / `true` = prête à tirer). */
-  loaded?: boolean;
-  /** DR cumulés du Test étendu de recharge (vers `reloadDRTarget` = Recharge N, ×2 si sous-effectif).
-   *  Remis à 0 si la recharge est INTERROMPUE (servants réassignés avant la fin, LDB 62 l.335). */
-  reloadProgress?: number;
-  /** STOCK DE MUNITIONS du poste (MDG 12 l.410-424, « Munitions pour pièces d'artillerie ») — le coffre
-   *  à boulets DE LA PIÈCE (boulet/mitraille pour un canon, carreau pour une baliste, bombe pour un
-   *  mortier…), des `ItemInstance` `kind:'ammo'` avec leur `qty`. AUTHORÉ avec le poste et PERSISTANT
-   *  (la coque vit dans la scène/sauvegarde). Fondu au pool du chef par `compatibleAmmo` (source unique) ;
-   *  consommé au tir (individuel comme bordée). */
-  ammo?: ItemInstance[];
-  /** Munition SÉLECTIONNÉE du poste (uid dans `ammo` — « boulet ou mitraille ? ») : le choix PERSISTANT de
-   *  la pièce (fiche du navire), sous le choix ponctuel du héros-chef (`Combatant.ammoUid`, hotbar). */
-  ammoUid?: string;
-  /** Munition CAPTURÉE dans le coup chargé de la pièce (uid dans `ammo`) : posée à l'achèvement du Test
-   *  étendu de recharge, consommée au tir. La munition se fixe AU CHARGEMENT : changer la sélection
-   *  d'une pièce chargée la DÉCHARGE (arbitrage utilisateur 2026-08-16, AskUserQuestion). */
-  loadedAmmoUid?: string;
-  /** Ancre spatiale optionnelle de la pièce dans l'espace de la scène (authorable). Absente → dérivée
-   *  (emplacement au sol = pos de l'entité ; coque = empreinte décalée par l'arc). Index-only, aucun effet combat. */
-  anchor?: { x: number; y: number; z?: number };
-}
+/** Pièce d'artillerie MONTÉE — forme AUTHORÉE/STOCKÉE (donnée de scène, #222) : l'entrée de son schéma
+ *  (`authoredShipPosteSchema`), telle qu'un auteur l'écrit. La pièce et son coffre désignent le catalogue ;
+ *  `hydratePoste` les matérialise au spawn, chaque uid d'instance dérivé de la place (#2907). */
+export type AuthoredShipPoste = import('zod').z.input<typeof import('../data/schemas/defs-scenes/scene').authoredShipPosteSchema>;
 
 /** Pièce d'artillerie MONTÉE — forme VIVANTE (runtime, sur le Combattant-coque). Étend `AuthoredShipPoste`
  *  avec l'arme HYDRATÉE (`item`, base résolue de `trappingId` au spawn par `hydratePoste`). Au spawn, le chef
  *  de pièce (`crewIds[0]`) la SERT via `Combatant.mannedPoste`. La LOGIQUE (arc, placement, support) vit en
  *  `noyau/monde/shipPostes.ts` ; ce TYPE pur vit ici pour que `Combatant` le porte sans dépendance engine→state. */
-export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId'> {
-  /** L'arme HYDRATÉE (instance complète — base via `trappingId` + `qualities`/`enchants` propres). Jamais
-   *  persistée : re-résolue à chaque spawn depuis la réf, cf. `hydratePoste`. */
+export interface ShipPoste extends Omit<AuthoredShipPoste, 'trappingId' | 'ammo' | 'selectedAmmo'> {
+  /** L'arme HYDRATÉE (instance complète, base via `trappingId`). Jamais persistée : re-résolue à chaque spawn
+   *  depuis la réf, cf. `hydratePoste`. */
   item: ItemInstance;
+  /** Le coffre MATÉRIALISÉ de la pièce : des `ItemInstance` `kind:'ammo'` avec leur `qty`, fondues au pool du chef
+   *  par `compatibleAmmo` (source unique), consommées au tir (individuel comme bordée). MDG 12 l.410-424 */
+  ammo?: ItemInstance[];
+  /** Munition SÉLECTIONNÉE du poste (uid dans `ammo`) : le choix PERSISTANT de la pièce, sous le choix ponctuel du
+   *  héros-chef (`Combatant.ammoUid`, hotbar). MDG 12 l.410-424 */
+  ammoUid?: string;
+  /** Munition CAPTURÉE dans le coup chargé de la pièce (uid dans `ammo`) : posée à l'achèvement du Test étendu de
+   *  recharge, consommée au tir. La munition se fixe AU CHARGEMENT : changer la sélection d'une pièce chargée la
+   *  DÉCHARGE (arbitrage utilisateur 2026-08-16, AskUserQuestion). */
+  loadedAmmoUid?: string;
 }
 
 /** Set d'armes nommé (les 2 mains). `secondaire` ignoré si l'arme `main` est à 2 mains. uids → ItemInstance. */
