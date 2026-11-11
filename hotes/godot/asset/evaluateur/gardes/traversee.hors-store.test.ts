@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest';
 import { BufferAttribute, BufferGeometry, Mesh, SkinnedMesh } from 'three';
 import type { Echantillon } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
-import { gardePercementAuRepos, gardeTraversee, lierLesCouches, lierSous, mesurerTraversee, ordreDeMemeRang, PORTEE_DE_COUVERTURE_M, sansLesZonesMasquees } from './traversee.ts';
+import { gardePercementAuRepos, gardeTraversee, lierLesCouches, mesurerTraversee, ordreDesCouches, sansLesZonesMasquees } from './traversee.ts';
 import { RANG_DU_CORPS } from '../../element.ts';
+import { PORTEE_DE_COUVERTURE_M } from '../../pile.ts';
 
 /** Un carré de 0,2 m de côté à la hauteur `z`, en grille 3 × 3, décalé de `dx` en X. */
 function carre(z: number, dx = 0): Float32Array {
@@ -20,6 +21,15 @@ function maillage<M extends Mesh>(Type: new (g: BufferGeometry) => M, positions:
 }
 const decaler = (p: Float32Array, dz: number) => p.map((v, i) => (i % 3 === 2 ? v + dz : v));
 const libelle = (m: Mesh) => m.name;
+/** Les liaisons de `sujet` sous l'élément du seul mesh `couverture`, dans la pose `positions`. */
+const lierSous = (sujet: Mesh, couverture: SkinnedMesh, positions: Map<Mesh, Float32Array>) =>
+  lierLesCouches([sujet], [{ rang: 1, meshes: [couverture] }], { positions }, ordreDesCouches({ positions })).liaisons;
+/** Lequel de deux éléments de même couche, de meshes `a` et `b`, couvre l'autre dans la pose `pose`. */
+const ordreDeMemeRang = (a: SkinnedMesh[], b: SkinnedMesh[], pose: { positions: Map<Mesh, Float32Array> }): 'a' | 'b' | null => {
+  const [ea, eb] = [{ rang: 1, meshes: a }, { rang: 1, meshes: b }];
+  const couvre = ordreDesCouches(pose);
+  return couvre(ea, eb) ? 'a' : couvre(eb, ea) ? 'b' : null;
+};
 const echantillon = (positions: Map<Mesh, Float32Array>, t = 0.5): Echantillon => ({ clip: 'Coup', t, positions, os: new Map() });
 
 describe('traversee', () => {
@@ -29,18 +39,18 @@ describe('traversee', () => {
   const repos = new Map<Mesh, Float32Array>([[peau, carre(0)], [tissu, carre(0.01)]]);
 
   it('chaque sommet derrière la couverture, à portée, se lie ; devant ou hors de portée, aucun', () => {
-    expect(lierSous(peau, tissu, { positions: repos })?.sommets.length).toBe(9);
-    expect(lierSous(peau, tissu, { positions: new Map([[peau, carre(0.02)], [tissu, carre(0.01)]]) })).toBeNull();
-    expect(lierSous(peau, tissu, { positions: new Map([[peau, carre(-PORTEE_DE_COUVERTURE_M)], [tissu, carre(0.01)]]) })).toBeNull();
+    expect(lierSous(peau, tissu, repos).map((l) => l.sommets.length)).toEqual([9]);
+    expect(lierSous(peau, tissu, new Map([[peau, carre(0.02)], [tissu, carre(0.01)]]))).toEqual([]);
+    expect(lierSous(peau, tissu, new Map([[peau, carre(-PORTEE_DE_COUVERTURE_M)], [tissu, carre(0.01)]]))).toEqual([]);
   });
 
   it('une doublure tournée vers le corps ne couvre rien', () => {
     const doublure = maillage(SkinnedMesh, carre(0.01), true);
-    expect(lierSous(peau, doublure, { positions: new Map([[peau, carre(0)], [doublure, carre(0.01)]]) })).toBeNull();
+    expect(lierSous(peau, doublure, new Map([[peau, carre(0)], [doublure, carre(0.01)]]))).toEqual([]);
   });
 
   it('VERT : la couche suit sa couverture ; ROUGE : elle passe devant au-delà de la tolérance, un écart à son pire instant', () => {
-    const { liaisons } = lierLesCouches([peau], [{ rang: 1, meshes: [tissu] }], { positions: repos }, { positions: repos });
+    const { liaisons } = lierLesCouches([peau], [{ rang: 1, meshes: [tissu] }], { positions: repos }, ordreDesCouches({ positions: repos }));
     const suit = mesurerTraversee(liaisons, echantillon(new Map([[peau, decaler(carre(0), 0.3)], [tissu, decaler(carre(0.01), 0.3)]])));
     expect(suit).toEqual([]);
     const tolere = mesurerTraversee(liaisons, echantillon(new Map([[peau, carre(0.01 + ECART_DE_SUIVI_M * 0.9)], [tissu, carre(0.01)]])));
@@ -54,7 +64,7 @@ describe('traversee', () => {
 
   it('ROUGE : un sommet devant sa couverture au repos, au-delà de la tolérance, la perce ; VERT : dans la tolérance ou hors de portée', () => {
     const auRepos = (z: number) => ({ positions: new Map([[peau, carre(z)], [tissu, carre(0.01)]]) });
-    const perce = (z: number) => lierLesCouches([peau], [{ rang: 1, meshes: [tissu] }], auRepos(z), auRepos(z)).percements;
+    const perce = (z: number) => lierLesCouches([peau], [{ rang: 1, meshes: [tissu] }], auRepos(z), ordreDesCouches(auRepos(z))).percements;
     expect(perce(0.01 + ECART_DE_SUIVI_M * 0.9)).toEqual([]);
     expect(perce(0.01 + PORTEE_DE_COUVERTURE_M * 1.1)).toEqual([]);
     expect(perce(0)).toEqual([]);
@@ -77,6 +87,13 @@ describe('traversee', () => {
       expect(ordreDeMemeRang([tissu], [autre], loin)).toBeNull();
     });
 
+    it('un accessoire couvre ce qui n’en est pas un, quel que soit le côté', () => {
+      const [dessous, vetement] = [{ rang: 1, meshes: [autre], accessoire: true }, { rang: 1, meshes: [tissu] }];
+      const couvre = ordreDesCouches(positions);
+      expect(couvre(dessous, vetement)).toBe(true);
+      expect(couvre(vetement, dessous)).toBe(false);
+    });
+
     it('à égalité des voix, aucun ordre', () => {
       const [a1, a2, b1, b2] = [maillage(SkinnedMesh, carre(0.01)), maillage(SkinnedMesh, carre(0, 1)), maillage(SkinnedMesh, carre(0)), maillage(SkinnedMesh, carre(0.01, 1))];
       const croises = { positions: new Map<Mesh, Float32Array>([[a1, carre(0.01)], [a2, carre(0, 1)], [b1, carre(0)], [b2, carre(0.01, 1)]]) };
@@ -85,22 +102,22 @@ describe('traversee', () => {
     });
 
     it('le couvert se lie sous celui qui le couvre, jamais l’inverse ; un élément ne se couvre pas lui-même', () => {
-      const liaisons = lierLesCouches([], [{ rang: 1, meshes: [tissu] }, { rang: 1, meshes: [autre] }], positions, positions).liaisons;
+      const liaisons = lierLesCouches([], [{ rang: 1, meshes: [tissu] }, { rang: 1, meshes: [autre] }], positions, ordreDesCouches(positions)).liaisons;
       expect(liaisons.map((l) => [l.sujet, l.couverture])).toEqual([[autre, tissu]]);
-      expect(lierLesCouches([], [{ rang: 1, meshes: [tissu, autre] }], positions, positions).liaisons).toEqual([]);
-      expect(lierLesCouches([], [{ rang: 2, meshes: [tissu] }, { rang: 1, meshes: [autre] }], positions, positions).liaisons.map((l) => [l.sujet, l.couverture])).toEqual([[autre, tissu]]);
+      expect(lierLesCouches([], [{ rang: 1, meshes: [tissu, autre] }], positions, ordreDesCouches(positions)).liaisons).toEqual([]);
+      expect(lierLesCouches([], [{ rang: 2, meshes: [tissu] }, { rang: 1, meshes: [autre] }], positions, ordreDesCouches(positions)).liaisons.map((l) => [l.sujet, l.couverture])).toEqual([[autre, tissu]]);
     });
 
     it('l’ordre se prend au repos neutre, la liaison au repos de la passe', () => {
       const inverse = { positions: new Map<Mesh, Float32Array>([[tissu, carre(0)], [autre, carre(0.01)]]) };
-      const couches = lierLesCouches([], [{ rang: 1, meshes: [tissu] }, { rang: 1, meshes: [autre] }], inverse, positions);
+      const couches = lierLesCouches([], [{ rang: 1, meshes: [tissu] }, { rang: 1, meshes: [autre] }], inverse, ordreDesCouches(positions));
       expect(couches.liaisons).toEqual([]);
       expect(couches.percements.map((p) => [p.sujet, p.couverture])).toEqual([[autre, tissu]]);
     });
 
     it('un élément de couche plus extérieure couvre, même placé dessous', () => {
       const dessous = { positions: new Map<Mesh, Float32Array>([[tissu, carre(0.01)], [autre, carre(0)]]) };
-      expect(lierLesCouches([], [{ rang: 1, meshes: [tissu] }, { rang: 2, meshes: [autre] }], dessous, dessous).percements.map((p) => [p.sujet, p.couverture])).toEqual([[tissu, autre]]);
+      expect(lierLesCouches([], [{ rang: 1, meshes: [tissu] }, { rang: 2, meshes: [autre] }], dessous, ordreDesCouches(dessous)).percements.map((p) => [p.sujet, p.couverture])).toEqual([[tissu, autre]]);
     });
   });
 

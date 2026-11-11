@@ -111,8 +111,8 @@ if (values.porte) {
 
 const { evaluer } = await chargerEvaluateur()
 const couche = (glb) => {
-  const { couche, couvre = [] } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
-  return couche ? { couche, couvre } : null
+  const { couche, couvre = [], categorie } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
+  return couche ? { couche, couvre, categorie } : null
 }
 const FORMES_D_ARMES = new Set(JSON.parse(readFileSync(new URL('../../../src/data/trappings.json', import.meta.url), 'utf8'))
   .filter((t) => t.shape && ['melee', 'distance'].includes(t.categorie)).map((t) => t.shape.id))

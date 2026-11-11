@@ -32,15 +32,18 @@ import { mesurerSilhouettes, sousLesFormes, type MesuresDesSilhouettes } from '.
 import { etenduesDesSegments, gardeSegments, type MesuresDesSegments } from './gardes/segments.ts';
 import { gardeSuiviDuCorps } from './gardes/suiviDuCorps.ts';
 import { suivreLesAmplitudes } from './gardes/amplitude.ts';
-import { gardePercementAuRepos, gardeTraversee, lierLesCouches, mesurerTraversee, sansLesZonesMasquees, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
+import { gardePercementAuRepos, gardeTraversee, lierLesCouches, mesurerTraversee, ordreDesCouches, sansLesZonesMasquees, type CoucheDElement, type TraverseeDUnEchantillon } from './gardes/traversee.ts';
 import { gardeMembreDansUnVetement, mesurerMembres, pairesHorsDeZone, zonesVoisines, type MembreDUnEchantillon } from './gardes/membreDansUnVetement.ts';
-import { COUCHES, RANG_DU_CORPS, type Couche } from '../element.ts';
+import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
 import { meshesDuCorps, zoneDe } from './corps.ts';
+import { poserLaPile } from './pile.ts';
+import type { BilanDePile } from '../pile.ts';
 
 /** Ce qu'un élément déclare de sa place sur le corps : sa couche, et les zones du corps qu'il masque. */
 export interface CoucheDeLElement {
   readonly couche: Couche;
   readonly couvre: readonly string[];
+  readonly categorie?: CategorieDElement;
 }
 
 export interface EntreeDEvaluation {
@@ -93,6 +96,8 @@ export interface FicheDeMesures {
     readonly segments: MesuresDesSegments | null;
     /** Les chaînes du manifeste valide, leurs pistes et leurs rotations jouées ; aucune sans manifeste. */
     readonly chaines: readonly MesureDeChaine[];
+    /** Ce que la pile des couches a résolu au montage (`resoudreLaPile`). */
+    readonly pile: BilanDePile;
   };
 }
 
@@ -179,6 +184,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   if (manifeste) poserFormes(base.scene, poidsDesFormesDe(manifeste, FACTEURS_NEUTRES)(poidsDesSilhouettes));
   const sansGabarit = pose ? etendues() : null;
   poserFormes(base.scene, poids);
+  const fondue = poseDeRepos(base.scene, meshes).positions;
   const gabarit = manifeste && table ? appliquerGabarit(base.scene, facteurs, { ...manifeste, gabarit: table }, base.squelette ?? undefined) : null;
   base.scene.updateMatrixWorld(true);
   const segments = pose && sansGabarit ? gardeSegments(sansGabarit, etendues(), pose) : null;
@@ -189,15 +195,20 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
 
   const declarees = elements.flatMap((e, k) => {
     const c = entree.couches?.[k];
-    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre }] : [];
+    return c ? [{ rang: COUCHES.indexOf(c.couche), meshes: e.skinnes, couvre: c.couvre, accessoire: c.categorie === 'accessoire' }] : [];
   });
   const montre = sansLesZonesMasquees(declarees, zone);
   const corpsMontre = montre(corps, RANG_DU_CORPS);
-  const declareesMontrees = declarees.map((d) => ({ rang: d.rang, meshes: montre(d.meshes, d.rang) }));
+  const declareesMontrees = declarees.map((d) => ({ rang: d.rang, meshes: montre(d.meshes, d.rang), accessoire: d.accessoire }));
   const visibles = new Set([...corpsMontre, ...declareesMontrees.flatMap((d) => d.meshes)]);
   const masques = new Set([...corps, ...declarees.flatMap((d) => d.meshes)].filter((m) => !visibles.has(m)));
 
   const chaines = manifeste?.chaines ?? {};
+  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
+  const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
+  const couvre = ordreDesCouches<CoucheDElement>(sansCles);
+  const pile = poserLaPile([{ rang: RANG_DU_CORPS, meshes: montre(corpsSkinne, RANG_DU_CORPS) }, ...declareesMontrees], couvre, fondue, new Set(Object.values(chaines).flat()));
+  base.scene.updateMatrixWorld(true);
   const pistesDeChaine = gardePistesDeChaine(base.scene, clips, chaines);
   ecarts.push(
     ...gardePoids({
@@ -213,10 +224,8 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
     ...(manifeste?.prises ? gardeTranchantDuRigide(base.scene, manifeste.prises.main, libelle, entree.armes && new Set(elements.flatMap((e, k) => (entree.armes?.[k] ? e.meshes : [])))) : []),
   );
 
-  const silhouettes = mesurerSilhouettes({ scene: base.scene, corps: corpsSkinne, silhouettes: nomsDesSilhouettes, st: table?.st, poidsDesFormes });
   ecarts.push(...silhouettes.ecarts, ...(segments?.ecarts ?? []));
 
-  const sansCles = sousLesFormes(base.scene, nomsDesSilhouettes, (poserSeules) => poserSeules({}, meshes), poidsDesFormes);
   const repos = poseDeRepos(base.scene, meshes);
   const suiviDesChaines = suivreLesChaines(base.scene, chaines, repos);
   const amplitudes = suivreLesAmplitudes(base.scene, manifeste?.bornesArticulaires ?? {}, repos);
@@ -226,7 +235,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
   const etirements: MesureDEtirement[] = [];
   const surfaces = manifeste ? surfacesDesPieds(corpsSkinne, manifeste.appuis.pieds) : [];
   const posesDesPieds: PoseDuPied[] = [];
-  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, sansCles);
+  const couches = lierLesCouches(corpsMontre, declareesMontrees, repos, couvre);
   const traversees: TraverseeDUnEchantillon[] = [];
   const horsDeZone = pairesHorsDeZone(corpsMontre, declareesMontrees.flatMap((d) => d.meshes), zone, zonesVoisines(corps, zone, repos));
   const membres: MembreDUnEchantillon[] = [];
@@ -262,6 +271,7 @@ export async function evaluer(entree: EntreeDEvaluation): Promise<FicheDeMesures
       silhouettes: silhouettes.mesures,
       segments: segments?.mesures ?? null,
       chaines: suiviDesChaines.mesures(pistesDeChaine.clipsPistes),
+      pile,
     },
   };
 }

@@ -1,76 +1,119 @@
-# Couches de vêtements qui se traversent : état du chantier à la reprise (#3842, 2026-11-11)
+# Couches de vêtements qui se traversent : la pile résolue au montage (#3842, 2026-11-11)
 
 Ticket: #3842
 
-Date : 2026-11-11. Branche `chantier/3842`, base `d4b44ce6a`. Ce document est une archive datée du chantier, pas une référence vivante. Les mesures détaillées sont dans les commentaires du ticket, et le chantier reprend par un autre fil.
+Archive datée du plan, pas une référence vivante. Les mesures et l'état du chantier sont aux commentaires du ticket.
 
-## But et définition de fini (ticket)
-- Toute tenue à plusieurs couches (Sorcier, Prêtre, Soldat, les carrières suivantes) reste ordonnée en clip et sous silhouette.
-- Une seule solution, commune à toutes les couches, sans réglage pièce par pièce.
-- La porte du Sorcier n'a qu'un seul écart, celui de la tête (#3761), sur les 5 passes.
-- Une garde mesure un membre qui traverse un vêtement d'une autre zone.
-- La procédure `creer-un-personnage-3d` est à jour.
+## But, livrable, critère de fini
 
-## Ce qui est publié sur la branche
-- `fcbb35b5d` : les gardes de l'évaluateur `couche-percee-au-repos`, même couche (`ordreDeMemeRang`) et `membre-dans-un-vetement`. La sortie de `evaluer.mjs --porte` n'est plus tronquée. La procédure nomme les trois écarts.
-- Le commit de ce document, travail en cours compris :
-  - `scripts/personnage-3d/element/champ.py`, `repeser.py` et `scripts/personnage-3d/test_champ.py` : le « champ de peau », dans sa version de l'essai 2. C'est une expérience **non retenue**, gardée pour la reprise ; aucun appelant du kit.
-  - `docs/plans/2026-11-11-3842-masquage-evaluateur.md` : le diff de l'expérience de masquage des faces couvertes dans l'évaluateur, non appliqué.
+- **But** : toute tenue à plusieurs couches reste ordonnée en clip et sous silhouette, par une seule solution commune
+  à toutes les pièces, sans réglage pièce par pièce.
+- **Critère de fini** : celui du ticket, inchangé. Une solution commune ; la porte du Sorcier ne garde que l'écart
+  admis de la tête (#3761) sur ses cinq passes ; une garde mesure la main qui traverse un vêtement d'une autre zone ;
+  la procédure `creer-un-personnage-3d` à jour.
+- **Livrable** : une fonction pure `resoudreLaPile` (`hotes/godot/asset/pile.ts`), appliquée par l'évaluateur (lot 1)
+  et par le montage Godot (lot 2). La pile ferme la classe « deux couches empilées portent des poids différents ».
+  Elle ne ferme pas à elle seule le critère : ce qui reste est nommé plus bas, avec sa suite.
 
-## Mesures de référence (tenues publiées, évaluateur de `fcbb35b5d`)
-Les valeurs se lisent par passe, dans l'ordre neutre / feminin / corpulence / carrure_moins / carrure_plus.
+## Ce que font les jeux à personnages personnalisables
 
-| | Sorcier | Soldat |
+Aucun ne règle la traversée pièce par pièce chez l'auteur. Tous résolvent la pile à l'équipement, depuis ce qui est
+réellement porté :
+
+| Jeu ou moteur | Technique | Ce qu'on en retient |
 |---|---|---|
-| `couche-traversee` | 3 / 45 / 225 / 1 / 225 | 547 / 632 / 543 / 715 / 967 |
-| `couche-percee-au-repos` (neutre) | 41 | 60 |
-| `membre-dans-un-vetement` | 128 / 131 / 153 / 93 / 306 | 1 / 1 / 1 / 1 / 5 |
-| étirement | 0 | 2 |
+| Roblox, Layered Clothing | cages intérieure et extérieure, `WrapLayer.AutoSkin` reprend les poids du corps, Hidden Surface Removal | la couche du dessous reprend la déformation de celle qui la couvre ; ce qui est couvert ne se dessine pas ; l'échec documenté est le poids pris à la mauvaise partie du corps |
+| Unreal, Mutable | Mesh Reshape, Remove Unseen, Clip Mesh With Mesh, à la composition | la résolution est un calcul de composition, pas une donnée d'auteur |
+| Cyberpunk 2077, Garment Support | chaque vêtement porte de quoi rentrer sous le suivant | le recul sous la couche du dessus |
+| World of Warcraft, geosets | les parties couvertes se cachent | masquer plutôt que réconcilier |
+| Epic, « Robust Skin Weights Transfer via Weight Inpainting » (SIGGRAPH Asia 2023) | transfert des poids là où la correspondance est sûre, lissage ailleurs | ne retenir que les correspondances sûres, fondre le reste |
 
-## Ce qui a été essayé, et pourquoi ça ne ferme pas la classe
-1. **Champ de peau**, versions v2 à v13. Les poids et les décalages de clé de toute pièce skinnée y sont une fonction de la position au repos, tirée de la peau du corps.
-   - Au Sorcier, sur l'ancien évaluateur : 194 → 87 traversées, mais 26 lignes d'étirement.
-   - Au Soldat : traversées en forte baisse, mais 576 lignes d'étirement (haut-de-chausses, gants).
-   - Deux essais « peau connexe » n'ont rien gagné au Sorcier, et ont donné 202 lignes d'étirement et 130 traversées au Soldat.
-   - Cause mesurée : une pièce lâche (plastron, haut-de-chausses, cape au torse) lit la peau d'une autre partie du corps que la couche réellement posée dessous.
-   - Commentaires 6778174054 et 6779502815. Les comptes du Soldat qui y figurent sont tronqués (voir 6782370653).
-2. **Masquage** des faces intérieures entièrement couvertes au repos, dans l'évaluateur seul.
-   - Seul : 115 → 113 et 70 → 45 traversées.
-   - Avec le champ : meilleur, mais il découvre des sommets en mouvement (`couche-decouverte`).
-   - Rien n'est fait côté Godot.
-3. **Constat :** deux couches proches qui portent les mêmes poids et les mêmes décalages ne se croisent plus (robe/cape : 111 → 0 ; plastron avec ses propres clés sur le pourpoint : −89,7 mm → 0). La bonne référence est donc la couche posée dessous.
+Notre masque par zones (`couvre`) est le geoset de WoW. Il manquait les trois autres gestes : la reprise des poids, le
+recul, et le masque au triangle.
 
-## Méthode proposée, ni jugée en mesure ni décidée : reprise au montage depuis la couche dessous (plan v4)
-- **Règle.** À la composition, dans l'ordre des rangs `COUCHES`, chaque sommet d'une pièce skinnée se lie à la couche de rang inférieur (corps compris) par projection normale, du même côté, à portée.
-  - Il reprend `λ(d)·W(q) + (1 − λ(d))·W_propre`, en gardant les 4 plus forts, et le décalage cuit de forme mélangé de même.
-  - `λ = 1 − smoothstep(BANDE, BANDE + LARGEUR, d)`.
-  - Deux pièces de même rang s'ordonnent par `ordreDeMemeRang`.
-- **Source unique.**
-  - Une fonction TS pure calcule des tables par paire (pièce, pièce dessous possible : triangle, barycentres, d). L'évaluateur les calcule à la volée ; le build Godot les génère pour le catalogue.
-  - Godot ne fait que choisir la plus proche visible et mélanger, après `poser_les_morphes` et avant `refondre`, avec un cache par ensemble visible et le rang servi par le pont.
-- **Risques relevés par le juge.**
-  - Saut de poids à l'axe médian et aux frontières entre pièces dessous : compter les sauts |ΔW| par arête.
-  - zone(q) ≠ zone(v).
-  - Chaîne sur chaîne (cape sur jupe).
-  - Os absents du skin de la pièce (65 joints contre 99) : étendre le skin.
-  - Normales à recalculer.
-  - Le gabarit cuit diffère entre Godot (silhouettes seules) et l'évaluateur (`poidsDuGabarit`) : à vérifier.
-- **Coût.** Une recherche du plus proche en GDScript par composition est estimée à 1 à 13 s : c'est ce qui motive les tables précalculées.
+## La méthode
 
-## Problèmes ouverts que la reprise des poids ne ferme pas
-- **Contacts prévus par l'animation.** La main posée sur le corps (bras croisés, main à la hanche) traverse le vêtement qui couvre cet endroit : robe, cape, capuche, bandoulière, bas. C'est l'essentiel des 128 à 306 lignes `membre-dans-un-vetement` du Sorcier. Pistes : un clip qui garde la main au-dessus du vêtement (IK, décalage par épaisseur de la tenue), ou un écart admis par clip.
-- **Même couche.** Au Sorcier, la ceinture est enfoncée sous la robe dès le repos (114 sommets, saturés à −30 mm). Au Soldat, le pourpoint traverse le baudrier (jusqu'à −53 mm) et le haut-de-chausses, et les gants traversent le pourpoint. C'est un défaut de géométrie au repos ou d'ordre de couche à trancher.
-- **Perçage au repos.** Au Soldat, le haut-de-chausses perce le plastron (78 sommets, jusqu'à −30 mm). C'est la géométrie publiée.
-- **Profondeur.** Au-delà de 3 cm (`PORTEE_DE_COUVERTURE_M`), elle n'est pas mesurée : beaucoup de valeurs sont saturées.
-- **Hors périmètre, déjà relevés.**
-  - `etirement.ts:166` `piresAretes` : le top-5 par clip est rempli par les mains de la base et masque les arêtes des éléments.
-  - `construire.py:6` et `:69` citent `npm run caches-3d`, qui n'existe pas.
+Une fois par composition, sur la tenue posée au repos (formes cuites, sans gabarit : ce que le montage fond), de la
+pièce la plus extérieure à la plus intérieure. Elle ne lit d'une pièce que sa géométrie et ses poids ; d'un manifeste
+que la couche, la catégorie et les chaînes de la base, déjà déclarées.
 
-## Rejouer
-- La tenue du Sorcier et celle du Soldat se composent depuis le cache `~/.cache/wfrp-modeles-3d/<sha256>.glb`, aux empreintes épinglées des manifestes de `hotes/godot/projet/modeles/`. Les GLB manquants se tirent par `npm run godot:sonde`, ou depuis la Release `modeles-3d`.
-- Porte : `node hotes/godot/asset/evaluer.mjs <GLB de la tenue…> --base <humanoide.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --porte`. Elle prend environ 8 min. Jouer une porte à la fois : deux en parallèle dépassent la mémoire du conteneur.
-- Re-pesée d'un GLB publié par le champ (expérience) : `node scripts/personnage-3d/environnement.mjs scripts/personnage-3d/element/repeser.py <element.glb> --base <base.glb> --manifeste <base.manifeste.json> --sortie <dossier>`.
-- **Archive du dossier de travail** (journaux des portes, outils de mesure, briefs, plans, avis Fable), sans les GLB : `/mnt/project-files/3842/3842-scratchpad.tgz`, dans le dossier partagé du projet.
+1. **Couvrir.** Un point est couvert par le triangle le plus proche d'une pièce qui couvre la sienne, tourné du même
+   côté, à 3 cm derrière lui au plus ou 1 cm devant. C'est le test de couverture des gardes (`visiterLaCouverture`),
+   écrit une seule fois.
+2. **Retenir.** Il reprend, au point couvrant, les poids de peau de sa couverture, tout entier jusqu'à 1 cm d'elle, de
+   moins en moins jusqu'à 3 cm. Sous plusieurs couvertures, la plus extérieure passe d'abord.
+3. **Ne pas retenir à tort.** Une couverture qui flotte sur une chaîne (jupe, cape) ne retient pas ce qu'une chaîne ne
+   porte pas. Une couverture qui tient à une autre partie du corps (ni les mêmes os, ni un os et son parent) ne retient
+   rien : c'est l'échec documenté de Roblox.
+4. **Suivre.** Les points de la même pièce à moins de 3 cm d'un point retenu le suivent, en fondu avec la distance.
+5. **Garder rigide ce qui l'est.** Des points que leur auteur a liés aux mêmes poids par leurs arêtes forment un bloc,
+   qui ne cède qu'autant que le moins retenu de ses points : à moitié couvert, il garde les poids de son auteur.
+6. **Reculer.** Un point retenu devant sa couverture, ou à moins de 3 mm derrière elle, recule vers 3 mm, à proportion
+   de ce qu'elle le retient ; ses voisins d'arête reculent avec lui, d'un écart borné par la moitié de la hauteur de
+   leurs triangles.
+7. **Masquer.** Un triangle dont les trois points sont retenus tout entiers ne se dessine plus.
 
-## Dépendance
-Le fil « Construire le prêtre en 3D » (#3867, `chantier/3867`) attendait ce chantier. Il est repris lui aussi par un autre fil.
+À couche égale, un accessoire couvre ce qui n'en est pas un ; sinon l'ordre se mesure au repos neutre
+(`ordreDesCouches`).
+
+Par contrat : une pièce qui perce sa couverture de plus de 1 cm au repos est en défaut chez son auteur, la porte le
+nomme (`couche-percee-au-repos`).
+
+## Lot 1 : le cœur pur et l'évaluateur
+
+- `hotes/godot/asset/pile.ts` : `resoudreLaPile(pieces, couvre, squelette)`, sans dépendance, sur des tableaux typés ;
+  il porte aussi le test de couverture que les gardes `traversee` et `membreDansUnVetement` importent.
+- `hotes/godot/asset/evaluateur/pile.ts` : la pile posée sur la scène three de l'évaluateur, avant toute mesure en clip.
+- L'étirement se mesure contre les longueurs d'auteur, relevées avant la pile. Le bilan de la pile (points retenus,
+  suiveurs, reculés, triangles masqués) entre au rapport (`mesures.pile`).
+- Correction de donnée : le manifeste publié de `baudrier-sur-armure` déclarait la couche `tenue` ; porté sur le
+  plastron, il est de couche `armure`. La pièce n'a pas de source au dépôt (#3761) : la déclaration se corrige au
+  manifeste publié.
+
+## Lot 2 : le montage Godot
+
+- **Une seule fonction.** Le pont gagne une méthode `pile` qui appelle `resoudreLaPile` ; le montage ne recode rien.
+  L'ordre des couches (`ordreDesCouches`, dont la règle de l'accessoire) quitte la garde `traversee` pour le cœur pur,
+  que le pont et l'évaluateur appellent tous deux ; la catégorie y entre typée (`CategorieDElement`).
+- **Une pièce de pile** est la base, ou un élément monté avec toutes ses surfaces skinnées visibles et fondues. Une
+  pièce que `refondre` ne fond pas (skin hors du repère du squelette, huit poids) sort aussi de la pile de
+  l'évaluateur, pour que les deux résolvent le même ensemble.
+- **Où.** Dans `MontageDeComposition.refondre`, sur ce qu'il fond : positions (formes cuites par `cuire_les_formes`),
+  indices, os et poids de chaque surface, couche et catégorie de son élément, parents et chaînes de la base, et, pour
+  deux pièces de même couche et de même catégorie, leurs positions neutres (les tableaux du mesh gardé en `FORMES`),
+  sur lesquelles l'ordre se vote. La fusion porte le résultat ; les meshes propres des pièces restent ceux de leur
+  auteur.
+- **Sans geler l'image.** Le calcul coûte 1,0 à 2,3 s par personnage sous Node. `refondre` fond tout de suite sans la
+  pile, demande la pile par un rappel (`JavaScriptBridge.create_callback`, le patron de `choisir_une_image`), et
+  refond à la réponse si ce qui est fondu n'a pas changé. Le résultat se garde par signature de ce qui est fondu, pour
+  qu'un habillage ou une couleur ne recalcule rien. Le coût se mesure dans l'export avant d'arrêter ces choix.
+- **Sans pont** (recette autonome, pont figé, hors Web) : la fusion se fait sans pile. Les recettes autonomes
+  prouvent la fusion, pas la pile ; la pile se prouve par la recette d'export.
+- **Échange.** Tableaux typés encodés en base64 dans le JSON du pont, pas des nombres JSON.
+- **Os gagnés.** Une pièce reprend des os absents de son skin : la fusion les lie au repère que la base leur donne.
+- **Preuve.** Une recette d'export (`hotes/godot/recette.mjs`) compare, pour une tenue sous une silhouette non nulle,
+  les poids, les reculs et les triangles de la fusion à ceux de l'évaluateur, à une tolérance fixée (Godot quantifie
+  les poids sur 16 bits).
+- **Tant que le lot 2 n'est pas fait, la PR reste en brouillon** : l'évaluateur mesurerait un montage que le jeu ne
+  fait pas.
+
+## Ce que la pile ne ferme pas
+
+- **La main dans un vêtement pendant un clip** (`membre-dans-un-vetement`, 91 à 306 lignes par passe au Sorcier,
+  toutes des mains). Deux cas, deux suites :
+  - la main traverse un vêtement qui pend à une chaîne (cape, jupe de la robe) : les pistes de chaîne sont cuites par
+    clip dans la base (`scripts/personnage-3d/base/chaines.py`) sans connaître les mains ; la suite générale est de
+    les cuire en s'écartant des mains et des avant-bras ;
+  - la main se pose sur un vêtement ajusté (torse, bras, capuche) : le clip est écrit pour le corps nu, la main entre
+    de l'épaisseur du vêtement.
+  Le critère de fini du ticket les compte. Qu'en faire est une décision de l'utilisateur, à lui poser.
+- **Les traversées qui restent** après la pile, mesurées aux portes et consignées au ticket.
+- **Les défauts de géométrie au repos** au-delà de 1 cm : à corriger à la pièce.
+
+## Hypothèses
+
+- Toute pièce qui couvre est opaque : un triangle couvert ne se voit pas. C'est le cas de toutes les pièces publiées.
+- Les réglages (3 cm, 1 cm, 3 mm, moitiés) sont des constantes de la méthode, les mêmes pour toute pièce, réglées sur
+  six clips des trois tenues puis vérifiées aux portes complètes.
+- L'ordre de même couche se vote dans l'évaluateur sur le repos neutre sous gabarit, dans Godot sans gabarit : les
+  deux sont le même repos sous les passes de la porte. Le lot 2 aligne les deux.

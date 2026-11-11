@@ -2,7 +2,7 @@
  * GARDE DU MEMBRE DANS UN VÊTEMENT (#3842) : en clip, le corps d'une zone Z1 (`extras.zone`) ne passe pas à travers un
  * mesh d'élément de zone Z2, Z2 ni Z1 ni voisine de Z1. Deux zones sont voisines si des meshes du corps de l'une et de
  * l'autre ont, au repos, deux sommets à moins de `TOLERANCE_JUMEAUX_POSITION_M`. Le côté d'un sommet est celui de son
- * triangle couvrant le plus proche (`visiterLaCouverture`, `traversee.ts`) : derrière si son écart signé e dépasse
+ * triangle couvrant le plus proche (`visiterLaCouverture`, `pile.ts`) : derrière si son écart signé e dépasse
  * `ECART_DE_SUIVI_M`, devant s'il est sous −`ECART_DE_SUIVI_M`. À un échantillon, la zone passe à travers le mesh si
  * elle a des sommets de chaque côté. Les meshes masqués au montage n'y entrent pas (`sansLesZonesMasquees`).
  * `membre-dans-un-vetement` : un écart par (zone, mesh, clip), à son pire instant, de valeur le plus grand e derrière.
@@ -12,7 +12,8 @@ import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { TOLERANCE_JUMEAUX_POSITION_M } from './poids.ts';
-import { couvertureDe, indicesDe, normalesDe, PORTEE_DE_COUVERTURE_M, positionsDe, visiterLaCouverture } from './traversee.ts';
+import { indicesDe, normalesDe, positionsDe } from './traversee.ts';
+import { couvertureDe, PORTEE_DE_COUVERTURE_M, visiterLaCouverture } from '../../pile.ts';
 
 const GARDE = 'membreDansUnVetement';
 
@@ -115,7 +116,7 @@ export function mesurerMembres(paires: readonly PaireHorsDeZone[], e: Echantillo
     for (let s = 0; s < pm.length / 3; s++) {
       if (!dans(bv, pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], PORTEE_DE_COUVERTURE_M)) continue;
       let proche = Infinity;
-      visiterLaCouverture(pm, nm, s, surface, (ecart) => { if (Math.abs(ecart) < Math.abs(proche)) proche = ecart; });
+      visiterLaCouverture(pm[s * 3], pm[s * 3 + 1], pm[s * 3 + 2], nm[s * 3], nm[s * 3 + 1], nm[s * 3 + 2], surface, (ecart) => { if (Math.abs(ecart) < Math.abs(proche)) proche = ecart; });
       if (proche === Infinity) continue;
       if (proche > ECART_DE_SUIVI_M) { cote.derriere++; cote.pire = Math.max(cote.pire, proche); }
       if (proche < -ECART_DE_SUIVI_M) cote.devant++;

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { BufferAttribute, BufferGeometry, Mesh, SkinnedMesh } from 'three';
 import type { Echantillon } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
-import { PORTEE_DE_COUVERTURE_M } from './traversee.ts';
+import { PORTEE_DE_COUVERTURE_M } from '../../pile.ts';
 import { TOLERANCE_JUMEAUX_POSITION_M } from './poids.ts';
 import { gardeMembreDansUnVetement, mesurerMembres, pairesHorsDeZone, zonesVoisines } from './membreDansUnVetement.ts';
 

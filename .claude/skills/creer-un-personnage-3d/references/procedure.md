@@ -240,10 +240,25 @@ manifeste, par `Base.transferer(piece, zones)` depuis la copie jointe des zones 
 le plus proche (une liaison de surface tourne l'écart au corps avec sa normale) ; une pièce longue
 dont le corps se tasse sous une clé (robe jusqu'aux chevilles sous `gabarit_legs_moins`) passe ses `bornes`. Une arête
 que la clé retourne est lissée comme une arête hors bornes ; la nappe intérieure d'une double nappe porte les clés de
-sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce). Une pièce posée sur un autre vêtement (pan de capuche sur la
-robe) en emprunte les poids (`Base.matieres_publiees`) et les clés (un `masques` de `Base.transferer`, ses zones et les
-meshes publiés qu'il couvre) : transférées du seul corps, deux couches divergent sous silhouette et se traversent. Le
-vêtement de dessous s'importe donc avant, et l'élément qui le recouvre le nomme dans son `CONTOURNE`. De même, une
+sa jumelle extérieure (liées chacune au plus près, elles divergeaient et le lissage gagnait toute la pièce). 
+
+Une pièce ne se pondère jamais contre une autre pièce : ses poids sont ceux de son porteur, le corps. Le montage résout
+la pile des couches de la tenue réellement portée (`resoudreLaPile`, `hotes/godot/asset/pile.ts`), par les mêmes règles
+pour toute pièce : la couche du dessous reprend les poids de celle qui la couvre, recule à 3 mm sous elle, et ses
+triangles entièrement couverts ne se dessinent plus. La pièce lui doit trois choses, et rien d'autre :
+
+- sa `couche` déclarée, qui dit ce qui la couvre ; à couche égale, un `accessoire` se porte par-dessus ;
+- au repos et sous chaque silhouette, rester derrière ce qui la couvre, ou le percer de moins de 1 cm : au-delà, le
+  montage la laisse dehors et la porte la nomme (`couche-percee-au-repos`) ;
+- les mêmes poids, sommet pour sommet, sur les deux faces d'une épaisseur : le montage garde rigide ce que son auteur
+  a lié pareil.
+
+Une pièce posée sur un autre vêtement (pan de capuche sur la robe) se place sur lui (`Base.matieres_publiees`) et n'en
+reprend les clés (un `masques` de `Base.transferer`, ses zones et les meshes publiés qu'il couvre) que si, transférées
+du seul corps, les deux couches s'écartent de plus de 1 cm sous une silhouette. Le vêtement de dessous s'importe alors
+avant, et l'élément qui le recouvre le nomme dans son `CONTOURNE`.
+
+ De même, une
 partie qui ne suit qu'une région du corps prend ses clés de ses seules zones : liée aussi au cou, qui monte sous
 `carrure_plus` quand la tête publiée ne bouge pas, le bas d'un capuchon se replie et la tête passe devant.
 `npm run godot:evaluer` (garde `suiviDuCorps`) refuse par `cle-inerte` une pièce qui ne suit pas un corps qui bouge
@@ -419,6 +434,8 @@ déclarée de la base seule à 1, une passe par processus, en parallèle sur les
 moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>`. Une passe isolée se
 rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips fautifs avant la porte entière.
 Ne pas valider une matrice entière avec le seul cas neutre.
+La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
+rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
 La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant celle qui la couvre.
 `couche-percee-au-repos` : au repos neutre, une couche est déjà devant celle qui la couvre. `membre-dans-un-vetement` :
 en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
