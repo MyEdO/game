@@ -706,7 +706,7 @@ function OpFields({ op, onChange, noeudListe }: { op: GameOp; onChange: (o: Game
           <>
             <select value={o.id?.id ?? ''} onChange={(e) => upd({ id: e.target.value ? { id: e.target.value } : undefined })}>
               {op.op === 'removeCondition' && <option value="">— au choix (1er État) —</option>}
-              {op.op === 'condition' && !o.id && <option value="">— (choisir un État) —</option>}
+              {op.op === 'condition' && !o.id?.id && <option value="">— (choisir un État) —</option>}
               {etats.map((s) => <option key={s.id} value={s.id}>{s.label}</option>)}
             </select>
             <FormulaField label="Intensité" champ="value" value={o.value ?? 1} min={0} onChange={(value) => upd({ value })} />

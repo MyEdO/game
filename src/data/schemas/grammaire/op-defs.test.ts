@@ -111,6 +111,12 @@ describe('OP_DEFS — payload strict par op, repli nominatif, rouge au SITE', ()
     }
   });
 
+  it('dialecte miscast : une op `condition` sans État est refusée au chargement', () => {
+    const doc = JSON.parse(readFileSync(new URL('../../miscast.json', import.meta.url), 'utf8')) as { entries: { ops?: Record<string, unknown>[] }[] }[];
+    delete doc.flatMap((table) => table.entries).flatMap((e) => e.ops ?? []).find((o) => o.op === 'condition')!.id;
+    expect(validateDataset('miscast.json', doc)).toContain('`condition` exige son État.');
+  });
+
   it('une op inconnue des DEUX registres est NOMMÉE en erreur', () => {
     const res = gameOpSchema.safeParse({ op: 'nImporteQuoi' });
     expect(res.success).toBe(false);

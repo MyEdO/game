@@ -49,6 +49,7 @@ const jsonOpSchema = nommerChamps(z.strictObject({
     ctx.addIssue({ code: 'custom', path: ['durationHours'], message: MESSAGE_DUREE_DE_DIVINITE });
   }
   if (v.op === 'deityBan' && v.durationDays === undefined) ctx.addIssue({ code: 'custom', path: ['durationDays'], message: '`deityBan` exige sa durée en jours (LDB 40 l.64).' });
+  if (v.op === 'condition' && v.id === undefined) ctx.addIssue({ code: 'custom', path: ['id'], message: '`condition` exige son État.' });
   if (v.op === 'prayerForAction' && v.durationRounds === undefined) ctx.addIssue({ code: 'custom', path: ['durationRounds'], message: '`prayerForAction` exige sa durée en Rounds (LDB 40 l.74).' });
 }), {
   op: { label: 'opération' },

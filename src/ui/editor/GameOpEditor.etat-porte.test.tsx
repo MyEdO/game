@@ -11,6 +11,7 @@ import { createRoot, type Root } from 'react-dom/client';
 import { GameOpEditor } from './GameOpEditor';
 import type { GameOp } from '../../engine/ops';
 import { gameOpSchema, SUJETS_DE_VERROU } from '../../data/schemas/grammaire/mecanique';
+import { newOp } from '../../noyau/valeursNeuves';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -48,6 +49,14 @@ function editeur(op: GameOp): { dernier: () => GameOp } {
 }
 
 describe('GameOpEditor › op `condition` — durée, verrous et « porté » s’éditent au formulaire', () => {
+  it('une op `condition` NEUVE montre « — (choisir un État) — », et le choix d’un État s’écrit en référence `{ id }`', () => {
+    const { dernier } = editeur(newOp('condition'));
+    const select = [...container.querySelectorAll('select')].find((s) => [...s.options].some((o) => o.value === 'sonne'))!;
+    expect([select.value, select.options[select.selectedIndex]?.textContent], 'l’État d’une op neuve n’est pas à choisir').toEqual(['', '— (choisir un État) —']);
+    act(() => { select.value = 'sonne'; select.dispatchEvent(new Event('change', { bubbles: true })); });
+    expect(dernier()).toMatchObject({ op: 'condition', id: { id: 'sonne' } });
+  });
+
   it('un Critique VERROUILLÉ (LDB 18) se pose et se RELIT sans JSON', () => {
     const op: GameOp = { op: 'condition', id: { id: 'aveugle' }, unlockBy: 'medicalAid', lockedUntil: { kind: 'compare', subject: { who: 'target', condition: 'hemorragique' }, op: '==', value: 0 } };
     editeur(op);

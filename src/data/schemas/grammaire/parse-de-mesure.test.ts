@@ -12,7 +12,8 @@ import { execFileSync } from 'node:child_process';
 import { z } from 'zod';
 import { familleDuRepere, idDe, idsDe, mesureDuParse, recordDIds, reperesDuParse, declarationDeFeuilleDId, type FeuilleDId } from './ref';
 import { INSTANCIABLE_PAR_ID } from './sousListes';
-import { famillesConstruites, gameOpSchema } from './mecanique';
+import { famillesConstruites, gameOpSchema, refDEtatSchema } from './mecanique';
+import { ouReserve } from './valeurs';
 import { descendre } from './descente';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
 import { DEFS_DE_DOCUMENT } from '../validate';
@@ -59,6 +60,12 @@ describe('reperesDuParse — le path de DONNÉE de chaque référence validée p
     // Une branche en FAUTE qui précède n'est pas propre : la première branche PROPRE est la seconde.
     const v = z.union([z.strictObject({ k: z.number() }), z.strictObject({ k: idDe('skill') })]);
     expect(reperesDuParse(z.array(v), [{ k: 1 }, { k: COMPETENCE }])).toEqual([{ path: [1, 'k'], type: 'skill', parCle: false }]);
+  });
+
+  it('VALEUR RÉSERVÉE : la branche réservée d’`ouReserve`, littéral comme `enumNomme`, ne pose aucun repère', () => {
+    expect(reperesDuParse(refDEtatSchema, { id: 'sonne' })).toEqual([{ path: ['id'], type: 'etat', parCle: false }]);
+    expect(reperesDuParse(refDEtatSchema, { id: 'petrifie' })).toEqual([]);
+    expect(reperesDuParse(ouReserve(idDe('skill'), '*'), '*')).toEqual([]);
   });
 
   it('CLÉ DE RECORD : la référence portée par une clé est rendue `parCle`', () => {

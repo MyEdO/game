@@ -1293,7 +1293,7 @@ describe('l’éditeur de carte par le pont, le formulaire tiré du schéma (#36
     choisir('valeur/onCross/0/op', 'Poser un État');
     expect(['id/id', 'value', 'perRound', 'onlyGroups/ajouter', 'grapple', 'carried'].every((champ) => inspecteur().some((el) => el.id === `valeur/onCross/0/${champ}`)), 'l’op `condition` offre ses champs (#3606 M2a2)').toBe(true);
     expect(inspecteur().some((el) => el.id === 'valeur/onCross/0/motif'), 'sans repli JSON').toBe(false);
-    expect(['sonne', 'petrifie'].every((id) => valeursDeLInspecteur(e, 'valeur/onCross/0/id/id').some((b) => (b.jeu as { args: unknown[] }).args[2] === id)), 'l’État se choisit au catalogue et parmi les marqueurs narratifs').toBe(true);
+    expect(['Sonné', 'Pétrifié'].map((libelle) => (valeursDeLInspecteur(e, 'valeur/onCross/0/id/id').find((b) => b.libelle === libelle)?.jeu as { args: unknown[] } | undefined)?.args[2]), 'l’État se choisit au catalogue et parmi les marqueurs narratifs, chacun à son libellé').toEqual(['sonne', 'petrifie']);
     choisir('valeur/onCross/0/id/id', 'Sonné');
     saisir('valeur/onCross/0/value', 2);
     expect([option('valeur/onCross/0/id/id', 'Sonné').presse, formulaire('valeur/onCross/0/value').champs[2]], 'son État et ses pions écrits').toMatchObject([true, { valeur: 2 }]);

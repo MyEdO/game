@@ -18,10 +18,10 @@ import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
 import { collectionDe, collectionsDesDocuments, collectionsPerdues, collectionsRetrouvees, listeCle, marquerCollection, marqueDeRecord, noeudsDeLElement, refusDeCharge, type MarqueDeCollection } from './collection-cle';
-import { defDe, descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
+import { descendre, enfantsDe, ouverts, pasDeDonnee } from './descente';
 import { champsDeChoix } from './choixDeCreation';
 import { schema as schemaDesTailles } from '../defs/sizes';
-import { idDe } from './ref';
+import { estRefEmboitee, idDe } from './ref';
 
 const nomDeMarque = (m: MarqueDeCollection | undefined): string | undefined => (m?.forme === 'liste' ? m.nom : m?.sous);
 const nomDe = (n: unknown): string | undefined => nomDeMarque(collectionDe(n));
@@ -96,7 +96,7 @@ const LISTES_DE_REFERENCES: Readonly<Record<string, string>> = {
 /** L'élément de liste déclare-t-il un `id` d'IDENTITÉ, à travers enveloppes ET branches d'union (`ouverts`) : une
  *  feuille, jamais la référence emboîtée `{ id }` d'une op (`refDEtatSchema`, `grammaire/mecanique.ts`). */
 function porteUnIdDIdentite(noeud: unknown): boolean {
-  return ouverts([noeud]).some((n) => enfantsDe(n).some((e) => e.cle === 'id' && !ouverts([e.noeud]).some((f) => defDe(f)?.type === 'object')));
+  return ouverts([noeud]).some((n) => enfantsDe(n).some((e) => e.cle === 'id' && !ouverts([e.noeud]).some(estRefEmboitee)));
 }
 
 /** Listes d'objets du schéma dont l'élément déclare un `id` d'identité, avec leur chemin et leur marque de clé. */

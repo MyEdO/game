@@ -393,6 +393,9 @@ export interface FeuilleDId {
  *  la porte du registre des feuilles (`interne/feuilles.ts`), que lit la garde du masquage (`parse-de-mesure.test.ts`). */
 export const declarationDeFeuilleDId = (noeud: unknown): FeuilleDId | undefined => declarationLue(noeud);
 
+/** Le nœud est-il une référence emboîtée `{ id }` (`objetDeRef`) ? */
+export const estRefEmboitee = (noeud: unknown): boolean => produitDe(noeud)?.fabrique === 'objetDeRef';
+
 /** Le type référencé par une feuille construite par `idDe`, `undefined` si le nœud n'en est pas une. */
 export const typeDeFeuilleDId = (noeud: unknown): TypeEntite | undefined => typeLu(noeud);
 
@@ -659,7 +662,7 @@ function feuilleLocale(portee: PorteeLocale): z.ZodString {
 }
 
 /** Feuille `idDe(type)` qui admet en plus des valeurs réservées (`ouReserve`, `grammaire/valeurs.ts`). */
-type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id<T>, string>, z.ZodLiteral<string>]>;
+type FeuilleOuReservee<T extends TypeEntite> = z.ZodUnion<readonly [z.ZodType<Id<T>, string>, z.ZodLiteral<string> | z.ZodEnum<Readonly<Record<string, string>>>]>;
 
 /** Référence `{ id }` de `type`, composée FERMÉE avec les champs propres au porteur (`extra`) ; sans
  *  `extra`, la sous-liste se nomme seule (`ref('material', undefined, 'objet')`) et la sortie reste `{ id }`.

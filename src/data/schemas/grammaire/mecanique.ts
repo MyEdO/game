@@ -56,7 +56,7 @@ const arrondiSchema = enumNomme({ floor: 'inférieur', ceil: 'supérieur' });
 
 /** État que nomme une op `condition`/`removeCondition` : une entrée d'`etats.json` ou un marqueur narratif
  *  (`NARRATIVE_MARKERS`, `engine/conditions.ts`). #1463 LD.1, #2995 */
-export const refDEtatSchema = ref(ouReserve(idDe('etat'), NARRATIVE_MARKERS.map((m) => m.id)));
+export const refDEtatSchema = ref(ouReserve(idDe('etat'), enumNomme(Object.fromEntries(NARRATIVE_MARKERS.map((m) => [m.id, m.label])))));
 
 /** Fenêtre de Détermination d'un État porté en passif (`ResolveWindow`, `engine/ops.ts`). */
 const fenetreDeDeterminationSchema = z.union([

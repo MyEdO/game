@@ -9,7 +9,7 @@ import { LIBELLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/gramma
 import { derouleEnum, libelleDeValeur, metaDesChamps, nomDeNoeud, valeursDe, type MetaChamp } from '../../data/schemas/grammaire/meta';
 import { adresseUnPassage } from '../../data/schemas/grammaire/valeurs';
 import { declarationDEnfants, defDe, enfantsDe, ouverts, pasDeDonnee, valeursAdmises } from '../../data/schemas/grammaire/descente';
-import { declarationDeFeuilleDId, porteeDeLaFeuille } from '../../data/schemas/grammaire/ref';
+import { declarationDeFeuilleDId, estRefEmboitee, porteeDeLaFeuille } from '../../data/schemas/grammaire/ref';
 import { declarationProseNommee } from '../../data/schemas/grammaire/prose';
 import { OP_LABEL, OPS_NON_TYPEES } from '../../data/schemas/grammaire/mecanique';
 import { choixDeLaFeuilleDId, datasetDeLEspaceDuType } from '../../data';
@@ -363,7 +363,7 @@ export function formeAuPoint(noeud: unknown, valeur: unknown): { noeud: unknown;
  *  d'une portée locale, ou référence emboîtée `{ id }` d'une op) est une identité, qui se change par son geste dédié,
  *  qui la propage. */
 export const cleOfferte = (cle: string, noeud: unknown): boolean =>
-  cle !== 'id' || ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined || porteeDeLaFeuille(n) !== undefined || defDe(n)?.type === 'object');
+  cle !== 'id' || ouverts([noeud]).some((n) => declarationDeFeuilleDId(n) !== undefined || porteeDeLaFeuille(n) !== undefined || estRefEmboitee(n));
 
 /** La fermeture `ouverts` du nœud offre-t-elle une forme OBJET à clés déclarées qui porte toutes les
  *  clés de l'échantillon (pour une union, la variante objet que l'échantillon satisfait) ? */

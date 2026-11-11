@@ -1364,13 +1364,16 @@ export function couvertureDuDeParDocument<T extends TableTiree>(
  * FEUILLE ou VALEUR RÉSERVÉE — un champ qui admet, en plus de sa feuille, un littéral (ou la liste d'un
  * registre) que le moteur lit à part : gabarit d'instance substitué par `withArg` (`engine/flowCore ›
  * INDICE_TEMPLATE`, `ARG_TEMPLATE`), mot réservé interprété à l'application (`engine/ops › SELF_REF`) ou
- * marqueur narratif (`engine/conditions › NARRATIVE_MARKERS`). Le littéral est une branche `z.literal` du
- * MÊME nœud : le parse de mesure n'y pose aucun repère.
+ * marqueur narratif (`engine/conditions › NARRATIVE_MARKERS`). La réserve est une branche `z.literal`, ou un
+ * `enumNomme` quand chaque valeur réservée a son libellé, du MÊME nœud : le parse de mesure n'y pose aucun repère.
  * Une valeur ni feuille ni réservée est refusée par le message de la FEUILLE (celui d'`idDe` nomme
  * l'id absent et son dataset), jamais par l'« Entrée invalide » générique d'une union.
  */
-export function ouReserve<F extends z.ZodType, const R extends string>(feuille: F, reserve: R | readonly R[]) {
-  return z.union([feuille, z.literal(typeof reserve === 'string' ? [reserve] : reserve)], {
+export function ouReserve<F extends z.ZodType, const R extends string>(feuille: F, reserve: R | readonly R[]): z.ZodUnion<readonly [F, z.ZodLiteral<R>]>;
+export function ouReserve<F extends z.ZodType, E extends z.ZodEnum<Readonly<Record<string, string>>>>(feuille: F, reserve: E): z.ZodUnion<readonly [F, E]>;
+export function ouReserve(feuille: z.ZodType, reserve: string | readonly string[] | z.ZodEnum) {
+  const reservee = typeof reserve === 'string' ? z.literal([reserve]) : '_zod' in reserve ? reserve : z.literal(reserve);
+  return z.union([feuille, reservee], {
     error: (iss) => {
       const branches = (iss as { errors?: readonly (readonly { message: string }[])[] }).errors;
       return branches?.[0]?.[0]?.message;
