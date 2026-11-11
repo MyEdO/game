@@ -78,9 +78,9 @@ describe('tableOuverte — la borne que le livre n’écrit pas s’ouvre à l�
 });
 
 describe('deDeLaTableTiree — le dé se lit sur le nœud de sa table (#1667)', () => {
-  it('lit le `die` d\'une table, ou le `dice` de son `Tirage`', () => {
+  it('lit le `die` de son nœud, table ou sous-tirage', () => {
     expect(deDeLaTableTiree({ die: '2d10' })).toEqual({ n: 2, sides: 10 });
-    expect(deDeLaTableTiree({ dice: { n: 1, sides: 10 } })).toEqual({ n: 1, sides: 10 });
+    expect(deDeLaTableTiree({ die: 'd10' })).toEqual({ n: 1, sides: 10 });
   });
   it('refuse un dé illisible en nommant la table', () => {
     expect(() => deDeLaTableTiree({ id: 'fixture', die: 'deux dés' })).toThrow('fixture.die invalide');

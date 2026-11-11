@@ -75,6 +75,15 @@ export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record
   return marquerProduit(nommerChamps(z.strictObject({ ...champs, die: deDeTirageSchema, entries: rangeesDeCharge(z.array(rangee).min(1)) }), meta), 'tableTiree', 'table', champs);
 }
 
+/**
+ * SOUS-TIRAGE nommé d'un document : le dé seul (`die`, `deDeTirageSchema`), posé sous une clé du concept
+ * quand il ne tire pas de rangées propres (`stars.json › sub`, `peripeties.json › tirageQuotidien`). Lu par
+ * `deDeLaTableTiree` (`src/engine/tables.ts`). #1667
+ */
+export const sousTirage = nommerChamps(z.strictObject({ die: deDeTirageSchema }), {
+  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour ce sous-tirage (ex. « d10 »)' },
+});
+
 /** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un, sous l'`espace` de
  *  noms que le document leur ouvre. */
 function rangeesDeCharge<R extends z.ZodType>(rangees: z.ZodArray<R>, espace?: EspaceDeNoms): z.ZodArray<R> {

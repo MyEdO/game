@@ -5,7 +5,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { DEFS_DE_DOCUMENT } from './schemas/validate';
+import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import { z } from 'zod';
 import { META_CHARGE, tableTiree } from './schemas/grammaire/document';
 import { deDeTirageDe } from './rangees';
@@ -201,6 +201,14 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
     expect(formatDice(starSubDie()), 'stars.json › sub (ADE II 03 l.63)').toBe('1d10');
     expect(formatDice(peripetieSeuilDie()), 'peripeties.json › tirageQuotidien (LDB 51 l.208)').toBe('1d10');
     expect(formatDice(massBattleHazardsDie()), 'mass-battle.json › hazards (ADE II 08 l.311)').toBe('1d10');
+  });
+
+  it('un sous-tirage n’a qu’une forme, `{ die }` : le `Tirage` (`{ dice }`) est refusé à la porte du Codex', () => {
+    for (const [fichier, cle] of [['stars.json', 'sub'], ['peripeties.json', 'tirageQuotidien']] as const) {
+      const doc = JSON.parse(readFileSync(join(process.cwd(), 'src/data', fichier), 'utf8')) as Record<string, unknown>;
+      expect(validateDataset(fichier, { ...doc, [cle]: { die: 'd10' } }), `${fichier} › ${cle} en \`{ die }\``).toBeNull();
+      expect(validateDataset(fichier, { ...doc, [cle]: { dice: { n: 1, sides: 10 } } }), `${fichier} › ${cle} en \`Tirage\``).toContain('"dice"');
+    }
   });
 
   it('le dé se lit VIVANT sur le document, à l’appel', () => {
