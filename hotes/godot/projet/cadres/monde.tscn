@@ -1,12 +1,8 @@
 [gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/zone.gd" id="1_zone"]
-
-[sub_resource type="Theme" id="Titre_du_monde"]
-Label/font_sizes/font_size = 34
-
-[sub_resource type="Theme" id="Etape_du_monde"]
-Label/font_sizes/font_size = 16
+[ext_resource type="Theme" path="res://art/etape_du_monde.tres" id="t_etape_du_monde"]
+[ext_resource type="Theme" path="res://art/titre_du_monde.tres" id="t_titre_du_monde"]
 
 [node name="Monde" type="CanvasLayer"]
 layer = 0
@@ -21,20 +17,17 @@ grow_vertical = 2
 theme_type_variation = &"Monde"
 
 [node name="Marges" type="MarginContainer" parent="Cadre"]
-theme_override_constants/margin_left = 176
-theme_override_constants/margin_top = 24
-theme_override_constants/margin_right = 324
-theme_override_constants/margin_bottom = 24
+theme_type_variation = &"MargesDuMonde"
 
 [node name="Colonne" type="VBoxContainer" parent="Cadre/Marges"]
-theme_override_constants/separation = 16
+theme_type_variation = &"Pile"
 
 [node name="Tete" type="HBoxContainer" parent="Cadre/Marges/Colonne"]
-theme_override_constants/separation = 16
+theme_type_variation = &"Rangee"
 
 [node name="Titre" type="VBoxContainer" parent="Cadre/Marges/Colonne/Tete"]
 size_flags_horizontal = 3
-theme = SubResource("Titre_du_monde")
+theme = ExtResource("t_titre_du_monde")
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Tete/Titre" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
@@ -42,16 +35,16 @@ source = "fenetre.titre"
 masque = NodePath("../../../../..")
 
 [node name="Gestes" type="HBoxContainer" parent="Cadre/Marges/Colonne/Tete"]
+theme_type_variation = &"RangeeSerree"
 size_flags_vertical = 4
 alignment = 2
-theme_override_constants/separation = 8
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Tete/Gestes"]
 script = ExtResource("1_zone")
 source = "fenetre.gestes"
 
 [node name="Etape" type="VBoxContainer" parent="Cadre/Marges/Colonne"]
-theme = SubResource("Etape_du_monde")
+theme = ExtResource("t_etape_du_monde")
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Etape"]
 script = ExtResource("1_zone")
@@ -59,14 +52,15 @@ source = "fenetre.etape"
 
 [node name="Bourse" type="HBoxContainer" parent="Cadre/Marges/Colonne"]
 
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Bourse"]
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Bourse" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("bourse")
+masque = NodePath("..")
 
 [node name="Contenu" type="VBoxContainer" parent="Cadre/Marges/Colonne"]
+theme_type_variation = &"Pile"
 size_flags_vertical = 3
-theme_override_constants/separation = 16
 
 [node name="Reglages" type="VBoxContainer" parent="Cadre/Marges/Colonne"]
 

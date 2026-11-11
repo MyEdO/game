@@ -724,7 +724,17 @@ describe('contrats d’enveloppe REQUIS dans les defs `entite` — la métrique 
     //         documents mono-tables `config` (84 → 79) — leurs lignes passent en `rangee`.
     //   #2993 : `planDeBestiaire` naît SCELLÉ (79 → 80) — le plan de bestiaire devient un dataset.
     //   #3771 : `rendus` naît SCELLÉ (80 → 81) — le catalogue des rendus des coups et des incantations.
-    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 81, mesures: 0 });
+    //   #3578 : `talents-aleatoires` naît en def `entite` à charge `entries` (81 → 82) — la colonne
+    //         `talents[].rand` devient le document TABLE du Tableau des Talents aléatoires.
+    //   #3578 L2a : `carrieres-aleatoires` naît en def `entite` à charge `entries` (82 → 83) — la colonne
+    //         `careers[].rand` devient les documents TABLE du Tableau des Classes et Carrières aléatoires.
+    //   #3578 L3 : `eyes` et `hairs` deviennent des documents mono-tables `config` (83 → 81) — leurs
+    //         lignes passent en `rangee`.
+    //   #3578 L4 : `especes-aleatoires` naît en def `entite` à charge `entries` (81 → 82) — la colonne
+    //         `species[].rand` devient les documents TABLE du Tableau des Races aléatoires.
+    //   #3578 L5 : `cargaisons-aleatoires` naît en def `entite` à charge `entries` (82 → 83) — la
+    //         disponibilité `cargoes[].avail` devient les documents TABLE du Tableau des cargaisons.
+    expect(mesure).toEqual({ desc: 0, source: 0, icon: 0, scelles: 83, mesures: 0 });
   });
 
 });
@@ -888,6 +898,10 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // est donc exigible dès la création. `desc` ne l'est pas (les 6 compagnies de la liste l.27-34
     // n'ont que leur nom au Source — aucune prose à recopier, aucune à inventer).
     'reseau-routier.json · source',
+    // #3884 — les prétirés officiels sont des fiches imprimées : chacune adresse son folio et sa prose
+    // (« Apparence et personnalité », « Historique »).
+    'pregens.json · desc',
+    'pregens.json · source',
     // #1657 — `ship-stations` naît adopté : chacune des 5 présences porte le VERBATIM de la
     // clause qui la nomme (MDG 13 l.714/730/751, MDG 12 l.303, MSRC 07 l.94), `desc` est donc exigible
     // dès la création. `source` ne l'est pas au def : c'est déjà l'enveloppe qui refuse une entrée sans

@@ -1,4 +1,4 @@
-import { pregenParty, PREGEN } from '../../data/pregens';
+import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
@@ -170,7 +170,7 @@ export const scenario: TestScenario = {
     '(Knud Cratinx) déclenché depuis le dialogue.',
   partyNote: 'Soldat · Chasseur · Prêtre',
   construire: (idNeuf) => ({
-    party: pregenParty(idNeuf, PREGEN.soldat, PREGEN.chasseur, PREGEN.pretre),
+    party: groupeDeScenario(idNeuf, 'soldat', 'chasseur', 'pretre'),
     scene: construireScene(),
     narratif: construireNarratif(),
   }),

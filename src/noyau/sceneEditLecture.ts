@@ -5,19 +5,21 @@
  * Les ÉCRIVAINS vivent dans `./sceneEdit` ; les deux modules sont au `BRIDGE_PATH` de
  * `scripts/guards/lib/sceneFieldEditability.mjs`.
  */
-import { dialoguesDeLaScene, sceneMetresPerTile, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
+import { dialoguesDeLaScene, sceneMetresPerTile, type EntityKind, type FaceDArete, type Scene, type SceneEffectZone, type SceneEntity, type Trigger, type WallSeg, type WallSide, type ZoneArea, type CellSide, porteAuteur } from './monde/scene';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { faceDAreteSchema, optionalDeSceneSchema, sceneEffectZoneSchema, sceneEntitySchema, triggerSchema, type Terrain } from '../data/schemas/defs-scenes/scene';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
 import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuContexte, type ContexteDuChamp, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
+import { chargeLArme, gabaritDObjet } from '../engine/items';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
+import { estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, estUnNavireAPonts, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { creatures, estUnNavireAPonts, findCreatureById, findTrappingById, profilsStandard, refEstVolumique, siegeEngines, spells, trappingsInstanciables, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
@@ -34,6 +36,7 @@ import { armesDEntite, equipementDAuteurDe } from './equipementDessine';
 import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
+import { actionNeuve } from './monde/usable';
 import { ancreDuDecor } from './monde/footprint';
 import { portePar } from './monde/poseDuDecor';
 import { aretesA } from './monde/wallIndex';
@@ -454,15 +457,15 @@ const SORTS_CHOISIS = ['combat', 'spells'] as const;
 /** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), dans son cadre : son preset s'il en
  *  porte un ou si son narratif en déclare ; son dialogue s'il en porte un ou si sa scène en déclare
  *  (`dialoguesDeLaScene`) ; ses sorts choisis s'il en porte, ou si sa fiche (`ficheEditee`)
- *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule et
- *  ses Améliorations (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
+ *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule,
+ *  ses Améliorations et ses postes (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
  *  et son apparence sans tenue (`APPARENCE_DU_PNJ_DE_CARRIERE`). */
 function champsDuPersonnage(ent: SceneEntity, { scene, narratif }: CadreDuPorteur): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
   const dialogue = ent.dialogueId !== undefined || dialoguesDeLaScene(scene).size ? [['dialogueId']] : [];
   const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDuNarratif(narratif));
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
-  const coque = ent.vehicule ? [['vehicule'], ['upgrades']] : [];
+  const coque = ent.vehicule ? [['vehicule'], ['upgrades'], ['postes']] : [];
   const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
   if (!parcoursDe(ent)) return champs;
   return champs.flatMap((c) => (PROFILS_D_AUTEUR.includes(c[0]) ? [] : c[0] === 'appearance' ? APPARENCE_DU_PNJ_DE_CARRIERE : [c]));
@@ -496,12 +499,12 @@ function rangDOffreDuTrait(fiche: CreatureData | undefined): (id: unknown) => nu
   };
 }
 
-/** Les choix que le contexte d'un personnage pose à ses options (`combat.optionals`, LDB 76) : d'un élément, sa variante,
+/** Les choix que le contexte d'un personnage pose à ses options (`combat.optionals`, LDB 76) : d'un élément présent, sa variante,
  *  le Trait, ou l'une des notes du Bestiaire de sa fiche, posée entière, verbatim (la courante restant offerte) ; de
  *  l'identifiant d'un Trait, tous les Traits, dans leur rang d'offre (`rangDOffreDuTrait`). */
 function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
   const [combat, optionals, rang, cle, ...reste] = chemin;
-  if (combat !== 'combat' || optionals !== 'optionals' || typeof rang !== 'number' || reste.length) return undefined;
+  if (combat !== 'combat' || optionals !== 'optionals' || typeof rang !== 'number' || rang >= (ent.combat?.optionals?.length ?? 0) || reste.length) return undefined;
   const fiche = findCreatureById(ent.creature?.id);
   if (cle === 'id') {
     const rangDOffre = rangDOffreDuTrait(fiche);
@@ -555,30 +558,89 @@ function choixDuDialogue(reste: readonly Segment[], scene: Scene): readonly Choi
   return [...dialoguesDeLaScene(scene).keys()].map((id) => ({ valeur: reste.length ? id : { id }, libelle: id, refus: null }));
 }
 
+/** Les munitions du coffre d'une pièce `trappingId` : chaque munition du catalogue qu'elle charge (`chargeLArme`).
+ *  MDG 12 l.410-424 */
+function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
+  const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
+  return trappingsInstanciables()
+    .filter((m) => gabaritDObjet(m.id)?.kind === 'ammo' && chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece))
+    .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
+}
+
+/** Les choix que le contexte de la coque `ent`, dans le cadre `cadre`, pose à ses postes, sous eux au chemin `reste` : au
+ *  rang qui suit le dernier, un poste neuf par engin de siège (`siegeEngines`) ; de la pièce d'un poste, chaque engin de
+ *  siège ; d'un de ses servants, chaque personnage de la scène sans coque, hors des autres servants de la coque, le
+ *  courant restant offert ; des clés de son coffre, les munitions de sa pièce (`munitionsDeLaPiece`) ; de sa munition choisie,
+ *  posée entière ou par son identifiant, chaque munition de son coffre. MDG 12 */
+function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, narratif }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  const postes = ent.postes ?? [];
+  const [rang, cle, element, ...plus] = reste;
+  if (typeof rang !== 'number' || plus.length) return undefined;
+  const engins = (valeur: (id: string) => unknown) => siegeEngines().map((e) => ({ valeur: valeur(e.id), libelle: e.label, refus: null }));
+  if (cle === undefined) return rang === postes.length ? engins((trappingId) => ({ trappingId })) : undefined;
+  const poste = postes[rang];
+  if (!poste) return undefined;
+  if (cle === 'trappingId' && element === undefined) return engins((id) => id);
+  if (cle === 'ammo' && element === undefined) return munitionsDeLaPiece(poste.trappingId);
+  if (cle === 'selectedAmmo' && (element === undefined || element === 'id')) {
+    return Object.keys(poste.ammo ?? {}).map((id) => ({ valeur: element === undefined ? { id } : id, libelle: findTrappingById(id)?.label ?? id, refus: null }));
+  }
+  if (cle !== 'crewIds' || typeof element !== 'number') return undefined;
+  const servants = postes.flatMap((p) => p.crewIds ?? []);
+  const courant = poste.crewIds?.[element];
+  return scene.entities
+    .filter((e) => e.kind === 'personnage' && !e.vehicule && (e.id === courant || !servants.includes(e.id)))
+    .map((e) => ({ valeur: e.id, libelle: nomDEntite(e, presetDuNarratif(narratif)) ?? t('ecran.editeur.entite.personnage'), refus: null }));
+}
+
 /** Les choix que le contexte d'un personnage pose au chemin `chemin` de sa donnée, dans le cadre `cadre` : ceux de son
- *  profil personnalisé (`choixDuProfil`), de son dialogue (`choixDuDialogue`), de l'apparence de ses objets
- *  (`choixDesApparencesDObjets`), d'un sort choisi (`choixDesSorts`), de ses options (`choixDesOptions`). */
+ *  profil personnalisé (`choixDuProfil`), de son dialogue (`choixDuDialogue`), de ses postes (`choixDesPostes`), de
+ *  l'apparence de ses objets (`choixDesApparencesDObjets`), d'un sort choisi (`choixDesSorts`), de ses options
+ *  (`choixDesOptions`). */
 function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const { narratif } = cadre;
   if (chemin.length === 1 && chemin[0] === 'statblock') return choixDuProfil(ent, presetDuNarratif(narratif));
   if (chemin[0] === 'dialogueId') return choixDuDialogue(chemin.slice(1), cadre.scene);
+  if (chemin[0] === 'postes') return choixDesPostes(ent, chemin.slice(1), cadre);
   if (APPARENCES_D_OBJETS.every((cle, i) => chemin[i] === cle)) return choixDesApparencesDObjets(ent, chemin.slice(APPARENCES_D_OBJETS.length), cadre);
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
   return sorts ? choixDesSorts(ent, rang, presetDuNarratif(narratif)) : choixDesOptions(ent, chemin);
 }
 
+/** Les actions authorées d'un décor (`SceneEntity.usable`). */
+const ACTIONS_DU_DECOR = ['usable', 'actions'] as const;
+
+/** Les choix que le contexte du décor `ent` pose au chemin `chemin` de sa donnée : à son utilisable absent, puis au rang
+ *  qui suit sa dernière action, l'action neuve que ses actions laissent libre (`actionNeuve`), par son identifiant. */
+function choixDuDecor(ent: SceneEntity, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+  const actions = ent.usable?.actions ?? [];
+  const neuve = actionNeuve(actions);
+  const pose = (valeur: unknown) => [{ valeur, libelle: neuve.id, refus: null }];
+  if (chemin.length === 1 && chemin[0] === 'usable') return ent.usable ? undefined : pose({ actions: [neuve] });
+  const ajout = chemin.length === ACTIONS_DU_DECOR.length + 1 && chemin[ACTIONS_DU_DECOR.length] === actions.length;
+  return ajout && ACTIONS_DU_DECOR.every((cle, i) => chemin[i] === cle) ? pose(neuve) : undefined;
+}
+
+/** Le formulaire d'une entité, par son type : d'un personnage, ses champs (`champsDuPersonnage`), aux choix de son
+ *  contexte (`choixDuPersonnage`) ; d'un décor, ses actions authorées (`ACTIONS_DU_DECOR`), aux choix de son contexte
+ *  (`choixDuDecor`), son assise s'écrivant à ses places ; d'un départ de héros, aucun champ. */
+const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur<SceneEntity>, 'schema'> } = {
+  personnage: { champs: champsDuPersonnage, choix: choixDuPersonnage },
+  prop: { champs: () => [ACTIONS_DU_DECOR], choix: choixDuDecor },
+  heroStart: { champs: () => [] },
+};
+
 /** Les formulaires tirés du schéma, par sorte de porteur (`FormulaireDuPorteur`). D'une zone d'effet, son Test de
  *  traversée, ses effets à la traversée et à chaque Round, son rendu tant qu'elle dure (#3834) ; d'un déclencheur, sa
- *  condition d'entrée ; d'une entité, la branche de son type : d'un personnage, ses champs (`champsDuPersonnage`), aux
- *  choix de son contexte (`choixDuPersonnage`). */
+ *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`). */
 export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<DonneeDuPorteur[S]> } = {
   zone: { schema: sceneEffectZoneSchema, champs: () => [['crossTest'], ['onCross'], ['perRound'], ['rendu']] },
-  declencheur: { schema: triggerSchema, champs: () => [['when']] },
+  declencheur: { schema: triggerSchema, champs: () => [['when'], ['flow']] },
   entite: {
     schema: sceneEntitySchema,
-    champs: (ent, cadre) => (ent.kind !== 'personnage' ? [] : champsDuPersonnage(ent, cadre)),
-    choix: choixDuPersonnage,
+    champs: (ent, cadre) => FORMULAIRE_DU_TYPE[ent.kind].champs(ent, cadre),
+    choix: (ent, chemin, cadre) => FORMULAIRE_DU_TYPE[ent.kind].choix?.(ent, chemin, cadre),
   },
 };
 
@@ -588,6 +650,15 @@ const prefixe = (a: readonly Segment[], b: readonly Segment[]): boolean => a.len
 /** Le chemin `chemin` est-il offert par les champs `offerts` : sous l'un d'eux, ou sur le chemin de l'un d'eux ? */
 export const cheminOffert = (offerts: CheminsOfferts, chemin: readonly Segment[]): boolean =>
   offerts.some((o) => prefixe(o, chemin) || prefixe(chemin, o));
+
+/** L'écriture au chemin `chemin`, où la donnée vaut `actuelle`, est-elle offerte par les champs `offerts` : sous l'un
+ *  d'eux ; sur le chemin de l'un d'eux, si chaque clé que porte `actuelle` l'est, de proche en proche (elle n'emporte
+ *  aucun champ qu'ils n'offrent pas). */
+export function ecritureOfferte(offerts: CheminsOfferts, chemin: readonly Segment[], actuelle: unknown): boolean {
+  if (offerts.some((o) => prefixe(o, chemin))) return true;
+  if (!offerts.some((o) => prefixe(chemin, o))) return false;
+  return !estObjet(actuelle) || Object.entries(actuelle).every(([cle, v]) => v === undefined || ecritureOfferte(offerts, [...chemin, cle], v));
+}
 
 /** Le formulaire tiré du schéma du porteur de sorte `sorte` (`FORMULAIRES`) : le nœud où s'écrit sa donnée `donnee`, à
  *  travers les unions de son schéma (`formeAuPoint`), et les champs que sa donnée offre dans le cadre `cadre`. */
@@ -612,10 +683,15 @@ export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeD
 
 /** Le formulaire du porteur de sorte `sorte`, de donnée `donnee`, dans le cadre `cadre` : le champ de tête de
  *  chacun de ses champs offerts (`formeDuPorteur`), décrit par `inferFields` sur le nœud de sa donnée, dans son
- *  contexte : ce qu'il offre sous lui (`cheminOffert`) et ses choix (`choixDuChamp`). */
+ *  contexte : ce qu'il offre sous lui (`cheminOffert`), où il s'écrit entier (`ecritureOfferte`) et ses choix
+ *  (`choixDuChamp`). */
 export function formulaireDe<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur): FieldDesc[] {
   const { noeud, champs } = formeDuPorteur(sorte, donnee, cadre);
   const decrits = inferFields([donnee as unknown as Record<string, unknown>], { noeud, niveau: 'profondeur' });
-  const contexte: ContexteDuChamp = { offert: (chemin) => cheminOffert(champs, chemin), choix: (chemin) => choixDuChamp(sorte, donnee, chemin, cadre) };
+  const contexte: ContexteDuChamp = {
+    offert: (chemin) => cheminOffert(champs, chemin),
+    ecrivable: (chemin, actuelle) => ecritureOfferte(champs, chemin, actuelle),
+    choix: (chemin) => choixDuChamp(sorte, donnee, chemin, cadre),
+  };
   return [...new Set(champs.map(([tete]) => tete))].flatMap((cle) => decrits.filter((f) => f.key === cle)).map((f) => ({ ...f, contexte }));
 }

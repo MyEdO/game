@@ -2348,6 +2348,16 @@ test('molette : le pointeur posé puis un cran CDP `mouseWheel` au centre de la 
   await assert.rejects(() => molette(session, { selecteur: '#absente' }, 120), /molette : aucune cible « #absente »/)
 })
 
+test('molette : `crans` crans tournés d’un même geste, au point contrôlé, le pointeur posé une fois', async () => {
+  const { etat, session } = pageDefilante('<div id="liste" data-y="100">liste</div>')
+  const souris = []
+  const rpc = socketDe(session).gerer
+  socketDe(session).gerer = async (m, params) => { if (m === 'Input.dispatchMouseEvent') souris.push([params.type, params.x, params.y]); return rpc(m, params) }
+  await molette(session, { selecteur: '#liste' }, -120, { crans: 3 })
+  assert.deepEqual(etat.crans, [-120, -120, -120])
+  assert.deepEqual(souris, [['mouseMoved', 60, 110], ['mouseWheel', 60, 110], ['mouseWheel', 60, 110], ['mouseWheel', 60, 110]])
+})
+
 // ------------------------------------------------- typeInField : la frappe exige le focus
 
 test('typeInField : un <input type=number> qui n’a pas le focus après le clic LÈVE — aucune frappe émise', async () => {

@@ -3,11 +3,15 @@
  * parcours sur les carrières réelles du Livre de base.
  */
 import { describe, it, expect } from 'vitest';
-import { argentDuPnj, carriereActuelle, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
+import { argentDuPnj, carriereActuelle, designationsDeCarriere, parcoursRetouche, porterAuParcours, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
 import { combattantDeTest } from './combattantDeTest.testkit';
+import { tableTotale } from '../lib/tableTotale';
 import { actorStatus } from './social';
 import { adresseDeCreation } from './adresseDeCreation';
 import { levelsForCareer } from '../data';
+import { availableChars, skillSlots, talentSlots } from './careerSlots';
+import { isCareerLevelComplete } from './advancement';
+import { augmenterLaCompetence } from './character';
 import type { Combatant } from './types';
 import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
 import { toBrass } from './money';
@@ -104,6 +108,26 @@ describe('Compétences « Au choix » : désignées par l’auteur, sinon tirée
     expect(avances(c, 'savoir', 'histoire')).toBe(5);
     const autre = porte({ carrieres: { erudit: 1 } });
     expect(autre.skills.filter((s) => s.id === 'savoir').map((s) => s.spec)).toEqual([expect.any(String)]);
+  });
+});
+
+describe('designationsDeCarriere — une Compétence d’une entrée sans choix ne prend aucun emplacement « (Au choix) » (LDB 07 l.124)', () => {
+  const levels = levelsForCareer('conseiller');
+  it('Conseiller Niveau 3 : Savoir (Politique), imprimé au Niveau 1, laisse le joker Savoir à Savoir (Théologie)', () => {
+    expect(designationsDeCarriere('conseiller', 3, [{ id: 'savoir', spec: 'politique' }, { id: 'savoir', spec: 'theologie' }]))
+      .toEqual({ designations: { '3:skill:3:savoir*': 'savoir|theologie' }, refusees: [] });
+  });
+  it('Conseiller Niveau 3 : six Compétences imprimées ne complètent pas le Niveau, huit le complètent', () => {
+    const complet = (cles: string[]) => {
+      const refs = cles.map((k) => { const [id, spec] = k.split('|'); return spec ? { id, spec } : { id }; });
+      const { designations } = designationsDeCarriere('conseiller', 3, refs);
+      const hero = combattantDeTest({ charAdvances: tableTotale(availableChars(levels, 3), () => 15), talents: [{ talentId: 'ergoteur', times: 1 }] });
+      for (const r of refs) augmenterLaCompetence(hero.skills, r, 15);
+      return isCareerLevelComplete(hero, 3, { skillSlots: skillSlots(levels, 3), talentSlots: talentSlots(levels, 3), careerChars: availableChars(levels, 3), designations });
+    };
+    const six = ['langue|classique', 'marchandage', 'perception', 'ragot', 'resistance', 'savoir|politique'];
+    expect(complet(six)).toBe(false);
+    expect(complet([...six, 'calme', 'charme'])).toBe(true);
   });
 });
 

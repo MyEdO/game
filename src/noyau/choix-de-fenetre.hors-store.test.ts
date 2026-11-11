@@ -12,7 +12,7 @@ import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import { siegeDe } from './sieges';
 import type { ArgumentsDuChoix } from './choixDesFenetres';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { refusDeLaValidation } from './validationDeFenetre';
@@ -21,7 +21,7 @@ import type { Combatant } from '../engine/types';
 
 /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun. */
 function hoteEtUnInvite(banc: Banc): { a: string; b: string } {
-  const [a, b] = pregenParty(idsDeTest, PREGEN.soldat, PREGEN.tueur);
+  const [a, b] = groupeDeScenario(idsDeTest, 'soldat', 'tueur');
   banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
   return { a: a.id, b: b.id };
 }

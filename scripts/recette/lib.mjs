@@ -1655,13 +1655,13 @@ export async function toucher(session, cible, { dureeMs = 0, defiler = true, int
  * VISIBLE, le pointeur d'abord posé là (`mouseMoved`) comme la main d'un joueur : un canevas Godot Web
  * tourne la molette au dernier point du pointeur, pas à celui de l'événement (#3086). Sans
  * `scrollIntoView` : c'est la molette qui fait défiler. Le cran est contrôlé par COUCHE : l'élément au
- * point doit être de la même couche défilante que la cible. Intention `lire` par défaut. Rend la
- * localisation.
+ * point doit être de la même couche défilante que la cible. `crans` crans tournés d'un même geste, au
+ * même point. Intention `lire` par défaut. Rend la localisation.
  */
-export async function molette(session, cible, deltaY, { deltaX = 0, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
+export async function molette(session, cible, deltaY, { deltaX = 0, crans = 1, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
   return geste(session, cible, { qui: 'molette', intention, defiler: false, point: 'visible', controle: 'couche', delaiEntreeMs }, async ({ x, y }, emettre) => {
     await emettre('souris', { type: 'mouseMoved', x, y });
-    await emettre('souris', { type: 'mouseWheel', x, y, deltaX, deltaY });
+    for (let n = 0; n < crans; n++) await emettre('souris', { type: 'mouseWheel', x, y, deltaX, deltaY });
   });
 }
 

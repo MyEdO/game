@@ -21,9 +21,10 @@
         },
         {
           "files": [
-            "talents.json"
+            "talents.json",
+            "talents-aleatoires.json"
           ],
-          "desc": "Talents"
+          "desc": "Talents · Tableau des Talents aléatoires (d100)"
         },
         {
           "files": [
@@ -33,9 +34,10 @@
         },
         {
           "files": [
-            "careers.json"
+            "careers.json",
+            "carrieres-aleatoires.json"
           ],
-          "desc": "Carrières"
+          "desc": "Carrières · Tableau des Classes et Carrières aléatoires (d100)"
         },
         {
           "files": [
@@ -57,9 +59,10 @@
         },
         {
           "files": [
-            "species.json"
+            "species.json",
+            "especes-aleatoires.json"
           ],
-          "desc": "Espèces jouables + variantes régionales"
+          "desc": "Espèces jouables + variantes régionales · Tableau des Races aléatoires (d100)"
         },
         {
           "files": [
@@ -83,7 +86,7 @@
           "files": [
             "pregens.json"
           ],
-          "desc": "Personnages prétirés"
+          "desc": "Prétirés officiels : fiches imprimées figées des livres de campagne"
         },
         {
           "files": [
@@ -406,9 +409,10 @@
         },
         {
           "files": [
-            "cargoes.json"
+            "cargoes.json",
+            "cargaisons-aleatoires.json"
           ],
-          "desc": "Catalogue des cargaisons, une table par voie : maritime (MDG 15) et terrestre/fluviale (MSRC 13)"
+          "desc": "Catalogue des cargaisons, maritime (MDG 15) et terrestre/fluviale (MSRC 13) · Tableau des cargaisons (d100), un document par voie et saison"
         },
         {
           "files": [

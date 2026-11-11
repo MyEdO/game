@@ -32,7 +32,7 @@ export const idDeRosterDuMembre = (h: Combatant): string => h.idDeRoster ?? h.id
  *  sinon. */
 export function idDeRosterDuHeros(heros: readonly RosterEntry[], h: Combatant): IdDeHerosDuRoster | undefined {
   const id = idDeRosterDuMembre(h);
-  return heros.find((e) => e.hero.id === id)?.hero.id ?? pregens.map((p) => idDuPretire(p.seed)).find((p) => p === id);
+  return heros.find((e) => e.hero.id === id)?.hero.id ?? pregens.map((p) => idDuPretire(p.id)).find((p) => p === id);
 }
 
 /** Le roster tel que stocké : `version` vaut `FORMAT_ROSTER` (#2404). */

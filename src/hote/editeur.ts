@@ -64,7 +64,9 @@ import { renduDe, type ArgumentDuGeste, type GesteDeLaFenetre } from './gestes';
  * geste: 'nommer', nom }`, `nom` absent s'il est laissé vide : l'entité reprend alors le nom de sa fiche, l'entrée, le
  * déclencheur et la zone restent tels quels, comme sous un nom déjà pris ; celui qui change l'identifiant de la zone
  * d'effet sélectionnée, ou de la scène sans sélection, se joue `{ type: 'identifier', args }`, en `{ geste:
- * 'identifier', id }` (`renameEffectZone`, `renameScene`), refusé comme un nom vide ou déjà pris ; la scène renommée
+ * 'identifier', id }` (`renameEffectZone`, `renameScene`), refusé comme un nom vide ou déjà pris ; celui qui change
+ * l'identifiant d'une action authorée du décor sélectionné, `{ type: 'identifier', args: [action, id] }`, en `{ geste:
+ * 'identifier', id, action }` (`renameActionAuthoree`), refusé de même ; la scène renommée
  * l'est hors de l'historique, chaque cran portant son nouvel identifiant, et ses calques la suivent ; celui qui décrit
  * la scène se joue `{ type: 'decrire', args }`, en `{ geste: 'scene', patch: { scalaires: { desc } } }`, la description
  * retirée si elle est laissée vide ; celui qui ajoute un drapeau de départ se joue `{ type: 'drapeau', args }`, en `{
@@ -174,7 +176,7 @@ export interface ZonesDeLEditeur {
    * enregistrer, refusé hors du dépôt, pendant un enregistrement en cours, et sur les scènes que le dépôt porte déjà ;
    * « Tester la scène », `{ geste: 'tester' }`, qui passe le projet, ses scènes à jour, par la porte, refusé avec la
    * raison de la porte (`essaiDeLaScene`), et rend `essai: true` : le lancement du projet, la scène éditée à l'entrée,
-   * les autres scènes, sa carte et son narratif, joué par le groupe vitrine (`makeShowcaseParty`), qu'ouvre `demarrer {
+   * les autres scènes, sa carte et son narratif, joué par le groupe vitrine (`groupeVitrine`), qu'ouvre `demarrer {
    * essai: true }` ; la session reste telle quelle
    */
   'editeur.fichier': Bouton[];
@@ -216,7 +218,11 @@ export interface ZonesDeLEditeur {
    * d'un décor, sa lumière, allumée ou éteinte, son rayon à la réglette (−/+, au pas de 1 m, refusé sous 1 m) et son
    * ton en liste, celui du type ou chaque ton de `lightTones`, puis, si son type porte des places (`seatSlotsOf`), son
    * assise et chaque place en liste, tenue par personne, par un personnage de la scène ou par un emplacement du groupe
-   * (`labelEmplacement`), chaque occupant refusé avec la raison d'`assoirALaPlace` ;
+   * (`labelEmplacement`), chaque occupant refusé avec la raison d'`assoirALaPlace` ; pour chacune de ses actions
+   * authorées, le formulaire qui change son identifiant, `{ type: 'identifier', args: [action, id] }`, l'action
+   * désignée par son identifiant en vigueur, refusé vide ou déjà porté par une autre action du décor
+   * (`renameActionAuthoree`) ; puis le formulaire tiré du schéma de son type, ses actions (`usable.actions`), chacune
+   * neuve sous le premier identifiant libre (`actionNeuve`), écrite champ par champ, son identifiant excepté ;
    *
    * d'un emplacement de siège, l'engin de son poste en liste, son arc, omni ou l'un des quatre, ses servants parmi les
    * personnages de la scène et, parmi eux, le chef de pièce ; d'un emplacement ou d'une coque, son équipage exposé ;
@@ -264,10 +270,12 @@ export interface ZonesDeLEditeur {
    * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
    * marchand (`merchant`), son jeu de taverne (`tavernGame`), son
    * apparence (`appearance`), sans tenue pour un PNJ de carrière, ses couleurs par emplacement de palette, son
-   * animation (`anim`) et, d'une coque, son véhicule (`vehicule`) et ses Améliorations (`upgrades`), au contexte de sa
-   * fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
+   * animation (`anim`) et, d'une coque, son véhicule (`vehicule`), ses Améliorations (`upgrades`) et ses postes (`postes`),
+   * au contexte de sa fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
    * offre les entrées du registre qu'elle désigne, `entreesNarratives`) ; un dialogue, chacun de ceux que sa scène
-   * déclare (`dialoguesDeLaScene`) ; le profil absent, « Ajouter » choisit un profil
+   * déclare (`dialoguesDeLaScene`) ; un poste neuf ou la pièce d'un poste, chaque engin de siège (`siegeEngines`), un
+   * servant, chaque personnage de la scène sans coque hors des autres servants de la coque, une munition du coffre,
+   * chacune que charge sa pièce (`chargeLArme`), sa munition choisie, chacune de son coffre ; le profil absent, « Ajouter » choisit un profil
    * neuf au nom du personnage (`emptyStatblock`) ou la copie de sa créature du Bestiaire (`statblockDeLaCreature`) ;
    * l'identifiant d'une option offre tous les Traits (LDB 76 l.11), les Facultatifs de la fiche puis les Traits standard
    * en tête (LDB 76 l.35), et une option, le Trait ou une note « swap » de la fiche posée entière, que le formulaire
@@ -296,8 +304,8 @@ export interface ZonesDeLEditeur {
    * entrée des fiches commitées qu'il ne couvre pas (`ENTREES_DE_DOSSIER`), à couvrir ;
    *
    * d'une zone d'effet encore, le formulaire tiré du schéma de son Test de traversée (`crossTest`) et de ses effets à
-   * la traversée (`onCross`) et à chaque Round (`perRound`), d'un déclencheur, celui de sa condition d'entrée (`when`),
-   * jamais son flux, chaque élément d'id `valeur/<chemin>`, un élément de liste sous le rang de son chemin : un objet
+   * la traversée (`onCross`) et à chaque Round (`perRound`), d'un déclencheur, celui de sa condition d'entrée (`when`)
+   * et de son flux (`flow`), chaque élément d'id `valeur/<chemin>`, un élément de liste sous le rang de son chemin : un objet
    * présent, sa ligne titre, ses champs, puis « Retirer » si son absence est admise ; absent, « Ajouter », qui pose sa
    * valeur neuve (ses seuls champs requis) ;
    *
@@ -597,6 +605,19 @@ const formulaireDeLaTroupe = (): Formulaire => ({
 const formulaireDeLIdentifiant = (id: string): Formulaire =>
   formulaireAUnChamp('identifier', t('ecran.editeur.identifier'), 'id', t('ecran.editeur.identifiant'), id, false);
 
+/** Le formulaire qui change l'identifiant de chaque action authorée du décor `ent` (`renameActionAuthoree`), l'action
+ *  désignée par son identifiant en vigueur, en saisie fixe, son champ prérempli de lui. */
+const identifiantsDesActions = (ent: Scene['entities'][number]): Formulaire[] => (ent.usable?.actions ?? []).map((a) => {
+  const id = `identifier/action/${a.id}`;
+  return {
+    type: 'formulaire', id, libelle: t('ecran.editeur.action.identifier', { id: a.id }), verbe: 'identifier', focus: false, refus: null,
+    champs: [
+      { type: 'fixe', id: `${id}/action`, nom: 'action', optionnel: false, valeur: a.id },
+      { type: 'saisieTexte', id: `${id}/id`, ton: 'neutre', nom: 'id', optionnel: false, libelle: t('ecran.editeur.identifiant'), valeur: a.id },
+    ],
+  };
+});
+
 /** Par entrée des fiches commitées, son texte coupé au mot. */
 const COURT_DE_L_ENTREE = new Map(ENTREES_DE_DOSSIER.map((e) => [e.id, coupeAuMot(e.libelle, 70)]));
 
@@ -636,7 +657,8 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
     .map((c) => bouton(`${id}/${c}`, t('ecran.editeur.couche', { z: c }), jeu(c), c === z)));
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
- *  bestiaire ; son cap parmi ceux que son type admet (`capsOfferts`) ; sa couche ; la lumière et les places d'un décor ;
+ *  bestiaire ; son cap parmi ceux que son type admet (`capsOfferts`) ; sa couche ; la lumière, les places et l'identifiant
+ *  de chaque action d'un décor ;
  *  le poste d'un emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
  *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
  *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
@@ -650,7 +672,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
       types.map((o) => bouton(`entite/type/${o.id}`, o.label, { geste: 'entite', patch: { ref: o.id } }, idDuCorps(ent) === o.id)), 'liste')] : []),
     choix('entite/cap', t('ecran.editeur.entite.cap'), capsOfferts(ent).map((c) => bouton(`entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === cap))),
     choixDeLaCouche(s, 'entite/couche', ent.z ?? 0, (z) => ({ geste: 'entite', patch: { z } })),
-    ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent)] : []),
+    ...(ent.kind === 'prop' ? [...lumiere(ent), ...places(s, ent), ...identifiantsDesActions(ent)] : []),
     ...(ent.postes?.length ? poste(s, ent, ent.postes[0]) : []),
     ...(ent.postes?.length || ent.vehicule
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
@@ -1188,10 +1210,12 @@ function elementsDuFormulaire(porteur: PorteurDeValeur, champs: readonly FieldDe
  *  « Ajouter » (`ajoutDeLObjet`). Une union nommée : sa variante (`elementsDeLUnion`). Une
  *  liste : ses éléments (`elementsDeLaListe`). Un record qui offre des clés : ses entrées (`elementsDuRecord`). Un objet d'une union sans variantes nommées : son libellé et les champs
  *  de la branche qu'il dessine (`formeAuPoint`), et « Retirer » si son absence est admise. Tout autre champ : l'élément de sa valeur (`elementDeValeur`), puis, si
- *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent. */
+ *  son absence est admise, « Aucune » sous un choix, pressé quand il est absent, ou « Retirer » sous un champ présent.
+ *  « Retirer » ne se pose que là où son contexte écrit le champ entier (`ContexteDuChamp.ecrivable`). */
 function elementsDuChamp(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
-  const retirer = valeur !== undefined && f.nullable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
+  const retirable = valeur !== undefined && f.nullable && (f.contexte?.ecrivable(ici, valeur) ?? true);
+  const retirer = retirable ? [bouton(`${id}/retirer`, t('ecran.editeur.valeur.retirer', { libelle: f.label }), ecrireLaValeur(porteur, ici))] : [];
   if (champsDeclares(f.noeud)) {
     if (valeur === undefined) return [ajoutDeLObjet(porteur, f, ici)];
     const objet = valeur as Record<string, unknown>;
@@ -1250,7 +1274,9 @@ function elementsDeLUnion(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknow
 
 /** Les éléments du champ liste `f` (`elementDuNoeud`), de valeur `valeur`, au chemin `ici` : présente, son libellé puis
  *  chacun de ses éléments, au chemin de son rang (`champDeLElement`), ses éléments, « Retirer » et, hors du premier,
- *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). */
+ *  « Monter » ; puis « Ajouter » (`ajoutALaListe`). Chaque bouton écrit la liste entière (`gestesDeLaListe`). Une liste
+ *  à laquelle rien ne s'ajoute (un élément récursif, sans valeur neuve ni choix) : la saisie de sa valeur entière
+ *  (`argumentDeValeur`), en JSON. */
 function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unknown, ici: Segment[]): (Choix | Ligne | Bouton | Formulaire)[] {
   const id = `valeur/${ici.join('/')}`;
   const liste = Array.isArray(valeur) ? valeur : [];
@@ -1266,6 +1292,7 @@ function elementsDeLaListe(porteur: PorteurDeValeur, f: FieldDesc, valeur: unkno
     ];
   });
   const ajouter = ajoutALaListe(porteur, f, liste, ici, element, gestes.ajouter);
+  if (!ajouter) return [elementDeValeur(id, porteur, ici, f, argumentDeValeur(f, valeur, ici))];
   return valeur === undefined ? [ajouter] : [ligne(id, f.label), ...elements, ajouter];
 }
 
@@ -1281,15 +1308,14 @@ function ajoutDeLObjet(porteur: PorteurDeValeur, f: FieldDesc, ici: Segment[]): 
 }
 
 /** « Ajouter » à la liste `liste` du champ `f`, au chemin `ici`, d'élément `element`, d'id `valeur/<chemin>/ajouter` :
- *  d'un élément à choix (`choixDuNoeud`), le choix de l'élément ajouté en fin, parmi ceux que son contexte pose au rang
- *  qui suit le dernier (`FieldDesc.contexte`), sinon parmi ses valeurs ; sinon, le bouton qui écrit `neuve`, la liste où
- *  s'ajoute un élément neuf (`valeurNeuveDe`). */
-function ajoutALaListe(porteur: PorteurDeValeur, f: FieldDesc, liste: readonly unknown[], ici: Segment[], element: unknown, neuve: unknown[]): Bouton | Choix | Formulaire {
+ *  le choix de l'élément ajouté en fin, parmi ceux que son contexte pose au rang qui suit le dernier
+ *  (`FieldDesc.contexte`), sinon, d'un élément à choix (`choixDuNoeud`), parmi ses valeurs ; sinon, le bouton qui écrit
+ *  `neuve`, la liste où s'ajoute un élément neuf (`valeurNeuveDe`) ; `undefined` sans elle. */
+function ajoutALaListe(porteur: PorteurDeValeur, f: FieldDesc, liste: readonly unknown[], ici: Segment[], element: unknown, neuve: unknown[] | null): Bouton | Choix | Formulaire | undefined {
   const id = `valeur/${ici.join('/')}/ajouter`;
   const libelle = t('ecran.editeur.valeur.ajouter', { libelle: f.label });
-  const duNoeud = choixDuNoeud(element);
-  const valeurs = duNoeud && (f.contexte?.choix([...ici, liste.length]) ?? duNoeud.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })));
-  if (!valeurs) return bouton(id, libelle, ecrireLaValeur(porteur, ici, neuve));
+  const valeurs = f.contexte?.choix([...ici, liste.length]) ?? choixDuNoeud(element)?.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null }));
+  if (!valeurs) return neuve ? bouton(id, libelle, ecrireLaValeur(porteur, ici, neuve)) : undefined;
   const a: ArgumentDuGeste = { nom: 'valeur', optionnel: false, saisie: 'choix', libelle, valeur: null, valeurs: valeurs.map((v) => ({ ...v, valeur: [...liste, v.valeur] })), bornes: null, note: null, champs: null };
   return elementDeValeur(id, porteur, ici, { ...f, label: libelle }, a);
 }
@@ -1299,7 +1325,7 @@ function ajoutALaListe(porteur: PorteurDeValeur, f: FieldDesc, liste: readonly u
  *  rendue, si elle coupe la ligne de vue, si elle barre le passage, les entrées de fiche qu'elle couvre, et le formulaire
  *  tiré du schéma de son Test de traversée et de ses effets à la traversée et à chaque Round (`formulaireDe`) ; sa couche ;
  *  d'un déclencheur, s'il ne joue qu'une fois, les entrées de fiche qu'il couvre et le formulaire tiré du schéma de sa
- *  condition d'entrée ; d'une zone de repos, ses lieux et
+ *  condition d'entrée et de son flux ; d'une zone de repos, ses lieux et
  *  sa qualité ; la supprimer. */
 function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
@@ -1844,7 +1870,9 @@ const estNombre = (v: unknown): v is number => typeof v === 'number' && Number.i
 
 /** Le geste du formulaire de l'inspecteur que portent les zones `z`, joué `{ type, args }` : celui qui nomme la
  *  sélection ou la scène (`formulaireDuNom`), `{ geste: 'nommer', nom }`, le nom saisi, absent s'il est laissé vide ;
- *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }` ; celui
+ *  celui qui change l'identifiant de la zone d'effet (`formulaireDeLIdentifiant`), `{ geste: 'identifier', id }`, ou
+ *  d'une action du décor (`identifiantsDesActions`), `{ geste: 'identifier', id, action }`, quand un formulaire des zones
+ *  désigne cette action ; celui
  *  qui décrit la scène, sa description, retirée si elle est laissée vide ; celui qui écrit le message d'introduction de
  *  la scène, son texte tel quel, retiré s'il est laissé vide ; celui qui ajoute un drapeau de départ à la
  *  scène, vrai ; celui qui pose une troupe du personnage sélectionné, `{ geste: 'troupe', nombre }`, un entier entre
@@ -1863,6 +1891,13 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
       || z['editeur.inspecteur'].some((e) => (e.type === 'choix' || e.type === 'liste') && e.valeurs.some((b) => jsonCanonique(b.jeu) === joue));
     return offert && valeur.length <= 1 ? { geste: 'valeur', porteur: porteur as PorteurDeValeur, chemin: chemin as Segment[], ...(valeur.length ? { valeur: valeur[0] } : {}) } : undefined;
   }
+  if (jeu.type === 'identifier') {
+    const [premier, second, ...reste] = jeu.args as unknown[];
+    const [action, id] = jeu.args.length === 2 ? [premier, second] : [undefined, premier];
+    const offert = formulaires.some(({ champs: [designe] }) => (designe.type === 'fixe' ? designe.valeur === action : action === undefined));
+    if (!offert || reste.length || typeof id !== 'string') return undefined;
+    return typeof action === 'string' ? { geste: 'identifier', id, action } : { geste: 'identifier', id };
+  }
   if (jeu.type === 'troupe') {
     const [nombre, ...reste] = jeu.args as unknown[];
     const borne = estEntier(nombre) && nombre >= BORNES_DE_LA_TROUPE.min && nombre <= BORNES_DE_LA_TROUPE.max;
@@ -1875,7 +1910,6 @@ export function gesteDuFormulaire(z: ZonesDeLEditeur, jeu: unknown): GesteDEditi
   if (!formulaires.length) return undefined;
   const texte = typeof valeur === 'string' ? valeur : undefined;
   switch (jeu.type) {
-    case 'identifier': return { geste: 'identifier', id: valeur as string };
     case 'decrire': return { geste: 'scene', patch: { scalaires: { desc: texte?.trim() || null } } };
     case 'introduire': return { geste: 'scene', patch: { message: texte ?? '' } };
     case 'drapeau': return texte?.trim() ? { geste: 'scene', patch: { drapeaux: { [texte.trim()]: true } } } : undefined;

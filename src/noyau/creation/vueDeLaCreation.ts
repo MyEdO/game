@@ -6,7 +6,7 @@
  * qu'un geste tant que le joueur ne l'a pas fait ; son résultat ne se dit qu'après.
  */
 import {
-  apercuDuHeros, careerCharKeys, careerRollPool, careerSkillEntries, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
+  apercuDuHeros, careerCharKeys, careerSkillEntries, carrieresOffertes, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp,
   charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
@@ -18,9 +18,9 @@ import {
   type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
 } from './brouillon';
 import {
-  advancementLabel, careerLabelFor, careersForSpecies, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
+  advancementLabel, careerLabelFor, charAbr, classes, DEFAULT_FABRICATION_ATOUT,
   findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, refLabel, species, specLabel, starDie, stars,
-  trappingRefLabel, type AdvancementRef, type CareerData, type SpeciesData,
+  trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
 import { MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
@@ -126,26 +126,17 @@ const valeur = (id: string, libelle: string, v: string | null, detail: string | 
 /** Les PX de création que la page vaut, quand elle en vaut. */
 const px = (n: number): RubriqueDeCreation[] => (n > 0 ? [valeur('px', t('crea.vue.px'), t('crea.vue.gainDePx', { px: n }))] : []);
 
-/** Les familles d'espèces jouables (`speciesAllowed`), dans l'ordre de la donnée, celles d'un livre de cœur (`coeur`) d'abord ;
- *  chacune ses espèces, sa première la canonique (LDB 04 l.91). */
-export function famillesDEspeces(): { famille: string; especes: SpeciesData[] }[] {
-  const familles: { famille: string; especes: SpeciesData[] }[] = [];
+/** Les races d'espèces jouables (`speciesAllowed`), groupées par `refChar`, dans l'ordre de la donnée, celles d'un livre de
+ *  cœur (`coeur`) d'abord ; chacune ses espèces, sa première la canonique, dont la `family` se lit (LDB 04 l.91). */
+export function famillesDEspeces(): { race: SpeciesData['refChar']; famille: string; especes: SpeciesData[] }[] {
+  const familles: { race: SpeciesData['refChar']; famille: string; especes: SpeciesData[] }[] = [];
   for (const s of species.filter(speciesAllowed)) {
-    const f = familles.find((x) => x.famille === s.family);
+    const f = familles.find((x) => x.race === s.refChar);
     if (f) f.especes.push(s);
-    else familles.push({ famille: s.family, especes: [s] });
+    else familles.push({ race: s.refChar, famille: s.family, especes: [s] });
   }
   const duLivreDeBase = (f: (typeof familles)[number]) => Number(f.especes.some((s) => !!findBookById(s.source.book)?.coeur));
   return familles.sort((a, b) => duLivreDeBase(b) - duLivreDeBase(a));
-}
-
-/** Les carrières offertes au brouillon : celles de son espèce sous son filtre (`careersForSpecies`), dans la table de
- *  tirage effective (`careerRollPool`) ; aucune sans espèce. */
-export function carrieresOffertes(d: CreatorDraft): CareerData[] {
-  const sp = draftSpecies(d);
-  if (!sp) return [];
-  const table = new Set(careerRollPool(d).map((c) => c.id));
-  return careersForSpecies(sp.refCareer, d.ignoreRestrictions).filter((c) => table.has(c.id));
 }
 
 const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFor({ career: id, appearance: { sex: d.apparence.sex } });
@@ -154,7 +145,7 @@ const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFo
 function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   const sp = draftSpecies(d);
   const familles = famillesDEspeces();
-  const famille = sp && familles.find((f) => f.famille === sp.family);
+  const famille = sp && familles.find((f) => f.race === sp.refChar);
   return [
     d.speciesRoll
       ? jet('tirage', t('crea.vue.tirageEspece'), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => species.find((s) => s.id === id)!.label)))

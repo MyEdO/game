@@ -14,7 +14,7 @@ import { resetRule, setRule } from '../engine/policy';
 import type { Combatant } from '../engine/types';
 
 // LDB 21 l.33 — la Frénésie avec un Coup Critique dévié au jet 1, puis le balayage (Frappe mortelle).
-const H = 'pregen-101';
+const H = 'soldat-de-test';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 const g = () => banc.getState();

@@ -10,7 +10,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario, idDuHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { runEnemyAI } from './combatFlow';
 
@@ -20,17 +20,17 @@ const embuscadeConstruit = embuscade.construire(idsDeTest);
 
 describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
   function setup() {
-    banc.setState({ party: makeShowcaseParty(idsDeTest) });
+    banc.setState({ party: groupeVitrineDeScenario(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
     banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
-    const ael = b.combatants.find((c) => /aelindra/i.test(c.label))!; // PREGEN.chasseur (fronde + arme simple)
+    const ael = b.combatants.find((c) => c.id === idDuHerosDeScenario('chasseur'))!; // chasseur (fronde + arme simple)
     // Héros AUTO (cf. en-tête) : `runEnemyAI` ne joue QUE des combattants `aiDriven` — pour un héros,
     // c'est le drapeau `aiControlled` (ou l'Auto-combat). Sans lui, la fixture ferait jouer par l'IA un
     // héros piloté à la main, situation qu'aucun chemin réel ne produit (`maybeRunEnemyTurn`).
     ael.aiControlled = true;
-    // donne le tour à Aelindra
+    // donne le tour au Chasseur
     banc.setState({ battle: { ...b, order: [ael.id, ...b.order.filter((id) => id !== ael.id)], turn: 0, action: null } });
     return ael.id;
   }
@@ -48,7 +48,7 @@ describe('IA — sélection de loadout tir/mêlée (Chasseur fronde)', () => {
 
   it('un adversaire au CONTACT → garde/dégaine son arme de MÊLÉE (ne dégaine pas la fronde au corps à corps)', () => {
     const id = setup();
-    // colle un ennemi adjacent à Aelindra
+    // colle un ennemi adjacent au Chasseur
     const b = banc.getState().battle!;
     const ael = b.combatants.find((c) => c.id === id)!;
     const foe = b.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;

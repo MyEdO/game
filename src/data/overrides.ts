@@ -15,9 +15,9 @@ import { tableTotale } from '../lib/tableTotale';
 import { GELER_LA_DONNEE, gelerProfond } from '../lib/gelerProfond';
 import {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
-  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
+  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   materials, terrains, buildings, apparences, gabarits, gardeRobe, presetsDePersonnage,
-  pregens, oups, interludeEvents, peripeties, details, semencesDeScene, defautsDeCompilation, names, allAxes,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, details, semencesDeScene, defautsDeCompilation, names, allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms,
   massBattleWarMachines, massBattleStructures, massBattleHazards, massBattleMightModifiers, massBattlePowerEstimate,
   vehicles, celestialHouses, groups, psychologies, seaShanties, crewRoles, crewTestTypes, shipStations, NAVAL_TRAITS,
@@ -41,7 +41,7 @@ import { TAVERN_GAMES } from '../engine/tavernGame';
 import { OBSESSIONS } from './obsessions';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { CARGO_ENTRIES, type CargoEntry } from '../engine/cargo';
-import { MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS } from '../engine/seaVoyage';
+import { MANANN_FACTORS, BOARD_EVENTS, PORT_EVENTS, FAST_VOYAGE_PALIERS } from '../engine/seaVoyage';
 import { RIVER_PERILS } from '../engine/riverNavigation';
 import { MORALE_FACTORS, MORALE_BANDS } from '../engine/crewMorale';
 import { STEAM_BREAKDOWNS } from '../engine/shipBuild';
@@ -123,7 +123,7 @@ const rencontresDangereuses = encounterTable('dangereuses');
 /** Datasets-tableaux mutables (clé éditeur → MÊME référence d'array que l'export de la façade). */
 const ARRAYS = {
   characteristics, species, classes, careers, careerLevels, skills, talents, etats, maladies, traits,
-  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
+  qualities, qualitySubtypes, qualityTypes, mutations, mutationTables, effectTables, trappings, weaponGroups, breathTypes, damageTypes, creatures, spells, maneuvers, domains, lightLevels, lightTones, rendus, props, eyes, hairs, stars, locations, books, raceAppearance, planDeBestiaire, gods, structures,
   // Matières du monde (#1686) : UN document, le domaine PORTÉ par l'entrée. Ce binding EST le seam de
   // mutation en place, et c'est lui qui rend vivante la lecture des vues par domaine (`matieresDe`,
   // `src/data/index.ts`) : une matière retouchée se voit au rendu sans rechargement. Son def déclare
@@ -140,7 +140,7 @@ const ARRAYS = {
   // `src/noyau/monde/buildings` reconstruit son index au témoin de VERSION du dataset, si bien
   // qu'une entrée éditée au Codex se voit dans l'éditeur et au rendu sans rechargement.
   buildings,
-  pregens, oups, interludeEvents, peripeties, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, names,
   // Axes de forces/faiblesses (#409) — mécanique MAISON, éditable au Codex comme tout catalogue.
   axes: allAxes,
   // Apparences d'objet (#2948) : catalogue d'art, édité au fichier.
@@ -184,9 +184,9 @@ const ARRAYS = {
   riverCriticalsSuperstructure: RIVER_CRIT_SET.tables.superstructure!,
   // Rencontres de voyage (EDOC 8) : 3 catégories NICHÉES dans `rencontres-edoc.json`.
   rencontresPositives, rencontresFortuites, rencontresDangereuses,
-  // Longs voyages en mer (MDG 15) : Humeur de Manann (facteurs) + Événements de bord/de port —
-  // 3 tableaux frères NICHÉS dans `sea-events.json`.
-  seaManannFactors: MANANN_FACTORS, seaBoardEvents: BOARD_EVENTS, seaPortEvents: PORT_EVENTS,
+  // Longs voyages en mer (MDG 15) : Humeur de Manann (facteurs) + Événements de bord/de port + paliers
+  // du Voyage rapide — 4 tableaux frères NICHÉS dans `sea-events.json`.
+  seaManannFactors: MANANN_FACTORS, seaBoardEvents: BOARD_EVENTS, seaPortEvents: PORT_EVENTS, seaFastVoyage: FAST_VOYAGE_PALIERS,
   // #422 : Ports (MDG 15), Progression de navire (MDG 13), Construction navale (MDG 12) — les 4
   // derniers NICHÉS dans leur document, dont la racine vivante est réécrite au save.
   navalPorts,
@@ -201,10 +201,12 @@ const ARRAYS = {
   drivingMishap: MISHAP_TABLE,
   drunkenness: DRUNK_TABLE,
   encumbranceTiers: encumbranceTiersRawJson,
-  // #422 (FINAL) : Incantations Imparfaites Mineures/Majeures (LDB 46) + Colère des dieux (LDB 40)
-  // — les rangées de 3 des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b).
+  // Incantations Imparfaites Mineures/Majeures (LDB 46 ; VDM 02 l.218-263) + Colère des dieux (LDB 40)
+  // — les rangées des 5 DOCUMENTS de `miscast.json`, adressées par leur id (#1467 L1b, #1667).
   miscastMinor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure'),
   miscastMajor: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure'),
+  miscastMinorVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm'),
+  miscastMajorVdm: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm'),
   miscastWrath: rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere'),
   // Enjeux des cascades (`stakes.json`, tableau RACINE, #1681) : le fichier disque est DÉRIVÉ de
   // l'`exposition.edit` du def.

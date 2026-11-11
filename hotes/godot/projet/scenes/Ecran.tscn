@@ -4,12 +4,8 @@
 [ext_resource type="Script" path="res://scripts/disposition.gd" id="2_disposition"]
 [ext_resource type="Theme" path="res://art/titre_de_fenetre.tres" id="3_titre"]
 [ext_resource type="Theme" path="res://art/statbloc.tres" id="4_statbloc"]
-
-[sub_resource type="Theme" id="Avis"]
-Label/font_sizes/font_size = 18
-
-[sub_resource type="Theme" id="Journal"]
-Label/font_sizes/font_size = 14
+[ext_resource type="Theme" path="res://art/avis.tres" id="t_avis"]
+[ext_resource type="Theme" path="res://art/petit.tres" id="t_petit"]
 
 [node name="Ecran" type="Node"]
 
@@ -49,6 +45,13 @@ theme_type_variation = &"Panneau"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Droite"]
 
+[node name="Gestes" type="HBoxContainer" parent="Interface/Droite/Pile"]
+alignment = 2
+
+[node name="Zone" type="Node" parent="Interface/Droite/Pile/Gestes"]
+script = ExtResource("1_zone")
+source = "groupe.gestes"
+
 [node name="Titre" type="VBoxContainer" parent="Interface/Droite/Pile"]
 
 [node name="Zone" type="Node" parent="Interface/Droite/Pile/Titre"]
@@ -58,18 +61,18 @@ source = "journal.titre"
 [node name="Defilement" type="ScrollContainer" parent="Interface/Droite/Pile"]
 size_flags_vertical = 3
 horizontal_scroll_mode = 0
-theme = SubResource("Journal")
+theme = ExtResource("t_petit")
 
 [node name="Lignes" type="VBoxContainer" parent="Interface/Droite/Pile/Defilement"]
+theme_type_variation = &"PileSerree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="Zone" type="Node" parent="Interface/Droite/Pile/Defilement/Lignes"]
 script = ExtResource("1_zone")
 source = "journal.lignes"
 ajout = true
 
-[node name="Bas" type="PanelContainer" parent="Interface"]
+[node name="Pied" type="PanelContainer" parent="Interface"]
 visible = false
 anchors_preset = 12
 anchor_top = 1.0
@@ -80,20 +83,29 @@ grow_horizontal = 2
 grow_vertical = 0
 theme_type_variation = &"Panneau"
 
-[node name="Pile" type="VBoxContainer" parent="Interface/Bas"]
+[node name="Pile" type="VBoxContainer" parent="Interface/Pied"]
+theme_type_variation = &"PileSerree"
 
-[node name="Offres" type="VBoxContainer" parent="Interface/Bas/Pile"]
+[node name="Offres" type="VBoxContainer" parent="Interface/Pied/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Bas/Pile/Offres" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Pied/Pile/Offres" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "combat.offres"
 masque = NodePath("../../..")
 
-[node name="Exploration" type="HFlowContainer" parent="Interface/Bas/Pile"]
+[node name="Exploration" type="HFlowContainer" parent="Interface/Pied/Pile"]
 
-[node name="Zone" type="Node" parent="Interface/Bas/Pile/Exploration" node_paths=PackedStringArray("masque")]
+[node name="Zone" type="Node" parent="Interface/Pied/Pile/Exploration" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
 source = "exploration.gestes"
+masque = NodePath("../../..")
+
+[node name="Heros" type="HFlowContainer" parent="Interface/Pied/Pile"]
+theme_type_variation = &"Cartes"
+
+[node name="Zone" type="Node" parent="Interface/Pied/Pile/Heros" node_paths=PackedStringArray("masque")]
+script = ExtResource("1_zone")
+source = "groupe.heros"
 masque = NodePath("../../..")
 
 [node name="Haut" type="PanelContainer" parent="Interface"]
@@ -115,7 +127,7 @@ source = "combat.tour"
 masque = NodePath("../../..")
 
 [node name="Ordre" type="HBoxContainer" parent="Interface/Haut/Pile"]
-theme_override_constants/separation = 6
+theme_type_variation = &"RangeeSerree"
 
 [node name="Zone" type="Node" parent="Interface/Haut/Pile/Ordre"]
 script = ExtResource("1_zone")
@@ -135,33 +147,6 @@ script = ExtResource("1_zone")
 source = "combat.apercu"
 masque = NodePath("../..")
 
-[node name="Groupe" type="VBoxContainer" parent="Interface"]
-anchors_preset = 9
-anchor_bottom = 1.0
-offset_left = 8.0
-offset_top = 120.0
-offset_bottom = -220.0
-grow_vertical = 2
-mouse_filter = 2
-theme_override_constants/separation = 18
-
-[node name="Defilement" type="ScrollContainer" parent="Interface/Groupe"]
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="Heros" type="VBoxContainer" parent="Interface/Groupe/Defilement"]
-theme_override_constants/separation = 6
-
-[node name="Zone" type="Node" parent="Interface/Groupe/Defilement/Heros"]
-script = ExtResource("1_zone")
-source = "groupe.heros"
-
-[node name="Gestes" type="VBoxContainer" parent="Interface/Groupe"]
-
-[node name="Zone" type="Node" parent="Interface/Groupe/Gestes"]
-script = ExtResource("1_zone")
-source = "groupe.gestes"
-
 [node name="Dialogue" type="PanelContainer" parent="Interface"]
 visible = false
 custom_minimum_size = Vector2(660, 0)
@@ -179,7 +164,7 @@ grow_vertical = 0
 theme_type_variation = &"Panneau"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Dialogue"]
-theme_override_constants/separation = 10
+theme_type_variation = &"PileSerree"
 
 [node name="Orateur" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
 theme = ExtResource("3_titre")
@@ -197,7 +182,7 @@ source = "dialogue.replique"
 masque = NodePath("../../..")
 
 [node name="Reponses" type="VBoxContainer" parent="Interface/Dialogue/Pile"]
-theme_override_constants/separation = 6
+theme_type_variation = &"PileSerree"
 
 [node name="Zone" type="Node" parent="Interface/Dialogue/Pile/Reponses" node_paths=PackedStringArray("masque")]
 script = ExtResource("1_zone")
@@ -222,7 +207,7 @@ theme = ExtResource("4_statbloc")
 theme_type_variation = &"Statbloc"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Fiche"]
-theme_override_constants/separation = 8
+theme_type_variation = &"PileSerree"
 
 [node name="Tete" type="HBoxContainer" parent="Interface/Fiche/Pile"]
 
@@ -245,22 +230,22 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Statbloc" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement"]
+theme_type_variation = &"PileSerree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="Profil" type="PanelContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
 theme_type_variation = &"Profil"
 
 [node name="Colonnes" type="HFlowContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc/Profil"]
+theme_type_variation = &"FluxSerre"
 alignment = 1
-theme_override_constants/h_separation = 4
 
 [node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Profil/Colonnes"]
 script = ExtResource("1_zone")
 source = "fiche.profil"
 
 [node name="Sections" type="VBoxContainer" parent="Interface/Fiche/Pile/Defilement/Statbloc"]
-theme_override_constants/separation = 6
+theme_type_variation = &"PileSerree"
 
 [node name="Zone" type="Node" parent="Interface/Fiche/Pile/Defilement/Statbloc/Sections"]
 script = ExtResource("1_zone")
@@ -296,7 +281,7 @@ grow_vertical = 2
 theme_type_variation = &"Panneau"
 
 [node name="Pile" type="VBoxContainer" parent="Interface/Creation"]
-theme_override_constants/separation = 10
+theme_type_variation = &"PileSerree"
 
 [node name="Titre" type="VBoxContainer" parent="Interface/Creation/Pile"]
 
@@ -310,16 +295,16 @@ size_flags_vertical = 3
 horizontal_scroll_mode = 0
 
 [node name="Corps" type="VBoxContainer" parent="Interface/Creation/Pile/Defilement"]
+theme_type_variation = &"PileSerree"
 size_flags_horizontal = 3
-theme_override_constants/separation = 6
 
 [node name="Zone" type="Node" parent="Interface/Creation/Pile/Defilement/Corps"]
 script = ExtResource("1_zone")
 source = "creation.corps"
 
 [node name="Gestes" type="HBoxContainer" parent="Interface/Creation/Pile"]
+theme_type_variation = &"RangeeSerree"
 alignment = 2
-theme_override_constants/separation = 6
 
 [node name="Zone" type="Node" parent="Interface/Creation/Pile/Gestes"]
 script = ExtResource("1_zone")
@@ -331,7 +316,7 @@ anchor_left = 0.5
 anchor_right = 0.5
 offset_top = 72.0
 grow_horizontal = 2
-theme = SubResource("Avis")
+theme = ExtResource("t_avis")
 
 [node name="Refus" type="Label" parent="Interface/Avis"]
 horizontal_alignment = 1

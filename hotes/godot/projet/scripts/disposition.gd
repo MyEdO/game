@@ -18,7 +18,7 @@ extends Node
 ## cible, le jet du lanceur (son NI au libellé), la zone et le budget de Surincantation en pastilles, l'issue, puis
 ## chaque axe que le sort ouvre en choix de pas, de 0 au budget, chaque pas de trop refusé avec sa raison. L'écran du
 ## lieu et la carte du monde sont la couche « monde », plein écran, jamais une fenêtre posée par-dessus : chacun hérite
-## du cadre `projet/cadres/monde.tscn`, un calque sous l'interface qui laisse le groupe à gauche et le journal à droite,
+## du cadre `projet/cadres/monde.tscn`, un calque sous l'interface qui laisse le groupe au pied et le journal à droite,
 ## le titre en grand et les gestes en tête, la bourse du groupe dessous quand l'écran la montre (`bourse`), et n'y
 ## ajoute que son contenu. L'écran du lieu (`projet/ecrans/ecranDuLieu.tscn`) range ses services (`service/`) et les
 ## points d'intérêt de son plan qui mènent à une scène (`poi/`, chacun le choix `ecranDuLieu` `entrer`) en grille,
@@ -41,9 +41,11 @@ extends Node
 ## `src/noyau/voyageEnVue.ts`) : la journée ne s'y arrête qu'aux vrais choix (`jouerLaJournee`, `src/noyau/cascade.ts`),
 ## le reste va au journal. Il montre dans le paysage l'heure de jeu et la météo du jour (`voyage/heure`,
 ## `voyage/meteo`), ce qui tient la journée, les km faits sur ceux du trajet par son moyen (`voyage/route`), la frise
-## (`voyage/etape/` : le départ, chaque nuit passée en route à son km, l'arrivée), puis sous le paysage les jets de
-## l'étape en rangée, chacun sur son héros (`jets/`) ; la halte de nuit (`projet/ecrans/repos.tscn`) montre la même route
-## sous la nuit et son lieu. Le document remis (`projet/ecrans/document.tscn`) se pose au centre, son texte dans un
+## (`voyage/etape/` : le départ, chaque nuit passée en route à son km, l'arrivée), puis sous le paysage, dans un
+## défilement, les jets qu'aucun héros ne jette (`jets/`) ; celui d'un héros est sur sa carte (`groupe.heros`). La halte
+## de nuit (`projet/ecrans/repos.tscn`) hérite du même cadre : dans le paysage la nuit, son lieu et l'heure, la même
+## route et sa frise, puis la note du repos ; la nuit de chaque dormeur, son couchage et sa pitance, est sur sa carte.
+## Le document remis (`projet/ecrans/document.tscn`) se pose au centre, son texte dans un
 ## défilement : le Markdown verbatim de la donnée, montré tel quel. Un écran dédié neuf, c'est une scène de plus sous
 ## `projet/ecrans/`, sans ligne de GDScript.
 

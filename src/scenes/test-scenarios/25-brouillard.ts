@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import type { Scene } from '../../noyau/monde/scene';
 import type { TestScenario } from './_shared';
@@ -30,5 +30,5 @@ export const scenario: TestScenario = {
   title: 'Le brouillard',
   tests: 'La brume de la météo en nappes au-dessus du sol en tactique, et la brume de profondeur resserrée en immersion.',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construire() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construire() }),
 };

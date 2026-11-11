@@ -80,6 +80,7 @@ const NOMMES = [
   'feu|flammeche|lueur',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|pierre|cloture',
+  'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
   'heroStart|personnage|prop',
@@ -153,6 +154,7 @@ const NOMMES = [
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',
   'generalDown|intervention|noIntervention|combatWon|combatLost',
+  'gold|silver|brass',
   'groupe|individu',
   'harness|jolt|wheel|crash',
   'incantation|focalisation|dissipation',
@@ -163,6 +165,8 @@ const NOMMES = [
   'might|startMight|allyTestMod|firstRoundBonus|planningBonus',
   'plus2|plus1|normal|minus1|half',
   'premier|courant|extreme',
+  // `saisonSchema` : la saison d'une cargaison (MDG 15 l.406 ; MSRC 13 l.73).
+  'printemps|ete|automne|hiver',
   'psych|perilDesEaux|bandages|amateurDArt|amateurDeTheatre',
   'quadrupede|quadrupede-aile|oiseau|sans-jambes|theropode|arthropode-a-pinces|sans-membres|amorphe|arachnide|poisson|unique|cephalopode|squig',
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
@@ -199,6 +203,8 @@ const NOMMES = [
   'all|random',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
+  // `posteSideSchema` (#3606 M1f) : le bord d'un poste, à la fiche de navire comme au poste monté d’une scène (`authoredShipPosteSchema.side`).
+  'proue|tribord|poupe|babord',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
@@ -313,7 +319,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ship-criticals|river-criticals',
   'sort|rituel',
   'source|group|any',
-  'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastWrath',
+  'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastMinorVdm|miscastMajorVdm|miscastWrath',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',

@@ -1,6 +1,6 @@
 /**
  * LE SOIN PAR LE PONT (#3328) : « Magie en combat » joué comme Godot le joue. Le groupe franchit la ligne d'engagement,
- * les tours passent jusqu'à Grunni, qui soigne : son offre, puis son patient au clic. La fenêtre du soin nomme le patient
+ * les tours passent jusqu'au Tueur, qui soigne : son offre, puis son patient au clic. La fenêtre du soin nomme le patient
  * et règle l'acte et le Test en choix nommés (`fenetreDuSoin`), chaque option fermée avec sa raison.
  */
 import { describe, it, expect } from 'vitest';
@@ -30,12 +30,12 @@ describe('le soin par le pont', () => {
   it('soigner un allié : le patient, l’acte et le Test en choix, chacun fermé avec sa raison', () => {
     jouer(appel('demarrer', { scenario: 'magie', graine: 7 }));
     let suite = jouer(appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] }));
-    for (let tours = 0; suite.vue.zones['combat.actif'][0]?.nom !== 'Grunni Pierre-de-Fer'; tours++) {
-      expect(tours, 'Grunni prend la main').toBeLessThan(5);
+    for (let tours = 0; suite.vue.zones['combat.actif'][0]?.nom !== 'Tueur'; tours++) {
+      expect(tours, 'Le Tueur prend la main').toBeLessThan(5);
       suite = jouer(appel('jouer', offre(suite, 'fin-de-tour').jeu));
       if (suite.vue.projection.combat!.finDeTourArmee) suite = jouer(appel('jouer', offre(suite, 'fin-de-tour').jeu));
     }
-    expect(offre(suite, 'soins'), 'Grunni soigne').toMatchObject({ libelle: 'Soigner', refus: null });
+    expect(offre(suite, 'soins'), 'Le Tueur soigne').toMatchObject({ libelle: 'Soigner', refus: null });
 
     ({ suite } = drainer(appel, appel('jouer', offre(suite, 'soins').jeu)));
     const [patient] = suite.vue.projection.combat!.cibles.liste;
@@ -53,7 +53,7 @@ describe('le soin par le pont', () => {
     ]);
 
     ({ suite } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)));
-    expect(corps()['jets/0/0'], 'le jet de Guérison tombe').toMatchObject({ qui: 'Grunni Pierre-de-Fer', libelle: 'Guérison' });
+    expect(corps()['jets/0/0'], 'le jet de Guérison tombe').toMatchObject({ qui: 'Tueur', libelle: 'Guérison' });
     expect((corps()['jets/0/0'] as { resultat: string | null }).resultat, 'son dé').not.toBeNull();
     expect(Object.values(reglages()).flatMap((c) => c.valeurs).every((b) => b.presse || b.refus), 'le jet tombé, l’acte et le Test ne se règlent plus').toBe(true);
   });

@@ -15,8 +15,8 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, psychologyLabel,
+  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -44,6 +44,8 @@ import { waterTableSchema } from '../../data/schemas/defs/water-exposure';
 import { issueDuTestSchema } from '../../data/schemas/defs/sea-cargo';
 import { attackKindSchema } from '../../data/schemas/defs/maneuvers';
 import { trappingCategorieSchema } from '../../data/schemas/defs/trappings';
+import { carriereActuelle } from '../../engine/pnjDeCarriere';
+import { garanti } from '../../lib/garanti';
 import { MOUNT_PROFILES } from '../../engine/mountTravel';
 import { windsOfMagicTable } from '../../engine/windsOfMagic';
 import { miscastDie } from '../../engine/miscast';
@@ -62,7 +64,7 @@ import ventsJson from '../../data/vents-tourbillonnants.json';
 import type * as accidents from '../../data/schemas/defs/driving-mishap';
 import type * as ivresse from '../../data/schemas/defs/drunkenness';
 import type * as vents from '../../data/schemas/defs/vents-tourbillonnants';
-import { deDesEvenementsDeBord } from '../../engine/seaVoyage';
+import { deDesEvenementsDeBord, deDuVoyageRapide } from '../../engine/seaVoyage';
 import { findCargoEntryById, isEchangeable } from '../../engine/cargo';
 import type { SeaEventDef, ManannFactor } from '../../engine/seaVoyage';
 import { RIVER_PERILS } from '../../engine/riverNavigation';
@@ -105,7 +107,7 @@ import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
+import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
@@ -528,7 +530,7 @@ export function raceTalentSection(s: (typeof species)[number]): CodexSection | n
 
 /** Section « Carrières accessibles » d'une race — groupées par classe, cliquables (→ fiche carrière). */
 export function raceCareerSection(s: (typeof species)[number]): CodexSection | null {
-  const accessible = careersForSpecies(s.refCareer);
+  const accessible = careersForSpecies(s);
   const rows: CodexRow[] = [];
   for (const cl of classes) {
     const list = accessible.filter((c) => c.class.id === cl.id);
@@ -805,8 +807,8 @@ function shipCritEntryItem(e: ShipCritEntry, jeu: ShipCritSet): CodexItem {
   });
 }
 
-/** Item Codex d'un Événement de bord/de port (`SeaEventDef` — MDG 15, #157 suite) : plage de jet
- *  (d100 modifié par l'Humeur de Manann, ou 2d10) → texte verbatim, et sa `consequence` en grammaire. */
+/** Item Codex d'un Événement de bord/de port ou d'un palier du Voyage rapide (`SeaEventDef` — MDG 15,
+ *  #157 suite, #1667) : plage de jet → texte verbatim, et sa `consequence` en grammaire. */
 function seaEventItem(e: SeaEventDef, faces?: number): CodexItem {
   return depuisEnveloppe(e, {
     sub: fourchette(e.min, e.max, faces),
@@ -1106,6 +1108,20 @@ export function optionBody(o: { label: string; desc: string }): string {
   return sansPuce.replace(new RegExp(`^\\*\\*${echappe}\\s*:\\*\\*\\s*`), '');
 }
 
+/** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires | typeof cargaisonsAleatoires)[number], category: string, libelle: (id: string) => string) {
+  return depuisEnveloppe(t, {
+    sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
+    sections: sections({
+      title: tr('codex.fiche.tirages'), layout: 'list',
+      rows: t.entries.map((r) => {
+        const label = libelle(r.id);
+        return { t: 'ref', category, id: r.id, label, show: label, badge: bandeAuDe(deDeLaTableTiree(t), r.min, r.max) } as CodexRow;
+      }),
+    }),
+  });
+}
+
 const CODEX_SPECS = {
   arcanePhenomena: {
     label: 'codex.fiche.magieEnvironnementale', group: 'magie', sourceRef: 'VDM 14',
@@ -1313,6 +1329,14 @@ const CODEX_SPECS = {
   miscastMajor: {
     label: 'codex.fiche.incantationsImparfaitesMajeures', group: 'magie', sourceRef: 'LDB 46',
     build: () => datasetArray('miscastMajor').map((e) => miscastRowItem(e, miscastDie('miscast-majeure'))),
+  },
+  miscastMinorVdm: {
+    label: 'codex.fiche.incantationsImparfaitesMineuresVdm', group: 'magie', sourceRef: 'VDM 02',
+    build: () => datasetArray('miscastMinorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-mineure-vdm'))),
+  },
+  miscastMajorVdm: {
+    label: 'codex.fiche.incantationsImparfaitesMajeuresVdm', group: 'magie', sourceRef: 'VDM 02',
+    build: () => datasetArray('miscastMajorVdm').map((e) => miscastRowItem(e, miscastDie('miscast-majeure-vdm'))),
   },
   miscastWrath: {
     label: 'codex.fiche.colereDesDieux', group: 'magie', sourceRef: 'LDB 40',
@@ -1744,11 +1768,11 @@ const CODEX_SPECS = {
   },
   eyes: {
     label: 'codex.fiche.couleurDesYeux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => eyes.map((e) => depuisEnveloppe(e, { sub: `2d10 ≤ ${e.rand}`, sections: sections(colorTableSection(e)) })),
+    build: () => couleursDuTableau(tableDesYeux, eyesDie()),
   },
   hairs: {
     label: 'codex.fiche.couleurDesCheveux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => hairs.map((h) => depuisEnveloppe(h, { sub: `2d10 ≤ ${h.rand}`, sections: sections(colorTableSection(h)) })),
+    build: () => couleursDuTableau(tableDesCheveux, hairsDie()),
   },
   calendarMonths: {
     label: 'codex.fiche.calendrierMois', group: 'tables', cluster: 'codex.fiche.calendrier',
@@ -1797,12 +1821,13 @@ const CODEX_SPECS = {
   },
   pregens: {
     label: 'codex.fiche.preTires', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => pregens.map((p) => ({
-      id: p.id,
-      label: p.label, sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(p.career.id)?.label ?? p.career.id),
-      meta: facts(fact(tr('codex.fiche.motivation'), p.motivation), fact(tr('codex.fiche.graine'), p.seed)),
-      sections: p.pettySpells?.length ? sections(chips(tr('codex.fiche.sorts'), p.pettySpells.map((id) => idRefRow('spells', id)))) : undefined,
-    })),
+    build: () => pregens.map((p) => {
+      const actuelle = garanti(carriereActuelle({ carrieres: p.carrieres }), p.id, 'carrière actuelle du pré-tiré');
+      return depuisEnveloppe(p, {
+        sub: join(findSpeciesById(p.species.id)?.label ?? p.species.id, findCareerById(actuelle.id)?.label ?? actuelle.id, tr('codex.fiche.niveau2', { level: actuelle.niveau })),
+        meta: facts(fact(tr('codex.fiche.motivation'), p.motivation)),
+      });
+    }),
   },
   oups: {
     label: 'codex.fiche.oups', group: 'tables',
@@ -2220,6 +2245,10 @@ const CODEX_SPECS = {
     label: 'codex.fiche.evenementsDePortMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
     build: () => datasetArray('seaPortEvents').map((e) => seaEventItem(e)),
   },
+  seaFastVoyage: {
+    label: 'codex.fiche.voyageRapideMer', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MDG 15',
+    build: () => datasetArray('seaFastVoyage').map((e) => seaEventItem(e, facesDuDe(deDuVoyageRapide()))),
+  },
   waterExposure: {
     label: 'codex.fiche.expositionALEauMaladiesHydriques', group: 'tables', cluster: 'codex.fiche.merRiviere', sourceRef: 'MSRC 16',
     build: () => {
@@ -2591,6 +2620,22 @@ const CODEX_SPECS = {
     label: 'codex.fiche.obsessionsTable', group: 'tables',
     build: () => OBSESSIONS.map((o) => ({ id: o.id, label: groupLabel(o.id), sub: bandeAuDe(obsessionsDie(), o.min, o.max) })),
   },
+  talentsAleatoires: {
+    label: 'codex.fiche.talentsAleatoires', group: 'tables',
+    build: () => talentsAleatoires.map((t) => ficheDeTableDeRefs(t, 'talents', (id) => talentRefLabel({ id }))),
+  },
+  carrieresAleatoires: {
+    label: 'codex.fiche.carrieresAleatoires', group: 'tables',
+    build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, 'careers', (id) => refLabel('careers', { id }))),
+  },
+  especesAleatoires: {
+    label: 'codex.fiche.especesAleatoires', group: 'tables',
+    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('races', { id }))),
+  },
+  cargaisonsAleatoires: {
+    label: 'codex.fiche.cargaisonsAleatoires', group: 'tables',
+    build: () => cargaisonsAleatoires.map((t) => ficheDeTableDeRefs(t, 'cargoes', (id) => refLabel('cargoes', { id }))),
+  },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
     // exposé/éditable ici comme tout catalogue. Le panneau in-game reste la porte de la VALEUR jouée
@@ -2706,11 +2751,32 @@ const CODEX_SPECS = {
  *  est un getter re-projetable (fraîcheur). */
 export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
-/** Section « table 2d10 » d'une couleur (yeux/cheveux) — borne + couleur par colonne d'espèce. */
-function colorTableSection(c: (typeof eyes)[number]): CodexSection {
+/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
+ *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
+ *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
+function couleursDuTableau(table: typeof tableDesYeux, de: DeDeTable): CodexItem[] {
+  const rangee = (e: (typeof eyes)[number]) => e.rand;
+  const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
+  /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */
+  const bande = (borne: (e: (typeof eyes)[number]) => number, e: (typeof eyes)[number]) => {
+    const precedentes = table.entries.map(borne).filter((b) => b < borne(e));
+    return bandeAuDe(de, precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n), borne(e));
+  };
+  return table.entries.map((e) => {
+    const sub = bande(rangee, e);
+    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, (race) => bande(colonne(race), e))) });
+  });
+}
+
+/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce, suivie de la bande de la colonne
+ *  quand elle diffère de `sub`, la bande de la rangée. */
+function colorTableSection(c: (typeof eyes)[number], sub: string, bandeDeColonne: (race: RaceKey) => string): CodexSection {
   return {
     title: tr('codex.fiche.couleurParEspeceColonneRefchar'), layout: 'list',
-    rows: Object.entries(c.color).filter(([, v]) => v).map(([sp, v]) => ({ t: 'kv', k: sp, v } as CodexRow)),
+    rows: (Object.entries(c.color) as [RaceKey, string | undefined][]).filter(([, v]) => v).map(([sp, v]) => {
+      const bandeSp = bandeDeColonne(sp);
+      return { t: 'kv', k: sp, v: bandeSp === sub ? v! : `${v} · ${bandeSp}` } as CodexRow;
+    }),
   };
 }
 

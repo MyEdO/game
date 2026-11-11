@@ -52,6 +52,7 @@ const PROBE_ID: Record<string, string> = {
   maneuvers: maneuvers[0].id, creatures: creatures[0].id, activities: ACTIVITY_STAKES[0].id,
   regles: regles[0].id, tavernGames: 'cerevis',
   miscastMinor: 'mineure-signe-de-sorciere', miscastMajor: 'majeure-voix-fantomatiques',
+  miscastMinorVdm: 'mineure-vdm-signe-de-sorciere', miscastMajorVdm: 'majeure-vdm-voix-fantomatiques',
   miscastWrath: 'colere-purifier-la-chair',
 };
 

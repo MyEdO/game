@@ -31,7 +31,7 @@ import type { Flow, JetFixe } from './flowCore';
 import type { Season } from './travelStages';
 // Tronc commun cargaison (partagé avec le commerce terrestre MSRC, `landCargo.ts`) — modèle de lot,
 // tirage saisonnier, prix de base. Re-exporté pour les importeurs historiques de ce module.
-import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, marchandisesDe, rollSeasonalCargo } from './cargo';
+import { type CargoDef, type Voie, findCargoById, isTradeHubColumn, rollSeasonalCargo } from './cargo';
 import { tableTotale } from '../lib/tableTotale';
 
 /** La voie du catalogue que porte la table de ce livre (MDG 15 l.406-418). */
@@ -107,7 +107,7 @@ export const deDesEvenementsDeBord = (): DeDeTable => deDeLaTableTiree(EVENTS.bo
 const evenementsDePort = memoParVersion('seaPortEvents', () => tableOuverte(PORT_EVENTS));
 /** Le dé du Tableau des événements d'escale, lu à l'appel. */
 export const deDesEvenementsDePort = (): DeDeTable => deDeLaTableTiree(EVENTS.portEvents);
-const PALIERS_DE_VOYAGE_RAPIDE = tableOuverte(FAST_VOYAGE_PALIERS);
+const paliersDeVoyageRapide = memoParVersion('seaFastVoyage', () => tableOuverte(FAST_VOYAGE_PALIERS));
 /** Le dé du tableau du Voyage rapide, lu à l'appel. */
 export const deDuVoyageRapide = (): DeDeTable => deDeLaTableTiree(EVENTS.fastVoyage);
 /** `test` exige `skill` et `difficulty` au parse (`exigerDuTest`, `defs/sea-cargo.ts`). */
@@ -221,7 +221,7 @@ export function resolveFastVoyage(
   const roll = rollDice(deDuVoyageRapide(), rng);
   const manannTens = Math.trunc(manannScore / 10); // « la dizaine de l'Humeur de Manann » (l.26/l.28)
   const result = roll - Math.max(0, weeksAtSea) + manannTens + crewDR;
-  return { roll, manannTens, result, palier: findTableEntry(PALIERS_DE_VOYAGE_RAPIDE, result) };
+  return { roll, manannTens, result, palier: findTableEntry(paliersDeVoyageRapide(), result) };
 }
 
 // ── Commerce maritime (l.309-436) ────────────────────────────────────────────────────────────────
@@ -279,7 +279,7 @@ export function profilDuMarche(port: PortProfile, alterations: readonly Alterati
 
 /** Cargaison ALÉATOIRE de la saison (l.402-418) : d100 dans la colonne saisonnière (tableau MARITIME). PUR. */
 export function rollRandomCargo(season: Season, rng: RNG): CargoDef {
-  return rollSeasonalCargo([...marchandisesDe(VOIE_MARITIME)], season, rng);
+  return rollSeasonalCargo(VOIE_MARITIME, season, rng);
 }
 
 /** Enc DISPONIBLE d'une cargaison à l'achat (l.323-331) : « additionnez la Taille et la Richesse du

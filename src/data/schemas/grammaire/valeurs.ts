@@ -809,6 +809,15 @@ export const parSaison = <T extends z.ZodType>(valeur: T) =>
     hiver: { get label() { return libelleDeSaison('hiver'); } },
   }), 'parSaison', 'saisons');
 
+/** Les clés de `parSaison`, lues sur son nœud. */
+type Saison = keyof ReturnType<typeof parSaison<z.ZodNever>>['shape'];
+
+/** Une SAISON, valeur d'un champ : les clés de `parSaison`, chacune nommée par sa fiche (`saisonParId`), lue
+ *  à chaque accès. */
+export const saisonSchema = enumNomme(
+  Object.defineProperties({}, tableTotale(Object.keys(parSaison(z.never()).shape) as Saison[], (s) => ({ enumerable: true, get: () => libelleDeSaison(s) }))) as Record<Saison, string>,
+);
+
 /**
  * PRIX DE BASE d'une cargaison par SAISON (MDG 15 l.422-434, MSRC 13 l.80-90) : le résolveur y lit la
  * colonne de la saison courante.
@@ -856,16 +865,22 @@ export const pointDuPlanSchema = nommerChamps(z.strictObject({ x: z.number(), y:
 export const raceKeySchema = z.enum(['humain', 'halfling', 'nain', 'gnome', 'ogre', 'haut-elfe', 'elfe-sylvain']);
 export type RaceKey = z.infer<typeof raceKeySchema>;
 
-/**
- * `refCareerId` — `raceKeySchema` + 4 variantes culturelles humaines (Middenheim/Middenland/
- * Nordland/Norse) du Tableau des Classes et Carrières aléatoires (LDB 05 l.197+). Clé de
- * `species.json.refCareer` et `careers.json.rand` (#313).
- */
-export const refCareerIdSchema = z.enum([
-  'humain', 'halfling', 'nain', 'gnome', 'ogre', 'haut-elfe', 'elfe-sylvain',
-  'middenheim', 'middenland', 'nordland', 'norse',
-]);
-export type RefCareerId = z.infer<typeof refCareerIdSchema>;
+/** Rangée d'une table de couleur par espèce, à son seuil du dé de la table — partagée par `eyes.json`
+ *  (LDB 05 l.742-754) et `hairs.json` (LDB 05 l.756-768). */
+export const rangeeDeCouleurSchema = nommerChamps(z.strictObject({
+  id: z.string(),
+  label: z.string(),
+  rand: z.number(),
+  /** Borne haute propre à une colonne (NADJ 15 l.99-104, #420) ; défaut = `rand`. */
+  randByRace: z.partialRecord(raceKeySchema, z.number()).optional(),
+  color: z.partialRecord(raceKeySchema, z.string()),
+}), {
+  id: { label: 'identifiant' },
+  label: { label: 'libellé' },
+  rand: { label: 'Seuil aléatoire (borne haute du dé)', hint: 'Borne haute cumulée du dé de la table qui atteint cette couleur, sauf borne propre à une race' },
+  randByRace: { label: 'Borne par race', hint: 'Borne haute du dé propre à une race, quand elle diffère du LDB' },
+  color: { label: 'Couleur par race', hint: 'Couleur affichée, par race (colonne du tableau)' },
+});
 
 /**
  * `CastingNumberMod` (`src/engine/castingNumber.ts`) — modificateur de NIVEAU D'INCANTATION porté
@@ -1298,55 +1313,28 @@ export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: numbe
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
 
-/**
- * DISPONIBILITÉ SAISONNIÈRE d'une cargaison — quatre colonnes d100, chacune une FOURCHETTE `{min, max}`
- * (MDG 15 l.406-418, MSRC 13 l.73-78). Nœud NOMMÉ du concept, symétrique de `prixSaisonnierSchema`.
- */
-export const dispoSaisonniereSchema = parSaison(plageSchema);
-
-/** Les quatre colonnes, DÉRIVÉES du nœud : la liste des saisons n'est écrite qu'une fois (`parSaison`). */
-const SAISONS_DE_DISPO = Object.keys(dispoSaisonniereSchema.shape) as (keyof z.infer<typeof dispoSaisonniereSchema>)[];
-
-/** Ce que le refine lit d'une entrée du catalogue : un libellé (le refus est NOMINATIF), les quatre
- *  colonnes d'une MARCHANDISE, et le CHAMP d'exclusion d'un MARQUEUR de colonne Production/Produits
- *  (`echangeable: false`, sans colonne), lu comme le moteur le lit (`isEchangeable`, `src/engine/cargo.ts`). */
-type EntreeDuCatalogue = Record<string, unknown> & { label: string; echangeable?: boolean; avail?: z.infer<typeof dispoSaisonniereSchema> };
+/** Un document d'un fichier de tables tirées : son dé et ses rangées. */
+type TableTiree = { readonly id: string; readonly die: string; readonly entries: readonly { min?: number | null; max?: number | null }[] };
 
 /**
- * CATALOGUE DE CARGAISONS TIRÉ AU D100 — raffinement du catalogue des cargaisons (maritime MDG 15
- * l.406-418, terrestre MSRC 13 l.73-78) : chaque TABLE du catalogue, les MARCHANDISES d'une même valeur
- * du champ `tablePar`, couvre le d100 de 1 à 100 d'un seul tenant dans chacune de ses quatre colonnes
- * saisonnières. L'invariant porte sur la COLONNE d'une table, jamais sur une entrée — d'où sa place au
- * CATALOGUE ; et chaque livre imprime SA table, tirée seule (`rollSeasonalCargo`, `src/engine/cargo.ts`).
- *
- * @param catalogue le nœud du catalogue (`affinerDataset` de son def)
- * @param options `site` = le porteur cité en tête du refus ; `tablePar` = le champ dont chaque valeur
- *  désigne une table du livre
+ * L'`affinerDataset` d'un fichier de tables tirées : chaque document que `tiree` retient couvre son dé
+ * (`ecartsDuDeDeLaTable`), refusé nominativement sur ses `entries`, ses rangées nommées par `nom`.
  */
-export function catalogueSaisonnier(catalogue: z.ZodType<unknown>, options: { site: string; tablePar: string }): z.ZodType<unknown> {
-  return catalogue.superRefine((valeur, ctx) => {
-    const tables = new Map<unknown, EntreeDuCatalogue[]>();
-    for (const e of valeur as EntreeDuCatalogue[]) {
-      if (e.echangeable === false || !e.avail) continue;
-      tables.set(e[options.tablePar], [...(tables.get(e[options.tablePar]) ?? []), e]);
-    }
-    for (const [table, marchandes] of tables) {
-      for (const saison of SAISONS_DE_DISPO) {
-        const ecarts = ecartsDeCouverture(
-          marchandes.map((c) => ({ ...c.avail![saison], label: c.label })),
-          1,
-          100,
-          (f) => `« ${f.label} » (${f.min}–${f.max})`,
-        );
+export function couvertureDuDeParDocument<T extends TableTiree>(
+  fichier: string,
+  nom: (r: T['entries'][number], t: T) => string,
+  tiree: (t: T) => boolean = () => true,
+): (dataset: z.ZodType<unknown>) => z.ZodType<unknown> {
+  return (dataset) =>
+    dataset.superRefine((v, ctx) => {
+      for (const [i, t] of (v as T[]).entries()) {
+        if (!tiree(t)) continue;
+        const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => nom(r, t));
         if (ecarts.length) {
-          ctx.addIssue({
-            code: 'custom',
-            message: `${options.site} › ${options.tablePar} « ${String(table)} » : la colonne de disponibilité ${saison} ne couvre pas le d100 de 1 à 100 d'un seul tenant — ${ecarts.join(' ; ')}.`,
-          });
+          ctx.addIssue({ code: 'custom', path: [i, 'entries'], message: `${fichier} › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.` });
         }
       }
-    }
-  });
+    });
 }
 
 /**

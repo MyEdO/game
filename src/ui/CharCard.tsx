@@ -1,11 +1,10 @@
 import type { ReactNode } from 'react';
 import { Combatant } from '../engine/types';
-import { Money, libelleDEchelon } from '../engine/money';
+import { libelleDEchelon } from '../engine/money';
 import { actorStatus } from '../engine/social';
 import { OrnateFrame } from './Ornaments';
 import { Icon } from './Icon';
 import type { IconIdInput } from '../data/icons';
-import { Coins } from './Coins';
 import { RoseAxes, type RoseAxisValue } from './RoseAxes';
 import { MetalStatus } from './MetalStatus';
 import { WaxSeal } from './WaxSeal';
@@ -147,7 +146,7 @@ function PresentHandle({ hero, onPresent, className, children }: { hero: Combata
 export function CandidateCard({
   hero,
   variant = 'gallery',
-  wealth,
+  bourse,
   recruited,
   selected,
   axisIds,
@@ -158,7 +157,8 @@ export function CandidateCard({
 }: {
   hero: Combatant;
   variant?: 'gallery' | 'remplacement';
-  wealth?: Money;
+  /** Bourse affichée : le montant (`Coins`), ou la formule imprimée d'un pré-tiré avant son tirage. */
+  bourse?: ReactNode;
   /** Déjà dans le groupe (modale de remplacement) → bouton « Déjà choisi » désactivé. */
   recruited?: boolean;
   /** Candidat déplié dans le détail (bordure or « en lecture », #417). */
@@ -179,8 +179,8 @@ export function CandidateCard({
         <CardIdentity hero={hero} />
       </PresentHandle>
       <CardLore hero={hero} axisIds={axisIds} />
-      {wealth != null && (
-        <span className="candidate-wealth hint">{t('picker.hero.purse')} <Coins money={wealth} /></span>
+      {bourse != null && (
+        <span className="candidate-wealth hint">{t('picker.hero.purse')} {bourse}</span>
       )}
       <Row className="candidate-actions">
         <GatedAction

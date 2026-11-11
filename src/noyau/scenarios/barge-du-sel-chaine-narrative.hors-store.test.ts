@@ -6,7 +6,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
@@ -14,7 +14,7 @@ import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 let banc: Banc;
 // Le groupe qui part : un pré-tiré (un groupe vide ne se lance pas, `refusDeLancer`).
-beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: makePregens(idsDeTest).slice(0, 1) } }); });
+beforeEach(() => { banc = ouvrirLeBanc({ etat: { party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) } }); });
 
 const barge = paquetDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!);
 const CAP = 'sel-cap-donne';

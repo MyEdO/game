@@ -197,7 +197,7 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
 }
 
 /** Fourchette d'une rangée de table (« 1–2 · Perte d'Initiative », « 8 · Mutation »). */
-const tableRowRange = (r: { min: number; max: number; label?: string }, faces: number): string =>
+const tableRowRange = (r: { min: number | null; max: number | null; label?: string }, faces: number): string =>
   `${fourchette(r.min, r.max, faces)}${r.label ? ` · ${r.label}` : ''}`;
 
 /** Profondeur d'expansion des tables IMBRIQUÉES (une rangée de table portant elle-même `rollTable`) —
@@ -208,7 +208,7 @@ const MAX_TABLE_DEPTH = 1;
 /** Rangées `[min,max] → ops` d'une table d'effets → lignes Codex (sous-titre de fourchette + ops de la
  *  rangée passées par la MÊME humanisation récursive). SOURCE UNIQUE, composée par la catégorie Codex
  *  « Tables d'effets » (`registry.ts`) ET par l'expansion générique de l'op `rollTable` ci-dessous. */
-export function tableRows(table: { die: string; entries: { min: number; max: number; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
+export function tableRows(table: { die: string; entries: { min: number | null; max: number | null; label?: string; ops: GameOp[] }[] }, depth = 0, ctx?: OpRowCtx): CodexRow[] {
   const faces = facesDuDe(deDeLaTableTiree(table));
   return table.entries.flatMap((r): CodexRow[] => [
     { t: 'sub', label: tableRowRange(r, faces) },

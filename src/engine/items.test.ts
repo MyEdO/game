@@ -1,6 +1,6 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, damageString, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
+import { apparencesCandidates, recomputeLoadout, totalEncumbrance, maxEncumbrance, itemFromTrappingById, weaponWithAmmo, compatibleAmmo, selectedAmmo, emptyArmour, damageArmour, deviatableArmourAt, endommagerLEquipementPorte, buildWeapon, weaponHands, activeLoadout, ensureDefaultLoadout, unarmedWeapon, loadoutCreate, loadoutDelete, loadoutSetActive, loadoutSetSlot, setADeuxMains, loadoutLabel, isOffHandEligible, armourLayer, equipConflicts, isCapeItem, emplacementDArmure, emplacementDeCape, buildInventory, damageString, gabaritDObjet, hydratePoste, mannedPosteWeapon, itemLabel, customTrapping, wornArmourPoints, isWearable, reachIdOf, reachRankOf, isUnarmed, weaponFromItem, lacherLArme, tientUneArme, porteeDeTir } from './items';
 import { apparencesAdmissiblesDObjet } from '../data/apparencesObjets';
 import { effectiveWeaponRange } from './weaponDamage';
 import { createHero } from './character';
@@ -896,6 +896,11 @@ describe('Munitions & rechargement', () => {
     expect(compatibleAmmo(c, pistolet).map((a) => a.label)).toContain('Balle et Poudre');
     expect(compatibleAmmo(c, arqRep).map((a) => a.label)).toContain('Balle et Poudre');
   });
+  it('compatibleAmmo : une arme de siège ne charge que les munitions de sa fiche (AA 10 l.150 ; MDG 12 l.410-424)', () => {
+    const c = { items: ['carreau-de-baliste', 'mitraille-et-poudre', 'bombe-de-mortier'].map((id) => itemFromTrappingById(id, idsDeTest)) } as unknown as Combatant;
+    const canon = weaponFromItem(itemFromTrappingById('canon-moyen', idsDeTest)!);
+    expect(compatibleAmmo(c, canon).map((a) => a.trappingId)).toEqual(['mitraille-et-poudre']);
+  });
   it('recomputeLoadout dérive reload depuis « Recharge N » + subType', () => {
     const c = {
       items: [{ ...itemFromTrappingById('tromblon', idsDeTest)!, equipped: true }],
@@ -963,6 +968,16 @@ describe('hydratePoste (#222) — réf catalogue → arme hydratée, fail-fast',
   it('fail-fast : `trappingId` inconnu → throw explicite', () => {
     expect(() => hydratePoste({ trappingId: 'engin-inexistant-222' }, 'poste-de-test')).toThrow(/trappingId inconnu/);
   });
+
+  it('coffre : chaque munition est le gabarit du catalogue à sa quantité, sous l’uid de sa place ; la choisie la désigne (MDG 12 l.410-424)', () => {
+    const p = hydratePoste({ trappingId: 'canon-moyen', ammo: { 'boulet-et-poudre': 12, 'mitraille-et-poudre': 4 }, selectedAmmo: { id: 'mitraille-et-poudre' } }, 'poste-de-test');
+    expect(p.ammo).toEqual([
+      { ...gabaritDObjet('boulet-et-poudre'), uid: 'poste-de-test-boulet-et-poudre', qty: 12 },
+      { ...gabaritDObjet('mitraille-et-poudre'), uid: 'poste-de-test-mitraille-et-poudre', qty: 4 },
+    ]);
+    expect(p.ammoUid).toBe('poste-de-test-mitraille-et-poudre');
+  });
+
 });
 
 describe('wornArmourPoints (#612) — une pièce `destroyed` ne fournit plus de PA', () => {

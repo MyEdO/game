@@ -15,13 +15,9 @@
  * `[s]`) et tout objet intermédiaire à clés littérales ; un libellé y passe. Aucun typage simple ne le
  * refuse (un gabarit `` `dotation:${number}` `` non plus). Ces entrées ne sont sûres qu'aux minteurs.
  *
- * Trois minteurs : les fabriques de `adresseDeCreation` ; le cast de chargement du roster (`lireLeRoster`,
- * `noyau/persistance/roster.ts`), sous l'empreinte de son type (#2404) ; le cast de chargement des pré-tirés
- * (`pregens`, `data/index.ts`), qui ne lit pas ses clés. Celles-ci sont lues par `adresseLue` au PARSE
- * du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`), à chaque porte de
- * `validateDataset` (`data/schemas/validate.ts`) : les tests (`data/schema-contract.test.ts`,
- * `data/pregens.test.ts`), la sauvegarde du Compendium et le
- * boot DEV (`main.tsx` → `dev-validate.ts`).
+ * Deux minteurs : les fabriques de `adresseDeCreation` ; le cast de chargement du roster (`lireLeRoster`,
+ * `noyau/persistance/roster.ts`), sous l'empreinte de son type (#2404). Une adresse de donnée est lue par
+ * `adresseLue` au PARSE du schéma `parAdresse` (`data/schemas/grammaire/choixDeCreation.ts`).
  *
  * La GRAMMAIRE (familles, tirage sous un talent d'espèce) vit dans CE module : `deFamille` et
  * `tirageSous` répondent aux questions de famille, et le lint `murs/marques` refuse ailleurs un préfixe

@@ -164,7 +164,7 @@ describe('Bordée IA : le marin tenu dévie, la bordée et le tour du navire ne 
     const grimm = ship('grimm-duel'), cogue = ship('cogue-duel');
     grimm.pos = { x: 8, y: 7 };
     cogue.pos = { x: 8, y: 3 };
-    const marin = 'pregen-101';
+    const marin = 'soldat-de-test';
     grimm.crewIds = [marin, ...grimm.crewIds!.filter((id) => id !== marin)];
     const tribord = cogue.postes!.find((p) => p.side === 'tribord')!;
     cogue.postes = [...cogue.postes!, structuredClone({ ...tribord, item: { ...tribord.item, uid: `${tribord.item.uid}-2` } })];
@@ -204,7 +204,7 @@ describe('Bordée IA : le marin tenu dévie, la bordée et le tour du navire ne 
     ship('grimm-duel').pos = { x: 8, y: 9 };
     const tribord = cogue.postes!.find((p) => p.side === 'tribord')!;
     cogue.postes = [...cogue.postes!, structuredClone({ ...tribord, item: { ...tribord.item, uid: `${tribord.item.uid}-2` } })];
-    const pirate = { ...structuredClone(ship('pregen-101')), id: 'pirate', label: 'Pirate', pos: { x: 8, y: 5 }, traits: [{ id: 'demoniaque', value: 9 }] } as unknown as Combatant;
+    const pirate = { ...structuredClone(ship('soldat-de-test')), id: 'pirate', label: 'Pirate', pos: { x: 8, y: 5 }, traits: [{ id: 'demoniaque', value: 9 }] } as unknown as Combatant;
     banc.setState({ facing: { ...banc.getState().facing, 'cogue-duel': 'E' }, battle: { ...b, combatants: [...b.combatants, pirate], turn: b.order.indexOf('cogue-duel') } });
     const bordees = vi.spyOn(banc.getState(), 'tirerLaBordee');
     const pv = ship('pirate').wounds.current;

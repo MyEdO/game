@@ -2,14 +2,15 @@
  * Garde-fou E3b « tout éditable au Codex sans JSON brut » : pour CHAQUE catégorie éditable (datasets
  * tableaux ET objets — details/names), aucun champ ne doit retomber sur le repli générique
  * `kind:'json'`. Tout champ « objet / tableau d'objets » est soit couvert par un éditeur dédié
- * (`dedicatedFieldKeys`), soit d'un kind structuré (text/number/checkbox/stringList/source/recordNumber).
+ * (`dedicatedFieldKeys`), soit d'un kind structuré (text/number/checkbox/stringList/source/recordNumber),
+ * soit un tableau d'objets que `Field` rend en rangées (`offreDesRangees` → `GenericArrayField`).
  *
  * Rejoue la MÊME projection que `CodexEdit` (mêmes `editableEntries` + `dedicatedFieldKeys`) → si un
  * nouveau dataset/champ introduit un `json`, ce test casse jusqu'à ce qu'il ait un éditeur structuré.
  */
 import { describe, it, expect } from 'vitest';
 import { CODEX } from '../../noyau/codex/registry';
-import { inferFields } from '../../noyau/codex/editFields';
+import { inferFields, offreDesRangees } from '../../noyau/codex/editFields';
 import { refFieldCfg } from './refField/RefField';
 import { dedicatedFieldKeys } from '../editor/codex/CodexEdit';
 import { isEditableCategory, editableEntries } from '../../data/atelierDuCodex';
@@ -25,10 +26,12 @@ describe('Codex — aucun champ éditable n’infère kind:json (E3b)', () => {
     it(`${cat.key} : aucun champ ne retombe sur le repli json`, () => {
       // Rejoue EXACTEMENT la décision de rendu de `CodexEdit.fields.map` : un champ retombe sur
       // `<JsonField>` UNIQUEMENT s'il n'est ni couvert par un éditeur dédié (`dedicatedFieldKeys`),
-      // ni par un `RefField` (`refFieldCfg`), ET que son kind inféré est 'json'.
+      // ni par un `RefField` (`refFieldCfg`), que son kind inféré est 'json', ET qu'une entrée au moins
+      // n'en offre pas les RANGÉES (`offreDesRangees`, le même prédicat que `Field`).
       const handled = dedicatedFieldKeys(cat.key);
-      const json = inferFields(editableEntries(cat.key))
-        .filter((f) => !handled.has(f.key) && !refFieldCfg(cat.key, f.key) && f.kind === 'json')
+      const entrees = editableEntries(cat.key);
+      const json = inferFields(entrees)
+        .filter((f) => !handled.has(f.key) && !refFieldCfg(cat.key, f.key) && f.kind === 'json' && entrees.some((e) => !offreDesRangees(f, e[f.key])))
         .map((f) => f.key);
       expect(json, `champs ${cat.key} encore en json : ${json.join(', ')}`).toEqual([]);
     });

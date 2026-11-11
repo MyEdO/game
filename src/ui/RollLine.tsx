@@ -133,7 +133,7 @@ export const ANONYMES = { count: 0 };
  *
  * Les producteurs de `ModLine` sont PURS : ils ne connaissent que des ids stables. Résoudre au
  * producteur exigerait que chaque site passe un résolveur — et le site N+1 l'oublie (recette B3a :
- * « pregen-101 » à l'écran depuis `medicFlow`). La résolution vit donc ICI, au seul endroit que
+ * l'id brut à l'écran depuis `medicFlow`). La résolution vit donc ICI, au seul endroit que
  * TOUTE chip traverse : `actorIn` (combat OU groupe, primitive partagée). Un `label` qui vaut son
  * propre id est traité comme absent — c'est l'empreinte exacte du repli fautif. Sans acteur
  * résolvable (source hors combattants), le `label` fourni fait foi ; en dernier recours l'id, jamais
