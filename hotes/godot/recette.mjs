@@ -53,10 +53,10 @@
 // - `document` (`--scenario documents-edo`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à côté de la
 //   liasse, son offre cliquée, « Chapitre 1 » puis « Lire » : le document se lit au centre ; « Refermer » rend la
 //   conversation à la liasse.
-// - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement, la liste des sorts de la Haute
+// - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche, la liste des sorts de la Haute
 //   Sorcière ouverte, Fléchette choisie au clavier, sa cible cliquée : la fenêtre d'incantation ; le jet à l'Entrée,
 //   un pas de Surincantation alloué à la Portée par son bouton, puis « Appliquer » à l'Entrée referme la fenêtre.
-// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement, les tours passent jusqu'au Tueur, son offre
+// - `soin` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche à l'écran, les tours passent jusqu'au Tueur, son offre
 //   « Soigner » cliquée puis son patient : la fenêtre du soin nomme le patient, l'acte et le Test en choix ; le jet à
 //   l'Entrée.
 // - `voyage` (`--scenario voyage`) : l'entrée de la scène poursuivie, « Carte du monde » ouvre la carte, chaque trajet
@@ -74,8 +74,8 @@
 //   ferme ; le Test spectaculaire ouvre l'entre-deux-Rounds, « Round suivant » le Round 2.
 // - `fiche` : la fenêtre du round à l'Entrée, puis le statbloc du premier héros ouvert par son bouton, celui d'un ennemi
 //   ouvert au clic droit sur sa case, et la fiche fermée par son bouton « Fermer ».
-// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Apothicaire,
-//   son armure choisie dans ses possessions puis ôtée par « Porter », sa potion choisie.
+// - `inventaire` (`--scenario porte-close`) : l'entrée de la scène poursuivie à l'Entrée, le statbloc de Apothicaire, sa
+//   carte amenée à la molette dans la rangée du groupe, son armure choisie à l'onglet de ses possessions puis ôtée par « Porter », sa potion choisie.
 // - `creation` (`--scenario marche-equipement`) : l'entrée de la scène poursuivie à l'Entrée, « Nouveau héros » ouvre
 //   la création sur la race, sans résultat ni suivante avant le d100 ; le d100 tiré, la suivante à l'Entrée ; la
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
@@ -252,6 +252,20 @@ const actif = (v) => v.projection.combat?.actif
 const zone = (v, z) => v.zones[z]
 /** Le bouton de la carte d'un héros du groupe (`groupe.heros`) qui ouvre sa fiche. */
 const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' && e.id.startsWith('fiche/'))
+/** Le bouton `quoi` d'une carte du groupe amené à l'écran : la rangée des cartes, qui défile de côté, tournée d'un cran de
+ *  molette sur la première fiche qu'elle montre, l'écran republié, jusqu'à ce qu'il paraisse. */
+async function amenerAuGroupe(quoi) {
+  for (let n = 0; n < CRANS; n++) {
+    const { boutons } = await ecran()
+    if (trouver(boutons, quoi)) return
+    const carte = boutons.find((b) => b.element?.startsWith('bouton/fiche/'))
+    assert.ok(carte, `une carte du groupe se montre ; boutons : ${boutons.map((x) => x.element ?? x.texte).join(' | ')}`)
+    await marquer()
+    await molette(session, { surface: 'canvas', x: carte.x, y: carte.y }, CRAN_DE_MOLETTE)
+    await nouvelEcran()
+  }
+  throw new Error(`${JSON.stringify(quoi)} hors de la rangée du groupe après ${CRANS} crans`)
+}
 /** L'élément d'id `id` de la zone `z`. */
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
 /** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
@@ -274,9 +288,10 @@ async function cliquerPoint(x, y) {
   await geste(session, { surface: 'canvas', x, y }, { qui: `clic (${Math.round(x)}, ${Math.round(y)})` }, clic())
   await nouvelEcran()
 }
-/** Le bouton publié dont le texte vaut `quoi`, ou, pour `{ cle }` ou `{ element }`, dont la clé ou l'élément dessiné
- *  vaut celui-ci ; `undefined` hors de l'écran. */
-const trouver = (boutons, quoi) => boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : 'choix' in quoi ? x.choix?.includes(quoi.choix) : x.cle === quoi.cle))
+/** Le bouton publié dont le texte vaut `quoi`, ou, pour `{ cle }`, `{ element }` ou `{ onglet }`, dont la clé,
+ *  l'élément dessiné ou le titre d'onglet vaut celui-ci ; `undefined` hors de l'écran. */
+const trouver = (boutons, quoi) =>
+  boutons.find((x) => (typeof quoi === 'string' ? x.texte === quoi : 'element' in quoi ? x.element === quoi.element : 'choix' in quoi ? x.choix?.includes(quoi.choix) : 'onglet' in quoi ? x.onglet && x.texte === quoi.onglet : x.cle === quoi.cle))
 /** Le bouton publié qui dessine le bouton `b` de la vue. */
 const bouton = (b) => ({ element: `bouton/${b.id}` })
 async function cliquerBouton(quoi) {
@@ -284,6 +299,16 @@ async function cliquerBouton(quoi) {
   const b = trouver(boutons, quoi)
   if (!b) throw new Error(`bouton ${JSON.stringify(quoi)} absent ; boutons : ${boutons.map((x) => x.element ?? x.cle ?? x.texte).join(' | ')}`)
   await cliquerPoint(b.x, b.y)
+}
+/** L'onglet titré du libellé du choix `choix` montré quand `quoi` n'est pas à l'écran : un choix de la barre du combat
+ *  (`combat.offres`) est l'un de ses onglets. */
+async function ouvrirLOngletDe(choix, quoi) {
+  if (!trouver((await ecran()).boutons, quoi)) await cliquerBouton({ onglet: choix.libelle })
+}
+/** L'offre `b` de la barre du combat pressée, son onglet montré d'abord. */
+async function presserLOffre(b) {
+  await ouvrirLOngletDe(zone(await vue(), 'combat.offres').find((c) => c.valeurs.some((x) => x.id === b.id)), bouton(b))
+  await cliquerBouton(bouton(b))
 }
 async function cliquerCase({ x, y, z = 0 }) {
   const [px, py] = (await ecran()).cases[`${x},${y},${z}`]
@@ -405,7 +430,7 @@ async function parcoursCombat() {
   assert.equal(zone(v, 'combat.actif')[0]?.nom, heros.nom, 'le panneau nomme l’actif')
   noter(`Entrée : fenêtre fermée ; actif ${heros.nom}, barre ouverte`)
   const charge = offre(v, 'charge')
-  await cliquerBouton(bouton(charge))
+  await presserLOffre(charge)
   v = await vue()
   assert.equal(v.projection.combat.intention, 'charge', 'l’offre arme son intention')
   assert.equal(offre(v, 'charge').presse, true, 'l’offre armée est pressée')
@@ -520,7 +545,7 @@ async function jouerEnJoueurPresse(fini, quoi) {
     } else if (c.intention && c.cibles.liste.length) {
       const cible = c.voisins.liste.find((x) => x.id === c.cibles.liste[0])
       await cliquerCase({ x: cible.pos[0], y: cible.pos[1], z: cible.pos[2] })
-    } else if (c.barre.forme === 'ouverte') await cliquerBouton(bouton(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour')))
+    } else if (c.barre.forme === 'ouverte') await presserLOffre(offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour'))
     else {
       await marquer()
       await nouvelEcran()
@@ -899,11 +924,33 @@ async function parcoursDocument() {
   await capturer('3328-i1-2-referme')
 }
 
+/** La ligne d'engagement de la scène `magie` (`src/scenes/test-scenarios/magie.ts`, `engager-le-combat`), sa colonne. */
+const LIGNE_D_ENGAGEMENT = 16
+/** Si le point `[x, y]` de l'écran est dans le cadre du monde publié (`cadre`), la part que l'interface ne couvre pas. */
+const dansLeCadre = ({ cadre: [x, y, l, h] }, [px, py]) => px >= x && px <= x + l && py >= y && py <= y + h
+/** Le groupe mené au combat de la scène `magie` comme un joueur l'y mène : à chaque pas, un clic sur la case de sa
+ *  rangée la plus avancée vers la ligne d'engagement que le cadre du monde montre, chaque fenêtre fermée à l'Entrée,
+ *  jusqu'au combat. */
+async function engagerLeCombat() {
+  for (let pas = 0; !(await vue()).projection.combat; pas++) {
+    const v = await fermerLesFenetres()
+    if (v.projection.combat) return
+    assert.ok(pas < 8, `le groupe gagne la ligne d'engagement : groupe en ${v.projection.exploration?.groupe}`)
+    const publie = await ecran()
+    const [gx, gy] = v.projection.exploration.groupe
+    const z = v.projection.exploration.etage ?? 0
+    const vers = Array.from({ length: LIGNE_D_ENGAGEMENT - gx }, (_, i) => LIGNE_D_ENGAGEMENT - i).find((x) => publie.cases[`${x},${gy},${z}`] && dansLeCadre(publie, publie.cases[`${x},${gy},${z}`]))
+    assert.ok(vers, `une case de la rangée ${gy} vers l'est se montre dans le cadre ${publie.cadre}`)
+    await cliquerCase({ x: vers, y: gy, z })
+    await attendreLaVue(`!!v.projection.fenetre || !!v.projection.combat || v.projection.exploration?.groupe.join() === '${vers},${gy}'`)
+  }
+}
+
 async function parcoursIncantation() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
   await fermerLesFenetres()
-  await cliquerCase({ x: 16, y: 11 })
+  await engagerLeCombat()
   await attendreLaVue('!!v.projection.combat')
   await fermerLesFenetres()
   let v = await vue()
@@ -913,6 +960,7 @@ async function parcoursIncantation() {
   noter(`« ${sorts.libelle} » : ${sorts.valeurs.length} sorts en ${sorts.type}`)
   await capturer('3328-j1-1-sorts')
   const cle = `liste/${sorts.id}`
+  await ouvrirLOngletDe(sorts, { element: cle })
   const liste = trouver((await ecran()).boutons, { element: cle })
   assert.ok(liste, `la liste des sorts se dessine : ${(await ecran()).boutons.map((b) => b.element ?? b.texte).join(' | ')}`)
   const rang = liste.choix.indexOf('Fléchette')
@@ -957,7 +1005,7 @@ async function parcoursSoin() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases', { timeoutMs: 120000 })
   await fermerLesFenetres()
-  await cliquerCase({ x: 16, y: 11 })
+  await engagerLeCombat()
   await attendreLaVue('!!v.projection.combat')
   await fermerLesFenetres()
   /** La main à un héros : sa barre offre la fin du tour, toute fenêtre vidée. */
@@ -975,7 +1023,7 @@ async function parcoursSoin() {
   let v = await vue()
   const soigner = offre(v, 'soins')
   assert.ok(soigner && !soigner.refus, `Le Tueur soigne : ${JSON.stringify(soigner)}`)
-  await cliquerBouton(bouton(soigner))
+  await presserLOffre(soigner)
   v = await vue()
   const patient = v.projection.combat.voisins.liste.find((c) => c.id === v.projection.combat.cibles.liste[0])
   noter(`« Soigner » : intention ${JSON.stringify(v.projection.combat.intention)}, patients ${v.projection.combat.cibles.liste.join(', ')} ; ${patient.nom} en ${patient.pos}`)
@@ -1236,9 +1284,11 @@ async function parcoursInventaire() {
   let v = await fermerLesFenetres()
   const heros = zone(v, 'groupe.heros').find((c) => c.nom === 'Apothicaire')
   assert.ok(heros, 'Apothicaire a sa carte')
+  await amenerAuGroupe(bouton(ficheDuHeros(heros)))
   await cliquerBouton(bouton(ficheDuHeros(heros)))
   v = await vue()
   const possession = (libelle) => element(v, 'fiche.sections', 'section/possessions').elements.find((b) => b.libelle === libelle)
+  await cliquerBouton({ onglet: element(v, 'fiche.sections', 'section/possessions').nom })
   await cliquerBouton(bouton(possession('Justaucorps de cuir')))
   await attendreLaVue(`v.zones['fiche.objet'][0]?.nom === 'Justaucorps de cuir'`)
   v = await vue()

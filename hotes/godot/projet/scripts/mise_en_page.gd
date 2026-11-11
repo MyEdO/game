@@ -338,6 +338,19 @@ static func distance_zoomee(distance: float, sens: float, minimum: float, maximu
 	return clampf(distance * pow(PAS_DE_ZOOM, sens), minimum, maximum)
 
 
+## L'étendue (m) qu'une caméra en perspective d'angle vertical `angle` (degrés) montre sur la hauteur de sa fenêtre, au
+## lieu qu'elle regarde à `distance` mètres.
+static func etendue_en_perspective(distance: float, angle: float) -> float:
+	return 2.0 * distance * tan(deg_to_rad(angle) / 2.0)
+
+
+## Le décalage de l'objectif (horizontal, vertical, en mètres) d'une caméra qui montre `etendue` mètres sur la hauteur
+## d'une fenêtre de `largeur` sur `hauteur` pixels : le lieu qu'elle regarde se pose au point `centre` de la fenêtre au
+## lieu de son milieu.
+static func decalage_de_l_objectif(centre: Vector2, largeur: float, hauteur: float, etendue: float) -> Vector2:
+	return Vector2(largeur / 2.0 - centre.x, centre.y - hauteur / 2.0) * etendue / hauteur
+
+
 ## Un délai du pont (millisecondes) en secondes de minuteur.
 static func secondes(ms: float) -> float:
 	return ms / MS_PAR_SECONDE

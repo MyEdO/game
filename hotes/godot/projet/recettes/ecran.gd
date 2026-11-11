@@ -15,7 +15,7 @@ const VUES := "res://recettes/vues/ecran.json"
 ## Les champs d'un élément que l'écran dit en texte.
 const DITS := ["texte", "libelle", "qui", "cible", "resultat", "dr", "verdict", "refus", "detail"]
 const ECRANS := "res://ecrans"
-const SCENE := "Interface/Ossature/Colonne/Scene"
+const SCENE := "Interface/Ossature/Colonne/Milieu/Scene"
 
 var _fautes: Array[String] = []
 var _joues: Array = []
