@@ -22,6 +22,7 @@ import { verdictApprentissage } from '../engine/grimoire';
 import { applyFall } from '../engine/movement';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { sceneNpc } from './monde/sceneNpc';
+import { dialoguesDeLaScene, type Dialogue } from './monde/scene';
 import { bestForTests, partyBest, partyAssisted, peutTenter, possesses, soutienDetail, isSocialTest, socialPsychMod, socialPsychLabel, socialPsychLines, testValue } from '../engine/skills';
 import { statusCharmMod, statusCharmLabel, actorStatus, capriciousDR } from '../engine/social';
 import { statutDeDonnee } from '../engine/money';
@@ -143,7 +144,7 @@ export function drainPendingLog(get: Get, set: SetFn): import('./combatLog').Com
   const q = get().pendingLogQueue;
   if (!q.length) return [];
   set({ pendingLogQueue: [] });
-  return q.map((e) => ev('condition', e.line, e.cid));
+  return q.map((e) => ev('etat', e.line, e.cid));
 }
 
 /** Pousse une ÉTAPE de séquence de combat déjà MINTÉE (`BuiltCascadeStep` — un constructeur de la
@@ -180,7 +181,7 @@ export function entityPickables(ent: SceneEntity, flags: Drapeaux, objetDe: Trap
 
 /**
  * Clé du drapeau qui ferme UNE feuille donneuse d'une action authorée : en combat, on ramasse un objet
- * à la fois (`pickup` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
+ * à la fois (`ramassage` de `actions.json`), et ce qui est pris ne se redonne pas — ni au ramassage suivant, ni
  * à la fouille en exploration. `index` = rang de la feuille dans `flowEffects(action.flow)`, STABLE
  * parce que le document de scène n'est jamais réécrit : l'état de jeu vit dans les drapeaux.
  */
@@ -289,7 +290,7 @@ export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title:
 /** Attribue la ligne `uid` du butin (`pendingLoot` ou `pendingVictory`) au héros choisi :
  *  l'Effet d'origine s'applique avec ce heroId (qualités/teinte/identification conservées), la
  *  ligne quitte la fenêtre. Source unique de l'attribution (victoire ET fenêtre de loot), corps des choix
- *  `loot.ligne` et `victory.ligne`. */
+ *  `butin.ligne` et `victoire.ligne`. */
 export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pendingVictory', uid: IdDeLigneDeButin, heroId: string) {
   const bucket = garanti(get()[key], key, 'butin ouvert');
   const ligne = garanti(bucket.gear?.find((g) => g.uid === uid), uid, 'ligne de butin');
@@ -300,7 +301,7 @@ export function attribuerLaLigne(get: Get, set: SetFn, key: 'pendingLoot' | 'pen
   set(retrait);
 }
 
-/** Les créatures que le choix `victory.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
+/** Les créatures que le choix `victoire.depecer` offre : les vaincues de `pendingVictory` à profil de récolte. ZI 13 */
 export function creaturesDeLaRecolte(s: Jeu): string[] {
   const pv = s.pendingVictory;
   if (!pv) return [];
@@ -310,7 +311,7 @@ export function creaturesDeLaRecolte(s: Jeu): string[] {
 /** Refus du dépeçage de la créature `creatureId` de la victoire : ses pièces sont déjà récoltées ; `null` sinon. */
 export const refusDeDepecer = (s: Jeu, creatureId: string): string | null => (s.pendingVictory?.harvested?.includes(creatureId) ? t('eff.dejaDepecee') : null);
 
-/** Les créatures que le choix `victory.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
+/** Les créatures que le choix `victoire.depecer` accepte : celles de la récolte que rien ne refuse. ZI 13 */
 export const creaturesADepecer = (s: Jeu): string[] => creaturesDeLaRecolte(s).filter((id) => refusDeDepecer(s, id) === null);
 
 /** Récolte « Précieuses Entrailles » (ZI) d'une créature vaincue (écran de victoire) : un nœud Flow
@@ -338,7 +339,7 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
-    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvest-creature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
+    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('recolte-creature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
     pieces(0),
     parDegre(0),
   ), titre));
@@ -447,10 +448,10 @@ export type Applique = typeof OPS_DIFFEREES | undefined;
  * conséquence se dit, et il n'y a aucune suite à confier.
  *
  * Exceptions nommées, toutes deux une avance du CURSEUR de la cascade après l'appel :
- * - `advanceCombatJet` (`jetValider('attack')`). Il retient le curseur tant qu'une fenêtre `pending*` est
+ * - `advanceCombatJet` (`jetValider('attaque')`). Il retient le curseur tant qu'une fenêtre `pending*` est
  *   ouverte ; un coup suspendu sur une ÉTAPE (sauvegarde, Déviation) l'a poussée dans la cascade, et le
  *   curseur avance DESSUS (`combatSlice.ts` `advanceCombatJet`).
- * - la validation qui clôt l'étape COURANTE (`jetValider('fumble')`, la Maladresse) : l'après-coup qui tient
+ * - la validation qui clôt l'étape COURANTE (`jetValider('maladresse')`, la Maladresse) : l'après-coup qui tient
  *   la main a poussé ses étapes DERRIÈRE elle, et le curseur avance dessus.
  *
  * Ce qui suit AILLEURS (horloge, dialogue, retrait de décor, seam de Test raté) n'est PAS exempté :
@@ -499,7 +500,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   // CANAL op → applier (#1508) : les dés que ces ops DEMANDENT (`demandesDeDes`) passent par la porte
   // avant que quoi que ce soit ne s'applique — une étape à dé nu par dé, appendue à la séquence en vol,
   // affichable/lançable/posable comme un Critique. La feuille s'applique à la RÉSOLUTION du dernier dé
-  // (`opsDe`), avec les valeurs tombées. Aucune demande ⇒ chemin inchangé, au même point du rng.
+  // (`operationsDe`), avec les valeurs tombées. Aucune demande ⇒ chemin inchangé, au même point du rng.
   const demandes = demandesDeDes(rest, c, ctx);
   if (!demandes.length) return applyOps(c, rest, ctx);
   ouvrirDesDOps(set, c, rest, ctx, demandes[0]);
@@ -525,7 +526,7 @@ function refuserSiHorsCanal(ctx: OpsCtx): void {
 /**
  * OUVRE à la porte UN dé demandé par des ops (#1508) — étape à DÉ NU appendue à la séquence en vol,
  * possédée par la CIBLE (une magnitude SUBIE se joue au siège de qui la subit), posable sous
- * « Dés fixés » comme n'importe quelle table. L'applier `opsDe` enchaîne le dé suivant, ou applique.
+ * « Dés fixés » comme n'importe quelle table. L'applier `operationsDe` enchaîne le dé suivant, ou applique.
  *
  * UN dé à la fois, et c'est la doctrine du slot : une conséquence à dé s'APPEND à la cascade qui la
  * produit (`pushDie`), jamais une fenêtre neuve ni une grappe mintée d'avance — le dé suivant peut
@@ -541,8 +542,8 @@ function refuserSiHorsCanal(ctx: OpsCtx): void {
  */
 function ouvrirDesDOps(set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx, demande: DemandeDe, groupe?: string): void {
   pushDie(set, {
-    id: `opsDe-${cible.id}-${demande.cle}`,
-    kind: 'opsDe',
+    id: `operationsDe-${cible.id}-${demande.cle}`,
+    kind: 'operationsDe',
     label: demande.libelle,
     icon: 'journal/fall',
     spec: demande.spec,
@@ -550,7 +551,7 @@ function ouvrirDesDOps(set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx,
     ...(demande.unite ? { unite: demande.unite } : {}),
     meta: {
       differeLaSuite: true,
-      opsDe: ops,
+      operationsDe: ops,
       opsDeCle: demande.cle,
       ...(groupe ? { opsDeGroupe: groupe } : {}),
       opsDeCtx: porterOpsCtx(ctx),
@@ -561,7 +562,7 @@ function ouvrirDesDOps(set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx,
 /** Les ops DIFFÉRÉES que porte une étape — le `meta` est une union (il porte aussi des ids), donc la
  *  lecture NOMME ce qu'elle attend : un tableau d'objets à `op`. Rien d'autre n'est appliqué. */
 function opsDeLEtape(step: CascadeStep): GameOp[] | null {
-  const v = step.meta?.opsDe;
+  const v = step.meta?.operationsDe;
   if (!Array.isArray(v) || !v.every((o) => typeof o === 'object' && o !== null && 'op' in o)) return null;
   return v as GameOp[];
 }
@@ -583,7 +584,7 @@ export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
 }
 
 /**
- * RECONSTRUIT l'`OpsCtx` porté à sa reprise (étapes `opsDe`, `triggeredTest`, `triggeredChoice`,
+ * RECONSTRUIT l'`OpsCtx` porté à sa reprise (étapes `operationsDe`, `testDeclenche`, `choixDeclenche`,
  * `personneChoisie`, clôture `reprendreFlowDeCombat`) — lecture UNIQUE de la partition totale d'`OpsCtx`
  * (`engine/ops`) : la part GELÉE revient verbatim, les Combattants sont retrouvés par ID, et ce qui ne se
  * sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, les hooks de Corruption et de gain
@@ -1044,7 +1045,7 @@ export function openSkillTest(
   // ENJEU (#1117) : `FlowTest.stake` DESCEND sur l'étape qui lance — c'est elle que `CascadeModal` lit.
   // Second transporteur du champ, à parité avec les deux fabriques de `combat/triggeredTest.ts` : sans
   // lui, tout Flow joué par `runFlow` (Escalade, Saut, Récolte…) porterait un enjeu que rien n'affiche.
-  const jet = hostStep(get, { id: idDansLaSequence(get, 'test-jet', 'test'), kind: 'sceneTestJet', jet: 'test', actorId: def.id, ...(spec.stake ? { stake: spec.stake } : {}) });
+  const jet = hostStep(get, { id: idDansLaSequence(get, 'test-jet', 'test'), kind: 'jetDeTestDeScene', jet: 'test', actorId: def.id, ...(spec.stake ? { stake: spec.stake } : {}) });
   if (!jet) return false; // le mint ne refuse QUE si `pendingTest` manque — rien à défaire, il vient d'être posé
   openSequence(get, set, { title: label, icon: 'nav/dice', purpose: 'test', steps: [jet] });
   return true;
@@ -1141,7 +1142,7 @@ function referentDeScene(get: Get, set: SetFn): Referent | Combatant {
 }
 
 /**
- * Ouvre la DÉCISION d'un nœud `choice` d'un Flow de scène (`runFlow`) : une étape de choix `flowChoice`
+ * Ouvre la DÉCISION d'un nœud `choice` d'un Flow de scène (`runFlow`) : une étape de choix `choixDeFlux`
  * au MENEUR du groupe, oui / renoncer, dont l'applier joue la branche puis `after`. L'auto-pilote prend
  * « oui » (`defaultChoice`), comme la décision automatique d'un choix de combat (`resolveFlowChoice`).
  * `false` quand le nœud n'est pas offert : un coût d'Avantage hors combat (LDB 14 l.219), ou aucun
@@ -1152,7 +1153,7 @@ function ouvrirLeChoixDuFlow(get: Get, set: SetFn, node: Extract<Flow, { kind: '
   if (node.advantageCost != null || !decideur) return false;
   openChoice(get, set, {
     title: label, purpose: 'test', icon: node.icon ?? 'ui/think',
-    id: `flowChoice-${node.prompt}`, kind: 'flowChoice', actorId: decideur.id, label: dataLabel(node.prompt),
+    id: `choixDeFlux-${node.prompt}`, kind: 'choixDeFlux', actorId: decideur.id, label: dataLabel(node.prompt),
     options: [
       { key: 'yes', label: dataLabel(node.prompt), ...detailDeBranche(node.yes) },
       { key: 'no', label: t('opt.renoncer'), ...detailDeBranche(node.no) },
@@ -1175,7 +1176,7 @@ function ccDuTesteur(cc: ConditionCtx, h: Combatant): ConditionCtx {
 }
 
 /**
- * Pose la question `question` à CHAQUE héros vivant, à son siège (étapes `flowVolontaire`) ; l'applier de la
+ * Pose la question `question` à CHAQUE héros vivant, à son siège (étapes `volontaireDeFlux`) ; l'applier de la
  * dernière joue la feuille `e` sur ceux qui ont dit oui, puis `after`. L'auto-pilote renonce (`defaultChoice`).
  * `false` sans héros vivant : la feuille ne vise personne. MDG 15 l.196
  */
@@ -1184,7 +1185,7 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
   if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
   const meta = { choiceYes: { kind: 'do' as const, effect: e }, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
-    id: `flowVolontaire-${question}-${h.id}`, kind: 'flowVolontaire', actorId: h.id, icon: 'ui/think',
+    id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'ui/think',
     label: stepPrecision(dataLabel(question), dataLabel(h.label)),
     options: [{ key: 'yes', label: dataLabel(question) }, { key: 'no', label: t('opt.renoncer') }],
     defaultChoice: 'no',
@@ -1212,7 +1213,7 @@ export interface EffectEnv {
   log(line: string): void;
   pushReveal(entry: RevealEntry): void;
   /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetValider('test')`/`pt.sl`, symétrique de
-   *  `opsCtx.sl` en combat, `triggeredTest.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
+   *  `opsCtx.sl` en combat, `testDeclenche.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
   sl?: number;
   /** Libellé du Flow qui applique ce lot (`runFlow`) : la SOURCE d'un effet durable ou d'un état du navire
    *  qu'une feuille ne nomme pas (`EffectOp.label`). */
@@ -1282,7 +1283,8 @@ function ecrireEntree<K extends 'flags' | 'etats'>(env: EffectEnv, champ: K, cle
  *  l'appelant), ce qui co-localise la validation d'un effet AVEC son application (fin du switch parallèle). */
 export interface EffectRefCtx {
   sceneIds: ReadonlySet<string>;
-  dialogueIds: ReadonlySet<string>;
+  /** Les dialogues de la scène (`dialoguesDeLaScene`). */
+  dialogues: ReadonlyMap<string, Dialogue>;
   encounterIds: ReadonlySet<string>;
   /** Entités `personnage` de la scène — les PNJ qu'un effet peut désigner (soigneur…). */
   entityIds: ReadonlySet<string>;
@@ -1405,10 +1407,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Narration', label: libelleEffet('startDialogue'), icon: 'journal/dialogue',
     make: () => ({ type: 'startDialogue', dialogue: '' }),
     apply: (e, env) => {
-      const dlg = env.get().scene?.dialogues.find((d) => d.id === e.dialogue);
+      const scene = env.get().scene;
+      const dlg = scene && dialoguesDeLaScene(scene).get(e.dialogue);
       if (dlg) env.set({ dialogue: ouvrirDialogue(env.get(), dlg, e.speakerId) });
     },
-    refs: (e, ctx) => ctx.dialogueIds.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
+    refs: (e, ctx) => ctx.dialogues.has(e.dialogue) ? [] : [{ level: 'error', message: `Effet → dialogue inexistant « ${e.dialogue} »` }],
     ouvreDialogue: (e) => e.dialogue,
   },
   endDialogue: {
@@ -1848,7 +1851,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Exposition (LDB 18 l.326-334) posée par l'auteur (nuit glaciale, désert, tempête) : `count` Tests
       // de Résistance PAR HÉROS, chacun une ÉTAPE de cascade INFLUENÇABLE (Chance/Résilience) — jamais de
       // jet silencieux (calque `waterExposure` / la nuit de repos). L'escalade froid/chaleur (`meta.kind`)
-      // + la peau de phoque vivent dans l'applier partagé `exposure`. La protection magique (`weatherWard`)
+      // + la peau de phoque vivent dans l'applier partagé `exposition-nocturne`. La protection magique (`weatherWard`)
       // court-circuite comme dans le moteur eager `exposureNight`.
       const heroes = env.targets(e.target ?? 'party', e.heroId);
       const count = Math.max(1, e.count ?? 2);
@@ -1862,11 +1865,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
         // et ressort en chip nommée) — une autre arithmétique que celle du monteur, à ne pas refaire.
         const st = monoStep({
-          id: `expo-${c.id}`, kind: 'exposure', actor: c, icon: 'rest/cold',
+          id: `expo-${c.id}`, kind: 'exposition-nocturne', actor: c, icon: 'rest/cold',
           rollLabel: 'Résistance', label: stepPrecision(t('step.exposition'), t(kind === 'froid' ? 'step.froid' : 'step.chaleur')),
           difficulty: 'intermediaire',
           montee: { base: resVal, ...(kind === 'froid' ? exposureCoatMods(c) : {}), target },
-          meta: { kind }, stake: nightStakeRef('exposure'),
+          meta: { kind }, stake: nightStakeRef('exposition-nocturne'),
         });
         pousseSi(steps, st);
       }
@@ -1936,7 +1939,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'inflictPsychology', kind: 'peur', indice: 1, label: 'Une vision terrifiante', target: 'party' }),
     apply: (e, env) => {
       // Source de Peur/Terreur SCÉNIQUE (apparition, présage) : MÊME cascade de Tests de Calme que la
-      // Psychologie de rencontre (`openScriptedPsych`, applier 'encounterPsych' partagé) — jamais un jet
+      // Psychologie de rencontre (`openScriptedPsych`, applier 'psychologieDeRencontre' partagé) — jamais un jet
       // silencieux. Frénésie s'octroie déjà via `ops`/`grantPsychTrait` (capacité, pas une affliction testée).
       const heroes = env.targets(e.target ?? 'party', e.heroId);
       openScriptedPsych(env.get, env.set, e.kind, Math.max(1, e.indice ?? 1), e.label || t('eff.psychScene'), heroes);
@@ -1979,7 +1982,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   waterExposure: {
     group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'travel/wave',
     make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'hero' }),
-    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'hero', e.heroId), e, 'waterExposure'),
+    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'hero', e.heroId), e, 'expositionHydrique'),
   },
 
   // ── Temps & repos ──────────────────────────────────────────────────────
@@ -2193,7 +2196,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   medicalAid: {
     group: 'Combat & social', label: libelleEffet('medicalAid'), icon: 'medical/aid',
     // tarif par défaut : « aide médicale 4-6 pistoles » (LDB 75) → 5 pa
-    make: () => ({ type: 'medicalAid', acts: [{ act: 'wounds', cost: { silver: 5 } }], entityId: '' }),
+    make: () => ({ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: '' }),
     apply: (e, env) => { openMedicalAidEffect(env.get, env.set, e); }, // soins payants d'un PNJ : ouvre son infirmerie (actes tarifés)
     // Le soigneur PORTE ses stats : sans entité résolvable, l'infirmerie n'a ni nom ni fiche à lire —
     // et sans la Compétence Guérison sur cette fiche, l'acte n'a aucune valeur à jouer (LDB 09 l.30).
@@ -2238,7 +2241,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Tests ──────────────────────────────────────────────────────────────
   extendedTest: {
     group: 'Tests', label: libelleEffet('extendedTest'), icon: 'ui/key',
-    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('extended-test-roll') }),
+    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('test-etendu') }),
     suspensif: true,
     apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
@@ -2258,7 +2261,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill, characteristic: e.characteristic },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('test-etendu'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
@@ -2277,9 +2280,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 };
 
 /** Les `kind` de l'étape de Test d'Exposition HYDRIQUE (MSRC 16 l.13) — MÊME règle, MÊME applier, DEUX
- *  routes qui la posent : l'Effet de scène (`waterExposure`) et la descente (`river-exposition`, seule
+ *  routes qui la posent : l'Effet de scène (`waterExposure`) et la descente (`fleuveExposition`, seule
  *  couverte par les ORDRES d'une traversée, cf. `voyageCadence.KINDS_SOUS_ORDRES`). */
-export const WATER_EXPOSURE_KINDS = ['waterExposure', 'river-exposition'] as const;
+export const WATER_EXPOSURE_KINDS = ['expositionHydrique', 'fleuveExposition'] as const;
 export type WaterExposureKind = (typeof WATER_EXPOSURE_KINDS)[number];
 
 /** Ouvre le Test d'Exposition HYDRIQUE (MSRC 16 l.5-13) des `heroes`, sous le `kind` de la route qui le pose. */
@@ -2306,7 +2309,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
           label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
         })),
       },
-      stake: combatStakeRef('water-exposure'),
+      stake: combatStakeRef('exposition-a-l-eau'),
     });
     return step ? [step] : [];
   });
@@ -2388,10 +2391,10 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: { acts?: { act: HealMode;
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'opsDe', 'chuteDe', 'flowChoice', 'flowVolontaire'] as const;
+export const GENRES_D_ETAPE = [...WATER_EXPOSURE_KINDS, 'operationsDe', 'chuteDe', 'choixDeFlux', 'volontaireDeFlux'] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
-export const GENRES_HOTES = ['sceneTestJet'] as const;
+export const GENRES_HOTES = ['jetDeTestDeScene'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -2406,7 +2409,7 @@ export const TABLES = {
      * Les dés déjà tombés se relisent sur les ÉTAPES SŒURS de la séquence (même grappe) : rien n'est
      * recopié dans le `meta`, donc rien ne peut diverger de ce que la fenêtre a montré.
      */
-    opsDe: (get, set, step, hero, sctx) => {
+    operationsDe: (get, set, step, hero, sctx) => {
       const ops = opsDeLEtape(step);
       if (!ops || !step.de?.result) return;
       // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
@@ -2430,7 +2433,7 @@ export const TABLES = {
     },
     /** Décision d'un nœud `choice` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, puis la
      *  continuation du Flow, sous le libellé et le DR du Flow qui l'a ouverte. */
-    flowChoice: (get, set, step) => {
+    choixDeFlux: (get, set, step) => {
       if (step.chosen !== 'yes' && step.chosen !== 'no') return;
       const branche = (step.chosen === 'yes' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
       jouerFlowEntier(runFlow(get, set, { kind: 'seq', steps: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
@@ -2438,13 +2441,13 @@ export const TABLES = {
     },
     /** Réponse d'un héros à la question des VOLONTAIRES (`demanderLesVolontaires`) : la dernière étape de la
      *  série joue la feuille sur chaque héros qui a dit oui, puis la continuation du Flow. MDG 15 l.196 */
-    flowVolontaire: (get, set, step, _hero, sctx) => {
+    volontaireDeFlux: (get, set, step, _hero, sctx) => {
       if (step.chosen !== 'yes' && step.chosen !== 'no') return;
       const feuille = step.meta?.choiceYes;
       if (!feuille || feuille.kind !== 'do' || feuille.effect.type !== 'ops') return { consequences: freeCons([]) };
       const e = feuille.effect;
       const oui = sctx.steps.slice(0, sctx.index + 1)
-        .filter((x) => x.kind === 'flowVolontaire' && x.id.startsWith(`flowVolontaire-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'yes' && x.actorId)
+        .filter((x) => x.kind === 'volontaireDeFlux' && x.id.startsWith(`volontaireDeFlux-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'yes' && x.actorId)
         .map((x) => x.actorId!);
       if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
       const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'do', effect: { ...e, on: 'hero', heroId } }));

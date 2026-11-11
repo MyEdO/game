@@ -14,8 +14,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * Durée « + » de fin de Round (LDB 47 l.311, #543), voie HÉROS manuel : offre opt-in (« vous pouvez »)
- * → étape de CHOIX `spellPlusChoice` (Oui/Renoncer) ; Oui pousse le Test de Force Mentale
- * (`spellPlusTest`) dans la MÊME cascade. Jumeau structurel de `round-upkeep-cascade.hors-store.test.ts`.
+ * → étape de CHOIX `sortProlongeChoix` (Oui/Renoncer) ; Oui pousse le Test de Force Mentale
+ * (`sortProlongeTest`) dans la MÊME cascade. Jumeau structurel de `round-upkeep-cascade.hors-store.test.ts`.
  */
 describe('Durée « + » — offre de prolongation en cascade héros (#543)', () => {
   function setup() {
@@ -23,7 +23,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -40,7 +40,7 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     const { H } = setup();
     openRoundEndCascade(banc.getState, banc.setState);
     const c = banc.getState().pendingCascade!;
-    const step = c.participants.find((s) => s.kind === 'spellPlusChoice')!;
+    const step = c.participants.find((s) => s.kind === 'sortProlongeChoix')!;
     expect(step).toBeTruthy();
     expect(step.actorId).toBe(H.id);
     expect(step.options?.map((o) => o.key)).toEqual(['yes', 'no']);
@@ -50,21 +50,21 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
   it('Renoncer → expiration NORMALE immédiate, aucun Test poussé', () => {
     setup();
     openRoundEndCascade(banc.getState, banc.setState);
-    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
+    const step = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeChoix')!;
     banc.getState().jetRegler('cascade', 'choix', 'no', step.id);
     banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.kind === 'hero')!;
     expect(h.activeEffects ?? []).toHaveLength(0);
-    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'spellPlusTest')).toBeFalsy();
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'sortProlongeTest')).toBeFalsy();
   });
 
-  it('Oui → pousse le Test de Force Mentale (spellPlusTest) DANS la même cascade', () => {
+  it('Oui → pousse le Test de Force Mentale (sortProlongeTest) DANS la même cascade', () => {
     setup();
     openRoundEndCascade(banc.getState, banc.setState);
-    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
+    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeChoix')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
     banc.getState().jetValider('cascade');
-    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest');
+    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeTest');
     expect(test).toBeTruthy();
     expect(test!.rollLabel).toBe('Force Mentale');
   });
@@ -83,11 +83,11 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     H.auraMods = [{ op: { op: 'testMod', amount: -20 } }];
     banc.setState({ battle: { ...banc.getState().battle! } });
     openRoundEndCascade(banc.getState, banc.setState);
-    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
+    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeChoix')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
     banc.getState().jetValider('cascade');
 
-    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest')!;
+    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeTest')!;
     expect(test, 'le Test est bien poussé dans la MÊME cascade').toBeTruthy();
     expect(test.target, 'CIBLE inchangée : celle du montage manuscrit (`base = target = testValue`)').toBe(testValue(H, { characteristic: 'force-mentale' }));
     expect(test.base, 'la base n’est plus la valeur fondue : c’est la Caractéristique NUE').toBeGreaterThan(test.target!);
@@ -104,10 +104,10 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     H.characteristics['force-mentale'] = 95;
     banc.setState({ battle: { ...banc.getState().battle! } });
     openRoundEndCascade(banc.getState, banc.setState);
-    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
+    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeChoix')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
     banc.getState().jetValider('cascade');
-    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest')!;
+    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeTest')!;
     banc.getState().jetLancer('cascade', test.id);
     banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
@@ -122,10 +122,10 @@ describe('Durée « + » — offre de prolongation en cascade héros (#543)', ()
     H.characteristics['force-mentale'] = 5; // FM très basse → Test raté quasi garanti
     banc.setState({ battle: { ...banc.getState().battle! } });
     openRoundEndCascade(banc.getState, banc.setState);
-    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusChoice')!;
+    const choice = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeChoix')!;
     banc.getState().jetRegler('cascade', 'choix', 'yes', choice.id);
     banc.getState().jetValider('cascade');
-    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'spellPlusTest')!;
+    const test = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'sortProlongeTest')!;
     banc.getState().jetLancer('cascade', test.id);
     banc.getState().jetValider('cascade');
     const h = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;

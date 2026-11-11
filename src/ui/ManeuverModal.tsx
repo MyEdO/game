@@ -22,15 +22,15 @@ import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 export function ManeuverModal() {
   const pm = useGame((s) => s.pendingManeuver);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'maneuver');
-  const reroll = useGesteDeJet('jetRelancer', 'maneuver');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'maneuver');
-  const darkPact = useGesteDeJet('jetPactiser', 'maneuver');
-  const force = useGesteDeJet('jetForcerLaReussite', 'maneuver');
+  const roll = useGesteDeJet('jetLancer', 'manoeuvre');
+  const reroll = useGesteDeJet('jetRelancer', 'manoeuvre');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'manoeuvre');
+  const darkPact = useGesteDeJet('jetPactiser', 'manoeuvre');
+  const force = useGesteDeJet('jetForcerLaReussite', 'manoeuvre');
   const regler = useGame((s) => s.jetRegler);
-  const setAvantage = (v: ReglagesDuJet['maneuver']['avantage']) => regler('maneuver', 'avantage', v);
-  const confirm = useGesteDeJet('jetValider', 'maneuver');
-  const cancel = useGesteDeJet('jetAnnuler', 'maneuver');
+  const setAvantage = (v: ReglagesDuJet['manoeuvre']['avantage']) => regler('manoeuvre', 'avantage', v);
+  const confirm = useGesteDeJet('jetValider', 'manoeuvre');
+  const cancel = useGesteDeJet('jetAnnuler', 'manoeuvre');
   const awaitingDefense = useGame(maneuverDefensePending);
   if (!pm || !battle) return null;
   const attacker = battle.combatants.find((c) => c.id === pm.attackerId);
@@ -73,7 +73,7 @@ export function ManeuverModal() {
 
   return (
     <RollShell
-      flowKey="maneuver"
+      flowKey="manoeuvre"
       title={<><Icon id={MANEUVER_ICON[pm.kind]} /> {a.def.label}</>}
       subtitle={
         <>

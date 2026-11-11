@@ -7,7 +7,7 @@
  * tous les Sorts des Domaines arcaniques) → l'IA refondue joue tout l'arsenal, pas un sous-ensemble.
  */
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import { spells, blessingsOf, miraclesOf, byId, findTalentById, specCatalogOf, especeDApparence } from '../../data';
 import { refCouvre, memeSpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { acquerirTalent } from '../../engine/careerSlots';
@@ -52,7 +52,7 @@ export const spellsOf = (family: string, domaines?: (string | null)[]): string[]
 /** Prêtre COMPLET d'un culte, bâti sur un pré-tiré prêtre neuf (ses objets aux ids de `idNeuf`) : Prière +
  *  Béni/Invocation (Culte) + TOUTES ses Bénédictions ET Miracles. */
 export function makePriest(idNeuf: FabriqueDId, id: string, name: string, cult: string, chars: Partial<Record<CharKey, number>>): Combatant {
-  const p = pregen(idNeuf, PREGEN.pretre);
+  const p = herosDeScenario(idNeuf, 'pretre');
   p.id = id; p.label = name;
   setChars(p, chars);
   p.fate = 3; p.fortune = 3;
@@ -72,7 +72,7 @@ export const ARC_DOMAINS = ['feu', 'mort', 'cieux', 'bete', 'vie'];
  * propre pré-tiré sorcier).
  */
 export function makeSorceress(idNeuf: FabriqueDId, id: string, name: string, pos: { x: number; y: number }, domains: string[] = ARC_DOMAINS): Combatant {
-  const sorc = pregen(idNeuf, PREGEN.sorcier);
+  const sorc = herosDeScenario(idNeuf, 'sorcier');
   sorc.id = id;
   sorc.label = name;
   setChars(sorc, { intelligence: 75, 'force-mentale': 70, agilite: 58, dexterite: 52, initiative: 62, endurance: 45 });

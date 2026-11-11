@@ -14,7 +14,7 @@ async function ouvrirLeBelierAuTourDuSoldat() {
   useGame.setState({ screen: 'campaign', party });
   useGame.getState().lancerLaScene(scene);
   useGame.getState().lancerLeCombat('siege-belier');
-  useGame.getState().fenetreValider('roundStart');
+  useGame.getState().fenetreValider('debutDuRound');
   const b0 = useGame.getState().battle!;
   const soldat = b0.combatants.find((c) => c.kind === 'hero' && !!c.mannedPoste)!;
   useGame.setState({ battle: { ...b0, turn: b0.order.indexOf(soldat.id), acted: false, action: null, movementUsed: 0 } });
@@ -25,17 +25,17 @@ describe('#199 — Entrée commet la poussée MÊME avec le focus résiduel du b
   it('cursor-commit est sélectionné (pas d’exclusion notWhenControlFocused) quand un combatCursor est posé', () => {
     const s = {
       ...useGame.getState(), mode: 'battle',
-      battle: { over: null, action: 'push', order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'hero' }] },
+      battle: { over: null, action: 'poussee', order: ['chef'], turn: 0, combatants: [{ id: 'chef', kind: 'hero' }] },
       combatCursor: { tile: { x: 1, y: 1 } }, net: { mode: 'local', mySeat: 0 }, dialogue: null,
     } as never;
     const b = dispatch('Enter', s, /* controlFocused: bouton Pousser encore focalisé */ true);
-    expect(b?.id).toBe('cursor-commit');
+    expect(b?.id).toBe('curseur-valider');
   });
 
   it('flux complet clavier (arène 42-belier-porte) : 2 flèches + Entrée EXÉCUTENT la poussée (positions changent, moveSnapshot posé)', async () => {
     const soldat = await ouvrirLeBelierAuTourDuSoldat();
     useGame.getState().pousserLEngin();
-    expect(useGame.getState().battle!.action).toBe('push');
+    expect(useGame.getState().battle!.action).toBe('poussee');
     const before = { ...soldat.pos! };
     // 1er appui : `nextCaseCursorTile` pose le curseur sur la case valide la plus proche (l'ancre elle-même,
     // coût 0) ; 2e appui : bouge réellement — comportement DOCUMENTÉ de la navigation mode-CASE, pas le bug.

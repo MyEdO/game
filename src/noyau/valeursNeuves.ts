@@ -19,7 +19,7 @@ import { CONDITION_TOUJOURS, recast } from '../data/valeursNeuves';
 import type { Condition } from '../engine/flowCore';
 import { terrainsElectifs } from './monde/terrain';
 import { EFFECT_HANDLERS } from './combatEffects';
-import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type UnionDuNoeud, type VarianteDuNoeud } from './codex/editFields';
+import { admetUneListe, bornesDuNoeud, champsDeclares, choixDuNoeud, kindDuNoeud, recordDuNoeud, unionDuNoeud, varianteCourante, videDuNoeud, type UnionDuNoeud, type VarianteDuNoeud } from './codex/editFields';
 
 
 /** Règles optionnelles NUMÉRIQUES (`kind: 'param'`) — seules éligibles au terme `{rule}` d'une Formula
@@ -225,7 +225,7 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'spendAdvantage': return { op: 'spendAdvantage', amount: 1 };
     case 'rollThreshold': return { op: 'rollThreshold', sides: 10, thresholds: [] };
     case 'rollTable': return { op: 'rollTable', die: 'd10', entries: [] };
-    case 'rollMutation': return { op: 'rollMutation', table: '' };
+    case 'rollMutation': return { op: 'rollMutation', table: { id: '' } };
     case 'narrative': return { op: 'narrative', text: '' };
     case 'shipMorale': return { op: 'shipMorale', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
     case 'manann': return { op: 'manann', delta: { sign: 1, dice: { n: 1, sides: 10 } } };
@@ -238,6 +238,8 @@ export function newOp(op: GameOp['op'] | string): GameOp {
     case 'perilDeMer': return { op: 'perilDeMer', collision: { id: '' } };
     case 'navireHostile': return { op: 'navireHostile', navire: { id: '' }, equipage: { id: '', nombre: 1 } };
     case 'commission': return { op: 'commission', montant: { brass: 48000 } };
+    case 'constructeurDEscale': return { op: 'constructeurDEscale', competence: 68, duree: { dice: { n: 1, sides: 10 } } };
+    case 'rationsDEscale': return { op: 'rationsDEscale', montant: { brass: 3 } };
     case 'infestation': return { op: 'infestation', crewTestType: { id: '' }, difficulty: 'intermediaire', targetDR: 10, chaqueNuit: { kind: 'seq', steps: [] } };
     default: {
       const payload = OP_DEFS[op];
@@ -255,7 +257,7 @@ export function newEffect(type: Effect['type']): Effect {
 
 /** La valeur NEUVE du nœud de schéma `noeud` : d'un champ à choix, sa première valeur (`choixDuNoeud`) ; d'un objet,
  *  ses seuls champs dont le nœud n'admet pas le retrait (`videDuNoeud`), chacun à sa valeur neuve ; d'une union, celle
- *  de sa première variante (`neuveDeLaVariante`) ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
+ *  de sa première variante (`neuveDeLaVariante`) ; d'un record, {} ; d'un nombre, 0, ou sa borne basse si elle est au-dessus ; d'un
  *  texte, '' ; d'une liste, [] ; `undefined` pour tout autre nœud, qu'un objet neuf ne porte pas. */
 export function valeurNeuveDe(noeud: unknown): unknown {
   const choix = choixDuNoeud(noeud);
@@ -267,6 +269,7 @@ export function valeurNeuveDe(noeud: unknown): unknown {
   }));
   const u = unionDuNoeud(noeud);
   if (u) return u.variantes.length ? neuveDeLaVariante(u, u.variantes[0], undefined) : undefined;
+  if (recordDuNoeud(noeud)) return {};
   const bornes = bornesDuNoeud(noeud);
   if (bornes) return bornes.min !== null && bornes.min > 0 ? bornes.min : 0;
   const kind = kindDuNoeud('', noeud);

@@ -188,7 +188,7 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     const positions = paires.filter((p) => p.bornes.every((b) => bornesOuvertes.has(b))).map((p) => p.site).sort();
     expect(positions, 'les positions qui composent `plageOuverteSchema` ont changé : chacune se nomme ici.').toEqual([
       'advancementCosts.json::[]', 'crew-morale.json::.bands[]', 'criticals.json::[].entries[]', 'miscast.json::[].entries[]',
-      'naval-progression.json::.entries[]', 'sea-cargo.json::.sell.offerPrice[]', 'sea-events.json::.boardEvents.entries[]',
+      'naval-progression.json::.entries[]', 'sea-cargo.json::.vente.prixDOffre[]', 'sea-events.json::.boardEvents.entries[]',
       'sea-events.json::.fastVoyage.entries[]', 'sea-navigation.json::.orientation.changementDeCap.entries[]',
       'sea-navigation.json::.orientation.reperes[]', 'sea-navigation.json::.phares.voirLaLumiere[]',
       'sea-navigation.json::.poursuite.drDeltas[]', 'sea-navigation.json::.vitesseMax.table[]',
@@ -217,11 +217,11 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     ).toEqual([]);
   });
 
-  it('A — `rand` (borne haute d100 portée par l’ENTITÉ) est un RESTE NOMMÉ, borné à six documents', () => {
-    const PORTEURS_DE_RAND = ['astrology.json', 'eyes.json', 'hairs.json', 'species.json', 'stars.json', 'talents.json'];
+  it('A — `rand` (borne haute d100 portée par l’ENTITÉ) est un RESTE NOMMÉ, borné à quatre documents', () => {
+    const PORTEURS_DE_RAND = ['astrology.json', 'eyes.json', 'hairs.json', 'stars.json'];
     // Reste ANCRÉ au pilotage de #1463 : sa cible est un document TABLE dédié (DESIGN v2 S1), donc
     // il appartient à la vague `reference`/`pick,table` — pas à celle-ci. Ce qu'on verrouille ici,
-    // c'est son PÉRIMÈTRE : il ne doit pas s'étendre à un septième document en attendant.
+    // c'est son PÉRIMÈTRE : il ne doit pas s'étendre à un cinquième document en attendant.
     expect(
       Object.keys(M.rand).filter((d) => !PORTEURS_DE_RAND.includes(d)),
       '`rand` a gagné un document : la borne haute portée par l’entité ne s’étend pas — sa cible est un document TABLE dédié (#1463 S1).',

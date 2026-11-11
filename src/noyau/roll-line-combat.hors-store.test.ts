@@ -139,12 +139,12 @@ describe('Guérison en combat (combatSlice) — canal HORS COMBAT (`testValue`),
     const nue = skillBaseValue(doc, { skill: { id: 'guerison' } });
     expect(v, 'l’État sépare la nue de la valeur jetée').toBeLessThan(nue);
 
-    banc.setState({ battle: { ...get().battle!, action: 'heal' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
+    banc.setState({ battle: { ...get().battle!, action: 'soins' } }); // le Soin se commet depuis son mode armé (`HEAL_MODE`)
     get().ouvrirLaGuerison('bl');
     const ph = get().pendingHeal!;
     expect(ph.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph.difficulty]).target);
 
-    get().jetRegler('heal', 'mode', 'bleed');
+    get().jetRegler('soins', 'mode', 'hemorragie');
     const ph2 = get().pendingHeal!;
     expect(ph2.target).toBe(clampTarget(v + DIFFICULTY_MODIFIERS[ph2.difficulty]).target);
 
@@ -186,14 +186,14 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     const penalite = combatTestPenalty(survivant);
     expect(penalite, 'l’État doit peser sur les Tests de COMBAT — sinon la fixture ne prouve rien').toBeLessThan(0);
 
-    const maladie = steps.find((s) => s.kind === 'combatEndDisease')?.participants?.find((r) => r.id === 'sv');
+    const maladie = steps.find((s) => s.kind === 'maladieDeFinDeCombat')?.participants?.find((r) => r.id === 'sv');
     if (maladie) {
       const resVal = effectiveChar(survivant, 'endurance') + 10;
       expect(maladie.base).toBe(resVal);
       expect(maladie.target).toBe(clampTarget(resVal + DIFFICULTY_MODIFIERS[maladie.difficulty!] + penalite).target);
       expect(inexplique(maladie), 'la pénalité de combat est NOMMÉE, pas « autres »').toBe(0);
     }
-    const corruption = steps.find((s) => s.kind === 'combatEndCorruption')?.participants?.find((r) => r.id === 'sv');
+    const corruption = steps.find((s) => s.kind === 'corruptionDeFinDeCombat')?.participants?.find((r) => r.id === 'sv');
     if (corruption) {
       expect(corruption.base, 'base = Niveau de Compétence NU (l’État sort en chip)').toBe(skillBaseValue(survivant, { skill: { id: 'resistance' } }));
       expect(corruption.target, 'pénalité de combat comptée UNE fois').toBe(clampTarget(rawCombatTestBase(survivant, { skill: { id: 'resistance' } }) + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
@@ -202,7 +202,7 @@ describe('Fin de rencontre (combatFlow) — Contraction et Corruption', () => {
     // Les DEUX familles de BANDE doivent être produites, chacune avec la rangée du survivant (#1117 L4).
     // La fixture porte les DEUX entrées de Contraction (Blessure critique + exposition) : deux bandes.
     expect(steps.map((s) => s.kind), 'les DEUX familles de bande doivent être produites')
-      .toEqual(['combatEndDisease', 'combatEndDisease', 'combatEndCorruption']);
+      .toEqual(['maladieDeFinDeCombat', 'maladieDeFinDeCombat', 'corruptionDeFinDeCombat']);
     expect([maladie, corruption].map((r) => r?.id)).toEqual(['sv', 'sv']);
   });
 });
@@ -222,7 +222,7 @@ describe('Gate d’Action par Round (combat/turnHooks) — canal COMBAT « Test 
       .toBe(testValue(porteur, { characteristic: 'force-mentale' }) - testStatePenalty(porteur, undefined));
 
     resolveActGates(get, set, porteur);
-    const step = (get().pendingCascade?.participants ?? []).find((s) => s.kind === 'actGate')!;
+    const step = (get().pendingCascade?.participants ?? []).find((s) => s.kind === 'testDAgir')!;
     expect(step.target).toBe(clampTarget(brut + DIFFICULTY_MODIFIERS.intermediaire + penalite).target);
     expect(step.base, 'base = Caractéristique NUE, tout le reste est en chips').toBe(effectiveChar(porteur, 'force-mentale'));
     expect(inexplique(step), 'aucune chip « autres »').toBe(0);

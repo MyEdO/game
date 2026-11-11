@@ -58,7 +58,7 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
 
   it('chez l’invité, le changement de scène ne sauvegarde rien : la sauvegarde vit chez l’hôte', () => {
     g().chargerLeProjet({ scenes: [scene('entree-a'), scene('entree-b')], entryId: 'entree-a', projet: null });
-    useGame.setState({ net: { ...g().net, mode: 'guest', mySeat: 1 } });
+    useGame.setState({ net: { ...g().net, mode: 'invite', mySeat: 1 } });
     g().quitterLaScene('entree-b');
     expect(g().campaignSceneId, 'témoin : la scène a changé').toBe('entree-b');
     expect(saveDuStockage('auto')).toBeNull();
@@ -68,17 +68,17 @@ describe('entrée en scène — la remise de l’interface (#2817 D5)', () => {
 
 describe('une touche reliée est une préférence du joueur, pas un état de partie (#2817 D5)', () => {
   it('elle survit au lancement d’une partie', () => {
-    g().setKeyBinding('pov-forward', 'KeyZ');
+    g().setKeyBinding('subjectif-avant', 'KeyZ');
     g().lancerLaScene(scene('entree-a'));
-    expect(g().keyOverrides['pov-forward']).toBe('KeyZ');
+    expect(g().keyOverrides['subjectif-avant']).toBe('KeyZ');
   });
 
   it('elle survit au chargement d’une sauvegarde faite avant de la relier', () => {
     g().lancerLaScene(scene('entree-a'));
-    g().setKeyBinding('pov-forward', 'KeyA');
+    g().setKeyBinding('subjectif-avant', 'KeyA');
     const save = snapshotSave(g(), '2026-10-20T00:00:00.000Z');
-    g().setKeyBinding('pov-forward', 'KeyZ');
+    g().setKeyBinding('subjectif-avant', 'KeyZ');
     expect(g().importGame(JSON.stringify(save)), 'témoin : la sauvegarde est acceptée').toBeNull();
-    expect(g().keyOverrides['pov-forward']).toBe('KeyZ');
+    expect(g().keyOverrides['subjectif-avant']).toBe('KeyZ');
   });
 });

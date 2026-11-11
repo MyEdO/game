@@ -13,7 +13,7 @@ extends SceneTree
 const RECETTE_AUTONOME := true
 const EPSILON := 0.0001
 const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position = [-0.02, 0.09, 0.003], rotation = [1.32, -3.1, -0.03]}}
-const OFF := {id = "off", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
+const OFF := {id = "secondaire", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const CEINTURE := {id = "ceinture_avant", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.148, 0.108], rotation = [-0.29, 0.0, 0.0]}}
 const DOS := {id = "dos", genre = "emplacement", attache = {os = "bassin", position = [0.0, 0.3, -0.13], rotation = [0.0, 0.0, 0.0]}}
 const HANCHE := {id = "ceinture_g", genre = "emplacement", attache = {os = "bassin", position = [0.15, 0.117, 0.0], rotation = [-0.29, 0.0, 0.0]}}
@@ -26,7 +26,7 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[prise-reposee] version=", Engine.get_version_info().string)
-	for cible in ["off", "main", "ceinture_avant"]:
+	for cible in ["secondaire", "main", "ceinture_avant"]:
 		await _verifier(cible)
 	await _verifier_cote_a_cote()
 	await _verifier_l_appui()

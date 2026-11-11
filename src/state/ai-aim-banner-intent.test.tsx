@@ -55,7 +55,7 @@ function setup() {
     combatants: [enemy, hero], order: [enemy.id, hero.id], baseOrder: [enemy.id, hero.id],
     turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
     movementUsed: 0, movedPreAction: false, acted: false,
-    log: [ev('attack', STALE, hero.id, enemy.id)], over: null,
+    log: [ev('attaque', STALE, hero.id, enemy.id)], over: null,
   } as unknown as BattleState;
   useGame.setState({
     battle, mode: 'battle', scene: testScene(), pendingDefense: null, pendingAttack: null, pendingCascade: null, actorAim: null,

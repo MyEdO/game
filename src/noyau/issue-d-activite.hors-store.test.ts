@@ -1,6 +1,6 @@
 /**
- * L'ISSUE D'UNE ACTIVITÉ AUX BANDES AUTOMATIQUES (LDB 12 l.25-28) : l'issue canonique du flux `activity`
- * (`FLOWS.activity.outcomeOf`) d'un Test simple ouvert par l'interlude, le dé posé par l'option des dés fixés
+ * L'ISSUE D'UNE ACTIVITÉ AUX BANDES AUTOMATIQUES (LDB 12 l.25-28) : l'issue canonique du flux `activite`
+ * (`FLOWS.activite.outcomeOf`) d'un Test simple ouvert par l'interlude, le dé posé par l'option des dés fixés
  * (`jetImposerLeResultat`). La cible est bornée à 01-99 par la ligne du jet ; seules les bandes départagent le dé.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -28,12 +28,12 @@ function revenusAuDe(valeur: number, extenue: number, de: number) {
   itl.perHero[h.id] = { ...itl.perHero[h.id], fx: undefined, left: 3 };
   banc.setState({ interlude: { ...itl } });
   pratiquer(banc.getState, h.id, 'revenus');
-  banc.getState().jetLancer('activity');
-  banc.getState().jetImposerLeResultat('activity', de);
-  return FLOWS.activity.outcomeOf(banc.getState);
+  banc.getState().jetLancer('activite');
+  banc.getState().jetImposerLeResultat('activite', de);
+  return FLOWS.activite.outcomeOf(banc.getState);
 }
 
-describe('flux `activity` : l’issue d’un Test simple suit les bandes automatiques (LDB 12 l.25-28)', () => {
+describe('flux `activite` : l’issue d’un Test simple suit les bandes automatiques (LDB 12 l.25-28)', () => {
   it('97 contre 99 est un échec', () => {
     expect(revenusAuDe(90, 0, 97)).toMatchObject({ roll: 97, target: 99, won: false });
   });

@@ -16,7 +16,7 @@ import { tileCenter, type Dims } from '../../geometry/iso';
 import { VH, VW } from './useStageCamera';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { itemFromTrappingById, unarmedWeapon } from '../../engine/items';
-import { ACTIONS, type ActionDef } from '../../data/index';
+import { ACTIONS, type ActionDef, type ActionId } from '../../data/index';
 import { ACTION_CANDIDATES, ACTION_PORTEURS, declarerPorteur } from '../../noyau/actionRegistry';
 import type { Combatant, ShipPoste } from '../../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
@@ -306,7 +306,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     const btn = boutonDe(el, 'hull')!;
     expect(btn.textContent, 'le geste de la pièce servie est Pousser').toContain('Pousser');
     act(() => btn.click());
-    expect(useGame.getState().battle!.action, 'le mode de poussée est ARMÉ').toBe('push');
+    expect(useGame.getState().battle!.action, 'le mode de poussée est ARMÉ').toBe('poussee');
     expect(useGame.getState().battle!.reachable.size, 'et sa portée est peinte').toBeGreaterThan(0);
     act(() => boutonDe(el, 'hull')!.click());
     expect(useGame.getState().battle!.action, 'annulation GRATUITE au re-clic').toBeNull();
@@ -355,7 +355,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     const btn = boutonDe(el, 'hull')!;
     expect(btn.disabled, 'le geste reste OFFERT : le Sonné garde son Mouvement').toBe(false);
     act(() => btn.click());
-    expect(useGame.getState().battle!.action, 'et il MORD (aucun clic muet)').toBe('push');
+    expect(useGame.getState().battle!.action, 'et il MORD (aucun clic muet)').toBe('poussee');
   });
 
   it('CHEF CLOUÉ (Inconscient) : le geste est REFUSÉ AVEC SA RAISON, jamais un clic muet', () => {
@@ -392,7 +392,7 @@ describe('Pastille d’entité — le geste vit sur ce qui l’offre (#1411 P2-C
     const m = hero('m1', { x: 3, y: 4 }, { mountable: true } as Partial<Combatant>);
     const el = monter({
       party: [h], battle: combat([h, m]),
-      net: { mode: 'guest', mySeat: 1, gmSeat: null, ownership: { h1: 0 } },
+      net: { mode: 'invite', mySeat: 1, gmSeat: null, ownership: { h1: 0 } },
     });
     expect(pastille(el, 'm1'), 'le héros d’un autre joueur n’ouvre pas ses gestes ici').toBeNull();
   });
@@ -520,7 +520,7 @@ describe('Pastille d’entité HORS COMBAT — à portée elle est là, et aucun
  */
 describe('Pastille d’entité — le REGISTRE est la surface (aucun id d’action dans le rendu)', () => {
   const FABRIQUÉE: ActionDef = {
-    id: 'geste-fabrique', label: 'Geste fabriqué', icon: 'action/mount', surface: 'pastille-entite',
+    id: 'geste-fabrique' as ActionId, label: 'Geste fabriqué', icon: 'action/mount', surface: 'pastille-entite',
     gate: 'toujours', candidates: 'candidats-fabriques', coutAction: 'gratuit',
   } as ActionDef;
 

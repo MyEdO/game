@@ -18,9 +18,9 @@ import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque phase de la chute. */
-const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
+const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'chute-choix', roll: 'chute-test' };
 
-/** Ce qu'une option de la rangée DÉCLARE (`jetRegler('fall', …)`) : le choix lit cette donnée, jamais sa clé. */
+/** Ce qu'une option de la rangée DÉCLARE (`jetRegler('chute', …)`) : le choix lit cette donnée, jamais sa clé. */
 type DeclarationDeChute = { attempt: boolean; suspendre?: boolean };
 
 /** Refus TRADUIT de chaque tombant qui doit encore déclarer — valeurs chaînes, stables pour `useShallow`. */
@@ -47,13 +47,13 @@ export function FallModal() {
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
   const owns = useOwns();
-  const roll = useGesteDeJet('jetLancer', 'fall');
-  const reroll = useGesteDeJet('jetRelancer', 'fall');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'fall');
-  const darkPact = useGesteDeJet('jetPactiser', 'fall');
-  const force = useGesteDeJet('jetForcerLaReussite', 'fall');
-  const confirm = useGesteDeJet('jetValider', 'fall');
-  const cancel = useGesteDeJet('jetAnnuler', 'fall');
+  const roll = useGesteDeJet('jetLancer', 'chute');
+  const reroll = useGesteDeJet('jetRelancer', 'chute');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'chute');
+  const darkPact = useGesteDeJet('jetPactiser', 'chute');
+  const force = useGesteDeJet('jetForcerLaReussite', 'chute');
+  const confirm = useGesteDeJet('jetValider', 'chute');
+  const cancel = useGesteDeJet('jetAnnuler', 'chute');
   const regler = useGame((s) => s.jetRegler);
   const refusTests = useGame(useShallow(refusDesTests));
   const refusSuspensions = useGame(useShallow(refusDesSuspensions));
@@ -119,8 +119,8 @@ export function FallModal() {
             onChoose: (k: string) => {
               const d = declarations.find((x) => x.option.key === k)?.declaration;
               if (!d) return;
-              if (d.suspendre !== undefined) regler('fall', 'suspendre', d.suspendre, part.id);
-              regler('fall', 'tenter', d.attempt, part.id);
+              if (d.suspendre !== undefined) regler('chute', 'suspendre', d.suspendre, part.id);
+              regler('chute', 'tenter', d.attempt, part.id);
             },
             options: declarations.map((x) => x.option),
           },
@@ -141,7 +141,7 @@ export function FallModal() {
   return (
     <RollShell
       etape={phase}
-      flowKey="fall"
+      flowKey="chute"
       stake={flowStakeRef(FALL_STAKE[phase], { values: { metres: p.metres } })}
       title={<><Icon id="melee/flee" size="sm" /> {p.test.label}</>}
       /* Z1 : la SITUATION que rien d'autre ne porte (la hauteur) ; Compétence et Difficulté sont à la

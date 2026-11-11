@@ -131,12 +131,12 @@ function clotureDeCascade(done: PendingCascade): void {
 /**
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
  * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
- * Test étendu (`jetValider('extendedTest')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `maxAttempts`.
+ * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `tentativesMax`.
  * `reached` = `total ≥ targetDR` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
  * Table séparée des appliers (`TablesDuJeu.issuesDeTestEtendu` : un Test étendu n'est PAS une étape de
  * cascade — `pendingExtendedTest` coexiste comme porteur de données à côté d'une cascade-hôte à 1 étape
- * `jet:'extended'`).
+ * `jet:'testEtendu'`).
  */
 export type ExtendedTestOutcomeApplier = (
   get: Get,
@@ -647,7 +647,7 @@ export function stepOpposedFreeze(step: CascadeStep | undefined): OpposedRowFree
 /**
  * Lance d'office les participants SANS influence (pilotes automatiques — `resolveRemainingCascade`/
  * `runCascadeImmediate`) : même Test générique que la modale (`rollBatchParticipant`), même opposition
- * figée, simplement sans le cycle Chance/Résilience du flux `cascadeBatch`.
+ * figée, simplement sans le cycle Chance/Résilience du flux `cascadeEnBande`.
  *
  * `autoResolved` — la rangée est roulée SANS FENÊTRE (`runCascadeImmediate` : bande de témoins d'une
  * fin de combat, cadence auto) : elle porte l'étampe `meta.autoResolved`, que `commitStep` lit pour
@@ -799,16 +799,16 @@ export function setCascadeAmount(get: Get, set: Set, stepId: string, n: number):
   poserLaCourante(get, set, { ...cur, amount: clampStepAmount(cur.quantity, n) });
 }
 
-/** La Maladresse (LDB 14) que joue l'étape COURANTE de `p` (`jet:'fumble'`), absente sinon : la rangée du flux `fumble`. */
-export function maladresseCourante(p: PendingCascade | null | undefined): (CascadeStep & { fumble: NonNullable<CascadeStep['fumble']> }) | undefined {
+/** La Maladresse (LDB 14) que joue l'étape COURANTE de `p` (`jet:'maladresse'`), absente sinon : la rangée du flux `maladresse`. */
+export function maladresseCourante(p: PendingCascade | null | undefined): (CascadeStep & { maladresse: NonNullable<CascadeStep['maladresse']> }) | undefined {
   const cur = p?.participants[p.cursor];
   return cur && estUneMaladresse(cur) ? cur : undefined;
 }
 
-const estUneMaladresse = (st: CascadeStep): st is CascadeStep & { fumble: NonNullable<CascadeStep['fumble']> } => st.jet === 'fumble' && !!st.fumble;
+const estUneMaladresse = (st: CascadeStep): st is CascadeStep & { maladresse: NonNullable<CascadeStep['maladresse']> } => st.jet === 'maladresse' && !!st.maladresse;
 
 /** Le refus d'un geste sur l'étape `stepId` qui n'est pas l'étape COURANTE (`refusDEtape`), `null` si elle l'est. Garde
- *  des verbes du flux `fumble`, dont l'étape ne sert aucune interaction de cascade. */
+ *  des verbes du flux `maladresse`, dont l'étape ne sert aucune interaction de cascade. */
 export function refusHorsDeLEtapeCourante(s: Pick<Jeu, 'pendingCascade'>, stepId: string): string | null {
   const p = s.pendingCascade;
   const cur = p?.participants[p.cursor];
@@ -1288,7 +1288,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // TRACE des jets qu'aucune SURFACE n'a montrés — AVANT la conséquence : le dé se lit d'abord, l'effet
   // ensuite, comme dans la fenêtre qui ne s'est pas ouverte.
   const traces = unwitnessedTraceLines(get, step, unwitnessed, rowSurface);
-  journaliser(get, set, traces, 'info', { actorId: step.actorId });
+  journaliser(get, set, traces, 'information', { actorId: step.actorId });
   // FENÊTRE D'INSERTION (#1508) ouverte le temps que l'applier — et la continuation qui le suit —
   // tournent : une étape poussée pendant ce temps est la SUITE IMMÉDIATE de celle-ci, pas la fin de la
   // séquence. Rendue à sa valeur précédente ensuite (un applier peut en déclencher un autre).
@@ -1313,7 +1313,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
     lines = out?.consequences ? resultLines(out.consequences) : [];
     if (out?.dejaDites) assertDejaDitesPorteSesLignes(step, lines);
-    else journaliser(get, set, lines.map((l) => l.text), 'info', { actorId: step.actorId });
+    else journaliser(get, set, lines.map((l) => l.text), 'information', { actorId: step.actorId });
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
@@ -1327,8 +1327,8 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     fenetreInsertion = fenetreAvant;
   }
   // SEAM CENTRAL `onOwnTestFailed` (tests DIFFÉRÉS d'entretien + tests déclenchés de combat en cascade) :
-  // toute étape à JET RATÉ (`faim`/`recovery`/`disease-tick`/`disease-persist`/`trauma-fracture`/`contagion`/
-  // `triggeredTest`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
+  // toute étape à JET RATÉ (`faim`/`recuperation`/`maladie-test-quotidien`/`maladie-persistance`/`convalescence-fracture`/`contagion`/
+  // `testDeclenche`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
   // `meta.noOwnTestFailed` (posée sur le FM de palier 2 des Crampes) coupe la ré-entrance. Sous-Test du FM
   // résolu INLINE (pas de `set` threadé : ouvrir une cascade IMBRIQUÉE dans un commitStep serait fragile).
   // Une BANDE émet PAR RANGÉE PERDANTE (`batchOwnTestFailedLines`) : le trigger est dû au Test, pas à la
@@ -1340,7 +1340,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     ? batchOwnTestFailedLines(get, step)
     : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && acteur && !step.meta?.noOwnTestFailed)
       ? emettreOwnTestFailed(get, acteur, step.result.sl) : []);
-  journaliser(get, set, ownTestFailedLines, 'info', { actorId: step.actorId });
+  journaliser(get, set, ownTestFailedLines, 'information', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
   // PRÉSERVE (sinon le journal vide l'effacerait à la validation).
@@ -1450,7 +1450,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  * PURGE les étapes d'ENTRÉE DE ZONE des cascades PARQUÉES — couture du changement de scène
  * (`quitterLaScene`, noyau/entreeEnScene.ts). Une carte narrative d'entrée parquée (par un combat, par une
  * autre séquence) narre la scène qu'on QUITTE : reprise plus tard, elle s'afficherait par-dessus la
- * scène SUIVANTE. La purge est bornée à CETTE classe d'étapes (`reveal.kind === 'sceneEntry'`) —
+ * scène SUIVANTE. La purge est bornée à CETTE classe d'étapes (`reveal.kind === 'entreeEnScene'`) —
  * toute autre séquence parquée (un jour de voyage suspendu par un abordage, un Test de rencontre)
  * traverse la transition INTACTE, avec son curseur. Une séquence vidée de toutes ses étapes sort de
  * la pile ; une séquence MIXTE garde son curseur POSÉ SUR LA MÊME ÉTAPE — il est décalé du nombre
@@ -1459,7 +1459,7 @@ export function resumeSuspendedCascade(get: Get, set: Set): boolean {
  */
 export function dropSceneEntrySteps(get: Get, set: Set): void {
   const stack = get().suspendedCascades;
-  const isSceneEntry = (s: CascadeStep) => s.reveal?.kind === 'sceneEntry';
+  const isSceneEntry = (s: CascadeStep) => s.reveal?.kind === 'entreeEnScene';
   if (!stack.some((c) => c.participants.some(isSceneEntry))) return;
   const next = stack
     .map((c) => {

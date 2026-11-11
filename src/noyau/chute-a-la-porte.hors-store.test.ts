@@ -46,7 +46,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * #1508 T2 — LA CHUTE PASSE PAR LA PORTE. Les deux dés d'une chute du gréement (hauteur `2d10 m`,
  * MDG 13 l.684-688 ; Dégâts `1d10`, LDB 15 l.80) ne tombent plus SOUS `applyOps` : le moteur les
  * DEMANDE (`demandesDeDes`), le noyau les OUVRE en étapes à dé nu appendues à la séquence en
- * cours (`opsDe`/`chuteDe`), et ce qui est tombé revient à l'op par `OpsCtx.des`.
+ * cours (`operationsDe`/`chuteDe`), et ce qui est tombé revient à l'op par `OpsCtx.des`.
  *
  * Doctrine (utilisateur 2026-09-04) : « Vu que tous les jets passé par le même point d'entrée, il est
  * inutile de se demander si le jeu est configuré pour » — le site ne classe pas son dé, la porte décide.
@@ -179,7 +179,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   it('LANCÉES (jamais posées), les deux étapes mènent à la même conséquence — via le pilote de fenêtre', () => {
     banc.getState().ensemencerLeTirage(12);
     ouvrir();
-    expect(draineCascade(banc.getState)).toEqual(['opsDe', 'opsDe']);
+    expect(draineCascade(banc.getState)).toEqual(['operationsDe', 'operationsDe']);
     const perte = 200 - gabier().wounds.current;
     expect(perte, 'hauteur 2..20 m, dé 1..10, BE 3').toBeGreaterThanOrEqual(3 * 2 + 1 - BE);
     expect(perte).toBeLessThanOrEqual(3 * 20 + 10 - BE);
@@ -218,7 +218,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
     applyLeafOps(banc.getState, banc.setState, matelot, feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
     const st = banc.getState().pendingCascade!.participants[0];
     expect(st.de!.result, 'aucun siège ne le tient : le socle le tire à l’ouverture').not.toBeNull();
-    expect(draineCascade(banc.getState)).toContain('opsDe');
+    expect(draineCascade(banc.getState)).toContain('operationsDe');
     expect(banc.getState().pendingCascade, 'la séquence se referme : les deux dés sont tombés').toBeNull();
     const apres = banc.getState().party.find((c) => c.id === 'matelot')!;
     expect(apres.wounds.current, 'la chute est bien encaissée, ses deux dés à la porte compris').toBeLessThan(200);
@@ -525,7 +525,7 @@ describe('(ix) FIN DE COMBAT : un dé en vol n’est pas piétiné par le teardo
     ouvrirChute(banc.setState, par('h2'), 4);
     suspendActiveCascade(banc.getState, banc.setState); // ex. une journée de voyage parquée par l'abordage
     ouvrirChute(banc.setState, par('h1'), 4);
-    banc.getState().fenetreFermer('victory');
+    banc.getState().fenetreFermer('victoire');
     const enVol = banc.getState().pendingCascade!;
     expect(enVol.participants[0].actorId, 'le teardown n’a pas piétiné le dé en vol').toBe('h1');
     expect(banc.getState().suspendedCascades, 'la parquée est restée parquée').toHaveLength(1);
@@ -786,7 +786,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       { label: 'Éboulement', chancePct: 100, effects: [{ type: 'fall', target: 'party', metres: 4 }] },
       { label: 'Trouvaille', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-2' }] },
     ], cleDeFixture('terre'));
-    expect(draineCascade(banc.getState)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
+    expect(draineCascade(banc.getState)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
     const iChute = j.findIndex((l) => l.includes('Blessure'));
     const iP2 = j.findIndex((l) => l.includes('PERIL-2'));
@@ -807,7 +807,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     ], cleDeFixture('terre'));
     banc.getState().jetLancer('cascade');
     const p = banc.getState().pendingCascade!;
-    expect(p.participants.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
+    expect(p.participants.map((s) => s.kind)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
     expect(j.findIndex((l) => l.includes('PERIL-2')))
       .toBeGreaterThan(j.findIndex((l) => l.includes('Blessure')));
@@ -831,7 +831,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     banc.getState().ensemencerLeTirage(7);
     const joues = runCascadeImmediate(banc.getState, banc.setState,
       buildAuthorPerilSteps(r, 'Ubersreik', cleDeFixture('terre')) as never, { title: 'Périls', purpose: 'sequence' })!;
-    expect(joues.map((s) => s.kind)).toEqual(['authorPeril', 'chuteDe', 'authorPeril']);
+    expect(joues.map((s) => s.kind)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
     expect(j.findIndex((l) => l.includes('PERIL-2')))
       .toBeGreaterThan(j.findIndex((l) => l.includes('Blessure')));
@@ -937,7 +937,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       { label: 'Jamais joué', chancePct: 100, effects: [{ type: 'journal', desc: 'PERIL-APRES-ARRET' }] },
     ], SEA_PERIL_INTERRUPT);
     const joues = draineCascade(banc.getState);
-    expect(joues, 'le dé survit à la troncature ; le péril suivant, non').toEqual(['authorPeril', 'chuteDe']);
+    expect(joues, 'le dé survit à la troncature ; le péril suivant, non').toEqual(['perilDeScene', 'chuteDe']);
     expect(banc.getState().journal.some((l) => l.includes('PERIL-APRES-ARRET')), 'trajet arrêté').toBe(false);
     expect(banc.getState().party[0].wounds.current, 'la chute a encaissé').toBeLessThan(190);
   });
@@ -978,14 +978,14 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
   };
 
   /**
-   * Joue le Test de la bande — le geste de la RANGÉE (`jetLancer('cascadeBatch')`, celui du kit de fenêtre) —
+   * Joue le Test de la bande — le geste de la RANGÉE (`jetLancer('cascadeEnBande')`, celui du kit de fenêtre) —
    * puis valide l'étape. L'Athlétisme est COMPLEXE (−20) sur une Agilité 36 : la cible est 16, et le
    * rng SEEDÉ le rate. L'échec est ASSERTÉ, jamais supposé : c'est la prémisse du contrat.
    */
   const raterLeTest = (): void => {
     const p = banc.getState().pendingCascade!;
     const bande = p.participants[p.cursor];
-    for (const r of bande.participants ?? []) banc.getState().jetLancer('cascadeBatch', r.id);
+    for (const r of bande.participants ?? []) banc.getState().jetLancer('cascadeEnBande', r.id);
     const jouee = banc.getState().pendingCascade!.participants[banc.getState().pendingCascade!.cursor];
     for (const r of jouee.participants ?? []) {
       expect(r.result, `la rangée ${r.id} a bien lancé`).not.toBeNull();
@@ -1017,10 +1017,10 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
     const ott = marinPoste('ott', 'greement');
     monteLeCombat([ott]);
     ouvrirLaBande([ott], 'combat');
-    expect(etape().kind, 'la bande d’Athlétisme s’ouvre d’abord').toBe('triggeredBatchTest');
+    expect(etape().kind, 'la bande d’Athlétisme s’ouvre d’abord').toBe('testDeclencheEnBande');
     raterLeTest();
     // LE POINT : la conséquence du Test raté n'est pas une ligne, c'est un DÉ.
-    expect(etape().kind).toBe('opsDe');
+    expect(etape().kind).toBe('operationsDe');
     expect(etape().de!.spec, 'gréement d’une coque MOYENNE : 2d10 m (MDG 13 l.684)').toEqual({ n: 2, sides: 10 });
     const parId = () => banc.getState().party.find((c) => c.id === 'ott')!;
     expect(parId().wounds.current, 'RIEN encaissé tant que les dés n’ont pas parlé').toBe(200);
@@ -1036,7 +1036,7 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
     monteLeCombat([nissa]);
     ouvrirLaBande([nissa], 'combat');
     raterLeTest();
-    expect(etape().kind).toBe('opsDe');
+    expect(etape().kind).toBe('operationsDe');
     expect(etape().de!.spec, 'la hauteur est un entier : seuls les Dégâts se tirent').toEqual({ n: 1, sides: 10 });
     poser(6);
     const apres = banc.getState().party.find((c) => c.id === 'nissa')!;
@@ -1051,9 +1051,9 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
       party: [ott], travelPlan: { vehicle: coqueMoyenne() } as never,
     } as never);
     ouvrirLaBande([ott], 'travelDay');
-    expect(etape().kind).toBe('triggeredBatchTest');
+    expect(etape().kind).toBe('testDeclencheEnBande');
     raterLeTest();
-    expect(etape().kind, 'la mer ouvre le MÊME dé que le combat').toBe('opsDe');
+    expect(etape().kind, 'la mer ouvre le MÊME dé que le combat').toBe('operationsDe');
     expect(banc.getState().party[0].wounds.current, 'rien encaissé avant les dés').toBe(200);
     poser(9);
     poser(7);

@@ -6,13 +6,19 @@ import { nommerChamps } from '../grammaire/meta';
  */
 import { z } from 'zod';
 import { refs } from '../grammaire/ref';
+import { settlementSchema } from '../grammaire/valeurs';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
 
 export const file = 'merchants.json';
 export const famille = 'entite';
 
-const settlementSchema = z.enum(['village', 'ville', 'cite']);
+/** Invariants d'ingénierie des prix et du réassort d'un marchand, partagés par sa surcharge de scène
+ *  (`defs-scenes/scene.ts`) : un taux de rachat est une part du prix listé, une majoration le multiplie
+ *  (`merchantFlow`), un réassort compte des jours entiers. */
+export const tauxDeRachatSchema = z.number().min(0).max(1);
+export const majorationDAchatSchema = z.number().positive();
+export const joursDeReassortSchema = z.number().int().min(0);
 
 const doc = document(
   'merchants',
@@ -26,10 +32,10 @@ const doc = document(
       subTypes: refs('weaponGroup').optional(),
     }), { categories: { label: 'catégories' }, subTypes: { label: 'groupes d’objets' } }),
     settlement: settlementSchema,
-    resaleRate: z.number(),
-    buyMarkup: z.number().optional(),
+    resaleRate: tauxDeRachatSchema,
+    buyMarkup: majorationDAchatSchema.optional(),
     bargainSkill: z.number(),
-    restockDays: z.number().optional(),
+    restockDays: joursDeReassortSchema.optional(),
     /** Sélection d'objets proposés d'office — ids de la sous-liste `INSTANCIABLE_PAR_ID`
      *  (`grammaire/sousListes.ts`) ; `curated` ignore la Disponibilité. */
     curated: refs('trapping', { sousListe: INSTANCIABLE_PAR_ID }).optional(),
@@ -62,7 +68,7 @@ const doc = document(
         ticket: '#747',
       },
     },
-    edit: { none: 'aucune catégorie du Codex ne l’édite — le stock se règle en Scène, l’archétype reste app-owned' },
+    edit: { none: 'aucune catégorie du Codex ne l’édite — le stock se règle en Scène, l’archétype reste app-owned', dataset: 'merchants' },
   },
 );
 

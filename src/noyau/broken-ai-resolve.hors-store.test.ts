@@ -4,7 +4,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { chooseEnemyAction } from './monde/ai';
 import { runEnemyAI, aiTurnLog, clearAiTurnLog } from './combatFlow';
 import { spawnEnemy } from './monde/spawn';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { stacks } from '../engine/conditions';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -37,28 +37,28 @@ describe('IA Brisé — dépense PROACTIVE de Détermination (LDB 17 l.57-61), d
   it('Engagé + Détermination suffisante → se RESSAISIT (spendResource resolve→removeCondition brise)', () => {
     const enemy = foe({ conditions: [{ id: 'brise', value: 1 }], resolve: 1, engagedWith: ['h'] });
     const action = decide(enemy, [hero(6, 5)]); // héros adjacent
-    expect(action).toEqual({ kind: 'spendResource', resource: 'resolve', via: 'removeCondition', id: 'brise' });
+    expect(action).toEqual({ kind: 'depenseDeRessource', resource: 'resolve', via: 'removeCondition', id: 'brise' });
     expect(enemy.resolve).toBe(1); // décision PURE : ne dépense rien (l'exécution est dans le noyau)
   });
 
   it('anti-gaspi : Détermination INSUFFISANTE pour nettoyer entièrement → PAS de dépense', () => {
     const enemy = foe({ conditions: [{ id: 'brise', value: 2 }], resolve: 1 }); // non Engagé, héros loin
     const action = decide(enemy, [hero(11, 5)]);
-    expect(action.kind).not.toBe('spendResource'); // clear partiel inutile → on ne gaspille pas
-    expect(action.kind).toBe('move'); // → fuite (Brisé non Engagé)
+    expect(action.kind).not.toBe('depenseDeRessource'); // clear partiel inutile → on ne gaspille pas
+    expect(action.kind).toBe('deplacement'); // → fuite (Brisé non Engagé)
     expect(enemy.resolve).toBe(1); // pool intact
   });
 
   it('pool absent (Détermination 0) → comportement inchangé (fuite), aucune dépense', () => {
     const enemy = foe({ conditions: [{ id: 'brise', value: 1 }], resolve: 0 });
     const action = decide(enemy, [hero(11, 5)]);
-    expect(action.kind).toBe('move');
+    expect(action.kind).toBe('deplacement');
   });
 
   it('non-régression : un ennemi NON verrouillé ne propose JAMAIS spendResource', () => {
     const enemy = foe({ conditions: [], resolve: 2, engagedWith: ['h'] });
     const action = decide(enemy, [hero(6, 5)]);
-    expect(action.kind).not.toBe('spendResource');
+    expect(action.kind).not.toBe('depenseDeRessource');
   });
 });
 
@@ -72,7 +72,7 @@ describe('IA Brisé — dispatch : la dépense retire l\'État puis une vraie ac
     e.resolve = 1;
     e.engagedWith = ['h'];
     e.movement = 4;
-    const h = pregen(idsDeTest, PREGEN.sorcier);
+    const h = herosDeScenario(idsDeTest, 'sorcier');
     h.id = 'h'; h.pos = { x: 6, y: 5 }; h.wounds = blessuresDeBase(30, 30, h); // adjacent → mêlée après déverrouillage
     const battle = {
       combatants: [e, h], order: ['e', 'h'], baseOrder: ['e', 'h'], turn: 0, round: 1,

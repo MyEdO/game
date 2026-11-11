@@ -3,7 +3,7 @@
  * Gestion minimale pour le combat tactique : ajout, empilement, retrait.
  */
 import type { FabriqueDId } from './fabriqueDId';
-import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty } from './types';
+import { Combatant, ActiveEffect, ConditionInstance, effectRef, type ModLine, type ConditionEmit, type ConditionLocks, type Difficulty, type Main } from './types';
 import { evalCondition, walkFlow } from './flowCore';
 import { conditionLockCtx } from './actorView';
 import { tickRound, type Duration } from './duration';
@@ -688,7 +688,7 @@ function etatScopeApplies(op: Extract<GameOp, { op: 'testMod' }>, ctx: EtatTestC
  *  parade (Tests d'arme, `weaponHand` gaté) et `defenseValue` Esquive (`movement:true`). `weaponHand`/
  *  `movement` : contexte du Test COURANT, opposé aux gates portés par l'effet (`testModHand`/
  *  `testModMovementOnly`) — absents des DEUX côtés = mod global (comportement historique). */
-export function activeCharTestModParts(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: 'main' | 'off'; movement?: boolean } = {}): ModLine[] {
+export function activeCharTestModParts(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: Main; movement?: boolean } = {}): ModLine[] {
   const out: ModLine[] = [];
   for (const e of c.activeEffects ?? []) {
     if (e.testModChar !== ck) continue;
@@ -700,7 +700,7 @@ export function activeCharTestModParts(c: Combatant, ck: import('./types').CharK
 }
 
 /** Σ de `activeCharTestModParts` — SOURCE UNIQUE (l'affichage et le jet lisent les mêmes composantes). */
-export function activeCharTestMod(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: 'main' | 'off'; movement?: boolean } = {}): number {
+export function activeCharTestMod(c: Combatant, ck: import('./types').CharKey, ctx: { weaponHand?: Main; movement?: boolean } = {}): number {
   return activeCharTestModParts(c, ck, ctx).reduce((s, p) => s + p.value, 0);
 }
 /**
@@ -826,7 +826,7 @@ export function canTakeAction(c: Combatant): boolean {
 }
 
 /** Le combattant peut-il ENTRER en Frénésie : un Test de Force Mentale, donc son Action (`canTakeAction`), capable
- *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenzy`, `entrerEnFrenesie`) et de l'IA
+ *  et pas déjà en Frénésie. Prédicat unique du héros (offre `frenesie`, `entrerEnFrenesie`) et de l'IA
  *  (`aiMaybeFrenzy`). LDB 21 l.31 ; LDB 13 l.106 ; LDB 16 l.125 */
 export function peutEntrerEnFrenesie(c: Combatant): boolean {
   return canTakeAction(c) && isFrenzyCapable(c) && !isFrenzied(c);
@@ -948,7 +948,7 @@ export function pendingPlusExtensions(c: Combatant): ActiveEffect[] {
 /** Résout l'offre de prolongation (LDB 47 l.311) d'UN effet GELÉ (`awaitingExtension`) : succès (Test de
  *  Force Mentale réussi) → +1 Round, effet dégelé ; refus/échec → expiration NORMALE (mêmes réversions
  *  que `removeActiveEffects` — traits/armes/ressources accordés repris). Fonction PARTAGÉE par la
- *  résolution PNJ (inline, hook `end-of-round`) et l'applier de cascade héros (`spellPlusTest`). */
+ *  résolution PNJ (inline, hook `end-of-round`) et l'applier de cascade héros (`sortProlongeTest`). */
 export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: boolean): string[] {
   if (extended) {
     e.awaitingExtension = undefined;

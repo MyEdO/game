@@ -20,9 +20,9 @@
 // dérivée à la ré-extraction Marker, un folio pris sur le titre de section gouvernant et un folio
 // simplement faux se ressemblent tous les trois ici). Le stock ne peut que DÉCROÎTRE : on solde une
 // entrée en RELEVANT le passage, jamais en alignant l'une sur l'autre à l'aveugle. Deux soldes du
-// lot #1318 donnent la mesure du geste : `stakes.json#combat-aa-bleed` 61 → 80 (sommaire
+// lot #1318 donnent la mesure du geste : `stakes.json#combat-aa-hemorragie` 61 → 80 (sommaire
 // imprimé d'Aux Armes, `01 - CREDITS.md` : « Blessures, Blessures Critiques et mort 80 ») et
-// `stakes.json#fate-save-choice` 34 → 170 (« Dépenser du Destin » sous l'ancre
+// `stakes.json#sauvetage-destin-choix` 34 → 170 (« Dépenser du Destin » sous l'ancre
 // `data-folio="170"` de `17 - Destin et Resistance.md` ; le folio 34 est celui de la CRÉATION de
 // personnage, où le Destin est attribué, pas celui de son sacrifice).
 //
@@ -44,51 +44,57 @@
 // est donc classée `hors-forme`, c'est-à-dire INVISIBLE — pas jugée, et pas comptée ici non plus.
 // `obsessions.json#(racine)` est hors de la seconde collection par CETTE cécité, pas par résolution :
 // sa citation nue `ref` est devenue une note préfixée à la migration `2026-08-28-l1b-8c`.
-// Mesure de l'élargissement (motif CHERCHÉ dans la note au lieu d'être ancré) : 872 → 678
-// `hors-forme`, `scanned` 270 → 462, non-jugeables 2 → 4 (`obsessions.json#obsessions` REVIENDRAIT,
-// plus `vents-tourbillonnants.json#force-des-vents`), et 14 désalignements NEUFS apparaîtraient —
-// 2 causes seulement : `eyes.json` ×10 (une note unique, qui DIT elle-même « pagination Marker
-// estimée entre les folios 37 et 41 » — déclaré 40, mesuré 39) et `weather.json` ×4 (« EDOC 8
-// l.52-59 » — déclaré 33, mesuré 32). Le cliquet étant DÉCROISSANT-SEULEMENT, l'élargissement exige
-// d'ARBITRER ces 14 au `Source/` d'abord : le régénérateur REFUSERAIT de les écrire.
+// Mesure de l'élargissement (motif CHERCHÉ dans la note au lieu d'être ancré), rejouée le 2026-11-11
+// (#3578 L3) : 791 → 558 `hors-forme`, `scanned` 613 → 844, non-jugeables 10 → 12
+// (`obsessions.json#obsessions` REVIENDRAIT, plus `vents-tourbillonnants.json#force-des-vents`), et
+// 34 désalignements NEUFS apparaîtraient (32 → 66), 6 causes : `miscast.json` ×21 (« LDB 40 l.68-89 »
+// — déclaré 218, mesuré 219), `carrieres-aleatoires.json` ×5 (« MDG 09 l.9 » — déclaré 64, mesuré
+// 63), `weather.json` ×4 (« EDOC 8 l.52-59 » — déclaré 33, mesuré 32), `mutationTables.json` ×2
+// (« LDB 19 l.83 » — déclarés 184 et 185, mesuré 183), `eyes.json` ×1 (« LDB 05 l.742-754 » : le
+// titre l.742 précède l'ancre `data-folio="40"` l.744 — déclaré 40, mesuré 39) et
+// `presets-de-personnage.json#gladiateur` ×1 (« LDB 08 l.1216 » — déclaré 72, mesuré 71). Le cliquet
+// étant DÉCROISSANT-SEULEMENT, l'élargissement exige d'ARBITRER ces 34 au `Source/` d'abord : le
+// régénérateur REFUSERAIT de les écrire.
 
 export const FOLIO_LINE_ALIGN_RATCHET = [
   { fichier: 'src/data/careers.json', ref: 'alchimiste-ordinaire', occurrence: 1 },
   { fichier: 'src/data/careers.json', ref: 'devin', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'exposition-hydrique', occurrence: 1 },
   { fichier: 'src/data/regles.json', ref: 'tests-opposes', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'appraise-detect', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'appraise-evaluate', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'combat-end-disease', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'combat-psych', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'combat-spell-plus', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'crew-progression', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'crew-test-roll', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'crew-tourbillon', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'encounter-psych', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'heal-ammo', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'heal-bleed', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'heal-wounds', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'river-capsize', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'river-nav', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'river-peril-detect', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'river-rigging', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'river-righting', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'river-tack', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'sea-epuisement', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'sea-force-pace', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'sea-mal-de-mer', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'sea-scorbut', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'sea-tonneau-contamine', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'sea-tonneau-expose', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'shanty-roll', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'structure-critical', occurrence: 1 },
-  { fichier: 'src/data/stakes.json', ref: 'water-exposure', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'chanson-de-marin-test', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'combat-fin-maladie', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'combat-psychologie', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'combat-sort-prolonge', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'equipage-progression', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'equipage-test', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'equipage-tourbillon', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'evaluation-detecter', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'evaluation-evaluer', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'exposition-a-l-eau', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'fleuve-chavirage', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'fleuve-louvoyage', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'fleuve-navigation', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'fleuve-peril-detection', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'fleuve-preserver-greement', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'fleuve-redressement', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'mer-epuisement', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'mer-forcer-le-rythme', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'mer-mal-de-mer', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'mer-scorbut', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'mer-tonneau-contamine', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'mer-tonneau-expose', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'rencontre-psychologie', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'soin-blessures', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'soin-hemorragie', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'soin-munition-logee', occurrence: 1 },
+  { fichier: 'src/data/stakes.json', ref: 'structure-critique', occurrence: 1 },
   { fichier: 'src/data/weaponGroups.json', ref: 'munitions', occurrence: 1 },
 ]
 
 export const FOLIO_LINE_ALIGN_NON_JUGEABLE = [
   { fichier: 'src/data/mutations.json', ref: 'crete-sur-la-tete', occurrence: 1 },
+  { fichier: 'src/data/pregens.json', ref: 'erina-eberhauer', occurrence: 1 },
+  { fichier: 'src/data/pregens.json', ref: 'golthog', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'corruption-tables-edoc', occurrence: 1 },
   { fichier: 'src/data/reglesOptionnelles.json', ref: 'vents-tourbillonnants', occurrence: 1 },
   { fichier: 'src/data/reseau-routier.json', ref: 'auberge-relais', occurrence: 1 },

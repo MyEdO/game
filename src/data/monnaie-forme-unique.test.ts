@@ -82,7 +82,8 @@ describe('monnaie — forme UNIQUE dans la donnée authorée (#1463)', () => {
       // Condition `money` sur une valeur liée (`{brass: {tire}}`).
       // #1652 lot 7 (2026-11-07) : +1, les 3d10 CO du Vaisseau de pestiférés (MDG 15 l.194).
       // #1652 lot 10 (2026-11-10) : +1, les 200 CO de la `commission` de l'Offre de mission (MDG 15 l.261).
-      brass: 17,
+      // #1652 lot 11b (2026-11-10) : +1, les 3 sc de la ration-jour `rationsDEscale` de la Bonne pêche (MDG 15 l.262).
+      brass: 18,
     });
 
     // AUCUN objet-ACTION n'étale de dénomination parmi ses propres clés : toute charge porte un NOM

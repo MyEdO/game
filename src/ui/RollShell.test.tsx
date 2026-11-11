@@ -39,7 +39,7 @@ const actions: RollAction[] = [
   { key: 'apply', label: 'Appliquer', onClick: noop, verbe: 'confirm' },
 ];
 
-/** La Course en attente, jetée (`result`) ou non : le seul fait que ses clôtures lisent (`FLOWS.run.rolled`). */
+/** La Course en attente, jetée (`result`) ou non : le seul fait que ses clôtures lisent (`FLOWS.course.rolled`). */
 const course = (result: unknown): Jeu['pendingRun'] => ({ combatantId: 'coureur', result } as unknown as Jeu['pendingRun']);
 beforeEach(() => useGame.setState({ pendingRun: course(null) }));
 afterEach(() => useGame.setState({ pendingRun: null }));
@@ -66,11 +66,11 @@ function actionsBar(html: string): string {
 
 describe('RollShell — la couture UNIQUE du plein écran', () => {
   it('une fenêtre de jet pose le champ lisible ET le plein écran sur son voile ; embarquée, aucun', () => {
-    const flottante = render(<RollShell flowKey="run" title="Jet" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    const flottante = render(<RollShell flowKey="course" title="Jet" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
     const voile = /<div class="modal-overlay"[^>]*>/.exec(flottante)?.[0] ?? '';
     expect(voile).toContain('data-champ="true"');
     expect(voile).toContain('data-plein="true"');
-    const embarquee = render(<RollShell flowKey="run" title="Jet" embedded rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    const embarquee = render(<RollShell flowKey="course" title="Jet" embedded rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
     expect(embarquee).not.toContain('data-plein');
   });
 });
@@ -78,7 +78,7 @@ describe('RollShell — la couture UNIQUE du plein écran', () => {
 describe('RollShell — coquille de jet unifiée', () => {
   it('(a) mono : 1 rangée interactive pré-jet → « Lancer » HISSÉ dans la barre `.cadre-pied`', () => {
     const html = render(
-      <RollShell flowKey="run"
+      <RollShell flowKey="course"
         title="Test mono"
         subtitle="Un jet"
         rows={[pendingRow()]}
@@ -100,15 +100,15 @@ describe('RollShell — coquille de jet unifiée', () => {
   });
 
   it('(f) mono : « Lancer » dans la barre, pré-jet — masqué après le jet', () => {
-    const pre = render(<RollShell flowKey="run" title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
-    const post = render(<RollShell flowKey="run" title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />);
+    const pre = render(<RollShell flowKey="course" title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />);
+    const post = render(<RollShell flowKey="course" title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />);
     expect(actionsBar(pre)).toContain('Lancer'); // hissé pré-jet
     expect(post).not.toContain('🎲 Lancer'); // rien à hisser post-jet (rangée déjà lancée)
   });
 
   it('(g) multi : 2 rangées interactives non lancées → « Lancer » PAR RANGÉE, PAS hissé dans la barre', () => {
     const html = render(
-      <RollShell flowKey="run"
+      <RollShell flowKey="course"
         title="Multi"
         rows={[pendingRow(), pendingRow({ row: { pending: testPending('Voile', 50) } })]}
         rolled={false}
@@ -124,7 +124,7 @@ describe('RollShell — coquille de jet unifiée', () => {
 
   it('(b) multi : 2 rangées + summary rendu', () => {
     const html = render(
-      <RollShell flowKey="run"
+      <RollShell flowKey="course"
         title="Test multi"
         instruction="Chaque rôle lance"
         rows={[rolledRow(), rolledRow({ row: { d: testBreakdown('Voile', 50, { roll: 30, target: 50, sl: 2, success: true }) } })]}
@@ -180,7 +180,7 @@ describe('RollShell — coquille de jet unifiée', () => {
 
   it('(h) garde : actions NEUTRES (cancel/rollAll/confirm) passent pour tout flux', () => {
     expect(() =>
-      render(<RollShell flowKey="shipManeuver" title="T" rows={[rolledRow()]} rolled actions={[act('cancel'), act('rollAll'), act('confirm')]} />),
+      render(<RollShell flowKey="manoeuvreDuNavire" title="T" rows={[rolledRow()]} rolled actions={[act('cancel'), act('rollAll'), act('confirm')]} />),
     ).not.toThrow();
   });
 
@@ -197,7 +197,7 @@ describe('RollShell — coquille de jet unifiée', () => {
     ).toThrow(/hors vocabulaire/);
     // clé inventée sur un flux qui ne la déclare pas.
     expect(() =>
-      render(<RollShell flowKey="shipManeuver" title="T" rows={[rolledRow()]} rolled actions={[act('zorglub')]} />),
+      render(<RollShell flowKey="manoeuvreDuNavire" title="T" rows={[rolledRow()]} rolled actions={[act('zorglub')]} />),
     ).toThrow(/hors vocabulaire/);
   });
 
@@ -209,11 +209,11 @@ describe('RollShell — coquille de jet unifiée', () => {
 
   it('(d) actions filtrées par le noyau : Annuler disparaît après le jet, Appliquer apparaît', () => {
     const pre = render(
-      <RollShell flowKey="run" title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />,
+      <RollShell flowKey="course" title="T" rows={[pendingRow()]} rolled={false} actions={actions} onCancel={noop} />,
     );
     useGame.setState({ pendingRun: course({ roll: 22, target: 45, sl: 2, success: true }) });
     const post = render(
-      <RollShell flowKey="run" title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />,
+      <RollShell flowKey="course" title="T" rows={[rolledRow()]} rolled actions={actions} onCancel={noop} />,
     );
     expect(pre).toContain('Annuler'); // `cancel` ouvert avant le jet
     expect(pre).not.toContain('Appliquer'); // `apply` fermé : jetNonLance
@@ -248,10 +248,10 @@ describe('RollShell — coquille de jet unifiée', () => {
  * l'accole désormais elle-même, dérivé de la MÊME entrée d'enjeu que la phrase.
  */
 describe('RollShell — Z3b′ : le renvoi de règle est accolé au titre PAR LA COQUILLE', () => {
-  const stake = flowStakeRef('run-roll'); // un jet dont l'enjeu a un foyer (`regles/course`)
+  const stake = flowStakeRef('course-test'); // un jet dont l'enjeu a un foyer (`regles/course`)
 
   it('un `stake` à foyer donne le ℹ au titre SANS que le site ne compose quoi que ce soit', () => {
-    const html = render(<RollShell flowKey="run" title="Course" rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
+    const html = render(<RollShell flowKey="course" title="Course" rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
     expect(stakeRuleOf(stake), 'pré-requis : cet enjeu a bien un foyer').toBeTruthy();
     expect(html.match(/ab-codex-info/g) ?? [], 'une porte, et une seule').toHaveLength(1);
     // Nom accessible DÉRIVÉ du titre — aucun libellé recopié au call-site.
@@ -259,14 +259,14 @@ describe('RollShell — Z3b′ : le renvoi de règle est accolé au titre PAR LA
   });
 
   it('sans `stake`, aucune porte n’apparaît au titre', () => {
-    const html = render(<RollShell flowKey="run" title="Course" rows={[pendingRow()]} rolled={false} actions={actions} />);
+    const html = render(<RollShell flowKey="course" title="Course" rows={[pendingRow()]} rolled={false} actions={actions} />);
     expect(html).not.toContain('ab-codex-info');
   });
 
   it('un site qui a DÉJÀ composé sa porte (titre ou sous-titre) n’en reçoit pas une 2ᵉ', () => {
     const rule = stakeRuleOf(stake);
-    const auTitre = render(<RollShell flowKey="run" title={<>Course <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
-    const auSousTitre = render(<RollShell flowKey="run" title="Course" subtitle={<>étape <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
+    const auTitre = render(<RollShell flowKey="course" title={<>Course <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
+    const auSousTitre = render(<RollShell flowKey="course" title="Course" subtitle={<>étape <StakeRule rule={rule} /></>} rows={[pendingRow()]} rolled={false} actions={actions} stake={stake} />);
     expect(auTitre.match(/ab-codex-info/g) ?? []).toHaveLength(1);
     expect(auSousTitre.match(/ab-codex-info/g) ?? []).toHaveLength(1);
   });

@@ -148,7 +148,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
   const { mode, mySeat } = state.net;
   if (mode === 'local') return true;
   if (actingSeat != null) return seatOwns(state, actingSeat, combatantId); // `seatOwns` traite l'absence d'acteur
-  if (!combatantId) return mode === 'host';
+  if (!combatantId) return mode === 'hote';
   return seatOwns(state, mySeat, combatantId);
 }
 
@@ -161,7 +161,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
  *
  * Il vit ICI, avec le routage, parce que ses DEUX consommateurs sont de couches différentes : la
- * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-choice-N`
+ * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-reponse-N`
  * (`state/clavier/keybindings`) — `src/state` ne peut pas lire `src/ui`.
  *
  * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas
@@ -258,17 +258,17 @@ const repondant = (id: string, result: unknown): ParticipantDeJetFige[] => [{ id
 export const JET_FIGE = {
   defense: (pd: PendingDefense): JetFige => ({ ownerId: pd.attackerId, participants: repondant(pd.defenderId, pd.result) }),
   /** Les répondants de l'incantation : l'opposition de cible et le Contre-sort. */
-  cast: (s: Pick<Jeu, 'pendingCastOpposition' | 'pendingCounterspell'>, pc: PendingCast): JetFige => ({
+  incantation: (s: Pick<Jeu, 'pendingCastOpposition' | 'pendingCounterspell'>, pc: PendingCast): JetFige => ({
     ownerId: pc.casterId,
     participants: [...(s.pendingCastOpposition?.participants ?? []), ...(s.pendingCounterspell?.participants ?? [])],
   }),
-  disengage: (pd: PendingDisengage): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
+  desengagement: (pd: PendingDisengage): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
   auContact: (pd: PendingAuContact): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.def) }),
-  grapple: (pd: PendingGrapple): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.actorId, pd.def) }),
+  empoignade: (pd: PendingGrapple): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.actorId, pd.def) }),
   /** Le jet figé est le Calme du foe ; la réponse, l'Athlétisme du mover (`atk`). */
   distraire: (pd: PendingDistraire): JetFige => ({ ownerId: pd.foeId, participants: repondant(pd.moverId, pd.atk) }),
   /** L'opposant du Marchandage n'est pas un combattant. */
-  bargain: (pb: PendingBargain): JetFige => ({ ownerId: undefined, participants: repondant(pb.playerId, pb.roll ?? undefined) }),
+  marchandage: (pb: PendingBargain): JetFige => ({ ownerId: undefined, participants: repondant(pb.playerId, pb.roll ?? undefined) }),
   /** L'étape opposée d'une cascade (`meta.opposed`) : chaque rangée de sa bande, ou son acteur. */
   cascade: (step: CascadeStep): JetFige => ({
     ownerId: step.meta?.opposed?.attackerId,
@@ -445,7 +445,7 @@ const PAR_PORTEUR_DE_L_OBJET: Route = {
  * CLIC DE CARTE pendant un ciblage détenu par une fenêtre HORS registre de modales (#1016) — c'est
  * LE chemin : le balayage et la 2ᵉ frappe (`frapperEnBalayage`/`frapperDeLaSecondeArme`) sont la machinerie du clic
  * (`targetingModes`, `MachinerieDuNoyau`), et le clic voyage par `cliquerLaCase`. Ce clic retombait sur
- * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `fateSave` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
+ * `modalOwnerOf`, qui ne consulte que `MODAL_DEFS` : sous un `destin` (1ʳᵉ entrée, priorité maximale) l'attaquant qui balaie était
  * REFUSÉ et la victime acceptée — son clic mourait ensuite dans les gardes de `cliquerLeCombattant`,
  * donc PERSONNE ne poursuivait le balayage. Tant qu'un pending hors-modale tient le ciblage
  * (`targetingHolder`, projection de `detenteurDuCiblage`, que l'aiguilleur projette aussi), le clic

@@ -25,7 +25,7 @@ beforeAll(() => {
 });
 
 const SP = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const CAREER = careersForSpecies(SP.refCareer)[0]!;
+const CAREER = careersForSpecies(SP)[0]!;
 /** seed 7 — Lire/Écrire (index 2) est MAXI atteint (déjà possédé via le tirage aléatoire de race). */
 const fixture = () => rollDraftTalents(withCareer(withSpecies(newDraft(7), SP.id), CAREER.id));
 

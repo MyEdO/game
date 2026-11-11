@@ -13,7 +13,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { sequenceTableRow } from './sequenceCore';
@@ -46,14 +46,14 @@ function capterLeRecit(): void {
 }
 
 function partie(n: number): Combatant[] {
-  const party = makePregens(idsDeTest).slice(0, n) as Combatant[];
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, n) as Combatant[];
   banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   capterLeRecit();
   get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
   return party;
 }
 
-const bande = () => get().pendingCascade?.participants.find((s) => s.kind === 'tavern-round');
+const bande = () => get().pendingCascade?.participants.find((s) => s.kind === 'taverneRound');
 const payload = () => get().sequence?.payload as {
   throwers?: { id: string; camp: string }[];
 } | undefined;
@@ -61,7 +61,7 @@ const payload = () => get().sequence?.payload as {
 /** Pose le DR des deux rangées du lancer courant, puis clôt (et enchaîne l'étape de pinte s'il y en a une). */
 function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): void {
   const pc = get().pendingCascade!;
-  const idx = pc.participants.findIndex((s) => s.kind === 'tavern-round');
+  const idx = pc.participants.findIndex((s) => s.kind === 'taverneRound');
   const band = pc.participants[idx];
   const rows = band.participants!.map((r) => ({
     ...r,
@@ -73,9 +73,9 @@ function poseLancer(drLanceur: number, drDanseur: number, drAlcool?: number): vo
   get().jetValider('cascade');
   // Étape de pinte APPENDÉE (lancer raté d'un héros surfacé) : elle se joue dans la MÊME fenêtre.
   const pinte = get().pendingCascade?.participants[get().pendingCascade!.cursor];
-  if (pinte?.kind === 'tavern-drink') {
+  if (pinte?.kind === 'taverneBoisson') {
     const pc2 = get().pendingCascade!;
-    const j = pc2.participants.findIndex((s) => s.kind === 'tavern-drink');
+    const j = pc2.participants.findIndex((s) => s.kind === 'taverneBoisson');
     const parts = [...pc2.participants];
     const ok = (drAlcool ?? 1) >= 0;
     parts[j] = { ...pinte, result: { roll: ok ? 11 : 99, target: pinte.target!, sl: drAlcool ?? 1, success: ok } };
@@ -162,14 +162,14 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
   });
 
   it('la pinte utilise la Résistance à l’alcool du lanceur', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     party[0].characteristics.endurance = 67;
     party[0].characteristics.dexterite = 13;
     party[0].skills = [{ id: 'resistance-a-l-alcool', characteristic: 'endurance', advances: 9 }];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     const pc = get().pendingCascade!;
-    const idx = pc.participants.findIndex((step) => step.kind === 'tavern-round');
+    const idx = pc.participants.findIndex((step) => step.kind === 'taverneRound');
     const band = pc.participants[idx];
     const participants = [...pc.participants];
     participants[idx] = { ...band, participants: band.participants!.map((row) => ({
@@ -178,7 +178,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
     })) };
     banc.setState({ pendingCascade: { ...pc, participants, cursor: idx } });
     get().jetValider('cascade');
-    const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'tavern-drink')!;
+    const pinte = get().pendingCascade!.participants.find((step) => step.kind === 'taverneBoisson')!;
     expect(pinte.base).toBe(76);
     expect(pinte.target).toBe(testValue(party[0], { skill: { id: 'resistance-a-l-alcool' } }));
   });
@@ -192,7 +192,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
   });
 
   it('BALAYAGE FINAL (l.113) : qui n’a pas roulé sur le Tableau Ivre coûte 1 point — et qui l’a fait, non', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
     // Bonus d'Endurance ramené à 1 : le premier échec de Résistance suffit à franchir le seuil d'Ivresse.
@@ -220,7 +220,7 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
    * donc au malus, même s'il n'a rien bu ce soir-là.
    */
   it('BALAYAGE : un lanceur DÉJÀ ivre en arrivant ne compte pas parmi les trop sobres', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     party[0].drunk = { failedTests: 3, drunk: true, result: 'piece-tourne' };
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
@@ -249,14 +249,14 @@ describe('Le torchon trempé (NADJ 16 l.109-111)', () => {
 
   it('GRAINE RÉELLE (aucun DR posé) : la partie entière se déroule et se dénoue', () => {
     seedBattleRng(17);
-    const party = makePregens(idsDeTest).slice(0, 2) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });
     for (let i = 0; i < 200 && get().pendingCascade; i++) {
       const pc = get().pendingCascade!;
       const cur = pc.participants[pc.cursor];
       if (cur?.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       } else if (cur && cur.target != null && !cur.result) get().jetLancer('cascade', cur.id);
       get().jetValider('cascade');
     }
@@ -311,7 +311,7 @@ describe('famille (10) — un 2ᵉ jeu à lanceurs est une ENTRÉE JSON, récit 
   });
 
   it('(b) ses paramètres pilotent la partie : SON récit sort, et aucune pinte n’est descendue', () => {
-    const party = makePregens(idsDeTest).slice(0, 1) as Combatant[];
+    const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1) as Combatant[];
     banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
     capterLeRecit();
     get().jouerALaTaverne(party[0].id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'elfe-haut-et-sylvain' }, allyProfil: 'elfe-haut-et-sylvain' });

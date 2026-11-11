@@ -2,8 +2,8 @@
 ## (`VolumeDeScene`, `volume`), touché des deux côtés, sa lumière, et ses caméras (`regarder`) : celle des regards
 ## `tactique` et `plateau`, aux touches d'un jeu de rôle tactique (A/E d'un quart de tour, bouton du milieu tenu
 ## librement, molette pour zoomer, ZQSD pour la faire glisser, Origine pour revenir au lieu suivi), centrée sur lui puis
-## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), de biais en tactique, à la verticale et sans
-## perspective au plateau ; et l'œil
+## sur le lieu qu'elle suit (`suivre`) ou qu'on lui pose (`cadrer`), posé au centre de la part de la fenêtre que
+## l'interface laisse au monde (`cadre`), de biais en tactique, à la verticale et sans perspective au plateau ; et l'œil
 ## du regard `immersion`, posé par qui l'instancie (`poser_l_oeil`), qui marche sur le sol touché sous lui (`sol_sous`).
 ## Le clavier ne mène rien pendant une saisie (`clavier_libre`), ni d'une touche qu'une fenêtre incrustée a prise
 ## (`forces_du_clavier`). Il rend la caméra posée (`camera`), la case du
@@ -85,6 +85,13 @@ var _prises: Dictionary = {}
 ## Par case (`Vector3i`, sa couche comprise) que le modèle d'un navire rogne, le point de la carte où s'y tient son
 ## occupant (`poser_les_stations`).
 var _stations := {}
+## La part de la fenêtre où le monde se voit, que l'interface ne couvre pas ; vide, toute la fenêtre. Le lieu que
+## regarde la caméra des regards `tactique` et `plateau` se pose en son centre (`_decaler`).
+var cadre := Rect2():
+	set(rect):
+		cadre = rect
+		_decaler()
+		cadrage_change.emit()
 
 
 func _ready() -> void:
@@ -504,6 +511,7 @@ func forces_du_clavier() -> Array[float]:
 
 ## La caméra des regards `tactique` et `plateau` glisse au clavier (ZQSD), dans le sens où elle regarde.
 func _process(delta: float) -> void:
+	_decaler()
 	if _regard == "immersion" or not clavier_libre():
 		return
 	var forces := forces_du_clavier()
@@ -513,6 +521,20 @@ func _process(delta: float) -> void:
 		_suivi.kill()
 	_pivot.position = MiseEnPage.lieu_apres_la_marche(_pivot.position, forces[0], forces[1], forces[2], forces[3], _pivot.rotation.y, MiseEnPage.metres_de_marche(VITESSE_DE_GLISSE_M_S, delta), volume.metres_par_case)
 	cadrage_change.emit()
+
+
+## L'objectif de la caméra des regards `tactique` et `plateau` décalé pour que le lieu qu'elle regarde se pose au centre
+## du `cadre` (`MiseEnPage.decalage_de_l_objectif`), à l'étendue qu'elle montre, que son zoom change.
+func _decaler() -> void:
+	if not is_node_ready():
+		return
+	var fenetre := get_viewport().get_visible_rect()
+	var centre := cadre.get_center() if cadre.has_area() else fenetre.get_center()
+	var orthogonale := _camera.projection == Camera3D.PROJECTION_ORTHOGONAL
+	var etendue := _camera.size if orthogonale else MiseEnPage.etendue_en_perspective(_camera.position.z, _camera.fov)
+	var decalage := MiseEnPage.decalage_de_l_objectif(centre, fenetre.size.x, fenetre.size.y, etendue)
+	_camera.h_offset = decalage.x
+	_camera.v_offset = decalage.y
 
 
 ## Le lacet de la caméra posé sur le pivot : décalé d'un demi-quart de tour au plateau (`MiseEnPage.lacet_du_plateau`).

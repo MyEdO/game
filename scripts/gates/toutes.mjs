@@ -238,7 +238,7 @@ export const ECRIT_LU = {
       'et pose chacune une fois sous un `mkdtempSync` d’os.tmpdir(), effacé à la sortie du processus, ' +
       '`node_modules` lié (`lierDependances`) et ses cibles de code produites par SON `genererCode` dans un processus fils (cwd = l’image), ' +
       'puis, son `scripts/` retiré, la mesure deux fois : avec une COPIE de `scripts/`, `package.json` et `tsconfig.json` de l’arbre (le détecteur de la tête), ' +
-      'puis avec ceux du commit de base lus par git (`detecteurDuCommit`) ; une mesure en échec se rejoue sur une image neuve, effacée en finally, ' +
+      'puis avec ceux du commit de base lus par git (`detecteurDuCommit`), les déclarations `scripts/raw/decoupes/` de l’image reposées par-dessus chaque détecteur (`poserLesDeclarations`) ; une mesure en échec se rejoue sur une image neuve, effacée en finally, ' +
       'dont les cibles de code sont produites par le `genererCode` du détecteur ; chaque image se mesure dans un processus tsx fils ; ' +
       'puis l’inventaire de la dette de l’arbre (#3021, scripts/guards/lib/inventaireDeDette.mts) se rend sur la sortie et, ' +
       'en CI, au résumé du job (`GITHUB_STEP_SUMMARY`, hors de l’arbre) ; aucune écriture dans l’arbre',

@@ -15,6 +15,7 @@ const VUES := "res://recettes/vues/ecran.json"
 ## Les champs d'un élément que l'écran dit en texte.
 const DITS := ["texte", "libelle", "qui", "cible", "resultat", "dr", "verdict", "refus", "detail"]
 const ECRANS := "res://ecrans"
+const SCENE := "Interface/Ossature/Colonne/Milieu/Scene"
 
 var _fautes: Array[String] = []
 var _joues: Array = []
@@ -38,7 +39,7 @@ func _recetter() -> void:
 		await _recetter_la_vue(_disposer(ecran, vue.disposition), vue)
 	var zones := _disposer(ecran, null)
 	Zone.montrer_toutes(zones, {})
-	_verifier(not (ecran.get_node("Fenetre").find_child("Cadre", true, false) as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
+	_verifier(not (ecran.get_node(SCENE).find_child("Cadre", true, false) as Control).visible, "sans fenêtre, le cadre de la fenêtre se cache")
 	for scene in _dedicaces(ECRANS):
 		_verifier(_posees.has(scene), "%s : aucune vue ne la montre" % scene)
 	for zone in zones:
@@ -53,7 +54,7 @@ func _recetter() -> void:
 
 ## Les zones de l'écran, la disposition de `disposition` posée (`Disposition.disposer`) : chacune rend son geste joué.
 func _disposer(ecran: Node, disposition: Variant) -> Array[Zone]:
-	var posee := ecran.get_node("Fenetre/Disposition") as Disposition
+	var posee := ecran.get_node(SCENE + "/Disposition") as Disposition
 	posee.disposer(disposition)
 	_posees[posee.scene] = true
 	var zones := Zone.racines(ecran)

@@ -54,7 +54,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -68,19 +68,19 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id), movementUsed: 0, movedPreAction: false, acted: false } });
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     seedBattleRng(3);
-    banc.getState().jetLancer('attack');
-    banc.getState().jetForcerLaReussite('attack');
-    banc.getState().jetImposerLeResultat('attack', 21);
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetForcerLaReussite('attaque');
+    banc.getState().jetImposerLeResultat('attaque', 21);
     expect(banc.getState().pendingAttack!.result!.critLocation, 'la touche relance la Localisation').toBeDefined();
     const choisie: HitLocation = banc.getState().pendingAttack!.result!.critLocation === 'jambeG' ? 'brasD' : 'jambeG';
-    banc.getState().jetRegler('attack', 'localisationDuCritique', choisie);
+    banc.getState().jetRegler('attaque', 'localisationDuCritique', choisie);
     return choisie;
   }
 
   it("'aa', cible déjà à 0 : la Localisation choisie survit à la dépense de +1 DR", () => {
     const choisie = forceEtChoisit();
     const slAvant = banc.getState().pendingAttack!.result!.netSL;
-    banc.getState().jetAjouterUnDR('attack');
+    banc.getState().jetAjouterUnDR('attaque');
     const res = banc.getState().pendingAttack!.result!;
     expect(res.netSL, 'le +1 DR est bien dépensé').not.toBe(slAvant);
     expect(res.critLocation).toBe(choisie);
@@ -88,7 +88,7 @@ describe('Localisation relancée — choix forcé puis +1 DR (T3)', () => {
 
   it("'aa', cible déjà à 0 : la Localisation choisie survit au changement du dé posé", () => {
     const choisie = forceEtChoisit();
-    banc.getState().jetImposerLeResultat('attack', 12);
+    banc.getState().jetImposerLeResultat('attaque', 12);
     const res = banc.getState().pendingAttack!.result!;
     expect(res.attackerRoll, 'le dé posé a changé').toBe(12);
     expect(res.critLocation).toBe(choisie);
@@ -125,9 +125,9 @@ describe('Localisation relancée — défense pilotée, `openSurfacedDefense` (T
       const { enemy, hero } = duel(seed, 0);
       const g = banc.getState;
       openAttackCascade(g, banc.setState, { attackerId: enemy.id, targetId: hero.id, location: null, result: null, weaponUid: 'sw' }, 'Attaque', 'action/attack');
-      g().jetLancer('attack');
+      g().jetLancer('attaque');
       const ouverture = g().pendingAttack?.result?.critLocation;
-      g().jetValider('attack');
+      g().jetValider('attaque');
       if (!ouverture || !g().pendingDefense) continue;
       g().jetLancer('defense');
       const resolue = g().pendingDefense!.result!.critLocation;

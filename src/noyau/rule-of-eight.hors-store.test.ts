@@ -7,7 +7,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit } from './cascade.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findSpellById } from '../data';
 import type { CastResult } from '../engine/magic';
 
@@ -21,28 +21,28 @@ function castFrozen(casterId: string, spellId: string, roll: number, corruption:
     ...(corruption ? { flags: { corruption: true } } : { flags: {} }),
     pendingCast: { casterId, targetId: casterId, spellId: spell.id, missile: !!spell.missile, focused: false, result },
   });
-  banc.getState().jetValider('cast');
+  banc.getState().jetValider('incantation');
 }
 
 describe('Règle du 8 — câblage store (LDB 46 l.89)', () => {
   beforeEach(() => { banc.getState().ensemencerLeTirage(7); });
 
   it('dé des unités = 8 près d’une Corruption → Incantation Imparfaite', () => {
-    const mage = pregen(idsDeTest, PREGEN.sorcier);
+    const mage = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [mage] });
     castFrozen(mage.id, 'flechette', 38, true); // réussite, unités 8, lieu corrompu
     expect(draineEtLit(banc.getState).join('\n')).toMatch(/Imparfaite/);
   });
 
   it('même dé, mais AUCUNE Corruption à proximité → pas d’Imparfaite', () => {
-    const mage = pregen(idsDeTest, PREGEN.sorcier);
+    const mage = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [mage] });
     castFrozen(mage.id, 'flechette', 38, false);
     expect(draineEtLit(banc.getState).join('\n')).not.toMatch(/Imparfaite/);
   });
 
   it('Corruption à proximité mais dé des unités ≠ 8 → pas d’Imparfaite', () => {
-    const mage = pregen(idsDeTest, PREGEN.sorcier);
+    const mage = herosDeScenario(idsDeTest, 'sorcier');
     banc.setState({ party: [mage] });
     castFrozen(mage.id, 'flechette', 37, true);
     expect(draineEtLit(banc.getState).join('\n')).not.toMatch(/Imparfaite/);

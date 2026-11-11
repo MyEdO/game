@@ -9,11 +9,11 @@ import type { FlowStakeId } from '../index';
  * en `string`. Les `expect` ne font que tenir les valeurs vivantes.
  */
 describe('IdsParEspace — un id absent de la donnée ne compile pas', () => {
-  it('stakes.json, cascade `flow` : `FlowStakeId` refuse un id inconnu et accepte un id réel', () => {
-    // @ts-expect-error — 'n-existe-pas' n'est pas un id de la cascade `flow` de stakes.json
+  it('stakes.json, cascade `flux` : `FlowStakeId` refuse un id inconnu et accepte un id réel', () => {
+    // @ts-expect-error — 'n-existe-pas' n'est pas un id de la cascade `flux` de stakes.json
     const faux: FlowStakeId = 'n-existe-pas';
-    const vrai: FlowStakeId = 'fall-choice';
-    expect([faux, vrai]).toEqual(['n-existe-pas', 'fall-choice']);
+    const vrai: FlowStakeId = 'chute-choix';
+    expect([faux, vrai]).toEqual(['n-existe-pas', 'chute-choix']);
   });
 
   it('la règle est GÉNÉRALE : tout espace a son union', () => {

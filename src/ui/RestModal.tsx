@@ -7,7 +7,7 @@ import { StateChips } from './StateChips';
 import { Coins } from './Coins';
 import { OptionChooser } from './OptionChooser';
 import { lodgingOptions, foodOptions, nourrituresDeTroupe, restCost, partsDuRepos, noteDAubergeCouverte, type RestLodging, type RestFood } from '../noyau/restFlow';
-import { refusDeLaValidation } from '../noyau/validationDeFenetre';
+import { refusDeLaValidationNommee } from '../noyau/validationDeFenetre';
 import { partyMoneyTotal } from '../noyau/bourseFlow';
 import { exposureTestCount, exposureShelterFromTent } from '../engine/exposure';
 import { activeExposureSeverity, nuitDispenseeParPleinAir } from '../noyau/combatFlow';
@@ -52,7 +52,7 @@ function heroWarnings(h: Combatant, lodging: RestLodging, food: RestFood, exposu
  * `false` = modale flottante. Une seule phase, les RÉGLAGES de la nuit : par héros,
  * couchage + pitance (choix PERSONNELS et orthogonaux — manger à l'auberge et dormir dehors est
  * permis) ; coût RAW total calculé ; avertissements en ligne. Le bilan n'est pas ici : « Dormir
- * jusqu’à l’aube » (`fenetreValider('rest')`, au quorum) vide `pendingRest` et ouvre la nuit en CASCADE (`openRestNight`,
+ * jusqu’à l’aube » (`fenetreValider('repos')`, au quorum) vide `pendingRest` et ouvre la nuit en CASCADE (`openRestNight`,
  * `restFlow.ts`).
  */
 export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
@@ -62,16 +62,16 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const net = useGame((s) => s.net);
   const choisir = useGame((s) => s.fenetreChoisir);
   const regler = (heroId: string, patch: Partial<{ lodging: RestLodging; food: RestFood }>) => {
-    if (patch.lodging) choisir('rest', 'couchage', patch.lodging, heroId);
-    if (patch.food) choisir('rest', 'pitance', patch.food, heroId);
+    if (patch.lodging) choisir('repos', 'couchage', patch.lodging, heroId);
+    if (patch.food) choisir('repos', 'pitance', patch.food, heroId);
   };
   const valider = useGame((s) => s.fenetreValider);
   const fermer = useGame((s) => s.fenetreFermer);
-  const renoncer = () => fermer('rest');
+  const renoncer = () => fermer('repos');
   const severity = useGame((s) => activeExposureSeverity(() => s));
   const pleinAir = useGame((s) => nuitDispenseeParPleinAir(() => s));
   const state = useGame();
-  const refusDormir = useGame((s) => refusDeLaValidation(s, 'rest'));
+  const refusDormir = useGame((s) => refusDeLaValidationNommee(s, 'repos'));
   const couverte = useGame(noteDAubergeCouverte);
   // Héros PERSONNALISÉS (détachés du choix maître de troupe) — le reste SUIT la troupe. Arbitrage user
   // 2026-07-11 : « ≠ personnaliser » déplie les contrôles du héros seul, « ↺ » le rend au choix de troupe.
@@ -194,17 +194,17 @@ export function RestBody({ embedded = false }: { embedded?: boolean } = {}) {
   const reglagesFooter = (
     <>
         {!p.travelHalt && <button className="btn btn-ghost" onClick={renoncer}>Annuler</button>}
-        {net.mode === 'guest' && !ready[net.mySeat] && (
-          <button className="btn" onClick={() => valider('rest')}><Icon id="action/attack" size="sm" /> Prêt</button>
+        {net.mode === 'invite' && !ready[net.mySeat] && (
+          <button className="btn" onClick={() => valider('repos')}><Icon id="action/attack" size="sm" /> Prêt</button>
         )}
-        {(!online || net.mode === 'host') && (
+        {(!online || net.mode === 'hote') && (
           <GatedAction
             id="rest-sleep"
             label={<><Icon id="time/night" size="sm" /> Dormir jusqu’à l’aube</>}
             ariaLabel="Dormir jusqu’à l’aube"
             enabled={!refusDormir}
             {...raisonSi(refusDormir)}
-            onClick={() => valider('rest')}
+            onClick={() => valider('repos')}
           />
         )}
     </>

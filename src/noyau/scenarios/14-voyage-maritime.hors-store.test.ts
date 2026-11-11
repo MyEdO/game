@@ -30,7 +30,7 @@ function launch(seed = 1) {
 
 /** Dort à une halte de nuit (« Dormir » → cascade de nuit → reprise de la route au matin). */
 function sleepThroughHalt(): void {
-  get().fenetreValider('rest');
+  get().fenetreValider('repos');
   draineCascade(get, 80);
 }
 
@@ -47,9 +47,9 @@ function sailToPort(maxSteps = 400): string[] {
       if (k !== undefined) kinds.push(k);
       continue;
     }
-    if (get().pendingSeaActivities) { get().fenetreValider('seaActivities'); continue; }
+    if (get().pendingSeaActivities) { get().fenetreValider('activitesEnMer'); continue; }
     if (get().pendingRest) { sleepThroughHalt(); continue; }
-    if (get().pendingShoreLeave) { get().fenetreChoisir('shoreLeave', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
+    if (get().pendingShoreLeave) { get().fenetreChoisir('relacheATerre', 'accorder', true); continue; } // accoste : relâche accordée par défaut (MDG 15 l.245)
     if (!get().travelPlan) break; // sécurité : plus de plan et pas au port → on s'arrête
   }
   return kinds;
@@ -129,7 +129,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
   it('appareille, enchaîne des jours de mer (Tests d’équipage + haltes) et ACCOSTE au Grand Port', () => {
     const t0 = get().gameTime;
     expect(get().scene?.id).toBe('test-mer-depart');
-    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jour-par-jour' }); // mode MER : appareillage sur le navire de campagne
+    get().partirEnVoyage('route-marienburg', 'mer', { cadence: 'jourParJour' }); // mode MER : appareillage sur le navire de campagne
     expect(get().travelPlan?.mode).toBe('mer');
     expect(get().travelPlan?.sea).toBeTruthy();
 
@@ -139,12 +139,12 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     expect(get().travelPlan).toBeNull();
     expect(get().lieu).toBe('p-marienburg');
     expect(get().gameTime - t0).toBeGreaterThan(24 * 60); // plus d’un jour de mer
-    expect(kinds).toContain('sea-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
+    expect(kinds).toContain('mer-epuisement'); // la Timonière manie la voile chaque jour navigable (MDG 13 l.111)
     // Les Tests d’équipage de VOYAGE ont bien été joués (Progression quotidienne, Orientation).
-    expect(kinds).toContain('crew-progression');
-    expect(kinds).toContain('crew-orientation');
+    expect(kinds).toContain('equipage-progression');
+    expect(kinds).toContain('equipage-orientation');
     // La coque partie endommagée a fait l’objet d’un entretien du soir (Test d’équipage d’entretien).
-    expect(kinds).toContain('crew-entretien');
+    expect(kinds).toContain('equipage-entretien');
     expect(get().journal.join('\n')).toMatch(/Accostage|Marienburg/);
   });
 

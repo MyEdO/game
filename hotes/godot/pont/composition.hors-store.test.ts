@@ -150,7 +150,7 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
   it('catalogues publie chaque champ en `{ id, label }` et ses axes, et presetDeComposition le Soldat sous son preset', () => {
     const catalogues = appeler('catalogues');
     expect(catalogues.presets.map(({ id, label }: { id: string; label: string }) => ({ id, label }))).toEqual(presets.map(({ id, label }) => ({ id, label })));
-    expect(catalogues.prises.map((c: { id: string }) => c.id)).toEqual(['main', 'off']);
+    expect(catalogues.prises.map((c: { id: string }) => c.id)).toEqual(['main', 'secondaire']);
     expect(catalogues.couleurs.map((c: { id: string }) => c.id)).toEqual([...SLOTS]);
     expect(catalogues.nuancier).toEqual(cataloguesDeComposition().nuancier);
     expect(catalogues.axes).toEqual(cataloguesDeComposition().axes);
@@ -184,11 +184,11 @@ describe('le pont : composer, catalogues, presetDeComposition', () => {
   });
 
   it('une composition absente ou fautive est refusée en validation, au chemin de la faute', () => {
-    const deuxMains = { ...soldat, prises: { main: { id: 'hallebarde' }, off: { id: 'hallebarde' } } };
+    const deuxMains = { ...soldat, prises: { main: { id: 'hallebarde' }, secondaire: { id: 'hallebarde' } } };
     expect(appeler('presetDeComposition', {}).erreur).toEqual({ categorie: 'validation', message: expect.stringContaining('presetDeComposition : composition, (racine) : ') });
     expect(appeler('presetDeComposition', { composition: deuxMains }).erreur).toEqual({
       categorie: 'validation',
-      message: 'presetDeComposition : composition, prises.off : « hallebarde » est porté deux fois : déjà par la prise main.',
+      message: 'presetDeComposition : composition, prises.secondaire : « hallebarde » est porté deux fois : déjà par la prise main.',
     });
     expect(appeler('composer', { base: 'humanoide', composition: { ...soldat, build: 2 } }).erreur).toEqual({ categorie: 'validation', message: expect.stringMatching(/^composer : composition, build : /) });
     expect(appeler('composer', { base: 'humanoide' }).erreur).toEqual({ categorie: 'validation', message: expect.stringContaining('composer : composition, (racine) : ') });

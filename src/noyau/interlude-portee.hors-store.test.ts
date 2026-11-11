@@ -54,9 +54,9 @@ function revenusDeB(deA: number, carriereB: string, deB = DE.sansEffet): number 
   const { banc, b } = tirage(deA, carriereB, deB);
   banc.actions.ensemencerLeTirage(42);
   pratiquer(banc.getState, b, 'revenus');
-  banc.actions.jetLancer('activity');
+  banc.actions.jetLancer('activite');
   banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 1 } }));
-  banc.actions.jetValider('activity');
+  banc.actions.jetValider('activite');
   return banc.getState().interlude!.perHero[b].revenueBrass;
 }
 
@@ -73,7 +73,7 @@ describe('Événements de GROUPE tirés par A : ils valent pour B', () => {
 
   it('Fausse monnaie : le dépôt de B perd 20 %, ses Revenus aussi (LDB 22 l.40)', () => {
     const { banc, b } = tirage(DE.fausseMonnaie);
-    expect(devisDeDepot(banc.getState(), b, 'stash', 1000).depose).toBe(800);
+    expect(devisDeDepot(banc.getState(), b, 'planque', 1000).depose).toBe(800);
     expect(revenusDeLaPeriode(banc.getState(), b).pct).toBe(-20);
   });
 
@@ -102,7 +102,7 @@ describe('Événements de GROUPE tirés par A : ils valent pour B', () => {
   });
 
   it('Émeutes : le Courtisan B ne peut pas entreprendre Revenus, et le dépôt investi déjà en banque vérifie sa faillite (LDB 22 l.111)', () => {
-    const { banc, b } = tirage(DE.emeutes, 'artiste', DE.sansEffet, (_a, b) => [{ uid: 'depot-b', heroId: b, kind: 'invest', brass: 500, rate: 10 }]);
+    const { banc, b } = tirage(DE.emeutes, 'artiste', DE.sansEffet, (_a, b) => [{ uid: 'depot-b', heroId: b, kind: 'investir', brass: 500, rate: 10 }]);
     expect(blocageDeRevenus(banc.getState(), b)).toBe('B ne peut pas entreprendre Revenus (événement : Émeutes).');
     expect(banc.getState().journal.filter((l) => l.startsWith('Vérification de faillite') || l.includes('la banque a fait faillite')), 'la vérification de faillite est dite au dénouement').toHaveLength(1);
   });
@@ -132,9 +132,9 @@ describe('Événements INDIVIDUELS tirés par A : B n’en subit rien', () => {
 
   it('Mise à sac : seule la planque de A est dévalisée (LDB 22 l.107)', () => {
     const { banc, b } = tirage(DE.miseASac, 'soldat', DE.sansEffet, (a, b) => [
-      { uid: 'depot-a', heroId: a, kind: 'stash', brass: 100, rate: 0 }, { uid: 'depot-b', heroId: b, kind: 'stash', brass: 100, rate: 0 },
+      { uid: 'depot-a', heroId: a, kind: 'planque', brass: 100, rate: 0 }, { uid: 'depot-b', heroId: b, kind: 'planque', brass: 100, rate: 0 },
     ]);
-    expect(banc.getState().bank).toEqual([{ uid: 'depot-b', heroId: b, kind: 'stash', brass: 100, rate: 0 }]);
+    expect(banc.getState().bank).toEqual([{ uid: 'depot-b', heroId: b, kind: 'planque', brass: 100, rate: 0 }]);
   });
 });
 

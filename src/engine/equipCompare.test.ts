@@ -4,7 +4,7 @@ import { compareEquip } from './equipCompare';
 import type { Combatant, ItemInstance, Weapon } from './types';
 import { REACH_LABELS } from './types';
 import { itemFromTrappingById, weaponFromItem, unarmedWeapon, gabaritDObjet, recomputeLoadout } from './items';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 
 // « Actuellement équipé » = l'arme tenue dans le set actif (Weapon dérivés `c.weapons`) ; l'armure reste pilotée
 // par `items.equipped`. On modélise donc l'équipement courant via `weapons` (armes) et `items` (armure).
@@ -115,9 +115,9 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
   });
 
   it('l’arme DÉRIVÉE d’un objet porté (Crochet, LDB 73) est l’arme actuelle comparée à un objet d’étal (#2907)', () => {
-    const h = pregen(idsDeTest, PREGEN.soldat);
+    const h = herosDeScenario(idsDeTest, 'soldat');
     h.items = [...(h.items ?? []), { ...itemFromTrappingById('crochet', idsDeTest)!, equipped: true }];
-    for (const lo of h.loadouts ?? []) { lo.main = undefined; lo.off = undefined; }
+    for (const lo of h.loadouts ?? []) { lo.main = undefined; lo.secondaire = undefined; }
     recomputeLoadout(h);
     const c = compareEquip(gabaritDObjet('arme-simple')!, h);
     expect(c.currentName).toBe('Crochet');

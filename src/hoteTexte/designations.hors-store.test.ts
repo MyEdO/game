@@ -28,7 +28,7 @@ function passeLeControle(t: ReturnType<typeof Table>, geste: GesteDeLAgent): voi
 
 describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   it('ce que le clic désigne, en combat un combattant : `cliquerLaCase`', { timeout: 120_000 }, () => {
-    const t = partie('dome', verbe('fenetreValider', 'roundStart'));
+    const t = partie('dome', verbe('fenetreValider', 'debutDuRound'));
     const valides = refuseLId(t, verbe('cliquerLaCase', { x: 7, y: 5 }, 'nobody'), /entite : "nobody" n’est pas un id de combattant ou d’entité de scène \(valides : .*enemy-enc-dome-1/);
     passeLeControle(t, verbe('cliquerLaCase', { x: 7, y: 5 }, valides.find((id) => id.startsWith('enemy'))!));
   });
@@ -56,7 +56,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     refuseLId(t, verbe('epinglerLIndice', 'ind-rumeur-forgeron', true), /indiceId : "ind-rumeur-forgeron" n’est pas un id d’indice \(valides : aucun ici\)/);
     expect(t.jouer(verbe('cliquerLaCase', { x: 7, y: 6 })).erreur).toBeNull();
     const [indice] = refuseLId(t, verbe('epinglerLIndice', 'nobody', true), /indiceId : "nobody" n’est pas un id d’indice \(valides : ind-rumeur-forgeron\)/);
-    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'refute', stadeCourant: 's1' }]), /affichés\[0\]\.id : "nobody" n’est pas un id d’indice/);
+    refuseLId(t, verbe('marquerLesIndices', [{ id: 'nobody', étapes: 1, statut: 'refute', stadeCourant: 's1' }]), /affiches\[0\]\.id : "nobody" n’est pas un id d’indice/);
     passeLeControle(t, verbe('epinglerLIndice', indice, true));
   });
   it('pré-tiré : `recruterLeHeros`, le noyau bâtit le héros de la donnée', { timeout: 120_000 }, () => {
@@ -71,7 +71,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
     expect(r.erreur, r.texte).toBeNull();
   });
   it('possession : `renommerLaPossession`, aucune ici', { timeout: 120_000 }, () => {
-    refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /uid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
+    refuseLId(partie('revisit'), verbe('renommerLaPossession', 'nobody', 'x'), /possessionUid : "nobody" n’est pas un id de possession \(valides : aucun ici\)/);
   });
   it('un id du catalogue : `menerLActionDeBataille`, un id que l’état du lieu ouvre : `ouvrirLaBoutique`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
@@ -81,7 +81,7 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
   });
   it('une rangée de jet : la séquence d’entrée en scène, `jetLancer`', { timeout: 120_000 }, () => {
     const t = partie('revisit');
-    const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-sceneEntry-0\)/);
+    const [rangee] = refuseLId(t, verbe('jetLancer', 'cascade', 'nobody'), /pid : "nobody" n’est pas un id de rangée \(valides : cons-entreeEnScene-0, /);
     passeLeControle(t, verbe('jetLancer', 'cascade', rangee));
   });
   it('un id facultatif : `ouvrirLeMedecin`, le patient', { timeout: 120_000 }, () => {
@@ -96,9 +96,9 @@ describe('un id inconnu se refuse en `validation`, un id valide passe', () => {
 
 describe('le verbe d’une offre désigne ce que sa case lit', () => {
   it('un id d’attaque que l’état ne désigne pas se refuse, en nommant les ids valides', { timeout: 120_000 }, () => {
-    refuseLId(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'nobody'), /armerLAttaque : id : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
+    refuseLId(partie('dome', verbe('fenetreValider', 'debutDuRound')), verbe('armerLAttaque', 'nobody'), /armerLAttaque : attaqueId : "nobody" n’est pas un id d’attaque \(valides : .*arme/);
   });
   it('l’id que le refus nomme passe le contrôle', { timeout: 120_000 }, () => {
-    passeLeControle(partie('dome', verbe('fenetreValider', 'roundStart')), verbe('armerLAttaque', 'arme'));
+    passeLeControle(partie('dome', verbe('fenetreValider', 'debutDuRound')), verbe('armerLAttaque', 'arme'));
   });
 });

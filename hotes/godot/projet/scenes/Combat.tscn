@@ -4,9 +4,7 @@
 [ext_resource type="PackedScene" path="res://scenes/Plateau.tscn" id="2_plateau"]
 [ext_resource type="PackedScene" path="res://scenes/Ecran.tscn" id="3_ecran"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="4_zone"]
-
-[sub_resource type="Theme" id="Cartes"]
-HFlowContainer/constants/h_separation = 32
+[ext_resource type="Theme" path="res://art/cartes.tres" id="t_cartes"]
 
 [node name="Combat" type="Node"]
 script = ExtResource("1_combat")
@@ -29,7 +27,7 @@ offset_right = -40.0
 offset_bottom = -40.0
 grow_horizontal = 2
 grow_vertical = 2
-theme = SubResource("Cartes")
+theme = ExtResource("t_cartes")
 theme_type_variation = &"Fenetre"
 
 [node name="Defilement" type="ScrollContainer" parent="Scenarios/Cadre"]
@@ -37,9 +35,9 @@ layout_mode = 2
 horizontal_scroll_mode = 0
 
 [node name="Sections" type="VBoxContainer" parent="Scenarios/Cadre/Defilement"]
+theme_type_variation = &"PileAeree"
 layout_mode = 2
 size_flags_horizontal = 3
-theme_override_constants/separation = 24
 
 [node name="Zone" type="Node" parent="Scenarios/Cadre/Defilement/Sections"]
 script = ExtResource("4_zone")

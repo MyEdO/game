@@ -78,8 +78,11 @@ const NOMMES = [
   // `VDM 04`–`VDM 11`, partagé par `windModifiers[].when` et `…cancelledBy.circumstance`.
   'feu-proche|volcan-actif|ville-en-flammes|charnier|lieu-de-massacre|lieu-sans-mort|eau-abondante|milieu-sec|mois-sommerzeit|mois-vorgeheim|mois-ulriczeit|mois-vorhexen|tour|colline-elevee|sommet-de-montagne|en-vol|voyage-vers-equateur|metaux-abondants|temps-orageux|temps-brumeux|temps-ensoleille|brise-legere|ville|cite|pleine-nature|region-reculee|middenheim|assistance-chantee',
   'feu|flammeche|lueur',
+  // `windModifiers[].tests` (#3614) : les Tests qu'un modificateur de Vent porte (VDM 04-11).
+  'incantation|focalisation|seconde-vue',
   'clair|pluie|brouillard|neige|tempete',
   'colombage|pierre|cloture',
+  'colonne|portion|variante',
   // `banishNarrationSchema` (#3045) : la prose du retrait du jeu (`banish.narration`).
   'chaos|unravel',
   'heroStart|personnage|prop',
@@ -112,8 +115,13 @@ const NOMMES = [
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
-  'feeding|praying|cowering|standing|howling',
+  'repas|priere|tapi|debout|hurlement',
   'fixed|variable|all',
+  // `apFromSchema`, `ressourceDeDestinSchema`, `arrondiSchema` (#3606 M2a) : les vocabulaires des ops `wounds`,
+  // `gainResource` et `lifeSteal`.
+  'corps|least',
+  'fortune|fate',
+  'floor|ceil',
   'gable|stone-entry|chimney|sign|window-band|belfry',
   'flag|param|mode',
   'fleche|carreau|balle|boulet|pierre|objet-lance|trait-magique|jet-de-flammes|jet-de-souffle',
@@ -127,6 +135,10 @@ const NOMMES = [
   'limitee|rare',
   'commune|limitee|rare|exotique|unique',
   'inoffensive|inquietante|menacante|mortelle',
+  // `settlementSchema` (LDB 59 l.25-34) et `marketModeSchema` (#3606) : la taille d'agglomération d'un
+  // marché et le mode de marché d'un marchand de scène.
+  'village|ville|cite',
+  'complet|sans-disponibilite|sans-marchandage|simplifie',
   // `natureDInfluenceSchema` (#2779) : la nature d'une Influence corruptrice, portée par `corruptionExposure`.
   'physique|spirituelle',
   'prop|roof|relief|objet|couleur',
@@ -149,6 +161,7 @@ const NOMMES = [
   'bravoure|ami|staggering|belligerent|blackout',
   'fixed|perDR|perHit|perKill',
   'generalDown|intervention|noIntervention|combatWon|combatLost',
+  'gold|silver|brass',
   'groupe|individu',
   'harness|jolt|wheel|crash',
   'incantation|focalisation|dissipation',
@@ -159,19 +172,21 @@ const NOMMES = [
   'might|startMight|allyTestMod|firstRoundBonus|planningBonus',
   'plus2|plus1|normal|minus1|half',
   'premier|courant|extreme',
+  // `saisonSchema` : la saison d'une cargaison (MDG 15 l.406 ; MSRC 13 l.73).
+  'printemps|ete|automne|hiver',
   'psych|perilDesEaux|bandages|amateurDArt|amateurDeTheatre',
   'quadrupede|quadrupede-aile|oiseau|sans-jambes|theropode|arthropode-a-pinces|sans-membres|amorphe|arachnide|poisson|unique|cephalopode|squig',
   // `amateurSchema` : la contrepartie d'un Test de Sociabilité qu'une fiche déclare (ACE 12 l.60-62).
   'amateurDArt|amateurDeTheatre',
   'source-d-eau|blessures-et-etats',
-  'success|failure|fumble',
   // `issueDuTestSchema` : l'issue du Test de Commerce d'opportunité (MDG 15 l.274-286).
-  'success|failure',
+  'reussite|echec',
+  'reussite|echec|maladresse',
   'test|combat|threat|hold|rally',
   'any|all',
   'group|talent|trait|psych|immunity',
   'moderee|grave',
-  'night|voyage|flow|combat',
+  'nuit|voyage|flux|combat',
   'noise|magic',
   'self|ally|opponent|party|neutral|hostile',
   'target|caster',
@@ -195,6 +210,8 @@ const NOMMES = [
   'all|random',
   // `faceDAreteSchema` (#700) : la face d'une arête d'où se découvre une porte secrète (`WallSeg.secret.face`).
   'porteuse|voisine|les-deux',
+  // `posteSideSchema` (#3606 M1f) : le bord d'un poste, à la fiche de navire comme au poste monté d’une scène (`authoredShipPosteSchema.side`).
+  'proue|tribord|poupe|babord',
   // `typeDeFoyerSchema` (#2820) : l'espace d'ids d'un foyer de règle (`foyerDeRegleSchema`).
   'regle|skill|talent|etat|quality|characteristic|spell|psychology|symptome|steamBreakdown',
   // `defs/garde-robe.ts` (#3114, #3113, #3111) : le `kind` d'une entrée, la catégorie d'une pièce, le type de ce qu'un ensemble habille.
@@ -202,7 +219,7 @@ const NOMMES = [
   'vetement|armure|accessoire',
   'trapping|tenue',
   // `mainSchema` (`grammaire/valeurs.ts`) : la main d'un objet tenu (`prises`) ou d'une arme (`weaponHand`).
-  'main|off',
+  'main|secondaire',
   // `relatifSchema` (`defs/groups.ts`, #3045) : le Groupe relatif, lu par rapport au porteur du Trait psy.
   'engagesAvecPorteur|etrangersAuPorteur|autresRacesQueLePorteur',
   // `marcheDuPort` (`grammaire/mecanique.ts`, #1652 lot 9) : les colonnes de l'Index qu'une escale bascule.
@@ -234,6 +251,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'aucun|retard|quart-de-tour|demi-tour',
   'bete|serviteur|vehicule',
   'bete|vehicule-terrestre',
+  'blessures|hemorragie|traumatisme|chirurgie',
   'bout-portant|courte|moyenne|longue|extreme',
   'brasPrincipal|random',
   'calme-plat|legere-brise|brise-fraiche|vent-modere|vent-violent|violente-tempete',
@@ -242,7 +260,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'chaleur|froid',
   'classe|relais|compagnie|peage|patrouille',
   'complet|partiel',
-  'complet|sans-disponibilite|sans-marchandage|simplifie',
   'current|ever',
   'dangereuse|tresDangereuse|extreme',
   'days|hours|minutes',
@@ -264,10 +281,9 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'extended|terreur|binary',
   'fleeing|pursuing',
   'froid|chaleur',
-  'heldGround|intoCrowd',
+  'tirImmobile|dansLeTas',
   'heure|minute|round',
   'imparfaite|moyenne|totale',
-  'incantation|focalisation|seconde-vue',
   'income|craftExtended|learnTalent|identify|entrainement|mecenat|ritualFocus|masterWeapon|identifyByResearch|memorizeDiscount|combatTraining|punchausen|knowledgeResearch|reputation|wrathOfTheGods|dissensionScout|dissensionEmeute|contremaitre|forage|seaChart|opportunityTrade|crewTraining',
   'indice|rumeur',
   'inferieur|superieur',
@@ -286,9 +302,9 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'min|max|sum|first',
   'movement|all',
   'm|km',
-  'navTest|obstacle|detect',
+  'navigation|obstacle|perception',
   'navire|navire-fluvial',
-  'night|voyage|weather|flow|activity|combat',
+  'nuit|voyage|meteo|flux|activite|combat',
   'none|half|crawl',
   'normale|pietre',
   'opposed|extended',
@@ -309,7 +325,7 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'ship-criticals|river-criticals',
   'sort|rituel',
   'source|group|any',
-  'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastWrath',
+  'spell|prayer|talent|trait|trapping|quality|disease|symptom|mutation|condition|psychology|maneuver|creature|activity|rule|tavernGame|miscastMinor|miscastMajor|miscastMinorVdm|miscastMajorVdm|miscastWrath',
   'success|stupefying',
   'suppressExposure|gatherInfo|noSurprise|mapMade|reverseToken|countsAsRest|campCare|extraActivity|skipStage|fullRecovery|worsenWeather',
   'team|thrower|pot|volley',
@@ -321,8 +337,6 @@ const VOCABULAIRES_SANS_LIBELLES: string[] = [
   'veillee|parchemin',
   'verbatim|descripteur',
   'victim|self',
-  'village|ville|cite',
-  'wounds|bleed|trauma|surgery',
   'x+|x-|y+|y-',
   'x|y',
 ];

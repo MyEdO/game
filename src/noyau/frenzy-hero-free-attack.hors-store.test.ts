@@ -7,7 +7,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { scenario as embuscade } from '../scenes/test-scenarios/embuscade';
 import { aiAvailableFreeAttack } from './combatFlow';
 import { hasFreeWeaponAttack } from './combatManeuvers';
@@ -22,10 +22,10 @@ describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
   beforeEach(() => { banc.getState().ensemencerLeTirage(7); });
 
   function frenziedHeroAdjacentToFoe() {
-    banc.setState({ party: makeShowcaseParty(idsDeTest) });
+    banc.setState({ party: groupeVitrineDeScenario(idsDeTest) });
     banc.getState().lancerLaScene(embuscadeConstruit.scene);
     banc.getState().lancerLeCombat('enc-mutants', undefined, { noSurprise: true });
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const hero = b.combatants.find((c) => c.kind === 'hero' && (c.weapons ?? []).some((w) => w.type === 'melee'))!;
     const foe = b.combatants.find((c) => c.kind === 'enemy' && !c.dead)!;

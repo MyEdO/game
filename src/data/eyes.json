@@ -1,202 +1,153 @@
-[
-  {
-    "id": "au-choix",
-    "type": "eyes",
-    "label": "Au choix",
-    "rand": 2,
-    "color": {
-      "humain": "Au choix",
-      "halfling": "Gris clair",
-      "nain": "Houille",
-      "haut-elfe": "Jais",
-      "elfe-sylvain": "Ivoire",
-      "gnome": "Bleu pâle",
-      "ogre": "Gris"
-    },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
+{
+  "id": "couleur-des-yeux",
+  "type": "eyes",
+  "label": "Tableau de couleur des yeux",
+  "die": "2d10",
+  "source": {
+    "book": "livre-de-base",
+    "page": 40,
+    "note": "Tableau Couleur des Yeux, LDB 05 l.742-754 (Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, folio 40 : ancre data-folio l.744) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
   },
-  {
-    "id": "vert",
-    "type": "eyes",
-    "label": "Vert",
-    "rand": 3,
-    "color": {
-      "humain": "Vert",
-      "halfling": "Gris",
-      "nain": "Plomb",
-      "haut-elfe": "Améthyste",
-      "elfe-sylvain": "Anthracite",
-      "gnome": "Bleu",
-      "ogre": "Vert"
+  "entries": [
+    {
+      "id": "au-choix",
+      "label": "Au choix",
+      "rand": 2,
+      "color": {
+        "humain": "Au choix",
+        "halfling": "Gris clair",
+        "nain": "Houille",
+        "haut-elfe": "Jais",
+        "elfe-sylvain": "Ivoire",
+        "gnome": "Bleu pâle",
+        "ogre": "Gris"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "bleu-pale",
-    "type": "eyes",
-    "label": "Bleu pâle",
-    "rand": 4,
-    "color": {
-      "humain": "Bleu pâle",
-      "halfling": "Bleu pâle",
-      "nain": "Acier",
-      "haut-elfe": "Aigue-marine",
-      "elfe-sylvain": "Vert lierre",
-      "gnome": "Bleu profond",
-      "ogre": "Ambre"
+    {
+      "id": "vert",
+      "label": "Vert",
+      "rand": 3,
+      "color": {
+        "humain": "Vert",
+        "halfling": "Gris",
+        "nain": "Plomb",
+        "haut-elfe": "Améthyste",
+        "elfe-sylvain": "Anthracite",
+        "gnome": "Bleu",
+        "ogre": "Vert"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "bleu",
-    "type": "eyes",
-    "label": "Bleu",
-    "rand": 7,
-    "color": {
-      "humain": "Bleu",
-      "halfling": "Bleu",
-      "nain": "Bleu",
-      "haut-elfe": "Saphir",
-      "elfe-sylvain": "Vert mousse",
-      "gnome": "Turquoise",
-      "ogre": "Noisette"
+    {
+      "id": "bleu-pale",
+      "label": "Bleu pâle",
+      "rand": 4,
+      "color": {
+        "humain": "Bleu pâle",
+        "halfling": "Bleu pâle",
+        "nain": "Acier",
+        "haut-elfe": "Aigue-marine",
+        "elfe-sylvain": "Vert lierre",
+        "gnome": "Bleu profond",
+        "ogre": "Ambre"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "gris-pale",
-    "type": "eyes",
-    "label": "Gris pâle",
-    "rand": 11,
-    "color": {
-      "humain": "Gris pâle",
-      "halfling": "Vert",
-      "nain": "Brun terre",
-      "haut-elfe": "Turquoise",
-      "elfe-sylvain": "Châtaigne",
-      "gnome": "Vert pâle",
-      "ogre": "Marron"
+    {
+      "id": "bleu",
+      "label": "Bleu",
+      "rand": 7,
+      "color": {
+        "humain": "Bleu",
+        "halfling": "Bleu",
+        "nain": "Bleu",
+        "haut-elfe": "Saphir",
+        "elfe-sylvain": "Vert mousse",
+        "gnome": "Turquoise",
+        "ogre": "Noisette"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "gris",
-    "type": "eyes",
-    "label": "Gris",
-    "rand": 14,
-    "color": {
-      "humain": "Gris",
-      "halfling": "Noisette",
-      "nain": "Marron foncé",
-      "haut-elfe": "Émeraude",
-      "elfe-sylvain": "Châtaigne",
-      "gnome": "Noisette",
-      "ogre": "Marron foncé"
+    {
+      "id": "gris-pale",
+      "label": "Gris pâle",
+      "rand": 11,
+      "color": {
+        "humain": "Gris pâle",
+        "halfling": "Vert",
+        "nain": "Brun terre",
+        "haut-elfe": "Turquoise",
+        "elfe-sylvain": "Châtaigne",
+        "gnome": "Vert pâle",
+        "ogre": "Marron"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "marron",
-    "type": "eyes",
-    "label": "Marron",
-    "rand": 17,
-    "color": {
-      "humain": "Marron",
-      "halfling": "Marron",
-      "nain": "Noisette",
-      "haut-elfe": "Ambre",
-      "elfe-sylvain": "Marron foncé",
-      "gnome": "Brun pâle",
-      "ogre": "Ocre"
+    {
+      "id": "gris",
+      "label": "Gris",
+      "rand": 14,
+      "color": {
+        "humain": "Gris",
+        "halfling": "Noisette",
+        "nain": "Marron foncé",
+        "haut-elfe": "Émeraude",
+        "elfe-sylvain": "Châtaigne",
+        "gnome": "Noisette",
+        "ogre": "Marron foncé"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "noisette",
-    "type": "eyes",
-    "label": "Noisette",
-    "rand": 18,
-    "color": {
-      "humain": "Noisette",
-      "halfling": "Cuivre",
-      "nain": "Vert",
-      "haut-elfe": "Cuivre",
-      "elfe-sylvain": "Ocre",
-      "gnome": "Brun",
-      "ogre": "Noir"
+    {
+      "id": "marron",
+      "label": "Marron",
+      "rand": 17,
+      "color": {
+        "humain": "Marron",
+        "halfling": "Marron",
+        "nain": "Noisette",
+        "haut-elfe": "Ambre",
+        "elfe-sylvain": "Marron foncé",
+        "gnome": "Brun pâle",
+        "ogre": "Ocre"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "marron-fonce",
-    "type": "eyes",
-    "label": "Marron foncé",
-    "rand": 19,
-    "color": {
-      "humain": "Marron foncé",
-      "halfling": "Marron foncé",
-      "nain": "Cuivre",
-      "haut-elfe": "Citrine",
-      "elfe-sylvain": "Châtain clair",
-      "gnome": "Brun foncé",
-      "ogre": "Mauve"
+    {
+      "id": "noisette",
+      "label": "Noisette",
+      "rand": 18,
+      "color": {
+        "humain": "Noisette",
+        "halfling": "Cuivre",
+        "nain": "Vert",
+        "haut-elfe": "Cuivre",
+        "elfe-sylvain": "Ocre",
+        "gnome": "Brun",
+        "ogre": "Noir"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
-    }
-  },
-  {
-    "id": "noir",
-    "type": "eyes",
-    "label": "Noir",
-    "rand": 20,
-    "color": {
-      "humain": "Noir",
-      "halfling": "Marron foncé",
-      "nain": "Or",
-      "haut-elfe": "Or",
-      "elfe-sylvain": "Violet",
-      "gnome": "Violet",
-      "ogre": "Bleu nuit"
+    {
+      "id": "marron-fonce",
+      "label": "Marron foncé",
+      "rand": 19,
+      "color": {
+        "humain": "Marron foncé",
+        "halfling": "Marron foncé",
+        "nain": "Cuivre",
+        "haut-elfe": "Citrine",
+        "elfe-sylvain": "Châtain clair",
+        "gnome": "Brun foncé",
+        "ogre": "Mauve"
+      }
     },
-    "source": {
-      "book": "livre-de-base",
-      "page": 40,
-      "note": "Tableau Couleur des Yeux (2d10, LDB 05 l.719-731, Étape 6 Détails supplémentaires — 5 colonnes humain/nain/halfling/haut-elfe/elfe-sylvain, pagination Marker estimée entre les folios 37 et 41) ; colonne gnome = NADJ (Nuits agitées et dures journées) p.89 ; colonne ogre = ADE II (Archives de l'Empire vol. II) p.21"
+    {
+      "id": "noir",
+      "label": "Noir",
+      "rand": 20,
+      "color": {
+        "humain": "Noir",
+        "halfling": "Marron foncé",
+        "nain": "Or",
+        "haut-elfe": "Or",
+        "elfe-sylvain": "Violet",
+        "gnome": "Violet",
+        "ogre": "Bleu nuit"
+      }
     }
-  }
-]
+  ]
+}

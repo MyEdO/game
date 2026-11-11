@@ -36,7 +36,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -56,7 +56,7 @@ describe('onCrit : chaque Blessure critique non létale, le filtre coupCritique 
     for (let i = 0; i < 20 && banc.getState().pendingCascade; i++) {
       const pc = banc.getState().pendingCascade!;
       const cur = pc.participants[pc.cursor];
-      if (cur?.kind === 'triggeredChoice') return cur;
+      if (cur?.kind === 'choixDeclenche') return cur;
       avanceEtapeCascade(banc.getState);
     }
     return undefined;

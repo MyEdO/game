@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { TestScenario } from './_shared';
@@ -67,7 +67,7 @@ const construireVillage = (): Scene => buildScene({
               flow: flowFromEffects([
                 {
                   type: 'medicalAid', entityId: 'medecin',
-                  acts: [{ act: 'wounds', cost: { silver: 5 } }, { act: 'bleed', cost: { silver: 5 } }],
+                  acts: [{ act: 'blessures', cost: { silver: 5 } }, { act: 'hemorragie', cost: { silver: 5 } }],
                 },
                 { type: 'endDialogue' },
               ]),
@@ -124,6 +124,6 @@ export const scenario: TestScenario = {
     'messager), `fall`+`inflictTrauma` (trappe vermoulue, repositionnement), `openCharacterCreator` (avis ' +
     'd’enrôlement : la création s’ouvre sur un héros neuf).',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireVillage() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireVillage() }),
   rules: { 'prayer-petites': true, 'psych-acquisition-optional': true },
 };

@@ -164,11 +164,11 @@ export function creerActionsDeMarche(get: Get, set: Set) {
       if (!scene || !meneurDuMonde(s)) return;
       const cur = capDuGroupe(s) ?? 'S';
       // Cap MONDE du pas = regard tourné de 0/2/4/6 crans (2 crans = 90° par cadran relatif).
-      const worldDir = rotateDir8(cur, { forward: 0, right: 2, back: 4, left: 6 }[rel]);
+      const worldDir = rotateDir8(cur, { avant: 0, droite: 2, arriere: 4, gauche: 6 }[rel]);
       if (!faireLePas(s, povStepDest(scene, s.partyPos, worldDir))) return;
       // Un pas ≠ avant ne doit pas tourner le regard : `deplacerLeGroupe` a posé le cap du groupe le long du
       // pas → on restaure le cap d'origine (l'avance, elle, aligne naturellement regard et déplacement).
-      if (rel !== 'forward') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
+      if (rel !== 'avant') set((st) => ({ facing: poserCapDuGroupe(st.facing, cur) }));
     },
     sauter: (chemin, indice) => {
       const { scene, mode, partyPos, party } = get();

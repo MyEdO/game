@@ -15,7 +15,7 @@ const BASE: BaseDUnElement = {
   chaines: { jupe: ['jupe_avant_01'] },
   zones: ['torse', 'bras_haut', 'hanches', 'cuisses', 'tete'],
   silhouettes: ['feminin', 'corpulence', 'carrure_moins', 'carrure_plus'],
-  prises: { main: { os: 'hand_r', position: [0, 0.09, 0], rotation: [0, 0, 0] }, off: { os: 'hand_l', position: [0, 0.09, 0], rotation: [0, 0, 0] } },
+  prises: { main: { os: 'hand_r', position: [0, 0.09, 0], rotation: [0, 0, 0] }, secondaire: { os: 'hand_l', position: [0, 0.09, 0], rotation: [0, 0, 0] } },
 };
 
 /** Les matériaux du GLB de test, un par surface que nomment les manifestes de ce fichier. */
@@ -163,8 +163,8 @@ const REFUS: [CodeDEcartDElement, string, unknown, Uint8Array?][] = [
   ['cle-inconnue', '`selon` d’un Trait naval, qui n’est pas une Amélioration', manifeste('vehicule', { selon: { robuste: {} } })],
   ['forme', '`postes` au `selon` d’une pièce d’Amélioration, qui n’offre pas de postes', manifeste('amelioration', { selon: { sabord: { postes: {} } } })],
   ['bord-inconnu', 'poste d’une Amélioration à un bord qui n’en est pas un', manifeste('vehicule', { selon: { sabord: { postes: { flanc: [[3, 0.3, 0]] } } } })],
-  ['champ-hors-categorie', '`clips` sur un décor', manifeste('decor', { clips: { idle: 'repos' } })],
-  ['forme', 'clip qui n’est pas un nom', manifeste('vehicule', { clips: { ranged: 3 } })],
+  ['champ-hors-categorie', '`clips` sur un décor', manifeste('decor', { clips: { repos: 'repos' } })],
+  ['forme', 'clip qui n’est pas un nom', manifeste('vehicule', { clips: { tir: 3 } })],
   ['champ-hors-categorie', '`cases` sur un décor', manifeste('decor', { cases: {} })],
   ['forme', 'emprise de case hors de sa case', manifeste('vehicule', { cases: { '4,1,0': [4.5, 1.5, 5.25, 2] } })],
   ['forme', 'emprise de case retournée', manifeste('vehicule', { cases: { '4,1,0': [4.6, 1.5, 4.4, 2] } })],

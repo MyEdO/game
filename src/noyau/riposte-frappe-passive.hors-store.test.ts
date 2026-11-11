@@ -179,7 +179,7 @@ const blessures = (w: Weapon, dr = 4, roll = 12): number =>
 
 describe('frappe passive — Champion (LDB 85 l.71), arbitre c.6237601266', () => {
   it('C1 — Esquive gagnée sur un double : frappe à l’arme de main principale, sans Critique (LDB 13 l.183 ; LDB 10 l.500)', () => {
-    const secondaire = { ...HACHE, hand: 'off' } as Weapon;
+    const secondaire = { ...HACHE, hand: 'secondaire' } as Weapon;
     monte({ pbAttaquant: 30, champion: true, armes: [secondaire, EPEE] });
     expect(blessures(EPEE)).not.toBe(blessures(HACHE));
     coup(esquiveGagnee(11)); draine();

@@ -1,14 +1,14 @@
 /**
  * Le passage au Round suivant (pause d'initiative `pendingRoundStart`, LDB 17 l.25) doit être
  * jouable au CLAVIER/MANETTE — sinon un joueur sans souris reste bloqué à chaque frontière de Round.
- * Le binding `round-start` (Espace/Entrée, partagé par la manette via runBindingById) joue l'offre
- * `round-start` par le verbe qu'elle déclare (`fenetreValider`), et n'est actif QUE pendant la pause.
+ * Le binding `debut-de-round` (Espace/Entrée, partagé par la manette via runBindingById) joue l'offre
+ * `debut-de-round` par le verbe qu'elle déclare (`fenetreValider`), et n'est actif QUE pendant la pause.
  */
 import { describe, it, expect } from 'vitest';
 import { KEYBINDINGS, runBindingById } from './clavier/keybindings';
 import type { GameState } from './store';
 
-const binding = () => KEYBINDINGS.find((k) => k.id === 'round-start')!;
+const binding = () => KEYBINDINGS.find((k) => k.id === 'debut-de-round')!;
 
 /** État minimal (combat en cours) — `pendingRoundStart` posé ou non selon le cas. */
 const fake = (over: Partial<GameState> = {}): GameState =>
@@ -29,7 +29,7 @@ describe('binding round-start', () => {
     const appels: unknown[] = [];
     const get = () => fake({ pendingRoundStart: { round: 2 } as never, fenetreValider: (cle: unknown) => { appels.push(cle); } } as never);
     binding().run(get);
-    expect(appels).toEqual(['roundStart']);
+    expect(appels).toEqual(['debutDuRound']);
   });
 
   it('inactif hors combat (pas de battle)', () => {
@@ -39,7 +39,7 @@ describe('binding round-start', () => {
   it('runBindingById n’exécute PAS round-start sans pause', () => {
     let called = 0;
     const get = () => fake({ pendingRoundStart: null, fenetreValider: () => { called++; } } as never);
-    runBindingById('round-start', get);
+    runBindingById('debut-de-round', get);
     expect(called).toBe(0);
   });
 
@@ -47,7 +47,7 @@ describe('binding round-start', () => {
     expect(binding().when(fake({ pendingRoundStart: { round: 2 } as never, preemptAiming: 'h1' }))).toBe(false);
   });
 
-  it('le binding clavier de Tir rapide (`preempt-arm`, touche T) existe', () => {
-    expect(KEYBINDINGS.find((k) => k.id === 'preempt-arm')).toBeTruthy();
+  it('le binding clavier de Tir rapide (`tir-rapide-armer`, touche T) existe', () => {
+    expect(KEYBINDINGS.find((k) => k.id === 'tir-rapide-armer')).toBeTruthy();
   });
 });

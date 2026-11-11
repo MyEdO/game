@@ -51,21 +51,21 @@ const EFFETS: Record<CritChoice, [Parameters<typeof Icon>[0]['id'], string]> = {
  * zone) passe par les slots `setup`/`postRollExtra` ; toute la mécanique générique vit dans la coquille.
  *
  * Surincantation « +Cible » : EN COMBAT, le choix des cibles supplémentaires se fait SUR LE CHAMP
- * DE BATAILLE (`jetRegler('cast', 'carte', 'cibles')` efface la modale, bandeau TargetPrompt + clic carte) ; hors
+ * DE BATAILLE (`jetRegler('incantation', 'carte', 'cibles')` efface la modale, bandeau TargetPrompt + clic carte) ; hors
  * combat (pas de carte tactique), repli sur des boutons-portraits dans la modale.
  */
 export function CastModal() {
   const pc = useGame((s) => s.pendingCast);
   const battle = useGame((s) => s.battle);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'cast');
-  const reroll = useGesteDeJet('jetRelancer', 'cast');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'cast');
-  const darkPact = useGesteDeJet('jetPactiser', 'cast');
+  const roll = useGesteDeJet('jetLancer', 'incantation');
+  const reroll = useGesteDeJet('jetRelancer', 'incantation');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'incantation');
+  const darkPact = useGesteDeJet('jetPactiser', 'incantation');
   const regler = useGame((s) => s.jetRegler);
-  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'cast');
-  const confirm = useGesteDeJet('jetValider', 'cast');
-  const cancel = useGesteDeJet('jetAnnuler', 'cast');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'incantation');
+  const confirm = useGesteDeJet('jetValider', 'incantation');
+  const cancel = useGesteDeJet('jetAnnuler', 'incantation');
   // Opposition de la cible (multijet DANS cette modale) : chaque cible oppose son Test (FM/Int/Bagarre).
   const pcs = useGame((s) => s.pendingCastOpposition);
   const oppRoll = useGesteDeJet('jetLancer', 'opposition');
@@ -78,15 +78,15 @@ export function CastModal() {
   // Contre-sort (Dissipation) : RÉACTION au Sort figé dans `pendingCast` — plus de modale
   // séparée (« le contre-sort, c'est le lancement d'un sort qui peut être opposé »). Chaque
   // contre-lanceur a SA rangée (`RollRow`), DANS cette modale d'incantation, exactement comme
-  // l'opposition de cible ci-dessus. « Laisser passer »/« Appliquer » agrègent via `jetValider('counterspell')`.
+  // l'opposition de cible ci-dessus. « Laisser passer »/« Appliquer » agrègent via `jetValider('contreSort')`.
   const csp = useGame((s) => s.pendingCounterspell);
-  const cspRoll = useGesteDeJet('jetLancer', 'counterspell');
-  const cspReroll = useGesteDeJet('jetRelancer', 'counterspell');
-  const cspBonusSL = useGesteDeJet('jetAjouterUnDR', 'counterspell');
-  const cspDarkPact = useGesteDeJet('jetPactiser', 'counterspell');
-  const cspForce = useGesteDeJet('jetForcerLaReussite', 'counterspell');
-  const cspConfirm = useGesteDeJet('jetValider', 'counterspell');
-  const cspCancel = useGesteDeJet('jetAnnuler', 'counterspell');
+  const cspRoll = useGesteDeJet('jetLancer', 'contreSort');
+  const cspReroll = useGesteDeJet('jetRelancer', 'contreSort');
+  const cspBonusSL = useGesteDeJet('jetAjouterUnDR', 'contreSort');
+  const cspDarkPact = useGesteDeJet('jetPactiser', 'contreSort');
+  const cspForce = useGesteDeJet('jetForcerLaReussite', 'contreSort');
+  const cspConfirm = useGesteDeJet('jetValider', 'contreSort');
+  const cspCancel = useGesteDeJet('jetAnnuler', 'contreSort');
   if (!pc) return null;
   const pool = battle?.combatants ?? party; // même modale en combat (file) et hors combat (groupe)
   // La fenêtre en données (`fenetreDIncantation`) : NI, réglages et leurs refus, Surincantation, pose, issue.
@@ -100,7 +100,7 @@ export function CastModal() {
   // #990 — CALENDRIER de découverte de l'incantation FIGÉE (arbitrage user 2026-07-30) : tant que le
   // répondant de CE siège (opposition de cible OU Contre-sort) n'a pas lancé, la rangée du lanceur ET
   // le verdict qui la trahit restent masqués. Verdict du noyau (`jetFigeRevele`).
-  const castRevealed = jetFigeRevele(useGame.getState(), JET_FIGE.cast(useGame.getState(), pc));
+  const castRevealed = jetFigeRevele(useGame.getState(), JET_FIGE.incantation(useGame.getState(), pc));
   const outcome = castRevealed ? vue.issue : '';
 
   // Rangée MONO d'incantation = le jet du lanceur, porteur de son cycle d'influence (Lancer → Chance/
@@ -130,7 +130,7 @@ export function CastModal() {
   }));
 
   const issue = res && outcome
-    ? [recapLineOfEvent(ev(res.isCritical ? 'crit' : 'cast', outcome, caster.id, vue.surSoi ? undefined : target.id), pool)]
+    ? [recapLineOfEvent(ev(res.isCritical ? 'critique' : 'sort', outcome, caster.id, vue.surSoi ? undefined : target.id), pool)]
     : undefined;
 
   const actions: RollAction[] = [
@@ -138,7 +138,7 @@ export function CastModal() {
     // décliner la Dissipation serait inatteignable. L'annulation se juge au flux (`vue.annulation`), jamais au genre
     // du lanceur.
     ...(csp
-      ? [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, verbe: 'cancel', flux: 'counterspell' } as RollAction]
+      ? [{ key: 'cancel', label: 'Laisser passer', onClick: cspCancel, verbe: 'cancel', flux: 'contreSort' } as RollAction]
       : !vue.annulation
         ? [{ key: 'cancel', label: t('verbe.cancel'), onClick: cancel, verbe: 'cancel' } as RollAction]
         : []),
@@ -147,16 +147,16 @@ export function CastModal() {
       // Le libellé « (dissipé) » EST le verdict de la comparaison au jet masqué : même calendrier que l'issue (#990).
       label: csp ? (castRevealed && csp.participants.some((p) => p.result?.dispelled) ? 'Appliquer (dissipé)' : 'Appliquer') : placeable ? <><Icon id="map-tool/pin" size="sm" /> Poser la zone</> : 'Appliquer',
       title: placeable && !csp ? "La modale s'efface — clique une case du champ de bataille pour déposer la zone" : undefined,
-      onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => regler('cast', 'carte', 'zone') : confirm,
+      onClick: csp ? cspConfirm : pcs ? oppConfirm : placeable ? () => regler('incantation', 'carte', 'zone') : confirm,
       verbe: 'confirm',
-      flux: csp ? 'counterspell' : pcs ? 'opposition' : 'cast',
+      flux: csp ? 'contreSort' : pcs ? 'opposition' : 'incantation',
     },
   ];
   const sur = vue.surincantation;
 
   return (
     <RollShell
-      flowKey="cast"
+      flowKey="incantation"
       title={vue.intitule}
       extra={
         <>
@@ -199,7 +199,7 @@ export function CastModal() {
               groupLabel={<><Icon id="faith/prayer" size="sm" /> Ton de la Prière</>}
               options={vue.ton.options.map((o) => ({
                 key: o.valeur ? 'discreet' : 'aloud', label: o.libelle, selected: vue.ton!.choisie === o.valeur,
-                onSelect: () => regler('cast', 'discret', !!o.valeur), refus: o.refus ?? undefined,
+                onSelect: () => regler('incantation', 'discret', !!o.valeur), refus: o.refus ?? undefined,
               }))}
             />
           )}
@@ -211,7 +211,7 @@ export function CastModal() {
                 layout="grid"
                 options={vue.forme.options.map((o) => ({
                   key: String(o.valeur), label: o.libelle, selected: vue.forme!.choisie === o.valeur,
-                  onSelect: () => regler('cast', 'formeConjuree', String(o.valeur)), refus: o.refus ?? undefined,
+                  onSelect: () => regler('incantation', 'formeConjuree', String(o.valeur)), refus: o.refus ?? undefined,
                 }))}
               />
             </div>
@@ -236,8 +236,8 @@ export function CastModal() {
                     </span>
                     <QtyStepper
                       center={<strong>{a.pas}</strong>}
-                      onDec={() => regler('cast', REGLAGE_DE_L_AXE[a.axe], a.pas - 1)}
-                      onInc={() => regler('cast', REGLAGE_DE_L_AXE[a.axe], a.pas + 1)}
+                      onDec={() => regler('incantation', REGLAGE_DE_L_AXE[a.axe], a.pas - 1)}
+                      onInc={() => regler('incantation', REGLAGE_DE_L_AXE[a.axe], a.pas + 1)}
                       decLabel={`Rendre un pas de ${META[a.axe][1]}`}
                       incLabel={`Allouer un pas de ${META[a.axe][1]} (+${sur.coutDuPas} DR)`}
                       refus={{ id: `overcast-${a.axe}`, dec: a.refusDeRendre ?? undefined, inc: a.refusDAllouer ?? undefined }}
@@ -249,14 +249,14 @@ export function CastModal() {
                 // La rangée ceint le bouton à son contenu : dans la pile des réglages, un bouton seul
                 // s'étirerait sur toute la largeur.
                 <Row>
-                  <button className="btn small" onClick={() => regler('cast', 'carte', 'cibles')} title="Choisir les cibles supplémentaires sur le champ de bataille">
+                  <button className="btn small" onClick={() => regler('incantation', 'carte', 'cibles')} title="Choisir les cibles supplémentaires sur le champ de bataille">
                     <Icon id="nav/campaign" size="sm" /> Désigner les cibles ({sur.cibles.designees}/{sur.cibles.capacite})
                   </button>
                 </Row>
               ) : (
                 <div className="rm-loc-grid">
                   {sur.cibles.candidats.map((id) => pool.find((c) => c.id === id)).filter((m) => !!m).map((m) => (
-                    <CharFrame key={m.id} c={m} variant="vital" size="sm" selected={(pc.extraTargetIds ?? []).includes(m.id)} onClick={() => regler('cast', 'ciblesSupplementaires', ciblesBasculees(pc.extraTargetIds, m.id))} />
+                    <CharFrame key={m.id} c={m} variant="vital" size="sm" selected={(pc.extraTargetIds ?? []).includes(m.id)} onClick={() => regler('incantation', 'ciblesSupplementaires', ciblesBasculees(pc.extraTargetIds, m.id))} />
                   ))}
                 </div>
               ))}
@@ -266,8 +266,8 @@ export function CastModal() {
                   <span {...grow}><Icon id="nav/dice" size="sm" /> Jets sur le Tableau</span>
                   <QtyStepper
                     center={<strong>{sur.jetsSurLeTableau.choisis}</strong>}
-                    onDec={() => regler('cast', 'jetsDeTable', sur.jetsSurLeTableau!.choisis - 1)}
-                    onInc={() => regler('cast', 'jetsDeTable', sur.jetsSurLeTableau!.choisis + 1)}
+                    onDec={() => regler('incantation', 'jetsDeTable', sur.jetsSurLeTableau!.choisis - 1)}
+                    onInc={() => regler('incantation', 'jetsDeTable', sur.jetsSurLeTableau!.choisis + 1)}
                     decLabel="Décliner un jet sur le Tableau"
                     incLabel="Refaire un jet sur le Tableau"
                     refus={{ id: 'overcast-table', dec: sur.jetsSurLeTableau.refusDeDecliner ?? undefined, inc: sur.jetsSurLeTableau.refusDeRefaire ?? undefined }}
@@ -285,7 +285,7 @@ export function CastModal() {
                 options={vue.critique.options.map((o) => ({
                   key: String(o.valeur), label: <><Icon id={EFFETS[o.valeur as CritChoice][0]} size="sm" /> {o.libelle}</>,
                   title: EFFETS[o.valeur as CritChoice][1], selected: vue.critique!.choisie === o.valeur,
-                  onSelect: () => regler('cast', 'effetCritique', o.valeur as CritChoice), refus: o.refus ?? undefined,
+                  onSelect: () => regler('incantation', 'effetCritique', o.valeur as CritChoice), refus: o.refus ?? undefined,
                 }))}
               />
             </div>
@@ -347,7 +347,7 @@ export function CastModal() {
           {/* CONTRE-SORT (Dissipation, LDB 46 l.156) : le Sort est figé (révélé ci-dessus), les
               contre-lanceurs éligibles ont chacun leur rangée DANS cette même modale d'incantation
               (plus de modale séparée : un contre-sort EST un lancement de sort opposé).
-              PLUSIEURS peuvent chanter contre la même incantation (#1040, cf. `jetValider('counterspell')`,
+              PLUSIEURS peuvent chanter contre la même incantation (#1040, cf. `jetValider('contreSort')`,
               src/noyau/combatSlice.ts) ; la COMPOSITION (contrer seul / s'unir / s'abstenir) se fige
               au premier jet de la fenêtre (#1059) — au-delà, seules les rangées déclarées agissent.
               COOP : chaque rangée est pilotée par le siège qui POSSÈDE son porteur — héros du siège,
@@ -374,14 +374,14 @@ export function CastModal() {
                   : { combatant: actor, pending: counterLine.pending };
                 const owned = influencesLocally(st, part.id) && !!part.interactive;
                 const onRoll = () => cspRoll(part.id);
-                const die = rowForcedDie(st, 'counterspell', { actor, rolled: !!r, interactive: owned, key: part.id, onRoll }, !!r);
+                const die = rowForcedDie(st, 'contreSort', { actor, rolled: !!r, interactive: owned, key: part.id, onRoll }, !!r);
                 // La rangée AFFICHE sa situation : en PHASE 1, une rangée d'un AUTRE siège encore
                 // vierge dit qu'on l'attend (la fenêtre entière est suspendue à elle — l'attente ne
                 // reste jamais muette) ; en PHASE 2, chacune porte sa déclaration, un « passe » étant
                 // éteint mais motivé, jamais un vide inexpliqué.
                 const situation = !part.declared
                   ? (!owned ? t('declaration.attente', { name: actor.label }) : undefined)
-                  : part.declared === 'pass'
+                  : part.declared === 'passer'
                     ? 'passe — ne tente pas la Dissipation ce Round'
                     : part.declared === 'soutenu' && grp
                       ? (lance ? `mène le Test Soutenu (+${grp.bonus})` : `soutient ${grp.leader.label} (+10)`)
@@ -407,22 +407,22 @@ export function CastModal() {
                     rolled={!!r}
                     forcedRoll={die.forcedRoll}
                     fixedMark={die.fixedMark}
-                    interactive={owned && part.declared !== 'pass'}
+                    interactive={owned && part.declared !== 'passer'}
                     rollLabel={<><Icon id="action/defend" size="sm" /> Contre-sort</>}
                     onRoll={onRoll}
-                    rollBlocked={refusDeRangee(st, 'counterspell', part.id)}
+                    rollBlocked={refusDeRangee(st, 'contreSort', part.id)}
                     /* PHASE 1 : chaque rangée possédée déclare (contrer seul / s'unir / passer) ; s'unir
                        n'est offert qu'avec un partenaire de même Domaine. La dernière déclaration FIGE
                        la composition — le contrôle disparaît alors. */
                     declare={owned && phase1
                       ? {
                         value: part.declared,
-                        onChoose: (k) => regler('counterspell', 'declaration', k as CounterDeclaration, part.id),
+                        onChoose: (k) => regler('contreSort', 'declaration', k as CounterDeclaration, part.id),
                         options: [
                           { key: 'solo', label: t('valeur.declaration.solo') },
                           // La raison du refus se lit au survol/focus/tap, jamais par un segment muet.
                           { key: 'soutenu', label: t('valeur.declaration.soutenu'), refus: counterspellJoinable(st, csp, part.id) ? undefined : 'Exige un autre dissipateur du même Domaine' },
-                          { key: 'pass', label: t('valeur.declaration.pass') },
+                          { key: 'passer', label: t('valeur.declaration.passer') },
                         ],
                         hint: situation,
                       }

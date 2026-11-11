@@ -5,7 +5,7 @@
  * autre héros, un consommable utilisé.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, sectionDeLaFiche, suiteDe, table } from './pont.testkit';
+import { drainer, ficheDuHeros, sectionDeLaFiche, suiteDe, table, enFocus } from './pont.testkit';
 import type { Suite } from './pont';
 import type { Bouton, Choix, Entite, Jeu } from '../../../src/hote/elements';
 
@@ -37,8 +37,8 @@ const jouer = (jeu: Jeu): Suite => drainer(appel, appel('jouer', jeu)).suite;
 describe('l’inventaire d’un héros par le pont', () => {
   it('hors combat, chaque geste d’une possession se joue et change la partie', () => {
     let { suite: s } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
-    while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
-    const rosa = s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Rosa Brandt')!;
+    while (s.vue.projection.fenetre) s = jouer(enFocus(s.vue)!.jeu);
+    const rosa = ficheDuHeros(s.vue, 'Apothicaire');
     s = suiteDe(appel('fiche', rosa.jeu));
 
     s = choisir(s, 'Justaucorps de cuir');
@@ -51,7 +51,7 @@ describe('l’inventaire d’un héros par le pont', () => {
     expect(choisie(s)?.ton, 'portée de nouveau').toBe('reussite');
 
     s = choisir(s, 'Dague');
-    expect([geste(s, 'main'), geste(s, 'off')].map((g) => [g.libelle, (g as Bouton).presse, g.refus]), 'une arme tenue en main principale')
+    expect([geste(s, 'main'), geste(s, 'secondaire')].map((g) => [g.libelle, (g as Bouton).presse, g.refus]), 'une arme tenue en main principale')
       .toEqual([['Main principale', true, null], ['Main secondaire', false, null]]);
     s = jouer((geste(s, 'main') as Bouton).jeu);
     expect([(geste(s, 'main') as Bouton).presse, choisie(s)?.ton], 'lâchée par son geste pressé').toEqual([false, 'neutre']);
@@ -61,7 +61,7 @@ describe('l’inventaire d’un héros par le pont', () => {
     s = choisir(s, 'Potion de guérison');
     expect(geste(s, 'utiliser').refus, 'un consommable de son héros s’utilise hors combat').toBeNull();
     s = jouer((geste(s, 'utiliser') as Bouton).jeu);
-    while (s.vue.projection.fenetre) s = jouer(s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu);
+    while (s.vue.projection.fenetre) s = jouer(enFocus(s.vue)!.jeu);
     expect(possessions(s).map((p) => p.libelle), 'utilisé, il est consommé').not.toContain('Potion de guérison');
 
     s = choisir(s, 'Pilon et Mortier');
@@ -74,11 +74,11 @@ describe('l’inventaire d’un héros par le pont', () => {
     expect(choisie(s)?.elements.some((e) => e.id === 'contenant'), 'sorti par son geste, il est en vrac').toBe(false);
 
     const donner = geste(s, 'donner') as Choix;
-    expect(donner.valeurs.map((v) => v.libelle), 'il se donne à chaque autre héros du groupe').not.toContain('Rosa Brandt');
-    s = jouer(donner.valeurs.find((v) => v.libelle === 'Sigmund Reikhardt')!.jeu);
+    expect(donner.valeurs.map((v) => v.libelle), 'il se donne à chaque autre héros du groupe').not.toContain('Apothicaire');
+    s = jouer(donner.valeurs.find((v) => v.libelle === 'Soldat')!.jeu);
     expect(possessions(s).map((p) => p.libelle), 'donné, il quitte la fiche de son héros').not.toContain('Pilon et Mortier');
     expect(s.vue.zones['fiche.objet'], 'et n’est plus choisi').toEqual([]);
-    s = suiteDe(appel('fiche', s.vue.zones['groupe.heros'].find((b) => b.libelle === 'Sigmund Reikhardt')!.jeu));
+    s = suiteDe(appel('fiche', ficheDuHeros(s.vue, 'Soldat').jeu));
     expect(possessions(s).map((p) => p.libelle), 'il rejoint celle de l’autre héros').toContain('Pilon et Mortier');
   });
 });

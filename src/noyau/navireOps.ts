@@ -168,6 +168,18 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       set({ vessel: { ...vessel, commissions: [...(vessel.commissions ?? []), { label, placeId: port.id, brass }] } });
       return [t('eff.commission', { label, port: port.label, montant: formatMoney(fromBrass(brass)) })];
     }
+    case 'constructeurDEscale': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const jours = Math.max(1, Math.round(resolveFormula(o.duree, ref, ctx.rng)));
+      set({ vessel: { ...vessel, constructeurDEscale: { competence: o.competence, jours } } });
+      return [t('eff.constructeurDEscale', { label: nomDeSource(ctx), competence: o.competence, jours })];
+    }
+    case 'rationsDEscale': {
+      const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
+      const brass = Math.max(0, Math.round(resolveFormula(o.montant.brass, ref, ctx.rng)));
+      set({ vessel: { ...vessel, rationsDEscale: brass } });
+      return [t('eff.rationsDEscale', { label: nomDeSource(ctx), prix: formatMoney(fromBrass(brass)) })];
+    }
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);
@@ -224,7 +236,7 @@ function ajouterDesVivres(get: Get, set: Set, jours: number): string[] {
 }
 
 /** Ajoute `n` rations de mer (jours-homme) aux vivres de la cale. MDG 15 l.194 ; MDG 14 l.238 */
-function ajouterDesRations(get: Get, set: Set, n: number): string[] {
+export function ajouterDesRations(get: Get, set: Set, n: number): string[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
   set({ vessel: { ...vessel, provisions: vessel.provisions + n } });
@@ -232,7 +244,7 @@ function ajouterDesRations(get: Get, set: Set, n: number): string[] {
 }
 
 /** Embarque `n` tonneaux d'eau douce. MDG 15 l.194 ; MDG 14 l.242 */
-function ajouterDeLEau(get: Get, set: Set, n: number): string[] {
+export function ajouterDeLEau(get: Get, set: Set, n: number): string[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.waterLitres == null) return [t('eff.eauSansSuivi')];
   const litres = n * LITRES_PAR_TONNEAU;
@@ -244,7 +256,7 @@ const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
 
 /**
  * Ouvre le TEST D'ÉQUIPAGE d'un nœud `test` de Flow (`crewTestType`) : l'étape à participants du voyage
- * (`etapeDEquipage`), dont l'applier `flowCrewTest` (`seaVoyageFlow.ts`) joue la branche du verdict
+ * (`etapeDEquipage`), dont l'applier `testDEquipage` (`seaVoyageFlow.ts`) joue la branche du verdict
  * puis `after`. Son enjeu est celui que le Test nomme (`flowTestSchema`). `false` : aucun marin
  * apte à bord, l'appelant joue l'échec. MDG 14 l.39 ; MDG 15 l.144-145
  */
@@ -252,7 +264,7 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   const { crewTestType, stake } = node.test;
   const type = garanti(crewTestType, label, 'type de Test d’équipage');
   const { difficulty } = resoudreFlowTest(node.test, { cc: condCtx(get) });
-  const st = etapeDEquipage(get, type, 'flowCrewTest', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
+  const st = etapeDEquipage(get, type, 'testDEquipage', garanti(stake, label, 'enjeu du Test d’équipage'), { difficulty });
   if (!st) return false;
   startCascade(get, set, {
     title: label, icon: 'travel/anchor', purpose: 'test',

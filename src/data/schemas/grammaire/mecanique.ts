@@ -16,7 +16,7 @@ import { messageRecurrenceHorloge, SELF_REF, type Formula, type GameOp, type OpP
 import { etatConnu } from '../../../engine/conditions';
 import { t } from '../../../i18n';
 import { ARG_TEMPLATE, CHAMPS_DE_DECISION, INDICE_TEMPLATE, type Condition, type EffectOp, type EffectTrigger, type Flow, type TriggeredEffect } from '../../../engine/flowCore';
-import { chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
+import { attackKindSchema, chaosAlignSchema, charKeySchema, cibleEtendueSchema, contexteDeTestSchema, deDeTirageSchema, diceSpecSchema, difficultySchema, effetSigneSchema, enumNomme, shipLocationSchema, exposureLevelSchema, formulaSchema, formuleSansTirageSchema, hitLocationSchema, mainSchema, messageDeTermeDeJet, meteoImposeeSchema, statutSchema, ouReserve, plageSchema, reachSchema, natureDInfluenceSchema, sizeCategorySchema, symptomSeveritySchema, tirageSchema } from './valeurs';
 import { traitInstanceSchema } from './reference';
 import { idDe, marquerOpAtteinte, ref, refs, refusDeLId, refOuSpec, specAuCatalogue, specDe, specFermeeDe, tirageSurTable, type RegimeDePorteur, type TypeEntite } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID, RACINE_D_APPARENCE } from './sousListes';
@@ -45,6 +45,15 @@ export const armourBypassCategorieSchema = enumNomme({
  *  (`src/engine/types.ts`). */
 export const armourBypassSchema = z.union([z.number(), armourBypassCategorieSchema]);
 export type ArmourBypass = z.infer<typeof armourBypassSchema>;
+
+/** Localisation dont l'op `wounds` déduit les PA. LDB 16 l.84 */
+const apFromSchema = enumNomme({ corps: 'le Corps', least: 'la Localisation la moins protégée' });
+
+/** Ressource de destin que l'op `gainResource` crédite. */
+export const ressourceDeDestinSchema = enumNomme({ fortune: 'Chance', fate: 'Destin' });
+
+/** Sens d'arrondi de la fraction de l'op `lifeSteal`. */
+const arrondiSchema = enumNomme({ floor: 'inférieur', ceil: 'supérieur' });
 
 /** Ce que l'op `loseTurn` retire ; absent = les deux. */
 export const loseTurnWhatSchema = enumNomme({ action: 'son Action', movement: 'son Mouvement' });
@@ -219,6 +228,59 @@ const DECLARATIONS_D_OPS = {
  *  dataset à elles, elles vivent DANS le jeu de Critiques qui les imprime. */
   fall: nommerChamps(z.strictObject({ op: z.literal('fall'), hauteur: nommerChamps(z.strictObject({ table: nommerChamps(z.strictObject({ id: z.string() }), { id: { label: "identifiant" , texte: { regime: "technique"} } }) }), { table: { label: "table" } }) }), { op: { label: "opération"  }, hauteur: { label: "hauteur" } }),
   heal: nommerChamps(z.strictObject({ op: z.literal('heal'), amount: formulaSchema, perSL: perSLSchema.optional() }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, perSL: { label: "par DR" } }),
+  wounds: nommerChamps(z.strictObject({
+    op: z.literal('wounds'),
+    amount: formulaSchema,
+    perSL: perSLSchema.optional(),
+    onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
+    ignoreTB: z.boolean().optional(),
+    ignoreAP: z.boolean().optional(),
+    bypassArmour: armourBypassSchema.optional(),
+    apFrom: apFromSchema.optional(),
+    min: z.number().optional(),
+    extraAP: z.number().optional(),
+    weaponHit: z.boolean().optional(),
+  }), { op: { label: "opération"  }, amount: { label: "quantité" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, perSL: { label: "par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, ignoreTB: { label: "ignore le Bonus d’Endurance" }, ignoreAP: { label: "ignore les PA" }, bypassArmour: { label: "armure percée" }, apFrom: { label: "PA lus à" }, min: { label: "minimum" }, extraAP: { label: "PA additionnels" }, weaponHit: { label: "coup d’arme" } }),
+  ap: nommerChamps(z.strictObject({
+    op: z.literal('ap'),
+    loc: hitLocationSchema.optional(),
+    amount: formulaSchema,
+    noDeviation: z.boolean().optional(),
+    atHitLocation: z.boolean().optional(),
+  }), { op: { label: "opération"  }, loc: { label: "localisation"  }, amount: { label: "PA (±)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, noDeviation: { label: "sans déviation" }, atHitLocation: { label: "à la Localisation touchée" } }),
+  sinMod: nommerChamps(z.strictObject({ op: z.literal('sinMod'), amount: z.number() }), { op: { label: "opération"  }, amount: { label: "Points de Péché (±)" } }),
+  gainResource: nommerChamps(z.strictObject({
+    op: z.literal('gainResource'),
+    resource: ressourceDeDestinSchema,
+    amount: z.number(),
+    perSL: perSLSchema.optional(),
+    temporary: z.boolean().optional(),
+  }), { op: { label: "opération"  }, resource: { label: "ressource" }, amount: { label: "points" }, perSL: { label: "par DR" }, temporary: { label: "le temps du Sort" } }),
+  sbBonus: nommerChamps(z.strictObject({ op: z.literal('sbBonus'), amount: z.number() }), { op: { label: "opération"  }, amount: { label: "Bonus de Force (±)" } }),
+  moveScale: nommerChamps(z.strictObject({ op: z.literal('moveScale'), num: z.number().min(0), den: z.number().min(1), durationRounds: formulaSchema.optional() }), { op: { label: "opération"  }, num: { label: "numérateur" }, den: { label: "dénominateur" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  maxWeaponHands: nommerChamps(z.strictObject({ op: z.literal('maxWeaponHands'), hands: z.number().min(1), durationRounds: formulaSchema.optional() }), { op: { label: "opération"  }, hands: { label: "mains" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  moveMod: nommerChamps(z.strictObject({ op: z.literal('moveMod'), mod: z.number() }), { op: { label: "opération"  }, mod: { label: "Mouvement (±)" } }),
+  grantNaturalWeapon: nommerChamps(z.strictObject({
+    op: z.literal('grantNaturalWeapon'),
+    label: z.string(),
+    damage: formulaSchema,
+    plusBF: z.boolean().optional(),
+    bare: z.boolean().optional(),
+    qualities: refs('quality').optional(),
+    attackKind: attackKindSchema.optional(),
+    subType: ref('weaponGroup').optional(),
+  }), { op: { label: "opération"  }, label: { label: "libellé" , texte: { regime: "designation"} }, damage: { label: "dégâts" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, plusBF: { label: "ajouter le Bonus de Force" }, bare: { label: "à mains nues" }, qualities: { label: "qualités" , texte: { regime: "technique"} }, attackKind: { label: "type d’attaque" }, subType: { label: "sous-type" , texte: { regime: "technique"} } }),
+  light: nommerChamps(z.strictObject({ op: z.literal('light'), radiusM: z.number().min(1), tone: ref('lightTone').optional() }), { op: { label: "opération"  }, radiusM: { label: "rayon (m)" }, tone: { label: "ton" , texte: { regime: "technique"} } }),
+  lifeSteal: nommerChamps(z.strictObject({ op: z.literal('lifeSteal'), num: z.number().min(1), den: z.number().min(1), round: arrondiSchema.optional() }), { op: { label: "opération"  }, num: { label: "numérateur" }, den: { label: "dénominateur" }, round: { label: "arrondi" } }),
+  push: nommerChamps(z.strictObject({ op: z.literal('push'), meters: formulaSchema }), { op: { label: "opération"  }, meters: { label: "distance (m)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  chain: nommerChamps(z.strictObject({ op: z.literal('chain'), maxBounces: formulaSchema, hopMeters: formulaSchema }), { op: { label: "opération"  }, maxBounces: { label: "rebonds max" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, hopMeters: { label: "saut (m)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  teleport: nommerChamps(z.strictObject({
+    op: z.literal('teleport'),
+    meters: formulaSchema,
+    perSL: nommerChamps(z.strictObject({ every: z.number().min(1), metersFormula: formulaSchema }), { every: { label: "intervalle" }, metersFormula: { label: "bonus (m)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }).optional(),
+  }), { op: { label: "opération"  }, meters: { label: "distance (m)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, perSL: { label: "par DR" } }),
+  armourPierce: nommerChamps(z.strictObject({ op: z.literal('armourPierce'), amount: z.number().min(0), bypass: armourBypassSchema.optional() }), { op: { label: "opération"  }, amount: { label: "PA retirés" }, bypass: { label: "armure ignorée" } }),
+  rollMutation: nommerChamps(z.strictObject({ op: z.literal('rollMutation'), table: ref('mutationTable'), duration: z.literal('permanent').optional() }), { op: { label: "opération"  }, table: { label: "table de Corruption" , texte: { regime: "technique"} }, duration: { label: "permanente" } }),
   /** `money` — mouvement de la bourse PERSONNELLE de la cible. La charge porte son NOM (`montant`),
    *  comme toute autre action du vocabulaire (`giveMoney.montant`, `giveXp.amount`) : elle n'est jamais
    *  étalée parmi les clés de l'op (garde `src/data/monnaie-forme-unique.test.ts`, sonde A). La seule
@@ -333,6 +395,17 @@ const DECLARATIONS_D_OPS = {
     op: z.literal('commission'),
     montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
   }), { op: { label: "opération"  }, montant: { label: "montant à la livraison" } }),
+  /** `constructeurDEscale` — MDG 15 l.255 */
+  constructeurDEscale: nommerChamps(z.strictObject({
+    op: z.literal('constructeurDEscale'),
+    competence: z.number().int().min(1),
+    duree: formulaSchema,
+  }), { op: { label: "opération"  }, competence: { label: "Métier (Constructeur de navires)" }, duree: { label: "durée de la réparation (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  /** `rationsDEscale` — MDG 15 l.262 */
+  rationsDEscale: nommerChamps(z.strictObject({
+    op: z.literal('rationsDEscale'),
+    montant: nommerChamps(z.strictObject({ brass: formulaSchema }), { brass: { label: "sous de cuivre" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }),
+  }), { op: { label: "opération"  }, montant: { label: "prix d’une ration-jour de cale" } }),
   /** `marcheDuPort` : bascule des colonnes (`colonnes`), lot offert (`offre`) OU Demande accrue ailleurs (`demande`,
    *  `jours`), exclusifs. MDG 15 l.253, l.256, l.259, l.263 */
   marcheDuPort: z.union([
@@ -716,16 +789,12 @@ export type Regimes = Readonly<Partial<Record<ChampAChoix, RegimeDePorteur> & Re
  * Une entrée ne se retire que par le commit qui TYPE l'op dans `OP_DEFS`.
  */
 export const OPS_NON_TYPEES: readonly string[] = [
-  'ap', 'armourPierce', 'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod',
-  'breakBlade', 'chain', 'condition',
-  'crewTestMod', 'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm',
-  'endTransform', 'freeReroll', 'gainResource', 'grantFreeAttack',
-  'grantNaturalWeapon', 'handGate', 'ignoreAnimosity',
-  'ignoreStatePenalties', 'interruptFocus',
-  'intoxicate', 'lifeSteal', 'light', 'martyr', 'maxWeaponHands', 'mitigateIncoming', 'moveMod', 'moveScale',
-  'push', 'reduceToZero', 'removeCondition', 'removeShipPoste',
-  'rollMutation', 'sbBonus', 'senseLoss', 'sinMod', 'statusMod', 'suppressPsych', 'teamCommander',
-  'teleport', 'weaponDamageMod', 'weaponRollMod', 'weatherWard', 'wounds',
+  'arrowWard', 'attackKeyword', 'attackWardFM', 'attrMod', 'breakBlade', 'condition', 'crewTestMod',
+  'critOnRoll', 'critTwice', 'cureCriticalWound', 'cureDisease', 'damageArmour', 'disarm', 'endTransform',
+  'freeReroll', 'grantFreeAttack', 'handGate', 'ignoreAnimosity', 'ignoreStatePenalties', 'interruptFocus',
+  'intoxicate', 'martyr', 'mitigateIncoming', 'reduceToZero', 'removeCondition', 'removeShipPoste',
+  'senseLoss', 'statusMod', 'suppressPsych', 'teamCommander', 'weaponDamageMod', 'weaponRollMod',
+  'weatherWard',
 ];
 
 /** Champs de l'op `condition` qu'un État PORTÉ (#1695) ne peut PAS tenir — LISTE CLOSE, alignée sur ce
@@ -756,11 +825,11 @@ export function refuserEtatsInconnus(v: Readonly<Record<string, unknown>>, champ
  *   (`messageRecurrenceHorloge`, `engine/ops.ts`).
  * — `condition` : `carried` + tout `CHAMPS_EXCLUS_DE_CARRIED`, refusé NOMINATIVEMENT (#1695).
  * — `condition`, `removeCondition` : un id d'État hors de `etatConnu` (#1463 LD.1, #2995).
- * — `condition`, `wounds` : un `onlyGroups` qui n'est pas une liste, ou dont un id est hors de
+ * — `condition` : un `onlyGroups` qui n'est pas une liste, ou dont un id est hors de
  *   `refs('groupe', { sousListe: CIBLE_D_APPARTENANCE })`.
  */
 function refusLoose(v: Record<string, unknown>, ctx: z.RefinementCtx): void {
-  if ((v.op === 'condition' || v.op === 'wounds') && v.onlyGroups !== undefined) {
+  if (v.op === 'condition' && v.onlyGroups !== undefined) {
     if (!Array.isArray(v.onlyGroups)) ctx.addIssue({ code: 'invalid_type', expected: 'array', input: v.onlyGroups, path: ['onlyGroups'] });
     else v.onlyGroups.forEach((id: unknown, i) => {
       if (typeof id !== 'string') {
@@ -921,7 +990,7 @@ const conditionDeTalentSchema = refOuSpec('talent', {
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 }) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
 
-/** La variante `noeud` de l'algèbre `Condition`, nommée `label` à l'affichage. */
+/** La variante `noeud` d'une union discriminée (`Condition`, `Flow`), nommée `label` à l'affichage. */
 const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
 
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
@@ -1006,7 +1075,7 @@ export const conditionSchema: z.ZodType<Condition> = conditionDe([]);
  *  texte n'entre au document (le résolveur reste la seule porte du texte). */
 export const catalogStakeSchema = nommerChamps(z.strictObject({
   key: nommerChamps(z.strictObject({
-    dataset: z.enum(['night', 'voyage', 'weather', 'flow', 'activity', 'combat']),
+    dataset: z.enum(['nuit', 'voyage', 'meteo', 'flux', 'activite', 'combat']),
     kind: z.string(),
     entryId: z.string().optional(),
     entryCategory: z.string().optional(),
@@ -1186,7 +1255,7 @@ export interface OptionsNoeudTest {
   /**
    * Le porteur ne SERT que la branche `fail`, et il l'applique par extraction PLATE de ses ops
    * (`spellOps`, `engine/flowCore.ts`) — c'est le régime du cycle de maladie : l'applier de repos
-   * (`bandeDeNuit`, applier `disease-tick`, `noyau/restFlow.ts`) rend une liste VIDE sur une
+   * (`bandeDeNuit`, applier `maladie-test-quotidien`, `noyau/restFlow.ts`) rend une liste VIDE sur une
    * réussite, et `symptomOnTick` (`engine/disease.ts`) ne lit que `fail`.
    * Deux formes seraient alors AUTHORABLES SANS EFFET, donc menteuses : une branche `success`
    * peuplée (jamais jouée) et une branche `fail` à embranchement (`if`/`test`/`choice`), dont
@@ -1486,6 +1555,8 @@ export const OP_LABEL: Record<GameOp['op'], string> = {
   infestation: 'Infestation du navire',
   combatEnMer: 'Combat en mer',
   commission: 'Commission de transport',
+  constructeurDEscale: 'Constructeur de navires d’escale',
+  rationsDEscale: 'Rations d’escale',
   marcheDuPort: 'Marché d’un port',
 };
 
@@ -1522,17 +1593,17 @@ const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
   const flow: z.ZodType<Flow<E>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'arbreDeFlow', 'flow.seq'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: feuille }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'arbreDeFlow', 'flow.do'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'arbreDeFlow', 'flow.if'),
-      noeudTest(flow),
-      proseNommee(nommerChamps(z.strictObject({
+      variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
+      variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: feuille }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
+      variante('Si', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'arbreDeFlow', 'flow.if')),
+      variante('Test', noeudTest(flow)),
+      variante('Choix', proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choice'),
         advantageCost: coutDAvantage.optional(),
         icon: z.string().optional(),
         yes: flow,
         no: flow.optional(),
-      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
+      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt')),
     ]),
   );
   return flow;

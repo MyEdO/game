@@ -67,7 +67,7 @@ describe('#2968 L18 — Type de Souffle, règle optionnelle requise et espèce d
       return mesureDuParse(schema, doc).reperes.filter((r) => r.type === type).length;
     };
     expect(compte(schemaDomaines, domainsJson, 'breathType')).toBe(14);
-    expect(compte(schemaEspeces, speciesJson, 'regleOptionnelle')).toBe(1);
+    expect(compte(schemaEspeces, speciesJson, 'regleOptionnelle')).toBe(speciesJson.filter((s) => 'gatedByRule' in s).length);
     expect(compte(schemaCompetences, skillsJson, 'regleOptionnelle')).toBe(2);
     expect(compte(schemaEspeceParDefaut, speciesRaceJson, 'planDeBestiaire')).toBe(1);
   });
@@ -90,7 +90,7 @@ describe('#2968 L18 — Type de Souffle, règle optionnelle requise et espèce d
 });
 
 describe('#2968 L18 — action armée', () => {
-  const RANG_SOIN = actionsJson.findIndex((a) => a.id === 'heal');
+  const RANG_SOIN = actionsJson.findIndex((a) => a.id === 'soins');
 
   it('`actions.json › armed` : `true` sur une action à mode parse, une chaîne ou une action sans mode est refusée', () => {
     expect(schemaActions.safeParse(actionsJson).success).toBe(true);

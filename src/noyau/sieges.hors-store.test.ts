@@ -10,32 +10,32 @@ import {
 import { t } from '../i18n';
 
 /** L'hôte d'une room à deux invités, aucun héros attribué. */
-const hoteADeuxInvites = (): NetState => ({ ...initialNet(), mode: 'host', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna', 2: 'Bruno' } });
+const hoteADeuxInvites = (): NetState => ({ ...initialNet(), mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna', 2: 'Bruno' } });
 /** L'invité Anna, assis au siège 1. */
-const inviteAnna = (): NetState => ({ ...initialNet(), mode: 'guest', mySeat: 1, roomCode: 'ABC234' });
+const inviteAnna = (): NetState => ({ ...initialNet(), mode: 'invite', mySeat: 1, roomCode: 'ABC234' });
 /** Une partie solo. */
 const solo = (): NetState => initialNet();
 /** Le groupe des tests : un seul héros. */
-const groupe = [{ id: 'pregen-101' }];
+const groupe = [{ id: 'soldat-de-test' }];
 
 const SIEGE_INCONNU = t('coop.assign.seatUnknown');
 
 describe('attribuerLeHeros', () => {
   it("l'hôte attribue un héros à un siège, puis le réattribue", () => {
-    const net = attribuerLeHeros(attribuerLeHeros(hoteADeuxInvites(), groupe, 'pregen-101', 1), groupe, 'pregen-101', 2);
-    expect(net.ownership).toEqual({ 'pregen-101': 2 });
+    const net = attribuerLeHeros(attribuerLeHeros(hoteADeuxInvites(), groupe, 'soldat-de-test', 1), groupe, 'soldat-de-test', 2);
+    expect(net.ownership).toEqual({ 'soldat-de-test': 2 });
   });
 
   it('un invité ou une partie solo : le réseau est rendu inchangé', () => {
-    for (const net of [inviteAnna(), solo()]) expect(attribuerLeHeros(net, groupe, 'pregen-101', 1)).toBe(net);
+    for (const net of [inviteAnna(), solo()]) expect(attribuerLeHeros(net, groupe, 'soldat-de-test', 1)).toBe(net);
   });
 
   it('refusé pour un siège hors de la table ou un héros hors du groupe : le réseau est rendu inchangé', () => {
     const hote = hoteADeuxInvites();
-    expect(refusDAttribuerLeHeros(hote, groupe, 'pregen-101', 3)).toBe(SIEGE_INCONNU);
+    expect(refusDAttribuerLeHeros(hote, groupe, 'soldat-de-test', 3)).toBe(SIEGE_INCONNU);
     expect(refusDAttribuerLeHeros(hote, groupe, 'absent', 1)).toBe(t('coop.assign.heroAbsent'));
-    expect(refusDAttribuerLeHeros(hote, groupe, 'pregen-101', 1)).toBeNull();
-    expect(attribuerLeHeros(hote, groupe, 'pregen-101', 3)).toBe(hote);
+    expect(refusDAttribuerLeHeros(hote, groupe, 'soldat-de-test', 1)).toBeNull();
+    expect(attribuerLeHeros(hote, groupe, 'soldat-de-test', 3)).toBe(hote);
     expect(attribuerLeHeros(hote, groupe, 'absent', 1)).toBe(hote);
   });
 });
@@ -80,7 +80,7 @@ describe('attribuerLEmplacement', () => {
   });
 
   it('refusé sur un emplacement occupé ou vers un siège hors de la table : le réseau est rendu inchangé', () => {
-    const hote = { ...hoteADeuxInvites(), rangs: { 'pregen-101': 1 } };
+    const hote = { ...hoteADeuxInvites(), rangs: { 'soldat-de-test': 1 } };
     expect(refusDAttribuerLEmplacement(hote, groupe, 1, 2)).toBe(t('coop.assign.slotTaken'));
     expect(attribuerLEmplacement(hote, groupe, 1, 2)).toBe(hote);
     expect(refusDAttribuerLEmplacement(hote, groupe, 0, 7)).toBe(SIEGE_INCONNU);
@@ -92,7 +92,7 @@ describe('siegesDeLaTable', () => {
   it('l’hôte (siège 0) en est TOUJOURS, nommé ou non ; les sièges nommés suivent, dans l’ordre', () => {
     expect(siegesDeLaTable(solo()).map((x) => x.seat)).toEqual([0]);
     expect(siegesDeLaTable(solo())[0]).toEqual({ seat: 0, nom: t('party.seat.host'), moi: true, absent: false });
-    const net = { ...hoteADeuxInvites(), presence: { 2: 'away' as const } };
+    const net = { ...hoteADeuxInvites(), presence: { 2: 'absent' as const } };
     expect(siegesDeLaTable(net)).toEqual([
       { seat: 0, nom: 'Hôte', moi: true, absent: false },
       { seat: 1, nom: 'Anna', moi: false, absent: false },

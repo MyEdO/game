@@ -4,7 +4,7 @@
  * le groupe et rend le chemin de son meneur (#3822), la porte dessinée sur le plateau, fermée puis ouverte, le volume du monde de la scène (`monde`).
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import { CLIC_DU_CHAMP, type plateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
@@ -13,12 +13,12 @@ const { appel } = table();
 describe('l’exploration par le pont', () => {
   it('le groupe à sa case, la porte ouverte par son bouton, le réduit gagné par un clic', () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'porte-close', graine: 7 }));
-    expect(suite.vue.projection.fenetre?.etape?.genre, 'l’entrée de la scène tient la main').toBe('sceneEntry');
+    expect(suite.vue.projection.fenetre?.etape?.genre, 'l’entrée de la scène tient la main').toBe('entreeEnScene');
     expect(suite.vue.zones['fenetre.corps'].map((e) => e.id), 'elle dit le message d’entrée de la scène').toEqual(['revelation/0']);
     expect(suite.vue.champ, 'une fenêtre tient la main : le champ ne se clique pas').toBeNull();
     expect(suite.vue.zones['exploration.gestes'], 'ni les gestes d’exploration').toEqual([]);
     while (suite.vue.projection.fenetre) {
-      const continuer = suite.vue.zones['fenetre.gestes'].find((g) => g.type === 'bouton' && g.focus);
+      const continuer = enFocus(suite.vue);
       expect(continuer, 'la fenêtre se poursuit par son geste en focus').toBeDefined();
       ({ suite } = drainer(appel, appel('jouer', (continuer as Bouton).jeu)));
     }

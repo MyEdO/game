@@ -696,145 +696,36 @@
        "trappingId": "canon-moyen",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-1"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-2"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-1"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-3"
-        },
-        {
-         "reach": null,
-         "range": null,
-         "ammoRangeMod": {
-          "mult": 0.25
-         },
-         "trappingId": "mitraille-et-poudre",
-         "label": "Mitraille et poudre",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": -5
-         },
-         "qualities": [
-          {
-           "id": "tir-de-zone",
-           "value": 5
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 4,
-         "uid": "ammo-mitraille-et-poudre-4"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-3"
+       "ammo": {
+        "boulet-et-poudre": 12,
+        "mitraille-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "pierrier",
        "side": "proue",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "balles-et-poudre-pierrier",
-         "label": "Balles et poudre pour 1 tir",
-         "kind": "ammo",
-         "damage": {
-          "plusBF": false,
-          "flat": 1
-         },
-         "qualities": [
-          {
-           "id": "empaleuse"
-          },
-          {
-           "id": "perforante"
-          },
-          {
-           "id": "tir-de-zone",
-           "value": 3
-          }
-         ],
-         "enc": 0,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 16,
-         "uid": "ammo-balles-et-poudre-pierrier-5"
-        }
-       ],
-       "ammoUid": "ammo-balles-et-poudre-pierrier-5"
+       "ammo": {
+        "balles-et-poudre-pierrier": 16
+       },
+       "selectedAmmo": {
+        "id": "balles-et-poudre-pierrier"
+       }
       }
      ]
     },
@@ -939,88 +830,34 @@
        "trappingId": "canon-moyen",
        "side": "tribord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-6"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-6"
+       "ammo": {
+        "boulet-et-poudre": 12
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
        "side": "babord",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 12,
-         "uid": "ammo-boulet-et-poudre-7"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-7"
+       "ammo": {
+        "boulet-et-poudre": 12
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       },
       {
        "trappingId": "canon-moyen",
        "side": "proue",
        "crewIds": [],
-       "ammo": [
-        {
-         "reach": null,
-         "range": null,
-         "trappingId": "boulet-et-poudre",
-         "label": "Boulet et poudre",
-         "kind": "ammo",
-         "qualities": [
-          {
-           "id": "a-explosion",
-           "value": 2
-          },
-          {
-           "id": "percutante"
-          }
-         ],
-         "enc": 1,
-         "equipped": false,
-         "subType": "munition-de-siege",
-         "qty": 8,
-         "uid": "ammo-boulet-et-poudre-8"
-        }
-       ],
-       "ammoUid": "ammo-boulet-et-poudre-8"
+       "ammo": {
+        "boulet-et-poudre": 8
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
       }
      ],
      "upgrades": [

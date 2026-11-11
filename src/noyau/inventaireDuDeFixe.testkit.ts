@@ -59,7 +59,7 @@ const opposedFixture = (key: string, extra: Record<string, unknown>): Fixture =>
 });
 
 export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
-  attack: {
+  attaque: {
     state: { pendingAttack: { attackerId: 'H', targetId: 'E', location: null, result: atkResult } },
     read: (s) => ({ roll: P<{ result: { attackerRoll: number } }>(s, 'pendingAttack').result.attackerRoll, success: P<{ result: { attackerDetail: { success: boolean } } }>(s, 'pendingAttack').result.attackerDetail.success }),
   },
@@ -74,13 +74,13 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     },
     read: (s) => ({ roll: P<{ def: { roll: number } }>(s, 'pendingDefense').def.roll, success: P<{ def: { success: boolean } }>(s, 'pendingDefense').def.success }),
   },
-  cast: {
+  incantation: {
     state: { pendingCast: { casterId: 'H', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 88, target: T, sl: -4, isCritical: false, isFumble: false, log: '' } } },
     read: (s) => ({ roll: P<{ result: { roll: number } }>(s, 'pendingCast').result.roll, success: P<{ result: { cast: boolean } }>(s, 'pendingCast').result.cast }),
   },
   // Contre-sort / Opposition : le jet d'incantation ENNEMI est FIGÉ dans `pendingCast` — les deux
   // accesseurs de dé l'y relisent pour re-opposer, la fixture doit donc le poser.
-  counterspell: {
+  contreSort: {
     state: {
       pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, focused: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [{ id: 'H', interactive: true, declared: 'solo', result: { dispelled: false, counter: rateTR, casterNetSL: 7, log: '' } }] },
@@ -110,7 +110,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   // Rangée de BANDE : elle porte SON verdict (`CascadeRoll.success`) — la garde le LIT. Le dériver du
   // d100 (`roll ≤ cible`, cf. `partRead`) reviendrait à se fournir la valeur qu'on prétend mesurer :
   // la garde resterait verte alors même que l'accesseur de dé n'écrirait aucune issue.
-  cascadeBatch: {
+  cascadeEnBande: {
     state: { pendingCascade: cascadeDeTest([{ id: 'b1', kind: cleDeFixture('batch'), aggregate: 'none', participants: [{ id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }]) },
     pid: 'H',
     read: (s) => {
@@ -124,7 +124,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     pid: 'd1',
     read: (s) => { const v = P<{ participants: { de: { result: { roll: number } } }[] }>(s, 'pendingCascade').participants[0].de.result.roll; return { roll: v, success: v <= T }; },
   },
-  flee: {
+  fuite: {
     state: { pendingDisengage: { moverId: 'E', foeId: 'H', fuir: { participants: [{ id: 'H', kind: 'backstab', interactive: true, result: atkResult }] } } },
     pid: 'H',
     read: (s) => {
@@ -136,26 +136,26 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingTest: { actorId: 'H', actorName: 'Héros', label: 'T', skillValue: T, difficulty: 'intermediaire', requireSL: 0, ...rate, onSuccess: [], onFailure: [] } },
     read: flatRead('pendingTest'),
   },
-  activity: {
+  activite: {
     state: { pendingActivity: { heroId: 'H', activityId: 'a', skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingActivity'),
   },
-  reload: {
+  rechargement: {
     state: { pendingReload: { actorId: 'H', actorName: 'H', weaponUid: 'w', reload: 1, progressBefore: 0, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingReload'),
   },
-  handGate: { state: { pendingHandGate: { attackerId: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } }, read: flatRead('pendingHandGate') },
-  steamSave: { state: { pendingSteamSave: { actorId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingSteamSave') },
-  appraise: {
+  mainEnsanglantee: { state: { pendingHandGate: { attackerId: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } }, read: flatRead('pendingHandGate') },
+  fuiteDeVapeur: { state: { pendingSteamSave: { actorId: 'H', skillValue: T, difficulty: 'intermediaire', ...rate } }, read: flatRead('pendingSteamSave') },
+  evaluation: {
     state: { pendingAppraise: { actorId: 'H', actorName: 'H', itemUid: 'x', itemName: 'x', truePriceBrass: 1, availability: 'rare', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingAppraise'),
   },
-  heal: {
-    state: { pendingHeal: { healerId: 'H', targetId: 'H', mode: 'wounds', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: T, difficulty: 'intermediaire', ...rate } },
+  soins: {
+    state: { pendingHeal: { healerId: 'H', targetId: 'H', mode: 'blessures', intBonus: 4, test: 'guerison', bandagesDe: null, skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingHeal'),
   },
-  surgery: {
-    state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', kind: 'surgery', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
+  chirurgie: {
+    state: { pendingSurgery: { healerId: 'H', healerName: 'H', targetId: 'H', targetName: 'H', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingSurgery'),
   },
   // Exposition à une Influence corruptrice (LDB 19 l.29) : un Test, donc la Résilience (LDB 17 l.68) et son
@@ -164,31 +164,31 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', nature: 'physique', test: testDeRegle('influences-corruptrices', 'physique'), natureFixee: true, menace: 'corruption', ...rate } },
     read: flatRead('pendingCorruption'),
   },
-  recover: { state: { pendingStateRecovery: { actorId: 'H', state: 'sonne', skillValue: T, difficulty: 'intermediaire', roll: rateTR } }, read: trRead('pendingStateRecovery') },
-  bargain: {
+  recuperation: { state: { pendingStateRecovery: { actorId: 'H', state: 'sonne', skillValue: T, difficulty: 'intermediaire', roll: rateTR } }, read: trRead('pendingStateRecovery') },
+  marchandage: {
     state: { pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: T, merchantRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, roll: rateTR } },
     read: trRead('pendingBargain'),
   },
-  frenzy: { state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },
-  approach: { state: { pendingApproach: { combatantId: 'H', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'E', sourceName: 'E', result: rate } }, read: resultRead('pendingApproach') },
-  ward: { state: { pendingWard: { attackerId: 'H', targetId: 'E', targetName: 'E', result: rate } }, read: resultRead('pendingWard') },
-  dispel: { state: { pendingDispel: { casterId: 'H', value: T, spellId: 's', result: rate } }, read: resultRead('pendingDispel') },
-  shanty: { state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },
+  frenesie: { state: { pendingFrenzy: { combatantId: 'H', result: rate } }, read: resultRead('pendingFrenzy') },
+  approche: { state: { pendingApproach: { combatantId: 'H', test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: 'E', sourceName: 'E', result: rate } }, read: resultRead('pendingApproach') },
+  protection: { state: { pendingWard: { attackerId: 'H', targetId: 'E', targetName: 'E', result: rate } }, read: resultRead('pendingWard') },
+  dissipation: { state: { pendingDispel: { casterId: 'H', value: T, spellId: 's', result: rate } }, read: resultRead('pendingDispel') },
+  chansonDeMarin: { state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },
   battement: { state: { pendingBattement: { attackerId: 'H', targetId: 'E', result: rateTR } }, read: resultRead('pendingBattement') },
-  focus: {
+  focalisation: {
     state: { pendingFocus: { casterId: 'H', spellId: 'drain', result: { dr: 0, isCritical: false, isFumble: false, roll: 88, target: T, sl: -4, log: '' } } },
     read: (s) => ({ roll: P<{ result: { roll: number } }>(s, 'pendingFocus').result.roll, success: P<{ result: { dr: number } }>(s, 'pendingFocus').result.dr > 0 }),
   },
-  run: {
+  course: {
     state: { pendingRun: { combatantId: 'H', test: testDeRegle('course', 'courir'), dest: { x: 5, y: 0 }, result: { success: false, roll: 88, target: T, dr: -4, bonusCases: 0 } } },
     read: resultRead('pendingRun'),
   },
-  fall: {
+  chute: {
     state: { pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 6, initiateurId: 'H', participants: [{ id: 'H', interactive: true, attempt: true, result: { success: false, roll: 88, target: T, dr: -4, effectiveMetres: 6 } }] } },
     pid: 'H',
     read: (s) => { const r = P<{ participants: { result: { roll: number; success: boolean } }[] }>(s, 'pendingFall').participants[0].result; return { roll: r.roll, success: r.success }; },
   },
-  extendedTest: {
+  testEtendu: {
     state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', target: T, targetDR: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },
     pid: 'r1',
     read: (s) => {
@@ -203,29 +203,29 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     pid: 'de-1',
     read: (s) => { const v = P<{ participants: { value: number }[] }>(s, 'pendingEtalLot').participants[0].value; return { roll: v, success: v <= T }; },
   },
-  forceDoor: {
+  enfoncerLaPorte: {
     state: { pendingForceDoor: { doorId: 'd', participants: [{ id: 'H', interactive: true, result: { roll: 88, target: T, sl: -4, damage: 0 } }] } },
     pid: 'H',
     read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingForceDoor').participants[0].result),
   },
-  shipManeuver: {
+  manoeuvreDuNavire: {
     state: { pendingShipManeuver: { participants: [part3()] } },
     pid: 'H',
     read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingShipManeuver').participants[0].result),
   },
-  shipBattery: {
+  tirDeBatterie: {
     state: { pendingShipBattery: { participants: [part3()] } },
     pid: 'H',
     read: partRead((s) => P<{ participants: { result: { roll: number } }[] }>(s, 'pendingShipBattery').participants[0].result),
   },
-  disengage: opposedFixture('pendingDisengage', { moverId: 'H', foeId: 'E' }),
+  desengagement: opposedFixture('pendingDisengage', { moverId: 'H', foeId: 'E' }),
   auContact: opposedFixture('pendingAuContact', { moverId: 'H', foeId: 'E' }),
-  grapple: opposedFixture('pendingGrapple', { actorId: 'H', targetId: 'E' }),
+  empoignade: opposedFixture('pendingGrapple', { actorId: 'H', targetId: 'E' }),
   distraire: {
     state: { pendingDistraire: { moverId: 'H', targetId: 'E', atk: rateTR, defRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, result: 'fail' } },
     read: (s) => ({ roll: P<{ atk: { roll: number } }>(s, 'pendingDistraire').atk.roll, success: P<{ result: string }>(s, 'pendingDistraire').result === 'success' }),
   },
-  maneuver: { state: { pendingManeuver: { attackerId: 'H', targetId: 'E', attaque: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
+  manoeuvre: { state: { pendingManeuver: { attackerId: 'H', targetId: 'E', attaque: 'm', kind: 'souffle', result: rateTR } }, read: resultRead('pendingManeuver') },
 };
 
 /** Les flux qui portent `setForcedRoll`. */

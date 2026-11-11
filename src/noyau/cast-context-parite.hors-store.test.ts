@@ -1,6 +1,6 @@
 /**
- * #1064 — PARITÉ du contexte d'incantation : le PREMIER jet (`jetLancer('cast')`) et la RELANCE
- * (`FLOWS.cast.reresolve`) lisent le MÊME contexte (`castContextMods`) — « N'écoutez point la
+ * #1064 — PARITÉ du contexte d'incantation : le PREMIER jet (`jetLancer('incantation')`) et la RELANCE
+ * (`FLOWS.incantation.reresolve`) lisent le MÊME contexte (`castContextMods`) — « N'écoutez point la
  * Sorcière » (LDB 42), attribut de Domaine (LDB 48 l.157) et bonus d'ENVIRONNEMENT de Domaine
  * (Ghyran, LDB 48 l.690). Avant ce lot, le bonus d'environnement n'était appliqué QU'À LA RELANCE :
  * relancer un Sort de Vie en zone rurale changeait la cible sous le joueur.
@@ -27,7 +27,7 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
     banc.setState({ party: [mage] });
     banc.getState().lancerLaScene({ ...testScene(), environment: 'rural' } as never);
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const M = b.combatants.find((c) => c.label === 'M')!;
@@ -47,16 +47,16 @@ describe('Incantation — le contexte est le MÊME au premier jet et à la relan
     const M = setup();
     const spell = findSpellById(SPELL)!;
     expect(domainEnvironmentBonus(spell, 'rural')).toBe(10); // la donnée porte bien le bonus
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     const first = banc.getState().pendingCast!.result!;
     expect(first.target).toBe(castingValue(M as Combatant, incantationArcane()) + 10);
   });
 
   it('la RELANCE rend la même cible que le premier jet (aucun mod n’apparaît/disparaît)', () => {
     setup();
-    banc.getState().jetLancer('cast');
+    banc.getState().jetLancer('incantation');
     const first = banc.getState().pendingCast!.result!.target;
-    banc.getState().jetRelancer('cast');
+    banc.getState().jetRelancer('incantation');
     expect(banc.getState().pendingCast!.result!.target).toBe(first);
   });
 

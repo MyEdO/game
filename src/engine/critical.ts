@@ -21,7 +21,8 @@ import { memoParVersion } from '../data/versionDataset';
 import { traumaById, traumaFicheById, stampCriticalEscalation, fireCritTriggers, type SequelleNeuve } from './trauma';
 import { rule } from './policy';
 import { EMPTY_FLOW, poserEnjeu, type Flow, type FlowTestNode } from './flowCore';
-import { combatStakeRef, type StakeRef } from '../data';
+import { categorieDeLaNiche, combatStakeRef, type StakeRef } from '../data';
+import { suiteDesEntrees } from '../data/schemas/grammaire/cle-d-espace';
 import { type GameOp } from './ops';
 import { isStructure, isEngin } from './structures';
 import { isVehicle, estNavire } from './coque';
@@ -35,7 +36,7 @@ export type { CritTableKey, JeuDeCritique };
  * `entryCategory`, `src/data/index.ts`). PUR.
  */
 function enjeuDeRangee(jeu: JeuDeCritique, location: HitLocation, entryId: string): StakeRef {
-  return combatStakeRef('crit-row-test', { entryId, entryCategory: critEntryCodexCategory(critTableKeyFor(location), jeu) });
+  return combatStakeRef('critique-ligne-test', { entryId, entryCategory: critEntryCodexCategory(critTableKeyFor(location), jeu) });
 }
 
 /**
@@ -172,10 +173,11 @@ export function critImmediateSummary(ops: GameOp[]): { woundsLost: number; condi
   return { woundsLost, conditions };
 }
 
-/** Catégorie Codex EXACTE (`registry.ts`) d'un Coup Critique, par table + jeu (LDB/Aux Armes). */
-export function critEntryCodexCategory(table: CritTableKey, jeu: JeuDeCritique): string {
-  const seg = table === 'tete' ? 'Tete' : table === 'bras' ? 'Bras' : table === 'corps' ? 'Corps' : 'Jambe';
-  return `${jeu === 'aa' ? 'aaCriticals' : 'criticals'}${seg}`;
+/** Catégorie Codex EXACTE d'un Coup Critique, par table + jeu : celle de la niche `[id].entries` de son
+ *  document (`critiqueDoc`, `categorieDeLaNiche`) ; `undefined` pour un document que le Codex n'expose pas
+ *  (aucune fiche : l'enjeu replie sur le foyer du `kind`, jamais un nom inventé). */
+export function critEntryCodexCategory(table: CritTableKey, jeu: JeuDeCritique): string | undefined {
+  return categorieDeLaNiche('criticals.json', suiteDesEntrees(critiqueDoc(jeu, table).id));
 }
 
 /** Retrouve l'entrée de Coup Critique portant cet id STABLE — un id de `critEntriesSuffered`

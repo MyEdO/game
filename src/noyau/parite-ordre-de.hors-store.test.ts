@@ -60,7 +60,7 @@ function startFight(seed: number, opts: { pa?: ArmourPoints; gmSeat?: number } =
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: opts.gmSeat } });
   const b = banc.getState().battle!;

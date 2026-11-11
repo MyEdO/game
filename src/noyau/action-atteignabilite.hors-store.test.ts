@@ -55,24 +55,24 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
    * ARMEMENT — la valeur qu'une action armée (`armed`) pose dans `battle.action` est le `mode` que la
    * MÊME entrée déclare, un MODE de ciblage du catalogue. Conséquence lue par les consommateurs :
    * « quel geste arme le mode X ? » se résout par le champ `mode` d'une entrée `armed`, l'id de l'entrée porteuse
-   * étant libre (`cast-spell` arme `cast`, `push-engine` arme `push`).
+   * étant libre (`incantation` arme `incantation`, `poussee` arme `poussee`).
    */
-  it('toute action `armed` arme un mode du catalogue (mode incantation → `cast-spell`)', () => {
+  it('toute action `armed` arme un mode du catalogue (mode incantation → `incantation`)', () => {
     const armantes = ACTIONS.filter((a) => a.armed);
     expect(armantes.length, 'aucune action armante mesurée : la garde serait verte à vide').toBeGreaterThan(0);
     const bad = armantes
       .filter((a) => !TARGETING_MODES.some((m) => m.id === a.mode))
       .map((a) => `${a.id} → mode:${a.mode ?? '—'}`);
     expect(bad, `action(s) armée(s) dont le mode n'est pas un mode de ciblage :\n  ${bad.join('\n  ')}`).toEqual([]);
-    // Résolution NOMMÉE du mode incantation : une seule entrée l'arme, et c'est `cast-spell`.
+    // Résolution NOMMÉE du mode incantation : une seule entrée l'arme, et c'est `incantation`.
     const incantation = armantes.filter((a) => a.mode === CAST_MODE.id).map((a) => a.id);
-    expect(incantation, `le mode ${CAST_MODE.id} doit être armé par une entrée unique`).toEqual(['cast-spell']);
+    expect(incantation, `le mode ${CAST_MODE.id} doit être armé par une entrée unique`).toEqual(['incantation']);
   });
 
   it('un mode d’INTERLUDE porte son nom de phase, et sa sortie dit si Échap peut la prendre', () => {
     const interludes = ACTIONS.filter((a) => a.surface === 'interlude');
     expect(interludes.length, 'aucune action d’interlude : le bandeau n’aurait rien à rendre').toBeGreaterThan(0);
-    const muets = interludes.filter((a) => !a.mode || !targetingModeLabel(a.mode)).map((a) => a.id);
+    const muets = interludes.filter((a) => !TARGETING_MODES.some((m) => m.id === a.mode && targetingModeLabel(m.id))).map((a) => a.id);
     expect(muets, `interlude(s) dont le mode n'a pas de libellé de phase :\n  ${muets.join('\n  ')}`).toEqual([]);
     const sansVerdict = interludes.filter((a) => typeof a.exitSafe !== 'boolean').map((a) => a.id);
     expect(sansVerdict, `interlude(s) sans verdict exitSafe :\n  ${sansVerdict.join('\n  ')}`).toEqual([]);
@@ -110,7 +110,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * POURQUOI CHAQUE INTERLUDE PORTE SON PROPRE DISPATCHER (#1411 P0-B) — les sorties ne sont pas
  * interchangeables : `armerLeMode` (sortie de la bordée) est AVALÉ sous un flux différé
- * (`combatBusy`, `combatSlice.ts:2876`), là où `fenetreFermer('cleave')`/`fenetreFermer('dualStrike')` sont justement les verbes
+ * (`combatBusy`, `combatSlice.ts:2876`), là où `fenetreFermer('frappeMortelle')`/`fenetreFermer('secondeFrappe')` sont justement les verbes
  * DE ces flux. Un dispatcher mutualisé rendrait la sortie muette dès qu'un flux se superpose. Le
  * témoin POSITIF (sans flux, la sortie mord) borne la mesure.
  */
@@ -123,7 +123,7 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
     banc.setState({
       party: [h], scene: emptyScene('scene-test'), pendingCleave: null, pendingDualStrike: null, pendingCast: null,
       battle: {
-        combatants: [h], order: [h.id], baseOrder: [h.id], turn: 0, round: 1, action: 'battery',
+        combatants: [h], order: [h.id], baseOrder: [h.id], turn: 0, round: 1, action: 'bordee',
         selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false,
         log: [], over: null, ...over,
       } as unknown as BattleState,
@@ -133,20 +133,20 @@ describe('sorties d’interlude — le dispatcher mutualisé est inexprimable (t
 
   it('TÉMOIN — sans flux différé, la sortie de bordée désarme bien le mode', () => {
     combatArme();
-    banc.jouerLaCase('battery-cancel');
+    banc.jouerLaCase('annulation-bordee');
     expect(banc.getState().battle!.action).toBeNull();
   });
 
   it('MESURE — sous un flux différé, la MÊME sortie est avalée (donc jamais partagée avec cleave/dual)', () => {
     const h = combatArme();
     banc.setState({ pendingCleave: { attackerId: h.id, hitIds: [], count: 0 } as never });
-    banc.jouerLaCase('battery-cancel');
+    banc.jouerLaCase('annulation-bordee');
     expect(
       banc.getState().battle!.action,
       'la sortie de bordée est avalée sous `combatBusy` — c’est pourquoi cleave/dual portent leurs propres verbes',
-    ).toBe('battery');
+    ).toBe('bordee');
     // … et le verbe DE ce flux, lui, passe : chaque interlude sort par SON dispatcher.
-    banc.jouerLaCase('cleave-end');
+    banc.jouerLaCase('fin-balayage');
     expect(banc.getState().pendingCleave).toBeNull();
   });
 });

@@ -5,11 +5,12 @@
  * quorum (`jouerOuMarquer`, #3369), que la validation (`validationDeFenetre.ts`) partage.
  */
 import { t } from '../i18n';
+import { garanti } from '../lib/garanti';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Jeu } from './etat';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { libelleDeLaFermeture } from './libelles';
-import { sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDeFenetreDeclare, type QuiValideLaFenetre } from './modalArbiter';
+import { estFenetreQuiSeFerme, sortieDeLaFenetre, type FenetreQuiSeFerme, type GesteDeFenetreDeclare, type QuiValideLaFenetre } from './modalArbiter';
 import { decidingSeat, quorumAtteint } from './netOwnership';
 import { refuserGesteDuSiege } from './refusVisible';
 import type { FermetureDuJet } from './rollFlowFactory';
@@ -31,7 +32,7 @@ const marquesDe = (s: Jeu, g: GesteDeclare): Readonly<Record<number, boolean>> =
  *  `marques` : les sièges requis le sont (`quorumAtteint`), hors de l'état d'un invité, et pour `hoteAuQuorum` à l'appel
  *  de l'hôte. */
 function seJoueAuQuorum(s: Jeu, g: GesteDeclare, marques: Readonly<Record<number, boolean>>): boolean {
-  if (s.net.mode === 'guest' || !quorumAtteint(s, marques)) return false;
+  if (s.net.mode === 'invite' || !quorumAtteint(s, marques)) return false;
   return g.qui === 'quorum' || decidingSeat(s) === 0;
 }
 
@@ -66,11 +67,15 @@ export function fermetureDeLaSortie(s: Jeu, fenetre: FenetreQuiSeFerme): Fermetu
  *  ne se ferme pas, une fenêtre fermée, la sortie de l'hôte dans l'état d'un invité, ce qui ferme sa sortie maintenant
  *  (`fermetureDeLaSortie`) ; `null` : elle se joue. */
 export function refusDeLaSortie(s: Jeu, fenetre: unknown): string | null {
-  const sortie = sortieDeLaFenetre(fenetre);
-  if (!sortie) return t('sortie.refus.inconnue');
+  return estFenetreQuiSeFerme(fenetre) ? refusDeLaSortieNommee(s, fenetre) : t('sortie.refus.inconnue');
+}
+
+/** Ce qui refuse la sortie de `fenetre` maintenant (`refusDeLaSortie`) ; `null` : elle se joue. */
+export function refusDeLaSortieNommee(s: Jeu, fenetre: FenetreQuiSeFerme): string | null {
+  const sortie = garanti(sortieDeLaFenetre(fenetre), fenetre, 'sortie déclarée');
   if (!sortie.ouverte(s)) return t('sortie.refus.fermee');
-  if (sortie.qui === 'hote' && s.net.mode === 'guest') return t('sortie.refus.hoteSeul');
-  const fermee = fermetureDeLaSortie(s, fenetre as FenetreQuiSeFerme);
+  if (sortie.qui === 'hote' && s.net.mode === 'invite') return t('sortie.refus.hoteSeul');
+  const fermee = fermetureDeLaSortie(s, fenetre);
   return fermee && libelleDeLaFermeture(fermee);
 }
 

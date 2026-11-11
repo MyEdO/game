@@ -121,7 +121,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat — on pilote l'ordre nous-mêmes
 
     const b = banc.getState().battle!;
@@ -143,7 +143,7 @@ describe('Boucle de jeu (store)', () => {
     drainCombatEndCascade(); // mutants Corrompus → Test `influences-corruptrices` influençable AVANT victoire → on le résout
 
     const st = banc.getState();
-    expect(st.battle?.over).toBe('victory');
+    expect(st.battle?.over).toBe('victoire');
     const h = st.party[0];
     expect(h.wounds.current).toBe(4);                                              // Blessures persistées
     expect(h.criticalWounds).toBe(1);                                             // critiques persistés
@@ -206,7 +206,7 @@ describe('Boucle de jeu (store)', () => {
     expect(avant[0].table!.result, 'le dé n’est pas encore tombé').toBeUndefined();
     const dev = joueLaSeverite();
     expect(dev.deviation?.targetId).toBe('h1');
-    expect(dev.reveal?.kind).toBe('critical'); // panneau riche porté par l'étape, sous la ligne de dé
+    expect(dev.reveal?.kind).toBe('critique'); // panneau riche porté par l'étape, sous la ligne de dé
     // Avant le choix : ni Blessure, ni Critique, ni PA consommée (early-return propre).
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.wounds.current).toBe(15);
@@ -235,7 +235,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   // ── Phase A — le JET d'attaque est l'ÉTAPE 0 de la séquence ──
-  // L'attaque ouvre un pendingCascade purpose 'combat' dont l'étape 0 (`jet:'attack'`) est rendue par
+  // L'attaque ouvre un pendingCascade purpose 'combat' dont l'étape 0 (`jet:'attaque'`) est rendue par
   // CascadeModal via useAttackJetProps ; ses conséquences s'empilent DANS la même séquence (une fenêtre).
   function mkAttackSeq(res: AttackResult) {
     seedBattleRng(20260615);
@@ -259,24 +259,24 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({
       battle, mode: 'battle',
       pendingAttack: { attackerId: 'h1', targetId: 'e1', location: null, result: res },
-      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'attackJet', jet: 'attack', actorId: 'h1' }], { title: 'Attaque', icon: 'action/attack', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'h1' }], { title: 'Attaque', icon: 'action/attack', purpose: 'combat' }),
     });
   }
 
   it('Attaque (jet = étape 0) : une touche simple clôt la séquence (jet seul → resume)', () => {
     mkAttackSeq({ hit: true, attackerRoll: 23, netSL: 2, location: 'corps', damage: 5, woundsLost: 3, critical: false, advantageTo: 'attacker', defenderDefeated: false, log: 'Touché' });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull(); // aucune conséquence empilée → séquence finalisée
   });
 
   it('Attaque (jet = étape 0) : un Coup Critique s’empile DANS la même séquence (pas de 2ᵉ fenêtre)', () => {
     mkAttackSeq({ hit: true, attackerRoll: 24, netSL: 4, location: 'corps', critLocation: 'corps', damage: 9, woundsLost: 4, critical: true, advantageTo: 'attacker', defenderDefeated: false, log: 'Coup Critique' });
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     const seq = banc.getState().pendingCascade;
     expect(seq?.purpose).toBe('combat');
-    expect(seq?.participants[0]?.jet).toBe('attack');                          // le jet reste l'étape 0
-    expect(seq?.participants.some((s) => s.kind === 'critical')).toBe(true);   // conséquence INLINE, même séquence
+    expect(seq?.participants[0]?.jet).toBe('attaque');                          // le jet reste l'étape 0
+    expect(seq?.participants.some((s) => s.kind === 'critique')).toBe(true);   // conséquence INLINE, même séquence
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
@@ -390,7 +390,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [{ ...hero, conditions: [{ id: 'hemorragique', value: 1 }, { id: 'a-terre', value: 1 }] }] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const h = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
     expect(h.conditions.find((x) => x.id === 'hemorragique')?.value).toBe(1); // persistant ré-importé
@@ -403,25 +403,25 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [a, { ...b, dead: true }] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const heroes = banc.getState().battle!.combatants.filter((c) => c.kind === 'hero');
     expect(heroes.length).toBe(1);
     expect(heroes[0].label).toBe('A');
   });
 
-  it('Maladresse — la clôture du flux `fumble` applique l’auto-blessure (Oups! 01-20)', () => {
+  it('Maladresse — la clôture du flux `maladresse` applique l’auto-blessure (Oups! 01-20)', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
     h.wounds.current = 10;
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().jetValider('fumble');
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 11, kind: 'selfWound', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.getState().jetValider('maladresse');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.wounds.current).toBe(9); // -1, ignore BE+PA
     expect(banc.getState().pendingCascade).toBeNull(); // l'étape Maladresse unique se ferme (donnée portée par l'étape)
@@ -432,12 +432,12 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().jetValider('fumble');
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon: h.weapons[0], result: { roll: 85, kind: 'trauma', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.getState().jetValider('maladresse');
     const after = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(after.criticalWounds).toBe(1);
     expect(after.traumas?.[0]?.ops?.some((o) => o.op === 'moveScale')).toBe(true); // jambe → Mouvement ÷2
@@ -448,7 +448,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -463,12 +463,12 @@ describe('Boucle de jeu (store)', () => {
     expect(st.battle!.acted).toBe(true); // l'Action est consommée d'office
   });
 
-  it('Maladresse — fumble du DÉFENSEUR héros (défense ratée + double) → étape jet:fumble de la cascade', () => {
+  it('Maladresse — fumble du DÉFENSEUR héros (défense ratée + double) → étape jet:maladresse de la cascade', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -492,17 +492,17 @@ describe('Boucle de jeu (store)', () => {
         suite: { mode: 'machine', coup: {} },
       },
       // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
     banc.getState().jetValider('defense');
     const st = banc.getState();
     // La Maladresse est l'étape COURANTE de la cascade combat ; sa donnée (arme/résultat) vit SUR l'étape.
     const cur = st.pendingCascade?.participants[st.pendingCascade!.cursor];
-    expect(cur?.jet).toBe('fumble');
+    expect(cur?.jet).toBe('maladresse');
     expect(cur?.actorId).toBe(h.id);
-    expect(cur?.fumble?.weapon).toBeTruthy();
+    expect(cur?.maladresse?.weapon).toBeTruthy();
     // Identité de l'étape poussée = compteur `seq` de la séquence (#1508) : une fixture sans `seq` donne `…-undefined`.
-    expect(cur?.id).toBe(`cons-fumble-${h.id}-1`);
+    expect(cur?.id).toBe(`cons-maladresse-${h.id}-1`);
     expect(st.pendingCascade!.seq).toBe(2);
   });
 
@@ -516,7 +516,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -533,7 +533,7 @@ describe('Boucle de jeu (store)', () => {
         def: { roll: 60, target: 40, success: false, sl: 0, isDouble: false }, result,
         suite: { mode: 'machine', coup: {} },
       },
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
     banc.getState().jetValider('defense');
     const st = banc.getState();
@@ -548,7 +548,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     b.combatants.forEach((c) => { c.fortune = 0; }); // neutralise la pré-emption Chance
@@ -562,7 +562,7 @@ describe('Boucle de jeu (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === h.id)!.actLastNextRound).toBeFalsy(); // flag purgé
     // Franchir un 2e Round : « Commencer le round 2 » d'abord (pendant la pause PERSONNE n'est
     // actif et advanceTurn est inerte), puis fin du dernier tour → ordre canonique restauré.
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b2 = banc.getState().battle!;
     banc.setState({ battle: { ...b2, turn: b2.order.length - 1 } });
     advanceTurn(banc.getState, banc.setState);
@@ -575,7 +575,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let b = banc.getState().battle!;
     const h = b.combatants.find((c) => c.kind === 'hero')!;
@@ -583,8 +583,8 @@ describe('Boucle de jeu (store)', () => {
     const witem = h.items!.find((i) => (i.kind === 'melee' || i.kind === 'ranged') && h.weapons.some((w) => w.uid === i.uid))!;
     const weapon = h.weapons.find((w) => w.uid === witem.uid) ?? h.weapons[0];
     // (1) Maladresse 21-40 → 1 Dégât d'arme, écrit sur l'ItemInstance source.
-    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-fumble-${h.id}`, kind: 'fumbleJet', jet: 'fumble', actorId: h.id, fumble: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
-    banc.getState().jetValider('fumble');
+    banc.setState({ battle: { ...b }, pendingCascade: cascadeDeTest([{ id: `cons-maladresse-${h.id}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: h.id, maladresse: { weapon, result: { roll: 25, kind: 'weaponDamageActLast', label: 'x' } } }], { title: '', purpose: 'combat' }) });
+    banc.getState().jetValider('maladresse');
     const hMid = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(hMid.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (2) Fin de combat (victoire) → writeback vers le groupe.
@@ -594,11 +594,11 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...b, combatants, order, turn: order.length - 2 } });
     advanceTurn(banc.getState, banc.setState);
     drainCombatEndCascade(); // mutants Corrompus → cascade de fin de combat AVANT victoire
-    expect(banc.getState().battle?.over).toBe('victory');
+    expect(banc.getState().battle?.over).toBe('victoire');
     expect(banc.getState().party[0].items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
     // (3) Combat suivant : l'usure est ré-importée (carry-in + recomputeLoadout).
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const h2 = banc.getState().battle!.combatants.find((c) => c.kind === 'hero')!;
     expect(h2.items!.find((i) => i.label === witem.label)!.damageTaken).toBe(1);
@@ -611,24 +611,24 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     const turn = st.battle!.order.indexOf(heroC.id);
-    banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'flechette', acted: false } });
+    banc.setState({ battle: { ...st.battle!, turn, action: 'incantation', selectedSpellId: 'flechette', acted: false } });
     // Flux par modale : cliquer la cible OUVRE l'incantation (jet différé), n'applique rien.
     cliquerSurLeCombattant(banc.getState, enemy.id);
     expect(banc.getState().pendingCast).not.toBeNull();
     expect(banc.getState().battle!.acted).toBe(false); // pas encore lancé
-    banc.getState().jetLancer('cast'); // « Lancer » : fige le jet
+    banc.getState().jetLancer('incantation'); // « Lancer » : fige le jet
     // Dé FIXÉ (#939) : 23 réussit (Int 90) et n'est PAS un double — sinon l'état du RNG partagé
     // (isolate:false) peut sortir une Incantation Critique, dont l'effet se CHOISIT (LDB 46 l.28-32)
     // avant toute application : « Appliquer » resterait alors inerte et `acted` faux (classe #1014).
-    banc.getState().jetImposerLeResultat('cast', 23);
+    banc.getState().jetImposerLeResultat('incantation', 23);
     expect(banc.getState().pendingCast!.result).not.toBeNull();
     expect(banc.getState().pendingCast!.result!.isCritical, 'jet déterministe non critique').toBe(false);
-    banc.getState().jetValider('cast'); // « Appliquer » : résout
+    banc.getState().jetValider('incantation'); // « Appliquer » : résout
     st = banc.getState();
     // L'action est consommée, l'incantation journalisée, et la modale fermée.
     expect(st.battle!.acted).toBe(true);
@@ -644,14 +644,14 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [pretre] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(heroC.id);
-    banc.setState({ battle: { ...st.battle!, turn, action: 'cast', selectedSpellId: 'benediction-de-bataille', acted: false } });
+    banc.setState({ battle: { ...st.battle!, turn, action: 'incantation', selectedSpellId: 'benediction-de-bataille', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id); // se cibler soi-même → ouvre la modale
-    banc.getState().jetLancer('cast'); // « Lancer »
-    banc.getState().jetValider('cast'); // « Appliquer »
+    banc.getState().jetLancer('incantation'); // « Lancer »
+    banc.getState().jetValider('incantation'); // « Appliquer »
     st = banc.getState();
     const after = st.battle!.combatants.find((c) => c.id === heroC.id)!;
     const failed = st.battle!.log.some((l) => l.text.includes('échoue'));
@@ -668,7 +668,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(2); // RNG de combat contrôlé : seed 2 ⇒ touche avec dégâts (cf. recherche)
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -679,8 +679,8 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     const before = enemy.wounds.current;
     cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale d'attaque
-    banc.getState().jetLancer('attack'); // lance le jet
-    banc.getState().jetValider('attack'); // applique le résultat
+    banc.getState().jetLancer('attaque'); // lance le jet
+    banc.getState().jetValider('attaque'); // applique le résultat
     st = banc.getState();
     const enemyAfter = st.battle!.combatants.find((c) => c.id === enemy.id)!;
     expect(enemyAfter.wounds.current).toBeLessThan(before);
@@ -730,7 +730,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const heroC = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemy = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -740,7 +740,7 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(heroC.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     cliquerSurLeCombattant(banc.getState, enemy.id, { confirm: true }); // ouvre la modale
-    banc.getState().jetLancer('attack'); // le +1 Sonné s'applique AVANT le jet
+    banc.getState().jetLancer('attaque'); // le +1 Sonné s'applique AVANT le jet
     st = banc.getState();
     const heroAfter = st.battle!.combatants.find((c) => c.id === heroC.id)!;
     expect(heroAfter.advantage).toBe(1);
@@ -752,7 +752,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(4);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -769,7 +769,7 @@ describe('Boucle de jeu (store)', () => {
         result: null,
         suite: { mode: 'machine', coup: {} },
       },
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
     });
     banc.getState().jetLancer('defense'); // « Défendre » : roule la défense + résout
     let pd = banc.getState().pendingDefense!;
@@ -792,7 +792,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(5);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -819,7 +819,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(5);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -853,7 +853,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     H.conditions.push({ id: 'sonne', value: 1 });
@@ -872,7 +872,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(5);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner(); // purge le timer d'IA armé par lancerLeCombat → on pilote nous-mêmes l'ordre du tour
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -902,7 +902,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -911,8 +911,8 @@ describe('Boucle de jeu (store)', () => {
     const turn = st.battle!.order.indexOf(H.id);
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 99, movedPreAction: false, acted: false } });
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id);
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.engagedWith).toContain(H.id);
@@ -924,7 +924,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(7);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -937,7 +937,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     banc.abandonner();
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : l'approche vers l'ennemi cliqué se DEMANDE.
-    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, E.id, { confirm: true, intentionId: 'charge' });
     banc.reprendreLesEnAttente(); // joue le glissé d'approche (charge) → ouvre la frappe
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -951,7 +951,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -967,19 +967,19 @@ describe('Boucle de jeu (store)', () => {
     expect(st.pendingAttack).toBeNull();
   });
 
-  it('jetAnnuler@attack après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
+  it('jetAnnuler@attaque après le JET d’une Charge est sans effet (charge engagée, LDB 15 l.35)', () => {
     // Avant le jet, une charge s'annule (misclic — cf. charge-undo.hors-store.test.ts) ; une fois le dé lancé
     // (`result` posé), elle est ENGAGÉE : plus d'annulation.
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
     banc.setState({ pendingAttack: { attackerId: H.id, targetId: E.id, location: null, result: { hit: false } as never, fromCharge: true } });
-    banc.getState().jetAnnuler('attack');
+    banc.getState().jetAnnuler('attaque');
     expect(banc.getState().pendingAttack).not.toBeNull(); // dé lancé → engagé
   });
 
@@ -988,7 +988,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
@@ -1005,13 +1005,13 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false } });
     // Clic confirmé sur la monture → la modale de choix s'ouvre (pas d'attaque encore).
     // Charge ARMÉE (spec HUD § ARBITRAGE 2026-08-19) : le couple est hors d'Allonge, l'approche se demande.
-    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, approche: true });
+    cliquerSurLeCombattant(banc.getState, mount.id, { confirm: true, intentionId: 'charge' });
     st = banc.getState();
-    // Le verdict voyage DANS le pending : le choix `mountTarget.cible` relance le clic, l'intention est déjà dissoute.
-    expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, approche: true });
+    // L'intention du clic voyage DANS le pending : le choix `cibleDeMonture.cible` relance le clic, l'intention est déjà dissoute.
+    expect(st.pendingMountTarget).toEqual({ riderId: rider.id, mountId: mount.id, intentionId: 'charge' });
     expect(st.pendingAttack).toBeNull();
     // Choisir la monture → modale fermée + attaque ciblée sur la monture.
-    banc.getState().fenetreChoisir('mountTarget', 'cible', mount.id);
+    banc.getState().fenetreChoisir('cibleDeMonture', 'cible', mount.id);
     st = banc.getState();
     expect(st.pendingMountTarget).toBeNull();
     expect(st.pendingAttack?.targetId).toBe(mount.id);
@@ -1023,7 +1023,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(3);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1036,7 +1036,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().rompreLEngagement(); // ouvre le menu de choix
     expect(banc.getState().pendingDisengage!.phase).toBe('choice');
     expect(banc.getState().pendingDisengage!.canSacrifice).toBe(true); // Avantage supérieur → option dispo
-    banc.getState().jetRegler('disengage', 'sacrifier', true); // « Sacrifier l'Avantage »
+    banc.getState().jetRegler('desengagement', 'sacrifier', true); // « Sacrifier l'Avantage »
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(Ha.advantage).toBe(0); // Avantage sacrifié (l.87)
@@ -1051,7 +1051,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1070,7 +1070,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'failure',
       },
     });
-    banc.getState().jetValider('disengage');
+    banc.getState().jetValider('desengagement');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(1); // adversaire +1 (l.89)
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id); // toujours Engagé
@@ -1084,7 +1084,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(3);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1104,7 +1104,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'success',
       },
     });
-    banc.getState().jetValider('disengage');
+    banc.getState().jetValider('desengagement');
     st = banc.getState();
     const Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(Ha.advantage).toBe(1); // +1 Avantage (l.89)
@@ -1119,7 +1119,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(4);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1135,7 +1135,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'failure',
       },
     });
-    banc.getState().jetRelancer('disengage');
+    banc.getState().jetRelancer('desengagement');
     const stx = banc.getState();
     expect(stx.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1); // 1 point dépensé
     expect(stx.pendingDisengage!.atk!.roll).toBe(35); // jet du foe NON relancé
@@ -1147,7 +1147,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(6);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1168,7 +1168,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1187,7 +1187,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'tie',
       },
     });
-    banc.getState().jetValider('disengage');
+    banc.getState().jetValider('desengagement');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0); // statu quo : pas de +1 à l'adversaire
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toContain(E.id); // reste Engagé
@@ -1200,7 +1200,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(3);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const enemies = st.battle!.combatants.filter((c) => c.kind === 'enemy');
@@ -1221,7 +1221,7 @@ describe('Boucle de jeu (store)', () => {
         result: 'success',
       },
     });
-    banc.getState().jetValider('disengage');
+    banc.getState().jetValider('desengagement');
     st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.engagedWith).toEqual([]); // libéré de E1 ET E2
   });
@@ -1231,7 +1231,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1249,13 +1249,13 @@ describe('Boucle de jeu (store)', () => {
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.pos).toEqual(posBefore); // ni déplacement libre
   });
 
-  it('Désengagement — Fuir : adversaire +1 Avantage + coup dans le dos SUBI ; Test de Calme DIFFÉRÉ (flux flee) puis libéré et peut courir (LDB 15 l.59-68)', () => {
+  it('Désengagement — Fuir : adversaire +1 Avantage + coup dans le dos SUBI ; Test de Calme DIFFÉRÉ (flux fuite) puis libéré et peut courir (LDB 15 l.59-68)', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 3 });
     banc.setState({ party: [hero] });
     banc.getState().ensemencerLeTirage(5);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1269,7 +1269,7 @@ describe('Boucle de jeu (store)', () => {
       battle: { ...st.battle!, turn, action: null, movementUsed: 0, movedPreAction: false, acted: false },
       pendingDisengage: { moverId: H.id, foeId: E.id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     });
-    banc.getState().jetRegler('disengage', 'fuir', true);
+    banc.getState().jetRegler('desengagement', 'fuir', true);
     st = banc.getState();
     let Ea = st.battle!.combatants.find((c) => c.id === E.id)!;
     let Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
@@ -1280,9 +1280,9 @@ describe('Boucle de jeu (store)', () => {
     expect(fleeTouche(st.pendingDisengage!)!.jet).toBeNull(); // jet du Test `fuite` influençable en attente
     expect(Ha.engagedWith).toEqual([E.id]); // toujours Engagé tant que le Test `fuite` n'est pas confirmé
 
-    // Test `fuite` INFLUENÇABLE (flux `flee`) : Lancer → Appliquer (applique le coup + complète la fuite).
-    banc.getState().jetLancer('flee', H.id);
-    banc.getState().jetValider('flee');
+    // Test `fuite` INFLUENÇABLE (flux `fuite`) : Lancer → Appliquer (applique le coup + complète la fuite).
+    banc.getState().jetLancer('fuite', H.id);
+    banc.getState().jetValider('fuite');
     st = banc.getState();
     Ha = st.battle!.combatants.find((c) => c.id === H.id)!;
     Ea = st.battle!.combatants.find((c) => c.id === E.id)!;
@@ -1300,7 +1300,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().ensemencerLeTirage(2);
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     let st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const E = st.battle!.combatants.find((c) => c.kind === 'enemy')!;
@@ -1592,12 +1592,12 @@ describe('Fouille / butin par objet cherchable (store)', () => {
     expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Fiole', 'Lettre']);
     expect(st.scene!.entities.find((e) => e.id === 'coffre')).toBeUndefined(); // ramassé → disparaît
 
-    banc.getState().fenetreChoisir('loot', 'ligne', banc.getState().pendingLoot!.gear[0].uid, 'a'); // attribution explicite par portrait
+    banc.getState().fenetreChoisir('butin', 'ligne', banc.getState().pendingLoot!.gear[0].uid, 'a'); // attribution explicite par portrait
     st = banc.getState();
     expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(['Fiole']);
     expect(st.pendingLoot?.gear.map((g) => g.label)).toEqual(['Lettre']);
 
-    banc.getState().fenetreFermer('loot'); // « Continuer » : le non-attribué va au 1er héros (contrat victoire)
+    banc.getState().fenetreFermer('butin'); // « Continuer » : le non-attribué va au 1er héros (contrat victoire)
     st = banc.getState();
     expect((st.party[0].items ?? []).map((i) => i.label)).toEqual(expect.arrayContaining(['Fiole', 'Lettre']));
     expect(st.pendingLoot).toBeNull();
@@ -1636,7 +1636,7 @@ describe('Fouille / butin par objet cherchable (store)', () => {
 
     banc.getState().interagirAvecLEntite('cadavre');
     expect(banc.getState().pendingLoot?.gear.map((g) => g.label)).toEqual(['Dague']); // fenêtre d'abord
-    banc.getState().fenetreFermer('loot'); // non attribué → 1er héros
+    banc.getState().fenetreFermer('butin'); // non attribué → 1er héros
     const hero = banc.getState().party[0];
     const dague = (hero.items ?? []).find((i) => i.label === 'Dague');
     expect(dague).toBeTruthy();
@@ -1903,13 +1903,13 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.getState().interagirAvecLEntite('coffre');
     banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
-    expect(pa.gear).toEqual({ scope: 'loot', uid: banc.getState().pendingLoot!.gear[0].uid });
+    expect(pa.gear).toEqual({ scope: 'butin', uid: banc.getState().pendingLoot!.gear[0].uid });
     expect(pa.skillLabel ?? 'Évaluation').toBe('Évaluation');
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-    banc.getState().jetValider('appraise');
+    banc.getState().jetValider('evaluation');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.identified).toBeUndefined(); // révélé = champ absent
-    banc.getState().fenetreChoisir('loot', 'ligne', banc.getState().pendingLoot!.gear[0].uid, 'a');
+    banc.getState().fenetreChoisir('butin', 'ligne', banc.getState().pendingLoot!.gear[0].uid, 'a');
     const it2 = banc.getState().party[0].items!.find((i) => i.label === 'Épée')!;
     expect(it2.identified).not.toBe(false);
     expect(it2.qualities.some((q) => q.id === 'de-plaies-atroces')).toBe(true); // id de qualité runtime
@@ -1920,14 +1920,14 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detection');
     const pa = banc.getState().pendingAppraise!;
-    expect([pa.mode, pa.skillLabel]).toEqual(['detect', 'Intuition']);
+    expect([pa.mode, pa.skillLabel]).toEqual(['detection', 'Intuition']);
     banc.setState({ pendingAppraise: { ...pa, roll: 95, success: false, sl: -5 } });
-    banc.getState().jetValider('appraise');
+    banc.getState().jetValider('evaluation');
     const line = banc.getState().pendingLoot!.gear[0];
     expect([line.effect.detectTriedBy, line.effect.identified]).toEqual([['a'], false]);
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detection');
     expect(banc.getState().pendingAppraise).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectDejaTentee', { label: line.label }));
   });
@@ -1938,15 +1938,15 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.setState({ party: [looter(talent), looter({ ...talent, id: 'b', label: 'B' } as Partial<Combatant>)] });
     banc.getState().interagirAvecLEntite('coffre');
     const uid = banc.getState().pendingLoot!.gear[0].uid;
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().evaluerLObjet(uid, 'detection');
     const premier = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...premier, roll: 95, success: false, sl: -5 } });
-    banc.getState().jetValider('appraise');
-    banc.getState().evaluerLObjet(uid, 'detect');
+    banc.getState().jetValider('evaluation');
+    banc.getState().evaluerLObjet(uid, 'detection');
     const second = banc.getState().pendingAppraise!;
     expect(second.actorId, 'le détecteur qui n’a pas tenté').not.toBe(premier.actorId);
     banc.setState({ pendingAppraise: { ...second, roll: 5, success: true, sl: 2 } });
-    banc.getState().jetValider('appraise');
+    banc.getState().jetValider('evaluation');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.magicKnown).toBe(true);
     expect(line.effect.identified).toBeUndefined(); // tout révélé
@@ -1957,10 +1957,10 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     lootScene();
     banc.setState({ party: [looter({ talents: [{ talentId: 'detection-d-artefact', times: 1 }] } as Partial<Combatant>)] });
     applyEffectsLoot(banc.getState, banc.setState, [{ type: 'giveTrapping', trappingId: 'dague' }], 'Sac');
-    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid, 'detect');
+    banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid, 'detection');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 5, success: true, sl: 2 } });
-    banc.getState().jetValider('appraise');
+    banc.getState().jetValider('evaluation');
     const line = banc.getState().pendingLoot!.gear[0];
     expect(line.effect.detectTriedBy).toEqual(['a']);
     expect(line.effect.magicKnown).toBeUndefined();
@@ -1972,7 +1972,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 99, success: false, sl: -6 } });
-    banc.getState().jetValider('appraise');
+    banc.getState().jetValider('evaluation');
     expect(banc.getState().pendingLoot!.gear[0].effect.appraiseTriedDay).toBeDefined();
     // Même jour : la re-tentative est refusée (pas de modale).
     banc.getState().evaluerLObjet(banc.getState().pendingLoot!.gear[0].uid);
@@ -1992,7 +1992,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect(pl.title).toBe('Coffre de la garnison'); // la 1re fenêtre garde son titre
     expect(pl.gear.map((g) => g.label)).toEqual(['Épée', 'Dague']);
     expect(new Set(pl.gear.map((g) => g.uid)).size, 'chaque ligne a son uid, posé à sa création').toBe(2);
-    banc.getState().fenetreChoisir('loot', 'ligne', pl.gear[1].uid, 'a');
+    banc.getState().fenetreChoisir('butin', 'ligne', pl.gear[1].uid, 'a');
     expect(banc.getState().pendingLoot!.gear.map((g) => g.label), 'la Dague seule part').toEqual(['Épée']);
     expect((banc.getState().party[0].items ?? []).filter((i) => i.trappingId !== 'bourse').map((i) => i.label)).toEqual(['Dague']);
   });
@@ -2232,7 +2232,7 @@ describe('Détermination (Resolve) — retirer un État (LDB 17 l.59-61)', () =>
   });
 });
 
-describe('Ramasser un objet au sol en combat (un à la fois, `pickup` de `actions.json`)', () => {
+describe('Ramasser un objet au sol en combat (un à la fois, `ramassage` de `actions.json`)', () => {
   beforeEach(() => reset());
 
   function setup() {
@@ -2367,14 +2367,14 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     advanceTurn(banc.getState, banc.setState);
     banc.reprendreLesEnAttente(); // aucun timer d'IA ne doit être en attente pendant la pause
     expect(banc.getState().pendingRoundStart).not.toBeNull(); // l'ennemi n'a pas joué : on attend la confirmation
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     expect(banc.getState().pendingRoundStart).toBeNull();
   });
 
   it('roundStart.promouvoir place le héros en tête et dépense 1 Chance', () => {
     const { H } = endOfRoundBattle(2);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().fenetreChoisir('roundStart', 'promouvoir', H.id);
+    banc.getState().fenetreChoisir('debutDuRound', 'promouvoir', H.id);
     const st = banc.getState();
     expect(st.battle!.order[0]).toBe(H.id);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.fortune).toBe(1);
@@ -2383,8 +2383,8 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
   it('la validation de la pause (`fenetreValider(\'roundStart\')`) ferme la modale et active le héros promu en premier', () => {
     const { H } = endOfRoundBattle(1);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().fenetreChoisir('roundStart', 'promouvoir', H.id);
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreChoisir('debutDuRound', 'promouvoir', H.id);
+    banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
     expect(st.pendingRoundStart).toBeNull();
     expect(st.battle!.order[st.battle!.turn]).toBe(H.id); // H agit en premier ce Round
@@ -2401,8 +2401,8 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     seedBattleRng(1);
     banc.getState().declencherLeTirPreventif(H.id, E.id);
     expect(banc.getState().pendingAttack?.interrupt).toBe(true); // modale de tir ouverte, tireur non-actif
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     let st = banc.getState();
     expect(st.pendingAttack).toBeNull();                 // tir résolu
     expect(st.pendingRoundStart).not.toBeNull();          // TOUJOURS à la pause de début de Round (aucun tour avancé)
@@ -2412,7 +2412,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     expect(h1.loseNextMovement).toBe(true);               // ... et Mouvement épuisé
     // Son tour NORMAL : on le place en tête et on démarre le Round → le tour a lieu (effets début/fin) mais épuisé.
     banc.setState({ battle: { ...st.battle!, order: [H.id, ...st.battle!.order.filter((id) => id !== H.id)] } });
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     st = banc.getState();
     expect(st.battle!.order[st.battle!.turn]).toBe(H.id); // c'est bien son tour
     expect(st.battle!.acted).toBe(true);                  // Action déjà dépensée
@@ -2431,7 +2431,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     // (posée par le Tir rapide) PERSISTE et reste observable (sinon `lancerLeRound` la consommerait aussitôt).
     banc.setState({ battle: { ...banc.getState().battle!, order: [H.id, E.id] } });
     seedBattleRng(1);
-    banc.getState().fenetreValider('roundStart'); // au sommet : runPreemptShots fait tirer l'IA hors de l'ordre
+    banc.getState().fenetreValider('debutDuRound'); // au sommet : runPreemptShots fait tirer l'IA hors de l'ordre
     const st = banc.getState();
     expect(st.pendingAttack).toBeNull();       // l'IA résout son tir INLINE (aucune modale ouverte)
     expect(st.pendingRoundStart).toBeNull();   // le Round a démarré derrière l'interruption
@@ -2451,7 +2451,7 @@ describe('annulerLeDeplacement — annuler un déplacement décomposé tant qu�
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const st = banc.getState();
     const H = st.battle!.combatants.find((c) => c.kind === 'hero')!;
     const turn = st.battle!.order.indexOf(H.id);
@@ -2568,7 +2568,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4, fate: 2 });
     banc.getState().ensemencerLeTirage(1);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.dead ?? false).toBe(false);
     expect(h.outOfRencontre).toBe(true);
@@ -2580,7 +2580,7 @@ describe('Destin sacrifié (LDB 17 l.29-32)', () => {
     const { H } = combat({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 4 });
     banc.getState().ensemencerLeTirage(1);
     advanceTurn(banc.getState, banc.setState);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'accept');
+    banc.getState().fenetreChoisir('destin', 'issue', 'accepter');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.dead).toBe(true);
   });
 
@@ -2646,8 +2646,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // ouvre la modale d'attaque (chargé + munition OK)
     expect(banc.getState().pendingAttack).not.toBeNull();
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect((h.items ?? []).find((i) => i.uid === 'am1')!.qty).toBe(1); // 2 → 1
     expect(rangedOf(h).loaded).toBe(false); // Recharge 1 → déchargé
@@ -2672,17 +2672,17 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().battle!.acted).toBe(false); // l'Action n'est consommée qu'à Appliquer
   });
 
-  it('jetLancer@reload + jetValider@reload : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
+  it('jetLancer@rechargement + jetValider@rechargement : cumule le DR (Test étendu), recharge à ≥ Indice, consomme l’Action', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().ensemencerLeTirage(2);
     banc.getState().rechargerLArme();
-    banc.getState().jetLancer('reload');
+    banc.getState().jetLancer('rechargement');
     const pr = banc.getState().pendingReload!;
     expect(pr.roll).not.toBeNull();
     const expected = Math.max(0, 0 + pr.sl); // formule du Test étendu (clamp à 0)
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     if (expected >= 1) {
       expect(rangedOf(h).loaded).toBe(true);
@@ -2696,7 +2696,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   });
 
   /**
-   * #1262 V3 Lj — l'ISSUE du rechargement est DÉRIVÉE au goulot (`FLOWS.reload.apply`, `spec.issue`) :
+   * #1262 V3 Lj — l'ISSUE du rechargement est DÉRIVÉE au goulot (`FLOWS.rechargement.apply`, `spec.issue`) :
    * le site n'écrit plus la phrase. Canal COMBAT : la ligne entre dans `battle.log` (événement `reload`)
    * et JAMAIS dans le journal narratif. PARITÉ : la voie IA (aucune fenêtre, pending FOURNI) passe par
    * le MÊME goulot avec la MÊME donnée — donc la MÊME ligne, au caractère près.
@@ -2707,30 +2707,30 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).reloadProgress = 0;
     banc.getState().ensemencerLeTirage(2);
     banc.getState().rechargerLArme();
-    banc.getState().jetLancer('reload');
+    banc.getState().jetLancer('rechargement');
     const pr = { ...banc.getState().pendingReload! };
     const journalAvant = banc.getState().journal.length;
-    banc.getState().jetValider('reload');
-    const evs = banc.getState().battle!.log.filter((e) => e.kind === 'reload');
+    banc.getState().jetValider('rechargement');
+    const evs = banc.getState().battle!.log.filter((e) => e.kind === 'rechargement');
     expect(evs, 'UNE ligne d’issue, dans le journal de COMBAT').toHaveLength(1);
     expect(banc.getState().journal.length, 'canal COMBAT : rien dans le journal narratif').toBe(journalAvant);
     // Voie IA : même pending, même DR réalisé, même nom d'arme → ligne IDENTIQUE (aucun 2ᵉ rédacteur).
     const progress = Math.max(0, pr.progressBefore + pr.sl);
-    const ia = FLOWS.reload.apply(banc.getState, { p: pr, ctx: { after: progress, weapon: 'Arbalète' } });
+    const ia = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: progress, weapon: 'Arbalète' } });
     expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].text]);
   });
 
-  it('jetValider@reload : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
+  it('jetValider@rechargement : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
     const { H } = archer();
     H.weapons = [{ label: 'Arbalète lourde', type: 'ranged', damage: { plusBF: false, flat: 9 }, range: 100, qualities: [{ id: 'recharge', value: 2 }], subType: 'Arbalète', reload: 2 }];
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 0;
     banc.getState().ensemencerLeTirage(2);
     banc.getState().rechargerLArme();
-    banc.getState().jetLancer('reload');
+    banc.getState().jetLancer('rechargement');
     const pr = banc.getState().pendingReload!;
     const expected = Math.max(0, 0 + pr.sl);
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).loaded).toBe(expected >= 2);
     expect(rangedOf(h).reloadProgress).toBe(expected >= 2 ? 0 : expected);
@@ -2789,7 +2789,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
     expect(banc.getState().pendingAttack, 'le pistolet chargé TIRE').not.toBeNull();
-    banc.getState().jetAnnuler('attack');
+    banc.getState().jetAnnuler('attaque');
     // (4) Retour à l'ARBALÈTE : elle est restée déchargée, avec SA progression intacte.
     h = swap('arb');
     const arb2 = h.weapons.find((w) => w.uid === 'w-arb')!;
@@ -2808,7 +2808,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
       { uid: 'balles', label: 'Balles et poudre', kind: 'ammo', subType: 'Poudre noire', qty: 9, qualities: [], enc: 0, equipped: false },
       { uid: 'balles-fines', label: 'Balles fines', kind: 'ammo', subType: 'Poudre noire', qty: 4, qualities: [], enc: 0, equipped: false },
     ] as ItemInstance[];
-    H.loadouts = [{ id: 'duo', main: 'p1', off: 'p2' }] as never;
+    H.loadouts = [{ id: 'duo', main: 'p1', secondaire: 'p2' }] as never;
     H.activeLoadoutId = 'duo';
     recomputeLoadout(H);
     const of = (uid: string) => banc.getState().battle!.combatants.find((c) => c.id === H.id)!.weapons.find((w) => w.uid === uid)!;
@@ -2826,7 +2826,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // (2) Le rechargement vise l'arme DÉSIGNÉE : la modale s'ouvre sur le gauche, pas sur le droit.
     banc.getState().rechargerLArme('p2');
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
-    banc.getState().jetAnnuler('reload');
+    banc.getState().jetAnnuler('rechargement');
     // (3) Sans uid : la 1re arme DÉCHARGÉE (ici le gauche) — jamais une arme déjà prête.
     banc.getState().rechargerLArme();
     expect(banc.getState().pendingReload?.weaponUid).toBe('p2');
@@ -2870,7 +2870,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(rangedOf(h).loadedAmmoUid).toBe('am1');
   });
 
-  it('jetValider@reload CAPTURE la munition choisie sur le coup chargé', () => {
+  it('jetValider@rechargement CAPTURE la munition choisie sur le coup chargé', () => {
     const { H } = archer();
     H.items!.push(am2());
     rangedOf(H).loaded = false;
@@ -2882,7 +2882,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).loaded).toBe(true);
     expect(rangedOf(h).loadedAmmoUid).toBe('am2');
@@ -2902,14 +2902,14 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     banc.setState({ battle: { ...banc.getState().battle!, acted: false } });
     // La sélection change APRÈS le chargement : le coup déjà chargé, lui, ne change pas.
     rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).ammoUid = 'am1';
     banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(2); // 3 → 2 : le coup chargé est parti
     expect(h.items!.find((i) => i.uid === 'am1')!.qty).toBe(2); // l'autre pile n'a pas bougé
@@ -2923,8 +2923,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).ammoUid = 'am2';
     banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'am1')!.qty).toBe(1); // capturée : 2 → 1
     expect(h.items!.find((i) => i.uid === 'am2')!.qty).toBe(3); // sélection courante : intacte
@@ -2943,8 +2943,8 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(rangedOf(banc.getState().battle!.combatants.find((c) => c.id === H.id)!).loaded).toBe(true);
     banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.items!.find((i) => i.uid === 'fl2')!.qty).toBe(4);
     expect(h.items!.find((i) => i.uid === 'fl1')!.qty).toBe(5);
@@ -2963,7 +2963,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().pendingAttack).not.toBeNull();
   });
 
-  it('jetValider@reload : cumul sous 0 → reloadProgress revient à 0 (Test étendu « recommence », LDB 12 l.174)', () => {
+  it('jetValider@rechargement : cumul sous 0 → reloadProgress revient à 0 (Test étendu « recommence », LDB 12 l.174)', () => {
     const { H } = archer();
     rangedOf(H).loaded = false;
     rangedOf(H).reloadProgress = 1;
@@ -2973,7 +2973,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 95, target: 40, sl: -2, success: false,
       },
     });
-    banc.getState().jetValider('reload');
+    banc.getState().jetValider('rechargement');
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(rangedOf(h).reloadProgress).toBe(0); // 1 + (-2) = -1 → plancher 0
     expect(rangedOf(h).loaded).toBe(false);
@@ -2992,7 +2992,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, acted: false, action: null } });
     banc.getState().ensemencerLeTirage(2);
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true });
-    banc.getState().jetLancer('attack');
+    banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
     const d = pa.result!.attackerDetail!;
     const nomme = [...(d.mods ?? []), ...(d.difficultyParts ?? [])];
@@ -3001,7 +3001,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // — ou l'inverse — casse cette égalité).
     const dv = d.difficultyCombined ?? (d.difficulty ? DIFFICULTY_MODIFIERS[d.difficulty] : 0);
     expect(d.target - d.base).toBe(dv + (d.mods ?? []).reduce((s, m) => s + m.value, 0));
-    banc.getState().jetValider('attack');
+    banc.getState().jetValider('attaque');
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.aiming).toBe(false);
   });
 
@@ -3150,7 +3150,7 @@ describe('« Tout est horodaté » — branchements TIME_COST (Phase T1)', () =>
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     b.combatants.forEach((c) => { c.fortune = 0; }); // neutralise la pré-emption Chance
@@ -3266,7 +3266,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.getState().fenetreFermer('marchand'); // quitte SANS payer
     banc.getState().ouvrirLeMarchand('pnj'); // réouverture (même réassort)
     expect(banc.getState().merchant!.bargainLocked).toBe(true); // l'info est gardée
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).toBeNull(); // le marchand refuse de marchander
   });
 
@@ -3276,13 +3276,13 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     const id = banc.getState().merchant!.stock.find((l) => l.qty > 0)!.id;
     banc.getState().fenetreChoisir('marchand', 'ajouterAuPanier', id);
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainBuy: { won: true, drNet: 2, negotiator: false } } })); // négocié
-    banc.getState().fenetreChoisir('marchand', 'refuser', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'refuser', 'achat');
     const st = banc.getState();
     expect(st.merchant!.cart).toEqual([]);
     expect(st.merchant!.bargainBuy ?? null).toBeNull(); // remise annulée
     expect(st.merchant!.bargainLocked).toBe(true);
     // verrou PARTAGÉ : la VENTE est aussi bloquée
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'vente');
     expect(banc.getState().pendingBargain).toBeNull();
     banc.getState().fenetreFermer('marchand');
     banc.getState().ouvrirLeMarchand('pnj');
@@ -3293,11 +3293,11 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.setState({ party: [hero()], scene: merchantScene() }); seedBourse({ gold: 50, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     banc.setState((s) => ({ merchant: { ...s.merchant!, bargainSell: { won: true, drNet: 2, negotiator: false } } })); // vente négociée
-    banc.getState().fenetreChoisir('marchand', 'refuser', 'sell');
+    banc.getState().fenetreChoisir('marchand', 'refuser', 'vente');
     const st = banc.getState();
     expect(st.merchant!.bargainSell ?? null).toBeNull();
     expect(st.merchant!.bargainLocked).toBe(true);
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy'); // achat aussi bloqué
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat'); // achat aussi bloqué
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3407,43 +3407,43 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
   it('marchand.marchander : crée un pendingBargain (marchand = bargainSkill de l’archétype) (#2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     const pb = banc.getState().pendingBargain!;
     expect(pb).toBeTruthy();
     expect(pb.playerId).toBe('h');
     expect(pb.opposant.valeur).toBe(45); // armurier.bargainSkill
   });
 
-  it('jetValider@bargain : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
+  it('jetValider@marchandage : verrouille le MODE achat ; 2ᵉ achat no-op mais la vente reste possible (B, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     // force un résultat gagné, sans RNG
     const pb = banc.getState().pendingBargain!;
     const win = { roll: 10, target: 40, success: true, sl: 3, isDouble: false };
     const lose = { roll: 80, target: 45, success: false, sl: -3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: win, merchantRoll: lose, result: { attacker: win, defender: lose, winner: 'attacker', attackerWins: true, netSL: 6, decidedBy: 'dr' } } });
-    banc.getState().jetValider('bargain');
+    banc.getState().jetValider('marchandage');
     expect(banc.getState().pendingBargain).toBeNull();
     expect(banc.getState().merchant!.bargainBuy).toEqual({ won: true, drNet: 6, negotiator: false });
     expect(banc.getState().merchant!.soured).toBeFalsy(); // gagné → pas de méfiance
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy'); // achat déjà négocié → no-op
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat'); // achat déjà négocié → no-op
     expect(banc.getState().pendingBargain).toBeNull();
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell'); // la vente est une négociation DISTINCTE → s'ouvre
-    expect(banc.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'sell', titre: t('out.bargainTitreVente') });
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'vente'); // la vente est une négociation DISTINCTE → s'ouvre
+    expect(banc.getState().pendingBargain?.contrepartie).toEqual({ kind: 'marchand', mode: 'vente', titre: t('out.bargainTitreVente') });
   });
 
-  it('jetValider@bargain : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
+  it('jetValider@marchandage : un échec « de beaucoup » (net DR ≥ 6) rend le marchand méfiant → plus de marchandage (C, #2c)', () => {
     banc.setState({ party: [negotiator()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     const pb = banc.getState().pendingBargain!;
     const lose = { roll: 90, target: 40, success: false, sl: -5, isDouble: false };
     const win = { roll: 10, target: 45, success: true, sl: 3, isDouble: false };
     banc.setState({ pendingBargain: { ...pb, roll: lose, merchantRoll: win, result: { attacker: lose, defender: win, winner: 'defender', attackerWins: false, netSL: 8, decidedBy: 'dr' } } });
-    banc.getState().jetValider('bargain');
+    banc.getState().jetValider('marchandage');
     expect(banc.getState().merchant!.soured).toBe(true);
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'sell'); // marchand méfiant → toute négociation bloquée
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'vente'); // marchand méfiant → toute négociation bloquée
     expect(banc.getState().pendingBargain).toBeNull();
   });
 
@@ -3524,24 +3524,24 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     expect(banc.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
   });
 
-  it('jetValider@appraise : succès → identified=true (révèle l’objet) (#2e)', () => {
+  it('jetValider@evaluation : succès → identified=true (révèle l’objet) (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().evaluerLObjet('m');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
-    banc.getState().jetValider('appraise');
+    banc.getState().jetValider('evaluation');
     expect(banc.getState().party[0].items!.find((i) => i.uid === 'm')!.identified).toBe(true);
     expect(banc.getState().pendingAppraise).toBeNull();
   });
 
-  it('jetValider@appraise : échec → l’objet reste non identifié (#2e)', () => {
+  it('jetValider@evaluation : échec → l’objet reste non identifié (#2e)', () => {
     banc.setState({ party: [appraiser()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().evaluerLObjet('m');
     const pa = banc.getState().pendingAppraise!;
     banc.setState({ pendingAppraise: { ...pa, roll: 90, success: false, sl: -3 } });
-    banc.getState().jetValider('appraise');
+    banc.getState().jetValider('evaluation');
     expect(banc.getState().party[0].items!.find((i) => i.uid === 'm')!.identified).toBe(false);
   });
 
@@ -3627,11 +3627,11 @@ describe('Marché — règles optionnelles (market-mode / market-guild)', () => 
   it("market-mode 'sans-marchandage' : marchander ne propose plus de Marchandage", () => {
     banc.setState({ party: [hero()], scene: merchantScene() });
     banc.getState().ouvrirLeMarchand('pnj');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).not.toBeNull(); // complet : Marchandage proposé
     banc.setState({ pendingBargain: null });
     setRule('market-mode', 'sans-marchandage');
-    banc.getState().fenetreChoisir('marchand', 'marchander', 'buy');
+    banc.getState().fenetreChoisir('marchand', 'marchander', 'achat');
     expect(banc.getState().pendingBargain).toBeNull(); // désactivé
   });
 

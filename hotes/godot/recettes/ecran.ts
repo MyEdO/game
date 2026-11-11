@@ -27,6 +27,7 @@
  * @contrat L'écran de Godot
  */
 import { clicDuCombattant, creerPont, type Suite } from '../pont/pont';
+import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, brouillonDeLaPartie, etatInitialDuJeu, horlogeVirtuelle } from '../../../src/noyau/index';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import { elementsDesGestes, ligne, type Bouton, type Choix, type CreationOuverte, type Element, type Entite, type Formulaire, type GesteDeLaCreation, type Jeu, type Ligne, type Plan, type Saisie } from '../../../src/hote/elements';
@@ -136,9 +137,9 @@ export function figerVuesDeLEcran(): VueFigee[] {
     nom, disposition: s.vue.disposition, zones: { ...s.vue.zones, 'journal.lignes': [...lignes] },
     attendus: Object.fromEntries(Object.values(s.vue.zones).flatMap((z) => formulaires(z)).map((f) => [f.id, telQueDessine(f)])),
   });
-  const enFocus = (s: Suite): Jeu => {
-    const b = s.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus);
-    if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(s.vue.zones['fenetre.gestes'].map((g) => g.id))}`);
+  const focus = (s: Suite): Jeu => {
+    const b = enFocus(s.vue);
+    if (!b) throw new Error(`aucun bouton que l’Entrée joue dans ${JSON.stringify(gestesDessines(s.vue).map((g) => g.id))}`);
     return b.jeu;
   };
   /** Le geste que l'offre `id` de la barre déclare, tel que l'hôte le dessine. */
@@ -147,43 +148,42 @@ export function figerVuesDeLEcran(): VueFigee[] {
   const { appeler, jouer, fermer } = unPont(lignes);
   let s = jouer('demarrer', { scenario: 'dome', graine: 7 });
   figer('début du round', s);
-  s = jouer('jouer', enFocus(s));
+  s = jouer('jouer', focus(s));
   figer('barre de l’actif', s);
   s = jouer('jouer', offre(s, 'charge'));
   figer('charge armée', s);
   const [cible] = s.vue.projection.combat!.cibles.liste;
   s = jouer('jouer', clicDuCombattant(s.vue, cible)!);
   figer('fenêtre d’attaque', s);
-  s = jouer('jouer', enFocus(s));
+  s = jouer('jouer', focus(s));
   figer('jet d’attaque tombé', s);
-  s = jouer('jouer', enFocus(s));
-  for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'defenseJet'; tours++) {
+  s = jouer('jouer', focus(s));
+  for (let tours = 0; s.vue.projection.fenetre?.etape?.genre !== 'jetDeDefense'; tours++) {
     if (tours > 4) throw new Error(`aucune Défense après ${tours} fins de tour : ${JSON.stringify(s.vue.projection.fenetre)}`);
-    s = jouer('jouer', offre(s, 'end-turn'));
-    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', offre(s, 'end-turn'));
+    s = jouer('jouer', offre(s, 'fin-de-tour'));
+    if (s.vue.projection.combat!.finDeTourArmee) s = jouer('jouer', offre(s, 'fin-de-tour'));
   }
   figer('Défense', s);
-  s = jouer('jouer', enFocus(s));
+  s = jouer('jouer', focus(s));
   figer('jet de Défense tombé', s);
   /** Le geste du joueur pressé : dans une fenêtre, son geste en focus, sinon sa première valeur ouverte ; sinon, une
    *  charge ou une attaque sur la première cible, ou la fin du tour. */
   const presse = (s: Suite): Jeu => {
     const c = s.vue.projection.combat!;
     if (s.vue.projection.fenetre) {
-      const g = s.vue.zones['fenetre.gestes'];
-      return g.some((b) => b.type === 'bouton' && b.focus) ? enFocus(s) : g.flatMap((x) => (x.type === 'choix' ? x.valeurs : [])).find((b) => !b.refus)!.jeu;
+      return enFocus(s.vue)?.jeu ?? gestesDessines(s.vue).flatMap((x) => (x.type === 'choix' ? x.valeurs : [])).find((b) => !b.refus)!.jeu;
     }
     const offres = s.vue.zones['combat.offres'].flatMap((x) => x.valeurs).filter((b) => !b.refus);
     return c.intention && c.cibles.liste.length ? clicDuCombattant(s.vue, c.cibles.liste[0])!
-      : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'end-turn')!).jeu;
+      : (offres.find((o) => !c.intention && (o.id === 'charge' || o.id === 'attaque')) ?? offres.find((o) => o.id === 'fin-de-tour')!).jeu;
   };
-  for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critical'; pas++) {
+  for (let pas = 0; s.vue.projection.fenetre?.etape?.genre !== 'critique'; pas++) {
     const c = s.vue.projection.combat!;
     if (pas > 300 || c.fin) throw new Error(`aucun Coup Critique après ${pas} gestes : combat ${c.fin ?? 'en cours'}`);
     s = jouer('jouer', presse(s));
   }
   figer('Coup Critique', s);
-  s = appeler('fiche', s.vue.zones['groupe.heros'][0].jeu);
+  s = appeler('fiche', s.vue.zones['groupe.heros'][0].elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'))!.jeu);
   figer('fiche du héros, son statbloc', s);
   const possessions = s.vue.zones['fiche.sections'].find((e) => e.id === 'section/possessions')!.elements;
   s = appeler('fiche', possessions.find((e): e is Bouton => e.type === 'bouton')!.jeu);
@@ -221,14 +221,14 @@ export function figerVuesDeLEcran(): VueFigee[] {
   const magie = unPont([]);
   s = viderLesFenetres(magie.jouer, magie.jouer('demarrer', { scenario: 'magie', graine: 7 }));
   s = viderLesFenetres(magie.jouer, magie.jouer('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 16, y: 11 }] }));
-  const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/cast-spell')!;
+  const sorts = s.vue.zones['combat.offres'].find((c): c is Choix => c.id === 'offre/incantation')!;
   s = magie.jouer('jouer', sorts.valeurs.find((b) => b.libelle === 'Fléchette')!.jeu);
   figer('sort choisi parmi ceux de l’actif', s);
   figer('fiche du lanceur, son statbloc et ses sorts', magie.appeler('fiche', { fiche: { porteur: s.vue.projection.combat!.actif!.id } }));
   s = magie.appeler('fiche', { fiche: null });
   s = magie.jouer('jouer', clicDuCombattant(s.vue, s.vue.projection.combat!.cibles.liste[0])!);
   figer('fenêtre d’incantation', s);
-  s = magie.jouer('jouer', enFocus(s));
+  s = magie.jouer('jouer', focus(s));
   figer('jet d’incantation tombé', s);
   s = magie.jouer('jouer', (s.vue.zones['fenetre.reglages'][0] as Choix).valeurs[1].jeu);
   figer('un pas de Surincantation alloué', s);
@@ -244,11 +244,11 @@ export function figerVuesDeLEcran(): VueFigee[] {
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'recit/issue'); pas++) {
     if (pas > 80) throw new Error(`aucun récit de voyage après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
     if (pas === 4) figer('voyage : les jets des héros tombés, la Chance à saisir', s);
-    if (s.vue.zones['fenetre.corps'].some((e) => e.id === 'repos/nuit')) figer('repos, la nuit à régler', s);
+    if (s.vue.zones['fenetre.corps'].some((e) => e.id === `${s.vue.projection.fenetre?.cle}/nuit`)) figer('repos, la nuit à régler', s);
     s = voyage.jouer('jouer', presse(s));
   }
   figer('récit de voyage, arrivée', s);
-  s = voyage.jouer('jouer', enFocus(s));
+  s = voyage.jouer('jouer', focus(s));
   figer('écran du lieu, ses services et ses trajets', s);
   const forgeron = s.vue.zones['fenetre.corps'].find((e): e is Entite => e.id === 'service/forgeron')!;
   s = voyage.jouer('jouer', (forgeron.elements[0] as Bouton).jeu);
@@ -262,10 +262,10 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = repit.jouer('demarrer', { scenario: 'bataille-de-masse', graine: 7 });
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'repit/semaines'); pas++) {
     if (pas > 12) throw new Error(`aucun répit entre deux aventures après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
-    s = repit.jouer('jouer', enFocus(s));
+    s = repit.jouer('jouer', focus(s));
   }
   figer('entre deux aventures, un onglet par héros', s);
-  s = repit.jouer('jouer', enFocus(s));
+  s = repit.jouer('jouer', focus(s));
   const geste = (s: Suite, id: string): Jeu => {
     const b = s.vue.zones['fenetre.corps'].find((e): e is Bouton => e.type === 'bouton' && e.id === id);
     if (!b) throw new Error(`aucun geste ${id} dans ${JSON.stringify(s.vue.zones['fenetre.corps'].map((e) => e.id))}`);
@@ -280,7 +280,7 @@ export function figerVuesDeLEcran(): VueFigee[] {
   s = forge.jouer('demarrer', { scenario: 'entre-deux-aventures', graine: 7 });
   for (let pas = 0; !s.vue.zones['fenetre.corps'].some((e) => e.id === 'repit/semaines'); pas++) {
     if (pas > 8) throw new Error(`aucun répit entre deux aventures après ${pas} gestes : ${JSON.stringify(s.vue.zones['fenetre.titre'])}`);
-    s = forge.jouer('jouer', enFocus(s));
+    s = forge.jouer('jouer', focus(s));
   }
   figer('entre deux aventures, l’ouvrage et le dépôt du forgeron', s);
   forge.fermer();

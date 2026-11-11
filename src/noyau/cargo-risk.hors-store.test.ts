@@ -41,11 +41,11 @@ function cartPossession(ownerId: string, lots: CargoLot[]): Possession {
 
 describe('Risque cargaison — tronc PUR (#327 lot D)', () => {
   it('cargoRaidLossPct : victoire = 0, fuite = fleePct, défaite = lossPct (bornés 0..100)', () => {
-    expect(cargoRaidLossPct('victory', 25, 75)).toBe(0);
-    expect(cargoRaidLossPct('fled', 25, 75)).toBe(25);
-    expect(cargoRaidLossPct('defeat', 25, 75)).toBe(75);
-    expect(cargoRaidLossPct('defeat', 25, 200)).toBe(100); // borné haut
-    expect(cargoRaidLossPct('fled', -5, 75)).toBe(0); // borné bas
+    expect(cargoRaidLossPct('victoire', 25, 75)).toBe(0);
+    expect(cargoRaidLossPct('fuite', 25, 75)).toBe(25);
+    expect(cargoRaidLossPct('defaite', 25, 75)).toBe(75);
+    expect(cargoRaidLossPct('defaite', 25, 200)).toBe(100); // borné haut
+    expect(cargoRaidLossPct('fuite', -5, 75)).toBe(0); // borné bas
   });
 
   it('spoilCargoByEnc : retire un montant borné au CONTENU, au fil des lots, sans égard au type', () => {
@@ -73,21 +73,21 @@ describe('Vol terrestre GRADUÉ par l’issue (#327 A5.1) — applyLandCargoRaid
   };
 
   it('victoire : le convoi est sauf (0 Enc perdu)', () => {
-    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'victory');
+    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'victoire');
     expect(r.pct).toBe(0);
     expect(r.losses).toHaveLength(0);
   });
 
   it('fuite : retire landRobberyFleePct (défaut 25 %) de l’Enc du convoi', () => {
-    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'fled');
+    const r = applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'fuite');
     expect(r.pct).toBe(25);
     expect(r.losses.reduce((n, l) => n + l.removed, 0)).toBe(10);
   });
 
   it('défaite : retire landRobberyLossPct (défaut 75 %) — et respecte la surcharge éditable', () => {
-    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defeat').losses.reduce((n, l) => n + l.removed, 0)).toBe(30);
+    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defaite').losses.reduce((n, l) => n + l.removed, 0)).toBe(30);
     setRule('landRobberyLossPct', 50);
-    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defeat').losses.reduce((n, l) => n + l.removed, 0)).toBe(20);
+    expect(applyLandCargoRaid(slice([lot('vin-eau-de-vie', 40)]), 'defaite').losses.reduce((n, l) => n + l.removed, 0)).toBe(20);
   });
 });
 
@@ -98,21 +98,21 @@ describe('Vol terrestre — dénouement au teardown de combat (store)', () => {
   });
 
   it('denouerLeVol(defeat) retire 75 % des lots réels du véhicule et éteint le flag', () => {
-    get().denouerLeVol('defeat');
+    get().denouerLeVol('defaite');
     const cart = get().possessions[0];
     expect(cargoTotalEnc(cart.cargo ?? [])).toBe(10); // 40 − 30 (75 %)
     expect(get().cargoRaid).toBe(false);
   });
 
   it('denouerLeVol(victory) ne retire rien (convoi sauf) et éteint le flag', () => {
-    get().denouerLeVol('victory');
+    get().denouerLeVol('victoire');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
     expect(get().cargoRaid).toBe(false);
   });
 
   it('no-op quand aucun vol n’est en cours', () => {
     banc.setState({ cargoRaid: false } as never);
-    get().denouerLeVol('defeat');
+    get().denouerLeVol('defaite');
     expect(cargoTotalEnc(get().possessions[0].cargo ?? [])).toBe(40);
   });
 });
@@ -136,7 +136,7 @@ describe('Voie d’eau — la coque percée/heurtée gâte 1d10 Enc (#327 D)', (
 
 describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   const hailStep = (): CascadeStep => ({
-    id: 'sea-pirate-hail', kind: 'sea-pirate-hail', label: fixtureText('Cogue pirate'), defaultChoice: 'fuir',
+    id: 'merPiratesSommation', kind: 'merPiratesSommation', label: fixtureText('Cogue pirate'), defaultChoice: 'fuir',
     options: [
       { key: 'fuir', label: fixtureText('Fuir') }, { key: 'combattre', label: fixtureText('Combattre') }, { key: 'soumettre', label: fixtureText('Se soumettre') },
     ],
@@ -155,14 +155,14 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('soumission : pillage piratePillagePct (100 %) de la cale puis insère le choix du tribut ; livrer retire un marin', () => {
     expect(Number(rule('piratePillagePct'))).toBe(100);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'soumettre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'soumettre', 'merPiratesSommation');
     get().jetValider('cascade');
     // Cale VIDÉE (100 %) + étape de tribut insérée.
     expect(cargoTotalEnc(get().vessel!.cargo ?? [])).toBe(0);
     const p = get().pendingCascade;
-    expect(p?.participants.some((s) => s.kind === 'sea-pirate-tribute')).toBe(true);
+    expect(p?.participants.some((s) => s.kind === 'merPiratesTribut')).toBe(true);
     // Livrer un marin : crewLost incrémenté (perte réelle).
-    get().jetRegler('cascade', 'choix', 'livrer', 'sea-pirate-tribute');
+    get().jetRegler('cascade', 'choix', 'livrer', 'merPiratesTribut');
     get().jetValider('cascade');
     expect((get().vessel!.crewLost ?? 0)).toBeGreaterThan(0);
   });
@@ -175,10 +175,10 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', nombre: 25, label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'soumettre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'soumettre', 'merPiratesSommation');
     get().jetValider('cascade');
     const crewBefore = get().vessel!.crewLost ?? 0;
-    get().jetRegler('cascade', 'choix', 'refuser', 'sea-pirate-tribute');
+    get().jetRegler('cascade', 'choix', 'refuser', 'merPiratesTribut');
     get().jetValider('cascade');
     expect(get().vessel!.crewLost ?? 0).toBe(crewBefore); // refuser ne sacrifie aucun marin
     const battle = get().battle!;
@@ -200,7 +200,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('fuir → la poursuite porte le navire hostile posé par `openPirateHail`, à son M de conception (Cogue : M 5, MDG 12)', () => {
     set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', nombre: 25, label: 'La Dent de Manann' } } } as never } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'fuir', 'merPiratesSommation');
     get().jetValider('cascade');
     expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', label: 'La Dent de Manann', foeM: 5 });
   });
@@ -213,7 +213,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       expect(attendu).toBeDefined();
       set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', ...(chefRef ? { chefRef } : {}), nombre: 25, label: 'La Dent de Manann' } } } as never } as never);
       startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-      get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
+      get().jetRegler('cascade', 'choix', 'fuir', 'merPiratesSommation');
       get().jetValider('cascade');
       expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', foeSkill: attendu });
     }
@@ -222,8 +222,8 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('fuir sans navire hostile en vue : erreur nommée, jamais un pirate au nom inventé (#1906)', () => {
     set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' } } } as never } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
-    expect(() => get().jetValider('cascade')).toThrow(/navire hostile en vue.*sea-pirate-hail/);
+    get().jetRegler('cascade', 'choix', 'fuir', 'merPiratesSommation');
+    expect(() => get().jetValider('cascade')).toThrow(/navire hostile en vue.*merPiratesSommation/);
   });
 
   it('combattre d’emblée → même abordage dérivé (deux coques, ennemis présents)', () => {
@@ -232,7 +232,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', nombre: 25, label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'combattre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'combattre', 'merPiratesSommation');
     get().jetValider('cascade');
     const battle = get().battle!;
     expect(battle).toBeTruthy();
@@ -247,7 +247,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       journal: [],
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'combattre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'combattre', 'merPiratesSommation');
     get().jetValider('cascade');
     expect(get().battle).toBeNull();
     expect(get().journal.join(' ')).not.toContain('l’issue reste au récit');

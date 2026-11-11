@@ -23,7 +23,7 @@ describe('le corps des combattants dans la vue', () => {
   beforeAll(() => {
     ({ vue } = suiteDe(appel('demarrer', { scenario: 'bestiaire', graine: 7 })));
     dessines = vue.projection.combat!.voisins.liste;
-    heros = dessines.find((c) => c.id === 'pregen-101')!;
+    heros = dessines.find((c) => c.id === 'soldat-de-test')!;
     sansPortee = dessines.find((c) => c.portee === null)!;
   });
 

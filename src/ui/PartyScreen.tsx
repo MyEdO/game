@@ -1,9 +1,9 @@
 import { fabriqueLocale } from '../engine/fabriqueDId';
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { emplacementsDuGroupe, nomDuSiege, siegesDeLaTable } from '../noyau/sieges';
 import { useGame, type GameState } from '../state/store';
 import type { NetState } from '../noyau/etat';
-import { makePregensWithWealth } from '../data/pregens';
+import { pretire } from '../data/pregens';
 import { stockageDuRoster } from '../state/roster';
 import { ajouterAuRoster, chargerLeRoster, prendreLesTemoinsDuRoster, retirerDuRoster } from '../hote/roster';
 import { idDeRosterDuMembre, rosterExport, rosterImport, type RosterEntry } from '../noyau/persistance/roster';
@@ -15,7 +15,8 @@ import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campa
 import { publishedProjects, campagneDeLEntree } from '../state/projectLibrary';
 import { playerEntryError } from '../noyau/worldMap';
 import { Combatant } from '../engine/types';
-import { Money } from '../engine/money';
+import { formuleDeMonnaie } from '../engine/money';
+import { Coins } from './Coins';
 import { partyCoverage } from '../engine/axes';
 import { CandidateCard, SeatCard, ActionCard, axisDataFor } from './CharCard';
 import { CharacterSheet } from './CharacterSheet';
@@ -31,7 +32,7 @@ import { HeroSheet } from './HeroSheet';
 import { MasterDetail } from './MasterDetail';
 import { Icon } from './Icon';
 import { Tabs } from './composites/Tabs';
-import { coreAxisIds } from '../data';
+import { coreAxisIds, pregens } from '../data';
 import { resolveActiveAxes } from '../noyau/worldMap';
 import { listeEt, t } from '../i18n';
 import { Row, Stack } from './Layout';
@@ -90,7 +91,7 @@ export function PartyScreen() {
   };
 
   // Le choix de campagne appartient à l'hôte (ou au solo), hors partie en cours (« Reprendre »).
-  const canPickCampaign = net.mode !== 'guest' && !inProgress;
+  const canPickCampaign = net.mode !== 'invite' && !inProgress;
   // Axes ACTIFS de la campagne (#409/#417) : `resolveActiveAxes` lit `activeAxes` sur
   // `pendingCampaign` (`ProjectDoc`, `noyau/worldMap.ts`) et retombe sur le socle `coreAxisIds`
   // si absent — SOURCE UNIQUE de ce défaut, jamais un `?? []` dispersé côté écran.
@@ -389,7 +390,7 @@ export function PartyScreenView({
   return (
     <div className="screen party-screen">
       <header className="bar">
-        {net.mode === 'guest' ? (
+        {net.mode === 'invite' ? (
           <button className="btn small" onClick={onQuitCoop}>
             {t('party.back.quit')}
           </button>
@@ -404,7 +405,7 @@ export function PartyScreenView({
             <Icon id="travel/mount" size="sm" /> Possessions
           </button>
         )}
-        {net.mode === 'guest' && (
+        {net.mode === 'invite' && (
           <span className="hint"><Icon id="ui/wait" size="sm" /> {t('party.guest.waiting')}</span>
         )}
       </header>
@@ -451,7 +452,7 @@ export function PartyScreenView({
                   }
                 }}
               >
-                {coop && (net.mode === 'host' && !h ? (
+                {coop && (net.mode === 'hote' && !h ? (
                   <label className="slot-owner">
                     <span>{t('party.slot.player')}</span>
                     <select value={seat} onChange={(e) => onAssignSlot(i, Number(e.target.value))}>
@@ -508,7 +509,7 @@ export function PartyScreenView({
       </div>
       </div>
 
-      {net.mode !== 'guest' && (
+      {net.mode !== 'invite' && (
         <Row as="footer" className="party-actions">
           <p className="party-actions-summary">{partySummaryText(party, axisIds)}</p>
           <Row className="party-actions-buttons">
@@ -628,7 +629,11 @@ export function CandidatePool({
   /** Ouvre le créateur (carte-action « Créer un personnage »). */
   onCreate?: () => void;
 }) {
-  const allPregens = useState(() => makePregensWithWealth(fabriqueLocale('vivier')))[0]; // l'étal : le noyau rebâtit le pré-tiré engagé
+  // L'étal : le noyau rebâtit le pré-tiré engagé et tire sa Richesse au recrutement ; l'étal en montre la formule imprimée.
+  const allPregens = useState(() => {
+    const idNeuf = fabriqueLocale('vivier');
+    return pregens.map((d) => ({ id: d.id, hero: pretire(idNeuf, d.id), bourse: formuleDeMonnaie(d.richesse, d.monnaie) }));
+  })[0];
   const [roster, setRoster] = useState(() => chargerLeRoster(stockageDuRoster()));
   const [tab, setTab] = useState<'roster' | 'pregens'>(roster.length ? 'roster' : 'pregens');
   const [importErr, setImportErr] = useState<string | null>(null);
@@ -649,8 +654,8 @@ export function CandidatePool({
   const inParty = (id: string) => party.some((p) => idDeRosterDuMembre(p) === id);
   const shownPregens = hideInParty ? allPregens.filter((e) => !inParty(e.hero.id)) : allPregens;
   const shownRoster = hideInParty ? roster.filter((e) => !inParty(e.hero.id)) : roster;
-  const shownList: { hero: Combatant; wealth?: Money }[] =
-    tab === 'roster' ? shownRoster.map(({ hero, wealth }) => ({ hero, wealth })) : shownPregens.map(({ hero, wealth }) => ({ hero, wealth }));
+  const shownList: { hero: Combatant; bourse: ReactNode }[] =
+    tab === 'roster' ? shownRoster.map(({ hero, wealth }) => ({ hero, bourse: <Coins money={wealth} /> })) : shownPregens;
   const selected = shownList.find((e) => e.hero.id === selectedId) ?? shownList[0] ?? null;
 
   const removeSaved = (id: string) => {
@@ -708,7 +713,7 @@ export function CandidatePool({
                       hero={hero}
                       variant={variant}
                       recruited={inParty(hero.id)}
-                      wealth={wealth}
+                      bourse={<Coins money={wealth} />}
                       axisIds={axisIds}
                       selected={selected?.hero.id === hero.id}
                       onRecruit={() => onPick({ brouillon: draft, id: hero.id })}
@@ -717,13 +722,13 @@ export function CandidatePool({
                       onDelete={() => removeSaved(hero.id)}
                     />
                   ))
-                : shownPregens.map(({ id, hero: h, wealth }) => (
+                : shownPregens.map(({ id, hero: h, bourse }) => (
                     <CandidateCard
                       key={h.id}
                       hero={h}
                       variant={variant}
                       recruited={inParty(h.id)}
-                      wealth={wealth}
+                      bourse={bourse}
                       axisIds={axisIds}
                       selected={selected?.hero.id === h.id}
                       onRecruit={() => onPick({ pretire: id })}
@@ -739,7 +744,7 @@ export function CandidatePool({
             </div>
           }
           detail={
-            selected ? <CandidateDetailPane hero={selected.hero} wealth={selected.wealth} axisIds={axisIds} /> : <p className="hint">{t('picker.detail.empty')}</p>
+            selected ? <CandidateDetailPane hero={selected.hero} bourse={selected.bourse} axisIds={axisIds} /> : <p className="hint">{t('picker.detail.empty')}</p>
           }
         />
       </Stack>
@@ -759,7 +764,7 @@ export function CandidatePool({
  *  une primitive ? »). Un candidat EST un `Combatant` complet (pregen) : `HeroSheet` porte SA bande
  *  d'en-tête (identité+rose) — pas de `topper` `DetailFrame` en double. Aucun bouton dédié :
  *  le recrutement reste sur la carte de la liste (`CandidateCard`), jamais dupliqué ici. */
-function CandidateDetailPane({ hero, wealth, axisIds }: { hero: Combatant; wealth?: Money; axisIds: string[] }) {
+function CandidateDetailPane({ hero, bourse, axisIds }: { hero: Combatant; bourse: ReactNode; axisIds: string[] }) {
   const proseParts: string[] = [];
   if (hero.motivation) proseParts.push(`**${t('present.motivation')} :** ${hero.motivation}`);
   if (hero.details?.ambitionShort) proseParts.push(`« ${hero.details.ambitionShort} »`);
@@ -769,7 +774,7 @@ function CandidateDetailPane({ hero, wealth, axisIds }: { hero: Combatant; wealt
   return (
     <div className="candidate-detail-pane">
       <DetailFrame
-        sections={<HeroSheet hero={hero} axisIds={axisIds} wealth={wealth} />}
+        sections={<HeroSheet hero={hero} axisIds={axisIds} bourse={bourse} />}
         prose={prose}
       />
     </div>

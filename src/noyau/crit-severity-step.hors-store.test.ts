@@ -49,7 +49,7 @@ function startFight(seed = 7) {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -193,7 +193,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     expect(victime.criticalWounds).toBe(1);
     expect(hasCondition(victime, cond.id), `État « ${cond.id} » de la ligne non appliqué`).toBe(true);
     // Le rendu RICHE du résultat reste l'étape de révélation (CriticalBody), appendée après la pose.
-    const reveal = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critical')!;
+    const reveal = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(reveal.reveal!.dice).toBe(entry.min);
   });
 

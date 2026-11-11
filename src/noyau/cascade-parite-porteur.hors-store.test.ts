@@ -28,7 +28,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fixtureText } from '../i18n/fixtureText';
 import { t } from '../i18n';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
 import { setCadence, resetCadence, type Cadence } from '../engine/cadence';
 import type { CascadeStep } from './pendings';
@@ -65,7 +65,7 @@ const surfaceMono = (st: CascadeStep) => surfaceDeLEtape(get, st);
 
 /** Groupe d'UN héros, siège local, mode solo — l'état complet du cas, jamais hérité du voisin. */
 function montage(): string {
-  const h = makePregens(idsDeTest)[0];
+  const h = tousLesHerosDeScenario(idsDeTest)[0];
   set({ party: [h], battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });
   set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
   return h.id;
@@ -152,7 +152,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
     const heroId = montage();
     set({ travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
     // `progression` ∈ KINDS_SOUS_ORDRES ; `tourbillon` n'y est pas (une CRISE interrompt toujours).
-    const serie = (porteur: Porteur) => (['crew-progression', 'crew-tourbillon'] as const).map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
+    const serie = (porteur: Porteur) => (['equipage-progression', 'equipage-tourbillon'] as const).map((kind) => surfaceMono(etapeMono(porteur, heroId, kind)));
     const monde = serie('monde');
     expect(monde, 'une surface qui diverge par le PORTEUR est une branche « spéciale monde »').toEqual(serie('heros'));
     expect(monde, 'et la série discrimine la routine de voyage').toEqual(['I', 'M']);
@@ -168,7 +168,7 @@ describe('#1426 — parité de PORTEUR : le pilote de cascade ne connaît pas «
    * porteur sur lequel il n'a plus aucune prise.
    */
   it('POSSESSION — héros du groupe HORS de la file d’un combat ouvert : vu, influençable, posable', () => {
-    const [h1, h2] = makePregens(idsDeTest);
+    const [h1, h2] = tousLesHerosDeScenario(idsDeTest);
     set({ party: [h1!, h2!], battle: null, pendingCascade: null, suspendedCascades: [] });
     set({ net: { ...get().net, mode: 'local', mySeat: 0, gmSeat: undefined } });
     set({ battle: { combatants: [h1!], order: [h1!.id], turn: 0, round: 1, log: [], over: null } as never });

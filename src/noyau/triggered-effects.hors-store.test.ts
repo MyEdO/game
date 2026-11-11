@@ -297,7 +297,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -392,7 +392,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -409,7 +409,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     fireOwnTestFailed(banc.getState, H, { rng: desDuTest, sl: -4, set: banc.setState });
     expect(hasCondition(H, 'sonne')).toBe(true);   // palier 1 inline
     expect(hasCondition(H, 'a-terre')).toBe(false); // palier 2 DIFFÉRÉ en cascade (pas résolu inline)
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'triggeredTest');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'testDeclenche');
     expect(step).toBeTruthy();
     expect(step?.meta?.noOwnTestFailed).toBe(true); // garde de ré-entrance portée par l'étape
   });
@@ -433,7 +433,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     E.characteristics['force-mentale'] = 1; // FM minimale → échec inline → À Terre
     addCrampes(E);
     fireOwnTestFailed(banc.getState, E, { rng: desDuTest, sl: -4, set: banc.setState });
-    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'triggeredTest')).toBeFalsy();
+    expect(banc.getState().pendingCascade?.participants.some((s) => s.kind === 'testDeclenche')).toBeFalsy();
     expect(hasCondition(E, 'a-terre')).toBe(true); // résolu inline (PNJ)
   });
 
@@ -444,7 +444,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.setState({
       party: [hero], battle: null,
       pendingCascade: cascadeDeTest([
-        { id: 'dt', kind: 'disease-tick', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
+        { id: 'dt', kind: 'maladie-test-quotidien', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
       ], { title: 'Entretien' }),
     });
     banc.getState().jetLancer('cascade');
@@ -465,7 +465,7 @@ describe('onOwnTestFailed — jets d’ATTAQUE (attaquant ET défenseur, MSRC 16
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;

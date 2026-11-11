@@ -134,7 +134,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     banc.setState({ party: [heroHaineux()], pendingCascade: null, suspendedCascades: [], battle: null });
     banc.getState().lancerLaScene(CRYPTE);
     const c = banc.getState().pendingCascade!;
-    expect(c.participants[0].kind).toBe('sceneEntry'); // la carte est l'étape COURANTE, pas la dernière
+    expect(c.participants[0].kind).toBe('entreeEnScene'); // la carte est l'étape COURANTE, pas la dernière
     expect(c.purpose).toBe('affichage');
     expect(banc.getState().suspendedCascades.map((s) => s.purpose)).toEqual(['test']); // Sang-froid PARQUÉ
     banc.getState().jetValider('cascade'); // « Continuer » ferme la carte…
@@ -148,7 +148,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     registerScene(suite);
     banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
     banc.getState().lancerLaScene(CRYPTE);
-    expect(banc.getState().pendingCascade!.participants[0].reveal?.kind).toBe('sceneEntry');
+    expect(banc.getState().pendingCascade!.participants[0].reveal?.kind).toBe('entreeEnScene');
     suspendActiveCascade(banc.getState, banc.setState); // ce que fait l'ouverture d'un combat sur la carte ouverte
     expect(banc.getState().suspendedCascades).toHaveLength(1);
     banc.getState().quitterLaScene('probe-suite');
@@ -188,7 +188,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     // …et sous elle, un jour de voyage parqué plus tôt, curseur au milieu de ses étapes.
     banc.setState({
       suspendedCascades: [
-        cascadeDeTest([{ id: 'j1', kind: 'crew-progression' }, { id: 'j2', kind: 'crew-orientation' }, { id: 'j3', kind: 'crew-entretien' }], { title: 'Jour 2', purpose: 'travelDay', cursor: 1 }),
+        cascadeDeTest([{ id: 'j1', kind: 'equipage-progression' }, { id: 'j2', kind: 'equipage-orientation' }, { id: 'j3', kind: 'equipage-entretien' }], { title: 'Jour 2', purpose: 'travelDay', cursor: 1 }),
         ...banc.getState().suspendedCascades,
       ],
     });
@@ -206,7 +206,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
  * `'table'` — un tirage à faire, sans enjeu, qu'aucune porte n'a montée. Ce couple test + directive en est la mesure.
  */
 describe('#1262 V2 L6 — `revealToStep` ne produit jamais un tirage À FAIRE', () => {
-  const ENTRY: RevealEntry = { kind: 'miscast', title: 'Colère des dieux', lines: ['ligne 77'], subjectId: 'H1' };
+  const ENTRY: RevealEntry = { kind: 'incantationImparfaite', title: 'Colère des dieux', lines: ['ligne 77'], subjectId: 'H1' };
 
   it('table RÉSOLUE : l’étape reste un AFFICHAGE, dé et ligne portés par la rangée', () => {
     const step = revealToStep(ENTRY, 0, {

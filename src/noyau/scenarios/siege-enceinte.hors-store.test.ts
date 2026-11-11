@@ -162,7 +162,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const scene = banc.getState().scene!;
@@ -209,7 +209,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const canonnier = b.combatants.find((c) => c.id === 'brg-canon')!; // mercenaire qui SERT le canon assaillant
@@ -225,7 +225,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     const input = buildAiInput(canonnier, banc.getState);
     expect(input.structures?.some((st) => st.creatureId === 'porte-de-ville')).toBe(true); // la porte est une cible
     const action = chooseEnemyAction(input);
-    expect(action.kind).toBe('shoot');
+    expect(action.kind).toBe('tir');
     const tgt = b.combatants.find((c) => c.id === (action as { targetId: string }).targetId);
     expect(tgt && isStructure(tgt)).toBe(true); // … et c'est bien la STRUCTURE (porte) qui est visée
   });
@@ -234,7 +234,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     // Seul le drapeau change : même scène, même roster, même canonnier servant la même pièce.
     banc.setState({ battle: { ...banc.getState().battle!, siege: undefined } });
@@ -252,7 +252,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const porte = banc.getState().battle!.combatants.find(isStructure)!;
     banc.setState({
@@ -271,7 +271,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     // Archers défenseurs = héros pilotés par l'IA, armés d'un arc, sur le chemin de ronde (z1).
@@ -304,7 +304,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
     banc.setState({ party: scenario.construire(idsDeTest).party });
     banc.getState().lancerLaScene(scenarioConstruit.scene);
     banc.getState().lancerLeCombat('assaut');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     // Servant de baliste (rempart) : Groupe Arbalète → qualifié → effectif ≥ 1.

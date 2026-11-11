@@ -25,7 +25,6 @@ import {
   type FaceDArete,
   type WallSecret,
   isDescriptiveZone,
-  enrolledEntityIds,
   idDuCorps,
   porteAuteur,
   reposDeScene,
@@ -46,7 +45,7 @@ import { sceneZoneTiles, zoneAreaTiles } from '../../noyau/monde/zones';
 import type { WorldMap } from '../../noyau/worldMap';
 import { nomDEntite } from '../../noyau/monde/sceneNpc';
 import { presetDuNarratif, objetDuNarratif } from '../../noyau/monde/resolveursDuNarratif';
-import type { Settlement } from '../../engine/disponibilite';
+import type { Settlement } from '../../data/schemas/grammaire/valeurs';
 import { roleAmbiantSchema } from '../../data/schemas/grammaire/valeurs';
 import { decorsDuCatalogue } from '../../gameIso/catalog/decor';
 import { buildingsMeta } from '../../noyau/monde/buildings';
@@ -67,8 +66,7 @@ import { effectCtxOf } from './EffectList';
 import { ListeDIds, RefNarrativeField } from '../compendium/refField/RefField';
 import { GameOpEditor } from './GameOpEditor';
 import { FlowEditor, TestFields } from './FlowEditor';
-import { actionsDe, ACTION_FOUILLER } from '../../noyau/monde/usable';
-import { EMPTY_FLOW } from '../../engine/flowCore';
+import { actionsDe, actionNeuve } from '../../noyau/monde/usable';
 import { StatblockEditor } from './StatblockEditor';
 import { emptyStatblock } from '../../data/valeursNeuves';
 import { CreatureProfile, OptionalTraitsPicker, SpellsField } from './OptionalTraitsPicker';
@@ -1401,7 +1399,7 @@ function EntityPanel({
             <ApparencesObjetsField resolveTrapping={objetDuNarratif(narratif)}
               appearance={ent.appearance ?? {}}
               onChange={(appearance) => updateSel({ appearance })}
-              weapons={armesDEntite(objetDuNarratif(narratif), ent.creature?.id, equipementDAuteurDe(ent, enrolledEntityIds(scene).has(ent.id)))}
+              weapons={armesDEntite(objetDuNarratif(narratif), ent.creature?.id, equipementDAuteurDe(ent, scene))}
             />
           </Fold>
           <Fold title="Rôle (dialogue, marchand)">
@@ -1694,7 +1692,7 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
       ))}
       <button
         className="btn small"
-        onClick={() => poser({ actions: [...actions, { id: idActionLibre(actions), flow: EMPTY_FLOW, unique: true }] })}
+        onClick={() => poser({ actions: [...actions, actionNeuve(actions)] })}
       >
         Ajouter une action
       </button>
@@ -1708,15 +1706,6 @@ function UsableFields({ ent, scene, updateSel, flowCtx }: {
       </div>
     </>
   );
-}
-
-/** Premier id LIBRE pour une action neuve : `fouiller`, puis `fouiller-2`, `fouiller-3`… L'unicité est
- *  un invariant du schéma (`usable` `refine`) — l'éditeur ne laisse donc pas l'auteur la violer au
- *  premier clic, il lui donne un id qui passe et qu'il renommera. */
-function idActionLibre(actions: readonly ActionAuthoree[]): string {
-  const pris = new Set(actions.map((a) => a.id));
-  if (!pris.has(ACTION_FOUILLER)) return ACTION_FOUILLER;
-  for (let n = 2; ; n++) if (!pris.has(`${ACTION_FOUILLER}-${n}`)) return `${ACTION_FOUILLER}-${n}`;
 }
 
 /** Emplacement de siège (poste d'artillerie éventuel) + équipage EXPOSÉ à bord + Améliorations

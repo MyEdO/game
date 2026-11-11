@@ -22,15 +22,15 @@ import type { ReglagesDuJet } from '../noyau/reglagesDuJet';
 export function ShantyModal() {
   const p = useGame((s) => s.pendingShanty);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'shanty');
-  const reroll = useGesteDeJet('jetRelancer', 'shanty');
-  const bonus = useGesteDeJet('jetAjouterUnDR', 'shanty');
-  const darkPact = useGesteDeJet('jetPactiser', 'shanty');
-  const force = useGesteDeJet('jetForcerLaReussite', 'shanty');
-  const confirm = useGesteDeJet('jetValider', 'shanty');
-  const cancel = useGesteDeJet('jetAnnuler', 'shanty');
+  const roll = useGesteDeJet('jetLancer', 'chansonDeMarin');
+  const reroll = useGesteDeJet('jetRelancer', 'chansonDeMarin');
+  const bonus = useGesteDeJet('jetAjouterUnDR', 'chansonDeMarin');
+  const darkPact = useGesteDeJet('jetPactiser', 'chansonDeMarin');
+  const force = useGesteDeJet('jetForcerLaReussite', 'chansonDeMarin');
+  const confirm = useGesteDeJet('jetValider', 'chansonDeMarin');
+  const cancel = useGesteDeJet('jetAnnuler', 'chansonDeMarin');
   const regler = useGame((s) => s.jetRegler);
-  const setSong = (v: ReglagesDuJet['shanty']['chanson']) => regler('shanty', 'chanson', v);
+  const setSong = (v: ReglagesDuJet['chansonDeMarin']['chanson']) => regler('chansonDeMarin', 'chanson', v);
   if (!p || !battle) return null;
   const singer = battle.combatants.find((c) => c.id === p.singerId);
   if (!singer) return null;
@@ -61,8 +61,8 @@ export function ShantyModal() {
 
   return (
     <RollShell
-      flowKey="shanty"
-      stake={flowStakeRef('shanty-roll', p.shantyId ? { entryId: p.shantyId } : undefined)}
+      flowKey="chansonDeMarin"
+      stake={flowStakeRef('chanson-de-marin-test', p.shantyId ? { entryId: p.shantyId } : undefined)}
       title={<><Icon id="audio/music" size="sm" /> Chanson de marin</>}
       /* Z1 : acteur + le BÉNÉFICIAIRE, qui n'a de portrait nulle part (l'équipage entier). La
          Compétence est le label de la ligne (`Divertissement (Chant)`) — jamais redite ici. */

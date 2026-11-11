@@ -8,8 +8,8 @@
 import { estUneCle, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { HIT_LOCATION_LABELS } from '../engine/types';
-import { verbeDeJetDe } from './flowVerbs';
-import type { GesteDuJeu } from './modalArbiter';
+import { verbeDeJetDe, type FlowKey } from './flowVerbs';
+import type { CleDeRegistre, GesteDuJeu } from './modalArbiter';
 import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
@@ -22,7 +22,7 @@ export const libelleDuVerbe = (verbe: string): string | null => texte(`verbe.${v
 
 /** Le libellé du réglage `reglage` du jet du flux `flux` : sa clé `reglage.<flux>.<reglage>`, sinon celle du réglage
  *  (`reglage.<reglage>`) ; le catalogue nomme chaque réglage déclaré (`fenetres-nomment-leurs-verbes.hors-store.test.ts`). */
-export function libelleDuReglage(flux: string, reglage: string): string {
+export function libelleDuReglage(flux: FlowKey, reglage: string): string {
   return texte(`reglage.${flux}.${reglage}`) ?? garanti(texte(`reglage.${reglage}`), `${flux}.${reglage}`, 'libellé du réglage');
 }
 
@@ -64,7 +64,7 @@ export function libelleDuLitteral(v: string | number | boolean | null, parametre
 export const libelleDuParametre = (verbe: string, nom: string): string | null => texte(`parametre.${verbe}.${nom}`) ?? texte(`parametre.${nom}`);
 
 /** Le titre d'une fenêtre qui tient la main, par sa clé (`CLES_DE_FENETRE`). */
-export const libelleDeLaFenetre = (cle: string): string | null => texte(`fenetre.${cle}`);
+export const libelleDeLaFenetre = (cle: CleDeRegistre): string | null => texte(`fenetre.${cle}`);
 
 /** Le titre d'une étape-jet de la séquence, par son `jet`. */
 export const libelleDuJet = (jet: HostJet): string => t(`jet.${jet}`);

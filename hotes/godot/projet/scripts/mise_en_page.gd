@@ -87,6 +87,21 @@ const ECART_SOUS_LE_POINT := 2.0
 const MARGE_DE_COUPE := 0.15
 
 
+## Le cadrage d'un portrait (`Portrait`) : la part de la hauteur de la tête montrée sous son haut, la marge au-dessus
+## d'elle en part du cadre, et l'angle de vue vertical de sa caméra, en degrés.
+const BUSTE_DU_PORTRAIT := 0.2
+const MARGE_DU_PORTRAIT := 0.08
+const ANGLE_DU_PORTRAIT := 20.0
+
+
+## La caméra d'un portrait qui cadre en buste un corps au haut de tête à `tete` (`Combattant.hauteur_de_la_tete`), de
+## face : sa hauteur (`x`) et sa distance au corps (`y`), le haut de la tête sous la marge, `BUSTE_DU_PORTRAIT` de sa
+## hauteur sous lui au bas du cadre.
+static func cadrage_en_buste(tete: float) -> Vector2:
+	var cadre := tete * BUSTE_DU_PORTRAIT / (1.0 - MARGE_DU_PORTRAIT)
+	return Vector2(tete + cadre * MARGE_DU_PORTRAIT - cadre / 2.0, cadre / 2.0 / tan(deg_to_rad(ANGLE_DU_PORTRAIT) / 2.0))
+
+
 ## La largeur du texte d'une bulle qui, sur une ligne, en prendrait `largeur` : la sienne, au pixel supérieur, au plus
 ## `LARGEUR_DE_BULLE`.
 static func largeur_de_bulle(largeur: float) -> float:
@@ -324,6 +339,19 @@ static func lacet_tourne(lacet: float, sens: float) -> float:
 ## La distance de la caméra d'un pas de zoom plus loin (`sens` 1) ou plus près (-1), bornée à [`minimum`, `maximum`].
 static func distance_zoomee(distance: float, sens: float, minimum: float, maximum: float) -> float:
 	return clampf(distance * pow(PAS_DE_ZOOM, sens), minimum, maximum)
+
+
+## L'étendue (m) qu'une caméra en perspective d'angle vertical `angle` (degrés) montre sur la hauteur de sa fenêtre, au
+## lieu qu'elle regarde à `distance` mètres.
+static func etendue_en_perspective(distance: float, angle: float) -> float:
+	return 2.0 * distance * tan(deg_to_rad(angle) / 2.0)
+
+
+## Le décalage de l'objectif (horizontal, vertical, en mètres) d'une caméra qui montre `etendue` mètres sur la hauteur
+## d'une fenêtre de `largeur` sur `hauteur` pixels : le lieu qu'elle regarde se pose au point `centre` de la fenêtre au
+## lieu de son milieu.
+static func decalage_de_l_objectif(centre: Vector2, largeur: float, hauteur: float, etendue: float) -> Vector2:
+	return Vector2(largeur / 2.0 - centre.x, centre.y - hauteur / 2.0) * etendue / hauteur
 
 
 ## Un délai du pont (millisecondes) en secondes de minuteur.

@@ -5,6 +5,7 @@ import type { BattleActionMode } from './actionRegistry';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
 import type { LocalIntent } from './localIntent';
+import type { IdDIntention } from './designations';
 import type { RefusIHM } from './refusVisible';
 import type { EtatDeSequence } from './sequenceContract';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -40,11 +41,11 @@ export const SCREENS = ['menu', 'party', 'creator', 'campaign', 'editor', 'test'
 export type Ecran = typeof SCREENS[number];
 
 /** Postures de tir PRÉ-ARMÉES d'un combattant (`BattleState.stances`) : les champs qu'elles
- *  pré-remplissent sur le `PendingAttack` de son prochain tir. `heldGround` — tir IMMOBILE
- *  (`LDB 14 l.70`) ; `intoCrowd` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
+ *  pré-remplissent sur le `PendingAttack` de son prochain tir. `tirImmobile` — tir IMMOBILE
+ *  (`LDB 14 l.70`) ; `dansLeTas` — « Tirer dans le tas » (`LDB 14 l.106`, `l.116`). */
 export interface ShootingStance {
-  heldGround?: boolean;
-  intoCrowd?: boolean;
+  tirImmobile?: boolean;
+  dansLeTas?: boolean;
 }
 /** Champ de posture armable — l'id porté par le registre des actions (`ActionDef.stance`). */
 export type ShootingStanceKey = keyof ShootingStance;
@@ -85,7 +86,7 @@ export interface BattleState {
    *  La Focalisation / l'usage d'objet / le ramassage NE sont PAS des modes : ils passent par
    *  `focaliserLeSort`→`pendingFocus`, `utiliserLObjet`, `ramasserLObjet`.
    *  Le TYPE vient du REGISTRE DES ACTIONS (`actions.json` : le champ `armed` de chaque action) +
-   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleport` = résolution d'un sort) —
+   *  `MODES_HORS_REGISTRE` pour ce qu'aucune case n'arme (`teleportation` = résolution d'un sort) —
    *  parité gardée par `src/noyau/action-atteignabilite.hors-store.test.ts`. */
   action: BattleActionMode | null;
   /** Sort sélectionné pour l'action d'incantation en cours (id STABLE — le libellé se résout à l'affichage). */
@@ -119,7 +120,7 @@ export interface BattleState {
    *  `PendingAttack` qu'elle pré-remplit — aucune sémantique parallèle. */
   stances?: Record<string, ShootingStance>;
   log: CombatEvent[];
-  over: null | 'victory' | 'defeat';
+  over: null | 'victoire' | 'defaite';
   onVictory?: Flow;
   /** Objectif de victoire authorable (#197). Absent = `allEnemiesDead` (défaut historique, `checkBattleOver`). */
   victoryCondition?: VictoryCondition;
@@ -283,6 +284,12 @@ export interface CampaignVessel {
   /** Colis à livrer (op `commission`) : le lieu de destination (`placeId`), le montant reçu à l'accostage dans ce
    *  lieu (sous de cuivre) et la source ; chaque commission tombe à sa livraison. MDG 15 l.261 */
   commissions?: { label: string; placeId: string; brass: number }[];
+  /** Constructeur de navires de l'escale (op `constructeurDEscale`) : la Compétence de son Test de réparation et la
+   *  durée tirée de la réparation (jours) ; levé à l'appareillage. MDG 15 l.255 */
+  constructeurDEscale?: { competence: number; jours: number };
+  /** Prix d'une ration-jour de cale à l'escale (op `rationsDEscale`), en sous de cuivre ; levé à l'appareillage.
+   *  MDG 15 l.262 */
+  rationsDEscale?: number;
   /** Enc de cargaison perdus au PROCHAIN déchargement dans le port de l'escale (op `cargaison`,
    *  `perteAuDechargement`) ; levé à l'accostage suivant. MDG 15 l.250 */
   perteAuDechargement?: number;
@@ -302,15 +309,15 @@ export interface CampaignVessel {
  *  `slots` : siège attribué à chacun des 4 emplacements de l'écran d'équipe (0 = hôte).
  *  `rangs` : heroId → emplacement qu'il occupe, lu par `emplacementsDuGroupe` (`sieges.ts`). */
 export interface NetState {
-  mode: 'local' | 'host' | 'guest';
+  mode: 'local' | 'hote' | 'invite';
   mySeat: number;
   /** Code de room à 6 caractères (affiché/copiable par l'hôte, voyage dans les snapshots). */
   roomCode: string | null;
   seatNames: Record<number, string>;
   /** Vue HÔTE : sièges en cours de reconnexion (absent = connecté). */
-  presence: Record<number, 'ok' | 'away'>;
+  presence: Record<number, 'present' | 'absent'>;
   /** Vue INVITÉ : sa propre connexion (préservée à l'application des snapshots). */
-  connection: 'ok' | 'reconnecting';
+  connection: 'connecte' | 'reconnexion';
   /** Vue INVITÉ : l'hôte est-il momentanément déconnecté ? */
   hostAway: boolean;
   ownership: Record<string, number>;
@@ -323,7 +330,7 @@ export interface NetState {
 }
 export const initialNet = (): NetState => ({
   mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {},
-  connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
+  connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0], rangs: {},
 });
 
 /** Les champs de JEU de l'état (#2817 D5) : tout hôte les porte ; aucun champ d'interface. */
@@ -379,9 +386,9 @@ export interface EtatDeJeu {
    *  dérive. CAMPAGNE-scopé comme `objectives` ; vidé en nouvelle partie (`lancerLaScene`). */
   objectifsSoldes: Objective[];
   /** Borne d'ouverture du chapitre courant (#717) — posée à l'acquittement de l'ouverture
-   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('chapterRecap')`) ; null = aucun chapitre borné. */
+   *  (`fenetreValider('ouverture')`), re-posée à la clôture (`fenetreValider('finDeChapitre')`) ; null = aucun chapitre borné. */
   chapitreDepuis: ChapitreDepuis | null;
-  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('chapterRecap')`, lu par
+  /** La clôture authorée du paquet courant a été CONSOMMÉE (#717) — posé par `fenetreValider('finDeChapitre')`, lu par
    *  `armChapterRecapIfDue`. La clôture est une Condition, et une Condition vraie le RESTE (un drapeau
    *  ne se retire pas) : sans ce fait, le lot d'effets suivant ré-armerait un récap vide, à l'infini.
    *  Un seul booléen suffit : un paquet porte UNE `narratif.cloture`, et le fait meurt avec la partie
@@ -471,13 +478,13 @@ export interface EtatDeJeu {
   pendingInteract: PendingInteract | null;
   pendingCast: PendingCast | null;
   /** Contre-sort à PLUSIEURS (réaction au Sort figé dans `pendingCast`) : les contre-lanceurs
-   *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.counterspell`). Null = pas de réaction. */
+   *  enrôlés par `routeCounterspell`, chacun son jet (flux multi `FLOWS.contreSort`). Null = pas de réaction. */
   pendingCounterspell: PendingCounterspell | null;
   /** Test Étendu en cours (LDB 12 : DR cumulé vers une cible, ex. crochetage) : flux multi
-   *  SÉQUENTIEL — un Round à la fois (`FLOWS.extendedTest`), cumul dans `jetValider('extendedTest')`. */
+   *  SÉQUENTIEL — un Round à la fois (`FLOWS.testEtendu`), cumul dans `jetValider('testEtendu')`. */
   pendingExtendedTest: PendingExtendedTest | null;
   /** Enfoncer une porte à PLUSIEURS (EDO Appendice 2 : objet BE/B) : flux multi PARALLÈLE — chaque
-   *  héros frappe (`FLOWS.forceDoor`), cumul des dégâts vs B dans `jetValider('forceDoor')`. */
+   *  héros frappe (`FLOWS.enfoncerLaPorte`), cumul des dégâts vs B dans `jetValider('enfoncerLaPorte')`. */
   pendingForceDoor: PendingForceDoor | null;
   /** DÉSIGNATION d'un héros pour un état de campagne (Effet `designerHeros`, EDO 02 l.91). */
   pendingDesignationHeros: PendingDesignationHeros | null;
@@ -506,7 +513,7 @@ export interface EtatDeJeu {
   /** Incantation OPPOSÉE (`spec.opposed`) : chaque CIBLE oppose son Test (FM/Int) à l'incantation
    *  figée (`pendingCast.result`) — multijet DANS la modale de cast (cible IA = rangée témoin
    *  auto-roulée, cible héros = interactive). `jetValider('opposition')` agrège → `pendingCast.opposedOutcome`
-   *  → `jetValider('cast')` applique (cible résistante = aucune op ; sinon ops à la marge). */
+   *  → `jetValider('incantation')` applique (cible résistante = aucune op ; sinon ops à la marge). */
   pendingCastOpposition: PendingCastOpposition | null;
   /** Télégraphe d'intention ENNEMI : réticule « qui l'adversaire vise » + manière (`kind`), montré
    *  ~0,85 s AVANT l'action. Alimente le réticule/la ligne sur la carte ET la bannière d'annonce. */
@@ -621,8 +628,8 @@ export interface EtatDeJeu {
   finDeSeance: FinDeSeance | null;
   /** Combat monté (AA 9 l.36) : clic sur un couple cavalier+monture (deux ennemis) → choisir lequel
    *  frapper (le cavalier −10 si l'on est plus petit que la monture ; abattre la monture désarçonne). */
-  /** `approche` = VERDICT D'ARMEMENT capturé au clic qui a ouvert ce choix (cf. `PendingApproach`). */
-  pendingMountTarget: { riderId: string; mountId: string; approche?: boolean } | null;
+  /** `intentionId` = l'intention du clic qui a ouvert ce choix (cf. `PendingApproach`). */
+  pendingMountTarget: { riderId: string; mountId: string; intentionId?: IdDIntention } | null;
   /** Temps de jeu : minutes depuis l'époque (Hexenstag 2512 00:00, cf. clock.ts). « Tout est horodaté ». */
   gameTime: number;
   // ── Voyage & nourriture (#T2) ──

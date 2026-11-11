@@ -6,7 +6,7 @@ import { openSequence, displayStep, monoStep } from './rollSeam';
 import { startCascade, advanceCascade, resumeSuspendedCascade } from './cascade';
 import { seedBattleRng } from './battleRng';
 import { setCadence } from '../engine/cadence';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { voyageStakeRef } from '../data';
 import { fixtureText } from '../i18n/fixtureText';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -66,7 +66,7 @@ function sequenceDe(premierKind: GenreDeCascade): BuiltCascadeStep[] {
 beforeEach(() => {
   apples = 0;
   seedBattleRng(7);
-  const party = makePregens(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, aiControlled: true }));
   set({ party, battle: null, pendingCascade: null, suspendedCascades: [], journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
 });
@@ -119,7 +119,7 @@ describe('#1479 — PARITÉ DE TRACE : le dé posé d’office par le curseur a 
     const [h] = get().party;
     const jet = monoStep({
       id: 'sonde-jet', kind: KIND_JET, actor: h, label: fixtureText('Jet de sonde'),
-      difficulty: 'intermediaire', stake: voyageStakeRef('crew-progression'),
+      difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'),
       ligne: { valeur: 50 },
     })!;
     setCadence('rapide'); // cadence déférée à un automate → aucun siège ne tient l'étape

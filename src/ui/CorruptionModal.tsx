@@ -103,7 +103,7 @@ export function CorruptionModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('info', describeCorruption(pc, libelleOuAbsence(hero, 'heros', pc.heroId)), pc.heroId), pool)] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('information', describeCorruption(pc, libelleOuAbsence(hero, 'heros', pc.heroId)), pc.heroId), pool)] : undefined}
       actions={actions}
     />
   );

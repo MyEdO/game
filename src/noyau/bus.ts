@@ -89,7 +89,7 @@ export interface ChargesDuBus {
   scene_dirty: undefined;
   anim_attack: ChargeDAttaque;
   anim_impact: { to: string; result: ChargeDAttaque['result'] };
-  anim_float: { to?: string; pos?: Case; text: string; kind: 'damage' | 'miss' | 'condition' | 'heal' };
+  anim_float: { to?: string; pos?: Case; text: string; kind: 'blessures' | 'rate' | 'etat' | 'soin' };
   anim_move: { id: string; path: Case[] };
   move_blocked: Record<string, never>;
   anim_aoe: ChargeDeZone;

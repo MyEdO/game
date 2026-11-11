@@ -35,7 +35,7 @@ describe('Peur de combat entamée — barre de la rangée', () => {
     useGame.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H1', seed: 1 })], pendingCascade: null });
     useGame.getState().lancerLaScene(testScene());
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     const b = useGame.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -49,7 +49,7 @@ describe('Peur de combat entamée — barre de la rangée', () => {
     openRoundEndCascade(useGame.getState, useGame.setState);
     const pc = useGame.getState().pendingCascade!;
     const band = pc.participants[0];
-    expect(band.combatPsych?.kind).toBe('peur');
+    expect(band.psychologieDeCombat?.kind).toBe('peur');
     const participants = band.participants!.map((p) => (p.id === H.id ? { ...p, result: { roll: 99, target: p.target, sl: -2, success: false } } : p));
     useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants }, ...pc.participants.slice(1)] } });
     act(() => { root.render(<CascadeBody />); });

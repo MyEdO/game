@@ -24,7 +24,7 @@ import { progressionModeSchema } from './naval-progression';
 import { missileBypassSchema } from './domains';
 import { waterAppliesToSchema, waterTableSchema } from './water-exposure';
 import { rigSchema, posteSideSchema } from './vehicles';
-import { attackKindSchema } from './maneuvers';
+import { attackKindSchema } from '../grammaire/valeurs';
 import { trappingCategorieSchema } from './trappings';
 import { critTableSchema } from './criticals';
 import { favorLevelSchema } from '../defs-scenes/effets';
@@ -33,7 +33,7 @@ import { windDirectionSchema } from '../defs-scenes/worldmap';
 
 /** Un vocabulaire migré : son nœud, et la table FR ATTENDUE — dans l'ordre de ses options. */
 const MIGRES: readonly [string, unknown, Record<string, string>][] = [
-  ['activities.outcomes[].on', outcomeOnSchema, { success: 'Succès', failure: 'Échec', fumble: 'Maladresse' }],
+  ['activities.outcomes[].on', outcomeOnSchema, { reussite: 'Succès', echec: 'Échec', maladresse: 'Maladresse' }],
   ['activities.outcomes[].when', battleCondSchema, {
     generalDown: 'Général ennemi tombé', intervention: 'Un autre PJ a frappé',
     noIntervention: 'Aucune intervention', combatWon: 'Combat gagné', combatLost: 'Combat perdu',

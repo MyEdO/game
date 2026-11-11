@@ -24,12 +24,12 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
       const { lignes, jour: dernier } = lignesDuJournal(etat, 3, [
         { de: 'journal', texte: 'Vous entrez.', heure },
         combat('round', 'Round 2'),
-        combat('attack', 'Coup porté.', heros.id, ennemi.id),
+        combat('attaque', 'Coup porté.', heros.id, ennemi.id),
         combat('detail', '  ↳ Tête, 4 Blessures'),
         combat('detail', '  ↳ Sonné'),
-        combat('crit', 'Critique au bras.', ennemi.id, heros.id),
-        combat('death', 'Hors de combat.', ennemi.id),
-        combat('info', ''),
+        combat('critique', 'Critique au bras.', ennemi.id, heros.id),
+        combat('mort', 'Hors de combat.', ennemi.id),
+        combat('information', ''),
       ], jour);
       expect(lignes.map(({ id, ton, texte, detail }) => ({ id, ton, texte, detail }))).toEqual([
         { id: 'journal/3', ton: 'neutre', texte: 'Vous entrez.', detail: null },
@@ -69,9 +69,9 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
       const lent = ecran('slow');
       expect(lent['fenetre.corps'], 'l’enjeu en alerte, puis les Points de Destin du héros').toMatchObject([{ id: 'destin/enjeu', ton: 'alerte' }, { id: 'destin/points', valeur: String(heros.fate ?? 0) }]);
       const issues = (zones: ReturnType<typeof ecran>) => zones['fenetre.gestes'].flatMap((g) => ('valeurs' in g ? g.valeurs.map((v) => ('args' in v.jeu ? v.jeu.args : null)) : []));
-      expect(lent['fenetre.gestes'].map((g) => g.id), 'un seul choix, qui clôt la fenêtre').toEqual(['fenetreChoisir@fateSave#issue']);
-      expect(issues(lent), 'une mort lente ne s’évite pas : survivre ou l’accepter (LDB 17 l.31)').toEqual([['fateSave', 'issue', 'survive'], ['fateSave', 'issue', 'accept']]);
-      expect(issues(ecran('hit')), 'un coup qui porte s’évite aussi (LDB 17 l.32)').toEqual([['fateSave', 'issue', 'negate'], ['fateSave', 'issue', 'survive'], ['fateSave', 'issue', 'accept']]);
+      expect(lent['fenetre.gestes'].map((g) => g.id), 'un seul choix, qui clôt la fenêtre').toEqual(['fenetreChoisir@destin#issue']);
+      expect(issues(lent), 'une mort lente ne s’évite pas : survivre ou l’accepter (LDB 17 l.31)').toEqual([['destin', 'issue', 'survivre'], ['destin', 'issue', 'accepter']]);
+      expect(issues(ecran('hit')), 'un coup qui porte s’évite aussi (LDB 17 l.32)').toEqual([['destin', 'issue', 'eviter'], ['destin', 'issue', 'survivre'], ['destin', 'issue', 'accepter']]);
     } finally {
       partie.fermer();
     }
@@ -89,10 +89,10 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
       ]);
       const dessines = (z: typeof zones) => [...z['fenetre.gestes'], ...z['fenetre.reglages']].map((g) => g.id);
-      expect(dessines(zones), 'un choix sans valeur ne se dessine pas').not.toContain('fenetreChoisir@victory#depecer');
+      expect(dessines(zones), 'un choix sans valeur ne se dessine pas').not.toContain('fenetreChoisir@victoire#depecer');
       const aDepecer: Jeu = { ...etat, pendingVictory: { ...etat.pendingVictory!, defeated: [{ label: 'Griffon', count: 1, creatureId: 'griffon' }] } };
       const temoin = zonesDeLEcran(aDepecer, projeter(aDepecer, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(aDepecer), null);
-      expect(temoin['fenetre.reglages'].map((g) => g.id), 'témoin : une créature à dépecer se dessine en réglage de la fenêtre').toContain('fenetreChoisir@victory#depecer');
+      expect(temoin['fenetre.reglages'].map((g) => g.id), 'témoin : une créature à dépecer se dessine en réglage de la fenêtre').toContain('fenetreChoisir@victoire#depecer');
     } finally {
       partie.fermer();
     }
@@ -125,9 +125,9 @@ describe('le début du Round (`fenetre.gestes`)', () => {
       const zones = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null);
       const dessines = (etat: Jeu) => { const z = zones(etat); return { gestes: z['fenetre.gestes'].map((g) => g.id), reglages: z['fenetre.reglages'].map((g) => g.id) }; };
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
-      const seul = { gestes: ['fenetreValider@roundStart'], reglages: ['fenetreChoisir@roundStart#promouvoir'] };
+      const seul = { gestes: ['fenetreValider@debutDuRound'], reglages: ['fenetreChoisir@debutDuRound#promouvoir'] };
       expect(dessines(debut), 'seul : qui agit en premier, en réglage, et le lancer').toEqual(seul);
-      expect(dessines({ ...debut, net: { ...debut.net, mode: 'host' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(seul);
+      expect(dessines({ ...debut, net: { ...debut.net, mode: 'hote' } }), 'en réseau : le même geste, qui marque le siège prêt').toEqual(seul);
     } finally {
       partie.fermer();
     }

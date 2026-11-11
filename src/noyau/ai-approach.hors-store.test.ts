@@ -64,7 +64,7 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
   it('cible à 6 cases (M4) : CHARGE à portée de Course — arrive AU CONTACT, sans jet', () => {
     const { plan, ran } = planFor(8); // distance 6 : marche (4) insuffisante, Course (8) au contact
     expect(ran).toBeNull(); // une charge ne demande pas de Test
-    expect(plan.kind).toBe('move');
+    expect(plan.kind).toBe('deplacement');
     const to = (plan as { to: { x: number; y: number } }).to;
     expect(chebyshev(to, { x: 8, y: 10 })).toBe(1); // adjacent au héros
   });
@@ -104,7 +104,7 @@ describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
     expect(d100, 'un seul d100 au tour : celui de la Course').toHaveLength(1);
     const course = testDeRegle('course', 'courir');
     const jet = evaluateTest(d100[0], cibleDuTest(testValue(enemy, course), course.difficulty));
-    const lignes = banc.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'move').map((l) => l.text);
+    const lignes = banc.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'deplacement').map((l) => l.text);
     expect(chebyshev(depart, enemy.pos!), 'arrêt avant le budget').toBeLessThan(4 + runFromTest(jet, 4).bonusCases);
     expect(lignes).toEqual([
       traceLineOf({ who: 'Gobelin', label: testTraceLabel(refLabel('skills', course.skill), course.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }),

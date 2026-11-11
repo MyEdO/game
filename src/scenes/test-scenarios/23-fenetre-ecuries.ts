@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene, type WallSpec } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
@@ -167,5 +167,5 @@ export const scenario: TestScenario = {
   partyNote:
     'Pré-tirés, à l’étage. Gestes : sauter/se suspendre à la croisée (hors combat, puis en combat via l’homme de main) · ' +
     'remonter par l’escalier de la salle basse · entrer au bureau (découverte à l’approche) · Fouiller la pièce.',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

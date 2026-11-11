@@ -71,7 +71,7 @@ describe('Marque de Tzeentch — câblage (#568)', () => {
     expect(targetedTrigger(nurgleFollower, [sourceCombattant(marked)])).toBeNull();
   });
 
-  it('Réciproque : INERTE chez un disciple de Nurgle immunisé (`isPsychImmune` court-circuite `encounterPsych` avant `targetedTrigger`)', () => {
+  it('Réciproque : INERTE chez un disciple de Nurgle immunisé (`isPsychImmune` court-circuite `psychologieDeRencontre` avant `targetedTrigger`)', () => {
     const immuneNurgleFollower = {
       id: 'nurgle-1', name: 'Porte-Peste', kind: 'enemy', groups: [], psychImmune: true,
       psychTraits: [{ type: 'animosite' as const, cible: ciblePsy.groupe('tzeentch') }],

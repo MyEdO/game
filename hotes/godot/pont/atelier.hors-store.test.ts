@@ -15,7 +15,7 @@ import { emplacementsDeRangement, gardeRobe } from '../../../src/noyau/index';
 import { modelesDeLAtelier } from './atelier';
 
 const dos = { os: 'spine', position: [0, 0.1, 0], rotation: [0, 0, 0] };
-const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { walk: 'Walk_Loop', idle: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
+const humanoide = { ...baseDeTest('humanoide'), emplacements: { dos }, clips: { marche: 'Walk_Loop', repos: 'Idle_Loop' }, appuis: { ...baseDeTest('humanoide').appuis, pieds: ['root'], vitesseAuSol: 1.25 } };
 const epee = elementSchema3('humanoide');
 const chemise = {
   schema: 3, base: 'humanoide', categorie: 'vetement', cle: { piece: 'chemise' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: ['torse'],
@@ -47,12 +47,12 @@ describe('modelesDeLAtelier', () => {
       { id: 'dos', genre: 'emplacement', attache: dos, offertPar: undefined },
       { id: 'epaule_d', genre: 'emplacement', attache: chemise.emplacements.epaule_d, offertPar: { chemise: chemise.emplacements.epaule_d } },
       { id: 'main', genre: 'prise', attache: humanoide.prises.main, offertPar: undefined },
-      { id: 'off', genre: 'prise', attache: humanoide.prises.off, offertPar: undefined },
+      { id: 'secondaire', genre: 'prise', attache: humanoide.prises.secondaire, offertPar: undefined },
     ]);
   });
 
-  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `walk`, au gabarit neutre', () => {
-    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ walk: 'Walk_Loop', idle: 'Idle_Loop' }, 1.25]);
+  it('une base publie sa table rôle → clip et la vitesse au sol de son rôle `marche`, au gabarit neutre', () => {
+    expect([modeles.bases[0].clips, modeles.bases[0].vitesseAuSol]).toEqual([{ marche: 'Walk_Loop', repos: 'Idle_Loop' }, 1.25]);
   });
 
   it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
@@ -61,7 +61,7 @@ describe('modelesDeLAtelier', () => {
   });
 
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {
-    expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], epaule_d: ['epee'], main: ['epee'], off: ['epee'] });
+    expect(Object.fromEntries(modeles.bases[0].points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], epaule_d: ['epee'], main: ['epee'], secondaire: ['epee'] });
   });
 
   it('un objet tenu construit pour une prise est offert à chaque prise de sa base et aux emplacements où sa forme se range, jamais à un autre emplacement (#3319)', () => {
@@ -69,9 +69,9 @@ describe('modelesDeLAtelier', () => {
     expect(emplacementsDeRangement('epee')).toContain('ceinture_g');
     expect(emplacementsDeRangement('epee')).toContain('dos');
     expect(emplacementsDeRangement('epee')).not.toContain('epaule_d');
-    const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], emplacements: { dos, ceinture_g: attache('root') }, prises: { main: attache('main_d'), off: attache('main_g') } };
+    const mains = { ...humanoide, os: ['root', 'spine', 'main_d', 'main_g'], emplacements: { dos, ceinture_g: attache('root') }, prises: { main: attache('main_d'), secondaire: attache('main_g') } };
     const base = modelesDeLAtelier({ humanoide: mains, epee, bouclier }, { humanoide: [], epee: ['main_d'], bouclier: ['spine'] }).bases[0];
-    expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], ceinture_g: ['epee'], main: ['epee'], off: ['epee'] });
+    expect(Object.fromEntries(base.points.map(({ id, elements }) => [id, elements]))).toEqual({ dos: ['epee', 'bouclier'], ceinture_g: ['epee'], main: ['epee'], secondaire: ['epee'] });
   });
   it('les lignes de pièce sont, dans l’ordre de la garde-robe, le sélecteur `tete`, le sélecteur `coiffure`, une bascule `piece` par pièce de vêtement ou d’armure, puis une liste `emplacement` par emplacement d’une pièce d’accessoire', () => {
     const emplacementsDAccessoire = new Set<string>(gardeRobe.flatMap((g) => (g.kind === 'piece' && g.emplacement ? [g.emplacement.id] : [])));

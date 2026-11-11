@@ -164,8 +164,8 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
     ['driving-mishap.json', drivingMishap],
     // Deux tables de tirage distinctes : la qualité SECRÈTE du vin (MSRC 13 l.97) et les rumeurs
     // commerciales (MSRC 13 l.283) — la seconde ne serait jamais atteinte sans descente.
-    ['land-cargo.json', landCargo, ['wineQuality']],
-    ['land-cargo.json', landCargo, ['rumours']],
+    ['land-cargo.json', landCargo, ['qualiteDuVin']],
+    ['land-cargo.json', landCargo, ['rumeurs']],
     ['mass-battle.json', massBattle, ['hazards', 'entries']],
     ['naval-progression.json', navalProgression],
     // Les deux tables du vent fluvial partagent le MÊME schéma de rangée (`bandRow`) : chacune
@@ -419,49 +419,49 @@ describe('vehicles.json › ship.traits — foyer disjoint du bestiaire (#1463 L
  *  - la dernière bande TERRESTRE ouverte alors que MSRC 13 l.150-156 n'écrit aucun « ou plus ».
  */
 describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant (#1463 L-gram-3)', () => {
-  /** Remplace la N-ième bande d'un `sell.<cle>` par une version modifiée (copie, jamais l'arbre). */
+  /** Remplace la N-ième bande d'un `vente.<cle>` par une version modifiée (copie, jamais l'arbre). */
   const muter = (doc: unknown, cle: string, i: number, patch: Record<string, unknown>) => {
-    const d = doc as { sell: Record<string, Record<string, unknown>[]> };
-    const bandes = d.sell[cle].map((b, j) => (j === i ? { ...b, ...patch } : b));
-    return { ...d, sell: { ...d.sell, [cle]: bandes } };
+    const d = doc as { vente: Record<string, Record<string, unknown>[]> };
+    const bandes = d.vente[cle].map((b, j) => (j === i ? { ...b, ...patch } : b));
+    return { ...d, vente: { ...d.vente, [cle]: bandes } };
   };
 
-  it('sea-cargo.json › sell.offerPrice : la donnée réelle passe ; TROU, CHEVAUCHEMENT et plafond sur la bande FINALE sont REFUSÉS', () => {
+  it('sea-cargo.json › vente.prixDOffre : la donnée réelle passe ; TROU, CHEVAUCHEMENT et plafond sur la bande FINALE sont REFUSÉS', () => {
     expect(validateDataset('sea-cargo.json', seaCargo)).toBeNull();
 
-    const trou = validateDataset('sea-cargo.json', muter(seaCargo, 'offerPrice', 3, { min: 5 }));
+    const trou = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { min: 5 }));
     expect(trou, 'un TROU entre deux bandes est accepté').not.toBeNull();
     expect(trou).toContain('commence à 5 au lieu de 4');
 
-    const chevauchement = validateDataset('sea-cargo.json', muter(seaCargo, 'offerPrice', 1, { min: 1 }));
+    const chevauchement = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 1, { min: 1 }));
     expect(chevauchement, 'un CHEVAUCHEMENT est accepté').not.toBeNull();
     expect(chevauchement).toContain('commence à 1 au lieu de 2');
 
-    const plafonnee = validateDataset('sea-cargo.json', muter(seaCargo, 'offerPrice', 3, { max: 9 }));
+    const plafonnee = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { max: 9 }));
     expect(plafonnee, 'la bande « 4 ou plus » accepte un plafond').not.toBeNull();
     expect(plafonnee).toContain('est la DERNIÈRE et porte un plafond');
   });
 
-  it('land-cargo.json › sell.offerByRichesse : la donnée réelle passe ; TROU, CHEVAUCHEMENT, bande FINALE ouverte et débordement d’échelle sont REFUSÉS', () => {
+  it('land-cargo.json › vente.offreParRichesse : la donnée réelle passe ; TROU, CHEVAUCHEMENT, bande FINALE ouverte et débordement d’échelle sont REFUSÉS', () => {
     expect(validateDataset('land-cargo.json', landCargo)).toBeNull();
 
-    const trou = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 2, { min: 4 }));
+    const trou = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 2, { min: 4 }));
     expect(trou, 'un TROU entre deux bandes est accepté').not.toBeNull();
     expect(trou).toContain('commence à 4 au lieu de 3');
 
-    const chevauchement = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 1, { min: 1 }));
+    const chevauchement = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 1, { min: 1 }));
     expect(chevauchement, 'un CHEVAUCHEMENT est accepté').not.toBeNull();
     expect(chevauchement).toContain('commence à 1 au lieu de 2');
 
     // Côté TERRE, le livre n'écrit aucun « ou plus » : la borne haute est REQUISE (`plageSchema`),
     // et `max: null` est refusé AU TYPE, avant même la mesure de couverture.
-    const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }));
+    const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: null }));
     expect(ouverte, 'la dernière bande terrestre accepte une borne haute OUVERTE').not.toBeNull();
     expect(ouverte).toContain('Règles de vente › Mise à prix selon la Richesse 5 › Maximum');
-    expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }))).toContain('sell.offerByRichesse.4.max');
+    expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: null }))).toContain('vente.offreParRichesse.4.max');
 
     // Le domaine s'arrête à 5 (MSRC 13 l.52-60) : une bande qui déborde n'a aucun indice à couvrir.
-    const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: 6 }));
+    const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: 6 }));
     expect(deborde, 'la table déborde l’échelle des indices imprimés').not.toBeNull();
     expect(deborde).toContain("s'arrête à 6 au lieu de 5");
   });

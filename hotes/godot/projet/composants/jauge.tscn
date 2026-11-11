@@ -1,11 +1,12 @@
-[gd_scene load_steps=2 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
+[ext_resource type="Theme" path="res://art/petit.tres" id="t_petit"]
 
 [node name="Jauge" type="HBoxContainer"]
-custom_minimum_size = Vector2(250, 0)
+theme_type_variation = &"RangeeSerree"
+custom_minimum_size = Vector2(150, 0)
 size_flags_horizontal = 3
-theme_override_constants/separation = 8
 
 [node name="Libelle" type="Label" parent="."]
 custom_minimum_size = Vector2(92, 0)
@@ -32,6 +33,7 @@ champ = "courant"
 propriete = &"value"
 
 [node name="Texte" type="Label" parent="Barre"]
+theme = ExtResource("t_petit")
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
@@ -39,7 +41,6 @@ grow_horizontal = 2
 grow_vertical = 2
 horizontal_alignment = 1
 vertical_alignment = 1
-theme_override_font_sizes/font_size = 14
 
 [node name="texte" type="Node" parent="Barre/Texte"]
 script = ExtResource("1_liaison")

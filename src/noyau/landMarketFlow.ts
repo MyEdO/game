@@ -156,7 +156,7 @@ function apresHalle(get: Get, set: Set): void {
   }, LAND_GOSSIP_KIND, { placeId: cur.placeId });
 }
 
-const LAND_GOSSIP_KIND = 'land-market-gossip';
+const LAND_GOSSIP_KIND = 'marche-rumeur';
 
 /** Génère une RUMEUR CROSS-LIEU (MSRC 13 l.180) : tire un AUTRE Lieu à `market` de la carte, puis une
  *  rumeur (Tableau des rumeurs) désignant les biens qui s'y vendent au double. Ajoutée au board persistant
@@ -205,7 +205,7 @@ export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
   const refus = refusDEvaluerLeVin(get(), cargoId);
   if (refus) { refuserGeste(get, set, refus); return; }
   const offer = garanti(get().landMarket?.offers.find((o) => o.cargoId === cargoId), cargoId, 'vin à évaluer');
-  const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluate.skill })!;
+  const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluation.skill })!;
   const diff = wineEvalDifficulty(testValue(best.actor, { skill: { id: 'resistance-a-l-alcool' } }));
   // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
   openPartyTest(get, set, {
@@ -216,7 +216,7 @@ export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
   }, LAND_WINE_EVAL_KIND, { cargoId });
 }
 
-const LAND_WINE_EVAL_KIND = 'land-market-wine-eval';
+const LAND_WINE_EVAL_KIND = 'marche-evaluation-vin';
 
 /** TRANSFERT de cargaison entre deux porteurs CO-LOCALISÉS (#327, décision 8) — route par `transferCargo`
  *  du tronc (jamais une 2ᵉ arithmétique) puis RE-PERSISTE les deux porteurs. Le refus du plan
@@ -369,7 +369,7 @@ function openLandSellBuyerStep(get: Get, set: Set, lotId: IdDeCargaison, sellEnc
   }, LAND_SELL_BUYER_KIND, { lotId, sellEnc, retryHalf: allowHalfRetry, attempt });
 }
 
-const LAND_SELL_BUYER_KIND = 'land-sell-buyer';
+const LAND_SELL_BUYER_KIND = 'acheteurATerre';
 
 /** 2-3. Mise à prix (l.148-156) puis Marchandage opposé (l.127), une fois l'acheteur trouvé — retire le
  *  lot (ou la fraction vendue) du porteur et crédite la bourse. `avant` = les lignes déjà dues au

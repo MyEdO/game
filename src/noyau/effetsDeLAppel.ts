@@ -116,13 +116,13 @@ export type CaseDEffet = ChargeDeZone['centre'];
  *  (`hauteurDe`), 0 pour la première. */
 export type CaseDuChemin = CaseDEffet & { metres: number };
 
-/** Le genre d'un flottant : celui d'un retour du bus (`EVT.ANIM_FLOAT`), ou l'issue d'un coup (`soak` : encaissé,
- *  `defend` : paré ou esquivé, `death` : hors de combat). */
-export type GenreDeFlottant = ChargesDuBus['anim_float']['kind'] | 'soak' | 'defend' | 'death';
+/** Le genre d'un flottant : celui d'un retour du bus (`EVT.ANIM_FLOAT`), ou l'issue d'un coup (`encaisse`, `defense` : paré
+ *  ou esquivé, `horsDeCombat`). */
+export type GenreDeFlottant = ChargesDuBus['anim_float']['kind'] | 'encaisse' | 'defense' | 'horsDeCombat';
 
 /** La teinte du flottant de chaque genre. */
 export const TEINTE_DU_FLOTTANT: Record<GenreDeFlottant, string> = {
-  damage: '#ff5a5a', soak: '#b8b8c0', miss: '#b8b8c0', defend: '#6fb6ff', death: '#ff3030', heal: '#6fce8e', condition: '#e0b050',
+  blessures: '#ff5a5a', encaisse: '#b8b8c0', rate: '#b8b8c0', defense: '#6fb6ff', horsDeCombat: '#ff3030', soin: '#6fce8e', etat: '#e0b050',
 };
 /** La teinte du flottant des Blessures d'un Coup Critique. */
 export const TEINTE_DU_CRITIQUE = '#ffd166';
@@ -179,15 +179,15 @@ interface BilanDeTouche {
 
 /** Les flottants de la touche `r` : `critique` d'un Coup Critique, `defendue` quand la cible s'est défendue. */
 function flottantsDeLaTouche(r: BilanDeTouche, critique: boolean, defendue: boolean): Flottant[] {
-  if (!r.hit) return [defendue ? flottant('defend', tr('fx.pareOuEsquive')) : flottant('miss', tr('fx.rate'))];
+  if (!r.hit) return [defendue ? flottant('defense', tr('fx.pareOuEsquive')) : flottant('rate', tr('fx.rate'))];
   return [
-    (r.woundsLost ?? 0) > 0 ? flottant('damage', tr('fx.blessures', { n: r.woundsLost! }), critique) : flottant('soak', tr('fx.encaisse')),
-    ...(r.defenderDefeated ? [flottant('death', tr('fx.horsDeCombat'))] : []),
+    (r.woundsLost ?? 0) > 0 ? flottant('blessures', tr('fx.blessures', { n: r.woundsLost! }), critique) : flottant('encaisse', tr('fx.encaisse')),
+    ...(r.defenderDefeated ? [flottant('horsDeCombat', tr('fx.horsDeCombat'))] : []),
   ];
 }
 
 /** Le flottant d'une incantation ratée. */
-const incantationRatee = (): Flottant => flottant('miss', tr('fx.incantationRatee'));
+const incantationRatee = (): Flottant => flottant('rate', tr('fx.incantationRatee'));
 
 /** Les rendus de repli : une arme de mêlée, de tir, naturelle, sans rendu propre ni de Groupe ; un sort hors Domaine ;
  *  une Prière. */
@@ -359,7 +359,7 @@ function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | n
  *  sur son porteur. */
 export function effetsDeLAppel(etat: Jeu, evenements: readonly Evenement[]): Effet[] {
   return evenements.flatMap((e): Effet[] => {
-    if (e.type === 'etatGagne') return [{ quoi: 'flottant', sur: e.porteur, case: null, flottant: flottant('condition', conditionLabel(e.etat)) }];
+    if (e.type === 'etatGagne') return [{ quoi: 'flottant', sur: e.porteur, case: null, flottant: flottant('etat', conditionLabel(e.etat)) }];
     if (e.type !== 'emis') return [];
     if (e.evt === 'anim_attack') {
       if (e.payload.kind === 'creature') return [];
@@ -550,14 +550,14 @@ export function vitrineDesEffets(): VitrineDesEffets {
     return [t.id, coup(rendu, rendu.couleur, 'touche', de, vers, distanceM, null, flottantsDeLaVitrine('touche'))];
   }));
   const echantillons: [string, Flottant][] = [
-    ['damage', flottant('damage', tr('fx.blessures', { n: BLESSURES_DE_LA_VITRINE }))],
-    ['critique', flottant('damage', tr('fx.blessures', { n: BLESSURES_DE_LA_VITRINE }), true)],
-    ['soak', flottant('soak', tr('fx.encaisse'))],
-    ['miss', flottant('miss', tr('fx.rate'))],
-    ['defend', flottant('defend', tr('fx.pareOuEsquive'))],
-    ['death', flottant('death', tr('fx.horsDeCombat'))],
-    ['heal', flottant('heal', tr('fx.soin', { n: BLESSURES_DE_LA_VITRINE }))],
-    ['condition', flottant('condition', etats[0].label)],
+    ['blessures', flottant('blessures', tr('fx.blessures', { n: BLESSURES_DE_LA_VITRINE }))],
+    ['critique', flottant('blessures', tr('fx.blessures', { n: BLESSURES_DE_LA_VITRINE }), true)],
+    ['encaisse', flottant('encaisse', tr('fx.encaisse'))],
+    ['rate', flottant('rate', tr('fx.rate'))],
+    ['defense', flottant('defense', tr('fx.pareOuEsquive'))],
+    ['horsDeCombat', flottant('horsDeCombat', tr('fx.horsDeCombat'))],
+    ['soin', flottant('soin', tr('fx.soin', { n: BLESSURES_DE_LA_VITRINE }))],
+    ['etat', flottant('etat', etats[0].label)],
   ];
   const flottants = echantillons.map(([id, f]): EffetDeVitrine => ({ id, label: f.texte, effet: { quoi: 'flottant', sur: vers, case: null, flottant: f } }));
   const musiques = allMusicDefs().map((d) => ({ id: d.id, label: d.label, musique: musiqueDeLaSelection({ def: d.id })! }));

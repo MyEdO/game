@@ -68,9 +68,9 @@ export interface DayPhaseDef {
 }
 
 export const DAY_PHASE_CATALOG: DayPhaseDef[] = [
-  { key: 'activites', label: 'Activités', match: (k) => k.startsWith('stagePoste') || k === 'stageAggregate' || k === 'stageExposure' },
-  { key: 'rencontre', label: 'Rencontre / Péripéties', match: (k) => k.startsWith('landPeril') },
-  { key: 'route', label: 'Route', match: (k) => k.startsWith('landForcedPace') },
+  { key: 'activites', label: 'Activités', match: (k) => k.startsWith('etapePoste') || k === 'etapeBilan' || k === 'etapeExposition' },
+  { key: 'rencontre', label: 'Rencontre / Péripéties', match: (k) => k.startsWith('perilATerre') },
+  { key: 'route', label: 'Route', match: (k) => k.startsWith('rythmeForceATerre') },
 ];
 
 /** Clé de phase d'un `kind` d'étape de cascade — `undefined` si aucune phase du catalogue ne

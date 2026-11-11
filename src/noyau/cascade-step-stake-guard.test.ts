@@ -298,7 +298,7 @@ export function flowTestsWithoutStake(src: string): number[] {
  * `testFlow`) ; or un jet se DÉCRIT dans un littéral, et ce littéral entre par bien d'autres portes :
  * un nœud `{ kind:'test', test:{…} }` monté à la main, un `FlowTest` passé DIRECTEMENT à
  * `openSkillTest`, un `spec` d'`openPartyTest`, un `extendedTest`, l'argument de `ouvrirLeTestEtendu`
- * (qui pose son enjeu sur l'étape `extendedJet`), l'opération armée de chirurgie
+ * (qui pose son enjeu sur l'étape `jetEtendu`), l'opération armée de chirurgie
  * (`medic.surgery`, dont `useSurgeryJetProps` lit l'enjeu). Toutes produisent un jet, aucune n'était
  * mesurée.
  *
@@ -462,7 +462,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     const noeud = `const n = { kind: 'test', test: { skill: 'escalade', difficulty: 'intermediaire' }, success: EMPTY_FLOW, fail: f };`;
     const noeudAvec = `const n = { kind: 'test', test: { skill: 'escalade', difficulty: 'intermediaire', stake: flowStakeRef('climb-roll') }, success: EMPTY_FLOW, fail: f };`;
     const direct = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile' }, EMPTY_FLOW, fail);`;
-    const directAvec = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile', stake: combatStakeRef('act-gate') }, EMPTY_FLOW, fail);`;
+    const directAvec = `openSkillTest(get, set, { characteristic: 'force-mentale', difficulty: 'difficile', stake: combatStakeRef('agir-malgre-effet') }, EMPTY_FLOW, fail);`;
     const dynamique = `const t = { skill: 'calme', difficultyBy: [{ cond: c, difficulty: 'accessible' }] };`;
     const pasUnTest = `const a = { skill: 'artisanat', label: 'Fabriquer' };`; // aucune difficulté : pas un FlowTest
     expect(literalTestsWithoutStake(noeud)).toHaveLength(1);
@@ -481,7 +481,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     for (const { jet, slot } of porteurs) for (const comment of ['difficulty', ...Object.keys(cibleEtendueSchema.shape)]) {
       const pose = `set({ ${slot}: { actorId: a.id, characteristic: 'force', ${comment}, roll: null } });`;
       const hote = (j: string, enjeu: string) => `const e = hostStep(get, { id: 'x', kind: 'k', jet: '${j}', actorId: a.id${enjeu} });`;
-      const autre = porteurs.find((p) => p.jet !== jet)?.jet ?? 'fumble';
+      const autre = porteurs.find((p) => p.jet !== jet)?.jet ?? 'maladresse';
       const cas = `${slot} (${comment})`;
       expect(literalTestsWithoutStake(`${pose}\n${hote(jet, ', ...(f.stake ? { stake: f.stake } : {})')}`), `${cas} : l’étape porte l’enjeu`).toHaveLength(0);
       expect(literalTestsWithoutStake(`${pose}\n${hote(jet, '')}`), `${cas} : étape hôte sans enjeu`).toHaveLength(1);
@@ -496,12 +496,12 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
   it('RANGÉE DE BANDE (4ᵉ forme) : l’enjeu se demande à la bande qui la monte, jamais effacé', () => {
     const rangee = `const r = { id: h.id, label, skill: { id: s }, difficulty: 'intermediaire', result: null, interactive: true };`;
     const bande = (enjeu: string) => `return bandStep({ id: 'x', kind: 'k', label${enjeu} }, rangees);`;
-    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake: combatStakeRef(\'pursuitMove\')')}`), 'la bande porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake: combatStakeRef(\'mouvementDePoursuite\')')}`), 'la bande porte l’enjeu').toHaveLength(0);
     expect(literalTestsWithoutStake(`${rangee}\n${bande('')}`), 'bande sans enjeu').toHaveLength(1);
     expect(literalTestsWithoutStake(rangee), 'aucune bande').toHaveLength(1);
     expect(literalTestsWithoutStake(`${rangee}\n${bande(', stake')}\n${bande('')}`), 'une des bandes sans enjeu').toHaveLength(1);
     const fabrique = (enjeu: string) => `const b = makeBandFactory<Due>({ cle: (d) => d.k, rangee: (d) => d.row, situation: (d) => ({ id: 'x', kind: 'k'${enjeu} }) });`;
-    expect(literalTestsWithoutStake(`${rangee}\n${fabrique(', stake: combatStakeRef(\'combatPsych\')')}`), 'la fabrique de bandes porte l’enjeu').toHaveLength(0);
+    expect(literalTestsWithoutStake(`${rangee}\n${fabrique(', stake: combatStakeRef(\'psychologieDeCombat\')')}`), 'la fabrique de bandes porte l’enjeu').toHaveLength(0);
     expect(literalTestsWithoutStake(`${rangee}\n${fabrique('')}`), 'fabrique sans enjeu').toHaveLength(1);
     const descripteur = `const t = { skill: { id: s }, difficulty: 'intermediaire' };\n${bande(', stake')}`;
     expect(literalTestsWithoutStake(descripteur), 'un descripteur, sans `result`/`interactive`, n’est pas une rangée').toHaveLength(1);
@@ -521,7 +521,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
 
   it('FAIL-CLOSED : un `FlowTest` synthétique sans enjeu est DÉTECTÉ, avec enjeu il ne l’est pas', () => {
     const sans = `const f = testFlow({ skill: 'calme', difficulty: 'intermediaire', label: 'Approche' }, EMPTY_FLOW, brise);`;
-    const avec = `const f = testFlow({ skill: 'calme', difficulty: 'intermediaire', label: 'Approche', stake: combatStakeRef('combat-psych', { entryId: 'peur' }) }, EMPTY_FLOW, brise);`;
+    const avec = `const f = testFlow({ skill: 'calme', difficulty: 'intermediaire', label: 'Approche', stake: combatStakeRef('combat-psychologie', { entryId: 'peur' }) }, EMPTY_FLOW, brise);`;
     expect(flowTestsWithoutStake(sans)).toHaveLength(1);
     expect(flowTestsWithoutStake(avec)).toHaveLength(0);
   });
@@ -552,7 +552,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
     // `kind` VIVANT (`deviation` : la fenêtre unique de la Blessure critique, #1426) — une fixture sur
     // un kind mort ne prouve rien du scan réel.
     const tableSans = `const s = { id: 'x', kind: 'deviation', actorId: t.id, table: critSeverityDecl(t, loc) };`;
-    const tableAvec = `const s = { id: 'x', kind: 'deviation', actorId: t.id, table: critSeverityDecl(t, loc), stake: combatStakeRef('crit-severity') };`;
+    const tableAvec = `const s = { id: 'x', kind: 'deviation', actorId: t.id, table: critSeverityDecl(t, loc), stake: combatStakeRef('critique-severite') };`;
     expect(stepsWithoutStake(sans)).toHaveLength(1);
     expect(stepsWithoutStake(avec)).toHaveLength(0);
     expect(stepsWithoutStake(raccourci)).toHaveLength(0);
@@ -575,7 +575,7 @@ describe('une étape de cascade qui LANCE dit son ENJEU (#1117)', () => {
    *    type ne peut pas atteindre, et c'est ce que le scan garde.
    */
   it('PARTITION : la déclaration d’un mint mono sort du scan (le TYPE la tient), le manuscrit y reste', () => {
-    const mint = `const st = monoStep({ id: 'expo-1', kind: 'stageExposure', actor: h, label: 'Exposition', difficulty: diff, ligne: { test: { skill: 'resistance' } } });`;
+    const mint = `const st = monoStep({ id: 'expo-1', kind: 'etapeExposition', actor: h, label: 'Exposition', difficulty: diff, ligne: { test: { skill: 'resistance' } } });`;
     const raccourci = `const st = monoStep({ id: 'x', kind: 'k', actor, label: 'L', difficulty: diff });`;
     const parSpread = `const st = monoStep({ ...commun, actor: h, ligne: { valeur: 40 } });`;
     const manuscrit = `const s = { id: 'x', kind: 'k', actorId: h.id, base: 40, target: 40, result: null };`;
@@ -648,7 +648,7 @@ describe('l’enjeu AUTHORÉ reste au contenu — le moteur passe par les datase
 
   it('FAIL-CLOSED : le motif attrape bien un enjeu authoré, et laisse passer une réf de dataset', () => {
     expect(AUTHORED.test(stripLiterals(`const s = { stake: { authored: 'ce que le jet met en jeu' } };`))).toBe(true);
-    expect(AUTHORED.test(stripLiterals(`const s = { stake: combatStakeRef('climb-test') };`))).toBe(false);
+    expect(AUTHORED.test(stripLiterals(`const s = { stake: combatStakeRef('escalade-test') };`))).toBe(false);
     expect(AUTHORED.test(stripLiterals(`// authored: un commentaire n'est pas un site`))).toBe(false);
     expect(AUTHORED.test(stripLiterals(`export function captureMutation(current: Scene, authored: Scene) {}`)), 'une ANNOTATION de type n’est pas un enjeu posé').toBe(false);
     expect(AUTHORED.test(stripLiterals(`const s = { stake: { authored: texte } };`)), 'valeur par variable : un enjeu posé quand même').toBe(true);

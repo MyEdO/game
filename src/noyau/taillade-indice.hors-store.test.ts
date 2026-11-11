@@ -7,7 +7,7 @@
  *
  * Chaîne mesurée ICI, de bout en bout : catalogue → `weaponFromItem` → `effectSourcesOf` (branche
  * QUALITÉ, `withArg` substitue `$indice`) → `emitCombatEvent('onCrit')` (le MÊME appel que
- * `combatFlow` fait sur un Critique) → `resolveFlowChoice` → étape de cascade `triggeredChoice` →
+ * `combatFlow` fait sur un Critique) → `resolveFlowChoice` → étape de cascade `choixDeclenche` →
  * `jetRegler('cascade', 'choix')` → dépense d'Avantage + 2ᵉ État.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -64,7 +64,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -91,7 +91,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     expect(hemorragies(cible(E.id)), 'l’État automatique du Critique manque').toBe(1);
     const pc = banc.getState().pendingCascade!;
     const etape = pc.participants[pc.cursor];
-    expect(etape.kind).toBe('triggeredChoice');
+    expect(etape.kind).toBe('choixDeclenche');
     expect(etape.actorId, 'le DÉCIDEUR est le porteur de l’arme, pas la victime').toBe(H.id);
     expect(etape.options?.map((o) => o.label)).toEqual(['Ouvrir la plaie (1 Av)', 'Renoncer']);
   });
@@ -209,7 +209,7 @@ describe('Taillade (XA) — l’Indice de l’arme est le COÛT en Avantages du 
     for (let i = 0; i < 20 && banc.getState().pendingCascade; i++) {
       const pc = banc.getState().pendingCascade!;
       const cur = pc.participants[pc.cursor];
-      if (cur?.kind === 'triggeredChoice') return cur;
+      if (cur?.kind === 'choixDeclenche') return cur;
       avanceEtapeCascade(banc.getState);
     }
     return undefined;
@@ -262,7 +262,7 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -274,7 +274,7 @@ describe('Déstabilisante — le choix à coût LITTÉRAL reste offert et libell
       triggerCtx: { victim: E, weapon: arme, location: 'corps', woundsDealt: 3, attackType: arme.type, rng: battleRng() },
     });
     const pc = banc.getState().pendingCascade!;
-    expect(pc.participants[pc.cursor].kind).toBe('triggeredChoice');
+    expect(pc.participants[pc.cursor].kind).toBe('choixDeclenche');
     expect(pc.participants[pc.cursor].options?.[0].label).toBe('Renverser (2 Av)');
   });
 });

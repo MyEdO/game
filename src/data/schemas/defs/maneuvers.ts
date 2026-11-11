@@ -1,7 +1,7 @@
 import { nommerChamps } from '../grammaire/meta';
 /** LDB 85. */
 import { z } from 'zod';
-import { charKeySchema, enumNomme, stakeFormSchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
+import { attackKindSchema, charKeySchema, enumNomme, stakeFormSchema, weaponDamageSpecSchema } from '../grammaire/valeurs';
 import { ref } from '../grammaire/ref';
 import { document } from '../grammaire/document';
 import { triggeredEffectSchema } from '../grammaire/mecanique';
@@ -15,25 +15,6 @@ const maneuverMeasure = nommerChamps(z.strictObject({
   plus: z.number().optional(),
 }), { bonusOf: { label: 'bonus de caractéristique' }, plus: { label: 'ajout' } });
 
-/**
- * FAMILLE d'attaque d'une manœuvre (`AttackKind`, `src/engine/creatureAttacks.ts`) — le libellé est
- * celui de la FAMILLE, jamais l'affichage d'une manœuvre PRÉCISE (`ManeuverDef.label`, ex. « Souffle
- * (Feu) ») : plusieurs `ManeuverDef` partagent un `kind` (6 souffles, 2 étreintes, 4 hurlements).
- */
-export const attackKindSchema = enumNomme({
-  arme: 'Arme / griffes',
-  morsure: 'Morsure',
-  caudale: 'Attaque caudale',
-  cornes: 'Cornes',
-  souffle: 'Souffle',
-  vomi: 'Vomissement',
-  tentacules: 'Tentacules',
-  etreinte: 'Étreinte',
-  regard: 'Regard pétrifiant',
-  langue: 'Langue préhensile',
-  hurlement: 'Hurlement',
-  pietinement: 'Piétinement',
-});
 
 const doc = document(
   'maneuvers',
@@ -57,7 +38,7 @@ const doc = document(
     damage: weaponDamageSpecSchema.optional(),
     effects: z.array(triggeredEffectSchema),
     /** ENJEU de l'ENTRÉE (#1117) — ce que la manœuvre met en jeu, COLLÉ à ses `effects` (éditable au
-     *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit de l’enjeu `combat-maneuver-defense`. */
+     *  Codex). Rendu par `resolveStake` et PRIORITAIRE sur le gabarit de l’enjeu `combat-manoeuvre-defense`. */
     stake: z.string().optional(),
     stakeForm: stakeFormSchema.optional(),
     rendu: ref('rendu').optional(),

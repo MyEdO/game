@@ -84,16 +84,16 @@ describe('chooseEnemyAction — invocation : Unicité (plus d’outnumberedFacto
     const e = caster('e', { x: 5, y: 5 }, { weapons: [] });
     const h = foeAt('h', 5, 14); // loin → attaque/approche dérisoires
     const a = chooseEnemyAction(input(e, [h], { spells: [summonSpell()] }));
-    expect(a.kind).toBe('cast');
-    if (a.kind === 'cast') { expect(a.spell).toBe('hurlement-du-loup'); expect(a.targetId).toBe('e'); }
+    expect(a.kind).toBe('incantation');
+    if (a.kind === 'incantation') { expect(a.spell).toBe('hurlement-du-loup'); expect(a.targetId).toBe('e'); }
   });
 
   it('Unicité : la MÊME invocation déjà ACTIVE (loup vivant) → JAMAIS re-castée → approche', () => {
     const e = caster('e', { x: 5, y: 5 }, { weapons: [MELEE] });
     const h = foeAt('h', 5, 11); // loin (pas au contact), atteignable en approche
     const a = chooseEnemyAction(input(e, [h], { spells: [summonSpell({ active: true })] }));
-    expect(a.kind).not.toBe('cast'); // l'invocation active est exclue (Unicité)
-    expect(a.kind).toBe('move');
+    expect(a.kind).not.toBe('incantation'); // l'invocation active est exclue (Unicité)
+    expect(a.kind).toBe('deplacement');
   });
 });
 
@@ -109,8 +109,8 @@ describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
     const full = caster('a-full', { x: 4, y: 5 }, { wounds: blessuresDeBase(12) });
     const h = foeAt('h', 5, 14); // héros LOIN → soin gagne
     const a = chooseEnemyAction(input(e, [h], { squad: [hurt, full], spells: [healSpell] }));
-    expect(a.kind).toBe('cast');
-    if (a.kind === 'cast') { expect(a.spell).toBe('soin'); expect(a.targetId).toBe('a-hurt'); }
+    expect(a.kind).toBe('incantation');
+    if (a.kind === 'incantation') { expect(a.spell).toBe('soin'); expect(a.targetId).toBe('a-hurt'); }
   });
 
   it('rien à soigner (allié plein) → soin de valeur 0 → repli ATTAQUE (mêlée au contact)', () => {
@@ -132,7 +132,7 @@ describe('chooseEnemyAction — soin & anti-spam (op-driven)', () => {
     const e = caster('e', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }] } as Partial<Combatant>);
     const ally = caster('a', { x: 6, y: 5 }, { wounds: blessuresDeBase(12, 1) });
     const h = foeAt('h', 5, 6);
-    expect(chooseEnemyAction(input(e, [h], { squad: [ally], spells: [healSpell] })).kind).not.toBe('cast');
+    expect(chooseEnemyAction(input(e, [h], { squad: [ally], spells: [healSpell] })).kind).not.toBe('incantation');
   });
 
   it('spells vide → comportement INCHANGÉ (parité : pas de candidat de soutien)', () => {

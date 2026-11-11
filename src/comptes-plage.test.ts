@@ -378,7 +378,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
   const FERMES_AU_GESTE: Readonly<Record<string, RegExp | null>> = {
     'src/data/advancementCosts.json': /ne couvrent pas/,
     'src/data/ambiance.json': /doivent croître STRICTEMENT/,
-    'src/data/cargoes.json': /ne couvre pas le d100/,
+    'src/data/cargaisons-aleatoires.json': /est déjà tirée par|ne couvrent pas/,
     'src/data/naval-progression.json': /ne couvrent pas/,
     'src/data/obsessions.json': /est absent du catalogue des groupes/,
     'src/data/structure-criticals.json': /ne couvrent pas/,

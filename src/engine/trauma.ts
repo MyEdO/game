@@ -10,7 +10,7 @@
  * defenseModifiers — et ne s'applique qu'aux jets d'arme qui IMPLIQUENT la main blessée (jamais un charMod
  * CC/CT global). Le trauma est enregistré (label+note) même sans effet modélisé.
  */
-import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Difficulty, UpkeepDeferTest, Weapon, effectRef, locationLabel, type BodyShape, type ModFamille } from './types';
+import { Combatant, CharKey, CHAR_LABELS, HitLocation, ItemInstance, Trauma, Difficulty, UpkeepDeferTest, Weapon, effectRef, locationLabel, type BodyShape, type ModFamille, type Main } from './types';
 import { RNG } from './dice';
 import type { Duration } from './duration';
 import type { CritEscalation } from '../data/criticals';
@@ -335,10 +335,10 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
   c.traumas = remaining;
   // Test de fin de fracture (l.202/212) : le producteur NOMME ce qui est testé (« Test de Résistance »)
   // et DIFFÈRE — la valeur est celle de la porte (`testValue` : États compris), la conséquence est
-  // appliquée par l'applier `trauma-fracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
+  // appliquée par l'applier `convalescence-fracture` (`applyFractureEnd`). La porte est EXIGÉE au type : il n'y
   // a pas de chemin où cette fracture se résout dans le dos du joueur.
   for (const f of fractureTests) {
-    defer({ kind: 'trauma-fracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
+    defer({ kind: 'convalescence-fracture', label: `Convalescence — ${f.label}`, test: { skill: { id: 'resistance' } }, difficulty: fractureEndDifficulty(f.severity),
       meta: { severity: f.severity, location: f.location, traumaLabel: f.label } });
   }
   return log;
@@ -373,11 +373,11 @@ export function hasSurgeryTrauma(c: Combatant): boolean {
 }
 
 /** Une arme IMPLIQUE-t-elle la main `side` (LDB 18) ? Arme à 2 mains → les DEUX ; arme à 1 main → sa main de
- *  tenue seulement (`hand:'off'` = gauche/secondaire, sinon droite/principale). Base de la pénalité d'amputation
+ *  tenue seulement (`hand:'secondaire'` = gauche/secondaire, sinon droite/principale). Base de la pénalité d'amputation
  *  CONTEXTUELLE : une amputation ne grève un jet d'arme que si l'arme tient la main blessée. Pur. */
 export function weaponUsesHand(weapon: Weapon, side: 'left' | 'right'): boolean {
   if ((weapon.hands ?? 1) >= 2) return true;
-  const inLeft = weapon.hand === 'off';
+  const inLeft = weapon.hand === 'secondaire';
   return side === 'left' ? inLeft : !inLeft;
 }
 
@@ -683,10 +683,10 @@ export function hasLimbAwaitingAid(c: Combatant): boolean {
   return (c.traumas ?? []).some((t) => t.targetDR != null && t.awaitingMedicalAid);
 }
 /** Main tenant l'arme concernée par une Localisation de BRAS (convention DROITIER partagée avec `disarm`/
- *  `handGate` : `brasD`→`main`, `brasG`→`off`) ; `undefined` pour toute autre Localisation (jambe/tête/corps,
+ *  `handGate` : `brasD`→`main`, `brasG`→`secondaire`) ; `undefined` pour toute autre Localisation (jambe/tête/corps,
  *  aucune notion de main). */
-function armLocationHand(loc: HitLocation): 'main' | 'off' | undefined {
-  return loc === 'brasD' ? 'main' : loc === 'brasG' ? 'off' : undefined;
+function armLocationHand(loc: HitLocation): Main | undefined {
+  return loc === 'brasD' ? 'main' : loc === 'brasG' ? 'secondaire' : undefined;
 }
 
 /** Usage du membre RÉCUPÉRÉ (Test étendu de Guérison atteint) : retire la séquelle « membre désactivé »
@@ -718,7 +718,7 @@ export function cannotWieldTwoHanded(c: Combatant): boolean {
  *  Convention droitier : main directrice = brasD, secondaire = brasG. Une main perdue ne peut tenir ni arme ni
  *  bouclier → `recomputeLoadout` vide le slot de loadout correspondant. (Un Crochet fournit sa PROPRE arme à
  *  part, dérivée séparément.) */
-export function handAmputated(c: Combatant, hand: 'main' | 'off'): boolean {
+export function handAmputated(c: Combatant, hand: Main): boolean {
   const loc = hand === 'main' ? 'brasD' : 'brasG';
   return (c.traumas ?? []).some((t) => t.location === loc && !prosthesisCancels(c, t, 'all') && opsOfType(traumaOps(t), 'maxWeaponHands').some((o) => o.hands < 2));
 }

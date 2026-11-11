@@ -13,7 +13,7 @@ import { ouvrirDialogue } from '../noyau/dialogue';
 import { runBindingById } from './clavier/keybindings';
 import { withActingSeat } from '../noyau/netOwnership';
 import { parseProject } from '../noyau/worldMap';
-import { makeShowcaseParty } from '../data/pregens';
+import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Dialogue, Scene } from '../noyau/monde/scene';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { builtinCampaigns, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
@@ -30,7 +30,7 @@ const dlg: Dialogue = {
 function temoin(over: Partial<GameState> = {}) {
   useGame.setState({
     screen: 'campaign', mode: 'exploration', battle: null, scene: null, flags: {}, journal: [],
-    party: makeShowcaseParty(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
+    party: groupeVitrineDeScenario(idsDeTest), dialogueHistory: [], merchant: null, tavernGames: null,
     document: null, pendingLoot: null, pendingTest: null, pendingLogQueue: [], pendingOrders: [],
     gameMenuOpen: false, codexOverlay: null, sheetId: null, worldMapOpen: false, port: null, landMarket: null,
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },
@@ -43,7 +43,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   // Une surface par siège de l'hôte (fiche, menu système, codex) est SON écran : elle ne lit pas le
   // verbe. Une surface PARTAGÉE (le document que tous lisent) met la réponse en attente.
   const repondreCommeInvite = (over: Partial<GameState>) => {
-    temoin({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } as GameState['net'], ...over });
+    temoin({ net: { ...useGame.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } as GameState['net'], ...over });
     withActingSeat(1, () => useGame.getState().fenetreChoisir('dialogue', 'reponse', 'oui'));
     return useGame.getState().dialogue?.nodeId;
   };
@@ -63,12 +63,12 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
   const nuitDuChat = quai.dialogues.find((d) => d.id === 'dlg-kramer-nuit-du-chat')!;
 
   it('Test → document ouvert → touche 2 inerte → document fermé → touche 2 joue', () => {
-    useGame.setState({ party: makeShowcaseParty(idsDeTest) });
+    useGame.setState({ party: groupeVitrineDeScenario(idsDeTest) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!), quai.id)).toBeNull();
     temoin({ scene: quai, document: null, dialogue: ouvrirDialogue({ dialogueHistory: [] }, nuitDuChat) });
     const get = useGame.getState;
 
-    runBindingById('dialogue-choice-1', get); // « L’interroger sur sa nuit »
+    runBindingById('dialogue-reponse-1', get); // « L’interroger sur sa nuit »
     expect(get().pendingTest, 'la réponse ouvre la fenêtre de jet').toBeTruthy();
     useGame.setState({ pendingTest: { ...get().pendingTest!, roll: 99, success: false } });
     get().jetValider('test');
@@ -76,12 +76,12 @@ describe('dlg-kramer-nuit-du-chat — la touche 2 sous le document que la répon
     expect(get().dialogue?.nodeId, 'la conversation revient à son nœud, derrière le document').toBe('nc1');
     expect(get().dialogueHistory).toHaveLength(1);
 
-    runBindingById('dialogue-choice-2', get); // le joueur tape 2 en lisant le document
+    runBindingById('dialogue-reponse-2', get); // le joueur tape 2 en lisant le document
     expect(get().dialogue?.nodeId, 'sous le document, la touche ne répond pas').toBe('nc1');
     expect(get().dialogueHistory).toHaveLength(1);
 
     get().fenetreFermer('document');
-    runBindingById('dialogue-choice-2', get); // « La laisser tranquille »
+    runBindingById('dialogue-reponse-2', get); // « La laisser tranquille »
     expect(get().dialogueHistory, 'document fermé : la réponse 2 se joue').toHaveLength(2);
     expect(get().dialogue).toBeNull();
   });

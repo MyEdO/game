@@ -30,7 +30,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -47,7 +47,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   /** Joue la séquence de fin de Round (hooks `onRoundEnd` puis finalisation des morts/Destin). */
   function endRound() {
     const battle = banc.getState().battle!;
-    const sink = (line: string, c?: Combatant) => battle.log.push(ev('condition', line, c?.id));
+    const sink = (line: string, c?: Combatant) => battle.log.push(ev('etat', line, c?.id));
     const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink };
     runCombatHooks('onRoundEnd', ctx);
     resolveRoundBoundary(banc.getState, banc.setState);

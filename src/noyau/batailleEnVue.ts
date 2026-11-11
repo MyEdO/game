@@ -2,7 +2,7 @@
  * LA BATAILLE DE MASSE EN VUE (#3328) — ce qu'un hôte montre de la bataille qui tient la main (ADE II 8) : le Round,
  * chaque armée et sa Puissance, la Menace qui pèse sur les Tests, puis chaque Scène de la situation du Round, son effet,
  * sa position quand elle se tient, les PJ libres qui s'y postent, et le verbe qui l'engage, fermé par son verdict
- * (`refusDuChoix`) ; l'aléa du Round, ou les gestes qui le tirent ; le Test spectaculaire, ou entre deux
+ * (`refusDuChoixNomme`) ; l'aléa du Round, ou les gestes qui le tirent ; le Test spectaculaire, ou entre deux
  * Rounds le Rassemblement et le Round suivant ; l'issue de la bataille terminée. Lecteur PUR, lu par les hôtes du noyau
  * (`hote/ecran.ts`).
  */
@@ -17,19 +17,20 @@ import { massBattleHazardsDie } from '../data';
 import { fenetreDuJeu } from './combatAuto';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
-import { refusDuChoix } from './choixDeFenetre';
-import { refusDeLaValidation } from './validationDeFenetre';
+import { refusDuChoixNomme } from './choixDeFenetre';
+import type { AxeDe } from './choixDesFenetres';
+import { refusDeLaValidationNommee } from './validationDeFenetre';
 
 /** Un geste de la bataille : son nom, le verbe qui le joue, pourquoi il ne se joue pas (`null` s'il se joue). */
 export interface GesteDeBataille { libelle: string; geste: GesteDuNoyau; refus: string | null }
 
 type GesteDeLaFenetre =
-  | { verbe: 'fenetreChoisir'; args: ['batailleDeMasse', string, unknown] }
+  | { verbe: 'fenetreChoisir'; args: ['batailleDeMasse', AxeDe<'batailleDeMasse'>, unknown] }
   | { verbe: 'fenetreValider'; args: ['batailleDeMasse'] };
 
 /** Le geste de la fenêtre et son refus, lu là où le verbe le lit (`refusDuChoix`, `refusDeLaValidation`). */
 function gesteDeBataille(s: Jeu, libelle: string, geste: GesteDeLaFenetre): GesteDeBataille {
-  const refus = geste.verbe === 'fenetreValider' ? refusDeLaValidation(s, geste.args[0]) : refusDuChoix(s, ...geste.args);
+  const refus = geste.verbe === 'fenetreValider' ? refusDeLaValidationNommee(s, geste.args[0]) : refusDuChoixNomme(s, ...geste.args);
   return { libelle, geste, refus };
 }
 

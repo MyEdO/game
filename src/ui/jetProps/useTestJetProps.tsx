@@ -134,7 +134,7 @@ export function useTestJetProps(): ComponentProps<typeof RollShell> | null {
         determination: !actor || refusDImmunite(useGame.getState(), actor) ? undefined : { resolve: actor.resolve ?? 0, onResolve: () => depenserLaDetermination(actor.id, 'immuniserALaPsychologie') },
       }),
     ],
-    outcome: rolled ? [recapLineOfEvent(ev('info', describeTest(pt), pt.actorId), party)] : undefined,
+    outcome: rolled ? [recapLineOfEvent(ev('information', describeTest(pt), pt.actorId), party)] : undefined,
     /* Option « Succès / échec stupéfiants » (LDB 12 l.127) : badge du double (libellé seul, aucune
        mécanique nouvelle), gaté par la règle. */
     postRollExtra: amazing ? (

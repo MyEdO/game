@@ -109,7 +109,7 @@ describe('hoverTargeting — tir à Recharge / munition (affordance ≠ log sile
 });
 
 describe('hoverTargeting — mode incantation', () => {
-  const castBattle = (spellId: string) => ({ action: 'cast', selectedSpellId: spellId });
+  const castBattle = (spellId: string) => ({ action: 'incantation', selectedSpellId: spellId });
 
   it('Projectile sur un ennemi visible → ok pointillé, Langue (Magick), dégâts sort + BFM', () => {
     const a = combatant({ id: 'A' });

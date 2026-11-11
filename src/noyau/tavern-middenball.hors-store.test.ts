@@ -14,7 +14,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from './battleRng';
 import { findTavernGameById } from '../engine/tavernGame';
 import { tavernGameValue } from './tavernFlow';
@@ -33,20 +33,20 @@ const get = () => banc.getState();
 const MIDDENBALL = findTavernGameById('middenball')!;
 
 function equipe(n: number): Combatant[] {
-  const party = makePregens(idsDeTest).slice(0, n) as Combatant[];
+  const party = tousLesHerosDeScenario(idsDeTest).slice(0, n) as Combatant[];
   party.forEach((h) => { h.advantage = 0; });
   banc.setState({ battle: null, party, journal: [], tavernGames: null, pendingCascade: null, sequence: null });
   return party;
 }
 
 const etape = (): CascadeStep => get().pendingCascade!.participants[get().pendingCascade!.cursor];
-const bande = (): CascadeStep | undefined => get().pendingCascade?.participants.find((s) => s.kind === 'tavern-round');
+const bande = (): CascadeStep | undefined => get().pendingCascade?.participants.find((s) => s.kind === 'taverneRound');
 
 /** Tranche tous les CHOIX d'option ouverts (la bande du tour est appendée par le dernier). */
 function choisir(option: number): void {
   for (let i = 0; i < 8; i++) {
     const cur = get().pendingCascade?.participants[get().pendingCascade!.cursor];
-    if (!cur || cur.kind !== 'tavern-option') return;
+    if (!cur || cur.kind !== 'taverneOption') return;
     get().jetRegler('cascade', 'choix', String(option), cur.id);
     get().jetValider('cascade');
   }
@@ -55,7 +55,7 @@ function choisir(option: number): void {
 /** Pose le DR de CHAQUE rangée de la bande du tour, puis la clôt. */
 function poseTour(drHeros: number, drFigurantMien: number, drFigurantSien: number): void {
   const pc = get().pendingCascade!;
-  const idx = pc.participants.findIndex((s) => s.kind === 'tavern-round');
+  const idx = pc.participants.findIndex((s) => s.kind === 'taverneRound');
   const band = pc.participants[idx];
   const rows = band.participants!.map((r: BatchParticipant) => {
     const sien = r.id.startsWith('figurant-o-');
@@ -91,7 +91,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     get().jouerALaTaverne(party[0].id, { gameId: 'middenball', opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
 
     const pc = get().pendingCascade!;
-    expect(pc.participants.map((s) => s.kind)).toEqual(['tavern-option', 'tavern-option']);
+    expect(pc.participants.map((s) => s.kind)).toEqual(['taverneOption', 'taverneOption']);
     expect(pc.participants.map((s) => s.actorId)).toEqual(party.map((h) => h.id));
     expect(pc.participants[0].options!.map((o) => o.label)).toEqual(['Corps à corps (Bagarre)', 'Athlétisme']);
     expect(bande(), 'aucune rangée montée avant que les options ne soient dites').toBeUndefined();
@@ -322,9 +322,9 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     get().jouerALaTaverne(party[0].id, { gameId: 'middenball', opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'humain' });
     for (let i = 0; i < 40 && get().pendingCascade; i++) {
       const cur = etape();
-      if (cur.kind === 'tavern-option') get().jetRegler('cascade', 'choix', '0', cur.id);
+      if (cur.kind === 'taverneOption') get().jetRegler('cascade', 'choix', '0', cur.id);
       else if (cur.participants) {
-        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeBatch', row.id);
+        for (const row of cur.participants) if (row.interactive !== false && !row.result) get().jetLancer('cascadeEnBande', row.id);
       }
       get().jetValider('cascade');
     }

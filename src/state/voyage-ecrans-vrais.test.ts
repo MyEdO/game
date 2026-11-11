@@ -66,7 +66,7 @@ function setup(worldMap: WorldMap, departWeather?: Scene['weather'], party: Comb
 
 /** POSE le dé de Météo d'Étape (« Dés fixés ») sur la rangée `id` de la table de la saison courante. */
 function poseMeteo(id: string): void {
-  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'stage-weather')!;
+  const meteo = get().pendingCascade!.participants.find((s) => s.kind === 'etape-meteo')!;
   const saison = seasonOfMonth(toDate(get().gameTime).month);
   const rangee = tableStepDef(`stage-weather-${saison}`)!.rows.find((r) => r.id === id)!;
   get().jetImposerLeResultat('cascadeTirage', rangee.min, meteo.id);

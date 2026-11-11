@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { etatInitialDuJeu } from './etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildSeaPlan, runSeaDay } from './seaVoyageFlow';
 import { buildRiverPlan, runRiverDays } from './riverVoyageFlow';
 import { seedBattleRng } from './battleRng';
@@ -39,7 +39,7 @@ const seaMap: WorldMap = {
 function freshSea() {
   seedBattleRng(1);
   banc.setState({
-    party: makePregens(idsDeTest).slice(0, 3),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
     scene: { ...emptyScene('port-a', 2, 2), label: 'Port', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
     battle: null, worldMap: seaMap, lieu: 'A', travelPlan: null, travelRecap: null,
     pendingRest: null, pendingSteamSave: null,
@@ -51,8 +51,8 @@ function freshSea() {
 
 describe('couche voyageCadence — la liste FERMÉE des Tests sous ordres', () => {
   it('KINDS_SOUS_ORDRES : une liste pour les deux routes ; crises, embuscade, voyage rapide et Expositions hors route restent dehors', () => {
-    for (const k of ['crew-progression', 'crew-affaler', 'crew-phare', 'crew-orientation', 'crew-entretien', 'river-exposition-tirage', 'river-exposition']) expect(new Set<string>(KINDS_SOUS_ORDRES).has(k), k).toBe(true);
-    for (const k of ['crew-poursuite', 'crew-tourbillon', 'crew-embuscade', 'crew-extermination', 'flowCrewTest', 'crew-voyage-rapide', 'exposure', 'waterExposure']) expect(new Set<string>(KINDS_SOUS_ORDRES).has(k), k).toBe(false);
+    for (const k of ['equipage-progression', 'equipage-affaler', 'equipage-phare', 'equipage-orientation', 'equipage-entretien', 'fleuveExpositionTirage', 'fleuveExposition']) expect(new Set<string>(KINDS_SOUS_ORDRES).has(k), k).toBe(true);
+    for (const k of ['equipage-poursuite', 'equipage-tourbillon', 'equipage-embuscade', 'equipage-extermination', 'testDEquipage', 'equipage-voyage-rapide', 'exposition-nocturne', 'expositionHydrique']) expect(new Set<string>(KINDS_SOUS_ORDRES).has(k), k).toBe(false);
   });
 });
 
@@ -77,10 +77,10 @@ describe('jour SOUS ORDRES — d’un bloc en local ; en coop ou jour par jour, 
       return () => get().partirEnVoyage('r1', 'mer', { cadence });
     },
   };
-  const cas: { mode: 'local' | 'host'; cadence: VoyageCadence; fenetre: boolean }[] = [
+  const cas: { mode: 'local' | 'hote'; cadence: VoyageCadence; fenetre: boolean }[] = [
     { mode: 'local', cadence: 'commande', fenetre: false },
-    { mode: 'host', cadence: 'commande', fenetre: true },
-    { mode: 'local', cadence: 'jour-par-jour', fenetre: true },
+    { mode: 'hote', cadence: 'commande', fenetre: true },
+    { mode: 'local', cadence: 'jourParJour', fenetre: true },
   ];
   for (const [route, depart] of Object.entries(departs)) {
     for (const { mode, cadence, fenetre } of cas) {
@@ -109,8 +109,8 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
     for (const e of day.entries!) expect(e.d).toBeTruthy(); // anatomie de jet (RollRow), pas du texte muet
     // Progression ET Orientation quotidiennes se sont jouées AU PV (ids `sea-<kind>-…`).
     const ids = day.entries!.map((e) => e.id ?? '');
-    expect(ids.some((i) => i.startsWith('sea-crew-progression'))).toBe(true);
-    expect(ids.some((i) => i.startsWith('sea-crew-orientation'))).toBe(true);
+    expect(ids.some((i) => i.startsWith('mer-equipage-progression'))).toBe(true);
+    expect(ids.some((i) => i.startsWith('mer-equipage-orientation'))).toBe(true);
     // Instantané pour l’écran de traversée (rose des vents + distance restante) ; la coque n'y est
     // qu'en DELTA du jour (l'état courant se lit sur `vessel.wounds`).
     expect(day.sea).toBeTruthy();
@@ -121,7 +121,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
   it('chaque ligne du PV NOMME la Compétence lancée (Z5), DIT sa Difficulté, et porte le rôle en PROVENANCE (#1112 G5)', () => {
     get().partirEnVoyage('r1', 'mer', { cadence: 'commande' });
     const day = get().travelPlan!.log!.slice(-1)[0]!;
-    const crewLines = day.entries!.filter((e) => (e.id ?? '').startsWith('sea-crew-progression'));
+    const crewLines = day.entries!.filter((e) => (e.id ?? '').startsWith('mer-equipage-progression'));
     expect(crewLines.length).toBeGreaterThan(0);
     const skillLabels = new Set(SKILLS.map((s) => s.label));
     const roleLabels = new Set(CREW_ROLES.map((r) => r.label));
@@ -154,7 +154,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
    * journal, sinon le jet deviendrait silencieux (aucun dé perdu : chaque jet sur EXACTEMENT une surface).
    */
   it('bande à surface PV : son dé est AU PV et PLUS au journal ; le MONO du même tableau garde SA ligne', () => {
-    // Rythme FORCÉ à +1 M (MDG 13 l.95-107 : à la voile, seul +1 est jouable) → un mono `sea-force-pace`
+    // Rythme FORCÉ à +1 M (MDG 13 l.95-107 : à la voile, seul +1 est jouable) → un mono `mer-forcer-le-rythme`
     // rejoint le tableau du jour, aux côtés des bandes Progression/Orientation.
     // Un barreur qui peut tenter la Voile (LDB 09 l.30) : aucun prétiré ne l'a.
     banc.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
@@ -177,7 +177,7 @@ describe('traversée JOUR-PAR-JOUR (mer) — cadence manuelle inchangée', () =>
   beforeEach(freshSea);
 
   it('chaque Test de Navigation ouvre sa cascade (pendingCascade), rien n’est auto-résolu', () => {
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     const p = get().pendingCascade;
     expect(p?.purpose).toBe('travelDay');
     expect(get().travelPlan!.sea!.entries ?? []).toHaveLength(0); // pas de PV auto en cadence manuelle
@@ -248,7 +248,7 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
   });
 
   it('en JOUR-PAR-JOUR la même journée ouvre la cascade influençable (comportement historique)', () => {
-    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jour-par-jour' })!;
+    const plan = buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: plan } as never);
     runRiverDays(get, set);
     expect(get().pendingCascade).toBeTruthy();
@@ -303,7 +303,7 @@ describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de la Com
   beforeEach(freshSea);
 
   it('chaque contributeur porte sa paire Compétence + son rôle en ID (provenance)', () => {
-    get().partirEnVoyage('r1', 'mer', { cadence: 'jour-par-jour' });
+    get().partirEnVoyage('r1', 'mer', { cadence: 'jourParJour' });
     let guard = 0;
     while (guard++ < 30 && get().pendingCascade) {
       const p = get().pendingCascade!;

@@ -161,7 +161,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     ]);
     expect(get().finDeSeance, 'le récap ouvre sa fin de séance, aucune case cochée').toEqual({ heros: {}, groupe: {} });
 
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(get().finDeSeance).toBeNull();
     expect(get().clotureConsommee).toBe(true);
 
@@ -177,7 +177,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
   it('une partie NEUVE rouvre la clôture (le fait meurt avec l’état, il ne se traîne pas)', () => {
     banc.setState({ party: [hero('h1', 10)], campaignNarratif: narratifClos });
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(get().clotureConsommee).toBe(true);
 
     banc.getState().lancerLaScene(testScene());
@@ -186,7 +186,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
 });
 
 describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PAGE (#717)', () => {
-  const guest = () => banc.setState({ net: { ...get().net, mode: 'guest', mySeat: 1 } });
+  const guest = () => banc.setState({ net: { ...get().net, mode: 'invite', mySeat: 1 } });
 
   it('chez l’invité, les trois gestes du cadre sont INERTES (aucune mutation locale)', () => {
     banc.setState({
@@ -201,10 +201,10 @@ describe('cadre de campagne en COOP — l’invité VOIT, l’hôte TOURNE LA PA
     expect(get().pendingOuverture?.titre).toBe('T');
     expect(get().chapitreDepuis).toBeNull();
 
-    banc.getState().fenetreFermer('chapterRecap');
+    banc.getState().fenetreFermer('finDeChapitre');
     expect(get().pendingChapterRecap?.titre).toBe('C');
 
-    banc.getState().fenetreValider('chapterRecap');
+    banc.getState().fenetreValider('finDeChapitre');
     expect(get().pendingChapterRecap?.titre).toBe('C');
     expect(get().objectifsSoldes).toEqual([{ id: 'o', text: 'Atteindre Altdorf' }]);
     expect(get().clotureConsommee).toBe(false);

@@ -30,7 +30,7 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -46,7 +46,7 @@ describe('#38 — chute Inconscient par perte de sang AA (Aux Armes AA 07 l.5)',
 
   function roundEndHooksOnly() {
     const battle = banc.getState().battle!;
-    const sink = (line: string, c?: Combatant) => battle.log.push(ev('condition', line, c?.id));
+    const sink = (line: string, c?: Combatant) => battle.log.push(ev('etat', line, c?.id));
     const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink };
     runCombatHooks('onRoundEnd', ctx);
     return battle;

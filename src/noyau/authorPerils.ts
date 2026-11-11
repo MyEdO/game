@@ -33,7 +33,7 @@ import { applyEffects, applyEffectsLoot, jouerFlowEntier } from './combatEffects
 import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type InterruptionDePeril, type PartDeTable } from './tablesPosees';
 
-export const AUTHOR_PERIL_KIND = 'authorPeril';
+export const AUTHOR_PERIL_KIND = 'perilDeScene';
 
 /** Un péril d'auteur INTERROMPT-il le trajet ? (effet de combat ou de transition de scène). */
 export function perilInterrupts(effects: Effect[] | undefined): boolean {

@@ -77,15 +77,15 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
 
   it('le chargement garde les préférences de vue et de touches, et remet le reste de l’interface', () => {
     expect(useGame.getState().saveGame(1)).toBe(true);
-    useGame.setState({ camRot: 3, zoom: 2, keyOverrides: { 'toggle-menu': 'KeyP' }, sheetId: 'h', gameMenuOpen: true });
+    useGame.setState({ camRot: 3, zoom: 2, keyOverrides: { 'menu-ouvrir': 'KeyP' }, sheetId: 'h', gameMenuOpen: true });
     expect(useGame.getState().loadGame(1)).toBe(true);
     const s = useGame.getState();
-    expect([s.camRot, s.zoom, s.keyOverrides]).toEqual([3, 2, { 'toggle-menu': 'KeyP' }]);
+    expect([s.camRot, s.zoom, s.keyOverrides]).toEqual([3, 2, { 'menu-ouvrir': 'KeyP' }]);
     expect([s.sheetId, s.gameMenuOpen]).toEqual([null, false]);
   });
 
   it('chez l’invité : sauvegarde refusée, message au journal, aucun emplacement écrit', () => {
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 2 } });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'invite', mySeat: 2 } });
     expect(useGame.getState().saveGame(1)).toBe(false);
     expect(autoSave()).toBe(false);
     expect(useGame.getState().journal.slice(-1)[0]).toBe(t('store.saveInvite'));
@@ -95,7 +95,7 @@ describe('Sauvegarde / chargement (Jalon 5)', () => {
 
   it('en combat : sauvegarde refusée, le slot reste vide', () => {
     useGame.getState().lancerLeCombat('enc-mutants');
-    useGame.getState().fenetreValider('roundStart');
+    useGame.getState().fenetreValider('debutDuRound');
     vi.clearAllTimers();
     expect(useGame.getState().saveGame(1)).toBe(false);
     expect(saveDuStockage(1)).toBeNull();

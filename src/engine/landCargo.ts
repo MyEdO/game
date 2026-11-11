@@ -19,23 +19,23 @@ import { d100, parseDiceRequired, roll, rollDice, type RNG } from './dice';
 import { findTableEntry, findTableEntryIndex } from './tables';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
-import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasonalCargo, cargoBasePrice, prixParPointDEnc } from './cargo';
+import { type CargoDef, type Voie, isTradeHubColumn, rollSeasonalCargo, cargoBasePrice, prixParPointDEnc } from './cargo';
 
 /** La voie du catalogue que porte la table de ce livre (MSRC 13 l.71-78). */
 export const VOIE_TERRESTRE: Voie = 'terre';
 
 /** Rangée du Tableau des rumeurs commerciales (l.281-303). */
-export type RumourRow = LandCargoData['rumours']['entries'][number];
+export type RumourRow = LandCargoData['rumeurs']['entries'][number];
 
 const LAND = landCargoJson as LandCargoData;
 
-export const WINE_QUALITY = LAND.wineQuality.entries;
+export const WINE_QUALITY = LAND.qualiteDuVin.entries;
 /** Échelons de Richesse et leur Mise à prix — source UNIQUE des libellés d'authoring de l'éditeur de
  *  marché. Pourcentages de MSRC 13 l.150-156 ; libellés de l'échelle des indices l.52-60 (1 Pauvre …
  *  5 Florissant), que l'exemple l.174 confirme contre la colonne Description de l.150-156, décalée
  *  d'un cran dans le livre — arbitrage NOMMÉ en tête de
  *  `scripts/migrations/2026-09-01-1463-gram-seuils-prix-offre.mjs`. */
-export const LAND_RICHESSE_ROWS: readonly LandCargoData['sell']['offerByRichesse'][number][] = LAND.sell.offerByRichesse;
+export const LAND_RICHESSE_ROWS: readonly LandCargoData['vente']['offreParRichesse'][number][] = LAND.vente.offreParRichesse;
 
 /** Profil COMMERCIAL d'un Lieu terrestre/fluvial (Index géographique, l.183-278) — porté par le LIEU de
  *  la carte du monde (`MapPlace.market`, donnée d'auteur). Reproduit les colonnes de l'Index. */
@@ -72,7 +72,7 @@ export function hasCommerce(place: LandMarketProfile): boolean {
 
 /** % de CHANCE de trouver un marchand ayant une cargaison à vendre (l.24-26) : (Taille + Richesse) × 10. PUR. */
 export function availabilityPct(place: LandMarketProfile): number {
-  return (place.taille + place.richesse) * LAND.buy.availabilityMultiplier;
+  return (place.taille + place.richesse) * LAND.achat.multiplicateurDeDisponibilite;
 }
 
 /** Recherche d'une cargaison à l'ACHAT (l.22-34) : 1d100 ≤ %chance → un marchand est trouvé. Un Emplacement
@@ -111,15 +111,15 @@ export function rollCargoQuantity(place: LandMarketProfile, rng: RNG): { d100: n
 
 /** Cargaison ALÉATOIRE de la saison (Tableau des cargaisons aléatoires, l.71-78) — table TERRESTRE. PUR. */
 export function rollRandomLandCargo(season: Season, rng: RNG): CargoDef {
-  return rollSeasonalCargo([...marchandisesDe(VOIE_TERRESTRE)], season, rng);
+  return rollSeasonalCargo(VOIE_TERRESTRE, season, rng);
 }
 
 /** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie : le dé de la table → qualité → prix de base
  *  en CO par point d'Enc (`prixParPointDEnc`). `bonusEchelons` monte le résultat de N crans dans le tableau.
  *  PUR. MSRC 13 l.91-104 */
 export function rollWineQuality(rng: RNG, bonusEchelons = 0): { roll: number; label: string; price: number } {
-  const { die, entries } = LAND.wineQuality;
-  const tirage = rollDice(parseDiceRequired(die, 'land-cargo › wineQuality.die'), rng);
+  const { die, entries } = LAND.qualiteDuVin;
+  const tirage = rollDice(parseDiceRequired(die, 'land-cargo › qualiteDuVin.die'), rng);
   let idx = findTableEntryIndex(entries, tirage);
   if (idx < 0) idx = 0;
   idx = Math.min(entries.length - 1, idx + Math.max(0, bonusEchelons));
@@ -137,7 +137,7 @@ export function landCargoBasePrice(cargo: CargoDef, season: Season, place: LandM
 /** Difficulté du Test d'Évaluation de la qualité du Vin (l.95) : Intermédiaire, ou Accessible si le
  *  personnage a une Compétence Résistance à l'alcool ≥ 50. PUR. */
 export function wineEvalDifficulty(alcoholResist: number): Difficulty {
-  return alcoholResist >= LAND.buy.wineAlcoholResistThreshold ? LAND.buy.wineEvalEasyDifficulty : LAND.buy.wineEvalDifficulty;
+  return alcoholResist >= LAND.achat.seuilResistanceAlcool ? LAND.achat.difficulteEvaluationVinFacile : LAND.achat.difficulteEvaluationVin;
 }
 
 /** RÉVÉLATION de la qualité SECRÈTE d'un lot de Vin après le Test d'Évaluation (l.95). La qualité réelle est
@@ -159,48 +159,48 @@ export function wineEvalReveal(basePrice: number, success: boolean, sl: number):
 }
 
 /** Surcoût d'un LOT PARTIEL à l'achat (l.131) : « le prix de base par 10 Points d'Encombrement doit être
- *  augmenté de 10 % ». Les marchands ne vendent pas moins de `minEnc` (l.131). */
-export const partialSurchargePct = (): number => LAND.buy.partialSurchargePct;
-export const minCargoEnc = (): number => LAND.buy.minEnc;
+ *  augmenté de 10 % ». Les marchands ne vendent pas moins de `encMin` (l.131). */
+export const partialSurchargePct = (): number => LAND.achat.pctSurcoutPartiel;
+export const minCargoEnc = (): number => LAND.achat.encMin;
 
 /** Compétence Marchandage d'un petit marchand pris au hasard (l.129) : 2d10 + 30 (≈ 32-50). PUR. */
 export function rollMerchantSkill(rng: RNG): number {
-  return roll(LAND.buy.merchantSkill.d10, 10, rng) + LAND.buy.merchantSkill.plus;
+  return roll(LAND.achat.competenceDuMarchand.d10, 10, rng) + LAND.achat.competenceDuMarchand.plus;
 }
 
 /** Nombre visé du d100 « trouver un acheteur » à la VENTE (l.146) : Taille × 10, +30 si le Lieu a le
  *  Commerce en Produits. Un échec autorise une 2ᵉ tentative sur la moitié de la cargaison (couche flux). PUR. */
 export function sellDemandTarget(place: LandMarketProfile): number {
-  return place.taille * LAND.sell.targetPerSize + (hasCommerce(place) ? LAND.sell.commerceBonus : 0);
+  return place.taille * LAND.vente.cibleParTaille + (hasCommerce(place) ? LAND.vente.bonusDeCommerce : 0);
 }
 
 /** Mise à prix d'un acheteur (l.148-156) : % du prix de base selon l'Indice de richesse du Lieu. PUR.
  *  Renvoie le POURCENTAGE (ex. 80, 100). Le tableau donne une ligne par indice de 1 à 5 et rien
  *  au-delà : un indice hors de ce domaine est NOMMÉ, jamais rabattu en silence sur une bande. */
 export function sellOfferPct(place: LandMarketProfile): number {
-  const i = findTableEntryIndex(LAND.sell.offerByRichesse, place.richesse);
+  const i = findTableEntryIndex(LAND.vente.offreParRichesse, place.richesse);
   if (i < 0) {
     throw new Error(
       `Mise à prix : Indice de richesse ${place.richesse} hors du tableau (MSRC 13 l.150-156, une ligne par indice de 1 à 5) — aucune ligne d'offre ne le couvre.`,
     );
   }
-  return 100 + LAND.sell.offerByRichesse[i].pct;
+  return 100 + LAND.vente.offreParRichesse[i].pct;
 }
 
 /** BRADER une cargaison invendable (l.160) : « pour la moitié de son prix de base » à tout Lieu ayant le
  *  Commerce en Produits. `null` si le Lieu ne s'y prête pas. PUR. */
 export function landDumpingPct(place: LandMarketProfile): number | null {
-  return hasCommerce(place) ? LAND.sell.dumpingPctOfBase : null;
+  return hasCommerce(place) ? LAND.vente.pctDeBradage : null;
 }
 
 /** Difficulté du Test de Ragot pour dénicher une rumeur commerciale (l.180) : Ragot Complexe (−10). */
-export const gossipRule = LAND.gossip;
+export const gossipRule = LAND.ragot;
 
 /** Tire une RUMEUR commerciale (Tableau des rumeurs, l.281-303) : le dé de la table (l.283) → une rumeur
  *  pointant les biens très demandés à un Emplacement. PUR. */
 export function rollTradeRumour(rng: RNG): RumourRow {
-  const { die, entries } = LAND.rumours;
-  return structuredClone(findTableEntry(entries, rollDice(parseDiceRequired(die, 'land-cargo › rumours.die'), rng))); // #2097
+  const { die, entries } = LAND.rumeurs;
+  return structuredClone(findTableEntry(entries, rollDice(parseDiceRequired(die, 'land-cargo › rumeurs.die'), rng))); // #2097
 }
 
 /** La cargaison `cargoId` correspond-elle à une rumeur (l.180 : « ils peuvent en vendre autant qu'ils le

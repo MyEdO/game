@@ -30,17 +30,17 @@ import type * as imparfaites from './schemas/defs/miscast';
 const VOYAGE_STAKES = STAKES.filter((e) => e.cascade === 'voyage');
 const VOYAGE_SANS_REGLE = [
   // Fluvial — périls de rivière (MSRC 7 : tables de dangers).
-  'river-peril-nav',
-  'river-peril-detect',
+  'fleuve-peril-evitement',
+  'fleuve-peril-detection',
   // Maritime — survitesse, rythme forcé, épuisement, maladies de bord, exposition, dégagement.
-  'sea-overspeed',
-  'sea-force-pace',
-  'sea-epuisement',
-  'sea-scorbut',
-  'sea-mal-de-mer',
-  'sea-tonneau-expose',
-  'sea-tonneau-contamine',
-  'sea-degagement',
+  'mer-survitesse',
+  'mer-forcer-le-rythme',
+  'mer-epuisement',
+  'mer-scorbut',
+  'mer-mal-de-mer',
+  'mer-tonneau-expose',
+  'mer-tonneau-contamine',
+  'mer-degagement',
 ];
 
 /** UN id RÉEL par catégorie Codex atteignable depuis une nature de source — la sonde du chemin RÉEL
@@ -52,6 +52,7 @@ const PROBE_ID: Record<string, string> = {
   maneuvers: maneuvers[0].id, creatures: creatures[0].id, activities: ACTIVITY_STAKES[0].id,
   regles: regles[0].id, tavernGames: 'cerevis',
   miscastMinor: 'mineure-signe-de-sorciere', miscastMajor: 'majeure-voix-fantomatiques',
+  miscastMinorVdm: 'mineure-vdm-signe-de-sorciere', miscastMajorVdm: 'majeure-vdm-voix-fantomatiques',
   miscastWrath: 'colere-purifier-la-chair',
 };
 
@@ -96,7 +97,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
   it('chaque nature de SOURCE a son pool d’entrées', () => {
     // La table des natures de source est TOTALE — le pool doit l'être.
     const POOLS_MANQUANTS = Object.values(CATEGORY_BY_SOURCE_KIND).filter(
-      (cat) => !resolveStake({ key: { dataset: 'combat', kind: 'act-gate', entryId: PROBE_ID[cat], entryCategory: cat } }).rule,
+      (cat) => !resolveStake({ key: { dataset: 'combat', kind: 'agir-malgre-effet', entryId: PROBE_ID[cat], entryCategory: cat } }).rule,
     );
     expect(POOLS_MANQUANTS, 'catégorie de source sans pool : le renvoi replierait en silence').toEqual([]);
   });
@@ -105,7 +106,7 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
    *  exigeant un jet renvoie à SA PROPRE fiche Codex, jamais au foyer du `kind` (amendement A). */
   it('une rangée de Colère des dieux renvoie sa règle : sa fiche, pas celle du kind', () => {
     const r = resolveStake({
-      key: { dataset: 'combat', kind: 'act-gate', entryId: 'colere-purifier-la-chair', entryCategory: 'miscastWrath' },
+      key: { dataset: 'combat', kind: 'agir-malgre-effet', entryId: 'colere-purifier-la-chair', entryCategory: 'miscastWrath' },
     });
     expect(r.rule).toEqual({ category: 'miscastWrath', id: 'colere-purifier-la-chair' });
   });
@@ -122,9 +123,9 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     const sansForme = psychologies.filter((p) => p.stake && !p.stakeForm).map((p) => p.id);
     expect(sansForme, 'enjeu sans forme déclarée (stakeForm)').toEqual([]);
     // Chemin RÉEL : la descente à l'entrée doit rendre le texte DE L'ENTRÉE, pas celui du kind.
-    const gabarit = STAKES.find((e) => e.id === 'combat-psych')!.template;
+    const gabarit = STAKES.find((e) => e.id === 'combat-psychologie')!.template;
     for (const p of psychologies.filter((x) => x.stake)) {
-      const r = resolveStake({ key: { dataset: 'combat', kind: 'combat-psych', entryId: p.id }, values: { indice: 2 } });
+      const r = resolveStake({ key: { dataset: 'combat', kind: 'combat-psychologie', entryId: p.id }, values: { indice: 2 } });
       expect(r.text, `${p.id} : l’étape rend le gabarit du kind au lieu de l’enjeu de l’entrée`).not.toBe(gabarit);
       expect(r.rule, `${p.id} : renvoi hors de sa propre fiche`).toEqual({ category: 'psychologies', id: p.id });
     }
@@ -147,12 +148,12 @@ describe('cliquet — un enjeu porte sa RÈGLE (#1117)', () => {
     const sansForme = maneuvers.filter((m) => m.stake && !m.stakeForm).map((m) => m.id);
     expect(sansForme, 'enjeu sans forme déclarée (stakeForm)').toEqual([]);
     // Chemin RÉEL : la descente à l'entrée doit rendre le texte DE L'ENTRÉE, pas celui du kind.
-    const gabarit = STAKES.find((e) => e.id === 'combat-maneuver-defense')!.template;
+    const gabarit = STAKES.find((e) => e.id === 'combat-manoeuvre-defense')!.template;
     // Les trous d'un enjeu (`{regleDuType}` du Souffle) reçoivent les valeurs de la composition (`ManeuverDef.enjeu`).
     const remplir = (texte: string) => texte.replace(/\{(\w+)\}/g, (_m, nom: string) => `«${nom}»`);
     for (const m of maneuvers) {
       const values = Object.fromEntries([...(m.stake ?? '').matchAll(/\{(\w+)\}/g)].map(([, nom]) => [nom, `«${nom}»`]));
-      const r = resolveStake({ key: { dataset: 'combat', kind: 'combat-maneuver-defense', entryId: m.id }, ...(Object.keys(values).length ? { values } : {}) });
+      const r = resolveStake({ key: { dataset: 'combat', kind: 'combat-manoeuvre-defense', entryId: m.id }, ...(Object.keys(values).length ? { values } : {}) });
       expect(r.text, `${m.id} : l’étape rend le gabarit du kind au lieu de l’enjeu de l’entrée`).not.toBe(gabarit);
       expect(r.text, `${m.id} : enjeu vide`).toBe(remplir(m.stake!));
       expect(r.rule, `${m.id} : renvoi hors de sa propre fiche`).toEqual({ category: 'maneuvers', id: m.id });

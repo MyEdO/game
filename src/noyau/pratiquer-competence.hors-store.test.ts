@@ -52,7 +52,7 @@ function rangeeAuDepart(posting: Parameters<ReturnType<typeof banc.getState>['af
   banc.getState().chargerLeProjet({ scenes: [scene('lieu-a-scene', 'Village A'), scene('lieu-b-scene', 'Bourg B')], entryId: 'lieu-a-scene', worldMap: CARTE, projet: null });
   banc.getState().affecterAuRoleDeMarche('h', posting);
   banc.getState().partirEnVoyage('r1', 'pied');
-  const bande = () => banc.getState().pendingCascade?.participants.find((s) => s.kind === 'stagePosteBatch');
+  const bande = () => banc.getState().pendingCascade?.participants.find((s) => s.kind === 'etapePosteEnBande');
   // La Météo d'Étape ouvre la cascade du jour ; la bande des postes la suit.
   for (let garde = 0; !bande() && garde < 10; garde++) {
     const p = banc.getState().pendingCascade;

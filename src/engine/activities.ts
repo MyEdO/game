@@ -162,7 +162,7 @@ export const resolversOwnedBy = (owner: ResolverOwner): ActivityResolver[] =>
  *  `resolver` = logique bespoke nommée (cf. dispatch d'interlude) ; `payoutPct` = rendu monétaire d'un
  *  retrait de dépôt (Mécénat : 120/100/50/0) ; `note` = texte de résultat VERBATIM de la source. */
 export interface OutcomeBand {
-  on?: 'success' | 'failure' | 'fumble';
+  on?: 'reussite' | 'echec' | 'maladresse';
   minSL?: number;
   maxSL?: number;
   ops?: GameOp[];
@@ -186,18 +186,18 @@ export interface OutcomeBand {
 export type BattleCond =
   | 'generalDown' | 'intervention' | 'noIntervention' | 'combatWon' | 'combatLost';
 
-/** Bandes d'issue applicables à un jet résolu. Maladresse : les bandes `on:'fumble'` REMPLACENT toute
+/** Bandes d'issue applicables à un jet résolu. Maladresse : les bandes `on:'maladresse'` REMPLACENT toute
  *  autre issue (« réalisez un Test sur le Tableau de la Colère des Dieux […] à la place », ACE 12 l.15) ;
  *  sans bande de Maladresse déclarée, la Maladresse reste un échec ordinaire. Une bande sans `on`
  *  matche par DR seul. PUR. */
 export function matchOutcomes(def: ActivityDef, res: { success: boolean; sl: number; fumble?: boolean }): OutcomeBand[] {
   const bands = def.outcomes ?? [];
   if (res.fumble) {
-    const fb = bands.filter((b) => b.on === 'fumble');
+    const fb = bands.filter((b) => b.on === 'maladresse');
     if (fb.length) return fb;
   }
-  const on = res.success ? 'success' : 'failure';
-  return bands.filter((b) => b.on !== 'fumble' && (b.on == null || b.on === on)
+  const on = res.success ? 'reussite' : 'echec';
+  return bands.filter((b) => b.on !== 'maladresse' && (b.on == null || b.on === on)
     && (b.minSL == null || res.sl >= b.minSL) && (b.maxSL == null || res.sl <= b.maxSL));
 }
 
@@ -459,7 +459,7 @@ export interface ActivityDef {
   /** ENJEU du jet (#1117) : ce que le Test de CETTE Activité met en jeu, en descripteur MÉCANIQUE
    *  (ce que le résolveur applique) et/ou verbatim court. Donnée ÉDITABLE au Codex, jamais un texte
    *  écrit au call-site — les surfaces (volet d'Activité, modale de jet) le résolvent par la porte
-   *  unique `resolveStake` (`src/data/index.ts`, dataset `activity`). */
+   *  unique `resolveStake` (`src/data/index.ts`, dataset `activite`). */
   stake?: string;
   /** FORME DÉCLARÉE du `stake` — même contrat que `stakes.form` (garde de forme). */
   stakeForm?: StakeForm;
@@ -906,23 +906,28 @@ export function entrainementOptions(hero: Combatant): EntrainementOption[] {
   return [...chars, ...skillOptions.sort((a, b) => parLibelle(a.label, b.label))];
 }
 
+/** Les trois dépôts d'une Opération bancaire (LDB 23 l.168-170). */
+export type GenreDeDepot = 'investir' | 'planque' | 'mecenat';
+/** Les dépôts tenus en banque ou en planque, que le retrait peut perdre. */
+type DepotRetirable = Exclude<GenreDeDepot, 'mecenat'>;
+
 /** Seuil de perte d'un dépôt au retrait : l'Indice borné à 1-10 pour un investissement (LDB 23 l.168),
  *  10 pour une planque (LDB 23 l.170), sauf `rate` positionné (MDG 15 l.292 : 50 pour la Planque liée à
  *  une Carte marine). */
-export function seuilDePerteBancaire(kind: 'invest' | 'stash', rate: number): number {
-  if (kind === 'invest') return Math.max(1, Math.min(10, rate));
+export function seuilDePerteBancaire(kind: DepotRetirable, rate: number): number {
+  if (kind === 'investir') return Math.max(1, Math.min(10, rate));
   return rate > 0 ? rate : 10;
 }
 
 /** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait, perdu à `seuilDePerteBancaire` ou moins. */
-export function bankWithdrawOutcome(kind: 'invest' | 'stash', rate: number, roll: number): 'ok' | 'lost' {
-  return roll <= seuilDePerteBancaire(kind, rate) ? 'lost' : 'ok';
+export function bankWithdrawOutcome(kind: DepotRetirable, rate: number, roll: number): 'perdu' | 'recu' {
+  return roll <= seuilDePerteBancaire(kind, rate) ? 'perdu' : 'recu';
 }
 
 /** Somme d'un dépôt récupéré avec intérêts (« les fonds de départ, plus les intérêts générés »,
  *  l.157 — taux = Indice %). La planque ne rapporte jamais d'intérêts (l.159). */
-export function bankPayout(kind: 'invest' | 'stash', amountBrass: number, rate: number): number {
-  if (kind === 'stash') return amountBrass;
+export function bankPayout(kind: DepotRetirable, amountBrass: number, rate: number): number {
+  if (kind === 'planque') return amountBrass;
   return amountBrass + Math.floor((amountBrass * Math.max(1, Math.min(10, rate))) / 100);
 }
 

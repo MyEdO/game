@@ -1,5 +1,5 @@
 /**
- * LE VERBE VALIDE (#1869 correctif 1), côté web : le `when` de la touche `dialogue-choice-N` dit la MÊME chose que le
+ * LE VERBE VALIDE (#1869 correctif 1), côté web : le `when` de la touche `dialogue-reponse-N` dit la MÊME chose que le
  * verbe (`conversationRepond`, prédicat unique). Les gardes du verbe le choix `dialogue.reponse` se jouent au banc du noyau
  * (`src/noyau/dialogue-verbe-garde.hors-store.test.ts`).
  */
@@ -30,7 +30,7 @@ const dlg: Dialogue = {
   ],
 } as Dialogue;
 
-const touche = (n: number) => KEYBINDINGS.find((k) => k.id === `dialogue-choice-${n}`)!;
+const touche = (n: number) => KEYBINDINGS.find((k) => k.id === `dialogue-reponse-${n}`)!;
 
 function monter(over: Partial<GameState> = {}) {
   useGame.setState({

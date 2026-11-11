@@ -1655,13 +1655,13 @@ export async function toucher(session, cible, { dureeMs = 0, defiler = true, int
  * VISIBLE, le pointeur d'abord posé là (`mouseMoved`) comme la main d'un joueur : un canevas Godot Web
  * tourne la molette au dernier point du pointeur, pas à celui de l'événement (#3086). Sans
  * `scrollIntoView` : c'est la molette qui fait défiler. Le cran est contrôlé par COUCHE : l'élément au
- * point doit être de la même couche défilante que la cible. Intention `lire` par défaut. Rend la
- * localisation.
+ * point doit être de la même couche défilante que la cible. `crans` crans tournés d'un même geste, au
+ * même point. Intention `lire` par défaut. Rend la localisation.
  */
-export async function molette(session, cible, deltaY, { deltaX = 0, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
+export async function molette(session, cible, deltaY, { deltaX = 0, crans = 1, intention = 'lire', delaiEntreeMs = DELAI_ENTREE } = {}) {
   return geste(session, cible, { qui: 'molette', intention, defiler: false, point: 'visible', controle: 'couche', delaiEntreeMs }, async ({ x, y }, emettre) => {
     await emettre('souris', { type: 'mouseMoved', x, y });
-    await emettre('souris', { type: 'mouseWheel', x, y, deltaX, deltaY });
+    for (let n = 0; n < crans; n++) await emettre('souris', { type: 'mouseWheel', x, y, deltaX, deltaY });
   });
 }
 
@@ -1910,9 +1910,9 @@ function decrireLectureModales(l) {
 }
 
 /** OUVRE le Round en pause (« Commencer le combat » / « Commencer le round N ») par la case de phase
- *  `round-start` — le geste du joueur, au vrai bouton, jamais un `.click()` en JS. */
+ *  `debut-de-round` — le geste du joueur, au vrai bouton, jamais un `.click()` en JS. */
 export async function ouvrirRound(session) {
-  return cliquerAction(session, 'round-start', { racine: '.cc-phase' });
+  return cliquerAction(session, 'debut-de-round', { racine: '.cc-phase' });
 }
 
 /** Lecture du combat pour le pilote (`__wfrp.battle()` + `__wfrp.auto()` + fenêtre au DOM) ; `fenetre`
@@ -1930,16 +1930,16 @@ export const LECTURE_COMBAT = `(() => {
 })()`;
 
 /**
- * FINIT le tour du héros actif à la PLAQUE de fin de tour (`end-turn`) : un premier clic ARME le
+ * FINIT le tour du héros actif à la PLAQUE de fin de tour (`fin-de-tour`) : un premier clic ARME le
  * garde-fou quand l'Action n'est pas dépensée (`endTurnArmed`), le second passe la main. Rend le
  * nombre de clics émis.
  */
 export async function finDuTour(session, { pauseMs = 300 } = {}) {
-  await cliquerAction(session, 'end-turn');
+  await cliquerAction(session, 'fin-de-tour');
   await sleep(pauseMs);
   const arme = await evaluate(session, `(() => { const b = window.__wfrp.battle(); return typeof b === 'object' && !!b.endTurnArmed; })()`);
   if (!arme) return 1;
-  await cliquerAction(session, 'end-turn');
+  await cliquerAction(session, 'fin-de-tour');
   await sleep(pauseMs);
   return 2;
 }
@@ -2524,7 +2524,7 @@ function texteDeTouche(key) {
   return key === 'Enter' ? '\r' : null;
 }
 
-/** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor.reveler`). */
+/** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor-reveler`). */
 export const ALT = { key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18 };
 /** Bit de modificateur CDP pour Alt — à passer en `modifiers` aux gestes ÉMIS PENDANT le maintien. */
 export const MOD_ALT = 1;

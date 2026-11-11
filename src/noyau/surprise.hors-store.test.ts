@@ -42,7 +42,7 @@ describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-
   it('IA : un ennemi Surpris passe la main (ni Mouvement ni Action)', () => {
     const e = C({ id: 'e', kind: 'enemy', conditions: [{ id: 'surpris', value: 1 }], pos: { x: 5, y: 5 }, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }] as never });
     const h = C({ id: 'h', kind: 'hero', pos: { x: 6, y: 5 } });
-    expect(chooseEnemyAction({ enemy: e, heroes: [h], scene: scene(), blocked: new Set(), movement: 4 } as never).kind).toBe('end');
+    expect(chooseEnemyAction({ enemy: e, heroes: [h], scene: scene(), blocked: new Set(), movement: 4 } as never).kind).toBe('fin');
   });
 
   // Surpris (LDB 16 l.135) : ni Mouvement ni Action ce tour. La Détermination reste ouverte, et le
@@ -53,7 +53,7 @@ describe('Surprise — établissement & comportement (LDB 13 l.52-81 / 16 l.130-
     const hero = C({ id: 'h', kind: 'hero', conditions: [{ id: 'surpris', value: 1 }], pos: { x: 5, y: 5 }, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }] as never, resolve: 1 });
     banc.setState({ battle: { combatants: [hero], order: ['h'], turn: 0, action: null, movementUsed: 0, acted: false, reachable: new Map(), over: false, round: 1, log: [] } as never, scene: scene() });
     expect(computeMoveReach(banc.getState).size).toBe(0); // Mouvement bloqué (effectiveMovement = 0)
-    banc.getState().armerLeMode('cast');
+    banc.getState().armerLeMode('incantation');
     expect(banc.getState().battle!.action).toBeNull(); // Action bloquée
     banc.getState().depenserLaDetermination(hero.id, 'retirerUnEtat', 'surpris'); // dépense DIRECTE, jamais un mode armé
     expect(hasCondition(banc.getState().battle!.combatants[0], 'surpris')).toBe(false);

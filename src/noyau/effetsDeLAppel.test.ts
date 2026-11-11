@@ -71,22 +71,22 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
       const e = unSeul(emis({ kind: 'melee', from: 'a', to: 'b', defense, result: coup(r), weapon: epee }));
       return e.quoi === 'coup' ? e.flottants.map((f) => [f.genre, f.texte, f.couleur]) : [];
     };
-    expect(flottants('none', { woundsLost: 4 })).toEqual([['damage', '-4', TEINTE_DU_FLOTTANT.damage]]);
-    expect(flottants('none', { woundsLost: 4, critical: true, defenderDefeated: true })).toEqual([['damage', '-4', TEINTE_DU_CRITIQUE], ['death', '✦ hors de combat', TEINTE_DU_FLOTTANT.death]]);
-    expect(flottants('none', { woundsLost: 0 })).toEqual([['soak', 'Encaissé', TEINTE_DU_FLOTTANT.soak]]);
-    expect(flottants('parade', { hit: false })).toEqual([['defend', 'Paré / Esquivé', TEINTE_DU_FLOTTANT.defend]]);
-    expect(flottants('none', { hit: false })).toEqual([['miss', 'Raté', TEINTE_DU_FLOTTANT.miss]]);
+    expect(flottants('none', { woundsLost: 4 })).toEqual([['blessures', '-4', TEINTE_DU_FLOTTANT.blessures]]);
+    expect(flottants('none', { woundsLost: 4, critical: true, defenderDefeated: true })).toEqual([['blessures', '-4', TEINTE_DU_CRITIQUE], ['horsDeCombat', '✦ hors de combat', TEINTE_DU_FLOTTANT.horsDeCombat]]);
+    expect(flottants('none', { woundsLost: 0 })).toEqual([['encaisse', 'Encaissé', TEINTE_DU_FLOTTANT.encaisse]]);
+    expect(flottants('parade', { hit: false })).toEqual([['defense', 'Paré / Esquivé', TEINTE_DU_FLOTTANT.defense]]);
+    expect(flottants('none', { hit: false })).toEqual([['rate', 'Raté', TEINTE_DU_FLOTTANT.rate]]);
   });
 
   it('une incantation ratée le dit sur sa cible ; un Projectile magique dit ses Blessures', () => {
-    expect(unSeul(emis({ kind: 'spell', projectile: false, from: 'a', to: 'b', defense: 'none', result: incantation({ cast: false }), spell: 'drain' }))).toMatchObject({ flottants: [{ genre: 'miss', texte: 'Incantation ratée' }] });
+    expect(unSeul(emis({ kind: 'spell', projectile: false, from: 'a', to: 'b', defense: 'none', result: incantation({ cast: false }), spell: 'drain' }))).toMatchObject({ flottants: [{ genre: 'rate', texte: 'Incantation ratée' }] });
     expect(unSeul(emis({ kind: 'spell', projectile: false, from: 'a', to: 'a', defense: 'none', result: incantation({}), spell: 'benediction-de-bataille' }))).toMatchObject({ flottants: [] });
-    expect(unSeul(emis({ kind: 'spell', projectile: true, from: 'a', to: 'b', defense: 'none', result: incantation({ hit: true, woundsLost: 6 }), spell: 'cauteriser' }))).toMatchObject({ flottants: [{ genre: 'damage', texte: '-6' }] });
+    expect(unSeul(emis({ kind: 'spell', projectile: true, from: 'a', to: 'b', defense: 'none', result: incantation({ hit: true, woundsLost: 6 }), spell: 'cauteriser' }))).toMatchObject({ flottants: [{ genre: 'blessures', texte: '-6' }] });
   });
 
   it('un flottant du bus au-dessus de son combattant ou de sa case', () => {
-    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { to: 'b', text: '+2', kind: 'heal' } })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'heal', texte: '+2', couleur: TEINTE_DU_FLOTTANT.heal, critique: false } });
-    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { pos: { x: 2, y: 3 }, text: '⤬ dévie', kind: 'miss' } })).toMatchObject({ sur: null, case: { x: 2, y: 3 } });
+    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { to: 'b', text: '+2', kind: 'soin' } })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'soin', texte: '+2', couleur: TEINTE_DU_FLOTTANT.soin, critique: false } });
+    expect(unSeul({ type: 'emis', evt: 'anim_float', payload: { pos: { x: 2, y: 3 }, text: '⤬ dévie', kind: 'rate' } })).toMatchObject({ sur: null, case: { x: 2, y: 3 } });
   });
 
   it('les pas d’un déplacement, un par deux cases, quatre au plus ; le heurt d’un pas refusé, le gong de la victoire, les dés', () => {
@@ -101,7 +101,7 @@ describe('effetsDeLAppel — le rendu de chaque coup, incantation et son de l’
   });
 
   it('un État gagné flotte sur son porteur, à son nom', () => {
-    expect(unSeul({ type: 'etatGagne', porteur: 'b', etat: 'en-flammes' })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'condition', texte: 'En flammes', couleur: TEINTE_DU_FLOTTANT.condition, critique: false } });
+    expect(unSeul({ type: 'etatGagne', porteur: 'b', etat: 'en-flammes' })).toEqual({ quoi: 'flottant', sur: 'b', case: null, flottant: { genre: 'etat', texte: 'En flammes', couleur: TEINTE_DU_FLOTTANT.etat, critique: false } });
   });
 
   it('les zones qui durent : celle d’un sort au rendu de son Domaine, une fumée au sien, une zone sans rendu cachée', () => {

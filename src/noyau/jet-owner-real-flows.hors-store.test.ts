@@ -49,7 +49,7 @@ const arena = (combatants: Combatant[]): BattleState =>
      movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as unknown as BattleState);
 
 /** Sièges : 0 = hôte (héros `a`), 1 = joueur (héros `b`), 2 = MJ (ennemi `e`). */
-const NET_COOP = { ...NET0, mode: 'host' as const, mySeat: 0, gmSeat: 2, ownership: { b: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' } };
+const NET_COOP = { ...NET0, mode: 'hote' as const, mySeat: 0, gmSeat: 2, ownership: { b: 1 }, slots: [0, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Joueur', 2: 'MJ' } };
 const NET_SOLO = { ...NET0, mode: 'local' as const, mySeat: 0, gmSeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
 
 const g = () => banc.getState();
@@ -65,10 +65,10 @@ const seats = (cle: string) => [0, 1, 2].map((seat) => intentAllowedFor(g(), sea
 
 const INFLUENCE: RollVerb[] = ['roll', 'reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll'];
 const CORRUPTION_VERBS = verbs('corruption', [...INFLUENCE, 'resist']);
-const HEAL_VERBS = verbs('heal', INFLUENCE);
-const RUN_VERBS = verbs('run', ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact']);
-const DISENGAGE_VERBS = verbs('disengage', ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll']);
-const ACTIVITY_VERBS = verbs('activity', INFLUENCE);
+const HEAL_VERBS = verbs('soins', INFLUENCE);
+const RUN_VERBS = verbs('course', ['roll', 'reroll', 'bonusSL', 'forceSuccess', 'setForcedRoll', 'darkPact']);
+const DISENGAGE_VERBS = verbs('desengagement', ['reroll', 'bonusSL', 'darkPact', 'forceSuccess', 'setForcedRoll']);
+const ACTIVITY_VERBS = verbs('activite', INFLUENCE);
 
 describe('#1015 — sonde 1 : `corruption` sous une fenêtre PRIORITAIRE d’un autre siège', () => {
   it('le siège du CORROMPU dépense, celui de la fenêtre active non', () => {
@@ -103,12 +103,12 @@ describe('#1015 — sonde 2 : `heal` par un SOIGNEUR PNJ (hors `actorIn`)', () =
     hero.id = 'b';
     hero.wounds = { ...hero.wounds, current: hero.wounds.max - 5 };
     banc.setState({ battle: null, mode: 'exploration', scene: testScene(), party: [hero], net: NET_COOP });
-    ouvrirLeMedecin(g, banc.setState, 'b', { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'wounds' }] });
+    ouvrirLeMedecin(g, banc.setState, 'b', { id: 'medecin-de-scene', label: 'Barbier-chirurgien', skill: { id: 'guerison', value: 45 }, intBonus: 3, acts: [{ act: 'blessures' }] });
     expect(g().pendingHeal?.healerId, 'précondition : le brouillon du soin, au PNJ de scène').toBe('medecin-de-scene');
-    for (const i of HEAL_VERBS.filter((v) => v !== 'jetLancer@heal')) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
+    for (const i of HEAL_VERBS.filter((v) => v !== 'jetLancer@soins')) expect(seats(i), `${i} : un PNJ n’a ni Chance ni Résilience à dépenser`).toEqual([false, false, false]);
     // Le lancer ne dépense rien : sans siège au porteur, il suit le repli universel — l'infirmerie, à tous tant
     // qu'aucun jet n'est lancé (`decideurDuSoin`).
-    expect(seats('jetLancer@heal')).toEqual([true, true, true]);
+    expect(seats('jetLancer@soins')).toEqual([true, true, true]);
   });
 });
 

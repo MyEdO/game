@@ -40,10 +40,10 @@ interface ComLite {
 
 /** Icône par type d'événement (source unique pour journal + bandeau + pastilles). */
 const KIND_ICON: Record<CombatEventKind, IconId> = {
-  charge: 'journal/charge', attack: 'action/attack', shoot: 'action/shoot', cast: 'action/cast', item: 'item/consumable', heal: 'journal/heal',
-  move: 'journal/move', flee: 'journal/flee', defensive: 'flag/defensive', aim: 'action/aim', focus: 'flag/focus', frenzy: 'flag/frenzy',
-  reload: 'journal/reload', parry: 'action/defend', dodge: 'journal/dodge', damage: 'journal/damage', crit: 'journal/critical',
-  condition: 'condition/bleeding', fear: 'flag/fear', death: 'journal/death', round: 'journal/round', detail: 'journal/detail', info: 'journal/info',
+  charge: 'journal/charge', attaque: 'action/attack', tir: 'action/shoot', sort: 'action/cast', objet: 'item/consumable', soin: 'journal/heal',
+  deplacement: 'journal/move', fuite: 'journal/flee', defensive: 'flag/defensive', visee: 'action/aim', focalisation: 'flag/focus', frenesie: 'flag/frenzy',
+  rechargement: 'journal/reload', parade: 'action/defend', esquive: 'journal/dodge', degats: 'journal/damage', critique: 'journal/critical',
+  etat: 'condition/bleeding', peur: 'flag/fear', mort: 'journal/death', round: 'journal/round', detail: 'journal/detail', information: 'journal/info',
 };
 
 /** L'icône de l'État (LDB 16) que nomme un événement `condition`/`detail`, par `conditionMeta`. L'État est
@@ -55,7 +55,7 @@ function iconOfState(e: CombatEvent): IconId | null {
 }
 
 function iconOf(e: CombatEvent): IconId {
-  if (e.kind === 'condition' || e.kind === 'detail') {
+  if (e.kind === 'etat' || e.kind === 'detail') {
     const icon = iconOfState(e);
     if (icon) return icon;
   }
@@ -114,9 +114,9 @@ export function recapLinesOfEvents(events: CombatEvent[], combatants: ComLite[] 
 /** Verbe + kind (icône/ton) pour chaque manière de télégraphe d'intention. */
 const INTENT: Record<ActorAimKind, { verb: string; kind: CombatEventKind }> = {
   charge: { verb: 'charge', kind: 'charge' },
-  melee: { verb: 'attaque', kind: 'attack' },
-  ranged: { verb: 'vise', kind: 'shoot' },
-  cast: { verb: 'lance un sort sur', kind: 'cast' },
+  melee: { verb: 'attaque', kind: 'attaque' },
+  tir: { verb: 'vise', kind: 'tir' },
+  incantation: { verb: 'lance un sort sur', kind: 'sort' },
 };
 
 /** Narre l'INTENTION télégraphiée d'un combattant IA (« X charge / attaque / vise / lance un sort sur

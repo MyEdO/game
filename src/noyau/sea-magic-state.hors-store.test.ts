@@ -2,21 +2,21 @@
  * #337 — filage FINAL de la Magie des mers (MDG 02 l.178-186) : le moteur pur (`resolveFocus`,
  * `resolveCasting`, `evaluateCasting`) sait déjà tout (`domainAttributes.test.ts`, 12 tests verts) ;
  * ici on vérifie le CÂBLAGE côté state — `seaMagicContext` (`combatOrParty.ts`) fournit `{ atSea, wind }`
- * aux deux call-sites (`jetLancer('cast')`, `rollFlowSpecs` spec `cast`/`focus`) et l'exception
- * Harmonisation aethyrique de Vie (`combatSlice.jetValider('focus')`).
+ * aux deux call-sites (`jetLancer('incantation')`, `rollFlowSpecs` spec `cast`/`focus`) et l'exception
+ * Harmonisation aethyrique de Vie (`combatSlice.jetValider('focalisation')`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit } from './cascade.testkit';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function wizard(domainId: string): Combatant {
-  const w = pregen(idsDeTest, PREGEN.sorcier);
+  const w = herosDeScenario(idsDeTest, 'sorcier');
   w.skills = (w.skills as Combatant['skills']).filter((s) => s.id !== 'langue' && s.id !== 'focalisation');
   w.skills.push({ id: 'langue', spec: 'magick', advances: 30 } as never);
   w.skills.push({ id: 'focalisation', spec: domainId, advances: 30 } as never);
@@ -33,14 +33,14 @@ function freshCastState(w: Combatant, travelPlan: unknown = null): void {
 }
 
 describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
-  describe('Cieux (Azyr, MDG 02 l.184) — resolveCasting via jetLancer@cast : le DR bouge selon le vent', () => {
+  describe('Cieux (Azyr, MDG 02 l.184) — resolveCasting via jetLancer@incantation : le DR bouge selon le vent', () => {
     const spellId = 'arc-de-t-essla'; // Domaine Cieux
 
     function castSl(w: Combatant, travelPlan: unknown): number {
       freshCastState(w, travelPlan);
       banc.getState().ensemencerLeTirage(21);
       banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, focused: true, result: null } });
-      banc.getState().jetLancer('cast');
+      banc.getState().jetLancer('incantation');
       return banc.getState().pendingCast!.result!.sl;
     }
 
@@ -71,21 +71,21 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
       banc.setState({ vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } } as never });
       banc.getState().ensemencerLeTirage(21);
       banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: false, focused: true, result: null } });
-      banc.getState().jetLancer('cast');
+      banc.getState().jetLancer('incantation');
       const withVesselOnly = banc.getState().pendingCast!.result!.sl;
       const baseline = castSl(w, null);
       expect(withVesselOnly).toBe(baseline);
     });
   });
 
-  describe('Cieux (Azyr, MDG 02 l.184) — resolveMagicMissile via jetLancer@cast (#337, dernier reliquat) : le DR bouge selon le vent', () => {
+  describe('Cieux (Azyr, MDG 02 l.184) — resolveMagicMissile via jetLancer@incantation (#337, dernier reliquat) : le DR bouge selon le vent', () => {
     const spellId = 'arc-de-t-essla'; // Domaine Cieux, Projectile magique (LDB 46 l.101 : le Projectile EST le Test d'Incantation)
 
     function missileSl(w: Combatant, travelPlan: unknown): number {
       freshCastState(w, travelPlan);
       banc.getState().ensemencerLeTirage(21);
       banc.setState({ pendingCast: { casterId: w.id, targetId: w.id, spellId, missile: true, focused: true, result: null } });
-      banc.getState().jetLancer('cast');
+      banc.getState().jetLancer('incantation');
       return banc.getState().pendingCast!.result!.sl;
     }
 
@@ -111,7 +111,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
     });
   });
 
-  describe('Vie (Ghyran, MDG 02 l.186) — jetValider@focus : Harmonisation aethyrique en mer', () => {
+  describe('Vie (Ghyran, MDG 02 l.186) — jetValider@focalisation : Harmonisation aethyrique en mer', () => {
     const spellId = 'don-de-vie'; // Domaine Vie
 
     // Le jet de Focalisation est POSÉ (Critique) : seule la CIBLE du contrecoup est sous mesure —
@@ -128,7 +128,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
         party: [w],
         pendingFocus: { casterId: w.id, spellId, result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } },
       });
-      banc.getState().jetValider('focus');
+      banc.getState().jetValider('focalisation');
       // Le contrecoup est une ÉTAPE à table : elle se joue, et ce qu'elle rend au joueur vit sur elle
       // (révélation) autant qu'au journal.
       return draineEtLit(banc.getState).join('\n');

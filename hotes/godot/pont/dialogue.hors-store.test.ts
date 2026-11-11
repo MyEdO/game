@@ -5,16 +5,15 @@
  * en nœud, puis la dernière réponse qui la clôt et rend les gestes d'exploration.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
-import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
 
 describe('la conversation par le pont', () => {
   it('parler à Gustav, répondre de nœud en nœud, la conversation close', () => {
     let { suite } = drainer(appel, appel('demarrer', { scenario: 'dialogue-multi', graine: 7 }));
-    while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((g): g is Bouton => g.type === 'bouton' && g.focus)!.jeu)));
+    while (suite.vue.projection.fenetre) ({ suite } = drainer(appel, appel('jouer', enFocus(suite.vue)!.jeu)));
     expect(suite.vue.zones['exploration.gestes'].map((b) => b.libelle), 'Gustav hors de portée : rien à lui dire').not.toContain('Gustav : Parler');
     ({ suite } = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 5, y: 4 }] })));
     const parler = suite.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Gustav : Parler');

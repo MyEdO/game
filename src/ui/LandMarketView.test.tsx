@@ -6,7 +6,7 @@ import { createRoot } from 'react-dom/client';
 import { LandMarketView } from './LandMarketView';
 import { useGame } from '../state/store';
 import { emptyScene } from '../noyau/monde/scene';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng } from '../noyau/battleRng';
 import type { WorldMap } from '../noyau/worldMap';
 import { creditBourse } from '../noyau/bourseFlow';
@@ -38,7 +38,7 @@ function evaluer() {
 describe('LandMarketView — « Évaluer » le vin suit qui peut tenter le Test (LDB 09 l.30)', () => {
   beforeEach(() => {
     useGame.setState({
-      party: makePregens(idsDeTest).slice(0, 3), possessions: [],
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), possessions: [],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [],
     } as never);
@@ -74,8 +74,8 @@ function acheter(cargoId: string, label: string, enc: number) {
 describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13 l.131)', () => {
   beforeEach(() => {
     useGame.setState({
-      party: makePregens(idsDeTest).slice(0, 3),
-      possessions: [{ uid: 'convoi', ownerId: makePregens(idsDeTest)[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }],
+      party: tousLesHerosDeScenario(idsDeTest).slice(0, 3),
+      possessions: [{ uid: 'convoi', ownerId: tousLesHerosDeScenario(idsDeTest)[0].id, nature: 'vehicule', vehicleId: 'diligence', location: { kind: 'avec-le-groupe' }, items: [] }],
       scene: { ...emptyScene('ville-a', 2, 2), label: 'Ville', layers: [{ z: 0, tiles: ['sol', 'sol', 'sol', 'sol'] }] },
       battle: null, worldMap: landMap, lieu: 'A', travelPlan: null, landMarket: null, journal: [], net: { ...get().net, mode: 'local' },
     } as never);
@@ -97,7 +97,7 @@ describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13
   });
 
   it('siège invité : le geste est fermé par le refus de dépense du groupe, composé par le devis', () => {
-    useGame.setState({ net: { ...get().net, mode: 'guest' } });
+    useGame.setState({ net: { ...get().net, mode: 'invite' } });
     const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
     expect(devisDAchatDeCargaison(get(), 'convoi', offre.cargoId, minCargoEnc()).refus).toEqual({ motif: 'invite' });
     expect(acheter(offre.cargoId, offre.label, minCargoEnc())).toEqual({ ferme: 'true', raison: t('groupe.hoteSeul') });

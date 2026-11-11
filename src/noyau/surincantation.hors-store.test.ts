@@ -1,14 +1,14 @@
 /**
  * Surincantation jugée par le NOYAU (#3059) : ce qu'un hôte sans écran (hôte texte, invité) envoie à
  * les réglages de Surincantation (`cast.surincantation*`) passent par la même règle que ce que la modale propose (`overcastAxesFor`,
- * `castOvercastBudget`). Le jet se pose par ses coutures : `jetLancer('cast')`, puis `jetImposerLeResultat('cast')`.
+ * `castOvercastBudget`). Le jet se pose par ses coutures : `jetLancer('incantation')`, puis `jetImposerLeResultat('incantation')`.
  * Axes : `LDB 47 l.15`, `l.17`, `l.27`, `l.28` ; `LDB 41 l.21-27` ; `LDB 42 l.11` ; `VDM 02 l.199`.
  * Budget : `LDB 47 l.17`, `l.21` ; `LDB 46 l.31`, `l.156`. Décision #3059 (issuecomment-6452965421).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
-import { pregen, PREGEN } from '../data/pregens';
+import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { spells, type SpellData } from '../data/index';
 import { setDataset } from '../data/overrides';
 import { findSpellById } from '../data/index';
@@ -46,7 +46,7 @@ afterAll(() => { setDataset('spells', original); });
 
 /** Lanceur maîtrisant Langue (Magick) et Prière : le dé fixé 03 réussit largement les deux. */
 function lanceur() {
-  const h = pregen(idsDeTest, PREGEN.sorcier);
+  const h = herosDeScenario(idsDeTest, 'sorcier');
   h.id = 'L'; h.label = 'L';
   h.skills = [
     ...h.skills.filter((s) => s.id !== 'langue' && s.id !== 'priere'),
@@ -56,7 +56,7 @@ function lanceur() {
   return h;
 }
 
-/** Ouvre l'incantation de `spell` hors combat, pose le jet par ses coutures (`jetLancer('cast')`, dé fixé `de`),
+/** Ouvre l'incantation de `spell` hors combat, pose le jet par ses coutures (`jetLancer('incantation')`, dé fixé `de`),
  *  joue `corps` puis ferme la partie. */
 function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grimoire?: true } = {}, de = 3, reglesMaison: Record<string, unknown> = {}): void {
   const L = lanceur();
@@ -65,8 +65,8 @@ function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grim
     pendingCast: { casterId: L.id, targetId: L.id, spellId: spell.id, missile: false, focused: false, result: null, ...extra },
   }, { ...ENTREES, reglesMaison });
   try {
-    partie.envoyer({ type: 'jetLancer', args: ['cast'] });
-    partie.envoyer({ type: 'jetImposerLeResultat', args: ['cast', de] });
+    partie.envoyer({ type: 'jetLancer', args: ['incantation'] });
+    partie.envoyer({ type: 'jetImposerLeResultat', args: ['incantation', de] });
     expect(partie.etat().pendingCast?.result, `${spell.id} n'a pas de jet`).toBeTruthy();
     corps(partie);
   } finally {
@@ -76,7 +76,7 @@ function lancer(spell: SpellData, corps: (partie: Partie) => void, extra: { grim
 
 /** Pas alloués à `axis` après `n` demandes d'un pas de plus (le bouton « + » de la modale). */
 function allouer(partie: Partie, axis: OvercastAxis, n = 1): number {
-  for (let i = 0; i < n; i++) partie.envoyer({ type: 'jetRegler', args: ['cast', REGLAGE_DE_L_AXE[axis], (partie.etat().pendingCast?.overcast?.[axis] ?? 0) + 1] });
+  for (let i = 0; i < n; i++) partie.envoyer({ type: 'jetRegler', args: ['incantation', REGLAGE_DE_L_AXE[axis], (partie.etat().pendingCast?.overcast?.[axis] ?? 0) + 1] });
   return partie.etat().pendingCast?.overcast?.[axis] ?? 0;
 }
 
@@ -142,7 +142,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
     lancer(FIXTURES.puissance, (p) => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 11 est une Incantation Critique qui ne lance pas le Sort').toMatchObject({ cast: false, isCritical: true });
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(castAfterCrit(res, 'puissance')).toBe(true);
       expect(allouer(p, 'duration', 20)).toBe(0);
     }, {}, 11);
@@ -152,7 +152,7 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
       const res = p.etat().pendingCast!.result!;
       expect(res, 'le double 88 réussit sous le NI 5').toMatchObject({ cast: false, isCritical: true });
       expect(res.sl + 8, 'les dizaines du lancer dépassent le NI').toBeGreaterThanOrEqual(5 + 2);
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(allouer(p, 'duration', 20)).toBe(0);
     }, {}, 88, { 'magic-vdm-incantation': true });
   });
@@ -179,18 +179,18 @@ describe('Surincantation — un budget changé remet l’allocation à zéro', (
   it('effet d’Incantation Critique changé après 2 pas : l’allocation retombe (décision #3059)', () => {
     lancer(FIXTURES.critique, (p) => {
       expect(p.etat().pendingCast!.result, 'le double 11 lance le Sort de NI 0').toMatchObject({ cast: true, isCritical: true });
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(allouer(p, 'duration', 2)).toBe(2);
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'puissance'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'puissance'] });
       expect(p.etat().pendingCast!.overcast?.duration, 'le même effet ne change rien').toBe(2);
-      p.envoyer({ type: 'jetRegler', args: ['cast', 'effetCritique', 'ineluctable'] });
+      p.envoyer({ type: 'jetRegler', args: ['incantation', 'effetCritique', 'ineluctable'] });
       expect(p.etat().pendingCast!.overcast).toBeUndefined();
     }, {}, 11);
   });  it('« +1 DR » de Chance après 2 pas : l’allocation retombe (décision #3059)', () => {
     lancer(FIXTURES.critique, (p) => {
       expect(allouer(p, 'duration', 2)).toBe(2);
       const sl = p.etat().pendingCast!.result!.sl;
-      p.envoyer({ type: 'jetAjouterUnDR', args: ['cast'] });
+      p.envoyer({ type: 'jetAjouterUnDR', args: ['incantation'] });
       expect(p.etat().pendingCast!.result!.sl, 'la Chance a ajouté son DR').toBe(sl + 1);
       expect(p.etat().pendingCast!.overcast).toBeUndefined();
     });

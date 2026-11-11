@@ -12,7 +12,7 @@ import { tableDeDissipation } from '../noyau/tableDeDissipation.testkit';
 import { cliquerSurLeCombattant } from '../noyau/combatOrParty';
 
 const get = () => useGame.getState();
-const table = (mode: 'host' | 'guest', porteurs: Record<string, number>) => useGame.setState(tableDeDissipation(mode, porteurs));
+const table = (mode: 'hote' | 'invite', porteurs: Record<string, number>) => useGame.setState(tableDeDissipation(mode, porteurs));
 
 beforeEach(() => {
   useGame.setState({ battle: null, party: [], pendingDispel: null, pendingAttack: null, dispelCarrierId: null, net: initialNet() });
@@ -26,7 +26,7 @@ describe('Dissipation en coop — l’élection du porteur ne voyage JAMAIS', ()
   it('CÂBLAGE : le substitut RÉELLEMENT posé par `interceptGuestActions` fait le même partage', () => {
     // Pas de session (pas de relay) : `guest` est nul, donc la branche « envoyer » ne fait RIEN.
     // C'est ce qui rend le partage visible sur l'arbre réel — l'élection agit, le geste de jeu non.
-    table('guest', { e1: 2, e2: 1 });
+    table('invite', { e1: 2, e2: 1 });
     interceptGuestActions();
     try {
       cliquerSurLeCombattant(get, 'e1'); // 2 Sorts → élection LOCALE

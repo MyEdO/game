@@ -2,8 +2,8 @@ extends SceneTree
 
 ## Les clips d'un véhicule posé (#2987, `hotes/godot/pont/CONTRAT.md`, section « Corps d'un combattant », `vehicules`) :
 ## le combattant joue ceux de son élément par rôle (`clips` de son corps, `MontageDeVehicule.lecteur`), comme un corps
-## ceux de sa base : `idle` et `walk` en boucle, `walk` à son déplacement, et, vers une cible, le clip de son rôle
-## d'attaque, `ranged` si sa table en porte un, `melee` sinon, suivi du repos.
+## ceux de sa base : `repos` et `marche` en boucle, `marche` à son déplacement, et, vers une cible, le clip de son rôle
+## d'attaque, `tir` si sa table en porte un, `melee` sinon, suivi du repos.
 
 const RECETTE_AUTONOME := true
 var _fautes: Array[String] = []
@@ -15,8 +15,8 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	print("[clips-du-vehicule] version=", Engine.get_version_info().string)
-	_verifier("pièce de tir", {idle = "repos", walk = "marche", ranged = "tir"}, "tir")
-	_verifier("bélier", {idle = "repos", walk = "marche", melee = "coup"}, "coup")
+	_verifier("pièce de tir", {repos = "repos", marche = "marche", tir = "tir"}, "tir")
+	_verifier("bélier", {repos = "repos", marche = "marche", melee = "coup"}, "coup")
 	for faute in _fautes:
 		push_error("[clips-du-vehicule] " + faute)
 	print("[clips-du-vehicule] erreurs=", _fautes.size())
@@ -43,7 +43,7 @@ func _verifier(cas: String, clips: Dictionary, attaque: String) -> void:
 	vehicule.lecteur = lecteur
 	vehicule.clips = clips
 	combattant._boucler()
-	for role in ["idle", "walk"]:
+	for role in ["repos", "marche"]:
 		if lecteur.get_animation(clips[role]).loop_mode != Animation.LOOP_LINEAR:
 			_fautes.append("%s : %s ne boucle pas" % [cas, clips[role]])
 	combattant.agir_vers(Vector3(3.0, 0.0, 0.0))

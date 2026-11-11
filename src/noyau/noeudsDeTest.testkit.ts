@@ -13,7 +13,7 @@
  * eux-mêmes, ce kit ne fait que le CONSTRUIRE (type seul, effacé à la compilation).
  *
  * La PORTE MALADIE (`rendreMalade` → `nuitDuMalade`) y vit aussi : un nœud de cycle (`onTick.test` d'un
- * symptôme, `dailyTest.test` d'une maladie) se joue par l'ENTRETIEN réel de la nuit (étape `disease-tick`,
+ * symptôme, `dailyTest.test` d'une maladie) se joue par l'ENTRETIEN réel de la nuit (étape `maladie-test-quotidien`,
  * `engine/disease.ts` `tickDisease` → applier de `noyau/restFlow.ts`), jamais par `routeTriggeredTest`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -135,7 +135,7 @@ const lireDonnee = <T extends { id: string }>(fichier: string): T[] =>
   JSON.parse(readFileSync(join(DATA, fichier), 'utf8')) as T[];
 
 /** La PORTE MALADIE d'un nœud, lue à son CHAMP porteur : la maladie à contracter, le symptôme dont
- *  l'étape `disease-tick` porte le jet, et les jours de phase active avant qu'il ne tombe. `undefined`
+ *  l'étape `maladie-test-quotidien` porte le jet, et les jours de phase active avant qu'il ne tombe. `undefined`
  *  pour tout autre nœud. Un symptôme qu'aucune maladie ne porte LÈVE (nœud injouable, nommé). */
 export function porteDeMaladie(n: Noeud): { maladie: string; symptomId: string; jours: number } | undefined {
   if (n.fichier === 'maladies.json' && n.chemin === '.dailyTest.test') {
@@ -164,16 +164,16 @@ export function rendreMalade(c: Combatant, n: Noeud): Combatant {
   return h;
 }
 
-/** La NUIT du malade (repos → « Dormir »), par les gestes du joueur : l'étape `disease-tick` du nœud reçoit
+/** La NUIT du malade (repos → « Dormir »), par les gestes du joueur : l'étape `maladie-test-quotidien` du nœud reçoit
  *  un dé POSÉ (« Dés fixés », `draineCascade`) — 1 pour une réussite, 100 pour un échec —, toute autre
  *  rangée un 1. Aucun dé tiré : deux nuits de même décor ne divergent que par l'issue du jet du nœud. */
 export function nuitDuMalade(get: Get, n: Noeud, sujetId: string, reussite: boolean): void {
   const { symptomId } = porteDeMaladie(n)!;
   get().offrirLeRepos({ lieu: sceneLieu(get) });
-  get().fenetreValider('rest');
+  get().fenetreValider('repos');
   const p = get().pendingCascade;
-  const vise = (s: CascadeStep): boolean => s.kind === 'disease-tick' && s.meta?.symptomId === symptomId
+  const vise = (s: CascadeStep): boolean => s.kind === 'maladie-test-quotidien' && s.meta?.symptomId === symptomId
     && (s.participants ? s.participants.some((r) => r.id === sujetId) : s.actorId === sujetId);
-  if (!p?.participants.some(vise)) throw new Error(`${n.entryId} : la nuit n’a posé aucune étape \`disease-tick\` de « ${symptomId} » chez ${sujetId} (nuit : ${(p?.participants ?? []).map((s) => `${s.kind}:${String(s.meta?.symptomId ?? '')}`).join(' ') || 'aucune cascade'} ; jour ${dayIndex(get().gameTime)}, entretien ${get().lastUpkeepDay})`);
+  if (!p?.participants.some(vise)) throw new Error(`${n.entryId} : la nuit n’a posé aucune étape \`maladie-test-quotidien\` de « ${symptomId} » chez ${sujetId} (nuit : ${(p?.participants ?? []).map((s) => `${s.kind}:${String(s.meta?.symptomId ?? '')}`).join(' ') || 'aucune cascade'} ; jour ${dayIndex(get().gameTime)}, entretien ${get().lastUpkeepDay})`);
   draineCascade(get, 200, (etape, rangee) => (vise(etape) && (rangee ? rangee.id === sujetId : true) && !reussite ? 100 : 1));
 }

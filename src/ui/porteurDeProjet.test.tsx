@@ -24,7 +24,7 @@ import { campagneDeLEntree, __resetLibraryForTest } from '../state/projectLibrar
 import { type SavedProject } from '../noyau/persistance/bibliotheque';
 import { buildApi } from '../state/devtools';
 import { addCondition } from '../engine/conditions';
-import { makePregens, makeShowcaseParty } from '../data/pregens';
+import { tousLesHerosDeScenario, groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { builtinCampaigns, campagneDuJeu, diligenceCampaign, documentDuJeu, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
 import { porteurDeProjet, porteurDuNarratif, porteurDeScene } from './porteurDeProjet';
 import { CHEMINS_ADRESSES } from '../noyau/codex/chemins-adresses';
@@ -75,7 +75,7 @@ function sceneDuTest(): Scene {
 
 /** Le paquet du test chargé par la voie de toute partie (`chargerLeProjet`), sous `projet`. */
 function charger(projet: { id: string } | null): void {
-  useGame.setState({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
+  useGame.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: null });
   get().chargerLeProjet({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif, projet });
 }
 
@@ -121,7 +121,7 @@ describe('L’id du projet est celui du DOCUMENT, par chaque voie de lancement',
 
   beforeEach(() => {
     resetSceneRegistry();
-    useGame.setState({ ...useGame.getInitialState(), party: makeShowcaseParty(idsDeTest) });
+    useGame.setState({ ...useGame.getInitialState(), party: groupeVitrineDeScenario(idsDeTest) });
   });
 
   it('campagne du jeu (`campagneDuJeu` → `lancerCampagne`)', () => {
@@ -225,7 +225,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
   });
 
   it.each([[true], [false]])('ouverture, sous-titre (`narratif.ouverture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
-    useGame.setState({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
+    useGame.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: null });
     get().chargerLeProjet({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: { ...narratif, ouverture: { titre: 'Chapitre', pitch: NEUTRE, sousTitre: { texte: TEXTE } } }, projet: enCampagne ? { id: PROJET } : null });
     await monter(<CampaignOpeningScreen />);
     expect(container.textContent).toContain(TEXTE);
@@ -233,7 +233,7 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
   });
 
   it.each([[true], [false]])('récapitulatif de chapitre, sous-titre (`narratif.cloture.sousTitre.texte`), en campagne = %s', async (enCampagne) => {
-    useGame.setState({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
+    useGame.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: null });
     const clos: NarratifBlock = { ...narratif, ouverture: undefined, cloture: { when: { kind: 'flag', expr: 'fin' }, titre: 'Fin', sousTitre: { texte: TEXTE } } };
     get().chargerLeProjet({ scenes: [sceneDuTest()], entryId: 'scene-porteur', narratif: clos, projet: enCampagne ? { id: PROJET } : null });
     applyEffects(get, useGame.setState, [{ type: 'setFlag', flag: 'fin' }]);
@@ -243,13 +243,13 @@ describe('Sites de prose de PROJET : portés en campagne, nus en scénario', () 
   });
 
   it.each([[true], [false]])('entrée de zone (`scenes[].startMessage.texte`, `RevealBody`), en campagne = %s', async (enCampagne) => {
-    useGame.setState({ party: makePregens(idsDeTest).slice(0, 1), battle: null });
+    useGame.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: null });
     const autre = sceneDuTest();
     autre.id = 'scene-autre';
     const cible = sceneDuTest();
     cible.startMessage = { texte: TEXTE };
     get().chargerLeProjet({ scenes: [autre, cible], entryId: 'scene-porteur', narratif, projet: enCampagne ? { id: PROJET } : null });
-    const entree = [get().pendingCascade, ...get().suspendedCascades].flatMap((c) => c?.participants ?? []).map((st) => st.reveal).find((r) => r?.kind === 'sceneEntry');
+    const entree = [get().pendingCascade, ...get().suspendedCascades].flatMap((c) => c?.participants ?? []).map((st) => st.reveal).find((r) => r?.kind === 'entreeEnScene');
     expect(entree?.sceneId).toBe('scene-porteur');
     expect(porteurDeScene(get(), 'scene-porteur', 'startMessage.texte')).toEqual(enCampagne ? { type: 'projet', id: PROJET, chemin: 'scenes[1].startMessage.texte' } : undefined);
     await monter(<RevealBody entry={entree!} />);

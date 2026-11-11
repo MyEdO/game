@@ -20,12 +20,12 @@ import { useGesteDeJet } from './useGesteDeJet';
 export function WardModal() {
   const pw = useGame((s) => s.pendingWard);
   const battle = useGame((s) => s.battle);
-  const roll = useGesteDeJet('jetLancer', 'ward');
-  const reroll = useGesteDeJet('jetRelancer', 'ward');
-  const darkPact = useGesteDeJet('jetPactiser', 'ward');
-  const force = useGesteDeJet('jetForcerLaReussite', 'ward');
-  const confirm = useGesteDeJet('jetValider', 'ward');
-  const cancel = useGesteDeJet('jetAnnuler', 'ward');
+  const roll = useGesteDeJet('jetLancer', 'protection');
+  const reroll = useGesteDeJet('jetRelancer', 'protection');
+  const darkPact = useGesteDeJet('jetPactiser', 'protection');
+  const force = useGesteDeJet('jetForcerLaReussite', 'protection');
+  const confirm = useGesteDeJet('jetValider', 'protection');
+  const cancel = useGesteDeJet('jetAnnuler', 'protection');
   if (!pw || !battle) return null;
   const attacker = battle.combatants.find((x) => x.id === pw.attackerId);
   if (!attacker) return null;
@@ -54,8 +54,8 @@ export function WardModal() {
 
   return (
     <RollShell
-      flowKey="ward"
-      stake={flowStakeRef('ward-roll')}
+      flowKey="protection"
+      stake={flowStakeRef('protection-test')}
       title={<><Icon id="action/defend" size="sm" /> Bénédiction de Protection</>}
       subtitle={
         <>
@@ -64,7 +64,7 @@ export function WardModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('info', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('information', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

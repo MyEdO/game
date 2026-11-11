@@ -29,7 +29,7 @@ describe('LogDrawer', () => {
   });
 
   it('ouvert en combat : événements narrés (icône par kind, nom coloré par camp)', () => {
-    const battle = { log: [ev('attack', 'Gunnar attaque Brigand', 'h1', 'e1')], combatants: COMBATANTS };
+    const battle = { log: [ev('attaque', 'Gunnar attaque Brigand', 'h1', 'e1')], combatants: COMBATANTS };
     const html = renderToStaticMarkup(<LogDrawer battle={battle} journal={[]} initialOpen />);
     expect(html).toContain(iconSvg('action/attack')); // icône du kind attack
     expect(html).toContain('Gunnar');

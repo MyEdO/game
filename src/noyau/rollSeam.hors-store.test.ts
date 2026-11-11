@@ -40,9 +40,9 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     avecLesTables({ appliers: {
       ...tablesDuJeu().appliers,
       ...tableTotale(['seam-hero', 'seam-enemy', 'seam-subi', 'seam-batch'], () => sonde),
-      // Le VRAI applier `crew-progression` (`seaVoyageFlow.ts`) lit `travelPlan.sea`, absent des plans SYNTHÉTIQUES
+      // Le VRAI applier `equipage-progression` (`seaVoyageFlow.ts`) lit `travelPlan.sea`, absent des plans SYNTHÉTIQUES
       // de ce bloc : il isole la POLICY de la porte (surface I), pas la conséquence métier réelle.
-      'crew-progression': spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 })),
+      'equipage-progression': spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 })),
     } });
   });
 
@@ -145,9 +145,9 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
       side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
-    // `crew-progression` est doublé par le `beforeEach` du bloc (#275 Décision 4 cran 2).
-    openRoll(banc.getState, banc.setState, req, 'crew-progression');
-    // 'crew-progression' ∈ KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
+    // `equipage-progression` est doublé par le `beforeEach` du bloc (#275 Décision 4 cran 2).
+    openRoll(banc.getState, banc.setState, req, 'equipage-progression');
+    // 'equipage-progression' ∈ KINDS_SOUS_ORDRES + cadence COMMANDÉE ⇒ autoV ⇒ I : résolu et appliqué d'office
     // (`cascade.rollBatchParticipants` auto-roule le contributeur, `aggregateBatchStep` agrège au commit).
     expect(banc.getState().pendingCascade).toBeNull();
     expect(applied).toHaveLength(1);
@@ -165,7 +165,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.result).toBeFalsy(); // pas d'agrégat pré-résolu — UNE rangée par contributeur, à lancer
     expect(step.participants).toHaveLength(1);
-    expect(step.participants![0].result).toBeNull(); // le contributeur n'a pas encore lancé (flux `cascadeBatch`)
+    expect(step.participants![0].result).toBeNull(); // le contributeur n'a pas encore lancé (flux `cascadeEnBande`)
     expect(applied).toHaveLength(0); // rien appliqué tant que l'étape n'est pas validée
   });
 

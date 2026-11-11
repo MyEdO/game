@@ -2,7 +2,7 @@
  * GARDE BEHAVIORAL du TROU « jet silencieux » (LDB 85) : un HÉROS pris dans une manœuvre de ZONE d'une
  * créature ENNEMIE (Souffle/Vomi/Regard/Étreinte/Langue) fait un Test de défense que le RAW rend OPPOSÉ,
  * donc INFLUENÇABLE (Chance/Résilience, LDB 17). Il doit être résolu dans une CASCADE (une étape
- * `maneuverDefense` influençable par héros ciblé), PAS en silence au feed.
+ * `defenseDeManoeuvre` influençable par héros ciblé), PAS en silence au feed.
  *
  * Ce test ÉCHOUE sur l'ancien code (résolution inline muette → aucun `pendingCascade`) et PASSE sur le
  * neuf. Il vérifie AUSSI le cas défenseur IA (un héros active la zone sur des ennemis) : reste silencieux.
@@ -33,7 +33,7 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     banc.setState({ party: [H1, H2] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.getState().ensemencerLeTirage(2);
     const b = banc.getState().battle!;
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -73,13 +73,13 @@ describe('Défense de manœuvre de zone — cascade influençable (héros) vs si
     // UNE étape par héros ciblé.
     expect(p!.participants.length).toBe(2);
     for (const step of p!.participants) {
-      expect(step.kind).toBe('maneuverDefense');
+      expect(step.kind).toBe('defenseDeManoeuvre');
       // Étape de jet GÉNÉRIQUE influençable (Chance/+1 DR/Pacte/Résilience via CascadeModal) — PAS un `jet:`
       // à hook spécifique ni un résolveur muet : c'est ce qui la rend influençable.
       expect(step.jet).toBeUndefined();
       expect(step.target).toBeGreaterThan(0); // valeur de réaction (Esquive) → jet opposé au jet d'attaquant figé
       expect(step.meta?.opposed?.aT).toBeTruthy(); // jet d'attaquant CT FIGÉ (opposition RAW)
-      expect(step.meta?.maneuverDefense?.def.label).toBe('Souffle (Feu)');
+      expect(step.meta?.defenseDeManoeuvre?.def.label).toBe('Souffle (Feu)');
       // LDB 85 l.324 : le défenseur lit la règle du Type dans l'enjeu.
       expect(resolveStake(step.stake!).text).toContain(`PA ignorées, puis État ${findConditionById('en-flammes')!.label}`);
       expect(['hero']).toContain(banc.getState().battle!.combatants.find((c) => c.id === step.actorId)!.kind);

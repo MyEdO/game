@@ -111,7 +111,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
     expect(dice()[0]).toBe('?');
     expect(host.textContent, 'le verdict trahirait le jet masqué').not.toContain('Sort lancé !');
 
-    act(() => { useGame.getState().jetLancer('counterspell', 'A'); });
+    act(() => { useGame.getState().jetLancer('contreSort', 'A'); });
     act(() => { root.render(<CastModal />); });
     expect(dice()[0]).toBe(fmtD100(ENEMY_CAST.roll));
     expect(host.textContent).toContain('Sort lancé !');
@@ -316,9 +316,9 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
     });
     act(() => {
       const g = useGame.getState();
-      g.jetLancer('counterspell', 'A');
-      g.jetForcerLaReussite('counterspell', 'A');           // « Je ne faillirai pas ! » : A l'emporte…
-      g.jetImposerLeResultat('counterspell', 11, 'A');      // …et choisit son dé (LDB 17 l.68) → Dissipation acquise
+      g.jetLancer('contreSort', 'A');
+      g.jetForcerLaReussite('contreSort', 'A');           // « Je ne faillirai pas ! » : A l'emporte…
+      g.jetImposerLeResultat('contreSort', 11, 'A');      // …et choisit son dé (LDB 17 l.68) → Dissipation acquise
     });
     // PRÉCONDITION mesurée : sans elle, l'absence de « Dissipé ! » ne prouverait rien (une issue qui
     // n'existe pas est absente de toute façon).
@@ -336,7 +336,7 @@ describe('#990 site 2 — incantation opposée : la rangée du lanceur ET son ve
 
 describe('#990 site 3 — étape de cascade `meta.opposed` (Assommante, table de taverne)', () => {
   const step = (over: Record<string, unknown>) => ({
-    id: 'opp-1', kind: 'triggeredTest' as const, actorId: 'h', rollLabel: 'Résistance', base: 40, target: 40,
+    id: 'opp-1', kind: 'testDeclenche' as const, actorId: 'h', rollLabel: 'Résistance', base: 40, target: 40,
     label: fixtureText('Assommante'), ...over,
   });
   const openCascade = (s: ReturnType<typeof step>) => useGame.setState({
@@ -388,14 +388,14 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
   };
   const FOE_TR = { roll: 27, target: 35, sl: 1, success: true, isDouble: false };
 
-  it('Empoignade : la Force figée du foe est « ? » avant `jetLancer@grapple`, exacte après', () => {
+  it('Empoignade : la Force figée du foe est « ? » avant `jetLancer@empoignade`, exacte après', () => {
     duo();
     useGame.setState({ pendingGrapple: { actorId: 'h', foeId: 'e', phase: 'roll', canBreak: false, atk: FOE_TR, def: null, result: null } as never });
     act(() => { root.render(<GrappleModal />); });
     expect(dice()[0]).toBe('?');
     expect(verdicts()[0]).toBe('?');
 
-    act(() => { useGame.getState().jetLancer('grapple'); });
+    act(() => { useGame.getState().jetLancer('empoignade'); });
     act(() => { root.render(<GrappleModal />); });
     expect(dice()[0]).toBe(fmtD100(FOE_TR.roll));
     expect(verdicts()[0]).toContain('DR');
@@ -429,7 +429,7 @@ describe('#990 site 4 — Empoignade / Au Contact / Distraire / Désengagement',
     act(() => { root.render(<DisengageModal />); });
     expect(dice(), 'le jet figé du foe n’est pas à l’écran tant que le mover n’a pas choisi/répondu').toEqual([]);
 
-    act(() => { useGame.getState().jetLancer('disengage'); });
+    act(() => { useGame.getState().jetLancer('desengagement'); });
     act(() => { root.render(<DisengageModal />); });
     expect(dice()[0]).toBe(fmtD100(FOE_TR.roll));
     expect(verdicts()[0]).toContain('DR');

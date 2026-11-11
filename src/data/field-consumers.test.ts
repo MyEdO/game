@@ -367,7 +367,7 @@ const RECOUVRES: readonly (readonly [string, string, string])[] = [
   ['CountSpec', 'roll', 'src/data/index.ts @count'],
   ['TrappingRef', 'label', 'src/engine/possessionGrants.ts @possessionGrantsFromRefs'],
   ['FlowTest', 'argDifficulty', 'src/noyau/triggeredEffects.ts @visit'],
-  ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @stageEncounter'],
+  ['TravelTableEntry', 'stageOutcome', 'src/noyau/travelPostes.ts @etapeRencontre'],
   ['TraitInstance', 'hidden', 'src/engine/groups.ts @hiddenGroupsOf'],
 ];
 
@@ -386,7 +386,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   ActivityStakeEntry: ['stakeForm'],
   AdvanceCostBand: ['max', 'min'],
   CritDoc: ['die'],
-  DetailColorData: ['randByRace'],
   DomainData: ['grantGroups'],
   EtatData: ['severity'],
   GodData: ['grantGroups'],

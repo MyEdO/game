@@ -9,6 +9,8 @@ import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
+import { gestesDessines } from './dessines';
+export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
 import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
@@ -30,6 +32,15 @@ export function table() {
 
 /** La vue d'une réponse qui en porte une. */
 export const vueDe = (r: Reponse): VueDuPont => (r as { vue: VueDuPont }).vue;
+
+/** Le bouton qui ouvre la fiche d'un héros du groupe (`groupe.heros`), sa carte nommée par son nom ou son rang. */
+export function ficheDuHeros(vue: VueDuPont, heros: string | number): Bouton {
+  const cartes = vue.zones['groupe.heros'];
+  const carte = typeof heros === 'number' ? cartes[heros] : cartes.find((c) => c.nom === heros);
+  const bouton = carte?.elements.find((e): e is Bouton => e.type === 'bouton' && e.id.startsWith('fiche/'));
+  if (!bouton) throw new Error(`aucune carte du groupe pour ${heros}`);
+  return bouton;
+}
 
 /** Les éléments de la section `id` du statbloc de la fiche ouverte (`fiche.sections`, `section/<id>`), aucun sans
  *  elle. */
@@ -127,8 +138,6 @@ export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   return fautes;
 }
 
-/** Les gestes dessinés de la fenêtre : ses réglages, puis ses gestes. */
-export const gestesDessines = (vue: VueDuPont): (Bouton | Choix | Formulaire)[] => [...vue.zones['fenetre.reglages'], ...vue.zones['fenetre.gestes']];
 
 /** Le geste d'identité `cle` (`cleDuGeste`) parmi les gestes dessinés de la fenêtre, ou l'échec qui la dit. */
 export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulaire {

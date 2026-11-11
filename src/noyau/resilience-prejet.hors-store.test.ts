@@ -72,9 +72,9 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
     banc.setState({
       party: [combattantDeTest({ id: 'h1', label: 'Soigneur', resilience: 1, wounds: blessuresDeBase(12, 4), skills: [{ id: 'guerison', advances: 10, characteristic: 'intelligence' }] })],
       battle: null, medic: { patientId: 'h1' },
-      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'wounds', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
+      pendingHeal: { healerId: 'h1', healerName: 'Soigneur', targetId: 'h1', targetName: 'Soigneur', mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, sl: 0, success: false, roll: null, target: 50 } as any,
     });
-    banc.getState().jetForcerLaReussite('heal');
+    banc.getState().jetForcerLaReussite('soins');
     const ph = banc.getState().pendingHeal!;
     expect(ph.success).toBe(true);
     expect(ph.roll).toBe(1);
@@ -87,7 +87,7 @@ describe('Résilience pré-jet — autres modales (synthèse de succès)', () =>
       battle: { combatants: [brute] } as any,
       pendingFrenzy: { combatantId: 'e1', result: null } as any,
     });
-    banc.getState().jetForcerLaReussite('frenzy');
+    banc.getState().jetForcerLaReussite('frenesie');
     expect(banc.getState().pendingFrenzy!.result!.success).toBe(true);
     expect(banc.getState().battle!.combatants[0].resilience).toBe(0);
   });

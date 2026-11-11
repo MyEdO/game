@@ -2904,7 +2904,7 @@
      "dialogueId": {
       "id": "dlg-rumeurs"
      },
-     "anim": "standing",
+     "anim": "debout",
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "mendiant",
@@ -2922,7 +2922,7 @@
       "y": 22
      },
      "label": "Villageois",
-     "anim": "standing",
+     "anim": "debout",
      "appearance": {
       "species": "humains-reiklander",
       "tenue": "mendiant"
@@ -2939,7 +2939,7 @@
       "y": 17
      },
      "label": "Badaud",
-     "anim": "cowering",
+     "anim": "tapi",
      "facing": "E",
      "appearance": {
       "species": "humains-reiklander",
@@ -3166,7 +3166,7 @@
       "y": 8
      },
      "label": "Client",
-     "anim": "feeding",
+     "anim": "repas",
      "facing": "E",
      "appearance": {
       "species": "nains",
@@ -3184,7 +3184,7 @@
       "y": 9
      },
      "label": "Habitué",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "O",
      "appearance": {
       "species": "humains-reiklander",
@@ -3202,7 +3202,7 @@
       "y": 10
      },
      "label": "Buveur",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "E",
      "appearance": {
       "species": "humains-reiklander",
@@ -3368,7 +3368,7 @@
       "y": 10
      },
      "label": "Fidèle en prière",
-     "anim": "praying",
+     "anim": "priere",
      "facing": "N",
      "appearance": {
       "species": "humains-reiklander",
@@ -3529,7 +3529,7 @@
       "y": 31
      },
      "label": "Apprenti",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "O",
      "appearance": {
       "species": "humains-reiklander",
@@ -3654,7 +3654,7 @@
       "y": 32
      },
      "label": "Chaland",
-     "anim": "standing",
+     "anim": "debout",
      "facing": "O",
      "appearance": {
       "species": "humains-reiklander",
@@ -4525,25 +4525,25 @@
              "type": "medicalAid",
              "acts": [
               {
-               "act": "wounds",
+               "act": "blessures",
                "cost": {
                 "silver": 4
                }
               },
               {
-               "act": "bleed",
+               "act": "hemorragie",
                "cost": {
                 "silver": 4
                }
               },
               {
-               "act": "trauma",
+               "act": "traumatisme",
                "cost": {
                 "silver": 5
                }
               },
               {
-               "act": "surgery",
+               "act": "chirurgie",
                "cost": {
                 "silver": 6
                }
@@ -4933,13 +4933,13 @@
              "type": "medicalAid",
              "acts": [
               {
-               "act": "wounds",
+               "act": "blessures",
                "cost": {
                 "silver": 5
                }
               },
               {
-               "act": "bleed",
+               "act": "hemorragie",
                "cost": {
                 "silver": 5
                }
@@ -16346,7 +16346,7 @@
      "dialogueId": {
       "id": "dlg-prisonnier"
      },
-     "anim": "cowering",
+     "anim": "tapi",
      "appearance": {
       "species": "halflings",
       "tenue": "mendiant",

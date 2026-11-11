@@ -42,7 +42,7 @@ let banc: Banc;
 /** HÔTE au siège 0 ; `H1` attribué au siège 1 (invité) — la configuration coop la plus simple. */
 function hoteAvecHerosDInvite(): void {
   banc.setState({ party: [hero('H1')] });
-  banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1 } } });
+  banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1 } } });
 }
 
 describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roulé en silence)', () => {
@@ -77,7 +77,7 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
 
   it('un héros conduit par l’IA (aiControlled) n’a AUCUN pilote : il reste inline, et le repli l’accepte', () => {
     banc.setState({ party: [hero('H1', { aiControlled: true } as Partial<Combatant>)] });
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1 } } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1 } } });
     openRoll(banc.getState, banc.setState, req('H1'), KIND);
     expect(banc.getState().pendingCascade, 'aucun pilote : aucune fenêtre').toBeNull();
     expect(applied, 'résolu d’office, conséquence appliquée').toHaveLength(1);

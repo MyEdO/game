@@ -21,7 +21,8 @@ import { nommerChamps, metaDesChamps, nommerNoeud, type MetaDesChamps } from '..
 import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { roleAmbiantSchema } from '../grammaire/valeurs';
-import { amateurSchema, cell2Schema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema } from '../grammaire/valeurs';
+import { amateurSchema, cell2Schema, deckCoverSchema, difficultySchema, dir8Schema, entityAppearanceSchema, enumNomme, moneyPartialSchema, pointDuPlanSchema, settlementSchema } from '../grammaire/valeurs';
+import { joursDeReassortSchema, majorationDAchatSchema, tauxDeRachatSchema } from '../defs/merchants';
 import { conditionSchema, executeesDe, flowTestSchema } from '../grammaire/mecanique';
 import { navalTraitRefSchema, optionalSwapSchema, traitInstanceSchema } from '../grammaire/reference';
 import { competenceChiffreeSchema, couvreSchema, customStatblockSchema, ptSchema, wallSideSchema } from './communs';
@@ -32,11 +33,12 @@ import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../e
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { proseNommee } from '../grammaire/prose';
-import { estUnNavireAPonts, siegeEngines } from '../../index';
+import { estUnNavireAPonts, findTrappingById, siegeEngines } from '../../index';
+import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../../props.types';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../../materials.types';
-import type { AuthoredShipPoste } from '../../../engine/types';
+import { posteSideSchema } from '../defs/vehicles';
 
 /** Un terrain est un id de catalogue (cf. src/noyau/monde/terrain.ts). L'intersection vide garde l'alias
  *  VISIBLE au checker (type contextuel d'un littéral) sans rien refuser à `string` (#1789). */
@@ -55,8 +57,26 @@ export const rectSchema = nommerChamps(z.strictObject({ x: z.number(), y: z.numb
 /** Offre de couchage d'une scène/zone (`RestPlaces` sans `bord`, réservé au navire de campagne). */
 export const restPlacesSchema = nommerChamps(z.strictObject({ auberge: z.boolean().optional(), maison: z.boolean().optional(), camp: z.boolean().optional() }), { auberge: { label: "auberge" }, maison: { label: "chez soi" }, camp: { label: "camp" } });
 
-/** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn. T3-b. */
-export const authoredShipPosteSchema = z.custom<AuthoredShipPoste>();
+/** `AuthoredShipPoste` (`engine/types.ts`) — pièce d'artillerie MONTÉE, hydratée au spawn (`hydratePoste`, #222). MDG 12-13 */
+export const authoredShipPosteSchema = nommerChamps(z.strictObject({
+  trappingId: idDe('trapping', INSTANCIABLE_PAR_ID, { nue: true }),
+  /** Absent : pivot libre (`inFireArc`). */
+  side: posteSideSchema.optional(),
+  cover: deckCoverSchema.optional(),
+  /** `crewIds[0]` : le chef de pièce. */
+  crewIds: z.array(z.string()).optional(),
+  /** LDB 62 l.229/231 */
+  chambered: z.number().optional(),
+  /** MDG 12 / LDB 62 l.333 */
+  loaded: z.boolean().optional(),
+  /** LDB 62 l.335 */
+  reloadProgress: z.number().optional(),
+  /** Le coffre de la pièce : chaque munition du catalogue par son id, sa quantité. MDG 12 l.410-424 */
+  ammo: recordDIds('trapping', nommerNoeud(z.number().int().min(1), { nom: 'quantité' }), 'ammunition').optional(),
+  /** L'une des munitions du coffre. MDG 12 l.410-424 */
+  selectedAmmo: ref('trapping', undefined, 'ammunition').optional(),
+  anchor: ptSchema.optional(),
+}), { trappingId: { label: "pièce", texte: { regime: "technique" } }, side: { label: "côté" }, cover: { label: "couvert" }, crewIds: { label: "servants", texte: { regime: "technique" } }, chambered: { label: "munitions chambrées" }, loaded: { label: "chargée" }, reloadProgress: { label: "progression de la recharge" }, ammo: { label: "munitions", texte: { regime: "technique" } }, selectedAmmo: { label: "munition choisie" }, anchor: { label: "ancre" } });
 /** `SeatOccupant` (`noyau/monde/seating.ts:53`) — un RANG du groupe (jamais un id de héros) ou un PNJ de la scène. */
 export const seatOccupantSchema = z.discriminatedUnion('kind', [
   nommerChamps(z.strictObject({ kind: z.literal('party'), rang: z.number() }), { kind: { label: "type"  }, rang: { label: "rang" } }),
@@ -124,8 +144,30 @@ export const actionAuthoreeSchema = nommerChamps(z.strictObject({
   minutes: z.number().min(0).optional(),
 }), { id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, flow: { label: "enchaînement", transparent: true }, consume: { label: "consommer" }, unique: { label: "unique" }, minutes: { label: "minutes" } });
 
-/** JOUEUR de taverne (`NADJ 04 l.72`, `SceneEntity.tavernGame`) : `id` du jeu de `tavernGames.json`, mise de DÉPART en sous. */
-export const offreDeTaverneSchema = ref('tavernGame', { stakeBrass: nommerNoeud(z.number().optional(), { nom: 'mise en cuivre' }) });
+/** JOUEUR de taverne (`NADJ 04 l.72`, `SceneEntity.tavernGame`) : `id` du jeu de `tavernGames.json`, mise de DÉPART en sous,
+ *  entière et jamais négative (invariant d'ingénierie). */
+export const offreDeTaverneSchema = ref('tavernGame', { stakeBrass: nommerNoeud(z.number().int().min(0).optional(), { nom: 'mise en cuivre' }) });
+
+/** Le système d'achat et de vente d'un marchand, qui surcharge la règle `market-mode` (LDB 59 l.15). */
+const marketModeSchema = enumNomme({
+  complet: 'Complet (Disponibilité + Marchandage)',
+  'sans-disponibilite': 'Sans Disponibilité (tout en stock)',
+  'sans-marchandage': 'Sans Marchandage (prix fixes)',
+  simplifie: 'Simplifié (les deux désactivés)',
+});
+
+/** Marchand d'une entité de scène : son archétype, et les surcharges de ses prix (`defs/merchants.ts`) et des 3 règles
+ *  maison Marché (LDB 59/60). */
+export const marchandDeSceneSchema = nommerChamps(z.strictObject({
+  archetype: ref('merchant'),
+  settlement: settlementSchema.optional(),
+  resaleRate: tauxDeRachatSchema.optional(),
+  buyMarkup: majorationDAchatSchema.optional(),
+  restockDays: joursDeReassortSchema.optional(),
+  guild: z.boolean().optional(),
+  marketMode: marketModeSchema.optional(),
+  tenirComptes: z.boolean().optional(),
+}), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } });
 
 /** L'inventaire d'auteur d'un personnage : chaque objet du catalogue par son id, vrai s'il le porte (`isWearable` ;
  *  une arme se tient par les sets d'armes). Il devient les objets du combattant au spawn. LDB 77 l.7, #3684 */
@@ -180,19 +222,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
   light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
-  /** Marchand : archétype + surcharges de prix et des 3 règles maison Marché (LDB 59/60). */
-  merchant: nommerChamps(z
-    .strictObject({
-      archetype: ref('merchant'),
-      settlement: z.enum(['village', 'ville', 'cite']).optional(),
-      resaleRate: z.number().optional(),
-      buyMarkup: z.number().optional(),
-      restockDays: z.number().optional(),
-      guild: z.boolean().optional(),
-      marketMode: z.enum(['complet', 'sans-disponibilite', 'sans-marchandage', 'simplifie']).optional(),
-      tenirComptes: z.boolean().optional(),
-    }), { archetype: { label: "archétype" , texte: { regime: "technique"} }, settlement: { label: "localité"  }, resaleRate: { label: "taux de revente" }, buyMarkup: { label: "majoration d’achat" }, restockDays: { label: "jours de réapprovisionnement" }, guild: { label: "guilde" }, marketMode: { label: "régime de marché"  }, tenirComptes: { label: "tenir les comptes" } })
-    .optional(),
+  merchant: marchandDeSceneSchema.optional(),
   tavernGame: offreDeTaverneSchema.optional(),
   /** DÉCOR UTILISABLE — deux faits NOMMÉS que l'auteur pose sur CETTE instance : `assise` ouvre les
    *  places que le TYPE porte (`seatSlots` → `placesJouables`, `noyau/monde/seating.ts` — la seule capacité
@@ -238,7 +268,7 @@ const brancheDuDecor = (() => {
 type EntityKindId = z.infer<typeof entityKindSchema>;
 
 /** Une faute CROISÉE d'une entité de scène : le champ où elle se dit, et ce qu'elle dit. */
-export interface FauteDEntite { chemin: readonly string[]; message: string }
+export interface FauteDEntite { chemin: readonly (string | number)[]; message: string }
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
@@ -246,7 +276,7 @@ export interface FauteDEntite { chemin: readonly string[]; message: string }
  *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number } }): FauteDEntite[] {
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'trappingId' | 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
@@ -258,6 +288,13 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
     if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
+    ent.postes?.forEach((p, rang) => {
+      const piece = { trappingId: p.trappingId, subType: findTrappingById(p.trappingId)?.subType?.id };
+      for (const id of Object.keys(p.ammo ?? {})) {
+        if (!chargeLArme({ trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.trappingId} » ne charge pas` });
+      }
+      if (p.selectedAmmo && !(p.selectedAmmo.id in (p.ammo ?? {}))) fautes.push({ chemin: ['postes', rang, 'selectedAmmo'], message: `munition choisie « ${p.selectedAmmo.id} » hors du coffre du poste` });
+    });
   }
   if (ent.kind === 'prop') {
     for (const axe of ['x', 'y'] as const)

@@ -20,13 +20,13 @@ import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type { SeatOccupant } from '../monde/seating';
 import { documentDeProjet, parseProject, ProjetRefuse, texteDuDepot, type ProjectDoc } from '../worldMap';
 import { refusDeLaPorteDuProjet, type GesteDePorte } from '../persistance/refusDeLaPorte';
-import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, patchTrigger, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
-import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
+import { addArchitectureBody, addArchitecturePart, addBuildingMass, addFacadeFeature, addRoofExclusion, patchBuildingMass, poseToitureDuCorps, rectFrom, removeRoofExclusion, addLayer, patchSceneRoofDefaults, removeSceneFlag, resizeGrid, setNorthDeg, setReliefDefault, setSceneFlags, setSceneLabel, setSceneRest, setSceneScalaires, type ScalairesDeScene, addProjectScene, deleteProjectScene, duplicateProjectScene, renameScene, switchProjectScene, type ProjectScenes, addMember, addStoreyAbove, patchArchitectureBody, patchArchitectureStorey, patchFacadeFeature, patchFacadeSection, removeFacadeFeature, setFacadeSectionZ, assoirALaPlace, deleteSel, dupliquerLEntite, poserUneTroupe, coucheEcrite, editEntity, editEntry, pasteEntity, sansVide, TypeNonNomme, patchMember, patchWall, patchZone, propRefPatch, removeLayer, removeMember, renameActionAuthoree, renameEffectZone, replaceEffectZone, avecLaValeurDuPorteur, type EcritureDeValeur, type RefusDeValeur, type Segment, renameEntry, renameTrigger, setPosteCrew, setPosteEngine, setPosteSide, addStation, patchStation, removeStation, setSceneMusic, setStartMessageTexte, type PatchDeZone, type Pt } from '../sceneEdit';
+import { entiteDeLaSelection, etageSuivant, poigneeDeLaSelection, segmentDeLaSelection, type CadreDuPorteur, type Layers, type Sel, type SorteDePorteur, type Tool } from '../sceneEditLecture';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
-import { makeShowcaseParty } from '../../data/pregens';
+import { groupeVitrine } from '../../data/pregens';
 import type { LancementDeScenario } from '../lancementDeScenario';
 import { facadeFeatureKindSchema, messageIntroductionSchema, roofProfileSchema, sceneSchema, sceneWeatherSchema } from '../../data/schemas/defs-scenes/scene';
 import { champsOfferts, choixDuNoeud, elementDuNoeud, type FieldDesc, type ValeurDuChoix } from '../codex/editFields';
@@ -322,7 +322,7 @@ export interface SessionDEdition {
  *  une valeur au chemin `chemin` du formulaire de la zone d'effet ou du déclencheur `porteur` (`formulaireDe`, `undefined`
  *  retire le champ) ; nommer l'entité, l'entrée, le
  *  déclencheur, la zone d'effet ou le corps sélectionné, ou la scène sans sélection (`nom` absent : l'entité reprend le nom de sa fiche) ; changer l'identifiant de la zone
- *  d'effet sélectionnée, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
+ *  d'effet sélectionnée, de l'action `action` du décor sélectionné, ou de la scène sans sélection ; éditer une autre scène du projet, en ajouter une vide, dupliquer
  *  ou retirer l'éditée ; changer la couche de l'entrée sélectionnée ; copier l'entité sélectionnée, la coller
  *  sur la case pointée, la dupliquer ; poser une troupe de `nombre` copies du personnage sélectionné (`poserUneTroupe`,
  *  `nombre` entre `BORNES_DE_LA_TROUPE`) ; supprimer la sélection ; annuler, rétablir ; enregistrer au dépôt, puis l'issue de cette écriture ;
@@ -354,7 +354,7 @@ export type GesteDEdition =
   | { geste: 'scenes'; quoi: 'aller'; id: string }
   | { geste: 'scenes'; quoi: 'ajouter' | 'dupliquer' | 'retirer' }
   | { geste: 'nommer'; nom?: string }
-  | { geste: 'identifier'; id: string }
+  | { geste: 'identifier'; id: string; action?: string }
   | { geste: 'entree'; z: number }
   | { geste: 'copier' }
   | { geste: 'coller' }
@@ -435,7 +435,7 @@ export function texteAEnregistrer(s: SessionDEdition) {
 }
 
 /** L'essai de la scène éditée de la session `s` : le projet, ses scènes à jour, passé par la porte, et ce qui construit
- *  son lancement, la scène éditée à l'entrée, joué par le groupe vitrine (`makeShowcaseParty`), à l'ouverture de la
+ *  son lancement, la scène éditée à l'entrée, joué par le groupe vitrine (`groupeVitrine`), à l'ouverture de la
  *  partie ; ou le refus de la porte. */
 export function essaiDeLaScene(s: SessionDEdition) {
   const { scenes: _scenes, worldMap, activeAxes, narratif, ...identite } = s.projet;
@@ -443,7 +443,7 @@ export function essaiDeLaScene(s: SessionDEdition) {
   return aLaPorte('test', (): ((idNeuf: FabriqueDId) => LancementDeScenario) => {
     const projet = parseProject(doc);
     return (idNeuf) => ({
-      party: makeShowcaseParty(idNeuf), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
+      party: groupeVitrine(idNeuf), scene: projet.scenes.find((sc) => sc.id === s.sceneId)!, extraScenes: projet.scenes.filter((sc) => sc.id !== s.sceneId),
       ...(projet.worldMap ? { worldMap: projet.worldMap } : {}), narratif: projet.narratif,
     });
   });
@@ -656,31 +656,34 @@ function sceneAvecLEntite(scene: Scene, ent: SceneEntity, cle: string, ecrite: S
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: apres };
 }
 
-/** La scène `scene` de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
- *  (`avecLaValeurDuPorteur`, dans le narratif du projet) : la zone d'effet remplacée, la condition d'entrée du
- *  déclencheur patchée (`patchTrigger`), le champ de l'entité posé par sa porte (`sceneAvecLEntite`) ; ou son refus, un
- *  porteur absent n'offrant aucun chemin. */
-function sceneAvecLaValeur(s: SessionDEdition, scene: Scene, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
-  const { narratif } = s.projet;
+/** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée et le narratif de son projet. */
+export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), narratif: s.projet.narratif });
+
+/** La scène éditée de la session `s` où le geste `g` écrit sa valeur au formulaire de son porteur
+ *  (`avecLaValeurDuPorteur`, dans son cadre, `cadreDeLaSession`) : la zone d'effet ou le déclencheur remplacé, le champ
+ *  de l'entité posé par sa porte (`sceneAvecLEntite`) ; ou son refus, un porteur absent n'offrant aucun chemin. */
+function sceneAvecLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): EcritureDeValeur<Scene> {
+  const cadre = cadreDeLaSession(s);
+  const { scene } = cadre;
   if (g.porteur.sorte === 'entite') {
     const ent = scene.entities.find((e) => e.id === g.porteur.id);
     if (!ent) return { ok: false, refus: 'nonOffert' };
-    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur, narratif);
+    const ecrite = avecLaValeurDuPorteur('entite', ent, g.chemin, g.valeur, cadre);
     return ecrite.ok ? sceneAvecLEntite(scene, ent, String(g.chemin[0]), ecrite.valeur) : ecrite;
   }
   if (g.porteur.sorte === 'zone') {
     const zone = (scene.effectZones ?? []).find((z) => z.id === g.porteur.id);
-    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur, narratif) : { ok: false as const, refus: 'nonOffert' as const };
+    const ecrite = zone ? avecLaValeurDuPorteur('zone', zone, g.chemin, g.valeur, cadre) : { ok: false as const, refus: 'nonOffert' as const };
     return ecrite.ok ? { ok: true, valeur: replaceEffectZone(scene, zone!.id, ecrite.valeur) } : ecrite;
   }
   const declencheur = scene.triggers.find((t) => t.id === g.porteur.id);
-  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur, narratif) : { ok: false as const, refus: 'nonOffert' as const };
-  return ecrit.ok ? { ok: true, valeur: patchTrigger(scene, ecrit.valeur.id, { when: ecrit.valeur.when }) } : ecrit;
+  const ecrit = declencheur ? avecLaValeurDuPorteur('declencheur', declencheur, g.chemin, g.valeur, cadre) : { ok: false as const, refus: 'nonOffert' as const };
+  return ecrit.ok ? { ok: true, valeur: { ...scene, triggers: scene.triggers.map((t) => (t === declencheur ? ecrit.valeur : t)) } } : ecrit;
 }
 
 /** Pourquoi la session `s` n'écrit pas la valeur du geste `g` (`RefusDeValeur`) ; `null` si elle l'écrit. */
 export function refusDeLaValeur(s: SessionDEdition, g: Extract<GesteDEdition, { geste: 'valeur' }>): RefusDeValeur | null {
-  const ecrite = sceneAvecLaValeur(s, sceneEditee(s), g);
+  const ecrite = sceneAvecLaValeur(s, g);
   return ecrite.ok ? null : ecrite.refus;
 }
 
@@ -776,7 +779,7 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
     case 'zone':
       return ecrireSurLaSelection(s, patchZone(scene, s.sel, g.patch), zonesDe);
     case 'valeur': {
-      const ecrite = sceneAvecLaValeur(s, scene, g);
+      const ecrite = sceneAvecLaValeur(s, g);
       return ecrite.ok ? ecrireSurLaSelection(s, ecrite.valeur, (sc) => [sc.effectZones, sc.triggers, sc.entities]) : s;
     }
     case 'nommer': {
@@ -815,6 +818,12 @@ function editerLaCouche(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
       return patchee === scene ? s : ecrire(s, patchee, s.sel);
     }
     case 'identifier': {
+      if (g.action !== undefined) {
+        const ent = entiteDeLaSelection(scene, s.sel);
+        const actions = ent?.usable?.actions;
+        const renommees = actions && renameActionAuthoree(actions, g.action, g.id);
+        return ent && renommees !== actions ? ecrireSurLaSelection(s, editEntity(scene, ent.id, { usable: { ...ent.usable, actions: renommees } }), (sc) => entiteDeLaSelection(sc, s.sel)) : s;
+      }
       if (s.sel === null) return sceneRenommee(s, scene, g.id);
       if (s.sel?.type !== 'effectZone') return s;
       const renommee = renameEffectZone(scene, s.sel.id, g.id);

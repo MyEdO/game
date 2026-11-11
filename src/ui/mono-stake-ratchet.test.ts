@@ -58,24 +58,24 @@ export function shellsWithoutStake(src: string): string[] {
 const BASELINE: Record<string, string> = {
   // COMBAT — mesuré en L2 par la FORME (target/roll), pas par grep de kind : la cascade `combat` de `stakes.json`
   // naît avec ce lot, ces coquilles s'y branchent d'un coup.
-  maneuver: 'L2 — stakes.json combat',
-  grapple: 'L2 — stakes.json combat',
-  handGate: 'L2 — stakes.json combat',
-  approach: 'L2 — stakes.json combat',
+  manoeuvre: 'L2 — stakes.json combat',
+  empoignade: 'L2 — stakes.json combat',
+  mainEnsanglantee: 'L2 — stakes.json combat',
+  approche: 'L2 — stakes.json combat',
   // MAGIE — le renvoi vise la fiche du SORT (design §4), lot magie.
-  cast: 'L2 — renvoi CodexRef vers la fiche du sort',
-  focus: 'L2 — renvoi CodexRef vers la fiche du sort',
-  // ACTIVITÉS — `activity` est SOLDÉ (L3 : `ActivityDef.stake`, dataset `activity`).
-  bargain: 'L3 — négoce (marchand), lot des activités marchandes',
+  incantation: 'L2 — renvoi CodexRef vers la fiche du sort',
+  focalisation: 'L2 — renvoi CodexRef vers la fiche du sort',
+  // ACTIVITÉS — `activite` est SOLDÉ (L3 : `ActivityDef.stake`, dataset `activite`).
+  marchandage: 'L3 — négoce (marchand), lot des activités marchandes',
   // ÉQUIPAGE & NAVIRE — jumeaux, à doter avec leurs types de Test (même patron).
-  shipManeuver: 'L4 — Test d’équipage, entryId = type de Test',
-  shipBattery: 'L4 — Test d’équipage, entryId = type de Test',
+  manoeuvreDuNavire: 'L4 — Test d’équipage, entryId = type de Test',
+  tirDeBatterie: 'L4 — Test d’équipage, entryId = type de Test',
   // Porte à enfoncer : les 5 candidats relevés au ticket #1117 sont INSTRUITS (L2, 2026-08-06) —
   // EDO 7 l.184 / PDT 9 l.285 posent un statbloc de porte, PDT 8 l.370 est de la prose de MJ,
   // Ubersreik 10 l.183 pose une procédure LOCALE divergente (Force +20), MSRC 7 n'en parle pas.
   // LA règle vit ailleurs : EDO 11 l.89-101 (« Portes »), extraction FR présente et citable — c'est
   // la procédure que la modale joue déjà. Reste à curer sa fiche et son entrée de modale dans `stakes.json`.
-  forceDoor: 'L2 — passage instruit (EDO 11 l.89-101) ; fiche + entrée d’enjeu à curer',
+  enfoncerLaPorte: 'L2 — passage instruit (EDO 11 l.89-101) ; fiche + entrée d’enjeu à curer',
 };
 
 describe('cliquet — une modale de jet dit son ENJEU (#1117 L1b)', () => {
@@ -94,15 +94,15 @@ describe('cliquet — une modale de jet dit son ENJEU (#1117 L1b)', () => {
   });
 
   it('FAIL-CLOSED : une coquille synthétique sans enjeu est DÉTECTÉE, avec enjeu elle ne l’est pas', () => {
-    const sans = `<RollShell flowKey="run" title="X" rows={[]} />`;
-    const avec = `<RollShell flowKey="run" stake={flowStakeRef('run-roll')} title="X" rows={[]} />`;
+    const sans = `<RollShell flowKey="course" title="X" rows={[]} />`;
+    const avec = `<RollShell flowKey="course" stake={flowStakeRef('course-test')} title="X" rows={[]} />`;
     // Une prop d'une AUTRE balise ne doit pas compter — l'enjeu doit être SUR la coquille.
-    const voisin = `<div stake={x}><RollShell flowKey="run" title="X" /></div>`;
+    const voisin = `<div stake={x}><RollShell flowKey="course" title="X" /></div>`;
     // `flowKey` d'une RANGÉE (RollRowData) : hors périmètre, l'enjeu est porté par la coquille.
-    const rangee = `<RollRow flowKey="flee" />`;
-    expect(shellsWithoutStake(sans)).toEqual(['run']);
+    const rangee = `<RollRow flowKey="fuite" />`;
+    expect(shellsWithoutStake(sans)).toEqual(['course']);
     expect(shellsWithoutStake(avec)).toEqual([]);
-    expect(shellsWithoutStake(voisin)).toEqual(['run']);
+    expect(shellsWithoutStake(voisin)).toEqual(['course']);
     expect(shellsWithoutStake(rangee)).toEqual([]);
   });
 });

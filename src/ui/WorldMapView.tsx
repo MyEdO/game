@@ -91,11 +91,11 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
   // Porte d'heure de départ (maison, #340) : départ terrestre/fluvial de nuit → attendre l'aube / annuler.
   const pendingDeparture = useGame((s) => s.pendingDeparture);
   const valider = useGame((s) => s.fenetreValider);
-  const attendreLAube = () => valider('departure');
-  const rester = () => fermer('departure');
+  const attendreLAube = () => valider('depart');
+  const rester = () => fermer('depart');
   // Coop : l'invité consulte la carte mais l'HÔTE décide des départs (le voyage déplace tout le
   // groupe et résout des journées entières — audit Lot 4, arbitrage V1 « exploration = miroir »).
-  const isGuest = useGame((s) => s.net.mode) === 'guest';
+  const isGuest = useGame((s) => s.net.mode) === 'invite';
   const identites = useIdentites();
   const [selId, setSelId] = useState<string | null>(initialRouteId ?? null);
   const [mode, setMode] = useState<TravelMode>('pied');
@@ -580,8 +580,8 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
               <button
                 type="button"
                 className="btn small"
-                aria-pressed={!fastJoue && cadence === 'jour-par-jour'}
-                onClick={() => { setSeaFast(false); setCadence('jour-par-jour'); }}
+                aria-pressed={!fastJoue && cadence === 'jourParJour'}
+                onClick={() => { setSeaFast(false); setCadence('jourParJour'); }}
                 title={t(fluvialJoue ? 'wm.cadenceJourParJourFleuve' : 'wm.cadenceJourParJourMer')}
               >
                 {t('wm.jourParJour')}
@@ -659,7 +659,7 @@ export function WorldMapView({ initialRouteId, hereId }: { initialRouteId?: stri
                 {t('wm.eau', { dispo: provisions.eauDispoLitres != null ? t('wm.litres', { litres: provisions.eauDispoLitres }) : '—', requis: provisions.eauRequiseLitres })}
               </span>
               {!provisions.suffisant && <span className="wm-provision-item short">{t('wm.avitaillementInsuffisant', { jours: provisions.joursEstimes, ames: provisions.souls })}</span>}
-              {seaOverload?.palierId && <span className="wm-provision-item short">{t('wm.caleSurchargee', { pct: seaOverload.ratioPct, palier: seaOverload.label, suite: t('wm.caleEffets', { m: seaOverload.mMod, dr: seaOverload.manoeuvreDR }) })}</span>}
+              {seaOverload?.palierId && <span className="wm-provision-item short">{t('wm.caleSurchargee', { pct: seaOverload.ratioPct, palier: seaOverload.label, suite: t('wm.caleEffets', { m: seaOverload.mMod, dr: seaOverload.drDeManoeuvre }) })}</span>}
             </div>
           )}
           {mode === 'mer' && vessel ? <ShipRolesPanel /> : rule('travel-etapes') && <TravelRolesPanel />}

@@ -17,7 +17,7 @@ import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import type { Condition, EffectOp, PartySelector } from '../../engine/flowCore';
 import { libelleDeValeur } from '../../data/schemas/grammaire/meta';
 import { contexteDeTestSchema } from '../../data/schemas/grammaire/valeurs';
-import { armourBypassCategorieSchema, loseTurnWhatSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
+import { armourBypassCategorieSchema, loseTurnWhatSchema, ressourceDeDestinSchema, senseSchema, tablesDeCiblesSchema, zoneShapeSchema } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
 import { estCausePersistante, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
@@ -344,7 +344,6 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
 // GameOp
 // ---------------------------------------------------------------------------
 
-const RESOURCE_LABEL = { fortune: 'Chance', fate: 'Destin' } as const;
 const ATTR_LABEL = { wounds: 'Blessures', fortune: 'Chance', resolve: 'Détermination' } as const;
 /** Libellé JOUEUR du volet matériau d'`armourPierce.bypass` (LDB 62 l.270) — `undefined`/nombre = pas de volet matériau. */
 const armourBypassCatLabel = (b: ArmourBypass | undefined): string | undefined =>
@@ -429,6 +428,10 @@ export function humanizeResolveWindow(w: ResolveWindow | undefined): string | un
   return `${t('codex.fenetre.suspend', { valeur, unite: plural(w.minutes, t('codex.unite.minute'), t('codex.unite.minutes')) })}${note}`;
 }
 
+/** Un montant d'op en sous de cuivre : la monnaie s'il est fixe, sa formule sinon. */
+const montantEnSous = (brass: Formula): string =>
+  typeof brass === 'number' ? formatMoney(fromBrass(brass)) : t('codex.op.money.enSous', { valeur: humanizeQuantite(brass).valeur });
+
 export function humanizeOp(o: GameOp): string {
   /** Signe affiché d'un modificateur : « + » devant un positif, le « - » du nombre sinon. */
   const signe = (n: number): string => `${n >= 0 ? '+' : ''}${n}`;
@@ -455,7 +458,7 @@ export function humanizeOp(o: GameOp): string {
     case 'corruption': return t('codex.op.corruption', { n: signe(o.amount) });
     case 'sinMod': return t(o.amount >= 0 ? 'codex.op.sinMod.gagne' : 'codex.op.sinMod.perd', { n: Math.abs(o.amount) });
     case 'corruptionExposure': return t('codex.op.corruptionExposure');
-    case 'gainResource': return `${t(o.amount >= 0 ? 'codex.op.gainResource.gagne' : 'codex.op.gainResource.perd', { n: Math.abs(o.amount), res: RESOURCE_LABEL[o.resource] })}${o.temporary ? t('codex.op.gainResource.temporaire') : ''}`;
+    case 'gainResource': return `${t(o.amount >= 0 ? 'codex.op.gainResource.gagne' : 'codex.op.gainResource.perd', { n: Math.abs(o.amount), res: libelleDeValeur(ressourceDeDestinSchema, o.resource) })}${o.temporary ? t('codex.op.gainResource.temporaire') : ''}`;
     case 'gainAdvantage': return t('codex.op.gainAdvantage', { n: humanizeFormula(o.amount) });
     case 'topUpAdvantage': return t('codex.op.topUpAdvantage', { n: humanizeFormula(o.amount) });
     case 'castPenalty': return effetDeContrecoup(o);
@@ -542,7 +545,7 @@ export function humanizeOp(o: GameOp): string {
       negatifs: o.addNegativeSL ? t('codex.op.rollTable.negatifs') : '',
       extra: o.extraRollsPerStep ? t('codex.op.rollTable.extra', { n: o.extraRollsPerStep }) : '',
     }) + ('entries' in o ? rangeesLisibles(o) : '');
-    case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.rollMutation.permanente' : 'codex.op.rollMutation', { table: o.table });
+    case 'rollMutation': return t(o.duration === 'permanent' ? 'codex.op.rollMutation.permanente' : 'codex.op.rollMutation', { table: o.table.id });
     case 'charDamage': return t('codex.op.charDamage', { n: humanizeFormula(o.amount), car: CHAR_LABELS[o.characteristic] });
     case 'summon': return `${t('codex.op.summon', { n: humanizeFormula(o.count), nom: creatureLabel(o.ref) })}${o.allyOfCaster === false ? t('codex.op.summon.hostile') : ''}`;
     case 'scheduleRespawn': return t('codex.op.scheduleRespawn', { nom: creatureLabel(o.ref), n: humanizeFormula(o.delayDays) });
@@ -645,10 +648,9 @@ export function humanizeOp(o: GameOp): string {
       + `${o.adversaire.optionals ? t('codex.op.combatEnMer.optionals', { traits: o.adversaire.optionals.map((p) => traitLisible(p)).join(', ') }) : ''}`
       + `${o.repousseAPct !== undefined ? t('codex.op.combatEnMer.repousse', { pct: o.repousseAPct }) : ''}`
       + `${o.victoire ? t('codex.op.combatEnMer.victoire', { victoire: humanizeFlow(o.victoire, []) }) : ''}`;
-    case 'commission': {
-      const { brass } = o.montant;
-      return t('codex.op.commission', { valeur: typeof brass === 'number' ? formatMoney(fromBrass(brass)) : t('codex.op.money.enSous', { valeur: humanizeQuantite(brass).valeur }) });
-    }
+    case 'commission': return t('codex.op.commission', { valeur: montantEnSous(o.montant.brass) });
+    case 'constructeurDEscale': return t('codex.op.constructeurDEscale', { competence: o.competence, duree: humanizeFormula(o.duree) });
+    case 'rationsDEscale': return t('codex.op.rationsDEscale', { valeur: montantEnSous(o.montant.brass) });
     case 'marcheDuPort': return o.colonnes !== undefined
       ? t(o.colonnes === 'penurie' ? 'codex.op.marcheDuPort.penurie' : 'codex.op.marcheDuPort.saturation')
       : o.offre !== undefined

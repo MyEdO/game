@@ -336,7 +336,7 @@ function describeThreats(threats: string[]): string | null {
   return t('mbf.threats', { names });
 }
 
-// ── Construction de la modale de jet (canal UNIQUE : PendingActivity + flux `activity`) ────────────
+// ── Construction de la modale de jet (canal UNIQUE : PendingActivity + flux `activite`) ────────────
 
 /** Ouverture d'un Test de bataille (préparation ou Scène) : le meneur, sa valeur et ce qui pèse sur la cible. */
 interface OuvertureDeBataille {
@@ -384,7 +384,7 @@ function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
   return { pending: o.opposition ? { ...pa, ...o.opposition } : pa, ...(ligne2 ? { ligne2 } : {}) };
 }
 
-/** Ouvre la modale d'un Test de bataille (canal UNIQUE : PendingActivity + flux `activity`). */
+/** Ouvre la modale d'un Test de bataille (canal UNIQUE : PendingActivity + flux `activite`). */
 function openBattlePending(set: Set, o: OuvertureDeBataille): void {
   set({ pendingActivity: pendingDeBataille(o).pending });
 }
@@ -688,7 +688,7 @@ function openMassBattleRally(get: Get, set: Set): void {
   });
 }
 
-// ── Application des issues (appelée par `jetValider('activity')` pour une `PendingActivity` de bataille) ───
+// ── Application des issues (appelée par `jetValider('activite')` pour une `PendingActivity` de bataille) ───
 
 /** Applique un delta de Puissance COURANTE à un camp par `GameOp` (`heal`/`wounds`). */
 function applyDelta(mb: MassBattleState, side: 'ally' | 'enemy', delta: number, idNeuf: FabriqueDId): MassBattleState {
@@ -824,9 +824,9 @@ function applyHoldResolution(
   return { mb: next, lines };
 }
 
-/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetValider('activity')`).
+/** Applique l'issue d'une `PendingActivity` de BATAILLE à `MassBattleState` (appelé par `jetValider('activite')`).
  *  Route selon le contexte (préparation / Scène de Round) et le genre. Le budget d'Activité (une prépa =
- *  une Activité d'interlude, l.65) est décrémenté par `jetValider('activity')`, PAS ici (application ⊥ budget). */
+ *  une Activité d'interlude, l.65) est décrémenté par `jetValider('activite')`, PAS ici (application ⊥ budget). */
 export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): void {
   const mb = get().massBattle;
   if (!mb || pa.roll == null || !pa.activityId) return;
@@ -908,7 +908,7 @@ export function massBattleTrackHit(get: Get, set: Set, attacker: Combatant, targ
 
 /** Reprise après une Scène de COMBAT (appelée par la sortie de la victoire et de la défaite) : applique la
  *  réduction/malus de Puissance selon l'issue, puis revient à la vue de bataille. */
-export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcome: 'won' | 'lost' = 'won'): void {
+export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcome: 'victoire' | 'defaite' = 'victoire'): void {
   const mb = get().massBattle;
   if (!mb?.combatScene) return;
   const scene = battleSceneById(mb.combatScene.sceneId);
@@ -916,13 +916,13 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
   let next: MassBattleState = { ...mb, combatScene: undefined };
   const lines: string[] = [];
   if (scene) {
-    const res: BattleResolution = outcome === 'won'
+    const res: BattleResolution = outcome === 'victoire'
       // Victoire : le général (la rencontre) est neutralisé ; intervention si > 1 frappeur (Duel l.225).
       ? { success: true, sl: 0, hits: cs.hits, kills, generalDown: true, intervention: cs.hitters.length > 1, combat: true }
       : { success: false, sl: 0, hits: cs.hits, kills: 0, generalDown: false, intervention: cs.hitters.length > 1, combat: true };
     const applied = applyBattleBands(next, scene, res, cs.hitters, true, get().forgerUnId);
     next = applied.mb;
-    lines.push(t(outcome === 'won' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills }));
+    lines.push(t(outcome === 'victoire' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills }));
     lines.push(...applied.lines);
   }
   set({ massBattle: { ...next, log: [...next.log, ...lines] }, screen: 'massBattle' });

@@ -46,7 +46,7 @@ describe('tablesDuJeu — une donnée tirable éditée se relit au tirage suivan
     expect(tablesPosees(), 'les tables posées sont celles du jeu, déjà rassemblées').toBe(tablesDuJeu());
     const livrees = [...peripeties];
     onTestFinished(() => setDataset('peripeties', livrees));
-    const tirer = () => rollTableStep({ tableId: 'land-peril-table' }, makeRNG(7));
+    const tirer = () => rollTableStep({ tableId: 'route-peripetie-table' }, makeRNG(7));
     const avant = tirer();
     expect(avant.id, 'le tirage de référence lit la donnée livrée').toBe(livrees.find((p) => p.roll === avant.roll)!.id);
 

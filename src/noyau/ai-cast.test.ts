@@ -88,7 +88,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
   it('missile FAISABLE (focusState none, en portée) → cast mono-cible', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20 })] }))).toEqual({ kind: 'cast', targetId: 'h', spell: 'carreau' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20 })] }))).toEqual({ kind: 'incantation', targetId: 'h', spell: 'carreau' });
   });
 
   it('ZdE couvrant ≥2 héros groupés → castArea auto-posé', () => {
@@ -97,8 +97,8 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     const h2 = mk('h2', 'hero', { x: 6, y: 9 }); // collés (Chebyshev 1)
     const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 20, data: spellData({ id: 'vortex-d-ames', effects: doOps([{ op: 'wounds', amount: 8 }]) }) });
     const a = chooseEnemyAction(input(e, [h1, h2], { spells: [areaSp] }));
-    expect(a.kind).toBe('castArea');
-    if (a.kind === 'castArea') {
+    expect(a.kind).toBe('incantationDeZone');
+    if (a.kind === 'incantationDeZone') {
       expect(a.spell).toBe('vortex-d-ames');
       const cov = [h1, h2].filter((h) => chebyshev(h.pos!, a.center) <= 1).length;
       expect(cov).toBe(2);
@@ -108,7 +108,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
   it('sort FOCALISABLE (peu fiable d’un jet) hors contact → focus (au lieu de rater en boucle)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'focus', spell: 'vortex-d-ames' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'focalisation', spell: 'vortex-d-ames' });
   });
 
   it('un sort offensif lançable d’un JET existe → ne focalise PAS (focaliser ne produit rien ce tour)', () => {
@@ -117,20 +117,20 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     const immediate = castable({ id: 'carreau', range: 20, focusState: 'none' });        // offensif, d’un jet
     const big = castable({ id: 'vortex-d-ames', range: 20, focusState: 'focusable' });    // gros sort à focaliser
     const a = chooseEnemyAction(input(e, [h], { spells: [immediate, big] }));
-    expect(a).toEqual({ kind: 'cast', targetId: 'h', spell: 'carreau' }); // frappe maintenant, jamais focus
+    expect(a).toEqual({ kind: 'incantation', targetId: 'h', spell: 'carreau' }); // frappe maintenant, jamais focus
   });
 
   it('sort déjà focalisé et PRÊT (focusState ready) → cast à NI 0', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20, focusState: 'ready' })] }))).toEqual({ kind: 'cast', targetId: 'h', spell: 'carreau' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20, focusState: 'ready' })] }))).toEqual({ kind: 'incantation', targetId: 'h', spell: 'carreau' });
   });
 
   it('Unicité : un sort déjà ACTIF est EXCLU de l’énumération (seul sort + sans arme → end)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 5, y: 9 });
     const a = chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20, active: true })] }));
-    expect(a.kind).toBe('end'); // sort actif ignoré + aucune arme → aucune action
+    expect(a.kind).toBe('fin'); // sort actif ignoré + aucune arme → aucune action
   });
 
   // ── ZdE NET : anti tir-ami (indiscriminée, RAW) + buff/soin de zone ──────────────────────────────
@@ -141,7 +141,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     const foe = mk('h', 'hero', { x: 5, y: 9 });
     const ally = mk('a', 'enemy', { x: 4, y: 9 }, { weapons: [MELEE] }); // dans le rayon 1 de l'unique ennemi
     const a = chooseEnemyAction(input(e, [foe], { spells: [areaDmg(1)], squad: [ally] }));
-    expect(a.kind).not.toBe('castArea'); // dégâts au seul ennemi − tir ami sur l'allié ⇒ net ≤ 0
+    expect(a.kind).not.toBe('incantationDeZone'); // dégâts au seul ennemi − tir ami sur l'allié ⇒ net ≤ 0
   });
 
   it('AoE indiscriminée : alliés HORS du rayon → castArea (net positif, aucun tir ami)', () => {
@@ -150,7 +150,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     const h2 = mk('h2', 'hero', { x: 6, y: 9 }); // 2 ennemis groupés
     const ally = mk('a', 'enemy', { x: 0, y: 0 }, { weapons: [MELEE] }); // loin, hors du rayon
     const a = chooseEnemyAction(input(e, [h1, h2], { spells: [areaDmg(1)], squad: [ally] }));
-    expect(a.kind).toBe('castArea'); // dégâts à 2 ennemis − 0 tir ami > 0
+    expect(a.kind).toBe('incantationDeZone'); // dégâts à 2 ennemis − 0 tir ami > 0
   });
 
   it('buff de ZONE (bénéfique) → castArea sur les alliés (jadis ignoré : le bloc ZdE scorait sur les ennemis)', () => {
@@ -160,8 +160,8 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     const ally = mk('a', 'enemy', { x: 5, y: 6 }, { weapons: [MELEE], characteristics: C }); // allié armé adjacent
     const buff = castable({ id: 'prouesses', shape: { area: { radius: 2 } }, range: null, data: spellData({ id: 'prouesses', effects: doOps([{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 20 }]) }) });
     const a = chooseEnemyAction(input(e, [foe], { spells: [buff], squad: [ally] }));
-    expect(a.kind).toBe('castArea'); // le buff de zone couvre soi + l'allié armé → bénéfice marginal > 0
-    if (a.kind === 'castArea') expect(a.spell).toBe('prouesses');
+    expect(a.kind).toBe('incantationDeZone'); // le buff de zone couvre soi + l'allié armé → bénéfice marginal > 0
+    if (a.kind === 'incantationDeZone') expect(a.spell).toBe('prouesses');
   });
 });
 

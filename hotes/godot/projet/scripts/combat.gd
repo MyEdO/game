@@ -11,9 +11,11 @@
 ## d'une case lu dans `vue.occupants`. Une recette pose la caméra sur un cadrage (`_cadrer`). Un refus se dit ; l'écran
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
-## et la partie se joue sans corps. Chaque vue montrée, et chaque corps changé, il publie à la page ce que l'écran porte
-## (`PontDuNoyau.publier_l_ecran`), que la recette lit. La bulle de l'aperçu (`combat.apercu`) se tient au-dessus de sa
-## case.
+## et la partie se joue sans corps. Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque
+## cadrage du monde, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
+## recette lit. La bulle de l'aperçu
+## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
+## l'interface lui laisse.
 extends Node
 
 ## @contrat L'écran de Godot
@@ -30,12 +32,13 @@ extends Node
 ## contrôle `Plan` (`projet/scripts/plan.gd`) trace chaque trait d'un point à l'autre et chaque point à sa place dans le
 ## contrôle, chacun à la couleur de son ton, et pose sous chaque point son composant (`point` : son nom, puis ses
 ## éléments). Le `detail` d'une puce ou d'une ligne se pose sur sa `Bulle` (`projet/scripts/bulle.gd`), qui couvre le
-## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent au bord gauche de
-## l'écran, « Nouveau héros » sous eux ; la création ouverte se pose au centre, sa page titrée en tête, ses rubriques
-## défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas au centre, son interlocuteur en
-## titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose au centre, au-dessus du panneau,
-## sous la fenêtre qui tient la main, en statbloc au thème `art/statbloc.tres` (papier, encre, bandeau de chaque
-## section : la variation `TeteDEntite` de la tête d'une entité), la possession choisie et ses gestes sous ses sections.
+## composant et montre au survol la bulle du thème repliée au mot. Les héros du groupe se rangent en cartes au pied de
+## l'écran, « Nouveau héros » en tête du journal ; la barre du combat (`combat.offres`) les surmonte, chacun de ses choix
+## en onglet, sauf la part du tour (`economie/aucun`), au panneau de l'actif ; la création ouverte se pose au centre,
+## sa page titrée en tête, ses rubriques défilant dessous, ses gestes en rangée au pied ; la conversation se pose en bas
+## au centre, son interlocuteur en titre, sa réplique, puis ses réponses l'une sous l'autre ; la fiche ouverte se pose
+## à gauche de la scène, qu'elle rétrécit, en statbloc au thème `art/statbloc.tres` (papier, encre), chaque section en
+## onglet, la possession choisie et ses gestes sous ses sections.
 ## Un clic droit sur une case occupée ouvre la fiche de son occupant (`case_inspectee`, `projet/scripts/plateau.gd`). Un
 ## refus se dit au-dessus de l'écran, qui reste tel quel, saisies comprises. Changer l'écran, c'est éditer ces scènes ;
 ## un type d'élément nouveau, c'est un composant.
@@ -43,7 +46,9 @@ extends Node
 @onready var _plateau: Plateau = $Plateau
 @onready var _lumiere: Lumiere = $Plateau/Monde/Lumiere
 @onready var _ecran: Node = $Ecran
-@onready var _disposition: Disposition = $Ecran/Fenetre/Disposition
+@onready var _monde: Monde = $Plateau/Monde
+@onready var _scene: Control = $Ecran/Interface/Ossature/Colonne/Milieu/Scene
+@onready var _disposition: Disposition = $Ecran/Interface/Ossature/Colonne/Milieu/Scene/Disposition
 @onready var _refus: Label = $Ecran/Interface/Avis/Refus
 @onready var _panne: Label = $Ecran/Interface/Avis/Panne
 @onready var _apercu: Control = $Ecran/Interface/Apercu
@@ -55,6 +60,8 @@ var _musique := Musique.new()
 ## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
 var _cle_du_monde := ""
 var _zones: Array[Zone] = []
+## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
+var _publication_prevue := false
 
 
 func _ready() -> void:
@@ -63,6 +70,8 @@ func _ready() -> void:
 	_plateau.case_cliquee.connect(_cliquer)
 	_plateau.case_inspectee.connect(_inspecter)
 	_plateau.habille.connect(_publier_l_ecran)
+	_monde.cadrage_change.connect(_recadrer)
+	_scene.resized.connect(func() -> void: _monde.cadre = _scene.get_global_rect())
 	if not await _pont.rejoindre(func(texte: String) -> void: _refus.text = texte, func(texte: String) -> void: _panne.text = texte):
 		return
 	_pont.exposer("wfrpCadrer", _cadrer)
@@ -83,11 +92,11 @@ func _choisir_un_scenario() -> String:
 	var zones := Zone.racines(_scenarios)
 	Zone.montrer_toutes(zones, _pont.appeler("scenarios").get("zones", {}))
 	var barre := (_scenarios.get_node("Defilement") as ScrollContainer).get_v_scroll_bar()
-	barre.value_changed.connect(_defile)
+	barre.value_changed.connect(_republier)
 	_scenarios.visible = true
 	_publier_l_ecran.call_deferred()
 	var jeu: Dictionary = await zones[0].geste
-	barre.value_changed.disconnect(_defile)
+	barre.value_changed.disconnect(_republier)
 	_scenarios.visible = false
 	return str(jeu.scenario)
 
@@ -124,6 +133,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_musique.jouer(_vue.musique)
 	if _disposition.disposer(_vue.disposition):
 		_relier()
+	Portrait.corps = _vue.corps.combattants
 	Zone.montrer_toutes(_zones, _vue.zones.merged(reponse.zones))
 	for programme in reponse.programmes:
 		get_tree().create_timer(MiseEnPage.secondes(programme.delai)).timeout.connect(_reprendre.bind(int(programme.id)))
@@ -156,22 +166,40 @@ func _relier() -> void:
 	for zone in _zones:
 		if not zone.geste.is_connected(_jouer):
 			zone.geste.connect(_jouer)
-	for defilement in _ecran.find_children("*", "ScrollContainer", true, false):
-		var barre := (defilement as ScrollContainer).get_v_scroll_bar()
-		if not barre.value_changed.is_connected(_defile):
-			barre.value_changed.connect(_defile)
+	for defilement: ScrollContainer in _ecran.find_children("*", "ScrollContainer", true, false):
+		for barre: ScrollBar in [defilement.get_v_scroll_bar(), defilement.get_h_scroll_bar()]:
+			if not barre.value_changed.is_connected(_republier):
+				barre.value_changed.connect(_republier)
+	for onglets in _ecran.find_children("*", "TabContainer", true, false):
+		if not (onglets as TabContainer).tab_changed.is_connected(_republier):
+			(onglets as TabContainer).tab_changed.connect(_republier)
 
 
-func _defile(_valeur: float) -> void:
+## Le monde recadré : l'écran republié, une fois la partie montrée.
+func _recadrer() -> void:
+	if not _vue.is_empty():
+		_publier_l_ecran()
+
+
+## L'écran republié quand ce qu'il montre change sans vue : un défilement, un onglet.
+func _republier(_valeur: Variant) -> void:
 	_publier_l_ecran()
 
 
 ## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
-## chaque case du plateau, ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés
+## chaque case du plateau, la part de l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés
 ## (`Plateau.navires`).
 func _publier_l_ecran() -> void:
+	if _publication_prevue:
+		return
+	_publication_prevue = true
 	await get_tree().process_frame
-	_pont.publier_l_ecran({boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(), corps = _plateau.corps(), navires = _plateau.navires()})
+	_publication_prevue = false
+	var cadre := _monde.cadre
+	_pont.publier_l_ecran({
+		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(),
+		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
+	})
 
 
 ## Le cadrage d'une recette (`globalThis.wfrpCadrer(entree, rendre)`, `CONTRAT.md`, section « Écran publié ») : `entree`,

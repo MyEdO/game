@@ -131,7 +131,7 @@ export function LandMarketView() {
                       <NumberField
                         variant="nu" label={`Enc à acheter — ${o.label}`}
                         min={1} max={devis.max} value={devis.enc} disabled={!!refusHote}
-                        onChange={(n) => { composer(o.cargoId); choisir('marcheDeTerre', 'enc', n); }}
+                        onChange={(n) => { composer(o.cargoId); choisir('marcheDeTerre', 'encombrement', n); }}
                       />
                       <span className="market-offer-total">≈ <Coins money={fromBrass(devis.estimationGold * PA_PER_CO)} /></span>
                       <GatedAction

@@ -54,7 +54,7 @@ function setBattle(combatants: Combatant[], fateSave: ReturnType<typeof banc.get
 /** Le tueur `e1`, aux Groupes déclarés `groups`. */
 const adversaire = (groups: string[]) => hero({ id: 'e1', label: 'Brigand de Reikland', kind: 'enemy', fate: 0, groups } as Partial<Combatant>);
 
-describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.issue`)', () => {
+describe('#62 — Animosité & Haine sur dépense de Destin (choix `destin.issue`)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
 
   const skaven = () => adversaire(['skaven']);
@@ -62,14 +62,14 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
   it('règle ON + Calme ÉCHOUE → Animosité envers la Cible ; un 2ᵉ échec même Cible → Haine (remplace)', () => {
     setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(1); // Calme (FM 30) échoue
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     let got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits).toEqual([{ type: 'animosite', cible: ciblePsy.groupe('skaven') }]);
 
     // Deuxième frôlement de la mort face aux mêmes Skavens → l'Animosité devient une Haine.
     setBattle([got, skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits).toEqual([{ type: 'haine', cible: ciblePsy.groupe('skaven') }]); // Animosité remplacée, pas doublée
   });
@@ -77,7 +77,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
   it('règle ON + Calme RÉUSSIT → aucun Trait acquis', () => {
     setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(7); // Calme (FM 30) réussit
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
@@ -86,7 +86,7 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
     resetRule('psych-acquisition-optional'); // défaut = OFF
     setBattle([hero(), skaven()], { heroId: 'h1', source: 'hit', foeId: 'e1' });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
@@ -94,13 +94,13 @@ describe('#62 — Animosité & Haine sur dépense de Destin (choix `fateSave.iss
   it('mort lente (source slow, sans tueur) → pas d’Animosité (perte de sang, aucun individu)', () => {
     setBattle([hero()], { heroId: 'h1', source: 'slow' });
     seedBattleRng(1);
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
     const got = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(got.psychTraits ?? []).toEqual([]);
   });
 });
 
-describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath → choix `fateSave.issue`)', () => {
+describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath → choix `destin.issue`)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
 
   /** Un héros humain frôle la mort sous les coups de `foe`, dépense son Destin et rate son Calme. */
@@ -109,7 +109,7 @@ describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath �
     setBattle([h, foe], null);
     finalizeHeroDeath(banc.getState, banc.setState, h, 'hit', 10, foe);
     seedBattleRng(1); // Calme (FM 30) échoue
-    banc.getState().fenetreChoisir('fateSave', 'issue', 'survive');
+    banc.getState().fenetreChoisir('destin', 'issue', 'survivre');
   };
   const traitsDuHeros = () => banc.getState().battle!.combatants.find((c) => c.id === 'h1')!.psychTraits ?? [];
 
@@ -207,14 +207,14 @@ describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath �
   });
 });
 
-describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `combatPsych`, Terreur ratée)', () => {
+describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCombat`, Terreur ratée)', () => {
   beforeEach(() => { setRule('psych-acquisition-optional', true); });
 
   /** Les `porteurs` du combat ratent leur Calme de 1 DR face à `foe` (Terreur 1 → 2 Brisé), en une bande ;
    *  `result` en donne un autre. */
   const bandeRatee = (foe: Combatant, porteurs: readonly string[], result = { success: false, sl: -1 }) => {
     const decl = { kind: 'terreur' as const, sourceId: foe.id, sourceName: foe.label, indice: 1, round: banc.getState().battle!.round };
-    const step = bandStep({ id: `combatPsych-${foe.id}`, kind: 'combatPsych', combatPsych: decl }, porteurs.map((id) => ({ id, interactive: true, result }) as never))!;
+    const step = bandStep({ id: `psychologieDeCombat-${foe.id}`, kind: 'psychologieDeCombat', psychologieDeCombat: decl }, porteurs.map((id) => ({ id, interactive: true, result }) as never))!;
     applierDe(step.kind)!(banc.getState, banc.setState, step, undefined, { steps: [step], index: 0 });
     return step;
   };
@@ -329,7 +329,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
     const groupes = groupesPercus(banshee);
     expect(groupes.length).toBeGreaterThan(0);
     const decl = { kind: 'terreur' as const, sourceId: banshee.id, sourceName: banshee.label, indice: 1 };
-    const step = bandStep({ id: 'encounterPsych', kind: 'encounterPsych', encounterPsych: decl }, [{ id: 'h1', interactive: true, result: { success: false, sl: -1 } } as never])!;
+    const step = bandStep({ id: 'psychologieDeRencontre', kind: 'psychologieDeRencontre', psychologieDeRencontre: decl }, [{ id: 'h1', interactive: true, result: { success: false, sl: -1 } } as never])!;
     applierDe(step.kind)!(banc.getState, banc.setState, step, undefined, { steps: [step], index: 0 });
     expect(banc.getState().party[0].terreursSubies).toEqual([{ brise: 2, groupes }]);
   });

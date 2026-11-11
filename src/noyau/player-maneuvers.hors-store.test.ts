@@ -119,7 +119,7 @@ describe('manœuvres en combat (store)', () => {
     banc.setState({ party: [hero] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     banc.abandonner();
     const b = banc.getState().battle!;
     const H = b.combatants.find((c) => c.kind === 'hero')!;
@@ -221,8 +221,8 @@ describe('manœuvres en combat (store)', () => {
     H.advantage = 3; // assez pour 3 Morsures si elles n'étaient PAS plafonnées
     banc.getState().armerLAttaque('morsure');
     cliquerSurLeCombattant(banc.getState, E.id, { confirm: true }); // E adjacent → frappe directe
-    banc.getState().jetLancer('attack');
-    banc.getState().jetValider('attack');
+    banc.getState().jetLancer('attaque');
+    banc.getState().jetValider('attaque');
     const st = banc.getState();
     const h2 = st.battle!.combatants.find((c) => c.id === H.id)!;
     expect(h2.freeAttacksThisTurn?.morsure).toBe(1); // comptée

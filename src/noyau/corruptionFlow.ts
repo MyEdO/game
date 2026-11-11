@@ -228,7 +228,7 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
     label: stepDetail(t('step.mutation'), mutationTablePlayerLabel(tableId)),
     table: { tableId, spec: mutationTableDie(tableId) },
     mutation: { ...ctx, tableId },
-    stake: combatStakeRef('mutation-table'),
+    stake: combatStakeRef('mutation-tableau'),
   });
 }
 
@@ -283,7 +283,7 @@ function finishMutation(
   return lines;
 }
 
-/** Résolution du choix « Je te renie ! » (LDB 17 l.67) : `renounce` → −1 Résilience, pas de
+/** Résolution du choix « Je te renie ! » (LDB 17 l.67) : `renier` → −1 Résilience, pas de
  *  mutation NI de perte de Points de Corruption ; sinon la mutation s'applique. */
 export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   const pr = get().pendingRenounce;
@@ -299,7 +299,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
   }
-  journaliser(get, set, lines, 'info', { actorId: hero.id });
+  journaliser(get, set, lines, 'information', { actorId: hero.id });
   releaseCorruptionSlot(get, set);
 }
 
@@ -359,8 +359,8 @@ export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined
 }
 
 /** Le choix de « Je te renie ! » (`CorpsDesChoix`, LDB 17 l.67) : `resolveRenounce`. */
-export function choixDeCorruption(get: Get, set: Set): Pick<CorpsDesChoix, 'renounce'> {
-  return { renounce: { renier: (renier) => resolveRenounce(get, set, renier) } };
+export function choixDeCorruption(get: Get, set: Set): Pick<CorpsDesChoix, 'renier'> {
+  return { renier: { renier: (renier) => resolveRenounce(get, set, renier) } };
 }
 
 /** Le réglage de l'exposition à une Influence corruptrice (`CorpsDesReglages`) : en EXPOSITION seulement, jamais quand la

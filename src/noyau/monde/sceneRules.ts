@@ -81,7 +81,7 @@ const entityBlockIndex = memoByRefDeps<SceneEntity[], Set<string>>();
 /** La case (x,y) est-elle couverte par l'empreinte d'un décor qui bloque ? Pour la walkability.
  *  Un décor ne bloque PAS — SAUF s'il est :
  *   • INTERACTIF (coffre, stèle, dépouille fouillable…) : on ne se tient pas SUR lui, on l'aborde en
- *     case adjacente (exploration P5 comme combat « Ramasser », `pickup` de `actions.json`) ; ou
+ *     case adjacente (exploration P5 comme combat « Ramasser », `ramassage` de `actions.json`) ; ou
  *   • SOLIDE par son TYPE (`props.json` `solid` : feu de camp, brasero, statue, tonneau…) : objet
  *     plein infranchissable. */
 export function entityBlockedAt(scene: Scene, x: number, y: number, z: number): boolean {

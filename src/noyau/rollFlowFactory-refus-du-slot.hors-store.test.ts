@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import type { Jeu } from './etat';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
@@ -26,7 +26,7 @@ describe('refusDuSlot — le refus de la rangée, lu par la poignée du flux', (
     banc.setState({ party: [mk('Anna', 707), mk('Bert', 101)] });
     banc.getState().lancerLaScene(testScene());
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('roundStart');
+    banc.getState().fenetreValider('debutDuRound');
     const b = banc.getState().battle!;
     const [A, B] = b.combatants.filter((c) => c.kind === 'hero') as Combatant[];
     const enemies = b.combatants.filter((c) => c.kind === 'enemy');
@@ -52,15 +52,15 @@ describe('refusDuSlot — le refus de la rangée, lu par la poignée du flux', (
   it('la rangée encore à jouer après la dissipation par un AUTRE porte son refus ; celle qui a dissipé n’en porte aucun', () => {
     const { A, B } = setup();
     poser([{ id: A.id, interactive: true, declared: 'solo', result: PRESQUE }, { id: B.id, interactive: true, declared: 'solo', result: DISSIPE }]);
-    expect(FLOW_HANDLERS.counterspell.refusDuSlot(banc.getState, A.id)).toBe('Déjà dissipé par Bert');
-    expect(FLOW_HANDLERS.counterspell.refusDuSlot(banc.getState, B.id)).toBeNull();
-    expect(FLOW_HANDLERS.counterspell.refusDuSlot(banc.getState), 'sans rangée visée, aucun refus').toBeNull();
+    expect(FLOWS.contreSort.refusDuSlot(banc.getState, A.id)).toBe('Déjà dissipé par Bert');
+    expect(FLOWS.contreSort.refusDuSlot(banc.getState, B.id)).toBeNull();
+    expect(FLOWS.contreSort.refusDuSlot(banc.getState), 'sans rangée visée, aucun refus').toBeNull();
   });
 
   it('avant toute dissipation, aucune rangée ne se refuse', () => {
     const { A, B } = setup();
     poser([{ id: A.id, interactive: true, declared: 'solo', result: null }, { id: B.id, interactive: true, declared: 'solo', result: RATE }]);
-    expect(FLOW_HANDLERS.counterspell.refusDuSlot(banc.getState, A.id)).toBeNull();
-    expect(FLOW_HANDLERS.counterspell.refusDuSlot(banc.getState, B.id)).toBeNull();
+    expect(FLOWS.contreSort.refusDuSlot(banc.getState, A.id)).toBeNull();
+    expect(FLOWS.contreSort.refusDuSlot(banc.getState, B.id)).toBeNull();
   });
 });

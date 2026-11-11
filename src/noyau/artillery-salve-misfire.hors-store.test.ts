@@ -59,7 +59,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
     const issue = applyOups(get, set, chef, { ...salveGun, chambered: 5 }, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' });
     expect(issue, 'le d10 de la table part à la porte : rien n’est appliqué avant').toBe(OPS_DIFFEREES);
     expect(chef.wounds.current, 'aucune Blessure tant que le dé n’est pas tombé').toBe(20);
-    expect(etapeCourante()?.table?.tableId).toBe('artillery-salve-misfire');
+    expect(etapeCourante()?.table?.tableId).toBe('artillerie-salve-incident');
     expect(poserLesDes(2), 'une seule étape : la table (l’arme n’est pas Solide)').toEqual(['casseDArme']);
     expect(chef.wounds.current).toBeLessThan(20);
     const log = get().battle!.log.map((l) => l.text ?? l).join(' | ');

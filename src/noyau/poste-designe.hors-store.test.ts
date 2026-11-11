@@ -8,7 +8,7 @@ import { hydratePoste } from '../engine/items';
 import { argumentsDuVerbe } from '../hote/geste';
 import { VERBES } from '../hote/verbes.generated';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { Combatant, ItemInstance } from '../engine/types';
+import type { Combatant } from '../engine/types';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -16,14 +16,11 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const CHARS = { 'capacite-de-combat': 30, 'capacite-de-tir': 60, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 
-const carreau = (uid: string): ItemInstance =>
-  ({ uid, label: uid, kind: 'ammo', subType: 'munition-de-siege', qty: 4, qualities: [], enc: 0, equipped: false }) as ItemInstance;
-
-/** Un emplacement au sol dont les postes sont hydratés à leur place, comme au spawn (`spawn.ts`). */
-const emplacement = (id: string, pos: { x: number; y: number }, munitions: string[]): Combatant =>
+/** Un emplacement au sol dont la baliste, aux deux carreaux du catalogue, est hydratée à sa place, comme au spawn (`spawn.ts`). */
+const emplacement = (id: string, pos: { x: number; y: number }): Combatant =>
   combattantDeTest({ id, label: id, kind: 'enemy', pos, conditions: [], weapons: [], items: [], inert: true,
     wounds: blessuresDeBase(0), advantage: 0,
-    postes: [hydratePoste({ trappingId: 'baliste', ammo: munitions.map(carreau) }, `${id}-poste-0`)] });
+    postes: [hydratePoste({ trappingId: 'baliste', ammo: { 'carreau-de-baliste': 4, 'carreau-nain-norse': 4 } }, `${id}-poste-0`)] });
 
 const heros = (pos: { x: number; y: number }): Combatant =>
   combattantDeTest({ id: 'hero', label: 'hero', kind: 'hero', characteristics: CHARS, pos, movement: 4,
@@ -32,8 +29,8 @@ const heros = (pos: { x: number; y: number }): Combatant =>
 
 /** Deux porteurs adjacents au héros actif, chacun sa baliste. */
 function bataille() {
-  const a = emplacement('empA', { x: 5, y: 5 }, ['carreauA1', 'carreauA2']);
-  const b = emplacement('empB', { x: 7, y: 6 }, ['carreauB1', 'carreauB2']);
+  const a = emplacement('empA', { x: 5, y: 5 });
+  const b = emplacement('empB', { x: 7, y: 6 });
   const hero = heros({ x: 6, y: 6 });
   banc.setState({
     battle: { combatants: [a, b, hero], order: ['hero', 'empA', 'empB'], turn: 0, round: 1, acted: false, log: [], crewActed: {} } as never,
@@ -56,9 +53,9 @@ describe('un poste se désigne par son uid (#3613)', () => {
 
   it('approvisionnerLaPiece(posteUid, ammoUid) : la munition va au poste désigné, sur son porteur, parmi deux', () => {
     const { posteA, posteB } = bataille();
-    const args = argumentsDuVerbe(banc.getState(), 'approvisionnerLaPiece', [posteB.item.uid, 'carreauB2'], VERBES.approvisionnerLaPiece);
+    const args = argumentsDuVerbe(banc.getState(), 'approvisionnerLaPiece', [posteB.item.uid, 'empB-poste-0-carreau-nain-norse'], VERBES.approvisionnerLaPiece);
     banc.getState().approvisionnerLaPiece(...(args as [string, string]));
-    expect(posteB.ammoUid).toBe('carreauB2');
+    expect(posteB.ammoUid).toBe('empB-poste-0-carreau-nain-norse');
     expect(posteA.ammoUid).toBeUndefined();
   });
 });

@@ -17,7 +17,7 @@ import { tableTotale } from '../lib/tableTotale';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildBand, bandStep, monoStep, surfaceDesEtapes, surfaceDeLEtape } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade } from './cascade';
@@ -25,7 +25,7 @@ import { draineCascade } from './cascade.testkit';
 import { setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
 import { voyageStakeRef } from '../data';
-import { KINDS_SOUS_ORDRES } from './voyageCadence';
+import { KINDS_SOUS_ORDRES, type VoyageCadence } from './voyageCadence';
 import type { Combatant } from '../engine/types';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { refusNePeutTenter } from '../engine/skills';
@@ -46,7 +46,7 @@ const NET0 = initialNet();
 const SOUS_ORDRES = [...KINDS_SOUS_ORDRES];
 
 /** Les `kind` de l'entretien-survie maritime, tels que les émettent les trois phases du jour. */
-const KINDS_DE_MER = ['sea-tonneau-expose', 'sea-tonneau-contamine', 'sea-mal-de-mer', 'sea-scorbut', 'sea-exposition', 'sea-epuisement'] as const;
+const KINDS_DE_MER = ['mer-tonneau-expose', 'mer-tonneau-contamine', 'mer-mal-de-mer', 'mer-scorbut', 'merExposition', 'mer-epuisement'] as const;
 
 const ligne = { test: { skill: { id: 'resistance' }, characteristic: 'endurance' } } as const;
 
@@ -54,18 +54,18 @@ function bandeDe(kind: GenreDeCascade, porteurs: Combatant[]): BuiltCascadeStep 
   return buildBand(get, { id: kind, kind, label: fixtureText(kind), difficulty: 'intermediaire', porteurs: porteurs.map((actor) => ({ actor, ligne })) })!;
 }
 
-function traversee(cadence: 'commande' | 'jour-par-jour', mode: 'sea' | 'river' = 'sea'): void {
+function traversee(cadence: VoyageCadence, mode: 'sea' | 'river' = 'sea'): void {
   set({ travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode, hoursPerDay: 8, km: 10, kmDone: 0, interrupted: false, orders: { cadence } } as never });
 }
 
 beforeEach(() => {
-  set({ battle: null, party: makePregens(idsDeTest).slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
+  set({ battle: null, party: tousLesHerosDeScenario(idsDeTest).slice(0, 3), pendingCascade: null, suspendedCascades: [], travelPlan: null, journal: [] } as never);
   set({ net: { ...NET0, mode: 'local', mySeat: 0, gmSeat: undefined, ownership: {} } } as never);
 });
 
 describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kind', () => {
   it('solo jour-par-jour : la fenêtre s’ouvre (M) pour tous les kinds — un jet subi n’est plus muet', () => {
-    traversee('jour-par-jour');
+    traversee('jourParJour');
     const mesure = KINDS_DE_MER.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, get().party)])] as const);
     expect(Object.fromEntries(mesure)).toEqual(tableTotale(KINDS_DE_MER, () => 'M'));
   });
@@ -83,7 +83,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
    */
   it('COOP × COMMANDÉE : le héros d’un invité garde sa fenêtre (M) pour chaque kind sous ordres, mer comme fleuve', () => {
     const invite = get().party[0];
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
     for (const mode of ['sea', 'river'] as const) {
       traversee('commande', mode);
       const mesure = SOUS_ORDRES.map((k) => [k, surfaceDesEtapes(get, [bandeDe(k, [invite])])] as const);
@@ -102,48 +102,48 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   /**
    * L'EXPOSITION DE NUIT/SCÈNE N'EST PAS SOUS LES ORDRES D'UNE TRAVERSÉE (#1479) — même RÈGLE
    * (LDB 18 l.326-334, même applier), autre ROUTE : « cap tenu, ne me réveillez pas » ne commande
-   * que l'entretien du BORD (`sea-exposition`). Un ordre de traversée qui éteindrait aussi
+   * que l'entretien du BORD (`merExposition`). Un ordre de traversée qui éteindrait aussi
    * l'Exposition d'un camp ou d'un effet de scène volerait au joueur un jet qu'il doit faire
    * (« A partir du moment ou je dois faire un jet, il doit apparaitre », utilisateur 2026-08-24) —
    * et il le volerait sur un plan FLUVIAL comme sur un plan de MER, la politique ne lisant que la
    * cadence.
    */
-  it('l’Exposition de NUIT/SCÈNE (`exposure`) GARDE sa fenêtre sous ordres commandés — fleuve comme mer', () => {
+  it('l’Exposition de NUIT/SCÈNE (`exposition-nocturne`) GARDE sa fenêtre sous ordres commandés — fleuve comme mer', () => {
     for (const mode of ['river', 'sea'] as const) {
       traversee('commande', mode);
-      expect(surfaceDesEtapes(get, [bandeDe('exposure', get().party)]), `« exposure » sous ordres commandés (${mode})`).toBe('M');
+      expect(surfaceDesEtapes(get, [bandeDe('exposition-nocturne', get().party)]), `« exposition-nocturne » sous ordres commandés (${mode})`).toBe('M');
       // CONTRÔLE POSITIF, même montage : la route de MER, elle, EST commandée.
-      expect(surfaceDesEtapes(get, [bandeDe('sea-exposition', get().party)]), `« sea-exposition » sous ordres commandés (${mode})`).toBe('I');
+      expect(surfaceDesEtapes(get, [bandeDe('merExposition', get().party)]), `« merExposition » sous ordres commandés (${mode})`).toBe('I');
     }
   });
 
   it('CONTRÔLE POSITIF — un kind HORS de la politique d’ordres garde sa fenêtre, traversée commandée ou non', () => {
     traversee('commande');
-    expect(surfaceDesEtapes(get, [bandeDe('crew-tourbillon', get().party)]), 'une CRISE interrompt toujours').toBe('M');
+    expect(surfaceDesEtapes(get, [bandeDe('equipage-tourbillon', get().party)]), 'une CRISE interrompt toujours').toBe('M');
     // Et la politique DISCRIMINE bien : un kind de routine d'équipage se tait sous les mêmes ordres.
-    expect(surfaceDesEtapes(get, [bandeDe('crew-progression', get().party)])).toBe('I');
+    expect(surfaceDesEtapes(get, [bandeDe('equipage-progression', get().party)])).toBe('I');
   });
 
   it('siège MJ : la bande reste au JOUEUR (M) — le MJ ne prend que les dés qu’il TIENT (V pour le monde)', () => {
-    traversee('jour-par-jour');
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, gmSeat: 1 } } as never);
+    traversee('jourParJour');
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, gmSeat: 1 } } as never);
     for (const k of KINDS_DE_MER) {
       expect(surfaceDesEtapes(get, [bandeDe(k, get().party)]), `« ${k} » : le porteur est un héros, son joueur le tient`).toBe('M');
     }
     const deMonde = monoStep({
       id: 'x', kind: cleDeFixture('x'), monde: true, label: fixtureText('Désertion'), difficulty: 'intermediaire',
-      ligne: { valeur: 40 }, stake: voyageStakeRef('sea-salissures'),
+      ligne: { valeur: 40 }, stake: voyageStakeRef('mer-salissures'),
     })!;
     expect(surfaceDesEtapes(get, [deMonde]), 'le dé du MONDE, lui, revient au siège qui le tient').toBe('V');
   });
 
   it('cadence DÉFÉRÉE : la porte d’un JET rend I ; la fenêtre d’une SÉQUENCE, elle, reste (le pilote la déroule)', () => {
-    traversee('jour-par-jour');
+    traversee('jourParJour');
     setCadence('rapide');
     const h = get().party[0];
-    const jet = monoStep({ id: 'sea-scorbut', kind: 'sea-scorbut', label: fixtureText('Scorbut'), actor: h, difficulty: 'intermediaire', ligne: { valeur: 40 }, stake: voyageStakeRef('sea-scorbut') })!;
+    const jet = monoStep({ id: 'mer-scorbut', kind: 'mer-scorbut', label: fixtureText('Scorbut'), actor: h, difficulty: 'intermediaire', ligne: { valeur: 40 }, stake: voyageStakeRef('mer-scorbut') })!;
     expect(surfaceDeLEtape(get, jet), 'un dé isolé se résout inline en cadence déférée').toBe('I');
-    expect(surfaceDesEtapes(get, [bandeDe('sea-scorbut', get().party)]), 'la bande garde son bilan — `combatAuto` la déroule').toBe('M');
+    expect(surfaceDesEtapes(get, [bandeDe('mer-scorbut', get().party)]), 'la bande garde son bilan — `combatAuto` la déroule').toBe('M');
   });
 });
 
@@ -152,7 +152,7 @@ beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'sonde
 describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade', () => {
   const jet = (actor: Combatant, id: string): BuiltCascadeStep => monoStep({
     id, kind: cleDeFixture('sonde-1479'), actor, label: fixtureText(id), difficulty: 'intermediaire', ligne,
-    stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
+    stake: voyageStakeRef('mer-epuisement', { condition: 'Exténué' }),
   })!;
 
   it('héros conduit par l’IA : le socle TIRE son étape et la séquence la FRANCHIT (jamais une validation fermée pour toujours)', () => {
@@ -180,8 +180,8 @@ describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade
 
   it('siège DISTANT : le héros d’un invité TIENT sa rangée chez l’hôte (elle ne se tire pas en silence)', () => {
     const invite = get().party[0];
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
-    const bande = bandeDe('sea-scorbut', [invite]);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { [invite.id]: 1 } } } as never);
+    const bande = bandeDe('mer-scorbut', [invite]);
     expect(bande.participants![0].interactive, 'c’est SON joueur qui la roulera').toBe(true);
     expect(bande.participants![0].result).toBeNull();
     expect(surfaceDesEtapes(get, [bande])).toBe('M');
@@ -194,7 +194,7 @@ describe('mono non tentable = cas N=0 de la bande (LDB 09 l.30 ; #2588 Q1)', () 
     const refus = refusNePeutTenter(h, { skill: { id: 'resistance' } });
     const step = monoStep({
       id: 'muet', kind: cleDeFixture('sonde-1479'), actor: h, label: fixtureText('muet'), difficulty: 'intermediaire', ligne: { ...ligne, refus },
-      stake: voyageStakeRef('sea-epuisement', { condition: 'Exténué' }),
+      stake: voyageStakeRef('mer-epuisement', { condition: 'Exténué' }),
     })!;
     expect(step.result).toEqual(ECHEC_SANS_JET);
     expect(step.refus).toBe(refus);
@@ -210,11 +210,11 @@ describe('#1479 — une bande que PERSONNE ne tient se résout d’office (jamai
   it('tous les porteurs conduits par l’IA → I', () => {
     const party = get().party.map((h) => ({ ...h, aiControlled: true }));
     set({ party } as never);
-    expect(surfaceDesEtapes(get, [bandeDe('sea-scorbut', party as Combatant[])])).toBe('I');
+    expect(surfaceDesEtapes(get, [bandeDe('mer-scorbut', party as Combatant[])])).toBe('I');
   });
 
   it('rangée d’id FANTÔME (aucun combattant derrière) → I : un id inconnu n’est tenu par personne', () => {
-    const bande = bandStep({ id: 'fantome', kind: 'sea-scorbut', label: fixtureText('Fantôme') }, [
+    const bande = bandStep({ id: 'fantome', kind: 'mer-scorbut', label: fixtureText('Fantôme') }, [
       { id: 'FANTOME-1', interactive: true, result: null, base: 30, target: 30, difficulty: 'intermediaire' },
       { id: 'FANTOME-2', interactive: true, result: null, base: 30, target: 30, difficulty: 'intermediaire' },
     ])!;
@@ -223,6 +223,6 @@ describe('#1479 — une bande que PERSONNE ne tient se résout d’office (jamai
   });
 
   it('CONTRÔLE POSITIF — la MÊME bande avec un porteur RÉEL s’ouvre (la sonde discrimine)', () => {
-    expect(surfaceDesEtapes(get, [bandeDe('sea-scorbut', [get().party[0]])])).toBe('M');
+    expect(surfaceDesEtapes(get, [bandeDe('mer-scorbut', [get().party[0]])])).toBe('M');
   });
 });

@@ -1,5 +1,5 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
-import { pregen, PREGEN } from '../../data/pregens';
+import { herosDeScenario } from './_heros';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
 import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
@@ -25,7 +25,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * (`combatSlice.ts:2425`) — l'anguille est posée exactement à `heroStart`, donc à distance 1.
  */
 function porteurDOutre(idNeuf: FabriqueDId) {
-  const h = pregen(idNeuf, PREGEN.soldat);
+  const h = herosDeScenario(idNeuf, 'soldat');
   const outre = itemFromTrappingById('outre-a-eau', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [...(h.items ?? []), outre];
   return h;

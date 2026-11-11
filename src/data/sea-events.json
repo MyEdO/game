@@ -646,7 +646,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "crew-affaler-ouragan",
+                "kind": "equipage-affaler-ouragan",
                 "entryId": "ouragan",
                 "entryCategory": "seaBoardEvents"
               }
@@ -1487,7 +1487,7 @@
               "stake": {
                 "key": {
                   "dataset": "voyage",
-                  "kind": "sea-priere-manann",
+                  "kind": "mer-priere-manann",
                   "entryId": "presage-divin-albatros",
                   "entryCategory": "seaBoardEvents"
                 }
@@ -2198,7 +2198,7 @@
               "stake": {
                 "key": {
                   "dataset": "voyage",
-                  "kind": "sea-priere-manann",
+                  "kind": "mer-priere-manann",
                   "entryId": "presage-divin-feu-bleu",
                   "entryCategory": "seaBoardEvents"
                 }
@@ -2381,7 +2381,7 @@
                   "stake": {
                     "key": {
                       "dataset": "voyage",
-                      "kind": "sea-embrigadement-ragot",
+                      "kind": "mer-embrigadement-ragot",
                       "entryId": "embrigadement",
                       "entryCategory": "seaPortEvents"
                     }
@@ -2467,7 +2467,7 @@
                           "stake": {
                             "key": {
                               "dataset": "voyage",
-                              "kind": "sea-embrigadement-discretion",
+                              "kind": "mer-embrigadement-discretion",
                               "entryId": "embrigadement",
                               "entryCategory": "seaPortEvents"
                             }
@@ -2527,7 +2527,7 @@
                         "stake": {
                           "key": {
                             "dataset": "voyage",
-                            "kind": "sea-embrigadement-discretion",
+                            "kind": "mer-embrigadement-discretion",
                             "entryId": "embrigadement",
                             "entryCategory": "seaPortEvents"
                           }
@@ -2735,7 +2735,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "sea-controle-subornation",
+                "kind": "mer-controle-subornation",
                 "entryId": "controle-a-quai",
                 "entryCategory": "seaPortEvents"
               }
@@ -3184,11 +3184,31 @@
         "id": "constructeur-de-navires-itinerant",
         "label": "Constructeur de navires itinérant",
         "desc": "Constructeur de navires itinérant. Un constructeur de navires talentueux est en ville. Si votre bateau a besoin de réparations, il possède Métier (Charpentier 72, Constructeur de navires 68, Tailleur 63). Il peut aussi ajouter des Améliorations au vaisseau. Chaque réparation ou Amélioration prend 1d10 jours.",
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "constructeurDEscale",
+                "competence": 68,
+                "duree": {
+                  "dice": {
+                    "n": 1,
+                    "sides": 10
+                  }
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,
           "note": "ch.15 « Longs voyages » — TABLEAU DES ÉVÉNEMENTS D’ESCALE DANS UN PORT (l.239-263)."
-        }
+        },
+        "maison": "Le constructeur répare à son meilleur Métier, Constructeur de navires 68 contre Charpentier 72 − 10 (MDG 13 l.641) ; les 1d10 jours de la réparation se tirent à l'escale, et l'installation d'une Amélioration reste immédiate (consigne utilisateur 2026-11-07)."
       },
       {
         "min": 14,
@@ -3270,7 +3290,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "sea-passager-clandestin",
+                "kind": "mer-passager-clandestin",
                 "entryId": "passager-clandestin",
                 "entryCategory": "seaPortEvents"
               }
@@ -3487,7 +3507,7 @@
             "stake": {
               "key": {
                 "dataset": "voyage",
-                "kind": "sea-rumeurs-commerciales",
+                "kind": "mer-rumeurs-commerciales",
                 "entryId": "rumeurs-commerciales",
                 "entryCategory": "seaPortEvents"
               }
@@ -3593,6 +3613,21 @@
         "id": "bonne-peche",
         "label": "Bonne pêche",
         "desc": "Bonne pêche. Récemment, les pêcheurs locaux remontent des filets grouillant de poissons ou de crabes. Vous pouvez les acheter en tant que rations pour un jour au prix réduit de 3sc.",
+        "consequence": {
+          "kind": "do",
+          "effect": {
+            "type": "ops",
+            "on": "navire",
+            "ops": [
+              {
+                "op": "rationsDEscale",
+                "montant": {
+                  "brass": 3
+                }
+              }
+            ]
+          }
+        },
         "source": {
           "book": "mer-des-griffes",
           "page": 133,

@@ -1,4 +1,4 @@
-import { makePregens } from '../../data/pregens';
+import { tousLesHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects, testFlow } from '../../noyau/monde/flow';
 import { type Condition } from '../../engine/flowCore';
@@ -116,5 +116,5 @@ export const scenario: TestScenario = {
   title: 'Le Caveau piégé',
   tests: 'Vitrine Flow+Condition : interactions (levier/clé → flags), condition composée (clé OU levier) ET NON alarme pour la herse, dalle piégée = Test d’Athlétisme à branches (esquive / piques + À Terre + alarme).',
   partyNote: 'Pré-tirés',
-  construire: (idNeuf) => ({ party: makePregens(idNeuf), scene: construireScene() }),
+  construire: (idNeuf) => ({ party: tousLesHerosDeScenario(idNeuf), scene: construireScene() }),
 };

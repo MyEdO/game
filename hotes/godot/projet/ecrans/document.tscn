@@ -16,7 +16,7 @@ grow_vertical = 2
 theme_type_variation = &"Fenetre"
 
 [node name="Colonne" type="VBoxContainer" parent="."]
-theme_override_constants/separation = 8
+theme_type_variation = &"PileSerree"
 
 [node name="Titre" type="VBoxContainer" parent="Colonne"]
 theme = ExtResource("2_titre")

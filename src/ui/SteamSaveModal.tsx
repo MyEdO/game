@@ -14,17 +14,17 @@ import { useGesteDeJet } from './useGesteDeJet';
  * Sauvegarde d'Initiative d'une PANNE DE VAPEUR « Fuite de vapeur » (MDG 12 l.326-328) : la personne qui
  * s'occupe du moteur teste l'Initiative sous peine d'être ébouillantée (1d10−5 Dégâts min 1, ignorent
  * l'Armure). Modale INFLUENÇABLE (Chance/+1 DR/Pacte/Résilience) — l'ÉCHEC applique l'ébouillantage puis
- * la traversée reprend (`jetValider('steamSave')`). Jet PROPRE de l'acteur (aucun « Annuler » : la panne EST là).
+ * la traversée reprend (`jetValider('fuiteDeVapeur')`). Jet PROPRE de l'acteur (aucun « Annuler » : la panne EST là).
  */
 export function SteamSaveModal() {
   const p = useGame((s) => s.pendingSteamSave);
   const party = useGame((s) => s.party);
-  const roll = useGesteDeJet('jetLancer', 'steamSave');
-  const reroll = useGesteDeJet('jetRelancer', 'steamSave');
-  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'steamSave');
-  const darkPact = useGesteDeJet('jetPactiser', 'steamSave');
-  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'steamSave');
-  const confirm = useGesteDeJet('jetValider', 'steamSave');
+  const roll = useGesteDeJet('jetLancer', 'fuiteDeVapeur');
+  const reroll = useGesteDeJet('jetRelancer', 'fuiteDeVapeur');
+  const bonusSL = useGesteDeJet('jetAjouterUnDR', 'fuiteDeVapeur');
+  const darkPact = useGesteDeJet('jetPactiser', 'fuiteDeVapeur');
+  const forceSuccess = useGesteDeJet('jetForcerLaReussite', 'fuiteDeVapeur');
+  const confirm = useGesteDeJet('jetValider', 'fuiteDeVapeur');
   if (!p) return null;
   const actor = party.find((c) => c.id === p.actorId);
   const rolled = p.roll != null;
@@ -52,13 +52,13 @@ export function SteamSaveModal() {
 
   return (
     <RollShell
-      flowKey="steamSave"
-      stake={flowStakeRef('steam-save-roll')}
+      flowKey="fuiteDeVapeur"
+      stake={flowStakeRef('vapeur-sauvegarde-test')}
       title="Fuite de vapeur — Initiative"
       subtitle={<>panne de vapeur</>}
       rows={[actorRow]}
       rolled={rolled}
-      outcome={[recapLineOfEvent(ev(p.success ? 'info' : 'condition', text, p.actorId), party)]}
+      outcome={[recapLineOfEvent(ev(p.success ? 'information' : 'etat', text, p.actorId), party)]}
       actions={actions}
     />
   );

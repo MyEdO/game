@@ -37,7 +37,7 @@ function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   set({ party });
   g().lancerLaScene(testScene());
   g().lancerLeCombat('enc-mutants');
-  g().fenetreValider('roundStart');
+  g().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = g().battle!;
   const H = b.combatants.filter((c) => c.kind === 'hero');
@@ -46,7 +46,7 @@ function coop(vivants = 1): { H: Combatant[]; E: Combatant[] } {
   const E = enemies.slice(0, vivants);
   H[0].pos = { x: 10, y: 10 };
   set({ battle: { ...b }, pendingCascade: null, suspendedCascades: [], pendingCleave: null, pendingDisengage: null } as never);
-  set({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, slots: [0, 1, 0, 0], ownership: { [H[0].id]: 1 } } } as never);
+  set({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, slots: [0, 1, 0, 0], ownership: { [H[0].id]: 1 } } } as never);
   return { H, E };
 }
 
@@ -71,7 +71,7 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
 
     aiCreatureFreeAttacks(g, set, E[0]);
 
-    const etape = (g().pendingCascade?.participants ?? []).find((s) => s.kind === 'maneuverDefense' && s.actorId === H[0].id);
+    const etape = (g().pendingCascade?.participants ?? []).find((s) => s.kind === 'defenseDeManoeuvre' && s.actorId === H[0].id);
     expect(etape, 'la défense de manœuvre du héros distant doit REMONTER').toBeTruthy();
     expect(etape!.result ?? null, 'et rien n’a été roulé à sa place').toBeNull();
     expect(seatOwns(g(), 1, H[0].id), 'la fenêtre appartient au siège qui possède le défenseur').toBe(true);
@@ -120,11 +120,11 @@ describe('Le héros d’un siège DISTANT garde ses fenêtres chez l’hôte (#1
       pendingDisengage: { moverId: H[0].id, foeId: E[0].id, canSacrifice: false, phase: 'choice', atk: null, def: null, result: null },
     } as never);
 
-    g().jetRegler('disengage', 'fuir', true);
+    g().jetRegler('desengagement', 'fuir', true);
 
     const pd = g().pendingDisengage;
     expect(pd, 'la fenêtre de fuite a été résolue sans le fuyard').toBeTruthy();
-    expect(pd!.fuir, 'le flux `flee` doit être OUVERT').toBeTruthy();
+    expect(pd!.fuir, 'le flux `fuite` doit être OUVERT').toBeTruthy();
     expect(fleeTouche(pd!)!.interactive, 'le fuyard est un acteur JOUÉ : le Test de sa fiche `fuite` lui revient').toBe(true);
     expect(fleeToucheDu(pd!) ? fleeTouche(pd!)!.jet : null, 'le Test de sa fiche `fuite` a été jeté à sa place').toBeNull();
     // …et le siège qui le possède peut mener la fenêtre à son terme.

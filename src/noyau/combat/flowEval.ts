@@ -1,6 +1,6 @@
 /**
  * Évaluation d'un `FlowTest`/`Condition` EN COMBAT — briques PURES partagées par les trois voies de
- * résolution d'un Test déclenché (étape de cascade héros `triggeredTest`, jet inline ennemi/auto
+ * résolution d'un Test déclenché (étape de cascade héros `testDeclenche`, jet inline ennemi/auto
  * `resolveFlowTest`, jet inline hors-cascade `resolveInlineFlowTest`). SOURCE UNIQUE : la vue d'acteur et
  * le `ConditionCtx` de combat vivent ICI ; la décision du Test, dans `engine/decisionDuTest`.
  *

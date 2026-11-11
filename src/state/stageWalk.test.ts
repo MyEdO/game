@@ -16,7 +16,7 @@ import { chebyshev } from '../engine/grid';
 import { pushLayer, resetDismissStack } from './dismissStack';
 import { cascadeDeTest } from '../noyau/cascade.testkit';
 import { areneCampaign, campagneDuJeu, lancerCampagne } from '../scenes/campaign';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { cleDeFixture } from '../noyau/noyau.testkit';
 
 const get = useGame.getState;
@@ -176,7 +176,7 @@ describe('UN PAS À LA FOIS — la cadence est la durée du glissement', () => {
  */
 describe('MUR de la scène réelle (arene-hub) — la marche bute, elle ne meurt pas', () => {
   function entrerAuHub(): void {
-    useGame.setState({ party: makePregens(idsDeTest).slice(0, 1) });
+    useGame.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1) });
     expect(lancerCampagne(useGame.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     useGame.setState({
       screen: 'campaign', mode: 'exploration', partyPos: { x: 25, y: 23 },
@@ -299,7 +299,7 @@ describe('UNE PORTE QUI S’OUVRE arrête la marche sur la case atteinte', () =>
     const t = traceur();
     demarrerMarche(get, { vue: 'iso', dir: 'up' });
     vi.advanceTimersByTime(STEP_MS);
-    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'cast' }]), pendingCast: { pickingTargets: true } as never });
+    useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'c', kind: cleDeFixture('castJet'), jet: 'incantation' }]), pendingCast: { pickingTargets: true } as never });
     vi.advanceTimersByTime(STEP_MS * 4);
     t.off();
     expect(t.cases.length).toBe(2);

@@ -7,7 +7,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { creerPartie, etatInitialDuJeu, type EntreesDeLaPartie, type Partie } from './index';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { statutLePlusHaut } from '../engine/statut.testkit';
 import { emptyScene } from './monde/scene';
 import { toBrass, priceToMoney, add as moneyAdd, fromBrass } from '../engine/money';
@@ -21,14 +21,14 @@ import { catalogEntryOf, devisDuPanier, prixDeLigne, coutDeReparation, devisDeTr
 const bourseDuGroupe = (p: Partie) => toBrass(p.etat().party.reduce((s, h) => moneyAdd(s, bourseOf(h)), fromBrass(0)));
 
 /** Ouvre l'armurier pour un groupe au Statut le plus haut, bourse de 50 CO, règle `market-tenir-comptes` posée. */
-function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local' | 'guest' = 'local'): { partie: Partie; budget: number } {
+function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local' | 'invite' = 'local'): { partie: Partie; budget: number } {
   const { career, careerLevel, budget } = statutLePlusHaut();
   const scene = { ...emptyScene('marche', 4, 4), id: 'marche' };
   scene.entities.push({ id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 0, y: 0 }, merchant: { archetype: { id: 'armurier' }, buyMarkup: MAJORATION } } as never);
   const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'market-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
-    party: makePregens(idsDeTest).slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 }, idsDeTest)),
+    party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 }, idsDeTest)),
     scene,
     net: { ...etatInitialDuJeu().net, mode },
   }, entrees);
@@ -163,7 +163,7 @@ describe('#3059 — siège invité : l’invité compose le panier, l’encaisse
   it('ajout au panier ouvert ; paiement, réparation, vente et Troc refusés, sans écriture', () => {
     const abimee = { ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: 'abimee', damageTaken: 2, equipped: false };
     const avendre = { ...itemFromTrappingById('hallebarde', idsDeTest)!, uid: 'avendre', equipped: false };
-    const { partie } = ouvrir(false, [abimee, avendre], 'guest');
+    const { partie } = ouvrir(false, [abimee, avendre], 'invite');
     try {
       const s = partie.etat();
       // Ligne que la bourse de 50 CO couvre, majoration 1,5 comprise.

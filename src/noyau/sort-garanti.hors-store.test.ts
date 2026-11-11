@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc } from './banc.testkit';
 import { draineEtapes } from './cascade.testkit';
 import { runFlow, jouerFlowEntier } from './combatEffects';
-import { pregenParty, PREGEN } from '../data/pregens';
+import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { resolveFormula } from '../engine/ops';
 import { desDuTest } from '../engine/dice.testkit';
 import { ciblePsy } from '../engine/psych/ciblage';
@@ -20,13 +20,13 @@ const bfm = (lanceur: Combatant) => resolveFormula({ bonusOf: 'force-mentale' },
 
 describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
   it('Colérique (VDM 10 l.324-332) : un seul palier, envers la personne désignée, avec sa durée', () => {
-    const [w, s, p] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat, PREGEN.pretre);
+    const [w, s, p] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat', 'pretre');
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s, p] } });
     const maintenant = banc.getState().gameTime;
     jouerFlowEntier(runFlow(banc.getState, banc.setState, garanti(w.id, 'colerique', s.id)));
-    const vues = draineEtapes(banc.getState, 20, (e) => (e.kind === 'triggeredTest' ? 100 : undefined),
+    const vues = draineEtapes(banc.getState, 20, (e) => (e.kind === 'testDeclenche' ? 100 : undefined),
       (e) => (e.kind === 'personneChoisie' ? p.id : undefined));
-    expect(vues.map((v) => v.kind), 'NI 2 : aucun palier à trancher').toEqual(['personneChoisie', 'triggeredTest']);
+    expect(vues.map((v) => v.kind), 'NI 2 : aucun palier à trancher').toEqual(['personneChoisie', 'testDeclenche']);
     const cible = banc.getState().party.find((c) => c.id === s.id)!;
     expect((cible.psychTraits ?? []).filter((t) => t.src?.id === 'colerique')).toEqual([
       { type: 'prejuge', cible: ciblePsy.individu(p.id), src: { kind: 'spell', id: 'colerique' } },
@@ -36,7 +36,7 @@ describe('castSpell forceSuccess : le Flow du Sort, à DR = NI', () => {
   });
 
   it('un Sort à durée en Rounds : l’effet dure (BFM) Rounds et porte son identité dissipable (LDB 46 l.158)', () => {
-    const [w, s] = pregenParty(idsDeTest, PREGEN.sorcier, PREGEN.soldat);
+    const [w, s] = groupeDeScenario(idsDeTest, 'sorcier', 'soldat');
     const banc = ouvrirLeBanc({ graine: 7, etat: { party: [w, s] } });
     jouerFlowEntier(runFlow(banc.getState, banc.setState, garanti(w.id, 'ecorce', s.id)));
     const effets = banc.getState().party.find((c) => c.id === s.id)!.activeEffects ?? [];

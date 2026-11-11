@@ -21,6 +21,11 @@ const SILENCE_S := 10.0
 ## mesurés : un GLB de base de 42 Mo s'y reçoit en une vingtaine d'images (#3470), pas en plus de 600 par 64 Kio.
 const BLOC_DE_TELECHARGEMENT := 16777216
 
+## La valeur de `?rendu=` qui ne dessine une image que si l'écran a changé (`OS.low_processor_usage_mode`), et sans
+## anticrénelage multiéchantillon (`Viewport.msaa_3d`) : la recette la pose (`hotes/godot/recette.mjs`), car chaque image
+## tient le fil de la page où elle lit l'écran publié et où arrive chacun de ses gestes.
+const RENDU_ECONOME := "econome"
+
 var est_web := OS.has_feature("web")
 ## Si la partie à démarrer est la scène que l'éditeur a mise à l'essai (`demarrer { essai }`), plutôt que le scénario de
 ## l'adresse de la page.
@@ -34,6 +39,9 @@ func _ready() -> void:
 	set_process(est_web)
 	if est_web:
 		get_tree().create_timer(ATTENTE_S).timeout.connect(_expirer)
+		if parametre("rendu") == RENDU_ECONOME:
+			OS.low_processor_usage_mode = true
+			get_viewport().msaa_3d = Viewport.MSAA_DISABLED
 
 
 func _process(_delta: float) -> void:
@@ -85,20 +93,24 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 ## lecture d’un clip renouvelle aussi cette publication à chaque image, après mise en page, sans remesurer `peaux`.
 ##
 ## - Au menu : `{ boutons: { texte, x, y }[] }`, le texte et le centre de chaque bouton actif.
-## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>, corps:
-##   Record<string, { base: string, elements: string[], emblemes: Record<string, string>, couleurs: Record<string,
-##   Record<string, string>> }>, navires: string[] }`, plus le point de l'écran du sol de chaque case de chaque couche
-##   du plateau, les ids des navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle
-##   posé, et, par id de combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de
-## `montes`, l'id de
-##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre, la
-##   couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB (`MontageDeComposition.couleurs_posees`).
-##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/end-turn`
+## - Au combat : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], cases: Record<"x,y,z", [x, y]>,
+##   cadre: [x, y, largeur, hauteur], corps: Record<string, { base: string, elements: string[], emblemes:
+##   Record<string, string>, couleurs: Record<string, Record<string, string>> }>, navires: string[] }`, plus le
+##   point de l'écran du sol de chaque case de chaque couche du plateau, à l'écran ou non, la part de l'écran où le
+##   monde se voit, que l'interface ne couvre pas (`Monde.cadre`, vide avant la première mise en page), les ids des
+##   navires de la scène dont le modèle est posé (`Plateau.navires`), republiés à chaque modèle posé, et, par id de
+##   combattant dessiné avec un corps, sa base, les ids des éléments montés, par ligne de `montes`, l'id de
+##   l'emblème posé, et `couleurs`, comme à l'atelier, par emplacement monté dont une surface a un matériau propre,
+##   la couleur d'albédo `#rrggbb` de ce matériau, par nom du matériau du GLB
+##   (`MontageDeComposition.couleurs_posees`).
+##   `element` est l'élément de la vue que dessine le composant qui porte le bouton, `"<type>/<id>"` (`bouton/fin-de-tour`
 ##   pour une offre, `bouton/<clé du geste>` pour un geste de la fenêtre, `bouton/<clé du geste>/<n>` pour la n-ième
 ##   valeur d'un choix) ; une liste déroulante publie aussi `choix`, `ids` et `retenu`, comme à l'atelier.
 ## - À l'éditeur : `{ boutons: { texte, x, y, element?, choix?, ids?, retenu? }[], saisies: { texte, x, y, element? }[],
-##   cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes, noms, calque, calque_pose } }`, chaque champ de
-##   texte éditable à l'écran, son texte et son centre (`PontDuNoyau.saisies_a_l_ecran`), le point de l'écran du sol de
+##   panneau: { valeur, contenu, page, haut, bas, boutons, saisies }, cases: Record<"x,y", [x, y]>, editeur: { zones, surcouche, aretes,
+##   noms, calque, calque_pose } }`, chaque champ de texte éditable à l'écran, son texte et son centre
+##   (`PontDuNoyau.saisies_a_l_ecran`), le défilement du panneau d'outils, ses boutons et ses champs défilés hors de
+##   son cadre compris (`PontDuNoyau.defilement_publie`), le point de l'écran du sol de
 ##   chaque case de la couche éditée, les zones, la surcouche et le calque de la dernière réponse de `editer` (section
 ##   « Éditeur »), le nombre d'arêtes posées sur le monde, les noms posés sur le monde par case `x,y,z`, et si le calque
 ##   y est posé, sa planche lue.
@@ -213,12 +225,13 @@ func exposer(nom: String, rappel: Callable) -> void:
 	JavaScriptBridge.get_interface("window").set(nom, _exposes[nom])
 
 
-## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, son texte,
+## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, ou, `defiles`
+## vrai, que les défilements cachent aussi, son texte,
 ## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :
 ## `<type>/<id>`) s'il en porte un ; une liste déroulante, aussi le texte de chaque article (`choix`), son id (`ids`,
 ## sa métadonnée) et le rang de l'article choisi (`retenu`, -1 sans choix) ; puis chaque onglet montré d'un `TabContainer` visible, son titre et le
 ## centre de son onglet (`onglet`).
-static func boutons_a_l_ecran(racines: Array) -> Array:
+static func boutons_a_l_ecran(racines: Array, defiles := false) -> Array:
 	var boutons := []
 	for racine in racines:
 		for pages in racine.find_children("*", "TabContainer", true, false):
@@ -227,11 +240,11 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 				continue
 			for rang in barre.tab_count:
 				var milieu: Vector2 = barre.get_global_transform().translated_local(barre.get_tab_rect(rang).get_center()).get_origin()
-				if not barre.is_tab_hidden(rang) and a_l_ecran(barre, milieu):
+				if not barre.is_tab_hidden(rang) and (defiles or a_l_ecran(barre, milieu)):
 					boutons.append({texte = barre.get_tab_title(rang), x = milieu.x, y = milieu.y, onglet = true})
 		for bouton in racine.find_children("*", "BaseButton", true, false):
 			var centre: Vector2 = bouton.get_global_rect().get_center()
-			if bouton.is_visible_in_tree() and not bouton.disabled and a_l_ecran(bouton, centre):
+			if bouton.is_visible_in_tree() and not bouton.disabled and (defiles or a_l_ecran(bouton, centre)):
 				var publie := {texte = bouton.text, x = centre.x, y = centre.y}
 				if bouton.has_meta("cle"):
 					publie.cle = bouton.get_meta("cle")
@@ -247,19 +260,32 @@ static func boutons_a_l_ecran(racines: Array) -> Array:
 
 
 ## Les champs de texte à l'écran sous `racines` : chaque `LineEdit` ou `TextEdit` éditable et visible qu'aucun
-## défilement ne cache, son texte, son centre, et l'élément que dessine le composant qui le porte (`Zone.META`) s'il en
+## défilement ne cache, ou, `defiles` vrai, que les défilements cachent aussi, son texte, son centre, et l'élément que dessine le composant qui le porte (`Zone.META`) s'il en
 ## porte un.
-static func saisies_a_l_ecran(racines: Array) -> Array:
+static func saisies_a_l_ecran(racines: Array, defiles := false) -> Array:
 	var saisies := []
 	for racine in racines:
 		for champ in racine.find_children("*", "", true, false).filter(func(n: Node) -> bool: return n is LineEdit or n is TextEdit):
 			var centre: Vector2 = champ.get_global_rect().get_center()
-			if champ.is_visible_in_tree() and champ.editable and a_l_ecran(champ, centre):
+			if champ.is_visible_in_tree() and champ.editable and (defiles or a_l_ecran(champ, centre)):
 				var publie := {texte = champ.text, x = centre.x, y = centre.y}
 				if champ.owner != null and champ.owner.has_meta(Zone.META):
 					publie.element = champ.owner.get_meta(Zone.META)
 				saisies.append(publie)
 	return saisies
+
+
+## Le défilement vertical `defilement` : sa position (`valeur`, la valeur de sa barre, `ScrollBar.value`), la hauteur
+## de son contenu (`contenu`, `Range.max_value`) et celle qu'il montre (`page`, `Range.page`), le haut et le bas de son
+## cadre à l'écran, et ses boutons et ses champs de texte, ceux qu'il cache compris, chacun publié comme à
+## l'écran, à son point de l'écran hors du cadre s'il y est (`boutons_a_l_ecran`, `saisies_a_l_ecran`).
+static func defilement_publie(defilement: ScrollContainer) -> Dictionary:
+	var cadre := defilement.get_global_rect()
+	var barre := defilement.get_v_scroll_bar()
+	return {
+		valeur = barre.value, contenu = barre.max_value, page = barre.page, haut = cadre.position.y, bas = cadre.end.y,
+		boutons = boutons_a_l_ecran([defilement], true), saisies = saisies_a_l_ecran([defilement], true),
+	}
 
 
 ## Si `point` de `controle` se voit à travers chaque défilement qui le contient.

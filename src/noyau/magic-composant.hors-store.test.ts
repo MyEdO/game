@@ -29,7 +29,7 @@ function mageInBattle() {
   banc.setState({ party: [hero] });
   banc.getState().lancerLaScene(testScene());
   banc.getState().lancerLeCombat('enc-mutants');
-  banc.getState().fenetreValider('roundStart');
+  banc.getState().fenetreValider('debutDuRound');
   banc.abandonner();
   const b = banc.getState().battle!;
   return b.combatants.find((c) => c.kind === 'hero')!;
@@ -55,7 +55,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
     // L'Imparfaite jouée est une Mineure : sa table est l'étape ouverte, sa révélation vient après le dé.
     expect(banc.getState().pendingCascade!.participants[0].table!.tableId).toBe('miscast-mineure');
     avanceEtapeCascade(banc.getState);
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'miscast');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'incantationImparfaite');
     expect(step?.label).toBe('Imparfaite');
   });
 
@@ -97,7 +97,7 @@ describe('Composants d’incantation (LDB 46 l.107-113)', () => {
     // Une Imparfaite Majeure PLEINE est ouverte : c'est la table Majeure que l'étape déclare.
     expect(banc.getState().pendingCascade!.participants[0].table!.tableId).toBe('miscast-majeure');
     avanceEtapeCascade(banc.getState);
-    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'miscast');
+    const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'incantationImparfaite');
     expect(step?.label).toBe('Imparfaite');
   });
 

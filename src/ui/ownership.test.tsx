@@ -24,11 +24,11 @@ const HEROS = [combattantDeTest({ id: 'h1', kind: 'hero' }), combattantDeTest({ 
 
 /** État réseau minimal : `h1` non attribué (⇒ hôte, siège 0), `h2` au siège 1. */
 const net = (over: Partial<GameState['net']>): GameState['net'] =>
-  ({ mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0], ...over }) as GameState['net'];
+  ({ mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine' }, ownership: { h2: 1 }, slots: [0, 0, 0, 0], ...over }) as GameState['net'];
 
 const SOLO = net({ mode: 'local' });
-const HOTE = net({ mode: 'host', mySeat: 0 });
-const INVITE = net({ mode: 'guest', mySeat: 1 });
+const HOTE = net({ mode: 'hote', mySeat: 0 });
+const INVITE = net({ mode: 'invite', mySeat: 1 });
 
 const snapshot = { net: useGame.getState().net, party: useGame.getState().party, dialogue: useGame.getState().dialogue };
 afterEach(() => useGame.setState(snapshot));
@@ -110,13 +110,13 @@ describe('#1262 L1 — `useOwns` : le prédicat MONTÉ dans une fenêtre (rendu 
  * siège par siège.
  */
 describe('#1262 L1 — `ownsLocalNet` : Interlude / écran de Groupe (état réseau en prop)', () => {
-  const vue = (over: Partial<NetView>): NetView => ({ mode: 'host', mySeat: 0, ownership: { h2: 1 }, ...over });
+  const vue = (over: Partial<NetView>): NetView => ({ mode: 'hote', mySeat: 0, ownership: { h2: 1 }, ...over });
 
   it('coop : chacun mène SES héros, hôte comme invité', () => {
     expect(ownsLocalNet(vue({ mySeat: 0 }), 'h1')).toBe(true);
     expect(ownsLocalNet(vue({ mySeat: 0 }), 'h2')).toBe(false);
-    expect(ownsLocalNet(vue({ mode: 'guest', mySeat: 1 }), 'h2')).toBe(true);
-    expect(ownsLocalNet(vue({ mode: 'guest', mySeat: 1 }), 'h1')).toBe(false);
+    expect(ownsLocalNet(vue({ mode: 'invite', mySeat: 1 }), 'h2')).toBe(true);
+    expect(ownsLocalNet(vue({ mode: 'invite', mySeat: 1 }), 'h1')).toBe(false);
   });
 
   it('solo : les deux écrans servent tout le groupe', () => {
@@ -132,7 +132,7 @@ describe('#1262 L1 — `ownsLocalNet` : Interlude / écran de Groupe (état rés
   });
 
   it('équivalence stricte avec les DEUX recopies retirées, sur toute la matrice mode × héros', () => {
-    for (const mode of ['local', 'host', 'guest'] as const) {
+    for (const mode of ['local', 'hote', 'invite'] as const) {
       for (const mySeat of [0, 1]) {
         const net = vue({ mode, mySeat });
         const coop = mode !== 'local';
@@ -171,7 +171,7 @@ describe('#1262 — décision de groupe : la porte rend le MÊME verdict qu’`i
 
   it('COOP : la table de vérité est identique, siège par siège et intent par intent', () => {
     for (const gmSeat of GM) {
-      for (const mode of ['host', 'guest'] as const) {
+      for (const mode of ['hote', 'invite'] as const) {
         for (const mySeat of [0, 1, 2]) {
           const s = poseAuDialogue(net({ mode, mySeat, gmSeat }));
           const porte = ownsGroupDecision(s);
@@ -190,7 +190,7 @@ describe('#1262 — décision de groupe : la porte rend le MÊME verdict qu’`i
   });
 
   it('le MJ posé DÉPLACE la décision : elle quitte l’hôte pour son siège', () => {
-    expect(ownsGroupDecision(pose(net({ mode: 'host', mySeat: 0, gmSeat: 2 })))).toBe(false);
-    expect(ownsGroupDecision(pose(net({ mode: 'guest', mySeat: 2, gmSeat: 2 })))).toBe(true);
+    expect(ownsGroupDecision(pose(net({ mode: 'hote', mySeat: 0, gmSeat: 2 })))).toBe(false);
+    expect(ownsGroupDecision(pose(net({ mode: 'invite', mySeat: 2, gmSeat: 2 })))).toBe(true);
   });
 });

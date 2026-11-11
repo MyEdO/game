@@ -68,10 +68,10 @@ describe('PX offerts par les gestes de l’assistant', () => {
 
   it('caractéristiques : 50 garder, 25 réassigner, 0 en répartition de points ou après relance', () => {
     const d = pret();
-    expect(charsXpDeLaMethode(d, 'rolled')).toBe(50);
-    expect(charsXpDeLaMethode(d, 'reassigned')).toBe(25);
-    expect(charsXpDeLaMethode(d, 'pointBuy')).toBe(0);
-    expect(charsXpDeLaMethode(rerollDraftChars(d), 'rolled')).toBe(0);
+    expect(charsXpDeLaMethode(d, 'tire')).toBe(50);
+    expect(charsXpDeLaMethode(d, 'reassigne')).toBe(25);
+    expect(charsXpDeLaMethode(d, 'repartition')).toBe(0);
+    expect(charsXpDeLaMethode(rerollDraftChars(d), 'tire')).toBe(0);
   });
 });
 

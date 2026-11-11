@@ -142,7 +142,7 @@ describe('coutures du héros en combat (#2312)', () => {
     cbt(id).weapons = [];
     const avant = cbt(id).fortune ?? 0;
     expect(avant).toBeGreaterThan(0);
-    banc.getState().fenetreChoisir('roundStart', 'promouvoir', id);
+    banc.getState().fenetreChoisir('debutDuRound', 'promouvoir', id);
     expect(cbt(id).fortune).toBe(avant - 1);
     banc.setState({ pendingRoundStart: null });
     fin();
@@ -266,6 +266,15 @@ describe('dépenses de PX refusées en combat (LDB 05 l.907)', () => {
     'src/state/devtools.ts | xp: (amount?: number) => {': 'lecture',
     'src/state/devtools.ts | return g().party.map((h) => ({ id: h.id, label: h.label, xp: actorIn(g(), h.id)?.xp ?? 0 }));': 'lecture',
     'src/engine/character.ts | xp: opts.xpBonus ?? 0,': 'creation',
+    'src/engine/character.ts | xp: number;': 'type',
+    'src/engine/character.ts | xp: r.xp,': 'creation',
+    'src/data/pregens.ts | xp: number;': 'type',
+    'src/data/pregens.ts | xp: d.xp,': 'creation',
+    'src/data/schemas/defs/pregens.ts | xp: entier(0),': 'type',
+    "src/data/schemas/defs/pregens.ts | xp: { label: 'Expérience actuelle' },": 'type',
+    'src/engine/heroDeFiche.ts | xp: number;': 'type',
+    'src/engine/heroDeFiche.ts | xp: fiche.xp,': 'creation',
+    'src/scenes/test-scenarios/_heros.ts | xp: 0,': 'fixture',
     'src/scenes/test-scenarios/magie.ts | sorc.xp = 300;': 'fixture',
     'src/scenes/test-scenarios/voyage.ts | aldric.xp = 300;': 'fixture',
     'src/engine/advancement.ts | hero.xp = (hero.xp ?? 0) - cost;': 'moteur',

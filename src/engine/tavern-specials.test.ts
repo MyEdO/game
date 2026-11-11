@@ -4,7 +4,7 @@
  */
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, expect, it } from 'vitest';
-import { makePregens } from '../data/pregens';
+import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import {
   difficulteDuJoueur, fastTavernGame, findTavernGameById, resolveTavernRound, specialsApplicables, type TavernSpecial,
 } from './tavernGame';
@@ -16,7 +16,7 @@ const cran = (crans: number): TavernSpecial => ({ effet: 'cran', hasTalent: 'tir
 
 /** Un héros, avec ou sans Tireur d'élite. */
 function heros(tireur: boolean): Combatant {
-  const h = makePregens(idsDeTest)[0] as Combatant;
+  const h = tousLesHerosDeScenario(idsDeTest)[0] as Combatant;
   const autres = (h.talents ?? []).filter((t) => t.talentId !== 'tireur-d-elite');
   return { ...h, talents: tireur ? [...autres, { talentId: 'tireur-d-elite', times: 1 }] : autres };
 }

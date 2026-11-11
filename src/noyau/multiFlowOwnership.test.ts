@@ -35,7 +35,7 @@ const H_HOST = 'h1'; // héros du siège 0 (hôte)
 const base = (over: Partial<Jeu>): Jeu =>
   ({
     net: {
-      mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' },
+      mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' },
       ownership: { h2: 1, ship1: 2 }, slots: [0, 1, 0, 0],
     },
     party: [{ id: H_HOST }, { id: H_OWNER }],
@@ -53,25 +53,25 @@ const groupCascade = {
 
 /** Un pending OUVERT par flux (les 2 héros en participants) — table totale, vérifiée ci-dessous. */
 const FIXTURES: Record<string, Partial<Jeu>> = {
-  flee: {
+  fuite: {
     ...groupCascade,
     pendingDisengage: { moverId: H_HOST, fuir: { participants: [
       { id: H_HOST, kind: 'backstab', result: null }, { id: H_OWNER, kind: 'touche', test: testDeRegle('fuite', 'touche-en-fuyant'), jet: null },
     ] } },
   } as unknown as Partial<Jeu>,
-  counterspell: { ...groupCascade, pendingCounterspell: { participants: parts } } as unknown as Partial<Jeu>,
+  contreSort: { ...groupCascade, pendingCounterspell: { participants: parts } } as unknown as Partial<Jeu>,
   opposition: { ...groupCascade, pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: parts } } as unknown as Partial<Jeu>,
-  forceDoor: {
+  enfoncerLaPorte: {
     ...groupCascade,
     pendingForceDoor: { label: 'Porte', doorBE: 3, doorB: 10, doorBmax: 10, participants: parts },
   } as unknown as Partial<Jeu>,
-  shipManeuver: { pendingShipManeuver: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
-  shipBattery: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<Jeu>,
-  cascadeBatch: {
-    pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'stagePosteBatch', participants: parts }]),
+  manoeuvreDuNavire: { pendingShipManeuver: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
+  tirDeBatterie: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<Jeu>,
+  cascadeEnBande: {
+    pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'etapePosteEnBande', participants: parts }]),
   } as unknown as Partial<Jeu>,
   // Chute volontaire du groupe (#700) : la fenêtre appartient à l'initiateur (l'hôte), chaque rangée à SON siège.
-  fall: {
+  chute: {
     pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: true })) },
   } as unknown as Partial<Jeu>,
 };
@@ -107,7 +107,7 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
     const s = base(FIXTURES.counterspell);
     for (const seat of [0, 1, 2]) {
       expect(intentAllowedFor(s, seat, 'jetLancer', ['zz-inconnu', H_OWNER]), `siège ${seat}, flux inconnu`).toBe(false);
-      expect(intentAllowedFor(s, seat, 'jetResister', ['counterspell', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
+      expect(intentAllowedFor(s, seat, 'jetResister', ['contreSort', H_OWNER]), `siège ${seat}, Résistance sur le Contre-sort`).toBe(false);
     }
   });
 
@@ -150,19 +150,19 @@ describe('flux MULTI — possession par participant (dérivée de FLOW_VERBS)', 
     expect(verdicts, 'verbe de fenêtre tranché par une rangée au lieu du repli').toEqual([]);
   });
 
-  it('jetRegler(\'fall\', \'tenter\') : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
+  it('jetRegler(\'chute\', \'tenter\') : la DÉCLARATION d’une rangée de chute appartient au siège de SON tombant, jamais au propriétaire de la fenêtre', () => {
     const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null })) } } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'tenter', true, H_OWNER]), 'le siège du héros déclare pour lui').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'tenter', true, H_OWNER]), 'l’hôte, qui possède la fenêtre, ne déclare pas pour le héros d’un autre').toBe(false);
-    expect(intentAllowedFor(s, 2, 'jetRegler', ['fall', 'tenter', false, H_OWNER]), 'siège TIERS').toBe(false);
-    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'tenter', false, H_HOST]), 'le siège 1 ne déclare pas pour le héros de l’hôte').toBe(false);
-    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'tenter', false, H_HOST])).toBe(true);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['chute', 'tenter', true, H_OWNER]), 'le siège du héros déclare pour lui').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['chute', 'tenter', true, H_OWNER]), 'l’hôte, qui possède la fenêtre, ne déclare pas pour le héros d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 2, 'jetRegler', ['chute', 'tenter', false, H_OWNER]), 'siège TIERS').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['chute', 'tenter', false, H_HOST]), 'le siège 1 ne déclare pas pour le héros de l’hôte').toBe(false);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['chute', 'tenter', false, H_HOST])).toBe(true);
   });
 
-  it('jetRegler(\'fall\', \'suspendre\') (EDO 01 l.231) : même route, le siège du tombant déclare s’il se suspend', () => {
+  it('jetRegler(\'chute\', \'suspendre\') (EDO 01 l.231) : même route, le siège du tombant déclare s’il se suspend', () => {
     const s = base({ pendingFall: { test: testDeRegle('chute', 'tenter'), to: { x: 0, y: 1 }, metres: 4, suspendu: 2, initiateurId: H_HOST, participants: parts.map((p) => ({ ...p, interactive: true, attempt: null, suspendre: null })) } } as unknown as Partial<Jeu>);
-    expect(intentAllowedFor(s, 1, 'jetRegler', ['fall', 'suspendre', true, H_OWNER]), 'le siège du héros déclare sa suspension').toBe(true);
-    expect(intentAllowedFor(s, 0, 'jetRegler', ['fall', 'suspendre', true, H_OWNER]), 'l’hôte ne suspend pas le héros d’un autre').toBe(false);
-    expect(intentAllowedFor(s, 2, 'jetRegler', ['fall', 'suspendre', true, H_OWNER]), 'siège TIERS').toBe(false);
+    expect(intentAllowedFor(s, 1, 'jetRegler', ['chute', 'suspendre', true, H_OWNER]), 'le siège du héros déclare sa suspension').toBe(true);
+    expect(intentAllowedFor(s, 0, 'jetRegler', ['chute', 'suspendre', true, H_OWNER]), 'l’hôte ne suspend pas le héros d’un autre').toBe(false);
+    expect(intentAllowedFor(s, 2, 'jetRegler', ['chute', 'suspendre', true, H_OWNER]), 'siège TIERS').toBe(false);
   });
 });
