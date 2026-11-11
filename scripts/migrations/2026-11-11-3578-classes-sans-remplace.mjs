@@ -3,7 +3,7 @@
  * est porté par la PORTION de `carrieres-aleatoires.json` (sa `colonne` et l'étendue qu'elle couvre), écrite
  * par `2026-11-10-3578-carrieres-aleatoires.mjs`, et le champ n'a plus de lecteur.
  *
- * Entrée et sortie : src/data/classes.json.
+ * Entrées : src/data/classes.json (lue et écrite).
  *
  * FORME D'AVANT SEULE : un `classes.json` dont aucune Classe ne porte `remplace` est laissé tel quel (rejeu sur
  * l'arbre migré : no-op byte-identique). ARRÊT nominatif (exit 1), AUCUNE écriture : un fichier non canonique.

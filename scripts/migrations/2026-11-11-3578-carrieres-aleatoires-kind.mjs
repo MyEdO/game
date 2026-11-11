@@ -3,7 +3,7 @@
  * devient le discriminant `kind`, posé après `type` : `portion` sur un document à `colonne` (MDG 09 l.9), `variante`
  * sur un document à `carriere` (AA 02 l.117), `colonne` sur les autres (LDB 05 l.214).
  *
- * Entrée et sortie : src/data/carrieres-aleatoires.json.
+ * Entrées : src/data/carrieres-aleatoires.json (lue et écrite).
  *
  * FORME D'AVANT SEULE : un document qui porte déjà `kind` est laissé tel quel (rejeu sur l'arbre migré : no-op
  * byte-identique). ARRÊT nominatif (exit 1), AUCUNE écriture : un fichier non canonique, un document qui porte à la
