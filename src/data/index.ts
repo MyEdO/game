@@ -50,16 +50,15 @@ import traitsJson from './traits.json';
 import qualitiesJson from './qualities.json';
 import mutationsJson from './mutations.json';
 import mutationTablesJson from './mutationTables.json';
-import { critiqueEntries } from './criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type ShipCritSet } from './shipCriticals';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import structureCriticalsJson from './structure-criticals.json';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
-import miscastRawJson from './miscast.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import type { DocumentARangees } from './schemas/grammaire/document';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
-import type * as imparfaites from './schemas/defs/miscast';
+import type * as criticalsDef from './schemas/defs/criticals';
+import type * as miscastDef from './schemas/defs/miscast';
 import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
@@ -435,6 +434,21 @@ export function cibleCodex(r: RefTypee): { category: string; id: string } {
   return { category, id: r.id };
 }
 
+/** Fichiers à TABLES TIRÉES dont CHAQUE catégorie Codex (`DATASET_DE_LA_CATEGORIE`) est un pool
+ *  d'entrées : le nom est lié par le type au `file` de son def (#3923). */
+const FICHIERS_DES_TABLES_TIREES: readonly string[] = [
+  'criticals.json' satisfies typeof criticalsDef.file,
+  'miscast.json' satisfies typeof miscastDef.file,
+];
+
+/** POOLS des tables tirées, une entrée par catégorie de leurs fichiers, lue sur la racine VIVANTE
+ *  (`entreeDeCategorie`) : une édition au Codex y entre. */
+function poolsDesTablesTirees(): Record<string, (id: string) => boolean> {
+  return Object.fromEntries(Object.keys(DATASET_DE_LA_CATEGORIE)
+    .filter((c) => FICHIERS_DES_TABLES_TIREES.includes(DATASET_DE_LA_CATEGORIE[c].fichier))
+    .map((c) => [c, (id: string) => entreeDeCategorie(c, id) !== undefined]));
+}
+
 /** POOLS d'ids par catégorie Codex, pour les familles dont le foyer DESCEND à l'entrée jouée. Une
  *  catégorie de plus = une ligne ICI (le dataset la NOMME, il ne code pas sa résolution). */
 const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
@@ -448,25 +462,13 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   // Familles à TABLE (#1117 L2 vague 4b) : la LIGNE tirée est déjà une entrée Codex éditable — son
   // foyer est SA fiche, jamais une fiche de règle doublon (amendement A). La catégorie voyage avec
   // l'id, versée par la re-pose post-tirage (`stakeAtTableRow`, `noyau/cascade.ts`).
-  criticalsTete: (id) => critiqueEntries('criticals-ldb-tete').some((r) => r.id === id),
-  criticalsBras: (id) => critiqueEntries('criticals-ldb-bras').some((r) => r.id === id),
-  criticalsCorps: (id) => critiqueEntries('criticals-ldb-corps').some((r) => r.id === id),
-  criticalsJambe: (id) => critiqueEntries('criticals-ldb-jambe').some((r) => r.id === id),
-  aaCriticalsTete: (id) => critiqueEntries('criticals-aa-tete').some((r) => r.id === id),
-  aaCriticalsBras: (id) => critiqueEntries('criticals-aa-bras').some((r) => r.id === id),
-  aaCriticalsCorps: (id) => critiqueEntries('criticals-aa-corps').some((r) => r.id === id),
-  aaCriticalsJambe: (id) => critiqueEntries('criticals-aa-jambe').some((r) => r.id === id),
+  ...poolsDesTablesTirees(),
   structureCriticals: (id) => STRUCTURE_CRITICALS.some((r) => r.id === id),
   // Critiques de COQUE : une catégorie Codex par jeu × Localisation (`registry.ts`, clusters
   // « Critiques de navire » / « Critiques fluviaux »). Dérivées des jeux CHARGÉS, jamais recopiées :
   // une Localisation de plus dans un `.json` entre ici sans une ligne de code.
   ...shipCritPools(SHIP_CRIT_SET),
   ...shipCritPools(RIVER_CRIT_SET),
-  miscastMinor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure').some((r) => r.id === id),
-  miscastMajor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure').some((r) => r.id === id),
-  miscastMinorVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm').some((r) => r.id === id),
-  miscastMajorVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure-vdm').some((r) => r.id === id),
-  miscastWrath: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-colere').some((r) => r.id === id),
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   interludeEvents: (id) => interludeEvents.some((e) => e.id === id),
