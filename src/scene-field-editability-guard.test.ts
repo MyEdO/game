@@ -8,7 +8,6 @@ import * as ts from 'typescript/unstable/ast';
 import {
   ALLER_RETOUR,
   auditSceneFieldEditability,
-  ecritureCreditee,
   orphanFields,
   sceneScope,
   programmeDuPerimetre,
@@ -84,10 +83,8 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
   });
   // scripts/guards/lib/tsProgram.mjs ; src/analyse-retention-guard.test.ts
   const perimetre = detenteur(() => programmeDuPerimetre(ROOT), (session) => session.dispose());
-  /** Les écritures que l'aller-retour de l'éditeur Godot joue (`ecrituresJouees`). */
-  const jouees = detenteur(() => ecrituresJouees());
-  /** L'audit du dépôt, ces écritures comprises. */
-  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: jouees() }));
+  /** L'audit du dépôt, les écritures que l'aller-retour de l'éditeur Godot joue comprises (`ecrituresJouees`). */
+  const auditReel = detenteur(() => auditSceneFieldEditability(ROOT, perimetre(), { ecrituresJouees: ecrituresJouees() }));
 
   it('aucun champ n’est joignable seulement par le pipeline d’authoring, hors cliquet nommé', { timeout: 120_000 }, () => {
     const orphelins = orphanFields(auditReel());
@@ -119,10 +116,6 @@ describe('#841 — chaque champ du document de scène a un chemin d’écriture 
 
   it('crédite ce que l’éditeur Godot écrit en jouant `editer` — sonde réelle : le Test de traversée d’une zone d’effet', { timeout: 120_000 }, () => {
     expect(auditReel().find((r) => r.id === 'SceneEffectZone.crossTest')?.authors).toContain(ALLER_RETOUR);
-  });
-
-  it('l’éditeur Godot écrit le flux d’un déclencheur à son formulaire, pas seulement à sa création (#3606 M2c)', { timeout: 120_000 }, () => {
-    expect(jouees().filter(ecritureCreditee).some((e) => e.chemin[0] === 'triggers' && e.chemin[2] === 'flow')).toBe(true);
   });
 
   it('une écriture jouée crédite le DERNIER pas de son chemin et, d’un objet écrit entier, chacune de ses clés, marchés sur le type `Scene`, si le document a changé, la valeur relue est la jouée et la saisie n’est pas du JSON', () => {

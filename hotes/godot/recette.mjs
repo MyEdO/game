@@ -1802,6 +1802,12 @@ async function parcoursEditeur() {
   noter(`outil Sélection, un clic sur la case ${dx + 1}, ${dy} : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/kind')`)
   e = await editeur()
+  /** Le déclencheur tel que l'inspecteur le montre : sa condition pressée et les pas de son flux. */
+  const etatDuDeclencheur = (e) => ({
+    condition: inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse)?.id,
+    pas: e.zones['editeur.inspecteur'].filter((el) => /^valeur\/flow\/steps\/\d+\/kind$/.test(el.id)).length,
+  })
+  const declencheurAvant = etatDuDeclencheur(e)
   await choisirALaListe('valeur/when/kind', inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.libelle === 'TOUS (ET)').id, 'editeur.inspecteur')
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/of/ajouter')`)
   await cliquerAuPanneau({ element: 'bouton/valeur/when/of/ajouter' })
@@ -1810,7 +1816,7 @@ async function parcoursEditeur() {
   const sousCondition = inspecte(e, 'valeur/when/of/0/kind').valeurs.find((b) => b.presse)?.libelle
   noter(`à l’inspecteur du déclencheur, la condition « ${inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse).libelle} », puis « Ajouter » : une condition « ${sousCondition} » dans son contenu`)
   await capturer('3606-m0b-1-condition-du-declencheur')
-  const rangDuPas = e.zones['editeur.inspecteur'].filter((el) => /^valeur\/flow\/steps\/\d+\/kind$/.test(el.id)).length
+  const rangDuPas = declencheurAvant.pas
   await ajouterLePas('valeur/flow', rangDuPas, 'do', `valeur/flow/steps/${rangDuPas}/effect/flag`)
   await ecrireAuFlux('valeur/flow', `steps/${rangDuPas}/effect/flag`, 'piege')
   e = await editeur()
@@ -1819,6 +1825,9 @@ async function parcoursEditeur() {
   for (let n = 0; n < 5; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/steps/${rangDuPas}/'))`)
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/when/of'))`)
+  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await waitFor(session, montre('valeur/when/kind'))
+  assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » cinq fois, le déclencheur recliqué : rendu à sa condition et à son flux d’avant les deux étapes')
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
   await session.rpc('Page.setInterceptFileChooserDialog', { enabled: true })
