@@ -39,6 +39,9 @@ const APPUI_DE_RANGEMENT := 0.05
 const PORTEE_DE_CONTACT := 1.0
 ## Sous cette composante avant, l'axe X d'un repère de rangement est latéral (`sens_vers_l_avant`).
 const TOLERANCE_LATERALE := 0.1
+## L'inclinaison depuis la verticale, en radians, d'un objet rangé en bandoulière (`biais_de_rangement`), son haut vers
+## la droite du personnage.
+const INCLINAISON_EN_BANDOULIERE := PI / 6.0
 ## La longueur sous laquelle la position d'un emplacement est sur l'axe de son os.
 const TOLERANCE_DE_NORMALE := 0.001
 const RADIANS_PAR_PIXEL := 0.005
@@ -513,16 +516,6 @@ static func dans_la_base(base: Basis, vecteur: Vector3) -> Vector3:
 	return base.inverse() * vecteur
 
 
-## L'axe unité (±X, ±Y ou ±Z) le plus proche de `vecteur` posé dans le repère de base `base` : celui de sa plus grande
-## composante, à son signe (`SecondePrise`, #3319).
-static func axe_le_plus_proche(base: Basis, vecteur: Vector3) -> Vector3:
-	var pose := base * vecteur
-	var axe := pose.abs().max_axis_index()
-	var unite := Vector3.ZERO
-	unite[axe] = signf(pose[axe])
-	return unite
-
-
 ## L'axe `axe` (`Vector3.AXIS_X`, `AXIS_Y` ou `AXIS_Z`) du repère de prise d'un objet rangé à l'emplacement de base
 ## `emplacement` et de position `point` dans son os (#3319, `CONTRAT.md`) : Z, vers les jointures, sur la normale
 ## sortante, la composante de `point` hors de l'axe de l'os, ou l'avant de l'emplacement sur cet axe ; Y, de
@@ -552,6 +545,25 @@ static func part_du_melange(cumul: float, poids: float) -> float:
 ## Le décalage, le long du +Y (vers le bas) d'un repère de rangement, qui monte à son origine la cote `haut` d'un objet.
 static func suspension(haut: float) -> Vector3:
 	return Vector3(0.0, -haut, 0.0)
+
+
+## Le tour, autour de la normale sortante (+Z) d'un repère de rangement, d'un objet rangé dont la boîte, pendue à
+## l'emplacement, descend à `bas` sous lui, à `hauteur` au-dessus du sol : nul s'il ne l'atteint pas ; sinon l'objet passe
+## en bandoulière, son +Y (le fer) vers le haut, penché de `INCLINAISON_EN_BANDOULIERE` vers `droite`, la droite du
+## personnage dans ce repère.
+static func biais_de_rangement(bas: float, hauteur: float, droite: Vector3) -> float:
+	return 0.0 if bas <= hauteur else PI + signf(droite.x) * INCLINAISON_EN_BANDOULIERE
+
+
+## Hauteur au-dessus du sol d'un point exprimé dans le repère d'un os de repos (origine = hauteur de l'os).
+static func hauteur_au_sol(os: Basis, point: Vector3, origine: float) -> float:
+	return origine + (os * point).y
+
+
+## Le décalage, dans un repère de rangement, qui pose sur l'emplacement `milieu`, le milieu de la boîte d'un objet en
+## bandoulière (`biais_de_rangement`), sur la hauteur et la largeur ; sa face arrière s'appuie sur ce qui est porté.
+static func centre_en_bandouliere(milieu: Vector3) -> Vector3:
+	return Vector3(-milieu.x, -milieu.y, 0.0)
 
 
 ## Le signe, +1 ou -1, de l'axe `x` d'un repère de rangement, posé dans le repère au repos `os` de son os, vers l'avant du

@@ -393,6 +393,15 @@ describe('la table rôle → clip d’une base (#3253)', () => {
     expect(validerModele({ ...baseDeTest(), clipsDeuxMains: { valse: { repos: 'walk' } } }, GLB_DE_BASE))
       .toEqual({ ok: false, refus: ['[maniement-inconnu] clipsDeuxMains.valse : valse'] });
   });
+  it('accepte les prises occupées par clip, et refuse un clip absent du GLB, une prise inconnue ou une liste vide (#3806)', () => {
+    expect(validerModele({ ...baseDeTest(), prisesOccupees: { walk: ['secondaire', 'main'] } }, GLB_DE_BASE)).toMatchObject({ ok: true, manifeste: { prisesOccupees: { walk: ['secondaire', 'main'] } } });
+    expect(validerModele({ ...baseDeTest(), prisesOccupees: { Coffre: ['secondaire'] } }, GLB_DE_BASE)).toEqual({ ok: false, refus: ['[clip-absent] prisesOccupees.Coffre : Coffre'] });
+    for (const occupees of [['pied'], [], ['secondaire', 'secondaire']]) {
+      expect(validerModele({ ...baseDeTest(), prisesOccupees: { walk: occupees } }, GLB_DE_BASE)).toMatchObject({ ok: false, refus: [expect.stringMatching(/^\[forme\] prisesOccupees\.walk : /)] });
+    }
+    const { prises: _, ...sansPrises } = baseDeTest();
+    expect(validerModele({ ...sansPrises, prisesOccupees: { walk: ['secondaire'] } }, GLB_DE_BASE)).toMatchObject({ ok: false, refus: [expect.stringMatching(/^\[forme\] prisesOccupees : /)] });
+  });
   it('refuse l’élément d’une base dont la table est refusée', () => {
     const base = { brut: { ...baseDeTest(), clips: { marche: 'Walk_Loop' } }, octets: GLB_DE_BASE };
     expect(validerModele(elementSchema3(), GLB_D_ELEMENT, new Map([['humanoide', base]]))).toEqual({ ok: false, refus: ['[clip-absent] base clips.marche : Walk_Loop'] });

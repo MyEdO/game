@@ -57,6 +57,7 @@ describe('modelesDeLAtelier', () => {
 
   it('une base sans table des rôles tenus à deux mains la publie vide (#3319)', () => {
     expect(modeles.bases[0].clipsDeuxMains).toEqual({});
+    expect(modeles.bases[0].prisesOccupees).toEqual({});
   });
 
   it('chaque point porte exactement les objets rigides de la base dont un mesh pend à son os, ni le squelette, ni la surface, ni un accessoire', () => {

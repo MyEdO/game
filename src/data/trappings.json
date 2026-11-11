@@ -38,7 +38,7 @@
       "id": "baton"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -83,7 +83,7 @@
       "id": "hallebarde"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -123,7 +123,7 @@
       "id": "lance"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -162,7 +162,7 @@
       "id": "pique"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -735,7 +735,7 @@
       "id": "lance_cavalerie"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "capabilities": {
       "improvisedWithoutCharge": true
@@ -9808,7 +9808,7 @@
       "id": "demi_lance"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "capabilities": {
       "improvisedWithoutCharge": true
@@ -10194,7 +10194,7 @@
       "id": "ahlspiess"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -10237,7 +10237,7 @@
       "id": "attrape_coquin"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
@@ -10293,7 +10293,7 @@
       "id": "hache_armes"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -10348,7 +10348,7 @@
       "id": "pertuisane"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -10402,7 +10402,7 @@
       "id": "serpe_guerre"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     },
     "bladed": true
   },
@@ -14407,7 +14407,7 @@
       "id": "baton"
     },
     "rangement": {
-      "id": "epaule_d"
+      "id": "dos"
     }
   },
   {
