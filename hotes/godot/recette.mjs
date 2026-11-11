@@ -1914,7 +1914,8 @@ async function parcoursEditeur() {
   e = await editeur()
   const scenesOffertes = inspecte(e, `${pasDOps}/scene/id`).valeurs
   assert.equal(scenesOffertes.length, e.zones['editeur.scenes'].find((el) => el.id === 'scenes').valeurs.length, 'la scène de la transition se choisit parmi les scènes du projet, exactement')
-  await choisirALaListe(`${pasDOps}/scene/id`, scenesOffertes[0].id, 'editeur.inspecteur')
+  await cliquerAuPanneau({ element: `bouton/${scenesOffertes[0].id}` })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${pasDOps}/scene/id')?.valeurs.find((b) => b.id === '${scenesOffertes[0].id}')?.presse === true`)
   e = await editeur()
   assert.equal(inspecte(e, `${pasDOps}/scene/id`).valeurs.find((b) => b.presse)?.jeu.args[2], scenesOffertes[0].jeu.args[2], 'la scène choisie est écrite')
   noter(`le flux du même déclencheur, un pas « ${pressee(`valeur/flow/steps/${rangDuPas}/kind`)} » d’effet « ${pressee(`${pasDOps}/type`)} » : la scène choisie à la liste des ${scenesOffertes.length} scènes du projet, « ${pressee(`${pasDOps}/scene/id`)} »`)
