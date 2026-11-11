@@ -12,20 +12,20 @@ import carrieresAleatoiresJson from './carrieres-aleatoires.json';
 import { tableDeCarrieres } from './schemas/defs/carrieres-aleatoires';
 
 type Rangee = { id: string; min: number; max: number };
-type Colonne = { id: string; colonne?: string; carriere?: string; entries: Rangee[] };
+type Colonne = { id: string; kind: string; colonne?: string; carriere?: string; entries: Rangee[] };
 type Carriere = { id: string; class: { id: string }; races?: string[]; aLaPlaceDe?: string };
 
 /** Les écarts de sens de chaque portion de `documents`, nommés. */
 function ecartsDeSens(documents: readonly Colonne[], careers: readonly Carriere[]): string[] {
   const classeDe = (id: string) => careers.find((c) => c.id === id)?.class.id;
   const ecarts: string[] = [];
-  for (const p of documents.filter((d) => d.colonne !== undefined)) {
+  for (const p of documents.filter((d) => d.kind === 'portion')) {
     const parClasse = [...new Set(p.entries.map((r) => classeDe(r.id)))];
     if (parClasse.length !== 1) {
       ecarts.push(`${p.id} : ses carrières sont de ${parClasse.length} Classes (${parClasse.join(', ')}), une seule attendue`);
       continue;
     }
-    const base = documents.find((d) => d.id === p.colonne && d.colonne === undefined)!;
+    const base = documents.find((d) => d.id === p.colonne && d.kind === 'colonne')!;
     const restantes = new Set(tableDeCarrieres(base.entries, p.entries));
     const remplacees = [...new Set(base.entries.filter((r) => !restantes.has(r)).map((r) => classeDe(r.id)))];
     if (remplacees.length !== 1 || remplacees[0] === parClasse[0])
@@ -37,7 +37,7 @@ function ecartsDeSens(documents: readonly Colonne[], careers: readonly Carriere[
 /** Les carrières d'une variante, hors sa carrière détaillée, ou qui portent `aLaPlaceDe`, sans `races`. */
 function sansRaces(documents: readonly Colonne[], careers: readonly Carriere[]): string[] {
   const offertes = new Set([
-    ...documents.flatMap((d) => (d.carriere === undefined ? [] : d.entries.map((r) => r.id).filter((id) => id !== d.carriere))),
+    ...documents.flatMap((d) => (d.kind !== 'variante' ? [] : d.entries.map((r) => r.id).filter((id) => id !== d.carriere))),
     ...careers.filter((c) => c.aLaPlaceDe !== undefined).map((c) => c.id),
   ]);
   return careers.filter((c) => offertes.has(c.id) && !c.races?.length).map((c) => c.id);

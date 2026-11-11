@@ -3094,15 +3094,19 @@ export const rangeesDesTalentsAleatoires = (): RangeeDe<typeof tableDesTalentsAl
   rangeesDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
 /** Le dé du Tableau des Talents aléatoires, lu à l'appel. */
 export const talentsAleatoiresDie = (): DeDeTable => deDeTirageDe<typeof tableDesTalentsAleatoires>(talentsAleatoires, 'talents-aleatoires');
-/** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299) : une colonne de base
- *  par colonne imprimée, les portions (`colonne` posée, MDG 09 l.9) et les variantes (`carriere` posée,
- *  AA 02 l.109-128) — app-owned éditable au Codex (`setDataset`), même référence. */
-export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesCarrieresAleatoires>> & { die: string; colonne?: string; carriere?: string; colonnes?: string[] })[];
+/** Les documents du Tableau des Classes et Carrières aléatoires (LDB 05 l.214-299), par `kind` : une colonne
+ *  par colonne imprimée, les portions (MDG 09 l.9) et les variantes (AA 02 l.109-128) — app-owned éditable au
+ *  Codex (`setDataset`), même référence. */
+export const carrieresAleatoires = carrieresAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableDesCarrieresAleatoires>> & { die: string } & (
+  | { kind: 'colonne' }
+  | { kind: 'portion'; colonne: string }
+  | { kind: 'variante'; carriere: string; colonnes: string[] }
+))[];
 /** La colonne de base `id`, lue à l'appel. */
 export const colonneDeCarrieres = (id: string) =>
-  garanti(carrieresAleatoires.find((d) => d.id === id && d.colonne === undefined && d.carriere === undefined), id, 'colonne du Tableau des Classes et Carrières aléatoires');
+  garanti(carrieresAleatoires.find((d) => d.id === id && d.kind === 'colonne'), id, 'colonne du Tableau des Classes et Carrières aléatoires');
 /** La portion qui remplace une étendue de la colonne `colonne` (MDG 09 l.9), lue à l'appel. */
-export const portionDeLaColonne = (colonne: string) => carrieresAleatoires.find((d) => d.colonne === colonne);
+export const portionDeLaColonne = (colonne: string) => carrieresAleatoires.find((d) => d.kind === 'portion' && d.colonne === colonne);
 /** La table effective de la colonne `colonne`, avec ou sans sa portion, et son dé : lue par `rollCareer`. */
 export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: DeDeTable; entries: RangeeDe<typeof tableDesCarrieresAleatoires>[] } {
   const base = colonneDeCarrieres(colonne);
@@ -3114,7 +3118,7 @@ export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: 
 export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] {
   const admise = (c: CareerData | undefined) => c?.races?.includes(sp.refChar) === true;
   const substitutions = careers.filter((c) => c.aLaPlaceDe === tiree && admise(c)).map((c) => c.id);
-  const variante = carrieresAleatoires.find((d) => d.carriere === tiree && d.colonnes?.includes(sp.refCareer));
+  const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree && d.colonnes.includes(sp.refCareer));
   const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admise(findCareerById(id)));
   return [...substitutions, ...variantes];
 }

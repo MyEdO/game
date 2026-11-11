@@ -2,6 +2,7 @@
   {
     "id": "humain",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Humain",
     "die": "d100",
     "source": {
@@ -330,6 +331,7 @@
   {
     "id": "halfling",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Halfling",
     "die": "d100",
     "source": {
@@ -583,6 +585,7 @@
   {
     "id": "nain",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Nain",
     "die": "d100",
     "source": {
@@ -831,6 +834,7 @@
   {
     "id": "gnome",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Gnome",
     "die": "d100",
     "source": {
@@ -1059,6 +1063,7 @@
   {
     "id": "ogre",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Ogre",
     "die": "d100",
     "source": {
@@ -1187,6 +1192,7 @@
   {
     "id": "haut-elfe",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Haut elfe",
     "die": "d100",
     "source": {
@@ -1375,6 +1381,7 @@
   {
     "id": "elfe-sylvain",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Elfe sylvain",
     "die": "d100",
     "source": {
@@ -1498,6 +1505,7 @@
   {
     "id": "middenheim",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Middenheimer",
     "die": "d100",
     "source": {
@@ -1796,6 +1804,7 @@
   {
     "id": "middenland",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Middenlander",
     "die": "d100",
     "source": {
@@ -2124,6 +2133,7 @@
   {
     "id": "nordland",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Nordlander",
     "die": "d100",
     "source": {
@@ -2452,6 +2462,7 @@
   {
     "id": "norse",
     "type": "carrieres-aleatoires",
+    "kind": "colonne",
     "label": "Tableau des Classes et Carrières aléatoires — Norse",
     "die": "d100",
     "source": {
@@ -2620,6 +2631,7 @@
   {
     "id": "cotiers-humain",
     "type": "carrieres-aleatoires",
+    "kind": "portion",
     "label": "Côtiers — Humain",
     "die": "d100",
     "colonne": "humain",
@@ -2674,6 +2686,7 @@
   {
     "id": "cotiers-halfling",
     "type": "carrieres-aleatoires",
+    "kind": "portion",
     "label": "Côtiers — Halfling",
     "die": "d100",
     "colonne": "halfling",
@@ -2708,6 +2721,7 @@
   {
     "id": "cotiers-nain",
     "type": "carrieres-aleatoires",
+    "kind": "portion",
     "label": "Côtiers — Nain",
     "die": "d100",
     "colonne": "nain",
@@ -2747,6 +2761,7 @@
   {
     "id": "cotiers-haut-elfe",
     "type": "carrieres-aleatoires",
+    "kind": "portion",
     "label": "Côtiers — Haut elfe",
     "die": "d100",
     "colonne": "haut-elfe",
@@ -2786,6 +2801,7 @@
   {
     "id": "cotiers-elfe-sylvain",
     "type": "carrieres-aleatoires",
+    "kind": "portion",
     "label": "Côtiers — Elfe sylvain",
     "die": "d100",
     "colonne": "elfe-sylvain",
@@ -2805,6 +2821,7 @@
   {
     "id": "variantes-cavalier",
     "type": "carrieres-aleatoires",
+    "kind": "variante",
     "label": "Jet optionnel — Cavalier",
     "die": "d100",
     "carriere": "cavalier",
@@ -2837,6 +2854,7 @@
   {
     "id": "variantes-chevalier",
     "type": "carrieres-aleatoires",
+    "kind": "variante",
     "label": "Jet optionnel — Chevalier",
     "die": "d100",
     "carriere": "chevalier",
@@ -2884,6 +2902,7 @@
   {
     "id": "variantes-pretre-guerrier",
     "type": "carrieres-aleatoires",
+    "kind": "variante",
     "label": "Jet optionnel — Prêtre guerrier",
     "die": "d100",
     "carriere": "pretre-guerrier",
@@ -2914,6 +2933,7 @@
   {
     "id": "variantes-soldat",
     "type": "carrieres-aleatoires",
+    "kind": "variante",
     "label": "Jet optionnel — Soldat",
     "die": "d100",
     "carriere": "soldat",
@@ -2973,6 +2993,7 @@
   {
     "id": "variantes-colporteur",
     "type": "carrieres-aleatoires",
+    "kind": "variante",
     "label": "Jet optionnel — Colporteur",
     "die": "d100",
     "carriere": "colporteur",
@@ -3005,6 +3026,7 @@
   {
     "id": "variantes-erudit",
     "type": "carrieres-aleatoires",
+    "kind": "variante",
     "label": "Jet optionnel — Érudit",
     "die": "d100",
     "carriere": "erudit",
@@ -3039,6 +3061,7 @@
   {
     "id": "variantes-ingenieur",
     "type": "carrieres-aleatoires",
+    "kind": "variante",
     "label": "Jet optionnel — Ingénieur",
     "die": "d100",
     "carriere": "ingenieur",
