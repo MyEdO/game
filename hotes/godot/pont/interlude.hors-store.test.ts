@@ -6,14 +6,14 @@
  * ouvre son jet, qui tient la main seul, puis l'interlude revient, une Activité de moins.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import type { Bouton, Choix, Element, Entite, Puce } from '../../../src/hote/elements';
 import type { Suite } from './pont';
 import { t } from '../../../src/i18n';
 
 const { appel } = table();
 const jouer = (b: Bouton): Suite => drainer(appel, appel('jouer', b.jeu)).suite;
-const enFocus = (suite: Suite): Bouton => suite.vue.zones['fenetre.gestes'].find((x): x is Bouton => x.type === 'bouton' && x.focus)!;
+const focus = (suite: Suite): Bouton => enFocus(suite.vue)!;
 const heros = (suite: Suite, nom: string): Entite => suite.vue.zones['fenetre.corps'].find((e): e is Entite => e.type === 'entite' && e.nom === nom)!;
 const parLibelle = (e: Entite) => Object.fromEntries(e.elements.map((x: Element) => [(x as Bouton).libelle, x]));
 const valeur = (c: Element, libelle: string): Bouton => (c as Choix).valeurs.find((v) => v.libelle === libelle)!;
@@ -24,7 +24,7 @@ describe('l’interlude par le pont', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'bataille-de-masse', graine: 7 })).suite;
     for (let pas = 0; suite.vue.disposition !== 'interlude'; pas++) {
       expect(pas, 'les dés d’Événement tombent').toBeLessThan(12);
-      suite = jouer(enFocus(suite));
+      suite = jouer(focus(suite));
     }
     expect(suite.vue.zones['fenetre.corps'][0], 'la durée de l’interlude').toMatchObject({ id: 'repit/semaines', texte: '3 semaines de répit' });
     const sigmund = heros(suite, SIGMUND);
@@ -53,7 +53,7 @@ describe('l’interlude par le pont', () => {
     suite = jouer(revenus);
     expect(suite.vue.disposition, 'le jet des Revenus tient la main').toBe('activite');
     expect(suite.vue.zones['fenetre.corps'].some((e) => e.type === 'entite'), 'l’interlude ne se montre pas sous le jet').toBe(false);
-    suite = jouer(enFocus(suite));
+    suite = jouer(focus(suite));
     suite = jouer(suite.vue.zones['fenetre.gestes'].find((b): b is Bouton => b.type === 'bouton' && b.libelle === 'Appliquer')!);
     expect(suite.vue.disposition, 'l’interlude revient').toBe('interlude');
     expect(parLibelle(heros(suite, SIGMUND))['Activités : 2 / 3'], 'une Activité de moins').toBeDefined();

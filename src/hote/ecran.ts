@@ -115,7 +115,7 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation {
   'journal.titre': Ligne[];
   /** chaque héros du groupe en carte (`herosDuGroupe`) : ses Blessures, sa bourse, le bouton qui ouvre sa fiche,
    *  pressé quand elle est ouverte, qui la ferme alors, ses États, puis ce que la fenêtre dit de lui : le jet qu'il jette
-   *  en route, sa nuit à la halte. */
+   *  en route et les gestes qui le désignent, sa nuit à la halte. */
   'groupe.heros': Entite[];
   /**
    * la fiche ouverte (`ficheDuPorteur`, surface du noyau), en statbloc : le combattant en entité : son espèce et sa
@@ -768,10 +768,25 @@ const boutonDeFiche = (id: string, libelle: string, fiche: FicheOuverte | null, 
   type: 'bouton', id, libelle, jeu: { fiche }, presse, focus: false, refus: null,
 });
 
+/** Les gestes de la fenêtre `gestes` qu'une carte porte : en route (`voyageEnVue`), chaque bouton qui désigne un héros du
+ *  groupe, sur la carte de ce héros ; `restants` : les autres. */
+function gestesDesCartes(etat: Jeu, gestes: (Bouton | Choix | Formulaire)[]): { restants: (Bouton | Choix | Formulaire)[]; parHeros: Map<string, Bouton[]> } {
+  const parHeros = new Map<string, Bouton[]>();
+  if (!voyageEnVue(etat)) return { restants: gestes, parHeros };
+  const groupe = new Set(etat.party.map((h) => h.id));
+  const restants: (Bouton | Choix | Formulaire)[] = [];
+  for (const g of gestes) {
+    const h = g.type === 'bouton' && 'args' in g.jeu ? g.jeu.args.find((a): a is string => typeof a === 'string' && groupe.has(a)) : undefined;
+    if (h && g.type === 'bouton') parHeros.set(h, [...(parHeros.get(h) ?? []), g]);
+    else restants.push(g);
+  }
+  return { restants, parHeros };
+}
+
 /** Chaque héros du groupe en carte (`heros/`) : son nom, ses Blessures en jauge, sa bourse, le bouton qui ouvre sa
  *  fiche, pressé quand elle est ouverte, qui la ferme alors, ses États en puces, puis ce que la fenêtre dit de lui
- *  (`surLesCartes`). */
-function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null): Entite[] {
+ *  (`surLesCartes`) et les gestes qui le désignent (`gestesDesCartes`), `gestes`. */
+function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null, gestes: Map<string, Bouton[]>): Entite[] {
   const { parHeros } = surLesCartes(etat);
   return etat.party.map((h): Entite => {
     const f = garanti(ficheDuPorteur(etat, h.id), h.id, 'héros du groupe');
@@ -784,6 +799,7 @@ function herosDuGroupe(etat: Jeu, ouverte: FicheOuverte | null): Entite[] {
         boutonDeFiche(`fiche/${h.id}`, t('ecran.fiche.ouvrir'), presse ? null : { porteur: h.id }, presse),
         ...etatsEnPuces(f.etats),
         ...(parHeros.get(h.id) ?? []),
+        ...(gestes.get(h.id) ?? []),
       ],
     };
   });
@@ -942,7 +958,7 @@ function zonesDeLaFiche(etat: Jeu, ouverte: FicheOuverte | null): Pick<ZonesDeLE
 export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessiner | null, panneau: PanneauDeLHote): ZonesDeLEcran {
   const fiche = panneau && 'fiche' in panneau ? panneau.fiche : null;
   const c = p.combat;
-  const gestes = fenetre ? elementsDesGestes(fenetre.gestes) : [];
+  const { restants: gestes, parHeros: gestesSurLesCartes } = gestesDesCartes(etat, fenetre ? elementsDesGestes(fenetre.gestes) : []);
   const corps = fenetre ? corpsDeLaFenetre(etat) : [];
   const portes = choixPortes(corps);
   const reglages = new Set(fenetre?.gestes.filter((g) => g.reglage).map((g) => g.cle));
@@ -964,7 +980,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     })),
     ...zonesDuDialogue(etat, fenetre !== null),
     'journal.titre': c ? [ligne('journal', t('ecran.journal'))] : [],
-    'groupe.heros': herosDuGroupe(etat, fiche),
+    'groupe.heros': herosDuGroupe(etat, fiche, gestesSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
     ...zonesDeLaCreation(etat, panneau && 'creation' in panneau ? panneau.creation : null),
   };

@@ -6,7 +6,7 @@
  * rejoint les dépôts.
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table } from './pont.testkit';
+import { drainer, table, enFocus } from './pont.testkit';
 import type { Bouton, Choix, Element, Entite, Formulaire, Saisie } from '../../../src/hote/elements';
 import type { Suite } from './pont';
 import { t } from '../../../src/i18n';
@@ -23,7 +23,7 @@ describe('l’ouvrage et le dépôt par le pont', () => {
     let suite = drainer(appel, appel('demarrer', { scenario: 'entre-deux-aventures', graine: 7 })).suite;
     for (let pas = 0; suite.vue.disposition !== 'interlude'; pas++) {
       expect(pas, 'les dés d’Événement tombent').toBeLessThan(8);
-      suite = jouer(suite.vue.zones['fenetre.gestes'].find((x): x is Bouton => x.type === 'bouton' && x.focus)!.jeu);
+      suite = jouer(enFocus(suite.vue)!.jeu);
     }
     const durin = parId(heros(suite, 'durin'));
     expect(valeur(durin.activite, 'Artisanat').refus, 'l’ouvrage s’engage').toBeNull();

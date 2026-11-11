@@ -9,6 +9,8 @@ import { expect } from 'vitest';
 import { listage } from '../listage.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import { creerPont, type Pont, type Suite, type VueDuPont } from './pont';
+import { gestesDessines } from './dessines';
+export { enFocus, gestesDessines } from './dessines';
 import type { CategorieDuPont } from './pont';
 import { cleDuGeste, horlogeVirtuelle, type Effet, type LigneDuJournal } from '../../../src/noyau/index';
 import { parametresDuGeste } from '../../../src/hote/gestes';
@@ -136,8 +138,6 @@ export function fautesDeLaFenetre(vue: VueDuPont): string[] {
   return fautes;
 }
 
-/** Les gestes dessinés de la fenêtre : ses réglages, puis ses gestes. */
-export const gestesDessines = (vue: VueDuPont): (Bouton | Choix | Formulaire)[] => [...vue.zones['fenetre.reglages'], ...vue.zones['fenetre.gestes']];
 
 /** Le geste d'identité `cle` (`cleDuGeste`) parmi les gestes dessinés de la fenêtre, ou l'échec qui la dit. */
 export function gesteDe(vue: VueDuPont, cle: string): Bouton | Choix | Formulaire {

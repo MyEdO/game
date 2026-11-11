@@ -25,5 +25,12 @@
     "sha256_source": "c4a0a80f0041ce4be81e2478faad22776d23edb98ae3f0d19bd37044820ecf9d",
     "licence": "OFL-1.1 (LICENSE-NotoSansSymbols2.txt)",
     "traitement": "fonttools 4.55.3 : pyftsubset --unicodes=\"U+25A0-27BF\" --layout-features='*' ; métriques verticales (hhea, OS/2 typo et win) calées sur celles de la base, ascendante 1069 et descendante 293 pour 1000 : Godot prend la plus haute de la chaîne pour la hauteur de ligne"
+  },
+  "Spectral-Medium.ttf": {
+    "sha256": "a4a54cf09c8d36a4e3b2f9ce36cf070fedbf1abbb0a300a54de368b2daca8e99",
+    "source": "https://github.com/google/fonts/tree/main/ofl/spectral (Spectral-Medium.ttf)",
+    "sha256_source": "f385bc588599c879112272711d4acecc126674009d747a27284f59e93a240e83",
+    "licence": "OFL-1.1 (LICENSE-Spectral.txt)",
+    "traitement": "fonttools 4.55.3 : ascendante (hhea, OS/2 typo et win) portée à 1069 pour 1000, celle des replis Noto : Godot prend la plus haute de la chaîne pour la hauteur de ligne"
   }
 }

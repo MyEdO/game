@@ -203,6 +203,7 @@ import { crc32, deflateSync } from 'node:zlib'
 import { servir } from './servir.mjs'
 import { LISTAGE } from './listage.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
+import { gestesDessines } from './pont/dessines.ts'
 import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { ATTENTE_ECHUE, clic, consoleGuard, evaluate, geste, launchSession, molette, poserFichier, realKey, realKeyDown, realKeyUp, shot, sleep, waitFor } from '../../scripts/recette/lib.mjs'
 
@@ -255,13 +256,11 @@ const ficheDuHeros = (carte) => carte.elements.find((e) => e.type === 'bouton' &
 const element = (v, z, id) => zone(v, z).find((e) => e.id === id)
 /** L'offre d'id `id` de la barre, rangée sous la part de l'économie du tour qu'elle prend. */
 const offre = (v, id) => zone(v, 'combat.offres').flatMap((e) => e.valeurs).find((e) => e.id === id)
-/** Les gestes que la fenêtre dessine : ses réglages, puis ses gestes. */
-const dessines = (v) => [...zone(v, 'fenetre.reglages'), ...zone(v, 'fenetre.gestes')]
 /** Les gestes que la fenêtre dessine, par leur identité. */
-const ouverts = (v) => dessines(v).map((g) => g.id)
+const ouverts = (v) => gestesDessines(v).map((g) => g.id)
 /** Le geste en focus : celui que la fenêtre joue à l'Entrée. */
 const enFocus = (v) => {
-  const gestes = dessines(v).filter((g) => g.focus)
+  const gestes = gestesDessines(v).filter((g) => g.focus)
   assert.equal(gestes.length, 1, `un geste en focus dans ${JSON.stringify(ouverts(v))}`)
   return gestes[0]
 }

@@ -5,7 +5,7 @@
  * l'arrivée, l'écran du lieu tient la main (`lieuEnVue`) : ses services et ses trajets ; « Explorer » entre dans sa scène.
  */
 import { afterEach, describe, it, expect } from 'vitest';
-import { departDeLaCarte, drainer, table } from './pont.testkit';
+import { departDeLaCarte, drainer, table, gestesDessines } from './pont.testkit';
 import type { Bouton, Choix, Element, Entite, Ligne, Plan } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 
@@ -22,7 +22,7 @@ function partie() {
   const avancer = (suite: Suite, jusqua?: string): Suite => {
     for (let pas = 0; suite.vue.projection.fenetre && suite.vue.projection.fenetre.cle !== jusqua; pas++) {
       expect(pas, 'les fenêtres se vident').toBeLessThan(80);
-      const g = suite.vue.zones['fenetre.gestes'];
+      const g = gestesDessines(suite.vue);
       const b = g.find((x): x is Bouton => x.type === 'bouton' && x.focus) ?? g.find((x): x is Bouton => x.type === 'bouton' && !x.refus)!;
       ({ suite } = drainer(appel, appel('jouer', b.jeu)));
     }

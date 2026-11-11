@@ -1,8 +1,7 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scripts/liaison.gd" id="1_liaison"]
 [ext_resource type="Script" path="res://scripts/zone.gd" id="2_zone"]
-[ext_resource type="Theme" path="res://art/chiffre.tres" id="t_chiffre"]
 
 [node name="Jet" type="VBoxContainer"]
 
@@ -31,25 +30,33 @@ champ = "libelle"
 theme_type_variation = &"Rangee"
 
 [node name="Cible" type="Label" parent="Chiffres"]
-theme = ExtResource("t_chiffre")
+theme_type_variation = &"Chiffre"
 
 [node name="cible" type="Node" parent="Chiffres/Cible"]
 script = ExtResource("1_liaison")
 champ = "cible"
 cacher_si_nul = true
 
-[node name="Resultat" type="Label" parent="Chiffres"]
-theme = ExtResource("t_chiffre")
+[node name="Resultat" type="PanelContainer" parent="Chiffres"]
+size_flags_vertical = 4
 
 [node name="resultat" type="Node" parent="Chiffres/Resultat"]
 script = ExtResource("1_liaison")
 champ = "resultat"
-cacher_si_nul = true
+propriete = &"visible"
 
 [node name="ton" type="Node" parent="Chiffres/Resultat"]
 script = ExtResource("1_liaison")
 champ = "ton"
 propriete = &"theme_type_variation"
+
+[node name="De" type="Label" parent="Chiffres/Resultat"]
+theme_type_variation = &"Chiffre"
+horizontal_alignment = 1
+
+[node name="resultat" type="Node" parent="Chiffres/Resultat/De"]
+script = ExtResource("1_liaison")
+champ = "resultat"
 
 [node name="Issue" type="VBoxContainer" parent="Chiffres"]
 size_flags_horizontal = 3

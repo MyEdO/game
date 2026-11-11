@@ -8,6 +8,7 @@
 
 [node name="Paysage" type="PanelContainer" parent="Cadre/Marges/Colonne/Contenu"]
 theme_type_variation = &"Paysage"
+size_flags_vertical = 3
 
 [node name="Marges" type="MarginContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage"]
 theme_type_variation = &"MargesDuPaysage"
@@ -31,6 +32,15 @@ alignment = 1
 script = ExtResource("2_zone")
 source = "fenetre.corps"
 
+[node name="Jets" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
+theme_type_variation = &"Mosaique"
+
+[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Jets" node_paths=PackedStringArray("masque")]
+script = ExtResource("2_zone")
+source = "fenetre.corps"
+ids = PackedStringArray("jets/")
+masque = NodePath("..")
+
 [node name="Route" type="VBoxContainer" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene"]
 
 [node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Paysage/Marges/Scene/Route"]
@@ -45,17 +55,3 @@ theme_type_variation = &"Frise"
 script = ExtResource("2_zone")
 source = "fenetre.corps"
 ids = PackedStringArray("voyage/etape/")
-
-[node name="Defilement" type="ScrollContainer" parent="Cadre/Marges/Colonne/Contenu"]
-size_flags_vertical = 3
-horizontal_scroll_mode = 0
-
-[node name="Jets" type="HFlowContainer" parent="Cadre/Marges/Colonne/Contenu/Defilement"]
-theme_type_variation = &"Mosaique"
-size_flags_horizontal = 3
-
-[node name="Zone" type="Node" parent="Cadre/Marges/Colonne/Contenu/Defilement/Jets" node_paths=PackedStringArray("masque")]
-script = ExtResource("2_zone")
-source = "fenetre.corps"
-ids = PackedStringArray("jets/")
-masque = NodePath("../..")

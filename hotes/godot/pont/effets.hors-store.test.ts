@@ -5,9 +5,8 @@
  * ses dés, et la vue porte la musique de la partie (#3825), les marques des États et les zones qui durent (#3834).
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table, type Reponse } from './pont.testkit';
+import { drainer, table, type Reponse, enFocus } from './pont.testkit';
 import { siegeEngines, type Effet, type VitrineDesEffets } from '../../../src/noyau/index';
-import type { Bouton } from '../../../src/hote/elements';
 import { clicDuCombattant, type Suite } from './pont';
 
 const { appel } = table();
@@ -20,7 +19,7 @@ function jouer(r: Reponse): Suite {
   rendus.push(...effets);
   for (let pas = 0; suite.vue.projection.fenetre; pas++) {
     expect(pas, 'les fenêtres se vident').toBeLessThan(20);
-    ({ suite, effets } = drainer(appel, appel('jouer', suite.vue.zones['fenetre.gestes'].find((x): x is Bouton => x.type === 'bouton' && x.focus)!.jeu)));
+    ({ suite, effets } = drainer(appel, appel('jouer', enFocus(suite.vue)!.jeu)));
     rendus.push(...effets);
   }
   return suite;
