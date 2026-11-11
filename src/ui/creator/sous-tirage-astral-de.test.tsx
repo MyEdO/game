@@ -33,7 +33,7 @@ function EcranAstral() {
 
 describe('L’Étoile du Sorcier — dé et compte lus sur la donnée', () => {
   it('un d6 au sous-tirage : le titre des destins et le domaine du Sous-tirage le suivent', () => {
-    vi.spyOn(data, 'starSubDie').mockReturnValue(deDeLaTableTiree({ dice: { n: 1, sides: 6 } }));
+    vi.spyOn(data, 'starSubDie').mockReturnValue(deDeLaTableTiree({ die: 'd6' }));
 
     const html = renderToStaticMarkup(<StarScreen d={{ ...newDraft(7), star: SORCIER }} setD={() => {}} />);
     expect(html).toContain('4 destins — 1d6');

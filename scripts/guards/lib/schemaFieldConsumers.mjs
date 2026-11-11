@@ -18,11 +18,11 @@ const norm = p => p.replaceAll('\\', '/')
 /** Les PORTES d'une table : un appel lit son champ du nœud JSON qu'il reçoit (et, par id de document, d'un
  *  fichier qui en porte plusieurs). `rangeesDe` (`src/data/rangees.ts`) rend `entries` au type dérivé du
  *  schéma ; `deDeTirageDe` (même module) lit `die`, et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die`
- *  du nœud, ou le `dice` d'un `Tirage` : tous deux rendent un `DeDeTable`, jamais une valeur JSON. */
+ *  du nœud : tous deux rendent un `DeDeTable`, jamais une valeur JSON. */
 const PORTES = {
   rangeesDe: { module: 'src/data/rangees.ts', champ: () => 'entries' },
   deDeTirageDe: { module: 'src/data/rangees.ts', champ: () => 'die' },
-  deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: (checker, type) => (parts(type).some((t) => checker.getPropertyOfType(t, 'dice')) ? 'dice' : 'die') },
+  deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: () => 'die' },
 }
 const parts = type => type?.isUnionType() || type?.isIntersectionType() ? type.getTypes().flatMap(parts) : type ? [type] : []
 const step = (checker, types, key, node) => types.flatMap(type => parts(type).flatMap(t => {

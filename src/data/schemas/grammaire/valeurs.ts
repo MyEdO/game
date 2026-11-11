@@ -1329,7 +1329,7 @@ export function ecartsDuDeDeLaTable<F extends { min?: number | null; max?: numbe
   fourchettes: readonly F[],
   nom: (f: F) => string,
 ): string[] {
-  if ('die' in table && parseDice(table.die) === null) return [];
+  if (parseDice(table.die) === null) return [];
   const de = deDeLaTableTiree(table);
   return ecartsDeCouverture(fourchettes, totalDuDe(de, de.n), fourchettes.some((f) => f.max === null) ? 'ouverte' : facesDuDe(de), nom);
 }
