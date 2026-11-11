@@ -392,8 +392,12 @@ func monter(id: String, element: String, recueil: Array[String]) -> bool:
 					rangees.append(piece)
 					noeuds_ranges.append(_poser_la_piece(piece, noms, sous, ligne))
 			copie.free()
-	pieces[id] = trouvees + rangees
-	_noeuds[id] = noeuds + noeuds_ranges
+	var toutes := trouvees.duplicate()
+	toutes.append_array(rangees)
+	pieces[id] = toutes
+	var tous := noeuds.duplicate()
+	tous.append_array(noeuds_ranges)
+	_noeuds[id] = tous
 	if not noeuds_ranges.is_empty():
 		_tenus_ranges[id] = {tenus = noeuds, ranges = noeuds_ranges, rangement = ligne}
 	montes[id] = element
@@ -692,8 +696,8 @@ func _ranger() -> void:
 		var emplacement := repere(attache)
 		var sens := MiseEnPage.sens_vers_l_avant(os.basis, MiseEnPage.axe_de_rangement(emplacement.basis, emplacement.origin, Vector3.AXIS_X))
 		var depuis := MiseEnPage.azimut(emplacement.origin, 0.0)
-		var hauteur := (os * emplacement.origin).y
-		var droite := (os.basis * _repere_de_rangement(attache, 0.0, 0.0).basis).inverse() * DROITE_DU_PERSONNAGE
+		var hauteur := MiseEnPage.hauteur_au_sol(os.basis, emplacement.origin, os.origin.y)
+		var droite := MiseEnPage.dans_la_base(_repere_de_rangement(attache, 0.0, 0.0).basis, MiseEnPage.dans_la_base(os.basis, DROITE_DU_PERSONNAGE))
 		var ids: Array = par_point[point]
 		ids.sort_custom(func(a: String, b: String) -> bool: return a.naturalnocasecmp_to(b) == -1)
 		var decalage := 0.0
@@ -708,8 +712,8 @@ func _ranger() -> void:
 			var sommets := _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension))
 			var biais := MiseEnPage.biais_de_rangement(_boite_de(sommets).end.y, hauteur, droite)
 			if biais != 0.0:
-				suspension = MiseEnPage.centre_en_bandouliere(_boite_de(_sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), Vector3.ZERO))))
-				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.BACK, biais), Vector3.ZERO) * Transform3D(Basis(Vector3.UP, lacet), suspension))
+				suspension = MiseEnPage.centre_en_bandouliere(_boite_de(_sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), Vector3.ZERO))).get_center())
+				sommets = _sommets_ranges(rangees, Transform3D(Basis(Vector3.UP, lacet), suspension).rotated(Vector3.BACK, biais))
 			var boite := _boite_de(sommets)
 			var rangement := {attache = attache, os = os, lacet = lacet, suspension = suspension, biais = biais, sommets = sommets, portes = portes}
 			if id != ids[0]:

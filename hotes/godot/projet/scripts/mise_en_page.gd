@@ -527,10 +527,14 @@ static func biais_de_rangement(bas: float, hauteur: float, droite: Vector3) -> f
 	return 0.0 if bas <= hauteur else PI + signf(droite.x) * INCLINAISON_EN_BANDOULIERE
 
 
-## Le décalage, dans un repère de rangement, qui pose sur l'emplacement le milieu de la boîte `boite` d'un objet en
+## Hauteur au-dessus du sol d'un point exprimé dans le repère d'un os de repos (origine = hauteur de l'os).
+static func hauteur_au_sol(os: Basis, point: Vector3, origine: float) -> float:
+	return origine + (os * point).y
+
+
+## Le décalage, dans un repère de rangement, qui pose sur l'emplacement `milieu`, le milieu de la boîte d'un objet en
 ## bandoulière (`biais_de_rangement`), sur la hauteur et la largeur ; sa face arrière s'appuie sur ce qui est porté.
-static func centre_en_bandouliere(boite: AABB) -> Vector3:
-	var milieu := boite.get_center()
+static func centre_en_bandouliere(milieu: Vector3) -> Vector3:
 	return Vector3(-milieu.x, -milieu.y, 0.0)
 
 
