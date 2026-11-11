@@ -5313,7 +5313,7 @@ export const fr = {
   'codex.fiche.speciaux': 'Spéciaux',
   'codex.fiche.cranPlusFacile': '{steps} cran{v} plus facile',
   'codex.fiche.mode': 'Mode',
-  'codex.fiche.miseEtPotD': 'Mise et pot ({count}d{faces})',
+  'codex.fiche.miseEtPotD': 'Mise et pot ({die})',
   'codex.fiche.voleeDeLancers': 'Volée de {throws} lancers',
   'codex.fiche.etenduDr': 'Étendu ({v} DR)',
   'codex.fiche.opposeSimple': 'Opposé simple',

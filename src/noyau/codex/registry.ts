@@ -2604,7 +2604,7 @@ const CODEX_SPECS = {
         fact(tr('codex.fiche.difficulte'), g.difficulty ? DIFFICULTY_LABELS[g.difficulty] : null),
         fact(tr('codex.fiche.speciaux'), g.specials?.length ? g.specials.map((sp) => `${refLabel('talents', { id: sp.hasTalent })} : ${
           sp.effet === 'cran' ? tr('codex.fiche.cranPlusFacile', { steps: sp.steps, v: sp.steps > 1 ? 's' : '' }) : DIFFICULTY_LABELS[sp.difficulty]}`).join(' ; ') : null),
-        fact(tr('codex.fiche.mode'), g.pot ? tr('codex.fiche.miseEtPotD', { count: g.pot.dice.count, faces: g.pot.dice.faces })
+        fact(tr('codex.fiche.mode'), g.pot ? tr('codex.fiche.miseEtPotD', { die: formatDice(deDeLaTableTiree(g.pot)) })
           : g.volley ? tr('codex.fiche.voleeDeLancers', { throws: g.volley.throws })
             : g.mode === 'extended' ? tr('codex.fiche.etenduDr', { v: g.target ?? '?' }) : tr('codex.fiche.opposeSimple')),
         fact(tr('codex.fiche.plafondDeDr'), g.drCap ?? null),
