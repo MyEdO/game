@@ -1,16 +1,15 @@
 // @vitest-environment jsdom
 /**
  * #1659 L-1659-3 — contrats de la primitive `PlageField`, mesurés au DOM RENDU. Elle est la SEULE
- * fourchette éditable du dépôt, et elle sert trois populations qui n'ont pas le même domaine :
+ * fourchette éditable du dépôt, et elle sert deux populations qui n'ont pas le même domaine :
  *  - le sous-tirage astral (1d10, ADE II 03 l.63) — OPTIONNEL, une entrée peut n'en avoir aucun ;
- *  - la taille de coque (mètres, MDG 12 l.122-129) — dernière bande OUVERTE (« 81+ », l.129) ;
- *  - la disponibilité saisonnière (d100, MDG 15 l.406-418 / MSRC 13 l.73-78) — quatre colonnes.
+ *  - la taille de coque (mètres, MDG 12 l.122-129) — dernière bande OUVERTE (« 81+ », l.129).
  *
  * Ce qui se vérifie ici est ce qui distingue une bande de table d'un nombre quelconque : ses bornes
  * ne se CALENT pas en silence (un clamp muet fait un trou dans une table), et une bande sans plafond
- * se LIT comme telle. Le dernier volet quitte la primitive pour ses DEUX sites RÉELS, montés dans le
- * vrai atelier (`CodexEdit`, mode `isNew`) : une fourchette REQUISE doit s'éditer sur une entrée
- * NEUVE, sinon la taille de coque et la cargaison ne s'authorent plus (règle stricte 2).
+ * se LIT comme telle. Le dernier volet quitte la primitive pour son site RÉEL de fourchette REQUISE,
+ * la taille de coque, montée dans le vrai atelier (`CodexEdit`, mode `isNew`) : elle doit s'éditer sur
+ * une entrée NEUVE, sinon elle ne s'authore plus (règle stricte 2).
  */
 import { describe, it, expect, afterEach, beforeAll, vi } from 'vitest';
 import { act } from 'react';

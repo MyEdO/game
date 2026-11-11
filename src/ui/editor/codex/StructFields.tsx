@@ -48,8 +48,6 @@ const DIFFICULTIES = Object.keys(DIFFICULTY_LABELS) as Difficulty[];
 const CFG_STATIONS: RefFieldCfg = { ds: 'shipStations' };
 const CFG_ROLE: RefFieldCfg = { ds: 'crewRoles', single: true };
 
-/** Les quatre colonnes saisonnières d'une cargaison, telles que la grammaire les déclare. */
-
 /** 1°ʳᵉ référence d'un slot qui porte une LISTE de réfs (`reverseFailed.skills` : Pilote → Ramer OU
  *  Voile) — le contrôle MONO de cet atelier n'édite que celle-là, les suivantes sont conservées. PURE. */
 const premiereRef = (r: readonly RefDesignee[]): RefDesignee => r[0] ?? { id: '' };
