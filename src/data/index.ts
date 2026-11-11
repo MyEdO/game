@@ -795,10 +795,6 @@ export interface ClassData {
   grantGroups?: string[];
   /** Possessions de départ (`TrappingRef` : id du catalogue + quantité, ou `{text}` flavor hors catalogue). */
   trappings: TrappingRef[];
-  /** Classe dont cette Classe peut remplacer la portion du tableau des Carrières aléatoires
-   *  (MDG 09 l.9). Lu par `scripts/migrations/2026-11-10-3578-carrieres-aleatoires.mjs` et
-   *  `src/data/carrieres-aleatoires-coherence.test.ts`. */
-  remplace?: { id: string };
   desc: string;
   source: SourceRef;
 }
