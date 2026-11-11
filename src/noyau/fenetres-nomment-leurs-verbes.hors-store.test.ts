@@ -49,7 +49,7 @@ describe('chaque fenêtre que `fenetreDuJeu` peut rendre nomme ses verbes', () =
   });
 
   it('chaque fenêtre a son titre (`libelleDeLaFenetre`)', () => {
-    expect([...CLES_DES_FENETRES].filter((cle) => libelleDeLaFenetre(cle) === null), 'clé sans `fenetre.<clé>`').toEqual([]);
+    expect(CLES_DES_FENETRES.filter((cle) => libelleDeLaFenetre(cle) === null), 'clé sans `fenetre.<clé>`').toEqual([]);
   });
 
   it('chaque réglage d’un flux de jet (`REGLAGES_DU_JET`) est un geste d’une fenêtre', () => {

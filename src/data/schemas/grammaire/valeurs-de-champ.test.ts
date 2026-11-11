@@ -115,7 +115,7 @@ const NOMMES = [
   'capacite-de-combat|capacite-de-tir|force|endurance|initiative|agilite|dexterite|intelligence|force-mentale|sociabilite',
   'circonstance|jet',
   'esquive|parade|init|resist|auto',
-  'feeding|praying|cowering|standing|howling',
+  'repas|priere|tapi|debout|hurlement',
   'fixed|variable|all',
   // `apFromSchema`, `ressourceDeDestinSchema`, `arrondiSchema` (#3606 M2a) : les vocabulaires des ops `wounds`,
   // `gainResource` et `lifeSteal`.

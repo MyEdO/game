@@ -13,7 +13,7 @@ import type { ManeuverDef } from '../../data/index';
 import { findSpellById, byId, findActionById, ACTIONS, cibleCodex, type ActionDef, type ActionId } from '../../data/index';
 import { type CodexTarget } from '../../engine/ruleRefs';
 import { actionGate, offreArmee, currentInterludeAction, offresDeLActif, offresParPorteur, offreDesignee, etatDeLaBarre, ACTION_CANDIDATES, remedesPertinents, type ActionCtx, type ContexteDOffre } from '../../noyau/actionRegistry';
-import { targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
+import { currentTargetingMode, targetingModeLabel, targetingModeConsigne, dispellableOnCarrier } from '../../noyau/targetingModes';
 import { CodexRef } from '../compendium/CodexRef';
 import { isConsumable } from '../../engine/consumables';
 import { t } from '../../i18n';
@@ -471,6 +471,7 @@ export function CombatConsole() {
   // ciblage courant. La console ne nomme aucun état de flux — elle ne connaît que des ids d'action ;
   // et le sélecteur rend une CHAÎNE, donc il ne re-rend que quand l'interlude change.
   const interludeId = useGame((s) => currentInterludeAction(() => s)?.id);
+  const modeDuCiblage = useGame((s) => currentTargetingMode(() => s).id);
   // AUCUN dispatcher n'est capté ici : toute exécution passe par le geste de l'offre (registre des actions).
   // SIÈGE nommé par l'arbitre de modales (`spectatorSeatOfModal`) : lu par un SÉLECTEUR ABONNÉ — une
   // modale distante qui s'ouvre APRÈS le montage doit faire taire la bande d'attente, sinon deux puces
@@ -526,8 +527,8 @@ export function CombatConsole() {
       }
     : interlude
       ? {
-          label: (interlude.mode && targetingModeLabel(interlude.mode)) ?? interlude.label,
-          consigne: interlude.mode && targetingModeConsigne(interlude.mode),
+          label: targetingModeLabel(modeDuCiblage) ?? interlude.label,
+          consigne: targetingModeConsigne(modeDuCiblage),
           actions: [{
             key: interlude.id,
             label: interlude.label,

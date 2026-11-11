@@ -55,7 +55,7 @@ export interface FenetreDeDefense {
    *  Difficulté (`difficultyText`) ; `null` une fois jeté. */
   jet: (RollLineParts & { difficulte: string }) | null;
   /** L'issue du coup une fois jeté (`issueAuJet`), son genre et sa ligne ; `null` avant le dé. */
-  issue: { genre: 'crit' | 'damage' | 'parry' | 'dodge'; ligne: string } | null;
+  issue: { genre: 'critique' | 'degats' | 'parade' | 'esquive'; ligne: string } | null;
 }
 
 /** Le libellé d'une arme de parade : la main secondaire se dit. */
@@ -132,6 +132,6 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
       ])
       : null,
     jet: ligne && { ...ligne, difficulte: difficultyText(ligne.difficulty, ligne.difficultyCombined) },
-    issue: res && coup ? { genre: coup.compte.critiques.length ? 'crit' : res.hit ? 'damage' : pd.mode === 'parade' ? 'parry' : 'dodge', ligne: coup.ligne } : null,
+    issue: res && coup ? { genre: coup.compte.critiques.length ? 'critique' : res.hit ? 'degats' : pd.mode === 'parade' ? 'parade' : 'esquive', ligne: coup.ligne } : null,
   };
 }

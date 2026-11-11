@@ -79,7 +79,7 @@ export function DispelModal() {
          jet, cumul/cible sur la barre de DR de la rangée. Reste à l'issue le seul fait que rien
          d'autre n'énonce — le sort a cédé. */
       outcome={step?.done ? [recapLineOfEvent(
-        ev('cast', resultLine(freeCons([`${caster.label} — ${pd.label} est dissipé !`])), caster.id),
+        ev('sort', resultLine(freeCons([`${caster.label} — ${pd.label} est dissipé !`])), caster.id),
         battle?.combatants ?? party,
       )] : undefined}
       actions={actions}

@@ -125,7 +125,7 @@ describe('RelayClient (heartbeat + reconnexion)', () => {
     first.receive('pong'); // vivant
     vi.advanceTimersByTime(30_000); // plus aucun pong → le client coupe lui-même
     expect(first.closedWith).not.toBeNull();
-    expect(states).toContain('reconnecting');
+    expect(states).toContain('reconnexion');
     vi.advanceTimersByTime(1_000); // 1er retry
     expect(FakeSocket.last).not.toBe(first);
   });

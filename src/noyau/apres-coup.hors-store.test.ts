@@ -119,7 +119,7 @@ function jouer(): string[] {
     const st = pc?.participants[pc.cursor];
     if (!pc || !st) break;
     if (st.jet === 'maladresse') {
-      trace.push(`fumbleJet:${st.actorId}(${st.maladresse!.weapon.label})`);
+      trace.push(`jetDeMaladresse:${st.actorId}(${st.maladresse!.weapon.label})`);
       avanceEtapeCascade(g);
       continue;
     }
@@ -175,13 +175,13 @@ describe('après-coup — le cas suspendu rejoint le témoin (#1508 T3b-4)', () 
     monte('balayage', null);
     const pd = g().pendingDefense!;
     banc.setState({ pendingDefense: { ...pd, result: { ...pd.result!, defenderDetail: { roll: 44, success: false, sl: -3, mode: 'parade' } } as AttackResult } });
-    expect(jouer().slice(0, 3)).toEqual(['defense(Griffe→h)', 'fumbleJet:h(Épée)', 'defense(Griffe→h2)']);
+    expect(jouer().slice(0, 3)).toEqual(['defense(Griffe→h)', 'jetDeMaladresse:h(Épée)', 'defense(Griffe→h2)']);
   });
 
   it('défenseur ENNEMI tenu par un siège MJ, parade ratée sur un double : UNE Maladresse, sur l’arme de PARADE', () => {
     monte('maladresseEnnemiMJ', null);
     const trace = jouer();
-    expect(trace.filter((t) => t.startsWith('fumbleJet:')), trace.join(' | ')).toEqual(['fumbleJet:e(Dague)']);
+    expect(trace.filter((t) => t.startsWith('jetDeMaladresse:')), trace.join(' | ')).toEqual(['jetDeMaladresse:e(Dague)']);
     const log = g().battle!.log.map((l) => l.text);
     expect(log.filter((l) => l.startsWith('e — Maladresse !')), log.join(' | ')).toHaveLength(1);
   });

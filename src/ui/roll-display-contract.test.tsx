@@ -89,7 +89,7 @@ describe('RollShell — l’issue est une DONNÉE, rendue par LA coquille (#1078
   });
 
   it('une issue produite par `recapLineOfEvent` garde sa coloration PAR CAMP et son icône', () => {
-    const line = recapLineOfEvent(ev('damage', 'Gustav frappe Skaven', 'Gustav', 'Skaven'), combatants);
+    const line = recapLineOfEvent(ev('degats', 'Gustav frappe Skaven', 'Gustav', 'Skaven'), combatants);
     const html = renderToStaticMarkup(
       <RollShell title="T" rows={[rolledRow()]} rolled outcome={[line]} actions={actions} />,
     );

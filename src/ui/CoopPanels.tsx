@@ -178,7 +178,7 @@ export function CoopBanner({ icone, children }: { icone: IconIdInput; children: 
 
 /** Ce que la vue réseau donne à SIGNALER — `null` : la liaison est saine, aucun bandeau. */
 export function liaisonASignaler(net: NetState): { icone: IconIdInput; texte: string } | null {
-  if (net.mode === 'guest' && net.connection === 'reconnecting')
+  if (net.mode === 'guest' && net.connection === 'reconnexion')
     return { icone: 'ui/warning', texte: 'Reconnexion en cours…' };
   if (net.mode === 'guest' && net.hostAway)
     return { icone: 'ui/wait', texte: 'L’hôte est déconnecté — la partie reprendra à son retour.' };

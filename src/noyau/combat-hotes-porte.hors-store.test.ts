@@ -266,7 +266,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     }, true);
     const st = etape('maladresse');
     expect(st, 'la Maladresse du défenseur est une étape de la séquence').toBeTruthy();
-    expect(st!.kind).toBe('fumbleJet');
+    expect(st!.kind).toBe('jetDeMaladresse');
     expect(st!.actorId).toBe(hero.id);
     expect(st!.maladresse!.weapon.uid, 'sa charge (arme + Oups ! à tirer) vit SUR l’étape').toBe('sw');
     expect(st!.maladresse!.result).toBeNull();

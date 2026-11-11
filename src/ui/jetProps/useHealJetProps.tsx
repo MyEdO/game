@@ -144,7 +144,7 @@ export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {
     ),
     rows: [actorRow],
     rolled,
-    outcome: rolled && target ? [recapLineOfEvent(ev('heal', describeHeal(ph, target), ph.healerId, ph.targetId), pool)] : undefined,
+    outcome: rolled && target ? [recapLineOfEvent(ev('soin', describeHeal(ph, target), ph.healerId, ph.targetId), pool)] : undefined,
     actions,
     onCancel: rolled ? undefined : cancel,
   };

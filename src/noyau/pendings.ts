@@ -752,7 +752,7 @@ export interface PendingDispel {
   rerolled?: boolean;
 }
 // Psychologie de COMBAT (Peur/Terreur/Traits ciblés, LDB 21) : passes de DÉBUT et de FIN de Round —
-//  étapes `kind:'combatPsych'` (cf. CascadeStep.combatPsych). LDB 21 l.9, l.25
+//  étapes `kind:'combatPsych'` (cf. CascadeStep.psychologieDeCombat). LDB 21 l.9, l.25
 /** Entrée en Frénésie en attente (LDB 21 l.31) : Test de FM. Lancer → Chance → Appliquer (entre si succès). */
 export interface PendingFrenzy {
   combatantId: string;
@@ -2202,14 +2202,14 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Étape à TABLE de l'INCANTATION IMPARFAITE / Colère des dieux (#942 L6) : le d100 de la table est
    *  resté à poser ; l'applier lit le dé posé, INSÈRE l'étape de la relance prescrite s'il y en a une
    *  (LDB 46 l.54-55), et applique le contrecoup sur une ligne terminale. */
-  miscast?: PendingMiscastStep;
+  incantationImparfaite?: PendingMiscastStep;
   /** Étape de CHOIX « piège-lame » (folding P3b) : contexte du Test opposé ; l'applier appelle
-   *  `resolveBladeTrap(step.bladeTrap, chosen === 'trap')`. */
-  bladeTrap?: PendingBladeTrap;
+   *  `resolveBladeTrap(step.piegeLame, chosen === 'trap')`. */
+  piegeLame?: PendingBladeTrap;
   /** Étape de REPRISE « fuite » (LDB 15 l.68) : le coup dans le dos a SUSPENDU son application (choix
    *  de Déviation Critique du fuyard) ; une fois le Critique tranché, l'applier `fleeMove` complète la
    *  fuite (États Brisés + libération des Engagements + budget de Course) — jamais avant. */
-  fleeMove?: { moverId: string; foeId: string; broken: number };
+  fuite?: { moverId: string; foeId: string; broken: number };
   /** Étape-JET « Maladresse » (LDB 14, Tableau des Oups !) : SOURCE UNIQUE de la maladresse — l'arme
    *  utilisée + le résultat tiré vivent ICI (l'acteur est `actorId`). Plus de `pendingFumble` top-level
    *  parallèle à désynchroniser : si l'étape existe la donnée existe, si la cascade ferme la maladresse
@@ -2221,7 +2221,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'encounterPsych' pose le `psychState`
    *  RANGÉE PAR RANGÉE ; Détermination (LDB 17 l.59) jouée par rangée (`BatchParticipant.immune`). */
-  encounterPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
+  psychologieDeRencontre?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy };
   /** DÉCLARATION d'une BANDE de Psychologie EN COMBAT (LDB 21) : l'entrée de règle mise en jeu — type
    *  psy + source + cible + Indice — face à laquelle les héros appelés sont les RANGÉES
    *  (`participants`, `aggregate:'none'`), et le Round que sa passe concerne (`round`, repère de
@@ -2229,7 +2229,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  et l'allègement Sans Peur (`meta.sansPeur`) vivent PAR RANGÉE.
    *  Distinct d'`encounterPsych` (simple) car la Peur de combat est ÉTENDUE. Détermination = immunité
    *  (LDB 17 l.59), jouée par rangée (`BatchParticipant.immune`). */
-  combatPsych?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy; round: number };
+  psychologieDeCombat?: { kind: PsychType; sourceId: string; sourceName: string; indice: number; cible?: CiblePsy; round: number };
   /** Étape « choix » : options présentées au joueur (l'option retenue pilote la conséquence). Leur
    *  `label` est du TEXTE JOUEUR marqué (#1318 V8a₁), comme celui de l'étape qui les porte. `refus` =
    *  la CAUSE d'indisponibilité de CETTE option (coût d'Avantage hors de portée…), rendue au survol/

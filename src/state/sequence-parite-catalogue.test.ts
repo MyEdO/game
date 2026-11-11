@@ -31,7 +31,7 @@ const CLAVIER: Site[] = [
   {
     site: 'keybindings.ts:29 — section « Barre d’action » de l’écran Options (PRODUCTION)',
     avant: "Barre d'action",
-    apres: keySectionLabel('hotbar'),
+    apres: keySectionLabel('capacite'),
   },
   {
     site: 'keybindings.ts:294 — touche du pavé numérique (PRODUCTION)',

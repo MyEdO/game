@@ -24,12 +24,12 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
       const { lignes, jour: dernier } = lignesDuJournal(etat, 3, [
         { de: 'journal', texte: 'Vous entrez.', heure },
         combat('round', 'Round 2'),
-        combat('attack', 'Coup porté.', heros.id, ennemi.id),
+        combat('attaque', 'Coup porté.', heros.id, ennemi.id),
         combat('detail', '  ↳ Tête, 4 Blessures'),
         combat('detail', '  ↳ Sonné'),
-        combat('crit', 'Critique au bras.', ennemi.id, heros.id),
-        combat('death', 'Hors de combat.', ennemi.id),
-        combat('info', ''),
+        combat('critique', 'Critique au bras.', ennemi.id, heros.id),
+        combat('mort', 'Hors de combat.', ennemi.id),
+        combat('information', ''),
       ], jour);
       expect(lignes.map(({ id, ton, texte, detail }) => ({ id, ton, texte, detail }))).toEqual([
         { id: 'journal/3', ton: 'neutre', texte: 'Vous entrez.', detail: null },

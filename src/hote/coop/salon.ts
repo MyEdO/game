@@ -250,7 +250,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
         if (get().net.mode === 'guest') set({ net: { ...get().net, hostAway: away } });
       };
       rg.onConnState = (s) => {
-        if (get().net.mode === 'guest') set({ net: { ...get().net, connection: s === 'ok' ? 'ok' : 'reconnecting' } });
+        if (get().net.mode === 'guest') set({ net: { ...get().net, connection: s === 'connecte' ? 'connecte' : 'reconnexion' } });
       };
       rg.onReconnected = () => guest?.rejoin();
       rg.onSeated = (seat) => {

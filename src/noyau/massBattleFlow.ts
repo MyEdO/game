@@ -908,7 +908,7 @@ export function massBattleTrackHit(get: Get, set: Set, attacker: Combatant, targ
 
 /** Reprise après une Scène de COMBAT (appelée par la sortie de la victoire et de la défaite) : applique la
  *  réduction/malus de Puissance selon l'issue, puis revient à la vue de bataille. */
-export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcome: 'won' | 'lost' = 'won'): void {
+export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcome: 'victoire' | 'defaite' = 'victoire'): void {
   const mb = get().massBattle;
   if (!mb?.combatScene) return;
   const scene = battleSceneById(mb.combatScene.sceneId);
@@ -916,13 +916,13 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
   let next: MassBattleState = { ...mb, combatScene: undefined };
   const lines: string[] = [];
   if (scene) {
-    const res: BattleResolution = outcome === 'won'
+    const res: BattleResolution = outcome === 'victoire'
       // Victoire : le général (la rencontre) est neutralisé ; intervention si > 1 frappeur (Duel l.225).
       ? { success: true, sl: 0, hits: cs.hits, kills, generalDown: true, intervention: cs.hitters.length > 1, combat: true }
       : { success: false, sl: 0, hits: cs.hits, kills: 0, generalDown: false, intervention: cs.hitters.length > 1, combat: true };
     const applied = applyBattleBands(next, scene, res, cs.hitters, true, get().forgerUnId);
     next = applied.mb;
-    lines.push(t(outcome === 'won' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills }));
+    lines.push(t(outcome === 'victoire' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills }));
     lines.push(...applied.lines);
   }
   set({ massBattle: { ...next, log: [...next.log, ...lines] }, screen: 'massBattle' });

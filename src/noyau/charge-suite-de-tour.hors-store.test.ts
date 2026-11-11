@@ -66,7 +66,7 @@ function charge(banc: Banc, seed: number, autres: Combatant[] = [], pvDuChargeur
 let banc: Banc;
 const g = () => banc.getState();
 const b = () => g().battle!;
-const attaques = (de: string, sur?: string) => b().log.filter((l) => l.kind === 'attack' && l.actorId === de && (!sur || l.targetId === sur)).length;
+const attaques = (de: string, sur?: string) => b().log.filter((l) => l.kind === 'attaque' && l.actorId === de && (!sur || l.targetId === sur)).length;
 const decisions = (id: string, round = 1) => aiTurnLog().filter((r) => r.id === id && r.round === round).length;
 const suite = (): GesteDeSuite['kind'] | undefined => b().tourEnCours?.suite?.geste.kind;
 const parquee = () => !!b().tourEnCours?.parquee;

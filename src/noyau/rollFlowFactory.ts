@@ -955,7 +955,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       // vit le dé — jamais la valeur saisie (le résolveur peut en appliquer une autre).
       const fresh = handlers.slotOf(get, pid);
       const applied = fresh ? handlers.picker?.(fresh, actor)?.roll : undefined;
-      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied })], 'info', { actorId: actor?.id });
+      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: actor.label, n: applied }) : t('roll.dieFixed', { n: applied })], 'information', { actorId: actor?.id });
     },
     resist(get, set, pid) {
       if (!spec.caps?.resist) return;

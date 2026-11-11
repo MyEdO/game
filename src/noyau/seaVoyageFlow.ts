@@ -210,9 +210,9 @@ export interface SeaVoyageState {
   ambushFired?: boolean;
   /** FORCER LE RYTHME (MDG 13 l.95-107) : bonus de M demandé au départ (+1 voile/avirons, +2 avirons). */
   forcePace?: number;
-  /** Issue du Test de Voile/Ramer du JOUR (l.97) : 'won' → le +M s'applique aux milles du jour. Présent
-   *  (won OU lost) = le rythme a été forcé (l.111). */
-  paceToday?: 'won' | 'lost';
+  /** Issue du Test de Voile/Ramer du JOUR (l.97) : 'reussite' → le +M s'applique aux milles du jour. Présent
+   *  (reussite OU echec) = le rythme a été forcé (l.111). */
+  paceToday?: 'reussite' | 'echec';
   /** Acteurs et soutiens des jets de Voile ou de Ramer du JOUR (`sea-force-pace`, `sea-progression-nav`),
    *  en ids — MDG 13 l.111, `equipageImplique`. */
   manieursToday?: string[];
@@ -547,8 +547,8 @@ function effectiveSeaM(get: Get): { m: number | null; sail: boolean; mode: Propu
   const sail = propulsion.mode === 'voile';
   const fouling = foulingEffects(vessel?.fouling?.level ?? 0);
   // Forcer le rythme (MDG 13 l.95-107) : le bonus de M du jour n'est acquis que si le Test de
-  // Voile/Ramer du jour a été RÉUSSI ('won' — posé par la boucle à l'étape Progression).
-  const pace = sea.paceToday === 'won' ? sea.forcePace ?? 0 : 0;
+  // Voile/Ramer du jour a été RÉUSSI ('reussite' — posé par la boucle à l'étape Progression).
+  const pace = sea.paceToday === 'reussite' ? sea.forcePace ?? 0 : 0;
   // Surcharge de la cale (MDG 12 l.72-74) : −1/−2/−3 M par palier d'Encombrement supplémentaire.
   const overloadM = cargoOverload(cargoTotalEnc(vessel?.cargo ?? []), vd?.capacity ?? 0).mMod;
   // Empêtré dans des Débris marins (MDG 13 l.487-489, #444) : pénalité de M tant que non dégagé.
@@ -2513,7 +2513,7 @@ export const TABLES = {
       if (!step.result) return;
       const won = step.result.success;
       const forcePace = Number(step.meta?.forcePace ?? 0);
-      patchSea(get, set, { paceToday: won ? 'won' : 'lost' });
+      patchSea(get, set, { paceToday: won ? 'reussite' : 'echec' });
       noteManieurs(get, set, step);
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
       const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];

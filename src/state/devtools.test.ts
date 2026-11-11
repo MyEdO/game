@@ -800,7 +800,7 @@ describe('__wfrp — setups qui écrivent un héros, joués EN COMBAT (#2198, #2
     const attaquant = useGame.getState().battle!.combatants.find((c) => c.kind === 'enemy')!;
     expect(api.bladeTrap(heroId, attaquant.id, 3)).toMatch(/^✓/);
     const etape = useGame.getState().pendingCascade!.participants.find((p) => p.kind === 'bladeTrap')!;
-    const pbt = etape.bladeTrap!;
+    const pbt = etape.piegeLame!;
     const parade = combattant().weapons[0];
     expect(pbt.parryWeaponUid).toBe(parade.uid);
     const attendu = choixPiegeLame(pbt, combattant(), attaquant, parade);

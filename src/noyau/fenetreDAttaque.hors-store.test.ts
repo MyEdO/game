@@ -72,7 +72,7 @@ describe('fenetreDAttaque — la modale d’attaque lue par la seule surface du 
       expect(apres.jet && 'd' in apres.jet ? apres.jet.d?.roll : null).toBe(11);
       const res = partie.etat().pendingAttack!.result!;
       expect(apres.opposition).toEqual({ gagnante: 0, drNet: res.netSL });
-      expect(apres.issue).toMatchObject({ genre: 'damage' });
+      expect(apres.issue).toMatchObject({ genre: 'degats' });
       expect(apres.issue!.ligne.length).toBeGreaterThan(0);
     } finally {
       partie.fermer();

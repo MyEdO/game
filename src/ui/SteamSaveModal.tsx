@@ -58,7 +58,7 @@ export function SteamSaveModal() {
       subtitle={<>panne de vapeur</>}
       rows={[actorRow]}
       rolled={rolled}
-      outcome={[recapLineOfEvent(ev(p.success ? 'info' : 'condition', text, p.actorId), party)]}
+      outcome={[recapLineOfEvent(ev(p.success ? 'information' : 'etat', text, p.actorId), party)]}
       actions={actions}
     />
   );

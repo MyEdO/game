@@ -72,7 +72,7 @@ describe('registre des actions — cohérence interne (ids de code résolus)', (
   it('un mode d’INTERLUDE porte son nom de phase, et sa sortie dit si Échap peut la prendre', () => {
     const interludes = ACTIONS.filter((a) => a.surface === 'interlude');
     expect(interludes.length, 'aucune action d’interlude : le bandeau n’aurait rien à rendre').toBeGreaterThan(0);
-    const muets = interludes.filter((a) => !a.mode || !targetingModeLabel(a.mode)).map((a) => a.id);
+    const muets = interludes.filter((a) => !TARGETING_MODES.some((m) => m.id === a.mode && targetingModeLabel(m.id))).map((a) => a.id);
     expect(muets, `interlude(s) dont le mode n'a pas de libellé de phase :\n  ${muets.join('\n  ')}`).toEqual([]);
     const sansVerdict = interludes.filter((a) => typeof a.exitSafe !== 'boolean').map((a) => a.id);
     expect(sansVerdict, `interlude(s) sans verdict exitSafe :\n  ${sansVerdict.join('\n  ')}`).toEqual([]);

@@ -149,7 +149,7 @@ func _vitrine(atelier: Node, pont: PontFige, cles: Array, lu: Dictionary) -> voi
 	attaquer.pressed.emit()
 	await _images(2)
 	var montage := atelier.get_node("Vehicule") as MontageDeVehicule
-	_verifier(montage.lecteur != null and montage.lecteur.current_animation == montage.clips.get("ranged"), "le trébuchet ne joue pas son clip de tir")
+	_verifier(montage.lecteur != null and montage.lecteur.current_animation == montage.clips.get("tir"), "le trébuchet ne joue pas son clip de tir")
 	_verifier(noeud_des_effets.get_node_or_null("pierre") != null, "la pierre du trébuchet ne vole pas")
 	await create_timer(ECLATS_ETEINTS_S).timeout
 

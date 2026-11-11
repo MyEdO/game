@@ -171,9 +171,10 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
 describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () => {
   const decl = { kind: 'peur' as const, sourceId: 'goule', sourceName: 'la Goule', indice: 1 };
   const bande = (cle: 'encounterPsych' | 'combatPsych'): CascadeStep => {
+    const champ = cle === 'encounterPsych' ? 'psychologieDeRencontre' : 'psychologieDeCombat';
     const hero = banc.getState().party[0];
     const ligne = rollStep({ actor: hero, test: { skill: { id: 'calme' } }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: { id: 'calme' } }) });
-    return bandStep({ id: cle, kind: cle, [cle]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
+    return bandStep({ id: cle, kind: cle, [champ]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
   };
 
   beforeEach(() => banc.setState({ party: [heros(INCONSCIENT)], journal: [], battle: null }));

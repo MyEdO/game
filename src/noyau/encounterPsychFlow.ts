@@ -61,8 +61,8 @@ export function sceneFearSources(scene: Scene, presetDe: ResolveurDePreset): Com
 /** Les sources de Peur/Terreur de la scène en cours (`sceneFearSources`) ; aucune hors scène. */
 const sourcesDeLaScene = (s: ReturnType<Get>): Combatant[] => (s.scene ? sceneFearSources(s.scene, presetDuNarratif(s.campaignNarratif)) : []);
 
-/** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.encounterPsych`). */
-type PsychBandDecl = NonNullable<CascadeStep['encounterPsych']>;
+/** DÉCLARATION COMMUNE d'une bande — telle qu'elle vit sur l'ÉTAPE (`CascadeStep.psychologieDeRencontre`). */
+type PsychBandDecl = NonNullable<CascadeStep['psychologieDeRencontre']>;
 
 /** Un Test DÛ par un héros, avant regroupement : le héros, la déclaration de règle qui l'appelle, la
  *  présentation qui en découle (icône/libellé — communes à toute la bande), et Sans Peur (Ennemi), qui
@@ -98,7 +98,7 @@ const psychBands = makeBandFactory<PsychDue>({
   rangee: (due) => psychRow(due.hero, due.decl.kind, !!due.sansPeur),
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'encounterPsych', icon, label,
-    encounterPsych: d,
+    psychologieDeRencontre: d,
     contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
     stake: combatStakeRef('encounter-psych', { entryId: d.kind, values: { indice: d.indice } }),
     // Les DEUX issues, dérivées des ops que l'applier appliquera (`psychBranchOps`) : la surface
@@ -221,7 +221,7 @@ export const TABLES = {
      *  RANGÉE (résultat + Détermination du porteur), et chaque verdict reste SUR SA rangée (le portrait
      *  attribue) — jamais un agrégat (`aggregate:'none'`). */
     encounterPsych: (get, set, step) => {
-      const ep = step.encounterPsych;
+      const ep = step.psychologieDeRencontre;
       if (!ep || !step.participants) return;
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);

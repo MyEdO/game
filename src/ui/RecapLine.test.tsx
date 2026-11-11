@@ -27,11 +27,11 @@ function plainText(html: string): string {
 }
 
 const SAMPLE = [
-  ev('attack', 'Gustav frappe Rat géant : 5 Blessures', 'h1', 'e1'),
-  ev('damage', 'Rat géant mord Gustav : 3 Blessures', 'e1', 'h1'),
-  ev('crit', 'Gustav inflige un coup critique à Rat géant', 'h1', 'e1'),
-  ev('condition', 'Gustav gagne Sonné', 'h1'),
-  ev('info', 'Round 2', undefined),
+  ev('attaque', 'Gustav frappe Rat géant : 5 Blessures', 'h1', 'e1'),
+  ev('degats', 'Rat géant mord Gustav : 3 Blessures', 'e1', 'h1'),
+  ev('critique', 'Gustav inflige un coup critique à Rat géant', 'h1', 'e1'),
+  ev('etat', 'Gustav gagne Sonné', 'h1'),
+  ev('information', 'Round 2', undefined),
 ];
 
 describe('recapLineOfEvent — parité de TEXTE avec la ligne de journal', () => {

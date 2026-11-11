@@ -144,7 +144,7 @@ export function drainPendingLog(get: Get, set: SetFn): import('./combatLog').Com
   const q = get().pendingLogQueue;
   if (!q.length) return [];
   set({ pendingLogQueue: [] });
-  return q.map((e) => ev('condition', e.line, e.cid));
+  return q.map((e) => ev('etat', e.line, e.cid));
 }
 
 /** Pousse une ÉTAPE de séquence de combat déjà MINTÉE (`BuiltCascadeStep` — un constructeur de la

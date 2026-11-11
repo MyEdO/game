@@ -70,7 +70,7 @@ function souffler(H: Combatant, E: Combatant, type: string) {
 
 function finDeRound() {
   const battle = banc.getState().battle!;
-  const sink = (line: string, c?: Combatant) => battle.log.push(ev('info', line, c?.id));
+  const sink = (line: string, c?: Combatant) => battle.log.push(ev('information', line, c?.id));
   const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink };
   runCombatHooks('onRoundEnd', ctx);
 }

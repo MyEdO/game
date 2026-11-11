@@ -130,7 +130,7 @@ export function CastModal() {
   }));
 
   const issue = res && outcome
-    ? [recapLineOfEvent(ev(res.isCritical ? 'crit' : 'cast', outcome, caster.id, vue.surSoi ? undefined : target.id), pool)]
+    ? [recapLineOfEvent(ev(res.isCritical ? 'critique' : 'sort', outcome, caster.id, vue.surSoi ? undefined : target.id), pool)]
     : undefined;
 
   const actions: RollAction[] = [

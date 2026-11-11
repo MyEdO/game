@@ -144,7 +144,7 @@ describe('#1765 — Tir rapide : la Maladresse du défenseur suspend la boucle, 
     g().jetLancer('defense');
     g().jetImposerLeResultat('defense', 99); // LDB 14 l.13
     g().jetValider('defense');
-    expect(etape()?.kind, 'la Maladresse tient la main').toBe('fumbleJet');
+    expect(etape()?.kind, 'la Maladresse tient la main').toBe('jetDeMaladresse');
     expect(g().pendingDefense, 'E2 n’a pas encore sa fenêtre').toBeNull();
     expect(de('e2').loseNextAction, 'E2 n’a pas tiré').toBeFalsy();
     expect(g().battle!.turn, 'le Round attend la boucle').toBe(-1);
@@ -182,7 +182,7 @@ describe('#1765 — Tir rapide : Maladresse d’arme Bâclé+Solide, la boucle r
     g().jetLancer('defense');
     g().jetImposerLeResultat('defense', 99); // LDB 14 l.13
     g().jetValider('defense');
-    expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('fumbleJet');
+    expect(etape()?.kind, 'la Maladresse de E1 tient la main').toBe('jetDeMaladresse');
     g().jetLancer('maladresse');
     g().jetValider('maladresse');
     const solide = etape();

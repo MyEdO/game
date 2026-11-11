@@ -49,7 +49,7 @@ describe('Peur de combat entamée — barre de la rangée', () => {
     openRoundEndCascade(useGame.getState, useGame.setState);
     const pc = useGame.getState().pendingCascade!;
     const band = pc.participants[0];
-    expect(band.combatPsych?.kind).toBe('peur');
+    expect(band.psychologieDeCombat?.kind).toBe('peur');
     const participants = band.participants!.map((p) => (p.id === H.id ? { ...p, result: { roll: 99, target: p.target, sl: -2, success: false } } : p));
     useGame.setState({ pendingCascade: { ...pc, participants: [{ ...band, participants }, ...pc.participants.slice(1)] } });
     act(() => { root.render(<CascadeBody />); });

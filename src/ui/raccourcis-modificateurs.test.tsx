@@ -29,7 +29,7 @@ import { KEYBINDINGS, modsMatch, type KeyBinding, type KeyMod } from '../state/c
  *  test (et, `isolate: false`, par le module lui-même) : sa remise en état est STRUCTURELLE — snapshot
  *  au `beforeEach`, restauration au `afterEach`, aucun retrait à la charge d'un cas. */
 const poser = (b: Pick<KeyBinding, 'codes'> & Partial<Omit<KeyBinding, 'id'>> & { id: string }): void => {
-  KEYBINDINGS.unshift({ labelKey: 'key.camLeft', section: 'camera', when: () => true, run: () => {}, ...b } as KeyBinding);
+  KEYBINDINGS.unshift({ labelKey: 'raccourci.cameraGauche', section: 'camera', when: () => true, run: () => {}, ...b } as KeyBinding);
 };
 
 /** Raccourcis du registre que cette touche (code + modificateurs tenus) désigne — la SONDE du juge. */

@@ -69,7 +69,7 @@ export function DistraireModal() {
   });
 
   const issue = pd.atk
-    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', describeDistraire(pd, mover.label, foe.label), mover.id, foe.id), battle.combatants)]
+    ? [recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', describeDistraire(pd, mover.label, foe.label), mover.id, foe.id), battle.combatants)]
     : undefined;
 
   const actions: RollAction[] = [

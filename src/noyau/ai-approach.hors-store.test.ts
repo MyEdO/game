@@ -104,7 +104,7 @@ describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
     expect(d100, 'un seul d100 au tour : celui de la Course').toHaveLength(1);
     const course = testDeRegle('course', 'courir');
     const jet = evaluateTest(d100[0], cibleDuTest(testValue(enemy, course), course.difficulty));
-    const lignes = banc.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'move').map((l) => l.text);
+    const lignes = banc.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'deplacement').map((l) => l.text);
     expect(chebyshev(depart, enemy.pos!), 'arrêt avant le budget').toBeLessThan(4 + runFromTest(jet, 4).bonusCases);
     expect(lignes).toEqual([
       traceLineOf({ who: 'Gobelin', label: testTraceLabel(refLabel('skills', course.skill), course.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }),

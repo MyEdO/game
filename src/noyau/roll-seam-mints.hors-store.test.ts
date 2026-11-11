@@ -218,13 +218,13 @@ describe('#1262 — hostStep : jamais de fenêtre sans la donnée qu’elle rend
   }
 
   it('jet:\'maladresse\' : aucun pending à attendre, sa charge vit SUR l’étape', () => {
-    const step = hostStep(banc.getState, { id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'H1', maladresse: { weapon: ARME, result: null } })!;
+    const step = hostStep(banc.getState, { id: 'f', kind: 'jetDeMaladresse', jet: 'maladresse', actorId: 'H1', maladresse: { weapon: ARME, result: null } })!;
     expect(step.maladresse!.weapon.label).toBe('Épée');
   });
 
   it('jet:\'maladresse\' SANS sa charge → refusé au TYPE (union discriminée)', () => {
     // @ts-expect-error — `maladresse` requis par la branche `jet:'maladresse'`
-    const nu: HostSpec = { id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'H1' };
+    const nu: HostSpec = { id: 'f', kind: 'jetDeMaladresse', jet: 'maladresse', actorId: 'H1' };
     expect(nu.jet).toBe('maladresse');
   });
 

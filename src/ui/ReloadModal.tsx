@@ -76,7 +76,7 @@ export function ReloadModalView({
       /* QUI recharge → portrait dans la ligne de jet ; Projectiles/cible vivent dans le cadre, le cumul dans la rangée. */
       rows={[actorRow]}
       rolled={rolled}
-      outcome={rolled ? [recapLineOfEvent(ev('reload', describeReload(pr, after, weaponName), pr.actorId))] : undefined}
+      outcome={rolled ? [recapLineOfEvent(ev('rechargement', describeReload(pr, after, weaponName), pr.actorId))] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : onCancel}
     />

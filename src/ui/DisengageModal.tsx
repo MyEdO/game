@@ -174,7 +174,7 @@ export function DisengageModal() {
         rows={rows}
         rolled={rolled}
         outcome={fleeOutcome
-          ? [recapLineOfEvent(ev(toucheDu ? 'fear' : 'flee', fleeOutcome, mover.id, foe.id), battle.combatants)]
+          ? [recapLineOfEvent(ev(toucheDu ? 'peur' : 'fuite', fleeOutcome, mover.id, foe.id), battle.combatants)]
           : undefined}
         actions={actions}
       />
@@ -230,7 +230,7 @@ export function DisengageModal() {
       rows={[foeRow, moverRow]}
       rolled
       winnerIndex={winnerIndex}
-      outcome={[recapLineOfEvent(ev(pd.result === 'success' ? 'dodge' : 'attack', outcome, mover.id, foe.id), battle.combatants)]}
+      outcome={[recapLineOfEvent(ev(pd.result === 'success' ? 'esquive' : 'attaque', outcome, mover.id, foe.id), battle.combatants)]}
       actions={actions}
     />
   );

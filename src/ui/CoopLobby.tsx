@@ -111,9 +111,9 @@ export function CoopLobby() {
           <CoopSeatList />
         </CoopSection>
         <Row className="hint" gap="xs" justify="center">
-          <Icon id={net.connection === 'reconnecting' ? 'coop/away' : 'ui/wait'} size="sm" />
+          <Icon id={net.connection === 'reconnexion' ? 'coop/away' : 'ui/wait'} size="sm" />
           {net.hostAway ? t("coop.guest.waiting.hostAway")
-            : net.connection === 'reconnecting' ? t("coop.guest.waiting.reconnecting")
+            : net.connection === 'reconnexion' ? t("coop.guest.waiting.reconnecting")
             : t("coop.guest.waiting.default")}
         </Row>
       </CoopShell>

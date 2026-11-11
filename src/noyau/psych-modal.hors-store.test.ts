@@ -72,8 +72,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     expect(c).toBeTruthy();
     expect(c!.purpose).toBe('combat');
     expect(band().kind).toBe('combatPsych');
-    expect(band().combatPsych?.kind).toBe('terreur');
-    expect(band().combatPsych?.sourceId).toBe(E.id);
+    expect(band().psychologieDeCombat?.kind).toBe('terreur');
+    expect(band().psychologieDeCombat?.sourceId).toBe(E.id);
     // BANDE : le jet vit sur la RANGÉE, jamais sur l'étape (contrat `aggregate:'none'`).
     expect(band().aggregate).toBe('none');
     expect(band().target).toBeUndefined();
@@ -91,8 +91,8 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup('grande'); // gap 1 → Peur 1
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
-    expect(band().combatPsych?.sourceId).toBe(E.id);
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.sourceId).toBe(E.id);
     banc.getState().jetLancer('cascadeEnBande', H.id);
     expect(typeof row(H.id).result!.sl).toBe('number');
     banc.getState().jetValider('cascade');
@@ -104,7 +104,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     const { H } = setup('grande'); // Peur 1 (Indice 1)
     H.resilience = 2;
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
 
     // Résilience AVANT le jet : réussite garantie (dé 01 → DR max), −1 Résilience. La bande générique
     // force le succès ; l'applier 'combatPsych' cumule le DR vers l'Indice (vainc à ≥ Indice).
@@ -129,7 +129,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     // Peur déjà ENTAMÉE (Test étendu) : 1 DR cumulé sur 3 requis, Test de ce Round non encore effectué.
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 3, calmeDR: 1, lastTestRound: clos - 1 }];
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
     // Le DR déjà cumulé est une divergence PAR HÉROS : il vit sur la rangée (charge utile + barre).
     expect(row(H.id).extendedDrDone).toBe(1);
     expect(row(H.id).extendedDrTarget).toBe(3);
@@ -156,7 +156,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     const clos = banc.getState().battle!.round - 1; // le Round que clôt `openRoundEndCascade`
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 6, calmeDR: 0, lastTestRound: clos - 1 }];
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
 
     // forceSuccess (dé par défaut 01 → DR max) PUIS dé CHOISI : on prend un dé MOYEN (réussite à plus
     // faible DR que le 01). Le DR gagné DOIT suivre ce dé (pas rester au max). La surface de pose du dé
@@ -185,7 +185,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     const { H } = setup('enorme'); // Terreur 2 (bande binaire)
     H.resilience = 1;
     openRoundStartPsych(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('terreur');
+    expect(band().psychologieDeCombat?.kind).toBe('terreur');
     banc.getState().jetForcerLaReussite('cascadeEnBande', H.id);
     expect(FLOWS.cascadeBatch.picker?.(row(H.id), H)).toBeTruthy();
     const chosen = Math.max(1, jet(H.id).target - 5);
@@ -201,7 +201,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     E.groups = ['ogre'];
     H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'ogre', times: 1 }]; // Sans Peur (Ogre)
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
     // L'allègement est PROPRE au porteur du Talent : il vit sur SA rangée, jamais sur la déclaration.
     expect(row(H.id).meta?.sansPeur).toBe(true);
     expect(row(H.id).difficulty).toBe('accessible');
@@ -222,7 +222,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     H.psychTraits = [{ type: 'phobie', cible: ciblePsy.groupe('ogre'), indice: 0 }];
     H.talents = [...(H.talents ?? []), { talentId: 'sans-peur', spec: 'ogre', times: 1 }];
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych).toMatchObject({ kind: 'peur', indice: 0 });
+    expect(band().psychologieDeCombat).toMatchObject({ kind: 'peur', indice: 0 });
     expect(row(H.id).meta?.sansPeur).toBe(true);
     const pc = banc.getState().pendingCascade!;
     const participants = band().participants!.map((p) => ({ ...p, result: { roll: 99, target: p.target, sl: -2, success: false } }));
@@ -300,7 +300,7 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     openRoundStartPsych(banc.getState, banc.setState);
     const c = banc.getState().pendingCascade!;
     expect(c.participants.length).toBe(1);
-    expect(c.participants[0].combatPsych?.kind).toBe('animosite');
+    expect(c.participants[0].psychologieDeCombat?.kind).toBe('animosite');
     expect(c.participants[0].participants!.map((p) => p.id)).toEqual([A.id, B.id]);
     // La bande n'est PRÊTE qu'une fois toutes ses rangées jouées — puis la cascade se clôt d'un coup.
     banc.getState().jetLancer('cascadeEnBande', A.id);
@@ -359,8 +359,8 @@ describe('Psychologie de combat — regroupement en BANDES', () => {
     openRoundEndCascade(banc.getState, banc.setState);
     const deux = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'combatPsych');
     expect(deux.length).toBe(2);
-    expect(deux.map((s) => s.combatPsych!.sourceId).sort()).toEqual([E1.id, E2!.id].sort());
-    const rangees = Object.fromEntries(deux.map((s) => [s.combatPsych!.sourceId, s.participants!.map((p) => p.id)]));
+    expect(deux.map((s) => s.psychologieDeCombat!.sourceId).sort()).toEqual([E1.id, E2!.id].sort());
+    const rangees = Object.fromEntries(deux.map((s) => [s.psychologieDeCombat!.sourceId, s.participants!.map((p) => p.id)]));
     expect(rangees).toEqual({ [E1.id]: [B.id], [E2!.id]: [A.id, B.id] });
   });
 
