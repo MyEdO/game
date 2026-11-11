@@ -55,7 +55,7 @@ function monter(over: Partial<GameState> = {}) {
   useGame.setState({
     screen: 'campaign', mode: 'exploration', scene, flags: {}, gameTime: campaignStart(), party: [],
     battle: null, gameMenuOpen: false, merchant: null,
-    net: { mode: 'local', mySeat: 0, seatNames: {}, presence: {}, connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'],
+    net: { mode: 'local', mySeat: 0, seatNames: {}, presence: {}, connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'],
     dialogue: { dialogue: dlg, nodeId: 'n1', session: 1 },
     // Espion posé SUR l'action du store : ce qui est mesuré est l'ARGUMENT reçu, pas une closure.
     fenetreChoisir: ((_fenetre: string, _axe: string, id: string) => { choisis.push(id); }) as GameState['fenetreChoisir'],
@@ -98,7 +98,7 @@ describe('#1869 — les touches 1-9 choisissent la réponse NUMÉROTÉE', () => 
   });
 
   it('coop, siège qui ne DÉCIDE pas : la touche ne fait RIEN (et ne retombe sur aucun autre raccourci)', () => {
-    monter({ net: { mode: 'guest', mySeat: 1, seatNames: {}, presence: {}, connection: 'ok', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'] });
+    monter({ net: { mode: 'guest', mySeat: 1, seatNames: {}, presence: {}, connection: 'connecte', hostAway: false, ownership: {}, slots: [0, 0, 0, 0] } as GameState['net'] });
     frapper('Digit1');
     expect(choisis).toEqual([]);
   });

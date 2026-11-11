@@ -206,7 +206,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     suivant();
     const majeure = stepAt(1);
     expect(majeure.kind).toBe('miscastTable');
-    expect(majeure.miscast!.severity).toBe('majeure');
+    expect(majeure.incantationImparfaite!.severity).toBe('majeure');
     expect(majeure.table!.tableId).toBe('miscast-majeure');
     expect(majeure.table!.result, 'la relance a été tirée d’office au lieu d’être posée').toBeUndefined();
     expect(hero.conditions, 'un effet appliqué avant le dernier dé').toEqual([]);
@@ -225,13 +225,13 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     suivant();
     const filles = steps().slice(1, 3);
     expect(filles.map((s) => s.kind)).toEqual(['miscastTable', 'miscastTable']);
-    expect(filles.every((s) => s.miscast!.severity === 'mineure' && s.miscast!.rerollHigh)).toBe(true);
+    expect(filles.every((s) => s.incantationImparfaite!.severity === 'mineure' && s.incantationImparfaite!.rerollHigh)).toBe(true);
     expect(new Set(filles.map((s) => s.id)).size, 'deux étapes au même id').toBe(2);
     // « en relançant tous les résultats entre 91-00 » : la fille qui retombe haut insère UNE relance.
     poser(filles[0].id, 96);
     suivant();
     const relance = steps()[2];
-    expect(relance.miscast!.rerollHigh, 'un 96 d’une relance bornée a basculé sur la Majeure').toBe(true);
+    expect(relance.incantationImparfaite!.rerollHigh, 'un 96 d’une relance bornée a basculé sur la Majeure').toBe(true);
     expect(relance.table!.tableId).toBe('miscast-mineure');
     expect(relance.table!.result).toBeUndefined();
     // Dé terminal : le contrecoup de CETTE ligne s'applique (36-40 « Secousse spirituelle » → À Terre).

@@ -18,7 +18,7 @@ import { libelleDuTestNomme } from '../noyau/jetsEnVue';
 import { useGesteDeJet } from './useGesteDeJet';
 
 /** Enjeu servi par chaque phase de la chute. */
-const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'fall-choice', roll: 'fall-roll' };
+const FALL_STAKE: Record<'choice' | 'roll', FlowStakeId> = { choice: 'chute-choix', roll: 'chute-test' };
 
 /** Ce qu'une option de la rangée DÉCLARE (`jetRegler('chute', …)`) : le choix lit cette donnée, jamais sa clé. */
 type DeclarationDeChute = { attempt: boolean; suspendre?: boolean };

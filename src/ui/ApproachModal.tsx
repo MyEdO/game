@@ -70,7 +70,7 @@ export function ApproachModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('fear', describeApproach(pa), c.id, pa.sourceId), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('peur', describeApproach(pa), c.id, pa.sourceId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

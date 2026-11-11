@@ -477,7 +477,7 @@ describe('gabarit', () => {
 
   it('`poseDuGabarit` : chaque os porte son facteur et son échelle locale, la racine et la vitesse au sol portent `sl`, les pieds sont `appuis.pieds`, les jambes `legs`, les clips plantés les marches', () => {
     const table = { ...TABLE, legs: ['cuisse', 'bassin'], arms: ['bras'], head: ['cou'] };
-    const clips = { clips: { walk: 'Marche', idle: 'Repos' }, clipsDeuxMains: { lourde2m: { walk: 'Marche_Lourde', idle: 'Repos_Lourd' }, hampe: { idle: 'Repos_Hampe' } } };
+    const clips = { clips: { marche: 'Marche', repos: 'Repos' }, clipsDeuxMains: { lourde2m: { marche: 'Marche_Lourde', repos: 'Repos_Lourd' }, hampe: { repos: 'Repos_Hampe' } } };
     expect(poseDuGabarit({ ...gabaritEtAppuis(table, ['piedG', 'piedD']), ...clips }, { sl: 0.74, st: 1.25, legs: 0.62, arms: 1.3, head: 0.9 })).toEqual({
       racine: { os: 'racine', echelle: 0.74 },
       enfantsDe: { cuisse: 0.62, bassin: 0.62, bras: 1.3, cou: 0.9 },
@@ -526,7 +526,7 @@ describe('gabarit', () => {
   ]);
   const GABARIT_DES_DEUX_JAMBES = {
     ...gabaritEtAppuis({ ...TABLE, legs: ['cuisseG', 'molletG', 'cuisseD', 'molletD'], bornes: { ...TABLE.bornes, legs: { min: 0.6, max: 1.2 } } }, ['piedG', 'piedD']),
-    clips: { walk: 'Marche' },
+    clips: { marche: 'Marche' },
   };
   /** Par instant de `MARCHE` (pas 0,125 s), les matrices monde des os de `deuxJambes` jouée sans gabarit, puis posée
    *  par `poserLeGabarit` sous `facteurs`, jambes pliées si `plante`. */
@@ -1110,8 +1110,8 @@ describe('validerManifesteDeBase', () => {
     ['vitesse au sol absente', 'forme', ({ appuis: { vitesseAuSol: _, ...appuis }, ...m }) => ({ ...m, appuis })],
     ['table de clips absente', 'forme', ({ clips: _, ...m }) => m],
     ['table de clips non objet', 'forme', (m) => ({ ...m, clips: 'Repos' })],
-    ['clip du rôle walk absent', 'forme', (m) => ({ ...m, clips: { idle: m.clips.walk } })],
-    ['clip du rôle walk non chaîne', 'forme', (m) => ({ ...m, clips: { walk: 1 } })],
+    ['clip du rôle marche absent', 'forme', (m) => ({ ...m, clips: { repos: m.clips.marche } })],
+    ['clip du rôle marche non chaîne', 'forme', (m) => ({ ...m, clips: { marche: 1 } })],
     ['os à position animée absents', 'forme', ({ osAPositionAnimee: _, ...m }) => m],
     ['os à position animée hors des os', 'os-inconnu', (m) => ({ ...m, osAPositionAnimee: ['fantome'] })],
   ])('refuse %s par le code %s', (_cas, code, alterer) => {
@@ -1306,7 +1306,7 @@ describe('mesurerAppuis sur les poses de marche', () => {
   });
 });
 
-describe('appuis des clips walk', () => {
+describe('appuis des clips marche', () => {
   const mesurer = async (marche: NonNullable<Parameters<typeof glbFabrique>[0]>['marche'] = {}, vitesseAuSol = 2, pas = 0.125, sl = 1) => {
     const base = glbFabrique({ marche, formes: formesAvecGabarit({ [FEMININ]: new Array<number>(18).fill(0) }) });
     const manifeste = { ...manifesteDe(base, ['racine', 'piedG', 'piedD']), appuis: { pieds: ['piedG', 'piedD'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'piedG', poids: 1 }], deltas: {} }], vitesseAuSol } };
@@ -1368,9 +1368,9 @@ describe('appuis des clips walk', () => {
     expect(ecarts(f).map((e) => e.code)).toContain('glissement');
   });
 
-  it('mesure le seul clip du rôle `walk`, à sa vitesse déclarée, indépendamment de son nom', async () => {
+  it('mesure le seul clip du rôle `marche`, à sa vitesse déclarée, indépendamment de son nom', async () => {
     const base = glbFabrique({ marche: { nom: 'Allure_lente' }, autresMarches: [{ nom: 'Allure_rapide', vitesse: 2 }, { nom: 'Walk_Loop' }] });
-    const manifeste = { ...manifesteDe(base, ['racine', 'piedG', 'piedD']), clips: { walk: 'Allure_rapide' }, appuis: { pieds: ['piedG', 'piedD'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'piedG', poids: 1 }], deltas: {} }], vitesseAuSol: 4 } };
+    const manifeste = { ...manifesteDe(base, ['racine', 'piedG', 'piedD']), clips: { marche: 'Allure_rapide' }, appuis: { pieds: ['piedG', 'piedD'], plusBas: [{ position: [0, 0, 0], os: [{ nom: 'piedG', poids: 1 }], deltas: {} }], vitesseAuSol: 4 } };
     const f = await evaluer({ base, manifeste, pas: 0.125 });
     expect(ecarts(f)).toEqual([]);
     expect(f.mesures.clips.map((c) => [c.nom, c.appuis?.vitesseDeclaree, c.appuis?.vitesseAuSol])).toEqual([

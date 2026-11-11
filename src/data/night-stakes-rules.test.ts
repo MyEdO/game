@@ -18,7 +18,7 @@ const RULE_BY_ID = new Map(regles.map((r) => [r.id, r]));
 /** Fiches de `regles.json` référencées par la nuit — les foyers d'un AUTRE type (amendement A,
  *  2026-08-06 : l'entité qui PORTE la règle d'abord) ont leur propre garde de source et sortent de ce
  *  périmètre. */
-const NIGHT_STAKES = STAKES.filter((e) => e.cascade === 'night');
+const NIGHT_STAKES = STAKES.filter((e) => e.cascade === 'nuit');
 const NIGHT_RULE_IDS = new Set(NIGHT_STAKES.flatMap((e) => (e.rule?.type === 'regle' ? [e.rule.id] : [])));
 
 /** Lignes du fichier de CHAPITRE cité par une note (`LDB 18 l.294-300` → `18 - Traumatisme.md`). */

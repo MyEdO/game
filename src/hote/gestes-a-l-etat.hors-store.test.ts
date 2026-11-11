@@ -133,7 +133,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const rangee = (id: string, result: unknown = null) => ({ id, interactive: true, base: 50, target: 50, result });
       const bande = (rangees: unknown[]): Jeu => ({ ...sansPoint, pendingRoundStart: null, pendingCascade: { title: 'Peur', cursor: 0, seq: 1, log: [], purpose: 'test', participants: [{
         id: 'bande-peur', kind: 'combatPsych', label: 'Peur', aggregate: 'none', groupOwner: true, result: null, participants: rangees,
-        combatPsych: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
+        psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: 'Bête', indice: 2, round: 1 },
       }] } } as never);
       const porteur = argumentDe(bande([rangee(h1.id), rangee(h2.id)]), 'depenserLaDetermination', 'combattantId');
       expect(porteur.valeurs!.map((v) => [v.valeur, v.libelle, v.refus])).toEqual([[h1.id, h1.label, null], [h2.id, h2.label, t('agate.noResolve')]]);

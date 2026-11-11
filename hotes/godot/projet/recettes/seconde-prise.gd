@@ -16,8 +16,8 @@ const MAIN := {id = "main", genre = "prise", attache = {os = "main_d", position 
 const OFF := {id = "secondaire", genre = "prise", attache = {os = "main_g", position = [0.02, 0.09, 0.003], rotation = [1.32, 3.1, 0.03]}}
 const A_PORTEE := {position = [0.0, -0.05, 0.12], rotation = [0.0, 3.14159, 0.0]}
 const HORS_DE_PORTEE := {position = [0.0, 0.0, 2.0], rotation = [0.0, 0.0, 0.0]}
-const CLIPS := {idle = "Repos", hit = "Coup"}
-const CLIPS_DEUX_MAINS := {lourde2m = {idle = "Repos_DeuxMains"}, hampe = {idle = "Repos_Hampe"}}
+const CLIPS := {repos = "Repos", coup = "Coup"}
+const CLIPS_DEUX_MAINS := {lourde2m = {repos = "Repos_DeuxMains"}, hampe = {repos = "Repos_Hampe"}}
 var _fautes: Array[String] = []
 
 
@@ -92,14 +92,14 @@ func _verifier(cas: String, seconde: Dictionary, montes: Dictionary, ploie: bool
 		juste = (releve.main_g.basis.inverse() * releve.doigt_g.basis).is_equal_approx(Basis(doigts))
 		var apres := Vector2(releve.coude_g.origin.distance_to(releve.epaule_g.origin), releve.main_g.origin.distance_to(releve.coude_g.origin))
 		juste = juste and absf(apres.x - longueurs.x) < EPSILON and absf(apres.y - longueurs.y) < EPSILON
-	var repos_joue: String = CLIPS_DEUX_MAINS.lourde2m.idle if ploie else CLIPS.idle
-	juste = juste and montage.clip("idle") == repos_joue and montage.clip("hit") == CLIPS.hit and montage.role_du_clip(repos_joue) == "idle"
+	var repos_joue: String = CLIPS_DEUX_MAINS.lourde2m.repos if ploie else CLIPS.repos
+	juste = juste and montage.clip("repos") == repos_joue and montage.clip("coup") == CLIPS.coup and montage.role_du_clip(repos_joue) == "repos"
 	if ploie:
 		var tenue_par: Dictionary = MontageDeComposition.modeles.secondesPrises.hache
 		tenue_par.maniement = "hampe"
-		juste = juste and montage.clip("idle") == CLIPS_DEUX_MAINS.hampe.idle and montage.role_du_clip(CLIPS_DEUX_MAINS.hampe.idle) == "idle"
+		juste = juste and montage.clip("repos") == CLIPS_DEUX_MAINS.hampe.repos and montage.role_du_clip(CLIPS_DEUX_MAINS.hampe.repos) == "repos"
 		tenue_par.maniement = null
-		juste = juste and montage.clip("idle") == CLIPS.idle
+		juste = juste and montage.clip("repos") == CLIPS.repos
 	if not juste:
 		_fautes.append("%s : prise de la main libre %s, seconde prise %s, montage %s" % [cas, prise, visee, montage.seconde_prise])
 	print("[seconde-prise] %s : %s" % [cas, "OK" if juste else "KO"])

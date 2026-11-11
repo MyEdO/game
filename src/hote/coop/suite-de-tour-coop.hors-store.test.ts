@@ -27,7 +27,7 @@ const mk = (id: string, kind: 'hero' | 'enemy', pos: { x: number; y: number }): 
 /** La table : l'hôte au siège 0, l'invité au siège 1, qui possède `h2`. */
 const NET = (mode: 'host' | 'guest', mySeat: number): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { h2: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  connection: 'connecte', hostAway: false, ownership: { h2: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 /** Le combat de l'hôte : `chargeur` (à 4 cases) charge `charge`, porteur de Frappe réactive ; `h2` est à l'invité. */
@@ -77,7 +77,7 @@ describe('#3058 — coop : le tour d’IA de l’hôte charge un porteur de Frap
       const log = banc.getState().battle!.log;
       expect(fenetre, 'chemin : la riposte ouvre une fenêtre de défense').toBe(true);
       expect(aiTurnLog().filter((r) => r.id === c.id && r.round === 1).length, 'une décision').toBe(1);
-      expect(log.filter((l) => l.kind === 'attack' && l.actorId === c.id).length, 'une frappe').toBe(1);
+      expect(log.filter((l) => l.kind === 'attaque' && l.actorId === c.id).length, 'une frappe').toBe(1);
       expect(banc.getState().battle!.turn, 'le tour a avancé').toBe(1);
 
       expect(diffuse?.cle, 'chemin : un tour d’IA à suite a été diffusé').toBe(`1:0:${c.id}`);

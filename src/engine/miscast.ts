@@ -429,7 +429,7 @@ const categorieDesLignes = (severity: MiscastSeverity): string | undefined =>
  *  branche `success` est vide (le Test réussi = aucun effet). L'ENJEU (#1117) descend à la LIGNE qui
  *  exige ce Test : sa fiche est le foyer, et l'issue se lit aux chips d'ops de la branche d'échec —
  *  l'entrée de catalogue ne porte donc aucun gabarit. Forme DÉJÀ EMPLOYÉE par d'autres entrées de
- *  `stakes.json` (miscast-row-test, ambush-surprise, ambush-vigilance). */
+ *  `stakes.json` (incantation-imparfaite-ligne-test, embuscade-reperer, embuscade-vigilance). */
 function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
   const fail: Flow = t.onFailHard
     ? {
@@ -442,7 +442,7 @@ function mkTest(t: NestedTest, rowId: string, severity: MiscastSeverity): Flow {
     : doOps(t.onFail);
   return {
     kind: 'test',
-    test: poserEnjeu(t.test, combatStakeRef('miscast-row-test', { entryId: rowId, entryCategory: categorieDesLignes(severity) })),
+    test: poserEnjeu(t.test, combatStakeRef('incantation-imparfaite-ligne-test', { entryId: rowId, entryCategory: categorieDesLignes(severity) })),
     success: { kind: 'seq', steps: [] },
     fail,
   };

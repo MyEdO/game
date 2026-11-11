@@ -20,7 +20,7 @@ import type { Combatant } from '../../engine/types';
 
 const NET = (mode: 'host' | 'guest', mySeat: number, invite: string): NetState => ({
   mode, mySeat, roomCode: 'ABCDEF', seatNames: { 0: 'Hôte', 1: 'Antoine' }, presence: {},
-  connection: 'ok', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {},
+  connection: 'connecte', hostAway: false, ownership: { [invite]: 1 }, slots: [1, 1, 0, 0], rangs: {},
 });
 
 /** Un sorcier en Langue (Magick) 60 : le dé 11 est un double réussi. */

@@ -56,7 +56,7 @@ describe('Peur de combat — la barre de la rangée = le cumul appliqué (LDB 21
     }
     banc.setState({ battle: { ...b, turn: b.order.indexOf(H.id) }, pendingCascade: null });
     openRoundEndCascade(banc.getState, banc.setState);
-    expect(band().combatPsych?.kind).toBe('peur');
+    expect(band().psychologieDeCombat?.kind).toBe('peur');
     return { H: actorIn(banc.getState(), H.id)!, E };
   }
 

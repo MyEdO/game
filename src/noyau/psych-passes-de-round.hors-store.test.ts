@@ -70,7 +70,7 @@ describe('Peur : pèse dès le début du Round de rencontre, Test étendu en fin
       expect(psychDRAdjust(lu(porteur), lu(source))).toBe(-1);
     }
     fin(1);
-    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.round, s.participants!.map((p) => p.id)])).toEqual([['peur', 1, [h]]]);
+    expect(bandes().map((s) => [s.psychologieDeCombat!.kind, s.psychologieDeCombat!.round, s.participants!.map((p) => p.id)])).toEqual([['peur', 1, [h]]]);
     expect(psy(e, 'peur')[0].lastTestRound, 'l’IA teste au même moment').toBe(1);
     jouer();
     expect(psy(h, 'peur')[0].lastTestRound).toBe(1);
@@ -81,12 +81,12 @@ describe('Peur : pèse dès le début du Round de rencontre, Test étendu en fin
     lu(h).causesTerreur = 2;
     lu(e).causesTerreur = 2;
     debut(1);
-    expect(bandes().map((s) => s.combatPsych!.kind)).toEqual(['terreur']);
+    expect(bandes().map((s) => s.psychologieDeCombat!.kind)).toEqual(['terreur']);
     jouer();
     for (const porteur of [h, e]) expect(psy(porteur, 'peur').map((p) => p.lastTestRound)).toEqual([undefined]);
     fin(1);
     expect(psy(e, 'peur')[0].lastTestRound).toBe(1);
-    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.round])).toEqual([['peur', 1]]);
+    expect(bandes().map((s) => [s.psychologieDeCombat!.kind, s.psychologieDeCombat!.round])).toEqual([['peur', 1]]);
   });
 
   it('Sans Peur : le Test allégé se joue à la rencontre et vaut pour ce Round, héros et IA (LDB 10 l.1051 ; #3045)', () => {
@@ -96,7 +96,7 @@ describe('Peur : pèse dès le début du Round de rencontre, Test étendu en fin
     for (const id of [h, e]) { lu(id).talents = [...(lu(id).talents ?? []), { talentId: 'sans-peur', times: 1 }]; lu(id).characteristics['force-mentale'] = 1; }
     debut(1);
     const bande = bandes()[0];
-    expect([bande.combatPsych!.kind, bande.participants!.map((p) => [p.id, p.meta?.sansPeur])]).toEqual(['peur', [[h, true]]]);
+    expect([bande.psychologieDeCombat!.kind, bande.participants!.map((p) => [p.id, p.meta?.sansPeur])]).toEqual(['peur', [[h, true]]]);
     expect(bande.participants![0].difficulty, 'Test de Calme Accessible (+20)').toBe('accessible');
     expect(psy(e, 'peur')[0].lastTestRound, 'l’IA teste à la rencontre').toBe(1);
     jouer();
@@ -118,7 +118,7 @@ describe('Traits ciblés : premier Test au début, re-test selon l’entrée (LD
     for (const id of [h, e]) lu(id).characteristics['force-mentale'] = 1;
     return { h, e };
   };
-  const reTestHeros = () => bandes().filter((s) => s.participants!.length).map((s) => [s.combatPsych!.kind, s.combatPsych!.round]);
+  const reTestHeros = () => bandes().filter((s) => s.participants!.length).map((s) => [s.psychologieDeCombat!.kind, s.psychologieDeCombat!.round]);
 
   for (const type of ['animosite', 'haine'] as const) {
     it(`${type} née au Round N : re-testée à la fin de N+1 puis de N+2, jamais à la fin de N ni au début`, () => {
@@ -238,7 +238,7 @@ describe('Étiquette de scène : le lieu porte le Groupe, source en vue partout 
     expect(bandes(), 'aucun Test au début du Round').toEqual([]);
     expect(psy(h, 'peur')).toEqual([{ type: 'peur', sourceId: 'scene', indice: 0, calmeDR: 0 }]);
     fin(1);
-    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.sourceId, s.combatPsych!.sourceName, s.combatPsych!.round, s.participants!.map((p) => p.id)]))
+    expect(bandes().map((s) => [s.psychologieDeCombat!.kind, s.psychologieDeCombat!.sourceId, s.psychologieDeCombat!.sourceName, s.psychologieDeCombat!.round, s.participants!.map((p) => p.id)]))
       .toEqual([['peur', 'scene', g().scene!.label, 1, [h]]]);
     jouer();
     expect(psy(h, 'peur').map((p) => [p.lastTestRound, sousPeur(p)])).toEqual([[1, false]]);
@@ -248,7 +248,7 @@ describe('Étiquette de scène : le lieu porte le Groupe, source en vue partout 
     const h = etiquetee('richesse');
     lu(h).psychTraits = [{ type: 'haine', cible: ciblePsy.groupe('richesse') }];
     debut(1);
-    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.sourceId, s.combatPsych!.round])).toEqual([['haine', 'scene', 1]]);
+    expect(bandes().map((s) => [s.psychologieDeCombat!.kind, s.psychologieDeCombat!.sourceId, s.psychologieDeCombat!.round])).toEqual([['haine', 'scene', 1]]);
     jouer();
     expect(psy(h, 'haine').map((p) => [p.active, p.lastTestRound])).toEqual([[true, 1]]);
     const haine = psy(h, 'haine')[0];
@@ -259,7 +259,7 @@ describe('Étiquette de scène : le lieu porte le Groupe, source en vue partout 
     expect(bandes()).toEqual([]);
     lu(h).characteristics['force-mentale'] = 95;
     fin(2);
-    expect(bandes().map((s) => [s.combatPsych!.kind, s.combatPsych!.round])).toEqual([['haine', 2]]);
+    expect(bandes().map((s) => [s.psychologieDeCombat!.kind, s.psychologieDeCombat!.round])).toEqual([['haine', 2]]);
     jouer();
     expect(psy(h, 'haine').map((p) => p.active)).toEqual([false]);
   });
@@ -270,7 +270,7 @@ describe('Étiquette de scène : le lieu porte le Groupe, source en vue partout 
     lu(h).talents = [...(lu(h).talents ?? []), { talentId: 'sans-peur', spec: 'feu', times: 1 }];
     debut(1);
     const bande = bandes()[0];
-    expect([bande.combatPsych!.kind, bande.combatPsych!.sourceId, bande.participants!.map((p) => [p.id, p.meta?.sansPeur])]).toEqual(['peur', 'scene', [[h, true]]]);
+    expect([bande.psychologieDeCombat!.kind, bande.psychologieDeCombat!.sourceId, bande.participants!.map((p) => [p.id, p.meta?.sansPeur])]).toEqual(['peur', 'scene', [[h, true]]]);
     expect(bande.participants![0].difficulty, 'Test de Calme Accessible (+20)').toBe('accessible');
   });
 

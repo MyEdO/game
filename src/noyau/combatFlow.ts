@@ -515,13 +515,13 @@ export function applySurprise(get: Get, set: SetFn, surprisedSide: 'party' | 'en
   const surprise: Flow = { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: COND.surpris, value: 1 }] } };
   const onLose: Flow = {
     kind: 'if', cond: { kind: 'has', who: 'target', what: 'talent', value: 'vigilance' },
-    then: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('ambush-vigilance') }, EMPTY_FLOW, surprise),
+    then: testFlow({ skill: { id: 'perception' }, difficulty: 'intermediaire', label: 'Vigilance', stake: combatStakeRef('embuscade-vigilance') }, EMPTY_FLOW, surprise),
     else: surprise,
   };
   // Embusqueur (Discrétion, FIGÉE comme attaquant opposé) vs guetteurs (Perception, les défenseurs qui jettent).
   const difficulty: Difficulty = 'intermediaire';
   const test: FlowTest = {
-    skill: { id: 'perception' }, difficulty, label: 'Surprise', stake: combatStakeRef('ambush-surprise'),
+    skill: { id: 'perception' }, difficulty, label: 'Surprise', stake: combatStakeRef('embuscade-reperer'),
     opposed: { attacker: 'agilite', attackerSkill: 'discretion', attackerBonusSL: sneakDR },
   };
   const branches = { onSuccess: EMPTY_FLOW, onFail: onLose }; // le guetteur résiste → pas de Surprise
@@ -600,7 +600,7 @@ export function startleOnStormAtCombatStart(get: Get, set: SetFn): void {
   const dayW = activeDayWeather(get);
   if (!dayW || !weatherLightningNervous(dayW)) return;
   for (const c of battle.combatants) {
-    if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => battle.log.push(ev('condition', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
+    if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => battle.log.push(ev('etat', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
   }
 }
 
@@ -629,7 +629,7 @@ export function rerollWindsOfMagic(get: Get, set: SetFn): void {
     }
   }
   battle.windsOfMagic = { roll, mod, revealed };
-  for (const { line, id } of lines) battle.log.push(ev('info', line, id));
+  for (const { line, id } of lines) battle.log.push(ev('information', line, id));
   set({ battle: { ...battle } });
 }
 
@@ -1239,7 +1239,7 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
   if (!foes.length || libre) {
     if (libre) {
       for (const f of foes) disengageFrom(mover, f); // lève les liens Engagé avec les plus petits écartés
-      battle.log.push(ev('move', tr('cf.pushThrough', { name: mover.label }), mover.id));
+      battle.log.push(ev('deplacement', tr('cf.pushThrough', { name: mover.label }), mover.id));
     }
     // Lien d'Engagement périmé (foe mort/parti) OU départ libre : rouvrir le déplacement normal.
     set({ battle: { ...battle, action: null, reachable: moveReachFor(mover, get().scene!, mover.pos!, effectiveMovement(mover), moveEnv(battle, mover)) } });
@@ -1294,7 +1294,7 @@ export function completeFlee(get: Get, set: SetFn, moverId: string, foeId: strin
   const log = [...battle.log];
   if (broken > 0) {
     addCondition(mover, COND.brise, broken);
-    log.push(ev('fear', tr('cs.panic', { name: mover.label, broken }), mover.id));
+    log.push(ev('peur', tr('cs.panic', { name: mover.label, broken }), mover.id));
   }
   const foes = (mover.engagedWith ?? []).map((id) => inBattleId(battle, id)).filter((c): c is Combatant => !!c);
   for (const f of foes) disengageFrom(mover, f);
@@ -1943,7 +1943,7 @@ export function applyStructureCriticalToTarget(
       id: `cons-critical-structure-${target.id}-${target.criticalWounds ?? 0}-${rolled.roll}`,
       kind: 'critical', actorId: target.id, icon: 'journal/critical', label: dataLabel(entry.title),
       table, result: rolled, reveal: entry, outcome: toRecapLines(rolled.lines),
-      stake: combatStakeRef('structure-critical'),
+      stake: combatStakeRef('structure-critique'),
     });
   }
   return outcome;
@@ -1977,13 +1977,13 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
       .map((c) => ({ id: c.id, to, metres, sansSurface }));
   });
   set((s: Jeu) => {
-    const log = [...(s.battle?.log ?? []), ev('death', structureCollapseLog(target.label), target.id)];
+    const log = [...(s.battle?.log ?? []), ev('mort', structureCollapseLog(target.label), target.id)];
     const combatants = (s.battle?.combatants.filter((c) => c.id !== target.id) ?? []).map((c) => {
       const tb = tombants.find((x) => x.id === c.id);
       if (!tb) return c;
       const fallen = { ...c, wounds: { ...c.wounds }, conditions: c.conditions.map((x) => ({ ...x })) };
       placeCombatant(fallen, sceneApres, tb.to); // atterrit sur la surface d'en dessous + hauteur rafraîchie
-      log.push(ev('damage', tr(tb.sansSurface ? 'cf.gangwayCollapseSansSurface' : 'cf.gangwayCollapse', { name: c.label }), c.id));
+      log.push(ev('degats', tr(tb.sansSurface ? 'cf.gangwayCollapseSansSurface' : 'cf.gangwayCollapse', { name: c.label }), c.id));
       return fallen;
     });
     return { scene: sceneApres, battle: s.battle ? { ...s.battle, combatants, log } : s.battle };
@@ -2103,7 +2103,7 @@ function pushDeviationStep(set: SetFn, spec: DeviationStepSpec): void {
       ...(options ? { options, defaultChoice: 'devier' } : {}),
       // Avant le dé, l'enjeu est celui du TABLEAU (fiche `blessures-critiques`) ; après, la re-pose
       // le fait descendre à la Blessure tirée (catégorie déclarée par la table de la Localisation).
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     }));
     return;
   }
@@ -2621,9 +2621,9 @@ function appliquerLaTouche(
     }
     bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind: 'melee', defense: 'none', weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
     const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
-    const log = [...b.log, ev('attack', tr('cf.finishHelpless', { name: attacker.label, foe: target.label }), attacker.id, target.id)];
-    if (isOutOfAction(target)) log.push(ev('death', tr('cf.outOfAction', { name: target.label }), target.id));
-    for (const line of notifySlain(get, set, target)) log.push(ev('death', line, target.id)); // effet « à la mort » (banni…) — mort-auto du désespéré
+    const log = [...b.log, ev('attaque', tr('cf.finishHelpless', { name: attacker.label, foe: target.label }), attacker.id, target.id)];
+    if (isOutOfAction(target)) log.push(ev('mort', tr('cf.outOfAction', { name: target.label }), target.id));
+    for (const line of notifySlain(get, set, target)) log.push(ev('mort', line, target.id)); // effet « à la mort » (banni…) — mort-auto du désespéré
     set({ battle: { ...b, action: null, log } });
     bus.emit(EVT.SCENE_DIRTY);
     checkBattleOver(get, set);
@@ -2794,7 +2794,7 @@ function appliquerLaTouche(
   // (2e frappe de dague gauche, tentacule…) et la parade de l'arme QUI A PARÉ (main-gauche,
   // bouclier) — pas ceux de l'arme principale.
   bus.emit(EVT.ANIM_ATTACK, { from: attacker.id, to: target.id, result: res, kind, defense, weapon, parryWeapon: res.parryWeapon, creatureAttack: creatureAttackKind(weapon) });
-  const evKind: CombatEventKind = weapon.type === 'ranged' ? 'shoot' : 'attack';
+  const evKind: CombatEventKind = weapon.type === 'ranged' ? 'tir' : 'attaque';
   const log = [...battle.log, ev(evKind, ligneDuCoup(res), attacker.id, target.id)];
   // Dispersion (LDB 14 l.144-151) : une arme de JET (Portée `{bf}`) dont le Test de Projectiles (Lancer)
   // ÉCHOUE dévie vers une tuile (1d10 direction / 9 = pieds du lanceur / 10 = pieds de la cible, 2d10 m
@@ -2805,21 +2805,21 @@ function appliquerLaTouche(
     bus.emit(EVT.ANIM_FLOAT, { pos: land, text: tr('cf.scatterFloat'), kind: 'rate' });
     log.push(ev(evKind, tr('cf.scatter', { name: attacker.label }), attacker.id, target.id));
   }
-  log.push(...evLines(critLog, 'crit', attacker.id, target.id));
+  log.push(...evLines(critLog, 'critique', attacker.id, target.id));
   // Nerveux (LDB 85 l.249) : « facilement effrayée par […] les bruits forts » — un coup d'arme à
   // feu (Poudre noire/Explosion) terrifie les créatures Nerveuses présentes : +3 État Brisé.
   if (weapon.type === 'ranged' && isFirearmQuality(weapon)) {
     for (const c of battle.combatants) {
       // Nerveux (effet déclenché onStartled : +3 Brisé) — fired par le dispatcher générique (no-op si absent).
       // Cause 'noise' (bruits forts) → exemption Dressé (Guerre) lue par la Condition Flow `startleCause`.
-      if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => log.push(ev('condition', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
+      if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => log.push(ev('etat', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
     }
   }
   // Effets DÉCLENCHÉS « à la touche » authorés (donnée éditable) : Traits de l'attaquant (Toile, Venin…),
   // Atouts de l'arme (Assommante, Immobilisante…) et Enchantements actifs — agrégés et appliqués par UN
   // dispatcher générique (noyau/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
   // sur PB) alimentent les Conditions Flow de gating. LDB 85 l.98, l.278 ; LDB 14 l.159
-  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('condition', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // Combat de masse (ADE II 08 l.139/145) : une Scène de COMBAT compte les touches des PJ sur l'ennemi
   // (−1/touche) ; no-op hors bataille de masse. Réduction PUIS résolue à la victoire (massBattleResumeCombat).
   if (res.hit) massBattleTrackHit(get, set, attacker, target);
@@ -2830,12 +2830,12 @@ function appliquerLaTouche(
     const area = resolveWeaponArea(get, set, {
       attacker, primaryTarget: target, weapon, damage: res.damage, location: res.location ?? 'corps', distanceTiles: combatDistance(attacker, target), margin: res.netSL,
     }, battleAreaTargets(get), battleRng());
-    log.push(...evLines(area.lines, 'shoot', attacker.id, target.id));
+    log.push(...evLines(area.lines, 'tir', attacker.id, target.id));
   }
   // Interruption de Focalisation (LDB 46 l.144) : Dégâts subis pendant qu'on focalise
   // → Test de la fiche `interruption-de-focalisation`.
   if (res.hit && res.woundsLost) log.push(...evLines(checkFocusInterruption(get, set, target), 'detail', target.id));
-  if (isOutOfAction(target) && !isStructure(target)) log.push(ev('death', tr('cf.outOfAction', { name: target.label }), target.id)); // structure → ligne d'Effondrement (collapseStructure), pas « hors de combat »
+  if (isOutOfAction(target) && !isStructure(target)) log.push(ev('mort', tr('cf.outOfAction', { name: target.label }), target.id)); // structure → ligne d'Effondrement (collapseStructure), pas « hors de combat »
   // Salve (Aux Armes p.126) : un héros qui tire une arme à Salve gardant des tirs (chambered > 0) ne
   // consomme PAS son Action — il peut tirer encore ce tour (chaque tir suivant à −10 cumulatif).
   const salvoContinues = attacker.kind === 'hero' && weapon.type === 'ranged' && hasQuality(weapon, 'salve') && (loadRegister(attacker, weapon).chambered ?? 0) > 0;
@@ -2843,13 +2843,13 @@ function appliquerLaTouche(
   // haut dans cette résolution) → foldées dans le MÊME `log` réécrit, avant que ce `set` ne le clobbere.
   // Effet déclenché « après résolution de l'attaque » (touche OU raté) — dispatcher générique via le bus.
   // Point d'émission = fin de résolution d'attaque (LDB 14, Test de combat résolu). Inerte sans donnée.
-  emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('condition', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // SEAM `onOwnTestFailed` (MSRC 16 — Crampes) : le PORTEUR qui ÉCHOUE son PROPRE Test réagit. Une passe
   // d'armes porte DEUX Tests du porteur : (a) l'ATTAQUANT rate son jet d'attaque CC/CT (`attackerDetail`) ;
   // (b) le DÉFENSEUR rate sa Parade/Esquive (`defenderDetail`, Test opposé). PAS la défense adverse d'un
   // non-porteur. Cadence-aware (`set` → héros : le FM de palier 2 en cascade, comme onGainCondition ; PNJ inline).
-  if (res.attackerDetail && !res.attackerDetail.success) log.push(...evLines(fireOwnTestFailed(get, attacker, { sl: res.attackerDetail.sl, set, rng: battleRng() }), 'condition', attacker.id));
-  if (res.defenderDetail && !res.defenderDetail.success) log.push(...evLines(fireOwnTestFailed(get, target, { sl: res.defenderDetail.sl, set, rng: battleRng() }), 'condition', target.id));
+  if (res.attackerDetail && !res.attackerDetail.success) log.push(...evLines(fireOwnTestFailed(get, attacker, { sl: res.attackerDetail.sl, set, rng: battleRng() }), 'etat', attacker.id));
+  if (res.defenderDetail && !res.defenderDetail.success) log.push(...evLines(fireOwnTestFailed(get, target, { sl: res.defenderDetail.sl, set, rng: battleRng() }), 'etat', target.id));
   log.push(...drainPendingLog(get, set));
   set({ battle: { ...battle, acted: !salvoContinues, action: null, log } });
   bus.emit(EVT.SCENE_DIRTY);
@@ -2871,7 +2871,7 @@ export function jouerLApresCoup(get: Get, set: SetFn, q: QueueDuCoup): boolean {
   const attacker = inBattleId(battle, q.attackerId);
   const target = inBattleId(battle, q.targetId);
   if (!attacker || !target) {
-    journaliser(get, set, [tr('cascade.cibleDisparue', { label: q.weapon.label })], 'info');
+    journaliser(get, set, [tr('cascade.cibleDisparue', { label: q.weapon.label })], 'information');
     return false;
   }
   for (let i = APRES_COUP.indexOf(q.depuis); i < APRES_COUP.length; i++) {
@@ -2940,7 +2940,7 @@ function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defense
  *  place. Rend `true` quand une fenêtre tient la main (l'étape, ou le dé de casse de l'arme). */
 function ecrireLaMaladresse(get: Get, set: SetFn, porteur: Combatant, arme: Weapon, suivant: QueueDuCoup): boolean {
   if (jetSurfaced(get(), porteur)) {
-    pushHost(get, set, (index) => ({ id: `cons-fumble-${porteur.id}-${index}`, kind: 'fumbleJet', jet: 'maladresse', actorId: porteur.id, maladresse: { weapon: arme, result: null, coup: suivant } }));
+    pushHost(get, set, (index) => ({ id: `cons-maladresse-${porteur.id}-${index}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: porteur.id, maladresse: { weapon: arme, result: null, coup: suivant } }));
     return true;
   }
   return applyOups(get, set, porteur, arme, rollOups(arme, battleRng()), new Map(), suivant) === OPS_DIFFEREES;
@@ -2978,7 +2978,7 @@ export function checkFocusInterruption(get: Get, set: SetFn, target: Combatant):
   // (concentration maintenue, DR conservés). Le nœud `test` est résolu cadence-aware par `runCombatFlow`.
   const test = testDeRegle('interruption-de-focalisation', 'maintenir');
   const flow = testFlow(
-    { ...test, stake: combatStakeRef('focus-interrupt') },
+    { ...test, stake: combatStakeRef('focalisation-interrompue') },
     EMPTY_FLOW,
     { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'interruptFocus' }] } },
   );
@@ -3074,7 +3074,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
     // Main ensanglantée (AA 07 l.117) : point IA UNIQUE `aiHandGate` ; Échec → l'arme glisse, pas de tir.
     if (!aiHandGate(get, set, shooter, weapon.uid)) continue;
     shooter.loseNextAction = true; shooter.loseNextMovement = true; // LDB 11 l.97-103
-    get().battle!.log.push(ev('shoot', tr('cf.tirRapide', { name: shooter.label }), shooter.id)); // marqueur AVANT le résultat (applyAttackResult recopie battle.log)
+    get().battle!.log.push(ev('tir', tr('cf.tirRapide', { name: shooter.label }), shooter.id)); // marqueur AVANT le résultat (applyAttackResult recopie battle.log)
     set({ battle: { ...get().battle! } });
     bus.emit(EVT.SCENE_DIRTY);
     const suite: SuiteDeCoup = { enchainement: { mode: 'tirRapide', faits: vus } };
@@ -3190,7 +3190,7 @@ function ouvrirDeDeCasse(set: SetFn, porteur: Combatant, demande: DemandeDeCasse
     pushStep(set, (index) => tableStep({
       ...commun, id: `${id}-${index}`, icon: 'item/weapon',
       table: { tableId: lecture.tableId, spec: demande.spec },
-      stake: combatStakeRef('artillery-salve-misfire'),
+      stake: combatStakeRef('artillerie-salve-incident'),
     }), revealPurpose('sequence', false));
     return;
   }
@@ -3321,7 +3321,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       break;
     }
   }
-  set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(log, 'info', c.id)] } });
+  set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(log, 'information', c.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return undefined;
@@ -3402,7 +3402,7 @@ export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, atta
     id: `cons-bladetrap-${pbt.defenderId}`, kind: 'bladeTrap', actorId: pbt.defenderId, icon: 'item/weapon',
     label: tr('step.paradePiegerLame'),
     options: [{ key: 'trap', label: tr('opt.piegerLame') }, { key: 'crit', label: tr('opt.coupCritique') }],
-    defaultChoice: 'crit', bladeTrap: pbt,
+    defaultChoice: 'crit', piegeLame: pbt,
     outcome: toRecapLines([
       tr('cf.piegeLamePortee', { name: defenseur.label, parade: parade.label, foe: attaquant.label, weapon: pbt.weapon.label }),
       tr('cf.piegeLameIssue', { dr: pbt.defSL, foe: attaquant.label }),
@@ -3716,10 +3716,10 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const bg = get().battle;
   if (!gt.success) {
     const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
-    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('info', tr('cf.handGateFail', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'info', attacker.id)] } });
+    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.handGateFail', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'information', attacker.id)] } });
     return false;
   }
-  if (bg) set({ battle: { ...bg, log: [...bg.log, ev('info', tr('cf.handGatePass', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id)] } });
+  if (bg) set({ battle: { ...bg, log: [...bg.log, ev('information', tr('cf.handGatePass', { name: attacker.label, roll: gt.roll, target: gt.target }), attacker.id)] } });
   return true;
 }
 
@@ -3728,7 +3728,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // béni ; échec → l'IA renonce à CE coup (simplification : pas de re-ciblage, documentée).
   const ward = attackWardGate(attacker, target, battleRng());
   const b0 = get().battle;
-  if (ward.lines.length && b0) set({ battle: { ...b0, log: [...b0.log, ...evLines(ward.lines, 'info', attacker.id)] } });
+  if (ward.lines.length && b0) set({ battle: { ...b0, log: [...b0.log, ...evLines(ward.lines, 'information', attacker.id)] } });
   if (!ward.allowed) return undefined;
   // Main ensanglantée (AA 07 l.117) : l'attaquant gaté joue le Test de Dextérité (+20) sur l'arme EMPLOYÉE contre
   // cette cible ; Échec → l'arme glisse et il renonce à CE coup (une pièce servie hors loadout n'est jamais gatée).
@@ -3741,7 +3741,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // partait dans le journal du GROUPE (invisible en combat).
   if (firedWeapon(attacker, target).type === 'ranged') {
     const b0 = get().battle;
-    if (b0) set({ battle: { ...b0, log: [...b0.log, ev('shoot', tr('cf.aim', { name: attacker.label, target: target.label }), attacker.id, target.id)] } });
+    if (b0) set({ battle: { ...b0, log: [...b0.log, ev('tir', tr('cf.aim', { name: attacker.label, target: target.label }), attacker.id, target.id)] } });
   }
   applyIncomingMeleeAdvantage(get, attacker, target); // +1 Avantage si cible Sonnée (LDB 16 l.125), avant le jet
   // Charge montée (LDB 14 l.183) : si l'attaquant a chargé ce tour, ses dégâts utilisent la Force + la
@@ -4280,7 +4280,7 @@ function aiBattement(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
   if (!battle) return false;
   const atk = rollManeuverAttacker(enemy, 'capacite-de-combat', battleRng());
   const line = resolveBattement(get, enemy, foe, atk);
-  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
+  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attaque', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return true;
@@ -4296,7 +4296,7 @@ function aiDistraire(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
   const atk = { ...rollSansPilote(get, enemy, distraireAttackValue(enemy), 'intermediaire', battleRng()), base: distraireAttackBase(enemy) };
   const def = { ...rollTest(distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) };
   const line = resolveDistraire(enemy, foe, atk, def);
-  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
+  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attaque', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
   return true;
@@ -4360,7 +4360,7 @@ function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: string[], 
   }
   if (log.length) {
     const b = get().battle;
-    if (b) set({ battle: { ...b, log: [...b.log, ...evLines(log, 'crit', attackerId, target.id)] } }); // acteur = attaquant, sujet = cible (parité mode melee)
+    if (b) set({ battle: { ...b, log: [...b.log, ...evLines(log, 'critique', attackerId, target.id)] } }); // acteur = attaquant, sujet = cible (parité mode melee)
   }
   checkBattleOver(get, set);
 }
@@ -4432,7 +4432,7 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
         enemy.freeAttacksThisTurn = { ...enemy.freeAttacksThisTurn, tentacules: (enemy.freeAttacksThisTurn?.tentacules ?? 0) + 1 };
         const line = resolveGrappleOpposed(get, enemy, foe);
         const b = get().battle; if (!b) break;
-        set({ battle: { ...b, log: [...b.log, ev('attack', line, enemy.id, foe.id)] } });
+        set({ battle: { ...b, log: [...b.log, ev('attaque', line, enemy.id, foe.id)] } });
         bus.emit(EVT.SCENE_DIRTY);
         checkBattleOver(get, set);
       }
@@ -4564,8 +4564,8 @@ function miscastTableSpec(caster: Combatant, ctx: PendingMiscastStep, id: string
     table: miscastTableDecl(ctx),
     // Deux tirages de nature DIFFÉRENTE partagent ce `kind` d'étape : le contrecoup magique (LDB 46)
     // et la sanction divine (LDB 40, +10 par Point de Péché) ne mettent pas la même chose en jeu.
-    stake: combatStakeRef(colere ? 'wrath-table' : 'miscast-table'),
-    miscast: ctx,
+    stake: combatStakeRef(colere ? 'colere-des-dieux' : 'incantation-imparfaite-table'),
+    incantationImparfaite: ctx,
   };
 }
 
@@ -4734,7 +4734,7 @@ function emitMiscastTriggered(get: Get, set: SetFn, caster: Combatant): string[]
  * fournit la RÉSOLUTION des acteurs (`actorIn`/`touchActors`), ce helper la finalisation.
  * `selectedSpellId:null` est neutre pour une action non-incantation (déjà null).
  */
-export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: CombatEventKind = 'info'): void {
+export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: CombatEventKind = 'information'): void {
   const battle = get().battle;
   if (battle) {
     // Filet de sécurité (cf. applyAttackResult) : un hook profond (ex. `onGainCondition` d'un ennemi
@@ -4780,7 +4780,7 @@ export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, t
 }
 
 export function castRefused(get: Get, set: SetFn, actor: Combatant, msg: string): void {
-  journaliser(get, set, [msg], 'cast', { actorId: actor.id });
+  journaliser(get, set, [msg], 'sort', { actorId: actor.id });
 }
 
 /** Avance l'étape-jet d'attaque de la cascade combat à la FIN de la chaîne (plus de
@@ -5428,7 +5428,7 @@ export function castCommitZone(get: Get, set: SetFn, pt: Pt): void {
   if (!inZone.length) {
     set({ pendingCast: null, pendingCascade: null }); // TERMINAL : ferme data + cascade-hôte (zone à vide)
     if (pc.focused) caster.focus = undefined; // le sort focalisé est consommé même à vide
-    finishPlayerAction(get, set, [`${spell.label} : la zone ne touche personne.`], 'cast');
+    finishPlayerAction(get, set, [`${spell.label} : la zone ne touche personne.`], 'sort');
     return;
   }
   const first = inZone[0];
@@ -5740,7 +5740,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
     : {};
   set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
-  if (b) set({ battle: { ...b, log: [...b.log, ev('info', out.log, counter.id, caster.id)] } });
+  if (b) set({ battle: { ...b, log: [...b.log, ev('information', out.log, counter.id, caster.id)] } });
   return true;
 }
 
@@ -6434,7 +6434,7 @@ export function applyCast(
   // Point d'émission = incantation résolue (LDB 46, post-runCastFlow). Inerte sans donnée. Hors combat :
   // battle absent, runCombatHooks('onCastResolved') est un no-op (aucune machinerie abonnée).
   emitCombatEvent('onCastResolved', { get, set, battle: battle!, self: caster, sink: (line) => logLines.push(line), triggerCtx: { victim: target, rng: battleRng() } });
-  finishPlayerAction(get, set, logLines, 'cast'); // sortie commune combat (log+conso Action) / hors combat (journal)
+  finishPlayerAction(get, set, logLines, 'sort'); // sortie commune combat (log+conso Action) / hors combat (journal)
   // Téléportation (Jalon 2.6) : le choix de case suit la clôture du cast (qui remet action: null).
   if (teleportReach && get().battle) {
     set({ battle: { ...get().battle!, action: 'teleportation', reachable: teleportReach } });
@@ -6796,7 +6796,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
         rollLabel: 'Résistance', difficulty: d.difficulty,
         ligne: { valeur: resVal, surLaCible: conditionModLines(c, { skill: 'resistance', disease: d.disease }) },
         label: d.label, meta: { entry: d.entry, disease: d.disease, ...(d.instant ? { instant: true } : {}) },
-        stake: combatStakeRef('combat-end-disease', { entryId: d.disease }),
+        stake: combatStakeRef('combat-fin-maladie', { entryId: d.disease }),
         menace: 'maladie', // Test de Contraction = « résister à la Maladie » (Résistance (Menace), LDB 10)
       });
       pousseSi(monos, step);
@@ -6810,7 +6810,7 @@ export function openCombatEndCascade(get: Get, set: SetFn): void {
         label: stepPrecision(tr('step.expoCorruption'), dataLabel(corr.label)), meta: { level: corr.level, exposureLabel: corr.label },
         // L'enjeu DIT le coût de l'échec, lu à l'applier : `corruptionGain(niveau, false, …)` est constant
         // par niveau (1/2/3) — la valeur interpolée vient donc du MÊME calcul que la conséquence.
-        stake: combatStakeRef('combat-end-corruption', { values: { niveau: corr.label, gainEchec: corruptionGain(corr.level, false, 0) } }),
+        stake: combatStakeRef('combat-fin-corruption', { values: { niveau: corr.label, gainEchec: corruptionGain(corr.level, false, 0) } }),
         menace: 'corruption', // Test d'Exposition = « résister à la Corruption » (Résistance (Menace), LDB 10)
       });
       pousseSi(monos, step);
@@ -6893,7 +6893,7 @@ function ouvrirLaBandeDeContraction(
   openBand(get, set, {
     id: `infection-${porteurs.map((p) => p.id).join('-')}-${entry}-${disease}`, kind: 'combatEndDisease', icon: 'medical/infection',
     label: dataLabel(title), menace: 'maladie', meta: { entry, disease, ...(instant ? { instant: true } : {}) },
-    stake: combatStakeRef('combat-end-disease', { entryId: disease }),
+    stake: combatStakeRef('combat-fin-maladie', { entryId: disease }),
     difficulty,
     porteurs: porteurs.map((p) => ({ actor: p, ligne: { valeur: combatEndResistVal(p), surLaCible: conditionModLines(p, { skill: 'resistance', disease }) }, label: 'Résistance', menace: 'maladie' as const })),
     title, purpose: 'test',
@@ -7180,7 +7180,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
     // interactif → pas de cascade), puis writeback. Pas d'écran de victoire à gater.
     openCombatEndCascade(get, set);
     finalizeBattle(get, set);
-    set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('info', tr('cf.defeat'))] } });
+    set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('information', tr('cf.defeat'))] } });
     return true;
   }
   return false;
@@ -7196,7 +7196,7 @@ export function finishVictory(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
   finalizeBattle(get, set); // writeback AVANT onVictory (qui ajoute XP/butin au groupe)
-  set({ battle: { ...get().battle!, over: 'victoire', log: [...get().battle!.log, ev('info', tr('cf.victory'))] } });
+  set({ battle: { ...get().battle!, over: 'victoire', log: [...get().battle!.log, ev('information', tr('cf.victory'))] } });
   bus.emit(EVT.BATTLE_OVER, { victory: true }); // gong audio + hooks futurs
   // Capture des récompenses pour l'écran de victoire : on mesure ce que onVictory octroie (XP/or/butin)
   // par diff avant/après, + la liste des vaincus (groupée par nom). L'écran (VictoryScreen) lit `pendingVictory`.
@@ -7248,7 +7248,7 @@ export function finishCombatEnd(get: Get, set: SetFn): void {
   if (heroesAlive) { finishVictory(get, set); return; }
   // Cas-limite : la mutation/damnation a achevé le dernier héros pendant la cascade → défaite.
   finalizeBattle(get, set);
-  set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('info', tr('cf.defeat'))] } });
+  set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('information', tr('cf.defeat'))] } });
 }
 
 /** Gantelet verrouillé (AA folio 94) — anti-lâcher GÉNÉRIQUE (capacité lue en DONNÉE `preventForcedDrop`,
@@ -7441,7 +7441,7 @@ export function advanceTurn(get: Get, set: SetFn) {
       // seules les lignes CONCERNANT UN HÉROS alimentent la révélation (les ennemis : journal seul).
       const heroRoundLines: string[] = [];
       const tickLine = (line: string, c?: Combatant) => {
-        battle.log.push(ev('condition', line, c?.id));
+        battle.log.push(ev('etat', line, c?.id));
         if (c?.kind === 'hero') heroRoundLines.push(line);
       };
       // TOUTE la séquence de franchissement de Round est déléguée aux hooks `roundBoundary`
@@ -7513,7 +7513,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   for (const c of battle.combatants) {
     if (!inDeathCondition(c)) continue;
     c.dead = true;
-    for (const line of notifySlain(get, set, c)) battle.log.push(ev('death', line, c.id));
+    for (const line of notifySlain(get, set, c)) battle.log.push(ev('mort', line, c.id));
   }
   // (2bis) LDB 16 l.105 ; AA 07 l.7 ; LDB 17 l.29 ; #1595 c.6240485441
   const doomedBleed = (battle.bleedDoomed ?? [])
@@ -7521,7 +7521,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
     .filter((d): d is { c: Combatant; line: string } => !!d.c && !d.c.dead && !d.c.outOfRencontre);
   const bleedFateHero = doomedBleed.find((d) => d.c.kind === 'hero' && (d.c.fate ?? 0) > 0);
   if (bleedFateHero) { set({ pendingFateSave: { heroId: bleedFateHero.c.id, source: 'slow' } }); return; }
-  for (const d of doomedBleed) { d.c.dead = true; battle.log.push(ev('death', d.line, d.c.id)); for (const line of notifySlain(get, set, d.c)) battle.log.push(ev('death', line, d.c.id)); }
+  for (const d of doomedBleed) { d.c.dead = true; battle.log.push(ev('mort', d.line, d.c.id)); for (const line of notifySlain(get, set, d.c)) battle.log.push(ev('mort', line, d.c.id)); }
   battle.bleedDoomed = undefined;
   // (3) Avantage : mode Livre de base → -1 si aucun gagné ce Round (LDB 14 l.219) ; mode « Avantage de
   //     groupe » (AA 11 l.44) → transfert de domination du camp majoritaire (REMPLACE décroissance +
@@ -7548,7 +7548,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   if (battle.zones?.length) {
     const d = decayZones(battle.zones);
     battle.zones = d.zones;
-    for (const l of d.log) battle.log.push(ev('info', l));
+    for (const l of d.log) battle.log.push(ev('information', l));
   }
   // « Avantages et Magie » : la convergence de Domaine ne vaut que DANS le Round (LDB 46 l.123-125).
   if (battle.domainCasts?.length) battle.domainCasts = undefined;
@@ -7825,7 +7825,7 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   // Grimpant (LDB 85 l.160-162) : le pathing IA franchit une arête `WallSeg.climb` SANS Test —
   // pas un jet silencieux, journalisé comme l'escalade du joueur (`franchirLArete`, #504, MÊME clé i18n).
   if (path && path.some((p, i) => i > 0 && climbEdgeBetween(scene, path[i - 1], p)?.climb)) {
-    battle.log.push(ev('move', tr('climb.auto', { name: enemy.label }), enemy.id));
+    battle.log.push(ev('deplacement', tr('climb.auto', { name: enemy.label }), enemy.id));
   }
   // #527 : l'approche IA doit se TRACER comme le Mouvement joueur (BFS à pas uniforme, `pathTo` — même
   // coût que `cliquerLaCaseDuCombat`/`stepCost`) sinon un gate qui exige `movementUsed === 0` (Se cabrer,
@@ -7868,7 +7868,7 @@ export function declarerLaCharge(get: Get, set: SetFn, chargeur: Combatant, cibl
 export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): boolean {
   const lignes: string[] = [];
   const effets = emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
-  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'condition', charge.id)] } });
+  if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'etat', charge.id)] } });
   return effets + resolveFreeAttacks(get, set, charge, 'onCharged', chargeur) > 0;
 }
 
@@ -7904,7 +7904,7 @@ export function approachFearTrigger(get: Get, set: SetFn, mover: Combatant, from
   // de la CLÉ de bande (deux Indices = deux règles en jeu, donc deux fenêtres).
   const testFor = (indice: number): FlowTest & { difficulty: Difficulty; label: string } => ({
     ...testDeRegle('calme-d-approche', 'source-se-rapproche'),
-    stake: combatStakeRef('combat-psych', { entryId: 'peur', values: { indice } }),
+    stake: combatStakeRef('combat-psychologie', { entryId: 'peur', values: { indice } }),
   });
   const branches = {
     onSuccess: EMPTY_FLOW, // réussite : garde son sang-froid, rien à faire
@@ -8011,7 +8011,7 @@ export function appliquerLaRecharge(get: Get, set: SetFn, pr: PendingReload, arm
   const b = activeCombatant(battle)?.id === porteur.id ? markActed(get, set) : get().battle!;
   set({ battle: { ...b, action: null,
     crewActed: piece && coque ? withCrewActed(b.crewActed, coque.id, piece.crewIds ?? []) : b.crewActed,
-    log: [...b.log, ...evLines(issue, 'reload', porteur.id)] } });
+    log: [...b.log, ...evLines(issue, 'rechargement', porteur.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
 }
 
@@ -8110,11 +8110,11 @@ function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
 function journaliserPsy(get: Get, set: SetFn, c: Combatant, lines: string[]): void {
   if (!lines.length) return;
   const b = garanti(touchActors(get()).battle, 'battle', 'journaliserPsy');
-  set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'fear', c.id)] } });
+  set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'peur', c.id)] } });
 }
 
 /** DÉCLARATION COMMUNE d'une bande de Psychologie de combat — telle qu'elle vit sur l'ÉTAPE. */
-type CombatPsychDecl = NonNullable<CascadeStep['combatPsych']>;
+type CombatPsychDecl = NonNullable<CascadeStep['psychologieDeCombat']>;
 
 /** Ce qui DIVERGE d'un héros à l'autre DANS une bande (charge utile de RANGÉE, socle L0) : le DR déjà
  *  cumulé du Test étendu et l'allègement « Sans Peur ». */
@@ -8178,11 +8178,11 @@ const combatPsychBands = makeBandFactory<CombatPsychDue>({
   rangee: (due) => due.row,
   situation: ({ decl: d, icon, label }, { index }) => ({
     id: `psych-${d.kind}-${index}`, kind: 'combatPsych', icon, label,
-    combatPsych: d,
+    psychologieDeCombat: d,
     contexte: 'psych', // ADE II 09 l.33 ; LDB 21 l.9
     // L'enjeu descend à l'AFFLICTION affrontée : ses conséquences lui sont propres (`psychResolution`
     // lit `failCondition`/`failAmount`/`becomes` de SON entrée), donc son texte vit sur SON entrée.
-    stake: combatStakeRef('combat-psych', { entryId: d.kind, values: { indice: d.indice } }),
+    stake: combatStakeRef('combat-psychologie', { entryId: d.kind, values: { indice: d.indice } }),
     // Les DEUX issues, dérivées des ops que l'applier appliquera (`psychBranchOps`) : la surface
     // les rend en chips codex-liées avant le jet, et le verdict est le MÊME bloc filtré (#1117).
     meta: { onSuccess: psychBranchFlow(d, true), onFail: psychBranchFlow(d, false) },
@@ -8510,7 +8510,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     if (freeMount) {
       mountUp(enemy, freeMount);
       justMounted = true;
-      battle.log.push(ev('move', tr('cs.mount', { name: enemy.label, mount: freeMount.label }), enemy.id));
+      battle.log.push(ev('deplacement', tr('cs.mount', { name: enemy.label, mount: freeMount.label }), enemy.id));
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
     }
@@ -8547,7 +8547,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       if (!foe) break;
       clearGrapple(enemy, foe);
       removeCondition(enemy, COND.empetre, stacks(enemy, COND.empetre)); // se défait de l'*Empêtré* lié (LDB 14 l.161)
-      battle.log.push(ev('dodge', tr('cs.grappleBreak', { name: enemy.label, foe: foe.label }), enemy.id, foe.id));
+      battle.log.push(ev('esquive', tr('cs.grappleBreak', { name: enemy.label, foe: foe.label }), enemy.id, foe.id));
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
     } else if (action.kind === 'manPoste') {
@@ -8702,7 +8702,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const line = removed > 0
         ? (action.state === COND.empetre ? tr('cf.enemyFreed', { name: enemy.label, removed }) : tr('cf.enemyDouses', { name: enemy.label, removed }))
         : (action.state === COND.empetre ? tr('cf.enemyStaysEmpetre', { name: enemy.label }) : tr('cf.enemyStaysFlames', { name: enemy.label }));
-      set({ battle: { ...battle, log: [...battle.log, ...struggleLines.map((l) => ev('damage', l, enemy.id)), evDEtat(action.state, line, enemy.id)] } });
+      set({ battle: { ...battle, log: [...battle.log, ...struggleLines.map((l) => ev('degats', l, enemy.id)), evDEtat(action.state, line, enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'afterMove'));
       return;
@@ -8718,7 +8718,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // l'emporte (les options Empêtrer/Se libérer restent en DONNÉE, offertes au joueur). Test opposé PARTAGÉ
       // avec l'Attaque gratuite de tentacule/langue (`resolveGrappleOpposed`) ; ici il CONSOMME l'Action (l.161).
       const line = resolveGrappleOpposed(get, enemy, foe);
-      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attack', line, enemy.id, foe.id)] } });
+      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attaque', line, enemy.id, foe.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       checkBattleOver(get, set);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'postAttack'));
@@ -8738,8 +8738,8 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
       const pas = Math.max(0, (path?.length ?? 1) - 1);
       if (ran) {
-        battle.log.push(ev('move', traceLineOf({ who: enemy.label, label: testTraceLabel(refLabel('skills', ran.test.skill), ran.test.difficulty), roll: ran.roll, target: ran.target, sl: ran.sl, success: ran.success }), enemy.id));
-        battle.log.push(ev('move', tr('cs.run', { name: enemy.label, cost: pas, short: '' }), enemy.id));
+        battle.log.push(ev('deplacement', traceLineOf({ who: enemy.label, label: testTraceLabel(refLabel('skills', ran.test.skill), ran.test.difficulty), roll: ran.roll, target: ran.target, sl: ran.sl, success: ran.success }), enemy.id));
+        battle.log.push(ev('deplacement', tr('cs.run', { name: enemy.label, cost: pas, short: '' }), enemy.id));
       }
       // Télégraphe de DÉPLACEMENT (parité héros) : montrer le chemin + la destination AVANT que l'ennemi
       // bouge (« où il va »), puis il glisse dessus. Le mouvement réel + la suite (attaque/fin de tour)
@@ -8765,7 +8765,7 @@ export const PLIS = ['deviation'] as const satisfies readonly (typeof GENRES_D_E
 export const TABLES_TIRABLES = [TABLE_SALVE_MISFIRE] as const;
 
 /** Les genres d'étape que ce module produit SANS applier : l'hôte ou le jet les traite (`GenreHote`). */
-export const GENRES_HOTES = ['attackJet', 'defenseJet', 'fumbleJet', 'disengageStep', 'cast'] as const;
+export const GENRES_HOTES = ['attackJet', 'defenseJet', 'jetDeMaladresse', 'disengageStep', 'cast'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
@@ -8773,7 +8773,7 @@ export const TABLES = {
     /** Étape de reprise « fuite » : la Déviation Critique du coup dans le dos a SUSPENDU l'application ; une
      *  fois le Critique tranché (Dévier/Subir), la fuite se complète ICI — jamais avant (LDB 15 l.68). */
     fleeMove: (get, set, step) => {
-      const f = step.fleeMove;
+      const f = step.fuite;
       if (f) completeFlee(get, set, f.moverId, f.foeId, f.broken);
     },
     /**
@@ -8822,9 +8822,9 @@ export const TABLES = {
       // Le dé qui DÉCIDE s'écrit avant ce qu'il a décidé : la reprise ci-dessous (`applyOups`,
       // `applyBladeTrap`) journalise ses propres lignes PENDANT cet applier, donc le goulot — qui écrit
       // après lui — les placerait derrière. `dejaDites` dit au goulot que c'est fait (l'étape les affiche).
-      journaliser(get, set, lignes, 'info', { actorId: step.actorId });
+      journaliser(get, set, lignes, 'information', { actorId: step.actorId });
       const dit = (extra: string[] = []): { consequences?: Consequence[]; dejaDites?: true } => {
-        journaliser(get, set, extra, 'info', { actorId: step.actorId });
+        journaliser(get, set, extra, 'information', { actorId: step.actorId });
         const consequences = freeCons([...lignes, ...extra]);
         // RIEN à désigner — l'étape à TABLE n'a pas de ligne de seuil, sa conclusion est la LIGNE TIRÉE,
         // écrite par l'application. Le drapeau ne protège alors aucune écriture : il ne se pose pas.
@@ -8875,7 +8875,7 @@ export const TABLES = {
      * qui un dé effectif ≥ 91 insère une étape de plus sur la même table).
      */
     miscastTable: (get, set, step, caster) => {
-      const ctx = step.miscast;
+      const ctx = step.incantationImparfaite;
       const rolled = step.table?.result;
       if (!ctx || !rolled || !caster) return;
       const m = rollMiscast(ctx.severity, battleRng(), liveSinPoints(caster, ctx.severity), ctx.domainId, rolled.roll);
@@ -8938,7 +8938,7 @@ export const TABLES = {
      *  (porteur) oppose sa Force, en ajoutant le DR de la défense (`defSL`) au jet du défenseur (l.295) ; la
      *  branche de VICTOIRE porte l'op IMPURE `breakBlade` (désarme/brise, conséquence procédurale APRÈS le Test). */
     bladeTrap: (get, set, step) => {
-      const pbt = step.bladeTrap;
+      const pbt = step.piegeLame;
       if (!pbt) return;
       const battle = get().battle;
       const defender = inBattleId(battle, pbt.defenderId);
@@ -8951,7 +8951,7 @@ export const TABLES = {
         const lines = [tr('cf.critOnDefense', { name: defender.label })];
         applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines);
         const b = get().battle!;
-        set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'info', defender.id, attacker.id)] } });
+        set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'information', defender.id, attacker.id)] } });
         bus.emit(EVT.SCENE_DIRTY);
         checkBattleOver(get, set);
         return;
@@ -8966,7 +8966,7 @@ export const TABLES = {
       const flow = testFlow(
         // `defenderMustWin` : ici « vous » (LDB 62 l.280 « Si vous l'emportez ») est le PIÉGEUR, qui est le
         // jeteur de ce Test — la lame ne s'arrache qu'à SA victoire, jamais sur une égalité.
-        { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('blade-trap-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
+        { characteristic: 'force', label: 'Piège-lame', stake: combatStakeRef('piege-lame-force'), opposed: { attacker: 'force', bonusSL: pbt.defSL, defenderMustWin: true } },
         { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'breakBlade' }] } },
         EMPTY_FLOW,
       );
@@ -8976,7 +8976,7 @@ export const TABLES = {
      *  conséquence se joue RANGÉE PAR RANGÉE (résultat, charge utile et Détermination du porteur), et
      *  chaque verdict reste SUR SA rangée (le portrait attribue) — jamais un agrégat (`aggregate:'none'`). */
     combatPsych: (get, set, step) => {
-      const cp = step.combatPsych;
+      const cp = step.psychologieDeCombat;
       if (!cp || !step.participants) return;
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);
@@ -9070,9 +9070,9 @@ export const TABLES = {
       const { label } = c;
       // Cible ou coque disparue : CE maillon est perdu et se DIT (applier `opsDe`) ; les suivants jouent.
       const cible = actorIn(get(), c.cibleId);
-      if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'info'); return; }
+      if (!cible) { journaliser(get, set, [tr('cascade.cibleDisparue', { label })], 'information'); return; }
       const opsCtx = ctxRepris(get, set, c.ctx, cible);
-      if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'info'); return; }
+      if (!opsCtx) { journaliser(get, set, [tr('cascade.coqueDisparue', { label })], 'information'); return; }
       runCombatFlow({ get, set, target: cible, caster: opsCtx.caster ?? cible, label, opsCtx }, c.flow);
     },
     ouvrirEcranDeVictoire: (get, set, c) => {

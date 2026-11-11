@@ -28,9 +28,9 @@ export const famille = 'entite';
 
 /** Libellés FR des CASCADES — l'univers du discriminant (`enumNomme`), les groupes du Codex. */
 const LIBELLES_DE_CASCADE = {
-  night: 'Cascade de repos',
+  nuit: 'Cascade de repos',
   voyage: 'Cascade de voyage',
-  flow: 'Modales de jet',
+  flux: 'Modales de jet',
   combat: 'Cascade de combat',
 } as const satisfies Record<StakeCascade, string>;
 
@@ -40,9 +40,9 @@ const LIBELLES_DE_CASCADE = {
  * n'en exige pas : `stake-rule-ratchet.test.ts` énumère son stock sans foyer.
  */
 const CHARGE_PAR_CASCADE = {
-  night: { cles: ['template', 'form', 'rule'], requises: ['template', 'form'], porte: true },
+  nuit: { cles: ['template', 'form', 'rule'], requises: ['template', 'form'], porte: true },
   voyage: { cles: ['template', 'form', 'rule'], requises: ['template', 'form'], porte: false },
-  flow: { cles: ['template', 'form', 'rule', 'entryCategory'], requises: ['template', 'form'], porte: true },
+  flux: { cles: ['template', 'form', 'rule', 'entryCategory'], requises: ['template', 'form'], porte: true },
   combat: { cles: ['template', 'form', 'rule', 'entryCategory', 'entryFromSource'], requises: [], porte: true },
 } as const satisfies Record<StakeCascade, { cles: readonly string[]; requises: readonly string[]; porte: boolean }>;
 

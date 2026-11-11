@@ -477,7 +477,7 @@ export function resolveManeuver(
   };
   emitCreatureAttackAnim(attacker, def.kind);
   const flushLog = () => {
-    set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lines, 'attack', attacker.id)] } });
+    set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lines, 'attaque', attacker.id)] } });
     bus.emit(EVT.SCENE_DIRTY);
   };
 
@@ -586,7 +586,7 @@ function openManeuverDefenseCascade(
       base,
       target: base, // Test opposé Intermédiaire (+0) → cible = valeur nue ; l'issue vient de resolveOpposed(aT)
       label: attackerLabel,
-      stake: combatStakeRef('combat-maneuver-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
+      stake: combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
         opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
         maneuverDefense: { attackerId: attacker.id, def: structuredClone(def), indice, spent },

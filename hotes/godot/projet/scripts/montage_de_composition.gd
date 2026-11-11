@@ -413,7 +413,7 @@ static func _masque(couche: Dictionary, porteur: Variant, zone: String) -> bool:
 ## chaque fois de la pose du clip ; un `CopyTransformModifier3D` donne enfin à l'os de la main `secondaire` l'orientation de
 ## ce repère, et à chacun de ses descendants la rotation de son homologue sous la main `main`, appariés enfant par
 ## enfant, en même nombre (le poing de la main qui tient). La recette autonome `projet/recettes/seconde-prise.gd` le
-## vérifie à 1 mm. Le repos de l'atelier est le clip `idle` de la composition montée (`MontageDeComposition.clip`), à
+## vérifie à 1 mm. Le repos de l'atelier est le clip `repos` de la composition montée (`MontageDeComposition.clip`), à
 ## deux mains sous une seconde prise : il se joue à la pose d'une base sans clip de reprise et à l'arrêt de la marche
 ## ; un montage ou un démontage passe le clip engagé à celui de son rôle sous la nouvelle tenue, en lecture ou en
 ## pause comme lui (`_jouer_le_repos`, `_rejouer`, `projet/scripts/atelier.gd`). La recette autonome

@@ -1388,7 +1388,7 @@ export const FLOWS = paresseux({
 
   /** MALADRESSE (LDB 14) de l'étape COURANTE (`jet:'maladresse'`) : le tirage sur le Tableau des Oups !, sans cible ni
    *  influence ; sa clôture applique les Oups ! (`jetValider('maladresse')`). */
-  fumble: () => makeRollFlow<PendingCascade, CascadeStep>({
+  maladresse: () => makeRollFlow<PendingCascade, CascadeStep>({
     key: 'pendingCascade',
     multi: { slots: (p) => { const m = maladresseCourante(p); return m ? [m] : []; }, idOf: (st) => st.id, replace: remplacerLEtape, refusDuSlot: refusHorsDeLEtapeCourante },
     cloture: (p) => (maladresseCourante(p) ? null : 'sansJet'),
@@ -2394,7 +2394,7 @@ export const FLOW_HANDLERS = paresseux({
   activite: () => FLOWS.activity, marchandage: () => FLOWS.bargain, evaluation: () => FLOWS.appraise, chansonDeMarin: () => FLOWS.shanty,
   contreSort: () => FLOWS.counterspell, cascade: () => FLOWS.cascade, opposition: () => FLOWS.castOpposition, testEtendu: () => FLOWS.extendedTest,
   enfoncerLaPorte: () => FLOWS.forceDoor, manoeuvreDuNavire: () => FLOWS.shipManeuver, tirDeBatterie: () => FLOWS.battery,
-  cascadeEnBande: () => FLOWS.cascadeBatch, etalLot: () => FLOWS.etalLot, cascadeTirage: () => FLOWS.cascadeTirage, maladresse: () => FLOWS.fumble,
+  cascadeEnBande: () => FLOWS.cascadeBatch, etalLot: () => FLOWS.etalLot, cascadeTirage: () => FLOWS.cascadeTirage, maladresse: () => FLOWS.maladresse,
 } satisfies Record<FlowKey, () => RollFlowHandlers>);
 
 /** Les rangées INTERACTIVES d'une opposition au Sort encore sans jet : la clôture les attend (`jetValider('opposition')`). */
@@ -2486,7 +2486,7 @@ export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<J
   }
   const pc = s.pendingCascade;
   const bande = bandeCourante(s);
-  if (!pc || !bande || !(bande.combatPsych || bande.encounterPsych) || !bande.participants?.some((p) => p.id === porteur.id && !p.result)) return null;
+  if (!pc || !bande || !(bande.psychologieDeCombat || bande.psychologieDeRencontre) || !bande.participants?.some((p) => p.id === porteur.id && !p.result)) return null;
   const participants = bande.participants.map((p) => (p.id === porteur.id ? { ...p, immune: true, result: { roll: p.target, target: p.target, sl: 0, success: true } } : p));
   return { patch: { pendingCascade: { ...pc, participants: pc.participants.map((st, i) => (i === pc.cursor ? { ...st, participants } : st)) } }, ligne: null };
 }

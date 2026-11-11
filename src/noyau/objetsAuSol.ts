@@ -83,7 +83,7 @@ export function poserLObjet(get: Get, set: Set, uid: string): void {
   const lot: ItemInstance[] = [{ ...objet, equipped: false, inside: undefined }, ...contenu.map((i) => ({ ...i, equipped: false }))];
   set((e) => ecrireLesPorteurs(e, { [porteurId]: (items) => sansLeLot(items, lot) }));
   deposerAuSol(get, set, lot, actif?.pos ?? s.partyPos);
-  journaliser(get, set, [t('pf.poser', { from: nomDe(porteur), item: itemLabel(objet) })], 'item', { actorId: porteurId });
+  journaliser(get, set, [t('pf.poser', { from: nomDe(porteur), item: itemLabel(objet) })], 'objet', { actorId: porteurId });
 }
 
 /** Le crochet d'`applyOps` qui dépose au sol, à la case du combattant, l'objet qu'il lâche (`OpsCtx.onLacher`, op

@@ -1552,7 +1552,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         battle: {
           ...s.battle,
           combatants,
-          log: [...s.battle.log, ev('info', `Recette : ${slain.length} ennemi(s) éliminé(s).`)],
+          log: [...s.battle.log, ev('information', `Recette : ${slain.length} ennemi(s) éliminé(s).`)],
         },
       });
       checkBattleOver(() => useGame.getState(), useGame.setState);
@@ -1593,7 +1593,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
       const caster = s.battle.combatants.find((c) => c.kind === 'hero' && !isOutOfAction(c)) ?? target;
       const lines = applyOps(target, [{ op: 'wounds', amount: n }], { idNeuf: useGame.getState().forgerUnId, rng: battleRng(), caster });
       useGame.setState({
-        battle: { ...s.battle, log: [...s.battle.log, ev('info', `Recette : ${n} Dégâts infligés à ${target.label}.`), ...lines.map((l) => ev('info', l))] },
+        battle: { ...s.battle, log: [...s.battle.log, ev('information', `Recette : ${n} Dégâts infligés à ${target.label}.`), ...lines.map((l) => ev('information', l))] },
       });
       checkBattleOver(() => useGame.getState(), useGame.setState);
       const after = inBattleId(useGame.getState().battle, id);
@@ -1633,7 +1633,7 @@ export function buildApi(scenarios: readonly TestScenario[] = testScenarios) {
         c.kind === 'enemy' && !isOutOfAction(c) ? { ...c, dead: true, wounds: { ...c.wounds, current: 0 } } : c,
       );
       useGame.setState({
-        battle: { ...s.battle, combatants, log: [...s.battle.log, ev('info', 'Recette : conséquences de fin de combat armées.')] },
+        battle: { ...s.battle, combatants, log: [...s.battle.log, ev('information', 'Recette : conséquences de fin de combat armées.')] },
       });
       // Flux NORMAL : ouvre la cascade de fin de combat ; si elle s'ouvre (héros manuel), la victoire est
       // DIFFÉRÉE à sa fermeture (on NE la résout PAS ici — c'est tout l'intérêt de la recette).

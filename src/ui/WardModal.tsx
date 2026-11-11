@@ -55,7 +55,7 @@ export function WardModal() {
   return (
     <RollShell
       flowKey="protection"
-      stake={flowStakeRef('ward-roll')}
+      stake={flowStakeRef('protection-test')}
       title={<><Icon id="action/defend" size="sm" /> Bénédiction de Protection</>}
       subtitle={
         <>
@@ -64,7 +64,7 @@ export function WardModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('info', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('information', describeWard(pw, pw.targetName), attacker.id, pw.targetId), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

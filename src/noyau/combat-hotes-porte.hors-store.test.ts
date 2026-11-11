@@ -266,7 +266,7 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     }, true);
     const st = etape('maladresse');
     expect(st, 'la Maladresse du défenseur est une étape de la séquence').toBeTruthy();
-    expect(st!.kind).toBe('fumbleJet');
+    expect(st!.kind).toBe('jetDeMaladresse');
     expect(st!.actorId).toBe(hero.id);
     expect(st!.maladresse!.weapon.uid, 'sa charge (arme + Oups ! à tirer) vit SUR l’étape').toBe('sw');
     expect(st!.maladresse!.result).toBeNull();
@@ -309,7 +309,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     expect(st.reveal!.title).toBe('Critique de Structure');
     // L'enjeu du mint est la référence de règle descendue à la ligne tirée (`stakeAtTableRow`), au champ près.
     const decl = st.table!;
-    expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critical'), { ...decl, result: undefined } as never, decl.result!));
+    expect(st.stake).toEqual(stakeAtTableRow(combatStakeRef('structure-critique'), { ...decl, result: undefined } as never, decl.result!));
     expect(st.stake!.key!.entryId, 'l’enjeu descend à la LIGNE jouée, pas au `kind`').toBeTruthy();
   });
 });

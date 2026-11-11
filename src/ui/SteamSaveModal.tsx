@@ -53,12 +53,12 @@ export function SteamSaveModal() {
   return (
     <RollShell
       flowKey="fuiteDeVapeur"
-      stake={flowStakeRef('steam-save-roll')}
+      stake={flowStakeRef('vapeur-sauvegarde-test')}
       title="Fuite de vapeur — Initiative"
       subtitle={<>panne de vapeur</>}
       rows={[actorRow]}
       rolled={rolled}
-      outcome={[recapLineOfEvent(ev(p.success ? 'info' : 'condition', text, p.actorId), party)]}
+      outcome={[recapLineOfEvent(ev(p.success ? 'information' : 'etat', text, p.actorId), party)]}
       actions={actions}
     />
   );

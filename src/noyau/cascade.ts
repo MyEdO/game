@@ -1288,7 +1288,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // TRACE des jets qu'aucune SURFACE n'a montrés — AVANT la conséquence : le dé se lit d'abord, l'effet
   // ensuite, comme dans la fenêtre qui ne s'est pas ouverte.
   const traces = unwitnessedTraceLines(get, step, unwitnessed, rowSurface);
-  journaliser(get, set, traces, 'info', { actorId: step.actorId });
+  journaliser(get, set, traces, 'information', { actorId: step.actorId });
   // FENÊTRE D'INSERTION (#1508) ouverte le temps que l'applier — et la continuation qui le suit —
   // tournent : une étape poussée pendant ce temps est la SUITE IMMÉDIATE de celle-ci, pas la fin de la
   // séquence. Rendue à sa valeur précédente ensuite (un applier peut en déclencher un autre).
@@ -1313,7 +1313,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
     lines = out?.consequences ? resultLines(out.consequences) : [];
     if (out?.dejaDites) assertDejaDitesPorteSesLignes(step, lines);
-    else journaliser(get, set, lines.map((l) => l.text), 'info', { actorId: step.actorId });
+    else journaliser(get, set, lines.map((l) => l.text), 'information', { actorId: step.actorId });
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
@@ -1327,7 +1327,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     fenetreInsertion = fenetreAvant;
   }
   // SEAM CENTRAL `onOwnTestFailed` (tests DIFFÉRÉS d'entretien + tests déclenchés de combat en cascade) :
-  // toute étape à JET RATÉ (`faim`/`recovery`/`disease-tick`/`disease-persist`/`trauma-fracture`/`contagion`/
+  // toute étape à JET RATÉ (`faim`/`recuperation`/`maladie-test-quotidien`/`maladie-persistance`/`convalescence-fracture`/`contagion`/
   // `triggeredTest`… — TOUS passent par ce `commitStep`) émet le trigger pour son acteur. L'étampe
   // `meta.noOwnTestFailed` (posée sur le FM de palier 2 des Crampes) coupe la ré-entrance. Sous-Test du FM
   // résolu INLINE (pas de `set` threadé : ouvrir une cascade IMBRIQUÉE dans un commitStep serait fragile).
@@ -1340,7 +1340,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     ? batchOwnTestFailedLines(get, step)
     : ((interaction === 'jet' && step.result && !step.result.success && !(estJete(step.result) && step.result.statuQuo) && acteur && !step.meta?.noOwnTestFailed)
       ? emettreOwnTestFailed(get, acteur, step.result.sl) : []);
-  journaliser(get, set, ownTestFailedLines, 'info', { actorId: step.actorId });
+  journaliser(get, set, ownTestFailedLines, 'information', { actorId: step.actorId });
   // L'étape VALIDÉE garde sa conséquence (`outcome`) pour rester LISIBLE dans la pile à l'écran. Une
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
   // PRÉSERVE (sinon le journal vide l'effacerait à la validation).

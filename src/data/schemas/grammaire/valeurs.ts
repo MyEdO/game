@@ -99,7 +99,7 @@ export const amateurSchema = enumNomme({
 export const mutationKindSchema = enumNomme({ physique: 'Physique', mentale: 'Mentale' });
 
 /** Les rôles d'animation d'ambiance d'une entité de scène. */
-export const roleAmbiantSchema = enumNomme({ feeding: 'Se nourrit', praying: 'Prie', cowering: 'Se recroqueville', standing: 'Se tient debout', howling: 'Hurle' });
+export const roleAmbiantSchema = enumNomme({ repas: 'Se nourrit', priere: 'Prie', tapi: 'Se recroqueville', debout: 'Se tient debout', hurlement: 'Hurle' });
 export type RoleAmbiant = z.infer<typeof roleAmbiantSchema>;
 
 /** Dé de TIRAGE d'une table à fourchettes (`die`) : une expression de dé (« d10 », « 2d10 ») que

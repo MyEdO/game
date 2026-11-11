@@ -103,7 +103,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
         ligne: { test: { characteristic: char }, combat: { kind: 'test' } },
         difficulty: 'intermediaire',
         label: t('turn.actGate', { label }),
-        stake: combatStakeRef('act-gate', src ? { entryId: src.id, entryCategory: CATEGORY_BY_SOURCE_KIND[src.kind] } : {}),
+        stake: combatStakeRef('agir-malgre-effet', src ? { entryId: src.id, entryCategory: CATEGORY_BY_SOURCE_KIND[src.kind] } : {}),
       });
       continue;
     }
@@ -133,7 +133,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry(testValue(enemy, { characteristic: 'force-mentale' }), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: 'frenesie' });
-    set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenzy', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
+    set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: enemy.label }), enemy.id)] } });
   }
 }
 
@@ -194,7 +194,7 @@ export const TABLES = {
         if (adv >= 3) {
           campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
           (enemy.psychState ??= []).push({ type: 'frenesie' });
-          battle.log.push(ev('frenzy', t('turn.rageEnter', { name: enemy.label }), enemy.id));
+          battle.log.push(ev('frenesie', t('turn.rageEnter', { name: enemy.label }), enemy.id));
           set({ battle: { ...battle } });
           return;
         }
@@ -203,7 +203,7 @@ export const TABLES = {
         if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
         campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
         (enemy.psychState ??= []).push({ type: 'haine', cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
-        battle.log.push(ev('fear', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
+        battle.log.push(ev('peur', t('turn.rageHate', { name: enemy.label, groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
         set({ battle: { ...battle } });
       },
     },

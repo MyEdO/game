@@ -715,7 +715,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     sauvegardeEnCours(h1);
     poser(5); // < 6 : le coup porte sur h1 → Maladresse DUE, puis la chaîne parquée reprend
     const etapes = banc.getState().pendingCascade?.participants ?? [];
-    expect(etapes.filter((s) => s.kind === 'fumbleJet' && s.actorId === h1.id),
+    expect(etapes.filter((s) => s.kind === 'jetDeMaladresse' && s.actorId === h1.id),
       `la Maladresse de h1 est poussée — étapes vues : ${etapes.map((s) => s.kind).join(', ')}`).toHaveLength(1);
     // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
     banc.getState().jetLancer('maladresse');

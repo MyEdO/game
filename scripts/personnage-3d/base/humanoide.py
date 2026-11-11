@@ -8,7 +8,7 @@ from contextlib import ExitStack
 sys.dont_write_bytecode = True
 ICI = Path(__file__).resolve().parent
 DECLARATION = ICI / 'humanoide.json'
-"""La déclaration du corps : `base`, porteur de référence et table rôle → clip, dont `walk`, la marche plantée."""
+"""La déclaration du corps : `base`, porteur de référence et table rôle → clip, dont `marche`, la marche plantée."""
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from anatomie import PIEDS, gabarit, poser, reperes_des_prises  # noqa: E402
@@ -251,7 +251,7 @@ def construire(args):
     bornes = bornes_de_st()
     table = {**gabarit(squelette), 'st': bornes, 'bornes': bornes_du_gabarit()}
     declaration = json.loads(DECLARATION.read_text(encoding='utf-8'))
-    marches = [declaration['clips']['walk']]
+    marches = [declaration['clips']['marche']]
     plantes = clips_plantes(declaration)
     noms = [b.name for b in squelette.data.bones]
     reprises = Reprises(

@@ -129,6 +129,7 @@ export { VERBE_DE_CHOIX, declarationDuChoixNomme, type AxeDuChoix, type FenetreA
 export { reglagesDesChoix } from './choixDeFenetre';
 export { avecSigne } from '../engine/types';
 export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
+export type { VerrouDesMots } from './fabriquesDuNoyau';
 export type { Maniement } from '../data/schemas/grammaire/valeurs';
 export { lireLeRoster, ecrireLeRoster, idDeRosterDuHeros, rosterAvecLeHeros, type HerosDuRoster, type RosterEntry } from './persistance/roster';
 export { engagement, intentionDEngagement, refusDEngagement, refusDUnNouveauHeros } from './creation/engagement';

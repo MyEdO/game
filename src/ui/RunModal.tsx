@@ -60,7 +60,7 @@ export function RunModal() {
   return (
     <RollShell
       flowKey="course"
-      stake={flowStakeRef('run-roll')}
+      stake={flowStakeRef('course-test')}
       title={<><Icon id="melee/flee" size="sm" /> {pr.test.label}</>}
       subtitle={
         <>
@@ -69,7 +69,7 @@ export function RunModal() {
       }
       rows={[actorRow]}
       rolled={rolled}
-      outcome={r ? [recapLineOfEvent(ev('move', describeRun(pr), c.id), battle.combatants)] : undefined}
+      outcome={r ? [recapLineOfEvent(ev('deplacement', describeRun(pr), c.id), battle.combatants)] : undefined}
       actions={actions}
       onCancel={rolled ? undefined : cancel}
     />

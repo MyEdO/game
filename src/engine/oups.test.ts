@@ -145,7 +145,7 @@ describe('desDOups — la grappe d’une Maladresse, dans l’ordre', () => {
   it('Salve SANS Solide : la table seule (rien à sauver quand la pièce casse)', () => {
     const d = desDOups(porteur(), canon({ id: 'salve', value: 9 }), MISFIRE);
     expect(cles(d)).toEqual(['salve-table']);
-    expect(d[0].lecture).toEqual({ kind: 'table', tableId: 'artillery-salve-misfire' });
+    expect(d[0].lecture).toEqual({ kind: 'table', tableId: 'artillerie-salve-incident' });
   });
 
   it('objet SOURCE DÉJÀ détruit (Bâclé + Solide(1)) : aucun dé — la cassure a eu lieu, rien à sauver (`LDB 60 l.30`)', () => {

@@ -33,7 +33,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * sévérité de Critique, Imparfaite/Colère, conséquence de Piège-lame, reprise de Fuite, Piétinement,
  * bascule de possession du Désengagement. Ce que ces tests verrouillent :
  *  - la CHARGE de l'applier voyage par la DÉCLARATION (`ChoiceSpec.deviation`/`bladeTrap`,
- *    `TableSpec.critSeverity`/`miscast`, `DisplaySpec.fleeMove`) : une charge perdue au mint rendrait
+ *    `TableSpec.critSeverity`/`incantationImparfaite`, `DisplaySpec.fuite`) : une charge perdue au mint rendrait
  *    l'étape muette au commit — l'applier ne trouverait plus de quoi appliquer ;
  *  - l'AFFICHAGE pur reste pur : `displayStep` ne peut PAS déclarer `reveal`/`table`/`options`
  *    (interdit au TYPE, cf. les `@ts-expect-error` ci-dessous) — une conséquence sans dé ne se rend
@@ -132,11 +132,11 @@ describe('#1262 lot 5b — CHOIX : la charge de l’applier voyage par la décla
     expect(st.options!.map((o) => o.key)).toEqual(['trap', 'crit']);
     expect(st.defaultChoice, 'la résolution immédiate retient le Coup Critique').toBe('crit');
     expect(st.actorId).toBe(defenseur.id);
-    expect(st.bladeTrap, 'sans sa charge, l’applier n’a plus de Test opposé à router').toBeTruthy();
-    expect(st.bladeTrap!.defenderId).toBe(defenseur.id);
-    expect(st.bladeTrap!.attackerId).toBe(attaquant.id);
-    expect(st.bladeTrap!.parryWeaponUid).toBe('parade-1');
-    expect(st.bladeTrap!.defSL, 'le DR de la défense entre dans le Test opposé (LDB 62 l.280)').toBe(2);
+    expect(st.piegeLame, 'sans sa charge, l’applier n’a plus de Test opposé à router').toBeTruthy();
+    expect(st.piegeLame!.defenderId).toBe(defenseur.id);
+    expect(st.piegeLame!.attackerId).toBe(attaquant.id);
+    expect(st.piegeLame!.parryWeaponUid).toBe('parade-1');
+    expect(st.piegeLame!.defSL, 'le DR de la défense entre dans le Test opposé (LDB 62 l.280)').toBe(2);
     expect(st.outcome!.length, 'ce que chaque voie coûte est écrit sous les options').toBeGreaterThan(0);
     expect(modalOwnerOf(banc.getState()), 'COOP : le piégeur tranche SA parade').toBe(defenseur.id);
     expect(ownsLocal(banc.getState(), defenseur.id), 'chez l’hôte, la décision n’est pas à lui').toBe(false);
@@ -176,7 +176,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
       options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }],
       defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })!;
     expect(stepInteraction(st), 'tant que le dé n’est pas tombé, c’est un TIRAGE').toBe('table');
     expect(st.options!.map((o) => o.key), 'les voies sont RECOPIÉES par le mint').toEqual(['devier', 'subir']);
@@ -190,7 +190,7 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
       id: 'y', kind: 'deviation', label: fixtureText('Blessure critique'), actorId: 'a',
       table: { tableId: STRUCTURE_CRIT_TABLE, spec: { n: 1, sides: 100 } },
       options: [{ key: 'subir', label: fixtureText('Subir') }], defaultChoice: 'devier',
-      stake: combatStakeRef('crit-severity'),
+      stake: combatStakeRef('critique-severite'),
     })).toThrow(/defaultChoice/);
   });
 
@@ -205,8 +205,8 @@ describe('#1262 lot 5b — TABLES : le dé reste À POSER, la charge dit de quoi
     const st = parKind('miscastTable')!;
     expect(stepInteraction(st)).toBe('table');
     expect(st.table!.result).toBeUndefined();
-    expect(st.miscast, 'sans sa charge, l’applier n’a plus de contrecoup à résoudre').toBeTruthy();
-    expect(st.miscast!.severity).toBe('mineure');
+    expect(st.incantationImparfaite, 'sans sa charge, l’applier n’a plus de contrecoup à résoudre').toBeTruthy();
+    expect(st.incantationImparfaite!.severity).toBe('mineure');
     expect(st.actorId).toBe(H[0].id);
     expect(modalOwnerOf(banc.getState()), 'COOP : l’Imparfaite est celle du LANCEUR').toBe(H[0].id);
   });
@@ -263,10 +263,10 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     const st = parKind('fleeMove')!;
     expect(st, 'la fuite a son étape de REPRISE').toBeTruthy();
     expect(stepInteraction(st)).toBe('affichage');
-    expect(st.fleeMove, 'sans sa charge, `completeFlee` ne saurait plus qui fuit ni combien de Brisé').toBeTruthy();
-    expect(st.fleeMove!.moverId).toBe(fuyard.id);
-    expect(st.fleeMove!.foeId).toBe(frappeur.id);
-    expect(st.fleeMove!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
+    expect(st.fuite, 'sans sa charge, `completeFlee` ne saurait plus qui fuit ni combien de Brisé').toBeTruthy();
+    expect(st.fuite!.moverId).toBe(fuyard.id);
+    expect(st.fuite!.foeId).toBe(frappeur.id);
+    expect(st.fuite!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
     expect(st.outcome?.map((l) => l.text), 'l’étape DIT la fuite qu’elle complète, jamais une fenêtre vide').toEqual([
       t('cs.fuiteReprise', { name: fuyard.label, foe: frappeur.label }),
       t('cs.panic', { name: fuyard.label, broken: 2 }),

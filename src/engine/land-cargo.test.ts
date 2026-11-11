@@ -102,7 +102,7 @@ describe('Commerce terrestre MSRC 13 — dé des tables (l.97, l.283 ; #1667)', 
   it('la qualité du vin et la rumeur se tirent au `die` VIVANT de leur table', () => {
     const imprime = structuredClone(datasetObject('landCargo'));
     try {
-      setObjectDataset('landCargo', { ...imprime, wineQuality: { ...imprime.wineQuality, die: 'd1' }, rumours: { ...imprime.rumours, die: 'd5' } });
+      setObjectDataset('landCargo', { ...imprime, qualiteDuVin: { ...imprime.qualiteDuVin, die: 'd1' }, rumeurs: { ...imprime.rumeurs, die: 'd5' } });
       expect(rollWineQuality(deMax), 'd1 → Médiocre').toMatchObject({ roll: 1, label: 'Médiocre' });
       expect(rollTradeRumour(deMax), 'd5 au max → 01-05').toMatchObject({ min: 1, max: 5 });
     } finally {

@@ -52,8 +52,8 @@ describe('Traits psy ciblés en combat — cascade de DÉBUT de Round (LDB 21)',
     const c = banc.getState().pendingCascade;
     expect(c?.purpose).toBe('combat');
     const step = c!.participants[0];
-    expect(step.combatPsych?.kind).toBe('animosite');
-    expect(step.combatPsych?.sourceId).toBe(E.id);
+    expect(step.psychologieDeCombat?.kind).toBe('animosite');
+    expect(step.psychologieDeCombat?.sourceId).toBe(E.id);
     expect(step.participants!.map((p) => p.id)).toEqual([H.id]); // BANDE : le jet vit sur la rangée
     banc.getState().jetLancer('cascadeEnBande', H.id);
     banc.getState().jetValider('cascade');

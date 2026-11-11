@@ -2530,7 +2530,7 @@ async function verifierLeCouplage(images, racine, manifeste, assets, reposLocal,
   assert.ok(images.length > 1, 'plusieurs publications de marche')
   const premier = images[0], dernier = images.at(-1), clip = premier.clip
   proche(premier.vitesse, 2, 1e-6, 'fenêtre de couplage au cran ×2')
-  assert.equal(clip, manifeste.clips.walk, 'le clip joué est celui du rôle walk')
+  assert.equal(clip, manifeste.clips.marche, 'le clip joué est celui du rôle marche')
   const vitesse = manifeste.appuis.vitesseAuSol
   assert.ok(Number.isFinite(vitesse) && vitesse > 0, 'vitesse au sol déclarée pour le clip joué')
   const fiche = await assets.evaluer({ base: readFileSync(join(o.base, production(o.base).model)), manifeste, clips: [clip] })
@@ -2625,7 +2625,7 @@ async function parcoursComposition() {
   await choisirDansLaListe('modele/corps', base)
   const reposDeLaBase = await atelier()
   assert.deepEqual([reposDeLaBase.empreinte, reposDeLaBase.erreurs], [p.model_sha256, []])
-  assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [p.manifeste.clips.idle, true], 'la base seule joue son clip de repos')
+  assert.deepEqual([reposDeLaBase.clip, reposDeLaBase.lecture], [p.manifeste.clips.repos, true], 'la base seule joue son clip de repos')
   assert.deepEqual(Object.keys(reposDeLaBase.os).sort(), [...p.manifeste.os].sort(), 'tous les os natifs de la base sont présents dans la référence')
   await cliquerBouton('Personnage')
   const catalogues = JSON.parse(await evaluate(session, "wfrpPont.appeler('catalogues')"))

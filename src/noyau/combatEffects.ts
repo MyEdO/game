@@ -144,7 +144,7 @@ export function drainPendingLog(get: Get, set: SetFn): import('./combatLog').Com
   const q = get().pendingLogQueue;
   if (!q.length) return [];
   set({ pendingLogQueue: [] });
-  return q.map((e) => ev('condition', e.line, e.cid));
+  return q.map((e) => ev('etat', e.line, e.cid));
 }
 
 /** Pousse une ÉTAPE de séquence de combat déjà MINTÉE (`BuiltCascadeStep` — un constructeur de la
@@ -339,7 +339,7 @@ export function harvestVictoryCreature(get: Get, set: SetFn, creatureId: string)
   const { skill } = bestForTests(get().party, admis)?.test ?? admis[0];
   set({ pendingVictory: { ...pv, harvested: [...(pv.harvested ?? []), creatureId] } }); // grise le bouton
   jouerFlowEntier(runFlow(get, set, testFlow(
-    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('harvest-creature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
+    { skill, difficulty: 'intermediaire', label: titre, stake: combatStakeRef('recolte-creature', { values: { encPlein: harvestYield(p, size, 0).enc } }) },
     pieces(0),
     parDegre(0),
   ), titre));
@@ -1851,7 +1851,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Exposition (LDB 18 l.326-334) posée par l'auteur (nuit glaciale, désert, tempête) : `count` Tests
       // de Résistance PAR HÉROS, chacun une ÉTAPE de cascade INFLUENÇABLE (Chance/Résilience) — jamais de
       // jet silencieux (calque `waterExposure` / la nuit de repos). L'escalade froid/chaleur (`meta.kind`)
-      // + la peau de phoque vivent dans l'applier partagé `exposure`. La protection magique (`weatherWard`)
+      // + la peau de phoque vivent dans l'applier partagé `exposition-nocturne`. La protection magique (`weatherWard`)
       // court-circuite comme dans le moteur eager `exposureNight`.
       const heroes = env.targets(e.target ?? 'party', e.heroId);
       const count = Math.max(1, e.count ?? 2);
@@ -1865,11 +1865,11 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
         // et ressort en chip nommée) — une autre arithmétique que celle du monteur, à ne pas refaire.
         const st = monoStep({
-          id: `expo-${c.id}`, kind: 'exposure', actor: c, icon: 'rest/cold',
+          id: `expo-${c.id}`, kind: 'exposition-nocturne', actor: c, icon: 'rest/cold',
           rollLabel: 'Résistance', label: stepPrecision(t('step.exposition'), t(kind === 'froid' ? 'step.froid' : 'step.chaleur')),
           difficulty: 'intermediaire',
           montee: { base: resVal, ...(kind === 'froid' ? exposureCoatMods(c) : {}), target },
-          meta: { kind }, stake: nightStakeRef('exposure'),
+          meta: { kind }, stake: nightStakeRef('exposition-nocturne'),
         });
         pousseSi(steps, st);
       }
@@ -2241,7 +2241,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   // ── Tests ──────────────────────────────────────────────────────────────
   extendedTest: {
     group: 'Tests', label: libelleEffet('extendedTest'), icon: 'ui/key',
-    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('extended-test-roll') }),
+    make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', targetDR: 5, flag: '', stake: flowStakeRef('test-etendu') }),
     suspensif: true,
     apply: (e, env, suite) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
@@ -2261,7 +2261,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         actor: best.actor, test: { skill: e.skill, characteristic: e.characteristic },
         difficulty, valeur: best.value, soutien: best.support,
       });
-      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('extended-test-roll'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
+      env.get().ouvrirLeTestEtendu({ actorId: best.actor.id, label: e.label, skillLabel: garanti(testSkillLabel(e), e.skill?.id ?? e.characteristic, 'Compétence ou Caractéristique du Test étendu'), ...(e.skill ? { skill: e.skill } : {}), ...(e.characteristic ? { characteristic: e.characteristic } : {}), target, targetDR: e.targetDR, flag: e.flag, stake: e.stake ?? flowStakeRef('test-etendu'), ...(best.support.count > 0 ? { support: best.support } : {}), suite });
       return 'suspend';
     },
   },
@@ -2309,7 +2309,7 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
           label: m.label, value: m.mod, famille: 'jet', ref: RULE_REF['exposition-hydrique'],
         })),
       },
-      stake: combatStakeRef('water-exposure'),
+      stake: combatStakeRef('exposition-a-l-eau'),
     });
     return step ? [step] : [];
   });

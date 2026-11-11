@@ -80,14 +80,14 @@ describe('Cascade séquentielle influençable', () => {
   it('une conséquence peut INSÉRER des étapes suivantes (dépendance abri → Exposition)', () => {
     banc.getState().ensemencerLeTirage(5);
     const h = hero();
-    appliers.shelter = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ insert: step.result?.success ? [] : [step1Insert(h, 'expo-a'), step1Insert(h, 'expo-b')] }));
+    appliers['abri-de-fortune'] = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ insert: step.result?.success ? [] : [step1Insert(h, 'expo-a'), step1Insert(h, 'expo-b')] }));
     // Une étape insérée passe par un mint de la porte (`insert` n'accepte aucun littéral) : valeur
     // FOURNIE (40) à Intermédiaire (+0) — base 40, cible 40, comme le montage à la main d'avant.
     function step1Insert(actor: Combatant, id: string): BuiltCascadeStep {
       return monoStep({ id, kind: cleDeFixture('tally'), actor, label: fixtureText(id), rollLabel: 'Résistance', difficulty: 'intermediaire', stake: combatStakeRef('combat-fatigue'), ligne: { valeur: 40, valeurEtrangere: true } })!;
     }
     // Abri FORCÉ raté (dé 99) → insère 2 étapes d'Exposition.
-    const shelter: CascadeStep = { id: 'abri', kind: 'shelter', actorId: h.id, label: fixtureText('Abri'), rollLabel: 'Survie', base: 40, target: 40, result: { roll: 99, target: 40, sl: -5, success: false }};
+    const shelter: CascadeStep = { id: 'abri', kind: 'abri-de-fortune', actorId: h.id, label: fixtureText('Abri'), rollLabel: 'Survie', base: 40, target: 40, result: { roll: 99, target: 40, sl: -5, success: false }};
     startCascade(banc.getState, banc.setState, { title: 'Camp', purpose: 'test', steps: [shelter] });
     expect(banc.getState().pendingCascade!.participants).toHaveLength(1);
     banc.getState().jetValider('cascade'); // valide l'abri raté → +2 étapes
@@ -382,7 +382,7 @@ describe('Cascade séquentielle influençable', () => {
   it('`dejaDites` : les conséquences rendues sont AFFICHÉES sur l’étape, et écrites au journal UNE fois', () => {
     const h = hero();
     appliers.deja = (get, set) => {
-      journaliser(get, set, ['la conclusion, dite par l’applier'], 'info', { actorId: h.id });
+      journaliser(get, set, ['la conclusion, dite par l’applier'], 'information', { actorId: h.id });
       return { consequences: freeCons(['la conclusion, dite par l’applier']), dejaDites: true };
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: cleDeFixture('deja'), actorId: h.id }] });

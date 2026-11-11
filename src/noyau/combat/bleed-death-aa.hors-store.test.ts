@@ -42,7 +42,7 @@ describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () 
 
   function roundEndHooksOnly() {
     const battle = banc.getState().battle!;
-    const sink = (line: string, c?: Combatant) => battle.log.push(ev('condition', line, c?.id));
+    const sink = (line: string, c?: Combatant) => battle.log.push(ev('etat', line, c?.id));
     const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink };
     runCombatHooks('onRoundEnd', ctx);
     return battle;

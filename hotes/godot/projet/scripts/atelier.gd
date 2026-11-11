@@ -300,7 +300,7 @@ func _poser(base: Variant, montes: Dictionary, emblemes: Dictionary, chargement:
 	_poser_les_clips()
 	_poser_le_gabarit()
 	_montage.poser_les_morphes()
-	_marche.suivre(_montage.modele, _montage.lecteur, _montage.clip.bind("walk"), _montage.base.get("vitesseAuSol", 0.0))
+	_marche.suivre(_montage.modele, _montage.lecteur, _montage.clip.bind("marche"), _montage.base.get("vitesseAuSol", 0.0))
 	for aide in _aides:
 		_montrer_l_aide(_aides[aide], aide)
 	_montrer_l_etat()
@@ -635,7 +635,7 @@ func _vehicule_publie() -> Variant:
 ## (`<label du sélecteur> : <label du choix>`, ou le `label` d'une pièce ou d'un emplacement d'accessoire), et
 ## disparaît si N vaut 0. « Animation » porte la liste des clips (`cle` `clip`) du modèle posé, ceux de la base ou
 ## ceux du véhicule, le lecteur, l'instant, les vitesses, et « Actions », montré quand le véhicule posé a sa fiche
-## dans `attaques` de la vitrine : « Attaquer », qui joue son coup et, une fois, le clip de son rôle `ranged`, à
+## dans `attaques` de la vitrine : « Attaquer », qui joue son coup et, une fois, le clip de son rôle `tir`, à
 ## défaut `melee`, puis son repos ; « Outils » porte « Recharger les modèles », chaque aide dont le modèle posé porte
 ## un repère et le `rapport` de `modeles` s'il n'est pas vide. « Effets » montre la vitrine (`vitrine`, section «
 ## Effets », #3777) : « Armes » et « Sorts », une rangée par entrée, à son `label`, qui porte un bouton par variante
@@ -992,11 +992,11 @@ func _jouer_le_clip(nom: String) -> void:
 	_publier()
 
 
-## Le clip du rôle `idle` de la composition montée (`MontageDeComposition.clip`, à deux mains quand la main libre tient
+## Le clip du rôle `repos` de la composition montée (`MontageDeComposition.clip`, à deux mains quand la main libre tient
 ## une seconde prise) joué, s'il est au lecteur ; sans lui, le squelette reste à sa pose de repos.
 func _jouer_le_repos() -> void:
-	if _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip("idle")):
-		_jouer_le_clip(_montage.clip("idle"))
+	if _montage.lecteur != null and _montage.lecteur.has_animation(_montage.clip("repos")):
+		_jouer_le_clip(_montage.clip("repos"))
 	else:
 		_publier()
 

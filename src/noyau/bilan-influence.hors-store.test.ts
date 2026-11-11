@@ -17,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * #253 — les jets du BILAN quotidien (Faim, Exposition, Contagion) passent par la surface
- * INFLUENÇABLE (cascade de nuit), au même titre que leurs frères disease-tick/weatherResistance :
+ * INFLUENÇABLE (cascade de nuit), au même titre que leurs frères maladie-test-quotidien/weatherResistance :
  * chaque jet est une ÉTAPE lancée puis influençable à la Chance (LDB 17 l.21-25) AVANT de se
  * verrouiller. Ce test prouve, pour la nuit UNIQUE (chemin du bouton Repos, `fenetreValider('repos')` days=1) :
  *  1. le jet apparaît en étape de cascade (jamais pré-résolu dans le journal) ;
@@ -199,10 +199,10 @@ describe('#253 — EXPOSITION de campement : étape de cascade influençable', (
     banc.getState().fenetreValider('repos');
 
     // L'abri de fortune (Survie en extérieur) ouvre la séquence ; son échec INSÈRE les jets d'Exposition.
-    const abri = stepOfKind('shelter');
+    const abri = stepOfKind('abri-de-fortune');
     if (abri) { forceFail(abri.id, 'A'); banc.getState().jetValider('cascade'); }
 
-    const expo = stepOfKind('exposure');
+    const expo = stepOfKind('exposition-nocturne');
     expect(expo).toBeTruthy();
     expect(expo!.participants!.map((r) => r.id)).toEqual(['A']);
 

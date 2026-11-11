@@ -144,10 +144,10 @@ describe('Activités en mer non tentables', () => {
 describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)', () => {
   beforeEach(() => banc.setState({ party: [heros()], journal: [], pendingCascade: null }));
 
-  it('merchant-ragot : la journée passe, le réassort se tire sans bonus de recherche', () => {
+  it('marchand-ragot : la journée passe, le réassort se tire sans bonus de recherche', () => {
     banc.setState({ merchant: { entityId: 'm', archetype: '__aucun__' } as never });
     const hero = banc.getState().party[0];
-    const step = ragotSansJet('merchant-ragot', hero, t('mf.rechercheActive'), { entityId: 'm' });
+    const step = ragotSansJet('marchand-ragot', hero, t('mf.rechercheActive'), { entityId: 'm' });
     expect(step.refus).toBe(refusRagot(hero));
     const avant = banc.getState().gameTime;
     const out = appliquer(step, hero);
@@ -155,14 +155,14 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
     expect(ligneDe(out)).toContain(t('mf.searchSansJet'));
   });
 
-  it('port-sell-gossip : aucun acheteur, aucune recherche d’acheteur enchaînée (MDG 15 l.366-372)', () => {
+  it('port-vente-ragot : aucun acheteur, aucune recherche d’acheteur enchaînée (MDG 15 l.366-372)', () => {
     const PORT = { taille: 4, richesse: 4, production: [] } as unknown as PortProfile;
     banc.setState({
       vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 40, basePriceGold: 10 }], lastVoyageMilles: 0 },
       port: { placeId: 'P', label: 'Port', port: PORT, offers: [] },
     } as never);
     const hero = banc.getState().party[0];
-    const out = appliquer(ragotSansJet('port-sell-gossip', hero, t('port.buyerSearch'), { lotId: 'lot-1' }), hero);
+    const out = appliquer(ragotSansJet('port-vente-ragot', hero, t('port.buyerSearch'), { lotId: 'lot-1' }), hero);
     expect(ligneDe(out)).toBe(t('port.gossipSansJet', { name: 'Hilda', issue: t('port.gossipFail', { relation: t('port.produces') }) }));
     expect(banc.getState().pendingCascade).toBeNull();
   });
@@ -171,9 +171,10 @@ describe('Ragot non tentable : la journée de recherche est perdue (LDB 59 l.50)
 describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () => {
   const decl = { kind: 'peur' as const, sourceId: 'goule', sourceName: 'la Goule', indice: 1 };
   const bande = (cle: 'encounterPsych' | 'combatPsych'): CascadeStep => {
+    const champ = cle === 'encounterPsych' ? 'psychologieDeRencontre' : 'psychologieDeCombat';
     const hero = banc.getState().party[0];
     const ligne = rollStep({ actor: hero, test: { skill: { id: 'calme' } }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: { id: 'calme' } }) });
-    return bandStep({ id: cle, kind: cle, [cle]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
+    return bandStep({ id: cle, kind: cle, [champ]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
   };
 
   beforeEach(() => banc.setState({ party: [heros(INCONSCIENT)], journal: [], battle: null }));
@@ -215,7 +216,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
   it('étape MONO sans jet : le porteur subit l’effet de son Test raté, à DR 0', () => {
     const hero = banc.getState().party[0];
     const step = monoStep({
-      id: 'mono-sans-jet', kind: cleDeFixture('mono-sans-jet'), label: t('mf.rechercheActive'), actor: hero, difficulty: 'intermediaire', stake: combatStakeRef('merchant-ragot'),
+      id: 'mono-sans-jet', kind: cleDeFixture('mono-sans-jet'), label: t('mf.rechercheActive'), actor: hero, difficulty: 'intermediaire', stake: combatStakeRef('marchand-ragot'),
       ligne: { test: { skill: { id: 'ragot' } }, refus: refusRagot(hero) },
     })!;
     startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [step] });

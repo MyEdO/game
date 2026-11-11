@@ -331,8 +331,8 @@ func _survoler(case: Variant) -> void:
 ## `palette` ; il pose les éléments de `montes` comme l'atelier les monte (section « Atelier 3D »), une entrée sans
 ## élément ne montant rien. L'emblème d'une entrée de `montes` se pose par `MontageDeComposition`
 ## (`projet/scripts/montage_de_composition.gd`), comme à l'atelier. Le corps joue les clips de sa base par rôle (`clips`
-## de la base, réponse de `modeles`) : `idle` en boucle, `walk` au déplacement, `melee` vers une cible, `hit` au coup
-## reçu, `death` hors de combat. Tant que sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un
+## de la base, réponse de `modeles`) : `repos` en boucle, `marche` au déplacement, `melee` vers une cible, `coup` au coup
+## reçu, `mort` hors de combat. Tant que sa main libre tient la seconde prise d'un objet (section « Atelier 3D »), un
 ## rôle joue le clip de `clipsDeuxMains` sous le maniement de cet objet (`secondesPrises`), à défaut celui de `clips`
 ## (`MontageDeComposition.clip`) ; le clip en cours passe à celui de son rôle quand la tenue change. Un combattant sans
 ## corps garde son anneau et son étiquette. Pour chaque véhicule de la vue (`vehicules`), Godot monte son corps sous le
@@ -355,8 +355,8 @@ func _survoler(case: Variant) -> void:
 ## dont le nom est l'un de `caches` (`MontageDeVehicule.cacher_selon`, même recette) ; puis le véhicule tourne autour du
 ## milieu de son empreinte, sa proue, le +Z de son repère, vers son `cap` (`Combattant.tourner_au_cap`, recette
 ## `projet/recettes/postes-du-vehicule.gd`). Un véhicule joue les clips de son élément par rôle (`clips`,
-## `MontageDeVehicule.lecteur`), comme un corps ceux de sa base : `idle` en boucle, `walk` en boucle au déplacement, et,
-## vers une cible, le clip de son rôle d'attaque, `ranged` si sa table en porte un, `melee` sinon, suivi du repos
+## `MontageDeVehicule.lecteur`), comme un corps ceux de sa base : `repos` en boucle, `marche` en boucle au déplacement, et,
+## vers une cible, le clip de son rôle d'attaque, `tir` si sa table en porte un, `melee` sinon, suivi du repos
 ## (recette `projet/recettes/clips-du-vehicule.gd`). Pour chaque navire de la vue (`navires`), le plateau monte son
 ## `corps` sous son nœud `Navires` (`MontageDesNavires`, `projet/scripts/montage_des_navires.gd`, que l'éditeur monte de
 ## même : `MontageDeVehicule`, son GLB tiré par le montage `Navires/Chargeur`), peint, ses

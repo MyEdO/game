@@ -97,7 +97,7 @@ function appliquerLaPasse(get: Get, set: Set): void {
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
     log.push(t('medic.patientSinks', { patient: patient.label }));
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-    finishPlayerAction(get, set, log, 'heal');
+    finishPlayerAction(get, set, log, 'soin');
     return;
   }
   if (cum >= sg.targetDR) { // cible atteinte
@@ -111,13 +111,13 @@ function appliquerLaPasse(get: Get, set: Set): void {
         log.push(...applyOps(patient, penalty, { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }));
       }
       set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-      finishPlayerAction(get, set, log, 'heal');
+      finishPlayerAction(get, set, log, 'soin');
       return;
     }
     if (sg.traumaUid) log.push(...removeSurgicalTrauma(patient, sg.traumaUid)); // Chirurgie : Blessure Critique réparée (s'il y en a une à opérer)
     log.push(...releaseConditionLocks(patient, 'surgery')); // verrous d'État « ne peut être retiré que par Chirurgie » (Hémorragie interne, LDB 18)
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-    finishPlayerAction(get, set, log, 'heal');
+    finishPlayerAction(get, set, log, 'soin');
     // Test d'infection du PATIENT (LDB 10 l.184) : Résistance Accessible (+20) — plus un jet SILENCIEUX
     // mais une ÉTAPE INFLUENÇABLE (cascade `combatEndDisease`, jumeau d'`openCombatEndCascade` :
     // Chance/Résilience + auto-succès Résistance (Menace : Maladie), LDB 17/10). La contraction

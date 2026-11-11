@@ -14,18 +14,18 @@ const entree = (id: string) => STAKES.find((e) => e.id === id)!;
 describe('L19 — un enjeu, une identité : son id', () => {
   it('chaque porte résout l’enjeu que son id nomme, son gabarit et son foyer', () => {
     expect(resolveStake(combatStakeRef('combat-fatigue')).text).toBe(entree('combat-fatigue').template);
-    expect(resolveStake(voyageStakeRef('crew-progression')).rule).toEqual({ category: 'regles', id: 'test-equipage-progression' });
-    expect(resolveStake(nightStakeRef('forced-march')).text).toBe(entree('forced-march').template);
-    expect(resolveStake(flowStakeRef('run-roll')).text).toBe(entree('run-roll').template);
+    expect(resolveStake(voyageStakeRef('equipage-progression')).rule).toEqual({ category: 'regles', id: 'test-equipage-progression' });
+    expect(resolveStake(nightStakeRef('marche-forcee')).text).toBe(entree('marche-forcee').template);
+    expect(resolveStake(flowStakeRef('course-test')).text).toBe(entree('course-test').template);
     expect(combatStakeRef('combat-fatigue').key).toEqual({ dataset: 'combat', kind: 'combat-fatigue' });
   });
 
   it('une porte de famille refuse l’enjeu d’une autre famille', () => {
-    // @ts-expect-error — `crew-progression` est un enjeu de voyage
-    expect(() => combatStakeRef('crew-progression')).toThrow(/aucune entrée d'enjeu/);
+    // @ts-expect-error — `equipage-progression` est un enjeu de voyage
+    expect(() => combatStakeRef('equipage-progression')).toThrow(/aucune entrée d'enjeu/);
     // @ts-expect-error — `combat-fatigue` est un enjeu de combat
     expect(() => nightStakeRef('combat-fatigue')).toThrow(/aucune entrée d'enjeu/);
-    expect(() => resolveStake({ key: { dataset: 'voyage', kind: 'exposure' } })).toThrow(/aucune entrée d'enjeu/);
+    expect(() => resolveStake({ key: { dataset: 'voyage', kind: 'exposition-nocturne' } })).toThrow(/aucune entrée d'enjeu/);
   });
 
   it('une clé qui n’est l’id d’aucun enjeu est refusée au typecheck, puis à la construction', () => {
@@ -38,6 +38,6 @@ describe('L19 — un enjeu, une identité : son id', () => {
     const r = flowTestSchema.safeParse(test);
     expect(r.success).toBe(false);
     expect(r.success ? '' : r.error.issues.map((i) => i.message).join(' ')).toMatch(/Test d’équipage SANS enjeu/);
-    expect(flowTestSchema.safeParse({ ...test, stake: voyageStakeRef('crew-affaler') }).success).toBe(true);
+    expect(flowTestSchema.safeParse({ ...test, stake: voyageStakeRef('equipage-affaler') }).success).toBe(true);
   });
 });

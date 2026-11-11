@@ -18,12 +18,12 @@ const DUREE_DEPLACEMENT_S := 0.45
 const OPACITE_HORS_COMBAT := 0.35
 const VIDE := MontageDeComposition.VIDE
 ## Les rôles d'animation (`ROLES_D_ANIMATION`, `src/noyau/animation.ts`) qu'il joue.
-const REPOS := "idle"
-const MARCHE := "walk"
+const REPOS := "repos"
+const MARCHE := "marche"
 const ATTAQUE := "melee"
-const TIR := "ranged"
-const COUP := "hit"
-const MORT := "death"
+const TIR := "tir"
+const COUP := "coup"
+const MORT := "mort"
 
 @onready var _montage: MontageDeComposition = $Modele
 @onready var _selection: MeshInstance3D = $Selection
@@ -129,7 +129,7 @@ func parcourir(lieux: Array, metres: Array) -> void:
 	_deplacement.tween_callback(_reposer)
 
 
-## Tourné vers `cible` (une position du plateau), il frappe : le clip de son rôle d'attaque, `ranged` si sa table en
+## Tourné vers `cible` (une position du plateau), il frappe : le clip de son rôle d'attaque, `tir` si sa table en
 ## porte un (une pièce de tir), `melee` sinon.
 func agir_vers(cible: Vector3) -> void:
 	tourner_vers(_montage, cible)

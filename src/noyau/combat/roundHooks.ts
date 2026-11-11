@@ -118,7 +118,7 @@ export function collectHeroRoundEndUpkeep(get: Get, c: Combatant): BuiltCascadeS
     const step = monoStep({
       id: `aaBleed-${c.id}`, kind: 'aaBleedUnconscious', icon: 'condition/bleeding', label: t('step.perteDeSang'),
       actor: c, ligne: { test: { skill: { id: 'resistance' } } }, difficulty: 'intermediaire',
-      stake: combatStakeRef('combat-aa-bleed'),
+      stake: combatStakeRef('combat-aa-hemorragie'),
     });
     pousseSi(steps, step);
   }
@@ -208,7 +208,7 @@ export const TABLES = {
           id: `spellPlusTest-${hero.id}-${spellId}`, kind: 'spellPlusTest',
           actor: hero, ligne: { test: TEST_PROLONGATION }, difficulty: 'intermediaire',
           icon: 'nav/dice', label: stepProlonger(dataLabel(effect.label)),
-          meta: { sourceSpellId: spellId }, stake: combatStakeRef('combat-spell-plus', { entryId: spellId }),
+          meta: { sourceSpellId: spellId }, stake: combatStakeRef('combat-sort-prolonge', { entryId: spellId }),
         });
         return;
       }
