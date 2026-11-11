@@ -1,11 +1,12 @@
 /**
  * L'EXPLORATION PAR LE PONT (#3328) : « La porte close » jouée comme Godot la joue. L'entrée de la scène poursuivie par
  * son geste en focus, le groupe projeté à sa case, les gestes d'exploration en boutons qui portent leur suite de verbes, le clic d'une case qui fait marcher
- * le groupe et rend le chemin de son meneur (#3822), la porte dessinée sur le plateau, fermée puis ouverte, le volume du monde de la scène (`monde`).
+ * le groupe et rend le chemin de son meneur (#3822), la porte dessinée sur le plateau, fermée puis ouverte, servie par `aretes` quand leur
+ * empreinte change (`plateau.cleDesAretes`, #3947), le volume du monde de la scène (`monde`).
  */
 import { describe, it, expect } from 'vitest';
-import { drainer, table, enFocus } from './pont.testkit';
-import { CLIC_DU_CHAMP, type plateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { drainer, table, enFocus, vueDe } from './pont.testkit';
+import { CLIC_DU_CHAMP, type AreteDessinee, type VolumeDuMonde } from '../../../src/noyau/index';
 import type { Bouton } from '../../../src/hote/elements';
 
 const { appel } = table();
@@ -39,12 +40,17 @@ describe('l’exploration par le pont', () => {
     expect(boutons.map((b) => b.libelle), 'chaque geste d’exploration est un bouton qui le nomme').toEqual(exploration.gestes.liste.map((g) => g.libelle));
     const porte = boutons.find((b) => 'suite' in b.jeu && b.jeu.suite.some((a) => a.type === 'actionnerLaPorte'));
     expect(porte, 'la porte fermée s’ouvre par un bouton').toBeDefined();
-    const auMilieu = (aretes: ReturnType<typeof plateauDeLaScene>['aretes']) => aretes.find((a) => a.milieu.x === 2.5 && a.milieu.y === 1);
-    expect(auMilieu(suite.vue.plateau!.aretes), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
+    const aretes = () => (appel('aretes') as unknown as { aretes: AreteDessinee[] }).aretes;
+    const auMilieu = (servies: AreteDessinee[]) => servies.find((a) => a.milieu.x === 2.5 && a.milieu.y === 1);
+    const fermees = aretes();
+    expect(auMilieu(fermees), 'le plateau dessine la porte, fermée, sur l’arête est de (2, 1)')
       .toEqual({ cle: '2,1,E,0', case: { x: 2, y: 1 }, milieu: { x: 2.5, y: 1 }, sens: { x: 0, y: 1 }, pied: 0, piece: 'porte-fermee', famille: 'colombage', hauteurM: 4 });
-    expect(suite.vue.plateau!.aretes.filter((a) => a !== auMilieu(suite.vue.plateau!.aretes)).map((a) => [a.milieu, a.piece]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, 'mur'], [{ x: 2.5, y: 2 }, 'mur']]);
+    expect(fermees.filter((a) => a !== auMilieu(fermees)).map((a) => [a.milieu, a.piece]), 'ses deux murs pleins').toEqual([[{ x: 2.5, y: 0 }, 'mur'], [{ x: 2.5, y: 2 }, 'mur']]);
+    const empreinte = suite.vue.plateau!.cleDesAretes;
+    expect(vueDe(appel('vue')).plateau!.cleDesAretes, 'rien n’a changé : la même empreinte, le jeu ne rappelle pas `aretes`').toBe(empreinte);
     ({ suite } = drainer(appel, appel('jouer', porte!.jeu)));
-    expect(auMilieu(suite.vue.plateau!.aretes)?.piece, 'la porte ouverte, le plateau la dessine ouverte').toBe('porte-ouverte');
+    expect(suite.vue.plateau!.cleDesAretes, 'la porte ouverte : l’empreinte change, le jeu rappelle `aretes`').not.toBe(empreinte);
+    expect(auMilieu(aretes())?.piece, 'la porte ouverte, le plateau la dessine ouverte').toBe('porte-ouverte');
 
     const reduit = { x: 4, y: 0 };
     const meneur = suite.vue.projection.exploration!.heros[0].id;

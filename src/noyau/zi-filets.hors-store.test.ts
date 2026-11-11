@@ -87,7 +87,7 @@ describe('Filets BARBELÉS (Zoo Impérial p.29) — Dégâts ignorant l’armure
     const q = findQualityById('filet-barbele');
     expect(q).toBeTruthy();
     const op = (q!.effects![0].flow as { steps: { effect: { ops: Record<string, unknown>[] } }[] }).steps[0].effect.ops[0];
-    expect(op).toMatchObject({ op: 'condition', id: 'empetre', escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 });
+    expect(op).toMatchObject({ op: 'condition', id: { id: 'empetre' }, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 1 });
   });
 
   it('à la touche : la cible gagne Empêtré avec struggleDamage FIGÉ (aucune valeur en dur au moteur — DONNÉE)', () => {

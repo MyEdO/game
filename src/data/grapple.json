@@ -5,7 +5,9 @@
   "init": [
     {
       "op": "condition",
-      "id": "empetre",
+      "id": {
+        "id": "empetre"
+      },
       "value": 1,
       "grapple": true
     }
@@ -28,14 +30,18 @@
     "empetrer": [
       {
         "op": "condition",
-        "id": "empetre",
+        "id": {
+          "id": "empetre"
+        },
         "value": 1
       }
     ],
     "liberer": [
       {
         "op": "removeCondition",
-        "id": "empetre",
+        "id": {
+          "id": "empetre"
+        },
         "value": 1,
         "valuePerSL": {
           "every": 1,

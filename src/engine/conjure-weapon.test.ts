@@ -137,7 +137,7 @@ describe('grantWeapon — variantes de domaine (stats fixes du Sort)', () => {
 
   it('Épée ardente de Rhuin : Dégâts +6, Percutante + En flammes à la touche', () => {
     const c = mage();
-    applyOps(c, [{ op: 'grantWeapon', label: 'Épée ardente de Rhuin', damage: 6, subType: { id: 'base' }, reach: 'Moyenne', hands: 1, qualities: ['magique', 'percutante'], onHitEffects: [onHitFlow([{ op: 'condition', id: 'en-flammes' }])] }],
+    applyOps(c, [{ op: 'grantWeapon', label: 'Épée ardente de Rhuin', damage: 6, subType: { id: 'base' }, reach: 'Moyenne', hands: 1, qualities: ['magique', 'percutante'], onHitEffects: [onHitFlow([{ op: 'condition', id: { id: 'en-flammes' } }])] }],
       { idNeuf: idsDeTest, rng: desDuTest, label: "L'Épée ardente de Rhuin", defaultDurationRounds: 4 });
     expect(damageString(c.weapons[0].damage)).toBe('+6');
     expect(c.weapons[0].qualities.map((q) => q.id)).toEqual(expect.arrayContaining(['magique', 'percutante']));

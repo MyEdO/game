@@ -2,7 +2,7 @@
  * LES ÉCHANTILLONS DU MONDE (#3802) : ce que le jeu dessine en 3D hors des modèles servis, famille par famille (chaque
  * décor, chaque sol, chaque matière de relief et de toit, chaque apparence de mur), chacun posé dans une scène que
  * bâtissent les écrivains de l'éditeur (`sceneEdit`) et dessiné par les lecteurs que le jeu sert à son hôte : le volume
- * (`volumeDuMonde`), les arêtes et les couronnes tombées du plateau (`plateauDeLaScene`), les nappes de toit
+ * (`volumeDuMonde`), les arêtes (`aretesDeLaScene`) et les couronnes tombées du plateau (`plateauDeLaScene`), les nappes de toit
  * (`toitsDuMonde`) et les couronnes crénelées (`couronnesDuMonde`).
  */
 import { findPropById, matieresDe, props, structureAppearances, terrains, semencesDeScene } from '../../data';
@@ -15,7 +15,7 @@ import { addArchitectureBody, addBuildingMass, addLayer, fillTerrainRect, paintC
 import { emptyScene, setStructureDown, type Scene, type WallSeg, type WallSide } from './scene';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainSolidHeightM } from './terrain';
-import { plateauDeLaScene, type AreteDessinee } from './aretes';
+import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';
 import { couronnesDuMonde, toitsDuMonde, volumeDuMonde, type NappeDuMonde, type VolumeDuMonde } from './volume/volume';
 
 /** Une famille d'échantillons : les décors (`props.json`), les sols (`terrains.json`, hors de l'absence de sol,
@@ -154,6 +154,6 @@ export function sceneDEchantillon(famille: FamilleDEchantillon, id: string): Sce
  *  regard qui ne retire rien (`immersion`). PUR. */
 export function echantillonDessine(famille: FamilleDEchantillon, id: string): EchantillonDessine {
   const scene = sceneDEchantillon(famille, id);
-  const { aretes, couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
-  return { monde: volumeDuMonde(scene), aretes, toits: toitsDuMonde(scene), couronnes: couronnesDuMonde(scene), couronnesAbattues };
+  const { couronnesAbattues } = plateauDeLaScene(scene, [], 'immersion');
+  return { monde: volumeDuMonde(scene), aretes: aretesDeLaScene(scene), toits: toitsDuMonde(scene), couronnes: couronnesDuMonde(scene), couronnesAbattues };
 }

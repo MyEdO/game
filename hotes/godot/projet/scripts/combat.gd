@@ -1,7 +1,8 @@
 ## Le combat, hôte du noyau (`hotes/godot/pont/CONTRAT.md`), et le seul lecteur de la vue : il démarre la partie de
 ## l'adresse de la page (`?scenario=<id>&graine=<n>`), la scène que l'éditeur a mise à l'essai (`PontDuNoyau.essai`), ou,
 ## l'adresse n'en nommant aucun, le scénario que le joueur choisit au panneau des scénarios (`scenarios`), pose au plateau le monde de sa scène (`monde`), à nouveau chaque
-## fois que la partie change de scène (`vue.projection.scene`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
+## fois que la partie change de scène (`vue.projection.scene`) ou que sa clé change (`plateau.cleDuMonde`), et ses arêtes
+## (`aretes`), à nouveau chaque fois que leur empreinte change (`plateau.cleDesAretes`), et applique chaque suite. La vue va au plateau, sa lumière (`vue.lumiere`) à la `Lumiere` du monde, sa musique (`vue.musique`) à la `Musique` ; la fenêtre prend la disposition que la vue nomme (`vue.disposition`,
 ## `Disposition`) ; chaque zone de l'écran (`Zone.racines`, scène `Ecran` sans script) reçoit les éléments de sa source
 ## qui lui reviennent (`Zone.montrer_toutes` : `vue.zones`, et ce que la suite ajoute, `zones` : les lignes du journal) ;
 ## le journal va au plateau ; chaque jeton programmé est armé en minuteur et repris à son échéance. Chaque geste du joueur part en intention : celle de l'élément pressé
@@ -12,8 +13,8 @@
 ## reste tel quel, saisies comprises. Avant la partie, il tire le listage des modèles et l'index du pont
 ## (`MontageDeComposition.lister`, `indexer`), que chaque corps du plateau monte ; un échec se dit dans l'avis de panne,
 ## et la partie se joue sans corps. Chaque vue montrée, chaque corps changé, chaque défilement, chaque onglet et chaque
-## cadrage du monde, il publie à la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une fois par image, que la
-## recette lit. La bulle de l'aperçu
+## cadrage du monde, il publie à la recette qui pilote la page ce que l'écran porte (`PontDuNoyau.publier_l_ecran`), une
+## fois par image ; hors recette, rien. La bulle de l'aperçu
 ## (`combat.apercu`) se tient au-dessus de sa case. Le monde se cadre sur la scène (`Monde.cadre`), la part de l'écran que
 ## l'interface lui laisse.
 extends Node
@@ -59,6 +60,8 @@ var _vue: Dictionary = {}
 var _musique := Musique.new()
 ## La scène et la clé du volume du monde posé au plateau, vide avant le premier.
 var _cle_du_monde := ""
+## La scène et l'empreinte des arêtes posées au plateau (`plateau.cleDesAretes`), vide avant les premières.
+var _cle_des_aretes := ""
 var _zones: Array[Zone] = []
 ## Une publication de l'écran attend l'image qui vient (`_publier_l_ecran`).
 var _publication_prevue := false
@@ -126,6 +129,7 @@ func _suivre(reponse: Dictionary) -> void:
 	_vue = reponse.vue
 	_refus.text = ""
 	_poser_le_monde_de(_vue.projection.scene, _vue.plateau)
+	_poser_les_aretes_de(_vue.projection.scene, _vue.plateau)
 	_plateau.montrer(_vue)
 	_plateau.jouer_les_effets(reponse.effets)
 	if _vue.lumiere != null:
@@ -150,6 +154,18 @@ func _poser_le_monde_de(scene: Variant, plateau: Variant) -> void:
 	var monde := _pont.appeler("monde")
 	if monde.get("ok") == true and monde.monde != null:
 		_plateau.poser_le_monde(monde)
+
+
+## Les arêtes de la scène `scene` (`aretes`) sur le volume du monde (`VolumeDeScene.poser_les_aretes`), si celles de
+## leur empreinte (`plateau.cleDesAretes`) n'y sont pas déjà.
+func _poser_les_aretes_de(scene: Variant, plateau: Variant) -> void:
+	var cle := "" if scene == null or plateau == null else "%s|%s" % [scene.id, plateau.cleDesAretes]
+	if cle == _cle_des_aretes:
+		return
+	_cle_des_aretes = cle
+	var reponse := _pont.appeler("aretes")
+	if reponse.get("ok") == true:
+		_monde.volume.poser_les_aretes(reponse.aretes)
 
 
 ## La bulle de l'aperçu suit sa case à l'écran, la caméra tournée ou zoomée.
@@ -186,20 +202,26 @@ func _republier(_valeur: Variant) -> void:
 	_publier_l_ecran()
 
 
-## Ce que l'écran porte, une fois la vue mise en page : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de
-## chaque case du plateau, la part de l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et les navires posés
-## (`Plateau.navires`).
+## L'écran publié à la recette (`PontDuNoyau.publier_l_ecran`, `_ecran_publie`), une fois la vue mise en page, une
+## fois par image.
 func _publier_l_ecran() -> void:
 	if _publication_prevue:
 		return
 	_publication_prevue = true
 	await get_tree().process_frame
 	_publication_prevue = false
+	_pont.publier_l_ecran(_ecran_publie)
+
+
+## Ce que l'écran porte : ses boutons (`PontDuNoyau.boutons_a_l_ecran`), le point de chaque case du plateau, la part de
+## l'écran où le monde se voit (`Monde.cadre`), ce que porte le corps de chaque combattant dessiné (`Plateau.corps`) et
+## les navires posés (`Plateau.navires`).
+func _ecran_publie() -> Dictionary:
 	var cadre := _monde.cadre
-	_pont.publier_l_ecran({
+	return {
 		boutons = PontDuNoyau.boutons_a_l_ecran([_ecran, _scenarios]), cases = _plateau.points(),
 		cadre = [cadre.position.x, cadre.position.y, cadre.size.x, cadre.size.y], corps = _plateau.corps(), navires = _plateau.navires(),
-	})
+	}
 
 
 ## Le cadrage d'une recette (`globalThis.wfrpCadrer(entree, rendre)`, `CONTRAT.md`, section « Écran publié ») : `entree`,
