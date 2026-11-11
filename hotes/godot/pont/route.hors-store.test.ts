@@ -2,7 +2,7 @@
  * LA JOURNÉE DE ROUTE PAR LE PONT (#3534) : le trajet de Weiler à Steinbruck joué comme Godot le joue. La journée de route ne
  * s'arrête qu'aux vrais choix, les jets des héros ; la météo, le bilan de l'Étape et la Rencontre qu'il fait tirer vont
  * au journal. Chaque arrêt se dessine dans la scène du voyage : l'heure, la météo, les km du trajet, sa frise, et le groupe en
- * cartes, chaque héros ses Blessures et son jet.
+ * cartes, chaque héros son portrait, ses Blessures et son jet.
  */
 import { afterEach, describe, it, expect } from 'vitest';
 import { departDeLaCarte, drainer, gestesDessines, table } from './pont.testkit';
@@ -44,7 +44,9 @@ describe('la journée de route par le pont', () => {
     const cartes: Entite[] = suite.vue.zones['groupe.heros'];
     expect(cartes.map((h) => h.nom), 'le groupe en cartes, au pied de l’écran').toEqual(['Bjorn (test)', 'Mira (test)', 'Aldric (test)', 'Greta Hartmann']);
     for (const h of cartes) {
-      expect(h.elements[0], `${h.nom} : ses Blessures`).toMatchObject({ type: 'jauge', id: 'blessures' });
+      const combattant = h.id.slice('heros/'.length);
+      expect(h.elements.slice(0, 2), `${h.nom} : son portrait, puis ses Blessures`).toMatchObject([{ type: 'portrait', combattant }, { type: 'jauge', id: 'blessures' }]);
+      expect(suite.vue.corps.combattants, `${h.nom} : son corps, que son portrait montre hors du plateau`).toHaveProperty([combattant]);
       const jets = h.elements.filter((e): e is Jet => e.type === 'jet');
       expect(jets.map((j) => [j.qui, j.resultat]), `${h.nom} : son jet de l’étape, sur sa carte, à lancer`).toEqual([[null, null]]);
     }

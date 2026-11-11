@@ -68,7 +68,7 @@ func montrer(c: Dictionary, lieu: Vector3, actif: bool, corps: Variant, vehicule
 	if not lieu.is_equal_approx(_destination):
 		_destination = lieu
 		_aller(lieu)
-	_vetir(corps)
+	vetir(corps)
 	if await _vehicule.monter(vehicule, _montage, _poser_le_vehicule.bind(vehicule, metres_par_case)):
 		_boucler()
 		_jouer(REPOS)
@@ -145,7 +145,7 @@ func subir() -> void:
 ## Le corps `corps`, s'il a changé : aucun, le montage est vidé et l'étiquette à la hauteur du nom d'une entité ; sur
 ## une autre base que celle demandée, elle est tirée de `modeles/` et posée, ses clips de repos et de marche en boucle,
 ## puis la composition du dernier corps reçu montée (`_composer`) ; sur la même, posée, la composition l'est aussitôt.
-func _vetir(corps: Variant) -> void:
+func vetir(corps: Variant) -> void:
 	var empreinte := JSON.stringify(corps)
 	if empreinte == _empreinte:
 		return
@@ -242,6 +242,12 @@ func _signaler() -> void:
 		push_error("[corps] %s : %s" % [_id, erreur])
 	_montage.erreurs.clear()
 	habille.emit()
+
+
+## La hauteur du haut de sa tête dans son repère, là où se pose le pied de son étiquette (`MiseEnPage.HAUTEUR_DU_NOM`
+## sans corps).
+func hauteur_de_la_tete() -> float:
+	return _etiquette.position.y
 
 
 ## L'étiquette au plus haut des points d'accroche de la base au repos, le haut de sa tête : son pied de texte s'y pose.

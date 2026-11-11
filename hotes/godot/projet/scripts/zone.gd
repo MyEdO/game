@@ -2,8 +2,9 @@
 ## porte, son parent, chacun par le composant de son type (`res://composants/<type>.tscn`, une scène sans script).
 ## Les éléments se réconcilient par type et par id : un élément déjà dessiné garde son nœud, un élément parti le quitte,
 ## l'ordre suit la source ; en `ajout` (un journal), un élément déjà dessiné reste tel quel et le nouveau s'ajoute au
-## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`
-## et `Saisie` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, son geste relayé par celle-ci.
+## pied, montré par le défilement qui le contient. Chaque élément se pose sur son composant : chaque `Liaison`, `Geste`,
+## `Saisie` et `Portrait` le reçoit, et chaque zone imbriquée y lit le champ que sa `source` nomme, rangé comme une source
+## de l'écran entre les zones du composant (`ids`), son `masque` caché quand elle n'a rien à montrer, son geste relayé.
 ## `masque` se cache quand aucune des zones qui le nomment n'a rien à montrer. Sous un `TabContainer`, chaque élément
 ## est un onglet, titré de son nom (`nom`, sinon `libelle`), qui ne le redit pas (son `Nom` caché) ; une zone portée par
 ## une page d'un `TabContainer` en cache l'onglet quand elle n'a rien à montrer.
@@ -110,10 +111,17 @@ static func poser(racine: Node, element: Dictionary, zone: Zone) -> void:
 			enfant.poser(element)
 		elif enfant is Geste or enfant is Saisie:
 			enfant.poser(element, zone)
+		elif enfant is Portrait:
+			enfant.poser(element)
 		elif enfant is Zone:
 			if not enfant.geste.is_connected(zone.geste.emit):
 				enfant.geste.connect(zone.geste.emit)
-			enfant.montrer(element.get(enfant.source, []))
+			var composant := enfant.get_parent()
+			while not composant.has_meta(META):
+				composant = composant.get_parent()
+			enfant.montrer(Zone.elements_de(Zone.racines(composant), enfant, element))
+			if enfant.masque != null:
+				enfant.masque.visible = enfant.get_parent().get_children().any(func(n: Node) -> bool: return n.has_meta(META))
 		else:
 			Zone.poser(enfant, element, zone)
 
