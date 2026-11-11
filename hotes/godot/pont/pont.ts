@@ -18,7 +18,7 @@
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
-import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
+import { CLIC_DU_CHAMP, brouillonDeLaPartie, cataloguesDeComposition, ficheDuPorteur, editer, intentionDEngagement, ouvrirLEdition, projetDuDepot, essaiDeLaScene, texteAEnregistrer, pagesDeCreation, sceneEditee, vueDeLaScene, FIRE_ARCS, ficheDEntite, libelleDuBord, lireApparenceDAuteur, lireComposition, lireSurchargesDEmblemes, siegeEngines, vehiculeDuCombattant, type FireArc, lumiereDeLaScene, porteeDuCombattant, type Jeu, effetsDeLAppel, vitrineDesEffets, type Effet, type VitrineDesEffets, meteoDuRegard, aretesDeLaCouche, aretesDeLaScene, type AreteDessinee, naviresDeLaScene, stationsDuNavire, type EmprisesDesCases, type NavireDeLaScene, type StationDeNavire, casesDuGroupe, plateauDeLaScene, regardDuJeu, REGARDS, volumeDuRegard, type Regard, porteeDeComposition, presetDeComposition, couronnesDuMonde, toitsDuMonde, volumeDuMonde, echantillonDessine, famillesDEchantillons, type EchantillonDessine, type FamilleDEchantillons, type Composition, type GesteDEdition, type Scene, type SessionDEdition, type LectureAuSchema, type LigneDuJournal, type LumiereDeLaScene, type ProjectDoc, type Programme, type ResultatDeLAppel, type VehiculeDuCombattant, type EmblemeResolu, planDeLaCouche, type OeilDuPlan, musiqueDeLaPartie, type MusiqueDeLaPartie, zonesQuiDurent, type ZoneQuiDure, marquesDesEtats, type MarqueDEtat, type MeteoDuRegard, type NappeDuMonde, type PlateauDeLaScene, type VolumeDuMonde } from '../../../src/noyau/index';
 import { ErreurDeGeste, nouvelEntete, nouvellesEntrees, ouvrirLaPartie, ouvrirLeLancement, valider, type CategorieDErreur, type PartieOuverte } from '../../../src/hote/partie';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../../src/hote/geste';
 import { casesAtteignables, projeter, type BornesDeLaProjection, type CaseAtteignable, type Projection } from '../../../src/hote/projection';
@@ -662,6 +662,25 @@ export function creerPont() {
       const scene = etat.scene;
       const regard = regardDuJeu(o.regard, !!etat.battle);
       return { monde: scene ? volumeDuRegard(scene, casesDuGroupe(etat), regard) : null, toits: scene ? toitsDuMonde(scene) : [], couronnes: scene ? couronnesDuMonde(scene) : [], meteo: scene ? meteoDuRegard(scene, regard) : null };
+    },
+    /**
+     * aucune
+     *
+     * @returns `{ aretes }` : les arêtes de toutes les couches de la scène en cours hors des ponts de ses navires, que
+     * la marche garde et que le modèle du navire montre (`aretesDeLaScene`, `src/noyau/monde/aretes.ts`), vides sans
+     * scène ; à rappeler quand `plateau.cleDesAretes` change. Chacune (`areteDessinee`) : `{ cle, case, milieu, sens,
+     * pied, piece, famille, hauteurM }`, sa clé `edgeKey`, la case dont elle borde un côté, son milieu et le sens où
+     * elle court, en coins de grille (`wallEnds`) ; la hauteur en mètres d'où elle se dresse, celle de la plus basse des
+     * deux cases qu'elle sépare (`piedDeLArete`, `src/noyau/monde/scene.ts`) ; sa pièce : une porte en jeu fermée ou
+     * ouverte, la brèche d'une structure abattue, une fenêtre aux volets ouverts ou clos, sinon un mur ; la famille du
+     * kit de son apparence (`kit` de `structureAppearance.json`, l'apparence étant celle du mur de la façade authorée
+     * qui régit l'arête, sinon celle du segment : `apparenceDArete`, `src/noyau/monde/facades/`), `null` pour une
+     * apparence hors du catalogue ; la hauteur de son mur en mètres, `wallHeightM` sinon un étage
+     */
+    aretes(json): { aretes: AreteDessinee[] } {
+      entreeDe('aretes', json, []);
+      const scene = demarree().partie.etat().scene;
+      return { aretes: scene ? aretesDeLaScene(scene) : [] };
     },
     /**
      * un geste : `{ type, args?, siege? }` (un verbe de la partie, ses arguments, le siège qui le joue ; une offre se

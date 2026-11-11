@@ -1,6 +1,6 @@
-## Le pont d'une planche (#3935) : il rend à `demarrer` et à `monde` les réponses enregistrées d'un état de partie
-## (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont de la page. Le combat (`combat.gd`) montre
-## alors cet état comme une partie qu'il démarre, sans la jouer.
+## Le pont d'une planche (#3935) : il rend à `demarrer`, à `monde` et à `aretes` les réponses enregistrées d'un état de
+## partie (`Planche`, `hotes/godot/recettes/ecran.ts`), et toute autre méthode au pont de la page. Le combat
+## (`combat.gd`) montre alors cet état comme une partie qu'il démarre, sans la jouer.
 class_name PontDePlanche
 extends PontDuNoyau
 
@@ -58,6 +58,8 @@ func appeler(methode: String, entree: Variant = null) -> Dictionary:
 				return _planche.demarrer
 			"monde":
 				return _monde
+			"aretes":
+				return _planche.aretes
 	return super(methode, entree)
 
 
@@ -66,7 +68,7 @@ func parametre(cle: String) -> String:
 	return str(_planche.parametres[cle]) if _planche.get("parametres", {}).has(cle) else super(cle)
 
 
-func publier_l_ecran(ecran: Dictionary) -> void:
+func publier_l_ecran(ecran: Callable) -> void:
 	super(ecran)
 	_publier_la_planche_montree(false)
 	_calme.start(CALME_S)
