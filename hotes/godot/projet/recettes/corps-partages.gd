@@ -29,7 +29,7 @@ func _recetter() -> void:
 		quit(2)
 		return
 	var pont := PontFige.poser(self, lu)
-	MontageDeComposition.retenir_les_modeles(lu.modeles)
+	MontageDeComposition.retenir_les_modeles(lu.modeles, lu.listage)
 	var base: Dictionary = lu.modeles.bases.filter(func(b: Dictionary) -> bool: return b.id == BASE)[0]
 	var orphelins := Performance.get_monitor(Performance.OBJECT_ORPHAN_NODE_COUNT)
 	var montages: Array[MontageDeComposition] = []
@@ -41,7 +41,7 @@ func _recetter() -> void:
 		scenes.append(null)
 		_tirer(montage, scenes, i)
 	await _attendre(func() -> bool: return not null in scenes)
-	_verifier(pont.requetes.count("modeles/%s" % lu.modeles.glb[BASE]) == 1, "la base téléchargée %d fois pour %d demandes" % [pont.requetes.count("modeles/%s" % lu.modeles.glb[BASE]), CORPS])
+	_verifier(pont.requetes.count("modeles/%s" % lu.modeles.fichiers[BASE].glb) == 1, "la base téléchargée %d fois pour %d demandes" % [pont.requetes.count("modeles/%s" % lu.modeles.fichiers[BASE].glb), CORPS])
 	for i in CORPS:
 		montages[i].poser_le_modele(base, scenes[i])
 		_verifier(montages[i].squelette != null and montages[i].lecteur != null, "corps %d sans squelette ou sans lecteur : %s" % [i, montages[i].erreurs])
@@ -75,7 +75,7 @@ func _recetter() -> void:
 	second.lecteur.advance(0.3)
 	_verifier(second.lecteur.assigned_animation == clip, "un corps ne joue plus son clip après la libération d'un autre")
 
-	MontageDeComposition.retenir_les_modeles(lu.modeles)
+	MontageDeComposition.retenir_les_modeles(lu.modeles, lu.listage)
 	var relu := MontageDeComposition.new()
 	root.add_child(relu)
 	relu.poser_le_modele(base, await relu.scene_du_glb(BASE, relu.erreurs))

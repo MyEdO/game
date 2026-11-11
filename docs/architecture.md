@@ -659,7 +659,9 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont
                             `const RECETTE_AUTONOME := true`, sans argument externe ; `equipement.gd`, qui attend une
                             vue JSON, ne porte pas cette déclaration. L'éditeur est épinglé (`npm run godot:sonde`,
                             étape scripts et recettes autonomes de la CI). `--export --sortie <dossier>` produit
-                            l'export Web, que `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
+                            l'export Web et, à côté, chaque modèle en scène que l'éditeur fabrique de son GLB
+                            (`projet/outils/fabrique_de_modeles.gd`, textures compressées avec mipmaps, #3946), que
+                            `recette.mjs` joue au navigateur : un tour complet, l'atelier, ou les vues
                             nommées d'une scène (`--parcours cadrages`, `cadrages/`).
   etalons/                  les planches (`planches/<nom>.json`, un état de partie enregistré depuis le pont par
                             `etalons.mjs --enregistrer`, que le jeu montre à `?planche=<nom>`), l'étalon de chacune

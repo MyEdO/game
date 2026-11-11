@@ -97,10 +97,8 @@ describe('modelesDeLAtelier', () => {
     ]);
   });
 
-  it('le GLB de chaque base et de chaque élément servi, à un point ou à une ligne, est nommé, et d’eux seuls', () => {
-    expect(modeles.glb).toEqual({
-      humanoide: 'humanoide.glb', bouclier: 'bouclier.glb', epee: 'epee.glb', chemise: 'chemise.glb', teteNaine: 'teteNaine.glb', broche: 'broche.glb',
-    });
+  it('le GLB et la scène fabriquée de chaque base et de chaque élément servi, à un point ou à une ligne, sont nommés, et d’eux seuls', () => {
+    expect(modeles.fichiers).toEqual(Object.fromEntries(['humanoide', 'bouclier', 'epee', 'chemise', 'teteNaine', 'broche'].map((id) => [id, { glb: `${id}.glb`, scene: `${id}.scn` }])));
   });
 
   it('chaque base et chaque élément servi, quelle que soit sa liaison, et eux seuls, donnent leurs surfaces ; une base sans `surfaces`, aucune', () => {
@@ -146,7 +144,7 @@ describe('modelesDeLAtelier', () => {
     expect(sansCimier.rapport).toEqual(['[emplacement-non-offert] plumet : plumet se pose sur cimier, que ni la base `humanoide` ni aucune de ses pièces n’offre']);
     expect(sansCimier.refus).toEqual([]);
     expect(servis(sansCimier)).toEqual([]);
-    expect(sansCimier.glb).toEqual({ humanoide: 'humanoide.glb' });
+    expect(Object.keys(sansCimier.fichiers)).toEqual(['humanoide']);
     const avecCimier = modelesDeLAtelier({ humanoide, casque, plumet }, { humanoide: [], casque: [], plumet: ['spine'] });
     expect(avecCimier.rapport).toEqual([]);
     expect(avecCimier.bases[0].lignes.filter((l) => 'id' in l && l.elements.includes('plumet')).map((l) => ('id' in l ? `${l.sorte}:${l.id}` : l.sorte))).toEqual(['emplacement:cimier']);
@@ -157,7 +155,7 @@ describe('modelesDeLAtelier', () => {
   it('un véhicule, sans base, est servi sous la fiche que nomme sa `definition`, son GLB, ses surfaces et le libellé de sa fiche avec lui, même sans aucune base (#2987)', () => {
     const caraque = vehiculeDeTest('caraque');
     const seul = modelesDeLAtelier({ caraque }, { caraque: [] });
-    expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, glb: { caraque: 'caraque.glb' }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque (MDG)' } });
+    expect(seul).toMatchObject({ bases: [], refus: [], vehicules: { caraque: 'caraque' }, fichiers: { caraque: { glb: 'caraque.glb', scene: 'caraque.scn' } }, surfaces: { caraque: caraque.surfaces }, libelles: { caraque: 'Caraque (MDG)' } });
     expect(modelesDeLAtelier({ humanoide, epee, caraque }, { humanoide: [], epee: ['root'], caraque: [] }).bases[0].points.flatMap(({ elements }) => elements)).not.toContain('caraque');
     expect(modeles.vehicules).toEqual({});
   });

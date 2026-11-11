@@ -9,7 +9,7 @@
 //   `recupererModeles`), puis `--element` importé (`importer.mjs --sans-publier`) ; le combat ouvert, chaque combattant
 //   à corps de la vue a la base de l'élément, celle que l'écran publie posée (`wfrpEcran.corps`), et le combattant dont
 //   le corps monte `--element` a monté aussi la tête de sa vue et porte, à la ligne de sa prise `secondaire`, l'emblème de sa
-//   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet. Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
+//   donnée (`portee.embleme`) ; sans ces options, le dossier servi est celui du projet, ou, avec `--statique`, celui que l'export a déposé, en scènes fabriquées (#3946). Puis la fenêtre du round à l'Entrée, une charge sur la plus proche des cibles que la charge offre,
 //   la localisation, le jet et sa confirmation dans la fenêtre d'attaque, la fin du tour ; le héros suivant marche
 //   d'une case (aperçu puis déplacement) et finit son tour ; les jetons de l'adversaire repris par les minuteurs de
 //   Godot jusqu'à la Défense du héros visé, jetée et confirmée, puis le round 2. `wfrpPont.appeler('vue')` observe la
@@ -151,6 +151,7 @@
 // console rendent un code non nul.
 //
 //   node hotes/godot/recette.mjs --web <dossier de l'export> --captures <dossier> [--scenario dome] [--graine 7]
+//   node hotes/godot/recette.mjs --web <export> --captures <dossier> --statique
 //   node hotes/godot/recette.mjs --scenario embleme-au-combat --web <export> --captures <dossier> --modeles <dossier neuf>
 //     --element <production d'un élément à surface blason>
 //   node hotes/godot/recette.mjs --scenario teinte-au-combat --web <export> --captures <dossier>
@@ -172,7 +173,8 @@
 //   node hotes/godot/recette.mjs --parcours bord --scenario a-bord-de-la-caraque --web <export> --captures <dossier>
 //     --route <route.json de hotes/godot/recettes/route-a-bord.hors-store.test.ts>
 /**
- * Les recettes de `hotes/godot/recette.mjs` partent du menu et ne jouent aucun geste par le pont. Le tour complet
+ * Les recettes de `hotes/godot/recette.mjs` partent du menu et ne jouent aucun geste par le pont. Avec `--statique`,
+ * l'export se sert tel que le site le publie, ses modèles en scènes fabriquées (section « Atelier 3D », `forme`). Le tour complet
  * clique « Combat », puis y lit où cliquer ; il observe la partie par `vue`. L'atelier (`--parcours atelier`) clique
  * « Atelier », lit ses boutons et son état dans `wfrpEcran`, et sert un dossier de modèles neuf que la recette remplit
  * par `importer.mjs --sans-publier` ; sans `--modeles`, il sert le dossier des modèles du projet et y pose un véhicule,
@@ -211,8 +213,9 @@ import { chargerAssets } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' } },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, clip: { type: 'string', default: 'Sword_Attack' }, statique: { type: 'boolean' } },
 })
+if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web || !o.captures) throw new Error('usage : node hotes/godot/recette.mjs --web <dossier de l’export> --captures <dossier> [--parcours combat|critique|fin|dialogue|exploration|relief|etage|regards|meteo|vehicule|cadrages|bord --route <route.json>|brume|fiche|inventaire|creation|editeur|atelier|composition|preset]')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
@@ -229,7 +232,7 @@ for (const rel of depot ? MANUSCRITS : []) {
   mkdirSync(dirname(join(dossierDesProjetsLivres(depot), rel)), { recursive: true })
   cpSync(join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel))
 }
-const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(depot && { depot }) })
+const srv = await servir({ web: o.web, ...(o.modeles && { modeles: o.modeles }), ...(o.statique && { statique: true }), ...(depot && { depot }) })
 const session = await launchSession({ width: 1280, height: 720, timeoutMs: 30000, args: WEBGL_LOGICIEL })
 const garde = consoleGuard(session)
 const noter = (t) => console.log('·', t)
