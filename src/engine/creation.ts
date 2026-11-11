@@ -18,7 +18,7 @@ import { RNG, roll, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant } from './types';
 import { Money, gainDeStatut, enPieces, type Status } from './money';
-import { SpeciesData, CareerData, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
+import { SpeciesData, tableDeCarrieres, carrieresOffertesAvec, species as allSpecies, eyes as eyesTable, hairs as hairsTable, details as detailTables, stars as starsTable, findStarById, starDie, starSubDie } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import type { RaceKey } from '../data/schemas/grammaire/valeurs';
 import { rule } from './policy';
@@ -74,21 +74,16 @@ export function rollSpecies(rng: RNG): { roll: number; ids: string[] } {
 }
 
 /**
- * Tire une Carrière sur le Tableau des Classes et Carrières aléatoires (LDB 05 l.214+), colonne
- * de l'espèce (`refCareer`). Les bornes des données sont les bornes HAUTES par carrière. Comme
- * pour les espèces, plusieurs carrières peuvent partager une borne : un jet désigne la borne et
- * le joueur CHOISIT librement parmi toutes ses carrières (le bonus de PX récompense le tirage).
+ * Tire une Carrière sur le Tableau des Classes et Carrières aléatoires (LDB 05 l.214+), colonne de
+ * l'espèce (`refCareer`), avec ou sans sa portion (MDG 09 l.9) : le dé de la colonne, puis la rangée
+ * atteinte. `ids` = la carrière tirée, puis celles que son tirage offre en plus (`carrieresOffertesAvec`,
+ * ADE I 07 l.11 ; AA 02 l.109-111), parmi lesquelles le joueur CHOISIT.
  */
-export function rollCareer(careers: CareerData[], sp: SpeciesData, rng: RNG): { roll: number; ids: string[] } | null {
-  const col = sp.refCareer;
-  const table = careers
-    .filter((c) => c.rand?.[col] != null)
-    .sort((a, b) => (a.rand[col] as number) - (b.rand[col] as number));
-  if (!table.length) return null;
-  const r = roll(1, 100, rng);
-  const max = (table.find((c) => r <= (c.rand[col] as number)) ?? table[table.length - 1]).rand[col] as number;
-  const ids = table.filter((c) => (c.rand[col] as number) === max).map((c) => c.id);
-  return { roll: r, ids };
+export function rollCareer(sp: SpeciesData, avecPortion: boolean, rng: RNG): { roll: number; ids: string[] } {
+  const table = tableDeCarrieres(sp.refCareer, avecPortion);
+  const r = rollDice(table.die, rng);
+  const tiree = findTableEntry(table.entries, r).id;
+  return { roll: r, ids: [tiree, ...carrieresOffertesAvec(tiree, sp)] };
 }
 
 /** Répartition manuelle (LDB 05 l.341) : 100 Points, min 4 / max 18 par Caractéristique. */

@@ -3,7 +3,7 @@
  * Atelier du Codex — les tables tirées s'éditent (#1667) : la rangée d'une table d'effets (`tables.json`)
  * s'enregistre et le lecteur du moteur la tire ; une rangée d'Incantation Imparfaite révisée (VDM) offre le
  * dé de son document et s'enregistre par le seam ; un palier du Voyage rapide (`sea-events.json`) offre le dé de
- * sa table et l'éditeur de sa `consequence`.
+ * sa table et l'éditeur de sa `consequence` ; les colonnes des tableaux aléatoires (#3578) s'éditent aussi.
  */
 import { describe, it, expect, afterEach, beforeAll } from 'vitest';
 import { act } from 'react';
@@ -14,7 +14,7 @@ import { datasetArray, deDeLaTable, resetData } from '../../data/overrides';
 import { findEffectTableById } from '../../data/effectTables';
 import { findTableEntry } from '../../engine/tables';
 import { deDuVoyageRapide } from '../../engine/seaVoyage';
-import { rangeesDesTalentsAleatoires, talents, talentsAleatoiresDie } from '../../data';
+import { careers, rangeesDesTalentsAleatoires, tableDeCarrieres, talents, talentsAleatoiresDie } from '../../data';
 
 beforeAll(() => {
   (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -112,5 +112,25 @@ describe('atelier du Codex — tables tirées', () => {
     expect(p).toEqual({ id: horsTableau, min: 2, max: premiere.max + 1 });
     expect(s).toEqual({ id: seconde.id, min: seconde.min + 1, max: seconde.max });
     expect(talentsAleatoiresDie()).toMatchObject({ n: 2, sides: 50 });
+  });
+
+  it('les rangées (bornes, carrière) et le dé d’une colonne du Tableau des Carrières s’éditent, et le lecteur suit (#3578)', async () => {
+    const [premiere, seconde] = tableDeCarrieres('humain', false).entries;
+    const horsColonne = careers.find((c) => !tableDeCarrieres('humain', false).entries.some((r) => r.id === c.id))!.id;
+    monter('carrieresAleatoires', 'humain');
+    const id = container.querySelector<HTMLSelectElement>('select[aria-label="identifiant de la rangée 1 de Rangées"]');
+    expect(id, 'les rangées de la colonne s’éditent en rangées, pas en JSON').not.toBeNull();
+    choisir(id!, horsColonne);
+    saisir(container.querySelector<HTMLInputElement>('input[aria-label="Minimum de la rangée 1 de Rangées"]')!, '2');
+    saisir(container.querySelector<HTMLInputElement>('input[aria-label="Maximum de la rangée 1 de Rangées"]')!, String(premiere.max + 1));
+    saisir(container.querySelector<HTMLInputElement>('input[aria-label="Minimum de la rangée 2 de Rangées"]')!, String(seconde.min + 1));
+    saisir(champNomme('Dé de tirage'), '2d50');
+    await enregistrer();
+    const table = tableDeCarrieres('humain', false);
+    expect(table.entries.slice(0, 2)).toEqual([
+      { id: horsColonne, min: 2, max: premiere.max + 1 },
+      { id: seconde.id, min: seconde.min + 1, max: seconde.max },
+    ]);
+    expect(table.die).toMatchObject({ n: 2, sides: 50 });
   });
 });

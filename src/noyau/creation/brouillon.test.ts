@@ -34,7 +34,7 @@ import {
   draftLevel,
   careerCharKeys,
   coastalSwapAvailable,
-  careerRollPool,
+  carrieresOffertes,
   withCoastalSwap,
   speciesTalentChoiceEntries,
   unresolvedTrappingSlots,
@@ -56,7 +56,7 @@ import { spells, stars, celestialHouses, species as allSpecies, careersForSpecie
 // Page blanche : `newDraft` ne pré-tire plus race/carrière — les tests posent explicitement les
 // mêmes défauts dérivés qu'avant (1ʳᵉ espèce du LDB, sa 1ʳᵉ carrière accessible).
 const DEFAULT_SPECIES = allSpecies.find((s) => s.source.book === 'livre-de-base')!;
-const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES.refCareer)[0]!;
+const DEFAULT_CAREER = careersForSpecies(DEFAULT_SPECIES)[0]!;
 const draft = () => withCareer(withSpecies(newDraft(1234), DEFAULT_SPECIES.id), DEFAULT_CAREER.id);
 
 /** Spécialisation par défaut des jokers de carrière (1re du pool LIBRE) + répartition par défaut des
@@ -221,7 +221,7 @@ describe('relance d\'un Talent tiré doublon (LDB 05 l.484)', () => {
 describe('changer d’espèce ou de carrière écarte les spécialisations des emplacements de SA famille', () => {
   const a = adresseDeCreation;
   const autreEspece = allSpecies.find((s) => s.id !== DEFAULT_SPECIES.id)!.id;
-  const autreCarriere = careersForSpecies(DEFAULT_SPECIES.refCareer).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
+  const autreCarriere = careersForSpecies(DEFAULT_SPECIES).find((c) => c.id !== DEFAULT_CAREER.id)!.id;
   const d = () => ({ ...draft(), specChoices: { [a.especeTalent(0)]: 'e', [a.carriereCompetence(0)]: 'c', [a.ajout('metier')]: 'x', [a.signe(1)]: 's' } });
 
   it('l’espèce écarte les emplacements d’espèce et les ajouts, garde la carrière et le signe', () => {
@@ -321,11 +321,11 @@ describe('Riverains ⇄ Côtiers (MDG 09 l.9, #393 P2 correctif utilisateur)', (
   const swappableSpecies = allSpecies.find((s) => coastalSwapAvailable(withSpecies(newDraft(1), s.id)))!;
   const swappable = () => withSpecies(newDraft(1234), swappableSpecies.id);
 
-  it('la table effective exclut Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
-    const off = careerRollPool({ ...swappable(), coastalSwap: false });
+  it('les carrières offertes portent Riverains XOR Côtiers selon la bascule — jamais les deux', () => {
+    const off = carrieresOffertes({ ...swappable(), coastalSwap: false });
     expect(off.some((c) => c.class.id === 'cotiers')).toBe(false);
     expect(off.some((c) => c.class.id === 'riverains')).toBe(true);
-    const on = careerRollPool({ ...swappable(), coastalSwap: true });
+    const on = carrieresOffertes({ ...swappable(), coastalSwap: true });
     expect(on.some((c) => c.class.id === 'riverains')).toBe(false);
     expect(on.some((c) => c.class.id === 'cotiers')).toBe(true);
   });

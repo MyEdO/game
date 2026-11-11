@@ -34,9 +34,10 @@
         },
         {
           "files": [
-            "careers.json"
+            "careers.json",
+            "carrieres-aleatoires.json"
           ],
-          "desc": "Carrières"
+          "desc": "Carrières · Tableau des Classes et Carrières aléatoires (d100)"
         },
         {
           "files": [

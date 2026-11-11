@@ -92,7 +92,7 @@ import { previewHero } from './CreatorSummary';
 import { CreatorStepFrame, StepHeader, Section, XpBadge, type StepZones } from './CreatorStepFrame';
 import { Band } from '../Band';
 import { fillDraftDefaults } from '../../noyau/creation/defauts';
-import { carrieresOffertes, famillesDEspeces } from '../../noyau/creation/vueDeLaCreation';
+import { famillesDEspeces } from '../../noyau/creation/vueDeLaCreation';
 import { QtyStepper } from '../QtyStepper';
 import { CreatorDice } from './CreatorDice';
 import { useRollFrisson, prefersReducedMotion } from '../useRollFrisson';
@@ -151,6 +151,7 @@ import {
   withCharMode,
   withAssignment,
   withIgnoreRestrictions,
+  carrieresOffertes,
   validateStep,
   stepIds,
   type StepId,
