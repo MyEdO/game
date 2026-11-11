@@ -1730,26 +1730,27 @@ async function parcoursEditeur() {
   await cliquerAuPanneau('Rôles')
   /** L'id de la valeur du choix `choix` qui pose la variante de discriminant `kind`. */
   const idDeLaVariante = (e, choix, kind) => inspecte(e, choix).valeurs.find((b) => b.jeu.args[2]?.kind === kind).id
-  /** Le pas neuf ajouté au rang `n` de la séquence du flux, sa branche `kind` choisie, l'élément `attendu` montré. */
-  const ajouterLePas = async (n, kind, attendu) => {
+  /** Le pas neuf ajouté au rang `n` de la séquence du flux d'id `flux`, sa branche `kind` choisie, l'élément `attendu`
+   *  montré. */
+  const ajouterLePas = async (flux, n, kind, attendu) => {
     await cliquerAuPanneau({ element: `bouton/${flux}/steps/ajouter` })
     await waitFor(session, montre(`${flux}/steps/${n}/kind`))
     e = await editeur()
     await cliquerAuPanneau({ element: `bouton/${idDeLaVariante(e, `${flux}/steps/${n}/kind`, kind)}` })
     await waitFor(session, montre(attendu))
   }
-  /** Le texte `texte` écrit au champ `champ` du flux, sa saisie tapée puis jouée. */
-  const ecrireAuFlux = async (champ, texte) => {
+  /** Le texte `texte` écrit au champ `champ` du flux d'id `flux`, sa saisie tapée puis jouée. */
+  const ecrireAuFlux = async (flux, champ, texte) => {
     await taper(`saisieTexte/${flux}/${champ}/valeur`, texte)
     await cliquerAuPanneau({ element: `formulaire/${flux}/${champ}` })
     await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${flux}/${champ}')?.champs[2].valeur === ${JSON.stringify(texte)}`)
   }
-  await ajouterLePas(0, 'do', `${flux}/steps/0/effect/flag`)
-  await ecrireAuFlux('steps/0/effect/flag', 'coffre')
-  await ajouterLePas(1, 'if', `${flux}/steps/1/cond/kind`)
+  await ajouterLePas(flux, 0, 'do', `${flux}/steps/0/effect/flag`)
+  await ecrireAuFlux(flux, 'steps/0/effect/flag', 'coffre')
+  await ajouterLePas(flux, 1, 'if', `${flux}/steps/1/cond/kind`)
   e = await editeur()
   await choisirALaListe(`${flux}/steps/1/cond/kind`, idDeLaVariante(e, `${flux}/steps/1/cond/kind`, 'flag'), 'editeur.inspecteur', montre(`${flux}/steps/1/cond/expr`))
-  await ecrireAuFlux('steps/1/cond/expr', 'coffre')
+  await ecrireAuFlux(flux, 'steps/1/cond/expr', 'coffre')
   e = await editeur()
   const branche = (id) => inspecte(e, id).valeurs.find((b) => b.presse).libelle
   noter(`un clic sur le décor « Comptoir », onglet Rôles, le flux de l’action « coffre » : « ${branche(`${flux}/kind`)} » ; « ${inspecte(e, `${flux}/steps/ajouter`).libelle} » : un pas « ${branche(`${flux}/steps/0/kind`)} », effet « ${branche(`${flux}/steps/0/effect/type`)} » sur l’indicateur « coffre », puis un pas « ${branche(`${flux}/steps/1/kind`)} », condition « ${branche(`${flux}/steps/1/cond/kind`)} » « coffre »`)
@@ -1809,8 +1810,14 @@ async function parcoursEditeur() {
   const sousCondition = inspecte(e, 'valeur/when/of/0/kind').valeurs.find((b) => b.presse)?.libelle
   noter(`à l’inspecteur du déclencheur, la condition « ${inspecte(e, 'valeur/when/kind').valeurs.find((b) => b.presse).libelle} », puis « Ajouter » : une condition « ${sousCondition} » dans son contenu`)
   await capturer('3606-m0b-1-condition-du-declencheur')
-  await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await cliquerAuPanneau({ element: 'bouton/annuler' })
+  const rangDuPas = e.zones['editeur.inspecteur'].filter((el) => /^valeur\/flow\/steps\/\d+\/kind$/.test(el.id)).length
+  await ajouterLePas('valeur/flow', rangDuPas, 'do', `valeur/flow/steps/${rangDuPas}/effect/flag`)
+  await ecrireAuFlux('valeur/flow', `steps/${rangDuPas}/effect/flag`, 'piege')
+  e = await editeur()
+  noter(`le flux du même déclencheur : « ${inspecte(e, 'valeur/flow/kind').valeurs.find((b) => b.presse).libelle} » ; « ${inspecte(e, 'valeur/flow/steps/ajouter').libelle} » : un pas « ${inspecte(e, `valeur/flow/steps/${rangDuPas}/kind`).valeurs.find((b) => b.presse).libelle} » après les ${rangDuPas} du flux, effet « ${inspecte(e, `valeur/flow/steps/${rangDuPas}/effect/type`).valeurs.find((b) => b.presse).libelle} » sur l’indicateur « piege »`)
+  await capturer('3606-m2c-1-declencheur')
+  for (let n = 0; n < 5; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
+  await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/steps/${rangDuPas}/'))`)
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/when/of'))`)
   const planche = join(depot, 'planche.png')
   ecrirePlanche(planche)
