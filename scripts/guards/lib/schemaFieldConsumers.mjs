@@ -20,9 +20,9 @@ const norm = p => p.replaceAll('\\', '/')
  *  schéma ; `deDeTirageDe` (même module) lit `die`, et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die`
  *  du nœud : tous deux rendent un `DeDeTable`, jamais une valeur JSON. */
 const PORTES = {
-  rangeesDe: { module: 'src/data/rangees.ts', champ: () => 'entries' },
-  deDeTirageDe: { module: 'src/data/rangees.ts', champ: () => 'die' },
-  deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: () => 'die' },
+  rangeesDe: { module: 'src/data/rangees.ts', champ: 'entries' },
+  deDeTirageDe: { module: 'src/data/rangees.ts', champ: 'die' },
+  deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: 'die' },
 }
 const parts = type => type?.isUnionType() || type?.isIntersectionType() ? type.getTypes().flatMap(parts) : type ? [type] : []
 const step = (checker, types, key, node) => types.flatMap(type => parts(type).flatMap(t => {
@@ -153,7 +153,7 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
     if (!porte || norm(resolve(fn.getSourceFile().fileName)) !== norm(resolve(root, porte.module))) return null
     const racine = origin(call.arguments[0])
     if (!racine) return null
-    const champ = porte.champ(checker, checker.getTypeAtLocation(call.arguments[0]))
+    const champ = porte.champ
     return { file: racine.file, path: [...racine.path, ...(call.arguments.length > 1 ? ['[]', champ] : [champ])], rendJson: porte === PORTES.rangeesDe }
   }
   const originCache = new Map()

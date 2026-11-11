@@ -76,11 +76,13 @@ export function tableTiree<R extends z.ZodType, E extends z.ZodRawShape = Record
 }
 
 /**
- * SOUS-TIRAGE nommé d'un document : le dé seul (`die`, `deDeTirageSchema`, méta de `META_CHARGE`), posé
- * sous une clé du concept quand il ne tire pas de rangées propres (`stars.json › sub`,
- * `peripeties.json › tirageQuotidien`). Lu par `deDeLaTableTiree` (`src/engine/tables.ts`). #1667
+ * SOUS-TIRAGE nommé d'un document : le dé seul (`die`, `deDeTirageSchema`), posé sous une clé du concept
+ * quand il ne tire pas de rangées propres (`stars.json › sub`, `peripeties.json › tirageQuotidien`). Lu par
+ * `deDeLaTableTiree` (`src/engine/tables.ts`). #1667
  */
-export const sousTirage = nommerChamps(z.strictObject({ die: deDeTirageSchema }), { die: META_CHARGE.die });
+export const sousTirage = nommerChamps(z.strictObject({ die: deDeTirageSchema }), {
+  die: { label: 'Dé de tirage', hint: 'Expression du dé lancé pour ce sous-tirage (ex. « d10 »)' },
+});
 
 /** Les RANGÉES d'une charge (`entries`), collection à clé `id` quand la rangée en déclare un, sous l'`espace` de
  *  noms que le document leur ouvre. */
