@@ -19,7 +19,7 @@ import { d100, parseDiceRequired, roll, rollDice, type RNG } from './dice';
 import { findTableEntry, findTableEntryIndex } from './tables';
 import type { Difficulty } from './types';
 import type { Season } from './travelStages';
-import { type CargoDef, type Voie, isTradeHubColumn, marchandisesDe, rollSeasonalCargo, cargoBasePrice, prixParPointDEnc } from './cargo';
+import { type CargoDef, type Voie, isTradeHubColumn, rollSeasonalCargo, cargoBasePrice, prixParPointDEnc } from './cargo';
 
 /** La voie du catalogue que porte la table de ce livre (MSRC 13 l.71-78). */
 export const VOIE_TERRESTRE: Voie = 'terre';
@@ -111,7 +111,7 @@ export function rollCargoQuantity(place: LandMarketProfile, rng: RNG): { d100: n
 
 /** Cargaison ALÉATOIRE de la saison (Tableau des cargaisons aléatoires, l.71-78) — table TERRESTRE. PUR. */
 export function rollRandomLandCargo(season: Season, rng: RNG): CargoDef {
-  return rollSeasonalCargo([...marchandisesDe(VOIE_TERRESTRE)], season, rng);
+  return rollSeasonalCargo(VOIE_TERRESTRE, season, rng);
 }
 
 /** ÉCHELON de qualité SECRÈTE d'une cargaison de Vin/Eau-de-vie : le dé de la table → qualité → prix de base

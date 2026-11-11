@@ -1480,7 +1480,7 @@ describe('signature projetée : une réf `{ id }` imbriquée qui résout reste u
  *
  * Ce qui se BATCHE : la racine `avant` est la même copie des defs + de la grammaire pour toutes,
  * scannée une fois. Ce qui reste un contrat par mutation : les `apres` sont des mutations DISTINCTES
- * (une def de sonde injectée ; `avail` re-tapé ; `price` re-tapé ; `freeTest` re-tapé avec et sans
+ * (une def de sonde injectée ; `price` re-tapé ; `freeTest` re-tapé avec et sans
  * sujet), chacune sur SA racine — `avant` reste intacte —, et chaque `it` lit SON verdict. Le scan tourne dans le processus de la suite : il ne
  * tient aucun état entre deux racines (`structures-scan.mts`, `sourceDe`).
  */
@@ -1525,7 +1525,6 @@ const SONDES = Object.fromEntries(DOSSIERS_DE_DEFS.map((dossier) => [sondeDans(d
 /** Les mutations, chacune posée sur le dossier de schémas de SA racine `apres`. La clé nomme le verdict. */
 const MUTATIONS: Record<string, (schemas: string) => void> = {
   ...SONDES,
-  cfAvail: reTape((source) => source.replace('avail: dispoSaisonniereSchema.optional(),', `avail: ${SAISONS('plageSchema')}.optional(),`)),
   cfPrix: reTape((source) =>
     source.replace(
       'price: z.union([prixSaisonnierSchema, tirageSchema]).optional(),',
@@ -1601,20 +1600,11 @@ describe('scannerRedeclarations — contrôle POSITIF du détecteur (#1654)', ()
  * La décrue d'un stock de redéclarations est toujours suspecte : un nœud de grammaire inventé pour
  * UN porteur ferait DISPARAÎTRE la ligne sans que la structure change (le scan ne résout ni une
  * fabrique ni un spread). Ici c'est l'INVERSE qu'on prouve : si le def du catalogue des cargaisons RE-TAPAIT
- * ce que la grammaire déclare — la colonne à quatre saisons (CF1) ou l'union de prix (CF2) —, le
- * scanner le VERRAIT, nominativement. Le lot a donc rendu 3 lignes parce que les littéraux ont
- * disparu, pas parce que la mesure s'est éteinte.
+ * ce que la grammaire déclare — l'union de prix à quatre saisons (CF2) —, le scanner le VERRAIT,
+ * nominativement. Les lignes sont donc rendues parce que les littéraux ont disparu, pas parce que la
+ * mesure s’est éteinte.
  */
 describe('scannerRedeclarations — CONTREFACTUEL `parSaison` / `prix` (#1463 L-gram-3)', () => {
-  it('CF1 — `avail` re-tapé à la place de `parSaison` : sa ligne naît, nominative', () => {
-    const diff = verdictRedecl('cfAvail');
-    expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
-    expect(diff.perdues, 'la copie a PERDU des redéclarations : la contrefaçon n’est pas isolée.').toEqual([]);
-    expect(diff.nees, 'un `avail` re-tapé n’est PAS vu : `parSaison` masquerait la mesure au lieu de la solder.').toEqual([
-      'cargoes.ts | avail | automne,ete,hiver,printemps |  | hors lexique | parSaison',
-    ]);
-  });
-
   it('CF2 — l’union de `price` re-tapée à la place des deux nœuds de grammaire : les lignes du concept `prix` renaissent', () => {
     const diff = verdictRedecl('cfPrix');
     expect(diff.avant, 'la copie NON MUTÉE ne mesure pas le même arbre que `scannerRedeclarations(ROOT)`.').toBe(redeclarations.length);
