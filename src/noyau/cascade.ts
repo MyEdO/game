@@ -800,12 +800,12 @@ export function setCascadeAmount(get: Get, set: Set, stepId: string, n: number):
 }
 
 /** La Maladresse (LDB 14) que joue l'étape COURANTE de `p` (`jet:'maladresse'`), absente sinon : la rangée du flux `maladresse`. */
-export function maladresseCourante(p: PendingCascade | null | undefined): (CascadeStep & { fumble: NonNullable<CascadeStep['fumble']> }) | undefined {
+export function maladresseCourante(p: PendingCascade | null | undefined): (CascadeStep & { maladresse: NonNullable<CascadeStep['maladresse']> }) | undefined {
   const cur = p?.participants[p.cursor];
   return cur && estUneMaladresse(cur) ? cur : undefined;
 }
 
-const estUneMaladresse = (st: CascadeStep): st is CascadeStep & { fumble: NonNullable<CascadeStep['fumble']> } => st.jet === 'maladresse' && !!st.fumble;
+const estUneMaladresse = (st: CascadeStep): st is CascadeStep & { maladresse: NonNullable<CascadeStep['maladresse']> } => st.jet === 'maladresse' && !!st.maladresse;
 
 /** Le refus d'un geste sur l'étape `stepId` qui n'est pas l'étape COURANTE (`refusDEtape`), `null` si elle l'est. Garde
  *  des verbes du flux `maladresse`, dont l'étape ne sert aucune interaction de cascade. */

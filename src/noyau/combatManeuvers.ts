@@ -75,11 +75,11 @@ export function emitCreatureAttackAnim(attacker: Combatant, kind: AttackKind): v
 /** Chiffre flottant de Dégâts sur le pion touché — MÊME canal FX que les attaques/sorts (`useCombatFx`
  *  écoute `ANIM_FLOAT`). Sans ça, les Dégâts d'une manœuvre n'apparaissaient QUE dans le journal. */
 function floatDamage(tgt: Combatant, wl: number): void {
-  if (wl > 0) bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text: t('fx.blessures', { n: wl }), kind: 'damage' });
+  if (wl > 0) bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text: t('fx.blessures', { n: wl }), kind: 'blessures' });
 }
 /** Étiquette flottante d'ÉTAT/issue (Pétrifié, Esquivé…) sur le pion — feedback visuel de la manœuvre. */
 function floatTag(tgt: Combatant, text: string): void {
-  bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text, kind: 'condition' });
+  bus.emit(EVT.ANIM_FLOAT, { to: tgt.id, text, kind: 'etat' });
 }
 
 /** Conséquence POST-TOUCHE d'une manœuvre (op IMPURE de géométrie, `TablesDuJeu.apresToucheDeManoeuvre`) —

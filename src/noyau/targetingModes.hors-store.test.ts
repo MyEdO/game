@@ -50,7 +50,7 @@ describe('currentTargetingMode — aiguilleur unique', () => {
 
   it('mode NEUTRE → attaque', () => {
     combat();
-    expect(currentTargetingMode(banc.getState).id).toBe('attack');
+    expect(currentTargetingMode(banc.getState).id).toBe('attaque');
   });
   it('action=cast → mode cast', () => {
     combat({ action: 'incantation', selectedSpellId: 'carreau' });

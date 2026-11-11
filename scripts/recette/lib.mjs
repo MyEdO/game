@@ -2524,7 +2524,7 @@ function texteDeTouche(key) {
   return key === 'Enter' ? '\r' : null;
 }
 
-/** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor.reveler`). */
+/** Alt GAUCHE, tel que CDP le nomme — la touche des gestes MAINTENUS du jeu (`decor-reveler`). */
 export const ALT = { key: 'Alt', code: 'AltLeft', windowsVirtualKeyCode: 18 };
 /** Bit de modificateur CDP pour Alt — à passer en `modifiers` aux gestes ÉMIS PENDANT le maintien. */
 export const MOD_ALT = 1;

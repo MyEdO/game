@@ -237,7 +237,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
 });
 
 describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l’étape', () => {
-  it('reprise après suspension : l’étape `fumble` est mintée avec sa charge (aucun pending)', () => {
+  it('reprise après suspension : l’étape `maladresse` est mintée avec sa charge (aucun pending)', () => {
     // Graine DÉTERMINISTE d'une défense RATÉE sur un double (LDB 14 l.13), jouée sur le chemin réel.
     let seed = 0;
     for (let sd = 1; sd <= 800 && !seed; sd++) {
@@ -268,8 +268,8 @@ describe('#1262 lot 5a — MALADRESSE : le seul hôte dont la donnée vit sur l�
     expect(st, 'la Maladresse du défenseur est une étape de la séquence').toBeTruthy();
     expect(st!.kind).toBe('fumbleJet');
     expect(st!.actorId).toBe(hero.id);
-    expect(st!.fumble!.weapon.uid, 'sa charge (arme + Oups ! à tirer) vit SUR l’étape').toBe('sw');
-    expect(st!.fumble!.result).toBeNull();
+    expect(st!.maladresse!.weapon.uid, 'sa charge (arme + Oups ! à tirer) vit SUR l’étape').toBe('sw');
+    expect(st!.maladresse!.result).toBeNull();
   });
 });
 

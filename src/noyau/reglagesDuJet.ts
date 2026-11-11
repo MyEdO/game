@@ -14,6 +14,7 @@ import type { HealMode, TestDeSoin } from '../engine/healing';
 import type { DefenseMode } from '../engine/combat';
 import type { OvercastAxis } from '../engine/overcast';
 import type { FermetureDuJet } from './rollFlowFactory';
+import type { FlowKey } from './flowVerbs';
 import type { Jeu } from './etat';
 import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from './pendings';
 import type { IdDAdversaireADistraire, IdDAdversaireDuBattement, IdDeChanson, IdDeCombattant, IdDeFormeConjuree, IdDeHeros, IdDeRangee, IdDObjet, IdDOptionDEtape } from './designations';
@@ -243,12 +244,21 @@ export const REGLAGE_DE_L_AXE = {
 /** Le flux `flux` (une donnée de frontière) a-t-il des réglages ? */
 export const estFluxRegle = (flux: unknown): flux is FluxRegle => typeof flux === 'string' && Object.prototype.hasOwnProperty.call(REGLAGES_DU_JET, flux);
 
-/** La déclaration du réglage `reglage` du flux `flux`, deux données de frontière ; `null` : le flux ne le déclare pas. */
-export function declarationDuReglage(flux: unknown, reglage: unknown): DeclarationDuReglage | null {
-  if (!estFluxRegle(flux) || typeof reglage !== 'string') return null;
+/** Le réglage `reglage` (une donnée de frontière) est-il déclaré par un flux ? */
+const estReglageDuJet = (reglage: unknown): reglage is ReglageDuJet =>
+  typeof reglage === 'string' && Object.values(REGLAGES_DU_JET).some((table) => Object.prototype.hasOwnProperty.call(table, reglage));
+
+/** La déclaration du réglage `reglage` du flux `flux` ; `null` : le flux ne le déclare pas. */
+export function declarationDuReglageNomme(flux: FlowKey, reglage: ReglageDuJet): DeclarationDuReglage | null {
+  if (!estFluxRegle(flux)) return null;
   const table: Readonly<Record<string, DeclarationDuReglage>> = REGLAGES_DU_JET[flux];
   return Object.prototype.hasOwnProperty.call(table, reglage) ? table[reglage] : null;
 }
+
+/** La déclaration du réglage `reglage` du flux `flux`, deux données de frontière (`declarationDuReglageNomme`) ;
+ *  `null` : le flux ne le déclare pas. */
+export const declarationDuReglage = (flux: unknown, reglage: unknown): DeclarationDuReglage | null =>
+  (estFluxRegle(flux) && estReglageDuJet(reglage) ? declarationDuReglageNomme(flux, reglage) : null);
 
 /** Les réglages du flux `flux`, dans leur ordre de déclaration ; aucun pour un flux qui n'en a pas. */
 export const reglagesDuFlux = (flux: string): readonly ReglageDuJet[] => (estFluxRegle(flux) ? Object.keys(REGLAGES_DU_JET[flux]) as ReglageDuJet[] : []);

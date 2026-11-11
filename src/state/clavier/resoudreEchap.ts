@@ -7,7 +7,7 @@
  *     infobulles, panneaux-paramètre, dialogue). Dès qu'une couche existe, la couche du dessus
  *     (`coucheDuDessus`) prend l'appui, et un refus/blocage s'arrête là (jamais de cascade vers la
  *     couche suivante).
- *  2. L'ÉCHELLE MÉTIER du registre (`intent-cancel` → `cursor-cancel` → … → `toggle-menu`),
+ *  2. L'ÉCHELLE MÉTIER du registre (`intention-annuler` → `curseur-annuler` → … → `menu-ouvrir`),
  *     inchangée : le 1ᵉʳ raccourci d'Échap que la porte commune du registre laisse passer
  *     (`bindingApplies` : couche du dialogue, puis `when`).
  *

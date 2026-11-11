@@ -62,7 +62,7 @@ function idsDesChaines(code: string): IdDeChaine[] {
 const idsDesChainesGdscript = (code: string): IdDeChaine[] => lexemesGdscript(code).chaines.flatMap(({ texte, ligne }) => idsDe(texte, ligne));
 
 const VERBES_DE_LA_PARTIE = new Set(Object.keys(VERBES));
-const CLES = new Set(CLES_DE_FENETRE);
+const CLES: ReadonlySet<string> = new Set(CLES_DE_FENETRE);
 /** Les noms en dur parmi `ids` : un verbe de la partie à toute place d'un id, une clé de fenêtre après un `@`. */
 const nommes = (ids: readonly IdDeChaine[]): { mot: string; ligne: number }[] =>
   ids.filter((i) => VERBES_DE_LA_PARTIE.has(i.mot) || (i.fenetre && CLES.has(i.mot))).map(({ mot, ligne }) => ({ mot, ligne }));

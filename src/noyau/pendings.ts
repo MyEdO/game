@@ -356,7 +356,7 @@ export interface PendingAppraise {
   /** Objet d'un héros (uid d'inventaire)… */
   itemUid?: string;
   /** …ou ligne de butin ENCORE en fenêtre (loot/victoire) — révélation AVANT attribution. */
-  gear?: { scope: 'loot' | 'victory'; uid: IdDeLigneDeButin };
+  gear?: { scope: 'butin' | 'victoire'; uid: IdDeLigneDeButin };
   itemName: string;
   /** 'evaluation' (défaut) = Évaluation marchande ; 'detection' = Détection d'artefact (Intuition). */
   mode?: ModeDEvaluation;
@@ -2216,7 +2216,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  s'en va — orphelin structurellement impossible. Flux : `jetLancer('maladresse')` (rollOups → result),
    *  `jetValider('maladresse')` (applyOups). `coup` = la queue du coup dont cette Maladresse est un temps
    *  d'après-coup : `jetValider('maladresse')` la reprend une fois la Maladresse appliquée. */
-  fumble?: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup };
+  maladresse?: { weapon: Weapon; result: OupsResolved | null; coup?: QueueDuCoup };
   /** DÉCLARATION d'une BANDE de Psychologie À LA RENCONTRE (LDB 21) : l'entrée de règle mise en jeu
    *  — type psy + source + cible + Indice — face à laquelle les héros appelés à l'entrée de scène sont
    *  les RANGÉES (`participants`, `aggregate:'none'`). L'applier 'encounterPsych' pose le `psychState`

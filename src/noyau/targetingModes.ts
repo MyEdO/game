@@ -15,6 +15,7 @@
  * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
  * targeting.ts, combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
+import type { BattleActionMode } from './actionRegistry';
 import type { Get, Set } from './flowTypes';
 import type { ActionDeClasse } from './intentionsDeSiege';
 import type { Combatant } from '../engine/types';
@@ -124,8 +125,12 @@ export interface TilePreview {
  * par défaut « les combattants dont l'affordance est 'ok' » — un mode ne le surcharge que s'il a une
  * liste propre (soin, surincantation…). Tout est PUR (lit l'état) sauf les commit (mutent via set).
  */
+/** L'id d'un mode de ciblage : un mode armé de la barre (`BattleActionMode`), l'attaque par défaut, ou une fenêtre qui
+ *  détient le ciblage (`detenteurDuCiblage`). */
+export type IdDeModeDeCiblage = BattleActionMode | 'attaque' | 'surincantation' | 'frappeMortelle' | 'deuxArmes' | 'poseDeLaZone';
+
 export interface TargetingMode {
-  id: string;
+  id: IdDeModeDeCiblage;
   /** Nom d'AFFICHAGE de la phase de ciblage, quand ce mode est un INTERLUDE (ciblage par la carte
    *  sans modale : Frappe Mortelle, 2ᵉ frappe, Surincantation, pose de zone, bordée, téléportation).
    *  Rendu par le bandeau de phase de la console — la SORTIE, elle, vit au registre des actions
@@ -782,7 +787,7 @@ function placingCommitCombatant(get: Get, _set: Set, _active: Combatant, id: str
 
 /** Mode ATTAQUE (mode neutre) — exporté pour son IDENTITÉ, comme `CAST_MODE` : les anneaux de cibles du
  *  mode neutre se peignent quand c'est LUI qui tient le ciblage (`gameIso/stage/highlightLayer`). */
-export const ATTACK_MODE: TargetingMode = { id: 'attack', affordance: attackAffordance, commitCombatant: attackClickCommit };
+export const ATTACK_MODE: TargetingMode = { id: 'attaque', affordance: attackAffordance, commitCombatant: attackClickCommit };
 /** Mode INCANTATION — exporté parce que son IDENTITÉ est ce que `battle.action` porte quand le geste
  *  est armé : tout consommateur qui demande « le mode incantation est-il armé ? » compare à CE mode
  *  (`CAST_MODE.id`). L'entrée du registre d'actions qui l'arme (`armed`) est libre de son propre id. */

@@ -225,7 +225,7 @@ describe('fermeturesDeLaFenetre — un geste de jet se juge sur SON flux (#3311)
 
 describe('la Maladresse (LDB 14) : le flux `maladresse`, son tirage puis sa clôture', () => {
   const maladresse = (tire: boolean): CascadeStep => ({
-    ...etape('maladresse'), fumble: { weapon: H.weapons[0], result: tire ? rollOups(H.weapons[0], makeRNG(3)) : null },
+    ...etape('maladresse'), maladresse: { weapon: H.weapons[0], result: tire ? rollOups(H.weapons[0], makeRNG(3)) : null },
   });
 
   it('le tirage s’ouvre tant qu’il n’est pas tiré, son application une fois tiré', () => {

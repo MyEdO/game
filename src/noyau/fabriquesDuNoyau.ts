@@ -55,11 +55,15 @@ import { choixDesMarches } from './cargaison';
 import { creerActionsDeLAuberge } from './innFlow';
 import { choixDeLaSemaineEnMer, validationsDeLaSemaineEnMer } from './seaActivities';
 import type { BattleState, ShootingStanceKey } from './etat';
-import type { CounterDeclaration, IssueDEmpoignade, ReactionDeBouclier } from './pendings';
+import type { CounterDeclaration, IssueDEmpoignade, PendingAppraise, ReactionDeBouclier } from './pendings';
 import type { VoyageCadence } from './voyageCadence';
 import type { CharMode } from './creation/brouillon';
 import type { HealMode } from '../engine/healing';
-import type { GenreDeDepot } from '../engine/activities';
+import type { bankWithdrawOutcome, GenreDeDepot } from '../engine/activities';
+import type { CargoRaidOutcome } from '../engine/cargo';
+import type { RiverPerilKind } from '../engine/riverNavigation';
+import type { GenreDeFlottant } from './effetsDeLAppel';
+import type { TargetingMode } from './targetingModes';
 import type { Main } from '../engine/types';
 import type { CleDeRegistre } from './modalArbiter';
 import type { HostJet } from './slotsDeJet';
@@ -106,43 +110,50 @@ type Verrou<Noms extends string, Lexique extends string> = [Exclude<Noms, Lexiqu
 export type VerrouDuLexique<Noms extends string> = Verrou<Noms, NomDeVerbe>;
 /** `true` si et seulement si `Noms` est du lexique de la machinerie ; sinon, les noms en faute. */
 export type VerrouDeLaMachinerie<Noms extends string> = Verrou<Noms, NomDeMachinerie>;
+/** `true` si et seulement si chaque mot de `S` (`Mots`), hors les nombres, est du lexique ; sinon, les mots en faute : le
+ *  verrou d'un domaine hors du noyau (les ids de raccourci et leurs rangs, `src/state/clavier/keybindings.ts`). */
+export type VerrouDesMots<S extends string> = Verrou<Exclude<Mots<S>, `${number}`>, MotDuLexique>;
 /** Les mots d'un id d'un domaine de verbe (littéral, axe), d'un id d'offre et d'un littéral de paramètre de verbe (lu par
  *  `partieLue`, scripts/docs/lib/verbesDeLaPartie.mjs) : les actions du lexique, et les mots que ses domaines nomment
- *  (#3614). */
+ *  (#3614), et ceux des littéraux du noyau, du moteur et des ids de raccourci (#3924). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre
   | 'a' | 'abandon' | 'accepter' | 'achat' | 'activite' | 'activites' | 'adversaire' | 'alea' | 'ambition'
-  | 'aneantissement' | 'annulation' | 'approche' | 'arme' | 'armes' | 'arriere' | 'aspersion' | 'attaque' | 'au'
-  | 'avant' | 'avantage' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bataille' | 'battement' | 'batterie'
-  | 'blessures' | 'bord' | 'bordee' | 'bouclier' | 'bras' | 'briser' | 'butin' | 'cacher' | 'campagne' | 'carte'
-  | 'cascade' | 'caudale' | 'chanson' | 'chapitre' | 'charge' | 'chercher' | 'chirurgie' | 'choix' | 'chute' | 'cible'
-  | 'cibles' | 'commande' | 'commandes' | 'commune' | 'conjuree' | 'conseil' | 'contact' | 'contre' | 'corde' | 'cornes'
-  | 'corps' | 'corruption' | 'couchage' | 'coups' | 'course' | 'courte' | 'critique' | 'critiques' | 'd' | 'dans' | 'de'
-  | 'debut' | 'declaration' | 'defaite' | 'defense' | 'defensive' | 'degats' | 'dehors' | 'depart' | 'depecer'
+  | 'aneantissement' | 'annulation' | 'apercu' | 'approche' | 'arme' | 'armes' | 'arriere' | 'aspersion' | 'attaque'
+  | 'au' | 'avant' | 'avantage' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bas' | 'bataille' | 'battement'
+  | 'batterie' | 'blessures' | 'bord' | 'bordee' | 'bouclier' | 'bras' | 'briser' | 'butin' | 'cacher' | 'camera'
+  | 'campagne' | 'capacite' | 'carte' | 'cascade' | 'caudale' | 'chanson' | 'chapitre' | 'charge' | 'chercher'
+  | 'chirurgie' | 'choix' | 'chute' | 'cible' | 'cibles' | 'coller' | 'combat' | 'commande' | 'commandes' | 'commune'
+  | 'conjuree' | 'conseil' | 'contact' | 'contre' | 'copier' | 'corde' | 'cornes' | 'corps' | 'corruption' | 'couchage'
+  | 'coups' | 'course' | 'courte' | 'critique' | 'critiques' | 'curseur' | 'd' | 'dans' | 'de' | 'debut' | 'decaler'
+  | 'declaration' | 'decor' | 'defaite' | 'defense' | 'defensive' | 'degats' | 'dehors' | 'depart' | 'depecer'
   | 'deplacement' | 'depot' | 'desengagement' | 'designation' | 'destin' | 'detection' | 'determination' | 'deux'
   | 'dexterite' | 'dialogue' | 'direction' | 'discret' | 'dissipation' | 'distraire' | 'document' | 'droite' | 'du'
-  | 'duree' | 'ecran' | 'effet' | 'empetrer' | 'empoignade' | 'empoigner' | 'en' | 'encombrement' | 'ensanglantee'
-  | 'entrainement' | 'equipe' | 'esquive' | 'etal' | 'etat' | 'etendu' | 'etreinte' | 'evaluation' | 'eviter' | 'f'
-  | 'file' | 'fin' | 'focalisation' | 'forme' | 'frappe' | 'frenesie' | 'fuir' | 'fuite' | 'g' | 'galop' | 'gauche'
-  | 'guerison' | 'hemorragie' | 'heros' | 'hurlement' | 'ignorer' | 'immobile' | 'immuniser' | 'incantation'
-  | 'ineluctable' | 'infirmerie' | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jambe' | 'jeter' | 'jets'
-  | 'jeux' | 'jour' | 'journal' | 'la' | 'langue' | 'le' | 'les' | 'liberation' | 'liberer' | 'lieu' | 'ligne'
-  | 'localisation' | 'longue' | 'lot' | 'm' | 'main' | 'maison' | 'maladresse' | 'manoeuvre' | 'marchand'
-  | 'marchandage' | 'marche' | 'marin' | 'masse' | 'mecenat' | 'mer' | 'mise' | 'mode' | 'monde' | 'monture' | 'morsure'
-  | 'mortelle' | 'motivation' | 'mouvement' | 'munition' | 'nature' | 'navire' | 'normal' | 'objet' | 'offre'
-  | 'opposition' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier' | 'panoplie' | 'par' | 'parade' | 'pas'
-  | 'passer' | 'patient' | 'pause' | 'payer' | 'personnelle' | 'physique' | 'piece' | 'pied' | 'pietinement' | 'pitance'
-  | 'place' | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port' | 'porte' | 'portee' | 'porteur' | 'poste' | 'posture'
-  | 'poussee' | 'pratiquer' | 'privee' | 'prix' | 'profil' | 'promouvoir' | 'protection' | 'psychologie'
-  | 'psychologique' | 'puissance' | 'qualite' | 'quantite' | 'rallier' | 'ramassage' | 'ration' | 'reaction'
-  | 'reassigne' | 'recevoir' | 'rechargement' | 'recit' | 'recuperation' | 'reeducation' | 'refuser' | 'refute'
-  | 'regard' | 'relache' | 'relevement' | 'renier' | 'renoncement' | 'repartition' | 'repas' | 'repli' | 'reponse'
-  | 'repos' | 'repousse' | 'repousser' | 'retenir' | 'retour' | 'revele' | 'rien' | 'riposte' | 'roulade' | 'round'
-  | 'sacrifier' | 'sans' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'selle' | 'service' | 'ses' | 'siege'
-  | 'social' | 'soi' | 'soins' | 'solo' | 'sort' | 'souffle' | 'soutenu' | 'spirituelle' | 'supplementaires' | 'sur'
-  | 'surincantation' | 'survivre' | 'suspendre' | 'table' | 'talent' | 'tas' | 'taverne' | 'teleportation'
-  | 'tentacules' | 'terre' | 'test' | 'testeur' | 'tete' | 'tir' | 'tirage' | 'tire' | 'tour' | 'trait' | 'traumatisme'
-  | 'troc' | 'troquer' | 'trot' | 'un' | 'usage' | 'validation' | 'vapeur' | 'vendre' | 'vente' | 'victoire' | 'vider'
-  | 'virage' | 'visee' | 'viser' | 'vomi' | 'voyage' | 'zone';
+  | 'dupliquer' | 'duree' | 'echap' | 'ecran' | 'editeur' | 'effet' | 'empetrer' | 'empoignade' | 'empoigner' | 'en'
+  | 'encaisse' | 'encombrement' | 'ensanglantee' | 'entrainement' | 'equipe' | 'esquive' | 'etal' | 'etat' | 'etendu'
+  | 'etreinte' | 'evaluation' | 'eviter' | 'exploration' | 'f' | 'file' | 'fin' | 'focalisation' | 'forme' | 'frappe'
+  | 'frenesie' | 'fuir' | 'fuite' | 'g' | 'galop' | 'gauche' | 'guerison' | 'haut' | 'hemorragie' | 'heros' | 'hors'
+  | 'hurlement' | 'ignorer' | 'immobile' | 'immuniser' | 'incantation' | 'ineluctable' | 'infirmerie' | 'inspecter'
+  | 'intention' | 'interaction' | 'interlude' | 'investir' | 'issue' | 'jambe' | 'jeter' | 'jets' | 'jeux' | 'jour'
+  | 'journal' | 'la' | 'langue' | 'le' | 'les' | 'liberation' | 'liberer' | 'lieu' | 'ligne' | 'localisation' | 'longue'
+  | 'lot' | 'm' | 'main' | 'maison' | 'maj' | 'maladresse' | 'manoeuvre' | 'marchand' | 'marchandage' | 'marche'
+  | 'marin' | 'masse' | 'mecenat' | 'menu' | 'mer' | 'mise' | 'mode' | 'monde' | 'monture' | 'morsure' | 'mortelle'
+  | 'motivation' | 'mouvement' | 'munition' | 'nature' | 'navigation' | 'navire' | 'normal' | 'objet' | 'obstacle'
+  | 'offre' | 'opposition' | 'oter' | 'ouverture' | 'ouvrage' | 'paie' | 'panier' | 'panoplie' | 'panoramique' | 'par'
+  | 'parade' | 'pas' | 'passer' | 'patient' | 'pause' | 'payer' | 'perception' | 'perdu' | 'personnelle' | 'physique'
+  | 'piece' | 'pied' | 'pietinement' | 'pitance' | 'pivot' | 'place' | 'plaie' | 'planque' | 'plein' | 'pnj' | 'port'
+  | 'porte' | 'portee' | 'porteur' | 'pose' | 'poste' | 'posture' | 'poussee' | 'pratiquer' | 'precedente' | 'privee'
+  | 'prix' | 'profil' | 'promouvoir' | 'protection' | 'psychologie' | 'psychologique' | 'puissance' | 'qualite'
+  | 'quantite' | 'rallier' | 'ramassage' | 'rapide' | 'rate' | 'ration' | 'reaction' | 'reassigne' | 'recentrer'
+  | 'recevoir' | 'rechargement' | 'recit' | 'recu' | 'recuperation' | 'reeducation' | 'refuser' | 'refute' | 'regard'
+  | 'relache' | 'relevement' | 'renier' | 'renoncement' | 'repartition' | 'repas' | 'repli' | 'reponse' | 'repos'
+  | 'repousse' | 'repousser' | 'retablir' | 'retenir' | 'retour' | 'revele' | 'reveler' | 'rien' | 'riposte' | 'roulade'
+  | 'round' | 'sacrifier' | 'sans' | 'scene' | 'seance' | 'secondaire' | 'seconde' | 'selle' | 'service' | 'ses'
+  | 'siege' | 'social' | 'soi' | 'soin' | 'soins' | 'solo' | 'sort' | 'sortie' | 'souffle' | 'soutenu' | 'spirituelle'
+  | 'subjectif' | 'suivante' | 'supplementaires' | 'sur' | 'surincantation' | 'survivre' | 'suspendre' | 'table'
+  | 'talent' | 'tas' | 'taverne' | 'teleportation' | 'tentacules' | 'terre' | 'test' | 'testeur' | 'tete' | 'tir'
+  | 'tirage' | 'tire' | 'tour' | 'trait' | 'traumatisme' | 'troc' | 'troquer' | 'trot' | 'un' | 'usage' | 'validation'
+  | 'vapeur' | 'vendre' | 'vente' | 'victoire' | 'vider' | 'virage' | 'visee' | 'viser' | 'vomi' | 'voyage' | 'vue'
+  | 'zone';
 /** Les mots de `S`, coupé à chaque tiret et avant chaque majuscule, en minuscules (`traitPsychologique` : `trait`,
  *  `psychologique`). */
 type Mots<S extends string, Cur extends string = ''> = S extends `${infer C}${infer R}`
@@ -177,7 +188,13 @@ const verrousDuLexique: [
   Verrou<Mots<FlowKey>, MotDuLexique>,
   Verrou<Mots<HostJet>, MotDuLexique>,
   Verrou<Mots<IdsParEspace['actions.json']>, MotDuLexique>,
-] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
+  Verrou<Mots<ReturnType<typeof bankWithdrawOutcome>>, MotDuLexique>,
+  Verrou<Mots<GenreDeFlottant>, MotDuLexique>,
+  Verrou<Mots<CargoRaidOutcome>, MotDuLexique>,
+  Verrou<Mots<NonNullable<PendingAppraise['gear']>['scope']>, MotDuLexique>,
+  Verrou<Mots<RiverPerilKind>, MotDuLexique>,
+  Verrou<Mots<TargetingMode['id']>, MotDuLexique>,
+] = [true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true, true];
 void verrousDuLexique;
 
 /** Le corps de la clôture de chaque flux, que seul `jetValider(flux)` appelle : un flux sans clôture ne compile pas. */

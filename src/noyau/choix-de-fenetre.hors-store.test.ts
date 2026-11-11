@@ -15,7 +15,7 @@ import type { ArgumentsDuChoix } from './choixDesFenetres';
 import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
-import { refusDeLaValidation } from './validationDeFenetre';
+import { refusDeLaValidationNommee } from './validationDeFenetre';
 import { withBourseMoney } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
 
@@ -193,11 +193,11 @@ describe('fenetreChoisir', () => {
       reedite(withBourseMoney(heros(), { gold: 0, silver: 0, brass: 0 }, idsDeTest));
       ferme();
       banc.getState().fenetreChoisir('activitesEnMer', 'investir', 5, a);
-      expect(refusDeLaValidation(banc.getState(), 'activitesEnMer'), 'la mise reprise dans la bourse qui reste').toBeNull();
+      expect(refusDeLaValidationNommee(banc.getState(), 'activitesEnMer'), 'la mise reprise dans la bourse qui reste').toBeNull();
       banc.setState({ vessel: { ...banc.getState().vessel!, cargo: [{ uid: 'lot-1', cargoId: 'bois-mer', enc: 100_000, basePriceGold: 10 }] } } as never);
       ferme();
       banc.getState().fenetreChoisir('activitesEnMer', 'activite', null, a);
-      expect(refusDeLaValidation(banc.getState(), 'activitesEnMer'), 'le Repos repris').toBeNull();
+      expect(refusDeLaValidationNommee(banc.getState(), 'activitesEnMer'), 'le Repos repris').toBeNull();
     });
 
     it('l’hôte seul valide la semaine : refusée dans l’état d’un invité et au siège d’un invité, la semaine reste ouverte', () => {
@@ -277,7 +277,7 @@ describe('fenetreChoisir', () => {
       banc.setState({ pendingVictory: null, merchant: null, pendingRest: null, pendingLoot: { title: 'Coffre', gear: [ligne('L0', 'epee'), ligne('L1', 'dague')] } } as never);
       banc.getState().evaluerLObjet('L1');
       const pa = banc.getState().pendingAppraise!;
-      expect(pa.gear).toEqual({ scope: 'loot', uid: 'L1' });
+      expect(pa.gear).toEqual({ scope: 'butin', uid: 'L1' });
       banc.getState().fenetreChoisir('butin', 'ligne', 'L0', a);
       banc.setState({ pendingAppraise: { ...pa, roll: 10, success: true, sl: 2 } });
       banc.getState().jetValider('evaluation');

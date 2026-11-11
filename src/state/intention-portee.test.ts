@@ -8,7 +8,7 @@
  * connaitre la distance. »
  *
  * Ce que cette sonde mesure, côté web : la vue de surbrillance du champ (`combatHighlightsView`) peint
- * la portée du moteur, et Échap (registre clavier `intent-cancel`) dissout l'intention. Le reste du
+ * la portée du moteur, et Échap (registre clavier `intention-annuler`) dissout l'intention. Le reste du
  * patron se joue au banc du noyau (`src/noyau/intention-portee.hors-store.test.ts`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -100,11 +100,11 @@ describe('(a) la portée AFFICHÉE est celle du moteur', () => {
 });
 
 describe('(b) annulation', () => {
-  it('Échap (registre clavier `intent-cancel`) dissout l’intention armée', () => {
+  it('Échap (registre clavier `intention-annuler`) dissout l’intention armée', () => {
     setup();
     get().armerLIntention('charge');
     expect(get().localIntent).not.toBeNull();
-    runBindingById('intent-cancel', get);
+    runBindingById('intention-annuler', get);
     expect(get().localIntent).toBeNull();
     expect(intentReach(get).size).toBe(0);
   });

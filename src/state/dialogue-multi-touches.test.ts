@@ -1,5 +1,5 @@
 /**
- * Scénario « Dialogue multi-interlocuteurs » (#1869), côté web : la touche du RANG (`dialogue-choice-N`), jouée par le
+ * Scénario « Dialogue multi-interlocuteurs » (#1869), côté web : la touche du RANG (`dialogue-reponse-N`), jouée par le
  * store et le dispatcher RÉEL des touches (`runBindingById`), part vers la réponse VISIBLE de ce rang, à son index de
  * donnée. La reprise par `when` et le rang des réponses se jouent au banc du noyau
  * (`src/noyau/scenarios/dialogue-multi.hors-store.test.ts`).
@@ -29,11 +29,11 @@ describe('dialogue-multi — la touche du rang choisit la réponse visible', () 
     parlerAGustav();
     for (const noeud of ['a1', 'a2', 'a3', 'a4']) {
       expect(get().dialogue?.nodeId).toBe(noeud);
-      runBindingById('dialogue-choice-1', get);
+      runBindingById('dialogue-reponse-1', get);
     }
     expect(get().dialogue, 'le 1ᵉʳ passage s’est clos').toBeNull();
     parlerAGustav();
-    runBindingById('dialogue-choice-1', get);
+    runBindingById('dialogue-reponse-1', get);
     expect(get().dialogue?.nodeId, 'la touche 1 part vers la 1ʳᵉ réponse VISIBLE (la 2ᵉ de la donnée)').toBe('a2');
   });
 });

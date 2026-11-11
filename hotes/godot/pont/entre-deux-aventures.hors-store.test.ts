@@ -28,10 +28,10 @@ describe('l’ouvrage et le dépôt par le pont', () => {
     const durin = parId(heros(suite, 'durin'));
     expect(valeur(durin.activite, 'Artisanat').refus, 'l’ouvrage s’engage').toBeNull();
     const depot = durin['depot/durin'] as Formulaire;
-    expect(saisie(depot, 'kind').valeurs.map((v) => [v.libelle, v.refus]), 'un artisan Bronze planque, sans investir ni Mécénat ici').toEqual([
+    expect(saisie(depot, 'genre').valeurs.map((v) => [v.libelle, v.refus]), 'un artisan Bronze planque, sans investir ni Mécénat ici').toEqual([
       ['Investir', 'Durin (forgeron) : investir en banque exige le Statut Argent ou Or.'], ['Planquer', null], ['Mécénat', 'Le Mécénat ne se pratique pas ici.'],
     ]);
-    expect(depot.champs.find((c) => c.nom === 'amountBrass'), 'le montant, par pistole, jusqu’à la bourse').toMatchObject({ type: 'saisieNombre', min: 12, max: 4800, pas: 12 });
+    expect(depot.champs.find((c) => c.nom === 'montant'), 'le montant, par pistole, jusqu’à la bourse').toMatchObject({ type: 'saisieNombre', min: 12, max: 4800, pas: 12 });
     const hilde = parId(heros(suite, 'hilde'));
     expect(valeur(hilde.activite, 'Artisanat').refus, 'sans Métier, aucun ouvrage').toBe('Hilde (marchande) ne possède aucune Compétence Métier — impossible de fabriquer.');
 

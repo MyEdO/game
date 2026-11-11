@@ -920,8 +920,8 @@ export function seuilDePerteBancaire(kind: DepotRetirable, rate: number): number
 }
 
 /** Retrait bancaire (LDB 23 l.168-170) : `roll` = le 1d100 du retrait, perdu à `seuilDePerteBancaire` ou moins. */
-export function bankWithdrawOutcome(kind: DepotRetirable, rate: number, roll: number): 'ok' | 'lost' {
-  return roll <= seuilDePerteBancaire(kind, rate) ? 'lost' : 'ok';
+export function bankWithdrawOutcome(kind: DepotRetirable, rate: number, roll: number): 'perdu' | 'recu' {
+  return roll <= seuilDePerteBancaire(kind, rate) ? 'perdu' : 'recu';
 }
 
 /** Somme d'un dépôt récupéré avec intérêts (« les fonds de départ, plus les intérêts générés »,

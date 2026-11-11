@@ -119,7 +119,7 @@ function jouer(): string[] {
     const st = pc?.participants[pc.cursor];
     if (!pc || !st) break;
     if (st.jet === 'maladresse') {
-      trace.push(`fumbleJet:${st.actorId}(${st.fumble!.weapon.label})`);
+      trace.push(`fumbleJet:${st.actorId}(${st.maladresse!.weapon.label})`);
       avanceEtapeCascade(g);
       continue;
     }

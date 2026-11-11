@@ -52,11 +52,11 @@ describe('pickActiveModalKey — priorité des modales de combat', () => {
     ).toBe('destin');
   });
 
-  it('la Maladresse n’est PLUS une modale propre : étape `jet:\'fumble\'` de la cascade (passe avant la Corruption)', () => {
+  it('la Maladresse n’est PLUS une modale propre : étape `jet:\'maladresse\'` de la cascade (passe avant la Corruption)', () => {
     // Sans cascade fumble → la Corruption l'emporte (la Maladresse n'existe QUE comme étape de cascade).
     expect(pickActiveModalKey({ pendingCorruption: {} })).toBe('corruption');
-    // Cascade portant une étape `jet:'maladresse'` (donnée SUR l'étape `step.fumble`) → 'cascade' (avant 'corruption').
-    const fumbleCascade = cascadeDeTest([{ id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'h1', fumble: { weapon: {} as Weapon, result: null } }]);
+    // Cascade portant une étape `jet:'maladresse'` (donnée SUR l'étape `step.maladresse`) → 'cascade' (avant 'corruption').
+    const fumbleCascade = cascadeDeTest([{ id: 'f', kind: 'fumbleJet', jet: 'maladresse', actorId: 'h1', maladresse: { weapon: {} as Weapon, result: null } }]);
     expect(pickActiveModalKey({ battle, pendingCascade: fumbleCascade, pendingCorruption: {} })).toBe('cascade');
   });
 

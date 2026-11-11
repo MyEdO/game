@@ -280,13 +280,21 @@ export const CHOIX_DES_FENETRES = {
 /** La fenêtre `fenetre` (une donnée de frontière) a-t-elle des choix ? */
 export const estFenetreAChoix = (fenetre: unknown): fenetre is FenetreAChoix => typeof fenetre === 'string' && Object.prototype.hasOwnProperty.call(CHOIX_DES_FENETRES, fenetre);
 
-/** La déclaration du choix `axe` de la fenêtre `fenetre`, deux données de frontière ; `null` : la fenêtre ne le déclare
- *  pas. */
-export function declarationDuChoix(fenetre: unknown, axe: unknown): DeclarationDuChoix | null {
-  if (!estFenetreAChoix(fenetre) || typeof axe !== 'string') return null;
+/** L'axe `axe` (une donnée de frontière) est-il un choix de la fenêtre `fenetre` ? */
+export const estAxeDe = (fenetre: FenetreAChoix, axe: unknown): axe is AxeDuChoix =>
+  typeof axe === 'string' && Object.prototype.hasOwnProperty.call(CHOIX_DES_FENETRES[fenetre], axe);
+
+/** La déclaration du choix `axe` de la fenêtre `fenetre` ; `null` : la fenêtre ne le déclare pas. */
+export function declarationDuChoixNomme(fenetre: CleDeRegistre, axe: AxeDuChoix): DeclarationDuChoix | null {
+  if (!estFenetreAChoix(fenetre) || !estAxeDe(fenetre, axe)) return null;
   const table: Readonly<Record<string, DeclarationDuChoix>> = CHOIX_DES_FENETRES[fenetre];
-  return Object.prototype.hasOwnProperty.call(table, axe) ? table[axe] : null;
+  return table[axe];
 }
+
+/** La déclaration du choix `axe` de la fenêtre `fenetre`, deux données de frontière (`declarationDuChoixNomme`) ;
+ *  `null` : la fenêtre ne le déclare pas. */
+export const declarationDuChoix = (fenetre: unknown, axe: unknown): DeclarationDuChoix | null =>
+  (estFenetreAChoix(fenetre) && estAxeDe(fenetre, axe) ? declarationDuChoixNomme(fenetre, axe) : null);
 
 /** Les axes de la fenêtre `cle`, dans leur ordre de déclaration ; aucun pour une fenêtre qui n'en a pas. */
 export const axesDeLaFenetre = (cle: string): readonly AxeDuChoix[] => (estFenetreAChoix(cle) ? Object.keys(CHOIX_DES_FENETRES[cle]) as AxeDuChoix[] : []);

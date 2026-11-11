@@ -14,7 +14,7 @@ import { fermetureDeLaSortie } from './sortieDeFenetre';
 import { fermetureDeLaValidation } from './validationDeFenetre';
 import { FLOW_HANDLERS, fermetureDuReglage, rangeesAReglerIci } from './rollFlowSpecs';
 import type { FermetureDuJet, FermeturesDuJet } from './rollFlowFactory';
-import { declarationDuReglage, estFluxRegle, type ReglageDuJet } from './reglagesDuJet';
+import { declarationDuReglageNomme, estFluxRegle, type ReglageDuJet } from './reglagesDuJet';
 
 /** Ce qui ferme chaque verbe du cycle du flux `flux` sur le slot `pid` (`null` : ouvert) ; sans `pid`, un flux à
  *  plusieurs jets se juge en fenêtre. */
@@ -47,7 +47,7 @@ type FermeturesPropres = (s: Jeu) => Partial<Record<string, FermetureDuJet | nul
 const FERMETURES_DES_VERBES: Partial<Record<string, FermeturesPropres>> = {
   cascade: (s) => s.pendingCascade && {
     [cleDuGeste(TOUT_RESOUDRE)]: fermetureDeToutResoudre(s, s.pendingCascade),
-    [cleDuGeste({ verbe: 'jetRegler', flux: 'contreSort', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglage('contreSort', 'declaration')).length ? null : 'rienADeclarer',
+    [cleDuGeste({ verbe: 'jetRegler', flux: 'contreSort', reglage: 'declaration', toutes: true })]: rangeesAReglerIci(s, declarationDuReglageNomme('contreSort', 'declaration')).length ? null : 'rienADeclarer',
   },
   debutDuRound: (s) => ({
     cliquerLaCase: s.preemptAiming ? null : 'nonOffert',
@@ -61,7 +61,7 @@ const FERMETURES_DES_VERBES: Partial<Record<string, FermeturesPropres>> = {
 export function argumentsPosesDuGeste(fenetre: FenetreDuJeu, g: GesteDuJeu): { fenetre?: GesteDuJeu['fenetre']; axe?: GesteDuJeu['axe']; flux?: FlowKey; reglage?: ReglageDuJet; valeur?: string; pid?: string } {
   if (g.fenetre) return { fenetre: g.fenetre, ...(g.axe ? { axe: g.axe } : {}) };
   const pid = fenetre.pid ? { pid: fenetre.pid } : {};
-  if (g.flux && g.reglage) return { flux: g.flux, reglage: g.reglage, ...(g.valeur === undefined ? {} : { valeur: g.valeur }), ...(!g.toutes && declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? pid : {}) };
+  if (g.flux && g.reglage) return { flux: g.flux, reglage: g.reglage, ...(g.valeur === undefined ? {} : { valeur: g.valeur }), ...(!g.toutes && declarationDuReglageNomme(g.flux, g.reglage)?.portee === 'rangee' ? pid : {}) };
   const deJet = verbeDeJetDe(g.verbe);
   if (!deJet || !g.flux) return pid;
   return { flux: g.flux, ...(!g.toutes && viseUneRangee(g.flux, deJet) ? pid : {}) };
@@ -93,7 +93,7 @@ export function fermeturesDeLaFenetre(s: Jeu, fenetre: FenetreDuJeu | null = fen
       continue;
     }
     if (g.reglage && estFluxRegle(g.flux)) {
-      out.set(cleDuGeste(g), fermetureDuReglage(() => s, g.flux, g.reglage, declarationDuReglage(g.flux, g.reglage)?.portee === 'rangee' ? fenetre.pid : undefined));
+      out.set(cleDuGeste(g), fermetureDuReglage(() => s, g.flux, g.reglage, declarationDuReglageNomme(g.flux, g.reglage)?.portee === 'rangee' ? fenetre.pid : undefined));
       continue;
     }
     for (const flux of fenetre.flux) {

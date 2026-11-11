@@ -185,7 +185,7 @@ Cellules NON MESURÉES, et pourquoi :
   `src/ui/gallery/registry.tsx`. L'inspection n'a pas de plaque : c'est le GESTE SECONDAIRE d'un
   jeton ou d'un portrait (clic droit, appui long ; Menu ou Maj+F10 sur un portrait focalisé ; touche
   I, R3 à la manette — #1822), à recetter par ces gestes réels. Au tour d'un héros qui a une cible,
-  Tab est la liaison `target-next` (il pose le curseur de combat sur la cible, jamais le focus sur un
+  Tab est la liaison `cible-suivante` (il pose le curseur de combat sur la cible, jamais le focus sur un
   portrait) : le chemin clavier y est Tab puis I, qui inspecte la case du curseur.
 - **Dock** `701–900` « dock sur deux rangées au besoin » : conditionnel, aucun rendu ne le rend
   exigible.
@@ -313,7 +313,7 @@ ne garde que ce relevé. Exit ≠ 0 avec la liste des défauts. Résidu mesuré 
 | `resoudreModales` + `CASCADE_LABELS` + `IDENTITE_FENETRE` | `session, etape, { labels, max = 40, pauseMs = 600, attenteMs = 30000, arret, dans }` : observe la boîte supérieure (`dialogueDuDessus`) et avance par ses vrais contrôles. Sans portée explicite, exige pendingCascade ET modale élue ET coquille RollShell (`data-champ`, `data-plein`). Les fiches restent refusées, même avec `{dans}`. `arret(identite)` rend avant tout geste ; identité = `{cle,jet,etape,nom}` enrichie de `auto().cascade` (`id,kind,interaction,ready,chosen,amount`). Une étape présente avec observation canonique absente ou incohérente (id/kind divergent, interaction vide, ready non booléen) lève avant tout geste, même avec `{dans}`. `arret` reste consulté avant ce refus. **Choix et quantité lèvent avant tout clic, même ready**. Une valeur initiale n’est pas un consentement. Un groupe obligatoire sans avancement lève en nommant les options offertes ; choisir puis confirmer au vrai clic scopé, avant de drainer la suite. Un groupe facultatif laisse Lancer ouvert : seul Lancer est pris. Aucun choix automatique ; retour void. Un geste carte lève en le nommant (`tileScreenPos` puis `geste` sur `SURFACE_CARTE`, ensuite relancer). Une lecture transitoire sans avancement attend `attenteMs`, puis nomme la dernière lecture. `max` borne toute la cascade ; pour un seul pas, cliquer explicitement. |
 | `cliquerPremierOffert` | CLIQUE le premier des libellés (`session, libelles, { dans?, offerts?, attenteMs = ATTENTE_CIBLE }`, ordre de préférence, sous-chaîne) qu'offre un contrôle OUVERT de `dans` (`.modal-overlay` par défaut) — la primitive UNIQUE des issues de fenêtre : avancer (`resoudreModales`), quitter un jet (« Renoncer », « Annuler », « Fermer »), fermer un briefing. Rend le texte cliqué ; sans libellé offert, LÈVE en nommant les contrôles ouverts, aucun clic émis |
 | `realKey` | frappe RÉELLE (`session, { key, code?, windowsVirtualKeyCode?, modifiers? }`, `Input.dispatchKeyEvent` : `rawKeyDown`/`char`/`keyUp`) par `frappe`, le SEUL émetteur clavier (`frappe(session, { focus?, qui }, evenements)` : `focus` exige que ce sélecteur désigne UN élément focalisé, sinon il LÈVE sans frapper) — traverse les MÊMES handlers que le clavier physique (`keybindings.ts`), contrairement à un `KeyboardEvent` JS synthétique souvent ignoré. UNE forme d'argument pour toute la famille `realKey*` : la TOUCHE `{ key, code?, windowsVirtualKeyCode?, modifiers? }` — pour Échap, `session` puis `{ key: 'Escape' }` ; seul `key` est requis, `code` et le code virtuel se déduisent de lui (`scripts/recette/lib.mjs`). Un chiffre se déduit en `DigitN` (code virtuel 48-57) : `{ key: '1' }` répond au dialogue. Alias français : `frapperTouche` (même geste, même forme). ⚠ Observé en recette #1752 le 2026-09-17 : `Enter` envoyé sur un `<button>` FOCALISÉ n'a pas activé le bouton (`keydown` reçu, `defaultPrevented:false`, aucun `click`) ; `Space` l'a activé. Une frappe d'activation se mesure donc, elle ne se suppose pas |
-| `realKeyDown` / `realKeyUp` + `ALT` / `MOD_ALT` | geste MAINTENU (`session, ALT` — la même TOUCHE que `realKey`, `ALT` imposant `code`/code virtuel) : l'appui et le relâchement sont deux appels, et ce qui se joue ENTRE les deux porte `{ modifiers: MOD_ALT }` (`survoler`, `clickButtonByText`) — sinon l'événement déclare la touche relâchée. C'est le pilotage d'**Alt maintenu** (`decor.reveler`) : halo + plaque de nom sur chaque utilisable visible, le survolé agrandi ; relâché, le champ redevient muet. ⚠ `__wfrp.screen('editor')` charge la scène-FIXTURE, pas la scène active — pour ouvrir un document précis, `editorOpen(id)` ; et un `querySelector` de pastille reste vrai SOUS la modale d'intro (mesurer la scène, pas le seul DOM) |
+| `realKeyDown` / `realKeyUp` + `ALT` / `MOD_ALT` | geste MAINTENU (`session, ALT` — la même TOUCHE que `realKey`, `ALT` imposant `code`/code virtuel) : l'appui et le relâchement sont deux appels, et ce qui se joue ENTRE les deux porte `{ modifiers: MOD_ALT }` (`survoler`, `clickButtonByText`) — sinon l'événement déclare la touche relâchée. C'est le pilotage d'**Alt maintenu** (`decor-reveler`) : halo + plaque de nom sur chaque utilisable visible, le survolé agrandi ; relâché, le champ redevient muet. ⚠ `__wfrp.screen('editor')` charge la scène-FIXTURE, pas la scène active — pour ouvrir un document précis, `editorOpen(id)` ; et un `querySelector` de pastille reste vrai SOUS la modale d'intro (mesurer la scène, pas le seul DOM) |
 | `typeInField` | SAISIE réelle dans un champ (`session, selecteur, texte, { clear = true, attendu }`) : focus par VRAI clic CDP — et LÈVE si le champ n'a pas le focus après ce clic, aucune frappe émise (#1853 L3 : un `<input type=number>` hors focus recevait une insertion perdue ; contrôle de `frappe`) —, puis `Input.insertText` — l'insertion passe par le pipeline d'édition, donc le `onChange` React s'exécute (mesuré : `ab12cd` frappé dans `.coop-code-input` se lit `AB12CD`, la casse venant du handler React de `CoopCodeInput`). Rend la valeur relue APRÈS la frappe ; un écart AVERTIT sur `stderr` (transformation du `onChange`, ou frappe additive), `{attendu}` (chaîne ou prédicat) le durcit en ERREUR. C'est la sortie du piège « Champ CONTRÔLÉ React » ci-dessous |
 | `selectOption` | CHOISIT une option d'un `<select>` AU GESTE (`session, selecteur, libelle`) — par son LIBELLÉ VISIBLE ; `{ par: 'valeur' }` vise la valeur interne : focus par VRAI clic CDP, `value` posée par le SETTER NATIF puis `input`+`change` dispatchés — le popup natif est hors DOM et peut rester ouvert en headless. `shot(..., {neutraliser:true})` demande explicitement Échap puis blur ; cette neutralisation modifie le focus et l’état affiché. La capture par défaut préserve cet état. Plusieurs options correspondantes : refus avant tout clic, focus, `input` ou `change` ; préciser `{ par: 'valeur' }` pour des libellés identiques à valeurs distinctes. Refus explicites : liste absente, aucune option ne correspond (les libellés, ou les valeurs, offerts sont remontés), option FERMÉE (`disabled`) — aucun choix émis. Rend `{valeur, libelle}` RELUS après le geste |
 | `champParLibelle` | SÉLECTEUR CSS d'un champ visé par son LIBELLÉ VISIBLE (`session, 'dernier bloc'`) : il pose un `data-recette` inerte sur le champ trouvé et rend `[data-recette=…]`. Nécessaire parce que les `id` de `NumberField`/`useId` (`:r5:`, `:ra:`) ne sont PAS des sélecteurs CSS valides — `querySelector('#:r5:')` jette. `{dans}` = sélecteur RACINE où chercher, même option que `clickButtonByText`. Plusieurs champs porteurs du libellé dans la portée LÈVENT en les comptant, sans marque posée — jamais le premier (#1969) : à l'éditeur, le « Nom » de l'inspecteur et celui de la modale « Enregistrer » se départagent par `{ dans: '.modal-overlay' }` |
@@ -688,10 +688,10 @@ Ordre de préférence STRICT pour exercer un flux :
    c'est la première source d'erreurs (closures, état non re-rendu, préconditions sautées).
 
 > **Touches du déplacement en EXPLORATION** (piège de recette : les flèches paraissent mortes hors combat).
-> Le pas du groupe est sur les codes physiques `KeyW`/`KeyA`/`KeyS`/`KeyD` (bindings `explore-*` de
+> Le pas du groupe est sur les codes physiques `KeyW`/`KeyA`/`KeyS`/`KeyD` (bindings `exploration-*` de
 > `src/state/clavier/keybindings.ts` — WASD sur clavier QWERTY, ZQSD sur AZERTY : `code` = position, pas lettre).
-> Les **flèches** (`ArrowUp`…) pilotent le SEUL curseur de combat (bindings `cursor-*`). En vue subjective
-> (`povActive`), les mêmes touches deviennent cap-relatives (bindings `pov-*`).
+> Les **flèches** (`ArrowUp`…) pilotent le SEUL curseur de combat (bindings `curseur-*`). En vue subjective
+> (`povActive`), les mêmes touches deviennent cap-relatives (bindings `subjectif-*`).
 > **W, A, S, D poussent vers le HAUT, la GAUCHE, le BAS et la DROITE À L'ÉCRAN** : c'est la table
 > `EXPLORE_STEP` (`src/state/clavier/keybindings.ts`), sur les vecteurs écran `DIR_VEC`
 > (`src/state/combatCursor.ts`) — pas des axes de grille, d'où des pas en diagonale de grille en vue iso.
@@ -1308,7 +1308,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   POV et à l'éditeur, et elle vaut pour Q/E du monde de jeu. Le `keyboard.down`/`up` de Playwright
   s'est révélé fragile pour ce geste tenu (échec silencieux : aucune rotation, aucune erreur) ;
   vérifier l'angle obtenu entre chaque geste plutôt que de le supposer.
-- **Pas d'EXPLORATION : une touche `explore-*` MAINTENUE fait COURIR le groupe** (recette #679,
+- **Pas d'EXPLORATION : une touche `exploration-*` MAINTENUE fait COURIR le groupe** (recette #679,
   2026-09-30) : `realKeyDown` / 350 ms / `realKeyUp` a mené le groupe de (1,2) à (4,0). La touche
   ARME une marche (`demarrerMarche`, `src/state/stageWalk.ts:90`) qui enchaîne un pas à chaque fin de
   glissement tant qu'elle est tenue ; le relâchement la désarme (`arreterMarche`, `:99`). Un TAP
@@ -1322,7 +1322,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   (`[aria-label="Vue du dessus"][aria-pressed]`), comme pour tout contrôle de cette barre.
 - **EN JEU, aucune barre de vues** (relevé en recette #1343, 2026-09-22) : `ViewControls` n'est monté
   qu'à l'éditeur (`src/ui/editor/EditorCanvas.tsx`). La bascule ISO ⇄ dessus du monde de jeu est un
-  RACCOURCI — binding `toggle-view`, muet en POV — à frapper par `realKey` ; la SOURCE des bascules
+  RACCOURCI — binding `vue-basculer`, muet en POV — à frapper par `realKey` ; la SOURCE des bascules
   d'affichage et de leurs touches est `src/state/clavier/keybindings.ts` (section `camera`), jamais ce doc.
 - **Une ref de snapshot ne se passe JAMAIS sous la forme `ref=xxx`** — deux formes selon l'outil qu'on
   tient, à vérifier au premier appel plutôt qu'à l'aveugle :
@@ -1521,7 +1521,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
   appui pose le curseur sur la case de DÉPART elle-même**, coût 0 — `Pousser (0)` à l'aperçu, RIEN
   ne bouge encore ; il faut un **2e appui** pour quitter cette case et voir un coût > 0). `Entrée`/
   `NumpadEnter` commet (`commitCursor` → `pushCommitTile`) — fonctionne MÊME si le bouton « Pousser »
-  garde le focus résiduel du clic souris qui a ouvert le mode (corrigé : `cursor-commit` n'a plus la
+  garde le focus résiduel du clic souris qui a ouvert le mode (corrigé : `curseur-valider` n'a plus la
   garde `notWhenControlFocused`, `src/state/clavier/keybindings.ts`). `Échap` annule le curseur ;
   le geste « ANNULER » de la gouttière de Mouvement (nom accessible « Annuler le déplacement »,
   action `annulation-deplacement` ; post-commit, tant qu'aucune Action n'a été prise) défait aussi une poussée
@@ -1693,7 +1693,7 @@ suivant. Ce qui ressemble à « ça a marché puis c'est revenu en arrière » n
   lance le Round que quand `pendingRoundStart.readyBySeat` est complet (`fenetreValider('debutDuRound')` marque le
   siège qui décide, `src/noyau/sortieDeFenetre.ts`). Annoncer « Prêt » **sur CHAQUE page** — sans les deux déclarations, rien
   n'avance, aucun tour ne s'ouvre, aucune modale ne surface : ce n'est pas un gel, c'est le
-  ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `round-start`
+  ready-check. ⚠ SEULE SURFACE aujourd'hui : le raccourci clavier `debut-de-round`
   (`src/state/clavier/keybindings.ts`) — le bandeau de phase de la console ne rend que le
   « Commencer le combat » (`fenetreValider('debutDuRound')`, le Round part d'un appel en solo) ; en recette coop,
   piloter par `store.getState().fenetreValider('debutDuRound')` sur la page du siège concerné.

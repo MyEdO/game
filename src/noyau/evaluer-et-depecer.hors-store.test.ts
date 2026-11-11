@@ -45,13 +45,13 @@ describe('evaluerLObjet : un verbe pour l’objet porté et la ligne de butin en
   it('une ligne du butin hors combat (`butin`)', () => {
     banc.setState({ party: [heros('a')], pendingLoot: { title: 'Coffre', gear: [ligne('L0')] } } as never);
     g().evaluerLObjet('L0');
-    expect(g().pendingAppraise?.gear).toEqual({ scope: 'loot', uid: 'L0' });
+    expect(g().pendingAppraise?.gear).toEqual({ scope: 'butin', uid: 'L0' });
   });
 
   it('une ligne de l’écran de victoire (`victoire`)', () => {
     banc.setState({ party: [heros('a')], pendingVictory: victoire({ gear: [ligne('L0')] }) } as never);
     g().evaluerLObjet('L0', 'evaluation');
-    expect(g().pendingAppraise?.gear).toEqual({ scope: 'victory', uid: 'L0' });
+    expect(g().pendingAppraise?.gear).toEqual({ scope: 'victoire', uid: 'L0' });
   });
 
   it('un objet porté par un héros, hors de toute fenêtre', () => {

@@ -50,7 +50,7 @@
  *  - LECTURE PAR MEMBRE — `Object.fromEntries(dispoJson.dispoPct.map(…))` : le binding est au
  *    vocabulaire, mais chaque motif veut la méthode JUSTE après le nom ; un saut de membre
  *    (`.dispoPct`) la cache ;
- *  - ALIAS À ANNOTATION DE TYPE-OBJET — `const CARGO = seaCargoJson as unknown as { cargoes: X[]; sell: Y }`
+ *  - ALIAS À ANNOTATION DE TYPE-OBJET — `const CARGO = seaCargoJson as unknown as { cargoes: X[]; vente: Y }`
  *    puis `CARGO.cargoes.filter(…)` : le `;` du type littéral arrête la règle d'alias, le nom n'hérite
  *    pas du dataset ;
  *  - FABRIQUE LOCALE — `function ancre(p, id) { … }` puis `export const DAWN = ancre(calendarPhases, 'aube')` :
@@ -242,7 +242,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
     const reexportRenomme = `import { tousLesTraits } from './reexport';\nconst PAR_ID = new Map(tousLesTraits.map((t) => [t.id, t]));\n`;
     const partitionParPredicat = `import { TENUE_DEFS } from './tenues.generated';\nimport { isClassDef } from '../data/careers';\nexport const TENUES = TENUE_DEFS.filter((d) => !isClassDef(d.id));\n`;
     const lectureParMembre = `import { disponibilite as dispoJson } from '../data/index';\nexport const P = Object.fromEntries(dispoJson.dispoPct.map((e) => [e.a, e.p]));\n`;
-    const aliasTypeObjet = `import seaCargoJson from '../data/sea-cargo.json';\nconst CARGO = seaCargoJson as unknown as { cargoes: X[]; sell: Y };\nconst V = CARGO.cargoes.filter((c) => c);\n`;
+    const aliasTypeObjet = `import seaCargoJson from '../data/sea-cargo.json';\nconst CARGO = seaCargoJson as unknown as { cargoes: X[]; vente: Y };\nconst V = CARGO.cargoes.filter((c) => c);\n`;
     const fabriqueLocale = `import { calendarPhases } from '../data';\nfunction ancre(p, id) { return p.find((x) => x.id === id).start; }\nexport const DAWN = ancre(calendarPhases, 'aube');\n`;
     const flecheDansLeType = `import { FLOW_STAKES } from '../data';\nconst C: Record<string, (id: string) => boolean> = Object.fromEntries(FLOW_STAKES.map((e) => [e.k, () => true]));\n`;
     const appelDeModule = `import { BOARD_EVENTS } from '../engine/seaVoyage';\ndeclarer('x', { rows: BOARD_EVENTS.map((e) => e.id) });\n`;

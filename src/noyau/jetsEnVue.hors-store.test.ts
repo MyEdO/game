@@ -51,7 +51,7 @@ const ATTAQUE: PendingAttack = { attackerId: H.id, targetId: E.id, location: nul
 
 /** Une cascade d'une étape. */
 const cascade = (step: CascadeStep, cursor = 0): PendingCascade => ({ title: 'Témoin', cursor, seq: 1, log: [], purpose: 'combat', participants: [step] });
-const etapeHote = (jetHote: HostJet, extra: Pick<CascadeStep, 'fumble' | 'groupOwner'> = {}): CascadeStep => ({ id: `hote-${jetHote}`, kind: 'triggeredTest', actorId: H.id, jet: jetHote, label: fixtureText(`hote-${jetHote}`), ...extra });
+const etapeHote = (jetHote: HostJet, extra: Pick<CascadeStep, 'maladresse' | 'groupOwner'> = {}): CascadeStep => ({ id: `hote-${jetHote}`, kind: 'triggeredTest', actorId: H.id, jet: jetHote, label: fixtureText(`hote-${jetHote}`), ...extra });
 
 /** `patch` en thunk quand il lit une table du jeu, posée à l'ouverture de la partie. */
 interface Fixture { patch: Partial<Jeu> | (() => Partial<Jeu>); flux: readonly JetEnVue['flux'][]; oppose?: true }
@@ -136,7 +136,7 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
     flux: ['defense'],
     oppose: true,
   },
-  maladresse: { patch: { pendingCascade: cascade(etapeHote('maladresse', { fumble: { weapon: H.weapons[0], result: { roll: 42, kind: 'misfire', label: 'Raté' } } })) }, flux: ['maladresse'] },
+  maladresse: { patch: { pendingCascade: cascade(etapeHote('maladresse', { maladresse: { weapon: H.weapons[0], result: { roll: 42, kind: 'misfire', label: 'Raté' } } })) }, flux: ['maladresse'] },
   incantation: {
     patch: {
       pendingCascade: cascade(etapeHote('incantation')),

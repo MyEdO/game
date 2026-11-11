@@ -18,7 +18,7 @@ import { refusDeRassemblement } from './massBattleFlow';
 import { refusDeJouer, type ReglageDePartie } from './tavernFlow';
 import { refusDeRecuperation, needsRecoveryRoll, applyRecoveryDay } from '../engine/rest';
 import { restCost } from './restFlow';
-import { refusDeLaValidation } from './validationDeFenetre';
+import { refusDeLaValidationNommee } from './validationDeFenetre';
 import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { toBrass } from '../engine/money';
 import { t } from '../i18n';
@@ -160,13 +160,13 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
   });
 });
 
-describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () => {
+describe('nuit — la validation du repos (`refusDeLaValidationNommee`, LDB 66)', () => {
   const ouvrir = (places: Record<string, boolean>) => get().offrirLeRepos({ lieu: fixtureText('Ici'), places } as never);
 
   it('solo, nuit gratuite : « Dormir » ouvre la nuit d’un appel', () => {
     banc.setState({ party: heros(1) });
     ouvrir({ camp: true });
-    expect(refusDeLaValidation(get(), 'repos')).toBeNull();
+    expect(refusDeLaValidationNommee(get(), 'repos')).toBeNull();
     get().fenetreValider('repos');
     expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
@@ -177,7 +177,7 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     ouvrir({ camp: true });
     get().fenetreValider('repos');
     expect(get().pendingRest?.readyBySeat, '« Dormir » avant le quorum marque l’hôte prêt').toEqual({ 0: true });
-    expect(refusDeLaValidation(get(), 'repos')).toBe(t('jet.ferme.quorumAttendu'));
+    expect(refusDeLaValidationNommee(get(), 'repos')).toBe(t('jet.ferme.quorumAttendu'));
     expect(appliquerLIntentionDUnSiege(get, 1, 'fenetreValider', ['repos'])).toBe('appliquee');
     expect(get().pendingRest?.readyBySeat, 'le dernier prêt d’un invité ne dort pas pour l’hôte').toEqual({ 0: true, 1: true });
     get().fenetreValider('repos');
@@ -188,7 +188,7 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     const [a] = heros(1);
     banc.setState({ party: [a], net: { ...initialNet(), mode: 'host', seatNames: { 0: 'Hôte' }, ownership: { [a.id]: 0 } } });
     ouvrir({ camp: true });
-    expect(refusDeLaValidation(get(), 'repos')).toBeNull();
+    expect(refusDeLaValidationNommee(get(), 'repos')).toBeNull();
     get().fenetreValider('repos');
     expect(get().pendingRest, 'la nuit s’est ouverte').toBeNull();
   });
@@ -200,7 +200,7 @@ describe('nuit — la validation du repos (`refusDeLaValidation`, LDB 66)', () =
     ouvrir({ auberge: true });
     get().fenetreChoisir('repos', 'couchage', 'privee', a.id);
     expect(toBrass(restCost(get().pendingRest!, get().party)), 'témoin : la chambre a un prix').toBeGreaterThan(0);
-    expect(refusDeLaValidation(get(), 'repos')).toBe(t('jet.ferme.noteNonCouverte'));
+    expect(refusDeLaValidationNommee(get(), 'repos')).toBe(t('jet.ferme.noteNonCouverte'));
   });
 });
 

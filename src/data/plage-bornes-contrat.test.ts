@@ -188,7 +188,7 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     const positions = paires.filter((p) => p.bornes.every((b) => bornesOuvertes.has(b))).map((p) => p.site).sort();
     expect(positions, 'les positions qui composent `plageOuverteSchema` ont changé : chacune se nomme ici.').toEqual([
       'advancementCosts.json::[]', 'crew-morale.json::.bands[]', 'criticals.json::[].entries[]', 'miscast.json::[].entries[]',
-      'naval-progression.json::.entries[]', 'sea-cargo.json::.sell.offerPrice[]', 'sea-events.json::.boardEvents.entries[]',
+      'naval-progression.json::.entries[]', 'sea-cargo.json::.vente.offerPrice[]', 'sea-events.json::.boardEvents.entries[]',
       'sea-events.json::.fastVoyage.entries[]', 'sea-navigation.json::.orientation.changementDeCap.entries[]',
       'sea-navigation.json::.orientation.reperes[]', 'sea-navigation.json::.phares.voirLaLumiere[]',
       'sea-navigation.json::.poursuite.drDeltas[]', 'sea-navigation.json::.vitesseMax.table[]',

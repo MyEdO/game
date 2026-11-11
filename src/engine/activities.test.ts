@@ -59,16 +59,16 @@ describe('apprenticeshipTutorCost — « 2D10 pistoles d’argent par 100PX » (
 
 describe('bankWithdrawOutcome — Opérations bancaires (LDB 23 l.157-159)', () => {
   it('invest : d100 ≤ Indice → faillite ; sinon capital + intérêts', () => {
-    expect(bankWithdrawOutcome('investir', 6, 6)).toBe('lost');
-    expect(bankWithdrawOutcome('investir', 6, 7)).toBe('ok');
+    expect(bankWithdrawOutcome('investir', 6, 6)).toBe('perdu');
+    expect(bankWithdrawOutcome('investir', 6, 7)).toBe('recu');
   });
   it('planque : d100 ≤ 10 → découverte ; pas d’intérêts', () => {
-    expect(bankWithdrawOutcome('planque', 0, 10)).toBe('lost');
-    expect(bankWithdrawOutcome('planque', 0, 11)).toBe('ok');
+    expect(bankWithdrawOutcome('planque', 0, 10)).toBe('perdu');
+    expect(bankWithdrawOutcome('planque', 0, 11)).toBe('recu');
   });
   it('planque liée à une Carte marine (MDG 15 l.292) : seuil de découverte 50 au lieu de 10', () => {
-    expect(bankWithdrawOutcome('planque', 50, 50)).toBe('lost');
-    expect(bankWithdrawOutcome('planque', 50, 51)).toBe('ok');
+    expect(bankWithdrawOutcome('planque', 50, 50)).toBe('perdu');
+    expect(bankWithdrawOutcome('planque', 50, 51)).toBe('recu');
   });
 });
 
@@ -77,8 +77,8 @@ describe('seuilDePerteBancaire — le seuil affiché est celui du jet (LDB 23 l.
     const cas = [['planque', 0, 10], ['planque', 50, 50], ['investir', 6, 6], ['investir', 15, 10], ['investir', 0, 1]] as const;
     for (const [kind, rate, seuil] of cas) {
       expect(seuilDePerteBancaire(kind, rate)).toBe(seuil);
-      expect(bankWithdrawOutcome(kind, rate, seuil)).toBe('lost');
-      expect(bankWithdrawOutcome(kind, rate, seuil + 1)).toBe('ok');
+      expect(bankWithdrawOutcome(kind, rate, seuil)).toBe('perdu');
+      expect(bankWithdrawOutcome(kind, rate, seuil + 1)).toBe('recu');
     }
   });
 });

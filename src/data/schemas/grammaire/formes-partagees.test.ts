@@ -419,14 +419,14 @@ describe('vehicles.json › ship.traits — foyer disjoint du bestiaire (#1463 L
  *  - la dernière bande TERRESTRE ouverte alors que MSRC 13 l.150-156 n'écrit aucun « ou plus ».
  */
 describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant (#1463 L-gram-3)', () => {
-  /** Remplace la N-ième bande d'un `sell.<cle>` par une version modifiée (copie, jamais l'arbre). */
+  /** Remplace la N-ième bande d'un `vente.<cle>` par une version modifiée (copie, jamais l'arbre). */
   const muter = (doc: unknown, cle: string, i: number, patch: Record<string, unknown>) => {
-    const d = doc as { sell: Record<string, Record<string, unknown>[]> };
-    const bandes = d.sell[cle].map((b, j) => (j === i ? { ...b, ...patch } : b));
-    return { ...d, sell: { ...d.sell, [cle]: bandes } };
+    const d = doc as { vente: Record<string, Record<string, unknown>[]> };
+    const bandes = d.vente[cle].map((b, j) => (j === i ? { ...b, ...patch } : b));
+    return { ...d, vente: { ...d.vente, [cle]: bandes } };
   };
 
-  it('sea-cargo.json › sell.offerPrice : la donnée réelle passe ; TROU, CHEVAUCHEMENT et plafond sur la bande FINALE sont REFUSÉS', () => {
+  it('sea-cargo.json › vente.offerPrice : la donnée réelle passe ; TROU, CHEVAUCHEMENT et plafond sur la bande FINALE sont REFUSÉS', () => {
     expect(validateDataset('sea-cargo.json', seaCargo)).toBeNull();
 
     const trou = validateDataset('sea-cargo.json', muter(seaCargo, 'offerPrice', 3, { min: 5 }));
@@ -442,7 +442,7 @@ describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant
     expect(plafonnee).toContain('est la DERNIÈRE et porte un plafond');
   });
 
-  it('land-cargo.json › sell.offerByRichesse : la donnée réelle passe ; TROU, CHEVAUCHEMENT, bande FINALE ouverte et débordement d’échelle sont REFUSÉS', () => {
+  it('land-cargo.json › vente.offerByRichesse : la donnée réelle passe ; TROU, CHEVAUCHEMENT, bande FINALE ouverte et débordement d’échelle sont REFUSÉS', () => {
     expect(validateDataset('land-cargo.json', landCargo)).toBeNull();
 
     const trou = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 2, { min: 4 }));
@@ -458,7 +458,7 @@ describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant
     const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }));
     expect(ouverte, 'la dernière bande terrestre accepte une borne haute OUVERTE').not.toBeNull();
     expect(ouverte).toContain('Règles de vente › Mise à prix selon la Richesse 5 › Maximum');
-    expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }))).toContain('sell.offerByRichesse.4.max');
+    expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: null }))).toContain('vente.offerByRichesse.4.max');
 
     // Le domaine s'arrête à 5 (MSRC 13 l.52-60) : une bande qui déborde n'a aucun indice à couvrir.
     const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offerByRichesse', 4, { max: 6 }));

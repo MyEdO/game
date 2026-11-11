@@ -16,6 +16,7 @@ import { ecrireLaSauvegarde, lireLaSauvegarde, AUTO_SLOT, type SaveSlot, type An
 import { chargerLaSave, lireSave, refusDeSauvegarde, snapshotSave, type ObsoleteCause, type RefusDeSauvegarde, type SaveGame } from '../noyau/persistance/save';
 import type { RetraitsDElagage } from '../noyau/persistance/elagage';
 import { loadKeyOverrides, saveKeyOverrides } from './keybindingsPrefs';
+import type { IdDeRaccourci } from './clavier/keybindings';
 import { transitionDuJeu } from '../noyau/transitionDuJeu';
 import type { CodexFocus } from './codexFocus';
 import { ruleOverrides, loadRuleOverrides } from '../engine/policy';
@@ -76,7 +77,7 @@ export interface EtatDeLAdaptateur {
   debugRoofCut: boolean;
   /** Décalage manuel de la caméra (caméra libre tactique) ; remis à zéro au refocus (changement de tour). */
   camPan: { x: number; y: number };
-  /** RÉVÉLATION des utilisables (Alt maintenu, binding `decor.reveler`) : état de TOUCHE, jamais une
+  /** RÉVÉLATION des utilisables (Alt maintenu, binding `decor-reveler`) : état de TOUCHE, jamais une
    *  préférence — il vaut ce que vaut la touche à l'instant, se rend au relâchement comme au `blur`
    *  (`relacherTout`), et n'entre dans aucune sauvegarde. */
   reveler: boolean;
@@ -114,7 +115,7 @@ export interface EtatDeLAdaptateur {
   /** Héros en cours de MODIFICATION dans le créateur (bouton « Modifier » d'un emplacement) :
    *  l'id du Combatant à mettre à jour EN PLACE ; null = création normale d'un nouveau héros. */
   editingHeroId: string | null;
-  /** Menu système plein écran (pause) ouvert — commuté par Échap (binding `toggle-menu`) et le bouton ☰. */
+  /** Menu système plein écran (pause) ouvert — commuté par Échap (binding `menu-ouvrir`) et le bouton ☰. */
   gameMenuOpen: boolean;
   /** Ids qu'une sauvegarde CHARGÉE a perdus à l'élagage (`chargerLaSave`, #1463 LD.1), nommés au joueur par
    *  `ui/RetraitsDeChargement` ; null = rien à dire. */
@@ -151,7 +152,7 @@ export interface ActionsDeLAdaptateur {
   /** Efface le curseur (la souris reprend la main, ou geste « annuler »). */
   clearCursor: () => void;
   setHovered: (id: string | null) => void;
-  setKeyBinding: (id: string, code: string) => void;
+  setKeyBinding: (id: IdDeRaccourci, code: string) => void;
   resetKeyBindings: () => void;
 
   setScreen: (s: Ecran) => void;

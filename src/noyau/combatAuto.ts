@@ -18,7 +18,7 @@
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { CascadeStep } from './pendings';
-import { pickActiveModalKey, modalOwnerOf, voyageHubActive, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, SURFACES_HORS_PENDING, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type SurfaceHorsPendingDef, type VerbesDeFenetre } from './modalArbiter';
+import { pickActiveModalKey, modalOwnerOf, voyageHubActive, autoPolicyOf, modaleActive, pendingOuvert, HORS_MODAL, MODAL_DEFS, SURFACES_HORS_PENDING, AUCUN_VERBE_DE_JOUEUR, cleDuGeste, type AutoPolicy, type CleDeRegistre, type FenetreAValider, type FenetreQuiSeFerme, type GesteDuJeu, type HorsModalDef, type ModalDef, type RangeeDeFenetre, type SurfaceHorsPendingDef, type VerbesDeFenetre } from './modalArbiter';
 import { maladresseCourante, stepInteraction } from './cascade';
 import { FLOW_VERBS, NOM_DU_VERBE_DE_JET, type FlowKey, type FlowVerbs } from './flowVerbs';
 import { influencesLocally, ownsLocal } from './netOwnership';
@@ -67,7 +67,7 @@ export const VERBES_DU_JET_PSY = ['depenserLaDetermination'] as const satisfies 
 export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: FlowKey; rangees?: (s: Jeu) => readonly RangeeDeFenetre[] | undefined; reactives?: readonly FenetreReactive[]; verbes?: VerbesDeFenetre }> = {
   attaque: { flux: 'attaque' },
   defense: { flux: 'defense' },
-  maladresse: { flux: 'maladresse', rangees: (s) => { const m = maladresseCourante(s.pendingCascade); return m && [{ id: m.id, result: m.fumble.result }]; } },
+  maladresse: { flux: 'maladresse', rangees: (s) => { const m = maladresseCourante(s.pendingCascade); return m && [{ id: m.id, result: m.maladresse.result }]; } },
   incantation: {
     flux: 'incantation',
     reactives: [
@@ -171,18 +171,18 @@ export function gestesDuJet(jet: NonNullable<CascadeStep['jet']>, reactive?: Fen
 /** Les gestes d'une surface partagée : ses choix (`choixDe`), puis ses issues (`issuesDe`). */
 export const gestesDeLaSurface = (def: SurfaceHorsPendingDef): GesteDuJeu[] => [...choixDe(def.key), ...issuesDe(def)];
 
-export const SURFACES_A_ISSUE: readonly SurfaceHorsPendingDef[] = (SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef[]).filter((d) => d.validation || d.sortie);
+export const SURFACES_A_ISSUE: readonly SurfaceHorsPendingDef<(typeof SURFACES_HORS_PENDING)[number]['key']>[] = (SURFACES_HORS_PENDING as readonly SurfaceHorsPendingDef<(typeof SURFACES_HORS_PENDING)[number]['key']>[]).filter((d) => d.validation || d.sortie);
 
 /** Les clés que `fenetreDuJeu` peut rendre : chaque modale (`MODAL_DEFS`), chaque situation hors modale (`HORS_MODAL`),
  *  puis chaque surface partagée qui se valide ou se ferme (`SURFACES_A_ISSUE`). */
-export const CLES_DE_FENETRE: readonly string[] = [...MODAL_DEFS.map((d) => d.key), ...HORS_MODAL.map((d) => d.key), ...SURFACES_A_ISSUE.map((d) => d.key)];
+export const CLES_DE_FENETRE: readonly CleDeRegistre[] = [...MODAL_DEFS.map((d) => d.key), ...HORS_MODAL.map((d) => d.key), ...SURFACES_A_ISSUE.map((d) => d.key)];
 
 /** La fenêtre qui tient la main : sa clé, son propriétaire, ses gestes, les flux de jet qui les jouent (`flux`, celui
  *  que sa politique résout en tête), l'id que ses gestes désignent (`pid` : l'étape de cascade courante, ou la rangée
  *  due d'une fenêtre à plusieurs jets ; `argumentsPosesDuGeste`), les gestes que sa politique enchaîne pour la résoudre
  *  (`drive`, `AutoPolicy` : le jet, puis sa clôture), et l'étape de cascade courante quand la cascade tient la main. */
 export interface FenetreDuJeu {
-  cle: string;
+  cle: CleDeRegistre;
   proprietaire: string | undefined;
   gestes: readonly GesteDuJeu[];
   flux: readonly FlowKey[];
@@ -220,7 +220,7 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
     const flux = parInteraction?.flux;
     return { cle, proprietaire, gestes: uniques([...(parInteraction?.gestes ?? []), ...NAVIGATION_DE_CASCADE]), flux: [...new Set<FlowKey>([...(flux ? [flux] : []), 'cascade'])], ...avecPid(etape && parInteraction?.pid(etape)), ...(flux ? { drive: [{ verbe: NOM_DU_VERBE_DE_JET.roll, flux }, NAVIGATION_DE_CASCADE[0]] } : {}), ...(etape ? { etape } : {}) };
   }
-  const hors = (HORS_MODAL as readonly HorsModalDef[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
+  const hors = (HORS_MODAL as readonly HorsModalDef<(typeof HORS_MODAL)[number]['key']>[]).find((d) => d.tientLaMain && pendingOuvert(s[d.pendingKey]));
   if (hors) return { cle: hors.key, proprietaire: hors.owner(s), gestes: gestesDeLaFenetre(hors), flux: hors.flux ?? [] };
   const surface = SURFACES_A_ISSUE.find((d) => d.tientLaMain(s));
   return surface ? { cle: surface.key, proprietaire: undefined, gestes: gestesDeLaSurface(surface), flux: [] } : null;

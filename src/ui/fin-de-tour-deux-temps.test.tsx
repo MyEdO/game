@@ -73,10 +73,10 @@ afterEach(() => {
 describe('fin de tour — l’Action intacte demande deux gestes, quelle que soit la surface', () => {
   it('la TOUCHE seule : 1er appui = armement (le tour ne bascule pas), 2ᵉ = tour suivant', () => {
     combat();
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(battle().turn, 'le tour a basculé sans confirmation, l’Action non dépensée').toBe(0);
     expect(endTurnArmed(battle()), 'rien n’est armé : le 2ᵉ appui n’aurait rien à confirmer').toBe(true);
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(battle().turn, 'le 2ᵉ appui n’a pas passé la main').toBe(1);
   });
 
@@ -89,15 +89,15 @@ describe('fin de tour — l’Action intacte demande deux gestes, quelle que soi
     });
     useGame.getState().annulerLeDeplacement();
     expect(battle().movementUsed, 'l’annulation de déplacement n’a rien rendu').toBe(0);
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(battle().turn, 'le tour a basculé juste après une annulation de déplacement').toBe(0);
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(battle().turn).toBe(1);
   });
 
   it('ARMER puis un PAS puis ANNULER ce pas : l’armement ne RESSUSCITE pas (un seul appui ne bascule rien)', () => {
     combat();
-    runBindingById('end-turn', useGame.getState); // 1er geste : armement sur l'économie « 0 pas »
+    runBindingById('fin-de-tour', useGame.getState); // 1er geste : armement sur l'économie « 0 pas »
     expect(endTurnArmed(battle()), 'le 1er geste n’a rien armé').toBe(true);
     act(() => { useGame.getState().cliquerLaCase({ x: 5, y: 4 }, undefined, { confirm: true }); }); // un VRAI pas
     expect(battle().movementUsed, 'le pas n’a rien coûté : rien à annuler ensuite').toBeGreaterThan(0);
@@ -105,7 +105,7 @@ describe('fin de tour — l’Action intacte demande deux gestes, quelle que soi
     useGame.getState().annulerLeDeplacement();
     expect(battle().movementUsed, 'l’annulation n’a rien rendu').toBe(0);
     expect(endTurnArmed(battle()), 'l’économie rendue a RESSUSCITÉ l’armement du 1er geste').toBe(false);
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(battle().turn, 'un seul appui a fait basculer le tour, l’Action intacte').toBe(0);
     expect(endTurnArmed(battle()), 'cet appui n’a pas armé : le suivant n’aurait rien à confirmer').toBe(true);
   });
@@ -113,17 +113,17 @@ describe('fin de tour — l’Action intacte demande deux gestes, quelle que soi
   it('l’Action DÉPENSÉE : un seul geste suffit (le garde-fou ne garde que ce qui se gâche)', () => {
     combat();
     act(() => { useGame.setState({ battle: { ...battle(), acted: true } as BattleState }); });
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(battle().turn).toBe(1);
   });
 
   it('un PAS entre les deux gestes périme l’armement (l’économie du tour a changé)', () => {
     combat();
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(endTurnArmed(battle())).toBe(true);
     act(() => { useGame.setState({ battle: { ...battle(), movementUsed: 2 } as BattleState }); });
     expect(endTurnArmed(battle()), 'l’armement survit à une dépense de Mouvement').toBe(false);
-    runBindingById('end-turn', useGame.getState);
+    runBindingById('fin-de-tour', useGame.getState);
     expect(battle().turn, 'le tour a basculé sur un armement périmé').toBe(0);
   });
 });
@@ -141,7 +141,7 @@ describe('fin de tour — la plaque de la console et la touche passent par la M�
     expect(host.querySelector('[data-cell="fin-de-tour"]')?.getAttribute('data-armed')).toBe('');
     expect(host.querySelector('[data-cell="fin-de-tour"]')?.textContent).toContain('Finir quand même');
     // …et la TOUCHE consomme CET armement : aucune surface n'a son propre compteur de clics.
-    act(() => { runBindingById('end-turn', useGame.getState); });
+    act(() => { runBindingById('fin-de-tour', useGame.getState); });
     expect(battle().turn, 'la touche a rouvert un 2ᵉ garde-fou pour son propre compte').toBe(1);
   });
 });

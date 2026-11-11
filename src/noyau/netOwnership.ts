@@ -161,7 +161,7 @@ export function ownsLocal(state: Jeu, combatantId: string | undefined): boolean 
  * clic et l'exécuter à la touche répondent par la même table de vérité. SOLO : toujours vrai.
  *
  * Il vit ICI, avec le routage, parce que ses DEUX consommateurs sont de couches différentes : la
- * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-choice-N`
+ * fenêtre (hook `useOwnsGroupDecision`, `ui/ownership`) et les raccourcis `dialogue-reponse-N`
  * (`state/clavier/keybindings`) — `src/state` ne peut pas lire `src/ui`.
  *
  * COUPLAGE ASSUMÉ : l'égalité route-du-dialogue ⇄ sentinel MONDE est une COÏNCIDENCE de formule, pas

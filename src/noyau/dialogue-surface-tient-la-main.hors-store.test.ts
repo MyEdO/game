@@ -4,7 +4,7 @@
  * Une réponse ne se choisit que si la conversation est CE QUE LE JOUEUR A SOUS LES YEUX. Le verdict
  * « une surface tient la main » vit à l'ARBITRE (`surfaceTientLaMain`, `noyau/modalArbiter.ts`),
  * dérivé de ses registres ; `conversationRepond` le consomme, donc le VERBE et les touches
- * `dialogue-choice-N` avec lui.
+ * `dialogue-reponse-N` avec lui.
  *
  * Contrats POSITIFS, un par surface : sous chacune la conversation ne répond pas ; au témoin, elle
  * répond.

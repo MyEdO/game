@@ -10,7 +10,7 @@
  * union d'objets), un texte JSON. Aucune règle ne se calcule ici : chaque valeur vient d'un lecteur du noyau ou du type.
  */
 import {
-  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuChoix, declarationDuReglage, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDeDetermination, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
+  DESIGNATIONS, FERMETURES_DITES, REGLAGE_DE_L_AXE, VERBE_DE_CHOIX, VERBE_DE_REGLAGE, argumentsPosesDuGeste, effetDuGeste, reglagesDesChoix, cleDuGeste, declarationDuChoixNomme, declarationDuReglageNomme, documentEnVue, fenetreDAttaque, fenetreDIncantation, fenetreDeDefense, fenetreDuSoin, fenetreDuButin, fenetreDeDetermination, fenetreDuJeu, fermeturesDeLaFenetre, libelleDeLaFenetre, libelleDeLaFermeture, libelleDuJet, libelleDuLitteral,
   libelleDuGeste, libelleDuParametre, libelleDuReglage, lieuEnVue, voyageEnVue, verbeDeJetDe, viseUneRangee, reglagesDesElements, REGLAGES_DU_BUTIN, VERBES_DU_JET_PSY, reposEnVue, interludeEnVue,
   stepInteraction,
   VERBES_D_INTERACTION, type FlowKey, type GesteDuJeu, type Jeu, type Reglage, type ValeurDuReglage,
@@ -30,11 +30,11 @@ const PARAMETRE_DESIGNE = 'pid';
  *  rangée omise (`toutes`), ou d'un réglage ou d'un choix de la fenêtre entière ou joué sur sa rangée omise. */
 export function parametresDuGeste(g: GesteDuJeu): readonly ParametreDeVerbe[] {
   if (g.axe) {
-    const deLaFenetre = declarationDuChoix(g.fenetre, g.axe)?.portee !== 'rangee';
+    const deLaFenetre = !g.fenetre || declarationDuChoixNomme(g.fenetre, g.axe)?.portee !== 'rangee';
     return (parametresDeLAxe(VERBE_DE_CHOIX, g.fenetre, g.axe) ?? []).filter((p) => !(deLaFenetre && p.nom === PARAMETRE_DESIGNE));
   }
   if (g.reglage) {
-    const deLaFenetre = !!g.toutes || declarationDuReglage(g.flux, g.reglage)?.portee !== 'rangee';
+    const deLaFenetre = !!g.toutes || !g.flux || declarationDuReglageNomme(g.flux, g.reglage)?.portee !== 'rangee';
     return (parametresDeLAxe(VERBE_DE_REGLAGE, g.flux, g.reglage) ?? []).filter((p) => !(deLaFenetre && p.nom === PARAMETRE_DESIGNE));
   }
   const deJet = verbeDeJetDe(g.verbe);
