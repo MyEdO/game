@@ -6,7 +6,7 @@
 import { CHAR_LABELS, DIFFICULTY_LABELS, CATEGORY_BY_SOURCE_KIND, type ConditionInstance, type ActiveEffect, type CharKey, type Combatant, type EffectSource } from '../engine/types';
 import type { IconId } from '../data/icons';
 import {
-  conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
+  categorieDeLaTableDeMiscast, conditionLabel, findConditionById, findPsychologyById, findSpellById, refLabel,
   creatures, maladies, maneuvers, mutations, qualities, regles, symptoms, talents, findTrappingById, traits,
 } from '../data';
 import { ACTIVITIES } from '../engine/activities';
@@ -207,10 +207,13 @@ const CATALOGUE_HAS: Record<string, (id: string) => boolean> = {
   maneuvers: byId(maneuvers),
   creatures: byId(creatures),
   activities: byId(ACTIVITIES),
-  // Rangées des tableaux d'Incantation Imparfaite / de Colère des dieux, sous la catégorie que CHAQUE
-  // table déclare en donnée (`MiscastTableDef.codexCategory`) : une table de plus n'ajoute aucune ligne
-  // ici, et une table sans catégorie n'en ouvre aucune (ses lignes n'ont pas de fiche à viser).
-  ...Object.fromEntries(MISCAST_TABLES.flatMap((t) => (t.codexCategory ? [[t.codexCategory, byId(t.entries)] as const] : []))),
+  // Rangées des tableaux d'Incantation Imparfaite / de Colère des dieux, sous la catégorie de CHAQUE
+  // table (`categorieDeLaTableDeMiscast`, dérivée de l'exposition) : une table de plus n'ajoute aucune
+  // ligne ici, et une table sans catégorie n'en ouvre aucune (ses lignes n'ont pas de fiche à viser).
+  ...Object.fromEntries(MISCAST_TABLES.flatMap((t) => {
+    const categorie = categorieDeLaTableDeMiscast(t.id);
+    return categorie ? [[categorie, byId(t.entries)] as const] : [];
+  })),
 };
 
 /** Catégories fouillées pour un `ActiveEffect.effectId` (ivresse, exposition, chanson de marin…), dans

@@ -149,7 +149,22 @@ const doc = document(
     },
   },
   // LDB 18 l.53 ; AA 07 l.32.
-  { rangee, deDeTirage: true },
+  {
+    rangee,
+    deDeTirage: true,
+    // (`jeu`, `localisation`) est l'identité de recherche d'un document (`critiqueDoc`, `src/data/criticals.ts`) :
+    // un couple, un document.
+    affinerDataset: (dataset) =>
+      dataset.superRefine((v, ctx) => {
+        const vus = new Map<string, string>();
+        (v as readonly { id: string; jeu: string; localisation: string }[]).forEach((d, i) => {
+          const cle = `${d.jeu}/${d.localisation}`;
+          const premier = vus.get(cle);
+          if (premier === undefined) vus.set(cle, d.id);
+          else ctx.addIssue({ code: 'custom', path: [i, 'localisation'], message: `criticals.json : « ${premier} » et « ${d.id} » portent le même couple (jeu, localisation) « ${cle} ».` });
+        });
+      }),
+  },
 );
 
 export const schema = doc.schema;

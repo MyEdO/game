@@ -118,13 +118,8 @@ export const rangee = nommerChamps(z.strictObject({
 const doc = document(
   'miscast',
   famille,
-  {
-    /** Catégorie Codex où vivent les LIGNES de ce tableau (#1667). */
-    codexCategory: z.string().optional(),
-  },
-  {
-    codexCategory: { label: 'Catégorie Codex des lignes', hint: 'Clé de la catégorie Compendium qui expose les rangées (absente = tableau non exposé)' },
-  },
+  {},
+  {},
   {
     codex: { keys: ['miscastMinor', 'miscastMajor', 'miscastMinorVdm', 'miscastMajorVdm', 'miscastWrath'] },
     edit: {

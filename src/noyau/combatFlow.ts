@@ -115,7 +115,7 @@ import {
 import { opposedTest, rollTest, evaluateTest, resolveOpposed, isDoubleRoll, easeDifficulty, hydrateTR, cibleBrute, cibleMesuree, estJete, reverseRoll } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe, forceDuPorteur } from '../engine/characteristics';
 import { testValue, soutienDetail, type SupportDetail, type TestDesigne } from '../engine/skills';
-import { findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
+import { categorieDeLaTableDeMiscast, findManeuverById, findDomainById, findPsychologyById, diseaseLabel, refLabel, findVehicleById, combatStakeRef, GRAPPLE, type SpellData, type ManeuverDef, libelleOuAbsence, SPEC_SOURCES } from '../data';
 import { applyHullCritical, exposedCrew } from '../engine/shipCritical';
 import { endShanty, monterLesVagues, resolveShipUnits, withCrewActed } from './shipCrew';
 import { beginShipwreck } from './shipwreck';
@@ -9047,16 +9047,19 @@ export const TABLES = {
     // Une entrée par table RÉELLE de `miscast.json` (Mineure/Majeure LDB, leurs révisions VDM, Colère
     // des dieux) : fourchettes et ids STABLES lus par `miscastTableRows` (« 151+ », LDB 40 l.89, ouvert par
     // `tableOuverte`), famille mémoïsée sur les datasets du seam, et la ligne d'affichage est le libellé de l'entrée atteinte par le dé EFFECTIF.
-    // La catégorie Codex où vivent les LIGNES est DÉCLARÉE par la table elle-même (`codexCategory`,
-    // miscast.json, #1117) : sans catégorie déclarée, l'enjeu reste au foyer du `kind` (repli déclaré).
+    // La catégorie Codex où vivent les LIGNES est celle de la table (`categorieDeLaTableDeMiscast`, dérivée
+    // de l'exposition, #1117) : sans catégorie, l'enjeu reste au foyer du `kind` (repli déclaré).
     memoParVersion(MISCAST_DATASETS, () => new Map<string, TableStepDef>(
-      MISCAST_TABLES.map((table) => [table.id, {
-        label: table.label,
-        die: facesDuDe(miscastDie(table.id)),
-        rows: miscastTableRows(table.id),
-        lines: (die) => [miscastRowAt(table.id, die).label],
-        ...(table.codexCategory ? { entryCategory: table.codexCategory } : {}),
-      }]),
+      MISCAST_TABLES.map((table) => {
+        const entryCategory = categorieDeLaTableDeMiscast(table.id);
+        return [table.id, {
+          label: table.label,
+          die: facesDuDe(miscastDie(table.id)),
+          rows: miscastTableRows(table.id),
+          lines: (die) => [miscastRowAt(table.id, die).label],
+          ...(entryCategory ? { entryCategory } : {}),
+        }];
+      }),
     )),
   ],
   clotures: {

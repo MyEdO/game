@@ -9,7 +9,6 @@
       "page": 234,
       "note": "Tableau des Incantations Imparfaites Mineures/Majeures, LDB 46"
     },
-    "codexCategory": "miscastMinor",
     "entries": [
       {
         "id": "mineure-signe-de-sorciere",
@@ -373,7 +372,6 @@
       "page": 234,
       "note": "Tableau des Incantations Imparfaites Mineures/Majeures, LDB 46"
     },
-    "codexCategory": "miscastMajor",
     "entries": [
       {
         "id": "majeure-voix-fantomatiques",
@@ -761,7 +759,6 @@
       "page": 24,
       "note": "TABLEAU DES INCANTATIONS IMPARFAITES MINEURES, VDM 02 l.218-240"
     },
-    "codexCategory": "miscastMinorVdm",
     "entries": [
       {
         "id": "mineure-vdm-signe-de-sorciere",
@@ -1121,7 +1118,6 @@
       "page": 25,
       "note": "TABLEAU DES INCANTATIONS IMPARFAITES MAJEURES, VDM 02 l.243-263"
     },
-    "codexCategory": "miscastMajorVdm",
     "entries": [
       {
         "id": "majeure-vdm-voix-fantomatiques",
@@ -1495,7 +1491,6 @@
       "page": 218,
       "note": "Tableau de la Colère des dieux, LDB 40 l.52-89"
     },
-    "codexCategory": "miscastWrath",
     "entries": [
       {
         "id": "colere-visions-sacrees",

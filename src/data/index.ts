@@ -9,7 +9,7 @@ import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
@@ -3674,6 +3674,15 @@ export function entreeDeCategorie(category: string, id: string): { id: string; l
   const d = DATASET_DE_LA_CATEGORIE[category];
   const entrees = suivreLeChemin(RACINES_VIVANTES[d.fichier], d.chemin) as readonly { id: string; label: string }[] | undefined;
   return entrees && indexParId(d.cle, entrees)(id);
+}
+/** CATÉGORIE CODEX des rangées du document `id` de `miscast.json` : celle dont le dataset porte l'espace
+ *  `miscast.json#[id].entries` (`DATASET_DE_L_ESPACE` → `DATASET_DE_LA_CATEGORIE`), tables générées depuis
+ *  `niche.categories` (`schemas/defs/miscast.ts`) ; `undefined` pour une table que le Codex n'expose pas. */
+export function categorieDeLaTableDeMiscast(id: string): string | undefined {
+  const espace = cleNichee('miscast.json', suiteAvecPas(suiteAvecPas('', { cle: id }), { champ: 'entries' }));
+  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_L_ESPACE, espace)) return undefined;
+  const { cle } = DATASET_DE_L_ESPACE[espace];
+  return Object.keys(DATASET_DE_LA_CATEGORIE).find((c) => DATASET_DE_LA_CATEGORIE[c].cle === cle);
 }
 /** Résout une entrée de dataset par (catégorie, `id`) — rendu/lookup des refs structurées. Une catégorie
  *  sans `case` se lit par la porte générique `entreeDeCategorie`. */

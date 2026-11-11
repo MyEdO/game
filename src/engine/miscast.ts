@@ -21,7 +21,7 @@
 import { RNG, rollDice } from './dice';
 import { findTableEntry, tableOuverte, type DeDeTable } from './tables';
 import { rule } from './policy';
-import { findDomainById, combatStakeRef } from '../data';
+import { categorieDeLaTableDeMiscast, findDomainById, combatStakeRef } from '../data';
 import { GameOp, Formula } from './ops';
 import { CATEGORY_BY_SOURCE_KIND, type EffectSource, type EffectSourceKind } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -313,16 +313,13 @@ function buildRow(jr: JsonRow & { max: number }): Row {
 // ---------------------------------------------------------------------------
 
 /** UN DOCUMENT de `miscast.json` : une table tirable, son identité STABLE, son libellé JOUEUR, sa
- *  provenance, ses rangées, et — quand ses LIGNES sont exposées au Codex — la catégorie qui les
- *  porte. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus (#1467 L1b). */
+ *  provenance et ses rangées. Identité et charge sont le MÊME objet : aucun pointeur ne les relie plus
+ *  (#1467 L1b). La catégorie Codex de ses LIGNES se lit par `categorieDeLaTableDeMiscast` (`src/data`). */
 export interface MiscastTableDef {
   id: string;
   label: string;
   /** Dé de tirage du document (`options.deDeTirage`), lu par `miscastDie`. */
   die: string;
-  /** Catégorie Codex des LIGNES de cette table (`entryCategory` de l'étape). Absente = aucune
-   *  exposition Codex de ses lignes (un renvoi vers une catégorie qui ne les contient pas serait mort). */
-  codexCategory?: string;
   /** Folio du TABLEAU source dont cette table est le tirage. */
   source: { book: string; page: number; note?: string };
   entries: JsonRow[];
@@ -342,7 +339,7 @@ export interface MiscastTableRow {
 
 /** Les tables tirables TELLES QUE LA DONNÉE les déclare (les documents de `miscast.json`) : id
  *  d'étape, rangées portées, libellé JOUEUR — sans marque de livre (`docs/charte-ui.md`) : le jeu de
- *  tables en vigueur est une RÈGLE, pas une information d'écran — et catégorie Codex de ses lignes.
+ *  tables en vigueur est une RÈGLE, pas une information d'écran.
  *  Une table de plus est un DOCUMENT de plus dans le fichier, aucune ligne de code. */
 export const MISCAST_TABLES: MiscastTableDef[] = data;
 
@@ -374,11 +371,11 @@ export function miscastDie(tableId: string): DeDeTable {
 }
 
 /** ENTITÉ SOURCE des effets posés par une rangée tirée (`OpsCtx.source` → `ActiveEffect.source`) : la
- *  RANGÉE elle-même, dans la catégorie Codex que SA table DÉCLARE (`MiscastTableDef.codexCategory`, en
- *  donnée). Une table de plus n'ajoute aucune ligne ici. Absente quand la table n'expose pas ses lignes
+ *  RANGÉE elle-même, dans la catégorie Codex de SA table (`categorieDeLaTableDeMiscast`, dérivée de
+ *  l'exposition). Une table de plus n'ajoute aucune ligne ici. Absente quand la table n'expose pas ses lignes
  *  (aucune fiche à viser : une pastille reliée à rien ne promet rien, arbitrage user 2026-07-18). */
 export function miscastRowSource(tableId: string, rowId: string): EffectSource | undefined {
-  const categorie = MISCAST_TABLES.find((t) => t.id === tableId)?.codexCategory;
+  const categorie = categorieDeLaTableDeMiscast(tableId);
   return categorie && estSourceKind(categorie) ? { kind: categorie, id: rowId } : undefined;
 }
 
@@ -422,9 +419,9 @@ function miscastTables(): Record<MiscastSeverity, Row[]> {
 const doOps = (ops: GameOp[]): Flow => ({ kind: 'do', effect: { type: 'ops', on: 'target', ops } });
 
 /** Catégorie Codex de la LIGNE tirée sur la table d'une sévérité sous le jeu EN VIGUEUR — porte (b) de
- *  `entryCategoryOf` (`src/data`) : celle que la table DÉCLARE (`MiscastTableDef.codexCategory`). */
+ *  `entryCategoryOf` (`src/data`) : celle de sa table (`categorieDeLaTableDeMiscast`). */
 const categorieDesLignes = (severity: MiscastSeverity): string | undefined =>
-  MISCAST_TABLES.find((t) => t.id === miscastTableId(severity))?.codexCategory;
+  categorieDeLaTableDeMiscast(miscastTableId(severity));
 
 /** Construit le nœud de Flow `test` d'une entrée (« Test de X Difficulté ou onFail » ; palier
  *  `onFailHard` via Condition Flow `slThreshold ≤ dr` dans la branche d'échec — comme Lot 4b). La
