@@ -437,7 +437,7 @@ export const ECRIT_LU = {
       '(hotes/godot/asset/charger.mjs) charge le contrat par une entrée Vite dont la fermeture statique ne suit pas les ' +
       'chemins portés par des chaînes. Ce chargement n’appelle aucun écrivain : `recupererModeles` ne joue que sous ' +
       '`--sonde` et `--export` (#2948), `deposerLesModeles` (hotes/godot/listage.mjs) que sous `--export`, dans son ' +
-      '`--sortie` (#3778)',
+      '`--sortie` (#3778), comme `deposerLesPlanches` (hotes/godot/planches.mjs, #3935)',
   },
   'godot:sonde': {
     ecrit: [],
@@ -461,7 +461,8 @@ export const ECRIT_LU = {
       'par `chargerAssets`, leurs catalogues et Source/ (prose adressée), tsconfig.json et package.json ; ' +
       'le contrat d’asset et ses écrivains sont chargés par l’entrée Vite, hors de la fermeture statique des imports. ' +
       'Écrit sous hotes/godot/projet/modeles/ les seuls GLB ' +
-      '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) n’écrit que sous `--export`',
+      '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) et `deposerLesPlanches` ' +
+      '(hotes/godot/planches.mjs, #3935) n’écrivent que sous `--export`',
   },
   'personnage-3d:tests': {
     ecrit: [],

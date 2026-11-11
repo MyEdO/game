@@ -226,6 +226,16 @@ func exposer(nom: String, rappel: Callable) -> void:
 	JavaScriptBridge.get_interface("window").set(nom, _exposes[nom])
 
 
+## Le pont `pont` posé à la place de celui de l'arbre (`/root/Pont`), que chaque écran rejoint ensuite.
+static func remplacer(arbre: SceneTree, pont: PontDuNoyau) -> void:
+	var ancien := arbre.root.get_node_or_null("Pont")
+	if ancien != null:
+		arbre.root.remove_child(ancien)
+		ancien.free()
+	pont.name = "Pont"
+	arbre.root.add_child(pont)
+
+
 ## Les boutons à l'écran sous `racines` : chaque `BaseButton` actif et visible qu'aucun défilement ne cache, ou, `defiles`
 ## vrai, que les défilements cachent aussi, son texte,
 ## son centre, sa méta `cle` s'il la porte, et l'élément que dessine le composant qui le porte (`Zone.META` :

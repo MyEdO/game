@@ -3,8 +3,8 @@
 ## ou à son point, rigide, tenu, rangé ou skinné (#3086 D4, #3319), habillé de la palette de la composition et de son
 ## emblème (#3111), le gabarit (`GabaritDuSquelette`) et les morphes posés. L'atelier (`atelier.gd`) et chaque combattant
 ## du plateau (`combattant.gd`) en sont deux porteurs : l'un l'offre au joueur, l'autre le monte d'après la vue.
-## La réponse de `modeles` retenue (`retenir_les_modeles`) est commune à tous les montages : chaque GLB s'y télécharge une
-## fois, et chaque emblème s'y rastérise une fois, d'un chargement des modèles au suivant.
+## La réponse de `modeles` retenue (`retenir_les_modeles`) est commune à tous les montages : chaque GLB s'y télécharge et
+## s'y lit une fois, et chaque emblème s'y rastérise une fois, d'un chargement des modèles au suivant.
 class_name MontageDeComposition
 extends Node3D
 
@@ -37,11 +37,12 @@ const CANAUX_LIBRES := [Mesh.ARRAY_CUSTOM0, Mesh.ARRAY_CUSTOM1, Mesh.ARRAY_CUSTO
 signal empilee
 
 
-## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis reçu (`octets`) ou en échec (`erreurs`).
+## Le GLB d'un fichier de `modeles/`, en vol jusqu'à `lue`, puis lu en scène empaquetée (`paquet`) ou en échec
+## (`erreurs`).
 class Lecture extends RefCounted:
 	signal lue
 	var en_vol := true
-	var octets := PackedByteArray()
+	var paquet: PackedScene = null
 	var erreurs: Array[String] = []
 
 
@@ -192,17 +193,13 @@ static func porte_un_blason(element: String) -> bool:
 	return modeles.surfaces[element].any(func(surface: Dictionary) -> bool: return surface.get("blason", false))
 
 
-## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en scène neuve, qui porte en
-## métadonnée `MATERIAUX` chaque matériau du GLB par son nom (`GLTFState.get_materials`, ceux qu'aucune primitive ne porte
-## compris) : téléchargé une fois par chargement des modèles, chaque demande d'un même fichier attendant la première, puis
-## lu à chaque demande, car un
-## `GLTFState` ne génère qu'une scène dont le squelette trouve ses os par leur nom (`generate_scene` rappelé : `find_bone`
-## rend -1), par le `GLTFDocument` qui l'a lu (un autre rend des `ImporterMeshInstance3D`, Godot 4.7-stable) ; `null`
-## (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un
-## fichier qui ne s'est pas téléchargé se redemande. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
-## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`,
-## `modules/gltf/gltf_document.cpp` `_create_skins`, `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`,
-## Godot 4.7-stable).
+## Le GLB du modèle `id`, sous le fichier que lui donne `glb` de la réponse retenue, en instance neuve de sa scène
+## empaquetée, qui porte en métadonnée `MATERIAUX` chaque matériau du GLB par son nom (`GLTFState.get_materials`, ceux
+## qu'aucune primitive ne porte compris) : téléchargé et lu une fois par chargement des modèles, chaque demande d'un même
+## fichier attendant la première (`_lire`). Les instances d'un même fichier partagent ses meshes, ses skins, ses
+## matériaux et ses clips : un porteur qui en change un en fait le sien (`materiau_local`, `cuire_les_formes`,
+## `boucler`). `null` (et une erreur à `recueil`) s'il n'y a pas de fichier ou s'il ne se lit pas, et un fichier qui ne
+## s'est pas téléchargé se redemande.
 func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	if not modeles.glb.has(id):
 		recueil.append("glb-absent : %s" % id)
@@ -212,16 +209,35 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	if lecture == null:
 		lecture = Lecture.new()
 		_lectures[fichier] = lecture
-		await _lire(fichier, lecture)
+		await _lire(id, fichier, lecture)
 	elif lecture.en_vol:
 		await lecture.lue
 	recueil.append_array(lecture.erreurs)
-	if lecture.octets.is_empty():
-		return null
+	return null if lecture.paquet == null else lecture.paquet.instantiate() as Node3D
+
+
+## Le fichier `fichier` du modèle `id` téléchargé puis lu en scène empaquetée de `lecture` (`_paquet_lu`), la lecture
+## oubliée s'il ne s'est pas téléchargé.
+func _lire(id: String, fichier: String, lecture: Lecture) -> void:
+	var octets := await (get_node("/root/Pont") as PontDuNoyau).requeter("modeles/%s" % fichier, lecture.erreurs)
+	if octets.is_empty():
+		if _lectures.get(fichier) == lecture:
+			_lectures.erase(fichier)
+	else:
+		lecture.paquet = _paquet_lu(id, octets, lecture.erreurs)
+	lecture.en_vol = false
+	lecture.lue.emit()
+
+
+## Les `octets` du GLB du modèle `id` en scène empaquetée (`PackedScene.pack`), `MATERIAUX` posé à sa racine, `null` (et
+## une erreur à `recueil`) s'ils ne se lisent pas. Chaque liaison d'un skin y porte le nom de son os (#3086, D4 ;
+## `GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS`, `modules/gltf/gltf_document.cpp` `_create_skins`,
+## `scene/3d/skeleton_3d.cpp` `NOTIFICATION_UPDATE_SKELETON`, Godot 4.7-stable).
+static func _paquet_lu(id: String, octets: PackedByteArray, recueil: Array[String]) -> PackedScene:
 	var document := GLTFDocument.new()
 	var etat := GLTFState.new()
 	etat.handle_binary_image_mode = GLTFState.HANDLE_BINARY_IMAGE_MODE_EMBED_AS_UNCOMPRESSED
-	var code := document.append_from_buffer(lecture.octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
+	var code := document.append_from_buffer(octets, "", etat, GLTFDocument.IMPORT_FLAG_USE_NAMED_SKIN_BINDS)
 	if code != OK:
 		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
 		return null
@@ -232,15 +248,35 @@ func scene_du_glb(id: String, recueil: Array[String]) -> Node3D:
 	for materiau in etat.get_materials():
 		par_nom[materiau.resource_name] = materiau
 	scene.set_meta(MATERIAUX, par_nom)
-	return scene
+	var paquet := PackedScene.new()
+	code = paquet.pack(scene)
+	scene.free()
+	if code != OK:
+		recueil.append("glb-illisible : %s (%s)" % [id, error_string(code)])
+		return null
+	return paquet
 
 
-func _lire(fichier: String, lecture: Lecture) -> void:
-	lecture.octets = await (get_node("/root/Pont") as PontDuNoyau).requeter("modeles/%s" % fichier, lecture.erreurs)
-	if lecture.octets.is_empty() and _lectures.get(fichier) == lecture:
-		_lectures.erase(fichier)
-	lecture.en_vol = false
-	lecture.lue.emit()
+## Chaque clip de `noms` que porte `lecteur` mis en boucle pour ce lecteur seul : les instances d'un même GLB partagent
+## leurs clips (`scene_du_glb`). La bibliothèque qui en porte un est remplacée par une bibliothèque propre au lecteur,
+## qui porte les mêmes clips, sauf chaque clip à boucler, copié puis bouclé ; un clip déjà en boucle reste.
+static func boucler(lecteur: AnimationPlayer, noms: Array) -> void:
+	var a_copier := {}
+	for nom: String in noms:
+		if lecteur.has_animation(nom) and lecteur.get_animation(nom).loop_mode != Animation.LOOP_LINEAR:
+			var clip := lecteur.get_animation(nom)
+			a_copier.get_or_add(lecteur.find_animation_library(clip), []).append(clip)
+	for cle: StringName in a_copier:
+		var partagee := lecteur.get_animation_library(cle)
+		var propre := AnimationLibrary.new()
+		for local in partagee.get_animation_list():
+			var clip := partagee.get_animation(local)
+			if clip in a_copier[cle]:
+				clip = clip.duplicate() as Animation
+				clip.loop_mode = Animation.LOOP_LINEAR
+			propre.add_animation(local, clip)
+		lecteur.remove_animation_library(cle)
+		lecteur.add_animation_library(cle, propre)
 
 
 ## Le montage ramené à aucun modèle : ni squelette ni lecteur, ni élément monté, ni demande de montage en vol.
@@ -343,7 +379,7 @@ func demonter(id: String) -> void:
 ## L'emplacement `id` démonté, puis `element` monté une fois son GLB chargé, si aucune autre demande ne l'a remplacé à
 ## cet emplacement (#3086, D4) : chaque mesh rigide pendu à un os du GLB, à sa transformation locale, sous l'os de même
 ## nom de la base (`hotes/godot/asset/evaluateur/evaluer.ts` `monter`) ; chaque mesh skinné sous le squelette de la
-## base, son skin lié par nom d'os (`scene_du_glb`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses
+## base, son skin lié par nom d'os (`_paquet_lu`). Rien de monté s'il n'a aucun mesh à monter, ou si un os que ses
 ## meshes nomment manque à la base : chacun va à `recueil`. Monté, il reçoit les morphes de la composition ; rend s'il
 ## l'est.
 func monter(id: String, element: String, recueil: Array[String]) -> bool:
@@ -570,7 +606,7 @@ func role_a_rejouer() -> String:
 
 ## Les os qui portent `piece` : celui de son `BoneAttachment3D` pour un mesh rigide (l'import glTF le pose sous l'attache
 ## de son os) ; pour un mesh skinné, le nom de chaque liaison de son skin (`Skin.get_bind_name`, posé à l'import par
-## `scene_du_glb`) ; aucun pour un mesh à la racine.
+## `_paquet_lu`) ; aucun pour un mesh à la racine.
 func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 	var noms: Array[String] = []
 	if piece.skin != null:
@@ -585,7 +621,7 @@ func _os_de_la_piece(piece: MeshInstance3D) -> Array[String]:
 ## os de même nom que le sien ; tenue (son os est celui d'une prise), reposée du repère de sa prise d'origine dans celui
 ## de la prise `id`, sans miroir, ou rangée à l'emplacement `id` (`_ranger`) (#3319, `CONTRAT.md`) ; un fourreau
 ## (`extras.fourreau`) n'est montré que rangé ; skinnée, sous le squelette, son skin lié par nom dès l'import
-## (`scene_du_glb`). Le nœud qui la porte dans la scène.
+## (`_paquet_lu`). Le nœud qui la porte dans la scène.
 func _poser_la_piece(piece: MeshInstance3D, noms: Array[String], sous: Skeleton3D, id: String) -> Node:
 	piece.owner = null
 	if piece.skin == null:

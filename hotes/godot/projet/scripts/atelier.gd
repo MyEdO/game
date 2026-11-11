@@ -961,14 +961,14 @@ func _montrer_l_aide(montre: bool, aide: String) -> void:
 	_publier()
 
 
-## Un bouton par clip du modèle posé, base ou véhicule, chacun mis en boucle ; le clip de la reprise rejoué à son
-## instant, en lecture ou en pause, sinon le clip de repos (`_jouer_le_repos`).
+## Un bouton par clip du modèle posé, base ou véhicule, chacun mis en boucle (`MontageDeComposition.boucler`) ; le clip
+## de la reprise rejoué à son instant, en lecture ou en pause, sinon le clip de repos (`_jouer_le_repos`).
 func _poser_les_clips() -> void:
 	_clips.clear()
 	if _lecteur() == null:
 		return
+	MontageDeComposition.boucler(_lecteur(), Array(_lecteur().get_animation_list()))
 	for nom in _lecteur().get_animation_list():
-		_lecteur().get_animation(nom).loop_mode = Animation.LOOP_LINEAR
 		var rang := _clips.item_count
 		_clips.add_item(nom)
 		_clips.set_item_metadata(rang, nom)
