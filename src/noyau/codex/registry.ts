@@ -15,8 +15,8 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, psychologyLabel,
+  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -107,7 +107,7 @@ import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
+import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
@@ -1109,7 +1109,7 @@ export function optionBody(o: { label: string; desc: string }): string {
 }
 
 /** La fiche d'une table tirée dont chaque rangée désigne une entrée de `category` à sa fourchette. */
-function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires)[number], category: string, libelle: (id: string) => string) {
+function ficheDeTableDeRefs(t: (typeof talentsAleatoires | typeof carrieresAleatoires | typeof especesAleatoires)[number], category: string, libelle: (id: string) => string) {
   return depuisEnveloppe(t, {
     sub: tr('codex.fiche.plages', { length: t.entries.length, die: t.die }),
     sections: sections({
@@ -1768,11 +1768,11 @@ const CODEX_SPECS = {
   },
   eyes: {
     label: 'codex.fiche.couleurDesYeux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => eyes.map((e) => depuisEnveloppe(e, { sub: `2d10 ≤ ${e.rand}`, sections: sections(colorTableSection(e)) })),
+    build: () => couleursDuTableau(tableDesYeux, eyesDie()),
   },
   hairs: {
     label: 'codex.fiche.couleurDesCheveux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => hairs.map((h) => depuisEnveloppe(h, { sub: `2d10 ≤ ${h.rand}`, sections: sections(colorTableSection(h)) })),
+    build: () => couleursDuTableau(tableDesCheveux, hairsDie()),
   },
   calendarMonths: {
     label: 'codex.fiche.calendrierMois', group: 'tables', cluster: 'codex.fiche.calendrier',
@@ -2628,6 +2628,10 @@ const CODEX_SPECS = {
     label: 'codex.fiche.carrieresAleatoires', group: 'tables',
     build: () => carrieresAleatoires.map((t) => ficheDeTableDeRefs(t, 'careers', (id) => refLabel('careers', { id }))),
   },
+  especesAleatoires: {
+    label: 'codex.fiche.especesAleatoires', group: 'tables',
+    build: () => especesAleatoires.map((t) => ficheDeTableDeRefs(t, 'races', (id) => refLabel('races', { id }))),
+  },
   reglesOptionnelles: {
     // V9 #1318 : le catalogue des règles optionnelles est une DONNÉE (`reglesOptionnelles.json`) —
     // exposé/éditable ici comme tout catalogue. Le panneau in-game reste la porte de la VALEUR jouée
@@ -2743,11 +2747,32 @@ const CODEX_SPECS = {
  *  est un getter re-projetable (fraîcheur). */
 export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
-/** Section « table 2d10 » d'une couleur (yeux/cheveux) — borne + couleur par colonne d'espèce. */
-function colorTableSection(c: (typeof eyes)[number]): CodexSection {
+/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table, sous
+ *  la source du tableau. Rangée et colonne d'espèce partagent la dérivation, la colonne sur sa borne
+ *  effective (`randByRace`, sinon `rand`), comme `rollDetail` (`engine/creation.ts`). */
+function couleursDuTableau(table: typeof tableDesYeux, de: DeDeTable): CodexItem[] {
+  const rangee = (e: (typeof eyes)[number]) => e.rand;
+  const colonne = (race: RaceKey) => (e: (typeof eyes)[number]) => e.randByRace?.[race] ?? e.rand;
+  /** Bande de `e` sous la borne `borne` : de la borne précédente + 1 (ou du plus petit total du dé) à la sienne. */
+  const bande = (borne: (e: (typeof eyes)[number]) => number, e: (typeof eyes)[number]) => {
+    const precedentes = table.entries.map(borne).filter((b) => b < borne(e));
+    return bandeAuDe(de, precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n), borne(e));
+  };
+  return table.entries.map((e) => {
+    const sub = bande(rangee, e);
+    return depuisEnveloppe({ ...e, source: table.source }, { sub, sections: sections(colorTableSection(e, sub, (race) => bande(colonne(race), e))) });
+  });
+}
+
+/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce, suivie de la bande de la colonne
+ *  quand elle diffère de `sub`, la bande de la rangée. */
+function colorTableSection(c: (typeof eyes)[number], sub: string, bandeDeColonne: (race: RaceKey) => string): CodexSection {
   return {
     title: tr('codex.fiche.couleurParEspeceColonneRefchar'), layout: 'list',
-    rows: Object.entries(c.color).filter(([, v]) => v).map(([sp, v]) => ({ t: 'kv', k: sp, v } as CodexRow)),
+    rows: (Object.entries(c.color) as [RaceKey, string | undefined][]).filter(([, v]) => v).map(([sp, v]) => {
+      const bandeSp = bandeDeColonne(sp);
+      return { t: 'kv', k: sp, v: bandeSp === sub ? v! : `${v} · ${bandeSp}` } as CodexRow;
+    }),
   };
 }
 

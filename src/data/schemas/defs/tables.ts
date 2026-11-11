@@ -7,7 +7,7 @@ import { nommerChamps, metaDesChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { executeesDe } from '../grammaire/mecanique';
-import { ecartsDuDeDeLaTable, plageOuverteSchema } from '../grammaire/valeurs';
+import { couvertureDuDeParDocument, plageOuverteSchema } from '../grammaire/valeurs';
 
 export const file = 'tables.json';
 export const famille = 'entite';
@@ -31,19 +31,7 @@ const doc = document(
     rangee,
     deDeTirage: true,
     // VDM 12 l.435 ; patron `structure-criticals.ts`.
-    affinerDataset: (dataset) =>
-      dataset.superRefine((v, ctx) => {
-        for (const [i, t] of (v as { id: string; die: string; entries: z.output<typeof rangee>[] }[]).entries()) {
-          const ecarts = ecartsDuDeDeLaTable(t, t.entries, (r) => `la rangée n° ${t.entries.indexOf(r) + 1}`);
-          if (ecarts.length) {
-            ctx.addIssue({
-              code: 'custom',
-              path: [i, 'entries'],
-              message: `tables.json › ${t.id} : les rangées ne couvrent pas le ${t.die} d'un seul tenant — ${ecarts.join(' ; ')}.`,
-            });
-          }
-        }
-      }),
+    affinerDataset: couvertureDuDeParDocument<{ id: string; die: string; entries: z.output<typeof rangee>[] }>(file, (r, t) => `la rangée n° ${t.entries.indexOf(r) + 1}`),
   },
 );
 

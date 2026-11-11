@@ -59,9 +59,10 @@
         },
         {
           "files": [
-            "species.json"
+            "species.json",
+            "especes-aleatoires.json"
           ],
-          "desc": "Espèces jouables + variantes régionales"
+          "desc": "Espèces jouables + variantes régionales · Tableau des Races aléatoires (d100)"
         },
         {
           "files": [

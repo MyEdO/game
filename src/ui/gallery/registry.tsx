@@ -126,15 +126,15 @@ import { gabaritDObjet, type GabaritDObjet } from '../../engine/items';
 // ── Données réelles pour les spécimens vivants (aucune donnée inventée), lues VIVANTES (#1692) ──
 const especeHumaine = memoParVersion('species', () => species.find((s) => s.id === 'humains-reiklander') ?? species[0]);
 export const sectionsDEspeces = memoParVersion('species', (): PickGridSection[] => {
-  const parFamille = new Map<string, typeof species>();
+  const parRace = new Map<string, typeof species>();
   for (const sp of species) {
-    const arr = parFamille.get(sp.family) ?? [];
+    const arr = parRace.get(sp.refChar) ?? [];
     arr.push(sp);
-    parFamille.set(sp.family, arr);
+    parRace.set(sp.refChar, arr);
   }
-  return [...parFamille.entries()].slice(0, 3).map(([family, list]) => ({
-    id: family,
-    label: family,
+  return [...parRace.entries()].slice(0, 3).map(([race, list]) => ({
+    id: race,
+    label: list[0].family,
     items: list.slice(0, 3).map((sp) => ({
       id: sp.id,
       label: sp.label,

@@ -62,10 +62,13 @@ import type * as imparfaites from './schemas/defs/miscast';
 import type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 import type { VisuelDeLumiere } from './schemas/defs/lightTones';
 import type * as signesAstrologiques from './schemas/defs/stars';
+import type * as couleurDesYeux from './schemas/defs/eyes';
+import type * as couleurDesCheveux from './schemas/defs/hairs';
 import type * as tableauDesOups from './schemas/defs/oups';
 import type * as tableDesTalentsAleatoires from './schemas/defs/talents-aleatoires';
 import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-aleatoires';
 import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
+import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 import { trappings, findTrappingById } from './apparencesObjets';
@@ -135,6 +138,7 @@ import pregensJson from './pregens.json';
 import oupsJson from './oups.json';
 import talentsAleatoiresJson from './talents-aleatoires.json';
 import carrieresAleatoiresJson from './carrieres-aleatoires.json';
+import especesAleatoiresJson from './especes-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
 import peripetiesJson from './peripeties.json';
@@ -742,12 +746,11 @@ export interface SpeciesData {
   family: string;
   /** Variante régionale/sous-espèce (« Middenheim », « Norse »…) — absent pour l'espèce nominale. */
   variant?: string;
-  /** id STABLE (`RaceKey`, #313) — colonne des tables Âge/Taille/Yeux/Cheveux (`details.age`/
-   *  `details.taille`/`hairs.color`/`eyes.color`). */
+  /** Race de l'espèce (`RaceKey`, #313) : sa rangée de `especes-aleatoires.json` et sa colonne des tables
+   *  Âge/Taille/Yeux/Cheveux (`details.age`/`details.taille`/`hairs.color`/`eyes.color`). LDB 04 l.93 */
   refChar: RaceKey;
   /** Id de sa colonne de base dans `carrieres-aleatoires.json` (LDB 05 l.214). */
   refCareer: string;
-  rand: number;
   desc: string;
   movement: number;
   fate: { fate: number; resilience: number; extra: number };
@@ -782,7 +785,7 @@ export interface SpeciesData {
   arcaneDomainsBonusOf?: CharKey;
   /** Règle optionnelle (`src/data/reglesOptionnelles.json`) dont l'activation OUVRE l'espèce au
    *  joueur — lu par `speciesAllowed` (`engine/creation`). Absent = espèce ouverte sans condition.
-   *  NADJ 14 l.5 */
+   *  NADJ 14 l.5 ; ADE II 02 l.110 */
   gatedByRule?: { id: string };
 }
 export interface ClassData {
@@ -1588,13 +1591,11 @@ export interface PsychologyData extends StatusData {
    *  Résistance, ou à une difficulté propre). « Sans Peur (Ennemi) » force Accessible à part (par-combattant). */
   test?: { skill?: RefDesignee; difficulty?: import('../engine/types').Difficulty };
 }
-/** Tables Couleur des Yeux / Cheveux (LDB 05 l.698-744) : 2d10, par colonne `RaceKey` (#313). */
+/** Rangée des Tableaux de couleur des yeux / des cheveux (LDB 05 l.742-768), par colonne `RaceKey` (#313). */
 export interface DetailColorData {
   id: string;
-  /** Deux datasets partagent CE contrat (`eyes.json` et `hairs.json`) : le `type` dit lequel. */
-  type: 'eyes' | 'hairs';
   label: string;
-  /** Borne haute 2d10 (incluse). */
+  /** Borne haute cumulée (incluse) du dé de la table. */
   rand: number;
   /** Override de `rand` PAR RACE (`RaceKey`, #313) quand une édition utilise d'autres bornes que le
    *  LDB (ex. gnome NADJ, #420) ; défaut = `rand`. Lu par `rollDetail`. */
@@ -2917,8 +2918,18 @@ const axeParId = indexParId('axes', allAxes);
 export const findAxisById: (id: string) => AxisData | undefined = axeParId;
 /** Socle par défaut d'une campagne SANS `activeAxes` déclaré (`WorldMap.activeAxes`). */
 export const coreAxisIds = memoParVersion('axes', (): string[] => allAxes.filter((a) => a.core).map((a) => a.id));
-export const eyes = eyesJson as DetailColorData[];
-export const hairs = hairsJson as DetailColorData[];
+/** Le Tableau de couleur des yeux (`eyes.json`, LDB 05 l.742-754), document à rangées tiré à son dé. */
+export const tableDesYeux = eyesJson as DocumentARangees<DetailColorData> & { die: string };
+/** Le Tableau de couleur des cheveux (`hairs.json`, LDB 05 l.756-768), document à rangées tiré à son dé. */
+export const tableDesCheveux = hairsJson as DocumentARangees<DetailColorData> & { die: string };
+/** Les rangées du Tableau de couleur des yeux. */
+export const eyes = rangeesDe<typeof couleurDesYeux>(tableDesYeux) as DetailColorData[];
+/** Les rangées du Tableau de couleur des cheveux. */
+export const hairs = rangeesDe<typeof couleurDesCheveux>(tableDesCheveux) as DetailColorData[];
+/** Le dé du Tableau de couleur des yeux, lu à l'appel. */
+export const eyesDie = (): DeDeTable => deDeTirageDe<typeof couleurDesYeux>(tableDesYeux);
+/** Le dé du Tableau de couleur des cheveux, lu à l'appel. */
+export const hairsDie = (): DeDeTable => deDeTirageDe<typeof couleurDesCheveux>(tableDesCheveux);
 /** Calendrier impérial — tables de CONTENU éditables au Codex (cf. `engine/clock.ts` pour la mécanique). */
 export const calendarMonths = calendarMonthsJson as { id: string; type: 'calendarMonths'; label: string; days: number }[];
 export const calendarIntercalary = calendarIntercalaryJson as { id: string; type: 'calendarIntercalary'; label: string; afterMonth: number }[];
@@ -3118,6 +3129,19 @@ export function carrieresOffertesAvec(tiree: string, sp: SpeciesData): string[] 
   const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.carriere === tiree && d.colonnes.includes(sp.refCareer));
   const variantes = (variante?.entries ?? []).map((r) => r.id).filter((id) => id !== tiree && admise(findCareerById(id)));
   return [...substitutions, ...variantes];
+}
+/** Les documents du Tableau des Races aléatoires, un par table imprimée (LDB 04 l.93-101 ; NADJ 14 l.66-75 ;
+ *  ADE II 02 l.112-121), chaque rangée l'espèce nominale de sa race — app-owned éditable au Codex (`setDataset`),
+ *  même référence. */
+export const especesAleatoires = especesAleatoiresJson as (DocumentARangees<RangeeDe<typeof tableauDesRacesAleatoires>> & { die: string })[];
+/** La seule table du Tableau des Races aléatoires dont les races des rangées égalent `races`, lue à l'appel. */
+export function tableDesRacesAleatoires(races: ReadonlySet<RaceKey>): (typeof especesAleatoires)[number] {
+  const racesDe = (t: (typeof especesAleatoires)[number]) => new Set(t.entries.map((r) => garanti(findSpeciesById(r.id), r.id, 'espèce du Tableau des Races aléatoires').refChar));
+  const tables = especesAleatoires.filter((t) => {
+    const r = racesDe(t);
+    return r.size === races.size && [...races].every((x) => r.has(x));
+  });
+  return garanti(tables.length === 1 ? tables[0] : undefined, [...races].join(', '), `table unique du Tableau des Races aléatoires (${tables.length} trouvée(s)) pour les races`);
 }
 /** Événements « Entre deux aventures » (LDB d100) — app-owned éditable ; consommé par `interludeEvents.ts`. */
 export const interludeEvents = rangeesDe<typeof tableauDesEvenements>(interludeEventsJson) as InterludeEvent[];

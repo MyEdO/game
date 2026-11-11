@@ -26,6 +26,10 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'structure-criticals': { die: '1d100', ref: 'AA 10 l.118' },
   obsessions: { die: '2d10', ref: 'EDOC 12 l.172' },
   'talents-aleatoires': { die: '1d100', ref: 'LDB 05 l.514' },
+  'races-ldb': { die: '1d100', ref: 'LDB 04 l.95' },
+  'races-gnome': { die: '1d100', ref: 'NADJ 14 l.68' },
+  'races-ogre': { die: '1d100', ref: 'ADE II 02 l.110' },
+  'races-gnome-et-ogre': { die: '1d100', ref: 'maison, NADJ 14 l.68, ADE II 02 l.110' },
   humain: { die: '1d100', ref: 'LDB 05 l.210' },
   halfling: { die: '1d100', ref: 'LDB 05 l.210' },
   nain: { die: '1d100', ref: 'LDB 05 l.210' },
@@ -107,6 +111,8 @@ const LIVRE: Record<string, { die: string; ref: string }> = {
   'tableau-des-evenements': { die: '1d100', ref: 'LDB 22 l.5' },
   'panne-de-vapeur': { die: '1d100', ref: 'MDG 12 l.323' },
   'signes-astrologiques': { die: '1d100', ref: 'ADE II 03 l.42' },
+  'couleur-des-yeux': { die: '2d10', ref: 'LDB 05 l.744' },
+  'couleur-des-cheveux': { die: '2d10', ref: 'LDB 05 l.758' },
   peripeties: { die: '1d10', ref: 'LDB 51 l.210' },
 };
 

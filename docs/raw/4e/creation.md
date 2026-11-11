@@ -67,6 +67,37 @@ Ce fichier couvre le **processus complet de création de Personnage** (étapes 1
 | 99 | Haut Elfe |
 | 00 | Elfe Sylvain |
 
+### Tableau des Races aléatoires avec le Gnome (verbatim)
+
+`NADJ 14 l.66-75` (folio 87) — race jouable sous la règle optionnelle `creation-gnome-jouable` (`NADJ 14 l.5`).
+
+| 1D100 | Race |
+|-------|------|
+| 01-89 | Humain |
+| 90-93 | Halfling |
+| 94-97 | Nain |
+| 98 | Gnome |
+| 99 | Haut elfe |
+| 00 | Elfe sylvain |
+
+### Tableau des Races aléatoires avec l'Ogre
+
+`ADE II 02 l.112-121` (folio 18) — race jouable sous la règle optionnelle `creation-ogre-jouable` (`ADE II 02 l.110`).
+La VF imprime la seule colonne Race (Humain, Halfling, Nain, Ogre, Haut elfe, Elfe sylvain) : la colonne 1d100
+est perdue. Bornes prises à la VO, nombres seuls (`Archives of the Empire - Vol II/04 - Grabbing a Bite- Ogre
+Player Characters.md` l.94-97) : 01-89 / 90-93 / 94-97 / 98 / 99 / 00.
+
+### Table maison avec le Gnome et l'Ogre
+
+Aucun livre n'imprime la table des deux races. Valeur `maison` (`src/data/especes-aleatoires.json ›
+races-gnome-et-ogre`) : NADJ 14 l.70 et la VO d’ADE II (« Grabbing a Bite », l.95) ôtent chacun 1 valeur à la seule plage Humain
+(LDB 04 l.97 : 01-90 → 01-89) pour leur race ; Halfling et Nain gardent 4 valeurs chacun et se décalent. Avec
+les deux races, Humain cède 2 valeurs : 01-88 Humain / 89-92 Halfling / 93-96 Nain / 97 Gnome / 98 Ogre /
+99 Haut elfe / 00 Elfe sylvain.
+
+Une rangée désigne une race : le joueur y choisit l'espèce (variante régionale, clan) et garde les +20 PX
+(`LDB 04 l.91` ; `ADE I 02 l.257`).
+
 **Bonus PX :** +20 PX si le résultat aléatoire est conservé. `LDB 04 l.91`
 
 ---
@@ -681,16 +712,16 @@ Spécialisations imprimées par ces fiches : Bon marcheur (Rural) `EDOC 16 l.493
 
 | Mécanique | Fichier(s) code |
 |-----------|----------------|
-| Tirage espèce d100 / +20 PX | `src/engine/creation.ts l.25, 33` — `LDB 04 l.91, 93` |
-| Tirage carrière d100 / +50/+25 PX | `src/engine/creation.ts l.26-27, 64` — `LDB 05 l.210-211` |
-| Tirage 2d10 Caractéristiques / +50/+25 PX | `src/engine/creation.ts l.28-29, 81` — `LDB 05 l.337-385` |
+| Tirage espèce d100 / +20 PX | `src/engine/creation.ts l.31, 62` — `LDB 04 l.91, 93` |
+| Tirage carrière d100 / +50/+25 PX | `src/engine/creation.ts l.32-33, 74` — `LDB 05 l.210-211` |
+| Tirage 2d10 Caractéristiques / +50/+25 PX | `src/engine/creation.ts l.34-35` · `src/engine/character.ts l.315` — `LDB 05 l.337-385` |
 | Profils d'espèce (bonus de Caractéristique) | `src/data/species.json` |
 | Blessures = BF+(2×BE)+BFM | `src/engine/characteristics.ts` |
-| Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 112` — `LDB 05 l.578-583` |
-| Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.131` — `LDB 05 l.705-711` |
-| Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.136` — `LDB 05 l.728` |
-| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.142` — `LDB 05 l.742-754` |
-| Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.147` — `LDB 05 l.756-768` |
+| Richesse initiale (Bronze/Argent/Or × Standing) | `src/engine/creation.ts l.11, 102` — `LDB 05 l.578-583` |
+| Âge par espèce (15+d10 / 15+10d10 / …) | `src/engine/creation.ts l.109` — `LDB 05 l.705-711` |
+| Taille par espèce (145+5d10 cm / …) | `src/engine/creation.ts l.114` — `LDB 05 l.728` |
+| Couleur des yeux (2d10, table par espèce) | `src/engine/creation.ts l.119` — `LDB 05 l.742-754` |
+| Couleur des cheveux (2d10, table par espèce) | `src/engine/creation.ts l.124` — `LDB 05 l.756-768` |
 | 5 Augmentations gratuites sur 3 Caractéristiques de carrière | `src/engine/character.ts l.256, 263` — `LDB 05 l.459, 463` |
 | 40 Augmentations de Compétences de carrière (max 10 / Comp.) | `src/engine/character.ts` (`CAREER_SKILL_ADVANCES`) · `src/noyau/creation/brouillon.ts` |
 | Magie mineure : BFM sorts mémorisés à la création | `src/noyau/creation/brouillon.ts` (`pettySpellQuota`) — `LDB 10 l.714` |

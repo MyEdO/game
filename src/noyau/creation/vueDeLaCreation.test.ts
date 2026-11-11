@@ -45,6 +45,22 @@ describe('la création en pages', () => {
   });
 });
 
+describe('la race puis la lignée : les espèces se groupent par race (`refChar`), jamais par leur libellé `family`', () => {
+  it('une lignée au `family` renommé reste dans sa race, sous le libellé de l’espèce canonique', () => {
+    const origine = [...species];
+    const renommee = origine.map((s) => (s.id === 'nains-norse' ? { ...s, family: 'Nains du Norsca' } : s));
+    setDataset('species', renommee);
+    try {
+      const page = rubriquesDeLaPage(withSpecies(newDraft(1), 'nains'), 'species');
+      const races = options(rubrique(page, 'famille')).map((o) => o.libelle);
+      expect(races.filter((l) => l.startsWith('Nains'))).toEqual(['Nains']);
+      expect(options(rubrique(page, 'lignee')).map((o) => o.libelle)).toEqual(renommee.filter((s) => s.refChar === 'nain').map((s) => s.variant ?? s.label));
+    } finally {
+      setDataset('species', origine);
+    }
+  });
+});
+
 describe('les carrières offertes : celles que le tirage offre sur la table effective (LDB 05 l.204-212 ; MDG 09 l.9)', () => {
   /** Les carrières que `rollCareer` rend, d100 de 1 à 100, à l'espèce du brouillon sous son remplacement. */
   const tirees = (d: CreatorDraft) => [...new Set(Array.from({ length: 100 }, (_, i) => rollCareer(draftSpecies(d)!, d.coastalSwap, deFixe(i + 1)).ids).flat())].sort();

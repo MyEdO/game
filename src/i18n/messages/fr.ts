@@ -5327,6 +5327,7 @@ export const fr = {
   'codex.fiche.obsessionsTable': 'Obsessions (table)',
   'codex.fiche.talentsAleatoires': 'Talents aléatoires (table)',
   'codex.fiche.carrieresAleatoires': 'Carrières aléatoires (table)',
+  'codex.fiche.especesAleatoires': 'Races aléatoires (table)',
   'codex.fiche.reglesOptionnelles': 'Règles optionnelles',
   'codex.fiche.ref': 'Réf',
   'codex.fiche.controle': 'Contrôle',

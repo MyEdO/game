@@ -242,10 +242,10 @@ export const careerCharKeys = (d: CreatorDraft): CharKey[] =>
 export function rollDraftSpecies(d: CreatorDraft): CreatorDraft {
   if (d.speciesRoll) return d; // FIGÉ : pas de relance (LDB 04 — aucune n'est offerte)
   const r = rollSpecies(fluxDeCreation(d.seed, 'espece'));
-  // La borne tirée propose `ids` ; on sélectionne la 1ʳᵉ par défaut, le joueur peut choisir une autre.
+  // La rangée tirée offre `ids`, sa première choisie par défaut. LDB 04 l.91 ; ADE I 02 l.257
   return withSpecies({ ...d, speciesRoll: r }, r.ids[0]);
 }
-// +20 PX tant que l'espèce choisie appartient à la BORNE tirée (le bonus récompense le tirage, l.87).
+// Les PX du tirage d'espèce, tant que l'espèce choisie est de la rangée tirée. LDB 04 l.91
 export const speciesXp = (d: CreatorDraft): number =>
   d.speciesRoll && d.speciesRoll.ids.includes(d.speciesId) ? XP_SPECIES_ACCEPTED : 0;
 
