@@ -1336,19 +1336,52 @@ async function parcoursEditeur() {
     await cliquerBouton(quoi)
   }
   /** La valeur `id` de la liste déroulante `liste` des options de l'outil choisie : la liste amenée sur le panneau,
-   *  ouverte d'un clic, qui n'y place aucun article, la flèche descendue du premier jusqu'à elle, puis Entrée ; l'écran
-   *  attendu ensuite : la valeur pressée, sinon la condition `attendu`. */
+   *  cliquée, qui prend le focus, le pointeur sorti d'elle, refermée par Échap puis rouverte par Entrée : ouverte au
+   *  clavier, elle désigne sa valeur pressée, sinon sa première valeur offerte (`OptionButton.show_popup`), alors qu'au
+   *  clic, elle désigne l'article qu'elle recouvre sous le pointeur ; la flèche montée ou descendue de là jusqu'à elle,
+   *  sur chaque valeur offerte, une image au moins entre deux flèches, puis Entrée ;
+   *  l'écran attendu ensuite : la valeur pressée, sinon la condition `attendu`. Une frappe perdue par la liste ouverte
+   *  laisse l'écran inchangé : Échap la ferme et le choix se rejoue, trois essais au plus ; une autre valeur pressée
+   *  depuis l'ouverture est l'échec rendu tel quel. */
   const choisirALaListe = async (liste, id, zone = 'editeur.options', attendu = null) => {
-    const libelle = (await editeur()).zones[zone].find((el) => el.id === liste).valeurs.find((b) => b.id === id).libelle
-    const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
-    const rang = deroulante.choix.indexOf(libelle)
-    assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
-    await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
-    await sleep(400)
-    for (let n = 0; n <= rang; n++) await realKey(session, { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 })
-    await marquer()
-    await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
-    await waitFor(session, attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`)
+    const valeurs = async () => (await editeur()).zones[zone].find((el) => el.id === liste).valeurs
+    const presses = async () => (await valeurs()).map((b) => `${b.id}:${b.presse}`).join(',')
+    const libelle = (await valeurs()).find((b) => b.id === id).libelle
+    const fait = attendu ?? `globalThis.wfrpEcran?.editeur?.zones['${zone}'].find((el) => el.id === '${liste}')?.valeurs.find((b) => b.id === '${id}')?.presse === true`
+    for (let essai = 1; ; essai++) {
+      const ouverture = await presses()
+      const deroulante = await amenerAuPanneau({ element: `liste/${liste}` })
+      const rang = deroulante.choix.indexOf(libelle)
+      assert.ok(rang >= 0, `${libelle} est offert : ${deroulante.choix.join(', ')}`)
+      const offertes = (await valeurs()).map((b, i) => (b.refus === null ? i : -1)).filter((i) => i >= 0)
+      const pressee = (await valeurs()).findIndex((b) => b.presse && b.refus === null)
+      const depart = offertes.indexOf(pressee >= 0 ? pressee : offertes[0])
+      const pas = offertes.indexOf(rang) - depart
+      await geste(session, { surface: 'canvas', x: deroulante.x, y: deroulante.y }, { qui: `liste ${liste}` }, clic())
+      await sleep(400)
+      await geste(session, { surface: 'canvas', x: 1000, y: 700 }, { qui: `le pointeur hors de la liste ${liste}` }, ({ x, y }, emettre) => emettre('souris', { type: 'mouseMoved', x, y }))
+      await sleep(400)
+      await realKey(session, { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      await sleep(400)
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      await sleep(400)
+      const fleche = pas < 0 ? { key: 'ArrowUp', code: 'ArrowUp', windowsVirtualKeyCode: 38 } : { key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 }
+      for (let n = 0; n < Math.abs(pas); n++) {
+        await realKey(session, fleche)
+        await sleep(60)
+      }
+      await marquer()
+      await realKey(session, { key: 'Enter', code: 'Enter', windowsVirtualKeyCode: 13 })
+      try {
+        await waitFor(session, fait)
+        return
+      } catch (erreur) {
+        if (erreur.code !== ATTENTE_ECHUE || essai === 3 || (await presses()) !== ouverture) throw erreur
+        noter(`liste ${liste} : « ${libelle} » non choisie à l’essai ${essai}, Échap puis un nouvel essai`)
+      }
+      await realKey(session, { key: 'Escape', code: 'Escape', windowsVirtualKeyCode: 27 })
+      await sleep(400)
+    }
   }
   let e = await editeur()
   assert.equal(boutonDeLEditeur(e, 'couche/0')?.presse, true, 'la carte s’ouvre sur sa couche 0')
@@ -1663,6 +1696,64 @@ async function parcoursEditeur() {
   await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/usable/actions/${rang}/consume')?.valeurs.find((b) => b.id === '${consommer}')?.presse === true`)
   noter(`un clic sur le décor « Comptoir », onglet Rôles, « Ajouter » : l’action « ${actionNeuve.libelle} », identifiée « coffre », libellée « Ouvrir », consommée`)
   await capturer('3606-m1e-1-actions')
+  await cliquerAuPanneau('Identité')
+  await cliquerAuPanneau({ element: 'bouton/outil/navire' })
+  await choisirALaListe('navires', 'navire/barge-fluviale')
+  const [qx, qy] = Object.keys(cases).map((k) => k.split(',').map(Number)).filter(loin).sort((a, b) => auCentre(a) - auCentre(b))[0]
+  await cliquerPoint(...cases[`${qx},${qy}`])
+  await waitFor(session, montre('valeur/postes/ajouter'))
+  await cliquerAuPanneau('Combat')
+  e = await editeur()
+  const [premierEngin] = inspecte(e, 'valeur/postes/ajouter').valeurs
+  await choisirALaListe('valeur/postes/ajouter', premierEngin.id, 'editeur.inspecteur', montre('valeur/postes/0/trappingId'))
+  e = await editeur()
+  const piece = inspecte(e, 'valeur/postes/0/trappingId').valeurs.find((b) => b.jeu.args[2] === 'canon-moyen')
+  await choisirALaListe('valeur/postes/0/trappingId', piece.id, 'editeur.inspecteur')
+  await waitFor(session, montre('valeur/postes/0/ammo/ajouter'))
+  e = await editeur()
+  const pieceChoisie = inspecte(e, 'valeur/postes/0/trappingId').valeurs.find((b) => b.presse).libelle
+  const ajouterAuCoffre = inspecte(e, 'valeur/postes/0/ammo/ajouter').libelle
+  await cliquerAuPanneau({ element: 'bouton/valeur/postes/0/ammo/ajouter' })
+  await waitFor(session, montre('valeur/postes/0/ammo/boulet-et-poudre'))
+  await cliquerAuPanneau({ element: 'formulaire/valeur/postes/0/ammo/boulet-et-poudre' })
+  await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === 'valeur/postes/0/ammo/boulet-et-poudre')?.champs[2].valeur === 1`)
+  e = await editeur()
+  noter(`outil Navire, la barge posée sur la case ${qx}, ${qy} ; onglet Combat, « ${inspecte(e, 'valeur/postes/ajouter').libelle} » : « ${premierEngin.libelle} », puis la pièce « ${pieceChoisie} » ; « ${ajouterAuCoffre} », une munition « ${inspecte(e, 'valeur/postes/0/ammo/boulet-et-poudre').champs[2].libelle} » au coffre, quantité ${inspecte(e, 'valeur/postes/0/ammo/boulet-et-poudre').champs[2].valeur}`)
+  await capturer('3606-m1f-1-postes')
+  await cliquerAuPanneau('Identité')
+  await cliquerAuPanneau({ element: 'bouton/entite/supprimer' })
+  await waitFor(session, '!(globalThis.wfrpEcran?.editeur?.surcouche.reperes ?? []).some((r) => r.choisi)')
+  await cliquerAuPanneau({ element: 'bouton/outil/select' })
+  await cliquerPoint(...cases[`${dx},${dy}`])
+  const flux = `valeur/usable/actions/${rang}/flow`
+  await waitFor(session, montre(`${flux}/kind`))
+  await cliquerAuPanneau('Rôles')
+  /** L'id de la valeur du choix `choix` qui pose la variante de discriminant `kind`. */
+  const idDeLaVariante = (e, choix, kind) => inspecte(e, choix).valeurs.find((b) => b.jeu.args[2]?.kind === kind).id
+  /** Le pas neuf ajouté au rang `n` de la séquence du flux, sa branche `kind` choisie, l'élément `attendu` montré. */
+  const ajouterLePas = async (n, kind, attendu) => {
+    await cliquerAuPanneau({ element: `bouton/${flux}/steps/ajouter` })
+    await waitFor(session, montre(`${flux}/steps/${n}/kind`))
+    e = await editeur()
+    await cliquerAuPanneau({ element: `bouton/${idDeLaVariante(e, `${flux}/steps/${n}/kind`, kind)}` })
+    await waitFor(session, montre(attendu))
+  }
+  /** Le texte `texte` écrit au champ `champ` du flux, sa saisie tapée puis jouée. */
+  const ecrireAuFlux = async (champ, texte) => {
+    await taper(`saisieTexte/${flux}/${champ}/valeur`, texte)
+    await cliquerAuPanneau({ element: `formulaire/${flux}/${champ}` })
+    await waitFor(session, `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((el) => el.id === '${flux}/${champ}')?.champs[2].valeur === ${JSON.stringify(texte)}`)
+  }
+  await ajouterLePas(0, 'do', `${flux}/steps/0/effect/flag`)
+  await ecrireAuFlux('steps/0/effect/flag', 'coffre')
+  await ajouterLePas(1, 'if', `${flux}/steps/1/cond/kind`)
+  e = await editeur()
+  await choisirALaListe(`${flux}/steps/1/cond/kind`, idDeLaVariante(e, `${flux}/steps/1/cond/kind`, 'flag'), 'editeur.inspecteur', montre(`${flux}/steps/1/cond/expr`))
+  await ecrireAuFlux('steps/1/cond/expr', 'coffre')
+  e = await editeur()
+  const branche = (id) => inspecte(e, id).valeurs.find((b) => b.presse).libelle
+  noter(`un clic sur le décor « Comptoir », onglet Rôles, le flux de l’action « coffre » : « ${branche(`${flux}/kind`)} » ; « ${inspecte(e, `${flux}/steps/ajouter`).libelle} » : un pas « ${branche(`${flux}/steps/0/kind`)} », effet « ${branche(`${flux}/steps/0/effect/type`)} » sur l’indicateur « coffre », puis un pas « ${branche(`${flux}/steps/1/kind`)} », condition « ${branche(`${flux}/steps/1/cond/kind`)} » « coffre »`)
+  await capturer('3606-m2b-1-flux')
   await cliquerPoint(...cases[`${zx},${zy}`])
   await waitFor(session, montre('valeur/merchant/settlement'))
   e = await editeur()

@@ -86,7 +86,7 @@ function presser(s: SessionDEdition, id: string): SessionDEdition {
 const COLLECTION_DU_PORTEUR = { zone: 'effectZones', declencheur: 'triggers', entite: 'entities' } as const satisfies Record<SorteDePorteur, keyof Scene>;
 
 /** La session `s` où chaque offre du geste `valeur` de son inspecteur est jouée une fois, celles qui emportent des champs
- *  après les autres, jusqu'à ce qu'aucune ne reste ; chaque écriture, avec son chemin depuis la scène, s'ajoute à
+ *  après les autres, la plus profonde d'abord, jusqu'à ce qu'aucune ne reste ; chaque écriture, avec son chemin depuis la scène, s'ajoute à
  *  `out` : le choix d'une variante écrit son discriminant (l'id de son choix, `valeur/<chemin>/<discriminant>`). */
 function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): SessionDEdition {
   let s = depart;
@@ -94,7 +94,7 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
   for (let n = 0; n < GESTES_AU_PLUS; n++) {
     const zones = zonesDeLEditeur(s);
     const restantes = offres(zones['editeur.inspecteur']).filter((o) => !jouees.has(o.id));
-    const offre = restantes.find((o) => !o.emporte) ?? restantes[0];
+    const offre = restantes.find((o) => !o.emporte) ?? restantes.reduce((a, o) => (o.chemin.length > a.chemin.length ? o : a), restantes[0]);
     if (!offre) return s;
     jouees.add(offre.id);
     const geste = gesteDuJeu(zones, offre.jeu);
@@ -111,6 +111,20 @@ function jouerLInspecteur(depart: SessionDEdition, out: EcritureJouee[]): Sessio
     out.push({ avant, apres: sceneEditee(s), chemin: [collection, rang, ...ecrit.chemin], valeur: ecrit.valeur, saisie: offre.saisie });
   }
   throw new Error(`plus de ${GESTES_AU_PLUS} offres du geste valeur`);
+}
+
+/** Le choix d'id `id` de l'inspecteur de la session `s`. */
+function choixDeLInspecteur(s: SessionDEdition, id: string): Choix {
+  const choix = zonesDeLEditeur(s)['editeur.inspecteur'].find((e): e is Choix => (e.type === 'choix' || e.type === 'liste') && e.id === id);
+  if (!choix) throw new Error(`aucun choix ${id} dans l’inspecteur`);
+  return choix;
+}
+
+/** La session `s` où chaque variante du choix d'id `id` de l'inspecteur, dans l'ordre du choix, est choisie à son tour,
+ *  son inspecteur joué (`jouerLInspecteur`) : chaque branche d'une union récursive (le `Flow`, #3606 M2b), dont
+ *  l'inspecteur ne joue que la première variante non choisie. */
+function jouerLesVariantes(s: SessionDEdition, id: string, out: EcritureJouee[]): SessionDEdition {
+  return choixDeLInspecteur(s, id).valeurs.reduce((t, v) => jouerLInspecteur(presser(t, v.id), out), s);
 }
 
 /** Les fiches du Bestiaire des personnages posés : la Vouivre (ZI), dont les options portent des Traits facultatifs et
@@ -133,7 +147,13 @@ const PROJET_A_PRESETS = 'la-diligence';
  *  (`usable.actions`). */
 const DECOR = 'brasero';
 
-/** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance (MDG 12), et sa case. */
+/** Le choix de l'action ajoutée au `DECOR`, sa première prise ; puis celui de la branche de son flux, joué branche par
+ *  branche (`jouerLesVariantes`). */
+const ACTION_DU_DECOR = 'valeur/usable/ajouter';
+const FLUX_DU_DECOR = 'valeur/usable/actions/0/flow/kind';
+
+/** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance et à postes dotés de leur
+ *  coffre (MDG 12), et sa case. */
 const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 } } as const;
 
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
@@ -144,7 +164,8 @@ const cliquer = (s: SessionDEdition, x: number, y: number): SessionDEdition => e
 /** Les écritures jouées sur une zone d'effet neuve, un déclencheur neuf et un personnage de chacune des `FICHES` d'une
  *  scène neuve de la première campagne du jeu, chacun posé à son outil (Zone, Personnage), et un personnage d'`ENROLE`
  *  enrôlé dans une rencontre neuve ; puis sur un personnage de la
- *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, sur un personnage de
+ *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, puis sur chaque
+ *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`), sur un personnage de
  *  la première des `FICHES` posé dans la scène `A_DIALOGUE`, et sur la coque
  *  `COQUE`, sélectionnée ; chacun
  *  joué à son inspecteur (`jouerLInspecteur`). */
@@ -161,7 +182,8 @@ export function ecrituresJouees(): EcritureJouee[] {
   if (!aPresets) throw new Error(`aucune campagne ${PROJET_A_PRESETS}`);
   const neuve = presser(ouvrirLEdition(paquetDuJeu(aPresets), false), 'scenes/ajouter');
   const pnj = jouerLInspecteur(cliquer(presser(presser(neuve, 'outil/personnage'), `personnage/${FICHES[0]}`), 5, 5), out);
-  jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
+  const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
+  jouerLesVariantes(presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id), FLUX_DU_DECOR, out);
   const aDialogue = allBuiltinCampaigns.find((c) => c.id === A_DIALOGUE.campagne);
   if (!aDialogue) throw new Error(`aucune campagne ${A_DIALOGUE.campagne}`);
   const dialogues = presser(presser(ouvrirLEdition(paquetDuJeu(aDialogue), false), `scenes/${A_DIALOGUE.scene}`), 'outil/personnage');

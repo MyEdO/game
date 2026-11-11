@@ -932,7 +932,7 @@ const conditionDeTalentSchema = refOuSpec('talent', {
   who: nommerNoeud(partySelectorSchema.optional(), { nom: 'acteur' }),
 }) as z.ZodType<Extract<Condition, { kind: 'talent' }>> & z.core.$ZodTypeDiscriminable;
 
-/** La variante `noeud` de l'algèbre `Condition`, nommée `label` à l'affichage. */
+/** La variante `noeud` d'une union discriminée (`Condition`, `Flow`), nommée `label` à l'affichage. */
 const variante = <T extends z.ZodType>(label: string, noeud: T): T => nommerNoeud(noeud, { label });
 
 /** Les algèbres `Condition` construites, par Conditions réservées admises. */
@@ -1535,17 +1535,17 @@ const OP_EN_DONNEE = z.looseObject({ op: z.string() });
 export function arbreDeFlow<E>(feuille: z.ZodType<E>, condition: z.ZodType<Condition>, coutDAvantage: z.ZodType<number | typeof INDICE_TEMPLATE>): z.ZodType<Flow<E>> {
   const flow: z.ZodType<Flow<E>> = z.lazy(() =>
     z.discriminatedUnion('kind', [
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'arbreDeFlow', 'flow.seq'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: feuille }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'arbreDeFlow', 'flow.do'),
-      marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'arbreDeFlow', 'flow.if'),
-      noeudTest(flow),
-      proseNommee(nommerChamps(z.strictObject({
+      variante('Séquence', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('seq'), steps: z.array(flow) }), { kind: { label: "type"  }, steps: { label: "étape" } }), 'arbreDeFlow', 'flow.seq')),
+      variante('Effet', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('do'), effect: feuille }), { kind: { label: "type"  }, effect: { label: "effet" } }), 'arbreDeFlow', 'flow.do')),
+      variante('Si', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('if'), cond: condition, then: flow, else: flow.optional() }), { kind: { label: "type"  }, cond: { label: "condition" }, then: { label: "alors" }, else: { label: "sinon" } }), 'arbreDeFlow', 'flow.if')),
+      variante('Test', noeudTest(flow)),
+      variante('Choix', proseNommee(nommerChamps(z.strictObject({
         kind: z.literal('choice'),
         advantageCost: coutDAvantage.optional(),
         icon: z.string().optional(),
         yes: flow,
         no: flow.optional(),
-      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt'),
+      }), { kind: { label: "type"  }, advantageCost: { label: "coût en Avantage"  }, icon: { label: "icône" , texte: { regime: "technique"} }, yes: { label: "oui" }, no: { label: "non" } }), 'flow.choice.prompt')),
     ]),
   );
   return flow;

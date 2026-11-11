@@ -1148,12 +1148,9 @@ export interface TrappingData {
    *  `'moyenne'` (« distance inférieure à leur Portée Courte » interdite, l.251). Propagé jusqu'à `Weapon`,
    *  lu par `firedAttackBlock` (`belowMinRangeBand`). Absent = pas de minimale. */
   minRangeBand?: import('../engine/types').RangeBandId;
-  /** Munition REPRÉSENTATIVE (`TrappingData`, `categorie:'ammunition'`) d'une arme de siège — les
-   *  familles `armes-de-siege`/`munition-de-siege` (`ammoFamily`) regroupent des munitions non-interchangeables
-   *  (carreau de baliste ≠ boulet de canon ≠ bombe de mortier ≠ balles de pierrier, MDG 12 l.410-424) ; le
-   *  `subType` seul ne discrimine pas la bonne famille pour le hint joueur. Propagé jusqu'à `Weapon`,
-   *  résolu en libellé FR par `ammoFamilyLabel`. Absent = hint générique de la famille (`ammoFamilyLabel`). */
-  defaultAmmo?: { id: string };
+  /** Les munitions (`categorie:'ammunition'`) d'une arme de siège, la représentative en tête : les seules qu'elle
+   *  charge (`chargeLArme`). AA 10 l.150 ; MDG 12 l.410-424 */
+  munitions?: string[];
   /** EMPREINTE de grille (côté N×N) de l'affût POSÉ en combat — recopiée sur `Combatant.footprint`
    *  (`footprintN`), MÊME champ que `VehicleData.ship.footprint`. ADE II 8 l.239/258 (profil + description
    *  physique du tronc suspendu sur portique à roues) ne chiffre aucune Taille en cases : la valeur posée

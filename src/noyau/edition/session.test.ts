@@ -35,7 +35,7 @@ import { emptyStatblock, statblockDeLaCreature } from '../../data/valeursNeuves'
 import { valeurNeuveDe } from '../valeursNeuves';
 import { refusDeLaValeur } from './session';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
-import { creatures, findCreatureById, MERCHANT_ARCHETYPES, spells, talents, traits } from '../../data';
+import { creatures, findCreatureById, MERCHANT_ARCHETYPES, siegeEngines, spells, talents, traits } from '../../data';
 import { TAVERN_GAMES } from '../../engine/tavernGame';
 import { listesDeSorts, refusDesSortsChoisis } from '../../engine/sortsDuPnj';
 import { inventaireApres } from '../../engine/items';
@@ -743,5 +743,55 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
     const avec = jouer(table, valeur(table, ['usable', 'actions'], [...actions, ...neuve]));
     expect(decor(avec).usable?.actions).toHaveLength(actions.length + 1);
     expect(decor(jouer(avec, valeur(avec, ['usable', 'actions'], []))).usable).toEqual({ assise: true });
+  });
+});
+
+describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const barge = allBuiltinCampaigns.find((c) => c.id === 'barge-du-sel')!;
+  const cogue = jouer(ouvrirLEdition(paquetDuJeu(barge), false), { geste: 'scenes', quoi: 'aller', id: 'barge-du-sel-embuscade' }, { geste: 'appui', point: point(18, 7) }, { geste: 'relache', point: point(18, 7) });
+  const coque = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel)!;
+  const valeur = (chemin: Segment[], v: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id: coque(cogue).id }, chemin, valeur: v });
+  const choix = (s: SessionDEdition, chemin: Segment[]) => choixDuChamp('entite', coque(s), chemin, cadreDeLaSession(s))?.map((c) => c.valeur);
+  const engins = siegeEngines().map((e) => e.id);
+
+  it('un poste s’ajoute par son engin de siège, sa pièce se choisit parmi eux, ses servants parmi les personnages de la scène sans coque ni autre poste, son coffre parmi les munitions de sa pièce, sa munition dans son coffre, qu’elle ne quitte pas', () => {
+    const postes = coque(cogue).postes!;
+    expect(formulaireDe('entite', coque(cogue), cadreDeLaSession(cogue)).map((f) => f.key)).toContain('postes');
+    expect(choix(cogue, ['postes', postes.length])).toEqual(engins.map((trappingId) => ({ trappingId })));
+    const ajoute = jouer(cogue, valeur(['postes'], [...postes, { trappingId: engins[0] }]), valeur(['postes', postes.length, 'trappingId'], engins[1]));
+    expect(coque(ajoute).postes?.[postes.length]).toEqual({ trappingId: engins[1] });
+    expect(choix(ajoute, ['postes', postes.length, 'trappingId'])).toEqual(engins);
+    expect(refusDeLaValeur(ajoute, valeur(['postes', postes.length, 'trappingId'], 'pas-une-piece')), 'une pièce hors catalogue').toBe('horsSorte');
+    const entites = sceneEditee(cogue).entities;
+    expect(entites.some((e) => e.vehicule && e.id !== coque(cogue).id), 'la scène pose une autre coque').toBe(true);
+    const equipage = entites.filter((e) => e.kind === 'personnage' && !e.vehicule).map((e) => e.id);
+    expect(equipage.length, 'la scène pose des personnages sans coque').toBeGreaterThan(1);
+    expect(choix(ajoute, ['postes', postes.length, 'crewIds', 0])).toEqual(equipage);
+    const servi = jouer(ajoute, valeur(['postes', postes.length, 'crewIds'], [equipage[0]]));
+    expect(choix(servi, ['postes', postes.length, 'crewIds', 1]), 'un servant ne sert qu’une fois le poste').toEqual(equipage.slice(1));
+    expect(choix(servi, ['postes', 0, 'crewIds', 0]), 'ni un autre poste de la coque').toEqual(equipage.slice(1));
+    expect(choix(servi, ['postes', postes.length, 'crewIds', 0]), 'le servant courant reste offert').toEqual(equipage);
+    expect(coque(cogue).postes![0].trappingId).toBe('canon-moyen');
+    expect([...(choix(cogue, ['postes', 0, 'ammo']) as string[])].sort(), 'canon → boulet et mitraille seulement').toEqual(['boulet-et-poudre', 'mitraille-et-poudre']);
+    expect(choix(jouer(ajoute, valeur(['postes', postes.length, 'trappingId'], 'belier-ade2')), ['postes', postes.length, 'ammo']), 'bélier → aucune').toEqual([]);
+    expect(refusDeLaValeur(cogue, valeur(['postes', 0, 'ammo', 'carreau-de-baliste'], 2)), 'un carreau n’est pas offert au coffre d’un canon').toBe('nonOffert');
+    const canonACarreaux = { ...coque(cogue), postes: [{ trappingId: 'canon-moyen', ammo: { 'carreau-de-baliste': 2, 'boulet-et-poudre': 4 } }] };
+    expect(refusDeLEntite(canonACarreaux as Parameters<typeof refusDeLEntite>[0]), 'le parse refuse un carreau au coffre d’un canon')
+      .toEqual([{ chemin: ['postes', 0, 'ammo', 'carreau-de-baliste'], message: expect.stringContaining('ne charge pas') }]);
+    const dote = jouer(cogue, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 3));
+    expect(coque(dote).postes![0].ammo).toMatchObject({ 'mitraille-et-poudre': 3 });
+    expect(refusDeLaValeur(dote, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 0)), 'une quantité nulle').toBe('horsSorte');
+    expect(choix(dote, ['postes', 0, 'selectedAmmo', 'id'])).toEqual(Object.keys(coque(dote).postes![0].ammo!));
+    const choisie = jouer(dote, valeur(['postes', 0, 'selectedAmmo', 'id'], 'mitraille-et-poudre'));
+    expect(coque(choisie).postes![0].selectedAmmo).toEqual({ id: 'mitraille-et-poudre' });
+    expect(refusDeLaValeur(choisie, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], undefined)), 'la munition choisie quitte le coffre')
+      .toEqual({ regle: expect.stringContaining('hors du coffre') });
+  });
+
+  it('seule une coque offre ses postes', () => {
+    const pnj = jouer(ouverte(), { geste: 'outil', outil: { mode: 'entity', kind: 'personnage', ref: 'griffon-zoo-imperial' } }, { geste: 'appui', point: point(1, 1) }, { geste: 'relache', point: point(1, 1) });
+    const id = entiteDeLaSelection(sceneEditee(pnj), pnj.sel)!.id;
+    expect(refusDeLaValeur(pnj, { geste: 'valeur', porteur: { sorte: 'entite', id }, chemin: ['postes'], valeur: [{ trappingId: engins[0] }] })).toBe('nonOffert');
   });
 });

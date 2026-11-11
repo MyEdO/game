@@ -12,13 +12,14 @@ import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
 import { champsDeclares, choixDuNoeud, formeAuPoint, inferFields, type ChoixDuContexte, type ContexteDuChamp, type FieldDesc } from './codex/editFields';
 import { variantesAChoisir } from './valeursNeuves';
 import { isOptionalNote } from '../engine/statEntry';
+import { chargeLArme, gabaritDObjet } from '../engine/items';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { estObjet } from '../lib/objet.mjs';
 import { optionsDuNoeud } from '../data/schemas/grammaire/meta';
 import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
-import { creatures, estUnNavireAPonts, findCreatureById, profilsStandard, refEstVolumique, spells, structureAppearances, structures, traits, type CreatureData } from '../data';
+import { creatures, estUnNavireAPonts, findCreatureById, findTrappingById, profilsStandard, refEstVolumique, siegeEngines, spells, trappingsInstanciables, structureAppearances, structures, traits, type CreatureData } from '../data';
 import { listesDeSorts, refusDesSortsChoisis, sortsImprimes } from '../engine/sortsDuPnj';
 import { ficheDuPersonnage, nomDEntite } from './monde/sceneNpc';
 import { t } from '../i18n';
@@ -456,15 +457,15 @@ const SORTS_CHOISIS = ['combat', 'spells'] as const;
 /** Les champs que le formulaire du personnage `ent` offre (`CHAMPS_DU_PERSONNAGE`), dans son cadre : son preset s'il en
  *  porte un ou si son narratif en déclare ; son dialogue s'il en porte un ou si sa scène en déclare
  *  (`dialoguesDeLaScene`) ; ses sorts choisis s'il en porte, ou si sa fiche (`ficheEditee`)
- *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule et
- *  ses Améliorations (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
+ *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule,
+ *  ses Améliorations et ses postes (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
  *  et son apparence sans tenue (`APPARENCE_DU_PNJ_DE_CARRIERE`). */
 function champsDuPersonnage(ent: SceneEntity, { scene, narratif }: CadreDuPorteur): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
   const dialogue = ent.dialogueId !== undefined || dialoguesDeLaScene(scene).size ? [['dialogueId']] : [];
   const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, presetDuNarratif(narratif));
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
-  const coque = ent.vehicule ? [['vehicule'], ['upgrades']] : [];
+  const coque = ent.vehicule ? [['vehicule'], ['upgrades'], ['postes']] : [];
   const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
   if (!parcoursDe(ent)) return champs;
   return champs.flatMap((c) => (PROFILS_D_AUTEUR.includes(c[0]) ? [] : c[0] === 'appearance' ? APPARENCE_DU_PNJ_DE_CARRIERE : [c]));
@@ -557,13 +558,50 @@ function choixDuDialogue(reste: readonly Segment[], scene: Scene): readonly Choi
   return [...dialoguesDeLaScene(scene).keys()].map((id) => ({ valeur: reste.length ? id : { id }, libelle: id, refus: null }));
 }
 
+/** Les munitions du coffre d'une pièce `trappingId` : chaque munition du catalogue qu'elle charge (`chargeLArme`).
+ *  MDG 12 l.410-424 */
+function munitionsDeLaPiece(trappingId: string): ChoixDuContexte[] {
+  const piece = { trappingId, subType: findTrappingById(trappingId)?.subType?.id };
+  return trappingsInstanciables()
+    .filter((m) => gabaritDObjet(m.id)?.kind === 'ammo' && chargeLArme({ trappingId: m.id, subType: m.subType?.id }, piece))
+    .map((m) => ({ valeur: m.id, libelle: m.label, refus: null }));
+}
+
+/** Les choix que le contexte de la coque `ent`, dans le cadre `cadre`, pose à ses postes, sous eux au chemin `reste` : au
+ *  rang qui suit le dernier, un poste neuf par engin de siège (`siegeEngines`) ; de la pièce d'un poste, chaque engin de
+ *  siège ; d'un de ses servants, chaque personnage de la scène sans coque, hors des autres servants de la coque, le
+ *  courant restant offert ; des clés de son coffre, les munitions de sa pièce (`munitionsDeLaPiece`) ; de sa munition choisie,
+ *  posée entière ou par son identifiant, chaque munition de son coffre. MDG 12 */
+function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, narratif }: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
+  const postes = ent.postes ?? [];
+  const [rang, cle, element, ...plus] = reste;
+  if (typeof rang !== 'number' || plus.length) return undefined;
+  const engins = (valeur: (id: string) => unknown) => siegeEngines().map((e) => ({ valeur: valeur(e.id), libelle: e.label, refus: null }));
+  if (cle === undefined) return rang === postes.length ? engins((trappingId) => ({ trappingId })) : undefined;
+  const poste = postes[rang];
+  if (!poste) return undefined;
+  if (cle === 'trappingId' && element === undefined) return engins((id) => id);
+  if (cle === 'ammo' && element === undefined) return munitionsDeLaPiece(poste.trappingId);
+  if (cle === 'selectedAmmo' && (element === undefined || element === 'id')) {
+    return Object.keys(poste.ammo ?? {}).map((id) => ({ valeur: element === undefined ? { id } : id, libelle: findTrappingById(id)?.label ?? id, refus: null }));
+  }
+  if (cle !== 'crewIds' || typeof element !== 'number') return undefined;
+  const servants = postes.flatMap((p) => p.crewIds ?? []);
+  const courant = poste.crewIds?.[element];
+  return scene.entities
+    .filter((e) => e.kind === 'personnage' && !e.vehicule && (e.id === courant || !servants.includes(e.id)))
+    .map((e) => ({ valeur: e.id, libelle: nomDEntite(e, presetDuNarratif(narratif)) ?? t('ecran.editeur.entite.personnage'), refus: null }));
+}
+
 /** Les choix que le contexte d'un personnage pose au chemin `chemin` de sa donnée, dans le cadre `cadre` : ceux de son
- *  profil personnalisé (`choixDuProfil`), de son dialogue (`choixDuDialogue`), de l'apparence de ses objets
- *  (`choixDesApparencesDObjets`), d'un sort choisi (`choixDesSorts`), de ses options (`choixDesOptions`). */
+ *  profil personnalisé (`choixDuProfil`), de son dialogue (`choixDuDialogue`), de ses postes (`choixDesPostes`), de
+ *  l'apparence de ses objets (`choixDesApparencesDObjets`), d'un sort choisi (`choixDesSorts`), de ses options
+ *  (`choixDesOptions`). */
 function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const { narratif } = cadre;
   if (chemin.length === 1 && chemin[0] === 'statblock') return choixDuProfil(ent, presetDuNarratif(narratif));
   if (chemin[0] === 'dialogueId') return choixDuDialogue(chemin.slice(1), cadre.scene);
+  if (chemin[0] === 'postes') return choixDesPostes(ent, chemin.slice(1), cadre);
   if (APPARENCES_D_OBJETS.every((cle, i) => chemin[i] === cle)) return choixDesApparencesDObjets(ent, chemin.slice(APPARENCES_D_OBJETS.length), cadre);
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
