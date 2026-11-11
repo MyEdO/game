@@ -44,7 +44,7 @@ import type { TraitInstance } from './statEntry';
  * Lecture LOCALE des seuls passifs de talents : `passiveCharSum` (trauma.ts) somme les `charMod` additifs
  * de tous les porteurs.
  */
-export function baseWithTalents(c: Combatant, key: CharKey): number {
+export function baseWithTalents(c: Pick<Combatant, 'characteristics'> & Partial<Pick<Combatant, 'talents'>>, key: CharKey): number {
   let val = c.characteristics[key] ?? 0;
   for (const t of c.talents ?? []) {
     for (const op of findTalentById(t.talentId)?.passive ?? []) {
