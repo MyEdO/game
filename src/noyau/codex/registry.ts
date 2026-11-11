@@ -15,7 +15,7 @@ import {
   species, careers, characteristics, classes, skills, talents,
   qualities, trappings, siegeEngines, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, findCreatureById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
-  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, details, semencesDeScene, defautsDeCompilation, names,
+  skillInstanceLabel, careersForSpecies, findCareerById, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
   pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
@@ -107,7 +107,7 @@ import { SIZE_LABEL, SIZE_ORDER, effectiveSize, woundsForSize, type SizeCategory
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { BASE_HUMAINE, baseDEspece } from '../../engine/character';
 import { skillBaseValue } from '../../engine/skills';
-import { formatDice, formatEffetSigne, type DiceSpec } from '../../engine/dice';
+import { formatDice, formatEffetSigne, totalDuDe, type DiceSpec } from '../../engine/dice';
 import { formatDiseaseTime } from '../../engine/disease';
 import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, priceToMoney, type Money } from '../../engine/money';
@@ -1768,11 +1768,11 @@ const CODEX_SPECS = {
   },
   eyes: {
     label: 'codex.fiche.couleurDesYeux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => eyes.map((e) => depuisEnveloppe(e, { sub: `2d10 ≤ ${e.rand}`, sections: sections(colorTableSection(e)) })),
+    build: () => couleursDuTableau(tableDesYeux, eyesDie()),
   },
   hairs: {
     label: 'codex.fiche.couleurDesCheveux', group: 'tables', cluster: 'codex.fiche.creationDePersonnage',
-    build: () => hairs.map((h) => depuisEnveloppe(h, { sub: `2d10 ≤ ${h.rand}`, sections: sections(colorTableSection(h)) })),
+    build: () => couleursDuTableau(tableDesCheveux, hairsDie()),
   },
   calendarMonths: {
     label: 'codex.fiche.calendrierMois', group: 'tables', cluster: 'codex.fiche.calendrier',
@@ -2743,7 +2743,18 @@ const CODEX_SPECS = {
  *  est un getter re-projetable (fraîcheur). */
 export const CODEX: CodexCategory[] = (Object.entries(CODEX_SPECS) as [CleCodex, CodexCategorySpec][]).map(([key, spec]) => makeCategory(key, spec));
 
-/** Section « table 2d10 » d'une couleur (yeux/cheveux) — borne + couleur par colonne d'espèce. */
+/** Les couleurs d'un Tableau de couleur (yeux/cheveux) : chacune à sa bande du dé `de` de la table (de la
+ *  borne précédente, ou du plus petit total du dé, à son `rand`), sous la source du tableau. */
+function couleursDuTableau(table: typeof tableDesYeux, de: DeDeTable): CodexItem[] {
+  const bornes = table.entries.map((e) => e.rand);
+  return table.entries.map((e) => {
+    const precedentes = bornes.filter((b) => b < e.rand);
+    const min = precedentes.length ? Math.max(...precedentes) + 1 : totalDuDe(de, de.n);
+    return depuisEnveloppe({ ...e, source: table.source }, { sub: bandeAuDe(de, min, e.rand), sections: sections(colorTableSection(e)) });
+  });
+}
+
+/** Section d'une couleur (yeux/cheveux) — couleur par colonne d'espèce. */
 function colorTableSection(c: (typeof eyes)[number]): CodexSection {
   return {
     title: tr('codex.fiche.couleurParEspeceColonneRefchar'), layout: 'list',

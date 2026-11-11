@@ -5,7 +5,7 @@ import { replier } from '../../lib/ordre.mjs';
 import { isEditableCategory } from '../../data/atelierDuCodex';
 import { creatures, etats, trappings, gods, spells, species, findTraitById, findDomainById, WATER_EXPOSURE } from '../../data';
 import { windSaturationEffects } from '../../data/arcanePhenomena';
-import { datasetObject, setDataset } from '../../data/overrides';
+import { datasetObject, deDeLaTable, setDataset, setDeDeTable } from '../../data/overrides';
 import { CHAR_KEYS } from '../../engine/types';
 import { deDeLaTableTiree, facesDuDe } from '../../engine/tables';
 import { charAbr } from '../../data';
@@ -669,6 +669,23 @@ describe('Codex — rangées de référence par id (#1897)', () => {
       expect(refIdsOf(item, 'Sorts'), `${c.id} sorts`).toEqual(c.spells);
       expect(refIdsOf(item, 'Compétences'), `${c.id} compétences`).toEqual(c.skills.map((r) => r.id));
       expect(refIdsOf(item, 'Talents'), `${c.id} talents`).toEqual(c.talents.map((r) => r.id));
+    }
+  });
+});
+
+describe('Codex — Tableaux de couleur des yeux et des cheveux (#3578)', () => {
+  const sousTitres = (key: 'eyes' | 'hairs') => categoryByKey(key)!.items.map((i) => i.sub);
+  it('chaque couleur se lit à sa bande du dé imprimé (LDB 05 l.744, l.758)', () => {
+    expect(sousTitres('eyes')).toEqual(['2d10 2', '2d10 3', '2d10 4', '2d10 5–7', '2d10 8–11', '2d10 12–14', '2d10 15–17', '2d10 18', '2d10 19', '2d10 20']);
+    expect(sousTitres('hairs')).toEqual(sousTitres('eyes'));
+  });
+  it('la bande suit le dé posé sur la table par le seam', () => {
+    const imprime = deDeLaTable('eyes')!;
+    setDeDeTable('eyes', '1d10');
+    try {
+      expect(sousTitres('eyes').slice(0, 5)).toEqual(['1d10 1–2', '1d10 3', '1d10 4', '1d10 5–7', '1d10 8–11']);
+    } finally {
+      setDeDeTable('eyes', imprime);
     }
   });
 });
