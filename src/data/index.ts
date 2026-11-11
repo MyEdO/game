@@ -9,7 +9,7 @@ import type { EntreeDeLivre } from './source/livre-extrait';
 import { t } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, DescRef, FoyerDeRegle, Maniement, MatiereDArmure, Settlement } from './schemas/grammaire/valeurs';
 import { dansLaSousListe, espaceDe, idsDe, idsDeLaSousListe, lireLEspace, porteLeMarqueur, type FeuilleDId, type RefASpecialisation, type RefDesignee, type RefTypee, type TypeEntite } from './schemas/grammaire/ref';
-import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
+import { cleNichee, libelleDeLElement, lireCleDEspace, retenuParFiltre, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { VOCABULAIRES } from './schemas/grammaire/vocabulaires';
 import { CATEGORIE_CODEX_DU_FICHIER, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleDeDataset, type DatasetDeCategorie } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
@@ -457,8 +457,8 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   // Critiques de COQUE : une catégorie Codex par jeu × Localisation (`registry.ts`, clusters
   // « Critiques de navire » / « Critiques fluviaux »). Dérivées des jeux CHARGÉS, jamais recopiées :
   // une Localisation de plus dans un `.json` entre ici sans une ligne de code.
-  ...shipCritPools(SHIP_CRIT_SET, 'shipCriticals'),
-  ...shipCritPools(RIVER_CRIT_SET, 'riverCriticals'),
+  ...shipCritPools(SHIP_CRIT_SET),
+  ...shipCritPools(RIVER_CRIT_SET),
   miscastMinor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure').some((r) => r.id === id),
   miscastMajor: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-majeure').some((r) => r.id === id),
   miscastMinorVdm: (id) => rangeesDe<typeof imparfaites>(miscastRawJson, 'miscast-mineure-vdm').some((r) => r.id === id),
@@ -492,14 +492,13 @@ const STAKE_ENTRY_POOLS: Record<string, (id: string) => boolean> = {
   skills: (id) => !!byId('skill', id),
 };
 
-/** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation — les clés sont celles des
- *  catégories Codex (`shipCriticalsGreement`…), et la MEME dérivation (préfixe + segment capitalisé)
- *  que `shipCritEntryCodexCategory` (`engine/shipCritical.ts`) côté producteur. */
-function shipCritPools(set: ShipCritSet, prefixe: string): Record<string, (id: string) => boolean> {
-  return Object.fromEntries(Object.entries(set.tables).map(([loc, rows]) => [
-    `${prefixe}${loc[0].toUpperCase()}${loc.slice(1)}`,
-    (id: string) => (rows ?? []).some((r) => r.id === id),
-  ]));
+/** POOLS d'ids d'un jeu de Critiques de coque, une entrée par Localisation exposée au Codex — la clé est
+ *  la catégorie de sa table (`categorieDeLaNiche`), celle que lit `shipCritEntryCodexCategory` côté producteur. */
+function shipCritPools(set: ShipCritSet): Record<string, (id: string) => boolean> {
+  return Object.fromEntries(Object.entries(set.tables).flatMap(([loc, rows]) => {
+    const categorie = categorieDeLaNiche(set.fichier, suiteAvecPas('tables', { champ: loc }));
+    return categorie === undefined ? [] : [[categorie, (id: string) => (rows ?? []).some((r) => r.id === id)]];
+  }));
 }
 
 /** CATALOGUE d'ENTRÉES d'un `kind` : où vit la fiche de l'entrée JOUÉE, quand la clé en nomme une.
@@ -3679,6 +3678,15 @@ export function entreeDeCategorie(category: string, id: string): { id: string; l
   const d = DATASET_DE_LA_CATEGORIE[category];
   const entrees = suivreLeChemin(RACINES_VIVANTES[d.fichier], d.chemin) as readonly { id: string; label: string }[] | undefined;
   return entrees && indexParId(d.cle, entrees)(id);
+}
+/** CATÉGORIE CODEX de la collection nichée au bout de `suite` dans `fichier` (`[id].entries`, `tables.coque`) :
+ *  celle dont le dataset porte l'espace `fichier#suite` (`DATASET_DE_L_ESPACE` → `DATASET_DE_LA_CATEGORIE`),
+ *  tables générées depuis le `niche.categories` du def ; `undefined` pour une collection que le Codex n'expose pas. */
+export function categorieDeLaNiche(fichier: string, suite: string): string | undefined {
+  const espace = cleNichee(fichier, suite);
+  if (!Object.prototype.hasOwnProperty.call(DATASET_DE_L_ESPACE, espace)) return undefined;
+  const { cle } = DATASET_DE_L_ESPACE[espace];
+  return Object.keys(DATASET_DE_LA_CATEGORIE).find((c) => DATASET_DE_LA_CATEGORIE[c].cle === cle);
 }
 /** Résout une entrée de dataset par (catégorie, `id`) — rendu/lookup des refs structurées. Une catégorie
  *  sans `case` se lit par la porte générique `entreeDeCategorie`. */
