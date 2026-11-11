@@ -126,7 +126,7 @@ describe('contrôle — `canFixDie` décrit l’AFFORDANCE LOCALE (jamais le ges
   it('héros piloté localement → oui ; héros d’un AUTRE siège (coop) → pas d’affordance ici', () => {
     setupAttack();
     expect(canFixDie(useGame.getState(), 'A')).toBe(true);
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { A: 0 } } as never });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'invite', mySeat: 1, ownership: { A: 0 } } as never });
     expect(canFixDie(useGame.getState(), 'A')).toBe(false);
     const die = rowForcedDie(useGame.getState(), 'attaque', { actor: useGame.getState().battle!.combatants[0], rolled: true } as never, true);
     expect(die.forcedRoll?.fixed).toBeFalsy(); // le siège voisin ne voit pas le champ sur MON héros
@@ -155,13 +155,13 @@ describe('coop — le geste d’un INVITÉ sur SON héros ABOUTIT (jamais un rej
     setupAttack();
     setDesFixes(true);
     // Côté INVITÉ (siège 1, propriétaire de A) : l'affordance est offerte.
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { A: 1 } } as never });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'invite', mySeat: 1, ownership: { A: 1 } } as never });
     expect(canFixDie(useGame.getState(), 'A')).toBe(true);
     const die = rowForcedDie(useGame.getState(), 'attaque', { actor: useGame.getState().battle!.combatants[0], rolled: true } as never, true);
     expect(die.forcedRoll!.fixed).toBe(true);
 
     // Côté HÔTE (siège 0) : la validation de possession accepte le geste du siège ÉMETTEUR…
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'host', mySeat: 0, ownership: { A: 1 } } as never });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'hote', mySeat: 0, ownership: { A: 1 } } as never });
     expect(intentAllowedFor(useGame.getState(), 1, 'jetImposerLeResultat', ['attaque', 33])).toBe(true);
     // …et l'exécution ABOUTIT, même si l'hôte ne « contrôle » pas ce héros et n'a pas l'option.
     resetDesFixes();

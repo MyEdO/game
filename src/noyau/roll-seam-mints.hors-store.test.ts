@@ -236,7 +236,7 @@ describe('#1262 — hostStep : jamais de fenêtre sans la donnée qu’elle rend
 
   it('`groupOwner` est le SEUL canal de possession partagée de la famille (moment de cast partagé)', () => {
     banc.setState({ pendingCast: { marqueur: true } } as never);
-    const step = hostStep(banc.getState, { id: 'c', kind: 'cast', jet: 'incantation', actorId: 'H1', groupOwner: true })!;
+    const step = hostStep(banc.getState, { id: 'c', kind: 'incantation', jet: 'incantation', actorId: 'H1', groupOwner: true })!;
     expect(step.groupOwner).toBe(true);
     banc.setState({ pendingCast: null } as never);
   });
@@ -360,12 +360,12 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
 
   beforeEach(() => {
     banc.setState({ battle: null, party: [h1, h2], pendingCascade: null, suspendedCascades: [] } as never);
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, ownership: { H1: 1, H2: 0 } } } as never);
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, ownership: { H1: 1, H2: 0 } } } as never);
   });
 
   it('DEUX porteurs de sièges distincts → bande de GROUPE, et la rangée de l’INVITÉ reste à JOUER', () => {
     pushBand(banc.getState, banc.setState, {
-      id: 'peur', kind: 'combatPsych', label: fixtureText('Peur'), difficulty: 'intermediaire',
+      id: 'peur', kind: 'psychologieDeCombat', label: fixtureText('Peur'), difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }, { actor: h2, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const [st] = etapes();
@@ -379,7 +379,7 @@ describe('#1262 — pushBand : la bande APPENDUE porte sa possession (assertion 
 
   it('porteur UNIQUE de l’invité → l’étape le NOMME, et la fenêtre va à SON siège (jamais à l’hôte)', () => {
     pushBand(banc.getState, banc.setState, {
-      id: 'terreur', kind: 'combatPsych', label: fixtureText('Terreur'), difficulty: 'intermediaire',
+      id: 'terreur', kind: 'psychologieDeCombat', label: fixtureText('Terreur'), difficulty: 'intermediaire',
       porteurs: [{ actor: h1, ligne: { test: { characteristic: 'force-mentale' } } }],
     });
     const [st] = etapes();
@@ -481,7 +481,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
     const h = hero('H1');
     h.characteristics['force-mentale'] = 71; // le héros a SES composantes : elles ne doivent PAS entrer
     const cumul = [{ label: '−5 cumulatif (Round 2)', value: -5, famille: 'jet' as const }];
-    const commun = { id: 'right-1', kind: 'riverRighting' as const, actor: h, label: fixtureText('Redressement'), difficulty: 'accessible' as const, stake: ENJEU };
+    const commun = { id: 'right-1', kind: 'fleuveRedressement' as const, actor: h, label: fixtureText('Redressement'), difficulty: 'accessible' as const, stake: ENJEU };
 
     const parLigne = monoStep({ ...commun, ligne: { valeur: 42, valeurEtrangere: true, surLaCible: cumul } })!;
     const parMontee = monoStep({ ...commun, montee: rollStep({ difficulty: 'accessible', valeur: 42, valeurEtrangere: true, surLaCible: cumul }) })!;

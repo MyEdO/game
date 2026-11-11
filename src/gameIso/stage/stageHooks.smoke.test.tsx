@@ -106,7 +106,7 @@ describe('stageFocus / cameraTargeting — helpers purs de caméra', () => {
     const t = cbt('t', 'hero', { x: 1, y: 1 });
     const battle = { combatants: [a, t] } as unknown as BattleState;
     expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'charge' })?.melee).toBe(true);
-    expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'ranged' })?.melee).toBe(false);
+    expect(cameraTargeting(battle, { fromId: 'a', toId: 't', kind: 'tir' })?.melee).toBe(false);
     expect(cameraTargeting(battle, null)).toBeNull();
   });
 });

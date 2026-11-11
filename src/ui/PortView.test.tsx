@@ -88,15 +88,15 @@ describe('EscaleTab — actions d’escale (#228)', () => {
   });
 
   it('invité (guest) : embauche désactivée', () => {
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} />);
+    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'invite' } as never })} />);
     expect(html).toMatch(/Embaucher<\/button>/); // le bouton existe
     expect(html).toContain('disabled'); // et il est désactivé
   });
 
   it('invité (guest) : RELÂCHE À TERRE non résolvable localement (régression #343)', () => {
     const pendingShoreLeave = { to: { id: 'x', label: 'X', pos: { x: 0, y: 0 }, scene: { id: 's' } } };
-    seedInitial({ pendingShoreLeave, net: { ...initialNetMode, mode: 'guest' } });
-    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'guest' } as never })} pendingShoreLeave={pendingShoreLeave} />);
+    seedInitial({ pendingShoreLeave, net: { ...initialNetMode, mode: 'invite' } });
+    const html = renderToStaticMarkup(<EscaleTab {...escaleProps} refusHote={refusDeGesteSurLeGroupe({ net: { mode: 'invite' } as never })} pendingShoreLeave={pendingShoreLeave} />);
     expect(html).toContain('Accorder la relâche');
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Accorder la relâche/);
     expect(html).toMatch(/<button[^>]*disabled[^>]*>[\s\S]*?Refuser la relâche/);

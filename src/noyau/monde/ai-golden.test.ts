@@ -59,24 +59,24 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 3 });
     const h = mk('h', 'hero', { x: 5, y: 12 });
     const a = chooseEnemyAction(input(e, [h], { perceived: new Set() }));
-    expect(a.kind).toBe('move');
+    expect(a.kind).toBe('deplacement');
     expect(tidOf(a)).toBe('h');
   });
 
   it('plus aucun adversaire (combat fini) → end', () => {
-    expect(chooseEnemyAction(input(mk('e', 'enemy', { x: 5, y: 5 }), [])).kind).toBe('end');
+    expect(chooseEnemyAction(input(mk('e', 'enemy', { x: 5, y: 5 }), [])).kind).toBe('fin');
   });
 
   it('ni Action ni Mouvement (Surpris, M=0) → end', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'surpris', value: 1 }], movement: 0 });
     const h = mk('h', 'hero', { x: 5, y: 6 });
-    expect(chooseEnemyAction(input(e, [h], { movement: 0 })).kind).toBe('end');
+    expect(chooseEnemyAction(input(e, [h], { movement: 0 })).kind).toBe('fin');
   });
 
   it('En flammes non frénétique → recover en-flammes (priorité survie)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'en-flammes', value: 1 }] });
     const h = mk('h', 'hero', { x: 5, y: 6 });
-    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'recover', state: 'en-flammes' });
+    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'liberation', state: 'en-flammes' });
   });
 
   it('En flammes frénétique → ignore le feu et attaque', () => {
@@ -89,7 +89,7 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
     const e = mk('e', 'enemy', { x: 8, y: 8 }, { conditions: [{ id: 'brise', value: 1 }], movement: 3 });
     const h = mk('h', 'hero', { x: 8, y: 5 });
     const a = chooseEnemyAction(input(e, [h]));
-    expect(a.kind).toBe('move');
+    expect(a.kind).toBe('deplacement');
   });
 
   it('Bestial blessé <50% (non Territorial/Frénétique/Engagé) → fuit (move)', () => {
@@ -98,7 +98,7 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
     });
     const h = mk('h', 'hero', { x: 8, y: 5 });
     const a = chooseEnemyAction(input(e, [h]));
-    expect(a.kind).toBe('move');
+    expect(a.kind).toBe('deplacement');
   });
 
   it('Frénésie → vise le plus PROCHE (LDB 21 l.33), pas le plus faible', () => {
@@ -119,7 +119,7 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
   it('Empêtré (M=0) sans option → recover empetre', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { conditions: [{ id: 'empetre', value: 1, sourceId: 'h' }] });
     const h = mk('h', 'hero', { x: 11, y: 11 });
-    expect(chooseEnemyAction(input(e, [h], { movement: 0 }))).toEqual({ kind: 'recover', state: 'empetre' });
+    expect(chooseEnemyAction(input(e, [h], { movement: 0 }))).toEqual({ kind: 'liberation', state: 'empetre' });
   });
 
   it('Empêtré mais cible au contact → attaque (Empêtré ne bloque pas l’Action)', () => {
@@ -140,21 +140,21 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 3 });
     const h = mk('h', 'hero', { x: 5, y: 10 });
     const a = chooseEnemyAction(input(e, [h]));
-    expect(a.kind).toBe('move');
+    expect(a.kind).toBe('deplacement');
     expect(tidOf(a)).toBe('h');
   });
 
   it('tireur EN PORTÉE, aucun contact → shoot', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED] });
     const h = mk('h', 'hero', { x: 1, y: 1 });
-    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'shoot', targetId: 'h' });
+    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h' });
   });
 
   it('#537 tireur EN PORTÉE sous banRanged (duel judiciaire) → JAMAIS shoot (bascule approche)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED], movement: 3 });
     const h = mk('h', 'hero', { x: 1, y: 1 });
     const a = chooseEnemyAction(input(e, [h], { banRanged: true }));
-    expect(a.kind).not.toBe('shoot');
+    expect(a.kind).not.toBe('tir');
   });
 
   it('tireur HORS PORTÉE (au-delà de la bande Extrême ×3) → move (approche)', () => {
@@ -162,7 +162,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const e = mk('e', 'enemy', { x: 0, y: 0 }, { weapons: [{ label: 'Arc', type: 'ranged', damage: { plusBF: false, flat: 8 }, range: 1, qualities: [] }] });
     const h = mk('h', 'hero', { x: 0, y: 5 });
     const a = chooseEnemyAction(input(e, [h]));
-    expect(a.kind).toBe('move');
+    expect(a.kind).toBe('deplacement');
   });
 
   it('tireur retenu au contact (arme distance + mêlée) → frappe l’adversaire au contact', () => {
@@ -176,25 +176,25 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
   it('arme à Recharge déchargée + cible en portée → reload', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [{ ...CROSSBOW, loaded: false }] });
     const h = mk('h', 'hero', { x: 1, y: 1 });
-    expect(chooseEnemyAction(input(e, [h])).kind).toBe('reload');
+    expect(chooseEnemyAction(input(e, [h])).kind).toBe('rechargement');
   });
 
   it('lanceur missile FAISABLE en portée → cast mono-cible', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'Carreau', range: 20 })] }))).toEqual({ kind: 'cast', targetId: 'h', spell: 'Carreau' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'Carreau', range: 20 })] }))).toEqual({ kind: 'incantation', targetId: 'h', spell: 'Carreau' });
   });
 
   it('sort déjà FOCALISÉ et prêt (focusState ready) → cast à NI 0', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20, focusState: 'ready' })] }))).toEqual({ kind: 'cast', targetId: 'h', spell: 'carreau' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20, focusState: 'ready' })] }))).toEqual({ kind: 'incantation', targetId: 'h', spell: 'carreau' });
   });
 
   it('sort FOCALISABLE (peu fiable d’un jet) et rien de faisable → focus', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [] });
     const h = mk('h', 'hero', { x: 5, y: 9 });
-    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'focus', spell: 'vortex-d-ames' });
+    expect(chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'vortex-d-ames', focusState: 'focusable' })] }))).toEqual({ kind: 'focalisation', spell: 'vortex-d-ames' });
   });
 
   it('focalisable MAIS adversaire au contact + arme de mêlée → se replie en mêlée (pas focus)', () => {
@@ -209,7 +209,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const h2 = mk('h2', 'hero', { x: 6, y: 9 });
     const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 20, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
     const a = chooseEnemyAction(input(e, [h1, h2], { spells: [areaSp] }));
-    expect(a.kind).toBe('castArea');
+    expect(a.kind).toBe('incantationDeZone');
   });
 
   it('ZdE : héros DISPERSÉS → pas de castArea, repli sur le missile mono-cible', () => {
@@ -218,7 +218,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const h2 = mk('h2', 'hero', { x: 14, y: 14 });
     const areaSp = castable({ id: 'vortex-d-ames', shape: { area: { radius: 1 } }, range: 30, data: spellData({ id: 'vortex-d-ames', effects: { kind: 'do', effect: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 8 }] } } }) });
     const a = chooseEnemyAction(input(e, [h1, h2], { spells: [areaSp, castable({ id: 'carreau', range: 40 })] }));
-    expect(a.kind).toBe('cast');
+    expect(a.kind).toBe('incantation');
   });
 
   it('anti-acharnement : cible au sol (À Terre) délaissée pour une cible debout (mêlée)', () => {
@@ -238,14 +238,14 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const e = blessuresSurLeProfil({ id: 'E', name: 'T', kind: 'enemy', characteristics: {} as never, wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } }) as unknown as Combatant;
     const h = { id: 'H', name: 'H', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], pos: { x: 6, y: 0 } } as unknown as Combatant;
     const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), blocked: new Set(), movement: 4, spells: [] });
-    expect(a.kind).not.toBe('shoot');
+    expect(a.kind).not.toBe('tir');
   });
 
   it('encerclé, cible non adjacente → end (aucun mouvement)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { movement: 4 });
     const h = mk('h', 'hero', { x: 1, y: 1 });
     const blocked = new Set(['4,5', '6,5', '5,4', '5,6', '4,4', '6,4', '4,6', '6,6']); // encerclement complet (8 voisins, grille 8-connexe)
-    expect(chooseEnemyAction(input(e, [h], { blocked })).kind).toBe('end');
+    expect(chooseEnemyAction(input(e, [h], { blocked })).kind).toBe('fin');
   });
 });
 
@@ -259,14 +259,14 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
   it('tireur (arc) + héros à portée + LdV → TIRE (ne fonce pas, ne se repositionne pas)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [RANGED], movement: 4 });
     const h = mk('h', 'hero', { x: 5, y: 9 }); // d=4, à portée (60) + LdV dégagée
-    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'shoot', targetId: 'h' });
+    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'tir', targetId: 'h' });
   });
 
   it('lanceur AU CONTACT + sort jouable à portée → LANCE (n’abandonne pas son tour pour un repli)', () => {
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [], movement: 4 });
     const h = mk('h', 'hero', { x: 5, y: 6 }); // au contact (d=1)
     const a = chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 4, landProb: 0.3 })] }));
-    expect(a.kind).toBe('cast');
+    expect(a.kind).toBe('incantation');
     expect(tidOf(a)).toBe('h');
   });
 
@@ -274,8 +274,8 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
     const e = blessuresSurLeProfil({ id: 'e', name: 'e', kind: 'enemy', characteristics: {} as never, wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } }) as unknown as Combatant;
     const h = { id: 'h', name: 'h', kind: 'hero', wounds: { current: 10, max: 10 }, conditions: [], pos: { x: 6, y: 0 } } as unknown as Combatant;
     const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), blocked: new Set(), movement: 4, spells: [] });
-    expect(a.kind).not.toBe('shoot'); // pas de LdV → ne tire pas
-    expect(a.kind).toBe('move'); // il bouge pour dégager la ligne / approcher
+    expect(a.kind).not.toBe('tir'); // pas de LdV → ne tire pas
+    expect(a.kind).toBe('deplacement'); // il bouge pour dégager la ligne / approcher
   });
 
   // (a-bis) HYBRIDE tir+mêlée (retour playtest 2026-06-27 : « le chasseur charge à l'arme simple alors qu'il
@@ -287,9 +287,9 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
     const e = mk('e', 'enemy', { x: 8, y: 8 }, { weapons: [SLING, MELEE], movement: 4 });
     const h = mk('h', 'hero', { x: 8, y: 12 }); // d=4 : hors bande de la fronde (portée 2) mais atteignable en mêlée (mvt 4)
     const a = chooseEnemyAction(input(e, [h]));
-    expect(a.kind).toBe('move'); // s'approche (hors de portée de tir)
+    expect(a.kind).toBe('deplacement'); // s'approche (hors de portée de tir)
     expect(tidOf(a)).toBe('h');
-    if (a.kind === 'move') expect(chebyshev(a.to, { x: 8, y: 12 })).toBeGreaterThan(1); // STANDOFF, pas le contact
+    if (a.kind === 'deplacement') expect(chebyshev(a.to, { x: 8, y: 12 })).toBeGreaterThan(1); // STANDOFF, pas le contact
   });
 
   // (b) PAS de MOVE PARASITE : en scène NEUTRE (déjà à bonne distance, rien à gagner en position), le
@@ -298,6 +298,6 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
     const e = mk('e', 'enemy', { x: 5, y: 5 }, { weapons: [], movement: 4 });
     const h = mk('h', 'hero', { x: 5, y: 9 }); // déjà à distance de tir (d=4 > mr), LdV dégagée
     const a = chooseEnemyAction(input(e, [h], { spells: [castable({ id: 'carreau', range: 20 })] }));
-    expect(a).toEqual({ kind: 'cast', targetId: 'h', spell: 'carreau' });
+    expect(a).toEqual({ kind: 'incantation', targetId: 'h', spell: 'carreau' });
   });
 });

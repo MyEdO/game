@@ -35,7 +35,7 @@ const H_HOST = 'h1'; // héros du siège 0 (hôte)
 const base = (over: Partial<Jeu>): Jeu =>
   ({
     net: {
-      mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' },
+      mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' },
       ownership: { h2: 1, ship1: 2 }, slots: [0, 1, 0, 0],
     },
     party: [{ id: H_HOST }, { id: H_OWNER }],
@@ -68,7 +68,7 @@ const FIXTURES: Record<string, Partial<Jeu>> = {
   manoeuvreDuNavire: { pendingShipManeuver: { shipId: 'ship1', participants: parts } } as unknown as Partial<Jeu>,
   tirDeBatterie: { pendingShipBattery: { shipId: 'ship1', targetId: 'e1', side: 'babord', participants: parts } } as unknown as Partial<Jeu>,
   cascadeEnBande: {
-    pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'stagePosteBatch', participants: parts }]),
+    pendingCascade: cascadeDeTest([{ id: 'batch', kind: 'etapePosteEnBande', participants: parts }]),
   } as unknown as Partial<Jeu>,
   // Chute volontaire du groupe (#700) : la fenêtre appartient à l'initiateur (l'hôte), chaque rangée à SON siège.
   chute: {

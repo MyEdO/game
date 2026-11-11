@@ -38,7 +38,7 @@ const BARBIER: MedicNpc = { id: 'medecin-de-scene', label: 'Barbier', skill: { i
 function poser(party: Combatant[], sieges: Record<string, number>): void {
   banc.setState({
     mode: 'exploration', battle: null, party, pendingHeal: null, pendingSurgery: null, medic: null, journal: [],
-    net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: sieges, slots: [0, 1, 2, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } },
+    net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: sieges, slots: [0, 1, 2, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } },
   } as never);
 }
 const parSiege = (verbe: string, args: unknown[]) => [0, 1, 2].map((siege) => intentAllowedFor(g(), siege, verbe, args));

@@ -60,13 +60,13 @@ describe('câblage des flux de jet — source unique FLOW_VERBS', () => {
     const site = (text: string) => sitesDeDelegueManuscrit({ rel: 'src/noyau/x.ts', text }, VERBES);
 
     it('voit l’appel direct du handler d’un verbe, par nom de flux ou par index', () => {
-      expect(site('const a = { annuler: () => FLOWS.activity.cancel(get, set) };')).toEqual([{ ligne: 1, texte: 'FLOWS.activity.cancel(get, set)' }]);
-      expect(site('FLOW_HANDLERS[k].setForcedRoll(get, set, 12);').map((x) => x.texte)).toEqual(['FLOW_HANDLERS[k].setForcedRoll(get, set, 12)']);
+      expect(site('const a = { annuler: () => FLOWS.activite.cancel(get, set) };')).toEqual([{ ligne: 1, texte: 'FLOWS.activite.cancel(get, set)' }]);
+      expect(site('FLOWS[k].setForcedRoll(get, set, 12);').map((x) => x.texte)).toEqual(['FLOWS[k].setForcedRoll(get, set, 12)']);
     });
 
     it('laisse les membres d’un handler qui ne sont pas des verbes, et le handler reçu en paramètre', () => {
-      expect(site('FLOWS.reload.apply(get, { p });')).toEqual([]);
-      expect(site('const jouer = (h: RollFlowHandlers) => h.cancel(get, set); jouer(FLOW_HANDLERS[flux]);')).toEqual([]);
+      expect(site('FLOWS.rechargement.apply(get, { p });')).toEqual([]);
+      expect(site('const jouer = (h: RollFlowHandlers) => h.cancel(get, set); jouer(FLOWS[flux]);')).toEqual([]);
     });
 
     it('le code de production n’en porte aucun', () => {

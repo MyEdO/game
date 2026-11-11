@@ -132,7 +132,7 @@ export interface CargoOverload {
   /** −M appliqué au navire (MDG 12 l.72-74). */
   mMod: number;
   /** −DR Manœuvre appliqué au navire (MDG 12 l.72-74). */
-  manoeuvreDR: number;
+  drDeManoeuvre: number;
   /** `false` au-delà du plafond dur (> 150 % — MDG 12 l.75 : impossible de prendre la mer). */
   canSail: boolean;
 }
@@ -148,7 +148,7 @@ export function cargoOverload(enc: number, capacity: number): CargoOverload {
     palierId: chosen?.id ?? null,
     label: chosen ? chosen.label : t('cargo.chargeNominale'),
     mMod: chosen?.mMod ?? 0,
-    manoeuvreDR: chosen?.drDeManoeuvre ?? 0,
+    drDeManoeuvre: chosen?.drDeManoeuvre ?? 0,
     canSail: ratio <= overloadHardCapPct() / 100,
   };
 }
@@ -325,11 +325,11 @@ export function sellRelation(port: PortProfile, cargoId: string): SellRelation {
 
 export interface SellChance {
   /** Test de Ragot PRÉALABLE requis (ports qui produisent le bien) — `null` = pas de Test. */
-  gossip: { difficulty: Difficulty } | null;
+  ragot: { difficulty: Difficulty } | null;
   /** Nombre visé du d100 « trouver un acheteur » (après le Ragot éventuel). */
   target: number;
   /** ±DR du vendeur aux Tests de Marchandage de la vente (l.387-397). */
-  sellerDR: number;
+  drDuVendeur: number;
 }
 
 /** Chances de TROUVER UN ACHETEUR + DR de Marchandage à la vente (l.355-397). `milles` = distance
@@ -341,15 +341,15 @@ export function sellChance(port: PortProfile, cargoId: string, milles: number): 
   const demand = port.demande?.[cargoId] ?? 0;
   if (rel === 'no-produce') {
     return {
-      gossip: null,
+      ragot: null,
       target: (port.taille + demand) * CARGO.vente.cibleParTailleSansProduction + (isTradeHubColumn(port.production) ? CARGO.vente.bonusDeCommerce : 0),
-      sellerDR: CARGO.vente.sellerDR.sansProduction + (demand > 0 ? CARGO.vente.sellerDR.demande : 0),
+      drDuVendeur: CARGO.vente.sellerDR.sansProduction + (demand > 0 ? CARGO.vente.sellerDR.demande : 0),
     };
   }
   if (rel === 'produces') {
-    return { gossip: { difficulty: CARGO.vente.producesGossip.difficulty }, target: port.taille * CARGO.vente.producesGossip.cibleParTaille, sellerDR: CARGO.vente.sellerDR.production };
+    return { ragot: { difficulty: CARGO.vente.producesGossip.difficulty }, target: port.taille * CARGO.vente.producesGossip.cibleParTaille, drDuVendeur: CARGO.vente.sellerDR.production };
   }
-  return { gossip: { difficulty: CARGO.vente.surplusGossip.difficulty }, target: port.taille * CARGO.vente.surplusGossip.cibleParTaille, sellerDR: CARGO.vente.sellerDR.surplus };
+  return { ragot: { difficulty: CARGO.vente.surplusGossip.difficulty }, target: port.taille * CARGO.vente.surplusGossip.cibleParTaille, drDuVendeur: CARGO.vente.sellerDR.surplus };
 }
 
 /** PRIX D'OFFRE d'un acheteur trouvé (l.374-383) : % du prix de base selon Richesse + Taille + Demande. PUR.

@@ -539,7 +539,7 @@ Une capture avec ancre se mesure : relever `document.scrollingElement.scrollTop`
 
 `installDevtools` active `AI_TRACE` : observer `__wfrp.auto()` (état/action), `__wfrp.log()` (journal) et la frise montée, puis exercer un vrai geste. Le scénario `entrainement` couvre un combat court ; `dome` prépare ses quatre combattants ; `magie-hors-combat` observe la magie sans ennemis, en exploration sans rounds de combat. Les POI existants se préparent avec `__wfrp.campaign('loup-et-saumure',11,'ls-quai-salzenmund')` puis `ready`.
 
-Limites #557 : `focus` prépare la Focalisation sans fixer le résultat d’un jet. L’étape courante se lit par `pendingCascade.participants[pendingCascade.cursor]`, son interaction par `auto().cascade` ; elle se choisit au vrai geste. `fear` couvre l’approche d’une source en combat, pas une rencontre générale (aucun helper `encounterPsych`). `giveTrapping` vise un héros du groupe, pas un ennemi. `spell` passe par `verdictApprentissage` et ne prépare pas tous les prérequis du lanceur : préférer `dome`/`magie-hors-combat` prééquipés. `grantTrait` ne rejoue pas le spawn. `openApp` reçoit une URL string en premier argument.
+Limites #557 : `focus` prépare la Focalisation sans fixer le résultat d’un jet. L’étape courante se lit par `pendingCascade.participants[pendingCascade.cursor]`, son interaction par `auto().cascade` ; elle se choisit au vrai geste. `fear` couvre l’approche d’une source en combat, pas une rencontre générale (aucun helper `psychologieDeRencontre`). `giveTrapping` vise un héros du groupe, pas un ennemi. `spell` passe par `verdictApprentissage` et ne prépare pas tous les prérequis du lanceur : préférer `dome`/`magie-hors-combat` prééquipés. `grantTrait` ne rejoue pas le spawn. `openApp` reçoit une URL string en premier argument.
 
 Surfaces navales distinctes : le geste secondaire d’inspection de la frise ouvre `InspectPanel`, Modal `inspection` nommé « Inspection — … », dont `ShipInspectBody` rend `PosteDetail` en lecture seule. Le clic primaire de frise est une action/cible. Le dock hors ciblage ouvre `PosteSheet`, Planche `feuille-postes` (Postes/Manœuvre), qui embarque `StationSheet` ; ce corps n’est pas une modale indépendante. Le dossier de campagne `ShipDossier` est une autre porte ScreenShell. Ne pas confondre ces scopes ni supposer des commandes de munitions dans l’inspection.
 
@@ -950,7 +950,7 @@ elle reprend à la CONFIRMATION de ces étapes/modales, jamais via `time()`/`res
 
 | Helper | Usage | Limites connues |
 |---|---|---|
-| `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`jetLancer('cascade')`/`Finish`, `fenetreValider('repos')`, `fenetreValider('activitesEnMer')`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `jetLancer('cascade')` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'sea-progression-choice'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
+| `advanceSeaDay({stopOnEveryEvent?, stopAt?, maxIters?})` | symétrique VOYAGE de `fastForward` : pilote la journée EN COURS (cascade du jour, halte de nuit, Activités hebdo si le palier de 8 jours tombe) jusqu'au JOUR SUIVANT — MÊME machinerie que le joueur (`jetLancer('cascade')`/`Finish`, `fenetreValider('repos')`, `fenetreValider('activitesEnMer')`), sans les clics | s'arrête sur la cascade `travelDay` FRAÎCHE du jour suivant (déjà ouverte, `cursor:0`, pas encore consommée — le PROCHAIN `advanceSeaDay()`/`roll()`/`skipToArrival()` la joue), jamais un `pendingCascade` à `null` ; `maxIters` (défaut 400) = garde-fou scrutations, `✗ borne atteinte…` = soft-lock probable (`auto()`) ; retourne une `Promise` (`await`). **PORTÉE EXACTE de `stopOnEveryEvent:true` (#380)** : il ne s'arrête QUE sur un événement RACONTÉ (carte-parchemin, `travelDay.events` non vide, testé sur `pendingRest`/`pendingSeaActivities`) — **jamais** sur une étape STRUCTURELLE du jour (Progression, choix de Progression, Orientation, Exposition, Entretien…), que `jetLancer('cascade')` traverse aux défauts. L'attendre pour observer une étape a coûté un point de recette. Pour CELA : `stopAt:'<kind>'` (#1117) → s'arrête **avant** de résoudre la cascade qui porte cette étape et rend la main intacte (ex. `advanceSeaDay({stopAt:'merProgressionChoix'})`, puis `__wfrp.modal()`/`roll()`). Même option sur `advanceRiverDay` |
 | `skipToArrival(maxIters=4000)` | comme `advanceSeaDay` mais ROULE jusqu'à l'ACCOSTAGE (`openPortAt`, `travelPlan` vidé) | s'arrête aussi sur un combat (embuscade/abordage), et rend alors « ✓ voyage interrompu par un combat — voir __wfrp.battle() » (même retour pour `advanceSeaDay` et `advanceRiverDay`, `driveSeaVoyage`) — `battle` ouvert, à jouer/`fastForward` séparément ; `Promise` (`await`) |
 | `dealShipDamage(n=5)` | inflige `n` Dégâts de coque HORS COMBAT — VRAI pipeline (`damageCampaignVessel` : la coque de trajet en voyage, la coque bâtie du navire au port) | symétrique de `dealDamage` (combat) — voir le piège des DEUX copies de coque ci-dessous ; **NE déclenche AUCUN naufrage** : une coque à 0 ne coule pas (MDG 13 l.656, l.674), voir `forceShipwreck` |
 | `forceShipwreck(aboardIds?)` | déclenche `beginShipwreck` DIRECTEMENT (setup ASSUMÉ, PAS le pipeline de dégâts) — coque + cargaison purgées IMMÉDIATEMENT, cascade de survie à la nage (Chance/Pacte/Résilience influençable) ouverte pour les héros à bord | `✗` sans `state.vessel` ; hors combat, c'est la seule entrée du naufrage |
@@ -975,7 +975,7 @@ await __wfrp.advanceSeaDay({ stopAt: 'equipage-orientation' });  // rend la main
 __wfrp.modal();                                          // la modale de cascade est intacte
 ```
 
-`stopAt:'sea-progression-choice'` vise le CHOIX de progression (une étape de décision), pas un Test
+`stopAt:'merProgressionChoix'` vise le CHOIX de progression (une étape de décision), pas un Test
 d'équipage : pour le Test lui-même, viser `equipage-progression`.
 
 **Doctrine `advanceSeaDay`/`skipToArrival`** : même doctrine que `fastForward` — SETUP et
@@ -1205,7 +1205,7 @@ console. ») — les verbes `ooc*` sont des lanceurs HORS combat et ne produisai
 
 - **Le BRIEFING d'entrée de scène avale tous les clics** (vécu 2026-08-10, recette du lacet continu —
   2 h perdues) : toute entrée de scène avec `startMessage` pousse une étape d'AFFICHAGE
-  (`pushReveal` `sceneEntry` → `CascadeModal`, bouton « Terminer »), qui est une modale bloquante :
+  (`pushReveal` `entreeEnScene` → `CascadeModal`, bouton « Terminer »), qui est une modale bloquante :
   la carte devient inerte (`modalBlocksMapHover`) et les boutons de l'écran de jeu sont sous son voile.
   Un clic « qui ne fait rien » juste après un `scenario()`/une transition N'EST PAS un bug de câblage.
   RÈGLE : FERMER le briefing (« Terminer ») AVANT toute mesure de clic, et le vérifier au DOM
@@ -1643,7 +1643,7 @@ try {
   const gInvite = consoleGuard(invite);
   try {
     await evaluate(invite, `window.__wfrp.store.getState().netJoin(${JSON.stringify(code)}, 'Invité')`);
-    await waitFor(invite, `window.__wfrp.store.getState().net.mode === 'guest'`);
+    await waitFor(invite, `window.__wfrp.store.getState().net.mode === 'invite'`);
     await waitFor(hote, `Object.keys(window.__wfrp.store.getState().net.seatNames).length === 2`);
     // … recette …
   } finally { await invite.close(); }
@@ -1657,7 +1657,7 @@ try {
 | Héberger | hôte | menu principal → **« Jouer en ligne »** (`MainMenu`, écran `coop`) → champ « Votre nom » → bouton **« Héberger »** (`src/ui/CoopLobby.tsx`) | AUX CLICS : `typeInField` sur le sélecteur que `champParLibelle` rend pour le libellé « Votre nom », puis `clickButtonByText` sur « Héberger » (le champ est un input React CONTRÔLÉ : `evaluate` + `.value` reste sans effet). Raccourci d'état : `__wfrp.store.getState().netHostStart('Hôte')` |
 | Lire le code | hôte | code à 6 caractères + « Lien d'invitation » (`CoopRoomPanel`, `src/ui/CoopPanels.tsx`) | `__wfrp.net().roomCode` (`state()` n'expose pas `net`) |
 | Rejoindre | invité | même écran → code + nom → **« Rejoindre »** | AUX CLICS : `typeInField` sur le sélecteur que `champParLibelle` rend pour « Votre nom », puis sur `.coop-code-input`, et `clickButtonByText` sur « Rejoindre ». Raccourci : ouvrir l'app sur `?join=<CODE>` (bascule sur l'écran `coop`, code pré-rempli, `src/ui/App.tsx`) puis `netJoin` |
-| Contrôler la liaison | les deux | liste « Joueurs connectés » (`CoopSeatList`) | `__wfrp.net()` des deux côtés : `mode` = `host`/`guest`, `mySeat` = 0/1, `seatNames` = les deux noms |
+| Contrôler la liaison | les deux | liste « Joueurs connectés » (`CoopSeatList`) | `__wfrp.net()` des deux côtés : `mode` = `hote`/`invite`, `mySeat` = 0/1, `seatNames` = les deux noms |
 | Composer le groupe | hôte | **« Composer le groupe → »** → écran d'équipe : l'hôte attribue les EMPLACEMENTS (`netAssignSlot`), chaque joueur remplit les siens | poser le groupe d'un coup par un scénario (ci-dessous) |
 | Attribuer les héros | hôte | rubrique « Attribution des héros » (`CoopAssignList`, un `<select>` par héros ; `GmSeatSelect` y pose le rôle MJ) — lobby ET menu ☰ en partie (`CoopMenuSection`) | `__wfrp.store.getState().netAssign(heroId, 1)` (hôte-autoritaire : refusé en mode invité) |
 | Jouer | hôte | tout le pilotage de MISE EN PLACE | `scenario`, `goto`, `fight`, `turn`, `combatEnd`… **depuis l'HÔTE uniquement** |

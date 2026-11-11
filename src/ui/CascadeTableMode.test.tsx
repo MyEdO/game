@@ -296,7 +296,7 @@ describe('Mode table — les deux affordances d’une étape à table', () => {
   it('option ON mais siège qui NE contrôle PAS l’étape (coop) : aucune des deux affordances', () => {
     setDesFixes(true);
     openTable();
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest', mySeat: 1 } as never });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'invite', mySeat: 1 } as never });
     render();
     expect(dieInput()).toBeNull();
     expect(host.querySelector('.rm-loc-grid')).toBeNull();

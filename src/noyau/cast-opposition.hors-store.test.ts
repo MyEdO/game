@@ -126,7 +126,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
   it('IDEMPOTENCE : un second « Appliquer » ne RECONSTRUIT pas la fenêtre — les Tests déjà opposés tiennent', () => {
     banc.getState().ensemencerLeTirage(11);
     const { H, E } = setup();
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 2, gmSeat: 2, ownership: {} } }); // rangée ennemie TENUE (jet dû)
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 2, gmSeat: 2, ownership: {} } }); // rangée ennemie TENUE (jet dû)
     frozenCast(H, E, 'parole-de-tzeentch', 4);
     banc.getState().jetValider('incantation');
     banc.getState().jetLancer('opposition', E.id);
@@ -166,7 +166,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
     const H = b.combatants.find((c) => c.id === caster.id)!;
     const T = b.combatants.find((c) => c.id === cible.id)!;
     banc.setState({
-      net: { ...banc.getState().net, mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' }, ownership: { [T.id]: 1 } },
+      net: { ...banc.getState().net, mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' }, ownership: { [T.id]: 1 } },
       pendingCast: {
         casterId: H.id, targetId: T.id, spellId: 'fauche-demon', missile: false, focused: false,
         result: { cast: true, roll: 30, target: 70, sl: 6, base: castingBaseValue(H, incantationArcane()), isCritical: false, isFumble: false, log: 'x' },
@@ -264,7 +264,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
   it('gmSeat — cible ENNEMIE : rangée INTERACTIVE tenue par le MJ (jet non volé)', () => {
     banc.getState().ensemencerLeTirage(11);
     const { H, E } = setupPnj();
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 2, gmSeat: 2, ownership: {}, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' } } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 2, gmSeat: 2, ownership: {}, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' } } });
     frozen(H.id, E.id);
     banc.getState().jetValider('incantation');
     const part = banc.getState().pendingCastOpposition!.participants.find((p) => p.id === E.id)!;

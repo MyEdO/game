@@ -147,7 +147,7 @@ describe('#2190, #3611 — la case de départ se lit dans l’état : une destin
   it('intent COOP : l’allowlist le laisse passer, le store le refuse loin de l’arête — et depuis la case de l’arête il passe', () => {
     const c = CAS[2];
     const { H } = combat(c.scene(), ailleurs);
-    banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
     expect(GUEST_INTENTS.has('franchirLArete')).toBe(true);
     expect(intentAllowedFor(g(), 1, 'franchirLArete', [c.vers])).toBe(true);
     withActingSeat(1, () => g().franchirLArete(c.vers));
@@ -300,7 +300,7 @@ describe('refus du PRÉFIXE (`mobileDuTour`), dits par le geste', () => {
   });
   it('actif mené par un autre siège → geste.refus.pasLaMain', () => {
     const { H } = combat(c.scene(), c.de);
-    banc.setState({ net: { ...NET0, mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
+    banc.setState({ net: { ...NET0, mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { [H.id]: 1 }, slots: [0, 1, 0, 0] } });
     c.agir(c.vers);
     expect(aAgi(H.id, c.de)).toBe(false);
     dit('geste.refus.pasLaMain', { name: H.label });

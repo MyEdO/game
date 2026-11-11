@@ -409,7 +409,7 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
       atk: { roll: 33, success: false, sl: -2, target: 45 }, def: { roll: 44, success: false, sl: -3, target: 45 },
       result, suite: { mode: 'machine', coup },
     } as unknown as PendingDefense,
-    pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }) });
+    pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: hero.id }], { title: 'Défense', purpose: 'combat' }) });
     return { hero, brute };
   }
   const etapes = (): string[] => (banc.getState().pendingCascade?.participants ?? []).map((s) => `${s.kind}:${s.id}`);

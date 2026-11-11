@@ -30,14 +30,14 @@ const inputFor = (e: Combatant): EnemyTurnInput =>
 describe('Scénario 17 — Métamorphose Enfant d’Ulric (records réels)', () => {
   it("la forme HUMAINE (enfant-d-ulric-humain) choisit de se métamorphoser", () => {
     const e = creatureToCombatant(findCreatureById('enfant-d-ulric-humain')!, 'e', { x: 5, y: 5 });
-    expect(chooseEnemyAction(inputFor(e))).toEqual({ kind: 'selfManeuver', maneuverId: 'forme-hybride-ulric' });
+    expect(chooseEnemyAction(inputFor(e))).toEqual({ kind: 'manoeuvreSurSoi', maneuverId: 'forme-hybride-ulric' });
   });
 
   it("la forme HYBRIDE (enfant-d-ulric, bête prête) ne se re-transforme pas — pas de trait Métamorphose", () => {
     const cr = findCreatureById('enfant-d-ulric')!;
     expect(cr.traits.some((t) => t.id === 'metamorphose')).toBe(false); // conception : la bête n'a plus le trait
     const e = creatureToCombatant(cr, 'e', { x: 5, y: 5 });
-    expect(chooseEnemyAction(inputFor(e)).kind).not.toBe('selfManeuver');
+    expect(chooseEnemyAction(inputFor(e)).kind).not.toBe('manoeuvreSurSoi');
   });
 
   it("le scénario spawne deux lycanthropes en forme humaine transformable", () => {

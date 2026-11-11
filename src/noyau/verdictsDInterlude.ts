@@ -328,7 +328,7 @@ function refusDeCible(h: Combatant, ids: string[], id: string | undefined, vide:
  *  atteindre), ou `null` si un résolveur, un rendu de dépôt ou une issue de bataille la résout : son effet
  *  ne se lit pas en ops. */
 function opsDeReussite(def: ActivityDef): GameOp[] | null {
-  const bandes = (def.outcomes ?? []).filter((b) => b.on === 'success' || (b.on == null && (b.maxSL == null || b.maxSL >= 0)));
+  const bandes = (def.outcomes ?? []).filter((b) => b.on === 'reussite' || (b.on == null && (b.maxSL == null || b.maxSL >= 0)));
   const horsOps = bandes.some((b) => b.resolver || b.payoutPct != null || b.battle?.length);
   if (horsOps || (def.resolver && !def.outcomes?.length && !def.onSuccess?.length)) return null;
   return [...(def.onSuccess ?? []), ...bandes.flatMap((b) => b.ops ?? [])];

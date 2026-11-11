@@ -12,7 +12,7 @@ import { createHero } from '../engine/character';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { evaluateTest } from '../engine/tests';
 import { castTestOf } from '../engine/magic';
-import { FLOW_HANDLERS } from './rollFlowSpecs';
+import { FLOWS } from './rollFlowSpecs';
 import { jetsEnVue, type LigneDeJet } from './jetsEnVue';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
@@ -41,14 +41,14 @@ const reussiDe = (l: LigneDeJet | undefined): boolean | undefined => (l?.genre =
 describe('Chance et +1 DR : l’issue canonique du seam est celle d’`evaluateTest`', () => {
   it('97 contre 99 est un ÉCHEC : la relance de Chance est offerte (LDB 17 l.23)', () => {
     testPose(97, 99);
-    expect(FLOW_HANDLERS.test.outcomeOf(get)?.won).toBe(false);
+    expect(FLOWS.test.outcomeOf(get)?.won).toBe(false);
     get().jetRelancer('test');
     expect(get().party[0].fortune, 'un Point de Chance dépensé sur le Test raté').toBe(0);
   });
 
   it('03 contre 1 est une RÉUSSITE : la relance de Chance est refusée', () => {
     testPose(3, 1);
-    expect(FLOW_HANDLERS.test.outcomeOf(get)?.won).toBe(true);
+    expect(FLOWS.test.outcomeOf(get)?.won).toBe(true);
     get().jetRelancer('test');
     expect(get().party[0].fortune, 'aucun Point dépensé sur un Test réussi').toBe(1);
   });
@@ -65,7 +65,7 @@ describe('Chance et +1 DR : l’issue canonique du seam est celle d’`evaluateT
       party: [h], battle: { combatants: [h], log: [] } as never,
       pendingCast: { casterId: h.id, targetId: h.id, spellId: 'drain', missile: false, focused: false, result: { cast: false, roll: 97, target: 99, sl: -1, isCritical: false, isFumble: false, log: '' } },
     } as never);
-    expect(FLOW_HANDLERS.incantation.outcomeOf(get)?.won).toBe(false);
+    expect(FLOWS.incantation.outcomeOf(get)?.won).toBe(false);
   });
 });
 
@@ -73,7 +73,7 @@ describe('`jetsEnVue` annonce le verdict du résolveur', () => {
   it('Test de scène 97 contre 99 : la ligne est ratée', () => {
     const h = testPose(97, 99);
     // Le Test de scène est une cascade-hôte à une étape (`testsDeScene`) : la fenêtre est la cascade.
-    banc.setState({ pendingCascade: { title: 'Test', cursor: 0, seq: 1, log: [], purpose: 'combat', participants: [{ id: 'hote-test', kind: 'triggeredTest', actorId: h.id, jet: 'test', label: fixtureText('Test') }] } });
+    banc.setState({ pendingCascade: { title: 'Test', cursor: 0, seq: 1, log: [], purpose: 'combat', participants: [{ id: 'hote-test', kind: 'testDeclenche', actorId: h.id, jet: 'test', label: fixtureText('Test') }] } });
     expect(reussiDe(jetsEnVue(get()).find((j) => j.flux === 'test')?.lignes[0])).toBe(false);
   });
 
@@ -105,7 +105,7 @@ describe('Taverne : le lancer de volée relit le verdict du d100 (NADJ 16 l.70)'
     get().jetRegler('cascade', 'choix', '0', vise.id); // le nez : Très facile (+60)
     get().jetValider('cascade');
     pc = get().pendingCascade!;
-    const idx = pc.participants.findIndex((s) => s.kind === 'tavern-throw');
+    const idx = pc.participants.findIndex((s) => s.kind === 'taverneLancer');
     const band = pc.participants[idx];
     const row = band.participants![0];
     expect(row.target!, 'la cible du lancer dépasse la borne haute').toBeGreaterThanOrEqual(99);

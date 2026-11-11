@@ -94,7 +94,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
 
   it('un invité ne clôt pas : refusé et dit, rien de changé', () => {
     const banc = groupeDeTrois();
-    banc.setState((s) => ({ net: { ...s.net, mode: 'guest' } }));
+    banc.setState((s) => ({ net: { ...s.net, mode: 'invite' } }));
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
     banc.actions.fenetreValider('interlude');

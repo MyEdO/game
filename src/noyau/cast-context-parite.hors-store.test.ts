@@ -1,6 +1,6 @@
 /**
  * #1064 — PARITÉ du contexte d'incantation : le PREMIER jet (`jetLancer('incantation')`) et la RELANCE
- * (`FLOWS.cast.reresolve`) lisent le MÊME contexte (`castContextMods`) — « N'écoutez point la
+ * (`FLOWS.incantation.reresolve`) lisent le MÊME contexte (`castContextMods`) — « N'écoutez point la
  * Sorcière » (LDB 42), attribut de Domaine (LDB 48 l.157) et bonus d'ENVIRONNEMENT de Domaine
  * (Ghyran, LDB 48 l.690). Avant ce lot, le bonus d'environnement n'était appliqué QU'À LA RELANCE :
  * relancer un Sort de Vie en zone rurale changeait la cible sous le joueur.

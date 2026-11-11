@@ -97,7 +97,7 @@ describe('LandMarketView — « Acheter » lit le refus du noyau (#3059, MSRC 13
   });
 
   it('siège invité : le geste est fermé par le refus de dépense du groupe, composé par le devis', () => {
-    useGame.setState({ net: { ...get().net, mode: 'guest' } });
+    useGame.setState({ net: { ...get().net, mode: 'invite' } });
     const offre = get().landMarket!.offers.find((o) => o.enc >= minCargoEnc())!;
     expect(devisDAchatDeCargaison(get(), 'convoi', offre.cargoId, minCargoEnc()).refus).toEqual({ motif: 'invite' });
     expect(acheter(offre.cargoId, offre.label, minCargoEnc())).toEqual({ ferme: 'true', raison: t('groupe.hoteSeul') });

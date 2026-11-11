@@ -30,7 +30,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const g = () => banc.getState();
 const lu = (id: string) => actorIn(g(), id)!;
 const psy = (id: string, type: PsychType) => (lu(id).psychState ?? []).filter((p) => p.type === type);
-const bandes = (): CascadeStep[] => (g().pendingCascade?.participants ?? []).filter((s) => s.kind === 'combatPsych');
+const bandes = (): CascadeStep[] => (g().pendingCascade?.participants ?? []).filter((s) => s.kind === 'psychologieDeCombat');
 const debut = (n: number) => { banc.setState({ battle: { ...g().battle!, round: n }, pendingCascade: null }); openRoundStartPsych(g, banc.setState); };
 const fin = (n: number) => { banc.setState({ battle: { ...g().battle!, round: n + 1 }, pendingCascade: null }); openRoundEndCascade(g, banc.setState); };
 /** Les Traits psy d'« Effrayé (`groupe`) », tels que la fiche les dérive. */

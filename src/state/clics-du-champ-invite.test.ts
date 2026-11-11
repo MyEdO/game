@@ -32,7 +32,7 @@ function invite() {
   const local = vi.fn();
   useGame.setState({
     battle: battle as never, scene: arena(), party: [hero], mode: 'battle',
-    net: { ...initialNet(), mode: 'guest', mySeat: 0, ownership: { h1: 0 } },
+    net: { ...initialNet(), mode: 'invite', mySeat: 0, ownership: { h1: 0 } },
     cliquerLaCase: local,
   });
   interceptGuestActions();

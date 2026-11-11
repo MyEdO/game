@@ -70,7 +70,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ critical: true, critLocation: 'corps' }), dualMode: true } as any });
     banc.getState().jetValider('attaque');
     for (let i = 0; i < 20 && !banc.getState().pendingDualStrike; i++) avanceEtapeCascade(banc.getState, undefined, () => 'subir');
-    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+    const crits = (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critique');
     expect(crits.map((s) => s.reveal?.origine)).toEqual(['coup-critique']);
     const jet = banc.getState().pendingDualStrike!.jet;
     expect(jet).toBe(crits[0].reveal!.dice);

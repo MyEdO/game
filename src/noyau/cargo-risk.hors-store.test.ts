@@ -136,7 +136,7 @@ describe('Voie d’eau — la coque percée/heurtée gâte 1d10 Enc (#327 D)', (
 
 describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   const hailStep = (): CascadeStep => ({
-    id: 'sea-pirate-hail', kind: 'sea-pirate-hail', label: fixtureText('Cogue pirate'), defaultChoice: 'fuir',
+    id: 'merPiratesSommation', kind: 'merPiratesSommation', label: fixtureText('Cogue pirate'), defaultChoice: 'fuir',
     options: [
       { key: 'fuir', label: fixtureText('Fuir') }, { key: 'combattre', label: fixtureText('Combattre') }, { key: 'soumettre', label: fixtureText('Se soumettre') },
     ],
@@ -155,14 +155,14 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('soumission : pillage piratePillagePct (100 %) de la cale puis insère le choix du tribut ; livrer retire un marin', () => {
     expect(Number(rule('piratePillagePct'))).toBe(100);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'soumettre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'soumettre', 'merPiratesSommation');
     get().jetValider('cascade');
     // Cale VIDÉE (100 %) + étape de tribut insérée.
     expect(cargoTotalEnc(get().vessel!.cargo ?? [])).toBe(0);
     const p = get().pendingCascade;
-    expect(p?.participants.some((s) => s.kind === 'sea-pirate-tribute')).toBe(true);
+    expect(p?.participants.some((s) => s.kind === 'merPiratesTribut')).toBe(true);
     // Livrer un marin : crewLost incrémenté (perte réelle).
-    get().jetRegler('cascade', 'choix', 'livrer', 'sea-pirate-tribute');
+    get().jetRegler('cascade', 'choix', 'livrer', 'merPiratesTribut');
     get().jetValider('cascade');
     expect((get().vessel!.crewLost ?? 0)).toBeGreaterThan(0);
   });
@@ -175,10 +175,10 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', nombre: 25, label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'soumettre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'soumettre', 'merPiratesSommation');
     get().jetValider('cascade');
     const crewBefore = get().vessel!.crewLost ?? 0;
-    get().jetRegler('cascade', 'choix', 'refuser', 'sea-pirate-tribute');
+    get().jetRegler('cascade', 'choix', 'refuser', 'merPiratesTribut');
     get().jetValider('cascade');
     expect(get().vessel!.crewLost ?? 0).toBe(crewBefore); // refuser ne sacrifie aucun marin
     const battle = get().battle!;
@@ -200,7 +200,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('fuir → la poursuite porte le navire hostile posé par `openPirateHail`, à son M de conception (Cogue : M 5, MDG 12)', () => {
     set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', nombre: 25, label: 'La Dent de Manann' } } } as never } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'fuir', 'merPiratesSommation');
     get().jetValider('cascade');
     expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', label: 'La Dent de Manann', foeM: 5 });
   });
@@ -213,7 +213,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       expect(attendu).toBeDefined();
       set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', ...(chefRef ? { chefRef } : {}), nombre: 25, label: 'La Dent de Manann' } } } as never } as never);
       startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-      get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
+      get().jetRegler('cascade', 'choix', 'fuir', 'merPiratesSommation');
       get().jetValider('cascade');
       expect(get().travelPlan!.sea!.crisis).toMatchObject({ kind: 'poursuite', foeSkill: attendu });
     }
@@ -222,8 +222,8 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
   it('fuir sans navire hostile en vue : erreur nommée, jamais un pirate au nom inventé (#1906)', () => {
     set({ travelPlan: { interrupted: true, sea: { lines: [], weather: { visibilite: 'degage' } } } as never } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'fuir', 'sea-pirate-hail');
-    expect(() => get().jetValider('cascade')).toThrow(/navire hostile en vue.*sea-pirate-hail/);
+    get().jetRegler('cascade', 'choix', 'fuir', 'merPiratesSommation');
+    expect(() => get().jetValider('cascade')).toThrow(/navire hostile en vue.*merPiratesSommation/);
   });
 
   it('combattre d’emblée → même abordage dérivé (deux coques, ennemis présents)', () => {
@@ -232,7 +232,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       travelPlan: { interrupted: true, vehicle: coque('barge-fluviale'), sea: { lines: [], weather: { visibilite: 'degage' }, boarding: { shipRef: 'cogue', crewRef: 'humain', chefRef: 'jaego-roth', nombre: 25, label: 'Cogue pirate' } } } as never,
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'combattre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'combattre', 'merPiratesSommation');
     get().jetValider('cascade');
     const battle = get().battle!;
     expect(battle).toBeTruthy();
@@ -247,7 +247,7 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
       journal: [],
     } as never);
     startCascade(get, set, { title: 'Cogue pirate', purpose: 'test', steps: [hailStep()] });
-    get().jetRegler('cascade', 'choix', 'combattre', 'sea-pirate-hail');
+    get().jetRegler('cascade', 'choix', 'combattre', 'merPiratesSommation');
     get().jetValider('cascade');
     expect(get().battle).toBeNull();
     expect(get().journal.join(' ')).not.toContain('l’issue reste au récit');

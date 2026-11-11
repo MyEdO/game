@@ -206,7 +206,7 @@ describe('Boucle de jeu (store)', () => {
     expect(avant[0].table!.result, 'le dé n’est pas encore tombé').toBeUndefined();
     const dev = joueLaSeverite();
     expect(dev.deviation?.targetId).toBe('h1');
-    expect(dev.reveal?.kind).toBe('critical'); // panneau riche porté par l'étape, sous la ligne de dé
+    expect(dev.reveal?.kind).toBe('critique'); // panneau riche porté par l'étape, sous la ligne de dé
     // Avant le choix : ni Blessure, ni Critique, ni PA consommée (early-return propre).
     const h = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
     expect(h.wounds.current).toBe(15);
@@ -259,7 +259,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({
       battle, mode: 'battle',
       pendingAttack: { attackerId: 'h1', targetId: 'e1', location: null, result: res },
-      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'attackJet', jet: 'attaque', actorId: 'h1' }], { title: 'Attaque', icon: 'action/attack', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'attack-jet', kind: 'jetDAttaque', jet: 'attaque', actorId: 'h1' }], { title: 'Attaque', icon: 'action/attack', purpose: 'combat' }),
     });
   }
 
@@ -276,7 +276,7 @@ describe('Boucle de jeu (store)', () => {
     const seq = banc.getState().pendingCascade;
     expect(seq?.purpose).toBe('combat');
     expect(seq?.participants[0]?.jet).toBe('attaque');                          // le jet reste l'étape 0
-    expect(seq?.participants.some((s) => s.kind === 'critical')).toBe(true);   // conséquence INLINE, même séquence
+    expect(seq?.participants.some((s) => s.kind === 'critique')).toBe(true);   // conséquence INLINE, même séquence
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
@@ -492,7 +492,7 @@ describe('Boucle de jeu (store)', () => {
         suite: { mode: 'machine', coup: {} },
       },
       // La défense est une étape de cascade combat (Lot 1) → on la pose comme en jeu (maybeOpenDefense).
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
     banc.getState().jetValider('defense');
     const st = banc.getState();
@@ -533,7 +533,7 @@ describe('Boucle de jeu (store)', () => {
         def: { roll: 60, target: 40, success: false, sl: 0, isDouble: false }, result,
         suite: { mode: 'machine', coup: {} },
       },
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: h.id }], { title: 'Défense', icon: 'action/defend', purpose: 'combat' }),
     });
     banc.getState().jetValider('defense');
     const st = banc.getState();
@@ -769,7 +769,7 @@ describe('Boucle de jeu (store)', () => {
         result: null,
         suite: { mode: 'machine', coup: {} },
       },
-      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'defenseJet', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
+      pendingCascade: cascadeDeTest([{ id: 'defense-jet', kind: 'jetDeDefense', jet: 'defense', actorId: H.id }], { title: 'Défense', purpose: 'combat' }),
     });
     banc.getState().jetLancer('defense'); // « Défendre » : roule la défense + résout
     let pd = banc.getState().pendingDefense!;
@@ -2696,7 +2696,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
   });
 
   /**
-   * #1262 V3 Lj — l'ISSUE du rechargement est DÉRIVÉE au goulot (`FLOWS.reload.apply`, `spec.issue`) :
+   * #1262 V3 Lj — l'ISSUE du rechargement est DÉRIVÉE au goulot (`FLOWS.rechargement.apply`, `spec.issue`) :
    * le site n'écrit plus la phrase. Canal COMBAT : la ligne entre dans `battle.log` (événement `reload`)
    * et JAMAIS dans le journal narratif. PARITÉ : la voie IA (aucune fenêtre, pending FOURNI) passe par
    * le MÊME goulot avec la MÊME donnée — donc la MÊME ligne, au caractère près.
@@ -2716,7 +2716,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     expect(banc.getState().journal.length, 'canal COMBAT : rien dans le journal narratif').toBe(journalAvant);
     // Voie IA : même pending, même DR réalisé, même nom d'arme → ligne IDENTIQUE (aucun 2ᵉ rédacteur).
     const progress = Math.max(0, pr.progressBefore + pr.sl);
-    const ia = FLOWS.reload.apply(banc.getState, { p: pr, ctx: { after: progress, weapon: 'Arbalète' } });
+    const ia = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: progress, weapon: 'Arbalète' } });
     expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].text]);
   });
 

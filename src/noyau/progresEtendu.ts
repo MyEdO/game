@@ -35,7 +35,7 @@ export function progresDeDissipation(pd: PendingDispel, lanceur: Combatant): { p
 /** Barre de DR d'une RANGÉE à Test étendu (Peur de combat, cartographie de voyage) : cumul APRÈS son
  *  jet par le pas que son résolveur applique, borné à la cible. Cumul propre : `pasDePeur` (Sans Peur de
  *  la rangée compris). Cumul COMMUN (`extendedDrPartage`) : les jets des rangées qui la précèdent dans
- *  `bande`, puis le sien, comme `stageAggregate`. LDB 12 l.170-185 ; LDB 21 l.25 ; LDB 10 l.1051 ; EDOC 8 l.161 */
+ *  `bande`, puis le sien, comme `etapeBilan`. LDB 12 l.170-185 ; LDB 21 l.25 ; LDB 10 l.1051 ; EDOC 8 l.161 */
 export function cumulEtenduDeRangee(part: BatchParticipant, bande: readonly BatchParticipant[]): { cum: number; target: number } | undefined {
   const target = part.extendedDrTarget;
   if (target == null) return undefined;

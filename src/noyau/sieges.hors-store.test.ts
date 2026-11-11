@@ -10,9 +10,9 @@ import {
 import { t } from '../i18n';
 
 /** L'hôte d'une room à deux invités, aucun héros attribué. */
-const hoteADeuxInvites = (): NetState => ({ ...initialNet(), mode: 'host', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna', 2: 'Bruno' } });
+const hoteADeuxInvites = (): NetState => ({ ...initialNet(), mode: 'hote', roomCode: 'ABC234', seatNames: { 0: 'Hôte', 1: 'Anna', 2: 'Bruno' } });
 /** L'invité Anna, assis au siège 1. */
-const inviteAnna = (): NetState => ({ ...initialNet(), mode: 'guest', mySeat: 1, roomCode: 'ABC234' });
+const inviteAnna = (): NetState => ({ ...initialNet(), mode: 'invite', mySeat: 1, roomCode: 'ABC234' });
 /** Une partie solo. */
 const solo = (): NetState => initialNet();
 /** Le groupe des tests : un seul héros. */
@@ -92,7 +92,7 @@ describe('siegesDeLaTable', () => {
   it('l’hôte (siège 0) en est TOUJOURS, nommé ou non ; les sièges nommés suivent, dans l’ordre', () => {
     expect(siegesDeLaTable(solo()).map((x) => x.seat)).toEqual([0]);
     expect(siegesDeLaTable(solo())[0]).toEqual({ seat: 0, nom: t('party.seat.host'), moi: true, absent: false });
-    const net = { ...hoteADeuxInvites(), presence: { 2: 'away' as const } };
+    const net = { ...hoteADeuxInvites(), presence: { 2: 'absent' as const } };
     expect(siegesDeLaTable(net)).toEqual([
       { seat: 0, nom: 'Hôte', moi: true, absent: false },
       { seat: 1, nom: 'Anna', moi: false, absent: false },

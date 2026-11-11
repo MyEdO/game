@@ -1251,7 +1251,7 @@
     "hint": "Hors combat, le groupe entier suit la chute volontaire (EDO 01 l.231) et chacun choisit de tenter ou non son Test d’Athlétisme (LDB 15 l.82). Valeur MAISON pour un membre vivant qui n’est pas debout : refus = le geste est refusé tant qu’il y en a un ; chute-pleine = il tombe avec le groupe, de toute la hauteur, sans Test."
   },
   {
-    "id": "sea-shipwreck-swim",
+    "id": "mer-naufrage-natation",
     "type": "reglesOptionnelles",
     "label": "Naufrage en mer : Difficulté du Test de Natation",
     "ref": "MDG 13 l.522",

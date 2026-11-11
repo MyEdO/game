@@ -29,7 +29,7 @@ export interface CombatEvent {
 /** Télégraphe d'intention d'un combattant IA (réticule + ligne sur la carte) : qui vise qui, et de
  *  quelle manière. `kind` choisit le trait (mêlée/charge = ligne PLEINE ; tir/sort = POINTILLÉE) ET
  *  narre la bannière (« charge / attaque / vise / lance un sort »). Une seule source pour les deux. */
-export type ActorAimKind = 'melee' | 'charge' | 'ranged' | 'cast';
+export type ActorAimKind = 'melee' | 'charge' | 'tir' | 'incantation';
 export interface ActorAim {
   fromId: string;
   toId: string;

@@ -253,14 +253,14 @@ describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.4
   it('achat : PJ Négociateur gagnant de 6 DR ou plus → remise de 30 %', () => {
     const hero = tousLesHerosDeScenario(idsDeTest)[0];
     hero.talents = [...hero.talents, { talentId: 'negociateur', times: 1 }];
-    const step = etapeMarchandage(hero, 'port-achat-marchandage', 9, true, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 40, merchantNegotiator: false, sellerDR: 0 });
+    const step = etapeMarchandage(hero, 'port-achat-marchandage', 9, true, { cargoId: 'bois-mer', want: 20, basePrice: 10, merchantValue: 40, merchantNegotiator: false, drDuVendeur: 0 });
     imposeD100(95); // le commerçant (40) rate : DR −5
     expect(ligneDe('port-achat-marchandage', step, hero)).toMatch(/remise de 30 %/);
   });
 
   it('vente : l’acheteur Négociateur l’emporte de moins de 6 DR → le prix d’offre baisse de 20 %', () => {
     const hero = tousLesHerosDeScenario(idsDeTest)[0];
-    const step = etapeMarchandage(hero, 'port-vente-marchandage', -3, false, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: true, sellerDR: 0 });
+    const step = etapeMarchandage(hero, 'port-vente-marchandage', -3, false, { lotId: 'lot-1', sellEnc: 20, offerPct: 100, merchantValue: 50, merchantNegotiator: true, drDuVendeur: 0 });
     setup({ taille: 4, richesse: 4, production: [] } as unknown as PortProfile, [hero]);
     imposeD100(40); // l’acheteur (50) réussit : DR +1
     expect(ligneDe('port-vente-marchandage', step, hero)).toMatch(/: -20 %/);

@@ -1,5 +1,5 @@
 /**
- * Flux de MANŒUVRE de créature par modale (`pendingManeuver` + `FLOWS.maneuver`). Un héros qui
+ * Flux de MANŒUVRE de créature par modale (`pendingManeuver` + `FLOWS.manoeuvre`). Un héros qui
  * possède un trait d'attaque de créature (mutation/polymorphie) active Souffle/Vomi/Langue/Regard/
  * Étreinte via la modale de jet d'ATTAQUANT ; Hurlement reste immédiat
  * (pas de jet d'attaquant). Couvre : ouverture sans jet (result===null), Lancer→Appliquer (Avantage
@@ -18,7 +18,7 @@ import { offresDeLActif } from './actionRegistry';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-describe('FLOWS.maneuver — manœuvre de créature par modale (store)', () => {
+describe('FLOWS.manoeuvre — manœuvre de créature par modale (store)', () => {
   function setup() {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });

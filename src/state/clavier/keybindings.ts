@@ -33,7 +33,7 @@ import { validTargets, preemptShooterIds } from '../../noyau/targeting';
 import type { ScreenDir } from '../combatCursor';
 import { combatantAtTile } from '../../noyau/monde/combatGeometry';
 import { SEUIL_MAINTIEN_MS, arreterLacet, demarrerLacet, pasYaw } from '../stageYaw';
-import { arreterMarche, demarrerMarche } from '../stageWalk';
+import { arreterMarche, demarrerMarche, type PasTenu } from '../stageWalk';
 import { clearTrackedTimer, scheduleFlowTimer } from '../../web/minuteries';
 import { t, type MsgKey } from '../../i18n';
 import type { VerrouDesMots } from '../../noyau/fabriquesDuNoyau';
@@ -142,6 +142,9 @@ export type IdDeRaccourci =
 /** VERROU : un id de raccourci ne prend que des mots du lexique (#3924), ses rangs de chiffre à part. */
 const verrouDesRaccourcis: VerrouDesMots<IdDeRaccourci> = true;
 void verrouDesRaccourcis;
+/** VERROU : une vue de marche ne prend que des mots du lexique (#3928). */
+const verrouDesVues: VerrouDesMots<PasTenu['vue']> = true;
+void verrouDesVues;
 /** Une clé de libellé, ses segments joints par des tirets. */
 type Segments<S extends string> = S extends `${infer A}.${infer B}` ? `${A}-${Segments<B>}` : S;
 /** VERROU : une section et une clé de libellé de raccourci (`raccourci.*`) ne prennent que des mots du lexique (#3928). */
@@ -297,7 +300,7 @@ export const KEYBINDINGS: KeyBinding[] = [
   //    `exploringPov` est faux → cam-* et pas-iso reprennent la main. `subjectif-basculer` (F) commute la vue. ──
   ...POV_STEP.map(({ id, code, rel, labelKey, isoId }): KeyBinding => ({
     id, codes: [code], labelKey, section: 'subjectif', sharedBy: [isoId], when: exploringPov,
-    run: (g) => demarrerMarche(g, { vue: 'pov', rel }), runUp: () => arreterMarche({ vue: 'pov', rel }),
+    run: (g) => demarrerMarche(g, { vue: 'subjectif', rel }), runUp: () => arreterMarche({ vue: 'subjectif', rel }),
   })),
   { id: 'subjectif-pivot-gauche', codes: ['KeyQ'], labelKey: 'raccourci.subjectifPivotGauche', section: 'subjectif', sharedBy: ['camera-gauche', 'editeur-pivot-gauche'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(-1) },
   { id: 'subjectif-pivot-droite', codes: ['KeyE'], labelKey: 'raccourci.subjectifPivotDroite', section: 'subjectif', sharedBy: ['camera-droite', 'editeur-pivot-droite'], when: exploringPov, unePression: true, run: (g) => g().pivoterLeGroupe(1) },

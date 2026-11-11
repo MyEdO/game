@@ -89,7 +89,7 @@ describe('#3059 — siège invité : « Valider la semaine » lit le refus de va
     useGame.setState({
       party: [HILDA, KARL],
       vessel: null,
-      net: { ...useGame.getState().net, mode: 'guest', mySeat: 1, ownership: { h2: 1 } },
+      net: { ...useGame.getState().net, mode: 'invite', mySeat: 1, ownership: { h2: 1 } },
       pendingSeaActivities: { picks: {}, day: { events: [] } } as unknown as PendingSeaActivities,
       fenetreChoisir: (...args: unknown[]) => { choix.push(args); },
     });

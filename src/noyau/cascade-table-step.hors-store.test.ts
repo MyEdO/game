@@ -270,7 +270,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     const hero = combattantDeTest({ id: 'h1', label: 'Aldo', kind: 'hero' });
     banc.setState({
       party: [hero],
-      net: { mode: 'host', mySeat: 0, roomCode: 'ABCD', seatNames: {}, presence: {}, ownership: { h1: 1 }, gmSeat: null } as never,
+      net: { mode: 'hote', mySeat: 0, roomCode: 'ABCD', seatNames: {}, presence: {}, ownership: { h1: 1 }, gmSeat: null } as never,
     });
     startCascade(banc.getState, banc.setState, {
       title: 'Tirage', purpose: 'test',

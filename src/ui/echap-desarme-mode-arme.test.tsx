@@ -48,7 +48,7 @@ const arene = () => {
  * l'acteur actif, `mySeat` le siège de CE client — le couple des deux décide si ce client contrôle
  * l'actif (`controlsActive`), donc si la touche lui appartient.
  */
-function table(action: BattleActionMode | null, { turn = 0, mySeat = 0, mode = 'local' as 'local' | 'guest' } = {}) {
+function table(action: BattleActionMode | null, { turn = 0, mySeat = 0, mode = 'local' as 'local' | 'invite' } = {}) {
   const hero = tousLesHerosDeScenario(idsDeTest)[0]; hero.id = 'h1'; hero.pos = { x: 6, y: 6 };
   const ally = tousLesHerosDeScenario(idsDeTest)[1]; ally.id = 'h2'; ally.pos = { x: 5, y: 6 };
   const e1 = spawnEnemy({ ref: 'moritz-valgeir' }, 'e1', { x: 7, y: 6 });
@@ -120,7 +120,7 @@ describe('Échap sur un mode armé NU (#1411)', () => {
   });
 
   it('COOP — le siège qui NE contrôle PAS l’actif garde le menu (pas de vol d’Échap)', () => {
-    table('dissipation', { turn: 0, mySeat: 1, mode: 'guest' }); // tour de h1 (siège 0), client au siège 1
+    table('dissipation', { turn: 0, mySeat: 1, mode: 'invite' }); // tour de h1 (siège 0), client au siège 1
     expect(barreaux(get())).toEqual(['menu-ouvrir']);
     échap();
     expect(get().gameMenuOpen, 'un siège sans geste à annuler serait enfermé').toBe(true);
@@ -128,7 +128,7 @@ describe('Échap sur un mode armé NU (#1411)', () => {
   });
 
   it('COOP — le siège QUI tient le mode armé le désarme', () => {
-    table('dissipation', { turn: 1, mySeat: 1, mode: 'guest' }); // tour de h2, possédé par le siège 1
+    table('dissipation', { turn: 1, mySeat: 1, mode: 'invite' }); // tour de h2, possédé par le siège 1
     expect(barreaux(get())).toEqual(['mode-desarmer']);
     échap();
     expect(get().battle!.action).toBeNull();

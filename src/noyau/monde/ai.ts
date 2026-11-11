@@ -89,19 +89,19 @@ export interface CastableSpell {
 }
 
 export type EnemyAction =
-  | { kind: 'cast'; targetId: string; spell: string } // incantation offensive sur la cible
-  | { kind: 'castArea'; spell: string; center: Pt } // sort de ZONE (ZdE) auto-posé sur un point couvrant ≥2 héros
-  | { kind: 'focus'; spell: string } // Focalisation (LDB 46) d'un sort offensif infaisable en un seul jet
-  | { kind: 'shoot'; targetId: string } // tir depuis la position courante (arme à distance)
-  | { kind: 'reload' } // recharge une arme à Recharge déchargée (Test étendu de Projectiles, LDB 62 l.333)
+  | { kind: 'incantation'; targetId: string; spell: string } // incantation offensive sur la cible
+  | { kind: 'incantationDeZone'; spell: string; center: Pt } // sort de ZONE (ZdE) auto-posé sur un point couvrant ≥2 héros
+  | { kind: 'focalisation'; spell: string } // Focalisation (LDB 46) d'un sort offensif infaisable en un seul jet
+  | { kind: 'tir'; targetId: string } // tir depuis la position courante (arme à distance)
+  | { kind: 'rechargement' } // recharge une arme à Recharge déchargée (Test étendu de Projectiles, LDB 62 l.333)
   | { kind: 'melee'; targetId: string } // attaque de mêlée (cible adjacente)
-  | { kind: 'move'; to: Pt; thenTargetId: string } // approche ; attaque après si adjacent
-  | { kind: 'recover'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
-  | { kind: 'spendResource'; resource: 'resolve'; via: 'removeCondition'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
-  | { kind: 'grapple'; targetId: string; resolution: 'break' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
-  | { kind: 'manPoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — Action gratuite, LDB 13 l.106
-  | { kind: 'selfManeuver'; maneuverId: string } // capacité SUR SOI (forme de combat lycanthrope, op transform) — coûte l'Action (2ᵉ via loseTurn)
-  | { kind: 'end' }; // rien à faire, passe la main
+  | { kind: 'deplacement'; to: Pt; thenTargetId: string } // approche ; attaque après si adjacent
+  | { kind: 'liberation'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
+  | { kind: 'depenseDeRessource'; resource: 'resolve'; via: 'removeCondition'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
+  | { kind: 'empoignade'; targetId: string; resolution: 'break' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
+  | { kind: 'servirLePoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — Action gratuite, LDB 13 l.106
+  | { kind: 'manoeuvreSurSoi'; maneuverId: string } // capacité SUR SOI (forme de combat lycanthrope, op transform) — coûte l'Action (2ᵉ via loseTurn)
+  | { kind: 'fin' }; // rien à faire, passe la main
 
 export interface EnemyTurnInput {
   /** L'ennemi qui agit (doit avoir `pos`). */
@@ -241,7 +241,7 @@ export type DoctrineId = 'standard' | 'meute' | 'racaille' | 'soldats' | 'tirail
  *  jamais contredire une garde RAW. */
 interface DoctrineMacro {
   /** REPLI « doctrine » (LATITUDE de moteur, aucune règle ne la porte) : un NON-Bestial très entamé (PB/PBmax < seuil) qui n'est PAS
-   *  Engagé se replie comme un Bestial (réutilise `fleeMove`, aucun nouveau mécanisme). N'a d'effet QUE pour
+   *  Engagé se replie comme un Bestial (réutilise `mouvementDeFuite`, aucun nouveau mécanisme). N'a d'effet QUE pour
    *  un combattant SANS garde de fuite RAW (un Bestial est déjà géré en amont, intouché). Absent ⇒ pas de repli. */
   retreatBelow?: number;
 }
@@ -474,15 +474,15 @@ interface Candidate {
 // Paliers d'action (cascade historique, du plus prioritaire au moins). Au Lot 3 ils ne servent plus de
 // PRIORITÉ absolue (l'utilité prime) mais de BIAIS de départage stable à utilité égale (parité golden).
 const TIER = {
-  castArea: 0, // ZdE couvrant ≥2 héros (LDB 47 l.28)
-  focus: 1, // Focalisation d'un sort infaisable d'un jet (LDB 46)
-  selfManeuver: 2, // capacité SUR SOI (forme de combat lycanthrope) — self-buff, prioritaire comme un cast
-  cast: 2, // sort offensif mono-cible
-  reload: 3, // recharge d'une arme à Recharge
-  shoot: 4, // tir à distance
+  incantationDeZone: 0, // ZdE couvrant ≥2 héros (LDB 47 l.28)
+  focalisation: 1, // Focalisation d'un sort infaisable d'un jet (LDB 46)
+  manoeuvreSurSoi: 2, // capacité SUR SOI (forme de combat lycanthrope) — self-buff, prioritaire comme une incantation
+  incantation: 2, // sort offensif mono-cible
+  rechargement: 3, // recharge d'une arme à Recharge
+  tir: 4, // tir à distance
   melee: 5, // attaque de mêlée
-  move: 6, // approche / repositionnement
-  manPoste: 7, // servir une pièce de siège (préparation) — faute de mieux
+  deplacement: 6, // approche / repositionnement
+  servirLePoste: 7, // servir une pièce de siège (préparation) — faute de mieux
 } as const;
 
 /**
@@ -521,8 +521,8 @@ export function adversairesDe(input: Pick<EnemyTurnInput, 'heroes' | 'ciblesDePu
  *  d'une Prière (`castInfoIsPrayer`), le Mouvement (l'attaque d'après est gardée à l'exécution) et la
  *  Détermination, qui ne sont pas l'Action. LDB 40 l.74 */
 function permisSousPriereImposee(a: EnemyAction, spells: readonly CastableSpell[]): boolean {
-  if (a.kind === 'move' || a.kind === 'spendResource') return true;
-  if (a.kind !== 'cast' && a.kind !== 'castArea') return false;
+  if (a.kind === 'deplacement' || a.kind === 'depenseDeRessource') return true;
+  if (a.kind !== 'incantation' && a.kind !== 'incantationDeZone') return false;
   const sp = spells.find((s) => s.id === a.spell);
   return !!sp && castInfoIsPrayer(sp.data);
 }
@@ -546,14 +546,14 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     : adversaires;
   // Gardes FORCÉES (psychologie/RAW, hors scoring) : la trace = action forcée, classement VIDE.
   const forced = (a: EnemyAction): EnemyAction => { if (AI_TRACE) _lastRanking = []; return a; };
-  if (input.heroes.length === 0) return forced({ kind: 'end' }); // plus AUCUN adversaire (combat fini) → passe la main
-  if (!canTakeAction(enemy) && effectiveMovement(enemy) === 0) return forced({ kind: 'end' }); // ni Action ni Mouvement (Surpris LDB 16 l.135…) → passe la main (gating data-driven, plus de nom en dur)
+  if (input.heroes.length === 0) return forced({ kind: 'fin' }); // plus AUCUN adversaire (combat fini) → passe la main
+  if (!canTakeAction(enemy) && effectiveMovement(enemy) === 0) return forced({ kind: 'fin' }); // ni Action ni Mouvement (Surpris LDB 16 l.135…) → passe la main (gating data-driven, plus de nom en dur)
   // En flammes (LDB 16 l.84) : un ennemi NON frénétique se roule au sol pour éteindre le feu (1d10/Round
   // est mortel). Un frénétique ignore le danger et continue d'attaquer (Frénésie, LDB 21 l.33) ; un
   // immunisé à ses Dégâts n'a rien à éteindre (LDB 85 l.174).
   // Action due à une Prière (LDB 40 l.74) : seules les Prières restent candidates (filtre de l'argmax).
   const priereImposee = prayerForActionBy(enemy) !== null;
-  if (hasCondition(enemy, 'en-flammes') && !isFrenzied(enemy) && !priereImposee && !degatsDeLEtatIgnores(enemy.traits, 'en-flammes')) return forced({ kind: 'recover', state: 'en-flammes' });
+  if (hasCondition(enemy, 'en-flammes') && !isFrenzied(enemy) && !priereImposee && !degatsDeLEtatIgnores(enemy.traits, 'en-flammes')) return forced({ kind: 'liberation', state: 'en-flammes' });
   const pos = enemy.pos!;
   // Ligne de Vue de CE tour : toutes les questions `from → to` de la décision passent par le mémo (le
   // positionnement en pose des dizaines de milliers, cf. `makeLosMemo`). Verdicts IDENTIQUES à l'appel direct.
@@ -589,7 +589,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // sa pièce) → on ne passe pas la main s'il y en a une à portée.
   const hasAnyMagic = spells.some((sp) => !sp.active);
   const canServePoste = (input.servablePostes?.length ?? 0) > 0;
-  if (!hasAnyMagic && enemy.weapons.length === 0 && !canServePoste) return forced({ kind: 'end' });
+  if (!hasAnyMagic && enemy.weapons.length === 0 && !canServePoste) return forced({ kind: 'fin' });
 
   // Adversaires au Combat rapproché (au contact). Avec une arme de mêlée, on les frappe plutôt que
   // de tirer : une arme à distance sans Atout Pistolet ne tire pas en mêlée (LDB Armes l.297-298).
@@ -643,7 +643,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     && (input.structures ?? []).some((st) => st.pos && los.clear(pos, { ...structureAimCell(pos, st), z: pos.z }));
   if (heroes.length === 0 && !shootableStructureInView) {
     const closest = [...adversaires].filter((h) => h.pos).sort((a, b) => manhattan(pos, a.pos!) - manhattan(pos, b.pos!))[0];
-    if (!closest) return forced({ kind: 'end' });
+    if (!closest) return forced({ kind: 'fin' });
     let to: Pt | null = null;
     let bestD: number | null = null;
     for (const k of reach.keys()) {
@@ -652,7 +652,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       const d = manhattan(t, closest.pos!);
       if (bestD == null || d < bestD) { bestD = d; to = t; }
     }
-    return forced(to ? { kind: 'move', to, thenTargetId: closest.id } : { kind: 'end' });
+    return forced(to ? { kind: 'deplacement', to, thenTargetId: closest.id } : { kind: 'fin' });
   }
 
   // Fuite (Brisé / Bestial blessé). `preferHidden` (Brisé, LDB 16 l.52 « hors de vue de l'ennemi ») :
@@ -670,7 +670,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       const d = distOf(t);
       if (d > bestDist) { bestDist = d; best = t; }
     }
-    return tileKey(best.x, best.y, best.z ?? 0) === hereKey ? { kind: 'end' } : { kind: 'move', to: best, thenTargetId: heroes[0].id };
+    return tileKey(best.x, best.y, best.z ?? 0) === hereKey ? { kind: 'fin' } : { kind: 'deplacement', to: best, thenTargetId: heroes[0].id };
   };
   // Dépense PROACTIVE de Détermination (LDB 17 l.57-61) pour se RESSAISIR : un acteur VERROUILLÉ
   // (`restrictsAction`, ex. Brisé) peut dépenser 1 Détermination/pion pour RETIRER l'État (sans Test, même
@@ -686,7 +686,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const reachableFoe = adjacentFoes.length > 0 || shootableHeroes.length > 0
       || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h.pos!)));
     if (!isEngaged(enemy) && !reachableFoe) return null; // ni Engagé ni cible joignable → se cacher vaut mieux
-    return { kind: 'spendResource', resource: 'resolve', via: 'removeCondition', id: clearable.id };
+    return { kind: 'depenseDeRessource', resource: 'resolve', via: 'removeCondition', id: clearable.id };
   };
   // Verrouillage d'Action data-driven (`restrictsAction`, ex. Brisé LDB 16 l.52) : Mouvement + Action doivent
   // servir à fuir/se cacher. AVANT de fuir, l'IA tente de se RESSAISIR par la Détermination ; sinon, fuir si
@@ -712,7 +712,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const doctrine = pickDoctrine(enemy, squad, input.heroes);
   const Weff = doctrineWeights(doctrine);
   const macro = DOCTRINES[doctrine].macro;
-  // GARDE Empêtré (LDB 16 l.64/66) : un Empêtré a un Mouvement NUL → `fleeMove` ne trouverait aucune
+  // GARDE Empêtré (LDB 16 l.64/66) : un Empêtré a un Mouvement NUL → `mouvementDeFuite` ne trouverait aucune
   // case d'évasion et renverrait `end` (tour gâché). On NE déclenche donc PAS le repli « doctrine » pour
   // un Empêtré : le cœur discrétionnaire ne produira aucun candidat (Mouvement 0) et le fallback final
   // l'enverra sur `recover empetre` (se libérer) — le bon comportement, plutôt que passer son tour.
@@ -853,7 +853,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     if (partner && !holdsViaLimb) {
       const foe = heroes.find((h) => h.id === partner)!;
       const resolution: 'break' | 'test' = enemy.advantage > foe.advantage && isShooterOrCaster ? 'break' : 'test';
-      return forced({ kind: 'grapple', targetId: partner, resolution });
+      return forced({ kind: 'empoignade', targetId: partner, resolution });
     }
   }
   // Meilleur cran de couvert dont la case `from` bénéficie face aux héros (échelle UNIQUE `engine/cover.ts`).
@@ -943,7 +943,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     if (!selfManeuverApplicable(enemy, def)) continue;
     let v = 0;
     for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON });
-    if (v > 0) candidates.push({ action: { kind: 'selfManeuver', maneuverId: def.id }, kind: 'selfManeuver', utility: v, targetId: enemy.id, coord: pos });
+    if (v > 0) candidates.push({ action: { kind: 'manoeuvreSurSoi', maneuverId: def.id }, kind: 'manoeuvreSurSoi', utility: v, targetId: enemy.id, coord: pos });
   }
 
   // === SORTS (énumération UNIFIÉE, op-driven) — un évaluateur unique, aucun planner par-catégorie ====
@@ -963,7 +963,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
         // Sur soi (auto-buff / invocation centrée / auto-soin) : gardé par valeur > 0 (anti-spam naturel).
         if (sp.focusState !== 'focusable') {
           const v = spellActionValue(enemy, sp.data, { kind: 'self' }, ctx);
-          if (v > 0) candidates.push({ action: { kind: 'cast', targetId: enemy.id, spell: sp.id }, kind: 'cast', utility: v, targetId: enemy.id, coord: pos });
+          if (v > 0) candidates.push({ action: { kind: 'incantation', targetId: enemy.id, spell: sp.id }, kind: 'incantation', utility: v, targetId: enemy.id, coord: pos });
         }
       } else if (typeof sp.shape === 'object') {
         // ZdE : on choisit le CENTRE au meilleur NET. Une AoE pleut sur TOUS dans le rayon (indiscriminée,
@@ -994,7 +994,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
             }
             if (!best || net > best.net) best = { center, net };
           }
-          if (best && best.net > 0) candidates.push({ action: { kind: 'castArea', spell: sp.id, center: best.center }, kind: 'castArea', utility: best.net, targetId: '', coord: best.center });
+          if (best && best.net > 0) candidates.push({ action: { kind: 'incantationDeZone', spell: sp.id, center: best.center }, kind: 'incantationDeZone', utility: best.net, targetId: '', coord: best.center });
         }
       } else if (sp.focusState === 'focusable') {
         // Focalisation (LDB 46) : on n'y consacre le tour QUE faute de mieux — si AUCUN sort offensif n'est
@@ -1005,7 +1005,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
         if (!hasImmediateOffensive && !contactFallback && refEnemy) {
           const full = spellActionValue(enemy, sp.data, { kind: 'unit', subject: refEnemy }, { landProb: 1, refEnemy, horizon: HORIZON });
           const survival = Math.max(0.1, Math.min(1, 1 - dangerAt(pos) / Math.max(1, enemy.wounds.current)));
-          candidates.push({ action: { kind: 'focus', spell: sp.id }, kind: 'focus', utility: Math.max(0, 0.5 * full * survival), targetId: '', coord: null });
+          candidates.push({ action: { kind: 'focalisation', spell: sp.id }, kind: 'focalisation', utility: Math.max(0, 0.5 * full * survival), targetId: '', coord: null });
           committingPrep = true;
         }
       } else if (spellIsOffensive(sp.data)) {
@@ -1013,7 +1013,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
         // `attackUtility` (sa valeur + menace de la cible + killSecure − overkill, comme un tir/une mêlée).
         for (const t of restrict(shootableHeroes).filter((h) => sp.range == null || fpDist(h) <= sp.range)) {
           const v = spellActionValue(enemy, sp.data, { kind: 'unit', subject: t }, ctx);
-          candidates.push({ action: { kind: 'cast', targetId: t.id, spell: sp.id }, kind: 'cast', utility: attackUtility(t, { kind: 'spell', value: v }), targetId: t.id, coord: t.pos ?? null });
+          candidates.push({ action: { kind: 'incantation', targetId: t.id, spell: sp.id }, kind: 'incantation', utility: attackUtility(t, { kind: 'spell', value: v }), targetId: t.id, coord: t.pos ?? null });
         }
       } else {
         // BÉNÉFIQUE mono-cible (soin/buff sur un allié) : soi + escouade en portée + LdV ; gardé par valeur > 0.
@@ -1021,7 +1021,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
           if (!f.pos) continue;
           if (f.id !== enemy.id && (!(sp.range == null || fpDist(f) <= sp.range) || !losAt(f.pos))) continue;
           const v = spellActionValue(enemy, sp.data, { kind: 'unit', subject: f }, ctx);
-          if (v > 0) candidates.push({ action: { kind: 'cast', targetId: f.id, spell: sp.id }, kind: 'cast', utility: v, targetId: f.id, coord: f.pos });
+          if (v > 0) candidates.push({ action: { kind: 'incantation', targetId: f.id, spell: sp.id }, kind: 'incantation', utility: v, targetId: f.id, coord: f.pos });
         }
       }
     }
@@ -1031,14 +1031,14 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // justifiée. Utilité neutre (préparation) — préféré seulement faute de tir/mêlée meilleurs. Un
   // frénétique NE recharge PAS (Frénésie LDB 21 l.33 : seule Action = Test de CC/Athlétisme → mêlée).
   if (!frenzied && reloadNeeded && shootPool.length > 0 && !(adjacentFoes.length > 0 && hasMeleeWeapon)) {
-    candidates.push({ action: { kind: 'reload' }, kind: 'reload', utility: 0, targetId: '', coord: null });
+    candidates.push({ action: { kind: 'rechargement' }, kind: 'rechargement', utility: 0, targetId: '', coord: null });
     committingPrep = true; // un tireur recharge sur place plutôt que de foncer en mêlée
   }
   // Tir (hors Combat rapproché, cible visible) : UN candidat PAR cible tirable (Lot 3 — multi-cibles).
   if (canShoot && rangedW) {
     const pool = restrict(fpick ? [fpick].filter((h) => shootPool.includes(h)) : shootPool);
     for (const t of pool) {
-      candidates.push({ action: { kind: 'shoot', targetId: t.id }, kind: 'shoot', utility: attackUtility(t, { kind: 'ranged', weapon: rangedW, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
+      candidates.push({ action: { kind: 'tir', targetId: t.id }, kind: 'tir', utility: attackUtility(t, { kind: 'ranged', weapon: rangedW, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
     }
   }
   // === MÊLÉE / APPROCHE / REPOSITION =================================================================
@@ -1075,7 +1075,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       const atk = targetUtility(t);
       for (const { to, posV } of approachCandidates(t)) {
         const u = atk + posV - Weff.approachDist * manhattan(to, t.pos!);
-        candidates.push({ action: { kind: 'move', to, thenTargetId: t.id }, kind: 'move', utility: u, targetId: t.id, coord: to });
+        candidates.push({ action: { kind: 'deplacement', to, thenTargetId: t.id }, kind: 'deplacement', utility: u, targetId: t.id, coord: to });
       }
     }
   }
@@ -1098,7 +1098,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     // TIR (pièce de siège qui brèche la porte) — face visible, en portée, et que l'arme peut ABÎMER.
     if (canFireStruct && stSeen && !structureImmune(rangedW!, st)
         && (maxWeaponRange <= 0 || rangeBandModifier(fpDist(st), maxWeaponRange, mpt) != null)) {
-      candidates.push({ action: { kind: 'shoot', targetId: st.id }, kind: 'shoot', utility: attackUtility(st, { kind: 'ranged', weapon: rangedW!, dist: fpDist(st) }), targetId: st.id, coord: st.pos! });
+      candidates.push({ action: { kind: 'tir', targetId: st.id }, kind: 'tir', utility: attackUtility(st, { kind: 'ranged', weapon: rangedW!, dist: fpDist(st) }), targetId: st.id, coord: st.pos! });
     }
     // MÊLÉE / APPROCHE (bélier ou arme abîmant une porte non-Impénétrable) — auto-touche, pas de défense.
     if (hasMeleeWeapon && meleeWeapon && !structureImmune(meleeWeapon, st)) {
@@ -1107,7 +1107,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       if (inMelee(st)) candidates.push({ action: { kind: 'melee', targetId: st.id }, kind: 'melee', utility: atkSt, targetId: st.id, coord: st.pos! });
       else if (!committingPrep) for (const { to, posV } of approachCandidates(st)) {
         const u = atkSt + posV - Weff.approachDist * manhattan(to, st.pos!);
-        candidates.push({ action: { kind: 'move', to, thenTargetId: st.id }, kind: 'move', utility: u, targetId: st.id, coord: to });
+        candidates.push({ action: { kind: 'deplacement', to, thenTargetId: st.id }, kind: 'deplacement', utility: u, targetId: st.id, coord: to });
       }
     }
   }
@@ -1122,7 +1122,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // lanceur tire son coup (même peu fiable : un Carreau à 29 % vaut mieux qu'un repli pour un cran de couvert).
   // C'est exactement le cas (e) du plan : « caster exposé SANS bon sort se replie ».
   const hasPlayableAttack = candidates.some(
-    (c) => (c.kind === 'cast' || c.kind === 'castArea' || c.kind === 'shoot' || c.kind === 'melee') && c.utility > 0,
+    (c) => (c.kind === 'incantation' || c.kind === 'incantationDeZone' || c.kind === 'tir' || c.kind === 'melee') && c.utility > 0,
   );
   if ((canCast || canShoot) && !committingPrep && !frenzied && !hasPlayableAttack && refEnemy) {
     // AMÉLIORATION STRICTE vs rester sur place : `positionValue` mêle de l'absolu (portée préférée, flanc)
@@ -1134,7 +1134,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       if (k === hereKey) continue;
       const to = tileFromKey(k);
       const gain = positionValue(to, refEnemy) - posHere;
-      if (gain > 0) candidates.push({ action: { kind: 'move', to, thenTargetId: refEnemy.id }, kind: 'move', utility: gain, targetId: refEnemy.id, coord: to });
+      if (gain > 0) candidates.push({ action: { kind: 'deplacement', to, thenTargetId: refEnemy.id }, kind: 'deplacement', utility: gain, targetId: refEnemy.id, coord: to });
     }
   }
 
@@ -1145,7 +1145,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Recharger), choisie SEULEMENT faute d'attaque/approche jouable ce tour. Les tactiques fines (QUAND servir)
   // sont hors scope : ceci garantit la seule DISPONIBILITÉ kind-agnostique. Un frénétique ne sert pas (LDB 21 l.33).
   if (!frenzied) for (const sp of input.servablePostes ?? [])
-    candidates.push({ action: { kind: 'manPoste', hullId: sp.hullId, posteUid: sp.posteUid }, kind: 'manPoste', utility: 0, targetId: sp.hullId, coord: null });
+    candidates.push({ action: { kind: 'servirLePoste', hullId: sp.hullId, posteUid: sp.posteUid }, kind: 'servirLePoste', utility: 0, targetId: sp.hullId, coord: null });
 
   // --- ARGMAX : meilleur candidat (utilité pondérée + tie-break déterministe) ----------------
   // TRACE (DEV gated) : classement des candidats (top 8 par utilité décroissante) = l'« intention » du tour.
@@ -1155,6 +1155,6 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // Aucun candidat jouable : un Empêtré (Mouvement nul, LDB 16 l.64) se libère plutôt que perdre son
   // tour (Test opposé de Force contre la source, l.66). Sinon, passe la main.
-  if (hasCondition(enemy, 'empetre') && !priereImposee) return { kind: 'recover', state: 'empetre' };
-  return { kind: 'end' };
+  if (hasCondition(enemy, 'empetre') && !priereImposee) return { kind: 'liberation', state: 'empetre' };
+  return { kind: 'fin' };
 }

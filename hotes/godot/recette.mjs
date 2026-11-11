@@ -438,7 +438,7 @@ async function parcoursCombat() {
   assert.ok(proche, `la charge offre une cible ; cibles : ${JSON.stringify(v.projection.combat.cibles.liste)}`)
   noter(`offre ${charge.libelle} : intention charge, ${v.cases.length} cases peintes`)
   await cliquerCase({ x: proche.pos[0], y: proche.pos[1], z: proche.pos[2] })
-  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'attackJet'")
+  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'jetDAttaque'")
   v = await vue()
   assert.equal(element(v, 'fenetre.corps', 'jet')?.qui, heros.nom, 'la charge ouvre l’attaque du héros')
   assert.ok(element(v, 'fenetre.corps', 'cible')?.texte.includes(proche.nom), 'sur sa cible')
@@ -466,7 +466,7 @@ async function parcoursCombat() {
   const pbAvant = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
   await cliquerBouton(bouton(enFocus(v)))
   v = await vue()
-  assert.notEqual(etape(v), 'attackJet', 'confirmée, la fenêtre d’attaque se ferme')
+  assert.notEqual(etape(v), 'jetDAttaque', 'confirmée, la fenêtre d’attaque se ferme')
   const pbApres = v.projection.combat.voisins.liste.find((c) => c.id === proche.id).pb[0]
   noter(`confirmée : fenêtre fermée ; ${proche.nom} ${pbAvant} → ${pbApres} Blessures`)
   await finirLeTour()
@@ -488,7 +488,7 @@ async function parcoursCombat() {
   assert.deepEqual(actif(v).pos, [vers.x, vers.y, vers.z ?? 0], 'le second clic déplace le héros')
   noter(`second clic : ${second.nom} en ${actif(v).pos}`)
   await finirLeTour()
-  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'defenseJet'", 60000)
+  await attendreLaVue("v.projection.fenetre?.etape?.genre === 'jetDeDefense'", 60000)
   v = await vue()
   const adversaire = actif(v)
   assert.equal(adversaire.camp, 'enemy', 'les jetons repris, le noyau joue l’adversaire')
@@ -508,7 +508,7 @@ async function parcoursCombat() {
   noter(`gestes dessinés après la Défense : ${ouverts(v).join(', ')}`)
   await capturer('2928-6c-5b-defense-jet')
   await cliquerBouton(bouton(enFocus(v)))
-  await attendreLaVue("v.projection.fenetre?.etape?.genre !== 'defenseJet' && v.projection.combat.round === 2", 60000)
+  await attendreLaVue("v.projection.fenetre?.etape?.genre !== 'jetDeDefense' && v.projection.combat.round === 2", 60000)
   v = await vue()
   noter(`Défense confirmée : fenêtre « ${zone(v, 'fenetre.titre')[0]?.texte ?? 'aucune'} », round ${v.projection.combat.round}`)
   await capturer('2928-6c-6-apres-defense')
@@ -556,7 +556,7 @@ async function jouerEnJoueurPresse(fini, quoi) {
 }
 
 async function parcoursCritique() {
-  const v = await jouerEnJoueurPresse((x) => etape(x) === 'critical', 'aucun Coup Critique')
+  const v = await jouerEnJoueurPresse((x) => etape(x) === 'critique', 'aucun Coup Critique')
   assert.ok(element(v, 'fenetre.corps', 'critique/localisation'), 'la fenêtre dit la localisation du Coup Critique')
   noter(`Coup Critique : ${zone(v, 'fenetre.titre')[0].texte} ; ${zone(v, 'fenetre.corps').map((e) => e.valeur ?? e.texte).join(' / ')}`)
   await capturer('3328-f1-coup-critique')
@@ -582,7 +582,7 @@ async function parcoursExploration() {
   await cliquerBouton('Combat')
   await waitFor(session, '!!globalThis.wfrpEcran?.cases && wfrpEcran.boutons.length > 0', { timeoutMs: 120000 })
   let v = await vue()
-  assert.equal(etape(v), 'sceneEntry', 'l’entrée de la scène tient la main')
+  assert.equal(etape(v), 'entreeEnScene', 'l’entrée de la scène tient la main')
   assert.deepEqual(zone(v, 'exploration.gestes'), [], 'une fenêtre tient la main : aucun geste d’exploration')
   await capturer('3328-e1-1-entree')
   v = await fermerLesFenetres()

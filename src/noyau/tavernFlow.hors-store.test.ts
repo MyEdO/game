@@ -70,7 +70,7 @@ describe('jouerALaTaverne', () => {
     expect(get().tavernGames?.result).toBeNull();
     expect(get().pendingCascade).not.toBeNull();
     const step = get().pendingCascade!.participants[0];
-    expect(step.kind).toBe('tavern-round');
+    expect(step.kind).toBe('taverneRound');
     expect(step.participants!.map((r) => r.id)).toEqual([a.id, b.id]);
     expect(step.participants!.every((r) => r.result === null), 'aucun camp n’est roulé d’avance').toBe(true);
     expect(step.meta?.opposed, 'plus AUCUN jet adverse figé : le second héros joue le sien').toBeUndefined();
@@ -594,7 +594,7 @@ describe('#1279 S4 — une partie de taverne ne peut pas en écraser une autre',
 /**
  * LE MASQUE DU FORMULAIRE, sur TOUT le catalogue — pas sur le seul jeu dont on avait écrit le
  * prédicat. `tavernPartieEnCours` lit la SÉQUENCE, jamais le `kind` de l'étape surfacée : c'est ce
- * qui le rend vrai pour les familles de manche qui ne surfacent PAS `tavern-round` (choix d'option,
+ * qui le rend vrai pour les familles de manche qui ne surfacent PAS `taverneRound` (choix d'option,
  * annonce de camp, effacement de marques, lancer de volée, tour de pot, Résistance à l'alcool). Le
  * prédicat par `kind` n'en couvrait qu'une sur onze — bouton « Jouer » vivant en pleine partie.
  */

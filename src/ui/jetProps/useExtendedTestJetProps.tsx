@@ -15,7 +15,7 @@ import { useGesteDeJet } from '../useGesteDeJet';
  * via ce hook (une seule fenêtre, comme l'attaque). `pendingExtendedTest` reste le porteur de données
  * (les Rounds y vivent) ; « Round suivant » (`jetValider('testEtendu')`) CUMULE le DR et ouvre le Round
  * suivant, ou ferme la cascade à la réussite (total ≥ cible). Total < 0 → recommence à 0.
- * L'ENJEU vit sur l'étape `extendedJet` : `CascadeModal` le passe à la coquille (`cur.stake`, #1117).
+ * L'ENJEU vit sur l'étape `jetEtendu` : `CascadeModal` le passe à la coquille (`cur.stake`, #1117).
  *
  * QUI lance → portrait dans la ligne de jet (`RollRow.row.combatant`) ; la progression = barre de DR de
  * RANGÉE (`RollRow.extendedDr`, site unique — arbitrage user 2026-07-11).
@@ -66,8 +66,8 @@ export function useExtendedTestJetProps(): ComponentProps<typeof RollShell> | nu
         fortune: actor.fortune ?? 0,
         resilience: actor.resilience ?? 0,
         extendedDr: { cum, target: p.targetDR },
-        // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.extendedTest`).
-        ...(FLOWS.extendedTest.reverseAvailable(useGame.getState, cur.id) ? { reverse: { onReverse: () => reverse(cur.id), preview: FLOWS.extendedTest.reversePreview(useGame.getState, cur.id) } } : {}),
+        // Offre et aperçu de l'inversion : verdicts du flux (`FLOWS.testEtendu`).
+        ...(FLOWS.testEtendu.reverseAvailable(useGame.getState, cur.id) ? { reverse: { onReverse: () => reverse(cur.id), preview: FLOWS.testEtendu.reversePreview(useGame.getState, cur.id) } } : {}),
       }),
     ],
     /* La PROGRESSION (DR du Round, cumul vers la cible) est rendue par les zones qui la possèdent :

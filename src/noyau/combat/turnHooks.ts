@@ -72,8 +72,8 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
 // doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement
 // (un au choix) »). Résolu au DÉBUT du tour du porteur, cadence-aware :
 //  - porteur SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient, cadence manuelle) → étape de
-//    cascade `actGate` INFLUENÇABLE ; sur un échec, l'applier INSÈRE une étape
-//    de CHOIX `actGateChoice` (garder l'Action ou le Mouvement) dont l'issue est appliquée directement
+//    cascade `testDAgir` INFLUENÇABLE ; sur un échec, l'applier INSÈRE une étape
+//    de CHOIX `choixDAgir` (garder l'Action ou le Mouvement) dont l'issue est appliquée directement
 //    sur la battle COURANTE (le tour vient de commencer) ;
 //  - IA / cadence auto → jet inline ; échec = l'Action est GARDÉE (défaut rationnel), le Mouvement est
 //    perdu — FOLDÉ par l'appelant (advanceTurn/lancerLeRound) dans le budget du tour.
@@ -98,7 +98,7 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
       // TOTALE `CATEGORY_BY_SOURCE_KIND` : aucun `if` par nature de source ici.
       const src = gate?.source;
       pushMono(set, {
-        id: `actGate-${c.id}-${char}`, kind: 'actGate', icon: 'item/consumable', rollLabel: CHAR_LABELS[char],
+        id: `testDAgir-${c.id}-${char}`, kind: 'testDAgir', icon: 'item/consumable', rollLabel: CHAR_LABELS[char],
         actor: c,
         ligne: { test: { characteristic: char }, combat: { kind: 'test' } },
         difficulty: 'intermediaire',
@@ -144,18 +144,18 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
 // ============================================================================================
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['actGate', 'actGateChoice'] as const;
+export const GENRES_D_ETAPE = ['testDAgir', 'choixDAgir'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    // Étape `actGate` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
-    actGate: (_get, _set, step, hero) => {
+    // Étape `testDAgir` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
+    testDAgir: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       if (step.result.success) return { consequences: freeCons([t('turn.actGateOk', { name: hero.label })]) };
       const choix = choiceStep({
-        id: `actGateChoice-${hero.id}`, kind: 'actGateChoice', actorId: hero.id, icon: 'item/consumable',
-        label: t('turn.actGateChoice'),
+        id: `choixDAgir-${hero.id}`, kind: 'choixDAgir', actorId: hero.id, icon: 'item/consumable',
+        label: t('turn.choixDAgir'),
         options: [
           { key: 'action', label: t('turn.actGateOptAction') },
           { key: 'move', label: t('turn.actGateOptMove') },
@@ -168,8 +168,8 @@ export const TABLES = {
         ...(choix ? { insert: [choix] } : {}),
       };
     },
-    // Étape `actGateChoice` : applique l'issue sur la battle COURANTE (le tour du héros vient de démarrer).
-    actGateChoice: (get, set, step, hero) => {
+    // Étape `choixDAgir` : applique l'issue sur la battle COURANTE (le tour du héros vient de démarrer).
+    choixDAgir: (get, set, step, hero) => {
       if (!hero) return;
       const battle = get().battle;
       if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet

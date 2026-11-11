@@ -50,7 +50,7 @@ describe('pontDOuverture — le combattant que la console porte à l’ouverture
   });
 
   it('coop, siège invité : le héros de CE siège, pas celui de l’hôte qui le précède', () => {
-    const b = combat([heros('H0'), heros('H1')], { mode: 'guest', mySeat: 1, ownership: { H0: 0, H1: 1 }, slots: [0, 1, 0, 0] });
+    const b = combat([heros('H0'), heros('H1')], { mode: 'invite', mySeat: 1, ownership: { H0: 0, H1: 1 }, slots: [0, 1, 0, 0] });
     expect(pontDOuverture(b.getState())?.id).toBe('H1');
   });
 });

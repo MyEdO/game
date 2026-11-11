@@ -58,7 +58,7 @@ const render = () => act(() => { root.render(<CascadeBody />); });
 
 describe('étape de révélation — le sujet', () => {
   it('l’introduction rend le Markdown complet sans paragraphes imbriqués', () => {
-    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: ['**Le groupe** entre.\n\n- Une porte'] }));
+    openReveal(() => ({ kind: 'entreeEnScene', title: 'Entrée', lines: ['**Le groupe** entre.\n\n- Une porte'] }));
     render();
     expect(host.querySelector('.modal-log strong')?.textContent).toBe('Le groupe');
     expect(host.querySelector('.modal-log li')?.textContent).toBe('Une porte');
@@ -66,7 +66,7 @@ describe('étape de révélation — le sujet', () => {
     expect(host.querySelector('p .prose, p p, p ul')).toBeNull();
   });
   it('le choix rend son prompt Markdown dans le corps et ses aperçus en texte', () => {
-    openReveal(() => ({ kind: 'sceneEntry', title: 'Entrée', lines: [] }));
+    openReveal(() => ({ kind: 'entreeEnScene', title: 'Entrée', lines: [] }));
     useGame.setState({ pendingCascade: cascadeDeTest([{ id: 'choix', kind: cleDeFixture('choix'), label: fixtureText('**Entrer** par [la porte](https://example.com) ?'),
       options: [{ key: 'yes', label: fixtureText('**Oui**'), detail: '*Entrer*' }, { key: 'no', label: fixtureText('Non') }] }], { title: 'Choix', purpose: 'affichage' }) });
     render();

@@ -196,7 +196,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     H.psychState = [{ type: 'peur', sourceId: E.id, indice: 2, calmeDR: 0 }];
     approachFearTrigger(g, banc.setState, E, { x: 15, y: 10 }, { x: 12, y: 10 });
-    const rangee = g().pendingCascade!.participants.find((s) => s.kind === 'triggeredBatchTest')!.participants!.find((p) => p.id === H.id)!;
+    const rangee = g().pendingCascade!.participants.find((s) => s.kind === 'testDeclencheEnBande')!.participants!.find((p) => p.id === H.id)!;
     const { skill, difficulty } = testDeFiche('calme-d-approche', 'source-se-rapproche');
     expect({ skill: rangee.skill, difficulty: rangee.difficulty }).toEqual({ skill, difficulty });
   });
@@ -205,7 +205,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H } = auCombat();
     H.focus = { spell: 'armure-aethyrique', dr: 3 };
     checkFocusInterruption(g, banc.setState, H);
-    const etape = g().pendingCascade!.participants.find((s) => s.kind === 'triggeredTest')!;
+    const etape = g().pendingCascade!.participants.find((s) => s.kind === 'testDeclenche')!;
     const { skill, difficulty } = testDeFiche('interruption-de-focalisation', 'maintenir');
     expect({ rollLabel: etape.rollLabel, difficulty: etape.difficulty }).toEqual({ rollLabel: refLabel('skills', skill), difficulty });
   });
@@ -245,7 +245,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     const { H, E } = auCombat();
     E.traits = [...(E.traits ?? []), { id: 'corruption', arg: 'mineure' }] as Combatant['traits'];
     openCombatEndCascade(g, banc.setState);
-    const bande = g().pendingCascade!.participants.find((s) => s.kind === 'combatEndCorruption')!;
+    const bande = g().pendingCascade!.participants.find((s) => s.kind === 'corruptionDeFinDeCombat')!;
     const rangee = bande.participants!.find((p) => p.id === H.id)!;
     const { skill, difficulty } = testDeFiche('influences-corruptrices', 'physique');
     expect({ label: rangee.label, difficulty: rangee.difficulty }).toEqual({ label: refLabel('skills', skill), difficulty });

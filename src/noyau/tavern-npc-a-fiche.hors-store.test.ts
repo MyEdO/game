@@ -158,9 +158,9 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
     expect(() => sequenceBoardOf(get)).toThrow(/tableau de taverne — challenger/);
   });
 
-  it('étape `tavern-drink` sans lanceur : erreur nommée, jamais un id affiché pour nom', () => {
-    const step: CascadeStep = { id: 'pinte', kind: 'tavern-drink', label: fixtureText('Pinte'), actorId: get().party[0]!.id, result: { roll: 90, target: 40, sl: -5, success: false } };
-    expect(() => applierDe('tavern-drink')!(get, set, step, undefined, { steps: [step], index: 0 })).toThrow(/tavern-drink.*torchonRate/);
+  it('étape `taverneBoisson` sans lanceur : erreur nommée, jamais un id affiché pour nom', () => {
+    const step: CascadeStep = { id: 'pinte', kind: 'taverneBoisson', label: fixtureText('Pinte'), actorId: get().party[0]!.id, result: { roll: 90, target: 40, sl: -5, success: false } };
+    expect(() => applierDe('taverneBoisson')!(get, set, step, undefined, { steps: [step], index: 0 })).toThrow(/taverneBoisson.*torchonRate/);
   });
 
   it('profil de coéquipier inconnu', () => {

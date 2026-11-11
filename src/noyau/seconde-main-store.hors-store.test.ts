@@ -73,7 +73,7 @@ function premiereFrappe({ roll, cible: over = {}, pieces = [], arme = epee, rete
   } as unknown as BattleState;
   banc.setState({
     battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [],
-    net: { ...banc.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined },
+    net: { ...banc.getState().net, mode: tenu ? 'hote' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined },
   });
   seedBattleRng(GRAINE);
   const result = resoudre
@@ -90,7 +90,7 @@ const etapeCourante = (): CascadeStep | undefined => {
 };
 const jet = () => banc.getState().pendingDualStrike?.jet;
 const vivant = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
-const critiques = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critical');
+const critiques = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'critique');
 
 /** Les d100 tirés à l'ouverture de la Seconde main sous `GRAINE`, figés : le chemin de la mort-auto consomme un tirage de moins. */
 const D100_AU_BESOIN = 53;

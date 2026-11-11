@@ -26,7 +26,7 @@ import type { ReglagesDuJet } from '../../noyau/reglagesDuJet';
  *  - hors combat : l'infirmerie (`MedicModal`, `embedded`), qui pose le jet dans SA boîte
  *    (`useRollShell`) et reste ouverte après « Appliquer ».
  * Le soigneur peut être un PNJ payant : sa Chance/Résilience valent 0 (boutons inertes) ; son tarif se débite au
- * lancer, et le brouillon de l'infirmerie ne s'annule pas (`FLOWS.heal.annulation`).
+ * lancer, et le brouillon de l'infirmerie ne s'annule pas (`FLOWS.soins.annulation`).
  */
 export function useHealJetProps({ embedded = false }: { embedded?: boolean } = {}): ComponentProps<typeof RollShell> | null {
   const ph = useGame((s) => s.pendingHeal);

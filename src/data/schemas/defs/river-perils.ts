@@ -60,7 +60,7 @@ const doc = document(
       }),
     ).superRefine((perils, ctx) => {
       // Un péril qui fait LANCER dit ce que l'échec coûte : sans `onFail`, l'enjeu du Test d'évitement
-      // (`riverPerilNav`) n'aurait ni coups ni Dégâts à annoncer — le jet redeviendrait muet (#1117).
+      // (`fleuvePerilNavigation`) n'aurait ni coups ni Dégâts à annoncer — le jet redeviendrait muet (#1117).
       for (const p of perils) {
         if (p.kind === 'navigation' && !p.onFail) {
           ctx.addIssue({ code: 'custom', message: `${p.id} : péril à Test d'évitement sans onFail — le jet ne pourrait pas dire son enjeu` });

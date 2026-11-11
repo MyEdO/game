@@ -218,7 +218,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
     expect(faim.groupOwner).toBeUndefined();
 
     // Deux sièges : le siège 1 possède le dormeur — l'hôte ne doit plus être le destinataire par défaut.
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
     expect(modalOwnerOf(get())).toBe('h1');
     expect(seatOwns(get(), 1, 'h1'), 'la fenêtre est au siège qui tient le dormeur').toBe(true);
     expect(seatOwns(get(), 0, 'h1'), 'et plus à l’hôte').toBe(false);
@@ -248,7 +248,7 @@ describe('POSSESSION d’une bande de nuit (#1268)', () => {
 
     // La fenêtre part au siège qui tient le dormeur, plus à l'hôte (assertion COOP, #1262 B7).
     set({ pendingCascade: cascadeDeTest([kept!], { title: 'T' }) });
-    set({ net: { ...get().net, mode: 'host', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
+    set({ net: { ...get().net, mode: 'hote', mySeat: 0, slots: [0, 1, 0, 0], ownership: { h1: 1 } } } as never);
     expect(modalOwnerOf(get())).toBe('h1');
     expect(seatOwns(get(), 1, 'h1')).toBe(true);
     expect(seatOwns(get(), 0, 'h1'), 'l’hôte ne tranche pas le jet de l’invité').toBe(false);
@@ -382,9 +382,9 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
     const manuel = h('manuel');
     const ennemi = combattantDeTest({ id: 'e', kind: 'enemy', label: 'Bandit', characteristics: { endurance: 30 } as never,
       wounds: blessuresDeBase(10, 0), dead: true, conditions: [], skills: [], items: [], weapons: [], movement: 4, advantage: 0 });
-    // `combatEndDisease` n'est PAS un `NightTestKind` → `nightBands` la laisse passer INTACTE.
+    // `maladieDeFinDeCombat` n'est PAS un `NightTestKind` → `nightBands` la laisse passer INTACTE.
     const etrangere = nuit({
-      id: 'combatEndDisease-manuel-x', kind: 'combatEndDisease', hero: 'manuel', label: 'Résistance',
+      id: 'maladieDeFinDeCombat-manuel-x', kind: 'maladieDeFinDeCombat', hero: 'manuel', label: 'Résistance',
       base: 40, target: 40, meta: { disease: 'courante-galopante' },
     });
     expect(nightBands([etrangere])[0]).toBe(etrangere); // garde du prémisse : elle traverse la fabrique telle quelle
@@ -395,9 +395,9 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
     } as never);
 
     expect(checkBattleOver(get, set)).toBe(true);
-    const vues = (get().pendingCascade?.participants ?? []).filter((s) => s.kind === 'combatEndDisease');
+    const vues = (get().pendingCascade?.participants ?? []).filter((s) => s.kind === 'maladieDeFinDeCombat');
     expect(vues, 'l’étape non bandable a disparu de la file ET de la cascade').toHaveLength(1);
-    expect(vues[0].id).toBe('combatEndDisease-manuel-x');
+    expect(vues[0].id).toBe('maladieDeFinDeCombat-manuel-x');
   });
 });
 

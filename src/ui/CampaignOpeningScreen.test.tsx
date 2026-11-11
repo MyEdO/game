@@ -96,7 +96,7 @@ describe('CampaignOpeningScreen (#717)', () => {
   });
 
   it('COOP : l’invité VOIT le rideau, mais le geste porte son refus et ne lève rien', async () => {
-    useGame.setState({ gameTime: 4200, net: { ...useGame.getState().net, mode: 'guest', mySeat: 1 } });
+    useGame.setState({ gameTime: 4200, net: { ...useGame.getState().net, mode: 'invite', mySeat: 1 } });
     await mount();
     expect(container.textContent).toContain('L’Ennemi Intérieur'); // la cérémonie se partage à la table
     const bouton = [...container.querySelectorAll('button')].find((b) => b.textContent === 'Prendre la route')!;

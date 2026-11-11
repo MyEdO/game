@@ -94,7 +94,7 @@ export type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, de
  * Dégâts `wounds` + États + pétrification) sont appliqués avec la marge (`margin` : DR net + Avantage
  * variable) et l'`indice`, puis le chiffre flottant de Dégâts + la mise à 0 PB + la conséquence post-touche
  * (entraînement de la Langue). SOURCE UNIQUE : appelée par le résolveur SILENCIEUX (`resolveManeuver`) ET
- * par l'applier de cascade `maneuverDefense` (héros influençable). Renvoie les lignes de journal.
+ * par l'applier de cascade `defenseDeManoeuvre` (héros influençable). Renvoie les lignes de journal.
  */
 export function applyManeuverEffects(
   get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, indice: number, margin: number | undefined, rng: RNG,
@@ -426,7 +426,7 @@ function ciblesDeManoeuvre(battle: BattleState, attacker: Combatant, def: Maneuv
 }
 
 /** Les défenseurs SURFACÉS d'une manœuvre — influençables, ils jouent leur défense en cascade
- *  (`maneuverDefense`) et rien ne leur est appliqué à la résolution. MÊME prédicat que TOUTES les autres
+ *  (`defenseDeManoeuvre`) et rien ne leur est appliqué à la résolution. MÊME prédicat que TOUTES les autres
  *  défenses (`defenseSurfaced`, #989). Opposition réelle exigée : jet d'attaquant présent, défense ≠
  *  `resist`, effets à subir (pas de fumée pure) ; un défenseur Surpris (`cannotDefend`) ne réagit pas. */
 function defenseursSurfacesDeManoeuvre(s: Jeu, def: ManeuverDef, atk: TestResult | null, affected: Combatant[]): Combatant[] {
@@ -543,10 +543,10 @@ export function resolveManeuver(
     return true; // tour SUSPENDU : reprise via `resumeManeuverDefense` à la fermeture de la cascade
   }
   // Un nœud Flow `test` DANS les effets (Hurlement : « Test de Résistance/Calme ou Brisé », LDB 85) a pu
-  // ouvrir une cascade `triggeredTest` INFLUENÇABLE pour un héros MANUEL (chemin silencieux `hitOne` →
+  // ouvrir une cascade `testDeclenche` INFLUENÇABLE pour un héros MANUEL (chemin silencieux `hitOne` →
   // `applyManeuverEffects` → `applyTriggeredEffects` → `routeTriggeredTest` cadence-aware). On la TAGUE `maneuverResume`
   // pour que sa fermeture reprenne le tour de la créature — MÊME mécanisme que la défense de zone
-  // (dispatchCascadeDone → resumeManeuverDefense), sans `maneuverDefense` bidon pour un Test simple.
+  // (dispatchCascadeDone → resumeManeuverDefense), sans `defenseDeManoeuvre` bidon pour un Test simple.
   const p = get().pendingCascade;
   if (p && p.purpose === 'combat' && !p.maneuverResume) {
     set({ pendingCascade: { ...p, maneuverResume: { attackerId: attacker.id, free: def.activation === 'free' } } });
@@ -569,7 +569,7 @@ function maneuverDefenseLabel(tgt: Combatant, defense: NonNullable<ManeuverDef['
   return DEFENSE_LABEL[mode];
 }
 
-/** Ouvre la cascade de DÉFENSE à une manœuvre de zone IA : UNE étape `maneuverDefense` INFLUENÇABLE par héros
+/** Ouvre la cascade de DÉFENSE à une manœuvre de zone IA : UNE étape `defenseDeManoeuvre` INFLUENÇABLE par héros
  *  ciblé (jumeau de la cascade de Psychologie), le jet d'attaquant FIGÉ dans `meta.opposed.aT`. À la
  *  fermeture, le store reprend le tour de la créature (`maneuverResume`). */
 function openManeuverDefenseCascade(
@@ -580,7 +580,7 @@ function openManeuverDefenseCascade(
     const base = maneuverDefenseValue(h, def.defense!);
     return {
       id: `maneuverDef-${h.id}`,
-      kind: 'maneuverDefense',
+      kind: 'defenseDeManoeuvre',
       actorId: h.id,
       rollLabel: maneuverDefenseLabel(h, def.defense!),
       base,
@@ -589,7 +589,7 @@ function openManeuverDefenseCascade(
       stake: combatStakeRef('combat-manoeuvre-defense', { entryId: def.id, ...(def.enjeu ? { values: def.enjeu } : {}) }),
       meta: {
         opposed: { aT: atk, attackerId: attacker.id, attackerName: attacker.label, attackerLabel },
-        maneuverDefense: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
+        defenseDeManoeuvre: { attackerId: attacker.id, def: structuredClone(def), indice, spent },
       },
     };
   });
@@ -744,19 +744,19 @@ export function startDistraire(_get: Get, set: SetFn, mover: Combatant, foe: Com
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
-export const GENRES_D_ETAPE = ['maneuverDefense'] as const;
+export const GENRES_D_ETAPE = ['defenseDeManoeuvre'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    /** Applier de l'étape `maneuverDefense` (héros influençable) — SOURCE UNIQUE de la conséquence : le jet du
+    /** Applier de l'étape `defenseDeManoeuvre` (héros influençable) — SOURCE UNIQUE de la conséquence : le jet du
      *  défenseur est déjà résolu par `FLOWS.cascade` (`meta.opposed` → `resolveOpposed(défenseur, aT)`), on lit
      *  son issue. RÉSISTE (`result.success`) → aucun effet ; sinon l'attaquant l'emporte → marge nette (DR net +
      *  Avantage variable) → effets via `applyManeuverEffects` (le MÊME que le chemin silencieux). Le Critique se
      *  FOLDE dans la MÊME cascade (les ops de Dégâts poussent une révélation → `pushReveal` l'append). */
-    maneuverDefense: (get, set, step, hero) => {
+    defenseDeManoeuvre: (get, set, step, hero) => {
       if (!hero || !estJete(step.result)) return;
-      const md = step.meta?.maneuverDefense;
+      const md = step.meta?.defenseDeManoeuvre;
       const opp = step.meta?.opposed;
       if (!md || !opp) return;
       const attacker = inBattleId(get().battle, md.attackerId);

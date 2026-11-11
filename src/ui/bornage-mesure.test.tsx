@@ -166,7 +166,7 @@ describe('rangée de bande à cible au-delà du plafond : l’écrêtage mesuré
       battle: { combatants: [H, bete], order: ['H', 'Bete'], baseOrder: ['H', 'Bete'], turn: 0, round: 1, action: null, selectedSpellId: null, reachable: new Map(), movementUsed: 0, acted: false, log: [], over: null },
     } as never);
     openCombatEndCascade(g, useGame.setState);
-    const rangee = () => g().pendingCascade!.participants.find((st) => st.kind === 'combatEndCorruption')!.participants!.find((r) => r.id === 'H')!;
+    const rangee = () => g().pendingCascade!.participants.find((st) => st.kind === 'corruptionDeFinDeCombat')!.participants!.find((r) => r.id === 'H')!;
     expect(rangee().target).toBe(clampTarget(cibleDuTest(testValue(H, { skill: { id: 'resistance' } }))).target);
     act(() => root.render(createElement(CascadeBody)));
     nommeLEcretage('plafond', 99);

@@ -105,7 +105,7 @@ describe('WorldMapView — le départ lit `refusDeDepart`', () => {
   });
 
   it('siège invité : le bouton est fermé, « L’hôte décide des départs. »', async () => {
-    useGame.setState({ net: { ...useGame.getState().net, mode: 'guest' } });
+    useGame.setState({ net: { ...useGame.getState().net, mode: 'invite' } });
     await choisirBourgB({}, [marcheur()]);
     expect(depart().getAttribute('aria-disabled')).toBe('true');
     expect(raison()).toBe('L’hôte décide des départs.');

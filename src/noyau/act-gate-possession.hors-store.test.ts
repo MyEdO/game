@@ -62,7 +62,7 @@ function setup(hero: Combatant, net: Record<string, unknown>): Combatant {
 }
 
 /** HÔTE au siège 0 ; le porteur `H1` appartient au siège 1 (l'invité) — harnais B7. */
-const COOP = { mode: 'host', mySeat: 0, ownership: { H1: 1 }, slots: [0, 1, 0, 0] };
+const COOP = { mode: 'hote', mySeat: 0, ownership: { H1: 1 }, slots: [0, 1, 0, 0] };
 const SOLO = { mode: 'local', mySeat: 0, ownership: {}, slots: [0, 0, 0, 0] };
 
 describe('#1262 — sonde B : le gate d’Action d’un héros d’INVITÉ ne se roule pas chez l’hôte', () => {
@@ -83,7 +83,7 @@ describe('#1262 — sonde B : le gate d’Action d’un héros d’INVITÉ ne se
 
     const [st] = etapes();
     expect(st, 'une étape de cascade INFLUENÇABLE est ouverte').toBeTruthy();
-    expect(st.kind).toBe('actGate');
+    expect(st.kind).toBe('testDAgir');
     expect(st.actorId, 'le mint NOMME le porteur → l’arbitre rend son id, et la fenêtre part à SON siège').toBe('H1');
     expect(st.result, 'le dé n’est pas tombé : c’est la fenêtre qui le jette').toBeNull();
     expect(st.target, 'FM 20, Difficulté intermédiaire +0').toBe(20);
@@ -116,12 +116,12 @@ describe('#1262 — sonde B : le gate d’Action d’un héros d’INVITÉ ne se
 });
 
 describe('#1262 — l’étape de CHOIX insérée par l’applier naît du mint (`choiceStep`)', () => {
-  it('échec du gate → choix `actGateChoice` PORTÉ par le héros, jamais partagé', () => {
+  it('échec du gate → choix `choixDAgir` PORTÉ par le héros, jamais partagé', () => {
     const hero = setup(mk('H1'), COOP);
-    const step = { id: 'actGate-H1-force-mentale', kind: 'actGate', label: 'Garder ses moyens', result: { roll: 90, target: 20, sl: -7, success: false } } as unknown as CascadeStep;
-    const res = applierDe('actGate')!(banc.getState, banc.setState, step, hero, { steps: [step], index: 0 });
+    const step = { id: 'testDAgir-H1-force-mentale', kind: 'testDAgir', label: 'Garder ses moyens', result: { roll: 90, target: 20, sl: -7, success: false } } as unknown as CascadeStep;
+    const res = applierDe('testDAgir')!(banc.getState, banc.setState, step, hero, { steps: [step], index: 0 });
     const [choix] = res!.insert!;
-    expect(choix.kind).toBe('actGateChoice');
+    expect(choix.kind).toBe('choixDAgir');
     expect(choix.actorId, 'le choix porte SON porteur : l’hôte ne tranche pas la voie de l’invité').toBe('H1');
     expect(choix.groupOwner, '`options` + `groupOwner` = n’importe quel siège tranche pour autrui').toBeUndefined();
     expect(choix.defaultChoice).toBe('action');
@@ -130,8 +130,8 @@ describe('#1262 — l’étape de CHOIX insérée par l’applier naît du mint 
 
   it('succès du gate → aucune insertion (rien à restreindre)', () => {
     const hero = setup(mk('H1'), COOP);
-    const step = { id: 'actGate-H1-force-mentale', kind: 'actGate', label: 'Garder ses moyens', result: { roll: 5, target: 20, sl: 1, success: true } } as unknown as CascadeStep;
-    const res = applierDe('actGate')!(banc.getState, banc.setState, step, hero, { steps: [step], index: 0 });
+    const step = { id: 'testDAgir-H1-force-mentale', kind: 'testDAgir', label: 'Garder ses moyens', result: { roll: 5, target: 20, sl: 1, success: true } } as unknown as CascadeStep;
+    const res = applierDe('testDAgir')!(banc.getState, banc.setState, step, hero, { steps: [step], index: 0 });
     expect(res!.insert).toBeUndefined();
   });
 });

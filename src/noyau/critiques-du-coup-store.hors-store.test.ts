@@ -38,7 +38,7 @@ interface Coup { seed?: number; roll?: number; double?: boolean; current?: numbe
 function coup({ seed = 7, roll = 44, double = true, current = 2, important = true, chanceux = false, pa = 0, endurance, pieces = [], de = 1, tenu = false, choisir, martyr = false, demoniaque, sousAttaque = false, arme = epee, retenu = false, vehicule, grapple = false }: Coup = {}) {
   banc.getState().ensemencerLeTirage(seed);
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
-  banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'host' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
+  banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [], net: { ...banc.getState().net, mode: tenu ? 'hote' : 'local', mySeat: 0, gmSeat: tenu ? 1 : undefined } });
   banc.getState().lancerLaScene(structuredClone(testScene()));
   banc.getState().lancerLeCombat('enc-mutants');
   banc.getState().fenetreValider('debutDuRound');
@@ -71,7 +71,7 @@ function coup({ seed = 7, roll = 44, double = true, current = 2, important = tru
   for (let i = 0; i < 200 && banc.getState().pendingCascade; i++) {
     const p = banc.getState().pendingCascade!;
     const etape = p.participants[p.cursor];
-    if (etape?.kind === 'critical') origines.push(etape.reveal?.origine);
+    if (etape?.kind === 'critique') origines.push(etape.reveal?.origine);
     if (etape?.kind === 'deviation') offres.set(etape.id, !!etape.options?.some((o) => o.key === 'devier'));
     const k = avanceEtapeCascade(banc.getState, () => de, choisir);
     if (k !== undefined) kinds.push(k);
@@ -392,7 +392,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
 
   /** Le Carreau en Incantation critique au jet `roll`, sur la cible tenue à 1 PB sous `pieces(Localisation de touche)`, Critiques subis. */
   function carreauSur(roll: number, pieces: (touche: string) => ItemInstance[]) {
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
     const sort = findSpellById('carreau')!;
     const touche = evaluateMissile(mage, cible, sort, { ...incantationCritique, roll });
@@ -494,7 +494,7 @@ describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(totalPA(apres)).toBe(6);
-    expect(kinds.filter((k) => k === 'deviation' || k === 'critical')).toEqual([]);
+    expect(kinds.filter((k) => k === 'deviation' || k === 'critique')).toEqual([]);
     expect(hasCondition(apres, 'inconscient')).toBe(true);
   });
 
@@ -686,7 +686,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
   });
 
   it("Projectile en Incantation critique, Critique dévié : `ANIM_ATTACK` émet `critiques: 0`", () => {
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.items = [...(cible.items ?? []), piece([], 2)];
@@ -768,7 +768,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
   /** Le Carreau en Incantation critique, effet `effet`, sur la cible tenue par le siège MJ, debout à 20 PB sous 2 PA ;
    *  ses lignes de touche après `applyCast`, puis après la cascade drainée au dé 50 et au choix `choix`. */
   function carreau(effet: CritChoice, o: { choix?: 'devier' | 'subir'; demoniaque?: number } = {}) {
-    banc.setState({ net: { ...banc.getState().net, mode: 'host', mySeat: 0, gmSeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote', mySeat: 0, gmSeat: 1 } });
     const { mage, cible } = carreauEnCombat();
     cible.important = true;
     cible.items = [...(cible.items ?? []), piece([], 2)];

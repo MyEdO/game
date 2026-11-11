@@ -43,12 +43,12 @@ describe('fenetreFermer', () => {
 
   it('la sortie de l’hôte reste à l’hôte : refusée dans l’état d’un invité, et au siège d’un invité', () => {
     const banc = ouvrirLeBanc();
-    banc.setState({ pendingChapterRecap: { titre: 'C', px: 0, chronique: [], tombes: [], lieux: [] }, net: { ...banc.getState().net, mode: 'guest' } });
+    banc.setState({ pendingChapterRecap: { titre: 'C', px: 0, chronique: [], tombes: [], lieux: [] }, net: { ...banc.getState().net, mode: 'invite' } });
     banc.getState().fenetreFermer('finDeChapitre');
     expect(banc.getState().pendingChapterRecap).not.toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('sortie.refus.hoteSeul'));
 
-    banc.setState({ net: { ...banc.getState().net, mode: 'host' } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'hote' } });
     expect(intentAllowedFor(banc.getState(), 1, 'fenetreFermer', ['finDeChapitre'])).toBe(false);
     expect(intentAllowedFor(banc.getState(), 0, 'fenetreFermer', ['finDeChapitre'])).toBe(true);
     banc.getState().fenetreFermer('finDeChapitre');
@@ -66,7 +66,7 @@ describe('fenetreFermer', () => {
 
   it('la sortie du propriétaire suit son siège : l’infirmerie, à tous, se ferme d’un invité ; une fenêtre inconnue, de personne', () => {
     const banc = ouvrirLeBanc();
-    banc.setState({ medic: { patientId: null }, net: { ...banc.getState().net, mode: 'host' } });
+    banc.setState({ medic: { patientId: null }, net: { ...banc.getState().net, mode: 'hote' } });
     expect(intentAllowedFor(banc.getState(), 1, 'fenetreFermer', ['infirmerie'])).toBe(true);
     expect(intentAllowedFor(banc.getState(), 0, 'fenetreFermer', ['inconnue'])).toBe(false);
   });

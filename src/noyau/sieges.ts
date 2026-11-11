@@ -39,7 +39,7 @@ export interface SiegeDeLaTable {
  *  non (en solo, `seatNames` est vide, `initialNet`). Seuls ces sièges reçoivent un héros, un emplacement ou le rôle MJ. */
 export function siegesDeLaTable(net: Pick<NetState, 'seatNames' | 'mySeat' | 'presence'>): SiegeDeLaTable[] {
   const seats = [...new Set([0, ...Object.keys(net.seatNames).map(Number)])].sort((a, b) => a - b);
-  return seats.map((seat) => ({ seat, nom: nomDuSiege(net, seat), moi: seat === net.mySeat, absent: net.presence[seat] === 'away' }));
+  return seats.map((seat) => ({ seat, nom: nomDuSiege(net, seat), moi: seat === net.mySeat, absent: net.presence[seat] === 'absent' }));
 }
 
 /** Le siège attribué à ce héros (`net.ownership`), l'hôte (siège 0) s'il n'en a aucun. */
@@ -125,7 +125,7 @@ export function refusDAttribuerLEmplacement(net: NetState, party: GroupeAssis['p
 /** Le réseau après l'attribution du héros `heroId` au siège `seat` (lobby) : décidée par l'hôte seul, refusée par
  *  `refusDAttribuerLeHeros`, sinon `net` inchangé. */
 export function attribuerLeHeros(net: NetState, party: GroupeAssis['party'], heroId: string, seat: number): NetState {
-  if (net.mode !== 'host' || refusDAttribuerLeHeros(net, party, heroId, seat)) return net;
+  if (net.mode !== 'hote' || refusDAttribuerLeHeros(net, party, heroId, seat)) return net;
   return { ...net, ownership: { ...net.ownership, [heroId]: seat } };
 }
 
@@ -133,14 +133,14 @@ export function attribuerLeHeros(net: NetState, party: GroupeAssis['party'], her
  *  autre siège. Décidé par l'hôte, ou en solo pour le siège unique, refusé par `refusDuSiegeMJ` ; chez un invité,
  *  `net` inchangé. */
 export function poserLeSiegeMJ(net: NetState, seat: number | null): NetState {
-  if (net.mode === 'guest' || refusDuSiegeMJ(net, seat)) return net;
+  if (net.mode === 'invite' || refusDuSiegeMJ(net, seat)) return net;
   return { ...net, gmSeat: seat ?? undefined };
 }
 
 /** Le réseau après l'attribution de l'EMPLACEMENT `slot` de l'écran d'équipe au siège `seat`, que son
  *  joueur remplira : décidée par l'hôte seul, refusée par `refusDAttribuerLEmplacement`, sinon `net` inchangé. */
 export function attribuerLEmplacement(net: NetState, party: GroupeAssis['party'], slot: number, seat: number): NetState {
-  if (net.mode !== 'host' || refusDAttribuerLEmplacement(net, party, slot, seat)) return net;
+  if (net.mode !== 'hote' || refusDAttribuerLEmplacement(net, party, slot, seat)) return net;
   const slots = [...net.slots];
   slots[slot] = seat;
   return { ...net, slots };

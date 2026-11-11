@@ -63,7 +63,7 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
     banc.getState().ouvrirLaFinDeSeance();
     expect(banc.getState().finDeSeance).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('gameMenu.finDeSeance.horsExploration'));
-    banc.setState({ mode: 'exploration', net: { ...initialNet(), mode: 'guest', mySeat: 1 } });
+    banc.setState({ mode: 'exploration', net: { ...initialNet(), mode: 'invite', mySeat: 1 } });
     banc.getState().ouvrirLaFinDeSeance();
     expect(banc.getState().finDeSeance).toBeNull();
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('gameMenu.finDeSeance.invite'));
@@ -74,7 +74,7 @@ describe('les cases de la fin de séance : celles du groupe sans héros, celles 
   /** Coop : l'hôte (siège 0) et un invité (siège 1), un héros chacun, la fin de séance ouverte. */
   function seance(): { a: string; b: string } {
     const [a, b] = groupeDeScenario(idsDeTest, 'soldat', 'tueur');
-    banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'host', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
+    banc.setState({ party: [a, b], net: { ...initialNet(), mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Invité' }, ownership: { [a.id]: 0, [b.id]: 1 }, slots: [1, 1, 0, 0] } });
     banc.getState().ouvrirLaFinDeSeance();
     return { a: a.id, b: b.id };
   }
@@ -94,7 +94,7 @@ describe('les cases de la fin de séance : celles du groupe sans héros, celles 
     expect([0, 1].filter((x) => intentAllowedFor(banc.getState(), x, 'fenetreChoisir', ['finDeSeance', 'ambitionCourte', true])), 'le groupe').toEqual([0]);
     banc.getState().fenetreChoisir('finDeSeance', 'motivation', true, b);
     expect(banc.getState().finDeSeance?.heros[b]).toEqual({ motivation: true });
-    banc.setState({ net: { ...banc.getState().net, mode: 'guest', mySeat: 1 } });
+    banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } });
     banc.getState().fenetreChoisir('finDeSeance', 'motivation', false, b);
     expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.hoteSeul'));
     expect(banc.getState().finDeSeance?.heros[b]).toEqual({ motivation: true });

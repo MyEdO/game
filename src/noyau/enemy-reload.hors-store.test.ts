@@ -66,7 +66,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
     const scene = emptyScene('scene-test', 16, 16);
     const h = heroAt(1, 1);
     const input: EnemyTurnInput = { enemy: e, heroes: [h], scene, blocked: new Set(['1,1']), movement: e.movement, spells: [] };
-    expect(chooseEnemyAction(input).kind).toBe('shoot');
+    expect(chooseEnemyAction(input).kind).toBe('tir');
   });
 
   // (3) applyAttackResult généralisé : tir ennemi à Recharge → déchargé (source unique héros+ennemi).

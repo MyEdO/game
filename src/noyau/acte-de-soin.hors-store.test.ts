@@ -130,7 +130,7 @@ describe('l’acte de l’infirmerie : `jetRegler(soins, mode)` sur le brouillon
     const doc = hero({ id: 'doc', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }] });
     const chir = hero({ id: 'chir', label: 'Chirurgienne', skills: [{ id: 'guerison', advances: 5, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] });
     poser([doc, chir, saignant({ conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] })]);
-    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { doc: 1, chir: 2, p: 0 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } } } as never);
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { doc: 1, chir: 2, p: 0 }, slots: [1, 2, 0, 0], seatNames: { 0: 'Hôte', 1: 'A', 2: 'B' } } } as never);
     expect(banc.getState().pendingHeal).toMatchObject({ mode: 'hemorragie', healerId: 'doc' });
     const lancer = () => [0, 1, 2].map((siege) => intentAllowedFor(banc.getState(), siege, 'jetLancer', ['soins']));
     expect(lancer()).toEqual([false, true, false]);
@@ -142,7 +142,7 @@ describe('l’acte de l’infirmerie : `jetRegler(soins, mode)` sur le brouillon
   it('coop : l’acte refusé d’un invité ne se dit pas au journal de l’hôte', () => {
     poser([hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(12, 4) })], { npc: BARBIER });
     creditBourse(banc.getState, banc.setState, 'p', { gold: 5, silver: 0, brass: 0 });
-    banc.setState({ net: { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { p: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } }, journal: [] } as never);
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { p: 1 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } }, journal: [] } as never);
     expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetRegler', ['soins', 'mode', 'hemorragie'])).toBe('appliquee');
     expect(banc.getState().pendingHeal?.mode).toBe('blessures');
     expect(banc.getState().journal).toEqual([]);
@@ -151,7 +151,7 @@ describe('l’acte de l’infirmerie : `jetRegler(soins, mode)` sur le brouillon
 
 /** `doc` (Guérison) au tour face à `al`, adjacent, porteur d'une Hémorragie verrouillée par Chirurgie ; `doc`
  *  appartient au siège 1 (l'invité) quand ce client est l'hôte. */
-function poserLeCombat(netMode: 'host' | 'local'): void {
+function poserLeCombat(netMode: 'hote' | 'local'): void {
   seedBattleRng(1);
   const doc = hero({ id: 'doc', pos: { x: 5, y: 5 } });
   const al = hero({ id: 'al', label: 'Blessé', skills: [], wounds: blessuresDeBase(12, 6), conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }], pos: { x: 6, y: 5 } });
@@ -160,8 +160,8 @@ function poserLeCombat(netMode: 'host' | 'local'): void {
     mode: 'battle', scene: testScene(), party: [doc, al],
     battle: { combatants: [doc, al], order, baseOrder: order, turn: 0, round: 1, action: 'soins', selectedSpellId: null, reachable: new Map(), movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null } as never,
     pendingHeal: null, refus: null,
-    net: netMode === 'host'
-      ? { ...initialNet(), mode: 'host', mySeat: 0, gmSeat: undefined, ownership: { doc: 1, al: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } }
+    net: netMode === 'hote'
+      ? { ...initialNet(), mode: 'hote', mySeat: 0, gmSeat: undefined, ownership: { doc: 1, al: 0 }, slots: [1, 1, 0, 0], seatNames: { 0: 'Hôte', 1: 'Invité' } }
       : initialNet(),
   } as never);
 }
@@ -176,7 +176,7 @@ describe('ouvrirLaGuerison et `soins.mode` lisent le filtre de combat', () => {
   });
 
   it('Soin demandé en combat par un invité : `ouvrirLaGuerison` est de la machinerie, hors allowlist, sans effet ni bandeau', () => {
-    poserLeCombat('host');
+    poserLeCombat('hote');
     expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'ouvrirLaGuerison', ['al'])).toBe('hors-allowlist');
     expect(banc.getState().pendingHeal).toBeNull();
     expect(banc.getState().refus).toBeNull();

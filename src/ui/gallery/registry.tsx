@@ -1545,7 +1545,7 @@ function RevealBodyDemo() {
   return (
     <RevealBody
       entry={{
-        kind: 'critical',
+        kind: 'critique',
         title: 'Coup Critique',
         dice: 73,
         lines: ['Entaille profonde du bras'],
