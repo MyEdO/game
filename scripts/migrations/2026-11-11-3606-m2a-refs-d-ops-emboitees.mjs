@@ -7,14 +7,13 @@
  *   `light`               `tone`      `lightTones.json`
  *   `grantNaturalWeapon`  `subType`   `weaponGroups.json`
  *
- * Entrées : chaque `src/data/*.json` suivi par git ; toute op de ces trois sortes, où qu'elle soit dans le document.
+ * Entrées : chaque `src/data/*.json` (`readdirSync`) ; toute op de ces trois sortes, où qu'elle soit dans le document.
  *
  * Une entrée absente passe sans faute : une op déjà `{ id }`, ou sans la clé, n'a aucun geste. Une valeur ni chaîne ni
  * `{ id }` seul, un id absent de son catalogue, ou un document non canonique sont un ARRÊT nominatif (exit 1), AUCUNE
  * écriture. Rejouée sur l'arbre migré : no-op byte-identique.
  */
-import { execFileSync } from 'node:child_process';
-import { readFileSync, writeFileSync } from 'node:fs';
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
@@ -27,7 +26,7 @@ const CLES = {
   grantNaturalWeapon: { cle: 'subType', ids: idsDe('src/data/weaponGroups.json') },
 };
 
-const fichiers = execFileSync('git', ['ls-files', '--', 'src/data/*.json'], { cwd: ROOT, encoding: 'utf8' }).split('\n').filter((f) => /^src\/data\/[^/]+\.json$/.test(f));
+const fichiers = readdirSync(join(ROOT, 'src/data')).filter((f) => f.endsWith('.json')).map((f) => `src/data/${f}`);
 const arrets = [];
 const ecritures = [];
 let gestes = 0;
