@@ -4,10 +4,17 @@
 [ext_resource type="Theme" path="res://art/etape_du_monde.tres" id="t_etape_du_monde"]
 [ext_resource type="Theme" path="res://art/titre_du_monde.tres" id="t_titre_du_monde"]
 
-[node name="Monde" type="CanvasLayer"]
-layer = 0
+[node name="Monde" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 
 [node name="Cadre" type="PanelContainer" parent="."]
+layout_mode = 1
 visible = false
 anchors_preset = 15
 anchor_right = 1.0
