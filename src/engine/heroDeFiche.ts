@@ -10,7 +10,7 @@ import { acquerirTalent, freeSlotFor, refKey, skillSlots, talentSlots, talentSlo
 import { assemblerLeHeros, augmenterLaCompetence, type CreateHeroOptions } from './character';
 import { carriereActuelle, designationsDeCarriere, refusDuParcours, talentsDuParcours, type ParcoursDeCarriere } from './pnjDeCarriere';
 import { contexteDeNaissanceDObjet, customTrapping, inventaireDesDotations, type DotationResolue } from './items';
-import { baseWithTalents } from './talentEffects';
+import { baseWithTalents, talentCharBonusById } from './talentEffects';
 import type { FabriqueDId } from './fabriqueDId';
 import { tableTotale } from '../lib/tableTotale';
 
@@ -89,10 +89,13 @@ export function heroDeFiche(fiche: FicheDeHeros, idNeuf: FabriqueDId): Combatant
   const characteristics = { ...fiche.initiales };
   for (const k of CHAR_KEYS) characteristics[k] += fiche.charAdvances[k] ?? 0;
   const porteur: PorteurDeTalents = { characteristics, talents: [] };
-  for (const t of fiche.talents) {
+  // Les Talents à `charMod` d'abord : le Maxi en Bonus de Caractéristique (LDB 10 l.17) se lit sur la fiche imprimée, Talents compris.
+  const charModEnTete = [...fiche.talents].sort((a, b) => Number(talentCharBonusById(b.id) !== null) - Number(talentCharBonusById(a.id) !== null));
+  const rang = (id: string, spec?: string): number => fiche.talents.findIndex((t) => refKey(t.id, t.spec) === refKey(id, spec));
+  for (const t of charModEnTete) {
     for (let i = 0; i < t.times; i++) if (!acquerirTalent(porteur, t)) throw new Error(`Fiche « ${fiche.id} » : Talent « ${refKey(t.id, t.spec)} » au-delà de son Maxi (LDB 10 l.18).`);
   }
-  const talents = porteur.talents ?? [];
+  const talents = [...(porteur.talents ?? [])].sort((a, b) => rang(a.talentId, a.spec) - rang(b.talentId, b.spec));
   const avecTalents = { characteristics, talents } as Combatant;
   for (const k of CHAR_KEYS) characteristics[k] -= baseWithTalents(avecTalents, k) - characteristics[k];
 
